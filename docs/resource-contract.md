@@ -87,6 +87,7 @@ leaders are still looked up, and a repeated name is still stored once.
 - Release queued records for partitions that are no longer assigned.
 - Count returned records when saved totals do not match the batch, then apply the saved per-topic totals.
 - Return a fetched batch without copying each record when no consume interceptor is installed.
+- Write aborted transactions into a Fetch response. The response bytes stay the same.
 - Read the next offset and the partition list of a returned batch. The next offset is the last delivered offset plus one, with its leader epoch.
 - Copy topic rows for a fetch metrics snapshot.
 

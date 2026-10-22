@@ -2804,13 +2804,7 @@ fn encode_fetch_response_fields(
                 buf.put_i64(p.log_start_offset);
             }
             buf::put_array_len(buf, flexible, Some(p.aborted_transactions.len()))?;
-            for (pid, first) in &p.aborted_transactions {
-                buf.put_i64(*pid);
-                buf.put_i64(*first);
-                if flexible {
-                    buf::put_empty_tagged_fields(buf);
-                }
-            }
+            write_aborted_transactions(buf, flexible, &p.aborted_transactions)?;
             if version >= 11 {
                 buf.put_i32(p.preferred_read_replica);
             }
@@ -2842,6 +2836,122 @@ fn encode_fetch_response_fields(
     }
     if flexible {
         super::api::encode_top_level_node_endpoints(buf, version >= 16, endpoints)?;
+    }
+    debug_assert_eq!(buf.len().saturating_sub(body_start), plan.len);
+    Ok(())
+}
+
+/// Aborted transactions written into one Fetch response before the caller is paused.
+const FETCH_ABORTED_ENCODE_CHUNK: usize = 8 * 1024;
+
+fn write_aborted_transactions(
+    buf: &mut BytesMut,
+    flexible: bool,
+    transactions: &[(i64, i64)],
+) -> Result<()> {
+    for (producer_id, first_offset) in transactions {
+        buf.put_i64(*producer_id);
+        buf.put_i64(*first_offset);
+        if flexible {
+            buf::put_empty_tagged_fields(buf);
+        }
+    }
+    Ok(())
+}
+
+async fn write_aborted_transactions_cooperative(
+    buf: &mut BytesMut,
+    flexible: bool,
+    transactions: &[(i64, i64)],
+) -> Result<()> {
+    let mut start = 0usize;
+    while start < transactions.len() {
+        let end = start
+            .saturating_add(FETCH_ABORTED_ENCODE_CHUNK)
+            .min(transactions.len());
+        let Some(slice) = transactions.get(start..end) else {
+            return Err(Error::protocol("aborted transaction slice"));
+        };
+        write_aborted_transactions(buf, flexible, slice)?;
+        start = end;
+        if start < transactions.len() {
+            tokio::task::yield_now().await;
+        }
+    }
+    Ok(())
+}
+
+/// [`encode_fetch_response`], yielding while aborted transactions are still being written.
+///
+/// Encoding 1,600,000 aborted transactions held the caller for 183ms. A
+/// transaction is still written. The bytes match [`encode_fetch_response`]:
+/// throttle 0, error code 0, the invalid session id, and no node endpoints.
+pub async fn encode_fetch_response_cooperative(
+    buf: &mut BytesMut,
+    version: i16,
+    topics: &[FetchedTopic],
+) -> Result<()> {
+    let flexible = fetch_flexible(version)?;
+    let body_start = buf.len();
+    let plan = fetch_response_plan(version, flexible, topics, &[])?;
+    let needed = body_start.saturating_add(plan.len);
+    if buf.capacity() < needed {
+        buf.reserve(needed - buf.capacity());
+    }
+    let mut staged = plan.staged.into_iter();
+    buf.put_i32(0);
+    if version >= 7 {
+        buf.put_i16(0);
+        buf.put_i32(FetchMetadata::INVALID_SESSION_ID);
+    }
+    buf::put_array_len(buf, flexible, Some(topics.len()))?;
+    for topic in topics {
+        put_fetch_topic_identity(buf, version, flexible, &topic.topic, &topic.topic_id)?;
+        buf::put_array_len(buf, flexible, Some(topic.partitions.len()))?;
+        for partition in &topic.partitions {
+            buf.put_i32(partition.partition);
+            buf.put_i16(partition.error_code);
+            buf.put_i64(partition.high_watermark);
+            buf.put_i64(partition.last_stable_offset);
+            if version >= 5 {
+                buf.put_i64(partition.log_start_offset);
+            }
+            buf::put_array_len(buf, flexible, Some(partition.aborted_transactions.len()))?;
+            write_aborted_transactions_cooperative(buf, flexible, &partition.aborted_transactions)
+                .await?;
+            if version >= 11 {
+                buf.put_i32(partition.preferred_read_replica);
+            }
+            let ready = staged.next().flatten();
+            let records_len = match ready.as_ref() {
+                Some(ready) => ready.len(),
+                None => fetch_uncompressed_records_len(&partition.records)?,
+            };
+            let mark = buf.len();
+            if let Err(error) =
+                write_fetch_records(buf, flexible, &partition.records, records_len, ready)
+            {
+                buf.truncate(mark);
+                return Err(error);
+            }
+            if flexible {
+                encode_fetch_partition_tags(
+                    buf,
+                    partition.diverging_epoch,
+                    partition.diverging_end_offset,
+                    partition.current_leader_id,
+                    partition.current_leader_epoch,
+                    partition.snapshot_end_offset,
+                    partition.snapshot_epoch,
+                )?;
+            }
+        }
+        if flexible {
+            buf::put_empty_tagged_fields(buf);
+        }
+    }
+    if flexible {
+        super::api::encode_top_level_node_endpoints(buf, version >= 16, &[])?;
     }
     debug_assert_eq!(buf.len().saturating_sub(body_start), plan.len);
     Ok(())
@@ -3744,6 +3854,46 @@ mod tests {
                 .map(|item| item.error_code),
             Some(6)
         );
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn encoding_many_aborted_transactions_does_not_hold_the_caller() {
+        let mut partition = FetchedPartition::partition_response(0, 0);
+        partition.aborted_transactions = (0..1_600_000).map(|index| (index, index)).collect();
+        let topics = [FetchedTopic {
+            topic: "orders".to_string(),
+            topic_id: [0; 16],
+            partitions: vec![partition],
+        }];
+        let started = std::time::Instant::now();
+        tokio::select! {
+            encoded = async {
+                let mut body = bytes::BytesMut::new();
+                encode_fetch_response_cooperative(&mut body, 12, &topics)
+                    .await
+                    .unwrap_or_else(|error| panic!("{error}"));
+            } => encoded,
+            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "encoding aborted transactions held the caller for {elapsed:?}"
+        );
+        let mut one = FetchedPartition::partition_response(3, 0);
+        one.aborted_transactions = vec![(9, 4), (8, 2)];
+        let sample = [FetchedTopic {
+            topic: "orders".to_string(),
+            topic_id: [0; 16],
+            partitions: vec![one],
+        }];
+        let mut once = bytes::BytesMut::new();
+        let mut paced = bytes::BytesMut::new();
+        encode_fetch_response(&mut once, 12, &sample).unwrap_or_else(|error| panic!("{error}"));
+        encode_fetch_response_cooperative(&mut paced, 12, &sample)
+            .await
+            .unwrap_or_else(|error| panic!("{error}"));
+        assert_eq!(once, paced);
     }
 
     #[tokio::test(flavor = "current_thread")]

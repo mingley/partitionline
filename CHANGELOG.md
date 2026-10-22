@@ -7,6 +7,8 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
 
 ## [Unreleased]
 
+- Encoding a Fetch response pauses every 8,192 aborted transactions so a
+  caller deadline can fire. The encoded bytes are unchanged.
 - The operator guide puts the packed-package exercise's produce, commit,
   and coordinator rules in one table. The expected four output lines stay
   with the exercise.
