@@ -16,7 +16,10 @@ cross-link, not a second specification.
 5. Several Produce requests can be in flight on the same socket.
 6. `flush` waits for those responses and returns the first broker error. `try_send` returning `Ok` only means the record was queued.
 
-The hot path copies each payload once into the record batch and checksums it with CRC32-C.
+Uncompressed Produce writes each record into the request buffer and
+checksums the batch with CRC32-C. The key and the value are copied on
+that write. Compressed Produce packs the records in a scratch buffer,
+compresses them, and then copies the packed bytes into the request.
 
 `ProducerConfig`, `ConsumerConfig`, and `AdminConfig` are chainable builders. The raw fields stay writable. `ConsumerConfig.isolation_level` is `IsolationLevel`, not a raw `i8`.
 

@@ -83,6 +83,9 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
 - The benchmark page maps the two fetch samples and the latency sample
   before the per-run tables. The latency sample remains a loss against
   rust-rdkafka 0.39.0.
+- The design page describes the current Produce encoder. Uncompressed
+  batches are written into the request buffer. Compressed batches are
+  packed first and then copied. KL09-15 stays open.
 - The gateway profile names zstd as an optional codec that has shipped.
   Its measured cells remain gzip and lz4.
 

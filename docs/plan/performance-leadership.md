@@ -157,7 +157,7 @@ These cards have landed since that date:
 
 Still open, and still the right reading of this section:
 
-- **KL09-15.** Flexible Produce v9+ still copies each batch into the request. Do not start that card without a measurement of the parent revision and byte-identical requests.
+- **KL09-15.** Still pending. The 2026-09-26 line about a fresh buffer and a full copy on every flexible batch describes that date's code. Uncompressed Produce now writes each record into the request buffer. Compressed Produce still copies the packed batch out of a scratch buffer. Do not start the card without a measurement of the parent revision and byte-identical requests. `src/producer.rs` is also held by other in-progress cards.
 - **KL01-24.** Incremental Fetch is implemented. Live qualification of session runtime and bounded reset histories is not.
 
 Two lines were not re-measured for this note: the latency loss, and the lack of an efficiency measurement. Leave both as the state on 2026-09-26. The notes on per-record consumer allocations and missing prefetch overlap were not re-checked either. **Suite HOLD remains.** This note does not publish a claim.
@@ -324,8 +324,9 @@ order are done: KL09-01, KL09-14, KL04-09, KL04-07, KL04-06, KL05-11,
 KL09-06, KL09-11, and KL09-65. Do not reopen them.
 
 Pick the next card with the [ready query](#7-claims-hot-file-locks-and-the-ready-query).
-Two cards the old list was unblocking are still pending: KL09-15 (flexible
-Produce still copies the batch; measure the parent revision first) and
+Two cards the old list was unblocking are still pending: KL09-15 (measure
+the parent revision first; uncompressed Produce already writes into the
+request buffer, and compressed Produce still copies the packed batch) and
 KL09-20 (drain acknowledgments during linger). Confirm both are ready and
 unlocked before claiming either.
 
