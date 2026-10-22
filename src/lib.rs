@@ -32,14 +32,17 @@
 //! then produce is [`Producer::send_offsets_for_group`] (`examples/eos.rs`).
 //! Produce interceptors are [`ProducerConfig::interceptor`] (`examples/intercept.rs`).
 //! Fetch interceptors are [`ConsumerConfig::interceptor`] (`examples/consume_intercept.rs`).
-//! The producer negotiates Produce v3–v12 (v3–v8 classic; v9+ flexible;
+//! The producer negotiates Produce v3–v13 (v3–v8 classic; v9+ flexible;
 //! v10+ KIP-951 CurrentLeader / NodeEndpoints; v11 TRANSACTION_ABORTABLE; v12 KIP-890
-//! Part 2 transaction V2, skipping AddPartitionsToTxn). ThrottleTimeMs is JSON `1+` after Responses
+//! Part 2 transaction V2, skipping AddPartitionsToTxn; v13 topic IDs).
+//! Metadata below v10 keeps Produce at v12. A transactional producer stays at
+//! v11 unless transaction version 2 is finalized and EndTxn is v5.
+//! ThrottleTimeMs is JSON `1+` after Responses
 //! ([`protocol::api::encode_produce_response_with_throttle`];
 //! encode previously always wrote `0` and decode discarded; convenience
 //! encode still writes `0`; official Java `getErrorResponse` sets
-//! `throttleTimeMs` from the argument). v13+ (topic IDs)
-//! is not spoken. [`protocol::api::ProduceRequest::LAST_STABLE_VERSION_BEFORE_TRANSACTION_V2`]
+//! `throttleTimeMs` from the argument). v14+ is not spoken.
+//! [`protocol::api::ProduceRequest::LAST_STABLE_VERSION_BEFORE_TRANSACTION_V2`]
 //! / [`protocol::api::ProduceRequest::is_transaction_v2_requested`] /
 //! [`protocol::api::ProduceRequest::builder`] are Java
 //! `ProduceRequest.LAST_STABLE_VERSION_BEFORE_TRANSACTION_V2` /
@@ -1553,7 +1556,7 @@
 //! every partition leader in parallel. Nothing assigned is Java
 //! `Consumer is not subscribed to any topics or assigned any partitions`
 //! ([`ConsumerGroup::poll`] uses the same check; [`ShareGroup::poll`] is
-//! `Consumer is not subscribed to any topics.`). Fetch negotiates v4–v17 (v12+ is
+//! `Consumer is not subscribed to any topics.`). Fetch negotiates v4–v18 (v12+ is
 //! flexible; v13+ topic IDs, KIP-516; v15 omits untagged ReplicaId, KIP-903;
 //! v16 CurrentLeader / NodeEndpoints, KIP-951; v17 ReplicaDirectoryId tagged
 //! field 0, KIP-853 (consumers omit zeros; a non-zero directory id is written);
@@ -1595,8 +1598,10 @@
 //! encode omits it even when the body is non-default and decode fills
 //! [`protocol::epoch::EpochEndOffset::UNDEFINED_EPOCH_OFFSET`] /
 //! [`protocol::epoch::EpochEndOffset::UNDEFINED_EPOCH`]; this is not the
-//! FetchSnapshot API and does not start those RPCs). v18+
-//! is not spoken. [`protocol::fetch::FetchedPartition::INVALID_HIGH_WATERMARK`] /
+//! FetchSnapshot API and does not start those RPCs). v18 adds request
+//! partition HighWatermark tag 1 (KIP-1166); ordinary consumers omit it, and
+//! the response matches v17. v19+ is not spoken.
+//! [`protocol::fetch::FetchedPartition::INVALID_HIGH_WATERMARK`] /
 //! [`protocol::fetch::FetchedPartition::INVALID_LAST_STABLE_OFFSET`] /
 //! [`protocol::fetch::FetchedPartition::INVALID_LOG_START_OFFSET`] /
 //! [`protocol::fetch::FetchedPartition::INVALID_PREFERRED_REPLICA_ID`] are Java

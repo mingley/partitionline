@@ -1000,8 +1000,8 @@ mod tests {
     fn produce_v9_is_flexible_v8_is_not() {
         // Official JSON: validVersions 3-12, flexibleVersions 9+.
         // Kafka 4.0 removed v0–v2. HeaderVersion is 1 / 0 at v3–8 and
-        // 2 / 1 at v9+. This crate speaks 3–12. v13+ (topic IDs) is
-        // not spoken.
+        // 2 / 1 at v9+. This crate speaks 3–13. v13 uses topic IDs and
+        // the same header as v12. v14+ is not spoken.
         assert_eq!(request_header_version(PRODUCE, 3), 1);
         assert_eq!(response_header_version(PRODUCE, 3), 0);
         assert_eq!(request_header_version(PRODUCE, 8), 1);
@@ -1010,14 +1010,16 @@ mod tests {
         assert_eq!(response_header_version(PRODUCE, 9), 1);
         assert_eq!(request_header_version(PRODUCE, 12), 2);
         assert_eq!(response_header_version(PRODUCE, 12), 1);
+        assert_eq!(request_header_version(PRODUCE, 13), 2);
+        assert_eq!(response_header_version(PRODUCE, 13), 1);
     }
 
     #[test]
     fn fetch_v12_is_flexible_v11_is_not() {
         // Official JSON: validVersions 4-17, flexibleVersions 12+.
         // Kafka 4.0 removed v0–v3. HeaderVersion is 1 / 0 at v4–11 and
-        // 2 / 1 at v12+. This crate speaks 4–17. v18+ (HighWatermark) is
-        // not spoken.
+        // 2 / 1 at v12+. This crate speaks 4–18. v18 adds the KIP-1166
+        // HighWatermark tag and keeps this header. v19+ is not spoken.
         assert_eq!(request_header_version(FETCH, 4), 1);
         assert_eq!(response_header_version(FETCH, 4), 0);
         assert_eq!(request_header_version(FETCH, 11), 1);
@@ -1032,6 +1034,8 @@ mod tests {
         assert_eq!(response_header_version(FETCH, 16), 1);
         assert_eq!(request_header_version(FETCH, 17), 2);
         assert_eq!(response_header_version(FETCH, 17), 1);
+        assert_eq!(request_header_version(FETCH, 18), 2);
+        assert_eq!(response_header_version(FETCH, 18), 1);
     }
 
     #[test]

@@ -45,7 +45,7 @@ v6+ (KIP-939 2PC) is not spoken.
 
 ### Produce
 
-Spoken versions: 3–12.
+Spoken versions: 3–13.
 
 This client uses Produce versions 3–12 (v3–v8 classic record bytes; v9–v12 are compact arrays/strings/bytes plus tagged fields; request header 2, response header 1).
 
@@ -73,11 +73,11 @@ Kafka 4.0 removed v0–v2.
 
 Kafka 4.0 `validVersions` is `3-12`.
 
-v13+ (topic IDs) is not spoken.
+v13 uses topic IDs. The producer negotiates 3–13. It stays at 12 when Metadata is below v10. A transactional producer stays at v11 unless the cluster has finalized transaction version 2 and EndTxn v5. v14+ is not spoken.
 
 ### Fetch
 
-Spoken versions: 4–17.
+Spoken versions: 4–18.
 
 Fetch v11 is classic (RackId is a non-nullable STRING).
 
@@ -93,7 +93,7 @@ Request ReplicaId is JSON `0-14` (untagged INT32; `encode_fetch_request_with_rep
 
 Request partition LogStartOffset is JSON `5+` (INT64 after LastFetchedEpoch; encode writes `FetchPartition.log_start_offset`; below v5 omit even when non-default and decode fills `INVALID_LOG_START_OFFSET`; official Java `FetchRequest.PartitionData.logStartOffset`).
 
-v12–v17 are flexible (compact arrays/strings/bytes plus tagged fields; LastFetchedEpoch after FetchOffset; request header 2, response header 1).
+v12–v18 are flexible (compact arrays/strings/bytes plus tagged fields; LastFetchedEpoch after FetchOffset; request header 2, response header 1).
 
 ThrottleTimeMs is JSON `1+` first field (`encode_fetch_response_with_throttle`; encode previously always wrote `0` and decode discarded; convenience encode still writes `0`).
 
@@ -123,7 +123,7 @@ Kafka 4.0 removed v0–v3.
 
 Kafka 4.0 `validVersions` is `4-17`.
 
-v18+ (KIP-1166 HighWatermark) is not spoken.
+v18 adds request partition HighWatermark tag 1 (KIP-1166). Ordinary consumers omit that tag. The response layout matches v17. v19+ is not spoken.
 
 This crate sends LastFetchedEpoch from the last consumed record-batch leader epoch (`-1` after assign/seek until a batch is consumed, and from OffsetFetch `leader_epoch` on group assign).
 
@@ -137,13 +137,13 @@ This is not the FetchSnapshot API and does not start those RPCs.
 
 ### ListOffsets
 
-Spoken versions: 1–10.
+Spoken versions: 1–11.
 
 ListOffsets v4+ has `current_leader_epoch` before timestamp.
 
 The v4+ response has `leader_epoch` after offset.
 
-v1–v5 are classic; v6–v10 are flexible (compact arrays/strings plus tagged fields; request header 2, response header 1).
+v1–v5 are classic; v6–v11 are flexible (compact arrays/strings plus tagged fields; request header 2, response header 1).
 
 Request ReplicaId is JSON `0+` (INT32 first field; `encode_list_offsets_topics_request_with_replica_id`; encode previously always wrote `CONSUMER_REPLICA_ID` and decode discarded; convenience encode still writes `CONSUMER_REPLICA_ID`; official Java `ListOffsetsRequest.replicaId()`).
 
@@ -155,9 +155,9 @@ v9 is LATEST_TIERED `-5` (KIP-1005).
 
 v10 adds TimeoutMs after Topics (KIP-1075; this crate sends `request_timeout`, or the one-shot timeout from `list_offsets_timeout` / `list_offsets_with_isolation_timeout`).
 
-Kafka 4.0 `validVersions` is `1-10`.
+Kafka 4.0 `validVersions` is `1-10`. Apache 4.3.1 extends that range through v11.
 
-v11+ is not spoken.
+v11 adds EARLIEST_PENDING_UPLOAD, timestamp `-6` (KIP-1023, `OffsetSpec::earliest_pending_upload`). v12+ is not spoken.
 
 ### OffsetForLeaderEpoch
 

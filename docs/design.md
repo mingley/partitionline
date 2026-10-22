@@ -98,9 +98,9 @@ A few rules apply across APIs:
 | API | Spoken versions |
 | --- | --- |
 | InitProducerId | 0–5 |
-| Produce | 3–12 |
-| Fetch | 4–17 |
-| ListOffsets | 1–10 |
+| Produce | 3–13 |
+| Fetch | 4–18 |
+| ListOffsets | 1–11 |
 | OffsetForLeaderEpoch | 0–4 |
 | AddPartitionsToTxn | 0–3 |
 | AddOffsetsToTxn | 0–4 |

@@ -98,134 +98,64 @@ qualification remain separate.
 | macOS Intel / other host architectures | May build; no CI support promise for these cells | — (CI dimension, not a feature entry) |
 | Every Kafka API version | Demand-led (KL-05); see [gaps.md](gaps.md) | `producer.v13_wire` (`present`); `manual_consumer.v18_wire` (`present`) |
 
-Produce13 topic IDs are qualified by independent Apache 4.1.2/4.2.1/4.3.1
-serialization and live Java decoding of fresh Rust requests/responses, plus
-deterministic peer tests for topic recreation, immutable response identity,
-missing IDs, delivery-budget retries, and v3–v12 fallback. TransactionV1 retains
-v11; finalized `transaction.version >=2` with EndTxn5 enables v12/v13, fixed at
-producer initialization. This does not qualify a live multi-broker deployment.
+## What recent source adds
 
-ListOffsets now supports v1–v11 with explicit KIP-1023 earliest pending upload
-(`-6`, `OffsetSpec::earliest_pending_upload`). Admin and manual consumers refresh
-each selected leader’s range and reject unsupported selectors/isolation before
-the ListOffsets request; caller deadlines cover metadata/connect/negotiation/RPC
-and retries. Independent Apache bytes and mock paths qualify the delta. No live
-tiered-storage deployment or pending-upload boundary is qualified.
+These notes describe the working source. They do not by themselves qualify a live multi-broker deployment.
 
-ListTransactions supports v0–v2 with complete and per-broker results. Typed
-options retain duration and transaction-ID pattern filters. A nonempty pattern
-requires v2; it is never silently dropped on an older broker. Three actual
-Apache SDKs qualify selected wire and public-call behavior against bounded
-scripted peers. Live transaction-state recovery remains separate work.
+### Produce topic IDs
 
-Metadata and GROUP coordinator discovery include v0. Named v0 metadata requests
-require automatic topic creation to be enabled; unsupported options are refused.
-Absent controller, UUID and rack fields keep their sentinel values. The raw wire
-support differs from the current Java Metadata builder, which refuses v0.
+Produce v13 topic IDs are checked against independent Apache 4.1.2, 4.2.1, and 4.3.1 serialization, live Java decoding of fresh Rust requests and responses, and deterministic peers for topic recreation, immutable response identity, missing IDs, delivery-budget retries, and the v3–v12 fallback. Transaction version 1 stays on Produce v11. Finalized `transaction.version` of 2 or higher, with EndTxn v5, enables v12 and v13. That choice is fixed when the producer starts.
 
-OffsetCommit and OffsetFetch support v10 topic UUIDs through typed requests,
-ConsumerGroup and Admin methods. Name-based calls retain older wire formats;
-UUID-only requests refuse older coordinators. Metadata snapshots and assignment
-IDs keep offsets tied to the original topic across same-name recreation.
-Selected wire and public-call checks use three pinned Apache SDKs and scripted
-peers. This does not qualify live coordinator persistence or cluster failover.
+### ListOffsets
 
-DescribeLogDirs now negotiates each selected broker’s v1–v5 range and exposes
-typed `IsCordoned` at v5 (older versions default to false). Each attempt adds one
-ApiVersions control RPC within that broker hop’s deadline. Independent Apache
-4.3.1 bytes and mixed-version mock brokers qualify this delta; live v5 broker
-behavior remains unqualified. Public struct literals for `DescribeLogDirsResult`
-need the new `is_cordoned` field; its existing constructor defaults it to false.
+ListOffsets supports v1–v11, including KIP-1023 earliest pending upload (`-6`, `OffsetSpec::earliest_pending_upload`). Admin and manual consumers refresh each selected leader’s range and reject an unsupported selector or isolation level before the request. The caller deadline covers metadata, connect, negotiation, the RPC, and retries. Independent Apache bytes and mock paths cover this delta. No live tiered-storage deployment or pending-upload boundary is qualified.
 
-Streams v0 codecs and caller-driven heartbeats preserve typed topology, tasks,
-offsets, endpoints and status fields. Heartbeats use GROUP coordinator discovery,
-actual connection capabilities and one caller deadline, with explicit v0 opt-in.
-Three pinned Apache SDKs check selected public Rust socket histories and typed
-responses. This does not implement a Streams execution engine or broker
-coordinator. Typed Admin descriptions retain every group/member/topology field,
-caller order and duplicates, with per-group discovery/capability failures.
+### ListTransactions
 
-Source now includes typed `elect_leaders`, read-only `describe_quorum` and
-`add_raft_voter` / `remove_raft_voter` Admin methods. Removal stays on v0.
-Addition negotiates v0 or v1. The default acknowledgement waits for a committed
-voter set and can use v0, which has no other mode. An explicit local append
-(`ack_when_committed: false`) requires v1 and is rejected before I/O on a
-v0-only broker; that success is a local append, not committed membership.
-Java's public options expose cluster id only, so the false mode is a Rust
-extension. Both membership operations follow broker forwarding, with explicit
-voter/directory/cluster validation and a total deadline; addition also
-validates named endpoints. Removal has no wire TimeoutMs field. Independent
-Apache v0 fixtures and mock v1 checks cover the wire contract. No live quorum
-delay-commit proof, real membership change, or direct controller-bootstrap
-support is qualified. A lost response can leave membership ambiguous: inspect
-the quorum before another change. Production membership operations need an
-operator-approved procedure.
+ListTransactions supports v0–v2, with a complete listing and a per-broker listing. Typed options keep the duration filter and the transaction-ID pattern. A nonempty pattern requires v2. It is not dropped on an older broker. Three Apache SDKs check selected wire and public-call behavior against bounded scripted peers. Live transaction-state recovery is separate work.
 
-**Source versus published crate:** the migration map
-([migrate-from-rdkafka.md](migrate-from-rdkafka.md)) was verified at source
-`ca50ca1`, which postdates the packed crates.io `0.1.0` (14 files under
-`src/` differ). Mapped configuration defaults are identical in both except
-`ConsumerConfig::buffer_memory` (32 MiB fetch cap, current source only).
+### Metadata and coordinator discovery
 
-**Error and configuration contract:** the normative 0.x caller contract for
-error categories (retryable, abort-required, fatal, unsupported, timeout,
-ambiguous-delivery) and for public config fields (rejected combinations,
-normalizations, Java default differences) is frozen in
-[api-stability.md](api-stability.md) (KL07-10). Match error categories, not
-`Display` text; construct configs via builders or `Default` plus overrides.
+Metadata and GROUP coordinator discovery include v0. A named v0 metadata request requires automatic topic creation. Unsupported options are refused. Missing controller, UUID, and rack fields keep their sentinel values. This wire support differs from the current Java Metadata builder, which refuses v0.
 
-## Security response
+### Offset commit and fetch
 
-Report vulnerabilities privately (GitHub security advisories when enabled). See
-[security.md](security.md). Credential `Debug` redaction is documented there; it
-does not replace rotation/outage recovery work (KL-06 open).
+OffsetCommit and OffsetFetch support v10 topic UUIDs on typed requests, on `ConsumerGroup`, and on Admin. Name-based calls keep the older wire formats. A UUID-only request refuses an older coordinator. Metadata snapshots and assignment IDs keep offsets tied to the original topic when a topic of the same name is recreated. Selected checks use three pinned Apache SDKs and scripted peers. Live coordinator persistence and cluster failover are not qualified.
 
-## Upgrade and deprecation (0.x)
+### DescribeLogDirs
 
-- Prefer patch for fixes-only; breaking **Stable** surfaces bump `0.MINOR` (see
-  [RELEASE.md](RELEASE.md) and [api-stability.md](api-stability.md)).
-- Unsupported combinations above may break without a major bump while on 0.x;
-  they will not be silently advertised as supported in this matrix.
-- Rollback of a production cut is operator-controlled; release rehearsal covers
-  partial-release recovery without publishing (`scripts/rehearse-partial-release.sh`).
+DescribeLogDirs negotiates each selected broker’s v1–v5 range. Typed `IsCordoned` appears at v5. Older versions default it to false. Each attempt adds one ApiVersions control RPC inside that broker hop’s deadline. Independent Apache 4.3.1 bytes and mixed-version mock brokers cover this delta. Live v5 broker behavior is not qualified. A public struct literal for `DescribeLogDirsResult` needs the `is_cordoned` field. The existing constructor defaults it to false.
 
-## Remaining KL-08 gaps
+### Streams
 
-This matrix Does **not** close KL-08. Still open: two independent adopter
-24h/7d records, traffic-shadow promotion, and operator-approved rollback proof
-under production SLOs. Use the blank
-[adopter exercise template](adopter-exercise.md) to record runs when they
-happen — the template itself is **UNFILLED** and is not evidence.
+Streams v0 codecs and caller-driven heartbeats keep typed topology, tasks, offsets, endpoints, and status fields. Heartbeats use GROUP coordinator discovery, the connection’s actual capabilities, and one caller deadline. v0 is explicit. Three pinned Apache SDKs check selected public Rust socket histories and typed responses. This client does not include a Streams execution engine, and the broker does not include a Streams coordinator. Typed Admin descriptions keep every group, member, and topology field, including caller order and duplicates. Discovery or capability failures are reported per group.
 
-Produce quota scheduling supports negotiated v6–v13 across all connections to
-one broker, while v3–v5 retain server throttling. Positive waits share the existing
-delivery deadline and close budget. The fixed-size `ProducerMetrics.throttle`
-snapshot reports requested time and invalid negative responses. Deterministic
-peer tests cover broker isolation, in-flight acknowledgements, reconnection,
-version boundaries, expiry and shutdown; no live quota deployment is claimed.
-Admin and heartbeat/group quota scheduling remain separate qualifications.
+### Quorum admin
 
-Fetch quota scheduling supports negotiated v8–v18 per broker with per-response
-completion clocks; v4–v7 retain server throttling. Other brokers and buffered
-records continue delivering while a peer is muted. All-muted waits share the
-poll long-poll and original request budgets and accept wakeup/caller cancellation.
-`ConsumerMetrics.throttle` uses fixed-size requested-time counters. Deterministic
-peer tests cover mixed versions, zero/negative durations, response discard at the
-buffer cap, deadline expiry, cancellation and idle reconnection. The Apache Java
-4.3.1 scheduling reference is executed independently; no live quota deployment
-or throughput improvement is claimed.
+Source includes typed `elect_leaders`, read-only `describe_quorum`, and `add_raft_voter` / `remove_raft_voter`. Removal stays on v0. Addition negotiates v0 or v1. The default acknowledgement waits for a committed voter set and can use v0, which has no other mode. An explicit local append (`ack_when_committed: false`) requires v1 and is rejected before I/O on a v0-only broker. That success is a local append, not committed membership. Java’s public options expose cluster id only, so the false mode is a Rust extension. Both membership operations follow broker forwarding. They validate the voter, directory, and cluster, and they share one deadline. Addition also validates named endpoints. Removal has no TimeoutMs field on the wire. Independent Apache v0 fixtures and mock v1 checks cover the wire contract. No live quorum delay-commit proof, real membership change, or direct controller bootstrap is qualified. A lost response can leave membership ambiguous. Inspect the quorum before another change. A production membership change needs an operator-approved procedure.
 
-Incremental Fetch runtime support covers broker-local v7–v18 sessions and v4–v6
-full fallback, partition/identity validation, bounded session-error recovery,
-assignment and topic-ID changes, and terminal close. Tests and the strict
-32-partition live runner cover a named reconnect reset with 65 exact Rust/Java
-records. The Apache 4.3.1 handler independently executes 80 state transitions.
-Request-byte reduction is measured; no throughput, latency or sustained broker
-fault campaign result is claimed.
+### Published crate
 
-Fetch18 KIP-1166 is implemented with explicit replica HighWatermark sidecars,
-strict known-tag lengths and default omission by ordinary consumers. Existing
-public partition layouts and helper signatures are preserved. Apache4.1.0 and
-4.1.2/4.2.1/4.3.1 independently serialize the same request bytes; named A01–A05
-regressions run at the observed18 version. Replica acknowledgment and quorum
-commit behavior are outside this client codec.
+The migration map ([migrate-from-rdkafka.md](migrate-from-rdkafka.md)) was verified at source `ca50ca1`, which is later than the packed crates.io `0.1.0` (14 files under `src/` differ). Mapped configuration defaults match, except `ConsumerConfig::buffer_memory` (a 32 MiB fetch cap, current source only).
+
+The 0.x caller contract for error categories (retryable, abort-required, fatal, unsupported, timeout, ambiguous delivery) and for public config fields is in [api-stability.md](api-stability.md). Match error categories, not `Display` text. Build configs with the builders, or with `Default` plus overrides.
+
+Report vulnerabilities privately. See [security.md](security.md). Credential `Debug` redaction is documented there. It does not replace rotation and outage recovery (KL-06 is open).
+
+### Upgrades
+
+Prefer a patch release for fixes. A breaking change to a Stable surface bumps `0.MINOR`. See [RELEASE.md](RELEASE.md) and [api-stability.md](api-stability.md). Combinations listed above as unsupported may change while the crate is on 0.x. They will not be advertised as supported in this matrix. Rolling back a production cut is the operator’s job. Release rehearsal covers partial-release recovery without publishing (`scripts/rehearse-partial-release.sh`).
+
+### Still open for KL-08
+
+This matrix does not close KL-08. Still open: two independent adopter 24-hour and 7-day records, traffic-shadow promotion, and an operator-approved rollback proof under production SLOs. The [adopter exercise template](adopter-exercise.md) is blank. Filling it in is how a run becomes evidence. The template itself is not evidence.
+
+### Quotas and incremental fetch
+
+Produce quota scheduling supports negotiated v6–v13 on every connection to one broker. v3–v5 keep server throttling. Positive waits share the existing delivery deadline and close budget. The fixed-size `ProducerMetrics.throttle` snapshot reports requested time and an invalid negative response. Deterministic peer tests cover broker isolation, in-flight acknowledgements, reconnection, version boundaries, expiry, and shutdown. No live quota deployment is claimed. Admin and heartbeat or group quota scheduling are separate.
+
+Fetch quota scheduling supports negotiated v8–v18 per broker, with a completion clock on each response. v4–v7 keep server throttling. Other brokers and buffered records keep delivering while one peer is muted. An all-muted wait shares the poll long-poll and the original request budget, and it accepts wakeup and caller cancellation. `ConsumerMetrics.throttle` uses fixed-size requested-time counters. Deterministic peer tests cover mixed versions, zero and negative durations, discarding a response at the buffer cap, deadline expiry, cancellation, and idle reconnection. The Apache Java 4.3.1 scheduling reference is executed separately. No live quota deployment or throughput improvement is claimed.
+
+Incremental Fetch covers broker-local sessions on v7–v18 and a full fetch fallback on v4–v6, plus partition and identity checks, bounded session-error recovery, assignment and topic-ID changes, and a terminal close. Tests and the strict 32-partition live runner cover a named reconnect reset with 65 exact Rust and Java records. The Apache 4.3.1 handler executes 80 state transitions on its own. Request-byte reduction is measured. No throughput, latency, or sustained broker-fault result is claimed.
+
+Fetch v18 (KIP-1166) carries replica HighWatermark sidecars, with strict lengths for known tags. Ordinary consumers omit the tag. Existing public partition layouts and helper signatures stay the same. Apache 4.1.0, 4.1.2, 4.2.1, and 4.3.1 serialize the same request bytes. Named A01–A05 regressions run at the observed v18. Replica acknowledgement and quorum commit are outside this client codec.
