@@ -1,17 +1,29 @@
 # Wire versions
 
-This page is the field-level companion to the [design notes](design.md#wire-format-notes). Each section is one API. The first line is the versions this crate speaks. The paragraphs after it are the layout: classic or flexible encoding, where throttle time sits, and which KIP added a field.
+This page is the field notes for each API. The spoken-version index is the table in the [design notes](design.md#wire-format-notes). Rust behavior is authoritative. A Java name is a porting cross-link.
 
-Rust behavior is authoritative. A Java name is a porting cross-link, not a second specification.
+Each section starts with the versions this crate speaks. The notes after that are framing, fields, and what the client does with them.
+
+## Words that repeat
+
+| Phrase | Meaning |
+|---|---|
+| Classic | Kafka's older arrays and strings. Request header version 1, response header version 0, unless the section says otherwise. |
+| Flexible | Compact arrays, strings, and bytes, plus tagged fields. Request header version 2, response header version 1, unless the section says otherwise. |
+| JSON `N+` | The Apache schema includes that field from version N. The name in parentheses is the encoder in this crate. |
+| Encode previously wrote a constant | An older revision of this crate ignored the field on decode and wrote a fixed value on encode. The convenience encoder may still write that default. |
+| Bodies match | Those versions encode to the same bytes when every optional field is at its default. |
+| Kafka 4.0 `validVersions` | Apache's advertised range in that release. This crate can speak a wider range. The section says which. |
 
 ## Layout rules
-- Request `ClientId` is always a classic nullable string, even on flexible headers.
-- ApiVersions **response** header is never flexible. If you parse it as flexible you eat the error code.
+
+- Request `ClientId` is a classic nullable string, including on flexible headers.
+- The ApiVersions **response** header is classic. A flexible parse treats the error code as a compact-string length.
 - Produce throttle time comes **after** the topic array. Metadata throttle time comes first.
-- Record batch magic 2 CRC is CRC32-C over bytes from attributes to the end.
-- Record lengths are zigzag varints. Compact protocol lengths are unsigned varint of `n+1` (`0` means null).
-- Without `InitProducerId`, producer id / epoch / sequence must be `-1`. Zero is a real id.
-- `acks=0` means the broker sends no Produce response. Do not read one.
+- A magic-2 record batch CRC is CRC32-C from the attributes byte through the end of the batch.
+- Record lengths are zigzag varints. A compact protocol length is an unsigned varint of `n + 1`. Zero means null.
+- Without `InitProducerId`, producer id, epoch, and sequence are `-1`. Zero is a real id.
+- `acks=0` means the broker sends no Produce response. The client does not read one.
 
 ## APIs
 
@@ -47,95 +59,64 @@ v7+ is not spoken.
 
 ### Produce
 
-Spoken versions: 3–13.
+Spoken versions: 3–13. Version 14 and above are not spoken.
 
-This client uses Produce versions 3–12 (v3–v8 classic record bytes; v9–v12 are compact arrays/strings/bytes plus tagged fields; request header 2, response header 1).
+v3–v8 are classic record bytes. v9–v13 are flexible. Request header version 2, response header version 1. v13 uses topic IDs and the identity-aware helpers.
 
-ThrottleTimeMs is JSON `1+` after Responses (`encode_produce_response_with_throttle`; encode previously always wrote `0` and decode discarded; convenience encode still writes `0`).
+The producer negotiates 3–13. It stays at 12 when Metadata is below v10. A transactional producer stays at 11 unless the cluster has finalized transaction version 2 and EndTxn is v5.
 
-Empty-Responses v3, v4, v5, v6, v7, and v8 bodies match; v9, v10, v11, and v12 bodies match.
+| Versions | Layout |
+|---|---|
+| 3–8 | One empty-response body. |
+| 9–12 | One empty-response body, in the flexible encoding. |
+| 10 and above | Partition `CurrentLeader` is tagged field 0 (KIP-951): `LeaderId` INT32, `LeaderEpoch` INT32, then nested tagged fields. Top-level `NodeEndpoints` is tagged field 0: a compact array of `NodeId` INT32, `Host` compact string, `Port` INT32, `Rack` compact nullable string, then nested tagged fields. |
+| 11 | `TRANSACTION_ABORTABLE`. Same bytes as v10. |
+| 12 | Same bytes as v10. KIP-890 part 2, transaction version 2. |
+| 13 | Topic IDs. Still flexible. |
 
-There is no top-level ErrorCode.
+`ThrottleTimeMs` is JSON `1+`, placed after `Responses` (`encode_produce_response_with_throttle`). The convenience encoder writes `0`. There is no top-level error code. Java `getErrorResponse` copies `throttleTimeMs` from its argument.
 
-Official Java `getErrorResponse` sets `throttleTimeMs` from the argument.
+A retriable Produce error whose `CurrentLeader` names a known broker updates that partition's leader cache and skips a Metadata refresh. An unknown leader is inserted from `NodeEndpoints` first, then applied the same way.
 
-v10+ adds partition CurrentLeader tagged field 0 (KIP-951; `LeaderId` INT32 + `LeaderEpoch` INT32 + nested tagged fields) and top-level NodeEndpoints tagged field 0 (compact array of `NodeId` INT32 + `Host` compact STRING + `Port` INT32 + `Rack` compact nullable STRING + nested tagged fields).
+When the broker advertises v12, transactional produce skips `AddPartitionsToTxn`. The partition leader does that work.
 
-When Produce fails with a retriable error and CurrentLeader names a known broker, the producer patches that partition’s leader cache and skips a Metadata refresh.
-
-Unknown CurrentLeader brokers are inserted from NodeEndpoints first, then applied the same way.
-
-v11 is TRANSACTION_ABORTABLE (same layout as v10).
-
-v12 is the same layout (KIP-890 Part 2 transaction V2).
-
-When the broker advertises v12, transactional produce skips AddPartitionsToTxn (the partition leader performs that work).
-
-Kafka 4.0 removed v0–v2.
-
-Kafka 4.0 `validVersions` is `3-12`.
-
-v13 uses topic IDs. The producer negotiates 3–13. It stays at 12 when Metadata is below v10. A transactional producer stays at v11 unless the cluster has finalized transaction version 2 and EndTxn v5. v14+ is not spoken.
+Kafka 4.0 removed v0–v2. Its `validVersions` is `3-12`. This crate also speaks v13.
 
 ### Fetch
 
-Spoken versions: 4–18.
+Spoken versions: 4–18. Version 19 and above are not spoken.
 
-Fetch v11 is classic (RackId is a non-nullable STRING).
+v4–v11 are classic. On v11, `RackId` is a non-nullable string. v12–v18 are flexible, with `LastFetchedEpoch` after `FetchOffset`. Request header version 2, response header version 1.
 
-Request SessionId / SessionEpoch are v7+ (`FetchMetadata`; `encode_fetch_request` writes LEGACY; a non-LEGACY session is omitted below v7).
+| Versions | What changed |
+|---|---|
+| 4–6 | One empty-response body. |
+| 5 and above | Partition `LogStartOffset` is an INT64 after `LastFetchedEpoch` (Java `FetchRequest.PartitionData.logStartOffset`). Below v5 the encoder omits it and the decoder fills `INVALID_LOG_START_OFFSET`. |
+| 7–11 | One empty-response body. `SessionId` and `SessionEpoch` are present (`FetchMetadata`). A session other than `LEGACY` is omitted below v7. `ForgottenTopicsData` is present; the ordinary encoder writes it empty, and a non-empty list is omitted below v7. From v13 those forgotten topics use topic ids. |
+| 7 and above | Top-level `ErrorCode` is at bytes 4–5. |
+| 12–17 | One empty-response body, in the flexible encoding. |
+| 13 | Topic ids replace topic names on request `Topics`, `ForgottenTopics`, and response `Responses` (KIP-516). |
+| 14 | Same layout as v13. Adds `OffsetMovedToTieredStorageException` (KIP-405). |
+| 15 | Untagged `ReplicaId` is gone. `ReplicaState` is tagged field 1 (KIP-903). This crate omits that tag because the consumer defaults are `-1` / `-1`. `MaxWaitMs` is the first untagged field. |
+| 16 | Same consumer request as v15 (KIP-951). |
+| 17 | Same consumer request as v16. `ReplicaDirectoryId` tagged field 0 is follower-only and omitted. |
+| 18 | Request partition `HighWatermark` is tagged field 1 (KIP-1166). Ordinary consumers omit it. The response matches v17. |
 
-ForgottenTopicsData is v7+ (`encode_fetch_request_with_forgotten`; `encode_fetch_request` writes empty; a non-empty list is omitted below v7; v13+ uses TopicId).
+`MaxWaitMs` and `MinBytes` are JSON `0+`. Decode returns them. Encode takes `max_wait_ms` and `min_bytes`. Through v14, untagged `ReplicaId` comes before `MaxWaitMs`.
 
-Request MaxWaitMs is JSON `0+` (decode returns it; encode already takes `max_wait_ms`; ReplicaId is untagged through v14 then MaxWaitMs; v15+ MaxWaitMs is the first untagged field).
+`ReplicaId` is JSON `0-14`, an untagged INT32 (`encode_fetch_request_with_replica_id`). The convenience encoder writes `CONSUMER_REPLICA_ID`. From v15 the field is omitted even when it is not the default, and decode fills `CONSUMER_REPLICA_ID`. That field is separate from `ReplicaState` tagged field 1.
 
-Request MinBytes is JSON `0+` (decode returns it; encode already takes `min_bytes`).
+`ThrottleTimeMs` is JSON `1+` and is the first response field (`encode_fetch_response_with_throttle`). The convenience encoder writes `0`. Java `getErrorResponse` copies `throttleTimeMs` from its argument.
 
-Request ReplicaId is JSON `0-14` (untagged INT32; `encode_fetch_request_with_replica_id`; encode previously always wrote `CONSUMER_REPLICA_ID` and decode discarded; convenience encode still writes `CONSUMER_REPLICA_ID`; v15+ omit even when non-default and decode fills `CONSUMER_REPLICA_ID`; not ReplicaState tagged field 1).
+`LastFetchedEpoch` is the leader epoch of the last record batch the consumer read. It is `-1` after assign or seek until a batch arrives, and it comes from OffsetFetch `leader_epoch` on group assign.
 
-Request partition LogStartOffset is JSON `5+` (INT64 after LastFetchedEpoch; encode writes `FetchPartition.log_start_offset`; below v5 omit even when non-default and decode fills `INVALID_LOG_START_OFFSET`; official Java `FetchRequest.PartitionData.logStartOffset`).
+From v12, partition `CurrentLeader` tagged field 1 (`LeaderId` INT32, `LeaderEpoch` INT32, nested tags) is decoded. A retriable Fetch error whose leader names a known broker updates the leader cache and retries without a Metadata refresh. Preferred-replica redirects and `DivergingEpoch` seeks retry the same way. An unknown leader is inserted from top-level `NodeEndpoints` tagged field 0 on v16 and above. That array has the same inner layout as Produce.
 
-v12–v18 are flexible (compact arrays/strings/bytes plus tagged fields; LastFetchedEpoch after FetchOffset; request header 2, response header 1).
+`DivergingEpoch` is tagged field 0 from v12: `Epoch` INT32, `EndOffset` INT64, then nested tags. When it is present the consumer seeks to that end offset and retries without `retry.backoff.ms`.
 
-ThrottleTimeMs is JSON `1+` first field (`encode_fetch_response_with_throttle`; encode previously always wrote `0` and decode discarded; convenience encode still writes `0`).
+`SnapshotId` is tagged field 2 from v12: `EndOffset` INT64, then `Epoch` INT32, then nested tags. The JSON field order is the reverse of `DivergingEpoch`. An omitted value decodes as `-1` / `-1`. Below v12 the encoder omits it even when the body is non-default. This tag is not the FetchSnapshot API, and the client does not send those RPCs.
 
-Empty-Responses v4, v5, and v6 bodies match; v7, v8, v9, v10, and v11 bodies match; v12, v13, v14, v15, v16, and v17 bodies match.
-
-Top-level ErrorCode is at bytes 4–5 on v7+.
-
-Official Java `getErrorResponse` sets `throttleTimeMs` from the argument.
-
-v13 replaces topic names with topic ids on request Topics, ForgottenTopics, and response Responses (KIP-516).
-
-v14 is the same layout as v13 (`OffsetMovedToTieredStorageException`, KIP-405).
-
-v15 drops untagged ReplicaId; ReplicaState is tagged field 1 (KIP-903; this crate omits it because consumer defaults are `-1` / `-1`).
-
-v16 is the same request as v15 (KIP-951).
-
-Partition CurrentLeader tagged field 1 (`LeaderId` INT32 + `LeaderEpoch` INT32 + nested tagged fields) is decoded from v12+; when Fetch fails with a retriable error and CurrentLeader names a known broker, the consumer patches that partition’s leader cache and retries without a Metadata refresh.
-
-Unknown CurrentLeader brokers are inserted from top-level NodeEndpoints tagged field 0 (v16+; same inner layout as Produce) first, then applied the same way.
-
-Preferred-replica redirects and DivergingEpoch seeks also retry without Metadata.
-
-v17 is the same consumer request as v16 (ReplicaDirectoryId tagged field 0 is follower-only and omitted).
-
-Kafka 4.0 removed v0–v3.
-
-Kafka 4.0 `validVersions` is `4-17`.
-
-v18 adds request partition HighWatermark tag 1 (KIP-1166). Ordinary consumers omit that tag. The response layout matches v17. v19+ is not spoken.
-
-This crate sends LastFetchedEpoch from the last consumed record-batch leader epoch (`-1` after assign/seek until a batch is consumed, and from OffsetFetch `leader_epoch` on group assign).
-
-Fetch v12+ DivergingEpoch tagged field 0 (`Epoch` INT32 + `EndOffset` INT64 + nested tagged fields) is decoded; when present the consumer seeks to that end offset and retries without waiting `retry.backoff.ms`.
-
-Partition SnapshotId tagged field 2 (`EndOffset` INT64 then `Epoch` INT32 + nested tagged fields; JSON field order is the reverse of DivergingEpoch) is decoded from v12+; omitted fills `-1` / `-1`.
-
-Below v12 encode omits SnapshotId even when the body is non-default.
-
-This is not the FetchSnapshot API and does not start those RPCs.
+Kafka 4.0 removed v0–v3. Its `validVersions` is `4-17`. This crate also speaks v18.
 
 ### ListOffsets
 
@@ -307,59 +288,51 @@ v7+ is not spoken.
 
 ### OffsetCommit
 
-Spoken versions: 2–10.
+Spoken versions: 2–10. Versions 0, 1, and 11 and above are not spoken.
 
-OffsetCommit v2–v7 are classic; v8–v10 are flexible (compact strings/arrays plus tagged fields on partitions / topics / top-level; request header 2, response header 1).
+v2–v7 are classic. v8–v10 are flexible: compact strings and arrays, plus tagged fields on partitions, topics, and the top level. Request header version 2, response header version 1.
 
-Official JSON: v3 and v4 match v2 (RetentionTimeMs; this crate sends `-1`).
+| Version | What changed |
+|---|---|
+| 2–4 | v3 and v4 match the v2 body, including `RetentionTimeMs`. This crate sends `-1`. |
+| 3 and above | `ThrottleTimeMs` is present. |
+| 5 | Retention is removed. |
+| 6 | `CommittedLeaderEpoch`. |
+| 7 | `GroupInstanceId`. |
+| 8 | Flexible encoding. |
+| 9 | KIP-848 error codes. Same layout as v8. |
+| 10 | Each topic name is a 16-byte UUID. |
 
-v5 drops retention.
+`GenerationIdOrMemberEpoch` is JSON `1+`, an INT32 after `GroupId`. Encode takes `generation_id`. Java calls it `OffsetCommitRequestData.generationIdOrMemberEpoch` and `OffsetCommitRequest.DEFAULT_GENERATION_ID`. It is a different field from SyncGroup, Heartbeat, the JoinGroup response, and TxnOffsetCommit generation ids.
 
-v6 CommittedLeaderEpoch.
+Name-based commits stay on v2–v9. The group negotiates 2–10 and uses the UUID body when the broker's maximum is 10.
 
-v7 GroupInstanceId.
+Kafka 4.0 `validVersions` is `2-9`. It removed v0–v1. This crate also speaks v10.
 
-Request GenerationIdOrMemberEpoch is JSON `1+` (INT32 after GroupId; decode previously discarded it; encode already takes `generation_id`; official Java `OffsetCommitRequestData.generationIdOrMemberEpoch` / `OffsetCommitRequest.DEFAULT_GENERATION_ID`; not SyncGroup GenerationId / Heartbeat GenerationId / JoinGroup response GenerationId / TxnOffsetCommit GenerationId).
-
-v3+ ThrottleTimeMs.
-
-v9 is KIP-848 error codes (same layout as v8).
-
-v10 replaces each topic name with a 16-byte UUID. Name-based commits stay on v2–v9. The group negotiates 2–10 and uses the UUID body when the broker’s maximum is 10.
-
-Kafka 4.0 `validVersions` is `2-9` (v0–v1 removed).
-
-v0–v1 and v11+ are not spoken.
-
-`alter_consumer_group_offsets_timeout` is Java `AlterConsumerGroupOffsetsOptions.timeoutMs` (RPC deadline; OffsetCommit has no TimeoutMs).
+`alter_consumer_group_offsets_timeout` is the RPC deadline (Java `AlterConsumerGroupOffsetsOptions.timeoutMs`). OffsetCommit has no `TimeoutMs` field.
 
 ### OffsetFetch
 
-Spoken versions: 1–10.
+Spoken versions: 1–10. Version 0 and versions 11 and above are not spoken.
 
-OffsetFetch v1–v5 are classic; v6–v10 are flexible (compact strings/arrays plus tagged fields; request header 2, response header 1).
+v1–v5 are classic. v6–v10 are flexible. Request header version 2, response header version 1.
 
-Official JSON: v3, v4, and v5 match v2 on the request (GroupId, Topics).
+| Version | What changed |
+|---|---|
+| 2–5 | The request is `GroupId` and `Topics`. v3, v4, and v5 match that v2 request. |
+| 2 | `Topics` is nullable. A null topic list means every committed partition (`Admin::list_all_consumer_group_offsets`). The response has a top-level error code. |
+| 3 | `ThrottleTimeMs`. |
+| 5 | `CommittedLeaderEpoch`. Below v5, decode fills `-1`. |
+| 7 | `RequireStable`. It is true when `isolation.level` is read-committed. `list_consumer_group_offsets_with` and `list_all_consumer_group_offsets_with` send the Admin flag. |
+| 8 | `Groups` replaces `GroupId` and `Topics` (KIP-709). `list_consumer_group_offsets_for_groups` sends one `Groups` array per coordinator. |
+| 9 | Each group carries `MemberId` and `MemberEpoch` (KIP-848). Classic groups send null and `-1`. |
+| 10 | Each topic name is a 16-byte UUID. |
 
-v2 nullable Topics and top-level ErrorCode (`None` Topics is every committed partition; `Admin::list_all_consumer_group_offsets`).
+The name-only encoder stays on v1–v9. The group negotiates 1–10 and uses the UUID body when the broker's maximum is 10.
 
-v3 ThrottleTimeMs.
+`list_all_consumer_group_offsets_timeout` and `list_consumer_group_offsets_for_groups_timeout` are the RPC deadline (Java `ListConsumerGroupOffsetsOptions.timeoutMs`). OffsetFetch has no `TimeoutMs` field.
 
-v5 CommittedLeaderEpoch (decode fills `-1` below v5).
-
-v7 RequireStable (`true` when `isolation.level` is read-committed; `list_consumer_group_offsets_with` / `list_all_consumer_group_offsets_with` send the Admin flag).
-
-`list_all_consumer_group_offsets_timeout` / `list_consumer_group_offsets_for_groups_timeout` are Java `ListConsumerGroupOffsetsOptions.timeoutMs` (RPC deadline; OffsetFetch has no TimeoutMs).
-
-v8 replaces GroupId / Topics with Groups (KIP-709; `list_consumer_group_offsets_for_groups` sends one Groups array per coordinator).
-
-v9 adds MemberId / MemberEpoch on each group (KIP-848; classic groups send null / `-1`).
-
-v10 replaces each topic name with a 16-byte UUID. The name-only encoder stays on v1–v9. The group negotiates 1–10 and uses the UUID body when the broker’s maximum is 10.
-
-Kafka 4.0 `validVersions` is `1-9` (v0 removed).
-
-v0 and v11+ are not spoken.
+Kafka 4.0 `validVersions` is `1-9`. It removed v0. This crate also speaks v10.
 
 ### OffsetDelete
 

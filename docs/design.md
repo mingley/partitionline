@@ -88,7 +88,7 @@ These notes are for people changing encoders and decoders. The table is the set 
 A few rules apply across APIs:
 
 - Request `ClientId` is always a classic nullable string, even on flexible headers.
-- ApiVersions **response** header is never flexible. If you parse it as flexible you eat the error code.
+- The ApiVersions **response** header is classic. A flexible parse treats the error code as a compact-string length.
 - Produce throttle time comes **after** the topic array. Metadata throttle time comes first.
 - Record batch magic 2 CRC is CRC32-C over bytes from attributes to the end.
 - Record lengths are zigzag varints. Compact protocol lengths are unsigned varint of `n+1` (`0` means null).

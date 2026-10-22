@@ -7,6 +7,10 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
 
 ## [Unreleased]
 
+- The wire-version page explains its repeated terms, and Produce, Fetch,
+  OffsetCommit, and OffsetFetch are written as version tables. Produce
+  flexible versions are 9–13.
+
 - The broker SASL reauthentication page matches the listener profile: opt-in
   lifetime, Handshake v1, and the deadline that does not move after the
   Handshake arrives.
