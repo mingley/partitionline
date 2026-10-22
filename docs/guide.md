@@ -301,9 +301,16 @@ producer.close().await?;
 # }
 ```
 
-- `send` — one offset future per record.
-- `send_all` — queue many, wait for all. Queuing those records pauses every 8,192. Records that still need metadata are split the same way. Indexing many partitions of one topic pauses the same way. A batch that names many topics is assembled in those same slices. Encoding those topics pauses every 8,192 partitions. Dropping the previous batch's acknowledgement slots pauses the same way.
-- `try_send` + `flush` — throughput path (see `examples/bench_produce.rs`).
+- `send` returns one offset future per record.
+- `send_all` queues many records and waits for all of them. Records that still need topic metadata are split out and sent after that metadata arrives.
+- `try_send` plus `flush` is the throughput path. See `examples/bench_produce.rs`.
+
+A large produce pauses every 8,192 records or partitions so the caller's
+timeout can run. Work already finished is kept. That includes queueing,
+splitting unready records, assembling a batch that names many topics,
+encoding it, and dropping acknowledgement slots from the previous batch.
+The full list is in the
+[resource contract](resource-contract.md#caller-deadlines).
 
 ## Fetch (manual assignment)
 
@@ -319,9 +326,9 @@ let recs = consumer.fetch().await?;
 # }
 ```
 
-`assign_topic` assigns every partition. `seek` / `pause` / `resume` / `wakeup`
-match the Java consumer shapes. A partition that returns many one-record
-batches pauses every 8,192 batches. Batches already applied stay.
+`assign_topic` assigns every partition of one topic. `seek`, `pause`, `resume`, and `wakeup` follow the Java consumer shapes.
+
+A partition that returns many one-record batches is applied 8,192 batches at a time. Batches already applied stay if the deadline fires.
 
 When a fetch round has several leaders, `fetch` returns after the first
 leader responds and about 10 ms have passed for the others. A slower
@@ -348,46 +355,23 @@ group.leave().await?;
 # }
 ```
 
-Assigning committed offsets walks the assignment in slices of 8,192.
-A range or sticky assignment that gives many members one partition each
-pauses the same way. Indexing partitions those members already own pauses
-the same way.
-List-offset resets are written into those slots the same way, and empty
-slots are dropped between slices. The revoked and assigned lists passed to
-a rebalance callback are copied the same way. After a poll or commit, those delivered positions are filled in slices of
-8,192, and the topic ids stored for them are refreshed in the same slices.
-Stored ids for partitions that are no longer assigned are dropped the same way. An interval commit copies those positions, then keeps the ones that
-are still assigned, in the same slices. The timeout can fire between slices,
-and finished slices are kept. Pending fetch runs that are no longer assigned
-are dropped in those same slices. Queued runs for a partition that moved
-are dropped the same way. Counting the records a poll can return pauses
-the same way when many partitions are paused. Putting a returned batch back
-in front of the buffer pauses the same way. Framed fetches for partitions
-that are still assigned are kept in those same slices. Bytes in queued
-records that are leaving the buffer are counted the same way. Records for a
-partition that is no longer assigned are released in those same slices.
-Bytes counted before a fetched batch is put back are walked the same way.
-Returned records are counted for the fetch total in those same slices when
-saved totals do not match the batch. Saved per-topic totals are applied the
-same way. A poll with no consume interceptor returns the fetched batch
-without copying each record. Dropping an assignment clears queued records
-in those same slices. Framed batches kept for a later poll are dropped the
-same way. Reading the next offset of each returned partition pauses every
-8,192 records. The last offset plus one and its leader epoch stay the same.
-A fetch or produce metrics snapshot copies its topic rows in those same slices.
-Copying an assignment, or the delivered position of each partition, pauses
-the same way. A negative position is still omitted. Pausing or resuming
-those partitions pauses the same way. Listing the partitions that are paused
-does too. A queued commit reads those delivered offsets in the same slices.
-An offset-commit response that names many topics pauses every 8,192
-partitions. Checking an offset-fetch response that names many topics
-pauses the same way.
-Topic names in an assignment are checked the same way, and a repeated
-partition is still an error. Seeking every assigned partition to a
-list-offset result pauses the same way. Each partition is found in the
-cursor index. An unknown partition is still an error.
-See the
-[resource contract](resource-contract.md#caller-deadlines).
+Large group work runs in slices of 8,192 so a timeout can fire between
+slices. Finished slices are kept. That covers assignment, rebalance lists,
+delivered positions, topic ids, pause and resume, commits, and the fetch
+buffer. The [resource contract](resource-contract.md#caller-deadlines)
+lists each walk.
+
+A few results stay the same no matter the size:
+
+- A repeated partition in an assignment is an error. An illegal topic name is an error.
+- A negative delivered position is omitted.
+- `next_offsets` is the last delivered offset plus one, with its leader epoch.
+- A poll with no consume interceptor returns the fetched batch without copying each record.
+- Seeking to a list-offset result finds each partition in the cursor index. An unknown partition is still an error.
+- An offset-commit or offset-fetch response that names many topics is read 8,192 partitions at a time.
+
+Range and sticky assignment copy members the same way, including members
+that each own a single partition and the partitions they already own.
 
 Also: sticky / cooperative-sticky, KIP-848 (`join_consumer` /
 `join_consumer_topics`), share groups (`ShareGroup::join` / `poll` /
@@ -405,13 +389,11 @@ On 4.0/4.1 also set `group.share.enable=true` until that temporary flag is
 removed upstream. Default `share.auto.offset.reset` is **latest** — produce
 while the share member is already polling.
 
-A share fetch or acknowledgement names each topic from an index built in
-slices of 8,192. A topic id that belongs to two names is still an error.
-An empty name is still not used. An overlapped acquisition is recorded in
-those same slices. Acquisitions that are no longer kept are dropped the same
-way. A covered acquisition is dropped in those same slices. Returned share
-records are counted for the poll total in those same slices. See the
-[resource contract](resource-contract.md#caller-deadlines).
+A share fetch or acknowledgement looks up each topic in an index built
+8,192 entries at a time. A topic id that belongs to two names is an error.
+An empty name is not used. Overlapped, dropped, and covered acquisitions
+are updated in those slices, as are the records counted for the poll total.
+See the [resource contract](resource-contract.md#caller-deadlines).
 
 ## Exactly-once (transactions)
 
@@ -434,11 +416,10 @@ admin.close().await?;
 # }
 ```
 
-A long partition list is prepared in slices of 8,192. Delete-records,
-list-offsets, and describe-producers copy topic names that way. A retry looks
-up leaders the same way. The timeout can fire between slices, and finished
-slices are kept. See the
-[resource contract](resource-contract.md#caller-deadlines).
+A long admin batch is prepared 8,192 items at a time. That includes
+delete-records, list-offsets, describe-producers, and leader lookup on
+retry. The timeout can fire between slices, and finished slices are kept.
+See the [resource contract](resource-contract.md#caller-deadlines).
 
 Reassignment options control whether a replica move may change replication
 factor. The default allows it. Explicit `false` requires API45 version1 and
@@ -917,12 +898,10 @@ session. Session-not-found and invalid-epoch responses retry with a full map
 within the original request deadline; a topic-ID error also refreshes metadata.
 The consumer checks the session identity and partition set before applying any
 records. Reassigning a recreated topic discards buffered records from its old ID.
-Finding those partitions pauses every 8,192 items, so a metadata refresh can
-still reach its deadline. Partitions missing from the next incremental request
-are dropped in those same slices. The topic-id index is rebuilt the same way. Prepare generations are cleared
-the same way when they wrap. Fetch partitions copied into a session request
-are copied in those same slices.
-Finished slices are kept.
+Finding, dropping, and copying session partitions runs 8,192 items at a
+time, so a metadata refresh can still reach its deadline. The topic-id
+index is rebuilt the same way. Prepare generations are cleared the same
+way when they wrap. Finished slices are kept.
 Buffered records, delivered positions and commits retain their existing contracts.
 
 Pausing every partition, moving to another broker, or replacing the assignment
