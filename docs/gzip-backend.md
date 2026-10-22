@@ -1,44 +1,46 @@
 # gzip backend
 
-**Decision (KL10-05, 2026-10-01):** gzip uses `flate2` with the zlib-rs
-backend by default. `default-features = false` selects miniz_oxide instead.
-The maintainer approved both the dependency and the default change (evidence:
-`docs/plan/evidence/KL10-05.json` in the repository). This is a scoped exception
-to the "no `unsafe`, no SIMD intrinsics" boundary in
-[performance-leadership.md](https://github.com/mingley/partitionline/blob/65d3e89a4775f6bfd913ed1467647b93a11b9329/docs/plan/performance-leadership.md#9-boundaries-unchanged-unless-the-maintainer-decides-otherwise)
-section 9. It covers
-this one dependency; partitionline's own `unsafe_code = "forbid"` is unchanged.
+The default gzip backend is `flate2` with zlib-rs. `default-features = false`
+selects miniz_oxide. The maintainer approved that dependency and the default
+on 2026-10-01 (KL10-05). The record is
+`docs/plan/evidence/KL10-05.json`.
+
+This is one exception to the boundary in
+[performance leadership, section 9](plan/performance-leadership.md#9-boundaries-unchanged-unless-the-maintainer-decides-otherwise).
+It covers this dependency. The crate still forbids `unsafe` in its own code.
 
 | Build | gzip backend | `unsafe` in the gzip path |
 |---|---|---|
 | default (`zlib-rs` feature) | zlib-rs 0.6 | yes, inside zlib-rs (SIMD, raw buffers) |
 | `default-features = false` | miniz_oxide 0.9 | only crc32fast's CRC-32 kernel; miniz_oxide forbids `unsafe` |
 
-With miniz_oxide, flate2 computes the gzip CRC-32 with `crc32fast` (about 15
-lines of `unsafe` SIMD intrinsics) and enables miniz_oxide's `simd` feature,
-whose `simd-adler32` checksum is used only for zlib-wrapped data, not gzip. The
-fallback build narrows `unsafe` to that small checksum code; it does not
-remove it.
+The miniz_oxide build still has a small `unsafe` path. flate2 computes the
+gzip CRC-32 with `crc32fast`, about 15 lines of SIMD intrinsics. It also
+enables miniz_oxide's `simd` feature. That Adler-32 checksum is used for
+zlib-wrapped data, not for gzip. The fallback narrows `unsafe` to the CRC
+kernel. It does not remove it.
 
-Both builds enable flate2's `runtime_detection`, so zlib-rs and the CRC-32 used
-with miniz_oxide (`crc32fast`) pick hardware paths (PCLMULQDQ, AVX2, ARM CRC)
-at runtime. Before KL10-06 the build disabled it, so generic x86_64 and
-aarch64 Linux binaries computed gzip CRC-32 in software.
+Both builds turn on flate2 `runtime_detection`. zlib-rs and `crc32fast` then
+pick PCLMULQDQ, AVX2, or ARM CRC at runtime. Before KL10-06 that switch was
+off, so generic x86_64 and aarch64 Linux binaries computed the gzip CRC-32
+in software.
 
-flate2 picks one backend per build. If another crate in your graph enables a
-C zlib flate2 feature (`zlib`, `zlib-ng`, ...), flate2 uses that C library for
-partitionline too.
+flate2 selects one backend for the whole build. If another crate enables a
+C zlib feature (`zlib`, `zlib-ng`, or another), flate2 uses that C library
+for partitionline as well.
 
 ## Wire compatibility
 
-Both backends write standard gzip at level 6 (Java's default) and read any
-standard gzip. The compressed bytes differ between backends (about ±0.4% in
-size on the json1k cells), so do not compare compressed batches byte for byte
-across builds. KL10-05 checked both directions on 1, 16 and 256 json1k records:
-the JDK's `java.util.zip` (the Kafka Java codec) and zlib 1.2.12 with
-librdkafka's `deflateInit2` settings decode both backends' output, and both
-backends decode Java and zlib output at levels 1, 6 and 9 and each other's
-output. The decoded-byte limits (KL02-03) are unchanged.
+Both backends write standard gzip at level 6, which is Java's default, and
+both read any standard gzip. Compressed bytes differ by about ±0.4% on the
+json1k cells, so compare the decoded records rather than the compressed
+batches.
+
+KL10-05 checked both directions on 1, 16, and 256 json1k records. The JDK
+`java.util.zip` codec and zlib 1.2.12 with librdkafka's `deflateInit2`
+settings decode both backends. Both backends decode Java and zlib output at
+levels 1, 6, and 9, and they decode each other. The decoded-byte limits
+(KL02-03) are unchanged.
 
 ## Measurements
 
