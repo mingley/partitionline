@@ -7,6 +7,8 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
 
 ## [Unreleased]
 
+- Encoding a Metadata response also pauses every 8,192 brokers. Writing
+  2,000,000 brokers held the caller for 499ms before that pause.
 - Encoding a Metadata response pauses every 8,192 topics so a caller
   deadline can fire. The encoded bytes are unchanged.
 - Encoding node endpoints pauses every 8,192 hosts so a caller deadline

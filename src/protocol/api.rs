@@ -3216,16 +3216,8 @@ pub fn encode_metadata_response(
         buf.put_i32(resp.throttle_time_ms);
     }
     buf::put_array_len(buf, flexible, Some(resp.brokers.len()))?;
-    for b in &resp.brokers {
-        buf.put_i32(b.node_id);
-        buf::put_string(buf, flexible, Some(&b.host))?;
-        buf.put_i32(b.port);
-        if version >= 1 {
-            buf::put_string(buf, flexible, b.rack.as_deref())?;
-        }
-        if flexible {
-            buf::put_empty_tagged_fields(buf);
-        }
+    for broker in &resp.brokers {
+        write_metadata_broker(buf, version, flexible, broker)?;
     }
     if version >= 2 {
         buf::put_string(buf, flexible, resp.cluster_id.as_deref())?;
@@ -3252,6 +3244,92 @@ pub fn encode_metadata_response(
 
 /// Topics measured or written before the caller is paused.
 const METADATA_TOPIC_ENCODE_CHUNK: usize = 8 * 1024;
+/// Brokers measured or written before the caller is paused.
+const METADATA_BROKER_ENCODE_CHUNK: usize = 8 * 1024;
+
+fn write_metadata_broker(
+    buf: &mut BytesMut,
+    version: i16,
+    flexible: bool,
+    broker: &Broker,
+) -> Result<()> {
+    buf.put_i32(broker.node_id);
+    buf::put_string(buf, flexible, Some(&broker.host))?;
+    buf.put_i32(broker.port);
+    if version >= 1 {
+        buf::put_string(buf, flexible, broker.rack.as_deref())?;
+    }
+    if flexible {
+        buf::put_empty_tagged_fields(buf);
+    }
+    Ok(())
+}
+
+fn metadata_broker_len(version: i16, flexible: bool, broker: &Broker) -> Result<usize> {
+    let mut total = add_metadata_response_len(0, 8)?;
+    total = add_metadata_response_len(total, metadata_string_len(flexible, Some(&broker.host))?)?;
+    if version >= 1 {
+        total = add_metadata_response_len(
+            total,
+            metadata_string_len(flexible, broker.rack.as_deref())?,
+        )?;
+    }
+    if flexible {
+        total = add_metadata_response_len(total, buf::unsigned_varint_size(0))?;
+    }
+    Ok(total)
+}
+
+async fn add_metadata_brokers_len(
+    mut total: usize,
+    version: i16,
+    flexible: bool,
+    brokers: &[Broker],
+) -> Result<usize> {
+    let mut start = 0usize;
+    while start < brokers.len() {
+        let end = start
+            .saturating_add(METADATA_BROKER_ENCODE_CHUNK)
+            .min(brokers.len());
+        let Some(slice) = brokers.get(start..end) else {
+            return Err(Error::protocol("metadata broker slice"));
+        };
+        for broker in slice {
+            total =
+                add_metadata_response_len(total, metadata_broker_len(version, flexible, broker)?)?;
+        }
+        start = end;
+        if start < brokers.len() {
+            tokio::task::yield_now().await;
+        }
+    }
+    Ok(total)
+}
+
+async fn write_metadata_brokers(
+    buf: &mut BytesMut,
+    version: i16,
+    flexible: bool,
+    brokers: &[Broker],
+) -> Result<()> {
+    let mut start = 0usize;
+    while start < brokers.len() {
+        let end = start
+            .saturating_add(METADATA_BROKER_ENCODE_CHUNK)
+            .min(brokers.len());
+        let Some(slice) = brokers.get(start..end) else {
+            return Err(Error::protocol("metadata broker slice"));
+        };
+        for broker in slice {
+            write_metadata_broker(buf, version, flexible, broker)?;
+        }
+        start = end;
+        if start < brokers.len() {
+            tokio::task::yield_now().await;
+        }
+    }
+    Ok(())
+}
 
 fn write_metadata_topic(
     buf: &mut BytesMut,
@@ -3379,20 +3457,7 @@ async fn metadata_response_len_cooperative(
         total,
         metadata_array_len(flexible, Some(resp.brokers.len()))?,
     )?;
-    for broker in &resp.brokers {
-        total = add_metadata_response_len(total, 8)?;
-        total =
-            add_metadata_response_len(total, metadata_string_len(flexible, Some(&broker.host))?)?;
-        if version >= 1 {
-            total = add_metadata_response_len(
-                total,
-                metadata_string_len(flexible, broker.rack.as_deref())?,
-            )?;
-        }
-        if flexible {
-            total = add_metadata_response_len(total, buf::unsigned_varint_size(0))?;
-        }
-    }
+    total = add_metadata_brokers_len(total, version, flexible, &resp.brokers).await?;
     if version >= 2 {
         total = add_metadata_response_len(
             total,
@@ -3430,6 +3495,7 @@ fn metadata_topics_len(version: i16, flexible: bool, topics: &[TopicMetadata]) -
 /// [`encode_metadata_response`], yielding while topic names are still being measured and written.
 ///
 /// Encoding 400,000 metadata topics held the caller for 186ms. A topic name is still written.
+/// Encoding 2,000,000 brokers held the caller for 499ms. A broker host is still written.
 pub async fn encode_metadata_response_cooperative(
     buf: &mut BytesMut,
     version: i16,
@@ -3446,17 +3512,7 @@ pub async fn encode_metadata_response_cooperative(
         buf.put_i32(resp.throttle_time_ms);
     }
     buf::put_array_len(buf, flexible, Some(resp.brokers.len()))?;
-    for broker in &resp.brokers {
-        buf.put_i32(broker.node_id);
-        buf::put_string(buf, flexible, Some(&broker.host))?;
-        buf.put_i32(broker.port);
-        if version >= 1 {
-            buf::put_string(buf, flexible, broker.rack.as_deref())?;
-        }
-        if flexible {
-            buf::put_empty_tagged_fields(buf);
-        }
-    }
+    write_metadata_brokers(buf, version, flexible, &resp.brokers).await?;
     if version >= 2 {
         buf::put_string(buf, flexible, resp.cluster_id.as_deref())?;
     }
@@ -3503,18 +3559,7 @@ fn metadata_response_len(version: i16, flexible: bool, resp: &MetadataResponse) 
         metadata_array_len(flexible, Some(resp.brokers.len()))?,
     )?;
     for broker in &resp.brokers {
-        total = add_metadata_response_len(total, 8)?;
-        total =
-            add_metadata_response_len(total, metadata_string_len(flexible, Some(&broker.host))?)?;
-        if version >= 1 {
-            total = add_metadata_response_len(
-                total,
-                metadata_string_len(flexible, broker.rack.as_deref())?,
-            )?;
-        }
-        if flexible {
-            total = add_metadata_response_len(total, buf::unsigned_varint_size(0))?;
-        }
+        total = add_metadata_response_len(total, metadata_broker_len(version, flexible, broker)?)?;
     }
     if version >= 2 {
         total = add_metadata_response_len(
@@ -5313,6 +5358,53 @@ mod tests {
             .await
             .unwrap_or_else(|error| panic!("{error}"));
         assert_eq!(omitted, omitted_paced);
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn encoding_many_metadata_brokers_does_not_hold_the_caller() {
+        let brokers: Vec<Broker> = (0..2_000_000i32)
+            .map(|index| Broker::new(index, "h", 9092, None))
+            .collect();
+        let response = MetadataResponse {
+            throttle_time_ms: 0,
+            brokers,
+            cluster_id: None,
+            controller_id: 1,
+            topics: Vec::new(),
+            cluster_authorized_operations: MetadataResponse::AUTHORIZED_OPERATIONS_OMITTED,
+            error_code: 0,
+        };
+        let started = std::time::Instant::now();
+        tokio::select! {
+            _ = async {
+                let mut body = BytesMut::new();
+                encode_metadata_response_cooperative(&mut body, 1, &response)
+                    .await
+                    .unwrap_or_else(|error| panic!("{error}"));
+            } => {}
+            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "encoding metadata brokers held the caller for {elapsed:?}"
+        );
+        let sample = MetadataResponse {
+            throttle_time_ms: 0,
+            brokers: vec![Broker::new(7, "localhost", 9092, Some("rack".into()))],
+            cluster_id: None,
+            controller_id: 7,
+            topics: Vec::new(),
+            cluster_authorized_operations: MetadataResponse::AUTHORIZED_OPERATIONS_OMITTED,
+            error_code: 0,
+        };
+        let mut once = BytesMut::new();
+        let mut paced = BytesMut::new();
+        encode_metadata_response(&mut once, 1, &sample).unwrap_or_else(|error| panic!("{error}"));
+        encode_metadata_response_cooperative(&mut paced, 1, &sample)
+            .await
+            .unwrap_or_else(|error| panic!("{error}"));
+        assert_eq!(once, paced);
     }
 
     #[tokio::test(flavor = "current_thread")]
