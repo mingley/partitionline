@@ -102,6 +102,9 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   gzip backend, and applied-batch fetch decompression are done. The
   gateway produce and fetch cells are still pending. KL10-07 is in
   progress.
+- The release page leads with the next cut. The 0.1.0 bootstrap, including
+  the retired first-publish workflow, is marked as history. Rust 1.99 is
+  the declared minimum.
 - The gateway profile names zstd as an optional codec that has shipped.
   Its measured cells remain gzip and lz4.
 

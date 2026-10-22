@@ -9,9 +9,11 @@ partitionline stays on **0.x** until the API stability bar in
 | Additive API, bugfix, docs, perf | `0.MINOR` or `0.PATCH` — prefer patch for fixes-only |
 | **Evolving** / protocol-helper churn | patch allowed; document in CHANGELOG |
 
-MSRV is declared in `Cargo.toml` (`rust-version`). Raising MSRV is a minor
-bump on 0.x and must be called out in the CHANGELOG. The broker/MSRV/feature
-support matrix lives in [`support.md`](support.md) (KL-08 partial).
+The minimum Rust version is `rust-version` in `Cargo.toml`. It is 1.99.
+Raising it is a minor bump on 0.x and must be called out in the CHANGELOG.
+Tested brokers, platforms, and features are in [`support.md`](support.md).
+Adopter records KL08-08 through KL08-13 are still open. They are not
+required to read this page.
 
 
 ## Publication path (KL-08)
@@ -78,12 +80,37 @@ Cut a crates.io release when there is a user-facing batch (fix, feature, or
 docs that change how operators depend on the crate), not on every protocol
 helper map commit. Mock-only internal refactors can wait.
 
-## Owner publish checklist (WP-0.5)
+## Next cut
 
-> **Status (2026-09-05):** crates.io `partitionline` `0.1.0` is published; day1
-> four-file pins and post-cut parks are on `main`. This checklist remains for
-> **future** cuts. Do not re-cut `0.1.0`. Parks stayed off main until after the
-> first cut (**expected pre-Installable**).
+`0.1.0` is already on crates.io. Do not publish it again. The next version
+is a new `X.Y.Z` in `Cargo.toml`, with a dated CHANGELOG section.
+
+From a clean `main` checkout:
+
+```sh
+bash scripts/rehearse-partial-release.sh --self-test
+DRY_RUN=1 bash scripts/owner-cut-release.sh
+bash scripts/owner-cut-release.sh
+```
+
+`DRY_RUN=1` prints the actions and does not tag or upload. A real cut needs
+exact-SHA green `ci` (`REQUIRE_MAIN_CI=1`), package-consumer evidence, and
+a crates.io token or Trusted Publishing. `PUBLISH_LOCAL=0` forces the tag
+through `.github/workflows/release.yml` instead of publishing from the
+shell. The script soft-skips a version that is already on crates.io.
+
+Do not set `ALLOW_RED_MAIN=1`. Do not dispatch `first-publish.yml`. That
+workflow fails closed.
+
+The long checklist below is how `0.1.0` was created on 2026-09-05. It is
+not the procedure for the next version.
+
+## Historical: publishing 0.1.0
+
+> **Already done (2026-09-05).** crates.io `partitionline` `0.1.0` is
+> published. Do not re-cut `0.1.0`. The dependency parks for flate2, the
+> SCRAM crates, `lz4_flex`, and `actions/checkout` have landed on `main`.
+> See [ADOPTION.md](ADOPTION.md).
 
 
 Requires a crates.io token owned by a crate owner. Agents without the token
