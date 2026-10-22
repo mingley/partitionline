@@ -74,28 +74,26 @@ print(json.dumps(next(t for t in tasks if t["id"] == os.environ["TASK"]), indent
 PY
 ```
 
-The initial recommended pickups are **KL03-01** (reusable consumer fixture),
-**KL07-01** (strict-rustdoc failure), **KL08-01** (release check fail-closed),
-**KL01-01** (conformance registry), and **KL04-01** (benchmark contract).
-These have disjoint primary code surfaces. Consumer repairs then proceed in
-the launch order in TODO; do not run concurrent edits to `src/consumer.rs`.
+KL03-01, KL07-01, KL08-01, KL01-01, KL04-01, and KL10-01 are done. Do not
+treat the list above, or an old copy of this page, as the ready queue.
+Run the query. Do not start a second edit of `src/consumer.rs` while one
+session already owns it.
 
 **Performance work (KL09)** follows the
 [performance leadership program](performance-leadership.md). That page
-defines the claim gate, the hot-path map and the measure-first worker
-protocol, in which a measured rejection completes an optimization card.
-It also has a ready query that respects **hot-file locks**: at most one
-in-progress card per hot file, such as `src/producer.rs` or
-`src/consumer.rs`, across all lanes. It also defines an atomic claim
-procedure: push the claim to `origin/main` with a declared `write_set`.
-Use both whenever parallel sessions are active.
+defines the claim gate, the hot-path map, and the measure-first worker
+protocol. A measured rejection can complete an optimization card. Its
+ready query respects hot-file locks: at most one in-progress card per hot
+file, such as `src/producer.rs` or `src/consumer.rs`, across all lanes.
+Claim a card by pushing `status=in_progress` to `origin/main` with a
+declared `write_set`. Use both when more than one session is active.
 
 **Gateway adoption work (KL10)** follows the
-[gateway adoption plan](gateway-adoption.md). It defines the gateway
-profile, records the dated same-settings comparison against librdkafka
-that motivated it, and maps each gap to a card. KL10 optimization cards use
-the KL09 worker protocol and hot-file locks. Start with **KL10-01**, which
-restores a green `main` CI that every other card's validation needs.
+[gateway adoption plan](gateway-adoption.md). That page defines the
+gateway profile, the dated same-settings comparison against librdkafka,
+and the card for each gap. KL10 optimization cards use the KL09 worker
+protocol and the same hot-file locks. KL10-01, the green `main` CI card,
+is done. Later KL10 cards still use that CI as their check.
 
 ## Execute and hand off
 

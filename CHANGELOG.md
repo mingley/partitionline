@@ -62,6 +62,8 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   controlled-host profile. A short run is not a 24-hour qualification.
 - The open-loop latency page separates the schedule, the four latency
   distributions, and the outcomes a JSONL file does not qualify.
+- The task workflow no longer recommends KL03-01, KL07-01, KL08-01,
+  KL01-01, KL04-01, or KL10-01. Those cards are done.
 
 - The broker SASL reauthentication page matches the listener profile: opt-in
   lifetime, Handshake v1, and the deadline that does not move after the
