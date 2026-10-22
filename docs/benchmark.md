@@ -650,10 +650,9 @@ COUNT=8000000 MAX_WAIT_MS=100 MAX_BYTES=16777216 MIN_BYTES=1 PARTITIONS=6 \
 
 ### Historical Lab A fetch (not this agent, unsigned here)
 
-The 2026-08-24 Apple M4 Pro table vs librdkafka 2.15.0
-`rdkafka_performance -C` was **not** reproduced on this agent. It is not
-this writeup. Integrity has not signed it as a fetch vs-C win. Left here
-only as history. Do not treat it as this-VM.
+This table is the 2026-08-24 Apple M4 Pro sample against librdkafka C 2.15.0
+`rdkafka_performance -C`. It was not reproduced on the VM in the section
+above. Integrity has not signed it. Read it as that machine's history.
 
 Load HW was **8,000,000** before each pair. Both consumers read the same log.
 

@@ -7,6 +7,8 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
 
 ## [Unreleased]
 
+- The Lab A fetch note says that table is the 2026-08-24 Apple M4 Pro
+  sample, and that it was not reproduced on the later VM.
 - The benchmark page prints the 2026-08-28 fetch and latency source rows
   as tables. Every recorded digit stays. The fetch sample is an unsigned
   comparison with rust-rdkafka 0.39.0 polling one record at a time.
