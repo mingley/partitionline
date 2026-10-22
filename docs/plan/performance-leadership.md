@@ -319,16 +319,15 @@ flowchart LR
 | F | Linger-zero path; runtime flavor; build recipe; io_uring decision | KL09-60..64 | Late |
 | G | franz-go peer; peer compatibility; ceilings; orchestration; re-ranking; claim audit | KL09-65..70 | KL09-65 once KL09-01 is done; the rest join KL04 |
 
-**First pickups** (independent). Confirm them with the section 7 query:
+The earliest-start column is the original order. These cards from that
+order are done: KL09-01, KL09-14, KL04-09, KL04-07, KL04-06, KL05-11,
+KL09-06, KL09-11, and KL09-65. Do not reopen them.
 
-1. **KL09-01**: freeze the claim gate (specification; no code)
-2. **KL09-14** (P0): header-blind batch sizing, a possible bound violation (locks `producer.rs`)
-3. **KL04-09**: codec microbenchmarks; unblocks KL09-04/05 and wave C
-4. **KL04-07**: record histories in the bench drivers; unblocks KL09-02/03
-5. **KL04-06**: open-loop latency; unblocks KL09-20/23/60. Latency is the known loss.
-6. **KL05-11**: Produce v13; unblocks KL09-15. It shares the `producer.rs` lock with KL09-14, so run one after the other.
-
-After KL09-01 is done, KL09-06, KL09-11 and KL09-65 become ready.
+Pick the next card with the [ready query](#7-claims-hot-file-locks-and-the-ready-query).
+Two cards the old list was unblocking are still pending: KL09-15 (flexible
+Produce still copies the batch; measure the parent revision first) and
+KL09-20 (drain acknowledgments during linger). Confirm both are ready and
+unlocked before claiming either.
 
 ## 6. Worker protocol for KL09 cards
 

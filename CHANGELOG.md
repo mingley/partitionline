@@ -72,6 +72,8 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
 - The rust-rdkafka migration guide separates features that have no
   equivalent from features that exist with a stated limit. zstd, Produce
   v13, Fetch v18, and incremental Fetch are in the second list.
+- The performance-leadership pickup list no longer starts on KL09-01 or
+  KL09-14. Those cards, and the other named first pickups, are done.
 - The gateway profile names zstd as an optional codec that has shipped.
   Its measured cells remain gzip and lz4.
 
