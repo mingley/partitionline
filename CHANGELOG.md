@@ -7,6 +7,10 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
 
 ## [Unreleased]
 
+- The token lifecycle page matches the OIDC manager, the shared connect-time
+  cache, and SASL session lifetime. Sections 4.2, 6.1, and 6.3 stay the
+  contract those calculations implement.
+
 - Crate rustdoc opens with produce, fetch, group, transaction, and admin
   examples. The Java client name catalog lives in the `java_crosswalk` module.
 
