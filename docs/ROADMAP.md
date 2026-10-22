@@ -141,7 +141,9 @@ whole numbered package.
    Produce/Fetch/Metadata/ListOffsets fixtures labeled 3.9.1/4.1.0.
    They are local consistency checks, not independent Java-generated
    fixtures. The ignored live path is optional via `REQUIRE_BROKER=1`.
-   KL01-03 through KL01-08 add the missing independent evidence.
+   KL01-03 through KL01-08 are done: they added the independent Java
+   fixtures and wired the reports into CI. Later evidence cards, including
+   KL01-22 and KL01-24, are still pending.
 4. Extend existing [fuzz targets](https://github.com/mingley/partitionline/tree/917d877d7b049f3da5af90bd2a5804b85080ed2b/fuzz) beyond short CI smoke, focusing on
    lengths, tagged fields, truncated batches, CRC, allocation and decompression
    bounds. Retain minimized failures and campaign/coverage metadata.
@@ -186,10 +188,11 @@ all accepted work has a documented completed, failed or ambiguous outcome.
 
 **Priority:** P0 for the corresponding production profile. **Depends on:** KL-01/02.
 
-Start with KL03-01 through KL03-07: promote the audit fixture and repair the
-five reproduced consumer failures plus poll-boundary auto-commit. These local
-repairs do not wait for a three-broker lab. Only the later qualification
-campaigns depend on the completed independent/resource contracts.
+KL03-01 through KL03-07 are done. They fixed the five reproduced consumer
+failures and poll-boundary auto-commit. Do not start them again. Independent
+replay of those histories is KL01-22, which is still pending. The numbered
+items below are the later qualification shape. They are not a claim that
+none of that work has landed. Current status is `tasks.json`.
 
 1. Extend smoke to a three-broker KRaft topology with controller quorum,
    replication factor 3 and explicit `min.insync.replicas`. Exercise leader and

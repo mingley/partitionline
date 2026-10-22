@@ -192,6 +192,9 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
 - The roadmap's auth lane records KL06-01 through KL06-05, KL06-07, and
   KL06-13 as done. The live lifecycle matrix and GSSAPI remain open.
   Client loops still do not reauthenticate on a timer.
+- The roadmap no longer says to start with KL03-01. Those consumer repairs
+  are done. Independent replay remains KL01-22. KL01-03 through KL01-08,
+  the independent Java fixtures, are done.
 - The gateway profile names zstd as an optional codec that has shipped.
   Its measured cells remain gzip and lz4.
 
