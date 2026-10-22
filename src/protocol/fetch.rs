@@ -2951,7 +2951,7 @@ pub async fn encode_fetch_response_cooperative(
         }
     }
     if flexible {
-        super::api::encode_top_level_node_endpoints(buf, version >= 16, &[])?;
+        super::api::encode_top_level_node_endpoints_cooperative(buf, version >= 16, &[]).await?;
     }
     debug_assert_eq!(buf.len().saturating_sub(body_start), plan.len);
     Ok(())

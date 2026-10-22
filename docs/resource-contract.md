@@ -88,6 +88,7 @@ leaders are still looked up, and a repeated name is still stored once.
 - Count returned records when saved totals do not match the batch, then apply the saved per-topic totals.
 - Return a fetched batch without copying each record when no consume interceptor is installed.
 - Write aborted transactions into a Fetch response. The response bytes stay the same.
+- Measure and write node endpoints into a Produce or Fetch response tag. A host is still copied.
 - Read the next offset and the partition list of a returned batch. The next offset is the last delivered offset plus one, with its leader epoch.
 - Copy topic rows for a fetch metrics snapshot.
 

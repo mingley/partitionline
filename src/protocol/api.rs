@@ -1056,12 +1056,8 @@ pub(crate) fn put_compact_node_endpoints(
     endpoints: &[NodeEndpoint],
 ) -> Result<()> {
     buf::put_array_len(buf, true, Some(endpoints.len()))?;
-    for e in endpoints {
-        buf.put_i32(e.node_id);
-        buf::put_string(buf, true, Some(e.host.as_str()))?;
-        buf.put_i32(e.port);
-        buf::put_string(buf, true, e.rack.as_deref())?;
-        buf::put_empty_tagged_fields(buf);
+    for endpoint in endpoints {
+        write_node_endpoint(buf, endpoint)?;
     }
     Ok(())
 }
@@ -1097,16 +1093,97 @@ pub(crate) fn decode_node_endpoints(value: &[u8]) -> Result<Vec<NodeEndpoint>> {
 pub(crate) fn compact_node_endpoints_len(endpoints: &[NodeEndpoint]) -> Result<usize> {
     let mut total = metadata_array_len(true, Some(endpoints.len()))?;
     for endpoint in endpoints {
-        total = add_endpoint_len(total, 4)?;
-        total = add_endpoint_len(
-            total,
-            metadata_string_len(true, Some(endpoint.host.as_str()))?,
-        )?;
-        total = add_endpoint_len(total, 4)?;
-        total = add_endpoint_len(total, metadata_string_len(true, endpoint.rack.as_deref())?)?;
-        total = add_endpoint_len(total, buf::unsigned_varint_size(0))?;
+        total = add_one_endpoint_len(total, endpoint)?;
     }
     Ok(total)
+}
+
+fn add_one_endpoint_len(total: usize, endpoint: &NodeEndpoint) -> Result<usize> {
+    let mut total = add_endpoint_len(total, 4)?;
+    total = add_endpoint_len(
+        total,
+        metadata_string_len(true, Some(endpoint.host.as_str()))?,
+    )?;
+    total = add_endpoint_len(total, 4)?;
+    total = add_endpoint_len(total, metadata_string_len(true, endpoint.rack.as_deref())?)?;
+    add_endpoint_len(total, buf::unsigned_varint_size(0))
+}
+
+/// Endpoints measured or written before the caller is paused.
+const NODE_ENDPOINT_ENCODE_CHUNK: usize = 8 * 1024;
+
+async fn compact_node_endpoints_len_cooperative(endpoints: &[NodeEndpoint]) -> Result<usize> {
+    let mut total = metadata_array_len(true, Some(endpoints.len()))?;
+    let mut start = 0usize;
+    while start < endpoints.len() {
+        let end = start
+            .saturating_add(NODE_ENDPOINT_ENCODE_CHUNK)
+            .min(endpoints.len());
+        let Some(slice) = endpoints.get(start..end) else {
+            return Err(Error::protocol("node endpoint slice"));
+        };
+        for endpoint in slice {
+            total = add_one_endpoint_len(total, endpoint)?;
+        }
+        start = end;
+        if start < endpoints.len() {
+            tokio::task::yield_now().await;
+        }
+    }
+    Ok(total)
+}
+
+fn write_node_endpoint(buf: &mut BytesMut, endpoint: &NodeEndpoint) -> Result<()> {
+    buf.put_i32(endpoint.node_id);
+    buf::put_string(buf, true, Some(endpoint.host.as_str()))?;
+    buf.put_i32(endpoint.port);
+    buf::put_string(buf, true, endpoint.rack.as_deref())?;
+    buf::put_empty_tagged_fields(buf);
+    Ok(())
+}
+
+async fn put_compact_node_endpoints_cooperative(
+    buf: &mut BytesMut,
+    endpoints: &[NodeEndpoint],
+) -> Result<()> {
+    buf::put_array_len(buf, true, Some(endpoints.len()))?;
+    let mut start = 0usize;
+    while start < endpoints.len() {
+        let end = start
+            .saturating_add(NODE_ENDPOINT_ENCODE_CHUNK)
+            .min(endpoints.len());
+        let Some(slice) = endpoints.get(start..end) else {
+            return Err(Error::protocol("node endpoint slice"));
+        };
+        for endpoint in slice {
+            write_node_endpoint(buf, endpoint)?;
+        }
+        start = end;
+        if start < endpoints.len() {
+            tokio::task::yield_now().await;
+        }
+    }
+    Ok(())
+}
+
+/// [`encode_top_level_node_endpoints`], yielding while hosts are still being measured and written.
+///
+/// Encoding 2,000,000 endpoints held the caller for 679ms. A host is still written.
+pub(crate) async fn encode_top_level_node_endpoints_cooperative(
+    buf: &mut BytesMut,
+    include: bool,
+    endpoints: &[NodeEndpoint],
+) -> Result<()> {
+    if include && !endpoints.is_empty() {
+        let payload = compact_node_endpoints_len_cooperative(endpoints).await?;
+        buf::put_unsigned_varint(buf, 1);
+        buf::put_unsigned_varint(buf, 0);
+        buf::put_unsigned_varint(buf, buf::u32_from_usize(payload)?);
+        put_compact_node_endpoints_cooperative(buf, endpoints).await
+    } else {
+        buf::put_empty_tagged_fields(buf);
+        Ok(())
+    }
 }
 
 fn add_endpoint_len(total: usize, next: usize) -> Result<usize> {
@@ -5030,6 +5107,45 @@ mod tests {
     use crate::protocol::records::{Compression, Record};
     use bytes::Bytes;
     use std::collections::{HashMap, HashSet};
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn encoding_many_node_endpoints_does_not_hold_the_caller() {
+        let endpoints: Vec<NodeEndpoint> = (0..2_000_000i32)
+            .map(|index| NodeEndpoint::new(index, "h", 9092, None))
+            .collect();
+        let started = std::time::Instant::now();
+        tokio::select! {
+            _ = async {
+                let mut body = BytesMut::new();
+                encode_top_level_node_endpoints_cooperative(&mut body, true, &endpoints)
+                    .await
+                    .unwrap_or_else(|error| panic!("{error}"));
+            } => {}
+            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "encoding node endpoints held the caller for {elapsed:?}"
+        );
+        let sample = [NodeEndpoint::new(2, "broker-2", 9092, Some("a".into()))];
+        let mut once = BytesMut::new();
+        let mut paced = BytesMut::new();
+        encode_top_level_node_endpoints(&mut once, true, &sample)
+            .unwrap_or_else(|error| panic!("{error}"));
+        encode_top_level_node_endpoints_cooperative(&mut paced, true, &sample)
+            .await
+            .unwrap_or_else(|error| panic!("{error}"));
+        assert_eq!(once, paced);
+        let mut omitted = BytesMut::new();
+        let mut omitted_paced = BytesMut::new();
+        encode_top_level_node_endpoints(&mut omitted, false, &sample)
+            .unwrap_or_else(|error| panic!("{error}"));
+        encode_top_level_node_endpoints_cooperative(&mut omitted_paced, false, &sample)
+            .await
+            .unwrap_or_else(|error| panic!("{error}"));
+        assert_eq!(omitted, omitted_paced);
+    }
 
     #[tokio::test(flavor = "current_thread")]
     async fn encoding_many_metadata_topics_does_not_hold_the_caller() {
