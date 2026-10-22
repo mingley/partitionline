@@ -170,6 +170,9 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   that zstd, incremental Fetch, throttle handling, Produce v13, and
   Fetch v18 are done. The sticky partitioner is in progress. An io_uring
   backend still needs a dependency-policy decision.
+- The gateway findings are dated 2026-09-30. The 7.8× fetch CPU ratio and
+  the 1,426 MB RSS have not been re-measured after the later decompression
+  changes.
 - The gateway profile names zstd as an optional codec that has shipped.
   Its measured cells remain gzip and lz4.
 

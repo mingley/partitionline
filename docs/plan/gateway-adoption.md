@@ -111,11 +111,16 @@ is not a per-core comparison.
 | librdkafka (`BaseConsumer`) | **220k** | **2.2 µs** | 0.48 | 193 MB |
 | partitionline (`Consumer::fetch`) | 29k | 16.9 µs (7.8×) | 0.50 | 1,426 MB |
 
-**Profile:** 84% of partitionline's CPU is in `gzip_decompress`, all of it on
-the caller's task. `read_bounded` streams `GzDecoder` output through an
-8 KiB buffer, so miniz copies matches through its window; `transfer` alone
-is 36% of samples. The effective inflate rate is about 60 MB/s. The same
-backend reaches about 1 GB/s when it writes into a large buffer.
+**Profile of that run:** 84% of partitionline's CPU is in `gzip_decompress`,
+all of it on the caller's task. `read_bounded` streams `GzDecoder` output
+through an 8 KiB buffer, so miniz copies matches through its window;
+`transfer` alone is 36% of samples. The effective inflate rate is about
+60 MB/s. The same backend reaches about 1 GB/s when it writes into a large
+buffer.
+
+This 7.8× CPU ratio and the 1,426 MB RSS are the 2026-09-30 run. KL09-34,
+KL10-16, and KL10-17 later changed fetch decompression. This page has not
+re-measured those two numbers.
 
 ### Codec microbenchmark (same payload, 16 KiB and 256 KiB batches, gzip level 6)
 
@@ -171,7 +176,7 @@ backend reaches about 1 GB/s when it writes into a large buffer.
   client-authenticating broker on the first try. Metadata, explicit
   partitions, headers and manual assignment behaved as documented.
 
-## 3. Findings and cards
+## 3. Findings and cards (2026-09-30)
 
 | # | Finding | Fix | Card |
 |---|---|---|---|
