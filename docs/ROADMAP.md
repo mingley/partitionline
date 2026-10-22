@@ -313,9 +313,10 @@ and no secret exposure. Preserve existing audit/deny and security-reporting lane
 
 **Priority:** P0 for basic usability. **Depends on:** KL-01; KL-02/03 for recipes.
 
-KL07-01 is independently ready: repair the known strict-rustdoc link error.
-KL07-02 adds the missing CI gate. Navigation, actual snippet compilation,
-recipes, migration, diagnostics and newcomer evidence each have their own card.
+KL07-01 through KL07-08 and KL07-10 through KL07-15 are done. The strict
+rustdoc failure is fixed, and CI runs rustdoc with doctests. The remaining
+card in this lane is KL07-09, two independent newcomer exercises. It is
+pending. Do not start KL07-01 again.
 
 1. Compile the existing producer/consumer/transaction and
    [rust-rdkafka migration](migrate-from-rdkafka.md) examples as external package
@@ -349,10 +350,13 @@ for adoption and API stabilization. Optional KL-05 features do not gate everyone
    **Partial (2026-09-05):** release-plz is PR-only (never auto-publish). The intended
    canonical path is tag → `release.yml` / `owner-cut-release` with
    `check-main-ci` + `ci-crate-consumer`. The 2026-09-21 audit found that
-   `check-main-ci` can accept a non-CI workflow when CI is absent. KL08-01/02
-   repair the gate; KL08-03 retires the obsolete first-publish path and fixes
-   publication serialization. These improvements are not yet complete.
-   Rehearse with `DRY_RUN=1`; do not cut a new version from this slice.
+   `check-main-ci` can accept a non-CI workflow when CI is absent. KL08-01,
+   KL08-02, and KL08-03 are done: the release check rejects a non-CI
+   workflow, requires the release profile's CI evidence, and retires the
+   obsolete publisher. KL08-04 through KL08-07 and KL08-14 through KL08-21
+   are done as well. Still open: adopter records KL08-08 through KL08-11,
+   shadowing and rollback KL08-12, and the 1.0 decision KL08-13.
+   Rehearse with `DRY_RUN=1`. Do not cut a new version from this page.
    **Partial (2026-09-05):** `scripts/rehearse-partial-release.sh --self-test` proves idempotent
    recovery without publishing (0.1.0 stays; day1/handoff DRY_RUN, not another publish).
    `owner-publish` skips `cargo publish` when the version is already on crates.io;
@@ -363,7 +367,8 @@ for adoption and API stabilization. Optional KL-05 features do not gate everyone
    runs are historical evidence.
    **Partial (2026-09-05):** [`support.md`](support.md) records the CI-backed
    matrix (Kafka 3.9.1/4.1.0, Rust 1.85, Linux/x86_64, default features)
-   and explicit non-promises. Linked from RELEASE/ADOPTION/api-stability. Does
+   and explicit non-promises. That Rust 1.85 line is this 2026-09-05 note.
+   Current source requires Rust 1.99. Linked from RELEASE/ADOPTION/api-stability. Does
    **not** close KL-08 (adopter 24h/7d records and promotion/rollback remain).
    Blank record format: [adopter-exercise.md](adopter-exercise.md) (UNFILLED — not evidence; 2026-09-05).
 3. Qualify two independent adopter workloads with 24-hour then 7-day runs.

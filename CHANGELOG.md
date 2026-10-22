@@ -89,6 +89,9 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
 - The status page names the open client gaps. Ordinary InitProducerId and
   the broker's first nine cards are already done. Mixed-version rolling
   upgrade is KL11-46, which is done.
+- The roadmap no longer tells a session to start KL07-01 or KL08-01.
+  Those lanes are done through the release gate. Adopter records KL08-08
+  through KL08-13 are still open. Current source requires Rust 1.99.
 - The gateway profile names zstd as an optional codec that has shipped.
   Its measured cells remain gzip and lz4.
 
