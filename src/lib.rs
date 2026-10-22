@@ -1054,7 +1054,7 @@
 //! [`AlterReplicaLogDirsRequest::partition_dirs`] is Java
 //! `AlterReplicaLogDirsRequest.partitionDirs` (`(topic, partition)` to path;
 //! a later directory overwrites)),
-//! DescribeLogDirs v1–v4 (v1 classic; v2+ flexible; v3 ErrorCode; v4 TotalBytes; ThrottleTimeMs is JSON `0+`;
+//! DescribeLogDirs v1–v5 (v1 classic; v2+ flexible; v3 ErrorCode; v4 TotalBytes; v5 IsCordoned, older versions decode false; ThrottleTimeMs is JSON `0+`;
 //! [`protocol::admin::DescribeLogDirsResponse::UNKNOWN_VOLUME_BYTES`] /
 //! [`protocol::admin::DescribeLogDirsResponse::INVALID_OFFSET_LAG`] /
 //! [`protocol::admin::DescribeLogDirsResponse::should_client_throttle`] are Java

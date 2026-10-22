@@ -389,7 +389,7 @@ pub fn request_header_version(api_key: i16, api_version: i16) -> i16 {
         ALTER_REPLICA_LOG_DIRS if api_version >= 2 => 2,
         // DescribeLogDirs is classic at v1; flexible from v2
         // (Apache JSON flexibleVersions: "2+", kafka-protocol 0.18.0).
-        // This crate speaks 1–4. v5 is a named STATUS hole.
+        // This crate speaks 1–5. v5 adds IsCordoned. v0 and v6+ are not spoken.
         DESCRIBE_LOG_DIRS if api_version >= 2 => 2,
         // CreateDelegationToken is classic at v1; flexible from v2
         // (Apache JSON flexibleVersions: "2+", kafka-protocol 0.18.0).
@@ -1311,10 +1311,9 @@ mod tests {
     }
 
     #[test]
-    fn describe_log_dirs_v4_is_flexible() {
-        // Official JSON: flexibleVersions 2+. kafka-protocol 0.18.0
-        // VERSIONS min=1 max=4; HeaderVersion is 2 / 1 at v2–4; 1 / 0
-        // at v1. This crate speaks 1–4. v5 is a named STATUS hole.
+    fn describe_log_dirs_v5_is_flexible() {
+        // Official JSON: flexibleVersions 2+. HeaderVersion is 2 / 1 at
+        // v2–v5 and 1 / 0 at v1. This crate speaks 1–5. v5 adds IsCordoned.
         assert_eq!(request_header_version(DESCRIBE_LOG_DIRS, 1), 1);
         assert_eq!(response_header_version(DESCRIBE_LOG_DIRS, 1), 0);
         assert_eq!(request_header_version(DESCRIBE_LOG_DIRS, 2), 2);

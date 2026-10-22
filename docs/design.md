@@ -145,7 +145,7 @@ A few rules apply across APIs:
 | DescribeClientQuotas | 0–1 |
 | IncrementalAlterConfigs | 0–1 |
 | AlterReplicaLogDirs | 1–2 |
-| DescribeLogDirs | 1–4 |
+| DescribeLogDirs | 1–5 |
 | CreateDelegationToken | 1–3 |
 | RenewDelegationToken | 1–2 |
 | ExpireDelegationToken | 1–2 |

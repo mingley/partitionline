@@ -1179,11 +1179,11 @@ v0 and v3+ are not spoken.
 
 ### DescribeLogDirs
 
-Spoken versions: 1–4.
+Spoken versions: 1–5.
 
 DescribeLogDirs v1 is classic.
 
-v2–v4 are flexible (compact arrays/strings plus tagged fields; request header 2, response header 1).
+v2–v5 are flexible (compact arrays/strings plus tagged fields; request header 2, response header 1).
 
 v3 top-level ErrorCode (KIP-784).
 
@@ -1195,11 +1195,11 @@ ThrottleTimeMs is JSON `0+` (`DescribeLogDirsResponse.throttle_time_ms`; encode 
 
 `describe_log_dirs_timeout` / `describe_replica_log_dirs_timeout` / `describe_broker_log_dirs_timeout` are Java `DescribeLogDirsOptions.timeoutMs` (RPC deadline; DescribeLogDirs has no TimeoutMs).
 
-Kafka 4.0 `validVersions` is `1-4` (v0 removed).
+Kafka 4.0 `validVersions` is `1-4` (v0 removed). Kafka 4.3.1 extends the range through v5.
 
-v0 and v5+ are not spoken.
+v5 adds IsCordoned on each directory. Older versions omit it and decode false. Admin negotiates 1–5.
 
-v5 is a named STATUS hole.
+v0 and v6+ are not spoken.
 
 ### CreateDelegationToken
 
