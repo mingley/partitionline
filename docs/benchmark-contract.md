@@ -1,265 +1,218 @@
-# Benchmark Contract and Equal-Semantics Scenario Tiers
+# Benchmark measurement rules
 
-- **Card ID:** KL04-01
-- **Schema Version:** 1.0.0
-- **Contract Version:** 1.1.0 (claim gate frozen by KL09-01; see §10 and the version history there)
-- **Priority:** P1
-- **Kind:** Specification
-- **Deliverable:** Versioned equal-semantics contract for microbenchmarks, live-client benchmarks, and end-to-end comparisons.
+These rules decide when two Kafka client runs can be compared, and which
+sentences this repository is allowed to publish about the result.
 
----
+Contract version **1.1.0**. Schema version **1.0.0** for Kafka result files.
+This document specifies the scenarios. It does not run them. Every cell is
+`specified` or `not_run`. None is `passed`.
 
-## 1. Executive Summary and Principles
+Suite HOLD is still on. An unsigned sample, a shared CI runner, or a local
+VM does not lift it. Official qualification still needs signed evidence on
+controlled hardware.
 
-This document establishes the binding equal-semantics benchmark contract for `partitionline`. Performance numbers published for a Kafka client are meaningless without rigorous, verified equivalence in durability, ordering, delivery guarantees, security, and measurement methodology.
+## Compare only equal work
 
-### Core Principles
+A comparison is invalid when the clients do not match on every row below.
 
-1. **Equal Semantics is Non-Negotiable:** A comparison between two clients is strictly invalid if their durability, acknowledgment levels, idempotence, isolation levels, or security protocols differ. Higher throughput achieved by weakening durability, silently ignoring batch delivery errors, or omitting transaction markers is a defect, not a performance victory.
-2. **Enqueue vs. Acknowledgment vs. Consumption:**
-   - **Enqueue Acceptance:** Local buffer acceptance (e.g. `Producer::try_send` returning `Ok`) indicates only that memory was allocated or queued locally. It must never be counted or reported as an acknowledgment.
-   - **Broker Acknowledgment:** Only responses returned by the broker for a `Produce` request count as acknowledged (`acked`).
-   - **Independent Consumption and Delivery:** High-watermark equality and consumer receipt prove that records actually reached the log. Acknowledged records must be audited against partition high-watermark deltas.
-   - **Acknowledgment is Not Fsync:** Broker acknowledgment confirms replication according to `min.insync.replicas` and `acks`; it does not prove per-record disk `fsync`. Fsync guarantees depend entirely on broker log-flush settings and OS page cache writeback.
-3. **No Universal Kafka Performance Certification:** No universal, standards-body performance certification exists for Kafka clients. All scorecard targets, comparisons, and claims in this repository are proposed benchmarks and engineering targets, not certified industry standards.
-4. **Transparent Reporting of Wins and Losses:** Benchmark publications must report all evaluated cells, including regressions and losses. A selective cherry-pick of favorable payload sizes or uncompressed paths is prohibited.
-5. **Specification Status:** The status of every scenario cell defined under this contract is `specified` or `not_run`. This specification card does not execute benchmark campaigns; no cell has disposition `passed`.
-
----
-
-## 2. Suite HOLD and Historical Signoff Rules
-
-Historical benchmark and latency gate findings govern this contract:
-
-1. **Preserve Suite HOLD:** Suite HOLD remains active. Unsigned samples, shared-runner CI runs, and local-VM samples do not lift Suite HOLD.
-2. **Historical Signoff Rules Stay:** Thresholds must never be silently relaxed or moved to greenwash a latency or throughput miss:
-   - **Historical Nested Miss:** On CI run `33938039612` (2026-09-05), a nested integrity job measured produce-ack p99 latency of **1,344 µs** against a **750 µs** ceiling under GitHub Actions runner load. That miss is historical fact; `integrity-smoke` now sets `SKIP_LATENCY_GATE=1` under `REQUIRE_INTEGRITY=1` to avoid conflating host load with integrity failures.
-   - **CI Latency Ceilings:** The shared-runner CI ceiling of **5,000 µs** (`docs/latency-ci-policy.json`) exists solely as a catastrophic regression detector under noisy-neighbor virtualization. The local-native relative gate of **750 µs** (500 µs baseline + 50% slack) remains the local developer check. Neither gate represents a qualification signoff.
-3. **Lab A Controlled-Host Signoff:** Official performance qualification requires signed evidence on controlled bare-metal hardware (historically designated Lab A) signed off by Kernel Integrity.
-
----
-
-## 3. Equal-Semantics Contract: Required Match Fields
-
-Two client benchmark runs are comparable if and only if all required match fields are identical:
-
-| Required Match Field | Matching Rule | Invalidation Trigger |
+| Field | They must match | A comparison is invalid when |
 |---|---|---|
-| `durability` | Replication factor (RF), `min.insync.replicas`, and broker cluster topology must be identical. | Comparing RF=1 against RF=3, or min.isr=1 against min.isr=2. |
-| `acks` | Producer acknowledgment level must be identical: `0` (fire-and-forget), `1` (leader ack), or `-1`/`all` (full ISR quorum). | Comparing `acks=1` on Client A against `acks=all` on Client B. |
-| `idempotence` | `enable.idempotence` must be identical on both clients. When enabled, `max.in.flight.requests.per.connection` must be $\le 5$. | Comparing idempotent producer (sequence tracking) against non-idempotent producer. |
-| `isolation` | Consumer `isolation.level` must match: `read_uncommitted` or `read_committed`. | Comparing consumer reading uncommitted records against consumer evaluating abort index. |
-| `security` | Wire protocol (`PLAINTEXT`, `SSL`, `SASL_PLAINTEXT`, `SASL_SSL`) and SASL mechanism (`PLAIN`, `SCRAM-SHA-256`, `SCRAM-SHA-512`, `OAUTHBEARER`) must match. | Comparing plain socket traffic against TLS-encrypted traffic. |
+| Durability | Replication factor, `min.insync.replicas`, and cluster shape | RF=1 is compared with RF=3, or min.isr=1 with min.isr=2 |
+| Acks | `0`, `1`, or `-1` / `all` | `acks=1` is compared with `acks=all` |
+| Idempotence | On or off. When on, at most 5 in-flight requests per connection | An idempotent producer is compared with a non-idempotent one |
+| Isolation | `read_uncommitted` or `read_committed` | One consumer sees aborted records and the other does not |
+| Security | `PLAINTEXT`, `SSL`, `SASL_PLAINTEXT`, or `SASL_SSL`, and the SASL mechanism | Plain traffic is compared with TLS |
 
-### Enqueue Acceptance vs. Broker Acknowledgment
+Higher throughput from weaker durability, ignored batch errors, or skipped
+transaction markers is a defect, not a win.
 
-A critical pitfall in client benchmarking is mistaking queue throughput for network/broker throughput.
-- In `partitionline`, calling `producer.try_send()` or `producer.send()` enqueues a record into an active batch partition queue. If the benchmark terminates or counts records at enqueue time without awaiting `flush()` or per-record futures, the benchmark measures memory copy speed, not Kafka produce performance.
-- In `librdkafka`, `rd_kafka_produce()` enqueues to the outbound queue (`queue.buffering.max.messages`). The benchmark must await delivery callbacks (`dr_cb`) or `rd_kafka_flush()` before counting records as acked.
-- In Java, `producer.send()` returns a `Future<RecordMetadata>`. The benchmark must await the future or count inside the completion callback.
+### What “sent” is allowed to mean
 
----
-
-## 4. Measurement Protocol and Methodology
-
-All benchmarks executed under this contract must comply with the following protocol.
-
-### 4.1 Warmup Phase
-- **Mandatory:** Every test run must include a distinct warmup phase of at least 15 seconds or 10,000 records.
-- **Exclusion:** All samples collected during warmup must be discarded from latency percentile calculations, throughput averages, and sample floor totals.
-- **Rationale:** Warmup stabilizes runtime JIT compilation, TCP socket buffer expansion, connection pools, metadata caches, and broker thread pools.
-
-### 4.2 Paired Randomized Repetitions
-- **Minimum Count:** At least 5 repetitions per scenario cell are required ($N \ge 5$).
-- **Pairing and Randomization:** Comparisons between Client A and Client B must alternate execution in randomized order (e.g. A-B-B-A-A-B-B-A-B-A) or follow a Latin square. Running all iterations of Client A followed by all iterations of Client B is prohibited due to thermal throttling and background host drift.
-
-### 4.3 Steady-State Duration and Sample Floors
-- **Duration:** Each repetition must sustain steady-state load for at least 60 seconds or until the sample floor is reached.
-- **Latency Sample Floor:** A minimum of 10,000 individually timed request/response samples is required for latency percentile evaluation (p50, p95, p99, p99.9).
-- **Throughput Sample Floor:** A minimum of 1,000,000 records (or 8,000,000 for standard bulk runs) is required for throughput rate determinations.
-
-### 4.4 Coordinated Omission Avoidance
-- Benchmarks measuring latency must employ scheduled open-loop arrival times (e.g. Poisson or fixed-rate schedule).
-- Timing must record intended send time $T_{\text{intended}}$ and actual response receipt time $T_{\text{received}}$.
-- Latency is defined as $T_{\text{received}} - T_{\text{intended}}$.
-- Simply awaiting a synchronous loop (`send()` followed by `.await`) suffers from coordinated omission: during a broker pause, fewer requests are initiated, hiding the tail latency suffered by backlogged requests.
-
-### 4.5 Statistical Uncertainty
-- Results must report median, p50, p95, p99, p99.9, mean, min, max, and throughput (records/s and MB/s).
-- Point estimates without error margins are prohibited. All reported metrics must include 95% bootstrap confidence intervals or Median Absolute Deviation (MAD).
-
-### 4.6 Failed-Run Handling Policy
-- **A Failed Cell Stays Failed:** If any repetition encounters an unhandled broker error (e.g. `NOT_ENOUGH_REPLICAS`, `OUT_OF_ORDER_SEQUENCE_NUMBER`), connection reset, dropped record, or panic, that repetition is marked **FAILED**.
-- **No Rerun Erasure:** A subsequent successful rerun does not erase, hide, or overwrite a failed run. The failure must remain recorded in raw artifacts and provenance data.
-- **No Progress-String Success:** Outputting log lines or progress strings (e.g. `sent 8000000 records`) does not constitute success. The run is successful only when audited against independent verification (broker high watermarks and receipt checks).
-
-### 4.7 Historical Lab A Verification Rules
-- **Topic Lifecycle:** Topics must be deleted and cleanly recreated prior to each run to reset log end offsets to zero.
-- **High-Watermark Audit:** Immediately following producer completion, `kafka-get-offsets.sh` must be executed across all partitions. The sum of high-watermark offsets must exactly match the number of records claimed as sent and acknowledged:
-  $$\sum_{p=0}^{P-1} \text{HW}_p == \text{Count}_{\text{acked}}$$
-- **Payload Verification:** Consumer benchmarks must read the full partition range and verify that message payloads and sequence IDs are uncorrupted.
-
----
-
-## 5. Scenario Profiles and Tiers
-
-The benchmark contract establishes six named profiles, partitioned into **required** and **exploratory** tiers:
-
-```
-+-----------------------------------------------------------------------------+
-|                          SCENARIO PROFILES & TIERS                          |
-+-------------------+-------------------------------------+-------------------+
-| Profile Name      | Required Tier (Core Gates)          | Exploratory Tier  |
-+-------------------+-------------------------------------+-------------------+
-| 1. low-latency    | Open-loop p99 produce-ack (acks 1)  | Saturation curves |
-|                   | Open-loop p99 produce-ack (acks -1) | Network jitter    |
-+-------------------+-------------------------------------+-------------------+
-| 2. bulk           | 8M records uncompressed (acks 1)    | 64 KB payloads    |
-|                   | 8M records idempotent (acks -1)     | 64 partitions     |
-+-------------------+-------------------------------------+-------------------+
-| 3. fetch          | 8M records pre-filled (6 parts)     | 64-partition fanout|
-|                   | Fetch RPC latency profile           | Truncation recovery|
-+-------------------+-------------------------------------+-------------------+
-| 4. transactional  | 1K transactions (100 recs/batch)    | Aborted batch filter|
-|                   | Read-committed consumer             | Epoch fence recovery|
-+-------------------+-------------------------------------+-------------------+
-| 5. group/share    | KIP-848 steady-state consumer       | KIP-932 share group|
-|                   | Rebalance assignment latency        | Dynamic rebalance |
-+-------------------+-------------------------------------+-------------------+
-| 6. secure         | TLS 1.3 bulk produce                | mTLS rehandshake  |
-|                   | SASL SCRAM-SHA-256 produce          | OAUTHBEARER refresh|
-+-------------------+-------------------------------------+-------------------+
-```
-
-### Definitions of Tiers
-- **Required Tier:** Cells that represent fundamental operational workloads. A client cannot claim parity or leadership in a profile without passing all required cells under equal semantics.
-- **Exploratory Tier:** Cells designed to stress extreme boundaries (e.g. 64 KB records, 64-partition fanout, high abort ratios, share group concurrency). These cells provide diagnostic and architectural insight but do not gate baseline release qualification.
-- **Client-Ceiling Tier (KL09-01):** An exploratory tier run against the null broker (no Kafka server). It measures client-side CPU headroom only. Its cells never feed any claim wording (see §10.4); quoting a ceiling number as Kafka throughput is prohibited.
-
-### Profile Descriptions
-
-1. **`low-latency`:** Evaluates request service time and scheduling latency. Focuses on minimal linger (`linger.ms=0`), single-message batches, and open-loop scheduled arrival rates to eliminate coordinated omission.
-2. **`bulk`:** Evaluates raw saturated throughput. Configured with larger batches (`batch.size=1MB`, `batch.num.messages=32768`) and linger (`linger.ms=5`) across 6 to 12 partitions.
-3. **`fetch`:** Measures consumer consumption throughput and Fetch RPC latency from pre-populated topic partitions. Assesses batch parsing, zero-copy buffer slicing, and memory allocation.
-4. **`transactional`:** Measures the overhead of transactional coordination: `InitProducerId`, `AddPartitionsToTxn`, produce batches with producer epoch, and two-phase commit markers (`EndTxn`). Measures consumer filtering under `read_committed`.
-5. **`group/share`:** Measures consumer group coordination, heartbeat efficiency, partition assignment under classic and KIP-848 protocols, and concurrent record consumption under KIP-932 Share Groups.
-6. **`secure`:** Measures encryption and authentication overhead. Evaluates TLS 1.3 record throughput, symmetric crypto throughput (AES-GCM / ChaCha20-Poly1305), and SASL handshake costs (SCRAM-SHA-256, SCRAM-SHA-512, OAUTHBEARER).
-
-### L0 Wire-Codec Microbenchmarks (KL04-09)
-
-L0 isolates client-side CPU headroom of the encode/decode paths. Like the
-client-ceiling tier, L0 cells never feed any claim wording: L0 timings,
-profiles, and census numbers may appear in reports only as diagnostic
-context, never as client-rank evidence.
-
-- **Crate:** `benchmarks/codec` (workspace-excluded; builds offline from the shared cargo cache).
-- **Benches (26, criterion):** `encode`, `decode`, `crc32c` x shapes
-  `f01`–`f04`; `compress`, `decompress` x gzip/snappy/lz4 x
-  random/text at 500x100 B; `transform` fast/slow on `f03`.
-- **Shapes (seed `0xC0DEC`):** f01: 8 records, 16 B key, 100 B random
-  value; f02: 8 records, text value, 3 headers; f03: 500 records,
-  100 B random value; f04: 32 records, 1 KiB text value, 2 headers.
-- **Independent fixtures:** `fixtures/gen.py` emits `f01`–`f04.bin` plus
-  `manifest.json` (sha256 pins, first/last key/value shas, timestamps);
-  both generator and output are checked in, and loading fails closed
-  on any sha256 mismatch.
-- **Preflight:** decode every fixture, verify manifest facts (record
-  count, first/last key/value shas), require byte-identical re-encode,
-  and round-trip gzip/snappy/lz4 x random/text at 500 records with
-  identical records back.
-- **Census:** global counting allocator, single-threaded, counts
-  allocations (not frees) plus requested bytes per op: encode/decode
-  x f01–f04 plus compress/decompress x 3 codecs (text).
-- **Slowcheck:** fast vs slow transform on f03 must produce identical
-  records; interleaved 10x20 timing must clear a 1.5x ratio bar.
-- **Artifact:** `benchmarks/codec/baseline.json` (assembled by
-  `benchmarks/codec/baseline.py` from `codec-preflight baseline`,
-  criterion `new/estimates.json` per bench, and manifest shas) with a
-  `baseline.sha256` sidecar: toolchain, git sha, fixture pins, bench
-  table (ns/op mean/median/stddev), census rows, slowcheck ratio.
-- **Gates:** `codec-preflight` PASS (preflight + census + slowcheck),
-  sha256 fixture check, no statistically significant criterion
-  regression vs the checked-in baseline, full offline
-  workspace-excluded rebuild, no uncommitted files at report time.
-
----
-
-## 6. Frozen Knobs and Parameter Matrix
-
-To guarantee equal semantics, every benchmark run must freeze and declare values for all parameter dimensions:
-
-| Parameter Dimension | Frozen Knob | Standard Bulk Value | Standard Low-Latency Value |
-|---|---|---|---|
-| **Durability & ISR** | `replication_factor` | 1 (Lab A) / 3 (HA) | 1 (Lab A) / 3 (HA) |
-| | `min.insync.replicas` | 1 (Lab A) / 2 (HA) | 1 (Lab A) / 2 (HA) |
-| **Acks** | `acks` | 1 or -1 (`all`) | 1 or -1 (`all`) |
-| **Idempotence** | `enable.idempotence` | `true` (when acks=-1) | `true` (when acks=-1) |
-| **Isolation** | `isolation.level` | `read_uncommitted` | `read_committed` |
-| **Payload Size & Entropy** | `payload_size_bytes` | 100 bytes | 100 bytes |
-| | `payload_entropy` | Uniform pseudorandom | Uniform pseudorandom |
-| **Headers, Keys, Skew** | `key_type` | null or 16-byte UUID | null or 16-byte UUID |
-| | `has_headers` | false | false |
-| | `partition_skew` | Uniform round-robin | Uniform round-robin |
-| **Partitions** | `partition_count` | 6 partitions | 1 or 6 partitions |
-| **Batching** | `linger.ms` | 5 ms | 0 ms |
-| | `batch.size` (bytes) | 1,048,576 (1 MB) | 1,000 bytes |
-| | `batch.num.messages` | 32,768 records | 1 record |
-| **In-Flight & Connections**| `max.in.flight` | 5 | 1 or 5 |
-| | `connections_per_broker`| 1 | 1 |
-| | `socket.nagle.disable` | true (`TCP_NODELAY`) | true (`TCP_NODELAY`) |
-| **Network Topology** | `environment` | Loopback / Controlled LAN | Loopback / Controlled LAN |
-| | `rtt_ms` | < 0.2 ms | < 0.2 ms |
-
----
-
-## 7. Fully Specified Three-Way Matched Scenario
-
-To demonstrate the contract in practice, this specification defines a fully specified three-way matched scenario across **Rust (`partitionline`)**, **C (`librdkafka`)**, and **Java (`org.apache.kafka:kafka-clients`)**.
-
-- **Scenario ID:** `matched-bulk-acks-all-6p-uncompressed`
-- **Profile:** `bulk`
-- **Tier:** `required`
-- **Status:** `not_run`
-- **Disposition:** `not_run`
-- **Description:** Idempotent, high-throughput bulk produce of 8,000,000 records across 6 partitions, `acks=-1`, uncompressed, with in-flight requests capped at 5.
-
-### Frozen Knobs
-
-| Knob | Frozen Value |
+| Word | Meaning |
 |---|---|
-| Total Timed Records | 8,000,000 |
-| Warmup Records | 10,000 |
-| Payload Size | 100 bytes (uniform random bytes, seed `0x5EED0001`) |
-| Key | 16-byte UUID string |
-| Topic | `plbench-matched` (6 partitions, RF=1, min.isr=1) |
-| Acks | `-1` (`all`) |
-| Idempotence | `true` |
+| Enqueued | The client accepted the record into memory. `try_send` returning `Ok` is only this. |
+| Acknowledged | The broker answered the Produce request. |
+| Consumed | An independent reader saw the record, and the high-watermark change matches the acked count. |
+
+A broker ack follows `acks` and `min.insync.replicas`. It is not a per-record
+`fsync`. Disk durability depends on the broker flush settings and the OS
+page cache.
+
+The same trap exists in every client:
+
+- Partitionline `send` and `try_send` queue a record. Count it only after flush or the per-record future.
+- librdkafka `rd_kafka_produce` queues a record. Count it from the delivery callback or after `rd_kafka_flush`.
+- Java `producer.send` returns a future. Count it when that future completes.
+
+There is no industry certificate for “fastest Kafka client.” Numbers in
+this repository are engineering measurements.
+
+## How a run is measured
+
+### Warmup
+
+Every run has a warmup of at least 15 seconds or 10,000 records. Drop those
+samples from percentiles, averages, and sample floors. Warmup covers caches,
+connections, and broker threads.
+
+### Repetitions
+
+Use at least five repetitions. When comparing two clients, alternate them in
+a random order, or use a Latin square. Do not run every trial of client A
+and then every trial of client B. The machine drifts.
+
+### Length
+
+Each repetition stays in steady state for at least 60 seconds, or until the
+sample floor:
+
+- latency: 10,000 timed request/response samples
+- throughput: 1,000,000 records, or 8,000,000 for the standard bulk run
+
+### Latency without hiding the stalls
+
+Schedule sends on an open loop (fixed rate or Poisson). Record the intended
+send time and the time the response arrives. Latency is the difference.
+
+A loop that waits for each `send` before starting the next one hides stalls.
+While the broker is slow, the client simply starts fewer requests.
+
+### What to report
+
+Report median, p50, p95, p99, p99.9, mean, min, max, and throughput in
+records/second and MB/s. Every point estimate needs a 95% bootstrap
+confidence interval or the median absolute deviation.
+
+Publish every cell, including losses. Do not show only the payload size
+that won.
+
+### Failures stay in the record
+
+A repetition fails if the broker returns an unhandled error, the connection
+drops, a record is missing, or the process panics. A later success does not
+delete that failure. A progress line such as `sent 8000000 records` is not
+success. Success is an independent check of high watermarks and payloads.
+
+Before each run, delete and recreate the topic so the log starts at zero.
+After the producer finishes, sum the high watermarks. That sum must equal
+the acked count. A consumer benchmark reads the full range and checks
+payloads and sequence IDs.
+
+## Do not move the old latency gates
+
+Thresholds are not relaxed to hide a miss.
+
+On CI run `33938039612` (2026-09-05), a nested integrity job measured
+produce-ack p99 of **1,344 µs** against a **750 µs** ceiling on a GitHub
+Actions runner. That miss stays in the record. `integrity-smoke` sets
+`SKIP_LATENCY_GATE=1` when `REQUIRE_INTEGRITY=1` so a noisy host is not
+reported as an integrity failure.
+
+The shared-runner ceiling of **5,000 µs** (`docs/latency-ci-policy.json`)
+only catches a catastrophic regression on a noisy VM. The local check is
+**750 µs** (500 µs baseline plus 50%). Neither number is a qualification
+signoff.
+
+## Profiles
+
+Each profile has a required tier and an exploratory tier.
+
+| Profile | Required | Exploratory |
+|---|---|---|
+| low-latency | Open-loop p99 produce-ack at `acks=1` and `acks=-1` | Saturation curves, network jitter |
+| bulk | 8 million uncompressed records at `acks=1`; 8 million idempotent records at `acks=-1` | 64 KB payloads, 64 partitions |
+| fetch | 8 million pre-filled records on 6 partitions; Fetch RPC latency | 64-partition fanout, truncation recovery |
+| transactional | 1,000 transactions of 100 records; a read-committed consumer | Aborted-batch filter, epoch fence recovery |
+| group/share | KIP-848 steady-state consumer; rebalance assignment latency | KIP-932 share group, dynamic rebalance |
+| secure | TLS 1.3 bulk produce; SASL SCRAM-SHA-256 produce | mTLS rehandshake, OAUTHBEARER refresh |
+
+Required cells are the ones a profile claim depends on. Exploratory cells
+are stress tests. They do not gate a release claim.
+
+The client-ceiling tier runs against a null broker. It measures client CPU
+only. Never quote it as Kafka throughput.
+
+What each profile is for:
+
+1. **low-latency.** Linger 0, one-record batches, scheduled arrivals.
+2. **bulk.** Saturated throughput. About 1 MB batches, 32,768 records, linger 5 ms, 6 to 12 partitions.
+3. **fetch.** Read a pre-filled topic. Includes batch parsing and buffer use.
+4. **transactional.** InitProducerId, AddPartitionsToTxn, epoch batches, end markers, and `read_committed`.
+5. **group/share.** Group coordination, assignment, and share-group consumption.
+6. **secure.** TLS 1.3, AES-GCM or ChaCha20-Poly1305, and SASL handshakes.
+
+### Codec microbenchmarks
+
+The `benchmarks/codec` crate is outside the workspace and builds from the
+shared cargo cache. Its timings are diagnostics. They never rank a client.
+
+- Criterion benches: encode, decode, and crc32c on shapes `f01`–`f04`; compress and decompress for gzip, snappy, and lz4 on random and text at 500×100 bytes; fast and slow transform on `f03`.
+- Shapes use seed `0xC0DEC`. `f01` is 8 records, 16-byte key, 100-byte random value. `f02` is 8 records, text value, 3 headers. `f03` is 500 records, 100-byte random value. `f04` is 32 records, 1 KiB text value, 2 headers.
+- `fixtures/gen.py` writes `f01`–`f04.bin` and `manifest.json`. Both are checked in. A sha256 mismatch fails the load.
+- Preflight decodes every fixture, checks the manifest, re-encodes byte for byte, and round-trips gzip, snappy, and lz4.
+- A counting allocator records allocations and requested bytes. It does not count frees.
+- The slow transform on `f03` must match the fast transform. An interleaved 10×20 timing must stay within 1.5×.
+- `benchmarks/codec/baseline.json` plus `baseline.sha256` stores toolchain, git sha, fixture pins, ns/op, census, and the slowcheck ratio.
+- Gates: preflight, census, slowcheck, fixture hashes, no significant Criterion regression, an offline rebuild, and a clean worktree at report time.
+
+## Frozen settings
+
+| Knob | Bulk | Low latency |
+|---|---|---|
+| Replication factor | 1 in the lab, 3 for HA | same |
+| `min.insync.replicas` | 1 in the lab, 2 for HA | same |
+| `acks` | 1 or -1 | 1 or -1 |
+| Idempotence | on when `acks=-1` | on when `acks=-1` |
+| Isolation | `read_uncommitted` | `read_committed` |
+| Payload | 100 bytes, uniform pseudorandom | same |
+| Key | null or a 16-byte id | same |
+| Headers | none | none |
+| Routing | uniform round robin | same |
+| Partitions | 6 | 1 or 6 |
+| Linger | 5 ms | 0 ms |
+| Batch bytes | 1,048,576 | 1,000 |
+| Batch records | 32,768 | 1 |
+| Max in flight | 5 | 1 or 5 |
+| Connections per broker | 1 | 1 |
+| Nagle | off (`TCP_NODELAY`) | off |
+| Network | loopback or a controlled LAN, RTT under 0.2 ms | same |
+
+## One fully specified comparison
+
+Scenario `matched-bulk-acks-all-6p-uncompressed`. Profile `bulk`, required
+tier, status `not_run`.
+
+Idempotent produce of 8,000,000 uncompressed records, 6 partitions,
+`acks=-1`, at most 5 in-flight requests.
+
+| Knob | Value |
+|---|---|
+| Timed records | 8,000,000 |
+| Warmup records | 10,000 |
+| Payload | 100 bytes, seed `0x5EED0001` |
+| Key | 16-byte id |
+| Topic | `plbench-matched`, 6 partitions, RF=1, min.isr=1 |
+| Acks | -1 |
+| Idempotence | on |
 | Linger | 5 ms |
-| Batch Size (Bytes) | 1,048,576 bytes (1 MB) |
-| Batch Size (Records) | 32,768 records |
-| Max In-Flight Requests | 5 |
-| TCP NoDelay | Enabled (`nagle.disable=true`) |
-| Broker Version | Apache Kafka 3.9.1 KRaft on `127.0.0.1:9092` |
+| Batch bytes | 1,048,576 |
+| Batch records | 32,768 |
+| Max in flight | 5 |
+| TCP_NODELAY | on |
+| Broker | Apache Kafka 3.9.1 KRaft on `127.0.0.1:9092` |
 
-### Peer Client Invocation and Configuration
+Partitionline:
 
-#### 1. Rust: `partitionline`
-```bash
-COUNT=8000000 \
-WARMUP=10000 \
-PAYLOAD_BYTES=100 \
-ACKS=-1 \
-LINGER_MS=5 \
-BATCH_SIZE=1048576 \
-BATCH_RECORDS=32768 \
-IDEMPOTENT=1 \
-MAX_IN_FLIGHT=5 \
+```sh
+COUNT=8000000 WARMUP=10000 PAYLOAD_BYTES=100 ACKS=-1 LINGER_MS=5 \
+BATCH_SIZE=1048576 BATCH_RECORDS=32768 IDEMPOTENT=1 MAX_IN_FLIGHT=5 \
 KAFKA_TOPIC=plbench-matched \
 cargo run --release --example bench_produce
 ```
 
-#### 2. C: `librdkafka` (via `rdkafka_performance`)
-```bash
+librdkafka:
+
+```sh
 rdkafka_performance -P \
   -t plbench-matched \
   -s 100 \
@@ -277,8 +230,9 @@ rdkafka_performance -P \
   -X compression.codec=none
 ```
 
-#### 3. Java: `kafka-clients` (via `ProducerPerformance`)
-```bash
+Java:
+
+```sh
 bin/kafka-run-class.sh org.apache.kafka.tools.ProducerPerformance \
   --topic plbench-matched \
   --num-records 8000000 \
@@ -294,156 +248,87 @@ bin/kafka-run-class.sh org.apache.kafka.tools.ProducerPerformance \
     compression.type=none
 ```
 
-### Review Notes: Matched Scenario Equivalence Analysis
+Three details that otherwise skew the run:
 
-1. **Linger Default Pitfall:** In `librdkafka`, the default `linger.ms` is 1,000 ms (1 second), whereas in Java `kafka-clients` the default is 0 ms, and in `partitionline` it is configurable via builder. Leaving `linger.ms` unspecified causes severe skew (librdkafka will batch aggressively up to 1s while Java sends immediate tiny batches). Explicitly freezing `linger.ms=5` ensures equal batch accumulation windows.
-2. **In-Flight Bound Enforcement:** With `enable.idempotence=true`, Kafka broker protocol requires `max.in.flight.requests.per.connection <= 5`. If set higher, the broker rejects produce requests with `OUT_OF_ORDER_SEQUENCE_NUMBER`. All three clients are explicitly pinned to 5.
-3. **Queue Buffering and Backpressure:** `librdkafka` defaults `queue.buffering.max.messages` to 100,000. Under 8M record load, this queue fills instantly and blocks unless sized appropriately (`1,000,000`). Similarly, `partitionline` must enforce backpressure rather than unbounded memory growth (see KL02 resource contract).
-4. **Verification Requirement:** Upon completion of any matched run, the post-run audit script must verify:
-   ```bash
-   kafka-get-offsets.sh --bootstrap-server 127.0.0.1:9092 --topic plbench-matched --time -1
-   ```
-   The sum of partition end offsets must strictly equal 8,000,000.
+1. librdkafka linger defaults to 1,000 ms. Java defaults to 0. Partitionline uses whatever the builder sets. Freeze linger at 5 ms.
+2. Idempotence requires at most 5 in-flight requests. A higher cap is rejected with `OUT_OF_ORDER_SEQUENCE_NUMBER`.
+3. librdkafka’s default queue holds 100,000 messages. Size it for this run (`1,000,000`) or the producer blocks. Partitionline must apply backpressure instead of growing memory without a bound.
 
----
+After the run:
 
-## 8. Explicitly Unsupported Peer Cell and Non-Win Scoring Rules
+```sh
+kafka-get-offsets.sh --bootstrap-server 127.0.0.1:9092 --topic plbench-matched --time -1
+```
 
-A comparison is invalid if a competitor is scored as "losing" when it completely lacks the underlying protocol feature.
+The partition end offsets must sum to 8,000,000.
 
-### Unsupported Peer Cell Specification
+## A missing feature is not a loss
 
-- **Cell ID:** `unsupported-librdkafka-share-groups`
-- **Profile:** `group/share`
-- **Target Capability:** KIP-932 Share Groups (`ShareConsume` and `ShareAcknowledge` RPCs for cooperative queue-like consumption)
-- **Peer Client:** `librdkafka` (version 2.15.0)
-- **Missing Capability:** KIP-932 Share Consumer Protocol
-- **Status:** `specified`
-- **Disposition:** `unsupported`
-- **Mandatory Scoring Rule:** **Must not be scored as a win.**
+Do not score a peer as slower when it does not implement the feature.
 
-### Review Notes: Non-Win Scoring Rules for Unsupported Capabilities
+librdkafka 2.15.0 does not implement KIP-932 share groups. A share-group
+cell against that client is `unsupported_peer`. It is not a throughput win.
+The same rule applies to KIP-848 groups and to a codec the peer was built
+without, including zstd.
 
-1. **Protocol Absence is Not a Performance Defeat:** `librdkafka` 2.15.0 does not implement KIP-932 Share Groups (it supports classic partition-assigned consumer groups via KIP-345/KIP-429). Attempting to run a share group benchmark against librdkafka either fails at initialization or forces fallback to a completely different consumption model (partition-locked consumer groups).
-2. **Prohibition Against Misleading Victory Claims:** Claiming "partitionline has 5x the share group throughput of librdkafka" is false and deceptive when librdkafka cannot participate in the protocol. Such cells must be classified strictly as `unsupported_peer` in all published comparison matrices.
-3. **Applicability to Other Features:** The same rule applies to other protocol capabilities:
-   - Comparing KIP-848 next-gen consumer groups against clients lacking KIP-848 support must not be scored as a rebalance speed win.
-   - Comparing zstd decompression against a peer client compiled without zstd support must not be scored as a codec win.
+## Sentences this repository may publish
 
----
+A sentence below is allowed only when equal semantics, the measurement
+protocol, Suite HOLD, and any required independent reproduction are all
+met. Until then every cell stays `not_run` and no summary claim exists.
 
-## 9. Implementation Roadmap
+“Superior” is against the best peer that implements the cell and has a
+runnable driver. A peer without a driver, or without the feature, is
+excluded. It is not counted as a loss.
 
-This specification card (`KL04-01`) completes the equal-semantics contract. Subsequent cards in the KL-04 package build directly upon this foundation:
-
-- **KL04-02:** Add machine-readable raw benchmark result and provenance format (`benchmarks/provenance.json`).
-- **KL04-03:** Check in pinned Apache Java benchmark peer driver.
-- **KL04-04:** Check in reproducible `librdkafka` C benchmark peer driver.
-- **KL04-05:** Add pinned Rust-client comparison adapter.
-- **KL04-06:** Measure scheduled open-loop latency through saturation without coordinated omission.
-- **KL04-07:** Gate benchmark runs on record histories and payload integrity verification.
-- **KL04-08:** Automate paired randomized benchmark executions.
-- **KL04-09:** Add wire-codec and buffer allocation microbenchmarks.
-- **KL04-10:** Record controlled x86_64 benchmark campaign.
-- **KL04-11:** Record controlled arm64 benchmark campaign.
-- **KL04-12:** Publish reproducible comparison report from raw artifacts.
-- **KL04-13:** Profile measured bottlenecks and generate surgical optimization cards.
-- **KL04-14:** Obtain independent benchmark reproduction and Kernel Integrity signoff.
-
----
-
-## 10. Claim Gate (KL09-01; Contract 1.1.0)
-
-This section freezes the only wordings that may summarize comparison
-results, the peers they are measured against, and the statistical bar.
-It permits nothing by itself: every claim additionally requires equal
-semantics (§3), the measurement protocol (§4), the Suite HOLD process
-(§2), and independent reproduction where the table requires it. Until
-those exist, every cell stays `not_run` and no summary claim exists.
-
-### 10.1 Frozen peer set
-
-| Peer ID | Client | Pin / driver card | Standing |
-|---|---|---|---|
-| `partitionline` | This repository | — | Subject under test |
-| `librdkafka` | C client | Current pinned release (KL04-04) plus the 2.15.0 historical bar | Driver pending |
-| `kafka-clients` | Apache Java | Pinned release (KL04-03) | Driver pending |
-| `franz-go` | Go client | Pinned release (KL09-65) | Driver pending |
-| `rust-rdkafka` | Rust bindings over librdkafka | Reported separately from the C-only bar (KL04-05) | Adapter pending |
-| Rust peer | A comparable Rust client, selected in KL04-05 | TBD in KL04-05 | Selection pending |
-
-Per-cell best-peer rule: "superior" is always relative to the best peer
-**for that cell** among peers that support the cell's capability and have
-a runnable driver. Peers without a driver, and peers lacking the
-capability (§8 non-win rule), are listed as excluded — never counted.
-
-Results for `franz-go`, `rust-rdkafka` and the selected Rust client file under
-result-schema `peer: "peer-adapter"` with the concrete peer recorded in
-provenance, until their driver cards promote them to named schema peers,
-if ever.
-
-### 10.2 Claim types
-
-"Superior" means statistically superior to the best peer for that cell
-(§10.1). For throughput, the paired 95% CI lower bound of the
-partitionline/peer ratio must be above 1.0. For latency, the CI upper
-bound of each percentile ratio must be below 1.0 at every declared load.
-
-| Claim wording | Requirement |
-|---|---|
-| **"Fastest Kafka client"** (global) | Superior in **every** required cell of **all six** contract profiles (low-latency, bulk, fetch, transactional, group/share, secure), plus the required compressed cells (lz4, zstd), on **both** x86_64 and arm64, independently reproduced (KL04-14). **No exceptions.** Any losing, tied or not-run required cell blocks this wording. |
-| **"Fastest for \<profile\> on \<arch\>"** | Superior in every required cell of that profile on that architecture, independently reproduced |
-| **"X% faster"** (cell or profile) | The paired 95% CI lower bound of the throughput ratio is at least 1+X in every covered cell. For latency, the percentile ratio's CI upper bound is at most 1−X. |
-| **"Most CPU-efficient"** | The CPU-per-record ratio's CI upper bound is at most 0.80 against the best peer. This is **never** worded as "fastest". |
-| ROADMAP **performance-leadership scorecard** | The throughput ratio's CI lower bound is at least 1.20, **or** the CPU-per-record CI upper bound is at most 0.80, with the p99 ratio's CI upper bound at most 1.05 at matched load |
-| Anything weaker | Dated per-cell verdicts with every loss listed; no summary claim |
-
-### 10.3 Primary metrics and guardrails
-
-| Profile | Primary metric | Guardrails |
+| Peer | Client | Standing |
 |---|---|---|
-| bulk (acks=1; idempotent acks=all; none/lz4/zstd) | HW-verified acknowledged rec/s and MB/s | CPU per record; p99 ack latency at matched load; RSS within the declared budget |
-| fetch (6 and 64 partitions; read_uncommitted and read_committed) | ID/hash-verified consumed rec/s and MB/s | CPU per record; RSS |
-| low-latency (open-loop; acks=1 and acks=all) | p50/p99/p99.9 at 10%, 50% and 80% of the weakest peer's saturation, plus the maximum load under the p99 budget | Schedule lag; timeouts and rejections |
-| transactional; group/share | Contract cells (commit cycles/s; KIP-848 steady consumption) | Correctness histories (KL03) |
-| secure (TLS 1.3; SCRAM-SHA-256) | As for bulk | Handshake and reauthentication counted separately |
-| client ceiling (null broker; exploratory) | Records/s per client core | Zero server-side validation failures; never quoted as Kafka throughput |
+| partitionline | This repository | Subject under test |
+| librdkafka | C client, pinned release, with 2.15.0 as the historical bar | Driver pending |
+| kafka-clients | Apache Java, pinned release | Driver pending |
+| franz-go | Go client, pinned release | Driver pending |
+| rust-rdkafka | Rust bindings over librdkafka, reported separately from the C tool | Adapter pending |
+| Another Rust client | Chosen when that comparison is specified | Selection pending |
 
-These internal engineering targets are **not claims**:
+For throughput, the paired 95% confidence interval’s lower bound on the
+partitionline/peer ratio must be above 1.0. For latency, the upper bound
+of each percentile ratio must be below 1.0 at every declared load.
 
-- amortized steady-state produce allocations of at most 0.01 per record
-- zero per-record allocations on the additive fetch batch-view path
-- idle producer RSS proportional to active partitions, not to configured
-  connection slots
+| Sentence | Required result |
+|---|---|
+| “Fastest Kafka client” | Superior on every required cell of all six profiles, plus required lz4 and zstd cells, on both x86_64 and arm64, independently reproduced. Any loss, tie, or missing cell blocks the sentence. |
+| “Fastest for this profile on this architecture” | Superior on every required cell of that profile on that architecture, independently reproduced |
+| “X% faster” | The throughput ratio’s lower bound is at least 1+X in every covered cell. For latency, the percentile ratio’s upper bound is at most 1−X |
+| “Most CPU-efficient” | CPU per record has an upper bound of at most 0.80 against the best peer. This is never worded as “fastest” |
+| Roadmap scorecard | Throughput lower bound at least 1.20, or CPU-per-record upper bound at most 0.80, and p99 upper bound at most 1.05 at matched load |
+| Anything weaker | Dated per-cell results, with every loss listed. No summary sentence |
 
-### 10.4 Tiers and the client ceiling
+| Profile | Primary metric | Also report |
+|---|---|---|
+| Bulk (`acks=1`, idempotent `acks=all`, none/lz4/zstd) | Acknowledged records/s and MB/s, checked against the high watermark | CPU per record, p99 ack latency, RSS |
+| Fetch (6 and 64 partitions, both isolation levels) | Consumed records/s and MB/s, checked by id and hash | CPU per record, RSS |
+| Low latency (open loop, `acks=1` and `acks=all`) | p50, p99, and p99.9 at 10%, 50%, and 80% of the weakest peer’s saturation, plus the highest load still inside the p99 budget | Schedule lag, timeouts, rejections |
+| Transactional, group, share | The contract cell (commit cycles/s, or steady KIP-848 consumption) | Record histories |
+| Secure (TLS 1.3, SCRAM-SHA-256) | Same as bulk | Handshakes and reauthentication, counted separately |
+| Client ceiling (null broker) | Records/s per client core | No server-side validation failures. Never quoted as Kafka throughput |
 
-- **Required** cells gate profile and global wordings: every required
-  cell must be superior (or the wording is blocked).
-- **Exploratory** cells are diagnostic only and never gate.
-- **Client-ceiling** cells (null broker, exploratory) measure client-side
-  CPU headroom versus a peer on one host. They never feed any claim
-  wording, their evidence lives in KL09 evidence JSONs rather than
-  result-schema filings, and quoting a ceiling number as Kafka
-  throughput is prohibited.
+These are internal targets, not claims:
 
-### 10.5 Local-evidence rules (KL09)
+- at most 0.01 steady-state produce allocations per record
+- no per-record allocation on the additive fetch batch-view path
+- idle producer RSS that follows active partitions, not configured connection slots
 
-- L0 (microbenchmarks, allocations, instruction counts) and L1 (client
-  ceilings): internal engineering notes only.
-- L2 (local real-broker cells, paired and repeated): local and unsigned;
-  engineering direction only.
-- L3 (controlled x86_64 **and** arm64 campaigns): dated per-cell
-  comparison with all losses listed.
-- L4 (independent reproduction plus Suite HOLD process): the strongest
-  claim type in §10.2 whose requirement is met.
+Evidence levels:
 
-KL09 cards never publish a claim; only KL04-12, KL04-14 and KL09-70 can.
+| Level | What it is | What it can support |
+|---|---|---|
+| L0 | Microbenchmarks, allocations, instruction counts | Internal notes |
+| L1 | Client ceilings | Internal notes |
+| L2 | Local broker runs, paired and repeated | Engineering direction. Unsigned |
+| L3 | Controlled x86_64 and arm64 campaigns | Dated per-cell comparison, losses included |
+| L4 | Independent reproduction and the Suite HOLD process | The strongest sentence above whose requirement is met |
 
-### Version history
+## Version history
 
-- **1.1.0** (KL09-01): claim gate frozen (peer set, per-cell best-peer
-  rule, claim types, primary metrics, guardrails, ROADMAP scorecard
-  thresholds, client-ceiling tier, local-evidence rules); required lz4
-  and zstd bulk cells specified; Suite HOLD unchanged.
-- **1.0.0** (KL04-01): initial equal-semantics contract.
+- **1.1.0.** Claim wording, peer set, metrics, guardrails, scorecard thresholds, client-ceiling tier, and local-evidence rules. Required lz4 and zstd bulk cells. Suite HOLD unchanged.
+- **1.0.0.** Initial equal-semantics contract.

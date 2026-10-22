@@ -1,27 +1,47 @@
 # Benchmark result files
 
-Install the validator dependencies with `python3 -m pip install -r
-benchmarks/requirements.txt`, then run `python3 scripts/benchmark-report.py
-RESULT.json --json`. Validation requires the complete JSON schema and the
-additional outcome, integrity and unit checks. Missing dependencies or a missing
-schema are errors.
+A result file is a JSON document checked against a schema. A file that
+validates is still only a record of one run. It does not qualify a
+scenario, and it does not lift Suite HOLD.
 
-Schema version `1.0.0` describes Kafka runs. Its durability, producer settings and
-warmup fields remain required. Earlier incomplete null-broker files retain their
-original bytes and schema failures; the validator does not repair them.
+## Check a file
 
-Schema version `2.0.0` describes exploratory null-broker fixtures. The broker mode
-is `null`. Durability and Kafka cluster identity are null because the fixture has
-neither replicated storage nor a Kafka cluster ID. Fetch files use null for
-producer settings; produce files use null for consumer isolation. A separate
-idempotence sequence audit is null because this harness does not record one.
+```sh
+python3 -m pip install -r benchmarks/requirements.txt
+python3 scripts/benchmark-report.py RESULT.json --json
+```
 
-These fixtures have a measured phase and no warmup phase. They report
-`phase: "bounded_fixture"`, `warmup_completed: false`, the measured duration, and
-null for steady-state duration and total campaign repetitions. Repetition
-indices start at one. Pairing order is unreported in the result file; a separate
-campaign controller can retain that order.
+The checker loads the schema and then checks outcomes, integrity, and
+units. A missing dependency or a missing schema is an error. The checker
+does not rewrite old files.
 
-Each new null result retains its effective configuration in a sidecar and hashes
-those exact bytes. Histogram bounds describe the measured integer microsecond
-buckets. A valid result file does not qualify a scenario or lift Suite HOLD.
+## Schema 1.0.0
+
+Schema `1.0.0` is a Kafka run. Durability, producer settings, and warmup
+fields are required.
+
+Older incomplete null-broker files keep their original bytes and their
+schema failures. They are not repaired.
+
+## Schema 2.0.0
+
+Schema `2.0.0` is an exploratory null-broker fixture.
+
+| Field | Value | Why |
+|---|---|---|
+| Broker mode | `null` | There is no Kafka server |
+| Durability | null | There is no replicated log |
+| Cluster id | null | There is no Kafka cluster |
+| Producer settings on a fetch file | null | The fixture did not produce |
+| Consumer isolation on a produce file | null | The fixture did not consume |
+| Idempotence sequence audit | null | This harness does not record one |
+
+These fixtures measure one phase and have no warmup. They set
+`phase` to `bounded_fixture`, `warmup_completed` to false, and the
+measured duration. Steady-state duration and total campaign repetitions
+are null. Repetition indexes start at 1. The result file does not record
+pairing order. A campaign controller can keep that order separately.
+
+Each new null result stores its effective configuration in a sidecar and
+hashes those exact bytes. Histogram bounds are the measured integer
+microsecond buckets.

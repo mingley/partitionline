@@ -1,39 +1,98 @@
-# Benchmark vs librdkafka C
+# Benchmarks
 
-## Reproducible native C peer (KL04-04)
+This page explains how to run a Partitionline benchmark and how to read the
+numbers already in this file.
 
-The checked-in [librdkafka C peer](https://github.com/mingley/partitionline/blob/8920ad999266cd87a8de94450fc6325063105c6c/benchmarks/peers/librdkafka/README.md)
-builds historical **v2.15.0** at source commit
-`9a94e11452cdeb0a844db44ee5dd01ccbe17d3ab` in an isolated directory.
-No newer baseline is selected. It uses the native C producer and consumer,
-emits effective settings and callback failures, and retains successful and
-failed result-schema artifacts. It introduces no C/FFI dependency into this
-crate. Historical tables below remain historical evidence.
+A throughput or latency number is useful only when both clients do the same
+work. Same acknowledgment level, same idempotence setting, same isolation,
+same security, and the same warmup and payload. The rules are in the
+[measurement contract](benchmark-contract.md). Result files are described in
+[benchmark result files](benchmark-results.md).
 
-`scripts/lab-a-produce.sh` now automates both clients, randomized order and a
-fresh-topic HW audit per run, retaining logs, C artifacts and independent
-HW counts. The earlier manual C reproduction commands remain historical
-recipes. The automated harness defaults to seeded payloads and 16-byte ID
-keys, accepts record-count warmup, and measures CPU and peak RSS with GNU time.
-It remains an unsigned integrity check.
-See the peer README for pins, settings, standalone receipt verification and
-[KL04-04 validation evidence](https://github.com/mingley/partitionline/blob/8920ad999266cd87a8de94450fc6325063105c6c/docs/evidence/perf/KL04-04/README.md). Suite HOLD stays active.
+Suite HOLD is still on. Local tables in this file are engineering samples.
+They are not a signed “fastest client” claim. See [STATUS.md](STATUS.md).
 
-Produce is acked records/second (Lab A vs librdkafka 2.15.0 C). Fetch is
-consumed records/second from a topic this crate already filled. The signed
-produce tables below are Lab A. The fetch writeup is **this-VM 2026-08-28,
-unsigned** (rust-rdkafka 0.39.0, not C 2.15.0). Produce-ack and fetch-request
-latency is **this-VM 2026-08-28, unsigned** (same rust-rdkafka 0.39.0, not
-C 2.15.0, not Lab A). Suite HOLD: [STATUS.md](STATUS.md).
+## What each number means
 
-## Record-history correctness gate (KL04-07)
+| Number | What it counts | What it does not count |
+|---|---|---|
+| Acknowledged records/second | Produce records the broker acked | Records only queued in the client |
+| Consumed records/second | Records an independent consumer read back | A mock broker, or a client that stopped at enqueue |
+| Produce-ack latency | Time from send until the Produce response | Fetch time |
+| Fetch-request latency | Time for a Fetch RPC that returns records already on the log | `poll` of one record from a local queue |
 
-Run [scripts/lab-a-integrity.sh](https://github.com/mingley/partitionline/blob/c9a2e8c12dd12e056902b8b9410e1407f798fad6/scripts/lab-a-integrity.sh) to require complete deterministic record
-histories before accepting a benchmark attempt's correctness. It now retains
-producer and independent consumer JSONL journals, stdout/stderr, command exit
-statuses, normalized history, a checker verdict, and checksums in an exclusive
-`ARTIFACT_DIR`. A failed attempt stays available. Reusing an artifact directory
-or journal path fails instead of overwriting it.
+`acks=0` can be used as a diagnostic. It never counts as acknowledged throughput.
+
+## Which comparison is which
+
+| Comparison | Peer | Status |
+|---|---|---|
+| Produce throughput | Native librdkafka C 2.15.0 (`rdkafka_performance`) | Historical local samples below |
+| Fetch throughput | rust-rdkafka 0.39.0, not the C 2.15.0 tool | Unsigned VM sample, 2026-08-28 |
+| Produce-ack and fetch latency | rust-rdkafka 0.39.0 | Unsigned VM sample, 2026-08-28. Not Lab A, and not the C tool |
+
+Do not paste a C produce rate into the fetch table, or a rust-rdkafka latency
+into the C produce table.
+
+## Run a produce comparison
+
+The checked-in C peer builds librdkafka **2.15.0** at commit
+`9a94e11452cdeb0a844db44ee5dd01ccbe17d3ab`. It does not add a C dependency to
+this crate. Pins and receipt checks are in
+`benchmarks/peers/librdkafka/README.md`.
+
+`scripts/lab-a-produce.sh` runs both clients in randomized order, recreates
+the topic, and audits the high watermark. It uses seeded payloads and 16-byte
+ID keys, and records CPU and peak RSS with GNU time. The run is still unsigned.
+
+Lock these settings on both binaries:
+
+| Setting | Value |
+|---|---|
+| Records | 8,000,000 |
+| Payload | 100 bytes |
+| `acks` | 1 |
+| Linger | 5 ms |
+| Batch records | 32,768 |
+| Batch bytes | 1,000,000 |
+| Compression | none, unless the section says otherwise |
+| Topic | `plbench`, 6 partitions, replication factor 1 |
+| Warmup | none (`WARMUP_SECS=0`) |
+| Topic lifecycle | delete and create before each run |
+
+The C tool’s default linger is 1,000 ms. Set it to 5 ms. Do not use
+rust-rdkafka as the C bar.
+
+Partitionline:
+
+```sh
+COUNT=8000000 WARMUP_SECS=0 PAYLOAD_BYTES=100 ACKS=1 LINGER_MS=5 KAFKA_TOPIC=plbench \
+  cargo run --release --example bench_produce
+```
+
+librdkafka C:
+
+```sh
+rdkafka_performance -P -t plbench -s 100 -c 8000000 -b 127.0.0.1:9092 -a 1 -q \
+  -X linger.ms=5 -X compression.codec=none \
+  -X batch.num.messages=32768 -X batch.size=1000000 \
+  -X queue.buffering.max.messages=1000000 \
+  -X socket.nagle.disable=true
+```
+
+Build that tool from the v2.15.0 tag (`examples/rdkafka_performance.c`) and
+link it to librdkafka 2.15.0.
+
+The 2026-08-24 samples below used an Apple M4 Pro (macOS 26.6.2, arm64),
+Docker `apache/kafka:3.9.1` on `127.0.0.1:9092`, and
+`cargo run --release --example bench_produce` with thin LTO.
+
+## Check that the records are really there
+
+`scripts/lab-a-integrity.sh` refuses a benchmark attempt unless the record
+history is complete. It keeps producer and consumer journals, logs, exit
+codes, a checker verdict, and checksums in a new `ARTIFACT_DIR`. Reusing a
+directory or journal path fails. A failed attempt stays on disk.
 
 ```sh
 COUNT=128 PARTITIONS=2 RUNS=1 PAYLOAD_BYTES=100 ACKS=1 WARMUP_SECS=0 \
@@ -42,86 +101,70 @@ BROKER_BACKEND=native TOPIC=pl-history ARTIFACT_DIR=work/history-attempt-1 \
 bash scripts/lab-a-integrity.sh
 ```
 
-The harness uses a fresh empty topic and zero warmup for exact application
-record accounting. Invalid or zero `COUNT`, `RUNS`, and `PARTITIONS` fail before
-broker operations. `ACKS=0` cannot pass this acknowledged-producer harness.
-`BENCH_PRODUCE_BINARY` and `BENCH_FETCH_BINARY` can select existing binaries;
-otherwise it builds both release examples. A custom native bootstrap always
-uses native topic/offset tools for that endpoint.
+Use a fresh empty topic and zero warmup when you need exact record counts.
+`COUNT`, `RUNS`, and `PARTITIONS` must be positive. `ACKS=0` cannot pass this
+harness. `BENCH_PRODUCE_BINARY` and `BENCH_FETCH_BINARY` select existing
+binaries; otherwise the script builds both release examples.
 
-The examples enable history instrumentation with `RECORD_HISTORY=<new-path>`.
-Producer history mode requires an explicit positive `COUNT` and
-`PAYLOAD_BYTES>=24`. Its payload contains `PLBENCH1`, a big-endian 64-bit seed,
-a global 64-bit ID, and deterministic SplitMix filler, keeping the requested
-payload size. IDs span warmup and measurement without resetting. Records route
-round robin to explicit partitions, with one stable seeded key per partition.
-The journals record every locally accepted application's ID, actual value
-SHA-256, key, partition, phase, and independent consumed offset. Producer
-completion and delivery counters establish whether accepted rows can be
-normalized as broker acknowledged. A teardown error seals a failed journal.
+History mode (`RECORD_HISTORY=<new path>`) needs a positive `COUNT` and
+`PAYLOAD_BYTES` of at least 24. Each payload starts with `PLBENCH1`, a
+big-endian seed, a global ID, and SplitMix filler, at the requested size.
+IDs continue through warmup and measurement. Records go round robin to
+explicit partitions, with one stable seeded key per partition.
 
-The consumer reads to an independent snapshot of every partition's end offset,
-then checks the complete application ID set, generator bytes, keys, and order.
-It detects duplicates or extra records even after `COUNT` records have already
-been reached. Record IDs are independent of Kafka offsets: transactional
-control markers and aborted records can consume offsets without becoming
-application records. The gate accepts legitimate offset gaps and rejects
-exposed control markers. The harness's additional `HW delta == acked` audit is
-restricted to its explicitly non-transactional producer.
+The consumer reads each partition to an independent end offset, then checks
+IDs, bytes, keys, and order. It still looks for duplicates after `COUNT`
+records. Record IDs are not Kafka offsets: a transaction marker can consume
+an offset without being an application record. The gate allows those gaps
+and rejects exposed control markers. The extra “high watermark equals acked
+count” check applies only to the non-transactional producer.
 
-[scripts/bench-record-history.py](https://github.com/mingley/partitionline/blob/c9a2e8c12dd12e056902b8b9410e1407f798fad6/scripts/bench-record-history.py) independently regenerates expected payloads
-in Python and invokes the existing [KL03-18 checker](https://github.com/mingley/partitionline/blob/c9a2e8c12dd12e056902b8b9410e1407f798fad6/scripts/check-record-history.py) for ID/hash/key/order,
-visibility, and control-record rules. Matching totals cannot hide a
-missing/duplicate swap or payload corruption. A failed verdict sets
-`performance_claims_invalidated=true`; the raw attempt remains intact.
-The adapter retains all records in memory while checking a run.
+`scripts/bench-record-history.py` rebuilds the expected payloads in Python
+and runs `scripts/check-record-history.py`. Matching totals are not enough
+if an ID was swapped or a payload was corrupted. A failed verdict sets
+`performance_claims_invalidated=true` and leaves the raw attempt in place.
 
-With `ACKS=0`, `bench_produce` reports `acked=0`, `acked_rec_s=null`, and explicit
-local completion counts. Independent receipt can validate such a diagnostic's
-records, but never promotes it to acknowledged throughput. Malformed numeric
-settings and zero work counts fail explicitly. `IDEMPOTENT=1` requires
-`ACKS=-1` rather than silently changing the requested acknowledgment semantics.
+Without `RECORD_HISTORY`, the producer still uses seeded payloads and ID
+keys, but the output is unverified until another reader checks it. The
+null-broker `VERIFY=1` format is a different fixture. History journaling
+adds work, so compare only runs with the same instrumentation.
 
-Without `RECORD_HISTORY`, the producer defaults to seeded payloads and ID keys.
-Its output remains unverified until an independent reader checks the records.
-The existing null-broker `VERIFY=1` format remains
-separate from the native history format. SHA generation, journaling, and
-independent validation add work to history runs; compare only matched workloads
-and instrumentation. The retained 128-record isolated Kafka 3.9.1 smoke verifies
-every ID/hash across two partitions. A native Java transaction additionally
-produced three application records and one commit marker: the Rust consumer
-verified three records against an end offset of four. Direct `acks=0` evidence
-retains received IDs with zero acknowledged records. These are correctness
-checks, with no
-throughput qualification, controlled-host signoff, or Suite HOLD lift.
+These checks do not qualify throughput and do not lift Suite HOLD:
+
+- 128 records on isolated Kafka 3.9.1, every ID and hash, two partitions
+- a Java transaction with three application records and one commit marker;
+  the Rust consumer checked three records against an end offset of four
+- an `acks=0` run that kept received IDs and reported zero acks
+
+`IDEMPOTENT=1` requires `ACKS=-1`. The harness does not silently change acks.
 
 ## Producer settings
 
-`bench_produce --print-config` prints the effective settings before connecting.
-Unknown benchmark settings, conflicting aliases, and settings the client would
-silently clamp fail before network or topic operations.
+`bench_produce --print-config` prints the settings it will use. Unknown
+names, conflicting aliases, and values the client would silently clamp fail
+before any network call.
 
 | Setting | Meaning |
 |---|---|
-| `COUNT` | Measured records; otherwise run for `MEASURE_SECS` (default 5) |
-| `WARMUP` | Warmup records, excluded from measured counts and timing |
-| `WARMUP_SECS` | Minimum warmup duration; defaults to 0 with `WARMUP`, otherwise 2 |
-| `BATCH_SIZE` / `BATCH_BYTES` | Batch byte limit; aliases must agree when both are set |
+| `COUNT` | Measured records. If unset, the run lasts `MEASURE_SECS` (default 5) |
+| `WARMUP` | Warmup records, excluded from counts and timing |
+| `WARMUP_SECS` | Minimum warmup time. 0 when `WARMUP` is set, otherwise 2 |
+| `BATCH_SIZE` or `BATCH_BYTES` | Batch byte limit. If both are set, they must match |
 | `BATCH_RECORDS` | Batch record limit |
-| `CONNECTIONS`, `MAX_IN_FLIGHT` | Connection count and requests per connection |
-| `IDEMPOTENT` | Requires `ACKS=-1` and `MAX_IN_FLIGHT<=5` |
-| `BUFFER_MEMORY` / `QUEUE_KBYTES` | Producer queue budget, in bytes / KiB |
-| `RECORD_SEED` / `SEED` | Decimal or hexadecimal generator seed |
+| `CONNECTIONS`, `MAX_IN_FLIGHT` | Connections, and requests allowed on each connection |
+| `IDEMPOTENT` | Requires `ACKS=-1` and `MAX_IN_FLIGHT` of 5 or less |
+| `BUFFER_MEMORY` or `QUEUE_KBYTES` | Producer queue budget, in bytes or KiB |
+| `RECORD_SEED` or `SEED` | Generator seed, decimal or hexadecimal |
 | `KEY_MODE` | `id` (default) or `none` |
-| `PAYLOAD_MODE` | `seeded` (default) or explicit legacy `constant-x` |
-| `PARTITIONS` | Expected topic partition count; also selects round-robin routing |
-| `RUN_TIMEOUT_MS` | Deadline for each warmup or measurement phase, including flush |
+| `PAYLOAD_MODE` | `seeded` (default) or legacy `constant-x` |
+| `PARTITIONS` | Expected partition count, and round-robin routing |
+| `RUN_TIMEOUT_MS` | Deadline for one warmup or measurement phase, including flush |
 
-Seeded records use the pinned C peer's byte generator. Each phase starts IDs
-at zero. A separate Java consumer checked all keys, values, partition offsets,
-and counts for a 100,000-record Apache Kafka 4.3.1 run, an idempotent gzip run,
-and a legacy run. These checks qualify the settings implementation, not speed.
-CPU and RSS come from the harness wrapper; they are not measured by the example.
+Seeded bytes match the pinned C peer. Each phase starts IDs at zero. A Java
+consumer has checked keys, values, offsets, and counts for a 100,000-record
+Kafka 4.3.1 run, an idempotent gzip run, and a legacy run. That checks the
+settings, not the speed. CPU and RSS come from the harness, not from the
+example.
 
 ```sh
 COUNT=100000 WARMUP=1000 BATCH_SIZE=1048576 BATCH_RECORDS=32768 \
@@ -129,38 +172,33 @@ ACKS=-1 IDEMPOTENT=1 MAX_IN_FLIGHT=5 \
 cargo +stable run --locked --release --example bench_produce -- --print-config
 ```
 
-For the historical constant-value/null-key recipes below, set
-`PAYLOAD_MODE=constant-x KEY_MODE=none` explicitly. The historical measurements
-retain their original workload and dates.
+For the old constant-value, null-key recipes, set
+`PAYLOAD_MODE=constant-x KEY_MODE=none`. Those historical rows keep their
+original workload and date.
 
 ## Fetch settings
 
-`bench_fetch --print-config` prints its limits and mode before connecting.
+`bench_fetch --print-config` prints limits and mode before connecting.
+
 `FETCH_MODE=manual` assigns the topic from offset zero. `FETCH_MODE=group`
-joins a classic group, polls, commits each successfully processed batch's next
-offsets, and leaves on completion. Use a fresh `GROUP_ID` for each benchmark.
+joins a classic group, commits the next offsets after each successful batch,
+and leaves when it finishes. Use a new `GROUP_ID` for every run.
 
-`COUNT` is the total number of seeded records to consume. `WARMUP` excludes
-the first records from timing and throughput; it must be smaller than `COUNT`.
-The driver preserves a poll batch across the warmup boundary. The request
-that delivered the boundary batch belongs to warmup; timing starts after the
-last warmup record is processed. Output reports total consumed records, warmup
-records, measured records, and actual measured value bytes. MB/s uses decimal
-megabytes and excludes keys, headers, and wire overhead. Verification work and
-group commits after the boundary are included in timing; join and close are
-outside it.
+`COUNT` is how many seeded records to read. `WARMUP` must be smaller than
+`COUNT`. The poll that crosses the warmup boundary stays in warmup. Timing
+starts after the last warmup record. The report includes total, warmup, and
+measured records, plus measured value bytes. MB/s is decimal megabytes of
+values only: no keys, headers, or wire overhead. Verification and group
+commits after the boundary are inside the timer. Join and close are outside it.
 
-`MAX_BYTES` caps a response. `MAX_PARTITION_BYTES` independently caps each
-partition (default 1 MiB). `MAX_POLL_RECORDS` defaults to 1,000;
-`FETCH_BUFFER_MEMORY` defaults to 32 MiB. `RUN_TIMEOUT_MS` bounds the fetch and
-commit loop, with separate bounded setup and close. Invalid limits fail before
-connecting.
+`MAX_BYTES` caps a response. `MAX_PARTITION_BYTES` caps one partition
+(default 1 MiB). `MAX_POLL_RECORDS` defaults to 1,000.
+`FETCH_BUFFER_MEMORY` defaults to 32 MiB. `RUN_TIMEOUT_MS` bounds the fetch
+and commit loop. Invalid limits fail before connecting.
 
-The fetch harness defaults to complete record-history verification. Set
-`VERIFY_HISTORY=0` for a separately labeled raw run. Both modes retain GNU time
-CPU/RSS output and a broker offset audit. Direct `VERIFY=1` uses the separate
-null-broker fixture format; it does not verify the producer's native history
-format.
+History verification is on unless you set `VERIFY_HISTORY=0`. Label that
+run as raw. Both modes keep GNU time output and a broker offset audit.
+`VERIFY=1` is the null-broker fixture, not the native history format.
 
 ```sh
 COUNT=1000 WARMUP=17 FETCH_MODE=group PARTITIONS=2 \
@@ -168,87 +206,35 @@ KAFKA_BOOTSTRAP=127.0.0.1:19092 KAFKA_HOME=/path/to/kafka BROKER_BACKEND=native 
 ARTIFACT_DIR=work/fetch-attempt-1 bash scripts/lab-a-fetch.sh
 ```
 
-## Methodology
+## Profile a run
 
-Lock these on **both** binaries:
+`scripts/perf-profile.sh` records CPU samples, a syscall summary, rusage,
+and a heap profile. It uses tools already installed (`samply`, `perf`,
+`sample`, `strace`, `dtruss`, `python3`, `valgrind`). Each capture runs the
+command again. One directory holds provenance, artifacts, checksums, and
+`summary.json`. If a requested tool is missing, the script fails. It sets
+`CARGO_PROFILE_RELEASE_DEBUG=true` so the release binary has symbols without
+changing the benchmarked code.
 
-| Knob | Value |
-|---|---|
-| Messages | 8,000,000 |
-| Payload | 100 bytes |
-| `acks` | 1 |
-| `linger.ms` | 5 |
-| `batch.num.messages` / `batch_records` | 32,768 |
-| `batch.size` / `batch_bytes` | 1,000,000 |
-| Compression | `none` unless a codec section says otherwise |
-| Topic | `plbench`, 6 partitions, replication 1 |
-| Warmup | none (`WARMUP_SECS=0`) |
-| Fresh topic | yes, delete+create before each run |
+Profile the example binary, not `cargo run`:
 
-`acks=0` is not this comparison. The C tool default linger is 1000 ms; it must
-be overridden.
-
-## Environment (runs below)
-
-| | |
-|---|---|
-| Date | 2026-08-24 |
-| Host | Apple M4 Pro, macOS 26.6.2, arm64 |
-| Broker | Docker `apache/kafka:3.9.1` on `127.0.0.1:9092` |
-| C client | `rdkafka_performance` built from librdkafka **2.15.0** against Homebrew `librdkafka` 2.15.0 |
-| This crate | `cargo run --release --example bench_produce` (`lto = thin`) |
-
-## Reproduce
-
-partitionline:
-
-```
-COUNT=8000000 WARMUP_SECS=0 PAYLOAD_BYTES=100 ACKS=1 LINGER_MS=5 KAFKA_TOPIC=plbench \
-  cargo run --release --example bench_produce
-```
-
-librdkafka C:
-
-```
-rdkafka_performance -P -t plbench -s 100 -c 8000000 -b 127.0.0.1:9092 -a 1 -q \
-  -X linger.ms=5 -X compression.codec=none \
-  -X batch.num.messages=32768 -X batch.size=1000000 \
-  -X queue.buffering.max.messages=1000000 \
-  -X socket.nagle.disable=true
-```
-
-Build the C tool from the v2.15.0 tag (`examples/rdkafka_performance.c`) linked
-to a 2.15.0 `librdkafka`. Do not use rust-rdkafka as the C bar.
-
-## Profiling a run (KL09-11)
-
-[scripts/perf-profile.sh](https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/scripts/perf-profile.sh) captures CPU samples, a
-syscall summary, rusage (context switches, peak RSS, faults) and a heap
-profile for a named cell or command, using only locally installed tools
-detected at runtime (`samply`/`perf`/`sample`, `strace`/`dtruss`,
-`python3`, `valgrind`/`heap`). Each capture re-runs the command once; one
-run directory holds provenance, artifacts, checksums and `summary.json`.
-A requested capture without a usable tool fails closed with `tool missing`
-instead of reporting partial success. The script exports
-`CARGO_PROFILE_RELEASE_DEBUG=true` so release builds carry symbols without
-changing benchmarked codegen.
-
-```bash
-# Profile the example binary directly (not `cargo run`, which would profile cargo).
+```sh
 CARGO_PROFILE_RELEASE_DEBUG=true cargo build --locked --release --example bench_produce
 KAFKA_BOOTSTRAP=127.0.0.1:19092 KAFKA_TOPIC=prof COUNT=2000000 WARMUP_SECS=0 \
   bash scripts/perf-profile.sh --cell bench_produce -- ./target/release/examples/bench_produce
 ```
 
-On unprivileged macOS there is no syscall tracer (`dtruss` needs dtrace
-privileges), so constrain the run to the available captures; the summary
-manifest lists exactly what ran:
+On macOS without dtrace privileges, limit the captures:
 
-```bash
+```sh
 bash scripts/perf-profile.sh --cell bench_produce --only cpu,rusage,heap -- ./target/release/examples/bench_produce
 ```
 
-## Results
+## Historical produce samples
+
+These tables are dated local runs. Read the heading before the numbers.
+A produce row is not a fetch row. An unsigned VM sample is not a signed
+Lab A result. Suite HOLD stays on.
 
 ### 2026-08-25, three locked runs, no warmup (HW=8e6 both)
 
@@ -537,7 +523,7 @@ run. High watermark **8,000,000** after every run.
 
 partitionline was higher on every run (about 1.6× the C median).
 
-## Fetch
+## Historical fetch sample
 
 Fetch is consumed records/second from a topic this crate already filled.
 Produce-ack / fetch-request latency is a separate writeup later in this
@@ -654,7 +640,7 @@ Load HW was **8,000,000** before each pair. Both consumers read the same log.
 | 3 | 4,781,168 | 8,000,000 | 3,180,308 | 8,000,000 |
 | **median** | **4,381,010** | 8,000,000 | **3,119,810** | 8,000,000 |
 
-## Latency
+## Historical latency sample
 
 This is **not** the produce or fetch throughput tables above. It is
 sequential produce-ack and already-on-log fetch-request latency, p50/p99
