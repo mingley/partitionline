@@ -306,7 +306,11 @@ checks. Dependencies and deferred features are documented.
    Metrics snapshots and tracing `skip(self)` checks added (2026-09-05).
    OIDC endpoint failures close authentication (503/timeout; 2026-09-05).
    Bounded transient OIDC retry (5xx/I/O/timeout; 2026-09-05).
-   Mid-connection refresh/rotation / outage soak remains open.
+   KL06-01 through KL06-05, KL06-07, and KL06-13 are done. An owned
+   `OidcTokenManager` refreshes before expiry. The shared connect-time cache
+   does not. Client loops do not reauthenticate on a timer. Still open: the
+   live lifecycle matrix KL06-06, producer reauthentication KL06-11 (in
+   progress), shared callers KL06-12, and GSSAPI KL06-08 through KL06-10.
 
 **Work surfaces:** [network](../src/net.rs), [OAuth](../src/protocol/oauth.rs),
 [OIDC](../src/protocol/oidc.rs), [auth smoke](https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/scripts/ci-auth-smoke.sh),

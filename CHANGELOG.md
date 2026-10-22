@@ -189,6 +189,9 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
 - The roadmap's codec lane records KL05-06 through KL05-09 and KL05-11
   through KL05-15 as done. The sticky partitioner, KL05-10, is in
   progress. `zstd-sys` stays banned.
+- The roadmap's auth lane records KL06-01 through KL06-05, KL06-07, and
+  KL06-13 as done. The live lifecycle matrix and GSSAPI remain open.
+  Client loops still do not reauthenticate on a timer.
 - The gateway profile names zstd as an optional codec that has shipped.
   Its measured cells remain gzip and lz4.
 
