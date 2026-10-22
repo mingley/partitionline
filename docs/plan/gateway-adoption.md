@@ -183,30 +183,25 @@ re-measured those two numbers.
 
 ## 3. Findings and cards (2026-09-30)
 
-| # | Finding | Fix | Card |
+The finding column is that day's reading. The last column is the card state
+in [tasks.json](tasks.json) now. Section 2's measurements are unchanged.
+
+| # | Finding on 2026-09-30 | Cards | Where it stands |
 |---|---|---|---|
-| F1 | Main CI is red, so evidence cannot gate | Find or build the example binaries the contract tests run | **KL10-01 (P0)** |
-| F2 | No cells cover the gateway profile | Produce cells and a fetch cell against a same-settings librdkafka peer | KL10-02, KL10-14 |
-| F3 | Codec microbenchmarks lack a realistic 1 KiB text family | JSON-like 1 KiB payloads at two batch sizes, plus a raw-backend baseline | KL10-03 |
-| F4 | In-client deflate costs almost 2× deflating the same bytes in one call | Measure batch sizes, write granularity, encoder re-initialization and level; split the fixes | KL10-04 |
-| F5 | miniz deflate is no faster than C zlib; zlib-rs is 1.8× faster | Backend policy decision, then an opt-in backend | KL10-05, KL10-06, KL10-15 |
-| F6 | gzip decode uses 7.8× librdkafka's CPU per record | Decode-then-discard (re-probe 2026-10-01): decompress only applied batches, then keep the rest instead of re-fetching; pre-sized output (rejected) and off-caller decode | KL10-16, KL10-17, **KL09-34**, KL10-09 |
-| F7 | No owned, eagerly admitted per-record completion | Specify, then implement, an additive delivery API | KL10-07, KL10-08 |
-| F8 | Consumer peak RSS is 1.4 GB, against 193 MB for the peer | Explain it against the configured budgets; fix the default or the documentation | KL10-10 |
-| F9 | The claim gate has no gzip or ~1 KiB cells | Propose a contract amendment adding gateway cells | KL10-11 |
-| F10 | zstd is missing | The existing decision and implementation chain | **KL05-02..05** |
-| F11 | Adopters need a gateway recipe | An example and a migration-guide section | KL10-13 |
+| F1 | Main CI was red, so evidence could not gate | KL10-01 | Done. The example-binary failure at `848e58c` was fixed. |
+| F2 | No cells covered the gateway profile | KL10-02, KL10-14 | Pending. Produce and fetch cells against a same-settings librdkafka peer. |
+| F3 | Codec microbenchmarks lacked a realistic 1 KiB text family | KL10-03 | Done. |
+| F4 | In-client deflate cost almost 2× deflating the same bytes in one call | KL10-04 | Pending. Measured on miniz_oxide. |
+| F5 | miniz deflate was no faster than C zlib on the microbenchmark; zlib-rs was about 1.8× faster there | KL10-05, KL10-06, KL10-15 | Done. zlib-rs is the default gzip backend. The gateway produce rows above have not been re-run on it. |
+| F6 | gzip decode used 7.8× librdkafka's CPU per record | KL09-34, KL10-16, KL10-17, KL10-09 | KL09-34, KL10-16, and KL10-17 are done: decompress a fetch batch only when it is applied, into pre-sized output, and keep batches the budget cannot hold. KL10-09 (decode off the caller task) is pending. The 7.8× figure has not been re-measured. |
+| F7 | No owned, eagerly admitted per-record completion | KL10-07, KL10-08 | KL10-07, the delivery API specification, is in progress. KL10-08 is pending. |
+| F8 | Consumer peak RSS was 1,426 MB, against 193 MB for the peer | KL10-10 | Pending. The RSS figure has not been re-measured. |
+| F9 | The claim gate has no gzip or ~1 KiB cells | KL10-11 | Pending. |
+| F10 | zstd was not implemented | KL05-02 through KL05-05 | Done as an optional feature. Required client benchmark cells for zstd are `not_run`. |
+| F11 | Adopters had no gateway recipe | KL10-13 | Pending. |
 
 KL10-12 re-measures every gateway cell after the first wave and publishes a
 dated local verdict. It is still pending.
-
-The findings above are the 2026-09-30 reading. These cards have since
-landed: KL10-01 (green `main` CI), KL10-03 (the 1 KiB codec family),
-KL10-05, KL10-06, and KL10-15 (the gzip backend), KL05-02 through KL05-05
-(zstd), and KL09-34, KL10-16, and KL10-17 (decompress a fetch batch only
-when it is applied, and keep the ones that do not fit). KL10-07, the
-delivery API specification, is in progress. KL10-02, KL10-04, and KL10-08
-through KL10-14 are still pending. Section 2's measurements are unchanged.
 
 ## 4. Order of work
 

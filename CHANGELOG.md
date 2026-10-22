@@ -7,6 +7,10 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
 
 ## [Unreleased]
 
+- The gateway findings table states which 2026-09-30 items have landed.
+  zlib-rs is the default gzip backend, and zstd is an optional feature.
+  The 7.8× fetch CPU figure and the 1,426 MB RSS figure are still the
+  2026-09-30 run.
 - The support page separates published crates.io 0.1.0 from later source.
   The 14-file `src/` difference belongs to the 22 September 2026 check at
   `ca50ca1`, and current `main` is later than that snapshot.
