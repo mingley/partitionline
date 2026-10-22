@@ -146,6 +146,7 @@ leaders are still looked up, and a repeated name is still stored once.
 - Group and write transaction-marker error partitions. A partition is still recorded.
 - Write TxnOffsetCommit response topics. A topic name is still copied.
 - Write AddPartitionsToTxn response topics. A topic name is still copied.
+- Write AddPartitionsToTxn error topics from the request. A topic name is still copied.
 
 ### Metadata and admin
 
