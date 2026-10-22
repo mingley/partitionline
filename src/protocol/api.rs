@@ -4508,32 +4508,7 @@ fn produce_request_plan(
             metadata_array_len(flexible, Some(topic.partitions.len()))?,
         )?;
         for part in &topic.partitions {
-            total = add_produce_len(total, 4)?;
-            let (batch_len, encoded) = if produce_batch_is_compressed(&part.records)? {
-                let mut encoded = BytesMut::new();
-                records::encode_record_batch(&mut encoded, &part.records)?;
-                let batch_len = encoded.len();
-                (batch_len, Some(encoded))
-            } else {
-                (produce_uncompressed_batch_len(&part.records)?, None)
-            };
-            if compressed {
-                staged.push(encoded);
-            }
-            let prefix = if flexible {
-                let compact = buf::u32_from_usize(batch_len)?
-                    .checked_add(1)
-                    .ok_or_else(|| Error::protocol("compact bytes overflow"))?;
-                buf::unsigned_varint_size(compact)
-            } else {
-                let _len = buf::i32_from_usize(batch_len)?;
-                4
-            };
-            total = add_produce_len(total, prefix)?;
-            total = add_produce_len(total, batch_len)?;
-            if flexible {
-                total = add_produce_len(total, buf::unsigned_varint_size(0))?;
-            }
+            total = plan_produce_partition(total, flexible, compressed, part, &mut staged)?;
         }
         if flexible {
             total = add_produce_len(total, buf::unsigned_varint_size(0))?;
@@ -4850,6 +4825,172 @@ fn encode_produce_response_id_fields(
 
 /// Produce response partitions grouped or written before the caller is paused.
 const PRODUCE_RESPONSE_ENCODE_CHUNK: usize = 8 * 1024;
+/// Produce request partitions measured or written before the caller is paused.
+const PRODUCE_REQUEST_ENCODE_CHUNK: usize = 8 * 1024;
+
+fn plan_produce_partition(
+    mut total: usize,
+    flexible: bool,
+    compressed: bool,
+    part: &ProducePartitionData,
+    staged: &mut Vec<Option<BytesMut>>,
+) -> Result<usize> {
+    total = add_produce_len(total, 4)?;
+    let (batch_len, encoded) = if produce_batch_is_compressed(&part.records)? {
+        let mut encoded = BytesMut::new();
+        records::encode_record_batch(&mut encoded, &part.records)?;
+        let batch_len = encoded.len();
+        (batch_len, Some(encoded))
+    } else {
+        (produce_uncompressed_batch_len(&part.records)?, None)
+    };
+    if compressed {
+        staged.push(encoded);
+    }
+    let prefix = if flexible {
+        let compact = buf::u32_from_usize(batch_len)?
+            .checked_add(1)
+            .ok_or_else(|| Error::protocol("compact bytes overflow"))?;
+        buf::unsigned_varint_size(compact)
+    } else {
+        let _len = buf::i32_from_usize(batch_len)?;
+        4
+    };
+    total = add_produce_len(total, prefix)?;
+    total = add_produce_len(total, batch_len)?;
+    if flexible {
+        total = add_produce_len(total, buf::unsigned_varint_size(0))?;
+    }
+    Ok(total)
+}
+
+async fn produce_request_is_compressed(topics: &[ProduceTopicData]) -> bool {
+    let mut walked = 0usize;
+    for topic in topics {
+        for part in &topic.partitions {
+            if produce_batch_is_compressed(&part.records).unwrap_or(true) {
+                return true;
+            }
+            walked = walked.saturating_add(1);
+            if walked == PRODUCE_REQUEST_ENCODE_CHUNK {
+                walked = 0;
+                tokio::task::yield_now().await;
+            }
+        }
+    }
+    false
+}
+
+async fn produce_request_plan_cooperative(
+    version: i16,
+    flexible: bool,
+    transactional_id: Option<&str>,
+    topics: &[ProduceTopicData],
+) -> Result<ProduceRequestPlan> {
+    let compressed = produce_request_is_compressed(topics).await;
+    let mut staged = Vec::new();
+    let mut total = if version >= 3 {
+        metadata_string_len(flexible, transactional_id)?
+    } else {
+        0
+    };
+    total = add_produce_len(total, 6)?;
+    total = add_produce_len(total, metadata_array_len(flexible, Some(topics.len()))?)?;
+    let mut walked = 0usize;
+    for topic in topics {
+        if version <= 12 {
+            total = add_produce_len(total, metadata_string_len(flexible, Some(&topic.topic))?)?;
+        } else {
+            total = add_produce_len(total, 16)?;
+        }
+        total = add_produce_len(
+            total,
+            metadata_array_len(flexible, Some(topic.partitions.len()))?,
+        )?;
+        for part in &topic.partitions {
+            total = plan_produce_partition(total, flexible, compressed, part, &mut staged)?;
+            walked = walked.saturating_add(1);
+            if walked == PRODUCE_REQUEST_ENCODE_CHUNK {
+                walked = 0;
+                tokio::task::yield_now().await;
+            }
+        }
+        if flexible {
+            total = add_produce_len(total, buf::unsigned_varint_size(0))?;
+        }
+    }
+    if flexible {
+        total = add_produce_len(total, buf::unsigned_varint_size(0))?;
+    }
+    Ok(ProduceRequestPlan { len: total, staged })
+}
+
+/// [`encode_produce_request`], yielding while partition batches are still being measured and written.
+///
+/// Encoding 400,000 empty batches held the caller for 516ms. A batch is still written.
+pub async fn encode_produce_request_cooperative(
+    buf: &mut BytesMut,
+    version: i16,
+    transactional_id: Option<&str>,
+    acks: i16,
+    timeout_ms: i32,
+    topics: &[ProduceTopicData],
+) -> Result<()> {
+    if version == 13 {
+        return Err(Error::Unsupported(
+            "Produce v13 requires explicit topic IDs".into(),
+        ));
+    }
+    let flexible = produce_flexible(version)?;
+    let body_start = buf.len();
+    let plan =
+        produce_request_plan_cooperative(version, flexible, transactional_id, topics).await?;
+    let needed = body_start.saturating_add(plan.len);
+    if buf.capacity() < needed {
+        buf.reserve(needed - buf.capacity());
+    }
+    let mut staged = plan.staged.into_iter();
+    if version >= 3 {
+        buf::put_string(buf, flexible, transactional_id)?;
+    }
+    buf.put_i16(acks);
+    buf.put_i32(timeout_ms);
+    buf::put_array_len(buf, flexible, Some(topics.len()))?;
+    let mut walked = 0usize;
+    for topic in topics {
+        if version <= 12 {
+            buf::put_string(buf, flexible, Some(&topic.topic))?;
+        }
+        buf::put_array_len(buf, flexible, Some(topic.partitions.len()))?;
+        for part in &topic.partitions {
+            buf.put_i32(part.index);
+            let ready = staged.next().flatten();
+            let batch_len = match ready.as_ref() {
+                Some(ready) => ready.len(),
+                None => produce_uncompressed_batch_len(&part.records)?,
+            };
+            let mark = buf.len();
+            if let Err(error) = write_produce_batch(buf, flexible, &part.records, batch_len, ready)
+            {
+                buf.truncate(mark);
+                return Err(error);
+            }
+            walked = walked.saturating_add(1);
+            if walked == PRODUCE_REQUEST_ENCODE_CHUNK {
+                walked = 0;
+                tokio::task::yield_now().await;
+            }
+        }
+        if flexible {
+            buf::put_empty_tagged_fields(buf);
+        }
+    }
+    if flexible {
+        buf::put_empty_tagged_fields(buf);
+    }
+    debug_assert_eq!(buf.len().saturating_sub(body_start), plan.len);
+    Ok(())
+}
 
 fn write_produce_response_partition(
     buf: &mut BytesMut,
@@ -5499,6 +5640,76 @@ mod tests {
     use crate::protocol::records::{Compression, Record};
     use bytes::Bytes;
     use std::collections::{HashMap, HashSet};
+
+    fn empty_batch() -> crate::protocol::records::RecordBatch {
+        crate::protocol::records::RecordBatch {
+            base_offset: 0,
+            partition_leader_epoch:
+                crate::protocol::records::RecordBatch::NO_PARTITION_LEADER_EPOCH,
+            attributes: 0,
+            base_timestamp: 0,
+            max_timestamp: 0,
+            producer_id: crate::protocol::records::RecordBatch::NO_PRODUCER_ID,
+            producer_epoch: crate::protocol::records::RecordBatch::NO_PRODUCER_EPOCH,
+            base_sequence: crate::protocol::records::RecordBatch::NO_SEQUENCE,
+            records: Vec::new(),
+        }
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn encoding_many_produce_request_partitions_does_not_hold_the_caller() {
+        let batch = empty_batch();
+        let topics = [ProduceTopicData {
+            topic: "t".to_string(),
+            partitions: (0..400_000i32)
+                .map(|index| ProducePartitionData {
+                    index,
+                    records: batch.clone(),
+                })
+                .collect(),
+        }];
+        let started = std::time::Instant::now();
+        tokio::select! {
+            _ = async {
+                let mut body = BytesMut::new();
+                encode_produce_request_cooperative(&mut body, 7, None, 1, 1_000, &topics)
+                    .await
+                    .unwrap_or_else(|error| panic!("{error}"));
+            } => {}
+            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "encoding produce request partitions held the caller for {elapsed:?}"
+        );
+        let sample = [
+            ProduceTopicData {
+                topic: "orders".to_string(),
+                partitions: vec![ProducePartitionData {
+                    index: 1,
+                    records: empty_batch(),
+                }],
+            },
+            ProduceTopicData {
+                topic: "billing".to_string(),
+                partitions: vec![ProducePartitionData {
+                    index: 0,
+                    records: empty_batch(),
+                }],
+            },
+        ];
+        for version in [7i16, 9] {
+            let mut once = BytesMut::new();
+            let mut paced = BytesMut::new();
+            encode_produce_request(&mut once, version, None, 1, 1_000, &sample)
+                .unwrap_or_else(|error| panic!("{error}"));
+            encode_produce_request_cooperative(&mut paced, version, None, 1, 1_000, &sample)
+                .await
+                .unwrap_or_else(|error| panic!("{error}"));
+            assert_eq!(once, paced, "version {version}");
+        }
+    }
 
     #[tokio::test(flavor = "current_thread")]
     async fn encoding_many_node_endpoints_does_not_hold_the_caller() {

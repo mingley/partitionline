@@ -70,6 +70,7 @@ leaders are still looked up, and a repeated name is still stored once.
 - Split queued sends that still need topic metadata.
 - Index many partitions of one topic, then assemble groups when a batch names many topics.
 - Encode those topics into one Produce request.
+- Write partition batches of a Produce request. The request bytes stay the same.
 - Write partition rows of a Produce response. The response bytes stay the same.
 - Drop acknowledgement slots from the previous batch.
 - Copy topic rows for a produce metrics snapshot.
