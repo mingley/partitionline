@@ -1045,22 +1045,22 @@ init/begin/commit/abort. Pair with `tracing-subscriber` in the application.
 
 ## Troubleshooting
 
-Authoritative first stop for failures. Pair symptoms with
-[metrics](#metrics) snapshots and the optional
-[tracing](#tracing-optional-feature) spans; never log payloads or secrets
-(see [security.md](security.md)).
+Start here when a call fails. Pair the symptom with a
+[metrics](#metrics) snapshot and, if you enabled it, a
+[tracing](#tracing-optional-feature) span. Do not log payloads or secrets.
+Credential rules are in [security.md](security.md).
 
-| Symptom | Likely cause | Action |
+| Symptom | Likely cause | What to do |
 |---|---|---|
-| `try_send` returns `QueueFull` | `buffer_memory` budget held by unacked records | `flush` or wait, then retry; see [Backpressure](#backpressure) |
-| `send` returns `Timeout` | metadata or buffer wait exceeded `max_block` | raise `max_block`, check broker reachability |
-| `Error::Closed` on send | producer closed via `close` / `close_timeout` | recreate the client; see [cancellation](#produce-cancellation-and-shutdown) |
-| `Error::RecordTooLarge` | record exceeds `max_request_size` | shrink the record or raise the limit |
-| Stalled fetch / no records | paused partitions, wrong offset, fenced leader | check `pause` / `seek` state; fencing recovers via OffsetForLeaderEpoch |
-| Share group gets nothing | share protocol prerequisites unmet | Kafka 4.1+ with finalized `share.version=1`; see [Consumer groups](#consumer-groups) |
-| KIP-848 join rejected `INVALID_REQUEST` | non-empty `TopicPartitions` on (re-)join | join sends an empty array; see [Consumer groups](#consumer-groups) |
-| Auth failures / rotation | expired credentials, broker-requested reauth | see [security.md](security.md) and [auth-refresh.md](auth-refresh.md) (reference) |
-| Broker down / reconnect loop | network or broker outage | client retries with `reconnect.backoff`; supported brokers in [support.md](support.md) |
+| `try_send` returns `QueueFull` | `buffer_memory` is held by records that are not yet acked | `flush`, or wait, then retry. See [Backpressure](#backpressure). |
+| `send` returns `Timeout` | Metadata or buffer wait exceeded `max_block` | Raise `max_block`, and check that the broker is reachable. |
+| `Error::Closed` on send | The producer was closed | Create a new producer. See [cancellation](#produce-cancellation-and-shutdown). |
+| `Error::RecordTooLarge` | The record exceeds `max_request_size` | Shrink the record, or raise the limit. |
+| Fetch returns no records | A partition is paused, the offset is wrong, or the leader was fenced | Check `pause` and `seek`. Fencing recovers with OffsetForLeaderEpoch. |
+| A share group receives nothing | The cluster is not offering share groups | Use Kafka 4.1 or newer with finalized `share.version=1`. See [Consumer groups](#consumer-groups). |
+| A KIP-848 join returns `INVALID_REQUEST` | The join carried topic partitions | This client sends an empty array. See [Consumer groups](#consumer-groups). |
+| Produce or fetch fails after the SASL session lifetime | Client loops do not reauthenticate on a timer. The connection closes when the session expires. | An owned `OidcTokenManager` refreshes its token. The shared connect-time cache does not. See [token lifecycle](auth-refresh.md). GSSAPI is not available. |
+| The client keeps reconnecting | The broker or the network is down | Retries use `reconnect.backoff`. Tested brokers are in [support.md](support.md). |
 
 If the symptom persists, record the metric snapshot, broker version and
 client version, then check [support.md](support.md) for what is covered.
@@ -1086,8 +1086,8 @@ client.close().await;
 # }
 ```
 
-Join uses epoch0, updates use the broker’s returned epoch, and leave uses-1
-(or-2 for a static member that will rejoin). Terminal broker errors remain in
+Join uses epoch 0. Updates use the epoch the broker returned. Leave uses
+-1, or -2 for a static member that will rejoin. Terminal broker errors remain in
 the typed response. `heartbeat_timeout` gives discovery, authentication, retries
 and the RPC one total deadline. Cancellation discards its connections; a lost
 reply can still follow an accepted heartbeat. `close` closes the cached socket
