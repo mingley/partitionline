@@ -7,6 +7,9 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
 
 ## [Unreleased]
 
+- The operator guide puts the packed-package exercise's produce, commit,
+  and coordinator rules in one table. The expected four output lines stay
+  with the exercise.
 - The Lab A fetch note says that table is the 2026-08-24 Apple M4 Pro
   sample, and that it was not reproduced on the later VM.
 - The benchmark page prints the 2026-08-28 fetch and latency source rows

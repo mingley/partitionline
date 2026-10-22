@@ -258,40 +258,19 @@ committed next_offset=1
 closed producer and left group
 ```
 
-`send().await` waits for an acknowledgement; `try_send()` returns after queue
-admission and can return `QueueFull`. Handle backpressure by waiting for
-completion or using bounded `send` admission rather than spinning. `flush()`
-waits for queued work and reports delivery errors; `acks=0` cannot prove an
-acknowledged offset. A timeout after sending can leave delivery ambiguous.
+## What the exercise is careful about
 
-Polling advances delivered positions, not the group's committed recovery
-position. This program disables auto commit and commits only after every
-record in the returned batch has been processed successfully. Commit uses
-**offset + 1** and preserves leader epochs through `next_offsets()`. If
-processing fails, the program leaves without committing the batch; a later
-member may receive it again. Group join retries transient coordinator errors
-within a deadline without repeating the already acknowledged produce. Keep
-processing idempotent when it changes
-external state. Transactions are the separate recipe below when broker
-records and consumed offsets need one atomic outcome.
+| Step | What it does |
+|---|---|
+| `send` | Waits for the broker acknowledgement. `try_send` only admits the record and can return `QueueFull`. Wait for completion, or use bounded `send` admission. |
+| `flush` | Waits for queued work and reports delivery errors. `acks=0` has no acknowledged offset. A timeout after sending can leave delivery ambiguous. |
+| Commit | `poll` advances the delivered position. Auto-commit is off. The program commits offset + 1, with the leader epoch from `next_offsets()`, only after every record in the batch was processed. A processing failure leaves the group without that commit, so a later member can see the record again. Keep processing idempotent when it changes external state. |
+| Join retry | Transient coordinator errors retry inside the deadline. The produce that already received an acknowledgement is not sent again. |
+| Coordinator codes | Discovery retries 14 `COORDINATOR_LOAD_IN_PROGRESS`, 15 `COORDINATOR_NOT_AVAILABLE`, and 16 `NOT_COORDINATOR`, using `retry_backoff` and `retry_backoff_max`. Setup, authentication, requests, and those waits share one `request_timeout`. Authorization fails immediately. Classic and KIP-848 discovery both do this. |
+| Producer initialization | Retries the same three coordinator errors. Transaction-coordinator discovery, producer-id allocation, and backoff share one `request_timeout`. Authorization, invalid transaction state, and fencing stop initialization. These retries do not resend application records. |
+| InitProducerId | Versions 0–6. Ordinary producers keep both v6 two-phase flags false and use the returned producer id and epoch. Typed codecs keep an ongoing transaction's identity separately. A moved coordinator uses its own negotiated version. Prepared-transaction lifecycle is separate. |
 
-Consumer-group coordinator discovery retries
-`COORDINATOR_LOAD_IN_PROGRESS` (14), `COORDINATOR_NOT_AVAILABLE` (15), and
-`NOT_COORDINATOR` (16) using `retry_backoff` and `retry_backoff_max`.
-Connection setup, authentication, requests, and retry waits share one
-`request_timeout` budget. Authorization errors fail immediately. This
-applies to classic and KIP-848 discovery.
-
-Producer initialization retries the same three coordinator errors.
-Transaction coordinator discovery, producer-id allocation, and their
-backoff share one `request_timeout` budget. Authorization, invalid
-transaction state, and fencing stop initialization. These retries do not
-resend application records.
-
-InitProducerId negotiates v0–v6. Ordinary producers keep both v6 two-phase
-flags false and use the regular returned producer ID and epoch. Typed codecs
-preserve the ongoing-transaction identity separately. A moved coordinator
-uses its own negotiated version; prepared transaction lifecycle is separate.
+Transactions, when the broker records and the consumed offsets need one atomic outcome, are in [Exactly-once](#exactly-once-transactions).
 
 The repository's smaller examples also use `KAFKA_BOOTSTRAP` and
 `KAFKA_TOPIC`; `roundtrip` is a one-record smoke, while `consume` is the manual
