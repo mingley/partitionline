@@ -1,19 +1,22 @@
 # Kafka client and broker plan
 
-The goals are production-ready Kafka client and broker implementations,
-complete protocol support, and leading performance at equivalent Kafka settings.
-The task registry tracks implementation work and the checks needed to verify it.
+The goals are a production-ready Kafka client and broker, the protocol
+behavior this repository commits to, and leading performance at the same
+Kafka settings. [tasks.json](plan/tasks.json) is the queue: one card, its
+dependencies, the files it starts from, and the check that closes it.
+[TODO.md](../TODO.md) is the short launch order. It is not a second status
+list. The [task workflow](plan/README.md) says how to pick a card.
 
-See the [task workflow](https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/docs/plan/README.md).
-[tasks.json](https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/docs/plan/tasks.json) is the canonical queue: narrow deliverables,
-dependencies, starting files, acceptance criteria and focused checks.
-[TODO.md](https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/TODO.md) is its short launch order, not a second status database.
-The KL packages below define scope and closing gates, **not session-sized
-assignments**.
+The KL packages below are scope and closing gates. They are not one session
+of work. The numbers in the scorecard are proposed targets. They are not
+results this repository has signed. Michael Ingley coordinates scope and
+signoff. A card has an owner only after someone claims it.
 
-Numerical targets below are **proposed**, not achieved guarantees. Michael
-Ingley is the coordinating maintainer and scope/signoff DRI; task owners and
-independent reviewers remain unassigned until actually claimed.
+Suite HOLD stays until there is signed Lab A evidence. Unsigned samples do
+not lift it. See [STATUS.md](STATUS.md).
+
+Section 1 is the frozen 2026-09-21 audit. Its links stay on that snapshot.
+Current card status is `tasks.json`.
 
 ## 1. Audit baseline (2026-09-21)
 
@@ -50,7 +53,7 @@ adds the new evidence rather than changing the support promise by prose alone.
 | Area | Existing evidence and source | Qualification gap |
 |---|---|---|
 | Package and dependency boundary | [Cargo.toml](../Cargo.toml): published `partitionline` 0.1.0, latest stable Rust declaration, MIT OR Apache-2.0. Client code forbids unsafe; no librdkafka dependency. TLS uses `rustls`/`ring`, including native compilation via `cc`. | Published/installable does not mean production-qualified. Do not claim the full build has no C dependencies. |
-| Producer, consumer and protocol | [producer](../src/producer.rs), [consumer](../src/consumer.rs), [protocol](https://github.com/mingley/partitionline/tree/917d877d7b049f3da5af90bd2a5804b85080ed2b/src/protocol), [mock tests](../tests/full_surface.rs): routing, negotiated versions, batching, retries, idempotence and transactions. | Five reproduced consumer defects; per-API and mixed-version evidence still needed. Mock agreement is not an independent broker oracle. |
+| Producer, consumer and protocol | [producer](../src/producer.rs), [consumer](../src/consumer.rs), [protocol](https://github.com/mingley/partitionline/tree/917d877d7b049f3da5af90bd2a5804b85080ed2b/src/protocol), [mock tests](../tests/full_surface.rs): routing, negotiated versions, batching, retries, idempotence and transactions. | The five baseline consumer defects are fixed (KL03-01 through KL03-07). Independent replay is still KL01-22. Mock agreement is not an independent broker oracle. |
 | Group and share APIs | [group](../src/group.rs), [share](../src/share.rs), [broker smoke](https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/scripts/ci-broker-smoke.sh): classic/cooperative, KIP-848 and share-group paths. | Existing 3.9.1/4.1.0 CI smoke is not multi-broker chaos. Check executed cases and capability gates; an ignored live test is not covered by default `cargo test`. |
 | Build and safety CI | [CI](https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/.github/workflows/ci.yml) uses latest stable Rust, features, package, audit/deny, short fuzz, broker and auth lanes; the audited run is green. | Add strict rustdoc/doctests, independent case reports and exact required-lane release checks. Extend existing lanes instead of creating duplicates. |
 | Codecs and ecosystem | [zstd spike](zstd-spike.md), [schema companion](schema-companion.md): gzip/snappy/LZ4 and optional zstd are implemented; `partitionline-schema` remains unpublished with bounded framing, lookup/cache and caller-selected adapters. | Complete the bidirectional live codec matrix and broader schema qualification. Keep default dependencies unchanged. |
@@ -106,8 +109,8 @@ Each package may require several small PRs. Existing commands below are
 building blocks, **not proof that new acceptance criteria already pass**.
 New harnesses must be added and wired into CI before their package can close.
 Use the corresponding `KL01-*` through `KL10-*` cards in
-[tasks.json](https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/docs/plan/tasks.json); do not assign an entire numbered package to
-one implementation session.
+[tasks.json](plan/tasks.json). One session takes one ready card, not a
+whole numbered package.
 
 ### KL-01: Recover the baseline and establish protocol oracles
 
@@ -449,20 +452,22 @@ no more CPU per record than librdkafka for gzip produce and gzip consume at
 matched settings, with p99 no worse; per-record acknowledgment costs at
 most 10% over `try_send`; and KL10-12 has published its dated verdict.
 
-## 5. First PRs and proof discipline
+## 5. Original first deliveries
 
-| Order | Small first delivery | Then |
+KL03-01 through KL03-07, KL07-01, and KL08-01 are done. The table is the
+order those cards were meant to land. The next card is the one `tasks.json`
+marks ready. Independent replay of the consumer histories is still KL01-22.
+
+| Order | Delivery | Followed by |
 |---|---|---|
 | 1 | KL03-01: promote the small consumer wire fixture. | KL03-02: preserve successful records across partial retries. |
-| 2 | KL03-03, then KL03-04: repair abort intervals and seek filtering, one PR each. | KL03-05: honor the reset policy. |
-| 3 | KL03-06, then KL03-07: separate delivered positions and fix auto-commit timing. | Proceed to idempotent/transaction/group recovery proofs. |
-| Parallel, disjoint files | KL07-01: fix one rustdoc link; KL08-01: reject non-CI release evidence. | Their respective strict documentation and release-gate follow-ups. |
-| Parallel, specifications | KL01-01: conformance registry; KL02-01: resource contract; KL04-01: benchmark contract; KL05-01: feature matrix. | Independent fixtures, bounds, comparable peer drivers and one-feature cards. |
+| 2 | KL03-03, then KL03-04: repair abort intervals and seek filtering, one change each. | KL03-05: honor the reset policy. |
+| 3 | KL03-06, then KL03-07: separate delivered positions and fix auto-commit timing. | Idempotent, transaction, and group recovery proofs. |
+| Alongside, other files | KL07-01: fix one rustdoc link. KL08-01: reject non-CI release evidence. | The strict documentation and release-gate follow-ups. |
+| Alongside, specifications | KL01-01: conformance registry. KL02-01: resource contract. KL04-01: benchmark contract. KL05-01: feature matrix. | Independent fixtures, bounds, comparable peer drivers, and one-feature cards. |
 
-Read only one ready card plus its relevant evidence. Stop after that
-deliverable. Long evidence campaigns use resumable jobs, not larger
-implementation sessions. The full handoff/approval contract is in the
-[session guide](https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/docs/plan/README.md).
+Read one ready card and the evidence it names. Long evidence runs are
+resumable jobs. The handoff rules are in the [task workflow](plan/README.md).
 
 Existing proof entry points (from the repository root):
 
