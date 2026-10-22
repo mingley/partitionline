@@ -97,7 +97,7 @@ A few rules apply across APIs:
 
 | API | Spoken versions |
 | --- | --- |
-| InitProducerId | 0–5 |
+| InitProducerId | 0–6 |
 | Produce | 3–13 |
 | Fetch | 4–18 |
 | ListOffsets | 1–11 |

@@ -17,9 +17,9 @@ Rust behavior is authoritative. A Java name is a porting cross-link, not a secon
 
 ### InitProducerId
 
-Spoken versions: 0–5.
+Spoken versions: 0–6.
 
-InitProducerId v0–v1 are classic; v2–v5 are flexible (compact transactional id plus tagged fields; request header 2, response header 1).
+InitProducerId v0–v1 are classic; v2–v6 are flexible (compact transactional id plus tagged fields; request header 2, response header 1).
 
 v3+ adds ProducerId / ProducerEpoch on the request (KIP-360; first init sends `-1` / `-1`).
 
@@ -41,7 +41,9 @@ Top-level ErrorCode is at bytes 4–5.
 
 Kafka 4.0 `validVersions` is `0-5`.
 
-v6+ (KIP-939 2PC) is not spoken.
+v6 adds `enable2Pc` and `keepPreparedTxn` (KIP-939). Idempotent and ordinary transactional producers negotiate 0–6 and send both flags false. A true flag is rejected by an older peer before the request is sent. Prepared-transaction lifecycle operations are separate from this initialization. v2 through v6 share the flexible header.
+
+v7+ is not spoken.
 
 ### Produce
 

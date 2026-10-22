@@ -81,7 +81,7 @@
 //! Responses carry throttle time on every supported version; error responses
 //! use zero throttle and -1 identities. Client throttling starts at v1.
 //! Both decoders require complete input and use bounded tagged-field helpers.
-//! Metadata negotiates v1–v13 (v9+ flexible; v8–v10 ClusterAuthorizedOperations
+//! Metadata negotiates v0–v13 (v9+ flexible; v8–v10 ClusterAuthorizedOperations
 //! and IncludeClusterAuthorizedOperations; v13 top-level ErrorCode;
 //! v8+ IncludeTopicAuthorizedOperations on [`Admin::describe_topics_by_id_with`];
 //! v12+ TopicId on [`Admin::describe_topics_by_id`];
