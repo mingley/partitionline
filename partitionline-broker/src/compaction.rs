@@ -505,20 +505,25 @@ impl Planner {
                 if self.last_batch != Some((batch.base_offset, batch.next_offset)) {
                     continue;
                 }
-                let mut header = [0u8; 61];
-                header.copy_from_slice(&batch.bytes[..61]);
-                header[8..12].copy_from_slice(&49i32.to_be_bytes());
-                header[21..23].copy_from_slice(&0u16.to_be_bytes());
-                header[27..35].copy_from_slice(&(-1i64).to_be_bytes());
-                header[57..61].copy_from_slice(&0i32.to_be_bytes());
-                let crc = crc32c::crc32c(&header[21..]);
-                header[17..21].copy_from_slice(&crc.to_be_bytes());
+                let mut header = [0u8; crate::batch::LEN];
+                header.copy_from_slice(&batch.bytes[..crate::batch::LEN]);
+                header[crate::batch::LENGTH..crate::batch::PREFIX]
+                    .copy_from_slice(&crate::batch::HEADER_ONLY_LENGTH.to_be_bytes());
+                header[crate::batch::ATTRIBUTES..crate::batch::LAST_OFFSET_DELTA]
+                    .copy_from_slice(&0u16.to_be_bytes());
+                header[crate::batch::BASE_TIMESTAMP..crate::batch::MAX_TIMESTAMP]
+                    .copy_from_slice(&(-1i64).to_be_bytes());
+                header[crate::batch::RECORD_COUNT..crate::batch::LEN]
+                    .copy_from_slice(&0i32.to_be_bytes());
+                let crc = crc32c::crc32c(&header[crate::batch::ATTRIBUTES..]);
+                header[crate::batch::CRC..crate::batch::ATTRIBUTES]
+                    .copy_from_slice(&crc.to_be_bytes());
                 self.extend(&mut output, &header, maximum)?;
                 continue;
             }
             let base_time = horizon.or(first).ok_or(Error::InvalidClock)?;
             let start = output.len();
-            self.extend(&mut output, &batch.bytes[..61], maximum)?;
+            self.extend(&mut output, &batch.bytes[..crate::batch::LEN], maximum)?;
             self.parsed_records(batch.record_count as usize)?;
             for record in batch.records() {
                 let record = record?;

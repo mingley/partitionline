@@ -24,6 +24,8 @@ use std::io::{self, IoSlice, Read, Seek, SeekFrom, Write};
 use std::mem::size_of;
 use std::path::Path;
 
+use crate::batch;
+
 const FILE_MAGIC: &[u8; 8] = b"PLJRNL01";
 const ENTRY_MAGIC: &[u8; 8] = b"PLENTRY1";
 const FILE_HEADER: usize = 24;
@@ -436,8 +438,8 @@ impl Journal {
     /// Append using a caller-supplied payload checksum.
     ///
     /// [`checksum_reusing_record_crc`] builds that value from a validated
-    /// single-batch record CRC plus the 21-byte prefix, skipping a second
-    /// scan of the records.
+    /// single-batch record CRC plus the bytes before the attribute field,
+    /// skipping a second scan of the records.
     pub(crate) fn append_with_checksum(
         &mut self,
         record_count: u32,
@@ -645,14 +647,20 @@ pub(crate) fn extend_fingerprint(
 
 /// Journal checksum of `payload`.
 ///
-/// A single Kafka record batch stores its CRC32-C at bytes 17..21 over the
-/// suffix starting at byte 21. That suffix is outside the base-offset and
-/// leader-epoch fields, so a validated batch can reuse it. Several batches
-/// reuse each stored CRC when their lengths tile the payload.
+/// A single Kafka record batch stores its CRC32-C at [`batch::CRC`] over the
+/// bytes from [`batch::ATTRIBUTES`] to the end. That suffix is outside the
+/// base-offset and leader-epoch fields, so a validated batch can reuse it.
+/// Several batches reuse each stored CRC when their lengths tile the payload.
 pub(crate) fn checksum_reusing_record_crc(payload: &[u8], batches: usize) -> u32 {
-    if batches == 1 && payload.len() >= 21 {
-        let suffix = u32::from_be_bytes([payload[17], payload[18], payload[19], payload[20]]);
-        return crc32c::crc32c_combine(crc32c::crc32c(&payload[..21]), suffix, payload.len() - 21);
+    if batches == 1 && payload.len() >= batch::ATTRIBUTES {
+        let mut crc_bytes = [0u8; 4];
+        crc_bytes.copy_from_slice(&payload[batch::CRC..batch::ATTRIBUTES]);
+        let suffix = u32::from_be_bytes(crc_bytes);
+        return crc32c::crc32c_combine(
+            crc32c::crc32c(&payload[..batch::ATTRIBUTES]),
+            suffix,
+            payload.len() - batch::ATTRIBUTES,
+        );
     }
     if batches > 1 {
         if let Some(sum) = checksum_from_batch_crcs(payload, batches) {
@@ -665,26 +673,26 @@ pub(crate) fn checksum_reusing_record_crc(payload: &[u8], batches: usize) -> u32
 /// Journal checksum from each batch CRC when `payload` is exactly `batches` batches.
 ///
 /// Each batch length must cover that batch, and the stored CRC must sit at
-/// bytes 17..21. A shape that does not match returns `None` so the caller
+/// [`batch::CRC`]. A shape that does not match returns `None` so the caller
 /// hashes the bytes directly.
 fn checksum_from_batch_crcs(payload: &[u8], batches: usize) -> Option<u32> {
     let mut fingerprint = 0u32;
     let mut offset = 0usize;
     for _ in 0..batches {
-        let header = payload.get(offset..offset.checked_add(21)?)?;
-        let length_bytes: [u8; 4] = header.get(8..12)?.try_into().ok()?;
+        let header = payload.get(offset..offset.checked_add(batch::ATTRIBUTES)?)?;
+        let length_bytes: [u8; 4] = header.get(batch::LENGTH..batch::PREFIX)?.try_into().ok()?;
         let batch_len = usize::try_from(i32::from_be_bytes(length_bytes))
             .ok()?
-            .checked_add(12)?;
-        if batch_len < 21 {
+            .checked_add(batch::PREFIX)?;
+        if batch_len < batch::ATTRIBUTES {
             return None;
         }
         let end = offset.checked_add(batch_len)?;
         if end > payload.len() {
             return None;
         }
-        let crc_bytes: [u8; 4] = header.get(17..21)?.try_into().ok()?;
-        let suffix_len = batch_len.checked_sub(21)?;
+        let crc_bytes: [u8; 4] = header.get(batch::CRC..batch::ATTRIBUTES)?.try_into().ok()?;
+        let suffix_len = batch_len.checked_sub(batch::ATTRIBUTES)?;
         fingerprint = extend_fingerprint(
             fingerprint,
             header,
@@ -1424,6 +1432,7 @@ impl<S: Storage> Engine<S> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::batch;
     use std::cell::Cell;
     use std::io::Cursor;
     use std::rc::Rc;
@@ -1769,12 +1778,12 @@ mod tests {
 
     #[test]
     fn record_crc_plus_prefix_matches_the_payload_checksum() {
-        let mut payload = vec![0u8; 21 + 4_096];
+        let mut payload = vec![0u8; batch::ATTRIBUTES + 4_096];
         for (i, byte) in payload.iter_mut().enumerate() {
             *byte = (i as u8).wrapping_mul(17).wrapping_add(3);
         }
-        let suffix = crc32c::crc32c(&payload[21..]);
-        payload[17..21].copy_from_slice(&suffix.to_be_bytes());
+        let suffix = crc32c::crc32c(&payload[batch::ATTRIBUTES..]);
+        payload[batch::CRC..batch::ATTRIBUTES].copy_from_slice(&suffix.to_be_bytes());
         assert_eq!(
             checksum_reusing_record_crc(&payload, 1),
             crc32c::crc32c(&payload)
@@ -1797,12 +1806,12 @@ mod tests {
     }
 
     fn batch_with_suffix(suffix: &[u8]) -> Vec<u8> {
-        let mut payload = vec![0u8; 21 + suffix.len()];
-        payload[21..].copy_from_slice(suffix);
-        let batch_len = i32::try_from(payload.len() - 12).expect("batch length");
-        payload[8..12].copy_from_slice(&batch_len.to_be_bytes());
-        let crc = crc32c::crc32c(&payload[21..]);
-        payload[17..21].copy_from_slice(&crc.to_be_bytes());
+        let mut payload = vec![0u8; batch::ATTRIBUTES + suffix.len()];
+        payload[batch::ATTRIBUTES..].copy_from_slice(suffix);
+        let batch_len = i32::try_from(payload.len() - batch::PREFIX).expect("batch length");
+        payload[batch::LENGTH..batch::PREFIX].copy_from_slice(&batch_len.to_be_bytes());
+        let crc = crc32c::crc32c(&payload[batch::ATTRIBUTES..]);
+        payload[batch::CRC..batch::ATTRIBUTES].copy_from_slice(&crc.to_be_bytes());
         payload
     }
 

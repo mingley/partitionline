@@ -1348,7 +1348,7 @@ fn normalize<'a>(
                 if input.len() > config.journal_limits.max_entry_bytes() {
                     return Err(10);
                 }
-                if input.get(12..16) == Some(&[0, 0, 0, 0]) {
+                if input.get(batch::LEADER_EPOCH..batch::MAGIC) == Some(&[0, 0, 0, 0]) {
                     return Ok(Cow::Borrowed(input));
                 }
                 owned_epoch(input, config)
@@ -1357,8 +1357,8 @@ fn normalize<'a>(
                 if buf.len() > config.journal_limits.max_entry_bytes() {
                     return Err(10);
                 }
-                if buf.len() >= 16 {
-                    buf[12..16].copy_from_slice(&0i32.to_be_bytes());
+                if buf.len() >= batch::MAGIC {
+                    buf[batch::LEADER_EPOCH..batch::MAGIC].copy_from_slice(&0i32.to_be_bytes());
                 }
                 Ok(Cow::Owned(buf))
             }
@@ -1366,8 +1366,12 @@ fn normalize<'a>(
     }
     #[cfg(not(feature = "codecs"))]
     {
-        let crc = u32::from_be_bytes(input[17..21].try_into().map_err(|_| 87i16)?);
-        if crc32c::crc32c(&input[21..]) != crc {
+        let crc = u32::from_be_bytes(
+            input[batch::CRC..batch::ATTRIBUTES]
+                .try_into()
+                .map_err(|_| 87i16)?,
+        );
+        if crc32c::crc32c(&input[batch::ATTRIBUTES..]) != crc {
             return Err(2);
         }
         records::validate_known_crc(input, config.record_limits).map_err(record_error)?;
@@ -1376,7 +1380,7 @@ fn normalize<'a>(
         }
         // `process` stamps leader epoch 0 before this check. Other callers
         // still borrow when the bytes are already zero.
-        if input.get(12..16) == Some(&[0, 0, 0, 0]) {
+        if input.get(batch::LEADER_EPOCH..batch::MAGIC) == Some(&[0, 0, 0, 0]) {
             return Ok(Cow::Borrowed(input));
         }
         owned_epoch(input, config)
@@ -1390,7 +1394,7 @@ fn owned_epoch(input: &[u8], config: &Config) -> Result<Cow<'static, [u8]>, i16>
     let mut output = Vec::new();
     output.try_reserve_exact(input.len()).map_err(|_| 10i16)?;
     output.extend_from_slice(input);
-    output[12..16].copy_from_slice(&0i32.to_be_bytes());
+    output[batch::LEADER_EPOCH..batch::MAGIC].copy_from_slice(&0i32.to_be_bytes());
     Ok(Cow::Owned(output))
 }
 fn storage_error(error: partition::Error) -> i16 {
