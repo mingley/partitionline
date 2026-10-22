@@ -98,6 +98,10 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
 - The broker plan lists the 13 KL11 cards that are not done. Sixty-three
   of the 76 broker cards are done, including retention, compaction, and
   failover. KL11-37 and KL11-71 already have owners.
+- The gateway plan's work order matches the queue. Green CI, zstd, the
+  gzip backend, and applied-batch fetch decompression are done. The
+  gateway produce and fetch cells are still pending. KL10-07 is in
+  progress.
 - The gateway profile names zstd as an optional codec that has shipped.
   Its measured cells remain gzip and lz4.
 

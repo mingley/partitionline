@@ -188,24 +188,29 @@ backend reaches about 1 GB/s when it writes into a large buffer.
 | F11 | Adopters need a gateway recipe | An example and a migration-guide section | KL10-13 |
 
 KL10-12 re-measures every gateway cell after the first wave and publishes a
-dated local verdict.
+dated local verdict. It is still pending.
+
+The findings above are the 2026-09-30 reading. These cards have since
+landed: KL10-01 (green `main` CI), KL10-03 (the 1 KiB codec family),
+KL10-05, KL10-06, and KL10-15 (the gzip backend), KL05-02 through KL05-05
+(zstd), and KL09-34, KL10-16, and KL10-17 (decompress a fetch batch only
+when it is applied, and keep the ones that do not fit). KL10-07, the
+delivery API specification, is in progress. KL10-02, KL10-04, and KL10-08
+through KL10-14 are still pending. Section 2's measurements are unchanged.
 
 ## 4. Order of work
 
-| Step | Cards | Why |
+| Step | Cards | Where that step stands |
 |---|---|---|
-| 1 | **KL10-01** | Restores a green `main`. KL10's implementation cards and its verdict depend on it. |
-| 2 | **KL09-34**, **KL05-02** (both ready now) | The largest measured loss (gzip decode), and the decision on the codec that would let some workloads avoid gzip |
-| 3 | KL10-03, KL10-07 (ready now); KL10-02, KL10-14 after KL04-05/06/07 | Cells that make every later change measurable, and the API specification |
-| 4 | KL10-04, KL10-05, KL10-10 | Analysis and policy, with no hot-file edits |
-| 5 | KL10-06, KL10-08, KL10-09 | One hot file each: `records.rs`, `producer.rs`, `consumer.rs` |
-| 6 | KL10-11, KL10-12, KL10-13 | Contract proposal, dated verdict, adoption documentation |
+| 1 | KL10-01 | Done. `main` CI was restored. |
+| 2 | KL09-34, KL05-02 | Done. Fetch decompression and the zstd backend decision have landed. |
+| 3 | KL10-03, KL10-07, KL10-02, KL10-14 | KL10-03 is done. KL10-07 is in progress and has an owner. KL10-02 and KL10-14 are pending. KL04-05, KL04-06, and KL04-07 are done, so those two are no longer waiting on the benchmark harness. |
+| 4 | KL10-04, KL10-05, KL10-10 | KL10-05 is done. KL10-04 and KL10-10 are pending. |
+| 5 | KL10-06, KL10-08, KL10-09 | KL10-06 is done. KL10-08 and KL10-09 are pending. They touch `producer.rs` and `consumer.rs`, so check the hot-file locks before claiming either. |
+| 6 | KL10-11, KL10-12, KL10-13 | All three are pending: the contract proposal, the dated verdict, and the adoption recipe. |
 
-KL10-06, KL10-08 and KL10-09 hold different hot files, so they can run in
-parallel under the KL09 section 7 locks. A KL10-05 decision to keep
-miniz_oxide, or a rejected KL10-07 specification, blocks only its own
-implementation card. KL10-12 still runs and lists the blocked card with its
-reason.
+A rejected KL10-07 specification blocks only KL10-08. KL10-12 still runs
+and lists a blocked card with its reason.
 
 ## 5. Card index
 

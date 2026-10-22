@@ -439,15 +439,20 @@ the dated evidence and the card map. Cards are KL10-01 through KL10-17 in
 [tasks.json](https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/docs/plan/tasks.json).
 
 1. Restore a green `main`: the verifiable contract tests must find the
-   example binaries they run (KL10-01).
+   example binaries they run (KL10-01). This card is done.
 2. Make the gateway profile measurable: about 1 KiB JSON-like records,
    gzip, mTLS, `acks=all`, max in flight 1 and per-record acknowledgment,
    against a same-settings librdkafka peer, plus 1 KiB codec microbenchmarks.
+   The codec family (KL10-03) is done. The produce and fetch cells
+   (KL10-02, KL10-14) are pending.
 3. Close the measured gaps: gzip decode (KL09-34, then decode off the
    caller task), gzip feed overhead and backend policy, an owned
    per-record delivery API, consumer peak RSS, and zstd (KL05-02..05).
+   KL09-34, KL05-02 through KL05-05, KL10-05, KL10-06, KL10-15, KL10-16,
+   and KL10-17 are done. KL10-07 is in progress. KL10-04, KL10-08,
+   KL10-09, and KL10-10 are pending.
 4. Propose gzip and gateway cells for the benchmark contract, and publish a
-   dated local per-cell verdict.
+   dated local per-cell verdict. KL10-11, KL10-12, and KL10-13 are pending.
 
 **Work surfaces:** [record codec](../src/protocol/records.rs),
 [producer](../src/producer.rs), [consumer](../src/consumer.rs),
