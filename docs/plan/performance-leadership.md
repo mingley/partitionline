@@ -497,9 +497,10 @@ guide stays valid for lanes that never touch hot files.
 
 ## 8. Card index
 
-This table is generated from `tasks.json`. "Hot files" are the files that
-serialize a card. Full acceptance criteria and validation are in
-`tasks.json`.
+This table is generated from `tasks.json`. It does not show status.
+Status is `tasks.json`. The notes in section 3 name which hot-path cards
+are done. "Hot files" are the files that serialize a card. Full
+acceptance criteria and validation are in `tasks.json`.
 
 <!-- KL09-INDEX:START -->
 | ID | P | Kind | Title | Depends on | Hot files |
@@ -580,30 +581,29 @@ serialize a card. Full acceptance criteria and validation are in
 
 These cards in other lanes are also performance features:
 
-- **KL05-02..05**: zstd (policy decision first)
-- **KL05-06/07**: incremental Fetch sessions
-- **KL05-08/09**: broker throttle handling
-- **KL05-10**: opt-in sticky partitioner
-- **KL05-11/12**: Produce v13 and Fetch v18
-- **KL04-13**: campaign-driven cards for losing cells
-- **KL10**: the [gateway adoption plan](gateway-adoption.md): gateway-profile
-  cells (1 KiB gzip, mTLS, per-record acks), gzip backend and feed costs,
-  an owned delivery API and off-caller fetch decoding. Its 2026-09-30
-  evidence makes **KL09-34** the largest measured consume hotspot.
+- **KL05-02 through KL05-05:** zstd decision, decode, encode, and the codec matrix. Done. The feature stays optional. Required benchmark cells are `not_run`.
+- **KL05-06 and KL05-07:** incremental Fetch sessions. Done. Live qualification is KL01-24.
+- **KL05-08 and KL05-09:** producer and consumer broker throttle. Done.
+- **KL05-10:** opt-in sticky partitioner. In progress.
+- **KL05-11 and KL05-12:** Produce v13 and Fetch v18. Done.
+- **KL04-13:** campaign-driven cards for losing cells. Pending.
+- **KL10:** the [gateway adoption plan](gateway-adoption.md). The 2026-09-30 evidence called KL09-34 the largest measured consume hotspot. That card is done. The gateway produce and fetch cells are still pending.
 
 KL09 does not duplicate them.
 
 ## 9. Boundaries (unchanged unless the maintainer decides otherwise)
 
 - **Correctness first.** A faster wrong client is a regression. Consumer
-  cards wait for KL03-22. Every card keeps the existing suites, the
-  conformance fixtures and the record-history checks green.
+  cards waited for KL03-22, which is done. Every card keeps the existing
+  suites, the conformance fixtures and the record-history checks green.
 - **No `unsafe`, no SIMD intrinsics and no native dependencies** in the
   core crate. Benchmark-only tooling lives in workspace-excluded crates
   under `benchmarks/`, needs manifest review, and never enters the runtime
   dependency graph. That tooling includes allocation counters, CPU timers,
-  allocators, peers and the null broker. zstd and io_uring backends need
-  the existing dependency-policy approval.
+  allocators, peers and the null broker. The zstd backend was approved
+  and shipped as an optional feature (KL05-02 through KL05-04). An
+  io_uring backend still needs that dependency-policy approval
+  (KL09-64).
 - **No benchmark gaming.** Specifically, do not:
   - change defaults (acks, linger, batch size, connection count,
     `auto.offset.reset`) to win a cell

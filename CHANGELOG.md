@@ -166,6 +166,10 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
 - The performance-leadership risks no longer say zstd is policy-blocked.
   The optional encoder has shipped. The required zstd benchmark cells
   are still not run.
+- The KL09 card index does not show status. The cross-lane list records
+  that zstd, incremental Fetch, throttle handling, Produce v13, and
+  Fetch v18 are done. The sticky partitioner is in progress. An io_uring
+  backend still needs a dependency-policy decision.
 - The gateway profile names zstd as an optional codec that has shipped.
   Its measured cells remain gzip and lz4.
 
