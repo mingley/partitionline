@@ -181,6 +181,8 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   pending. The 2026-09-26 example-binary CI failure was fixed by KL10-01.
 - The civilization plan's dependency rule records that optional zstd has
   shipped through `zstd-rs`. GSSAPI is still not implemented.
+- The civilization progress note no longer says zstd would be opt-in C
+  or `ruzstd`. The historical baseline row says Kerberos did not ship.
 - The gateway profile names zstd as an optional codec that has shipped.
   Its measured cells remain gzip and lz4.
 

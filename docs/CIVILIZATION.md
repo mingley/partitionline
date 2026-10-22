@@ -48,7 +48,7 @@ is not a qualification result.
 |---|---|
 | Produce / fetch / groups / EOS / admin / share | Implemented surfaces in `gaps.md`; known correctness/evidence gaps are tracked in the current audit and task queue |
 | TLS (rustls), SCRAM, OAUTHBEARER/OIDC | **done** |
-| gzip / snappy / lz4 | **done**; zstd / Kerberos blocked on C |
+| gzip / snappy / lz4 | **done**; zstd / Kerberos were blocked on C when this plan was written. Optional zstd later shipped as `zstd-rs` (KL05-04). Kerberos did not. |
 | Mock protocol tests | large (`tests/full_surface.rs`, `client_api.rs`); mock e2e in `#80` |
 | Real-broker CI | `broker-smoke` job + `scripts/ci-broker-smoke.sh` (3.9.1 and 4.1.0) |
 | crates.io publish | **0.1.0 published** (`partitionline = "0.1"`; day1 four-file flip + parks on `main`; Suite HOLD still unsigned) |
@@ -211,7 +211,7 @@ Suite HOLD without signed Lab A.
 | WP-3 Operator docs | **done** | guide.md (incl. recipes) + migrate-from-rdkafka.md + ADOPTION.md + README links. |
 | WP-4 Observability | **done** | Metrics in guide; `tracing` feature; Prometheus text example. |
 | WP-5 Perf honesty | **in progress** | Lab A produce enforces **HW sum == acked**; Lab A fetch enforces **HW + consumed == seeded**; combined `scripts/lab-a-integrity.sh` + `ci-integrity-smoke.sh` in civilization-check (unsigned). 2026-09-04 native recheck: integrity COUNT=2000 HW==acked+consumed==seeded; latency gate p99≈71–86µs (earlier ≈69µs) vs 500µs baseline (STATUS); later same-day under agent load ≈663–865µs / 742µs still under relative slack — unsigned only. Gate honesty: loud fail on down broker; integrity soft latency miss no longer hard-exits unless `REQUIRE_INTEGRITY=1`. Tip `67072a5` native recheck: integrity COUNT=2000; latency quiet p99≈150µs (under-load ≈380µs) — unsigned. Not a Suite HOLD lift. Signed Suite HOLD still external. |
-| WP-6 Adoption gaps | **in progress** | Template + zstd spike + feature matrix + survey [#85](https://github.com/mingley/partitionline/issues/85) + ADOPTION.md + `docs/schema-companion.md` design (**unblocked** by crates.io `0.1.0`; companion stays out of core until survey demand). Packed-crate downstream consumer gate in civilization/publish-ready. Prefer registry pin `partitionline = "0.1"`; git **`v0.1.0-rc.6`** is historical (pin gate still allows docs/scripts tip drift). Zstd stays **non-default** per `docs/zstd-spike.md` (opt-in C only if #85 demands; no default `ruzstd` claim). |
+| WP-6 Adoption gaps | **in progress** | Template + zstd spike + feature matrix + survey [#85](https://github.com/mingley/partitionline/issues/85) + ADOPTION.md + `docs/schema-companion.md` design (**unblocked** by crates.io `0.1.0`; companion stays out of core until survey demand). Packed-crate downstream consumer gate in civilization/publish-ready. Prefer registry pin `partitionline = "0.1"`; git **`v0.1.0-rc.6`** is historical (pin gate still allows docs/scripts tip drift). Zstd stays **non-default**. It shipped as optional `zstd-rs` (KL05-04), not C libzstd and not `ruzstd`. See `docs/zstd-spike.md`. |
 | WP-7 Stewardship | **done** | Issue/PR templates; CONTRIBUTING; CODEOWNERS; Dependabot; tag-publish; civilization-check; `scripts/ci-publish-ready.sh`; `scripts/audit-civilization-bars.sh` (six-bar evidence audit). Tip Verifiable via `scripts/ci-branch-lite.sh` (no auto CI on `dev/**` push while org runners starved); full matrix on PR/`main`/`workflow_dispatch`. |
 
 ## Success criteria (civilization bar)
