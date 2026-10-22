@@ -4455,6 +4455,45 @@ fn read_bytes_varint<B: Buf>(buf: &mut B) -> Result<Option<Bytes>> {
 mod tests {
     use super::*;
 
+    fn put_be_i32(bytes: &mut [u8], at: i32, value: i32) {
+        let at = usize::try_from(at).unwrap();
+        bytes[at..at + 4].copy_from_slice(&value.to_be_bytes());
+    }
+
+    fn put_batch_length(bytes: &mut [u8], length: i32) {
+        put_be_i32(bytes, Records::SIZE_OFFSET, length);
+    }
+
+    fn put_record_count(bytes: &mut [u8], count: i32) {
+        put_be_i32(bytes, RecordBatch::RECORDS_COUNT_OFFSET, count);
+    }
+
+    fn put_last_offset_delta(bytes: &mut [u8], delta: i32) {
+        put_be_i32(bytes, RecordBatch::LAST_OFFSET_DELTA_OFFSET, delta);
+    }
+
+    fn put_base_timestamp(bytes: &mut [u8], timestamp: i64) {
+        let at = usize::try_from(RecordBatch::BASE_TIMESTAMP_OFFSET).unwrap();
+        bytes[at..at + 8].copy_from_slice(&timestamp.to_be_bytes());
+    }
+
+    fn put_attributes(bytes: &mut [u8], attributes: i16) {
+        let at = usize::try_from(RecordBatch::ATTRIBUTES_OFFSET).unwrap();
+        let end = usize::try_from(RecordBatch::LAST_OFFSET_DELTA_OFFSET).unwrap();
+        bytes[at..end].copy_from_slice(&attributes.to_be_bytes());
+    }
+
+    fn put_magic(bytes: &mut [u8], magic: u8) {
+        bytes[usize::try_from(Records::MAGIC_OFFSET).unwrap()] = magic;
+    }
+
+    fn restamp_crc(bytes: &mut [u8]) {
+        let crc_at = usize::try_from(RecordBatch::CRC_OFFSET).unwrap();
+        let attributes_at = usize::try_from(RecordBatch::ATTRIBUTES_OFFSET).unwrap();
+        let crc = crc32c::crc32c(&bytes[attributes_at..]);
+        bytes[crc_at..attributes_at].copy_from_slice(&crc.to_be_bytes());
+    }
+
     #[test]
     fn magic_v2_header_offsets_match_the_broker_layout() {
         // Same positions as `partitionline-broker/src/batch.rs`.
@@ -5824,16 +5863,16 @@ mod tests {
         assert!(err.contains("need 4 bytes"), "{err}");
 
         let mut undersized = encoded.clone();
-        undersized[8..12].copy_from_slice(&0i32.to_be_bytes());
+        put_batch_length(&mut undersized, 0i32);
         assert!(!RecordBatch::is_valid(&undersized).unwrap());
 
         let mut short_crc = [0u8; 12];
-        short_crc[8..12].copy_from_slice(&49i32.to_be_bytes());
+        put_batch_length(&mut short_crc, 49i32);
         let err = RecordBatch::is_valid(&short_crc).unwrap_err().to_string();
         assert!(err.contains("need 4 bytes"), "{err}");
 
         let mut header_only = [0u8; 21];
-        header_only[8..12].copy_from_slice(&49i32.to_be_bytes());
+        put_batch_length(&mut header_only, 49i32);
         assert!(RecordBatch::is_valid(&header_only).unwrap());
     }
 
@@ -5865,14 +5904,14 @@ mod tests {
         assert!(err.contains("need 4 bytes"), "{err}");
 
         let mut wrap = [0u8; 12];
-        wrap[8..12].copy_from_slice(&i32::MAX.to_be_bytes());
+        put_batch_length(&mut wrap, i32::MAX);
         assert_eq!(
             RecordBatch::encoded_size_in_bytes(&wrap).unwrap(),
             Records::LOG_OVERHEAD.wrapping_add(i32::MAX)
         );
 
         let mut declared = encoded.clone();
-        declared[8..12].copy_from_slice(&100i32.to_be_bytes());
+        put_batch_length(&mut declared, 100i32);
         assert_eq!(RecordBatch::encoded_size_in_bytes(&declared).unwrap(), 112);
         assert_ne!(
             RecordBatch::encoded_size_in_bytes(&declared).unwrap(),
@@ -5902,7 +5941,7 @@ mod tests {
         assert!(short.contains("need 4 bytes"), "{short}");
 
         let mut undersized = encoded.clone();
-        undersized[8..12].copy_from_slice(&0i32.to_be_bytes());
+        put_batch_length(&mut undersized, 0i32);
         let under = RecordBatch::ensure_valid(&undersized)
             .unwrap_err()
             .to_string();
@@ -5928,14 +5967,14 @@ mod tests {
         );
 
         let mut short_crc = [0u8; 12];
-        short_crc[8..12].copy_from_slice(&49i32.to_be_bytes());
+        put_batch_length(&mut short_crc, 49i32);
         let err = RecordBatch::ensure_valid(&short_crc)
             .unwrap_err()
             .to_string();
         assert!(err.contains("need 4 bytes"), "{err}");
 
         let mut header_only = [0u8; 21];
-        header_only[8..12].copy_from_slice(&49i32.to_be_bytes());
+        put_batch_length(&mut header_only, 49i32);
         RecordBatch::ensure_valid(&header_only).unwrap();
 
         let mut trailing = encoded.clone();
@@ -5970,13 +6009,13 @@ mod tests {
         assert_eq!(RecordBatch::encoded_next_offset(&two).unwrap(), 2);
 
         let mut mutated = two.clone();
-        mutated[23..27].copy_from_slice(&5i32.to_be_bytes());
+        put_last_offset_delta(&mut mutated, 5i32);
         assert_eq!(RecordBatch::encoded_last_offset(&mutated).unwrap(), 5);
         assert_eq!(RecordBatch::encoded_next_offset(&mutated).unwrap(), 6);
 
         let mut wrap = [0u8; 27];
         wrap[0..8].copy_from_slice(&i64::MAX.to_be_bytes());
-        wrap[23..27].copy_from_slice(&1i32.to_be_bytes());
+        put_last_offset_delta(&mut wrap, 1i32);
         assert_eq!(RecordBatch::encoded_last_offset(&wrap).unwrap(), i64::MIN);
         assert_eq!(
             RecordBatch::encoded_next_offset(&wrap).unwrap(),
@@ -6013,12 +6052,12 @@ mod tests {
         assert_eq!(batch.last_sequence(), 6);
 
         let mut mutated = encoded.clone();
-        mutated[23..27].copy_from_slice(&5i32.to_be_bytes());
+        put_last_offset_delta(&mut mutated, 5i32);
         assert_eq!(RecordBatch::encoded_last_sequence(&mutated).unwrap(), 10);
         assert_eq!(batch.last_sequence(), 6);
 
         let mut no_seq = [0u8; 57];
-        no_seq[23..27].copy_from_slice(&5i32.to_be_bytes());
+        put_last_offset_delta(&mut no_seq, 5i32);
         no_seq[53..57].copy_from_slice(&RecordBatch::NO_SEQUENCE.to_be_bytes());
         assert_eq!(
             RecordBatch::encoded_last_sequence(&no_seq).unwrap(),
@@ -6026,7 +6065,7 @@ mod tests {
         );
 
         let mut wrap = [0u8; 57];
-        wrap[23..27].copy_from_slice(&1i32.to_be_bytes());
+        put_last_offset_delta(&mut wrap, 1i32);
         wrap[53..57].copy_from_slice(&i32::MAX.to_be_bytes());
         assert_eq!(
             RecordBatch::encoded_last_sequence(&wrap).unwrap(),
@@ -6060,7 +6099,7 @@ mod tests {
         assert_eq!(horizon.delete_horizon_ms(), Some(1));
 
         let mut mutated = horizon_buf.clone();
-        mutated[27..35].copy_from_slice(&99i64.to_be_bytes());
+        put_base_timestamp(&mut mutated, 99i64);
         assert_eq!(
             RecordBatch::encoded_delete_horizon_ms(&mutated).unwrap(),
             Some(99)
@@ -6077,7 +6116,7 @@ mod tests {
         assert!(short_attr.contains("need 2 bytes"), "{short_attr}");
 
         let mut flag_only = [0u8; 23];
-        flag_only[21..23].copy_from_slice(&ATTR_DELETE_HORIZON.to_be_bytes());
+        put_attributes(&mut flag_only, ATTR_DELETE_HORIZON);
         let short_ts = RecordBatch::encoded_delete_horizon_ms(&flag_only)
             .unwrap_err()
             .to_string();
@@ -6114,7 +6153,7 @@ mod tests {
         assert_eq!(flagged.timestamp_type(), TimestampType::LogAppendTime);
 
         let mut mutated = flagged_buf.clone();
-        mutated[21..23].copy_from_slice(&0i16.to_be_bytes());
+        put_attributes(&mut mutated, 0i16);
         assert!(!RecordBatch::encoded_is_transactional(&mutated).unwrap());
         assert!(!RecordBatch::encoded_is_control_batch(&mutated).unwrap());
         assert_eq!(
@@ -6195,7 +6234,7 @@ mod tests {
         assert_eq!(one.count_or_null(), Some(1));
 
         let mut mutated = one_buf.clone();
-        mutated[57..61].copy_from_slice(&99i32.to_be_bytes());
+        put_record_count(&mut mutated, 99i32);
         assert_eq!(
             RecordBatch::encoded_count_or_null(&mutated).unwrap(),
             Some(99)
@@ -6203,7 +6242,7 @@ mod tests {
         assert_eq!(one.count_or_null(), Some(1));
 
         let mut negative = [0u8; 61];
-        negative[57..61].copy_from_slice(&(-1i32).to_be_bytes());
+        put_record_count(&mut negative, (-1i32));
         assert_eq!(
             RecordBatch::encoded_count_or_null(&negative).unwrap(),
             Some(-1)
@@ -6240,7 +6279,7 @@ mod tests {
             &RecordBatch::from_records(vec![sample_record(), sample_record()]),
         )
         .unwrap();
-        two[23..27].copy_from_slice(&5i32.to_be_bytes());
+        put_last_offset_delta(&mut two, 5i32);
         RecordBatch::set_last_offset(&mut two, 10).unwrap();
         assert_eq!(&two[0..8], &5i64.to_be_bytes());
         assert_eq!(RecordBatch::encoded_last_offset(&two).unwrap(), 10);
@@ -6253,7 +6292,7 @@ mod tests {
         assert_eq!(empty.last_offset(), -1);
 
         let mut wrap = [0u8; 27];
-        wrap[23..27].copy_from_slice(&1i32.to_be_bytes());
+        put_last_offset_delta(&mut wrap, 1i32);
         RecordBatch::set_last_offset(&mut wrap, i64::MIN).unwrap();
         assert_eq!(&wrap[0..8], &i64::MAX.to_be_bytes());
         assert_eq!(RecordBatch::encoded_last_offset(&wrap).unwrap(), i64::MIN);
@@ -6291,9 +6330,8 @@ mod tests {
             ]),
         )
         .unwrap();
-        encoded[23..27].copy_from_slice(&10i32.to_be_bytes());
-        let crc = crc32c::crc32c(&encoded[21..]);
-        encoded[17..21].copy_from_slice(&crc.to_be_bytes());
+        put_last_offset_delta(&mut encoded, 10i32);
+        restamp_crc(&mut encoded);
         let batches = split_record_batches(Bytes::from(encoded)).unwrap();
         let end = batches.first().and_then(EncodedBatch::header_exclusive_end);
         assert_eq!(end, Some(11));
@@ -6302,14 +6340,18 @@ mod tests {
     #[test]
     fn a_zero_count_batch_with_trailing_bytes_is_rejected() {
         let mut empty = vec![0u8; 49];
-        empty[4] = 2;
-        let crc = crc32c::crc32c(&empty[9..]);
-        empty[5..9].copy_from_slice(&crc.to_be_bytes());
+        let magic_at = usize::try_from(Records::MAGIC_OFFSET - Records::LOG_OVERHEAD).unwrap();
+        let crc_at = usize::try_from(RecordBatch::CRC_OFFSET - Records::LOG_OVERHEAD).unwrap();
+        let attributes_at =
+            usize::try_from(RecordBatch::ATTRIBUTES_OFFSET - Records::LOG_OVERHEAD).unwrap();
+        empty[magic_at] = u8::try_from(RecordBatch::MAGIC_VALUE_V2).unwrap();
+        let crc = crc32c::crc32c(&empty[attributes_at..]);
+        empty[crc_at..attributes_at].copy_from_slice(&crc.to_be_bytes());
         assert!(decode_checked_batch(0, Bytes::from(empty.clone()), 1024, Vec::new()).is_ok());
         let mut trailing = empty;
         trailing.push(1);
-        let crc = crc32c::crc32c(&trailing[9..]);
-        trailing[5..9].copy_from_slice(&crc.to_be_bytes());
+        let crc = crc32c::crc32c(&trailing[attributes_at..]);
+        trailing[crc_at..attributes_at].copy_from_slice(&crc.to_be_bytes());
         let body = Bytes::from(trailing);
         assert!(decode_checked_batch(0, body.clone(), 1024, Vec::new()).is_err());
         let framed = EncodedBatch {
@@ -6981,19 +7023,19 @@ mod tests {
         assert_eq!(Records::first_batch_size(&[]).unwrap(), None);
         assert_eq!(Records::first_batch_size(&[0; 16]).unwrap(), None);
         let mut almost = [0u8; 16];
-        almost[8..12].copy_from_slice(&1i32.to_be_bytes());
+        put_batch_length(&mut almost, 1i32);
         assert_eq!(Records::first_batch_size(&almost).unwrap(), None);
 
         let mut buf = [0u8; 17];
-        buf[8..12].copy_from_slice(&14i32.to_be_bytes());
-        buf[16] = 2;
+        put_batch_length(&mut buf, 14i32);
+        put_magic(&mut buf, 2);
         assert_eq!(Records::first_batch_size(&buf).unwrap(), Some(26));
-        buf[16] = 0;
+        put_magic(&mut buf, 0);
         assert_eq!(Records::first_batch_size(&buf).unwrap(), Some(26));
 
         let mut small = [0u8; 17];
-        small[8..12].copy_from_slice(&13i32.to_be_bytes());
-        small[16] = 2;
+        put_batch_length(&mut small, 13i32);
+        put_magic(&mut small, 2);
         let err = Records::first_batch_size(&small).unwrap_err().to_string();
         assert!(
             err.contains("Record size 13 is less than the minimum record overhead (14)"),
@@ -7001,7 +7043,7 @@ mod tests {
         );
 
         let mut neg = [0u8; 17];
-        neg[8..12].copy_from_slice(&(-1i32).to_be_bytes());
+        put_batch_length(&mut neg, (-1i32));
         let err = Records::first_batch_size(&neg).unwrap_err().to_string();
         assert!(
             err.contains("Record size -1 is less than the minimum record overhead (14)"),
@@ -7009,7 +7051,7 @@ mod tests {
         );
 
         let mut min = [0u8; 17];
-        min[8..12].copy_from_slice(&i32::MIN.to_be_bytes());
+        put_batch_length(&mut min, i32::MIN);
         let err = Records::first_batch_size(&min).unwrap_err().to_string();
         assert!(
             err.contains("Record size -2147483648 is less than the minimum record overhead (14)"),
@@ -7017,16 +7059,16 @@ mod tests {
         );
 
         let mut bad_magic = [0u8; 17];
-        bad_magic[8..12].copy_from_slice(&14i32.to_be_bytes());
-        bad_magic[16] = 3;
+        put_batch_length(&mut bad_magic, 14i32);
+        put_magic(&mut bad_magic, 3);
         let err = Records::first_batch_size(&bad_magic)
             .unwrap_err()
             .to_string();
         assert!(err.contains("Invalid magic found in record: 3"), "{err}");
 
         let mut signed_magic = [0u8; 17];
-        signed_magic[8..12].copy_from_slice(&14i32.to_be_bytes());
-        signed_magic[16] = 0xff;
+        put_batch_length(&mut signed_magic, 14i32);
+        put_magic(&mut signed_magic, 0xff);
         let err = Records::first_batch_size(&signed_magic)
             .unwrap_err()
             .to_string();
@@ -7062,7 +7104,7 @@ mod tests {
         );
 
         let mut almost = [0u8; 16];
-        almost[8..12].copy_from_slice(&1i32.to_be_bytes());
+        put_batch_length(&mut almost, 1i32);
         let err = Records::valid_bytes(&almost).unwrap_err().to_string();
         assert!(
             err.contains("Record size 1 is less than the minimum record overhead (14)"),
@@ -7094,7 +7136,7 @@ mod tests {
 
         let mut tail_corrupt = encoded.to_vec();
         let mut almost = [0u8; 16];
-        almost[8..12].copy_from_slice(&1i32.to_be_bytes());
+        put_batch_length(&mut almost, 1i32);
         tail_corrupt.extend_from_slice(&almost);
         let err = Records::valid_bytes(&tail_corrupt).unwrap_err().to_string();
         assert!(
@@ -7108,8 +7150,8 @@ mod tests {
             "{err}"
         );
         let mut over = [0u8; 17];
-        over[8..12].copy_from_slice(&20i32.to_be_bytes());
-        over[16] = 2;
+        put_batch_length(&mut over, 20i32);
+        put_magic(&mut over, 2);
         let err = next_batch_size(&over, 19).unwrap_err().to_string();
         assert!(
             err.contains("Record size 20 exceeds the largest allowable message size (19)."),
@@ -7117,7 +7159,7 @@ mod tests {
         );
         assert_eq!(next_batch_size(&over, 20).unwrap(), Some(32));
         let mut header_only = [0u8; 12];
-        header_only[8..12].copy_from_slice(&14i32.to_be_bytes());
+        put_batch_length(&mut header_only, 14i32);
         assert_eq!(next_batch_size(&header_only, 20).unwrap(), None);
         let err = next_batch_size(&[0; 12], 20).unwrap_err().to_string();
         assert!(
