@@ -247,9 +247,9 @@ limits describe decoded bytes rather than process RSS.
 | SCRAM-SHA-512 | `Sasl::scram_sha512(user, pass)` (`src/config.rs`) | same |
 | OAUTHBEARER | `Sasl::oauthbearer(principal)` (`src/config.rs`, RFC 7628 unsecured JWT) | same (`enable.sasl.oauthbearer.unsecure.jwt`) |
 | OIDC token endpoint | `Sasl::oidc(OidcConfig)` (`src/config.rs`, `src/protocol/oidc.rs`) | same shape |
-| GSSAPI / Kerberos | **not supported** (`auth.sasl_gssapi`, missing; blocked on Cyrus SASL C) | supported |
+| GSSAPI / Kerberos | **not implemented**. The proposal is a helper process with `libgssapi`, not Cyrus SASL. See [gssapi-boundary.md](gssapi-boundary.md). | supported |
 | TLS | `TlsConfig` (`src/net.rs`, rustls; `ca_pem` / `server_name` / `client_identity` for mTLS; Mozilla roots by default) | `ssl.*` (JVM TLS / OpenSSL) |
-| Token refresh | proactive refresh before expiry is **missing** (`auth.sasl_oidc_refresh`) | supported |
+| Token refresh | An owned `OidcTokenManager` refreshes before expiry. The shared connect-time cache does not, and client loops do not reauthenticate on a timer. See [auth-refresh.md](auth-refresh.md). The registry id `auth.sasl_oidc_refresh` is still missing. | supported |
 
 ```rust
 use partitionline::{ProducerConfig, Sasl, TlsConfig};

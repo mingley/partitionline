@@ -183,6 +183,9 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   shipped through `zstd-rs`. GSSAPI is still not implemented.
 - The civilization progress note no longer says zstd would be opt-in C
   or `ruzstd`. The historical baseline row says Kerberos did not ship.
+- The roadmap records that the zstd evaluation selected `zstd-rs`.
+  `ruzstd` was not selected. The migration guide points Kerberos at the
+  helper-process proposal and describes which OIDC refresh actually runs.
 - The gateway profile names zstd as an optional codec that has shipped.
   Its measured cells remain gzip and lz4.
 

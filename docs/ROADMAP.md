@@ -258,8 +258,11 @@ signoff follows [benchmark.md](benchmark.md)/Suite HOLD; no new plan bypasses it
 **Depends on:** KL-01; KL-04 for performance claims.
 
 1. Evaluate zstd decompression and compression separately for Kafka framing,
-   error handling, memory, throughput, maintenance and licensing. `ruzstd` is
+   error handling, memory, throughput, maintenance and licensing. `ruzstd` was
    a decompression candidate, not an assumed complete encode/decode solution.
+   That evaluation landed. KL05-02 selected `zstd-rs` 0.1.0. `ruzstd` was not
+   selected. KL05-03 through KL05-05 implemented and checked decode, encode,
+   and the codec matrix. The feature stays optional. `zstd-sys` stays banned.
 2. Require independent encoder/decoder interoperability, malformed-input tests
    and bounded decompression. Select a backend only after a recorded decision.
    Current [deny policy](../deny.toml) bans `zstd-sys`; even optional native
