@@ -138,6 +138,7 @@ leaders are still looked up, and a repeated name is still stored once.
 ### Transactions
 
 - Write transaction-marker topics. A topic name is still copied.
+- Write transaction-marker response topics. A topic name is still copied.
 
 ### Metadata and admin
 
