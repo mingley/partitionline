@@ -38,7 +38,7 @@ enterprise features have separate test profiles.
 Producer byte counters charge the visible key, value and header bytes. Admission
 compacts backing allocations; allocator and record-object overhead, encoding
 scratch, TLS and socket buffers add memory. See
-[buffer ownership](guide.md#buffer-ownership-and-overload-mock).
+[buffer ownership](guide.md#buffer-ownership).
 
 Codec interoperability checks are described in [the codec guide](zstd-spike.md).
 Schema adapter scope is described in [the companion guide](schema-companion.md).

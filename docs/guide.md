@@ -579,40 +579,44 @@ ListOffsets call per partition you ask about), not a scraped label.
 
 ### Backpressure
 
-Use `try_send`; on `QueueFull` / memory pressure, `flush` or wait, then
-retry. Do not unbounded-buffer in the application.
+Call `try_send`. On `QueueFull`, call `flush` or wait, then retry. Keep any
+buffer in the application bounded.
 
-### Buffer ownership and overload (mock)
+### Buffer ownership
 
-`ProducerConfig::buffer_memory` is a **key + value + headers** reservation held
-from accept until broker ack or terminal failure — not encoded batch size, socket
-buffers, or process RSS. Both `metrics().bytes_buffered` and
-`metrics().bytes_queued` count uncompressed record key, value, and header bytes
-(header keys and values). Header-heavy, zero-value, and compressed records count
-toward this byte budget. Admission copies shared or custom-owned `Bytes` into
-buffers sized to their visible length, and compacts uniquely owned allocations
-with excess capacity or a hidden slice prefix. Exact unique allocations can be
-reused. Header strings and the header vector also release excess capacity.
-When `bytes_buffered`
-reaches `buffer_memory`, `try_send` returns `QueueFull` (even for zero-value
-records) and `send` waits up to `max_block` then returns `Timeout`.
-`metrics().bytes_buffered` stays `≤ buffer_memory` under saturating load and
-returns to `0` after `flush` / `close`. A permit stays owned across queued,
-in-flight, and retry states and is released exactly once.
+`ProducerConfig::buffer_memory` reserves the visible key, value, and header
+bytes from the moment a record is accepted until the broker acks it or the
+send fails for good. Header keys and header values both count. A header-heavy
+record, a zero-value record, and a record that will be compressed all count
+their uncompressed visible bytes.
 
-Kafka's oversized-first-batch progress rule is preserved: any single record
-whose serialized upper bound fits within `max_request_size` and `buffer_memory`
-can acquire its permit when the buffer is empty (`bytes_buffered == 0`),
-preventing producer stall.
+`metrics().bytes_buffered` and `metrics().bytes_queued` use that same count.
 
-Process RSS is **not** bounded by `bytes_buffered` or `buffer_memory`; process
-memory includes allocator overhead, heap fragmentation, Tokio task allocations,
-TLS contexts, socket buffers, batch headers, and wire framing. Caller-owned
-aliases, records waiting for admission, and unprocessed `send_all` inputs are
-outside the accepted-payload budget. Allocator size rounding and record objects
-also add memory beyond the charged bytes.
+| Counts toward the budget | Stays outside it |
+|---|---|
+| Uncompressed key, value, and header bytes of an accepted record | Encoded batch size |
+| | Socket buffers and TLS |
+| | Process RSS, allocator rounding, and the record object |
+| | Bytes the caller still holds, records waiting to be admitted, and `send_all` inputs that have not been accepted |
 
-Mock coverage: `tests/buffer_ownership.rs`.
+Admission copies shared or custom-owned `Bytes` into a buffer sized to the
+visible length. A uniquely owned allocation with spare capacity, or with a
+hidden prefix, is compacted. An allocation that is already the exact size can
+be reused. Header strings and the header vector release spare capacity too.
+
+When `bytes_buffered` reaches `buffer_memory`, `try_send` returns `QueueFull`,
+including for a zero-value record. `send` waits up to `max_block` and then
+returns `Timeout`. Under a full load, `bytes_buffered` stays at or below
+`buffer_memory`. After `flush` or `close` it returns to 0. One permit covers
+the record while it is queued, in flight, or retrying, and that permit is
+released once.
+
+A single record can still enter an empty buffer when its serialized upper
+bound fits in both `max_request_size` and `buffer_memory`. That is Kafka's
+rule that the first oversized-looking batch must be able to make progress,
+so an empty producer does not stall on one legal record.
+
+The mock for this budget is `tests/buffer_ownership.rs`.
 
 
 ### Process only the returned batch, then commit
