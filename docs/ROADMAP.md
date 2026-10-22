@@ -264,12 +264,15 @@ signoff follows [benchmark.md](benchmark.md)/Suite HOLD; no new plan bypasses it
    selected. KL05-03 through KL05-05 implemented and checked decode, encode,
    and the codec matrix. The feature stays optional. `zstd-sys` stays banned.
 2. Require independent encoder/decoder interoperability, malformed-input tests
-   and bounded decompression. Select a backend only after a recorded decision.
-   Current [deny policy](../deny.toml) bans `zstd-sys`; even optional native
-   support needs an explicit policy/design decision, not a quiet feature flag.
-3. Use KL05-06 through KL05-15 for incremental Fetch, quota scheduling,
-   opt-in sticky partitioning and selected current protocol deltas. A codec
-   field/version cap is not the corresponding high-level feature.
+   and bounded decompression. The recorded backend decision is KL05-02.
+   Bounded decode and the codec matrix are KL05-03 through KL05-05.
+   The [deny policy](../deny.toml) bans `zstd-sys`. Optional native support
+   still needs an explicit policy decision, not a quiet feature flag.
+3. KL05-06 through KL05-09 and KL05-11 through KL05-15 are done. That is
+   incremental Fetch, broker throttle, Produce v13, Fetch v18, ListOffsets
+   v11, and the share-group wire and client path. KL05-10, the sticky
+   unkeyed partitioner, is in progress. A codec field or version cap is
+   not the corresponding high-level feature.
 4. Use one API-specific card for full-admin extensions. Classify internal
    broker replication separately; do not clone every key in `ApiKeys`.
 5. Keep Schema Registry in the [companion design](schema-companion.md).

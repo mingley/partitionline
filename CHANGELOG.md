@@ -186,6 +186,9 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
 - The roadmap records that the zstd evaluation selected `zstd-rs`.
   `ruzstd` was not selected. The migration guide points Kerberos at the
   helper-process proposal and describes which OIDC refresh actually runs.
+- The roadmap's codec lane records KL05-06 through KL05-09 and KL05-11
+  through KL05-15 as done. The sticky partitioner, KL05-10, is in
+  progress. `zstd-sys` stays banned.
 - The gateway profile names zstd as an optional codec that has shipped.
   Its measured cells remain gzip and lz4.
 
