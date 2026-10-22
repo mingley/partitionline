@@ -143,7 +143,18 @@ procedure.
 
 ### Published crate
 
-The migration map ([migrate-from-rdkafka.md](migrate-from-rdkafka.md)) was verified at source `ca50ca1`, which is later than the packed crates.io `0.1.0` (14 files under `src/` differ). Mapped configuration defaults match, except `ConsumerConfig::buffer_memory` (a 32 MiB fetch cap, current source only).
+crates.io `partitionline` 0.1.0 is tag `v0.1.0` (4 September 2026, 8:28 PM CT). The [migration guide](migrate-from-rdkafka.md) is the current map. It names files and symbols.
+
+An older check compared commit `ca50ca1` (22 September 2026, 1:08 PM CT) with that tag. At that commit, 14 files under `src/` differed from the published crate. That count belongs to the check. Current source is later than both the tag and `ca50ca1`.
+
+Mapped configuration defaults still match the published crate. Later source adds two fields that 0.1.0 does not have:
+
+| Field | Current source |
+|---|---|
+| `ConsumerConfig::buffer_memory` | Fetch cap. Default 32 MiB. Zero means no aggregate cap. |
+| `ProducerConfig::pre_send_fault` | Hidden test hook (`#[doc(hidden)]`). Default unset. |
+
+Adopters who depend on the packed `0.1.0` crate get that older runtime. The examples in the migration guide compile against that dependency.
 
 The 0.x caller contract for error categories (retryable, abort-required, fatal, unsupported, timeout, ambiguous delivery) and for public config fields is in [api-stability.md](api-stability.md). Match error categories, not `Display` text. Build configs with the builders, or with `Default` plus overrides.
 

@@ -7,6 +7,9 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
 
 ## [Unreleased]
 
+- The support page separates published crates.io 0.1.0 from later source.
+  The 14-file `src/` difference belongs to the 22 September 2026 check at
+  `ca50ca1`, and current `main` is later than that snapshot.
 - The wire-version page explains its repeated terms, and Produce, Fetch,
   OffsetCommit, and OffsetFetch are written as version tables. Produce
   flexible versions are 9–13.
