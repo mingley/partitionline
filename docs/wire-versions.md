@@ -273,229 +273,131 @@ Kafka 4.0 `validVersions` is `1-9`. It removed v0. This crate also speaks v10.
 
 ### OffsetDelete
 
-Spoken versions: 0.
+Spoken versions: 0. Version 1 and above are not spoken.
 
-OffsetDelete v0 is classic (Apache JSON `flexibleVersions: "none"`).
+v0 is classic. Apache lists `flexibleVersions: none`. There is one empty-topics body. Kafka 4.0 `validVersions` is `"0"`.
 
-ThrottleTimeMs is JSON `0+` (`encode_offset_delete_response_with_throttle`; encode previously always wrote `0` and decode discarded; convenience encode still writes `0`) but **after** ErrorCode (not first).
-
-Empty-Topics only one version.
-
-Top-level ErrorCode is at bytes 0–1 (throttle occupies bytes 2–5).
-
-Official Java `getErrorResponse` sets `throttleTimeMs` from the argument.
-
-Kafka 4.0 `validVersions` is `"0"`.
-
-v1+ is not spoken.
+The top-level error code is at bytes 0–1. `ThrottleTimeMs` is JSON `0+` and comes after that code, at bytes 2–5 (`encode_offset_delete_response_with_throttle`). The convenience encoder writes `0`. Java `getErrorResponse` copies the throttle argument.
 
 ### Heartbeat
 
-Spoken versions: 0–4.
+Spoken versions: 0–4. Version 5 and above are not spoken.
 
-Heartbeat v0–v3 are classic; v4 is flexible (compact strings plus tagged fields; request header 2, response header 1).
+v0–v3 are classic. v1 and v2 match the v0 body. v4 is flexible. Request header version 2, response header version 1.
 
-Official JSON: v1 and v2 match v0.
-
-v1+ ThrottleTimeMs.
-
-v3 GroupInstanceId.
-
-`HeartbeatResponse.error_counts` is Java `HeartbeatResponse.errorCounts` (top-level ErrorCode only, including `NONE`; Java `Collections.singletonMap`).
+`ThrottleTimeMs` is present from v1. v3 adds `GroupInstanceId`. `error_counts` counts the top-level error code only, including `NONE` (Java `Collections.singletonMap`).
 
 Kafka 4.0 `validVersions` is `0-4`.
 
-v5+ is not spoken.
-
 ### SyncGroup
 
-Spoken versions: 0–5.
+Spoken versions: 0–5. Version 6 and above are not spoken.
 
-SyncGroup v0–v3 are classic; v4–v5 are flexible (compact strings/bytes/arrays plus tagged fields; request header 2, response header 1).
+v0–v3 are classic. v1 and v2 match the v0 body. v4–v5 are flexible: compact strings, bytes, and arrays, plus tagged fields. Request header version 2, response header version 1.
 
-Official JSON: v1 and v2 match v0.
+| Version | What changed |
+|---|---|
+| 1 and above | `ThrottleTimeMs`. |
+| 3 | `GroupInstanceId`. |
+| 5 | `ProtocolType` and `ProtocolName` (KIP-559). This crate sends `"consumer"` and the selected assignor. |
 
-v1+ ThrottleTimeMs.
-
-Request GenerationId is JSON `0+` (INT32 after GroupId; decode previously discarded it; encode already takes `generation_id`; official Java `SyncGroupRequestData.generationId`; not OffsetCommit GenerationId / Heartbeat GenerationId / JoinGroup response GenerationId).
-
-v3 GroupInstanceId.
-
-v5 ProtocolType / ProtocolName (KIP-559; this crate sends `"consumer"` and the selected assignor).
-
-`SyncGroupResponse.error_counts` is Java `SyncGroupResponse.errorCounts` (top-level ErrorCode only, including `NONE`; Java `Collections.singletonMap`).
+`GenerationId` is JSON `0+`, an INT32 after `GroupId` (Java `SyncGroupRequestData.generationId`). Encode takes `generation_id`. It is not the generation id on OffsetCommit, Heartbeat, or the JoinGroup response. `error_counts` counts the top-level error code only, including `NONE`.
 
 Kafka 4.0 `validVersions` is `0-5`.
-
-v6+ is not spoken.
 
 ### JoinGroup
 
-Spoken versions: 2–9.
+Spoken versions: 2–9. Versions 0, 1, and 10 and above are not spoken.
 
-JoinGroup v2–v5 are classic; v6–v9 are flexible (compact strings/bytes/arrays plus tagged fields; request header 2, response header 1).
+v2–v5 are classic. v2 and v3 match the v1 body, including `RebalanceTimeoutMs`. v6–v9 are flexible. Request header version 2, response header version 1. v2–v5 share one empty-members body. v6 is the compact form of that body. v7 and v8 share one body. v9 adds `SkipAssignment`.
 
-Official JSON: v2 and v3 match v1 (RebalanceTimeoutMs).
+The top-level error code is at bytes 4–5. `error_counts` counts that code only, including `NONE`. `ThrottleTimeMs` is JSON `2+` (`encode_join_group_response_with_throttle`). The convenience encoder writes `0`. Java `getErrorResponse` copies the throttle argument.
 
-Request SessionTimeoutMs is JSON `0+` (decode returns it; encode already takes `session_timeout_ms`).
+| Field | Where it sits |
+|---|---|
+| `SessionTimeoutMs` | JSON `0+`. Decode returns it. Encode takes `session_timeout_ms`. |
+| `RebalanceTimeoutMs` | JSON `1+`. It is on the wire for every spoken version. Encode writes `rebalance_timeout_ms`. The classic consumer sends `max.poll.interval.ms`. |
+| `ProtocolType` | JSON `0+`. Decode returns it last. Encode takes `protocol_type` (Java `JoinGroupRequestData.protocolType`). |
+| Member `GroupInstanceId` | JSON `5+`, a nullable string after the member's `MemberId` (Java `JoinGroupResponseData.JoinGroupResponseMember.groupInstanceId`). Below v5 the encoder omits it and the decoder fills `None`. This is the response member field, not the request, SyncGroup, Heartbeat, OffsetCommit, or LeaveGroup instance id. |
+| `SkipAssignment` | JSON `9+` (`encode_join_group_response_with_skip_assignment`, Java `JoinGroupResponseData.skipAssignment`). Below v9 the encoder omits it and the decoder fills `false`. The convenience encoder writes `false`. Java `getErrorResponse` leaves it unset. |
 
-Request RebalanceTimeoutMs is JSON `1+` (spoken v2–v9 always on the wire; decode returns it; encode writes `rebalance_timeout_ms`; official Java `JoinGroupRequestData.rebalanceTimeoutMs`; classic consumer sends `max.poll.interval.ms`).
+| Version | What changed |
+|---|---|
+| 4 | A second join may carry the assigned member id. |
+| 5 | The request adds `GroupInstanceId`. |
+| 7 | The response adds `ProtocolType` (KIP-559) and a nullable `ProtocolName`. |
+| 8 | `Reason` (KIP-800). The first join sends null. `enforce_rebalance` and `enforce_rebalance_with` send the reason. |
+| 9 | `SkipAssignment`. When it is true, the leader does not run the assignor. |
 
-Request ProtocolType is JSON `0+` (decode returns it last; encode already takes `protocol_type`; official Java `JoinGroupRequestData.protocolType`).
+`join`, `join_sticky`, and `join_cooperative_sticky` send one protocol. `join_with_assignors` sends N protocols (Java `partition.assignment.strategy`). The client assigns with the `ProtocolName` in the JoinGroup response.
 
-v4 second join with assigned id.
-
-v5 request GroupInstanceId.
-
-Response member GroupInstanceId is JSON `5+` (nullable STRING after member MemberId; encode previously always wrote null and decode discarded; below v5 encode omits it even when the body has an instance id and decode fills `None`; official Java `JoinGroupResponseData.JoinGroupResponseMember.groupInstanceId`; not JoinGroup request GroupInstanceId / SyncGroup GroupInstanceId / Heartbeat GroupInstanceId / OffsetCommit GroupInstanceId / LeaveGroup GroupInstanceId).
-
-v7 response adds ProtocolType (KIP-559) and nullable ProtocolName.
-
-v8 adds Reason (KIP-800; first join is null; `enforce_rebalance` / `enforce_rebalance_with` send the reason).
-
-v9 adds SkipAssignment; when true the leader does not run the assignor.
-
-SkipAssignment is JSON `9+` (`encode_join_group_response_with_skip_assignment`; encode previously always wrote `false`; below v9 omit even when true and decode fills `false`; convenience encode still writes `false`; official Java `JoinGroupResponseData.skipAssignment`; Java `getErrorResponse` does not set it).
-
-ThrottleTimeMs is JSON `2+` (`encode_join_group_response_with_throttle`; encode previously always wrote `0` and decode discarded; convenience encode still writes `0`).
-
-Empty-Members v2, v3, v4, and v5 bodies match; v6 is compact; v7 and v8 bodies match; v9 adds SkipAssignment.
-
-Top-level ErrorCode is at bytes 4–5.
-
-`JoinGroupResponse.error_counts` is Java `JoinGroupResponse.errorCounts` (top-level ErrorCode only, including `NONE`; Java `Collections.singletonMap`).
-
-Official Java `getErrorResponse` sets `throttleTimeMs` from the argument.
-
-`join()` / `join_sticky` / `join_cooperative_sticky` send Protocols of 1.
-
-`join_with_assignors` sends Protocols of N (Java `partition.assignment.strategy`); the client assigns with the JoinGroup response ProtocolName.
-
-Kafka 4.0 `validVersions` is `2-9` (v0–v1 removed).
-
-v0–v1 and v10+ are not spoken.
+Kafka 4.0 `validVersions` is `2-9`. It removed v0–v1.
 
 ### LeaveGroup
 
-Spoken versions: 0–5.
+Spoken versions: 0–5. Version 6 and above are not spoken.
 
-LeaveGroup v0–v3 are classic; v4–v5 are flexible (compact strings/arrays plus tagged fields; request header 2, response header 1).
+v0–v3 are classic. v0–v2 are `GroupId` plus `MemberId`, and v1 and v2 match the v0 body. v4–v5 are flexible. Request header version 2, response header version 1.
 
-v0–v2 are GroupId + MemberId (v1 and v2 match v0).
+`ThrottleTimeMs` is present from v1. v3 adds `Members` and `GroupInstanceId`. v5 adds `Reason` (KIP-800).
 
-v1+ ThrottleTimeMs.
-
-v3 Members + GroupInstanceId.
-
-v5 Reason (KIP-800).
+Classic `ConsumerGroup::leave` and `close` send `"the consumer is being closed"`. `unsubscribe` sends `"the consumer unsubscribed from all topics"`. Expiry of `max.poll.interval.ms` sends `"consumer poll timeout has expired."`. Admin `removeMembersFromConsumerGroup` stays on v3–v5 and sends `"member was removed by an admin"`.
 
 Kafka 4.0 `validVersions` is `0-5`.
 
-Classic `ConsumerGroup::leave` / `close` send `"the consumer is being closed"`; `unsubscribe` sends `"the consumer unsubscribed from all topics"`; `max.poll.interval.ms` expiry sends `"consumer poll timeout has expired."`.
-
-Admin `removeMembersFromConsumerGroup` stays v3–v5 with `"member was removed by an admin"`.
-
-v6+ is not spoken.
-
 ### ConsumerGroupHeartbeat
 
-Spoken versions: 0–1.
+Spoken versions: 0–1. Version 2 and above are not spoken.
 
-ConsumerGroupHeartbeat v0–v1 are flexible (compact strings/arrays plus tagged fields; request header 2, response header 1).
+v0 and v1 are flexible. Request header version 2, response header version 1. The v1 response matches v0.
 
-v1 adds SubscribedTopicRegex after SubscribedTopicNames (KIP-848) and requires the consumer to generate its own MemberId (KIP-1082; Kafka `Uuid` URL-safe Base64).
+v1 adds `SubscribedTopicRegex` after `SubscribedTopicNames` (KIP-848) and requires the consumer to generate its own `MemberId` (KIP-1082, a Kafka `Uuid` in URL-safe Base64). `join_consumer_matching` still expands topics locally with `Fn(&str) -> bool`, sends `SubscribedTopicNames`, and leaves the regex null.
 
-`join_consumer_matching` still expands topics locally (`Fn(&str) -> bool`) and sends SubscribedTopicNames; the regex field is null.
+`RebalanceTimeoutMs` is JSON `0+`, an INT32 after `RackId`. Encode writes `rebalance_timeout_ms`. The JSON default `-1` means unchanged. Join sends `max.poll.interval.ms`.
 
-Request RebalanceTimeoutMs is JSON `0+` (INT32 after RackId; encode writes `rebalance_timeout_ms`; decode previously discarded it; JSON default `-1` means unchanged; join sends `max.poll.interval.ms`).
+`ServerAssignor` is JSON `0+`, a nullable compact string after `SubscribedTopicRegex` on v1 and after `SubscribedTopicNames` on v0. Encode writes `server_assignor`. The JSON default null means unused or unchanged. This crate sends null.
 
-Request ServerAssignor is JSON `0+` (nullable compact STRING after SubscribedTopicRegex on v1 / after SubscribedTopicNames on v0; encode writes `server_assignor`; decode previously discarded it; JSON default null means unused or unchanged; this crate still sends null).
-
-ThrottleTimeMs is JSON `0+` (`ConsumerGroupHeartbeatResponse.throttle_time_ms`; encode previously always wrote `0` and decode discarded).
-
-`ConsumerGroupHeartbeatResponse.error_counts` is Java `ConsumerGroupHeartbeatResponse.errorCounts` (top-level ErrorCode only, including `NONE`; Java `Collections.singletonMap`; assignment is not counted).
+`ThrottleTimeMs` is JSON `0+` (`ConsumerGroupHeartbeatResponse.throttle_time_ms`). The convenience encoder writes `0`. `error_counts` counts the top-level error code only, including `NONE`. The assignment is not counted.
 
 Kafka 4.0 `validVersions` is `0-1`.
-
-v2+ is not spoken.
-
-v1 response matches v0.
 
 ### ConsumerGroupDescribe
 
-Spoken versions: 0–1.
+Spoken versions: 0–1. Version 2 and above are not spoken.
 
-ConsumerGroupDescribe v0–v1 are flexible (compact strings/arrays plus tagged fields; request header 2, response header 1).
+v0 and v1 are flexible. Request header version 2, response header version 1. The request layout is the same on both. The v1 response adds `MemberType` INT8 (KIP-1099). The error code is per group.
 
-Request layout is the same on v0 and v1.
+`ThrottleTimeMs` is JSON `0+` (`encode_consumer_group_describe_response_with_throttle`). `encode_consumer_group_describe_response` writes `0`. Java `getErrorResponse` copies the group ids through `error_described_group_list`, sets `ErrorMessage` to JSON null, and copies `throttleTimeMs` from its argument. The request's `IncludeAuthorizedOperations` is not copied onto that error response.
 
-Response v1 adds MemberType INT8 (KIP-1099).
+`consumer_group_describe` sends FindCoordinator v4+ with N `CoordinatorKeys` (KIP-699) and one ConsumerGroupDescribe per coordinator. `consumer_group_describe_timeout` is the RPC deadline. The request has no `TimeoutMs` field.
 
-ThrottleTimeMs is JSON `0+` (`encode_consumer_group_describe_response_with_throttle`; `encode_consumer_group_describe_response` writes `0`; encode previously always wrote `0` and decode discarded).
-
-`ConsumerGroupDescribeRequest.error_response` is Java `ConsumerGroupDescribeRequest.getErrorResponse` (copies group ids through `error_described_group_list`; ErrorMessage JSON-null; ThrottleTimeMs JSON `0+`; convenience encode writes `0`; official Java sets `throttleTimeMs` from the argument; request IncludeAuthorizedOperations is not copied).
+`Admin::describe_consumer_groups` tries this API first (Java `describeConsumerGroups`). It falls back to DescribeGroups on `UNSUPPORTED_VERSION` (35), `GROUP_ID_NOT_FOUND` (69), or when the broker does not advertise api 69.
 
 Kafka 4.0 `validVersions` is `0-1`.
 
-v2+ is not spoken.
-
-ErrorCode is per-group.
-
-`consumer_group_describe` sends FindCoordinator v4+ CoordinatorKeys of N (KIP-699) and one ConsumerGroupDescribe RPC per coordinator.
-
-`consumer_group_describe_timeout` is the crate-first RPC deadline (ConsumerGroupDescribe has no TimeoutMs).
-
-Java `describeConsumerGroups` (`Admin::describe_consumer_groups`) tries this API first and falls back to DescribeGroups on `UNSUPPORTED_VERSION` (35) or `GROUP_ID_NOT_FOUND` (69), or when the broker does not advertise api 69.
-
 ### ShareGroupHeartbeat
 
-Spoken versions: 0–1.
+Spoken versions: 0–1. Version 2 and above are not spoken.
 
-ShareGroupHeartbeat v0–v1 are flexible (compact strings/arrays plus tagged fields; request header 2, response header 1).
+v0 and v1 are flexible and use the same fields. Request header version 2, response header version 1. The v1 response matches v0.
 
-Same fields.
+`RackId` is JSON `0+`, a nullable compact string after `MemberEpoch`. Encode writes `rack_id`. The JSON default null means not provided or unchanged. This crate sends `ConsumerConfig::rack`.
 
-Request RackId is JSON `0+` (nullable compact STRING after MemberEpoch; encode writes `rack_id`; decode previously discarded it; JSON default null means not provided or unchanged; this crate sends `ConsumerConfig::rack`).
+`ThrottleTimeMs` is JSON `0+` (`ShareGroupHeartbeatResponse.throttle_time_ms`). The convenience encoder writes `0`. `error_counts` counts the top-level error code only, including `NONE`. The assignment is not counted.
 
-ThrottleTimeMs is JSON `0+` (`ShareGroupHeartbeatResponse.throttle_time_ms`; encode previously always wrote `0` and decode discarded).
-
-`ShareGroupHeartbeatResponse.error_counts` is Java `ShareGroupHeartbeatResponse.errorCounts` (top-level ErrorCode only, including `NONE`; Java `Collections.singletonMap`; assignment is not counted).
-
-Kafka 4.0 `validVersions` is `"0"` (`latestVersionUnstable`).
-
-Kafka 4.1 `validVersions` is `"1"` (v0 removed).
-
-v2+ is not spoken.
-
-v1 response matches v0.
+Kafka 4.0 `validVersions` is `"0"` (`latestVersionUnstable`). Kafka 4.1 `validVersions` is `"1"` and removed v0. This crate speaks both.
 
 ### ShareGroupDescribe
 
-Spoken versions: 0–1.
+Spoken versions: 0–1. Version 2 and above are not spoken.
 
-ShareGroupDescribe v0–v1 are flexible (compact strings/arrays plus tagged fields; request header 2, response header 1).
+v0 and v1 are flexible and use the same fields. Request header version 2, response header version 1. The v1 response matches v0. The error code is per group.
 
-Same fields.
+`ThrottleTimeMs` is JSON `0+` (`encode_share_group_describe_response_with_throttle`). `encode_share_group_describe_response` writes `0`. Java `getErrorResponse` copies the group ids through `error_described_group_list`, sets `ErrorMessage` to JSON null, and copies `throttleTimeMs` from its argument. The request's `IncludeAuthorizedOperations` is not copied onto that error response.
 
-ThrottleTimeMs is JSON `0+` (`encode_share_group_describe_response_with_throttle`; `encode_share_group_describe_response` writes `0`; encode previously always wrote `0` and decode discarded).
+Java `DescribeShareGroupsHandler` uses `CoordinatorType.GROUP`. `share_group_describe` and `describe_share_groups` send FindCoordinator v4+ with N `CoordinatorKeys` (KIP-699) and one ShareGroupDescribe per coordinator. `share_group_describe_timeout` and `describe_share_groups_timeout` are the RPC deadline (Java `DescribeShareGroupsOptions.timeoutMs`). The request has no `TimeoutMs` field.
 
-`ShareGroupDescribeRequest.error_response` is Java `ShareGroupDescribeRequest.getErrorResponse` (copies group ids through `error_described_group_list`; ErrorMessage JSON-null; ThrottleTimeMs JSON `0+`; convenience encode writes `0`; official Java sets `throttleTimeMs` from the argument; request IncludeAuthorizedOperations is not copied).
-
-Kafka 4.0 `validVersions` is `"0"` (`latestVersionUnstable`).
-
-Kafka 4.1 `validVersions` is `"1"` (v0 removed).
-
-v2+ is not spoken.
-
-v1 response matches v0.
-
-ErrorCode is per-group.
-
-Official Java `DescribeShareGroupsHandler` uses `CoordinatorType.GROUP`.
-
-`share_group_describe` / `describe_share_groups` send FindCoordinator v4+ CoordinatorKeys of N (KIP-699) and one ShareGroupDescribe RPC per coordinator.
-
-`share_group_describe_timeout` / `describe_share_groups_timeout` are Java `DescribeShareGroupsOptions.timeoutMs` (RPC deadline; ShareGroupDescribe has no TimeoutMs).
+Kafka 4.0 `validVersions` is `"0"` (`latestVersionUnstable`). Kafka 4.1 `validVersions` is `"1"` and removed v0. This crate speaks both.
 
 ### StreamsGroupHeartbeat
 
