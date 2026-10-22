@@ -67,12 +67,22 @@ It does not include subject names or credentials. Charged bytes are
 retained string and vector capacity, plus inline entries. Hash buckets,
 allocator overhead, and clones the caller still holds are separate.
 
+## Framing bounds
+
+These are the adapter limits in code. They are not a process RSS cap. The
+application's codec still has to bound parsing, scratch, and decoded objects.
+
+| Format | Default | Widest `Limits::new` accepts |
+|---|---|---|
+| Protobuf | 1 MiB frame, 32 indexes | 6 bytes–64 MiB frames, 1–1,024 indexes |
+| Avro | 1 MiB frame, 2 MiB of schema text, 64 references | 5 bytes–64 MiB frames, 1 byte–64 MiB of schema text, 0–1,024 references |
+| JSON Schema | 1 MiB frame, 2 MiB of schema text, 64 references | 6 bytes–64 MiB frames, 1 byte–64 MiB of schema text, 0–1,024 references |
+
 ## Protobuf bounds and schema selection
 
-Generic five-byte `encode` / `decode` do **not** parse Protobuf indexes. Use
-`protobuf::encode` / `protobuf::decode` for that format. Defaults bound the
-complete frame to 1 MiB and its index path to 32 entries; `Limits::new` permits
-6 bytes–64 MiB and 1–1024 indexes. Payload decoding borrows the original data;
+Generic five-byte `encode` / `decode` do not parse Protobuf indexes. Use
+`protobuf::encode` / `protobuf::decode` for that format. Frame and index
+bounds are in the table above. Payload decoding borrows the original data;
 only a bounded index vector is allocated. Encoding checks every limit before
 reserving output. Negative fields, truncated/overflowing varints, invalid paths
 and size errors are structured failures. Valid nonminimal varints are readable.
@@ -113,10 +123,9 @@ adapter errors; schema/datum failures retain the codec's error type. The
 five-byte frame with no payload is valid for a primitive Avro null. These are
 raw binary datums, not Avro object containers or single-object encodings.
 
-Defaults permit a 1 MiB complete frame, 2 MiB combined writer/reader schema
-text (including every reference name and JSON), and 64 combined references.
-`Limits::new` permits 5 bytes–64 MiB frames, 1 byte–64 MiB schema input and
-0–1024 references. Schema text is borrowed and never copied by the adapter.
+Frame, schema, and reference bounds are in the table above. Schema text
+counts every reference name and its JSON. The adapter borrows that text
+and does not copy it.
 The selected codec must separately bound schema parsing, retained schemas,
 recursion, scratch and decoded values; input bounds do not bound their memory
 or process RSS. No registration, lookup or network operation is implicit.
@@ -159,10 +168,8 @@ There is no coercion, default insertion or rewriting; `default` and `format`
 are annotations in this profile. JSON null is the four-byte document `null`,
 not an empty payload or a Kafka tombstone.
 
-`Limits` defaults to 1 MiB per complete frame, 2 MiB combined writer/reader
-schema/reference text (including URI and dialect bytes), and 64 references.
-Configuration permits 6 bytes–64 MiB frames, 1 byte–64 MiB schema input and
-0–1024 combined references. Duplicate resource URIs within one selection fail;
+Frame, schema, and reference bounds are in the table above. Schema text
+includes URI and dialect bytes. Duplicate resource URIs within one selection fail;
 shared references in writer and reader count independently. Bounds precede
 codec preparation and output allocation. The codec must separately cap schema
 parsing, recursion, scratch, retained schemas and decoded objects, and preserve

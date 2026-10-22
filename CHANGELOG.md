@@ -111,6 +111,8 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   feature stays off by default. Levels remain 1 through 19, default 3.
 - The schema companion README lists cache defaults in a table: 256
   entries, 8 MiB, 16 active keys, and the three freshness windows.
+- The same README lists Protobuf, Avro, and JSON Schema frame bounds in
+  one table. Defaults stay 1 MiB frames.
 - The gateway profile names zstd as an optional codec that has shipped.
   Its measured cells remain gzip and lz4.
 
