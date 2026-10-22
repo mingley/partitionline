@@ -17,19 +17,16 @@ categories stay separate throughout:
 - **Verified behavioral equivalence** — what tests or measurements actually
   prove, and what they do not.
 
-**Source pin:** this document was verified against source
-`ca50ca1103e37b5159875b8b5562c7cc1087c335` (crate version `0.1.0` in
-`Cargo.toml`). Line numbers below are relative to that revision.
+The tables name the Rust symbol and the file. They do not cite line numbers.
+An older revision pinned those lines to `ca50ca1`, and the lines no longer
+matched current source.
 
-**Current source versus the published crate:** crates.io `partitionline`
-`0.1.0` predates this source (14 files under `src/` differ). The configuration
-defaults mapped here were diffed field-by-field between the packed `0.1.0`
-crate and current source: all mapped defaults are identical, with two
-source-only additions — `ConsumerConfig::buffer_memory` (new 32 MiB fetch
-buffer cap) and the hidden `ProducerConfig::pre_send_fault` test hook. Runtime
-behavior (auto-commit fencing, batching, retry paths) has evolved since the
-cut, so adopters on the published `0.1.0` get the same defaults but the older
-runtime. The examples below compile against the packed `0.1.0` dependency.
+The default values were compared, field by field, between the packed
+crates.io `0.1.0` crate and later source. The mapped defaults match, with
+two additions only on current source: `ConsumerConfig::buffer_memory` (a
+32 MiB fetch cap) and the hidden `ProducerConfig::pre_send_fault` test hook.
+Adopters on published `0.1.0` get the same mapped defaults and the older
+runtime. The examples below compile against that packed dependency.
 
 ## Dependency
 
@@ -52,11 +49,11 @@ set is an earlier baseline.
 
 | librdkafka / rust-rdkafka | Java | partitionline |
 |---|---|---|
-| `FutureProducer` / `BaseProducer` | `KafkaProducer` | `Producer` (`Producer::new(cfg)`, `src/producer.rs:1113`) |
-| `StreamConsumer` / `BaseConsumer` | `KafkaConsumer` (manual) | `Consumer` (`Consumer::new(cfg)`, `src/consumer.rs:1333`) |
-| group consumer | `KafkaConsumer` (subscribed) | `ConsumerGroup::join_*` (`src/group.rs:525`) |
-| — (KIP-932) | `ShareConsumer` | `ShareGroup::join_*` (`src/share.rs:559`) |
-| `AdminClient` | `Admin` | `Admin` (`Admin::new(cfg)`, `src/admin.rs:3000`) |
+| `FutureProducer` / `BaseProducer` | `KafkaProducer` | `Producer` (`Producer::new(cfg)`, `src/producer.rs`) |
+| `StreamConsumer` / `BaseConsumer` | `KafkaConsumer` (manual) | `Consumer` (`Consumer::new(cfg)`, `src/consumer.rs`) |
+| group consumer | `KafkaConsumer` (subscribed) | `ConsumerGroup::join_*` (`src/group.rs`) |
+| — (KIP-932) | `ShareConsumer` | `ShareGroup::join_*` (`src/share.rs`) |
+| `AdminClient` | `Admin` | `Admin` (`Admin::new(cfg)`, `src/admin.rs`) |
 | String property bag (`ClientConfig::set`) | `Properties` | Typed builders: `ProducerConfig`, `ConsumerConfig`, `AdminConfig` |
 | `Message` / `BorrowedMessage` | `ConsumerRecord` / `ProducerRecord` | `FetchedRecord` / `ShareRecord` / `ProduceRecord` (owned; no borrow lifetimes) |
 | Delivery callbacks / `DrQueue` polling | `Callback` / `Future<RecordMetadata>` | `send` future, or `try_send` + `flush` (see Callbacks) |
@@ -67,9 +64,9 @@ set is an earlier baseline.
 
 | Task | rust-rdkafka-ish | partitionline |
 |---|---|---|
-| Produce one | `send` + delivery future | `Producer::send` (`src/producer.rs:1434`) |
-| High throughput | poll delivery queue | `try_send` + `flush` (`src/producer.rs:1579,2000`) |
-| Assign partitions | `assign` | `Consumer::assign` / `assign_topic` / `assign_partitions` (`src/consumer.rs:1406`) |
+| Produce one | `send` + delivery future | `Producer::send` (`src/producer.rs`) |
+| High throughput | poll delivery queue | `try_send` + `flush` (`src/producer.rs`) |
+| Assign partitions | `assign` | `Consumer::assign` / `assign_topic` / `assign_partitions` (`src/consumer.rs`) |
 | Subscribe group | `subscribe` | `ConsumerGroup::join_topics` (or sticky / cooperative / KIP-848 variants) |
 | Pattern subscribe | `subscribe` with regex | `join_matching` / `join_sticky_matching` / `join_consumer_matching` (re-list on poll) |
 | Poll records | `recv` / `poll` | `fetch` / `fetch_timeout` or `group.poll` / `poll_timeout` → `ConsumerRecords` |
@@ -77,17 +74,17 @@ set is an earlier baseline.
 | Async commit | `commit` (async) | `commit_async` / `commit_async_with` (queued `OffsetCommit` on poll / leave) |
 | Transactions | init / begin / send_offsets / commit | same names on `Producer`; see `examples/eos.rs` |
 | Create topic | admin create | `Admin::create_topics` |
-| Wake a blocked poll | — | `Consumer::wakeup` / `WakeupHandle` (`src/consumer.rs:1320`; interrupts in-flight Fetch) |
+| Wake a blocked poll | — | `Consumer::wakeup` / `WakeupHandle` (`src/consumer.rs`; interrupts in-flight Fetch) |
 | Share-group ack | — | `ShareGroup::{accept, release, reject}` |
 
 ## Partitioning
 
 | Knob | partitionline | Default (source) | Java | librdkafka |
 |---|---|---|---|---|
-| Keyed records | `DefaultPartitioner` (`src/partitioner.rs:20`) | murmur2, `partition_for_key` (`src/partitioner.rs:137`) | murmur2 (`DefaultPartitioner`) — same | `murmur2` partitioner — same |
+| Keyed records | `DefaultPartitioner` (`src/partitioner.rs`) | murmur2, `partition_for_key` (`src/partitioner.rs`) | murmur2 (`DefaultPartitioner`) — same | `murmur2` partitioner — same |
 | Unkeyed records | `DefaultPartitioner` | round-robin from 0 | sticky (`StickyPartitioner`, KIP-794) — **differs** | `consistent_random` default — **differs** |
-| Custom | `Partitioner` trait + `ProducerConfig::partitioner` (`src/producer.rs:383`) | — | `partitioner.class` | `partitioner_cb` |
-| Explicit pin | `ProduceRecord::partition` (`src/producer.rs:595`) | skips the partitioner | `ProducerRecord` partition ctor | `TopicPartition` |
+| Custom | `Partitioner` trait + `ProducerConfig::partitioner` (`src/producer.rs`) | — | `partitioner.class` | `partitioner_cb` |
+| Explicit pin | `ProduceRecord::partition` (`src/producer.rs`) | skips the partitioner | `ProducerRecord` partition ctor | `TopicPartition` |
 
 ```rust
 use partitionline::{Partitioner, ProducerConfig};
@@ -106,7 +103,7 @@ let _custom = ProducerConfig::bootstrap(["127.0.0.1:9092"]).partitioner(ModN);
 ```
 
 Equivalence: `murmur2` matches `org.apache.kafka.common.utils.Utils.murmur2`
-byte-for-byte, proven by unit vectors in `src/partitioner.rs:148`
+byte-for-byte, proven by unit vectors in `src/partitioner.rs`
 (`murmur2(b"kafka") == -798_503_068`). Unkeyed placement is **not**
 equivalent to either Java (sticky batching) or librdkafka, and the sticky
 partitioner is an explicit gap (`producer.sticky_partitioner`, missing in the
@@ -116,12 +113,12 @@ partitioner is an explicit gap (`producer.sticky_partitioner`, missing in the
 
 | Knob | partitionline | Default (source) | Java | librdkafka |
 |---|---|---|---|---|
-| `acks` | `ProducerConfig::acks(Acks)` (`src/producer.rs:290`); stored as `i16` | `1` (`Acks::Leader`, `src/config.rs:112`, `src/producer.rs:220`) | `1` documented, forced to `all` when idempotence is on | `request.required.acks=-1` (all) — **differs** |
-| `enable.idempotence` | `ProducerConfig::idempotent(bool)` (`src/producer.rs:361`) | `false` (`src/producer.rs:245`) | `true` (since 3.0) — **differs** | `false` — same |
-| Idempotent effects | `Producer::new` (`src/producer.rs:1141`) | forces `acks=all`, `max_in_flight ≤ 5`, one TCP conn per partition | same forcing | `enable.idempotence=true` forces `acks=all`, `max.in.flight ≤ 5` |
-| `max.in.flight` | `ProducerConfig::max_in_flight` (`src/producer.rs:356`) | `16` (`src/producer.rs:244`) | `5` — **differs** | `1000000` — **differs** |
-| `transactional.id` | `ProducerConfig::transactional_id` (`src/producer.rs:370`) | none; implies idempotence | `null`; implies idempotence — same | same shape |
-| `transaction.timeout.ms` | `ProducerConfig::transaction_timeout` (`src/producer.rs:377`) | 60 s (`src/producer.rs:247`) | 60 s — same | `transaction.timeout.ms=60000` — same |
+| `acks` | `ProducerConfig::acks(Acks)` (`src/producer.rs`); stored as `i16` | `1` (`Acks::Leader`, `src/config.rs`, `src/producer.rs`) | `1` documented, forced to `all` when idempotence is on | `request.required.acks=-1` (all) — **differs** |
+| `enable.idempotence` | `ProducerConfig::idempotent(bool)` (`src/producer.rs`) | `false` (`src/producer.rs`) | `true` (since 3.0) — **differs** | `false` — same |
+| Idempotent effects | `Producer::new` (`src/producer.rs`) | forces `acks=all`, `max_in_flight ≤ 5`, one TCP conn per partition | same forcing | `enable.idempotence=true` forces `acks=all`, `max.in.flight ≤ 5` |
+| `max.in.flight` | `ProducerConfig::max_in_flight` (`src/producer.rs`) | `16` (`src/producer.rs`) | `5` — **differs** | `1000000` — **differs** |
+| `transactional.id` | `ProducerConfig::transactional_id` (`src/producer.rs`) | none; implies idempotence | `null`; implies idempotence — same | same shape |
+| `transaction.timeout.ms` | `ProducerConfig::transaction_timeout` (`src/producer.rs`) | 60 s (`src/producer.rs`) | 60 s — same | `transaction.timeout.ms=60000` — same |
 
 ```rust
 use std::time::Duration;
@@ -145,26 +142,26 @@ let _idem = ProducerConfig::bootstrap(["127.0.0.1:9092"])
 
 | Knob | partitionline | Default (source) | Java | librdkafka |
 |---|---|---|---|---|
-| `request.timeout.ms` | `Producer/Consumer/AdminConfig::request_timeout` | 30 s (`src/producer.rs:226`) | 30 s — same | `socket.timeout.ms=60000` (different shape) |
-| `delivery.timeout.ms` | `ProducerConfig::delivery_timeout` (`src/producer.rs:428`) | **30 s** (`src/producer.rs:227`) | 120 s — **differs (shorter)** | `message.timeout.ms=300000` — **differs (shorter)** |
-| `max.block.ms` | `ProducerConfig::max_block` (`src/producer.rs:439`) | **30 s** (`src/producer.rs:228`) | 60 s — **differs (shorter)** | `message.timeout.ms` + queue-full errors (different shape) |
-| `linger.ms` | `ProducerConfig::linger` (`src/producer.rs:297`) | 5 ms (`src/producer.rs:221`) | 0 ms — **differs** | `queue.buffering.max.ms=5` — same |
-| Batching | `batch_records` / `batch_bytes` (`src/producer.rs:304,311`) | 32_768 records / 1_000_000 bytes (`src/producer.rs:222`) | `batch.size=16384` bytes — **differs** | `batch.size=1000000` — same bytes |
-| `buffer.memory` | `ProducerConfig::buffer_memory` (`src/producer.rs:323`) | 32 MiB (`src/producer.rs:224`) | 33554432 — same | `queue.buffering.max.kbytes=1048576` (different shape) |
-| `max.request.size` | `ProducerConfig::max_request_size` (`src/producer.rs:335`) | 1 MiB (`src/producer.rs:225`) | 1048576 — same | `message.max.bytes=1000000` — same |
-| `retry.backoff.ms` | `retry_backoff` | 100 ms (`src/config.rs:16`) | 100 ms — same | `retry.backoff.ms=100` — same |
-| `retry.backoff.max.ms` | `retry_backoff_max` | 1 s (`src/config.rs:18`) | 1000 ms — same | `retry.backoff.max.ms=1000` — same |
-| `reconnect.backoff.ms` / max | `reconnect_backoff[_max]` | 50 ms / 1 s (`src/config.rs:20`) | 50 / 1000 ms — same | `reconnect.backoff.ms=100`, `reconnect.backoff.max.ms=10000` — **differs** |
-| `connections.max.idle.ms` | `connections_max_idle` | 9 min (`src/config.rs:24`) | 540000 — same | `connections.max.idle.ms=540000` — same |
-| `metadata.max.age.ms` | `metadata_max_age` | 5 min (`src/producer.rs:231`) | 300000 — same | `metadata.max.age.ms=300000` — same |
-| `session.timeout.ms` | `ConsumerConfig::session_timeout` (`src/consumer.rs:396`) | **10 s** (`src/consumer.rs:260`) | 45000 — **differs (shorter)** | 45000 — **differs (shorter)** |
-| `heartbeat.interval.ms` | `ConsumerConfig::heartbeat_interval` (`src/consumer.rs:404`) | **150 ms** (`src/consumer.rs:261`) | 3000 — **differs** | 3000 — **differs** |
-| `max.poll.interval.ms` | `ConsumerConfig::max_poll_interval` (`src/consumer.rs:435`) | 300 s (`src/consumer.rs:265`) | 300000 — same | 300000 — same |
-| `max.poll.records` | `ConsumerConfig::max_poll_records` (`src/consumer.rs:364`) | none (uncapped, `src/consumer.rs:258`) | 500 — **differs** | — |
-| `fetch.max.wait.ms` | `ConsumerConfig::max_wait_ms` (`src/consumer.rs:296`) | 500 ms (`src/consumer.rs:250`) | 500 — same | `fetch.wait.max.ms=500` — same |
-| `fetch.min.bytes` | `ConsumerConfig::min_bytes` (`src/consumer.rs:302`) | 1 (`src/consumer.rs:251`) | 1 — same | 1 — same |
-| `fetch.max.bytes` | `ConsumerConfig::fetch_max_bytes` (`src/consumer.rs:322`) | **16 MiB** (`src/consumer.rs:252`) | 50 MiB — **differs** | `fetch.message.max.bytes=1048576` — **differs** |
-| `max.partition.fetch.bytes` | `ConsumerConfig::max_partition_fetch_bytes` (`src/consumer.rs:329`) | **16 MiB** (`src/consumer.rs:253`) | 1 MiB — **differs** | — |
+| `request.timeout.ms` | `Producer/Consumer/AdminConfig::request_timeout` | 30 s (`src/producer.rs`) | 30 s — same | `socket.timeout.ms=60000` (different shape) |
+| `delivery.timeout.ms` | `ProducerConfig::delivery_timeout` (`src/producer.rs`) | **30 s** (`src/producer.rs`) | 120 s — **differs (shorter)** | `message.timeout.ms=300000` — **differs (shorter)** |
+| `max.block.ms` | `ProducerConfig::max_block` (`src/producer.rs`) | **30 s** (`src/producer.rs`) | 60 s — **differs (shorter)** | `message.timeout.ms` + queue-full errors (different shape) |
+| `linger.ms` | `ProducerConfig::linger` (`src/producer.rs`) | 5 ms (`src/producer.rs`) | 0 ms — **differs** | `queue.buffering.max.ms=5` — same |
+| Batching | `batch_records` / `batch_bytes` (`src/producer.rs`) | 32_768 records / 1_000_000 bytes (`src/producer.rs`) | `batch.size=16384` bytes — **differs** | `batch.size=1000000` — same bytes |
+| `buffer.memory` | `ProducerConfig::buffer_memory` (`src/producer.rs`) | 32 MiB (`src/producer.rs`) | 33554432 — same | `queue.buffering.max.kbytes=1048576` (different shape) |
+| `max.request.size` | `ProducerConfig::max_request_size` (`src/producer.rs`) | 1 MiB (`src/producer.rs`) | 1048576 — same | `message.max.bytes=1000000` — same |
+| `retry.backoff.ms` | `retry_backoff` | 100 ms (`src/config.rs`) | 100 ms — same | `retry.backoff.ms=100` — same |
+| `retry.backoff.max.ms` | `retry_backoff_max` | 1 s (`src/config.rs`) | 1000 ms — same | `retry.backoff.max.ms=1000` — same |
+| `reconnect.backoff.ms` / max | `reconnect_backoff[_max]` | 50 ms / 1 s (`src/config.rs`) | 50 / 1000 ms — same | `reconnect.backoff.ms=100`, `reconnect.backoff.max.ms=10000` — **differs** |
+| `connections.max.idle.ms` | `connections_max_idle` | 9 min (`src/config.rs`) | 540000 — same | `connections.max.idle.ms=540000` — same |
+| `metadata.max.age.ms` | `metadata_max_age` | 5 min (`src/producer.rs`) | 300000 — same | `metadata.max.age.ms=300000` — same |
+| `session.timeout.ms` | `ConsumerConfig::session_timeout` (`src/consumer.rs`) | **10 s** (`src/consumer.rs`) | 45000 — **differs (shorter)** | 45000 — **differs (shorter)** |
+| `heartbeat.interval.ms` | `ConsumerConfig::heartbeat_interval` (`src/consumer.rs`) | **150 ms** (`src/consumer.rs`) | 3000 — **differs** | 3000 — **differs** |
+| `max.poll.interval.ms` | `ConsumerConfig::max_poll_interval` (`src/consumer.rs`) | 300 s (`src/consumer.rs`) | 300000 — same | 300000 — same |
+| `max.poll.records` | `ConsumerConfig::max_poll_records` (`src/consumer.rs`) | none (uncapped, `src/consumer.rs`) | 500 — **differs** | — |
+| `fetch.max.wait.ms` | `ConsumerConfig::max_wait_ms` (`src/consumer.rs`) | 500 ms (`src/consumer.rs`) | 500 — same | `fetch.wait.max.ms=500` — same |
+| `fetch.min.bytes` | `ConsumerConfig::min_bytes` (`src/consumer.rs`) | 1 (`src/consumer.rs`) | 1 — same | 1 — same |
+| `fetch.max.bytes` | `ConsumerConfig::fetch_max_bytes` (`src/consumer.rs`) | **16 MiB** (`src/consumer.rs`) | 50 MiB — **differs** | `fetch.message.max.bytes=1048576` — **differs** |
+| `max.partition.fetch.bytes` | `ConsumerConfig::max_partition_fetch_bytes` (`src/consumer.rs`) | **16 MiB** (`src/consumer.rs`) | 1 MiB — **differs** | — |
 
 Porting rule: the shorter `delivery.timeout.ms` (30 s vs 120 s / 300 s),
 `max.block.ms` (30 s vs 60 s), `session.timeout.ms` (10 s vs 45 s), and the
@@ -178,12 +175,12 @@ throttled clusters behave more aggressively than Java here.
 
 | Knob | partitionline | Default (source) | Java | librdkafka |
 |---|---|---|---|---|
-| `auto.offset.reset` | `ConsumerConfig::auto_offset_reset` (`src/consumer.rs:357`, `AutoOffsetReset`, `src/config.rs:435`) | **Earliest** (`src/consumer.rs:257`) | `latest` — **differs** | `largest` — **differs** |
-| `enable.auto.commit` | `ConsumerConfig::auto_commit` (`src/consumer.rs:421`) | **false** (`src/consumer.rs:263`) | `true` — **differs** | `true` — **differs** |
-| `auto.commit.interval.ms` | `ConsumerConfig::auto_commit_interval` (`src/consumer.rs:428`) | 5 s (`src/consumer.rs:264`) | 5000 — same | 5000 — same |
-| `isolation.level` | `ConsumerConfig::isolation` (`src/consumer.rs:336`, `src/config.rs:156`) | `read_uncommitted` (`src/consumer.rs:254`) | same | same |
-| `allow.auto.create.topics` | `allow_auto_topic_creation` | **false** (`src/consumer.rs:272`) | `true` — **differs** | — |
-| Committed lookup | `ConsumerGroup::committed[_timeout]` (`src/group.rs:1075`) | Java `committed(Duration)` shape | same shape | `committed` |
+| `auto.offset.reset` | `ConsumerConfig::auto_offset_reset` (`src/consumer.rs`, `AutoOffsetReset`, `src/config.rs`) | **Earliest** (`src/consumer.rs`) | `latest` — **differs** | `largest` — **differs** |
+| `enable.auto.commit` | `ConsumerConfig::auto_commit` (`src/consumer.rs`) | **false** (`src/consumer.rs`) | `true` — **differs** | `true` — **differs** |
+| `auto.commit.interval.ms` | `ConsumerConfig::auto_commit_interval` (`src/consumer.rs`) | 5 s (`src/consumer.rs`) | 5000 — same | 5000 — same |
+| `isolation.level` | `ConsumerConfig::isolation` (`src/consumer.rs`, `src/config.rs`) | `read_uncommitted` (`src/consumer.rs`) | same | same |
+| `allow.auto.create.topics` | `allow_auto_topic_creation` | **false** (`src/consumer.rs`) | `true` — **differs** | — |
+| Committed lookup | `ConsumerGroup::committed[_timeout]` (`src/group.rs`) | Java `committed(Duration)` shape | same shape | `committed` |
 
 ```rust
 use std::time::Duration;
@@ -205,7 +202,7 @@ async fn join() -> partitionline::Result<()> {
 }
 ```
 
-Auto-commit contract (KL03-07, `src/group.rs:1173`, proven by
+Auto-commit contract (KL03-07, `src/group.rs`, proven by
 `tests/consumer_close_commit.rs`): when enabled, the interval commit runs
 before fetch and stores the **previously delivered** positions — the batch
 about to be returned is not committed until a subsequent poll, so a crash
@@ -222,7 +219,7 @@ correctness results, not universal Java or live compatibility qualification.
 
 | Codec | partitionline | Java | librdkafka |
 |---|---|---|---|
-| none | default (`Compression::None`, `src/protocol/records.rs:183`) | default — same | `none` default — same |
+| none | default (`Compression::None`, `src/protocol/records.rs`) | default — same | `none` default — same |
 | gzip | `Compression::Gzip` (`flate2`; zlib-rs by default) | same wire format | same wire format |
 | snappy | `Compression::Snappy` (`snap`; snappy-java framing on produce, raw on fetch) | same wire format | same wire format |
 | lz4 | `Compression::Lz4` (`lz4_flex` frame, independent 64 KiB blocks) | same wire format | same wire format |
@@ -245,13 +242,13 @@ limits describe decoded bytes rather than process RSS.
 | Mechanism | partitionline | Java / librdkafka |
 |---|---|---|
 | No auth | default (all `sasl_*` are `None`, TLS `None`) | same shape |
-| PLAIN | `Sasl::plain(user, pass)` (`src/config.rs:532`) | same |
-| SCRAM-SHA-256 | `Sasl::scram_sha256(user, pass)` (`src/config.rs:540`, RFC 5802/7677) | same |
-| SCRAM-SHA-512 | `Sasl::scram_sha512(user, pass)` (`src/config.rs:548`) | same |
-| OAUTHBEARER | `Sasl::oauthbearer(principal)` (`src/config.rs:556`, RFC 7628 unsecured JWT) | same (`enable.sasl.oauthbearer.unsecure.jwt`) |
-| OIDC token endpoint | `Sasl::oidc(OidcConfig)` (`src/config.rs:564`, `src/protocol/oidc.rs:24`) | same shape |
+| PLAIN | `Sasl::plain(user, pass)` (`src/config.rs`) | same |
+| SCRAM-SHA-256 | `Sasl::scram_sha256(user, pass)` (`src/config.rs`, RFC 5802/7677) | same |
+| SCRAM-SHA-512 | `Sasl::scram_sha512(user, pass)` (`src/config.rs`) | same |
+| OAUTHBEARER | `Sasl::oauthbearer(principal)` (`src/config.rs`, RFC 7628 unsecured JWT) | same (`enable.sasl.oauthbearer.unsecure.jwt`) |
+| OIDC token endpoint | `Sasl::oidc(OidcConfig)` (`src/config.rs`, `src/protocol/oidc.rs`) | same shape |
 | GSSAPI / Kerberos | **not supported** (`auth.sasl_gssapi`, missing; blocked on Cyrus SASL C) | supported |
-| TLS | `TlsConfig` (`src/net.rs:232`, rustls; `ca_pem` / `server_name` / `client_identity` for mTLS; Mozilla roots by default) | `ssl.*` (JVM TLS / OpenSSL) |
+| TLS | `TlsConfig` (`src/net.rs`, rustls; `ca_pem` / `server_name` / `client_identity` for mTLS; Mozilla roots by default) | `ssl.*` (JVM TLS / OpenSSL) |
 | Token refresh | proactive refresh before expiry is **missing** (`auth.sasl_oidc_refresh`) | supported |
 
 ```rust
@@ -277,9 +274,9 @@ completion surfaces through futures plus Java-shaped interceptors:
 | Delivery callback / `FutureRecord` | `Producer::send` future → `RecordMetadata` or terminal `Error` |
 | `DrQueue` polling | `try_send` (non-blocking, `Error::QueueFull`) + `flush` / `flush_timeout` |
 | `ClientContext::stats` | `Producer::metrics` / `Consumer::metrics` / `ShareGroup::metrics` / `Admin::metrics` |
-| Rebalance callback | `ConsumerConfig::on_rebalance(f)` (`src/consumer.rs:411`) + `ConsumerInterceptor::on_commit` |
-| — | `ProducerInterceptor::{on_send, on_ack, on_error, close}` (`src/interceptor.rs:11`) |
-| — | `ConsumerInterceptor::{on_consume, on_commit, close}` (`src/interceptor.rs:28`); filtering in `on_consume` does not rewind positions |
+| Rebalance callback | `ConsumerConfig::on_rebalance(f)` (`src/consumer.rs`) + `ConsumerInterceptor::on_commit` |
+| — | `ProducerInterceptor::{on_send, on_ack, on_error, close}` (`src/interceptor.rs`) |
+| — | `ConsumerInterceptor::{on_consume, on_commit, close}` (`src/interceptor.rs`); filtering in `on_consume` does not rewind positions |
 
 ```rust
 use partitionline::interceptor::ProducerInterceptor;
@@ -302,15 +299,15 @@ ambiguous commit from abort-required or terminal fencing outcomes.
 Cancellation differs from Java futures: dropping a `send` future does **not**
 dequeue the record — once accepted into `buffer_memory`, delivery may
 continue and the caller outcome stays ambiguous until `flush`/`close`
-(`src/producer.rs:1428`).
+(`src/producer.rs`).
 
 ## Error classification
 
 | Concern | partitionline | Porting note |
 |---|---|---|
-| Typed errors | `Error` (`src/error.rs:10`): `Io`, `Protocol`, `Broker{code,message}`, `UnknownTopic`, `NoLeader`, `Unsupported`, `Closed`, `Timeout`, `QueueFull`, `RecordTooLarge{size,max,config}`, `MaxPollInterval`, `Wakeup` | No `RDKafkaErrorCode` enum; broker codes ride on `Error::Broker` |
-| Broker code | `Error::broker_code() -> Option<i16>` (`src/error.rs:110`) | Compare against `partitionline::error::*` constants |
-| Retriable? | `Error::is_retriable()` (`src/error.rs:119`): not-leader, `LEADER_NOT_AVAILABLE`, not-enough-replicas, `REQUEST_TIMED_OUT`, coordinator moves, `NOT_CONTROLLER`, unknown-topic, share-session errors, plus all `Io`/`Timeout` | Internal retries already apply `retry.backoff.ms` exponential backoff; use this for your own retry loops |
+| Typed errors | `Error` (`src/error.rs`): `Io`, `Protocol`, `Broker{code,message}`, `UnknownTopic`, `NoLeader`, `Unsupported`, `Closed`, `Timeout`, `QueueFull`, `RecordTooLarge{size,max,config}`, `MaxPollInterval`, `Wakeup` | No `RDKafkaErrorCode` enum; broker codes ride on `Error::Broker` |
+| Broker code | `Error::broker_code() -> Option<i16>` (`src/error.rs`) | Compare against `partitionline::error::*` constants |
+| Retriable? | `Error::is_retriable()` (`src/error.rs`): not-leader, `LEADER_NOT_AVAILABLE`, not-enough-replicas, `REQUEST_TIMED_OUT`, coordinator moves, `NOT_CONTROLLER`, unknown-topic, share-session errors, plus all `Io`/`Timeout` | Internal retries already apply `retry.backoff.ms` exponential backoff; use this for your own retry loops |
 | Oversize | `Error::RecordTooLarge` from `send`/`try_send` without waiting for `max_block` | Mirrors Java `ensureValidRecordSize` (`buffer.memory` then `max.request.size`) |
 | Closed/wakeup | `Error::Closed`, `Error::Wakeup`, `Error::MaxPollInterval` | `MaxPollInterval` also triggers a heartbeat LeaveGroup |
 
@@ -355,7 +352,7 @@ No equivalent exists today; do not port these call sites as-is:
 Proven, with the test that proves it:
 
 - Keyed partitioning is byte-identical to Java murmur2
-  (`src/partitioner.rs:148` unit vectors; `tests/client_api.rs` partition
+  (`src/partitioner.rs` unit vectors; `tests/client_api.rs` partition
   placement).
 - Interval auto-commit never commits the batch about to be returned; crash
   after one capped poll cannot skip prefetched records

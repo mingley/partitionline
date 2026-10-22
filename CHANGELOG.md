@@ -32,6 +32,8 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   stays a frozen baseline, and the first consumer cards are marked done.
 - The civilization plan is labeled as history and points at the current
   task queue. Its capability table is not a qualification result.
+- The rust-rdkafka migration guide names files and symbols. The line
+  numbers pinned to `ca50ca1` no longer matched current source.
 
 - The broker SASL reauthentication page matches the listener profile: opt-in
   lifetime, Handshake v1, and the deadline that does not move after the
