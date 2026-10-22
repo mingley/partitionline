@@ -4517,21 +4517,28 @@ mod tests {
         let record = [0x0cu8, 0x00, 0x00, 0x00, 0x01, 0x01, 0x00];
         let count = 900_000usize;
         let records_len = count.saturating_mul(record.len());
-        let mut frame = Vec::with_capacity(61usize.saturating_add(records_len));
-        frame.resize(61, 0);
-        let batch_len = i32::try_from(49usize.saturating_add(records_len)).unwrap();
-        frame[8..12].copy_from_slice(&batch_len.to_be_bytes());
-        frame[16] = 2;
-        frame[57..61].copy_from_slice(&i32::try_from(count).unwrap().to_be_bytes());
+        let overhead = RecordBatch::RECORD_BATCH_OVERHEAD as usize;
+        let prefix = Records::LOG_OVERHEAD as usize;
+        let length_at = Records::SIZE_OFFSET as usize;
+        let magic_at = Records::MAGIC_OFFSET as usize;
+        let count_at = RecordBatch::RECORDS_COUNT_OFFSET as usize;
+        let crc_at = RecordBatch::CRC_OFFSET as usize;
+        let attributes_at = RecordBatch::ATTRIBUTES_OFFSET as usize;
+        let mut frame = Vec::with_capacity(overhead.saturating_add(records_len));
+        frame.resize(overhead, 0);
+        let batch_len = i32::try_from((overhead - prefix).saturating_add(records_len)).unwrap();
+        frame[length_at..prefix].copy_from_slice(&batch_len.to_be_bytes());
+        frame[magic_at] = u8::try_from(RecordBatch::MAGIC_VALUE_V2).unwrap();
+        frame[count_at..overhead].copy_from_slice(&i32::try_from(count).unwrap().to_be_bytes());
         for _ in 0..count {
             frame.extend_from_slice(&record);
         }
-        let crc = crc32c::crc32c(&frame[21..]);
-        frame[17..21].copy_from_slice(&crc.to_be_bytes());
+        let crc = crc32c::crc32c(&frame[attributes_at..]);
+        frame[crc_at..attributes_at].copy_from_slice(&crc.to_be_bytes());
         let batch = EncodedBatch {
             base_offset: 0,
             attributes: 0,
-            body: Bytes::copy_from_slice(&frame[12..]),
+            body: Bytes::copy_from_slice(&frame[prefix..]),
         };
         let started = std::time::Instant::now();
         tokio::select! {
