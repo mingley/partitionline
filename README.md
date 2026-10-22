@@ -2,8 +2,8 @@
 
 An asynchronous Apache Kafka client with producer, consumer, group, transaction,
 and Admin APIs. This repository also contains an experimental
-[broker](https://github.com/mingley/partitionline/blob/8a50e8d18df40787d86eb714ff363b9d1e41ce43/partitionline-broker/README.md) and a
-[Schema Registry companion](https://github.com/mingley/partitionline/blob/8a50e8d18df40787d86eb714ff363b9d1e41ce43/partitionline-schema/README.md).
+[broker](partitionline-broker/README.md) and a
+[Schema Registry companion](partitionline-schema/README.md).
 
 [![ci](https://github.com/mingley/partitionline/actions/workflows/ci.yml/badge.svg)](https://github.com/mingley/partitionline/actions/workflows/ci.yml)
 [![crates.io](https://img.shields.io/crates/v/partitionline.svg)](https://crates.io/crates/partitionline)
@@ -17,7 +17,7 @@ partitionline = "0.1"
 Version 0.1.0 is available on [crates.io](https://crates.io/crates/partitionline).
 The repository includes changes made after that release. See the
 [support matrix](docs/support.md) for tested versions and platforms and the
-[task registry](https://github.com/mingley/partitionline/blob/8a50e8d18df40787d86eb714ff363b9d1e41ce43/docs/plan/tasks.json) for remaining work. Production and
+[task registry](docs/plan/tasks.json) for remaining work. Production and
 performance qualification are ongoing.
 
 Use the latest stable Rust to build the current source.

@@ -30,7 +30,7 @@ and enabled features.
 
 ## Remaining work
 
-Production qualification is ongoing. The [task registry](https://github.com/mingley/partitionline/blob/8a50e8d18df40787d86eb714ff363b9d1e41ce43/docs/plan/tasks.json)
+Production qualification is ongoing. The [task registry](plan/tasks.json)
 tracks protocol option gaps, fault histories, security lifecycle tests, resource
 limits, diagnostics and platform checks. Common deployment support and optional
 enterprise features have separate test profiles.

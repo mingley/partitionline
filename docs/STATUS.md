@@ -1,119 +1,94 @@
 # Status
 
-This describes the working source as of October 8, 2026. Version 0.1.0 is
-published on crates.io; the repository contains changes made after that release.
-Current development uses the latest stable Rust. The client and experimental
-broker still have open implementation and qualification work.
+Partitionline 0.1.0 is the crates.io release. This repository is the working
+source after that release. Build it with the latest stable Rust.
+
+The client is a usable asynchronous Kafka client: produce, fetch, groups,
+transactions, and Admin. The broker is an experimental crate in this
+repository. It is not a production cluster, and it is not published.
+
+No fastest-client or fastest-server result is established. Suite HOLD stays
+in effect until the [benchmark contract](benchmark-contract.md) comparison
+requirements are met.
+
+## Where to look
+
+| Question | Read |
+| --- | --- |
+| What the client can call | [Protocol support](gaps.md) and rustdoc |
+| Which brokers and platforms are tested | [Support matrix](support.md) |
+| What the broker implements | [Broker README](../partitionline-broker/README.md) |
+| Which work items are open | [Task registry](plan/tasks.json) |
+| How a benchmark number should be read | [Benchmark guide](benchmark.md) |
+
+The task registry in this tree has 343 cards: 258 done, 9 in progress, and
+76 pending. That file is the queue. This page does not restate each card.
 
 ## Client
 
-The client has producer, manual-consumer, group, transaction and Admin APIs.
-Selected tests cover Apache Kafka 3.9.1, 4.1.0, 4.1.2, 4.2.1 and 4.3.1. Coverage
-varies by API and version; see the [support matrix](support.md).
+The client speaks the versions listed in the [design notes](design.md#wire-format-notes).
+Selected tests cover Apache Kafka 3.9.1, 4.1.0, 4.1.2, 4.2.1, and 4.3.1.
+Coverage depends on the API. See the support matrix.
 
-Recent completed work includes producer startup retries, retained-buffer
-accounting, zstd encoding/decoding, cross-SDK codec checks, InitProducerId v6,
-reassignment options, WriteTxnMarkers v2, share-offset lag support, Streams v0
-codecs, caller-driven Streams heartbeats, typed group descriptions, UUID offset routing and all-broker
-transaction listings with transaction-ID pattern filters. Legacy Metadata v0 and
-GROUP coordinator discovery v0 now negotiate with bounded decoding and retries.
-DescribeQuorum codecs and public Admin inspection now have bounded messages
-and retries, with checks against all three current SDKs and native brokers. Admin
-capability checks use actual Apache SDK frames and public Java calls. Their
-scripted peers do not implement broker transaction or share state.
-
-UpdateFeatures v0 rejects validation-only requests before encoding or dispatch.
-Default and all-feature checks cover the three current SDKs, native public
-callers, controller migration, operation deadlines and recovery, argument
-validation, malformed fields and per-feature errors. The source mapping records
-48 parameter invocations. Java public v0 is unsupported; Rust v0 wire support
-uses an independent SDK parser. See the [qualification record](evidence/conformance/q-conf-updatefeatures/qualification-20261008/README.md).
-
-Current gaps include prepared transaction initialization. Fault recovery, session reauthentication and
-mixed-version behavior need further implementation or independent checks.
+Prepared transaction initialization, session reauthentication, and
+mixed-version fault recovery are still open. GSSAPI is not implemented.
 
 ## Broker
 
-The broker is experimental. It includes protocol handling, storage, coordinator
-and replication code, but distributed recovery, security, resource limits and
-current-version compatibility remain open. Selected unit and integration tests
-do not establish production readiness. The [broker plan](ROADMAP.md)
-records the remaining work.
+The broker has protocol handling, storage, a coordinator, and replication
+code. Distributed recovery, peer authentication, resource limits, and
+current-version compatibility are still open. Unit and integration tests
+do not by themselves make it production-ready. The
+[broker plan](plan/broker-implementation.md) records the remaining checks.
 
-The fixed-peer metadata runtime passed finite three/five-node private TCP fault,
-snapshot and restart histories with independent journal replay. Whole broker
-checks passed 344 default and 484 all-feature tests on latest stable Rust. Native
-Kafka replication, peer authentication and production qualification remain open.
+## Snapshot from 8 October 2026
 
-## Development checks
+The notes below describe that date's source. They are not a count of today's
+test suite.
 
-Earlier full-suite checks with Rust 1.99.0 passed 2,090 default-feature tests and
-2,102 all-feature tests. Formatting, strict Clippy and rustdoc checks passed. The packaged default,
-tracing, zstd and combined-feature builds each compiled 24 documentation examples.
-These retained results refer to their cited source snapshots. Newer bounded
-UpdateFeatures checks pass on default and all-feature builds. They are source-bound SDK and native-broker
-checks; fault and soak qualification remains separate.
+Earlier full-suite checks with Rust 1.99.0 passed 2,090 default-feature tests
+and 2,102 all-feature tests. Formatting, strict Clippy, and rustdoc checks
+passed. The packaged default, tracing, zstd, and combined-feature builds each
+compiled 24 documentation examples.
 
-The task registry has 215 completed cards and 128 open cards. The client
-conformance registry has 75 independently qualified cases out of 182 required
-cases. Core and full conformance gates remain incomplete. The [development
-roadmap](ROADMAP.md) links the plans and registries.
+Whole-broker checks passed 344 default and 484 all-feature tests. A fixed-peer
+metadata runtime passed finite three-node and five-node private TCP fault,
+snapshot, and restart histories with independent journal replay. Native Kafka
+replication and production qualification were still open.
 
-## Performance
+UpdateFeatures v0 rejected validation-only requests before encoding or
+dispatch. The qualification record is
+[q-conf-updatefeatures](evidence/conformance/q-conf-updatefeatures/qualification-20261008/README.md).
 
-The repository has pinned benchmark peers, result checks, codec benchmarks and
-a resource-soak runner. Java peer checks passed against an isolated Kafka 4.3.1
-broker. Those short runs qualify the driver and its delivery accounting.
+A pinned local baseline recorded codec, null-broker, native broker, and
+open-loop latency measurements. All five 80% latency profiles contained
+bounded-capacity rejections. Those failures and the missing-cell list are in
+the [baseline evidence](evidence/perf/baseline/README.md). A
+[build-profile comparison](evidence/perf/build-profiles/README.md) recorded
+LTO, codegen-unit, CPU-target, and PGO variants. Those local results did not
+change library defaults.
 
-A pinned local baseline now records repeated codec, null-broker, native broker
-and open-loop latency measurements, with confidence intervals and throughput
-reruns. All five 80% latency profiles contain bounded-capacity rejections. The
-[baseline evidence](evidence/perf/baseline/README.md) retains those failures and
-the missing-cell list. The [publication inventory](evidence/perf/baseline-publication.json)
-identifies the raw files retained in the original workspace.
+The benchmark report enforced the complete schema. Corrected null-broker
+produce, fetch, and connect outputs passed, with explicit fields for absent
+durability and warmup. See
+[format evidence](evidence/perf/null-result-schema/README.md).
 
-A [build-profile comparison](evidence/perf/build-profiles/README.md) now records
-LTO, codegen-unit, CPU-target and PGO variants with matched repetitions and a
-fresh baseline cohort. Native results pass the complete schema. The original
-null-broker format has recorded schema failures tracked by KL09-73. These local
-results did not change library defaults.
+Pinned Java, librdkafka, and franz-go clients passed bounded Produce and Fetch
+checks against the null broker. Fetch used the fixture's seeded stream.
+[Peer evidence](evidence/perf/nullbroker-peers/README.md) records the limit,
+source hashes, retained failures, and process cleanup. That is fixture
+compatibility, not a storage or speed claim.
 
-Controlled x86_64/arm64 comparisons and independent peer reproduction remain open. Paired-run orchestration now has
-source-bound process tests and an isolated Kafka rehearsal. The miniz fallback gzip allocation
-baseline also needs reconciliation. No fastest-client or fastest-server result
-is established. Suite HOLD remains in effect until the comparison requirements
-in the [benchmark contract](benchmark-contract.md) are met.
+The orchestrator rejected client-ceiling cells inside Kafka-throughput
+manifests. Its null-broker tier still needed qualified adapters. The franz-go
+driver was missing ten settings required by the comparison preflight, and
+those omissions were reported. [Orchestrator evidence](evidence/perf/matrix-tiers/README.md)
+keeps the earlier tier-mixing failure. KL09-68 was open in that snapshot.
 
-[Earlier status notes](https://github.com/mingley/partitionline/blob/8a50e8d18df40787d86eb714ff363b9d1e41ce43/docs/STATUS.md)
-retain the release and CI history.
-
-The benchmark report now enforces the complete schema. Corrected null-broker
-produce, fetch and connect outputs pass, and retain explicit fields for absent
-durability and warmup. [Format evidence](evidence/perf/null-result-schema/README.md)
-includes native-result checks and twenty rejected changed-result controls.
-
-
-Pinned Java, librdkafka and franz-go clients now pass bounded Produce and Fetch
-checks against the null broker, with observed protocol versions and zero
-validation failures. Fetch uses the fixture's independent seeded stream.
-The [peer evidence](evidence/perf/nullbroker-peers/README.md) records that limit,
-source hashes, retained failures and process cleanup. These checks establish
-functional fixture compatibility, with no storage or speed claim.
-
-
-The orchestrator rejects client-ceiling cells and results in Kafka-throughput
-manifests. Its null-broker tier still needs qualified adapters and fixture
-lifecycle handling. The current franz-go driver also lacks ten settings required
-by the comparison preflight; those omissions are reported explicitly.
-[Orchestrator evidence](evidence/perf/matrix-tiers/README.md) retains the prior
-tier-mixing failure and the current checks. KL09-68 remains open.
-
-The Go peer now applies its reported `none` compression setting explicitly.
-Pinned-SDK checks cover all five codecs and retain the original mismatch.
+The Go peer applied its reported `none` compression setting explicitly.
 [Compression evidence](evidence/perf/franz-compression-20261008/README.md)
-records the tested source and limits. The shared configuration remains
-incomplete, so this correction does not qualify a comparable campaign.
+records the tested source. The shared configuration was incomplete, so the
+correction did not qualify a comparable campaign.
 
-All workspace source and documentation changes were published directly to
-`main`. The [workspace archive](evidence/workspace-publication-20261008/README.md)
-also preserves 139,045 original evidence files in verified chunks.
+The [workspace archive](evidence/workspace-publication-20261008/README.md)
+preserves the original evidence files from that publication.
