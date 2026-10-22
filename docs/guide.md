@@ -491,21 +491,17 @@ Examples: `tls`, `sasl`. OIDC is `OidcConfig` on the SASL OAUTHBEARER path.
 
 ## Older discovery versions
 
-Metadata v0 and GROUP FindCoordinator v0 are spoken.
+Metadata v0 and GROUP FindCoordinator v0 are spoken. Startup and discovery
+share one timeout across the connection, version fallback, and retries. A
+bootstrap list holds at most sixteen addresses.
 
-On Metadata v0 an empty topic array means every topic. A named v0 request
-cannot turn automatic topic creation off. A producer or consumer that wants
-that version sets `allow_auto_topic_creation = true`. Admin can list every
-topic. A named Admin query that must keep creation off returns
-`Unsupported`.
-
-Metadata v0 has no controller id, topic UUID, rack, or internal-topic flag.
-A call that needs a controller or a UUID refuses the missing identity.
-GROUP discovery v0 has no coordinator-type field. Transaction discovery
-needs FindCoordinator v1 or newer.
-
-Startup and discovery share one timeout across the connection, version
-fallback, and retries. A bootstrap list holds at most sixteen addresses.
+| Call | What v0 does |
+|---|---|
+| Metadata v0 with an empty topic array | Returns every topic |
+| Metadata v0 with named topics | Cannot turn automatic creation off. A producer or consumer that wants this version sets `allow_auto_topic_creation = true`. A named Admin query that must keep creation off returns `Unsupported`. Admin can still list every topic. |
+| Metadata v0 fields | No controller id, topic UUID, rack, or internal-topic flag. A call that needs one of those refuses the missing identity. |
+| GROUP FindCoordinator v0 | No coordinator-type field |
+| Transaction coordinator discovery | Needs FindCoordinator v1 or newer |
 
 ## Defaults that differ from Java
 
@@ -515,6 +511,8 @@ fallback, and retries. A bootstrap list holds at most sixteen addresses.
 | `allow.auto.create.topics` | false | consumer true |
 | `delivery.timeout.ms` | 30s | 120s |
 | `max.block.ms` | 30s | 60s |
+| `session.timeout.ms` | 10s | 45s |
+| `heartbeat.interval.ms` | 150ms | 3s |
 
 `buffer.memory` (32 MiB) and `max.request.size` (1 MiB) match Java.
 

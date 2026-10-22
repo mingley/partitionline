@@ -129,6 +129,9 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
 - The operator guide says a replica move keeps the replication factor only
   on AlterPartitionReassignments v1. A v0 controller fails the call before
   the reassignment is sent.
+- The operator guide lists Metadata v0 behavior in a table, and adds the
+  10 second session timeout and 150 millisecond heartbeat next to the Java
+  defaults.
 - The gateway profile names zstd as an optional codec that has shipped.
   Its measured cells remain gzip and lz4.
 
