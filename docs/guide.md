@@ -355,11 +355,28 @@ group.leave().await?;
 # }
 ```
 
-Large group work runs in slices of 8,192 so a timeout can fire between
-slices. Finished slices are kept. That covers assignment, rebalance lists,
-delivered positions, topic ids, pause and resume, commits, and the fetch
-buffer. The [resource contract](resource-contract.md#caller-deadlines)
-lists each walk.
+Classic range, sticky, and cooperative-sticky assignment are supported.
+KIP-848 on Kafka 4.x uses `join_consumer` and `join_consumer_topics`.
+Share groups use `ShareGroup::join`, `poll`, `accept`, `release`, and
+`reject`. Examples: `group`, `cooperative`, `kip848`, `share`.
+
+A KIP-848 join sends an empty `TopicPartitions` array. Brokers reject null
+with `INVALID_REQUEST` ("must be empty when (re-)joining"). The live smoke
+is `examples/kip848.rs` with `REQUIRE_KIP848=1` on the 4.x broker smoke.
+
+Share groups need Kafka 4.1 or newer with finalized `share.version=1`
+(`kafka-features.sh … upgrade --feature share.version=1`). On 4.0 and 4.1
+also set `group.share.enable=true` until that temporary flag is removed
+upstream. The default `share.auto.offset.reset` is latest, so produce while
+the share member is already polling.
+
+A long group operation is walked 8,192 items at a time so a timeout can
+fire between slices. Finished slices are kept. That covers assignment,
+rebalance lists, delivered positions, topic ids, pause and resume, commits,
+and the fetch buffer. The
+[resource contract](resource-contract.md#caller-deadlines) lists each walk.
+Range and sticky assignment copy members the same way, including a member
+that owns one partition and the partitions that member already owns.
 
 A few results stay the same no matter the size:
 
@@ -369,25 +386,6 @@ A few results stay the same no matter the size:
 - A poll with no consume interceptor returns the fetched batch without copying each record.
 - Seeking to a list-offset result finds each partition in the cursor index. An unknown partition is still an error.
 - An offset-commit or offset-fetch response that names many topics is read 8,192 partitions at a time.
-
-Range and sticky assignment copy members the same way, including members
-that each own a single partition and the partitions they already own.
-
-Also: sticky / cooperative-sticky, KIP-848 (`join_consumer` /
-`join_consumer_topics`), share groups (`ShareGroup::join` / `poll` /
-`accept` / `release` / `reject`). Examples: `group`, `cooperative`,
-`kip848`, `share`.
-
-KIP-848 (Kafka **4.x** ConsumerGroupHeartbeat) join sends an **empty**
-`TopicPartitions` array — brokers reject `null` with
-`INVALID_REQUEST` (“must be empty when (re-)joining”). Live smoke:
-`examples/kip848.rs` (`REQUIRE_KIP848=1` on 4.x broker smoke).
-
-Share groups (KIP-932) need Kafka **4.1+** with finalized
-`share.version=1` (`kafka-features.sh … upgrade --feature share.version=1`).
-On 4.0/4.1 also set `group.share.enable=true` until that temporary flag is
-removed upstream. Default `share.auto.offset.reset` is **latest** — produce
-while the share member is already polling.
 
 A share fetch or acknowledgement looks up each topic in an index built
 8,192 entries at a time. A topic id that belongs to two names is an error.
@@ -1105,10 +1103,11 @@ The explicit opt-in is required because v0 alone does not identify whether a
 broker release treats the API as stable. This call observes groups without
 joining them or running their tasks.
 
-## Integrity / benchmarks
+## Integrity and benchmarks
 
-Unsigned Lab A integrity (produce → broker high-watermark == acked → fetch →
-consumed == seeded):
+These scripts check that produced records, the broker high watermark, and a
+later fetch agree with the seeded records. They are local or unsigned Lab A
+checks. They do not lift Suite HOLD.
 
 ```bash
 bash scripts/lab-a-integrity.sh          # small default COUNT
@@ -1116,11 +1115,9 @@ COUNT=50000 bash scripts/lab-a-fetch.sh  # fetch-focused
 COUNT=8000000 PARTITIONS=6 RUNS=3 bash scripts/lab-a-produce.sh
 ```
 
-Local smoke (small COUNT + relative latency gate):
-`bash scripts/ci-integrity-smoke.sh`.
-
-These refuse fake wins; they are **not** Suite HOLD lifts. See
-[`STATUS.md`](STATUS.md) and [`benchmark.md`](benchmark.md).
+`bash scripts/ci-integrity-smoke.sh` is a small local smoke with a relative
+latency gate. How to read the numbers is in [benchmark.md](benchmark.md).
+The qualification status is in [STATUS.md](STATUS.md).
 
 ## More
 

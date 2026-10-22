@@ -42,6 +42,8 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   with framed batches held until decode fits.
 - The operator guide splits metrics, Produce version selection, and broker
   throttle into separate sections.
+- The operator guide introduces group kinds before the 8,192-item walks,
+  and the integrity scripts are described as checks that do not lift Suite HOLD.
 
 - The broker SASL reauthentication page matches the listener profile: opt-in
   lifetime, Handshake v1, and the deadline that does not move after the
