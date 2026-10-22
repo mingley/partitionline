@@ -206,6 +206,9 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
 - The roadmap's gap table records that strict rustdoc and the finite codec
   matrix have landed. Consumer-history replay and a live schema round trip
   remain open.
+- The operations gap records that auth redaction and TLS rotation checks
+  are done. The live credential matrix, newcomer exercises, and rollback
+  rehearsal remain open.
 - The gateway profile names zstd as an optional codec that has shipped.
   Its measured cells remain gzip and lz4.
 
