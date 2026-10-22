@@ -7,6 +7,9 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
 
 ## [Unreleased]
 
+- Encoding a ShareAcknowledge response pauses every 8,192 partitions.
+  Writing 600,000 partitions held the caller for 209ms before that pause.
+  The encoded bytes are unchanged.
 - Encoding a ShareFetch response pauses every 8,192 partitions. Writing
   300,000 partitions held the caller for 214ms before that pause. The
   encoded bytes are unchanged.

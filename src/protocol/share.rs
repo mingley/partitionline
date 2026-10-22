@@ -4229,14 +4229,8 @@ pub fn encode_share_acknowledge_topics_response_with_lock_timeout(
     for t in topics {
         buf.extend_from_slice(&t.topic_id);
         buf::put_array_len(buf, flexible, Some(t.partitions.len()))?;
-        for p in &t.partitions {
-            buf.put_i32(p.partition);
-            buf.put_i16(p.error_code);
-            buf::put_string(buf, flexible, p.error_message.as_deref())?;
-            encode_leader(buf, p.current_leader_id, p.current_leader_epoch);
-            if flexible {
-                buf::put_empty_tagged_fields(buf);
-            }
+        for part in &t.partitions {
+            write_share_ack_partition(buf, flexible, part)?;
         }
         if flexible {
             buf::put_empty_tagged_fields(buf);
@@ -4267,14 +4261,76 @@ fn share_acknowledge_response_len(
         total = add_share_len(total, 16)?;
         total = add_share_len(total, share_array_len(topic.partitions.len())?)?;
         for part in &topic.partitions {
-            total = add_share_len(total, 6)?;
-            total = add_share_len(
-                total,
-                share_nullable_string_len(part.error_message.as_deref())?,
-            )?;
-            total = add_share_len(total, 9)?;
-            if flexible {
-                total = add_share_len(total, buf::unsigned_varint_size(0))?;
+            total = add_share_len(total, share_ack_partition_len(flexible, part)?)?;
+        }
+        if flexible {
+            total = add_share_len(total, buf::unsigned_varint_size(0))?;
+        }
+    }
+    total = add_share_len(total, share_endpoints_len(endpoints)?)?;
+    if flexible {
+        total = add_share_len(total, buf::unsigned_varint_size(0))?;
+    }
+    Ok(total)
+}
+
+/// ShareAcknowledge response partitions measured or written before the caller is paused.
+const SHARE_ACK_PARTITION_ENCODE_CHUNK: usize = 8 * 1024;
+
+fn share_ack_partition_len(
+    flexible: bool,
+    part: &ShareAcknowledgeResponsePartition,
+) -> Result<usize> {
+    let mut total = add_share_len(0, 6)?;
+    total = add_share_len(
+        total,
+        share_nullable_string_len(part.error_message.as_deref())?,
+    )?;
+    total = add_share_len(total, 9)?;
+    if flexible {
+        total = add_share_len(total, buf::unsigned_varint_size(0))?;
+    }
+    Ok(total)
+}
+
+fn write_share_ack_partition(
+    buf: &mut BytesMut,
+    flexible: bool,
+    part: &ShareAcknowledgeResponsePartition,
+) -> Result<()> {
+    buf.put_i32(part.partition);
+    buf.put_i16(part.error_code);
+    buf::put_string(buf, flexible, part.error_message.as_deref())?;
+    encode_leader(buf, part.current_leader_id, part.current_leader_epoch);
+    if flexible {
+        buf::put_empty_tagged_fields(buf);
+    }
+    Ok(())
+}
+
+async fn share_acknowledge_response_len_cooperative(
+    version: i16,
+    flexible: bool,
+    topics: &[ShareAcknowledgeResponseTopic],
+    endpoints: &[NodeEndpoint],
+    error_message: Option<&str>,
+) -> Result<usize> {
+    let mut total = 6usize;
+    total = add_share_len(total, share_nullable_string_len(error_message)?)?;
+    if version >= 2 {
+        total = add_share_len(total, 4)?;
+    }
+    total = add_share_len(total, share_array_len(topics.len())?)?;
+    let mut walked = 0usize;
+    for topic in topics {
+        total = add_share_len(total, 16)?;
+        total = add_share_len(total, share_array_len(topic.partitions.len())?)?;
+        for part in &topic.partitions {
+            total = add_share_len(total, share_ack_partition_len(flexible, part)?)?;
+            walked = walked.saturating_add(1);
+            if walked == SHARE_ACK_PARTITION_ENCODE_CHUNK {
+                walked = 0;
+                tokio::task::yield_now().await;
             }
         }
         if flexible {
@@ -4286,6 +4342,51 @@ fn share_acknowledge_response_len(
         total = add_share_len(total, buf::unsigned_varint_size(0))?;
     }
     Ok(total)
+}
+
+/// [`encode_share_acknowledge_topics_response`], yielding while partitions are still being measured and written.
+///
+/// Encoding 600,000 partitions held the caller for 209ms. A partition row is still written.
+pub async fn encode_share_acknowledge_topics_response_cooperative(
+    buf: &mut BytesMut,
+    version: i16,
+    error_code: i16,
+    topics: &[ShareAcknowledgeResponseTopic],
+) -> crate::error::Result<()> {
+    let flexible = share_acknowledge_flexible(version)?;
+    let body_start = buf.len();
+    let planned =
+        share_acknowledge_response_len_cooperative(version, flexible, topics, &[], None).await?;
+    reserve_share_body(buf, planned);
+    buf.put_i32(0);
+    buf.put_i16(error_code);
+    buf::put_string(buf, flexible, None)?;
+    if version >= 2 {
+        buf.put_i32(0);
+    }
+    buf::put_array_len(buf, flexible, Some(topics.len()))?;
+    let mut walked = 0usize;
+    for topic in topics {
+        buf.extend_from_slice(&topic.topic_id);
+        buf::put_array_len(buf, flexible, Some(topic.partitions.len()))?;
+        for part in &topic.partitions {
+            write_share_ack_partition(buf, flexible, part)?;
+            walked = walked.saturating_add(1);
+            if walked == SHARE_ACK_PARTITION_ENCODE_CHUNK {
+                walked = 0;
+                tokio::task::yield_now().await;
+            }
+        }
+        if flexible {
+            buf::put_empty_tagged_fields(buf);
+        }
+    }
+    super::api::put_compact_node_endpoints(buf, &[])?;
+    if flexible {
+        buf::put_empty_tagged_fields(buf);
+    }
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
+    Ok(())
 }
 
 /// Decode a ShareAcknowledge response (`version` 0–2): error code.
@@ -4491,6 +4592,52 @@ mod tests {
     use crate::protocol::records::Record;
     use bytes::{Buf, Bytes};
     use std::collections::HashMap;
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn encoding_many_share_ack_partitions_does_not_hold_the_caller() {
+        let topics = [ShareAcknowledgeResponseTopic {
+            topic_id: [1; 16],
+            partitions: (0..600_000i32)
+                .map(|index| ShareAcknowledgeResponsePartition::partition_response(index, 0))
+                .collect(),
+        }];
+        let started = std::time::Instant::now();
+        tokio::select! {
+            _ = async {
+                let mut body = BytesMut::new();
+                encode_share_acknowledge_topics_response_cooperative(&mut body, 0, 0, &topics)
+                    .await
+                    .unwrap_or_else(|error| panic!("{error}"));
+            } => {}
+            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "encoding share acknowledge partitions held the caller for {elapsed:?}"
+        );
+        let mut named = ShareAcknowledgeResponsePartition::partition_response(2, 3);
+        named.error_message = Some("no".into());
+        named.current_leader_id = 7;
+        named.current_leader_epoch = 1;
+        let sample = [ShareAcknowledgeResponseTopic {
+            topic_id: [9; 16],
+            partitions: vec![
+                ShareAcknowledgeResponsePartition::partition_response(1, 0),
+                named,
+            ],
+        }];
+        for version in [0i16, 2] {
+            let mut once = BytesMut::new();
+            let mut paced = BytesMut::new();
+            encode_share_acknowledge_topics_response(&mut once, version, 4, &sample)
+                .unwrap_or_else(|error| panic!("{error}"));
+            encode_share_acknowledge_topics_response_cooperative(&mut paced, version, 4, &sample)
+                .await
+                .unwrap_or_else(|error| panic!("{error}"));
+            assert_eq!(once, paced, "version {version}");
+        }
+    }
 
     #[tokio::test(flavor = "current_thread")]
     async fn encoding_many_share_fetch_partitions_does_not_hold_the_caller() {
