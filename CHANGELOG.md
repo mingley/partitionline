@@ -95,6 +95,9 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
 - The next-session queue no longer starts on KL10-01 or KL03-01. Every
   card named in that launch list is done. Independent consumer replay
   remains KL01-22.
+- The broker plan lists the 13 KL11 cards that are not done. Sixty-three
+  of the 76 broker cards are done, including retention, compaction, and
+  failover. KL11-37 and KL11-71 already have owners.
 - The gateway profile names zstd as an optional codec that has shipped.
   Its measured cells remain gzip and lz4.
 

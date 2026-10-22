@@ -62,6 +62,30 @@ KL11-04 through KL11-08 added header negotiation, persistent topic metadata,
 validated Produce, Fetch, ListOffsets, and single-node interop. Those cards
 are done.
 
+## What is still open
+
+Of the 76 KL11 cards, 63 are done. That count was taken from
+[tasks.json](tasks.json) on 22 October 2026. The behaviors named in the
+next section include cards that are already done: retention, compaction,
+metadata election, failover, cooperative and static group histories, and
+delegation tokens. The cards that are not done are these:
+
+| Card | Standing | What it still is |
+|---|---|---|
+| KL11-37 | in progress | Validate OIDC access tokens, refresh authorities, and expire live sessions. |
+| KL11-71 | in progress | SASL reauthentication on a broker connection. It waits on KL11-37. |
+| KL11-38 | pending | Optional Kerberos, after the client proposal KL06-08 is approved. |
+| KL11-70 | pending | KRaft directory identity and pre-vote. Dependencies are done. It is not a small follow-up. |
+| KL11-44 | pending | Proof of overload, deadlines, and shutdown. It waits on KL11-37. |
+| KL11-47 | pending | Fuzz framing, storage recovery, and API decoding. Dependencies are done. |
+| KL11-50 | pending | Benchmark this broker against pinned Kafka-compatible servers. |
+| KL11-51 | pending | Rank measured server bottlenecks. It waits on KL11-50. |
+| KL11-52, KL11-53 | pending | A 24-hour resource run, then a 7-day continuity run. |
+| KL11-49 | pending | Fold the client leadership campaign into the broker goal. It waits on KL09-70. |
+| KL11-55, KL11-56 | pending | Reconcile the docs, then qualify the whole client-and-broker goal. Both wait on the cards above. |
+
+Do not claim a second in-progress card. KL11-37 and KL11-71 already have owners.
+
 ## Full server behavior
 
 The queue covers segment/index recovery, retention and compaction; durable
