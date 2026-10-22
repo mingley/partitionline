@@ -28,6 +28,8 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   AssignReplicasToDirs use the same version tables.
 - The support matrix leads with the CI table. Broker-profile checks,
   platform lanes, and items that are not promised are separate sections.
+- The roadmap opens on the current task queue. The 2026-09-21 audit
+  stays a frozen baseline, and the first consumer cards are marked done.
 
 - The broker SASL reauthentication page matches the listener profile: opt-in
   lifetime, Handshake v1, and the deadline that does not move after the
