@@ -513,67 +513,78 @@ fallback and retries. Bootstrap lists are limited to sixteen addresses.
 ## Metrics
 
 `Producer::metrics`, `Consumer::metrics`, `ShareGroup::metrics`, and
-`Admin::metrics` return counter snapshots plus latency min/mean/max and
-p50/p99 over the last 1024 samples. Scrape on your process interval (for
-example every 10–60s); these are process-local snapshots, not a push
-protocol. See `examples/metrics.rs`. Optional `tracing` spans are covered
-in [Tracing](#tracing-optional-feature) below; [CIVILIZATION.md](CIVILIZATION.md)
-is **history** (the historical foundation plan), not a feature tracker.
+`Admin::metrics` are process-local snapshots. Scrape them on your own
+interval, for example every 10–60 seconds. They are not a push protocol.
+`examples/metrics.rs` prints one Prometheus-style text sample. That example
+is not a core exporter. Optional `tracing` spans are in
+[Tracing](#tracing-optional-feature). [CIVILIZATION.md](CIVILIZATION.md) is
+the historical foundation plan, not a feature tracker.
 
-Producer negotiates Produce v3–v13. Version13 replaces topic names on the wire
-with nonzero IDs from Metadata v10+. Responses resolve against the UUID/name
-snapshot sent with that request, so concurrent metadata changes cannot rename an
-acknowledgement. `UNKNOWN_TOPIC_ID` invalidates the cached identity and refreshes
-metadata before retrying within the original delivery deadline. A missing or
-ambiguous identity fails clearly before writing the request. Older peers retain
-v3–v12 name-based requests; a peer without Metadata10+ is capped at v12.
+Each snapshot has counters plus latency min, mean, max, p50, and p99 over
+the last 1,024 samples.
 
-Transactional producers use v12/v13 only when the initialization ApiVersions
-snapshot finalizes `transaction.version` at level2 or higher and supports EndTxn5.
-Otherwise Produce stays at v11 and explicitly adds transaction partitions.
-The selected transaction mode stays fixed for that producer's lifetime; recreate
-it after changing cluster transaction feature levels.
+| Field | What it counts |
+|---|---|
+| `Producer::metrics().bytes_buffered` | Reserved visible produce bytes. |
+| `Producer::retries_in_flight` | Produce retries that have not finished. |
+| `ack_latency` | Completed queue-to-ack time. There is no separate in-flight age. |
+| `Producer::metrics().throttle` | Positive throttle responses, the sum of requested milliseconds, the largest request, and ignored negative responses. |
+| `Consumer::metrics().reconnects` | Failed leader connects. |
+| `Consumer::metrics().throttle` | The same requested-time counters as the producer. |
+| `ConsumerGroup::outcomes` | Rejoins after the first join, and OffsetCommit successes and failures. |
+| `current_lag` | One ListOffsets call per partition you ask about. It is not a scraped label. |
 
-Produce v6–v13 responses mute new Produce requests to that broker for positive
-`throttle_time_ms`, across its connection slots. Other brokers continue sending;
-already transmitted responses remain readable. The wait consumes the original
-`delivery_timeout` and bounded close can interrupt it. Produce v3–v5 use server
-throttling, so the client does not add a second delay. Zero or invalid negative
-values never cancel an outstanding interval; overlapping intervals keep the
-latest expiry, including across a reconnect.
+`diagnose_produce`, `diagnose_fetch`, and `diagnose_group` return fixed
+sentences. They do not include topic names, group ids, keys, values, or
+credentials. Topic rows stay one per active topic.
 
-`Producer::metrics().throttle` exposes fixed-size saturating counters for positive
-responses, their summed requested milliseconds, the largest request, and ignored
-negative responses. Requested time is not actual elapsed waiting: intervals can
-overlap and a producer may have no queued work. These counters have no broker or
-topic labels. This policy covers Produce; Fetch, Admin and group quotas have
-separate support entries.
+Throttle counters have no broker or topic labels. Requested milliseconds are
+not elapsed wait: intervals can overlap, and the producer may have nothing
+queued.
 
-Fetch v8–v18 quota headers mute new Fetch requests to that broker; v4–v7 retain
-server throttling. Eligible brokers and already buffered records remain available.
-Each interval starts when its response finishes, so a slower peer cannot restart
-another broker's expired quota. Headers from every completed response are observed
-even when the record buffer budget prevents delivering that body's records.
+## Produce versions
 
-When every needed broker is muted, the wait ends at the poll's long-poll budget
-(`max_wait_ms`, or the one-shot `fetch_timeout` value) and returns an empty batch.
-The original `request_timeout` still bounds connection and Fetch work, including
-quota waiting. `wakeup` and an outer caller deadline interrupt the wait; cancelling
-a one-shot poll preserves subsequent poll settings. `Consumer::metrics().throttle`
-reports the same requested-time counters as the producer. This also covers the
-Fetch calls behind consumer-group polling; Admin and heartbeat/group quotas remain
-separate policies.
+The producer negotiates Produce v3–v13. v13 replaces topic names with
+nonzero ids from Metadata v10 and above. The response is matched to the
+UUID and name snapshot sent with that request, so a concurrent metadata
+change cannot rename an acknowledgement. `UNKNOWN_TOPIC_ID` drops the cached
+identity and refreshes metadata before a retry inside the original delivery
+deadline. A missing or ambiguous identity fails before the request is
+written. Older peers keep name-based v3–v12 requests. A peer without
+Metadata v10 or above stays at Produce v12.
 
-`Consumer::metrics().reconnects` counts failed leader connects. Queue bytes are
-`Producer::metrics().bytes_buffered`. In-flight produce retries are
-`Producer::retries_in_flight`. Completed queue-to-ack time is `ack_latency`;
-there is no separate in-flight age counter. `ConsumerGroup::outcomes` counts
-rejoins after the initial join and OffsetCommit successes and failures.
-`diagnose_produce`, `diagnose_fetch`, and `diagnose_group` return static
-sentences only: no topic names, group ids, keys, values, or credentials.
-Topic rows stay one per active topic. Prometheus text in `examples/metrics.rs`
-is an optional example, not a core exporter. Lag is `current_lag` (one
-ListOffsets call per partition you ask about), not a scraped label.
+A transactional producer uses v12 or v13 only when the ApiVersions snapshot
+from initialization has finalized `transaction.version` at 2 or higher and
+speaks EndTxn v5. Otherwise Produce stays at v11 and the client adds
+transaction partitions itself. That choice stays fixed for the life of the
+producer. Recreate it after the cluster transaction level changes.
+
+## Broker throttle
+
+On Produce v6–v13, a positive `throttle_time_ms` mutes new Produce requests
+to that broker, on every connection slot. Other brokers keep sending.
+Responses already on the wire stay readable. The wait uses the original
+`delivery_timeout`, and a bounded close can interrupt it. Produce v3–v5
+leave throttling to the broker, so the client does not add a second delay.
+Zero or a negative value does not cancel an interval that is already
+running. Overlapping intervals keep the latest expiry, including across a
+reconnect. This policy is Produce only. Fetch, Admin, and group quotas are
+separate.
+
+On Fetch v8–v18, a quota header mutes new Fetch requests to that broker.
+v4–v7 leave throttling to the broker. Brokers that are not muted, and
+records already buffered, stay available. Each interval starts when its
+response finishes, so a slow peer cannot restart another broker's expired
+quota. Headers are read from every completed response, including when the
+record buffer is too full to deliver that body.
+
+When every broker the poll needs is muted, the wait ends at the poll's
+long-poll budget (`max_wait_ms`, or the one-shot `fetch_timeout`) and
+returns an empty batch. `request_timeout` still bounds connection and Fetch
+work, including the quota wait. `wakeup` and an outer caller deadline
+interrupt the wait. Cancelling a one-shot poll leaves the next poll's
+settings alone. Group `poll` uses these same Fetch calls. Admin and
+heartbeat quotas are separate policies.
 
 ## Recipes
 
