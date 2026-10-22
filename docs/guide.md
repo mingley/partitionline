@@ -420,15 +420,15 @@ admin.close().await?;
 # }
 ```
 
-A long admin batch is prepared 8,192 items at a time. That includes
-delete-records, list-offsets, describe-producers, and leader lookup on
-retry. The timeout can fire between slices, and finished slices are kept.
-See the [resource contract](resource-contract.md#caller-deadlines).
+Create, delete, describe, and the other admin calls are methods on
+`Admin`. A long batch is prepared 8,192 items at a time, so a timeout can
+fire between slices. Finished slices are kept. The
+[resource contract](resource-contract.md#caller-deadlines) names each walk.
 
-Reassignment options control whether a replica move may change replication
-factor. The default allows it. Explicit `false` requires API45 version1 and
-fails before reassignment on a version0 controller. Per-partition errors stay
-in the returned results.
+A replica move may change the replication factor. The default allows that.
+Pass `false` only when the controller speaks AlterPartitionReassignments
+v1. On a v0 controller the call fails before it sends the reassignment.
+Per-partition errors stay in the returned results.
 
 ```rust,no_run
 # async fn example() -> partitionline::Result<()> {
@@ -450,11 +450,11 @@ admin.close().await?;
 # }
 ```
 
-Transaction listings query every discovered broker. Typed options can filter by
-transaction ID, state, producer ID and duration. A complete query fails if any
-broker fails. For partial results, use
-`list_transactions_by_broker_with_options`; each entry keeps its broker ID and
-individual result.
+`list_transactions_with_options` asks every discovered broker. The filter
+can name a transaction id pattern, a state, a producer id, and a duration.
+If any broker fails, the whole call fails. For a result per broker, use
+`list_transactions_by_broker_with_options`. Each entry keeps that broker's
+id and its own result.
 
 ```rust,no_run
 # async fn example() -> partitionline::Result<()> {
