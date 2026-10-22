@@ -327,7 +327,7 @@ pub fn normalize(
             Budget::NormalizedBytes,
         )?;
         output.extend_from_slice(&batch[..batch::LEN]);
-        let codec = (batch[22] & 7) as usize;
+        let codec = usize::from(batch[batch::ATTRIBUTES + 1] & (batch::COMPRESSION_MASK as u8));
         let allowance = limits
             .decoded_batch_bytes
             .saturating_sub(batch::LEN)
@@ -357,7 +357,7 @@ pub fn normalize(
         let length = i32::try_from(output.len() - start - batch::PREFIX)
             .map_err(|_| Error::MalformedCodec)?;
         output[start + batch::LENGTH..start + batch::PREFIX].copy_from_slice(&length.to_be_bytes());
-        output[start + batch::ATTRIBUTES + 1] &= !7;
+        output[start + batch::ATTRIBUTES + 1] &= !(batch::COMPRESSION_MASK as u8);
         let crc = crc32c::crc32c(&output[start + batch::ATTRIBUTES..]);
         output[start + batch::CRC..start + batch::ATTRIBUTES].copy_from_slice(&crc.to_be_bytes());
     }
@@ -418,14 +418,14 @@ fn header(b: &[u8], at: usize) -> Result<u8, Error> {
             .try_into()
             .map_err(|_| Error::MalformedCodec)?,
     );
-    if attrs & !0x7f != 0 || attrs & 7 > 4 {
+    if attrs & !batch::ATTRIBUTE_MASK != 0 || attrs & batch::COMPRESSION_MASK > 4 {
         return malformed();
     }
     for (mask, feature) in [
-        (0x20, records::Unsupported::Control),
-        (0x10, records::Unsupported::Transactional),
-        (0x40, records::Unsupported::DeleteHorizon),
-        (8, records::Unsupported::LogAppendTime),
+        (batch::CONTROL, records::Unsupported::Control),
+        (batch::TRANSACTIONAL, records::Unsupported::Transactional),
+        (batch::DELETE_HORIZON, records::Unsupported::DeleteHorizon),
+        (batch::LOG_APPEND_TIME, records::Unsupported::LogAppendTime),
     ] {
         if attrs & mask != 0 {
             return Err(Error::Records(records::Error::Unsupported {
@@ -448,7 +448,7 @@ fn header(b: &[u8], at: usize) -> Result<u8, Error> {
     if producer != -1 || b[batch::PRODUCER_EPOCH..batch::RECORD_COUNT] != [255; 6] {
         return malformed();
     }
-    Ok((attrs & 7) as u8)
+    Ok((attrs & batch::COMPRESSION_MASK) as u8)
 }
 fn preflight(codec: u8, payload: &[u8], limits: Limits, units: &mut usize) -> Result<usize, Error> {
     match codec {
