@@ -206,6 +206,9 @@ Produce still copies the packed batch out of a scratch buffer.
 
 ### Codecs
 
+KL09-34 is done: fetch batches are decompressed into a pre-sized buffer.
+The decompress row below is the 2026-09-26 hypothesis, not a current profile.
+
 | Location | Observed cost | Card |
 |---|---|---|
 | `buf.rs` ~118–132, ~512–650; `records.rs` ~2231–2289 (decode) | `need()` plus generic `Buf` branches per varint and field (R) | KL09-31 |
@@ -213,6 +216,13 @@ Produce still copies the packed batch out of a scratch buffer.
 | `records.rs` ~1643–1787 (decompress) | 8 KiB growth steps; framed Snappy allocates and copies each chunk (B) | KL09-34 |
 
 ### Consumer
+
+These rows are the same dated hypothesis. KL05-06 and KL05-07 are done:
+Fetch v7–v18 uses incremental sessions, and v4–v6 stays a full request.
+KL09-42 is done: the next round is prefetched within the byte budget. The
+"legacy Fetch every round" and "no prefetch overlap" rows describe the
+2026-09-26 code. KL09-37 through KL09-39, the zero-copy batch view, are
+still pending.
 
 | Step | Location | Observed cost | Card |
 |---|---|---|---|
@@ -245,8 +255,10 @@ Produce still copies the packed batch out of a scratch buffer.
 ### Already good; do not re-optimize without new evidence
 
 - Shared `Bytes` payloads, and borrowed record encoding in `encode_pendings`
-- Direct classic (v3–v8) batch writes, `recv_many` batching, and a reusable
-  2 MiB producer write buffer
+- Direct classic (v3–v8) batch writes, and uncompressed flexible Produce
+  written into the request buffer. Compressed batches still copy from the
+  scratch buffer. `recv_many` batching and a reusable 2 MiB producer write
+  buffer stay in place.
 - FIFO `VecDeque` correlation (no HashMap), request pipelining and
   TCP_NODELAY
 - Hardware CRC32C (SSE4.2/ARMv8 through `crc32c` 0.6.8), computed once per

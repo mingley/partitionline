@@ -153,6 +153,9 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   coordinator (16).
 - The performance hot-path table is labeled as the 2026-09-26 hypothesis.
   KL09-14, KL09-16, and KL09-17 are done. KL09-15 stays open.
+- The same table notes that incremental Fetch, pre-sized decompression,
+  and prefetch-within-budget have landed. The zero-copy batch view is
+  still KL09-37 through KL09-39.
 - The gateway profile names zstd as an optional codec that has shipped.
   Its measured cells remain gzip and lz4.
 
