@@ -1,300 +1,92 @@
 # How it works
 
-The client sends Kafka requests over TCP or TLS. This document describes the
-producer and consumer pipelines, record encoding, compression, and transport.
+The client sends Kafka requests over TCP or TLS. This page describes how
+records move, how groups and admin calls are shaped, and the wire versions
+this crate speaks.
+
+Rust behavior is authoritative. A Java name in this page is a porting
+cross-link, not a second specification.
 
 ## Producer
 
-1. You call `try_send` (throughput), `send_all` (many offsets), or `send`
-   (one offset future per record).
-2. The record is given a partition **before** it is queued (the
-   [`Partitioner`](../src/partitioner.rs): murmur2 if there is a key,
-   round-robin if not, or `ProducerConfig::partitioner`). Until metadata for
-   that topic is cached, `try_send` returns `QueueFull` and `send` /
-   `send_all` wait.
-3. The record goes onto the queue for **one** TCP connection: `partition % connections`. Idempotent sequences for a partition never share a socket with another worker.
-4. That connection's worker waits a few milliseconds (`linger`) or until the batch is big enough, then writes a Produce request.
+1. You call `try_send` (throughput), `send_all` (many offsets), or `send` (one offset future).
+2. The record is assigned a partition before it is queued. The default partitioner is murmur2 when there is a key, and round-robin when there is not. You can replace it with `ProducerConfig::partitioner`. Until metadata for that topic is cached, `try_send` returns `QueueFull`. `send` and `send_all` wait.
+3. The record is queued on one connection: `partition % connections`. Idempotent sequences for a partition never share a socket with another worker.
+4. That connection's worker waits for `linger` or until the batch is large enough, then writes a Produce request.
 5. Several Produce requests can be in flight on the same socket.
-6. `flush` waits for those responses and returns the first broker error. `try_send` Ok only means queued.
+6. `flush` waits for those responses and returns the first broker error. `try_send` returning `Ok` only means the record was queued.
 
-The [KL10-07 owned delivery proposal](api-stability.md#proposed-owned-delivery-api-kl10-07-awaiting-maintainer-review)
-adds synchronous nonblocking admission with an owned per-record completion.
-It is awaiting maintainer review and is not implemented. The proposed queue
-path shares `try_send` validation/routing and `send` terminal ownership;
-completion polling never controls admission or cancels an accepted record.
+The hot path copies each payload once into the record batch and checksums it with CRC32-C.
 
-`ProducerConfig`, `ConsumerConfig`, and `AdminConfig` accept chainable
-builders (`acks`, `sasl`, `tls`, `isolation`, `delivery_timeout`, `max_block`,
-`buffer_memory`, `max_request_size`, `retry_backoff`, `reconnect_backoff`, `connections_max_idle`, `transaction_timeout`, `metadata_max_age`, …). The raw fields remain writable.
+`ProducerConfig`, `ConsumerConfig`, and `AdminConfig` are chainable builders. The raw fields stay writable. `ConsumerConfig.isolation_level` is `IsolationLevel`, not a raw `i8`.
 
-`ConsumerConfig.isolation_level` is [`IsolationLevel`](../src/config.rs)
-(not a raw `i8`). `ConfigResourceType` and `ScramMechanism` type admin
-config-resource and user-SCRAM calls.
-
-The hot path copies each payload once into the Kafka record batch and checksums it with CRC32-C.
+An owned, nonblocking delivery API has been proposed and is not implemented. It is described in [API stability](api-stability.md#proposed-owned-delivery-api-kl10-07-awaiting-maintainer-review).
 
 ## Consumer
 
-Rust behavior below is authoritative; paragraphs that name a Java call
-are reference cross-links for porting, not behavior specifications.
+`Consumer` is manual assignment. You name a topic, partition, and offset, then call `fetch`. `fetch` and group `poll` return `ConsumerRecords`. Share `poll` returns `ShareRecords`.
 
-`Consumer` is manual: you say topic, partition, offset, then `fetch`.
-`fetch` / group `poll` return [`ConsumerRecords`](../src/consumer.rs)
-(Java `count` / `partitions` / `records` / `nextOffsets`). Share `poll` returns
-[`ShareRecords`](../src/share.rs).
-`fetch` sends one request per partition leader and waits for all of them
-when there is more than one. `seek_to_beginning` / `seek_to_end` call
-ListOffsets for every assigned partition; `seek_to_beginning_of` /
-`seek_to_end_of` take a partition list (Java `seekToBeginning` /
-`seekToEnd`). `pause` / `resume` skip
-assigned partitions without dropping them; pause survives group rebalance.
-`position` is the next fetch offset (`position_of` takes `TopicPartition`).
-`seek_with_metadata` is Java `seek(TopicPartition, OffsetAndMetadata)`:
-the offset is the next fetch position and the leader epoch is Fetch
-`LastFetchedEpoch` (KIP-320). `seek` / `seek_to` still clear the epoch.
-`partitions_for` / `beginning_offsets` / `end_offsets` wrap Metadata and
-ListOffsets and take `TopicPartition`. Each has a `_timeout` variant
-(Java `partitionsFor(String, Duration)` / `beginningOffsets` /
-`endOffsets` / `listTopics(Duration)` / `offsetsForTimes(Map, Duration)`).
-`partitions_for` includes leader epoch
-and offline replicas (Java `offlineReplicas`). `list_offset` is ListOffsets for one
-partition. `Admin::list_offsets` is Java `Admin.listOffsets` (earliest / latest /
-timestamp / `OffsetSpec`; one ListOffsets RPC per partition leader; returns
-`OffsetAndTimestamp`). `Admin::list_offsets_with_isolation` is Java
-`listOffsets` plus `ListOffsetsOptions.isolationLevel`.
-`Admin::list_offsets_timeout` / `list_offsets_with_isolation_timeout` are Java
-`ListOffsetsOptions.timeoutMs` (RPC deadline and ListOffsets v10 TimeoutMs).
-`Admin::fence_producers` is Java
-`Admin.fenceProducers` (InitProducerId on the transaction coordinator).
-`Admin::fence_producers_timeout` is Java `FenceProducersOptions.timeoutMs`
-(RPC deadline and `transaction.timeout.ms`).
-`Admin::force_terminate_transaction` is Java `forceTerminateTransaction`
-(same InitProducerId fence for one `transactional.id`).
-`Admin::force_terminate_transaction_timeout` is the same plus timeout.
-`Admin::abort_transaction` is Java `abortTransaction` (WriteTxnMarkers
-ABORT on the partition leader).
-`Admin::abort_transaction_timeout` is Java `AbortTransactionOptions.timeoutMs`
-(RPC deadline; WriteTxnMarkers has no TimeoutMs; caps `NOT_LEADER_OR_FOLLOWER`).
-`Admin::describe_transactions_timeout` is Java
-`DescribeTransactionsOptions.timeoutMs` (RPC deadline; DescribeTransactions
-has no TimeoutMs; caps coordinator retries).
-`Admin::list_transactions_timeout` / `Admin::list_transactions_with_duration_timeout`
-are Java `ListTransactionsOptions.timeoutMs` (RPC deadline; ListTransactions
-has no TimeoutMs; `with_duration` is `filterOnDuration`, not TimeoutMs).
-`Admin::list_transactions_all` is Java `listTransactions()`.
-`Admin::describe_producers_for` is Java `describeProducers(Collection)`
-(one DescribeProducers RPC per partition leader; Topics of N).
-`Admin::describe_producers_for_on_broker` is Java
-`DescribeProducersOptions.brokerId` (one RPC to that broker; `NOT_LEADER_OR_FOLLOWER`
-is not retried on the Metadata leader).
-`Admin::describe_producers_timeout` / `Admin::describe_producers_for_timeout`
-are Java `DescribeProducersOptions.timeoutMs` (RPC deadline;
-DescribeProducers has no TimeoutMs).
-`Admin::remove_members_from_consumer_group` is Java
-`removeMembersFromConsumerGroup` (LeaveGroup v3–v5 by `group.instance.id`;
-v5 sends `DEFAULT_LEAVE_GROUP_REASON`).
-`Admin::remove_all_members_from_consumer_group` is Java
-`RemoveMembersFromConsumerGroupOptions.removeAll` (DescribeGroups then LeaveGroup).
-`Admin::remove_members_from_consumer_group_with_reason` /
-`Admin::remove_all_members_from_consumer_group_with_reason` are Java
-`RemoveMembersFromConsumerGroupOptions.reason` (LeaveGroup v5; empty uses
-`DEFAULT_LEAVE_GROUP_REASON`; truncated to 255 characters). Kafka 4.0
-`KafkaAdminClient` does not wire this field; later Java does.
-`Admin::remove_members_from_consumer_group_timeout` /
-`Admin::remove_all_members_from_consumer_group_timeout` are Java
-`RemoveMembersFromConsumerGroupOptions.timeoutMs` (RPC deadline; LeaveGroup
-and DescribeGroups have no TimeoutMs; caps coordinator retries).
-`Admin::describe_features` is Java `describeFeatures` (ApiVersions v3–v4
-tagged fields; v4 SupportedFeatures.MinVersion 0, KAFKA-17011;
-[`FeatureMetadata`](../src/admin.rs)).
-`Admin::describe_features_timeout` is Java `DescribeFeaturesOptions.timeoutMs`
-(RPC deadline; ApiVersions has no TimeoutMs).
-`Admin::update_features_timeout` / `Admin::update_features_with_timeout` are
-Java `UpdateFeaturesOptions.timeoutMs` (RPC deadline and TimeoutMs).
-`Admin::list_topics` / `Admin::list_topics_with` / `Admin::list_topics_timeout` / `Admin::describe_topics` / `Admin::describe_topics_with` / `Admin::describe_topics_timeout` / `Admin::describe_topics_with_partition_limit` / `Admin::describe_topics_by_id` are Java `listTopics` / `ListTopicsOptions.listInternal` / `ListTopicsOptions.timeoutMs` /
-`describeTopics` (DescribeTopicPartitions api 75, KIP-966; Metadata fallback when api 75 is missing) / `DescribeTopicsOptions.includeAuthorizedOperations` / `DescribeTopicsOptions.timeoutMs` / `DescribeTopicsOptions.partitionSizeLimitPerResponse` / `describeTopics(TopicCollection.ofTopicIds)` (Metadata v10+).
-`Admin::describe_topic_partitions_timeout` is the crate-first RPC deadline
-(DescribeTopicPartitions has no TimeoutMs). Java `describeTopics` is
-`Admin::describe_topics_timeout`. `Admin::describe_acls_with` is Java
-`describeAcls(AclBindingFilter)`. `Admin::describe_acls_any` is Java
-`describeAcls(AclBindingFilter.ANY)`. `Admin::delete_acls_with` is Java
-`deleteAcls(Collection)` (DeleteAcls Filters of N). `Admin::describe_classic_groups` is Java
-`describeClassicGroups` (DescribeGroups v0–v6; FindCoordinator v4+ CoordinatorKeys of N). `Admin::describe_consumer_groups` is Java
-`describeConsumerGroups` (ConsumerGroupDescribe v0–v1 first, then DescribeGroups v0–v6 on per-group `UNSUPPORTED_VERSION` / `GROUP_ID_NOT_FOUND` or when api 69 is not advertised; FindCoordinator v4+ CoordinatorKeys of N).
-`Admin::describe_classic_groups_timeout` / `Admin::describe_consumer_groups_timeout` /
-`Admin::describe_groups_timeout` are Java `DescribeClassicGroupsOptions` /
-`DescribeConsumerGroupsOptions.timeoutMs` (RPC deadline; DescribeGroups has no
-TimeoutMs). `Admin::consumer_group_describe` is
-ConsumerGroupDescribe v0–v1 (flexible from v0; v1 MemberType; FindCoordinator v4+ CoordinatorKeys of N).
-`Admin::consumer_group_describe_timeout` is the crate-first RPC deadline
-(ConsumerGroupDescribe has no TimeoutMs). Java `describeConsumerGroups` is
-`Admin::describe_consumer_groups_timeout` (api 69 first, then DescribeGroups). `Admin::list_consumer_groups` is Java
-`listConsumerGroups` (ListGroups v0–v5). `Admin::list_groups_all` / `Admin::list_consumer_groups_all` are Java
-`listGroups()` / `listConsumerGroups()`. `Admin::list_groups_timeout` /
-`Admin::list_consumer_groups_timeout` are Java `ListGroupsOptions` /
-`ListConsumerGroupsOptions.timeoutMs` (RPC deadline; ListGroups has no
-TimeoutMs). `Admin::delete_consumer_groups` is Java
-`deleteConsumerGroups` (DeleteGroups v0–v2; classic through v1, flexible v2,
-throttle v0+; FindCoordinator v4+ CoordinatorKeys of N).
-`Admin::delete_groups_timeout` / `Admin::delete_consumer_groups_timeout` /
-`Admin::delete_share_groups_timeout` are Java `DeleteConsumerGroupsOptions` /
-`DeleteShareGroupsOptions.timeoutMs` (RPC deadline; DeleteGroups has no
-TimeoutMs). `Admin::describe_share_groups` is Java
-`describeShareGroups` (ShareGroupDescribe v0–v1; FindCoordinator v4+ CoordinatorKeys of N).
-`Admin::share_group_describe_timeout` / `Admin::describe_share_groups_timeout`
-are Java `DescribeShareGroupsOptions.timeoutMs` (RPC deadline;
-ShareGroupDescribe has no TimeoutMs). `Admin::list_client_metrics_resources` is Java
-`listClientMetricsResources` (ListConfigResources v0–v1 CLIENT_METRICS).
-`Admin::list_config_resources_all` is Java `listConfigResources()`.
-`Admin::list_config_resources_timeout` /
-`Admin::list_client_metrics_resources_timeout` are Java
-`ListConfigResourcesOptions` / `ListClientMetricsResourcesOptions.timeoutMs`
-(RPC deadline; ListConfigResources has no TimeoutMs). `Admin::list_share_group_offsets` is Java
-`listShareGroupOffsets` (DescribeShareGroupOffsets; FindCoordinator v4+ CoordinatorKeys of N).
-`Admin::describe_share_group_offsets_timeout` / `Admin::list_share_group_offsets_timeout`
-are Java `ListShareGroupOffsetsOptions.timeoutMs` (RPC deadline;
-DescribeShareGroupOffsets has no TimeoutMs).
-`Admin::alter_share_group_offsets_timeout` / `Admin::delete_share_group_offsets_timeout`
-are Java `AlterShareGroupOffsetsOptions` / `DeleteShareGroupOffsetsOptions.timeoutMs`
-(RPC deadline; these RPCs have no TimeoutMs). `Admin::delete_consumer_group_offsets` is Java
-`deleteConsumerGroupOffsets` (OffsetDelete).
-`Admin::delete_offsets_timeout` / `Admin::delete_consumer_group_offsets_timeout`
-are Java `DeleteConsumerGroupOffsetsOptions.timeoutMs` (RPC deadline;
-OffsetDelete has no TimeoutMs).
-`Admin::alter_consumer_group_offsets_timeout` is Java
-`AlterConsumerGroupOffsetsOptions.timeoutMs` (RPC deadline; OffsetCommit has
-no TimeoutMs). `Admin::delete_share_groups` is Java
-`deleteShareGroups` (DeleteGroups v0–v2). `Admin::describe_client_quotas` /
-`Admin::alter_client_quotas` are Java `describeClientQuotas` /
-`alterClientQuotas` (v0–v1; classic v0, flexible v1).
-`Admin::describe_client_quotas_timeout` / `Admin::alter_client_quotas_timeout`
-are Java `DescribeClientQuotasOptions` / `AlterClientQuotasOptions.timeoutMs`
-(RPC deadline; these RPCs have no TimeoutMs; alter also caps `NOT_CONTROLLER`).
-`Admin::describe_client_quotas_all` is Java `describeClientQuotas(ClientQuotaFilter.all())`.
-`Admin::describe_client_quotas_with` is Java `describeClientQuotas(ClientQuotaFilter)` (`contains` / `containsOnly`).
-`Admin::alter_user_scram_credentials_with` is Java `alterUserScramCredentials(List)` (`UserScramCredentialAlteration`).
-`Admin::alter_user_scram_credentials_timeout` /
-`Admin::describe_user_scram_credentials_timeout` are Java
-`AlterUserScramCredentialsOptions` / `DescribeUserScramCredentialsOptions.timeoutMs`
-(RPC deadline; these RPCs have no TimeoutMs; both cap `NOT_CONTROLLER`).
-`Admin::describe_user_scram_credentials_all` is Java `describeUserScramCredentials()`.
-`Admin::unregister_broker_timeout` is Java
-`UnregisterBrokerOptions.timeoutMs` (RPC deadline; UnregisterBroker has no
-TimeoutMs; caps `NOT_CONTROLLER`).
-`Admin::allocate_producer_ids_timeout` is the crate-first RPC deadline
-(AllocateProducerIds has no TimeoutMs; caps `NOT_CONTROLLER`). Java `Admin`
-has no `allocateProducerIds`. `Admin::new` does not require AllocateProducerIds,
-UnregisterBroker, DescribeProducers, DescribeCluster, UpdateFeatures,
-DescribeClientQuotas, AlterClientQuotas, AlterUserScramCredentials,
-DescribeUserScramCredentials, AlterReplicaLogDirs, DescribeLogDirs, the
-delegation-token APIs, DescribeTransactions, ListTransactions,
-AlterPartitionReassignments, ListPartitionReassignments, OffsetDelete, IncrementalAlterConfigs, ShareGroupDescribe,
-the share-offset RPCs, ListConfigResources, GetTelemetrySubscriptions, PushTelemetry, or AssignReplicasToDirs;
-those methods
-return `Error::Unsupported` when the broker omits them.
-`Admin::assign_replicas_to_dirs_timeout` is Java
-`AssignReplicasToDirsOptions.timeoutMs` (RPC deadline; AssignReplicasToDirs has no
-TimeoutMs; caps `NOT_CONTROLLER`).
-`Admin::alter_replica_log_dirs` is Java
-`alterReplicaLogDirs` (v1–v2; classic v1, flexible v2).
-`Admin::alter_replica_log_dirs_timeout` is Java
-`AlterReplicaLogDirsOptions.timeoutMs` (RPC deadline; AlterReplicaLogDirs has no TimeoutMs). `Admin::create_delegation_token` is Java
-`createDelegationToken` (v1–v3; classic v1, flexible v2, owner/requester v3). `Admin::create_delegation_token_default` is Java
-`createDelegationToken()`. `Admin::renew_delegation_token` is Java
-`renewDelegationToken` (v1–v2; classic v1, flexible v2). `Admin::renew_delegation_token_hmac` is Java
-`renewDelegationToken(byte[])`. `Admin::expire_delegation_token` is Java
-`expireDelegationToken` (v1–v2; classic v1, flexible v2). `Admin::expire_delegation_token_hmac` is Java
-`expireDelegationToken(byte[])`. `Admin::describe_delegation_token` is Java
-`describeDelegationToken` (v1–v3; classic v1, flexible v2, TokenRequester v3).
-`Admin::describe_delegation_tokens` is Java `describeDelegationToken()`.
-`Admin::create_delegation_token_timeout` / `Admin::renew_delegation_token_timeout` /
-`Admin::expire_delegation_token_timeout` / `Admin::describe_delegation_token_timeout`
-are Java `CreateDelegationTokenOptions` / `RenewDelegationTokenOptions` /
-`ExpireDelegationTokenOptions` / `DescribeDelegationTokenOptions.timeoutMs`
-(RPC deadline; these RPCs have no TimeoutMs). `Admin::describe_replica_log_dirs` is Java
-`describeReplicaLogDirs`. `Admin::describe_broker_log_dirs` is Java
-`describeLogDirs(Collection<Integer>)` (null-topics DescribeLogDirs v1–v4 on
-each broker). `Admin::describe_log_dirs_timeout` /
-`Admin::describe_replica_log_dirs_timeout` /
-`Admin::describe_broker_log_dirs_timeout` are Java
-`DescribeLogDirsOptions.timeoutMs` (RPC deadline; DescribeLogDirs has no
-TimeoutMs). `Admin::metrics` is Java `Admin.metrics()` (`AdminMetrics`
-snapshot; I/O errors, not broker `error_code`). `assignment` is Java `assignment`
-(`assigned_partitions` is the same list; `positions` is next fetch offset).
-`max.poll.records` caps
-how many records one `fetch` returns; the rest stay buffered.
-`fetch.max.bytes` (`ConsumerConfig::max_bytes` / `fetch_max_bytes`) and
-`max.partition.fetch.bytes` (`max_partition_fetch_bytes`) are independent;
-`max_bytes()` sets both (default 16 MiB each; Java is 50 MiB / 1 MiB).
+`fetch` sends one request per partition leader. When several leaders are involved, it returns after the first response and about 10 ms for the others. A slower leader stays in flight. Seek, assignment changes, and close drop that round.
 
-`ConsumerGroup` joins a group, heartbeats, fetches, and can commit offsets.
-`join_topics` (range), `join_sticky_topics`, `join_cooperative_sticky_topics`,
-and `join_consumer_topics`
-subscribe to several topics. Range and sticky assign each topic independently
-among members who subscribed to it. Sticky rebalances load when a member joins.
-Cooperative-sticky (KIP-429) keeps owned partitions until the owner revokes
-them, then rejoins so the new owner can take them. `ConsumerConfig::group_instance_id` is
-Kafka `group.instance.id` (static membership) on JoinGroup, Heartbeat, and
-KIP-848 heartbeats (ConsumerGroupHeartbeat v0–v1; v1 client-generated member id). `ConsumerConfig::rack` is also sent on KIP-848 and ShareGroupHeartbeat.
-`ConsumerConfig::auto_offset_reset` runs when OffsetFetch has no committed
-offset (`Earliest` by default). `ConsumerConfig::allow_auto_create_topics` is
-Kafka `allow.auto.create.topics` on Metadata (default `false`). `committed` / `committed_timeout` are OffsetFetch
-for the current assignment (Java `committed` / `committed(Duration)`). `commit` / `commit_timeout` are Java `commitSync` / `commitSync(Duration)`. `commit_offsets` commits caller-chosen offsets
-([`TopicPartition`](../src/consumer.rs) plus the next fetch offset).
-`seek_with_metadata` takes [`OffsetAndMetadata`](../src/consumer.rs)
-(Java `seek(TopicPartition, OffsetAndMetadata)`; Fetch `LastFetchedEpoch`
-from the leader epoch; metadata string ignored).
-`commit_with_metadata` sends [`OffsetAndMetadata`](../src/consumer.rs)
-(leader epoch and a metadata string). `commit_with_metadata_timeout` is Java
-`commitSync(Map, Duration)`. Pass
-[`ConsumerRecords::next_offsets`](../src/consumer.rs) to match Java
-`commitSync(records.nextOffsets())`. `committed` returns the same type.
-`commit_async` / `commit_async_with` are Java `commitAsync` / `commitAsync(OffsetCommitCallback)`:
-the OffsetCommit is queued and sent on the next poll, leave, close, or unsubscribe (no spawned task).
-`commit_with_metadata_async` is Java `commitAsync(Map, …)`.
-`current_lag` is high watermark minus position. `subscription` is the
-topic list. `enforce_rebalance` / `enforce_rebalance_with` rejoin on the
-next poll (Java `enforceRebalance` / `enforceRebalance(String)`; JoinGroup
-v8+ Reason, default `"rebalance enforced by user"`).
-`subscribe` / `unsubscribe` change the topic list without dropping the
-handle. `subscribe_matching` / `join_matching` / `join_sticky_matching` /
-`join_cooperative_sticky_matching` / `join_consumer_matching` are Java
-`subscribe(Pattern)` (re-list cluster topics on poll when `metadata.max.age.ms`
-elapses; names starting with `__` are skipped). Share groups have the same
-`subscribe_matching` / `join_matching`. `group_metadata` is Java `ConsumerGroupMetadata`. `list_topics`
-is cluster Metadata. `fetch_timeout` / `poll_timeout` are Java
-`poll(Duration)`. [`Producer::send_offsets_to_transaction`](../src/producer.rs)
-takes [`TopicPartition`](../src/consumer.rs).
-[`Producer::send_offsets_with_metadata`](../src/producer.rs)
-commits transactional offsets with epoch and a metadata string.
-`enable.auto.commit` is off by default; a zero interval commits after every
-`poll`. `ConsumerConfig::session_timeout` / `heartbeat_interval` control classic
-JoinGroup and the heartbeat loop. `on_rebalance` is `(revoked, assigned)`.
-`max.poll.interval.ms` errors on the next `poll` if exceeded (`Error::MaxPollInterval`)
-and the heartbeat thread leaves the group.
-`Producer::metrics` / `Consumer::metrics` / `ShareGroup::metrics` / `Admin::metrics` are counter snapshots
-plus latency min/mean/max and p50/p99 over the last 1024 samples (produce-ack / fetch round / Admin RPC),
-and per-topic rows on `ProducerMetrics::topics` / `ConsumerMetrics::topics` /
-`ShareMetrics::topics`. `AdminMetrics` is Java `Admin.metrics()`.
-`client_instance_id` is Java `clientInstanceId` (KIP-714).
-`client_instance_id_timeout` is Java `clientInstanceId(Duration)` (GetTelemetrySubscriptions RPC deadline; cached after the first successful call).
-`Consumer::wakeup` (and a cloneable [`WakeupHandle`](../src/consumer.rs)) interrupts
-fetch. `ProducerConfig::interceptor` / `ConsumerConfig::interceptor` observe or rewrite
-records. [`TopicPartition`](../src/consumer.rs) and `offsets_for_times` are Java
-`offsetsForTimes` (`OffsetAndTimestamp.leader_epoch` is Java `getLeaderEpoch`).
-leader epoch. `FetchedRecord.serialized_key_size` / `serialized_value_size`
-match Java. `assign_many` / `assign_partitions` / `unassign` replace or drop a
-manual assignment (`assign_partitions` is Java `assign(Collection)` and uses
-`auto.offset.reset`).
-`Consumer::close` / `Consumer::close_timeout` drop fetch connections.
-`ConsumerGroup::close_timeout` / `ShareGroup::close_timeout` cap `leave`
-(Java `close(Duration)`).
-`Admin::close_timeout` is Java `close(Duration)` (unused; no LeaveGroup).
+`seek_to_beginning` and `seek_to_end` call ListOffsets. `seek` and `seek_to` clear the last fetched epoch. `seek_with_metadata` keeps it (KIP-320). `pause` and `resume` skip assigned partitions without dropping them. Pause survives a rebalance. `position` is the next fetch offset.
 
-`ShareGroup` is KIP-932 queue sharing. `join_topics` subscribes to several
-topics.
+`max.poll.records` caps how many records one `fetch` returns. The rest stay buffered. `fetch.max.bytes` and `max.partition.fetch.bytes` are independent. `max_bytes()` sets both. The defaults are 16 MiB each. Java uses 50 MiB and 1 MiB.
 
-## Wire format notes (for people changing encode/decode)
+`assign_many` and `assign_partitions` replace a manual assignment. `assign_partitions` follows `auto.offset.reset`. `unassign` drops it.
+
+`Consumer::wakeup`, and a cloneable `WakeupHandle`, interrupt a fetch. Interceptors can observe or rewrite records. `close` and `close_timeout` drop fetch connections.
+
+## Groups
+
+`ConsumerGroup` joins, heartbeats, fetches, and commits.
+
+| Method | Assignment |
+|---|---|
+| `join_topics` | Range. Each topic is split across members subscribed to it. |
+| `join_sticky_topics` | Sticky. A joining member takes load from the others. |
+| `join_cooperative_sticky_topics` | Cooperative-sticky (KIP-429). Owners keep partitions until they revoke them, then rejoin. |
+| `join_consumer_topics` | KIP-848 server-side assignment. |
+
+`subscribe_matching` and the `join_*_matching` methods follow Java `subscribe(Pattern)`. Topic names that start with `__` are skipped. The pattern is re-evaluated when `metadata.max.age.ms` elapses.
+
+`group_instance_id` is static membership (`group.instance.id`) on JoinGroup, Heartbeat, and KIP-848. `rack` is also sent on KIP-848 and share-group heartbeats.
+
+`auto_offset_reset` runs when OffsetFetch has no commit. The default is earliest. `allow_auto_create_topics` defaults to false.
+
+`commit` and `commit_timeout` are synchronous commits. `commit_async` queues an OffsetCommit and sends it on the next poll, leave, close, or unsubscribe. It does not spawn a task. Pass `next_offsets` to commit what the last poll returned. `committed` reads the current assignment back.
+
+Auto-commit is off by default. A zero interval commits after every `poll`. `session_timeout` and `heartbeat_interval` control the classic group. If `max.poll.interval.ms` is exceeded, the next `poll` returns `Error::MaxPollInterval` and the heartbeat task leaves the group.
+
+`on_rebalance` receives `(revoked, assigned)`. `enforce_rebalance` rejoins on the next poll. `close_timeout` caps `leave`.
+
+`Producer::send_offsets_to_transaction` and `send_offsets_with_metadata` commit offsets inside a transaction.
+
+## Share groups
+
+`ShareGroup` is KIP-932 queue sharing. `join_topics` subscribes to several topics. The same pattern subscribe used by consumer groups is available. `close_timeout` caps leave.
+
+## Admin
+
+Admin methods follow the Java Admin names. A `*_timeout` method is that operation's options timeout: it is the RPC deadline. When the request has no TimeoutMs field, the deadline still bounds coordinator and controller retries. When the broker does not advertise the API, the method returns `Error::Unsupported`.
+
+`Admin::new` does not require the optional admin APIs. Calling one that the broker omitted returns `Unsupported`. `Admin::close_timeout` does not send LeaveGroup.
+
+`Admin::metrics` is a client-side snapshot of I/O errors and RPC latency. It is not a broker error code.
+
+The method list, including quotas, ACLs, delegation tokens, log directories, features, and share-group offsets, is in the rustdoc for `Admin`. This page does not repeat each Java overload.
+
+## Metrics and client id
+
+`Producer::metrics`, `Consumer::metrics`, `ShareGroup::metrics`, and `Admin::metrics` are counter snapshots. Latency is min, mean, max, p50, and p99 over the last 1,024 samples. Produce and fetch metrics also have one row per topic.
+
+`client_instance_id` is the KIP-714 client instance id. The timeout variant's deadline applies to GetTelemetrySubscriptions. The id is cached after the first success.
+
+## Wire format notes
+
+These notes are for people changing encoders and decoders. Each API bullet
+ends with the versions this crate speaks. The detail before that is layout:
+which fields are classic or flexible, where throttle time sits, and which
+KIPs added a field.
 
 - Request `ClientId` is always a classic nullable string, even on flexible headers.
 - ApiVersions **response** header is never flexible. If you parse it as flexible you eat the error code.
