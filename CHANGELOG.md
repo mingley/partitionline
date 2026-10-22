@@ -201,6 +201,8 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
 - The roadmap points KL09 at the current performance page. 51 of 74 KL09
   cards are done. KL09-13 is in progress. An older blob of that page is
   not the queue.
+- Roadmap links to source, scripts, and plans open the current tree. The
+  2026-09-21 audit links stay on that snapshot.
 - The gateway profile names zstd as an optional codec that has shipped.
   Its measured cells remain gzip and lz4.
 
