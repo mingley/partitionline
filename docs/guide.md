@@ -550,39 +550,44 @@ queued.
 
 ## Produce versions
 
-The producer negotiates Produce v3–v13. v13 replaces topic names with
-nonzero ids from Metadata v10 and above. The response is matched to the
-UUID and name snapshot sent with that request, so a concurrent metadata
-change cannot rename an acknowledgement. `UNKNOWN_TOPIC_ID` drops the cached
-identity and refreshes metadata before a retry inside the original delivery
-deadline. A missing or ambiguous identity fails before the request is
-written. Older peers keep name-based v3–v12 requests. A peer without
-Metadata v10 or above stays at Produce v12.
+The producer negotiates Produce v3–v13.
 
-A transactional producer uses v12 or v13 only when the ApiVersions snapshot
-from initialization has finalized `transaction.version` at 2 or higher and
-speaks EndTxn v5. Otherwise Produce stays at v11 and the client adds
-transaction partitions itself. That choice stays fixed for the life of the
-producer. Recreate it after the cluster transaction level changes.
+| Peer | What is sent |
+|---|---|
+| Metadata v10 or newer, and a nonzero topic id | Produce v13. The request carries the topic id, not the name. |
+| No Metadata v10 | Produce v12, by name |
+| Older peers | Name-based Produce v3–v12 |
+| Transactional, and initialization finalized `transaction.version` at 2 or higher and EndTxn v5 | Produce v12 or v13 |
+| Transactional, otherwise | Produce v11. The client adds transaction partitions itself. |
+
+A v13 response is matched to the UUID and name snapshot sent with that
+request, so a concurrent metadata change cannot rename an acknowledgement.
+`UNKNOWN_TOPIC_ID` drops the cached identity and refreshes metadata before
+a retry inside the original delivery deadline. A missing or ambiguous
+identity fails before the request is written. The transactional choice
+stays fixed for the life of the producer. Recreate it after the cluster
+transaction level changes.
 
 ## Broker throttle
 
-On Produce v6–v13, a positive `throttle_time_ms` mutes new Produce requests
-to that broker, on every connection slot. Other brokers keep sending.
-Responses already on the wire stay readable. The wait uses the original
-`delivery_timeout`, and a bounded close can interrupt it. Produce v3–v5
-leave throttling to the broker, so the client does not add a second delay.
-Zero or a negative value does not cancel an interval that is already
-running. Overlapping intervals keep the latest expiry, including across a
-reconnect. This policy is Produce only. Fetch, Admin, and group quotas are
-separate.
+| Request | What the client does with a positive quota |
+|---|---|
+| Produce v6–v13 | Mutes new Produce requests to that broker, on every connection. Other brokers keep sending. |
+| Produce v3–v5 | Leaves the delay to the broker. The client does not add a second one. |
+| Fetch v8–v18 | Mutes new Fetch requests to that broker. |
+| Fetch v4–v7 | Leaves the delay to the broker. |
+| Admin, groups, and heartbeats | Separate policies. A Produce mute does not apply to them. |
 
-On Fetch v8–v18, a quota header mutes new Fetch requests to that broker.
-v4–v7 leave throttling to the broker. Brokers that are not muted, and
-records already buffered, stay available. Each interval starts when its
-response finishes, so a slow peer cannot restart another broker's expired
-quota. Headers are read from every completed response, including when the
-record buffer is too full to deliver that body.
+Responses already on the wire stay readable. The Produce wait uses the
+original `delivery_timeout`, and a bounded close can interrupt it. Zero or
+a negative value does not cancel an interval that is already running.
+Overlapping intervals keep the latest expiry, including across a reconnect.
+
+On Fetch, brokers that are not muted, and records already buffered, stay
+available. Each interval starts when its response finishes, so a slow peer
+cannot restart another broker's expired quota. Headers are read from every
+completed response, including when the record buffer is too full to deliver
+that body.
 
 When every broker the poll needs is muted, the wait ends at the poll's
 long-poll budget (`max_wait_ms`, or the one-shot `fetch_timeout`) and
