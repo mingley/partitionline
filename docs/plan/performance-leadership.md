@@ -176,10 +176,12 @@ support a complete ranking or a below-one-percent rejection.
 Line numbers are hints at `19b4399`; re-locate code by function name.
 **R** = per record, **B** = per batch, **Q** = per request.
 
-Read the Observed cost column as that date's hypothesis. KL09-14,
-KL09-16, and KL09-17 are done. KL09-15 is still pending. Uncompressed
-Produce now writes each record into the request buffer. Compressed
-Produce still copies the packed batch out of a scratch buffer.
+Read the Observed cost column as that date's hypothesis. Done since
+then: KL09-14, KL09-16, KL09-17, KL09-18, KL09-19, KL09-22, KL09-24,
+KL09-25, KL09-28, and KL09-33. Still pending: KL09-15, KL09-20, KL09-21,
+KL09-23, KL09-26, KL09-27, KL09-29, and KL09-30. Uncompressed Produce
+now writes each record into the request buffer. Compressed Produce still
+copies the packed batch out of a scratch buffer.
 
 ### Producer
 
@@ -206,8 +208,10 @@ Produce still copies the packed batch out of a scratch buffer.
 
 ### Codecs
 
-KL09-34 is done: fetch batches are decompressed into a pre-sized buffer.
-The decompress row below is the 2026-09-26 hypothesis, not a current profile.
+KL09-31, KL09-32, and KL09-34 are done: record decode has a contiguous
+fast path, records are sized in one pass, and fetch batches are
+decompressed into a pre-sized buffer. The rows below are the 2026-09-26
+hypothesis, not a current profile.
 
 | Location | Observed cost | Card |
 |---|---|---|
@@ -222,7 +226,8 @@ Fetch v7–v18 uses incremental sessions, and v4–v6 stays a full request.
 KL09-42 is done: the next round is prefetched within the byte budget. The
 "legacy Fetch every round" and "no prefetch overlap" rows describe the
 2026-09-26 code. KL09-37 through KL09-39, the zero-copy batch view, are
-still pending. KL09-49, KL09-50, and KL09-51 are done: share fetch honors
+still pending. KL09-40 through KL09-48 are done; their rows are that
+date's costs. KL09-49, KL09-50, and KL09-51 are done: share fetch honors
 configured limits, overlaps leaders, and indexes acquisition ranges. The
 share-fetch row below is that date's description.
 

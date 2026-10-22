@@ -160,6 +160,9 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   Reused RPC buffers, pre-encoded headers, a shared TLS config, and a
   shared OIDC manager are done. Write-shape and socket-buffer cards stay
   pending.
+- The producer hot-path rows name the cards that are still pending:
+  KL09-15, KL09-20, KL09-21, KL09-23, KL09-26, KL09-27, KL09-29, and
+  KL09-30. The codec fast paths and KL09-40 through KL09-48 are done.
 - The gateway profile names zstd as an optional codec that has shipped.
   Its measured cells remain gzip and lz4.
 
