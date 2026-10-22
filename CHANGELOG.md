@@ -209,6 +209,9 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
 - The operations gap records that auth redaction and TLS rotation checks
   are done. The live credential matrix, newcomer exercises, and rollback
   rehearsal remain open.
+- The support matrix lists quorum admin behavior in a table. A local Raft
+  append is not committed membership. The live credential matrix is still
+  KL06-06.
 - The gateway profile names zstd as an optional codec that has shipped.
   Its measured cells remain gzip and lz4.
 

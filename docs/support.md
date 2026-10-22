@@ -139,7 +139,23 @@ Streams v0 codecs and caller-driven heartbeats keep typed topology, tasks, offse
 
 ### Quorum admin
 
-Source includes typed `elect_leaders`, read-only `describe_quorum`, and `add_raft_voter` / `remove_raft_voter`. Removal stays on v0. Addition negotiates v0 or v1. The default acknowledgement waits for a committed voter set and can use v0, which has no other mode. An explicit local append (`ack_when_committed: false`) requires v1 and is rejected before I/O on a v0-only broker. That success is a local append, not committed membership. Java’s public options expose cluster id only, so the false mode is a Rust extension. Both membership operations follow broker forwarding. They validate the voter, directory, and cluster, and they share one deadline. Addition also validates named endpoints. Removal has no TimeoutMs field on the wire. Independent Apache v0 fixtures and mock v1 checks cover the wire contract. No live quorum delay-commit proof, real membership change, or direct controller bootstrap is qualified. A lost response can leave membership ambiguous. Inspect the quorum before another change. A production membership change needs an operator-approved procedure.
+`Admin` has `elect_leaders`, read-only `describe_quorum`, `add_raft_voter`,
+and `remove_raft_voter`.
+
+| Piece | Behavior |
+|---|---|
+| RemoveRaftVoter | Version 0 only |
+| AddRaftVoter | Negotiates v0 or v1 |
+| Default acknowledgement | Waits for a committed voter set. v0 has no other mode. |
+| `ack_when_committed: false` | A local append. Requires v1. A v0-only broker is rejected before I/O. Success is not committed membership. |
+| Java's public options | Expose cluster id only. The false mode is a Rust extension. |
+| Routing | Broker forwarding. One deadline covers voter, directory, and cluster checks. Addition also checks named endpoints. Removal has no TimeoutMs field. |
+| What is checked | Independent Apache v0 fixtures and mock v1 responses |
+| What is not checked | A live delayed commit, a real membership change, or a direct controller bootstrap |
+
+A lost response can leave membership ambiguous. Inspect the quorum before
+another change. A production membership change needs an operator-approved
+procedure.
 
 ### Published crate
 
@@ -147,7 +163,7 @@ The migration map ([migrate-from-rdkafka.md](migrate-from-rdkafka.md)) was verif
 
 The 0.x caller contract for error categories (retryable, abort-required, fatal, unsupported, timeout, ambiguous delivery) and for public config fields is in [api-stability.md](api-stability.md). Match error categories, not `Display` text. Build configs with the builders, or with `Default` plus overrides.
 
-Report vulnerabilities privately. See [security.md](security.md). Credential `Debug` redaction is documented there. It does not replace rotation and outage recovery (KL-06 is open).
+Report vulnerabilities privately. See [security.md](security.md). Credential `Debug` redaction is documented there. It does not replace the live credential-lifecycle matrix (KL06-06), which is still pending.
 
 ### Upgrades
 
