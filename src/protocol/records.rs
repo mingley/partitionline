@@ -5806,7 +5806,26 @@ mod tests {
 
         let mut zero = two.clone();
         patch_batch_count(&mut zero, 0);
-        let skipped = decode_record_batch(&mut zero.as_ref()).unwrap();
+        let zero_err = decode_record_batch(&mut zero.as_ref())
+            .unwrap_err()
+            .to_string();
+        assert!(
+            zero_err.contains("Incorrect declared batch size, records still remaining in file"),
+            "{zero_err}"
+        );
+
+        let mut empty = vec![0u8; RecordBatch::RECORD_BATCH_OVERHEAD as usize];
+        put_batch_length(
+            &mut empty,
+            RecordBatch::RECORD_BATCH_OVERHEAD - Records::LOG_OVERHEAD,
+        );
+        put_magic(
+            &mut empty,
+            u8::try_from(RecordBatch::MAGIC_VALUE_V2).unwrap(),
+        );
+        put_record_count(&mut empty, 0);
+        restamp_crc(&mut empty);
+        let skipped = decode_record_batch(&mut empty.as_slice()).unwrap();
         assert!(skipped.records.is_empty());
     }
 
