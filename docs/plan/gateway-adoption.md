@@ -89,7 +89,9 @@ High watermarks were not checked.
 
 **Profile of the `try_send` run:** 80% of client CPU is in
 `gzip_compress_into` (miniz_oxide `compress_inner`). The protocol, batching
-and TLS path is only a few percent.
+and TLS path is only a few percent. That run used miniz_oxide. The default
+gzip backend is now zlib-rs (KL10-05 and KL10-06). The 24.3 µs figure and
+the 80% share have not been re-measured on zlib-rs.
 
 ### Produce, unpaced (15 s)
 
@@ -100,9 +102,10 @@ and TLS path is only a few percent.
 | partitionline, `send()` per spawned task | 379k | 8.50 | 22.4 µs | 594 ms |
 
 partitionline compresses on its per-connection workers in parallel. With max
-in flight 1, librdkafka compresses on a single broker thread. This is a
-real strength, but the clients used very different numbers of cores, so it
-is not a per-core comparison.
+in flight 1, librdkafka compresses on a single broker thread. The clients
+used very different numbers of cores, so this is not a per-core comparison.
+The 477k records/s figure is the same 2026-09-30 host and the same
+miniz_oxide backend. It has not been re-measured on zlib-rs.
 
 ### Consume a gzip backlog (8 partitions, manual assignment)
 
