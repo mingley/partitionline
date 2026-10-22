@@ -113,6 +113,8 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   entries, 8 MiB, 16 active keys, and the three freshness windows.
 - The same README lists Protobuf, Avro, and JSON Schema frame bounds in
   one table. Defaults stay 1 MiB frames.
+- The schema companion README no longer lists built-in serializers as
+  planned work. The application supplies the serializer.
 - The gateway profile names zstd as an optional codec that has shipped.
   Its measured cells remain gzip and lz4.
 

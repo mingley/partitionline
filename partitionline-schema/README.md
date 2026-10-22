@@ -196,11 +196,16 @@ reproduction commands are in the
 [conformance evidence](../docs/evidence/conformance/json-schema-selected-codec/README.md).
 The validator is a test dependency; applications still supply their codec.
 
-## Planned serializers
+## What this crate does not include
 
-Built-in Avro / Protobuf / JSON serialization libraries — see
-[`docs/schema-companion.md`](../docs/schema-companion.md) and survey
-[#85](https://github.com/mingley/partitionline/issues/85).
+The application supplies the serializer. This crate does not embed
+libavro, a Protobuf runtime, or a JSON Schema validator. It does not
+depend on `partitionline` or on `reqwest`. Registry auth here is TLS
+plus bearer or basic credentials. It does not speak Kerberos to the
+registry. A live round trip against a Schema Registry and Kafka is
+separate from the offline checks above. Pilot demand is
+[issue 85](https://github.com/mingley/partitionline/issues/85). The
+longer description is [the companion guide](../docs/schema-companion.md).
 
 ```bash
 cargo test --manifest-path partitionline-schema/Cargo.toml
