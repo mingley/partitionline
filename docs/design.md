@@ -118,8 +118,8 @@ A few rules apply across APIs:
 | ConsumerGroupDescribe | 0–1 |
 | ShareGroupHeartbeat | 0–1 |
 | ShareGroupDescribe | 0–1 |
-| ShareFetch | 0–1 |
-| ShareAcknowledge | 0–1 |
+| ShareFetch | 0–2 |
+| ShareAcknowledge | 0–2 |
 | DescribeShareGroupOffsets | 0 |
 | AlterShareGroupOffsets | 0 |
 | DeleteShareGroupOffsets | 0 |

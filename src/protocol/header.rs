@@ -360,12 +360,13 @@ pub fn request_header_version(api_key: i16, api_version: i16) -> i16 {
         // (v0 removed). This crate speaks 0–1. Same fields. v2+
         // is not spoken. ShareFetch is flexible from v0. Kafka 4.0
         // validVersions is "0"; Kafka 4.1 validVersions is "1"
-        // (v0 removed). This crate speaks 0–1. v0 PartitionMaxBytes;
-        // v1 MaxRecords / BatchSize / AcquisitionLockTimeoutMs. v2+
-        // is not spoken. ShareAcknowledge is flexible from v0. Kafka
-        // 4.0 validVersions is "0"; Kafka 4.1 validVersions is "1"
-        // (v0 removed). This crate speaks 0–1. Same fields. v2+
-        // is not spoken.
+        // (v0 removed). This crate speaks 0–2. v0 PartitionMaxBytes;
+        // v1 MaxRecords / BatchSize / AcquisitionLockTimeoutMs. v2 adds
+        // ShareAcquireMode and renew acknowledgements. v3+ is not spoken.
+        // ShareAcknowledge is flexible from v0. Kafka 4.0 validVersions
+        // is "0"; Kafka 4.1 validVersions is "1" (v0 removed). This crate
+        // speaks 0–2. v2 adds IsRenewAck and response
+        // AcquisitionLockTimeoutMs. v3+ is not spoken.
         CONSUMER_GROUP_DESCRIBE
         | CONSUMER_GROUP_HEARTBEAT
         | SHARE_GROUP_DESCRIBE
@@ -1200,24 +1201,24 @@ mod tests {
     }
 
     #[test]
-    fn share_fetch_v0_and_v1_are_flexible() {
+    fn share_fetch_v0_through_v2_are_flexible() {
         // Official Kafka 4.0 JSON: validVersions "0", flexibleVersions "0+".
         // Official Kafka 4.1 JSON: validVersions "1" (v0 removed).
         // HeaderVersion is 2 / 1 at every spoken version. This crate
-        // speaks 0–1. Request/response fields differ by version.
-        for version in 0..=1 {
+        // speaks 0–2. Request/response fields differ by version.
+        for version in 0..=2 {
             assert_eq!(request_header_version(SHARE_FETCH, version), 2);
             assert_eq!(response_header_version(SHARE_FETCH, version), 1);
         }
     }
 
     #[test]
-    fn share_acknowledge_v0_and_v1_are_flexible() {
+    fn share_acknowledge_v0_through_v2_are_flexible() {
         // Official Kafka 4.0 JSON: validVersions "0", flexibleVersions "0+".
         // Official Kafka 4.1 JSON: validVersions "1" (v0 removed).
         // HeaderVersion is 2 / 1 at every spoken version. This crate
-        // speaks 0–1. Same fields.
-        for version in 0..=1 {
+        // speaks 0–2. v2 adds IsRenewAck and response AcquisitionLockTimeoutMs.
+        for version in 0..=2 {
             assert_eq!(request_header_version(SHARE_ACKNOWLEDGE, version), 2);
             assert_eq!(response_header_version(SHARE_ACKNOWLEDGE, version), 1);
         }

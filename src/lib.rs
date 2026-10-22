@@ -637,7 +637,7 @@
 //! `0`);
 //! [`protocol::admin::ShareGroupDescribeResponse::error_counts`] is Java
 //! `ShareGroupDescribeResponse.errorCounts` (per-group codes, including `NONE`)),
-//! ShareFetch v0–v1 (v0 PartitionMaxBytes; v1 MaxRecords / BatchSize JSON `1+`
+//! ShareFetch v0–v2 (v2 adds ShareAcquireMode and renew acknowledgements; the response keeps the v1 fields; v0 PartitionMaxBytes; v1 MaxRecords / BatchSize JSON `1+`
 //! after MaxRecords;
 //! [`protocol::share::encode_share_fetch_request_with_batch_size`]
 //! round-trips a distinct value; [`protocol::share::encode_share_fetch_request`]
@@ -746,7 +746,7 @@
 //! stays `0`);
 //! [`protocol::share::ShareFetchedPartition::records_size`] is Java
 //! `ShareFetchResponse.recordsSize` (`0` when records are empty)),
-//! ShareAcknowledge v0–v1 (v0 Kafka 4.0 early access; v1 Kafka 4.1 stable; same fields;
+//! ShareAcknowledge v0–v2 (v2 adds IsRenewAck and response AcquisitionLockTimeoutMs; v0 Kafka 4.0 early access; v1 Kafka 4.1 stable; same fields;
 //! [`protocol::share::ShareAcknowledgeResponsePartition::partition_response`] is Java
 //! `ShareAcknowledgeResponse.partitionResponse` (`PartitionIndex` and `ErrorCode`).
 //! Official Java leaves ErrorMessage and CurrentLeader at JSON defaults

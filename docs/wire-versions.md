@@ -587,9 +587,9 @@ Official Java `DescribeShareGroupsHandler` uses `CoordinatorType.GROUP`.
 
 ### ShareFetch
 
-Spoken versions: 0–1.
+Spoken versions: 0–2.
 
-ShareFetch v0–v1 are flexible (compact strings/arrays/bytes plus tagged fields; request header 2, response header 1).
+ShareFetch v0–v2 are flexible (compact strings/arrays/bytes plus tagged fields; request header 2, response header 1).
 
 Kafka 4.0 `validVersions` is `"0"` (`latestVersionUnstable`).
 
@@ -627,21 +627,25 @@ Top-level ErrorCode is JSON `0+` (`encode_share_fetch_response_with_error_code`;
 
 Top-level ErrorMessage is JSON `0+` (`encode_share_fetch_response_with_error_message`; `encode_share_fetch_response` writes null; not partition ErrorMessage).
 
-v2+ is not spoken.
+v2 adds ShareAcquireMode and acknowledgement type 4 (renew) on the request (KIP-1206 / KIP-1222). The response keeps the v1 fields. The share group negotiates 0–2.
+
+v3+ is not spoken.
 
 ### ShareAcknowledge
 
-Spoken versions: 0–1.
+Spoken versions: 0–2.
 
-ShareAcknowledge v0–v1 are flexible (compact strings/arrays plus tagged fields; request header 2, response header 1).
+ShareAcknowledge v0–v2 are flexible (compact strings/arrays plus tagged fields; request header 2, response header 1).
 
-Same fields.
+Same fields on v0 and v1.
 
 Kafka 4.0 `validVersions` is `"0"` (`latestVersionUnstable`).
 
 Kafka 4.1 `validVersions` is `"1"` (v0 removed).
 
-v2+ is not spoken.
+v2 adds IsRenewAck on the request and AcquisitionLockTimeoutMs on the response (KIP-1222). Acknowledgement type 4 renews a lock. The share group negotiates 0–2.
+
+v3+ is not spoken.
 
 v1 response matches v0.
 
