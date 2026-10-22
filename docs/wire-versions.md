@@ -417,105 +417,65 @@ v1+ is not spoken.
 
 ### ShareFetch
 
-Spoken versions: 0–2.
+Spoken versions: 0–2. Version 3 and above are not spoken.
 
-ShareFetch v0–v2 are flexible (compact strings/arrays/bytes plus tagged fields; request header 2, response header 1).
+v0–v2 are flexible. Request header version 2, response header version 1. The share group negotiates 0–2.
 
-Kafka 4.0 `validVersions` is `"0"` (`latestVersionUnstable`).
+| Version | What changed |
+|---|---|
+| 0 | Each partition has `PartitionMaxBytes`. |
+| 1 | `MaxRecords` / `BatchSize` follow `MaxBytes` (JSON `1+`). There is no `PartitionMaxBytes`. v0 omits a non-zero batch size and decode fills 0. `encode_share_fetch_request` writes `BatchSize` as `MaxRecords`. `encode_share_fetch_request_with_batch_size` writes the separate field. `AcquisitionLockTimeoutMs` follows `ErrorMessage`. |
+| 2 | The request adds `ShareAcquireMode` and acknowledgement type 4, renew (KIP-1206 / KIP-1222). The response keeps the v1 fields. |
 
-Kafka 4.1 `validVersions` is `"1"` (v0 removed).
+`MaxWaitMs`, `MinBytes`, and `MaxBytes` are JSON `0+`. Decode returns them. Encode takes `max_wait_ms`, `min_bytes`, and `max_bytes`. The JSON default for `MaxBytes` is `0x7fffffff`.
 
-v0 PartitionMaxBytes on each partition.
+`Records` is the JSON `records` field. Kafka 4.0 marks it nullable on every version. Kafka 4.1 marks it nullable on v0 only. Decode accepts a compact null as empty on v0. A v1 null is `Error::protocol` (Java: `non-nullable field records was serialized as null`). Encode writes `MemoryRecords.EMPTY`, not null.
 
-v1 MaxRecords / BatchSize after MaxBytes (JSON `1+`; `encode_share_fetch_request_with_batch_size`; `encode_share_fetch_request` still writes BatchSize as MaxRecords; v0 omits even when non-zero and decode fills 0; no PartitionMaxBytes).
+`AcquisitionLockTimeoutMs` is JSON `1+` (`encode_share_fetch_response_with_acquisition_lock_timeout`). The ordinary response encoder writes 15000. v0 omits a non-zero value and decode fills 0. The error path stays at 0.
 
-MaxWaitMs is JSON `0+` (decode returns it; encode already takes `max_wait_ms`).
+`ForgottenTopicsData` is JSON `0+`. The ordinary encoder writes it empty (`encode_share_fetch_request_with_forgotten` writes the caller's list). Duplicate partition indexes are kept. The topic is a UUID, with no name.
 
-MinBytes is JSON `0+` (decode returns it; encode already takes `min_bytes`).
+These response fields are untagged, not the Fetch tagged fields with the same names:
 
-MaxBytes is JSON `0+` (decode returns it; encode already takes `max_bytes`; JSON default `0x7fffffff`).
+| Field | Default the ordinary encoder writes |
+|---|---|
+| `NodeEndpoints` | Empty. Compact array of `NodeId` INT32, `Host` compact string, `Port` INT32, `Rack` compact nullable string, then nested tags. |
+| Partition `CurrentLeader` | `0` / `0`. Nested `LeaderId` INT32, `LeaderEpoch` INT32, then nested tags. |
+| Partition `ErrorMessage` | Null. Separate from the top-level `ErrorMessage`. |
+| Partition `AcknowledgeErrorCode` | `0`. Separate from the fetch `ErrorCode`. The schema lists `INVALID_RECORD_STATE` as acknowledge-only. |
+| Partition `AcknowledgeErrorMessage` | Null. Separate from the fetch `ErrorMessage`. |
 
-Records is JSON `records` (Kafka 4.0 `nullableVersions` `0+`; Kafka 4.1 `nullableVersions` `0` only; decode accepts compact null as empty on v0; v1 null is `Error::protocol` Java generated `non-nullable field records was serialized as null`; encode still writes `MemoryRecords.EMPTY` not null).
+`ThrottleTimeMs` and the top-level `ErrorCode` and `ErrorMessage` are JSON `0+`. The ordinary encoder writes throttle `0`, error code `0`, and a null message. Decode returns a non-zero error code and does not fail the response. `encode_share_fetch_error` writes throttle `0`. `encode_share_fetch_error_with_throttle` round-trips a non-zero value. Java `getErrorResponse` and `ShareFetchResponse.of` set `throttleTimeMs`, leave `Responses` empty, and leave v1 `AcquisitionLockTimeoutMs` at `0`.
 
-AcquisitionLockTimeoutMs after ErrorMessage (JSON `1+`; `encode_share_fetch_response_with_acquisition_lock_timeout`; `encode_share_fetch_response` still writes 15000; v0 omits even when non-zero and decode fills 0; error-path stays 0).
-
-ForgottenTopicsData is JSON `0+` (`encode_share_fetch_request_with_forgotten`; `encode_share_fetch_request` writes empty; duplicate partition indexes are kept; TopicId UUID, no name).
-
-Response NodeEndpoints is JSON `0+` (untagged compact array of `NodeId` INT32 + `Host` compact STRING + `Port` INT32 + `Rack` compact nullable STRING + nested tagged fields; `encode_share_fetch_response_with_endpoints`; `encode_share_fetch_response` writes empty; not Fetch v16 tagged field 0).
-
-Partition CurrentLeader is JSON `0+` (untagged nested `LeaderIdAndEpoch`: `LeaderId` INT32 + `LeaderEpoch` INT32 + nested tagged fields; encode writes the partition fields; `partition_response` fills 0/0; not Fetch v12+ tagged field 1).
-
-Partition ErrorMessage is JSON `0+` (nullable compact STRING; encode writes the partition field; `partition_response` fills null; not the top-level ErrorMessage).
-
-Partition AcknowledgeErrorCode is JSON `0+` (encode writes the partition field; `partition_response` fills 0; not fetch `ErrorCode`; JSON lists `INVALID_RECORD_STATE` as acknowledge-only).
-
-Partition AcknowledgeErrorMessage is JSON `0+` (nullable compact STRING; encode writes the partition field; `partition_response` fills null; not fetch `ErrorMessage`).
-
-ThrottleTimeMs is JSON `0+` (`encode_share_fetch_response_with_throttle`; `encode_share_fetch_response` writes `0`; `encode_share_fetch_error` still writes `0`; `encode_share_fetch_error_with_throttle` round-trips a non-zero value; Java `ShareFetchRequest.getErrorResponse` / `ShareFetchResponse.of` sets `throttleTimeMs`; empty Responses; v1 AcquisitionLockTimeoutMs stays `0` on that path).
-
-Top-level ErrorCode is JSON `0+` (`encode_share_fetch_response_with_error_code`; `encode_share_fetch_response` still writes `0`; decode returns it and does not fail on a non-zero code).
-
-Top-level ErrorMessage is JSON `0+` (`encode_share_fetch_response_with_error_message`; `encode_share_fetch_response` writes null; not partition ErrorMessage).
-
-v2 adds ShareAcquireMode and acknowledgement type 4 (renew) on the request (KIP-1206 / KIP-1222). The response keeps the v1 fields. The share group negotiates 0–2.
-
-v3+ is not spoken.
+Kafka 4.0 `validVersions` is `"0"` (`latestVersionUnstable`). Kafka 4.1 `validVersions` is `"1"` and removed v0. This crate speaks 0–2.
 
 ### ShareAcknowledge
 
-Spoken versions: 0–2.
+Spoken versions: 0–2. Version 3 and above are not spoken.
 
-ShareAcknowledge v0–v2 are flexible (compact strings/arrays plus tagged fields; request header 2, response header 1).
+v0–v2 are flexible. Request header version 2, response header version 1. v0 and v1 use the same fields, and the v1 response matches v0. The share group negotiates 0–2.
 
-Same fields on v0 and v1.
+v2 adds `IsRenewAck` on the request and `AcquisitionLockTimeoutMs` on the response (KIP-1222). Acknowledgement type 4 renews a lock.
 
-Kafka 4.0 `validVersions` is `"0"` (`latestVersionUnstable`).
+`NodeEndpoints`, partition `CurrentLeader`, and partition `ErrorMessage` have the same untagged layouts as ShareFetch. The ordinary encoder writes an empty endpoint list, leader `0` / `0`, and a null partition message. Those are not the Fetch tagged fields, and the partition message is not the top-level `ErrorMessage`.
 
-Kafka 4.1 `validVersions` is `"1"` (v0 removed).
+`ThrottleTimeMs` and the top-level `ErrorMessage` are JSON `0+`. The ordinary encoder writes throttle `0` and a null message. v0 and v1 bodies match.
 
-v2 adds IsRenewAck on the request and AcquisitionLockTimeoutMs on the response (KIP-1222). Acknowledgement type 4 renews a lock. The share group negotiates 0–2.
-
-v3+ is not spoken.
-
-v1 response matches v0.
-
-Response NodeEndpoints is JSON `0+` (untagged compact array of `NodeId` INT32 + `Host` compact STRING + `Port` INT32 + `Rack` compact nullable STRING + nested tagged fields; `encode_share_acknowledge_topics_response_with_endpoints`; `encode_share_acknowledge_topics_response` writes empty; not Fetch v16 tagged field 0).
-
-Partition CurrentLeader is JSON `0+` (untagged nested `LeaderIdAndEpoch`: `LeaderId` INT32 + `LeaderEpoch` INT32 + nested tagged fields; encode writes the partition fields; `partition_response` fills 0/0; not Fetch v12+ tagged field 1).
-
-Partition ErrorMessage is JSON `0+` (nullable compact STRING; encode writes the partition field; `partition_response` fills null; not the top-level ErrorMessage).
-
-ThrottleTimeMs is JSON `0+` (`encode_share_acknowledge_topics_response_with_throttle`; `encode_share_acknowledge_topics_response` writes `0`; v0 and v1 bodies match).
-
-Top-level ErrorMessage is JSON `0+` (`encode_share_acknowledge_topics_response_with_error_message`; `encode_share_acknowledge_topics_response` writes null; not partition ErrorMessage; v0 and v1 bodies match).
+Kafka 4.0 `validVersions` is `"0"` (`latestVersionUnstable`). Kafka 4.1 `validVersions` is `"1"` and removed v0. This crate speaks 0–2.
 
 ### DescribeShareGroupOffsets
 
-Spoken versions: 0.
+Spoken versions: 0. Version 1 and above are not spoken. v1 would add lag (KIP-1226).
 
-DescribeShareGroupOffsets v0 is flexible (compact strings/arrays plus tagged fields; request header 2, response header 1).
+v0 is flexible. Request header version 2, response header version 1. There is no top-level error code. Each group has its own error code.
 
-ThrottleTimeMs is JSON `0+` (`encode_describe_share_group_offsets_response_with_throttle`; `encode_describe_share_group_offsets_response` writes `0`; encode previously always wrote `0` and decode discarded).
+`ThrottleTimeMs` is JSON `0+` (`encode_describe_share_group_offsets_response_with_throttle`). The ordinary encoder writes `0`.
 
-v1+ (Lag, KIP-1226) is not spoken.
+`error_counts` keeps the last non-`NONE` group code for each `GroupId`, then every partition code, including `NONE`. `has_group_error` is true when any matching group id has a non-`NONE` group code. Partition codes are ignored. Java `groupError` returns a `Throwable` and is not mapped.
 
-Group-level ErrorCode is per-group.
+Java `getErrorResponse` copies the group ids, leaves `Topics` empty, sets `ErrorMessage` to JSON null, and copies `throttleTimeMs` from its argument. The request topics are not copied. `error_described_group` is one group id plus an error code, empty topics, and a null message. Java sets the English `Errors.message` there.
 
-`DescribeShareGroupOffsetsResponse.error_counts` is Java `DescribeShareGroupOffsetsResponse.errorCounts` (group-level non-`NONE` last-wins on GroupId, plus every partition-level code including `NONE`; there is no top-level ErrorCode).
-
-`DescribeShareGroupOffsetsResponse.has_group_error` is Java `DescribeShareGroupOffsetsResponse.hasGroupError` (`true` when any matching `groupId` has a non-`NONE` group-level code; partition-level codes are ignored; Java `groupError` returns `Throwable` and is not mapped).
-
-`DescribeShareGroupOffsetsRequest.error_response` is Java `DescribeShareGroupOffsetsRequest.getErrorResponse` (copies group ids; empty Topics; ErrorMessage JSON-null; ThrottleTimeMs JSON `0+`; convenience encode writes `0`; official Java sets `throttleTimeMs` from the argument; request Topics are not copied).
-
-`DescribeShareGroupOffsetsRequest.error_described_group` is Java `DescribeShareGroupOffsetsRequest.getErrorDescribedGroup` (one GroupId + ErrorCode; empty Topics; ErrorMessage JSON-null; official Java sets English `Errors.message`).
-
-Official Java `ListShareGroupOffsetsHandler` uses `CoordinatorType.GROUP`.
-
-`describe_share_group_offsets` / `list_share_group_offsets` send FindCoordinator v4+ CoordinatorKeys of N (KIP-699) and one DescribeShareGroupOffsets RPC per coordinator.
-
-`describe_share_group_offsets_timeout` / `list_share_group_offsets_timeout` are Java `ListShareGroupOffsetsOptions.timeoutMs` (RPC deadline; DescribeShareGroupOffsets has no TimeoutMs).
-
-`alter_share_group_offsets_timeout` / `delete_share_group_offsets_timeout` are Java `AlterShareGroupOffsetsOptions` / `DeleteShareGroupOffsetsOptions.timeoutMs` (RPC deadline; these RPCs have no TimeoutMs).
+Java `ListShareGroupOffsetsHandler` uses `CoordinatorType.GROUP`. `describe_share_group_offsets` and `list_share_group_offsets` send FindCoordinator v4+ with N `CoordinatorKeys` and one DescribeShareGroupOffsets per coordinator. The list, alter, and delete timeouts are RPC deadlines. None of these three requests has a `TimeoutMs` field.
 
 ### AlterShareGroupOffsets
 
@@ -661,63 +621,42 @@ ErrorCode is top-level after throttle.
 
 ### SaslHandshake
 
-Spoken versions: 0–1.
+Spoken versions: 0–1. Version 2 and above are not spoken (KAFKA-9577).
 
-SaslHandshake v0–v1 are classic (Apache JSON `flexibleVersions: "none"`).
+v0 and v1 are classic and use the same fields. Apache lists `flexibleVersions: none`. v1 is what enables SaslAuthenticate.
 
-Same fields.
-
-v1 enables SaslAuthenticate.
-
-`SaslHandshakeResponse.error_counts` is Java `SaslHandshakeResponse.errorCounts` (top-level ErrorCode only, including `NONE`; Java `Collections.singletonMap`; Mechanisms are not counted).
+`error_counts` counts the top-level error code only, including `NONE`. Mechanism names are not counted.
 
 Kafka 4.0 `validVersions` is `0-1`.
-
-v2+ is not spoken (KAFKA-9577).
 
 ### SaslAuthenticate
 
-Spoken versions: 0–2.
+Spoken versions: 0–2. Version 3 and above are not spoken.
 
-SaslAuthenticate v0–v1 are classic.
+v0 and v1 are classic and share one `AuthBytes` request. v2 is flexible. Request header version 2, response header version 1.
 
-v2 is flexible (compact bytes/strings plus tagged fields; request header 2, response header 1).
-
-v0 and v1 request match (AuthBytes).
-
-v1+ SessionLifetimeMs.
-
-`SaslAuthenticateResponse.error_counts` is Java `SaslAuthenticateResponse.errorCounts` (top-level ErrorCode only, including `NONE`; Java `Collections.singletonMap`; AuthBytes / ErrorMessage / SessionLifetimeMs are not counted).
+v1 and v2 add `SessionLifetimeMs`. `error_counts` counts the top-level error code only, including `NONE`. `AuthBytes`, `ErrorMessage`, and `SessionLifetimeMs` are not counted.
 
 Kafka 4.0 `validVersions` is `0-2`.
 
-v3+ is not spoken.
-
 ### ListTransactions
 
-Spoken versions: 0–2.
+Spoken versions: 0–2. Version 3 and above are not spoken.
 
-ListTransactions v0–v2 are flexible (compact arrays/strings plus tagged fields; request header 2, response header 1).
+v0–v2 are flexible. Request header version 2, response header version 1. v0 and v1 share one empty-`TransactionStates` body. The v1 and v2 responses match v0. The top-level error code is at bytes 4–5.
 
-v1 adds DurationFilter INT64 after ProducerIdFilters (KIP-994; `< 0` means no filter).
+| Version | What changed |
+|---|---|
+| 1 | `DurationFilter`, an INT64 after `ProducerIdFilters` (KIP-994). A negative value means no filter. |
+| 2 | Nullable `TransactionalIdPattern`. |
 
-ThrottleTimeMs is JSON `0+` (`ListTransactionsResponse.throttle_time_ms`; encode previously always wrote `0` and decode discarded; `::new` fills `0`).
+A pattern on v0 or v1 is refused. A nonempty pattern requires v2 and is not dropped when the broker is older. Admin negotiates 0–2.
 
-Empty-TransactionStates v0 and v1 bodies match.
+`ThrottleTimeMs` is JSON `0+`. `ListTransactionsResponse::new` fills `0`. `error_counts` counts the top-level error code only, including `NONE`. Unknown state filters and transaction listings are not counted. Java `getErrorResponse` leaves `UnknownStateFilters` and `TransactionStates` empty and does not copy the request's `StateFilters`, `ProducerIdFilters`, or `DurationFilter`.
 
-Top-level ErrorCode is at bytes 4–5.
+Kafka 4.0 `validVersions` is `0-1`. This crate also speaks v2.
 
-`ListTransactionsResponse.error_counts` is Java `ListTransactionsResponse.errorCounts` (top-level ErrorCode only, including `NONE`; Java `updateErrorCounts`; unknown state filters and listings are not counted).
-
-`ListTransactionsRequest.error_response` is Java `ListTransactionsRequest.getErrorResponse` (empty UnknownStateFilters / TransactionStates; ThrottleTimeMs JSON `0+`; convenience fills `0`; official Java sets `throttleTimeMs` from the argument; request StateFilters / ProducerIdFilters / DurationFilter are not copied).
-
-Kafka 4.0 `validVersions` is `0-1`.
-
-v2 adds a nullable TransactionalIdPattern. A pattern on v0 or v1 is refused. A nonempty pattern requires v2 and is not dropped on an older broker. Admin negotiates 0–2. v1 and v2 responses match v0.
-
-v3+ is not spoken.
-
-`list_transactions_timeout` / `list_transactions_with_duration_timeout` are Java `ListTransactionsOptions.timeoutMs` (RPC deadline; ListTransactions has no TimeoutMs; `duration_ms` is DurationFilter, not TimeoutMs).
+`list_transactions_timeout` and `list_transactions_with_duration_timeout` are the RPC deadline (Java `ListTransactionsOptions.timeoutMs`). The request has no `TimeoutMs` field. `duration_ms` is `DurationFilter`.
 
 ### DescribeTransactions
 
