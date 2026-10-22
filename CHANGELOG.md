@@ -115,6 +115,9 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   one table. Defaults stay 1 MiB frames.
 - The schema companion README no longer lists built-in serializers as
   planned work. The application supplies the serializer.
+- The broker README says 63 of 76 KL11 cards are done. OIDC validation
+  and SASL reauthentication are in progress. The crate is not a production
+  cluster.
 - The gateway profile names zstd as an optional codec that has shipped.
   Its measured cells remain gzip and lz4.
 
