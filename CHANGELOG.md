@@ -7,6 +7,9 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
 
 ## [Unreleased]
 
+- The performance plan leads with what has changed since the 2026-09-26
+  snapshot. Hot-path rows carry the card status. Observed costs stay that
+  day's hypothesis. Suite HOLD remains.
 - The gateway findings table states which 2026-09-30 items have landed.
   zlib-rs is the default gzip backend, and zstd is an optional feature.
   The 7.8× fetch CPU figure and the 1,426 MB RSS figure are still the

@@ -115,7 +115,31 @@ builds the claimable evidence:
 The lanes join at KL09-68/70. KL09 cards never publish a claim; only
 KL04-12, KL04-14 and KL09-70 can.
 
-## 2. Where we are (dated; source `19b4399`, 2026-09-26)
+## 2. Where we are
+
+[tasks.json](tasks.json) is the status list. **Suite HOLD remains.** This
+page does not publish a claim. No required cell in the checked-in scenarios
+is `passed`.
+
+The snapshot below is source `19b4399` on 2026-09-26. Read it as that
+day's notes. These parts of it have changed:
+
+| What the snapshot said | What is true now |
+|---|---|
+| Flexible Produce copies the whole batch a second time | Uncompressed Produce writes each record into the request buffer. Compressed Produce still copies the packed batch out of a scratch buffer. KL09-15 is still pending. Do not start it without a measurement of the parent revision and byte-identical requests. `src/producer.rs` is held by other in-progress cards. |
+| No incremental Fetch | KL05-06 and KL05-07 are done. Live qualification of session runtime is KL01-24, still pending. |
+| zstd is missing | KL05-04 shipped optional zstd encode. The required zstd cells stay `not_run`. |
+| `bench_produce` ignores warmup and batch size | KL09-02 is done. The driver honors those knobs. The snapshot row describes the driver before that card. |
+| Header-blind size estimate | KL09-14 is done. Section 3's row is the old code. |
+| Ack metadata and a per-topic metric lookup on every record | KL09-16 and KL09-17 are done. |
+
+Two snapshot lines were not re-measured for this note: the latency loss
+(p50 62 vs 58 µs, p99 95 vs 90 µs), and the lack of an efficiency
+measurement as of that date. The notes on per-record consumer allocations
+were not re-checked either. Prefetch overlap (KL09-42) has since landed;
+the snapshot still lists it as missing.
+
+### Snapshot at source `19b4399` (2026-09-26)
 
 | Evidence | Result | Standing |
 |---|---|---|
@@ -126,43 +150,24 @@ KL04-12, KL04-14 and KL09-70 can.
 | Microbenchmarks, allocation and instruction counts, profiler scripts | **None** in the repository | KL04-09, KL09-04/05/11 |
 | `bench_produce` against the matched scenario | The scenario passes `WARMUP`/`BATCH_SIZE`, which the driver ignores. The driver also uses repeated-byte payloads and a hard-coded 1,000,000-byte batch. | Evidence-integrity gap (KL09-02) |
 
-**Reading:** the bulk-produce design is already strong. It uses sharded
-per-connection workers and pipelined requests. For classic Produce
-(v3–v8) it copies each payload once; flexible v9+ adds a second
-full-batch copy (KL09-15). That explains the historical produce results.
+**Reading on that date:** the bulk-produce design was already strong. It
+uses sharded per-connection workers and pipelined requests. For classic
+Produce (v3–v8) it copied each payload once; flexible v9+ added a second
+full-batch copy (KL09-15). That was the explanation offered for the
+historical produce results.
 
-The measurable gaps are:
+The gaps listed that day were:
 
 - latency, a known loss
 - per-record bookkeeping on the ack and metrics path
-- consumer per-record allocations, no prefetch overlap and no incremental
-  Fetch
+- consumer per-record allocations, no prefetch overlap, and no incremental Fetch
 - missing zstd
 - no efficiency measurement at all
 
-### Later than this snapshot
-
-The table and the list above are the 2026-09-26 reading of source
-`19b4399`. Current card status lives in [tasks.json](tasks.json).
-
-These cards have landed since that date:
-
-| Card | What changed |
-|---|---|
-| KL05-04 | Interoperable zstd record-batch encoding. The `zstd` feature stays optional. |
-| KL05-06, KL05-07 | The consumer uses incremental Fetch sessions and recovers them after session errors, reconnects, and leader changes. |
-| KL09-02 | `bench_produce` honors the frozen scenario knobs, including warmup and batch size. The table row above describes the driver before that card. |
-| KL09-14 | Produce batches are packed with header bytes included. The header-blind estimate in section 3 is the old code. |
-| KL09-16, KL09-17 | Ack metadata is built only when a caller or interceptor needs it, and per-topic metric trackers are cached on routes. |
-
-Still open, and still the right reading of this section:
-
-- **KL09-15.** Still pending. The 2026-09-26 line about a fresh buffer and a full copy on every flexible batch describes that date's code. Uncompressed Produce now writes each record into the request buffer. Compressed Produce still copies the packed batch out of a scratch buffer. Do not start the card without a measurement of the parent revision and byte-identical requests. `src/producer.rs` is also held by other in-progress cards.
-- **KL01-24.** Incremental Fetch is implemented. Live qualification of session runtime and bounded reset histories is not.
-
-Two lines were not re-measured for this note: the latency loss, and the lack of an efficiency measurement. Leave both as the state on 2026-09-26. The notes on per-record consumer allocations and missing prefetch overlap were not re-checked either. **Suite HOLD remains.** This note does not publish a claim.
-
-Section 3 is the same snapshot. A card that [tasks.json](tasks.json) now marks done may already have changed the function those line numbers point at. Re-locate current code by function name.
+Section 3 is the same snapshot. A card that [tasks.json](tasks.json) now
+marks done may already have changed the function those line numbers point
+at. Re-locate current code by function name. The Status column is the card
+state now. The Observed cost column is still the 2026-09-26 hypothesis.
 
 ## 3. Hot-path map (source hypotheses; KL09-13 ranks them by measurement)
 
@@ -176,96 +181,80 @@ support a complete ranking or a below-one-percent rejection.
 Line numbers are hints at `19b4399`; re-locate code by function name.
 **R** = per record, **B** = per batch, **Q** = per request.
 
-Read the Observed cost column as that date's hypothesis. Done since
-then: KL09-14, KL09-16, KL09-17, KL09-18, KL09-19, KL09-22, KL09-24,
-KL09-25, KL09-28, and KL09-33. Still pending: KL09-15, KL09-20, KL09-21,
-KL09-23, KL09-26, KL09-27, KL09-29, and KL09-30. Uncompressed Produce
-now writes each record into the request buffer. Compressed Produce still
-copies the packed batch out of a scratch buffer.
+Observed cost is that date's hypothesis. Status is the card in
+[tasks.json](tasks.json). Uncompressed Produce now writes each record into
+the request buffer. Compressed Produce still copies the packed batch out
+of a scratch buffer.
 
 ### Producer
 
-| Step | Location | Observed cost | Card |
-|---|---|---|---|
-| Header-blind size estimate | `estimate()` = key + value + 64 (`producer.rs` ~4191), used by `batch_ready`/`take_count` | Header-heavy batches can exceed `batch_bytes`/`max_request_size`, a **possible bound violation** | **KL09-14 (P0)** |
-| Flexible (v9+) Produce encode | `encode_produce_body` (~4266–4355) | **New `BytesMut` per partition batch plus a full copy** into the request (B) | KL09-15 |
-| Ack completion | `wait_one` (~3701–3900); `record_metadata` (~4506) | `RecordMetadata` and topic `String` built **per record even for `try_send` with no interceptors** (R) | KL09-16 |
-| Per-topic metrics tracker | `Shared::topic_tracker` (~941–947) | `parking_lot::Mutex<HashMap>` lookup plus `Arc` clone (R) | KL09-17 |
-| Ack-latency sampling | `note_ack_latency` (~1076); `metrics.rs` ~189–250 | Clock read plus 2 atomic latency trackers (R) | KL09-18 |
-| Readiness and expiry | `batch_ready`/`take_count` (~4143–4190); `purge_expired_pending` (~3306) | Full pending scan per loop iteration; HashMap insert plus `Arc` clone per record; `Vec::remove` shifting (R, up to O(n²) per batch) | KL09-19 |
-| Linger wait ignores in-flight responses | `Worker::run` `select!` (~3387–3467) | Received acks wait for linger or new data (p99) | KL09-20 |
-| New `Sleep` each iteration | `Worker::run` | Timer registration per loop | KL09-21 |
-| Single-topic fast route | `fast_route`/`remember_fast` (~1645–1711); `Cluster::leader` clones the address `String` (`cluster.rs` ~213–238) | Mixed topics fall back to lock, hash and allocation (R) | KL09-22 |
-| `send` wraps one record in `send_all` | `send`/`send_all` (~1554–1642) | Singleton `Vec` in and out; duplicate route lookup (R) | KL09-23 |
-| Eager worker allocation | `spawn_node_workers` (~2998–3052) | 8 connections × 2 MiB write buffer plus pending slots (RSS) | KL09-24 |
-| Eager, sequential slot connects | `spawn_node_workers` / `connect_tls` (`net.rs` ~697) | Every slot opens and negotiates at setup | KL09-25 |
-| Grouping per request | `group_pending` (~4112) plus rescans in `encode_produce_body` | HashMap and index vectors (Q) | KL09-26 |
-| Response matching | `decode_produce_response` (`api.rs` ~3049–3104) | Topic `String` clones; linear search (Q) | KL09-27 |
-| Retry path | `requeue_pendings` (~4020); `retry_one` (~3102) | Metadata work per retried record | KL09-28 |
-| Flush | `flush_until` (~2308) | Two full control passes | KL09-29 |
-| Per-record mpsc hop | `try_send` → worker `data.recv_many` | Channel send, atomics, possible wakeup (R) | KL09-30 (decision) |
-| Compression scratch | `write_record_batch`/`snappy_compress` (`records.rs` ~1680–1943) | Fresh buffers per batch; extra Snappy framing copy (B) | KL09-33 |
+| Step | Location | Observed cost | Card | Status |
+|---|---|---|---|---|
+| Header-blind size estimate | `estimate()` = key + value + 64 (`producer.rs` ~4191), used by `batch_ready`/`take_count` | Header-heavy batches can exceed `batch_bytes`/`max_request_size`, a possible bound violation | KL09-14 | Done |
+| Flexible (v9+) Produce encode | `encode_produce_body` (~4266–4355) | New `BytesMut` per partition batch plus a full copy into the request (B) | KL09-15 | Pending |
+| Ack completion | `wait_one` (~3701–3900); `record_metadata` (~4506) | `RecordMetadata` and topic `String` built per record even for `try_send` with no interceptors (R) | KL09-16 | Done |
+| Per-topic metrics tracker | `Shared::topic_tracker` (~941–947) | `parking_lot::Mutex<HashMap>` lookup plus `Arc` clone (R) | KL09-17 | Done |
+| Ack-latency sampling | `note_ack_latency` (~1076); `metrics.rs` ~189–250 | Clock read plus 2 atomic latency trackers (R) | KL09-18 | Done |
+| Readiness and expiry | `batch_ready`/`take_count` (~4143–4190); `purge_expired_pending` (~3306) | Full pending scan per loop iteration; HashMap insert plus `Arc` clone per record; `Vec::remove` shifting (R, up to O(n²) per batch) | KL09-19 | Done |
+| Linger wait ignores in-flight responses | `Worker::run` `select!` (~3387–3467) | Received acks wait for linger or new data (p99) | KL09-20 | Pending |
+| New `Sleep` each iteration | `Worker::run` | Timer registration per loop | KL09-21 | Pending |
+| Single-topic fast route | `fast_route`/`remember_fast` (~1645–1711); `Cluster::leader` clones the address `String` (`cluster.rs` ~213–238) | Mixed topics fall back to lock, hash and allocation (R) | KL09-22 | Done |
+| `send` wraps one record in `send_all` | `send`/`send_all` (~1554–1642) | Singleton `Vec` in and out; duplicate route lookup (R) | KL09-23 | Pending |
+| Eager worker allocation | `spawn_node_workers` (~2998–3052) | 8 connections × 2 MiB write buffer plus pending slots (RSS) | KL09-24 | Done |
+| Eager, sequential slot connects | `spawn_node_workers` / `connect_tls` (`net.rs` ~697) | Every slot opens and negotiates at setup | KL09-25 | Done |
+| Grouping per request | `group_pending` (~4112) plus rescans in `encode_produce_body` | HashMap and index vectors (Q) | KL09-26 | Pending |
+| Response matching | `decode_produce_response` (`api.rs` ~3049–3104) | Topic `String` clones; linear search (Q) | KL09-27 | Pending |
+| Retry path | `requeue_pendings` (~4020); `retry_one` (~3102) | Metadata work per retried record | KL09-28 | Done |
+| Flush | `flush_until` (~2308) | Two full control passes | KL09-29 | Pending |
+| Per-record mpsc hop | `try_send` → worker `data.recv_many` | Channel send, atomics, possible wakeup (R) | KL09-30 | Pending (decision) |
+| Compression scratch | `write_record_batch`/`snappy_compress` (`records.rs` ~1680–1943) | Fresh buffers per batch; extra Snappy framing copy (B) | KL09-33 | Done |
 
 ### Codecs
 
-KL09-31, KL09-32, and KL09-34 are done: record decode has a contiguous
-fast path, records are sized in one pass, and fetch batches are
-decompressed into a pre-sized buffer. The rows below are the 2026-09-26
-hypothesis, not a current profile.
+Record decode has a contiguous fast path, records are sized in one pass,
+and fetch batches are decompressed into a pre-sized buffer. The cost
+column is the 2026-09-26 hypothesis.
 
-| Location | Observed cost | Card |
-|---|---|---|
-| `buf.rs` ~118–132, ~512–650; `records.rs` ~2231–2289 (decode) | `need()` plus generic `Buf` branches per varint and field (R) | KL09-31 |
-| `records.rs` ~1971–2079 (encode) | Record body sized, then varint widths re-derived (R) | KL09-32 |
-| `records.rs` ~1643–1787 (decompress) | 8 KiB growth steps; framed Snappy allocates and copies each chunk (B) | KL09-34 |
+| Location | Observed cost | Card | Status |
+|---|---|---|---|
+| `buf.rs` ~118–132, ~512–650; `records.rs` ~2231–2289 (decode) | `need()` plus generic `Buf` branches per varint and field (R) | KL09-31 | Done |
+| `records.rs` ~1971–2079 (encode) | Record body sized, then varint widths re-derived (R) | KL09-32 | Done |
+| `records.rs` ~1643–1787 (decompress) | 8 KiB growth steps; framed Snappy allocates and copies each chunk (B) | KL09-34 | Done |
 
 ### Consumer
 
-These rows are the same dated hypothesis. KL05-06 and KL05-07 are done:
-Fetch v7–v18 uses incremental sessions, and v4–v6 stays a full request.
-KL09-42 is done: the next round is prefetched within the byte budget. The
-"legacy Fetch every round" and "no prefetch overlap" rows describe the
-2026-09-26 code. KL09-37 through KL09-39, the zero-copy batch view, are
-still pending. KL09-40 through KL09-48 are done; their rows are that
-date's costs. KL09-49, KL09-50, and KL09-51 are done: share fetch honors
-configured limits, overlaps leaders, and indexes acquisition ranges. The
-share-fetch row below is that date's description.
+These rows are the same dated hypothesis. Fetch v7–v18 uses incremental
+sessions, and v4–v6 stays a full request.
 
-| Step | Location | Observed cost | Card |
-|---|---|---|---|
-| Delivered record owns a **cloned topic `String`**; headers decoded eagerly | `FetchedRecord` push (`consumer.rs` ~3040–3070); `share.rs` ~1232; `records.rs` ~2231–2289 | Allocation plus memcpy per record | KL09-37/38/39 |
-| Planning lookups clone the topic | `paused`/`completed`/`preferred` `contains(&(topic.clone(), p))` (~2455–2487, ~3616, ~3658) | `String` allocation per lookup | KL09-40 |
-| Records decoded before filtering | `fetch.rs` ~2050 → offset/LSO/abort filtering (`consumer.rs` ~2925–3070) | Discarded records are still materialized (R) | KL09-41 |
-| No prefetch overlap | `fetch` round (~2415–2505); leftovers only (~3610) | Network wait is serialized with application work | KL09-42 |
-| `JoinSet` spawned per leader per round | ~2640–2750 (`JoinSet::new` ~2713) | Task spawn per round | KL09-43 |
-| Waits for **all** leaders | ~2640–2750 | A slow leader delays fast ones | KL09-44 |
-| Serial connects | `connect_tls_any` (`net.rs` ~679–696) and callers | Setup waits for each dial in turn | KL09-57 |
-| Legacy (full) Fetch every round | `FetchMetadata::LEGACY` (`fetch.rs` ~1081) | Full partition list on every request | KL05-06/07 (existing) |
-| Pending-queue rescans | ~3616–3660 | Clone, hash and rebuild per capped poll | KL09-45 |
-| Accounting and delivered-position scans | ~2218–2245, ~1607; `group.rs` ~1206–1238 | Repeated scans | KL09-46 |
-| read_committed intervals | ~2760–3050 | Sort and hash per response | KL09-47 |
-| `next_offsets` | ~783; `share.rs` ~421 | Clone and hash per record | KL09-48 |
-| Share fetch | `share.rs` ~1132–1258 | Hard-coded 16 records/1 MiB; serial leaders; linear range search per record | KL09-49/50/51 |
+| Step | Location | Observed cost | Card | Status |
+|---|---|---|---|---|
+| Delivered record owns a cloned topic `String`; headers decoded eagerly | `FetchedRecord` push (`consumer.rs` ~3040–3070); `share.rs` ~1232; `records.rs` ~2231–2289 | Allocation plus memcpy per record | KL09-37, KL09-38, KL09-39 | Pending |
+| Planning lookups clone the topic | `paused`/`completed`/`preferred` `contains(&(topic.clone(), p))` (~2455–2487, ~3616, ~3658) | `String` allocation per lookup | KL09-40 | Done |
+| Records decoded before filtering | `fetch.rs` ~2050 → offset/LSO/abort filtering (`consumer.rs` ~2925–3070) | Discarded records are still materialized (R) | KL09-41 | Done |
+| No prefetch overlap | `fetch` round (~2415–2505); leftovers only (~3610) | Network wait is serialized with application work | KL09-42 | Done. The next round is prefetched within the byte budget. |
+| `JoinSet` spawned per leader per round | ~2640–2750 (`JoinSet::new` ~2713) | Task spawn per round | KL09-43 | Done |
+| Waits for all leaders | ~2640–2750 | A slow leader delays fast ones | KL09-44 | Done |
+| Serial connects | `connect_tls_any` (`net.rs` ~679–696) and callers | Setup waits for each dial in turn | KL09-57 | Pending |
+| Legacy (full) Fetch every round | `FetchMetadata::LEGACY` (`fetch.rs` ~1081) | Full partition list on every request | KL05-06, KL05-07 | Done |
+| Pending-queue rescans | ~3616–3660 | Clone, hash and rebuild per capped poll | KL09-45 | Done |
+| Accounting and delivered-position scans | ~2218–2245, ~1607; `group.rs` ~1206–1238 | Repeated scans | KL09-46 | Done |
+| read_committed intervals | ~2760–3050 | Sort and hash per response | KL09-47 | Done |
+| `next_offsets` | ~783; `share.rs` ~421 | Clone and hash per record | KL09-48 | Done |
+| Share fetch | `share.rs` ~1132–1258 | Hard-coded 16 records/1 MiB; serial leaders; linear range search per record | KL09-49, KL09-50, KL09-51 | Done. Limits, leader overlap, and range indexes have landed. The cost cell is that date's description. |
 
 ### Shared transport
 
-These rows are the same dated hypothesis. KL09-52, KL09-53, KL09-56, and
-KL09-59 are done: RPC buffers are reused, immutable header bytes are
-pre-encoded, one TLS configuration is shared per client, and connection
-opens reuse one OIDC token manager. The rows for a fresh buffer, a
-re-encoded header, a rebuilt TLS config, and a fresh token fetch describe
-the 2026-09-26 code. KL09-54, KL09-55, KL09-57, and KL09-58 are still
-pending.
+These rows are the same dated hypothesis.
 
-| Location | Observed cost | Card |
-|---|---|---|
-| `BrokerConn` request encode (`net.rs` ~1100–1126) | Buffer handed off after each RPC | KL09-52 |
-| Header encode (`header.rs` ~485–497) | `client_id` and fixed fields re-encoded per request | KL09-53 |
-| Write path (`net.rs` ~570–600) | Contiguous `poll_write` with no TLS coalescing policy. Vectored I/O helps **only** if header and body become separate buffers. | KL09-54 (measure first) |
-| Stalled-write read pump (`net.rs` ~505–560) | 8 KiB stack buffer copied into `read_buf` | KL09-55 |
-| TLS config (`wrap_tls`, `net.rs` ~476) | Root store and `ClientConfig` rebuilt per connection. (The handshake deadline gap was closed by KL06-05 in `19bbd3a`.) | KL09-56 |
-| Socket options | TCP_NODELAY on; SO_SNDBUF/SO_RCVBUF not configurable | KL09-58 |
-| OIDC on connect (`sasl.rs` ~510–542; `oidc.rs` ~1815–1905) | Fresh token fetch per connection open | KL09-59 |
+| Location | Observed cost | Card | Status |
+|---|---|---|---|
+| `BrokerConn` request encode (`net.rs` ~1100–1126) | Buffer handed off after each RPC | KL09-52 | Done. RPC buffers are reused. |
+| Header encode (`header.rs` ~485–497) | `client_id` and fixed fields re-encoded per request | KL09-53 | Done. Immutable header bytes are pre-encoded. |
+| Write path (`net.rs` ~570–600) | Contiguous `poll_write` with no TLS coalescing policy. Vectored I/O helps only if header and body become separate buffers. | KL09-54 | Pending. Measure first. |
+| Stalled-write read pump (`net.rs` ~505–560) | 8 KiB stack buffer copied into `read_buf` | KL09-55 | Pending |
+| TLS config (`wrap_tls`, `net.rs` ~476) | Root store and `ClientConfig` rebuilt per connection. (The handshake deadline gap was closed by KL06-05 in `19bbd3a`.) | KL09-56 | Done. One TLS configuration is shared per client. |
+| Socket options | TCP_NODELAY on; SO_SNDBUF/SO_RCVBUF not configurable | KL09-58 | Pending |
+| OIDC on connect (`sasl.rs` ~510–542; `oidc.rs` ~1815–1905) | Fresh token fetch per connection open | KL09-59 | Done. Connection opens reuse one OIDC token manager. |
 
 ### Already good; do not re-optimize without new evidence
 
