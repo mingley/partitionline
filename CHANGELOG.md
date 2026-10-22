@@ -124,6 +124,8 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   and troubleshooting. The runtime measurements are not setup steps.
 - The security page lists its checks in a table. Those checks do not
   qualify GSSAPI, a live OIDC rotation soak, or a signed benchmark.
+- The operator guide's group section keeps the results that do not change
+  with list size. The 8,192-item walks are named in the resource contract.
 - The gateway profile names zstd as an optional codec that has shipped.
   Its measured cells remain gzip and lz4.
 

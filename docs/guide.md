@@ -384,15 +384,12 @@ also set `group.share.enable=true` until that temporary flag is removed
 upstream. The default `share.auto.offset.reset` is latest, so produce while
 the share member is already polling.
 
-A long group operation is walked 8,192 items at a time so a timeout can
-fire between slices. Finished slices are kept. That covers assignment,
-rebalance lists, delivered positions, topic ids, pause and resume, commits,
-and the fetch buffer. The
-[resource contract](resource-contract.md#caller-deadlines) lists each walk.
-Range and sticky assignment copy members the same way, including a member
-that owns one partition and the partitions that member already owns.
+A long list is walked 8,192 items at a time so a timeout can fire between
+slices. Finished slices are kept. The
+[resource contract](resource-contract.md#caller-deadlines) names each walk,
+including share-fetch topic indexes.
 
-A few results stay the same no matter the size:
+These results do not change with the size of the list:
 
 - A repeated partition in an assignment is an error. An illegal topic name is an error.
 - A negative delivered position is omitted.
@@ -400,12 +397,7 @@ A few results stay the same no matter the size:
 - A poll with no consume interceptor returns the fetched batch without copying each record.
 - Seeking to a list-offset result finds each partition in the cursor index. An unknown partition is still an error.
 - An offset-commit or offset-fetch response that names many topics is read 8,192 partitions at a time.
-
-A share fetch or acknowledgement looks up each topic in an index built
-8,192 entries at a time. A topic id that belongs to two names is an error.
-An empty name is not used. Overlapped, dropped, and covered acquisitions
-are updated in those slices, as are the records counted for the poll total.
-See the [resource contract](resource-contract.md#caller-deadlines).
+- A share-group topic id that belongs to two names is an error. An empty name is not used.
 
 ## Exactly-once (transactions)
 
