@@ -765,311 +765,123 @@ Kafka 4.0 `validVersions` is `0-2`.
 
 ### AlterUserScramCredentials
 
-Spoken versions: 0.
+Spoken versions: 0. Version 1 and above are not spoken.
 
-AlterUserScramCredentials v0 is flexible (compact strings/arrays plus tagged fields; request header 2, response header 1).
-
-ThrottleTimeMs is JSON `0+` (`encode_alter_user_scram_credentials_response_with_throttle`; encode previously always wrote `0` and decode discarded; convenience encode still writes `0`).
-
-Empty-Results only one version.
-
-There is no top-level ErrorCode.
+v0 is flexible. Request header version 2, response header version 1. There is one empty-results body and no top-level error code. `ThrottleTimeMs` is JSON `0+` (`encode_alter_user_scram_credentials_response_with_throttle`). The convenience encoder writes `0`.
 
 Kafka 4.0 `validVersions` is `"0"`.
-
-v1+ is not spoken.
 
 ### DescribeUserScramCredentials
 
-Spoken versions: 0.
+Spoken versions: 0. Version 1 and above are not spoken.
 
-DescribeUserScramCredentials v0 is flexible (compact strings/arrays plus tagged fields; request header 2, response header 1).
-
-ThrottleTimeMs is JSON `0+` (`DescribeUserScramCredentialsResponse.throttle_time_ms`; encode previously always wrote `0` and decode discarded; `::new` / `::error` fill `0`).
-
-Empty-Results only one version.
-
-Top-level ErrorCode is at bytes 4–5.
+v0 is flexible. Request header version 2, response header version 1. There is one empty-results body. The top-level error code is at bytes 4–5. `ThrottleTimeMs` is JSON `0+`. `::new` and `::error` fill `0`.
 
 Kafka 4.0 `validVersions` is `"0"`.
 
-v1+ is not spoken.
-
 ### AlterClientQuotas
 
-Spoken versions: 0–1.
+Spoken versions: 0–1. Version 2 and above are not spoken.
 
-AlterClientQuotas v0 is classic.
-
-v1 is flexible (compact arrays/strings plus tagged fields; request header 2, response header 1).
-
-ThrottleTimeMs is JSON `0+` (`encode_alter_client_quotas_response_with_throttle`; encode previously always wrote `0` and decode discarded; convenience encode still writes `0`).
-
-Empty-Entries v0 and v1 bodies differ.
-
-There is no top-level ErrorCode.
+v0 is classic. v1 is flexible. Request header version 2, response header version 1. The empty-entries bodies differ. There is no top-level error code. `ThrottleTimeMs` is JSON `0+` (`encode_alter_client_quotas_response_with_throttle`). The convenience encoder writes `0`.
 
 Kafka 4.0 `validVersions` is `0-1`.
-
-v2+ is not spoken.
 
 ### DescribeClientQuotas
 
-Spoken versions: 0–1.
+Spoken versions: 0–1. Version 2 and above are not spoken.
 
-DescribeClientQuotas v0 is classic.
+v0 is classic. v1 is flexible. Request header version 2, response header version 1. The empty-entries bodies differ. The top-level error code is at bytes 4–5. `error_counts` counts that code only, including `NONE`. Quota entries are not counted. This is not `DescribeClientQuotasResponse.error` and not the AlterClientQuotas counts.
 
-v1 is flexible (compact arrays/strings plus tagged fields; request header 2, response header 1).
-
-ThrottleTimeMs is JSON `0+` (`DescribeClientQuotasResponse.throttle_time_ms`; encode previously always wrote `0` and decode discarded; `::new` / `::error` fill `0`).
-
-Empty-Entries v0 and v1 bodies differ.
-
-Top-level ErrorCode is at bytes 4–5.
-
-`DescribeClientQuotasResponse.error_counts` is Java `DescribeClientQuotasResponse.errorCounts` (top-level ErrorCode only, including `NONE`; Java `Collections.singletonMap`; quota entries are not counted; not `DescribeClientQuotasResponse.error` / AlterClientQuotas `errorCounts`).
+`ThrottleTimeMs` is JSON `0+`. `::new` and `::error` fill `0`.
 
 Kafka 4.0 `validVersions` is `0-1`.
-
-v2+ is not spoken.
 
 ### IncrementalAlterConfigs
 
-Spoken versions: 0–1.
+Spoken versions: 0–1. Version 2 and above are not spoken.
 
-IncrementalAlterConfigs v0 is classic.
+v0 is classic. v1 is flexible. Request header version 2, response header version 1. The empty-responses bodies differ. `ThrottleTimeMs` is JSON `0+` (`encode_incremental_alter_configs_resource_results_with_throttle`). The convenience encoder writes `0`.
 
-v1 is flexible (compact arrays/strings plus tagged fields; request header 2, response header 1).
-
-ThrottleTimeMs is JSON `0+` (`encode_incremental_alter_configs_resource_results_with_throttle`; encode previously always wrote `0` and decode discarded; convenience encode still writes `0`).
-
-Empty-Responses v0 and v1 bodies differ.
-
-`incremental_alter_configs_for` is Java `incrementalAlterConfigs(Map)` (Resources of N).
-
-`AlterConfig::append` / `AlterConfig::subtract` are Java `AlterConfigOp.OpType.APPEND` / `SUBTRACT` (LIST configs; op 2 / 3).
-
-`incremental_alter_configs_timeout` is Java `AlterConfigsOptions.timeoutMs` (RPC deadline; IncrementalAlterConfigs has no TimeoutMs).
+`incremental_alter_configs_for` sends N resources (Java `incrementalAlterConfigs(Map)`). `AlterConfig::append` and `AlterConfig::subtract` are Java `APPEND` and `SUBTRACT` for LIST configs, op 2 and op 3. `incremental_alter_configs_timeout` is the RPC deadline (Java `AlterConfigsOptions.timeoutMs`). The request has no `TimeoutMs` field.
 
 Kafka 4.0 `validVersions` is `0-1`.
 
-v2+ is not spoken.
-
 ### AlterReplicaLogDirs
 
-Spoken versions: 1–2.
+Spoken versions: 1–2. Version 0 and versions 3 and above are not spoken.
 
-AlterReplicaLogDirs v1 is classic.
+v1 is classic. v2 is flexible and uses the same fields. Request header version 2, response header version 1. `ThrottleTimeMs` is JSON `0+`. `AlterReplicaLogDirsResponse::new` fills `0`. `alter_replica_log_dirs_timeout` is the RPC deadline. The request has no `TimeoutMs` field.
 
-v2 is flexible (compact arrays/strings plus tagged fields; request header 2, response header 1).
-
-Same fields.
-
-ThrottleTimeMs is JSON `0+` (`AlterReplicaLogDirsResponse.throttle_time_ms`; encode previously always wrote `0` and decode discarded; `AlterReplicaLogDirsResponse::new` fills `0`).
-
-`alter_replica_log_dirs_timeout` is Java `AlterReplicaLogDirsOptions.timeoutMs` (RPC deadline; AlterReplicaLogDirs has no TimeoutMs).
-
-Kafka 4.0 `validVersions` is `1-2` (v0 removed).
-
-v0 and v3+ are not spoken.
+Kafka 4.0 `validVersions` is `1-2`. It removed v0.
 
 ### DescribeLogDirs
 
-Spoken versions: 1–5.
+Spoken versions: 1–5. Version 0 and versions 6 and above are not spoken.
 
-DescribeLogDirs v1 is classic.
+v1 is classic. v2–v5 are flexible. Request header version 2, response header version 1. Admin negotiates 1–5.
 
-v2–v5 are flexible (compact arrays/strings plus tagged fields; request header 2, response header 1).
+| Version | What changed |
+|---|---|
+| 3 | Top-level error code (KIP-784). Below v3 the error-response encoder omits it. |
+| 4 | `TotalBytes` and `UsableBytes` (KIP-827). v1–v3 decode fills `-1`. |
+| 5 | `IsCordoned` on each directory. Older versions omit it and decode `false`. |
 
-v3 top-level ErrorCode (KIP-784).
+`ThrottleTimeMs` is JSON `0+`. `DescribeLogDirsResponse::new` fills `0`. Java `getErrorResponse` leaves `Results` empty, does not copy the request topics, and copies `throttleTimeMs` from its argument. The three describe timeouts are the RPC deadline. The request has no `TimeoutMs` field.
 
-v4 TotalBytes / UsableBytes (KIP-827; decode fills `-1` on v1–v3).
+Kafka 4.0 `validVersions` is `1-4`. It removed v0. Kafka 4.3.1 extends the range through v5, which this crate speaks.
 
-ThrottleTimeMs is JSON `0+` (`DescribeLogDirsResponse.throttle_time_ms`; encode previously always wrote `0` and decode discarded; `DescribeLogDirsResponse::new` fills `0`).
+### Delegation tokens
 
-`DescribeLogDirsRequest.error_response` is Java `DescribeLogDirsRequest.getErrorResponse` (empty Results; ThrottleTimeMs JSON `0+`; convenience fills `0`; official Java sets `throttleTimeMs` from the argument; request Topics are not copied; encode omits ErrorCode below v3).
+Create, renew, expire, and describe are broker RPCs. The client picks the least-loaded node. A broker that forwards to the controller does that itself. The client does not send an api 41 hop for create, renew, or expire. Describe does not forward to the controller.
 
-`describe_log_dirs_timeout` / `describe_replica_log_dirs_timeout` / `describe_broker_log_dirs_timeout` are Java `DescribeLogDirsOptions.timeoutMs` (RPC deadline; DescribeLogDirs has no TimeoutMs).
+On every one of these responses the error code is the first field, bytes 0–1, and `ThrottleTimeMs` is the last field. It is JSON `0+`, and `::new` fills `0`. `error_counts` counts that top-level code only, including `NONE`. Token bytes and expiry are not counted. `has_error` is `error() != NONE`. Java `error()` is `Errors.forCode`. The crate `error()` on create stays `getErrorResponse`. Each timeout is the RPC deadline. None of the requests has a `TimeoutMs` field.
 
-Kafka 4.0 `validVersions` is `1-4` (v0 removed). Kafka 4.3.1 extends the range through v5.
+| API | Spoken | Framing | What changes |
+|---|---|---|---|
+| CreateDelegationToken | 1–3. v0 and v4+ are not spoken. | v1 classic. v2–v3 flexible. | v3 adds owner and token-requester principal type and name. v1–v2 decode fills `None` and empty. |
+| RenewDelegationToken | 1–2. v0 and v3+ are not spoken. | v1 classic. v2 flexible. Same fields. | Java `getErrorResponse` leaves `ExpiryTimestampMs` at 0 and does not copy the HMAC or `RenewPeriodMs`. |
+| ExpireDelegationToken | 1–2. v0 and v3+ are not spoken. | v1 classic. v2 flexible. Same fields. | Java `getErrorResponse` leaves `ExpiryTimestampMs` at 0 and does not copy the HMAC or `ExpiryTimePeriodMs`. |
+| DescribeDelegationToken | 1–3. v0 and v4+ are not spoken. | v1 classic. v2–v3 flexible. v2 and v3 share one empty-tokens body. | Request `Owners` is the same on v1–v3. v3 adds token-requester principal type and name. v1–v2 decode fills empty. Java `getErrorResponse` leaves `Tokens` empty and does not copy `Owners`. |
 
-v5 adds IsCordoned on each directory. Older versions omit it and decode false. Admin negotiates 1–5.
-
-v0 and v6+ are not spoken.
-
-### CreateDelegationToken
-
-Spoken versions: 1–3.
-
-CreateDelegationToken v1 is classic.
-
-v2–v3 are flexible (compact arrays/strings plus tagged fields; request header 2, response header 1).
-
-v3 OwnerPrincipalType / OwnerPrincipalName and TokenRequesterPrincipalType / TokenRequesterPrincipalName (decode fills `None` / empty on v1–v2).
-
-ErrorCode is the first field (bytes 0–1); ThrottleTimeMs is last (JSON `0+`; `CreateDelegationTokenResponse.throttle_time_ms`; encode previously always wrote `0` and decode discarded; `CreateDelegationTokenResponse::new` fills `0`).
-
-`CreateDelegationTokenResponse.error_counts` is Java `CreateDelegationTokenResponse.errorCounts` (top-level ErrorCode only, including `NONE`; Java `Collections.singletonMap`; token fields are not counted).
-
-`CreateDelegationTokenResponse.has_error` is Java `CreateDelegationTokenResponse.hasError` (`error() != NONE`; Java `error()` is `Errors.forCode` only; crate `error()` stays `getErrorResponse`).
-
-`create_delegation_token_timeout` is Java `CreateDelegationTokenOptions.timeoutMs` (RPC deadline; CreateDelegationToken has no TimeoutMs).
-
-Kafka 4.0 `validVersions` is `1-3` (v0 removed).
-
-v0 and v4+ are not spoken.
-
-Broker-only (`LeastLoadedNodeProvider`); broker-side `forwardToController` is not a client 41 hop.
-
-### RenewDelegationToken
-
-Spoken versions: 1–2.
-
-RenewDelegationToken v1 is classic.
-
-v2 is flexible (compact bytes plus tagged fields; request header 2, response header 1).
-
-Same fields.
-
-ErrorCode is the first field (bytes 0–1); ThrottleTimeMs is last (JSON `0+`; `RenewDelegationTokenResponse.throttle_time_ms`; encode previously always wrote `0` and decode discarded; `RenewDelegationTokenResponse::new` fills `0`).
-
-`RenewDelegationTokenResponse.error_counts` is Java `RenewDelegationTokenResponse.errorCounts` (top-level ErrorCode only, including `NONE`; Java `Collections.singletonMap`; expiry is not counted).
-
-`RenewDelegationTokenResponse.has_error` is Java `RenewDelegationTokenResponse.hasError` (`error() != NONE`; Java `error()` is `Errors.forCode` only).
-
-`RenewDelegationTokenRequest.error_response` is Java `RenewDelegationTokenRequest.getErrorResponse` (ExpiryTimestampMs JSON default `0`; ThrottleTimeMs JSON `0+`; convenience fills `0`; official Java sets `throttleTimeMs` from the argument; request HMAC / RenewPeriodMs are not copied).
-
-`renew_delegation_token_timeout` is Java `RenewDelegationTokenOptions.timeoutMs` (RPC deadline; RenewDelegationToken has no TimeoutMs).
-
-Kafka 4.0 `validVersions` is `1-2` (v0 removed).
-
-v0 and v3+ are not spoken.
-
-Broker-only (`LeastLoadedNodeProvider`); broker-side `forwardToController` is not a client 41 hop.
-
-### ExpireDelegationToken
-
-Spoken versions: 1–2.
-
-ExpireDelegationToken v1 is classic.
-
-v2 is flexible (compact bytes plus tagged fields; request header 2, response header 1).
-
-Same fields.
-
-ErrorCode is the first field (bytes 0–1); ThrottleTimeMs is last (JSON `0+`; `ExpireDelegationTokenResponse.throttle_time_ms`; encode previously always wrote `0` and decode discarded; `ExpireDelegationTokenResponse::new` fills `0`).
-
-`ExpireDelegationTokenResponse.error_counts` is Java `ExpireDelegationTokenResponse.errorCounts` (top-level ErrorCode only, including `NONE`; Java `Collections.singletonMap`; expiry is not counted).
-
-`ExpireDelegationTokenResponse.has_error` is Java `ExpireDelegationTokenResponse.hasError` (`error() != NONE`; Java `error()` is `Errors.forCode` only).
-
-`ExpireDelegationTokenRequest.error_response` is Java `ExpireDelegationTokenRequest.getErrorResponse` (ExpiryTimestampMs JSON default `0`; ThrottleTimeMs JSON `0+`; convenience fills `0`; official Java sets `throttleTimeMs` from the argument; request HMAC / ExpiryTimePeriodMs are not copied).
-
-`expire_delegation_token_timeout` is Java `ExpireDelegationTokenOptions.timeoutMs` (RPC deadline; ExpireDelegationToken has no TimeoutMs).
-
-Kafka 4.0 `validVersions` is `1-2` (v0 removed).
-
-v0 and v3+ are not spoken.
-
-Broker-only (`LeastLoadedNodeProvider`); broker-side `forwardToController` is not a client 41 hop.
-
-### DescribeDelegationToken
-
-Spoken versions: 1–3.
-
-DescribeDelegationToken v1 is classic.
-
-v2–v3 are flexible (compact arrays/strings plus tagged fields; request header 2, response header 1).
-
-Request Owners is the same on v1–v3.
-
-v3 TokenRequesterPrincipalType / TokenRequesterPrincipalName on each token (decode fills empty on v1–v2).
-
-ErrorCode is the first field (bytes 0–1); ThrottleTimeMs is last (JSON `0+`; `DescribeDelegationTokenResponse.throttle_time_ms`; encode previously always wrote `0` and decode discarded; `DescribeDelegationTokenResponse::new` fills `0`).
-
-Empty-Tokens v2 and v3 bodies match.
-
-`DescribeDelegationTokenResponse.error_counts` is Java `DescribeDelegationTokenResponse.errorCounts` (top-level ErrorCode only, including `NONE`; Java `Collections.singletonMap`; tokens are not counted).
-
-`DescribeDelegationTokenRequest.error_response` is Java `DescribeDelegationTokenRequest.getErrorResponse` (empty Tokens; ThrottleTimeMs JSON `0+`; convenience fills `0`; official Java sets `throttleTimeMs` from the argument; request Owners are not copied).
-
-`DescribeDelegationTokenResponse.has_error` is Java `DescribeDelegationTokenResponse.hasError` (`error() != NONE`; Java `error()` is `Errors.forCode` only).
-
-`describe_delegation_token_timeout` is Java `DescribeDelegationTokenOptions.timeoutMs` (RPC deadline; DescribeDelegationToken has no TimeoutMs).
-
-Kafka 4.0 `validVersions` is `1-3` (v0 removed).
-
-v0 and v4+ are not spoken.
-
-Broker-only (`LeastLoadedNodeProvider`); the handler does not `forwardToController`.
+Kafka 4.0 removed v0 for all four. Its ranges are create `1-3`, renew `1-2`, expire `1-2`, and describe `1-3`. Request header version 2 and response header version 1 apply to the flexible versions.
 
 ### DescribeGroups
 
-Spoken versions: 0–6.
+Spoken versions: 0–6. Version 7 and above are not spoken.
 
-DescribeGroups v0–v4 are classic.
+v0–v4 are classic. v5–v6 are flexible. Request header version 2, response header version 1.
 
-v5–v6 are flexible (compact strings/arrays plus tagged fields; request header 2, response header 1).
+| Version | What changed |
+|---|---|
+| 1 | `ThrottleTimeMs`. |
+| 3 | `IncludeAuthorizedOperations` and `AuthorizedOperations`. |
+| 4 | `GroupInstanceId`. |
+| 6 | `ErrorMessage` and `GROUP_ID_NOT_FOUND` (KIP-1043). |
 
-v1 ThrottleTimeMs.
-
-v3 IncludeAuthorizedOperations / AuthorizedOperations.
-
-v4 GroupInstanceId.
-
-v6 ErrorMessage and GROUP_ID_NOT_FOUND (KIP-1043).
-
-`describe_groups` / `describe_classic_groups` send FindCoordinator v4+ CoordinatorKeys of N (KIP-699) and one DescribeGroups RPC per coordinator.
-
-`describe_consumer_groups` tries ConsumerGroupDescribe first and uses DescribeGroups for classic groups (same FindCoordinator hop).
-
-`describe_groups_timeout` / `describe_classic_groups_timeout` / `describe_consumer_groups_timeout` are Java `DescribeClassicGroupsOptions` / `DescribeConsumerGroupsOptions.timeoutMs` (RPC deadline; neither RPC has TimeoutMs).
+`describe_groups` and `describe_classic_groups` send FindCoordinator v4+ with N `CoordinatorKeys` and one DescribeGroups per coordinator. `describe_consumer_groups` tries ConsumerGroupDescribe first and uses DescribeGroups for classic groups, on the same FindCoordinator hop. The three timeouts are the RPC deadline. Neither RPC has a `TimeoutMs` field.
 
 Kafka 4.0 `validVersions` is `0-6`.
 
-v7+ is not spoken.
-
 ### ListGroups
 
-Spoken versions: 0–5.
+Spoken versions: 0–5. Version 6 and above are not spoken.
 
-ListGroups v0–v2 are classic.
+v0–v2 are classic. v3–v5 are flexible. Request header version 2, response header version 1.
 
-v3–v5 are flexible (compact strings/arrays plus tagged fields; request header 2, response header 1).
-
-v1 ThrottleTimeMs.
-
-v4 StatesFilter / GroupState (KIP-518).
-
-v5 TypesFilter / GroupType (KIP-848).
-
-`ListGroupsResponse.error_counts` is Java `ListGroupsResponse.errorCounts` (top-level ErrorCode only, including `NONE`; Java `Collections.singletonMap`; listed groups are not counted).
-
-`list_groups_timeout` / `list_consumer_groups_timeout` are Java `ListGroupsOptions` / `ListConsumerGroupsOptions.timeoutMs` (RPC deadline; ListGroups has no TimeoutMs).
+v1 adds `ThrottleTimeMs`. v4 adds `StatesFilter` and `GroupState` (KIP-518). v5 adds `TypesFilter` and `GroupType` (KIP-848). `error_counts` counts the top-level error code only, including `NONE`. Listed groups are not counted. `list_groups_timeout` and `list_consumer_groups_timeout` are the RPC deadline. The request has no `TimeoutMs` field.
 
 Kafka 4.0 `validVersions` is `0-5`.
 
-v6+ is not spoken.
-
 ### DeleteGroups
 
-Spoken versions: 0–2.
+Spoken versions: 0–2. Version 3 and above are not spoken.
 
-DeleteGroups v0–v1 are classic.
+v0–v1 are classic and share one empty-results body. v2 is flexible. Request header version 2, response header version 1. There is no top-level error code. `ThrottleTimeMs` is JSON `0+` (`encode_delete_groups_response_with_throttle`). The convenience encoder writes `0`.
 
-v2 is flexible (compact arrays/strings plus tagged fields; request header 2, response header 1).
-
-ThrottleTimeMs is JSON `0+` (`encode_delete_groups_response_with_throttle`; encode previously always wrote `0` and decode discarded; convenience encode still writes `0`).
-
-Empty-Results v0 and v1 bodies match; v2 is compact.
-
-There is no top-level ErrorCode.
-
-`DeleteGroupsRequest.error_response` is Java `DeleteGroupsRequest.getErrorResponse` (copies group ids through `error_result_collection`; ThrottleTimeMs JSON `0+`; convenience encode still writes `0`; official Java sets `throttleTimeMs` from the argument).
+Java `getErrorResponse` copies the group ids through `error_result_collection` and copies `throttleTimeMs` from its argument.
 
 Kafka 4.0 `validVersions` is `0-2`.
-
-v3+ is not spoken.
 
 ### AlterConfigs
 

@@ -19,6 +19,8 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
 - DescribeTransactions, CreateTopics, DeleteTopics, DescribeConfigs,
   CreatePartitions, partition reassignments, and UpdateFeatures use
   the same version tables.
+- Quotas, log directories, delegation tokens, and the group admin RPCs
+  use the same version tables.
 
 - The broker SASL reauthentication page matches the listener profile: opt-in
   lifetime, Handshake v1, and the deadline that does not move after the
