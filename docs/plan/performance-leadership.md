@@ -140,6 +140,30 @@ The measurable gaps are:
 - missing zstd
 - no efficiency measurement at all
 
+### Later than this snapshot
+
+The table and the list above are the 2026-09-26 reading of source
+`19b4399`. Current card status lives in [tasks.json](tasks.json).
+
+These cards have landed since that date:
+
+| Card | What changed |
+|---|---|
+| KL05-04 | Interoperable zstd record-batch encoding. The `zstd` feature stays optional. |
+| KL05-06, KL05-07 | The consumer uses incremental Fetch sessions and recovers them after session errors, reconnects, and leader changes. |
+| KL09-02 | `bench_produce` honors the frozen scenario knobs, including warmup and batch size. The table row above describes the driver before that card. |
+| KL09-14 | Produce batches are packed with header bytes included. The header-blind estimate in section 3 is the old code. |
+| KL09-16, KL09-17 | Ack metadata is built only when a caller or interceptor needs it, and per-topic metric trackers are cached on routes. |
+
+Still open, and still the right reading of this section:
+
+- **KL09-15.** Flexible Produce v9+ still copies each batch into the request. Do not start that card without a measurement of the parent revision and byte-identical requests.
+- **KL01-24.** Incremental Fetch is implemented. Live qualification of session runtime and bounded reset histories is not.
+
+Two lines were not re-measured for this note: the latency loss, and the lack of an efficiency measurement. Leave both as the state on 2026-09-26. The notes on per-record consumer allocations and missing prefetch overlap were not re-checked either. **Suite HOLD remains.** This note does not publish a claim.
+
+Section 3 is the same snapshot. A card that [tasks.json](tasks.json) now marks done may already have changed the function those line numbers point at. Re-locate current code by function name.
+
 ## 3. Hot-path map (source hypotheses; KL09-13 ranks them by measurement)
 
 Initial profiles of the pinned baseline are [retained here](../evidence/perf/baseline-profile/initial-20261007/README.md).

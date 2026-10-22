@@ -66,6 +66,11 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   KL01-01, KL04-01, or KL10-01. Those cards are done.
 - The task workflow records that the five baseline consumer defects are
   fixed. Independent replay remains KL01-22.
+- The performance-leadership snapshot from 2026-09-26 stays dated. A note
+  records that zstd encoding, incremental Fetch, and the bench driver
+  knobs have since landed. Suite HOLD is unchanged.
+- The gateway profile names zstd as an optional codec that has shipped.
+  Its measured cells remain gzip and lz4.
 
 - The broker SASL reauthentication page matches the listener profile: opt-in
   lifetime, Handshake v1, and the deadline that does not move after the

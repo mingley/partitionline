@@ -27,7 +27,7 @@ offsets.
 |---|---|
 | Records | ~1 KiB values of seeded, JSON-like metrics text (gzip ratio about 7); one 8-byte header |
 | Partitions | 8, with an explicit partition per record |
-| Codec | gzip, which many existing producers use; lz4 as a comparison cell; zstd once KL05-04 lands |
+| Codec | gzip, which many existing producers use; lz4 as a comparison cell; zstd through the optional feature KL05-04 shipped. The gateway cells below are gzip and lz4 only. |
 | Durability and ordering | `acks=all`, max in flight 1, linger 100 ms, 1 MiB batches |
 | Security | TLS 1.3 with client-certificate authentication (mTLS) |
 | Acknowledgment | One completion per record, consumed by the caller |
