@@ -2386,120 +2386,55 @@ async fn serve(
 ) {
     let _task = Counter::task(&control);
     let _socket_counter = Counter::socket(&control);
-    // The socket drops when this block returns. Yield afterwards so the peer
-    // observes that close before serve returns.
-    async move {
-    if configure_peer_socket(&socket).is_err() {
-        return;
-    }
-    let mut wire = WireBuf::new();
-    let deadline = Instant::now() + Duration::from_millis(control.config.limits.rpc_ms);
-    // Frame memory can be exhausted while the peer is already gone. Do not
-    // hold this socket until that reservation times out.
-    let reservation = tokio::select! {
-        biased;
-        _ = peer_socket_closed(&mut socket, &mut wire.unread, control.config.limits.frame_bytes) => return,
-        r = control.reserve_frame(deadline) => r,
-    };
-    let Ok(reservation) = reservation else {
-        return;
-    };
-    let first = tokio::select! {_ = control.stopping()=>return,r=read_frame(&mut socket,control.config.limits.frame_bytes,control.config.storage.live_entries,deadline,&mut wire)=>r};
-    let Ok(Frame {
-        rpc: 0,
-        message: Message::Hello(h),
-    }) = first
-    else {
-        return;
-    };
-    if h.group != control.config.group || h.target != control.config.bootstrap.local().key() {
-        return;
-    }
-    let Some(index) = control
-        .config
-        .peers
-        .iter()
-        .position(|p| p.key() == h.source)
-    else {
-        return;
-    };
-    if slots[index]
-        .compare_exchange(false, true, Ordering::AcqRel, Ordering::Acquire)
-        .is_err()
-    {
-        return;
-    }
-    let _identity = IdentitySlot { slots, index };
-    let source = h.source;
-    if write_frame(
-        &mut socket,
-        &Frame {
-            rpc: 0,
-            message: Message::HelloAck(h),
-        },
-        control.config.limits.frame_bytes,
-        deadline,
-        &mut wire,
-    )
-    .await
-    .is_err()
-    {
-        return;
-    }
-    drop(reservation);
-    let mut last_rpc = 0;
-    loop {
+    // The socket stays in this function. The session only borrows it, so a
+    // hello failure and a later request-loop exit share one close. The peer
+    // is reported disconnected only after hello has succeeded.
+    let mut claimed: Option<IdentitySlot> = None;
+    let source = async {
+        if configure_peer_socket(&socket).is_err() {
+            return None;
+        }
+        let mut wire = WireBuf::new();
         let deadline = Instant::now() + Duration::from_millis(control.config.limits.rpc_ms);
+        // Frame memory can be exhausted while the peer is already gone. Do not
+        // hold this socket until that reservation times out.
         let reservation = tokio::select! {
             biased;
-            _ = control.stopping()=>break,
-            _ = peer_socket_closed(&mut socket, &mut wire.unread, control.config.limits.frame_bytes) => break,
+            _ = peer_socket_closed(&mut socket, &mut wire.unread, control.config.limits.frame_bytes) => return None,
             r = control.reserve_frame(deadline) => r,
         };
         let Ok(reservation) = reservation else {
-            break;
+            return None;
         };
-        let frame = tokio::select! {_ = control.stopping()=>break,r=read_frame(&mut socket,control.config.limits.frame_bytes,control.config.storage.live_entries,deadline,&mut wire)=>r};
-        let Ok(frame) = frame else {
-            break;
+        let first = tokio::select! {_ = control.stopping()=>return None,r=read_frame(&mut socket,control.config.limits.frame_bytes,control.config.storage.live_entries,deadline,&mut wire)=>r};
+        let Ok(Frame {
+            rpc: 0,
+            message: Message::Hello(h),
+        }) = first
+        else {
+            return None;
         };
-        if frame.rpc <= last_rpc || !frame.message.request() {
-            break;
+        if h.group != control.config.group || h.target != control.config.bootstrap.local().key() {
+            return None;
         }
-        last_rpc = frame.rpc;
-        let kind = frame.message.kind();
-        let call = control.call(
-            Command::Inbound(source, frame.message),
-            None,
-            Some(reservation.clone()),
-            deadline,
-        );
-        tokio::pin!(call);
-        let response = tokio::select! {
-            biased;
-            // The command can outlive the peer. A close during that wait
-            // must drop this socket instead of holding it until the deadline.
-            _ = peer_socket_closed(
-                &mut socket,
-                &mut wire.unread,
-                control.config.limits.frame_bytes,
-            ) => break,
-            result = &mut call => match result {
-                Ok(Reply::Message(message)) => message,
-                _ => Message::Failure {
-                    request_kind: kind,
-                    code: 1,
-                },
-            },
-        };
-        if control.stopped.load(Ordering::Acquire) || Instant::now() >= deadline {
-            break;
+        let index = control
+            .config
+            .peers
+            .iter()
+            .position(|p| p.key() == h.source)?;
+        if slots[index]
+            .compare_exchange(false, true, Ordering::AcqRel, Ordering::Acquire)
+            .is_err()
+        {
+            return None;
         }
+        claimed = Some(IdentitySlot { slots, index });
+        let source = h.source;
         if write_frame(
             &mut socket,
             &Frame {
-                rpc: last_rpc,
-                message: response,
+                rpc: 0,
+                message: Message::HelloAck(h),
             },
             control.config.limits.frame_bytes,
             deadline,
@@ -2508,20 +2443,92 @@ async fn serve(
         .await
         .is_err()
         {
-            break;
+            return None;
         }
+        drop(reservation);
+        let mut last_rpc = 0;
+        loop {
+            let deadline = Instant::now() + Duration::from_millis(control.config.limits.rpc_ms);
+            let reservation = tokio::select! {
+                biased;
+                _ = control.stopping()=>break,
+                _ = peer_socket_closed(&mut socket, &mut wire.unread, control.config.limits.frame_bytes) => break,
+                r = control.reserve_frame(deadline) => r,
+            };
+            let Ok(reservation) = reservation else {
+                break;
+            };
+            let frame = tokio::select! {_ = control.stopping()=>break,r=read_frame(&mut socket,control.config.limits.frame_bytes,control.config.storage.live_entries,deadline,&mut wire)=>r};
+            let Ok(frame) = frame else {
+                break;
+            };
+            if frame.rpc <= last_rpc || !frame.message.request() {
+                break;
+            }
+            last_rpc = frame.rpc;
+            let kind = frame.message.kind();
+            let call = control.call(
+                Command::Inbound(source, frame.message),
+                None,
+                Some(reservation.clone()),
+                deadline,
+            );
+            tokio::pin!(call);
+            let response = tokio::select! {
+                biased;
+                // The command can outlive the peer. A close during that wait
+                // must drop this socket instead of holding it until the deadline.
+                _ = peer_socket_closed(
+                    &mut socket,
+                    &mut wire.unread,
+                    control.config.limits.frame_bytes,
+                ) => break,
+                result = &mut call => match result {
+                    Ok(Reply::Message(message)) => message,
+                    _ => Message::Failure {
+                        request_kind: kind,
+                        code: 1,
+                    },
+                },
+            };
+            if control.stopped.load(Ordering::Acquire) || Instant::now() >= deadline {
+                break;
+            }
+            if write_frame(
+                &mut socket,
+                &Frame {
+                    rpc: last_rpc,
+                    message: response,
+                },
+                control.config.limits.frame_bytes,
+                deadline,
+                &mut wire,
+            )
+            .await
+            .is_err()
+            {
+                break;
+            }
+        }
+        Some(source)
     }
-    // The owner may be busy. Finish the write side and yield before drop so a
-    // peer blocked in read observes EOF. Dropping with an unread flood still
-    // in the kernel buffer would reset the connection instead.
+    .await;
+    // Hello never completed, so this connection does not own the peer slot.
+    if source.is_none() {
+        drop(claimed.take());
+    }
+    // Finish the write side and yield before drop so a peer blocked in read
+    // observes EOF. A rejected length leaves the rest of a flood in the kernel
+    // buffer; dropping that socket resets the connection instead.
     let _ = socket.shutdown().await;
     for _ in 0..8 {
         tokio::task::yield_now().await;
     }
     drop(socket);
-    let _ = control.reliable(Command::Disconnected(source)).await;
+    if let Some(source) = source {
+        let _ = control.reliable(Command::Disconnected(source)).await;
     }
-    .await;
+    drop(claimed);
     for _ in 0..8 {
         tokio::task::yield_now().await;
     }
@@ -3837,6 +3844,51 @@ mod ownership_tests {
         match (wrote, saw) {
             (_, Ok(Ok(0))) => Ok(()),
             _ => Err("serve kept the socket while a command was flooded".into()),
+        }
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn serve_closes_when_hello_is_flooded() -> TestResult {
+        let owner = LocalOwner::open(0, 2, 16).await?;
+        let listener = TcpListener::bind("127.0.0.1:0").await?;
+        let address = listener.local_addr()?;
+        let control = owner.control.clone();
+        let served = tokio::spawn(async move {
+            let (server, _) = listener.accept().await?;
+            let slots = Arc::new(
+                control
+                    .config
+                    .peers
+                    .iter()
+                    .map(|_| AtomicBool::new(false))
+                    .collect::<Vec<_>>(),
+            );
+            let permit = Arc::new(Semaphore::new(1))
+                .acquire_owned()
+                .await
+                .map_err(|_| std::io::Error::other("incoming permit closed"))?;
+            serve(control, server, permit, slots).await;
+            Ok::<_, std::io::Error>(())
+        });
+        let client_socket = TcpStream::connect(address).await?;
+        let bound = owner.control.config.limits.frame_bytes;
+        let (mut reader, mut writer) = client_socket.into_split();
+        // A zero length is rejected after the first read. The rest stays in
+        // the kernel buffer, so dropping the socket without a write shutdown
+        // resets the peer instead of ending the read.
+        let flood = vec![0u8; bound.saturating_add(1)];
+        let wrote = writer.write_all(&flood).await;
+        let mut buf = [0u8; 8];
+        let saw = tokio::time::timeout(
+            Duration::from_millis(300),
+            tokio::io::AsyncReadExt::read(&mut reader, &mut buf),
+        )
+        .await;
+        drop(writer);
+        served.abort();
+        match (wrote, saw) {
+            (_, Ok(Ok(0))) => Ok(()),
+            _ => Err("serve reset the socket while hello was flooded".into()),
         }
     }
 
