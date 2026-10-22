@@ -92,6 +92,9 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
 - The roadmap no longer tells a session to start KL07-01 or KL08-01.
   Those lanes are done through the release gate. Adopter records KL08-08
   through KL08-13 are still open. Current source requires Rust 1.99.
+- The next-session queue no longer starts on KL10-01 or KL03-01. Every
+  card named in that launch list is done. Independent consumer replay
+  remains KL01-22.
 - The gateway profile names zstd as an optional codec that has shipped.
   Its measured cells remain gzip and lz4.
 

@@ -1,22 +1,26 @@
 # Next-session queue
 
-**Default next task: `KL10-01` (P0) -- restore green `main` CI (`tests/verifiable_contract.rs` cannot find the example binaries it runs; every `main` run since `848e58c` fails `test` and `features`).** Then `KL09-34` (gzip consume is 7.8x librdkafka's CPU per record; see the [gateway adoption plan](docs/plan/gateway-adoption.md)) or `KL09-08` (null-broker fault modes). (`KL09-07` Fetch server landed; `KL09-02`/`KL09-03` await `KL04-07`.)
+Every card named in the tables on this page is done. That includes
+`KL10-01`, `KL03-01` through `KL03-07`, `KL07-01`, `KL08-01`, `KL01-01`,
+`KL02-01`, `KL04-01`, `KL05-01`, `KL03-12`, `KL03-13`, `KL09-01`,
+`KL09-14`, `KL09-34`, `KL09-08`, `KL09-07`, `KL09-02`, `KL09-03`,
+`KL04-07`, and `KL05-02`. Do not start them again.
 
-Use [one task per session](docs/plan/README.md). The canonical
-[task registry](docs/plan/tasks.json) contains dependencies, starting files,
-one deliverable, acceptance criteria, focused checks, owner and evidence for
-each card. Claim **one ready ID**, complete it, record the result, and stop.
-Do not take an entire KL package as one assignment.
+Pick the next card with the ready query in
+[one task per session](docs/plan/README.md). The
+[task registry](docs/plan/tasks.json) is the queue. Claim one ready ID,
+complete it, record the result, and stop. Do not take an entire KL package
+as one assignment.
 
-The [2026-09-21 source audit](docs/audits/2026-09-21.md) is frozen at `cb7e97d`.
-Exact-source CI is green, but five additional consumer probes fail.
-The probes are retained for reuse; the planning change does not repair the
-client. Installable is met. **Suite HOLD remains.**
+The [2026-09-21 source audit](docs/audits/2026-09-21.md) is frozen at
+`cb7e97d`. The five consumer probes in that audit were fixed by `KL03-01`
+through `KL03-07`. Independent replay is `KL01-22`, which is still pending.
+Installable is met. **Suite HOLD remains.**
 
-## First implementation chain
+## Original launch order
 
-Each row is a separate session/PR-sized deliverable. The registry is the
-authority for current readiness and completion, not this printed order.
+The tables below are the first plan's order. They are not today's queue.
+Each named card was done when this page was corrected on 22 October 2026.
 
 | Order | Task | Observable result |
 |---|---|---|
@@ -30,11 +34,10 @@ authority for current readiness and completion, not this printed order.
 
 Do not edit `src/consumer.rs` concurrently across these cards.
 
-## Independent initial pickups
+## Original independent pickups
 
-These have no task dependencies at the initial plan snapshot. Check ownership
-and the ready-task query before starting; they are alternatives for separate
-sessions, not a bundle to finish together.
+These had no task dependencies in the initial plan snapshot. Each one is
+done. They are not alternatives for a new session.
 
 | Task | Small deliverable |
 |---|---|
@@ -47,11 +50,14 @@ sessions, not a bundle to finish together.
 | `KL03-12` | Use the broker-provided KIP-848 heartbeat interval |
 | `KL03-13` | Use the broker-provided share heartbeat interval |
 
-## After the first repairs
+## What each lane covers
 
-Follow the dependency graph, not a new open-ended audit:
+These rows are the lane's scope. Several of the named outcomes have already
+landed, including zstd, incremental Fetch, and the strict documentation
+checks. The registry decides what remains. Follow the ready query, not this
+table.
 
-| Lane | Next outcomes |
+| Lane | Scope |
 |---|---|
 | `KL01-*` | Independent Java fixtures, fail-closed case reports, upstream adapters, current broker cells and sustained fuzz evidence |
 | `KL02-*` | Retained/decoded-byte bounds, terminal ownership, deadlines and a controlled overload record |
@@ -61,8 +67,8 @@ Follow the dependency graph, not a new open-ended audit:
 | `KL06-*` | OIDC expiry/refresh, SASL reauth, TLS rotation, redaction and explicitly approved opt-in GSSAPI |
 | `KL07-*` | Strict docs, actual snippet checks, tutorial/recipes, migration, bounded diagnostics and newcomer exercises |
 | `KL08-*` | Exact required-CI gates, one publisher, package/platform checks, separate adopter runs and operator-controlled rollback |
-| `KL09-*` | [Performance leadership](docs/plan/performance-leadership.md): claim gate, null-broker/allocation/instruction evidence loop, measured producer/codec/consumer/transport optimizations, franz-go peer and a per-cell fastest-client audit. First pickups: `KL09-01`, `KL09-14` |
-| `KL10-*` | [Gateway adoption](docs/plan/gateway-adoption.md): green main CI, gateway-profile cells against librdkafka, gzip backend and feed costs, an owned per-record delivery API, off-caller fetch decoding, consumer RSS and a dated verdict. First pickups: `KL10-01`, then `KL09-34` and `KL05-02` |
+| `KL09-*` | [Performance leadership](docs/plan/performance-leadership.md). `KL09-01` and `KL09-14` are done. The claim gate is frozen. Suite HOLD remains. |
+| `KL10-*` | [Gateway adoption](docs/plan/gateway-adoption.md). `KL10-01`, `KL09-34`, and `KL05-02` are done. The owned per-record delivery API is `KL10-07`, which is in progress. |
 
 All new cards begin **pending/unassigned**. Future validation commands are
 acceptance criteria, not completed evidence. A harness, example result,
