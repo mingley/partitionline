@@ -2511,8 +2511,13 @@ async fn serve(
             break;
         }
     }
-    // The owner may be busy. Drop the socket before that notification so the
-    // peer is not held for the whole disconnect command.
+    // The owner may be busy. Finish the write side and yield before drop so a
+    // peer blocked in read observes EOF. Dropping with an unread flood still
+    // in the kernel buffer would reset the connection instead.
+    let _ = socket.shutdown().await;
+    for _ in 0..8 {
+        tokio::task::yield_now().await;
+    }
     drop(socket);
     let _ = control.reliable(Command::Disconnected(source)).await;
     }
