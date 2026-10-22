@@ -479,143 +479,75 @@ Java `ListShareGroupOffsetsHandler` uses `CoordinatorType.GROUP`. `describe_shar
 
 ### AlterShareGroupOffsets
 
-Spoken versions: 0.
+Spoken versions: 0. Version 1 and above are not spoken.
 
-AlterShareGroupOffsets v0 is flexible (compact strings/arrays plus tagged fields; request header 2, response header 1).
+v0 is flexible. Request header version 2, response header version 1. The error code is top-level, after throttle. Topics have no error code. `ThrottleTimeMs` is JSON `0+`. `AlteredShareGroupOffsets::new` fills `0`.
 
-ThrottleTimeMs is JSON `0+` (`AlteredShareGroupOffsets.throttle_time_ms`; encode previously always wrote `0` and decode discarded; `AlteredShareGroupOffsets::new` fills `0`).
-
-`AlteredShareGroupOffsets.error_counts` is Java `AlterShareGroupOffsetsResponse.errorCounts` (top-level ErrorCode plus each partition-level code, including `NONE`; topics have no ErrorCode).
-
-`AlterShareGroupOffsetsRequest.error_response` is Java `AlterShareGroupOffsetsRequest.getErrorResponse` (empty Responses; ErrorMessage JSON-null; ThrottleTimeMs JSON `0+`; convenience fills `0`; official Java sets `throttleTimeMs` from the argument and the English `Errors.message`; request GroupId / Topics are not copied).
+`error_counts` counts the top-level code and every partition code, including `NONE`. Java `getErrorResponse` leaves `Responses` empty, sets `ErrorMessage` to JSON null, copies `throttleTimeMs` from its argument, and sets the English `Errors.message`. It does not copy `GroupId` or `Topics`.
 
 Kafka 4.1 `validVersions` is `"0"`.
-
-v1+ is not spoken.
-
-ErrorCode is top-level after throttle.
 
 ### DeleteShareGroupOffsets
 
-Spoken versions: 0.
+Spoken versions: 0. Version 1 and above are not spoken.
 
-DeleteShareGroupOffsets v0 is flexible (compact strings/arrays plus tagged fields; request header 2, response header 1).
+v0 is flexible. Request header version 2, response header version 1. The error code is top-level, after throttle. There is no partition error code. `ThrottleTimeMs` is JSON `0+`. `DeletedShareGroupOffsets::new` fills `0`.
 
-ThrottleTimeMs is JSON `0+` (`DeletedShareGroupOffsets.throttle_time_ms`; encode previously always wrote `0` and decode discarded; `DeletedShareGroupOffsets::new` fills `0`).
-
-`DeletedShareGroupOffsets.error_counts` is Java `DeleteShareGroupOffsetsResponse.errorCounts` (top-level ErrorCode plus each topic-level code, including `NONE`; there is no partition ErrorCode).
-
-`DeleteShareGroupOffsetsRequest.error_response` is Java `DeleteShareGroupOffsetsRequest.getErrorResponse` (empty Responses; ErrorMessage JSON-null; ThrottleTimeMs JSON `0+`; convenience fills `0`; official Java sets `throttleTimeMs` from the argument and the English `Errors.message`; request GroupId / Topics are not copied).
+`error_counts` counts the top-level code and every topic code, including `NONE`. Java `getErrorResponse` leaves `Responses` empty, sets `ErrorMessage` to JSON null, copies `throttleTimeMs` from its argument, and sets the English `Errors.message`. It does not copy `GroupId` or `Topics`.
 
 Kafka 4.1 `validVersions` is `"0"`.
 
-v1+ is not spoken.
-
-ErrorCode is top-level after throttle.
-
 ### DescribeTopicPartitions
 
-Spoken versions: 0.
+Spoken versions: 0. Version 1 and above are not spoken.
 
-DescribeTopicPartitions v0 is flexible (compact strings/arrays plus tagged fields; request header 2, response header 1).
-
-ThrottleTimeMs is JSON `0+` (`DescribeTopicPartitionsResponse.throttle_time_ms`; encode previously always wrote `0` and decode discarded; `DescribeTopicPartitionsResponse::new` fills `0`).
+v0 is flexible. Request header version 2, response header version 1. There is no top-level error code. `ThrottleTimeMs` is JSON `0+`. `DescribeTopicPartitionsResponse::new` fills `0`.
 
 Kafka 4.0 `validVersions` is `"0"`.
-
-v1+ is not spoken.
-
-There is no top-level ErrorCode.
 
 ### ListConfigResources
 
-Spoken versions: 0–1.
+Spoken versions: 0–1. Version 2 and above are not spoken.
 
-ListConfigResources v0–v1 are flexible (compact strings/arrays plus tagged fields; request header 2, response header 1).
+v0 and v1 are flexible and share one empty-resource body. Request header version 2, response header version 1. The error code is top-level, after throttle. `ThrottleTimeMs` is JSON `0+`. `ListConfigResourcesResponse::new` fills `0`.
 
-ThrottleTimeMs is JSON `0+` (`ListConfigResourcesResponse.throttle_time_ms`; encode previously always wrote `0` and decode discarded; `ListConfigResourcesResponse::new` fills `0`).
+`error_counts` counts that top-level code only, including `NONE`. Config resources are not counted. `error` is an `ApiError` from the code. An unknown code becomes `UNKNOWN_SERVER_ERROR`. The JSON schema has no `ErrorMessage`, and this crate fills a null message. Java `getErrorResponse` leaves `ConfigResources` empty and copies `throttleTimeMs` from its argument.
 
-`ListConfigResourcesResponse.error_counts` is Java `ListConfigResourcesResponse.errorCounts` (top-level ErrorCode only, including `NONE`; Java `Collections.singletonMap`; config resources are not counted).
+`supported_resource_types` is `CLIENT_METRICS` only on v0. v1 adds `TOPIC`, `BROKER`, `BROKER_LOGGER`, and `GROUP`. `UNKNOWN` is not included. `build` requires v0 `ResourceTypes` to be exactly `CLIENT_METRICS` (Java `HashSet`). Encode still omits `ResourceTypes` on v0. `config_resources` maps each id with `Type.forId`. An unknown id is `UNKNOWN`.
 
-`ListConfigResourcesResponse.error` is Java `ListConfigResourcesResponse.error` (`ApiError` from the top-level ErrorCode; unknown codes become `UNKNOWN_SERVER_ERROR`; JSON has no ErrorMessage; this crate fills a null message).
-
-`ListConfigResourcesRequest.error_response` is Java `ListConfigResourcesRequest.getErrorResponse` (empty ConfigResources; ThrottleTimeMs JSON `0+`; convenience fills `0`; official Java sets `throttleTimeMs` from the argument).
-
-`ListConfigResourcesRequest.supported_resource_types` is Java `ListConfigResourcesRequest.supportedResourceTypes` (v0 `CLIENT_METRICS` only; v1 `TOPIC` / `BROKER` / `BROKER_LOGGER` / `CLIENT_METRICS` / `GROUP`; `UNKNOWN` is not included).
-
-`ListConfigResourcesRequest.build` is Java `ListConfigResourcesRequest.Builder.build` (v0 ResourceTypes must be exactly `CLIENT_METRICS`; Java `HashSet`; encode still omits ResourceTypes on v0).
-
-`ListConfigResourcesResponse.config_resources` is Java `ListConfigResourcesResponse.configResources` (`ConfigResource` via `Type.forId`; unknown ids are `UNKNOWN`).
-
-Kafka 4.0 `validVersions` is `"0"` (ListClientMetricsResources).
-
-Kafka 4.1 `validVersions` is `"0-1"` (v1 ResourceType, KIP-1142).
-
-v2+ is not spoken.
-
-Empty-resource bodies: v0 == v1.
-
-ErrorCode is top-level after throttle.
+Kafka 4.0 `validVersions` is `"0"` (ListClientMetricsResources). Kafka 4.1 `validVersions` is `"0-1"`. v1 adds `ResourceType` (KIP-1142).
 
 ### GetTelemetrySubscriptions
 
-Spoken versions: 0.
+Spoken versions: 0. Version 1 and above are not spoken.
 
-GetTelemetrySubscriptions v0 is flexible (compact strings/arrays plus tagged fields; request header 2, response header 1).
+v0 is flexible. Request header version 2, response header version 1. The error code is top-level, after throttle. `ThrottleTimeMs` is JSON `0+`. `GetTelemetrySubscriptionsResponse::new` fills `0`.
 
-ThrottleTimeMs is JSON `0+` (`GetTelemetrySubscriptionsResponse.throttle_time_ms`; encode previously always wrote `0` and decode discarded; `GetTelemetrySubscriptionsResponse::new` fills `0`).
-
-`GetTelemetrySubscriptionsResponse.error_counts` is Java `GetTelemetrySubscriptionsResponse.errorCounts` (top-level ErrorCode only, including `NONE`; Java `Collections.singletonMap`; ClientInstanceId / compression types / requested metrics are not counted).
-
-`GetTelemetrySubscriptionsResponse.has_error` is Java `GetTelemetrySubscriptionsResponse.hasError` (`error() != NONE`).
-
-`GetTelemetrySubscriptionsRequest.error_response` is Java `GetTelemetrySubscriptionsRequest.getErrorResponse` (JSON defaults for ClientInstanceId / subscription fields; ThrottleTimeMs JSON `0+`; convenience fills `0`; official Java sets `throttleTimeMs` from the argument).
+`error_counts` counts that code only, including `NONE`. `ClientInstanceId`, compression types, and requested metrics are not counted. `has_error` is `error() != NONE`. Java `getErrorResponse` uses the JSON defaults for `ClientInstanceId` and the subscription fields, and copies `throttleTimeMs` from its argument.
 
 Kafka 4.0 `validVersions` is `"0"`.
-
-v1+ is not spoken.
-
-ErrorCode is top-level after throttle.
 
 ### PushTelemetry
 
-Spoken versions: 0.
+Spoken versions: 0. Version 1 and above are not spoken.
 
-PushTelemetry v0 is flexible (compact strings/bytes plus tagged fields; request header 2, response header 1).
+v0 is flexible: compact strings and bytes, plus tagged fields. Request header version 2, response header version 1. The error code is top-level, after throttle. `ThrottleTimeMs` is JSON `0+`. `PushTelemetryResponse::new` fills `0`.
 
-ThrottleTimeMs is JSON `0+` (`PushTelemetryResponse.throttle_time_ms`; encode previously always wrote `0` and decode discarded; `PushTelemetryResponse::new` fills `0`).
+`error_counts` counts that code only, including `NONE`. `has_error` is `error() != NONE`. Java `getErrorResponse` delegates to `errorResponse` and copies `throttleTimeMs` from its argument.
 
-`PushTelemetryResponse.error_counts` is Java `PushTelemetryResponse.errorCounts` (top-level ErrorCode only, including `NONE`; Java `Collections.singletonMap`).
-
-`PushTelemetryResponse.has_error` is Java `PushTelemetryResponse.hasError` (`error() != NONE`).
-
-`PushTelemetryRequest.error_response` is Java `PushTelemetryRequest.getErrorResponse` (ThrottleTimeMs JSON `0+`; convenience fills `0`; official Java `getErrorResponse` delegates to `errorResponse` and sets `throttleTimeMs` from the argument).
-
-`PushTelemetryRequest.metrics_content_type` is Java `PushTelemetryRequest.metricsContentType` (`OTLP`; the request has no content-type field).
-
-`PushTelemetryRequest.metrics_data` is Java `PushTelemetryRequest.metricsData` (`NONE` returns stored bytes; gzip / snappy / lz4 decompress via `ClientTelemetryUtils.decompress`; zstd requires the optional feature; unknown ids are `IllegalArgumentException`).
+`metrics_content_type` is `OTLP`. The request has no content-type field. `metrics_data` returns the stored bytes for `NONE`. Gzip, Snappy, and LZ4 decompress through `ClientTelemetryUtils.decompress`. Zstd needs the optional feature. An unknown id is `IllegalArgumentException`.
 
 Kafka 4.0 `validVersions` is `"0"`.
-
-v1+ is not spoken.
-
-ErrorCode is top-level after throttle.
 
 ### AssignReplicasToDirs
 
-Spoken versions: 0.
+Spoken versions: 0. Version 1 and above are not spoken.
 
-AssignReplicasToDirs v0 is flexible (compact strings/arrays plus tagged fields; request header 2, response header 1).
+v0 is flexible. Request header version 2, response header version 1. The error code is top-level, after throttle. `ThrottleTimeMs` is JSON `0+`. `AssignReplicasToDirsResponse::new` fills `0`.
 
-ThrottleTimeMs is JSON `0+` (`AssignReplicasToDirsResponse.throttle_time_ms`; encode previously always wrote `0` and decode discarded; `AssignReplicasToDirsResponse::new` fills `0`).
-
-`AssignReplicasToDirsRequest.error_response` is Java `AssignReplicasToDirsRequest.getErrorResponse` (empty Directories; ThrottleTimeMs JSON `0+`; convenience fills `0`; official Java sets `throttleTimeMs` from the argument; request BrokerId / BrokerEpoch / Directories are not copied).
-
-`AssignReplicasToDirsRequest.MAX_ASSIGNMENTS_PER_REQUEST` is Java `AssignReplicasToDirsRequest.MAX_ASSIGNMENTS_PER_REQUEST` (`2250`; encode does not enforce the cap).
+Java `getErrorResponse` leaves `Directories` empty and does not copy `BrokerId`, `BrokerEpoch`, or `Directories`. `MAX_ASSIGNMENTS_PER_REQUEST` is 2250. Encode does not enforce that cap.
 
 Kafka 4.0 `validVersions` is `"0"`.
-
-v1+ is not spoken.
 
 ErrorCode is top-level after throttle.
 

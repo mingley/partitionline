@@ -24,6 +24,8 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
 - AlterConfigs through ApiVersions, including Metadata, ACLs, and the
   quorum RPCs, use the same version tables. The ApiVersions response
   header stays classic.
+- Share-group offset changes, ListConfigResources, telemetry, and
+  AssignReplicasToDirs use the same version tables.
 
 - The broker SASL reauthentication page matches the listener profile: opt-in
   lifetime, Handshake v1, and the deadline that does not move after the
