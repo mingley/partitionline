@@ -549,16 +549,26 @@ impl Planner {
                 self.extend(&mut output, record.suffix, maximum)?;
             }
             let batch_bytes = output.len() - start;
-            let length = i32::try_from(batch_bytes - 12)
+            let length = i32::try_from(batch_bytes - crate::batch::PREFIX)
                 .map_err(|_| Error::BudgetExceeded(Budget::OutputBytes))?;
-            output[start + 8..start + 12].copy_from_slice(&length.to_be_bytes());
-            output[start + 21..start + 23]
-                .copy_from_slice(&(if horizon.is_some() { 0x40u16 } else { 0 }).to_be_bytes());
-            output[start + 27..start + 35].copy_from_slice(&base_time.to_be_bytes());
-            output[start + 35..start + 43].copy_from_slice(&maximum_time.to_be_bytes());
-            output[start + 57..start + 61].copy_from_slice(&(kept as i32).to_be_bytes());
-            let crc = crc32c::crc32c(&output[start + 21..]);
-            output[start + 17..start + 21].copy_from_slice(&crc.to_be_bytes());
+            output[start + crate::batch::LENGTH..start + crate::batch::PREFIX]
+                .copy_from_slice(&length.to_be_bytes());
+            let attributes = if horizon.is_some() {
+                crate::batch::DELETE_HORIZON
+            } else {
+                0
+            };
+            output[start + crate::batch::ATTRIBUTES..start + crate::batch::LAST_OFFSET_DELTA]
+                .copy_from_slice(&attributes.to_be_bytes());
+            output[start + crate::batch::BASE_TIMESTAMP..start + crate::batch::MAX_TIMESTAMP]
+                .copy_from_slice(&base_time.to_be_bytes());
+            output[start + crate::batch::MAX_TIMESTAMP..start + crate::batch::PRODUCER_ID]
+                .copy_from_slice(&maximum_time.to_be_bytes());
+            output[start + crate::batch::RECORD_COUNT..start + crate::batch::LEN]
+                .copy_from_slice(&(kept as i32).to_be_bytes());
+            let crc = crc32c::crc32c(&output[start + crate::batch::ATTRIBUTES..]);
+            output[start + crate::batch::CRC..start + crate::batch::ATTRIBUTES]
+                .copy_from_slice(&crc.to_be_bytes());
             self.retained += kept;
         }
         // Full sparse validation, including changed varint lengths/CRC/extent,

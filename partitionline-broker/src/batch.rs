@@ -50,6 +50,18 @@ pub(crate) const PREFIX: usize = 12;
 pub(crate) const HEADER_ONLY_LENGTH: i32 = (LEN - PREFIX) as i32;
 /// Magic value for Kafka 0.11 and later batches.
 pub(crate) const MAGIC_V2: u8 = 2;
+/// Low three attribute bits. Codec 0 is uncompressed.
+pub(crate) const COMPRESSION_MASK: u16 = 0x07;
+/// Attribute bit for log-append time. Unset means create time.
+pub(crate) const LOG_APPEND_TIME: u16 = 0x08;
+/// Attribute bit for a transactional batch.
+pub(crate) const TRANSACTIONAL: u16 = 0x10;
+/// Attribute bit for a control batch.
+pub(crate) const CONTROL: u16 = 0x20;
+/// Attribute bit for a compaction delete horizon. The base timestamp is that horizon.
+pub(crate) const DELETE_HORIZON: u16 = 0x40;
+/// The seven defined v2 attribute bits. Bits above this mask are rejected.
+pub(crate) const ATTRIBUTE_MASK: u16 = 0x7f;
 
 #[cfg(test)]
 mod tests {
@@ -81,5 +93,9 @@ mod tests {
         assert_eq!(PREFIX, LEADER_EPOCH);
         assert_eq!(HEADER_ONLY_LENGTH as usize, LEN - PREFIX);
         assert_eq!(MAGIC_V2, 2);
+        assert_eq!(
+            COMPRESSION_MASK | LOG_APPEND_TIME | TRANSACTIONAL | CONTROL | DELETE_HORIZON,
+            ATTRIBUTE_MASK
+        );
     }
 }

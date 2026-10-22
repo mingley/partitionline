@@ -630,18 +630,18 @@ pub fn framed_assignment(bytes: &[u8], limits: Limits) -> Result<FramedAssignmen
             return Err(budget(at, Budget::Batches));
         }
         let batch = take_batch(&mut input, limits.batch_bytes)?;
-        if batch.len() < batch::LEN || batch.get(batch::MAGIC) != Some(&2) {
+        if batch.len() < batch::LEN || batch.get(batch::MAGIC) != Some(&batch::MAGIC_V2) {
             return Err(invalid(at + batch::MAGIC, Invalid::Magic));
         }
         let base = read_be_i64(batch, 0).ok_or_else(|| invalid(at, Invalid::Offset))?;
         let attrs = read_be_u16(batch, batch::ATTRIBUTES)
             .ok_or_else(|| invalid(at + batch::ATTRIBUTES, Invalid::Attributes))?;
-        if attrs & !0x7f != 0
-            || attrs & 7 != 0
-            || attrs & 0x20 != 0
-            || attrs & 0x10 != 0
-            || attrs & 0x40 != 0
-            || attrs & 8 != 0
+        if attrs & !batch::ATTRIBUTE_MASK != 0
+            || attrs & batch::COMPRESSION_MASK != 0
+            || attrs & batch::CONTROL != 0
+            || attrs & batch::TRANSACTIONAL != 0
+            || attrs & batch::DELETE_HORIZON != 0
+            || attrs & batch::LOG_APPEND_TIME != 0
         {
             return Err(invalid(at + batch::ATTRIBUTES, Invalid::Attributes));
         }
@@ -791,7 +791,7 @@ fn validate_batch(
             Unsupported::LegacyMagic(magic),
         ));
     }
-    if magic != 2 {
+    if magic != batch::MAGIC_V2 as i8 {
         return Err(invalid(at + batch::MAGIC, Invalid::Magic));
     }
     if bytes.len() < batch::LEN {
@@ -802,31 +802,31 @@ fn validate_batch(
         return Err(invalid(at + batch::CRC, Invalid::Checksum));
     }
     let attrs = c.u16()?;
-    if attrs & !0x7f != 0 || attrs & 7 > 4 {
+    if attrs & !batch::ATTRIBUTE_MASK != 0 || attrs & batch::COMPRESSION_MASK > 4 {
         return Err(invalid(at + batch::ATTRIBUTES, Invalid::Attributes));
     }
-    if attrs & 7 != 0 {
+    if attrs & batch::COMPRESSION_MASK != 0 {
         return Err(unsupported(
             at + batch::ATTRIBUTES,
-            Unsupported::Compression((attrs & 7) as u8),
+            Unsupported::Compression((attrs & batch::COMPRESSION_MASK) as u8),
         ));
     }
-    if attrs & 0x20 != 0 {
+    if attrs & batch::CONTROL != 0 {
         return Err(unsupported(at + batch::ATTRIBUTES, Unsupported::Control));
     }
-    if attrs & 0x10 != 0 {
+    if attrs & batch::TRANSACTIONAL != 0 {
         return Err(unsupported(
             at + batch::ATTRIBUTES,
             Unsupported::Transactional,
         ));
     }
-    if attrs & 0x40 != 0 && !read {
+    if attrs & batch::DELETE_HORIZON != 0 && !read {
         return Err(unsupported(
             at + batch::ATTRIBUTES,
             Unsupported::DeleteHorizon,
         ));
     }
-    if attrs & 8 != 0 {
+    if attrs & batch::LOG_APPEND_TIME != 0 {
         return Err(unsupported(
             at + batch::ATTRIBUTES,
             Unsupported::LogAppendTime,
@@ -872,11 +872,11 @@ fn validate_batch(
     {
         return Err(invalid(at, Invalid::Offset));
     }
-    if read && attrs & 0x40 != 0 && base_time < 0 {
+    if read && attrs & batch::DELETE_HORIZON != 0 && base_time < 0 {
         return Err(invalid(at + batch::BASE_TIMESTAMP, Invalid::Timestamp));
     }
     if read && count == 0 {
-        if attrs & 0x40 != 0 {
+        if attrs & batch::DELETE_HORIZON != 0 {
             return Err(invalid(at + batch::ATTRIBUTES, Invalid::Attributes));
         }
         if base_time != -1 {
@@ -970,7 +970,7 @@ fn validate_batch(
         return Err(invalid(c.at(), Invalid::TrailingBytes));
     }
     if count > 0 && observed_max != max_time {
-        return Err(invalid(at + 35, Invalid::Timestamp));
+        return Err(invalid(at + batch::MAX_TIMESTAMP, Invalid::Timestamp));
     }
     *total_records += count;
     Ok(())
@@ -1204,7 +1204,7 @@ fn projection<'a>(input: &mut Cursor<'a>) -> Result<Batch<'a>, Error> {
         record_count,
         base_timestamp,
         max_timestamp,
-        delete_horizon_ms: (attrs & 0x40 != 0).then_some(base_timestamp),
+        delete_horizon_ms: (attrs & batch::DELETE_HORIZON != 0).then_some(base_timestamp),
     })
 }
 #[derive(Debug, Clone, Copy)]
