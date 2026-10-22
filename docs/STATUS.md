@@ -21,25 +21,38 @@ requirements are met.
 | Which work items are open | [Task registry](plan/tasks.json) |
 | How a benchmark number should be read | [Benchmark guide](benchmark.md) |
 
-The task registry in this tree has 343 cards: 258 done, 9 in progress, and
-76 pending. That file is the queue. This page does not restate each card.
+The task registry has 343 cards: 258 done, 9 in progress, and 76 pending.
+Those counts were checked against `tasks.json` on 22 October 2026. The
+file's own `updated` field still says 2026-10-08. The file is the queue.
+This page does not restate each card.
 
 ## Client
 
 The client speaks the versions listed in the [design notes](design.md#wire-format-notes).
 Selected tests cover Apache Kafka 3.9.1, 4.1.0, 4.1.2, 4.2.1, and 4.3.1.
-Coverage depends on the API. See the support matrix.
+Which combination was run is in the [support matrix](support.md).
 
-Prepared transaction initialization, session reauthentication, and
-mixed-version fault recovery are still open. GSSAPI is not implemented.
+Ordinary produce, fetch, groups, and transactions are in the tree.
+InitProducerId negotiates v0–v6 and leaves both two-phase flags false
+(KL05-35). These items are still open:
+
+| Gap | Standing |
+|---|---|
+| Opt-in two-phase initialization, and resume when a prepared transaction is unavailable | KL05-36, pending |
+| SASL reauthentication driven by producer connections | KL06-11, in progress. Shared round-trip callers are KL06-12, pending. Client loops do not reauthenticate on a timer. |
+| Broker SASL connection reauthentication | KL11-71, in progress |
+| Recorded producer, consumer, and transaction fault histories | KL03-19 and KL03-20, pending. These are evidence cards. |
+| GSSAPI / Kerberos | Not implemented. KL06-08, the provider proposal, is in progress. |
 
 ## Broker
 
-The broker has protocol handling, storage, a coordinator, and replication
-code. Distributed recovery, peer authentication, resource limits, and
-current-version compatibility are still open. Unit and integration tests
-do not by themselves make it production-ready. The
-[broker plan](plan/broker-implementation.md) records the remaining checks.
+KL11-01 through KL11-09 are done. That range covers framed transport, the
+checksummed journal, topic metadata, validated Produce, Fetch, ListOffsets,
+and independent clients against one persisted node. KL11-46, rolling
+mixed-version cluster behavior, is done. Unit and integration tests do not
+by themselves make the broker production-ready. The
+[broker plan](plan/broker-implementation.md) records the remaining checks,
+including sustained fuzz, resource soaks, and peer authentication.
 
 ## Snapshot from 8 October 2026
 

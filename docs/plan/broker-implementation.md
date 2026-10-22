@@ -30,7 +30,11 @@ wire contract, never fabricated success.
 
 ## First independent implementation contracts
 
-KL11-02 creates `src/transport.rs` and transport integration tests. Use Tokio
+KL11-01 through KL11-09 are done. The paragraphs below are the contracts
+those cards implemented. They are not the next task. Current status is
+[tasks.json](tasks.json). The production bar further down is still open.
+
+KL11-02 created `src/transport.rs` and transport integration tests. Use Tokio
 framed I/O with positive configured limits for connections, request/response
 bytes and absolute read/handler/write deadlines. Bound active tasks; cap length
 before allocation; preserve per-connection response order; join/drop sockets and
@@ -38,7 +42,7 @@ tasks during cancellation/shutdown. Provide an asynchronous handler interface
 that can later await storage without blocking the executor. Module exports and
 shared manifest edits are coordinated by the main agent.
 
-KL11-03 creates `src/journal.rs` and journal integration tests. Use an append-only
+KL11-03 created `src/journal.rs` and journal integration tests. Use an append-only
 checksummed entry format with checked monotonic logical offsets and an explicit
 record count. A durable append synchronizes data before reporting success.
 Caller-supplied paths are configuration, not unchecked topic names. Bound entry
@@ -47,13 +51,16 @@ incomplete final entry can be truncated on recovery with a reported outcome;
 interior CRC/length/offset corruption fails closed. Failed/partial writes must
 not silently advance the offset or allow subsequent appends into damaged state.
 Recovery scans must not allocate from unchecked lengths or assume a partial read
-is EOF. This journal foundation is not yet Kafka record-batch validation,
-replication, transaction durability, or a complete broker.
+is EOF. The journal card itself does not validate Kafka record batches.
+KL11-06, which is done, appends validated Produce batches to the durable
+log. Replication, transaction durability, and a complete broker remain
+later work.
 
-These modules own their public errors/configuration/interfaces. They do not
-modify client hot files or impersonate the benchmark null broker. Later cards
-add real header/API negotiation, persistent topic metadata, validated Produce,
-Fetch and ListOffsets before cross-peer single-node interop.
+These modules own their public errors, configuration, and interfaces. They
+do not modify client hot files or impersonate the benchmark null broker.
+KL11-04 through KL11-08 added header negotiation, persistent topic metadata,
+validated Produce, Fetch, ListOffsets, and single-node interop. Those cards
+are done.
 
 ## Full server behavior
 

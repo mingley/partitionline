@@ -86,6 +86,9 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
 - The design page describes the current Produce encoder. Uncompressed
   batches are written into the request buffer. Compressed batches are
   packed first and then copied. KL09-15 stays open.
+- The status page names the open client gaps. Ordinary InitProducerId and
+  the broker's first nine cards are already done. Mixed-version rolling
+  upgrade is KL11-46, which is done.
 - The gateway profile names zstd as an optional codec that has shipped.
   Its measured cells remain gzip and lz4.
 
