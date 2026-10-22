@@ -4829,30 +4829,10 @@ fn encode_produce_response_id_fields(
         let grouped = slots.get(topic).map(Vec::as_slice).unwrap_or(&[]);
         buf::put_array_len(buf, flexible, Some(grouped.len()))?;
         for index in grouped {
-            let Some(p) = parts.get(*index) else {
+            let Some(part) = parts.get(*index) else {
                 continue;
             };
-            buf.put_i32(p.partition);
-            buf.put_i16(p.error_code);
-            buf.put_i64(p.base_offset);
-            if version >= 2 {
-                buf.put_i64(p.log_append_time_ms);
-            }
-            if version >= 5 {
-                buf.put_i64(p.log_start_offset);
-            }
-            if version >= 8 {
-                encode_produce_record_errors(buf, flexible, &p.record_errors)?;
-                buf::put_string(buf, flexible, p.error_message.as_deref())?;
-            }
-            if flexible {
-                encode_produce_partition_tags(
-                    buf,
-                    version,
-                    p.current_leader_id,
-                    p.current_leader_epoch,
-                )?;
-            }
+            write_produce_response_partition(buf, version, flexible, part)?;
         }
         if flexible {
             buf::put_empty_tagged_fields(buf);
@@ -4863,6 +4843,225 @@ fn encode_produce_response_id_fields(
     }
     if flexible {
         encode_top_level_node_endpoints(buf, version >= 10, endpoints)?;
+    }
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
+    Ok(())
+}
+
+/// Produce response partitions grouped or written before the caller is paused.
+const PRODUCE_RESPONSE_ENCODE_CHUNK: usize = 8 * 1024;
+
+fn write_produce_response_partition(
+    buf: &mut BytesMut,
+    version: i16,
+    flexible: bool,
+    part: &ProducePartitionResponse,
+) -> Result<()> {
+    buf.put_i32(part.partition);
+    buf.put_i16(part.error_code);
+    buf.put_i64(part.base_offset);
+    if version >= 2 {
+        buf.put_i64(part.log_append_time_ms);
+    }
+    if version >= 5 {
+        buf.put_i64(part.log_start_offset);
+    }
+    if version >= 8 {
+        encode_produce_record_errors(buf, flexible, &part.record_errors)?;
+        buf::put_string(buf, flexible, part.error_message.as_deref())?;
+    }
+    if flexible {
+        encode_produce_partition_tags(
+            buf,
+            version,
+            part.current_leader_id,
+            part.current_leader_epoch,
+        )?;
+    }
+    Ok(())
+}
+
+fn produce_response_partition_len(
+    version: i16,
+    flexible: bool,
+    part: &ProducePartitionResponse,
+) -> Result<usize> {
+    let mut fixed = 14usize;
+    if version >= 2 {
+        fixed += 8;
+    }
+    if version >= 5 {
+        fixed += 8;
+    }
+    let mut total = fixed;
+    if version >= 8 {
+        total = add_produce_len(
+            total,
+            produce_record_errors_len(flexible, &part.record_errors)?,
+        )?;
+        total = add_produce_len(
+            total,
+            metadata_string_len(flexible, part.error_message.as_deref())?,
+        )?;
+    }
+    if flexible {
+        total = add_produce_len(
+            total,
+            produce_partition_tag_len(version, part.current_leader_id)?,
+        )?;
+    }
+    Ok(total)
+}
+
+async fn produce_response_groups_cooperative(
+    parts: &[ProducePartitionResponse],
+) -> (Vec<&str>, HashMap<&str, Vec<usize>>) {
+    let mut order = Vec::new();
+    let mut slots: HashMap<&str, Vec<usize>> = HashMap::new();
+    let mut walked = 0usize;
+    for (index, part) in parts.iter().enumerate() {
+        if let Some(group) = slots.get_mut(part.topic.as_str()) {
+            group.push(index);
+        } else {
+            let _ = slots.insert(part.topic.as_str(), vec![index]);
+            order.push(part.topic.as_str());
+        }
+        walked = walked.saturating_add(1);
+        if walked == PRODUCE_RESPONSE_ENCODE_CHUNK {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
+    }
+    (order, slots)
+}
+
+async fn produce_response_len_cooperative(
+    version: i16,
+    flexible: bool,
+    parts: &[ProducePartitionResponse],
+    order: &[&str],
+    slots: &HashMap<&str, Vec<usize>>,
+    endpoints: &[NodeEndpoint],
+) -> Result<usize> {
+    let mut total = metadata_array_len(flexible, Some(order.len()))?;
+    let mut walked = 0usize;
+    for topic in order {
+        if version <= 12 {
+            total = add_produce_len(total, metadata_string_len(flexible, Some(topic))?)?;
+        } else {
+            total = add_produce_len(total, 16)?;
+        }
+        let grouped = slots.get(topic).map(Vec::as_slice).unwrap_or(&[]);
+        total = add_produce_len(total, metadata_array_len(flexible, Some(grouped.len()))?)?;
+        for index in grouped {
+            let Some(part) = parts.get(*index) else {
+                continue;
+            };
+            total = add_produce_len(
+                total,
+                produce_response_partition_len(version, flexible, part)?,
+            )?;
+            walked = walked.saturating_add(1);
+            if walked == PRODUCE_RESPONSE_ENCODE_CHUNK {
+                walked = 0;
+                tokio::task::yield_now().await;
+            }
+        }
+        if flexible {
+            total = add_produce_len(total, buf::unsigned_varint_size(0))?;
+        }
+    }
+    if version >= 1 {
+        total = add_produce_len(total, 4)?;
+    }
+    if flexible {
+        if version >= 10 && !endpoints.is_empty() {
+            let inner = compact_node_endpoints_len_cooperative(endpoints).await?;
+            total = add_produce_len(
+                total,
+                buf::unsigned_varint_size(1)
+                    + buf::unsigned_varint_size(0)
+                    + buf::unsigned_varint_size(buf::u32_from_usize(inner)?)
+                    + inner,
+            )?;
+        } else {
+            total = add_produce_len(total, buf::unsigned_varint_size(0))?;
+        }
+    }
+    Ok(total)
+}
+
+/// [`encode_produce_response`], yielding while partitions are still being grouped, measured, and written.
+///
+/// Encoding 600,000 partitions held the caller for 212ms. A partition row is still written.
+pub async fn encode_produce_response_cooperative(
+    buf: &mut BytesMut,
+    version: i16,
+    parts: &[ProducePartitionResponse],
+) -> Result<()> {
+    encode_produce_response_id_fields_cooperative(buf, version, parts, &[], 0, None).await
+}
+
+async fn encode_produce_response_id_fields_cooperative(
+    buf: &mut BytesMut,
+    version: i16,
+    parts: &[ProducePartitionResponse],
+    endpoints: &[NodeEndpoint],
+    throttle_time_ms: i32,
+    topic_ids: Option<&[(String, [u8; 16])]>,
+) -> Result<()> {
+    let (order, slots) = produce_response_groups_cooperative(parts).await;
+    let mut checked_ids: HashMap<&str, [u8; 16]> = HashMap::new();
+    if version == 13 {
+        let identities = topic_ids
+            .ok_or_else(|| Error::Unsupported("Produce v13 requires explicit topic IDs".into()))?;
+        for topic in &order {
+            let id = produce_topic_id(topic, identities)?;
+            let _ = checked_ids.insert(topic, id);
+        }
+    }
+    let flexible = produce_flexible(version)?;
+    let body_start = buf.len();
+    let planned =
+        produce_response_len_cooperative(version, flexible, parts, &order, &slots, endpoints)
+            .await?;
+    let needed = body_start.saturating_add(planned);
+    if buf.capacity() < needed {
+        buf.reserve(needed - buf.capacity());
+    }
+    buf::put_array_len(buf, flexible, Some(order.len()))?;
+    let mut walked = 0usize;
+    for topic in &order {
+        if version <= 12 {
+            buf::put_string(buf, flexible, Some(topic))?;
+        } else if let Some(id) = checked_ids.get(topic) {
+            buf.extend_from_slice(id);
+        } else {
+            let id = produce_topic_id(topic, topic_ids.unwrap_or(&[]))?;
+            buf.extend_from_slice(&id);
+        }
+        let grouped = slots.get(topic).map(Vec::as_slice).unwrap_or(&[]);
+        buf::put_array_len(buf, flexible, Some(grouped.len()))?;
+        for index in grouped {
+            let Some(part) = parts.get(*index) else {
+                continue;
+            };
+            write_produce_response_partition(buf, version, flexible, part)?;
+            walked = walked.saturating_add(1);
+            if walked == PRODUCE_RESPONSE_ENCODE_CHUNK {
+                walked = 0;
+                tokio::task::yield_now().await;
+            }
+        }
+        if flexible {
+            buf::put_empty_tagged_fields(buf);
+        }
+    }
+    if version >= 1 {
+        buf.put_i32(throttle_time_ms);
+    }
+    if flexible {
+        encode_top_level_node_endpoints_cooperative(buf, version >= 10, endpoints).await?;
     }
     debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
     Ok(())
@@ -4929,30 +5128,10 @@ fn produce_response_len(
             let Some(part) = parts.get(*index) else {
                 continue;
             };
-            let mut fixed = 14usize;
-            if version >= 2 {
-                fixed += 8;
-            }
-            if version >= 5 {
-                fixed += 8;
-            }
-            total = add_produce_len(total, fixed)?;
-            if version >= 8 {
-                total = add_produce_len(
-                    total,
-                    produce_record_errors_len(flexible, &part.record_errors)?,
-                )?;
-                total = add_produce_len(
-                    total,
-                    metadata_string_len(flexible, part.error_message.as_deref())?,
-                )?;
-            }
-            if flexible {
-                total = add_produce_len(
-                    total,
-                    produce_partition_tag_len(version, part.current_leader_id)?,
-                )?;
-            }
+            total = add_produce_len(
+                total,
+                produce_response_partition_len(version, flexible, part)?,
+            )?;
         }
         if flexible {
             total = add_produce_len(total, buf::unsigned_varint_size(0))?;
@@ -5358,6 +5537,51 @@ mod tests {
             .await
             .unwrap_or_else(|error| panic!("{error}"));
         assert_eq!(omitted, omitted_paced);
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn encoding_many_produce_response_partitions_does_not_hold_the_caller() {
+        let parts: Vec<ProducePartitionResponse> = (0..600_000i32)
+            .map(|index| ProducePartitionResponse::partition_response("t", index, 0))
+            .collect();
+        let started = std::time::Instant::now();
+        tokio::select! {
+            _ = async {
+                let mut body = BytesMut::new();
+                encode_produce_response_cooperative(&mut body, 7, &parts)
+                    .await
+                    .unwrap_or_else(|error| panic!("{error}"));
+            } => {}
+            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "encoding produce partitions held the caller for {elapsed:?}"
+        );
+        let mut rich = ProducePartitionResponse::partition_response("orders", 1, 3);
+        rich.base_offset = 10;
+        rich.log_append_time_ms = 11;
+        rich.log_start_offset = 1;
+        rich.current_leader_id = 4;
+        rich.current_leader_epoch = 2;
+        rich.record_errors = vec![ProduceRecordError::new(0, Some("bad".into()))];
+        rich.error_message = Some("nope".into());
+        let sample = [
+            rich,
+            ProducePartitionResponse::partition_response("orders", 2, 0),
+            ProducePartitionResponse::partition_response("billing", 0, 0),
+        ];
+        for version in [7i16, 9, 12] {
+            let mut once = BytesMut::new();
+            let mut paced = BytesMut::new();
+            encode_produce_response(&mut once, version, &sample)
+                .unwrap_or_else(|error| panic!("{error}"));
+            encode_produce_response_cooperative(&mut paced, version, &sample)
+                .await
+                .unwrap_or_else(|error| panic!("{error}"));
+            assert_eq!(once, paced, "version {version}");
+        }
     }
 
     #[tokio::test(flavor = "current_thread")]

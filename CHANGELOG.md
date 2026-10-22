@@ -7,6 +7,9 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
 
 ## [Unreleased]
 
+- Encoding a Produce response pauses every 8,192 partitions. Writing
+  600,000 partitions held the caller for 212ms before that pause. The
+  encoded bytes are unchanged.
 - Encoding a Metadata response also pauses every 8,192 brokers. Writing
   2,000,000 brokers held the caller for 499ms before that pause.
 - Encoding a Metadata response pauses every 8,192 topics so a caller
