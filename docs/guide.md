@@ -736,16 +736,22 @@ The regressions are
 
 ### Committed offsets and topic IDs
 
-Group and Admin offset methods negotiate v10 when the coordinator supports it.
-At v10, topics are identified by UUID. Named Admin calls capture metadata before
-the request and use that same snapshot to interpret the response. Group commits
-use the UUID attached to the assigned partition, including queued asynchronous
-commits. Recreating a topic with the same name cannot redirect an old commit.
+Group and Admin offset methods negotiate v10 when the coordinator supports
+it. On v10 each topic is a UUID.
 
-`OffsetClient` exposes full offset request and response fields. Use it when you
-already have topic IDs or need raw per-partition errors. UUID requests require
-v10; an older coordinator returns `Error::Unsupported` before the offset RPC.
-Name requests use v8/v9. The two identity forms are never converted implicitly.
+| Call | Identity |
+|---|---|
+| Named Admin offset call | Captures metadata before the request and reads the response with that same snapshot. |
+| Group commit, including a queued async commit | Uses the UUID already attached to the assigned partition. |
+| `OffsetClient` with topic ids | Requires v10. An older coordinator returns `Error::Unsupported` before the offset RPC. |
+| `OffsetClient` with names | Uses v8 or v9. |
+
+A topic recreated under the same name does not receive an old commit. The
+client does not convert a name into a UUID, or a UUID into a name, on its
+own.
+
+Use `OffsetClient` when you already have topic ids or you need the raw
+per-partition errors.
 
 ```rust,no_run
 # async fn example(topic_id: [u8; 16]) -> partitionline::Result<()> {
@@ -777,13 +783,16 @@ println!("{:?}", response.groups);
 # }
 ```
 
-`topics: None` fetches all committed topics; `Some(vec![])` selects none.
-Raw responses retain UUIDs, nullable metadata, member and leader epochs, and
-broker errors. Named projections reject an unknown UUID instead of inventing
-a topic name. Limits cover request collections, metadata lookup, decoded results
-and retries. One deadline covers discovery, connection setup and the offset RPC.
-An interrupted commit may have reached the coordinator; fetch stored offsets
-before deciding whether to retry processing.
+`topics: None` fetches every committed topic. `Some(vec![])` selects none.
+The raw response keeps UUIDs, nullable metadata, member and leader epochs,
+and broker errors. A named projection rejects an unknown UUID. It does not
+invent a topic name.
+
+The size limits cover the request collections, the metadata lookup, the
+decoded results, and retries. One deadline covers discovery, the connection,
+and the offset RPC. An interrupted commit may already have reached the
+coordinator. Fetch the stored offsets before you decide to process the
+records again.
 
 ### Produce cancellation and shutdown
 
