@@ -2086,13 +2086,20 @@ async fn peer_socket_closed<S: AsyncRead + Unpin>(
     }
 }
 
-async fn abandon_peer_socket(socket: impl Sized) {
+async fn abandon_peer_socket(mut socket: TcpStream) {
+    // A rejected length leaves the rest of that write in the kernel buffer.
+    // Shut the write side down before drop so the peer observes EOF. Yield so
+    // that close is visible before the caller continues.
+    let _ = socket.shutdown().await;
     drop(socket);
-    // Dropping the socket only schedules the close. Yield so the peer
-    // observes it before the caller continues.
     for _ in 0..8 {
         tokio::task::yield_now().await;
     }
+}
+
+async fn abandon_open_peer(open: (TcpStream, Counter, u64)) {
+    let (socket, _counter, _) = open;
+    abandon_peer_socket(socket).await;
 }
 
 async fn outbound(control: Arc<Control>, peer: Peer, mut jobs: mpsc::Receiver<Job>) {
@@ -2121,7 +2128,7 @@ async fn outbound(control: Arc<Control>, peer: Peer, mut jobs: mpsc::Receiver<Jo
             } => {
                 wire.unread.clear();
                 if let Some(open) = socket.take() {
-                    abandon_peer_socket(open).await;
+                    abandon_open_peer(open).await;
                 }
                 continue;
             },
@@ -2191,7 +2198,7 @@ async fn outbound(control: Arc<Control>, peer: Peer, mut jobs: mpsc::Receiver<Jo
         if peer_left {
             wire.unread.clear();
             if let Some(open) = socket.take() {
-                abandon_peer_socket(open).await;
+                abandon_open_peer(open).await;
             }
             continue;
         }
@@ -2262,7 +2269,7 @@ async fn outbound(control: Arc<Control>, peer: Peer, mut jobs: mpsc::Receiver<Jo
                     // Bytes read from the closed socket are not the next peer's frame.
                     wire.unread.clear();
                     if let Some(open) = socket.take() {
-                        abandon_peer_socket(open).await;
+                        abandon_open_peer(open).await;
                     }
                 }
                 let result = match early {
@@ -2271,21 +2278,21 @@ async fn outbound(control: Arc<Control>, peer: Peer, mut jobs: mpsc::Receiver<Jo
                 };
                 if result.is_err() {
                     if let Some(open) = socket.take() {
-                        abandon_peer_socket(open).await;
+                        abandon_open_peer(open).await;
                     }
                     let _ = control.reliable(cancellation).await;
                 }
             }
             Err(_) => {
                 if let Some(open) = socket.take() {
-                    abandon_peer_socket(open).await;
+                    abandon_open_peer(open).await;
                 }
                 let _ = control.reliable(cancellation).await;
             }
         }
     }
     if let Some(open) = socket.take() {
-        abandon_peer_socket(open).await;
+        abandon_open_peer(open).await;
     }
     jobs.close();
     while let Some(job) = jobs.recv().await {
@@ -3409,6 +3416,52 @@ mod ownership_tests {
         }
         peer.abort();
         Ok(())
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn abandoned_peer_socket_ends_a_flooded_read() -> TestResult {
+        let listener = TcpListener::bind("127.0.0.1:0").await?;
+        let address = listener.local_addr()?;
+        let socket = TcpStream::connect(address).await?;
+        let (peer, _) = listener.accept().await?;
+        let (mut reader, writer) = peer.into_split();
+        // A zero length is not a frame. Leave it unread in the socket we are
+        // about to drop. Dropping that unread data resets the peer.
+        let flood = vec![0u8; 64 * 1024];
+        let mut wrote = 0usize;
+        while wrote < flood.len() {
+            writer.writable().await.map_err(|_| "flood writable")?;
+            let rest = flood.get(wrote..).ok_or("flood range")?;
+            match writer.try_write(rest) {
+                Ok(0) => break,
+                Ok(n) => wrote = wrote.saturating_add(n),
+                Err(e) if e.kind() == std::io::ErrorKind::WouldBlock && wrote >= 4 => break,
+                Err(_) => return Err("flood write".into()),
+            }
+        }
+        if wrote < 4 {
+            return Err("flood did not reach the socket buffer".into());
+        }
+        let mut waiting = [0u8; 4];
+        let arrived = tokio::time::timeout(Duration::from_millis(300), socket.peek(&mut waiting))
+            .await
+            .map_err(|_| "flood was not queued")?
+            .map_err(|_| "peek flood")?;
+        if arrived < 4 {
+            return Err("flood was not unread".into());
+        }
+        abandon_peer_socket(socket).await;
+        let mut buf = [0u8; 8];
+        let saw = tokio::time::timeout(
+            Duration::from_millis(300),
+            tokio::io::AsyncReadExt::read(&mut reader, &mut buf),
+        )
+        .await;
+        drop(writer);
+        match saw {
+            Ok(Ok(0)) => Ok(()),
+            _ => Err("abandoned socket reset a flooded peer".into()),
+        }
     }
 
     #[tokio::test(flavor = "current_thread")]
