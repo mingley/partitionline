@@ -1,20 +1,18 @@
 # Support matrix
 
-Tested versions and platforms for partitionline 0.1.x. The tables describe the
-CI coverage and its limits. API stability follows the [0.x policy](api-stability.md);
-production and benchmark qualification remain in progress.
+What CI actually runs for partitionline 0.1.x, and what it does not promise.
+A row here means that lane executes. It does not mean every client behavior is
+qualified.
 
-For API churn rules see [api-stability.md](api-stability.md). For how cuts are
-published see [RELEASE.md](RELEASE.md). For adopter steps see [ADOPTION.md](ADOPTION.md).
+API changes follow the [0.x policy](api-stability.md). Cuts are described in
+[RELEASE.md](RELEASE.md). Adopter steps are in [ADOPTION.md](ADOPTION.md).
+Broader correctness, fault, and performance work stays in the
+[task queue](plan/README.md).
 
-**Known qualification limits:** the [2026-09-21 source audit](https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/docs/audits/2026-09-21.md)
-reproduced five consumer correctness cases at `cb7e97d`. CI-backed below means
-the named lanes execute, not that all client semantics are correct.
-Apache 4.1.2/4.2.1/4.3.1 now have separate digest-pinned, exact-history
-compatibility profiles. The earlier 3.9.1/4.1.0 smoke cells remain historical
-executed coverage. The current profiles qualify the scenarios described below;
-the [task queue](https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/docs/plan/README.md)
-still tracks broader correctness, fault and performance work.
+The [2026-09-21 source audit](audits/2026-09-21.md) reproduced five consumer
+correctness cases at `cb7e97d`. Those cases are fixed in later source.
+Apache 4.1.2, 4.2.1, and 4.3.1 have their own digest-pinned profiles. The
+older 3.9.1 and 4.1.0 smoke runs are historical coverage.
 
 ## Supported (CI-backed)
 
@@ -28,63 +26,72 @@ still tracks broader correctness, fault and performance work.
 | Default features | gzip through `zlib-rs`; TLS through rustls and Ring | `Cargo.toml` defaults + deny/audit lanes |
 | Auth in smoke | SASL PLAIN / SCRAM / OAUTHBEARER + rustls TLS (when auth smoke runs) | `scripts/ci-auth-smoke.sh` (soft-skip without Java/Kafka unless `REQUIRE_AUTH=1`) |
 
-KL01-10 qualifies the three current broker distributions at source `8bec4f2`
-in [CI run 36869103809](https://github.com/mingley/partitionline/actions/runs/36869103809).
-Each fresh Linux x86_64 single-broker RF1 cell requires admin checks, 16 exact
-produced records, manual consumption, one-member classic/cooperative/KIP-848
-groups, share accept/close, and transactional output/offset commit with a hidden
-abort sentinel. Rust verifies complete identities, offsets, timestamps and
-payloads; the pinned Java CLI independently reads both histories and verifies
-four groups' committed offsets and zero lag. Actual image/compiler/API ranges
-and finalized feature levels are retained; API absence or a disabled required
-feature fails the profile. Transaction commit-marker visibility is observed
-within five seconds without repeating the transaction. Startup coordinator
-errors and every visibility observation remain in the evidence.
+## What a current broker profile checks
 
-KL01-17 qualifies source `9404187` with retained [complete live evidence](https://github.com/mingley/partitionline/blob/80b4c78a4399ed5cfc68c7a3cb14046f008e9d78/docs/plan/evidence/KL01-17.json).
-The Apache 4.1.2 lane also requires the KL01-17
-[frozen live verifiable scenario](../tests/conformance/verifiable-live-profile.json).
-It runs both Rust adapter binaries on one fresh partition, checks every event
-for 25 null-key decimal values, and confirms all records and the final committed
-offset 25 / lag 0 with that broker's Java CLI. Each attempt retains its actual
-clean source SHA, compiler/image identity, full streams and failures. This is
-one producer/consumer scenario; it does not qualify the full ducktape suite or
-the full SDK case registry. The earlier mock-only case remains historical.
+KL01-10 runs the three current broker distributions at source `8bec4f2` in
+[CI run 36869103809](https://github.com/mingley/partitionline/actions/runs/36869103809).
+Each cell is one fresh Linux x86_64 broker, replication factor 1. It checks
+admin calls, 16 produced records, a manual consumer, one-member classic,
+cooperative, and KIP-848 groups, share accept and close, and a transaction
+that commits output and offsets with a hidden abort sentinel. Rust checks
+identities, offsets, timestamps, and payloads. The pinned Java CLI reads both
+histories and checks four groups' committed offsets and zero lag. A missing
+API or a disabled required feature fails the profile. The commit marker is
+observed within five seconds, without running the transaction again.
 
-These profiles qualify current source with default features. They do not add
-multi-broker HA, rebalance churn, share lock-expiry, crash/fencing, external auth,
-native macOS/Windows broker, tiered-storage or performance qualification. The
-historical smoke checks do not qualify a failed current profile. Published
-`0.1.0` remains a separate source baseline.
+KL01-17 runs source `9404187`. The retained evidence is
+[KL01-17.json](https://github.com/mingley/partitionline/blob/80b4c78a4399ed5cfc68c7a3cb14046f008e9d78/docs/plan/evidence/KL01-17.json).
+The Apache 4.1.2 lane also runs the
+[frozen live scenario](../tests/conformance/verifiable-live-profile.json):
+both Rust adapter binaries, one fresh partition, 25 null-key decimal values,
+and a Java CLI check of every record plus committed offset 25 and lag 0.
+Each attempt keeps its source SHA, compiler, image, streams, and failures.
+This is one producer and consumer scenario. It is not the full ducktape suite
+or the full SDK case registry. The earlier mock-only case is historical.
 
-## Explicitly unsupported / not promised
+These profiles use current source and default features. They do not cover:
 
-KL08-05 retains native macOS arm64 results on `macos-15`, with default/tracing
-runtime, TLS mock paths and actual packed-crate consumers. Current CI uses
-latest stable Rust only. The recorded hosted runs passed; broker/performance qualification
-remains in the Linux lanes. macOS needs Xcode command-line build tools, Python 3.11+ and Homebrew
-Bash 5+ / OpenSSL 3 on PATH. Apple Bash 3.2 cannot run the package/documentation
-scripts' empty arrays under `set -u`. OpenSSL generates ephemeral mock certificates
-and is a test executable,
-not a crate dependency. The lane records actual OS, architecture, compiler,
-OpenSSL, Bash and Python versions with complete logs/package reports.
-The retained runs apply to their recorded sources. Broker and performance
-lanes remain separate.
+- Multi-broker HA, rebalance churn, or share lock expiry
+- Crash and fencing
+- External auth
+- A live broker on macOS or Windows
+- Tiered storage
+- Performance
 
-KL08-14 retains native `windows-2025` x86_64 MSVC results with default/tracing
-runtime, public TLS mock paths and actual packed-consumer checks. Recorded
-hosted runs passed at source `5b02bc5`; current CI uses latest stable Rust only.
-Windows live-broker, external auth-service and performance campaigns remain
-unqualified. Prerequisites are MSVC C build tools for Ring, native 64-bit Python
-3.11+ in UTF-8 mode (`PYTHONUTF8=1`), Git Bash 5+ and OpenSSL 3 on PATH. The driver maps package scripts'
-`python3` calls to setup-python's native `python.exe` and records the actual
-certificate executable/version. No cross-build, WSL, skipped-runtime or
-compilation-only result qualifies this cell.
+Historical smoke does not excuse a failed current profile. Published `0.1.0`
+is a separate source baseline.
+
+## Platform lanes
+
+KL08-05 keeps native macOS arm64 results on `macos-15`: default and tracing
+runtimes, TLS mock paths, and packed-crate consumers. The recorded hosted runs
+passed. Current CI uses latest stable Rust only. Broker and performance
+qualification stay on Linux.
+
+macOS needs Xcode command-line tools, Python 3.11 or newer, and Homebrew Bash
+5 or newer and OpenSSL 3 on `PATH`. Apple Bash 3.2 cannot run the package and
+documentation scripts' empty arrays under `set -u`. OpenSSL only mints
+ephemeral mock certificates. It is a test executable, not a crate dependency.
+The lane records the OS, architecture, compiler, OpenSSL, Bash, and Python
+versions. Those runs apply to the sources they recorded.
+
+KL08-14 keeps native `windows-2025` x86_64 MSVC results: default and tracing
+runtimes, public TLS mock paths, and packed consumers. The recorded hosted
+runs passed at source `5b02bc5`. Current CI uses latest stable Rust only.
+Windows live-broker, external auth, and performance runs are not qualified.
+
+Windows needs MSVC C build tools for Ring, native 64-bit Python 3.11 or newer
+in UTF-8 mode (`PYTHONUTF8=1`), Git Bash 5 or newer, and OpenSSL 3 on `PATH`.
+The driver maps the scripts' `python3` calls to setup-python's `python.exe`
+and records that certificate tool. A cross-build, WSL, a skipped runtime, or
+a compile-only result does not qualify this cell.
+
+## Not promised
 
 Each row names its KL05-01
-[feature-registry](../tests/conformance/features.json) entry where one exists;
-Implementation status comes from the current registry; platform and production
-qualification remain separate.
+[feature-registry](../tests/conformance/features.json) entry where one exists.
+Status comes from the current registry. Platform and production qualification
+stay separate.
 
 | Item | Status | Registry |
 |---|---|---|

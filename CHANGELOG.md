@@ -26,6 +26,8 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   header stays classic.
 - Share-group offset changes, ListConfigResources, telemetry, and
   AssignReplicasToDirs use the same version tables.
+- The support matrix leads with the CI table. Broker-profile checks,
+  platform lanes, and items that are not promised are separate sections.
 
 - The broker SASL reauthentication page matches the listener profile: opt-in
   lifetime, Handshake v1, and the deadline that does not move after the
