@@ -142,6 +142,9 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
 - The one-batch consumer recipe lists what to do when a commit fails,
   when pause is on, and when a cooperative rejoin revokes partitions.
   A failed commit can still have stored an offset.
+- The exactly-once recipe lists each transaction outcome. A lost commit
+  stays ambiguous and is retried as the same commit. Fencing stops that
+  producer instance.
 - The gateway profile names zstd as an optional codec that has shipped.
   Its measured cells remain gzip and lz4.
 

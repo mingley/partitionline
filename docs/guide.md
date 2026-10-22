@@ -982,26 +982,23 @@ with both topics present and at least one source record. The program uses
 returned batch, sends `next_offsets()` with current group metadata, commits,
 leaves and closes within 45 seconds.
 
-Initialization and group join retry transient coordinator-startup errors
-within their own deadlines, before staging any transaction data. The producer
-internally retries sends; the recipe never resends staged data.
-It may retry **the same transaction's commit** within a ten-second budget:
-a lost commit response is ambiguous, and EndTxn is idempotent. It does not
-switch an ambiguous commit to abort. A failure before commit attempts a
-bounded abort; explicit abort-required errors need successful abort before
-another transaction. Failed/ambiguous abort stops the instance. Fencing
-(`PRODUCER_FENCED` or `INVALID_PRODUCER_ID_MAPPING`) is terminal: abort or
-`init_transactions` cannot repair that instance. Classic identity recovery
-after abort is authorized by the coordinator; transaction V2 supplies its
-identity through EndTxn. Do not invent a local epoch increment.
+| Outcome | What the recipe does |
+|---|---|
+| The coordinator is not ready during init or join | Retry inside that call's deadline, before any transaction data is staged |
+| A send fails inside the transaction | The producer retries. The recipe does not resend data it already staged |
+| The commit response is lost | The result is ambiguous. Retry that same commit for up to 10 seconds. EndTxn is idempotent. Do not turn an ambiguous commit into an abort |
+| Something fails before commit | Attempt a bounded abort |
+| The error requires an abort | Abort successfully before starting another transaction |
+| The abort fails or is ambiguous | Stop this instance |
+| `PRODUCER_FENCED` or `INVALID_PRODUCER_ID_MAPPING` | Terminal. `abort` and `init_transactions` cannot repair this instance |
+| After an abort | The consumer's delivered position may already have moved. This program exits. The replacement joins from the stored group offsets |
+| No source record is available | Return a bounded timeout |
 
-After abort, the consumer's delivered position may already have advanced.
-This one-batch program exits; its replacement joins from stored committed
-group offsets, rather than continuing from that delivered position. Use one
-stable transactional ID per logical worker and one active owner of that ID.
-If commit remained ambiguous, resolve it through stored group offsets and
-`ReadCommitted` output before deciding to reprocess. If no source record is
-available, the example returns a bounded timeout rather than waiting forever.
+Classic identity recovery after abort is authorized by the coordinator.
+Transaction V2 supplies its identity through EndTxn. Do not bump the epoch
+locally. Use one stable transactional id per logical worker, and one active
+owner of that id. If the commit stayed ambiguous, read the stored group
+offsets and the `ReadCommitted` output before deciding to reprocess.
 
 The atomic boundary is Kafka output plus consumed Kafka offsets. Database
 writes, HTTP calls, filesystem effects and log printing are outside it; use
