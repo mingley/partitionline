@@ -7,6 +7,9 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
 
 ## [Unreleased]
 
+- Crate rustdoc opens with produce, fetch, group, transaction, and admin
+  examples. The Java client name catalog lives in the `java_crosswalk` module.
+
 - `FetchedRecord.key` stores keys of at most 24 bytes inside the record.
   Longer keys stay in a shared buffer. The null-broker bulk fetch still
   verifies every key; allocation count on that cell fell from 629 to 359.

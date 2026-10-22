@@ -5,6 +5,7 @@
 | Install and send your first records | [README](../README.md) |
 | Configuration, recipes, and troubleshooting | [Operator guide](guide.md) |
 | Methods and types | [API docs](https://docs.rs/partitionline) |
+| Java client names | `java_crosswalk` in the [API docs](https://docs.rs/partitionline) |
 | Port a rust-rdkafka application | [Migration guide](migrate-from-rdkafka.md) |
 | Delivery, memory, and cancellation | [Resource contract](resource-contract.md) |
 | API stability and errors | [API stability](api-stability.md) |

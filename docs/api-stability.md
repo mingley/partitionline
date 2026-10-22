@@ -32,6 +32,7 @@ Expect additive churn; renaming or removing requires a CHANGELOG note:
 | Surface | Notes |
 |---|---|
 | `partitionline::protocol` | Wire codecs; public for tests and advanced tools |
+| `java_crosswalk` | Documentation-only Java name catalog. No runtime items |
 | Large `admin` type soup (every `*Request` / `*Response` re-export) | Prefer high-level `Admin` methods |
 | New Kafka API versions and KIP helpers | Added as brokers ship them |
 | Metrics field sets | Counters may grow; existing fields stay |
