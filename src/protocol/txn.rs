@@ -877,6 +877,132 @@ fn add_partitions_response_len(
     Ok(total)
 }
 
+/// AddPartitionsToTxn response topics measured or written before the caller is paused.
+const ADD_PARTITIONS_RESPONSE_CHUNK: usize = 8 * 1024;
+
+fn add_partitions_response_topic_len(
+    flexible: bool,
+    topic: &AddPartitionsToTxnTopicResult,
+) -> Result<usize> {
+    let mut total = txn_string_len(flexible, &topic.topic)?;
+    total = add_txn_len(total, txn_array_len(flexible, topic.partitions.len())?)?;
+    let mut partition = 6usize;
+    if flexible {
+        partition += buf::unsigned_varint_size(0);
+    }
+    total = add_txn_len(
+        total,
+        partition
+            .checked_mul(topic.partitions.len())
+            .ok_or_else(|| Error::protocol("add partitions response size overflow"))?,
+    )?;
+    if flexible {
+        total = add_txn_len(total, buf::unsigned_varint_size(0))?;
+    }
+    Ok(total)
+}
+
+fn write_add_partitions_response_topic(
+    buf: &mut BytesMut,
+    flexible: bool,
+    topic: &AddPartitionsToTxnTopicResult,
+) -> Result<()> {
+    buf::put_string(buf, flexible, Some(&topic.topic))?;
+    buf::put_array_len(buf, flexible, Some(topic.partitions.len()))?;
+    for partition in &topic.partitions {
+        buf.put_i32(partition.partition);
+        buf.put_i16(partition.error_code);
+        if flexible {
+            buf::put_empty_tagged_fields(buf);
+        }
+    }
+    if flexible {
+        buf::put_empty_tagged_fields(buf);
+    }
+    Ok(())
+}
+
+async fn add_partitions_response_topics_len(
+    flexible: bool,
+    topics: &[AddPartitionsToTxnTopicResult],
+) -> Result<usize> {
+    let mut total = 0usize;
+    let mut start = 0usize;
+    while start < topics.len() {
+        let end = start
+            .saturating_add(ADD_PARTITIONS_RESPONSE_CHUNK)
+            .min(topics.len());
+        let Some(slice) = topics.get(start..end) else {
+            return Err(Error::protocol("add partitions response topic slice"));
+        };
+        for topic in slice {
+            total = add_txn_len(total, add_partitions_response_topic_len(flexible, topic)?)?;
+        }
+        start = end;
+        if start < topics.len() {
+            tokio::task::yield_now().await;
+        }
+    }
+    Ok(total)
+}
+
+async fn write_add_partitions_response_topics(
+    buf: &mut BytesMut,
+    flexible: bool,
+    topics: &[AddPartitionsToTxnTopicResult],
+) -> Result<()> {
+    let mut start = 0usize;
+    while start < topics.len() {
+        let end = start
+            .saturating_add(ADD_PARTITIONS_RESPONSE_CHUNK)
+            .min(topics.len());
+        let Some(slice) = topics.get(start..end) else {
+            return Err(Error::protocol("add partitions response topic slice"));
+        };
+        for topic in slice {
+            write_add_partitions_response_topic(buf, flexible, topic)?;
+        }
+        start = end;
+        if start < topics.len() {
+            tokio::task::yield_now().await;
+        }
+    }
+    Ok(())
+}
+
+/// [`encode_add_partitions_to_txn_topics_response`], yielding while topics are still being measured and written.
+///
+/// Encoding 800,000 topics held the caller for 217ms. A topic name is still written.
+pub async fn encode_add_partitions_to_txn_topics_response_cooperative(
+    buf: &mut BytesMut,
+    version: i16,
+    topics: &[AddPartitionsToTxnTopicResult],
+) -> Result<()> {
+    let flexible = add_partitions_to_txn_flexible(version)?;
+    let body_start = buf.len();
+    let mut planned = 4usize;
+    planned = add_txn_len(planned, txn_array_len(flexible, topics.len())?)?;
+    planned = add_txn_len(
+        planned,
+        add_partitions_response_topics_len(flexible, topics).await?,
+    )?;
+    if flexible {
+        planned = add_txn_len(planned, buf::unsigned_varint_size(0))?;
+    }
+    let needed = body_start.saturating_add(planned);
+    if buf.capacity() < needed {
+        buf.reserve(needed - buf.capacity());
+    }
+    buf.put_i32(0);
+    buf::put_array_len(buf, flexible, Some(topics.len()))?;
+    write_add_partitions_response_topics(buf, flexible, topics).await?;
+    if flexible {
+        buf::put_empty_tagged_fields(buf);
+    }
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
+    Ok(())
+}
+
 /// Encode AddPartitionsToTxn: one error code applied to every partition.
 ///
 /// Topic names and partition indexes are written from the caller.
@@ -4783,6 +4909,54 @@ pub const fn can_handle_abortable_error(
 mod tests {
     use super::*;
     use std::collections::HashMap;
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn encoding_many_add_partitions_response_topics_does_not_hold_the_caller() {
+        let topics: Vec<AddPartitionsToTxnTopicResult> = (0..800_000)
+            .map(|_| AddPartitionsToTxnTopicResult {
+                topic: "t".to_string(),
+                partitions: vec![AddPartitionsToTxnPartitionResult::error(0, 0)],
+            })
+            .collect();
+        let started = std::time::Instant::now();
+        tokio::select! {
+            _ = async {
+                let mut body = BytesMut::new();
+                encode_add_partitions_to_txn_topics_response_cooperative(&mut body, 0, &topics)
+                    .await
+                    .unwrap_or_else(|error| panic!("{error}"));
+            } => {}
+            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "encoding add-partitions response topics held the caller for {elapsed:?}"
+        );
+        let sample = [
+            AddPartitionsToTxnTopicResult {
+                topic: "orders".to_string(),
+                partitions: vec![
+                    AddPartitionsToTxnPartitionResult::error(0, 0),
+                    AddPartitionsToTxnPartitionResult::error(1, 3),
+                ],
+            },
+            AddPartitionsToTxnTopicResult {
+                topic: "billing".to_string(),
+                partitions: vec![AddPartitionsToTxnPartitionResult::error(4, 0)],
+            },
+        ];
+        for version in [0i16, 3] {
+            let mut once = BytesMut::new();
+            let mut paced = BytesMut::new();
+            encode_add_partitions_to_txn_topics_response(&mut once, version, &sample)
+                .unwrap_or_else(|error| panic!("{error}"));
+            encode_add_partitions_to_txn_topics_response_cooperative(&mut paced, version, &sample)
+                .await
+                .unwrap_or_else(|error| panic!("{error}"));
+            assert_eq!(once, paced, "version {version}");
+        }
+    }
 
     #[tokio::test(flavor = "current_thread")]
     async fn encoding_many_txn_offset_commit_response_topics_does_not_hold_the_caller() {
