@@ -195,6 +195,9 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
 - The roadmap no longer says to start with KL03-01. Those consumer repairs
   are done. Independent replay remains KL01-22. KL01-03 through KL01-08,
   the independent Java fixtures, are done.
+- The roadmap records 10 of 12 memory cards and 9 of 14 measurement cards
+  as done. The 24-hour overload, producer shutdown completion, and the
+  controlled benchmark campaigns are still pending. Suite HOLD remains.
 - The gateway profile names zstd as an optional codec that has shipped.
   Its measured cells remain gzip and lz4.
 

@@ -162,6 +162,10 @@ fixtures and sustained campaigns have linked results and no unresolved failures.
 
 **Priority:** P0. **Depends on:** KL-01's supported contract.
 
+10 of 12 KL02 cards are done. Still pending: KL02-10, a controlled
+24-hour overload record, and KL02-12, producer shutdown completion under
+the close deadline. The 2026-09-05 notes below are that date's partials.
+
 1. Trace ownership from caller enqueue through worker/retry queues, batch
    encoding, sockets and fetch buffers. Account for queued **and in-flight**
    bytes, compressed/uncompressed storage, connections and spawned tasks.
@@ -225,6 +229,12 @@ budget across supported broker versions, with no unexplained outcomes.
 
 **Priority:** baseline early; optimization after correctness. **Depends on:** KL-01;
 KL-02/03 before production-performance claims.
+
+9 of 14 KL04 cards are done, including the frozen benchmark contract and
+scheduled open-loop latency (KL04-06). Still pending: controlled x86_64
+and arm64 campaigns (KL04-10, KL04-11), the comparison report (KL04-12),
+losing-cell cards (KL04-13), and independent signoff (KL04-14). Suite HOLD
+remains. The numbered steps below are the original order.
 
 1. Freeze separate low-latency, bulk-throughput, fetch, transactional and
    mixed-load workloads. Compare pinned rust-rdkafka/librdkafka and Java, plus
