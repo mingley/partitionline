@@ -230,15 +230,55 @@ On macOS without dtrace privileges, limit the captures:
 bash scripts/perf-profile.sh --cell bench_produce --only cpu,rusage,heap -- ./target/release/examples/bench_produce
 ```
 
+<a id="results"></a>
+
 ## Historical produce samples
 
-These tables are dated local runs. Read the heading before the numbers.
-A produce row is not a fetch row. An unsigned VM sample is not a signed
-Lab A result. Suite HOLD stays on.
+These rows are dated local runs against librdkafka C 2.15.0. They are
+separate days, not one experiment, and they are not a signed result.
+Suite HOLD stays on. A produce row is not a fetch row.
 
-### 2026-08-25, three locked runs, no warmup (HW=8e6 both)
+The [produce comparison](#run-a-produce-comparison) above uses seeded
+payloads. These older rows do not. They use a repeated 100-byte value and
+a null key, with no warmup. On today's `bench_produce` that is
+`PAYLOAD_MODE=constant-x` and `KEY_MODE=none`. The commands under each
+table are the commands from that day. Add those two variables before
+treating a new run as a rerun of the row.
 
-Same knobs as above. Broker Docker `apache/kafka:3.9.1` `pl-kafka-bench`. C tool built from librdkafka **v2.15.0** (`9a94e11`).
+Unless a row says otherwise, the shared settings are 8,000,000 records,
+`acks=1`, linger 5 ms, 32,768 records per batch, 1,000,000 batch bytes,
+compression none, topic `plbench`, 6 partitions, replication factor 1.
+The 2026-08-24 rows were taken on an Apple M4 Pro with Docker
+`apache/kafka:3.9.1`. The 2026-08-25 row used that image as container
+`pl-kafka-bench` and librdkafka commit `9a94e11`.
+
+| Row | What changed | Runs | partitionline median rec/s | C 2.15.0 median rec/s |
+|---|---|---|---|---|
+| [Uncompressed, 2026-08-25](#uncompressed-2026-08-25) | `acks=1`; both high watermarks 8,000,000 | 3 | 6,171,566 | 4,942,033 |
+| [Uncompressed, 2026-08-24](#uncompressed-2026-08-24) | Same settings, earlier day | 3 | 7,280,980 | 3,879,019 |
+| [After the snappy crate landed](#uncompressed-pair-after-the-snappy-crate-landed-2026-08-24) | One uncompressed pair. Snappy was not used on the path. | 1 | 8,344,128 | 3,644,236 |
+| [lz4](#lz4-on-both-sides-2026-08-24) | Both sides lz4. C tool at compression level 0. | 1 | 6,810,917 | 6,051,203 |
+| [Idempotent](#idempotent-produce-2026-08-24) | Both sides idempotent, so `acks=-1` and at most 5 in flight | 3 | 7,161,331 | 3,134,457 |
+| [TLS](#tls-produce-2026-08-24) | Both sides SSL to `localhost:9093` | 3 | 7,416,029 | 1,515,535 |
+| [SCRAM-SHA-256](#scram-sha-256-produce-2026-08-24) | SASL_PLAINTEXT on `localhost:9095` | 3 | 6,811,539 | 3,982,324 |
+| [SCRAM-SHA-512](#scram-sha-512-produce-2026-08-24) | Same listener, SHA-512 | 3 | 6,887,871 | 3,434,559 |
+| [OAUTHBEARER](#oauthbearer-produce-2026-08-24) | Unsecured JWT on `localhost:9097` | 3 | 6,822,533 | 3,635,411 |
+| [Uncompressed, later that day](#uncompressed-plaintext-sample-2026-08-24) | PLAINTEXT `127.0.0.1:9092`. Recorded while admin work was in progress. Admin is not a produce setting. | 3 | 5,693,694 | 3,598,852 |
+
+The four uncompressed partitionline medians are 8,344,128, 7,280,980,
+6,171,566, and 5,693,694 records/s. That spread is why these rows stay
+samples. Read the row for the day you mean.
+
+One earlier idempotent pair, about 7.01M vs 2.18M, is withdrawn. The
+client spread unkeyed records across 8 connections, the broker rejected
+most batches with error 45 (`OUT_OF_ORDER_SEQUENCE_NUMBER`), `flush` still
+returned Ok, and the high watermark was about 32,000 records rather than
+8,000,000. The idempotent table below is the replacement, with the high
+watermark checked.
+
+### Uncompressed, 2026-08-25
+
+Broker Docker `apache/kafka:3.9.1` container `pl-kafka-bench`. C tool built from librdkafka **v2.15.0** (`9a94e11`). No warmup.
 
 | Run | partitionline acked rec/s | partitionline HW | librdkafka 2.15.0 C rec/s | C HW |
 |---|---|---|---|---|
@@ -247,9 +287,9 @@ Same knobs as above. Broker Docker `apache/kafka:3.9.1` `pl-kafka-bench`. C tool
 | 3 | 6,030,047 | 8,000,000 | 5,053,529 | 8,000,000 |
 | **median** | **6,171,566** | 8,000,000 | **4,942,033** | 8,000,000 |
 
-partitionline was higher on every run (about 1.25× the C median). Fast-route `try_send` is in this tree.
+This row includes the fast-route `try_send` path that was in the tree that day.
 
-### 2026-08-24, three locked runs, no warmup
+### Uncompressed, 2026-08-24
 
 | Run | partitionline acked rec/s | librdkafka 2.15.0 C rec/s |
 |---|---|---|
@@ -258,22 +298,20 @@ partitionline was higher on every run (about 1.25× the C median). Fast-route `t
 | 3 | 6,782,422 | 3,999,550 |
 | **median** | **7,280,980** | **3,879,019** |
 
-partitionline was higher on every run (about 1.9× the C median).
+### Uncompressed pair after the snappy crate landed, 2026-08-24
 
-### 2026-08-24 confirmation after snappy landed
-
-Same knobs, one pair, tree that includes the `snap` crate (unused on this uncompressed path):
+One pair. The tree that day included the `snap` crate. This uncompressed path did not use it.
 
 | | acked rec/s |
 |---|---|
 | partitionline | 8,344,128 |
 | librdkafka 2.15.0 C | 3,644,236 |
 
-Still strictly higher than C. JSON copies: session scratch `bench-pl.json` / `bench-c.json`.
+JSON copies from that session: `bench-pl.json` / `bench-c.json`.
 
-### 2026-08-24 lz4 produce (gating for the lz4 gap)
+### lz4 on both sides, 2026-08-24
 
-Same knobs as above except **both** sides use lz4 (`COMPRESSION=lz4` /
+Same historical workload as the map, except **both** sides use lz4 (`COMPRESSION=lz4` /
 `-z lz4`, C `compression.level=0`). One locked pair, no warmup, fresh topic.
 
 | | acked rec/s | elapsed |
@@ -281,8 +319,8 @@ Same knobs as above except **both** sides use lz4 (`COMPRESSION=lz4` /
 | partitionline | **6,810,917** | 1.175 s |
 | librdkafka 2.15.0 C | 6,051,203 | 1.322 s |
 
-partitionline is strictly higher. Repeating 100-byte payloads compress well, so
-this is more a codec+pipeline race than a network race.
+Repeating 100-byte payloads compress well, so this pair is mostly the
+codec and the client pipeline, not the network.
 
 Reproduce:
 
@@ -298,9 +336,9 @@ rdkafka_performance -P -t plbench -s 100 -c 8000000 -b 127.0.0.1:9092 -a 1 -q -z
   -X socket.nagle.disable=true
 ```
 
-### 2026-08-24 idempotent produce (gating for InitProducerId)
+### Idempotent produce, 2026-08-24
 
-Same knobs as the uncompressed table except **both** sides enable idempotence
+Same historical workload as the map, except **both** sides enable idempotence
 (`IDEMPOTENT=1` / `-X enable.idempotence=true`), which forces `acks=-1` and
 caps in-flight requests at 5. Three locked pairs, no warmup, fresh topic
 each run. After every run, `kafka-get-offsets` high watermark summed to
@@ -317,13 +355,9 @@ Ok, and flush fails on a broker produce error.
 | 3 | 6,479,326 | 8,000,000 | 2,750,327 | 8,000,000 |
 | **median** | **7,161,331** | 8,000,000 | **3,134,457** | 8,000,000 |
 
-partitionline was higher on every run (about 2.3× the C median).
-
-An earlier 7.01M vs 2.18M pair is **withdrawn**. That client sprayed unkeyed
-records across 8 connections before partition stickiness, the broker rejected
-most batches with error 45 (`OUT_OF_ORDER_SEQUENCE_NUMBER`), and `flush`
-still returned Ok, so the bench counted queued records as acked. High
-watermark was ~32k, not 8e6.
+The withdrawn pair is the one in the map above. This table is the
+replacement: three runs, and the high watermark summed to 8,000,000
+after each of them.
 
 Reproduce:
 
@@ -343,9 +377,9 @@ rdkafka_performance -P -t plbench -s 100 -c 8000000 -b 127.0.0.1:9092 -a -1 -q \
   -X socket.nagle.disable=true
 ```
 
-### 2026-08-24 TLS produce (gating for rustls)
+### TLS produce, 2026-08-24
 
-Same knobs as the uncompressed table except **both** sides speak SSL to a
+Same historical workload as the map, except **both** sides speak SSL to a
 dedicated Kafka 3.9.1 listener (`localhost:9093`). partitionline uses
 `rustls` (`TLS_CA_PEM` / `TLS_SERVER_NAME=localhost`). C uses
 `security.protocol=ssl` + `ssl.ca.location`. Broker cert SAN is
@@ -359,8 +393,6 @@ each run. After every run, `kafka-get-offsets` high watermark summed to
 | 2 | 8,167,076 | 8,000,000 | 1,537,953 | 8,000,000 |
 | 3 | 7,416,029 | 8,000,000 | 1,486,966 | 8,000,000 |
 | **median** | **7,416,029** | 8,000,000 | **1,515,535** | 8,000,000 |
-
-partitionline was higher on every run (about 4.9× the C median).
 
 Reproduce:
 
@@ -382,9 +414,9 @@ rdkafka_performance -P -t plbench -s 100 -c 8000000 -b localhost:9093 -a 1 -q \
   -X socket.nagle.disable=true
 ```
 
-### 2026-08-24 SASL SCRAM-SHA-256 produce (gating for RFC 7677)
+### SCRAM-SHA-256 produce, 2026-08-24
 
-Same knobs as the uncompressed table except **both** sides authenticate with
+Same historical workload as the map, except **both** sides authenticate with
 SCRAM-SHA-256 to a dedicated Kafka 3.9.1 SASL_PLAINTEXT listener
 (`localhost:9095`). Admin/offsets use a second PLAINTEXT listener
 (`localhost:9096`). User `alice` / `secret`, broker iterations 4096.
@@ -400,9 +432,8 @@ Three locked pairs, no warmup, fresh topic each run. After every run,
 | 3 | 7,014,976 | 8,000,000 | 3,982,324 | 8,000,000 |
 | **median** | **6,811,539** | 8,000,000 | **3,982,324** | 8,000,000 |
 
-partitionline was higher on every run (about 1.7× the C median). Handshake
-is once per TCP connection; the produce path after that is the same
-uncompressed pipeline.
+The handshake runs once per TCP connection. After that, the produce path
+is the same uncompressed pipeline.
 
 Reproduce:
 
@@ -424,9 +455,9 @@ rdkafka_performance -P -t plbench -s 100 -c 8000000 -b localhost:9095 -a 1 -q \
   -X socket.nagle.disable=true
 ```
 
-### 2026-08-24 SASL SCRAM-SHA-512 produce (gating for RFC 5802 SHA-512)
+### SCRAM-SHA-512 produce, 2026-08-24
 
-Same knobs as the uncompressed table except **both** sides authenticate with
+Same historical workload as the map, except **both** sides authenticate with
 SCRAM-SHA-512 to the same Kafka 3.9.1 SASL_PLAINTEXT listener
 (`localhost:9095`). Admin/offsets on PLAINTEXT `localhost:9096`. User
 `alice` / `secret`, broker iterations 4096. partitionline:
@@ -442,8 +473,7 @@ summed to **8,000,000**.
 | 3 | 6,552,274 | 8,000,000 | 4,006,697 | 8,000,000 |
 | **median** | **6,887,871** | 8,000,000 | **3,434,559** | 8,000,000 |
 
-partitionline was higher on every run (about 2.0× the C median). Handshake
-is once per TCP connection.
+The handshake runs once per TCP connection.
 
 Reproduce:
 
@@ -465,9 +495,9 @@ rdkafka_performance -P -t plbench -s 100 -c 8000000 -b localhost:9095 -a 1 -q \
   -X socket.nagle.disable=true
 ```
 
-### 2026-08-24 SASL OAUTHBEARER produce (gating for RFC 7628)
+### OAUTHBEARER produce, 2026-08-24
 
-Same knobs as the uncompressed table except **both** sides authenticate with
+Same historical workload as the map, except **both** sides authenticate with
 unsecured JWT OAUTHBEARER (`alg=none`) to a dedicated Kafka 3.9.1
 SASL_PLAINTEXT listener (`localhost:9097`). Admin/offsets on PLAINTEXT
 `localhost:9098`. Principal `alice`. partitionline:
@@ -484,8 +514,7 @@ summed to **8,000,000**.
 | 3 | 6,822,533 | 8,000,000 | 3,635,411 | 8,000,000 |
 | **median** | **6,822,533** | 8,000,000 | **3,635,411** | 8,000,000 |
 
-partitionline was higher on every run (about 1.9× the C median). Handshake
-is once per TCP connection.
+The handshake runs once per TCP connection.
 
 Reproduce:
 
@@ -508,11 +537,13 @@ rdkafka_performance -P -t plbench -s 100 -c 8000000 -b localhost:9097 -a 1 -q \
   -X socket.nagle.disable=true
 ```
 
-### 2026-08-24 uncompressed produce (gating for admin)
+### Uncompressed PLAINTEXT sample, 2026-08-24
 
-Admin is not a produce setting. Same locked uncompressed knobs as the first
-table, PLAINTEXT `127.0.0.1:9092`. Three pairs, no warmup, fresh topic each
-run. High watermark **8,000,000** after every run.
+Same locked uncompressed settings as the first table, PLAINTEXT
+`127.0.0.1:9092`. Three pairs, no warmup, fresh topic each run. High
+watermark **8,000,000** after every run. The admin API was being exercised
+in the same session. It is not a produce setting, and it is not what this
+table measures.
 
 | Run | partitionline rec/s | partitionline HW | C 2.15.0 rec/s | C HW |
 |---|---|---|---|---|
@@ -520,8 +551,6 @@ run. High watermark **8,000,000** after every run.
 | 2 | 4,675,767 | 8,000,000 | 3,598,852 | 8,000,000 |
 | 3 | 6,022,825 | 8,000,000 | 4,220,885 | 8,000,000 |
 | **median** | **5,693,694** | 8,000,000 | **3,598,852** | 8,000,000 |
-
-partitionline was higher on every run (about 1.6× the C median).
 
 ## Historical fetch sample
 
@@ -594,11 +623,8 @@ record/s. Median is the middle run, not a mean. partitionline was higher
 on every pair of **this** run. That is a same-hardware measurement vs
 rust-rdkafka 0.39.0 `BaseConsumer::poll` on this VM. It is **not** signed.
 It is **not** a vs-C 2.15.0 claim. It is **not** a Suite HOLD lift.
-
-Fetch v11 `RackId` is a non-nullable STRING (Apache JSON / kafka-protocol
-0.18.0). This tree encodes an empty string when no rack is set. Kafka
-3.9.1 rejects a null `rackId`. No new admin API. ElectLeaders /
-DescribeLogDirs v5 / DescribeQuorum / raft voters stay closed.
+The peer called `poll` once per record. Fetch `RackId` encoding is
+described with the Fetch versions in [wire versions](wire-versions.md).
 
 #### Run again
 
@@ -730,9 +756,6 @@ Fetch-request (partitionline only; not vs rdkafka):
 | 2 | 417 | 121 | 751 | 10,008 |
 | 3 | 417 | 108 | 422 | 10,008 |
 | **median** | 417 | **121** | **751** | 10,008 |
-
-No new admin API. ElectLeaders / DescribeLogDirs v5 / DescribeQuorum /
-raft voters stay closed.
 
 #### Run again
 

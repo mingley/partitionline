@@ -74,6 +74,9 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   v13, Fetch v18, and incremental Fetch are in the second list.
 - The performance-leadership pickup list no longer starts on KL09-01 or
   KL09-14. Those cards, and the other named first pickups, are done.
+- The benchmark page opens its historical produce samples with one map.
+  The four uncompressed medians stay dated samples. Fetch `RackId` and
+  the admin APIs are no longer described in the middle of those tables.
 - The gateway profile names zstd as an optional codec that has shipped.
   Its measured cells remain gzip and lz4.
 
