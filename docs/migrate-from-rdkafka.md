@@ -313,8 +313,10 @@ continue and the caller outcome stays ambiguous until `flush`/`close`
 
 ## Intentional differences
 
-1. **Feature gaps** — client zstd and Kerberos support remain unfinished.
-   See [protocol support](gaps.md) for current status.
+1. **Feature gaps** — Kerberos is not implemented. See the
+   [provider proposal](gssapi-boundary.md). zstd is an optional feature.
+   Unkeyed records use round-robin; the sticky partitioner is not shipped.
+   The current inventory is [protocol support](gaps.md).
 2. **Defaults** — Earliest offset reset, auto-commit off, idempotence off,
    shorter delivery (30 s) / max-block (30 s) / session (10 s) timeouts,
    150 ms heartbeats, 5 ms linger, uncapped `max.poll.records`, 16 MiB fetch
@@ -327,25 +329,35 @@ continue and the caller outcome stays ambiguous until `flush`/`close`
 5. **Auto-commit fencing** — interval commits cover previously delivered
    positions only; leave/close/unsubscribe never commit.
 
-## Unsupported features
+## What is not a drop-in
 
-No equivalent exists today; do not port these call sites as-is:
+Two lists. The first has no equivalent to port. The second exists, and a
+port has to keep the limit in the last column. Dispositions are the
+[feature registry](../tests/conformance/features.json).
 
-| Feature | Registry entry | Note |
+### No equivalent
+
+| Feature | Registry entry | What to do instead |
 |---|---|---|
-| zstd compress/decompress | `codecs.zstd.decode`, `codecs.zstd.encode`, `codecs.zstd.wire_helper` (optional feature) | See `zstd-spike.md`; complete live matrix remains open |
-| SASL GSSAPI / Kerberos | `auth.sasl_gssapi` (missing) | Blocked on Cyrus SASL C |
-| Proactive OIDC/token refresh | `auth.sasl_oidc_refresh` (missing) | Re-auth on `session_lifetime_ms` not implemented |
-| Sticky unkeyed partitioner | `producer.sticky_partitioner` (missing) | Unkeyed records round-robin instead |
-| Produce v13 (topic IDs) | `producer.v13_wire` (missing) | Negotiates v3–v12 |
-| Fetch v18, ListOffsets v11 | `manual_consumer.v18_wire`, `manual_consumer.list_offsets_v11` (missing) | Fetch v4–v17, ListOffsets v1–v10 |
-| Incremental fetch sessions | `manual_consumer.incremental_fetch_runtime` (missing) | Always sends `FetchMetadata::LEGACY` |
-| Schema Registry client | `schema_ecosystem.registry_client/cache/avro/protobuf/json_schema` (missing) | Companion design only; `partitionline-schema` not published |
-| ElectLeaders | `full_admin.elect_leaders` (present) | `Admin::elect_leaders(ElectLeadersOptions)` preserves per-partition results, routes to the controller and enforces one deadline; unclean requires v1+ |
-| DescribeQuorum | `full_admin.describe_quorum` (present) | `Admin::describe_quorum()` inspects metadata partition 0 through broker bootstrap; errors retain broker codes/messages, unknown timestamps are -1 |
-| Raft voters | `full_admin.add_raft_voter/remove_raft_voter` (missing) | Not exposed on `Admin` |
-| Kafka Streams / Connect / C ABI | `streams.runtime`, `connect.framework`, `c_abi.librdkafka` (out of scope) | Never planned for this crate |
-| Broker-internal replication APIs | `broker_internal.*` (out of scope) | Not client surface |
+| SASL GSSAPI / Kerberos | `auth.sasl_gssapi` (missing) | Pick SCRAM or OAUTHBEARER. The [provider proposal](gssapi-boundary.md) is waiting for approval. |
+| Sticky unkeyed partitioner | `producer.sticky_partitioner` (missing) | Unkeyed records round-robin. KL05-10 is in progress. |
+| Kafka Streams / Connect / C ABI | `streams.runtime`, `connect.framework`, `c_abi.librdkafka` (out of scope) | Rewrite the call sites. This crate is not a C library. |
+| Broker-internal replication APIs | `broker_internal.*` (out of scope) | Not part of the client. |
+
+### Present, with a limit
+
+| Feature | Registry entry | Limit to keep |
+|---|---|---|
+| zstd compress and decompress | `codecs.zstd.encode`, `codecs.zstd.decode` (present, feature `zstd`) | Off by default. Levels are 1–19, default 3. The live matrix is a finite correctness check on Kafka 3.9.1, 4.1.0, 4.1.2, 4.2.1, and 4.3.1. See [zstd](zstd-spike.md). |
+| Produce v13 | `producer.v13_wire` (present) | Uses Metadata topic IDs. Transactional Produce stays at v11 unless `transaction.version >= 2` is finalized and EndTxn v5 is supported. |
+| Fetch v18 | `manual_consumer.v18_wire` (present) | Ordinary consumers omit the KIP-1166 high-watermark tag. |
+| ListOffsets v11 | `manual_consumer.list_offsets_v11` (present) | Earliest-pending-upload is exposed. There is no live tiered-storage qualification. |
+| Incremental Fetch | `manual_consumer.incremental_fetch_runtime` (present) | Sessions run on Fetch v7–v18. Older peers get a full fetch. Live qualification of reset histories is KL01-24. |
+| OIDC refresh and SASL lifetime | `auth.sasl_oidc_refresh` (missing) | An owned `OidcTokenManager` refreshes before expiry. The shared connect-time cache does not. Producer, consumer, admin, and group loops do not reauthenticate on a timer. The pipeline closes when the SASL session expires. See [token lifecycle](auth-refresh.md). |
+| Schema Registry | `schema_ecosystem.registry_client` (present in the companion) | Unpublished crate, read-only lookups. The application picks the serializer. See the [companion](../partitionline-schema/README.md). |
+| ElectLeaders | `full_admin.elect_leaders` (present) | Per-partition results, controller route, one deadline. Unclean election needs v1 or later. No live unclean-election qualification. |
+| DescribeQuorum | `full_admin.describe_quorum` (present) | Reads metadata partition 0 through broker bootstrap. Unknown timestamps stay `-1`. |
+| Raft voters | `full_admin.add_raft_voter`, `full_admin.remove_raft_voter` (present) | Broker-forwarded. A v1 local append is not committed membership. No live membership-change qualification. |
 
 ## Verified behavioral equivalence
 
@@ -381,7 +393,8 @@ Explicitly **not** proven (do not assume parity):
    (defaults are Earliest/off, unlike Java and librdkafka).
 4. Raise `delivery_timeout` / `max_block` / `session_timeout` if your service
    was tuned to Java or librdkafka budgets.
-5. If you used zstd or GSSAPI, plan compression/auth alternatives first.
+5. Enable the `zstd` feature if the old client used zstd. GSSAPI has no
+   replacement; use SCRAM or OAUTHBEARER.
 6. Compare metrics via `Producer::metrics` / `Consumer::metrics` during soak.
 
 ## Further reading

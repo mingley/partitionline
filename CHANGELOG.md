@@ -69,6 +69,9 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
 - The performance-leadership snapshot from 2026-09-26 stays dated. A note
   records that zstd encoding, incremental Fetch, and the bench driver
   knobs have since landed. Suite HOLD is unchanged.
+- The rust-rdkafka migration guide separates features that have no
+  equivalent from features that exist with a stated limit. zstd, Produce
+  v13, Fetch v18, and incremental Fetch are in the second list.
 - The gateway profile names zstd as an optional codec that has shipped.
   Its measured cells remain gzip and lz4.
 
