@@ -97,84 +97,68 @@ returns an error and no partial vector. Lookups that already succeeded
 can stay cached. Loopback tests cover cancellation, coalescing,
 eviction, expiry, and failed fetches. No live registry is claimed.
 
-## Protobuf message indexes and adapter (KL05-26)
+## Protobuf message indexes
 
-The dependency-free `protobuf` module adds the Confluent message-index path
-after the five-byte header. `[0]` has its special one-byte zero encoding; other
-paths encode a zigzag length followed by nonnegative zigzag indexes. Generic
-five-byte framing alone is not Protobuf framing, and neither vendor framing nor
-payload serialization establishes Kafka protocol conformance.
+The `protobuf` module is dependency-free. It writes the Confluent message
+index after the five-byte header. The path `[0]` is the special one-byte
+zero. Any other path is a zigzag length and then nonnegative zigzag
+indexes. A five-byte header by itself is not Protobuf framing. Vendor
+framing and payload serialization are not a Kafka protocol claim.
 
-Complete frames default to 1 MiB and paths to 32 entries. Validated limits permit
-6 bytes–64 MiB and 1–1024 indexes. Decode borrows payload data and owns only a
-bounded index vector; encode checks size/depth before reserving output. Negative
-counts/indexes, truncated or overflowing five-byte varints, invalid paths and
-over-limit frames have structured errors. Valid nonminimal varints and explicit
-length-one `[0]` remain readable; emitted `[0]` is canonical.
+A complete frame defaults to 1 MiB. A path defaults to 32 entries.
+Validated limits are 6 bytes through 64 MiB, and 1 through 1,024 indexes.
+Decode borrows the payload and owns only the index vector. Encode checks
+size and depth before it reserves output. A negative count or index, a
+truncated or overflowing five-byte varint, an invalid path, and an
+over-limit frame are structured errors. A valid non-minimal varint, and
+an explicit length-one `[0]`, still decode. The encoder emits the
+canonical one-byte `[0]`.
 
-`Adapter<Codec>` selects one known writer schema ID and captures the codec's
-message path. Unknown IDs or different messages fail before payload decoding.
-Applications explicitly choose their serializer, writer descriptor and imported
-schemas. The codec reports exact encoded length and writes into the adapter's
-bounded slice, avoiding a second library-owned payload buffer. Registry lookup
-and reference resolution remain separate operations with their own documented
-bounds; no hidden registration, recursive fetch or compatibility policy exists.
-Codec-internal allocations, decoded objects and descriptor recursion need the
-chosen library's own limits. No serialization-library dependency or default
-feature is added to either core or companion.
+`Adapter<Codec>` selects one known writer schema id and records that
+codec's message path. An unknown id, or a different message, fails before
+payload decoding. The application chooses the serializer, the writer
+descriptor, and imported schemas. The codec reports the exact encoded
+length and writes into the adapter's bounded slice. There is no second
+buffer owned by this crate. Registry lookup stays a separate call. There
+is no hidden registration, recursive fetch, or compatibility check.
+Allocations inside the chosen codec, decoded objects, and descriptor
+recursion use that library's limits. Neither the core client nor the
+companion gains a serialization-library dependency or a default feature
+for it.
 
-The companion's [offline peer](https://github.com/mingley/partitionline/blob/a5c0a7f12d8b546ea61267e5fd681e944edcf35f/partitionline-schema/tests/oracles/protobuf/README.md)
-pins Confluent Schema Registry 8.1.0 source, Apache Kafka 4.1.0 distribution
-ByteUtils, JDK 21.0.12.1 and Google protoc 3.21.12. It generates independent
-frames/payloads and checks actual Rust-emitted output in the reverse direction,
-including an imported-schema nested message. The fixture-only descriptor codecs
-do not promise a production built-in Protobuf serializer. Live Schema Registry
-and Kafka integration are not qualified by these offline checks.
+The [offline peer](../partitionline-schema/tests/oracles/protobuf/README.md)
+pins Confluent Schema Registry 8.1.0 source, Apache Kafka 4.1.0
+`ByteUtils`, JDK 21.0.12.1, and Google protoc 3.21.12. It builds frames
+and payloads on its own and checks Rust output in the other direction,
+including a nested message from an imported schema. Those fixture codecs
+are not a built-in production Protobuf serializer. The offline checks do
+not qualify a live Schema Registry or a live Kafka cluster.
 
-## Why a companion
+## What this crate is
 
-Operators often need Confluent-compatible wire (Avro / Protobuf / JSON Schema
-with magic-byte + schema-id framing). Putting that in `partitionline` would:
+Confluent Avro, Protobuf, and JSON Schema framing stays out of the core
+client so a Kafka deploy does not pull an HTTP cache, and so registry
+changes do not set the client's release. This crate does not depend on
+`partitionline`. Wire framing has no dependencies. The `registry` feature
+uses tokio and rustls, not `reqwest`.
 
-- pull HTTP + schema caches into every Kafka deploy
-- couple release cadence to registry protocol churn
-- blur the “pure Kafka protocol client” story
+| Path | Role |
+|---|---|
+| `src/wire.rs` | Magic byte 0, big-endian schema id, payload |
+| `src/registry.rs` | Read-only lookup client and cache |
+| `src/protobuf.rs` | Message indexes and `Adapter` |
+| `src/avro.rs` | Optional `avro` feature, no extra dependencies |
+| `src/json_schema.rs` | Optional `json-schema` feature, no extra dependencies |
 
-A separate crate depending on published `partitionline` keeps the core small.
+The application supplies the serializer. This crate does not embed
+libavro. Registry auth in this version is TLS plus bearer or basic. It
+does not speak Kerberos to the registry. It is not a drop-in for
+`apache-avro` plus a hand-rolled frame and no registry.
 
-## Proposed crate layout (post-publish)
-
-```
-partitionline-schema/
-  Cargo.toml          # depends on partitionline = "0.1", reqwest/rustls
-  src/lib.rs          # SchemaRegistry client + Serde codecs
-  src/wire.rs         # Confluent magic 0 + BE schema id + payload
-  src/avro.rs         # optional feature `avro`
-  src/protobuf.rs     # optional feature `protobuf`
-  src/json.rs         # optional feature `json`
-  examples/produce_avro.rs
-  README.md
-```
-
-## Non-goals for v0
-
-- Not a drop-in for `apache-avro` + custom framing alone without registry
-- Not Kerberos to the registry (TLS + bearer/basic only in v0)
-- Not embedding libavro C
-
-## Acceptance when built
-
-1. Lives in its own repo **or** a workspace member excluded from the core
-   package `include` list.
-2. No librdkafka or OpenSSL. The default Rustls/Ring registry feature needs a
-   C compiler for Ring's build; dependency-free wire framing needs neither.
-3. Round-trip example against a local Schema Registry + Kafka.
-4. Documented as optional in `docs/ADOPTION.md` and core README.
-
-## Trigger
-
-Ship after:
-
-1. `partitionline` on crates.io
-2. Adoption survey [#85](https://github.com/mingley/partitionline/issues/85)
-   shows Schema Registry as a real pilot blocker (or owner prioritizes it)
+The crate lives in this repository, is excluded from the core package,
+and is unpublished. It does not depend on librdkafka or OpenSSL. Ring's
+build needs a C compiler when the registry feature is on. The adoption
+page and the core README name it as optional. A live round trip against
+a local Schema Registry and Kafka is still separate from the offline
+checks above. Pilot demand is tracked in
+[issue 85](https://github.com/mingley/partitionline/issues/85).

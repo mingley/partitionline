@@ -52,6 +52,8 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   fallback, and that another crate can still pull in C zlib.
 - The schema companion page lists registry lookup bounds and cache
   defaults in tables.
+- The schema companion page describes the crate that is in the tree.
+  It does not depend on the core client or on reqwest.
 
 - The broker SASL reauthentication page matches the listener profile: opt-in
   lifetime, Handshake v1, and the deadline that does not move after the
