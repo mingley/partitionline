@@ -135,6 +135,10 @@ leaders are still looked up, and a repeated name is still stored once.
 - Count returned share records for the poll total and topic metrics.
 - Clear and prune the share leader plan, and resolve leader addresses before a dial.
 
+### Transactions
+
+- Write transaction-marker topics. A topic name is still copied.
+
 ### Metadata and admin
 
 - Index metadata topic names and record topic ids.
