@@ -235,7 +235,7 @@ pub enum Compression {
 impl Compression {
     /// Codec from the low 3 bits of batch attributes.
     pub fn from_attributes(attr: i16) -> Result<Self> {
-        match attr & 0x07 {
+        match attr & ATTR_COMPRESSION_CODEC {
             0 => Ok(Self::None),
             1 => Ok(Self::Gzip),
             2 => Ok(Self::Snappy),
@@ -1032,6 +1032,10 @@ impl EndTransactionMarker {
     }
 }
 
+/// RecordBatch attributes: low three bits, the compression codec.
+///
+/// Java `DefaultRecordBatch.COMPRESSION_CODEC_MASK`. Codec 0 is uncompressed.
+pub const ATTR_COMPRESSION_CODEC: i16 = 0x07;
 /// RecordBatch attributes: transactional.
 pub const ATTR_TRANSACTIONAL: i16 = 0x10;
 /// RecordBatch attributes: control batch (commit/abort marker).
@@ -1206,7 +1210,7 @@ impl RecordBatch {
 
     /// Set the compression bits in [`Self::attributes`].
     pub fn with_compression(mut self, compression: Compression) -> Self {
-        self.attributes = (self.attributes & !0x07) | (compression as i16);
+        self.attributes = (self.attributes & !ATTR_COMPRESSION_CODEC) | (compression as i16);
         self
     }
 
@@ -1421,7 +1425,7 @@ impl RecordBatch {
     /// [`Compression::None`]).
     #[must_use]
     pub fn is_compressed(&self) -> bool {
-        self.attributes & 0x07 != 0
+        self.attributes & ATTR_COMPRESSION_CODEC != 0
     }
 
     /// Set [`ATTR_DELETE_HORIZON`]. When set, [`Self::delete_horizon_ms`] is
@@ -3412,7 +3416,7 @@ impl EncodedBatch {
         let Ok(bytes) = <[u8; 2]>::try_from(raw) else {
             return 0;
         };
-        if i16::from_be_bytes(bytes) & 0x07 != 0 {
+        if i16::from_be_bytes(bytes) & ATTR_COMPRESSION_CODEC != 0 {
             return 0;
         }
         let count = self.declared_count();
@@ -5426,7 +5430,10 @@ mod tests {
             headers: vec![],
         };
         let batch = RecordBatch::from_records(vec![rec]).with_compression(Compression::Gzip);
-        assert_eq!(batch.attributes & 0x07, Compression::Gzip as i16);
+        assert_eq!(
+            batch.attributes & ATTR_COMPRESSION_CODEC,
+            Compression::Gzip as i16
+        );
         assert!(batch.is_compressed());
         let mut buf = BytesMut::new();
         encode_record_batch(&mut buf, &batch).unwrap();
@@ -5435,7 +5442,10 @@ mod tests {
             decoded.records[0].value.as_deref(),
             Some(&b"gzip-payload"[..])
         );
-        assert_eq!(decoded.attributes & 0x07, Compression::Gzip as i16);
+        assert_eq!(
+            decoded.attributes & ATTR_COMPRESSION_CODEC,
+            Compression::Gzip as i16
+        );
     }
 
     #[test]
@@ -5448,7 +5458,10 @@ mod tests {
             headers: vec![],
         };
         let batch = RecordBatch::from_records(vec![rec]).with_compression(Compression::Snappy);
-        assert_eq!(batch.attributes & 0x07, Compression::Snappy as i16);
+        assert_eq!(
+            batch.attributes & ATTR_COMPRESSION_CODEC,
+            Compression::Snappy as i16
+        );
         let mut buf = BytesMut::new();
         encode_record_batch(&mut buf, &batch).unwrap();
         assert!(
@@ -5461,7 +5474,10 @@ mod tests {
             decoded.records[0].value.as_deref(),
             Some(&b"snappy-payload"[..])
         );
-        assert_eq!(decoded.attributes & 0x07, Compression::Snappy as i16);
+        assert_eq!(
+            decoded.attributes & ATTR_COMPRESSION_CODEC,
+            Compression::Snappy as i16
+        );
     }
 
     #[test]
@@ -5490,7 +5506,10 @@ mod tests {
             headers: vec![],
         };
         let batch = RecordBatch::from_records(vec![rec]).with_compression(Compression::Lz4);
-        assert_eq!(batch.attributes & 0x07, Compression::Lz4 as i16);
+        assert_eq!(
+            batch.attributes & ATTR_COMPRESSION_CODEC,
+            Compression::Lz4 as i16
+        );
         let mut buf = BytesMut::new();
         encode_record_batch(&mut buf, &batch).unwrap();
         assert!(
@@ -5502,7 +5521,10 @@ mod tests {
             decoded.records[0].value.as_deref(),
             Some(&b"lz4-payload"[..])
         );
-        assert_eq!(decoded.attributes & 0x07, Compression::Lz4 as i16);
+        assert_eq!(
+            decoded.attributes & ATTR_COMPRESSION_CODEC,
+            Compression::Lz4 as i16
+        );
     }
 
     #[test]
