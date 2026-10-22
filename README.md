@@ -179,8 +179,8 @@ See the [operator guide](docs/guide.md) for recipes and troubleshooting,
 | Diagnostics | Metrics snapshots and optional `tracing` spans |
 | Schema formats | Separate companion adapters for Protobuf, Avro, and JSON Schema |
 
-Kerberos/GSSAPI support remains unfinished. The companion requires
-an application-selected serializer. See [protocol support](docs/gaps.md) for
+Kerberos is not implemented. The companion requires an
+application-selected serializer. See [protocol support](docs/gaps.md) for
 version ranges and remaining gaps.
 
 ## Examples
@@ -206,9 +206,12 @@ COUNT=100000 WARMUP_SECS=0 PAYLOAD_BYTES=100 ACKS=1 LINGER_MS=5 KAFKA_TOPIC=plbe
 ```
 
 Use a dedicated topic and verify the record history before comparing results.
+This command uses the current defaults: seeded 100-byte payloads and 16-byte
+id keys, with no warmup. It is a local sample. It is not a row in the
+historical comparison, and it does not fill the matched bulk cell.
 [Benchmark instructions and recorded results](docs/benchmark.md) include the
-settings, peer versions, and limitations of each run. Historical results do not
-establish a current fastest-client or fastest-broker claim; benchmark signoff
+settings, peer versions, and limitations of each run. Those results do not
+establish a fastest-client or fastest-broker claim. Benchmark signoff
 remains pending ([Suite HOLD](docs/STATUS.md)).
 
 ## Documentation
