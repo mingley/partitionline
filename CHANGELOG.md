@@ -7,6 +7,10 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
 
 ## [Unreleased]
 
+- The broker SASL reauthentication page matches the listener profile: opt-in
+  lifetime, Handshake v1, and the deadline that does not move after the
+  Handshake arrives.
+
 - The token lifecycle page matches the OIDC manager, the shared connect-time
   cache, and SASL session lifetime. Sections 4.2, 6.1, and 6.3 stay the
   contract those calculations implement.

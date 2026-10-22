@@ -9,7 +9,9 @@ The crate includes:
 - Metadata, topic creation/deletion, Produce, Fetch, and ListOffsets handlers.
 - Checksummed journals, segmented partition logs, retention, and compaction.
 - Metadata quorum state and Raft replication components.
-- Optional TLS, SASL, OIDC, and compression support.
+- Optional TLS, SASL, OIDC, and compression support. SASL session
+  renewal stays off until a listener calls `with_reauthentication`.
+  The rules are in [SASL reauthentication](../docs/sasl-reauthentication.md).
 
 Private Raft peer sockets use TCP_NODELAY so small election and heartbeat
 frames do not wait for TCP delayed acknowledgments. Peer deadlines and queue,
