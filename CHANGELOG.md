@@ -7,6 +7,9 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
 
 ## [Unreleased]
 
+- Encoding an OffsetCommit response pauses every 8,192 topics. Writing
+  800,000 topics held the caller for 202ms before that pause. The encoded
+  bytes are unchanged.
 - Encoding an AddPartitionsToTxn response pauses every 8,192 topics.
   Writing 800,000 topics held the caller for 217ms before that pause. The
   encoded bytes are unchanged.

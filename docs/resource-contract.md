@@ -119,6 +119,7 @@ leaders are still looked up, and a repeated name is still stored once.
 - Copy delivered positions before an interval commit, and keep the ones that are still assigned.
 - Read delivered offsets before a queued commit.
 - Read an offset-commit response, and check an offset-fetch response, when either names many topics.
+- Write OffsetCommit response topics. A topic name is still copied.
 - Pause or resume assigned partitions, and list the ones that are paused.
 - Copy an assignment, or the delivered position of each partition.
 - Copy a changed heartbeat subscription or assignment.
