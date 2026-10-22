@@ -34,6 +34,8 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   task queue. Its capability table is not a qualification result.
 - The rust-rdkafka migration guide names files and symbols. The line
   numbers pinned to `ca50ca1` no longer matched current source.
+- The adoption page lists zstd as an optional feature and points at the
+  current schema companion. Dependency bumps land on main.
 
 - The broker SASL reauthentication page matches the listener profile: opt-in
   lifetime, Handshake v1, and the deadline that does not move after the

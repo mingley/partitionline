@@ -46,11 +46,11 @@ does not close KL-08 or lift Suite HOLD until real records are filed.
 
 | Gap | Status |
 |---|---|
-| crates.io release | **0.1.0 published** — `partitionline = "0.1"` |
-| zstd compression | Client support unfinished; see [backend decision](zstd-spike.md) |
-| Kerberos / GSSAPI | Client support unfinished |
-| Schema Registry | Separate unpublished [companion](https://github.com/mingley/partitionline/blob/8a50e8d18df40787d86eb714ff363b9d1e41ce43/partitionline-schema/README.md) with read-only lookups, caching, and serializer adapters |
-| Signed Suite HOLD benches | External Lab A process (`docs/STATUS.md`) |
+| crates.io release | **0.1.0 published.** Depend on `partitionline = "0.1"`. |
+| zstd | Optional feature, off by default. Encoding and decoding exist. Qualification is finite. See [zstd](zstd-spike.md). |
+| Kerberos / GSSAPI | Not implemented. The [provider proposal](gssapi-boundary.md) is waiting for approval. |
+| Schema Registry | Separate unpublished [companion](../partitionline-schema/README.md). The application picks the serializer. |
+| Signed Suite HOLD benches | Still unsigned. See [STATUS.md](STATUS.md). |
 
 Tell us what blocks a pilot: issue
 [#85](https://github.com/mingley/partitionline/issues/85) or the adoption
@@ -71,24 +71,16 @@ REQUIRE_AUTH=1 bash scripts/ci-auth-smoke.sh   # PLAIN + SCRAM + OAUTHBEARER + O
 See [STATUS.md](STATUS.md) for earlier runs and [benchmark instructions](benchmark.md)
 for current measurement procedures.
 
-## Dependabot vs post-cut parks
+## Dependency bumps
 
-Dependabot PRs for flate2 1.1.10 and SCRAM crypto (hmac/pbkdf2/sha2) overlap
-parked `dev/scram-crypto-bumps-b686`; `lz4_flex` 0.14 is parked on
-`dev/lz4-flex-bump-b686`; `actions/checkout` v7 is parked on
-`dev/actions-checkout-bump-b686`. **Post-cut parks for these bumps have landed on `main`.** Prefer closing the
-overlapping Dependabot PRs once `check-parks-on-main` is OK. New bumps go to
-`main` (tip absorbs). Historical pre-cut rule: do not merge bumps onto tip while
-Installable waited — that broke docs/scripts-only tip-delta. Landed via
-`bash scripts/owner-land-post-cut-parks.sh` / finish's default chain; close
-overlapping Dependabot PRs (#87 lz4_flex, #88–#91 sha2/flate2/pbkdf2/hmac, #92 actions/checkout).
-
-Executable gate (wired into cut-path + bars + actions hygiene):
+New dependency bumps land on `main`. The post-cut parks for flate2, the SCRAM
+crates (hmac, pbkdf2, sha2), `lz4_flex`, and `actions/checkout` have already
+landed. The overlapping Dependabot pull requests were #87 through #92. Do not
+reopen those parks.
 
 ```bash
 bash scripts/check-dependabot-parks-coverage.sh
 ```
 
-Unmapped open Dependabot cargo/Actions bumps fail the check so stewardship cannot
-drift. Post-Installable, land bumps on `main` (tip absorbs main) — do not reopen
-pre-cut tip-only parks for bumps already on main.
+An open Dependabot cargo or Actions bump that the script does not know about
+fails the check.
