@@ -107,8 +107,8 @@ A few rules apply across APIs:
 | EndTxn | 0–5 |
 | TxnOffsetCommit | 0–5 |
 | FindCoordinator | 1–6 |
-| OffsetCommit | 2–9 |
-| OffsetFetch | 1–9 |
+| OffsetCommit | 2–10 |
+| OffsetFetch | 1–10 |
 | OffsetDelete | 0 |
 | Heartbeat | 0–4 |
 | SyncGroup | 0–5 |

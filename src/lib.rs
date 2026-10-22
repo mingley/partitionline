@@ -215,7 +215,7 @@
 //! (Node id/host/port from the arguments;
 //! [`protocol::group::CoordinatorResult::error_for_key`] is
 //! `prepareCoordinatorResponse` with `Node.noNode`).
-//! OffsetCommit v2–v9 (v2–v4 RetentionTimeMs round-trips, including a
+//! OffsetCommit v2–v10 (v10 sends a 16-byte topic UUID; name-based commits stay on v2–v9; v2–v4 RetentionTimeMs round-trips, including a
 //! non-default value; v5+ omits the field even when the body is non-default
 //! and decode fills [`protocol::group::DEFAULT_RETENTION_TIME`]; v6+ epoch;
 //! decode below v6 fills [`RecordBatch::NO_PARTITION_LEADER_EPOCH`]; v7 GroupInstanceId;
@@ -270,7 +270,7 @@
 //! [`protocol::group::OffsetCommitRequest::build`] is Java
 //! `OffsetCommitRequest.Builder.build` (a present `group.instance.id`
 //! below v7 is `UnsupportedVersionException`; encode still omits)),
-//! OffsetFetch v1–v9 (v2 top-level error; v3 throttle; v5 epoch; v6+ flexible; v7 RequireStable; v8 Groups; v9 MemberId;
+//! OffsetFetch v1–v10 (v10 sends a 16-byte topic UUID; the name-only encoder stays on v1–v9; v2 top-level error; v3 throttle; v5 epoch; v6+ flexible; v7 RequireStable; v8 Groups; v9 MemberId;
 //! [`protocol::group::OffsetFetchGroup::is_all_partitions`] is Java
 //! `OffsetFetchRequest.isAllPartitions` (`None` Topics is every committed
 //! partition; `Some` empty is not);

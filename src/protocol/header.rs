@@ -271,17 +271,18 @@ pub fn request_header_version(api_key: i16, api_version: i16) -> i16 {
         LIST_OFFSETS if api_version >= 6 => 2,
         // OffsetCommit is classic through v7; flexible from v8
         // (Apache JSON flexibleVersions: "8+"). Kafka 4.0 validVersions
-        // is 2-9 (v0–v1 removed). This crate speaks 2–9. v2–v4
+        // is 2-9 (v0–v1 removed). This crate speaks 2–10. v2–v4
         // RetentionTimeMs. v6 CommittedLeaderEpoch. v7 GroupInstanceId.
-        // v9 is KIP-848 errors (same layout). v0–v1 and v10+ are not
-        // spoken.
+        // v9 is KIP-848 errors (same layout). v10 replaces the topic name
+        // with a 16-byte UUID. v0–v1 and v11+ are not spoken.
         OFFSET_COMMIT if api_version >= 8 => 2,
         // OffsetFetch is classic through v5; flexible from v6
         // (Apache JSON flexibleVersions: "6+"). Kafka 4.0 validVersions
-        // is 1-9 (v0 removed). This crate speaks 1–9. v2 top-level
+        // is 1-9 (v0 removed). This crate speaks 1–10. v2 top-level
         // ErrorCode. v3 ThrottleTimeMs. v5 CommittedLeaderEpoch. v7
         // RequireStable. v8 Groups. v9 MemberId / MemberEpoch (same
-        // header as v6). v0 and v10+ are not spoken.
+        // header as v6). v10 replaces the topic name with a 16-byte UUID.
+        // v0 and v11+ are not spoken.
         OFFSET_FETCH if api_version >= 6 => 2,
         // OffsetForLeaderEpoch is classic through v3; flexible from v4
         // (Apache JSON flexibleVersions: "4+"). Kafka 4.0 validVersions
@@ -790,8 +791,9 @@ mod tests {
     #[test]
     fn offset_commit_v8_is_flexible_v7_is_not() {
         // Official JSON: validVersions 2-9, flexibleVersions 8+.
-        // HeaderVersion is 1 / 0 at v2–v7 and 2 / 1 at v8–v9. This crate
-        // speaks 2–9. v9 is KIP-848 errors (same layout as v8).
+        // HeaderVersion is 1 / 0 at v2–v7 and 2 / 1 at v8–v10. This crate
+        // speaks 2–10. v9 is KIP-848 errors (same layout as v8). v10
+        // replaces the topic name with a 16-byte UUID and keeps this header.
         assert_eq!(request_header_version(OFFSET_COMMIT, 2), 1);
         assert_eq!(response_header_version(OFFSET_COMMIT, 2), 0);
         assert_eq!(request_header_version(OFFSET_COMMIT, 5), 1);
@@ -802,13 +804,16 @@ mod tests {
         assert_eq!(response_header_version(OFFSET_COMMIT, 8), 1);
         assert_eq!(request_header_version(OFFSET_COMMIT, 9), 2);
         assert_eq!(response_header_version(OFFSET_COMMIT, 9), 1);
+        assert_eq!(request_header_version(OFFSET_COMMIT, 10), 2);
+        assert_eq!(response_header_version(OFFSET_COMMIT, 10), 1);
     }
 
     #[test]
     fn offset_fetch_v6_is_flexible_v5_is_not() {
         // Official JSON: validVersions 1-9, flexibleVersions 6+.
-        // HeaderVersion is 1 / 0 at v1–v5 and 2 / 1 at v6–v9. This crate
-        // speaks 1–9. v7–v9 keep the v6 header (RequireStable / Groups).
+        // HeaderVersion is 1 / 0 at v1–v5 and 2 / 1 at v6–v10. This crate
+        // speaks 1–10. v7–v9 keep the v6 header (RequireStable / Groups).
+        // v10 replaces the topic name with a 16-byte UUID and keeps this header.
         assert_eq!(request_header_version(OFFSET_FETCH, 1), 1);
         assert_eq!(response_header_version(OFFSET_FETCH, 1), 0);
         assert_eq!(request_header_version(OFFSET_FETCH, 5), 1);
@@ -817,6 +822,8 @@ mod tests {
         assert_eq!(response_header_version(OFFSET_FETCH, 6), 1);
         assert_eq!(request_header_version(OFFSET_FETCH, 9), 2);
         assert_eq!(response_header_version(OFFSET_FETCH, 9), 1);
+        assert_eq!(request_header_version(OFFSET_FETCH, 10), 2);
+        assert_eq!(response_header_version(OFFSET_FETCH, 10), 1);
     }
 
     #[test]

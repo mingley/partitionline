@@ -681,10 +681,23 @@ fn v10_coordinator_code(api: i16, body: &[u8]) -> Option<i16> {
 }
 
 fn require_copied_coord_version(coord: &BrokerConn, api: i16, version: i16) -> Result<()> {
-    let spoken = super::negotiated_coord_version(coord, api)?;
-    if spoken < version {
+    // Compare the version stored on the reopened socket. `negotiated_coord_version`
+    // only accepts the name-only ranges (OffsetFetch 1–9, OffsetCommit 2–9), so a
+    // v10 UUID connection would fail this check after idle or I/O recovery.
+    let negotiated = if api == crate::protocol::api_keys::OFFSET_FETCH {
+        coord.offset_fetch_version
+    } else if api == crate::protocol::api_keys::OFFSET_COMMIT {
+        coord.offset_commit_version
+    } else {
+        super::negotiated_coord_version(coord, api)?
+    };
+    copied_offset_version(negotiated, version)
+}
+
+fn copied_offset_version(negotiated: i16, needed: i16) -> Result<()> {
+    if negotiated < needed {
         Err(Error::Unsupported(
-            "moved coordinator cannot represent the name-based offset request".into(),
+            "moved coordinator cannot represent the offset request".into(),
         ))
     } else {
         Ok(())
@@ -1049,5 +1062,12 @@ mod tests {
             v10_coordinator_code(crate::protocol::api_keys::OFFSET_FETCH, &fetched),
             Some(crate::error::NOT_COORDINATOR)
         );
+    }
+
+    #[test]
+    fn a_reopened_v10_offset_connection_still_covers_v10() {
+        assert!(super::copied_offset_version(10, 10).is_ok());
+        assert!(super::copied_offset_version(10, 8).is_ok());
+        assert!(super::copied_offset_version(9, 10).is_err());
     }
 }

@@ -305,9 +305,9 @@ v0 (no KeyType) and v7+ are not spoken.
 
 ### OffsetCommit
 
-Spoken versions: 2–9.
+Spoken versions: 2–10.
 
-OffsetCommit v2–v7 are classic; v8–v9 are flexible (compact strings/arrays plus tagged fields on partitions / topics / top-level; request header 2, response header 1).
+OffsetCommit v2–v7 are classic; v8–v10 are flexible (compact strings/arrays plus tagged fields on partitions / topics / top-level; request header 2, response header 1).
 
 Official JSON: v3 and v4 match v2 (RetentionTimeMs; this crate sends `-1`).
 
@@ -323,17 +323,19 @@ v3+ ThrottleTimeMs.
 
 v9 is KIP-848 error codes (same layout as v8).
 
+v10 replaces each topic name with a 16-byte UUID. Name-based commits stay on v2–v9. The group negotiates 2–10 and uses the UUID body when the broker’s maximum is 10.
+
 Kafka 4.0 `validVersions` is `2-9` (v0–v1 removed).
 
-v0–v1 and v10+ are not spoken.
+v0–v1 and v11+ are not spoken.
 
 `alter_consumer_group_offsets_timeout` is Java `AlterConsumerGroupOffsetsOptions.timeoutMs` (RPC deadline; OffsetCommit has no TimeoutMs).
 
 ### OffsetFetch
 
-Spoken versions: 1–9.
+Spoken versions: 1–10.
 
-OffsetFetch v1–v5 are classic; v6–v9 are flexible (compact strings/arrays plus tagged fields; request header 2, response header 1).
+OffsetFetch v1–v5 are classic; v6–v10 are flexible (compact strings/arrays plus tagged fields; request header 2, response header 1).
 
 Official JSON: v3, v4, and v5 match v2 on the request (GroupId, Topics).
 
@@ -351,9 +353,11 @@ v8 replaces GroupId / Topics with Groups (KIP-709; `list_consumer_group_offsets_
 
 v9 adds MemberId / MemberEpoch on each group (KIP-848; classic groups send null / `-1`).
 
+v10 replaces each topic name with a 16-byte UUID. The name-only encoder stays on v1–v9. The group negotiates 1–10 and uses the UUID body when the broker’s maximum is 10.
+
 Kafka 4.0 `validVersions` is `1-9` (v0 removed).
 
-v0 and v10+ (topic IDs) are not spoken.
+v0 and v11+ are not spoken.
 
 ### OffsetDelete
 

@@ -1160,17 +1160,18 @@ pub struct BrokerConn {
     /// [`Self::send`] plus [`Self::read_response`] is not double-counted.
     stats: Option<Arc<crate::metrics::AdminTracker>>,
     /// Produce version negotiated on data sockets (`-1` unset).
-    /// This crate picks 3–12 from ApiVersions.
+    /// This crate picks 3–13 from ApiVersions.
     pub(crate) produce_version: i16,
     /// Fetch version negotiated on data sockets (`-1` unset).
     /// This crate picks 4–18 from ApiVersions (KL05-12).
     pub(crate) fetch_version: i16,
     /// OffsetCommit version negotiated on coordinator sockets (`0` unset).
-    /// Classic consumer groups pick 2–9 from ApiVersions. Kafka 4.0
-    /// removed v0–v1, so `0` is not a spoken version.
+    /// Classic consumer groups pick 2–10 from ApiVersions. v10 uses topic
+    /// UUIDs. Kafka 4.0 removed v0–v1, so `0` is not a spoken version.
     pub(crate) offset_commit_version: i16,
     /// OffsetFetch version negotiated on coordinator sockets (`0` unset).
-    /// Classic consumer groups pick 5–9 from ApiVersions.
+    /// Classic consumer groups pick 1–10 from ApiVersions. v10 uses topic
+    /// UUIDs. `0` is not a spoken version.
     pub(crate) offset_fetch_version: i16,
     /// Heartbeat version negotiated on coordinator sockets (`-1` unset).
     /// Classic consumer groups pick 0–4 from ApiVersions. `0` is a spoken
