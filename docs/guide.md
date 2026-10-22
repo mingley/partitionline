@@ -485,17 +485,21 @@ Examples: `tls`, `sasl`. OIDC is `OidcConfig` on the SASL OAUTHBEARER path.
 
 ## Older discovery versions
 
-Metadata v0 and GROUP coordinator discovery v0 are supported. At Metadata v0,
-an empty topic array means all topics. A named request cannot disable automatic
-topic creation, so Producer and Consumer callers must explicitly set
-`allow_auto_topic_creation = true` to use that version. Admin can list all topics;
-named Admin queries that require creation to stay disabled return Unsupported.
+Metadata v0 and GROUP FindCoordinator v0 are spoken.
 
-Metadata v0 provides no controller ID, topic UUID, rack or internal-topic flag.
-Operations that need a controller or UUID refuse the missing identity. GROUP
-discovery v0 has no coordinator-type field; transaction discovery needs v1 or
-newer. Startup and discovery keep one timeout across connection setup, version
-fallback and retries. Bootstrap lists are limited to sixteen addresses.
+On Metadata v0 an empty topic array means every topic. A named v0 request
+cannot turn automatic topic creation off. A producer or consumer that wants
+that version sets `allow_auto_topic_creation = true`. Admin can list every
+topic. A named Admin query that must keep creation off returns
+`Unsupported`.
+
+Metadata v0 has no controller id, topic UUID, rack, or internal-topic flag.
+A call that needs a controller or a UUID refuses the missing identity.
+GROUP discovery v0 has no coordinator-type field. Transaction discovery
+needs FindCoordinator v1 or newer.
+
+Startup and discovery share one timeout across the connection, version
+fallback, and retries. A bootstrap list holds at most sixteen addresses.
 
 ## Defaults that differ from Java
 
@@ -849,17 +853,19 @@ and `concurrent_sends_during_close_do_not_hang_and_observe_closed`.
 
 
 
-### Consumer leave/close and auto-commit
+### Consumer leave, close, and auto-commit
 
-`ConsumerConfig::enable_auto_commit` defaults to **false**. When enabled, offsets
-are stored only on the **poll-interval** path (committing previously delivered
-records once the interval elapses; the batch about to be returned is never committed
-before delivery). `leave` / `close` / `unsubscribe` flush queued `commitAsync`
-work but do **not** auto-commit positions — so polled-but-unprocessed records are
-not silently marked done (KL-02). Prefer `commit` / `commit_with_metadata` (for
-example `recs.next_offsets()`) before leave when you need stored offsets.
+`enable_auto_commit` defaults to false. When it is on, offsets are stored
+only on the poll-interval path: records that were already delivered, after
+the interval elapses. The batch about to be returned is not committed
+before the caller sees it.
 
-Mock coverage: `tests/consumer_close_commit.rs`.
+`leave`, `close`, and `unsubscribe` flush queued `commit_async` work. They
+do not store positions on their own. Records you polled and have not
+processed stay uncommitted. Call `commit` or `commit_with_metadata` with
+`recs.next_offsets()` before leave when those offsets must be stored.
+
+The mock is `tests/consumer_close_commit.rs`.
 
 
 ### Consumer fetch buffer budget and prefetch bounds

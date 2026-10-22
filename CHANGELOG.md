@@ -56,6 +56,8 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   It does not depend on the core client or on reqwest.
 - The operator guide separates name-based offset calls from UUID calls.
   A recreated topic name does not inherit an old commit.
+- Auto-commit stays off by default. Leave, close, and unsubscribe do not
+  store positions. Metadata v0 and GROUP FindCoordinator v0 are spelled out.
 
 - The broker SASL reauthentication page matches the listener profile: opt-in
   lifetime, Handshake v1, and the deadline that does not move after the
