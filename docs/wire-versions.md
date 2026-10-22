@@ -29,33 +29,24 @@ Each section starts with the versions this crate speaks. The notes after that ar
 
 ### InitProducerId
 
-Spoken versions: 0–6.
+Spoken versions: 0–6. Version 7 and above are not spoken.
 
-InitProducerId v0–v1 are classic; v2–v6 are flexible (compact transactional id plus tagged fields; request header 2, response header 1).
+v0–v1 are classic. v2–v6 are flexible: a compact transactional id plus tagged fields. Request header version 2, response header version 1. v0 and v1 share one empty-error body. v2–v5 share one empty-error body.
 
-v3+ adds ProducerId / ProducerEpoch on the request (KIP-360; first init sends `-1` / `-1`).
+| Version | What changed |
+|---|---|
+| 3 and above | Request `ProducerId` and `ProducerEpoch` (KIP-360). The first init sends `-1` / `-1`. |
+| 4 | `PRODUCER_FENCED`. |
+| 5 | `TRANSACTION_ABORTABLE` (KIP-890). |
+| 6 | `enable2Pc` and `keepPreparedTxn` (KIP-939). |
 
-After UNKNOWN_PRODUCER_ID the idempotent producer bumps the epoch locally and retries.
+Idempotent and ordinary transactional producers negotiate 0–6 and send both v6 flags false. An older peer rejects a true flag before the request is sent. Prepared-transaction lifecycle operations are separate from this initialization.
 
-After UNKNOWN_PRODUCER_ID / INVALID_PRODUCER_EPOCH / INVALID_PRODUCER_ID_MAPPING, a transactional abort still EndTxn-aborts (a Produce that already completed `send` with that error does not fail abort) and re-inits with the last producer id and epoch when EndTxn is below v5 (EndTxn v5 already returns the bumped identity).
+`ThrottleTimeMs` is JSON `0+` (`encode_init_producer_id_response_with_throttle`). v0 omits it. v1 and above write it, and the convenience encoder writes `0`. Java `getErrorResponse` writes `0` even when its throttle argument is non-zero. The top-level error code is at bytes 4–5. `error_counts` counts that code only, including `NONE` (Java `Collections.singletonMap`).
 
-`commit_transaction` still fails `flush` on the Produce error.
+After `UNKNOWN_PRODUCER_ID`, the idempotent producer bumps the epoch locally and retries. After `UNKNOWN_PRODUCER_ID`, `INVALID_PRODUCER_EPOCH`, or `INVALID_PRODUCER_ID_MAPPING`, a transactional abort still calls EndTxn. A Produce that already finished `send` with that error does not fail the abort. Below EndTxn v5 the client re-inits with the last producer id and epoch. EndTxn v5 already returns the bumped identity. `commit_transaction` still fails `flush` on the Produce error.
 
-v4 is PRODUCER_FENCED; v5 is TRANSACTION_ABORTABLE (KIP-890).
-
-ThrottleTimeMs is JSON `0+` (`encode_init_producer_id_response_with_throttle`; encode previously always wrote `0` on v1+ and omitted the field on v0; decode discarded it; convenience encode still writes `0`; official Java `InitProducerIdResponse.throttleTimeMs` / `InitProducerIdResponseData.throttleTimeMs`; Java `getErrorResponse` sets `throttleTimeMs` to `0` even when the argument is non-zero).
-
-`InitProducerIdResponse.error_counts` is Java `InitProducerIdResponse.errorCounts` (top-level ErrorCode only, including `NONE`; Java `Collections.singletonMap`).
-
-Empty-error v0 and v1 bodies match; v2, v3, v4, and v5 bodies match.
-
-Top-level ErrorCode is at bytes 4–5.
-
-Kafka 4.0 `validVersions` is `0-5`.
-
-v6 adds `enable2Pc` and `keepPreparedTxn` (KIP-939). Idempotent and ordinary transactional producers negotiate 0–6 and send both flags false. A true flag is rejected by an older peer before the request is sent. Prepared-transaction lifecycle operations are separate from this initialization. v2 through v6 share the flexible header.
-
-v7+ is not spoken.
+Kafka 4.0 `validVersions` is `0-5`. This crate also speaks v6.
 
 ### Produce
 
@@ -120,171 +111,117 @@ Kafka 4.0 removed v0–v3. Its `validVersions` is `4-17`. This crate also speaks
 
 ### ListOffsets
 
-Spoken versions: 1–11.
+Spoken versions: 1–11. Version 12 and above are not spoken.
 
-ListOffsets v4+ has `current_leader_epoch` before timestamp.
+v1–v5 are classic. v6–v11 are flexible. Request header version 2, response header version 1.
 
-The v4+ response has `leader_epoch` after offset.
+From v4 the request puts `current_leader_epoch` before the timestamp, and the response puts `leader_epoch` after the offset.
 
-v1–v5 are classic; v6–v11 are flexible (compact arrays/strings plus tagged fields; request header 2, response header 1).
+| Version | Timestamp this crate can ask for |
+|---|---|
+| 7 | `MAX_TIMESTAMP` `-3` (KIP-734). |
+| 8 | `EARLIEST_LOCAL` `-4` (KIP-405). |
+| 9 | `LATEST_TIERED` `-5` (KIP-1005). |
+| 10 | `TimeoutMs` after `Topics` (KIP-1075). The client sends `request_timeout`, or the one-shot timeout from `list_offsets_timeout` / `list_offsets_with_isolation_timeout`. |
+| 11 | `EARLIEST_PENDING_UPLOAD` `-6` (KIP-1023, `OffsetSpec::earliest_pending_upload`). |
 
-Request ReplicaId is JSON `0+` (INT32 first field; `encode_list_offsets_topics_request_with_replica_id`; encode previously always wrote `CONSUMER_REPLICA_ID` and decode discarded; convenience encode still writes `CONSUMER_REPLICA_ID`; official Java `ListOffsetsRequest.replicaId()`).
+`ReplicaId` is JSON `0+`, the first INT32 (`encode_list_offsets_topics_request_with_replica_id`, Java `ListOffsetsRequest.replicaId`). The convenience encoder writes `CONSUMER_REPLICA_ID`.
 
-v7 is MAX_TIMESTAMP `-3` (KIP-734).
-
-v8 is EARLIEST_LOCAL `-4` (KIP-405).
-
-v9 is LATEST_TIERED `-5` (KIP-1005).
-
-v10 adds TimeoutMs after Topics (KIP-1075; this crate sends `request_timeout`, or the one-shot timeout from `list_offsets_timeout` / `list_offsets_with_isolation_timeout`).
-
-Kafka 4.0 `validVersions` is `1-10`. Apache 4.3.1 extends that range through v11.
-
-v11 adds EARLIEST_PENDING_UPLOAD, timestamp `-6` (KIP-1023, `OffsetSpec::earliest_pending_upload`). v12+ is not spoken.
+Kafka 4.0 `validVersions` is `1-10`. Apache 4.3.1 extends that range through v11, which this crate speaks.
 
 ### OffsetForLeaderEpoch
 
-Spoken versions: 0–4.
+Spoken versions: 0–4. Version 5 and above are not spoken.
 
-OffsetForLeaderEpoch v0–v3 are classic; v4 is flexible (compact strings/arrays plus tagged fields; request header 2, response header 1).
+v0–v3 are classic. v4 is flexible. Request header version 2, response header version 1. v0 and v1 share one empty-topics body. v2 and v3 share another. There is no top-level error code.
 
-v1 response adds LeaderEpoch.
+| Version | What changed |
+|---|---|
+| 1 | The response adds `LeaderEpoch`. |
+| 2 | The request adds `CurrentLeaderEpoch`. The response adds `ThrottleTimeMs`. |
+| 3 | `ReplicaId`, an INT32, is the first field. The default in the schema is `-2`. |
+| 4 | Flexible encoding. |
 
-v2 adds CurrentLeaderEpoch on the request and ThrottleTimeMs on the response.
+`ThrottleTimeMs` is JSON `2+` (`encode_offset_for_leader_epoch_topics_response_with_throttle`). Below v2 the encoder omits it and the decoder fills `0`. The convenience encoder writes `0`. Java `getErrorResponse` leaves the JSON default `0`.
 
-ThrottleTimeMs is JSON `2+` (`encode_offset_for_leader_epoch_topics_response_with_throttle`; encode previously always wrote `0` on v2+ and decode discarded; convenience encode still writes `0`; below v2 encode omits it even when the body is non-zero and decode fills `0`).
+`ReplicaId` is JSON `3+` (`encode_offset_for_leader_epoch_topics_request_with_replica_id`, Java `OffsetsForLeaderEpochRequest.replicaId`). The convenience encoder writes `CONSUMER_REPLICA_ID`. Below v3 the encoder omits a non-default value and the decoder fills `DEBUGGING_REPLICA_ID`.
 
-Empty-Topics v0 and v1 bodies match; v2 and v3 bodies match; v4 is compact.
+Fetch `FENCED_LEADER_EPOCH` and `UNKNOWN_LEADER_EPOCH` recover with one RPC per current leader, each carrying that leader's topics and partitions.
 
-There is no top-level ErrorCode.
-
-Official Java `getErrorResponse` does not set `throttleTimeMs` (JSON default `0`).
-
-Request ReplicaId is JSON `3+` (INT32 first field; default `-2`; `encode_offset_for_leader_epoch_topics_request_with_replica_id`; encode previously always wrote `CONSUMER_REPLICA_ID` on v3+ and decode discarded; convenience encode still writes `CONSUMER_REPLICA_ID`; below v3 omit even when non-default and decode fills `DEBUGGING_REPLICA_ID`; official Java `OffsetsForLeaderEpochRequest.replicaId()`).
-
-Fetch `FENCED_LEADER_EPOCH` / `UNKNOWN_LEADER_EPOCH` recover with Topics/Partitions of N (one RPC per current leader).
-
-Kafka 4.0 `validVersions` is `2-4` (v0–v1 removed).
-
-v5+ is not spoken.
+Kafka 4.0 `validVersions` is `2-4`. It removed v0–v1. This crate still speaks v0 and v1.
 
 ### AddPartitionsToTxn
 
-Spoken versions: 0–3.
+Spoken versions: 0–3. Version 4 and above are not spoken. v4 is the KIP-890 batched-transaction broker layout.
 
-AddPartitionsToTxn v0–v2 are classic; v3 is flexible (compact strings/arrays plus tagged fields on topics / top-level; request header 2, response header 1).
+v0–v2 are classic and share one empty `ResultsByTopicV3AndBelow` body. v3 is flexible: compact strings and arrays, plus tagged fields on topics and at the top level. Request header version 2, response header version 1. Spoken versions have no top-level error code.
 
-ThrottleTimeMs is JSON `0+` (`encode_add_partitions_to_txn_topics_response_with_throttle`; encode previously always wrote `0` and decode discarded; convenience encode still writes `0`).
-
-Empty-ResultsByTopicV3AndBelow v0, v1, and v2 bodies match; v3 is compact.
-
-There is no top-level ErrorCode on spoken versions.
-
-v4+ (batched transactions, KIP-890 broker layout) is not spoken.
+`ThrottleTimeMs` is JSON `0+` (`encode_add_partitions_to_txn_topics_response_with_throttle`). The convenience encoder writes `0`.
 
 ### AddOffsetsToTxn
 
-Spoken versions: 0–4.
+Spoken versions: 0–4. Version 5 and above are not spoken.
 
-AddOffsetsToTxn v0–v2 are classic; v3–v4 are flexible (compact strings plus tagged fields; request header 2, response header 1).
+v0–v2 are classic and share one empty-error body. v3–v4 are flexible and share one empty-error body. Request header version 2, response header version 1. v4 is `TRANSACTION_ABORTABLE` (KIP-890) with the same layout as v3.
 
-v4 is TRANSACTION_ABORTABLE (KIP-890; same layout as v3).
+The top-level error code is at bytes 4–5. `error_counts` counts that code only, including `NONE` (Java `Collections.singletonMap`).
 
-ThrottleTimeMs is JSON `0+` (`encode_add_offsets_to_txn_response_with_throttle`; encode previously always wrote `0` and decode discarded; convenience encode still writes `0`).
+`ThrottleTimeMs` is JSON `0+` (`encode_add_offsets_to_txn_response_with_throttle`). The convenience encoder writes `0`.
 
-Request ProducerId is JSON `0+` (INT64 after TransactionalId; decode previously discarded it; encode already takes `producer_id`; official Java `AddOffsetsToTxnRequestData.producerId`; not EndTxn response ProducerId / InitProducerId / TxnOffsetCommit ProducerId / AddPartitionsToTxn ProducerId / WriteTxnMarkers ProducerId / ProducerEpoch).
-
-Request ProducerEpoch is JSON `0+` (INT16 after ProducerId; decode previously discarded it; encode already takes `producer_epoch`; official Java `AddOffsetsToTxnRequestData.producerEpoch`; not EndTxn response ProducerEpoch / InitProducerId / TxnOffsetCommit ProducerEpoch / AddPartitionsToTxn ProducerEpoch / WriteTxnMarkers ProducerEpoch / ProducerId).
-
-Empty-error v0, v1, and v2 bodies match; v3 and v4 bodies match.
-
-Top-level ErrorCode is at bytes 4–5.
-
-`AddOffsetsToTxnResponse.error_counts` is Java `AddOffsetsToTxnResponse.errorCounts` (top-level ErrorCode only, including `NONE`; Java `Collections.singletonMap`).
+`ProducerId` is JSON `0+`, an INT64 after `TransactionalId` (Java `AddOffsetsToTxnRequestData.producerId`). `ProducerEpoch` is the INT16 after it (Java `AddOffsetsToTxnRequestData.producerEpoch`). Encode takes both. They are not the producer id or epoch on EndTxn, InitProducerId, TxnOffsetCommit, AddPartitionsToTxn, or WriteTxnMarkers.
 
 Kafka 4.0 `validVersions` is `0-4`.
 
-v5+ is not spoken.
-
 ### EndTxn
 
-Spoken versions: 0–5.
+Spoken versions: 0–5. Version 6 and above are not spoken.
 
-EndTxn v0–v2 are classic; v3–v5 are flexible (compact strings plus tagged fields; request header 2, response header 1).
+v0–v2 are classic and share one empty-error body. v3–v5 are flexible. Request header version 2, response header version 1. v3 and v4 share one empty-error body.
 
-v4 is TRANSACTION_ABORTABLE (KIP-890; same request layout as v3).
+| Version | What changed |
+|---|---|
+| 4 | `TRANSACTION_ABORTABLE` (KIP-890). Same request layout as v3. |
+| 5 | The response adds `ProducerId` and `ProducerEpoch` (KIP-890 part 2). |
 
-v5 adds ProducerId / ProducerEpoch on the response (KIP-890 Part 2).
+The top-level error code is at bytes 4–5. `error_counts` counts that code only, including `NONE` (Java `Collections.singletonMap`). `ThrottleTimeMs` is JSON `0+` (`encode_end_txn_response_with_throttle`). The convenience encoder writes `0`.
 
-ThrottleTimeMs is JSON `0+` (`encode_end_txn_response_with_throttle`; encode previously always wrote `0` and decode discarded; convenience encode still writes `0`).
-
-Empty-error v0, v1, and v2 bodies match; v3 and v4 bodies match; v5 adds ProducerId / ProducerEpoch.
-
-Top-level ErrorCode is at bytes 4–5.
-
-`EndTxnResponse.error_counts` is Java `EndTxnResponse.errorCounts` (top-level ErrorCode only, including `NONE`; Java `Collections.singletonMap`).
-
-After a successful EndTxn v5 the producer stores those fields when `producer_id >= 0` and clears per-partition sequences if the identity changed.
+After a successful EndTxn v5, the producer stores the returned id and epoch when `producer_id >= 0`. If that identity changed, it clears per-partition sequences.
 
 Kafka 4.0 `validVersions` is `0-5`.
-
-v6+ is not spoken.
 
 ### TxnOffsetCommit
 
-Spoken versions: 0–5.
+Spoken versions: 0–5. Version 6 and above are not spoken.
 
-TxnOffsetCommit v0–v2 are classic (v2 adds committed leader epoch).
+v0–v2 are classic and share one empty-topics body. v2 adds the committed leader epoch. v3–v5 are flexible and share one empty-topics body. Request header version 2, response header version 1. There is no top-level error code.
 
-v3–v5 are flexible (compact strings/arrays plus tagged fields on partitions / topics / top-level; request header 2, response header 1) and add GenerationId / MemberId / GroupInstanceId.
+v3 adds `GenerationId`, `MemberId`, and `GroupInstanceId`. `send_offsets_for_group` fills those from `ConsumerGroupMetadata`. `send_offsets_to_transaction` sends `-1`, empty, and null. v4 is `TRANSACTION_ABORTABLE` (KIP-890) with the same layout as v3. v5 is the same layout again (KIP-890 part 2, transaction version 2).
 
-`send_offsets_for_group` sends those fields from `ConsumerGroupMetadata`; `send_offsets_to_transaction` sends `-1` / empty / null.
+When the broker advertises v5, `send_offsets_*` skips `AddOffsetsToTxn`. The group coordinator does that work.
 
-v4 is TRANSACTION_ABORTABLE (KIP-890; same layout as v3).
+`ThrottleTimeMs` is JSON `0+` (`encode_txn_offset_commit_topics_response_with_throttle`). The convenience encoder writes `0`.
 
-v5 is the same layout (KIP-890 Part 2 transaction V2).
-
-When the broker advertises v5, `send_offsets_*` skips AddOffsetsToTxn (the group coordinator performs that work).
-
-ThrottleTimeMs is JSON `0+` (`encode_txn_offset_commit_topics_response_with_throttle`; encode previously always wrote `0` and decode discarded; convenience encode still writes `0`).
-
-Request ProducerId is JSON `0+` (INT64 after GroupId; decode previously discarded it; encode already takes `producer_id`; official Java `TxnOffsetCommitRequestData.producerId`; not AddOffsetsToTxn ProducerId / EndTxn response ProducerId / InitProducerId / AddPartitionsToTxn ProducerId / WriteTxnMarkers ProducerId / ProducerEpoch).
-
-Request ProducerEpoch is JSON `0+` (INT16 after ProducerId; decode previously discarded it; encode already takes `producer_epoch`; official Java `TxnOffsetCommitRequestData.producerEpoch`; not AddOffsetsToTxn ProducerEpoch / EndTxn response ProducerEpoch / InitProducerId / AddPartitionsToTxn ProducerEpoch / WriteTxnMarkers ProducerEpoch / ProducerId).
-
-Empty-Topics v0, v1, and v2 bodies match; v3, v4, and v5 bodies match.
-
-There is no top-level ErrorCode.
+`ProducerId` is JSON `0+`, an INT64 after `GroupId` (Java `TxnOffsetCommitRequestData.producerId`). `ProducerEpoch` is the INT16 after it (Java `TxnOffsetCommitRequestData.producerEpoch`). Encode takes both. They are not the producer id or epoch on AddOffsetsToTxn, the EndTxn response, InitProducerId, AddPartitionsToTxn, or WriteTxnMarkers.
 
 Kafka 4.0 `validVersions` is `0-5`.
 
-v6+ is not spoken.
-
 ### FindCoordinator
 
-Spoken versions: 0–6.
+Spoken versions: 0–6. Version 7 and above are not spoken.
 
-FindCoordinator v0 is classic and has no KeyType. It accepts only the GROUP coordinator. v1–v2 are classic (Key + KeyType).
+v0–v2 are classic. v0 has no `KeyType` and accepts only the `GROUP` coordinator. v1–v2 send `Key` and `KeyType` and share one empty-error body. v3–v6 are flexible. Request header version 2, response header version 1. v3 is one compact key. v4, v5, and v6 share one empty-`Coordinators` body.
 
-v3 is flexible (compact key plus tagged fields; request header 2, response header 1).
+| Version | What changed |
+|---|---|
+| 4–6 | `CoordinatorKeys` replaces `Key`, and `Coordinators` replaces the single top-level coordinator (KIP-699). |
+| 5 | `TRANSACTION_ABORTABLE`. |
+| 6 | Share groups (KIP-932). |
 
-v4–v6 replace Key with CoordinatorKeys and the top-level coordinator fields with Coordinators (KIP-699; v5 is TRANSACTION_ABORTABLE; v6 is share groups, KIP-932).
+On v1–v3 the top-level error code is at bytes 4–5. v4 and above have no top-level error code. `has_error` reads that top-level code only (Java `FindCoordinatorResponse.hasError`). Coordinator codes inside a v4+ batch are ignored.
 
-ThrottleTimeMs is JSON `1+` (`encode_find_coordinator_response_coordinators_with_throttle`; encode previously always wrote `0` and decode discarded; convenience encode still writes `0`).
+`ThrottleTimeMs` is JSON `1+` (`encode_find_coordinator_response_coordinators_with_throttle`). The convenience encoder writes `0`. Java `getErrorResponse` copies the throttle argument on v2 and above. v1 leaves the JSON default `0`.
 
-Empty-error v1 and v2 bodies match; v3 is compact; empty-Coordinators v4, v5, and v6 bodies match.
-
-Top-level ErrorCode is at bytes 4–5 on v1–v3; v4+ has no top-level ErrorCode.
-
-`FindCoordinatorResponse.has_error` is Java `FindCoordinatorResponse.hasError` (top-level `errorCode` only; v4+ coordinator codes are ignored).
-
-Official Java `getErrorResponse` sets `throttleTimeMs` from the argument on v2+; v1 leaves the JSON default `0`.
-
-`list_consumer_group_offsets_for_groups`, `describe_groups`, `delete_groups`, `consumer_group_describe`, `share_group_describe`, `describe_share_group_offsets`, and `describe_transactions` send CoordinatorKeys of N on v4+ (one FindCoordinator per coordinator-discovery retry) and one subsequent RPC per coordinator.
-
-Brokers that only speak v0–v3 get one FindCoordinator per key.
-
-v7+ is not spoken.
+`list_consumer_group_offsets_for_groups`, `describe_groups`, `delete_groups`, `consumer_group_describe`, `share_group_describe`, `describe_share_group_offsets`, and `describe_transactions` send N `CoordinatorKeys` on v4 and above: one FindCoordinator per discovery retry, then one RPC per coordinator. Brokers that only speak v0–v3 get one FindCoordinator per key.
 
 ### OffsetCommit
 
