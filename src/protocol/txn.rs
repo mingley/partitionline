@@ -2931,6 +2931,40 @@ pub fn encode_txn_offset_commit_response(
     encode_txn_offset_commit_error_response(buf, version, topics, error, 0)
 }
 
+/// [`encode_txn_offset_commit_response`], yielding while topics are still being measured and written.
+///
+/// Encoding 800,000 topics held the caller for 217ms. A topic name is still written.
+pub async fn encode_txn_offset_commit_response_cooperative(
+    buf: &mut BytesMut,
+    version: i16,
+    topics: &[TxnOffsetTopic],
+    error: i16,
+) -> Result<()> {
+    let flexible = txn_offset_commit_flexible(version)?;
+    let body_start = buf.len();
+    let mut planned = 4usize;
+    planned = add_txn_len(planned, txn_array_len(flexible, topics.len())?)?;
+    planned = add_txn_len(
+        planned,
+        txn_offset_commit_error_topics_len(flexible, topics).await?,
+    )?;
+    if flexible {
+        planned = add_txn_len(planned, buf::unsigned_varint_size(0))?;
+    }
+    let needed = body_start.saturating_add(planned);
+    if buf.capacity() < needed {
+        buf.reserve(needed - buf.capacity());
+    }
+    buf.put_i32(0);
+    buf::put_array_len(buf, flexible, Some(topics.len()))?;
+    write_txn_offset_commit_error_topics(buf, flexible, topics, error).await?;
+    if flexible {
+        buf::put_empty_tagged_fields(buf);
+    }
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
+    Ok(())
+}
+
 /// Encode TxnOffsetCommit v0–5 from response Topics.
 ///
 /// ThrottleTimeMs is the JSON default (`0`) on every spoken version
@@ -3007,18 +3041,7 @@ fn encode_txn_offset_commit_error_response(
     buf.put_i32(throttle_time_ms);
     buf::put_array_len(buf, flexible, Some(topics.len()))?;
     for topic in topics {
-        buf::put_string(buf, flexible, Some(&topic.topic))?;
-        buf::put_array_len(buf, flexible, Some(topic.partitions.len()))?;
-        for partition in &topic.partitions {
-            buf.put_i32(partition.partition);
-            buf.put_i16(error_code);
-            if flexible {
-                buf::put_empty_tagged_fields(buf);
-            }
-        }
-        if flexible {
-            buf::put_empty_tagged_fields(buf);
-        }
+        write_txn_offset_commit_error_topic(buf, flexible, topic, error_code)?;
     }
     if flexible {
         buf::put_empty_tagged_fields(buf);
@@ -3027,30 +3050,170 @@ fn encode_txn_offset_commit_error_response(
     Ok(())
 }
 
+fn write_txn_offset_commit_error_topic(
+    buf: &mut BytesMut,
+    flexible: bool,
+    topic: &TxnOffsetTopic,
+    error_code: i16,
+) -> Result<()> {
+    buf::put_string(buf, flexible, Some(&topic.topic))?;
+    buf::put_array_len(buf, flexible, Some(topic.partitions.len()))?;
+    for partition in &topic.partitions {
+        write_txn_offset_commit_error_partition(buf, flexible, partition.partition, error_code)?;
+    }
+    if flexible {
+        buf::put_empty_tagged_fields(buf);
+    }
+    Ok(())
+}
+
+fn write_txn_offset_commit_error_partition(
+    buf: &mut BytesMut,
+    flexible: bool,
+    partition: i32,
+    error_code: i16,
+) -> Result<()> {
+    buf.put_i32(partition);
+    buf.put_i16(error_code);
+    if flexible {
+        buf::put_empty_tagged_fields(buf);
+    }
+    Ok(())
+}
+
 fn txn_offset_commit_error_len(flexible: bool, topics: &[TxnOffsetTopic]) -> Result<usize> {
     let mut total = 4usize;
     total = add_txn_len(total, txn_array_len(flexible, topics.len())?)?;
     for topic in topics {
-        total = add_txn_len(total, txn_string_len(flexible, &topic.topic)?)?;
-        total = add_txn_len(total, txn_array_len(flexible, topic.partitions.len())?)?;
-        let mut partition = 6usize;
-        if flexible {
-            partition += buf::unsigned_varint_size(0);
-        }
-        total = add_txn_len(
-            total,
-            partition
-                .checked_mul(topic.partitions.len())
-                .ok_or_else(|| Error::protocol("txn offset commit response size overflow"))?,
-        )?;
-        if flexible {
-            total = add_txn_len(total, buf::unsigned_varint_size(0))?;
-        }
+        total = add_txn_len(total, txn_offset_commit_error_topic_len(flexible, topic)?)?;
     }
     if flexible {
         total = add_txn_len(total, buf::unsigned_varint_size(0))?;
     }
     Ok(total)
+}
+
+fn txn_offset_commit_error_topic_len(flexible: bool, topic: &TxnOffsetTopic) -> Result<usize> {
+    let mut total = txn_string_len(flexible, &topic.topic)?;
+    total = add_txn_len(total, txn_array_len(flexible, topic.partitions.len())?)?;
+    let mut partition = 6usize;
+    if flexible {
+        partition += buf::unsigned_varint_size(0);
+    }
+    total = add_txn_len(
+        total,
+        partition
+            .checked_mul(topic.partitions.len())
+            .ok_or_else(|| Error::protocol("txn offset commit response size overflow"))?,
+    )?;
+    if flexible {
+        total = add_txn_len(total, buf::unsigned_varint_size(0))?;
+    }
+    Ok(total)
+}
+
+/// TxnOffsetCommit error topics measured or written before the caller is paused.
+const TXN_OFFSET_COMMIT_ERROR_CHUNK: usize = 8 * 1024;
+
+async fn txn_offset_commit_error_topics_len(
+    flexible: bool,
+    topics: &[TxnOffsetTopic],
+) -> Result<usize> {
+    let mut total = 0usize;
+    let mut start = 0usize;
+    while start < topics.len() {
+        let end = start
+            .saturating_add(TXN_OFFSET_COMMIT_ERROR_CHUNK)
+            .min(topics.len());
+        let Some(slice) = topics.get(start..end) else {
+            return Err(Error::protocol("txn offset commit error topic slice"));
+        };
+        for topic in slice {
+            total = add_txn_len(total, txn_offset_commit_error_topic_len(flexible, topic)?)?;
+        }
+        start = end;
+        if start < topics.len() {
+            tokio::task::yield_now().await;
+        }
+    }
+    Ok(total)
+}
+
+async fn write_txn_offset_commit_error_topics(
+    buf: &mut BytesMut,
+    flexible: bool,
+    topics: &[TxnOffsetTopic],
+    error_code: i16,
+) -> Result<()> {
+    let mut start = 0usize;
+    while start < topics.len() {
+        let end = start
+            .saturating_add(TXN_OFFSET_COMMIT_ERROR_CHUNK)
+            .min(topics.len());
+        let Some(slice) = topics.get(start..end) else {
+            return Err(Error::protocol("txn offset commit error topic slice"));
+        };
+        for topic in slice {
+            buf::put_string(buf, flexible, Some(&topic.topic))?;
+            buf::put_array_len(buf, flexible, Some(topic.partitions.len()))?;
+            if topic.partitions.len() > TXN_OFFSET_COMMIT_ERROR_CHUNK {
+                write_txn_offset_commit_error_partitions(
+                    buf,
+                    flexible,
+                    &topic.partitions,
+                    error_code,
+                )
+                .await?;
+            } else {
+                for partition in &topic.partitions {
+                    write_txn_offset_commit_error_partition(
+                        buf,
+                        flexible,
+                        partition.partition,
+                        error_code,
+                    )?;
+                }
+            }
+            if flexible {
+                buf::put_empty_tagged_fields(buf);
+            }
+        }
+        start = end;
+        if start < topics.len() {
+            tokio::task::yield_now().await;
+        }
+    }
+    Ok(())
+}
+
+async fn write_txn_offset_commit_error_partitions(
+    buf: &mut BytesMut,
+    flexible: bool,
+    partitions: &[TxnOffsetPartition],
+    error_code: i16,
+) -> Result<()> {
+    let mut start = 0usize;
+    while start < partitions.len() {
+        let end = start
+            .saturating_add(TXN_OFFSET_COMMIT_ERROR_CHUNK)
+            .min(partitions.len());
+        let Some(slice) = partitions.get(start..end) else {
+            return Err(Error::protocol("txn offset commit error partition slice"));
+        };
+        for partition in slice {
+            write_txn_offset_commit_error_partition(
+                buf,
+                flexible,
+                partition.partition,
+                error_code,
+            )?;
+        }
+        start = end;
+        if start < partitions.len() {
+            tokio::task::yield_now().await;
+        }
+    }
+    Ok(())
 }
 
 fn txn_offset_commit_grouped_error_len(
@@ -5097,6 +5260,54 @@ mod tests {
             encode_add_partitions_to_txn_response(&mut once, version, &sample, 7)
                 .unwrap_or_else(|error| panic!("{error}"));
             encode_add_partitions_to_txn_response_cooperative(&mut paced, version, &sample, 7)
+                .await
+                .unwrap_or_else(|error| panic!("{error}"));
+            assert_eq!(once, paced, "version {version}");
+        }
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn encoding_many_txn_offset_commit_error_topics_does_not_hold_the_caller() {
+        let topics: Vec<TxnOffsetTopic> = (0..800_000)
+            .map(|_| TxnOffsetTopic {
+                topic: "t".to_string(),
+                partitions: vec![TxnOffsetPartition::new(0, 0, -1, "")],
+            })
+            .collect();
+        let started = std::time::Instant::now();
+        tokio::select! {
+            _ = async {
+                let mut body = BytesMut::new();
+                encode_txn_offset_commit_response_cooperative(&mut body, 0, &topics, 1)
+                    .await
+                    .unwrap_or_else(|error| panic!("{error}"));
+            } => {}
+            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "encoding txn offset commit error topics held the caller for {elapsed:?}"
+        );
+        let sample = [
+            TxnOffsetTopic {
+                topic: "orders".to_string(),
+                partitions: vec![
+                    TxnOffsetPartition::new(0, 10, 2, ""),
+                    TxnOffsetPartition::new(1, 11, -1, "retry"),
+                ],
+            },
+            TxnOffsetTopic {
+                topic: "billing".to_string(),
+                partitions: vec![TxnOffsetPartition::new(4, 0, 1, "")],
+            },
+        ];
+        for version in [0i16, 3] {
+            let mut once = BytesMut::new();
+            let mut paced = BytesMut::new();
+            encode_txn_offset_commit_response(&mut once, version, &sample, 7)
+                .unwrap_or_else(|error| panic!("{error}"));
+            encode_txn_offset_commit_response_cooperative(&mut paced, version, &sample, 7)
                 .await
                 .unwrap_or_else(|error| panic!("{error}"));
             assert_eq!(once, paced, "version {version}");
