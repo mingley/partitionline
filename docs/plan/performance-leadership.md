@@ -176,6 +176,11 @@ support a complete ranking or a below-one-percent rejection.
 Line numbers are hints at `19b4399`; re-locate code by function name.
 **R** = per record, **B** = per batch, **Q** = per request.
 
+Read the Observed cost column as that date's hypothesis. KL09-14,
+KL09-16, and KL09-17 are done. KL09-15 is still pending. Uncompressed
+Produce now writes each record into the request buffer. Compressed
+Produce still copies the packed batch out of a scratch buffer.
+
 ### Producer
 
 | Step | Location | Observed cost | Card |
