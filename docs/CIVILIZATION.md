@@ -28,8 +28,10 @@ latency sample is not a performance win.
 ## Non-negotiable constraints
 
 1. No librdkafka client dependency or native compression/SASL dependency in
-   default features. Optional zstd and GSSAPI require a compatible backend and
-   an approved dependency decision (`gaps.md`).
+   default features. Optional zstd has shipped (KL05-04) and stays off by
+   default. It uses the Rust crate `zstd-rs`, not C libzstd. GSSAPI is not
+   implemented. The provider proposal is KL06-08 and is awaiting approval.
+   See [protocol support](gaps.md).
 2. `unsafe_code = "forbid"`. No exceptions for “hot path.”
 3. Honesty about numbers. Unsigned this-VM results stay unsigned. Do not
    claim Suite HOLD lifts without Kernel Integrity / Lab A process.
