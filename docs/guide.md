@@ -708,23 +708,27 @@ async fn main() -> partitionline::Result<()> {
 }
 ```
 
-Delivered positions exclude prefetched records beyond the poll cap. Commit
-stores the next offset, with its leader epoch; `leave`, `close` and
-`unsubscribe` do not auto-commit unfinished processing. A failed or cancelled
-commit is not proof that no offset was stored: inspect committed offsets on
-restart, and use an idempotent processing key such as `(topic, partition,
-offset)` when effects can repeat. Never restart from the internal fetch
-cursor, nor commit all fetched records after processing only part of a batch.
+The commit stores the next offset of the records this poll returned, with
+the leader epoch. Prefetched records past `max_poll_records` stay
+uncommitted. `leave`, `close`, and `unsubscribe` do not auto-commit work
+you have not finished.
 
-Pause retains buffered bytes and stops delivery for those partitions; it does
-not prevent rebalance or extend `max_poll_interval`. Keep processing bounded,
-handle revoke/assign events, and stop work whose ownership was lost. Do not
-force a stale commit after a membership/fencing error. Cooperative rejoin
-preserves pending records for retained partitions and discards revoked state;
-new owners resume from stored group offsets. This program's pause does not
-promise exclusive ownership during an arbitrary external operation.
+A failed or cancelled commit can still have stored an offset. On restart,
+read the committed offsets. When an effect can run twice, key it by
+`(topic, partition, offset)`. Restart from the stored group offset. Commit
+only the batch you processed.
 
-Regression evidence: `consumer_close_commit::commit_after_capped_poll_must_not_commit_buffered_records`,
+Pause keeps buffered bytes and stops delivery for those partitions. It does
+not block a rebalance, and it does not extend `max_poll_interval`. Bound the
+processing, handle revoke and assign, and stop work whose partitions were
+revoked. After a membership or fencing error, skip a commit from the old
+member. A cooperative rejoin keeps pending records for partitions the member
+still owns and drops the revoked ones. The new owner starts from the stored
+group offsets. The pause in this example does not give the process exclusive
+ownership for an outside operation of any length.
+
+The regressions are
+`consumer_close_commit::commit_after_capped_poll_must_not_commit_buffered_records`,
 `commit_after_capped_poll_with_pause_and_resume`,
 `rebalance_preserves_buffered_records_for_retained_partitions`,
 `static_member_unsubscribe_then_commit_sends_no_offset_commit`, and
