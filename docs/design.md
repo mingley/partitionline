@@ -130,7 +130,7 @@ A few rules apply across APIs:
 | AssignReplicasToDirs | 0 |
 | SaslHandshake | 0–1 |
 | SaslAuthenticate | 0–2 |
-| ListTransactions | 0–1 |
+| ListTransactions | 0–2 |
 | DescribeTransactions | 0 |
 | CreateTopics | 0–7 |
 | DeleteTopics | 0–6 |

@@ -1425,13 +1425,14 @@ mod tests {
     #[test]
     fn list_transactions_is_flexible() {
         // Official Kafka 4.0 JSON: validVersions 0-1, flexibleVersions 0+.
-        // kafka-protocol 0.18.0 advertised 0-2 (TransactionalIdPattern);
-        // this crate speaks 0–1. HeaderVersion is 2 / 1 at every spoken
-        // version.
+        // v2 adds TransactionalIdPattern. HeaderVersion is 2 / 1 at every
+        // spoken version. This crate speaks 0–2.
         assert_eq!(request_header_version(LIST_TRANSACTIONS, 0), 2);
         assert_eq!(response_header_version(LIST_TRANSACTIONS, 0), 1);
         assert_eq!(request_header_version(LIST_TRANSACTIONS, 1), 2);
         assert_eq!(response_header_version(LIST_TRANSACTIONS, 1), 1);
+        assert_eq!(request_header_version(LIST_TRANSACTIONS, 2), 2);
+        assert_eq!(response_header_version(LIST_TRANSACTIONS, 2), 1);
     }
 
     #[test]

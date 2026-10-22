@@ -865,9 +865,9 @@ v3+ is not spoken.
 
 ### ListTransactions
 
-Spoken versions: 0–1.
+Spoken versions: 0–2.
 
-ListTransactions v0–v1 are flexible (compact arrays/strings plus tagged fields; request header 2, response header 1).
+ListTransactions v0–v2 are flexible (compact arrays/strings plus tagged fields; request header 2, response header 1).
 
 v1 adds DurationFilter INT64 after ProducerIdFilters (KIP-994; `< 0` means no filter).
 
@@ -883,9 +883,9 @@ Top-level ErrorCode is at bytes 4–5.
 
 Kafka 4.0 `validVersions` is `0-1`.
 
-v2+ (TransactionalIdPattern) is not spoken.
+v2 adds a nullable TransactionalIdPattern. A pattern on v0 or v1 is refused. A nonempty pattern requires v2 and is not dropped on an older broker. Admin negotiates 0–2. v1 and v2 responses match v0.
 
-v1 response matches v0.
+v3+ is not spoken.
 
 `list_transactions_timeout` / `list_transactions_with_duration_timeout` are Java `ListTransactionsOptions.timeoutMs` (RPC deadline; ListTransactions has no TimeoutMs; `duration_ms` is DurationFilter, not TimeoutMs).
 
