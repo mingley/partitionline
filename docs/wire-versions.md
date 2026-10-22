@@ -1581,6 +1581,52 @@ Kafka 4.0 `validVersions` is `0-13`.
 
 v14+ is not spoken.
 
+### WriteTxnMarkers
+
+Spoken versions: 0–2.
+
+v0 is classic. v1 and v2 are flexible (request header 2, response header 1).
+
+v2 adds a signed TransactionVersion after CoordinatorEpoch. `Admin::abort_transaction` negotiates 0–2.
+
+v3+ is not spoken.
+
+### ElectLeaders
+
+Spoken versions: 0–2.
+
+v0 and v1 are classic. v2 is flexible (request header 2, response header 1).
+
+v1 adds ElectionType and a top-level response ErrorCode. v0 omits ElectionType even when the request sets one. Admin negotiates 0–2.
+
+v3+ is not spoken.
+
+### DescribeQuorum
+
+Spoken versions: 0–2.
+
+Every version is flexible (request header 2, response header 1). The request fields stay the same.
+
+v1 adds replica fetch and catch-up timestamps. v2 adds error messages, Nodes, and ReplicaDirectoryId. Admin negotiates 0–2.
+
+v3+ is not spoken.
+
+### AddRaftVoter
+
+Spoken versions: 0–1.
+
+Both versions use a flexible header. The default acknowledgement waits for a committed voter set and can use v0. An explicit local append requires v1 and is rejected before I/O on a v0-only broker.
+
+v2+ is not spoken.
+
+### RemoveRaftVoter
+
+Spoken versions: 0.
+
+The request uses a flexible header. Removal stays on v0.
+
+v1+ is not spoken.
+
 ### ApiVersions
 
 Spoken versions: 0–4 and sends v4 on connect.

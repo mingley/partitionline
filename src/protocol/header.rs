@@ -239,8 +239,8 @@ pub fn request_header_version(api_key: i16, api_version: i16) -> i16 {
         // v3+ is not spoken.
         DELETE_GROUPS if api_version >= 2 => 2,
         // WriteTxnMarkers is classic at v0; flexible from v1
-        // (Apache JSON flexibleVersions: "1+"). Kafka 4.0 removed v0;
-        // this crate speaks 0–1.
+        // (Apache JSON flexibleVersions: "1+"). Kafka 4.0 removed v0.
+        // This crate speaks 0–2. v2 adds TransactionVersion. v3+ is not spoken.
         WRITE_TXN_MARKERS if api_version >= 1 => 2,
         // AddPartitionsToTxn is classic through v2; flexible from v3
         // (Apache JSON flexibleVersions: "3+"). This crate speaks 0–3.
@@ -619,6 +619,8 @@ mod tests {
     fn add_raft_voter_headers_are_always_flexible() {
         assert_eq!(request_header_version(80, 0), 2);
         assert_eq!(response_header_version(80, 0), 1);
+        assert_eq!(request_header_version(80, 1), 2);
+        assert_eq!(response_header_version(80, 1), 1);
     }
 
     #[test]
@@ -720,11 +722,13 @@ mod tests {
     fn write_txn_markers_v1_is_flexible_v0_is_not() {
         // Kafka 3.9 JSON: validVersions 0-1, flexibleVersions 1+.
         // Kafka 4.0 removed v0 (trunk validVersions 1-2). HeaderVersion
-        // is 1 / 0 at v0 and 2 / 1 at v1. This crate speaks 0–1.
+        // is 1 / 0 at v0 and 2 / 1 at v1–v2. This crate speaks 0–2.
         assert_eq!(request_header_version(WRITE_TXN_MARKERS, 0), 1);
         assert_eq!(response_header_version(WRITE_TXN_MARKERS, 0), 0);
         assert_eq!(request_header_version(WRITE_TXN_MARKERS, 1), 2);
         assert_eq!(response_header_version(WRITE_TXN_MARKERS, 1), 1);
+        assert_eq!(request_header_version(WRITE_TXN_MARKERS, 2), 2);
+        assert_eq!(response_header_version(WRITE_TXN_MARKERS, 2), 1);
     }
 
     #[test]

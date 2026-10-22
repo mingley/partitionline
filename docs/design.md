@@ -106,6 +106,11 @@ A few rules apply across APIs:
 | AddOffsetsToTxn | 0–4 |
 | EndTxn | 0–5 |
 | TxnOffsetCommit | 0–5 |
+| WriteTxnMarkers | 0–2 |
+| ElectLeaders | 0–2 |
+| DescribeQuorum | 0–2 |
+| AddRaftVoter | 0–1 |
+| RemoveRaftVoter | 0 |
 | FindCoordinator | 0–6 |
 | OffsetCommit | 2–10 |
 | OffsetFetch | 1–10 |
