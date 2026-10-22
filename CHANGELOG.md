@@ -120,6 +120,8 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   cluster.
 - The root README's produce example is a local sample with seeded payloads.
   It is not a historical comparison row, and Kerberos is not implemented.
+- The operator guide opens with links to produce, fetch, groups, defaults,
+  and troubleshooting. The runtime measurements are not setup steps.
 - The gateway profile names zstd as an optional codec that has shipped.
   Its measured cells remain gzip and lz4.
 

@@ -3,6 +3,20 @@
 Examples, configuration, recipes, and troubleshooting for the client.
 See the [documentation index](index.md) for API and protocol references.
 
+## Read this first
+
+| You want to | Go to |
+|---|---|
+| Send records | [Produce](#produce) |
+| Read an assigned partition | [Fetch](#fetch-manual-assignment) |
+| Join a group | [Consumer groups](#consumer-groups) |
+| See defaults that differ from Java | [Defaults](#defaults-that-differ-from-java) |
+| A call failed | [Troubleshooting](#troubleshooting) |
+| Read a benchmark number | [Integrity and benchmarks](#integrity-and-benchmarks) and [benchmark.md](benchmark.md) |
+
+The runtime and build-profile sections below are measurements from one
+host. They are not setup steps. Suite HOLD remains.
+
 ## Choosing a Tokio runtime
 
 Use `current_thread` when one application thread can drive the client and its
