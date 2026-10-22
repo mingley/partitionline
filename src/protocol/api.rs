@@ -3234,37 +3234,250 @@ pub fn encode_metadata_response(
         buf.put_i32(resp.controller_id);
     }
     buf::put_array_len(buf, flexible, Some(resp.topics.len()))?;
-    for t in &resp.topics {
-        buf.put_i16(t.error_code);
-        buf::put_string(buf, flexible, t.name.as_deref())?;
-        if version >= 10 {
-            buf.extend_from_slice(&t.topic_id);
+    for topic in &resp.topics {
+        write_metadata_topic(buf, version, flexible, topic)?;
+    }
+    if (8..=10).contains(&version) {
+        buf.put_i32(resp.cluster_authorized_operations);
+    }
+    if version >= 13 {
+        buf.put_i16(resp.error_code);
+    }
+    if flexible {
+        buf::put_empty_tagged_fields(buf);
+    }
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
+    Ok(())
+}
+
+/// Topics measured or written before the caller is paused.
+const METADATA_TOPIC_ENCODE_CHUNK: usize = 8 * 1024;
+
+fn write_metadata_topic(
+    buf: &mut BytesMut,
+    version: i16,
+    flexible: bool,
+    topic: &TopicMetadata,
+) -> Result<()> {
+    buf.put_i16(topic.error_code);
+    buf::put_string(buf, flexible, topic.name.as_deref())?;
+    if version >= 10 {
+        buf.extend_from_slice(&topic.topic_id);
+    }
+    if version >= 1 {
+        buf.put_u8(u8::from(topic.is_internal));
+    }
+    buf::put_array_len(buf, flexible, Some(topic.partitions.len()))?;
+    for partition in &topic.partitions {
+        buf.put_i16(partition.error_code);
+        buf.put_i32(partition.partition_index);
+        buf.put_i32(partition.leader_id);
+        if version >= 7 {
+            buf.put_i32(partition.leader_epoch);
         }
-        if version >= 1 {
-            buf.put_u8(u8::from(t.is_internal));
-        }
-        buf::put_array_len(buf, flexible, Some(t.partitions.len()))?;
-        for p in &t.partitions {
-            buf.put_i16(p.error_code);
-            buf.put_i32(p.partition_index);
-            buf.put_i32(p.leader_id);
-            if version >= 7 {
-                buf.put_i32(p.leader_epoch);
-            }
-            put_int32_array(buf, flexible, &p.replica_nodes)?;
-            put_int32_array(buf, flexible, &p.isr_nodes)?;
-            if version >= 5 {
-                put_int32_array(buf, flexible, &p.offline_replicas)?;
-            }
-            if flexible {
-                buf::put_empty_tagged_fields(buf);
-            }
-        }
-        if version >= 8 {
-            buf.put_i32(t.topic_authorized_operations);
+        put_int32_array(buf, flexible, &partition.replica_nodes)?;
+        put_int32_array(buf, flexible, &partition.isr_nodes)?;
+        if version >= 5 {
+            put_int32_array(buf, flexible, &partition.offline_replicas)?;
         }
         if flexible {
             buf::put_empty_tagged_fields(buf);
+        }
+    }
+    if version >= 8 {
+        buf.put_i32(topic.topic_authorized_operations);
+    }
+    if flexible {
+        buf::put_empty_tagged_fields(buf);
+    }
+    Ok(())
+}
+
+fn metadata_topic_len(version: i16, flexible: bool, topic: &TopicMetadata) -> Result<usize> {
+    let mut total = add_metadata_response_len(0, 2)?;
+    total =
+        add_metadata_response_len(total, metadata_string_len(flexible, topic.name.as_deref())?)?;
+    if version >= 10 {
+        total = add_metadata_response_len(total, 16)?;
+    }
+    if version >= 1 {
+        total = add_metadata_response_len(total, 1)?;
+    }
+    total = add_metadata_response_len(
+        total,
+        metadata_array_len(flexible, Some(topic.partitions.len()))?,
+    )?;
+    for partition in &topic.partitions {
+        let mut fixed = 10usize;
+        if version >= 7 {
+            fixed += 4;
+        }
+        total = add_metadata_response_len(total, fixed)?;
+        total = add_metadata_response_len(
+            total,
+            metadata_i32_array_len(flexible, &partition.replica_nodes)?,
+        )?;
+        total = add_metadata_response_len(
+            total,
+            metadata_i32_array_len(flexible, &partition.isr_nodes)?,
+        )?;
+        if version >= 5 {
+            total = add_metadata_response_len(
+                total,
+                metadata_i32_array_len(flexible, &partition.offline_replicas)?,
+            )?;
+        }
+        if flexible {
+            total = add_metadata_response_len(total, buf::unsigned_varint_size(0))?;
+        }
+    }
+    if version >= 8 {
+        total = add_metadata_response_len(total, 4)?;
+    }
+    if flexible {
+        total = add_metadata_response_len(total, buf::unsigned_varint_size(0))?;
+    }
+    Ok(total)
+}
+
+async fn add_metadata_topics_len(
+    mut total: usize,
+    version: i16,
+    flexible: bool,
+    topics: &[TopicMetadata],
+) -> Result<usize> {
+    let mut start = 0usize;
+    while start < topics.len() {
+        let end = start
+            .saturating_add(METADATA_TOPIC_ENCODE_CHUNK)
+            .min(topics.len());
+        let Some(slice) = topics.get(start..end) else {
+            return Err(Error::protocol("metadata topic slice"));
+        };
+        for topic in slice {
+            total =
+                add_metadata_response_len(total, metadata_topic_len(version, flexible, topic)?)?;
+        }
+        start = end;
+        if start < topics.len() {
+            tokio::task::yield_now().await;
+        }
+    }
+    Ok(total)
+}
+
+async fn metadata_response_len_cooperative(
+    version: i16,
+    flexible: bool,
+    resp: &MetadataResponse,
+) -> Result<usize> {
+    let mut total = 0usize;
+    if version >= 3 {
+        total = add_metadata_response_len(total, 4)?;
+    }
+    total = add_metadata_response_len(
+        total,
+        metadata_array_len(flexible, Some(resp.brokers.len()))?,
+    )?;
+    for broker in &resp.brokers {
+        total = add_metadata_response_len(total, 8)?;
+        total =
+            add_metadata_response_len(total, metadata_string_len(flexible, Some(&broker.host))?)?;
+        if version >= 1 {
+            total = add_metadata_response_len(
+                total,
+                metadata_string_len(flexible, broker.rack.as_deref())?,
+            )?;
+        }
+        if flexible {
+            total = add_metadata_response_len(total, buf::unsigned_varint_size(0))?;
+        }
+    }
+    if version >= 2 {
+        total = add_metadata_response_len(
+            total,
+            metadata_string_len(flexible, resp.cluster_id.as_deref())?,
+        )?;
+    }
+    if version >= 1 {
+        total = add_metadata_response_len(total, 4)?;
+    }
+    total = add_metadata_response_len(
+        total,
+        metadata_array_len(flexible, Some(resp.topics.len()))?,
+    )?;
+    total = add_metadata_topics_len(total, version, flexible, &resp.topics).await?;
+    if (8..=10).contains(&version) {
+        total = add_metadata_response_len(total, 4)?;
+    }
+    if version >= 13 {
+        total = add_metadata_response_len(total, 2)?;
+    }
+    if flexible {
+        total = add_metadata_response_len(total, buf::unsigned_varint_size(0))?;
+    }
+    Ok(total)
+}
+
+fn metadata_topics_len(version: i16, flexible: bool, topics: &[TopicMetadata]) -> Result<usize> {
+    let mut total = 0usize;
+    for topic in topics {
+        total = add_metadata_response_len(total, metadata_topic_len(version, flexible, topic)?)?;
+    }
+    Ok(total)
+}
+
+/// [`encode_metadata_response`], yielding while topic names are still being measured and written.
+///
+/// Encoding 400,000 metadata topics held the caller for 186ms. A topic name is still written.
+pub async fn encode_metadata_response_cooperative(
+    buf: &mut BytesMut,
+    version: i16,
+    resp: &MetadataResponse,
+) -> Result<()> {
+    if version == 0 {
+        metadata_legacy::validate_response(resp)?;
+    }
+    let flexible = version >= 9;
+    let body_start = buf.len();
+    let planned = metadata_response_len_cooperative(version, flexible, resp).await?;
+    reserve_metadata_body(buf, planned);
+    if version >= 3 {
+        buf.put_i32(resp.throttle_time_ms);
+    }
+    buf::put_array_len(buf, flexible, Some(resp.brokers.len()))?;
+    for broker in &resp.brokers {
+        buf.put_i32(broker.node_id);
+        buf::put_string(buf, flexible, Some(&broker.host))?;
+        buf.put_i32(broker.port);
+        if version >= 1 {
+            buf::put_string(buf, flexible, broker.rack.as_deref())?;
+        }
+        if flexible {
+            buf::put_empty_tagged_fields(buf);
+        }
+    }
+    if version >= 2 {
+        buf::put_string(buf, flexible, resp.cluster_id.as_deref())?;
+    }
+    if version >= 1 {
+        buf.put_i32(resp.controller_id);
+    }
+    buf::put_array_len(buf, flexible, Some(resp.topics.len()))?;
+    let mut start = 0usize;
+    while start < resp.topics.len() {
+        let end = start
+            .saturating_add(METADATA_TOPIC_ENCODE_CHUNK)
+            .min(resp.topics.len());
+        let Some(slice) = resp.topics.get(start..end) else {
+            return Err(Error::protocol("metadata topic slice"));
+        };
+        for topic in slice {
+            write_metadata_topic(buf, version, flexible, topic)?;
+        }
+        start = end;
+        if start < resp.topics.len() {
+            tokio::task::yield_now().await;
         }
     }
     if (8..=10).contains(&version) {
@@ -3316,53 +3529,8 @@ fn metadata_response_len(version: i16, flexible: bool, resp: &MetadataResponse) 
         total,
         metadata_array_len(flexible, Some(resp.topics.len()))?,
     )?;
-    for topic in &resp.topics {
-        total = add_metadata_response_len(total, 2)?;
-        total = add_metadata_response_len(
-            total,
-            metadata_string_len(flexible, topic.name.as_deref())?,
-        )?;
-        if version >= 10 {
-            total = add_metadata_response_len(total, 16)?;
-        }
-        if version >= 1 {
-            total = add_metadata_response_len(total, 1)?;
-        }
-        total = add_metadata_response_len(
-            total,
-            metadata_array_len(flexible, Some(topic.partitions.len()))?,
-        )?;
-        for partition in &topic.partitions {
-            let mut fixed = 10usize;
-            if version >= 7 {
-                fixed += 4;
-            }
-            total = add_metadata_response_len(total, fixed)?;
-            total = add_metadata_response_len(
-                total,
-                metadata_i32_array_len(flexible, &partition.replica_nodes)?,
-            )?;
-            total = add_metadata_response_len(
-                total,
-                metadata_i32_array_len(flexible, &partition.isr_nodes)?,
-            )?;
-            if version >= 5 {
-                total = add_metadata_response_len(
-                    total,
-                    metadata_i32_array_len(flexible, &partition.offline_replicas)?,
-                )?;
-            }
-            if flexible {
-                total = add_metadata_response_len(total, buf::unsigned_varint_size(0))?;
-            }
-        }
-        if version >= 8 {
-            total = add_metadata_response_len(total, 4)?;
-        }
-        if flexible {
-            total = add_metadata_response_len(total, buf::unsigned_varint_size(0))?;
-        }
-    }
+    total =
+        add_metadata_response_len(total, metadata_topics_len(version, flexible, &resp.topics)?)?;
     if (8..=10).contains(&version) {
         total = add_metadata_response_len(total, 4)?;
     }
@@ -5145,6 +5313,68 @@ mod tests {
             .await
             .unwrap_or_else(|error| panic!("{error}"));
         assert_eq!(omitted, omitted_paced);
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn encoding_many_metadata_response_topics_does_not_hold_the_caller() {
+        let topics: Vec<TopicMetadata> = (0..400_000)
+            .map(|_| TopicMetadata::error(0, Some("t"), [0; 16]))
+            .collect();
+        let response = MetadataResponse {
+            throttle_time_ms: 0,
+            brokers: Vec::new(),
+            cluster_id: None,
+            controller_id: MetadataResponse::NO_CONTROLLER_ID,
+            topics,
+            cluster_authorized_operations: MetadataResponse::AUTHORIZED_OPERATIONS_OMITTED,
+            error_code: 0,
+        };
+        let started = std::time::Instant::now();
+        tokio::select! {
+            _ = async {
+                let mut body = BytesMut::new();
+                encode_metadata_response_cooperative(&mut body, 12, &response)
+                    .await
+                    .unwrap_or_else(|error| panic!("{error}"));
+            } => {}
+            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "encoding metadata topics held the caller for {elapsed:?}"
+        );
+        let mut topic = TopicMetadata::error(3, Some("orders"), [9; 16]);
+        topic.is_internal = true;
+        topic.topic_authorized_operations = 7;
+        topic.partitions = vec![PartitionMetadata::new(
+            0,
+            1,
+            Some(2),
+            Some(5),
+            vec![2, 3],
+            vec![2],
+            vec![4],
+        )];
+        let sample = MetadataResponse {
+            throttle_time_ms: 5,
+            brokers: vec![Broker::new(2, "localhost", 9092, Some("rack".into()))],
+            cluster_id: Some("cluster".into()),
+            controller_id: 2,
+            topics: vec![topic],
+            cluster_authorized_operations: 1,
+            error_code: 4,
+        };
+        for version in [1i16, 10, 12, 13] {
+            let mut once = BytesMut::new();
+            let mut paced = BytesMut::new();
+            encode_metadata_response(&mut once, version, &sample)
+                .unwrap_or_else(|error| panic!("{error}"));
+            encode_metadata_response_cooperative(&mut paced, version, &sample)
+                .await
+                .unwrap_or_else(|error| panic!("{error}"));
+            assert_eq!(once, paced, "version {version}");
+        }
     }
 
     #[tokio::test(flavor = "current_thread")]
