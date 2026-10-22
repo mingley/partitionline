@@ -633,7 +633,7 @@ KL09 does not duplicate them.
 | Parallel agents collide in `producer.rs` or `consumer.rs` | Claims pushed to `origin/main` as the lock; declared `write_set`; hand-off diff check |
 | A rejected prerequisite silently unblocks dependents | `requires_accepted` plus blocking on rejection (section 6) |
 | A misconfigured peer produces a fake win | Contract effective-config emission; the orchestrator refuses incomparable settings; pinned peers |
-| zstd stays policy-blocked | The global claim stays blocked; weaker claim types must name the missing cells |
+| A zstd cell is quoted before it has been run | Encoding shipped as the optional `zstd` feature (KL05-04). Required zstd cells in the claim gate are still `not_run`. A global fastest-client sentence still needs those cells. Weaker sentences name every missing cell. |
 
 ## 11. Program done
 
