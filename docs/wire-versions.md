@@ -660,181 +660,108 @@ Kafka 4.0 `validVersions` is `0-1`. This crate also speaks v2.
 
 ### DescribeTransactions
 
-Spoken versions: 0.
+Spoken versions: 0. Version 1 and above are not spoken.
 
-DescribeTransactions v0 is flexible (compact strings/arrays plus tagged fields; request header 2, response header 1).
+v0 is flexible. Request header version 2, response header version 1. There is one empty-`TransactionStates` body and no top-level error code. The error code is per transactional id.
 
-ThrottleTimeMs is JSON `0+` (`encode_describe_transactions_response_with_throttle`; encode previously always wrote `0` and decode discarded; convenience encode still writes `0`).
+`ThrottleTimeMs` is JSON `0+` (`encode_describe_transactions_response_with_throttle`). The convenience encoder writes `0`.
 
-Empty-TransactionStates only one version.
-
-There is no top-level ErrorCode.
+`describe_transactions` sends FindCoordinator v4+ with N `CoordinatorKeys` and `key_type` 1, then one DescribeTransactions per coordinator. `describe_transactions_timeout` is the RPC deadline (Java `DescribeTransactionsOptions.timeoutMs`). The request has no `TimeoutMs` field.
 
 Kafka 4.0 `validVersions` is `"0"`.
-
-v1+ is not spoken.
-
-ErrorCode is per transactional.id.
-
-`describe_transactions` sends FindCoordinator v4+ CoordinatorKeys of N (`key_type=1`) and one DescribeTransactions RPC per coordinator.
-
-`describe_transactions_timeout` is Java `DescribeTransactionsOptions.timeoutMs` (RPC deadline; DescribeTransactions has no TimeoutMs).
 
 ### CreateTopics
 
-Spoken versions: 0–7.
+Spoken versions: 0–7. Version 8 and above are not spoken.
 
-CreateTopics v0–v4 are classic.
+v0–v4 are classic. v5–v7 are flexible. Request header version 2, response header version 1.
 
-v5–v7 are flexible (compact arrays/strings plus tagged fields; request header 2, response header 1).
+| Version | What changed |
+|---|---|
+| 5 | The response returns `NumPartitions`, `ReplicationFactor`, and `Configs` (KIP-525). |
+| 6 | Same layout. Adds `THROTTLING_QUOTA_EXCEEDED` (KIP-599). |
+| 7 | `TopicId` UUID after `Name` (KIP-516). |
 
-v5 returns NumPartitions / ReplicationFactor / Configs (KIP-525).
+`create_topics_timeout` is both the RPC deadline and the `TimeoutMs` field (Java `CreateTopicsOptions.timeoutMs`). `create_topics_with_quota_retry` defaults to true (Java `retryOnQuotaViolation`) and retries only topics that return `THROTTLING_QUOTA_EXCEEDED`.
 
-v6 is the same layout (KIP-599 THROTTLING_QUOTA_EXCEEDED).
+`NewTopic.with_assignments` is Java `NewTopic(String, Map<Integer, List<Integer>>)`. `NumPartitions` and `ReplicationFactor` are `-1`. An empty assignment list is `NewTopic(String, int, short)`, and the JSON field is not nullable, so it is not null. `NewTopic.broker_defaults` is Java `NewTopic(String, Optional.empty(), Optional.empty())` (KIP-464): `-1` / `-1` and empty assignments. From v4 the broker uses `num.partitions` and `default.replication.factor`. `NewTopic.configs` replaces the previous config entries (Java `NewTopic.configs(Map)`).
 
-v7 adds TopicId UUID after Name (KIP-516).
-
-`create_topics_timeout` is Java `CreateTopicsOptions.timeoutMs` (RPC deadline and TimeoutMs).
-
-`create_topics_with_quota_retry` is Java `CreateTopicsOptions.retryOnQuotaViolation` (default `true`; KIP-599; retries only topics that return `THROTTLING_QUOTA_EXCEEDED`).
-
-`NewTopic.with_assignments` is Java `NewTopic(String, Map<Integer, List<Integer>>)` (NumPartitions / ReplicationFactor `-1`; empty Assignments is `NewTopic(String, int, short)` — not null; official JSON is not nullable).
-
-`NewTopic.broker_defaults` is Java `NewTopic(String, Optional.empty(), Optional.empty())` (KIP-464; `-1` / `-1` with empty Assignments; v4+ uses broker `num.partitions` / `default.replication.factor`).
-
-`NewTopic.configs` is Java `NewTopic.configs(Map)` (replaces prior `config` entries).
-
-Kafka 4.0 `validVersions` is `2-7` (v0–v1 removed).
-
-v8+ is not spoken.
+Kafka 4.0 `validVersions` is `2-7`. It removed v0–v1. This crate still speaks v0 and v1.
 
 ### DeleteTopics
 
-Spoken versions: 0–6.
+Spoken versions: 0–6. Version 7 and above are not spoken.
 
-DeleteTopics v0–v3 are classic (TopicNames + TimeoutMs).
+v0–v3 are classic: `TopicNames` and `TimeoutMs`. v4–v6 are flexible. Request header version 2, response header version 1.
 
-v4–v6 are flexible (compact arrays/strings plus tagged fields; request header 2, response header 1).
+v5 adds `ErrorMessage` (KIP-599). v6 replaces `TopicNames` with `Topics` of `Name` plus `TopicId` (KIP-516). A name-based delete sends a zero UUID. `delete_topics_by_id` sends a null name (Java `deleteTopics(TopicCollection.ofTopicIds)`).
 
-v5 adds ErrorMessage (KIP-599).
+`delete_topics_timeout` is both the RPC deadline and `TimeoutMs`. `delete_topics_with_quota_retry` and `delete_topics_by_id_with_quota_retry` default to true and retry only topics that return `THROTTLING_QUOTA_EXCEEDED`.
 
-v6 replaces TopicNames with Topics of Name + TopicId (KIP-516; name-based deletes send a zero UUID; `delete_topics_by_id` is Java `deleteTopics(TopicCollection.ofTopicIds)` with null Name).
-
-`delete_topics_timeout` is Java `DeleteTopicsOptions.timeoutMs` (RPC deadline and TimeoutMs).
-
-`delete_topics_with_quota_retry` / `delete_topics_by_id_with_quota_retry` are Java `DeleteTopicsOptions.retryOnQuotaViolation` (default `true`; KIP-599; retries only topics that return `THROTTLING_QUOTA_EXCEEDED`).
-
-Kafka 4.0 `validVersions` is `1-6` (v0 removed).
-
-v7+ is not spoken.
+Kafka 4.0 `validVersions` is `1-6`. It removed v0. This crate still speaks v0.
 
 ### DescribeConfigs
 
-Spoken versions: 0–4.
+Spoken versions: 0–4. Version 5 and above are not spoken.
 
-DescribeConfigs v0–v3 are classic.
+v0–v3 are classic. v4 is flexible. Request header version 2, response header version 1. `ThrottleTimeMs` is JSON `0+` and is on the wire for every spoken version.
 
-ThrottleTimeMs is JSON `0+` (on the wire for v0–v4).
+| Version | What changed |
+|---|---|
+| 1 | `IncludeSynonyms`, `ConfigSource`, and `Synonyms`. |
+| 2 | Same layout as v1. `shouldClientThrottle` applies from here (KIP-219). |
+| 3 | `IncludeDocumentation`, `ConfigType`, and `Documentation` (KIP-226). |
+| 4 | Flexible encoding. |
 
-`shouldClientThrottle` is v2+ (KIP-219).
+`describe_configs_with_documentation` is Java `DescribeConfigsOptions.includeDocumentation`. v0–v2 omit that field. `describe_configs_timeout` and `describe_configs_with_documentation_timeout` are the RPC deadline. The request has no `TimeoutMs` field.
 
-v1 adds IncludeSynonyms / ConfigSource / Synonyms.
-
-v2 is the same layout as v1.
-
-v3 adds IncludeDocumentation, ConfigType, and Documentation (KIP-226).
-
-v4 is flexible (compact arrays/strings plus tagged fields; request header 2, response header 1).
-
-Kafka 4.0 `validVersions` is `1-4` (v0 removed).
-
-v5+ is not spoken.
-
-`describe_configs_with_documentation` is Java `DescribeConfigsOptions.includeDocumentation`; v0–v2 omit the field.
-
-`describe_configs_timeout` / `describe_configs_with_documentation_timeout` are Java `DescribeConfigsOptions.timeoutMs` (RPC deadline; DescribeConfigs has no TimeoutMs).
+Kafka 4.0 `validVersions` is `1-4`. It removed v0. This crate still speaks v0.
 
 ### CreatePartitions
 
-Spoken versions: 0–3.
+Spoken versions: 0–3. Version 4 and above are not spoken.
 
-CreatePartitions v0–v1 are classic.
+v0–v1 are classic and share one empty-results body. v2–v3 are flexible and share one empty-results body. Request header version 2, response header version 1. v3 is the same layout as v2 and adds `THROTTLING_QUOTA_EXCEEDED` (KIP-599).
 
-v2–v3 are flexible (compact arrays/strings plus tagged fields; request header 2, response header 1).
+`ThrottleTimeMs` is JSON `0+` (`encode_create_partitions_response_with_throttle`). The convenience encoder writes `0`.
 
-v3 is the same layout (KIP-599 THROTTLING_QUOTA_EXCEEDED).
-
-ThrottleTimeMs is JSON `0+` (`encode_create_partitions_response_with_throttle`; encode previously always wrote `0` and decode discarded; convenience encode still writes `0`).
-
-Empty-Results v0 and v1 bodies match; v2 and v3 bodies match.
-
-`create_partitions_timeout` is Java `CreatePartitionsOptions.timeoutMs` (RPC deadline and TimeoutMs).
-
-`create_partitions_with_quota_retry` is Java `CreatePartitionsOptions.retryOnQuotaViolation` (default `true`; KIP-599; retries only topics that return `THROTTLING_QUOTA_EXCEEDED`).
-
-`NewPartitions.with_assignments` is Java `increaseTo(int, List<List<Integer>>)` (null Assignments when omitted; the broker assigns replicas).
+`create_partitions_timeout` is both the RPC deadline and `TimeoutMs`. `create_partitions_with_quota_retry` defaults to true and retries only topics that return `THROTTLING_QUOTA_EXCEEDED`. `NewPartitions.with_assignments` is Java `increaseTo(int, List<List<Integer>>)`. Omitted assignments are null, and the broker places the replicas.
 
 Kafka 4.0 `validVersions` is `0-3`.
 
-v4+ is not spoken.
-
 ### AlterPartitionReassignments
 
-Spoken versions: 0.
+Spoken versions: 0. Version 1 and above are not spoken.
 
-AlterPartitionReassignments v0 is flexible (compact strings/arrays plus tagged fields; request header 2, response header 1).
-
-ThrottleTimeMs is JSON `0+` (`AlterPartitionReassignmentsResponse.throttle_time_ms`; encode previously always wrote `0` and decode discarded; `::new` / `::error` fill `0`).
-
-`alter_partition_reassignments_timeout` is Java `AlterPartitionReassignmentsOptions.timeoutMs` (RPC deadline and TimeoutMs).
+v0 is flexible. Request header version 2, response header version 1. `ThrottleTimeMs` is JSON `0+`. `::new` and `::error` fill `0`. `alter_partition_reassignments_timeout` is both the RPC deadline and `TimeoutMs` (Java `AlterPartitionReassignmentsOptions.timeoutMs`).
 
 Kafka 4.0 `validVersions` is `"0"`.
-
-v1+ is not spoken.
 
 ### ListPartitionReassignments
 
-Spoken versions: 0.
+Spoken versions: 0. Version 1 and above are not spoken.
 
-ListPartitionReassignments v0 is flexible (compact strings/arrays plus tagged fields; request header 2, response header 1).
+v0 is flexible. Request header version 2, response header version 1. `topics = None` lists every ongoing reassignment. `list_partition_reassignments_all` is Java `listPartitionReassignments()`. `list_partition_reassignments_for` is Java `listPartitionReassignments(Set)`.
 
-ThrottleTimeMs is JSON `0+` (`ListPartitionReassignmentsResponse.throttle_time_ms`; encode previously always wrote `0` and decode discarded; `::new` / `::error` fill `0`).
-
-`topics = None` lists every ongoing reassignment.
-
-`list_partition_reassignments_all` is Java `listPartitionReassignments()`.
-
-`list_partition_reassignments_for` is Java `listPartitionReassignments(Set)`.
-
-`list_partition_reassignments_timeout` is Java `ListPartitionReassignmentsOptions.timeoutMs` (RPC deadline and TimeoutMs).
-
-`ListPartitionReassignmentsResponse.error_counts` is Java `ListPartitionReassignmentsResponse.errorCounts` (top-level ErrorCode only, including `NONE`; Java `Collections.singletonMap`; topics / partitions are not counted; not `ListPartitionReassignmentsResponse.error` / AlterPartitionReassignments `errorCounts`).
+`ThrottleTimeMs` is JSON `0+`. `::new` and `::error` fill `0`. `error_counts` counts the top-level error code only, including `NONE`. Topics and partitions are not counted. This is not `ListPartitionReassignmentsResponse.error` and not the AlterPartitionReassignments counts. The timeout is both the RPC deadline and `TimeoutMs`.
 
 Kafka 4.0 `validVersions` is `"0"`.
 
-v1+ is not spoken.
-
 ### UpdateFeatures
 
-Spoken versions: 0–2.
+Spoken versions: 0–2. Version 3 and above are not spoken.
 
-UpdateFeatures v0–v2 are flexible from v0 (compact strings/arrays plus tagged fields; request header 2, response header 1).
+v0–v2 are flexible from v0. Request header version 2, response header version 1. v0 and v1 share one empty-`Results` body. v2 omits `Results`.
 
-v0 AllowDowngrade.
+| Version | What changed |
+|---|---|
+| 0 | `AllowDowngrade`. |
+| 1 | `UpgradeType` and `ValidateOnly`. |
+| 2 | `Results` is omitted. |
 
-v1 UpgradeType / ValidateOnly.
-
-v2 omits Results.
-
-ThrottleTimeMs is JSON `0+` (`UpdateFeaturesResponse.throttle_time_ms`; encode previously always wrote `0` and decode discarded; `::new` / `::error` / `create_with_errors` fill `0`).
-
-Empty-Results v0 and v1 bodies match; v2 omits Results.
-
-`update_features_timeout` / `update_features_with_timeout` are Java `UpdateFeaturesOptions.timeoutMs` (RPC deadline and TimeoutMs).
+`ThrottleTimeMs` is JSON `0+`. `::new`, `::error`, and `create_with_errors` fill `0`. `update_features_timeout` and `update_features_with_timeout` are both the RPC deadline and `TimeoutMs`.
 
 Kafka 4.0 `validVersions` is `0-2`.
-
-v3+ is not spoken.
 
 ### AlterUserScramCredentials
 

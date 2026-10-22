@@ -16,6 +16,9 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   group heartbeat and describe RPCs use the same version tables.
 - ShareFetch, ShareAcknowledge, DescribeShareGroupOffsets, SASL, and
   ListTransactions use the same version tables.
+- DescribeTransactions, CreateTopics, DeleteTopics, DescribeConfigs,
+  CreatePartitions, partition reassignments, and UpdateFeatures use
+  the same version tables.
 
 - The broker SASL reauthentication page matches the listener profile: opt-in
   lifetime, Handshake v1, and the deadline that does not move after the
