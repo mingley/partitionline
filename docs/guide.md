@@ -840,44 +840,47 @@ Mock coverage: `tests/consumer_close_commit.rs`.
 
 ### Consumer fetch buffer budget and prefetch bounds
 
-`ConsumerConfig::buffer_memory` (default 32 MiB, configurable via `.buffer_memory()`
-or `.fetch_buffer_bytes()`) enforces an aggregate memory ceiling across pre-fetched
-partition queues and brokers (KL02-08):
+`ConsumerConfig::buffer_memory` defaults to 32 MiB. Set it with
+`buffer_memory` or `fetch_buffer_bytes`. The cap is one total for every
+assigned partition and every broker connection. It is not a per-request cap.
 
-- **Bounded Prefetching:** When callers process slowly or set `max_poll_records`,
-  excess fetched records stay in `self.pending`. If buffered records reach or
-  exceed `buffer_memory`, subsequent fetch calls do not request or decode more
-  bytes from brokers until application consumption drains the queue below the budget.
-- **Across Partitions and Brokers:** The memory budget is aggregate across all
-  assigned partitions and distinct broker connections, not merely a per-request
-  cap. Once accepted record bytes reach the budget, later batches stay framed
-  and compressed in a per-partition queue and are decoded when consumption
-  frees budget. Their fetch cursors stay unadvanced until that decode. Every
-  fetched batch is framed and CRC-checked when its response arrives, but
-  decompressed only when it is applied (KL10-16, KL10-17). Retained framed
-  bytes are capped by the larger of `buffer_memory` and `max_bytes`; one batch
-  that does not fit is still kept so it is not downloaded again. Decoded
-  payload stays within `buffer_memory`. Pause keeps that queue. Seek, unassign
-  and leader changes drop it with the decoded pending records.
-- **Oversized First Batch Progress:** In accordance with Kafka protocol rules
-  (KIP-74), a valid first batch larger than the soft fetch limit (`max_partition_fetch_bytes`
-  or `buffer_memory`) is accepted and delivered to guarantee forward progress,
-  subject to the 64 MiB hard decode ceiling (`DEFAULT_MAX_RECORD_BATCH_DECODE_BYTES`).
-- **Resource Contract & Ownership:**
-  - `pause`: holds prefetched records and framed batches until `resume`; unconsumed records
-    continue to count against `buffered_bytes`.
-  - `resume`: unblocks draining of buffered records and retained batches on the next poll.
-  - `seek`: drops pending records and framed batches for that partition, immediately releasing memory
-    via `drop_pending_for` and resetting the delivered position to the seek offset.
-  - `close` / `drop`: releases all buffered records and resets `buffered_bytes` to 0.
-  - **No Undelivered Commits:** `position()` and `positions()` report the next
-    undelivered record offset rather than the broker fetch cursor, ensuring auto-commit
-    and explicit commits never commit unconsumed data.
-- **RSS Non-Equivalence:** Process Resident Set Size (RSS) is **not** bounded by
-  `buffer_memory` or `buffered_bytes`. Process memory includes allocator fragmentation,
-  Tokio runtime worker tasks, TLS context buffers, TCP frame buffers, and client metadata.
+When the application is slow, or `max_poll_records` returns only part of a
+fetch, the rest stays in `pending`. Once buffered records reach
+`buffer_memory`, later fetches neither request nor decode more broker bytes
+until consumption drops the queue under the cap.
 
-Mock coverage: `tests/fetch_buffer_budget.rs`.
+A batch that arrives after the cap is full stays framed and compressed in a
+per-partition queue. It is decoded when consumption frees budget. Its fetch
+cursor does not move until that decode. Every fetched batch is framed and
+CRC-checked when the response arrives, and decompressed only when it is
+applied. Retained framed bytes are capped by the larger of `buffer_memory`
+and `max_bytes`. One batch that does not fit is still kept, so it is not
+downloaded again. Decoded payload stays within `buffer_memory`.
+
+Pause keeps that queue. Seek, unassign, and a leader change drop it together
+with the decoded pending records.
+
+A valid first batch larger than `max_partition_fetch_bytes` or
+`buffer_memory` is still accepted (KIP-74), so the consumer can make
+progress. The hard decode ceiling is 64 MiB
+(`DEFAULT_MAX_RECORD_BATCH_DECODE_BYTES`).
+
+| Call | Effect on the buffer |
+|---|---|
+| `pause` | Holds prefetched records and framed batches until `resume`. Unconsumed records still count toward `buffered_bytes`. |
+| `resume` | The next poll can drain buffered records and retained batches. |
+| `seek` | Drops pending records and framed batches for that partition and sets the delivered position to the seek offset. |
+| `close` or drop | Releases every buffered record and sets `buffered_bytes` to 0. |
+
+`position` and `positions` report the next undelivered offset, not the broker
+fetch cursor. Auto-commit and explicit commit therefore store only records
+the caller has been given.
+
+Process RSS is a different number. Allocator fragmentation, Tokio tasks, TLS,
+TCP frames, and client metadata sit outside `buffer_memory` and
+`buffered_bytes`.
+
+The mock for this budget is `tests/fetch_buffer_budget.rs`.
 
 
 ### Fetch version 18

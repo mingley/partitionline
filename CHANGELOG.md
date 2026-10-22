@@ -38,6 +38,8 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   current schema companion. Dependency bumps land on main.
 - The operator guide splits the produce buffer budget into what it counts
   and what stays outside it.
+- The operator guide describes the fetch buffer as one cap across partitions,
+  with framed batches held until decode fits.
 
 - The broker SASL reauthentication page matches the listener profile: opt-in
   lifetime, Handshake v1, and the deadline that does not move after the
