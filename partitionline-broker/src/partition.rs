@@ -6,7 +6,7 @@
 //! Run this synchronous API on an exclusively owned storage thread. Paths and
 //! cross-process ownership are caller configuration, as for `Journal`.
 
-use crate::{compaction, journal, records, segments};
+use crate::{batch, compaction, journal, records, segments};
 use std::path::Path;
 
 /// Storage errors retain neither input records nor configured paths.
@@ -391,19 +391,19 @@ impl Partition {
         &mut self,
         bytes: &mut [u8],
     ) -> Result<Option<(u32, i64, i64, usize)>, Error> {
-        let Some(header) = bytes.get(..61) else {
+        let Some(header) = bytes.get(..batch::LEN) else {
             return Ok(None);
         };
         let mut length_bytes = [0u8; 4];
-        length_bytes.copy_from_slice(&header[8..12]);
+        length_bytes.copy_from_slice(&header[batch::LENGTH..batch::PREFIX]);
         let declared = usize::try_from(i32::from_be_bytes(length_bytes))
             .ok()
-            .and_then(|n| n.checked_add(12));
-        if declared != Some(bytes.len()) || header[16] != 2 {
+            .and_then(|n| n.checked_add(batch::PREFIX));
+        if declared != Some(bytes.len()) || header[batch::MAGIC] != batch::MAGIC_V2 {
             return Ok(None);
         }
         let mut count_bytes = [0u8; 4];
-        count_bytes.copy_from_slice(&header[57..61]);
+        count_bytes.copy_from_slice(&header[batch::RECORD_COUNT..batch::LEN]);
         let count = i32::from_be_bytes(count_bytes);
         if count <= 0 {
             return Err(Error::CorruptPayload);
@@ -822,6 +822,7 @@ impl Partition {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::batch;
 
     #[test]
     fn fetch_does_not_walk_records_already_checked_at_append(
@@ -864,10 +865,10 @@ mod tests {
         let journal_limits = journal::Limits::new(1024 * 1024, 1 << 30, 1000, 8 * 1024 * 1024)?;
         let (mut part, _) = Partition::open(&path, 0, journal_limits, records::Limits::default())?;
         let mut bytes = vec![0u8; 80];
-        let length = i32::try_from(bytes.len() - 12)?;
-        bytes[8..12].copy_from_slice(&length.to_be_bytes());
-        bytes[16] = 2;
-        bytes[57..61].copy_from_slice(&100_000i32.to_be_bytes());
+        let length = i32::try_from(bytes.len() - batch::PREFIX)?;
+        bytes[batch::LENGTH..batch::PREFIX].copy_from_slice(&length.to_be_bytes());
+        bytes[batch::MAGIC] = batch::MAGIC_V2;
+        bytes[batch::RECORD_COUNT..batch::LEN].copy_from_slice(&100_000i32.to_be_bytes());
         let error = match part.stage_in_place(&mut bytes) {
             Err(error) => error,
             Ok(_) => return Err("trusted assign accepted an impossible count".into()),

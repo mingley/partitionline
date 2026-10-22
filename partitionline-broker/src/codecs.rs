@@ -24,9 +24,8 @@ use std::borrow::Cow;
 use std::fmt;
 use std::io::Read;
 
+use crate::batch;
 use crate::records;
-
-const HEADER: usize = 61;
 const MAX_BYTES: usize = 64 * 1024 * 1024;
 const MAX_WINDOW: usize = 8 * 1024 * 1024;
 const MAX_WORKSPACE: usize = 256 * 1024 * 1024;
@@ -253,7 +252,7 @@ pub fn normalize(
 ) -> Result<Normalized<'_>, Error> {
     cap(input.len(), limits.encoded_bytes, Budget::EncodedBytes)?;
     cap(
-        HEADER,
+        batch::LEN,
         limits.decoded_batch_bytes,
         Budget::DecodedBatchBytes,
     )?;
@@ -271,7 +270,8 @@ pub fn normalize(
         batches += 1;
         cap(batches, limits.batches, Budget::Batches)?;
         let codec = header(batch, at)?;
-        let count = usize::try_from(be32(&batch[57..61])?).map_err(|_| Error::MalformedCodec)?;
+        let count = usize::try_from(be32(&batch[batch::RECORD_COUNT..batch::LEN])?)
+            .map_err(|_| Error::MalformedCodec)?;
         if count == 0 {
             return malformed();
         }
@@ -279,7 +279,7 @@ pub fn normalize(
         cap(records, limits.records, Budget::Records)?;
         if codec != 0 {
             compressed = true;
-            scratch = scratch.max(preflight(codec, &batch[HEADER..], limits, &mut units)?);
+            scratch = scratch.max(preflight(codec, &batch[batch::LEN..], limits, &mut units)?);
             reservation = reservation
                 .saturating_add(limits.decoded_batch_bytes)
                 .min(limits.normalized_bytes);
@@ -322,17 +322,17 @@ pub fn normalize(
         let batch = batch(input, &mut cursor, limits)?;
         let start = output.len();
         cap(
-            start + HEADER,
+            start + batch::LEN,
             limits.normalized_bytes,
             Budget::NormalizedBytes,
         )?;
-        output.extend_from_slice(&batch[..HEADER]);
+        output.extend_from_slice(&batch[..batch::LEN]);
         let codec = (batch[22] & 7) as usize;
         let allowance = limits
             .decoded_batch_bytes
-            .saturating_sub(HEADER)
+            .saturating_sub(batch::LEN)
             .min(limits.normalized_bytes - output.len());
-        let payload = &batch[HEADER..];
+        let payload = &batch[batch::LEN..];
         match codec {
             0 => {
                 cap(payload.len(), allowance, Budget::DecodedBatchBytes)?;
@@ -354,11 +354,12 @@ pub fn normalize(
             }
             _ => return malformed(),
         }
-        let length = i32::try_from(output.len() - start - 12).map_err(|_| Error::MalformedCodec)?;
-        output[start + 8..start + 12].copy_from_slice(&length.to_be_bytes());
-        output[start + 22] &= !7;
-        let crc = crc32c::crc32c(&output[start + 21..]);
-        output[start + 17..start + 21].copy_from_slice(&crc.to_be_bytes());
+        let length = i32::try_from(output.len() - start - batch::PREFIX)
+            .map_err(|_| Error::MalformedCodec)?;
+        output[start + batch::LENGTH..start + batch::PREFIX].copy_from_slice(&length.to_be_bytes());
+        output[start + batch::ATTRIBUTES + 1] &= !7;
+        let crc = crc32c::crc32c(&output[start + batch::ATTRIBUTES..]);
+        output[start + batch::CRC..start + batch::ATTRIBUTES].copy_from_slice(&crc.to_be_bytes());
     }
     admitted(Cow::Owned(output), record_limits)
 }
@@ -383,29 +384,40 @@ fn batch<'a>(input: &'a [u8], at: &mut usize, limits: Limits) -> Result<&'a [u8]
         .get(*at..)
         .and_then(|b| b.get(..12))
         .ok_or(Error::MalformedCodec)?;
-    let size = usize::try_from(be32(&prefix[8..])?).map_err(|_| Error::MalformedCodec)?;
-    let size = size.checked_add(12).ok_or(Error::MalformedCodec)?;
-    if size < HEADER {
+    let size =
+        usize::try_from(be32(&prefix[batch::LENGTH..])?).map_err(|_| Error::MalformedCodec)?;
+    let size = size
+        .checked_add(batch::PREFIX)
+        .ok_or(Error::MalformedCodec)?;
+    if size < batch::LEN {
         return malformed();
     }
     cap(size, limits.batch_bytes, Budget::BatchBytes)?;
     take(input, at, size)
 }
 fn header(b: &[u8], at: usize) -> Result<u8, Error> {
-    if b[16] != 2 {
+    if b[batch::MAGIC] != batch::MAGIC_V2 {
         return Err(Error::Records(records::Error::Invalid {
-            at: at + 16,
+            at: at + batch::MAGIC,
             kind: records::Invalid::Magic,
         }));
     }
-    let crc = u32::from_be_bytes(b[17..21].try_into().map_err(|_| Error::MalformedCodec)?);
-    if crc32c::crc32c(&b[21..]) != crc {
+    let crc = u32::from_be_bytes(
+        b[batch::CRC..batch::ATTRIBUTES]
+            .try_into()
+            .map_err(|_| Error::MalformedCodec)?,
+    );
+    if crc32c::crc32c(&b[batch::ATTRIBUTES..]) != crc {
         return Err(Error::Records(records::Error::Invalid {
-            at: at + 17,
+            at: at + batch::CRC,
             kind: records::Invalid::Checksum,
         }));
     }
-    let attrs = u16::from_be_bytes(b[21..23].try_into().map_err(|_| Error::MalformedCodec)?);
+    let attrs = u16::from_be_bytes(
+        b[batch::ATTRIBUTES..batch::LAST_OFFSET_DELTA]
+            .try_into()
+            .map_err(|_| Error::MalformedCodec)?,
+    );
     if attrs & !0x7f != 0 || attrs & 7 > 4 {
         return malformed();
     }
@@ -417,19 +429,23 @@ fn header(b: &[u8], at: usize) -> Result<u8, Error> {
     ] {
         if attrs & mask != 0 {
             return Err(Error::Records(records::Error::Unsupported {
-                at: at + 21,
+                at: at + batch::ATTRIBUTES,
                 feature,
             }));
         }
     }
-    let producer = i64::from_be_bytes(b[43..51].try_into().map_err(|_| Error::MalformedCodec)?);
+    let producer = i64::from_be_bytes(
+        b[batch::PRODUCER_ID..batch::PRODUCER_EPOCH]
+            .try_into()
+            .map_err(|_| Error::MalformedCodec)?,
+    );
     if producer >= 0 {
         return Err(Error::Records(records::Error::Unsupported {
-            at: at + 43,
+            at: at + batch::PRODUCER_ID,
             feature: records::Unsupported::Idempotent,
         }));
     }
-    if producer != -1 || b[51..57] != [255; 6] {
+    if producer != -1 || b[batch::PRODUCER_EPOCH..batch::RECORD_COUNT] != [255; 6] {
         return malformed();
     }
     Ok((attrs & 7) as u8)
@@ -519,7 +535,7 @@ fn snappy_chunks<'a>(
     }
 }
 fn snappy_lengths(src: &[u8], limits: Limits, units: &mut usize) -> Result<(), Error> {
-    let mut length = HEADER;
+    let mut length = batch::LEN;
     snappy_chunks(src, |chunk| {
         unit(units, limits)?;
         let n = snap::raw::decompress_len(chunk).map_err(|_| Error::MalformedCodec)?;
@@ -571,7 +587,7 @@ fn lz4_frame(src: &[u8], limits: Limits, units: &mut usize) -> Result<(usize, us
                 .try_into()
                 .map_err(|_| Error::MalformedCodec)?,
         );
-        if size > limits.decoded_batch_bytes.saturating_sub(HEADER) as u64 {
+        if size > limits.decoded_batch_bytes.saturating_sub(batch::LEN) as u64 {
             return Err(Error::BudgetExceeded(Budget::DecodedBatchBytes));
         }
     }
@@ -628,7 +644,7 @@ fn zstd_preflight(mut src: &[u8], limits: Limits, units: &mut usize) -> Result<(
             return Err(Error::BudgetExceeded(Budget::WindowBytes));
         }
         if h.content_size
-            .is_some_and(|n| n > limits.decoded_batch_bytes.saturating_sub(HEADER) as u64)
+            .is_some_and(|n| n > limits.decoded_batch_bytes.saturating_sub(batch::LEN) as u64)
         {
             return Err(Error::BudgetExceeded(Budget::DecodedBatchBytes));
         }

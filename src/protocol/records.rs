@@ -4455,6 +4455,21 @@ fn read_bytes_varint<B: Buf>(buf: &mut B) -> Result<Option<Bytes>> {
 mod tests {
     use super::*;
 
+    #[test]
+    fn magic_v2_header_offsets_match_the_broker_layout() {
+        // Same positions as `partitionline-broker/src/batch.rs`.
+        assert_eq!(Records::OFFSET_OFFSET, 0);
+        assert_eq!(Records::OFFSET_LENGTH, 8);
+        assert_eq!(Records::SIZE_OFFSET, 8);
+        assert_eq!(Records::SIZE_LENGTH, 4);
+        assert_eq!(Records::LOG_OVERHEAD, 12);
+        assert_eq!(Records::MAGIC_OFFSET, 16);
+        assert_eq!(Records::MAGIC_LENGTH, 1);
+        assert_eq!(Records::HEADER_SIZE_UP_TO_MAGIC, 17);
+        assert_eq!(RecordBatch::RECORD_BATCH_OVERHEAD, 61);
+        assert_eq!(MAGIC_V2, 2);
+    }
+
     #[tokio::test(flavor = "current_thread")]
     async fn measuring_many_record_bytes_does_not_hold_the_caller() {
         // 2_000_000 records: measuring the batch held the caller 365ms.

@@ -11,13 +11,14 @@
 //!
 //! CRC32C protects bytes starting at batch attributes; the base offset, length,
 //! leader epoch and magic are outside that checksum and are checked separately.
+//! Header field positions live in `crate::batch`.
 //! Caller-owned input remains borrowed. Validation allocates no buffers or indexes;
 //! byte and count limits bound checksum/parsing work. Retained inputs and concurrent
 //! calls must be bounded by the caller. Checksums do not authenticate hostile input.
 
 use std::fmt;
 
-const HEADER: usize = 61;
+use crate::batch;
 const MAX_BYTES: usize = 64 * 1024 * 1024;
 const MAX_ITEMS: usize = 1_000_000;
 
@@ -386,7 +387,7 @@ impl<'a> Records<'a> {
             Err(e) => (0, 0, 0, 0, Some(e)),
         };
         Self {
-            cursor: Cursor::new(bytes.get(HEADER..).unwrap_or_default(), HEADER),
+            cursor: Cursor::new(bytes.get(batch::LEN..).unwrap_or_default(), batch::LEN),
             base,
             base_time,
             last,
@@ -629,11 +630,12 @@ pub fn framed_assignment(bytes: &[u8], limits: Limits) -> Result<FramedAssignmen
             return Err(budget(at, Budget::Batches));
         }
         let batch = take_batch(&mut input, limits.batch_bytes)?;
-        if batch.len() < HEADER || batch.get(16) != Some(&2) {
-            return Err(invalid(at + 16, Invalid::Magic));
+        if batch.len() < batch::LEN || batch.get(batch::MAGIC) != Some(&2) {
+            return Err(invalid(at + batch::MAGIC, Invalid::Magic));
         }
         let base = read_be_i64(batch, 0).ok_or_else(|| invalid(at, Invalid::Offset))?;
-        let attrs = read_be_u16(batch, 21).ok_or_else(|| invalid(at + 21, Invalid::Attributes))?;
+        let attrs = read_be_u16(batch, batch::ATTRIBUTES)
+            .ok_or_else(|| invalid(at + batch::ATTRIBUTES, Invalid::Attributes))?;
         if attrs & !0x7f != 0
             || attrs & 7 != 0
             || attrs & 0x20 != 0
@@ -641,19 +643,25 @@ pub fn framed_assignment(bytes: &[u8], limits: Limits) -> Result<FramedAssignmen
             || attrs & 0x40 != 0
             || attrs & 8 != 0
         {
-            return Err(invalid(at + 21, Invalid::Attributes));
+            return Err(invalid(at + batch::ATTRIBUTES, Invalid::Attributes));
         }
-        let producer = read_be_i64(batch, 43).ok_or_else(|| invalid(at + 43, Invalid::Metadata))?;
+        let producer = read_be_i64(batch, batch::PRODUCER_ID)
+            .ok_or_else(|| invalid(at + batch::PRODUCER_ID, Invalid::Metadata))?;
         if producer >= 0 {
-            return Err(unsupported(at + 43, Unsupported::Idempotent));
+            return Err(unsupported(
+                at + batch::PRODUCER_ID,
+                Unsupported::Idempotent,
+            ));
         }
-        let count = read_be_i32(batch, 57).ok_or_else(|| invalid(at + 57, Invalid::Length))?;
+        let count = read_be_i32(batch, batch::RECORD_COUNT)
+            .ok_or_else(|| invalid(at + batch::RECORD_COUNT, Invalid::Length))?;
         if base < 0 || count <= 0 {
             return Err(invalid(at, Invalid::Offset));
         }
-        let count = usize::try_from(count).map_err(|_| invalid(at + 57, Invalid::Length))?;
+        let count = usize::try_from(count)
+            .map_err(|_| invalid(at + batch::RECORD_COUNT, Invalid::Length))?;
         if records.saturating_add(count) > limits.records {
-            return Err(budget(at + 57, Budget::Records));
+            return Err(budget(at + batch::RECORD_COUNT, Budget::Records));
         }
         let next = base
             .checked_add(i64::try_from(count).map_err(|_| invalid(at, Invalid::Offset))?)
@@ -749,17 +757,17 @@ impl FramedAssignment {
 fn take_batch<'a>(input: &mut Cursor<'a>, limit: usize) -> Result<&'a [u8], Error> {
     let at = input.at();
     let mut peek = *input;
-    peek.take(8)?;
+    peek.take(batch::LENGTH)?;
     let length = peek.i32()?;
     if length < 5 {
-        return Err(invalid(at + 8, Invalid::Length));
+        return Err(invalid(at + batch::LENGTH, Invalid::Length));
     }
     let size = usize::try_from(length)
-        .map_err(|_| invalid(at + 8, Invalid::Length))?
-        .checked_add(12)
-        .ok_or_else(|| invalid(at + 8, Invalid::Length))?;
+        .map_err(|_| invalid(at + batch::LENGTH, Invalid::Length))?
+        .checked_add(batch::PREFIX)
+        .ok_or_else(|| invalid(at + batch::LENGTH, Invalid::Length))?;
     if size > limit {
-        return Err(budget(at + 8, Budget::BatchBytes));
+        return Err(budget(at + batch::LENGTH, Budget::BatchBytes));
     }
     input.take(size)
 }
@@ -778,39 +786,51 @@ fn validate_batch(
     let epoch = c.i32()?;
     let magic = c.byte()? as i8;
     if magic == 0 || magic == 1 {
-        return Err(unsupported(at + 16, Unsupported::LegacyMagic(magic)));
+        return Err(unsupported(
+            at + batch::MAGIC,
+            Unsupported::LegacyMagic(magic),
+        ));
     }
     if magic != 2 {
-        return Err(invalid(at + 16, Invalid::Magic));
+        return Err(invalid(at + batch::MAGIC, Invalid::Magic));
     }
-    if bytes.len() < HEADER {
+    if bytes.len() < batch::LEN {
         return Err(invalid(at, Invalid::Truncated));
     }
     let crc = c.u32()?;
     if check_crc && crc32c::crc32c(c.remaining()) != crc {
-        return Err(invalid(at + 17, Invalid::Checksum));
+        return Err(invalid(at + batch::CRC, Invalid::Checksum));
     }
     let attrs = c.u16()?;
     if attrs & !0x7f != 0 || attrs & 7 > 4 {
-        return Err(invalid(at + 21, Invalid::Attributes));
+        return Err(invalid(at + batch::ATTRIBUTES, Invalid::Attributes));
     }
     if attrs & 7 != 0 {
         return Err(unsupported(
-            at + 21,
+            at + batch::ATTRIBUTES,
             Unsupported::Compression((attrs & 7) as u8),
         ));
     }
     if attrs & 0x20 != 0 {
-        return Err(unsupported(at + 21, Unsupported::Control));
+        return Err(unsupported(at + batch::ATTRIBUTES, Unsupported::Control));
     }
     if attrs & 0x10 != 0 {
-        return Err(unsupported(at + 21, Unsupported::Transactional));
+        return Err(unsupported(
+            at + batch::ATTRIBUTES,
+            Unsupported::Transactional,
+        ));
     }
     if attrs & 0x40 != 0 && !read {
-        return Err(unsupported(at + 21, Unsupported::DeleteHorizon));
+        return Err(unsupported(
+            at + batch::ATTRIBUTES,
+            Unsupported::DeleteHorizon,
+        ));
     }
     if attrs & 8 != 0 {
-        return Err(unsupported(at + 21, Unsupported::LogAppendTime));
+        return Err(unsupported(
+            at + batch::ATTRIBUTES,
+            Unsupported::LogAppendTime,
+        ));
     }
     let last = c.i32()?;
     let base_time = c.i64()?;
@@ -826,17 +846,21 @@ fn validate_batch(
         || (producer == -1 && (producer_epoch != -1 || sequence != -1))
         || (producer >= 0 && (producer_epoch < 0 || sequence < 0))
     {
-        return Err(invalid(at + 12, Invalid::Metadata));
+        return Err(invalid(at + batch::LEADER_EPOCH, Invalid::Metadata));
     }
     if producer >= 0 {
-        return Err(unsupported(at + 43, Unsupported::Idempotent));
+        return Err(unsupported(
+            at + batch::PRODUCER_ID,
+            Unsupported::Idempotent,
+        ));
     }
     if count < 0 || (count == 0 && !read) {
-        return Err(invalid(at + 57, Invalid::Empty));
+        return Err(invalid(at + batch::RECORD_COUNT, Invalid::Empty));
     }
-    let count = usize::try_from(count).map_err(|_| invalid(at + 57, Invalid::Length))?;
+    let count =
+        usize::try_from(count).map_err(|_| invalid(at + batch::RECORD_COUNT, Invalid::Length))?;
     if count > limits.records - *total_records {
-        return Err(budget(at + 57, Budget::Records));
+        return Err(budget(at + batch::RECORD_COUNT, Budget::Records));
     }
     if base < 0
         || last < 0
@@ -849,18 +873,18 @@ fn validate_batch(
         return Err(invalid(at, Invalid::Offset));
     }
     if read && attrs & 0x40 != 0 && base_time < 0 {
-        return Err(invalid(at + 27, Invalid::Timestamp));
+        return Err(invalid(at + batch::BASE_TIMESTAMP, Invalid::Timestamp));
     }
     if read && count == 0 {
         if attrs & 0x40 != 0 {
-            return Err(invalid(at + 21, Invalid::Attributes));
+            return Err(invalid(at + batch::ATTRIBUTES, Invalid::Attributes));
         }
         if base_time != -1 {
-            return Err(invalid(at + 27, Invalid::Timestamp));
+            return Err(invalid(at + batch::BASE_TIMESTAMP, Invalid::Timestamp));
         }
     }
     if count > c.remaining().len() / 7 {
-        return Err(invalid(at + 57, Invalid::Length));
+        return Err(invalid(at + batch::RECORD_COUNT, Invalid::Length));
     }
     if plain_enabled()
         && try_accept_plain(
@@ -1286,6 +1310,7 @@ mod tests {
         framed_assignment, trust_stored, validate, validate_batch, validate_read, Error, Invalid,
         Limits, SKIP_PLAIN,
     };
+    use crate::batch;
 
     fn put_i32(out: &mut Vec<u8>, n: i32) {
         let mut u = ((n as u32) << 1) ^ ((n >> 31) as u32);
@@ -1369,21 +1394,22 @@ mod tests {
                 let _ = removed;
             }
         }
-        let mut bytes = vec![0_u8; 61];
-        let length = i32::try_from(bytes.len() + payload.len() - 12).unwrap();
-        bytes[8..12].copy_from_slice(&length.to_be_bytes());
-        bytes[16] = 2;
-        bytes[23..27].copy_from_slice(&last.to_be_bytes());
-        bytes[27..35].copy_from_slice(&base_time.to_be_bytes());
-        bytes[35..43].copy_from_slice(&max_time.to_be_bytes());
-        bytes[43..51].copy_from_slice(&(-1_i64).to_be_bytes());
-        bytes[51..53].copy_from_slice(&(-1_i16).to_be_bytes());
-        bytes[53..57].copy_from_slice(&(-1_i32).to_be_bytes());
+        let mut bytes = vec![0_u8; batch::LEN];
+        let length = i32::try_from(bytes.len() + payload.len() - batch::PREFIX).unwrap();
+        bytes[batch::LENGTH..batch::LEADER_EPOCH].copy_from_slice(&length.to_be_bytes());
+        bytes[batch::MAGIC] = batch::MAGIC_V2;
+        bytes[batch::LAST_OFFSET_DELTA..batch::BASE_TIMESTAMP].copy_from_slice(&last.to_be_bytes());
+        bytes[batch::BASE_TIMESTAMP..batch::MAX_TIMESTAMP]
+            .copy_from_slice(&base_time.to_be_bytes());
+        bytes[batch::MAX_TIMESTAMP..batch::PRODUCER_ID].copy_from_slice(&max_time.to_be_bytes());
+        bytes[batch::PRODUCER_ID..batch::PRODUCER_EPOCH].copy_from_slice(&(-1_i64).to_be_bytes());
+        bytes[batch::PRODUCER_EPOCH..batch::BASE_SEQUENCE].copy_from_slice(&(-1_i16).to_be_bytes());
+        bytes[batch::BASE_SEQUENCE..batch::RECORD_COUNT].copy_from_slice(&(-1_i32).to_be_bytes());
         let count = i32::try_from(records.len()).unwrap();
-        bytes[57..61].copy_from_slice(&count.to_be_bytes());
+        bytes[batch::RECORD_COUNT..batch::LEN].copy_from_slice(&count.to_be_bytes());
         bytes.extend_from_slice(&payload);
-        let crc = crc32c::crc32c(&bytes[21..]);
-        bytes[17..21].copy_from_slice(&crc.to_be_bytes());
+        let crc = crc32c::crc32c(&bytes[batch::ATTRIBUTES..]);
+        bytes[batch::CRC..batch::ATTRIBUTES].copy_from_slice(&crc.to_be_bytes());
         bytes
     }
 
@@ -1463,8 +1489,8 @@ mod tests {
         );
 
         let mut bad_time = encode(&records, 1_000, 1_004, 3);
-        let crc = crc32c::crc32c(&bad_time[21..]);
-        bad_time[17..21].copy_from_slice(&crc.to_be_bytes());
+        let crc = crc32c::crc32c(&bad_time[batch::ATTRIBUTES..]);
+        bad_time[batch::CRC..batch::ATTRIBUTES].copy_from_slice(&crc.to_be_bytes());
         assert!(matches!(
             both(&bad_time, false).0,
             Err(Error::Invalid {
@@ -1486,25 +1512,31 @@ mod tests {
                 .wrapping_mul(6_364_136_223_846_793_005)
                 .wrapping_add(1);
             let count = 1 + (state % 5) as usize;
-            let mut garbage = vec![0_u8; 61 + (state % 180) as usize];
-            for (pos, byte) in garbage.iter_mut().enumerate().skip(61) {
+            let mut garbage = vec![0_u8; batch::LEN + (state % 180) as usize];
+            for (pos, byte) in garbage.iter_mut().enumerate().skip(batch::LEN) {
                 state = state
                     .wrapping_mul(6_364_136_223_846_793_005)
                     .wrapping_add(1);
                 *byte = (state >> 33) as u8;
                 let _ = pos;
             }
-            let length = i32::try_from(garbage.len() - 12).unwrap();
-            garbage[8..12].copy_from_slice(&length.to_be_bytes());
-            garbage[16] = 2;
+            let length = i32::try_from(garbage.len() - batch::PREFIX).unwrap();
+            garbage[batch::LENGTH..batch::LEADER_EPOCH].copy_from_slice(&length.to_be_bytes());
+            garbage[batch::MAGIC] = batch::MAGIC_V2;
             let last = i32::try_from(count - 1).unwrap();
-            garbage[23..27].copy_from_slice(&last.to_be_bytes());
-            garbage[27..35].copy_from_slice(&1_000_i64.to_be_bytes());
-            garbage[35..43].copy_from_slice(&1_000_i64.to_be_bytes());
-            garbage[43..51].copy_from_slice(&(-1_i64).to_be_bytes());
-            garbage[51..53].copy_from_slice(&(-1_i16).to_be_bytes());
-            garbage[53..57].copy_from_slice(&(-1_i32).to_be_bytes());
-            garbage[57..61].copy_from_slice(&(count as i32).to_be_bytes());
+            garbage[batch::LAST_OFFSET_DELTA..batch::BASE_TIMESTAMP]
+                .copy_from_slice(&last.to_be_bytes());
+            garbage[batch::BASE_TIMESTAMP..batch::MAX_TIMESTAMP]
+                .copy_from_slice(&1_000_i64.to_be_bytes());
+            garbage[batch::MAX_TIMESTAMP..batch::PRODUCER_ID]
+                .copy_from_slice(&1_000_i64.to_be_bytes());
+            garbage[batch::PRODUCER_ID..batch::PRODUCER_EPOCH]
+                .copy_from_slice(&(-1_i64).to_be_bytes());
+            garbage[batch::PRODUCER_EPOCH..batch::BASE_SEQUENCE]
+                .copy_from_slice(&(-1_i16).to_be_bytes());
+            garbage[batch::BASE_SEQUENCE..batch::RECORD_COUNT]
+                .copy_from_slice(&(-1_i32).to_be_bytes());
+            garbage[batch::RECORD_COUNT..batch::LEN].copy_from_slice(&(count as i32).to_be_bytes());
             let _ = both(&garbage, false);
             let _ = both(&garbage, true);
         }

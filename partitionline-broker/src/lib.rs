@@ -8,6 +8,7 @@
 //! require the separate, evidence-backed completion gates.
 
 pub mod admin;
+mod batch;
 pub mod catalog;
 pub mod compaction;
 pub mod configs;

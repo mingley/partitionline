@@ -12,6 +12,7 @@
 //! paths and cross-process exclusivity remain trusted operator responsibilities.
 
 use crate::{
+    batch,
     catalog::{Catalog, TopicId},
     compaction, journal, metadata, partition, protocol, records, retention, segments,
 };
@@ -1302,19 +1303,23 @@ fn normalize<'a>(
     config: &Config,
 ) -> Result<Cow<'a, [u8]>, i16> {
     let input = bytes.filter(|b| !b.is_empty()).ok_or(87i16)?;
-    if input.len() < 17 {
+    if input.len() < batch::CRC {
         return Err(87);
     }
-    if input[16] != 2 {
+    if input[batch::MAGIC] != batch::MAGIC_V2 {
         return Err(87);
     }
-    let length = i32::from_be_bytes(input[8..12].try_into().map_err(|_| 87i16)?);
-    if length < 49 {
+    let length = i32::from_be_bytes(
+        input[batch::LENGTH..batch::PREFIX]
+            .try_into()
+            .map_err(|_| 87i16)?,
+    );
+    if length < i32::try_from(batch::LEN - batch::PREFIX).map_err(|_| 87i16)? {
         return Err(87);
     }
     let end = usize::try_from(length)
         .map_err(|_| 87i16)?
-        .checked_add(12)
+        .checked_add(batch::PREFIX)
         .ok_or(87i16)?;
     if end != input.len() {
         return Err(87);
@@ -1322,7 +1327,7 @@ fn normalize<'a>(
     if input.len() > config.journal_limits.max_entry_bytes() {
         return Err(10);
     }
-    let codec = input[22] & 7;
+    let codec = input[batch::ATTRIBUTES + 1] & 7;
     if codec == 4 && version < 7 {
         return Err(76);
     }
@@ -1477,8 +1482,8 @@ fn sync_staged(items: &mut [PendingSync]) {
     }
 }
 fn stamp_leader_epoch(batch: &mut [u8]) {
-    if batch.len() >= 17 && batch[16] == 2 {
-        batch[12..16].copy_from_slice(&0i32.to_be_bytes());
+    if batch.len() >= batch::CRC && batch[batch::MAGIC] == batch::MAGIC_V2 {
+        batch[batch::LEADER_EPOCH..batch::MAGIC].copy_from_slice(&0i32.to_be_bytes());
     }
 }
 struct CapturedProduce {
