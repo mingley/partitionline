@@ -1,0 +1,136 @@
+{
+  "schema_version": 1,
+  "observed_date_chicago": "2026-10-27",
+  "disposition": "not_qualified",
+  "production_ready": false,
+  "fastest_client_qualified": false,
+  "fastest_server_qualified": false,
+  "rust": "stable 1.99.1 (58cf8f9c3 2026-10-13), LLVM 23.1.1",
+  "source_commits": {
+    "fuzz_supervision": "2c0ddfbcc5f2a772c181e96651d920c0dc112511",
+    "recovery_fixture_guard": "66a9a350",
+    "transaction_oracle": "95c5e4cf196e8c9fd5295165760a5b46568f45ce",
+    "detached_runtime": "d6643def5a08b302b05ef7380d72f13dd7e2a002"
+  },
+  "evidence_kind": "Observed results from completed tool calls. Full later log/binary/corpus archives were prepared in the execution workspace but were not published before it became unavailable. This summary is not a substitute for those archives.",
+  "fixes_and_focused_checks": [
+    {
+      "scope": "Real instrumented broker fuzz supervision",
+      "tests": 9,
+      "exit": 0,
+      "includes": [
+        "interrupt and joined shutdown",
+        "resume without credited interrupted time",
+        "changed binary/log rejection",
+        "missing final receipt and unjoined worker rejection",
+        "short run cannot be relabelled 24 hours",
+        "recovery fixture I/O failure cannot count as exercised recovery"
+      ]
+    },
+    {
+      "scope": "Recovery fixture I/O guard",
+      "before_exit": 0,
+      "after_exit": 77,
+      "harness_requested_exit": 86,
+      "explanation": "An unusable owned TMPDIR previously skipped recovery successfully. The guard now fails; libFuzzer intercepts the harness exit and reports 77. Its empty crash artifact belongs to a deliberate infrastructure control, not a live parser discovery."
+    },
+    {
+      "scope": "Seeded fault oracle",
+      "source": "95c5e4cf196e8c9fd5295165760a5b46568f45ce",
+      "feature_modes": [
+        "default",
+        "all-features"
+      ],
+      "outcomes_per_mode": 3004,
+      "observer_discrepancies": 0,
+      "active_generation_fences": 334,
+      "committed_generation_fences": 184,
+      "post_abort_generation_reuses": 150,
+      "production_transaction_source_changed": false,
+      "focused_strict_clippy_exit": 0
+    }
+  ],
+  "current_candidate_blockers": [
+    {
+      "scope": "Default broker all-target suite after oracle correction",
+      "exit": 101,
+      "failures": [
+        "independent_apache_read_goldens",
+        "registered_handle_corruption_poison_wakes_waiters_and_maps_legacy_errors",
+        "rolling_real_router_replays_all_independent_read_goldens"
+      ],
+      "details": "Fetch v4 out-of-range fixtures disagree on returned boundaries; corruption-waiter test times out. These are unresolved. Do not change fixtures or waive timeouts merely to force a pass."
+    },
+    {
+      "scope": "All-feature broker all-target suite",
+      "exit": 101,
+      "passed_lib_tests": 373,
+      "failed_lib_tests": 1,
+      "failure": "transport::write_prefetch_tests::write_deadline_stops_a_ready_prefetch",
+      "isolated_recheck_exit": 101,
+      "details": "The ready-prefetch deadline test also failed when selected alone."
+    },
+    {
+      "scope": "Earlier concurrent-fuzz broker test run",
+      "exit": 101,
+      "passed_lib_tests": 328,
+      "failed_lib_tests": 3,
+      "details": "Two group caller-duration tests and one Raft deadline test failed under concurrent fuzz load and passed isolated rechecks after that load stopped. Their original failures remain part of the assessment."
+    },
+    {
+      "scope": "Core and full client conformance",
+      "core_exit": 1,
+      "full_exit": 1,
+      "required_cases": 182,
+      "independent_cases": 75,
+      "unqualified_cases": 107,
+      "version_gaps": 40,
+      "missing_runtime_wiring": 3
+    }
+  ],
+  "long_runs": [
+    {
+      "attempt": "fuzz-day-01",
+      "state": "interrupted",
+      "elapsed_seconds": 949.780500815,
+      "joined_workers": 5,
+      "credited_qualification_seconds": 0,
+      "reason": "Stopped before fixing the reproducible recovery-fixture false-pass path."
+    },
+    {
+      "attempt": "fuzz-day-02",
+      "state": "incomplete",
+      "last_heartbeat_utc": "2026-10-27T19:20:06Z",
+      "last_heartbeat_elapsed_seconds": 56,
+      "supervisor_pid": 10780,
+      "observed_process_state": "supervisor and workers were zombies",
+      "final_receipt": false,
+      "credited_qualification_seconds": 0
+    },
+    {
+      "attempt": "detached-container supervision check",
+      "state": "unconfirmed",
+      "image_id": "sha256:3f3bce42ebbf8f78bb2c2d54ec8067a92eeb225e37a9dfb37d16b7d9a3d49ea7",
+      "image_build_exit": 0,
+      "explanation": "Runtime image built, but the environment became unavailable during launch checking. No successful in-container check or replacement 24-hour launch is claimed."
+    }
+  ],
+  "environment": {
+    "id": "ccarenv_b64_Y2NhcmVudl8zNTJjNWFmZTBjY2M4MTkxOWJlZGViODFiMjQyNjNmMQ",
+    "last_connectivity": "offline",
+    "diagnostic_history": "not_found"
+  },
+  "committed_artifact_prefix_snapshot": "docs/evidence/broker/fuzz/20261027-launch/",
+  "workspace_archives_awaiting_publication": [
+    "/workspace/partitionline/docs/evidence/broker/faults/20261027-generation-oracle/",
+    "/workspace/partitionline/docs/evidence/broker/fuzz/20261027-recovery-io-guard/"
+  ],
+  "resume_order": [
+    "Recover the execution environment and inspect any detached control container before launching another job.",
+    "Reconcile the local pending task/evidence edits with these remote status commits, preserving all workspace archives and original failures.",
+    "Verify and publish the later archives; keep task completion tied to retained evidence.",
+    "Resolve the candidate Fetch/waiter/write-deadline failures and remaining conformance gaps.",
+    "Run and audit full uninterrupted parser, resource and operational qualification intervals on the candidate.",
+    "Use dedicated native x86_64 and arm64 hosts and an independent reproducer for the frozen performance campaign; retain Suite HOLD until its separate signoff requirements are met."
+  ]
+}
