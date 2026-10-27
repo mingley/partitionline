@@ -200,6 +200,17 @@ fn retained_partial_offset_corruption_preserves_every_byte() {
         })
     ));
     assert_eq!(read(&path).unwrap(), input);
+    let limits = partitionline_broker::recovery::Limits::new(64, Limits::default()).unwrap();
+    assert!(matches!(
+        partitionline_broker::recovery::EpochLog::open(&path, limits),
+        Err(partitionline_broker::recovery::Error::Storage(
+            Error::Corrupt {
+                byte_offset: 24,
+                kind: Corruption::Offset,
+            }
+        ))
+    ));
+    assert_eq!(read(&path).unwrap(), input);
 }
 
 #[test]
