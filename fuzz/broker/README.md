@@ -31,6 +31,7 @@ python3 scripts/broker-fuzz-campaign.py run \
 ```
 
 Run the command under a persistent supervisor when the terminal may close.
+For managed tool sessions, use the [detached container instructions](CONTAINERS.md).
 The runner writes worker PIDs, raw libFuzzer logs, evolving corpora, failure
 inputs and resource samples. Workers have private temporary directories,
 512 MiB RSS limits and two-second input deadlines. The supervisor caps disk
@@ -38,8 +39,9 @@ and file growth, joins every worker, and stops the attempt after a failure.
 Workers are killed if their supervisor disappears.
 
 Recovery fixture creation, writes, cleanup and limit setup must succeed. An
-infrastructure error exits with status 86 and fails the attempt; it cannot
-silently skip recovery while increasing the execution counter.
+infrastructure error fails the attempt instead of silently skipping recovery.
+The harness requests exit 86; the current libFuzzer intercepts that exit and
+returns 77, retaining the failing input. Both are nonzero failure outcomes.
 
 Inspect or stop an attempt:
 
