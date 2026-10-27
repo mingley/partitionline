@@ -34919,8 +34919,8 @@
       "title": "Fuzz broker framing, storage recovery and API decoding",
       "priority": "P0",
       "kind": "implementation",
-      "status": "pending",
-      "owner": null,
+      "status": "in_progress",
+      "owner": "codex-root-20261027",
       "depends_on": [
         "KL11-04",
         "KL11-09",
@@ -34939,7 +34939,23 @@
         "Run the named behavioral/fault cases for this contract on latest stable Rust, with strict format/lint checks.",
         "Retain independent upstream or cross-peer evidence where the contract concerns Kafka semantics."
       ],
-      "evidence": []
+      "evidence": [],
+      "write_set": [
+        "fuzz/broker/",
+        "scripts/broker-fuzz-campaign.py",
+        "tests/ci/test_broker_fuzz_campaign.py",
+        "docs/evidence/broker/fuzz/",
+        "docs/plan/evidence/KL11-47.json"
+      ],
+      "read_only_held": [
+        "partitionline-broker/src/",
+        "partitionline-broker/tests/"
+      ],
+      "root_integration_only": [
+        "docs/plan/tasks.json",
+        "docs/STATUS.md"
+      ],
+      "qualification_limit": "Prepare and execute real latest-stable coverage-guided campaigns with source/binary/corpus pins, bounded workers and retained failures. Only completed >=24h runs per declared parser/recovery family can qualify; launch, smoke and synthetic runner tests cannot."
     },
     {
       "id": "KL11-48",
