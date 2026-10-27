@@ -685,7 +685,7 @@ impl Store {
                     remaining_bytes,
                     remaining_entries,
                     dest,
-                )?)
+                ))
             } else {
                 None
             }
@@ -694,7 +694,7 @@ impl Store {
         };
         if let Some((result, changed)) = direct {
             self.changed |= changed;
-            return Ok(result);
+            return result;
         }
         let Some(slot) = self.located_slot_mut(log.id, log.index) else {
             return Ok((None, segments::Work::default()));
@@ -707,9 +707,9 @@ impl Store {
             remaining_bytes,
             remaining_entries,
             dest,
-        )?;
+        );
         self.changed |= changed;
-        Ok(result)
+        result
     }
     pub(crate) fn timestamp_start(
         &mut self,
@@ -739,21 +739,28 @@ fn observe_cached_read(
     remaining_bytes: usize,
     remaining_entries: usize,
     dest: &mut Vec<u8>,
-) -> Result<((Option<journal::PayloadView>, segments::Work), bool), partition::Error> {
+) -> (
+    Result<(Option<journal::PayloadView>, segments::Work), partition::Error>,
+    bool,
+) {
     if slot.seen_epoch != epoch {
         slot.partition.invalidate_length_observation();
         slot.seen_epoch = epoch;
     }
-    let maximum = max_entry
+    let Some(maximum) = max_entry
         .min(remaining_bytes)
         .checked_add(std::mem::size_of::<journal::Entry>())
-        .ok_or(partition::Error::InvalidLimits)?;
+    else {
+        return (Err(partition::Error::InvalidLimits), false);
+    };
     let poisoned = slot.partition.is_poisoned();
+    // A failed read can poison the log. Report that transition with the error
+    // so the storage actor wakes Fetch waiters before returning its reply.
     let result =
         slot.partition
-            .read_into(offset, maximum, remaining_bytes, remaining_entries, dest)?;
+            .read_into(offset, maximum, remaining_bytes, remaining_entries, dest);
     let changed = poisoned != slot.partition.is_poisoned();
-    Ok((result, changed))
+    (result, changed)
 }
 
 fn storage_filename(id: TopicId, index: i32, rolling: bool) -> String {
@@ -2232,6 +2239,78 @@ impl Writer {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn cached_read_errors_report_poison_for_direct_and_relocated_handles(
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        let nanos = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)?
+            .as_nanos();
+        for cached_position in [0, 1, usize::MAX] {
+            let root = std::env::temp_dir().join(format!(
+                "pl-read-poison-{}-{nanos}-{cached_position}",
+                std::process::id()
+            ));
+            std::fs::create_dir(&root)?;
+            let common = metadata::Config::new(0, "127.0.0.1".into(), 9092, "poison".into());
+            let (catalog, _) = Catalog::open(root.join("catalog"), common.catalog_limits)?;
+            let mut store = Store::open(Config::new(root.join("data")), &catalog)?;
+            let id = TopicId::new([1; 16])?;
+            let position = store
+                .slot(id, 0)
+                .map_err(|code| std::io::Error::other(format!("partition open error {code}")))?;
+            assert_eq!(position, 0);
+            store.slots[position]
+                .partition
+                .append(include_bytes!("../tests/fixtures/records/valid-basic.bin"))?;
+            // Position 1 belongs to another partition; usize::MAX is absent.
+            assert_eq!(
+                store
+                    .slot(id, 1)
+                    .map_err(|code| std::io::Error::other(format!(
+                        "partition open error {code}"
+                    )))?,
+                1
+            );
+            let log = Some(OpenLog {
+                position: cached_position,
+                id,
+                index: 0,
+            });
+            let mut dest = vec![0x55];
+            store.begin_read();
+            assert!(store
+                .read_entry_at(log, 0, 1 << 20, 8, &mut dest)?
+                .0
+                .is_some());
+            assert!(!store.take_changed());
+            assert!(matches!(
+                store.read_entry_at(log, -1, 1 << 20, 8, &mut dest),
+                Err(partition::Error::OffsetOverflow)
+            ));
+            assert!(!store.take_changed());
+            dest.truncate(1);
+            let path = root.join("data").join(filename(id, 0));
+            let mut bytes = std::fs::read(&path)?;
+            let end = bytes.len() - 1;
+            bytes[end] ^= 1;
+            std::fs::write(&path, &bytes)?;
+            store.begin_read();
+            assert!(store.read_entry_at(log, 0, 1 << 20, 8, &mut dest).is_err());
+            assert_eq!(dest, [0x55]);
+            assert!(store.take_changed());
+            assert!(!store.take_changed());
+            assert_eq!(store.log_bounds(id, 0), Err(56));
+            assert!(store.read_entry_at(log, 0, 1 << 20, 8, &mut dest).is_err());
+            assert!(!store.take_changed());
+            assert_eq!(store.log_bounds(id, 1), Ok((0, 0)));
+            assert_eq!(std::fs::read(&path)?, bytes);
+            drop(store);
+            drop(catalog);
+            std::fs::remove_dir_all(root)?;
+        }
+        Ok(())
+    }
 
     fn part(index: i32) -> Part {
         Part { index, bytes: None }
