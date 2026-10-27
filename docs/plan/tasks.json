@@ -34919,12 +34919,13 @@
       "title": "Fuzz broker framing, storage recovery and API decoding",
       "priority": "P0",
       "kind": "implementation",
-      "status": "in_progress",
+      "status": "blocked",
       "owner": "codex-root-20261027",
       "depends_on": [
         "KL11-04",
         "KL11-09",
-        "KL11-41"
+        "KL11-41",
+        "KL11-77"
       ],
       "files": [
         "fuzz/broker/"
@@ -34959,7 +34960,8 @@
         "docs/plan/tasks.json",
         "docs/STATUS.md"
       ],
-      "qualification_limit": "Five actual 86400-second coverage-guided campaigns launched on stable Rust 1.99.1 at source 2c0ddfbcc5f2a772c181e96651d920c0dc112511. Eight real supervisor controls pass, with exact-source build/format/strict harness lint evidence and original failure retained. Campaign completion is pending; no production or performance claim is qualified."
+      "qualification_limit": "Five actual 86400-second coverage-guided campaigns launched on stable Rust 1.99.1 at source 2c0ddfbcc5f2a772c181e96651d920c0dc112511. Eight real supervisor controls pass, with exact-source build/format/strict harness lint evidence and original failure retained. Campaign completion is pending; no production or performance claim is qualified.",
+      "blocked_reason": "Current candidate baseline fails the stale transactional-offset fault oracle. Child KL11-77 must reconcile the intended aborted-generation semantics before restarting a fresh 24-hour attempt. First attempt stopped and joined; no elapsed time credited."
     },
     {
       "id": "KL11-48",
@@ -53530,6 +53532,48 @@
         "docs/STATUS.md"
       ],
       "qualification_limit": "Done for reported compression-option application. Nine tests and six codec subcases pass with the race detector; before failures, exact SDK/source and compiled CLI pins are retained. Ten shared settings, result adaptation and actual comparable campaigns remain open under KL09-68."
+    },
+    {
+      "id": "KL11-77",
+      "title": "Reconcile the seeded offset fault oracle with aborted-generation reuse",
+      "priority": "P0",
+      "kind": "implementation",
+      "status": "in_progress",
+      "owner": "codex-root-20261027",
+      "depends_on": [
+        "KL11-45"
+      ],
+      "files": [
+        "partitionline-broker/tests/fault_campaign.rs",
+        "docs/plan/evidence/KL11-77.json",
+        "docs/evidence/broker/faults/20261027-generation-oracle/"
+      ],
+      "deliverable": "A source-bound seeded campaign that fences older generations while active/committed and accepts reuse after abort without publishing aborted data or offsets.",
+      "acceptance": [
+        "Preserve the actual unchanged-candidate failure: the transactional-offsets profile reports 150 observer discrepancies in the quiet run.",
+        "Retain every profile and at least 1000 seeded fault outcomes, lost-ack retries, fencing and crash/reopen checks; do not reduce seeds or accept unexplained discrepancies.",
+        "Check active and committed generation fences and the intended post-abort reuse path, including invisible staged offsets and restart visibility. Production transaction behavior and generation policy remain unchanged.",
+        "Record current-source default/all-feature behavioral results and retain the earlier failed attempts; no production-readiness or performance claim follows from this oracle repair."
+      ],
+      "validation": [
+        "PL_FAULT_CAMPAIGN_OUT=<fresh> cargo +stable test --locked --manifest-path partitionline-broker/Cargo.toml --test fault_campaign -- --nocapture",
+        "cargo +stable test --locked --manifest-path partitionline-broker/Cargo.toml --all-targets (default and all features)",
+        "Strict focused Clippy and formatting, source/seed/report pins, and complete profile counters."
+      ],
+      "evidence": [],
+      "write_set": [
+        "partitionline-broker/tests/fault_campaign.rs",
+        "docs/plan/evidence/KL11-77.json",
+        "docs/evidence/broker/faults/20261027-generation-oracle/"
+      ],
+      "read_only_held": [
+        "partitionline-broker/src/transactions/offsets.rs"
+      ],
+      "root_integration_only": [
+        "docs/plan/tasks.json",
+        "docs/STATUS.md"
+      ],
+      "qualification_limit": "Oracle correction for the current journal model, whose aborted generations deliberately do not raise the fence. Existing KL11-45 historical evidence is preserved; no RPC, multi-host or fsync-error claim."
     }
   ],
   "toolchain_policy": "Build and validate current work with latest stable Rust only. Historical compiler receipts remain unchanged.",
