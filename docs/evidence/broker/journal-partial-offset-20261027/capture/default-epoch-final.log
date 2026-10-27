@@ -1,0 +1,13 @@
+   Compiling partitionline-broker v0.1.0 (/workspace/partitionline/partitionline-broker)
+    Finished `test` profile [unoptimized] target(s) in 52.20s
+     Running unittests src/lib.rs (/workspace/work/qualification-20261027/broker-check-target/debug/deps/partitionline_broker-02af17ce92f0d2ad)
+
+running 5 tests
+test recovery::tests::a_record_at_i64_max_is_not_recovered ... ok
+test recovery::tests::a_gapped_recovered_record_is_refused ... ok
+test recovery::tests::an_offset_at_the_end_of_i64_is_not_appended ... ok
+test recovery::tests::offset_for_leader_epoch_hides_a_truncated_suffix ... ok
+test recovery::tests::seeded_failover_keeps_committed_ids_once ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 326 filtered out; finished in 0.00s
+

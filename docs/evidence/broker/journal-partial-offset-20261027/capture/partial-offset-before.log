@@ -1,0 +1,89 @@
+warning: constant `PRODUCER_EPOCH` is never used
+  --> src/batch.rs:37:18
+   |
+37 | pub(crate) const PRODUCER_EPOCH: usize = 51;
+   |                  ^^^^^^^^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: `partitionline-broker` (lib) generated 1 warning
+   Compiling partitionline-broker v0.1.0 (/workspace/partitionline/partitionline-broker)
+error[E0026]: variant `partitionline_broker::journal::Error::Corrupt` does not have a field named `at`
+   --> tests/journal.rs:198:13
+    |
+198 |             at: _,
+    |             ^^
+    |             |
+    |             variant `partitionline_broker::journal::Error::Corrupt` does not have this field
+    |             help: `partitionline_broker::journal::Error::Corrupt` has a field named `byte_offset`
+
+error[E0027]: pattern does not mention field `byte_offset`
+   --> tests/journal.rs:197:13
+    |
+197 |           Err(Error::Corrupt {
+    |  _____________^
+198 | |             at: _,
+199 | |             kind: Corruption::Offset,
+200 | |         })
+    | |_________^ missing field `byte_offset`
+    |
+help: include the missing field in the pattern
+    |
+199 -             kind: Corruption::Offset,
+200 -         })
+199 +             kind: Corruption::Offset, byte_offset })
+    |
+help: if you don't care about this missing field, you can explicitly ignore it
+    |
+199 -             kind: Corruption::Offset,
+200 -         })
+199 +             kind: Corruption::Offset, byte_offset: _ })
+    |
+help: or always ignore missing fields here
+    |
+199 -             kind: Corruption::Offset,
+200 -         })
+199 +             kind: Corruption::Offset, .. })
+    |
+
+error[E0026]: variant `partitionline_broker::journal::Error::Corrupt` does not have a field named `at`
+   --> tests/journal.rs:219:21
+    |
+219 |                     at: _,
+    |                     ^^
+    |                     |
+    |                     variant `partitionline_broker::journal::Error::Corrupt` does not have this field
+    |                     help: `partitionline_broker::journal::Error::Corrupt` has a field named `byte_offset`
+
+error[E0027]: pattern does not mention field `byte_offset`
+   --> tests/journal.rs:218:21
+    |
+218 |                   Err(Error::Corrupt {
+    |  _____________________^
+219 | |                     at: _,
+220 | |                     kind: Corruption::Offset,
+221 | |                 })
+    | |_________________^ missing field `byte_offset`
+    |
+help: include the missing field in the pattern
+    |
+220 -                     kind: Corruption::Offset,
+221 -                 })
+220 +                     kind: Corruption::Offset, byte_offset })
+    |
+help: if you don't care about this missing field, you can explicitly ignore it
+    |
+220 -                     kind: Corruption::Offset,
+221 -                 })
+220 +                     kind: Corruption::Offset, byte_offset: _ })
+    |
+help: or always ignore missing fields here
+    |
+220 -                     kind: Corruption::Offset,
+221 -                 })
+220 +                     kind: Corruption::Offset, .. })
+    |
+
+Some errors have detailed explanations: E0026, E0027.
+For more information about an error, try `rustc --explain E0026`.
+error: could not compile `partitionline-broker` (test "journal") due to 4 previous errors

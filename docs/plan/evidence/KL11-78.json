@@ -1,0 +1,63 @@
+{
+  "schema_version": 1,
+  "task_id": "KL11-78",
+  "status": "done",
+  "source_sha": "e3944bb15993db187aa82445cfc15cc6ff30ccb7",
+  "rust": "stable 1.99.1 (58cf8f9c3 2026-10-13), LLVM 23.1.1",
+  "before_source_sha": "3ce98a3c",
+  "production_source_changed": [
+    "partitionline-broker/src/journal.rs"
+  ],
+  "before": {
+    "initial_compile_error_retained": true,
+    "behavioral_exit": 101,
+    "selected_tests": 2,
+    "failed_tests": 2,
+    "retained_input_bytes": 42,
+    "old_successful_recovery_bytes": 24
+  },
+  "checks": [
+    {
+      "profile": "default",
+      "journal_tests": 18,
+      "epoch_tests": 5,
+      "exit": 0
+    },
+    {
+      "profile": "all-features",
+      "journal_tests": 18,
+      "epoch_tests": 5,
+      "exit": 0
+    },
+    {
+      "scope": "focused strict Clippy",
+      "exit": 0
+    },
+    {
+      "scope": "broker formatting",
+      "exit": 0
+    }
+  ],
+  "fuzz_failure": {
+    "elapsed_seconds": 3223.225606527,
+    "target": "recover_epoch",
+    "exit": 70,
+    "workers_joined": 5,
+    "host_replays": 5,
+    "container_replay_invocations": 5,
+    "runs_per_container_invocation": 100,
+    "reproduced_timeout": false,
+    "minimization_exit": 1,
+    "minimized_artifact": false,
+    "campaign_qualified": false
+  },
+  "artifacts": [
+    "docs/evidence/broker/journal-partial-offset-20261027/README.md",
+    "docs/evidence/broker/journal-partial-offset-20261027/archive-inventory.json"
+  ],
+  "limits": [
+    "The original timeout is unreproduced and is not claimed fixed.",
+    "Fresh full-duration fuzz qualification is required.",
+    "No production readiness or fastest-performance claim."
+  ]
+}

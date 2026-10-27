@@ -1,0 +1,26 @@
+[
+  {
+    "profile": "default",
+    "target": "journal",
+    "exit": 0
+  },
+  {
+    "profile": "default",
+    "target": "epoch",
+    "exit": 0
+  },
+  {
+    "profile": "all-features",
+    "target": "journal",
+    "exit": 0
+  },
+  {
+    "profile": "all-features",
+    "target": "epoch",
+    "exit": 0
+  },
+  {
+    "target": "strict-clippy",
+    "exit": 0
+  }
+]

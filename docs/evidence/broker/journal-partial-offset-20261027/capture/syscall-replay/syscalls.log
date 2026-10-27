@@ -1,0 +1,171 @@
+1887  execve("/workspace/work/qualification-20261027/fuzz-build-05/bin/recover_epoch", ["/workspace/work/qualification-20"..., "-runs=1", "-timeout=2", "-artifact_prefix=/workspace/work"..., "/workspace/work/broker-fuzz-cont"...], 0x7fffc0c04ba0 /* 63 vars */) = 0 <0.000213>
+1887  brk(NULL)                         = 0x5585cbf85000 <0.000014>
+1887  mmap(NULL, 8192, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0) = 0x7f7ab9ade000 <0.000030>
+1887  access("/etc/ld.so.preload", R_OK) = -1 ENOENT (No such file or directory) <0.000060>
+1887  openat(AT_FDCWD, "/etc/ld.so.cache", O_RDONLY|O_CLOEXEC) = 3 <0.000184>
+1887  fstat(3, {st_mode=S_IFREG|0644, st_size=141003, ...}) = 0 <0.000019>
+1887  mmap(NULL, 141003, PROT_READ, MAP_PRIVATE, 3, 0) = 0x7f7ab9abb000 <0.000019>
+1887  close(3)                          = 0 <0.000015>
+1887  openat(AT_FDCWD, "/lib/x86_64-linux-gnu/libstdc++.so.6", O_RDONLY|O_CLOEXEC) = 3 <0.000021>
+1887  read(3, "\177ELF\2\1\1\3\0\0\0\0\0\0\0\0\3\0>\0\1\0\0\0\0\0\0\0\0\0\0\0"..., 832) = 832 <0.000015>
+1887  fstat(3, {st_mode=S_IFREG|0644, st_size=2497768, ...}) = 0 <0.000015>
+1887  mmap(NULL, 2511040, PROT_READ, MAP_PRIVATE|MAP_DENYWRITE, 3, 0) = 0x7f7ab9855000 <0.000016>
+1887  mmap(0x7f7ab98f2000, 1216512, PROT_READ|PROT_EXEC, MAP_PRIVATE|MAP_FIXED|MAP_DENYWRITE, 3, 0x9d000) = 0x7f7ab98f2000 <0.000019>
+1887  mmap(0x7f7ab9a1b000, 581632, PROT_READ, MAP_PRIVATE|MAP_FIXED|MAP_DENYWRITE, 3, 0x1c6000) = 0x7f7ab9a1b000 <0.000017>
+1887  mmap(0x7f7ab9aa9000, 57344, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_FIXED|MAP_DENYWRITE, 3, 0x254000) = 0x7f7ab9aa9000 <0.000019>
+1887  mmap(0x7f7ab9ab7000, 12480, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_FIXED|MAP_ANONYMOUS, -1, 0) = 0x7f7ab9ab7000 <0.000016>
+1887  close(3)                          = 0 <0.000015>
+1887  openat(AT_FDCWD, "/lib/x86_64-linux-gnu/libgcc_s.so.1", O_RDONLY|O_CLOEXEC) = 3 <0.000018>
+1887  read(3, "\177ELF\2\1\1\0\0\0\0\0\0\0\0\0\3\0>\0\1\0\0\0\0\0\0\0\0\0\0\0"..., 832) = 832 <0.000015>
+1887  fstat(3, {st_mode=S_IFREG|0644, st_size=182856, ...}) = 0 <0.000028>
+1887  mmap(NULL, 181160, PROT_READ, MAP_PRIVATE|MAP_DENYWRITE, 3, 0) = 0x7f7ab9828000 <0.000017>
+1887  mmap(0x7f7ab982c000, 143360, PROT_READ|PROT_EXEC, MAP_PRIVATE|MAP_FIXED|MAP_DENYWRITE, 3, 0x4000) = 0x7f7ab982c000 <0.000018>
+1887  mmap(0x7f7ab984f000, 16384, PROT_READ, MAP_PRIVATE|MAP_FIXED|MAP_DENYWRITE, 3, 0x27000) = 0x7f7ab984f000 <0.000016>
+1887  mmap(0x7f7ab9853000, 8192, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_FIXED|MAP_DENYWRITE, 3, 0x2b000) = 0x7f7ab9853000 <0.000015>
+1887  close(3)                          = 0 <0.000015>
+1887  openat(AT_FDCWD, "/lib/x86_64-linux-gnu/libm.so.6", O_RDONLY|O_CLOEXEC) = 3 <0.000019>
+1887  read(3, "\177ELF\2\1\1\3\0\0\0\0\0\0\0\0\3\0>\0\1\0\0\0\0\0\0\0\0\0\0\0"..., 832) = 832 <0.000015>
+1887  fstat(3, {st_mode=S_IFREG|0644, st_size=977112, ...}) = 0 <0.000014>
+1887  mmap(NULL, 978968, PROT_READ, MAP_PRIVATE|MAP_DENYWRITE, 3, 0) = 0x7f7ab9738000 <0.000016>
+1887  mmap(0x7f7ab9749000, 512000, PROT_READ|PROT_EXEC, MAP_PRIVATE|MAP_FIXED|MAP_DENYWRITE, 3, 0x11000) = 0x7f7ab9749000 <0.000023>
+1887  mmap(0x7f7ab97c6000, 393216, PROT_READ, MAP_PRIVATE|MAP_FIXED|MAP_DENYWRITE, 3, 0x8e000) = 0x7f7ab97c6000 <0.000017>
+1887  mmap(0x7f7ab9826000, 8192, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_FIXED|MAP_DENYWRITE, 3, 0xed000) = 0x7f7ab9826000 <0.000016>
+1887  close(3)                          = 0 <0.000083>
+1887  openat(AT_FDCWD, "/lib/x86_64-linux-gnu/libc.so.6", O_RDONLY|O_CLOEXEC) = 3 <0.000019>
+1887  read(3, "\177ELF\2\1\1\3\0\0\0\0\0\0\0\0\3\0>\0\1\0\0\0p\236\2\0\0\0\0\0"..., 832) = 832 <0.000015>
+1887  pread64(3, "\6\0\0\0\4\0\0\0@\0\0\0\0\0\0\0@\0\0\0\0\0\0\0@\0\0\0\0\0\0\0"..., 840, 64) = 840 <0.000059>
+1887  fstat(3, {st_mode=S_IFREG|0755, st_size=1995216, ...}) = 0 <0.000014>
+1887  pread64(3, "\6\0\0\0\4\0\0\0@\0\0\0\0\0\0\0@\0\0\0\0\0\0\0@\0\0\0\0\0\0\0"..., 840, 64) = 840 <0.000014>
+1887  mmap(NULL, 2047568, PROT_READ, MAP_PRIVATE|MAP_DENYWRITE, 3, 0) = 0x7f7ab9544000 <0.000017>
+1887  mmap(0x7f7ab956c000, 1454080, PROT_READ|PROT_EXEC, MAP_PRIVATE|MAP_FIXED|MAP_DENYWRITE, 3, 0x28000) = 0x7f7ab956c000 <0.000019>
+1887  mmap(0x7f7ab96cf000, 352256, PROT_READ, MAP_PRIVATE|MAP_FIXED|MAP_DENYWRITE, 3, 0x18b000) = 0x7f7ab96cf000 <0.000029>
+1887  mmap(0x7f7ab9725000, 24576, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_FIXED|MAP_DENYWRITE, 3, 0x1e0000) = 0x7f7ab9725000 <0.000016>
+1887  mmap(0x7f7ab972b000, 52816, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_FIXED|MAP_ANONYMOUS, -1, 0) = 0x7f7ab972b000 <0.000016>
+1887  close(3)                          = 0 <0.000015>
+1887  mmap(NULL, 8192, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0) = 0x7f7ab9542000 <0.000016>
+1887  mmap(NULL, 12288, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0) = 0x7f7ab953f000 <0.000016>
+1887  arch_prctl(ARCH_SET_FS, 0x7f7ab953f800) = 0 <0.000014>
+1887  set_tid_address(0x7f7ab953fad0)   = 1887 <0.000045>
+1887  set_robust_list(0x7f7ab953fae0, 24) = 0 <0.000014>
+1887  rseq(0x7f7ab953f6a0, 0x20, 0, 0x53053053) = 0 <0.000015>
+1887  mprotect(0x7f7ab9725000, 16384, PROT_READ) = 0 <0.000025>
+1887  mprotect(0x7f7ab9826000, 4096, PROT_READ) = 0 <0.000017>
+1887  mprotect(0x7f7ab9853000, 4096, PROT_READ) = 0 <0.000017>
+1887  mprotect(0x7f7ab9aa9000, 45056, PROT_READ) = 0 <0.000097>
+1887  mprotect(0x5585b107a000, 24576, PROT_READ) = 0 <0.000017>
+1887  mprotect(0x7f7ab9b1c000, 8192, PROT_READ) = 0 <0.000020>
+1887  prlimit64(0, RLIMIT_STACK, NULL, {rlim_cur=8192*1024, rlim_max=RLIM64_INFINITY}) = 0 <0.000014>
+1887  munmap(0x7f7ab9abb000, 141003)    = 0 <0.000028>
+1887  futex(0x7f7ab9ab773c, FUTEX_WAKE_PRIVATE, 2147483647) = 0 <0.000016>
+1887  getrandom("\x32\x56\xe9\xa9\xac\xf3\x29\xee", 8, GRND_NONBLOCK) = 8 <0.000016>
+1887  brk(NULL)                         = 0x5585cbf85000 <0.000014>
+1887  brk(0x5585cbfa6000)               = 0x5585cbfa6000 <0.000018>
+1887  write(2, "WARNING: Failed to find function"..., 68) = 68 <0.000033>
+1887  write(2, "WARNING: Failed to find function"..., 66) = 66 <0.000015>
+1887  write(2, "WARNING: Failed to find function"..., 67) = 67 <0.000027>
+1887  newfstatat(AT_FDCWD, "/workspace/work/broker-fuzz-container-20261027/campaign-03/recover_epoch/artifacts/timeout-8b9eee05c8651fd7390d7f2e0d25eec4d6048b5e", {st_mode=S_IFREG|0644, st_size=42, ...}, 0) = 0 <0.000046>
+1887  newfstatat(AT_FDCWD, "/workspace/work/fuzz-timeout-20261027/syscall-replay/", {st_mode=S_IFDIR|0700, st_size=4096, ...}, 0) = 0 <0.000018>
+1887  newfstatat(AT_FDCWD, "/workspace/work/broker-fuzz-container-20261027/campaign-03/recover_epoch/artifacts/timeout-8b9eee05c8651fd7390d7f2e0d25eec4d6048b5e", {st_mode=S_IFREG|0644, st_size=42, ...}, 0) = 0 <0.000117>
+1887  write(2, "INFO: Running with entropic powe"..., 56) = 56 <0.000023>
+1887  getpid()                          = 1887 <0.000015>
+1887  write(2, "INFO: Seed: 2200512579\n", 23) = 23 <0.000022>
+1887  mmap(NULL, 3149824, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0) = 0x7f7ab923e000 <0.000020>
+1887  mmap(NULL, 21237760, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0) = 0x7f7ab7dfd000 <0.000040>
+1887  write(2, "INFO: Loaded 1 modules   (1473 i"..., 55) = 55 <0.000315>
+1887  write(2, "1473 [0x5585b1080fc0, 0x5585b108"..., 39) = 39 <0.000103>
+1887  write(2, "\n", 1)                 = 1 <0.000020>
+1887  write(2, "INFO: Loaded 1 PC tables (1473 P"..., 37) = 37 <0.000018>
+1887  write(2, "1473 [0x5585b1081588,0x5585b1087"..., 38) = 38 <0.000092>
+1887  write(2, "\n", 1)                 = 1 <0.000022>
+1887  rt_sigaction(SIGRT_1, {sa_handler=0x7f7ab95d44b0, sa_mask=[], sa_flags=SA_RESTORER|SA_ONSTACK|SA_RESTART|SA_SIGINFO, sa_restorer=0x7f7ab9583df0}, NULL, 8) = 0 <0.000046>
+1887  rt_sigprocmask(SIG_UNBLOCK, [RTMIN RT_1], NULL, 8) = 0 <0.000056>
+1887  mmap(NULL, 8392704, PROT_NONE, MAP_PRIVATE|MAP_ANONYMOUS|MAP_STACK, -1, 0) = 0x7f7ab75fc000 <0.000024>
+1887  mprotect(0x7f7ab75fd000, 8388608, PROT_READ|PROT_WRITE) = 0 <0.000020>
+1887  rt_sigprocmask(SIG_BLOCK, ~[], [], 8) = 0 <0.000015>
+1887  clone3({flags=CLONE_VM|CLONE_FS|CLONE_FILES|CLONE_SIGHAND|CLONE_THREAD|CLONE_SYSVSEM|CLONE_SETTLS|CLONE_PARENT_SETTID|CLONE_CHILD_CLEARTID, child_tid=0x7f7ab7dfc990, parent_tid=0x7f7ab7dfc990, exit_signal=0, stack=0x7f7ab75fc000, stack_size=0x7ffec0, tls=0x7f7ab7dfc6c0} => {parent_tid=[1888]}, 88) = 1888 <0.000576>
+1888  rseq(0x7f7ab7dfc560, 0x20, 0, 0x53053053) = 0 <0.000015>
+1888  set_robust_list(0x7f7ab7dfc9a0, 24) = 0 <0.000014>
+1888  rt_sigprocmask(SIG_SETMASK, [], NULL, 8) = 0 <0.000014>
+1888  clock_nanosleep(CLOCK_REALTIME, 0, {tv_sec=1, tv_nsec=0},  <unfinished ...>
+1887  rt_sigprocmask(SIG_SETMASK, [], NULL, 8) = 0 <0.000073>
+1887  setitimer(ITIMER_REAL, {it_interval={tv_sec=2, tv_usec=0}, it_value={tv_sec=2, tv_usec=0}}, NULL) = 0 <0.000018>
+1887  rt_sigaction(SIGALRM, NULL, {sa_handler=SIG_DFL, sa_mask=[], sa_flags=0}, 8) = 0 <0.000017>
+1887  rt_sigaction(SIGALRM, {sa_handler=0x5585b10386a0, sa_mask=[], sa_flags=SA_RESTORER|SA_SIGINFO, sa_restorer=0x7f7ab9583df0}, NULL, 8) = 0 <0.000073>
+1887  rt_sigaction(SIGINT, NULL, {sa_handler=SIG_DFL, sa_mask=[], sa_flags=0}, 8) = 0 <0.000018>
+1887  rt_sigaction(SIGINT, {sa_handler=0x5585b10387c0, sa_mask=[], sa_flags=SA_RESTORER|SA_SIGINFO, sa_restorer=0x7f7ab9583df0}, NULL, 8) = 0 <0.000019>
+1887  rt_sigaction(SIGTERM, NULL, {sa_handler=SIG_DFL, sa_mask=[], sa_flags=0}, 8) = 0 <0.000020>
+1887  rt_sigaction(SIGTERM, {sa_handler=0x5585b10387c0, sa_mask=[], sa_flags=SA_RESTORER|SA_SIGINFO, sa_restorer=0x7f7ab9583df0}, NULL, 8) = 0 <0.000016>
+1887  rt_sigaction(SIGSEGV, NULL, {sa_handler=SIG_DFL, sa_mask=[], sa_flags=0}, 8) = 0 <0.000018>
+1887  rt_sigaction(SIGSEGV, {sa_handler=0x5585b10387f0, sa_mask=[], sa_flags=SA_RESTORER|SA_SIGINFO, sa_restorer=0x7f7ab9583df0}, NULL, 8) = 0 <0.000020>
+1887  rt_sigaction(SIGBUS, NULL, {sa_handler=SIG_DFL, sa_mask=[], sa_flags=0}, 8) = 0 <0.000019>
+1887  rt_sigaction(SIGBUS, {sa_handler=0x5585b10387b0, sa_mask=[], sa_flags=SA_RESTORER|SA_SIGINFO, sa_restorer=0x7f7ab9583df0}, NULL, 8) = 0 <0.000022>
+1887  rt_sigprocmask(SIG_BLOCK, ~[], [], 8) = 0 <0.000015>
+1887  rt_sigaction(SIGABRT, NULL, {sa_handler=SIG_DFL, sa_mask=[], sa_flags=0}, 8) = 0 <0.000053>
+1887  rt_sigprocmask(SIG_SETMASK, [], NULL, 8) = 0 <0.000014>
+1887  rt_sigprocmask(SIG_BLOCK, ~[], [], 8) = 0 <0.000014>
+1887  rt_sigaction(SIGABRT, {sa_handler=0x5585b10387b0, sa_mask=[], sa_flags=SA_RESTORER|SA_SIGINFO, sa_restorer=0x7f7ab9583df0}, NULL, 8) = 0 <0.000103>
+1887  rt_sigprocmask(SIG_SETMASK, [], NULL, 8) = 0 <0.000014>
+1887  rt_sigaction(SIGILL, NULL, {sa_handler=SIG_DFL, sa_mask=[], sa_flags=0}, 8) = 0 <0.000014>
+1887  rt_sigaction(SIGILL, {sa_handler=0x5585b10387b0, sa_mask=[], sa_flags=SA_RESTORER|SA_SIGINFO, sa_restorer=0x7f7ab9583df0}, NULL, 8) = 0 <0.000014>
+1887  rt_sigaction(SIGFPE, NULL, {sa_handler=SIG_DFL, sa_mask=[], sa_flags=0}, 8) = 0 <0.000640>
+1887  rt_sigaction(SIGFPE, {sa_handler=0x5585b10387b0, sa_mask=[], sa_flags=SA_RESTORER|SA_SIGINFO, sa_restorer=0x7f7ab9583df0}, NULL, 8) = 0 <0.000014>
+1887  rt_sigaction(SIGTRAP, NULL, {sa_handler=SIG_DFL, sa_mask=[], sa_flags=0}, 8) = 0 <0.000014>
+1887  rt_sigaction(SIGTRAP, {sa_handler=0x5585b10387b0, sa_mask=[], sa_flags=SA_RESTORER|SA_SIGINFO, sa_restorer=0x7f7ab9583df0}, NULL, 8) = 0 <0.000665>
+1887  rt_sigaction(SIGXFSZ, NULL, {sa_handler=SIG_DFL, sa_mask=[], sa_flags=0}, 8) = 0 <0.000393>
+1887  rt_sigaction(SIGXFSZ, {sa_handler=0x5585b10387a0, sa_mask=[], sa_flags=SA_RESTORER|SA_SIGINFO, sa_restorer=0x7f7ab9583df0}, NULL, 8) = 0 <0.000438>
+1887  rt_sigaction(SIGUSR1, NULL, {sa_handler=SIG_DFL, sa_mask=[], sa_flags=0}, 8) = 0 <0.000108>
+1887  rt_sigaction(SIGUSR1, {sa_handler=0x5585b1038790, sa_mask=[], sa_flags=SA_RESTORER|SA_SIGINFO, sa_restorer=0x7f7ab9583df0}, NULL, 8) = 0 <0.000016>
+1887  rt_sigaction(SIGUSR2, NULL, {sa_handler=SIG_DFL, sa_mask=[], sa_flags=0}, 8) = 0 <0.000014>
+1887  rt_sigaction(SIGUSR2, {sa_handler=0x5585b1038790, sa_mask=[], sa_flags=SA_RESTORER|SA_SIGINFO, sa_restorer=0x7f7ab9583df0}, NULL, 8) = 0 <0.000014>
+1887  write(2, "/workspace/work/qualification-20"..., 105) = 105 <0.000024>
+1887  write(2, "Running: /workspace/work/broker-"..., 128) = 128 <0.000015>
+1887  write(2, "eec4d6048b5e\n", 13)    = 13 <0.000014>
+1887  futex(0x7f7ab9ab7748, FUTEX_WAKE_PRIVATE, 2147483647) = 0 <0.000015>
+1887  openat(AT_FDCWD, "/workspace/work/broker-fuzz-container-20261027/campaign-03/recover_epoch/artifacts/timeout-8b9eee05c8651fd7390d7f2e0d25eec4d6048b5e", O_RDONLY) = 3 <0.000062>
+1887  lseek(3, 0, SEEK_END)             = 42 <0.000015>
+1887  lseek(3, 0, SEEK_CUR)             = 42 <0.000014>
+1887  lseek(3, 0, SEEK_SET)             = 0 <0.000014>
+1887  read(3, "PLJRNL01\0\0\0\0\0\0\0\0\0\0\0\0\210\326\2329PLENTRY1"..., 8191) = 42 <0.000016>
+1887  close(3)                          = 0 <0.000050>
+1887  getpid()                          = 1887 <0.000015>
+1887  openat(AT_FDCWD, "/workspace/work/fuzz-timeout-20261027/syscall-replay/plb-fuzz-epoch-1887", O_WRONLY|O_CREAT|O_TRUNC|O_CLOEXEC, 0666) = 3 <0.000072>
+1887  write(3, "PLJRNL01\0\0\0\0\0\0\0\0\0\0\0\0\210\326\2329PLENTRY1"..., 42) = 42 <0.000029>
+1887  close(3)                          = 0 <0.000016>
+1887  readlink("/workspace", 0x7ffc6cee02d0, 1023) = -1 EINVAL (Invalid argument) <0.000016>
+1887  readlink("/workspace/work", 0x7ffc6cee02d0, 1023) = -1 EINVAL (Invalid argument) <0.000015>
+1887  readlink("/workspace/work/fuzz-timeout-20261027", 0x7ffc6cee02d0, 1023) = -1 EINVAL (Invalid argument) <0.000015>
+1887  readlink("/workspace/work/fuzz-timeout-20261027/syscall-replay", 0x7ffc6cee02d0, 1023) = -1 EINVAL (Invalid argument) <0.000015>
+1887  readlink("/workspace/work/fuzz-timeout-20261027/syscall-replay/plb-fuzz-epoch-1887", 0x7ffc6cee02d0, 1023) = -1 EINVAL (Invalid argument) <0.000015>
+1887  rt_sigprocmask(SIG_BLOCK, ~[], [], 8) = 0 <0.000014>
+1887  mmap(NULL, 4096, PROT_READ|PROT_WRITE, MAP_DROPPABLE|MAP_ANONYMOUS, -1, 0) = 0x7f7ab9add000 <0.000025>
+1887  mmap(NULL, 4096, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0) = 0x7f7ab9adc000 <0.000017>
+1887  rt_sigprocmask(SIG_SETMASK, [], NULL, 8) = 0 <0.000015>
+1887  getrandom("\x37\x5a\xaa\x8f\xcf\xc8\x2f\x50\x25\x1e\xba\xa6\x3b\xb6\xa9\xbe\x11\x7a\x25\x90\x79\x96\xb5\x14\x9f\xb1\x60\xa4\xfc\xd2\x0d\x67", 32, 0) = 32 <0.000016>
+1887  openat(AT_FDCWD, "/workspace/work/fuzz-timeout-20261027/syscall-replay/plb-fuzz-epoch-1887", O_RDWR|O_CREAT|O_CLOEXEC, 0666) = 3 <0.000019>
+1887  statx(3, "", AT_STATX_SYNC_AS_STAT|AT_EMPTY_PATH, STATX_ALL, {stx_mask=STATX_ALL|STATX_MNT_ID, stx_attributes=0, stx_mode=S_IFREG|0600, stx_size=42, ...}) = 0 <0.000057>
+1887  statx(3, "", AT_STATX_SYNC_AS_STAT|AT_EMPTY_PATH, STATX_ALL, {stx_mask=STATX_ALL|STATX_MNT_ID, stx_attributes=0, stx_mode=S_IFREG|0600, stx_size=42, ...}) = 0 <0.000014>
+1887  lseek(3, 0, SEEK_SET)             = 0 <0.000015>
+1887  read(3, "PLJRNL01\0\0\0\0\0\0\0\0\0\0\0\0\210\326\2329", 24) = 24 <0.000016>
+1887  read(3, "PLENTRY1\0\0\0\4\0\0seed", 18) = 18 <0.000014>
+1887  statx(3, "", AT_STATX_SYNC_AS_STAT|AT_EMPTY_PATH, STATX_ALL, {stx_mask=STATX_ALL|STATX_MNT_ID, stx_attributes=0, stx_mode=S_IFREG|0600, stx_size=42, ...}) = 0 <0.000014>
+1887  ftruncate(3, 24)                  = 0 <0.000029>
+1887  fdatasync(3)                      = 0 <0.002671>
+1887  readlink("/workspace", 0x7ffc6cee0380, 1023) = -1 EINVAL (Invalid argument) <0.000084>
+1887  readlink("/workspace/work", 0x7ffc6cee0380, 1023) = -1 EINVAL (Invalid argument) <0.000015>
+1887  readlink("/workspace/work/fuzz-timeout-20261027", 0x7ffc6cee0380, 1023) = -1 EINVAL (Invalid argument) <0.000038>
+1887  readlink("/workspace/work/fuzz-timeout-20261027/syscall-replay", 0x7ffc6cee0380, 1023) = -1 EINVAL (Invalid argument) <0.000203>
+1887  readlink("/workspace/work/fuzz-timeout-20261027/syscall-replay/plb-fuzz-epoch-1887", 0x7ffc6cee0380, 1023) = -1 EINVAL (Invalid argument) <0.000016>
+1887  openat(AT_FDCWD, "/workspace/work/fuzz-timeout-20261027/syscall-replay", O_RDONLY|O_CLOEXEC) = 4 <0.000020>
+1887  fsync(4)                          = 0 <0.000693>
+1887  close(4)                          = 0 <0.000017>
+1887  statx(3, "", AT_STATX_SYNC_AS_STAT|AT_EMPTY_PATH, STATX_ALL, {stx_mask=STATX_ALL|STATX_MNT_ID, stx_attributes=0, stx_mode=S_IFREG|0600, stx_size=24, ...}) = 0 <0.000016>
+1887  statx(3, "", AT_STATX_SYNC_AS_STAT|AT_EMPTY_PATH, STATX_ALL, {stx_mask=STATX_ALL|STATX_MNT_ID, stx_attributes=0, stx_mode=S_IFREG|0600, stx_size=24, ...}) = 0 <0.000014>
+1887  close(3)                          = 0 <0.000033>
+1887  unlink("/workspace/work/fuzz-timeout-20261027/syscall-replay/plb-fuzz-epoch-1887") = 0 <0.000074>
+1887  write(2, "Executed /workspace/work/broker-"..., 128) = 128 <0.000132>
+1887  write(2, "eec4d6048b5e in 6 ms\n", 21) = 21 <0.000022>
+1887  write(2, "***\n*** NOTE: fuzzing was not pe"..., 120) = 120 <0.000035>
+1887  exit_group(0)                     = ?
+1888  <... clock_nanosleep resumed> <unfinished ...>) = ?
+1888  +++ exited with 0 +++
+1887  +++ exited with 0 +++

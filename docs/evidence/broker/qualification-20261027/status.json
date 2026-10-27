@@ -10,9 +10,10 @@
     "fuzz_supervision": "2c0ddfbcc5f2a772c181e96651d920c0dc112511",
     "recovery_fixture_guard": "66a9a350",
     "transaction_oracle": "95c5e4cf196e8c9fd5295165760a5b46568f45ce",
-    "detached_runtime": "d6643def5a08b302b05ef7380d72f13dd7e2a002"
+    "detached_runtime": "d6643def5a08b302b05ef7380d72f13dd7e2a002",
+    "partial_offset_integrity": "e3944bb15993db187aa82445cfc15cc6ff30ccb7"
   },
-  "evidence_kind": "Observed command results with published checksum inventories, retained original failures, corrected reports, test executables, stopped-attempt/control bundles and live prefix snapshots. No completed 24-hour qualification.",
+  "evidence_kind": "Retained failures, exact source and executable pins, before/after checks and published checksum inventories. No completed 24-hour qualification.",
   "fixes_and_focused_checks": [
     {
       "scope": "Real instrumented broker fuzz supervision",
@@ -48,6 +49,16 @@
       "post_abort_generation_reuses": 150,
       "production_transaction_source_changed": false,
       "focused_strict_clippy_exit": 0
+    },
+    {
+      "scope": "Partial journal offset integrity",
+      "task": "KL11-78",
+      "default_journal_tests": 18,
+      "all_features_journal_tests": 18,
+      "epoch_tests_per_mode": 5,
+      "strict_clippy_exit": 0,
+      "format_exit": 0,
+      "source": "e3944bb15993db187aa82445cfc15cc6ff30ccb7"
     }
   ],
   "current_candidate_blockers": [
@@ -117,14 +128,21 @@
       "started_chicago": "2026-10-27T14:45:45-05:00",
       "earliest_completion_chicago": "2026-10-28T14:45:45-05:00",
       "qualified": false,
-      "artifact_root": "docs/evidence/broker/fuzz/20261027-detached-launch/"
+      "artifact_root": "docs/evidence/broker/fuzz/20261027-detached-launch/",
+      "state_at_latest_observation": "failed",
+      "elapsed_seconds": 3223.225606527,
+      "reason": "recover_epoch failed with 70",
+      "workers_joined": 5,
+      "credited_qualification_seconds": 0,
+      "reproduced_timeout": false,
+      "failure_evidence": "docs/evidence/broker/journal-partial-offset-20261027/README.md"
     }
   ],
   "environment": {
     "id": "ccarenv_b64_Y2NhcmVudl8zNTJjNWFmZTBjY2M4MTkxOWJlZGViODFiMjQyNjNmMQ",
     "last_connectivity": "exec available at final launch observation",
     "diagnostic_history": "not_found",
-    "last_exec_observation": "Execution recovered; Docker image/control run and detached campaign launch succeeded. The daemon state and heartbeat were confirmed."
+    "last_exec_observation": "Exec available. Failed detached campaign was inspected; no campaign currently running."
   },
   "committed_artifact_prefix_snapshot": "docs/evidence/broker/fuzz/20261027-launch/",
   "workspace_archives_awaiting_publication": [],

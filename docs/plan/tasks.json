@@ -34961,8 +34961,8 @@
         "docs/plan/tasks.json",
         "docs/STATUS.md"
       ],
-      "qualification_limit": "Current detached attempt uses stable Rust 1.99.1 at d6643def5a08b302b05ef7380d72f13dd7e2a002. Nine real supervisor checks pass inside the isolated image; five targets require their own full 86400-second interval and final artifact audit. Earlier interrupted/incomplete attempts contribute no time. Current candidate behavioral/conformance failures still block production and performance claims.",
-      "blocked_reason": "Detached attempt failed after 3223 seconds with recover_epoch timeout70. Exact input replay/minimization did not reproduce the timeout, but it exposed truncation of an impossible partial offset prefix. Child KL11-78 must fix and qualify that integrity case before a fresh candidate campaign."
+      "qualification_limit": "All previous attempts failed, stopped or incomplete, with zero credited qualification time. Nine real supervisor controls passed in the isolated image. Candidate behavioral and conformance failures remain.",
+      "blocked_reason": "Campaign-03 failed after 3223 seconds with unreproduced recover_epoch timeout70. KL11-78 repairs the exposed partial-offset integrity bug. A fresh frozen candidate and complete 24-hour campaign remain required; current Fetch waiter defect will be repaired before rebuilding."
     },
     {
       "id": "KL11-48",
@@ -53584,7 +53584,7 @@
       "title": "Reject impossible offsets in partial journal entry headers",
       "priority": "P0",
       "kind": "implementation",
-      "status": "in_progress",
+      "status": "done",
       "owner": "codex-root-20261027",
       "depends_on": [
         "KL11-03"
@@ -53606,7 +53606,11 @@
         "Run actual retained-seed and partial-prefix regression on unchanged and corrected latest-stable source.",
         "Run journal and epoch-recovery tests on default and all-feature builds, strict focused Clippy and formatting."
       ],
-      "evidence": [],
+      "evidence": [
+        "docs/evidence/broker/journal-partial-offset-20261027/README.md",
+        "docs/evidence/broker/journal-partial-offset-20261027/archive-inventory.json",
+        "docs/plan/evidence/KL11-78.json"
+      ],
       "write_set": [
         "partitionline-broker/src/journal.rs",
         "partitionline-broker/tests/journal.rs",
@@ -53621,7 +53625,7 @@
         "docs/plan/evidence/KL11-47.json",
         "docs/evidence/broker/qualification-20261027/status.json"
       ],
-      "qualification_limit": "One journal recovery integrity behavior. Full production and performance qualification stay open; the original wall-clock timeout remains unreproduced."
+      "qualification_limit": "Partial offset integrity fixed and tested in journal and epoch recovery. Original timeout unreproduced; fresh full-duration campaign required."
     }
   ],
   "toolchain_policy": "Build and validate current work with latest stable Rust only. Historical compiler receipts remain unchanged.",

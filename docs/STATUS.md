@@ -21,19 +21,21 @@ requirements are met.
 | Which work items are open | [Task registry](plan/tasks.json) |
 | How a benchmark number should be read | [Benchmark guide](benchmark.md) |
 
-The task registry has 344 cards: 259 done, 10 in progress, and 75 pending.
+The task registry has 345 cards: 260 done, 9 in progress, 75 pending, and 1 blocked.
 Those counts were checked against `tasks.json` on 27 October 2026.
 
 Current qualification uses stable Rust 1.99.1. The seeded fault oracle now
 checks generation fencing and post-abort reuse; default and all-feature runs
 each pass 3,004 outcomes with zero observer discrepancies. Nine supervisor
-checks also pass inside the detached fuzz runtime. A fresh five-target
-24-hour campaign is running; earlier interrupted time is not credited.
+checks also pass inside the detached fuzz runtime. The five-target campaign
+failed after 3,223 seconds with an unreproduced epoch-recovery timeout. Its
+retained input exposed a journal truncation bug, now fixed and checked in both
+feature modes. No campaign is currently running; failed time is not credited.
 
 The whole-candidate suites still fail on Fetch golden responses, a corruption
 waiter and a write-prefetch deadline. Core/full conformance also fails. See the
 [readiness assessment](evidence/broker/qualification-20261027/status.json) and
-[detached campaign record](evidence/broker/fuzz/20261027-detached-launch/README.md).
+[failed campaign and integrity repair](evidence/broker/journal-partial-offset-20261027/README.md).
 Production readiness and fastest-performance claims remain unqualified.
 
 ## Client

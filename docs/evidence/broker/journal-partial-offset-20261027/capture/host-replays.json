@@ -1,0 +1,27 @@
+[
+  {
+    "attempt": 0,
+    "exit": 0,
+    "elapsed_seconds": 0.02249658100117813
+  },
+  {
+    "attempt": 1,
+    "exit": 0,
+    "elapsed_seconds": 0.016595944998698542
+  },
+  {
+    "attempt": 2,
+    "exit": 0,
+    "elapsed_seconds": 0.017663171998719918
+  },
+  {
+    "attempt": 3,
+    "exit": 0,
+    "elapsed_seconds": 0.02187722899907385
+  },
+  {
+    "attempt": 4,
+    "exit": 0,
+    "elapsed_seconds": 0.02114956799960055
+  }
+]
