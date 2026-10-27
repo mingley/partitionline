@@ -91,10 +91,16 @@ class BrokerCampaign(unittest.TestCase):
         receipt = campaign.read(self.build / 'build.json')
         for name in ('recover_journal', 'recover_epoch'):
             with self.subTest(target=name):
+                probe = self.directory / ('invalid-tmp-' + name)
+                probe.mkdir()
                 result = subprocess.run([receipt['binaries'][name]['path'], '-runs=1',
+                                         '-artifact_prefix=' + str(probe) + '/',
                                          str(ROOT / 'fuzz/broker/seeds' / name)],
                                         env=dict(os.environ, TMPDIR=str(invalid_tmp)),
-                                        capture_output=True, text=True, timeout=10)
+                                        cwd=probe, capture_output=True, text=True, timeout=10)
+                (probe / 'control.log').write_text(result.stdout + result.stderr)
+                campaign.write(probe / 'control.json', {'kind': 'deliberate invalid TMPDIR',
+                               'expected_failure': True, 'returncode': result.returncode})
                 self.assertNotEqual(result.returncode, 0, 'Fixture creation failed, so recovery was never exercised')
                 self.assertIn('fuzz infrastructure:', result.stderr)
 
