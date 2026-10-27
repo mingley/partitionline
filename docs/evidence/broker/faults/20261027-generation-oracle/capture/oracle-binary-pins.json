@@ -1,0 +1,17 @@
+{
+  "source_commit": "95c5e4cf196e8c9fd5295165760a5b46568f45ce",
+  "compiled_binaries": [
+    {
+      "profile": "default",
+      "path": "/workspace/work/qualification-checks-20261027/fault-oracle-default.elf",
+      "sha256": "946fe19390a087f034b5ba02e982968a501126bf1a2de47c32c7b44feda7a6a6"
+    },
+    {
+      "profile": "all-features",
+      "path": "/workspace/work/qualification-checks-20261027/fault-oracle-all-features.elf",
+      "sha256": "bbb2e1dd1193080afced6e9309cf8f143c3344d2fa9ac14cd2d28524e398c970"
+    }
+  ],
+  "production_transaction_source_changed": false,
+  "before_source_matches": "2c0ddfbcc5f2a772c181e96651d920c0dc112511"
+}

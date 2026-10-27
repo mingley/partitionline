@@ -1,0 +1,16 @@
+[
+  {
+    "profile": "default",
+    "exit": 0,
+    "fault_outcomes": 3004
+  },
+  {
+    "profile": "all-features",
+    "exit": 0,
+    "fault_outcomes": 3004
+  },
+  {
+    "profile": "strict-focused-clippy",
+    "exit": 0
+  }
+]

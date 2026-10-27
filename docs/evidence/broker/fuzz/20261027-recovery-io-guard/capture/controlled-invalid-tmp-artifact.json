@@ -1,0 +1,4 @@
+{
+  "scope": "Expected artifact from the deliberately failing recovery fixture control before its artifact_prefix was isolated; not a live parser crash",
+  "bytes": 0
+}

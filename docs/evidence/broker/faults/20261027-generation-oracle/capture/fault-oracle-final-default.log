@@ -1,0 +1,29 @@
+warning: constant `PRODUCER_EPOCH` is never used
+  --> src/batch.rs:37:18
+   |
+37 | pub(crate) const PRODUCER_EPOCH: usize = 51;
+   |                  ^^^^^^^^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: `partitionline-broker` (lib) generated 1 warning
+   Compiling partitionline-broker v0.1.0 (/workspace/partitionline/partitionline-broker)
+    Finished `test` profile [unoptimized] target(s) in 0.22s
+     Running tests/fault_campaign.rs (/workspace/work/qualification-20261027/broker-check-target/debug/deps/fault_campaign-76f44d9fa1cc748a)
+
+running 1 test
+{
+  "faults_per_profile": 1000,
+  "profiles": [
+    {"profile": "data-plane", "faults": 1000, "crashes": 193, "lost_acks": 432, "fences": 195, "partitions": 180, "committed_generation_fences": 0, "aborted_generation_reuses": 0, "observer_failures": 0},
+    {"profile": "transaction-markers", "faults": 1002, "crashes": 334, "lost_acks": 334, "fences": 334, "partitions": 0, "committed_generation_fences": 0, "aborted_generation_reuses": 0, "observer_failures": 0},
+    {"profile": "transactional-offsets", "faults": 1002, "crashes": 334, "lost_acks": 334, "fences": 334, "partitions": 334, "committed_generation_fences": 184, "aborted_generation_reuses": 150, "observer_failures": 0}
+  ],
+  "fsync_errors_injected": false,
+  "network_partition": "two-log follower misses leader appends during the partition step"
+}
+
+test seeded_faults_preserve_committed_outcomes ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.09s
+

@@ -1,0 +1,18 @@
+    Finished `test` profile [unoptimized] target(s) in 0.06s
+     Running unittests src/lib.rs (/workspace/work/qualification-20261027/broker-check-target/debug/deps/partitionline_broker-1ab9a0b683d129eb)
+
+running 1 test
+test transport::write_prefetch_tests::write_deadline_stops_a_ready_prefetch ... 
+thread 'transport::write_prefetch_tests::write_deadline_stops_a_ready_prefetch' (10436) panicked at src/transport.rs:2332:9:
+a ready prefetch held the write past its deadline: 87.890867ms
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+FAILED
+
+failures:
+
+failures:
+    transport::write_prefetch_tests::write_deadline_stops_a_ready_prefetch
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 373 filtered out; finished in 0.09s
+
+error: test failed, to rerun pass `--lib`

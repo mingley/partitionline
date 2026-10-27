@@ -1,0 +1,22 @@
+[
+  {
+    "target": "recover_journal",
+    "command": [
+      "/workspace/work/qualification-20261027/fuzz-build-03/bin/recover_journal",
+      "-runs=1",
+      "/workspace/partitionline/fuzz/broker/seeds/recover_journal"
+    ],
+    "returncode": 0,
+    "scope": "Deliberate invalid TMPDIR; filesystem setup fails before journal recovery, so this must not pass a campaign."
+  },
+  {
+    "target": "recover_epoch",
+    "command": [
+      "/workspace/work/qualification-20261027/fuzz-build-03/bin/recover_epoch",
+      "-runs=1",
+      "/workspace/partitionline/fuzz/broker/seeds/recover_epoch"
+    ],
+    "returncode": 0,
+    "scope": "Deliberate invalid TMPDIR; filesystem setup fails before journal recovery, so this must not pass a campaign."
+  }
+]

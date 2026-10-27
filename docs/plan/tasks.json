@@ -34919,7 +34919,7 @@
       "title": "Fuzz broker framing, storage recovery and API decoding",
       "priority": "P0",
       "kind": "implementation",
-      "status": "blocked",
+      "status": "in_progress",
       "owner": "codex-root-20261027",
       "depends_on": [
         "KL11-04",
@@ -34960,8 +34960,7 @@
         "docs/plan/tasks.json",
         "docs/STATUS.md"
       ],
-      "qualification_limit": "Five actual 86400-second coverage-guided campaigns launched on stable Rust 1.99.1 at source 2c0ddfbcc5f2a772c181e96651d920c0dc112511. Eight real supervisor controls pass, with exact-source build/format/strict harness lint evidence and original failure retained. Campaign completion is pending; no production or performance claim is qualified.",
-      "blocked_reason": "Current candidate baseline fails the stale transactional-offset fault oracle. Child KL11-77 must reconcile the intended aborted-generation semantics before restarting a fresh 24-hour attempt. First attempt stopped and joined; no elapsed time credited."
+      "qualification_limit": "Current detached attempt uses stable Rust 1.99.1 at d6643def5a08b302b05ef7380d72f13dd7e2a002. Nine real supervisor checks pass inside the isolated image; five targets require their own full 86400-second interval and final artifact audit. Earlier interrupted/incomplete attempts contribute no time. Current candidate behavioral/conformance failures still block production and performance claims."
     },
     {
       "id": "KL11-48",
@@ -53538,7 +53537,7 @@
       "title": "Reconcile the seeded offset fault oracle with aborted-generation reuse",
       "priority": "P0",
       "kind": "implementation",
-      "status": "in_progress",
+      "status": "done",
       "owner": "codex-root-20261027",
       "depends_on": [
         "KL11-45"
@@ -53560,7 +53559,10 @@
         "cargo +stable test --locked --manifest-path partitionline-broker/Cargo.toml --all-targets (default and all features)",
         "Strict focused Clippy and formatting, source/seed/report pins, and complete profile counters."
       ],
-      "evidence": [],
+      "evidence": [
+        "docs/plan/evidence/KL11-77.json",
+        "docs/evidence/broker/faults/20261027-generation-oracle/README.md"
+      ],
       "write_set": [
         "partitionline-broker/tests/fault_campaign.rs",
         "docs/plan/evidence/KL11-77.json",
@@ -53573,7 +53575,7 @@
         "docs/plan/tasks.json",
         "docs/STATUS.md"
       ],
-      "qualification_limit": "Oracle correction for the current journal model, whose aborted generations deliberately do not raise the fence. Existing KL11-45 historical evidence is preserved; no RPC, multi-host or fsync-error claim."
+      "qualification_limit": "Done for the current fault-oracle correction: default/all-feature focused campaigns each verify 3004 outcomes with 0 observer discrepancies, 334 active fences, 184 committed fences and 150 aborted-generation reuses. Production code is unchanged. Whole-broker Fetch and write-deadline failures remain unqualified and retained."
     }
   ],
   "toolchain_policy": "Build and validate current work with latest stable Rust only. Historical compiler receipts remain unchanged.",

@@ -1,0 +1,142 @@
+{
+  "schema_version": 1,
+  "task_id": "KL11-77",
+  "status": "done",
+  "source_sha": "95c5e4cf196e8c9fd5295165760a5b46568f45ce",
+  "production_source_changed": false,
+  "original_failure": {
+    "source_sha": "2c0ddfbcc5f2a772c181e96651d920c0dc112511",
+    "profile": "transactional-offsets",
+    "observer_discrepancies": 150,
+    "reason": "Historical oracle expected an aborted generation to remain fenced after the implementation intentionally released that floor."
+  },
+  "results": {
+    "default": {
+      "faults_per_profile": 1000,
+      "profiles": [
+        {
+          "profile": "data-plane",
+          "faults": 1000,
+          "crashes": 193,
+          "lost_acks": 432,
+          "fences": 195,
+          "partitions": 180,
+          "committed_generation_fences": 0,
+          "aborted_generation_reuses": 0,
+          "observer_failures": 0
+        },
+        {
+          "profile": "transaction-markers",
+          "faults": 1002,
+          "crashes": 334,
+          "lost_acks": 334,
+          "fences": 334,
+          "partitions": 0,
+          "committed_generation_fences": 0,
+          "aborted_generation_reuses": 0,
+          "observer_failures": 0
+        },
+        {
+          "profile": "transactional-offsets",
+          "faults": 1002,
+          "crashes": 334,
+          "lost_acks": 334,
+          "fences": 334,
+          "partitions": 334,
+          "committed_generation_fences": 184,
+          "aborted_generation_reuses": 150,
+          "observer_failures": 0
+        }
+      ],
+      "fsync_errors_injected": false,
+      "network_partition": "two-log follower misses leader appends during the partition step"
+    },
+    "all-features": {
+      "faults_per_profile": 1000,
+      "profiles": [
+        {
+          "profile": "data-plane",
+          "faults": 1000,
+          "crashes": 193,
+          "lost_acks": 432,
+          "fences": 195,
+          "partitions": 180,
+          "committed_generation_fences": 0,
+          "aborted_generation_reuses": 0,
+          "observer_failures": 0
+        },
+        {
+          "profile": "transaction-markers",
+          "faults": 1002,
+          "crashes": 334,
+          "lost_acks": 334,
+          "fences": 334,
+          "partitions": 0,
+          "committed_generation_fences": 0,
+          "aborted_generation_reuses": 0,
+          "observer_failures": 0
+        },
+        {
+          "profile": "transactional-offsets",
+          "faults": 1002,
+          "crashes": 334,
+          "lost_acks": 334,
+          "fences": 334,
+          "partitions": 334,
+          "committed_generation_fences": 184,
+          "aborted_generation_reuses": 150,
+          "observer_failures": 0
+        }
+      ],
+      "fsync_errors_injected": false,
+      "network_partition": "two-log follower misses leader appends during the partition step"
+    }
+  },
+  "checks": [
+    {
+      "profile": "default",
+      "exit": 0,
+      "fault_outcomes": 3004
+    },
+    {
+      "profile": "all-features",
+      "exit": 0,
+      "fault_outcomes": 3004
+    },
+    {
+      "profile": "strict-focused-clippy",
+      "exit": 0
+    }
+  ],
+  "current_candidate_gates": {
+    "default_all_targets": {
+      "exit": 101,
+      "failed": [
+        "independent_apache_read_goldens",
+        "registered_handle_corruption_poison_wakes_waiters_and_maps_legacy_errors",
+        "rolling_real_router_replays_all_independent_read_goldens"
+      ]
+    },
+    "all_feature_all_targets": {
+      "exit": 101,
+      "failed": [
+        "transport::write_prefetch_tests::write_deadline_stops_a_ready_prefetch"
+      ]
+    },
+    "isolated_write_prefetch_recheck": {
+      "exit": 101,
+      "selected_tests": 1
+    }
+  },
+  "artifacts": [
+    "docs/evidence/broker/faults/20261027-generation-oracle/README.md",
+    "docs/evidence/broker/faults/20261027-generation-oracle/archive-inventory.json"
+  ],
+  "limits": [
+    "Journal-model histories only; production transaction behavior is unchanged.",
+    "No multi-host network partition or fsync error injection.",
+    "Whole-candidate behavioral gates still fail on unrelated Fetch and write-prefetch cases. Earlier failed timing/fault histories are retained, including isolated rechecks.",
+    "Production readiness, core/full conformance and performance leadership remain unqualified.",
+    "The original failing fault-test executable was not copied before recompilation; its exact original source, compiler/profile and real failure log are retained. Corrected default/all-feature executables are pinned and retained."
+  ]
+}

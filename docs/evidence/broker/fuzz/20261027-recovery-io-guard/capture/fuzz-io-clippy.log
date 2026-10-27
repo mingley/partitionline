@@ -1,0 +1,23 @@
+    Checking libc v0.2.190
+    Checking pin-project-lite v0.2.17
+    Checking bytes v1.12.1
+    Checking cfg-if v1.0.5
+    Checking crc32c v0.6.8
+    Checking arbitrary v1.5.0
+    Checking libfuzzer-sys v0.4.13
+    Checking socket2 v0.6.5
+    Checking mio v1.2.4
+    Checking getrandom v0.4.3
+    Checking tokio v1.53.3
+    Checking partitionline-broker v0.1.0 (/workspace/partitionline/partitionline-broker)
+warning: constant `PRODUCER_EPOCH` is never used
+  --> /workspace/partitionline/partitionline-broker/src/batch.rs:37:18
+   |
+37 | pub(crate) const PRODUCER_EPOCH: usize = 51;
+   |                  ^^^^^^^^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: `partitionline-broker` (lib) generated 1 warning
+    Checking partitionline-broker-fuzz v0.0.0 (/workspace/partitionline/fuzz/broker)
+    Finished `release` profile [optimized] target(s) in 8.50s

@@ -21,17 +21,20 @@ requirements are met.
 | Which work items are open | [Task registry](plan/tasks.json) |
 | How a benchmark number should be read | [Benchmark guide](benchmark.md) |
 
-The task registry has 343 cards: 258 done, 10 in progress, and 75 pending.
-Those counts were checked against `tasks.json` on 27 October 2026. The file
-is the queue. This page does not restate each card.
+The task registry has 344 cards: 259 done, 10 in progress, and 75 pending.
+Those counts were checked against `tasks.json` on 27 October 2026.
 
-Five source-bound broker fuzz campaigns started on 27 October with stable
-Rust 1.99.1. Each requires 24 uninterrupted hours and a successful artifact
-audit. Eight supervisor checks pass against the real instrumented targets.
-[The launch record](evidence/broker/fuzz/20261027-launch/README.md) retains
-source/compiler pins, failures, process IDs and stop/resume instructions.
-KL11-47 remains in progress. Current core and full conformance checks fail;
-production readiness and fastest-performance claims remain unqualified.
+Current qualification uses stable Rust 1.99.1. The seeded fault oracle now
+checks generation fencing and post-abort reuse; default and all-feature runs
+each pass 3,004 outcomes with zero observer discrepancies. Nine supervisor
+checks also pass inside the detached fuzz runtime. A fresh five-target
+24-hour campaign is running; earlier interrupted time is not credited.
+
+The whole-candidate suites still fail on Fetch golden responses, a corruption
+waiter and a write-prefetch deadline. Core/full conformance also fails. See the
+[readiness assessment](evidence/broker/qualification-20261027/status.json) and
+[detached campaign record](evidence/broker/fuzz/20261027-detached-launch/README.md).
+Production readiness and fastest-performance claims remain unqualified.
 
 ## Client
 

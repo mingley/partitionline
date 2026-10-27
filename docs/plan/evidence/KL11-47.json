@@ -2,7 +2,7 @@
   "schema_version": 1,
   "task_id": "KL11-47",
   "status": "in_progress",
-  "source_sha": "2c0ddfbcc5f2a772c181e96651d920c0dc112511",
+  "source_sha": "d6643def5a08b302b05ef7380d72f13dd7e2a002",
   "compiler": "rustc 1.99.1 (58cf8f9c3 2026-10-13)\nbinary: rustc\ncommit-hash: 58cf8f9c35b355199727627d07ae34a4e2846d67\ncommit-date: 2026-10-13\nhost: x86_64-unknown-linux-gnu\nrelease: 1.99.1\nLLVM version: 23.1.1\n",
   "profile": "broker default features only",
   "campaign_qualified": false,
@@ -100,7 +100,11 @@
   "artifacts": [
     "docs/evidence/broker/fuzz/20261027-launch/README.md",
     "docs/evidence/broker/fuzz/20261027-launch/archive-inventory.json",
-    "docs/evidence/broker/fuzz/20261027-launch/retention.json"
+    "docs/evidence/broker/fuzz/20261027-launch/retention.json",
+    "docs/evidence/broker/fuzz/20261027-recovery-io-guard/README.md",
+    "docs/evidence/broker/faults/20261027-generation-oracle/README.md",
+    "docs/evidence/broker/fuzz/20261027-detached-launch/README.md",
+    "docs/evidence/broker/fuzz/20261027-detached-launch/archive-inventory.json"
   ],
   "limits": [
     "24-hour campaigns are running, not passed. Missing or interrupted completion remains unqualified.",
@@ -110,5 +114,70 @@
     "Controlled dedicated x86_64 and arm64 benchmark hosts and an independent reproducer are not configured; requested details from the user.",
     "Current core/full conformance gates fail; no fastest-client/server wording or Suite HOLD change is justified."
   ],
-  "next_attempt": "Fresh full-duration attempt after source 66a9a350 fixture I/O guards and baseline checks; no elapsed time carried over."
+  "next_attempt": "Current detached attempt requires its complete interval, final receipt and artifact audit; neither stopped attempt contributes time.",
+  "first_attempt_result": {
+    "state": "interrupted",
+    "elapsed_seconds": 949.780500815,
+    "joined_workers": 5,
+    "qualified": false
+  },
+  "second_attempt_result": {
+    "state": "incomplete",
+    "reason": "Supervisor and all workers became zombies during the environment reconnect. Heartbeat stopped at 2026-10-27T19:20:06Z; no final receipt. No time credited.",
+    "qualified": false
+  },
+  "supervisor_checks_after_io_guard": {
+    "tests": 9,
+    "exit": 0,
+    "scope": "Actual binaries; invalid TMPDIR fails nonzero instead of silently skipping recovery."
+  },
+  "current_candidate_failures": {
+    "default_all_targets": {
+      "exit": 101,
+      "failed": [
+        "independent_apache_read_goldens",
+        "registered_handle_corruption_poison_wakes_waiters_and_maps_legacy_errors",
+        "rolling_real_router_replays_all_independent_read_goldens"
+      ]
+    },
+    "all_feature_all_targets": {
+      "exit": 101,
+      "failed": [
+        "transport::write_prefetch_tests::write_deadline_stops_a_ready_prefetch"
+      ]
+    },
+    "isolated_write_prefetch_recheck": {
+      "exit": 101,
+      "selected_tests": 1
+    }
+  },
+  "current_attempt": {
+    "kind": "campaign",
+    "container_id": "c86f8168550fec96e9b085685c7c7afc60941e8974bbfcdb675d68b65e71ab76",
+    "container_name": "pl-broker-fuzz-campaign-20261027-03",
+    "image_id": "sha256:3f3bce42ebbf8f78bb2c2d54ec8067a92eeb225e37a9dfb37d16b7d9a3d49ea7",
+    "directory": "/workspace/work/broker-fuzz-container-20261027/campaign-03",
+    "started_chicago": "2026-10-27T14:45:45-05:00",
+    "earliest_completion_chicago": "2026-10-28T14:45:45-05:00",
+    "state_at_snapshot": "running",
+    "snapshot_utc": "2026-10-27T19:47:26Z",
+    "seconds_per_target": 86400,
+    "resources": {
+      "NetworkMode": "none",
+      "NanoCpus": 3000000000,
+      "Memory": 4294967296,
+      "PidsLimit": 128,
+      "ReadonlyRootfs": true,
+      "Init": true,
+      "RestartPolicy": {
+        "Name": "no",
+        "MaximumRetryCount": 0
+      }
+    },
+    "pid_namespace": "container",
+    "supervisor_checks": 9,
+    "supervisor_checks_exit": 0,
+    "qualification_complete": false,
+    "stop": "docker --host=unix:///var/run/docker.sock stop --time 15 pl-broker-fuzz-campaign-20261027-03"
+  }
 }

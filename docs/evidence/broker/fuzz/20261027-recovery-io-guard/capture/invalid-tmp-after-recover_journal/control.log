@@ -1,0 +1,17 @@
+WARNING: Failed to find function "__sanitizer_acquire_crash_state".
+WARNING: Failed to find function "__sanitizer_print_stack_trace".
+WARNING: Failed to find function "__sanitizer_set_death_callback".
+INFO: Running with entropic power schedule (0xFF, 100).
+INFO: Seed: 972878200
+INFO: Loaded 1 modules   (1019 inline 8-bit counters): 1019 [0x55bdc78dc9a0, 0x55bdc78dcd9b), 
+INFO: Loaded 1 PC tables (1019 PCs): 1019 [0x55bdc78dcda0,0x55bdc78e0d50), 
+INFO:        1 files found in /workspace/partitionline/fuzz/broker/seeds/recover_journal
+INFO: -max_len is not provided; libFuzzer will not generate inputs larger than 4096 bytes
+fuzz infrastructure: create recovery fixture: Os { code: 20, kind: NotADirectory, message: "Not a directory" }
+==10996== ERROR: libFuzzer: fuzz target exited
+SUMMARY: libFuzzer: fuzz target exited
+MS: 0 ; base unit: 0000000000000000000000000000000000000000
+
+
+artifact_prefix='/workspace/work/qualification-checks-20261027/invalid-tmp-after-recover_journal/'; Test unit written to /workspace/work/qualification-checks-20261027/invalid-tmp-after-recover_journal/crash-da39a3ee5e6b4b0d3255bfef95601890afd80709
+Base64: 

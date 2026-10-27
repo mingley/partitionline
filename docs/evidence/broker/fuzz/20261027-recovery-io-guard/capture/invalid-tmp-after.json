@@ -1,0 +1,12 @@
+[
+  {
+    "target": "recover_journal",
+    "returncode": 77,
+    "scope": "Expected infrastructure failure. libFuzzer intercepts requested process exit 86 and reports 77; this is a deliberately invalid TMPDIR control, not a live parser failure."
+  },
+  {
+    "target": "recover_epoch",
+    "returncode": 77,
+    "scope": "Expected infrastructure failure. libFuzzer intercepts requested process exit 86 and reports 77; this is a deliberately invalid TMPDIR control, not a live parser failure."
+  }
+]

@@ -1,0 +1,20 @@
+   Compiling partitionline-broker v0.1.0 (/workspace/partitionline/partitionline-broker)
+    Finished `test` profile [unoptimized] target(s) in 0.30s
+     Running tests/fault_campaign.rs (/workspace/work/qualification-20261027/broker-check-target/debug/deps/fault_campaign-2a4d2a0a89f81c02)
+
+running 1 test
+{
+  "faults_per_profile": 1000,
+  "profiles": [
+    {"profile": "data-plane", "faults": 1000, "crashes": 193, "lost_acks": 432, "fences": 195, "partitions": 180, "committed_generation_fences": 0, "aborted_generation_reuses": 0, "observer_failures": 0},
+    {"profile": "transaction-markers", "faults": 1002, "crashes": 334, "lost_acks": 334, "fences": 334, "partitions": 0, "committed_generation_fences": 0, "aborted_generation_reuses": 0, "observer_failures": 0},
+    {"profile": "transactional-offsets", "faults": 1002, "crashes": 334, "lost_acks": 334, "fences": 334, "partitions": 334, "committed_generation_fences": 184, "aborted_generation_reuses": 150, "observer_failures": 0}
+  ],
+  "fsync_errors_injected": false,
+  "network_partition": "two-log follower misses leader appends during the partition step"
+}
+
+test seeded_faults_preserve_committed_outcomes ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.09s
+

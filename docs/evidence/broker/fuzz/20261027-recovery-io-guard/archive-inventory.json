@@ -1,0 +1,392 @@
+{
+  "schema_version": 1,
+  "files": [
+    {
+      "original_path": "/workspace/work/qualification-checks-20261027/controlled-invalid-tmp-artifact.json",
+      "original_sha256": "b34c61cecb687f63fe6aa3b1fb67dbd6ae8413fc802dd2ec35813c544bcbc0dc",
+      "original_bytes": 169,
+      "stored_path": "capture/controlled-invalid-tmp-artifact.json",
+      "stored_sha256": "b34c61cecb687f63fe6aa3b1fb67dbd6ae8413fc802dd2ec35813c544bcbc0dc",
+      "stored_bytes": 169,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/qualification-checks-20261027/controlled-invalid-tmp-empty-input",
+      "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "original_bytes": 0,
+      "stored_path": "capture/controlled-invalid-tmp-empty-input",
+      "stored_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stored_bytes": 0,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/qualification-checks-20261027/fuzz-io-clippy.exit",
+      "original_sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+      "original_bytes": 2,
+      "stored_path": "capture/fuzz-io-clippy.exit",
+      "stored_sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+      "stored_bytes": 2,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/qualification-checks-20261027/fuzz-io-clippy.log",
+      "original_sha256": "59d2c39e3dbffc6265b4270c0fdb78d3ee50a3cd73685527980de7d37ceb52f3",
+      "original_bytes": 906,
+      "stored_path": "capture/fuzz-io-clippy.log",
+      "stored_sha256": "59d2c39e3dbffc6265b4270c0fdb78d3ee50a3cd73685527980de7d37ceb52f3",
+      "stored_bytes": 906,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/qualification-checks-20261027/fuzz-io-final-format.log",
+      "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "original_bytes": 0,
+      "stored_path": "capture/fuzz-io-final-format.log",
+      "stored_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stored_bytes": 0,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/qualification-checks-20261027/fuzz-io-format.log",
+      "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "original_bytes": 0,
+      "stored_path": "capture/fuzz-io-format.log",
+      "stored_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stored_bytes": 0,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/qualification-checks-20261027/invalid-tmp-after.json",
+      "original_sha256": "da6ed57d0377c449b043a869593b540ec3c911aebb7d4808be984e5677341c2a",
+      "original_bytes": 499,
+      "stored_path": "capture/invalid-tmp-after.json",
+      "stored_sha256": "da6ed57d0377c449b043a869593b540ec3c911aebb7d4808be984e5677341c2a",
+      "stored_bytes": 499,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/qualification-checks-20261027/invalid-tmp-before.json",
+      "original_sha256": "06def1843556341f97dc14c9eed3dedc6b67b9bd37d43eb6a4ffbe2ea779d992",
+      "original_bytes": 751,
+      "stored_path": "capture/invalid-tmp-before.json",
+      "stored_sha256": "06def1843556341f97dc14c9eed3dedc6b67b9bd37d43eb6a4ffbe2ea779d992",
+      "stored_bytes": 751,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/qualification-checks-20261027/runner-io-after.exit",
+      "original_sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+      "original_bytes": 2,
+      "stored_path": "capture/runner-io-after.exit",
+      "stored_sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+      "stored_bytes": 2,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/qualification-checks-20261027/runner-io-after.log",
+      "original_sha256": "ab6d59dec57c36ac533a906c01ce8ddc5a525c3d337b0e073c2596a06b145f4d",
+      "original_bytes": 1506,
+      "stored_path": "capture/runner-io-after.log",
+      "stored_sha256": "ab6d59dec57c36ac533a906c01ce8ddc5a525c3d337b0e073c2596a06b145f4d",
+      "stored_bytes": 1506,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/qualification-checks-20261027/runner-io-final.exit",
+      "original_sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+      "original_bytes": 2,
+      "stored_path": "capture/runner-io-final.exit",
+      "stored_sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+      "stored_bytes": 2,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/qualification-checks-20261027/runner-io-final.log",
+      "original_sha256": "ee661c899a46c835d02e3ceaa948731f5544dcb58e5369099a64b3dee6782d88",
+      "original_bytes": 1506,
+      "stored_path": "capture/runner-io-final.log",
+      "stored_sha256": "ee661c899a46c835d02e3ceaa948731f5544dcb58e5369099a64b3dee6782d88",
+      "stored_bytes": 1506,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/qualification-checks-20261027/runner-io-regression-before.exit",
+      "original_sha256": "4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865",
+      "original_bytes": 2,
+      "stored_path": "capture/runner-io-regression-before.exit",
+      "stored_sha256": "4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865",
+      "stored_bytes": 2,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/qualification-checks-20261027/runner-io-regression-before.log",
+      "original_sha256": "00cc49814e54e031a5f4b11d51dd6d44a2d8fc832ec6f57a8507f9744cdaeb49",
+      "original_bytes": 3314,
+      "stored_path": "capture/runner-io-regression-before.log",
+      "stored_sha256": "00cc49814e54e031a5f4b11d51dd6d44a2d8fc832ec6f57a8507f9744cdaeb49",
+      "stored_bytes": 3314,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/qualification-checks-20261027/invalid-tmp-after-recover_epoch/control.log",
+      "original_sha256": "868a88c5bfb6304366e60b4512c276417e727e694acb86b625e34a0b8c9df958",
+      "original_bytes": 1140,
+      "stored_path": "capture/invalid-tmp-after-recover_epoch/control.log",
+      "stored_sha256": "868a88c5bfb6304366e60b4512c276417e727e694acb86b625e34a0b8c9df958",
+      "stored_bytes": 1140,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/qualification-checks-20261027/invalid-tmp-after-recover_epoch/crash-da39a3ee5e6b4b0d3255bfef95601890afd80709",
+      "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "original_bytes": 0,
+      "stored_path": "capture/invalid-tmp-after-recover_epoch/crash-da39a3ee5e6b4b0d3255bfef95601890afd80709",
+      "stored_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stored_bytes": 0,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/qualification-checks-20261027/invalid-tmp-after-recover_journal/control.log",
+      "original_sha256": "4562e5fd6dafc7e3b790dbf7d74068944d0bb60c1a136bb09c60851b55f4bf2d",
+      "original_bytes": 1145,
+      "stored_path": "capture/invalid-tmp-after-recover_journal/control.log",
+      "stored_sha256": "4562e5fd6dafc7e3b790dbf7d74068944d0bb60c1a136bb09c60851b55f4bf2d",
+      "stored_bytes": 1145,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/qualification-checks-20261027/invalid-tmp-after-recover_journal/crash-da39a3ee5e6b4b0d3255bfef95601890afd80709",
+      "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "original_bytes": 0,
+      "stored_path": "capture/invalid-tmp-after-recover_journal/crash-da39a3ee5e6b4b0d3255bfef95601890afd80709",
+      "stored_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stored_bytes": 0,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/qualification-checks-20261027/stopped-fuzz-day-01.tar.gz",
+      "original_sha256": "9c2b64e91241e5eb8c87351ab4cf9ec04e459c3adcc6975e3df61341735c59cd",
+      "original_bytes": 437607,
+      "stored_path": "capture/stopped-fuzz-day-01.tar.gz",
+      "stored_sha256": "9c2b64e91241e5eb8c87351ab4cf9ec04e459c3adcc6975e3df61341735c59cd",
+      "stored_bytes": 437607,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/qualification-checks-20261027/stopped-fuzz-day-01.tar.index.json",
+      "original_sha256": "4b5fe6de7a6c16010961c8610fc4604b92e30db3ebd83d3863b552e42603ae55",
+      "original_bytes": 366546,
+      "stored_path": "capture/stopped-fuzz-day-01.tar.index.json.gz",
+      "stored_sha256": "5f7823db88839418bc6b0e95048aca70b7592ca687a281142dbad6f3d957b2d8",
+      "stored_bytes": 126398,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/qualification-checks-20261027/all-real-supervisor-controls.tar.gz",
+      "original_sha256": "4cc8911c087a0de1a433d38da9869976d1a2f38fab0a683c840b08d4cf7a41f7",
+      "original_bytes": 10582324,
+      "stored_path": "capture/all-real-supervisor-controls.tar.gz",
+      "stored_sha256": "4cc8911c087a0de1a433d38da9869976d1a2f38fab0a683c840b08d4cf7a41f7",
+      "stored_bytes": 10582324,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/qualification-checks-20261027/all-real-supervisor-controls.tar.index.json",
+      "original_sha256": "4ced58dcc7ddf4646144e11783691cb38665bffe164b934ee2f168fe42caa07f",
+      "original_bytes": 11690615,
+      "stored_path": "capture/all-real-supervisor-controls.tar.index.json.gz",
+      "stored_sha256": "b593f76a8a523f2db2ddc53a44d53c0254eed1fd42e8e441c4ea3570d0a9e83e",
+      "stored_bytes": 3437432,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/qualification-20261027/fuzz-build-04/bin/controller_respond",
+      "original_sha256": "0fb03fb37783696cef64716ab3e973653407281a9ec7fac5baa1e81cb3d716a0",
+      "original_bytes": 1245728,
+      "stored_path": "build/bin/controller_respond.gz",
+      "stored_sha256": "3159609e39da33b3706fd2084d17efa10feb9f9ff2618dd7b8cbf9f9d5112a81",
+      "stored_bytes": 511905,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/qualification-20261027/fuzz-build-04/bin/decode_kraft",
+      "original_sha256": "95d60e988105278f882808903049c25fcaec4ff5eb0722ad003427e5981277eb",
+      "original_bytes": 1091144,
+      "stored_path": "build/bin/decode_kraft.gz",
+      "stored_sha256": "1a79fcf1fc5b4d07585d0b9cc73fde397bdcf646e6014607b05483f2788eccc0",
+      "stored_bytes": 448354,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/qualification-20261027/fuzz-build-04/bin/parse_header",
+      "original_sha256": "023cef82285aedd4b4dc2ad1f53816af3677a0a7b347093ecc6e7c5600fc1a35",
+      "original_bytes": 1008240,
+      "stored_path": "build/bin/parse_header.gz",
+      "stored_sha256": "c29100d1affa92fa6308432bc531aa0c073d9bacd8be4d6118844d8f5bc3998c",
+      "stored_bytes": 428361,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/qualification-20261027/fuzz-build-04/bin/recover_epoch",
+      "original_sha256": "8f27f478341bad5b20d0abeb60f37f4fcbc18177c34e1b1092195e44dc10bc30",
+      "original_bytes": 1152416,
+      "stored_path": "build/bin/recover_epoch.gz",
+      "stored_sha256": "ffddbc82740cd499801df1a3e3411f030e369661a6ac4cca6ea31b7c87016303",
+      "stored_bytes": 482302,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/qualification-20261027/fuzz-build-04/bin/recover_journal",
+      "original_sha256": "4c1c990e87bcf41c461ad70aad90c6eafeefe610dc88b4f9edbafbeecaebff1f",
+      "original_bytes": 1103608,
+      "stored_path": "build/bin/recover_journal.gz",
+      "stored_sha256": "dc7f5980c69d1d995d9d4184a3249f4159d19bc64c0f8eb106252019c27b126b",
+      "stored_bytes": 472080,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/qualification-20261027/fuzz-build-04/build.json",
+      "original_sha256": "394dc31794a8692a0663e999860e7fb0091a5ddfb6863ad2512bd874fc259e25",
+      "original_bytes": 13302,
+      "stored_path": "build/build.json",
+      "stored_sha256": "394dc31794a8692a0663e999860e7fb0091a5ddfb6863ad2512bd874fc259e25",
+      "stored_bytes": 13302,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/qualification-20261027/fuzz-build-04/build.log",
+      "original_sha256": "5cea2371eaa13b1262ac999eb11f89cfeeb89988b459d5f0ff1bc08b78342945",
+      "original_bytes": 1239,
+      "stored_path": "build/build.log",
+      "stored_sha256": "5cea2371eaa13b1262ac999eb11f89cfeeb89988b459d5f0ff1bc08b78342945",
+      "stored_bytes": 1239,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/qualification-checks-20261027/live-day-02-snapshot/controller_respond/fuzzer.log",
+      "original_sha256": "e60c1f5d67a52611570f1fba76ec363f36656695f71d5cb42cf11cbebb8466ea",
+      "original_bytes": 253175,
+      "stored_path": "live-snapshot/controller_respond/fuzzer.log.gz",
+      "stored_sha256": "348933cd8b73bc425b36e74bb728cab7494d83d9026bd906082761eeee428403",
+      "stored_bytes": 34110,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/qualification-checks-20261027/live-day-02-snapshot/decode_kraft/fuzzer.log",
+      "original_sha256": "ad0a732c340857bc0a473acbc156db315b0826f0361927421507346a7b9bc926",
+      "original_bytes": 632613,
+      "stored_path": "live-snapshot/decode_kraft/fuzzer.log.gz",
+      "stored_sha256": "ba1d2b15e30419812d4dfacc7c40c77005e264ed3e7f5465c33786c01a5883af",
+      "stored_bytes": 78063,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/qualification-checks-20261027/live-day-02-snapshot/frozen.json",
+      "original_sha256": "e887e052cf3f26cc768a02e615d6238a7e26f042ba9eec67fca0a5c7a25431ce",
+      "original_bytes": 92,
+      "stored_path": "live-snapshot/frozen.json",
+      "stored_sha256": "e887e052cf3f26cc768a02e615d6238a7e26f042ba9eec67fca0a5c7a25431ce",
+      "stored_bytes": 92,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/qualification-checks-20261027/live-day-02-snapshot/jobs.json",
+      "original_sha256": "f1b45d677e5ccd5dcc9315181d42cd11ea94a35c421c3ee8703ec446c137f148",
+      "original_bytes": 816,
+      "stored_path": "live-snapshot/jobs.json",
+      "stored_sha256": "f1b45d677e5ccd5dcc9315181d42cd11ea94a35c421c3ee8703ec446c137f148",
+      "stored_bytes": 816,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/qualification-checks-20261027/live-day-02-snapshot/manifest.json",
+      "original_sha256": "96d106c034d13bc0252efec5fbbe0f1c7290f58e5d4a86cd32373af951c33906",
+      "original_bytes": 19673,
+      "stored_path": "live-snapshot/manifest.json",
+      "stored_sha256": "96d106c034d13bc0252efec5fbbe0f1c7290f58e5d4a86cd32373af951c33906",
+      "stored_bytes": 19673,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/qualification-checks-20261027/live-day-02-snapshot/parse_header/fuzzer.log",
+      "original_sha256": "1ee4678ccea6b5bf80bb1ce0b856bc739aaf447ca5f4c69d855dd6cded39eab8",
+      "original_bytes": 16428,
+      "stored_path": "live-snapshot/parse_header/fuzzer.log",
+      "stored_sha256": "1ee4678ccea6b5bf80bb1ce0b856bc739aaf447ca5f4c69d855dd6cded39eab8",
+      "stored_bytes": 16428,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/qualification-checks-20261027/live-day-02-snapshot/provenance.json",
+      "original_sha256": "fa6475ddfc65d2eafcb4c7a0249447a00ebf127041b661201b5745145a0ce07b",
+      "original_bytes": 2267,
+      "stored_path": "live-snapshot/provenance.json",
+      "stored_sha256": "fa6475ddfc65d2eafcb4c7a0249447a00ebf127041b661201b5745145a0ce07b",
+      "stored_bytes": 2267,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/qualification-checks-20261027/live-day-02-snapshot/recover_epoch/fuzzer.log",
+      "original_sha256": "545f937c3b6d0fbe00fa75f8e75009e8ad09e1379de5765c5262856d1a645cc1",
+      "original_bytes": 38824,
+      "stored_path": "live-snapshot/recover_epoch/fuzzer.log",
+      "stored_sha256": "545f937c3b6d0fbe00fa75f8e75009e8ad09e1379de5765c5262856d1a645cc1",
+      "stored_bytes": 38824,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/qualification-checks-20261027/live-day-02-snapshot/recover_journal/fuzzer.log",
+      "original_sha256": "0292c7de13a5ef3fa93234e1e791a39aa3de415833ca174964515e74de7f85e1",
+      "original_bytes": 38040,
+      "stored_path": "live-snapshot/recover_journal/fuzzer.log",
+      "stored_sha256": "0292c7de13a5ef3fa93234e1e791a39aa3de415833ca174964515e74de7f85e1",
+      "stored_bytes": 38040,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/qualification-checks-20261027/live-day-02-snapshot/status.json",
+      "original_sha256": "a4e2154d3c3f41ad24f39eca154e35e7edcf0e63e8b3fd6f45d304a8b18b92a7",
+      "original_bytes": 2003,
+      "stored_path": "live-snapshot/status.json",
+      "stored_sha256": "a4e2154d3c3f41ad24f39eca154e35e7edcf0e63e8b3fd6f45d304a8b18b92a7",
+      "stored_bytes": 2003,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/qualification-checks-20261027/live-day-02-snapshot/telemetry.jsonl",
+      "original_sha256": "0e601c7de9570fae3d3327c29c25af3dd1bfcf20f47f337377b725ded519a03a",
+      "original_bytes": 18420,
+      "stored_path": "live-snapshot/telemetry.jsonl",
+      "stored_sha256": "0e601c7de9570fae3d3327c29c25af3dd1bfcf20f47f337377b725ded519a03a",
+      "stored_bytes": 18420,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/partitionline/tests/ci/test_broker_fuzz_campaign.py",
+      "original_sha256": "2b47e0c9d384791518d1ea4d73cec86135129c267d0b1966e386f8e90df63bf5",
+      "original_bytes": 8954,
+      "stored_path": "source/test_broker_fuzz_campaign.py",
+      "stored_sha256": "2b47e0c9d384791518d1ea4d73cec86135129c267d0b1966e386f8e90df63bf5",
+      "stored_bytes": 8954,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/partitionline/fuzz/broker/fuzz_targets/recovery_fixture.rs",
+      "original_sha256": "1b5680d5ef5001a110ca6d72f2c20d4b6070893160f60b7c6f74ff2193f02d60",
+      "original_bytes": 811,
+      "stored_path": "source/recovery_fixture.rs",
+      "stored_sha256": "1b5680d5ef5001a110ca6d72f2c20d4b6070893160f60b7c6f74ff2193f02d60",
+      "stored_bytes": 811,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/qualification-checks-20261027/freeze-final.py",
+      "original_sha256": "6c7f3e6149557a25067fc40a488b54407e7e23402d0f86a094b65f4955495eb9",
+      "original_bytes": 6626,
+      "stored_path": "source/freeze-final.py",
+      "stored_sha256": "6c7f3e6149557a25067fc40a488b54407e7e23402d0f86a094b65f4955495eb9",
+      "stored_bytes": 6626,
+      "encoding": "identity"
+    }
+  ]
+}

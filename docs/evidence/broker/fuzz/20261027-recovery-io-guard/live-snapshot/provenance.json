@@ -1,0 +1,62 @@
+[
+  {
+    "live_path": "/workspace/work/qualification-20261027/fuzz-day-02/manifest.json",
+    "snapshot_path": "manifest.json",
+    "bytes": 19673,
+    "scope": "Prefix of an ongoing job; no completion evidence"
+  },
+  {
+    "live_path": "/workspace/work/qualification-20261027/fuzz-day-02/frozen.json",
+    "snapshot_path": "frozen.json",
+    "bytes": 92,
+    "scope": "Prefix of an ongoing job; no completion evidence"
+  },
+  {
+    "live_path": "/workspace/work/qualification-20261027/fuzz-day-02/jobs.json",
+    "snapshot_path": "jobs.json",
+    "bytes": 816,
+    "scope": "Prefix of an ongoing job; no completion evidence"
+  },
+  {
+    "live_path": "/workspace/work/qualification-20261027/fuzz-day-02/status.json",
+    "snapshot_path": "status.json",
+    "bytes": 2003,
+    "scope": "Prefix of an ongoing job; no completion evidence"
+  },
+  {
+    "live_path": "/workspace/work/qualification-20261027/fuzz-day-02/telemetry.jsonl",
+    "snapshot_path": "telemetry.jsonl",
+    "bytes": 18420,
+    "scope": "Prefix of an ongoing job; no completion evidence"
+  },
+  {
+    "live_path": "/workspace/work/qualification-20261027/fuzz-day-02/parse_header/fuzzer.log",
+    "snapshot_path": "parse_header/fuzzer.log",
+    "bytes": 16428,
+    "scope": "Prefix of an ongoing job; no completion evidence"
+  },
+  {
+    "live_path": "/workspace/work/qualification-20261027/fuzz-day-02/decode_kraft/fuzzer.log",
+    "snapshot_path": "decode_kraft/fuzzer.log",
+    "bytes": 632613,
+    "scope": "Prefix of an ongoing job; no completion evidence"
+  },
+  {
+    "live_path": "/workspace/work/qualification-20261027/fuzz-day-02/controller_respond/fuzzer.log",
+    "snapshot_path": "controller_respond/fuzzer.log",
+    "bytes": 253175,
+    "scope": "Prefix of an ongoing job; no completion evidence"
+  },
+  {
+    "live_path": "/workspace/work/qualification-20261027/fuzz-day-02/recover_journal/fuzzer.log",
+    "snapshot_path": "recover_journal/fuzzer.log",
+    "bytes": 38040,
+    "scope": "Prefix of an ongoing job; no completion evidence"
+  },
+  {
+    "live_path": "/workspace/work/qualification-20261027/fuzz-day-02/recover_epoch/fuzzer.log",
+    "snapshot_path": "recover_epoch/fuzzer.log",
+    "bytes": 38824,
+    "scope": "Prefix of an ongoing job; no completion evidence"
+  }
+]

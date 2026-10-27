@@ -1,0 +1,21 @@
+3.13-slim-trixie: Pulling from library/python
+f2be67225471: Pulling fs layer
+f1b5e1e734d9: Pulling fs layer
+b5350256d151: Pulling fs layer
+4cb8c7b2363c: Pulling fs layer
+4cb8c7b2363c: Waiting
+f1b5e1e734d9: Verifying Checksum
+f1b5e1e734d9: Download complete
+4cb8c7b2363c: Verifying Checksum
+4cb8c7b2363c: Download complete
+b5350256d151: Verifying Checksum
+b5350256d151: Download complete
+f2be67225471: Verifying Checksum
+f2be67225471: Download complete
+f2be67225471: Pull complete
+f1b5e1e734d9: Pull complete
+b5350256d151: Pull complete
+4cb8c7b2363c: Pull complete
+Digest: sha256:b3575dcf816cdacc5292df77a6e3e59b8941631078373a045efa2ac1e9c5c3b2
+Status: Downloaded newer image for python:3.13-slim-trixie
+docker.io/library/python:3.13-slim-trixie

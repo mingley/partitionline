@@ -1,0 +1,460 @@
+warning: constant `PRODUCER_EPOCH` is never used
+  --> src/batch.rs:37:18
+   |
+37 | pub(crate) const PRODUCER_EPOCH: usize = 51;
+   |                  ^^^^^^^^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: `partitionline-broker` (lib) generated 1 warning
+    Finished `test` profile [unoptimized] target(s) in 0.03s
+     Running unittests src/lib.rs (/workspace/work/qualification-20261027/broker-check-target/debug/deps/partitionline_broker-02af17ce92f0d2ad)
+
+running 331 tests
+test admin::tests::a_leader_outside_the_replica_set_is_not_recovered ... ok
+test admin::tests::an_admin_snapshot_cannot_change_epoch_and_voters_together ... ok
+test batch::tests::fields_tile_the_header_without_gaps ... ok
+test catalog::tests::complete_unconfirmed_create_is_invisible_until_synced_replay ... ok
+test catalog::tests::complete_unconfirmed_tombstone_keeps_previous_state_until_recovery ... ok
+test admin::tests::admin_dispositions_and_failover_keep_validated_mutations ... ok
+test compaction::cleaner_tests::a_plan_that_is_not_the_cleaned_source_is_not_recovered ... ok
+test compaction::cleaner_tests::a_later_transaction_in_the_same_epoch_stays_undecided ... ok
+test compaction::cleaner_tests::a_transactional_record_without_a_producer_is_not_replayed ... ok
+test compaction::cleaner_tests::transactional_prefix_tombstones_and_interrupted_swap ... ok
+test configs::tests::a_replay_cannot_pass_the_resource_cap ... ok
+test configs::tests::a_zero_retention_is_not_recovered ... ok
+test configs::tests::incremental_alter_persists_without_clearing_the_budget ... ok
+test configs::tests::validate_only_and_read_only_do_not_mutate ... ok
+test controller::partitions::tests::a_negative_partition_is_refused_before_it_is_stored ... ok
+test controller::partitions::tests::a_recovered_placement_must_match_a_live_transition ... ok
+test controller::partitions::tests::placement_and_leader_epoch_replay_after_controller_failover ... ok
+test controller::partitions::tests::reassignment_cannot_drop_the_leader_and_shrinks_the_isr ... ok
+test controller::partitions::tests::unclean_election_is_refused_until_explicitly_enabled ... ok
+test controller::registration::tests::a_recovered_registration_must_match_a_live_session ... ok
+test controller::registration::tests::an_older_heartbeat_does_not_shorten_the_session ... ok
+test controller::registration::tests::expired_and_replaced_epochs_cannot_write_or_mutate ... ok
+test controller::registration::tests::first_registration_starts_at_epoch_zero_and_replays ... ok
+test controller::registration::tests::older_versions_reject_fields_they_cannot_express ... ok
+test controller::registration::tests::stale_epoch_does_not_replace_or_refresh_the_live_session ... ok
+test fetch::tests::a_batch_that_crosses_the_high_watermark_is_not_fetched ... ok
+test fetch::tests::a_header_after_records_does_not_double_the_buffer ... ok
+test fetch::tests::a_listed_offset_must_fall_inside_the_log ... ok
+test fetch::tests::a_log_start_past_the_high_watermark_is_storage_corruption ... ok
+test fetch::tests::a_pre_epoch_timestamp_is_searched ... ok
+test fetch::tests::a_short_topic_list_finds_a_repeated_name_without_a_count_map ... ok
+test fetch::tests::a_single_fetch_slot_stays_inline ... ok
+test fetch::tests::a_tied_max_timestamp_keeps_the_earlier_offset ... ok
+test fetch::tests::out_of_range_keeps_the_log_boundaries ... ok
+test fetch::tests::repeated_partitions_are_only_tracked_when_the_list_is_not_increasing ... ok
+test fetch::tests::response_bytes_keep_earlier_fields_as_the_buffer_grows ... ok
+test groups::classic::tests::a_generation_at_i32_max_does_not_accept_another_member ... ok
+test groups::classic::tests::a_member_counter_or_generation_jump_is_not_recovered ... ok
+test groups::classic::tests::a_negative_or_repeated_assignment_is_not_recovered ... ok
+test groups::classic::tests::an_older_clock_does_not_shorten_the_session ... ok
+test groups::classic::tests::heartbeat_during_rebalance_keeps_the_member ... ok
+test groups::classic::tests::heartbeat_holds_the_session_and_a_stale_generation_does_not ... ok
+test groups::classic::tests::leave_drops_one_member_and_revokes_the_generation ... ok
+test groups::classic::tests::sync_holds_the_session_until_the_new_clock ... ok
+test groups::classic::tests::timeout_revokes_ownership_and_a_stale_generation_cannot_sync ... ok
+test groups::classic::tests::two_members_receive_disjoint_assignments_that_survive_failover ... ok
+test groups::consumer::tests::a_group_epoch_at_i32_max_does_not_accept_another_member ... ok
+test groups::consumer::tests::a_group_epoch_jump_is_not_recovered ... ok
+test groups::consumer::tests::a_negative_assignment_is_not_recovered ... ok
+test groups::consumer::tests::a_partition_claim_is_once_per_topic_name ... ok
+test groups::consumer::tests::a_topic_list_matches_in_any_order ... ok
+test groups::consumer::tests::an_illegal_topic_name_is_not_declared ... ok
+test compaction::cleaner_tests::planning_many_transactional_records_does_not_hold_the_caller ... ok
+test groups::consumer::tests::range_assignment_fences_epochs_and_survives_coordinator_failover ... ok
+test groups::consumer::tests::session_timeout_removes_a_silent_member ... ok
+test groups::consumer::tests::unchanged_subscription_keeps_the_assignment ... ok
+test groups::lifecycle::tests::a_delivered_partition_that_is_not_owned_is_not_recovered ... ok
+test groups::lifecycle::tests::a_join_that_is_already_delivered_is_not_recovered ... ok
+test groups::lifecycle::tests::a_same_id_static_rejoin_refreshes_a_newer_session ... ok
+test groups::lifecycle::tests::an_older_revoke_does_not_expire_a_fresh_session ... ok
+test groups::lifecycle::tests::checking_many_owned_partitions_does_not_hold_the_caller ... ok
+test groups::lifecycle::tests::leave_and_expiration_revoke_within_the_session_budget ... ok
+test groups::lifecycle::tests::static_rejoin_and_cooperative_revoke_do_not_commit_undelivered_records ... ok
+test groups::offsets::tests::a_duplicate_commit_keeps_the_first_offset ... ok
+test groups::offsets::tests::a_negative_offset_is_not_recovered ... ok
+test groups::offsets::tests::an_offset_generation_jump_is_not_recovered ... ok
+test groups::offsets::tests::partial_commit_keeps_the_valid_partition_and_the_other_group ... ok
+test groups::offsets::tests::replacing_an_offset_does_not_consume_another_slot ... ok
+test groups::share::tests::a_group_epoch_at_i32_max_does_not_accept_another_member ... ok
+test groups::share::tests::a_partition_claim_is_once_per_topic_name ... ok
+test groups::share::tests::a_partition_past_the_topic_count_is_not_recovered ... ok
+test groups::share::tests::a_share_epoch_jump_is_not_recovered ... ok
+test groups::share::tests::a_share_member_version_change_bumps_the_group_epoch ... ok
+test groups::share::tests::a_topic_list_matches_in_any_order ... ok
+test groups::share::tests::an_illegal_topic_name_is_not_declared ... ok
+test groups::consumer::tests::applying_many_topics_does_not_hold_the_caller ... ok
+test groups::share::tests::session_timeout_removes_a_silent_share_member ... ok
+test groups::share::tests::share_versions_assignment_epoch_and_fence_survive_restart ... ok
+test groups::streams::tests::a_group_epoch_at_i32_max_does_not_accept_another_member ... ok
+test groups::streams::tests::a_streams_epoch_jump_is_not_recovered ... ok
+test groups::streams::tests::a_task_past_the_count_is_not_recovered ... ok
+test groups::streams::tests::an_older_endpoint_epoch_does_not_replace_a_newer_one ... ok
+test groups::streams::tests::reading_many_stream_task_ids_does_not_hold_the_caller ... ok
+test groups::streams::tests::session_timeout_removes_a_silent_streams_member ... ok
+test groups::streams::tests::streams_tasks_stay_disjoint_and_a_bad_topology_stores_nothing ... ok
+test groups::tests::an_existing_group_keeps_its_value ... ok
+test high_watermark::tests::a_commit_at_i64_max_is_not_recovered ... ok
+test high_watermark::tests::a_replayed_commit_cannot_move_an_id_to_another_offset ... ok
+test high_watermark::tests::a_replica_outside_the_isr_can_catch_up_and_rejoin ... ok
+test high_watermark::tests::acks_all_waits_for_the_isr_and_committed_ids_survive_failover ... ok
+test high_watermark::tests::an_append_past_the_end_of_i64_does_not_store_a_partial_batch ... ok
+test high_watermark::tests::below_min_isr_rejects_after_the_leader_append ... ok
+test high_watermark::tests::removing_a_lagging_replica_advances_the_high_watermark ... ok
+test idempotence::tests::a_replayed_append_with_a_bad_count_or_epoch_is_refused ... ok
+test idempotence::tests::a_replayed_producer_cannot_skip_the_id_sequence ... ok
+test idempotence::tests::a_sequence_that_overflows_is_not_persisted ... ok
+test idempotence::tests::duplicate_retry_returns_the_original_offset_after_restart ... ok
+test idempotence::tests::old_epoch_and_exhausted_epoch_do_not_append ... ok
+test journal::tests::a_known_payload_crc_extends_the_fingerprint ... ok
+test journal::tests::bounded_index_capacity_and_rejections_never_write ... ok
+test journal::tests::complete_recovery_sync_failure_never_reports_durable_state ... ok
+test journal::tests::corrupted_file_header_and_recovery_offset_overflow_fail_closed ... ok
+test journal::tests::early_zero_read_does_not_become_a_successful_tail_repair ... ok
+test journal::tests::grouped_stages_share_one_sync_and_commit_in_order ... ok
+test journal::tests::header_length_bomb_fails_before_tail_allocation_or_repair ... ok
+test journal::tests::length_is_rechecked_after_invalidation ... ok
+test journal::tests::partial_header_and_payload_writes_poison_without_advancing ... ok
+test journal::tests::record_crc_plus_prefix_matches_the_payload_checksum ... ok
+test groups::share::tests::reassigning_many_share_topics_does_not_hold_the_caller ... ok
+test journal::tests::recovery_loops_through_partial_reads_and_interrupted_calls ... ok
+test journal::tests::repeated_reads_append_without_dropping_earlier_bytes ... ok
+test journal::tests::success_synchronizes_complete_bytes_before_return ... ok
+test journal::tests::tail_repair_truncate_and_sync_errors_never_report_success ... ok
+test journal::tests::valid_later_header_prevents_repair_after_interior_byte_loss ... ok
+test journal::tests::zero_write_and_sync_failure_poison_with_ambiguous_recovery ... ok
+test metadata::tests::a_bracketed_advertised_host_is_sent_without_brackets ... ok
+test journal::tests::staged_sync_commits_and_abort_poisons ... ok
+test metadata::tests::a_create_request_collides_when_dot_and_underscore_differ ... ok
+test metadata::tests::a_metadata_request_resolves_each_topic_by_its_own_id_or_name ... ok
+test metadata::tests::a_metadata_response_does_not_reserve_the_maximum ... ok
+test metadata::tests::a_create_response_reserves_its_budget_before_writing ... ok
+test metadata::tests::a_metadata_response_sizes_its_buffer_once ... ok
+test metadata::tests::a_queued_produce_sizes_its_job_lists_once ... ok
+test metadata::tests::a_short_metadata_target_list_does_not_allocate_a_set ... ok
+test metadata::tests::canceled_compaction_skips_rewrite_and_releases_shared_slot ... ok
+test metadata::tests::canceled_shutdown_retains_join_and_pending_work_is_rejected ... ok
+test metadata::tests::canceled_sweep_and_shared_full_admission_never_retire ... ok
+test metadata::tests::committed_data_with_lost_receipt_replays_without_deduplication ... ok
+test metadata::tests::committed_operation_with_lost_receipt_replays ... ok
+test metadata::tests::canceled_sweep_shutdown_keeps_join_and_rejects_pending_retirement ... ok
+test metadata::tests::failed_actor_join_remains_failed_on_retry ... ok
+test metadata::tests::compaction_shutdown_rejects_queued_rewrite_and_keeps_join ... ok
+test metadata::tests::queued_cancel_and_full_admission_never_mutate ... ok
+test metadata::tests::the_first_copy_of_a_name_or_id_is_the_one_that_is_answered ... ok
+test metadata::tests::queued_data_cancel_and_full_admission_never_append ... ok
+test metadata::tests::unconsumed_data_receipt_keeps_admission_bounded ... ok
+test metadata::tests::unconsumed_sweep_receipt_holds_shared_admission ... ok
+test metadata_quorum::tests::complete_synced_receipt_before_publication_replays_once_and_partial_tail_repairs ... ok
+test metadata_quorum::tests::duplicate_request_replay_returns_original_receipt_without_second_mutation ... ok
+test metadata_quorum::tests::exact_source_payload_term_and_gap_forgery_fail_before_journal_mutation ... ok
+test metadata::tests::unconsumed_compaction_receipt_holds_shared_slot_after_publication ... ok
+test metadata_quorum::tests::group_and_semantic_limit_changes_cannot_reinterpret_durable_outcomes ... ok
+test metadata_quorum::tests::malformed_data_and_application_budget_failure_leave_cursor_unchanged ... ok
+test metadata_quorum::tests::five_node_old_minority_cannot_publish_metadata_and_majority_reopens_exact_prefix ... ok
+test metadata_quorum::tests::racing_commands_and_reused_tokens_are_committed_deterministic_noops ... ok
+test metadata_quorum::tests::new_leader_repairs_uncommitted_metadata_without_creating_a_ghost_topic ... ok
+test metrics::tests::a_counter_that_would_overflow_is_refused ... ok
+test metrics::tests::redacts_secrets_caps_series_and_backpressures_a_stalled_subscriber ... ok
+test partition::tests::fetch_does_not_walk_records_already_checked_at_append ... ok
+test partition::tests::trusted_assign_rejects_a_count_the_body_cannot_hold ... ok
+test metadata_quorum::tests::three_node_metadata_is_invisible_before_majority_and_survives_minority_reopen ... ok
+test produce::tests::a_multi_partition_produce_sizes_its_sync_list_once ... ok
+test produce::tests::a_multi_partition_sync_sizes_its_join_list_once ... ok
+test produce::tests::a_produce_response_reuses_a_parked_buffer ... ok
+test produce::tests::a_produce_topic_key_borrows_the_request_name ... ok
+test produce::tests::a_single_produce_slot_stays_inline ... ok
+test produce::tests::a_second_grouped_produce_reuses_the_capture_list ... ok
+test produce::tests::finished_append_keeps_its_offset_after_the_request_timer ... ok
+test produce::tests::a_timestamp_scan_reuses_its_payload_buffer ... ok
+test produce::tests::queued_produces_keep_the_last_sync_for_each_partition ... ok
+test produce::tests::strictly_increasing_partition_indexes_need_no_duplicate_map ... ok
+test quotas::tests::an_older_clock_does_not_refill_a_spent_quota ... ok
+test quotas::tests::disconnect_and_quota_changes_keep_accepted_work ... ok
+test quotas::tests::one_client_cannot_spend_another_clients_produce_quota ... ok
+test raft::election::tests::a_second_election_record_reuses_the_journal_image ... ok
+test raft::election::tests::a_steady_term_keeps_the_encoded_voter_configuration ... ok
+test raft::election::tests::higher_term_revokes_old_leadership_even_if_timer_cannot_be_armed ... ok
+test raft::election::tests::failed_higher_term_persistence_disables_old_leader_before_any_reply ... ok
+test raft::election::tests::owner_reconciliation_preserves_term_vote_and_checks_floor_and_role ... ok
+test raft::election::tests::synchronization_precedes_grant_and_ambiguous_failure_requires_recovery ... ok
+test raft::election::tests::strict_state_encoding_rejects_reserved_bits_unknown_votes_and_empty_mismatch ... ok
+test raft::peer_codec::tests::a_second_frame_reuses_the_encode_buffer ... ok
+test raft::peer_codec::tests::response_echo_must_match_original_request_and_directory ... ok
+test raft::peer_codec::tests::writer_keeps_earlier_bytes_as_it_grows ... ok
+test raft::peer_codec::tests::every_prefix_crc_version_reserved_unknown_and_trailing_mutation_rejects ... ok
+test raft::protocol::prevote_tests::a_follower_with_a_leader_does_not_grant_the_same_epoch ... ok
+test raft::protocol::prevote_tests::a_foreign_cluster_id_is_refused_before_directory_or_epoch ... ok
+test raft::protocol::prevote_tests::a_stale_successor_directory_is_not_rank_zero ... ok
+test raft::protocol::prevote_tests::a_vote_for_another_replica_is_not_a_grant ... ok
+test raft::protocol::prevote_tests::begin_v0_parses_and_v1_directory_mismatch_does_not_change_state ... ok
+test raft::protocol::prevote_tests::describe_quorum_v2_directory_mismatch_is_not_advertised ... ok
+test raft::protocol::prevote_tests::end_rejects_a_self_or_duplicate_successor_list ... ok
+test raft::protocol::prevote_tests::end_v0_parses_and_v1_stale_directory_is_not_a_successor ... ok
+test raft::protocol::prevote_tests::epoch_response_v0_matches_the_handler_and_v1_endpoint_is_not_applied ... ok
+test raft::protocol::prevote_tests::fetch_snapshot_v1_directory_mismatch_is_not_advertised ... ok
+test raft::protocol::prevote_tests::prevote_does_not_change_the_stable_term_or_vote ... ok
+test raft::protocol::prevote_tests::prevote_offset_zero_with_nonzero_epoch_is_not_an_empty_log ... ok
+test raft::protocol::prevote_tests::stale_directory_or_term_or_log_is_refused ... ok
+test raft::protocol::prevote_tests::standard_directory_vote_refuses_a_losing_candidate_without_persisting ... ok
+test raft::protocol::prevote_tests::vote_response_v0_matches_the_handler_and_v1_endpoint_is_not_applied ... ok
+test raft::protocol::prevote_tests::vote_v0_matches_the_existing_request_and_v2_prevote_is_not_persisted ... ok
+test raft::protocol::response_buffer_tests::a_controller_response_reuses_its_buffer ... ok
+test raft::protocol::prevote_tests::voter_directory_changes_are_parsed_and_not_applied ... ok
+test raft::replication::tests::follower_commit_runtime_checks_entry_term_before_persistence ... ok
+test raft::replication::tests::snapshot_install_process_cut_helper ... ok
+test raft::replication::tests::full_queue_canceled_work_and_owner_completion_have_distinct_outcomes ... ok
+test raft::replication::tests::unconsumed_fetch_receipt_keeps_admission_bounded ... ok
+test raft::runtime::frame_deadline_tests::a_ready_peer_flood_does_not_hold_the_command_wait ... ok
+test raft::replication::tests::snapshot_install_receipt_and_summary_process_cuts_recover_prefix_and_local_vote ... ok
+test raft::runtime::frame_deadline_tests::an_illegal_length_after_a_frame_ends_the_idle_read ... ok
+test raft::runtime::frame_deadline_tests::an_illegal_length_already_buffered_ends_the_peer_write ... ok
+test raft::runtime::frame_deadline_tests::an_illegal_peer_length_ends_the_idle_read ... ok
+test raft::runtime::frame_deadline_tests::read_deadline_stops_a_greedy_peer_frame ... ok
+test raft::runtime::frame_deadline_tests::read_deadline_stops_a_ready_peer_frame ... ok
+test raft::runtime::frame_deadline_tests::write_deadline_stops_a_greedy_peer_frame ... ok
+test raft::runtime::frame_deadline_tests::write_deadline_stops_a_ready_peer_frame ... ok
+test raft::runtime::ownership_tests::abandoned_peer_socket_ends_a_flooded_read ... ok
+test raft::runtime::ownership_tests::abandoned_peer_socket_is_closed_before_the_caller_returns ... ok
+test raft::runtime::ownership_tests::abandoned_vote_vector_and_full_route_release_every_exact_correlation ... ok
+test raft::runtime::frame_deadline_tests::a_run_of_minimum_frames_does_not_hold_the_peer_watch ... ok
+test raft::runtime::ownership_tests::exact_append_timeout_rejects_real_late_ack_and_cannot_cancel_newer_request ... ok
+test raft::runtime::ownership_tests::expired_outer_budget_cannot_admit_a_genuine_leader_write ... ok
+test raft::runtime::ownership_tests::configured_route_does_not_authorize_unknown_configuration_leader_over_tcp ... ok
+test raft::runtime::ownership_tests::observer_addition_keeps_real_log_budget_failure_terminal ... ok
+test raft::runtime::ownership_tests::observer_addition_retries_real_snapshot_busy_then_commits_new_set ... ok
+test raft::runtime::ownership_tests::outbound_closes_when_the_peer_leaves_during_a_chunk ... ok
+test raft::runtime::ownership_tests::outbound_closes_when_the_peer_leaves_during_acknowledge ... ok
+test raft::runtime::ownership_tests::outbound_closes_when_the_peer_leaves_between_jobs ... ok
+test raft::runtime::ownership_tests::outbound_closes_when_the_peer_leaves_during_frame_admission ... ok
+test raft::runtime::ownership_tests::peer_socket_configuration_disables_nagle_on_both_directions ... ok
+test raft::runtime::ownership_tests::reliable_stop_waits_for_saturated_owner_even_after_command_deadline ... ok
+test raft::runtime::ownership_tests::serve_closes_the_socket_when_frame_admission_fails ... ok
+test raft::runtime::ownership_tests::serve_closes_when_a_command_is_flooded ... ok
+test raft::runtime::ownership_tests::serve_closes_when_hello_is_flooded ... ok
+test raft::runtime::ownership_tests::serve_closes_when_the_peer_leaves_during_frame_admission ... ok
+test raft::runtime::ownership_tests::serve_returns_when_the_peer_closes_during_a_command ... ok
+test raft::runtime::ownership_tests::outbound_closes_when_the_peer_leaves_during_prepare ... ok
+test raft::runtime::tests::actual_five_peer_tcp_observer_multichunk_image_install_reopen_and_join ... ok
+test raft::runtime::tests::actual_five_node_tcp_minority_partition_late_ack_image_restart_and_removal ... ok
+test raft::runtime::tests::actual_three_peer_tcp_observer_multichunk_image_install_reopen_and_join ... ok
+test raft::runtime::tests::canceled_ready_and_shutdown_keep_owner_until_successful_join_and_port_reuse ... ok
+test raft::runtime::tests::incomplete_oversized_hello_saturation_closes_all_tasks_on_join ... ok
+test raft::runtime::tests::runtime_child_process ... ok
+test raft::snapshot::tests::inner_publication_io_failures_preserve_previous_complete_image ... ok
+
+running 1 test
+
+running 1 test
+
+running 1 test
+test raft::snapshot::tests::inner_publication_process_exits_preserve_previous_complete_image ... ok
+test raft::snapshot::tests::inner_publication_process_helper ... ok
+test raft::snapshot::tests::node_inner_publication_io_failures_replay_previous_receipt_and_committed_suffix ... ok
+
+running 1 test
+
+running 1 test
+
+running 1 test
+test raft::snapshot::tests::node_inner_publication_process_exits_replay_previous_receipt_and_committed_suffix ... ok
+test raft::snapshot::tests::node_inner_publication_process_helper ... ok
+test records::tests::framed_assignment_matches_validated_contiguous_batches ... ok
+test records::tests::plain_batches_match_the_generic_walk ... ok
+test recovery::tests::a_gapped_recovered_record_is_refused ... ok
+test recovery::tests::a_record_at_i64_max_is_not_recovered ... ok
+test recovery::tests::an_offset_at_the_end_of_i64_is_not_appended ... ok
+test recovery::tests::offset_for_leader_epoch_hides_a_truncated_suffix ... ok
+test recovery::tests::seeded_failover_keeps_committed_ids_once ... ok
+test replication::tests::a_full_follower_keeps_records_copied_before_the_cap ... ok
+test replication::tests::a_gapped_replica_record_is_not_recovered ... ok
+test replication::tests::a_record_at_i64_max_is_not_recovered_or_copied ... ok
+test replication::tests::an_offset_at_the_end_of_i64_is_not_appended ... ok
+test replication::tests::divergent_suffix_is_truncated_and_a_stale_leader_is_fenced ... ok
+test replication::tests::fetch_budget_stops_before_a_later_record_and_an_empty_budget_is_refused ... ok
+test replication::tests::follower_matches_leader_bytes_and_resumes_after_restart ... ok
+test retention::tests::a_delete_records_response_reuses_its_buffer ... ok
+test security::acl::tests::a_revoke_or_superuser_the_live_path_would_not_store_is_refused ... ok
+test security::acl::tests::deny_beats_allow_superuser_bypasses_and_reopen_restores ... ok
+test security::tokens::tests::a_skipped_or_unsorted_token_is_not_recovered ... ok
+test security::tokens::tests::owner_renewer_expiry_and_redacted_secret_survive_restart ... ok
+test segments::tests::checksum_valid_impossible_victim_descriptor_is_rejected_before_unlink ... ok
+test segments::tests::compaction_one_byte_cap_rejects_before_loading_a_large_payload ... ok
+test segments::tests::compaction_one_record_cap_rejects_before_parsing_any_large_entry_body ... ok
+
+running 1 test
+
+running 1 test
+
+running 1 test
+
+running 1 test
+
+running 1 test
+
+running 1 test
+
+running 1 test
+
+running 1 test
+
+running 1 test
+
+running 1 test
+
+running 1 test
+
+running 1 test
+
+running 1 test
+
+running 1 test
+
+running 1 test
+
+running 1 test
+test segments::tests::compaction_process_exit_at_publication_and_cleanup_recovers_atomic_round ... ok
+test segments::tests::compaction_publication_partial_cleanup_io_errors_recover_one_complete_selected_round ... ok
+test segments::tests::every_roll_publication_failure_preserves_prior_acknowledgments ... ok
+test segments::tests::failed_floor_getter_reports_confirmed_state_and_reopen_never_decreases ... ok
+test segments::tests::process_exit_at_each_roll_publication_stage_recovers_committed_payloads ... ok
+test segments::tests::process_exit_at_retention_publication_partial_unlink_and_active_retirement_recovers_monotonic_floor ... ok
+test segments::tests::process_exit_during_partial_copy_and_each_replacement_publication_recovers_all_records ... ok
+test segments::tests::replacement_publication_and_cleanup_failures_select_complete_generations ... ok
+test segments::tests::retention_publication_partial_unlink_and_active_retirement_failures_preserve_acknowledged_floor ... ok
+test share_delivery::tests::a_negative_delivery_offset_is_not_recovered ... ok
+test share_delivery::tests::a_record_that_starts_accepted_is_not_recovered ... ok
+test share_delivery::tests::acquire_takes_a_lock_whose_deadline_has_passed ... ok
+test share_delivery::tests::expiry_at_the_delivery_limit_archives_the_record ... ok
+test share_delivery::tests::partial_ack_expiry_and_leader_loss_do_not_accept_undelivered_records ... ok
+test share_delivery::tests::release_gap_and_expired_ack_at_the_delivery_limit_archive_the_record ... ok
+test share_state::tests::a_batch_before_the_start_offset_is_not_recovered ... ok
+test share_state::tests::a_snapshot_that_skips_a_live_change_is_not_recovered ... ok
+test share_state::tests::a_start_offset_does_not_move_backward_or_cover_an_earlier_batch ... ok
+test share_state::tests::an_acknowledged_span_at_i64_max_is_refused ... ok
+test share_state::tests::write_is_atomic_and_timeout_keeps_delivery_counts ... ok
+test tiered::tests::a_negative_partition_is_not_recovered ... ok
+test tiered::tests::an_abandoned_partial_is_dropped_when_its_deadline_passes ... ok
+test tiered::tests::an_abort_of_a_published_object_is_not_recovered ... ok
+test tiered::tests::partial_offload_keeps_local_data_and_restore_checks_the_checksum ... ok
+test transactions::coordinator::tests::a_repeated_partition_does_not_consume_a_journal_record ... ok
+test transactions::coordinator::tests::a_replayed_add_cannot_change_a_prepared_transaction ... ok
+test transactions::coordinator::tests::a_replayed_init_cannot_skip_the_producer_sequence ... ok
+test transactions::coordinator::tests::a_second_begin_does_not_reset_an_ongoing_transaction ... ok
+test transactions::coordinator::tests::init_leaves_a_prepared_transaction_in_place ... ok
+test transactions::coordinator::tests::prepared_commit_survives_failover_and_an_old_epoch_cannot_finish ... ok
+test transactions::markers::tests::a_gapped_marker_offset_is_not_recovered ... ok
+test transactions::markers::tests::a_later_transaction_in_the_same_epoch_waits_for_its_own_marker ... ok
+test transactions::markers::tests::aborted_and_incomplete_records_stay_hidden_and_a_later_commit_is_visible ... ok
+test transactions::markers::tests::reading_many_committed_markers_does_not_hold_the_caller ... ok
+test transactions::offsets::tests::a_later_transaction_in_the_same_epoch_does_not_publish_early ... ok
+test transactions::offsets::tests::a_negative_staged_partition_is_not_recovered ... ok
+test transactions::offsets::tests::an_aborted_generation_does_not_fence_the_next_transaction ... ok
+test transactions::offsets::tests::an_older_epoch_or_repeated_marker_is_not_recovered ... ok
+test transactions::offsets::tests::offsets_and_data_stay_hidden_until_commit_and_a_lost_ack_does_not_duplicate ... ok
+test transactions::offsets::tests::reading_many_txn_generations_does_not_hold_the_caller ... ok
+test transport::disconnect_tests::client_disconnect_stops_the_handler ... ok
+test transport::disconnect_tests::flooded_request_stops_the_handler ... ok
+test transport::disconnect_tests::pipelined_disconnect_stops_the_handler ... ok
+test transport::frame_read_deadline_tests::a_handler_deadline_stops_a_greedy_pipeline ... ok
+test transport::frame_read_deadline_tests::a_run_of_empty_frames_does_not_hold_the_handler_watch ... ok
+test transport::frame_read_deadline_tests::read_deadline_stops_a_greedy_buffered_body ... ok
+test transport::frame_read_deadline_tests::read_deadline_stops_a_greedy_frame_body ... ok
+test transport::frame_read_deadline_tests::read_deadline_stops_a_ready_frame_body ... ok
+test transport::frame_read_deadline_tests::read_deadline_stops_a_ready_length_prefix ... ok
+test transport::handler_deadline_tests::an_illegal_length_after_a_frame_stops_the_handler ... ok
+test transport::handler_deadline_tests::handler_deadline_runs_during_a_ready_prefetch ... ok
+test transport::read_ahead_tests::a_parked_request_keeps_its_capacity ... ok
+test transport::read_ahead_tests::a_partial_tail_compacts_without_the_consumed_frame ... ok
+test transport::read_ahead_tests::a_second_frame_reuses_the_body_buffer ... ok
+test transport::read_ahead_tests::a_short_prefix_waits_for_the_rest_of_the_frame ... ok
+test transport::read_ahead_tests::an_empty_body_is_a_frame ... ok
+test transport::read_ahead_tests::an_oversized_length_is_rejected_before_its_body ... ok
+test transport::read_ahead_tests::one_buffered_frame_keeps_its_allocation ... ok
+test transport::read_ahead_tests::pipelined_frames_are_split_without_moving_the_tail ... ok
+test transport::read_deadline_tests::read_deadline_closes_the_socket ... ok
+test transport::reject_connection_tests::rejected_connection_closes_before_the_caller_returns ... ok
+test transport::shutdown_tests::shutdown_closes_the_accepted_socket ... ok
+test transport::write_prefetch_tests::a_failed_prefetch_does_not_wait_out_the_write ... ok
+test transport::write_prefetch_tests::an_illegal_length_after_a_frame_does_not_wait_out_the_write ... ok
+test transport::write_prefetch_tests::an_illegal_prefetch_length_does_not_wait_out_the_write ... ok
+test transport::write_prefetch_tests::write_deadline_stops_a_greedy_prefetch ... ok
+test transport::write_prefetch_tests::write_deadline_stops_a_greedy_response ... ok
+test transport::write_prefetch_tests::write_deadline_stops_a_ready_partial_write ... ok
+test transport::write_prefetch_tests::write_deadline_stops_a_ready_prefetch ... ok
+test raft::runtime::tests::actual_three_node_tcp_minority_partition_late_ack_image_restart_and_removal ... ok
+
+test result: ok. 331 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 4.87s
+
+     Running unittests src/bin/operator.rs (/workspace/work/qualification-20261027/broker-check-target/debug/deps/operator-a38668bb0c107d94)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/catalog.rs (/workspace/work/qualification-20261027/broker-check-target/debug/deps/catalog-dabac699f62305ee)
+
+running 14 tests
+test changed_file_poisoning_keeps_confirmed_state_and_recovery_repairs_tail ... ok
+test atomic_create_delete_tombstone_and_name_recreation_survive_restart ... ok
+test complete_journal_corruption_and_interior_byte_loss_fail_closed ... ok
+test deleted_collision_name_is_released_but_identity_is_not ... ok
+test deletes_count_against_operation_replay_and_journal_budgets ... ok
+test checksummed_malformed_operations_and_conflicting_histories_fail_closed ... ok
+test independent_apache_name_vectors_match_and_reserved_ids_are_rejected ... ok
+test invalid_limits_and_tightened_journal_bounds_are_explicit ... ok
+test invalid_names_partitions_duplicate_names_ids_and_collisions_do_not_mutate ... ok
+test oversized_persisted_entry_and_duplicate_owner_are_rejected ... ok
+test every_torn_tombstone_tail_prefix_recovers_whole_previous_catalog ... ok
+test process_exit_without_destructors_preserves_durable_history_and_reports_tails ... ok
+test stricter_restart_budgets_fail_without_rewriting_complete_history ... ok
+test topic_identity_partition_operation_and_replay_budgets_hold_before_append ... ok
+
+test result: ok. 14 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/codecs.rs (/workspace/work/qualification-20261027/broker-check-target/debug/deps/codecs-476365ab4baeca96)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/compaction.rs (/workspace/work/qualification-20261027/broker-check-target/debug/deps/compaction-6af26c56b62bd9e4)
+
+running 9 tests
+test corrupted_sealed_source_poison_preserves_selected_manifest_and_confirmed_offsets ... ok
+test carried_empty_batch_maximum_allows_guarded_age_reclamation_without_timestamp_records ... ok
+test every_round_budget_and_invalid_clock_fails_before_any_file_change ... ok
+test genuine_apache_cleaner_horizons_exact_bytes_offsets_and_restart ... ok
+test genuine_empty_last_batch_and_deleted_intermediate_batch_preserve_logical_span ... ok
+test horizon_varint_growth_exceeds_entry_ceiling_before_creating_a_generation ... ok
+test monolithic_storage_and_strict_sparse_admission_remain_unchanged ... ok
+test zero_horizon_window_never_resurrects_old_values_and_segment_cap_is_atomic ... ok
+test independently_protected_sealed_and_active_suffixes_never_enter_key_map ... ok
+
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.07s
+
+     Running tests/fault_campaign.rs (/workspace/work/qualification-20261027/broker-check-target/debug/deps/fault_campaign-76f44d9fa1cc748a)
+
+running 1 test
+test seeded_faults_preserve_committed_outcomes ... FAILED
+
+failures:
+
+---- seeded_faults_preserve_committed_outcomes stdout ----
+
+thread 'seeded_faults_preserve_committed_outcomes' (6843) panicked at tests/fault_campaign.rs:324:9:
+assertion `left == right` failed: transactional-offsets
+  left: 150
+ right: 0
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    seeded_faults_preserve_committed_outcomes
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.08s
+
+error: test failed, to rerun pass `--test fault_campaign`

@@ -1,0 +1,14 @@
+test_changed_executable_refused_before_any_worker_starts (test_broker_fuzz_campaign.BrokerCampaign.test_changed_executable_refused_before_any_worker_starts) ... ok
+test_interruption_joins_all_children_and_resume_keeps_the_prior_attempt (test_broker_fuzz_campaign.BrokerCampaign.test_interruption_joins_all_children_and_resume_keeps_the_prior_attempt) ... ok
+test_launched_job_without_final_receipt_is_incomplete (test_broker_fuzz_campaign.BrokerCampaign.test_launched_job_without_final_receipt_is_incomplete) ... ok
+test_mutated_real_log_is_refused (test_broker_fuzz_campaign.BrokerCampaign.test_mutated_real_log_is_refused) ... ok
+test_real_short_run_has_coverage_and_never_qualifies_a_campaign (test_broker_fuzz_campaign.BrokerCampaign.test_real_short_run_has_coverage_and_never_qualifies_a_campaign) ... ok
+test_recovery_fixture_io_failure_cannot_pass_as_fuzz_work (test_broker_fuzz_campaign.BrokerCampaign.test_recovery_fixture_io_failure_cannot_pass_as_fuzz_work) ... ok
+test_short_campaign_request_refused_before_launch (test_broker_fuzz_campaign.BrokerCampaign.test_short_campaign_request_refused_before_launch) ... ok
+test_short_real_run_cannot_be_relabelled_as_twenty_four_hours (test_broker_fuzz_campaign.BrokerCampaign.test_short_real_run_cannot_be_relabelled_as_twenty_four_hours) ... ok
+test_unjoined_worker_refused (test_broker_fuzz_campaign.BrokerCampaign.test_unjoined_worker_refused) ... ok
+
+----------------------------------------------------------------------
+Ran 9 tests in 9.537s
+
+OK

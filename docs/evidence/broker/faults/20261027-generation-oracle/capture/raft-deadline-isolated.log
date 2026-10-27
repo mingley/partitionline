@@ -1,0 +1,8 @@
+    Finished `test` profile [unoptimized] target(s) in 0.06s
+     Running unittests src/lib.rs (/workspace/work/qualification-20261027/broker-check-target/debug/deps/partitionline_broker-02af17ce92f0d2ad)
+
+running 1 test
+test raft::runtime::ownership_tests::expired_outer_budget_cannot_admit_a_genuine_leader_write ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 330 filtered out; finished in 0.01s
+

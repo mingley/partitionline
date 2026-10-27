@@ -1,0 +1,356 @@
+{
+  "schema_version": 1,
+  "files": [
+    {
+      "original_path": "/workspace/work/qualification-checks-20261027/broker-all-features.exit",
+      "original_sha256": "39b8dc3fc8b44765c8e6f1adee04c5b465e555ab791cc42d0d9e810d5b64297c",
+      "original_bytes": 4,
+      "stored_path": "capture/broker-all-features.exit",
+      "stored_sha256": "39b8dc3fc8b44765c8e6f1adee04c5b465e555ab791cc42d0d9e810d5b64297c",
+      "stored_bytes": 4,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/qualification-checks-20261027/broker-all-features.log",
+      "original_sha256": "933735b9fba68a43752f0ac3b7d8db4ff1ecb34c2aa397de53af31b6afe48250",
+      "original_bytes": 38064,
+      "stored_path": "capture/broker-all-features.log",
+      "stored_sha256": "933735b9fba68a43752f0ac3b7d8db4ff1ecb34c2aa397de53af31b6afe48250",
+      "stored_bytes": 38064,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/qualification-checks-20261027/broker-default-corrected.exit",
+      "original_sha256": "39b8dc3fc8b44765c8e6f1adee04c5b465e555ab791cc42d0d9e810d5b64297c",
+      "original_bytes": 4,
+      "stored_path": "capture/broker-default-corrected.exit",
+      "stored_sha256": "39b8dc3fc8b44765c8e6f1adee04c5b465e555ab791cc42d0d9e810d5b64297c",
+      "stored_bytes": 4,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/qualification-checks-20261027/broker-default-corrected.log",
+      "original_sha256": "55628033725713cadd32d9961f85c4577249ae45e5c4fdc2713e0ef32ed16e68",
+      "original_bytes": 37428,
+      "stored_path": "capture/broker-default-corrected.log",
+      "stored_sha256": "55628033725713cadd32d9961f85c4577249ae45e5c4fdc2713e0ef32ed16e68",
+      "stored_bytes": 37428,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/qualification-checks-20261027/broker-default-quiet.exit",
+      "original_sha256": "39b8dc3fc8b44765c8e6f1adee04c5b465e555ab791cc42d0d9e810d5b64297c",
+      "original_bytes": 4,
+      "stored_path": "capture/broker-default-quiet.exit",
+      "stored_sha256": "39b8dc3fc8b44765c8e6f1adee04c5b465e555ab791cc42d0d9e810d5b64297c",
+      "stored_bytes": 4,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/qualification-checks-20261027/broker-default-quiet.log",
+      "original_sha256": "e233e2f9cd844faf25df2a5f5693a34074b658a2c1b9135c2ced4cd3698d0a8a",
+      "original_bytes": 34097,
+      "stored_path": "capture/broker-default-quiet.log",
+      "stored_sha256": "e233e2f9cd844faf25df2a5f5693a34074b658a2c1b9135c2ced4cd3698d0a8a",
+      "stored_bytes": 34097,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/qualification-checks-20261027/broker-default-tests.exit",
+      "original_sha256": "39b8dc3fc8b44765c8e6f1adee04c5b465e555ab791cc42d0d9e810d5b64297c",
+      "original_bytes": 4,
+      "stored_path": "capture/broker-default-tests.exit",
+      "stored_sha256": "39b8dc3fc8b44765c8e6f1adee04c5b465e555ab791cc42d0d9e810d5b64297c",
+      "stored_bytes": 4,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/qualification-checks-20261027/broker-default-tests.log",
+      "original_sha256": "ea4382ee73441d95ae5334e0e7090317c3fea23f2a251ee1f5b2acb8437b7d0b",
+      "original_bytes": 32337,
+      "stored_path": "capture/broker-default-tests.log",
+      "stored_sha256": "ea4382ee73441d95ae5334e0e7090317c3fea23f2a251ee1f5b2acb8437b7d0b",
+      "stored_bytes": 32337,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/qualification-checks-20261027/consumer-caller-isolated.log",
+      "original_sha256": "d0bc227e6b33134026fe1b17690c7d226833deb5a466309333d6289f01e2cccc",
+      "original_bytes": 402,
+      "stored_path": "capture/consumer-caller-isolated.log",
+      "stored_sha256": "d0bc227e6b33134026fe1b17690c7d226833deb5a466309333d6289f01e2cccc",
+      "stored_bytes": 402,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/qualification-checks-20261027/fault-campaign-before.rs",
+      "original_sha256": "38ccf8c7d110365ebe460dd9a7cf3fb333be5d75665f6d0bfd02f168d680ca03",
+      "original_bytes": 13178,
+      "stored_path": "capture/fault-campaign-before.rs",
+      "stored_sha256": "38ccf8c7d110365ebe460dd9a7cf3fb333be5d75665f6d0bfd02f168d680ca03",
+      "stored_bytes": 13178,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/qualification-checks-20261027/fault-oracle-all-features.elf",
+      "original_sha256": "bbb2e1dd1193080afced6e9309cf8f143c3344d2fa9ac14cd2d28524e398c970",
+      "original_bytes": 2390072,
+      "stored_path": "capture/fault-oracle-all-features.elf.gz",
+      "stored_sha256": "d225eb473c92b80dbb9193213f717dfa4b7d9b850ec51b55accf1e2f129d1f83",
+      "stored_bytes": 780590,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/qualification-checks-20261027/fault-oracle-all-features.exit",
+      "original_sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+      "original_bytes": 2,
+      "stored_path": "capture/fault-oracle-all-features.exit",
+      "stored_sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+      "stored_bytes": 2,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/qualification-checks-20261027/fault-oracle-all-features.json",
+      "original_sha256": "51d48b91dc484d2e95667e0b91e8c07d51053ee21cfe523ed6ca1929075c6d38",
+      "original_bytes": 815,
+      "stored_path": "capture/fault-oracle-all-features.json",
+      "stored_sha256": "51d48b91dc484d2e95667e0b91e8c07d51053ee21cfe523ed6ca1929075c6d38",
+      "stored_bytes": 815,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/qualification-checks-20261027/fault-oracle-all-features.log",
+      "original_sha256": "5ab5a2eb99db648c992d0a4b22f444b3be796f17d67d900a675c95a84492cbdf",
+      "original_bytes": 1184,
+      "stored_path": "capture/fault-oracle-all-features.log",
+      "stored_sha256": "5ab5a2eb99db648c992d0a4b22f444b3be796f17d67d900a675c95a84492cbdf",
+      "stored_bytes": 1184,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/qualification-checks-20261027/fault-oracle-clippy.exit",
+      "original_sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+      "original_bytes": 2,
+      "stored_path": "capture/fault-oracle-clippy.exit",
+      "stored_sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+      "stored_bytes": 2,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/qualification-checks-20261027/fault-oracle-clippy.log",
+      "original_sha256": "75cd7e8d83efab0b73ae284f51e0ec5232ac9d7b8c4f0c4fe72327dfc67829e2",
+      "original_bytes": 1903,
+      "stored_path": "capture/fault-oracle-clippy.log",
+      "stored_sha256": "75cd7e8d83efab0b73ae284f51e0ec5232ac9d7b8c4f0c4fe72327dfc67829e2",
+      "stored_bytes": 1903,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/qualification-checks-20261027/fault-oracle-corrected.exit",
+      "original_sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+      "original_bytes": 2,
+      "stored_path": "capture/fault-oracle-corrected.exit",
+      "stored_sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+      "stored_bytes": 2,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/qualification-checks-20261027/fault-oracle-corrected.json",
+      "original_sha256": "51d48b91dc484d2e95667e0b91e8c07d51053ee21cfe523ed6ca1929075c6d38",
+      "original_bytes": 815,
+      "stored_path": "capture/fault-oracle-corrected.json",
+      "stored_sha256": "51d48b91dc484d2e95667e0b91e8c07d51053ee21cfe523ed6ca1929075c6d38",
+      "stored_bytes": 815,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/qualification-checks-20261027/fault-oracle-corrected.log",
+      "original_sha256": "e492979676a0adc8d06f27c5dd9909ec95e06797aaf445a9e78bcea622aa2e30",
+      "original_bytes": 1577,
+      "stored_path": "capture/fault-oracle-corrected.log",
+      "stored_sha256": "e492979676a0adc8d06f27c5dd9909ec95e06797aaf445a9e78bcea622aa2e30",
+      "stored_bytes": 1577,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/qualification-checks-20261027/fault-oracle-default.elf",
+      "original_sha256": "946fe19390a087f034b5ba02e982968a501126bf1a2de47c32c7b44feda7a6a6",
+      "original_bytes": 2150800,
+      "stored_path": "capture/fault-oracle-default.elf.gz",
+      "stored_sha256": "09d267248c4c9d23894352a256ffed59f7b0685e0522c2288d15d8a6180fe248",
+      "stored_bytes": 712069,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/qualification-checks-20261027/fault-oracle-final-all-features.json",
+      "original_sha256": "51d48b91dc484d2e95667e0b91e8c07d51053ee21cfe523ed6ca1929075c6d38",
+      "original_bytes": 815,
+      "stored_path": "capture/fault-oracle-final-all-features.json",
+      "stored_sha256": "51d48b91dc484d2e95667e0b91e8c07d51053ee21cfe523ed6ca1929075c6d38",
+      "stored_bytes": 815,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/qualification-checks-20261027/fault-oracle-final-all-features.log",
+      "original_sha256": "b0a3bfec4b8891fa19e176d85e4393dcb28881b1af14335621fd3c0f92192d96",
+      "original_bytes": 1273,
+      "stored_path": "capture/fault-oracle-final-all-features.log",
+      "stored_sha256": "b0a3bfec4b8891fa19e176d85e4393dcb28881b1af14335621fd3c0f92192d96",
+      "stored_bytes": 1273,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/qualification-checks-20261027/fault-oracle-final-checks.json",
+      "original_sha256": "378ad37d78d27aa2508a11730426ae4b7361f103830792cb15b9ec68de26aad4",
+      "original_bytes": 225,
+      "stored_path": "capture/fault-oracle-final-checks.json",
+      "stored_sha256": "378ad37d78d27aa2508a11730426ae4b7361f103830792cb15b9ec68de26aad4",
+      "stored_bytes": 225,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/qualification-checks-20261027/fault-oracle-final-clippy.log",
+      "original_sha256": "9885a368dbaf08d95a3f52bf5ed129dba48751c1f31bb0f5844e8e8ab2efbc29",
+      "original_bytes": 149,
+      "stored_path": "capture/fault-oracle-final-clippy.log",
+      "stored_sha256": "9885a368dbaf08d95a3f52bf5ed129dba48751c1f31bb0f5844e8e8ab2efbc29",
+      "stored_bytes": 149,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/qualification-checks-20261027/fault-oracle-final-default.json",
+      "original_sha256": "51d48b91dc484d2e95667e0b91e8c07d51053ee21cfe523ed6ca1929075c6d38",
+      "original_bytes": 815,
+      "stored_path": "capture/fault-oracle-final-default.json",
+      "stored_sha256": "51d48b91dc484d2e95667e0b91e8c07d51053ee21cfe523ed6ca1929075c6d38",
+      "stored_bytes": 815,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/qualification-checks-20261027/fault-oracle-final-default.log",
+      "original_sha256": "fed48fdf96716328c62c1c24168366a774a74c4ecd4cd5a8982c8beea0fa60de",
+      "original_bytes": 1577,
+      "stored_path": "capture/fault-oracle-final-default.log",
+      "stored_sha256": "fed48fdf96716328c62c1c24168366a774a74c4ecd4cd5a8982c8beea0fa60de",
+      "stored_bytes": 1577,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/qualification-checks-20261027/isolated-broker-rechecks.json",
+      "original_sha256": "44368093a9428ed5bdf26bc380002a363d180bcecd533f7a5f780ae6f0908dee",
+      "original_bytes": 705,
+      "stored_path": "capture/isolated-broker-rechecks.json",
+      "stored_sha256": "44368093a9428ed5bdf26bc380002a363d180bcecd533f7a5f780ae6f0908dee",
+      "stored_bytes": 705,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/qualification-checks-20261027/oracle-binary-pins.json",
+      "original_sha256": "c2be81689bfb4f7f9b59026f5ff5a7246acc8d868973a9f3de912be6399d75a5",
+      "original_bytes": 650,
+      "stored_path": "capture/oracle-binary-pins.json",
+      "stored_sha256": "c2be81689bfb4f7f9b59026f5ff5a7246acc8d868973a9f3de912be6399d75a5",
+      "stored_bytes": 650,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/qualification-checks-20261027/oracle-claim-push.log",
+      "original_sha256": "d35028ec56c5e80a53e83ba9ad7ebbb3218b512d4669f1a0986defacf163fd36",
+      "original_bytes": 84,
+      "stored_path": "capture/oracle-claim-push.log",
+      "stored_sha256": "d35028ec56c5e80a53e83ba9ad7ebbb3218b512d4669f1a0986defacf163fd36",
+      "stored_bytes": 84,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/qualification-checks-20261027/oracle-exact-source-push.log",
+      "original_sha256": "141f03de3a2e1b9307b2ef150101cde6a62184e6884702e86241a6e6bd26e4c5",
+      "original_bytes": 84,
+      "stored_path": "capture/oracle-exact-source-push.log",
+      "stored_sha256": "141f03de3a2e1b9307b2ef150101cde6a62184e6884702e86241a6e6bd26e4c5",
+      "stored_bytes": 84,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/qualification-checks-20261027/oracle-final-format.log",
+      "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "original_bytes": 0,
+      "stored_path": "capture/oracle-final-format.log",
+      "stored_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stored_bytes": 0,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/qualification-checks-20261027/oracle-source-push.log",
+      "original_sha256": "09f6c5787d5b8c05d083283158601febfa58d40c926ceedc0bea39d924754207",
+      "original_bytes": 84,
+      "stored_path": "capture/oracle-source-push.log",
+      "stored_sha256": "09f6c5787d5b8c05d083283158601febfa58d40c926ceedc0bea39d924754207",
+      "stored_bytes": 84,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/qualification-checks-20261027/raft-deadline-isolated.log",
+      "original_sha256": "f0e853506f7a7f187a9c5b38a19417dbbd5ae3f9b690c4e2a423b80a10d41b9b",
+      "original_bytes": 420,
+      "stored_path": "capture/raft-deadline-isolated.log",
+      "stored_sha256": "f0e853506f7a7f187a9c5b38a19417dbbd5ae3f9b690c4e2a423b80a10d41b9b",
+      "stored_bytes": 420,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/qualification-checks-20261027/share-caller-isolated.log",
+      "original_sha256": "d0c012c7fefd64958512f556be9f6ef0d515442bc2e56383ca0bdc4005884433",
+      "original_bytes": 408,
+      "stored_path": "capture/share-caller-isolated.log",
+      "stored_sha256": "d0c012c7fefd64958512f556be9f6ef0d515442bc2e56383ca0bdc4005884433",
+      "stored_bytes": 408,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/qualification-checks-20261027/write-prefetch-isolated.exit",
+      "original_sha256": "39b8dc3fc8b44765c8e6f1adee04c5b465e555ab791cc42d0d9e810d5b64297c",
+      "original_bytes": 4,
+      "stored_path": "capture/write-prefetch-isolated.exit",
+      "stored_sha256": "39b8dc3fc8b44765c8e6f1adee04c5b465e555ab791cc42d0d9e810d5b64297c",
+      "stored_bytes": 4,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/qualification-checks-20261027/write-prefetch-isolated.log",
+      "original_sha256": "de96b099b41ef435f8c2f436cc810b627a90bb3c808ef64de686f83002ff993a",
+      "original_bytes": 816,
+      "stored_path": "capture/write-prefetch-isolated.log",
+      "stored_sha256": "de96b099b41ef435f8c2f436cc810b627a90bb3c808ef64de686f83002ff993a",
+      "stored_bytes": 816,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/partitionline/partitionline-broker/tests/fault_campaign.rs",
+      "original_sha256": "04dd0d91d634543b571bb5915d9e87eb944f61983435fd50cde46c0dcaa8d7af",
+      "original_bytes": 15181,
+      "stored_path": "source/fault_campaign.rs",
+      "stored_sha256": "04dd0d91d634543b571bb5915d9e87eb944f61983435fd50cde46c0dcaa8d7af",
+      "stored_bytes": 15181,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/partitionline/partitionline-broker/src/transactions/offsets.rs",
+      "original_sha256": "57aedf5ec6a053ec87e80e42f6bd8c4234a59083247c3f16670ab80b3024b4ea",
+      "original_bytes": 33431,
+      "stored_path": "source/offsets.rs",
+      "stored_sha256": "57aedf5ec6a053ec87e80e42f6bd8c4234a59083247c3f16670ab80b3024b4ea",
+      "stored_bytes": 33431,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/qualification-20261027/toolchain-pins.json",
+      "original_sha256": "a801913ba7e987d2b6b21f9488a345d5056224f289fde0c800c1c75f3abff577",
+      "original_bytes": 1550,
+      "stored_path": "source/toolchain-pins.json",
+      "stored_sha256": "a801913ba7e987d2b6b21f9488a345d5056224f289fde0c800c1c75f3abff577",
+      "stored_bytes": 1550,
+      "encoding": "identity"
+    }
+  ]
+}

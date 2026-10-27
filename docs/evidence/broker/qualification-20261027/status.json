@@ -12,7 +12,7 @@
     "transaction_oracle": "95c5e4cf196e8c9fd5295165760a5b46568f45ce",
     "detached_runtime": "d6643def5a08b302b05ef7380d72f13dd7e2a002"
   },
-  "evidence_kind": "Observed results from completed tool calls. Full later log/binary/corpus archives were prepared in the execution workspace but were not published before it became unavailable. This summary is not a substitute for those archives.",
+  "evidence_kind": "Observed command results with published checksum inventories, retained original failures, corrected reports, test executables, stopped-attempt/control bundles and live prefix snapshots. No completed 24-hour qualification.",
   "fixes_and_focused_checks": [
     {
       "scope": "Real instrumented broker fuzz supervision",
@@ -108,29 +108,54 @@
       "credited_qualification_seconds": 0
     },
     {
-      "attempt": "detached-container supervision check",
-      "state": "unconfirmed",
+      "attempt": "detached-container campaign-03",
+      "state_at_snapshot": "running",
+      "snapshot_utc": "2026-10-27T19:47:26Z",
+      "container_id": "c86f8168550fec96e9b085685c7c7afc60941e8974bbfcdb675d68b65e71ab76",
+      "container_name": "pl-broker-fuzz-campaign-20261027-03",
       "image_id": "sha256:3f3bce42ebbf8f78bb2c2d54ec8067a92eeb225e37a9dfb37d16b7d9a3d49ea7",
-      "image_build_exit": 0,
-      "explanation": "Runtime image built, but the environment became unavailable during launch checking. No successful in-container check or replacement 24-hour launch is claimed."
+      "started_chicago": "2026-10-27T14:45:45-05:00",
+      "earliest_completion_chicago": "2026-10-28T14:45:45-05:00",
+      "qualified": false,
+      "artifact_root": "docs/evidence/broker/fuzz/20261027-detached-launch/"
     }
   ],
   "environment": {
     "id": "ccarenv_b64_Y2NhcmVudl8zNTJjNWFmZTBjY2M4MTkxOWJlZGViODFiMjQyNjNmMQ",
-    "last_connectivity": "offline",
-    "diagnostic_history": "not_found"
+    "last_connectivity": "exec available at final launch observation",
+    "diagnostic_history": "not_found",
+    "last_exec_observation": "Execution recovered; Docker image/control run and detached campaign launch succeeded. The daemon state and heartbeat were confirmed."
   },
   "committed_artifact_prefix_snapshot": "docs/evidence/broker/fuzz/20261027-launch/",
-  "workspace_archives_awaiting_publication": [
-    "/workspace/partitionline/docs/evidence/broker/faults/20261027-generation-oracle/",
-    "/workspace/partitionline/docs/evidence/broker/fuzz/20261027-recovery-io-guard/"
-  ],
+  "workspace_archives_awaiting_publication": [],
   "resume_order": [
-    "Recover the execution environment and inspect any detached control container before launching another job.",
-    "Reconcile the local pending task/evidence edits with these remote status commits, preserving all workspace archives and original failures.",
-    "Verify and publish the later archives; keep task completion tied to retained evidence.",
+    "Inspect the detached campaign state and fresh heartbeat, then await and audit its uninterrupted full-duration result. Missing or interrupted completion never counts.",
+    "Preserve all published snapshots and workspace raw data; publish completed-run artifacts separately.",
+    "Keep production and performance claims blocked while candidate failures or required qualification intervals remain incomplete.",
     "Resolve the candidate Fetch/waiter/write-deadline failures and remaining conformance gaps.",
     "Run and audit full uninterrupted parser, resource and operational qualification intervals on the candidate.",
     "Use dedicated native x86_64 and arm64 hosts and an independent reproducer for the frozen performance campaign; retain Suite HOLD until its separate signoff requirements are met."
-  ]
+  ],
+  "published_artifact_roots": [
+    "docs/evidence/broker/fuzz/20261027-launch/",
+    "docs/evidence/broker/fuzz/20261027-recovery-io-guard/",
+    "docs/evidence/broker/faults/20261027-generation-oracle/",
+    "docs/evidence/broker/fuzz/20261027-detached-launch/"
+  ],
+  "container_supervisor_checks": {
+    "tests": 9,
+    "exit": 0,
+    "resources": {
+      "NetworkMode": "none",
+      "NanoCpus": 3000000000,
+      "Memory": 4294967296,
+      "PidsLimit": 128,
+      "ReadonlyRootfs": true,
+      "Init": true,
+      "RestartPolicy": {
+        "Name": "no",
+        "MaximumRetryCount": 0
+      }
+    }
+  }
 }

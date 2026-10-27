@@ -1,0 +1,35 @@
+{
+  "jobs": [
+    {
+      "pid": 10,
+      "started_monotonic": 292.495312465,
+      "started_utc": "2026-10-27T19:45:45Z",
+      "target": "parse_header"
+    },
+    {
+      "pid": 11,
+      "started_monotonic": 292.49563493,
+      "started_utc": "2026-10-27T19:45:45Z",
+      "target": "decode_kraft"
+    },
+    {
+      "pid": 12,
+      "started_monotonic": 292.495924172,
+      "started_utc": "2026-10-27T19:45:45Z",
+      "target": "controller_respond"
+    },
+    {
+      "pid": 13,
+      "started_monotonic": 292.496566728,
+      "started_utc": "2026-10-27T19:45:45Z",
+      "target": "recover_journal"
+    },
+    {
+      "pid": 14,
+      "started_monotonic": 292.496851531,
+      "started_utc": "2026-10-27T19:45:45Z",
+      "target": "recover_epoch"
+    }
+  ],
+  "supervisor_pid": 7
+}
