@@ -273,6 +273,21 @@ fn offset_profile() -> Report {
         report.faults = report.faults.saturating_add(1);
         let visible = log.visible_data();
         let visible_offsets = log.visible_offsets();
+        let expected_offsets = if commit {
+            vec![offsets::VisibleOffset {
+                group: "orders".to_owned(),
+                member: "m-1".to_owned(),
+                topic: "orders".to_owned(),
+                partition: 0,
+                offset: 10,
+                generation: 2,
+            }]
+        } else {
+            Vec::new()
+        };
+        if visible_offsets != expected_offsets {
+            report.observer_failures += 1;
+        }
         let next = log.stage_offset(4, 0, older);
         if commit {
             if matches!(next, Err(offsets::Error::IllegalGeneration)) {
