@@ -16,6 +16,8 @@ struct Report {
     lost_acks: usize,
     fences: usize,
     partitions: usize,
+    committed_generation_fences: usize,
+    aborted_generation_reuses: usize,
     observer_failures: usize,
 }
 
@@ -47,6 +49,8 @@ fn recovery_profile() -> Report {
         lost_acks: 0,
         fences: 0,
         partitions: 0,
+        committed_generation_fences: 0,
+        aborted_generation_reuses: 0,
         observer_failures: 0,
     };
     let mut seed = 0xD1A5_0001_u64;
@@ -152,6 +156,8 @@ fn marker_profile() -> Report {
         lost_acks: 0,
         fences: 0,
         partitions: 0,
+        committed_generation_fences: 0,
+        aborted_generation_reuses: 0,
         observer_failures: 0,
     };
     let mut seed = 0x7A6_0001_u64;
@@ -212,6 +218,8 @@ fn offset_profile() -> Report {
         lost_acks: 0,
         fences: 0,
         partitions: 0,
+        committed_generation_fences: 0,
+        aborted_generation_reuses: 0,
         observer_failures: 0,
     };
     let mut seed = 0x05F5_0001_u64;
@@ -239,6 +247,23 @@ fn offset_profile() -> Report {
         if !log.visible_data().is_empty() {
             report.observer_failures = report.observer_failures.saturating_add(1);
         }
+        let older = StagedOffset {
+            group: "orders",
+            member: "m-1",
+            generation: 1,
+            topic: "orders",
+            partition: 1,
+            offset: 1,
+        };
+        // An open transaction still holds its generation, even if it later aborts.
+        if !matches!(
+            log.stage_offset(4, 0, older),
+            Err(offsets::Error::IllegalGeneration)
+        ) {
+            report.observer_failures = report.observer_failures.saturating_add(1);
+        }
+        report.fences = report.fences.saturating_add(1);
+        report.faults = report.faults.saturating_add(1);
         let commit = mix(&mut seed).is_multiple_of(2);
         log.marker(4, 0, commit)
             .unwrap_or_else(|error| panic!("{error:?}"));
@@ -247,32 +272,34 @@ fn offset_profile() -> Report {
         report.lost_acks = report.lost_acks.saturating_add(1);
         report.faults = report.faults.saturating_add(1);
         let visible = log.visible_data();
-        if log
-            .stage_offset(
-                4,
-                0,
-                StagedOffset {
-                    group: "orders",
-                    member: "m-1",
-                    generation: 1,
-                    topic: "orders",
-                    partition: 1,
-                    offset: 1,
-                },
-            )
-            .is_ok()
-        {
+        let visible_offsets = log.visible_offsets();
+        let next = log.stage_offset(4, 0, older);
+        if commit {
+            if matches!(next, Err(offsets::Error::IllegalGeneration)) {
+                report.committed_generation_fences += 1;
+            } else {
+                report.observer_failures += 1;
+            }
+        } else if next.is_ok() {
+            report.aborted_generation_reuses += 1;
+            // The new offset is staged, not visible. Abort its own transaction.
+            if log.visible_offsets() != visible_offsets || log.visible_data() != visible {
+                report.observer_failures += 1;
+            }
+            log.marker(4, 0, false)
+                .unwrap_or_else(|error| panic!("{error:?}"));
+            log.marker(4, 0, false)
+                .unwrap_or_else(|error| panic!("{error:?}"));
+        } else {
+            report.observer_failures += 1;
+        }
+        if log.visible_data() != visible || log.visible_offsets() != visible_offsets {
             report.observer_failures = report.observer_failures.saturating_add(1);
         }
-        if log.visible_data() != visible {
-            report.observer_failures = report.observer_failures.saturating_add(1);
-        }
-        report.fences = report.fences.saturating_add(1);
-        report.faults = report.faults.saturating_add(1);
         drop(log);
         let restored =
             TxnOffsets::open(&log_path, limits).unwrap_or_else(|error| panic!("{error:?}"));
-        if restored.visible_data() != visible {
+        if restored.visible_data() != visible || restored.visible_offsets() != visible_offsets {
             report.observer_failures = report.observer_failures.saturating_add(1);
         }
         if commit {
@@ -295,13 +322,15 @@ fn write_report(reports: &[Report]) {
         reports
             .iter()
             .map(|report| format!(
-                "    {{\"profile\": \"{}\", \"faults\": {}, \"crashes\": {}, \"lost_acks\": {}, \"fences\": {}, \"partitions\": {}, \"observer_failures\": {}}}",
+                "    {{\"profile\": \"{}\", \"faults\": {}, \"crashes\": {}, \"lost_acks\": {}, \"fences\": {}, \"partitions\": {}, \"committed_generation_fences\": {}, \"aborted_generation_reuses\": {}, \"observer_failures\": {}}}",
                 report.profile,
                 report.faults,
                 report.crashes,
                 report.lost_acks,
                 report.fences,
                 report.partitions,
+                report.committed_generation_fences,
+                report.aborted_generation_reuses,
                 report.observer_failures
             ))
             .collect::<Vec<_>>()
