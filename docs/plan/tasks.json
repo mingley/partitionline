@@ -34926,7 +34926,8 @@
         "KL11-09",
         "KL11-41",
         "KL11-77",
-        "KL11-78"
+        "KL11-78",
+        "KL11-79"
       ],
       "files": [
         "fuzz/broker/"
@@ -34962,7 +34963,7 @@
         "docs/STATUS.md"
       ],
       "qualification_limit": "All previous attempts failed, stopped or incomplete, with zero credited qualification time. Nine real supervisor controls passed in the isolated image. Candidate behavioral and conformance failures remain.",
-      "blocked_reason": "Campaign-03 failed after 3223 seconds with unreproduced recover_epoch timeout70. KL11-78 repairs the exposed partial-offset integrity bug. A fresh frozen candidate and complete 24-hour campaign remain required; current Fetch waiter defect will be repaired before rebuilding."
+      "blocked_reason": "Failed campaign retained and KL11-78 integrity repair complete. KL11-79 must repair the known Fetch corruption-waiter defect before freezing a fresh candidate; original timeout remains unreproduced and full 24-hour qualification is still required."
     },
     {
       "id": "KL11-48",
@@ -53626,6 +53627,47 @@
         "docs/evidence/broker/qualification-20261027/status.json"
       ],
       "qualification_limit": "Partial offset integrity fixed and tested in journal and epoch recovery. Original timeout unreproduced; fresh full-duration campaign required."
+    },
+    {
+      "id": "KL11-79",
+      "title": "Wake Fetch waiters when a cached read poisons its partition",
+      "priority": "P0",
+      "kind": "implementation",
+      "status": "in_progress",
+      "owner": "codex-root-20261027",
+      "depends_on": [
+        "KL11-07",
+        "KL11-78"
+      ],
+      "files": [
+        "partitionline-broker/src/produce.rs",
+        "partitionline-broker/tests/fetch.rs"
+      ],
+      "deliverable": "A failed cached read records a partition poison transition before returning its error, so the storage actor wakes long-poll Fetch waiters.",
+      "acceptance": [
+        "Reproduce the existing corruption-waiter timeout on unchanged production source and retain the failing executable/log.",
+        "Propagate poison-change notification through direct and relocated cached read handles, including error returns, without adding hot-path allocations or weakening read validation.",
+        "Verify waiting Fetch v6 returns storage error56 promptly, legacy v4/v5 map to6, unrelated partitions remain healthy and restart refuses the corrupt store.",
+        "Preserve independent Apache golden bytes and report any remaining conformance failures separately."
+      ],
+      "validation": [
+        "Run the existing corruption-waiter integration test before and after on latest stable Rust.",
+        "Run relevant Fetch, Produce and ListOffsets checks in default and all-feature modes, formatting and focused strict Clippy; retain all failures."
+      ],
+      "evidence": [],
+      "write_set": [
+        "partitionline-broker/src/produce.rs",
+        "partitionline-broker/tests/fetch.rs",
+        "docs/evidence/broker/fetch-poison-notification-20261027/",
+        "docs/plan/evidence/KL11-79.json"
+      ],
+      "root_integration_only": [
+        "docs/plan/tasks.json",
+        "docs/STATUS.md",
+        "docs/plan/evidence/KL11-47.json",
+        "docs/evidence/broker/qualification-20261027/status.json"
+      ],
+      "qualification_limit": "One storage-change notification behavior. Independent golden-response and transport deadline failures, sustained campaigns, client conformance and fastest-performance qualification remain open."
     }
   ],
   "toolchain_policy": "Build and validate current work with latest stable Rust only. Historical compiler receipts remain unchanged.",
