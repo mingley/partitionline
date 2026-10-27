@@ -187,6 +187,83 @@ fn every_incomplete_tail_prefix_repairs_to_last_complete_entry() {
 }
 
 #[test]
+fn retained_partial_offset_corruption_preserves_every_byte() {
+    let temp = Temp::new().unwrap();
+    let path = temp.path("retained-offset-prefix");
+    let input = include_bytes!("fixtures/journal/partial-offset-42.bin");
+    write(&path, input).unwrap();
+    assert!(matches!(
+        Journal::open(&path, 0, Limits::default()),
+        Err(Error::Corrupt {
+            byte_offset: 24,
+            kind: Corruption::Offset,
+        })
+    ));
+    assert_eq!(read(&path).unwrap(), input);
+}
+
+#[test]
+fn every_partial_offset_byte_is_checked_before_tail_repair() {
+    let temp = Temp::new().unwrap();
+    let complete = committed(&temp.path("source")).unwrap();
+    let first_end = FILE_HEADER + ENTRY_HEADER + b"first-payload".len();
+    for offset_bytes in 1..8 {
+        for damaged_byte in 0..offset_bytes {
+            let path = temp.path(&format!("offset-{offset_bytes}-{damaged_byte}"));
+            let mut input = complete[..first_end + 12 + offset_bytes].to_vec();
+            input[first_end + 12 + damaged_byte] ^= 0x40;
+            write(&path, &input).unwrap();
+            assert!(matches!(
+                Journal::open(&path, 7, Limits::default()),
+                Err(Error::Corrupt {
+                    byte_offset: _,
+                    kind: Corruption::Offset,
+                })
+            ));
+            assert_eq!(read(&path).unwrap(), input);
+        }
+    }
+}
+
+#[test]
+fn partial_offsets_check_nonzero_bytes_and_keep_valid_torn_tails() {
+    let temp = Temp::new().unwrap();
+    let base = 0x0102_0304_0506_0708;
+    let path = temp.path("nonzero-source");
+    let (mut source, _) = Journal::open(&path, base, Limits::default()).unwrap();
+    source.append(1, b"a").unwrap();
+    source.append(1, b"b").unwrap();
+    drop(source);
+    let complete = read(&path).unwrap();
+    let first_end = FILE_HEADER + ENTRY_HEADER + 1;
+    for offset_bytes in 1..8 {
+        let valid = &complete[..first_end + 12 + offset_bytes];
+        let path = temp.path(&format!("valid-offset-{offset_bytes}"));
+        write(&path, valid).unwrap();
+        let (journal, repaired) = Journal::open(&path, base, Limits::default()).unwrap();
+        assert_eq!(repaired.recovered_entries, 1);
+        assert_eq!(repaired.next_offset, base + 1);
+        assert_eq!(repaired.truncated_bytes, (12 + offset_bytes) as u64);
+        drop(journal);
+        assert_eq!(read(&path).unwrap(), complete[..first_end]);
+        for damaged_byte in 0..offset_bytes {
+            let path = temp.path(&format!("bad-offset-{offset_bytes}-{damaged_byte}"));
+            let mut input = valid.to_vec();
+            input[first_end + 12 + damaged_byte] ^= 0x40;
+            write(&path, &input).unwrap();
+            assert!(matches!(
+                Journal::open(&path, base, Limits::default()),
+                Err(Error::Corrupt {
+                    kind: Corruption::Offset,
+                    ..
+                })
+            ));
+            assert_eq!(read(&path).unwrap(), input);
+        }
+    }
+}
+
+#[test]
 fn complete_payload_and_header_corruption_never_truncate() {
     let temp = Temp::new().unwrap();
     let complete = committed(&temp.path("source")).unwrap();

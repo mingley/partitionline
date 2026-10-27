@@ -837,7 +837,8 @@ fn validate_prefix(
             return Err(Error::EntryTooLarge);
         }
     }
-    if header.len() >= 20 && u64_at(header, 12) != expected {
+    let offset_bytes = header.len().saturating_sub(12).min(8);
+    if offset_bytes > 0 && header[12..12 + offset_bytes] != expected.to_be_bytes()[..offset_bytes] {
         return Err(corrupt(position, Corruption::Offset));
     }
     if header.len() >= 24 {
