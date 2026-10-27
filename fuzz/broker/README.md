@@ -37,6 +37,10 @@ inputs and resource samples. Workers have private temporary directories,
 and file growth, joins every worker, and stops the attempt after a failure.
 Workers are killed if their supervisor disappears.
 
+Recovery fixture creation, writes, cleanup and limit setup must succeed. An
+infrastructure error exits with status 86 and fails the attempt; it cannot
+silently skip recovery while increasing the execution counter.
+
 Inspect or stop an attempt:
 
 ```sh

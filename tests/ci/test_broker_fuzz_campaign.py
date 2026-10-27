@@ -85,6 +85,19 @@ class BrokerCampaign(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'unjoined child'):
             campaign.audit(output)
 
+    def test_recovery_fixture_io_failure_cannot_pass_as_fuzz_work(self):
+        invalid_tmp = self.directory / 'tmp-is-a-file'
+        invalid_tmp.write_text('A deliberately unusable temporary directory.\n')
+        receipt = campaign.read(self.build / 'build.json')
+        for name in ('recover_journal', 'recover_epoch'):
+            with self.subTest(target=name):
+                result = subprocess.run([receipt['binaries'][name]['path'], '-runs=1',
+                                         str(ROOT / 'fuzz/broker/seeds' / name)],
+                                        env=dict(os.environ, TMPDIR=str(invalid_tmp)),
+                                        capture_output=True, text=True, timeout=10)
+                self.assertNotEqual(result.returncode, 0, 'Fixture creation failed, so recovery was never exercised')
+                self.assertIn('fuzz infrastructure:', result.stderr)
+
     def test_short_real_run_cannot_be_relabelled_as_twenty_four_hours(self):
         output = self.copied('false-duration')
         manifest = campaign.read(output / 'manifest.json')
