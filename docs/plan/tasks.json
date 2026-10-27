@@ -34919,13 +34919,14 @@
       "title": "Fuzz broker framing, storage recovery and API decoding",
       "priority": "P0",
       "kind": "implementation",
-      "status": "in_progress",
+      "status": "blocked",
       "owner": "codex-root-20261027",
       "depends_on": [
         "KL11-04",
         "KL11-09",
         "KL11-41",
-        "KL11-77"
+        "KL11-77",
+        "KL11-78"
       ],
       "files": [
         "fuzz/broker/"
@@ -34960,7 +34961,8 @@
         "docs/plan/tasks.json",
         "docs/STATUS.md"
       ],
-      "qualification_limit": "Current detached attempt uses stable Rust 1.99.1 at d6643def5a08b302b05ef7380d72f13dd7e2a002. Nine real supervisor checks pass inside the isolated image; five targets require their own full 86400-second interval and final artifact audit. Earlier interrupted/incomplete attempts contribute no time. Current candidate behavioral/conformance failures still block production and performance claims."
+      "qualification_limit": "Current detached attempt uses stable Rust 1.99.1 at d6643def5a08b302b05ef7380d72f13dd7e2a002. Nine real supervisor checks pass inside the isolated image; five targets require their own full 86400-second interval and final artifact audit. Earlier interrupted/incomplete attempts contribute no time. Current candidate behavioral/conformance failures still block production and performance claims.",
+      "blocked_reason": "Detached attempt failed after 3223 seconds with recover_epoch timeout70. Exact input replay/minimization did not reproduce the timeout, but it exposed truncation of an impossible partial offset prefix. Child KL11-78 must fix and qualify that integrity case before a fresh candidate campaign."
     },
     {
       "id": "KL11-48",
@@ -53576,6 +53578,50 @@
         "docs/STATUS.md"
       ],
       "qualification_limit": "Done for the current fault-oracle correction: default/all-feature focused campaigns each verify 3004 outcomes with 0 observer discrepancies, 334 active fences, 184 committed fences and 150 aborted-generation reuses. Production code is unchanged. Whole-broker Fetch and write-deadline failures remain unqualified and retained."
+    },
+    {
+      "id": "KL11-78",
+      "title": "Reject impossible offsets in partial journal entry headers",
+      "priority": "P0",
+      "kind": "implementation",
+      "status": "in_progress",
+      "owner": "codex-root-20261027",
+      "depends_on": [
+        "KL11-03"
+      ],
+      "files": [
+        "partitionline-broker/src/journal.rs",
+        "partitionline-broker/tests/journal.rs",
+        "partitionline-broker/tests/fixtures/journal/",
+        "fuzz/broker/seeds/recover_epoch/"
+      ],
+      "deliverable": "A partial entry header whose available offset bytes contradict the expected next offset fails closed without truncation.",
+      "acceptance": [
+        "Retain the actual 42-byte campaign artifact, original failed campaign and unreproduced timeout replay/minimization results. Do not classify successful replays as a passed campaign or claim the timeout was fixed.",
+        "Reproduce incorrect successful truncation on unchanged source, including corrupt partial prefixes after a committed entry.",
+        "Reject contradictory partial offset bytes with Corruption::Offset while preserving every input byte. All valid torn prefixes must still recover, append and reopen correctly.",
+        "Preserve complete-header CRC/error semantics and production synchronization; no timeout increase, corpus deletion or durability weakening."
+      ],
+      "validation": [
+        "Run actual retained-seed and partial-prefix regression on unchanged and corrected latest-stable source.",
+        "Run journal and epoch-recovery tests on default and all-feature builds, strict focused Clippy and formatting."
+      ],
+      "evidence": [],
+      "write_set": [
+        "partitionline-broker/src/journal.rs",
+        "partitionline-broker/tests/journal.rs",
+        "partitionline-broker/tests/fixtures/journal/",
+        "fuzz/broker/seeds/recover_epoch/",
+        "docs/plan/evidence/KL11-78.json",
+        "docs/evidence/broker/journal-partial-offset-20261027/"
+      ],
+      "root_integration_only": [
+        "docs/plan/tasks.json",
+        "docs/STATUS.md",
+        "docs/plan/evidence/KL11-47.json",
+        "docs/evidence/broker/qualification-20261027/status.json"
+      ],
+      "qualification_limit": "One journal recovery integrity behavior. Full production and performance qualification stay open; the original wall-clock timeout remains unreproduced."
     }
   ],
   "toolchain_policy": "Build and validate current work with latest stable Rust only. Historical compiler receipts remain unchanged.",
