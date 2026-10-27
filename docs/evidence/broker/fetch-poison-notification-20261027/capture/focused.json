@@ -1,0 +1,39 @@
+[
+  {
+    "name": "after-unit",
+    "command": [
+      "cargo",
+      "+stable",
+      "test",
+      "--manifest-path",
+      "partitionline-broker/Cargo.toml",
+      "--locked",
+      "--lib",
+      "produce::tests::cached_read_errors_report_poison_for_direct_and_relocated_handles",
+      "--",
+      "--exact",
+      "--nocapture"
+    ],
+    "exit": 0,
+    "elapsed_seconds": 17.883720042000277
+  },
+  {
+    "name": "after-waiter",
+    "command": [
+      "cargo",
+      "+stable",
+      "test",
+      "--manifest-path",
+      "partitionline-broker/Cargo.toml",
+      "--locked",
+      "--test",
+      "fetch",
+      "registered_handle_corruption_poison_wakes_waiters_and_maps_legacy_errors",
+      "--",
+      "--exact",
+      "--nocapture"
+    ],
+    "exit": 0,
+    "elapsed_seconds": 13.681950083999254
+  }
+]

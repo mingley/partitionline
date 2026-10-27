@@ -11,7 +11,8 @@
     "recovery_fixture_guard": "66a9a350",
     "transaction_oracle": "95c5e4cf196e8c9fd5295165760a5b46568f45ce",
     "detached_runtime": "d6643def5a08b302b05ef7380d72f13dd7e2a002",
-    "partial_offset_integrity": "e3944bb15993db187aa82445cfc15cc6ff30ccb7"
+    "partial_offset_integrity": "e3944bb15993db187aa82445cfc15cc6ff30ccb7",
+    "fetch_notification": "bdf28a1b987cbc73e12ef54ac9cc516e741b6c4a"
   },
   "evidence_kind": "Retained failures, exact source and executable pins, before/after checks and published checksum inventories. No completed 24-hour qualification.",
   "fixes_and_focused_checks": [
@@ -59,27 +60,76 @@
       "strict_clippy_exit": 0,
       "format_exit": 0,
       "source": "e3944bb15993db187aa82445cfc15cc6ff30ccb7"
+    },
+    {
+      "scope": "Cached read poison notification",
+      "task": "KL11-79",
+      "source": "bdf28a1b987cbc73e12ef54ac9cc516e741b6c4a",
+      "focused_tests_per_mode": 2,
+      "modes": [
+        "default",
+        "all-features"
+      ],
+      "exit": 0,
+      "strict_clippy_exit": 0,
+      "format_exit": 0
     }
   ],
   "current_candidate_blockers": [
     {
-      "scope": "Default broker all-target suite after oracle correction",
-      "exit": 101,
-      "failures": [
-        "independent_apache_read_goldens",
-        "registered_handle_corruption_poison_wakes_waiters_and_maps_legacy_errors",
-        "rolling_real_router_replays_all_independent_read_goldens"
+      "scope": "Whole broker after Fetch notification repair",
+      "source": "bdf28a1b987cbc73e12ef54ac9cc516e741b6c4a",
+      "checks": [
+        {
+          "mode": "default",
+          "exit": 101,
+          "passed": 602,
+          "failed": 10,
+          "failures": [
+            "groups::share::tests::reassigning_many_share_topics_does_not_hold_the_caller",
+            "independent_apache_read_goldens",
+            "rolling_real_router_replays_all_independent_read_goldens",
+            "acks_zero_sends_no_frame_keeps_channel_and_errors_close",
+            "adversarial_lengths_close_before_payload_or_handler_and_isolate_peers",
+            "handler_error_and_oversized_response_close_only_their_connections",
+            "hanging_handler_times_out_and_its_future_is_dropped",
+            "idle_connection_has_an_absolute_read_deadline",
+            "truncated_prefix_and_body_never_invoke_handler",
+            "handler_deadline_includes_waiting_for_concurrency_permit"
+          ]
+        },
+        {
+          "mode": "all-features",
+          "exit": 101,
+          "passed": 735,
+          "failed": 21,
+          "failures": [
+            "groups::streams::tests::reading_many_stream_task_ids_does_not_hold_the_caller",
+            "compaction::cleaner_tests::planning_many_transactional_records_does_not_hold_the_caller",
+            "groups::consumer::tests::applying_many_topics_does_not_hold_the_caller",
+            "groups::share::tests::reassigning_many_share_topics_does_not_hold_the_caller",
+            "raft::runtime::tests::actual_three_peer_tcp_observer_multichunk_image_install_reopen_and_join",
+            "raft::runtime::tests::actual_five_peer_tcp_observer_multichunk_image_install_reopen_and_join",
+            "raft::runtime::tests::actual_five_node_tcp_minority_partition_late_ack_image_restart_and_removal",
+            "transport::frame_read_deadline_tests::read_deadline_stops_a_ready_frame_body",
+            "transport::write_prefetch_tests::write_deadline_stops_a_ready_prefetch",
+            "independent_apache_read_goldens",
+            "rolling_real_router_replays_all_independent_read_goldens",
+            "acks_zero_sends_no_frame_keeps_channel_and_errors_close",
+            "absolute_sasl_admission_deadline_also_caps_unfinished_tls_handshake",
+            "cumulative_preauth_bytes_include_prefixes_and_cannot_be_reset_by_valid_negotiation",
+            "oversized_tls_record_and_handshake_lengths_fail_closed",
+            "adversarial_lengths_close_before_payload_or_handler_and_isolate_peers",
+            "handler_error_and_oversized_response_close_only_their_connections",
+            "hanging_handler_times_out_and_its_future_is_dropped",
+            "idle_connection_has_an_absolute_read_deadline",
+            "truncated_prefix_and_body_never_invoke_handler",
+            "handler_deadline_includes_waiting_for_concurrency_permit"
+          ]
+        }
       ],
-      "details": "Fetch v4 out-of-range fixtures disagree on returned boundaries; corruption-waiter test times out. These are unresolved. Do not change fixtures or waive timeouts merely to force a pass."
-    },
-    {
-      "scope": "All-feature broker all-target suite",
-      "exit": 101,
-      "passed_lib_tests": 373,
-      "failed_lib_tests": 1,
-      "failure": "transport::write_prefetch_tests::write_deadline_stops_a_ready_prefetch",
-      "isolated_recheck_exit": 101,
-      "details": "The ready-prefetch deadline test also failed when selected alone."
+      "serial_produce_transport_rechecks_exit": 101,
+      "details": "Both Fetch waiter regressions pass in both feature modes. Two independent golden checks and listed whole-suite failures remain; serial Produce/transport accounting rechecks also fail."
     },
     {
       "scope": "Earlier concurrent-fuzz broker test run",

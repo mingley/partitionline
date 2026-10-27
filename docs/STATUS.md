@@ -21,7 +21,7 @@ requirements are met.
 | Which work items are open | [Task registry](plan/tasks.json) |
 | How a benchmark number should be read | [Benchmark guide](benchmark.md) |
 
-The task registry has 346 cards: 260 done, 10 in progress, 75 pending, and 1 blocked.
+The task registry has 346 cards: 261 done, 10 in progress, and 75 pending.
 Those counts were checked against `tasks.json` on 27 October 2026.
 
 Current qualification uses stable Rust 1.99.1. The seeded fault oracle now
@@ -32,11 +32,16 @@ failed after 3,223 seconds with an unreproduced epoch-recovery timeout. Its
 retained input exposed a journal truncation bug, now fixed and checked in both
 feature modes. No campaign is currently running; failed time is not credited.
 
-The whole-candidate suites still fail on Fetch golden responses, a corruption
-waiter and a write-prefetch deadline. Core/full conformance also fails. See the
+The Fetch corruption waiter now wakes correctly in both feature modes. The
+whole-broker checks still fail: default passes 602 and fails 10; all features
+passes 735 and fails 21. Remaining failures include Apache response goldens,
+caller/deadline checks and transport accounting. Core/full conformance also
+fails. See the
 [readiness assessment](evidence/broker/qualification-20261027/status.json) and
 [failed campaign and integrity repair](evidence/broker/journal-partial-offset-20261027/README.md).
-Production readiness and fastest-performance claims remain unqualified.
+The [Fetch notification repair](evidence/broker/fetch-poison-notification-20261027/README.md)
+retains the full results and serial rechecks. Production readiness and
+fastest-performance claims remain unqualified.
 
 ## Client
 

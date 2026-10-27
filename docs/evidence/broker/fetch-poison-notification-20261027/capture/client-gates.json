@@ -1,0 +1,24 @@
+[
+  {
+    "mode": "core",
+    "command": [
+      "python3",
+      "scripts/check-protocol-coverage.py",
+      "--mode",
+      "core",
+      "--json"
+    ],
+    "exit": 1
+  },
+  {
+    "mode": "full",
+    "command": [
+      "python3",
+      "scripts/check-protocol-coverage.py",
+      "--mode",
+      "full",
+      "--json"
+    ],
+    "exit": 1
+  }
+]

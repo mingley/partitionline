@@ -1,0 +1,20 @@
+{
+  "source_sha": "c44345bf011c104f9dfef7ad2b6386be627a8a4d",
+  "command": [
+    "cargo",
+    "+stable",
+    "test",
+    "--manifest-path",
+    "partitionline-broker/Cargo.toml",
+    "--locked",
+    "--test",
+    "fetch",
+    "registered_handle_corruption_poison_wakes_waiters_and_maps_legacy_errors",
+    "--",
+    "--exact",
+    "--nocapture"
+  ],
+  "exit": 101,
+  "elapsed_seconds": 5.509973054999136,
+  "selected_tests": 1
+}

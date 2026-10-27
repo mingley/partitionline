@@ -1,0 +1,8 @@
+    Finished `test` profile [unoptimized] target(s) in 0.04s
+     Running unittests src/lib.rs (/workspace/work/qualification-20261027/broker-check-target/debug/deps/partitionline_broker-02af17ce92f0d2ad)
+
+running 1 test
+test produce::tests::cached_read_errors_report_poison_for_direct_and_relocated_handles ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 331 filtered out; finished in 0.00s
+

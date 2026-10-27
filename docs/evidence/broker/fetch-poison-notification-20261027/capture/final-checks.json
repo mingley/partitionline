@@ -1,0 +1,154 @@
+[
+  {
+    "mode": "default",
+    "name": "poison-unit",
+    "command": [
+      "cargo",
+      "+stable",
+      "test",
+      "--manifest-path",
+      "partitionline-broker/Cargo.toml",
+      "--locked",
+      "--lib",
+      "produce::tests::cached_read_errors_report_poison_for_direct_and_relocated_handles",
+      "--",
+      "--exact"
+    ],
+    "exit": 0,
+    "elapsed_seconds": 0.0680575599999429
+  },
+  {
+    "mode": "default",
+    "name": "waiter",
+    "command": [
+      "cargo",
+      "+stable",
+      "test",
+      "--manifest-path",
+      "partitionline-broker/Cargo.toml",
+      "--locked",
+      "--test",
+      "fetch",
+      "registered_handle_corruption_poison_wakes_waiters_and_maps_legacy_errors",
+      "--",
+      "--exact"
+    ],
+    "exit": 0,
+    "elapsed_seconds": 0.05363055299858388
+  },
+  {
+    "mode": "default",
+    "name": "serial-produce-transport",
+    "command": [
+      "cargo",
+      "+stable",
+      "test",
+      "--manifest-path",
+      "partitionline-broker/Cargo.toml",
+      "--locked",
+      "--test",
+      "produce",
+      "--test",
+      "transport",
+      "--no-fail-fast",
+      "--",
+      "--test-threads=1"
+    ],
+    "exit": 101,
+    "elapsed_seconds": 1.634530179999274
+  },
+  {
+    "mode": "all-features",
+    "name": "poison-unit",
+    "command": [
+      "cargo",
+      "+stable",
+      "test",
+      "--manifest-path",
+      "partitionline-broker/Cargo.toml",
+      "--locked",
+      "--all-features",
+      "--lib",
+      "produce::tests::cached_read_errors_report_poison_for_direct_and_relocated_handles",
+      "--",
+      "--exact"
+    ],
+    "exit": 0,
+    "elapsed_seconds": 0.07528293099858274
+  },
+  {
+    "mode": "all-features",
+    "name": "waiter",
+    "command": [
+      "cargo",
+      "+stable",
+      "test",
+      "--manifest-path",
+      "partitionline-broker/Cargo.toml",
+      "--locked",
+      "--all-features",
+      "--test",
+      "fetch",
+      "registered_handle_corruption_poison_wakes_waiters_and_maps_legacy_errors",
+      "--",
+      "--exact"
+    ],
+    "exit": 0,
+    "elapsed_seconds": 0.08221475400023337
+  },
+  {
+    "mode": "all-features",
+    "name": "serial-produce-transport",
+    "command": [
+      "cargo",
+      "+stable",
+      "test",
+      "--manifest-path",
+      "partitionline-broker/Cargo.toml",
+      "--locked",
+      "--all-features",
+      "--test",
+      "produce",
+      "--test",
+      "transport",
+      "--no-fail-fast",
+      "--",
+      "--test-threads=1"
+    ],
+    "exit": 101,
+    "elapsed_seconds": 2.387892978000309
+  },
+  {
+    "name": "format",
+    "command": [
+      "cargo",
+      "+stable",
+      "fmt",
+      "--manifest-path",
+      "partitionline-broker/Cargo.toml",
+      "--check"
+    ],
+    "exit": 0
+  },
+  {
+    "name": "clippy",
+    "command": [
+      "cargo",
+      "+stable",
+      "clippy",
+      "--manifest-path",
+      "partitionline-broker/Cargo.toml",
+      "--locked",
+      "--all-features",
+      "--test",
+      "fetch",
+      "--test",
+      "produce",
+      "--lib",
+      "--",
+      "-D",
+      "warnings"
+    ],
+    "exit": 0
+  }
+]

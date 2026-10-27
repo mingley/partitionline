@@ -1,0 +1,266 @@
+{
+  "schema_version": 1,
+  "task_id": "KL11-79",
+  "status": "done",
+  "source_sha": "bdf28a1b987cbc73e12ef54ac9cc516e741b6c4a",
+  "compiler": "rustc 1.99.1 (58cf8f9c3 2026-10-13)\nbinary: rustc\ncommit-hash: 58cf8f9c35b355199727627d07ae34a4e2846d67\ncommit-date: 2026-10-13\nhost: x86_64-unknown-linux-gnu\nrelease: 1.99.1\nLLVM version: 23.1.1\n",
+  "production_source_changed": [
+    "partitionline-broker/src/produce.rs"
+  ],
+  "before": {
+    "source_sha": "c44345bf011c104f9dfef7ad2b6386be627a8a4d",
+    "command": [
+      "cargo",
+      "+stable",
+      "test",
+      "--manifest-path",
+      "partitionline-broker/Cargo.toml",
+      "--locked",
+      "--test",
+      "fetch",
+      "registered_handle_corruption_poison_wakes_waiters_and_maps_legacy_errors",
+      "--",
+      "--exact",
+      "--nocapture"
+    ],
+    "exit": 101,
+    "elapsed_seconds": 5.509973054999136,
+    "selected_tests": 1
+  },
+  "checks": [
+    {
+      "mode": "default",
+      "name": "poison-unit",
+      "command": [
+        "cargo",
+        "+stable",
+        "test",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--locked",
+        "--lib",
+        "produce::tests::cached_read_errors_report_poison_for_direct_and_relocated_handles",
+        "--",
+        "--exact"
+      ],
+      "exit": 0,
+      "elapsed_seconds": 0.0680575599999429
+    },
+    {
+      "mode": "default",
+      "name": "waiter",
+      "command": [
+        "cargo",
+        "+stable",
+        "test",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--locked",
+        "--test",
+        "fetch",
+        "registered_handle_corruption_poison_wakes_waiters_and_maps_legacy_errors",
+        "--",
+        "--exact"
+      ],
+      "exit": 0,
+      "elapsed_seconds": 0.05363055299858388
+    },
+    {
+      "mode": "default",
+      "name": "serial-produce-transport",
+      "command": [
+        "cargo",
+        "+stable",
+        "test",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--locked",
+        "--test",
+        "produce",
+        "--test",
+        "transport",
+        "--no-fail-fast",
+        "--",
+        "--test-threads=1"
+      ],
+      "exit": 101,
+      "elapsed_seconds": 1.634530179999274
+    },
+    {
+      "mode": "all-features",
+      "name": "poison-unit",
+      "command": [
+        "cargo",
+        "+stable",
+        "test",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--locked",
+        "--all-features",
+        "--lib",
+        "produce::tests::cached_read_errors_report_poison_for_direct_and_relocated_handles",
+        "--",
+        "--exact"
+      ],
+      "exit": 0,
+      "elapsed_seconds": 0.07528293099858274
+    },
+    {
+      "mode": "all-features",
+      "name": "waiter",
+      "command": [
+        "cargo",
+        "+stable",
+        "test",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--locked",
+        "--all-features",
+        "--test",
+        "fetch",
+        "registered_handle_corruption_poison_wakes_waiters_and_maps_legacy_errors",
+        "--",
+        "--exact"
+      ],
+      "exit": 0,
+      "elapsed_seconds": 0.08221475400023337
+    },
+    {
+      "mode": "all-features",
+      "name": "serial-produce-transport",
+      "command": [
+        "cargo",
+        "+stable",
+        "test",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--locked",
+        "--all-features",
+        "--test",
+        "produce",
+        "--test",
+        "transport",
+        "--no-fail-fast",
+        "--",
+        "--test-threads=1"
+      ],
+      "exit": 101,
+      "elapsed_seconds": 2.387892978000309
+    },
+    {
+      "name": "format",
+      "command": [
+        "cargo",
+        "+stable",
+        "fmt",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--check"
+      ],
+      "exit": 0
+    },
+    {
+      "name": "clippy",
+      "command": [
+        "cargo",
+        "+stable",
+        "clippy",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--locked",
+        "--all-features",
+        "--test",
+        "fetch",
+        "--test",
+        "produce",
+        "--lib",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "exit": 0
+    }
+  ],
+  "whole_broker_checks": [
+    {
+      "mode": "default",
+      "exit": 101,
+      "passed": 602,
+      "failed": 10,
+      "failures": [
+        "groups::share::tests::reassigning_many_share_topics_does_not_hold_the_caller",
+        "independent_apache_read_goldens",
+        "rolling_real_router_replays_all_independent_read_goldens",
+        "acks_zero_sends_no_frame_keeps_channel_and_errors_close",
+        "adversarial_lengths_close_before_payload_or_handler_and_isolate_peers",
+        "handler_error_and_oversized_response_close_only_their_connections",
+        "hanging_handler_times_out_and_its_future_is_dropped",
+        "idle_connection_has_an_absolute_read_deadline",
+        "truncated_prefix_and_body_never_invoke_handler",
+        "handler_deadline_includes_waiting_for_concurrency_permit"
+      ]
+    },
+    {
+      "mode": "all-features",
+      "exit": 101,
+      "passed": 735,
+      "failed": 21,
+      "failures": [
+        "groups::streams::tests::reading_many_stream_task_ids_does_not_hold_the_caller",
+        "compaction::cleaner_tests::planning_many_transactional_records_does_not_hold_the_caller",
+        "groups::consumer::tests::applying_many_topics_does_not_hold_the_caller",
+        "groups::share::tests::reassigning_many_share_topics_does_not_hold_the_caller",
+        "raft::runtime::tests::actual_three_peer_tcp_observer_multichunk_image_install_reopen_and_join",
+        "raft::runtime::tests::actual_five_peer_tcp_observer_multichunk_image_install_reopen_and_join",
+        "raft::runtime::tests::actual_five_node_tcp_minority_partition_late_ack_image_restart_and_removal",
+        "transport::frame_read_deadline_tests::read_deadline_stops_a_ready_frame_body",
+        "transport::write_prefetch_tests::write_deadline_stops_a_ready_prefetch",
+        "independent_apache_read_goldens",
+        "rolling_real_router_replays_all_independent_read_goldens",
+        "acks_zero_sends_no_frame_keeps_channel_and_errors_close",
+        "absolute_sasl_admission_deadline_also_caps_unfinished_tls_handshake",
+        "cumulative_preauth_bytes_include_prefixes_and_cannot_be_reset_by_valid_negotiation",
+        "oversized_tls_record_and_handshake_lengths_fail_closed",
+        "adversarial_lengths_close_before_payload_or_handler_and_isolate_peers",
+        "handler_error_and_oversized_response_close_only_their_connections",
+        "hanging_handler_times_out_and_its_future_is_dropped",
+        "idle_connection_has_an_absolute_read_deadline",
+        "truncated_prefix_and_body_never_invoke_handler",
+        "handler_deadline_includes_waiting_for_concurrency_permit"
+      ]
+    }
+  ],
+  "client_gates": [
+    {
+      "mode": "core",
+      "command": [
+        "python3",
+        "scripts/check-protocol-coverage.py",
+        "--mode",
+        "core",
+        "--json"
+      ],
+      "exit": 1
+    },
+    {
+      "mode": "full",
+      "command": [
+        "python3",
+        "scripts/check-protocol-coverage.py",
+        "--mode",
+        "full",
+        "--json"
+      ],
+      "exit": 1
+    }
+  ],
+  "artifacts": [
+    "docs/evidence/broker/fetch-poison-notification-20261027/README.md",
+    "docs/evidence/broker/fetch-poison-notification-20261027/archive-inventory.json"
+  ],
+  "limits": [
+    "The existing waiter test and new real-storage branch test pass in both modes; whole-broker qualification remains failed.",
+    "Independent golden bytes and transport source are unchanged.",
+    "No completed 24-hour fuzz campaign, production readiness or performance leadership claim."
+  ]
+}

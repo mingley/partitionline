@@ -34919,7 +34919,7 @@
       "title": "Fuzz broker framing, storage recovery and API decoding",
       "priority": "P0",
       "kind": "implementation",
-      "status": "blocked",
+      "status": "in_progress",
       "owner": "codex-root-20261027",
       "depends_on": [
         "KL11-04",
@@ -34962,8 +34962,7 @@
         "docs/plan/tasks.json",
         "docs/STATUS.md"
       ],
-      "qualification_limit": "All previous attempts failed, stopped or incomplete, with zero credited qualification time. Nine real supervisor controls passed in the isolated image. Candidate behavioral and conformance failures remain.",
-      "blocked_reason": "Failed campaign retained and KL11-78 integrity repair complete. KL11-79 must repair the known Fetch corruption-waiter defect before freezing a fresh candidate; original timeout remains unreproduced and full 24-hour qualification is still required."
+      "qualification_limit": "Partial offset and Fetch notification repairs are complete. Preparing fresh stable instrumented binaries; no active campaign or completed 24-hour result yet. Earlier failed attempts contribute zero time. Broader behavioral and conformance gates remain failed."
     },
     {
       "id": "KL11-48",
@@ -53633,7 +53632,7 @@
       "title": "Wake Fetch waiters when a cached read poisons its partition",
       "priority": "P0",
       "kind": "implementation",
-      "status": "in_progress",
+      "status": "done",
       "owner": "codex-root-20261027",
       "depends_on": [
         "KL11-07",
@@ -53654,7 +53653,11 @@
         "Run the existing corruption-waiter integration test before and after on latest stable Rust.",
         "Run relevant Fetch, Produce and ListOffsets checks in default and all-feature modes, formatting and focused strict Clippy; retain all failures."
       ],
-      "evidence": [],
+      "evidence": [
+        "docs/evidence/broker/fetch-poison-notification-20261027/README.md",
+        "docs/evidence/broker/fetch-poison-notification-20261027/archive-inventory.json",
+        "docs/plan/evidence/KL11-79.json"
+      ],
       "write_set": [
         "partitionline-broker/src/produce.rs",
         "partitionline-broker/tests/fetch.rs",
@@ -53667,7 +53670,7 @@
         "docs/plan/evidence/KL11-47.json",
         "docs/evidence/broker/qualification-20261027/status.json"
       ],
-      "qualification_limit": "One storage-change notification behavior. Independent golden-response and transport deadline failures, sustained campaigns, client conformance and fastest-performance qualification remain open."
+      "qualification_limit": "Cached read poison notification fixed and verified on both feature modes. Whole broker and client qualification still fail; all observed failures are retained."
     }
   ],
   "toolchain_policy": "Build and validate current work with latest stable Rust only. Historical compiler receipts remain unchanged.",
