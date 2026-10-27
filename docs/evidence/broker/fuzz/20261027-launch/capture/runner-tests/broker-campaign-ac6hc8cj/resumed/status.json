@@ -1,0 +1,40 @@
+{
+  "campaign_qualified": false,
+  "elapsed_seconds": 3.120218252000086,
+  "kind": "smoke",
+  "production_qualified": false,
+  "reason": null,
+  "state": "completed",
+  "targets": {
+    "controller_respond": {
+      "coverage": 352,
+      "engine_elapsed_seconds": 3,
+      "executions": 964801,
+      "final_stats_present": true
+    },
+    "decode_kraft": {
+      "coverage": 1037,
+      "engine_elapsed_seconds": 3,
+      "executions": 509547,
+      "final_stats_present": true
+    },
+    "parse_header": {
+      "coverage": 52,
+      "engine_elapsed_seconds": 3,
+      "executions": 2399099,
+      "final_stats_present": true
+    },
+    "recover_epoch": {
+      "coverage": 266,
+      "engine_elapsed_seconds": 3,
+      "executions": 47173,
+      "final_stats_present": true
+    },
+    "recover_journal": {
+      "coverage": 202,
+      "engine_elapsed_seconds": 3,
+      "executions": 27091,
+      "final_stats_present": true
+    }
+  }
+}

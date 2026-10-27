@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "updated": "2026-10-08",
+  "updated": "2026-10-27",
   "audited_source": "cb7e97d3b92a8555aea34d59266a2990c206395f",
   "guide": "docs/plan/README.md",
   "audit": "docs/audits/2026-09-21.md",
@@ -34939,13 +34939,17 @@
         "Run the named behavioral/fault cases for this contract on latest stable Rust, with strict format/lint checks.",
         "Retain independent upstream or cross-peer evidence where the contract concerns Kafka semantics."
       ],
-      "evidence": [],
+      "evidence": [
+        "docs/evidence/broker/fuzz/20261027-launch/README.md",
+        "docs/plan/evidence/KL11-47.json"
+      ],
       "write_set": [
         "fuzz/broker/",
         "scripts/broker-fuzz-campaign.py",
         "tests/ci/test_broker_fuzz_campaign.py",
         "docs/evidence/broker/fuzz/",
-        "docs/plan/evidence/KL11-47.json"
+        "docs/plan/evidence/KL11-47.json",
+        ".github/workflows/broker.yml"
       ],
       "read_only_held": [
         "partitionline-broker/src/",
@@ -34955,7 +34959,7 @@
         "docs/plan/tasks.json",
         "docs/STATUS.md"
       ],
-      "qualification_limit": "Prepare and execute real latest-stable coverage-guided campaigns with source/binary/corpus pins, bounded workers and retained failures. Only completed >=24h runs per declared parser/recovery family can qualify; launch, smoke and synthetic runner tests cannot."
+      "qualification_limit": "Five actual 86400-second coverage-guided campaigns launched on stable Rust 1.99.1 at source 2c0ddfbcc5f2a772c181e96651d920c0dc112511. Eight real supervisor controls pass, with exact-source build/format/strict harness lint evidence and original failure retained. Campaign completion is pending; no production or performance claim is qualified."
     },
     {
       "id": "KL11-48",

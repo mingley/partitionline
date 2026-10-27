@@ -1,0 +1,72 @@
+[
+  {
+    "live_path": "/workspace/work/qualification-20261027/fuzz-day-01/manifest.json",
+    "snapshot_path": "manifest.json",
+    "captured_bytes": 19550,
+    "captured_utc": "2026-10-27T18:46:15.215854+00:00",
+    "scope": "Immutable prefix of an ongoing attempt; not completion evidence"
+  },
+  {
+    "live_path": "/workspace/work/qualification-20261027/fuzz-day-01/frozen.json",
+    "snapshot_path": "frozen.json",
+    "captured_bytes": 92,
+    "captured_utc": "2026-10-27T18:46:15.216039+00:00",
+    "scope": "Immutable prefix of an ongoing attempt; not completion evidence"
+  },
+  {
+    "live_path": "/workspace/work/qualification-20261027/fuzz-day-01/jobs.json",
+    "snapshot_path": "jobs.json",
+    "captured_bytes": 810,
+    "captured_utc": "2026-10-27T18:46:15.216194+00:00",
+    "scope": "Immutable prefix of an ongoing attempt; not completion evidence"
+  },
+  {
+    "live_path": "/workspace/work/qualification-20261027/fuzz-day-01/status.json",
+    "snapshot_path": "status.json",
+    "captured_bytes": 1998,
+    "captured_utc": "2026-10-27T18:46:15.216324+00:00",
+    "scope": "Immutable prefix of an ongoing attempt; not completion evidence"
+  },
+  {
+    "live_path": "/workspace/work/qualification-20261027/fuzz-day-01/telemetry.jsonl",
+    "snapshot_path": "telemetry.jsonl",
+    "captured_bytes": 92117,
+    "captured_utc": "2026-10-27T18:46:15.217149+00:00",
+    "scope": "Immutable prefix of an ongoing attempt; not completion evidence"
+  },
+  {
+    "live_path": "/workspace/work/qualification-20261027/fuzz-day-01/parse_header/fuzzer.log",
+    "snapshot_path": "parse_header/fuzzer.log",
+    "captured_bytes": 18148,
+    "captured_utc": "2026-10-27T18:46:15.217414+00:00",
+    "scope": "Immutable prefix of an ongoing attempt; not completion evidence"
+  },
+  {
+    "live_path": "/workspace/work/qualification-20261027/fuzz-day-01/decode_kraft/fuzzer.log",
+    "snapshot_path": "decode_kraft/fuzzer.log",
+    "captured_bytes": 823489,
+    "captured_utc": "2026-10-27T18:46:15.227027+00:00",
+    "scope": "Immutable prefix of an ongoing attempt; not completion evidence"
+  },
+  {
+    "live_path": "/workspace/work/qualification-20261027/fuzz-day-01/controller_respond/fuzzer.log",
+    "snapshot_path": "controller_respond/fuzzer.log",
+    "captured_bytes": 299573,
+    "captured_utc": "2026-10-27T18:46:15.228892+00:00",
+    "scope": "Immutable prefix of an ongoing attempt; not completion evidence"
+  },
+  {
+    "live_path": "/workspace/work/qualification-20261027/fuzz-day-01/recover_journal/fuzzer.log",
+    "snapshot_path": "recover_journal/fuzzer.log",
+    "captured_bytes": 41891,
+    "captured_utc": "2026-10-27T18:46:15.229238+00:00",
+    "scope": "Immutable prefix of an ongoing attempt; not completion evidence"
+  },
+  {
+    "live_path": "/workspace/work/qualification-20261027/fuzz-day-01/recover_epoch/fuzzer.log",
+    "snapshot_path": "recover_epoch/fuzzer.log",
+    "captured_bytes": 40800,
+    "captured_utc": "2026-10-27T18:46:15.229530+00:00",
+    "scope": "Immutable prefix of an ongoing attempt; not completion evidence"
+  }
+]

@@ -1,0 +1,109 @@
+{
+  "schema_version": 1,
+  "task_id": "KL11-47",
+  "status": "in_progress",
+  "source_sha": "2c0ddfbcc5f2a772c181e96651d920c0dc112511",
+  "compiler": "rustc 1.99.1 (58cf8f9c3 2026-10-13)\nbinary: rustc\ncommit-hash: 58cf8f9c35b355199727627d07ae34a4e2846d67\ncommit-date: 2026-10-13\nhost: x86_64-unknown-linux-gnu\nrelease: 1.99.1\nLLVM version: 23.1.1\n",
+  "profile": "broker default features only",
+  "campaign_qualified": false,
+  "production_qualified": false,
+  "performance_claim_qualified": false,
+  "job": {
+    "managed_exec_session_id": 72458,
+    "supervisor_pid": 3428,
+    "workers": [
+      {
+        "pid": 3431,
+        "started_monotonic": 1007.683180368,
+        "started_utc": "2026-10-27T18:41:15Z",
+        "target": "parse_header"
+      },
+      {
+        "pid": 3432,
+        "started_monotonic": 1007.683607786,
+        "started_utc": "2026-10-27T18:41:15Z",
+        "target": "decode_kraft"
+      },
+      {
+        "pid": 3433,
+        "started_monotonic": 1007.684288036,
+        "started_utc": "2026-10-27T18:41:15Z",
+        "target": "controller_respond"
+      },
+      {
+        "pid": 3434,
+        "started_monotonic": 1007.684758885,
+        "started_utc": "2026-10-27T18:41:15Z",
+        "target": "recover_journal"
+      },
+      {
+        "pid": 3435,
+        "started_monotonic": 1007.685054087,
+        "started_utc": "2026-10-27T18:41:15Z",
+        "target": "recover_epoch"
+      }
+    ],
+    "directory": "/workspace/work/qualification-20261027/fuzz-day-01",
+    "seconds_per_target": 86400,
+    "state_at_snapshot": "running",
+    "snapshot_utc": "2026-10-27T18:46:14Z",
+    "started_chicago": "2026-10-27T13:41:15-05:00",
+    "earliest_completion_chicago": "2026-10-28T13:41:15-05:00",
+    "stop": "Create STOP in the live directory; supervisor joins all workers.",
+    "resume": "Use the same frozen build and --resume-from this stopped attempt with a new output directory; each attempt must complete its own full interval."
+  },
+  "checks": [
+    {
+      "command": "python3 scripts/broker-fuzz-campaign.py build --output <build03>",
+      "exit": 0,
+      "result": "Five actual coverage-instrumented executables; locked Cargo dependencies and stable Rust."
+    },
+    {
+      "command": "PL_BROKER_FUZZ_BUILD=<build03> python3 -B -m unittest discover -s tests/ci -p test_broker_fuzz_campaign.py -v",
+      "exit": 0,
+      "tests": 8,
+      "result": "Real short executions, corruption/duration/closure rejection, interrupt/resume and joined workers; no short-run qualification."
+    },
+    {
+      "command": "cargo +stable fmt --manifest-path fuzz/broker/Cargo.toml --check",
+      "exit": 0
+    },
+    {
+      "command": "cargo +stable clippy --release --locked --target x86_64-unknown-linux-gnu --no-deps -- -D warnings (fuzz/broker)",
+      "exit": 0,
+      "scope": "Fuzz harness only. Broker dependency unused-constant warning is retained."
+    },
+    {
+      "command": "python3 scripts/check-protocol-coverage.py --mode core --json",
+      "exit": 1,
+      "qualified": false
+    },
+    {
+      "command": "python3 scripts/check-protocol-coverage.py --mode full --json",
+      "exit": 1,
+      "qualified": false
+    }
+  ],
+  "current_client_gate": {
+    "required_cases": 182,
+    "independently_qualified_cases": 75,
+    "unqualified_cases": 107,
+    "version_gaps": 40,
+    "missing_runtime_wiring": 3,
+    "core_complete": false,
+    "full_complete": false
+  },
+  "artifacts": [
+    "docs/evidence/broker/fuzz/20261027-launch/README.md",
+    "docs/evidence/broker/fuzz/20261027-launch/archive-inventory.json",
+    "docs/evidence/broker/fuzz/20261027-launch/retention.json"
+  ],
+  "limits": [
+    "24-hour campaigns are running, not passed. Missing or interrupted completion remains unqualified.",
+    "Snapshot prefixes and deliberately corrupted short-run test copies cannot count as 24-hour evidence.",
+    "Default-feature Linux x86_64 parser/recovery targets only; no full-broker resource, semantic or operational qualification.",
+    "The pre-existing unused PRODUCER_EPOCH warning remains in the broker dependency; strict Clippy qualification here is for the fuzz harness.",
+    "Controlled dedicated x86_64 and arm64 benchmark hosts and an independent reproducer are not configured; requested details from the user.",
+    "Current core/full conformance gates fail; no fastest-client/server wording or Suite HOLD change is justified."
+  ]
+}

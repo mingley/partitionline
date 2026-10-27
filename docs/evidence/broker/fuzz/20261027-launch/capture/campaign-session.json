@@ -1,0 +1,9 @@
+{
+  "managed_exec_session_id": 72458,
+  "supervisor_pid": 3428,
+  "live_directory": "/workspace/work/qualification-20261027/fuzz-day-01",
+  "supervisor_log": "/workspace/work/qualification-20261027/campaign-supervisor.log",
+  "state_at_snapshot": "running",
+  "expected_minimum_completion_utc": "2026-10-28T18:41:15Z",
+  "qualification": "pending actual uninterrupted completion and audit"
+}

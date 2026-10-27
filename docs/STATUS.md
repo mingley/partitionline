@@ -21,10 +21,17 @@ requirements are met.
 | Which work items are open | [Task registry](plan/tasks.json) |
 | How a benchmark number should be read | [Benchmark guide](benchmark.md) |
 
-The task registry has 343 cards: 258 done, 9 in progress, and 76 pending.
-Those counts were checked against `tasks.json` on 22 October 2026. The
-file's own `updated` field still says 2026-10-08. The file is the queue.
-This page does not restate each card.
+The task registry has 343 cards: 258 done, 10 in progress, and 75 pending.
+Those counts were checked against `tasks.json` on 27 October 2026. The file
+is the queue. This page does not restate each card.
+
+Five source-bound broker fuzz campaigns started on 27 October with stable
+Rust 1.99.1. Each requires 24 uninterrupted hours and a successful artifact
+audit. Eight supervisor checks pass against the real instrumented targets.
+[The launch record](evidence/broker/fuzz/20261027-launch/README.md) retains
+source/compiler pins, failures, process IDs and stop/resume instructions.
+KL11-47 remains in progress. Current core and full conformance checks fail;
+production readiness and fastest-performance claims remain unqualified.
 
 ## Client
 

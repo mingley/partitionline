@@ -17,6 +17,47 @@ concurrency:
 # manifest checks exercise that independent crate; passing CI is not production
 # qualification or permission to advertise unimplemented Kafka APIs.
 jobs:
+  broker-fuzz-supervisor:
+    name: instrumented broker fuzz supervision (stable)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      CARGO_INCREMENTAL: '0'
+      PYTHONDONTWRITEBYTECODE: '1'
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - name: Build the actual instrumented broker targets
+        run: python3 -B scripts/broker-fuzz-campaign.py build --output target/broker-fuzz-ci/build
+      - name: Check source formatting
+        run: cargo +stable fmt --manifest-path fuzz/broker/Cargo.toml --check
+      - name: Strict fuzz harness Clippy
+        working-directory: fuzz/broker
+        env:
+          CARGO_TARGET_DIR: ${{ github.workspace }}/target/broker-fuzz-ci/build/target
+        run: cargo +stable clippy --release --locked --target x86_64-unknown-linux-gnu --no-deps -- -D warnings
+      - name: Exercise real workers, interruption, resume and artifact checks
+        env:
+          PL_BROKER_FUZZ_BUILD: ${{ github.workspace }}/target/broker-fuzz-ci/build
+          PL_BROKER_FUZZ_TEST_OUTPUT: ${{ github.workspace }}/target/broker-fuzz-ci/tests
+        run: |
+          mkdir -p target/broker-fuzz-ci/tests
+          python3 -B -m unittest discover -s tests/ci -p test_broker_fuzz_campaign.py -v
+      - name: Retain short-run evidence and failures
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: broker-fuzz-supervisor-${{ github.sha }}
+          path: |
+            target/broker-fuzz-ci/build/build.json
+            target/broker-fuzz-ci/build/build.log
+            target/broker-fuzz-ci/build/bin/
+            target/broker-fuzz-ci/tests/
+          if-no-files-found: error
+          retention-days: 30
+
   broker:
     name: broker (${{ matrix.rust }})
     runs-on: ubuntu-latest
