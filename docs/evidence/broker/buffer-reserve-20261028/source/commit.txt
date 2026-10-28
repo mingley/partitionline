@@ -1,0 +1,7 @@
+commit 923bc2ad8140a726111b52f8971d914e3e9ba355
+Author:     Michael Ingley <mingley10@gmail.com>
+AuthorDate: Wed Oct 28 14:46:06 2026 +0000
+Commit:     Michael Ingley <mingley10@gmail.com>
+CommitDate: Wed Oct 28 14:46:24 2026 +0000
+
+    Fix reservations for reused broker buffers

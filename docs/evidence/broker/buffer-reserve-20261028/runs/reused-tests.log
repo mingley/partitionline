@@ -1,0 +1,11 @@
+   Compiling partitionline-broker v0.1.0 (/workspace/work/metadata-reserve-final/partitionline-broker)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 50.01s
+     Running unittests src/lib.rs (/workspace/work/qualification-20261027/broker-check-target/debug/deps/partitionline_broker-2cf96922940bdfdd)
+
+running 3 tests
+test metadata::tests::reused_job_list_reserves_the_requested_total ... ok
+test metadata::tests::reused_response_reserves_the_requested_total_and_reports_limits ... ok
+test metadata_quorum::tests::racing_commands_and_reused_tokens_are_committed_deterministic_noops ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 361 filtered out; finished in 0.00s
+

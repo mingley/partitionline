@@ -1,0 +1,84 @@
+{
+  "files": [
+    {
+      "stored_path": "README.md",
+      "stored_sha256": "32548df87c0043988ca685b167a1bd71211b2d0f4adf28529d7b5da4908e45d7",
+      "stored_bytes": 2951,
+      "encoding": "identity",
+      "original_sha256": "32548df87c0043988ca685b167a1bd71211b2d0f4adf28529d7b5da4908e45d7",
+      "original_bytes": 2951
+    },
+    {
+      "stored_path": "runs/clippy-final-02.log",
+      "stored_sha256": "923bc6f580813d9c97f11821b05bc3370930c99bcf5d24df1cce4c2d9507e855",
+      "stored_bytes": 175,
+      "encoding": "identity",
+      "original_sha256": "923bc6f580813d9c97f11821b05bc3370930c99bcf5d24df1cce4c2d9507e855",
+      "original_bytes": 175
+    },
+    {
+      "stored_path": "runs/clippy-final.log",
+      "stored_sha256": "a907e8a87bb16c9c45d1803bbac50946bc8a1e820f1e9f54a20713d8606616a9",
+      "stored_bytes": 607,
+      "encoding": "identity",
+      "original_sha256": "a907e8a87bb16c9c45d1803bbac50946bc8a1e820f1e9f54a20713d8606616a9",
+      "original_bytes": 607
+    },
+    {
+      "stored_path": "runs/clippy-on-original-reconstructed.txt",
+      "stored_sha256": "81d2b92af5b0145e01f64f1e5360cbf36aa3129df54f902779d3966f2f26d979",
+      "stored_bytes": 1630,
+      "encoding": "identity",
+      "original_sha256": "81d2b92af5b0145e01f64f1e5360cbf36aa3129df54f902779d3966f2f26d979",
+      "original_bytes": 1630
+    },
+    {
+      "stored_path": "runs/produce-test.log",
+      "stored_sha256": "b41065b7442bd1ff8fe7f792b336c31a4681a8d187358088e55154796bdaa6f9",
+      "stored_bytes": 407,
+      "encoding": "identity",
+      "original_sha256": "b41065b7442bd1ff8fe7f792b336c31a4681a8d187358088e55154796bdaa6f9",
+      "original_bytes": 407
+    },
+    {
+      "stored_path": "runs/reused-tests.log",
+      "stored_sha256": "e8191e6a1a96ca4c80c633626d20ed8003bb05cc9f4c9b6d30eab0176f6a2460",
+      "stored_bytes": 707,
+      "encoding": "identity",
+      "original_sha256": "e8191e6a1a96ca4c80c633626d20ed8003bb05cc9f4c9b6d30eab0176f6a2460",
+      "original_bytes": 707
+    },
+    {
+      "stored_path": "source/change.patch",
+      "stored_sha256": "68dd594e10449a55c18b90e845c7e0340caff3da362f45efec5c17e825711c12",
+      "stored_bytes": 3833,
+      "encoding": "identity",
+      "original_sha256": "68dd594e10449a55c18b90e845c7e0340caff3da362f45efec5c17e825711c12",
+      "original_bytes": 3833
+    },
+    {
+      "stored_path": "source/commit.txt",
+      "stored_sha256": "98af7ceb5911c5b1c5c110d4bfa82a5ba1a0cf45bc40d541702ccf41d63e4e9f",
+      "stored_bytes": 280,
+      "encoding": "identity",
+      "original_sha256": "98af7ceb5911c5b1c5c110d4bfa82a5ba1a0cf45bc40d541702ccf41d63e4e9f",
+      "original_bytes": 280
+    },
+    {
+      "stored_path": "source/partitionline-broker/src/metadata.rs",
+      "stored_sha256": "01869e2d0dd55cf390c9c2a9c00fd83ea1d300d38fac69a89dc6dc247b05ca90",
+      "stored_bytes": 146965,
+      "encoding": "identity",
+      "original_sha256": "01869e2d0dd55cf390c9c2a9c00fd83ea1d300d38fac69a89dc6dc247b05ca90",
+      "original_bytes": 146965
+    },
+    {
+      "stored_path": "source/partitionline-broker/src/produce.rs",
+      "stored_sha256": "d2999e9e6f207a31de5428ff8a44dfbd39dc1ba04e700717c64a271cc0f13db4",
+      "stored_bytes": 101950,
+      "encoding": "identity",
+      "original_sha256": "d2999e9e6f207a31de5428ff8a44dfbd39dc1ba04e700717c64a271cc0f13db4",
+      "original_bytes": 101950
+    }
+  ]
+}
