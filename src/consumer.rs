@@ -8424,21 +8424,34 @@ impl Consumer {
                     .cluster
                     .brokers
                     .get(&node)
-                    .is_some_and(|addr| addr == self.conn.addr())
-                    && !self.conn.is_closed();
+                    .is_some_and(|addr| addr == self.conn.addr());
                 if !bootstrap {
                     continue;
                 }
                 watched = true;
-                let closed = tokio::select! {
-                    biased;
-                    _ = self.conn.peer_left() => true,
-                    _ = tokio::time::sleep(Duration::from_millis(50)) => false,
+                let closed = if self.conn.is_closed() {
+                    self.conn.release_if_closed().await;
+                    true
+                } else {
+                    tokio::select! {
+                        biased;
+                        _ = self.conn.peer_left() => true,
+                        _ = tokio::time::sleep(Duration::from_millis(50)) => false,
+                    }
                 };
                 if !closed {
                     continue;
                 }
                 let addr = self.conn.addr().to_string();
+                let fails = self.reconnect_fails.get(&node).copied().unwrap_or(0);
+                let backoff = crate::config::reconnect_backoff_delay(
+                    self.cfg.reconnect_backoff,
+                    self.cfg.reconnect_backoff_max,
+                    fails,
+                );
+                if !backoff.is_zero() {
+                    tokio::time::sleep(backoff).await;
+                }
                 let dial_deadline = Instant::now() + self.cfg.connect_timeout;
                 if let Ok((conn, versions)) = self.open_leader_socket(&addr, dial_deadline).await {
                     self.versions = versions
@@ -8447,8 +8460,11 @@ impl Consumer {
                         .map(|api| (api.api_key, api))
                         .collect();
                     self.conn = conn;
+                    let _previous = self.reconnect_fails.remove(&node);
+                    self.reset_fetch_sessions_using_bootstrap();
                 } else {
                     self.conn.close();
+                    self.note_reconnect_failure(node);
                 }
                 return true;
             }
@@ -16024,6 +16040,125 @@ mod tests {
             consumer.conns.contains_key(&1),
             "ending the fetch quota watch dropped the leader connection"
         );
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn muted_bootstrap_already_marked_closed_is_reconnected() {
+        use crate::protocol::api::{encode_api_versions_response, ApiVersion, ApiVersionsResponse};
+        use crate::protocol::api_keys::{FETCH, METADATA};
+        use tokio::io::{AsyncReadExt, AsyncWriteExt};
+
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap().to_string();
+        let conn = BrokerConn::connect(&addr, "closed-muted", Duration::from_secs(1))
+            .await
+            .unwrap();
+        let (old_peer, _) = listener.accept().await.unwrap();
+        let mut cfg = ConsumerConfig::bootstrap([addr.clone()]);
+        cfg.max_wait_ms = 10;
+        let mut consumer = Consumer::test_holding(cfg, conn);
+        let _previous = consumer.cluster.brokers.insert(1, addr);
+        let mut session = BrokerFetchSession::default();
+        session.metadata = FetchMetadata::new(42, 3);
+        session.awaiting_response = true;
+        let _previous = consumer.fetch_sessions.insert(1, session);
+        consumer.conn.close();
+        assert!(consumer.conn.is_closed());
+        let peer = tokio::spawn(async move {
+            let (mut socket, _) = listener.accept().await.unwrap();
+            let size = socket.read_i32().await.unwrap();
+            assert!((8..=4096).contains(&size));
+            let mut request = vec![0; usize::try_from(size).unwrap()];
+            let _read = socket.read_exact(&mut request).await.unwrap();
+            assert_eq!(i16::from_be_bytes(request[0..2].try_into().unwrap()), 18);
+            assert_eq!(i16::from_be_bytes(request[2..4].try_into().unwrap()), 4);
+            let versions = ApiVersionsResponse {
+                api_keys: vec![
+                    ApiVersion {
+                        api_key: METADATA,
+                        min_version: 0,
+                        max_version: 7,
+                    },
+                    ApiVersion {
+                        api_key: FETCH,
+                        min_version: 4,
+                        max_version: 7,
+                    },
+                ],
+                ..ApiVersionsResponse::default()
+            };
+            let mut body = bytes::BytesMut::new();
+            encode_api_versions_response(&mut body, 4, &versions).unwrap();
+            socket
+                .write_i32(i32::try_from(4 + body.len()).unwrap())
+                .await
+                .unwrap();
+            socket.write_all(&request[4..8]).await.unwrap();
+            socket.write_all(&body).await.unwrap();
+            socket
+        });
+        let watched = tokio::time::timeout(
+            Duration::from_secs(1),
+            consumer.watch_muted_fetch_sockets(&[1]),
+        )
+        .await
+        .expect("watch ignored an already-closed bootstrap");
+        assert!(watched);
+        assert!(!consumer.conn.is_closed());
+        assert_eq!(consumer.conn.fetch_version(), 7);
+        let session = consumer.fetch_sessions.get(&1).unwrap();
+        assert_eq!(session.metadata.epoch(), FetchMetadata::INITIAL_EPOCH);
+        assert!(!session.awaiting_response);
+        let mut replacement_peer = peer.await.unwrap();
+        let mut byte = [0u8; 1];
+        assert!(
+            tokio::time::timeout(Duration::from_millis(20), replacement_peer.read(&mut byte))
+                .await
+                .is_err(),
+            "the quota watcher sent a request after negotiation"
+        );
+        drop(replacement_peer);
+        drop(old_peer);
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn muted_bootstrap_failed_redials_follow_reconnect_backoff() {
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap().to_string();
+        let conn = BrokerConn::connect(&addr, "closed-muted-backoff", Duration::from_secs(1))
+            .await
+            .unwrap();
+        let (old_peer, _) = listener.accept().await.unwrap();
+        drop(listener);
+        let mut cfg = ConsumerConfig::bootstrap([addr.clone()]);
+        cfg.max_wait_ms = 10;
+        cfg.connect_timeout = Duration::from_millis(200);
+        cfg.reconnect_backoff = Duration::from_millis(100);
+        cfg.reconnect_backoff_max = Duration::from_millis(100);
+        let mut consumer = Consumer::test_holding(cfg, conn);
+        let _previous = consumer.cluster.brokers.insert(1, addr);
+        consumer.conn.close();
+        assert!(tokio::time::timeout(
+            Duration::from_secs(1),
+            consumer.watch_muted_fetch_sockets(&[1]),
+        )
+        .await
+        .unwrap());
+        assert_eq!(consumer.reconnect_fails.get(&1), Some(&1));
+        let started = Instant::now();
+        assert!(tokio::time::timeout(
+            Duration::from_secs(1),
+            consumer.watch_muted_fetch_sockets(&[1]),
+        )
+        .await
+        .unwrap());
+        assert!(
+            started.elapsed() >= Duration::from_millis(80),
+            "a repeated refused connection skipped the configured backoff: {:?}",
+            started.elapsed()
+        );
+        assert_eq!(consumer.reconnect_fails.get(&1), Some(&2));
+        drop(old_peer);
     }
 
     #[tokio::test(flavor = "current_thread")]

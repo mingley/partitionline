@@ -1,0 +1,248 @@
+{
+  "schema_version": 1,
+  "files": [
+    {
+      "original_path": "/workspace/partitionline/docs/evidence/client/muted-fetch-bootstrap-20261028/README.md",
+      "original_sha256": "5b819910cda71f6d8707753702f7f05e1feca0f81685e8201781a09984631b6e",
+      "original_bytes": 3130,
+      "stored_path": "README.md",
+      "stored_sha256": "5b819910cda71f6d8707753702f7f05e1feca0f81685e8201781a09984631b6e",
+      "stored_bytes": 3130,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/fresh-lookup-bootstrap-suite-01.log",
+      "original_sha256": "d8eb2cb0d75dbe675b3d9ee21531691b06766fc6a813160e17e5d6b1e6f4364d",
+      "original_bytes": 6542,
+      "stored_path": "fresh-lookup-bootstrap-suite-01.log.gz",
+      "stored_sha256": "146e4c47181b3fb9d5dd95a19699a47670893f4312517a42e7d21b9030979f81",
+      "stored_bytes": 1510,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/fresh-lookup-bootstrap-suite-01.json",
+      "original_sha256": "8ac1ac63bec7b784a77a167f61a63ac9a4981695684ebe17db10e9bc40bf6124",
+      "original_bytes": 1216245,
+      "stored_path": "fresh-lookup-bootstrap-suite-01.json.gz",
+      "stored_sha256": "d99ec66654d15bcf27f6e9b9aa8755e14f8c0637a2b61d544827051d4e773e87",
+      "stored_bytes": 232265,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/fresh-lookup-bootstrap-throttle-rerun-01.log",
+      "original_sha256": "de594c1930715883a66a2e7da6d8c69cddc5900b8953be77ea8ad621e046839d",
+      "original_bytes": 902,
+      "stored_path": "fresh-lookup-bootstrap-throttle-rerun-01.log.gz",
+      "stored_sha256": "5254e040d46508a6922d9ca34f9d6b640f673d5ef03dda531b7e2793dac406ce",
+      "stored_bytes": 473,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/fresh-lookup-bootstrap-throttle-rerun-01.json",
+      "original_sha256": "c692526ea3f26a1171524d91a036be030e4087d95d7b7b7d37aa73d2e4380824",
+      "original_bytes": 1216212,
+      "stored_path": "fresh-lookup-bootstrap-throttle-rerun-01.json.gz",
+      "stored_sha256": "2df1d29cdd1b52ce33dfaace45ab44befb076d107b66b9538a28e47c68d1ea5c",
+      "stored_bytes": 232252,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/main-quota-lib-build-01.log",
+      "original_sha256": "740b8795d9a898a4e15d033232359ee127dd140a7b9e1cb5b428d2bb07034338",
+      "original_bytes": 260,
+      "stored_path": "main-quota-lib-build-01.log.gz",
+      "stored_sha256": "e10e16fa5ce6c8f53b30f8f0d2af0bcbe1a388596660879e14937f20885306e2",
+      "stored_bytes": 201,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/main-quota-lib-build-01.json",
+      "original_sha256": "269d553530325276025f01af1bf9e97b9f015de496756f36869abbc4c0bdf5d2",
+      "original_bytes": 1213000,
+      "stored_path": "main-quota-lib-build-01.json.gz",
+      "stored_sha256": "218b8a1a897dab4176c25d39d1eb95fa7293d13728e09762e6ab1c34334a42fd",
+      "stored_bytes": 231372,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/main-quota-deterministic-01.log",
+      "original_sha256": "0603a1685797176ec78c89248ced8d31a49391b20fa6cae7a67b6a0c18b20286",
+      "original_bytes": 481,
+      "stored_path": "main-quota-deterministic-01.log.gz",
+      "stored_sha256": "f2b415c003a9cf1a5afe4f1ae7d2df09babaeab591ed63e7a9ee750eeb0d786c",
+      "stored_bytes": 315,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/main-quota-deterministic-01.json",
+      "original_sha256": "7cc83d1a4e7ca7ab05e6773198427c00036be51710d44765344736322681cad8",
+      "original_bytes": 1213508,
+      "stored_path": "main-quota-deterministic-01.json.gz",
+      "stored_sha256": "01945f2042c9a2002f7ff4f9e8c317dd3ebbaf8d9011ff699c0266970588b217",
+      "stored_bytes": 231657,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/main-quota-watch-cancel-01.log",
+      "original_sha256": "c5c3360cbc4d9e228c9f0b5a12353d5b8af75e63da9b7ee838b124040a04a7bb",
+      "original_bytes": 393,
+      "stored_path": "main-quota-watch-cancel-01.log.gz",
+      "stored_sha256": "ca2cd2199d6141add1899b8fb1c2e2645a16f0f03eb2dab82ccbe83043ae4dfe",
+      "stored_bytes": 289,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/main-quota-watch-cancel-01.json",
+      "original_sha256": "86c35993fab279fd4194b4942e20e4b8ad8b3240769d6c9b03e2323a63bfeef1",
+      "original_bytes": 1213556,
+      "stored_path": "main-quota-watch-cancel-01.json.gz",
+      "stored_sha256": "d040194653e6ac3b6c06d4af3ef12b9e048ce4bb20f20d370b4d7b21a6dbf472",
+      "stored_bytes": 231678,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/main-quota-watch-queued-01.log",
+      "original_sha256": "dfda22065ab068080cd97826a5b9f0fd9c9d0dfe285b118b7d43949fbe33fea2",
+      "original_bytes": 392,
+      "stored_path": "main-quota-watch-queued-01.log.gz",
+      "stored_sha256": "2dd5698d7c192372c8fb544a8801fc303d45f051e57e26bc5a8c9d6169f26af7",
+      "stored_bytes": 289,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/main-quota-watch-queued-01.json",
+      "original_sha256": "c71e557f1b85a8dde56613c369436db62f8ca8a071d1a28e61bca228c4612841",
+      "original_bytes": 1213553,
+      "stored_path": "main-quota-watch-queued-01.json.gz",
+      "stored_sha256": "a45e9d14b95d00d55e1d5d09b05188370fe50a107dd7d7dac3721675fbe7ca6b",
+      "stored_bytes": 231680,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/main-quota-throttle-close-01.log",
+      "original_sha256": "465dcf477081010486701567cbbd785316bf6b26dd527557c3c76eb2e1a81649",
+      "original_bytes": 461,
+      "stored_path": "main-quota-throttle-close-01.log.gz",
+      "stored_sha256": "11b85f16afe4c77db111c885e956fe4f6c185f06b33da5a61ad73584f47ba4eb",
+      "stored_bytes": 312,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/main-quota-throttle-close-01.json",
+      "original_sha256": "ff2403456b1dfd9b3a4c085942226a79577c31f5f99774cdc1b5181ed8001a7f",
+      "original_bytes": 1213558,
+      "stored_path": "main-quota-throttle-close-01.json.gz",
+      "stored_sha256": "587c85f96a1ef62cabdc71bf4df47769cce9fa13626c28ec7b013c1e95850bd8",
+      "stored_bytes": 231701,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/main-quota-throttle-other-leader-01.log",
+      "original_sha256": "dbd7559f84b773a0700133229d2b32009f07735955163e18b8cb2453764422eb",
+      "original_bytes": 395,
+      "stored_path": "main-quota-throttle-other-leader-01.log.gz",
+      "stored_sha256": "a105958fb745ae39ae08e14b552000c347a2705934cc05442810f02f1e828d6e",
+      "stored_bytes": 284,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/main-quota-throttle-other-leader-01.json",
+      "original_sha256": "4ba17b111822367cb798b2e370534a2159046ab853fbad876c357a00660e3a39",
+      "original_bytes": 1213555,
+      "stored_path": "main-quota-throttle-other-leader-01.json.gz",
+      "stored_sha256": "dd3789fb747eb0adecef1207614330d42134d5ccdc182d40e850f773427bbcdb",
+      "stored_bytes": 231703,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/main-quota-session-retry-01.log",
+      "original_sha256": "122e74da07c6b27f17775a07204dd18f7f8fa6d1f18e55cdd06566bcceb4aac3",
+      "original_bytes": 404,
+      "stored_path": "main-quota-session-retry-01.log.gz",
+      "stored_sha256": "0ff01ea1eebaaf20663bb1e97f5e8fdf7395b2509f83c25e0dfda98aeef0d107",
+      "stored_bytes": 285,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/main-quota-session-retry-01.json",
+      "original_sha256": "493e002596a38484bdd87d3a2ebd65c289626c92d4e69e9410a37ab7db979ddb",
+      "original_bytes": 1213564,
+      "stored_path": "main-quota-session-retry-01.json.gz",
+      "stored_sha256": "297f1617d657748ea76f7dd01d43cf95a071fddc02d93dee8fb5563f6165a5db",
+      "stored_bytes": 231704,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/main-quota-clippy-all-features-01.log",
+      "original_sha256": "f247cd90891ad98a1067dbec417138bcd8f0271b16f30159475fa8305822a8ad",
+      "original_bytes": 122,
+      "stored_path": "main-quota-clippy-all-features-01.log.gz",
+      "stored_sha256": "878c821138117cede43b0931aa4f4fa05d1a372025dfbfc6099ae8c4c605fc2e",
+      "stored_bytes": 123,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/main-quota-clippy-all-features-01.json",
+      "original_sha256": "a0328a7d3b4c7045fd7a7cb365f87bac03f8d46003c66bdc584134fa3c35a527",
+      "original_bytes": 1213115,
+      "stored_path": "main-quota-clippy-all-features-01.json.gz",
+      "stored_sha256": "07fafa2c7ac56e0c9a44321c8857a0fa77c79e1487e336580a8d37002138e452",
+      "stored_bytes": 231428,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/main-quota-input-snapshot-01.json",
+      "original_sha256": "80c5795a3c882793c38da54eacee6bc9c18e0b4774be4f014f0860f2afe9b543",
+      "original_bytes": 1210663,
+      "stored_path": "main-input-snapshot.json.gz",
+      "stored_sha256": "97f6329a0da9cd005bacd57462dbcf5340348c423825b177e9cde0fff5549d2b",
+      "stored_bytes": 230275,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/main-quota-lib-enumeration-01.json",
+      "original_sha256": "dfcba7b3d904c2a85f3c2923a84c8cd347af4fb6848d75dd660f265faaf80566",
+      "original_bytes": 562,
+      "stored_path": "main-lib-enumeration.json.gz",
+      "stored_sha256": "ed41adabe326e472575e963c846e6b304d373e4533855d43bdd42a1774f56627",
+      "stored_bytes": 371,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/run-v2.py",
+      "original_sha256": "ef6f96a56fadded219a6d75a66ce664d0b30a59bb2c4927a7fa683b5e2ae0b1b",
+      "original_bytes": 6248,
+      "stored_path": "run-v2.py.gz",
+      "stored_sha256": "c38cb53cba0a14a258fd4423e5fa0d683fb8ac6e9c6000dd1e56403aaede8724",
+      "stored_bytes": 2473,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/client-fresh-versions-overlay/consumer-before-muted-fix.rs",
+      "original_sha256": "3f1cf5b4bf4d39571c6812c22ce4a017428d9b0ee70ccb7ad47a11b46cc2d80d",
+      "original_bytes": 761207,
+      "stored_path": "before-consumer.rs.gz",
+      "stored_sha256": "e4ca11df15bcd743cd4801c9cc3a79a8794b633f71546eb8952a3bb6ddbbecad",
+      "stored_bytes": 127592,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/partitionline/src/consumer.rs",
+      "original_sha256": "63d63cdca1f49dd9b49132daaba7685bbfc1f2c9969c52e416d862717fbfffbb",
+      "original_bytes": 760604,
+      "stored_path": "main-consumer.rs.gz",
+      "stored_sha256": "58ea8af10bd07ada77e6bfddc6fab156f3df6ebdce1c94b205c450f3adad4f18",
+      "stored_bytes": 126983,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/client-fresh-versions-overlay/main-quota-watcher-fix.patch",
+      "original_sha256": "498c8ed932c2d840e73d8d628618d2dbd73bad98442321d9c66be294a0f08d77",
+      "original_bytes": 7899,
+      "stored_path": "main-quota-watcher-fix.patch.gz",
+      "stored_sha256": "72d06a14b27f44be50de30e13a16faf798d171452e65775086e52f86bea54e37",
+      "stored_bytes": 1950,
+      "encoding": "gzip"
+    }
+  ]
+}
