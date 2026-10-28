@@ -1,0 +1,25 @@
+   Compiling partitionline-broker v0.1.0 (/workspace/work/broker-classic-checkpoint/partitionline-broker)
+    Finished `test` profile [unoptimized] target(s) in 42.42s
+     Running unittests src/lib.rs (/workspace/work/qualification-20261027/broker-check-target/debug/deps/partitionline_broker-f263a2f5b501ae2f)
+
+running 17 tests
+test groups::classic::tests::a_negative_or_repeated_assignment_is_not_recovered ... ok
+test groups::classic::tests::a_member_counter_or_generation_jump_is_not_recovered ... ok
+test groups::classic::tests::a_generation_at_i32_max_does_not_accept_another_member ... ok
+test groups::classic::tests::an_older_clock_does_not_shorten_the_session ... ok
+test groups::classic::tests::duplicate_member_in_snapshot_is_not_recovered ... ok
+test groups::classic::tests::heartbeat_during_rebalance_keeps_the_member ... ok
+test groups::classic::tests::checkpoint_failures_block_all_reads_until_recovery ... ok
+test groups::classic::tests::heartbeat_holds_the_session_and_a_stale_generation_does_not ... ok
+test groups::classic::tests::member_id_exhaustion_is_rejected_without_mutation ... ok
+test groups::classic::tests::leave_drops_one_member_and_revokes_the_generation ... ok
+test groups::classic::tests::checkpoint_recovery_rejects_invalid_state_and_late_checkpoints ... ok
+test groups::classic::tests::rejected_fresh_joins_do_not_consume_member_ids_or_break_recovery ... ok
+test groups::classic::tests::sync_holds_the_session_until_the_new_clock ... ok
+test groups::classic::tests::timeout_revokes_ownership_and_a_stale_generation_cannot_sync ... ok
+test groups::classic::tests::two_members_receive_disjoint_assignments_that_survive_failover ... ok
+test groups::classic::tests::oversized_snapshot_poisons_reads_and_recovers_previous_state ... ok
+test groups::classic::tests::checkpoints_preserve_classic_groups_through_repeated_reopen ... ok
+
+test result: ok. 17 passed; 0 failed; 0 ignored; 0 measured; 407 filtered out; finished in 0.01s
+

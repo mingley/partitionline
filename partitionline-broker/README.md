@@ -47,6 +47,9 @@ the listener's catalog or partition journals. See
 The experimental consumer, share and streams group coordinators expose
 `describe` as `Result<Option<_>, Error>`. Callers must handle `Error::Poisoned`
 after an uncertain storage write and reopen the coordinator to recover. The
+classic coordinator similarly returns `Result` from `epoch`, `generation`, and
+`assignment`; reopen it after `Error::Poisoned`. Classic snapshot checkpoints
+reserve the adjacent `.checkpoint.tmp` pathname. The
 classic offset store similarly returns `Result` from `list`, `describe`, and
 `fetch`; handle `Error::Poisoned` by reopening the store. Its journal rolls
 over to a complete checkpoint when it reaches a configured history limit.
