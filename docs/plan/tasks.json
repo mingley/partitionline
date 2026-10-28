@@ -34915,8 +34915,10 @@
       "title": "Prove rolling upgrade and mixed-version cluster behavior",
       "priority": "P1",
       "kind": "implementation",
-      "status": "done",
-      "owner": "cursor-cloud",
+      "status": "pending",
+      "owner": null,
+      "previous_owner": "cursor-cloud",
+      "scope": "A local admin-journal feature rollback is tested; a mixed-version network and rolling cluster upgrade remain open.",
       "depends_on": [
         "KL11-41",
         "KL11-45"

@@ -21,7 +21,7 @@ requirements are met.
 | Which work items are open | [Task registry](plan/tasks.json) |
 | How a benchmark number should be read | [Benchmark guide](benchmark.md) |
 
-The task registry has 346 cards: 250 done, 13 in progress, and 83 pending.
+The task registry has 346 cards: 249 done, 13 in progress, and 84 pending.
 Those counts were checked against `tasks.json` on 27 October 2026.
 
 Current qualification uses stable Rust 1.99.1. The seeded fault oracle now
@@ -77,8 +77,8 @@ InitProducerId negotiates v0–v6 and leaves both two-phase flags false
 
 KL11-01 through KL11-09 are done. That range covers framed transport, the
 checksummed journal, topic metadata, validated Produce, Fetch, ListOffsets,
-and independent clients against one persisted node. KL11-46, rolling
-mixed-version cluster behavior, is done. Unit and integration tests do not
+and independent clients against one persisted node. KL11-46 still needs a rolling mixed-version network history; its existing
+evidence covers one local admin journal. Unit and integration tests do not
 by themselves make the broker production-ready. The
 [broker plan](plan/broker-implementation.md) records the remaining checks,
 including sustained fuzz, resource soaks, and peer authentication.
