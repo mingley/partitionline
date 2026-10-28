@@ -1,0 +1,48 @@
+    Checking partitionline v0.1.0 (/workspace/work/goal-qualification-20261028/parser-budget-prototype)
+error: clamp-like pattern without using clamp function
+  --> src/protocol/records.rs:46:20
+   |
+46 |               limit: max_decode_bytes
+   |  ____________________^
+47 | |                 .min(DEFAULT_MAX_RECORD_BATCH_DECODE_BYTES)
+48 | |                 .saturating_mul(2)
+49 | |                 .max(MIN_DECODE_METADATA_BYTES)
+50 | |                 .min(MAX_DECODE_METADATA_BYTES),
+   | |_______________________________________________^
+   |
+   = note: clamp will panic if max < min
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#manual_clamp
+   = note: `-D clippy::manual-clamp` implied by `-D warnings`
+   = help: to override `-D warnings` add `#[allow(clippy::manual_clamp)]`
+help: replace with clamp
+   |
+46 ~             limit: max_decode_bytes
+47 +                 .min(DEFAULT_MAX_RECORD_BATCH_DECODE_BYTES)
+48 ~                 .saturating_mul(2).clamp(MIN_DECODE_METADATA_BYTES, MAX_DECODE_METADATA_BYTES),
+   |
+
+error: manual checked division
+  --> src/protocol/records.rs:74:12
+   |
+74 |         if unit == 0 {
+   |            ^^^^^^^^^ check performed here
+...
+77 |             self.limit.saturating_sub(self.used) / unit
+   |             ------------------------------------------- division performed here
+   |
+   = help: consider using `checked_div`
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#manual_checked_ops
+   = note: `-D clippy::manual-checked-ops` implied by `-D warnings`
+   = help: to override `-D warnings` add `#[allow(clippy::manual_checked_ops)]`
+
+error: this lint expectation is unfulfilled
+    --> src/protocol/fetch.rs:3594:5
+     |
+3594 |     clippy::type_complexity,
+     |     ^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = note: Fetch returns decoded metadata, raw records, and session fields together
+     = note: `-D unfulfilled-lint-expectations` implied by `-D warnings`
+     = help: to override `-D warnings` add `#[allow(unfulfilled_lint_expectations)]`
+
+error: could not compile `partitionline` (lib) due to 3 previous errors

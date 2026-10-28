@@ -1,0 +1,10 @@
+   Compiling partitionline v0.1.0 (/workspace/partitionline)
+    Finished `test` profile [unoptimized] target(s) in 2.75s
+     Running tests/tls_shutdown_deadline.rs (/workspace/work/qualification-20261027/broker-check-target/debug/deps/tls_shutdown_deadline-3ec75dd0f5e3ea9b)
+
+running 2 tests
+test cancelled_tls_write_releases_peer_while_client_is_retained ... ok
+test stalled_tls_peer_cannot_hold_a_write_timeout_during_shutdown ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.41s
+

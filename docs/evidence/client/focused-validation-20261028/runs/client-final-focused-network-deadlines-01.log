@@ -1,0 +1,17 @@
+   Compiling partitionline v0.1.0 (/workspace/partitionline)
+    Finished `test` profile [unoptimized] target(s) in 1.79s
+     Running tests/network_deadlines.rs (/workspace/work/qualification-20261027/broker-check-target/debug/deps/network_deadlines-6b020ac805cf2929)
+
+running 9 tests
+test cancellation_mid_flight_marks_connection_closed_and_not_reusable ... ok
+test combined_delay_cannot_consume_2x_budget ... ok
+test correlation_mismatch_marks_connection_closed_and_not_reusable ... ok
+test early_response_during_write_preserves_framing_and_correlation ... ok
+test explicit_deadline_contract_bounds_roundtrip ... ok
+test healthy_connection_allows_sequential_roundtrips ... ok
+test partial_read_marks_connection_closed_and_not_reusable ... ok
+test timeout_does_not_leave_reusable_desynchronized_connection ... ok
+test unreachable_bootstrap_does_not_hold_connect_tls_any ... ok
+
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.52s
+

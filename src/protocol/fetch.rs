@@ -8,7 +8,7 @@ use bytes::{Buf, BufMut, Bytes, BytesMut};
 use super::api::MetadataResponse;
 use super::buf;
 use super::epoch::EpochEndOffset;
-use super::records::{self, RecordBatch, SlotList};
+use super::records::{self, DecodeMetadataBudget, RecordBatch, SlotList};
 use crate::error::{Error, Result};
 
 /// Java `FetchRequest.CONSUMER_REPLICA_ID`. ReplicaId is request-level
@@ -3299,25 +3299,107 @@ pub fn decode_fetch_response<B: Buf>(
     i32,
     i32,
 )> {
+    let mut metadata = fetch_metadata_budget();
     let (mut topics, _retained, raw, endpoints, error_code, session_id, throttle_time_ms) =
-        decode_fetch_response_raw(buf, version, Vec::new())?;
+        decode_fetch_response_raw_with_budget(buf, version, Vec::new(), &mut metadata)?;
     for (topic, raw_partitions) in topics.iter_mut().zip(raw) {
         for (part, rec_bytes) in topic.partitions.iter_mut().zip(raw_partitions) {
             if !rec_bytes.is_empty() {
                 let mut rec_buf = rec_bytes;
-                part.records = records::decode_record_batches(&mut rec_buf)?;
+                part.records = records::decode_record_batches_with_budget(
+                    &mut rec_buf,
+                    records::DEFAULT_MAX_RECORD_BATCH_DECODE_BYTES,
+                    &mut metadata,
+                )?;
             }
         }
     }
     Ok((topics, endpoints, error_code, session_id, throttle_time_ms))
 }
 
-fn reserve_fetch_slots<T>(items: &mut Vec<T>, count: usize) -> Result<()> {
-    if items.capacity() < count {
-        items
-            .try_reserve_exact(count - items.capacity())
-            .map_err(|_| Error::protocol("fetch response reserve"))?;
+// Bound decoded object and container capacity independently from shared wire bytes.
+// The default is 128 MiB per response, the same ceiling used for records.
+pub(crate) fn fetch_metadata_budget() -> DecodeMetadataBudget {
+    DecodeMetadataBudget::for_wire_limit(records::DEFAULT_MAX_RECORD_BATCH_DECODE_BYTES)
+}
+
+/// Read a topic name without allocating past the response metadata budget.
+/// The existing string capacity was charged by the caller.
+fn read_fetch_topic_name<B: Buf>(
+    buf: &mut B,
+    flexible: bool,
+    out: &mut String,
+    metadata: &mut DecodeMetadataBudget,
+) -> Result<()> {
+    let len = if flexible {
+        let n = buf::get_unsigned_varint(buf)?;
+        if n == 0 {
+            out.clear();
+            return Ok(());
+        }
+        buf::usize_from_u32(n - 1)?
+    } else {
+        let n = buf::get_i16(buf)?;
+        if n < 0 {
+            out.clear();
+            return Ok(());
+        }
+        buf::usize_from_i16(n)?
+    };
+    buf::need(buf, len)?;
+    if buf.chunk().len() >= len && out.capacity() >= len {
+        let bytes = buf
+            .chunk()
+            .get(..len)
+            .ok_or_else(|| Error::protocol("short fetch topic"))?;
+        let text =
+            std::str::from_utf8(bytes).map_err(|error| Error::protocol(error.to_string()))?;
+        out.clear();
+        out.push_str(text);
+        buf.advance(len);
+        return Ok(());
     }
+    // Copy only after the entire replacement has been admitted, including the
+    // overlap with any retained old allocation. This also handles split Buf chunks.
+    let mut bytes = Vec::new();
+    metadata.reserve(&mut bytes, len)?;
+    bytes.resize(len, 0);
+    buf.copy_to_slice(&mut bytes);
+    let replacement =
+        String::from_utf8(bytes).map_err(|error| Error::protocol(error.to_string()))?;
+    let old = std::mem::replace(out, replacement);
+    let old_capacity = old.capacity();
+    drop(old);
+    metadata.release::<u8>(old_capacity)?;
+    Ok(())
+}
+
+fn reserve_fetch_slots<T>(
+    items: &mut Vec<T>,
+    count: usize,
+    metadata: &mut DecodeMetadataBudget,
+) -> Result<()> {
+    let initial = count.min(items.len().saturating_add(256));
+    let initial = initial.min(metadata.remaining_slots::<T>());
+    metadata.reserve(items, initial)
+}
+
+fn push_fetch_slot<T>(
+    items: &mut Vec<T>,
+    item: T,
+    metadata: &mut DecodeMetadataBudget,
+) -> Result<()> {
+    if items.len() == items.capacity() {
+        let maximum = metadata.remaining_slots::<T>();
+        let target = items.capacity().saturating_mul(2).max(4).min(maximum);
+        if target <= items.capacity() {
+            return Err(Error::protocol(
+                "fetch response metadata exceeds maximum allowable size",
+            ));
+        }
+        metadata.reserve(items, target)?;
+    }
+    items.push(item);
     Ok(())
 }
 
@@ -3328,10 +3410,11 @@ fn reserve_fetch_slots<T>(items: &mut Vec<T>, count: usize) -> Result<()> {
     clippy::type_complexity,
     reason = "Fetch response decode returns topics, raw records, endpoints, error, session, and throttle together"
 )]
+#[cfg(test)]
 pub(crate) fn decode_fetch_response_raw<B: Buf>(
     buf: &mut B,
     version: i16,
-    mut topics: Vec<FetchedTopic>,
+    topics: Vec<FetchedTopic>,
 ) -> Result<(
     Vec<FetchedTopic>,
     Vec<FetchedTopic>,
@@ -3341,6 +3424,30 @@ pub(crate) fn decode_fetch_response_raw<B: Buf>(
     i32,
     i32,
 )> {
+    decode_fetch_response_raw_with_budget(buf, version, topics, &mut fetch_metadata_budget())
+}
+
+#[expect(
+    clippy::type_complexity,
+    reason = "Fetch returns decoded metadata, raw records, and session fields together"
+)]
+pub(crate) fn decode_fetch_response_raw_with_budget<B: Buf>(
+    buf: &mut B,
+    version: i16,
+    mut topics: Vec<FetchedTopic>,
+    metadata: &mut DecodeMetadataBudget,
+) -> Result<(
+    Vec<FetchedTopic>,
+    Vec<FetchedTopic>,
+    SlotList<SlotList<Bytes>>,
+    Vec<super::api::NodeEndpoint>,
+    i16,
+    i32,
+    i32,
+)> {
+    if metadata.charge::<FetchedTopic>(topics.capacity()).is_err() {
+        topics = Vec::new();
+    }
     let flexible = fetch_flexible(version)?;
     let throttle_time_ms = buf::get_i32(buf)?;
     let error_code = if version >= 7 { buf::get_i16(buf)? } else { 0 };
@@ -3352,7 +3459,7 @@ pub(crate) fn decode_fetch_response_raw<B: Buf>(
     let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);
     if n == 0 {
         let endpoints = if flexible {
-            super::api::decode_top_level_node_endpoints(buf, version >= 16)?
+            super::api::decode_top_level_node_endpoints_with_budget(buf, version >= 16, metadata)?
         } else {
             Vec::new()
         };
@@ -3369,8 +3476,8 @@ pub(crate) fn decode_fetch_response_raw<B: Buf>(
     if topics.len() > n {
         topics.truncate(n);
     }
-    reserve_fetch_slots(&mut topics, n)?;
-    let mut raw_records = SlotList::with_capacity(n);
+    reserve_fetch_slots(&mut topics, n, metadata)?;
+    let mut raw_records = SlotList::try_with_budget(n, metadata)?;
     for topic_index in 0..n {
         let mut topic_name = if topic_index < topics.len() {
             topics
@@ -3380,11 +3487,16 @@ pub(crate) fn decode_fetch_response_raw<B: Buf>(
         } else {
             String::new()
         };
+        // Scratch is optional: discard an oversized retained name instead of
+        // rejecting an otherwise small response before reading its new name.
+        if metadata.charge::<u8>(topic_name.capacity()).is_err() {
+            topic_name = String::new();
+        }
         let topic_id = if version >= 13 {
             topic_name.clear();
             buf::get_uuid(buf)?
         } else {
-            buf::read_string_into(buf, flexible, &mut topic_name)?;
+            read_fetch_topic_name(buf, flexible, &mut topic_name, metadata)?;
             [0; 16]
         };
         let pn = buf::get_array_len(buf, flexible)?.unwrap_or(0);
@@ -3398,14 +3510,21 @@ pub(crate) fn decode_fetch_response_raw<B: Buf>(
         if partitions.len() > pn {
             partitions.truncate(pn);
         }
-        reserve_fetch_slots(&mut partitions, pn)?;
-        let mut raw_partitions = SlotList::with_capacity(pn);
+        if metadata
+            .charge::<FetchedPartition>(partitions.capacity())
+            .is_err()
+        {
+            partitions = Vec::new();
+        }
+        reserve_fetch_slots(&mut partitions, pn, metadata)?;
+        let mut raw_partitions = SlotList::try_with_budget(pn, metadata)?;
         read_fetch_partitions(
             buf,
             version,
             flexible,
             &mut partitions,
             &mut raw_partitions,
+            metadata,
             0,
             pn,
         )?;
@@ -3419,16 +3538,20 @@ pub(crate) fn decode_fetch_response_raw<B: Buf>(
                 slot.partitions = partitions;
             }
         } else {
-            topics.push(FetchedTopic {
-                topic: topic_name,
-                topic_id,
-                partitions,
-            });
+            push_fetch_slot(
+                &mut topics,
+                FetchedTopic {
+                    topic: topic_name,
+                    topic_id,
+                    partitions,
+                },
+                metadata,
+            )?;
         }
-        raw_records.push(raw_partitions);
+        raw_records.try_push_with_budget(raw_partitions, metadata)?;
     }
     let endpoints = if flexible {
-        super::api::decode_top_level_node_endpoints(buf, version >= 16)?
+        super::api::decode_top_level_node_endpoints_with_budget(buf, version >= 16, metadata)?
     } else {
         Vec::new()
     };
@@ -3443,15 +3566,16 @@ pub(crate) fn decode_fetch_response_raw<B: Buf>(
     ))
 }
 
-/// [`decode_fetch_response_raw`], yielding while topics and partitions are decoded.
+/// Decode raw Fetch topics and partitions while yielding periodically.
 ///
 /// Decoding 200,000 topics held the caller for 254ms. A single topic still
 /// yields every 8,192 partitions. Decoding 2,000,000 endpoints held the caller
 /// for 700ms. A broker host is still read.
+#[cfg(test)]
 pub(crate) async fn decode_fetch_response_raw_cooperative<B: Buf>(
     buf: &mut B,
     version: i16,
-    mut topics: Vec<FetchedTopic>,
+    topics: Vec<FetchedTopic>,
 ) -> Result<(
     Vec<FetchedTopic>,
     Vec<FetchedTopic>,
@@ -3461,6 +3585,32 @@ pub(crate) async fn decode_fetch_response_raw_cooperative<B: Buf>(
     i32,
     i32,
 )> {
+    decode_fetch_response_raw_cooperative_with_budget(
+        buf,
+        version,
+        topics,
+        &mut fetch_metadata_budget(),
+    )
+    .await
+}
+
+pub(crate) async fn decode_fetch_response_raw_cooperative_with_budget<B: Buf>(
+    buf: &mut B,
+    version: i16,
+    mut topics: Vec<FetchedTopic>,
+    metadata: &mut DecodeMetadataBudget,
+) -> Result<(
+    Vec<FetchedTopic>,
+    Vec<FetchedTopic>,
+    SlotList<SlotList<Bytes>>,
+    Vec<super::api::NodeEndpoint>,
+    i16,
+    i32,
+    i32,
+)> {
+    if metadata.charge::<FetchedTopic>(topics.capacity()).is_err() {
+        topics = Vec::new();
+    }
     let flexible = fetch_flexible(version)?;
     let throttle_time_ms = buf::get_i32(buf)?;
     let error_code = if version >= 7 { buf::get_i16(buf)? } else { 0 };
@@ -3472,7 +3622,12 @@ pub(crate) async fn decode_fetch_response_raw_cooperative<B: Buf>(
     let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);
     if n == 0 {
         let endpoints = if flexible {
-            super::api::decode_top_level_node_endpoints_cooperative(buf, version >= 16).await?
+            super::api::decode_top_level_node_endpoints_cooperative_with_budget(
+                buf,
+                version >= 16,
+                metadata,
+            )
+            .await?
         } else {
             Vec::new()
         };
@@ -3489,8 +3644,8 @@ pub(crate) async fn decode_fetch_response_raw_cooperative<B: Buf>(
     if topics.len() > n {
         topics.truncate(n);
     }
-    reserve_fetch_slots(&mut topics, n)?;
-    let mut raw_records = SlotList::with_capacity(n);
+    reserve_fetch_slots(&mut topics, n, metadata)?;
+    let mut raw_records = SlotList::try_with_budget(n, metadata)?;
     let mut walked = 0usize;
     for topic_index in 0..n {
         let mut topic_name = if topic_index < topics.len() {
@@ -3501,11 +3656,16 @@ pub(crate) async fn decode_fetch_response_raw_cooperative<B: Buf>(
         } else {
             String::new()
         };
+        // Scratch is optional: discard an oversized retained name instead of
+        // rejecting an otherwise small response before reading its new name.
+        if metadata.charge::<u8>(topic_name.capacity()).is_err() {
+            topic_name = String::new();
+        }
         let topic_id = if version >= 13 {
             topic_name.clear();
             buf::get_uuid(buf)?
         } else {
-            buf::read_string_into(buf, flexible, &mut topic_name)?;
+            read_fetch_topic_name(buf, flexible, &mut topic_name, metadata)?;
             [0; 16]
         };
         let pn = buf::get_array_len(buf, flexible)?.unwrap_or(0);
@@ -3519,8 +3679,14 @@ pub(crate) async fn decode_fetch_response_raw_cooperative<B: Buf>(
         if partitions.len() > pn {
             partitions.truncate(pn);
         }
-        reserve_fetch_slots(&mut partitions, pn)?;
-        let mut raw_partitions = SlotList::with_capacity(pn);
+        if metadata
+            .charge::<FetchedPartition>(partitions.capacity())
+            .is_err()
+        {
+            partitions = Vec::new();
+        }
+        reserve_fetch_slots(&mut partitions, pn, metadata)?;
+        let mut raw_partitions = SlotList::try_with_budget(pn, metadata)?;
         let mut part_index = 0usize;
         while part_index < pn {
             let end = part_index.saturating_add(8 * 1024).min(pn);
@@ -3530,6 +3696,7 @@ pub(crate) async fn decode_fetch_response_raw_cooperative<B: Buf>(
                 flexible,
                 &mut partitions,
                 &mut raw_partitions,
+                metadata,
                 part_index,
                 end,
             )
@@ -3549,13 +3716,17 @@ pub(crate) async fn decode_fetch_response_raw_cooperative<B: Buf>(
                 slot.partitions = partitions;
             }
         } else {
-            topics.push(FetchedTopic {
-                topic: topic_name,
-                topic_id,
-                partitions,
-            });
+            push_fetch_slot(
+                &mut topics,
+                FetchedTopic {
+                    topic: topic_name,
+                    topic_id,
+                    partitions,
+                },
+                metadata,
+            )?;
         }
-        raw_records.push(raw_partitions);
+        raw_records.try_push_with_budget(raw_partitions, metadata)?;
         walked = walked.saturating_add(1);
         if walked == 8 * 1024 {
             walked = 0;
@@ -3563,7 +3734,12 @@ pub(crate) async fn decode_fetch_response_raw_cooperative<B: Buf>(
         }
     }
     let endpoints = if flexible {
-        super::api::decode_top_level_node_endpoints_cooperative(buf, version >= 16).await?
+        super::api::decode_top_level_node_endpoints_cooperative_with_budget(
+            buf,
+            version >= 16,
+            metadata,
+        )
+        .await?
     } else {
         Vec::new()
     };
@@ -3578,12 +3754,17 @@ pub(crate) async fn decode_fetch_response_raw_cooperative<B: Buf>(
     ))
 }
 
+#[expect(
+    clippy::too_many_arguments,
+    reason = "partition parsing shares output and a response metadata budget"
+)]
 fn read_fetch_partitions<B: Buf>(
     buf: &mut B,
     version: i16,
     flexible: bool,
     partitions: &mut Vec<FetchedPartition>,
     raw_partitions: &mut SlotList<Bytes>,
+    metadata: &mut DecodeMetadataBudget,
     start: usize,
     end: usize,
 ) -> Result<()> {
@@ -3608,18 +3789,20 @@ fn read_fetch_partitions<B: Buf>(
             Vec::new()
         };
         aborted_transactions.clear();
-        if aborted_len > aborted_transactions.capacity() {
-            aborted_transactions
-                .try_reserve(aborted_len)
-                .map_err(|_| Error::protocol("aborted transaction reserve"))?;
+        if metadata
+            .charge::<(i64, i64)>(aborted_transactions.capacity())
+            .is_err()
+        {
+            aborted_transactions = Vec::new();
         }
+        reserve_fetch_slots(&mut aborted_transactions, aborted_len, metadata)?;
         for _ in 0..aborted_len {
             let pid = buf::get_i64(buf)?;
             let first = buf::get_i64(buf)?;
             if flexible {
                 buf::skip_tagged_fields(buf)?;
             }
-            aborted_transactions.push((pid, first));
+            push_fetch_slot(&mut aborted_transactions, (pid, first), metadata)?;
         }
         let preferred_read_replica = if version >= 11 {
             buf::get_i32(buf)?
@@ -3631,7 +3814,7 @@ fn read_fetch_partitions<B: Buf>(
         } else {
             buf::take_classic_bytes(buf)?.unwrap_or_else(Bytes::new)
         };
-        raw_partitions.push(rec_bytes);
+        raw_partitions.try_push_with_budget(rec_bytes, metadata)?;
         let (
             diverging_epoch,
             diverging_end_offset,
@@ -3672,7 +3855,7 @@ fn read_fetch_partitions<B: Buf>(
                 *slot = built;
             }
         } else {
-            partitions.push(built);
+            push_fetch_slot(partitions, built, metadata)?;
         }
     }
     Ok(())
@@ -3681,12 +3864,17 @@ fn read_fetch_partitions<B: Buf>(
 /// [`read_fetch_partitions`], yielding while aborted transactions are still being read.
 ///
 /// Decoding 1,000,000 aborted transactions held the caller for 170ms.
+#[expect(
+    clippy::too_many_arguments,
+    reason = "partition parsing shares output and a response metadata budget"
+)]
 async fn read_fetch_partitions_cooperative<B: Buf>(
     buf: &mut B,
     version: i16,
     flexible: bool,
     partitions: &mut Vec<FetchedPartition>,
     raw_partitions: &mut SlotList<Bytes>,
+    metadata: &mut DecodeMetadataBudget,
     start: usize,
     end: usize,
 ) -> Result<()> {
@@ -3712,18 +3900,20 @@ async fn read_fetch_partitions_cooperative<B: Buf>(
             Vec::new()
         };
         aborted_transactions.clear();
-        if aborted_len > aborted_transactions.capacity() {
-            aborted_transactions
-                .try_reserve(aborted_len)
-                .map_err(|_| Error::protocol("aborted transaction reserve"))?;
+        if metadata
+            .charge::<(i64, i64)>(aborted_transactions.capacity())
+            .is_err()
+        {
+            aborted_transactions = Vec::new();
         }
+        reserve_fetch_slots(&mut aborted_transactions, aborted_len, metadata)?;
         for _ in 0..aborted_len {
             let pid = buf::get_i64(buf)?;
             let first = buf::get_i64(buf)?;
             if flexible {
                 buf::skip_tagged_fields(buf)?;
             }
-            aborted_transactions.push((pid, first));
+            push_fetch_slot(&mut aborted_transactions, (pid, first), metadata)?;
             walked = walked.saturating_add(1);
             if walked == 8 * 1024 {
                 walked = 0;
@@ -3740,7 +3930,7 @@ async fn read_fetch_partitions_cooperative<B: Buf>(
         } else {
             buf::take_classic_bytes(buf)?.unwrap_or_else(Bytes::new)
         };
-        raw_partitions.push(rec_bytes);
+        raw_partitions.try_push_with_budget(rec_bytes, metadata)?;
         let (
             diverging_epoch,
             diverging_end_offset,
@@ -3781,7 +3971,7 @@ async fn read_fetch_partitions_cooperative<B: Buf>(
                 *slot = built;
             }
         } else {
-            partitions.push(built);
+            push_fetch_slot(partitions, built, metadata)?;
         }
     }
     Ok(())
@@ -3793,6 +3983,157 @@ mod tests {
     use crate::protocol::records::Record;
     use bytes::{Buf, BufMut, Bytes};
     use std::collections::{HashMap, HashSet};
+
+    #[test]
+    fn fetch_slot_reservation_uses_length_and_caps_untrusted_counts() {
+        let mut reused = Vec::with_capacity(8);
+        reused.extend([1_u8, 2, 3]);
+        let mut metadata = fetch_metadata_budget();
+        metadata.charge::<u8>(reused.capacity()).unwrap();
+        reserve_fetch_slots(&mut reused, 10, &mut metadata).unwrap();
+        assert!(reused.capacity() >= 10);
+        let mut hostile = Vec::<u8>::new();
+        reserve_fetch_slots(&mut hostile, usize::MAX, &mut metadata).unwrap();
+        assert!(hostile.capacity() <= 256);
+    }
+
+    #[test]
+    fn fetch_topic_names_are_admitted_before_allocation_and_handle_split_buffers() {
+        let mut oversized = BytesMut::new();
+        buf::put_compact_string(&mut oversized, Some(&"a".repeat(1024 * 1024))).unwrap();
+        let mut name = String::with_capacity(16);
+        let old_capacity = name.capacity();
+        let mut metadata = DecodeMetadataBudget::with_limit(64 * 1024);
+        metadata.charge::<u8>(old_capacity).unwrap();
+        let before = metadata.remaining_slots::<u8>();
+        assert!(
+            read_fetch_topic_name(&mut oversized.as_ref(), true, &mut name, &mut metadata).is_err()
+        );
+        assert_eq!(name.capacity(), old_capacity);
+        assert_eq!(metadata.remaining_slots::<u8>(), before);
+
+        let mut body = BytesMut::new();
+        buf::put_compact_string(&mut body, Some("broken-across-chunks")).unwrap();
+        let mut split = (&body[..5]).chain(&body[5..]);
+        read_fetch_topic_name(&mut split, true, &mut name, &mut metadata).unwrap();
+        assert_eq!(name, "broken-across-chunks");
+        assert!(!split.has_remaining());
+        let retained = name.capacity();
+        let mut reuse = BytesMut::new();
+        buf::put_compact_string(&mut reuse, Some("small")).unwrap();
+        read_fetch_topic_name(&mut reuse.as_ref(), true, &mut name, &mut metadata).unwrap();
+        assert_eq!(name, "small");
+        assert_eq!(name.capacity(), retained);
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn oversized_reused_topic_name_is_discarded_for_a_small_next_response() {
+        let large = FetchedTopic {
+            topic: "x".repeat(60_000),
+            topic_id: [0; 16],
+            partitions: Vec::new(),
+        };
+        let mut first = BytesMut::new();
+        encode_fetch_response(&mut first, 12, &[large]).unwrap();
+        let mut first_budget = DecodeMetadataBudget::with_limit(128 * 1024);
+        let (scratch, _, _, _, _, _, _) = decode_fetch_response_raw_with_budget(
+            &mut first.as_ref(),
+            12,
+            Vec::new(),
+            &mut first_budget,
+        )
+        .unwrap();
+        assert!(scratch.first().unwrap().topic.capacity() >= 60_000);
+        let small = FetchedTopic {
+            topic: "t".into(),
+            topic_id: [0; 16],
+            partitions: Vec::new(),
+        };
+        let mut second = BytesMut::new();
+        encode_fetch_response(&mut second, 12, &[small]).unwrap();
+        // Other metadata retained in the response can consume part of the cap.
+        let mut second_budget = DecodeMetadataBudget::with_limit(64 * 1024);
+        second_budget.charge::<u8>(32 * 1024).unwrap();
+        let (decoded, _, _, _, _, _, _) = decode_fetch_response_raw_cooperative_with_budget(
+            &mut second.as_ref(),
+            12,
+            scratch,
+            &mut second_budget,
+        )
+        .await
+        .unwrap();
+        assert_eq!(decoded.first().unwrap().topic, "t");
+        assert!(decoded.first().unwrap().topic.capacity() < 1024);
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn fetch_metadata_budget_accepts_small_and_dense_responses_and_reuses_buffers() {
+        for version in [4, 12] {
+            for count in [1, 300] {
+                let topics: Vec<_> = (0..count)
+                    .map(|i| FetchedTopic {
+                        topic: format!("topic-{i}"),
+                        topic_id: [0; 16],
+                        partitions: vec![FetchedPartition::partition_response(0, 0)],
+                    })
+                    .collect();
+                let mut body = BytesMut::new();
+                encode_fetch_response(&mut body, version, &topics).unwrap();
+                let mut metadata = fetch_metadata_budget();
+                let (decoded, _, _, _, _, _, _) = decode_fetch_response_raw_with_budget(
+                    &mut body.as_ref(),
+                    version,
+                    Vec::new(),
+                    &mut metadata,
+                )
+                .unwrap();
+                assert_eq!(decoded.len(), count);
+                let mut metadata = fetch_metadata_budget();
+                let (reused, _, _, _, _, _, _) = decode_fetch_response_raw_cooperative_with_budget(
+                    &mut body.as_ref(),
+                    version,
+                    decoded,
+                    &mut metadata,
+                )
+                .await
+                .unwrap();
+                assert_eq!(reused.len(), count);
+                assert!(reused.iter().all(|topic| topic.partitions.len() == 1));
+            }
+        }
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn fetch_metadata_budget_rejects_padded_counts_in_classic_and_flexible_frames() {
+        for version in [4, 12] {
+            let flexible = version >= 12;
+            let mut body = BytesMut::new();
+            body.put_i32(0);
+            if version >= 7 {
+                body.put_i16(0);
+                body.put_i32(0);
+            }
+            buf::put_array_len(&mut body, flexible, Some(100_000)).unwrap();
+            body.extend_from_slice(&vec![0_u8; 100_000]);
+            let mut sync_budget = DecodeMetadataBudget::with_limit(64 * 1024);
+            assert!(decode_fetch_response_raw_with_budget(
+                &mut body.as_ref(),
+                version,
+                Vec::new(),
+                &mut sync_budget
+            )
+            .is_err());
+            let mut coop_budget = DecodeMetadataBudget::with_limit(64 * 1024);
+            assert!(decode_fetch_response_raw_cooperative_with_budget(
+                &mut body.as_ref(),
+                version,
+                Vec::new(),
+                &mut coop_budget
+            )
+            .await
+            .is_err());
+        }
+    }
 
     #[tokio::test(flavor = "current_thread")]
     async fn decoding_many_fetch_endpoints_does_not_hold_the_caller() {
@@ -8273,7 +8614,7 @@ mod tests {
         let mut buf = BytesMut::new();
         encode_fetch_response(&mut buf, 11, &topics).unwrap();
         let (decoded, _endpoints, ..) = decode_fetch_response(&mut &buf[..], 11).unwrap();
-        assert_eq!(decoded[0].topic, "t");
+        assert_eq!(decoded.first().unwrap().topic, "t");
         assert_eq!(
             decoded[0].partitions[0].records[0].records[0]
                 .value

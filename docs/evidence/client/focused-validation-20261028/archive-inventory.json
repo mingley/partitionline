@@ -1,0 +1,536 @@
+{
+  "schema_version": 1,
+  "files": [
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/client-final-focused-api-allocation-01.json",
+      "original_sha256": "039ac3a55bb2559d95305146cf82e54667a5bdbb29aafa98bb249463e04a8882",
+      "original_bytes": 1218426,
+      "stored_path": "runs/client-final-focused-api-allocation-01.json.gz",
+      "stored_sha256": "b18a5c09d5d3121bb54a4cacb3498af3ef1f186d33da753ce7d54bf24b702a0e",
+      "stored_bytes": 232241,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/client-final-focused-api-allocation-01.log",
+      "original_sha256": "3d125e06678530a6d1be9645bc4647b4e2fce4b053ae68b861e7fa704a2733bf",
+      "original_bytes": 515,
+      "stored_path": "runs/client-final-focused-api-allocation-01.log",
+      "stored_sha256": "3d125e06678530a6d1be9645bc4647b4e2fce4b053ae68b861e7fa704a2733bf",
+      "stored_bytes": 515,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/client-final-focused-bootstrap-01.json",
+      "original_sha256": "5d0574f4ff10dbdc621d9f85a5afc83cca310cf036252e18bbfb298d299679b4",
+      "original_bytes": 1218419,
+      "stored_path": "runs/client-final-focused-bootstrap-01.json.gz",
+      "stored_sha256": "5e2d3651cd937615ab87776dc82b25973429ce7264c06b501614d90fdfee33b4",
+      "stored_bytes": 232243,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/client-final-focused-bootstrap-01.log",
+      "original_sha256": "f8374b157698253ebef9ebc2fd2cddb7e5dc378d4b9569f2152f588c4178bd87",
+      "original_bytes": 5552,
+      "stored_path": "runs/client-final-focused-bootstrap-01.log",
+      "stored_sha256": "f8374b157698253ebef9ebc2fd2cddb7e5dc378d4b9569f2152f588c4178bd87",
+      "stored_bytes": 5552,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/client-final-focused-init-producer-01.json",
+      "original_sha256": "e5759608139906758c89761f580761b90730fb4ed37ff408fced72ebf5b5f935",
+      "original_bytes": 1218418,
+      "stored_path": "runs/client-final-focused-init-producer-01.json.gz",
+      "stored_sha256": "4fa77562879b4fa2086201595f1f68b2b98790020286610834095d1d10d05f86",
+      "stored_bytes": 232242,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/client-final-focused-init-producer-01.log",
+      "original_sha256": "90a774c986225dc2496c84e9fafee31db8fcc196f1c20e4af4777a7977763b58",
+      "original_bytes": 1453,
+      "stored_path": "runs/client-final-focused-init-producer-01.log",
+      "stored_sha256": "90a774c986225dc2496c84e9fafee31db8fcc196f1c20e4af4777a7977763b58",
+      "stored_bytes": 1453,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/client-final-focused-legacy-deadline-01.json",
+      "original_sha256": "80f46a5a324d86855b4eb0ae6b2385e257dc00af67289d96182e35d7677833ee",
+      "original_bytes": 1218579,
+      "stored_path": "runs/client-final-focused-legacy-deadline-01.json.gz",
+      "stored_sha256": "82e55c5b4a40e45992dbe9f82b109e86d7e7f33c2206c56b1e1fdbc4025fc3a1",
+      "stored_bytes": 232328,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/client-final-focused-legacy-deadline-01.log",
+      "original_sha256": "e0396b645ea9c759ecc9f347d60c254738fba04ece7751f92da8a06e63bea760",
+      "original_bytes": 996,
+      "stored_path": "runs/client-final-focused-legacy-deadline-01.log",
+      "stored_sha256": "e0396b645ea9c759ecc9f347d60c254738fba04ece7751f92da8a06e63bea760",
+      "stored_bytes": 996,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/client-final-focused-network-deadlines-01.json",
+      "original_sha256": "5569c75dd1b3bb704940cad191614a00f727b8fe6f1810292f010042d5707892",
+      "original_bytes": 1218414,
+      "stored_path": "runs/client-final-focused-network-deadlines-01.json.gz",
+      "stored_sha256": "3c32616f2d7eb3d406fe47b05f70b574addec2beadd2d538cab77eac2000901b",
+      "stored_bytes": 232245,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/client-final-focused-network-deadlines-01.log",
+      "original_sha256": "e72ca1ab134bcdcbcd20a5d0fd7478ac5bd2af393b1c778b4cf39c6db9da13b3",
+      "original_bytes": 975,
+      "stored_path": "runs/client-final-focused-network-deadlines-01.log",
+      "stored_sha256": "e72ca1ab134bcdcbcd20a5d0fd7478ac5bd2af393b1c778b4cf39c6db9da13b3",
+      "stored_bytes": 975,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/client-final-focused-network-unit-01.json",
+      "original_sha256": "fc4867888324fb028e1f32638203faa5a96e787a253dc00831aa6ccac683ff4f",
+      "original_bytes": 1218434,
+      "stored_path": "runs/client-final-focused-network-unit-01.json.gz",
+      "stored_sha256": "293129c04f3af68dd61682777d9705364f0ad3264a24e5da2b2fd3c5ce6a29be",
+      "stored_bytes": 232243,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/client-final-focused-network-unit-01.log",
+      "original_sha256": "6be28af7e0b87bcc3c02b8e369abe8af1164afb7638c6f0239bd255cbc35890d",
+      "original_bytes": 4011,
+      "stored_path": "runs/client-final-focused-network-unit-01.log",
+      "stored_sha256": "6be28af7e0b87bcc3c02b8e369abe8af1164afb7638c6f0239bd255cbc35890d",
+      "stored_bytes": 4011,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/client-final-focused-scratch-01.json",
+      "original_sha256": "b7dcdd01fc961916a4436635cbe69633b0b9a87565a7e86a472235316352bc9d",
+      "original_bytes": 1217021,
+      "stored_path": "runs/client-final-focused-scratch-01.json.gz",
+      "stored_sha256": "a207c5e0c48854a5b8a9a4e6c3af8634e15b2668e1c4dae3fc7b46cca1209494",
+      "stored_bytes": 232252,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/client-final-focused-scratch-01.log",
+      "original_sha256": "845a62847d27b1fb1d4d123a51ffe6b26bfe834ab360ec2cbbb1383eb78a29de",
+      "original_bytes": 478,
+      "stored_path": "runs/client-final-focused-scratch-01.log",
+      "stored_sha256": "845a62847d27b1fb1d4d123a51ffe6b26bfe834ab360ec2cbbb1383eb78a29de",
+      "stored_bytes": 478,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/client-final-focused-session-broker-01.json",
+      "original_sha256": "bd499d860b211841e803942c900d6f291a87d477b2f1c3d9e576c99533646f81",
+      "original_bytes": 1218507,
+      "stored_path": "runs/client-final-focused-session-broker-01.json.gz",
+      "stored_sha256": "dd9d17eb547334504245ae3a36594f572928436b61b9c789884d53feed41cb20",
+      "stored_bytes": 232284,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/client-final-focused-session-broker-01.log",
+      "original_sha256": "f55aa9ab03462ef4f17836bda6b63880008edc0a2b5b482794c400a23c14646b",
+      "original_bytes": 466,
+      "stored_path": "runs/client-final-focused-session-broker-01.log",
+      "stored_sha256": "f55aa9ab03462ef4f17836bda6b63880008edc0a2b5b482794c400a23c14646b",
+      "stored_bytes": 466,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/client-final-focused-session-budget-01.json",
+      "original_sha256": "5462d228bb5b3e452d411e6d5fc5f6757775c26c59d39d930f2c6f498165a19d",
+      "original_bytes": 1218496,
+      "stored_path": "runs/client-final-focused-session-budget-01.json.gz",
+      "stored_sha256": "219cb7b656eece9e0334dd9033c23a012b1d7beb0bf2427222d2bd3ed224c54c",
+      "stored_bytes": 232279,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/client-final-focused-session-budget-01.log",
+      "original_sha256": "1ad1e4cc5a6b159d589364609ebd5eaece3f9be34cdbf2685005d26f25145282",
+      "original_bytes": 416,
+      "stored_path": "runs/client-final-focused-session-budget-01.log",
+      "stored_sha256": "1ad1e4cc5a6b159d589364609ebd5eaece3f9be34cdbf2685005d26f25145282",
+      "stored_bytes": 416,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/client-final-focused-strict-lib-clippy-01.json",
+      "original_sha256": "25993311bc267afdecc4fbb92e875f0af7886191a6d441e528096bfd234ded03",
+      "original_bytes": 1217981,
+      "stored_path": "runs/client-final-focused-strict-lib-clippy-01.json.gz",
+      "stored_sha256": "b2b81ba766b8ef4fa5f8da92ea8a8375ef476c4de5e1c4571282226dff9c1780",
+      "stored_bytes": 231994,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/client-final-focused-strict-lib-clippy-01.log",
+      "original_sha256": "8a737c3c2cf0d0776f8e0b2af099b7fcabd4512dd4236ab744a30fba65f8086a",
+      "original_bytes": 122,
+      "stored_path": "runs/client-final-focused-strict-lib-clippy-01.log",
+      "stored_sha256": "8a737c3c2cf0d0776f8e0b2af099b7fcabd4512dd4236ab744a30fba65f8086a",
+      "stored_bytes": 122,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/client-final-focused-tls-01.json",
+      "original_sha256": "519d21202f04119148e0c1d42a936fe95ceaad2d118657afd848b5522d0db4df",
+      "original_bytes": 1218422,
+      "stored_path": "runs/client-final-focused-tls-01.json.gz",
+      "stored_sha256": "dad71b3e2440ccf925c239ec2737ef5c15bb48692ed555ae8e3bc3ec5bd7dbde",
+      "stored_bytes": 232247,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/client-final-focused-tls-01.log",
+      "original_sha256": "83b79d04d1242e8c8a21c621a232f624f4a521587aaeca027940ba6599b3cac2",
+      "original_bytes": 534,
+      "stored_path": "runs/client-final-focused-tls-01.log",
+      "stored_sha256": "83b79d04d1242e8c8a21c621a232f624f4a521587aaeca027940ba6599b3cac2",
+      "stored_bytes": 534,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/client-final-focused-01.py",
+      "original_sha256": "17f4d1f84590230f95b532d61805cc404efffa57aa56bf446b0fe2d7175bc3c3",
+      "original_bytes": 1637,
+      "stored_path": "runs/client-final-focused-01.py",
+      "stored_sha256": "17f4d1f84590230f95b532d61805cc404efffa57aa56bf446b0fe2d7175bc3c3",
+      "stored_bytes": 1637,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/run-v2.py",
+      "original_sha256": "ef6f96a56fadded219a6d75a66ce664d0b30a59bb2c4927a7fa683b5e2ae0b1b",
+      "original_bytes": 6248,
+      "stored_path": "runs/run-v2.py",
+      "stored_sha256": "ef6f96a56fadded219a6d75a66ce664d0b30a59bb2c4927a7fa683b5e2ae0b1b",
+      "stored_bytes": 6248,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/partitionline/CHANGELOG.md",
+      "original_sha256": "e09f56acac95e5cda4b54d6813181daf4c7c3042a2774b14505d63147cf85b1c",
+      "original_bytes": 56819,
+      "stored_path": "source/CHANGELOG.md.gz",
+      "stored_sha256": "2abe7087cf22cc7702c7758d906ff550f50eb8274c8f631d308f3a01b05f17cd",
+      "stored_bytes": 19442,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/partitionline/examples/resource_soak.rs",
+      "original_sha256": "0507cd62fab32d279e0796d1f21abaa209f4b7e65413a3fa701d64adbfbde931",
+      "original_bytes": 11253,
+      "stored_path": "source/examples/resource_soak.rs.gz",
+      "stored_sha256": "72335f2c081d7b9e4a10a7c1f84efe8f1bc653b1b0fb7a1815e6fb4871d1002c",
+      "stored_bytes": 3441,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/partitionline/src/admin.rs",
+      "original_sha256": "58e471135536e606ed5b3bf78fc2511363b0b6fc1063bb1f23c820dd6898c9cb",
+      "original_bytes": 973835,
+      "stored_path": "source/src/admin.rs.gz",
+      "stored_sha256": "ce4447385233e32936035af463bff7d5d055db466b23e66eee2b2773ed60cbb6",
+      "stored_bytes": 134376,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/partitionline/src/consumer.rs",
+      "original_sha256": "e6f40a27fd851863ae8ae5432d5934950cdcecc99f480138372adbd4853dc917",
+      "original_bytes": 754634,
+      "stored_path": "source/src/consumer.rs.gz",
+      "stored_sha256": "c92864729622d2b9155c7c81daa3805a9ac6f98ec3ece8491edad28f12f70759",
+      "stored_bytes": 126095,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/partitionline/src/group.rs",
+      "original_sha256": "61ec808d26071b6db06fa9398de97992a15091c96450c0e5e578183477b91137",
+      "original_bytes": 497415,
+      "stored_path": "source/src/group.rs.gz",
+      "stored_sha256": "899c4aaa9297c654ff2397de5115bc041cd8ee2cb129ebca9b8cf528458b4e2e",
+      "stored_bytes": 70689,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/partitionline/src/group/offsets.rs",
+      "original_sha256": "3a2d132244d62fdade8fa7e7b67408d44f212981762eb8b27544a157409d98b4",
+      "original_bytes": 40495,
+      "stored_path": "source/src/group/offsets.rs.gz",
+      "stored_sha256": "6b0cf485d1b612cc4f8306b6115097eaff00276e31266d707140d7d2587411b7",
+      "stored_bytes": 7176,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/partitionline/src/net.rs",
+      "original_sha256": "c02971df7b2b1a7272f618ee31d345f864ffb31a021a5f68e34097d94c519de7",
+      "original_bytes": 188399,
+      "stored_path": "source/src/net.rs.gz",
+      "stored_sha256": "586a4b8c683c1e5c9ff9f98a5502ac19dcf359949e09aa2cc495f66290fd0013",
+      "stored_bytes": 32768,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/partitionline/src/producer.rs",
+      "original_sha256": "9fe8f7f499cab78ad9952c473529a74ebe591729c2d9d0be53ac58a07aebec39",
+      "original_bytes": 606111,
+      "stored_path": "source/src/producer.rs.gz",
+      "stored_sha256": "c248a28adb4b8739d63b0b0e936f826ab24ad9de8281b2686e1d20edbec08ad4",
+      "stored_bytes": 103923,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/partitionline/src/protocol/api.rs",
+      "original_sha256": "688748904c28789b6f4de67d00820ef064c89d68056cf26ef7ddd32430a48036",
+      "original_bytes": 453788,
+      "stored_path": "source/src/protocol/api.rs.gz",
+      "stored_sha256": "c1fae9235831d243a2036408b07872febb067b2a319abd23494640dc8601b40a",
+      "stored_bytes": 64134,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/partitionline/src/protocol/buf.rs",
+      "original_sha256": "120b54e0657afa08957fe73acb3ac7c3129ac0c3a4ddb8cf6cc0591a6a2f3c42",
+      "original_bytes": 75848,
+      "stored_path": "source/src/protocol/buf.rs.gz",
+      "stored_sha256": "03900c920b8971e88727622cb5579b43a6618b85c166988acebe0b16fb0b9c2a",
+      "stored_bytes": 15271,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/partitionline/src/protocol/fetch.rs",
+      "original_sha256": "8744745e44f0b831ad85f182654ad993e1596859631f9c2e367605434d3c6322",
+      "original_bytes": 368738,
+      "stored_path": "source/src/protocol/fetch.rs.gz",
+      "stored_sha256": "3ac8b20fcd74ad0a3701cd2225485fedac985aee7dee0bb0a6fb8d2879343be9",
+      "stored_bytes": 48054,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/partitionline/src/protocol/group.rs",
+      "original_sha256": "ed121c28691803ad255ea952a3fd930ca9c5150b7193d164e5874fe9eec7a82c",
+      "original_bytes": 835276,
+      "stored_path": "source/src/protocol/group.rs.gz",
+      "stored_sha256": "e57283a4b34025265062f53d4ec17b31dd4bfd35d2828bd168469d66480c8184",
+      "stored_bytes": 106004,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/partitionline/src/protocol/mod.rs",
+      "original_sha256": "2f96030ca823ae62e9b7fef97ec885fcb3d70df60a64f5ba758a933386af6680",
+      "original_bytes": 1833,
+      "stored_path": "source/src/protocol/mod.rs.gz",
+      "stored_sha256": "7b7d9d72081c2c821aeb15e53c435fcd21c77d471a295156b08a34ac158a3b2a",
+      "stored_bytes": 691,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/partitionline/src/protocol/records.rs",
+      "original_sha256": "fe0405072847f4bc24dd377b3ff599970143932401e69c79cb002942259a2218",
+      "original_bytes": 307533,
+      "stored_path": "source/src/protocol/records.rs.gz",
+      "stored_sha256": "4a1a4ab3e2025f6b0831ef69939e3c8f7fd0793750865103d67341ef463da78b",
+      "stored_bytes": 53728,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/partitionline/src/share.rs",
+      "original_sha256": "d09eeb05dafea7894e5fc0788b4f6e450b716a0cbb1100fbf0b89eda85c55f18",
+      "original_bytes": 462115,
+      "stored_path": "source/src/share.rs.gz",
+      "stored_sha256": "d52cd78634c59fe49980757f9cd03493e66df5e4131578ffe630aeefe00878f0",
+      "stored_bytes": 76011,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/partitionline/tests/add_raft_voter_v1.rs",
+      "original_sha256": "561548f69cd7292792150a19f2f7bf9e576a01ea58fde860912020dc3c7c9593",
+      "original_bytes": 9243,
+      "stored_path": "source/tests/add_raft_voter_v1.rs.gz",
+      "stored_sha256": "faf4c6f475432ee8a64efa9a161caf50ced068d5ccb616081435702243404b84",
+      "stored_bytes": 2172,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/partitionline/tests/bootstrap_handshake.rs",
+      "original_sha256": "fed0a389bf934d57da1daf8e463a5515f51e2bae43d983b10b421ec72255ecc2",
+      "original_bytes": 105462,
+      "stored_path": "source/tests/bootstrap_handshake.rs.gz",
+      "stored_sha256": "feab6ae58533a62d3d6d6b84994ce888c6d7456c9a17733b205129ebd7501dbe",
+      "stored_bytes": 11803,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/partitionline/tests/client_api.rs",
+      "original_sha256": "1e38af1515dfcf92ff558a589e175f9bcc18be6e56ad288971f63d9f11d4869a",
+      "original_bytes": 163514,
+      "stored_path": "source/tests/client_api.rs.gz",
+      "stored_sha256": "e79c23d99c1a550d892b6a5f0bb9139b936eea68c32662d700e33e1d61cce1eb",
+      "stored_bytes": 23004,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/partitionline/tests/codec_matrix.rs",
+      "original_sha256": "aa8c2a06bf9275aa7fe33a05df8b3b88c483269858cd63a95fd054ae77edda1b",
+      "original_bytes": 10595,
+      "stored_path": "source/tests/codec_matrix.rs.gz",
+      "stored_sha256": "e2bc48f133e1b509e478eaa477d4820005ce4983882ad6d8c98ad7cc800a9f31",
+      "stored_bytes": 3051,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/partitionline/tests/common/mod.rs",
+      "original_sha256": "009e830cfecc43a99da3209e62a7bfd3942eeb5652aa3cbc0727653cb6ff44d7",
+      "original_bytes": 408545,
+      "stored_path": "source/tests/common/mod.rs.gz",
+      "stored_sha256": "fd62dda27da6983abfeb6ccb8886dea9564573c44e5c79232a71999d38412844",
+      "stored_bytes": 60047,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/partitionline/tests/consumer_fetch_semantics.rs",
+      "original_sha256": "022e34d19b7a02f0781d7aa81d3dc85156629d74e16f7a82f113dc82b73f5f73",
+      "original_bytes": 320571,
+      "stored_path": "source/tests/consumer_fetch_semantics.rs.gz",
+      "stored_sha256": "0662d6c9c1ccbad0012cbdfadf56ce8a2434700e38a5f325be2d3aa49ba82c71",
+      "stored_bytes": 42185,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/partitionline/tests/init_producer_id_v6.rs",
+      "original_sha256": "410c32dcc78455661521b696d09d687f077c71d1c04ea42f5062b2d024abde62",
+      "original_bytes": 16787,
+      "stored_path": "source/tests/init_producer_id_v6.rs.gz",
+      "stored_sha256": "a6f9077d9ca6357aa1934975189e2c2876b2c643e2bed89d1277ce2ca1ec90da",
+      "stored_bytes": 3670,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/partitionline/tests/legacy_discovery_v0.rs",
+      "original_sha256": "6ee008730a98a6889d596086820ef3b9d98f85e2af4843c3295f8dfe390404cb",
+      "original_bytes": 32381,
+      "stored_path": "source/tests/legacy_discovery_v0.rs.gz",
+      "stored_sha256": "f84c62fa4b8e2778b6a81716a4769e3f54f9831ab21771b9e9cc9f97fe3dd41d",
+      "stored_bytes": 6040,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/partitionline/tests/mock_produce.rs",
+      "original_sha256": "1df8a16cf2faee6d7ff4994b09fdd3fc97de1e0f71d6d869d36146b04b468eb9",
+      "original_bytes": 61542,
+      "stored_path": "source/tests/mock_produce.rs.gz",
+      "stored_sha256": "2871c61389fad6fbb43b969841013144611bbba988f78ace5d9ef24c6c7041b8",
+      "stored_bytes": 8302,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/partitionline/tests/network_deadlines.rs",
+      "original_sha256": "2f7b4aa598133a6e3a8d601e7ef5856162a8ff549a6d3946abe917e8acb4137c",
+      "original_bytes": 14127,
+      "stored_path": "source/tests/network_deadlines.rs.gz",
+      "stored_sha256": "d1d8e8d806946ab64b9ed1e41c87d0e9544d4a9dee8adc75cc2850c406842e3e",
+      "stored_bytes": 2866,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/partitionline/tests/produce_cancel.rs",
+      "original_sha256": "9ea5347c17bc7afe0109e40a53ae1d29a9e469194d75746f27fbdce0a1330caa",
+      "original_bytes": 32977,
+      "stored_path": "source/tests/produce_cancel.rs.gz",
+      "stored_sha256": "9a7492405e9ba732c7e914c411d5e534ca40872c7c0c97566279d7646d552166",
+      "stored_bytes": 5483,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/partitionline/tests/share_semantics.rs",
+      "original_sha256": "15618a9bc76008a85864ac5ac1311c111b4faece4ea91ac14c0b74375ce61e1e",
+      "original_bytes": 82246,
+      "stored_path": "source/tests/share_semantics.rs.gz",
+      "stored_sha256": "03ae9c7b6c546397b17c61c4bc627d5d756bd2cd3a1321284a68af909771727b",
+      "stored_bytes": 12962,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/partitionline/tests/api_versions_allocation.rs",
+      "original_sha256": "5de0b31e9ec00d9ac0c05968c47dffc12b78f4a49b53e94be8d29c74c50fa3b1",
+      "original_bytes": 3957,
+      "stored_path": "source/tests/api_versions_allocation.rs.gz",
+      "stored_sha256": "cef5287ba21604ca659a9cda925ef09c807627270f60312b9d109e59a2848dd1",
+      "stored_bytes": 1329,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/partitionline/tests/codec_sparse.rs",
+      "original_sha256": "03c32d5fb9febf8d062bc6a882ea69598522ba44c389ac69b6966c409e888d3e",
+      "original_bytes": 2736,
+      "stored_path": "source/tests/codec_sparse.rs.gz",
+      "stored_sha256": "91759b9416e82c31a7d35bd947099c75969373e64843ef7d14e743d4f1d4b07b",
+      "stored_bytes": 1018,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/partitionline/tests/conformance/java/SparseFixture.java",
+      "original_sha256": "766817d45dfa979edf740bfd3fdeaa4b64e05780bbe015aef3ec8eccb7be4955",
+      "original_bytes": 3503,
+      "stored_path": "source/tests/conformance/java/SparseFixture.java.gz",
+      "stored_sha256": "ec297542984e7a5372065a9e4e28ed60c0f7047ad6b7590e450f140e27b0f80a",
+      "stored_bytes": 1235,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/partitionline/tests/fixtures/codec-sparse/java-sparse.batch",
+      "original_sha256": "c32a93cc14d1f7b89ee5bb67643553eb418f3db34968a7a16ad7d768dca50e4c",
+      "original_bytes": 78,
+      "stored_path": "source/tests/fixtures/codec-sparse/java-sparse.batch.gz",
+      "stored_sha256": "87e1d1173ebe5bfd7f839013b04a88a8a8ee14fe60fa8920b91372f7a7109993",
+      "stored_bytes": 66,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/partitionline/tests/fixtures/codec-sparse/java-wrapped-sparse.batch",
+      "original_sha256": "082d7c87638e3730c287fe96fcaf453c02ab38154fd1137bca34ac29db4ac1d3",
+      "original_bytes": 78,
+      "stored_path": "source/tests/fixtures/codec-sparse/java-wrapped-sparse.batch.gz",
+      "stored_sha256": "9c88db483f4d17b164268ed048968ade1518333d3f7470b10b3c79cacc8eb8da",
+      "stored_bytes": 62,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/partitionline/tests/fixtures/codec-sparse/manifest.json",
+      "original_sha256": "6679ccd284724b5cdf797cd8afec7eedb6c775ad280b7cd0455e9a7871efe63c",
+      "original_bytes": 816,
+      "stored_path": "source/tests/fixtures/codec-sparse/manifest.json.gz",
+      "stored_sha256": "f822acd8bedae44fd705b4c233385882a04a7128b8878a1c82f45bd209b756f4",
+      "stored_bytes": 503,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/partitionline/tests/tls_shutdown_deadline.rs",
+      "original_sha256": "2fb4b0c3a626209937fc19bd077045e2a3c73e8d42503273b7b34ad79bea03b4",
+      "original_bytes": 4899,
+      "stored_path": "source/tests/tls_shutdown_deadline.rs.gz",
+      "stored_sha256": "6b41e7815224a085bbee27b3c006d15168d2afb087c0c883d38d2310648fffc4",
+      "stored_bytes": 1424,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/partitionline/docs/evidence/client/focused-validation-20261028/README.md",
+      "original_sha256": "3d1fa3b189ceb0069ec953042fe5b956269dce9c08832c978d201186da27d203",
+      "original_bytes": 2633,
+      "stored_path": "README.md",
+      "stored_sha256": "3d1fa3b189ceb0069ec953042fe5b956269dce9c08832c978d201186da27d203",
+      "stored_bytes": 2633,
+      "encoding": "identity"
+    }
+  ]
+}

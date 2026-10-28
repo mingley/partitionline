@@ -4331,7 +4331,7 @@ fn tls_self_signed_server_pem() -> (Vec<u8>, Vec<u8>) {
     out
 }
 
-fn tls_server_identity() -> (rustls::ServerConfig, Vec<u8>) {
+pub(crate) fn tls_server_identity() -> (rustls::ServerConfig, Vec<u8>) {
     let (cert_pem, key_pem) = tls_self_signed_server_pem();
     let server = tls_server_config_no_client_auth(&cert_pem, &key_pem);
     (server, cert_pem)

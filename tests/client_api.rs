@@ -1435,8 +1435,12 @@ async fn commit_async_with_callback_and_leave_flushes() {
     assert_eq!(recs.len(), 1);
     let got = std::sync::Arc::new(parking_lot::Mutex::new(None));
     let got_cb = std::sync::Arc::clone(&got);
+    // A callback may own Send-only state; it must not require Sync to keep the
+    // group's join and read futures usable on a multithreaded runtime.
+    let callback_state = std::cell::Cell::new(false);
     group
         .commit_async_with(move |result| {
+            assert!(!callback_state.replace(true));
             *got_cb.lock() = Some(result.map(|o| o.len()));
         })
         .await;

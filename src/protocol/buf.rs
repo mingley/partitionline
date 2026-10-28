@@ -788,6 +788,7 @@ pub fn get_string<B: Buf>(buf: &mut B, flexible: bool) -> Result<Option<String>>
 /// A null string clears `out`. An empty string does too. The bytes match
 /// [`get_string`] with null turned into an empty string. When the name is in
 /// one chunk and `out` already has room, the previous allocation is kept.
+#[cfg(test)]
 pub(crate) fn read_string_into<B: Buf>(
     buf: &mut B,
     flexible: bool,

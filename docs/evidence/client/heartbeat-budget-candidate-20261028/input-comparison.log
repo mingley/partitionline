@@ -1,0 +1,4 @@
+da7f381d04c9c0459cd4b9a181984bed3b09bb83ff35be396b6a62d44b990d30  inputs-at-build.sha256
+da7f381d04c9c0459cd4b9a181984bed3b09bb83ff35be396b6a62d44b990d30  inputs-after.sha256
+da7f381d04c9c0459cd4b9a181984bed3b09bb83ff35be396b6a62d44b990d30  inputs-after-clippy.sha256
+File lists and hashes matched after tests and after Clippy.

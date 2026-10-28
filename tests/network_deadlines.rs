@@ -369,10 +369,9 @@ async fn unreachable_bootstrap_does_not_hold_connect_tls_any() {
     let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
     let addr = listener.local_addr().unwrap().to_string();
     drop(tokio::spawn(async move {
-        loop {
-            if listener.accept().await.is_err() {
-                break;
-            }
+        let mut accepted = Vec::new();
+        while let Ok((socket, _)) = listener.accept().await {
+            accepted.push(socket);
         }
     }));
     let started = Instant::now();

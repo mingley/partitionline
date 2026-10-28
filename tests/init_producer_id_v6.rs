@@ -304,6 +304,24 @@ async fn classic_epoch_recovery_renegotiates_a_moved_coordinator_without_using_o
     producer.commit_transaction().await.unwrap();
     producer.close().await.unwrap();
 }
+
+#[tokio::test]
+async fn moved_coordinator_does_not_receive_an_unsupported_end_txn_version() {
+    let mock = common::Mock::start_two_node().await;
+    mock.set_api_max(END_TXN, 4);
+    let producer = Producer::new(config(&mock, true)).await.unwrap();
+    producer.begin_transaction().await.unwrap();
+    mock.set_node_api_max(2, END_TXN, 3);
+    mock.move_txn_coordinator();
+    let error = producer.abort_transaction().await.unwrap_err();
+    assert!(matches!(error, Error::Unsupported(_)), "{error}");
+    assert_eq!(
+        mock.end_txn_calls(),
+        1,
+        "the new coordinator must not receive v4"
+    );
+    producer.close().await.unwrap();
+}
 #[tokio::test]
 async fn epoch_recovery_loading_and_rediscovery_do_not_renew_the_deadline() {
     let mock = common::Mock::start().await;

@@ -990,9 +990,8 @@ struct Shared {
     meta: Mutex<BrokerConn>,
     /// Transaction coordinator. `None` when `transactional.id` is unset.
     txn: Mutex<Option<CoordinatorConnection>>,
-    metadata_version: i16,
-    /// ApiVersions learned on the metadata socket. Another connection to
-    /// that same broker reuses them instead of repeating the handshake.
+    metadata_version: AtomicI16,
+    /// ApiVersions learned on the initial metadata socket.
     api_keys: Vec<ApiVersion>,
     /// ApiVersions learned on each produce address. An idle replacement
     /// reuses them.
@@ -1007,7 +1006,8 @@ struct Shared {
     txn_offset_version: i16,
     find_coord_version: Option<i16>,
     init_producer_id_version: i16,
-    telemetry_version: Option<i16>,
+    // Stored with the metadata socket; -1 means the API is unavailable.
+    telemetry_version: AtomicI16,
     client_instance_id: parking_lot::Mutex<Option<[u8; 16]>>,
     partitioner: Arc<dyn Partitioner>,
     /// Present only for the explicit opt-in; mutable history is per producer.
@@ -2025,7 +2025,7 @@ impl Producer {
             cluster: parking_lot::Mutex::new(Cluster::default()),
             meta: Mutex::new(meta),
             txn: Mutex::new(txn),
-            metadata_version,
+            metadata_version: AtomicI16::new(metadata_version),
             api_keys: resp.api_keys.clone(),
             produce_keys: parking_lot::Mutex::new(seeded_keys),
             metadata_image: parking_lot::Mutex::new(MetadataResponse::blank()),
@@ -2036,7 +2036,9 @@ impl Producer {
             txn_offset_version,
             find_coord_version,
             init_producer_id_version,
-            telemetry_version: pick(&versions, GET_TELEMETRY_SUBSCRIPTIONS, 0, 0),
+            telemetry_version: AtomicI16::new(
+                pick(&versions, GET_TELEMETRY_SUBSCRIPTIONS, 0, 0).unwrap_or(-1),
+            ),
             client_instance_id: parking_lot::Mutex::new(None),
             partitioner: cfg.partitioner.arc(),
             sticky: sticky_policy.map(|policy| {
@@ -3261,12 +3263,15 @@ impl Producer {
         if let Some(id) = *self.inner.shared.client_instance_id.lock() {
             return Ok(crate::Uuid::from_bytes(id));
         }
-        let version = self.inner.shared.telemetry_version.ok_or_else(|| {
-            Error::Unsupported("broker does not support GetTelemetrySubscriptions".into())
-        })?;
         let deadline = Instant::now().checked_add(timeout).ok_or(Error::Timeout)?;
         let mut meta = self.inner.shared.meta.lock().await;
         reopen_meta_if_idle(&self.inner.shared, &mut meta, deadline).await?;
+        let version = self.inner.shared.telemetry_version.load(Ordering::Relaxed);
+        if version < 0 {
+            return Err(Error::Unsupported(
+                "broker does not support GetTelemetrySubscriptions".into(),
+            ));
+        }
         let id = crate::admin::fetch_client_instance_id(
             &mut meta,
             version,
@@ -4038,7 +4043,7 @@ impl Producer {
         let deadline = Instant::now().checked_add(timeout).ok_or(Error::Timeout)?;
         let mut conn = self.inner.shared.meta.lock().await;
         reopen_meta_if_idle(&self.inner.shared, &mut conn, deadline).await?;
-        let version = self.inner.shared.metadata_version;
+        let version = self.inner.shared.metadata_version.load(Ordering::Relaxed);
         let allow = self.inner.shared.cfg.allow_auto_topic_creation;
         let body = conn
             .roundtrip(
@@ -4079,6 +4084,7 @@ fn pick(
         .and_then(|v| pick_version(v.min_version, v.max_version, client_min, client_max))
 }
 
+#[cfg(test)]
 fn known_api_versions(keys: &[ApiVersion]) -> ApiVersionsResponse {
     ApiVersionsResponse {
         error_code: 0,
@@ -4127,8 +4133,8 @@ fn configure_produce_conn(
 
 /// Replace a closed or idle metadata socket before the next RPC.
 ///
-/// Versions learned at startup are applied to the replacement, so the dial
-/// does not repeat ApiVersions. `deadline` bounds the connect and SASL steps.
+/// Each replacement negotiates its own API ranges. `deadline` bounds the
+/// connect, negotiation and SASL steps.
 async fn reopen_meta_if_idle(
     shared: &Shared,
     conn: &mut BrokerConn,
@@ -4138,7 +4144,7 @@ async fn reopen_meta_if_idle(
         return Ok(());
     }
     let addr = conn.addr().to_string();
-    let replacement = open_idle_replacement(
+    let (replacement, versions) = open_idle_replacement(
         &addr,
         &shared.cfg,
         &shared.api_keys,
@@ -4146,6 +4152,20 @@ async fn reopen_meta_if_idle(
         deadline,
     )
     .await?;
+    let metadata_version = versions
+        .api_version(METADATA)
+        .and_then(|v| pick_version(v.min_version, v.max_version, 0, 13))
+        .ok_or_else(|| Error::Unsupported("broker does not support Metadata".into()))?;
+    shared
+        .metadata_version
+        .store(metadata_version, Ordering::Relaxed);
+    let telemetry_version = versions
+        .api_version(GET_TELEMETRY_SUBSCRIPTIONS)
+        .and_then(|v| pick_version(v.min_version, v.max_version, 0, 0))
+        .unwrap_or(-1);
+    shared
+        .telemetry_version
+        .store(telemetry_version, Ordering::Relaxed);
     let mut previous = std::mem::replace(conn, replacement);
     retire_produce_conn(&mut previous).await;
     Ok(())
@@ -4154,10 +4174,10 @@ async fn reopen_meta_if_idle(
 async fn open_idle_replacement(
     addr: &str,
     cfg: &ProducerConfig,
-    keys: &[ApiVersion],
+    _keys: &[ApiVersion],
     transaction_v2: bool,
     deadline: Instant,
-) -> Result<BrokerConn> {
+) -> Result<(BrokerConn, ApiVersionsResponse)> {
     let opened = async {
         let mut conn = BrokerConn::connect_tls(
             addr,
@@ -4166,12 +4186,13 @@ async fn open_idle_replacement(
             cfg.tls.as_ref(),
         )
         .await?;
-        let versions_resp = if keys.is_empty() {
-            crate::protocol::api::negotiate_api_versions(&mut conn, timeout_remaining(deadline)?)
-                .await?
-        } else {
-            known_api_versions(keys)
-        };
+        let remaining = timeout_remaining(deadline)?;
+        let versions_resp = tokio::time::timeout(
+            remaining,
+            crate::protocol::api::negotiate_api_versions(&mut conn, remaining),
+        )
+        .await
+        .map_err(|_| Error::Timeout)??;
         configure_produce_conn(&mut conn, &versions_resp, cfg, transaction_v2);
         crate::protocol::sasl::authenticate(
             &mut conn,
@@ -4183,7 +4204,7 @@ async fn open_idle_replacement(
             timeout_remaining(deadline)?,
         )
         .await?;
-        Ok(conn)
+        Ok((conn, versions_resp))
     }
     .await;
     // A failed replacement drops its socket in this call. Yield so the broker
@@ -4200,58 +4221,14 @@ async fn open_conn_with_known_versions(
     addr: &str,
     cfg: &ProducerConfig,
     transaction_v2: bool,
-    keys: &[ApiVersion],
-) -> Result<BrokerConn> {
-    let opened = async {
-        let deadline = Instant::now()
-            .checked_add(cfg.request_timeout)
-            .ok_or(Error::Timeout)?;
-        let mut conn = BrokerConn::connect_tls(
-            addr,
-            &cfg.client_id,
-            cfg.connect_timeout.min(timeout_remaining(deadline)?),
-            cfg.tls.as_ref(),
-        )
-        .await?;
-        let versions_resp = known_api_versions(keys);
-        configure_produce_conn(&mut conn, &versions_resp, cfg, transaction_v2);
-        crate::protocol::sasl::authenticate(
-            &mut conn,
-            cfg.sasl_plain.as_ref(),
-            cfg.sasl_scram.as_ref(),
-            cfg.sasl_scram_sha512.as_ref(),
-            cfg.sasl_oauthbearer.as_deref(),
-            cfg.sasl_oauthbearer_oidc.as_ref(),
-            timeout_remaining(deadline)?,
-        )
-        .await?;
-        Ok(conn)
-    }
-    .await;
-    if opened.is_err() {
-        for _ in 0..8 {
-            tokio::task::yield_now().await;
-        }
-    }
-    opened
+    _keys: &[ApiVersion],
+) -> Result<(BrokerConn, ApiVersionsResponse)> {
+    // A broker can be upgraded or replaced at the same address. Cached API
+    // ranges describe the old connection and cannot qualify this new socket.
+    open_conn_with_versions(addr, cfg, transaction_v2).await
 }
 
 async fn open_produce_socket(shared: &Shared, addr: &str) -> Result<BrokerConn> {
-    let remembered = shared.produce_keys.lock().get(addr).cloned();
-    if let Some(keys) = remembered {
-        return open_conn_with_known_versions(addr, &shared.cfg, shared.transaction_v2, &keys)
-            .await;
-    }
-    let meta_addr = shared.meta.lock().await.addr().to_string();
-    if addr == meta_addr && !shared.api_keys.is_empty() {
-        return open_conn_with_known_versions(
-            addr,
-            &shared.cfg,
-            shared.transaction_v2,
-            &shared.api_keys,
-        )
-        .await;
-    }
     let (conn, versions) =
         open_conn_with_versions(addr, &shared.cfg, shared.transaction_v2).await?;
     let _stored = shared
@@ -4277,9 +4254,13 @@ async fn open_conn_with_versions(
             cfg.tls.as_ref(),
         )
         .await?;
-        let versions_resp =
-            crate::protocol::api::negotiate_api_versions(&mut conn, timeout_remaining(deadline)?)
-                .await?;
+        let remaining = timeout_remaining(deadline)?;
+        let versions_resp = tokio::time::timeout(
+            remaining,
+            crate::protocol::api::negotiate_api_versions(&mut conn, remaining),
+        )
+        .await
+        .map_err(|_| Error::Timeout)??;
         configure_produce_conn(&mut conn, &versions_resp, cfg, transaction_v2);
         crate::protocol::sasl::authenticate(
             &mut conn,
@@ -4421,11 +4402,7 @@ async fn discover_typed_coord_raced(
             let result = match bounded_producer_config(&cfg_task, deadline) {
                 Ok(bounded) => match known_keys.as_deref() {
                     Some(keys) if !keys.is_empty() => {
-                        match open_conn_with_known_versions(&addr_task, &bounded, false, keys).await
-                        {
-                            Ok(conn) => Ok((conn, known_api_versions(keys))),
-                            Err(error) => Err(error),
-                        }
+                        open_conn_with_known_versions(&addr_task, &bounded, false, keys).await
                     }
                     _ => open_conn_with_versions(&addr_task, &bounded, false).await,
                 },
@@ -4598,13 +4575,20 @@ async fn find_producer_coordinator(
     hop_versions: ApiVersionsResponse,
     key: &str,
     key_type: i8,
-    version: i16,
+    _version: i16,
     deadline: Instant,
     ready: Option<&mut [Option<Result<ProducerHandshake>>]>,
     known: Option<&RediscoverProducer<'_>>,
 ) -> HopFind {
     let rest = match timeout_remaining(deadline) {
         Ok(rest) => rest,
+        Err(error) => {
+            retire_owned_conn(hop).await;
+            return HopFind::Stop(error);
+        }
+    };
+    let version = match find_version_for_peer(&hop_versions) {
+        Ok(version) => version,
         Err(error) => {
             retire_owned_conn(hop).await;
             return HopFind::Stop(error);
@@ -4660,10 +4644,7 @@ async fn find_producer_coordinator(
     };
     let opened =
         if let Some(keys) = known.and_then(|known| keys_for_rediscover(known, cfg, &coord_addr)) {
-            match open_conn_with_known_versions(&coord_addr, &bounded, false, keys).await {
-                Ok(conn) => Ok((conn, known_api_versions(keys))),
-                Err(error) => Err(error),
-            }
+            open_conn_with_known_versions(&coord_addr, &bounded, false, keys).await
         } else {
             open_conn_with_versions(&coord_addr, &bounded, false).await
         };
@@ -4695,8 +4676,7 @@ async fn open_producer_peer(
     if keys.is_empty() {
         open_conn_with_versions(addr, cfg, false).await
     } else {
-        let conn = open_conn_with_known_versions(addr, cfg, false, keys).await?;
-        Ok((conn, known_api_versions(keys)))
+        open_conn_with_known_versions(addr, cfg, false, keys).await
     }
 }
 
@@ -4715,8 +4695,7 @@ async fn open_recorded_peer(
     bootstrap_keys: &[ApiVersion],
 ) -> Result<(BrokerConn, ApiVersionsResponse)> {
     if let Some(keys) = known.get(addr).filter(|keys| !keys.is_empty()) {
-        let conn = open_conn_with_known_versions(addr, cfg, false, keys).await?;
-        return Ok((conn, known_api_versions(keys)));
+        return open_conn_with_known_versions(addr, cfg, false, keys).await;
     }
     if cfg
         .bootstrap
@@ -4724,8 +4703,7 @@ async fn open_recorded_peer(
         .is_some_and(|bootstrap| bootstrap == addr)
         && !bootstrap_keys.is_empty()
     {
-        let conn = open_conn_with_known_versions(addr, cfg, false, bootstrap_keys).await?;
-        return Ok((conn, known_api_versions(bootstrap_keys)));
+        return open_conn_with_known_versions(addr, cfg, false, bootstrap_keys).await;
     }
     open_conn_with_versions(addr, cfg, false).await
 }
@@ -4819,7 +4797,7 @@ async fn locate_producer_coordinator(
     cfg: &ProducerConfig,
     key: &str,
     key_type: i8,
-    version: i16,
+    _version: i16,
     known: &RediscoverProducer<'_>,
     deadline: Instant,
 ) -> Result<String> {
@@ -4832,7 +4810,14 @@ async fn locate_producer_coordinator(
     } else {
         known.bootstrap_keys
     };
-    let (mut hop, _) = open_producer_peer(addr, &bounded, keys).await?;
+    let (mut hop, versions) = open_producer_peer(addr, &bounded, keys).await?;
+    let version = match find_version_for_peer(&versions) {
+        Ok(version) => version,
+        Err(error) => {
+            retire_owned_conn(hop).await;
+            return Err(error);
+        }
+    };
     let body = hop
         .roundtrip(
             FIND_COORDINATOR,
@@ -4866,10 +4851,30 @@ fn coordinator_connection(
     }
 }
 
+fn require_coord_version(coord: &CoordinatorConnection, api_key: i16, version: i16) -> Result<()> {
+    if coord.keys.iter().any(|api| {
+        api.api_key == api_key && api.min_version <= version && version <= api.max_version
+    }) {
+        Ok(())
+    } else {
+        Err(Error::Unsupported(format!(
+            "coordinator does not support API {api_key} version {version}"
+        )))
+    }
+}
+
 fn required_find_coordinator(version: Option<i16>) -> Result<i16> {
     version.filter(|version| *version >= 1).ok_or_else(|| {
         Error::Unsupported("transaction discovery requires FindCoordinator v1-6".into())
     })
+}
+
+fn find_version_for_peer(versions: &ApiVersionsResponse) -> Result<i16> {
+    required_find_coordinator(
+        versions
+            .api_version(FIND_COORDINATOR)
+            .and_then(|api| pick_version(api.min_version, api.max_version, 0, 6)),
+    )
 }
 
 #[expect(
@@ -5211,8 +5216,8 @@ async fn discover_from_bootstrap(
             let addr = crate::net::format_address(&host, port);
             let bounded = bounded_producer_config(cfg, deadline)?;
             if addr == bootstrap.addr() && !keys.is_empty() {
-                let conn = open_conn_with_known_versions(&addr, &bounded, false, keys).await?;
-                let versions = known_api_versions(keys);
+                let (conn, versions) =
+                    open_conn_with_known_versions(&addr, &bounded, false, keys).await?;
                 return Ok(coordinator_connection(conn, &versions));
             }
             let (conn, versions) = open_conn_with_versions(&addr, &bounded, false).await?;
@@ -5239,9 +5244,6 @@ fn remember_produce_keys(shared: &Shared, addr: &str, keys: &[ApiVersion]) {
         return;
     }
     let mut known = shared.produce_keys.lock();
-    if known.contains_key(addr) {
-        return;
-    }
     let _stored = known.insert(addr.to_string(), keys.to_vec());
 }
 
@@ -5306,6 +5308,13 @@ async fn discover_group_coordinator(
     };
     let bounded = bounded_producer_config(&shared.cfg, deadline)?;
     let (hop, versions) = open_producer_peer(addr, &bounded, &shared.api_keys).await?;
+    let version = match find_version_for_peer(&versions) {
+        Ok(version) => version,
+        Err(error) => {
+            retire_owned_conn(hop).await;
+            return Err(error);
+        }
+    };
     let timeout = match timeout_remaining(deadline) {
         Ok(timeout) => timeout,
         Err(error) => {
@@ -5327,8 +5336,9 @@ async fn discover_group_coordinator(
     if let Some(keys) = remembered_produce_keys(shared, &coord_addr) {
         let opened = open_conn_with_known_versions(&coord_addr, &bounded, false, &keys).await;
         retire_owned_conn(hop).await;
-        let conn = opened?;
-        return Ok(coordinator_connection(conn, &known_api_versions(&keys)));
+        let (conn, versions) = opened?;
+        remember_produce_keys(shared, &coord_addr, &versions.api_keys);
+        return Ok(coordinator_connection(conn, &versions));
     }
     let opened = open_conn_with_versions(&coord_addr, &bounded, false).await;
     retire_owned_conn(hop).await;
@@ -5367,6 +5377,7 @@ async fn txn_roundtrip(
         let conn = guard
             .as_mut()
             .ok_or_else(|| Error::protocol("no transaction coordinator"))?;
+        require_coord_version(conn, api_key, api_version)?;
         conn.conn
             .roundtrip(api_key, api_version, |buf| encode_body(buf), remaining)
             .await
@@ -5423,6 +5434,7 @@ async fn txn_roundtrip(
     let conn = guard
         .as_mut()
         .ok_or_else(|| Error::protocol("no transaction coordinator"))?;
+    require_coord_version(conn, api_key, api_version)?;
     conn.conn
         .roundtrip(api_key, api_version, |buf| encode_body(buf), remaining)
         .await
@@ -5441,6 +5453,7 @@ async fn group_coord_roundtrip(
     let find_coord_version = required_find_coordinator(shared.find_coord_version)?;
     let mut coord =
         discover_group_coordinator(shared, group_id, find_coord_version, deadline).await?;
+    require_coord_version(&coord, api_key, api_version)?;
     let body = coord
         .conn
         .roundtrip(
@@ -5470,6 +5483,7 @@ async fn group_coord_roundtrip(
     )
     .await?;
     retire_owned_conn(coord.conn).await;
+    require_coord_version(&replacement, api_key, api_version)?;
     replacement
         .conn
         .roundtrip(
@@ -5850,7 +5864,7 @@ async fn refresh_topics_within(
         Err(_) => return Err(Error::Timeout),
     };
     reopen_meta_if_idle(shared, &mut conn, deadline.target().into_std()).await?;
-    let version = shared.metadata_version;
+    let version = shared.metadata_version.load(Ordering::Relaxed);
     let allow = shared.cfg.allow_auto_topic_creation;
     let names: Vec<&str> = requested.iter().map(|topic| topic.as_ref()).collect();
     let mut encoded = bytes::BytesMut::new();
@@ -5913,7 +5927,7 @@ async fn partitions_for_timeout(
         Err(_) => return Err(Error::Timeout),
     };
     reopen_meta_if_idle(shared, &mut conn, deadline.target().into_std()).await?;
-    let version = shared.metadata_version;
+    let version = shared.metadata_version.load(Ordering::Relaxed);
     let allow = shared.cfg.allow_auto_topic_creation;
     let names = [topic.as_ref()];
     let mut encoded = bytes::BytesMut::new();
@@ -6157,7 +6171,7 @@ fn test_shared(cfg: ProducerConfig, meta: BrokerConn) -> Arc<Shared> {
         cluster: parking_lot::Mutex::new(Cluster::default()),
         meta: Mutex::new(meta),
         txn: Mutex::new(None),
-        metadata_version: 0,
+        metadata_version: AtomicI16::new(0),
         api_keys: Vec::new(),
         produce_keys: parking_lot::Mutex::new(HashMap::new()),
         metadata_image: parking_lot::Mutex::new(MetadataResponse::blank()),
@@ -6168,7 +6182,7 @@ fn test_shared(cfg: ProducerConfig, meta: BrokerConn) -> Arc<Shared> {
         txn_offset_version: 0,
         find_coord_version: None,
         init_producer_id_version: 0,
-        telemetry_version: None,
+        telemetry_version: AtomicI16::new(-1),
         client_instance_id: parking_lot::Mutex::new(None),
         partitioner: cfg.partitioner.arc(),
         sticky: sticky_policy.map(|policy| {
@@ -11122,6 +11136,56 @@ fn record_metadata(
 mod tests {
     use super::*;
 
+    // A fresh connection must negotiate before SASL. Answer that handshake,
+    // then leave the SASL request unanswered until the client closes.
+    async fn stall_after_producer_api_versions(
+        mut socket: tokio::net::TcpStream,
+        saw_sasl: Arc<std::sync::atomic::AtomicBool>,
+    ) {
+        use tokio::io::{AsyncReadExt, AsyncWriteExt};
+
+        async fn frame(socket: &mut tokio::net::TcpStream) -> Vec<u8> {
+            let size = socket.read_i32().await.unwrap();
+            assert!((8..=4096).contains(&size));
+            let mut request = vec![0; usize::try_from(size).unwrap()];
+            let _read = socket.read_exact(&mut request).await.unwrap();
+            request
+        }
+        let request = frame(&mut socket).await;
+        assert_eq!(i16::from_be_bytes(request[0..2].try_into().unwrap()), 18);
+        assert_eq!(i16::from_be_bytes(request[2..4].try_into().unwrap()), 4);
+        let keys = [
+            ApiVersion {
+                api_key: crate::protocol::api_keys::SASL_HANDSHAKE,
+                min_version: 0,
+                max_version: 1,
+            },
+            ApiVersion {
+                api_key: crate::protocol::api_keys::SASL_AUTHENTICATE,
+                min_version: 0,
+                max_version: 2,
+            },
+        ];
+        let mut body = BytesMut::new();
+        crate::protocol::api::encode_api_versions_response(
+            &mut body,
+            4,
+            &known_api_versions(&keys),
+        )
+        .unwrap();
+        socket
+            .write_i32(i32::try_from(4 + body.len()).unwrap())
+            .await
+            .unwrap();
+        socket.write_all(&request[4..8]).await.unwrap();
+        socket.write_all(&body).await.unwrap();
+        let request = frame(&mut socket).await;
+        assert_eq!(i16::from_be_bytes(request[0..2].try_into().unwrap()), 17);
+        saw_sasl.store(true, Ordering::SeqCst);
+        let mut buf = [0u8; 64];
+        while matches!(socket.read(&mut buf).await, Ok(n) if n > 0) {}
+    }
+
     #[tokio::test(flavor = "current_thread")]
     async fn collecting_many_sends_does_not_hold_the_caller() {
         let topic: Arc<str> = Arc::from("orders");
@@ -12066,10 +12130,14 @@ mod tests {
         let _found = find_producer_coordinator(
             &cfg,
             conn,
-            known_api_versions(&[]),
+            known_api_versions(&[ApiVersion {
+                api_key: FIND_COORDINATOR,
+                min_version: 1,
+                max_version: 1,
+            }]),
             "group",
             crate::protocol::group::COORDINATOR_GROUP,
-            0,
+            1,
             Instant::now() + Duration::from_secs(2),
             None,
             None,
@@ -12341,22 +12409,17 @@ mod tests {
         use crate::protocol::api::ApiVersion;
         use crate::protocol::api_keys::{SASL_AUTHENTICATE, SASL_HANDSHAKE};
         use std::sync::atomic::{AtomicUsize, Ordering};
-        use tokio::io::AsyncReadExt;
 
         let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
         let addr = listener.local_addr().unwrap().to_string();
         let open = Arc::new(AtomicUsize::new(0));
         let open_flag = Arc::clone(&open);
+        let saw_sasl = Arc::new(AtomicBool::new(false));
+        let peer_saw_sasl = Arc::clone(&saw_sasl);
         let peer = tokio::spawn(async move {
-            let (mut sock, _) = listener.accept().await.unwrap();
+            let (sock, _) = listener.accept().await.unwrap();
             let _started = open_flag.fetch_add(1, Ordering::SeqCst);
-            let mut buf = [0u8; 64];
-            loop {
-                match sock.read(&mut buf).await {
-                    Ok(0) | Err(_) => break,
-                    Ok(_) => continue,
-                }
-            }
+            stall_after_producer_api_versions(sock, peer_saw_sasl).await;
             let _left = open_flag.fetch_sub(1, Ordering::SeqCst);
         });
         let mut cfg = ProducerConfig::bootstrap([addr.clone()]);
@@ -12377,6 +12440,7 @@ mod tests {
         ];
         let result = open_conn_with_known_versions(&addr, &cfg, false, &keys).await;
         assert!(matches!(result, Err(Error::Timeout)));
+        assert!(saw_sasl.load(Ordering::SeqCst));
         assert_eq!(
             open.load(Ordering::SeqCst),
             0,
@@ -12390,22 +12454,17 @@ mod tests {
         use crate::protocol::api::ApiVersion;
         use crate::protocol::api_keys::{SASL_AUTHENTICATE, SASL_HANDSHAKE};
         use std::sync::atomic::{AtomicUsize, Ordering};
-        use tokio::io::AsyncReadExt;
 
         let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
         let addr = listener.local_addr().unwrap().to_string();
         let open = Arc::new(AtomicUsize::new(0));
         let open_flag = Arc::clone(&open);
+        let saw_sasl = Arc::new(AtomicBool::new(false));
+        let peer_saw_sasl = Arc::clone(&saw_sasl);
         let peer = tokio::spawn(async move {
-            let (mut sock, _) = listener.accept().await.unwrap();
+            let (sock, _) = listener.accept().await.unwrap();
             let _started = open_flag.fetch_add(1, Ordering::SeqCst);
-            let mut buf = [0u8; 64];
-            loop {
-                match sock.read(&mut buf).await {
-                    Ok(0) | Err(_) => break,
-                    Ok(_) => continue,
-                }
-            }
+            stall_after_producer_api_versions(sock, peer_saw_sasl).await;
             let _left = open_flag.fetch_sub(1, Ordering::SeqCst);
         });
         let mut cfg = ProducerConfig::bootstrap([addr.clone()]);
@@ -12433,6 +12492,7 @@ mod tests {
         )
         .await;
         assert!(matches!(result, Err(Error::Timeout)));
+        assert!(saw_sasl.load(Ordering::SeqCst));
         assert_eq!(
             open.load(Ordering::SeqCst),
             0,
@@ -15292,7 +15352,7 @@ mod rediscover_stop_tests {
             cluster: parking_lot::Mutex::new(Cluster::default()),
             meta: Mutex::new(meta),
             txn: Mutex::new(None),
-            metadata_version: 0,
+            metadata_version: AtomicI16::new(0),
             api_keys: Vec::new(),
             produce_keys: parking_lot::Mutex::new(HashMap::new()),
             metadata_image: parking_lot::Mutex::new(MetadataResponse::blank()),
@@ -15303,7 +15363,7 @@ mod rediscover_stop_tests {
             txn_offset_version: 0,
             find_coord_version: None,
             init_producer_id_version: 0,
-            telemetry_version: None,
+            telemetry_version: AtomicI16::new(-1),
             client_instance_id: parking_lot::Mutex::new(None),
             partitioner: cfg.partitioner.arc(),
             sticky: sticky_policy.map(|policy| {

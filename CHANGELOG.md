@@ -7,6 +7,11 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
 
 ## [Unreleased]
 
+- `ConsumerConfig` now includes `fetch_metadata_max_bytes`, which limits Fetch
+  response metadata to 128 MiB by default. Exhaustive struct literals must add
+  `fetch_metadata_max_bytes: 128 * 1024 * 1024`, or use a default struct update
+  and the `fetch_metadata_max_bytes` builder to choose a different limit.
+
 - Encoding a TxnOffsetCommit error response pauses every 8,192 topics.
   Writing 800,000 topics held the caller for 217ms before that pause. The
   encoded bytes are unchanged.

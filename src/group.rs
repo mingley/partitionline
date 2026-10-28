@@ -373,21 +373,27 @@ pub fn assign_range_subscribed(
 }
 
 /// [`assign_range_subscribed`], yielding while a long partition list is assigned.
-pub async fn assign_range_subscribed_cooperative(
-    member_subs: &[(String, Vec<String>)],
-    topics: &[(String, Vec<i32>)],
-) -> HashMap<String, Vec<(String, i32)>> {
-    let mut out = open_assignment_members(member_subs).await;
-    let members_by_topic = members_by_topic_cooperative(member_subs).await;
-    for (topic, parts) in topics {
-        let members = members_by_topic
-            .get(topic.as_str())
-            .map(Vec::as_slice)
-            .unwrap_or(&[]);
-        let assigned = assign_range_names_cooperative(members, parts).await;
-        copy_topic_assignment(&mut out, topic, assigned).await;
+#[expect(
+    clippy::manual_async_fn,
+    reason = "The explicit Send future avoids lifetime inference failures"
+)]
+pub fn assign_range_subscribed_cooperative<'a>(
+    member_subs: &'a [(String, Vec<String>)],
+    topics: &'a [(String, Vec<i32>)],
+) -> impl std::future::Future<Output = HashMap<String, Vec<(String, i32)>>> + Send + 'a {
+    async move {
+        let mut out = open_assignment_members(member_subs).await;
+        let members_by_topic = members_by_topic_cooperative(member_subs).await;
+        for (topic, parts) in topics {
+            let members = members_by_topic
+                .get(topic.as_str())
+                .map(Vec::as_slice)
+                .unwrap_or(&[]);
+            let assigned = assign_range_names_cooperative(members, parts).await;
+            copy_topic_assignment(&mut out, topic, assigned).await;
+        }
+        out
     }
-    out
 }
 
 /// Copy one topic's assignment into each member's list.
@@ -748,68 +754,79 @@ pub fn resolve_sticky_owned_partitions(
 }
 
 /// [`resolve_sticky_owned_partitions`], yielding while a long claim list is resolved.
-pub async fn resolve_sticky_owned_partitions_cooperative(
+#[expect(
+    clippy::manual_async_fn,
+    reason = "The explicit Send future avoids lifetime inference failures"
+)]
+pub fn resolve_sticky_owned_partitions_cooperative(
     claims: &[StickyOwnedClaim],
-) -> HashMap<String, Vec<(String, i32)>> {
-    let mut out: HashMap<String, OwnedParts> = HashMap::new();
-    for (member, _, _) in claims {
-        if !out.contains_key(member.as_str()) {
-            let _ = out.insert(member.clone(), OwnedParts::new());
+) -> impl std::future::Future<Output = HashMap<String, Vec<(String, i32)>>> + Send + '_ {
+    async move {
+        let mut out: HashMap<String, OwnedParts> = HashMap::new();
+        for (member, _, _) in claims {
+            if !out.contains_key(member.as_str()) {
+                let _ = out.insert(member.clone(), OwnedParts::new());
+            }
         }
-    }
-    let mut owner: HashMap<&str, HashMap<i32, StickyOwner<'_>>> = HashMap::new();
-    let mut walked = 0usize;
-    for (member, owned, generation) in claims {
-        for (topic, partition) in owned {
-            let current = owner
-                .get(topic.as_str())
-                .and_then(|parts| parts.get(partition))
-                .copied();
-            let claim = StickyOwner {
-                member: member.as_str(),
-                generation: *generation,
-            };
-            match current {
-                None => {
-                    if let Some(slot) = out.get_mut(member.as_str()) {
-                        slot.push(topic, *partition);
-                    }
-                    remember_sticky_owner(&mut owner, topic.as_str(), *partition, claim);
-                }
-                Some(StickyOwner {
-                    member: other,
-                    generation: other_generation,
-                }) => match generation.cmp(&other_generation) {
-                    std::cmp::Ordering::Equal => {
-                        if other != member.as_str() {
-                            if let Some(other_slot) = out.get_mut(other) {
-                                other_slot.revoke(topic, *partition);
-                            }
-                            remember_sticky_owner(&mut owner, topic.as_str(), *partition, claim);
-                        }
-                    }
-                    std::cmp::Ordering::Greater => {
-                        if let Some(other_slot) = out.get_mut(other) {
-                            other_slot.revoke(topic, *partition);
-                        }
+        let mut owner: HashMap<&str, HashMap<i32, StickyOwner<'_>>> = HashMap::new();
+        let mut walked = 0usize;
+        for (member, owned, generation) in claims {
+            for (topic, partition) in owned {
+                let current = owner
+                    .get(topic.as_str())
+                    .and_then(|parts| parts.get(partition))
+                    .copied();
+                let claim = StickyOwner {
+                    member: member.as_str(),
+                    generation: *generation,
+                };
+                match current {
+                    None => {
                         if let Some(slot) = out.get_mut(member.as_str()) {
                             slot.push(topic, *partition);
                         }
                         remember_sticky_owner(&mut owner, topic.as_str(), *partition, claim);
                     }
-                    std::cmp::Ordering::Less => {}
-                },
-            }
-            walked = walked.saturating_add(1);
-            if walked == 8 * 1024 {
-                walked = 0;
-                tokio::task::yield_now().await;
+                    Some(StickyOwner {
+                        member: other,
+                        generation: other_generation,
+                    }) => match generation.cmp(&other_generation) {
+                        std::cmp::Ordering::Equal => {
+                            if other != member.as_str() {
+                                if let Some(other_slot) = out.get_mut(other) {
+                                    other_slot.revoke(topic, *partition);
+                                }
+                                remember_sticky_owner(
+                                    &mut owner,
+                                    topic.as_str(),
+                                    *partition,
+                                    claim,
+                                );
+                            }
+                        }
+                        std::cmp::Ordering::Greater => {
+                            if let Some(other_slot) = out.get_mut(other) {
+                                other_slot.revoke(topic, *partition);
+                            }
+                            if let Some(slot) = out.get_mut(member.as_str()) {
+                                slot.push(topic, *partition);
+                            }
+                            remember_sticky_owner(&mut owner, topic.as_str(), *partition, claim);
+                        }
+                        std::cmp::Ordering::Less => {}
+                    },
+                }
+                walked = walked.saturating_add(1);
+                if walked == 8 * 1024 {
+                    walked = 0;
+                    tokio::task::yield_now().await;
+                }
             }
         }
+        out.into_iter()
+            .map(|(member, parts)| (member, parts.into_vec()))
+            .collect()
     }
-    out.into_iter()
-        .map(|(member, parts)| (member, parts.into_vec()))
-        .collect()
 }
 
 /// Sticky-assign each topic among the members subscribed to it.
@@ -842,24 +859,30 @@ pub fn assign_sticky_subscribed(
 }
 
 /// [`assign_sticky_subscribed`], yielding while a long partition list is assigned.
-pub async fn assign_sticky_subscribed_cooperative(
-    member_subs: &[(String, Vec<String>)],
-    topics: &[(String, Vec<i32>)],
-    prev: &HashMap<String, Vec<(String, i32)>>,
-) -> HashMap<String, Vec<(String, i32)>> {
-    let mut out = open_assignment_members(member_subs).await;
-    let members_by_topic = members_by_topic_cooperative(member_subs).await;
-    let previous = previous_partitions_by_topic_cooperative(prev).await;
-    for (topic, parts) in topics {
-        let members = members_by_topic
-            .get(topic.as_str())
-            .map(Vec::as_slice)
-            .unwrap_or(&[]);
-        let prev_for_topic = sticky_previous(previous.get(topic.as_str()));
-        let assigned = assign_sticky_from_cooperative(members, parts, prev_for_topic).await;
-        copy_topic_assignment(&mut out, topic, assigned).await;
+#[expect(
+    clippy::manual_async_fn,
+    reason = "The explicit Send future avoids lifetime inference failures"
+)]
+pub fn assign_sticky_subscribed_cooperative<'a>(
+    member_subs: &'a [(String, Vec<String>)],
+    topics: &'a [(String, Vec<i32>)],
+    prev: &'a HashMap<String, Vec<(String, i32)>>,
+) -> impl std::future::Future<Output = HashMap<String, Vec<(String, i32)>>> + Send + 'a {
+    async move {
+        let mut out = open_assignment_members(member_subs).await;
+        let members_by_topic = members_by_topic_cooperative(member_subs).await;
+        let previous = previous_partitions_by_topic_cooperative(prev).await;
+        for (topic, parts) in topics {
+            let members = members_by_topic
+                .get(topic.as_str())
+                .map(Vec::as_slice)
+                .unwrap_or(&[]);
+            let prev_for_topic = sticky_previous(previous.get(topic.as_str()));
+            let assigned = assign_sticky_from_cooperative(members, parts, prev_for_topic).await;
+            copy_topic_assignment(&mut out, topic, assigned).await;
+        }
+        out
     }
-    out
 }
 
 /// Assign partitions with the sticky assignor.
@@ -1363,7 +1386,9 @@ pub struct ConsumerGroup {
     /// JoinGroup v8+ Reason for the next rejoin (KIP-800).
     rebalance_reason: Option<String>,
     /// Java `commitAsync`: OffsetCommit sent on the next poll / leave.
-    pending_async_commits: Vec<PendingAsyncCommit>,
+    // Callbacks need only Send. The mutex makes shared group borrows Sync;
+    // every queue mutation uses get_mut under &mut self and takes no lock.
+    pending_async_commits: parking_lot::Mutex<Vec<PendingAsyncCommit>>,
     /// Coordinators this member already contacted. A later commit reuses them.
     prior_coords: HashMap<String, KnownCoord>,
 }
@@ -1483,97 +1508,100 @@ impl ConsumerGroup {
         Self::join_with_protocol_list(cfg, group_id, collect_topics(topics)?, names, None).await
     }
 
-    async fn join_with_protocol_list(
+    fn join_with_protocol_list(
         cfg: ConsumerConfig,
         group_id: String,
         topics: Vec<String>,
         assignors: Vec<String>,
         topic_match: Option<TopicMatch>,
-    ) -> Result<Self> {
-        reject_java_empty_group_id(&group_id)?;
-        let mut cfg = cfg;
-        cfg.bootstrap = crate::net::parse_and_validate_addresses(&cfg.bootstrap)?;
-        let protocol = assignors
-            .first()
-            .cloned()
-            .ok_or_else(reject_java_no_assignors)?;
-        let started = Instant::now()
-            .checked_add(cfg.request_timeout)
-            .ok_or(Error::Timeout)?;
-        let (mut consumer, coord) = connect_member_and_coordinator(
-            &cfg,
-            &group_id,
-            &topics,
-            topic_match.is_some(),
-            started,
-        )
-        .await?;
-        let coord = match coord {
-            Ok((conn, keys)) => {
-                consumer.remember_broker_versions(conn.addr(), keys);
-                conn
-            }
-            Err(error) => return Err(error),
-        };
+    ) -> impl std::future::Future<Output = Result<Self>> + Send {
+        Box::pin(async move {
+            reject_java_empty_group_id(&group_id)?;
+            let mut cfg = cfg;
+            cfg.bootstrap = crate::net::parse_and_validate_addresses(&cfg.bootstrap)?;
+            let protocol = assignors
+                .first()
+                .cloned()
+                .ok_or_else(reject_java_no_assignors)?;
+            let started = Instant::now()
+                .checked_add(cfg.request_timeout)
+                .ok_or(Error::Timeout)?;
+            let (mut consumer, coord) = connect_member_and_coordinator(
+                &cfg,
+                &group_id,
+                &topics,
+                topic_match.is_some(),
+                started,
+            )
+            .await?;
+            let coord = match coord {
+                Ok((conn, keys)) => {
+                    consumer.remember_broker_versions(conn.addr(), keys);
+                    conn
+                }
+                Err(error) => return Err(error),
+            };
 
-        let hb_err = Arc::new(AtomicI16::new(0));
-        let hb_generation = Arc::new(AtomicI32::new(0));
-        let hb_assignment = Arc::new(parking_lot::Mutex::new(None));
-        let hb_ack = Arc::new(parking_lot::Mutex::new(None));
-        let hb_member_id = Arc::new(parking_lot::Mutex::new(String::new()));
-        let hb_topics = Arc::new(parking_lot::Mutex::new(topics.clone()));
-        let hb_interval_ms = Arc::new(AtomicI32::new(duration_millis_i32(cfg.heartbeat_interval)));
-        let hb_deadline = Arc::new(parking_lot::Mutex::new(None));
-        let (hb_stop, hb_rx) = watch::channel(false);
-        let mut g = Self {
-            consumer,
-            coord,
-            cfg: cfg.clone(),
-            group_id,
-            member_id: String::new(),
-            generation_id: ConsumerProtocolSubscription::DEFAULT_GENERATION,
-            topics,
-            topic_match,
-            last_match_refresh: Instant::now(),
-            protocol,
-            assignors,
-            kip848: false,
-            prev_assignment: HashMap::new(),
-            hb_err,
-            hb_generation,
-            hb_assignment,
-            hb_ack,
-            hb_member_id,
-            hb_topics,
-            hb_interval_ms,
-            hb_deadline,
-            hb_stop,
-            hb_task: None,
-            last_auto_commit: Instant::now(),
-            last_delivered_positions: None,
-            last_delivered_topic_ids: HashMap::new(),
-            commit_v10: OffsetCommitRequestData::default(),
-            fetch_v10: OffsetFetchRequestData::default(),
-            classic_commit_topics: Vec::new(),
-            classic_fetch_topics: Vec::new(),
-            fetch_names: HashMap::new(),
-            last_poll: Arc::new(parking_lot::Mutex::new(None)),
-            left_max_poll: Arc::new(AtomicBool::new(false)),
-            m_rebalances: AtomicU64::new(0),
-            m_commits_ok: AtomicU64::new(0),
-            m_commits_failed: AtomicU64::new(0),
-            rebalance_needed: false,
-            rebalance_reason: None,
-            pending_async_commits: Vec::new(),
-            prior_coords: HashMap::new(),
-        };
-        if g.topic_match.is_some() {
-            g.topics = g.matching_topic_names_within(started).await?;
-            g.last_match_refresh = Instant::now();
-        }
-        g.rejoin_within(started).await?;
-        g.hb_task = Some(g.spawn_heartbeat(hb_rx));
-        Ok(g)
+            let hb_err = Arc::new(AtomicI16::new(0));
+            let hb_generation = Arc::new(AtomicI32::new(0));
+            let hb_assignment = Arc::new(parking_lot::Mutex::new(None));
+            let hb_ack = Arc::new(parking_lot::Mutex::new(None));
+            let hb_member_id = Arc::new(parking_lot::Mutex::new(String::new()));
+            let hb_topics = Arc::new(parking_lot::Mutex::new(topics.clone()));
+            let hb_interval_ms =
+                Arc::new(AtomicI32::new(duration_millis_i32(cfg.heartbeat_interval)));
+            let hb_deadline = Arc::new(parking_lot::Mutex::new(None));
+            let (hb_stop, hb_rx) = watch::channel(false);
+            let mut g = Self {
+                consumer,
+                coord,
+                cfg: cfg.clone(),
+                group_id,
+                member_id: String::new(),
+                generation_id: ConsumerProtocolSubscription::DEFAULT_GENERATION,
+                topics,
+                topic_match,
+                last_match_refresh: Instant::now(),
+                protocol,
+                assignors,
+                kip848: false,
+                prev_assignment: HashMap::new(),
+                hb_err,
+                hb_generation,
+                hb_assignment,
+                hb_ack,
+                hb_member_id,
+                hb_topics,
+                hb_interval_ms,
+                hb_deadline,
+                hb_stop,
+                hb_task: None,
+                last_auto_commit: Instant::now(),
+                last_delivered_positions: None,
+                last_delivered_topic_ids: HashMap::new(),
+                commit_v10: OffsetCommitRequestData::default(),
+                fetch_v10: OffsetFetchRequestData::default(),
+                classic_commit_topics: Vec::new(),
+                classic_fetch_topics: Vec::new(),
+                fetch_names: HashMap::new(),
+                last_poll: Arc::new(parking_lot::Mutex::new(None)),
+                left_max_poll: Arc::new(AtomicBool::new(false)),
+                m_rebalances: AtomicU64::new(0),
+                m_commits_ok: AtomicU64::new(0),
+                m_commits_failed: AtomicU64::new(0),
+                rebalance_needed: false,
+                rebalance_reason: None,
+                pending_async_commits: parking_lot::Mutex::new(Vec::new()),
+                prior_coords: HashMap::new(),
+            };
+            if g.topic_match.is_some() {
+                g.topics = g.matching_topic_names_within(started).await?;
+                g.last_match_refresh = Instant::now();
+            }
+            g.rejoin_within(started).await?;
+            g.hb_task = Some(g.spawn_heartbeat(hb_rx));
+            Ok(g)
+        })
     }
 
     /// Join with the range assignor and a topic predicate (Java `subscribe(Pattern)`).
@@ -1651,7 +1679,7 @@ impl ConsumerGroup {
         let group_id = group_id.into();
         reject_java_empty_group_id(&group_id)?;
         let topics = collect_topics(topics)?;
-        Self::join_consumer_list(cfg, group_id, topics, None).await
+        Box::pin(Self::join_consumer_list(cfg, group_id, topics, None)).await
     }
 
     /// [`Self::join_consumer`] with a topic predicate (Java `subscribe(Pattern)`).
@@ -1660,7 +1688,13 @@ impl ConsumerGroup {
         group_id: impl Into<String>,
         matches: impl Fn(&str) -> bool + Send + Sync + 'static,
     ) -> Result<Self> {
-        Self::join_consumer_list(cfg, group_id.into(), Vec::new(), Some(Arc::new(matches))).await
+        Box::pin(Self::join_consumer_list(
+            cfg,
+            group_id.into(),
+            Vec::new(),
+            Some(Arc::new(matches)),
+        ))
+        .await
     }
 
     async fn join_consumer_list(
@@ -1740,7 +1774,7 @@ impl ConsumerGroup {
             m_commits_failed: AtomicU64::new(0),
             rebalance_needed: false,
             rebalance_reason: None,
-            pending_async_commits: Vec::new(),
+            pending_async_commits: parking_lot::Mutex::new(Vec::new()),
             prior_coords: HashMap::new(),
         };
         if g.topic_match.is_some() {
@@ -2787,7 +2821,7 @@ impl ConsumerGroup {
     }
 
     async fn flush_async_commits(&mut self, deadline: Instant) {
-        let pending = std::mem::take(&mut self.pending_async_commits);
+        let pending = std::mem::take(self.pending_async_commits.get_mut());
         for (offsets, callback, ids) in pending {
             let timeout = deadline.saturating_duration_since(Instant::now());
             if timeout.is_zero() {
@@ -3225,8 +3259,11 @@ impl ConsumerGroup {
         }
         let infos = self.consumer.list_topics_timeout(timeout).await?;
         Ok(
-            filter_matching_topics_cooperative(infos.iter().map(|i| i.topic.as_str()), |n| pred(n))
-                .await,
+            filter_matching_topics_cooperative(
+                infos.into_iter().map(|info| info.topic),
+                move |n| pred(n),
+            )
+            .await,
         )
     }
 
@@ -3258,7 +3295,7 @@ impl ConsumerGroup {
     /// auto-commit or an explicit `commit*` before leave if you want stored offsets.
     pub async fn leave(self) -> Result<()> {
         let deadline = Instant::now() + self.cfg.request_timeout;
-        self.leave_within(deadline).await
+        Box::pin(self.leave_within(deadline)).await
     }
 
     async fn leave_within(mut self, deadline: Instant) -> Result<()> {
@@ -3339,7 +3376,7 @@ impl ConsumerGroup {
         let deadline = Instant::now()
             .checked_add(timeout)
             .ok_or_else(|| Error::protocol("close deadline overflow"))?;
-        self.leave_within(deadline).await
+        Box::pin(self.leave_within(deadline)).await
     }
 
     #[expect(
@@ -3467,7 +3504,7 @@ impl ConsumerGroup {
         Err(Error::protocol("cooperative-sticky did not settle"))
     }
 
-    async fn join_protocol_entries(&self) -> Result<Vec<(String, Vec<u8>)>> {
+    async fn join_protocol_entries(&mut self) -> Result<Vec<(String, Vec<u8>)>> {
         let owned = self.consumer.assignment_pairs_cooperative().await;
         let names = if self.assignors.is_empty() {
             vec![self.protocol.clone()]
@@ -3489,141 +3526,150 @@ impl ConsumerGroup {
         Ok(out)
     }
 
-    async fn rejoin_once(&mut self, deadline: Instant) -> Result<Vec<(String, i32)>> {
-        let entries = self.join_protocol_entries().await?;
-        let protocols: Vec<JoinGroupProtocol<'_>> = entries
-            .iter()
-            .map(|(n, m)| JoinGroupProtocol::new(n, m))
-            .collect();
-        let reason = self.rebalance_reason.take();
-        let session_timeout_ms = self.cfg.session_timeout_ms;
-        let rebalance_timeout_ms = if self.cfg.max_poll_interval.is_zero() {
-            i32::MAX
-        } else {
-            duration_millis_i32(self.cfg.max_poll_interval)
-        };
-        // Metadata for this member's topics overlaps the first JoinGroup.
-        // Other members' topics are still loaded after the response.
-        let mut metadata_prefetch: Option<Result<()>> = None;
-        let (error, generation, protocol, leader, assigned_id, skip_assignment, members, ..) = loop {
-            let timeout = deadline.saturating_duration_since(Instant::now());
-            if timeout.is_zero() {
-                return Err(Error::Timeout);
-            }
-            let consumer = &self.consumer;
-            let prefetch = metadata_prefetch.is_none()
-                && !crate::consumer::topics_metadata_fresh(
-                    self.topics.iter().map(String::as_str),
-                    |topic| consumer.topic_metadata_fresh(topic),
-                )
-                .await;
-            let (version, body) = if prefetch {
-                let bootstrap_keys = self.consumer.copy_api_keys();
-                let address_keys = self.consumer.copy_learned_broker_keys();
-                let group_id = self.group_id.as_str();
-                let member_id = self.member_id.as_str();
-                let instance = self.cfg.group_instance_id.as_deref();
-                let reason = reason.as_deref();
-                let coord = &mut self.coord;
-                let cfg = &self.cfg;
-                let consumer = &mut self.consumer;
-                let topics = &self.topics;
-                let prior = &mut self.prior_coords;
-                let refresh = consumer.refresh_metadata_timeout(Some(topics), timeout);
-                let rpc = coord_roundtrip_with_bootstrap(
-                    coord,
-                    cfg,
-                    group_id,
-                    COORDINATOR_GROUP,
-                    JOIN_GROUP,
-                    |version, buf| {
-                        encode_join_group_protocols_request(
-                            buf,
-                            version,
-                            &JoinGroupProtocolsRequest {
-                                group_id,
-                                session_timeout_ms,
-                                rebalance_timeout_ms,
-                                member_id,
-                                group_instance_id: instance,
-                                protocol_type: ConsumerProtocol::PROTOCOL_TYPE,
-                                protocols: &protocols,
-                                reason,
-                            },
-                        )
-                    },
-                    &bootstrap_keys,
-                    &address_keys,
-                    prior,
-                    timeout,
-                );
-                let (refresh, rpc) = tokio::join!(refresh, rpc);
-                metadata_prefetch = Some(refresh);
-                rpc?
+    #[expect(
+        clippy::manual_async_fn,
+        reason = "The explicit Send future avoids lifetime inference failures"
+    )]
+    fn rejoin_once(
+        &mut self,
+        deadline: Instant,
+    ) -> impl std::future::Future<Output = Result<Vec<(String, i32)>>> + Send + '_ {
+        async move {
+            let entries = self.join_protocol_entries().await?;
+            let protocols: Vec<JoinGroupProtocol<'_>> = entries
+                .iter()
+                .map(|(n, m)| JoinGroupProtocol::new(n, m))
+                .collect();
+            let reason = self.rebalance_reason.take();
+            let session_timeout_ms = self.cfg.session_timeout_ms;
+            let rebalance_timeout_ms = if self.cfg.max_poll_interval.is_zero() {
+                i32::MAX
             } else {
-                let bootstrap_keys = self.consumer.copy_api_keys();
-                let address_keys = self.consumer.copy_learned_broker_keys();
-                coord_roundtrip_with_bootstrap(
-                    &mut self.coord,
-                    &self.cfg,
-                    &self.group_id,
-                    COORDINATOR_GROUP,
-                    JOIN_GROUP,
-                    |version, buf| {
-                        encode_join_group_protocols_request(
-                            buf,
-                            version,
-                            &JoinGroupProtocolsRequest {
-                                group_id: &self.group_id,
-                                session_timeout_ms,
-                                rebalance_timeout_ms,
-                                member_id: &self.member_id,
-                                group_instance_id: self.cfg.group_instance_id.as_deref(),
-                                protocol_type: ConsumerProtocol::PROTOCOL_TYPE,
-                                protocols: &protocols,
-                                reason: reason.as_deref(),
-                            },
-                        )
-                    },
-                    &bootstrap_keys,
-                    &address_keys,
-                    &mut self.prior_coords,
-                    timeout,
-                )
-                .await?
+                duration_millis_i32(self.cfg.max_poll_interval)
             };
-            let decoded = decode_join_group_response_cooperative(&mut body.clone(), version)
-                .await
-                .map_err(|e| group_decode_context(e, "JoinGroup", version, body.len()))?;
-            if decoded.0 == error::MEMBER_ID_REQUIRED
-                && self.member_id == JoinGroupRequest::UNKNOWN_MEMBER_ID
-                && !decoded.4.is_empty()
-            {
-                self.member_id = decoded.4;
-                continue;
+            // Metadata for this member's topics overlaps the first JoinGroup.
+            // Other members' topics are still loaded after the response.
+            let mut metadata_prefetch: Option<Result<()>> = None;
+            let (error, generation, protocol, leader, assigned_id, skip_assignment, members, ..) = loop {
+                let timeout = deadline.saturating_duration_since(Instant::now());
+                if timeout.is_zero() {
+                    return Err(Error::Timeout);
+                }
+                let consumer = &self.consumer;
+                let prefetch = metadata_prefetch.is_none()
+                    && !crate::consumer::topics_metadata_fresh(
+                        self.topics.iter().map(String::as_str),
+                        |topic| consumer.topic_metadata_fresh(topic),
+                    )
+                    .await;
+                let (version, body) = if prefetch {
+                    let bootstrap_keys = self.consumer.copy_api_keys();
+                    let address_keys = self.consumer.copy_learned_broker_keys();
+                    let group_id = self.group_id.as_str();
+                    let member_id = self.member_id.as_str();
+                    let instance = self.cfg.group_instance_id.as_deref();
+                    let reason = reason.as_deref();
+                    let coord = &mut self.coord;
+                    let cfg = &self.cfg;
+                    let consumer = &mut self.consumer;
+                    let topics = &self.topics;
+                    let prior = &mut self.prior_coords;
+                    let refresh = consumer.refresh_metadata_timeout(Some(topics), timeout);
+                    let rpc = coord_roundtrip_with_bootstrap(
+                        coord,
+                        cfg,
+                        group_id,
+                        COORDINATOR_GROUP,
+                        JOIN_GROUP,
+                        |version, buf| {
+                            encode_join_group_protocols_request(
+                                buf,
+                                version,
+                                &JoinGroupProtocolsRequest {
+                                    group_id,
+                                    session_timeout_ms,
+                                    rebalance_timeout_ms,
+                                    member_id,
+                                    group_instance_id: instance,
+                                    protocol_type: ConsumerProtocol::PROTOCOL_TYPE,
+                                    protocols: &protocols,
+                                    reason,
+                                },
+                            )
+                        },
+                        &bootstrap_keys,
+                        &address_keys,
+                        prior,
+                        timeout,
+                    );
+                    let (refresh, rpc) = tokio::join!(refresh, rpc);
+                    metadata_prefetch = Some(refresh);
+                    rpc?
+                } else {
+                    let bootstrap_keys = self.consumer.copy_api_keys();
+                    let address_keys = self.consumer.copy_learned_broker_keys();
+                    coord_roundtrip_with_bootstrap(
+                        &mut self.coord,
+                        &self.cfg,
+                        &self.group_id,
+                        COORDINATOR_GROUP,
+                        JOIN_GROUP,
+                        |version, buf| {
+                            encode_join_group_protocols_request(
+                                buf,
+                                version,
+                                &JoinGroupProtocolsRequest {
+                                    group_id: &self.group_id,
+                                    session_timeout_ms,
+                                    rebalance_timeout_ms,
+                                    member_id: &self.member_id,
+                                    group_instance_id: self.cfg.group_instance_id.as_deref(),
+                                    protocol_type: ConsumerProtocol::PROTOCOL_TYPE,
+                                    protocols: &protocols,
+                                    reason: reason.as_deref(),
+                                },
+                            )
+                        },
+                        &bootstrap_keys,
+                        &address_keys,
+                        &mut self.prior_coords,
+                        timeout,
+                    )
+                    .await?
+                };
+                let decoded = decode_join_group_response_cooperative(&mut body.clone(), version)
+                    .await
+                    .map_err(|e| group_decode_context(e, "JoinGroup", version, body.len()))?;
+                if decoded.0 == error::MEMBER_ID_REQUIRED
+                    && self.member_id == JoinGroupRequest::UNKNOWN_MEMBER_ID
+                    && !decoded.4.is_empty()
+                {
+                    self.member_id = decoded.4;
+                    continue;
+                }
+                break decoded;
+            };
+            if error != 0 {
+                return Err(Error::broker(error, "JoinGroup"));
             }
-            break decoded;
-        };
-        if error != 0 {
-            return Err(Error::broker(error, "JoinGroup"));
-        }
-        if let Some(Err(error)) = metadata_prefetch {
-            return Err(error);
-        }
-        self.member_id = assigned_id;
-        self.generation_id = generation;
-        if !protocol.is_empty() {
-            self.protocol = protocol;
-        }
+            if let Some(Err(error)) = metadata_prefetch {
+                return Err(error);
+            }
+            self.member_id = assigned_id;
+            self.generation_id = generation;
+            if !protocol.is_empty() {
+                self.protocol = protocol;
+            }
 
-        let mut member_subs: Vec<(String, Vec<String>)> = Vec::with_capacity(members.len());
-        let mut owned_claims: Vec<StickyOwnedClaim> = Vec::with_capacity(members.len());
-        let mut topic_set = clone_names(&self.topics).await;
-        let mut seen_topics = HashSet::new();
-        remember_existing_topics(&mut seen_topics, &topic_set).await;
-        for m in &members {
-            let sub =
-                match ConsumerProtocol::deserialize_subscription_cooperative(&m.metadata).await {
+            let mut member_subs: Vec<(String, Vec<String>)> = Vec::with_capacity(members.len());
+            let mut owned_claims: Vec<StickyOwnedClaim> = Vec::with_capacity(members.len());
+            let mut topic_set = clone_names(&self.topics).await;
+            let mut seen_topics = HashSet::new();
+            remember_existing_topics(&mut seen_topics, &topic_set).await;
+            for m in &members {
+                let sub = match ConsumerProtocol::deserialize_subscription_cooperative(&m.metadata)
+                    .await
+                {
                     Ok(s) if !s.topics.is_empty() => s,
                     Ok(s) => ConsumerProtocolSubscription {
                         topics: clone_names(&self.topics).await,
@@ -3633,156 +3679,164 @@ impl ConsumerGroup {
                     },
                     Err(_) => ConsumerProtocolSubscription::new(clone_names(&self.topics).await),
                 };
-            extend_unique_topics(&mut topic_set, &mut seen_topics, &sub.topics).await;
-            member_subs.push((m.member_id.clone(), sub.topics));
-            owned_claims.push((m.member_id.clone(), sub.owned_partitions, sub.generation_id));
-        }
-        let owned_prev = resolve_sticky_owned_partitions_cooperative(&owned_claims).await;
-        let timeout = deadline.saturating_duration_since(Instant::now());
-        if timeout.is_zero() {
-            return Err(Error::Timeout);
-        }
-        // A rejoin of topics already in the metadata image does not ask again.
-        // Any missing or stale name refreshes the whole set: a subset response
-        // would replace the image `partition_ids` reads.
-        let mut by_topic = Vec::with_capacity(topic_set.len());
-        let consumer = &self.consumer;
-        let mut loaded =
-            crate::consumer::topics_metadata_fresh(topic_set.iter().map(String::as_str), |topic| {
-                consumer.topic_metadata_fresh(topic)
-            })
+                extend_unique_topics(&mut topic_set, &mut seen_topics, &sub.topics).await;
+                member_subs.push((m.member_id.clone(), sub.topics));
+                owned_claims.push((m.member_id.clone(), sub.owned_partitions, sub.generation_id));
+            }
+            let owned_prev = resolve_sticky_owned_partitions_cooperative(&owned_claims).await;
+            let timeout = deadline.saturating_duration_since(Instant::now());
+            if timeout.is_zero() {
+                return Err(Error::Timeout);
+            }
+            // A rejoin of topics already in the metadata image does not ask again.
+            // Any missing or stale name refreshes the whole set: a subset response
+            // would replace the image `partition_ids` reads.
+            let mut by_topic = Vec::with_capacity(topic_set.len());
+            let consumer = &self.consumer;
+            let mut loaded = crate::consumer::topics_metadata_fresh(
+                topic_set.iter().map(String::as_str),
+                |topic| consumer.topic_metadata_fresh(topic),
+            )
             .await;
-        if loaded {
-            match self.consumer.partition_ids_all(&topic_set).await {
-                Ok(lists) => {
-                    for (topic, ids) in topic_set.iter().zip(lists) {
-                        by_topic.push((topic.clone(), ids));
+            if loaded {
+                match self.consumer.partition_ids_all(&topic_set).await {
+                    Ok(lists) => {
+                        for (topic, ids) in topic_set.iter().zip(lists) {
+                            by_topic.push((topic.clone(), ids));
+                        }
                     }
+                    Err(_) => loaded = false,
                 }
-                Err(_) => loaded = false,
             }
-        }
-        if !loaded {
-            self.consumer
-                .refresh_metadata_timeout(Some(&topic_set), timeout)
-                .await?;
-            by_topic.clear();
-            let lists = self.consumer.partition_ids_all(&topic_set).await?;
-            for (topic, ids) in topic_set.iter().zip(lists) {
-                by_topic.push((topic.clone(), ids));
+            if !loaded {
+                self.consumer
+                    .refresh_metadata_timeout(Some(&topic_set), timeout)
+                    .await?;
+                by_topic.clear();
+                let lists = self.consumer.partition_ids_all(&topic_set).await?;
+                for (topic, ids) in topic_set.iter().zip(lists) {
+                    by_topic.push((topic.clone(), ids));
+                }
             }
-        }
-        let assigning = JoinGroupResponse::is_leader(&self.member_id, &leader) && !skip_assignment;
-        let assignments = if assigning {
-            let map = match self.protocol.as_str() {
-                "cooperative-sticky" => {
-                    assign_cooperative_sticky_subscribed_cooperative(
-                        &member_subs,
-                        &by_topic,
-                        &owned_prev,
-                    )
-                    .await
+            let assigning =
+                JoinGroupResponse::is_leader(&self.member_id, &leader) && !skip_assignment;
+            let assignments = if assigning {
+                let map = match self.protocol.as_str() {
+                    "cooperative-sticky" => {
+                        assign_cooperative_sticky_subscribed_cooperative(
+                            &member_subs,
+                            &by_topic,
+                            &owned_prev,
+                        )
+                        .await
+                    }
+                    "sticky" => {
+                        assign_sticky_subscribed_cooperative(&member_subs, &by_topic, &owned_prev)
+                            .await
+                    }
+                    _ => assign_range_subscribed_cooperative(&member_subs, &by_topic).await,
+                };
+                self.prev_assignment = map.clone();
+                let mut assignments = Vec::with_capacity(map.len());
+                for (id, tps) in map {
+                    assignments.push((id, encode_tp_assignment_cooperative(&tps).await?));
                 }
-                "sticky" => {
-                    assign_sticky_subscribed_cooperative(&member_subs, &by_topic, &owned_prev).await
-                }
-                _ => assign_range_subscribed_cooperative(&member_subs, &by_topic).await,
+                assignments
+            } else {
+                Vec::new()
             };
-            self.prev_assignment = map.clone();
-            let mut assignments = Vec::with_capacity(map.len());
-            for (id, tps) in map {
-                assignments.push((id, encode_tp_assignment_cooperative(&tps).await?));
-            }
-            assignments
-        } else {
-            Vec::new()
-        };
-        // The assigning leader already chose its partitions. Dial those
-        // brokers while SyncGroup runs so offset fetch and the next poll
-        // do not pay the handshake after the coordinator answers.
-        let mut leaders = Vec::new();
-        let mut seen_leaders = HashSet::new();
-        if assigning {
-            if let Some(parts) = self.prev_assignment.get(&self.member_id) {
-                remember_partition_leaders(
-                    self.consumer.cluster(),
-                    parts,
-                    &mut leaders,
-                    &mut seen_leaders,
-                )
-                .await;
-            }
-        }
-        let timeout = deadline.saturating_duration_since(Instant::now());
-        if timeout.is_zero() {
-            return Err(Error::Timeout);
-        }
-        let bootstrap_keys = self.consumer.copy_api_keys();
-        let address_keys = self.consumer.copy_learned_broker_keys();
-        let mut flight = if leaders.is_empty() {
-            None
-        } else {
-            Some(self.consumer.start_leader_dials(&leaders, deadline).await)
-        };
-        let prepared_version = negotiated_coord_version(&self.coord, SYNC_GROUP).ok();
-        let sync_request = SyncGroupRequest {
-            group_id: &self.group_id,
-            generation_id: self.generation_id,
-            member_id: &self.member_id,
-            group_instance_id: self.cfg.group_instance_id.as_deref(),
-            protocol_type: ConsumerProtocol::PROTOCOL_TYPE,
-            protocol_name: &self.protocol,
-            assignments: &assignments,
-        };
-        let mut payload = BytesMut::new();
-        if let Some(version) = prepared_version {
-            encode_sync_group_request_cooperative(&mut payload, version, &sync_request).await?;
-        }
-        let sync_fut = coord_roundtrip_with_bootstrap(
-            &mut self.coord,
-            &self.cfg,
-            &self.group_id,
-            COORDINATOR_GROUP,
-            SYNC_GROUP,
-            |version, buf| {
-                if prepared_version == Some(version) {
-                    buf.extend_from_slice(&payload);
-                    Ok(())
-                } else {
-                    encode_sync_group_request(buf, version, &sync_request)
+            // The assigning leader already chose its partitions. Dial those
+            // brokers while SyncGroup runs so offset fetch and the next poll
+            // do not pay the handshake after the coordinator answers.
+            let mut leaders = Vec::new();
+            let mut seen_leaders = HashSet::new();
+            if assigning {
+                if let Some(parts) = self.prev_assignment.get(&self.member_id) {
+                    remember_partition_leaders(
+                        self.consumer.cluster(),
+                        parts,
+                        &mut leaders,
+                        &mut seen_leaders,
+                    )
+                    .await;
                 }
-            },
-            &bootstrap_keys,
-            &address_keys,
-            &mut self.prior_coords,
-            timeout,
-        );
-        let synced = if let Some(flight) = flight.as_mut() {
-            let (synced, ()) = tokio::join!(sync_fut, flight);
-            synced
-        } else {
-            sync_fut.await
-        };
-        if let Some(flight) = flight {
-            flight.store(&mut self.consumer);
+            }
+            let timeout = deadline.saturating_duration_since(Instant::now());
+            if timeout.is_zero() {
+                return Err(Error::Timeout);
+            }
+            let bootstrap_keys = self.consumer.copy_api_keys();
+            let address_keys = self.consumer.copy_learned_broker_keys();
+            let mut flight = if leaders.is_empty() {
+                None
+            } else {
+                Some(self.consumer.start_leader_dials(&leaders, deadline).await)
+            };
+            let prepared_version = negotiated_coord_version(&self.coord, SYNC_GROUP).ok();
+            let sync_request = SyncGroupRequest {
+                group_id: &self.group_id,
+                generation_id: self.generation_id,
+                member_id: &self.member_id,
+                group_instance_id: self.cfg.group_instance_id.as_deref(),
+                protocol_type: ConsumerProtocol::PROTOCOL_TYPE,
+                protocol_name: &self.protocol,
+                assignments: &assignments,
+            };
+            let mut payload = BytesMut::new();
+            if let Some(version) = prepared_version {
+                encode_sync_group_request_cooperative(&mut payload, version, &sync_request).await?;
+            }
+            let sync_fut = coord_roundtrip_with_bootstrap(
+                &mut self.coord,
+                &self.cfg,
+                &self.group_id,
+                COORDINATOR_GROUP,
+                SYNC_GROUP,
+                |version, buf| {
+                    if prepared_version == Some(version) {
+                        buf.extend_from_slice(&payload);
+                        Ok(())
+                    } else {
+                        encode_sync_group_request(buf, version, &sync_request)
+                    }
+                },
+                &bootstrap_keys,
+                &address_keys,
+                &mut self.prior_coords,
+                timeout,
+            );
+            let synced = if let Some(flight) = flight.as_mut() {
+                let (synced, ()) = tokio::join!(sync_fut, flight);
+                synced
+            } else {
+                sync_fut.await
+            };
+            if let Some(flight) = flight {
+                flight.store(&mut self.consumer);
+            }
+            let (version, body) = synced?;
+            let (err, assignment, ..) = decode_sync_group_response(&mut body.clone(), version)
+                .map_err(|e| group_decode_context(e, "SyncGroup", version, body.len()))?;
+            if err != 0 {
+                return Err(Error::broker(err, "SyncGroup"));
+            }
+            let assigned = decode_assignment_cooperative(&assignment)
+                .await
+                .map_err(|e| {
+                    group_decode_context(
+                        e,
+                        "ConsumerProtocol assignment",
+                        version,
+                        assignment.len(),
+                    )
+                })?;
+            let wanted = expand_topic_partitions_cooperative(assigned).await;
+            let revoked = self.assign_committed(&wanted, deadline, false).await?;
+            self.hb_generation
+                .store(self.generation_id, Ordering::SeqCst);
+            self.hb_err.store(0, Ordering::SeqCst);
+            Ok(revoked)
         }
-        let (version, body) = synced?;
-        let (err, assignment, ..) = decode_sync_group_response(&mut body.clone(), version)
-            .map_err(|e| group_decode_context(e, "SyncGroup", version, body.len()))?;
-        if err != 0 {
-            return Err(Error::broker(err, "SyncGroup"));
-        }
-        let assigned = decode_assignment_cooperative(&assignment)
-            .await
-            .map_err(|e| {
-                group_decode_context(e, "ConsumerProtocol assignment", version, assignment.len())
-            })?;
-        let wanted = expand_topic_partitions_cooperative(assigned).await;
-        let revoked = self.assign_committed(&wanted, deadline, false).await?;
-        self.hb_generation
-            .store(self.generation_id, Ordering::SeqCst);
-        self.hb_err.store(0, Ordering::SeqCst);
-        Ok(revoked)
     }
 
     async fn heartbeat_join(&mut self) -> Result<()> {
@@ -4061,43 +4115,29 @@ impl ConsumerGroup {
         flight.finish(&mut self.consumer, deadline).await;
     }
 
-    async fn assign_committed(
-        &mut self,
-        wanted: &[(String, i32)],
+    #[expect(
+        clippy::manual_async_fn,
+        reason = "The explicit Send future avoids lifetime inference failures"
+    )]
+    fn assign_committed<'a>(
+        &'a mut self,
+        wanted: &'a [(String, i32)],
         deadline: Instant,
         overlap_metadata: bool,
-    ) -> Result<Vec<(String, i32)>> {
-        let identities = clone_topic_ids(self.consumer.topic_name_ids()).await;
-        let all_current = self.consumer.assigned_offsets().to_vec();
-        let mut current: HashMap<String, HashMap<i32, i64>> = HashMap::new();
-        let mut walked = 0usize;
-        for (topic, partition, offset) in &all_current {
-            if self.consumer.assigned_topic_id(topic.as_ref(), *partition)
-                == identities
-                    .get(topic.as_ref())
-                    .copied()
-                    .filter(|id| *id != [0; 16])
-            {
-                remember_i64(&mut current, topic.as_ref(), *partition, *offset);
-            }
-            walked = walked.saturating_add(1);
-            if walked == 8 * 1024 {
-                walked = 0;
-                tokio::task::yield_now().await;
-            }
-        }
-        let mut prev: HashMap<String, HashSet<i32>> = HashMap::new();
-        remember_current_partitions(&mut prev, &all_current).await;
-        let mut next: HashMap<String, HashSet<i32>> = HashMap::new();
-        remember_wanted_partitions(&mut next, wanted).await;
-        let mut revoked = Vec::new();
-        walked = 0;
-        for (topic, parts) in &prev {
-            for partition in parts {
-                let still_wanted = next.get(topic).is_some_and(|kept| kept.contains(partition));
-                let same_identity = nested_i64(&current, topic, *partition).is_some();
-                if !still_wanted || !same_identity {
-                    revoked.push((topic.clone(), *partition));
+    ) -> impl std::future::Future<Output = Result<Vec<(String, i32)>>> + Send + 'a {
+        async move {
+            let identities = clone_topic_ids(self.consumer.topic_name_ids()).await;
+            let all_current = self.consumer.assigned_offsets().to_vec();
+            let mut current: HashMap<String, HashMap<i32, i64>> = HashMap::new();
+            let mut walked = 0usize;
+            for (topic, partition, offset) in &all_current {
+                if self.consumer.assigned_topic_id(topic.as_ref(), *partition)
+                    == identities
+                        .get(topic.as_ref())
+                        .copied()
+                        .filter(|id| *id != [0; 16])
+                {
+                    remember_i64(&mut current, topic.as_ref(), *partition, *offset);
                 }
                 walked = walked.saturating_add(1);
                 if walked == 8 * 1024 {
@@ -4105,201 +4145,354 @@ impl ConsumerGroup {
                     tokio::task::yield_now().await;
                 }
             }
-        }
-        // KL03-14: with auto-commit on, commit the revoked partitions'
-        // delivered positions before the new assignment drops their pending
-        // records, so the next owner resumes after delivered work instead of
-        // replaying it. Retained partitions keep their positions and pending
-        // records untouched; the poll-interval commit covers them. A commit
-        // failure propagates: the rebalance reports the error rather than
-        // silently handing over uncommitted work.
-        if !revoked.is_empty() && self.cfg.enable_auto_commit {
-            // Membership uses the names `revoked` already owns. A
-            // `(String, i32)` set would copy each name again on insert and
-            // once more for every position that asks.
-            let revoked_parts = index_revoked(&revoked).await;
-            let positions = self.consumer.positions_cooperative().await;
-            let to_commit = revoked_commits(
-                positions,
-                |topic, partition| self.consumer.position_epoch(topic, partition),
-                |tp, offset| {
-                    position_is_committable(offset)
-                        && revoked_contains(&revoked_parts, &tp.topic, tp.partition)
-                },
-            )
-            .await;
-            if !to_commit.is_empty() {
-                let timeout = deadline.saturating_duration_since(Instant::now());
-                if timeout.is_zero() {
-                    return Err(Error::Timeout);
+            let mut prev: HashMap<String, HashSet<i32>> = HashMap::new();
+            remember_current_partitions(&mut prev, &all_current).await;
+            let mut next: HashMap<String, HashSet<i32>> = HashMap::new();
+            remember_wanted_partitions(&mut next, wanted).await;
+            let mut revoked = Vec::new();
+            walked = 0;
+            for (topic, parts) in &prev {
+                for partition in parts {
+                    let still_wanted = next.get(topic).is_some_and(|kept| kept.contains(partition));
+                    let same_identity = nested_i64(&current, topic, *partition).is_some();
+                    if !still_wanted || !same_identity {
+                        revoked.push((topic.clone(), *partition));
+                    }
+                    walked = walked.saturating_add(1);
+                    if walked == 8 * 1024 {
+                        walked = 0;
+                        tokio::task::yield_now().await;
+                    }
                 }
-                self.commit_metadata_offsets(to_commit, timeout).await?;
             }
-        }
-        let mut kept_epochs: HashMap<String, HashMap<i32, i32>> = HashMap::new();
-        walked = 0;
-        for (topic, partition) in wanted {
-            if nested_i64(&current, topic, *partition).is_some() {
-                remember_i32(
-                    &mut kept_epochs,
-                    topic,
-                    *partition,
-                    self.consumer.last_fetched_epoch(topic, *partition),
-                );
-            }
-            walked = walked.saturating_add(1);
-            if walked == 8 * 1024 {
-                walked = 0;
-                tokio::task::yield_now().await;
-            }
-        }
-        let mut added = Vec::new();
-        walked = 0;
-        for (topic, partition) in wanted {
-            if nested_i64(&current, topic, *partition).is_none() {
-                added.push((topic.clone(), *partition));
-            }
-            walked = walked.saturating_add(1);
-            if walked == 8 * 1024 {
-                walked = 0;
-                tokio::task::yield_now().await;
-            }
-        }
-        let reset = self.cfg.auto_offset_reset;
-        let mut warm_leaders = false;
-        let fetched = if added.is_empty() {
-            if overlap_metadata {
-                let timeout = deadline.saturating_duration_since(Instant::now());
-                if timeout.is_zero() {
-                    return Err(Error::Timeout);
+            // KL03-14: with auto-commit on, commit the revoked partitions'
+            // delivered positions before the new assignment drops their pending
+            // records, so the next owner resumes after delivered work instead of
+            // replaying it. Retained partitions keep their positions and pending
+            // records untouched; the poll-interval commit covers them. A commit
+            // failure propagates: the rebalance reports the error rather than
+            // silently handing over uncommitted work.
+            if !revoked.is_empty() && self.cfg.enable_auto_commit {
+                // Membership uses the names `revoked` already owns. A
+                // `(String, i32)` set would copy each name again on insert and
+                // once more for every position that asks.
+                let revoked_parts = index_revoked(&revoked).await;
+                let positions = self.consumer.positions_cooperative().await;
+                let to_commit = revoked_commits(
+                    positions,
+                    |topic, partition| self.consumer.position_epoch(topic, partition),
+                    |tp, offset| {
+                        position_is_committable(offset)
+                            && revoked_contains(&revoked_parts, &tp.topic, tp.partition)
+                    },
+                )
+                .await;
+                if !to_commit.is_empty() {
+                    let timeout = deadline.saturating_duration_since(Instant::now());
+                    if timeout.is_zero() {
+                        return Err(Error::Timeout);
+                    }
+                    self.commit_metadata_offsets(to_commit, timeout).await?;
                 }
-                self.consumer
-                    .refresh_metadata_timeout(Some(&self.topics), timeout)
-                    .await?;
             }
-            Vec::new()
-        } else {
-            let mut topics = std::mem::take(&mut self.classic_fetch_topics);
-            refill_offset_fetch_topics_cooperative(&mut topics, &added).await;
-            let timeout = deadline.saturating_duration_since(Instant::now());
-            if timeout.is_zero() {
-                self.classic_fetch_topics = topics;
-                return Err(Error::Timeout);
+            let mut kept_epochs: HashMap<String, HashMap<i32, i32>> = HashMap::new();
+            walked = 0;
+            for (topic, partition) in wanted {
+                if nested_i64(&current, topic, *partition).is_some() {
+                    remember_i32(
+                        &mut kept_epochs,
+                        topic,
+                        *partition,
+                        self.consumer.last_fetched_epoch(topic, *partition),
+                    );
+                }
+                walked = walked.saturating_add(1);
+                if walked == 8 * 1024 {
+                    walked = 0;
+                    tokio::task::yield_now().await;
+                }
             }
-            let overlap_dials =
-                self.coord.offset_fetch_version != 10 && !matches!(reset, AutoOffsetReset::None);
-            if !overlap_dials {
+            let mut added = Vec::new();
+            walked = 0;
+            for (topic, partition) in wanted {
+                if nested_i64(&current, topic, *partition).is_none() {
+                    added.push((topic.clone(), *partition));
+                }
+                walked = walked.saturating_add(1);
+                if walked == 8 * 1024 {
+                    walked = 0;
+                    tokio::task::yield_now().await;
+                }
+            }
+            let reset = self.cfg.auto_offset_reset;
+            let mut warm_leaders = false;
+            let fetched = if added.is_empty() {
                 if overlap_metadata {
+                    let timeout = deadline.saturating_duration_since(Instant::now());
+                    if timeout.is_zero() {
+                        return Err(Error::Timeout);
+                    }
                     self.consumer
                         .refresh_metadata_timeout(Some(&self.topics), timeout)
                         .await?;
                 }
+                Vec::new()
+            } else {
+                let mut topics = std::mem::take(&mut self.classic_fetch_topics);
+                refill_offset_fetch_topics_cooperative(&mut topics, &added).await;
                 let timeout = deadline.saturating_duration_since(Instant::now());
                 if timeout.is_zero() {
                     self.classic_fetch_topics = topics;
                     return Err(Error::Timeout);
                 }
-                let fetched = self.offset_fetch(&topics, timeout).await;
-                self.classic_fetch_topics = topics;
-                fetched?
-            } else if overlap_metadata {
-                let mut leaders = Vec::new();
-                let mut seen_leaders = HashSet::new();
-                remember_partition_leaders(
-                    self.consumer.cluster(),
-                    &added,
-                    &mut leaders,
-                    &mut seen_leaders,
-                )
-                .await;
-                let mut dials = self.consumer.start_leader_dials(&leaders, deadline).await;
-                let require_stable = self.cfg.isolation_level == IsolationLevel::ReadCommitted;
-                let member_epoch = if self.kip848 { self.generation_id } else { -1 };
-                let member_id = if self.kip848 {
-                    Some(self.member_id.clone())
-                } else {
-                    None
-                };
-                let group_id = self.group_id.clone();
-                let bootstrap_keys = self.consumer.copy_api_keys();
-                let address_keys = self.consumer.copy_learned_broker_keys();
-                let prepared_version = negotiated_coord_version(&self.coord, OFFSET_FETCH).ok();
-                let mut payload = BytesMut::new();
-                if let Some(version) = prepared_version {
-                    encode_offset_fetch_request_cooperative(
-                        &mut payload,
-                        version,
-                        &group_id,
-                        member_id.as_deref(),
-                        member_epoch,
-                        require_stable,
-                        Some(&topics),
+                let overlap_dials = self.coord.offset_fetch_version != 10
+                    && !matches!(reset, AutoOffsetReset::None);
+                if !overlap_dials {
+                    if overlap_metadata {
+                        self.consumer
+                            .refresh_metadata_timeout(Some(&self.topics), timeout)
+                            .await?;
+                    }
+                    let timeout = deadline.saturating_duration_since(Instant::now());
+                    if timeout.is_zero() {
+                        self.classic_fetch_topics = topics;
+                        return Err(Error::Timeout);
+                    }
+                    let fetched = self.offset_fetch(&topics, timeout).await;
+                    self.classic_fetch_topics = topics;
+                    fetched?
+                } else if overlap_metadata {
+                    let mut leaders = Vec::new();
+                    let mut seen_leaders = HashSet::new();
+                    remember_partition_leaders(
+                        self.consumer.cluster(),
+                        &added,
+                        &mut leaders,
+                        &mut seen_leaders,
                     )
-                    .await?;
-                }
-                let fetched = {
-                    let refresh_fut = self
-                        .consumer
-                        .refresh_metadata_timeout(Some(&self.topics), timeout);
-                    let fetch_fut = coord_roundtrip_with_bootstrap(
-                        &mut self.coord,
-                        &self.cfg,
-                        &group_id,
-                        COORDINATOR_GROUP,
-                        OFFSET_FETCH,
-                        |version, buf| {
-                            if prepared_version == Some(version) {
-                                buf.extend_from_slice(&payload);
-                                Ok(())
-                            } else {
-                                encode_offset_fetch_request(
-                                    buf,
-                                    version,
-                                    &group_id,
-                                    member_id.as_deref(),
-                                    member_epoch,
-                                    require_stable,
-                                    Some(&topics),
-                                )
+                    .await;
+                    let mut dials = self.consumer.start_leader_dials(&leaders, deadline).await;
+                    let require_stable = self.cfg.isolation_level == IsolationLevel::ReadCommitted;
+                    let member_epoch = if self.kip848 { self.generation_id } else { -1 };
+                    let member_id = if self.kip848 {
+                        Some(self.member_id.clone())
+                    } else {
+                        None
+                    };
+                    let group_id = self.group_id.clone();
+                    let bootstrap_keys = self.consumer.copy_api_keys();
+                    let address_keys = self.consumer.copy_learned_broker_keys();
+                    let prepared_version = negotiated_coord_version(&self.coord, OFFSET_FETCH).ok();
+                    let mut payload = BytesMut::new();
+                    if let Some(version) = prepared_version {
+                        encode_offset_fetch_request_cooperative(
+                            &mut payload,
+                            version,
+                            &group_id,
+                            member_id.as_deref(),
+                            member_epoch,
+                            require_stable,
+                            Some(&topics),
+                        )
+                        .await?;
+                    }
+                    let fetched = {
+                        let refresh_fut = self
+                            .consumer
+                            .refresh_metadata_timeout(Some(&self.topics), timeout);
+                        let fetch_fut = coord_roundtrip_with_bootstrap(
+                            &mut self.coord,
+                            &self.cfg,
+                            &group_id,
+                            COORDINATOR_GROUP,
+                            OFFSET_FETCH,
+                            |version, buf| {
+                                if prepared_version == Some(version) {
+                                    buf.extend_from_slice(&payload);
+                                    Ok(())
+                                } else {
+                                    encode_offset_fetch_request(
+                                        buf,
+                                        version,
+                                        &group_id,
+                                        member_id.as_deref(),
+                                        member_epoch,
+                                        require_stable,
+                                        Some(&topics),
+                                    )
+                                }
+                            },
+                            &bootstrap_keys,
+                            &address_keys,
+                            &mut self.prior_coords,
+                            timeout,
+                        );
+                        let (fetched_rpc, metadata_refresh) = {
+                            tokio::pin!(refresh_fut);
+                            tokio::pin!(fetch_fut);
+                            let mut metadata_refresh = None;
+                            let fetched_rpc = loop {
+                                tokio::select! {
+                                    biased;
+                                    result = &mut fetch_fut => break result,
+                                    result = &mut refresh_fut, if metadata_refresh.is_none() => {
+                                        metadata_refresh = Some(result);
+                                    }
+                                    _ = &mut dials, if !warm_leaders => {
+                                        warm_leaders = true;
+                                    }
+                                }
+                            };
+                            if metadata_refresh.is_none() {
+                                metadata_refresh = Some((&mut refresh_fut).await);
                             }
-                        },
-                        &bootstrap_keys,
-                        &address_keys,
-                        &mut self.prior_coords,
-                        timeout,
-                    );
-                    let (fetched_rpc, metadata_refresh) = {
-                        tokio::pin!(refresh_fut);
-                        tokio::pin!(fetch_fut);
-                        let mut metadata_refresh = None;
-                        let fetched_rpc = loop {
+                            (fetched_rpc, metadata_refresh)
+                        };
+                        let (version, body) = match fetched_rpc {
+                            Ok(pair) => pair,
+                            Err(error) => {
+                                self.classic_fetch_topics = topics;
+                                self.keep_leader_flight(dials, deadline).await;
+                                return Err(error);
+                            }
+                        };
+                        let fetched = match decode_offset_fetch_response_cooperative(
+                            &mut body.clone(),
+                            version,
+                        )
+                        .await
+                        {
+                            Ok(fetched) => fetched,
+                            Err(error) => {
+                                self.classic_fetch_topics = topics;
+                                self.keep_leader_flight(dials, deadline).await;
+                                return Err(group_decode_context(
+                                    error,
+                                    "OffsetFetch",
+                                    version,
+                                    body.len(),
+                                ));
+                            }
+                        };
+                        if let Some(Err(error)) = metadata_refresh {
+                            self.classic_fetch_topics = topics;
+                            self.keep_leader_flight(dials, deadline).await;
+                            return Err(error);
+                        }
+                        let committed = index_fetched_offsets_cooperative(&fetched).await;
+                        let mut needs_reset = false;
+                        let mut walked = 0usize;
+                        for (topic, partition) in &added {
+                            let offset = committed
+                                .get(&(topic.as_str(), *partition))
+                                .copied()
+                                .map(|part| part.offset)
+                                .unwrap_or(OffsetAndMetadata::INVALID_OFFSET);
+                            if offset < 0 {
+                                needs_reset = true;
+                                break;
+                            }
+                            walked = walked.saturating_add(1);
+                            if walked == 8 * 1024 {
+                                walked = 0;
+                                tokio::task::yield_now().await;
+                            }
+                        }
+                        if needs_reset && !warm_leaders {
+                            (&mut dials).await;
+                        }
+                        self.keep_leader_flight(dials, deadline).await;
+                        fetched
+                    };
+                    self.classic_fetch_topics = topics;
+                    fetched
+                } else {
+                    let mut leaders = Vec::new();
+                    let mut seen_leaders = HashSet::new();
+                    remember_partition_leaders(
+                        self.consumer.cluster(),
+                        &added,
+                        &mut leaders,
+                        &mut seen_leaders,
+                    )
+                    .await;
+                    let mut dials = self.consumer.start_leader_dials(&leaders, deadline).await;
+                    let require_stable = self.cfg.isolation_level == IsolationLevel::ReadCommitted;
+                    let member_epoch = if self.kip848 { self.generation_id } else { -1 };
+                    let member_id = if self.kip848 {
+                        Some(self.member_id.clone())
+                    } else {
+                        None
+                    };
+                    let group_id = self.group_id.clone();
+                    let bootstrap_keys = self.consumer.copy_api_keys();
+                    let address_keys = self.consumer.copy_learned_broker_keys();
+                    let prepared_version = negotiated_coord_version(&self.coord, OFFSET_FETCH).ok();
+                    let mut payload = BytesMut::new();
+                    if let Some(version) = prepared_version {
+                        encode_offset_fetch_request_cooperative(
+                            &mut payload,
+                            version,
+                            &group_id,
+                            member_id.as_deref(),
+                            member_epoch,
+                            require_stable,
+                            Some(&topics),
+                        )
+                        .await?;
+                    }
+                    let fetched = {
+                        let fetch_fut = coord_roundtrip_with_bootstrap(
+                            &mut self.coord,
+                            &self.cfg,
+                            &group_id,
+                            COORDINATOR_GROUP,
+                            OFFSET_FETCH,
+                            |version, buf| {
+                                if prepared_version == Some(version) {
+                                    buf.extend_from_slice(&payload);
+                                    Ok(())
+                                } else {
+                                    encode_offset_fetch_request(
+                                        buf,
+                                        version,
+                                        &group_id,
+                                        member_id.as_deref(),
+                                        member_epoch,
+                                        require_stable,
+                                        Some(&topics),
+                                    )
+                                }
+                            },
+                            &bootstrap_keys,
+                            &address_keys,
+                            &mut self.prior_coords,
+                            timeout,
+                        );
+                        let fetched_rpc = {
+                            tokio::pin!(fetch_fut);
                             tokio::select! {
                                 biased;
-                                result = &mut fetch_fut => break result,
-                                result = &mut refresh_fut, if metadata_refresh.is_none() => {
-                                    metadata_refresh = Some(result);
-                                }
-                                _ = &mut dials, if !warm_leaders => {
+                                result = &mut fetch_fut => result,
+                                () = &mut dials, if !warm_leaders => {
                                     warm_leaders = true;
+                                    (&mut fetch_fut).await
                                 }
                             }
                         };
-                        if metadata_refresh.is_none() {
-                            metadata_refresh = Some((&mut refresh_fut).await);
-                        }
-                        (fetched_rpc, metadata_refresh)
-                    };
-                    let (version, body) = match fetched_rpc {
-                        Ok(pair) => pair,
-                        Err(error) => {
-                            self.classic_fetch_topics = topics;
-                            self.keep_leader_flight(dials, deadline).await;
-                            return Err(error);
-                        }
-                    };
-                    let fetched =
-                        match decode_offset_fetch_response_cooperative(&mut body.clone(), version)
-                            .await
+                        let (version, body) = match fetched_rpc {
+                            Ok(pair) => pair,
+                            Err(error) => {
+                                self.classic_fetch_topics = topics;
+                                self.keep_leader_flight(dials, deadline).await;
+                                return Err(error);
+                            }
+                        };
+                        let fetched = match decode_offset_fetch_response_cooperative(
+                            &mut body.clone(),
+                            version,
+                        )
+                        .await
                         {
                             Ok(fetched) => fetched,
                             Err(error) => {
@@ -4313,282 +4506,153 @@ impl ConsumerGroup {
                                 ));
                             }
                         };
-                    if let Some(Err(error)) = metadata_refresh {
-                        self.classic_fetch_topics = topics;
+                        let committed = index_fetched_offsets_cooperative(&fetched).await;
+                        let mut needs_reset = false;
+                        let mut walked = 0usize;
+                        for (topic, partition) in &added {
+                            let offset = committed
+                                .get(&(topic.as_str(), *partition))
+                                .copied()
+                                .map(|part| part.offset)
+                                .unwrap_or(OffsetAndMetadata::INVALID_OFFSET);
+                            if offset < 0 {
+                                needs_reset = true;
+                                break;
+                            }
+                            walked = walked.saturating_add(1);
+                            if walked == 8 * 1024 {
+                                walked = 0;
+                                tokio::task::yield_now().await;
+                            }
+                        }
+                        if needs_reset && !warm_leaders {
+                            (&mut dials).await;
+                        }
                         self.keep_leader_flight(dials, deadline).await;
-                        return Err(error);
-                    }
-                    let committed = index_fetched_offsets_cooperative(&fetched).await;
-                    let mut needs_reset = false;
-                    let mut walked = 0usize;
-                    for (topic, partition) in &added {
-                        let offset = committed
-                            .get(&(topic.as_str(), *partition))
-                            .copied()
-                            .map(|part| part.offset)
-                            .unwrap_or(OffsetAndMetadata::INVALID_OFFSET);
-                        if offset < 0 {
-                            needs_reset = true;
-                            break;
-                        }
-                        walked = walked.saturating_add(1);
-                        if walked == 8 * 1024 {
-                            walked = 0;
-                            tokio::task::yield_now().await;
-                        }
-                    }
-                    if needs_reset && !warm_leaders {
-                        (&mut dials).await;
-                    }
-                    self.keep_leader_flight(dials, deadline).await;
-                    fetched
-                };
-                self.classic_fetch_topics = topics;
-                fetched
-            } else {
-                let mut leaders = Vec::new();
-                let mut seen_leaders = HashSet::new();
-                remember_partition_leaders(
-                    self.consumer.cluster(),
-                    &added,
-                    &mut leaders,
-                    &mut seen_leaders,
-                )
-                .await;
-                let mut dials = self.consumer.start_leader_dials(&leaders, deadline).await;
-                let require_stable = self.cfg.isolation_level == IsolationLevel::ReadCommitted;
-                let member_epoch = if self.kip848 { self.generation_id } else { -1 };
-                let member_id = if self.kip848 {
-                    Some(self.member_id.clone())
-                } else {
-                    None
-                };
-                let group_id = self.group_id.clone();
-                let bootstrap_keys = self.consumer.copy_api_keys();
-                let address_keys = self.consumer.copy_learned_broker_keys();
-                let prepared_version = negotiated_coord_version(&self.coord, OFFSET_FETCH).ok();
-                let mut payload = BytesMut::new();
-                if let Some(version) = prepared_version {
-                    encode_offset_fetch_request_cooperative(
-                        &mut payload,
-                        version,
-                        &group_id,
-                        member_id.as_deref(),
-                        member_epoch,
-                        require_stable,
-                        Some(&topics),
-                    )
-                    .await?;
-                }
-                let fetched = {
-                    let fetch_fut = coord_roundtrip_with_bootstrap(
-                        &mut self.coord,
-                        &self.cfg,
-                        &group_id,
-                        COORDINATOR_GROUP,
-                        OFFSET_FETCH,
-                        |version, buf| {
-                            if prepared_version == Some(version) {
-                                buf.extend_from_slice(&payload);
-                                Ok(())
-                            } else {
-                                encode_offset_fetch_request(
-                                    buf,
-                                    version,
-                                    &group_id,
-                                    member_id.as_deref(),
-                                    member_epoch,
-                                    require_stable,
-                                    Some(&topics),
-                                )
-                            }
-                        },
-                        &bootstrap_keys,
-                        &address_keys,
-                        &mut self.prior_coords,
-                        timeout,
-                    );
-                    let fetched_rpc = {
-                        tokio::pin!(fetch_fut);
-                        tokio::select! {
-                            biased;
-                            result = &mut fetch_fut => result,
-                            () = &mut dials, if !warm_leaders => {
-                                warm_leaders = true;
-                                (&mut fetch_fut).await
-                            }
-                        }
+                        fetched
                     };
-                    let (version, body) = match fetched_rpc {
-                        Ok(pair) => pair,
-                        Err(error) => {
-                            self.classic_fetch_topics = topics;
-                            self.keep_leader_flight(dials, deadline).await;
-                            return Err(error);
-                        }
-                    };
-                    let fetched =
-                        match decode_offset_fetch_response_cooperative(&mut body.clone(), version)
-                            .await
-                        {
-                            Ok(fetched) => fetched,
-                            Err(error) => {
-                                self.classic_fetch_topics = topics;
-                                self.keep_leader_flight(dials, deadline).await;
-                                return Err(group_decode_context(
-                                    error,
-                                    "OffsetFetch",
-                                    version,
-                                    body.len(),
-                                ));
-                            }
-                        };
-                    let committed = index_fetched_offsets_cooperative(&fetched).await;
-                    let mut needs_reset = false;
-                    let mut walked = 0usize;
-                    for (topic, partition) in &added {
-                        let offset = committed
-                            .get(&(topic.as_str(), *partition))
-                            .copied()
-                            .map(|part| part.offset)
-                            .unwrap_or(OffsetAndMetadata::INVALID_OFFSET);
-                        if offset < 0 {
-                            needs_reset = true;
-                            break;
-                        }
-                        walked = walked.saturating_add(1);
-                        if walked == 8 * 1024 {
-                            walked = 0;
-                            tokio::task::yield_now().await;
-                        }
-                    }
-                    if needs_reset && !warm_leaders {
-                        (&mut dials).await;
-                    }
-                    self.keep_leader_flight(dials, deadline).await;
+                    self.classic_fetch_topics = topics;
                     fetched
-                };
-                self.classic_fetch_topics = topics;
-                fetched
-            }
-        };
-        check_fetched_offsets(&fetched)?;
-        let committed = index_fetched_offsets_cooperative(&fetched).await;
-        let mut starts: Vec<Option<(String, i32, i64)>> = Vec::with_capacity(wanted.len());
-        let mut reset_slots = Vec::new();
-        let mut walked_commits = 0usize;
-        for (topic, part) in wanted {
-            if let Some(offset) = nested_i64(&current, topic, *part) {
-                starts.push(Some((topic.clone(), *part, offset)));
-            } else {
-                let offset = committed
-                    .get(&(topic.as_str(), *part))
-                    .copied()
-                    .map(|part| part.offset)
-                    .unwrap_or(OffsetAndMetadata::INVALID_OFFSET);
-                if offset >= 0 {
-                    starts.push(Some((topic.clone(), *part, offset)));
-                } else if matches!(reset, AutoOffsetReset::None) {
-                    return Err(Error::protocol(format!(
-                        "no committed offset for {topic}-{part}"
-                    )));
-                } else {
-                    reset_slots.push(starts.len());
-                    starts.push(None);
-                }
-            }
-            walked_commits = walked_commits.saturating_add(1);
-            if walked_commits == 8 * 1024 {
-                walked_commits = 0;
-                tokio::task::yield_now().await;
-            }
-        }
-        if !reset_slots.is_empty() {
-            let timeout = deadline.saturating_duration_since(Instant::now());
-            if timeout.is_zero() {
-                return Err(Error::Timeout);
-            }
-            let mut partitions = Vec::with_capacity(reset_slots.len());
-            let mut walked_names = 0usize;
-            for index in &reset_slots {
-                let Some((topic, part)) = wanted.get(*index) else {
-                    return Err(Error::protocol("ListOffsets returned no reset offset"));
-                };
-                partitions.push(TopicPartition::new(topic.as_str(), *part));
-                walked_names = walked_names.saturating_add(1);
-                if walked_names == 8 * 1024 {
-                    walked_names = 0;
-                    tokio::task::yield_now().await;
-                }
-            }
-            let listed = match reset {
-                AutoOffsetReset::Earliest => {
-                    self.consumer
-                        .beginning_offsets_timeout(partitions, timeout)
-                        .await?
-                }
-                AutoOffsetReset::Latest => {
-                    self.consumer
-                        .end_offsets_timeout(partitions, timeout)
-                        .await?
-                }
-                AutoOffsetReset::None => {
-                    return Err(Error::protocol("no committed offset"));
                 }
             };
-            if listed.len() != reset_slots.len() {
-                return Err(Error::protocol("ListOffsets returned no reset offset"));
-            }
-            apply_reset_offsets(&mut starts, &reset_slots, listed).await?;
-        }
-        let starts = flatten_reset_starts(starts).await;
-        self.consumer.assign_all(&starts).await?;
-        if assignment_topic_ids_changed(
-            wanted,
-            |topic, partition| self.consumer.assigned_topic_id(topic, partition),
-            &identities,
-        )
-        .await
-        {
-            self.consumer.clear_assignment_cooperative().await;
-            return Err(Error::protocol(
-                "topic identity changed while assigning committed offsets",
-            ));
-        }
-        let mut walked_epochs = 0usize;
-        for (topic, part) in wanted {
-            if let Some(epoch) = nested_i32(&kept_epochs, topic, *part) {
-                self.consumer.set_last_fetched_epoch(topic, *part, epoch);
-            } else if let Some(found) = committed.get(&(topic.as_str(), *part)).copied() {
-                self.consumer
-                    .set_last_fetched_epoch(topic, *part, found.leader_epoch);
-            }
-            walked_epochs = walked_epochs.saturating_add(1);
-            if walked_epochs == 8 * 1024 {
-                walked_epochs = 0;
-                tokio::task::yield_now().await;
-            }
-        }
-        let mut added_tps = Vec::new();
-        let mut walked_added = 0usize;
-        for (topic, parts) in &next {
-            for partition in parts {
-                if nested_i64(&current, topic, *partition).is_none() {
-                    added_tps.push((topic.clone(), *partition));
+            check_fetched_offsets(&fetched)?;
+            let committed = index_fetched_offsets_cooperative(&fetched).await;
+            let mut starts: Vec<Option<(String, i32, i64)>> = Vec::with_capacity(wanted.len());
+            let mut reset_slots = Vec::new();
+            let mut walked_commits = 0usize;
+            for (topic, part) in wanted {
+                if let Some(offset) = nested_i64(&current, topic, *part) {
+                    starts.push(Some((topic.clone(), *part, offset)));
+                } else {
+                    let offset = committed
+                        .get(&(topic.as_str(), *part))
+                        .copied()
+                        .map(|part| part.offset)
+                        .unwrap_or(OffsetAndMetadata::INVALID_OFFSET);
+                    if offset >= 0 {
+                        starts.push(Some((topic.clone(), *part, offset)));
+                    } else if matches!(reset, AutoOffsetReset::None) {
+                        return Err(Error::protocol(format!(
+                            "no committed offset for {topic}-{part}"
+                        )));
+                    } else {
+                        reset_slots.push(starts.len());
+                        starts.push(None);
+                    }
                 }
-                walked_added = walked_added.saturating_add(1);
-                if walked_added == 8 * 1024 {
-                    walked_added = 0;
+                walked_commits = walked_commits.saturating_add(1);
+                if walked_commits == 8 * 1024 {
+                    walked_commits = 0;
                     tokio::task::yield_now().await;
                 }
             }
+            if !reset_slots.is_empty() {
+                let timeout = deadline.saturating_duration_since(Instant::now());
+                if timeout.is_zero() {
+                    return Err(Error::Timeout);
+                }
+                let mut partitions = Vec::with_capacity(reset_slots.len());
+                let mut walked_names = 0usize;
+                for index in &reset_slots {
+                    let Some((topic, part)) = wanted.get(*index) else {
+                        return Err(Error::protocol("ListOffsets returned no reset offset"));
+                    };
+                    partitions.push(TopicPartition::new(topic.as_str(), *part));
+                    walked_names = walked_names.saturating_add(1);
+                    if walked_names == 8 * 1024 {
+                        walked_names = 0;
+                        tokio::task::yield_now().await;
+                    }
+                }
+                let listed = match reset {
+                    AutoOffsetReset::Earliest => {
+                        self.consumer
+                            .beginning_offsets_timeout(partitions, timeout)
+                            .await?
+                    }
+                    AutoOffsetReset::Latest => {
+                        self.consumer
+                            .end_offsets_timeout(partitions, timeout)
+                            .await?
+                    }
+                    AutoOffsetReset::None => {
+                        return Err(Error::protocol("no committed offset"));
+                    }
+                };
+                if listed.len() != reset_slots.len() {
+                    return Err(Error::protocol("ListOffsets returned no reset offset"));
+                }
+                apply_reset_offsets(&mut starts, &reset_slots, listed).await?;
+            }
+            let starts = flatten_reset_starts(starts).await;
+            self.consumer.assign_all(&starts).await?;
+            if assignment_topic_ids_changed(
+                wanted,
+                |topic, partition| self.consumer.assigned_topic_id(topic, partition),
+                &identities,
+            )
+            .await
+            {
+                self.consumer.clear_assignment_cooperative().await;
+                return Err(Error::protocol(
+                    "topic identity changed while assigning committed offsets",
+                ));
+            }
+            let mut walked_epochs = 0usize;
+            for (topic, part) in wanted {
+                if let Some(epoch) = nested_i32(&kept_epochs, topic, *part) {
+                    self.consumer.set_last_fetched_epoch(topic, *part, epoch);
+                } else if let Some(found) = committed.get(&(topic.as_str(), *part)).copied() {
+                    self.consumer
+                        .set_last_fetched_epoch(topic, *part, found.leader_epoch);
+                }
+                walked_epochs = walked_epochs.saturating_add(1);
+                if walked_epochs == 8 * 1024 {
+                    walked_epochs = 0;
+                    tokio::task::yield_now().await;
+                }
+            }
+            let mut added_tps = Vec::new();
+            let mut walked_added = 0usize;
+            for (topic, parts) in &next {
+                for partition in parts {
+                    if nested_i64(&current, topic, *partition).is_none() {
+                        added_tps.push((topic.clone(), *partition));
+                    }
+                    walked_added = walked_added.saturating_add(1);
+                    if walked_added == 8 * 1024 {
+                        walked_added = 0;
+                        tokio::task::yield_now().await;
+                    }
+                }
+            }
+            if !revoked.is_empty() || !added_tps.is_empty() {
+                let revoked_parts = TopicPartition::list_from_cooperative(&revoked).await;
+                let added_parts = TopicPartition::list_from_cooperative(&added_tps).await;
+                self.cfg.rebalance.call(&revoked_parts, &added_parts);
+            }
+            Ok(revoked)
         }
-        if !revoked.is_empty() || !added_tps.is_empty() {
-            let revoked_parts = TopicPartition::list_from_cooperative(&revoked).await;
-            let added_parts = TopicPartition::list_from_cooperative(&added_tps).await;
-            self.cfg.rebalance.call(&revoked_parts, &added_parts);
-        }
-        Ok(revoked)
     }
 
     fn spawn_heartbeat_consumer(
@@ -5754,18 +5818,26 @@ pub(crate) fn collect_topics(
 /// names held the caller for 150 milliseconds.
 ///
 /// Each topic name is still copied.
-pub(crate) async fn clone_names(names: &[String]) -> Vec<String> {
-    let mut out = Vec::with_capacity(names.len());
-    let mut walked = 0usize;
-    for name in names {
-        out.push(name.clone());
-        walked = walked.saturating_add(1);
-        if walked == 8 * 1024 {
-            walked = 0;
-            tokio::task::yield_now().await;
+#[expect(
+    clippy::manual_async_fn,
+    reason = "The explicit Send future avoids lifetime inference failures"
+)]
+pub(crate) fn clone_names(
+    names: &[String],
+) -> impl std::future::Future<Output = Vec<String>> + Send + '_ {
+    async move {
+        let mut out = Vec::with_capacity(names.len());
+        let mut walked = 0usize;
+        for name in names {
+            out.push(name.clone());
+            walked = walked.saturating_add(1);
+            if walked == 8 * 1024 {
+                walked = 0;
+                tokio::task::yield_now().await;
+            }
         }
+        out
     }
-    out
 }
 
 fn matching_topic_chunk() -> usize {
@@ -5779,10 +5851,13 @@ fn matching_topic_chunk() -> usize {
 ///
 /// Each kept name is still stored. Empty names and internal topics are
 /// still skipped.
-pub(crate) async fn filter_matching_topics_cooperative(
-    topics: impl IntoIterator<Item = impl AsRef<str>>,
-    pred: impl Fn(&str) -> bool,
-) -> Vec<String> {
+pub(crate) async fn filter_matching_topics_cooperative<I, T, F>(topics: I, pred: F) -> Vec<String>
+where
+    I: IntoIterator<Item = T> + Send,
+    I::IntoIter: Send,
+    T: AsRef<str> + Send,
+    F: Fn(&str) -> bool + Send,
+{
     let mut names = HashSet::new();
     let mut walked = 0usize;
     let chunk = matching_topic_chunk();
@@ -6490,23 +6565,29 @@ fn refill_offset_fetch_topics<'a>(
     topics.truncate(used);
 }
 
-async fn refill_offset_fetch_topics_cooperative(
-    topics: &mut Vec<OffsetFetchTopic>,
-    wanted: &[(String, i32)],
-) {
-    let mut used = 0usize;
-    let mut seen = Vec::new();
-    let mut slots = HashMap::new();
-    let mut walked = 0usize;
-    for (topic, part) in wanted {
-        place_fetched_partition(topics, &mut seen, &mut slots, &mut used, topic, *part);
-        walked = walked.saturating_add(1);
-        if walked == 8 * 1024 {
-            walked = 0;
-            tokio::task::yield_now().await;
+#[expect(
+    clippy::manual_async_fn,
+    reason = "The explicit Send future avoids lifetime inference failures"
+)]
+fn refill_offset_fetch_topics_cooperative<'a>(
+    topics: &'a mut Vec<OffsetFetchTopic>,
+    wanted: &'a [(String, i32)],
+) -> impl std::future::Future<Output = ()> + Send + 'a {
+    async move {
+        let mut used = 0usize;
+        let mut seen = Vec::new();
+        let mut slots = HashMap::new();
+        let mut walked = 0usize;
+        for (topic, part) in wanted {
+            place_fetched_partition(topics, &mut seen, &mut slots, &mut used, topic, *part);
+            walked = walked.saturating_add(1);
+            if walked == 8 * 1024 {
+                walked = 0;
+                tokio::task::yield_now().await;
+            }
         }
+        topics.truncate(used);
     }
-    topics.truncate(used);
 }
 
 async fn refill_topic_partitions_cooperative(
@@ -6618,21 +6699,27 @@ fn remember_partition(map: &mut HashMap<String, HashSet<i32>>, topic: &str, part
 ///
 /// Remembering 2,000,000 assignment leaders held the caller for 200ms.
 /// A known leader is still stored once.
-async fn remember_partition_leaders<T: AsRef<str>>(
-    cluster: &crate::cluster::Cluster,
-    parts: &[(T, i32)],
-    leaders: &mut Vec<i32>,
-    seen: &mut HashSet<i32>,
-) {
-    let mut walked = 0usize;
-    for (topic, partition) in parts {
-        if let Ok(node) = cluster.leader_id(topic.as_ref(), *partition) {
-            crate::consumer::Consumer::remember_node(leaders, seen, node);
-        }
-        walked = walked.saturating_add(1);
-        if walked == 8 * 1024 {
-            walked = 0;
-            tokio::task::yield_now().await;
+#[expect(
+    clippy::manual_async_fn,
+    reason = "The explicit Send future avoids lifetime inference failures"
+)]
+fn remember_partition_leaders<'a, T: AsRef<str> + Sync>(
+    cluster: &'a crate::cluster::Cluster,
+    parts: &'a [(T, i32)],
+    leaders: &'a mut Vec<i32>,
+    seen: &'a mut HashSet<i32>,
+) -> impl std::future::Future<Output = ()> + Send + 'a {
+    async move {
+        let mut walked = 0usize;
+        for (topic, partition) in parts {
+            if let Ok(node) = cluster.leader_id(topic.as_ref(), *partition) {
+                crate::consumer::Consumer::remember_node(leaders, seen, node);
+            }
+            walked = walked.saturating_add(1);
+            if walked == 8 * 1024 {
+                walked = 0;
+                tokio::task::yield_now().await;
+            }
         }
     }
 }
@@ -6983,34 +7070,49 @@ fn remember_unique_topic(topics: &mut Vec<String>, topic: &str) {
     topics.push(topic.to_owned());
 }
 
-async fn remember_existing_topics(seen: &mut HashSet<String>, topics: &[String]) {
-    let mut walked = 0usize;
-    for name in topics {
-        let _ = seen.insert(name.clone());
-        walked = walked.saturating_add(1);
-        if walked == 8 * 1024 {
-            walked = 0;
-            tokio::task::yield_now().await;
+#[expect(
+    clippy::manual_async_fn,
+    reason = "The explicit Send future avoids lifetime inference failures"
+)]
+fn remember_existing_topics<'a>(
+    seen: &'a mut HashSet<String>,
+    topics: &'a [String],
+) -> impl std::future::Future<Output = ()> + Send + 'a {
+    async move {
+        let mut walked = 0usize;
+        for name in topics {
+            let _ = seen.insert(name.clone());
+            walked = walked.saturating_add(1);
+            if walked == 8 * 1024 {
+                walked = 0;
+                tokio::task::yield_now().await;
+            }
         }
     }
 }
 
-async fn extend_unique_topics(
-    topics: &mut Vec<String>,
-    seen: &mut HashSet<String>,
-    incoming: &[String],
-) {
-    let mut walked = 0usize;
-    for name in incoming {
-        if !seen.contains(name.as_str()) {
-            let owned = name.clone();
-            let _ = seen.insert(owned.clone());
-            topics.push(owned);
-        }
-        walked = walked.saturating_add(1);
-        if walked == 8 * 1024 {
-            walked = 0;
-            tokio::task::yield_now().await;
+#[expect(
+    clippy::manual_async_fn,
+    reason = "The explicit Send future avoids lifetime inference failures"
+)]
+fn extend_unique_topics<'a>(
+    topics: &'a mut Vec<String>,
+    seen: &'a mut HashSet<String>,
+    incoming: &'a [String],
+) -> impl std::future::Future<Output = ()> + Send + 'a {
+    async move {
+        let mut walked = 0usize;
+        for name in incoming {
+            if !seen.contains(name.as_str()) {
+                let owned = name.clone();
+                let _ = seen.insert(owned.clone());
+                topics.push(owned);
+            }
+            walked = walked.saturating_add(1);
+            if walked == 8 * 1024 {
+                walked = 0;
+                tokio::task::yield_now().await;
+            }
         }
     }
 }
@@ -7193,21 +7295,28 @@ pub(crate) async fn discover_coord(
     discover_coord_within(cfg, group_id, key_type, deadline).await
 }
 
+type MemberCoordinatorConnection = (Consumer, Result<(BrokerConn, Vec<ApiVersion>)>);
+
 /// Find a coordinator using only the time still left on `deadline`.
 /// Open the member socket and find the group coordinator together.
 ///
 /// The member dial is required first when both fail. A coordinator error is
 /// returned only after the member socket has connected.
-pub(crate) async fn connect_member_and_coordinator(
-    cfg: &ConsumerConfig,
-    group_id: &str,
-    topics: &[String],
+#[expect(
+    clippy::manual_async_fn,
+    reason = "The explicit Send future avoids lifetime inference failures"
+)]
+pub(crate) fn connect_member_and_coordinator<'a>(
+    cfg: &'a ConsumerConfig,
+    group_id: &'a str,
+    topics: &'a [String],
     prefetch_all: bool,
     deadline: Instant,
-) -> Result<(Consumer, Result<(BrokerConn, Vec<ApiVersion>)>)> {
-    let started = async {
+) -> impl std::future::Future<Output = Result<MemberCoordinatorConnection>> + Send + 'a {
+    async move {
+        let started = async {
     let member = Consumer::connect_within(cfg.clone(), deadline);
-    let coordinator = async {
+    let coordinator = async move {
         discover_coord_with_versions(cfg, group_id, COORDINATOR_GROUP, deadline)
             .await
             .map(|(conn, versions)| (conn, versions.api_keys))
@@ -7292,10 +7401,11 @@ pub(crate) async fn connect_member_and_coordinator(
     ))
     }
     .await;
-    for _ in 0..8 {
-        tokio::task::yield_now().await;
+        for _ in 0..8 {
+            tokio::task::yield_now().await;
+        }
+        started
     }
-    started
 }
 
 /// Wait until the coordinator closes `conn`.
@@ -8366,95 +8476,104 @@ async fn open_coord_with_find_version(
     clippy::too_many_arguments,
     reason = "coordinator RPC carries the learned bootstrap versions"
 )]
-pub(crate) async fn coord_roundtrip_with_bootstrap(
-    coord: &mut BrokerConn,
-    cfg: &ConsumerConfig,
-    group_id: &str,
+#[expect(
+    clippy::manual_async_fn,
+    reason = "The explicit Send future avoids lifetime inference failures"
+)]
+pub(crate) fn coord_roundtrip_with_bootstrap<'a, F>(
+    coord: &'a mut BrokerConn,
+    cfg: &'a ConsumerConfig,
+    group_id: &'a str,
     key_type: i8,
     api_key: i16,
-    mut encode_body: impl FnMut(i16, &mut BytesMut) -> Result<()>,
-    bootstrap_keys: &[ApiVersion],
-    address_keys: &HashMap<String, Vec<ApiVersion>>,
-    prior: &mut HashMap<String, KnownCoord>,
+    mut encode_body: F,
+    bootstrap_keys: &'a [ApiVersion],
+    address_keys: &'a HashMap<String, Vec<ApiVersion>>,
+    prior: &'a mut HashMap<String, KnownCoord>,
     request_timeout: Duration,
-) -> Result<(i16, Bytes)> {
-    let deadline = crate::net::Deadline::from_std(
-        Instant::now()
-            .checked_add(request_timeout)
-            .ok_or(Error::Timeout)?,
-    );
-    if api_key == OFFSET_COMMIT || api_key == OFFSET_FETCH {
-        let version = negotiated_coord_version(coord, api_key)?;
-        let body = offsets::coord_offsets_legacy(
-            coord,
-            cfg,
-            group_id,
-            key_type,
-            api_key,
-            version,
-            |buf| encode_body(version, buf),
-            bootstrap_keys,
-            address_keys,
-            prior,
-            deadline.remaining()?,
-        )
-        .await?;
-        return Ok((version, body));
-    }
-    if coord.idle_expired(cfg.connections_max_idle) {
-        let bounded = bounded_coord_config(cfg, deadline)?;
-        let replacement = reopen_known_coord(&bounded, coord).await?;
-        let previous = std::mem::replace(coord, replacement);
-        retire_lookup_conn(previous).await;
-    }
-    let version = negotiated_coord_version(coord, api_key)?;
-    let body = match coord
-        .roundtrip_deadline(api_key, version, |buf| encode_body(version, buf), deadline)
-        .await
-    {
-        Ok(body) => body,
-        Err(e) if e.is_retriable() => {
-            let bounded = bounded_coord_config(cfg, deadline)?;
-            let replacement = reopen_known_coord(&bounded, coord).await?;
-            let previous = std::mem::replace(coord, replacement);
-            retire_lookup_conn(previous).await;
+) -> impl std::future::Future<Output = Result<(i16, Bytes)>> + Send + 'a
+where
+    F: FnMut(i16, &mut BytesMut) -> Result<()> + Send + 'a,
+{
+    async move {
+        let deadline = crate::net::Deadline::from_std(
+            Instant::now()
+                .checked_add(request_timeout)
+                .ok_or(Error::Timeout)?,
+        );
+        if api_key == OFFSET_COMMIT || api_key == OFFSET_FETCH {
             let version = negotiated_coord_version(coord, api_key)?;
-            let body = coord
-                .roundtrip_deadline(api_key, version, |buf| encode_body(version, buf), deadline)
-                .await?;
-            return finish_coord_roundtrip(
+            let body = offsets::coord_offsets_legacy(
                 coord,
                 cfg,
                 group_id,
                 key_type,
                 api_key,
                 version,
-                body,
-                &mut encode_body,
+                |buf| encode_body(version, buf),
                 bootstrap_keys,
                 address_keys,
                 prior,
-                deadline,
+                deadline.remaining()?,
             )
-            .await;
+            .await?;
+            return Ok((version, body));
         }
-        Err(e) => return Err(e),
-    };
-    finish_coord_roundtrip(
-        coord,
-        cfg,
-        group_id,
-        key_type,
-        api_key,
-        version,
-        body,
-        &mut encode_body,
-        bootstrap_keys,
-        address_keys,
-        prior,
-        deadline,
-    )
-    .await
+        if coord.idle_expired(cfg.connections_max_idle) {
+            let bounded = bounded_coord_config(cfg, deadline)?;
+            let replacement = reopen_known_coord(&bounded, coord).await?;
+            let previous = std::mem::replace(coord, replacement);
+            retire_lookup_conn(previous).await;
+        }
+        let version = negotiated_coord_version(coord, api_key)?;
+        let body = match coord
+            .roundtrip_deadline(api_key, version, |buf| encode_body(version, buf), deadline)
+            .await
+        {
+            Ok(body) => body,
+            Err(e) if e.is_retriable() => {
+                let bounded = bounded_coord_config(cfg, deadline)?;
+                let replacement = reopen_known_coord(&bounded, coord).await?;
+                let previous = std::mem::replace(coord, replacement);
+                retire_lookup_conn(previous).await;
+                let version = negotiated_coord_version(coord, api_key)?;
+                let body = coord
+                    .roundtrip_deadline(api_key, version, |buf| encode_body(version, buf), deadline)
+                    .await?;
+                return finish_coord_roundtrip(
+                    coord,
+                    cfg,
+                    group_id,
+                    key_type,
+                    api_key,
+                    version,
+                    body,
+                    &mut encode_body,
+                    bootstrap_keys,
+                    address_keys,
+                    prior,
+                    deadline,
+                )
+                .await;
+            }
+            Err(e) => return Err(e),
+        };
+        finish_coord_roundtrip(
+            coord,
+            cfg,
+            group_id,
+            key_type,
+            api_key,
+            version,
+            body,
+            &mut encode_body,
+            bootstrap_keys,
+            address_keys,
+            prior,
+            deadline,
+        )
+        .await
+    }
 }
 
 fn bounded_coord_config(
@@ -8480,7 +8599,7 @@ async fn finish_coord_roundtrip(
     api_key: i16,
     version: i16,
     body: Bytes,
-    encode_body: &mut impl FnMut(i16, &mut BytesMut) -> Result<()>,
+    encode_body: &mut (impl FnMut(i16, &mut BytesMut) -> Result<()> + Send),
     bootstrap_keys: &[ApiVersion],
     address_keys: &HashMap<String, Vec<ApiVersion>>,
     prior: &mut HashMap<String, KnownCoord>,
@@ -8594,6 +8713,23 @@ mod tests {
     use std::time::Duration;
     use tokio::io::{AsyncReadExt, AsyncWriteExt};
     use tokio::net::TcpListener;
+
+    #[test]
+    fn group_join_futures_can_move_between_runtime_threads() {
+        fn assert_send_sync<T: Send + Sync>() {}
+        fn assert_send<T: Send>(_: T) {}
+        assert_send_sync::<ConsumerGroup>();
+        let config = ConsumerConfig::bootstrap(["127.0.0.1:9092"]);
+        let classic = ConsumerGroup::join(config.clone(), "group", "topic");
+        let sticky = ConsumerGroup::join_sticky(config.clone(), "group", "topic");
+        let consumer = ConsumerGroup::join_consumer(config, "group", "topic");
+        assert!(std::mem::size_of_val(&classic) < 8 * 1024);
+        assert!(std::mem::size_of_val(&sticky) < 8 * 1024);
+        assert!(std::mem::size_of_val(&consumer) < 8 * 1024);
+        assert_send(classic);
+        assert_send(sticky);
+        assert_send(consumer);
+    }
 
     #[tokio::test(flavor = "current_thread")]
     async fn remembering_many_assignment_leaders_does_not_hold_the_caller() {

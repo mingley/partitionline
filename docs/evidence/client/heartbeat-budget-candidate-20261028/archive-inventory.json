@@ -1,0 +1,158 @@
+{
+  "schema_version": 1,
+  "files": [
+    {
+      "original_path": "/workspace/partitionline/docs/evidence/client/heartbeat-budget-candidate-20261028/README.md",
+      "original_sha256": "f8267b99b7ecec0367a1782897229c40d8601f5af31cfce690bd0d1e004f9043",
+      "original_bytes": 3424,
+      "stored_path": "README.md",
+      "stored_sha256": "f8267b99b7ecec0367a1782897229c40d8601f5af31cfce690bd0d1e004f9043",
+      "stored_bytes": 3424,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/parser-budget-validation-01/build.log",
+      "original_sha256": "be7dca46958dbe9535cf86af02938c96b60e2c8a04f9aecc7cc45dc9bbd2c63c",
+      "original_bytes": 440,
+      "stored_path": "build.log",
+      "stored_sha256": "be7dca46958dbe9535cf86af02938c96b60e2c8a04f9aecc7cc45dc9bbd2c63c",
+      "stored_bytes": 440,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/parser-budget-validation-01/clippy-all-features-lib.log",
+      "original_sha256": "7138411ddae14960968bcb8f8a995a8af7553f4f4dc83534a7d85fd45dd9edc4",
+      "original_bytes": 2185,
+      "stored_path": "clippy-all-features-lib.log",
+      "stored_sha256": "7138411ddae14960968bcb8f8a995a8af7553f4f4dc83534a7d85fd45dd9edc4",
+      "stored_bytes": 2185,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/parser-budget-validation-01/executable.sha256",
+      "original_sha256": "2f94eae96c06124673f364b2724012c749a2578dd779b04965df69072323ab99",
+      "original_bytes": 670,
+      "stored_path": "executable.sha256",
+      "stored_sha256": "2f94eae96c06124673f364b2724012c749a2578dd779b04965df69072323ab99",
+      "stored_bytes": 670,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/parser-budget-validation-01/input-comparison.log",
+      "original_sha256": "530dc88fe7349846a99714c0058f1a22f4b0c8dd52bf8230c149bf5aa3d63d99",
+      "original_bytes": 328,
+      "stored_path": "input-comparison.log",
+      "stored_sha256": "530dc88fe7349846a99714c0058f1a22f4b0c8dd52bf8230c149bf5aa3d63d99",
+      "stored_bytes": 328,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/parser-budget-validation-01/inputs-at-build.sha256",
+      "original_sha256": "da7f381d04c9c0459cd4b9a181984bed3b09bb83ff35be396b6a62d44b990d30",
+      "original_bytes": 1174216,
+      "stored_path": "inputs-at-build.sha256.gz",
+      "stored_sha256": "a7a21f47397543dbe995d40086593bba0afc018e8c352f91b12e193b79697d4a",
+      "stored_bytes": 248132,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/parser-budget-prototype-build-source.patch",
+      "original_sha256": "e4f0c476d16a2abac7a2e6ae446ba1f61b6cb814c0d12202cefbf0daa189b8b1",
+      "original_bytes": 363091,
+      "stored_path": "parser-budget-prototype-build-source.patch.gz",
+      "stored_sha256": "609cd5fb746a0cbfbdce91b6b3fd2aab4fce8f4104a5a9c203fd7261902a7406",
+      "stored_bytes": 65839,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/parser-budget-prototype-cgheartbeat.patch",
+      "original_sha256": "720e3389d0da4d970a2a8641f898461a09b49efdde750c8ab8873f7fb3826cce",
+      "original_bytes": 20793,
+      "stored_path": "parser-budget-prototype-cgheartbeat.patch.gz",
+      "stored_sha256": "4686854ea12abbd7c6a2208c9934e4f7202afa1777371d6ff168caaa959547c2",
+      "stored_bytes": 4112,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/parser-budget-validation-01/run-tests.py",
+      "original_sha256": "3cfbae0ca5f54921e2c963449f783a3b65091843f496093acd143b61210a9364",
+      "original_bytes": 2069,
+      "stored_path": "run-tests.py",
+      "stored_sha256": "3cfbae0ca5f54921e2c963449f783a3b65091843f496093acd143b61210a9364",
+      "stored_bytes": 2069,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/parser-budget-validation-01/test-01.log",
+      "original_sha256": "53a03164400655e7f58478fc414d492b77cbe7a04a8f9af157b7a60f3b00bdb7",
+      "original_bytes": 218,
+      "stored_path": "test-01.log.gz",
+      "stored_sha256": "bca0a341955c0ebb8f5e3a8fb0f05c7ef02050e26cba481620fd8acc49985f4e",
+      "stored_bytes": 165,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/parser-budget-validation-01/test-02.log",
+      "original_sha256": "46d4771e9d3feaca6bc0577f4a1ae89b32282cbee588ce4321ecf521df22b707",
+      "original_bytes": 210,
+      "stored_path": "test-02.log.gz",
+      "stored_sha256": "15ce7ca4807898451ba3b306c1b5412a9bd5dca68903ce05decc1f9a94c73710",
+      "stored_bytes": 161,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/parser-budget-validation-01/test-03.log",
+      "original_sha256": "ab392ca9fb7d243014b4cfbf123f592f0ec272861355b770a4ea0e998af97ab9",
+      "original_bytes": 214,
+      "stored_path": "test-03.log.gz",
+      "stored_sha256": "5ba73bca5b9af64e8965c059821cff508167ed0c6e920fb12ab56bfb995af523",
+      "stored_bytes": 165,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/parser-budget-validation-01/test-04.log",
+      "original_sha256": "42fecd2aed0f9e27012011bc6a1e467e5837fbc0ac7940ca9119cf8038ec4773",
+      "original_bytes": 215,
+      "stored_path": "test-04.log.gz",
+      "stored_sha256": "23baa303b603a3b7839eb6c5c5ce4681af741c1c6e697096d49cdfd0c5f1ce6b",
+      "stored_bytes": 167,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/parser-budget-validation-01/test-05.log",
+      "original_sha256": "eb5ee8abdebbdb0023225bc9998b8323290cddc1202091547bfd6ff53146674f",
+      "original_bytes": 219,
+      "stored_path": "test-05.log.gz",
+      "stored_sha256": "afe0647882675db876bc700b0afaa65744241a1105ae3dbd9b5cd90edb43f324",
+      "stored_bytes": 170,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/parser-budget-validation-01/test-06.log",
+      "original_sha256": "cd993ffaab64b807f959dd6e6c1cc0a7bf25a9b6e210f29d3e0d7b6b73948396",
+      "original_bytes": 202,
+      "stored_path": "test-06.log.gz",
+      "stored_sha256": "e8253147c6005c8a70e5ff612a2cccb3c0e7325ed036d97ec60c70c132398579",
+      "stored_bytes": 162,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/parser-budget-validation-01/test-07.log",
+      "original_sha256": "558516c11da8287f1af1f6952bfab5921f921322cce609bff6961112012504d8",
+      "original_bytes": 170,
+      "stored_path": "test-07.log.gz",
+      "stored_sha256": "109910b0151d4578ed0b0b8ebdae4a1c32b81f0e49a579f8a28db7d24eb059fc",
+      "stored_bytes": 145,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/parser-budget-validation-01/test-results.json",
+      "original_sha256": "7168792af2a9cd736d66ef705a13ee1c05788882e1f4f19e93f7766867f71722",
+      "original_bytes": 4012,
+      "stored_path": "test-results.json",
+      "stored_sha256": "7168792af2a9cd736d66ef705a13ee1c05788882e1f4f19e93f7766867f71722",
+      "stored_bytes": 4012,
+      "encoding": "identity"
+    }
+  ]
+}

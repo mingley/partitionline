@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "apache_kafka_version": "4.3.1",
+  "apache_jar_sha256": "52501b7b47510c66f898871adaf6d2968ab7246561d44ced43643a8a587f0b36",
+  "java_source_sha256": "766817d45dfa979edf740bfd3fdeaa4b64e05780bbe015aef3ec8eccb7be4955",
+  "generated_with": "MemoryRecordsBuilder.appendWithOffset(10,12); header last-offset delta changed to 4 and CRC recomputed; second fixture rebases offsets/timestamps at i64::MAX and recomputes CRC. Both verified by the same Java SDK.",
+  "files": [
+    {
+      "path": "java-sparse.batch",
+      "sha256": "c32a93cc14d1f7b89ee5bb67643553eb418f3db34968a7a16ad7d768dca50e4c",
+      "size_bytes": 78
+    },
+    {
+      "path": "java-wrapped-sparse.batch",
+      "sha256": "082d7c87638e3730c287fe96fcaf453c02ab38154fd1137bca34ac29db4ac1d3",
+      "size_bytes": 78
+    }
+  ]
+}

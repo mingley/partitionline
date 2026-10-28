@@ -119,7 +119,7 @@ async fn close_finishes_a_blocked_metadata_refresh() {
             panic!("metadata refresh did not start");
         }
     }
-    let _ = producer.close_timeout(Duration::from_millis(200)).await;
+    let _close_result = producer.close_timeout(Duration::from_millis(200)).await;
     assert_eq!(
         caller.test_live_metadata_refreshes(),
         0,
@@ -797,7 +797,7 @@ async fn close_timeout_finishes_a_stalled_worker() {
     tokio::task::yield_now().await;
     let tasks = producer.test_worker_tasks();
     assert!(!tasks.is_empty(), "a worker must be running");
-    let _ = producer.close_timeout(Duration::from_millis(50)).await;
+    let _close_result = producer.close_timeout(Duration::from_millis(50)).await;
     assert!(
         tasks.iter().all(|task| task.is_finished()),
         "close returned while a stalled worker was still alive"

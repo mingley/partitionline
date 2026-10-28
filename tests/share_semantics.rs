@@ -1130,7 +1130,7 @@ async fn share_leader_dials_overlap() {
     let elapsed = started.elapsed();
     assert_eq!(got.len(), 2, "one poll collects both leaders");
     assert!(
-        mock.api_versions_versions().len() >= before + 1,
+        mock.api_versions_versions().len() > before,
         "the non-bootstrap share leader should negotiate"
     );
     assert!(
@@ -1650,7 +1650,6 @@ async fn acknowledge_drops_the_leader_when_it_closes_during_retry_backoff() {
             _ = tokio::time::sleep(Duration::from_millis(5)) => {}
         }
     }
-    drop(accept);
 }
 
 #[tokio::test]

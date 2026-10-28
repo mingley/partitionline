@@ -26,8 +26,10 @@ use crate::protocol::epoch::{
     encode_borrowed_offset_for_leader_epoch_topics_cooperative, OffsetForLeaderPartition,
     OffsetForLeaderTopicResult,
 };
+#[cfg(test)]
+use crate::protocol::fetch::fetch_metadata_budget;
 use crate::protocol::fetch::{
-    decode_fetch_response_raw_cooperative, encode_fetch_request_topics,
+    decode_fetch_response_raw_cooperative_with_budget, encode_fetch_request_topics,
     encode_fetch_request_topics_cooperative, FetchForgottenTopic, FetchMetadata, FetchPartition,
     FetchRequestTopic, FetchedTopic, FETCH_CRATE_MAX_VERSION, INVALID_LOG_START_OFFSET,
 };
@@ -37,8 +39,9 @@ use crate::protocol::offsets::{
     encode_list_offsets_request, minimum_version_for_timestamp, ListOffsetsPartitionRequest,
 };
 use crate::protocol::records::{
-    split_record_batches_cooperative, write_java_optional, write_java_optional_bytes,
-    write_java_record_headers, BatchList, EncodedBatch, Header, SlotList, TimestampType,
+    split_record_batches_cooperative_with_budget, write_java_optional, write_java_optional_bytes,
+    write_java_record_headers, BatchList, DecodeMetadataBudget, EncodedBatch, Header, SlotList,
+    TimestampType,
 };
 use crate::protocol::sasl;
 
@@ -134,6 +137,12 @@ pub struct ConsumerConfig {
     ///
     /// Default 32 MiB (matching producer `buffer_memory`). Zero means no aggregate cap.
     pub buffer_memory: usize,
+    /// Maximum decoded Fetch response object and container capacity, per response.
+    ///
+    /// Shared wire and record payload bytes are accounted separately by the
+    /// fetch and record byte limits. Defaults to 128 MiB. Values must be from
+    /// 64 KiB through 1 GiB; exceeding the limit fails the response.
+    pub fetch_metadata_max_bytes: usize,
     /// Kafka `session.timeout.ms` on classic JoinGroup. Default 10 seconds.
     pub session_timeout_ms: i32,
     /// How often the group member heartbeats. Default 150 ms (faster than Java's 3 s).
@@ -220,6 +229,7 @@ impl fmt::Debug for ConsumerConfig {
             .field("auto_offset_reset", &self.auto_offset_reset)
             .field("max_poll_records", &self.max_poll_records)
             .field("buffer_memory", &self.buffer_memory)
+            .field("fetch_metadata_max_bytes", &self.fetch_metadata_max_bytes)
             .field("session_timeout_ms", &self.session_timeout_ms)
             .field("heartbeat_interval", &self.heartbeat_interval)
             .field("rebalance", &self.rebalance)
@@ -261,6 +271,7 @@ impl Default for ConsumerConfig {
             auto_offset_reset: crate::AutoOffsetReset::Earliest,
             max_poll_records: None,
             buffer_memory: 32 * 1024 * 1024,
+            fetch_metadata_max_bytes: 128 * 1024 * 1024,
             session_timeout_ms: 10_000,
             heartbeat_interval: Duration::from_millis(150),
             rebalance: RebalanceListener::default(),
@@ -379,6 +390,16 @@ impl ConsumerConfig {
     #[must_use]
     pub fn buffer_memory(mut self, bytes: usize) -> Self {
         self.buffer_memory = bytes;
+        self
+    }
+
+    /// Set the per-response decoded Fetch metadata capacity limit.
+    ///
+    /// The accepted range is 64 KiB through 1 GiB. Validation occurs when
+    /// constructing a consumer; the default is 128 MiB.
+    #[must_use]
+    pub fn fetch_metadata_max_bytes(mut self, bytes: usize) -> Self {
+        self.fetch_metadata_max_bytes = bytes;
         self
     }
 
@@ -642,6 +663,12 @@ impl From<TopicName> for String {
     }
 }
 
+impl From<&TopicName> for String {
+    fn from(value: &TopicName) -> Self {
+        value.as_str().to_owned()
+    }
+}
+
 impl std::ops::Deref for TopicName {
     type Target = str;
     fn deref(&self) -> &str {
@@ -761,6 +788,15 @@ impl From<Bytes> for RecordBytes {
             Self::from(value.as_ref())
         } else {
             Self::Long(value)
+        }
+    }
+}
+
+impl From<RecordBytes> for Bytes {
+    fn from(value: RecordBytes) -> Self {
+        match value {
+            RecordBytes::Long(bytes) => bytes,
+            inline => Bytes::copy_from_slice(inline.as_slice()),
         }
     }
 }
@@ -2855,6 +2891,7 @@ struct FetchBody {
     /// when applied so batches past the buffer budget are never inflated.
     batches: SlotList<SlotList<BatchList>>,
     endpoints: Vec<crate::protocol::api::NodeEndpoint>,
+    metadata: DecodeMetadataBudget,
 }
 
 struct DecodedFetchReply {
@@ -3076,6 +3113,20 @@ async fn copy_planned_fetch_topics(topics: &[PlannedFetch<'_>]) -> Vec<SessionFe
     out
 }
 
+#[derive(Debug)]
+enum SessionValidationError {
+    Invalid(Error),
+    Budget(Error),
+}
+
+impl fmt::Display for SessionValidationError {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Invalid(error) | Self::Budget(error) => error.fmt(formatter),
+        }
+    }
+}
+
 impl BrokerFetchSession {
     fn reset(&mut self) {
         self.metadata = self.metadata.next_close_existing_attempt_new();
@@ -3090,10 +3141,13 @@ impl BrokerFetchSession {
         topics: &[FetchedTopic],
         version: i16,
         full: bool,
-    ) -> Result<()> {
+        metadata: &mut DecodeMetadataBudget,
+    ) -> std::result::Result<(), SessionValidationError> {
         // A full response is complete when those unique members cover every
         // stored partition, so the stored set does not need its own copy.
-        let unique = session_response_is_unique(topics, version, &self.id_names).await;
+        let unique = session_response_is_unique(topics, version, &self.id_names, metadata)
+            .await
+            .map_err(SessionValidationError::Budget)?;
         let mut seen = HashSet::new();
         let mut count = 0usize;
         let mut walked = 0usize;
@@ -3103,7 +3157,9 @@ impl BrokerFetchSession {
                     .get(&topic.topic_id)
                     .map(Arc::as_ref)
                     .ok_or_else(|| {
-                        Error::protocol("Fetch session response has an unexpected topic ID")
+                        SessionValidationError::Invalid(Error::protocol(
+                            "Fetch session response has an unexpected topic ID",
+                        ))
                     })?
             } else {
                 topic.topic.as_str()
@@ -3111,10 +3167,14 @@ impl BrokerFetchSession {
             let stored = self.partitions.get(name);
             for partition in &topic.partitions {
                 let known = stored.is_some_and(|parts| parts.contains_key(&partition.partition));
-                if !known || (!unique && !seen.insert((name, partition.partition))) {
-                    return Err(Error::protocol(
+                if !known
+                    || (!unique
+                        && !fetch_hash_set_insert(&mut seen, (name, partition.partition), metadata)
+                            .map_err(SessionValidationError::Budget)?)
+                {
+                    return Err(SessionValidationError::Invalid(Error::protocol(
                         "Fetch session response has an extra or duplicate partition",
-                    ));
+                    )));
                 }
                 if unique {
                     count = count.saturating_add(1);
@@ -3139,11 +3199,18 @@ impl BrokerFetchSession {
             }
             let response = if unique { count } else { seen.len() };
             if response != expected {
-                return Err(Error::protocol(
+                return Err(SessionValidationError::Invalid(Error::protocol(
                     "Fetch full session response is missing partitions",
-                ));
+                )));
             }
         }
+        let capacity = seen.capacity();
+        drop(seen);
+        let released =
+            fetch_hash_bytes::<(&str, i32)>(capacity).map_err(SessionValidationError::Budget)?;
+        metadata
+            .release::<u8>(released)
+            .map_err(SessionValidationError::Budget)?;
         Ok(())
     }
 
@@ -3767,6 +3834,11 @@ impl Consumer {
                 "bootstrap/client ID exceeds discovery limit",
             ));
         }
+        if !(64 * 1024..=1024 * 1024 * 1024).contains(&cfg.fetch_metadata_max_bytes) {
+            return Err(Error::protocol(
+                "fetch metadata limit must be between 64 KiB and 1 GiB",
+            ));
+        }
         if cfg.max_poll_records == Some(0) {
             return Err(Error::protocol("max.poll.records must be at least 1"));
         }
@@ -4171,7 +4243,7 @@ impl Consumer {
     /// refilled so a poll can keep the previous allocation.
     pub(crate) fn fill_delivered_positions_shared(&self, out: &mut Vec<(Arc<str>, i32, i64)>) {
         out.clear();
-        let mut cached_topic = std::ptr::null::<u8>();
+        let mut cached_topic = None;
         let mut cached_name: Option<&str> = None;
         let mut pending_parts: Option<&HashMap<i32, VecDeque<FetchedRecord>>> = None;
         for (topic, partition, offset) in &self.assigned {
@@ -4198,7 +4270,7 @@ impl Consumer {
         out: &mut Vec<(Arc<str>, i32, i64)>,
     ) {
         out.clear();
-        let mut cached_topic = std::ptr::null::<u8>();
+        let mut cached_topic = None;
         let mut cached_name: Option<&str> = None;
         let mut pending_parts: Option<&HashMap<i32, VecDeque<FetchedRecord>>> = None;
         let mut walked = 0usize;
@@ -4216,7 +4288,7 @@ impl Consumer {
             walked = walked.saturating_add(1);
             if walked == 8 * 1024 {
                 walked = 0;
-                cached_topic = std::ptr::null();
+                cached_topic = None;
                 cached_name = None;
                 pending_parts = None;
                 tokio::task::yield_now().await;
@@ -4227,7 +4299,7 @@ impl Consumer {
     pub(crate) async fn delivered_commit_offsets_cooperative(
         &self,
     ) -> Vec<(TopicPartition, OffsetAndMetadata)> {
-        let mut cached_topic = std::ptr::null::<u8>();
+        let mut cached_topic = None;
         let mut cached_name: Option<&str> = None;
         let mut epochs: &[i32] = &[];
         let mut pending_parts: Option<&HashMap<i32, VecDeque<FetchedRecord>>> = None;
@@ -4266,7 +4338,7 @@ impl Consumer {
                 walked = 0;
                 epochs = &[];
                 pending_parts = None;
-                cached_topic = std::ptr::null();
+                cached_topic = None;
                 cached_name = None;
                 tokio::task::yield_now().await;
             }
@@ -4870,7 +4942,7 @@ impl Consumer {
                 .unwrap_or_default();
             return Err(Error::UnknownTopic(name));
         };
-        partition_indexes_for_names(&md.topics, names.iter().map(|topic| topic.as_ref())).await
+        partition_indexes_for_names(&md.topics, names.iter().map(topic_name_ref)).await
     }
 
     /// Set the next fetch offset without a ListOffsets call.
@@ -4971,12 +5043,12 @@ impl Consumer {
     }
 
     /// Refresh metadata for `topics`, bounded by one `timeout`.
-    pub(crate) async fn refresh_metadata_timeout(
-        &mut self,
-        topics: Option<&[String]>,
+    pub(crate) fn refresh_metadata_timeout<'a>(
+        &'a mut self,
+        topics: Option<&'a [String]>,
         timeout: Duration,
-    ) -> Result<()> {
-        self.refresh_metadata_timeout_ref(topics, timeout).await
+    ) -> impl std::future::Future<Output = Result<()>> + Send + 'a {
+        self.refresh_metadata_timeout_ref(topics, timeout)
     }
 
     /// [`Self::refresh_metadata_timeout`] for caller-owned topic names.
@@ -5176,21 +5248,14 @@ impl Consumer {
         else {
             return Ok(None);
         };
-        if let Some((key, _)) = self
+        // The cursor index is prepared before processing a response. A topic
+        // absent from it cannot deliver records, so avoid allocating a name or
+        // duplicate-tracking entries for broker-supplied unassigned topics.
+        Ok(self
             .cursor_index
             .as_ref()
             .and_then(|index| index.get_key_value(resolved))
-        {
-            return Ok(Some(Arc::clone(key)));
-        }
-        if topic_id != [0; 16] {
-            if let Some(mapped) = self.id_to_name.get(&topic_id) {
-                if mapped.as_ref() == resolved {
-                    return Ok(Some(Arc::clone(mapped)));
-                }
-            }
-        }
-        Ok(Some(Arc::<str>::from(resolved)))
+            .map(|(key, _)| Arc::clone(key)))
     }
 
     pub(crate) fn broker_known(&self, node: i32) -> bool {
@@ -6230,8 +6295,11 @@ impl Consumer {
                 if Instant::now() >= deadline {
                     return Err(Error::Timeout);
                 }
-                fill_reused_topics_cooperative(names, remaining.iter().map(|(topic, _)| *topic))
-                    .await;
+                fill_reused_topics_cooperative(
+                    names,
+                    remaining.iter().map(|(topic, _): &(&str, i32)| *topic),
+                )
+                .await;
                 names.sort();
                 self.refresh_metadata_timeout(
                     Some(names),
@@ -6314,7 +6382,11 @@ impl Consumer {
             if Instant::now() >= deadline {
                 return Err(Error::Timeout);
             }
-            fill_reused_topics_cooperative(names, remaining.iter().map(|(topic, _)| *topic)).await;
+            fill_reused_topics_cooperative(
+                names,
+                remaining.iter().map(|(topic, _): &(&str, i32)| *topic),
+            )
+            .await;
             names.sort();
             self.refresh_metadata_timeout(
                 Some(names),
@@ -7244,7 +7316,7 @@ impl Consumer {
         completed: &PartitionMap<()>,
     ) -> bool {
         let cluster = &self.cluster;
-        let mut cached_topic = std::ptr::null::<u8>();
+        let mut cached_topic = None;
         let mut cached_name: Option<&str> = None;
         let mut leaders: &[i32] = &[];
         let mut epochs: &[i32] = &[];
@@ -7878,8 +7950,7 @@ impl Consumer {
         let mut rx = self.wakeup_tx.subscribe();
         tokio::select! {
             biased;
-            result = rx.wait_for(|on| *on) => {
-                drop(result);
+            () = async { drop(rx.wait_for(|on| *on).await) } => {
                 // Cancelling the fetch only schedules aborts for leader reads
                 // that were already sent. Wait until those tasks leave.
                 self.finish_cancelled_fetches().await;
@@ -8428,16 +8499,25 @@ impl Consumer {
                 }
             }
             let scratch = std::mem::take(&mut self.spare_fetch_topics);
+            let mut metadata = DecodeMetadataBudget::with_limit(self.cfg.fetch_metadata_max_bytes);
             let (topics, retained, raw, endpoints, _, _, throttle) =
-                decode_fetch_response_raw_cooperative(&mut bytes, reply.version, scratch).await?;
+                decode_fetch_response_raw_cooperative_with_budget(
+                    &mut bytes,
+                    reply.version,
+                    scratch,
+                    &mut metadata,
+                )
+                .await?;
             retained_topics = retained;
-            let mut batches = SlotList::with_capacity(raw.len());
+            let mut batches = SlotList::try_with_budget(raw.len(), &mut metadata)?;
             for partitions in raw {
-                let mut split = SlotList::with_capacity(partitions.len());
+                let mut split = SlotList::try_with_budget(partitions.len(), &mut metadata)?;
                 for bytes in partitions {
-                    split.push(split_record_batches_cooperative(bytes).await?);
+                    let batch =
+                        split_record_batches_cooperative_with_budget(bytes, &mut metadata).await?;
+                    split.try_push_with_budget(batch, &mut metadata)?;
                 }
-                batches.push(split);
+                batches.try_push_with_budget(split, &mut metadata)?;
             }
             if reply.version >= 7 {
                 if let Some(session) = session.as_mut() {
@@ -8446,9 +8526,17 @@ impl Consumer {
                     if full && throttle > 0 && topics.is_empty() {
                         session.metadata = FetchMetadata::INITIAL;
                     } else if let Err(error) = session
-                        .validate_partitions(&topics, reply.version, full)
+                        .validate_partitions(&topics, reply.version, full, &mut metadata)
                         .await
                     {
+                        let error = match error {
+                            SessionValidationError::Budget(error) => {
+                                return Err(Error::protocol(format!(
+                                    "fetch session metadata: {error}"
+                                )));
+                            }
+                            SessionValidationError::Invalid(error) => error,
+                        };
                         if full {
                             session.metadata = FetchMetadata::INITIAL;
                         }
@@ -8464,6 +8552,7 @@ impl Consumer {
                 topics,
                 batches,
                 endpoints,
+                metadata,
             })
         }
         .await;
@@ -8556,6 +8645,7 @@ impl Consumer {
             topics: fetched,
             batches,
             endpoints,
+            mut metadata,
         } = body;
         let mut declared = 0usize;
         let mut saw_batch = false;
@@ -8563,7 +8653,14 @@ impl Consumer {
             saw_batch = true;
             declared = declared.saturating_add(batch.reserve_hint());
         }
-        reserve_fetch_records(out, declared, saw_batch, self.last_fetch_records);
+        metadata.charge::<FetchedRecord>(out.capacity())?;
+        reserve_fetch_records(
+            out,
+            declared,
+            saw_batch,
+            self.last_fetch_records,
+            &mut metadata,
+        )?;
         self.cluster
             .apply_node_endpoints_cooperative(&endpoints)
             .await;
@@ -8590,7 +8687,11 @@ impl Consumer {
                                 .is_some_and(|prior| prior.as_ref() == name.as_ref())
                         });
                         if repeated {
-                            let _ = repeated_topics.insert(Arc::clone(&name));
+                            let _ = fetch_hash_set_insert(
+                                &mut repeated_topics,
+                                Arc::clone(&name),
+                                &mut metadata,
+                            )?;
                         }
                         if let Some(slot) = resolved.get_mut(index) {
                             *slot = Some(name);
@@ -8608,8 +8709,9 @@ impl Consumer {
                 &fetched,
                 |name, id| self.fetch_topic_arc(name, id),
                 &mut repeated_topics,
+                &mut metadata,
             )
-            .await;
+            .await?;
         }
         let mut seen_partitions: HashMap<Arc<str>, HashSet<i32>> = HashMap::new();
         let mut topic_batches_iter = batches.into_iter();
@@ -8638,14 +8740,13 @@ impl Consumer {
                     let Some(part_batches) = part_batches_iter.next() else {
                         break;
                     };
-                    if topic_seen
-                        .as_mut()
-                        .is_some_and(|seen| !seen.insert(part.partition))
-                    {
-                        continue;
-                    }
                     if self.cursor_at(&name, part.partition).is_none() {
                         continue;
+                    }
+                    if let Some(seen) = topic_seen.as_mut() {
+                        if !fetch_hash_set_insert(seen, part.partition, &mut metadata)? {
+                            continue;
+                        }
                     }
                     if part.error_code == 0 {
                         self.retain_held(
@@ -8659,7 +8760,12 @@ impl Consumer {
                 self.add_fetch_totals(&name, topic_records, topic_bytes);
                 if let Some(parts) = topic_seen {
                     if !parts.is_empty() {
-                        let _ = seen_partitions.insert(Arc::clone(&name), parts);
+                        let _ = fetch_hash_map_insert(
+                            &mut seen_partitions,
+                            Arc::clone(&name),
+                            parts,
+                            &mut metadata,
+                        )?;
                     }
                 }
                 continue;
@@ -8674,15 +8780,14 @@ impl Consumer {
                 let Some(part_batches) = part_batches_iter.next() else {
                     break;
                 };
-                if topic_seen
-                    .as_mut()
-                    .is_some_and(|seen| !seen.insert(part.partition))
-                {
-                    continue;
-                }
                 let Some(req_offset) = self.cursor_at(&name, part.partition) else {
                     continue;
                 };
+                if let Some(seen) = topic_seen.as_mut() {
+                    if !fetch_hash_set_insert(seen, part.partition, &mut metadata)? {
+                        continue;
+                    }
+                }
                 if *budget_reached {
                     if part.error_code == 0 {
                         self.retain_held(
@@ -8884,6 +8989,7 @@ impl Consumer {
                         // Highest `offset + 1` among records that are delivered.
                         let mut included_next: Option<i64> = None;
                         let mut cursor_overflow = false;
+                        let mut reserve_error = None;
                         let visited = match encoded
                             .try_visit_short_keys_cooperative(|rec| {
                                 last_record_off = Some(rec.offset);
@@ -8905,6 +9011,13 @@ impl Consumer {
                                 included_next = Some(
                                     included_next.map_or(advanced, |current| current.max(advanced)),
                                 );
+                                if reserve_error.is_some() {
+                                    return;
+                                }
+                                if let Err(error) = grow_fetch_records(out, &mut metadata) {
+                                    reserve_error = Some(error);
+                                    return;
+                                }
                                 out.push(FetchedRecord {
                                     topic: topic_name.clone(),
                                     partition: part.partition,
@@ -8926,6 +9039,13 @@ impl Consumer {
                                 return Err(error);
                             }
                         };
+                        if let Some(error) = reserve_error {
+                            out.truncate(mark);
+                            *out_bytes = mark_bytes;
+                            self.drop_pending_partitions(name.as_ref(), &mut dropped_pending)
+                                .await;
+                            return Err(error);
+                        }
                         if cursor_overflow {
                             self.drop_pending_partitions(name.as_ref(), &mut dropped_pending)
                                 .await;
@@ -8988,7 +9108,10 @@ impl Consumer {
                         out.truncate(mark);
                         *out_bytes = mark_bytes;
                     }
-                    let batch = match encoded.decode_shared_cooperative().await {
+                    let batch = match encoded
+                        .decode_shared_cooperative_with_budget(&mut metadata)
+                        .await
+                    {
                         Ok(batch) => batch,
                         Err(error) => {
                             self.drop_pending_partitions(name.as_ref(), &mut dropped_pending)
@@ -9094,6 +9217,7 @@ impl Consumer {
                         }
                     });
                     let mut walked = 0usize;
+                    let record_capacity = batch.records.capacity();
                     for rec in batch.records {
                         let offset = rec.offset;
                         if isolation == crate::IsolationLevel::ReadCommitted
@@ -9139,6 +9263,7 @@ impl Consumer {
                             .unwrap_or(u64::MAX),
                         );
                         let timestamp = log_append_timestamp.unwrap_or(rec.timestamp);
+                        grow_fetch_records(out, &mut metadata)?;
                         out.push(FetchedRecord {
                             topic: topic_name.clone(),
                             partition: part.partition,
@@ -9157,6 +9282,9 @@ impl Consumer {
                             tokio::task::yield_now().await;
                         }
                     }
+                    // The record vector has been consumed and freed. Header vectors
+                    // moved into returned records stay charged to the response.
+                    metadata.release::<crate::protocol::records::Record>(record_capacity)?;
                     if batch_records > 0 {
                         topic_records = topic_records.saturating_add(batch_records);
                         topic_bytes = topic_bytes.saturating_add(batch_bytes);
@@ -9189,7 +9317,8 @@ impl Consumer {
             self.add_fetch_totals(&name, topic_records, topic_bytes);
             if let Some(parts) = topic_seen {
                 if !parts.is_empty() {
-                    let _ = seen_partitions.insert(name, parts);
+                    let _ =
+                        fetch_hash_map_insert(&mut seen_partitions, name, parts, &mut metadata)?;
                 }
             }
             if *budget_reached {
@@ -10689,10 +10818,19 @@ impl Consumer {
         self.partition_infos(None).await
     }
 
-    async fn partition_infos(&self, only: Option<&str>) -> Result<Vec<PartitionInfo>> {
-        match &self.metadata {
-            Some(md) => partition_infos_from_cooperative(md, only).await,
-            None => Ok(Vec::new()),
+    #[expect(
+        clippy::manual_async_fn,
+        reason = "The explicit Send future avoids lifetime inference failures"
+    )]
+    fn partition_infos<'a>(
+        &'a self,
+        only: Option<&'a str>,
+    ) -> impl std::future::Future<Output = Result<Vec<PartitionInfo>>> + Send + 'a {
+        async move {
+            match &self.metadata {
+                Some(md) => partition_infos_from_cooperative(md, only).await,
+                None => Ok(Vec::new()),
+            }
         }
     }
 
@@ -10851,12 +10989,8 @@ impl Consumer {
         timeout: Duration,
     ) -> Result<Vec<(TopicPartition, i64)>> {
         let partitions: Vec<TopicPartition> = partitions.into_iter().map(Into::into).collect();
-        require_unique_offset_partitions_cooperative(
-            partitions
-                .iter()
-                .map(|tp| (tp.topic.as_str(), tp.partition)),
-        )
-        .await?;
+        require_unique_offset_partitions_cooperative(partitions.iter().map(topic_partition_ref))
+            .await?;
         let deadline = offset_lookup_deadline(timeout)?;
         let queries: Vec<(&str, i32, i64)> = partitions
             .iter()
@@ -11071,6 +11205,7 @@ impl Consumer {
                 topics,
                 batches: all_batches,
                 endpoints: Vec::new(),
+                metadata: DecodeMetadataBudget::with_limit(self.cfg.fetch_metadata_max_bytes),
             })
         }
     }
@@ -11439,13 +11574,14 @@ fn a_fetch_reply_list_keeps_its_capacity() {
 #[test]
 fn an_empty_fetch_does_not_allocate_a_record_buffer() {
     let mut out = Vec::new();
-    reserve_fetch_records(&mut out, 0, false, 4);
+    let mut metadata = fetch_metadata_budget();
+    reserve_fetch_records(&mut out, 0, false, 4, &mut metadata).unwrap();
     assert_eq!(out.capacity(), 0);
     assert!(out.is_empty());
-    reserve_fetch_records(&mut out, 3, true, 4);
+    reserve_fetch_records(&mut out, 3, true, 4, &mut metadata).unwrap();
     assert!(out.capacity() >= 3);
     let mut compressed = Vec::new();
-    reserve_fetch_records(&mut compressed, 0, true, 4);
+    reserve_fetch_records(&mut compressed, 0, true, 4, &mut metadata).unwrap();
     assert!(compressed.capacity() >= 4);
     assert!(compressed.is_empty());
 }
@@ -11626,22 +11762,44 @@ fn park_spare<T>(spare: &mut Vec<T>, mut values: Vec<T>) {
     }
 }
 
-/// Reserve fetched records from this response.
-///
-/// An empty response leaves the buffer unallocated. A response that names
-/// record counts reserves that many. A compressed batch does not name a count,
-/// so it reserves the previous poll's record count.
+/// Reserve a bounded initial hint; declared counts are controlled by the peer.
 fn reserve_fetch_records(
     out: &mut Vec<FetchedRecord>,
     declared: usize,
     saw_batch: bool,
     previous: usize,
-) {
-    if declared > 0 {
-        out.reserve(declared);
-    } else if saw_batch && previous > 0 {
-        out.reserve(previous);
+    metadata: &mut DecodeMetadataBudget,
+) -> Result<()> {
+    let hint = if declared > 0 {
+        declared
+    } else if saw_batch {
+        previous
+    } else {
+        0
+    };
+    let additional = hint.min(previous.max(1024));
+    let target = out
+        .len()
+        .saturating_add(additional)
+        .min(metadata.remaining_slots::<FetchedRecord>());
+    metadata.reserve(out, target)
+}
+
+fn grow_fetch_records(
+    out: &mut Vec<FetchedRecord>,
+    metadata: &mut DecodeMetadataBudget,
+) -> Result<()> {
+    if out.len() == out.capacity() {
+        let maximum = metadata.remaining_slots::<FetchedRecord>();
+        let target = out.capacity().saturating_mul(2).max(4).min(maximum);
+        if target <= out.capacity() {
+            return Err(Error::protocol(
+                "fetch response metadata exceeds maximum allowable size",
+            ));
+        }
+        metadata.reserve(out, target)?;
     }
+    Ok(())
 }
 
 /// Fill timestamp type and leader epoch on records already copied from one batch.
@@ -11897,17 +12055,16 @@ fn cached_epoch(epochs: &[i32], partition: i32) -> i32 {
 /// The same allocation hits immediately. A new allocation of the same name,
 /// which `assign` creates for each partition, still reuses the loaded lists.
 fn reuse_topic_cache<'a>(
-    cached_ptr: &mut *const u8,
+    cached_topic: &mut Option<&'a Arc<str>>,
     cached_name: &mut Option<&'a str>,
     topic: &'a Arc<str>,
 ) -> bool {
-    let ptr = Arc::as_ptr(topic) as *const u8;
-    if ptr == *cached_ptr {
+    if cached_topic.is_some_and(|cached| Arc::ptr_eq(cached, topic)) {
         return true;
     }
     let name = topic.as_ref();
     let same = *cached_name == Some(name);
-    *cached_ptr = ptr;
+    *cached_topic = Some(topic);
     if !same {
         *cached_name = Some(name);
     }
@@ -12130,32 +12287,39 @@ fn reused_topic_chunk() -> usize {
 ///
 /// A later copy of the same name is dropped. A buffer that already holds the
 /// name is left as it is.
-async fn fill_reused_topics_cooperative<'a>(
-    topics: &mut Vec<String>,
-    names: impl IntoIterator<Item = &'a str>,
-) {
-    let mut used = 0usize;
-    let mut seen = ShortSet::new();
-    let mut walked = 0usize;
-    for topic in names {
-        walked = walked.saturating_add(1);
-        if seen.insert(topic) {
-            if let Some(slot) = topics.get_mut(used) {
-                if slot != topic {
-                    slot.clear();
-                    slot.push_str(topic);
+fn fill_reused_topics_cooperative<'a, 'b, I>(
+    topics: &'b mut Vec<String>,
+    names: I,
+) -> impl std::future::Future<Output = ()> + Send + 'b
+where
+    'a: 'b,
+    I: IntoIterator<Item = &'a str> + Send + 'b,
+    I::IntoIter: Send,
+{
+    async move {
+        let mut used = 0usize;
+        let mut seen = ShortSet::new();
+        let mut walked = 0usize;
+        for topic in names {
+            walked = walked.saturating_add(1);
+            if seen.insert(topic) {
+                if let Some(slot) = topics.get_mut(used) {
+                    if slot != topic {
+                        slot.clear();
+                        slot.push_str(topic);
+                    }
+                } else {
+                    topics.push(topic.to_owned());
                 }
-            } else {
-                topics.push(topic.to_owned());
+                used = used.saturating_add(1);
             }
-            used = used.saturating_add(1);
+            if walked == reused_topic_chunk() {
+                walked = 0;
+                tokio::task::yield_now().await;
+            }
         }
-        if walked == reused_topic_chunk() {
-            walked = 0;
-            tokio::task::yield_now().await;
-        }
+        topics.truncate(used);
     }
-    topics.truncate(used);
 }
 
 impl Consumer {
@@ -12274,6 +12438,14 @@ fn metadata_name_chunk() -> usize {
 ///
 /// A topic named twice keeps every copy until the list is resolved. A missing
 /// topic returns an error.
+fn topic_name_ref<T: AsRef<str>>(topic: &T) -> &str {
+    topic.as_ref()
+}
+
+fn topic_partition_ref(tp: &TopicPartition) -> (&str, i32) {
+    (tp.topic.as_str(), tp.partition)
+}
+
 async fn partition_indexes_for_names<'a>(
     topics: &[crate::protocol::api::TopicMetadata],
     names: impl IntoIterator<Item = &'a str>,
@@ -12731,36 +12903,42 @@ async fn session_response_is_unique(
     topics: &[FetchedTopic],
     version: i16,
     ids: &SessionIdNames,
-) -> bool {
+    metadata: &mut DecodeMetadataBudget,
+) -> Result<bool> {
     if topics.len() <= 1 {
-        return topics
+        return Ok(topics
             .first()
-            .is_none_or(|topic| partitions_strictly_increase(&topic.partitions));
+            .is_none_or(|topic| partitions_strictly_increase(&topic.partitions)));
     }
     if topics.len() <= 16 {
         for (index, topic) in topics.iter().enumerate() {
             if !partitions_strictly_increase(&topic.partitions) {
-                return false;
+                return Ok(false);
             }
             let Some(name) = session_topic_name(topic, version, ids) else {
-                return false;
+                return Ok(false);
             };
             for earlier in topics.iter().take(index) {
                 if session_topic_name(earlier, version, ids) == Some(name) {
-                    return false;
+                    return Ok(false);
                 }
             }
         }
-        return true;
+        return Ok(true);
     }
     let mut names = HashSet::new();
     let mut walked = 0usize;
+    let mut unique = true;
     for topic in topics {
         let Some(name) = session_topic_name(topic, version, ids) else {
-            return false;
+            unique = false;
+            break;
         };
-        if !names.insert(name) || !partitions_strictly_increase(&topic.partitions) {
-            return false;
+        if !fetch_hash_set_insert(&mut names, name, metadata)?
+            || !partitions_strictly_increase(&topic.partitions)
+        {
+            unique = false;
+            break;
         }
         walked = walked.saturating_add(1);
         if walked == 8 * 1024 {
@@ -12768,7 +12946,10 @@ async fn session_response_is_unique(
             tokio::task::yield_now().await;
         }
     }
-    true
+    let capacity = names.capacity();
+    drop(names);
+    metadata.release::<u8>(fetch_hash_bytes::<&str>(capacity)?)?;
+    Ok(unique)
 }
 
 fn session_topic_name<'a>(
@@ -12786,29 +12967,100 @@ fn session_topic_name<'a>(
 /// Names that appear more than once in one fetch response.
 ///
 /// Noting 2,000,000 topics held the caller for 2110ms. A topic name is still stored.
+// Hash tables expose element capacity rather than allocated bytes. Charge four
+// buckets per capacity slot, with 16 control/alignment bytes per bucket. This
+// conservatively covers the current table load factor and control array.
+fn fetch_hash_bytes<T>(capacity: usize) -> Result<usize> {
+    capacity
+        .checked_mul(4)
+        .and_then(|slots| slots.checked_mul(std::mem::size_of::<T>().saturating_add(16)))
+        .ok_or_else(|| Error::protocol("fetch duplicate table size overflow"))
+}
+
+fn fetch_hash_reservation<T>(capacity: usize) -> Result<usize> {
+    let maximum = capacity
+        .checked_add(1)
+        .and_then(|n| n.checked_mul(2))
+        .ok_or_else(|| Error::protocol("fetch duplicate table size overflow"))?
+        .max(7);
+    fetch_hash_bytes::<T>(maximum)
+}
+
+fn fetch_hash_set_insert<T: std::hash::Hash + Eq>(
+    set: &mut HashSet<T>,
+    item: T,
+    metadata: &mut DecodeMetadataBudget,
+) -> Result<bool> {
+    if set.contains(&item) {
+        return Ok(false);
+    }
+    if set.len() == set.capacity() {
+        let old = fetch_hash_bytes::<T>(set.capacity())?;
+        let provisional = fetch_hash_reservation::<T>(set.capacity())?;
+        metadata.charge::<u8>(provisional)?;
+        set.try_reserve(1)
+            .map_err(|_| Error::protocol("fetch duplicate set reserve"))?;
+        let actual = fetch_hash_bytes::<T>(set.capacity())?;
+        if actual > provisional {
+            return Err(Error::protocol("fetch duplicate set capacity"));
+        }
+        metadata.release::<u8>(old.saturating_add(provisional - actual))?;
+    }
+    Ok(set.insert(item))
+}
+
+fn fetch_hash_map_insert<K: std::hash::Hash + Eq, V>(
+    map: &mut HashMap<K, V>,
+    key: K,
+    value: V,
+    metadata: &mut DecodeMetadataBudget,
+) -> Result<Option<V>> {
+    if !map.contains_key(&key) && map.len() == map.capacity() {
+        let old = fetch_hash_bytes::<(K, V)>(map.capacity())?;
+        let provisional = fetch_hash_reservation::<(K, V)>(map.capacity())?;
+        metadata.charge::<u8>(provisional)?;
+        map.try_reserve(1)
+            .map_err(|_| Error::protocol("fetch duplicate map reserve"))?;
+        let actual = fetch_hash_bytes::<(K, V)>(map.capacity())?;
+        if actual > provisional {
+            return Err(Error::protocol("fetch duplicate map capacity"));
+        }
+        metadata.release::<u8>(old.saturating_add(provisional - actual))?;
+    }
+    Ok(map.insert(key, value))
+}
+
 async fn note_repeated_fetch_topics<F>(
     fetched: &[FetchedTopic],
     mut resolve: F,
     repeated: &mut HashSet<Arc<str>>,
-) -> bool
+    metadata: &mut DecodeMetadataBudget,
+) -> Result<bool>
 where
     F: FnMut(&str, [u8; 16]) -> Result<Option<Arc<str>>>,
 {
     let mut once = HashSet::new();
     let mut walked = 0usize;
+    let mut trust = true;
     for topic in fetched {
         match resolve(topic.topic.as_str(), topic.topic_id) {
             Ok(Some(name)) => {
-                if !once.insert(Arc::clone(&name)) {
-                    let _ = repeated.insert(name);
+                if !fetch_hash_set_insert(&mut once, Arc::clone(&name), metadata)? {
+                    let _ = fetch_hash_set_insert(repeated, name, metadata)?;
                 }
             }
             Ok(None) => {}
-            Err(_) => return false,
+            Err(_) => {
+                trust = false;
+                break;
+            }
         }
         pause_fetch_topic_note(&mut walked).await;
     }
-    true
+    let capacity = once.capacity();
+    drop(once);
+    metadata.release::<u8>(fetch_hash_bytes::<Arc<str>>(capacity)?)?;
+    Ok(trust)
 }
 
 async fn pause_fetch_topic_note(walked: &mut usize) {
@@ -13243,82 +13495,88 @@ pub(crate) async fn snapshot_named_topics(
     out
 }
 
-pub(crate) async fn partition_infos_from_cooperative(
-    md: &MetadataResponse,
-    only: Option<&str>,
-) -> Result<Vec<PartitionInfo>> {
-    let mut order: Vec<&str> = Vec::new();
-    let mut parts: Vec<Vec<&PartitionMetadata>> = Vec::new();
-    let mut seen_indexes: Vec<HashSet<i32>> = Vec::new();
-    let mut slots: HashMap<&str, usize> = HashMap::new();
-    let mut topic_error: HashMap<&str, i16> = HashMap::new();
-    let mut first_error: Option<(&str, i16)> = None;
-    let mut walked = 0usize;
-    for tmd in &md.topics {
-        let Some(name) = tmd.name.as_deref() else {
-            continue;
-        };
-        if only.is_some_and(|wanted| name != wanted) {
-            continue;
-        }
-        if tmd.error_code != 0 {
-            if first_error.is_none() {
-                first_error = Some((name, tmd.error_code));
+#[expect(
+    clippy::manual_async_fn,
+    reason = "The explicit Send future avoids lifetime inference failures"
+)]
+pub(crate) fn partition_infos_from_cooperative<'a>(
+    md: &'a MetadataResponse,
+    only: Option<&'a str>,
+) -> impl std::future::Future<Output = Result<Vec<PartitionInfo>>> + Send + 'a {
+    async move {
+        let mut order: Vec<&str> = Vec::new();
+        let mut parts: Vec<Vec<&PartitionMetadata>> = Vec::new();
+        let mut seen_indexes: Vec<HashSet<i32>> = Vec::new();
+        let mut slots: HashMap<&str, usize> = HashMap::new();
+        let mut topic_error: HashMap<&str, i16> = HashMap::new();
+        let mut first_error: Option<(&str, i16)> = None;
+        let mut walked = 0usize;
+        for tmd in &md.topics {
+            let Some(name) = tmd.name.as_deref() else {
+                continue;
+            };
+            if only.is_some_and(|wanted| name != wanted) {
+                continue;
             }
-            if let std::collections::hash_map::Entry::Vacant(slot) = topic_error.entry(name) {
-                let _ = slot.insert(tmd.error_code);
+            if tmd.error_code != 0 {
+                if first_error.is_none() {
+                    first_error = Some((name, tmd.error_code));
+                }
+                if let std::collections::hash_map::Entry::Vacant(slot) = topic_error.entry(name) {
+                    let _ = slot.insert(tmd.error_code);
+                }
+                continue;
             }
-            continue;
-        }
-        let slot = if let Some(&slot) = slots.get(name) {
-            slot
-        } else {
-            let slot = parts.len();
-            let _ = slots.insert(name, slot);
-            order.push(name);
-            parts.push(Vec::with_capacity(tmd.partitions.len()));
-            seen_indexes.push(HashSet::with_capacity(tmd.partitions.len()));
-            slot
-        };
-        for partition in &tmd.partitions {
-            if partition.partition_index >= 0 {
-                let fresh = match seen_indexes.get_mut(slot) {
-                    Some(seen) => seen.insert(partition.partition_index),
-                    None => false,
-                };
-                if fresh {
-                    if let Some(stored) = parts.get_mut(slot) {
-                        stored.push(partition);
+            let slot = if let Some(&slot) = slots.get(name) {
+                slot
+            } else {
+                let slot = parts.len();
+                let _ = slots.insert(name, slot);
+                order.push(name);
+                parts.push(Vec::with_capacity(tmd.partitions.len()));
+                seen_indexes.push(HashSet::with_capacity(tmd.partitions.len()));
+                slot
+            };
+            for partition in &tmd.partitions {
+                if partition.partition_index >= 0 {
+                    let fresh = match seen_indexes.get_mut(slot) {
+                        Some(seen) => seen.insert(partition.partition_index),
+                        None => false,
+                    };
+                    if fresh {
+                        if let Some(stored) = parts.get_mut(slot) {
+                            stored.push(partition);
+                        }
                     }
                 }
+                pause_partition_info(&mut walked).await;
             }
-            pause_partition_info(&mut walked).await;
         }
-    }
-    if let Some(wanted) = only {
-        if !slots.contains_key(wanted) {
-            if let Some(code) = topic_error.get(wanted) {
-                return Err(Error::broker(*code, wanted.to_owned()));
+        if let Some(wanted) = only {
+            if !slots.contains_key(wanted) {
+                if let Some(code) = topic_error.get(wanted) {
+                    return Err(Error::broker(*code, wanted.to_owned()));
+                }
+                return Ok(Vec::new());
             }
-            return Ok(Vec::new());
+        } else if parts.is_empty() {
+            if let Some((name, code)) = first_error {
+                return Err(Error::broker(code, name.to_owned()));
+            }
         }
-    } else if parts.is_empty() {
-        if let Some((name, code)) = first_error {
-            return Err(Error::broker(code, name.to_owned()));
+        let mut out = Vec::new();
+        let mut copied = 0usize;
+        for (index, name) in order.into_iter().enumerate() {
+            let Some(partitions) = parts.get(index) else {
+                continue;
+            };
+            for partition in partitions {
+                out.push(PartitionInfo::from_partition_metadata(name, partition));
+                pause_partition_info(&mut copied).await;
+            }
         }
+        Ok(out)
     }
-    let mut out = Vec::new();
-    let mut copied = 0usize;
-    for (index, name) in order.into_iter().enumerate() {
-        let Some(partitions) = parts.get(index) else {
-            continue;
-        };
-        for partition in partitions {
-            out.push(PartitionInfo::from_partition_metadata(name, partition));
-            pause_partition_info(&mut copied).await;
-        }
-    }
-    Ok(out)
 }
 
 async fn pause_partition_info(walked: &mut usize) {
@@ -13789,8 +14047,9 @@ mod tests {
             });
         }
         let started = std::time::Instant::now();
+        let mut metadata = fetch_metadata_budget();
         tokio::select! {
-            validated = session.validate_partitions(&topics, 12, true) => {
+            validated = session.validate_partitions(&topics, 12, true, &mut metadata) => {
                 validated.unwrap_or_else(|error| panic!("{error}"));
             }
             () = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
@@ -14757,6 +15016,108 @@ mod tests {
         );
     }
 
+    #[test]
+    fn fetch_duplicate_tables_fail_within_metadata_budget_and_keep_entries() {
+        let mut metadata = DecodeMetadataBudget::with_limit(16 * 1024);
+        let mut seen = HashSet::new();
+        let mut accepted = 0_i32;
+        while fetch_hash_set_insert(&mut seen, accepted, &mut metadata).is_ok() {
+            accepted += 1;
+        }
+        assert!(accepted > 0 && accepted < 10_000);
+        for index in 0..accepted {
+            assert!(seen.contains(&index));
+        }
+        assert!(!fetch_hash_set_insert(&mut seen, 0, &mut metadata).unwrap());
+        let mut metadata = DecodeMetadataBudget::with_limit(16 * 1024);
+        let mut map = HashMap::new();
+        let mut accepted = 0_i32;
+        while fetch_hash_map_insert(&mut map, accepted, accepted, &mut metadata).is_ok() {
+            accepted += 1;
+        }
+        assert!(accepted > 0 && accepted < 10_000);
+        for index in 0..accepted {
+            assert_eq!(map.get(&index), Some(&index));
+        }
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn fetch_session_validation_rejects_v12_duplicates_and_bounds_topic_tracking() {
+        let mut session = BrokerFetchSession::default();
+        let mut parts = SessionParts::new();
+        let _ = parts.insert(
+            0,
+            SessionPartition {
+                id: [0; 16],
+                data: crate::protocol::fetch::FetchPartition::partition_data(
+                    0, 0, -1, 1024, None, None,
+                ),
+                stamp: 0,
+            },
+        );
+        let _ = session.partitions.insert(Arc::<str>::from("t"), parts);
+        let topic = FetchedTopic {
+            topic: "t".into(),
+            topic_id: [0; 16],
+            partitions: vec![
+                crate::protocol::fetch::FetchedPartition::partition_response(0, 0),
+                crate::protocol::fetch::FetchedPartition::partition_response(0, 0),
+            ],
+        };
+        let mut metadata = DecodeMetadataBudget::with_limit(64 * 1024);
+        let error = session
+            .validate_partitions(&[topic], 12, true, &mut metadata)
+            .await
+            .unwrap_err();
+        assert!(error.to_string().contains("duplicate partition"));
+
+        let mut many = SessionParts::new();
+        for partition in 0..200 {
+            let _ = many.insert(
+                partition,
+                SessionPartition {
+                    id: [0; 16],
+                    data: crate::protocol::fetch::FetchPartition::partition_data(
+                        partition, 0, -1, 1024, None, None,
+                    ),
+                    stamp: 0,
+                },
+            );
+        }
+        let _ = session.partitions.insert(Arc::<str>::from("t"), many);
+        let reversed = FetchedTopic {
+            topic: "t".into(),
+            topic_id: [0; 16],
+            partitions: (0..200)
+                .rev()
+                .map(|partition| {
+                    crate::protocol::fetch::FetchedPartition::partition_response(partition, 0)
+                })
+                .collect(),
+        };
+        let mut metadata = DecodeMetadataBudget::with_limit(4096);
+        assert!(matches!(
+            session
+                .validate_partitions(&[reversed], 12, true, &mut metadata)
+                .await,
+            Err(SessionValidationError::Budget(_))
+        ));
+
+        let topics: Vec<_> = (0..2000)
+            .map(|index| FetchedTopic {
+                topic: format!("t-{index}"),
+                topic_id: [0; 16],
+                partitions: Vec::new(),
+            })
+            .collect();
+        let mut metadata = DecodeMetadataBudget::with_limit(64 * 1024);
+        assert!(
+            session_response_is_unique(&topics, 12, &HashMap::new(), &mut metadata)
+                .await
+                .is_err()
+        );
+    }
+
     #[tokio::test(flavor = "current_thread")]
     async fn noting_many_fetch_topics_does_not_hold_the_caller() {
         let topics: Vec<FetchedTopic> = (0..2_000_000)
@@ -14767,12 +15128,14 @@ mod tests {
             })
             .collect();
         let mut repeated = HashSet::new();
+        let mut metadata = fetch_metadata_budget();
         let started = std::time::Instant::now();
         tokio::select! {
             _ = note_repeated_fetch_topics(
                 &topics,
                 |name, _| Ok(Some(Arc::<str>::from(name))),
                 &mut repeated,
+                &mut metadata,
             ) => {}
             () = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
         }
@@ -14803,8 +15166,10 @@ mod tests {
             &sample,
             |name, _| Ok(Some(Arc::<str>::from(name))),
             &mut noted,
+            &mut fetch_metadata_budget(),
         )
-        .await;
+        .await
+        .unwrap();
         assert!(trust);
         assert!(noted.contains("orders"));
         assert!(!noted.contains("payments"));
@@ -14817,8 +15182,10 @@ mod tests {
                 ))
             },
             &mut rejected,
+            &mut fetch_metadata_budget(),
         )
-        .await;
+        .await
+        .unwrap();
         assert!(!mismatched);
         assert!(rejected.is_empty());
     }
@@ -15316,6 +15683,7 @@ mod tests {
             }],
             batches: topics,
             endpoints: Vec::new(),
+            metadata: fetch_metadata_budget(),
         };
         let mut out = Vec::new();
         let mut out_bytes = 0usize;
@@ -15403,6 +15771,7 @@ mod tests {
             }],
             batches: topics,
             endpoints: Vec::new(),
+            metadata: fetch_metadata_budget(),
         };
         let mut out = Vec::new();
         let mut out_bytes = 0usize;
@@ -15459,6 +15828,7 @@ mod tests {
             }],
             batches: topics,
             endpoints: Vec::new(),
+            metadata: fetch_metadata_budget(),
         };
         out.clear();
         let applied = consumer
@@ -16701,7 +17071,7 @@ mod tests {
         let second = Arc::<str>::from("orders");
         let other = Arc::<str>::from("payments");
         assert!(!Arc::ptr_eq(&first, &second));
-        let mut ptr = std::ptr::null();
+        let mut ptr = None;
         let mut name = None;
         assert!(!reuse_topic_cache(&mut ptr, &mut name, &first));
         assert!(reuse_topic_cache(&mut ptr, &mut name, &first));
@@ -17177,9 +17547,30 @@ mod tests {
             partitions: vec![FetchedPartition::partition_response(0, 0)],
         };
         let ids = HashMap::new();
-        assert!(session_response_is_unique(std::slice::from_ref(&orders), 11, &ids).await);
-        assert!(session_response_is_unique(&[orders.clone(), payments.clone()], 11, &ids).await);
-        assert!(!session_response_is_unique(&[orders.clone(), orders], 11, &ids).await);
+        assert!(session_response_is_unique(
+            std::slice::from_ref(&orders),
+            11,
+            &ids,
+            &mut fetch_metadata_budget()
+        )
+        .await
+        .unwrap());
+        assert!(session_response_is_unique(
+            &[orders.clone(), payments.clone()],
+            11,
+            &ids,
+            &mut fetch_metadata_budget()
+        )
+        .await
+        .unwrap());
+        assert!(!session_response_is_unique(
+            &[orders.clone(), orders],
+            11,
+            &ids,
+            &mut fetch_metadata_budget()
+        )
+        .await
+        .unwrap());
         let backwards = FetchedTopic {
             topic: "payments".to_owned(),
             topic_id: [0; 16],
@@ -17188,7 +17579,14 @@ mod tests {
                 FetchedPartition::partition_response(0, 0),
             ],
         };
-        assert!(!session_response_is_unique(&[payments, backwards], 11, &ids).await);
+        assert!(!session_response_is_unique(
+            &[payments, backwards],
+            11,
+            &ids,
+            &mut fetch_metadata_budget()
+        )
+        .await
+        .unwrap());
     }
 
     #[test]
@@ -18660,6 +19058,29 @@ mod tests {
         ));
         assert_eq!(heaped.as_str(), long);
         assert_eq!(String::from(heaped.as_str()), long);
+        assert_eq!(TopicPartition::new(&short, 0).topic, "nb-fetch");
+        assert_eq!(TopicPartition::new(&heaped, 1).topic, long);
+    }
+
+    #[test]
+    fn fetch_future_can_move_between_runtime_threads() {
+        fn assert_send<T: Send>(_: T) {}
+        fn check(consumer: &mut Consumer) {
+            assert_send(consumer.fetch());
+        }
+        let _ = check as fn(&mut Consumer);
+    }
+
+    #[test]
+    fn record_bytes_convert_to_producer_bytes() {
+        let short = RecordBytes::from(&b"key"[..]);
+        assert_eq!(Bytes::from(short), &b"key"[..]);
+
+        let long = Bytes::from(vec![42; RECORD_BYTES_INLINE + 1]);
+        let original = long.as_ptr();
+        let converted = Bytes::from(RecordBytes::from(long));
+        assert_eq!(converted.as_ptr(), original);
+        assert_eq!(converted, vec![42; RECORD_BYTES_INLINE + 1]);
     }
 
     #[test]

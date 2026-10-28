@@ -123,7 +123,9 @@ async fn explicit_false_on_v0_only_broker_sends_nothing() {
     );
     assert!(mock.add_raft_voter_requests().is_empty());
 
+    admin.close().await.unwrap();
     mock.hide_api(ADD_RAFT_VOTER);
+    let mut admin = Admin::connect(&mock.addr).await.unwrap();
     let absent = admin
         .add_raft_voter(7, directory, request(true).listeners, options(true))
         .await

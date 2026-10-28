@@ -373,15 +373,41 @@ pub fn decode_api_versions_request<B: Buf>(buf: &mut B, version: i16) -> Result<
 }
 
 /// Decode ApiVersions v0–v4 (classic v0–2, flexible v3–v4).
+///
+/// The decoded API-version and feature metadata is limited to 128 MiB,
+/// independently of the input frame limit. Oversized metadata returns a
+/// protocol error; allocator bookkeeping and the input buffer are separate.
 pub fn decode_api_versions_response<B: Buf>(
     buf: &mut B,
     version: i16,
 ) -> Result<ApiVersionsResponse> {
+    decode_api_versions_response_with_metadata_limit(buf, version, API_VERSIONS_METADATA_BUDGET)
+}
+
+/// Decode an ApiVersions response with an explicit limit for decoded array
+/// slots and feature-name allocations, in bytes. This low-level setting does
+/// not change the limit used by connection negotiation. The input buffer,
+/// transient errors and allocator bookkeeping are not included in the limit.
+pub fn decode_api_versions_response_with_metadata_limit<B: Buf>(
+    buf: &mut B,
+    version: i16,
+    max_metadata_bytes: usize,
+) -> Result<ApiVersionsResponse> {
     let flexible = api_versions_flexible(version)?;
     let error_code = buf::get_i16(buf)?;
     let count = buf::get_array_len(buf, flexible)?.unwrap_or(0);
-    let mut api_keys = Vec::with_capacity(count);
+    let mut budget = ApiVersionsDecodeBudget {
+        charged: 0,
+        limit: max_metadata_bytes,
+    };
+    let mut api_keys = bounded_api_versions_vec::<ApiVersion, _>(
+        buf,
+        count,
+        if flexible { 7 } else { 6 },
+        &mut budget,
+    )?;
     for _ in 0..count {
+        reserve_api_versions_item(&mut api_keys, count, &mut budget)?;
         let api_key = buf::get_i16(buf)?;
         let min_version = buf::get_i16(buf)?;
         let max_version = buf::get_i16(buf)?;
@@ -396,7 +422,7 @@ pub fn decode_api_versions_response<B: Buf>(
     }
     let throttle_time_ms = if version >= 1 { buf::get_i32(buf)? } else { 0 };
     let tagged = if flexible {
-        decode_api_versions_tagged_fields(buf)?
+        decode_api_versions_tagged_fields(buf, &mut budget)?
     } else {
         ApiVersionsTaggedFields {
             supported: Vec::new(),
@@ -414,6 +440,107 @@ pub fn decode_api_versions_response<B: Buf>(
         finalized_features: tagged.finalized,
         zk_migration_ready: tagged.zk_migration_ready,
     })
+}
+
+// ApiVersions runs before authentication. Bound retained vector slots and
+// feature-name storage independently of the framed input buffer. The network
+// frame limit is separate, and allocator bookkeeping is not included here.
+const API_VERSIONS_METADATA_BUDGET: usize = 128 * 1024 * 1024;
+const API_VERSIONS_INITIAL_SLOTS: usize = 256;
+
+struct ApiVersionsDecodeBudget {
+    charged: usize,
+    limit: usize,
+}
+
+#[cfg(test)]
+impl Default for ApiVersionsDecodeBudget {
+    fn default() -> Self {
+        Self {
+            charged: 0,
+            limit: API_VERSIONS_METADATA_BUDGET,
+        }
+    }
+}
+
+impl ApiVersionsDecodeBudget {
+    fn charge(&mut self, bytes: usize) -> Result<()> {
+        let next = self
+            .charged
+            .checked_add(bytes)
+            .ok_or_else(|| Error::protocol("ApiVersions metadata size overflow"))?;
+        if next > self.limit {
+            return Err(Error::protocol("ApiVersions metadata budget exceeded"));
+        }
+        self.charged = next;
+        Ok(())
+    }
+}
+
+fn bounded_api_versions_vec<T, B: Buf>(
+    buf: &B,
+    count: usize,
+    minimum_wire_bytes: usize,
+    budget: &mut ApiVersionsDecodeBudget,
+) -> Result<Vec<T>> {
+    if count > buf.remaining() / minimum_wire_bytes {
+        return Err(Error::protocol("ApiVersions array exceeds remaining bytes"));
+    }
+    let slots = count
+        .checked_mul(std::mem::size_of::<T>())
+        .ok_or_else(|| Error::protocol("ApiVersions metadata size overflow"))?;
+    budget.charge(slots)?;
+    Ok(Vec::new())
+}
+
+// Reserve at most a small initial chunk, then grow after earlier elements
+// have parsed. Geometric growth keeps large responses amortized linear. The
+// declared slot count is already charged; account for any reported excess.
+fn reserve_api_versions_item<T>(
+    out: &mut Vec<T>,
+    count: usize,
+    budget: &mut ApiVersionsDecodeBudget,
+) -> Result<()> {
+    if out.len() < out.capacity() {
+        return Ok(());
+    }
+    let target = out
+        .capacity()
+        .saturating_mul(2)
+        .max(API_VERSIONS_INITIAL_SLOTS)
+        .min(count);
+    let additional = target.saturating_sub(out.len());
+    out.try_reserve_exact(additional)
+        .map_err(|_| Error::protocol("ApiVersions array allocation failed"))?;
+    if out.capacity() > count {
+        let excess = out
+            .capacity()
+            .saturating_sub(count)
+            .checked_mul(std::mem::size_of::<T>())
+            .ok_or_else(|| Error::protocol("ApiVersions metadata size overflow"))?;
+        budget.charge(excess)?;
+    }
+    Ok(())
+}
+
+fn api_versions_feature_name<B: Buf>(
+    buf: &mut B,
+    budget: &mut ApiVersionsDecodeBudget,
+) -> Result<String> {
+    let encoded = buf::get_unsigned_varint(buf)?;
+    if encoded == 0 {
+        return Ok(String::new());
+    }
+    let len = buf::usize_from_u32(encoded - 1)?;
+    if len > buf.remaining() {
+        return Err(Error::protocol(
+            "ApiVersions feature name exceeds remaining bytes",
+        ));
+    }
+    budget.charge(len)?;
+    let bytes = buf::copy_exact(buf, len)?;
+    budget.charge(bytes.capacity().saturating_sub(len))?;
+    String::from_utf8(bytes).map_err(|error| Error::protocol(error.to_string()))
 }
 
 /// Parse an ApiVersions body, falling back to v0 when the sent version does
@@ -684,11 +811,15 @@ fn write_supported_features(
     Ok(())
 }
 
-fn decode_supported_feature_keys<B: Buf>(buf: &mut B) -> Result<Vec<SupportedFeatureKey>> {
+fn decode_supported_feature_keys<B: Buf>(
+    buf: &mut B,
+    budget: &mut ApiVersionsDecodeBudget,
+) -> Result<Vec<SupportedFeatureKey>> {
     let n = buf::get_array_len(buf, true)?.unwrap_or(0);
-    let mut out = Vec::with_capacity(n);
+    let mut out = bounded_api_versions_vec::<SupportedFeatureKey, _>(buf, n, 6, budget)?;
     for _ in 0..n {
-        let name = buf::get_compact_string(buf)?.unwrap_or_default();
+        reserve_api_versions_item(&mut out, n, budget)?;
+        let name = api_versions_feature_name(buf, budget)?;
         let min_version = buf::get_i16(buf)?;
         let max_version = buf::get_i16(buf)?;
         buf::skip_tagged_fields(buf)?;
@@ -712,11 +843,15 @@ fn write_finalized_features(buf: &mut BytesMut, features: &[FinalizedFeatureKey]
     Ok(())
 }
 
-fn decode_finalized_feature_keys<B: Buf>(buf: &mut B) -> Result<Vec<FinalizedFeatureKey>> {
+fn decode_finalized_feature_keys<B: Buf>(
+    buf: &mut B,
+    budget: &mut ApiVersionsDecodeBudget,
+) -> Result<Vec<FinalizedFeatureKey>> {
     let n = buf::get_array_len(buf, true)?.unwrap_or(0);
-    let mut out = Vec::with_capacity(n);
+    let mut out = bounded_api_versions_vec::<FinalizedFeatureKey, _>(buf, n, 6, budget)?;
     for _ in 0..n {
-        let name = buf::get_compact_string(buf)?.unwrap_or_default();
+        reserve_api_versions_item(&mut out, n, budget)?;
+        let name = api_versions_feature_name(buf, budget)?;
         let max_version_level = buf::get_i16(buf)?;
         let min_version_level = buf::get_i16(buf)?;
         buf::skip_tagged_fields(buf)?;
@@ -780,37 +915,57 @@ fn put_api_versions_tag(buf: &mut BytesMut, tag: u32, payload: usize) -> Result<
     Ok(())
 }
 
-fn decode_api_versions_tagged_fields<B: Buf>(buf: &mut B) -> Result<ApiVersionsTaggedFields> {
-    let tags = buf::get_tagged_fields(buf)?;
+fn decode_api_versions_tagged_fields<B: Buf>(
+    buf: &mut B,
+    budget: &mut ApiVersionsDecodeBudget,
+) -> Result<ApiVersionsTaggedFields> {
+    let tags = buf::usize_from_u32(buf::get_unsigned_varint(buf)?)?;
+    // Every tag needs at least one byte for its ID and one for its size.
+    if tags > buf.remaining() / 2 {
+        return Err(Error::protocol(
+            "ApiVersions tagged field count exceeds remaining bytes",
+        ));
+    }
     let mut supported = Vec::new();
     let mut epoch = None;
     let mut finalized = Vec::new();
     let mut zk = false;
-    for (tag, value) in tags {
+    let mut previous = None;
+    for _ in 0..tags {
+        let tag = buf::get_unsigned_varint(buf)?;
+        if previous.is_some_and(|old| tag <= old) {
+            return Err(Error::protocol(
+                "tagged fields must be in ascending tag order",
+            ));
+        }
+        previous = Some(tag);
+        let size = buf::usize_from_u32(buf::get_unsigned_varint(buf)?)?;
+        if size > buf.remaining() {
+            return Err(Error::protocol("ApiVersions tag exceeds remaining bytes"));
+        }
+        // Take limits reads to this field without collecting every unknown tag
+        // or copying large fields, including when B is a segmented buffer.
+        let mut value = (&mut *buf).take(size);
         match tag {
             0 => {
-                let mut cur = value.as_ref();
-                supported = decode_supported_feature_keys(&mut cur)?;
-                leftover_empty(&cur, "supported_features")?;
+                supported = decode_supported_feature_keys(&mut value, budget)?;
+                leftover_empty(&value, "supported_features")?;
             }
             1 => {
-                let mut cur = value.as_ref();
-                let v = buf::get_i64(&mut cur)?;
-                leftover_empty(&cur, "finalized_features_epoch")?;
+                let v = buf::get_i64(&mut value)?;
+                leftover_empty(&value, "finalized_features_epoch")?;
                 epoch = (v != ApiVersionsResponse::UNKNOWN_FINALIZED_FEATURES_EPOCH && v >= 0)
                     .then_some(v);
             }
             2 => {
-                let mut cur = value.as_ref();
-                finalized = decode_finalized_feature_keys(&mut cur)?;
-                leftover_empty(&cur, "finalized_features")?;
+                finalized = decode_finalized_feature_keys(&mut value, budget)?;
+                leftover_empty(&value, "finalized_features")?;
             }
             3 => {
-                let mut cur = value.as_ref();
-                zk = buf::get_bool(&mut cur)?;
-                leftover_empty(&cur, "zk_migration_ready")?;
+                zk = buf::get_bool(&mut value)?;
+                leftover_empty(&value, "zk_migration_ready")?;
             }
-            _ => {}
+            _ => value.advance(size),
         }
     }
     Ok(ApiVersionsTaggedFields {
@@ -1297,6 +1452,156 @@ async fn decode_node_endpoints_limited<B: Buf>(
         return Err(Error::protocol("NodeEndpoints leftover"));
     }
     Ok(out)
+}
+
+/// Decode Fetch's tagged endpoints against the response-wide metadata budget.
+pub(crate) fn decode_top_level_node_endpoints_with_budget<B: Buf>(
+    buf: &mut B,
+    include: bool,
+    metadata: &mut records::DecodeMetadataBudget,
+) -> Result<Vec<NodeEndpoint>> {
+    let count = buf::usize_from_u32(buf::get_unsigned_varint(buf)?)?;
+    if count > buf.remaining() {
+        return Err(Error::protocol(
+            "tagged field count exceeds remaining bytes",
+        ));
+    }
+    let mut endpoints = Vec::new();
+    let mut previous: Option<u32> = None;
+    for _ in 0..count {
+        let tag = buf::get_unsigned_varint(buf)?;
+        if previous.is_some_and(|seen| tag <= seen) {
+            return Err(Error::protocol(
+                "tagged fields must be in ascending tag order",
+            ));
+        }
+        previous = Some(tag);
+        let size = buf::usize_from_u32(buf::get_unsigned_varint(buf)?)?;
+        buf::need(buf, size)?;
+        if include && tag == 0 {
+            let mut value = (&mut *buf).take(size);
+            endpoints = get_compact_node_endpoints_with_budget(&mut value, metadata)?;
+            if value.remaining() != 0 {
+                return Err(Error::protocol("NodeEndpoints leftover"));
+            }
+        } else {
+            buf.advance(size);
+        }
+    }
+    Ok(endpoints)
+}
+
+fn budgeted_endpoint_string<B: Buf>(
+    buf: &mut B,
+    metadata: &mut records::DecodeMetadataBudget,
+) -> Result<Option<String>> {
+    let n = buf::get_unsigned_varint(buf)?;
+    if n == 0 {
+        return Ok(None);
+    }
+    let len = buf::usize_from_u32(n - 1)?;
+    buf::need(buf, len)?;
+    let mut bytes = Vec::new();
+    metadata.reserve(&mut bytes, len)?;
+    bytes.resize(len, 0);
+    buf.copy_to_slice(&mut bytes);
+    String::from_utf8(bytes)
+        .map(Some)
+        .map_err(|error| Error::protocol(error.to_string()))
+}
+
+fn read_budgeted_endpoint<B: Buf>(
+    buf: &mut B,
+    metadata: &mut records::DecodeMetadataBudget,
+) -> Result<NodeEndpoint> {
+    let node_id = buf::get_i32(buf)?;
+    let host = budgeted_endpoint_string(buf, metadata)?.unwrap_or_default();
+    let port = buf::get_i32(buf)?;
+    let rack = budgeted_endpoint_string(buf, metadata)?;
+    buf::skip_tagged_fields(buf)?;
+    Ok(NodeEndpoint {
+        node_id,
+        host,
+        port,
+        rack,
+    })
+}
+
+fn push_budgeted_endpoint(
+    out: &mut Vec<NodeEndpoint>,
+    endpoint: NodeEndpoint,
+    metadata: &mut records::DecodeMetadataBudget,
+) -> Result<()> {
+    if out.len() == out.capacity() {
+        let remaining = metadata.remaining_slots::<NodeEndpoint>();
+        let next = out.capacity().max(4).saturating_mul(2).min(remaining);
+        if next <= out.capacity() {
+            metadata.require::<NodeEndpoint>(1)?;
+            return Err(Error::protocol("node endpoint reserve"));
+        }
+        metadata.reserve(out, next)?;
+    }
+    out.push(endpoint);
+    Ok(())
+}
+
+fn get_compact_node_endpoints_with_budget<B: Buf>(
+    buf: &mut B,
+    metadata: &mut records::DecodeMetadataBudget,
+) -> Result<Vec<NodeEndpoint>> {
+    let count = buf::get_array_len(buf, true)?.unwrap_or(0);
+    let mut out = Vec::new();
+    // Never reserve against an unverified array count; padded malformed input
+    // should only cause allocations for entries actually parsed.
+    for _ in 0..count {
+        let endpoint = read_budgeted_endpoint(buf, metadata)?;
+        push_budgeted_endpoint(&mut out, endpoint, metadata)?;
+    }
+    Ok(out)
+}
+
+/// Cooperative Fetch endpoint decoding with response-wide metadata accounting.
+pub(crate) async fn decode_top_level_node_endpoints_cooperative_with_budget<B: Buf>(
+    buf: &mut B,
+    include: bool,
+    metadata: &mut records::DecodeMetadataBudget,
+) -> Result<Vec<NodeEndpoint>> {
+    let count = buf::usize_from_u32(buf::get_unsigned_varint(buf)?)?;
+    if count > buf.remaining() {
+        return Err(Error::protocol(
+            "tagged field count exceeds remaining bytes",
+        ));
+    }
+    let mut endpoints = Vec::new();
+    let mut previous: Option<u32> = None;
+    for _ in 0..count {
+        let tag = buf::get_unsigned_varint(buf)?;
+        if previous.is_some_and(|seen| tag <= seen) {
+            return Err(Error::protocol(
+                "tagged fields must be in ascending tag order",
+            ));
+        }
+        previous = Some(tag);
+        let size = buf::usize_from_u32(buf::get_unsigned_varint(buf)?)?;
+        buf::need(buf, size)?;
+        if include && tag == 0 {
+            let mut value = (&mut *buf).take(size);
+            let entries = buf::get_array_len(&mut value, true)?.unwrap_or(0);
+            for i in 0..entries {
+                let endpoint = read_budgeted_endpoint(&mut value, metadata)?;
+                push_budgeted_endpoint(&mut endpoints, endpoint, metadata)?;
+                if (i + 1) % (8 * 1024) == 0 && i + 1 < entries {
+                    tokio::task::yield_now().await;
+                }
+            }
+            if value.remaining() != 0 {
+                return Err(Error::protocol("NodeEndpoints leftover"));
+            }
+        } else {
+            buf.advance(size);
+        }
+    }
+    Ok(endpoints)
 }
 
 /// One partition in a Metadata response.
@@ -5332,10 +5637,13 @@ pub fn decode_produce_response_with_topic_ids<B: Buf>(
 }
 
 fn reserve_additional<T>(items: &mut Vec<T>, additional: usize) -> Result<()> {
-    let need = items.len().saturating_add(additional);
+    // Declared collection counts are untrusted; allocate an initial chunk and
+    // grow as actual elements are decoded.
+    let initial = additional.min(256);
+    let need = items.len().saturating_add(initial);
     if items.capacity() < need {
         items
-            .try_reserve_exact(need - items.capacity())
+            .try_reserve_exact(initial)
             .map_err(|_| Error::protocol("produce response reserve"))?;
     }
     Ok(())
@@ -5637,9 +5945,313 @@ fn pull_produce_acks(pull: &mut ProduceAckPull<'_>, start: usize, end: usize) ->
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn fetch_endpoint_budget_preserves_valid_and_rejects_excess_metadata() {
+        let small = vec![NodeEndpoint::new(1, "h", 9092, Some("rack".to_owned()))];
+        let dense: Vec<_> = (0..300)
+            .map(|id| NodeEndpoint::new(id, "host", 9092, None))
+            .collect();
+        for expected in [&small, &dense] {
+            let mut wire = BytesMut::new();
+            encode_top_level_node_endpoints(&mut wire, true, expected).unwrap();
+            let mut budget = records::DecodeMetadataBudget::for_wire_limit(1);
+            let mut cursor = &wire[..];
+            assert_eq!(
+                decode_top_level_node_endpoints_with_budget(&mut cursor, true, &mut budget)
+                    .unwrap(),
+                *expected
+            );
+            assert!(cursor.is_empty());
+            let mut budget = records::DecodeMetadataBudget::for_wire_limit(1);
+            let mut cursor = &wire[..];
+            assert_eq!(
+                decode_top_level_node_endpoints_cooperative_with_budget(
+                    &mut cursor,
+                    true,
+                    &mut budget
+                )
+                .await
+                .unwrap(),
+                *expected
+            );
+            assert!(cursor.is_empty());
+        }
+        let large: Vec<_> = (0..1500)
+            .map(|id| NodeEndpoint::new(id, "host-with-a-long-name", 9092, None))
+            .collect();
+        let mut wire = BytesMut::new();
+        encode_top_level_node_endpoints(&mut wire, true, &large).unwrap();
+        let mut budget = records::DecodeMetadataBudget::for_wire_limit(1);
+        assert!(
+            decode_top_level_node_endpoints_with_budget(&mut &wire[..], true, &mut budget).is_err()
+        );
+        let mut budget = records::DecodeMetadataBudget::for_wire_limit(1);
+        assert!(decode_top_level_node_endpoints_cooperative_with_budget(
+            &mut &wire[..],
+            true,
+            &mut budget
+        )
+        .await
+        .is_err());
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn fetch_endpoint_padded_count_does_not_reserve_the_declared_array() {
+        let mut payload = BytesMut::new();
+        buf::put_unsigned_varint(&mut payload, 100_001);
+        payload.resize(payload.len() + 100_000, 0xff);
+        let mut wire = BytesMut::new();
+        buf::put_unsigned_varint(&mut wire, 1);
+        buf::put_unsigned_varint(&mut wire, 0);
+        buf::put_unsigned_varint(&mut wire, u32::try_from(payload.len()).unwrap());
+        wire.extend_from_slice(&payload);
+        let mut budget = records::DecodeMetadataBudget::for_wire_limit(1);
+        let initial = budget.remaining_slots::<NodeEndpoint>();
+        assert!(
+            decode_top_level_node_endpoints_with_budget(&mut &wire[..], true, &mut budget).is_err()
+        );
+        assert_eq!(budget.remaining_slots::<NodeEndpoint>(), initial);
+        let mut budget = records::DecodeMetadataBudget::for_wire_limit(1);
+        assert!(decode_top_level_node_endpoints_cooperative_with_budget(
+            &mut &wire[..],
+            true,
+            &mut budget
+        )
+        .await
+        .is_err());
+        assert_eq!(budget.remaining_slots::<NodeEndpoint>(), initial);
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn fetch_endpoint_budget_handles_split_buffers_and_tag_boundaries() {
+        let expected = vec![NodeEndpoint::new(
+            1,
+            "broker.example",
+            9092,
+            Some("rack".to_owned()),
+        )];
+        let mut wire = BytesMut::new();
+        encode_top_level_node_endpoints(&mut wire, true, &expected).unwrap();
+        let cut = wire.len() / 2;
+        let mut budget = records::DecodeMetadataBudget::for_wire_limit(1);
+        let mut split = (&wire[..cut]).chain(&wire[cut..]);
+        assert_eq!(
+            decode_top_level_node_endpoints_with_budget(&mut split, true, &mut budget).unwrap(),
+            expected
+        );
+        assert!(!split.has_remaining());
+        let mut budget = records::DecodeMetadataBudget::for_wire_limit(1);
+        let mut split = (&wire[..cut]).chain(&wire[cut..]);
+        assert_eq!(
+            decode_top_level_node_endpoints_cooperative_with_budget(&mut split, true, &mut budget)
+                .await
+                .unwrap(),
+            expected
+        );
+        assert!(!split.has_remaining());
+
+        // Tag 0 says it contains one endpoint, but its one-byte payload holds
+        // only the compact array count. Later tagged fields must not be read
+        // as part of that endpoint.
+        let truncated = [2u8, 0, 1, 2, 1, 12, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0];
+        let mut budget = records::DecodeMetadataBudget::for_wire_limit(1);
+        assert!(decode_top_level_node_endpoints_with_budget(
+            &mut &truncated[..],
+            true,
+            &mut budget
+        )
+        .is_err());
+        let mut budget = records::DecodeMetadataBudget::for_wire_limit(1);
+        assert!(decode_top_level_node_endpoints_cooperative_with_budget(
+            &mut &truncated[..],
+            true,
+            &mut budget
+        )
+        .await
+        .is_err());
+    }
+
+    #[test]
+    fn response_reservation_uses_length_and_caps_untrusted_counts() {
+        let mut reused = Vec::with_capacity(8);
+        reused.extend([1_u8, 2, 3]);
+        reserve_additional(&mut reused, 7).unwrap();
+        assert!(reused.capacity() >= 10);
+        let mut hostile = Vec::<u8>::new();
+        reserve_additional(&mut hostile, usize::MAX).unwrap();
+        assert!(hostile.capacity() <= 256);
+    }
     use crate::protocol::records::{Compression, Record};
     use bytes::Bytes;
     use std::collections::{HashMap, HashSet};
+
+    #[test]
+    fn api_versions_rejects_padded_counts_before_allocating_output() {
+        let n = 100_000usize;
+        for version in [0, 4] {
+            let flexible = version >= 3;
+            let mut wire = BytesMut::new();
+            wire.put_i16(0);
+            buf::put_array_len(&mut wire, flexible, Some(n)).unwrap();
+            wire.resize(wire.len() + n, 0);
+            let mut input = wire.as_ref();
+            assert!(decode_api_versions_response(&mut input, version).is_err());
+        }
+        let mut budget = ApiVersionsDecodeBudget::default();
+        let padded = vec![0; n];
+        assert!(
+            bounded_api_versions_vec::<ApiVersion, _>(&padded.as_slice(), n, 6, &mut budget)
+                .is_err()
+        );
+        assert_eq!(budget.charged, 0);
+    }
+
+    #[test]
+    fn api_versions_feature_arrays_and_metadata_budget_are_bounded() {
+        let n = 100_000usize;
+        let mut padded = BytesMut::new();
+        buf::put_array_len(&mut padded, true, Some(n)).unwrap();
+        padded.resize(padded.len() + n, 0);
+        let mut budget = ApiVersionsDecodeBudget::default();
+        assert!(decode_supported_feature_keys(&mut padded.as_ref(), &mut budget).is_err());
+        assert_eq!(budget.charged, 0);
+        assert!(decode_finalized_feature_keys(&mut padded.as_ref(), &mut budget).is_err());
+        assert_eq!(budget.charged, 0);
+        let valid = &[0u8; 6][..];
+        let mut near_limit = ApiVersionsDecodeBudget {
+            charged: API_VERSIONS_METADATA_BUDGET - 1,
+            limit: API_VERSIONS_METADATA_BUDGET,
+        };
+        assert!(
+            bounded_api_versions_vec::<SupportedFeatureKey, _>(&valid, 1, 6, &mut near_limit)
+                .is_err()
+        );
+        let mut budget = ApiVersionsDecodeBudget::default();
+        let out = bounded_api_versions_vec::<ApiVersion, _>(&valid, 1, 6, &mut budget).unwrap();
+        assert_eq!(
+            out.capacity(),
+            0,
+            "declared count must not eagerly allocate"
+        );
+    }
+
+    #[test]
+    fn api_versions_low_level_metadata_limit_is_explicit() {
+        let response = ApiVersionsResponse {
+            api_keys: vec![ApiVersion {
+                api_key: 18,
+                min_version: 0,
+                max_version: 4,
+            }],
+            ..ApiVersionsResponse::default()
+        };
+        let mut wire = BytesMut::new();
+        encode_api_versions_response(&mut wire, 4, &response).unwrap();
+        let item_bytes = std::mem::size_of::<ApiVersion>();
+        let mut too_small = wire.as_ref();
+        assert!(decode_api_versions_response_with_metadata_limit(
+            &mut too_small,
+            4,
+            item_bytes - 1
+        )
+        .is_err());
+        let mut exact = wire.as_ref();
+        assert_eq!(
+            decode_api_versions_response_with_metadata_limit(&mut exact, 4, item_bytes).unwrap(),
+            response
+        );
+        assert!(!exact.has_remaining());
+    }
+
+    #[test]
+    fn api_versions_metadata_budget_is_shared_across_tagged_arrays() {
+        let response = ApiVersionsResponse {
+            supported_features: vec![SupportedFeatureKey {
+                name: "a".to_string(),
+                min_version: 1,
+                max_version: 2,
+            }],
+            finalized_features: vec![FinalizedFeatureKey {
+                name: "b".to_string(),
+                max_version_level: 2,
+                min_version_level: 1,
+            }],
+            ..ApiVersionsResponse::default()
+        };
+        let mut wire = BytesMut::new();
+        encode_api_versions_response(&mut wire, 4, &response).unwrap();
+        let first_only = std::mem::size_of::<SupportedFeatureKey>() + 1;
+        let mut limited = wire.as_ref();
+        assert!(
+            decode_api_versions_response_with_metadata_limit(&mut limited, 4, first_only).is_err()
+        );
+        let mut enough = wire.as_ref();
+        assert_eq!(
+            decode_api_versions_response_with_metadata_limit(&mut enough, 4, 4096).unwrap(),
+            response
+        );
+        assert!(!enough.has_remaining());
+    }
+
+    #[test]
+    fn api_versions_large_valid_arrays_grow_fallibly_and_preserve_entries() {
+        let count = 100_000usize;
+        let response = ApiVersionsResponse {
+            api_keys: (0..count)
+                .map(|index| ApiVersion {
+                    api_key: i16::try_from(index % 1000).unwrap(),
+                    min_version: 0,
+                    max_version: 4,
+                })
+                .collect(),
+            ..ApiVersionsResponse::default()
+        };
+        for version in [0, 1, 2, 3, 4] {
+            let mut encoded = BytesMut::new();
+            encode_api_versions_response(&mut encoded, version, &response).unwrap();
+            let mut input = encoded.as_ref();
+            let decoded = decode_api_versions_response(&mut input, version).unwrap();
+            assert_eq!(decoded.api_keys, response.api_keys);
+            assert!(!input.has_remaining());
+        }
+    }
+
+    #[test]
+    fn api_versions_streams_unknown_tags_and_segmented_feature_fields() {
+        let mut supported = BytesMut::new();
+        buf::put_array_len(&mut supported, true, Some(1)).unwrap();
+        buf::put_compact_string(&mut supported, Some("feature-α")).unwrap();
+        supported.put_i16(1);
+        supported.put_i16(7);
+        buf::put_empty_tagged_fields(&mut supported);
+        let mut finalized = BytesMut::new();
+        buf::put_array_len(&mut finalized, true, Some(1)).unwrap();
+        buf::put_compact_string(&mut finalized, Some("ready")).unwrap();
+        finalized.put_i16(5);
+        finalized.put_i16(2);
+        buf::put_empty_tagged_fields(&mut finalized);
+        let mut body = BytesMut::new();
+        body.put_i16(0);
+        buf::put_array_len(&mut body, true, Some(0)).unwrap();
+        body.put_i32(0);
+        buf::put_unsigned_varint(&mut body, 3);
+        put_api_versions_tag(&mut body, 0, supported.len()).unwrap();
+        body.extend_from_slice(&supported);
+        put_api_versions_tag(&mut body, 2, finalized.len()).unwrap();
+        body.extend_from_slice(&finalized);
+        put_api_versions_tag(&mut body, 99, 1024).unwrap();
+        body.resize(body.len() + 1024, 0x5a);
+        let split = 16; // split inside the first tagged feature name
+        let mut segmented =
+            Bytes::copy_from_slice(&body[..split]).chain(Bytes::copy_from_slice(&body[split..]));
+        let decoded = decode_api_versions_response(&mut segmented, 4).unwrap();
+        assert_eq!(decoded.supported_features.len(), 1);
+        assert_eq!(decoded.supported_features[0].name, "feature-α");
+        assert_eq!(decoded.finalized_features.len(), 1);
+        assert_eq!(decoded.finalized_features[0].name, "ready");
+        assert!(!segmented.has_remaining());
+    }
 
     fn empty_batch() -> crate::protocol::records::RecordBatch {
         crate::protocol::records::RecordBatch {

@@ -15,7 +15,7 @@ use bytes::{BufMut, Bytes, BytesMut};
 use rustls::pki_types::pem::PemObject;
 use rustls::pki_types::{CertificateDer, PrivateKeyDer, ServerName};
 use rustls::{ClientConfig, RootCertStore};
-use tokio::io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt, ReadBuf};
+use tokio::io::{AsyncRead, AsyncReadExt, AsyncWrite, ReadBuf};
 use tokio::net::TcpStream;
 use tokio::time::{timeout, timeout_at, Instant as TokioInstant};
 use tokio_rustls::client::TlsStream;
@@ -841,6 +841,8 @@ where
 }
 
 enum ConnIo {
+    /// Socket already dropped after a terminal TLS shutdown.
+    Closed,
     Tcp(TcpStream),
     Tls(Box<TlsStream<TcpStream>>),
     /// Test double that returns a fixed body in small ready chunks.
@@ -916,6 +918,7 @@ impl AsyncRead for ConnIo {
         buf: &mut ReadBuf<'_>,
     ) -> Poll<io::Result<()>> {
         match self.get_mut() {
+            ConnIo::Closed => Poll::Ready(Ok(())),
             ConnIo::Tcp(s) => Pin::new(s).poll_read(cx, buf),
             ConnIo::Tls(s) => Pin::new(s.as_mut()).poll_read(cx, buf),
             #[cfg(test)]
@@ -931,6 +934,10 @@ impl AsyncWrite for ConnIo {
         buf: &[u8],
     ) -> Poll<io::Result<usize>> {
         match self.get_mut() {
+            ConnIo::Closed => Poll::Ready(Err(io::Error::new(
+                io::ErrorKind::BrokenPipe,
+                "connection closed",
+            ))),
             ConnIo::Tcp(s) => Pin::new(s).poll_write(cx, buf),
             ConnIo::Tls(s) => Pin::new(s.as_mut()).poll_write(cx, buf),
             #[cfg(test)]
@@ -940,6 +947,7 @@ impl AsyncWrite for ConnIo {
 
     fn poll_flush(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<io::Result<()>> {
         match self.get_mut() {
+            ConnIo::Closed => Poll::Ready(Ok(())),
             ConnIo::Tcp(s) => Pin::new(s).poll_flush(cx),
             ConnIo::Tls(s) => Pin::new(s.as_mut()).poll_flush(cx),
             #[cfg(test)]
@@ -949,10 +957,25 @@ impl AsyncWrite for ConnIo {
 
     fn poll_shutdown(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<io::Result<()>> {
         match self.get_mut() {
+            ConnIo::Closed => Poll::Ready(Ok(())),
             ConnIo::Tcp(s) => Pin::new(s).poll_shutdown(cx),
             ConnIo::Tls(s) => Pin::new(s.as_mut()).poll_shutdown(cx),
             #[cfg(test)]
             ConnIo::Script(s) => Pin::new(s).poll_shutdown(cx),
+        }
+    }
+}
+
+impl ConnIo {
+    /// Attempt graceful shutdown once. A blocked TLS flush must not keep a
+    /// terminal connection or its stream lock alive past a request deadline.
+    fn poll_terminal_shutdown(&mut self, cx: &mut Context<'_>) -> Poll<io::Result<()>> {
+        match Pin::new(&mut *self).poll_shutdown(cx) {
+            Poll::Pending if matches!(self, Self::Tls(_)) => {
+                *self = Self::Closed;
+                Poll::Ready(Ok(()))
+            }
+            other => other,
         }
     }
 }
@@ -968,22 +991,33 @@ enum IdleRead {
 ///
 /// Shutdown only closes the write half. A peer blocked in its own write stays
 /// there until those bytes are read or the socket is dropped.
-async fn discard_peer_write<S: AsyncRead + Unpin>(io: &mut S) {
+async fn discard_peer_write(stream: &tokio::sync::Mutex<ConnIo>, arm: &tokio::sync::Notify) {
     let mut discard = [0u8; 8 * 1024];
     loop {
-        let n = poll_fn(|cx| {
+        let seen = poll_fn(|cx| {
+            let Ok(mut io) = stream.try_lock() else {
+                return Poll::Ready(IdleRead::Busy);
+            };
             let mut read = ReadBuf::new(&mut discard);
             match Pin::new(&mut *io).poll_read(cx, &mut read) {
                 Poll::Pending => Poll::Pending,
-                Poll::Ready(Err(_)) => Poll::Ready(0),
-                Poll::Ready(Ok(())) => Poll::Ready(read.filled().len()),
+                Poll::Ready(Err(_)) => Poll::Ready(IdleRead::Eof),
+                Poll::Ready(Ok(())) if read.filled().is_empty() => Poll::Ready(IdleRead::Eof),
+                Poll::Ready(Ok(())) => Poll::Ready(IdleRead::Data(read.filled().len())),
             }
         })
         .await;
-        if n == 0 {
-            return;
+        match seen {
+            IdleRead::Busy => {
+                tokio::select! {
+                    biased;
+                    _ = arm.notified() => {}
+                    _ = tokio::time::sleep(Duration::from_millis(20)) => {}
+                }
+            }
+            IdleRead::Data(_) => tokio::task::yield_now().await,
+            IdleRead::Eof | IdleRead::Shut => return,
         }
-        tokio::task::yield_now().await;
     }
 }
 
@@ -1010,12 +1044,19 @@ fn spawn_idle_watch(
         loop {
             if closed.load(Ordering::SeqCst) {
                 if let Ok(mut io) = stream.try_lock() {
-                    drop(poll_fn(|cx| Pin::new(&mut *io).poll_shutdown(cx)).await);
+                    drop(poll_fn(|cx| io.poll_terminal_shutdown(cx)).await);
+                    if matches!(&*io, ConnIo::Tls(_) | ConnIo::Closed) {
+                        *io = ConnIo::Closed;
+                        drop(io);
+                        arm.notify_one();
+                        return;
+                    }
                     // The peer can still be writing. Discard those bytes so
                     // that write can finish and the peer can observe this
                     // shutdown.
-                    discard_peer_write(&mut *io).await;
+                    drop(io);
                     arm.notify_one();
+                    discard_peer_write(&stream, &arm).await;
                     return;
                 }
                 // The owner still holds the socket. Leaving now would drop
@@ -1086,11 +1127,16 @@ fn spawn_idle_watch(
                                 if too_long || matches!(scan, PrefixScan::Rejected) {
                                     closed.store(true, Ordering::SeqCst);
                                     if let Ok(mut io) = stream.try_lock() {
-                                        drop(poll_fn(|cx| {
-                                            Pin::new(&mut *io).poll_shutdown(cx)
-                                        })
-                                        .await);
-                                        discard_peer_write(&mut *io).await;
+                                        drop(poll_fn(|cx| io.poll_terminal_shutdown(cx)).await);
+                                        if matches!(&*io, ConnIo::Tls(_) | ConnIo::Closed) {
+                                            *io = ConnIo::Closed;
+                                            drop(io);
+                                            arm.notify_one();
+                                            return;
+                                        }
+                                        drop(io);
+                                        arm.notify_one();
+                                        discard_peer_write(&stream, &arm).await;
                                     }
                                     arm.notify_one();
                                     return;
@@ -1602,10 +1648,10 @@ impl BrokerConn {
         Err(Error::Closed)
     }
 
-    /// Send FIN for a connection that is already marked closed.
+    /// Shut down a connection that is already marked closed.
     ///
-    /// [`Self::close`] only sets the flag. The broker stays in its read until
-    /// this shutdown or the socket is dropped.
+    /// [`Self::close`] only sets the flag. TLS cleanup drops the socket if
+    /// its close notification cannot be flushed immediately.
     pub(crate) async fn release_if_closed(&mut self) {
         if !self.is_closed() {
             return;
@@ -1613,7 +1659,13 @@ impl BrokerConn {
         let mut rearm = Rearm::arm(Arc::clone(&self.idle_arm));
         let stream = Arc::clone(&self.stream);
         let mut stream = stream.lock().await;
-        drop(stream.shutdown().await);
+        drop(poll_fn(|cx| stream.poll_terminal_shutdown(cx)).await);
+        if matches!(&*stream, ConnIo::Tls(_) | ConnIo::Closed) {
+            // The watcher may be waiting for peer data. Stop it and drop the
+            // TLS socket now; a failed connection cannot be reused.
+            self.idle_watch.abort();
+            *stream = ConnIo::Closed;
+        }
         self.release_stream(stream);
         rearm.disarm();
         // Shutdown only schedules the FIN. Yield so the peer observes it
@@ -1738,7 +1790,13 @@ impl BrokerConn {
         let mut guard = CloseOnDrop::new(self.closed.clone(), Arc::clone(&self.idle_arm));
         let mut rearm = Rearm::arm(Arc::clone(&self.idle_arm));
         let stream = Arc::clone(&self.stream);
-        let mut stream = stream.lock().await;
+        let mut stream = match timeout_at(deadline.target(), stream.lock()).await {
+            Ok(stream) => stream,
+            Err(_) => {
+                self.close();
+                return Err(Error::Timeout);
+            }
+        };
         self.drain_prefetch();
         let wrote = deadline
             .run_io(write_all_pump(&mut *stream, &mut self.read_buf, bytes))
@@ -1926,7 +1984,13 @@ impl BrokerConn {
             let buffered = self.read_buf.len();
             let mut rearm = Rearm::arm(Arc::clone(&self.idle_arm));
             let stream = Arc::clone(&self.stream);
-            let mut stream = stream.lock().await;
+            let mut stream = match timeout_at(deadline.target(), stream.lock()).await {
+                Ok(stream) => stream,
+                Err(_) => {
+                    self.close();
+                    return Err(Error::Timeout);
+                }
+            };
             self.drain_prefetch();
             if self.read_buf.len() > buffered {
                 self.release_stream(stream);
@@ -4191,6 +4255,91 @@ mod tests {
             "a read timeout left the broker blocked in a read"
         );
         peer.abort();
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn response_and_write_deadlines_include_waiting_for_stream_lock() {
+        for write in [true, false] {
+            let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+            let addr = listener.local_addr().unwrap();
+            let peer = tokio::spawn(async move {
+                let (socket, _) = listener.accept().await.unwrap();
+                socket
+            });
+            let mut conn =
+                BrokerConn::connect(&addr.to_string(), "lock-deadline", Duration::from_secs(1))
+                    .await
+                    .unwrap();
+            let stream = Arc::clone(&conn.stream);
+            let held = stream.lock().await;
+            let result = tokio::time::timeout(Duration::from_secs(1), async {
+                if write {
+                    conn.write_all_timeout(&[1], Duration::from_millis(20))
+                        .await
+                } else {
+                    conn.read_response_deadline(
+                        0,
+                        0,
+                        0,
+                        Deadline::from_timeout(Duration::from_millis(20)),
+                    )
+                    .await
+                    .map(|_| ())
+                }
+            })
+            .await
+            .expect("waiting for the stream lock exceeded the deadline");
+            assert!(matches!(result, Err(Error::Timeout)));
+            assert!(conn.is_closed());
+            drop(held);
+            drop(peer.await.unwrap());
+        }
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn terminal_idle_watch_releases_its_stream_and_finishes() {
+        let stream = Arc::new(tokio::sync::Mutex::new(ConnIo::Closed));
+        let prefetch = Arc::new(parking_lot::Mutex::new(BytesMut::new()));
+        let closed = Arc::new(AtomicBool::new(true));
+        let arm = Arc::new(tokio::sync::Notify::new());
+        let watch = spawn_idle_watch(Arc::clone(&stream), prefetch, closed, arm);
+        tokio::time::timeout(Duration::from_secs(1), async {
+            while !watch.is_finished() {
+                tokio::task::yield_now().await;
+            }
+        })
+        .await
+        .expect("terminal idle watcher did not finish");
+        assert!(stream.try_lock().is_ok());
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn closed_idle_watch_does_not_block_shutdown_while_peer_stays_open() {
+        let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap();
+        let (saw_fin_tx, saw_fin_rx) = tokio::sync::oneshot::channel();
+        let (release_tx, release_rx) = tokio::sync::oneshot::channel();
+        let peer = tokio::spawn(async move {
+            let (mut socket, _) = listener.accept().await.unwrap();
+            let mut byte = [0u8; 1];
+            assert_eq!(socket.read(&mut byte).await.unwrap(), 0);
+            let _ = saw_fin_tx.send(());
+            let _ = release_rx.await;
+        });
+        let mut conn =
+            BrokerConn::connect(&addr.to_string(), "closed-watch", Duration::from_secs(1))
+                .await
+                .unwrap();
+        conn.close();
+        tokio::time::timeout(Duration::from_secs(1), saw_fin_rx)
+            .await
+            .expect("idle watcher did not shut down the write half")
+            .unwrap();
+        tokio::time::timeout(Duration::from_secs(1), conn.release_if_closed())
+            .await
+            .expect("peer kept the idle watch from releasing the stream lock");
+        let _ = release_tx.send(());
+        peer.await.unwrap();
     }
 
     #[tokio::test(flavor = "current_thread")]

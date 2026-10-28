@@ -1,0 +1,60 @@
+    Finished `test` profile [unoptimized] target(s) in 0.13s
+     Running unittests src/lib.rs (/workspace/work/qualification-20261027/broker-check-target/debug/deps/partitionline-b07aa256026bc081)
+
+running 53 tests
+test net::tests::a_full_frame_split_reserves_the_next_read ... ok
+test net::tests::a_greedy_ready_frame_stops_for_a_deadline ... ok
+test net::tests::a_ready_frame_stops_for_a_deadline ... ok
+test net::tests::a_ready_idle_flood_does_not_hold_the_caller ... ok
+test net::tests::a_ready_response_stops_for_a_deadline ... ok
+test net::tests::a_ready_write_stops_for_a_deadline ... ok
+test net::tests::a_run_of_empty_frames_does_not_hold_inbound_ready ... ok
+test net::tests::a_run_of_empty_frames_does_not_hold_the_caller ... ok
+test net::tests::a_run_of_empty_frames_does_not_hold_the_write ... ok
+test net::tests::an_expired_pipeline_lets_the_broker_leave ... ok
+test net::tests::an_idle_flood_lets_the_peer_finish_writing ... ok
+test net::tests::an_illegal_length_after_a_frame_does_not_wait_out_the_write ... ok
+test net::tests::an_illegal_length_already_buffered_does_not_wait_out_the_write ... ok
+test net::tests::an_illegal_length_does_not_leave_the_peer_blocked ... ok
+test net::tests::cancelled_read_rearms_the_idle_watch ... ok
+test net::tests::close_shuts_the_socket_while_the_idle_watch_is_parked ... ok
+test net::tests::closed_idle_watch_does_not_block_shutdown_while_peer_stays_open ... ok
+test net::tests::closing_an_idle_socket_lets_the_peer_finish_writing ... ok
+test net::tests::connect_any_finishes_a_losing_connect ... ok
+test net::tests::deadline_contract_tracks_remaining_and_expiration ... ok
+test net::tests::deadline_run_io_enforces_budget ... ok
+test net::tests::dropping_a_pipeline_stops_a_blocked_write ... ok
+test net::tests::idle_pipeline_shuts_down_when_the_broker_stops_writing ... ok
+test net::tests::idle_watch_keeps_bytes_that_arrive_before_the_peer_closes ... ok
+test net::tests::idle_watch_sees_a_close_after_a_finished_read ... ok
+test net::tests::idle_watch_sees_a_close_that_arrives_after_the_first_poll ... ok
+test net::tests::idle_watch_stops_a_flood_of_unsolicited_bytes ... ok
+test net::tests::inbound_ready_closes_when_the_peer_closes ... ok
+test net::tests::inbound_ready_keeps_a_queued_ack_frame ... ok
+test net::tests::inbound_ready_shutdowns_when_the_peer_stops_writing ... ok
+test net::tests::inbound_ready_shuts_an_illegal_length_down ... ok
+test net::tests::next_correlation_id_skips_sasl_reserved_range ... ok
+test net::tests::next_sasl_correlation_id_uses_reserved_range ... ok
+test net::tests::parse_and_validate_addresses_match_java ... ok
+test net::tests::parse_response_wraps_unrelated_sasl_correlation ... ok
+test net::tests::queued_byte_does_not_close_an_idle_pipeline ... ok
+test net::tests::queued_byte_does_not_spin_through_a_later_close ... ok
+test net::tests::read_timeout_shuts_the_broker_down ... ok
+test net::tests::repeated_requests_reuse_the_write_buffer ... ok
+test net::tests::reserve_frame_grows_once_to_known_size ... ok
+test net::tests::reserve_frame_is_noop_when_already_filled ... ok
+test net::tests::reserved_correlation_ids_match_java ... ok
+test net::tests::response_and_write_deadlines_include_waiting_for_stream_lock ... ok
+test net::tests::stalled_write_eof_before_any_byte_is_an_error ... ok
+test net::tests::stalled_write_keeps_a_large_response_without_copying_through_a_stack_buffer ... ok
+test net::tests::stalled_write_read_fills_only_the_open_frame ... ok
+test net::tests::stalled_write_stops_a_flood_of_empty_frames ... ok
+test net::tests::terminal_idle_watch_releases_its_stream_and_finishes ... ok
+test net::tests::tls_handshake_timeout_closes_the_socket ... ok
+test net::tests::utils_host_port_match_java ... ok
+test net::tests::write_deadline_stops_a_greedy_stalled_read ... ok
+test net::tests::write_deadline_stops_a_ready_partial_write ... ok
+test net::tests::write_timeout_shuts_the_broker_down ... ok
+
+test result: ok. 53 passed; 0 failed; 0 ignored; 0 measured; 2084 filtered out; finished in 2.35s
+

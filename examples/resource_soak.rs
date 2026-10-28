@@ -50,7 +50,7 @@ async fn consume(
                     Ok(records) => {
                         sample.buffered=consumer.buffered_bytes();
                         sample.application_bytes=records.iter().map(|r| r.value.as_ref().map_or(0,Bytes::len)
-                            +r.key.as_ref().map_or(0,Bytes::len)
+                            +r.key.as_ref().map_or(0, |key| key.len())
                             +r.headers.iter().map(|h| h.key.len()+h.value.as_ref().map_or(0,Bytes::len)).sum::<usize>()).sum();
                         sample.delivered=sample.delivered.saturating_add(u64::try_from(records.len()).unwrap_or(u64::MAX));
                         sample.delivered_bytes=sample.delivered_bytes.saturating_add(u64::try_from(sample.application_bytes).unwrap_or(u64::MAX));

@@ -1,0 +1,8 @@
+    Finished `test` profile [unoptimized] target(s) in 0.09s
+     Running unittests src/lib.rs (/workspace/work/qualification-20261027/broker-check-target/debug/deps/partitionline-b07aa256026bc081)
+
+running 1 test
+test consumer::tests::fetch_session_validation_rejects_v12_duplicates_and_bounds_topic_tracking ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 2136 filtered out; finished in 0.00s
+

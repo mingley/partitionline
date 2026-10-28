@@ -1663,43 +1663,102 @@ fn reserve_share_delivery(pending: &mut Vec<ShareRecord>, additional: usize) {
     }
 }
 
-fn note_share_offset(
-    cursors: &mut HashMap<i32, i64>,
-    spilled: &mut HashMap<i32, HashSet<i64>>,
-    partition: i32,
-    offset: i64,
-) -> bool {
-    if let Some(set) = spilled.get_mut(&partition) {
-        return set.insert(offset);
+/// Exact record-offset membership for one topic partition.
+/// A contiguous run stays inline; gaps use a sorted set of disjoint ranges.
+struct ShareOffsetTracker {
+    first: i64,
+    last: i64,
+    #[expect(
+        clippy::box_collection,
+        reason = "keep contiguous partition cursors compact; only gapped offsets allocate"
+    )]
+    ranges: Option<Box<BTreeMap<i64, i64>>>,
+}
+
+impl ShareOffsetTracker {
+    fn new(offset: i64) -> Self {
+        Self {
+            first: offset,
+            last: offset,
+            ranges: None,
+        }
     }
-    if let Some(last) = cursors.get_mut(&partition) {
-        if offset == *last {
+
+    fn insert(&mut self, offset: i64) -> bool {
+        if self.ranges.is_none() {
+            if (self.first..=self.last).contains(&offset) {
+                return false;
+            }
+            if self.last.checked_add(1) == Some(offset) {
+                self.last = offset;
+                return true;
+            }
+            if self.first.checked_sub(1) == Some(offset) {
+                self.first = offset;
+                return true;
+            }
+            let mut ranges = BTreeMap::new();
+            let _ = ranges.insert(self.first, self.last);
+            self.ranges = Some(Box::new(ranges));
+        }
+        let Some(ranges) = self.ranges.as_mut() else {
+            return false;
+        };
+        let previous = ranges
+            .range(..=offset)
+            .next_back()
+            .map(|(&start, &end)| (start, end));
+        if previous.is_some_and(|(_, end)| end >= offset) {
             return false;
         }
-        if offset < *last {
-            let mut set = HashSet::new();
-            let _kept = set.insert(*last);
-            let fresh = set.insert(offset);
-            let _previous = spilled.insert(partition, set);
-            *last = offset;
-            return fresh;
+        let next = ranges
+            .range(offset..)
+            .next()
+            .map(|(&start, &end)| (start, end));
+        let join_previous = previous.filter(|(_, end)| end.checked_add(1) == Some(offset));
+        let join_next = next.filter(|(start, _)| offset.checked_add(1) == Some(*start));
+        match (join_previous, join_next) {
+            (Some((start, _)), Some((next_start, next_end))) => {
+                let _ = ranges.remove(&next_start);
+                let _ = ranges.insert(start, next_end);
+            }
+            (Some((start, _)), None) => {
+                let _ = ranges.insert(start, offset);
+            }
+            (None, Some((next_start, next_end))) => {
+                let _ = ranges.remove(&next_start);
+                let _ = ranges.insert(offset, next_end);
+            }
+            (None, None) => {
+                let _ = ranges.insert(offset, offset);
+            }
         }
-        *last = offset;
-        return true;
+        true
     }
-    let _previous = cursors.insert(partition, offset);
-    true
+}
+
+fn note_share_offset<K: Copy + Eq + std::hash::Hash>(
+    cursors: &mut HashMap<K, ShareOffsetTracker>,
+    partition: K,
+    offset: i64,
+) -> bool {
+    match cursors.entry(partition) {
+        std::collections::hash_map::Entry::Occupied(mut entry) => entry.get_mut().insert(offset),
+        std::collections::hash_map::Entry::Vacant(entry) => {
+            let _ = entry.insert(ShareOffsetTracker::new(offset));
+            true
+        }
+    }
 }
 
 #[cfg(test)]
 async fn note_share_offsets(
-    cursors: &mut HashMap<i32, i64>,
-    spilled: &mut HashMap<i32, HashSet<i64>>,
+    cursors: &mut HashMap<i32, ShareOffsetTracker>,
     notes: &[(i32, i64)],
 ) -> bool {
     let mut walked = 0usize;
     for &(partition, offset) in notes {
-        if !note_share_offset(cursors, spilled, partition, offset) {
+        if !note_share_offset(cursors, partition, offset) {
             return false;
         }
         walked = walked.saturating_add(1);
@@ -1963,7 +2022,7 @@ pub struct ShareGroup {
     ack_pairs: Vec<(i32, i64)>,
     /// Last ShareFetch offset seen for each partition in the current response.
     /// In-order records do not need a per-offset set.
-    fetch_cursors: HashMap<i32, i64>,
+    fetch_cursors: HashMap<([u8; 16], i32), ShareOffsetTracker>,
     /// Record list from the previous ShareFetch. Cleared and refilled so a
     /// steady poll does not allocate the list again.
     spare_incoming: Vec<ShareRecord>,
@@ -5087,7 +5146,6 @@ impl ShareGroup {
         };
         let mut incoming = take_record_buf(&mut self.spare_incoming);
         self.fetch_cursors.clear();
-        let mut spilled_offsets: HashMap<i32, HashSet<i64>> = HashMap::new();
         let mut noted = 0usize;
         let topic_names = index_share_topic_ids(&self.topic_ids).await;
         // Naming 2,000,000 indexed topics held the caller for 779 milliseconds.
@@ -5199,8 +5257,7 @@ impl ShareGroup {
                             };
                             if !note_share_offset(
                                 &mut self.fetch_cursors,
-                                &mut spilled_offsets,
-                                partition_index,
+                                (topic.topic_id, partition_index),
                                 record.offset,
                             ) {
                                 return Err(Error::protocol("duplicate ShareFetch record offset"));
@@ -8599,7 +8656,7 @@ async fn collapse_ack_offsets(
 
 #[cfg(test)]
 mod tests {
-    use std::collections::HashMap;
+    use std::collections::{HashMap, HashSet};
     use std::sync::Arc;
 
     use super::*;
@@ -9191,10 +9248,9 @@ mod tests {
         // Noting 1_000_000 partitions without a pause held the caller 722ms.
         let notes: Vec<(i32, i64)> = (0..1_000_000).map(|partition| (partition, 1)).collect();
         let mut cursors = HashMap::new();
-        let mut spilled = HashMap::new();
         let started = std::time::Instant::now();
         tokio::select! {
-            _ = note_share_offsets(&mut cursors, &mut spilled, &notes) => {}
+            _ = note_share_offsets(&mut cursors, &notes) => {}
             _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
         }
         let elapsed = started.elapsed();
@@ -10097,17 +10153,53 @@ mod tests {
     #[test]
     fn in_order_share_offsets_do_not_spill() {
         let mut cursors = HashMap::new();
-        let mut spilled = HashMap::new();
-        assert!(super::note_share_offset(&mut cursors, &mut spilled, 0, 1));
-        assert!(super::note_share_offset(&mut cursors, &mut spilled, 0, 2));
-        assert!(super::note_share_offset(&mut cursors, &mut spilled, 1, 2));
-        assert!(spilled.is_empty());
-        assert!(!super::note_share_offset(&mut cursors, &mut spilled, 0, 2));
-        let mut cursors = HashMap::from([(0, 5)]);
-        let mut spilled = HashMap::new();
-        assert!(super::note_share_offset(&mut cursors, &mut spilled, 0, 3));
-        assert!(super::note_share_offset(&mut cursors, &mut spilled, 0, 4));
-        assert!(!super::note_share_offset(&mut cursors, &mut spilled, 0, 5));
+        assert!(super::note_share_offset(&mut cursors, 0, 1));
+        assert!(super::note_share_offset(&mut cursors, 0, 2));
+        assert!(super::note_share_offset(&mut cursors, 1, 2));
+        assert!(cursors.values().all(|cursor| cursor.ranges.is_none()));
+        assert!(!super::note_share_offset(&mut cursors, 0, 2));
+        let mut cursors = HashMap::new();
+        assert!(super::note_share_offset(&mut cursors, 0, 5));
+        assert!(super::note_share_offset(&mut cursors, 0, 3));
+        assert!(super::note_share_offset(&mut cursors, 0, 4));
+        assert!(!super::note_share_offset(&mut cursors, 0, 5));
+    }
+
+    #[test]
+    fn share_offset_identity_includes_topic_and_partition() {
+        let mut cursors = HashMap::new();
+        let orders = ([1; 16], 0);
+        let payments = ([2; 16], 0);
+        assert!(super::note_share_offset(&mut cursors, orders, 0));
+        assert!(super::note_share_offset(&mut cursors, payments, 0));
+        assert!(!super::note_share_offset(&mut cursors, orders, 0));
+    }
+
+    #[test]
+    fn share_offset_tracker_rejects_older_duplicates_after_reordering() {
+        let mut cursors = HashMap::new();
+        for offset in [1, 2, 3] {
+            assert!(super::note_share_offset(&mut cursors, 0, offset));
+        }
+        assert!(!super::note_share_offset(&mut cursors, 0, 1));
+        assert!(!super::note_share_offset(&mut cursors, 0, 2));
+        for offset in [6, 4, 5] {
+            assert!(super::note_share_offset(&mut cursors, 0, offset));
+        }
+        assert!(!super::note_share_offset(&mut cursors, 0, 6));
+        assert!(super::note_share_offset(&mut cursors, 0, i64::MIN));
+        assert!(super::note_share_offset(&mut cursors, 0, i64::MAX));
+        assert!(!super::note_share_offset(&mut cursors, 0, i64::MIN));
+
+        let mut cursors = HashMap::new();
+        let mut reference = HashSet::new();
+        for index in 0_i64..10_000 {
+            let offset = (index * 7_919) % 1_009;
+            assert_eq!(
+                super::note_share_offset(&mut cursors, 0, offset),
+                reference.insert(offset),
+            );
+        }
     }
 
     #[tokio::test(flavor = "current_thread")]

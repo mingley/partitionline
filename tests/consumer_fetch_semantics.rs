@@ -1658,6 +1658,174 @@ async fn fetch_offset_filter_sparse_and_compacted_offsets() {
     broker.shutdown().await;
 }
 
+#[tokio::test]
+async fn fetch_metadata_limit_has_a_finite_validated_override() {
+    let config = ConsumerConfig::default();
+    assert_eq!(config.fetch_metadata_max_bytes, 128 * 1024 * 1024);
+    for invalid in [0, 64 * 1024 - 1, 1024 * 1024 * 1024 + 1] {
+        let result = Consumer::new(config.clone().fetch_metadata_max_bytes(invalid)).await;
+        assert!(
+            matches!(result, Err(Error::Protocol(message)) if message.contains("fetch metadata limit"))
+        );
+    }
+    let mock = common::Mock::start().await;
+    let config = ConsumerConfig::bootstrap([mock.addr.clone()]).fetch_metadata_max_bytes(64 * 1024);
+    let mut consumer = Consumer::new(config).await.unwrap();
+    consumer.assign("t", 0, 0).await.unwrap();
+    assert!(consumer.fetch().await.unwrap().is_empty());
+    consumer.close().await.unwrap();
+}
+
+/// A valid Fetch frame can carry a compact topic name much larger than the
+/// configured metadata budget. The response must fail before retaining it.
+#[tokio::test]
+async fn oversized_compact_topic_name_preserves_consumer_position() {
+    let mut broker =
+        fetch_fixture::FixtureBroker::start_with_handler_version("t", 1, 12, |_, _| {
+            vec![FetchedTopic {
+                topic: "x".repeat(1024 * 1024),
+                topic_id: [0; 16],
+                partitions: Vec::new(),
+            }]
+        })
+        .await;
+    let mut consumer = Consumer::new(broker.config().fetch_metadata_max_bytes(64 * 1024))
+        .await
+        .unwrap();
+    consumer.assign("t", 0, 0).await.unwrap();
+    assert!(matches!(consumer.fetch().await, Err(Error::Protocol(_))));
+    assert_eq!(consumer.position("t", 0).unwrap(), 0);
+    consumer.close().await.unwrap();
+    broker.shutdown().await;
+}
+
+/// A response that exceeds the session validation budget fails immediately;
+/// it must not be treated as an invalid session and retried until timeout.
+#[tokio::test]
+async fn fetch_session_metadata_exhaustion_returns_without_retry() {
+    let mut broker =
+        fetch_fixture::FixtureBroker::start_with_handler_version("t", 200, 12, |_, _| {
+            vec![FetchedTopic {
+                topic: "t".into(),
+                topic_id: [0; 16],
+                partitions: (0..200)
+                    .rev()
+                    .map(|partition| FetchedPartition::partition_response(partition, 0))
+                    .collect(),
+            }]
+        })
+        .await;
+    let mut consumer = Consumer::new(broker.config().fetch_metadata_max_bytes(64 * 1024))
+        .await
+        .unwrap();
+    consumer
+        .assign_many((0..200).map(|partition| (TopicPartition::new("t", partition), 0)))
+        .await
+        .unwrap();
+    let error = consumer.fetch().await.unwrap_err();
+    assert!(
+        error.to_string().contains("fetch session metadata"),
+        "unexpected error: {error}"
+    );
+    assert_eq!(broker.attempt_count(), 1);
+    assert_eq!(consumer.position("t", 0).unwrap(), 0);
+    consumer.close().await.unwrap();
+    broker.shutdown().await;
+}
+
+/// Unassigned shuffled partitions do not consume duplicate-tracking entries;
+/// repeated assigned partitions still produce each record only once.
+#[tokio::test]
+async fn shuffled_unassigned_partitions_do_not_duplicate_assigned_records() {
+    let mut broker = fetch_fixture::FixtureBroker::start_with_handler_version("t", 1, 6, |_, _| {
+        let mut assigned = FetchedPartition::partition_response(0, 0);
+        assigned.high_watermark = 1;
+        assigned.last_stable_offset = 1;
+        assigned.records = vec![fetch_fixture::data_batch(0, &[b"one"], None)];
+        let mut parts = vec![assigned.clone()];
+        parts.extend(
+            (1..201)
+                .rev()
+                .map(|partition| FetchedPartition::partition_response(partition, 0)),
+        );
+        parts.push(assigned);
+        vec![FetchedTopic {
+            topic: "t".into(),
+            topic_id: [0; 16],
+            partitions: parts,
+        }]
+    })
+    .await;
+    let mut consumer = Consumer::new(broker.config().fetch_metadata_max_bytes(256 * 1024))
+        .await
+        .unwrap();
+    consumer.assign("t", 0, 0).await.unwrap();
+    let records = consumer.fetch().await.unwrap();
+    assert_eq!(records.len(), 1);
+    assert_eq!(records[0].value.as_deref(), Some(&b"one"[..]));
+    assert_eq!(consumer.position("t", 0).unwrap(), 1);
+    consumer.close().await.unwrap();
+    broker.shutdown().await;
+}
+
+/// A CRC-valid batch can lie about its record count. It must fail without
+/// reserving the claimed count or advancing the consumer's position.
+#[tokio::test]
+async fn malformed_large_record_count_does_not_advance_position() {
+    let payload = vec![7_u8; 1024 * 1024];
+    let batch = fetch_fixture::data_batch(0, &[payload.as_slice()], None);
+    let mut encoded = BytesMut::new();
+    encode_record_batch(&mut encoded, &batch).unwrap();
+    let original = encoded.to_vec();
+    let mut malformed = original.clone();
+    malformed
+        .get_mut(57..61)
+        .unwrap()
+        .copy_from_slice(&500_000_i32.to_be_bytes());
+    let crc = crc32c::crc32c(malformed.get(21..).unwrap());
+    malformed
+        .get_mut(17..21)
+        .unwrap()
+        .copy_from_slice(&crc.to_be_bytes());
+    let patched = Arc::new(AtomicUsize::new(0));
+    let seen = Arc::clone(&patched);
+    let mut broker = fetch_fixture::FixtureBroker::start_with_handler_patch(
+        "t",
+        1,
+        move |_, _| {
+            let mut part = FetchedPartition::partition_response(0, 0);
+            part.high_watermark = 1;
+            part.last_stable_offset = 1;
+            part.records = vec![batch.clone()];
+            vec![FetchedTopic {
+                topic: "t".into(),
+                topic_id: [0; 16],
+                partitions: vec![part],
+            }]
+        },
+        move |response| {
+            if let Some(start) = response
+                .windows(original.len())
+                .position(|window| window == original.as_slice())
+            {
+                response
+                    .get_mut(start..start + malformed.len())
+                    .unwrap()
+                    .copy_from_slice(&malformed);
+                let _ = seen.fetch_add(1, Ordering::SeqCst);
+            }
+        },
+    )
+    .await;
+    let mut consumer = Consumer::new(broker.config()).await.unwrap();
+    consumer.assign("t", 0, 0).await.unwrap();
+    assert!(matches!(consumer.fetch().await, Err(Error::Protocol(_))));
+    assert_eq!(consumer.position("t", 0).unwrap(), 0);
+    assert!(patched.load(Ordering::SeqCst) > 0);
+    consumer.close().await.unwrap();
+    broker.shutdown().await;
+}
+
 /// A compacted batch can carry an offset gap: two records, deltas 0 and 5.
 /// The record encoder writes dense deltas, so the fixture patches the second
 /// delta after encoding. Fetching past every record must still adopt that
@@ -1908,7 +2076,10 @@ fn preserved_tail_batch() -> (Vec<u8>, Vec<u8>) {
         .expect("batch");
     encode_record_batch(&mut dense, &batch).expect("encode dense batch");
     let mut preserved = dense.to_vec();
-    preserved[23..27].copy_from_slice(&10i32.to_be_bytes());
+    preserved
+        .get_mut(23..27)
+        .expect("last offset delta field")
+        .copy_from_slice(&10i32.to_be_bytes());
     let crc = crc32c::crc32c(preserved.get(21..).expect("crc input"));
     preserved
         .get_mut(17..21)

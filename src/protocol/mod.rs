@@ -20,7 +20,8 @@ pub mod streams;
 pub mod txn;
 
 pub use api::{
-    decode_api_versions_handshake, decode_api_versions_response, decode_metadata_request,
+    decode_api_versions_handshake, decode_api_versions_response,
+    decode_api_versions_response_with_metadata_limit, decode_metadata_request,
     decode_metadata_request_topics, decode_metadata_response, decode_produce_request,
     decode_produce_response, encode_api_versions_request, encode_api_versions_response,
     encode_metadata_request, encode_metadata_request_topics,

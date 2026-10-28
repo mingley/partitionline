@@ -526,6 +526,8 @@ async fn producer_consumer_and_group_startup_keep_the_initial_deadline() {
             let mut cfg = partitionline::ConsumerConfig::bootstrap([address]);
             cfg.allow_auto_topic_creation = true;
             cfg.request_timeout = Duration::from_millis(60);
+            // Keep the fetch wait valid so startup reaches the delayed handshake.
+            cfg.max_wait_ms = 10;
             if driver == "group" {
                 partitionline::ConsumerGroup::join(cfg, "group", "topic")
                     .await
@@ -534,7 +536,11 @@ async fn producer_consumer_and_group_startup_keep_the_initial_deadline() {
                 partitionline::Consumer::new(cfg).await.err()
             }
         };
-        assert!(matches!(error, Some(partitionline::Error::Timeout)));
+        assert!(
+            matches!(&error, Some(partitionline::Error::Timeout)),
+            "{driver} startup returned {error:?} after {:?}",
+            started.elapsed()
+        );
         assert!(started.elapsed() < Duration::from_millis(90));
         let frames = peer.close().await;
         assert!(frames.iter().all(|f| f.api == 18));

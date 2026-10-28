@@ -198,7 +198,9 @@ impl ConsumerGroup {
                 super::remember_topic_id(&mut ids, &tp.topic, tp.partition, id);
             }
         }
-        self.pending_async_commits.push((offsets, callback, ids));
+        self.pending_async_commits
+            .get_mut()
+            .push((offsets, callback, ids));
     }
 
     fn offset_client(&self) -> Result<OffsetClient> {
@@ -719,7 +721,7 @@ pub(super) async fn coord_offsets_v10(
     group_id: &str,
     key_type: i8,
     api: i16,
-    mut encode: impl FnMut(&mut bytes::BytesMut) -> Result<()>,
+    mut encode: impl FnMut(&mut bytes::BytesMut) -> Result<()> + Send,
     bootstrap_keys: &[crate::protocol::api::ApiVersion],
     address_keys: &std::collections::HashMap<String, Vec<crate::protocol::api::ApiVersion>>,
     prior: &mut std::collections::HashMap<String, super::KnownCoord>,

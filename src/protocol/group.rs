@@ -2835,44 +2835,50 @@ pub fn encode_sync_group_request(
 /// Encode SyncGroup, yielding while member assignments are still being written.
 ///
 /// Encoding 2,000,000 assignments held the caller for 635ms. A member id and an assignment are still written.
-pub(crate) async fn encode_sync_group_request_cooperative(
-    buf: &mut BytesMut,
+#[expect(
+    clippy::manual_async_fn,
+    reason = "The explicit Send future avoids lifetime inference failures"
+)]
+pub(crate) fn encode_sync_group_request_cooperative<'a>(
+    buf: &'a mut BytesMut,
     version: i16,
-    req: &SyncGroupRequest<'_>,
-) -> crate::error::Result<()> {
-    let flexible = sync_group_flexible(version)?;
-    let body_start = buf.len();
-    let planned = sync_group_request_len_cooperative(version, flexible, req).await?;
-    reserve_group_body(buf, planned);
-    buf::put_string(buf, flexible, Some(req.group_id))?;
-    buf.put_i32(req.generation_id);
-    buf::put_string(buf, flexible, Some(req.member_id))?;
-    if version >= 3 {
-        buf::put_string(buf, flexible, req.group_instance_id)?;
-    }
-    if version >= 5 {
-        buf::put_string(buf, true, Some(req.protocol_type))?;
-        buf::put_string(buf, true, Some(req.protocol_name))?;
-    }
-    buf::put_array_len(buf, flexible, Some(req.assignments.len()))?;
-    let mut walked = 0usize;
-    for (id, bytes) in req.assignments {
-        buf::put_string(buf, flexible, Some(id))?;
-        buf::put_bytes(buf, flexible, Some(bytes))?;
+    req: &'a SyncGroupRequest<'a>,
+) -> impl std::future::Future<Output = crate::error::Result<()>> + Send + 'a {
+    async move {
+        let flexible = sync_group_flexible(version)?;
+        let body_start = buf.len();
+        let planned = sync_group_request_len_cooperative(version, flexible, req).await?;
+        reserve_group_body(buf, planned);
+        buf::put_string(buf, flexible, Some(req.group_id))?;
+        buf.put_i32(req.generation_id);
+        buf::put_string(buf, flexible, Some(req.member_id))?;
+        if version >= 3 {
+            buf::put_string(buf, flexible, req.group_instance_id)?;
+        }
+        if version >= 5 {
+            buf::put_string(buf, true, Some(req.protocol_type))?;
+            buf::put_string(buf, true, Some(req.protocol_name))?;
+        }
+        buf::put_array_len(buf, flexible, Some(req.assignments.len()))?;
+        let mut walked = 0usize;
+        for (id, bytes) in req.assignments {
+            buf::put_string(buf, flexible, Some(id))?;
+            buf::put_bytes(buf, flexible, Some(bytes))?;
+            if flexible {
+                buf::put_empty_tagged_fields(buf);
+            }
+            walked = walked.saturating_add(1);
+            if walked == 8 * 1024 {
+                walked = 0;
+                tokio::task::yield_now().await;
+            }
+        }
         if flexible {
             buf::put_empty_tagged_fields(buf);
         }
-        walked = walked.saturating_add(1);
-        if walked == 8 * 1024 {
-            walked = 0;
-            tokio::task::yield_now().await;
-        }
+        debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
+        Ok(())
     }
-    if flexible {
-        buf::put_empty_tagged_fields(buf);
-    }
-    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
-    Ok(())
 }
 
 async fn sync_group_request_len_cooperative(

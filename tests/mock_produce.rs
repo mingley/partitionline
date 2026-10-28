@@ -200,8 +200,14 @@ async fn producer_metadata_refreshes_waiting_topics_together() {
     let producer = Producer::new(cfg).await.unwrap();
     let before = mock.metadata_calls();
     mock.set_metadata_delay(Duration::from_millis(150));
-    let _ = producer.try_send(ProduceRecord::to("t").value(&b"a"[..]));
-    let _ = producer.try_send(ProduceRecord::to("u").value(&b"b"[..]));
+    assert!(matches!(
+        producer.try_send(ProduceRecord::to("t").value(&b"a"[..])),
+        Err(Error::QueueFull)
+    ));
+    assert!(matches!(
+        producer.try_send(ProduceRecord::to("u").value(&b"b"[..])),
+        Err(Error::QueueFull)
+    ));
     let started = Instant::now();
     loop {
         if mock.metadata_calls() > before {
@@ -437,7 +443,7 @@ async fn multi_broker_produce_dials_overlap() {
     let (a, b) = (a.unwrap(), b.unwrap());
     assert_eq!((a.partition, b.partition), (0, 1));
     assert!(
-        mock.api_versions_versions().len() >= before + 1,
+        mock.api_versions_versions().len() > before,
         "the non-bootstrap leader should negotiate"
     );
     assert!(

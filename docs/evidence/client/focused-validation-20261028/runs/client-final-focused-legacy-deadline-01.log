@@ -1,0 +1,22 @@
+   Compiling partitionline v0.1.0 (/workspace/partitionline)
+    Finished `test` profile [unoptimized] target(s) in 7.00s
+     Running tests/legacy_discovery_v0.rs (/workspace/work/qualification-20261027/broker-check-target/debug/deps/legacy_discovery_v0-8f3be6addf4ec81c)
+
+running 1 test
+test producer_consumer_and_group_startup_keep_the_initial_deadline ... FAILED
+
+failures:
+
+---- producer_consumer_and_group_startup_keep_the_initial_deadline stdout ----
+
+thread 'producer_consumer_and_group_startup_keep_the_initial_deadline' (100792) panicked at tests/legacy_discovery_v0.rs:539:9:
+group startup returned Some(Broker { code: 30, message: "JoinGroup" }) after 57.236803ms
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    producer_consumer_and_group_startup_keep_the_initial_deadline
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 18 filtered out; finished in 0.19s
+
+error: test failed, to rerun pass `--test legacy_discovery_v0`

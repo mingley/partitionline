@@ -1,7 +1,9 @@
 //! A bootstrap that accepts TCP and then stalls must not hold startup.
 mod common;
 
-use partitionline::protocol::api_keys::OFFSET_FETCH;
+use partitionline::protocol::api_keys::{
+    GET_TELEMETRY_SUBSCRIPTIONS, LIST_OFFSETS, METADATA, OFFSET_FETCH,
+};
 use partitionline::protocol::group::{OffsetFetchGroupData, OffsetFetchRequestData};
 use partitionline::{
     error, AbortTransactionSpec, AclBinding, Admin, AdminConfig, AlterConfig,
@@ -15,6 +17,46 @@ use partitionline::{
 };
 use std::time::{Duration, Instant};
 
+#[tokio::test]
+async fn producer_metadata_reconnect_uses_new_broker_version() {
+    let mock = common::Mock::start().await;
+    let producer = Producer::new(
+        ProducerConfig::bootstrap([mock.addr.clone()])
+            .connections_max_idle(Duration::from_millis(20)),
+    )
+    .await
+    .unwrap();
+    let _partitions = producer.partitions_for("t").await.unwrap();
+    assert_eq!(mock.last_metadata_version(), Some(13));
+    mock.set_node_api_max(1, METADATA, 7);
+    tokio::time::sleep(Duration::from_millis(40)).await;
+    let _partitions = producer.partitions_for("t").await.unwrap();
+    assert_eq!(mock.last_metadata_version(), Some(7));
+    producer.close().await.unwrap();
+}
+
+#[tokio::test]
+async fn producer_telemetry_reconnect_rejects_a_removed_api() {
+    let mock = common::Mock::start().await;
+    let producer = Producer::new(
+        ProducerConfig::bootstrap([mock.addr.clone()])
+            .connections_max_idle(Duration::from_millis(20)),
+    )
+    .await
+    .unwrap();
+    mock.hide_api(GET_TELEMETRY_SUBSCRIPTIONS);
+    tokio::time::sleep(Duration::from_millis(40)).await;
+    assert!(matches!(
+        producer
+            .client_instance_id_timeout(Duration::from_secs(2))
+            .await,
+        Err(Error::Unsupported(_))
+    ));
+    assert_eq!(mock.last_get_telemetry_subscriptions(), None);
+    producer.close().await.unwrap();
+}
+
+#[expect(clippy::unwrap_used, reason = "the loopback test fixture must start")]
 async fn stall_listener() -> String {
     let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
     let stall = listener.local_addr().unwrap();
@@ -393,10 +435,9 @@ async fn admin_startup_reuses_a_finished_bootstrap_handshake() {
     );
 }
 
-/// An idle socket to a leader that is not the bootstrap broker keeps the versions
-/// learned on the first dial.
+/// A replacement leader socket negotiates the broker's current API ranges.
 #[tokio::test]
-async fn list_offsets_redials_a_remote_leader_without_another_handshake() {
+async fn list_offsets_renegotiates_a_remote_leader_after_idle() {
     let mock = common::Mock::start_two_node().await;
     let mut cfg =
         AdminConfig::bootstrap([mock.addr.clone()]).connections_max_idle(Duration::from_millis(40));
@@ -409,6 +450,7 @@ async fn list_offsets_redials_a_remote_leader_without_another_handshake() {
     assert_eq!(listed.len(), 1, "{listed:?}");
     assert_eq!(mock.api_versions_versions().len(), 2);
     tokio::time::sleep(Duration::from_millis(60)).await;
+    mock.set_node_api_max(2, LIST_OFFSETS, 7);
     mock.set_api_versions_delay(Duration::from_millis(250));
     let started = Instant::now();
     let listed = admin
@@ -418,15 +460,16 @@ async fn list_offsets_redials_a_remote_leader_without_another_handshake() {
     let elapsed = started.elapsed();
     assert_eq!(listed.len(), 1, "{listed:?}");
     assert!(
-        elapsed < Duration::from_millis(200),
-        "remote leader redial repeated ApiVersions: {elapsed:?}"
+        elapsed < Duration::from_millis(400),
+        "remote leader renegotiation exceeded its budget: {elapsed:?}"
     );
-    assert_eq!(mock.api_versions_versions().len(), 2);
+    assert_eq!(mock.api_versions_versions().len(), 3);
+    assert_eq!(mock.last_list_offsets_version(), Some(7));
 }
 
-/// Parallel leader dials reuse versions after the sockets expire.
+/// Parallel replacement leader sockets negotiate without serializing dials.
 #[tokio::test]
-async fn list_offsets_redials_remote_leaders_together_without_another_handshake() {
+async fn list_offsets_renegotiates_remote_leaders_in_parallel() {
     let mock = common::Mock::start_three_node().await;
     mock.set_topic_partitions("t", 2);
     mock.set_partition_leader("t", 0, 2);
@@ -445,6 +488,8 @@ async fn list_offsets_redials_remote_leaders_together_without_another_handshake(
     assert_eq!(listed.len(), 2, "{listed:?}");
     assert_eq!(mock.api_versions_versions().len(), 3);
     tokio::time::sleep(Duration::from_millis(60)).await;
+    mock.set_node_api_max(2, LIST_OFFSETS, 7);
+    mock.set_node_api_max(3, LIST_OFFSETS, 7);
     mock.set_api_versions_delay(Duration::from_millis(250));
     let started = Instant::now();
     let listed = admin
@@ -458,9 +503,10 @@ async fn list_offsets_redials_remote_leaders_together_without_another_handshake(
     assert_eq!(listed.len(), 2, "{listed:?}");
     assert!(
         elapsed < Duration::from_millis(400),
-        "remote leader redials repeated ApiVersions: {elapsed:?}"
+        "remote leader renegotiations did not overlap: {elapsed:?}"
     );
-    assert_eq!(mock.api_versions_versions().len(), 3);
+    assert_eq!(mock.api_versions_versions().len(), 5);
+    assert_eq!(mock.last_list_offsets_version(), Some(7));
 }
 
 /// A leader that has never been contacted still negotiates.
@@ -495,6 +541,7 @@ async fn list_offsets_negotiates_a_new_leader() {
     );
 }
 
+#[expect(clippy::unwrap_used, reason = "the loopback test fixture must connect")]
 async fn two_leader_admin() -> (common::Mock, Admin) {
     let mock = common::Mock::start_two_node().await;
     mock.set_topic_partitions("t", 2);
@@ -932,6 +979,13 @@ async fn remove_members_stays_on_the_bootstrap_socket() {
     )
     .await
     .unwrap();
+    tokio::time::timeout(Duration::from_secs(2), async {
+        while mock.membership_heartbeats_on(1) == 0 {
+            tokio::task::yield_now().await;
+        }
+    })
+    .await
+    .expect("group heartbeat must connect before counting Admin sockets");
     let mut admin = Admin::new(AdminConfig::bootstrap([mock.addr.clone()]))
         .await
         .unwrap();
@@ -1880,8 +1934,7 @@ async fn produce_reconnects_when_the_broker_closes_during_linger() {
     cfg.delivery_timeout = Duration::from_secs(60);
     let producer = Producer::new(cfg).await.unwrap();
     let sending = producer.clone();
-    let send = sending.send(ProduceRecord::to("t").value(b"x".to_vec()));
-    tokio::pin!(send);
+    let mut send = Box::pin(sending.send(ProduceRecord::to("t").value(b"x".to_vec())));
     let started = Instant::now();
     while mock.open_conns() < 2 {
         if started.elapsed() > Duration::from_secs(2) {
@@ -1927,8 +1980,7 @@ async fn produce_reconnects_when_the_broker_closes_during_throttle() {
         .unwrap();
     let queued = producer.metrics().records_queued;
     let sending = producer.clone();
-    let send = sending.send(ProduceRecord::to("t").value(b"second".to_vec()));
-    tokio::pin!(send);
+    let mut send = Box::pin(sending.send(ProduceRecord::to("t").value(b"second".to_vec())));
     let started = Instant::now();
     while producer.metrics().records_queued <= queued {
         if started.elapsed() > Duration::from_secs(2) {
@@ -1998,7 +2050,6 @@ async fn create_topics_retry_drops_the_retired_bootstrap_socket() {
             _ = tokio::time::sleep(Duration::from_millis(5)) => {}
         }
     }
-    drop(creating);
 }
 
 /// A fetch session retry drops the leader socket when that broker closes during backoff.
@@ -2067,7 +2118,6 @@ async fn fetch_drops_the_socket_when_the_broker_closes_during_session_retry() {
             _ = tokio::time::sleep(Duration::from_millis(5)) => {}
         }
     }
-    drop(fetch);
 }
 
 /// A fetch waiting on a broker quota drops the leader socket when that broker closes.
@@ -2114,7 +2164,6 @@ async fn fetch_drops_the_socket_when_the_broker_closes_during_throttle() {
             _ = tokio::time::sleep(Duration::from_millis(5)) => {}
         }
     }
-    drop(fetch);
 }
 
 /// A later muted leader is dropped when it closes, even if an earlier quota is still running.
@@ -2177,7 +2226,6 @@ async fn fetch_drops_a_later_leader_when_it_closes_during_throttle() {
             _ = tokio::time::sleep(Duration::from_millis(5)) => {}
         }
     }
-    drop(fetch);
 }
 
 /// Closing a throttled fetch drops the leader socket when that broker is already gone.

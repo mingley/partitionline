@@ -11,6 +11,9 @@ use crate::error::{Error, Result};
 /// Record batch magic for Kafka 0.11+ (v2).
 pub const MAGIC_V2: i8 = 2;
 
+const OFFSET_OVERFLOW: &str = "record offset overflow";
+const TIMESTAMP_OVERFLOW: &str = "record timestamp overflow";
+
 /// Default upper bound on decompressed record-batch bytes (64 MiB).
 ///
 /// This ceiling protects against decompression bombs during gzip, snappy,
@@ -18,6 +21,124 @@ pub const MAGIC_V2: i8 = 2;
 /// (16 MiB default) so that legitimate oversized first batches can still make
 /// progress under Kafka's oversized-first-batch delivery rule.
 pub const DEFAULT_MAX_RECORD_BATCH_DECODE_BYTES: usize = 64 * 1024 * 1024;
+
+// Record and header Vec capacity is bounded separately from decompressed
+// bytes. The floor keeps small explicit wire limits usable for ordinary
+// records; the ceiling limits metadata retained by any one decoded batch.
+const MIN_DECODE_METADATA_BYTES: usize = 64 * 1024;
+const MAX_DECODE_METADATA_BYTES: usize = 2 * DEFAULT_MAX_RECORD_BATCH_DECODE_BYTES;
+
+/// Per-response accounting for retained decoded container capacity.
+#[derive(Clone, Copy)]
+pub(crate) struct DecodeMetadataBudget {
+    limit: usize,
+    used: usize,
+}
+
+impl DecodeMetadataBudget {
+    /// Use a validated explicit response metadata limit.
+    pub(crate) fn with_limit(limit: usize) -> Self {
+        Self { limit, used: 0 }
+    }
+
+    pub(crate) fn for_wire_limit(max_decode_bytes: usize) -> Self {
+        Self {
+            limit: max_decode_bytes
+                .min(DEFAULT_MAX_RECORD_BATCH_DECODE_BYTES)
+                .saturating_mul(2)
+                .clamp(MIN_DECODE_METADATA_BYTES, MAX_DECODE_METADATA_BYTES),
+            used: 0,
+        }
+    }
+
+    pub(crate) fn require<T>(&self, slots: usize) -> Result<()> {
+        let bytes = slots
+            .checked_mul(std::mem::size_of::<T>())
+            .ok_or_else(|| Error::protocol("decoded metadata size overflow"))?;
+        if self
+            .used
+            .checked_add(bytes)
+            .is_none_or(|sum| sum > self.limit)
+        {
+            return Err(Error::protocol(
+                "decoded record metadata exceeds maximum allowable size",
+            ));
+        }
+        Ok(())
+    }
+
+    /// Additional slots that fit without releasing currently charged capacity.
+    pub(crate) fn remaining_slots<T>(&self) -> usize {
+        self.limit
+            .saturating_sub(self.used)
+            .checked_div(std::mem::size_of::<T>())
+            .unwrap_or(usize::MAX)
+    }
+
+    /// Charge a capacity already retained in an existing vector, exactly once.
+    pub(crate) fn charge<T>(&mut self, slots: usize) -> Result<()> {
+        self.require::<T>(slots)?;
+        let bytes = slots
+            .checked_mul(std::mem::size_of::<T>())
+            .ok_or_else(|| Error::protocol("decoded metadata size overflow"))?;
+        self.used = self
+            .used
+            .checked_add(bytes)
+            .ok_or_else(|| Error::protocol("decoded metadata size overflow"))?;
+        Ok(())
+    }
+
+    /// Release a capacity charge after the corresponding allocation is freed.
+    pub(crate) fn release<T>(&mut self, slots: usize) -> Result<()> {
+        let bytes = slots
+            .checked_mul(std::mem::size_of::<T>())
+            .ok_or_else(|| Error::protocol("decoded metadata size overflow"))?;
+        self.used = self
+            .used
+            .checked_sub(bytes)
+            .ok_or_else(|| Error::protocol("decoded metadata accounting underflow"))?;
+        Ok(())
+    }
+
+    /// Grow a vector whose previous capacity has already been charged.
+    ///
+    /// Growth is transactional: allocator over-allocation or allocation failure
+    /// leaves both the original vector and its charge intact. The old and new
+    /// allocations coexist during the move and both count against the budget.
+    /// Allocator bookkeeping and excess capacity returned by the allocator may
+    /// temporarily exceed the budget before that excess can be rejected.
+    pub(crate) fn reserve<T>(&mut self, slots: &mut Vec<T>, target: usize) -> Result<()> {
+        self.reserve_using(slots, target, |replacement, capacity| {
+            replacement
+                .try_reserve_exact(capacity)
+                .map_err(|_| Error::protocol("decoded metadata reserve"))
+        })
+    }
+
+    #[inline]
+    fn reserve_using<T>(
+        &mut self,
+        slots: &mut Vec<T>,
+        target: usize,
+        allocate: impl FnOnce(&mut Vec<T>, usize) -> Result<()>,
+    ) -> Result<()> {
+        if target <= slots.capacity() {
+            return Ok(());
+        }
+        let old_capacity = slots.capacity();
+        self.require::<T>(target)?;
+        let mut replacement = Vec::new();
+        allocate(&mut replacement, target)?;
+        if replacement.capacity() < target {
+            return Err(Error::protocol("decoded metadata reserve"));
+        }
+        self.charge::<T>(replacement.capacity())?;
+        replacement.append(slots);
+        let previous = std::mem::replace(slots, replacement);
+        drop(previous);
+        self.release::<T>(old_capacity)
+    }
+}
 
 /// Java `Records` log-entry layout (offset + size prefix before the batch body).
 pub struct Records;
@@ -1536,6 +1657,15 @@ impl RecordBatch {
         Ok(base.wrapping_add(i64::from(delta)))
     }
 
+    /// Read the last-offset delta stored in a magic-v2 batch header.
+    ///
+    /// Retain this value when re-encoding a compacted batch: the last
+    /// surviving record need not be the final offset represented by the batch.
+    pub fn encoded_last_offset_delta(buffer: &[u8]) -> Result<i32> {
+        let offset = buf::usize_from_i32(Self::LAST_OFFSET_DELTA_OFFSET)?;
+        buf::read_int_be(buffer, offset)
+    }
+
     /// Java `DefaultRecordBatch.nextOffset` on a buffer
     /// ([`Self::encoded_last_offset`] plus one).
     pub fn encoded_next_offset(buffer: &[u8]) -> Result<i64> {
@@ -2250,12 +2380,118 @@ impl Default for BatchHeader {
 }
 
 /// Encode a [`RecordBatch`] (CRC32-C, optional compression).
+///
+/// A decoded wire batch whose sequential offsets cross the signed boundary
+/// retains Java's wrapping arithmetic. The producer's borrowed-record writer
+/// continues to reject overflowing absolute offsets and timestamps.
 pub fn encode_record_batch(buf: &mut BytesMut, batch: &RecordBatch) -> Result<()> {
-    write_record_batch(
+    let result = write_record_batch(
         buf,
         &batch_header_from(batch)?,
         batch.records.iter().map(EncodeRecord::from_record),
-    )
+    );
+    match result {
+        Err(error) if is_wire_arithmetic_overflow(&error) && wire_offsets_sequential(batch) => {
+            encode_wrapped_batch(buf, batch)
+        }
+        result => result,
+    }
+}
+
+/// Encode decoded record offsets and the original header's last-offset delta.
+///
+/// Record offsets are absolute and must yield strictly increasing, nonnegative
+/// i32 deltas from `batch.base_offset` under Java's signed wrapping arithmetic.
+/// Supply the original header value from [`RecordBatch::encoded_last_offset_delta`]
+/// to preserve compacted or sparse batches. [`encode_record_batch`] retains its
+/// sequential builder behavior. Errors leave the caller's buffer unchanged.
+pub fn encode_record_batch_with_offsets(
+    buf: &mut BytesMut,
+    batch: &RecordBatch,
+    last_offset_delta: i32,
+) -> Result<()> {
+    if last_offset_delta < 0 {
+        return Err(Error::protocol("negative last offset delta"));
+    }
+    let header = batch_header_from(batch)?;
+    let compression = Compression::from_attributes(header.attributes)?;
+    let mut output = BatchOutputRollback::new(buf);
+    let (batch_start, length_pos, crc_pos, crc_start) = start_record_batch(output.buffer, &header);
+    let delta_pos = batch_start
+        .checked_add(buf::usize_from_i32(RecordBatch::LAST_OFFSET_DELTA_OFFSET)?)
+        .ok_or_else(|| Error::protocol("batch offset overflow"))?;
+    buf::patch_i32(output.buffer, delta_pos, last_offset_delta)?;
+
+    let mut section = BytesMut::new();
+    let mut header_wires = Vec::new();
+    let mut previous = None;
+    for record in &batch.records {
+        let delta = i32::try_from(record.offset.wrapping_sub(batch.base_offset))
+            .map_err(|_| Error::protocol("offset delta exceeds i32"))?;
+        if delta < 0 || delta > last_offset_delta || previous.is_some_and(|last| delta <= last) {
+            return Err(Error::protocol(
+                "invalid record offset delta order or range",
+            ));
+        }
+        previous = Some(delta);
+        let timestamp = record.timestamp.wrapping_sub(batch.base_timestamp);
+        let target = if compression == Compression::None {
+            &mut *output.buffer
+        } else {
+            &mut section
+        };
+        encode_record(
+            target,
+            &EncodeRecord::from_record(record),
+            delta,
+            timestamp,
+            &mut header_wires,
+        )?;
+    }
+    if compression != Compression::None {
+        let mut packed = Vec::new();
+        match compression {
+            Compression::Gzip => gzip_compress_into(&section, &mut packed)?,
+            Compression::Snappy => snappy_compress_into(&section, &mut packed)?,
+            Compression::Lz4 => lz4_compress_into(&section, &mut packed)?,
+            #[cfg(feature = "zstd")]
+            Compression::Zstd => {
+                zstd_compress_into(&section, &mut packed, &mut None, ZstdLevel::default())?
+            }
+            Compression::None => return Err(Error::protocol("internal: uncompressed pack")),
+        }
+        output.buffer.extend_from_slice(&packed);
+    }
+    finish_record_batch(output.buffer, batch_start, length_pos, crc_pos, crc_start)?;
+    output.committed = true;
+    Ok(())
+}
+
+// A cooperative encoder can be dropped at any await point. Keep the caller's
+// prefix intact until the entire batch has been encoded successfully.
+struct BatchOutputRollback<'a> {
+    buffer: &'a mut BytesMut,
+    original_len: usize,
+    committed: bool,
+}
+
+impl<'a> BatchOutputRollback<'a> {
+    fn new(buffer: &'a mut BytesMut) -> Self {
+        let original_len = buffer.len();
+        Self {
+            buffer,
+            original_len,
+            committed: false,
+        }
+    }
+}
+
+impl Drop for BatchOutputRollback<'_> {
+    fn drop(&mut self) {
+        if !self.committed {
+            self.buffer.truncate(self.original_len);
+        }
+    }
 }
 
 /// [`encode_record_batch`], yielding while a long record list is encoded.
@@ -2263,26 +2499,165 @@ pub async fn encode_record_batch_cooperative(
     buf: &mut BytesMut,
     batch: &RecordBatch,
 ) -> Result<()> {
+    let mut output = BatchOutputRollback::new(buf);
     let header = batch_header_from(batch)?;
     let mut scratch = CompressScratch::new();
-    if Compression::from_attributes(header.attributes)? == Compression::None {
-        return write_uncompressed_batch_cooperative(
-            buf,
+    let result = if Compression::from_attributes(header.attributes)? == Compression::None {
+        write_uncompressed_batch_cooperative(
+            output.buffer,
             &header,
             batch.records.iter().map(EncodeRecord::from_record),
             &mut scratch,
         )
-        .await;
+        .await
+    } else {
+        match pack_compressed_batch_cooperative(
+            &header,
+            batch.records.iter().map(EncodeRecord::from_record),
+            &mut scratch,
+        )
+        .await
+        {
+            Ok(_) => write_packed_batch(output.buffer, &header, &scratch),
+            Err(error) => Err(error),
+        }
+    };
+    match result {
+        Err(error) if is_wire_arithmetic_overflow(&error) => {
+            output.buffer.truncate(output.original_len);
+            if !wire_offsets_sequential_cooperative(batch).await {
+                return Err(error);
+            }
+            let result = encode_wrapped_batch_cooperative(output.buffer, batch).await;
+            if result.is_ok() {
+                output.committed = true;
+            }
+            result
+        }
+        Err(error) => Err(error),
+        Ok(()) => {
+            scratch.shrink_to_caps();
+            output.committed = true;
+            Ok(())
+        }
     }
-    let _framed = pack_compressed_batch_cooperative(
-        &header,
-        batch.records.iter().map(EncodeRecord::from_record),
-        &mut scratch,
-    )
-    .await?;
-    write_packed_batch(buf, &header, &scratch)?;
-    scratch.shrink_to_caps();
+}
+
+fn is_wire_arithmetic_overflow(error: &Error) -> bool {
+    matches!(error, Error::Protocol(message)
+        if message == OFFSET_OVERFLOW || message == TIMESTAMP_OVERFLOW)
+}
+
+fn wire_offsets_sequential(batch: &RecordBatch) -> bool {
+    batch.records.iter().enumerate().all(|(index, record)| {
+        i32::try_from(index)
+            .is_ok_and(|delta| record.offset == batch.base_offset.wrapping_add(i64::from(delta)))
+    })
+}
+
+async fn wire_offsets_sequential_cooperative(batch: &RecordBatch) -> bool {
+    for (index, record) in batch.records.iter().enumerate() {
+        if !i32::try_from(index)
+            .is_ok_and(|delta| record.offset == batch.base_offset.wrapping_add(i64::from(delta)))
+        {
+            return false;
+        }
+        if index % (8 * 1024) == (8 * 1024) - 1 {
+            tokio::task::yield_now().await;
+        }
+    }
+    true
+}
+
+fn normalized_wire_header(batch: &RecordBatch) -> Result<BatchHeader> {
+    let mut header = batch_header_from(batch)?;
+    header.base_offset = 0;
+    header.base_timestamp = 0;
+    Ok(header)
+}
+
+fn normalized_wire_records(batch: &RecordBatch) -> impl Iterator<Item = EncodeRecord<'_>> {
+    batch.records.iter().map(|record| {
+        let mut encoded = EncodeRecord::from_record(record);
+        encoded.timestamp = record.timestamp.wrapping_sub(batch.base_timestamp);
+        encoded
+    })
+}
+
+// The temporary batch has zero bases so the checked producer writer can encode
+// its deltas. Restore the original header and recompute its protected CRC.
+fn restore_wire_header(buf: &mut BytesMut, start: usize, batch: &RecordBatch) -> Result<()> {
+    let bytes = buf
+        .get_mut(start..)
+        .ok_or_else(|| Error::protocol("missing encoded batch"))?;
+    if bytes.len() < buf::usize_from_i32(RecordBatch::RECORD_BATCH_OVERHEAD)? {
+        return Err(Error::protocol("short encoded batch"));
+    }
+    let base_offset = buf::usize_from_i32(Records::OFFSET_OFFSET)?;
+    let base_timestamp = buf::usize_from_i32(RecordBatch::BASE_TIMESTAMP_OFFSET)?;
+    let max_timestamp = base_timestamp
+        .checked_add(8)
+        .ok_or_else(|| Error::protocol("timestamp field offset overflow"))?;
+    let crc_offset = buf::usize_from_i32(RecordBatch::CRC_OFFSET)?;
+    let crc_end = buf::usize_from_i32(RecordBatch::ATTRIBUTES_OFFSET)?;
+    RecordBatch::write_i64_be(bytes, base_offset, batch.base_offset)?;
+    RecordBatch::write_i64_be(bytes, base_timestamp, batch.base_timestamp)?;
+    RecordBatch::write_i64_be(bytes, max_timestamp, batch.max_timestamp)?;
+    let crc = crc32c::crc32c(
+        bytes
+            .get(crc_end..)
+            .ok_or_else(|| Error::protocol("short encoded batch"))?,
+    );
+    bytes
+        .get_mut(crc_offset..crc_end)
+        .ok_or_else(|| Error::protocol("short encoded batch"))?
+        .copy_from_slice(&crc.to_be_bytes());
     Ok(())
+}
+
+fn encode_wrapped_batch(buf: &mut BytesMut, batch: &RecordBatch) -> Result<()> {
+    let start = buf.len();
+    let result = write_record_batch(
+        buf,
+        &normalized_wire_header(batch)?,
+        normalized_wire_records(batch),
+    )
+    .and_then(|()| restore_wire_header(buf, start, batch));
+    if result.is_err() {
+        buf.truncate(start);
+    }
+    result
+}
+
+async fn encode_wrapped_batch_cooperative(buf: &mut BytesMut, batch: &RecordBatch) -> Result<()> {
+    let start = buf.len();
+    let header = normalized_wire_header(batch)?;
+    let mut scratch = CompressScratch::new();
+    let result = if Compression::from_attributes(header.attributes)? == Compression::None {
+        write_uncompressed_batch_cooperative(
+            buf,
+            &header,
+            normalized_wire_records(batch),
+            &mut scratch,
+        )
+        .await
+    } else {
+        match pack_compressed_batch_cooperative(
+            &header,
+            normalized_wire_records(batch),
+            &mut scratch,
+        )
+        .await
+        {
+            Ok(_) => write_packed_batch(buf, &header, &scratch),
+            Err(error) => Err(error),
+        }
+    };
+    let result = result.and_then(|()| restore_wire_header(buf, start, batch));
+    if result.is_err() {
+        buf.truncate(start);
+    }
+    result
 }
 
 fn batch_header_from(batch: &RecordBatch) -> Result<BatchHeader> {
@@ -2479,20 +2854,20 @@ where
     if Compression::from_attributes(header.attributes)? != Compression::None {
         return Err(Error::protocol("internal: compressed cooperative encode"));
     }
-    let original = buf.len();
+    let mut output = BatchOutputRollback::new(buf);
     let mut header_wires = std::mem::take(&mut scratch.header_wires);
-    let (batch_start, batch_len_pos, crc_pos, crc_start) = start_record_batch(buf, header);
+    let (batch_start, batch_len_pos, crc_pos, crc_start) =
+        start_record_batch(output.buffer, header);
     let mut written = 0usize;
     let mut walked = 0usize;
     let mut encode_error = None;
     for (index, rec) in records.enumerate() {
-        if let Err(error) = encode_record(
-            buf,
-            &rec,
-            absolute_offset_delta(header.base_offset, index)?,
-            timestamp_delta(header.base_timestamp, rec.timestamp)?,
-            &mut header_wires,
-        ) {
+        let result = absolute_offset_delta(header.base_offset, index).and_then(|offset| {
+            timestamp_delta(header.base_timestamp, rec.timestamp).and_then(|timestamp| {
+                encode_record(output.buffer, &rec, offset, timestamp, &mut header_wires)
+            })
+        });
+        if let Err(error) = result {
             encode_error = Some(error);
             break;
         }
@@ -2505,20 +2880,21 @@ where
     }
     scratch.header_wires = header_wires;
     if let Some(error) = encode_error {
-        buf.truncate(original);
         return Err(error);
     }
-    if header.count != buf::i32_from_usize(written)? {
-        buf.truncate(original);
+    let count = buf::i32_from_usize(written)?;
+    if header.count != count {
         return Err(Error::protocol("record count differs from header"));
     }
-    match finish_record_batch(buf, batch_start, batch_len_pos, crc_pos, crc_start) {
-        Ok(()) => Ok(()),
-        Err(error) => {
-            buf.truncate(original);
-            Err(error)
-        }
-    }
+    finish_record_batch(
+        output.buffer,
+        batch_start,
+        batch_len_pos,
+        crc_pos,
+        crc_start,
+    )?;
+    output.committed = true;
+    Ok(())
 }
 
 /// Compress `records` into the scratch payload and return the framed batch length.
@@ -3019,7 +3395,8 @@ pub(crate) struct HeaderWire {
 fn fill_header_wires(headers: &[Header], wires: &mut Vec<HeaderWire>) -> Result<usize> {
     wires.clear();
     if headers.len() > wires.capacity() {
-        let extra = headers.len() - wires.capacity();
+        // try_reserve_exact is relative to length, not current capacity.
+        let extra = headers.len().saturating_sub(wires.len());
         wires
             .try_reserve_exact(extra)
             .map_err(|_| Error::protocol("header wire reserve"))?;
@@ -3184,6 +3561,16 @@ pub fn decode_record_batches_with_limit<B: Buf>(
     buf: &mut B,
     max_decode_bytes: usize,
 ) -> Result<Vec<RecordBatch>> {
+    let mut metadata = DecodeMetadataBudget::for_wire_limit(max_decode_bytes);
+    decode_record_batches_with_budget(buf, max_decode_bytes, &mut metadata)
+}
+
+/// Decode batches while charging their retained metadata to a response budget.
+pub(crate) fn decode_record_batches_with_budget<B: Buf>(
+    buf: &mut B,
+    max_decode_bytes: usize,
+    metadata: &mut DecodeMetadataBudget,
+) -> Result<Vec<RecordBatch>> {
     let mut out = Vec::new();
     // Reserve only when one bounded slice covers the buffer. A long run of
     // batches must not be counted in full before the first batch is decoded.
@@ -3191,8 +3578,7 @@ pub fn decode_record_batches_with_limit<B: Buf>(
         if let Ok((count, next)) = count_framed_batches_from(buf.chunk(), 0, 64 * 1024) {
             let done = next >= buf.chunk().len() || buf.chunk().len().saturating_sub(next) < 12;
             if done && count > 1 {
-                out.try_reserve_exact(count)
-                    .map_err(|_| Error::protocol("record batch reserve"))?;
+                metadata.reserve(&mut out, count)?;
             }
         }
     }
@@ -3200,10 +3586,17 @@ pub fn decode_record_batches_with_limit<B: Buf>(
         let chunk = buf.chunk();
         if chunk.len() < 12 {
             let mut rest = buf.copy_to_bytes(buf.remaining());
-            out.append(&mut decode_record_batches_with_limit(
-                &mut rest,
-                max_decode_bytes,
-            )?);
+            let mut more =
+                decode_record_batches_with_budget(&mut rest, max_decode_bytes, metadata)?;
+            let more_capacity = more.capacity();
+            let target = out
+                .len()
+                .checked_add(more.len())
+                .ok_or_else(|| Error::protocol("record batch count overflow"))?;
+            metadata.reserve(&mut out, target)?;
+            out.append(&mut more);
+            drop(more);
+            metadata.release::<RecordBatch>(more_capacity)?;
             break;
         }
         let len_bytes = chunk
@@ -3221,14 +3614,28 @@ pub fn decode_record_batches_with_limit<B: Buf>(
         if buf.remaining() < need {
             break;
         }
-        out.push(decode_record_batch_with_limit(buf, max_decode_bytes)?);
+        let batch = decode_record_batch_wire_budgeted(buf, max_decode_bytes, metadata)?;
+        if out.len() == out.capacity() {
+            let target = out
+                .capacity()
+                .saturating_mul(2)
+                .max(4)
+                .min(metadata.remaining_slots::<RecordBatch>());
+            if target <= out.capacity() {
+                return Err(Error::protocol(
+                    "decoded record metadata exceeds maximum allowable size",
+                ));
+            }
+            metadata.reserve(&mut out, target)?;
+        }
+        out.push(batch);
     }
     Ok(out)
 }
 
 /// One framed, CRC-checked magic-v2 batch whose records are decoded (and
 /// decompressed) only when [`EncodedBatch::decode`] is called.
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub(crate) struct EncodedBatch {
     base_offset: i64,
     attributes: i16,
@@ -3256,16 +3663,18 @@ impl EncodedBatch {
         self.attributes & ATTR_CONTROL != 0
     }
 
-    /// Decode without consuming the framed body. `Bytes` clone bumps a refcount.
-    ///
-    /// Enforces [`DEFAULT_MAX_RECORD_BATCH_DECODE_BYTES`].
-    /// Decode this batch, yielding while a long record list is decoded.
-    pub(crate) async fn decode_shared_cooperative(&self) -> Result<RecordBatch> {
-        decode_checked_batch_cooperative(
+    /// Decode without consuming the framed body, yielding for long batches and
+    /// charging metadata to the budget shared across the enclosing response.
+    pub(crate) async fn decode_shared_cooperative_with_budget(
+        &self,
+        metadata: &mut DecodeMetadataBudget,
+    ) -> Result<RecordBatch> {
+        decode_checked_batch_cooperative_with_budget(
             self.base_offset,
             self.body.clone(),
             DEFAULT_MAX_RECORD_BATCH_DECODE_BYTES,
             Vec::new(),
+            metadata,
         )
         .await
     }
@@ -3274,7 +3683,7 @@ impl EncodedBatch {
     ///
     /// Returns [`None`] when the batch is not that shape. The callback may
     /// already have run; the caller discards those records and uses
-    /// [`Self::decode_shared`].
+    /// [`Self::decode_shared_cooperative_with_budget`].
     #[cfg(test)]
     pub(crate) fn try_visit_short_keys(
         &self,
@@ -3440,15 +3849,64 @@ pub(crate) enum SlotList<T> {
 }
 
 impl<T> SlotList<T> {
-    /// A list that can hold `count` items without growing.
+    /// A list with a bounded initial hint for `count` items.
     ///
-    /// Zero and one stay inline. A longer list allocates that many slots once.
+    /// Zero and one stay inline. Longer lists initially reserve at most 256 slots.
     pub(crate) fn with_capacity(count: usize) -> Self {
         if count <= 1 {
             Self::Empty
         } else {
-            Self::Many(Vec::with_capacity(count))
+            Self::Many(Vec::with_capacity(count.min(256)))
         }
+    }
+
+    /// Reserve a bounded initial hint against a shared metadata budget.
+    pub(crate) fn try_with_budget(count: usize, budget: &mut DecodeMetadataBudget) -> Result<Self> {
+        let target = count.min(256).min(budget.remaining_slots::<T>());
+        if target <= 1 {
+            return Ok(Self::Empty);
+        }
+        let mut items = Vec::new();
+        budget.reserve(&mut items, target)?;
+        Ok(Self::Many(items))
+    }
+
+    /// Append while charging actual vector growth to a shared budget.
+    pub(crate) fn try_push_with_budget(
+        &mut self,
+        item: T,
+        budget: &mut DecodeMetadataBudget,
+    ) -> Result<()> {
+        match self {
+            Self::Empty => *self = Self::One(item),
+            Self::One(_) => {
+                let mut items = Vec::new();
+                budget.reserve(&mut items, 2)?;
+                let previous = std::mem::replace(self, Self::Empty);
+                if let Self::One(first) = previous {
+                    items.push(first);
+                    items.push(item);
+                    *self = Self::Many(items);
+                } else {
+                    *self = previous;
+                    return Err(Error::protocol("list state changed"));
+                }
+            }
+            Self::Many(items) => {
+                if items.len() == items.capacity() {
+                    let maximum = budget.remaining_slots::<T>();
+                    let target = items.capacity().saturating_mul(2).max(4).min(maximum);
+                    if target <= items.capacity() {
+                        return Err(Error::protocol(
+                            "decoded record metadata exceeds maximum allowable size",
+                        ));
+                    }
+                    budget.reserve(items, target)?;
+                }
+                items.push(item);
+            }
+        }
+        Ok(())
     }
 
     /// Append one item. The second item moves the list into a vector.
@@ -3649,7 +4107,10 @@ pub(crate) fn split_record_batches(mut buf: Bytes) -> Result<BatchList> {
 }
 
 /// [`split_record_batches`], yielding while a long run of batches is counted.
-pub(crate) async fn split_record_batches_cooperative(mut buf: Bytes) -> Result<BatchList> {
+pub(crate) async fn split_record_batches_cooperative_with_budget(
+    mut buf: Bytes,
+    metadata: &mut DecodeMetadataBudget,
+) -> Result<BatchList> {
     let Some(first) = next_framed_batch(&mut buf)? else {
         return Ok(BatchList::Empty);
     };
@@ -3661,8 +4122,7 @@ pub(crate) async fn split_record_batches_cooperative(mut buf: Bytes) -> Result<B
         return Ok(BatchList::One(first));
     }
     let mut many = Vec::new();
-    many.try_reserve_exact(extra.saturating_add(1))
-        .map_err(|_| Error::protocol("record batch reserve"))?;
+    metadata.reserve(&mut many, extra.saturating_add(1))?;
     many.push(first);
     let mut walked = 0usize;
     while let Some(batch) = next_framed_batch(&mut buf)? {
@@ -3784,11 +4244,37 @@ pub fn decode_record_batch<B: Buf>(buf: &mut B) -> Result<RecordBatch> {
 }
 
 /// Decode one magic-v2 batch (CRC32-C checked), enforcing an explicit decoded-byte ceiling.
+///
+/// This wire codec follows Java's signed wrapping arithmetic for record offsets
+/// and timestamps. The consumer's internal decode path separately rejects
+/// arithmetic overflow before applying records to positions or storage.
+/// Record and header vector capacity has a separate aggregate ceiling of twice
+/// `max_decode_bytes`, with a 64 KiB floor and a 128 MiB maximum. Payload and
+/// copied header-key bytes are accounted for by the decoded-byte ceiling.
 pub fn decode_record_batch_with_limit<B: Buf>(
     buf: &mut B,
     max_decode_bytes: usize,
 ) -> Result<RecordBatch> {
-    decode_record_batch_reusing(buf, max_decode_bytes, Vec::new())
+    let mut metadata = DecodeMetadataBudget::for_wire_limit(max_decode_bytes);
+    decode_record_batch_wire_budgeted(buf, max_decode_bytes, &mut metadata)
+}
+
+fn decode_record_batch_wire_budgeted<B: Buf>(
+    buf: &mut B,
+    max_decode_bytes: usize,
+    metadata: &mut DecodeMetadataBudget,
+) -> Result<RecordBatch> {
+    let (base_offset, body) = take_checked_batch(buf)?;
+    let mut open =
+        open_checked_batch_with_budget(base_offset, body, max_decode_bytes, Vec::new(), *metadata)?;
+    let remaining = open.remaining;
+    if remaining > 0 {
+        pull_records::<true>(&mut open, remaining)?;
+    }
+    let updated = open.metadata;
+    let batch = finish_checked_batch(open)?;
+    *metadata = updated;
+    Ok(batch)
 }
 
 /// Decode one batch, refilling `records` when that buffer already has room.
@@ -3867,15 +4353,37 @@ pub(crate) async fn decode_checked_batch_cooperative(
     max_decode_bytes: usize,
     records: Vec<Record>,
 ) -> Result<RecordBatch> {
+    let mut metadata = DecodeMetadataBudget::for_wire_limit(max_decode_bytes);
+    decode_checked_batch_cooperative_with_budget(
+        base_offset,
+        body,
+        max_decode_bytes,
+        records,
+        &mut metadata,
+    )
+    .await
+}
+
+async fn decode_checked_batch_cooperative_with_budget(
+    base_offset: i64,
+    body: Bytes,
+    max_decode_bytes: usize,
+    records: Vec<Record>,
+    metadata: &mut DecodeMetadataBudget,
+) -> Result<RecordBatch> {
     let mut open =
-        open_checked_batch_cooperative(base_offset, body, max_decode_bytes, records).await?;
+        open_checked_batch_cooperative(base_offset, body, max_decode_bytes, records, *metadata)
+            .await?;
     while open.remaining > 0 {
         pull_checked_records(&mut open, 8 * 1024)?;
         if open.remaining > 0 {
             tokio::task::yield_now().await;
         }
     }
-    finish_checked_batch(open)
+    let updated = open.metadata;
+    let batch = finish_checked_batch(open)?;
+    *metadata = updated;
+    Ok(batch)
 }
 
 struct OpenBatch {
@@ -3890,6 +4398,7 @@ struct OpenBatch {
     records_cur: Bytes,
     remaining: usize,
     records: Vec<Record>,
+    metadata: DecodeMetadataBudget,
 }
 
 struct BatchPrefix {
@@ -3949,24 +4458,31 @@ fn assemble_open_batch(
     prefix: BatchPrefix,
     records_cur: Bytes,
     mut records: Vec<Record>,
+    mut metadata: DecodeMetadataBudget,
 ) -> Result<OpenBatch> {
     let count_usize = buf::usize_from_i32(prefix.count)?;
-    if count_usize > records_cur.remaining() {
+    // A magic-v2 record requires a length prefix plus six one-byte fields.
+    if count_usize > records_cur.remaining() / 7 {
         return Err(Error::protocol(
             "Incorrect declared record count, exceeds remaining bytes",
         ));
     }
+    metadata.require::<Record>(count_usize)?;
     records.clear();
-    if records.capacity() < count_usize {
-        if records.capacity() == 0 {
-            records = Vec::with_capacity(count_usize);
-        } else {
-            let extra = count_usize - records.capacity();
-            records
-                .try_reserve_exact(extra)
-                .map_err(|_| Error::protocol("record batch reserve"))?;
-        }
+    let retained_bytes = records
+        .capacity()
+        .checked_mul(std::mem::size_of::<Record>());
+    if retained_bytes.is_none_or(|bytes| {
+        metadata
+            .used
+            .checked_add(bytes)
+            .is_none_or(|sum| sum > metadata.limit)
+    }) {
+        records = Vec::new();
+    } else {
+        metadata.charge::<Record>(records.capacity())?;
     }
+    metadata.reserve(&mut records, count_usize.min(64))?;
     Ok(OpenBatch {
         base_offset,
         partition_leader_epoch: prefix.partition_leader_epoch,
@@ -3979,14 +4495,31 @@ fn assemble_open_batch(
         records_cur,
         remaining: count_usize,
         records,
+        metadata,
     })
 }
 
 fn open_checked_batch(
     base_offset: i64,
+    body: Bytes,
+    max_decode_bytes: usize,
+    records: Vec<Record>,
+) -> Result<OpenBatch> {
+    open_checked_batch_with_budget(
+        base_offset,
+        body,
+        max_decode_bytes,
+        records,
+        DecodeMetadataBudget::for_wire_limit(max_decode_bytes),
+    )
+}
+
+fn open_checked_batch_with_budget(
+    base_offset: i64,
     mut body: Bytes,
     max_decode_bytes: usize,
     records: Vec<Record>,
+    metadata: DecodeMetadataBudget,
 ) -> Result<OpenBatch> {
     let prefix = read_batch_prefix(&mut body)?;
     let records_cur = if prefix.compression == Compression::None {
@@ -3998,7 +4531,7 @@ fn open_checked_batch(
             max_decode_bytes,
         )?)
     };
-    assemble_open_batch(base_offset, prefix, records_cur, records)
+    assemble_open_batch(base_offset, prefix, records_cur, records, metadata)
 }
 
 async fn open_checked_batch_cooperative(
@@ -4006,6 +4539,7 @@ async fn open_checked_batch_cooperative(
     mut body: Bytes,
     max_decode_bytes: usize,
     records: Vec<Record>,
+    metadata: DecodeMetadataBudget,
 ) -> Result<OpenBatch> {
     let prefix = read_batch_prefix(&mut body)?;
     let records_cur = if prefix.compression == Compression::None {
@@ -4015,7 +4549,7 @@ async fn open_checked_batch_cooperative(
             decompress_batch_cooperative(prefix.compression, &body, max_decode_bytes).await?,
         )
     };
-    assemble_open_batch(base_offset, prefix, records_cur, records)
+    assemble_open_batch(base_offset, prefix, records_cur, records, metadata)
 }
 
 fn decompress_batch(
@@ -4049,6 +4583,10 @@ async fn decompress_batch_cooperative(
 }
 
 fn pull_checked_records(open: &mut OpenBatch, limit: usize) -> Result<()> {
+    pull_records::<false>(open, limit)
+}
+
+fn pull_records<const WIRE_WRAP: bool>(open: &mut OpenBatch, limit: usize) -> Result<()> {
     let mut left = limit.max(1).min(open.remaining);
     while left > 0 {
         if !open.records_cur.has_remaining() {
@@ -4056,11 +4594,29 @@ fn pull_checked_records(open: &mut OpenBatch, limit: usize) -> Result<()> {
                 "Incorrect declared batch size, premature EOF reached",
             ));
         }
-        open.records.push(decode_record_from_bytes(
+        let record = decode_record_from_bytes_mode::<WIRE_WRAP>(
             &mut open.records_cur,
             open.base_offset,
             open.base_timestamp,
-        )?);
+            &mut open.metadata,
+        )?;
+        if open.records.len() == open.records.capacity() {
+            let total = open.records.len().saturating_add(open.remaining);
+            let target = open
+                .records
+                .capacity()
+                .saturating_mul(2)
+                .max(64)
+                .min(total)
+                .min(open.metadata.remaining_slots::<Record>());
+            if target <= open.records.capacity() {
+                return Err(Error::protocol(
+                    "decoded record metadata exceeds maximum allowable size",
+                ));
+            }
+            open.metadata.reserve(&mut open.records, target)?;
+        }
+        open.records.push(record);
         open.remaining = open.remaining.saturating_sub(1);
         left = left.saturating_sub(1);
     }
@@ -4091,15 +4647,26 @@ fn finish_checked_batch(open: OpenBatch) -> Result<RecordBatch> {
     })
 }
 
+#[cfg(test)]
 fn decode_record_from_bytes(
     buf: &mut Bytes,
     base_offset: i64,
     base_timestamp: i64,
 ) -> Result<Record> {
+    let mut metadata = DecodeMetadataBudget::for_wire_limit(DEFAULT_MAX_RECORD_BATCH_DECODE_BYTES);
+    decode_record_from_bytes_mode::<false>(buf, base_offset, base_timestamp, &mut metadata)
+}
+
+fn decode_record_from_bytes_mode<const WIRE_WRAP: bool>(
+    buf: &mut Bytes,
+    base_offset: i64,
+    base_timestamp: i64,
+    metadata: &mut DecodeMetadataBudget,
+) -> Result<Record> {
     if let Some(record) = try_plain_record(buf, base_offset, base_timestamp) {
         return Ok(record);
     }
-    decode_record(buf, base_offset, base_timestamp)
+    decode_record_mode::<WIRE_WRAP, _>(buf, base_offset, base_timestamp, metadata)
 }
 
 /// One- or two-byte zigzag varint. Longer encodings return `None` so the
@@ -4356,7 +4923,7 @@ fn try_plain_short_key(
 pub(crate) fn absolute_offset_delta(base: i64, index: usize) -> Result<i32> {
     let delta = buf::i32_from_usize(index)?;
     if base.checked_add(i64::from(delta)).is_none() {
-        return Err(Error::protocol("record offset overflow"));
+        return Err(Error::protocol(OFFSET_OVERFLOW));
     }
     Ok(delta)
 }
@@ -4364,7 +4931,7 @@ pub(crate) fn absolute_offset_delta(base: i64, index: usize) -> Result<i32> {
 pub(crate) fn timestamp_delta(base: i64, timestamp: i64) -> Result<i64> {
     timestamp
         .checked_sub(base)
-        .ok_or_else(|| Error::protocol("record timestamp overflow"))
+        .ok_or_else(|| Error::protocol(TIMESTAMP_OVERFLOW))
 }
 
 fn offset_delta_from(base: i64, offset: i64) -> Result<i32> {
@@ -4383,7 +4950,18 @@ fn record_timestamp(base: i64, delta: i64) -> Option<i64> {
 }
 
 /// Java `DefaultRecord.readFrom` (magic-v2 inner record).
+#[cfg(test)]
 fn decode_record<B: Buf>(buf: &mut B, base_offset: i64, base_timestamp: i64) -> Result<Record> {
+    let mut metadata = DecodeMetadataBudget::for_wire_limit(DEFAULT_MAX_RECORD_BATCH_DECODE_BYTES);
+    decode_record_mode::<false, _>(buf, base_offset, base_timestamp, &mut metadata)
+}
+
+fn decode_record_mode<const WIRE_WRAP: bool, B: Buf>(
+    buf: &mut B,
+    base_offset: i64,
+    base_timestamp: i64,
+    metadata: &mut DecodeMetadataBudget,
+) -> Result<Record> {
     let size_of_body_in_bytes = buf::get_varint(buf)?;
     if size_of_body_in_bytes < 0 {
         return Err(Error::protocol("negative record length"));
@@ -4413,12 +4991,14 @@ fn decode_record<B: Buf>(buf: &mut B, base_offset: i64, base_timestamp: i64) -> 
         )));
     }
     let num_headers_usize = buf::usize_from_i32(num_headers)?;
-    if num_headers_usize > inner.remaining() {
+    // A header needs at least one byte each for key and value lengths.
+    if num_headers_usize > inner.remaining() / 2 {
         return Err(Error::protocol(format!(
             "Found invalid number of record headers. {num_headers} is larger than the remaining size of the buffer"
         )));
     }
-    let mut headers = Vec::with_capacity(num_headers_usize);
+    metadata.require::<Header>(num_headers_usize)?;
+    let mut headers = Vec::new();
     for _ in 0..num_headers_usize {
         let header_key_size = buf::get_varint(&mut inner)?;
         if header_key_size < 0 {
@@ -4431,6 +5011,20 @@ fn decode_record<B: Buf>(buf: &mut B, base_offset: i64, base_timestamp: i64) -> 
         let key_buf = buf::copy_exact(&mut inner, key_len_usize)?;
         let key = String::from_utf8(key_buf).map_err(|e| Error::protocol(e.to_string()))?;
         let value = read_bytes_varint(&mut inner)?;
+        if headers.len() == headers.capacity() {
+            let target = headers
+                .capacity()
+                .saturating_mul(2)
+                .max(8)
+                .min(num_headers_usize)
+                .min(metadata.remaining_slots::<Header>());
+            if target <= headers.capacity() {
+                return Err(Error::protocol(
+                    "decoded record metadata exceeds maximum allowable size",
+                ));
+            }
+            metadata.reserve(&mut headers, target)?;
+        }
         headers.push(Header { key, value });
     }
     if inner.remaining() != 0 {
@@ -4440,10 +5034,18 @@ fn decode_record<B: Buf>(buf: &mut B, base_offset: i64, base_timestamp: i64) -> 
         )));
     }
     Ok(Record {
-        offset: record_offset(base_offset, offset_delta)
-            .ok_or_else(|| Error::protocol("record offset overflow"))?,
-        timestamp: record_timestamp(base_timestamp, timestamp_delta)
-            .ok_or_else(|| Error::protocol("record timestamp overflow"))?,
+        offset: if WIRE_WRAP {
+            base_offset.wrapping_add(i64::from(offset_delta))
+        } else {
+            record_offset(base_offset, offset_delta)
+                .ok_or_else(|| Error::protocol(OFFSET_OVERFLOW))?
+        },
+        timestamp: if WIRE_WRAP {
+            base_timestamp.wrapping_add(timestamp_delta)
+        } else {
+            record_timestamp(base_timestamp, timestamp_delta)
+                .ok_or_else(|| Error::protocol(TIMESTAMP_OVERFLOW))?
+        },
         key,
         value,
         headers,
@@ -5687,6 +6289,67 @@ mod tests {
         assert_eq!(batch.reserve_hint(), 0);
     }
 
+    #[test]
+    fn slot_list_hints_and_growth_obey_the_shared_budget() {
+        let hinted = SlotList::<u8>::with_capacity(usize::MAX);
+        let SlotList::Many(hinted) = hinted else {
+            panic!("many slots")
+        };
+        assert!(hinted.capacity() <= 256);
+
+        let mut budget = DecodeMetadataBudget::for_wire_limit(1);
+        let mut slots = SlotList::<[u8; 512]>::try_with_budget(usize::MAX, &mut budget).unwrap();
+        let initial = match &slots {
+            SlotList::Many(items) => items.capacity(),
+            _ => panic!("budget permits a bounded initial allocation"),
+        };
+        assert!(initial.saturating_mul(512) <= MIN_DECODE_METADATA_BYTES);
+        for index in 0..initial {
+            slots
+                .try_push_with_budget([u8::try_from(index % 256).unwrap(); 512], &mut budget)
+                .unwrap();
+        }
+        assert!(slots.try_push_with_budget([0; 512], &mut budget).is_err());
+        assert_eq!(slots.len(), initial);
+        assert_eq!(slots.first().unwrap().first(), Some(&0));
+    }
+
+    #[test]
+    fn excess_allocator_capacity_preserves_vector_and_budget() {
+        let mut values = Vec::with_capacity(2);
+        values.extend([11_u32, 22]);
+        let original_capacity = values.capacity();
+        let target = original_capacity + 2;
+        let limit = original_capacity + target;
+        let mut budget = DecodeMetadataBudget::with_limit(limit * std::mem::size_of::<u32>());
+        budget.charge::<u32>(original_capacity).unwrap();
+        let remaining = budget.remaining_slots::<u32>();
+        let result = budget.reserve_using(&mut values, target, |replacement, requested| {
+            replacement
+                .try_reserve_exact(requested + 1)
+                .map_err(|_| Error::protocol("test allocation failed"))
+        });
+        assert!(result.is_err());
+        assert_eq!(values, [11, 22]);
+        assert_eq!(values.capacity(), original_capacity);
+        assert_eq!(budget.remaining_slots::<u32>(), remaining);
+
+        let peak = std::cell::Cell::new(0);
+        budget
+            .reserve_using(&mut values, target, |replacement, requested| {
+                replacement
+                    .try_reserve_exact(requested)
+                    .map_err(|_| Error::protocol("test allocation failed"))?;
+                peak.set(original_capacity + replacement.capacity());
+                Ok(())
+            })
+            .unwrap();
+        assert_eq!(values, [11, 22]);
+        assert!(values.capacity() >= target);
+        assert!(peak.get() <= limit);
+        assert_eq!(budget.remaining_slots::<u32>(), limit - values.capacity());
+    }
+
     fn wrap_record_body(inner: &[u8]) -> BytesMut {
         let mut rec = BytesMut::new();
         buf::put_varint(&mut rec, buf::i32_from_usize(inner.len()).unwrap());
@@ -6283,7 +6946,7 @@ mod tests {
         assert_eq!(one.count_or_null(), Some(1));
 
         let mut negative = [0u8; 61];
-        put_record_count(&mut negative, (-1i32));
+        put_record_count(&mut negative, -1i32);
         assert_eq!(
             RecordBatch::encoded_count_or_null(&negative).unwrap(),
             Some(-1)
@@ -6509,9 +7172,13 @@ mod tests {
             overflow,
         ]);
         batch.base_timestamp = i64::MAX;
-        let err = encode_record_batch(&mut BytesMut::new(), &batch)
-            .unwrap_err()
-            .to_string();
+        let err = write_record_batch(
+            &mut BytesMut::new(),
+            &batch_header_from(&batch).unwrap(),
+            batch.records.iter().map(EncodeRecord::from_record),
+        )
+        .unwrap_err()
+        .to_string();
         assert!(err.contains("record timestamp overflow"), "{err}");
         let size_err = RecordBatch::size_in_bytes_from(0, &batch.records)
             .unwrap_err()
@@ -6577,10 +7244,264 @@ mod tests {
             "{count_err}"
         );
         assert_eq!(&mismatched[..], b"keep");
-        let batch_err = decode_record_batch(&mut &encoded[..])
-            .unwrap_err()
-            .to_string();
+        let batch_err = decode_record_batch_reusing(
+            &mut &encoded[..],
+            DEFAULT_MAX_RECORD_BATCH_DECODE_BYTES,
+            Vec::new(),
+        )
+        .unwrap_err()
+        .to_string();
         assert!(batch_err.contains("record offset overflow"), "{batch_err}");
+    }
+
+    #[tokio::test]
+    async fn wire_signed_wrap_roundtrips_but_consumer_and_producer_reject_overflow() {
+        let records = vec![
+            Record {
+                offset: i64::MAX,
+                timestamp: i64::MAX,
+                key: Some(Bytes::from_static(b"first")),
+                value: None,
+                headers: Vec::new(),
+            },
+            Record {
+                offset: i64::MIN,
+                timestamp: i64::MIN,
+                key: None,
+                value: Some(Bytes::from_static(b"second")),
+                headers: Vec::new(),
+            },
+        ];
+        let mut batch = RecordBatch::from_records(records.clone());
+        batch.records = records.clone();
+        batch.base_offset = i64::MAX;
+        batch.base_timestamp = i64::MAX;
+        batch.max_timestamp = i64::MAX;
+        for codec in [
+            Compression::None,
+            Compression::Gzip,
+            Compression::Snappy,
+            Compression::Lz4,
+            #[cfg(feature = "zstd")]
+            Compression::Zstd,
+        ] {
+            let batch = batch.clone().with_compression(codec);
+            let mut encoded = BytesMut::from(&b"prefix"[..]);
+            encode_record_batch(&mut encoded, &batch).unwrap();
+            let wire = encoded.get(6..).unwrap();
+            let decoded = decode_record_batch(&mut &*wire).unwrap();
+            assert_eq!(decoded.records, records);
+            let strict = decode_record_batch_reusing(
+                &mut &*wire,
+                DEFAULT_MAX_RECORD_BATCH_DECODE_BYTES,
+                Vec::new(),
+            );
+            assert!(strict.is_err());
+
+            let mut cooperative = BytesMut::from(&b"prefix"[..]);
+            encode_record_batch_cooperative(&mut cooperative, &batch)
+                .await
+                .unwrap();
+            let cooperative_wire = cooperative.get(6..).unwrap();
+            let decoded_cooperative = decode_record_batch(&mut &*cooperative_wire).unwrap();
+            assert_eq!(decoded_cooperative.records, records);
+
+            let mut producer = BytesMut::from(&b"prefix"[..]);
+            assert!(write_record_batch(
+                &mut producer,
+                &batch_header_from(&batch).unwrap(),
+                batch.records.iter().map(EncodeRecord::from_record),
+            )
+            .is_err());
+            assert_eq!(producer.as_ref(), b"prefix");
+        }
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn cancel_cooperative_encoders_restores_the_caller_prefix() {
+        use std::future::{poll_fn, Future};
+        use std::task::Poll;
+
+        let make_record = || Record {
+            offset: 0,
+            timestamp: 0,
+            key: None,
+            value: Some(Bytes::from_static(b"x")),
+            headers: Vec::new(),
+        };
+        let normal = RecordBatch::from_records(vec![make_record(); 8 * 1024 + 1]);
+        let mut wrapped = normal.clone();
+        wrapped.base_offset = i64::MAX;
+        for (index, record) in wrapped.records.iter_mut().enumerate() {
+            record.offset = i64::MAX.wrapping_add(i64::try_from(index).unwrap());
+        }
+
+        for (batch, polls) in [(&normal, 1), (&wrapped, 2)] {
+            let mut output = BytesMut::from(&b"prefix"[..]);
+            {
+                let mut future = Box::pin(encode_record_batch_cooperative(&mut output, batch));
+                for _ in 0..polls {
+                    poll_fn(|cx| {
+                        assert!(future.as_mut().poll(cx).is_pending());
+                        Poll::Ready(())
+                    })
+                    .await;
+                }
+            }
+            assert_eq!(output.as_ref(), b"prefix");
+        }
+
+        let mut output = BytesMut::from(&b"prefix"[..]);
+        let mut scratch = CompressScratch::new();
+        let header = batch_header_from(&normal).unwrap();
+        {
+            let mut future = Box::pin(write_uncompressed_batch_cooperative(
+                &mut output,
+                &header,
+                normal.records.iter().map(EncodeRecord::from_record),
+                &mut scratch,
+            ));
+            poll_fn(|cx| {
+                assert!(future.as_mut().poll(cx).is_pending());
+                Poll::Ready(())
+            })
+            .await;
+        }
+        assert_eq!(output.as_ref(), b"prefix");
+    }
+
+    fn test_batch_with_records(count: i32, attributes: i16, payload: &[u8]) -> BytesMut {
+        let mut frame = BytesMut::new();
+        let header = BatchHeader {
+            count,
+            attributes,
+            ..BatchHeader::default()
+        };
+        let (start, length, crc, crc_start) = start_record_batch(&mut frame, &header);
+        frame.extend_from_slice(payload);
+        finish_record_batch(&mut frame, start, length, crc, crc_start).unwrap();
+        assert!(RecordBatch::is_valid(&frame).unwrap());
+        frame
+    }
+
+    #[test]
+    fn crc_valid_inflated_counts_obey_the_shared_metadata_budget() {
+        let raw = vec![0u8; 1024 * 1024];
+        let count = 120_000;
+        let plain = test_batch_with_records(count, 0, &raw);
+        let error = decode_record_batch_with_limit(&mut plain.as_ref(), raw.len()).unwrap_err();
+        assert!(error.to_string().contains("decoded record metadata"));
+
+        let mut compressed = Vec::new();
+        gzip_compress_into(&raw, &mut compressed).unwrap();
+        assert!(compressed.len() < raw.len() / 10);
+        let gzip = test_batch_with_records(count, Compression::Gzip as i16, &compressed);
+        let error = decode_record_batch_with_limit(&mut gzip.as_ref(), raw.len()).unwrap_err();
+        assert!(error.to_string().contains("decoded record metadata"));
+
+        let mut body = BytesMut::new();
+        body.put_i8(0);
+        buf::put_varlong(&mut body, 0);
+        buf::put_varint(&mut body, 0);
+        buf::put_varint(&mut body, -1);
+        buf::put_varint(&mut body, -1);
+        buf::put_varint(&mut body, 3_000);
+        body.resize(body.len() + 6_000, 0);
+        let record = wrap_record_body(&body);
+        let frame = test_batch_with_records(1, 0, &record);
+        let error = decode_record_batch_with_limit(&mut frame.as_ref(), record.len()).unwrap_err();
+        assert!(error.to_string().contains("decoded record metadata"));
+    }
+
+    #[test]
+    fn tiny_limits_and_reused_capacity_are_accounted_without_losing_valid_records() {
+        let minimal = [0x0cu8, 0, 0, 0, 1, 1, 0];
+        let one = test_batch_with_records(1, 0, &minimal);
+        let reused_slots = MIN_DECODE_METADATA_BYTES / std::mem::size_of::<Record>() + 1;
+        let reused = Vec::with_capacity(reused_slots);
+        let decoded =
+            decode_record_batch_reusing(&mut one.as_ref(), minimal.len(), reused).unwrap();
+        assert_eq!(decoded.records.len(), 1);
+        assert!(
+            decoded
+                .records
+                .capacity()
+                .saturating_mul(std::mem::size_of::<Record>())
+                <= MIN_DECODE_METADATA_BYTES
+        );
+
+        let mut four_bytes = Vec::new();
+        for _ in 0..4 {
+            four_bytes.extend_from_slice(&minimal);
+        }
+        let four = test_batch_with_records(4, 0, &four_bytes);
+        let decoded = decode_record_batch_reusing(
+            &mut four.as_ref(),
+            four_bytes.len(),
+            Vec::with_capacity(2),
+        )
+        .unwrap();
+        assert_eq!(decoded.records.len(), 4);
+        assert!(decoded.records.capacity() >= 4);
+    }
+
+    #[test]
+    fn header_metadata_is_aggregated_across_records_and_batches() {
+        let make_record = |count: i32| {
+            let mut body = BytesMut::new();
+            body.put_i8(0);
+            buf::put_varlong(&mut body, 0);
+            buf::put_varint(&mut body, 0);
+            buf::put_varint(&mut body, -1);
+            buf::put_varint(&mut body, -1);
+            buf::put_varint(&mut body, count);
+            body.resize(body.len() + usize::try_from(count).unwrap() * 2, 0);
+            wrap_record_body(&body)
+        };
+        let larger_record = make_record(700);
+        let larger_batch = test_batch_with_records(1, 0, &larger_record);
+        assert!(decode_record_batch(&mut larger_batch.as_ref()).is_ok());
+
+        // 600 headers fit the 64 KiB floor including the temporary 512-to-600
+        // Vec growth peak, but two retained 600-header Vecs do not.
+        let record = make_record(600);
+        let one = test_batch_with_records(1, 0, &record);
+        assert!(decode_record_batch_with_limit(&mut one.as_ref(), record.len()).is_ok());
+        let mut two_records = BytesMut::new();
+        two_records.extend_from_slice(&record);
+        two_records.extend_from_slice(&record);
+        let two = test_batch_with_records(2, 0, &two_records);
+        let error =
+            decode_record_batch_with_limit(&mut two.as_ref(), two_records.len()).unwrap_err();
+        assert!(error.to_string().contains("decoded record metadata"));
+
+        let mut batches = BytesMut::new();
+        batches.extend_from_slice(&one);
+        batches.extend_from_slice(&one);
+        let error =
+            decode_record_batches_with_limit(&mut batches.as_ref(), record.len()).unwrap_err();
+        assert!(error.to_string().contains("decoded record metadata"));
+    }
+
+    #[test]
+    fn wire_negative_delta_wrap_is_not_accepted_by_checked_decoder() {
+        let mut body = BytesMut::new();
+        body.put_i8(0);
+        buf::put_varlong(&mut body, -1);
+        buf::put_varint(&mut body, -1);
+        buf::put_varint(&mut body, -1);
+        buf::put_varint(&mut body, -1);
+        buf::put_varint(&mut body, 0);
+        let encoded = wrap_record_body(&body);
+        let mut wrapped: &[u8] = encoded.as_ref();
+        let mut metadata =
+            DecodeMetadataBudget::for_wire_limit(DEFAULT_MAX_RECORD_BATCH_DECODE_BYTES);
+        let decoded =
+            decode_record_mode::<true, _>(&mut wrapped, i64::MIN, i64::MIN, &mut metadata).unwrap();
+        assert_eq!(decoded.offset, i64::MAX);
+        assert_eq!(decoded.timestamp, i64::MAX);
+        let mut checked: &[u8] = encoded.as_ref();
+        assert!(decode_record(&mut checked, i64::MIN, i64::MIN).is_err());
     }
 
     #[test]
@@ -7084,7 +8005,7 @@ mod tests {
         );
 
         let mut neg = [0u8; 17];
-        put_batch_length(&mut neg, (-1i32));
+        put_batch_length(&mut neg, -1i32);
         let err = Records::first_batch_size(&neg).unwrap_err().to_string();
         assert!(
             err.contains("Record size -1 is less than the minimum record overhead (14)"),

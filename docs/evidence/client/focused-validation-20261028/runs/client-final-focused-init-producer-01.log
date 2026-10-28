@@ -1,0 +1,21 @@
+   Compiling partitionline v0.1.0 (/workspace/partitionline)
+    Finished `test` profile [unoptimized] target(s) in 7.40s
+     Running tests/init_producer_id_v6.rs (/workspace/work/qualification-20261027/broker-check-target/debug/deps/init_producer_id_v6-0d99f888a74f45ed)
+
+running 13 tests
+test all_three_apache_serializers_preserve_flags_and_both_identities ... ok
+test classic_epoch_recovery_renegotiates_a_moved_coordinator_without_using_ongoing_identity ... ok
+test complete_input_truncation_and_tag_bounds_fail_closed ... ok
+test epoch_recovery_loading_and_rediscovery_do_not_renew_the_deadline ... ok
+test legacy_wrappers_supply_false_flags_and_ongoing_sentinels ... ok
+test missing_or_nonoverlapping_initialization_api_sends_no_request ... ok
+test moved_coordinator_does_not_receive_an_unsupported_end_txn_version ... ok
+test moved_coordinator_uses_its_own_lower_negotiation_on_initialization ... ok
+test native_ordinary_transaction_history ... ignored, requires an explicitly isolated Kafka broker and independent Java readback
+test nontransactional_epoch_exhaustion_rotates_the_regular_identity_at_v6 ... ok
+test ongoing_identity_never_masks_a_terminal_initialization_error ... ok
+test ordinary_init_send_commit_abort_match_every_older_negotiated_version ... ok
+test true_flags_on_old_peers_return_unsupported_before_any_application_frame ... ok
+
+test result: ok. 12 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.21s
+

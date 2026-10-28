@@ -186,7 +186,7 @@ async fn native_codec_matrix_peer() -> Result<(), Error> {
                     i64::try_from(count).map_err(|_| Error::protocol("test ID overflow"))?;
                 assert_eq!(record.offset, delta);
                 assert_eq!(record.timestamp, timestamp + delta);
-                assert_eq!(record.key, key(count));
+                assert_eq!(record.key.as_deref(), key(count).as_deref());
                 assert_eq!(record.value, value(count));
                 assert_eq!(record.headers, headers(count)?);
                 count += 1;

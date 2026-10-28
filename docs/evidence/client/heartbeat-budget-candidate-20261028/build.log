@@ -1,0 +1,4 @@
+   Compiling partitionline v0.1.0 (/workspace/work/goal-qualification-20261028/parser-budget-prototype)
+    Finished `test` profile [unoptimized] target(s) in 2m 28s
+  Executable unittests src/lib.rs (/workspace/work/qualification-20261027/broker-check-target/debug/deps/partitionline-b07aa256026bc081)
+  Executable tests/full_surface.rs (/workspace/work/qualification-20261027/broker-check-target/debug/deps/full_surface-e102b38d1447c2a3)

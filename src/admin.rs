@@ -9215,7 +9215,11 @@ impl Admin {
             return Ok(());
         }
         let addr = self.conn.addr().to_string();
-        let replacement = if self.versions.is_empty() {
+        let replacement = if self.conn.is_closed() {
+            // A replacement connection may reach a restarted or upgraded
+            // broker. Its API ranges must come from its own handshake.
+            dial_admin_socket(&addr, &self.cfg, &self.stats, deadline).await?
+        } else if self.versions.is_empty() {
             self.open_node_conn_until(&addr, deadline).await?
         } else {
             self.open_known_peer_until(&addr, deadline).await?
@@ -9266,14 +9270,19 @@ impl Admin {
     ) -> Result<bytes::Bytes> {
         if self.targets_bootstrap(node) {
             self.ensure_bootstrap(deadline).await?;
-            return self.conn.roundtrip(api_key, version, encode, timeout).await;
+            let remaining = timeout.min(startup_remaining(deadline)?);
+            return self
+                .conn
+                .roundtrip(api_key, version, encode, remaining)
+                .await;
         }
         self.connect_node_until(node, deadline).await?;
+        let remaining = timeout.min(startup_remaining(deadline)?);
         let conn = self
             .conns
             .get_mut(&node)
             .ok_or_else(|| Error::protocol("missing broker connection"))?;
-        conn.roundtrip(api_key, version, encode, timeout).await
+        conn.roundtrip(api_key, version, encode, remaining).await
     }
 
     /// An admin that already holds `conn`, for tests of socket closes.
@@ -9348,6 +9357,7 @@ impl Admin {
     /// with that drop, so the broker stays in its read until the watch is scheduled.
     async fn discard_node_conn(&mut self, node: i32) {
         if let Some(mut conn) = self.conns.remove(&node) {
+            let _ = self.peer_versions.remove(conn.addr());
             conn.inner.close();
             conn.inner.release_if_closed().await;
         }
@@ -9465,8 +9475,13 @@ impl Admin {
         addr: &str,
         deadline: Instant,
     ) -> Result<AdminOffsetConn> {
-        if addr == self.conn.addr() && !self.versions.is_empty() {
-            return self.open_known_peer_until(addr, deadline).await;
+        if addr == self.conn.addr() {
+            if self.conn.is_closed() {
+                return dial_admin_socket(addr, &self.cfg, &self.stats, deadline).await;
+            }
+            if !self.versions.is_empty() {
+                return self.open_known_peer_until(addr, deadline).await;
+            }
         }
         let known = self.peer_versions.get(addr).cloned().unwrap_or_default();
         let conn = dial_admin_peer(addr, &self.cfg, &self.stats, &known, deadline).await?;
