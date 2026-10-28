@@ -1,0 +1,15 @@
+
+running 1 test
+test admin::tests::decoding_many_delegation_tokens_does_not_hold_the_caller ... 
+thread 'admin::tests::decoding_many_delegation_tokens_does_not_hold_the_caller' (64001) panicked at src/admin.rs:20174:9:
+decoding delegation tokens held the caller for 94.534992ms
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+FAILED
+
+failures:
+
+failures:
+    admin::tests::decoding_many_delegation_tokens_does_not_hold_the_caller
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 2110 filtered out; finished in 0.80s
+

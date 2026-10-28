@@ -1,0 +1,15 @@
+
+running 1 test
+test group::tests::pairing_many_committed_offsets_does_not_hold_the_caller ... 
+thread 'group::tests::pairing_many_committed_offsets_does_not_hold_the_caller' (64564) panicked at src/group.rs:9391:9:
+pairing committed offsets held the caller for 93.306117ms
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+FAILED
+
+failures:
+
+failures:
+    group::tests::pairing_many_committed_offsets_does_not_hold_the_caller
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 2110 filtered out; finished in 2.36s
+

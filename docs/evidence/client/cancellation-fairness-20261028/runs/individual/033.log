@@ -1,0 +1,15 @@
+
+running 1 test
+test metrics::tests::snapshotting_many_fetch_topics_does_not_hold_the_caller ... 
+thread 'metrics::tests::snapshotting_many_fetch_topics_does_not_hold_the_caller' (64619) panicked at src/metrics.rs:985:9:
+snapshotting fetch topics held the caller for 86.996466ms
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+FAILED
+
+failures:
+
+failures:
+    metrics::tests::snapshotting_many_fetch_topics_does_not_hold_the_caller
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 2110 filtered out; finished in 12.05s
+

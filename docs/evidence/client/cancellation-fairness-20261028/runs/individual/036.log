@@ -1,0 +1,15 @@
+
+running 1 test
+test protocol::group::tests::grouping_many_owned_topics_does_not_hold_the_caller ... 
+thread 'protocol::group::tests::grouping_many_owned_topics_does_not_hold_the_caller' (64633) panicked at src/protocol/group.rs:14186:9:
+grouping owned topics held the caller for 92.43148ms
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+FAILED
+
+failures:
+
+failures:
+    protocol::group::tests::grouping_many_owned_topics_does_not_hold_the_caller
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 2110 filtered out; finished in 0.51s
+

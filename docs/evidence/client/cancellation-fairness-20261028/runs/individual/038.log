@@ -1,0 +1,15 @@
+
+running 1 test
+test share::tests::indexing_sent_ack_batches_does_not_hold_the_caller ... 
+thread 'share::tests::indexing_sent_ack_batches_does_not_hold_the_caller' (64637) panicked at src/share.rs:9317:9:
+indexing acknowledged batches held the caller for 83.379129ms
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+FAILED
+
+failures:
+
+failures:
+    share::tests::indexing_sent_ack_batches_does_not_hold_the_caller
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 2110 filtered out; finished in 0.15s
+

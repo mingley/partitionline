@@ -1,0 +1,6 @@
+
+running 1 test
+test consumer::tests::checking_many_fresh_assignments_does_not_hold_the_caller ... 
+thread 'consumer::tests::checking_many_fresh_assignments_does_not_hold_the_caller' (64271) panicked at src/consumer.rs:17635:9:
+checking fresh assignments held the caller for 118.123158ms
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace

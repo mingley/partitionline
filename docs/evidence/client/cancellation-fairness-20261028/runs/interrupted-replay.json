@@ -1,0 +1,23 @@
+{
+  "command": [
+    "/workspace/work/qualification-20261027/broker-check-target/debug/deps/partitionline-b07aa256026bc081",
+    "does_not_hold_the_caller",
+    "--test-threads=1"
+  ],
+  "binary_sha256": "5a6d0d24b92ebeaffcc3a6b66359526dc54103f5799b535321b8bcd2b650e0b5",
+  "log_sha256": "4aa7c109d0053f3693fed3e7c24010d2f6d3acb6b2d02dfe8a158edf3710e7f2",
+  "exit_code": 143,
+  "state": "interrupted",
+  "reason": "Stopped after isolated failures were reproduced; remaining failed tests will be targeted individually.",
+  "complete": false,
+  "observed_passes": 85,
+  "observed_failures": [
+    "test admin::tests::decoding_many_consumer_group_members_does_not_hold_the_caller ... FAILED",
+    "test admin::tests::extending_many_described_topics_does_not_hold_the_caller ... FAILED",
+    "test admin::tests::indexing_many_coordinators_does_not_hold_the_caller ... FAILED",
+    "test admin::tests::indexing_many_described_producers_does_not_hold_the_caller ... FAILED",
+    "test consumer::tests::applying_many_one_record_fetch_batches_does_not_hold_the_caller ... FAILED"
+  ],
+  "input_scope": "Later retained executable identified by client-share-interval-unit.json; not the original matrix binary. Shared x86 workspace.",
+  "binary_source_receipt": "client-share-interval-unit.json"
+}

@@ -1,0 +1,23 @@
+   Compiling partitionline-broker v0.1.0 (/workspace/work/broker-bounded-sync/partitionline-broker)
+    Finished `test` profile [unoptimized] target(s) in 31.64s
+     Running unittests src/lib.rs (/workspace/work/qualification-20261027/broker-check-target/debug/deps/partitionline_broker-2a454c0708a72949)
+
+running 15 tests
+test produce::tests::a_multi_partition_produce_sizes_its_sync_list_once ... ok
+test produce::tests::a_multi_partition_sync_sizes_its_join_list_once ... ok
+test produce::tests::a_produce_response_reuses_a_parked_buffer ... ok
+test produce::tests::a_produce_topic_key_borrows_the_request_name ... ok
+test produce::tests::a_second_grouped_produce_reuses_the_capture_list ... ok
+test produce::tests::a_single_produce_slot_stays_inline ... ok
+test produce::tests::a_timestamp_scan_reuses_its_payload_buffer ... ok
+test produce::tests::bounded_sync_waves_join_all_workers_and_handle_failures ... ok
+test produce::tests::bounded_sync_waves_sync_real_files ... ok
+test produce::tests::cached_read_errors_report_poison_for_direct_and_relocated_handles ... ok
+test produce::tests::finished_append_keeps_its_offset_after_the_request_timer ... ok
+test produce::tests::grouped_sync_propagates_one_partition_failure_to_all_its_batches ... ok
+test produce::tests::queued_produces_keep_the_last_sync_for_each_partition ... ok
+test produce::tests::strictly_increasing_partition_indexes_need_no_duplicate_map ... ok
+test produce::tests::sync_concurrency_requires_a_positive_bounded_limit ... ok
+
+test result: ok. 15 passed; 0 failed; 0 ignored; 0 measured; 331 filtered out; finished in 0.05s
+

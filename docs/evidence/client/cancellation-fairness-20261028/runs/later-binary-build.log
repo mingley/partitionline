@@ -1,0 +1,11 @@
+    Finished `test` profile [unoptimized] target(s) in 0.10s
+     Running unittests src/lib.rs (/workspace/work/qualification-20261027/broker-check-target/debug/deps/partitionline-b07aa256026bc081)
+
+running 4 tests
+test share::tests::share_offset_identity_includes_topic_and_partition ... ok
+test protocol::admin::tests::share_offset_getters_match_wire ... ok
+test share::tests::share_offset_tracker_rejects_older_duplicates_after_reordering ... ok
+test protocol::admin::tests::encoding_many_share_offset_groups_does_not_hold_the_caller ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 2107 filtered out; finished in 0.58s
+

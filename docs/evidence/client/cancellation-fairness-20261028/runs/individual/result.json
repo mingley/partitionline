@@ -1,0 +1,340 @@
+{
+  "binary_sha256": "5a6d0d24b92ebeaffcc3a6b66359526dc54103f5799b535321b8bcd2b650e0b5",
+  "source_log_sha256": "2bfbec951c08116385742139436556ac91c46e5b520a80eaa208e739f565f697",
+  "names": [
+    "admin::tests::decoding_many_config_entries_does_not_hold_the_caller",
+    "admin::tests::decoding_many_coordinators_does_not_hold_the_caller",
+    "admin::tests::decoding_many_config_resources_does_not_hold_the_caller",
+    "admin::tests::decoding_many_delegation_tokens_does_not_hold_the_caller",
+    "admin::tests::decoding_many_created_topics_does_not_hold_the_caller",
+    "admin::tests::decoding_many_described_group_members_does_not_hold_the_caller",
+    "admin::tests::decoding_many_share_group_members_does_not_hold_the_caller",
+    "admin::tests::extending_many_described_topics_does_not_hold_the_caller",
+    "admin::tests::grouping_many_named_results_does_not_hold_the_caller",
+    "admin::tests::indexing_many_coordinators_does_not_hold_the_caller",
+    "admin::tests::indexing_many_described_producers_does_not_hold_the_caller",
+    "admin::tests::listing_many_coordinator_keys_does_not_hold_the_caller",
+    "admin::tests::grouping_many_coordinators_does_not_hold_the_caller",
+    "cluster::tests::applying_many_topics_does_not_hold_the_caller",
+    "consumer::tests::applying_many_one_record_fetch_batches_does_not_hold_the_caller",
+    "cluster::tests::invalidating_many_topics_does_not_hold_the_caller",
+    "consumer::tests::copying_many_fetched_epochs_does_not_hold_the_caller",
+    "consumer::tests::counting_many_pending_runs_does_not_hold_the_caller",
+    "consumer::tests::enqueueing_many_leaders_does_not_hold_the_caller",
+    "consumer::tests::listing_many_topic_partitions_does_not_hold_the_caller",
+    "consumer::tests::finishing_many_assigned_fetches_does_not_hold_the_caller",
+    "consumer::tests::prepending_many_pending_runs_does_not_hold_the_caller",
+    "consumer::tests::reading_many_assignments_does_not_hold_the_caller",
+    "consumer::tests::checking_many_fresh_assignments_does_not_hold_the_caller",
+    "consumer::tests::resolving_many_topic_identities_does_not_hold_the_caller",
+    "consumer::tests::scanning_many_pending_runs_does_not_hold_the_caller",
+    "consumer::tests::retaining_many_pending_runs_does_not_hold_the_caller",
+    "group::tests::collecting_many_revoked_commits_does_not_hold_the_caller",
+    "group::tests::copying_many_assigned_members_does_not_hold_the_caller",
+    "group::tests::pairing_many_committed_offsets_does_not_hold_the_caller",
+    "group::tests::retaining_many_interval_commits_does_not_hold_the_caller",
+    "producer::tests::assembling_many_produce_topics_does_not_hold_the_caller",
+    "producer::tests::encoding_many_produce_topics_does_not_hold_the_caller",
+    "metrics::tests::snapshotting_many_fetch_topics_does_not_hold_the_caller",
+    "producer::tests::dropping_many_ack_topics_does_not_hold_the_caller",
+    "protocol::acl::tests::grouping_many_acl_resources_does_not_hold_the_caller",
+    "protocol::group::tests::grouping_many_owned_topics_does_not_hold_the_caller",
+    "share::tests::grouping_many_share_ack_topics_does_not_hold_the_caller",
+    "share::tests::indexing_sent_ack_batches_does_not_hold_the_caller",
+    "share::tests::reading_many_share_nodes_does_not_hold_the_caller",
+    "share::tests::naming_many_share_topics_does_not_hold_the_caller"
+  ],
+  "test_timeout_seconds": 30,
+  "test_threads": 1,
+  "results": [
+    {
+      "name": "admin::tests::decoding_many_config_entries_does_not_hold_the_caller",
+      "returncode": 0,
+      "elapsed_seconds": 0.39813860099820886,
+      "log": "000.log",
+      "sha256": "b4c10b0366212e11d1f0ba3868cee2d507df7a44b6df7301a5f61afab200e860"
+    },
+    {
+      "name": "admin::tests::decoding_many_coordinators_does_not_hold_the_caller",
+      "returncode": 0,
+      "elapsed_seconds": 0.3162730320036644,
+      "log": "001.log",
+      "sha256": "8532e21ab84c88ef3212e0f67f6f8bb7648d6dd3d967ab8761d51860d8604be6"
+    },
+    {
+      "name": "admin::tests::decoding_many_config_resources_does_not_hold_the_caller",
+      "returncode": 0,
+      "elapsed_seconds": 0.66027135400509,
+      "log": "002.log",
+      "sha256": "bd1024741928baa0bf93617acfd87dea9e79229fa6b0065d84f9ed0aa2717a3c"
+    },
+    {
+      "name": "admin::tests::decoding_many_delegation_tokens_does_not_hold_the_caller",
+      "returncode": 101,
+      "elapsed_seconds": 0.8002825710136676,
+      "log": "003.log",
+      "sha256": "0d96a4a24c955c1fef868c70e1ba9d5c1ac8970191210aa81b9272a99e44ea73"
+    },
+    {
+      "name": "admin::tests::decoding_many_created_topics_does_not_hold_the_caller",
+      "returncode": 0,
+      "elapsed_seconds": 1.6364749549975386,
+      "log": "004.log",
+      "sha256": "4065fc25f4c6861f9d3d2ef7b396d83befe30ab5b2be94a1879874657b5a88b1"
+    },
+    {
+      "name": "admin::tests::decoding_many_described_group_members_does_not_hold_the_caller",
+      "returncode": 0,
+      "elapsed_seconds": 0.5743496779905399,
+      "log": "005.log",
+      "sha256": "7e47c4687b3ed9e21068938926ae26a83e30ad60a9f90d4992c08575d55c5596"
+    },
+    {
+      "name": "admin::tests::decoding_many_share_group_members_does_not_hold_the_caller",
+      "returncode": 0,
+      "elapsed_seconds": 0.620189085995662,
+      "log": "006.log",
+      "sha256": "aee507bacbaecde18c1a7567f4e5f1f91f851eeef6d7e64970a1560a01961b01"
+    },
+    {
+      "name": "admin::tests::extending_many_described_topics_does_not_hold_the_caller",
+      "returncode": 101,
+      "elapsed_seconds": 0.2968425850122003,
+      "log": "007.log",
+      "sha256": "ea91a1df0ff5e28b4eaea972433cb3566ce128a012aa7c51684b747348dd483d"
+    },
+    {
+      "name": "admin::tests::grouping_many_named_results_does_not_hold_the_caller",
+      "returncode": 0,
+      "elapsed_seconds": 0.16773494800145272,
+      "log": "008.log",
+      "sha256": "06b1bcd291a1ca54bac77c2bf7cb2ac8ba276a0b72c7a35b93faf646f9cc80bc"
+    },
+    {
+      "name": "admin::tests::indexing_many_coordinators_does_not_hold_the_caller",
+      "returncode": 101,
+      "elapsed_seconds": 0.2724656289938139,
+      "log": "009.log",
+      "sha256": "dd1cef08bdb5a0920fddf99b41fc48acebe596b697dcca5e6db30503172c2d5e"
+    },
+    {
+      "name": "admin::tests::indexing_many_described_producers_does_not_hold_the_caller",
+      "returncode": 101,
+      "elapsed_seconds": 0.23586674900434446,
+      "log": "010.log",
+      "sha256": "c2a73b807c8128b65f6fe16e1fdbc86bae15a03ce048d89e223a88309226b23b"
+    },
+    {
+      "name": "admin::tests::listing_many_coordinator_keys_does_not_hold_the_caller",
+      "returncode": 0,
+      "elapsed_seconds": 0.21898038299696054,
+      "log": "011.log",
+      "sha256": "52a83e6822083a7e6d41b686ce888384677720cc112951c7cac3e491fa6ae70c"
+    },
+    {
+      "name": "admin::tests::grouping_many_coordinators_does_not_hold_the_caller",
+      "returncode": 0,
+      "elapsed_seconds": 6.329603900987422,
+      "log": "012.log",
+      "sha256": "2b7be7408d2e042d59a8c08e1a58dcc7851c376bde1c2ff2344fdfe8a45383ab"
+    },
+    {
+      "name": "cluster::tests::applying_many_topics_does_not_hold_the_caller",
+      "returncode": 0,
+      "elapsed_seconds": 0.69887087099778,
+      "log": "013.log",
+      "sha256": "880fdfb9494eb8ea9668f8aee86fcfd32c00c569dd36f7a4bf04efed88e4d291"
+    },
+    {
+      "name": "consumer::tests::applying_many_one_record_fetch_batches_does_not_hold_the_caller",
+      "returncode": 0,
+      "elapsed_seconds": 1.520773209995241,
+      "log": "014.log",
+      "sha256": "2cad3a055ce4a4b7d9ca1a1438d6a8d9c55d795bef8371660fa7f5fc06547f6b"
+    },
+    {
+      "name": "cluster::tests::invalidating_many_topics_does_not_hold_the_caller",
+      "returncode": 0,
+      "elapsed_seconds": 5.787635300992406,
+      "log": "015.log",
+      "sha256": "405c297e82275e93c8084ddb00e81ac1c100c4166bf44c8aee20cb73063e35ae"
+    },
+    {
+      "name": "consumer::tests::copying_many_fetched_epochs_does_not_hold_the_caller",
+      "returncode": 0,
+      "elapsed_seconds": 1.2054642260045512,
+      "log": "016.log",
+      "sha256": "54213cacead1d96cc0dfbd5aec567eb5dab3744bbf86f016204a9a421255bfed"
+    },
+    {
+      "name": "consumer::tests::counting_many_pending_runs_does_not_hold_the_caller",
+      "returncode": 0,
+      "elapsed_seconds": 2.325144200993236,
+      "log": "017.log",
+      "sha256": "6b5517991c76952e46062ef477ebeac74655e7a17e5776de856658d8125c9bee"
+    },
+    {
+      "name": "consumer::tests::enqueueing_many_leaders_does_not_hold_the_caller",
+      "returncode": 0,
+      "elapsed_seconds": 0.03125289200397674,
+      "log": "018.log",
+      "sha256": "4d03217eb8c60dd8b2ff9d6a4f5f9ebc348575c3fe564c325d933563600d517a"
+    },
+    {
+      "name": "consumer::tests::listing_many_topic_partitions_does_not_hold_the_caller",
+      "returncode": 0,
+      "elapsed_seconds": 0.10018647099786904,
+      "log": "019.log",
+      "sha256": "37072905d4e13ca221cc02c3b9db213c63339d58d7ef02b02bbb548578d47880"
+    },
+    {
+      "name": "consumer::tests::finishing_many_assigned_fetches_does_not_hold_the_caller",
+      "returncode": 0,
+      "elapsed_seconds": 10.13696194801014,
+      "log": "020.log",
+      "sha256": "f65cf07105ba1cdf8e57a7d9efbdccbf2c83e85b13f63e1dd75392ae0d8e47f1"
+    },
+    {
+      "name": "consumer::tests::prepending_many_pending_runs_does_not_hold_the_caller",
+      "returncode": 0,
+      "elapsed_seconds": 0.4217421880020993,
+      "log": "021.log",
+      "sha256": "f83cbd3cb5f7ab4e14ef7ce823aea7259a024050088206bea9471cfb315f31b7"
+    },
+    {
+      "name": "consumer::tests::reading_many_assignments_does_not_hold_the_caller",
+      "returncode": 0,
+      "elapsed_seconds": 0.17545921599958092,
+      "log": "022.log",
+      "sha256": "00fc1f4c7b3d0e9a5f9df6af18e74cfafc09624f1b4ac291ea620ffc9022913f"
+    },
+    {
+      "name": "consumer::tests::checking_many_fresh_assignments_does_not_hold_the_caller",
+      "returncode": null,
+      "elapsed_seconds": 30.06012942000234,
+      "log": "023.log",
+      "sha256": "290681463646cddea6876414527ae87f6d0014e4cb4a6f9a812949e30a140b85"
+    },
+    {
+      "name": "consumer::tests::resolving_many_topic_identities_does_not_hold_the_caller",
+      "returncode": 0,
+      "elapsed_seconds": 1.4830475079943426,
+      "log": "024.log",
+      "sha256": "8c9e352736c53d9f90e625c9d7c77494f8aa09d6c9f3e96573644a732fcc701d"
+    },
+    {
+      "name": "consumer::tests::scanning_many_pending_runs_does_not_hold_the_caller",
+      "returncode": 0,
+      "elapsed_seconds": 0.2531970660056686,
+      "log": "025.log",
+      "sha256": "91510c1268ce77d85311ac90f5a1bd0433758e7be4f7cc935d86c7e18104e527"
+    },
+    {
+      "name": "consumer::tests::retaining_many_pending_runs_does_not_hold_the_caller",
+      "returncode": 101,
+      "elapsed_seconds": 3.4373714179964736,
+      "log": "026.log",
+      "sha256": "75d819c121f82d1659e03c59380da0133b24a7bdfba3c303fb444ad7ec2dbf8d"
+    },
+    {
+      "name": "group::tests::collecting_many_revoked_commits_does_not_hold_the_caller",
+      "returncode": 101,
+      "elapsed_seconds": 0.7402282770053716,
+      "log": "027.log",
+      "sha256": "425b9ca90755e58c347344dcb31e9a19f029faa7f2df7ad20d9bccb798b59620"
+    },
+    {
+      "name": "group::tests::copying_many_assigned_members_does_not_hold_the_caller",
+      "returncode": 101,
+      "elapsed_seconds": 1.8284348510060227,
+      "log": "028.log",
+      "sha256": "d0557d5597e9d633817daa578ed617ee49415f55af08b258597b0e8764bd5492"
+    },
+    {
+      "name": "group::tests::pairing_many_committed_offsets_does_not_hold_the_caller",
+      "returncode": 101,
+      "elapsed_seconds": 2.3647292880050372,
+      "log": "029.log",
+      "sha256": "9e458efe13bf4aa31f49b4d711564e007e5770e0285c3c050d6140b09ef7fe7f"
+    },
+    {
+      "name": "group::tests::retaining_many_interval_commits_does_not_hold_the_caller",
+      "returncode": 101,
+      "elapsed_seconds": 5.103049248005846,
+      "log": "030.log",
+      "sha256": "8eabcbf7a5bfb4958545f812403dfef61a00e18c6225f2ed559ae5a14f1b3333"
+    },
+    {
+      "name": "producer::tests::assembling_many_produce_topics_does_not_hold_the_caller",
+      "returncode": 101,
+      "elapsed_seconds": 1.5408785640029237,
+      "log": "031.log",
+      "sha256": "67dcd462544ef8f5e85b92c43c84802ff61c0104ab8849503813b83355f324d3"
+    },
+    {
+      "name": "producer::tests::encoding_many_produce_topics_does_not_hold_the_caller",
+      "returncode": 101,
+      "elapsed_seconds": 0.4600818999897456,
+      "log": "032.log",
+      "sha256": "545afea26293de8d42bc15a474ffe0355275830a55726d22bd04f88522e9d67b"
+    },
+    {
+      "name": "metrics::tests::snapshotting_many_fetch_topics_does_not_hold_the_caller",
+      "returncode": 101,
+      "elapsed_seconds": 12.05487976699078,
+      "log": "033.log",
+      "sha256": "7c9484e61bc4ba54bbade13fb30884cf08d574d7b33f3886546586945249de34"
+    },
+    {
+      "name": "producer::tests::dropping_many_ack_topics_does_not_hold_the_caller",
+      "returncode": 0,
+      "elapsed_seconds": 1.1507659309863811,
+      "log": "034.log",
+      "sha256": "2d4e8c23d17569bd533e8412e936387a20b1a9e391fcb5b838431959cd981aae"
+    },
+    {
+      "name": "protocol::acl::tests::grouping_many_acl_resources_does_not_hold_the_caller",
+      "returncode": 101,
+      "elapsed_seconds": 0.13757578200602438,
+      "log": "035.log",
+      "sha256": "ff0f01fcb9c471a05ee5f865c48b35f2c63c9aad66ef488f13e985d738b3190b"
+    },
+    {
+      "name": "protocol::group::tests::grouping_many_owned_topics_does_not_hold_the_caller",
+      "returncode": 101,
+      "elapsed_seconds": 0.5247635669948068,
+      "log": "036.log",
+      "sha256": "213513e5fea00a53abb15f219e035be23d0ed29d4daecef5eeb6cd9ade3e4aba"
+    },
+    {
+      "name": "share::tests::grouping_many_share_ack_topics_does_not_hold_the_caller",
+      "returncode": 0,
+      "elapsed_seconds": 0.15054062400304247,
+      "log": "037.log",
+      "sha256": "8832a756eacb7d94e5186403aa80576416f3a89b1d2f2cbbb5552935d53899d2"
+    },
+    {
+      "name": "share::tests::indexing_sent_ack_batches_does_not_hold_the_caller",
+      "returncode": 101,
+      "elapsed_seconds": 0.15942788199754432,
+      "log": "038.log",
+      "sha256": "26f2a73904c013824f21fb0c6d7b03315ac2ac3242193ee99f4b70c4481c3f80"
+    },
+    {
+      "name": "share::tests::reading_many_share_nodes_does_not_hold_the_caller",
+      "returncode": 0,
+      "elapsed_seconds": 0.24862416100222617,
+      "log": "039.log",
+      "sha256": "50dc3968e16e11ade761ee76e2db45049377ed650e9196e82227cba4e07e7246"
+    },
+    {
+      "name": "share::tests::naming_many_share_topics_does_not_hold_the_caller",
+      "returncode": 101,
+      "elapsed_seconds": 7.107891153995297,
+      "log": "040.log",
+      "sha256": "0da19ea7e517a53055656fcea3ba782e2d0816e551ecc062048be40435bd086e"
+    }
+  ],
+  "scope": "Later executable identified by client-share-interval-unit.json, selected by failed names from client-default-matrix-02. Not the original matrix binary; shared x86 workspace.",
+  "binary_source_receipt": "client-share-interval-unit.json"
+}
