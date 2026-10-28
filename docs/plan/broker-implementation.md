@@ -63,34 +63,27 @@ are done.
 
 ## What is still open
 
-Of the 76 KL11 cards, 63 are done. That count was taken from
-[tasks.json](tasks.json) on 22 October 2026. The behaviors named in the
-next section include cards that are already done: retention, compaction,
-metadata election, failover, cooperative and static group histories, and
-delegation tokens. The cards that are not done are these:
+The [task registry](tasks.json) is the current list of open cards and their
+dependencies. On 28 October 2026 it had 79 KL11 cards: 54 done, six in
+progress, and 19 pending. The previous 22 October snapshot counted 63 done
+out of 76; several cards have since been reopened because their evidence did
+not cover the full stated behavior.
 
-| Card | Standing | What it still is |
-|---|---|---|
-| KL11-37 | in progress | Validate OIDC access tokens, refresh authorities, and expire live sessions. |
-| KL11-71 | in progress | SASL reauthentication on a broker connection. It waits on KL11-37. |
-| KL11-38 | pending | Optional Kerberos, after the client proposal KL06-08 is approved. |
-| KL11-70 | pending | KRaft directory identity and pre-vote. Dependencies are done. It is not a small follow-up. |
-| KL11-44 | pending | Proof of overload, deadlines, and shutdown. It waits on KL11-37. |
-| KL11-47 | pending | Fuzz framing, storage recovery, and API decoding. Dependencies are done. |
-| KL11-50 | pending | Benchmark this broker against pinned Kafka-compatible servers. |
-| KL11-51 | pending | Rank measured server bottlenecks. It waits on KL11-50. |
-| KL11-52, KL11-53 | pending | A 24-hour resource run, then a 7-day continuity run. |
-| KL11-49 | pending | Fold the client leadership campaign into the broker goal. It waits on KL09-70. |
-| KL11-55, KL11-56 | pending | Reconcile the docs, then qualify the whole client-and-broker goal. Both wait on the cards above. |
-
-Do not claim a second in-progress card. KL11-37 and KL11-71 already have owners.
+Open work includes broker registration and fencing, partition assignment,
+replicated logs and acknowledgments, leader failover, transactional offsets,
+classic groups and offsets, quotas, OIDC and SASL reauthentication, and KRaft
+directory identity and pre-vote. Mixed-version operation, overload and shutdown,
+fuzzing, sustained resource and continuity runs, packaging, and comparative
+benchmarks also remain open. See the registry for the individual cards and
+their current status.
 
 ## Full server behavior
 
-This list is the lane's scope. It is not a list of missing features. The
-table above is what is still open. Retention, compaction, metadata election,
-failover, cooperative and static group histories, and delegation tokens are
-already done.
+This list describes the lane's scope, not a claim that each behavior is
+available in the operator. Some components have tests in isolation, while
+their integrated or distributed behavior remains open. The
+[broker README](../../partitionline-broker/README.md) describes the current
+operator boundaries.
 
 The queue covers segment/index recovery, retention and compaction; durable
 metadata quorum election/replication/snapshots and broker fencing; replica
@@ -120,10 +113,14 @@ and minimized regressions. Existing Suite HOLD and release/signoff rules remain.
 Client and server comparisons use pinned relevant competitors on equal hardware,
 payloads, durability, security and offered load. Report verified useful work,
 CPU/RSS/disk and tail latency; retain every losing cell and confidence interval.
-Require repeated paired measurements on x86_64/arm64 and independent reproduction.
-Profile leadership needs superiority in every required named cell. A finite
-benchmark set establishes a scoped result, not a mathematical universal claim
-over every possible machine/workload/client/server in the world.
+The current authorized campaign uses the shared x86_64 workspace and no
+additional benchmark machines or external operator. Its results are local,
+workload-specific engineering evidence. The frozen
+[benchmark contract](../benchmark-contract.md) still requires independent
+reproduction for profile claims and both x86_64 and arm64 for a global client
+claim. Profile leadership needs superiority in every required named cell. A
+finite benchmark set establishes a scoped result, not a universal claim over
+every possible machine, workload, client and server.
 
 KL11-56 is the final fail-closed audit and depends on the entire existing client
 queue plus the server completion chain. It cannot close with missing required
