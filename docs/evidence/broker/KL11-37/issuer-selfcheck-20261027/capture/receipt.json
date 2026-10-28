@@ -1,0 +1,15 @@
+{
+  "source_commit": "348db86a7e44cc5d0c22755d8caeba7d4420d950",
+  "command": [
+    "python3",
+    "docs/evidence/broker/KL11-37/oracle/https/check-issuer.py",
+    "--scratch",
+    "/workspace/work/security-qualification-20261028/issuer-selfcheck/private",
+    "--output",
+    "/workspace/work/security-qualification-20261028/issuer-selfcheck/result.json"
+  ],
+  "exit_code": 0,
+  "python": "3.12.14",
+  "scope": "Synthetic HTTPS issuer self-check only; no broker or Kafka client was exercised.",
+  "private_material": "Only synthetic token hashes and public keys appear in the result; scratch contains private keys and secrets and is not included."
+}
