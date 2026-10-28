@@ -1,0 +1,214 @@
+{
+  "build_receipt": "/workspace/work/goal-qualification-20261028/producer-diagnostic-build-02.json",
+  "base_head": "63aa045be5ceb85b6c2ff7ba5a9b30c26dc9b67b",
+  "source_sha": null,
+  "sparse_dirty_candidate": true,
+  "source_inputs_match_build_before": true,
+  "inputs_stable": true,
+  "patch_sha256": "b9c730437d4bbe55ff0b2442420c912ef11f2361ff1ea4145fa8fc4969441346",
+  "binaries": {
+    "unit": "71a187fb55da0ce2174ce8a71b78d3f9e6aebd44ad6912108d7a64b53640d09b",
+    "full": "712cadeb733be208da7e8fdfbe5d7f84a8f58e4a1209be1f310717235cfa07f5",
+    "buffer": "16a24585fd2aae01f2a3b9024a5b3232643682f3a6e8835415ef0ecde940fec8"
+  },
+  "cases": [
+    {
+      "name": "producer::tests::cancelled_retry_batch_completes_records_and_releases_accounting",
+      "binary_sha256": "71a187fb55da0ce2174ce8a71b78d3f9e6aebd44ad6912108d7a64b53640d09b",
+      "command": [
+        "/workspace/work/goal-qualification-20261028/producer-diagnostic-v2/unit.elf",
+        "--exact",
+        "producer::tests::cancelled_retry_batch_completes_records_and_releases_accounting",
+        "--test-threads=1"
+      ],
+      "exit": 0,
+      "selected_one": true,
+      "seconds": 0.008333200996275991,
+      "log": "case-01.log",
+      "log_sha256": "67b0c6781641265377922cdca85f86112add9f6d7d538317f210bb467e51da3c"
+    },
+    {
+      "name": "producer::tests::cancelling_current_retry_accounts_for_it_and_the_remaining_batch",
+      "binary_sha256": "71a187fb55da0ce2174ce8a71b78d3f9e6aebd44ad6912108d7a64b53640d09b",
+      "command": [
+        "/workspace/work/goal-qualification-20261028/producer-diagnostic-v2/unit.elf",
+        "--exact",
+        "producer::tests::cancelling_current_retry_accounts_for_it_and_the_remaining_batch",
+        "--test-threads=1"
+      ],
+      "exit": 0,
+      "selected_one": true,
+      "seconds": 0.005337036011042073,
+      "log": "case-02.log",
+      "log_sha256": "351fe3562ae2bd8fe7b6fb47588d14df504966bdfbb1f490cde0055a5261cb83"
+    },
+    {
+      "name": "producer::tests::closed_transport_retry_does_not_redefine_local_shutdown",
+      "binary_sha256": "71a187fb55da0ce2174ce8a71b78d3f9e6aebd44ad6912108d7a64b53640d09b",
+      "command": [
+        "/workspace/work/goal-qualification-20261028/producer-diagnostic-v2/unit.elf",
+        "--exact",
+        "producer::tests::closed_transport_retry_does_not_redefine_local_shutdown",
+        "--test-threads=1"
+      ],
+      "exit": 0,
+      "selected_one": true,
+      "seconds": 0.006427931002690457,
+      "log": "case-03.log",
+      "log_sha256": "4c8d7bced64af178b157525787d33b85f5ee4105a568ea78db6f482aaf6dce94"
+    },
+    {
+      "name": "producer::tests::closed_worker_retries_keep_pending_and_do_not_remove_replacement",
+      "binary_sha256": "71a187fb55da0ce2174ce8a71b78d3f9e6aebd44ad6912108d7a64b53640d09b",
+      "command": [
+        "/workspace/work/goal-qualification-20261028/producer-diagnostic-v2/unit.elf",
+        "--exact",
+        "producer::tests::closed_worker_retries_keep_pending_and_do_not_remove_replacement",
+        "--test-threads=1"
+      ],
+      "exit": 0,
+      "selected_one": true,
+      "seconds": 0.006074773002183065,
+      "log": "case-04.log",
+      "log_sha256": "071726eb026cb14a12ffd326932c9bb1e1da23adef8bd20fa1b6136e94877768"
+    },
+    {
+      "name": "producer::tests::retired_worker_handle_keeps_transfer_alive_and_preserves_other_slots",
+      "binary_sha256": "71a187fb55da0ce2174ce8a71b78d3f9e6aebd44ad6912108d7a64b53640d09b",
+      "command": [
+        "/workspace/work/goal-qualification-20261028/producer-diagnostic-v2/unit.elf",
+        "--exact",
+        "producer::tests::retired_worker_handle_keeps_transfer_alive_and_preserves_other_slots",
+        "--test-threads=1"
+      ],
+      "exit": 0,
+      "selected_one": true,
+      "seconds": 0.008460435987217352,
+      "log": "case-05.log",
+      "log_sha256": "6c49ab002ff52f1d0524081d0603f775ca9ef4a7c6cbcaccb80341a731911e38"
+    },
+    {
+      "name": "presend_failure_write_retry_exhaustion_releases_permit",
+      "binary_sha256": "16a24585fd2aae01f2a3b9024a5b3232643682f3a6e8835415ef0ecde940fec8",
+      "command": [
+        "/workspace/work/goal-qualification-20261028/producer-diagnostic-v2/buffer-ownership.elf",
+        "--exact",
+        "presend_failure_write_retry_exhaustion_releases_permit",
+        "--test-threads=1"
+      ],
+      "exit": 0,
+      "selected_one": true,
+      "seconds": 0.06957208999665454,
+      "log": "case-06.log",
+      "log_sha256": "f556574851caf451a93966ad81a274f0302253ad81b94c304ca4f90fecc6f58a"
+    },
+    {
+      "name": "idempotent_new_admission_cannot_overtake_pre_send_retry",
+      "binary_sha256": "712cadeb733be208da7e8fdfbe5d7f84a8f58e4a1209be1f310717235cfa07f5",
+      "command": [
+        "/workspace/work/goal-qualification-20261028/producer-diagnostic-v2/full-surface.elf",
+        "--exact",
+        "idempotent_new_admission_cannot_overtake_pre_send_retry",
+        "--test-threads=1"
+      ],
+      "exit": 101,
+      "selected_one": true,
+      "seconds": 0.3151025910046883,
+      "log": "case-07.log",
+      "log_sha256": "cfb4b230157ad786ae46c03ceb8165fac7e4d57baa70e76dad51dc8970432e7a"
+    },
+    {
+      "name": "idempotent_lost_ack_single_batch_retry_succeeds_without_duplicate",
+      "binary_sha256": "712cadeb733be208da7e8fdfbe5d7f84a8f58e4a1209be1f310717235cfa07f5",
+      "command": [
+        "/workspace/work/goal-qualification-20261028/producer-diagnostic-v2/full-surface.elf",
+        "--exact",
+        "idempotent_lost_ack_single_batch_retry_succeeds_without_duplicate",
+        "--test-threads=1"
+      ],
+      "exit": 0,
+      "selected_one": true,
+      "seconds": 0.031711631003418006,
+      "log": "case-08.log",
+      "log_sha256": "7f48d6f3479fd123db4498f0ae5690e774139d3aaec22ce5cacd9e6fb6bb667d"
+    },
+    {
+      "name": "idempotent_lost_ack_several_inflight_batches_same_partition",
+      "binary_sha256": "712cadeb733be208da7e8fdfbe5d7f84a8f58e4a1209be1f310717235cfa07f5",
+      "command": [
+        "/workspace/work/goal-qualification-20261028/producer-diagnostic-v2/full-surface.elf",
+        "--exact",
+        "idempotent_lost_ack_several_inflight_batches_same_partition",
+        "--test-threads=1"
+      ],
+      "exit": 0,
+      "selected_one": true,
+      "seconds": 0.19204988700221293,
+      "log": "case-09.log",
+      "log_sha256": "f53f51c6a67950d8c8eef555a9249d8d50961b2a394e1704f0c8e7979daff1e5"
+    },
+    {
+      "name": "idempotent_lost_ack_several_inflight_appended_before_disconnect",
+      "binary_sha256": "712cadeb733be208da7e8fdfbe5d7f84a8f58e4a1209be1f310717235cfa07f5",
+      "command": [
+        "/workspace/work/goal-qualification-20261028/producer-diagnostic-v2/full-surface.elf",
+        "--exact",
+        "idempotent_lost_ack_several_inflight_appended_before_disconnect",
+        "--test-threads=1"
+      ],
+      "exit": 0,
+      "selected_one": true,
+      "seconds": 0.21879554500628728,
+      "log": "case-10.log",
+      "log_sha256": "0694dff01a46f7795814127e5b36bf3b2cc04496d48c0def053d017bb16626d5"
+    },
+    {
+      "name": "idempotent_lost_ack_with_progressing_partition",
+      "binary_sha256": "712cadeb733be208da7e8fdfbe5d7f84a8f58e4a1209be1f310717235cfa07f5",
+      "command": [
+        "/workspace/work/goal-qualification-20261028/producer-diagnostic-v2/full-surface.elf",
+        "--exact",
+        "idempotent_lost_ack_with_progressing_partition",
+        "--test-threads=1"
+      ],
+      "exit": 0,
+      "selected_one": true,
+      "seconds": 0.16382949300168548,
+      "log": "case-11.log",
+      "log_sha256": "3460c85fd6d18ea770a20be8eeb30a6de9e5e79d4ad13d554ed182df49466711"
+    },
+    {
+      "name": "idempotent_lost_ack_multi_record_batch_retries_without_duplicate",
+      "binary_sha256": "712cadeb733be208da7e8fdfbe5d7f84a8f58e4a1209be1f310717235cfa07f5",
+      "command": [
+        "/workspace/work/goal-qualification-20261028/producer-diagnostic-v2/full-surface.elf",
+        "--exact",
+        "idempotent_lost_ack_multi_record_batch_retries_without_duplicate",
+        "--test-threads=1"
+      ],
+      "exit": 0,
+      "selected_one": true,
+      "seconds": 0.08007826100219972,
+      "log": "case-12.log",
+      "log_sha256": "4211e031d98a135f216ce0e6fb532605bfcfd934b1fac5159a0225c588552b68"
+    },
+    {
+      "name": "idempotent_lost_ack_ambiguous_expiration_remains_explicit",
+      "binary_sha256": "712cadeb733be208da7e8fdfbe5d7f84a8f58e4a1209be1f310717235cfa07f5",
+      "command": [
+        "/workspace/work/goal-qualification-20261028/producer-diagnostic-v2/full-surface.elf",
+        "--exact",
+        "idempotent_lost_ack_ambiguous_expiration_remains_explicit",
+        "--test-threads=1"
+      ],
+      "exit": 0,
+      "selected_one": true,
+      "seconds": 0.16399499800172634,
+      "log": "case-13.log",
+      "log_sha256": "cd5a59f7fd850e17c280dd135e062258f45c0acbc7cd3a294e0abe7913e268df"
+    }
+  ],
+  "memory_events_before": "low 0\nhigh 0\nmax 156913\noom 0\noom_kill 0\noom_group_kill 0\n",
+  "memory_events_after": "low 0\nhigh 0\nmax 156913\noom 0\noom_kill 0\noom_group_kill 0\n",
+  "disk_free_bytes_after": 2381975552
+}
