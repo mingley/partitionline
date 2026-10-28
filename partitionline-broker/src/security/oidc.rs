@@ -10,6 +10,8 @@ mod http;
 mod introspection;
 mod jwt;
 pub(crate) mod sasl;
+#[cfg(test)]
+pub(crate) use cache::tests::controlled_lease;
 pub use cache::{Config, KeySource, Lease, RuntimeLimits, Service};
 pub use http::{HttpLimits, HttpsTrust};
 pub use introspection::Introspection;

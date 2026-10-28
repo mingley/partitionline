@@ -22,7 +22,7 @@ use std::{
     error::Error as StdError,
     io,
     sync::{
-        atomic::{AtomicUsize, Ordering},
+        atomic::{AtomicBool, AtomicUsize, Ordering},
         Arc,
     },
     time::{Duration, SystemTime},
@@ -37,6 +37,10 @@ use tokio::{
 use tokio_rustls::{server::TlsStream, TlsAcceptor};
 
 pub(crate) type Result<T = ()> = std::result::Result<T, Box<dyn StdError + Send + Sync>>;
+// Test-only controls for observing independent socket leases. A bit can be
+// enabled after both subjects have authenticated.
+pub(crate) const REVOKE_ACTIVE_SUBJECT: usize = 1;
+pub(crate) const REVOKE_WAITING_SUBJECT: usize = 2;
 pub(crate) struct Authority {
     pub(crate) issuer: String,
     pub(crate) keys: [EcdsaKeyPair; 2],
@@ -44,6 +48,12 @@ pub(crate) struct Authority {
     pub(crate) discovery_mode: AtomicUsize,
     pub(crate) key_mode: AtomicUsize,
     pub(crate) introspection_mode: AtomicUsize,
+    pub(crate) revoked_subjects: AtomicUsize,
+    pub(crate) active_subject_revocations: AtomicUsize,
+    pub(crate) waiting_subject_revocations: AtomicUsize,
+    pub(crate) pause_waiting_revocation: AtomicBool,
+    pub(crate) waiting_revocation_entered: Semaphore,
+    pub(crate) waiting_revocation_release: Semaphore,
     pub(crate) discoveries: AtomicUsize,
     pub(crate) key_requests: AtomicUsize,
     pub(crate) checks: AtomicUsize,
@@ -73,6 +83,12 @@ impl Harness {
             discovery_mode: AtomicUsize::new(0),
             key_mode: AtomicUsize::new(0),
             introspection_mode: AtomicUsize::new(0),
+            revoked_subjects: AtomicUsize::new(0),
+            active_subject_revocations: AtomicUsize::new(0),
+            waiting_subject_revocations: AtomicUsize::new(0),
+            pause_waiting_revocation: AtomicBool::new(false),
+            waiting_revocation_entered: Semaphore::new(0),
+            waiting_revocation_release: Semaphore::new(0),
             discoveries: AtomicUsize::new(0),
             key_requests: AtomicUsize::new(0),
             checks: AtomicUsize::new(0),
@@ -305,7 +321,36 @@ async fn serve(acceptor: TlsAcceptor, socket: TcpStream, authority: Arc<Authorit
             let payload = token.split('.').nth(1).ok_or("missing token payload")?;
             let mut value: Value = serde_json::from_slice(&URL_SAFE_NO_PAD.decode(payload)?)?;
             let mode = authority.introspection_mode.load(Ordering::Acquire);
-            value["active"] = json!(mode != 5);
+            let revoked = authority.revoked_subjects.load(Ordering::Acquire);
+            let subject_revoked = match value["sub"].as_str() {
+                Some("active-user") if mode == 5 || revoked & REVOKE_ACTIVE_SUBJECT != 0 => {
+                    authority
+                        .active_subject_revocations
+                        .fetch_add(1, Ordering::AcqRel);
+                    true
+                }
+                Some("waiting-user") if mode == 5 || revoked & REVOKE_WAITING_SUBJECT != 0 => {
+                    authority
+                        .waiting_subject_revocations
+                        .fetch_add(1, Ordering::AcqRel);
+                    true
+                }
+                _ => false,
+            };
+            value["active"] = json!(mode != 5 && !subject_revoked);
+            if mode == 5
+                && value["sub"].as_str() == Some("waiting-user")
+                && authority.pause_waiting_revocation.load(Ordering::Acquire)
+            {
+                // Hold this socket's inactive response while another socket's
+                // independent refresh is allowed to finish.
+                authority.waiting_revocation_entered.add_permits(1);
+                authority
+                    .waiting_revocation_release
+                    .acquire()
+                    .await?
+                    .forget();
+            }
             match mode {
                 6 => value["sub"] = json!("different-user"),
                 7 => value["iss"] = json!("https://wrong.example"),

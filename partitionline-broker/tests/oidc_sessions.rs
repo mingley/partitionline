@@ -2,7 +2,7 @@
 #![cfg(feature = "oidc")]
 
 mod oidc_support;
-use oidc_support::{at_least, Harness, Result};
+use oidc_support::{at_least, Harness, Result, REVOKE_ACTIVE_SUBJECT, REVOKE_WAITING_SUBJECT};
 use partitionline_broker::{
     security::{
         credentials::{Limits as CredentialLimits, Store},
@@ -678,10 +678,21 @@ async fn hard_expiry_closes_idle_and_partial_reads_then_fresh_reconnects() -> Re
     harness.shutdown().await
 }
 
-#[tokio::test]
-async fn revocation_cancels_active_handler_and_waiting_handler_admission() -> Result {
+async fn revocation_admission_order(waiting_first: bool, simultaneous: bool) -> Result {
     let harness = Harness::start().await?;
-    let service = service(&harness).await?;
+    let service = if simultaneous {
+        // Keep the held refresh from expiring while we observe both sockets.
+        // Refresh cadence stays at the fixture's original 100 ms.
+        let mut config = harness.config();
+        config.runtime.active_leases = 16;
+        config.runtime.revocation_lease = Duration::from_secs(5);
+        config.policy.limits.authority_freshness = Duration::from_secs(10);
+        let mut trust = harness.trust();
+        trust.limits.timeout = Duration::from_secs(2);
+        Service::start(config, trust).await?
+    } else {
+        service(&harness).await?
+    };
     let probe = Arc::new(Probe::default());
     let mut server = listener(
         Profile::oidc_tls(service.clone(), Limits::default())?
@@ -694,7 +705,7 @@ async fn revocation_cancels_active_handler_and_waiting_handler_admission() -> Re
     let mut waiting = tls_client(&server).await?;
     oauth(
         &mut first,
-        harness.token_bytes(0, "shared-key", 30, "test-user")?,
+        harness.token_bytes(0, "shared-key", 30, "active-user")?,
         2,
         false,
         "",
@@ -702,7 +713,7 @@ async fn revocation_cancels_active_handler_and_waiting_handler_admission() -> Re
     .await?;
     oauth(
         &mut waiting,
-        harness.token_bytes(0, "shared-key", 30, "test-user")?,
+        harness.token_bytes(0, "shared-key", 30, "waiting-user")?,
         2,
         false,
         "",
@@ -714,17 +725,107 @@ async fn revocation_cancels_active_handler_and_waiting_handler_admission() -> Re
         .await??
         .forget();
     send(&mut waiting, &header(3, 0, 5, false)).await?;
+    if waiting_first {
+        harness
+            .authority
+            .revoked_subjects
+            .store(REVOKE_WAITING_SUBJECT, Ordering::Release);
+        assert!(closed(&mut waiting).await?);
+        assert!(
+            harness
+                .authority
+                .waiting_subject_revocations
+                .load(Ordering::Acquire)
+                > 0
+        );
+        assert_eq!(
+            harness
+                .authority
+                .active_subject_revocations
+                .load(Ordering::Acquire),
+            0
+        );
+        assert_eq!(probe.calls.load(Ordering::Acquire), 1);
+        assert_eq!(probe.cancelled.load(Ordering::Acquire), 0);
+        harness.authority.revoked_subjects.store(
+            REVOKE_ACTIVE_SUBJECT | REVOKE_WAITING_SUBJECT,
+            Ordering::Release,
+        );
+        assert!(closed(&mut first).await?);
+        assert_eq!(probe.calls.load(Ordering::Acquire), 1);
+        assert_eq!(probe.cancelled.load(Ordering::Acquire), 1);
+    } else {
+        if simultaneous {
+            harness
+                .authority
+                .pause_waiting_revocation
+                .store(true, Ordering::Release);
+            harness
+                .authority
+                .introspection_mode
+                .store(5, Ordering::Release);
+        } else {
+            harness
+                .authority
+                .revoked_subjects
+                .store(REVOKE_ACTIVE_SUBJECT, Ordering::Release);
+        }
+        assert!(closed(&mut first).await?);
+        assert!(
+            harness
+                .authority
+                .active_subject_revocations
+                .load(Ordering::Acquire)
+                > 0
+        );
+        if simultaneous {
+            timeout(
+                Duration::from_secs(1),
+                harness.authority.waiting_revocation_entered.acquire(),
+            )
+            .await??
+            .forget();
+        } else {
+            assert_eq!(
+                harness
+                    .authority
+                    .waiting_subject_revocations
+                    .load(Ordering::Acquire),
+                0
+            );
+        }
+        // The first handler's cancellation releases admission while the other
+        // socket still has an independently valid lease.
+        timeout(Duration::from_secs(1), probe.entered.acquire())
+            .await??
+            .forget();
+        assert_eq!(probe.calls.load(Ordering::Acquire), 2);
+        assert_eq!(probe.cancelled.load(Ordering::Acquire), 1);
+        if simultaneous {
+            harness.authority.waiting_revocation_release.add_permits(1);
+        } else {
+            harness.authority.revoked_subjects.store(
+                REVOKE_ACTIVE_SUBJECT | REVOKE_WAITING_SUBJECT,
+                Ordering::Release,
+            );
+        }
+        assert!(closed(&mut waiting).await?);
+        assert!(
+            harness
+                .authority
+                .waiting_subject_revocations
+                .load(Ordering::Acquire)
+                > 0
+        );
+        assert_eq!(probe.cancelled.load(Ordering::Acquire), 2);
+    }
     harness
         .authority
         .introspection_mode
-        .store(5, Ordering::Release);
-    assert!(closed(&mut first).await?);
-    assert!(closed(&mut waiting).await?);
-    assert_eq!(probe.calls.load(Ordering::Acquire), 1);
-    assert_eq!(probe.cancelled.load(Ordering::Acquire), 1);
+        .store(0, Ordering::Release);
     harness
         .authority
-        .introspection_mode
+        .revoked_subjects
         .store(0, Ordering::Release);
     probe.block.store(0, Ordering::Release);
     let mut fresh = tls_client(&server).await?;
@@ -739,6 +840,61 @@ async fn revocation_cancels_active_handler_and_waiting_handler_admission() -> Re
     let app = header(3, 0, 6, false);
     send(&mut fresh, &app).await?;
     assert_eq!(receive(&mut fresh).await?, app);
+    server.shutdown().await?;
+    service.shutdown().await?;
+    harness.shutdown().await
+}
+
+#[tokio::test]
+async fn revocation_cancels_active_handler_and_waiting_handler_admission() -> Result {
+    revocation_admission_order(true, false).await
+}
+
+#[tokio::test]
+async fn active_revocation_can_admit_a_different_valid_lease() -> Result {
+    revocation_admission_order(false, false).await
+}
+
+#[tokio::test]
+async fn shared_authority_revocation_waits_for_each_lease_refresh() -> Result {
+    revocation_admission_order(false, true).await
+}
+
+#[tokio::test]
+async fn same_bearer_token_is_eventually_revoked_on_both_sockets() -> Result {
+    let harness = Harness::start().await?;
+    let service = service(&harness).await?;
+    let probe = Arc::new(Probe::default());
+    let mut server = listener(
+        Profile::oidc_tls(service.clone(), Limits::default())?
+            .with_advertised(&OIDC_METADATA_API_VERSIONS)?,
+        probe.clone(),
+        1,
+    )
+    .await?;
+    let mut first = tls_client(&server).await?;
+    let mut second = tls_client(&server).await?;
+    let token = harness.token_bytes(0, "shared-key", 30, "test-user")?;
+    oauth(&mut first, token.clone(), 2, false, "").await?;
+    oauth(&mut second, token, 2, false, "").await?;
+    probe.block.store(1, Ordering::Release);
+    send(&mut first, &header(3, 0, 4, false)).await?;
+    timeout(Duration::from_secs(1), probe.entered.acquire())
+        .await??
+        .forget();
+    send(&mut second, &header(3, 0, 5, false)).await?;
+    harness
+        .authority
+        .introspection_mode
+        .store(5, Ordering::Release);
+    assert!(closed(&mut first).await?);
+    assert!(closed(&mut second).await?);
+    // The same token has an independent lease on each socket. The second
+    // request may start while its own lease is still valid, but every started
+    // handler must be cancelled when the authority response is observed.
+    let calls = probe.calls.load(Ordering::Acquire);
+    assert!((1..=2).contains(&calls));
+    assert_eq!(probe.cancelled.load(Ordering::Acquire), calls);
     server.shutdown().await?;
     service.shutdown().await?;
     harness.shutdown().await

@@ -1739,6 +1739,46 @@ mod sasl_frame_tests {
     }
 }
 
+#[cfg(all(test, feature = "oidc"))]
+mod oidc_admission_tests {
+    use super::{authorized, Exit};
+    use crate::security::oidc::controlled_lease;
+    use std::sync::{
+        atomic::{AtomicBool, Ordering},
+        Arc,
+    };
+    use std::time::Duration;
+    use tokio::sync::{oneshot, Semaphore};
+
+    #[tokio::test]
+    async fn revoked_lease_cancels_a_queued_handler_before_permit_release() {
+        let (lease, control) = controlled_lease();
+        let semaphore = Arc::new(Semaphore::new(1));
+        let held = semaphore.clone().acquire_owned().await.unwrap();
+        let admitted = Arc::new(AtomicBool::new(false));
+        let task_admitted = Arc::clone(&admitted);
+        let (waiting, started) = oneshot::channel();
+        let task = tokio::spawn(async move {
+            authorized(Some(lease), async move {
+                let _ = waiting.send(());
+                let _permit = semaphore.acquire().await.map_err(|_| Exit::Shutdown)?;
+                task_admitted.store(true, Ordering::Release);
+                Ok(())
+            })
+            .await
+        });
+        started.await.unwrap();
+        control.revoke();
+        let outcome = tokio::time::timeout(Duration::from_secs(1), task)
+            .await
+            .expect("revoked lease did not cancel permit acquisition")
+            .expect("authorization task panicked");
+        assert!(matches!(outcome, Err(Exit::HandlerError)));
+        assert!(!admitted.load(Ordering::Acquire));
+        drop(held);
+    }
+}
+
 #[cfg(all(test, feature = "tls"))]
 mod tls_deadline_tests {
     use super::{establish, Config, Exit, Handler, Peer, Session};

@@ -1,0 +1,509 @@
+{
+  "schema_version": 1,
+  "files": [
+    {
+      "original_path": "/workspace/partitionline/docs/evidence/broker/oidc-revocation-order-20261028/README.md",
+      "original_sha256": "25c9e983403e7fed31290436cd8934256ef7f68ceea4eea3a7d79cbfe77a127c",
+      "original_bytes": 4151,
+      "stored_path": "README.md",
+      "stored_sha256": "25c9e983403e7fed31290436cd8934256ef7f68ceea4eea3a7d79cbfe77a127c",
+      "stored_bytes": 4151,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/broker-oidc-revocation-unchanged-01.json",
+      "original_sha256": "bc84ad423f8172730cfc4c90dd18aa153f5cade0df6a253dc9916f2e3e01a3ab",
+      "original_bytes": 1006815,
+      "stored_path": "runs/broker-oidc-revocation-unchanged-01.json.gz",
+      "stored_sha256": "2df09ae832658e613d3ad7ecd2033156a3f959795617fccaa4bc4ce154e9463f",
+      "stored_bytes": 186975,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/broker-oidc-revocation-unchanged-01.log",
+      "original_sha256": "52bf5416ab915895e8750572b00b283888514a5461837e0e43df85265cb8858a",
+      "original_bytes": 987,
+      "stored_path": "runs/broker-oidc-revocation-unchanged-01.log.gz",
+      "stored_sha256": "a7c616b480878ca48e7f64809aa1bab7405a4517a1a5e612a8697b4923674490",
+      "stored_bytes": 504,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/oidc-order-unit-01.json",
+      "original_sha256": "2bd6757c214c60601b1beee000271f3ce7d2c3214c0000cc0dddc62df1009b71",
+      "original_bytes": 1007198,
+      "stored_path": "runs/oidc-order-unit-01.json.gz",
+      "stored_sha256": "ad946c41e2b913907a06de132b60bfef5e20820e894ef6320ed3a093dd7b5ee6",
+      "stored_bytes": 187002,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/oidc-order-unit-01.log",
+      "original_sha256": "ef8ff4fb8e38dc728dc89e3b00cbb9ff9863721d0d7e23daa123b3d6d96626d7",
+      "original_bytes": 529,
+      "stored_path": "runs/oidc-order-unit-01.log.gz",
+      "stored_sha256": "12cc76ad3fa94df08cd686e5d389d59729fe9d751bc004b6795b9e7bb1d4818e",
+      "stored_bytes": 346,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/oidc-order-sessions-01.json",
+      "original_sha256": "54359677837d2edc3f81214bad0a9824260105403c949a1db2463f5b051c7108",
+      "original_bytes": 1007171,
+      "stored_path": "runs/oidc-order-sessions-01.json.gz",
+      "stored_sha256": "beb8a0c91d536417369ea43e069bb759c966f5717fe538e9d39e4df3023fdaff",
+      "stored_bytes": 186978,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/oidc-order-sessions-01.log",
+      "original_sha256": "6a4c57d8be6e9eceae60c8994c0b272a2a1d2449f4996333938fd33b27e90371",
+      "original_bytes": 1522,
+      "stored_path": "runs/oidc-order-sessions-01.log.gz",
+      "stored_sha256": "61374e11d517a36019a711e30e0619107ed0d7f66cfc761e5bebe515a9ffd8ec",
+      "stored_bytes": 743,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/oidc-order-sessions-02.json",
+      "original_sha256": "878b67617157298213e5d29961942852f2e6695955eab6f860d0aedfc9da9ec4",
+      "original_bytes": 1007180,
+      "stored_path": "runs/oidc-order-sessions-02.json.gz",
+      "stored_sha256": "685d706e744219b89a903e681eaa30abb00232189a611e38b325edcedea3f7b8",
+      "stored_bytes": 186979,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/oidc-order-sessions-02.log",
+      "original_sha256": "f50e7f5d3cf17d26b34dd50d0eadeab6d734ee2262ce1240eb4b066e2e904cc9",
+      "original_bytes": 1418,
+      "stored_path": "runs/oidc-order-sessions-02.log.gz",
+      "stored_sha256": "cfeb5701dc36f9fd2012383aa25394e0cbe990fe6ba29f8eab0c0c2d311c4a73",
+      "stored_bytes": 706,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/oidc-order-clippy-01.json",
+      "original_sha256": "b307d44beeeb778d77c97129e61fbc3f4a11cc75b3416a2c8e8c3f0cd40a702c",
+      "original_bytes": 1006767,
+      "stored_path": "runs/oidc-order-clippy-01.json.gz",
+      "stored_sha256": "716bff0a0d880c006eb369738ef7380c3c29ef13190b3aa5c24d49c20e81b051",
+      "stored_bytes": 186751,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/oidc-order-clippy-01.log",
+      "original_sha256": "268fec6957eef12a69dab60dd25c313e2f113bebebf9d67973d16a0560ab9933",
+      "original_bytes": 163,
+      "stored_path": "runs/oidc-order-clippy-01.log.gz",
+      "stored_sha256": "43cbf4550711c961f106dcbab6c751175d024c9a9b7dfd71d489e94c01ed3027",
+      "stored_bytes": 144,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/oidc-order-v2-same-token-01.json",
+      "original_sha256": "aebd5b1db7973b75633b01425044072e2e4061ac534a691d081c01361a353351",
+      "original_bytes": 1007232,
+      "stored_path": "runs/oidc-order-v2-same-token-01.json.gz",
+      "stored_sha256": "6b8b49de6e811755c9d3560c2d02a5c027106c0f1886ac158c295bedb98d88ce",
+      "stored_bytes": 187016,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/oidc-order-v2-same-token-01.log",
+      "original_sha256": "9e49531434cd94689e5c93cd324805903ae949e7e5f10eacacd6329aab5d66f0",
+      "original_bytes": 484,
+      "stored_path": "runs/oidc-order-v2-same-token-01.log.gz",
+      "stored_sha256": "39dd90a17fae164107748e734024ec191985acda35b714144e748fada99d3b17",
+      "stored_bytes": 319,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/oidc-order-v2-sessions-01.json",
+      "original_sha256": "fae6b86a8689cfa31de7033db1910d4a30dd1feb24dde1cee46a79b5fa269356",
+      "original_bytes": 1007180,
+      "stored_path": "runs/oidc-order-v2-sessions-01.json.gz",
+      "stored_sha256": "7e7673e4594dcca73ab1b79d8d8ae0d106113805d4a78d46c0719d320b43a7c9",
+      "stored_bytes": 186981,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/oidc-order-v2-sessions-01.log",
+      "original_sha256": "1284afcd75f5994f3a41673c90b53c7dae220029c0169fd4bcd5887a906d42e8",
+      "original_bytes": 1486,
+      "stored_path": "runs/oidc-order-v2-sessions-01.log.gz",
+      "stored_sha256": "9395ce866f012b55457fb8c23cc3c0ad967c6f7935e86aff2d12794d2d42fc60",
+      "stored_bytes": 736,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/oidc-order-v2-unit-01.json",
+      "original_sha256": "0ed5a6b1eeb887cff5e938b3fdbbfc36fc8e3e80757ef2684726ef7ef9034cbe",
+      "original_bytes": 1007199,
+      "stored_path": "runs/oidc-order-v2-unit-01.json.gz",
+      "stored_sha256": "5ff075e22a38da8b64097b07c58318d70c7737b9c1d17730f86220f474f6c3fc",
+      "stored_bytes": 187001,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/oidc-order-v2-unit-01.log",
+      "original_sha256": "1996e36fd27d9ba0895a3ccfdde196eaa97757215416a49c066ccb9edf06cb99",
+      "original_bytes": 320,
+      "stored_path": "runs/oidc-order-v2-unit-01.log.gz",
+      "stored_sha256": "5c109cc48546b30b31c0f1cc53c51ee130267515e54b0fca7288e13da6aec954",
+      "stored_bytes": 241,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/oidc-order-v2-unit-02.json",
+      "original_sha256": "b12128c9eff5dc9ebe49600dcf1d8726fbc5256a1fab6ddf6e0fedbe59a2757d",
+      "original_bytes": 1007198,
+      "stored_path": "runs/oidc-order-v2-unit-02.json.gz",
+      "stored_sha256": "9b1283b4270afee461fc11d8ef17373a3f2b6b2c31d32d620a7f93208cde598e",
+      "stored_bytes": 187003,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/oidc-order-v2-unit-02.log",
+      "original_sha256": "fa698d08bc74d07b100646f5f7f4af7bfeed7b5082c00ba087c66da35f7cf203",
+      "original_bytes": 529,
+      "stored_path": "runs/oidc-order-v2-unit-02.log.gz",
+      "stored_sha256": "c02b84c4b654e0d3a2f8bf8baaa9fdab2f5bd1ae3edc26153dd9b0bade490d35",
+      "stored_bytes": 345,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/oidc-order-v2-clippy-01.json",
+      "original_sha256": "44247dc3f8659602d76b1c992650905ce0056d7ca18ca842b4837a04e922b4c7",
+      "original_bytes": 1006767,
+      "stored_path": "runs/oidc-order-v2-clippy-01.json.gz",
+      "stored_sha256": "347ef37319779fb75d5da3dea74b3c267db7f49e657ca31874963bafc6dc9ac0",
+      "stored_bytes": 186751,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/oidc-order-v2-clippy-01.log",
+      "original_sha256": "3008ccd6ee756429bcab301fe9436723ccc438421881a0027740c9b9a4dcc160",
+      "original_bytes": 163,
+      "stored_path": "runs/oidc-order-v2-clippy-01.log.gz",
+      "stored_sha256": "56b0fa615b18363a25d64eef4f3cc26711a5fd1ea29a59656c01ea379e93e34e",
+      "stored_bytes": 143,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/oidc-order-v2-clippy-02.json",
+      "original_sha256": "27f62e8973c2d01de1e27ae5b274341ce260d8f9b13194da500656fd7c274dbf",
+      "original_bytes": 1006766,
+      "stored_path": "runs/oidc-order-v2-clippy-02.json.gz",
+      "stored_sha256": "e7aa50a577f4208ac65938ad5d88ed5369b0d6d26af2cead34cb4b989da1ed9b",
+      "stored_bytes": 186753,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/oidc-order-v2-clippy-02.log",
+      "original_sha256": "00c96d0e0a4e33bcd7406c377a26a4c5667b94cc67f72bf073320d20244ebfd1",
+      "original_bytes": 164,
+      "stored_path": "runs/oidc-order-v2-clippy-02.log.gz",
+      "stored_sha256": "85b7eed80db90a273792f41155716cced86ff078bd13442551d14657274fe7a6",
+      "stored_bytes": 145,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/oidc-order-sessions-02-disk-monitor.json",
+      "original_sha256": "39f119a8fe942d14a2a2efa455b83f8729ea20aac87008264cd91e881e773740",
+      "original_bytes": 4564,
+      "stored_path": "runs/oidc-order-sessions-02-disk-monitor.json.gz",
+      "stored_sha256": "64d34d80e34596f00ddebbabd657d9d33979370469db8e35982903bc925ac2b4",
+      "stored_bytes": 808,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/oidc-order-sessions-02-runner.log",
+      "original_sha256": "f411c4eb6330061fe7577c96ca3847fef86671b4b5b2c1e0803edb13406fc51c",
+      "original_bytes": 233,
+      "stored_path": "runs/oidc-order-sessions-02-runner.log.gz",
+      "stored_sha256": "ef9f6e43f550f88e29753bec6ac0e09b135070ea48f85b93da3845b5112fee7d",
+      "stored_bytes": 189,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/oidc-order-clippy-01-disk-monitor.json",
+      "original_sha256": "2142448a67d1c56180eff2034bc3203c2445cf3737c3d9220d2f191f00e611f5",
+      "original_bytes": 3844,
+      "stored_path": "runs/oidc-order-clippy-01-disk-monitor.json.gz",
+      "stored_sha256": "584cb43b5b3f27214dd0e3f53ac213e9f6dae93316c47a934ed1e3669f69eeed",
+      "stored_bytes": 744,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/oidc-order-clippy-01-runner.log",
+      "original_sha256": "154ca99d041b76692ad3730b1b8542689b5b0f4d147ed407a43dcb2654717f93",
+      "original_bytes": 134,
+      "stored_path": "runs/oidc-order-clippy-01-runner.log.gz",
+      "stored_sha256": "df387d8187265a99874a8b0cbd9c1f2f83b0f749dae2c86b7d925cf6b635a8d2",
+      "stored_bytes": 135,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/oidc-order-v2-same-token-01-disk-monitor.json",
+      "original_sha256": "ed703215f0be832a76e38e8f206c60e9543a6e02e29a15890ab5521217ef8613",
+      "original_bytes": 2052,
+      "stored_path": "runs/oidc-order-v2-same-token-01-disk-monitor.json.gz",
+      "stored_sha256": "76f1068a8bfa3d2adae9e1b2d78a78eb20d89bae0c11aa336884c6c6892923fd",
+      "stored_bytes": 567,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/oidc-order-v2-same-token-01-runner.log",
+      "original_sha256": "c31498891a872e6af1bbdaea596f295d511885c8c310fda216970b0841b10a9c",
+      "original_bytes": 236,
+      "stored_path": "runs/oidc-order-v2-same-token-01-runner.log.gz",
+      "stored_sha256": "7a863ba8d133d224b3d55c2c41d712bd59d9a5e6c3a4bc4e291b4e3e64357435",
+      "stored_bytes": 196,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/oidc-order-v2-sessions-01-disk-monitor.json",
+      "original_sha256": "a8fac586045a66e2f8944c41df2f53e224a024d8e1179d5a29790f9613afe3f5",
+      "original_bytes": 3774,
+      "stored_path": "runs/oidc-order-v2-sessions-01-disk-monitor.json.gz",
+      "stored_sha256": "ae659756a0a4f31d2bace977549bbf7e600e8751c5e6ffe1f4f5d19fc6170c2e",
+      "stored_bytes": 723,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/oidc-order-v2-sessions-01-runner.log",
+      "original_sha256": "4282beb3cb1b1716cac0c4ddcec68fe78745bd7056b4968d3747341cba4e3219",
+      "original_bytes": 236,
+      "stored_path": "runs/oidc-order-v2-sessions-01-runner.log.gz",
+      "stored_sha256": "66dd544bb9bd98999c3bd3bb4da53844b48532b9bbc3c388dcad946bab01f9a2",
+      "stored_bytes": 189,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/oidc-order-v2-unit-01-disk-monitor.json",
+      "original_sha256": "5427fd6bcc847aff176d1f9c859bbe6e9060775d83d4cbc824e63eb4825a160d",
+      "original_bytes": 896,
+      "stored_path": "runs/oidc-order-v2-unit-01-disk-monitor.json.gz",
+      "stored_sha256": "78381c7e3238d27a6868546a9ea64065d38564b73f4cc55b2820a97d3d9f1c5f",
+      "stored_bytes": 394,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/oidc-order-v2-unit-01-runner.log",
+      "original_sha256": "8d97760dfbaca3348f43b612d50c9ef838f81e70c817758a93ab7f0018e474a3",
+      "original_bytes": 232,
+      "stored_path": "runs/oidc-order-v2-unit-01-runner.log.gz",
+      "stored_sha256": "12efce5d1a54267fed2e208be229a8416dff38913e90953429a442cef3abeceb",
+      "stored_bytes": 186,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/oidc-order-v2-unit-02-disk-monitor.json",
+      "original_sha256": "10f24de96bd5b2039bdaedf46d6f9b278b32da75dd297725147842aa6de99bf3",
+      "original_bytes": 11740,
+      "stored_path": "runs/oidc-order-v2-unit-02-disk-monitor.json.gz",
+      "stored_sha256": "be9255422d7fdf28c4759d8f0235d5776c8db9646f5cfe0107ab97250934ee60",
+      "stored_bytes": 1691,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/oidc-order-v2-unit-02-runner.log",
+      "original_sha256": "dedaf0017c649fad4074340718f9c2370d419308685b28b0d4c9d2d6bca60f10",
+      "original_bytes": 231,
+      "stored_path": "runs/oidc-order-v2-unit-02-runner.log.gz",
+      "stored_sha256": "7408ee0fef6cf07779c9839314db731e13a0d37bababe16d8dad406b4f0ac161",
+      "stored_bytes": 191,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/oidc-order-v2-clippy-01-disk-monitor.json",
+      "original_sha256": "bfb0bb6a67f9b89ac1d52e87d978d7f97bb5d5bdb901e98f3b144d0af2d02ee4",
+      "original_bytes": 1257,
+      "stored_path": "runs/oidc-order-v2-clippy-01-disk-monitor.json.gz",
+      "stored_sha256": "1129afee3208c95675ef0253129a3dcf89dfce3f627765da2f7e63c38a60100b",
+      "stored_bytes": 446,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/oidc-order-v2-clippy-01-runner.log",
+      "original_sha256": "1a5049d92abada15e4b23b42d461e6898ec5784985dc2953d105fb2a46cc524c",
+      "original_bytes": 137,
+      "stored_path": "runs/oidc-order-v2-clippy-01-runner.log.gz",
+      "stored_sha256": "8569f66ad0daeb8474f95cb11724dddcdd06f90ba4919f620cbb845f0026941b",
+      "stored_bytes": 137,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/oidc-order-v2-clippy-02-disk-monitor.json",
+      "original_sha256": "55492393800cfb099408f73c4e8977d6d79ea594e99412604b13aa4d9e7fe7bc",
+      "original_bytes": 4278,
+      "stored_path": "runs/oidc-order-v2-clippy-02-disk-monitor.json.gz",
+      "stored_sha256": "0e9fde1ed181d3d6b8624a064ed9644d8d720fa230a56d1a08e06c4aaa40aa5a",
+      "stored_bytes": 777,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/oidc-order-v2-clippy-02-runner.log",
+      "original_sha256": "47eb4556997af3ab404960e54f331b146a2d0f1cf6c877cba4810cd076a09170",
+      "original_bytes": 136,
+      "stored_path": "runs/oidc-order-v2-clippy-02-runner.log.gz",
+      "stored_sha256": "b7ecfe160bc8b7c2fff566a15de01e8af43e848dd0ca5e26679d3de565c9232f",
+      "stored_bytes": 137,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/oidc-revocation-order-candidate.patch",
+      "original_sha256": "f6f42462c38e8afa2a3610307e21ed5724322e72c663cd1689924eb5c62bc464",
+      "original_bytes": 16303,
+      "stored_path": "capture/oidc-revocation-order-candidate.patch.gz",
+      "stored_sha256": "590ef6e34aace0edfaeb8a9f21cb208ef7ac807b98ea75cf3971dc72c462f01d",
+      "stored_bytes": 4219,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/oidc-revocation-order-candidate-v2.patch",
+      "original_sha256": "ae53f54afebd316a213e666969a8fa9fb6d403cfbd86a5dc033ed23310901d4d",
+      "original_bytes": 17960,
+      "stored_path": "capture/oidc-revocation-order-candidate-v2.patch.gz",
+      "stored_sha256": "9f155418e883d9fea38874043f4869941a95dcd799fed11b31d4d4e81633bb23",
+      "stored_bytes": 4570,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/oidc-disk-monitored-run.py",
+      "original_sha256": "027cfababc8fce03e7b09c9ea81f50a771ffec2ecdde692bbb838263e64e8aed",
+      "original_bytes": 3308,
+      "stored_path": "capture/oidc-disk-monitored-run.py.gz",
+      "stored_sha256": "2b1b6db1322c0a312027e4af494843d7789bbb870884fe3dcfb8bc702b32cfcf",
+      "stored_bytes": 1369,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/run-v2.py",
+      "original_sha256": "ef6f96a56fadded219a6d75a66ce664d0b30a59bb2c4927a7fa683b5e2ae0b1b",
+      "original_bytes": 6248,
+      "stored_path": "capture/run-v2.py.gz",
+      "stored_sha256": "89a0c9442327562f579c221c449f5992111444763f48544e33f5b5d2a7d6c183",
+      "stored_bytes": 2473,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/oidc-order-integrated-unit-01.json",
+      "original_sha256": "80ef8a0839e19a0bc8654c289b573e730bbda0a400f04f47a34f81c3e3be203d",
+      "original_bytes": 1229421,
+      "stored_path": "runs/oidc-order-integrated-unit-01.json.gz",
+      "stored_sha256": "5c7afc0bba1b654a7bc1b2d8237639c97995d4ba3a189537e6a3356cbdfb79d9",
+      "stored_bytes": 232496,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/oidc-order-integrated-unit-01.log",
+      "original_sha256": "b9851ab0e79287df33bd6f061664bfc8a87e9699bbd025b5e624c5e6be5c54eb",
+      "original_bytes": 515,
+      "stored_path": "runs/oidc-order-integrated-unit-01.log.gz",
+      "stored_sha256": "211c2bafeb64f1dce8e6a5666b6a69c31ad393ff48ccc3211019debcf4230d56",
+      "stored_bytes": 338,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/oidc-order-integrated-unit-01-disk-monitor.json",
+      "original_sha256": "16d28ef6adaae95d389803f0b6cf5d2650ce1cdbc0ea2754b059861a55ae9b34",
+      "original_bytes": 11262,
+      "stored_path": "runs/oidc-order-integrated-unit-01-disk-monitor.json.gz",
+      "stored_sha256": "3cf2d9a0a455fe7816cf6800065361e5ba0e2aadf9515390e3425a8e1d16ce99",
+      "stored_bytes": 1645,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/oidc-order-integrated-unit-01-runner.log",
+      "original_sha256": "605b425186317ca85ab6c8d9844dc07080caf317496ff6df4e86269c210dae65",
+      "original_bytes": 240,
+      "stored_path": "runs/oidc-order-integrated-unit-01-runner.log.gz",
+      "stored_sha256": "1036fa503717f16e14425a2bfa14b7146f9ebe733067f85b24a94bddf251c700",
+      "stored_bytes": 195,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/oidc-order-integrated-sessions-01.json",
+      "original_sha256": "1c616c26dfd55e13a99a3881b4e847567aea30e4c086b5606fb9a0f224e76a60",
+      "original_bytes": 1229402,
+      "stored_path": "runs/oidc-order-integrated-sessions-01.json.gz",
+      "stored_sha256": "ad1705f953821bbeba8ff4a06f836bbbcc601edf6868eaa77b447fa80cc8f42a",
+      "stored_bytes": 232474,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/oidc-order-integrated-sessions-01.log",
+      "original_sha256": "76fecdf41ba51f94ae1fed3679d504a2df7b193373f2474b1c0960fd3ce794f2",
+      "original_bytes": 1576,
+      "stored_path": "runs/oidc-order-integrated-sessions-01.log.gz",
+      "stored_sha256": "b223b97fa9afbc03050e7b8667e4bfc5b9b998fc704159d8986ce52f58b31058",
+      "stored_bytes": 770,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/oidc-order-integrated-sessions-01-disk-monitor.json",
+      "original_sha256": "c9db16a57950192e48746ca29121e21102694970d6e9ca3d28ccb4b0bbe8e06f",
+      "original_bytes": 9963,
+      "stored_path": "runs/oidc-order-integrated-sessions-01-disk-monitor.json.gz",
+      "stored_sha256": "0933f7773b56114aadec3b88a946e9d856aa4d553346ce17c468f1ac3433f7fc",
+      "stored_bytes": 1533,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/oidc-order-integrated-sessions-01-runner.log",
+      "original_sha256": "50f4b94c0b34ca5d85c99622a66a17c59d7b3a523948f9dba67c96bb36ece9a4",
+      "original_bytes": 244,
+      "stored_path": "runs/oidc-order-integrated-sessions-01-runner.log.gz",
+      "stored_sha256": "897d58d4bf5052acc196063c459a2f876e7cf66a164f838ead6d57ec25307b29",
+      "stored_bytes": 197,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/oidc-order-integrated-clippy-01.json",
+      "original_sha256": "d7f7ad25deb5d6adf49453f53efa644fa553921fab0adf91baa196229696880c",
+      "original_bytes": 1228988,
+      "stored_path": "runs/oidc-order-integrated-clippy-01.json.gz",
+      "stored_sha256": "081da4fc03a898363356da2fd65a361376b4b42b46615200836105453f09e72b",
+      "stored_bytes": 232226,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/oidc-order-integrated-clippy-01.log",
+      "original_sha256": "b683dbca991fb8dbbd289eb08d1bc53572b9f9170e8bb02cbf16b839d99c010e",
+      "original_bytes": 149,
+      "stored_path": "runs/oidc-order-integrated-clippy-01.log.gz",
+      "stored_sha256": "9d6488cd35157af1888d53688743d389e7aa7c4b6f670f9721ac5c33cdb6c930",
+      "stored_bytes": 132,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/oidc-order-integrated-clippy-01-disk-monitor.json",
+      "original_sha256": "157495f4f54f254c9ca3b0832299032badb6619bdfbebf9e001a5c6f8bb7f436",
+      "original_bytes": 3709,
+      "stored_path": "runs/oidc-order-integrated-clippy-01-disk-monitor.json.gz",
+      "stored_sha256": "b3808807401672ae58b4c7da44d55a47c279a1b9b707cfb767a08a208bd456cb",
+      "stored_bytes": 723,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/oidc-order-integrated-clippy-01-runner.log",
+      "original_sha256": "0c14643d96cdf2c2aa4c3efed20aa385998fc43a71723eb3ba86fed656d8cf18",
+      "original_bytes": 144,
+      "stored_path": "runs/oidc-order-integrated-clippy-01-runner.log.gz",
+      "stored_sha256": "2e72e126c8f33bb92684c9c35729b2c75f1da4a18c4b87398f103cdd06c4a9a8",
+      "stored_bytes": 140,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/oidc-integrated-disk-monitor.py",
+      "original_sha256": "09a20c394edb4b02e3731bd4e1f5b44852d832e624cbbf387d8e83e4920095e7",
+      "original_bytes": 3312,
+      "stored_path": "capture/oidc-integrated-disk-monitor.py.gz",
+      "stored_sha256": "334d4e12ff683723aa5e2366f254e6c366c9ed1a349a1942651681e66e8849a1",
+      "stored_bytes": 1367,
+      "encoding": "gzip"
+    }
+  ]
+}

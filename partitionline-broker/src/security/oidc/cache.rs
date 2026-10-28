@@ -467,8 +467,12 @@ fn decode_terminal(code: u8) -> Option<Error> {
         _ => None,
     }
 }
-/// Socket-owned issuer/subject lease. The bearer exists only in a bounded owned
-/// refresh task; dropping the last lease cancels that task and zeroizes its token.
+/// Socket-owned issuer/subject lease. Each socket refreshes its own lease;
+/// revocation observed on another socket does not invalidate this one. Its own
+/// refresh can revoke it, and its deadline still applies during an outage. Key
+/// changes and service shutdown can also invalidate it.
+/// The bearer exists only in a bounded owned refresh task; dropping the last
+/// lease cancels that task and zeroizes its token.
 #[derive(Clone)]
 pub struct Lease(Arc<LeaseHandle>);
 impl fmt::Debug for Lease {
@@ -690,7 +694,7 @@ async fn lease_task(
 }
 
 #[cfg(test)]
-mod tests {
+pub(crate) mod tests {
     use super::*;
     use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine as _};
     use serde_json::json;
@@ -748,6 +752,35 @@ mod tests {
             cancel,
         }));
         (lease, updates, authority)
+    }
+
+    /// Keep the status and authority senders alive while a transport test
+    /// drives a single lease to a terminal revocation.
+    pub(crate) struct LeaseControl {
+        updates: watch::Sender<Status>,
+        _authority: watch::Sender<Arc<Publication>>,
+    }
+
+    impl LeaseControl {
+        pub(crate) fn revoke(&self) {
+            let deadline = self.updates.borrow().deadline;
+            self.updates.send_replace(Status {
+                deadline,
+                failure: Some(Error::Revoked),
+            });
+        }
+    }
+
+    pub(crate) fn controlled_lease() -> (Lease, LeaseControl) {
+        let (publication, _, _) = publication();
+        let (lease, updates, authority) = lease(publication.clone(), publication.fresh_until);
+        (
+            lease,
+            LeaseControl {
+                updates,
+                _authority: authority,
+            },
+        )
     }
     #[test]
     fn bounded_key_epochs_preserve_refresh_and_removal_even_when_watch_coalesces() {
