@@ -1,0 +1,3511 @@
+//! Bounded asynchronous length-prefixed transport with optional TLS/SASL profiles.
+//!
+//! Each connection awaits one handler and writes its optional response before
+//! the next handler runs. While that response is written, the connection may
+//! read the next length-prefixed request into a one-frame buffer. Pipelined
+//! responses therefore remain in request order without an application queue.
+//! Connections and concurrent handler futures have separate explicit caps.
+//! Read and write deadlines cover both prefix and body without resetting on
+//! progress; handler deadlines include waiting for its concurrency permit.
+//!
+//! [`Transport::shutdown`] stops admission, drops sockets/handler futures and
+//! joins every owned connection task. Cancelling that await leaves its join
+//! handle available for retry. Dropping the transport requests the same cleanup;
+//! call `shutdown` to await its completion. Handlers must yield to the executor
+//! and must not block in polling or destructors. The transport cannot preempt
+//! synchronous blocking work or manage tasks independently spawned by a handler.
+//!
+//! Limits bound transport-owned request buffers, response wire sizes and work
+//! admission, not arbitrary handler allocation, OS socket buffers or process
+//! RSS. Optional TLS/mTLS uses the same admission cap and joined shutdown,
+//! without plaintext fallback. An explicitly selected SASL profile validates
+//! versioned Kafka authentication/credential APIs, owns per-socket authentication
+//! and checks its credential administrator allowlist. Application handlers run
+//! only after proof; ordinary constructors keep their existing unauthenticated
+//! behavior. Application authorization, application storage, broker readiness and
+//! broader production qualification have separate contracts.
+
+use bytes::BufMut;
+use std::{
+    future::{poll_fn, Future},
+    io::{self, IoSlice},
+    net::SocketAddr,
+    pin::Pin,
+    sync::Arc,
+    task::{Context, Poll},
+    time::Duration,
+};
+use tokio::{
+    io::{AsyncRead, AsyncReadExt, AsyncWrite},
+    net::{TcpListener, TcpStream},
+    sync::{oneshot, watch, Semaphore},
+    task::{JoinError, JoinHandle, JoinSet},
+    time::{timeout_at, Instant},
+};
+
+/// Connection metadata supplied to handlers, without implying authorization.
+#[derive(Debug, Clone)]
+pub struct Peer {
+    address: SocketAddr,
+    #[cfg(feature = "sasl")]
+    identity: Option<Arc<crate::security::sasl::Identity>>,
+    #[cfg(feature = "tls")]
+    tls: Option<crate::security::tls::VerifiedPeer>,
+}
+
+impl Peer {
+    /// Remote TCP address; not an authenticated principal.
+    pub fn address(&self) -> SocketAddr {
+        self.address
+    }
+
+    /// Verified SASL identity, absent until successful proof. Address and TLS
+    /// metadata alone never imply a SASL principal or administrator authority.
+    #[cfg(feature = "sasl")]
+    pub fn identity(&self) -> Option<&crate::security::sasl::Identity> {
+        self.identity.as_deref()
+    }
+
+    /// Verified TLS handshake metadata, absent for the explicit plaintext listener.
+    #[cfg(feature = "tls")]
+    pub fn tls(&self) -> Option<&crate::security::tls::VerifiedPeer> {
+        self.tls.as_ref()
+    }
+}
+
+enum Security {
+    Plaintext,
+    #[cfg(feature = "sasl")]
+    SaslPlaintext(crate::security::session::Profile),
+    #[cfg(all(feature = "sasl", feature = "tls"))]
+    SaslTls(
+        crate::security::tls::Acceptor,
+        crate::security::session::Profile,
+    ),
+    #[cfg(feature = "tls")]
+    Tls(crate::security::tls::Acceptor),
+}
+
+enum Session {
+    Plaintext,
+    #[cfg(feature = "sasl")]
+    SaslPlaintext(Box<crate::security::session::Session>),
+    #[cfg(all(feature = "sasl", feature = "tls"))]
+    SaslTls {
+        snapshot: Arc<crate::security::tls::Snapshot>,
+        deadline: Instant,
+        auth: Box<crate::security::session::Session>,
+    },
+    #[cfg(feature = "tls")]
+    Tls {
+        snapshot: Arc<crate::security::tls::Snapshot>,
+        deadline: Instant,
+    },
+}
+
+impl Security {
+    fn admit(&self) -> Session {
+        match self {
+            Self::Plaintext => Session::Plaintext,
+            #[cfg(feature = "sasl")]
+            Self::SaslPlaintext(profile) => Session::SaslPlaintext(Box::new(profile.admit())),
+            #[cfg(all(feature = "sasl", feature = "tls"))]
+            Self::SaslTls(acceptor, profile) => {
+                let snapshot = acceptor.snapshot();
+                let auth = Box::new(profile.admit());
+                Session::SaslTls {
+                    deadline: (Instant::now() + snapshot.limits.handshake_timeout)
+                        .min(auth.preauth_deadline().unwrap_or(Instant::now())),
+                    snapshot,
+                    auth,
+                }
+            }
+            #[cfg(feature = "tls")]
+            Self::Tls(acceptor) => {
+                let snapshot = acceptor.snapshot();
+                Session::Tls {
+                    deadline: Instant::now() + snapshot.limits.handshake_timeout,
+                    snapshot,
+                }
+            }
+        }
+    }
+}
+
+/// Validated admission, frame and absolute operation deadline configuration.
+#[derive(Debug, Clone, Copy)]
+pub struct Config {
+    max_connections: usize,
+    max_handlers: usize,
+    max_request_bytes: usize,
+    max_response_bytes: usize,
+    read_timeout: Duration,
+    handler_timeout: Duration,
+    write_timeout: Duration,
+}
+
+impl Config {
+    /// Configure positive bounds, rejecting invalid values before starting I/O.
+    ///
+    /// Connections are 1–65,536, handlers are 1–connections, request/response
+    /// payloads are 1 byte–64 MiB, and deadlines are positive through 24 hours.
+    /// Frame-byte limits exclude the four-byte length prefix. An empty payload
+    /// is valid at this framing layer; future Kafka handlers validate headers.
+    pub fn new(
+        max_connections: usize,
+        max_handlers: usize,
+        max_request_bytes: usize,
+        max_response_bytes: usize,
+        read_timeout: Duration,
+        handler_timeout: Duration,
+        write_timeout: Duration,
+    ) -> Result<Self, Error> {
+        for (field, valid) in [
+            ("max_connections", (1..=65_536).contains(&max_connections)),
+            (
+                "max_handlers",
+                (1..=max_connections).contains(&max_handlers),
+            ),
+            (
+                "max_request_bytes",
+                (1..=64 * 1024 * 1024).contains(&max_request_bytes),
+            ),
+            (
+                "max_response_bytes",
+                (1..=64 * 1024 * 1024).contains(&max_response_bytes),
+            ),
+            ("read_timeout", valid_timeout(read_timeout)),
+            ("handler_timeout", valid_timeout(handler_timeout)),
+            ("write_timeout", valid_timeout(write_timeout)),
+        ] {
+            if !valid {
+                return Err(Error::InvalidConfig(field));
+            }
+        }
+        Ok(Self {
+            max_connections,
+            max_handlers,
+            max_request_bytes,
+            max_response_bytes,
+            read_timeout,
+            handler_timeout,
+            write_timeout,
+        })
+    }
+
+    /// Maximum active owned connection tasks.
+    pub fn max_connections(self) -> usize {
+        self.max_connections
+    }
+    /// Maximum concurrent handler futures, independently of connected clients.
+    pub fn max_handlers(self) -> usize {
+        self.max_handlers
+    }
+    /// Maximum request payload bytes, excluding its four-byte prefix.
+    pub fn max_request_bytes(self) -> usize {
+        self.max_request_bytes
+    }
+    /// Maximum response payload bytes, excluding its four-byte prefix.
+    pub fn max_response_bytes(self) -> usize {
+        self.max_response_bytes
+    }
+    /// Absolute read deadline per frame, including prefix and payload.
+    pub fn read_timeout(self) -> Duration {
+        self.read_timeout
+    }
+    /// Absolute handler deadline, including concurrency-permit acquisition.
+    pub fn handler_timeout(self) -> Duration {
+        self.handler_timeout
+    }
+    /// Absolute response write deadline, including prefix and payload.
+    pub fn write_timeout(self) -> Duration {
+        self.write_timeout
+    }
+}
+
+fn valid_timeout(duration: Duration) -> bool {
+    !duration.is_zero() && duration <= Duration::from_secs(24 * 60 * 60)
+}
+
+impl Default for Config {
+    /// 64 connections, 32 handlers, 8 MiB payloads, 10s/30s/10s deadlines.
+    fn default() -> Self {
+        Self {
+            max_connections: 64,
+            max_handlers: 32,
+            max_request_bytes: 8 * 1024 * 1024,
+            max_response_bytes: 8 * 1024 * 1024,
+            read_timeout: Duration::from_secs(10),
+            handler_timeout: Duration::from_secs(30),
+            write_timeout: Duration::from_secs(10),
+        }
+    }
+}
+
+/// Asynchronous request interface; response lengths are checked before writing.
+///
+/// `Some(payload)` sends one framed response. `None` sends no bytes and keeps
+/// the connection usable, for protocols such as Kafka Produce with `acks=0`.
+/// Implementations must bound their own allocations/work, yield to Tokio and
+/// avoid blocking destructors. Errors close only the affected connection.
+/// No background task is created for a handler call by this transport.
+pub trait Handler: Send + Sync {
+    /// Application-specific handler failure, never exposed as a success response.
+    type Error: Send;
+    /// Handle one owned bounded request; the future can await storage or other I/O.
+    fn handle(
+        &self,
+        request: Vec<u8>,
+    ) -> impl Future<Output = Result<Option<Vec<u8>>, Self::Error>> + Send;
+
+    /// Handle with connection metadata; defaults to [`Handler::handle`].
+    ///
+    /// Handlers needing verified client identity can override this method.
+    /// Authentication metadata alone makes no authorization decision.
+    fn handle_with_peer(
+        &self,
+        _peer: &Peer,
+        request: Vec<u8>,
+    ) -> impl Future<Output = Result<Option<Vec<u8>>, Self::Error>> + Send {
+        self.handle(request)
+    }
+
+    /// Handle one request and return storage the connection can refill.
+    ///
+    /// The default drops the request buffer. A handler that still owns it
+    /// after the response is built can return that storage instead.
+    fn exchange_request(
+        &self,
+        peer: &Peer,
+        request: Vec<u8>,
+        spare: Vec<u8>,
+    ) -> impl Future<Output = Result<ExchangeOutcome, Self::Error>> + Send {
+        async move {
+            let response = self.handle_with_peer(peer, request).await?;
+            Ok(ExchangeOutcome {
+                response,
+                request: Vec::new(),
+                spare,
+            })
+        }
+    }
+}
+
+/// Response bytes plus storage the connection refills on the next request.
+pub struct ExchangeOutcome {
+    /// Response body without the length prefix. `None` writes nothing.
+    pub response: Option<Vec<u8>>,
+    /// Request storage, still holding the request bytes until the connection parks it.
+    pub request: Vec<u8>,
+    /// Response storage that was not used for `response`.
+    pub spare: Vec<u8>,
+}
+
+impl<F, Fut, E> Handler for F
+where
+    F: Fn(Vec<u8>) -> Fut + Send + Sync,
+    Fut: Future<Output = Result<Option<Vec<u8>>, E>> + Send,
+    E: Send,
+{
+    type Error = E;
+    fn handle(&self, request: Vec<u8>) -> impl Future<Output = Result<Option<Vec<u8>>, E>> + Send {
+        self(request)
+    }
+}
+
+/// Configuration, listener or owned runner failure.
+#[derive(Debug)]
+pub enum Error {
+    /// Named configuration field is outside its supported positive bound.
+    InvalidConfig(&'static str),
+    /// Listener bind or local-address lookup failed.
+    Bind(io::Error),
+    /// Listener failed; all accepted connection tasks are still cleaned up.
+    Accept(io::Error),
+    /// The runner task failed; a normal joined shutdown was not established.
+    Join(JoinError),
+    /// A previously failed runner has already been consumed.
+    AlreadyStopped,
+}
+
+impl std::fmt::Display for Error {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::InvalidConfig(field) => write!(f, "invalid transport configuration: {field}"),
+            Self::Bind(error) => write!(f, "transport listener: {error}"),
+            Self::Accept(error) => write!(f, "transport accept: {error}"),
+            Self::Join(error) => write!(f, "transport runner: {error}"),
+            Self::AlreadyStopped => f.write_str("transport runner already stopped"),
+        }
+    }
+}
+
+impl std::error::Error for Error {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        match self {
+            Self::Bind(error) | Self::Accept(error) => Some(error),
+            Self::Join(error) => Some(error),
+            _ => None,
+        }
+    }
+}
+
+/// Final saturated counters after every accepted connection task has joined.
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
+pub struct Report {
+    /// Accepted and spawned connection tasks.
+    pub accepted_connections: u64,
+    /// Accepted sockets immediately dropped because the connection cap was full.
+    pub overload_rejections: u64,
+    /// Completed/joined connection tasks, including failures and cancellation.
+    pub joined_connections: u64,
+    /// Maximum simultaneous owned connection tasks observed by admission.
+    pub peak_connections: usize,
+    /// Negative or over-budget request length prefixes.
+    pub invalid_lengths: u64,
+    /// Responses rejected before writing because their payload exceeded its cap.
+    pub oversized_responses: u64,
+    /// Absolute prefix/body read deadlines exceeded.
+    pub read_deadlines: u64,
+    /// Absolute permit/handler deadlines exceeded.
+    pub handler_deadlines: u64,
+    /// Absolute response prefix/body write deadlines exceeded.
+    pub write_deadlines: u64,
+    /// Handler calls returned an application error.
+    pub handler_errors: u64,
+    /// Peer EOFs, including truncated frames.
+    pub peer_closes: u64,
+    /// Other socket I/O or bounded reservation failures.
+    pub io_errors: u64,
+    /// Worker tasks terminated unexpectedly, such as through a handler panic.
+    pub worker_failures: u64,
+    /// Connections stopped by the transport shutdown signal.
+    pub shutdown_connections: u64,
+    /// TLS handshake, verification or peer bound failures (zero for plaintext).
+    pub tls_handshake_errors: u64,
+    /// Absolute TLS handshake deadlines exceeded (zero for plaintext).
+    pub tls_handshake_deadlines: u64,
+}
+
+enum Exit {
+    InvalidLength,
+    OversizedResponse,
+    ReadDeadline,
+    HandlerDeadline,
+    WriteDeadline,
+    HandlerError,
+    PeerClosed,
+    Io,
+    Shutdown,
+    #[cfg(feature = "tls")]
+    TlsError,
+    #[cfg(feature = "tls")]
+    TlsDeadline,
+}
+
+impl Report {
+    fn joined(&mut self, result: Result<Exit, JoinError>) {
+        self.joined_connections = self.joined_connections.saturating_add(1);
+        let counter = match result {
+            Ok(Exit::InvalidLength) => &mut self.invalid_lengths,
+            Ok(Exit::OversizedResponse) => &mut self.oversized_responses,
+            Ok(Exit::ReadDeadline) => &mut self.read_deadlines,
+            Ok(Exit::HandlerDeadline) => &mut self.handler_deadlines,
+            Ok(Exit::WriteDeadline) => &mut self.write_deadlines,
+            Ok(Exit::HandlerError) => &mut self.handler_errors,
+            Ok(Exit::PeerClosed) => &mut self.peer_closes,
+            Ok(Exit::Io) => &mut self.io_errors,
+            Ok(Exit::Shutdown) => &mut self.shutdown_connections,
+            #[cfg(feature = "tls")]
+            Ok(Exit::TlsError) => &mut self.tls_handshake_errors,
+            #[cfg(feature = "tls")]
+            Ok(Exit::TlsDeadline) => &mut self.tls_handshake_deadlines,
+            Err(_) => &mut self.worker_failures,
+        };
+        *counter = counter.saturating_add(1);
+    }
+}
+
+/// Owned listener runner and cancellation-safe joined shutdown handle.
+pub struct Transport {
+    addr: SocketAddr,
+    shutdown: Option<oneshot::Sender<()>>,
+    runner: Option<JoinHandle<Result<Report, Error>>>,
+    report: Option<Report>,
+}
+
+impl Transport {
+    /// Bind a TCP listener and start bounded admission on the current Tokio runtime.
+    pub async fn bind<H: Handler + 'static>(
+        addr: SocketAddr,
+        config: Config,
+        handler: Arc<H>,
+    ) -> Result<Self, Error> {
+        Self::bind_with(addr, config, handler, Security::Plaintext).await
+    }
+
+    /// Bind a TLS-only listener with bounded, cancellable handshakes.
+    ///
+    /// Handshakes occupy the same connection cap as established sessions.
+    /// Identity/trust is captured at admission; rotation affects later sockets.
+    /// No plaintext fallback or protocol sniffing is performed.
+    #[cfg(feature = "tls")]
+    pub async fn bind_tls<H: Handler + 'static>(
+        addr: SocketAddr,
+        config: Config,
+        handler: Arc<H>,
+        acceptor: crate::security::tls::Acceptor,
+    ) -> Result<Self, Error> {
+        Self::bind_with(addr, config, handler, Security::Tls(acceptor)).await
+    }
+
+    /// Bind an explicitly selected SCRAM-only plaintext Kafka listener.
+    /// The profile owns socket authentication/admin policy; Handler stays unchanged.
+    #[cfg(feature = "sasl")]
+    pub async fn bind_sasl<H: Handler + 'static>(
+        addr: SocketAddr,
+        config: Config,
+        handler: Arc<H>,
+        profile: crate::security::session::Profile,
+    ) -> Result<Self, Error> {
+        if profile.requires_tls() {
+            return Err(Error::InvalidConfig("SASL plaintext profile"));
+        }
+        Self::bind_with(addr, config, handler, Security::SaslPlaintext(profile)).await
+    }
+    /// Bind a TLS-only Kafka SASL listener. PLAIN is permitted only after TLS
+    /// succeeds; the absolute preauth deadline starts at socket admission.
+    #[cfg(all(feature = "sasl", feature = "tls"))]
+    pub async fn bind_tls_sasl<H: Handler + 'static>(
+        addr: SocketAddr,
+        config: Config,
+        handler: Arc<H>,
+        acceptor: crate::security::tls::Acceptor,
+        profile: crate::security::session::Profile,
+    ) -> Result<Self, Error> {
+        if !profile.requires_tls() {
+            return Err(Error::InvalidConfig("SASL TLS profile"));
+        }
+        Self::bind_with(addr, config, handler, Security::SaslTls(acceptor, profile)).await
+    }
+
+    async fn bind_with<H: Handler + 'static>(
+        addr: SocketAddr,
+        config: Config,
+        handler: Arc<H>,
+        security: Security,
+    ) -> Result<Self, Error> {
+        let listener = TcpListener::bind(addr).await.map_err(Error::Bind)?;
+        let addr = listener.local_addr().map_err(Error::Bind)?;
+        let (shutdown, signal) = oneshot::channel();
+        let runner = tokio::spawn(run(listener, config, handler, signal, security));
+        Ok(Self {
+            addr,
+            shutdown: Some(shutdown),
+            runner: Some(runner),
+            report: None,
+        })
+    }
+
+    /// Bound socket address, including the assigned port when binding port zero.
+    pub fn local_addr(&self) -> SocketAddr {
+        self.addr
+    }
+
+    /// Stop admission, cancel every connection and await all owned tasks.
+    ///
+    /// Safe to cancel and retry this await. Repeated successful calls return the
+    /// same final report. Cancellation drops async handler futures rather than
+    /// waiting for them to finish; blocking handler code cannot be preempted.
+    pub async fn shutdown(&mut self) -> Result<Report, Error> {
+        if let Some(report) = self.report {
+            return Ok(report);
+        }
+        if let Some(signal) = self.shutdown.take() {
+            let _ = signal.send(());
+        }
+        let runner = self.runner.as_mut().ok_or(Error::AlreadyStopped)?;
+        let result = runner.await.map_err(Error::Join);
+        let _ = self.runner.take();
+        let report = result??;
+        self.report = Some(report);
+        Ok(report)
+    }
+}
+
+impl Drop for Transport {
+    fn drop(&mut self) {
+        if let Some(signal) = self.shutdown.take() {
+            let _ = signal.send(());
+        }
+        // Detaching this runner allows it to complete its owned JoinSet drain.
+        // Explicit shutdown is the API for observing that drain's completion.
+    }
+}
+
+async fn run<H: Handler + 'static>(
+    listener: TcpListener,
+    config: Config,
+    handler: Arc<H>,
+    mut signal: oneshot::Receiver<()>,
+    security: Security,
+) -> Result<Report, Error> {
+    let handlers = Arc::new(Semaphore::new(config.max_handlers));
+    let (stop, _) = watch::channel(false);
+    let mut workers = JoinSet::new();
+    let mut report = Report::default();
+    let failure = loop {
+        tokio::select! {
+            biased;
+            _ = &mut signal => break None,
+            Some(result) = workers.join_next(), if !workers.is_empty() => report.joined(result),
+            accepted = listener.accept() => {
+                let (socket, address) = match accepted {
+                    Ok(socket) => socket,
+                    Err(error) => break Some(Error::Accept(error)),
+                };
+                if workers.len() >= config.max_connections {
+                    report.overload_rejections = report.overload_rejections.saturating_add(1);
+                    reject_connection(socket).await;
+                    continue;
+                }
+                report.accepted_connections = report.accepted_connections.saturating_add(1);
+                let peer = Peer { address, #[cfg(feature = "tls")] tls: None, #[cfg(feature = "sasl")] identity: None };
+                workers.spawn(connection(socket, config, handler.clone(), handlers.clone(), stop.subscribe(), peer, security.admit()));
+                report.peak_connections = report.peak_connections.max(workers.len());
+            }
+        }
+    };
+    drop(listener);
+    let _ = stop.send(true);
+    while let Some(result) = workers.join_next().await {
+        report.joined(result);
+    }
+    match failure {
+        Some(error) => Err(error),
+        None => Ok(report),
+    }
+}
+
+async fn reject_connection(socket: TcpStream) {
+    drop(socket);
+    // Dropping the socket only schedules the close. Yield so the peer
+    // observes it before the accept loop continues.
+    for _ in 0..8 {
+        tokio::task::yield_now().await;
+    }
+}
+
+async fn cancelled(stop: &mut watch::Receiver<bool>) {
+    if *stop.borrow() {
+        return;
+    }
+    let _ = stop.changed().await;
+}
+
+async fn connection<H: Handler>(
+    socket: TcpStream,
+    config: Config,
+    handler: Arc<H>,
+    handlers: Arc<Semaphore>,
+    mut stop: watch::Receiver<bool>,
+    peer: Peer,
+    session: Session,
+) -> Exit {
+    let exit = tokio::select! {
+        biased;
+        _ = cancelled(&mut stop) => Exit::Shutdown,
+        result = establish(socket, config, handler, handlers, peer, session) => result,
+    };
+    // Shutdown drops the accepted socket by cancelling its read. Yield so the
+    // peer observes that close before this connection task finishes.
+    if matches!(exit, Exit::Shutdown) {
+        for _ in 0..8 {
+            tokio::task::yield_now().await;
+        }
+    }
+    exit
+}
+
+async fn establish<H: Handler>(
+    socket: TcpStream,
+    config: Config,
+    handler: Arc<H>,
+    handlers: Arc<Semaphore>,
+    peer: Peer,
+    session: Session,
+) -> Exit {
+    match session {
+        Session::Plaintext => {
+            exchange(
+                socket,
+                config,
+                handler,
+                handlers,
+                peer,
+                #[cfg(feature = "sasl")]
+                None,
+            )
+            .await
+        }
+        #[cfg(feature = "sasl")]
+        Session::SaslPlaintext(auth) => {
+            exchange(socket, config, handler, handlers, peer, Some(auth)).await
+        }
+        #[cfg(all(feature = "sasl", feature = "tls"))]
+        Session::SaslTls {
+            snapshot,
+            deadline,
+            auth,
+        } => {
+            let stream = match timeout_at(
+                deadline,
+                tokio_rustls::TlsAcceptor::from(snapshot.server.clone()).accept(socket),
+            )
+            .await
+            {
+                Ok(Ok(stream)) => stream,
+                Ok(Err(_)) => return Exit::TlsError,
+                Err(_) => return Exit::TlsDeadline,
+            };
+            let mut peer = peer;
+            peer.tls = match crate::security::tls::VerifiedPeer::new(
+                &snapshot,
+                stream.get_ref().1.peer_certificates(),
+            ) {
+                Ok(verified) => Some(verified),
+                Err(_) => return Exit::TlsError,
+            };
+            exchange(stream, config, handler, handlers, peer, Some(auth)).await
+        }
+        #[cfg(feature = "tls")]
+        Session::Tls { snapshot, deadline } => {
+            let stream = match timeout_at(
+                deadline,
+                tokio_rustls::TlsAcceptor::from(snapshot.server.clone()).accept(socket),
+            )
+            .await
+            {
+                Ok(Ok(stream)) => stream,
+                Ok(Err(_)) => return Exit::TlsError,
+                Err(_) => return Exit::TlsDeadline,
+            };
+            let mut peer = peer;
+            peer.tls = match crate::security::tls::VerifiedPeer::new(
+                &snapshot,
+                stream.get_ref().1.peer_certificates(),
+            ) {
+                Ok(verified) => Some(verified),
+                Err(_) => return Exit::TlsError,
+            };
+            exchange(
+                stream,
+                config,
+                handler,
+                handlers,
+                peer,
+                #[cfg(feature = "sasl")]
+                None,
+            )
+            .await
+        }
+    }
+}
+
+fn read_error(error: io::Error) -> Exit {
+    if error.kind() == io::ErrorKind::UnexpectedEof {
+        Exit::PeerClosed
+    } else {
+        Exit::Io
+    }
+}
+
+#[cfg(feature = "sasl")]
+struct Frame(Vec<u8>);
+#[cfg(feature = "sasl")]
+impl Drop for Frame {
+    fn drop(&mut self) {
+        wipe_credential(&mut self.0);
+    }
+}
+#[cfg(feature = "sasl")]
+impl std::fmt::Debug for Frame {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str("Frame { [REDACTED] }")
+    }
+}
+#[cfg(feature = "sasl")]
+impl std::ops::Deref for Frame {
+    type Target = Vec<u8>;
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+#[cfg(feature = "sasl")]
+impl std::ops::DerefMut for Frame {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
+    }
+}
+#[cfg(not(feature = "sasl"))]
+type Frame = Vec<u8>;
+fn new_frame() -> Frame {
+    #[cfg(feature = "sasl")]
+    {
+        Frame(Vec::new())
+    }
+    #[cfg(not(feature = "sasl"))]
+    {
+        Vec::new()
+    }
+}
+fn dispatch_frame(mut frame: Frame) -> Vec<u8> {
+    #[cfg(feature = "sasl")]
+    {
+        std::mem::take(&mut *frame)
+    }
+    #[cfg(not(feature = "sasl"))]
+    {
+        std::mem::take(&mut frame)
+    }
+}
+
+fn frame_from_vec(bytes: Vec<u8>) -> Frame {
+    #[cfg(feature = "sasl")]
+    {
+        Frame(bytes)
+    }
+    #[cfg(not(feature = "sasl"))]
+    {
+        bytes
+    }
+}
+
+/// Wipe a SASL or handshake body, including spare capacity, and drop its length.
+///
+/// [`park_request`] only clears. Produce and fetch bodies are not credentials,
+/// so they keep the allocation without a second pass over the payload.
+#[cfg(feature = "sasl")]
+fn wipe_credential(bytes: &mut Vec<u8>) {
+    use zeroize::Zeroize;
+    // Wipe each capacity region once. Vec's generic element iterator places
+    // a compiler fence after every byte and then rewrites its full capacity.
+    bytes.as_mut_slice().zeroize();
+    bytes.spare_capacity_mut().zeroize();
+    bytes.clear();
+}
+
+fn park_request(mut bytes: Vec<u8>) -> Frame {
+    // Produce and fetch bodies are not credentials. The connection clears
+    // this buffer and refills it. A control reply is wiped before it is parked.
+    bytes.clear();
+    frame_from_vec(bytes)
+}
+
+fn park_response(mut current: Vec<u8>, mut incoming: Vec<u8>) -> Vec<u8> {
+    current.clear();
+    incoming.clear();
+    if incoming.capacity() > current.capacity() {
+        incoming
+    } else {
+        current
+    }
+}
+
+async fn read_exact_spare<S: AsyncRead + Unpin>(
+    socket: &mut S,
+    payload: &mut Vec<u8>,
+    length: usize,
+    deadline: Instant,
+) -> Result<(), Exit> {
+    payload.try_reserve_exact(length).map_err(|_| Exit::Io)?;
+    let mut yielded_at = payload.len();
+    while payload.len() < length {
+        if Instant::now() >= deadline {
+            return Err(Exit::ReadDeadline);
+        }
+        // One ready read can fill every spare byte. Stop after one chunk so
+        // the frame deadline runs before the rest of the body is copied.
+        let step = length.saturating_sub(payload.len()).min(8 * 1024);
+        let mut limited = (&mut *payload).limit(step);
+        let n = socket.read_buf(&mut limited).await.map_err(read_error)?;
+        if n == 0 {
+            return Err(read_error(io::Error::new(
+                io::ErrorKind::UnexpectedEof,
+                "frame body closed",
+            )));
+        }
+        if payload.len().saturating_sub(yielded_at) >= 64 * 1024 {
+            yielded_at = payload.len();
+            tokio::task::yield_now().await;
+        }
+    }
+    if Instant::now() >= deadline {
+        Err(Exit::ReadDeadline)
+    } else {
+        Ok(())
+    }
+}
+
+enum Ahead {
+    /// More socket bytes are required before a frame can be split off.
+    Need(usize),
+    /// `ahead` holds at least one full frame.
+    Ready,
+    /// The length prefix is not a frame this connection will accept.
+    Invalid,
+}
+
+fn classify_ahead(ahead: &[u8], max_request: usize) -> Ahead {
+    let Some(prefix) = ahead.get(..4) else {
+        return Ahead::Need(8 * 1024);
+    };
+    let Ok(raw) = <[u8; 4]>::try_from(prefix) else {
+        return Ahead::Invalid;
+    };
+    let Ok(length) = usize::try_from(i32::from_be_bytes(raw)) else {
+        return Ahead::Invalid;
+    };
+    if length > max_request {
+        return Ahead::Invalid;
+    }
+    let Some(total) = 4usize.checked_add(length) else {
+        return Ahead::Invalid;
+    };
+    if ahead.len() < total {
+        Ahead::Need(total - ahead.len())
+    } else {
+        Ahead::Ready
+    }
+}
+
+enum AheadScan {
+    Rejected,
+    /// Walked through `at`. Anything after that is a short tail or empty.
+    Rest(usize),
+    /// Walked through `at` and more complete frames are still buffered.
+    Partial(usize),
+}
+
+/// Walk complete frames from `start`, stopping after `budget` bytes.
+///
+/// A long run of empty frames is still legal. Scanning all of it in one
+/// turn keeps the handler from running until the walk finishes.
+fn scan_ahead(ahead: &[u8], start: usize, max_request: usize, budget: usize) -> AheadScan {
+    let mut offset = start.min(ahead.len());
+    let limit = offset.saturating_add(budget.max(4));
+    while ahead.len().saturating_sub(offset) >= 4 {
+        if offset >= limit {
+            return AheadScan::Partial(offset);
+        }
+        let Some(prefix) = ahead.get(offset..offset.saturating_add(4)) else {
+            return AheadScan::Rejected;
+        };
+        let Ok(raw) = <[u8; 4]>::try_from(prefix) else {
+            return AheadScan::Rejected;
+        };
+        let Ok(length) = usize::try_from(i32::from_be_bytes(raw)) else {
+            return AheadScan::Rejected;
+        };
+        if length > max_request {
+            return AheadScan::Rejected;
+        }
+        let Some(total) = 4usize.checked_add(length) else {
+            return AheadScan::Rejected;
+        };
+        let Some(frame_end) = offset.checked_add(total) else {
+            return AheadScan::Rejected;
+        };
+        if ahead.len() < frame_end {
+            return AheadScan::Rest(offset);
+        }
+        offset = frame_end;
+    }
+    AheadScan::Rest(offset)
+}
+
+fn frame_mut(frame: &mut Frame) -> &mut Vec<u8> {
+    frame
+}
+
+/// Bytes already read from the socket and not yet handed to a handler.
+///
+/// `start` is the first unconsumed byte. A buffer that holds exactly one frame
+/// is moved to the handler. A later frame in the same buffer is copied out and
+/// `start` advances, so a pipeline of N frames is not recopied for every frame.
+struct ReadAhead {
+    bytes: Frame,
+    start: usize,
+}
+
+impl ReadAhead {
+    fn new() -> Self {
+        Self {
+            bytes: new_frame(),
+            start: 0,
+        }
+    }
+
+    fn pending(&self) -> &[u8] {
+        self.bytes.get(self.start..).unwrap_or(&[])
+    }
+
+    fn is_empty(&self) -> bool {
+        self.start >= self.bytes.len()
+    }
+
+    /// Drop the consumed prefix so the next read appends after the tail.
+    fn compact(&mut self) {
+        if self.start == 0 {
+            return;
+        }
+        let inner = frame_mut(&mut self.bytes);
+        if self.start >= inner.len() {
+            inner.clear();
+        } else {
+            let _consumed = inner.drain(..self.start);
+        }
+        self.start = 0;
+    }
+}
+
+/// Split one body out of `ahead` when a full frame is buffered.
+///
+/// The length prefix stays out of the returned body, matching a direct read.
+#[cfg(test)]
+fn take_complete_frame(ahead: &mut ReadAhead, max_request: usize) -> Result<Option<Frame>, Exit> {
+    let mut body = new_frame();
+    if fill_complete_frame(ahead, max_request, &mut body)? {
+        Ok(Some(body))
+    } else {
+        Ok(None)
+    }
+}
+
+fn fill_complete_frame(
+    ahead: &mut ReadAhead,
+    max_request: usize,
+    body: &mut Frame,
+) -> Result<bool, Exit> {
+    match classify_ahead(ahead.pending(), max_request) {
+        Ahead::Need(_) => Ok(false),
+        Ahead::Invalid => Err(Exit::InvalidLength),
+        Ahead::Ready => {
+            let mut prefix = [0u8; 4];
+            let raw = ahead.pending().get(..4).ok_or(Exit::InvalidLength)?;
+            prefix.copy_from_slice(raw);
+            let length =
+                usize::try_from(i32::from_be_bytes(prefix)).map_err(|_| Exit::InvalidLength)?;
+            let total = 4usize.checked_add(length).ok_or(Exit::InvalidLength)?;
+            // One complete frame owns the buffer. Move it and drop the length prefix.
+            if ahead.start == 0 && frame_mut(&mut ahead.bytes).len() == total {
+                frame_mut(body).clear();
+                let spare = std::mem::take(frame_mut(body));
+                let mut taken = std::mem::replace(frame_mut(&mut ahead.bytes), spare);
+                drop(taken.drain(..4));
+                *frame_mut(body) = taken;
+                ahead.start = 0;
+                return Ok(true);
+            }
+            {
+                let payload = ahead.pending().get(4..total).ok_or(Exit::InvalidLength)?;
+                let dest = frame_mut(body);
+                dest.clear();
+                dest.try_reserve_exact(payload.len())
+                    .map_err(|_| Exit::Io)?;
+                dest.extend_from_slice(payload);
+            }
+            ahead.start = ahead.start.checked_add(total).ok_or(Exit::InvalidLength)?;
+            if ahead.start >= ahead.bytes.len() {
+                frame_mut(&mut ahead.bytes).clear();
+                ahead.start = 0;
+            }
+            Ok(true)
+        }
+    }
+}
+
+async fn read_frame<S: AsyncRead + Unpin>(
+    socket: &mut S,
+    config: Config,
+    deadline: Instant,
+    ahead: &mut ReadAhead,
+    mut spare: Frame,
+) -> Result<Frame, Exit> {
+    frame_mut(&mut spare).clear();
+    if !ahead.is_empty() {
+        return read_frame_buffered(socket, config, deadline, ahead, spare).await;
+    }
+    if Instant::now() >= deadline {
+        return Err(Exit::ReadDeadline);
+    }
+    // One deadline covers the length prefix and the body. A slow prefix must
+    // not grant the body a fresh read timeout.
+    timeout_at(deadline, async {
+        let mut prefix = [0; 4];
+        let mut filled = 0usize;
+        while filled < prefix.len() {
+            if Instant::now() >= deadline {
+                return Err(Exit::ReadDeadline);
+            }
+            let n = socket
+                .read(prefix.get_mut(filled..).ok_or(Exit::InvalidLength)?)
+                .await
+                .map_err(read_error)?;
+            if n == 0 {
+                return Err(read_error(io::Error::new(
+                    io::ErrorKind::UnexpectedEof,
+                    "frame prefix closed",
+                )));
+            }
+            filled += n;
+        }
+        let length =
+            usize::try_from(i32::from_be_bytes(prefix)).map_err(|_| Exit::InvalidLength)?;
+        if length > config.max_request_bytes {
+            return Err(Exit::InvalidLength);
+        }
+        // No allocation based on the peer's length occurs before this check.
+        // The body is filled directly into spare capacity so a large request
+        // is not zeroed and then overwritten.
+        read_exact_spare(&mut *socket, frame_mut(&mut spare), length, deadline).await?;
+        Ok(spare)
+    })
+    .await
+    .map_err(|_| Exit::ReadDeadline)?
+}
+
+async fn read_frame_buffered<S: AsyncRead + Unpin>(
+    socket: &mut S,
+    config: Config,
+    deadline: Instant,
+    ahead: &mut ReadAhead,
+    mut spare: Frame,
+) -> Result<Frame, Exit> {
+    if Instant::now() >= deadline {
+        return Err(Exit::ReadDeadline);
+    }
+    if fill_complete_frame(ahead, config.max_request_bytes, &mut spare)? {
+        return if Instant::now() >= deadline {
+            Err(Exit::ReadDeadline)
+        } else {
+            Ok(spare)
+        };
+    }
+    timeout_at(deadline, async {
+        loop {
+            if Instant::now() >= deadline {
+                return Err(Exit::ReadDeadline);
+            }
+            if fill_complete_frame(ahead, config.max_request_bytes, &mut spare)? {
+                return if Instant::now() >= deadline {
+                    Err(Exit::ReadDeadline)
+                } else {
+                    Ok(spare)
+                };
+            }
+            let Ahead::Need(budget) = classify_ahead(ahead.pending(), config.max_request_bytes)
+            else {
+                return Err(Exit::InvalidLength);
+            };
+            ahead.compact();
+            frame_mut(&mut ahead.bytes)
+                .try_reserve(budget)
+                .map_err(|_| Exit::Io)?;
+            // The rest of the frame stays reserved. One read still stops
+            // after a chunk so the deadline runs before that body is copied.
+            let step = budget.min(8 * 1024);
+            let mut limited = frame_mut(&mut ahead.bytes).limit(step);
+            let n = socket.read_buf(&mut limited).await.map_err(read_error)?;
+            if n == 0 {
+                return Err(read_error(io::Error::new(
+                    io::ErrorKind::UnexpectedEof,
+                    "frame body closed",
+                )));
+            }
+        }
+    })
+    .await
+    .map_err(|_| Exit::ReadDeadline)?
+}
+
+/// Offer at most one chunk. A socket that accepts every byte would otherwise
+/// copy the whole response before the write deadline is polled.
+fn poll_write_chunk<S: AsyncWrite + Unpin>(
+    socket: &mut S,
+    cx: &mut Context<'_>,
+    bufs: &[IoSlice<'_>],
+) -> Poll<io::Result<usize>> {
+    let Some(first) = bufs.first() else {
+        return Poll::Ready(Ok(0));
+    };
+    let take = first.len().min(8 * 1024);
+    if take == 0 {
+        return Poll::Ready(Ok(0));
+    }
+    // The first slice is the four-byte prefix until it is fully written. Offer
+    // body bytes in the same bounded write when space remains. Writers that do
+    // not support vectored I/O may still accept only the first slice.
+    let remaining = 8 * 1024 - take;
+    let second = bufs
+        .get(1)
+        .filter(|slice| take == first.len() && remaining != 0 && !slice.is_empty());
+    if let Some(second) = second {
+        let body = second.len().min(remaining);
+        let head = [IoSlice::new(&first[..take]), IoSlice::new(&second[..body])];
+        return Pin::new(&mut *socket).poll_write_vectored(cx, &head);
+    }
+    let head = [IoSlice::new(&first[..take])];
+    Pin::new(&mut *socket).poll_write_vectored(cx, &head)
+}
+
+async fn write_and_prefetch<S: AsyncRead + AsyncWrite + Unpin>(
+    socket: &mut S,
+    response: &[u8],
+    deadline: Instant,
+    ahead: &mut ReadAhead,
+    max_request: usize,
+    prefetch: bool,
+) -> Result<(), Exit> {
+    if Instant::now() >= deadline {
+        return Err(Exit::WriteDeadline);
+    }
+    let length = i32::try_from(response.len()).map_err(|_| Exit::OversizedResponse)?;
+    let prefix = length.to_be_bytes();
+    let written = timeout_at(deadline, async {
+        let mut slices = [IoSlice::new(&prefix), IoSlice::new(response)];
+        let mut bufs: &mut [IoSlice<'_>] = &mut slices;
+        let mut stop_read = !prefetch;
+        let mut scanned = 0usize;
+        poll_fn(|cx| {
+            if Instant::now() >= deadline {
+                return Poll::Ready(Err(io::Error::new(
+                    io::ErrorKind::TimedOut,
+                    "response write deadline",
+                )));
+            }
+            if bufs.is_empty() {
+                return Poll::Ready(Ok(()));
+            }
+            if prefetch {
+                let pending = ahead.pending();
+                if scanned > pending.len() {
+                    scanned = 0;
+                }
+                match scan_ahead(pending, scanned, max_request, 64 * 1024) {
+                    AheadScan::Rejected => {
+                        return Poll::Ready(Err(io::Error::new(
+                            io::ErrorKind::InvalidData,
+                            "invalid frame length",
+                        )));
+                    }
+                    AheadScan::Rest(at) => scanned = at,
+                    AheadScan::Partial(at) => {
+                        scanned = at;
+                        cx.waker().wake_by_ref();
+                        return Poll::Pending;
+                    }
+                }
+            }
+            match poll_write_chunk(socket, cx, bufs) {
+                Poll::Ready(Ok(0)) => Poll::Ready(Err(io::Error::new(
+                    io::ErrorKind::WriteZero,
+                    "response write returned 0",
+                ))),
+                Poll::Ready(Ok(n)) => {
+                    IoSlice::advance_slices(&mut bufs, n);
+                    if bufs.is_empty() {
+                        Poll::Ready(Ok(()))
+                    } else {
+                        // A client that accepts one byte at a time keeps this
+                        // poll running, so the write deadline cannot stop it.
+                        cx.waker().wake_by_ref();
+                        Poll::Pending
+                    }
+                }
+                Poll::Ready(Err(error)) => Poll::Ready(Err(error)),
+                Poll::Pending => {
+                    if !stop_read
+                        && matches!(classify_ahead(ahead.pending(), max_request), Ahead::Need(_))
+                    {
+                        let Ahead::Need(budget) = classify_ahead(ahead.pending(), max_request)
+                        else {
+                            return Poll::Pending;
+                        };
+                        ahead.compact();
+                        if frame_mut(&mut ahead.bytes).try_reserve(budget).is_err() {
+                            stop_read = true;
+                        } else {
+                            let polled = {
+                                // The rest of the next frame stays reserved.
+                                // One read still stops after a chunk so the
+                                // write deadline runs before that body is copied.
+                                let step = budget.min(8 * 1024);
+                                let mut limited = frame_mut(&mut ahead.bytes).limit(step);
+                                let mut read = std::pin::pin!(socket.read_buf(&mut limited));
+                                read.as_mut().poll(cx)
+                            };
+                            match polled {
+                                Poll::Pending => return Poll::Pending,
+                                Poll::Ready(Ok(0)) => stop_read = true,
+                                // The peer is already gone. Waiting for the
+                                // rest of the response keeps the socket until
+                                // the write deadline.
+                                Poll::Ready(Err(error)) => return Poll::Ready(Err(error)),
+                                Poll::Ready(Ok(_)) => {
+                                    // Ready bytes keep this poll in the read
+                                    // loop, so the write deadline cannot run
+                                    // until the next frame is fully buffered.
+                                    cx.waker().wake_by_ref();
+                                    return Poll::Pending;
+                                }
+                            }
+                        }
+                    }
+                    if stop_read
+                        || !matches!(classify_ahead(ahead.pending(), max_request), Ahead::Need(_))
+                    {
+                        match poll_write_chunk(socket, cx, bufs) {
+                            Poll::Ready(Ok(0)) => {
+                                return Poll::Ready(Err(io::Error::new(
+                                    io::ErrorKind::WriteZero,
+                                    "response write returned 0",
+                                )));
+                            }
+                            Poll::Ready(Ok(n)) => {
+                                IoSlice::advance_slices(&mut bufs, n);
+                                if bufs.is_empty() {
+                                    return Poll::Ready(Ok(()));
+                                }
+                                cx.waker().wake_by_ref();
+                                return Poll::Pending;
+                            }
+                            Poll::Ready(Err(error)) => return Poll::Ready(Err(error)),
+                            Poll::Pending => return Poll::Pending,
+                        }
+                    }
+                    cx.waker().wake_by_ref();
+                    Poll::Pending
+                }
+            }
+        })
+        .await
+    })
+    .await
+    .map_err(|_| Exit::WriteDeadline)?;
+    if Instant::now() >= deadline {
+        return Err(Exit::WriteDeadline);
+    }
+    written.map_err(|_| Exit::Io)
+}
+
+fn operation_deadline(absolute: Option<Instant>, timeout: Duration) -> Instant {
+    let relative = Instant::now() + timeout;
+    absolute.map_or(relative, |deadline| deadline.min(relative))
+}
+
+/// Every post-proof operation is cancellable by the same socket's finite
+/// authority lease. Durable work already admitted by a handler keeps that
+/// handler's own durability contract. Expired completed work is discarded
+/// before reply writing; bytes already committed to a socket cannot be retracted.
+#[cfg(feature = "oidc")]
+async fn authorized<T>(
+    lease: Option<crate::security::oidc::Lease>,
+    operation: impl std::future::Future<Output = Result<T, Exit>>,
+) -> Result<T, Exit> {
+    let Some(lease) = lease else {
+        return operation.await;
+    };
+    if lease.failure().is_some() {
+        return Err(Exit::HandlerError);
+    }
+    tokio::select! {
+        biased;
+        _=lease.invalidated()=>Err(Exit::HandlerError),
+        result=operation=>{
+            if lease.failure().is_some() { Err(Exit::HandlerError) } else { result }
+        }
+    }
+}
+
+/// Buffer a pipelined request while a handler runs, and finish when the peer
+/// closes. A full frame stays buffered, and the following read still watches
+/// for the peer's close.
+async fn watch_disconnect<S: AsyncRead + Unpin>(
+    socket: &mut S,
+    ahead: &mut ReadAhead,
+    max_request: usize,
+) -> Exit {
+    let mut scanned = 0usize;
+    loop {
+        // One pipelined frame fits in the request limit, including its length
+        // prefix. More than that during a handler is not one request. A
+        // length after a finished frame is not a request either, even when
+        // the first frame is still legal.
+        let pending = ahead.pending();
+        if scanned > pending.len() {
+            scanned = 0;
+        }
+        if pending.len() > max_request.saturating_add(4) {
+            return Exit::InvalidLength;
+        }
+        match scan_ahead(pending, scanned, max_request, 64 * 1024) {
+            AheadScan::Rejected => return Exit::InvalidLength,
+            AheadScan::Rest(at) => scanned = at,
+            AheadScan::Partial(at) => {
+                scanned = at;
+                // More complete frames are buffered. Yield before walking
+                // the rest so the handler deadline can run.
+                tokio::task::yield_now().await;
+                continue;
+            }
+        }
+        let budget = match classify_ahead(ahead.pending(), max_request) {
+            Ahead::Need(budget) => budget,
+            // A complete next frame is already buffered. Read past it so a
+            // close that follows the pipeline is not ignored until the
+            // current handler finishes.
+            Ahead::Ready => 8 * 1024,
+            Ahead::Invalid => return Exit::InvalidLength,
+        };
+        ahead.compact();
+        if frame_mut(&mut ahead.bytes).try_reserve(budget).is_err() {
+            return Exit::Io;
+        }
+        // The rest of a pipelined frame stays reserved. One read still stops
+        // after a chunk so the handler deadline runs before that body is copied.
+        let step = budget.min(8 * 1024);
+        let mut limited = frame_mut(&mut ahead.bytes).limit(step);
+        match socket.read_buf(&mut limited).await {
+            Ok(0) => return Exit::PeerClosed,
+            Ok(_) => {
+                // A ready socket never returns from this read, so the
+                // handler and its deadline do not run until the buffer
+                // fills. Yield between chunks.
+                tokio::task::yield_now().await;
+            }
+            Err(error) => return read_error(error),
+        }
+    }
+}
+
+async fn exchange<H: Handler, S: AsyncRead + AsyncWrite + Unpin>(
+    mut socket: S,
+    config: Config,
+    handler: Arc<H>,
+    handlers: Arc<Semaphore>,
+    #[allow(unused_mut)] mut peer: Peer,
+    #[cfg(feature = "sasl")] mut auth: Option<Box<crate::security::session::Session>>,
+) -> Exit {
+    // The socket is dropped when this block ends, before the yields below.
+    let exit = async move {
+        // Bytes of the next request read while the previous response was written.
+        // Empty unless the client pipelined. Handlers still run one at a time.
+        // The request body and response body stay on this connection and are refilled.
+        let mut ahead = ReadAhead::new();
+        let mut request_spare = new_frame();
+        let mut response_spare = Vec::new();
+        loop {
+            #[allow(unused_mut)]
+            let mut frame_config = config;
+            #[cfg(feature = "sasl")]
+            let preauth_deadline = auth.as_ref().and_then(|auth| auth.operation_deadline());
+            #[cfg(not(feature = "sasl"))]
+            let preauth_deadline: Option<Instant> = None;
+            #[cfg(feature = "sasl")]
+            if let Some(auth) = &auth {
+                frame_config.max_request_bytes = auth.frame_limit(config.max_request_bytes);
+            }
+            let read_deadline = operation_deadline(preauth_deadline, config.read_timeout);
+            let read = read_frame(
+                &mut socket,
+                frame_config,
+                read_deadline,
+                &mut ahead,
+                std::mem::replace(&mut request_spare, new_frame()),
+            );
+            #[cfg(feature = "oidc")]
+            let read = authorized(auth.as_ref().and_then(|a| a.lease()), read);
+            let request = match read.await {
+                Ok(request) => {
+                    if Instant::now() >= read_deadline {
+                        return Exit::ReadDeadline;
+                    }
+                    request
+                }
+                Err(exit) => return exit,
+            };
+            #[cfg(feature = "sasl")]
+            let received = Instant::now();
+            #[cfg(feature = "sasl")]
+            let request_authority = auth
+                .as_ref()
+                .and_then(|auth| auth.request_deadline(&request, received));
+            #[cfg(not(feature = "sasl"))]
+            let request_authority = preauth_deadline;
+            let deadline = request_authority
+                .map_or(Instant::now() + config.handler_timeout, |deadline| {
+                    deadline.min(Instant::now() + config.handler_timeout)
+                });
+            #[allow(unused_mut)]
+            let mut close = false;
+            #[cfg(feature = "oidc")]
+            let lease = auth.as_ref().and_then(|a| a.lease());
+            let response_buf = std::mem::take(&mut response_spare);
+            let operation = async {
+                timeout_at(deadline, async {
+                    let permit = handlers.acquire().await.map_err(|_| Exit::Shutdown)?;
+                    if Instant::now() >= deadline {
+                        return Err(Exit::HandlerDeadline);
+                    }
+                    #[cfg(feature = "sasl")]
+                    if let Some(auth) = &mut auth {
+                        match auth
+                            .handle(&request, received)
+                            .await
+                            .map_err(|_| Exit::HandlerError)?
+                        {
+                            crate::security::session::Decision::Reply {
+                                bytes,
+                                close: terminal,
+                            } => {
+                                close = terminal;
+                                peer.identity = auth.identity();
+                                drop(permit);
+                                let mut request = dispatch_frame(request);
+                                wipe_credential(&mut request);
+                                return Ok(ExchangeOutcome {
+                                    response: Some(bytes),
+                                    request,
+                                    spare: response_buf,
+                                });
+                            }
+                            crate::security::session::Decision::Dispatch => {
+                                peer.identity = auth.identity();
+                                #[cfg(feature = "oidc")]
+                                if auth.lease().is_some_and(|l| l.failure().is_some()) {
+                                    return Err(Exit::HandlerError);
+                                }
+                            }
+                        }
+                    }
+                    let outcome = handler
+                        .exchange_request(&peer, dispatch_frame(request), response_buf)
+                        .await
+                        .map_err(|_| Exit::HandlerError)?;
+                    drop(permit);
+                    Ok(outcome)
+                })
+                .await
+                .map_err(|_| Exit::HandlerDeadline)?
+            };
+            #[cfg(feature = "oidc")]
+            let operation = authorized(lease, operation);
+            // A client that closes while the handler is still running must not
+            // keep that handler and its connection until the handler deadline.
+            let outcome = tokio::select! {
+                biased;
+                closed = watch_disconnect(
+                    &mut socket,
+                    &mut ahead,
+                    frame_config.max_request_bytes,
+                ) => return closed,
+                result = operation => result,
+            };
+            let outcome = match outcome {
+                Ok(outcome) => {
+                    // timeout_at cannot preempt a synchronously Ready handler.
+                    // Recheck the original bound before accepting its result.
+                    if Instant::now() >= deadline {
+                        return Exit::HandlerDeadline;
+                    }
+                    outcome
+                }
+                Err(exit) => return exit,
+            };
+            request_spare = park_request(outcome.request);
+            let Some(response) = outcome.response else {
+                response_spare = park_response(outcome.spare, Vec::new());
+                continue;
+            };
+            if response.len() > config.max_response_bytes {
+                return Exit::OversizedResponse;
+            }
+            if i32::try_from(response.len()).is_err() {
+                return Exit::OversizedResponse;
+            }
+            // Handshake may have just begun a bounded renewal; retain the earlier
+            // operation's deadline and the freshly installed authentication deadline.
+            #[cfg(feature = "sasl")]
+            let write_authority = match (
+                request_authority,
+                auth.as_ref().and_then(|a| a.operation_deadline()),
+            ) {
+                (Some(a), Some(b)) => Some(a.min(b)),
+                (a, b) => a.or(b),
+            };
+            #[cfg(not(feature = "sasl"))]
+            let write_authority = preauth_deadline;
+            let deadline = operation_deadline(write_authority, config.write_timeout);
+            // The peer may observe a partial frame if the deadline or connection
+            // fails during a write. The connection closes on error, allowing the
+            // peer to detect the incomplete frame. Prefetch only when the
+            // connection will stay open for another handler.
+            let prefetch = !close;
+            let write = write_and_prefetch(
+                &mut socket,
+                &response,
+                deadline,
+                &mut ahead,
+                frame_config.max_request_bytes,
+                prefetch,
+            );
+            #[cfg(feature = "oidc")]
+            let write = authorized(auth.as_ref().and_then(|a| a.lease()), write);
+            if let Err(exit) = write.await {
+                return exit;
+            }
+            response_spare = park_response(response, outcome.spare);
+            #[cfg(feature = "sasl")]
+            if let Some(auth) = &mut auth {
+                if auth.response_written().is_err() {
+                    return Exit::HandlerError;
+                }
+                peer.identity = auth.identity();
+            }
+            if close {
+                return Exit::HandlerError;
+            }
+        }
+    }
+    .await;
+    // Publish the established exit in this poll. Yielding after the socket
+    // closes lets shutdown cancel this completed failure and erase its cause.
+    exit
+}
+
+#[cfg(test)]
+mod read_ahead_tests {
+    use super::{fill_complete_frame, frame_mut, new_frame, take_complete_frame, Exit, ReadAhead};
+
+    fn extend_frame(ahead: &mut ReadAhead, payload: &[u8]) {
+        let Ok(length) = i32::try_from(payload.len()) else {
+            return;
+        };
+        frame_mut(&mut ahead.bytes).extend_from_slice(&length.to_be_bytes());
+        frame_mut(&mut ahead.bytes).extend_from_slice(payload);
+    }
+
+    #[test]
+    fn pipelined_frames_are_split_without_moving_the_tail() {
+        let mut ahead = ReadAhead::new();
+        extend_frame(&mut ahead, b"one");
+        extend_frame(&mut ahead, b"two");
+        extend_frame(&mut ahead, b"three");
+        let stored = ahead.bytes.len();
+        let capacity = ahead.bytes.capacity();
+        let first = take_complete_frame(&mut ahead, 64);
+        assert!(matches!(first, Ok(Some(body)) if body.as_slice() == b"one"));
+        assert_eq!(ahead.bytes.len(), stored);
+        assert!(ahead.bytes.capacity() >= capacity);
+        let second = take_complete_frame(&mut ahead, 64);
+        assert!(matches!(second, Ok(Some(body)) if body.as_slice() == b"two"));
+        assert_eq!(ahead.bytes.len(), stored);
+        let third = take_complete_frame(&mut ahead, 64);
+        assert!(matches!(third, Ok(Some(body)) if body.as_slice() == b"three"));
+        assert!(ahead.is_empty());
+        assert_eq!(ahead.start, 0);
+        assert!(ahead.bytes.is_empty());
+        assert!(ahead.bytes.capacity() >= capacity);
+    }
+
+    #[test]
+    fn a_partial_tail_compacts_without_the_consumed_frame() {
+        let mut ahead = ReadAhead::new();
+        extend_frame(&mut ahead, b"ab");
+        frame_mut(&mut ahead.bytes).extend_from_slice(&2i32.to_be_bytes());
+        frame_mut(&mut ahead.bytes).push(b'x');
+        let first = take_complete_frame(&mut ahead, 64);
+        assert!(matches!(first, Ok(Some(body)) if body.as_slice() == b"ab"));
+        assert!(matches!(take_complete_frame(&mut ahead, 64), Ok(None)));
+        assert_eq!(ahead.pending().len(), 5);
+        ahead.compact();
+        assert_eq!(ahead.start, 0);
+        assert_eq!(ahead.bytes.len(), 5);
+        frame_mut(&mut ahead.bytes).push(b'y');
+        let second = take_complete_frame(&mut ahead, 64);
+        assert!(matches!(second, Ok(Some(body)) if body.as_slice() == b"xy"));
+        assert!(ahead.is_empty());
+    }
+
+    #[test]
+    fn one_buffered_frame_keeps_its_allocation() {
+        let mut ahead = ReadAhead::new();
+        extend_frame(&mut ahead, b"payload");
+        let kept = ahead.bytes.as_ptr();
+        let body = take_complete_frame(&mut ahead, 64);
+        assert!(
+            matches!(body, Ok(Some(body)) if body.as_slice() == b"payload" && body.as_ptr() == kept)
+        );
+        assert!(ahead.is_empty());
+        assert_eq!(ahead.start, 0);
+    }
+
+    #[test]
+    fn an_empty_body_is_a_frame() {
+        let mut ahead = ReadAhead::new();
+        extend_frame(&mut ahead, b"");
+        let body = take_complete_frame(&mut ahead, 64);
+        assert!(matches!(body, Ok(Some(body)) if body.is_empty()));
+        assert!(ahead.is_empty());
+    }
+
+    #[test]
+    fn an_oversized_length_is_rejected_before_its_body() {
+        let mut ahead = ReadAhead::new();
+        extend_frame(&mut ahead, b"ok");
+        frame_mut(&mut ahead.bytes).extend_from_slice(&100i32.to_be_bytes());
+        let first = take_complete_frame(&mut ahead, 8);
+        assert!(matches!(first, Ok(Some(body)) if body.as_slice() == b"ok"));
+        assert!(matches!(
+            take_complete_frame(&mut ahead, 8),
+            Err(Exit::InvalidLength)
+        ));
+    }
+
+    #[test]
+    fn a_second_frame_reuses_the_body_buffer() {
+        let mut ahead = ReadAhead::new();
+        extend_frame(&mut ahead, b"one");
+        extend_frame(&mut ahead, b"two");
+        let mut body = new_frame();
+        assert!(matches!(
+            fill_complete_frame(&mut ahead, 64, &mut body),
+            Ok(true)
+        ));
+        let capacity = body.capacity();
+        assert!(capacity > 0);
+        assert!(matches!(
+            fill_complete_frame(&mut ahead, 64, &mut body),
+            Ok(true)
+        ));
+        assert!(body.capacity() >= capacity);
+        assert_eq!(body.as_slice(), b"two");
+    }
+
+    #[test]
+    fn a_short_prefix_waits_for_the_rest_of_the_frame() {
+        let mut ahead = ReadAhead::new();
+        frame_mut(&mut ahead.bytes).extend_from_slice(&[0, 0, 0, 4, 1]);
+        assert!(matches!(take_complete_frame(&mut ahead, 64), Ok(None)));
+        assert!(!ahead.is_empty());
+    }
+
+    #[test]
+    fn a_parked_request_keeps_its_capacity() {
+        let mut bytes = Vec::new();
+        bytes.extend_from_slice(&[9, 8, 7, 6]);
+        bytes
+            .try_reserve_exact(128)
+            .unwrap_or_else(|error| panic!("{error}"));
+        let capacity = bytes.capacity();
+        let parked = super::park_request(bytes);
+        assert!(parked.is_empty());
+        assert!(parked.capacity() >= capacity);
+    }
+}
+
+#[cfg(all(test, feature = "sasl"))]
+mod sasl_frame_tests {
+    #[test]
+    fn owned_authentication_frame_debug_is_redacted() {
+        let mut frame = super::new_frame();
+        frame.extend_from_slice(b"\0synthetic-principal\0synthetic-password");
+        let text = format!("{frame:?}");
+        assert!(!text.contains("synthetic-principal"));
+        assert!(!text.contains("synthetic-password"));
+    }
+
+    #[test]
+    fn a_control_reply_is_wiped_before_the_buffer_is_cleared() {
+        let mut bytes = b"synthetic-password".to_vec();
+        let capacity = bytes.capacity();
+        super::wipe_credential(&mut bytes);
+        assert!(bytes.is_empty());
+        assert!(bytes.capacity() >= capacity);
+        let parked = super::park_request(bytes);
+        assert!(parked.is_empty());
+        assert!(parked.capacity() >= capacity);
+    }
+}
+
+#[cfg(all(test, feature = "tls"))]
+mod tls_deadline_tests {
+    use super::{establish, Config, Exit, Handler, Peer, Session};
+    use crate::security::tls::{Acceptor, ClientAuth, Limits};
+    use std::future::Future;
+    use std::net::SocketAddr;
+    use std::sync::atomic::{AtomicUsize, Ordering};
+    use std::sync::Arc;
+    use std::time::Duration;
+    use tokio::io::AsyncReadExt;
+    use tokio::net::{TcpListener, TcpStream};
+    use tokio::sync::Semaphore;
+    use tokio::time::Instant;
+
+    struct Nop;
+
+    impl Handler for Nop {
+        type Error = std::io::Error;
+
+        fn handle(
+            &self,
+            request: Vec<u8>,
+        ) -> impl Future<Output = Result<Option<Vec<u8>>, Self::Error>> + Send {
+            std::future::ready(Ok(Some(request)))
+        }
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn tls_handshake_deadline_closes_the_socket() {
+        let listener = TcpListener::bind("127.0.0.1:0")
+            .await
+            .unwrap_or_else(|error| panic!("{error}"));
+        let address = listener
+            .local_addr()
+            .unwrap_or_else(|error| panic!("{error}"));
+        let open = Arc::new(AtomicUsize::new(0));
+        let open_flag = Arc::clone(&open);
+        let client = tokio::spawn(async move {
+            let mut socket = TcpStream::connect(address)
+                .await
+                .unwrap_or_else(|error| panic!("{error}"));
+            let _started = open_flag.fetch_add(1, Ordering::SeqCst);
+            let mut buf = [0u8; 8];
+            loop {
+                match socket.read(&mut buf).await {
+                    Ok(0) | Err(_) => break,
+                    Ok(_) => continue,
+                }
+            }
+            let _left = open_flag.fetch_sub(1, Ordering::SeqCst);
+        });
+        let (server, _) = listener
+            .accept()
+            .await
+            .unwrap_or_else(|error| panic!("{error}"));
+        while open.load(Ordering::SeqCst) == 0 {
+            tokio::task::yield_now().await;
+        }
+        let acceptor = Acceptor::new(
+            vec![include_bytes!("../tests/fixtures/tls/server1.cert.der").to_vec()],
+            include_bytes!("../tests/fixtures/tls/server1.key.der").to_vec(),
+            ClientAuth::ServerOnly,
+            Limits {
+                handshake_timeout: Duration::from_millis(200),
+                ..Limits::default()
+            },
+        )
+        .unwrap_or_else(|error| panic!("{error}"));
+        let snapshot = acceptor.snapshot();
+        let config = Config::new(
+            1,
+            1,
+            1024,
+            1024,
+            Duration::from_secs(1),
+            Duration::from_secs(1),
+            Duration::from_secs(1),
+        )
+        .unwrap_or_else(|error| panic!("{error}"));
+        let result = establish(
+            server,
+            config,
+            Arc::new(Nop),
+            Arc::new(Semaphore::new(1)),
+            Peer {
+                address: "127.0.0.1:9"
+                    .parse::<SocketAddr>()
+                    .unwrap_or_else(|error| panic!("{error}")),
+                #[cfg(feature = "sasl")]
+                identity: None,
+                tls: None,
+            },
+            Session::Tls {
+                snapshot,
+                deadline: Instant::now() + Duration::from_millis(200),
+            },
+        )
+        .await;
+        assert!(matches!(result, Exit::TlsDeadline));
+        tokio::time::timeout(Duration::from_secs(1), client)
+            .await
+            .unwrap_or_else(|error| panic!("peer did not observe TLS close: {error}"))
+            .unwrap_or_else(|error| panic!("peer task failed: {error}"));
+        assert_eq!(
+            open.load(Ordering::SeqCst),
+            0,
+            "tls handshake deadline left the accepted socket blocked in a read"
+        );
+    }
+}
+
+#[cfg(test)]
+mod disconnect_tests {
+    use super::{Config, Handler, Transport};
+    use std::future::Future;
+    use std::io;
+    use std::net::SocketAddr;
+    use std::sync::atomic::{AtomicUsize, Ordering};
+    use std::sync::Arc;
+    use std::time::Duration;
+    use tokio::io::{AsyncReadExt, AsyncWriteExt};
+    use tokio::net::TcpStream;
+    use tokio::sync::Notify;
+
+    struct Hold {
+        started: Arc<AtomicUsize>,
+        stopped: Arc<AtomicUsize>,
+        release: Arc<Notify>,
+    }
+
+    impl Handler for Hold {
+        type Error = io::Error;
+
+        fn handle(
+            &self,
+            request: Vec<u8>,
+        ) -> impl Future<Output = Result<Option<Vec<u8>>, Self::Error>> + Send {
+            let started = Arc::clone(&self.started);
+            let stopped = Arc::clone(&self.stopped);
+            let release = Arc::clone(&self.release);
+            async move {
+                struct Guard(Arc<AtomicUsize>);
+                impl Drop for Guard {
+                    fn drop(&mut self) {
+                        self.0.fetch_add(1, Ordering::SeqCst);
+                    }
+                }
+                let _guard = Guard(stopped);
+                started.fetch_add(1, Ordering::SeqCst);
+                release.notified().await;
+                Ok(Some(request))
+            }
+        }
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn client_disconnect_stops_the_handler() {
+        let started = Arc::new(AtomicUsize::new(0));
+        let stopped = Arc::new(AtomicUsize::new(0));
+        let release = Arc::new(Notify::new());
+        let config = Config::new(
+            4,
+            1,
+            1024,
+            1024,
+            Duration::from_secs(30),
+            Duration::from_secs(30),
+            Duration::from_secs(30),
+        )
+        .unwrap_or_else(|error| panic!("{error}"));
+        let mut transport = Transport::bind(
+            "127.0.0.1:0"
+                .parse::<SocketAddr>()
+                .unwrap_or_else(|error| panic!("{error}")),
+            config,
+            Arc::new(Hold {
+                started: Arc::clone(&started),
+                stopped: Arc::clone(&stopped),
+                release: Arc::clone(&release),
+            }),
+        )
+        .await
+        .unwrap_or_else(|error| panic!("{error}"));
+        let mut socket = TcpStream::connect(transport.local_addr())
+            .await
+            .unwrap_or_else(|error| panic!("{error}"));
+        socket
+            .write_all(&0i32.to_be_bytes())
+            .await
+            .unwrap_or_else(|error| panic!("{error}"));
+        while started.load(Ordering::SeqCst) == 0 {
+            tokio::task::yield_now().await;
+        }
+        drop(socket);
+        for _ in 0..32 {
+            tokio::task::yield_now().await;
+        }
+        assert_eq!(
+            stopped.load(Ordering::SeqCst),
+            1,
+            "client disconnect left the handler running"
+        );
+        release.notify_waiters();
+        transport
+            .shutdown()
+            .await
+            .unwrap_or_else(|error| panic!("{error}"));
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn pipelined_disconnect_stops_the_handler() {
+        let started = Arc::new(AtomicUsize::new(0));
+        let stopped = Arc::new(AtomicUsize::new(0));
+        let release = Arc::new(Notify::new());
+        let config = Config::new(
+            4,
+            1,
+            1024,
+            1024,
+            Duration::from_secs(30),
+            Duration::from_secs(30),
+            Duration::from_secs(30),
+        )
+        .unwrap_or_else(|error| panic!("{error}"));
+        let mut transport = Transport::bind(
+            "127.0.0.1:0"
+                .parse::<SocketAddr>()
+                .unwrap_or_else(|error| panic!("{error}")),
+            config,
+            Arc::new(Hold {
+                started: Arc::clone(&started),
+                stopped: Arc::clone(&stopped),
+                release: Arc::clone(&release),
+            }),
+        )
+        .await
+        .unwrap_or_else(|error| panic!("{error}"));
+        let mut socket = TcpStream::connect(transport.local_addr())
+            .await
+            .unwrap_or_else(|error| panic!("{error}"));
+        socket
+            .write_all(&[0, 0, 0, 0, 0, 0, 0, 0])
+            .await
+            .unwrap_or_else(|error| panic!("{error}"));
+        while started.load(Ordering::SeqCst) == 0 {
+            tokio::task::yield_now().await;
+        }
+        drop(socket);
+        for _ in 0..32 {
+            tokio::task::yield_now().await;
+        }
+        assert_eq!(
+            stopped.load(Ordering::SeqCst),
+            1,
+            "pipelined disconnect left the handler running"
+        );
+        release.notify_waiters();
+        transport
+            .shutdown()
+            .await
+            .unwrap_or_else(|error| panic!("{error}"));
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn flooded_request_stops_the_handler() {
+        let started = Arc::new(AtomicUsize::new(0));
+        let stopped = Arc::new(AtomicUsize::new(0));
+        let release = Arc::new(Notify::new());
+        let config = Config::new(
+            4,
+            1,
+            1024,
+            1024,
+            Duration::from_secs(30),
+            Duration::from_secs(30),
+            Duration::from_secs(30),
+        )
+        .unwrap_or_else(|error| panic!("{error}"));
+        let bound = config.max_request_bytes();
+        let mut transport = Transport::bind(
+            "127.0.0.1:0"
+                .parse::<SocketAddr>()
+                .unwrap_or_else(|error| panic!("{error}")),
+            config,
+            Arc::new(Hold {
+                started: Arc::clone(&started),
+                stopped: Arc::clone(&stopped),
+                release: Arc::clone(&release),
+            }),
+        )
+        .await
+        .unwrap_or_else(|error| panic!("{error}"));
+        let socket = TcpStream::connect(transport.local_addr())
+            .await
+            .unwrap_or_else(|error| panic!("{error}"));
+        let (mut reader, mut writer) = socket.into_split();
+        writer
+            .write_all(&0i32.to_be_bytes())
+            .await
+            .unwrap_or_else(|error| panic!("{error}"));
+        while started.load(Ordering::SeqCst) == 0 {
+            tokio::task::yield_now().await;
+        }
+        // Keep the write half open. Dropping it would look like a disconnect.
+        let flood = vec![0u8; bound.saturating_add(5)];
+        let _wrote = writer.write_all(&flood).await;
+        let mut buf = [0u8; 8];
+        let saw = tokio::time::timeout(Duration::from_millis(300), reader.read(&mut buf)).await;
+        drop(writer);
+        release.notify_waiters();
+        transport
+            .shutdown()
+            .await
+            .unwrap_or_else(|error| panic!("{error}"));
+        assert!(
+            matches!(saw, Ok(Ok(0))),
+            "handler kept the socket while the client flooded the connection"
+        );
+    }
+}
+
+#[cfg(test)]
+mod shutdown_tests {
+    use super::{Config, Handler, Transport};
+    use std::future::Future;
+    use std::net::SocketAddr;
+    use std::sync::atomic::{AtomicUsize, Ordering};
+    use std::sync::Arc;
+    use std::time::Duration;
+    use tokio::io::AsyncReadExt;
+    use tokio::net::TcpStream;
+
+    struct Nop;
+
+    impl Handler for Nop {
+        type Error = std::io::Error;
+
+        fn handle(
+            &self,
+            request: Vec<u8>,
+        ) -> impl Future<Output = Result<Option<Vec<u8>>, Self::Error>> + Send {
+            std::future::ready(Ok(Some(request)))
+        }
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn shutdown_closes_the_accepted_socket() {
+        let config = Config::new(
+            4,
+            1,
+            1024,
+            1024,
+            Duration::from_secs(30),
+            Duration::from_secs(30),
+            Duration::from_secs(30),
+        )
+        .unwrap_or_else(|error| panic!("{error}"));
+        let mut transport = Transport::bind(
+            "127.0.0.1:0"
+                .parse::<SocketAddr>()
+                .unwrap_or_else(|error| panic!("{error}")),
+            config,
+            Arc::new(Nop),
+        )
+        .await
+        .unwrap_or_else(|error| panic!("{error}"));
+        let address = transport.local_addr();
+        let open = Arc::new(AtomicUsize::new(0));
+        let open_flag = Arc::clone(&open);
+        let client = tokio::spawn(async move {
+            let mut socket = TcpStream::connect(address)
+                .await
+                .unwrap_or_else(|error| panic!("{error}"));
+            let _started = open_flag.fetch_add(1, Ordering::SeqCst);
+            let mut buf = [0u8; 8];
+            loop {
+                match socket.read(&mut buf).await {
+                    Ok(0) | Err(_) => break,
+                    Ok(_) => continue,
+                }
+            }
+            let _left = open_flag.fetch_sub(1, Ordering::SeqCst);
+        });
+        while open.load(Ordering::SeqCst) == 0 {
+            tokio::task::yield_now().await;
+        }
+        transport
+            .shutdown()
+            .await
+            .unwrap_or_else(|error| panic!("{error}"));
+        assert_eq!(
+            open.load(Ordering::SeqCst),
+            0,
+            "shutdown left the accepted socket blocked in a read"
+        );
+        client.abort();
+    }
+}
+
+#[cfg(test)]
+mod reject_connection_tests {
+    use super::reject_connection;
+    use std::sync::atomic::{AtomicUsize, Ordering};
+    use std::sync::Arc;
+    use tokio::io::AsyncReadExt;
+    use tokio::net::{TcpListener, TcpStream};
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn rejected_connection_closes_before_the_caller_returns() {
+        let listener = TcpListener::bind("127.0.0.1:0")
+            .await
+            .unwrap_or_else(|error| panic!("{error}"));
+        let address = listener
+            .local_addr()
+            .unwrap_or_else(|error| panic!("{error}"));
+        let open = Arc::new(AtomicUsize::new(0));
+        let open_flag = Arc::clone(&open);
+        let client = tokio::spawn(async move {
+            let Ok(mut socket) = TcpStream::connect(address).await else {
+                return;
+            };
+            let _started = open_flag.fetch_add(1, Ordering::SeqCst);
+            let mut buf = [0u8; 8];
+            loop {
+                match socket.read(&mut buf).await {
+                    Ok(0) | Err(_) => break,
+                    Ok(_) => continue,
+                }
+            }
+            let _left = open_flag.fetch_sub(1, Ordering::SeqCst);
+        });
+        let (server, _) = listener
+            .accept()
+            .await
+            .unwrap_or_else(|error| panic!("{error}"));
+        while open.load(Ordering::SeqCst) == 0 {
+            tokio::task::yield_now().await;
+        }
+        reject_connection(server).await;
+        assert_eq!(
+            open.load(Ordering::SeqCst),
+            0,
+            "rejected connection left the accepted socket blocked in a read"
+        );
+        client.abort();
+    }
+}
+
+#[cfg(test)]
+mod read_deadline_tests {
+    use super::{exchange, Config, Exit, Handler, Peer};
+    use std::future::Future;
+    use std::net::SocketAddr;
+    use std::sync::atomic::{AtomicUsize, Ordering};
+    use std::sync::Arc;
+    use std::time::Duration;
+    use tokio::io::AsyncReadExt;
+    use tokio::net::{TcpListener, TcpStream};
+    use tokio::sync::Semaphore;
+
+    struct Nop;
+
+    impl Handler for Nop {
+        type Error = std::io::Error;
+
+        fn handle(
+            &self,
+            request: Vec<u8>,
+        ) -> impl Future<Output = Result<Option<Vec<u8>>, Self::Error>> + Send {
+            std::future::ready(Ok(Some(request)))
+        }
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn read_deadline_closes_the_socket() {
+        let listener = TcpListener::bind("127.0.0.1:0")
+            .await
+            .unwrap_or_else(|error| panic!("{error}"));
+        let address = listener
+            .local_addr()
+            .unwrap_or_else(|error| panic!("{error}"));
+        let open = Arc::new(AtomicUsize::new(0));
+        let open_flag = Arc::clone(&open);
+        let client = tokio::spawn(async move {
+            let mut socket = TcpStream::connect(address)
+                .await
+                .unwrap_or_else(|error| panic!("{error}"));
+            let _started = open_flag.fetch_add(1, Ordering::SeqCst);
+            let mut buf = [0u8; 8];
+            loop {
+                match socket.read(&mut buf).await {
+                    Ok(0) | Err(_) => break,
+                    Ok(_) => continue,
+                }
+            }
+            let _left = open_flag.fetch_sub(1, Ordering::SeqCst);
+        });
+        let (server, _) = listener
+            .accept()
+            .await
+            .unwrap_or_else(|error| panic!("{error}"));
+        while open.load(Ordering::SeqCst) == 0 {
+            tokio::task::yield_now().await;
+        }
+        let config = Config::new(
+            1,
+            1,
+            1024,
+            1024,
+            Duration::from_millis(200),
+            Duration::from_secs(1),
+            Duration::from_secs(1),
+        )
+        .unwrap_or_else(|error| panic!("{error}"));
+        let result = exchange(
+            server,
+            config,
+            Arc::new(Nop),
+            Arc::new(Semaphore::new(1)),
+            Peer {
+                address: "127.0.0.1:9"
+                    .parse::<SocketAddr>()
+                    .unwrap_or_else(|error| panic!("{error}")),
+                #[cfg(feature = "sasl")]
+                identity: None,
+                #[cfg(feature = "tls")]
+                tls: None,
+            },
+            #[cfg(feature = "sasl")]
+            None,
+        )
+        .await;
+        assert!(matches!(result, Exit::ReadDeadline));
+        tokio::time::timeout(Duration::from_secs(1), client)
+            .await
+            .unwrap_or_else(|error| panic!("peer did not observe read close: {error}"))
+            .unwrap_or_else(|error| panic!("peer task failed: {error}"));
+        assert_eq!(
+            open.load(Ordering::SeqCst),
+            0,
+            "read deadline left the accepted socket blocked in a read"
+        );
+    }
+}
+
+#[cfg(test)]
+mod write_prefetch_tests {
+    use super::{frame_mut, write_and_prefetch, Exit, ReadAhead};
+    use std::pin::Pin;
+    use std::task::{Context, Poll};
+    use std::time::Duration;
+    use tokio::io::{AsyncRead, AsyncWrite, ReadBuf};
+    use tokio::time::Instant;
+
+    #[derive(Default)]
+    struct WriteSpy {
+        bytes: Vec<u8>,
+        offers: Vec<Vec<usize>>,
+        first_limit: Option<usize>,
+        first_slice_only: bool,
+    }
+
+    impl WriteSpy {
+        fn accept(&mut self, bufs: &[std::io::IoSlice<'_>]) -> usize {
+            self.offers.push(bufs.iter().map(|buf| buf.len()).collect());
+            let limit = self.first_limit.take().unwrap_or(usize::MAX);
+            let mut accepted = 0usize;
+            let count = if self.first_slice_only { 1 } else { bufs.len() };
+            for buf in bufs.iter().take(count) {
+                let remaining = limit.saturating_sub(accepted);
+                let take = buf.len().min(remaining);
+                self.bytes.extend_from_slice(&buf[..take]);
+                accepted += take;
+                if take < buf.len() || accepted == limit {
+                    break;
+                }
+            }
+            accepted
+        }
+    }
+
+    impl AsyncRead for WriteSpy {
+        fn poll_read(
+            self: Pin<&mut Self>,
+            _cx: &mut Context<'_>,
+            _buf: &mut ReadBuf<'_>,
+        ) -> Poll<std::io::Result<()>> {
+            Poll::Pending
+        }
+    }
+
+    impl AsyncWrite for WriteSpy {
+        fn poll_write(
+            self: Pin<&mut Self>,
+            _cx: &mut Context<'_>,
+            buf: &[u8],
+        ) -> Poll<std::io::Result<usize>> {
+            Poll::Ready(Ok(self.get_mut().accept(&[std::io::IoSlice::new(buf)])))
+        }
+
+        fn poll_write_vectored(
+            self: Pin<&mut Self>,
+            _cx: &mut Context<'_>,
+            bufs: &[std::io::IoSlice<'_>],
+        ) -> Poll<std::io::Result<usize>> {
+            Poll::Ready(Ok(self.get_mut().accept(bufs)))
+        }
+
+        fn is_write_vectored(&self) -> bool {
+            !self.first_slice_only
+        }
+
+        fn poll_flush(self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<std::io::Result<()>> {
+            Poll::Ready(Ok(()))
+        }
+
+        fn poll_shutdown(self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<std::io::Result<()>> {
+            Poll::Ready(Ok(()))
+        }
+    }
+
+    fn framed_bytes(response: &[u8]) -> Vec<u8> {
+        let mut expected = (response.len() as i32).to_be_bytes().to_vec();
+        expected.extend_from_slice(response);
+        expected
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn vectored_write_offers_prefix_and_body_within_budget() {
+        let response = vec![7; 12_000];
+        let mut socket = WriteSpy::default();
+        write_and_prefetch(
+            &mut socket,
+            &response,
+            Instant::now() + Duration::from_secs(1),
+            &mut ReadAhead::new(),
+            1024,
+            false,
+        )
+        .await
+        .unwrap_or_else(|_| panic!("complete response"));
+        assert_eq!(socket.bytes, framed_bytes(&response));
+        assert_eq!(socket.offers.len(), 2);
+        assert_eq!(socket.offers.first(), Some(&vec![4, 8 * 1024 - 4]));
+        assert!(socket
+            .offers
+            .iter()
+            .all(|offer| offer.iter().sum::<usize>() <= 8 * 1024));
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn vectored_partial_prefix_and_body_writes_preserve_wire_order() {
+        let response: Vec<u8> = (0..10_000).map(|value| value as u8).collect();
+        for limit in [1, 3, 4, 5, 8 * 1024] {
+            let mut socket = WriteSpy {
+                first_limit: Some(limit),
+                ..WriteSpy::default()
+            };
+            write_and_prefetch(
+                &mut socket,
+                &response,
+                Instant::now() + Duration::from_secs(1),
+                &mut ReadAhead::new(),
+                1024,
+                false,
+            )
+            .await
+            .unwrap_or_else(|_| panic!("complete partial writes"));
+            assert_eq!(
+                socket.bytes,
+                framed_bytes(&response),
+                "first write limit {limit}"
+            );
+            assert_eq!(socket.offers.first(), Some(&vec![4, 8 * 1024 - 4]));
+            assert!(socket
+                .offers
+                .iter()
+                .all(|offer| offer.iter().sum::<usize>() <= 8 * 1024));
+        }
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn vectored_write_supports_empty_body_and_single_slice_writers() {
+        let mut empty = WriteSpy::default();
+        write_and_prefetch(
+            &mut empty,
+            &[],
+            Instant::now() + Duration::from_secs(1),
+            &mut ReadAhead::new(),
+            1024,
+            false,
+        )
+        .await
+        .unwrap_or_else(|_| panic!("empty body"));
+        assert_eq!(empty.bytes, [0, 0, 0, 0]);
+        assert_eq!(empty.offers, [vec![4]]);
+
+        // Some TLS-style writers implement vectored I/O by accepting only the
+        // first nonempty slice. Subsequent polls must send the remaining body.
+        let mut socket = WriteSpy {
+            first_slice_only: true,
+            ..WriteSpy::default()
+        };
+        write_and_prefetch(
+            &mut socket,
+            b"body",
+            Instant::now() + Duration::from_secs(1),
+            &mut ReadAhead::new(),
+            1024,
+            false,
+        )
+        .await
+        .unwrap_or_else(|_| panic!("single slice fallback"));
+        assert_eq!(socket.bytes, framed_bytes(b"body"));
+        assert_eq!(socket.offers, [vec![4, 4], vec![4]]);
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn prefix_only_deadline_leaves_peer_with_truncated_frame_and_eof() {
+        use tokio::io::AsyncReadExt;
+        let (mut writer, mut reader) = tokio::io::duplex(4);
+        let response = b"body";
+        let result = write_and_prefetch(
+            &mut writer,
+            response,
+            Instant::now() + Duration::from_millis(30),
+            &mut ReadAhead::new(),
+            1024,
+            false,
+        )
+        .await;
+        assert!(matches!(result, Err(Exit::WriteDeadline)));
+        drop(writer);
+        let mut prefix = [0; 4];
+        reader
+            .read_exact(&mut prefix)
+            .await
+            .expect("complete prefix");
+        assert_eq!(i32::from_be_bytes(prefix), 4);
+        let mut body = [0; 4];
+        let error = reader
+            .read_exact(&mut body)
+            .await
+            .expect_err("body must be truncated");
+        assert_eq!(error.kind(), std::io::ErrorKind::UnexpectedEof);
+    }
+
+    /// Writes never accept a byte. Reads stay ready with one legal frame,
+    /// a little at a time, so a poll that does not yield spends the whole
+    /// frame inside the write deadline.
+    struct ReadyFrame {
+        announced: bool,
+        left: usize,
+    }
+
+    impl AsyncRead for ReadyFrame {
+        fn poll_read(
+            self: Pin<&mut Self>,
+            _cx: &mut Context<'_>,
+            buf: &mut ReadBuf<'_>,
+        ) -> Poll<std::io::Result<()>> {
+            let this = self.get_mut();
+            if !this.announced {
+                this.announced = true;
+                let len = i32::try_from(this.left).unwrap_or(i32::MAX).to_be_bytes();
+                let dst = buf.initialize_unfilled();
+                let n = len.len().min(dst.len());
+                dst[..n].copy_from_slice(&len[..n]);
+                buf.advance(n);
+                return Poll::Ready(Ok(()));
+            }
+            if this.left == 0 {
+                return Poll::Pending;
+            }
+            let dst = buf.initialize_unfilled();
+            let n = dst.len().min(this.left).min(1024);
+            dst[..n].fill(1);
+            buf.advance(n);
+            this.left -= n;
+            let start = std::time::Instant::now();
+            while start.elapsed() < Duration::from_micros(40) {}
+            Poll::Ready(Ok(()))
+        }
+    }
+
+    impl AsyncWrite for ReadyFrame {
+        fn poll_write(
+            self: Pin<&mut Self>,
+            _cx: &mut Context<'_>,
+            _buf: &[u8],
+        ) -> Poll<std::io::Result<usize>> {
+            Poll::Pending
+        }
+
+        fn poll_flush(self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<std::io::Result<()>> {
+            Poll::Ready(Ok(()))
+        }
+
+        fn poll_shutdown(self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<std::io::Result<()>> {
+            Poll::Ready(Ok(()))
+        }
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn write_deadline_stops_a_ready_prefetch() {
+        let mut socket = ReadyFrame {
+            announced: false,
+            left: 4 * 1024 * 1024,
+        };
+        // The connection owns this buffer after the write. SASL wipes it on
+        // teardown, so measure that cleanup separately from the write deadline.
+        let mut ahead = ReadAhead::new();
+        let started = Instant::now();
+        let result = write_and_prefetch(
+            &mut socket,
+            b"response-bytes",
+            Instant::now() + Duration::from_millis(30),
+            &mut ahead,
+            8 * 1024 * 1024,
+            true,
+        )
+        .await;
+        let elapsed = started.elapsed();
+        let cleanup_started = Instant::now();
+        drop(ahead);
+        eprintln!(
+            "write elapsed {elapsed:?}; buffer cleanup {:?}",
+            cleanup_started.elapsed()
+        );
+        assert!(
+            matches!(result, Err(Exit::WriteDeadline)),
+            "prefetch finished the write instead of hitting the deadline"
+        );
+        assert!(
+            elapsed < Duration::from_millis(80),
+            "a ready prefetch held the write past its deadline: {elapsed:?}"
+        );
+    }
+
+    /// Writes never accept a byte. The next body fills every spare byte.
+    struct GreedyPrefetch {
+        left: usize,
+    }
+
+    impl AsyncRead for GreedyPrefetch {
+        fn poll_read(
+            self: Pin<&mut Self>,
+            _cx: &mut Context<'_>,
+            buf: &mut ReadBuf<'_>,
+        ) -> Poll<std::io::Result<()>> {
+            let this = self.get_mut();
+            if this.left == 0 {
+                return Poll::Pending;
+            }
+            let dst = buf.initialize_unfilled();
+            if dst.is_empty() {
+                return Poll::Ready(Ok(()));
+            }
+            let n = dst.len().min(this.left);
+            dst[..n].fill(1);
+            buf.advance(n);
+            this.left -= n;
+            let units = u32::try_from(n.div_ceil(1024)).unwrap_or(u32::MAX);
+            let start = std::time::Instant::now();
+            while start.elapsed() < Duration::from_millis(2).saturating_mul(units) {}
+            Poll::Ready(Ok(()))
+        }
+    }
+
+    impl AsyncWrite for GreedyPrefetch {
+        fn poll_write(
+            self: Pin<&mut Self>,
+            _cx: &mut Context<'_>,
+            _buf: &[u8],
+        ) -> Poll<std::io::Result<usize>> {
+            Poll::Pending
+        }
+
+        fn poll_flush(self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<std::io::Result<()>> {
+            Poll::Ready(Ok(()))
+        }
+
+        fn poll_shutdown(self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<std::io::Result<()>> {
+            Poll::Ready(Ok(()))
+        }
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn write_deadline_stops_a_greedy_prefetch() {
+        let body_len = 64 * 1024;
+        let mut ahead = ReadAhead::new();
+        frame_mut(&mut ahead.bytes)
+            .extend_from_slice(&i32::try_from(body_len).unwrap_or(i32::MAX).to_be_bytes());
+        let mut socket = GreedyPrefetch { left: body_len };
+        let started = Instant::now();
+        let result = write_and_prefetch(
+            &mut socket,
+            b"response-bytes",
+            Instant::now() + Duration::from_millis(40),
+            &mut ahead,
+            8 * 1024 * 1024,
+            true,
+        )
+        .await;
+        let elapsed = started.elapsed();
+        let deadline = matches!(result, Err(Exit::WriteDeadline));
+        assert!(
+            deadline && elapsed < Duration::from_millis(80),
+            "a greedy prefetch held the write past its deadline: {elapsed:?} deadline {deadline}"
+        );
+    }
+
+    /// Accepts every offered byte and spends time in proportion to that copy.
+    struct GreedyAccept;
+
+    impl AsyncRead for GreedyAccept {
+        fn poll_read(
+            self: Pin<&mut Self>,
+            _cx: &mut Context<'_>,
+            _buf: &mut ReadBuf<'_>,
+        ) -> Poll<std::io::Result<()>> {
+            Poll::Pending
+        }
+    }
+
+    impl AsyncWrite for GreedyAccept {
+        fn poll_write(
+            self: Pin<&mut Self>,
+            _cx: &mut Context<'_>,
+            buf: &[u8],
+        ) -> Poll<std::io::Result<usize>> {
+            if buf.is_empty() {
+                return Poll::Ready(Ok(0));
+            }
+            let units = u32::try_from(buf.len().div_ceil(1024)).unwrap_or(u32::MAX);
+            let start = std::time::Instant::now();
+            while start.elapsed() < Duration::from_millis(2).saturating_mul(units) {}
+            Poll::Ready(Ok(buf.len()))
+        }
+
+        fn poll_flush(self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<std::io::Result<()>> {
+            Poll::Ready(Ok(()))
+        }
+
+        fn poll_shutdown(self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<std::io::Result<()>> {
+            Poll::Ready(Ok(()))
+        }
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn write_deadline_stops_a_greedy_response() {
+        let mut socket = GreedyAccept;
+        let body = vec![7u8; 64 * 1024];
+        let started = Instant::now();
+        let result = write_and_prefetch(
+            &mut socket,
+            &body,
+            Instant::now() + Duration::from_millis(40),
+            &mut ReadAhead::new(),
+            8 * 1024 * 1024,
+            false,
+        )
+        .await;
+        let elapsed = started.elapsed();
+        let deadline = matches!(result, Err(Exit::WriteDeadline));
+        assert!(
+            deadline && elapsed < Duration::from_millis(80),
+            "a greedy response held the write past its deadline: {elapsed:?} deadline {deadline}"
+        );
+    }
+
+    struct SlowAccept;
+
+    impl AsyncRead for SlowAccept {
+        fn poll_read(
+            self: Pin<&mut Self>,
+            _cx: &mut Context<'_>,
+            _buf: &mut ReadBuf<'_>,
+        ) -> Poll<std::io::Result<()>> {
+            Poll::Pending
+        }
+    }
+
+    impl AsyncWrite for SlowAccept {
+        fn poll_write(
+            self: Pin<&mut Self>,
+            _cx: &mut Context<'_>,
+            buf: &[u8],
+        ) -> Poll<std::io::Result<usize>> {
+            if buf.is_empty() {
+                return Poll::Ready(Ok(0));
+            }
+            let start = std::time::Instant::now();
+            while start.elapsed() < Duration::from_millis(3) {}
+            Poll::Ready(Ok(1))
+        }
+
+        fn poll_flush(self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<std::io::Result<()>> {
+            Poll::Ready(Ok(()))
+        }
+
+        fn poll_shutdown(self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<std::io::Result<()>> {
+            Poll::Ready(Ok(()))
+        }
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn write_deadline_stops_a_ready_partial_write() {
+        let mut socket = SlowAccept;
+        let response = vec![9u8; 40];
+        let started = Instant::now();
+        let result = write_and_prefetch(
+            &mut socket,
+            &response,
+            Instant::now() + Duration::from_millis(30),
+            &mut ReadAhead::new(),
+            1024,
+            false,
+        )
+        .await;
+        let elapsed = started.elapsed();
+        let deadline = matches!(result, Err(Exit::WriteDeadline));
+        assert!(
+            deadline && elapsed < Duration::from_millis(80),
+            "a ready partial write held the response past its deadline: {elapsed:?} deadline {deadline}"
+        );
+    }
+
+    struct IllegalPrefetch {
+        sent: bool,
+    }
+
+    impl AsyncRead for IllegalPrefetch {
+        fn poll_read(
+            self: Pin<&mut Self>,
+            _cx: &mut Context<'_>,
+            buf: &mut ReadBuf<'_>,
+        ) -> Poll<std::io::Result<()>> {
+            let this = self.get_mut();
+            if this.sent {
+                return Poll::Pending;
+            }
+            let dst = buf.initialize_unfilled();
+            if dst.len() < 4 {
+                return Poll::Pending;
+            }
+            dst[..4].copy_from_slice(&i32::MAX.to_be_bytes());
+            buf.advance(4);
+            this.sent = true;
+            Poll::Ready(Ok(()))
+        }
+    }
+
+    struct IllegalAfterFrame {
+        sent: bool,
+    }
+
+    impl AsyncRead for IllegalAfterFrame {
+        fn poll_read(
+            self: Pin<&mut Self>,
+            _cx: &mut Context<'_>,
+            buf: &mut ReadBuf<'_>,
+        ) -> Poll<std::io::Result<()>> {
+            let this = self.get_mut();
+            if this.sent {
+                return Poll::Pending;
+            }
+            let dst = buf.initialize_unfilled();
+            if dst.len() < 8 {
+                return Poll::Pending;
+            }
+            dst[..4].fill(0);
+            dst[4..8].copy_from_slice(&i32::MAX.to_be_bytes());
+            buf.advance(8);
+            this.sent = true;
+            Poll::Ready(Ok(()))
+        }
+    }
+
+    impl AsyncWrite for IllegalAfterFrame {
+        fn poll_write(
+            self: Pin<&mut Self>,
+            _cx: &mut Context<'_>,
+            _buf: &[u8],
+        ) -> Poll<std::io::Result<usize>> {
+            Poll::Pending
+        }
+
+        fn poll_flush(self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<std::io::Result<()>> {
+            Poll::Ready(Ok(()))
+        }
+
+        fn poll_shutdown(self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<std::io::Result<()>> {
+            Poll::Ready(Ok(()))
+        }
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn an_illegal_length_after_a_frame_does_not_wait_out_the_write() {
+        let mut socket = IllegalAfterFrame { sent: false };
+        let started = Instant::now();
+        let result = tokio::time::timeout(
+            Duration::from_millis(200),
+            write_and_prefetch(
+                &mut socket,
+                b"response",
+                Instant::now() + Duration::from_secs(5),
+                &mut ReadAhead::new(),
+                1024,
+                true,
+            ),
+        )
+        .await;
+        let elapsed = started.elapsed();
+        assert!(
+            matches!(result, Ok(Err(_))),
+            "an illegal length after a frame waited out the write: {elapsed:?}"
+        );
+    }
+
+    impl AsyncWrite for IllegalPrefetch {
+        fn poll_write(
+            self: Pin<&mut Self>,
+            _cx: &mut Context<'_>,
+            _buf: &[u8],
+        ) -> Poll<std::io::Result<usize>> {
+            Poll::Pending
+        }
+
+        fn poll_flush(self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<std::io::Result<()>> {
+            Poll::Ready(Ok(()))
+        }
+
+        fn poll_shutdown(self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<std::io::Result<()>> {
+            Poll::Ready(Ok(()))
+        }
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn an_illegal_prefetch_length_does_not_wait_out_the_write() {
+        let mut socket = IllegalPrefetch { sent: false };
+        let started = Instant::now();
+        let result = tokio::time::timeout(
+            Duration::from_millis(200),
+            write_and_prefetch(
+                &mut socket,
+                b"response",
+                Instant::now() + Duration::from_secs(5),
+                &mut ReadAhead::new(),
+                1024,
+                true,
+            ),
+        )
+        .await;
+        let elapsed = started.elapsed();
+        assert!(
+            matches!(result, Ok(Err(_))),
+            "an illegal prefetch length waited out the write: {elapsed:?}"
+        );
+    }
+
+    /// The next read fails immediately. The response write is not accepted.
+    struct FailedPrefetch;
+
+    impl AsyncRead for FailedPrefetch {
+        fn poll_read(
+            self: Pin<&mut Self>,
+            _cx: &mut Context<'_>,
+            _buf: &mut ReadBuf<'_>,
+        ) -> Poll<std::io::Result<()>> {
+            Poll::Ready(Err(std::io::Error::new(
+                std::io::ErrorKind::ConnectionReset,
+                "prefetch reset",
+            )))
+        }
+    }
+
+    impl AsyncWrite for FailedPrefetch {
+        fn poll_write(
+            self: Pin<&mut Self>,
+            _cx: &mut Context<'_>,
+            _buf: &[u8],
+        ) -> Poll<std::io::Result<usize>> {
+            Poll::Pending
+        }
+
+        fn poll_flush(self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<std::io::Result<()>> {
+            Poll::Ready(Ok(()))
+        }
+
+        fn poll_shutdown(self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<std::io::Result<()>> {
+            Poll::Ready(Ok(()))
+        }
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn a_failed_prefetch_does_not_wait_out_the_write() {
+        let result = tokio::time::timeout(
+            Duration::from_millis(200),
+            write_and_prefetch(
+                &mut FailedPrefetch,
+                b"response",
+                Instant::now() + Duration::from_secs(5),
+                &mut ReadAhead::new(),
+                1024,
+                true,
+            ),
+        )
+        .await;
+        assert!(
+            matches!(result, Ok(Err(Exit::Io))),
+            "a failed prefetch waited out the write"
+        );
+    }
+}
+
+#[cfg(test)]
+mod handler_deadline_tests {
+    use super::{exchange, Config, Exit, Handler, Peer};
+    use std::future::Future;
+    use std::net::SocketAddr;
+    use std::pin::Pin;
+    use std::sync::Arc;
+    use std::task::{Context, Poll};
+    use std::time::Duration;
+    use tokio::io::{AsyncRead, AsyncWrite, ReadBuf};
+    use tokio::sync::Semaphore;
+    use tokio::time::Instant;
+
+    struct Stuck;
+
+    impl Handler for Stuck {
+        type Error = std::io::Error;
+
+        fn handle(
+            &self,
+            _request: Vec<u8>,
+        ) -> impl Future<Output = Result<Option<Vec<u8>>, Self::Error>> + Send {
+            std::future::pending()
+        }
+    }
+
+    /// One small request, then a pipelined frame that stays readable and
+    /// burns time on every chunk.
+    struct SlowPipeline {
+        phase: u8,
+        left: usize,
+    }
+
+    impl AsyncRead for SlowPipeline {
+        fn poll_read(
+            self: Pin<&mut Self>,
+            _cx: &mut Context<'_>,
+            buf: &mut ReadBuf<'_>,
+        ) -> Poll<std::io::Result<()>> {
+            let this = self.get_mut();
+            let dst = buf.initialize_unfilled();
+            if dst.is_empty() {
+                return Poll::Ready(Ok(()));
+            }
+            if this.phase == 0 {
+                this.phase = 1;
+                let len = 4i32.to_be_bytes();
+                let n = len.len().min(dst.len());
+                dst[..n].copy_from_slice(&len[..n]);
+                buf.advance(n);
+                return Poll::Ready(Ok(()));
+            }
+            if this.phase == 1 {
+                this.phase = 2;
+                let n = 4.min(dst.len());
+                dst[..n].fill(0);
+                buf.advance(n);
+                return Poll::Ready(Ok(()));
+            }
+            if this.phase == 2 {
+                this.phase = 3;
+                let len = i32::try_from(this.left).unwrap_or(i32::MAX).to_be_bytes();
+                let n = len.len().min(dst.len());
+                dst[..n].copy_from_slice(&len[..n]);
+                buf.advance(n);
+                return Poll::Ready(Ok(()));
+            }
+            if this.left == 0 {
+                return Poll::Pending;
+            }
+            let n = dst.len().min(this.left).min(1024);
+            dst[..n].fill(2);
+            buf.advance(n);
+            this.left -= n;
+            let start = std::time::Instant::now();
+            while start.elapsed() < Duration::from_micros(150) {}
+            Poll::Ready(Ok(()))
+        }
+    }
+
+    impl AsyncWrite for SlowPipeline {
+        fn poll_write(
+            self: Pin<&mut Self>,
+            _cx: &mut Context<'_>,
+            buf: &[u8],
+        ) -> Poll<std::io::Result<usize>> {
+            Poll::Ready(Ok(buf.len()))
+        }
+
+        fn poll_flush(self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<std::io::Result<()>> {
+            Poll::Ready(Ok(()))
+        }
+
+        fn poll_shutdown(self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<std::io::Result<()>> {
+            Poll::Ready(Ok(()))
+        }
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn handler_deadline_runs_during_a_ready_prefetch() {
+        let config = Config::new(
+            1,
+            1,
+            1024 * 1024,
+            1024,
+            Duration::from_secs(5),
+            Duration::from_millis(30),
+            Duration::from_secs(5),
+        )
+        .unwrap_or_else(|error| panic!("{error}"));
+        let socket = SlowPipeline {
+            phase: 0,
+            left: 1024 * 1024,
+        };
+        let started = Instant::now();
+        let result = exchange(
+            socket,
+            config,
+            Arc::new(Stuck),
+            Arc::new(Semaphore::new(1)),
+            Peer {
+                address: "127.0.0.1:9"
+                    .parse::<SocketAddr>()
+                    .unwrap_or_else(|error| panic!("{error}")),
+                #[cfg(feature = "sasl")]
+                identity: None,
+                #[cfg(feature = "tls")]
+                tls: None,
+            },
+            #[cfg(feature = "sasl")]
+            None,
+        )
+        .await;
+        let elapsed = started.elapsed();
+        let deadline = matches!(result, Exit::HandlerDeadline);
+        assert!(
+            deadline && elapsed < Duration::from_millis(80),
+            "handler deadline did not run during a ready prefetch: {elapsed:?} deadline {deadline}"
+        );
+    }
+
+    /// One empty request, then a finished empty frame followed by a length
+    /// this connection will not accept. The later length stays readable and
+    /// then the socket waits.
+    struct IllegalAfterFrame {
+        phase: u8,
+    }
+
+    impl AsyncRead for IllegalAfterFrame {
+        fn poll_read(
+            self: Pin<&mut Self>,
+            _cx: &mut Context<'_>,
+            buf: &mut ReadBuf<'_>,
+        ) -> Poll<std::io::Result<()>> {
+            let this = self.get_mut();
+            let dst = buf.initialize_unfilled();
+            if dst.is_empty() {
+                return Poll::Ready(Ok(()));
+            }
+            if this.phase == 0 {
+                this.phase = 1;
+                let n = 4.min(dst.len());
+                dst[..n].fill(0);
+                buf.advance(n);
+                return Poll::Ready(Ok(()));
+            }
+            if this.phase == 1 {
+                this.phase = 2;
+                if dst.len() < 8 {
+                    return Poll::Pending;
+                }
+                dst[..4].fill(0);
+                dst[4..8].copy_from_slice(&i32::MAX.to_be_bytes());
+                buf.advance(8);
+                return Poll::Ready(Ok(()));
+            }
+            Poll::Pending
+        }
+    }
+
+    impl AsyncWrite for IllegalAfterFrame {
+        fn poll_write(
+            self: Pin<&mut Self>,
+            _cx: &mut Context<'_>,
+            buf: &[u8],
+        ) -> Poll<std::io::Result<usize>> {
+            Poll::Ready(Ok(buf.len()))
+        }
+
+        fn poll_flush(self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<std::io::Result<()>> {
+            Poll::Ready(Ok(()))
+        }
+
+        fn poll_shutdown(self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<std::io::Result<()>> {
+            Poll::Ready(Ok(()))
+        }
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn an_illegal_length_after_a_frame_stops_the_handler() {
+        let config = Config::new(
+            1,
+            1,
+            1024,
+            1024,
+            Duration::from_secs(5),
+            Duration::from_secs(5),
+            Duration::from_secs(5),
+        )
+        .unwrap_or_else(|error| panic!("{error}"));
+        let result = tokio::time::timeout(
+            Duration::from_millis(200),
+            exchange(
+                IllegalAfterFrame { phase: 0 },
+                config,
+                Arc::new(Stuck),
+                Arc::new(Semaphore::new(1)),
+                Peer {
+                    address: "127.0.0.1:9"
+                        .parse::<SocketAddr>()
+                        .unwrap_or_else(|error| panic!("{error}")),
+                    #[cfg(feature = "sasl")]
+                    identity: None,
+                    #[cfg(feature = "tls")]
+                    tls: None,
+                },
+                #[cfg(feature = "sasl")]
+                None,
+            ),
+        )
+        .await;
+        assert!(
+            matches!(result, Ok(Exit::InvalidLength)),
+            "an illegal length after a frame left the handler running"
+        );
+    }
+}
+
+#[cfg(test)]
+mod frame_read_deadline_tests {
+    use super::{frame_mut, new_frame, read_frame, watch_disconnect, Config, Exit, ReadAhead};
+    use std::pin::Pin;
+    use std::task::{Context, Poll};
+    use std::time::Duration;
+    use tokio::io::{AsyncRead, ReadBuf};
+    use tokio::time::Instant;
+
+    #[tokio::test]
+    async fn an_expired_buffered_frame_is_rejected_before_consumption() {
+        let mut ahead = ReadAhead::new();
+        frame_mut(&mut ahead.bytes).extend_from_slice(&1i32.to_be_bytes());
+        frame_mut(&mut ahead.bytes).push(1);
+        let result = read_frame(
+            &mut PendingRead,
+            Config::default(),
+            Instant::now() - Duration::from_millis(1),
+            &mut ahead,
+            new_frame(),
+        )
+        .await;
+        assert!(matches!(result, Err(Exit::ReadDeadline)));
+        assert_eq!(ahead.pending(), &[0, 0, 0, 1, 1]);
+    }
+
+    struct PendingRead;
+
+    impl AsyncRead for PendingRead {
+        fn poll_read(
+            self: Pin<&mut Self>,
+            _cx: &mut Context<'_>,
+            _buf: &mut ReadBuf<'_>,
+        ) -> Poll<std::io::Result<()>> {
+            Poll::Pending
+        }
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn a_run_of_empty_frames_does_not_hold_the_handler_watch() {
+        let mut ahead = ReadAhead::new();
+        frame_mut(&mut ahead.bytes).resize(16 * 1024 * 1024, 0);
+        let mut socket = PendingRead;
+        let started = std::time::Instant::now();
+        tokio::select! {
+            _ = watch_disconnect(&mut socket, &mut ahead, 32 * 1024 * 1024) => {}
+            _ = tokio::time::sleep(Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < Duration::from_millis(80),
+            "scanning empty frames held the handler watch for {elapsed:?}"
+        );
+    }
+
+    /// A legal frame that stays readable and burns time on every body chunk.
+    struct SlowFrame {
+        announced: bool,
+        left: usize,
+    }
+
+    impl AsyncRead for SlowFrame {
+        fn poll_read(
+            self: Pin<&mut Self>,
+            _cx: &mut Context<'_>,
+            buf: &mut ReadBuf<'_>,
+        ) -> Poll<std::io::Result<()>> {
+            let this = self.get_mut();
+            let dst = buf.initialize_unfilled();
+            if dst.is_empty() {
+                return Poll::Ready(Ok(()));
+            }
+            if !this.announced {
+                this.announced = true;
+                let len = i32::try_from(this.left).unwrap_or(i32::MAX).to_be_bytes();
+                let n = len.len().min(dst.len());
+                dst[..n].copy_from_slice(&len[..n]);
+                buf.advance(n);
+                return Poll::Ready(Ok(()));
+            }
+            if this.left == 0 {
+                return Poll::Pending;
+            }
+            let n = dst.len().min(this.left).min(1024);
+            dst[..n].fill(3);
+            buf.advance(n);
+            this.left -= n;
+            let start = std::time::Instant::now();
+            while start.elapsed() < Duration::from_micros(120) {}
+            Poll::Ready(Ok(()))
+        }
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn read_deadline_stops_a_ready_frame_body() {
+        let config = Config::new(
+            1,
+            1,
+            2 * 1024 * 1024,
+            1024,
+            Duration::from_secs(5),
+            Duration::from_secs(5),
+            Duration::from_secs(5),
+        )
+        .unwrap_or_else(|error| panic!("{error}"));
+        let mut socket = SlowFrame {
+            announced: false,
+            left: 1024 * 1024,
+        };
+        let started = Instant::now();
+        let result = read_frame(
+            &mut socket,
+            config,
+            Instant::now() + Duration::from_millis(30),
+            &mut ReadAhead::new(),
+            new_frame(),
+        )
+        .await;
+        let elapsed = started.elapsed();
+        let deadline = matches!(result, Err(Exit::ReadDeadline));
+        assert!(
+            deadline && elapsed < Duration::from_millis(80),
+            "a ready frame body held the read past its deadline: {elapsed:?} deadline {deadline}"
+        );
+    }
+
+    /// A legal frame that fills whatever spare capacity the read offered.
+    struct GreedyFrame {
+        announced: bool,
+        left: usize,
+    }
+
+    impl AsyncRead for GreedyFrame {
+        fn poll_read(
+            self: Pin<&mut Self>,
+            _cx: &mut Context<'_>,
+            buf: &mut ReadBuf<'_>,
+        ) -> Poll<std::io::Result<()>> {
+            let this = self.get_mut();
+            let dst = buf.initialize_unfilled();
+            if dst.is_empty() {
+                return Poll::Ready(Ok(()));
+            }
+            if !this.announced {
+                this.announced = true;
+                let len = i32::try_from(this.left).unwrap_or(i32::MAX).to_be_bytes();
+                let n = len.len().min(dst.len());
+                dst[..n].copy_from_slice(&len[..n]);
+                buf.advance(n);
+                return Poll::Ready(Ok(()));
+            }
+            if this.left == 0 {
+                return Poll::Pending;
+            }
+            let n = dst.len().min(this.left);
+            dst[..n].fill(3);
+            buf.advance(n);
+            this.left -= n;
+            let units = u32::try_from(n.div_ceil(1024)).unwrap_or(u32::MAX);
+            let start = std::time::Instant::now();
+            while start.elapsed() < Duration::from_millis(2).saturating_mul(units) {}
+            Poll::Ready(Ok(()))
+        }
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn read_deadline_stops_a_greedy_frame_body() {
+        let config = Config::new(
+            1,
+            1,
+            2 * 1024 * 1024,
+            1024,
+            Duration::from_secs(5),
+            Duration::from_secs(5),
+            Duration::from_secs(5),
+        )
+        .unwrap_or_else(|error| panic!("{error}"));
+        let mut socket = GreedyFrame {
+            announced: false,
+            left: 64 * 1024,
+        };
+        let started = Instant::now();
+        let result = read_frame(
+            &mut socket,
+            config,
+            Instant::now() + Duration::from_millis(40),
+            &mut ReadAhead::new(),
+            new_frame(),
+        )
+        .await;
+        let elapsed = started.elapsed();
+        let deadline = matches!(result, Err(Exit::ReadDeadline));
+        assert!(
+            deadline && elapsed < Duration::from_millis(80),
+            "a greedy frame body held the read past its deadline: {elapsed:?} deadline {deadline}"
+        );
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn read_deadline_stops_a_greedy_buffered_body() {
+        let config = Config::new(
+            1,
+            1,
+            2 * 1024 * 1024,
+            1024,
+            Duration::from_secs(5),
+            Duration::from_secs(5),
+            Duration::from_secs(5),
+        )
+        .unwrap_or_else(|error| panic!("{error}"));
+        let body_len = 64 * 1024;
+        let mut ahead = ReadAhead::new();
+        frame_mut(&mut ahead.bytes)
+            .extend_from_slice(&i32::try_from(body_len).unwrap_or(i32::MAX).to_be_bytes());
+        let mut socket = GreedyFrame {
+            announced: true,
+            left: body_len,
+        };
+        let started = Instant::now();
+        let result = read_frame(
+            &mut socket,
+            config,
+            Instant::now() + Duration::from_millis(40),
+            &mut ahead,
+            new_frame(),
+        )
+        .await;
+        let elapsed = started.elapsed();
+        let deadline = matches!(result, Err(Exit::ReadDeadline));
+        assert!(
+            deadline && elapsed < Duration::from_millis(80),
+            "a buffered greedy body held the read past its deadline: {elapsed:?} deadline {deadline}"
+        );
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn a_handler_deadline_stops_a_greedy_pipeline() {
+        let body_len = 64 * 1024;
+        let mut ahead = ReadAhead::new();
+        frame_mut(&mut ahead.bytes)
+            .extend_from_slice(&i32::try_from(body_len).unwrap_or(i32::MAX).to_be_bytes());
+        let mut socket = GreedyFrame {
+            announced: true,
+            left: body_len,
+        };
+        let started = Instant::now();
+        let result = tokio::time::timeout_at(
+            Instant::now() + Duration::from_millis(40),
+            watch_disconnect(&mut socket, &mut ahead, 2 * 1024 * 1024),
+        )
+        .await;
+        let elapsed = started.elapsed();
+        assert!(
+            result.is_err() && elapsed < Duration::from_millis(80),
+            "a pipelined body held the handler deadline for {elapsed:?}"
+        );
+    }
+
+    /// Four length bytes, one at a time, each slower than the read deadline.
+    struct SlowPrefix {
+        sent: usize,
+    }
+
+    impl AsyncRead for SlowPrefix {
+        fn poll_read(
+            self: Pin<&mut Self>,
+            _cx: &mut Context<'_>,
+            buf: &mut ReadBuf<'_>,
+        ) -> Poll<std::io::Result<()>> {
+            let this = self.get_mut();
+            if this.sent >= 4 {
+                return Poll::Pending;
+            }
+            let dst = buf.initialize_unfilled();
+            if dst.is_empty() {
+                return Poll::Ready(Ok(()));
+            }
+            dst[0] = 0;
+            buf.advance(1);
+            this.sent += 1;
+            let start = std::time::Instant::now();
+            while start.elapsed() < Duration::from_millis(40) {}
+            Poll::Ready(Ok(()))
+        }
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn read_deadline_stops_a_ready_length_prefix() {
+        let config = Config::new(
+            1,
+            1,
+            1024,
+            1024,
+            Duration::from_secs(5),
+            Duration::from_secs(5),
+            Duration::from_secs(5),
+        )
+        .unwrap_or_else(|error| panic!("{error}"));
+        let mut socket = SlowPrefix { sent: 0 };
+        let started = Instant::now();
+        let result = read_frame(
+            &mut socket,
+            config,
+            Instant::now() + Duration::from_millis(30),
+            &mut ReadAhead::new(),
+            new_frame(),
+        )
+        .await;
+        let elapsed = started.elapsed();
+        let deadline = matches!(result, Err(Exit::ReadDeadline));
+        assert!(
+            deadline && elapsed < Duration::from_millis(120),
+            "a ready length prefix held the read past its deadline: {elapsed:?} deadline {deadline}"
+        );
+    }
+}

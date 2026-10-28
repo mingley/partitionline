@@ -1,0 +1,586 @@
+diff --git a/partitionline-broker/README.md b/partitionline-broker/README.md
+index 7c03e5c3c..385064b1c 100644
+--- a/partitionline-broker/README.md
++++ b/partitionline-broker/README.md
+@@ -54,7 +54,9 @@ classic offset store similarly returns `Result` from `list`, `describe`, and
+ `fetch`; handle `Error::Poisoned` by reopening the store. Its journal rolls
+ over to a complete checkpoint when it reaches a configured history limit.
+ The checkpoint format supports up to 65,535 groups and 65,535 offsets per group;
+-larger configured limits are rejected.
++larger configured limits are rejected. The lifecycle coordinator returns
++`Result` from `owned`, and both `owned` and `commit` report `Error::Poisoned`
++after persistence fails. Reopen the lifecycle store to recover.
+ 
+ ```sh
+ sh scripts/broker-package.sh
+diff --git a/partitionline-broker/src/groups/lifecycle.rs b/partitionline-broker/src/groups/lifecycle.rs
+index 4d6485586..e7d2acfa5 100644
+--- a/partitionline-broker/src/groups/lifecycle.rs
++++ b/partitionline-broker/src/groups/lifecycle.rs
+@@ -15,6 +15,7 @@ use std::collections::{BTreeMap, BTreeSet};
+ use std::path::Path;
+ 
+ const RECORD_MAGIC: &[u8; 8] = b"PLGLIF01";
++const CHECKPOINT_MAGIC: &[u8; 8] = b"PLGLCP01";
+ 
+ /// Kafka `UNKNOWN_MEMBER_ID`.
+ pub const UNKNOWN_MEMBER_ID: i16 = 25;
+@@ -34,7 +35,7 @@ pub enum Error {
+     Undelivered,
+     /// The member, instance, or partition is not usable.
+     InvalidRequest,
+-    /// A failed append left this group unable to confirm further changes.
++    /// A persistence failure requires reopening before reads or writes.
+     Poisoned,
+     /// The limits cannot store the group.
+     InvalidLimits,
+@@ -128,6 +129,9 @@ pub struct Lifecycle {
+ 
+ impl Lifecycle {
+     /// Open or recover a group lifecycle.
++    ///
++    /// The adjacent `<path>.checkpoint.tmp` name is reserved for atomic
++    /// checkpoint publication and must not be used by other applications.
+     pub fn open(path: impl AsRef<Path>, limits: Limits) -> Result<Self, Error> {
+         let (journal, _) = Journal::open(path, 0, limits.journal)?;
+         let mut life = Self {
+@@ -140,9 +144,11 @@ impl Lifecycle {
+         };
+         let mut offset = life.journal.base_offset();
+         loop {
+-            let batch = life
+-                .journal
+-                .fetch(offset, 16, life.limits.journal.max_fetch_bytes())?;
++            let batch = life.journal.fetch(
++                offset,
++                16.min(life.limits.journal.max_index_entries()),
++                life.limits.journal.max_fetch_bytes(),
++            )?;
+             if batch.is_empty() {
+                 break;
+             }
+@@ -150,8 +156,16 @@ impl Lifecycle {
+                 if entry.record_count != 1 {
+                     return Err(Error::InvalidRequest);
+                 }
++                let checkpoint = entry.payload.get(..8) == Some(CHECKPOINT_MAGIC.as_slice());
+                 let decoded = decode(&entry.payload)?;
+-                accept_lifecycle(&life.members, &decoded, life.limits)?;
++                validate_lifecycle_state(&decoded, life.limits)?;
++                if checkpoint {
++                    if entry.first_offset != life.journal.base_offset() || life.stored != 0 {
++                        return Err(Error::InvalidRequest);
++                    }
++                } else {
++                    accept_lifecycle(&life.members, &decoded, life.limits)?;
++                }
+                 life.members = decoded;
+                 life.stored = life.stored.saturating_add(1);
+                 offset = entry
+@@ -164,8 +178,9 @@ impl Lifecycle {
+     }
+ 
+     /// Partitions currently owned by `member`.
+-    pub fn owned(&self, member: &str) -> Option<&BTreeSet<i32>> {
+-        self.members.get(member).map(|member| &member.owned)
++    pub fn owned(&self, member: &str) -> Result<Option<&BTreeSet<i32>>, Error> {
++        self.ready()?;
++        Ok(self.members.get(member).map(|member| &member.owned))
+     }
+ 
+     /// Add a member, or replace the previous member id of the same static instance.
+@@ -233,6 +248,9 @@ impl Lifecycle {
+         for partition in partitions {
+             owned.insert(*partition);
+         }
++        if owned.len() > usize::from(u16::MAX) {
++            return Err(Error::InvalidLimits);
++        }
+         self.members.insert(
+             member_id.to_owned(),
+             Member {
+@@ -324,6 +342,7 @@ impl Lifecycle {
+ 
+     /// Commit an offset only after the partition was delivered and is still owned.
+     pub fn commit(&self, member_id: &str, partition: i32) -> Result<(), Error> {
++        self.ready()?;
+         let Some(member) = self.members.get(member_id) else {
+             return Err(Error::UnknownMember);
+         };
+@@ -367,29 +386,67 @@ impl Lifecycle {
+     }
+ 
+     fn persist(&mut self) -> Result<(), Error> {
+-        if self.stored >= self.limits.max_records {
+-            return Err(Error::InvalidLimits);
+-        }
+-        let mut encoded = std::mem::take(&mut self.encoded);
+-        let encoded_result = encode_into(&self.members, &mut encoded);
+-        self.encoded = encoded;
+-        encoded_result?;
+-        let payload = std::mem::take(&mut self.encoded);
+-        let result = match self.journal.append(1, &payload) {
+-            Ok(_) => {
+-                self.stored = self.stored.saturating_add(1);
+-                Ok(())
++        let mut payload = std::mem::take(&mut self.encoded);
++        let result = (|| {
++            let length = encoded_len(&self.members)?;
++            if length > self.limits.journal.max_entry_bytes()
++                || length
++                    .checked_add(std::mem::size_of::<journal::Entry>())
++                    .is_none_or(|size| size > self.limits.journal.max_fetch_bytes())
++            {
++                return Err(Error::InvalidLimits);
+             }
+-            Err(error) => {
+-                self.poisoned = true;
+-                Err(error.into())
++            payload.clear();
++            payload
++                .try_reserve_exact(length)
++                .map_err(|_| Error::InvalidLimits)?;
++            encode_into(&self.members, &mut payload)?;
++            debug_assert_eq!(payload.len(), length);
++            let rollover = self.stored >= self.limits.max_records
++                || !self.journal.can_append_snapshot(payload.len());
++            if rollover {
++                payload[..8].copy_from_slice(CHECKPOINT_MAGIC);
++                let result = self.journal.replace_with_snapshot(&payload);
++                payload[..8].copy_from_slice(RECORD_MAGIC);
++                result?;
++                self.stored = 1;
++            } else {
++                self.journal.append(1, &payload)?;
++                self.stored = self.stored.saturating_add(1);
+             }
+-        };
++            Ok(())
++        })();
+         self.encoded = payload;
++        if result.is_err() {
++            self.poisoned = true;
++        }
+         result
+     }
+ }
+ 
++fn validate_lifecycle_state(
++    members: &BTreeMap<String, Member>,
++    limits: Limits,
++) -> Result<(), Error> {
++    if members.len() > limits.max_members {
++        return Err(Error::InvalidLimits);
++    }
++    let mut instances = BTreeSet::new();
++    for member in members.values() {
++        if member
++            .instance_id
++            .as_ref()
++            .is_some_and(|id| !instances.insert(id.as_str()))
++            || member
++                .rebalance_deadline_ms
++                .is_some_and(|deadline| deadline < member.last_heartbeat_ms)
++        {
++            return Err(Error::InvalidRequest);
++        }
++    }
++    Ok(())
++}
++
+ fn accept_lifecycle(
+     previous: &BTreeMap<String, Member>,
+     next: &BTreeMap<String, Member>,
+@@ -474,7 +531,9 @@ fn replaced_member(old: &Member, new: &Member) -> Result<(), Error> {
+         && old.owned == new.owned
+         && old.delivered == new.delivered
+         && new.last_heartbeat_ms >= old.last_heartbeat_ms
+-        && new.rebalance_deadline_ms.is_none()
++        && (new.rebalance_deadline_ms.is_none()
++            || (new.last_heartbeat_ms == old.last_heartbeat_ms
++                && new.rebalance_deadline_ms == old.rebalance_deadline_ms))
+     {
+         Ok(())
+     } else {
+@@ -527,6 +586,43 @@ fn encode(members: &BTreeMap<String, Member>) -> Result<Vec<u8>, Error> {
+     Ok(bytes)
+ }
+ 
++fn encoded_len(members: &BTreeMap<String, Member>) -> Result<usize, Error> {
++    let _ = u16::try_from(members.len()).map_err(|_| Error::InvalidRequest)?;
++    let mut len = RECORD_MAGIC.len() + 2;
++    for (id, member) in members {
++        let _ = u16::try_from(id.len()).map_err(|_| Error::InvalidRequest)?;
++        let instance_len = if let Some(instance) = &member.instance_id {
++            let _ = u16::try_from(instance.len()).map_err(|_| Error::InvalidRequest)?;
++            2 + instance.len()
++        } else {
++            0
++        };
++        let _ = u16::try_from(member.owned.len()).map_err(|_| Error::InvalidRequest)?;
++        let _ = u16::try_from(member.delivered.len()).map_err(|_| Error::InvalidRequest)?;
++        let owned_bytes = member
++            .owned
++            .len()
++            .checked_mul(4)
++            .ok_or(Error::InvalidLimits)?;
++        let delivered_bytes = member
++            .delivered
++            .len()
++            .checked_mul(4)
++            .ok_or(Error::InvalidLimits)?;
++        let deadline_bytes = if member.rebalance_deadline_ms.is_some() {
++            8
++        } else {
++            0
++        };
++        len = len
++            .checked_add(2 + id.len() + 1 + instance_len + 8 + 1 + deadline_bytes + 2 + 2)
++            .and_then(|len| len.checked_add(owned_bytes))
++            .and_then(|len| len.checked_add(delivered_bytes))
++            .ok_or(Error::InvalidLimits)?;
++    }
++    Ok(len)
++}
++
+ fn encode_into(members: &BTreeMap<String, Member>, bytes: &mut Vec<u8>) -> Result<(), Error> {
+     bytes.clear();
+     bytes.extend_from_slice(RECORD_MAGIC);
+@@ -556,7 +652,10 @@ fn encode_into(members: &BTreeMap<String, Member>, bytes: &mut Vec<u8>) -> Resul
+ }
+ 
+ fn decode(mut bytes: &[u8]) -> Result<BTreeMap<String, Member>, Error> {
+-    if bytes.len() < RECORD_MAGIC.len() || &bytes[..RECORD_MAGIC.len()] != RECORD_MAGIC {
++    if bytes.len() < RECORD_MAGIC.len()
++        || (&bytes[..RECORD_MAGIC.len()] != RECORD_MAGIC
++            && &bytes[..RECORD_MAGIC.len()] != CHECKPOINT_MAGIC)
++    {
+         return Err(Error::InvalidRequest);
+     }
+     bytes = &bytes[RECORD_MAGIC.len()..];
+@@ -675,6 +774,9 @@ fn take_set(input: &mut &[u8]) -> Result<BTreeSet<i32>, Error> {
+             .try_into()
+             .map_err(|_| Error::InvalidRequest)?,
+     ));
++    if len > input.len() / 4 {
++        return Err(Error::InvalidRequest);
++    }
+     let mut values = BTreeSet::new();
+     for _ in 0..len {
+         let mut raw = [0u8; 4];
+@@ -808,7 +910,10 @@ mod tests {
+             Err(Error::FencedInstance)
+         ));
+         assert_eq!(Error::FencedInstance.code(), Some(FENCED_INSTANCE_ID));
+-        assert_eq!(life.owned("a").map(|set| set.contains(&0)), Some(true));
++        assert_eq!(
++            life.owned("a").unwrap().map(|set| set.contains(&0)),
++            Some(true)
++        );
+         life.join("b", None, &[2], 0)
+             .unwrap_or_else(|error| panic!("{error:?}"));
+         life.heartbeat("a", 500)
+@@ -826,12 +931,12 @@ mod tests {
+             .is_empty());
+         let left = life.leave("b").unwrap_or_else(|error| panic!("{error:?}"));
+         assert_eq!(left, vec![2]);
+-        assert!(life.owned("b").is_none());
++        assert!(life.owned("b").unwrap().is_none());
+         let expired = life
+             .expire(1_501)
+             .unwrap_or_else(|error| panic!("{error:?}"));
+         assert_eq!(expired, vec!["a".to_owned()]);
+-        assert!(life.owned("a").is_none());
++        assert!(life.owned("a").unwrap().is_none());
+     }
+ 
+     #[test]
+@@ -853,7 +958,10 @@ mod tests {
+             .is_empty());
+         life.revoke("a", &[1], 0)
+             .unwrap_or_else(|error| panic!("{error:?}"));
+-        assert_eq!(life.owned("a").map(|set| set.contains(&1)), Some(false));
++        assert_eq!(
++            life.owned("a").unwrap().map(|set| set.contains(&1)),
++            Some(false)
++        );
+         assert!(life
+             .expire(5_001)
+             .unwrap_or_else(|error| panic!("{error:?}"))
+@@ -893,7 +1001,10 @@ mod tests {
+             .expire(5_501)
+             .unwrap_or_else(|error| panic!("{error:?}"))
+             .is_empty());
+-        assert_eq!(life.owned("b").map(|set| set.contains(&0)), Some(true));
++        assert_eq!(
++            life.owned("b").unwrap().map(|set| set.contains(&0)),
++            Some(true)
++        );
+     }
+ 
+     #[test]
+@@ -907,8 +1018,11 @@ mod tests {
+             life.join("other", Some("instance-a"), &[], 5),
+             Err(Error::InvalidRequest)
+         ));
+-        assert_eq!(life.owned("other").map(|set| set.contains(&2)), Some(true));
+-        assert!(life.owned("old").is_some());
++        assert_eq!(
++            life.owned("other").unwrap().map(|set| set.contains(&2)),
++            Some(true)
++        );
++        assert!(life.owned("old").unwrap().is_some());
+         life.mark_delivered("old", 0)
+             .unwrap_or_else(|error| panic!("{error:?}"));
+         assert!(matches!(life.commit("old", 1), Err(Error::Undelivered)));
+@@ -919,9 +1033,15 @@ mod tests {
+         assert!(matches!(life.commit("old", 1), Err(Error::Undelivered)));
+         life.join("new", Some("instance-a"), &[], 20)
+             .unwrap_or_else(|error| panic!("{error:?}"));
+-        assert!(life.owned("old").is_none());
+-        assert_eq!(life.owned("new").map(|set| set.contains(&0)), Some(true));
+-        assert_eq!(life.owned("new").map(|set| set.contains(&1)), Some(false));
++        assert!(life.owned("old").unwrap().is_none());
++        assert_eq!(
++            life.owned("new").unwrap().map(|set| set.contains(&0)),
++            Some(true)
++        );
++        assert_eq!(
++            life.owned("new").unwrap().map(|set| set.contains(&1)),
++            Some(false)
++        );
+         life.commit("new", 0)
+             .unwrap_or_else(|error| panic!("{error:?}"));
+         drop(life);
+@@ -931,4 +1051,182 @@ mod tests {
+             .commit("new", 0)
+             .unwrap_or_else(|error| panic!("{error:?}"));
+     }
++    #[test]
++    fn static_replacement_with_older_clock_preserves_rebalance_deadline_on_recovery() {
++        for max_records in [1, 32] {
++            let journal = journal::Limits::new(4096, 1 << 20, 32, 1 << 20).unwrap();
++            let limits = Limits::new(8, 1_000, 500, max_records, journal).unwrap();
++            let (_, path) = open("static-older-clock");
++            let mut life = Lifecycle::open(&path, limits).unwrap();
++            life.join("old", Some("instance"), &[0, 1], 100).unwrap();
++            life.mark_delivered("old", 0).unwrap();
++            life.revoke("old", &[1], 100).unwrap();
++            life.join("new", Some("instance"), &[], 0).unwrap();
++            drop(life);
++            let mut life = Lifecycle::open(&path, limits).unwrap();
++            assert!(life.owned("old").unwrap().is_none());
++            assert_eq!(life.owned("new").unwrap().unwrap(), &BTreeSet::from([0]));
++            life.commit("new", 0).unwrap();
++            assert!(life.expire(600).unwrap().is_empty());
++            assert_eq!(life.expire(601).unwrap(), vec!["new".to_owned()]);
++            drop(life);
++            let _ = std::fs::remove_file(path);
++        }
++    }
++
++    #[test]
++    fn lifecycle_checkpoint_preserves_ownership_and_delivery_across_reopens() {
++        for (file_bytes, index_entries, max_records) in
++            [(1 << 20, 2, 2), (1 << 20, 100, 2), (512, 100, 100)]
++        {
++            let journal = journal::Limits::new(4096, file_bytes, index_entries, 1 << 20).unwrap();
++            let limits = Limits::new(8, 1_000, 500, max_records, journal).unwrap();
++            let (_, path) = open("lifecycle-checkpoint");
++            let mut life = Lifecycle::open(&path, limits).unwrap();
++            life.join("old", Some("static-a"), &[0, 1], 0).unwrap();
++            life.join("other", None, &[2], 0).unwrap();
++            life.mark_delivered("old", 0).unwrap();
++            life.mark_delivered("other", 2).unwrap();
++            life.revoke("old", &[1], 0).unwrap();
++            life.join("new", Some("static-a"), &[], 1).unwrap();
++            for now in 2..=26 {
++                life.heartbeat("new", now).unwrap();
++                life.heartbeat("other", now).unwrap();
++                assert!(life.journal.entry_count() <= index_entries.min(max_records));
++                assert!(life.journal.file_bytes() <= file_bytes);
++                if now % 5 == 1 {
++                    drop(life);
++                    life = Lifecycle::open(&path, limits).unwrap();
++                    assert!(life.owned("old").unwrap().is_none());
++                    assert_eq!(life.owned("new").unwrap().unwrap(), &BTreeSet::from([0]));
++                    life.commit("new", 0).unwrap();
++                    life.commit("other", 2).unwrap();
++                    assert!(matches!(life.commit("new", 1), Err(Error::Undelivered)));
++                }
++            }
++            life.leave("other").unwrap();
++            drop(life);
++            let life = Lifecycle::open(&path, limits).unwrap();
++            assert!(life.owned("other").unwrap().is_none());
++            life.commit("new", 0).unwrap();
++            drop(life);
++            let _ = std::fs::remove_file(path);
++        }
++    }
++
++    #[test]
++    fn checkpoint_recovery_rejects_late_or_invalid_state() {
++        let (mut life, path) = open("checkpoint-position");
++        life.join("one", Some("i1"), &[0], 100).unwrap();
++        let mut image = encode(&life.members).unwrap();
++        image[..8].copy_from_slice(CHECKPOINT_MAGIC);
++        life.journal.append(1, &image).unwrap();
++        drop(life);
++        assert!(matches!(
++            Lifecycle::open(&path, limits()),
++            Err(Error::InvalidRequest)
++        ));
++        let _ = std::fs::remove_file(path);
++        for invalid in ["instance", "deadline", "delivery"] {
++            let (mut life, path) = open("checkpoint-invalid");
++            life.join("one", Some("i1"), &[0], 100).unwrap();
++            life.join("two", Some("i2"), &[1], 100).unwrap();
++            match invalid {
++                "instance" => {
++                    life.members.get_mut("two").unwrap().instance_id = Some("i1".to_owned())
++                }
++                "deadline" => life.members.get_mut("one").unwrap().rebalance_deadline_ms = Some(99),
++                "delivery" => {
++                    life.members.get_mut("one").unwrap().delivered.insert(1);
++                }
++                _ => unreachable!(),
++            }
++            let mut image = encode(&life.members).unwrap();
++            image[..8].copy_from_slice(CHECKPOINT_MAGIC);
++            life.journal.replace_with_snapshot(&image).unwrap();
++            drop(life);
++            assert!(
++                matches!(Lifecycle::open(&path, limits()), Err(Error::InvalidRequest)),
++                "{invalid}"
++            );
++            let _ = std::fs::remove_file(path);
++        }
++    }
++
++    #[test]
++    fn failed_delivery_checkpoint_blocks_commit_and_ownership_reads() {
++        for phase in ["prepared", "renamed"] {
++            let journal = journal::Limits::new(4096, 1 << 20, 1, 1 << 20).unwrap();
++            let limits = Limits::new(8, 1_000, 500, 1, journal).unwrap();
++            let (_, path) = open("lifecycle-checkpoint-failure");
++            let mut life = Lifecycle::open(&path, limits).unwrap();
++            life.join("one", None, &[0], 0).unwrap();
++            journal::fail_checkpoint_once_at(phase);
++            assert!(matches!(
++                life.mark_delivered("one", 0),
++                Err(Error::Storage(_))
++            ));
++            assert!(matches!(life.owned("one"), Err(Error::Poisoned)));
++            assert!(matches!(life.commit("one", 0), Err(Error::Poisoned)));
++            assert!(matches!(life.heartbeat("one", 1), Err(Error::Poisoned)));
++            drop(life);
++            let mut life = Lifecycle::open(&path, limits).unwrap();
++            assert_eq!(life.commit("one", 0).is_ok(), phase == "renamed");
++            life.mark_delivered("one", 0).unwrap();
++            drop(life);
++            let life = Lifecycle::open(&path, limits).unwrap();
++            life.commit("one", 0).unwrap();
++            drop(life);
++            let _ = std::fs::remove_file(format!("{}.checkpoint.tmp", path.display()));
++            let _ = std::fs::remove_file(path);
++        }
++    }
++
++    #[test]
++    fn failed_revocation_checkpoint_blocks_commit_until_recovery() {
++        for phase in ["prepared", "renamed"] {
++            let journal = journal::Limits::new(4096, 1 << 20, 1, 1 << 20).unwrap();
++            let limits = Limits::new(8, 1_000, 500, 1, journal).unwrap();
++            let (_, path) = open("lifecycle-revoke-failure");
++            let mut life = Lifecycle::open(&path, limits).unwrap();
++            life.join("one", None, &[0], 0).unwrap();
++            life.mark_delivered("one", 0).unwrap();
++            journal::fail_checkpoint_once_at(phase);
++            assert!(matches!(
++                life.revoke("one", &[0], 1),
++                Err(Error::Storage(_))
++            ));
++            assert!(matches!(life.owned("one"), Err(Error::Poisoned)));
++            assert!(matches!(life.commit("one", 0), Err(Error::Poisoned)));
++            drop(life);
++            let life = Lifecycle::open(&path, limits).unwrap();
++            assert_eq!(life.commit("one", 0).is_ok(), phase == "prepared");
++            drop(life);
++            let _ = std::fs::remove_file(format!("{}.checkpoint.tmp", path.display()));
++            let _ = std::fs::remove_file(path);
++        }
++    }
++
++    #[test]
++    fn oversized_snapshot_does_not_grow_output_buffer_or_expose_mutation() {
++        let journal = journal::Limits::new(4096, 1 << 20, 1, 1 << 20).unwrap();
++        let limits = Limits::new(8, 1_000, 500, 1, journal).unwrap();
++        let (_, path) = open("lifecycle-oversize");
++        let mut life = Lifecycle::open(&path, limits).unwrap();
++        life.join("seed", None, &[], 0).unwrap();
++        let old_capacity = life.encoded.capacity();
++        let partitions: Vec<i32> = (0..1_024).collect();
++        assert!(matches!(
++            life.join("huge", None, &partitions, 0),
++            Err(Error::InvalidLimits)
++        ));
++        assert_eq!(life.encoded.capacity(), old_capacity);
++        assert!(matches!(life.owned("huge"), Err(Error::Poisoned)));
++        drop(life);
++        let life = Lifecycle::open(&path, limits).unwrap();
++        assert!(life.owned("huge").unwrap().is_none());
++        assert!(life.owned("seed").unwrap().is_some());
++        drop(life);
++        let _ = std::fs::remove_file(path);
++    }
+ }
+diff --git a/tests/conformance/broker/groups/histories.rs b/tests/conformance/broker/groups/histories.rs
+index 7d2444ac3..945d0ac46 100644
+--- a/tests/conformance/broker/groups/histories.rs
++++ b/tests/conformance/broker/groups/histories.rs
+@@ -35,7 +35,7 @@ fn path(name: &str) -> std::path::PathBuf {
+ fn disjoint(life: &Lifecycle, ids: &[&str]) {
+     let mut seen = BTreeSet::new();
+     for id in ids {
+-        if let Some(owned) = life.owned(id) {
++        if let Some(owned) = life.owned(id).unwrap_or_else(|error| panic!("{error:?}")) {
+             for partition in owned {
+                 assert!(
+                     seen.insert(*partition),
+@@ -80,7 +80,10 @@ fn cooperative_and_static_histories_keep_disjoint_ownership() {
+         Ok(()) => panic!("overlapping join was stored"),
+         Err(error) => panic!("{error:?}"),
+     }
+-    assert!(life.owned("bob").is_none());
++    assert!(life
++        .owned("bob")
++        .unwrap_or_else(|error| panic!("{error:?}"))
++        .is_none());
+     life.join("bob", None, &[2, 3], 0)
+         .unwrap_or_else(|error| panic!("{error:?}"));
+     disjoint(&life, &["alice", "bob"]);
+@@ -121,7 +124,10 @@ fn cooperative_and_static_histories_keep_disjoint_ownership() {
+         .unwrap_or_else(|error| panic!("{error:?}"));
+     life.join("carol2", Some("i-1"), &[4], 20)
+         .unwrap_or_else(|error| panic!("{error:?}"));
+-    assert!(life.owned("carol").is_none());
++    assert!(life
++        .owned("carol")
++        .unwrap_or_else(|error| panic!("{error:?}"))
++        .is_none());
+     disjoint(&life, &["alice", "bob", "carol2"]);
+ 
+     drop(life);
+@@ -159,7 +165,10 @@ fn cooperative_and_static_histories_keep_disjoint_ownership() {
+         .unwrap_or_else(|error| panic!("{error:?}"));
+     assert!(expired.iter().any(|id| id == "alice"));
+     failures.push("member-crash");
+-    assert!(life.owned("alice").is_none());
++    assert!(life
++        .owned("alice")
++        .unwrap_or_else(|error| panic!("{error:?}"))
++        .is_none());
+     disjoint(&life, &["bob", "carol2"]);
+     assert_eq!(
+         offsets

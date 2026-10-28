@@ -1,0 +1,9 @@
+   Compiling partitionline-broker v0.1.0 (/workspace/work/broker-lifecycle-checkpoint/partitionline-broker)
+    Finished `test` profile [unoptimized] target(s) in 19.16s
+     Running tests/group_transition_histories.rs (/workspace/work/qualification-20261027/broker-check-target/debug/deps/group_transition_histories-d1ad17658b094721)
+
+running 1 test
+test cooperative_and_static_histories_keep_disjoint_ownership ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

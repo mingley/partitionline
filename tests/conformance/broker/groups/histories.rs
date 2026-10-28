@@ -35,7 +35,7 @@ fn path(name: &str) -> std::path::PathBuf {
 fn disjoint(life: &Lifecycle, ids: &[&str]) {
     let mut seen = BTreeSet::new();
     for id in ids {
-        if let Some(owned) = life.owned(id) {
+        if let Some(owned) = life.owned(id).unwrap_or_else(|error| panic!("{error:?}")) {
             for partition in owned {
                 assert!(
                     seen.insert(*partition),
@@ -80,7 +80,10 @@ fn cooperative_and_static_histories_keep_disjoint_ownership() {
         Ok(()) => panic!("overlapping join was stored"),
         Err(error) => panic!("{error:?}"),
     }
-    assert!(life.owned("bob").is_none());
+    assert!(life
+        .owned("bob")
+        .unwrap_or_else(|error| panic!("{error:?}"))
+        .is_none());
     life.join("bob", None, &[2, 3], 0)
         .unwrap_or_else(|error| panic!("{error:?}"));
     disjoint(&life, &["alice", "bob"]);
@@ -121,7 +124,10 @@ fn cooperative_and_static_histories_keep_disjoint_ownership() {
         .unwrap_or_else(|error| panic!("{error:?}"));
     life.join("carol2", Some("i-1"), &[4], 20)
         .unwrap_or_else(|error| panic!("{error:?}"));
-    assert!(life.owned("carol").is_none());
+    assert!(life
+        .owned("carol")
+        .unwrap_or_else(|error| panic!("{error:?}"))
+        .is_none());
     disjoint(&life, &["alice", "bob", "carol2"]);
 
     drop(life);
@@ -159,7 +165,10 @@ fn cooperative_and_static_histories_keep_disjoint_ownership() {
         .unwrap_or_else(|error| panic!("{error:?}"));
     assert!(expired.iter().any(|id| id == "alice"));
     failures.push("member-crash");
-    assert!(life.owned("alice").is_none());
+    assert!(life
+        .owned("alice")
+        .unwrap_or_else(|error| panic!("{error:?}"))
+        .is_none());
     disjoint(&life, &["bob", "carol2"]);
     assert_eq!(
         offsets

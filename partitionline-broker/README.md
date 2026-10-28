@@ -54,7 +54,9 @@ classic offset store similarly returns `Result` from `list`, `describe`, and
 `fetch`; handle `Error::Poisoned` by reopening the store. Its journal rolls
 over to a complete checkpoint when it reaches a configured history limit.
 The checkpoint format supports up to 65,535 groups and 65,535 offsets per group;
-larger configured limits are rejected.
+larger configured limits are rejected. The lifecycle coordinator returns
+`Result` from `owned`, and both `owned` and `commit` report `Error::Poisoned`
+after persistence fails. Reopen the lifecycle store to recover.
 
 ```sh
 sh scripts/broker-package.sh
