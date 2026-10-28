@@ -1,0 +1,20 @@
+{
+  "command": [
+    "docker",
+    "--host=unix:///var/run/docker.sock",
+    "exec",
+    "pl-goal-apache-412",
+    "/opt/kafka/bin/kafka-topics.sh",
+    "--bootstrap-server",
+    "localhost:9092",
+    "--create",
+    "--topic",
+    "alpha",
+    "--partitions",
+    "2",
+    "--replication-factor",
+    "1"
+  ],
+  "exit": 0,
+  "output": "Created topic alpha.\n"
+}

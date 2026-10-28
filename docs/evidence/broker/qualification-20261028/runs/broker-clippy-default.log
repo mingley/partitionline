@@ -1,0 +1,170 @@
+    Checking partitionline-broker v0.1.0 (/workspace/partitionline/partitionline-broker)
+error: items after a test module
+   --> src/fetch.rs:707:1
+    |
+707 |   mod tests {
+    |   ^^^^^^^^^
+...
+858 | / fn stored_records(
+859 | |     payload: &[u8],
+860 | |     first_offset: u64,
+861 | |     record_count: u32,
+862 | | ) -> Result<(records::ReadSummary<'_>, i64), Error> {
+    | |___________________________________________________^
+...
+875 | / pub(crate) fn process(
+876 | |     catalog: &Catalog,
+877 | |     store: &mut produce::Store,
+878 | |     input: &[u8],
+...   |
+881 | |     active: impl Fn() -> Result<(), Error>,
+882 | | ) -> Result<Snapshot, Error> {
+    | |____________________________^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#items_after_test_module
+    = note: `-D clippy::items-after-test-module` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::items_after_test_module)]`
+    = help: move the items to before the test module was defined
+
+error: redundant closure
+   --> src/partition.rs:834:26
+    |
+834 |                 .map_err(|e| std::io::Error::other(e))?
+    |                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: replace the closure with the associated function itself: `std::io::Error::other`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#redundant_closure
+    = note: `-D clippy::redundant-closure` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::redundant_closure)]`
+
+error: redundant closure
+   --> src/partition.rs:862:26
+    |
+862 |                 .map_err(|e| std::io::Error::other(e))?
+    |                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: replace the closure with the associated function itself: `std::io::Error::other`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#redundant_closure
+
+error: use of a disallowed method `std::fs::read`
+    --> src/produce.rs:2294:29
+     |
+2294 |             let mut bytes = std::fs::read(&path)?;
+     |                             ^^^^^^^^^^^^^
+     |
+     = note: Blocking IO on an async runtime. Use tokio::fs.
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#disallowed_methods
+     = note: `-D clippy::disallowed-methods` implied by `-D warnings`
+     = help: to override `-D warnings` add `#[allow(clippy::disallowed_methods)]`
+
+error: use of a disallowed method `std::fs::write`
+    --> src/produce.rs:2297:13
+     |
+2297 |             std::fs::write(&path, &bytes)?;
+     |             ^^^^^^^^^^^^^^
+     |
+     = note: Blocking IO on an async runtime. Use tokio::fs.
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#disallowed_methods
+
+error: use of a disallowed method `std::fs::read`
+    --> src/produce.rs:2307:24
+     |
+2307 |             assert_eq!(std::fs::read(&path)?, bytes);
+     |                        ^^^^^^^^^^^^^
+     |
+     = note: Blocking IO on an async runtime. Use tokio::fs.
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#disallowed_methods
+
+error: redundant pattern matching
+    --> src/raft/runtime.rs:4041:13
+     |
+4041 |         if !matches!(still_open, Err(_)) {
+     |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#redundant_pattern_matching
+     = note: `-D clippy::redundant-pattern-matching` implied by `-D warnings`
+     = help: to override `-D warnings` add `#[allow(clippy::redundant_pattern_matching)]`
+help: consider using `is_err()`
+     |
+4041 -         if !matches!(still_open, Err(_)) {
+4041 +         if !still_open.is_err() {
+     |
+
+error: redundant pattern matching
+    --> src/raft/runtime.rs:4151:13
+     |
+4151 |         if !matches!(still_open, Err(_)) {
+     |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#redundant_pattern_matching
+help: consider using `is_err()`
+     |
+4151 -         if !matches!(still_open, Err(_)) {
+4151 +         if !still_open.is_err() {
+     |
+
+error: redundant pattern matching
+    --> src/raft/runtime.rs:4265:13
+     |
+4265 |         if !matches!(still_open, Err(_)) {
+     |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#redundant_pattern_matching
+help: consider using `is_err()`
+     |
+4265 -         if !matches!(still_open, Err(_)) {
+4265 +         if !still_open.is_err() {
+     |
+
+error: redundant pattern matching
+    --> src/raft/runtime.rs:4381:13
+     |
+4381 |         if !matches!(still_open, Err(_)) {
+     |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#redundant_pattern_matching
+help: consider using `is_err()`
+     |
+4381 -         if !matches!(still_open, Err(_)) {
+4381 +         if !still_open.is_err() {
+     |
+
+error: redundant pattern matching
+    --> src/raft/runtime.rs:4499:13
+     |
+4499 |         if !matches!(still_open, Err(_)) {
+     |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#redundant_pattern_matching
+help: consider using `is_err()`
+     |
+4499 -         if !matches!(still_open, Err(_)) {
+4499 +         if !still_open.is_err() {
+     |
+
+error: use of a fallible conversion when an infallible one could be used
+   --> src/transactions/markers.rs:491:25
+    |
+491 |                 offset: i64::try_from(index).unwrap_or(0),
+    |                         ^^^^^^^^^^^^^
+    |
+    = note: converting `i32` to `i64` cannot fail
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#unnecessary_fallible_conversions
+    = note: `-D clippy::unnecessary-fallible-conversions` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::unnecessary_fallible_conversions)]`
+help: use
+    |
+491 -                 offset: i64::try_from(index).unwrap_or(0),
+491 +                 offset: From::from(index).unwrap_or(0),
+    |
+
+error: useless use of `vec!`
+    --> src/metadata.rs:2914:41
+     |
+2914 |         assert!(!claim_assignment_index(&mut vec![false], -1));
+     |                                         ^^^^^^^^^^^^^^^^ help: you can use a slice directly: `&mut [false]`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#useless_vec
+     = note: `-D clippy::useless-vec` implied by `-D warnings`
+     = help: to override `-D warnings` add `#[allow(clippy::useless_vec)]`
+
+error: could not compile `partitionline-broker` (lib test) due to 13 previous errors
+warning: build failed, waiting for other jobs to finish...

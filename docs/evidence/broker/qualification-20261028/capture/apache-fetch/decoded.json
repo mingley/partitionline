@@ -1,0 +1,110 @@
+[
+  {
+    "case": "fetch-v4-offset4",
+    "correlation": 7,
+    "throttle_ms": 0,
+    "error": 1,
+    "high_watermark": -1,
+    "last_stable_offset": -1,
+    "log_start_offset": null
+  },
+  {
+    "case": "fetch-v4-out-of-range-1",
+    "correlation": 7,
+    "throttle_ms": 0,
+    "error": 1,
+    "high_watermark": -1,
+    "last_stable_offset": -1,
+    "log_start_offset": null
+  },
+  {
+    "case": "fetch-v4-out-of-range5",
+    "correlation": 7,
+    "throttle_ms": 0,
+    "error": 1,
+    "high_watermark": -1,
+    "last_stable_offset": -1,
+    "log_start_offset": null
+  },
+  {
+    "case": "fetch-v4-out-of-range9223372036854775807",
+    "correlation": 7,
+    "throttle_ms": 0,
+    "error": 1,
+    "high_watermark": -1,
+    "last_stable_offset": -1,
+    "log_start_offset": null
+  },
+  {
+    "case": "fetch-v5-offset4",
+    "correlation": 7,
+    "throttle_ms": 0,
+    "error": 1,
+    "high_watermark": -1,
+    "last_stable_offset": -1,
+    "log_start_offset": -1
+  },
+  {
+    "case": "fetch-v5-out-of-range-1",
+    "correlation": 7,
+    "throttle_ms": 0,
+    "error": 1,
+    "high_watermark": -1,
+    "last_stable_offset": -1,
+    "log_start_offset": -1
+  },
+  {
+    "case": "fetch-v5-out-of-range5",
+    "correlation": 7,
+    "throttle_ms": 0,
+    "error": 1,
+    "high_watermark": -1,
+    "last_stable_offset": -1,
+    "log_start_offset": -1
+  },
+  {
+    "case": "fetch-v5-out-of-range9223372036854775807",
+    "correlation": 7,
+    "throttle_ms": 0,
+    "error": 1,
+    "high_watermark": -1,
+    "last_stable_offset": -1,
+    "log_start_offset": -1
+  },
+  {
+    "case": "fetch-v6-offset4",
+    "correlation": 7,
+    "throttle_ms": 0,
+    "error": 1,
+    "high_watermark": -1,
+    "last_stable_offset": -1,
+    "log_start_offset": -1
+  },
+  {
+    "case": "fetch-v6-out-of-range-1",
+    "correlation": 7,
+    "throttle_ms": 0,
+    "error": 1,
+    "high_watermark": -1,
+    "last_stable_offset": -1,
+    "log_start_offset": -1
+  },
+  {
+    "case": "fetch-v6-out-of-range5",
+    "correlation": 7,
+    "throttle_ms": 0,
+    "error": 1,
+    "high_watermark": -1,
+    "last_stable_offset": -1,
+    "log_start_offset": -1
+  },
+  {
+    "case": "fetch-v6-out-of-range9223372036854775807",
+    "correlation": 7,
+    "throttle_ms": 0,
+    "error": 1,
+    "high_watermark": -1,
+    "last_stable_offset": -1,
+    "log_start_offset": -1
+  }
+]

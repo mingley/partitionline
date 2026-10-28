@@ -1,0 +1,107 @@
+[
+  {
+    "version": 1,
+    "query": -10,
+    "error": 35,
+    "timestamp": -1,
+    "offset": -1
+  },
+  {
+    "version": 1,
+    "query": -6,
+    "error": 35,
+    "timestamp": -1,
+    "offset": -1
+  },
+  {
+    "version": 1,
+    "query": -5,
+    "error": 35,
+    "timestamp": -1,
+    "offset": -1
+  },
+  {
+    "version": 1,
+    "query": -4,
+    "error": 35,
+    "timestamp": -1,
+    "offset": -1
+  },
+  {
+    "version": 1,
+    "query": -3,
+    "error": 35,
+    "timestamp": -1,
+    "offset": -1
+  },
+  {
+    "version": 2,
+    "query": -10,
+    "error": 35,
+    "timestamp": -1,
+    "offset": -1
+  },
+  {
+    "version": 2,
+    "query": -6,
+    "error": 35,
+    "timestamp": -1,
+    "offset": -1
+  },
+  {
+    "version": 2,
+    "query": -5,
+    "error": 35,
+    "timestamp": -1,
+    "offset": -1
+  },
+  {
+    "version": 2,
+    "query": -4,
+    "error": 35,
+    "timestamp": -1,
+    "offset": -1
+  },
+  {
+    "version": 2,
+    "query": -3,
+    "error": 35,
+    "timestamp": -1,
+    "offset": -1
+  },
+  {
+    "version": 3,
+    "query": -10,
+    "error": 35,
+    "timestamp": -1,
+    "offset": -1
+  },
+  {
+    "version": 3,
+    "query": -6,
+    "error": 35,
+    "timestamp": -1,
+    "offset": -1
+  },
+  {
+    "version": 3,
+    "query": -5,
+    "error": 35,
+    "timestamp": -1,
+    "offset": -1
+  },
+  {
+    "version": 3,
+    "query": -4,
+    "error": 35,
+    "timestamp": -1,
+    "offset": -1
+  },
+  {
+    "version": 3,
+    "query": -3,
+    "error": 35,
+    "timestamp": -1,
+    "offset": -1
+  }
+]

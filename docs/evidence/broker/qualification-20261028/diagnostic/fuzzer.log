@@ -1,0 +1,21 @@
+WARNING: Failed to find function "__sanitizer_acquire_crash_state".
+WARNING: Failed to find function "__sanitizer_print_stack_trace".
+WARNING: Failed to find function "__sanitizer_set_death_callback".
+INFO: Running with entropic power schedule (0xFF, 100).
+INFO: Seed: 3796347226
+INFO: Loaded 1 modules   (1470 inline 8-bit counters): 1470 [0x55d1e0cf9020, 0x55d1e0cf95de), 
+INFO: Loaded 1 PC tables (1470 PCs): 1470 [0x55d1e0cf95e0,0x55d1e0cff1c0), 
+/workspace/work/qualification-20261027/fuzz-build-06/bin/recover_epoch: Running 1 inputs 1000000000 time(s) each.
+Running: /workspace/work/broker-fuzz-container-20261027/diagnostic-60-byte-02/input.bin
+ALARM: working on the last Unit for 4 seconds
+       and the timeout value is 2 (use -timeout=N to change)
+MS: 0 ; base unit: 0000000000000000000000000000000000000000
+0x50,0x4c,0x4a,0x52,0x4e,0x4c,0x30,0x31,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x88,0xd6,0x9a,0x39,0x50,0x4c,0x45,0x4e,0x54,0x52,0x59,0x31,0x0,0x0,0x0,0x4,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x1,0xd9,0xf4,0xad,0xd6,0x51,0x9,0xc1,0x79,0x73,0x65,0x65,0x64,
+PLJRNL01\000\000\000\000\000\000\000\000\000\000\000\000\210\326\2329PLENTRY1\000\000\000\004\000\000\000\000\000\000\000\000\000\000\000\001\331\364\255\326Q\011\301yseed
+==13== ERROR: libFuzzer: timeout after 4 seconds
+SUMMARY: libFuzzer: timeout
+stat::number_of_executed_units: 80753
+stat::average_exec_per_sec:     89
+stat::new_units_added:          0
+stat::slowest_unit_time_sec:    0
+stat::peak_rss_mb:              28

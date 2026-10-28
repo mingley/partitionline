@@ -1,0 +1,43 @@
+   Compiling partitionline-broker v0.1.0 (/workspace/partitionline/partitionline-broker)
+warning: constant `PRODUCER_EPOCH` is never used
+  --> src/batch.rs:37:18
+   |
+37 | pub(crate) const PRODUCER_EPOCH: usize = 51;
+   |                  ^^^^^^^^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: `partitionline-broker` (lib) generated 1 warning
+    Finished `test` profile [unoptimized] target(s) in 12.99s
+     Running tests/fetch.rs (/workspace/work/qualification-20261027/broker-check-target/debug/deps/fetch-8303caf01d1517d9)
+
+running 26 tests
+test explicit_read_profile_preserves_metadata_and_produce_advertisements ... ok
+test global_first_batch_exception_and_request_order_preserve_capped_reads ... ok
+test absolute_wait_cap_and_minimum_clamping ... ok
+test invalid_local_read_limits_are_rejected_before_io ... ok
+test lazy_empty_reads_and_delete_recreate_resolve_current_identity ... ok
+test list_offsets_answers_earliest_and_latest_for_one_partition ... ok
+test malformed_counts_prefixes_duplicates_and_semantic_bounds_never_mutate ... ok
+test compacted_fetch_preserves_apache_bytes_holes_timestamps_and_restart ... ok
+test registered_handle_corruption_poison_wakes_waiters_and_maps_legacy_errors ... ok
+test restart_and_containing_multi_batch_entry_keep_exact_records ... ok
+test independent_apache_read_goldens ... ok
+test rolling_hidden_checkpoint_work_exhausts_request_budget_without_false_miss ... ok
+test rolling_lost_append_receipt_and_delete_wake_without_blocking_actor ... ok
+test real_tcp_supported_goldens_and_unsupported_version_eof ... ok
+test scan_and_hard_output_limits_fail_without_false_timestamp_miss ... ok
+test serve_live_probe ... ok
+test transactional_control_and_idempotent_writes_cannot_change_committed_visibility ... ok
+test transport_deadline_cancels_wait_and_releases_read_admission ... ok
+test transport_joined_shutdown_cancels_live_long_poll_without_stopping_store ... ok
+test unpolled_snapshot_holds_combined_admission_and_cancel_releases ... ok
+test wait_keeps_admission_cancel_releases_and_shutdown_wakes ... ok
+test waiting_read_does_not_block_append_and_delete_wakes ... ok
+test wake_between_snapshot_and_receipt_is_not_lost ... ok
+test rolling_real_router_replays_all_independent_read_goldens ... ok
+test rolling_actual_tcp_restart_keeps_whole_batch_offsets_and_oversized_rules ... ok
+test authentic_apache_rolled_records_match_real_tcp_timestamp_and_whole_batch_seeks ... ok
+
+test result: ok. 26 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 5.35s
+

@@ -11,7 +11,7 @@
     "Equal-settings client/server x86_64 benchmark matrices, repeated runs, independent record verification and scoped claim audit satisfy the frozen workload and integrity thresholds.",
     "All required cards and failures are closed with evidence; every result names its measured scope."
   ],
-  "current_phase": "Broker default/all-feature functional suites and strict Clippy pass; repair client compile/runtime gates, independently reconcile protocol coverage, and trace recovery timeouts.",
+  "current_phase": "Broker functional suites and strict Clippy passed on intermediate candidates; rerun full suites on the committed candidate, repair client gates, reconcile conformance, and investigate recovery timeouts.",
   "baseline": {
     "source_sha": "981ed100a0dc2ad910aa40163be9c4ae766eb4c6",
     "broker_default": {
@@ -53,10 +53,11 @@
     "broker_format_exit": 0,
     "client_full_suite": "Baseline build failures retained; callback thread-safety and Send future repairs under validation.",
     "independent_apache_checks": "Pinned Apache Kafka4.1.2 confirms Fetch unknown boundaries and legacy ListOffsets selector errors; raw requests/responses retained.",
-    "recovery_diagnostic": "Detached fixed-input syscall trace running; not a qualification campaign.",
+    "recovery_diagnostic": "The retained input timed out under strace with 0.25 CPU; tracing and limits differ from the failed 3-CPU untraced campaign, so its cause remains unresolved. No qualification time credited.",
     "production_ready": false,
     "fastest_client_qualified": false,
-    "fastest_server_qualified": false
+    "fastest_server_qualified": false,
+    "broker_evidence": "docs/evidence/broker/qualification-20261028/README.md; full suites must be rerun on the committed candidate."
   },
   "platform_scope": {
     "architecture": "x86_64",

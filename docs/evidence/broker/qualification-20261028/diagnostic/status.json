@@ -1,0 +1,1295 @@
+{
+  "elapsed_seconds": 899.8924989749976,
+  "recent_trace": [
+    "13    1793156881.810534 fdatasync(3)    = 0 <0.001795>",
+    "13    1793156881.812916 openat(AT_FDCWD, \"/workspace/work/broker-fuzz-container-20261027/diagnostic-60-byte-02/tmp\", O_RDONLY|O_CLOEXEC) = 5 <0.000066>",
+    "13    1793156881.813157 fsync(5)        = 0 <0.000523>",
+    "13    1793156881.813749 close(5)        = 0 <0.000023>",
+    "13    1793156881.814317 close(3)        = 0 <0.000050>",
+    "13    1793156881.814423 unlink(\"/workspace/work/broker-fuzz-container-20261027/diagnostic-60-byte-02/tmp/plb-fuzz-epoch-13\") = 0 <0.000064>",
+    "13    1793156881.814555 openat(AT_FDCWD, \"/workspace/work/broker-fuzz-container-20261027/diagnostic-60-byte-02/input.bin\", O_RDONLY) = 3 <0.000027>",
+    "13    1793156881.814812 close(3)        = 0 <0.000023>",
+    "13    1793156881.814935 openat(AT_FDCWD, \"/workspace/work/broker-fuzz-container-20261027/diagnostic-60-byte-02/tmp/plb-fuzz-epoch-13\", O_WRONLY|O_CREAT|O_TRUNC|O_CLOEXEC, 0666) = 3 <0.000249>",
+    "13    1793156881.815522 write(3, \"PLJRNL01\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\210\\326\\2329PLENTRY1\\0\\0\\0\\4\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\1\\331\\364\\255\\326Q\\t\\301yseed\", 60) = 60 <0.000038>",
+    "13    1793156881.815622 close(3)        = 0 <0.000023>",
+    "13    1793156881.816345 openat(AT_FDCWD, \"/workspace/work/broker-fuzz-container-20261027/diagnostic-60-byte-02/tmp/plb-fuzz-epoch-13\", O_RDWR|O_CREAT|O_CLOEXEC, 0666) = 3 <0.000032>",
+    "13    1793156881.816769 fdatasync(3)    = 0 <0.001118>",
+    "13    1793156881.818842 openat(AT_FDCWD, \"/workspace/work/broker-fuzz-container-20261027/diagnostic-60-byte-02/tmp\", O_RDONLY|O_CLOEXEC) = 5 <0.000042>",
+    "13    1793156881.818960 fsync(5)        = 0 <0.000727>",
+    "13    1793156881.819788 close(5)        = 0 <0.000039>",
+    "13    1793156881.820342 close(3)        = 0 <0.000024>",
+    "13    1793156881.820432 unlink(\"/workspace/work/broker-fuzz-container-20261027/diagnostic-60-byte-02/tmp/plb-fuzz-epoch-13\") = 0 <0.000074>",
+    "13    1793156881.820649 openat(AT_FDCWD, \"/workspace/work/broker-fuzz-container-20261027/diagnostic-60-byte-02/input.bin\", O_RDONLY) = 3 <0.000066>",
+    "13    1793156881.821145 close(3)        = 0 <0.000023>",
+    "13    1793156881.821300 openat(AT_FDCWD, \"/workspace/work/broker-fuzz-container-20261027/diagnostic-60-byte-02/tmp/plb-fuzz-epoch-13\", O_WRONLY|O_CREAT|O_TRUNC|O_CLOEXEC, 0666) = 3 <0.000383>",
+    "13    1793156881.821785 write(3, \"PLJRNL01\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\210\\326\\2329PLENTRY1\\0\\0\\0\\4\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\1\\331\\364\\255\\326Q\\t\\301yseed\", 60) = 60 <0.000041>",
+    "13    1793156881.821975 close(3)        = 0 <0.000023>",
+    "13    1793156881.825910 openat(AT_FDCWD, \"/workspace/work/broker-fuzz-container-20261027/diagnostic-60-byte-02/tmp/plb-fuzz-epoch-13\", O_RDWR|O_CREAT|O_CLOEXEC, 0666) = 3 <0.000129>",
+    "13    1793156881.887957 fdatasync(3)    = 0 <0.001756>",
+    "13    1793156881.890522 openat(AT_FDCWD, \"/workspace/work/broker-fuzz-container-20261027/diagnostic-60-byte-02/tmp\", O_RDONLY|O_CLOEXEC) = 5 <0.000160>",
+    "13    1793156881.891380 fsync(5)        = 0 <0.001593>",
+    "13    1793156881.893060 close(5)        = 0 <0.000042>",
+    "13    1793156881.893557 close(3)        = 0 <0.000030>",
+    "13    1793156881.893663 unlink(\"/workspace/work/broker-fuzz-container-20261027/diagnostic-60-byte-02/tmp/plb-fuzz-epoch-13\") = 0 <0.000182>",
+    "13    1793156881.893950 openat(AT_FDCWD, \"/workspace/work/broker-fuzz-container-20261027/diagnostic-60-byte-02/input.bin\", O_RDONLY) = 3 <0.000032>",
+    "13    1793156881.894300 close(3)        = 0 <0.000059>",
+    "13    1793156881.894488 openat(AT_FDCWD, \"/workspace/work/broker-fuzz-container-20261027/diagnostic-60-byte-02/tmp/plb-fuzz-epoch-13\", O_WRONLY|O_CREAT|O_TRUNC|O_CLOEXEC, 0666) = 3 <0.000342>",
+    "13    1793156881.894959 write(3, \"PLJRNL01\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\210\\326\\2329PLENTRY1\\0\\0\\0\\4\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\1\\331\\364\\255\\326Q\\t\\301yseed\", 60) = 60 <0.000054>",
+    "13    1793156881.895226 close(3)        = 0 <0.000054>",
+    "13    1793156881.895663 openat(AT_FDCWD, \"/workspace/work/broker-fuzz-container-20261027/diagnostic-60-byte-02/tmp/plb-fuzz-epoch-13\", O_RDWR|O_CREAT|O_CLOEXEC, 0666) = 3 <0.000027>",
+    "13    1793156881.896156 fdatasync(3)    = 0 <0.002848>",
+    "13    1793156881.899386 openat(AT_FDCWD, \"/workspace/work/broker-fuzz-container-20261027/diagnostic-60-byte-02/tmp\", O_RDONLY|O_CLOEXEC) = 5 <0.000038>",
+    "13    1793156881.899511 fsync(5)        = 0 <0.002122>",
+    "13    1793156881.901720 close(5)        = 0 <0.000027>",
+    "13    1793156881.902283 close(3)        = 0 <0.000024>",
+    "13    1793156881.902381 unlink(\"/workspace/work/broker-fuzz-container-20261027/diagnostic-60-byte-02/tmp/plb-fuzz-epoch-13\") = 0 <0.000253>",
+    "13    1793156881.902725 openat(AT_FDCWD, \"/workspace/work/broker-fuzz-container-20261027/diagnostic-60-byte-02/input.bin\", O_RDONLY) = 3 <0.000031>",
+    "13    1793156881.902986 close(3)        = 0 <0.000023>",
+    "13    1793156881.903182 openat(AT_FDCWD, \"/workspace/work/broker-fuzz-container-20261027/diagnostic-60-byte-02/tmp/plb-fuzz-epoch-13\", O_WRONLY|O_CREAT|O_TRUNC|O_CLOEXEC, 0666) = 3 <0.000138>",
+    "13    1793156881.903479 write(3, \"PLJRNL01\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\210\\326\\2329PLENTRY1\\0\\0\\0\\4\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\1\\331\\364\\255\\326Q\\t\\301yseed\", 60) = 60 <0.000042>",
+    "13    1793156881.903578 close(3)        = 0 <0.000021>",
+    "13    1793156881.907495 openat(AT_FDCWD, \"/workspace/work/broker-fuzz-container-20261027/diagnostic-60-byte-02/tmp/plb-fuzz-epoch-13\", O_RDWR|O_CREAT|O_CLOEXEC, 0666) = 3 <0.001605>",
+    "13    1793156881.913331 fdatasync(3)    = 0 <0.002709>",
+    "13    1793156881.918367 openat(AT_FDCWD, \"/workspace/work/broker-fuzz-container-20261027/diagnostic-60-byte-02/tmp\", O_RDONLY|O_CLOEXEC) = 5 <0.000136>",
+    "13    1793156881.918594 fsync(5)        = 0 <0.000740>",
+    "13    1793156881.919418 close(5)        = 0 <0.000026>",
+    "13    1793156881.919790 close(3)        = 0 <0.000024>",
+    "13    1793156881.920041 unlink(\"/workspace/work/broker-fuzz-container-20261027/diagnostic-60-byte-02/tmp/plb-fuzz-epoch-13\") = 0 <0.000094>",
+    "13    1793156881.920234 openat(AT_FDCWD, \"/workspace/work/broker-fuzz-container-20261027/diagnostic-60-byte-02/input.bin\", O_RDONLY) = 3 <0.000612>",
+    "13    1793156881.922615 close(3)        = 0 <0.000041>",
+    "13    1793156881.923156 openat(AT_FDCWD, \"/workspace/work/broker-fuzz-container-20261027/diagnostic-60-byte-02/tmp/plb-fuzz-epoch-13\", O_WRONLY|O_CREAT|O_TRUNC|O_CLOEXEC, 0666) = 3 <0.000617>",
+    "13    1793156881.923882 write(3, \"PLJRNL01\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\210\\326\\2329PLENTRY1\\0\\0\\0\\4\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\1\\331\\364\\255\\326Q\\t\\301yseed\", 60) = 60 <0.000878>",
+    "13    1793156881.985759 close(3)        = 0 <0.000166>",
+    "13    1793156881.986623 openat(AT_FDCWD, \"/workspace/work/broker-fuzz-container-20261027/diagnostic-60-byte-02/tmp/plb-fuzz-epoch-13\", O_RDWR|O_CREAT|O_CLOEXEC, 0666) = 3 <0.000062>",
+    "13    1793156881.989319 fdatasync(3)    = 0 <0.003324>",
+    "13    1793156881.993107 openat(AT_FDCWD, \"/workspace/work/broker-fuzz-container-20261027/diagnostic-60-byte-02/tmp\", O_RDONLY|O_CLOEXEC) = 5 <0.000227>",
+    "13    1793156881.994341 fsync(5)        = 0 <0.000905>",
+    "13    1793156881.995345 close(5)        = 0 <0.000051>",
+    "13    1793156881.995772 close(3)        = 0 <0.000033>",
+    "13    1793156881.995889 unlink(\"/workspace/work/broker-fuzz-container-20261027/diagnostic-60-byte-02/tmp/plb-fuzz-epoch-13\") = 0 <0.000149>",
+    "13    1793156881.996233 openat(AT_FDCWD, \"/workspace/work/broker-fuzz-container-20261027/diagnostic-60-byte-02/input.bin\", O_RDONLY) = 3 <0.000054>",
+    "13    1793156881.996675 close(3)        = 0 <0.000030>",
+    "13    1793156881.996868 openat(AT_FDCWD, \"/workspace/work/broker-fuzz-container-20261027/diagnostic-60-byte-02/tmp/plb-fuzz-epoch-13\", O_WRONLY|O_CREAT|O_TRUNC|O_CLOEXEC, 0666) = 3 <0.000199>",
+    "13    1793156881.997704 write(3, \"PLJRNL01\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\210\\326\\2329PLENTRY1\\0\\0\\0\\4\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\1\\331\\364\\255\\326Q\\t\\301yseed\", 60) = 60 <0.000056>",
+    "13    1793156881.997869 close(3)        = 0 <0.000033>",
+    "13    1793156881.998374 openat(AT_FDCWD, \"/workspace/work/broker-fuzz-container-20261027/diagnostic-60-byte-02/tmp/plb-fuzz-epoch-13\", O_RDWR|O_CREAT|O_CLOEXEC, 0666) = 3 <0.000050>",
+    "13    1793156881.999864 fdatasync(3)    = 0 <0.004116>",
+    "14    1793156882.384937 --- SIGALRM {si_signo=SIGALRM, si_code=SI_KERNEL} ---",
+    "13    1793156882.386958 openat(AT_FDCWD, \"/workspace/work/broker-fuzz-container-20261027/diagnostic-60-byte-02/tmp\", O_RDONLY|O_CLOEXEC) = 5 <0.000323>",
+    "13    1793156882.387418 fsync(5)        = 0 <0.001298>",
+    "13    1793156882.388782 close(5)        = 0 <0.000041>",
+    "13    1793156882.390793 close(3)        = 0 <0.000078>",
+    "13    1793156882.392065 unlink(\"/workspace/work/broker-fuzz-container-20261027/diagnostic-60-byte-02/tmp/plb-fuzz-epoch-13\") = 0 <0.000995>",
+    "13    1793156882.393235 openat(AT_FDCWD, \"/workspace/work/broker-fuzz-container-20261027/diagnostic-60-byte-02/input.bin\", O_RDONLY) = 3 <0.000126>",
+    "13    1793156882.393946 close(3)        = 0 <0.000023>",
+    "13    1793156882.394312 openat(AT_FDCWD, \"/workspace/work/broker-fuzz-container-20261027/diagnostic-60-byte-02/tmp/plb-fuzz-epoch-13\", O_WRONLY|O_CREAT|O_TRUNC|O_CLOEXEC, 0666) = 3 <0.000334>",
+    "13    1793156882.394709 write(3, \"PLJRNL01\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\210\\326\\2329PLENTRY1\\0\\0\\0\\4\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\1\\331\\364\\255\\326Q\\t\\301yseed\", 60) = 60 <0.000070>",
+    "13    1793156882.394920 close(3)        = 0 <0.000025>",
+    "13    1793156882.395284 openat(AT_FDCWD, \"/workspace/work/broker-fuzz-container-20261027/diagnostic-60-byte-02/tmp/plb-fuzz-epoch-13\", O_RDWR|O_CREAT|O_CLOEXEC, 0666) = 3 <0.000028>",
+    "13    1793156882.395835 fdatasync(3)    = 0 <0.001888>",
+    "13    1793156882.398081 openat(AT_FDCWD, \"/workspace/work/broker-fuzz-container-20261027/diagnostic-60-byte-02/tmp\", O_RDONLY|O_CLOEXEC) = 5 <0.000026>",
+    "13    1793156882.398177 fsync(5)        = 0 <0.000502>",
+    "13    1793156882.398738 close(5)        = 0 <0.000024>",
+    "13    1793156882.399007 close(3)        = 0 <0.000022>",
+    "13    1793156882.399108 unlink(\"/workspace/work/broker-fuzz-container-20261027/diagnostic-60-byte-02/tmp/plb-fuzz-epoch-13\") = 0 <0.000055>",
+    "13    1793156882.399233 openat(AT_FDCWD, \"/workspace/work/broker-fuzz-container-20261027/diagnostic-60-byte-02/input.bin\", O_RDONLY) = 3 <0.000043>",
+    "13    1793156882.399553 close(3)        = 0 <0.000021>",
+    "13    1793156882.399826 openat(AT_FDCWD, \"/workspace/work/broker-fuzz-container-20261027/diagnostic-60-byte-02/tmp/plb-fuzz-epoch-13\", O_WRONLY|O_CREAT|O_TRUNC|O_CLOEXEC, 0666) = 3 <0.000075>",
+    "13    1793156882.399960 write(3, \"PLJRNL01\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\210\\326\\2329PLENTRY1\\0\\0\\0\\4\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\1\\331\\364\\255\\326Q\\t\\301yseed\", 60) = 60 <0.000034>",
+    "13    1793156882.400046 close(3)        = 0 <0.000022>",
+    "13    1793156882.400417 openat(AT_FDCWD, \"/workspace/work/broker-fuzz-container-20261027/diagnostic-60-byte-02/tmp/plb-fuzz-epoch-13\", O_RDWR|O_CREAT|O_CLOEXEC, 0666) = 3 <0.000054>",
+    "13    1793156882.400837 fdatasync(3)    = 0 <0.000850>",
+    "13    1793156882.402020 openat(AT_FDCWD, \"/workspace/work/broker-fuzz-container-20261027/diagnostic-60-byte-02/tmp\", O_RDONLY|O_CLOEXEC) = 5 <0.000025>",
+    "13    1793156882.402110 fsync(5)        = 0 <0.000306>",
+    "13    1793156882.402471 close(5)        = 0 <0.000023>",
+    "13    1793156882.402730 close(3)        = 0 <0.000047>",
+    "13    1793156882.403037 unlink(\"/workspace/work/broker-fuzz-container-20261027/diagnostic-60-byte-02/tmp/plb-fuzz-epoch-13\") = 0 <0.000053>",
+    "13    1793156882.403162 openat(AT_FDCWD, \"/workspace/work/broker-fuzz-container-20261027/diagnostic-60-byte-02/input.bin\", O_RDONLY) = 3 <0.000026>",
+    "13    1793156882.403493 close(3)        = 0 <0.000021>",
+    "13    1793156882.403620 openat(AT_FDCWD, \"/workspace/work/broker-fuzz-container-20261027/diagnostic-60-byte-02/tmp/plb-fuzz-epoch-13\", O_WRONLY|O_CREAT|O_TRUNC|O_CLOEXEC, 0666) = 3 <0.000091>",
+    "13    1793156882.403776 write(3, \"PLJRNL01\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\210\\326\\2329PLENTRY1\\0\\0\\0\\4\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\1\\331\\364\\255\\326Q\\t\\301yseed\", 60) = 60 <0.000033>",
+    "13    1793156882.403861 close(3)        = 0 <0.000021>",
+    "13    1793156882.404172 openat(AT_FDCWD, \"/workspace/work/broker-fuzz-container-20261027/diagnostic-60-byte-02/tmp/plb-fuzz-epoch-13\", O_RDWR|O_CREAT|O_CLOEXEC, 0666) = 3 <0.000027>",
+    "13    1793156882.404646 fdatasync(3)    = 0 <0.001058>",
+    "13    1793156882.406580 openat(AT_FDCWD, \"/workspace/work/broker-fuzz-container-20261027/diagnostic-60-byte-02/tmp\", O_RDONLY|O_CLOEXEC) = 5 <0.000167>",
+    "13    1793156882.406909 fsync(5)        = 0 <0.000529>",
+    "13    1793156882.407512 close(5)        = 0 <0.000020>",
+    "13    1793156882.407820 close(3)        = 0 <0.000032>",
+    "13    1793156882.407890 unlink(\"/workspace/work/broker-fuzz-container-20261027/diagnostic-60-byte-02/tmp/plb-fuzz-epoch-13\") = 0 <0.000052>",
+    "13    1793156882.407992 openat(AT_FDCWD, \"/workspace/work/broker-fuzz-container-20261027/diagnostic-60-byte-02/input.bin\", O_RDONLY) = 3 <0.000022>",
+    "13    1793156882.408213 close(3)        = 0 <0.000017>",
+    "13    1793156882.586994 openat(AT_FDCWD, \"/workspace/work/broker-fuzz-container-20261027/diagnostic-60-byte-02/tmp/plb-fuzz-epoch-13\", O_WRONLY|O_CREAT|O_TRUNC|O_CLOEXEC, 0666) = 3 <0.006117>",
+    "13    1793156882.594164 write(3, \"PLJRNL01\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\210\\326\\2329PLENTRY1\\0\\0\\0\\4\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\1\\331\\364\\255\\326Q\\t\\301yseed\", 60) = 60 <0.000197>",
+    "13    1793156882.596175 close(3)        = 0 <0.000933>",
+    "13    1793156882.603615 openat(AT_FDCWD, \"/workspace/work/broker-fuzz-container-20261027/diagnostic-60-byte-02/tmp/plb-fuzz-epoch-13\", O_RDWR|O_CREAT|O_CLOEXEC, 0666) = 3 <0.000738>",
+    "13    1793156882.618102 fdatasync(3)    = 0 <0.001492>",
+    "13    1793156882.622733 openat(AT_FDCWD, \"/workspace/work/broker-fuzz-container-20261027/diagnostic-60-byte-02/tmp\", O_RDONLY|O_CLOEXEC) = 5 <0.002785>",
+    "13    1793156882.684579 fsync(5)        = 0 <0.002404>",
+    "13    1793156882.687471 close(5)        = 0 <0.000083>",
+    "13    1793156882.696107 close(3)        = 0 <0.000866>",
+    "13    1793156882.697322 unlink(\"/workspace/work/broker-fuzz-container-20261027/diagnostic-60-byte-02/tmp/plb-fuzz-epoch-13\") = 0 <0.000423>",
+    "13    1793156882.698487 openat(AT_FDCWD, \"/workspace/work/broker-fuzz-container-20261027/diagnostic-60-byte-02/input.bin\", O_RDONLY) = 3 <0.000086>",
+    "13    1793156882.699046 close(3)        = 0 <0.000276>",
+    "13    1793156882.699490 openat(AT_FDCWD, \"/workspace/work/broker-fuzz-container-20261027/diagnostic-60-byte-02/tmp/plb-fuzz-epoch-13\", O_WRONLY|O_CREAT|O_TRUNC|O_CLOEXEC, 0666) = 3 <0.000286>",
+    "13    1793156882.700051 write(3, \"PLJRNL01\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\210\\326\\2329PLENTRY1\\0\\0\\0\\4\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\1\\331\\364\\255\\326Q\\t\\301yseed\", 60) = 60 <0.000301>",
+    "13    1793156882.700445 close(3)        = 0 <0.000025>",
+    "13    1793156882.700870 openat(AT_FDCWD, \"/workspace/work/broker-fuzz-container-20261027/diagnostic-60-byte-02/tmp/plb-fuzz-epoch-13\", O_RDWR|O_CREAT|O_CLOEXEC, 0666) = 3 <0.000043>",
+    "13    1793156882.701508 fdatasync(3)    = 0 <0.001165>",
+    "13    1793156882.703048 openat(AT_FDCWD, \"/workspace/work/broker-fuzz-container-20261027/diagnostic-60-byte-02/tmp\", O_RDONLY|O_CLOEXEC) = 5 <0.000026>",
+    "13    1793156882.703146 fsync(5)        = 0 <0.000692>",
+    "13    1793156882.703896 close(5)        = 0 <0.000025>",
+    "13    1793156882.704168 close(3)        = 0 <0.000023>",
+    "13    1793156882.704268 unlink(\"/workspace/work/broker-fuzz-container-20261027/diagnostic-60-byte-02/tmp/plb-fuzz-epoch-13\") = 0 <0.000103>",
+    "13    1793156882.704472 openat(AT_FDCWD, \"/workspace/work/broker-fuzz-container-20261027/diagnostic-60-byte-02/input.bin\", O_RDONLY) = 3 <0.000072>",
+    "13    1793156882.704858 close(3)        = 0 <0.000040>",
+    "13    1793156882.705280 openat(AT_FDCWD, \"/workspace/work/broker-fuzz-container-20261027/diagnostic-60-byte-02/tmp/plb-fuzz-epoch-13\", O_WRONLY|O_CREAT|O_TRUNC|O_CLOEXEC, 0666) = 3 <0.000123>",
+    "13    1793156882.705481 write(3, \"PLJRNL01\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\210\\326\\2329PLENTRY1\\0\\0\\0\\4\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\1\\331\\364\\255\\326Q\\t\\301yseed\", 60) = 60 <0.000039>",
+    "13    1793156882.705579 close(3)        = 0 <0.000065>",
+    "13    1793156882.705985 openat(AT_FDCWD, \"/workspace/work/broker-fuzz-container-20261027/diagnostic-60-byte-02/tmp/plb-fuzz-epoch-13\", O_RDWR|O_CREAT|O_CLOEXEC, 0666) = 3 <0.000084>",
+    "13    1793156882.706441 fdatasync(3)    = 0 <0.001336>",
+    "13    1793156882.712356 openat(AT_FDCWD, \"/workspace/work/broker-fuzz-container-20261027/diagnostic-60-byte-02/tmp\", O_RDONLY|O_CLOEXEC) = 5 <0.000039>",
+    "13    1793156882.712476 fsync(5)        = 0 <0.000946>",
+    "13    1793156882.713573 close(5)        = 0 <0.000037>",
+    "13    1793156882.714035 close(3)        = 0 <0.000025>",
+    "13    1793156882.714118 unlink(\"/workspace/work/broker-fuzz-container-20261027/diagnostic-60-byte-02/tmp/plb-fuzz-epoch-13\") = 0 <0.000454>",
+    "13    1793156882.714770 openat(AT_FDCWD, \"/workspace/work/broker-fuzz-container-20261027/diagnostic-60-byte-02/input.bin\", O_RDONLY) = 3 <0.000031>",
+    "13    1793156882.715028 close(3)        = 0 <0.000113>",
+    "13    1793156882.715348 openat(AT_FDCWD, \"/workspace/work/broker-fuzz-container-20261027/diagnostic-60-byte-02/tmp/plb-fuzz-epoch-13\", O_WRONLY|O_CREAT|O_TRUNC|O_CLOEXEC, 0666) = 3 <0.000295>",
+    "13    1793156882.715725 write(3, \"PLJRNL01\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\210\\326\\2329PLENTRY1\\0\\0\\0\\4\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\1\\331\\364\\255\\326Q\\t\\301yseed\", 60) = 60 <0.000050>",
+    "13    1793156882.715929 close(3)        = 0 <0.000126>",
+    "13    1793156882.716923 openat(AT_FDCWD, \"/workspace/work/broker-fuzz-container-20261027/diagnostic-60-byte-02/tmp/plb-fuzz-epoch-13\", O_RDWR|O_CREAT|O_CLOEXEC, 0666) = 3 <0.000029>",
+    "13    1793156882.717346 fdatasync(3)    = 0 <1.059347>",
+    "14    1793156885.606685 --- SIGALRM {si_signo=SIGALRM, si_code=SI_KERNEL} ---",
+    "13    1793156885.692045 openat(AT_FDCWD, \"/workspace/work/broker-fuzz-container-20261027/diagnostic-60-byte-02/tmp\", O_RDONLY|O_CLOEXEC) = 5 <0.001505>",
+    "13    1793156885.694573 fsync(5)        = 0 <0.468957>",
+    "13    1793156886.174613 close(5)        = 0 <0.000141>",
+    "13    1793156886.191748 close(3 <unfinished ...>",
+    "14    1793156886.191839 --- SIGALRM {si_signo=SIGALRM, si_code=SI_KERNEL} ---",
+    "13    1793156886.191888 <... close resumed>) = 0 <0.000084>",
+    "13    1793156886.193294 unlink(\"/workspace/work/broker-fuzz-container-20261027/diagnostic-60-byte-02/tmp/plb-fuzz-epoch-13\") = 0 <0.000688>",
+    "13    1793156886.195330 openat(AT_FDCWD, \"/workspace/work/broker-fuzz-container-20261027/diagnostic-60-byte-02/input.bin\", O_RDONLY) = 3 <0.000086>",
+    "13    1793156886.198393 close(3)        = 0 <0.000091>",
+    "13    1793156886.200363 openat(AT_FDCWD, \"/workspace/work/broker-fuzz-container-20261027/diagnostic-60-byte-02/tmp/plb-fuzz-epoch-13\", O_WRONLY|O_CREAT|O_TRUNC|O_CLOEXEC, 0666) = 3 <0.019003>",
+    "13    1793156886.370280 write(3, \"PLJRNL01\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\210\\326\\2329PLENTRY1\\0\\0\\0\\4\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\1\\331\\364\\255\\326Q\\t\\301yseed\", 60) = 60 <0.000628>",
+    "13    1793156886.373020 close(3)        = 0 <0.000058>",
+    "13    1793156886.373434 openat(AT_FDCWD, \"/workspace/work/broker-fuzz-container-20261027/diagnostic-60-byte-02/tmp/plb-fuzz-epoch-13\", O_RDWR|O_CREAT|O_CLOEXEC, 0666) = 3 <0.000014>",
+    "13    1793156886.373652 fdatasync(3)    = 0 <0.002945>",
+    "13    1793156886.376754 openat(AT_FDCWD, \"/workspace/work/broker-fuzz-container-20261027/diagnostic-60-byte-02/tmp\", O_RDONLY|O_CLOEXEC) = 5 <0.000016>",
+    "13    1793156886.376873 fsync(5)        = 0 <0.000519>",
+    "13    1793156886.378023 close(5)        = 0 <0.000068>",
+    "13    1793156886.378807 close(3)        = 0 <0.000021>",
+    "13    1793156886.378893 unlink(\"/workspace/work/broker-fuzz-container-20261027/diagnostic-60-byte-02/tmp/plb-fuzz-epoch-13\") = 0 <0.000286>",
+    "13    1793156886.379345 openat(AT_FDCWD, \"/workspace/work/broker-fuzz-container-20261027/diagnostic-60-byte-02/input.bin\", O_RDONLY) = 3 <0.000019>",
+    "13    1793156886.379488 close(3)        = 0 <0.000008>",
+    "13    1793156886.379579 openat(AT_FDCWD, \"/workspace/work/broker-fuzz-container-20261027/diagnostic-60-byte-02/tmp/plb-fuzz-epoch-13\", O_WRONLY|O_CREAT|O_TRUNC|O_CLOEXEC, 0666) = 3 <0.000253>",
+    "13    1793156886.379882 write(3, \"PLJRNL01\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\210\\326\\2329PLENTRY1\\0\\0\\0\\4\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\1\\331\\364\\255\\326Q\\t\\301yseed\", 60) = 60 <0.000034>",
+    "13    1793156886.379950 close(3)        = 0 <0.000008>",
+    "13    1793156886.380054 openat(AT_FDCWD, \"/workspace/work/broker-fuzz-container-20261027/diagnostic-60-byte-02/tmp/plb-fuzz-epoch-13\", O_RDWR|O_CREAT|O_CLOEXEC, 0666) = 3 <0.000011>",
+    "13    1793156886.380180 fdatasync(3)    = 0 <0.001225>",
+    "13    1793156886.381980 openat(AT_FDCWD, \"/workspace/work/broker-fuzz-container-20261027/diagnostic-60-byte-02/tmp\", O_RDONLY|O_CLOEXEC) = 5 <0.000011>",
+    "13    1793156886.382035 fsync(5)        = 0 <0.000484>",
+    "13    1793156886.382552 close(5)        = 0 <0.000008>",
+    "13    1793156886.382643 close(3)        = 0 <0.000009>",
+    "13    1793156886.382685 unlink(\"/workspace/work/broker-fuzz-container-20261027/diagnostic-60-byte-02/tmp/plb-fuzz-epoch-13\") = 0 <0.000057>",
+    "13    1793156886.382799 openat(AT_FDCWD, \"/workspace/work/broker-fuzz-container-20261027/diagnostic-60-byte-02/input.bin\", O_RDONLY) = 3 <0.000012>",
+    "13    1793156886.382906 close(3)        = 0 <0.000006>",
+    "13    1793156886.382954 openat(AT_FDCWD, \"/workspace/work/broker-fuzz-container-20261027/diagnostic-60-byte-02/tmp/plb-fuzz-epoch-13\", O_WRONLY|O_CREAT|O_TRUNC|O_CLOEXEC, 0666) = 3 <0.000340>",
+    "13    1793156886.383340 write(3, \"PLJRNL01\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\210\\326\\2329PLENTRY1\\0\\0\\0\\4\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\1\\331\\364\\255\\326Q\\t\\301yseed\", 60) = 60 <0.000022>",
+    "13    1793156886.383397 close(3)        = 0 <0.000009>",
+    "13    1793156886.383512 openat(AT_FDCWD, \"/workspace/work/broker-fuzz-container-20261027/diagnostic-60-byte-02/tmp/plb-fuzz-epoch-13\", O_RDWR|O_CREAT|O_CLOEXEC, 0666) = 3 <0.000011>",
+    "13    1793156886.384214 fdatasync(3)    = 0 <0.008348>",
+    "13    1793156886.392689 openat(AT_FDCWD, \"/workspace/work/broker-fuzz-container-20261027/diagnostic-60-byte-02/tmp\", O_RDONLY|O_CLOEXEC) = 5 <0.000012>",
+    "13    1793156886.392750 fsync(5)        = 0 <0.014930>",
+    "13    1793156886.407724 close(5)        = 0 <0.000009>",
+    "13    1793156886.407843 close(3)        = 0 <0.000011>",
+    "13    1793156886.407893 unlink(\"/workspace/work/broker-fuzz-container-20261027/diagnostic-60-byte-02/tmp/plb-fuzz-epoch-13\") = 0 <0.000070>",
+    "13    1793156886.408036 openat(AT_FDCWD, \"/workspace/work/broker-fuzz-container-20261027/diagnostic-60-byte-02/input.bin\", O_RDONLY) = 3 <0.000014>",
+    "13    1793156886.408156 close(3)        = 0 <0.000007>",
+    "13    1793156886.408215 openat(AT_FDCWD, \"/workspace/work/broker-fuzz-container-20261027/diagnostic-60-byte-02/tmp/plb-fuzz-epoch-13\", O_WRONLY|O_CREAT|O_TRUNC|O_CLOEXEC, 0666) = 3 <0.000149>",
+    "13    1793156886.408439 write(3, \"PLJRNL01\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\210\\326\\2329PLENTRY1\\0\\0\\0\\4\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\1\\331\\364\\255\\326Q\\t\\301yseed\", 60) = 60 <0.000067>",
+    "13    1793156886.408544 close(3)        = 0 <0.000007>",
+    "13    1793156886.408688 openat(AT_FDCWD, \"/workspace/work/broker-fuzz-container-20261027/diagnostic-60-byte-02/tmp/plb-fuzz-epoch-13\", O_RDWR|O_CREAT|O_CLOEXEC, 0666) = 3 <0.000011>",
+    "13    1793156886.408808 fdatasync(3)    = 0 <0.025579>",
+    "13    1793156886.434554 openat(AT_FDCWD, \"/workspace/work/broker-fuzz-container-20261027/diagnostic-60-byte-02/tmp\", O_RDONLY|O_CLOEXEC) = 5 <0.000013>",
+    "13    1793156886.434634 fsync(5)        = 0 <0.001890>",
+    "13    1793156886.436572 close(5)        = 0 <0.000010>",
+    "13    1793156886.436713 close(3)        = 0 <0.000009>",
+    "13    1793156886.436758 unlink(\"/workspace/work/broker-fuzz-container-20261027/diagnostic-60-byte-02/tmp/plb-fuzz-epoch-13\") = 0 <0.000070>",
+    "13    1793156886.436901 openat(AT_FDCWD, \"/workspace/work/broker-fuzz-container-20261027/diagnostic-60-byte-02/input.bin\", O_RDONLY) = 3 <0.000014>",
+    "13    1793156886.437022 close(3)        = 0 <0.000007>",
+    "13    1793156886.437080 openat(AT_FDCWD, \"/workspace/work/broker-fuzz-container-20261027/diagnostic-60-byte-02/tmp/plb-fuzz-epoch-13\", O_WRONLY|O_CREAT|O_TRUNC|O_CLOEXEC, 0666) = 3 <0.000075>",
+    "13    1793156886.437209 write(3, \"PLJRNL01\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\210\\326\\2329PLENTRY1\\0\\0\\0\\4\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\1\\331\\364\\255\\326Q\\t\\301yseed\", 60) = 60 <0.000063>",
+    "13    1793156886.437319 close(3)        = 0 <0.000007>",
+    "13    1793156886.437425 openat(AT_FDCWD, \"/workspace/work/broker-fuzz-container-20261027/diagnostic-60-byte-02/tmp/plb-fuzz-epoch-13\", O_RDWR|O_CREAT|O_CLOEXEC, 0666) = 3 <0.000011>",
+    "13    1793156886.437545 fdatasync(3)    = 0 <0.002187>",
+    "13    1793156886.439864 openat(AT_FDCWD, \"/workspace/work/broker-fuzz-container-20261027/diagnostic-60-byte-02/tmp\", O_RDONLY|O_CLOEXEC) = 5 <0.000012>",
+    "13    1793156886.439927 fsync(5)        = 0 <0.000725>",
+    "13    1793156886.440705 close(5)        = 0 <0.000008>",
+    "13    1793156886.440806 close(3)        = 0 <0.000008>",
+    "13    1793156886.440849 unlink(\"/workspace/work/broker-fuzz-container-20261027/diagnostic-60-byte-02/tmp/plb-fuzz-epoch-13\") = 0 <0.000059>",
+    "13    1793156886.440993 openat(AT_FDCWD, \"/workspace/work/broker-fuzz-container-20261027/diagnostic-60-byte-02/input.bin\", O_RDONLY) = 3 <0.000013>",
+    "13    1793156886.441112 close(3)        = 0 <0.000007>",
+    "13    1793156886.441171 openat(AT_FDCWD, \"/workspace/work/broker-fuzz-container-20261027/diagnostic-60-byte-02/tmp/plb-fuzz-epoch-13\", O_WRONLY|O_CREAT|O_TRUNC|O_CLOEXEC, 0666) = 3 <0.000092>",
+    "13    1793156886.441318 write(3, \"PLJRNL01\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\210\\326\\2329PLENTRY1\\0\\0\\0\\4\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\1\\331\\364\\255\\326Q\\t\\301yseed\", 60) = 60 <0.000026>",
+    "13    1793156886.441385 close(3)        = 0 <0.000007>",
+    "13    1793156886.441491 openat(AT_FDCWD, \"/workspace/work/broker-fuzz-container-20261027/diagnostic-60-byte-02/tmp/plb-fuzz-epoch-13\", O_RDWR|O_CREAT|O_CLOEXEC, 0666) = 3 <0.000010>",
+    "13    1793156886.441630 fdatasync(3)    = 0 <0.005868>",
+    "13    1793156886.448442 openat(AT_FDCWD, \"/workspace/work/broker-fuzz-container-20261027/diagnostic-60-byte-02/tmp\", O_RDONLY|O_CLOEXEC) = 5 <0.000048>",
+    "13    1793156886.448623 fsync(5)        = 0 <0.404581>",
+    "13    1793156886.853465 close(5)        = 0 <0.000051>",
+    "13    1793156886.854079 close(3)        = 0 <0.000014>",
+    "13    1793156886.854146 unlink(\"/workspace/work/broker-fuzz-container-20261027/diagnostic-60-byte-02/tmp/plb-fuzz-epoch-13\") = 0 <0.000229>",
+    "13    1793156886.854481 openat(AT_FDCWD, \"/workspace/work/broker-fuzz-container-20261027/diagnostic-60-byte-02/input.bin\", O_RDONLY) = 3 <0.000008>",
+    "13    1793156886.854562 close(3)        = 0 <0.000004>",
+    "13    1793156886.854621 openat(AT_FDCWD, \"/workspace/work/broker-fuzz-container-20261027/diagnostic-60-byte-02/tmp/plb-fuzz-epoch-13\", O_WRONLY|O_CREAT|O_TRUNC|O_CLOEXEC, 0666) = 3 <0.000417>",
+    "13    1793156886.855055 write(3, \"PLJRNL01\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\210\\326\\2329PLENTRY1\\0\\0\\0\\4\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\1\\331\\364\\255\\326Q\\t\\301yseed\", 60) = 60 <0.000027>",
+    "13    1793156886.855097 close(3)        = 0 <0.000004>",
+    "13    1793156886.855153 openat(AT_FDCWD, \"/workspace/work/broker-fuzz-container-20261027/diagnostic-60-byte-02/tmp/plb-fuzz-epoch-13\", O_RDWR|O_CREAT|O_CLOEXEC, 0666) = 3 <0.000005>",
+    "13    1793156886.855231 fdatasync(3)    = 0 <0.950995>",
+    "13    1793156887.811420 openat(AT_FDCWD, \"/workspace/work/broker-fuzz-container-20261027/diagnostic-60-byte-02/tmp\", O_RDONLY|O_CLOEXEC) = 5 <0.000082>",
+    "13    1793156887.811679 fsync(5)        = 0 <0.001210>",
+    "13    1793156887.813066 close(5)        = 0 <0.000064>",
+    "13    1793156887.813496 close(3)        = 0 <0.000030>",
+    "13    1793156887.813611 unlink(\"/workspace/work/broker-fuzz-container-20261027/diagnostic-60-byte-02/tmp/plb-fuzz-epoch-13\") = 0 <0.000344>",
+    "13    1793156887.814099 openat(AT_FDCWD, \"/workspace/work/broker-fuzz-container-20261027/diagnostic-60-byte-02/input.bin\", O_RDONLY) = 3 <0.000032>",
+    "13    1793156887.814414 close(3)        = 0 <0.000014>",
+    "13    1793156887.814555 openat(AT_FDCWD, \"/workspace/work/broker-fuzz-container-20261027/diagnostic-60-byte-02/tmp/plb-fuzz-epoch-13\", O_WRONLY|O_CREAT|O_TRUNC|O_CLOEXEC, 0666) = 3 <0.000220>",
+    "13    1793156887.814847 write(3, \"PLJRNL01\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\210\\326\\2329PLENTRY1\\0\\0\\0\\4\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\1\\331\\364\\255\\326Q\\t\\301yseed\", 60) = 60 <0.000040>",
+    "13    1793156887.814952 close(3)        = 0 <0.000015>",
+    "13    1793156887.815266 openat(AT_FDCWD, \"/workspace/work/broker-fuzz-container-20261027/diagnostic-60-byte-02/tmp/plb-fuzz-epoch-13\", O_RDWR|O_CREAT|O_CLOEXEC, 0666) = 3 <0.000040>"
+  ],
+  "slowest_syscalls": [
+    [
+      1.525783,
+      "13    1793156340.430015 unlink(\"/workspace/work/broker-fuzz-container-20261027/diagnostic-60-byte-02/tmp/plb-fuzz-epoch-13\") = 0 <1.525783>"
+    ],
+    [
+      1.399056,
+      "13    1793156120.086283 fdatasync(3)    = 0 <1.399056>"
+    ],
+    [
+      1.331467,
+      "13    1793156128.578211 write(3, \"PLJRNL01\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\210\\326\\2329PLENTRY1\\0\\0\\0\\4\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\1\\331\\364\\255\\326Q\\t\\301yseed\", 60) = 60 <1.331467>"
+    ],
+    [
+      1.284266,
+      "13    1793156262.400696 unlink(\"/workspace/work/broker-fuzz-container-20261027/diagnostic-60-byte-02/tmp/plb-fuzz-epoch-13\") = 0 <1.284266>"
+    ],
+    [
+      1.260244,
+      "13    1793156147.997573 unlink(\"/workspace/work/broker-fuzz-container-20261027/diagnostic-60-byte-02/tmp/plb-fuzz-epoch-13\") = 0 <1.260244>"
+    ],
+    [
+      1.059347,
+      "13    1793156882.717346 fdatasync(3)    = 0 <1.059347>"
+    ],
+    [
+      1.013996,
+      "13    1793156127.133451 openat(AT_FDCWD, \"/workspace/work/broker-fuzz-container-20261027/diagnostic-60-byte-02/tmp/plb-fuzz-epoch-13\", O_WRONLY|O_CREAT|O_TRUNC|O_CLOEXEC, 0666) = 3 <1.013996>"
+    ],
+    [
+      0.974253,
+      "13    1793156333.003842 close(5)        = 0 <0.974253>"
+    ],
+    [
+      0.950995,
+      "13    1793156886.855231 fdatasync(3)    = 0 <0.950995>"
+    ],
+    [
+      0.802701,
+      "13    1793156449.608110 close(3)        = 0 <0.802701>"
+    ],
+    [
+      0.7333,
+      "13    1793156133.287183 openat(AT_FDCWD, \"/workspace/work/broker-fuzz-container-20261027/diagnostic-60-byte-02/tmp\", O_RDONLY|O_CLOEXEC) = 5 <0.733300>"
+    ],
+    [
+      0.710292,
+      "13    1793156415.185884 openat(AT_FDCWD, \"/workspace/work/broker-fuzz-container-20261027/diagnostic-60-byte-02/tmp/plb-fuzz-epoch-13\", O_WRONLY|O_CREAT|O_TRUNC|O_CLOEXEC, 0666) = 3 <0.710292>"
+    ],
+    [
+      0.696648,
+      "13    1793156403.188520 openat(AT_FDCWD, \"/workspace/work/broker-fuzz-container-20261027/diagnostic-60-byte-02/tmp/plb-fuzz-epoch-13\", O_WRONLY|O_CREAT|O_TRUNC|O_CLOEXEC, 0666) = 3 <0.696648>"
+    ],
+    [
+      0.592855,
+      "13    1793156506.999166 fsync(5)        = 0 <0.592855>"
+    ],
+    [
+      0.522067,
+      "13    1793156486.862693 fdatasync(3)    = 0 <0.522067>"
+    ],
+    [
+      0.488226,
+      "13    1793156485.800515 fdatasync(3)    = 0 <0.488226>"
+    ],
+    [
+      0.484669,
+      "13    1793156410.613107 unlink(\"/workspace/work/broker-fuzz-container-20261027/diagnostic-60-byte-02/tmp/plb-fuzz-epoch-13\") = 0 <0.484669>"
+    ],
+    [
+      0.480251,
+      "13    1793156348.504382 openat(AT_FDCWD, \"/workspace/work/broker-fuzz-container-20261027/diagnostic-60-byte-02/tmp/plb-fuzz-epoch-13\", O_WRONLY|O_CREAT|O_TRUNC|O_CLOEXEC, 0666) = 3 <0.480251>"
+    ],
+    [
+      0.468957,
+      "13    1793156885.694573 fsync(5)        = 0 <0.468957>"
+    ],
+    [
+      0.459258,
+      "13    1793156259.997230 fsync(5)        = 0 <0.459258>"
+    ],
+    [
+      0.443415,
+      "13    1793156403.890317 fdatasync(3)    = 0 <0.443415>"
+    ],
+    [
+      0.404581,
+      "13    1793156886.448623 fsync(5)        = 0 <0.404581>"
+    ],
+    [
+      0.395778,
+      "13    1793156443.508728 openat(AT_FDCWD, \"/workspace/work/broker-fuzz-container-20261027/diagnostic-60-byte-02/tmp/plb-fuzz-epoch-13\", O_WRONLY|O_CREAT|O_TRUNC|O_CLOEXEC, 0666) = 3 <0.395778>"
+    ],
+    [
+      0.391219,
+      "13    1793156110.494950 fsync(5)        = 0 <0.391219>"
+    ],
+    [
+      0.387176,
+      "13    1793156113.788005 openat(AT_FDCWD, \"/workspace/work/broker-fuzz-container-20261027/diagnostic-60-byte-02/tmp/plb-fuzz-epoch-13\", O_RDWR|O_CREAT|O_CLOEXEC, 0666) = 3 <0.387176>"
+    ],
+    [
+      0.385707,
+      "13    1793156442.898966 openat(AT_FDCWD, \"/workspace/work/broker-fuzz-container-20261027/diagnostic-60-byte-02/tmp/plb-fuzz-epoch-13\", O_WRONLY|O_CREAT|O_TRUNC|O_CLOEXEC, 0666) = 3 <0.385707>"
+    ],
+    [
+      0.379113,
+      "13    1793156400.706923 fdatasync(3)    = 0 <0.379113>"
+    ],
+    [
+      0.366437,
+      "13    1793156110.886467 close(5)        = 0 <0.366437>"
+    ],
+    [
+      0.349254,
+      "13    1793156153.735397 close(3)        = 0 <0.349254>"
+    ],
+    [
+      0.332975,
+      "13    1793156335.102737 fsync(5)        = 0 <0.332975>"
+    ],
+    [
+      0.310608,
+      "13    1793156342.470476 close(3)        = 0 <0.310608>"
+    ],
+    [
+      0.309317,
+      "13    1793156153.341514 fsync(5)        = 0 <0.309317>"
+    ],
+    [
+      0.307285,
+      "13    1793156398.938204 fdatasync(3)    = 0 <0.307285>"
+    ],
+    [
+      0.285441,
+      "13    1793156513.498456 openat(AT_FDCWD, \"/workspace/work/broker-fuzz-container-20261027/diagnostic-60-byte-02/tmp\", O_RDONLY|O_CLOEXEC) = 5 <0.285441>"
+    ],
+    [
+      0.276766,
+      "13    1793156680.207774 openat(AT_FDCWD, \"/workspace/work/broker-fuzz-container-20261027/diagnostic-60-byte-02/tmp/plb-fuzz-epoch-13\", O_RDWR|O_CREAT|O_CLOEXEC, 0666) = 3 <0.276766>"
+    ],
+    [
+      0.270079,
+      "13    1793156339.614522 unlink(\"/workspace/work/broker-fuzz-container-20261027/diagnostic-60-byte-02/tmp/plb-fuzz-epoch-13\") = 0 <0.270079>"
+    ],
+    [
+      0.267942,
+      "13    1793156483.499414 fsync(5)        = 0 <0.267942>"
+    ],
+    [
+      0.267605,
+      "13    1793156507.799164 close(5)        = 0 <0.267605>"
+    ],
+    [
+      0.237712,
+      "13    1793156265.381027 close(5)        = 0 <0.237712>"
+    ],
+    [
+      0.237539,
+      "13    1793156119.147610 fsync(5)        = 0 <0.237539>"
+    ],
+    [
+      0.225063,
+      "13    1793156770.020505 write(3, \"PLJRNL01\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\210\\326\\2329PLENTRY1\\0\\0\\0\\4\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\1\\331\\364\\255\\326Q\\t\\301yseed\", 60) = 60 <0.225063>"
+    ],
+    [
+      0.221748,
+      "13    1793156412.504566 fdatasync(3)    = 0 <0.221748>"
+    ],
+    [
+      0.201228,
+      "13    1793156343.386012 unlink(\"/workspace/work/broker-fuzz-container-20261027/diagnostic-60-byte-02/tmp/plb-fuzz-epoch-13\") = 0 <0.201228>"
+    ],
+    [
+      0.200398,
+      "13    1793156451.685326 fdatasync(3)    = 0 <0.200398>"
+    ],
+    [
+      0.199748,
+      "13    1793156114.205110 close(3)        = 0 <0.199748>"
+    ],
+    [
+      0.196971,
+      "13    1793156347.887648 openat(AT_FDCWD, \"/workspace/work/broker-fuzz-container-20261027/diagnostic-60-byte-02/tmp/plb-fuzz-epoch-13\", O_WRONLY|O_CREAT|O_TRUNC|O_CLOEXEC, 0666) = 3 <0.196971>"
+    ],
+    [
+      0.194921,
+      "13    1793156487.489657 fdatasync(3)    = 0 <0.194921>"
+    ],
+    [
+      0.194179,
+      "13    1793156294.590380 close(3)        = 0 <0.194179>"
+    ],
+    [
+      0.185402,
+      "13    1793156152.029419 close(5)        = 0 <0.185402>"
+    ],
+    [
+      0.178637,
+      "13    1793156334.706503 fdatasync(3)    = 0 <0.178637>"
+    ],
+    [
+      0.177398,
+      "13    1793156482.306776 fdatasync(3)    = 0 <0.177398>"
+    ],
+    [
+      0.177168,
+      "13    1793156856.507360 fdatasync(3)    = 0 <0.177168>"
+    ],
+    [
+      0.168892,
+      "13    1793156117.415792 fdatasync(3)    = 0 <0.168892>"
+    ],
+    [
+      0.165209,
+      "13    1793156115.910408 fdatasync(3)    = 0 <0.165209>"
+    ],
+    [
+      0.163797,
+      "13    1793156452.491302 fdatasync(3)    = 0 <0.163797>"
+    ],
+    [
+      0.160677,
+      "13    1793156519.523902 fdatasync(3)    = 0 <0.160677>"
+    ],
+    [
+      0.159799,
+      "13    1793156412.123202 openat(AT_FDCWD, \"/workspace/work/broker-fuzz-container-20261027/diagnostic-60-byte-02/tmp/plb-fuzz-epoch-13\", O_WRONLY|O_CREAT|O_TRUNC|O_CLOEXEC, 0666) = 3 <0.159799>"
+    ],
+    [
+      0.158802,
+      "13    1793156446.025783 fdatasync(3)    = 0 <0.158802>"
+    ],
+    [
+      0.156106,
+      "13    1793156832.529480 openat(AT_FDCWD, \"/workspace/work/broker-fuzz-container-20261027/diagnostic-60-byte-02/tmp/plb-fuzz-epoch-13\", O_WRONLY|O_CREAT|O_TRUNC|O_CLOEXEC, 0666) = 3 <0.156106>"
+    ],
+    [
+      0.150848,
+      "13    1793156413.805395 fdatasync(3)    = 0 <0.150848>"
+    ],
+    [
+      0.150707,
+      "13    1793156125.761931 close(3)        = 0 <0.150707>"
+    ],
+    [
+      0.150655,
+      "13    1793156685.709704 fsync(5)        = 0 <0.150655>"
+    ],
+    [
+      0.147875,
+      "13    1793156510.606911 fdatasync(3)    = 0 <0.147875>"
+    ],
+    [
+      0.146695,
+      "13    1793156208.893512 fdatasync(3)    = 0 <0.146695>"
+    ],
+    [
+      0.145831,
+      "13    1793156856.699130 openat(AT_FDCWD, \"/workspace/work/broker-fuzz-container-20261027/diagnostic-60-byte-02/tmp/plb-fuzz-epoch-13\", O_RDWR|O_CREAT|O_CLOEXEC, 0666) = 3 <0.145831>"
+    ],
+    [
+      0.143212,
+      "13    1793156125.070768 write(3, \"PLJRNL01\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\210\\326\\2329PLENTRY1\\0\\0\\0\\4\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\1\\331\\364\\255\\326Q\\t\\301yseed\", 60) = 60 <0.143212>"
+    ],
+    [
+      0.141807,
+      "13    1793156289.195618 openat(AT_FDCWD, \"/workspace/work/broker-fuzz-container-20261027/diagnostic-60-byte-02/input.bin\", O_RDONLY) = 3 <0.141807>"
+    ],
+    [
+      0.14153,
+      "13    1793156416.012081 write(3, \"PLJRNL01\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\210\\326\\2329PLENTRY1\\0\\0\\0\\4\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\1\\331\\364\\255\\326Q\\t\\301yseed\", 60) = 60 <0.141530>"
+    ],
+    [
+      0.140595,
+      "13    1793156335.924361 unlink(\"/workspace/work/broker-fuzz-container-20261027/diagnostic-60-byte-02/tmp/plb-fuzz-epoch-13\") = 0 <0.140595>"
+    ],
+    [
+      0.139504,
+      "13    1793156113.563935 fdatasync(3)    = 0 <0.139504>"
+    ],
+    [
+      0.139385,
+      "13    1793156342.019594 openat(AT_FDCWD, \"/workspace/work/broker-fuzz-container-20261027/diagnostic-60-byte-02/tmp/plb-fuzz-epoch-13\", O_WRONLY|O_CREAT|O_TRUNC|O_CLOEXEC, 0666) = 3 <0.139385>"
+    ],
+    [
+      0.137193,
+      "13    1793156154.639436 close(3)        = 0 <0.137193>"
+    ],
+    [
+      0.135806,
+      "13    1793156136.986057 fsync(5)        = 0 <0.135806>"
+    ],
+    [
+      0.135114,
+      "13    1793156398.206951 fdatasync(3)    = 0 <0.135114>"
+    ],
+    [
+      0.132733,
+      "13    1793156491.206781 fdatasync(3)    = 0 <0.132733>"
+    ],
+    [
+      0.130483,
+      "13    1793156117.700141 openat(AT_FDCWD, \"/workspace/work/broker-fuzz-container-20261027/diagnostic-60-byte-02/tmp/plb-fuzz-epoch-13\", O_WRONLY|O_CREAT|O_TRUNC|O_CLOEXEC, 0666) = 3 <0.130483>"
+    ],
+    [
+      0.129731,
+      "13    1793156152.729682 fdatasync(3)    = 0 <0.129731>"
+    ],
+    [
+      0.127907,
+      "13    1793156508.467665 fdatasync(3)    = 0 <0.127907>"
+    ],
+    [
+      0.127649,
+      "13    1793156772.520556 fsync(5)        = 0 <0.127649>"
+    ],
+    [
+      0.123595,
+      "13    1793156685.921136 fdatasync(3)    = 0 <0.123595>"
+    ],
+    [
+      0.122017,
+      "13    1793156445.738375 fdatasync(3)    = 0 <0.122017>"
+    ],
+    [
+      0.121056,
+      "13    1793156339.206064 fdatasync(3)    = 0 <0.121056>"
+    ],
+    [
+      0.120717,
+      "13    1793156838.738439 openat(AT_FDCWD, \"/workspace/work/broker-fuzz-container-20261027/diagnostic-60-byte-02/input.bin\", O_RDONLY) = 3 <0.120717>"
+    ],
+    [
+      0.116561,
+      "13    1793156770.468903 fdatasync(3)    = 0 <0.116561>"
+    ],
+    [
+      0.115166,
+      "13    1793156231.826177 fdatasync(3)    = 0 <0.115166>"
+    ],
+    [
+      0.113145,
+      "13    1793156441.817538 fsync(5)        = 0 <0.113145>"
+    ],
+    [
+      0.111063,
+      "13    1793156654.487960 fdatasync(3)    = 0 <0.111063>"
+    ],
+    [
+      0.108499,
+      "13    1793156640.707105 fdatasync(3)    = 0 <0.108499>"
+    ],
+    [
+      0.10739,
+      "13    1793156486.498542 fdatasync(3)    = 0 <0.107390>"
+    ],
+    [
+      0.107231,
+      "13    1793156822.321299 write(3, \"PLJRNL01\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\210\\326\\2329PLENTRY1\\0\\0\\0\\4\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\1\\331\\364\\255\\326Q\\t\\301yseed\", 60) = 60 <0.107231>"
+    ],
+    [
+      0.106266,
+      "13    1793156448.728135 openat(AT_FDCWD, \"/workspace/work/broker-fuzz-container-20261027/diagnostic-60-byte-02/tmp/plb-fuzz-epoch-13\", O_RDWR|O_CREAT|O_CLOEXEC, 0666) = 3 <0.106266>"
+    ],
+    [
+      0.106183,
+      "13    1793156394.271824 fsync(5)        = 0 <0.106183>"
+    ],
+    [
+      0.106091,
+      "13    1793156048.106107 openat(AT_FDCWD, \"/workspace/work/broker-fuzz-container-20261027/diagnostic-60-byte-02/tmp/plb-fuzz-epoch-13\", O_RDWR|O_CREAT|O_CLOEXEC, 0666) = 3 <0.106091>"
+    ],
+    [
+      0.105475,
+      "13    1793156032.106398 fdatasync(3)    = 0 <0.105475>"
+    ],
+    [
+      0.10391,
+      "13    1793156445.485148 close(5)        = 0 <0.103910>"
+    ],
+    [
+      0.103277,
+      "13    1793156209.514461 close(3)        = 0 <0.103277>"
+    ],
+    [
+      0.10215,
+      "13    1793156304.223875 openat(AT_FDCWD, \"/workspace/work/broker-fuzz-container-20261027/diagnostic-60-byte-02/tmp/plb-fuzz-epoch-13\", O_RDWR|O_CREAT|O_CLOEXEC, 0666) = 3 <0.102150>"
+    ],
+    [
+      0.101624,
+      "13    1793156483.012205 openat(AT_FDCWD, \"/workspace/work/broker-fuzz-container-20261027/diagnostic-60-byte-02/input.bin\", O_RDONLY) = 3 <0.101624>"
+    ],
+    [
+      0.100494,
+      "13    1793156471.507054 fdatasync(3)    = 0 <0.100494>"
+    ],
+    [
+      0.099906,
+      "13    1793156117.589048 openat(AT_FDCWD, \"/workspace/work/broker-fuzz-container-20261027/diagnostic-60-byte-02/input.bin\", O_RDONLY) = 3 <0.099906>"
+    ],
+    [
+      0.099757,
+      "13    1793156311.985219 openat(AT_FDCWD, \"/workspace/work/broker-fuzz-container-20261027/diagnostic-60-byte-02/input.bin\", O_RDONLY) = 3 <0.099757>"
+    ],
+    [
+      0.098856,
+      "13    1793156269.885753 fdatasync(3)    = 0 <0.098856>"
+    ],
+    [
+      0.09836,
+      "13    1793155990.091334 fdatasync(3)    = 0 <0.098360>"
+    ],
+    [
+      0.098305,
+      "13    1793156397.706974 fdatasync(3)    = 0 <0.098305>"
+    ],
+    [
+      0.09737,
+      "13    1793156484.507239 close(5)        = 0 <0.097370>"
+    ],
+    [
+      0.097084,
+      "13    1793155992.603318 fdatasync(3)    = 0 <0.097084>"
+    ],
+    [
+      0.096559,
+      "13    1793156137.605959 fdatasync(3)    = 0 <0.096559>"
+    ],
+    [
+      0.09565,
+      "13    1793156680.489070 close(3)        = 0 <0.095650>"
+    ],
+    [
+      0.095618,
+      "13    1793156848.588901 openat(AT_FDCWD, \"/workspace/work/broker-fuzz-container-20261027/diagnostic-60-byte-02/tmp/plb-fuzz-epoch-13\", O_RDWR|O_CREAT|O_CLOEXEC, 0666) = 3 <0.095618>"
+    ],
+    [
+      0.095042,
+      "13    1793156515.306678 fdatasync(3)    = 0 <0.095042>"
+    ],
+    [
+      0.095037,
+      "13    1793156335.598401 close(5)        = 0 <0.095037>"
+    ],
+    [
+      0.094703,
+      "13    1793156626.291194 fdatasync(3)    = 0 <0.094703>"
+    ],
+    [
+      0.094176,
+      "13    1793156416.600180 fdatasync(3)    = 0 <0.094176>"
+    ],
+    [
+      0.09234,
+      "13    1793156542.392161 write(3, \"PLJRNL01\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\210\\326\\2329PLENTRY1\\0\\0\\0\\4\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\1\\331\\364\\255\\326Q\\t\\301yseed\", 60) = 60 <0.092340>"
+    ],
+    [
+      0.092232,
+      "13    1793156400.606220 fsync(5)        = 0 <0.092232>"
+    ],
+    [
+      0.09223,
+      "13    1793156516.999145 fdatasync(3)    = 0 <0.092230>"
+    ],
+    [
+      0.091564,
+      "13    1793156410.006363 fdatasync(3)    = 0 <0.091564>"
+    ],
+    [
+      0.089918,
+      "13    1793156547.594622 openat(AT_FDCWD, \"/workspace/work/broker-fuzz-container-20261027/diagnostic-60-byte-02/tmp\", O_RDONLY|O_CLOEXEC) = 5 <0.089918>"
+    ],
+    [
+      0.089839,
+      "13    1793156742.894848 fsync(5)        = 0 <0.089839>"
+    ],
+    [
+      0.089705,
+      "13    1793156133.196934 fdatasync(3)    = 0 <0.089705>"
+    ],
+    [
+      0.089534,
+      "13    1793156823.007796 openat(AT_FDCWD, \"/workspace/work/broker-fuzz-container-20261027/diagnostic-60-byte-02/tmp\", O_RDONLY|O_CLOEXEC) = 5 <0.089534>"
+    ],
+    [
+      0.088897,
+      "13    1793156415.905081 fsync(5)        = 0 <0.088897>"
+    ],
+    [
+      0.088385,
+      "13    1793156487.396608 fdatasync(3)    = 0 <0.088385>"
+    ],
+    [
+      0.087719,
+      "13    1793156481.398628 unlink(\"/workspace/work/broker-fuzz-container-20261027/diagnostic-60-byte-02/tmp/plb-fuzz-epoch-13\") = 0 <0.087719>"
+    ],
+    [
+      0.086702,
+      "13    1793156030.797916 fdatasync(3)    = 0 <0.086702>"
+    ],
+    [
+      0.085898,
+      "13    1793156348.098834 fsync(5)        = 0 <0.085898>"
+    ],
+    [
+      0.08538,
+      "13    1793156516.602214 fdatasync(3)    = 0 <0.085380>"
+    ],
+    [
+      0.085251,
+      "13    1793156812.208445 fsync(5)        = 0 <0.085251>"
+    ],
+    [
+      0.084912,
+      "13    1793156547.121344 fsync(5)        = 0 <0.084912>"
+    ],
+    [
+      0.083838,
+      "13    1793156258.005948 fdatasync(3)    = 0 <0.083838>"
+    ],
+    [
+      0.082777,
+      "13    1793156265.295087 fsync(5)        = 0 <0.082777>"
+    ],
+    [
+      0.082761,
+      "13    1793156408.009210 fdatasync(3)    = 0 <0.082761>"
+    ],
+    [
+      0.081447,
+      "13    1793156510.003085 close(3)        = 0 <0.081447>"
+    ],
+    [
+      0.081043,
+      "13    1793156442.503962 fsync(5)        = 0 <0.081043>"
+    ],
+    [
+      0.080868,
+      "13    1793156119.504207 close(5)        = 0 <0.080868>"
+    ],
+    [
+      0.080102,
+      "13    1793156191.904434 openat(AT_FDCWD, \"/workspace/work/broker-fuzz-container-20261027/diagnostic-60-byte-02/tmp/plb-fuzz-epoch-13\", O_RDWR|O_CREAT|O_CLOEXEC, 0666) = 3 <0.080102>"
+    ],
+    [
+      0.079909,
+      "13    1793156515.604353 fsync(5)        = 0 <0.079909>"
+    ],
+    [
+      0.079713,
+      "13    1793156398.605374 fsync(5)        = 0 <0.079713>"
+    ],
+    [
+      0.079515,
+      "13    1793156768.812789 fdatasync(3)    = 0 <0.079515>"
+    ],
+    [
+      0.07908,
+      "13    1793156376.028880 openat(AT_FDCWD, \"/workspace/work/broker-fuzz-container-20261027/diagnostic-60-byte-02/input.bin\", O_RDONLY) = 3 <0.079080>"
+    ],
+    [
+      0.07904,
+      "13    1793156416.194726 fdatasync(3)    = 0 <0.079040>"
+    ],
+    [
+      0.07895,
+      "13    1793156343.605742 openat(AT_FDCWD, \"/workspace/work/broker-fuzz-container-20261027/diagnostic-60-byte-02/tmp/plb-fuzz-epoch-13\", O_WRONLY|O_CREAT|O_TRUNC|O_CLOEXEC, 0666) = 3 <0.078950>"
+    ],
+    [
+      0.078678,
+      "13    1793156451.506129 openat(AT_FDCWD, \"/workspace/work/broker-fuzz-container-20261027/diagnostic-60-byte-02/tmp\", O_RDONLY|O_CLOEXEC) = 5 <0.078678>"
+    ],
+    [
+      0.078591,
+      "13    1793156482.006937 fsync(5)        = 0 <0.078591>"
+    ],
+    [
+      0.078412,
+      "13    1793156398.505092 fdatasync(3)    = 0 <0.078412>"
+    ],
+    [
+      0.077907,
+      "13    1793156402.806893 fdatasync(3)    = 0 <0.077907>"
+    ],
+    [
+      0.077736,
+      "13    1793156685.506904 fdatasync(3)    = 0 <0.077736>"
+    ],
+    [
+      0.077528,
+      "13    1793156344.503869 fdatasync(3)    = 0 <0.077528>"
+    ],
+    [
+      0.077298,
+      "13    1793156082.507287 close(3)        = 0 <0.077298>"
+    ],
+    [
+      0.077276,
+      "13    1793156823.307283 openat(AT_FDCWD, \"/workspace/work/broker-fuzz-container-20261027/diagnostic-60-byte-02/tmp/plb-fuzz-epoch-13\", O_RDWR|O_CREAT|O_CLOEXEC, 0666) = 3 <0.077276>"
+    ],
+    [
+      0.077097,
+      "13    1793156629.119351 openat(AT_FDCWD, \"/workspace/work/broker-fuzz-container-20261027/diagnostic-60-byte-02/tmp/plb-fuzz-epoch-13\", O_RDWR|O_CREAT|O_CLOEXEC, 0666) = 3 <0.077097>"
+    ],
+    [
+      0.076874,
+      "13    1793156821.408498 openat(AT_FDCWD, \"/workspace/work/broker-fuzz-container-20261027/diagnostic-60-byte-02/tmp/plb-fuzz-epoch-13\", O_WRONLY|O_CREAT|O_TRUNC|O_CLOEXEC, 0666) = 3 <0.076874>"
+    ],
+    [
+      0.076796,
+      "13    1793156265.218088 openat(AT_FDCWD, \"/workspace/work/broker-fuzz-container-20261027/diagnostic-60-byte-02/tmp\", O_RDONLY|O_CLOEXEC) = 5 <0.076796>"
+    ],
+    [
+      0.076448,
+      "13    1793156510.402847 close(5)        = 0 <0.076448>"
+    ],
+    [
+      0.075888,
+      "13    1793156246.806112 fsync(5)        = 0 <0.075888>"
+    ],
+    [
+      0.075468,
+      "13    1793156413.106208 fdatasync(3)    = 0 <0.075468>"
+    ],
+    [
+      0.075091,
+      "13    1793156412.409537 fsync(5)        = 0 <0.075091>"
+    ],
+    [
+      0.07434,
+      "13    1793156441.414132 close(3)        = 0 <0.074340>"
+    ],
+    [
+      0.074254,
+      "13    1793156005.110338 fdatasync(3)    = 0 <0.074254>"
+    ],
+    [
+      0.073835,
+      "13    1793156487.710730 fdatasync(3)    = 0 <0.073835>"
+    ],
+    [
+      0.073833,
+      "13    1793156809.510979 openat(AT_FDCWD, \"/workspace/work/broker-fuzz-container-20261027/diagnostic-60-byte-02/input.bin\", O_RDONLY) = 3 <0.073833>"
+    ],
+    [
+      0.073685,
+      "13    1793156209.712437 openat(AT_FDCWD, \"/workspace/work/broker-fuzz-container-20261027/diagnostic-60-byte-02/tmp/plb-fuzz-epoch-13\", O_WRONLY|O_CREAT|O_TRUNC|O_CLOEXEC, 0666) = 3 <0.073685>"
+    ],
+    [
+      0.073445,
+      "13    1793156829.485033 fsync(5)        = 0 <0.073445>"
+    ],
+    [
+      0.073226,
+      "13    1793156633.511350 fdatasync(3)    = 0 <0.073226>"
+    ],
+    [
+      0.073168,
+      "13    1793156430.411356 unlink(\"/workspace/work/broker-fuzz-container-20261027/diagnostic-60-byte-02/tmp/plb-fuzz-epoch-13\") = 0 <0.073168>"
+    ],
+    [
+      0.07306,
+      "13    1793156203.812547 close(3)        = 0 <0.073060>"
+    ],
+    [
+      0.07302,
+      "13    1793156005.811458 openat(AT_FDCWD, \"/workspace/work/broker-fuzz-container-20261027/diagnostic-60-byte-02/tmp/plb-fuzz-epoch-13\", O_RDWR|O_CREAT|O_CLOEXEC, 0666) = 3 <0.073020>"
+    ],
+    [
+      0.072971,
+      "13    1793156613.411820 openat(AT_FDCWD, \"/workspace/work/broker-fuzz-container-20261027/diagnostic-60-byte-02/tmp/plb-fuzz-epoch-13\", O_WRONLY|O_CREAT|O_TRUNC|O_CLOEXEC, 0666) = 3 <0.072971>"
+    ],
+    [
+      0.072564,
+      "13    1793156318.512068 fdatasync(3)    = 0 <0.072564>"
+    ],
+    [
+      0.07223,
+      "13    1793156842.419532 openat(AT_FDCWD, \"/workspace/work/broker-fuzz-container-20261027/diagnostic-60-byte-02/tmp/plb-fuzz-epoch-13\", O_RDWR|O_CREAT|O_CLOEXEC, 0666) = 3 <0.072230>"
+    ],
+    [
+      0.071751,
+      "13    1793156519.906803 fdatasync(3)    = 0 <0.071751>"
+    ],
+    [
+      0.071631,
+      "13    1793156015.212932 openat(AT_FDCWD, \"/workspace/work/broker-fuzz-container-20261027/diagnostic-60-byte-02/tmp/plb-fuzz-epoch-13\", O_WRONLY|O_CREAT|O_TRUNC|O_CLOEXEC, 0666) = 3 <0.071631>"
+    ],
+    [
+      0.071502,
+      "13    1793156400.013561 fsync(5)        = 0 <0.071502>"
+    ],
+    [
+      0.071495,
+      "13    1793156091.513049 unlink(\"/workspace/work/broker-fuzz-container-20261027/diagnostic-60-byte-02/tmp/plb-fuzz-epoch-13\") = 0 <0.071495>"
+    ],
+    [
+      0.071448,
+      "13    1793156488.413140 fsync(5)        = 0 <0.071448>"
+    ],
+    [
+      0.071341,
+      "13    1793156821.212707 openat(AT_FDCWD, \"/workspace/work/broker-fuzz-container-20261027/diagnostic-60-byte-02/tmp/plb-fuzz-epoch-13\", O_WRONLY|O_CREAT|O_TRUNC|O_CLOEXEC, 0666) = 3 <0.071341>"
+    ],
+    [
+      0.071271,
+      "13    1793156747.910793 openat(AT_FDCWD, \"/workspace/work/broker-fuzz-container-20261027/diagnostic-60-byte-02/tmp/plb-fuzz-epoch-13\", O_RDWR|O_CREAT|O_CLOEXEC, 0666) = 3 <0.071271>"
+    ],
+    [
+      0.070992,
+      "13    1793156005.313928 openat(AT_FDCWD, \"/workspace/work/broker-fuzz-container-20261027/diagnostic-60-byte-02/input.bin\", O_RDONLY) = 3 <0.070992>"
+    ],
+    [
+      0.070933,
+      "13    1793156804.520520 close(3)        = 0 <0.070933>"
+    ],
+    [
+      0.070892,
+      "13    1793156021.813660 openat(AT_FDCWD, \"/workspace/work/broker-fuzz-container-20261027/diagnostic-60-byte-02/tmp/plb-fuzz-epoch-13\", O_RDWR|O_CREAT|O_CLOEXEC, 0666) = 3 <0.070892>"
+    ],
+    [
+      0.070841,
+      "13    1793156004.013692 close(3)        = 0 <0.070841>"
+    ],
+    [
+      0.070798,
+      "13    1793156652.813936 fdatasync(3)    = 0 <0.070798>"
+    ],
+    [
+      0.070747,
+      "13    1793156502.413931 openat(AT_FDCWD, \"/workspace/work/broker-fuzz-container-20261027/diagnostic-60-byte-02/input.bin\", O_RDONLY) = 3 <0.070747>"
+    ],
+    [
+      0.070667,
+      "13    1793156231.513898 openat(AT_FDCWD, \"/workspace/work/broker-fuzz-container-20261027/diagnostic-60-byte-02/input.bin\", O_RDONLY) = 3 <0.070667>"
+    ],
+    [
+      0.070642,
+      "13    1793156778.514057 fdatasync(3)    = 0 <0.070642>"
+    ],
+    [
+      0.070547,
+      "13    1793156566.114001 fdatasync(3)    = 0 <0.070547>"
+    ],
+    [
+      0.070493,
+      "13    1793156440.027886 fdatasync(3)    = 0 <0.070493>"
+    ],
+    [
+      0.070491,
+      "13    1793156174.014049 openat(AT_FDCWD, \"/workspace/work/broker-fuzz-container-20261027/diagnostic-60-byte-02/tmp\", O_RDONLY|O_CLOEXEC) = 5 <0.070491>"
+    ],
+    [
+      0.069616,
+      "13    1793156426.314964 openat(AT_FDCWD, \"/workspace/work/broker-fuzz-container-20261027/diagnostic-60-byte-02/input.bin\", O_RDONLY) = 3 <0.069616>"
+    ],
+    [
+      0.069574,
+      "13    1793156273.015014 fsync(5)        = 0 <0.069574>"
+    ],
+    [
+      0.069497,
+      "13    1793156006.516160 fdatasync(3)    = 0 <0.069497>"
+    ],
+    [
+      0.069426,
+      "13    1793156197.729054 fsync(5)        = 0 <0.069426>"
+    ],
+    [
+      0.069293,
+      "13    1793156505.515373 openat(AT_FDCWD, \"/workspace/work/broker-fuzz-container-20261027/diagnostic-60-byte-02/input.bin\", O_RDONLY) = 3 <0.069293>"
+    ],
+    [
+      0.069273,
+      "13    1793156005.715742 fdatasync(3)    = 0 <0.069273>"
+    ],
+    [
+      0.069254,
+      "13    1793156021.913492 close(3)        = 0 <0.069254>"
+    ],
+    [
+      0.069201,
+      "13    1793156174.815260 openat(AT_FDCWD, \"/workspace/work/broker-fuzz-container-20261027/diagnostic-60-byte-02/input.bin\", O_RDONLY) = 3 <0.069201>"
+    ],
+    [
+      0.069113,
+      "13    1793156665.015411 openat(AT_FDCWD, \"/workspace/work/broker-fuzz-container-20261027/diagnostic-60-byte-02/tmp\", O_RDONLY|O_CLOEXEC) = 5 <0.069113>"
+    ],
+    [
+      0.069094,
+      "13    1793156845.617857 close(5)        = 0 <0.069094>"
+    ],
+    [
+      0.069002,
+      "13    1793156488.915557 fdatasync(3)    = 0 <0.069002>"
+    ],
+    [
+      0.068784,
+      "13    1793156208.715892 close(5)        = 0 <0.068784>"
+    ],
+    [
+      0.068776,
+      "13    1793156005.516873 openat(AT_FDCWD, \"/workspace/work/broker-fuzz-container-20261027/diagnostic-60-byte-02/input.bin\", O_RDONLY) = 3 <0.068776>"
+    ],
+    [
+      0.068751,
+      "13    1793156207.615856 close(5)        = 0 <0.068751>"
+    ],
+    [
+      0.068595,
+      "13    1793156748.015960 unlink(\"/workspace/work/broker-fuzz-container-20261027/diagnostic-60-byte-02/tmp/plb-fuzz-epoch-13\") = 0 <0.068595>"
+    ],
+    [
+      0.068468,
+      "13    1793156468.116199 openat(AT_FDCWD, \"/workspace/work/broker-fuzz-container-20261027/diagnostic-60-byte-02/tmp/plb-fuzz-epoch-13\", O_WRONLY|O_CREAT|O_TRUNC|O_CLOEXEC, 0666) = 3 <0.068468>"
+    ],
+    [
+      0.068432,
+      "13    1793156450.816185 openat(AT_FDCWD, \"/workspace/work/broker-fuzz-container-20261027/diagnostic-60-byte-02/tmp/plb-fuzz-epoch-13\", O_WRONLY|O_CREAT|O_TRUNC|O_CLOEXEC, 0666) = 3 <0.068432>"
+    ],
+    [
+      0.068425,
+      "13    1793156807.507705 fdatasync(3)    = 0 <0.068425>"
+    ],
+    [
+      0.068414,
+      "13    1793156022.316183 openat(AT_FDCWD, \"/workspace/work/broker-fuzz-container-20261027/diagnostic-60-byte-02/input.bin\", O_RDONLY) = 3 <0.068414>"
+    ],
+    [
+      0.068377,
+      "13    1793156467.116203 write(3, \"PLJRNL01\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\210\\326\\2329PLENTRY1\\0\\0\\0\\4\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\1\\331\\364\\255\\326Q\\t\\301yseed\", 60) = 60 <0.068377>"
+    ],
+    [
+      0.068291,
+      "13    1793156269.316285 unlink(\"/workspace/work/broker-fuzz-container-20261027/diagnostic-60-byte-02/tmp/plb-fuzz-epoch-13\") = 0 <0.068291>"
+    ],
+    [
+      0.068263,
+      "13    1793156598.016258 close(3)        = 0 <0.068263>"
+    ],
+    [
+      0.068128,
+      "13    1793156080.515969 openat(AT_FDCWD, \"/workspace/work/broker-fuzz-container-20261027/diagnostic-60-byte-02/tmp/plb-fuzz-epoch-13\", O_RDWR|O_CREAT|O_CLOEXEC, 0666) = 3 <0.068128>"
+    ],
+    [
+      0.068122,
+      "13    1793156791.316500 write(3, \"PLJRNL01\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\210\\326\\2329PLENTRY1\\0\\0\\0\\4\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\1\\331\\364\\255\\326Q\\t\\301yseed\", 60) = 60 <0.068122>"
+    ],
+    [
+      0.068084,
+      "13    1793156748.916479 openat(AT_FDCWD, \"/workspace/work/broker-fuzz-container-20261027/diagnostic-60-byte-02/tmp/plb-fuzz-epoch-13\", O_WRONLY|O_CREAT|O_TRUNC|O_CLOEXEC, 0666) = 3 <0.068084>"
+    ],
+    [
+      0.068066,
+      "13    1793156418.421970 openat(AT_FDCWD, \"/workspace/work/broker-fuzz-container-20261027/diagnostic-60-byte-02/tmp/plb-fuzz-epoch-13\", O_RDWR|O_CREAT|O_CLOEXEC, 0666) = 3 <0.068066>"
+    ],
+    [
+      0.067859,
+      "13    1793156750.416695 fdatasync(3)    = 0 <0.067859>"
+    ],
+    [
+      0.067793,
+      "13    1793156730.216714 fdatasync(3)    = 0 <0.067793>"
+    ],
+    [
+      0.067776,
+      "13    1793156745.816863 close(3)        = 0 <0.067776>"
+    ],
+    [
+      0.067667,
+      "13    1793156349.217128 write(3, \"PLJRNL01\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\210\\326\\2329PLENTRY1\\0\\0\\0\\4\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\1\\331\\364\\255\\326Q\\t\\301yseed\", 60) = 60 <0.067667>"
+    ],
+    [
+      0.067503,
+      "13    1793156436.517158 fsync(5)        = 0 <0.067503>"
+    ],
+    [
+      0.067427,
+      "13    1793156047.116498 openat(AT_FDCWD, \"/workspace/work/broker-fuzz-container-20261027/diagnostic-60-byte-02/tmp/plb-fuzz-epoch-13\", O_RDWR|O_CREAT|O_CLOEXEC, 0666) = 3 <0.067427>"
+    ],
+    [
+      0.067421,
+      "13    1793156207.317038 fsync(5)        = 0 <0.067421>"
+    ],
+    [
+      0.067417,
+      "13    1793156018.017151 fdatasync(3)    = 0 <0.067417>"
+    ],
+    [
+      0.067407,
+      "13    1793156733.617271 close(3)        = 0 <0.067407>"
+    ],
+    [
+      0.067329,
+      "13    1793156821.317257 close(3)        = 0 <0.067329>"
+    ],
+    [
+      0.067312,
+      "13    1793156106.018394 close(5)        = 0 <0.067312>"
+    ],
+    [
+      0.067306,
+      "13    1793156739.017206 fsync(5)        = 0 <0.067306>"
+    ],
+    [
+      0.067301,
+      "13    1793156451.119600 fdatasync(3)    = 0 <0.067301>"
+    ],
+    [
+      0.067289,
+      "13    1793156862.417312 openat(AT_FDCWD, \"/workspace/work/broker-fuzz-container-20261027/diagnostic-60-byte-02/tmp/plb-fuzz-epoch-13\", O_WRONLY|O_CREAT|O_TRUNC|O_CLOEXEC, 0666) = 3 <0.067289>"
+    ],
+    [
+      0.067249,
+      "13    1793156119.079659 fdatasync(3)    = 0 <0.067249>"
+    ],
+    [
+      0.067231,
+      "13    1793156867.217326 close(5)        = 0 <0.067231>"
+    ],
+    [
+      0.06723,
+      "13    1793156261.517180 openat(AT_FDCWD, \"/workspace/work/broker-fuzz-container-20261027/diagnostic-60-byte-02/input.bin\", O_RDONLY) = 3 <0.067230>"
+    ],
+    [
+      0.067204,
+      "13    1793156753.517283 fdatasync(3)    = 0 <0.067204>"
+    ],
+    [
+      0.067199,
+      "13    1793156326.217414 fsync(5)        = 0 <0.067199>"
+    ],
+    [
+      0.067122,
+      "13    1793156192.517397 fsync(5)        = 0 <0.067122>"
+    ],
+    [
+      0.067117,
+      "13    1793156746.219817 fsync(5)        = 0 <0.067117>"
+    ],
+    [
+      0.067107,
+      "13    1793156044.817460 fdatasync(3)    = 0 <0.067107>"
+    ],
+    [
+      0.066956,
+      "13    1793156453.117572 openat(AT_FDCWD, \"/workspace/work/broker-fuzz-container-20261027/diagnostic-60-byte-02/tmp\", O_RDONLY|O_CLOEXEC) = 5 <0.066956>"
+    ],
+    [
+      0.066943,
+      "13    1793156431.017591 close(3)        = 0 <0.066943>"
+    ],
+    [
+      0.066898,
+      "13    1793156862.217663 close(3)        = 0 <0.066898>"
+    ],
+    [
+      0.066866,
+      "13    1793156731.517779 fdatasync(3)    = 0 <0.066866>"
+    ],
+    [
+      0.066728,
+      "13    1793156742.418992 fdatasync(3)    = 0 <0.066728>"
+    ],
+    [
+      0.066659,
+      "13    1793156270.517947 fdatasync(3)    = 0 <0.066659>"
+    ],
+    [
+      0.066633,
+      "13    1793156786.019928 openat(AT_FDCWD, \"/workspace/work/broker-fuzz-container-20261027/diagnostic-60-byte-02/tmp\", O_RDONLY|O_CLOEXEC) = 5 <0.066633>"
+    ],
+    [
+      0.066523,
+      "13    1793156725.718169 fdatasync(3)    = 0 <0.066523>"
+    ],
+    [
+      0.066489,
+      "13    1793156830.818308 fsync(5)        = 0 <0.066489>"
+    ],
+    [
+      0.066487,
+      "13    1793156556.017976 openat(AT_FDCWD, \"/workspace/work/broker-fuzz-container-20261027/diagnostic-60-byte-02/tmp\", O_RDONLY|O_CLOEXEC) = 5 <0.066487>"
+    ],
+    [
+      0.066484,
+      "13    1793156425.918098 openat(AT_FDCWD, \"/workspace/work/broker-fuzz-container-20261027/diagnostic-60-byte-02/tmp/plb-fuzz-epoch-13\", O_RDWR|O_CREAT|O_CLOEXEC, 0666) = 3 <0.066484>"
+    ],
+    [
+      0.066468,
+      "13    1793156012.818171 fdatasync(3)    = 0 <0.066468>"
+    ],
+    [
+      0.066459,
+      "13    1793156496.818114 fdatasync(3)    = 0 <0.066459>"
+    ],
+    [
+      0.066419,
+      "13    1793156755.318150 fdatasync(3)    = 0 <0.066419>"
+    ],
+    [
+      0.066402,
+      "13    1793156634.718199 close(3)        = 0 <0.066402>"
+    ],
+    [
+      0.066399,
+      "13    1793156340.119430 fdatasync(3)    = 0 <0.066399>"
+    ],
+    [
+      0.066377,
+      "13    1793156450.918179 unlink(\"/workspace/work/broker-fuzz-container-20261027/diagnostic-60-byte-02/tmp/plb-fuzz-epoch-13\") = 0 <0.066377>"
+    ],
+    [
+      0.066364,
+      "13    1793156749.618642 openat(AT_FDCWD, \"/workspace/work/broker-fuzz-container-20261027/diagnostic-60-byte-02/input.bin\", O_RDONLY) = 3 <0.066364>"
+    ],
+    [
+      0.066347,
+      "13    1793156821.718418 openat(AT_FDCWD, \"/workspace/work/broker-fuzz-container-20261027/diagnostic-60-byte-02/tmp/plb-fuzz-epoch-13\", O_WRONLY|O_CREAT|O_TRUNC|O_CLOEXEC, 0666) = 3 <0.066347>"
+    ],
+    [
+      0.06634,
+      "13    1793156472.718200 close(5)        = 0 <0.066340>"
+    ]
+  ],
+  "syscalls": {
+    "close": 323006,
+    "fdatasync": 80733,
+    "fsync": 80746,
+    "openat": 323011,
+    "unlink": 80748,
+    "write": 80765
+  }
+}

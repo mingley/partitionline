@@ -1,0 +1,87 @@
+warning: constant `PRODUCER_EPOCH` is never used
+  --> src/batch.rs:37:18
+   |
+37 | pub(crate) const PRODUCER_EPOCH: usize = 51;
+   |                  ^^^^^^^^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: `partitionline-broker` (lib) generated 1 warning
+    Finished `test` profile [unoptimized] target(s) in 0.12s
+     Running tests/transport.rs (/workspace/work/qualification-20261027/broker-check-target/debug/deps/transport-de7ca4ed41343eb2)
+
+running 16 tests
+test adversarial_lengths_close_before_payload_or_handler_and_isolate_peers ... FAILED
+test cancelled_shutdown_await_can_be_retried_and_still_joins ... ok
+test connection_overload_rejects_without_spawning_handler ... ok
+test dropping_transport_requests_socket_and_handler_cleanup ... ok
+test fragmented_prefix_body_empty_and_exact_limit_roundtrip ... ok
+test handler_deadline_includes_waiting_for_concurrency_permit ... FAILED
+test handler_error_and_oversized_response_close_only_their_connections ... FAILED
+test handler_work_is_bounded_and_shutdown_joins_active_and_queued_requests ... ok
+test hanging_handler_times_out_and_its_future_is_dropped ... FAILED
+test idle_connection_has_an_absolute_read_deadline ... FAILED
+test pipelined_no_reply_sends_no_frame_and_keeps_connection_usable ... ok
+test pipelined_requests_keep_wire_and_handler_order ... ok
+test rejects_zero_and_out_of_range_configuration_without_io ... ok
+test slowloris_progress_does_not_reset_prefix_plus_body_deadline ... ok
+test truncated_prefix_and_body_never_invoke_handler ... FAILED
+test unread_large_response_hits_absolute_write_deadline_and_joins ... ok
+
+failures:
+
+---- adversarial_lengths_close_before_payload_or_handler_and_isolate_peers stdout ----
+
+thread 'adversarial_lengths_close_before_payload_or_handler_and_isolate_peers' (11728) panicked at tests/transport.rs:280:5:
+assertion `left == right` failed
+  left: 3
+ right: 4
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- handler_deadline_includes_waiting_for_concurrency_permit stdout ----
+
+thread 'handler_deadline_includes_waiting_for_concurrency_permit' (11733) panicked at tests/transport.rs:429:5:
+assertion `left == right` failed
+  left: 0
+ right: 1
+
+---- handler_error_and_oversized_response_close_only_their_connections stdout ----
+
+thread 'handler_error_and_oversized_response_close_only_their_connections' (11734) panicked at tests/transport.rs:369:5:
+assertion `left == right` failed
+  left: 0
+ right: 1
+
+---- hanging_handler_times_out_and_its_future_is_dropped stdout ----
+
+thread 'hanging_handler_times_out_and_its_future_is_dropped' (11736) panicked at tests/transport.rs:397:5:
+assertion `left == right` failed
+  left: 0
+ right: 1
+
+---- idle_connection_has_an_absolute_read_deadline stdout ----
+
+thread 'idle_connection_has_an_absolute_read_deadline' (11737) panicked at tests/transport.rs:340:5:
+assertion `left == right` failed
+  left: 0
+ right: 1
+
+---- truncated_prefix_and_body_never_invoke_handler stdout ----
+
+thread 'truncated_prefix_and_body_never_invoke_handler' (11742) panicked at tests/transport.rs:304:5:
+assertion `left == right` failed
+  left: 0
+ right: 2
+
+
+failures:
+    adversarial_lengths_close_before_payload_or_handler_and_isolate_peers
+    handler_deadline_includes_waiting_for_concurrency_permit
+    handler_error_and_oversized_response_close_only_their_connections
+    hanging_handler_times_out_and_its_future_is_dropped
+    idle_connection_has_an_absolute_read_deadline
+    truncated_prefix_and_body_never_invoke_handler
+
+test result: FAILED. 10 passed; 6 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.93s
+
+error: test failed, to rerun pass `--test transport`

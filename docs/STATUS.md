@@ -34,17 +34,21 @@ another epoch-recovery timeout. Its retained 60-byte seed passes exact replays;
 the timeout remains unexplained. No campaign is currently running and no
 24-hour run has passed. See the [current fuzz result](evidence/broker/fuzz/20261027-candidate06/README.md).
 
-The repaired broker candidate passes all 615 default-feature tests and all
-759 all-feature tests. Strict Clippy passes for every target in both modes.
+Intermediate broker candidates passed all 615 default-feature tests and all
+759 all-feature tests. Strict Clippy passed for every target in both modes.
+The full suites still need a run on the committed candidate.
 The fixes cover transport accounting, absolute deadlines, credential-buffer
 cleanup, group-assignment bounds and Kafka read response fields. Live Apache
-Kafka 4.1.2 checks confirmed the response semantics.
+Kafka 4.1.2 checks confirmed the response semantics. The [test receipts and
+raw peer responses](evidence/broker/qualification-20261028/README.md) record
+the tested versions and source limits.
 
 The [active qualification goal](plan/goal-qualification.json) continues through
 the client build/runtime gates, independent conformance, sustained runs and
 matched benchmarks on this x86_64 workspace. Client build failures are under
 repair, and core/full conformance remains incomplete. A bounded syscall
-diagnostic is tracing the retained recovery input. No 24-hour run has passed.
+diagnostic reproduced a timeout under tracing and a lower CPU limit; the cause
+of the original untraced timeout remains unresolved. No 24-hour run has passed.
 
 The [earlier readiness assessment](evidence/broker/qualification-20261027/status.json)
 and [failed campaigns](evidence/broker/fuzz/20261027-candidate06/README.md) retain

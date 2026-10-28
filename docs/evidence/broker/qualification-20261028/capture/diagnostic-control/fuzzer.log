@@ -1,0 +1,15 @@
+WARNING: Failed to find function "__sanitizer_acquire_crash_state".
+WARNING: Failed to find function "__sanitizer_print_stack_trace".
+WARNING: Failed to find function "__sanitizer_set_death_callback".
+INFO: Running with entropic power schedule (0xFF, 100).
+INFO: Seed: 1045107833
+INFO: Loaded 1 modules   (1470 inline 8-bit counters): 1470 [0x560978db5020, 0x560978db55de), 
+INFO: Loaded 1 PC tables (1470 PCs): 1470 [0x560978db55e0,0x560978dbb1c0), 
+/workspace/work/qualification-20261027/fuzz-build-06/bin/recover_epoch: Running 1 inputs 1000000000 time(s) each.
+Running: /workspace/work/goal-qualification-20261028/diagnostic-control/input.bin
+==22855== libFuzzer: run interrupted; exiting
+stat::number_of_executed_units: 508
+stat::average_exec_per_sec:     508
+stat::new_units_added:          0
+stat::slowest_unit_time_sec:    0
+stat::peak_rss_mb:              25

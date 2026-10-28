@@ -1,0 +1,33 @@
+{
+  "binary_sha256": "1156d0682cfa60c101b29a196180822e66f08ad403eb80b1b05750c424d9fe3d",
+  "campaign_qualified": false,
+  "command": [
+    "/diag/strace",
+    "-f",
+    "-qq",
+    "-ttt",
+    "-T",
+    "-s",
+    "64",
+    "-e",
+    "trace=openat,write,close,unlink,fsync,fdatasync,ftruncate",
+    "-o",
+    "/proc/self/fd/4",
+    "/workspace/work/qualification-20261027/fuzz-build-06/bin/recover_epoch",
+    "-runs=1000000000",
+    "-timeout=2",
+    "-rss_limit_mb=512",
+    "-malloc_limit_mb=128",
+    "-max_len=65536",
+    "-print_final_stats=1",
+    "-artifact_prefix=/workspace/work/broker-fuzz-container-20261027/diagnostic-60-byte-02/artifacts/",
+    "/workspace/work/broker-fuzz-container-20261027/diagnostic-60-byte-02/input.bin"
+  ],
+  "input_sha256": "5b0672076adf8cd11e1e17ebac172ba91c42ca06a4742b1128143c6f815e18d1",
+  "kind": "fixed-input syscall diagnostic",
+  "production_qualified": false,
+  "schema_version": 1,
+  "seconds_limit": 3600,
+  "state": "starting",
+  "strace_version": "strace -- version 6.13"
+}

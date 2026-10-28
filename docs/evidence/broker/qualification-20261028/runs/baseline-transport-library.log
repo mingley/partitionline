@@ -1,0 +1,52 @@
+    Finished `test` profile [unoptimized] target(s) in 0.06s
+     Running unittests src/lib.rs (/workspace/work/qualification-20261027/broker-check-target/debug/deps/partitionline_broker-1ab9a0b683d129eb)
+
+running 32 tests
+test transport::disconnect_tests::client_disconnect_stops_the_handler ... ok
+test transport::disconnect_tests::flooded_request_stops_the_handler ... ok
+test transport::disconnect_tests::pipelined_disconnect_stops_the_handler ... ok
+test transport::frame_read_deadline_tests::a_handler_deadline_stops_a_greedy_pipeline ... ok
+test transport::frame_read_deadline_tests::a_run_of_empty_frames_does_not_hold_the_handler_watch ... ok
+test transport::frame_read_deadline_tests::read_deadline_stops_a_greedy_buffered_body ... ok
+test transport::frame_read_deadline_tests::read_deadline_stops_a_greedy_frame_body ... ok
+test transport::frame_read_deadline_tests::read_deadline_stops_a_ready_frame_body ... ok
+test transport::frame_read_deadline_tests::read_deadline_stops_a_ready_length_prefix ... ok
+test transport::handler_deadline_tests::an_illegal_length_after_a_frame_stops_the_handler ... ok
+test transport::handler_deadline_tests::handler_deadline_runs_during_a_ready_prefetch ... ok
+test transport::read_ahead_tests::a_parked_request_keeps_its_capacity ... ok
+test transport::read_ahead_tests::a_partial_tail_compacts_without_the_consumed_frame ... ok
+test transport::read_ahead_tests::a_second_frame_reuses_the_body_buffer ... ok
+test transport::read_ahead_tests::a_short_prefix_waits_for_the_rest_of_the_frame ... ok
+test transport::read_ahead_tests::an_empty_body_is_a_frame ... ok
+test transport::read_ahead_tests::an_oversized_length_is_rejected_before_its_body ... ok
+test transport::read_ahead_tests::one_buffered_frame_keeps_its_allocation ... ok
+test transport::read_ahead_tests::pipelined_frames_are_split_without_moving_the_tail ... ok
+test transport::read_deadline_tests::read_deadline_closes_the_socket ... ok
+test transport::reject_connection_tests::rejected_connection_closes_before_the_caller_returns ... ok
+test transport::sasl_frame_tests::a_control_reply_is_wiped_before_the_buffer_is_cleared ... ok
+test transport::sasl_frame_tests::owned_authentication_frame_debug_is_redacted ... ok
+test transport::shutdown_tests::shutdown_closes_the_accepted_socket ... ok
+test transport::tls_deadline_tests::tls_handshake_deadline_closes_the_socket ... ok
+test transport::write_prefetch_tests::a_failed_prefetch_does_not_wait_out_the_write ... ok
+test transport::write_prefetch_tests::an_illegal_length_after_a_frame_does_not_wait_out_the_write ... ok
+test transport::write_prefetch_tests::an_illegal_prefetch_length_does_not_wait_out_the_write ... ok
+test transport::write_prefetch_tests::write_deadline_stops_a_greedy_prefetch ... ok
+test transport::write_prefetch_tests::write_deadline_stops_a_greedy_response ... ok
+test transport::write_prefetch_tests::write_deadline_stops_a_ready_partial_write ... ok
+test transport::write_prefetch_tests::write_deadline_stops_a_ready_prefetch ... FAILED
+
+failures:
+
+---- transport::write_prefetch_tests::write_deadline_stops_a_ready_prefetch stdout ----
+
+thread 'transport::write_prefetch_tests::write_deadline_stops_a_ready_prefetch' (11883) panicked at src/transport.rs:2332:9:
+a ready prefetch held the write past its deadline: 84.911577ms
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    transport::write_prefetch_tests::write_deadline_stops_a_ready_prefetch
+
+test result: FAILED. 31 passed; 1 failed; 0 ignored; 0 measured; 343 filtered out; finished in 1.55s
+
+error: test failed, to rerun pass `--lib`
