@@ -23,12 +23,11 @@ type Config struct {
 	PayloadBytes int
 	Seed         uint64
 
-	Acks         int
-	Idempotent   bool
-	LingerMs     int64
-	BatchBytes   int64
-	BatchRecords int64
-	MaxInFlight  int
+	Acks        int
+	Idempotent  bool
+	LingerMs    int64
+	BatchBytes  int64
+	MaxInFlight int
 	// QueueMessages is the applied produce buffer, in records.
 	QueueMessages int
 	// QueueKBytes is the applied produce buffer, in kibibytes. Zero means unlimited.
@@ -168,8 +167,8 @@ func LoadConfig() (Config, error) {
 	if c.BatchBytes, err = getInt("BATCH_BYTES", 1048576); err != nil {
 		return c, err
 	}
-	if c.BatchRecords, err = getInt("BATCH_RECORDS", 32768); err != nil {
-		return c, err
+	if strings.TrimSpace(os.Getenv("BATCH_RECORDS")) != "" {
+		return c, fmt.Errorf("peer: BATCH_RECORDS is unsupported by franz-go; no per-batch record limit is applied")
 	}
 	if _, ok := os.LookupEnv("MAX_IN_FLIGHT"); !ok || strings.TrimSpace(os.Getenv("MAX_IN_FLIGHT")) == "" {
 		if c.Idempotent {
@@ -216,10 +215,8 @@ func LoadConfig() (Config, error) {
 	if mode := getenv("KEY_MODE", "id"); mode != "id" {
 		return c, fmt.Errorf("peer: KEY_MODE must be id, got %q", mode)
 	}
-	if v, err = getInt("CONNECTIONS_PER_BROKER", 1); err != nil {
-		return c, err
-	} else if v != 1 {
-		return c, fmt.Errorf("peer: CONNECTIONS_PER_BROKER must be 1, got %d", v)
+	if strings.TrimSpace(os.Getenv("CONNECTIONS_PER_BROKER")) != "" {
+		return c, fmt.Errorf("peer: CONNECTIONS_PER_BROKER is unsupported; franz-go uses separate connections for different request types")
 	}
 	c.Compression = strings.ToLower(strings.TrimSpace(getenv("COMPRESSION", "none")))
 	c.Isolation = strings.ToLower(strings.TrimSpace(getenv("ISOLATION", "read_uncommitted")))
@@ -283,8 +280,8 @@ func (c Config) Validate() error {
 	if c.LingerMs < 0 {
 		return fmt.Errorf("peer: LINGER_MS must be >= 0, got %d", c.LingerMs)
 	}
-	if c.BatchBytes < 0 || c.BatchRecords < 0 {
-		return fmt.Errorf("peer: BATCH_BYTES/BATCH_RECORDS must be >= 0")
+	if c.BatchBytes < 512 || c.BatchBytes > 1<<30 {
+		return fmt.Errorf("peer: BATCH_BYTES must be between 512 and 1073741824, got %d", c.BatchBytes)
 	}
 	switch c.Compression {
 	case "none", "gzip", "snappy", "lz4", "zstd":
@@ -323,42 +320,40 @@ func (c Config) Validate() error {
 // included (presence flags only).
 func (c Config) EffectiveSettings() map[string]any {
 	return map[string]any{
-		"acks":                   c.Acks,
-		"linger_ms":              c.LingerMs,
-		"batch_size_bytes":       c.BatchBytes,
-		"batch_num_messages":     c.BatchRecords,
-		"max_in_flight":          c.MaxInFlight,
-		"queue_max_messages":     c.QueueMessages,
-		"queue_max_kbytes":       c.QueueKBytes,
-		"delivery_timeout_ms":    c.DeliveryTimeoutMs,
-		"flush_timeout_ms":       c.FlushTimeoutMs,
-		"run_timeout_ms":         c.RunTimeoutMs,
-		"consume_timeout_ms":     c.ConsumeTimeoutMs,
-		"payload_mode":           "seeded",
-		"key_mode":               "id",
-		"connections_per_broker": 1,
-		"socket_nagle_disable":   c.NagleDisable,
-		"idempotence":            c.Idempotent,
-		"compression":            c.Compression,
-		"isolation_level":        c.Isolation,
-		"security_protocol":      c.SecurityProtocol(),
-		"sasl_mechanism":         c.SASLMechanism,
-		"has_sasl_credentials":   c.SASLUsername != "" && c.SASLPassword != "",
-		"has_custom_ca":          len(c.TLSCAPem) > 0,
-		"tls_server_name":        c.TLSServerName,
-		"has_client_identity":    len(c.TLSClientCert) > 0,
-		"bootstrap":              c.Bootstrap,
-		"topic":                  c.Topic,
-		"partitions":             c.Partitions,
-		"count":                  c.Count,
-		"warmup":                 c.Warmup,
-		"payload_bytes":          c.PayloadBytes,
-		"record_seed":            fmt.Sprintf("0x%X", c.Seed),
-		"partitioner":            "explicit_round_robin",
-		"franzgo_client_id":      "franzgo-peer",
-		"delivery_definition":    "acknowledged = broker Produce response with nil promise error; enqueue is never counted",
-		"record_id_definition":   "key = be64(index) || be64(splitmix64(seed^index)); value = splitmix64 stream; sha256 verified on consume",
-		"unsupported_by_driver":  UnsupportedIDs(),
+		"acks":                  c.Acks,
+		"linger_ms":             c.LingerMs,
+		"batch_size_bytes":      c.BatchBytes,
+		"max_in_flight":         c.MaxInFlight,
+		"queue_max_messages":    c.QueueMessages,
+		"queue_max_kbytes":      c.QueueKBytes,
+		"delivery_timeout_ms":   c.DeliveryTimeoutMs,
+		"flush_timeout_ms":      c.FlushTimeoutMs,
+		"run_timeout_ms":        c.RunTimeoutMs,
+		"consume_timeout_ms":    c.ConsumeTimeoutMs,
+		"payload_mode":          "seeded",
+		"key_mode":              "id",
+		"socket_nagle_disable":  c.NagleDisable,
+		"idempotence":           c.Idempotent,
+		"compression":           c.Compression,
+		"isolation_level":       c.Isolation,
+		"security_protocol":     c.SecurityProtocol(),
+		"sasl_mechanism":        c.SASLMechanism,
+		"has_sasl_credentials":  c.SASLUsername != "" && c.SASLPassword != "",
+		"has_custom_ca":         len(c.TLSCAPem) > 0,
+		"tls_server_name":       c.TLSServerName,
+		"has_client_identity":   len(c.TLSClientCert) > 0,
+		"bootstrap":             c.Bootstrap,
+		"topic":                 c.Topic,
+		"partitions":            c.Partitions,
+		"count":                 c.Count,
+		"warmup":                c.Warmup,
+		"payload_bytes":         c.PayloadBytes,
+		"record_seed":           fmt.Sprintf("0x%X", c.Seed),
+		"partitioner":           "explicit_round_robin",
+		"franzgo_client_id":     "franzgo-peer",
+		"delivery_definition":   "acknowledged = broker Produce response with nil promise error; enqueue is never counted",
+		"record_id_definition":  "key = be64(index) || be64(splitmix64(seed^index)); value = splitmix64 stream; sha256 verified on consume",
+		"unsupported_by_driver": UnsupportedIDs(),
 	}
 }
 

@@ -88,15 +88,7 @@ func clientOpts(cfg peer.Config, tlsCfg *tls.Config) ([]kgo.Opt, error) {
 		kgo.ClientID("franzgo-peer"),
 		kgo.RecordPartitioner(kgo.ManualPartitioner()),
 		kgo.Dialer(func(ctx context.Context, network, host string) (net.Conn, error) {
-			dialer := &net.Dialer{Timeout: 10 * time.Second}
-			conn, err := dialer.DialContext(ctx, network, host)
-			if err != nil {
-				return nil, err
-			}
-			if tcp, ok := conn.(*net.TCPConn); ok {
-				_ = tcp.SetNoDelay(cfg.NagleDisable)
-			}
-			return conn, nil
+			return dialBroker(ctx, network, host, cfg.NagleDisable, tlsCfg)
 		}),
 	}
 	switch cfg.Acks {
@@ -125,9 +117,7 @@ func clientOpts(cfg peer.Config, tlsCfg *tls.Config) ([]kgo.Opt, error) {
 	if cfg.DeliveryTimeoutMs > 0 {
 		opts = append(opts, kgo.RecordDeliveryTimeout(time.Duration(cfg.DeliveryTimeoutMs)*time.Millisecond))
 	}
-	if cfg.BatchBytes > 0 && cfg.BatchBytes <= math.MaxInt32 {
-		opts = append(opts, kgo.ProducerBatchMaxBytes(int32(cfg.BatchBytes)))
-	}
+	opts = append(opts, kgo.ProducerBatchMaxBytes(int32(cfg.BatchBytes)))
 	switch cfg.Compression {
 	case "none":
 		opts = append(opts, kgo.ProducerBatchCompression(kgo.NoCompression()))
@@ -139,9 +129,6 @@ func clientOpts(cfg peer.Config, tlsCfg *tls.Config) ([]kgo.Opt, error) {
 		opts = append(opts, kgo.ProducerBatchCompression(kgo.Lz4Compression()))
 	case "zstd":
 		opts = append(opts, kgo.ProducerBatchCompression(kgo.ZstdCompression()))
-	}
-	if tlsCfg != nil {
-		opts = append(opts, kgo.DialTLSConfig(tlsCfg))
 	}
 	authFn := func(context.Context) (plain.Auth, error) {
 		return plain.Auth{User: cfg.SASLUsername, Pass: cfg.SASLPassword}, nil
@@ -160,6 +147,37 @@ func clientOpts(cfg peer.Config, tlsCfg *tls.Config) ([]kgo.Opt, error) {
 	return opts, nil
 }
 
+func dialBroker(ctx context.Context, network, host string, noDelay bool, tlsCfg *tls.Config) (net.Conn, error) {
+	dialer := &net.Dialer{Timeout: 10 * time.Second}
+	conn, err := dialer.DialContext(ctx, network, host)
+	if err != nil {
+		return nil, err
+	}
+	if tcp, ok := conn.(*net.TCPConn); ok {
+		if err = tcp.SetNoDelay(noDelay); err != nil {
+			conn.Close()
+			return nil, err
+		}
+	}
+	if tlsCfg == nil {
+		return conn, nil
+	}
+	config := tlsCfg.Clone()
+	if config.ServerName == "" {
+		config.ServerName, _, err = net.SplitHostPort(host)
+		if err != nil {
+			conn.Close()
+			return nil, err
+		}
+	}
+	secured := tls.Client(conn, config)
+	if err = secured.HandshakeContext(ctx); err != nil {
+		conn.Close()
+		return nil, err
+	}
+	return secured, nil
+}
+
 type produceOutcome struct {
 	Offered  int64
 	Accepted int64
@@ -171,6 +189,16 @@ type produceOutcome struct {
 	LatUs    []float64
 	Bytes    int64
 	Elapsed  time.Duration
+}
+
+// A successful promise for acks=0 means the write was accepted by the
+// transport. There is no broker response, so its delivery is unknown.
+func (out *produceOutcome) recordSuccessfulPromises(acks int, successes int64) {
+	if acks == 0 {
+		out.Unknown += successes
+	} else {
+		out.Acked += successes
+	}
 }
 
 // produceRecords produces count records to topic and accounts every
@@ -225,7 +253,7 @@ func produceRecords(client *kgo.Client, cfg peer.Config, topic string, count uin
 	defer flushCancel()
 	flushErr := client.Flush(flushCtx)
 	out.Elapsed = time.Since(start)
-	out.Acked = acked.Load()
+	out.recordSuccessfulPromises(cfg.Acks, acked.Load())
 	if flushErr != nil {
 		mu.Lock()
 		errCounts["flush: "+flushErr.Error()]++
@@ -233,12 +261,12 @@ func produceRecords(client *kgo.Client, cfg peer.Config, topic string, count uin
 	}
 	// Anything neither acked nor errored after a clean flush is unknown
 	// (should be zero; franz-go resolves every promise on flush).
-	accounted := out.Acked
+	accounted := out.Acked + out.Unknown
 	for _, n := range errCounts {
 		accounted += n
 	}
 	if missing := out.Offered - accounted; missing > 0 {
-		out.Unknown = missing
+		out.Unknown += missing
 	}
 	var names []string
 	for name := range errCounts {

@@ -35,7 +35,7 @@
         "orchestrator": {
           "command": "compiled cmd/peer binary; emit-config preflight",
           "status": "not_qualified",
-          "reason": "The current driver omits ten settings required for matched comparisons. The orchestrator refuses those cells before provisioning.",
+          "reason": "The driver cannot enforce a per-batch record cap or a total broker connection count. The orchestrator refuses matched cells before provisioning.",
           "evidence": "docs/evidence/perf/matrix-tiers/README.md"
         }
       },

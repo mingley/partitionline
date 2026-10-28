@@ -125,6 +125,13 @@ class MatrixProcessTests(unittest.TestCase):
  def test_franz_go_missing_settings_are_named_without_guessing_defaults(self):
   cfg=json.loads(self.cfg.read_text());del cfg['queue_max_messages']
   with self.assertRaisesRegex(ValueError,'queue_max_messages'):matrix.settings(cfg)
+ def test_unapplied_batch_record_cap_is_rejected_before_provisioning(self):
+  cfg=json.loads(self.cfg.read_text());del cfg['batch_num_messages'];self.cfg.write_text(json.dumps(cfg))
+  for peer in self.manifest['peers']:peer['inputs'][1]['sha256']=sha(self.cfg)
+  self.manifest['repetitions']=1;self.save();r=self.run_cli()
+  self.assertEqual(r.returncode,1,r.stderr);self.assertFalse(self.log.exists())
+  failures=[e for e in matrix.events(self.output) if e['state']=='failed']
+  self.assertEqual(len(failures),2);self.assertTrue(all('batch_num_messages' in e['reason'] for e in failures))
  def test_ceiling_shaped_output_is_retained_and_refused_in_kafka_cell(self):
   r=json.loads(self.data.read_text());r['client_ceiling']={'classification':'client-ceiling'};self.data.write_text(json.dumps(r))
   for peer in self.manifest['peers']:peer['inputs'][2]['sha256']=sha(self.data)

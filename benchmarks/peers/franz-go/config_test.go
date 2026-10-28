@@ -51,7 +51,7 @@ func TestLoadConfigDefaults(t *testing.T) {
 	if cfg.Acks != 1 || cfg.Idempotent || cfg.LingerMs != 5 {
 		t.Fatalf("produce knobs: %+v", cfg)
 	}
-	if cfg.BatchBytes != 1048576 || cfg.BatchRecords != 32768 || cfg.MaxInFlight != 5 {
+	if cfg.BatchBytes != 1048576 || cfg.MaxInFlight != 5 {
 		t.Fatalf("batch knobs: %+v", cfg)
 	}
 	if cfg.SecurityProtocol() != "PLAINTEXT" {
@@ -61,16 +61,20 @@ func TestLoadConfigDefaults(t *testing.T) {
 
 func TestLoadConfigRejects(t *testing.T) {
 	cases := map[string]map[string]string{
-		"bad acks":           {"ACKS": "2"},
-		"bad compression":    {"COMPRESSION": "snazzy"},
-		"bad isolation":      {"ISOLATION": "read_sometimes"},
-		"bad profile":        {"PROFILE": "bulk-plus"},
-		"bad mech":           {"SASL_MECHANISM": "OAUTHBEARER", "SASL_USERNAME": "u", "SASL_PASSWORD": "p"},
-		"sasl without creds": {"SASL_MECHANISM": "PLAIN"},
-		"zero count":         {"COUNT": "0"},
-		"zero partitions":    {"PARTITIONS": "0"},
-		"half mtls":          {"TLS_CLIENT_CERT_PEM": "/nonexistent"},
-		"idempotent surge":   {"IDEMPOTENT": "1", "MAX_IN_FLIGHT": "6"},
+		"bad acks":            {"ACKS": "2"},
+		"bad compression":     {"COMPRESSION": "snazzy"},
+		"bad isolation":       {"ISOLATION": "read_sometimes"},
+		"bad profile":         {"PROFILE": "bulk-plus"},
+		"bad mech":            {"SASL_MECHANISM": "OAUTHBEARER", "SASL_USERNAME": "u", "SASL_PASSWORD": "p"},
+		"sasl without creds":  {"SASL_MECHANISM": "PLAIN"},
+		"zero count":          {"COUNT": "0"},
+		"zero partitions":     {"PARTITIONS": "0"},
+		"half mtls":           {"TLS_CLIENT_CERT_PEM": "/nonexistent"},
+		"idempotent surge":    {"IDEMPOTENT": "1", "MAX_IN_FLIGHT": "6"},
+		"record batch cap":    {"BATCH_RECORDS": "32768"},
+		"connection count":    {"CONNECTIONS_PER_BROKER": "1"},
+		"byte batch cap low":  {"BATCH_BYTES": "0"},
+		"byte batch cap high": {"BATCH_BYTES": "1073741825"},
 	}
 	for name, kv := range cases {
 		setEnv(t, kv)
@@ -93,6 +97,12 @@ func TestEffectiveSettingsShape(t *testing.T) {
 		t.Fatalf("security = %s", cfg.SecurityProtocol())
 	}
 	eff := cfg.EffectiveSettings()
+	if _, ok := eff["batch_num_messages"]; ok {
+		t.Fatal("reported a record-count batch limit the SDK does not apply")
+	}
+	if _, ok := eff["connections_per_broker"]; ok {
+		t.Fatal("reported a total broker connection count the SDK does not enforce")
+	}
 	raw, _ := json.Marshal(eff)
 	var decoded map[string]any
 	if err := json.Unmarshal(raw, &decoded); err != nil {
@@ -101,7 +111,7 @@ func TestEffectiveSettingsShape(t *testing.T) {
 	for _, key := range []string{"acks", "linger_ms", "batch_size_bytes", "max_in_flight", "idempotence",
 		"queue_max_messages", "queue_max_kbytes", "delivery_timeout_ms", "flush_timeout_ms",
 		"run_timeout_ms", "consume_timeout_ms", "payload_mode", "key_mode", "partitioner",
-		"connections_per_broker", "socket_nagle_disable",
+		"socket_nagle_disable",
 		"compression", "security_protocol", "delivery_definition", "record_id_definition", "unsupported_by_driver"} {
 		if _, ok := decoded[key]; !ok {
 			t.Fatalf("effective settings missing %q", key)

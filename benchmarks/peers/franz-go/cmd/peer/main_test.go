@@ -2,14 +2,75 @@ package main
 
 import (
 	"context"
+	"crypto/tls"
+	"crypto/x509"
 	"errors"
+	"io"
+	"log"
 	"net"
+	"net/http"
+	"net/http/httptest"
 	"reflect"
+	"strings"
 	"testing"
+	"time"
 
 	peer "github.com/mingley/partitionline/benchmarks/peers/franz-go"
 	"github.com/twmb/franz-go/pkg/kgo"
 )
+
+func TestTLSClientOptionsAndHandshake(t *testing.T) {
+	server := httptest.NewUnstartedServer(http.HandlerFunc(func(http.ResponseWriter, *http.Request) {}))
+	server.Config.ErrorLog = log.New(io.Discard, "", 0)
+	server.StartTLS()
+	defer server.Close()
+	roots := x509.NewCertPool()
+	roots.AddCert(server.Certificate())
+	tlsCfg := &tls.Config{RootCAs: roots, MinVersion: tls.VersionTLS12}
+	cfg, err := peer.LoadConfig()
+	if err != nil {
+		t.Fatal(err)
+	}
+	opts, err := clientOpts(cfg, tlsCfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	client, err := kgo.NewClient(opts...)
+	if err != nil {
+		t.Fatalf("TLS options rejected by SDK: %v", err)
+	}
+	client.Close()
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+	host := strings.TrimPrefix(server.URL, "https://")
+	conn, err := dialBroker(ctx, "tcp", host, true, tlsCfg)
+	if err != nil {
+		t.Fatalf("trusted TLS handshake: %v", err)
+	}
+	conn.Close()
+	badCfg := tlsCfg.Clone()
+	badCfg.ServerName = "wrong.example"
+	if conn, err := dialBroker(ctx, "tcp", host, true, badCfg); err == nil {
+		conn.Close()
+		t.Fatal("accepted a certificate for the wrong server name")
+	}
+}
+
+func TestSuccessfulPromisesRequireBrokerAcknowledgements(t *testing.T) {
+	for _, tc := range []struct {
+		acks, acked, unknown int
+	}{
+		{0, 0, 3},
+		{1, 3, 0},
+		{-1, 3, 0},
+	} {
+		var out produceOutcome
+		out.recordSuccessfulPromises(tc.acks, 3)
+		if out.Acked != int64(tc.acked) || out.Unknown != int64(tc.unknown) {
+			t.Fatalf("acks=%d: acknowledged=%d unknown=%d", tc.acks, out.Acked, out.Unknown)
+		}
+	}
+}
 
 func TestClientOptsCompressionMatchesEffectiveSettings(t *testing.T) {
 	for _, key := range []string{

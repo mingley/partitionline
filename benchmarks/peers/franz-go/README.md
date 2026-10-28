@@ -56,7 +56,7 @@ Same names as the partitionline bench examples where they overlap:
 | `IDEMPOTENT` | unset | `1` enables; this driver then applies `MAX_IN_FLIGHT` 1 |
 | `LINGER_MS` | 5 | producer linger |
 | `BATCH_BYTES` | 1048576 | per-partition batch cap |
-| `BATCH_RECORDS` | 32768 | informational (client buffers size to the run) |
+| `BATCH_RECORDS` | unsupported | Explicit values are rejected; franz-go has no per-batch record-count limit |
 | `MAX_IN_FLIGHT` | 5 | per-broker cap |
 | `QUEUE_MESSAGES` | count+warmup+1024 | applied `MaxBufferedRecords` |
 | `QUEUE_KBYTES` | 0 | `MaxBufferedBytes`; 0 is unlimited |
@@ -64,6 +64,7 @@ Same names as the partitionline bench examples where they overlap:
 | `FLUSH_TIMEOUT_MS` | 900000 | bounds `Flush` |
 | `RUN_TIMEOUT_MS` | 900000 | bounds a produce or fetch attempt |
 | `CONSUME_TIMEOUT_MS` | 15000 | idle limit while fetching |
+| `CONNECTIONS_PER_BROKER` | unsupported | Explicit values are rejected; franz-go uses separate connections for different request types |
 | `SOCKET_NAGLE_DISABLE` | 1 | `TCP_NODELAY` on every dial |
 | `COMPRESSION` | none | none\|gzip\|snappy\|lz4\|zstd |
 | `ISOLATION` | read_uncommitted | or read_committed |
@@ -75,8 +76,13 @@ Same names as the partitionline bench examples where they overlap:
 
 Compression is applied explicitly. `COMPRESSION=none` disables producer
 compression; it does not use franz-go's default `snappy, none` preference.
-The matrix still rejects this peer's incomplete shared configuration. That
-adapter qualification and a comparable Kafka campaign remain open.
+The matched matrix requires a per-batch record-count limit. franz-go does not
+provide that setting, so the adapter omits it from effective settings and the
+matrix rejects the comparison. Its global `MaxBufferedRecords` is a queue
+limit and does not enforce a record count per batch. The pinned SDK also uses
+separate broker connections for produce, fetch, group, slow and normal requests,
+so the adapter does not report a total connection count. A comparable Kafka
+campaign remains open.
 
 ## Record IDs and delivery definitions
 
@@ -84,6 +90,8 @@ Same definitions as partitionline (contract §3):
 
 - **Acknowledged** = the broker's Produce response arrived with a nil
   promise error. Enqueue (`Produce` acceptance) is never counted.
+  With `ACKS=0`, successful promises are counted as unknown delivery because
+  the broker does not send a Produce response.
 - **Record ID**: key = `be64(index) || be64(splitmix64(seed^index))`
   (16 bytes); value = `PAYLOAD_BYTES` from the splitmix64 stream
   chained from `seed ^ index*GOLDEN`, so every record regenerates
