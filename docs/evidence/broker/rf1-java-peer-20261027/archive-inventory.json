@@ -1,0 +1,356 @@
+{
+  "schema_version": 1,
+  "files": [
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/rf1-java-probe/README.md",
+      "original_sha256": "c3dfad7acbc711c0990271c034dbe2c08b1d7d8fe40f01da53957264bf7adf50",
+      "original_bytes": 2294,
+      "stored_path": "README.md",
+      "stored_sha256": "c3dfad7acbc711c0990271c034dbe2c08b1d7d8fe40f01da53957264bf7adf50",
+      "stored_bytes": 2294,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/rf1-java-probe/candidate-sources.tar.gz",
+      "original_sha256": "99762c745d8b5313bb7684f54718d4eee84c44813f51a35e5662c508a7bf1349",
+      "original_bytes": 542829,
+      "stored_path": "source/candidate-sources.tar.gz",
+      "stored_sha256": "99762c745d8b5313bb7684f54718d4eee84c44813f51a35e5662c508a7bf1349",
+      "stored_bytes": 542829,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/rf1-evidence/receipt.json",
+      "original_sha256": "c49a36542467acea7e7c2b1dc067dab816421d07ae4c1a3c088b8589a69d5e7e",
+      "original_bytes": 9971,
+      "stored_path": "build/rf1-receipt.json",
+      "stored_sha256": "c49a36542467acea7e7c2b1dc067dab816421d07ae4c1a3c088b8589a69d5e7e",
+      "stored_bytes": 9971,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/rf1-evidence/operator.elf",
+      "original_sha256": "46638c7015988797b85bd1fb857b01057f8d44747e411e15871eb1db3f70480b",
+      "original_bytes": 6712472,
+      "stored_path": "build/operator.elf.gz",
+      "stored_sha256": "8b525fb41466475c8057d411b51390caa87ee16c66e6f9ab49d405151c3e6030",
+      "stored_bytes": 1633631,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/security-qualification-20261028/java-peer/receipt.json",
+      "original_sha256": "eee5c88eceef4038615d834af5d32ce39743df11fc2eaa187139819bdf4b5648",
+      "original_bytes": 3813,
+      "stored_path": "java/sdk-extraction-receipt.json",
+      "stored_sha256": "eee5c88eceef4038615d834af5d32ce39743df11fc2eaa187139819bdf4b5648",
+      "stored_bytes": 3813,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/security-qualification-20261028/java-peer/jars/kafka-clients-4.1.2.jar",
+      "original_sha256": "33b4d9f24ba793ce0ed06607aa92b61d764015d8a0ef72d2558dbb81def4b3ed",
+      "original_bytes": 9769826,
+      "stored_path": "java/kafka-clients-4.1.2.jar.gz",
+      "stored_sha256": "efa9b9c4e9b03b894c23531eeb81c6b24b508534c0a6c48e903dd612b88f50aa",
+      "stored_bytes": 9069453,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/security-qualification-20261028/java-peer/jars/slf4j-api-1.7.36.jar",
+      "original_sha256": "d3ef575e3e4979678dc01bf1dcce51021493b4d11fb7f1be8ad982877c16a1c0",
+      "original_bytes": 41125,
+      "stored_path": "java/slf4j-api-1.7.36.jar",
+      "stored_sha256": "d3ef575e3e4979678dc01bf1dcce51021493b4d11fb7f1be8ad982877c16a1c0",
+      "stored_bytes": 41125,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/rf1-java-probe/Rf1Peer.java",
+      "original_sha256": "0a550e0a9a9294ad57be9e44707c397feb3b8b5803a394b9865e2da0db909831",
+      "original_bytes": 5907,
+      "stored_path": "peer/Rf1Peer.java",
+      "stored_sha256": "0a550e0a9a9294ad57be9e44707c397feb3b8b5803a394b9865e2da0db909831",
+      "stored_bytes": 5907,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/rf1-java-probe/run.py",
+      "original_sha256": "f261ac61ac3c3115ff49e944cbd51eeccde20885b2c9686a948d9d2ec56c226a",
+      "original_bytes": 4577,
+      "stored_path": "peer/run.py",
+      "stored_sha256": "f261ac61ac3c3115ff49e944cbd51eeccde20885b2c9686a948d9d2ec56c226a",
+      "stored_bytes": 4577,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/rf1-java-probe/classes/Rf1Peer.class",
+      "original_sha256": "cf29ed31f3b614fe8150e0b98213097637fdbd77e1219c0eedd8aa997e490e06",
+      "original_bytes": 8961,
+      "stored_path": "peer/classes/Rf1Peer.class",
+      "stored_sha256": "cf29ed31f3b614fe8150e0b98213097637fdbd77e1219c0eedd8aa997e490e06",
+      "stored_bytes": 8961,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/rf1-java-probe/java-version.log",
+      "original_sha256": "bf61371a588e139353579c26bedbc9693004380fe8e053aa012cb6f7d2c43f20",
+      "original_bytes": 187,
+      "stored_path": "peer/java-version.log",
+      "stored_sha256": "bf61371a588e139353579c26bedbc9693004380fe8e053aa012cb6f7d2c43f20",
+      "stored_bytes": 187,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/rf1-java-probe/compile-receipt.json",
+      "original_sha256": "5a4972d20e47edeca272d968af819f50855348deed5fbed04f7be9eaf9f0315b",
+      "original_bytes": 696,
+      "stored_path": "peer/compile-receipt.json",
+      "stored_sha256": "5a4972d20e47edeca272d968af819f50855348deed5fbed04f7be9eaf9f0315b",
+      "stored_bytes": 696,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/rf1-java-probe/compile.stdout",
+      "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "original_bytes": 0,
+      "stored_path": "peer/compile.stdout",
+      "stored_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stored_bytes": 0,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/rf1-java-probe/compile.stderr",
+      "original_sha256": "4e81a7b0fa9f4a4f27d2e03f9e6c67804ddd550cdff935bec1fd5518634d6d5f",
+      "original_bytes": 45,
+      "stored_path": "peer/compile.stderr",
+      "stored_sha256": "4e81a7b0fa9f4a4f27d2e03f9e6c67804ddd550cdff935bec1fd5518634d6d5f",
+      "stored_bytes": 45,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/rf1-java-probe/compile-02.stdout",
+      "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "original_bytes": 0,
+      "stored_path": "peer/compile-02.stdout",
+      "stored_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stored_bytes": 0,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/rf1-java-probe/compile-02.stderr",
+      "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "original_bytes": 0,
+      "stored_path": "peer/compile-02.stderr",
+      "stored_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stored_bytes": 0,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/rf1-java-probe/attempt-01/preflight-compile.stderr",
+      "original_sha256": "4e81a7b0fa9f4a4f27d2e03f9e6c67804ddd550cdff935bec1fd5518634d6d5f",
+      "original_bytes": 45,
+      "stored_path": "runs/attempt-01/preflight-compile.stderr",
+      "stored_sha256": "4e81a7b0fa9f4a4f27d2e03f9e6c67804ddd550cdff935bec1fd5518634d6d5f",
+      "stored_bytes": 45,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/rf1-java-probe/attempt-01/result.json",
+      "original_sha256": "db5ba6309d7cc324e296bf267e38d2153558e2bc85d1642c2b2076b3523112b4",
+      "original_bytes": 247,
+      "stored_path": "runs/attempt-01/result.json",
+      "stored_sha256": "db5ba6309d7cc324e296bf267e38d2153558e2bc85d1642c2b2076b3523112b4",
+      "stored_bytes": 247,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/rf1-java-probe/attempt-02/data/catalog.journal",
+      "original_sha256": "624ee983e7ac15774ff7ce9d23f8084906ff0c23c5de7ad1a6dfc2d2bbd2e469",
+      "original_bytes": 119,
+      "stored_path": "runs/attempt-02/data/catalog.journal",
+      "stored_sha256": "624ee983e7ac15774ff7ce9d23f8084906ff0c23c5de7ad1a6dfc2d2bbd2e469",
+      "stored_bytes": 119,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/rf1-java-probe/attempt-02/data/partitions/7e9bdfe8318b4a97bc281c2862d6cddd-0.journal",
+      "original_sha256": "595de5d49cb1d869bb9d25d03b227e9afb97704417d0b38f7fc30285682e9f75",
+      "original_bytes": 581,
+      "stored_path": "runs/attempt-02/data/partitions/7e9bdfe8318b4a97bc281c2862d6cddd-0.journal",
+      "stored_sha256": "595de5d49cb1d869bb9d25d03b227e9afb97704417d0b38f7fc30285682e9f75",
+      "stored_bytes": 581,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/rf1-java-probe/attempt-02/data/partitions/7e9bdfe8318b4a97bc281c2862d6cddd-1.journal",
+      "original_sha256": "78ca235f2b3be7f20d2de94ffeb89dc7aad53827d967bf1c5f33d6d6956ed594",
+      "original_bytes": 576,
+      "stored_path": "runs/attempt-02/data/partitions/7e9bdfe8318b4a97bc281c2862d6cddd-1.journal",
+      "stored_sha256": "78ca235f2b3be7f20d2de94ffeb89dc7aad53827d967bf1c5f33d6d6956ed594",
+      "stored_bytes": 576,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/rf1-java-probe/attempt-02/data/serve.identity",
+      "original_sha256": "80cdb6b8465a996094514672730892ebaf96ce6e82b6badbea3f67dd1c2d9957",
+      "original_bytes": 38,
+      "stored_path": "runs/attempt-02/data/serve.identity",
+      "stored_sha256": "80cdb6b8465a996094514672730892ebaf96ce6e82b6badbea3f67dd1c2d9957",
+      "stored_bytes": 38,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/rf1-java-probe/attempt-02/data/serve.lock",
+      "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "original_bytes": 0,
+      "stored_path": "runs/attempt-02/data/serve.lock",
+      "stored_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stored_bytes": 0,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/rf1-java-probe/attempt-02/java-recover.stderr",
+      "original_sha256": "9ddf3781b5e43a87b1d67caac2bc4b251f9ce8d77c509c8369129f4b0359fd55",
+      "original_bytes": 210,
+      "stored_path": "runs/attempt-02/java-recover.stderr",
+      "stored_sha256": "9ddf3781b5e43a87b1d67caac2bc4b251f9ce8d77c509c8369129f4b0359fd55",
+      "stored_bytes": 210,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/rf1-java-probe/attempt-02/java-recover.stdout",
+      "original_sha256": "7cef55703533513dc59fe78f89b20cf75b444ac1e65dbeefc49d12e6da613a3a",
+      "original_bytes": 1093,
+      "stored_path": "runs/attempt-02/java-recover.stdout",
+      "stored_sha256": "7cef55703533513dc59fe78f89b20cf75b444ac1e65dbeefc49d12e6da613a3a",
+      "stored_bytes": 1093,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/rf1-java-probe/attempt-02/java-seed.stderr",
+      "original_sha256": "9ddf3781b5e43a87b1d67caac2bc4b251f9ce8d77c509c8369129f4b0359fd55",
+      "original_bytes": 210,
+      "stored_path": "runs/attempt-02/java-seed.stderr",
+      "stored_sha256": "9ddf3781b5e43a87b1d67caac2bc4b251f9ce8d77c509c8369129f4b0359fd55",
+      "stored_bytes": 210,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/rf1-java-probe/attempt-02/java-seed.stdout",
+      "original_sha256": "a83e75226e25c38ea0bd7fe28342435813c9729061c0310210b10cd76cfe32e3",
+      "original_bytes": 659,
+      "stored_path": "runs/attempt-02/java-seed.stdout",
+      "stored_sha256": "a83e75226e25c38ea0bd7fe28342435813c9729061c0310210b10cd76cfe32e3",
+      "stored_bytes": 659,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/rf1-java-probe/attempt-02/result.json",
+      "original_sha256": "f61a3878a2dcf7fc95b5e2cd6833a7382e43fb22380c45b82090aa95b468d3e7",
+      "original_bytes": 4497,
+      "stored_path": "runs/attempt-02/result.json",
+      "stored_sha256": "f61a3878a2dcf7fc95b5e2cd6833a7382e43fb22380c45b82090aa95b468d3e7",
+      "stored_bytes": 4497,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/rf1-java-probe/attempt-02/server-restart.stderr",
+      "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "original_bytes": 0,
+      "stored_path": "runs/attempt-02/server-restart.stderr",
+      "stored_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stored_bytes": 0,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/rf1-java-probe/attempt-02/server-restart.stdout",
+      "original_sha256": "96c34d4761867b9fecc992b6ddb5ec8ebc6b7b0a60c9bac3ef62ba96beccb5b5",
+      "original_bytes": 136,
+      "stored_path": "runs/attempt-02/server-restart.stdout",
+      "stored_sha256": "96c34d4761867b9fecc992b6ddb5ec8ebc6b7b0a60c9bac3ef62ba96beccb5b5",
+      "stored_bytes": 136,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/rf1-java-probe/attempt-02/server-seed.stderr",
+      "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "original_bytes": 0,
+      "stored_path": "runs/attempt-02/server-seed.stderr",
+      "stored_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stored_bytes": 0,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/rf1-java-probe/attempt-02/server-seed.stdout",
+      "original_sha256": "77901147abb0ce53cbe54cfb5857cafefbc606eee1be1bdcc6efa02b27e933f8",
+      "original_bytes": 136,
+      "stored_path": "runs/attempt-02/server-seed.stdout",
+      "stored_sha256": "77901147abb0ce53cbe54cfb5857cafefbc606eee1be1bdcc6efa02b27e933f8",
+      "stored_bytes": 136,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/rf1-check-01.log",
+      "original_sha256": "d6dc0882833a452d8b38f346a7d30e5f83618b22d6418db9702122509ec3d438",
+      "original_bytes": 543,
+      "stored_path": "build/rf1-check-01.log",
+      "stored_sha256": "d6dc0882833a452d8b38f346a7d30e5f83618b22d6418db9702122509ec3d438",
+      "stored_bytes": 543,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/rf1-check-02.log",
+      "original_sha256": "0865a28d58f4958d610e54ab8ec8ea6a2e9d44423be4c9817d38ed54aac3d9ab",
+      "original_bytes": 5089,
+      "stored_path": "build/rf1-check-02.log",
+      "stored_sha256": "0865a28d58f4958d610e54ab8ec8ea6a2e9d44423be4c9817d38ed54aac3d9ab",
+      "stored_bytes": 5089,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/rf1-check-03.log",
+      "original_sha256": "a38a37aa76e56a1f4f00fce728fc330a257d0acc6ca2494ff30e4a941a81bc33",
+      "original_bytes": 726,
+      "stored_path": "build/rf1-check-03.log",
+      "stored_sha256": "a38a37aa76e56a1f4f00fce728fc330a257d0acc6ca2494ff30e4a941a81bc33",
+      "stored_bytes": 726,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/rf1-test-01.log",
+      "original_sha256": "6e5a7cdcfb38ff1d3e6006530867f65f0032277ff632ed8b63e0a6e181451857",
+      "original_bytes": 519,
+      "stored_path": "build/rf1-test-01.log",
+      "stored_sha256": "6e5a7cdcfb38ff1d3e6006530867f65f0032277ff632ed8b63e0a6e181451857",
+      "stored_bytes": 519,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/rf1-test-02.log",
+      "original_sha256": "8a93175ea030e115e8e982e146cd2073b77efd82f3f1d1861a5d2d1a891be828",
+      "original_bytes": 491,
+      "stored_path": "build/rf1-test-02.log",
+      "stored_sha256": "8a93175ea030e115e8e982e146cd2073b77efd82f3f1d1861a5d2d1a891be828",
+      "stored_bytes": 491,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/rf1-clippy-01.log",
+      "original_sha256": "2bb72285e78efb937895be945391e29d5d15bbb3290fb075b6a0a2d1fbc15839",
+      "original_bytes": 1720,
+      "stored_path": "build/rf1-clippy-01.log",
+      "stored_sha256": "2bb72285e78efb937895be945391e29d5d15bbb3290fb075b6a0a2d1fbc15839",
+      "stored_bytes": 1720,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/rf1-clippy-02.log",
+      "original_sha256": "e3b5afbca3722650bfa4fdc989150f16e570a0a0f091d09a37c384ee18bdbdbe",
+      "original_bytes": 158,
+      "stored_path": "build/rf1-clippy-02.log",
+      "stored_sha256": "e3b5afbca3722650bfa4fdc989150f16e570a0a0f091d09a37c384ee18bdbdbe",
+      "stored_bytes": 158,
+      "encoding": "identity"
+    }
+  ]
+}

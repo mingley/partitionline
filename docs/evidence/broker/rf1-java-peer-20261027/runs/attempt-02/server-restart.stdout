@@ -1,0 +1,2 @@
+ready 127.0.0.1:19395 advertised=127.0.0.1:19395 recovered_entries=1 profile=ordinary-rf1
+stopped accepted=6 joined=6 worker_failures=0

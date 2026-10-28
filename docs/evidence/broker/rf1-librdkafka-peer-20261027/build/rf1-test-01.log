@@ -1,0 +1,10 @@
+   Compiling tokio v1.53.1
+   Compiling partitionline-broker v0.1.0 (/workspace/work/partitionline-rf1/partitionline-broker)
+    Finished `test` profile [unoptimized] target(s) in 17.83s
+     Running tests/operator_server.rs (/workspace/work/qualification-20261027/broker-check-target/debug/deps/operator_server-d8307f34300bc7e3)
+
+running 1 test
+test durable_rf1_server_restarts_and_rejects_shared_or_wrong_identity ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.08s
+

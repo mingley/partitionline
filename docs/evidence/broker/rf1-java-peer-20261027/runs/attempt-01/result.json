@@ -1,0 +1,1 @@
+{"status":"failed", "phase":"preflight", "failure":"javac command unavailable; follow-up driver failed before server start because Rf1Peer.class did not exist", "server_started":false, "next_attempt":"Use the installed java jdk.compiler module."}

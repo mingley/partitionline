@@ -1,0 +1,365 @@
+{
+  "schema_version": 1,
+  "files": [
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/rf1-librdkafka-probe/README.md",
+      "original_sha256": "a5575577abd4c4954f9216c5dcdecd22d3fa6ed17b1db424b6c85cc8a97cfd91",
+      "original_bytes": 2101,
+      "stored_path": "README.md",
+      "stored_sha256": "a5575577abd4c4954f9216c5dcdecd22d3fa6ed17b1db424b6c85cc8a97cfd91",
+      "stored_bytes": 2101,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/rf1-java-probe/candidate-sources.tar.gz",
+      "original_sha256": "99762c745d8b5313bb7684f54718d4eee84c44813f51a35e5662c508a7bf1349",
+      "original_bytes": 542829,
+      "stored_path": "source/candidate-sources.tar.gz",
+      "stored_sha256": "99762c745d8b5313bb7684f54718d4eee84c44813f51a35e5662c508a7bf1349",
+      "stored_bytes": 542829,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/rf1-evidence/receipt.json",
+      "original_sha256": "c49a36542467acea7e7c2b1dc067dab816421d07ae4c1a3c088b8589a69d5e7e",
+      "original_bytes": 9971,
+      "stored_path": "build/rf1-receipt.json",
+      "stored_sha256": "c49a36542467acea7e7c2b1dc067dab816421d07ae4c1a3c088b8589a69d5e7e",
+      "stored_bytes": 9971,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/rf1-evidence/operator.elf",
+      "original_sha256": "46638c7015988797b85bd1fb857b01057f8d44747e411e15871eb1db3f70480b",
+      "original_bytes": 6712472,
+      "stored_path": "build/operator.elf.gz",
+      "stored_sha256": "8b525fb41466475c8057d411b51390caa87ee16c66e6f9ab49d405151c3e6030",
+      "stored_bytes": 1633631,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/narrow-profile/c-peer/lib/librdkafka.so.1",
+      "original_sha256": "23698e1d7ec1f3f496133b946474f997ed690fa57222d3785c3a176ed57563ca",
+      "original_bytes": 14587424,
+      "stored_path": "peer/librdkafka.so.1.gz",
+      "stored_sha256": "a27efe3ccc462cbdd3e395564a12082265ff0f1dd08eb8c24086b484f9ac02f5",
+      "stored_bytes": 5959867,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "docs/evidence/perf/nullbroker-peers/librdkafka-source/build-manifest.json",
+      "original_sha256": "c7835ed42eedb7837ebfc7d92d02ab433d8c024760e3c8776d25c15c374bc107",
+      "original_bytes": 887,
+      "stored_path": "peer/library-build-manifest.json",
+      "stored_sha256": "c7835ed42eedb7837ebfc7d92d02ab433d8c024760e3c8776d25c15c374bc107",
+      "stored_bytes": 887,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "tests/conformance/broker/interop/pins.json",
+      "original_sha256": "48e14121ef37ea952691f4766285463a38481168cd12f3630be350390c6c6671",
+      "original_bytes": 1830,
+      "stored_path": "peer/upstream-pins.json",
+      "stored_sha256": "48e14121ef37ea952691f4766285463a38481168cd12f3630be350390c6c6671",
+      "stored_bytes": 1830,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/rf1-librdkafka-probe/ordinary-peer.c",
+      "original_sha256": "2a3386957827dc62b7c4029d8b7fbb3e77ceec2b72c51348b95f8ec6e4067b5c",
+      "original_bytes": 13945,
+      "stored_path": "peer/ordinary-peer.c",
+      "stored_sha256": "2a3386957827dc62b7c4029d8b7fbb3e77ceec2b72c51348b95f8ec6e4067b5c",
+      "stored_bytes": 13945,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/rf1-librdkafka-probe/headers/rdkafka.h",
+      "original_sha256": "33cca14d9fc87117100ce90bd84f2006b8ba521c788055db6af614d0f2f7ca2f",
+      "original_bytes": 431784,
+      "stored_path": "peer/headers/rdkafka.h.gz",
+      "stored_sha256": "ac506957ac3ef6e0b3454f428769efde4b1a7778f871a0fe7af6028d25ed71c8",
+      "stored_bytes": 84796,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/rf1-librdkafka-probe/ordinary-native",
+      "original_sha256": "5034a5364caf13ad2af8c584b438be9ba401910ff0341587e8b7495817f0a94f",
+      "original_bytes": 27584,
+      "stored_path": "peer/ordinary-native",
+      "stored_sha256": "5034a5364caf13ad2af8c584b438be9ba401910ff0341587e8b7495817f0a94f",
+      "stored_bytes": 27584,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/rf1-librdkafka-probe/run.py",
+      "original_sha256": "81de616aa9ebe105548d8578f851d4d01e0476c99d3e937f9b4c84814e34c547",
+      "original_bytes": 3396,
+      "stored_path": "peer/run.py",
+      "stored_sha256": "81de616aa9ebe105548d8578f851d4d01e0476c99d3e937f9b4c84814e34c547",
+      "stored_bytes": 3396,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/rf1-librdkafka-probe/gcc-version.log",
+      "original_sha256": "4dc9a4e32fd9e06d42fb307688c59d6d889f0ff90ce034cbefed21b0d451fd81",
+      "original_bytes": 232,
+      "stored_path": "peer/gcc-version.log",
+      "stored_sha256": "4dc9a4e32fd9e06d42fb307688c59d6d889f0ff90ce034cbefed21b0d451fd81",
+      "stored_bytes": 232,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/rf1-librdkafka-probe/ldd.log",
+      "original_sha256": "66a8ad78226a4efcd65bc28bff6e6b2abd450e5240bd61ae863a839a56b44139",
+      "original_bytes": 637,
+      "stored_path": "peer/ldd.log",
+      "stored_sha256": "66a8ad78226a4efcd65bc28bff6e6b2abd450e5240bd61ae863a839a56b44139",
+      "stored_bytes": 637,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/rf1-librdkafka-probe/compile.stdout",
+      "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "original_bytes": 0,
+      "stored_path": "peer/compile.stdout",
+      "stored_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stored_bytes": 0,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/rf1-librdkafka-probe/compile.stderr",
+      "original_sha256": "bdf8fef31b1b2050760ea9cdd9d47101ac4ae2fecd2a2d06c506f2f203fb2e1b",
+      "original_bytes": 7139,
+      "stored_path": "peer/compile.stderr",
+      "stored_sha256": "bdf8fef31b1b2050760ea9cdd9d47101ac4ae2fecd2a2d06c506f2f203fb2e1b",
+      "stored_bytes": 7139,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/rf1-librdkafka-probe/compile-02.stdout",
+      "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "original_bytes": 0,
+      "stored_path": "peer/compile-02.stdout",
+      "stored_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stored_bytes": 0,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/rf1-librdkafka-probe/compile-02.stderr",
+      "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "original_bytes": 0,
+      "stored_path": "peer/compile-02.stderr",
+      "stored_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stored_bytes": 0,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/rf1-librdkafka-probe/attempt-01/data/catalog.journal",
+      "original_sha256": "e5a67bdd545d053f97bcaa515bd6ec0c4e71267f55cb173d7b8fb8f78fafffa0",
+      "original_bytes": 105,
+      "stored_path": "run/data/catalog.journal",
+      "stored_sha256": "e5a67bdd545d053f97bcaa515bd6ec0c4e71267f55cb173d7b8fb8f78fafffa0",
+      "stored_bytes": 105,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/rf1-librdkafka-probe/attempt-01/data/partitions/7f3458aa3d654fc6ad056712f518cced-0.journal",
+      "original_sha256": "1843d0fc18b3d82fa9ee50599882ffa304888223853b329d5f9f54cfa3e43ec2",
+      "original_bytes": 1019,
+      "stored_path": "run/data/partitions/7f3458aa3d654fc6ad056712f518cced-0.journal",
+      "stored_sha256": "1843d0fc18b3d82fa9ee50599882ffa304888223853b329d5f9f54cfa3e43ec2",
+      "stored_bytes": 1019,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/rf1-librdkafka-probe/attempt-01/data/partitions/7f3458aa3d654fc6ad056712f518cced-1.journal",
+      "original_sha256": "a2d76fbbc53c8ad53a203e76b2101ae2a23e5bda3ae3dd39e975146702b232c8",
+      "original_bytes": 1019,
+      "stored_path": "run/data/partitions/7f3458aa3d654fc6ad056712f518cced-1.journal",
+      "stored_sha256": "a2d76fbbc53c8ad53a203e76b2101ae2a23e5bda3ae3dd39e975146702b232c8",
+      "stored_bytes": 1019,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/rf1-librdkafka-probe/attempt-01/data/serve.identity",
+      "original_sha256": "c6cc18fb898cd44027948e33c31188d2fe68e5b701f26a72ea2be7b739058486",
+      "original_bytes": 40,
+      "stored_path": "run/data/serve.identity",
+      "stored_sha256": "c6cc18fb898cd44027948e33c31188d2fe68e5b701f26a72ea2be7b739058486",
+      "stored_bytes": 40,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/rf1-librdkafka-probe/attempt-01/data/serve.lock",
+      "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "original_bytes": 0,
+      "stored_path": "run/data/serve.lock",
+      "stored_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stored_bytes": 0,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/rf1-librdkafka-probe/attempt-01/native-append.stderr",
+      "original_sha256": "5bd21c2a5e224a995e1d95bad8b32e5d492e98d07da5795afad3488bbd967853",
+      "original_bytes": 31421,
+      "stored_path": "run/native-append.stderr",
+      "stored_sha256": "5bd21c2a5e224a995e1d95bad8b32e5d492e98d07da5795afad3488bbd967853",
+      "stored_bytes": 31421,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/rf1-librdkafka-probe/attempt-01/native-append.stdout",
+      "original_sha256": "b60dfb498267c1c8345f62ae7490fb1361955cceff8d7bfd311054a63705d029",
+      "original_bytes": 8766,
+      "stored_path": "run/native-append.stdout",
+      "stored_sha256": "b60dfb498267c1c8345f62ae7490fb1361955cceff8d7bfd311054a63705d029",
+      "stored_bytes": 8766,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/rf1-librdkafka-probe/attempt-01/native-fetch.stderr",
+      "original_sha256": "2fae8ac47d4447d584bbc36bc1c0cea7bb51c2583410291112bc16b13ca89939",
+      "original_bytes": 36176,
+      "stored_path": "run/native-fetch.stderr",
+      "stored_sha256": "2fae8ac47d4447d584bbc36bc1c0cea7bb51c2583410291112bc16b13ca89939",
+      "stored_bytes": 36176,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/rf1-librdkafka-probe/attempt-01/native-fetch.stdout",
+      "original_sha256": "287514f1b4e5f0bb0a9ab8bccde3b2437a037cdd2615f0c82e3fbcfb7a15b162",
+      "original_bytes": 8741,
+      "stored_path": "run/native-fetch.stdout",
+      "stored_sha256": "287514f1b4e5f0bb0a9ab8bccde3b2437a037cdd2615f0c82e3fbcfb7a15b162",
+      "stored_bytes": 8741,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/rf1-librdkafka-probe/attempt-01/native-restart.stderr",
+      "original_sha256": "bbce21bf4ec12bfe8b6ff3ff9402b9e42010135f6ddaf4ecf89f58e47399116e",
+      "original_bytes": 35783,
+      "stored_path": "run/native-restart.stderr",
+      "stored_sha256": "bbce21bf4ec12bfe8b6ff3ff9402b9e42010135f6ddaf4ecf89f58e47399116e",
+      "stored_bytes": 35783,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/rf1-librdkafka-probe/attempt-01/native-restart.stdout",
+      "original_sha256": "57c47d4c473645c70e871aa0e809cc9b77067ba41081b880fb635f04b8369513",
+      "original_bytes": 8743,
+      "stored_path": "run/native-restart.stdout",
+      "stored_sha256": "57c47d4c473645c70e871aa0e809cc9b77067ba41081b880fb635f04b8369513",
+      "stored_bytes": 8743,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/rf1-librdkafka-probe/attempt-01/result.json",
+      "original_sha256": "2f286c221184ce7b6be8340d0e3d6c0b037dc27d01681de29ec86dd7b2af14cc",
+      "original_bytes": 2948,
+      "stored_path": "run/result.json",
+      "stored_sha256": "2f286c221184ce7b6be8340d0e3d6c0b037dc27d01681de29ec86dd7b2af14cc",
+      "stored_bytes": 2948,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/rf1-librdkafka-probe/attempt-01/server-restart.stderr",
+      "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "original_bytes": 0,
+      "stored_path": "run/server-restart.stderr",
+      "stored_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stored_bytes": 0,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/rf1-librdkafka-probe/attempt-01/server-restart.stdout",
+      "original_sha256": "0d7bc26626282bef668458b6dc6d04f390a69c7dc73e9e11463952f3a04fe355",
+      "original_bytes": 136,
+      "stored_path": "run/server-restart.stdout",
+      "stored_sha256": "0d7bc26626282bef668458b6dc6d04f390a69c7dc73e9e11463952f3a04fe355",
+      "stored_bytes": 136,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/rf1-librdkafka-probe/attempt-01/server-seed.stderr",
+      "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "original_bytes": 0,
+      "stored_path": "run/server-seed.stderr",
+      "stored_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stored_bytes": 0,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/rf1-librdkafka-probe/attempt-01/server-seed.stdout",
+      "original_sha256": "200d4f4cd84f37f233f56e833f66ece667b8be8024e517db7159b58afbfce943",
+      "original_bytes": 136,
+      "stored_path": "run/server-seed.stdout",
+      "stored_sha256": "200d4f4cd84f37f233f56e833f66ece667b8be8024e517db7159b58afbfce943",
+      "stored_bytes": 136,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/rf1-check-01.log",
+      "original_sha256": "d6dc0882833a452d8b38f346a7d30e5f83618b22d6418db9702122509ec3d438",
+      "original_bytes": 543,
+      "stored_path": "build/rf1-check-01.log",
+      "stored_sha256": "d6dc0882833a452d8b38f346a7d30e5f83618b22d6418db9702122509ec3d438",
+      "stored_bytes": 543,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/rf1-check-02.log",
+      "original_sha256": "0865a28d58f4958d610e54ab8ec8ea6a2e9d44423be4c9817d38ed54aac3d9ab",
+      "original_bytes": 5089,
+      "stored_path": "build/rf1-check-02.log",
+      "stored_sha256": "0865a28d58f4958d610e54ab8ec8ea6a2e9d44423be4c9817d38ed54aac3d9ab",
+      "stored_bytes": 5089,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/rf1-check-03.log",
+      "original_sha256": "a38a37aa76e56a1f4f00fce728fc330a257d0acc6ca2494ff30e4a941a81bc33",
+      "original_bytes": 726,
+      "stored_path": "build/rf1-check-03.log",
+      "stored_sha256": "a38a37aa76e56a1f4f00fce728fc330a257d0acc6ca2494ff30e4a941a81bc33",
+      "stored_bytes": 726,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/rf1-test-01.log",
+      "original_sha256": "6e5a7cdcfb38ff1d3e6006530867f65f0032277ff632ed8b63e0a6e181451857",
+      "original_bytes": 519,
+      "stored_path": "build/rf1-test-01.log",
+      "stored_sha256": "6e5a7cdcfb38ff1d3e6006530867f65f0032277ff632ed8b63e0a6e181451857",
+      "stored_bytes": 519,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/rf1-test-02.log",
+      "original_sha256": "8a93175ea030e115e8e982e146cd2073b77efd82f3f1d1861a5d2d1a891be828",
+      "original_bytes": 491,
+      "stored_path": "build/rf1-test-02.log",
+      "stored_sha256": "8a93175ea030e115e8e982e146cd2073b77efd82f3f1d1861a5d2d1a891be828",
+      "stored_bytes": 491,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/rf1-clippy-01.log",
+      "original_sha256": "2bb72285e78efb937895be945391e29d5d15bbb3290fb075b6a0a2d1fbc15839",
+      "original_bytes": 1720,
+      "stored_path": "build/rf1-clippy-01.log",
+      "stored_sha256": "2bb72285e78efb937895be945391e29d5d15bbb3290fb075b6a0a2d1fbc15839",
+      "stored_bytes": 1720,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/rf1-clippy-02.log",
+      "original_sha256": "e3b5afbca3722650bfa4fdc989150f16e570a0a0f091d09a37c384ee18bdbdbe",
+      "original_bytes": 158,
+      "stored_path": "build/rf1-clippy-02.log",
+      "stored_sha256": "e3b5afbca3722650bfa4fdc989150f16e570a0a0f091d09a37c384ee18bdbdbe",
+      "stored_bytes": 158,
+      "encoding": "identity"
+    }
+  ]
+}

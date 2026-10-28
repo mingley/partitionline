@@ -1,6 +1,7 @@
-//! Local operator tool for the experimental broker admin journal.
-//!
-//! It does not open a listen socket and it does not deploy a cluster.
+//! Operator commands and an experimental, single-node RF1 Kafka listener.
+
+#[path = "operator/serve.rs"]
+mod serve;
 
 use partitionline_broker::admin::{self, Admin, Assignment};
 use partitionline_broker::journal;
@@ -23,6 +24,7 @@ fn run(args: impl Iterator<Item = String>) -> Result<(), String> {
     let args: Vec<String> = args.collect();
     let command = args.first().map(String::as_str).unwrap_or("");
     match command {
+        "serve" => serve::run(&args),
         "init" => init(&args),
         "register-dir" => register_dir(&args),
         "assign" => assign(&args),
@@ -30,9 +32,10 @@ fn run(args: impl Iterator<Item = String>) -> Result<(), String> {
         "status" => status(&args),
         "backup" => backup(&args),
         "restore" => restore(&args),
-        _ => {
-            Err("usage: operator init|register-dir|assign|feature|status|backup|restore".to_owned())
-        }
+        _ => Err(
+            "usage: operator serve|init|register-dir|assign|feature|status|backup|restore"
+                .to_owned(),
+        ),
     }
 }
 

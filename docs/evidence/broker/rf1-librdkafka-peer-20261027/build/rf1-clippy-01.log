@@ -1,0 +1,33 @@
+    Checking partitionline-broker v0.1.0 (/workspace/work/partitionline-rf1/partitionline-broker)
+error: use of a disallowed method `std::thread::sleep`
+  --> tests/operator_server.rs:83:9
+   |
+83 |         thread::sleep(Duration::from_millis(20));
+   |         ^^^^^^^^^^^^^
+   |
+   = note: Blocks the executor thread. Use tokio::time::sleep.
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#disallowed_methods
+   = note: `-D clippy::disallowed-methods` implied by `-D warnings`
+   = help: to override `-D warnings` add `#[allow(clippy::disallowed_methods)]`
+
+error: use of a disallowed method `std::net::TcpStream::connect`
+  --> tests/operator_server.rs:88:22
+   |
+88 |     let mut socket = TcpStream::connect(("127.0.0.1", port)).unwrap();
+   |                      ^^^^^^^^^^^^^^^^^^
+   |
+   = note: Blocking connect. Use tokio::net::TcpStream.
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#disallowed_methods
+
+error: using `chunks_exact` with a constant chunk size
+   --> tests/operator_server.rs:140:10
+    |
+140 |         .chunks_exact(6)
+    |          ^^^^^^^^^^^^^^^ help: consider using `as_chunks` instead: `as_chunks::<6>().0.iter()`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#chunks_exact_to_as_chunks
+    = note: `-D clippy::chunks-exact-to-as-chunks` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::chunks_exact_to_as_chunks)]`
+
+error: could not compile `partitionline-broker` (test "operator_server") due to 3 previous errors
+warning: build failed, waiting for other jobs to finish...

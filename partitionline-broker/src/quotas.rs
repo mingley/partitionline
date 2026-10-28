@@ -5,6 +5,8 @@
 //! bucket. A hard connection cap and an in-flight byte cap reject work that
 //! would exceed them. Lowering a quota does not cancel work that was already
 //! accepted, and disconnect releases only that client's connection permits.
+//! Client identity state is bounded by the configured connection cap; idle
+//! identities are reclaimed only after both buckets refill and all debt clears.
 //!
 //! This is not a Kafka throttle response on the wire.
 
@@ -112,9 +114,69 @@ impl Error {
 #[derive(Debug, Clone)]
 struct Client {
     connections: usize,
-    produce_tokens: u64,
-    fetch_tokens: u64,
+    produce: Bucket,
+    fetch: Bucket,
+}
+
+// A byte is represented by 1,000 units, so millisecond refills retain their
+// fractional bytes. Debt records accepted delayed requests until time pays them.
+#[derive(Debug, Clone)]
+struct Bucket {
+    credit: u128,
+    debt: u128,
     updated_ms: u64,
+}
+
+impl Bucket {
+    fn new(rate: u64, now_ms: u64) -> Self {
+        Self {
+            credit: u128::from(rate) * 1_000,
+            debt: 0,
+            updated_ms: now_ms,
+        }
+    }
+
+    fn refill(&mut self, rate: u64, now_ms: u64) {
+        let cap = u128::from(rate) * 1_000;
+        self.credit = self.credit.min(cap);
+        if now_ms < self.updated_ms {
+            return;
+        }
+        let added = u128::from(now_ms - self.updated_ms) * u128::from(rate);
+        self.updated_ms = now_ms;
+        let paid = added.min(self.debt);
+        self.debt -= paid;
+        self.credit = self.credit.saturating_add(added - paid).min(cap);
+    }
+
+    fn charge(
+        &mut self,
+        rate: u64,
+        bytes: u64,
+        now_ms: u64,
+        max_throttle_ms: u64,
+    ) -> Result<u64, Error> {
+        // Limits has public fields, so reject an invalid directly constructed
+        // configuration rather than divide by zero.
+        if rate == 0 {
+            return Err(Error::InvalidLimits);
+        }
+        self.refill(rate, now_ms);
+        let amount = u128::from(bytes) * 1_000;
+        let deficit = amount.saturating_sub(self.credit);
+        let debt = self.debt.checked_add(deficit).ok_or(Error::Throttled)?;
+        let throttle = debt.div_ceil(u128::from(rate));
+        if throttle > u128::from(max_throttle_ms) {
+            return Err(Error::Throttled);
+        }
+        self.credit = self.credit.saturating_sub(amount);
+        self.debt = debt;
+        Ok(throttle as u64)
+    }
+
+    fn full(&self, rate: u64) -> bool {
+        self.debt == 0 && self.credit == u128::from(rate) * 1_000
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -126,26 +188,26 @@ struct Work {
 pub struct Window {
     limits: Limits,
     clients: BTreeMap<String, Client>,
-    replication_tokens: u64,
-    replication_updated_ms: u64,
+    replication: Bucket,
     connections: usize,
     inflight_bytes: u64,
     work: BTreeMap<u64, Work>,
     next_work: u64,
+    observed_ms: u64,
 }
 
 impl Window {
     /// Start with full buckets at `now_ms`.
     pub fn new(limits: Limits, now_ms: u64) -> Self {
         Self {
-            replication_tokens: limits.replication_bytes_per_sec,
+            replication: Bucket::new(limits.replication_bytes_per_sec, now_ms),
             limits,
             clients: BTreeMap::new(),
-            replication_updated_ms: now_ms,
             connections: 0,
             inflight_bytes: 0,
             work: BTreeMap::new(),
             next_work: 1,
+            observed_ms: now_ms,
         }
     }
 
@@ -165,6 +227,10 @@ impl Window {
     }
 
     /// Replace future rates. Accepted work is kept.
+    ///
+    /// The next refill applies these rates to the entire interval since each
+    /// bucket's last observation. Use [`Self::set_rates_at`] to account for
+    /// elapsed time at the old rates before changing them.
     pub fn set_rates(
         &mut self,
         produce_bytes_per_sec: u64,
@@ -181,14 +247,53 @@ impl Window {
         Ok(())
     }
 
-    /// Take one connection permit for `client`.
+    /// Account for elapsed time at the current rates before replacing them.
+    /// Accepted work and its accumulated debt remain in the window.
+    pub fn set_rates_at(
+        &mut self,
+        produce_bytes_per_sec: u64,
+        fetch_bytes_per_sec: u64,
+        replication_bytes_per_sec: u64,
+        now_ms: u64,
+    ) -> Result<(), Error> {
+        if produce_bytes_per_sec == 0 || fetch_bytes_per_sec == 0 || replication_bytes_per_sec == 0
+        {
+            return Err(Error::InvalidLimits);
+        }
+        self.observed_ms = self.observed_ms.max(now_ms);
+        for client in self.clients.values_mut() {
+            client
+                .produce
+                .refill(self.limits.produce_bytes_per_sec, now_ms);
+            client.fetch.refill(self.limits.fetch_bytes_per_sec, now_ms);
+        }
+        self.replication
+            .refill(self.limits.replication_bytes_per_sec, now_ms);
+        self.set_rates(
+            produce_bytes_per_sec,
+            fetch_bytes_per_sec,
+            replication_bytes_per_sec,
+        )
+    }
+
+    /// Take one connection permit for `client` at the latest observed time.
+    ///
+    /// This method cannot advance time by itself. An otherwise idle caller
+    /// must use [`Self::connect_at`] to reclaim quota state as time passes.
     pub fn connect(&mut self, client: &str) -> Result<(), Error> {
+        self.connect_at(client, self.observed_ms)
+    }
+
+    /// Take one connection permit and reclaim fully refilled idle identities
+    /// when needed. Times must use the same millisecond clock as [`Self::admit`].
+    pub fn connect_at(&mut self, client: &str, now_ms: u64) -> Result<(), Error> {
         self.named(client)?;
+        self.observed_ms = self.observed_ms.max(now_ms);
         if self.connections >= self.limits.max_connections {
             return Err(Error::Throttled);
         }
         let per_client = self.limits.max_connections_per_client;
-        let entry = self.client_mut(client, 0);
+        let entry = self.client_mut(client, now_ms)?;
         if entry.connections >= per_client {
             return Err(Error::Throttled);
         }
@@ -219,14 +324,19 @@ impl Window {
         bytes: u64,
         now_ms: u64,
     ) -> Result<Admission, Error> {
-        if bytes == 0 || self.inflight_bytes.saturating_add(bytes) > self.limits.max_inflight_bytes
-        {
+        let next_inflight = self.inflight_bytes.checked_add(bytes);
+        if bytes == 0 || next_inflight.is_none_or(|total| total > self.limits.max_inflight_bytes) {
             return Err(if bytes == 0 {
                 Error::InvalidRequest
             } else {
                 Error::Throttled
             });
         }
+        self.observed_ms = self.observed_ms.max(now_ms);
+        // Reserve a distinct work ID before spending tokens; overflow must never
+        // overwrite a live permit or leave charged work without a receipt.
+        let work_id = self.next_work;
+        let next_work = work_id.checked_add(1).ok_or(Error::Throttled)?;
         let throttle_ms = match kind {
             Kind::Replication => self.charge_replication(bytes, now_ms)?,
             Kind::Produce | Kind::Fetch => {
@@ -235,9 +345,8 @@ impl Window {
                 self.charge_client(name, kind, bytes, now_ms)?
             }
         };
-        let work_id = self.next_work;
-        self.next_work = self.next_work.saturating_add(1);
-        self.inflight_bytes = self.inflight_bytes.saturating_add(bytes);
+        self.next_work = next_work;
+        self.inflight_bytes = next_inflight.ok_or(Error::Throttled)?;
         self.work.insert(work_id, Work { bytes });
         Ok(Admission {
             work_id,
@@ -265,64 +374,46 @@ impl Window {
             Kind::Replication => return Err(Error::InvalidRequest),
         };
         let max_throttle_ms = self.limits.max_throttle_ms;
-        let entry = self.client_mut(client, now_ms);
-        refill(entry, kind, rate, now_ms);
-        let tokens = match kind {
-            Kind::Produce => &mut entry.produce_tokens,
-            Kind::Fetch => &mut entry.fetch_tokens,
-            Kind::Replication => return Err(Error::InvalidRequest),
-        };
-        if *tokens >= bytes {
-            *tokens -= bytes;
-            return Ok(0);
+        let entry = self.client_mut(client, now_ms)?;
+        match kind {
+            Kind::Produce => entry.produce.charge(rate, bytes, now_ms, max_throttle_ms),
+            Kind::Fetch => entry.fetch.charge(rate, bytes, now_ms, max_throttle_ms),
+            Kind::Replication => Err(Error::InvalidRequest),
         }
-        let deficit = bytes - *tokens;
-        let throttle_ms = throttle_for(deficit, rate);
-        if throttle_ms > max_throttle_ms {
-            return Err(Error::Throttled);
-        }
-        *tokens = 0;
-        Ok(throttle_ms)
     }
 
     fn charge_replication(&mut self, bytes: u64, now_ms: u64) -> Result<u64, Error> {
-        if now_ms >= self.replication_updated_ms {
-            let elapsed = now_ms.saturating_sub(self.replication_updated_ms);
-            let refill = elapsed.saturating_mul(self.limits.replication_bytes_per_sec) / 1_000;
-            self.replication_tokens = self
-                .replication_tokens
-                .saturating_add(refill)
-                .min(self.limits.replication_bytes_per_sec);
-            self.replication_updated_ms = now_ms;
-        } else {
-            self.replication_tokens = self
-                .replication_tokens
-                .min(self.limits.replication_bytes_per_sec);
-        }
-        if self.replication_tokens >= bytes {
-            self.replication_tokens -= bytes;
-            return Ok(0);
-        }
-        let deficit = bytes - self.replication_tokens;
-        let throttle_ms = throttle_for(deficit, self.limits.replication_bytes_per_sec);
-        if throttle_ms > self.limits.max_throttle_ms {
-            return Err(Error::Throttled);
-        }
-        self.replication_tokens = 0;
-        Ok(throttle_ms)
+        self.replication.charge(
+            self.limits.replication_bytes_per_sec,
+            bytes,
+            now_ms,
+            self.limits.max_throttle_ms,
+        )
     }
 
-    fn client_mut(&mut self, client: &str, now_ms: u64) -> &mut Client {
+    fn client_mut(&mut self, client: &str, now_ms: u64) -> Result<&mut Client, Error> {
         if !self.clients.contains_key(client) {
-            let produce = self.limits.produce_bytes_per_sec;
-            let fetch = self.limits.fetch_bytes_per_sec;
-            let _ = self.clients.insert(
+            if self.clients.len() >= self.limits.max_connections {
+                let produce = self.limits.produce_bytes_per_sec;
+                let fetch = self.limits.fetch_bytes_per_sec;
+                self.clients.retain(|_, state| {
+                    if state.connections != 0 {
+                        return true;
+                    }
+                    state.produce.refill(produce, now_ms);
+                    state.fetch.refill(fetch, now_ms);
+                    !(state.produce.full(produce) && state.fetch.full(fetch))
+                });
+            }
+            if self.clients.len() >= self.limits.max_connections {
+                return Err(Error::Throttled);
+            }
+            self.clients.insert(
                 client.to_owned(),
                 Client {
                     connections: 0,
-                    produce_tokens: produce,
-                    fetch_tokens: fetch,
-                    updated_ms: now_ms,
+                    produce: Bucket::new(self.limits.produce_bytes_per_sec, now_ms),
+                    fetch: Bucket::new(self.limits.fetch_bytes_per_sec, now_ms),
                 },
             );
         }
@@ -331,7 +422,7 @@ impl Window {
             clippy::unwrap_used,
             reason = "the client is present after the insert above"
         )]
-        self.clients.get_mut(client).unwrap()
+        Ok(self.clients.get_mut(client).unwrap())
     }
 
     fn named(&self, client: &str) -> Result<(), Error> {
@@ -343,37 +434,255 @@ impl Window {
     }
 }
 
-fn refill(client: &mut Client, kind: Kind, rate: u64, now_ms: u64) {
-    if now_ms < client.updated_ms {
-        match kind {
-            Kind::Produce => client.produce_tokens = client.produce_tokens.min(rate),
-            Kind::Fetch => client.fetch_tokens = client.fetch_tokens.min(rate),
-            Kind::Replication => {}
-        }
-        return;
-    }
-    let elapsed = now_ms.saturating_sub(client.updated_ms);
-    let added = elapsed.saturating_mul(rate) / 1_000;
-    match kind {
-        Kind::Produce => {
-            client.produce_tokens = client.produce_tokens.saturating_add(added).min(rate)
-        }
-        Kind::Fetch => client.fetch_tokens = client.fetch_tokens.saturating_add(added).min(rate),
-        Kind::Replication => {}
-    }
-    client.updated_ms = now_ms;
-}
-
-fn throttle_for(deficit: u64, rate: u64) -> u64 {
-    deficit.saturating_mul(1_000).div_ceil(rate.max(1))
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
 
     fn limits() -> Limits {
         Limits::new(100, 100, 50, 2, 4, 1_000, 1_000).unwrap_or_else(|_| panic!("quota limits"))
+    }
+
+    #[test]
+    fn independent_buckets_and_fractional_refill_survive_interleaved_requests() {
+        let limits =
+            Limits::new(1, 1, 1, 1, 4, 100, 2_000).unwrap_or_else(|error| panic!("{error:?}"));
+        let mut window = Window::new(limits, 0);
+        window
+            .admit(Some("a"), Kind::Produce, 1, 0)
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        window
+            .admit(Some("a"), Kind::Fetch, 1, 0)
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        // Produce refills must not move the fetch clock, and frequent calls
+        // must accumulate sub-byte credit instead of rounding it away.
+        for time in [250, 500, 750] {
+            assert!(window.admit(Some("a"), Kind::Produce, 3, time).is_err());
+        }
+        assert_eq!(
+            window
+                .admit(Some("a"), Kind::Produce, 1, 1_000)
+                .unwrap_or_else(|error| panic!("{error:?}"))
+                .throttle_ms,
+            0
+        );
+        assert_eq!(
+            window
+                .admit(Some("a"), Kind::Fetch, 1, 1_000)
+                .unwrap_or_else(|error| panic!("{error:?}"))
+                .throttle_ms,
+            0
+        );
+    }
+
+    #[test]
+    fn simultaneous_delayed_work_accumulates_debt_and_rejections_do_not_spend() {
+        let mut window = Window::new(limits(), 0);
+        assert_eq!(
+            window
+                .admit(Some("a"), Kind::Produce, 100, 0)
+                .unwrap_or_else(|error| panic!("{error:?}"))
+                .throttle_ms,
+            0
+        );
+        assert_eq!(
+            window
+                .admit(Some("a"), Kind::Produce, 50, 0)
+                .unwrap_or_else(|error| panic!("{error:?}"))
+                .throttle_ms,
+            500
+        );
+        assert!(matches!(
+            window.admit(Some("a"), Kind::Produce, 51, 0),
+            Err(Error::Throttled)
+        ));
+        assert_eq!(
+            window
+                .admit(Some("a"), Kind::Produce, 50, 0)
+                .unwrap_or_else(|error| panic!("{error:?}"))
+                .throttle_ms,
+            1_000
+        );
+        assert_eq!(
+            window
+                .admit(Some("a"), Kind::Produce, 25, 500)
+                .unwrap_or_else(|error| panic!("{error:?}"))
+                .throttle_ms,
+            750
+        );
+        assert_eq!(
+            window
+                .admit(None, Kind::Replication, 50, 0)
+                .unwrap_or_else(|error| panic!("{error:?}"))
+                .throttle_ms,
+            0
+        );
+        assert_eq!(
+            window
+                .admit(None, Kind::Replication, 25, 0)
+                .unwrap_or_else(|error| panic!("{error:?}"))
+                .throttle_ms,
+            500
+        );
+        assert_eq!(
+            window
+                .admit(None, Kind::Replication, 25, 0)
+                .unwrap_or_else(|error| panic!("{error:?}"))
+                .throttle_ms,
+            1_000
+        );
+    }
+
+    #[test]
+    fn identity_churn_is_bounded_without_erasing_live_quota_debt() {
+        let limits = Limits::new(100, 100, 100, 1, 2, 1_000, 1_000)
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        let mut window = Window::new(limits, 0);
+        window
+            .connect_at("a", 0)
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        window
+            .admit(Some("a"), Kind::Produce, 150, 0)
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        window
+            .disconnect("a")
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        window
+            .connect_at("b", 0)
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        assert!(matches!(window.connect_at("c", 0), Err(Error::Throttled)));
+        assert_eq!(window.clients.len(), 2);
+        assert_eq!(
+            window
+                .admit(Some("a"), Kind::Produce, 50, 0)
+                .unwrap_or_else(|error| panic!("{error:?}"))
+                .throttle_ms,
+            1_000
+        );
+        // a's debt is paid after one second, but it needs another second to
+        // refill its burst allowance; only then can a new identity replace it.
+        assert!(matches!(
+            window.connect_at("c", 1_000),
+            Err(Error::Throttled)
+        ));
+        window
+            .connect_at("c", 2_000)
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        assert_eq!(window.clients.len(), 2);
+        assert!(window.clients.contains_key("b"));
+        assert!(window.clients.contains_key("c"));
+    }
+
+    #[test]
+    fn legacy_connect_reuses_latest_time_without_regressing_on_older_calls() {
+        let limits = Limits::new(100, 100, 100, 1, 2, 1_000, 1_000)
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        let mut window = Window::new(limits, 0);
+        window
+            .connect("a")
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        window
+            .admit(Some("a"), Kind::Produce, 100, 0)
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        window
+            .disconnect("a")
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        window
+            .connect("b")
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        assert!(matches!(window.connect("c"), Err(Error::Throttled)));
+        window
+            .admit(None, Kind::Replication, 1, 1_000)
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        assert!(matches!(window.connect_at("b", 0), Err(Error::Throttled)));
+        window
+            .connect("c")
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        assert!(window.clients.contains_key("b"));
+        assert!(window.clients.contains_key("c"));
+    }
+
+    #[test]
+    fn arithmetic_and_work_ids_fail_closed_without_losing_permits() {
+        let limits = Limits::new(u64::MAX, u64::MAX, u64::MAX, 1, 1, u64::MAX, 1_000)
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        let mut window = Window::new(limits, 0);
+        let first = window
+            .admit(None, Kind::Replication, u64::MAX, 0)
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        assert!(matches!(
+            window.admit(None, Kind::Replication, 1, 0),
+            Err(Error::Throttled)
+        ));
+        assert_eq!(
+            window
+                .complete(first.work_id)
+                .unwrap_or_else(|error| panic!("{error:?}")),
+            u64::MAX
+        );
+        window.next_work = u64::MAX;
+        assert!(matches!(
+            window.admit(None, Kind::Replication, 1, u64::MAX),
+            Err(Error::Throttled)
+        ));
+        assert_eq!(window.inflight_bytes(), 0);
+        assert!(window.work.is_empty());
+    }
+
+    #[test]
+    fn timed_rate_changes_refill_at_the_old_rate_and_keep_debt() {
+        let limits =
+            Limits::new(1, 1, 1, 1, 1, 1_000, 2_000).unwrap_or_else(|error| panic!("{error:?}"));
+        let mut window = Window::new(limits, 0);
+        window
+            .admit(Some("a"), Kind::Produce, 1, 0)
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        window
+            .set_rates_at(100, 100, 100, 1_000)
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        assert_eq!(
+            window
+                .admit(Some("a"), Kind::Produce, 2, 1_000)
+                .unwrap_or_else(|error| panic!("{error:?}"))
+                .throttle_ms,
+            10
+        );
+        window
+            .set_rates_at(1, 1, 1, 1_000)
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        assert_eq!(
+            window
+                .admit(Some("a"), Kind::Produce, 1, 1_000)
+                .unwrap_or_else(|error| panic!("{error:?}"))
+                .throttle_ms,
+            2_000
+        );
+        assert!(matches!(
+            window.set_rates_at(0, 1, 1, 2_000),
+            Err(Error::InvalidLimits)
+        ));
+        assert!(matches!(
+            window.admit(Some("a"), Kind::Produce, 1, 1_000),
+            Err(Error::Throttled)
+        ));
+    }
+
+    #[test]
+    fn malformed_direct_limits_and_extreme_debt_do_not_panic() {
+        let mut limits = limits();
+        limits.replication_bytes_per_sec = 0;
+        let mut window = Window::new(limits, 0);
+        assert!(matches!(
+            window.admit(None, Kind::Replication, 1, 0),
+            Err(Error::InvalidLimits)
+        ));
+        window.replication.debt = u128::MAX;
+        window.replication.credit = 0;
+        window.limits.replication_bytes_per_sec = 1;
+        assert!(matches!(
+            window.admit(None, Kind::Replication, 1, 0),
+            Err(Error::Throttled)
+        ));
+        assert_eq!(window.inflight_bytes(), 0);
     }
 
     #[test]

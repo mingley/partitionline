@@ -1,0 +1,19 @@
+RECORD	0	0	key/0/0	value/0/0-é	headers=dup:first,dup:null,empty:empty
+RECORD	0	1	<null>	value/0/1-é	headers=dup:first,dup:null,empty:empty
+RECORD	0	2	key/0/2	value/0/2-é	headers=dup:first,dup:null,empty:empty
+RECORD	1	0	key/1/0	value/1/0-é	headers=dup:first,dup:null,empty:empty
+RECORD	1	1	key/1/1	value/1/1-é	headers=dup:first,dup:null,empty:empty
+RECORD	1	2	key/1/2	<null>	headers=dup:first,dup:null,empty:empty
+READ_COMPLETE	6
+ACK	0	3	key/0/3	value/0/3-é
+ACK	1	3	key/1/3	value/1/3-é
+RECORD	0	0	key/0/0	value/0/0-é	headers=dup:first,dup:null,empty:empty
+RECORD	0	1	<null>	value/0/1-é	headers=dup:first,dup:null,empty:empty
+RECORD	0	2	key/0/2	value/0/2-é	headers=dup:first,dup:null,empty:empty
+RECORD	0	3	key/0/3	value/0/3-é	headers=dup:first,dup:null,empty:empty
+RECORD	1	0	key/1/0	value/1/0-é	headers=dup:first,dup:null,empty:empty
+RECORD	1	1	key/1/1	value/1/1-é	headers=dup:first,dup:null,empty:empty
+RECORD	1	2	key/1/2	<null>	headers=dup:first,dup:null,empty:empty
+RECORD	1	3	key/1/3	value/1/3-é	headers=dup:first,dup:null,empty:empty
+READ_COMPLETE	8
+PHASE_COMPLETE	recover

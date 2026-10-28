@@ -1,0 +1,78 @@
+In file included from /workspace/work/goal-qualification-20261028/rf1-librdkafka-probe/ordinary-peer.c:3:
+/workspace/work/goal-qualification-20261028/rf1-librdkafka-probe/rdkafka.h:9532:1: error: type qualifiers ignored on function return type [-Werror=ignored-qualifiers]
+ 9532 | const int rd_kafka_TopicPartitionInfo_partition(
+      | ^~~~~
+/workspace/work/goal-qualification-20261028/rf1-librdkafka-probe/ordinary-peer.c: In function ‘append’:
+/workspace/work/goal-qualification-20261028/rf1-librdkafka-probe/rdkafka.h:115:9: error: ISO C forbids braced-groups within expressions [-Werror=pedantic]
+  115 |         ({                                                                     \
+      |         ^
+/workspace/work/goal-qualification-20261028/rf1-librdkafka-probe/rdkafka.h:1252:9: note: in expansion of macro ‘_LRK_TYPECHECK’
+ 1252 |         _LRK_TYPECHECK(RD_KAFKA_VTYPE_TOPIC, const char *, topic),             \
+      |         ^~~~~~~~~~~~~~
+/workspace/work/goal-qualification-20261028/rf1-librdkafka-probe/ordinary-peer.c:113:63: note: in expansion of macro ‘RD_KAFKA_V_TOPIC’
+  113 |         rd_kafka_resp_err_t error = rd_kafka_producev(client, RD_KAFKA_V_TOPIC(topic_name), RD_KAFKA_V_PARTITION(p),
+      |                                                               ^~~~~~~~~~~~~~~~
+/workspace/work/goal-qualification-20261028/rf1-librdkafka-probe/rdkafka.h:115:9: error: ISO C forbids braced-groups within expressions [-Werror=pedantic]
+  115 |         ({                                                                     \
+      |         ^
+/workspace/work/goal-qualification-20261028/rf1-librdkafka-probe/rdkafka.h:1268:9: note: in expansion of macro ‘_LRK_TYPECHECK’
+ 1268 |         _LRK_TYPECHECK(RD_KAFKA_VTYPE_PARTITION, int32_t, partition),          \
+      |         ^~~~~~~~~~~~~~
+/workspace/work/goal-qualification-20261028/rf1-librdkafka-probe/ordinary-peer.c:113:93: note: in expansion of macro ‘RD_KAFKA_V_PARTITION’
+  113 |         rd_kafka_resp_err_t error = rd_kafka_producev(client, RD_KAFKA_V_TOPIC(topic_name), RD_KAFKA_V_PARTITION(p),
+      |                                                                                             ^~~~~~~~~~~~~~~~~~~~
+/workspace/work/goal-qualification-20261028/rf1-librdkafka-probe/rdkafka.h:115:9: error: ISO C forbids braced-groups within expressions [-Werror=pedantic]
+  115 |         ({                                                                     \
+      |         ^
+/workspace/work/goal-qualification-20261028/rf1-librdkafka-probe/rdkafka.h:1303:9: note: in expansion of macro ‘_LRK_TYPECHECK’
+ 1303 |         _LRK_TYPECHECK(RD_KAFKA_VTYPE_MSGFLAGS, int, msgflags), (int)msgflags
+      |         ^~~~~~~~~~~~~~
+/workspace/work/goal-qualification-20261028/rf1-librdkafka-probe/ordinary-peer.c:114:13: note: in expansion of macro ‘RD_KAFKA_V_MSGFLAGS’
+  114 |             RD_KAFKA_V_MSGFLAGS(RD_KAFKA_MSG_F_COPY), RD_KAFKA_V_KEY(key, key_length),
+      |             ^~~~~~~~~~~~~~~~~~~
+/workspace/work/goal-qualification-20261028/rf1-librdkafka-probe/rdkafka.h:123:9: error: ISO C forbids braced-groups within expressions [-Werror=pedantic]
+  123 |         ({                                                                     \
+      |         ^
+/workspace/work/goal-qualification-20261028/rf1-librdkafka-probe/rdkafka.h:1284:9: note: in expansion of macro ‘_LRK_TYPECHECK2’
+ 1284 |         _LRK_TYPECHECK2(RD_KAFKA_VTYPE_KEY, const void *, KEY, size_t, LEN),   \
+      |         ^~~~~~~~~~~~~~~
+/workspace/work/goal-qualification-20261028/rf1-librdkafka-probe/ordinary-peer.c:114:55: note: in expansion of macro ‘RD_KAFKA_V_KEY’
+  114 |             RD_KAFKA_V_MSGFLAGS(RD_KAFKA_MSG_F_COPY), RD_KAFKA_V_KEY(key, key_length),
+      |                                                       ^~~~~~~~~~~~~~
+/workspace/work/goal-qualification-20261028/rf1-librdkafka-probe/rdkafka.h:123:9: error: ISO C forbids braced-groups within expressions [-Werror=pedantic]
+  123 |         ({                                                                     \
+      |         ^
+/workspace/work/goal-qualification-20261028/rf1-librdkafka-probe/rdkafka.h:1276:9: note: in expansion of macro ‘_LRK_TYPECHECK2’
+ 1276 |         _LRK_TYPECHECK2(RD_KAFKA_VTYPE_VALUE, void *, VALUE, size_t, LEN),     \
+      |         ^~~~~~~~~~~~~~~
+/workspace/work/goal-qualification-20261028/rf1-librdkafka-probe/ordinary-peer.c:115:13: note: in expansion of macro ‘RD_KAFKA_V_VALUE’
+  115 |             RD_KAFKA_V_VALUE(value, value_length), RD_KAFKA_V_HEADERS(headers),
+      |             ^~~~~~~~~~~~~~~~
+/workspace/work/goal-qualification-20261028/rf1-librdkafka-probe/rdkafka.h:115:9: error: ISO C forbids braced-groups within expressions [-Werror=pedantic]
+  115 |         ({                                                                     \
+      |         ^
+/workspace/work/goal-qualification-20261028/rf1-librdkafka-probe/rdkafka.h:1338:9: note: in expansion of macro ‘_LRK_TYPECHECK’
+ 1338 |         _LRK_TYPECHECK(RD_KAFKA_VTYPE_HEADERS, rd_kafka_headers_t *, HDRS),    \
+      |         ^~~~~~~~~~~~~~
+/workspace/work/goal-qualification-20261028/rf1-librdkafka-probe/ordinary-peer.c:115:52: note: in expansion of macro ‘RD_KAFKA_V_HEADERS’
+  115 |             RD_KAFKA_V_VALUE(value, value_length), RD_KAFKA_V_HEADERS(headers),
+      |                                                    ^~~~~~~~~~~~~~~~~~
+/workspace/work/goal-qualification-20261028/rf1-librdkafka-probe/rdkafka.h:115:9: error: ISO C forbids braced-groups within expressions [-Werror=pedantic]
+  115 |         ({                                                                     \
+      |         ^
+/workspace/work/goal-qualification-20261028/rf1-librdkafka-probe/rdkafka.h:1311:9: note: in expansion of macro ‘_LRK_TYPECHECK’
+ 1311 |         _LRK_TYPECHECK(RD_KAFKA_VTYPE_TIMESTAMP, int64_t, timestamp),          \
+      |         ^~~~~~~~~~~~~~
+/workspace/work/goal-qualification-20261028/rf1-librdkafka-probe/ordinary-peer.c:116:13: note: in expansion of macro ‘RD_KAFKA_V_TIMESTAMP’
+  116 |             RD_KAFKA_V_TIMESTAMP(RECORD_TIME + p * 100 + i), RD_KAFKA_V_OPAQUE(r), RD_KAFKA_V_END);
+      |             ^~~~~~~~~~~~~~~~~~~~
+/workspace/work/goal-qualification-20261028/rf1-librdkafka-probe/rdkafka.h:115:9: error: ISO C forbids braced-groups within expressions [-Werror=pedantic]
+  115 |         ({                                                                     \
+      |         ^
+/workspace/work/goal-qualification-20261028/rf1-librdkafka-probe/rdkafka.h:1294:9: note: in expansion of macro ‘_LRK_TYPECHECK’
+ 1294 |         _LRK_TYPECHECK(RD_KAFKA_VTYPE_OPAQUE, void *, msg_opaque),             \
+      |         ^~~~~~~~~~~~~~
+/workspace/work/goal-qualification-20261028/rf1-librdkafka-probe/ordinary-peer.c:116:62: note: in expansion of macro ‘RD_KAFKA_V_OPAQUE’
+  116 |             RD_KAFKA_V_TIMESTAMP(RECORD_TIME + p * 100 + i), RD_KAFKA_V_OPAQUE(r), RD_KAFKA_V_END);
+      |                                                              ^~~~~~~~~~~~~~~~~
+cc1: all warnings being treated as errors

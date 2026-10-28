@@ -1,0 +1,91 @@
+{
+  "status": "pass",
+  "base_commit": "64da3d2db9ffa80fb680806dc377e52f4652b38e",
+  "exact_commit": null,
+  "source_receipt_sha256": "c49a36542467acea7e7c2b1dc067dab816421d07ae4c1a3c088b8589a69d5e7e",
+  "binary_sha256": "46638c7015988797b85bd1fb857b01057f8d44747e411e15871eb1db3f70480b",
+  "library_sha256": "23698e1d7ec1f3f496133b946474f997ed690fa57222d3785c3a176ed57563ca",
+  "peer_sha256": "5034a5364caf13ad2af8c584b438be9ba401910ff0341587e8b7495817f0a94f",
+  "peer_source_sha256": "2a3386957827dc62b7c4029d8b7fbb3e77ceec2b72c51348b95f8ec6e4067b5c",
+  "header_sha256": "33cca14d9fc87117100ce90bd84f2006b8ba521c788055db6af614d0f2f7ca2f",
+  "start_ns": 1793159770042192179,
+  "steps": [
+    {
+      "phase": "server-seed",
+      "command": [
+        "/workspace/work/goal-qualification-20261028/rf1-evidence/operator.elf",
+        "serve",
+        "--data",
+        "/workspace/work/goal-qualification-20261028/rf1-librdkafka-probe/attempt-01/data",
+        "--listen",
+        "127.0.0.1:19396",
+        "--advertise-host",
+        "127.0.0.1",
+        "--cluster",
+        "rf1-native-probe",
+        "--broker-id",
+        "0"
+      ],
+      "pid": 43132,
+      "started_ns": 1793159770088373980,
+      "exit": 0,
+      "ended_ns": 1793159770827619434
+    },
+    {
+      "phase": "native-append",
+      "command": [
+        "/workspace/work/goal-qualification-20261028/rf1-librdkafka-probe/ordinary-native",
+        "127.0.0.1:19396",
+        "append"
+      ],
+      "started_ns": 1793159770139630324,
+      "exit": 0,
+      "ended_ns": 1793159770456648436
+    },
+    {
+      "phase": "native-fetch",
+      "command": [
+        "/workspace/work/goal-qualification-20261028/rf1-librdkafka-probe/ordinary-native",
+        "127.0.0.1:19396",
+        "fetch"
+      ],
+      "started_ns": 1793159770457225786,
+      "exit": 0,
+      "ended_ns": 1793159770823602687
+    },
+    {
+      "phase": "server-restart",
+      "command": [
+        "/workspace/work/goal-qualification-20261028/rf1-evidence/operator.elf",
+        "serve",
+        "--data",
+        "/workspace/work/goal-qualification-20261028/rf1-librdkafka-probe/attempt-01/data",
+        "--listen",
+        "127.0.0.1:19396",
+        "--advertise-host",
+        "127.0.0.1",
+        "--cluster",
+        "rf1-native-probe",
+        "--broker-id",
+        "0"
+      ],
+      "pid": 43149,
+      "started_ns": 1793159770877763753,
+      "exit": 0,
+      "ended_ns": 1793159771430793446
+    },
+    {
+      "phase": "native-restart",
+      "command": [
+        "/workspace/work/goal-qualification-20261028/rf1-librdkafka-probe/ordinary-native",
+        "127.0.0.1:19396",
+        "restart"
+      ],
+      "started_ns": 1793159770931091697,
+      "exit": 0,
+      "ended_ns": 1793159771416622061
+    }
+  ],
+  "scope": "actual librdkafka ordinary 2 partitions 24 receipts; acks=1 idempotence=false; manual fetch and ListOffsets before and after clean restart",
+  "end_ns": 1793159771681701999
+}
