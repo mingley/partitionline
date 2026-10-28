@@ -1,0 +1,77 @@
+{
+  "schema_version": 1,
+  "files": [
+    {
+      "original_path": "/workspace/work/reliability-20261028/run_fault.py",
+      "original_sha256": "b7318da9c5adec6b192650ad7ea534ce7b8c39ce1a37d2a0d8d0f0f504fcb970",
+      "original_bytes": 2113,
+      "stored_path": "capture/runner.py",
+      "stored_sha256": "b7318da9c5adec6b192650ad7ea534ce7b8c39ce1a37d2a0d8d0f0f504fcb970",
+      "stored_bytes": 2113,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/reliability-20261028/fault-observer-01/receipt.json",
+      "original_sha256": "fbc069f8ef9cbe864464f165ff629785db35e9ecbc578f43f6fd34c3dfde389c",
+      "original_bytes": 1076,
+      "stored_path": "capture/receipt.json",
+      "stored_sha256": "fbc069f8ef9cbe864464f165ff629785db35e9ecbc578f43f6fd34c3dfde389c",
+      "stored_bytes": 1076,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/reliability-20261028/fault-observer-01/output.log",
+      "original_sha256": "28646425c10b81101a74e3409e612bf12e3d5525eaeace1ea520483b7bcb3f7d",
+      "original_bytes": 983,
+      "stored_path": "capture/output.log",
+      "stored_sha256": "28646425c10b81101a74e3409e612bf12e3d5525eaeace1ea520483b7bcb3f7d",
+      "stored_bytes": 983,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/reliability-20261028/fault-observer-01/report.json",
+      "original_sha256": "51d48b91dc484d2e95667e0b91e8c07d51053ee21cfe523ed6ca1929075c6d38",
+      "original_bytes": 815,
+      "stored_path": "capture/report.json",
+      "stored_sha256": "51d48b91dc484d2e95667e0b91e8c07d51053ee21cfe523ed6ca1929075c6d38",
+      "stored_bytes": 815,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/broker-default-group-fixed.json",
+      "original_sha256": "d69cd8fb70526712d2adfb082fe49f812fb5781454a26c69efcbccf5a97935ec",
+      "original_bytes": 21771,
+      "stored_path": "build/broker-suite-receipt.json",
+      "stored_sha256": "d69cd8fb70526712d2adfb082fe49f812fb5781454a26c69efcbccf5a97935ec",
+      "stored_bytes": 21771,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/broker-default-group-fixed.log",
+      "original_sha256": "c9f4a2e2fbaff930009a40eacff5e82104b8ba072d32271d4b9bccc759881387",
+      "original_bytes": 60383,
+      "stored_path": "build/broker-suite.log",
+      "stored_sha256": "c9f4a2e2fbaff930009a40eacff5e82104b8ba072d32271d4b9bccc759881387",
+      "stored_bytes": 60383,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/broker-default-group-fixed-5.elf",
+      "original_sha256": "0a21aaaec496e2289e6df9927794a90ddec0455ffdeefe85df6d9c40f2453010",
+      "original_bytes": 2151416,
+      "stored_path": "build/fault-campaign.elf.gz",
+      "stored_sha256": "722efb8770d67e15b9c72ef0a9e45d89a31ef6bad751d142b40c39c60ff7bf63",
+      "stored_bytes": 711921,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "partitionline-broker/tests/fault_campaign.rs",
+      "original_sha256": "04dd0d91d634543b571bb5915d9e87eb944f61983435fd50cde46c0dcaa8d7af",
+      "original_bytes": 15181,
+      "stored_path": "source/fault_campaign.rs",
+      "stored_sha256": "04dd0d91d634543b571bb5915d9e87eb944f61983435fd50cde46c0dcaa8d7af",
+      "stored_bytes": 15181,
+      "encoding": "identity"
+    }
+  ]
+}

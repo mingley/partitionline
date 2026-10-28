@@ -14,63 +14,8 @@ See the [documentation index](index.md) for API and protocol references.
 | A call failed | [Troubleshooting](#troubleshooting) |
 | Read a benchmark number | [Integrity and benchmarks](#integrity-and-benchmarks) and [benchmark.md](benchmark.md) |
 
-The runtime and build-profile sections below are measurements from one
-host. They are not setup steps. Suite HOLD remains.
-
-## Choosing a Tokio runtime
-
-Use `current_thread` when one application thread can drive the client and its
-other work. Use `multi_thread` when application tasks need parallel scheduling,
-and choose its worker count from measurements of that workload.
-
-The [local runtime comparison](evidence/perf/runtime-flavors/README.md) tested
-current-thread and 1, 2, 4 and 5 background workers on two client CPUs with Kafka
-4.3.1. Median native bulk throughput was 245,443 records/s on current-thread and
-214,721–233,172 records/s on the multithread configurations. Current-thread also
-used less client CPU in that instrumented workload. Null-broker results varied
-by operation; there was no consistent benefit from adding workers.
-
-Open-loop latency does not establish a preferred worker count. Its low-load p99
-varied between repetitions and reruns, two medium-load runs rejected records,
-and every high-load run rejected records. Measure admission failures as well as
-latency when choosing a configuration. These shared-host results do not establish
-performance on other machines or the application's overall performance.
-
-The client does not create an application runtime or change its defaults. The
-benchmark adds a bounded cancellation barrier after close, outside timing, to
-keep repetitions separate. Production shutdown completion remains tracked in
-KL02-12.
-
-## Performance builds
-
-Library builds stay on Cargo's default release profile and the system
-allocator. `partitionline` does not depend on jemalloc or mimalloc. Alternate
-allocators exist only as features of the workspace-excluded `benchmarks/runtime`
-crate.
-
-The [build-profile study](evidence/perf/build-profiles/README.md) compared LTO,
-codegen units, `target-cpu`, and PGO on this class of host. Throughput
-intervals against the portable baseline included zero. PGO's CPU change was
-specific to those fixtures. Do not treat thin LTO, fat LTO, native CPU, or PGO
-as a portable throughput recipe.
-
-Allocator choice was measured on `nb-fetch-bulk` with five interleaved rounds
-of the system allocator (census wrapper), jemalloc 0.6.1, and mimalloc 0.1.52.
-On this host mimalloc's paired records/s mean was +8.3% (95% CI +4.5% to
-+12.1%) and CPU-ns/record was −16.6% (CI −32.8% to −0.4%). Peak RSS rose about
-16%. Jemalloc's records/s interval included zero and its RSS rose about 12%.
-These figures are host-specific. They are not a Kafka throughput claim, and
-Suite HOLD remains active. Allocation counts are reported only for the census
-build; the other allocators replace that wrapper.
-
-```bash
-cargo build --release --locked --manifest-path benchmarks/runtime/Cargo.toml --bin runtime --bin nb-serve
-cargo build --release --locked --manifest-path benchmarks/runtime/Cargo.toml --bin runtime --features mimalloc
-cargo build --release --locked --manifest-path benchmarks/runtime/Cargo.toml --bin runtime --features jemalloc
-```
-
-Enable only one of `jemalloc` or `mimalloc`. The client crate is unchanged
-either way.
+The runtime and build-profile results below are measurements from one host.
+Measure your own workload when choosing settings.
 
 ## Fresh package quickstart
 
@@ -1108,6 +1053,61 @@ for group in admin.describe_streams_groups(&["application"], &options).await? {
 The explicit opt-in is required because v0 alone does not identify whether a
 broker release treats the API as stable. This call observes groups without
 joining them or running their tasks.
+
+## Choosing a Tokio runtime
+
+Use `current_thread` when one application thread can drive the client and its
+other work. Use `multi_thread` when application tasks need parallel scheduling,
+and choose its worker count from measurements of that workload.
+
+The [local runtime comparison](evidence/perf/runtime-flavors/README.md) tested
+current-thread and 1, 2, 4 and 5 background workers on two client CPUs with Kafka
+4.3.1. Median native bulk throughput was 245,443 records/s on current-thread and
+214,721–233,172 records/s on the multithread configurations. Current-thread also
+used less client CPU in that instrumented workload. Null-broker results varied
+by operation; there was no consistent benefit from adding workers.
+
+Open-loop latency does not establish a preferred worker count. Its low-load p99
+varied between repetitions and reruns, two medium-load runs rejected records,
+and every high-load run rejected records. Measure admission failures as well as
+latency when choosing a configuration. These shared-host results do not establish
+performance on other machines or the application's overall performance.
+
+The client does not create an application runtime or change its defaults. The
+benchmark adds a bounded cancellation barrier after close, outside timing, to
+keep repetitions separate. Production shutdown completion remains tracked in
+KL02-12.
+
+## Performance builds
+
+Library builds stay on Cargo's default release profile and the system
+allocator. `partitionline` does not depend on jemalloc or mimalloc. Alternate
+allocators exist only as features of the workspace-excluded `benchmarks/runtime`
+crate.
+
+The [build-profile study](evidence/perf/build-profiles/README.md) compared LTO,
+codegen units, `target-cpu`, and PGO on this class of host. Throughput
+intervals against the portable baseline included zero. PGO's CPU change was
+specific to those fixtures. Do not treat thin LTO, fat LTO, native CPU, or PGO
+as a portable throughput recipe.
+
+Allocator choice was measured on `nb-fetch-bulk` with five interleaved rounds
+of the system allocator (census wrapper), jemalloc 0.6.1, and mimalloc 0.1.52.
+On this host mimalloc's paired records/s mean was +8.3% (95% CI +4.5% to
++12.1%) and CPU-ns/record was −16.6% (CI −32.8% to −0.4%). Peak RSS rose about
+16%. Jemalloc's records/s interval included zero and its RSS rose about 12%.
+These figures are host-specific. They are not a Kafka throughput claim, and
+Suite HOLD remains active. Allocation counts are reported only for the census
+build; the other allocators replace that wrapper.
+
+```bash
+cargo build --release --locked --manifest-path benchmarks/runtime/Cargo.toml --bin runtime --bin nb-serve
+cargo build --release --locked --manifest-path benchmarks/runtime/Cargo.toml --bin runtime --features mimalloc
+cargo build --release --locked --manifest-path benchmarks/runtime/Cargo.toml --bin runtime --features jemalloc
+```
+
+Enable only one of `jemalloc` or `mimalloc`. The client crate is unchanged
+either way.
 
 ## Integrity and benchmarks
 

@@ -1,0 +1,21 @@
+{
+  "command": [
+    "/workspace/work/qualification-20261027/broker-check-target/debug/deps/fault_campaign-76f44d9fa1cc748a",
+    "--nocapture",
+    "--test-threads=1",
+    "seeded_faults_preserve_committed_outcomes"
+  ],
+  "started_utc": "2026-10-28T03:38:55.573058+00:00",
+  "finished_utc": "2026-10-28T03:39:07.169382+00:00",
+  "elapsed_seconds": 11.597268326997437,
+  "exit_code": 0,
+  "binary_sha256": "0a21aaaec496e2289e6df9927794a90ddec0455ffdeefe85df6d9c40f2453010",
+  "binary_source_receipt": "/workspace/work/goal-qualification-20261028/broker-default-group-fixed.json",
+  "test_file_sha256": "04dd0d91d634543b571bb5915d9e87eb944f61983435fd50cde46c0dcaa8d7af",
+  "host_machine": "x86_64",
+  "cpu_affinity": 0,
+  "cpu_quota": "400000 100000",
+  "log_sha256": "28646425c10b81101a74e3409e612bf12e3d5525eaeace1ea520483b7bcb3f7d",
+  "report_sha256": "51d48b91dc484d2e95667e0b91e8c07d51053ee21cfe523ed6ca1929075c6d38",
+  "scope": "Local seeded journal behavior, not live crash injection, fsync error injection, broker production readiness, nor a multi-broker campaign."
+}

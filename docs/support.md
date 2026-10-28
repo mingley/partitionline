@@ -90,8 +90,8 @@ a compile-only result does not qualify this cell.
 
 Each row names its KL05-01
 [feature-registry](../tests/conformance/features.json) entry where one exists.
-Status comes from the current registry. Platform and production qualification
-stay separate.
+The registry also records independent qualification gaps. Platform and
+production qualification stay separate.
 
 | Item | Status | Registry |
 |---|---|---|
@@ -100,7 +100,7 @@ stay separate.
 | Schema Registry as part of this crate | Outside core; unpublished companion has bounded read-only lookups/cache and Protobuf indexes with a caller-selected codec. Applications select Avro/JSON serializers explicitly. | `schema_ecosystem.registry_client/cache/protobuf` (`present`, companion scope); `avro/json_schema` and generic `wire_framing` (`present`, bounded offline qualification) |
 | Multi-broker chaos / HA proof | KL-03 still open | `manual_consumer.fetch` (`partial`); heartbeat/throttle scheduling `partial` |
 | OIDC token lifecycle | Application-owned `OidcTokenManager` supports refresh; shared connection-open caching has bounded idle retention. Broader connection renewal qualification remains separate. | `auth.sasl_oidc_refresh`; see [security](security.md#token-acquisition-and-lifecycle) |
-| Sticky unkeyed partitioner | Not implemented (round-robin instead) | `producer.sticky_partitioner` (`missing`) |
+| Sticky unkeyed partitioner | Current source has opt-in `StickyPartitioner`; round-robin remains the default. Independent qualification is in progress (KL05-10). | `producer.sticky_partitioner` is a stale `missing` registry entry pending reconciliation. |
 | Signed Suite HOLD / Lab A | **Unsigned** — Suite HOLD remains | — (qualification gate, not a feature entry) |
 | macOS Intel / other host architectures | May build; no CI support promise for these cells | — (CI dimension, not a feature entry) |
 | Every Kafka API version | Demand-led (KL-05); see [gaps.md](gaps.md) | `producer.v13_wire` (`present`); `manual_consumer.v18_wire` (`present`) |

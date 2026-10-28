@@ -127,10 +127,9 @@ admin.close().await?;
 # }
 ```
 
-CreateTopics, DeleteTopics, DescribeConfigs, IncrementalAlterConfigs, ACLs,
-groups, transactions, log dirs, quotas, and the other Kafka 3.x / 4.x admin
-APIs are on `Admin`. Method-level rustdoc names the matching Java
-`Admin` / `*Options` calls.
+`Admin` includes topic, configuration, ACL, group, transaction, log-directory,
+and quota operations. Supported versions and remaining gaps are listed in
+[protocol support](docs/gaps.md).
 
 ## Configure
 
@@ -149,9 +148,13 @@ let _iso = IsolationLevel::ReadCommitted;
 ```
 
 Use `TlsConfig` for TLS and optional client certificates. SASL supports PLAIN,
-SCRAM-SHA-256/512, OAUTHBEARER, and OIDC token acquisition. Compression supports
+SCRAM-SHA-256/512, OAUTHBEARER, and OIDC token acquisition. Automatic
+reauthentication on existing client connections is still in progress; see
+[token and session lifecycle](docs/auth-refresh.md). Compression supports
 gzip, snappy, and lz4. The default partitioner hashes keys with murmur2 and uses
-round-robin for records without keys; `ProducerConfig::partitioner` overrides it.
+round-robin for records without keys. Current source also has an opt-in
+`StickyPartitioner`, selected with `ProducerConfig::partitioner`; its independent
+qualification is still in progress.
 
 Defaults that differ from Java:
 
@@ -205,14 +208,11 @@ COUNT=100000 WARMUP_SECS=0 PAYLOAD_BYTES=100 ACKS=1 LINGER_MS=5 KAFKA_TOPIC=plbe
   cargo run --release --example bench_produce
 ```
 
-Use a dedicated topic and verify the record history before comparing results.
-This command uses the current defaults: seeded 100-byte payloads and 16-byte
-id keys, with no warmup. It is a local sample. It is not a row in the
-historical comparison, and it does not fill the matched bulk cell.
-[Benchmark instructions and recorded results](docs/benchmark.md) include the
-settings, peer versions, and limitations of each run. Those results do not
-establish a fastest-client or fastest-broker claim. Benchmark signoff
-remains pending ([Suite HOLD](docs/STATUS.md)).
+Use a dedicated topic and verify its record history before comparing results.
+This local sample uses seeded 100-byte payloads, 16-byte ID keys, and no
+warmup. [Benchmark instructions and results](docs/benchmark.md) describe the
+settings and limits of recorded runs. They do not establish a fastest-client
+or fastest-broker claim; qualification remains in progress.
 
 ## Documentation
 

@@ -13,18 +13,10 @@ The crate includes:
   renewal stays off until a listener calls `with_reauthentication`.
   The rules are in [SASL reauthentication](../docs/sasl-reauthentication.md).
 
-Private Raft peer sockets use TCP_NODELAY so small election and heartbeat
-frames do not wait for TCP delayed acknowledgments. Peer deadlines and queue,
-frame and task limits still apply.
-
 Available handlers and API versions depend on the configured router and
-features. Of the 76 KL11 cards, 63 are done. That includes framed transport,
-validated Produce and Fetch, retention, compaction, metadata election, and
-failover. Still open: OIDC token validation (KL11-37, in progress), SASL
-reauthentication on a broker connection (KL11-71, in progress), optional
-Kerberos, KRaft directory identity and pre-vote, and the qualification runs
-(fuzz, benchmarks, a 24-hour resource run, and a 7-day run). The
-[broker plan](../docs/plan/broker-implementation.md) lists each open card.
+features. OIDC token validation, connection reauthentication, Kerberos,
+KRaft directory identity, pre-vote, and sustained qualification remain open.
+The [broker plan](../docs/plan/broker-implementation.md) tracks the work.
 This crate is not a production cluster.
 
 The operator binary configures an on-disk admin journal. It does not listen or
