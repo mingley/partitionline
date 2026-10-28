@@ -1,0 +1,8 @@
+Command: cargo +stable clippy --offline --locked --all-features --manifest-path partitionline-broker/Cargo.toml --lib --test transport --test tls -- -D warnings
+Wed Oct 28 14:52:10 UTC 2026
+    Checking hyper v1.11.1
+    Checking tokio-rustls v0.26.6
+    Checking hyper-util v0.1.21
+    Checking partitionline-broker v0.1.0 (/workspace/work/broker-vectored/partitionline-broker)
+    Finished `dev` profile [unoptimized] target(s) in 16.31s
+exit=0

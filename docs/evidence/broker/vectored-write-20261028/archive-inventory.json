@@ -1,0 +1,338 @@
+{
+  "schema_version": 1,
+  "files": [
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/vectored-write-01/candidate.patch",
+      "original_sha256": "54ac30e10a3de224a797e317bda598c261dd7d7c402658665bfe57b005d245da",
+      "original_bytes": 8973,
+      "stored_path": "capture/candidate.patch",
+      "stored_sha256": "54ac30e10a3de224a797e317bda598c261dd7d7c402658665bfe57b005d245da",
+      "stored_bytes": 8973,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/vectored-write-01/setup-observations.json",
+      "original_sha256": "14925c2e4bfc46c8866dc4b5ef3f11ef7b7d47bfc85d0b1fcafb84a4732d8773",
+      "original_bytes": 389,
+      "stored_path": "capture/setup-observations.json",
+      "stored_sha256": "14925c2e4bfc46c8866dc4b5ef3f11ef7b7d47bfc85d0b1fcafb84a4732d8773",
+      "stored_bytes": 389,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/vectored-write-01/unit.log",
+      "original_sha256": "a49469dc9df6f384465d1e2401ee0aaee0e35121e5fc77996ad044703f651c58",
+      "original_bytes": 1133,
+      "stored_path": "discarded-shared-target/unit.log",
+      "stored_sha256": "a49469dc9df6f384465d1e2401ee0aaee0e35121e5fc77996ad044703f651c58",
+      "stored_bytes": 1133,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/vectored-write-01/transport.log",
+      "original_sha256": "a41bba12ab54d2c5b1fcf09b95ab114f6cd6cf9e0c20811c5ec164bf1a11159b",
+      "original_bytes": 1675,
+      "stored_path": "discarded-shared-target/transport.log",
+      "stored_sha256": "a41bba12ab54d2c5b1fcf09b95ab114f6cd6cf9e0c20811c5ec164bf1a11159b",
+      "stored_bytes": 1675,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/vectored-write-01/transport-all-features.log",
+      "original_sha256": "91e67a98cc8a76bc277fd4abe24094091b5e50a837ca8140e326dac572d800a6",
+      "original_bytes": 1784,
+      "stored_path": "discarded-shared-target/transport-all-features.log",
+      "stored_sha256": "91e67a98cc8a76bc277fd4abe24094091b5e50a837ca8140e326dac572d800a6",
+      "stored_bytes": 1784,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/vectored-write-01/tls-all-features.log",
+      "original_sha256": "d7c30b7cb112f651a156c2107fd4405f6cb47a39174d4c7f08daff584b524dd4",
+      "original_bytes": 1661,
+      "stored_path": "discarded-shared-target/tls-all-features.log",
+      "stored_sha256": "d7c30b7cb112f651a156c2107fd4405f6cb47a39174d4c7f08daff584b524dd4",
+      "stored_bytes": 1661,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/vectored-write-01/clippy.log",
+      "original_sha256": "2104430b2e6efb3394b02f941d9a16d3cc94ed8dd41c12313f9c7a2cbb88910e",
+      "original_bytes": 447,
+      "stored_path": "discarded-shared-target/clippy.log",
+      "stored_sha256": "2104430b2e6efb3394b02f941d9a16d3cc94ed8dd41c12313f9c7a2cbb88910e",
+      "stored_bytes": 447,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/vectored-write-01/environment.log",
+      "original_sha256": "8e3e5a7afacda62018b1c33adc7d113f553f3714ce5448ebc5f8257a5b0bba5b",
+      "original_bytes": 879,
+      "stored_path": "discarded-shared-target/environment.log",
+      "stored_sha256": "8e3e5a7afacda62018b1c33adc7d113f553f3714ce5448ebc5f8257a5b0bba5b",
+      "stored_bytes": 879,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/vectored-write-01/results.log",
+      "original_sha256": "d5bc1ba272812284f9357a03b7c7c46e31ebdd15029fbb76c215473afc702e5d",
+      "original_bytes": 101,
+      "stored_path": "discarded-shared-target/results.log",
+      "stored_sha256": "d5bc1ba272812284f9357a03b7c7c46e31ebdd15029fbb76c215473afc702e5d",
+      "stored_bytes": 101,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/vectored-write-01/setup-failure.log",
+      "original_sha256": "074fdf98b3a812eaf11fa0edd4a1de402c1ca0c045f6524cfc30203d950a5692",
+      "original_bytes": 111,
+      "stored_path": "discarded-shared-target/setup-failure.log",
+      "stored_sha256": "074fdf98b3a812eaf11fa0edd4a1de402c1ca0c045f6524cfc30203d950a5692",
+      "stored_bytes": 111,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/vectored-write-01/source-comparison.log",
+      "original_sha256": "66fc9bfb6fdaa7d9262a66b27aa28c443abd29c1370900b34efffdc8e37a5c09",
+      "original_bytes": 25,
+      "stored_path": "discarded-shared-target/source-comparison.log",
+      "stored_sha256": "66fc9bfb6fdaa7d9262a66b27aa28c443abd29c1370900b34efffdc8e37a5c09",
+      "stored_bytes": 25,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/vectored-write-01/run-checks.sh",
+      "original_sha256": "d5b573ad2968132ae4d618e6f0e8b7939c6b8efa1adb7757e1976ce77f761dcd",
+      "original_bytes": 2797,
+      "stored_path": "discarded-shared-target/run-checks.sh",
+      "stored_sha256": "d5b573ad2968132ae4d618e6f0e8b7939c6b8efa1adb7757e1976ce77f761dcd",
+      "stored_bytes": 2797,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/vectored-write-01/pre-run-source.tar.gz",
+      "original_sha256": "fdc7c225aea66c6c2220048f20475720ac303b8080458743bd68406a601a0f18",
+      "original_bytes": 1369008,
+      "stored_path": "discarded-shared-target/pre-run-source.tar.gz",
+      "stored_sha256": "fdc7c225aea66c6c2220048f20475720ac303b8080458743bd68406a601a0f18",
+      "stored_bytes": 1369008,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/vectored-write-01/post-run-binaries.sha256",
+      "original_sha256": "b8a6effc53d7ea3d06afebe31e82918c892f9ed90f3f021896974111ed02e74f",
+      "original_bytes": 1819,
+      "stored_path": "discarded-shared-target/post-run-binaries.sha256",
+      "stored_sha256": "b8a6effc53d7ea3d06afebe31e82918c892f9ed90f3f021896974111ed02e74f",
+      "stored_bytes": 1819,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/vectored-write-01/pre-run-source.sha256",
+      "original_sha256": "7380449a674b82e2a8034340a474a1f13931ee908f791db71b6153ef15bf099e",
+      "original_bytes": 921600,
+      "stored_path": "discarded-shared-target/pre-run-source.sha256.gz",
+      "stored_sha256": "e05bf0dd62742d5d8958936d6546d0b1df6a367b5a423fd646ce64ca4aa1021a",
+      "stored_bytes": 172068,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/vectored-write-01/post-run-source.sha256",
+      "original_sha256": "7380449a674b82e2a8034340a474a1f13931ee908f791db71b6153ef15bf099e",
+      "original_bytes": 921600,
+      "stored_path": "discarded-shared-target/post-run-source.sha256.gz",
+      "stored_sha256": "e05bf0dd62742d5d8958936d6546d0b1df6a367b5a423fd646ce64ca4aa1021a",
+      "stored_bytes": 172068,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/vectored-write-01/clean-target-run/archive-validation.json",
+      "original_sha256": "48612d5a536c434c55291ad18270b21b5b59da346fbabd8726035541b30a08c9",
+      "original_bytes": 1079,
+      "stored_path": "clean-target/archive-validation.json",
+      "stored_sha256": "48612d5a536c434c55291ad18270b21b5b59da346fbabd8726035541b30a08c9",
+      "stored_bytes": 1079,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/vectored-write-01/clean-target-run/artifact-digests.sha256",
+      "original_sha256": "6777bcc9991d867ecd4abf079e37f3ed270db400243b46ce5fea6e2c4cfa0623",
+      "original_bytes": 477,
+      "stored_path": "clean-target/artifact-digests.sha256",
+      "stored_sha256": "6777bcc9991d867ecd4abf079e37f3ed270db400243b46ce5fea6e2c4cfa0623",
+      "stored_bytes": 477,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/vectored-write-01/clean-target-run/clippy.log",
+      "original_sha256": "9418baaad1923a8cf9e37ba829f7fe4e151f0c313fa690bf7866d11fb29912c4",
+      "original_bytes": 2176,
+      "stored_path": "clean-target/clippy.log",
+      "stored_sha256": "9418baaad1923a8cf9e37ba829f7fe4e151f0c313fa690bf7866d11fb29912c4",
+      "stored_bytes": 2176,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/vectored-write-01/clean-target-run/environment.log",
+      "original_sha256": "4e43672be4d4958629afdfb05f0994fc95b59b974b04c9ac656f54c0ca03c1bf",
+      "original_bytes": 880,
+      "stored_path": "clean-target/environment.log",
+      "stored_sha256": "4e43672be4d4958629afdfb05f0994fc95b59b974b04c9ac656f54c0ca03c1bf",
+      "stored_bytes": 880,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/vectored-write-01/clean-target-run/post-run-binaries.sha256",
+      "original_sha256": "985b34e2b99c5c8ff1e3c70eece4b1e797d407181aa2f1a01818ff5cde2939a5",
+      "original_bytes": 661,
+      "stored_path": "clean-target/post-run-binaries.sha256",
+      "stored_sha256": "985b34e2b99c5c8ff1e3c70eece4b1e797d407181aa2f1a01818ff5cde2939a5",
+      "stored_bytes": 661,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/vectored-write-01/clean-target-run/post-run-source.sha256",
+      "original_sha256": "7380449a674b82e2a8034340a474a1f13931ee908f791db71b6153ef15bf099e",
+      "original_bytes": 921600,
+      "stored_path": "clean-target/post-run-source.sha256.gz",
+      "stored_sha256": "e05bf0dd62742d5d8958936d6546d0b1df6a367b5a423fd646ce64ca4aa1021a",
+      "stored_bytes": 172068,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/vectored-write-01/clean-target-run/pre-run-source.sha256",
+      "original_sha256": "7380449a674b82e2a8034340a474a1f13931ee908f791db71b6153ef15bf099e",
+      "original_bytes": 921600,
+      "stored_path": "clean-target/pre-run-source.sha256.gz",
+      "stored_sha256": "e05bf0dd62742d5d8958936d6546d0b1df6a367b5a423fd646ce64ca4aa1021a",
+      "stored_bytes": 172068,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/vectored-write-01/clean-target-run/pre-run-source.tar.gz",
+      "original_sha256": "fdc7c225aea66c6c2220048f20475720ac303b8080458743bd68406a601a0f18",
+      "original_bytes": 1369008,
+      "stored_path": "clean-target/pre-run-source.tar.gz",
+      "stored_sha256": "fdc7c225aea66c6c2220048f20475720ac303b8080458743bd68406a601a0f18",
+      "stored_bytes": 1369008,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/vectored-write-01/clean-target-run/results.log",
+      "original_sha256": "a1b758cc44914b911ba9216442cdfd392b6758d3bb3048f0d8f9bae244449871",
+      "original_bytes": 101,
+      "stored_path": "clean-target/results.log",
+      "stored_sha256": "a1b758cc44914b911ba9216442cdfd392b6758d3bb3048f0d8f9bae244449871",
+      "stored_bytes": 101,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/vectored-write-01/clean-target-run/run-checks.sh",
+      "original_sha256": "165dce7195cd751dff4e4454702179f55b6761534045ad54e2c98cc826c94d25",
+      "original_bytes": 2815,
+      "stored_path": "clean-target/run-checks.sh",
+      "stored_sha256": "165dce7195cd751dff4e4454702179f55b6761534045ad54e2c98cc826c94d25",
+      "stored_bytes": 2815,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/vectored-write-01/clean-target-run/setup-failure.log",
+      "original_sha256": "074fdf98b3a812eaf11fa0edd4a1de402c1ca0c045f6524cfc30203d950a5692",
+      "original_bytes": 111,
+      "stored_path": "clean-target/setup-failure.log",
+      "stored_sha256": "074fdf98b3a812eaf11fa0edd4a1de402c1ca0c045f6524cfc30203d950a5692",
+      "stored_bytes": 111,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/vectored-write-01/clean-target-run/source-comparison.log",
+      "original_sha256": "66fc9bfb6fdaa7d9262a66b27aa28c443abd29c1370900b34efffdc8e37a5c09",
+      "original_bytes": 25,
+      "stored_path": "clean-target/source-comparison.log",
+      "stored_sha256": "66fc9bfb6fdaa7d9262a66b27aa28c443abd29c1370900b34efffdc8e37a5c09",
+      "stored_bytes": 25,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/vectored-write-01/clean-target-run/test-binaries.tar.gz",
+      "original_sha256": "4fc42c956256320049b947a0f48eee0f5f24ed6ea1f253cbb61cd4a7012e038a",
+      "original_bytes": 13657316,
+      "stored_path": "clean-target/test-binaries.tar.gz",
+      "stored_sha256": "4fc42c956256320049b947a0f48eee0f5f24ed6ea1f253cbb61cd4a7012e038a",
+      "stored_bytes": 13657316,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/vectored-write-01/clean-target-run/tls-all-features.log",
+      "original_sha256": "7bd2975a44306c4eec8b7bc5cce34da22821619fd2e18cd7abfe592edb1b8cc8",
+      "original_bytes": 1662,
+      "stored_path": "clean-target/tls-all-features.log",
+      "stored_sha256": "7bd2975a44306c4eec8b7bc5cce34da22821619fd2e18cd7abfe592edb1b8cc8",
+      "stored_bytes": 1662,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/vectored-write-01/clean-target-run/transport-all-features.log",
+      "original_sha256": "0ef7a29f690498dad29e5ac260fc0e8be3bcd465c43ad523821b134f3f7e818f",
+      "original_bytes": 3277,
+      "stored_path": "clean-target/transport-all-features.log",
+      "stored_sha256": "0ef7a29f690498dad29e5ac260fc0e8be3bcd465c43ad523821b134f3f7e818f",
+      "stored_bytes": 3277,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/vectored-write-01/clean-target-run/transport.log",
+      "original_sha256": "4db1760bd885f07da9a8b3214fc89f293460765da2ca06ff6d7e60fb39b3f521",
+      "original_bytes": 1677,
+      "stored_path": "clean-target/transport.log",
+      "stored_sha256": "4db1760bd885f07da9a8b3214fc89f293460765da2ca06ff6d7e60fb39b3f521",
+      "stored_bytes": 1677,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/vectored-write-01/clean-target-run/unit.log",
+      "original_sha256": "7c64d72e5a48e5ecfd109736ba7f3cc0429b8867df685af9064986e2f295ceac",
+      "original_bytes": 2185,
+      "stored_path": "clean-target/unit.log",
+      "stored_sha256": "7c64d72e5a48e5ecfd109736ba7f3cc0429b8867df685af9064986e2f295ceac",
+      "stored_bytes": 2185,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/broker-vectored/Cargo.toml",
+      "original_sha256": "72571422ff9478f925346ae5eec272daff633fb5bd7693665b048b31e7b44ac9",
+      "original_bytes": 4276,
+      "stored_path": "source-root-post-run/Cargo.toml",
+      "stored_sha256": "72571422ff9478f925346ae5eec272daff633fb5bd7693665b048b31e7b44ac9",
+      "stored_bytes": 4276,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/broker-vectored/Cargo.lock",
+      "original_sha256": "8048d24692864e4b3e3b7e40b8489f483161b1c5c9f8805ae5fd7ce337593a82",
+      "original_bytes": 18368,
+      "stored_path": "source-root-post-run/Cargo.lock",
+      "stored_sha256": "8048d24692864e4b3e3b7e40b8489f483161b1c5c9f8805ae5fd7ce337593a82",
+      "stored_bytes": 18368,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/broker-vectored/rust-toolchain.toml",
+      "original_sha256": "7458b2d74495e6fb1c1edeea4d5a793705476431dadb60627187111f91441e13",
+      "original_bytes": 86,
+      "stored_path": "source-root-post-run/rust-toolchain.toml",
+      "stored_sha256": "7458b2d74495e6fb1c1edeea4d5a793705476431dadb60627187111f91441e13",
+      "stored_bytes": 86,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/broker-vectored/clippy.toml",
+      "original_sha256": "7ad5c55d408b8e15adb48a7054705ef3828ce59ff464a4a62a9842c88788fba6",
+      "original_bytes": 1522,
+      "stored_path": "source-root-post-run/clippy.toml",
+      "stored_sha256": "7ad5c55d408b8e15adb48a7054705ef3828ce59ff464a4a62a9842c88788fba6",
+      "stored_bytes": 1522,
+      "encoding": "identity"
+    }
+  ]
+}

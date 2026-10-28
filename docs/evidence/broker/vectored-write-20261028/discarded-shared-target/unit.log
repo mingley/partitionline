@@ -1,0 +1,17 @@
+Command: cargo +stable test --offline --locked --manifest-path partitionline-broker/Cargo.toml --lib write_prefetch_tests -- --test-threads=1
+Wed Oct 28 14:51:35 UTC 2026
+    Finished `test` profile [unoptimized] target(s) in 0.25s
+     Running unittests src/lib.rs (/workspace/work/qualification-20261027/broker-check-target/debug/deps/partitionline_broker-2a454c0708a72949)
+
+running 7 tests
+test transport::write_prefetch_tests::a_failed_prefetch_does_not_wait_out_the_write ... ok
+test transport::write_prefetch_tests::an_illegal_length_after_a_frame_does_not_wait_out_the_write ... ok
+test transport::write_prefetch_tests::an_illegal_prefetch_length_does_not_wait_out_the_write ... ok
+test transport::write_prefetch_tests::write_deadline_stops_a_greedy_prefetch ... ok
+test transport::write_prefetch_tests::write_deadline_stops_a_greedy_response ... ok
+test transport::write_prefetch_tests::write_deadline_stops_a_ready_partial_write ... ok
+test transport::write_prefetch_tests::write_deadline_stops_a_ready_prefetch ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 355 filtered out; finished in 0.18s
+
+exit=0

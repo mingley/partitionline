@@ -1,0 +1,26 @@
+Command: cargo +stable test --offline --locked --all-features --manifest-path partitionline-broker/Cargo.toml --test tls -- --test-threads=1
+Wed Oct 28 14:52:06 UTC 2026
+   Compiling partitionline-broker v0.1.0 (/workspace/work/broker-vectored/partitionline-broker)
+    Finished `test` profile [unoptimized] target(s) in 3.13s
+     Running tests/tls.rs (/workspace/work/qualification-20261027/broker-check-target/debug/deps/tls-6487c66a0d92e894)
+
+running 15 tests
+test admitted_pending_handshake_retains_pre_rotation_generation ... ok
+test handshakes_and_established_sessions_share_cap_and_joined_shutdown ... ok
+test idle_and_fragmented_tls_progress_share_absolute_handshake_deadline ... ok
+test independent_openssl_peer_verifies_tls_versions_and_mtls_rejections ... ok
+test oversized_tls_record_and_handshake_lengths_fail_closed ... ok
+test pending_handshake_shutdown_can_be_cancelled_retried_and_drop_cleaned ... ok
+test plaintext_never_falls_back_on_tls_listener ... ok
+test rejects_invalid_limits_der_keys_trust_and_totals_eagerly ... ok
+test required_mtls_rejects_missing_untrusted_expired_and_wrong_purpose_clients ... ok
+test required_mtls_verifies_intermediate_chain_and_preserves_peer_metadata ... ok
+test rotation_updates_new_server_identity_and_client_trust_preserving_old_session ... ok
+test server_only_tls_has_no_authenticated_client_identity ... ok
+test verified_peer_chain_cap_closes_before_handler_dispatch ... ok
+test verified_tls12_and_tls13_frame_roundtrip ... ok
+test verifying_clients_reject_wrong_server_name_expiry_and_trust ... ok
+
+test result: ok. 15 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.10s
+
+exit=0

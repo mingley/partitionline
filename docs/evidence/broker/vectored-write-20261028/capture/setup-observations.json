@@ -1,0 +1,10 @@
+{
+  "observations": [
+    {
+      "stage": "format intermediate candidate",
+      "failure": "rustfmt rejected a let-chain expression in the 2021 edition: let chains are only allowed in Rust 2024 or later",
+      "action": "rewrote it using Option::filter and if let; stable rustfmt then passed",
+      "raw_output": "reported by tool output; no separate raw log was captured"
+    }
+  ]
+}

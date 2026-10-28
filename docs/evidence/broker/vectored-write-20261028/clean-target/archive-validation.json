@@ -1,0 +1,14 @@
+{
+  "base_commit": "d3e1726a174ea09aa99a2412625e1ec5285f344f",
+  "candidate_patch_sha256": "54ac30e10a3de224a797e317bda598c261dd7d7c402658665bfe57b005d245da",
+  "pre_run_source_files_and_root_clippy_count": 5922,
+  "source_archive_matches_pre_and_post_file_indexes": true,
+  "test_binary_archive_matches_post_run_index": true,
+  "test_binary_archive_members_sha256": {
+    "partitionline_broker-2a454c0708a72949": "eb312d3d5155d9c50452a9e63e4f7754311c1f3db44e4c6dfbdf4c455da5ed74",
+    "transport-72925ad009b54530": "4117528fd996bed10e71149021fc22cd2c2ffc31e333611e51272589aacc9949",
+    "transport-5d370c4f2a14be46": "ed6feee53af9e780e97c7fced77b34a79b38e7b4d473f335930cbc4f707b0930",
+    "tls-6487c66a0d92e894": "999cd6e01511afa5ac6f1aa5622f4f1aaa11b013de10c60803995bc63df79ca7"
+  },
+  "limitations": "Test binaries were copied and hashed after execution; the indexes and snapshots are not execution-time cryptographic attestations. The source snapshot excludes dependency source and root files other than clippy.toml. The stale-target run does not validate this candidate."
+}

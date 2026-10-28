@@ -1143,6 +1143,18 @@ fn poll_write_chunk<S: AsyncWrite + Unpin>(
     if take == 0 {
         return Poll::Ready(Ok(0));
     }
+    // The first slice is the four-byte prefix until it is fully written. Offer
+    // body bytes in the same bounded write when space remains. Writers that do
+    // not support vectored I/O may still accept only the first slice.
+    let remaining = 8 * 1024 - take;
+    let second = bufs
+        .get(1)
+        .filter(|slice| take == first.len() && remaining != 0 && !slice.is_empty());
+    if let Some(second) = second {
+        let body = second.len().min(remaining);
+        let head = [IoSlice::new(&first[..take]), IoSlice::new(&second[..body])];
+        return Pin::new(&mut *socket).poll_write_vectored(cx, &head);
+    }
     let head = [IoSlice::new(&first[..take])];
     Pin::new(&mut *socket).poll_write_vectored(cx, &head)
 }
@@ -1535,9 +1547,9 @@ async fn exchange<H: Handler, S: AsyncRead + AsyncWrite + Unpin>(
             #[cfg(not(feature = "sasl"))]
             let write_authority = preauth_deadline;
             let deadline = operation_deadline(write_authority, config.write_timeout);
-            // One vectored write so a deadline that lands between the length and
-            // the body cannot commit a prefix and then drop the payload. The next
-            // request is read only while this write waits, and only when the
+            // The peer may observe a partial frame if the deadline or connection
+            // fails during a write. The connection closes on error, allowing the
+            // peer to detect the incomplete frame. Prefetch only when the
             // connection will stay open for another handler.
             let prefetch = !close;
             let write = write_and_prefetch(
@@ -2280,6 +2292,199 @@ mod write_prefetch_tests {
     use std::time::Duration;
     use tokio::io::{AsyncRead, AsyncWrite, ReadBuf};
     use tokio::time::Instant;
+
+    #[derive(Default)]
+    struct WriteSpy {
+        bytes: Vec<u8>,
+        offers: Vec<Vec<usize>>,
+        first_limit: Option<usize>,
+        first_slice_only: bool,
+    }
+
+    impl WriteSpy {
+        fn accept(&mut self, bufs: &[std::io::IoSlice<'_>]) -> usize {
+            self.offers.push(bufs.iter().map(|buf| buf.len()).collect());
+            let limit = self.first_limit.take().unwrap_or(usize::MAX);
+            let mut accepted = 0usize;
+            let count = if self.first_slice_only { 1 } else { bufs.len() };
+            for buf in bufs.iter().take(count) {
+                let remaining = limit.saturating_sub(accepted);
+                let take = buf.len().min(remaining);
+                self.bytes.extend_from_slice(&buf[..take]);
+                accepted += take;
+                if take < buf.len() || accepted == limit {
+                    break;
+                }
+            }
+            accepted
+        }
+    }
+
+    impl AsyncRead for WriteSpy {
+        fn poll_read(
+            self: Pin<&mut Self>,
+            _cx: &mut Context<'_>,
+            _buf: &mut ReadBuf<'_>,
+        ) -> Poll<std::io::Result<()>> {
+            Poll::Pending
+        }
+    }
+
+    impl AsyncWrite for WriteSpy {
+        fn poll_write(
+            self: Pin<&mut Self>,
+            _cx: &mut Context<'_>,
+            buf: &[u8],
+        ) -> Poll<std::io::Result<usize>> {
+            Poll::Ready(Ok(self.get_mut().accept(&[std::io::IoSlice::new(buf)])))
+        }
+
+        fn poll_write_vectored(
+            self: Pin<&mut Self>,
+            _cx: &mut Context<'_>,
+            bufs: &[std::io::IoSlice<'_>],
+        ) -> Poll<std::io::Result<usize>> {
+            Poll::Ready(Ok(self.get_mut().accept(bufs)))
+        }
+
+        fn is_write_vectored(&self) -> bool {
+            !self.first_slice_only
+        }
+
+        fn poll_flush(self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<std::io::Result<()>> {
+            Poll::Ready(Ok(()))
+        }
+
+        fn poll_shutdown(self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<std::io::Result<()>> {
+            Poll::Ready(Ok(()))
+        }
+    }
+
+    fn framed_bytes(response: &[u8]) -> Vec<u8> {
+        let mut expected = (response.len() as i32).to_be_bytes().to_vec();
+        expected.extend_from_slice(response);
+        expected
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn vectored_write_offers_prefix_and_body_within_budget() {
+        let response = vec![7; 12_000];
+        let mut socket = WriteSpy::default();
+        write_and_prefetch(
+            &mut socket,
+            &response,
+            Instant::now() + Duration::from_secs(1),
+            &mut ReadAhead::new(),
+            1024,
+            false,
+        )
+        .await
+        .unwrap_or_else(|_| panic!("complete response"));
+        assert_eq!(socket.bytes, framed_bytes(&response));
+        assert_eq!(socket.offers.len(), 2);
+        assert_eq!(socket.offers.first(), Some(&vec![4, 8 * 1024 - 4]));
+        assert!(socket
+            .offers
+            .iter()
+            .all(|offer| offer.iter().sum::<usize>() <= 8 * 1024));
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn vectored_partial_prefix_and_body_writes_preserve_wire_order() {
+        let response: Vec<u8> = (0..10_000).map(|value| value as u8).collect();
+        for limit in [1, 3, 4, 5, 8 * 1024] {
+            let mut socket = WriteSpy {
+                first_limit: Some(limit),
+                ..WriteSpy::default()
+            };
+            write_and_prefetch(
+                &mut socket,
+                &response,
+                Instant::now() + Duration::from_secs(1),
+                &mut ReadAhead::new(),
+                1024,
+                false,
+            )
+            .await
+            .unwrap_or_else(|_| panic!("complete partial writes"));
+            assert_eq!(
+                socket.bytes,
+                framed_bytes(&response),
+                "first write limit {limit}"
+            );
+            assert_eq!(socket.offers.first(), Some(&vec![4, 8 * 1024 - 4]));
+            assert!(socket
+                .offers
+                .iter()
+                .all(|offer| offer.iter().sum::<usize>() <= 8 * 1024));
+        }
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn vectored_write_supports_empty_body_and_single_slice_writers() {
+        let mut empty = WriteSpy::default();
+        write_and_prefetch(
+            &mut empty,
+            &[],
+            Instant::now() + Duration::from_secs(1),
+            &mut ReadAhead::new(),
+            1024,
+            false,
+        )
+        .await
+        .unwrap_or_else(|_| panic!("empty body"));
+        assert_eq!(empty.bytes, [0, 0, 0, 0]);
+        assert_eq!(empty.offers, [vec![4]]);
+
+        // Some TLS-style writers implement vectored I/O by accepting only the
+        // first nonempty slice. Subsequent polls must send the remaining body.
+        let mut socket = WriteSpy {
+            first_slice_only: true,
+            ..WriteSpy::default()
+        };
+        write_and_prefetch(
+            &mut socket,
+            b"body",
+            Instant::now() + Duration::from_secs(1),
+            &mut ReadAhead::new(),
+            1024,
+            false,
+        )
+        .await
+        .unwrap_or_else(|_| panic!("single slice fallback"));
+        assert_eq!(socket.bytes, framed_bytes(b"body"));
+        assert_eq!(socket.offers, [vec![4, 4], vec![4]]);
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn prefix_only_deadline_leaves_peer_with_truncated_frame_and_eof() {
+        use tokio::io::AsyncReadExt;
+        let (mut writer, mut reader) = tokio::io::duplex(4);
+        let response = b"body";
+        let result = write_and_prefetch(
+            &mut writer,
+            response,
+            Instant::now() + Duration::from_millis(30),
+            &mut ReadAhead::new(),
+            1024,
+            false,
+        )
+        .await;
+        assert!(matches!(result, Err(Exit::WriteDeadline)));
+        drop(writer);
+        let mut prefix = [0; 4];
+        reader
+            .read_exact(&mut prefix)
+            .await
+            .expect("complete prefix");
+        assert_eq!(i32::from_be_bytes(prefix), 4);
+        let mut body = [0; 4];
+        let error = reader
+            .read_exact(&mut body)
+            .await
+            .expect_err("body must be truncated");
+        assert_eq!(error.kind(), std::io::ErrorKind::UnexpectedEof);
+    }
 
     /// Writes never accept a byte. Reads stay ready with one legal frame,
     /// a little at a time, so a poll that does not yield spends the whole

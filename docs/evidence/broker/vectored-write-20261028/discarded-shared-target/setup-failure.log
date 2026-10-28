@@ -1,0 +1,1 @@
+Initial inspection: /bin/bash: line 1: rustc: command not found (ambient PATH before setting CARGO_HOME/PATH).

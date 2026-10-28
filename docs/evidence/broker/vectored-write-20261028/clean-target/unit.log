@@ -1,0 +1,40 @@
+Command: cargo +stable test --offline --locked --manifest-path partitionline-broker/Cargo.toml --lib write_prefetch_tests -- --test-threads=1
+Wed Oct 28 14:53:04 UTC 2026
+   Compiling libc v0.2.189
+   Compiling proc-macro2 v1.0.107
+   Compiling unicode-ident v1.0.26
+   Compiling quote v1.0.47
+   Compiling semver v1.0.28
+   Compiling rustc_version v0.4.1
+   Compiling crc32c v0.6.8
+   Compiling syn v3.0.6
+   Compiling errno v0.3.14
+   Compiling getrandom v0.4.3
+   Compiling signal-hook-registry v1.4.8
+   Compiling socket2 v0.6.5
+   Compiling mio v1.2.3
+   Compiling cfg-if v1.0.5
+   Compiling bytes v1.12.1
+   Compiling pin-project-lite v0.2.17
+   Compiling tokio-macros v2.7.2
+   Compiling tokio v1.53.1
+   Compiling partitionline-broker v0.1.0 (/workspace/work/broker-vectored/partitionline-broker)
+    Finished `test` profile [unoptimized] target(s) in 39.73s
+     Running unittests src/lib.rs (/workspace/work/goal-qualification-20261028/vectored-target/debug/deps/partitionline_broker-2a454c0708a72949)
+
+running 11 tests
+test transport::write_prefetch_tests::a_failed_prefetch_does_not_wait_out_the_write ... ok
+test transport::write_prefetch_tests::an_illegal_length_after_a_frame_does_not_wait_out_the_write ... ok
+test transport::write_prefetch_tests::an_illegal_prefetch_length_does_not_wait_out_the_write ... ok
+test transport::write_prefetch_tests::prefix_only_deadline_leaves_peer_with_truncated_frame_and_eof ... ok
+test transport::write_prefetch_tests::vectored_partial_prefix_and_body_writes_preserve_wire_order ... ok
+test transport::write_prefetch_tests::vectored_write_offers_prefix_and_body_within_budget ... ok
+test transport::write_prefetch_tests::vectored_write_supports_empty_body_and_single_slice_writers ... ok
+test transport::write_prefetch_tests::write_deadline_stops_a_greedy_prefetch ... ok
+test transport::write_prefetch_tests::write_deadline_stops_a_greedy_response ... ok
+test transport::write_prefetch_tests::write_deadline_stops_a_ready_partial_write ... ok
+test transport::write_prefetch_tests::write_deadline_stops_a_ready_prefetch ... ok
+
+test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 335 filtered out; finished in 0.20s
+
+exit=0

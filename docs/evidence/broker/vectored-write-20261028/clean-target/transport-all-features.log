@@ -1,0 +1,80 @@
+Command: cargo +stable test --offline --locked --all-features --manifest-path partitionline-broker/Cargo.toml --test transport -- --test-threads=1
+Wed Oct 28 14:54:00 UTC 2026
+   Compiling zeroize v1.9.0
+   Compiling find-msvc-tools v0.1.14
+   Compiling shlex v2.0.1
+   Compiling typenum v1.20.1
+   Compiling cc v1.5.1
+   Compiling hybrid-array v0.4.15
+   Compiling ring v0.17.14
+   Compiling itoa v1.0.18
+   Compiling cmov v0.5.4
+   Compiling ctutils v0.4.2
+   Compiling http v1.5.0
+   Compiling block-buffer v0.12.1
+   Compiling crypto-common v0.2.2
+   Compiling getrandom v0.2.17
+   Compiling const-oid v0.10.2
+   Compiling httparse v1.10.1
+   Compiling untrusted v0.9.0
+   Compiling futures-core v0.3.34
+   Compiling serde_core v1.0.229
+   Compiling digest v0.11.3
+   Compiling http-body v1.1.0
+   Compiling rustls-pki-types v1.15.1
+   Compiling zmij v1.0.23
+   Compiling rustls v0.23.45
+   Compiling try-lock v0.2.5
+   Compiling crc32fast v1.5.2
+   Compiling want v0.3.1
+   Compiling rustls-webpki v0.103.15
+   Compiling futures-channel v0.3.34
+   Compiling atomic-waker v1.1.2
+   Compiling snap v1.1.2
+   Compiling once_cell v1.21.4
+   Compiling serde v1.0.229
+   Compiling subtle v2.6.1
+   Compiling serde_json v1.0.151
+   Compiling simd-adler32 v0.3.10
+   Compiling adler2 v2.0.1
+   Compiling smallvec v1.16.2
+   Compiling miniz_oxide v0.9.1
+   Compiling hyper v1.11.1
+   Compiling hmac v0.13.0
+   Compiling memchr v2.8.3
+   Compiling cpufeatures v0.3.1
+   Compiling twox-hash v2.1.4
+   Compiling lz4_flex v0.14.0
+   Compiling sha2 v0.11.0
+   Compiling tokio-rustls v0.26.6
+   Compiling pbkdf2 v0.13.0
+   Compiling flate2 v1.1.10
+   Compiling hyper-util v0.1.21
+   Compiling http-body-util v0.1.5
+   Compiling base64 v0.23.1
+   Compiling zstd-rs v0.1.0
+   Compiling partitionline-broker v0.1.0 (/workspace/work/broker-vectored/partitionline-broker)
+    Finished `test` profile [unoptimized] target(s) in 1m 06s
+     Running tests/transport.rs (/workspace/work/goal-qualification-20261028/vectored-target/debug/deps/transport-5d370c4f2a14be46)
+
+running 16 tests
+test adversarial_lengths_close_before_payload_or_handler_and_isolate_peers ... ok
+test cancelled_shutdown_await_can_be_retried_and_still_joins ... ok
+test connection_overload_rejects_without_spawning_handler ... ok
+test dropping_transport_requests_socket_and_handler_cleanup ... ok
+test fragmented_prefix_body_empty_and_exact_limit_roundtrip ... ok
+test handler_deadline_includes_waiting_for_concurrency_permit ... ok
+test handler_error_and_oversized_response_close_only_their_connections ... ok
+test handler_work_is_bounded_and_shutdown_joins_active_and_queued_requests ... ok
+test hanging_handler_times_out_and_its_future_is_dropped ... ok
+test idle_connection_has_an_absolute_read_deadline ... ok
+test pipelined_no_reply_sends_no_frame_and_keeps_connection_usable ... ok
+test pipelined_requests_keep_wire_and_handler_order ... ok
+test rejects_zero_and_out_of_range_configuration_without_io ... ok
+test slowloris_progress_does_not_reset_prefix_plus_body_deadline ... ok
+test truncated_prefix_and_body_never_invoke_handler ... ok
+test unread_large_response_hits_absolute_write_deadline_and_joins ... ok
+
+test result: ok. 16 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.86s
+
+exit=0

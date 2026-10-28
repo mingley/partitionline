@@ -1,0 +1,26 @@
+Wed Oct 28 14:53:03 UTC 2026
+d3e1726a174ea09aa99a2412625e1ec5285f344f
+ M partitionline-broker/src/transport.rs
+rustc 1.99.1 (58cf8f9c3 2026-10-13)
+binary: rustc
+commit-hash: 58cf8f9c35b355199727627d07ae34a4e2846d67
+commit-date: 2026-10-13
+host: x86_64-unknown-linux-gnu
+release: 1.99.1
+LLVM version: 23.1.1
+cargo 1.99.1 (5f94df478 2026-08-27)
+release: 1.99.1
+commit-hash: 5f94df4789f005f9a352888e8355ffc645b7ed0e
+commit-date: 2026-08-27
+host: x86_64-unknown-linux-gnu
+libgit2: 1.9.6 (sys:0.21.0 vendored)
+libcurl: 8.21.0-DEV (sys:0.4.90+curl-8.21.0 vendored ssl:OpenSSL/3.6.3)
+ssl: OpenSSL 3.6.3 9 Jun 2026
+os: Debian 13.0.0 (trixie) [64-bit]
+CARGO_BUILD_JOBS=2
+CARGO_HOME=/workspace/work/cargo
+CARGO_INCREMENTAL=0
+CARGO_PROFILE_DEV_DEBUG=0
+CARGO_PROFILE_TEST_DEBUG=0
+CARGO_TARGET_DIR=/workspace/work/goal-qualification-20261028/vectored-target
+RUSTUP_HOME=/workspace/work/rustup
