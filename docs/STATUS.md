@@ -21,7 +21,7 @@ requirements are met.
 | Which work items are open | [Task registry](plan/tasks.json) |
 | How a benchmark number should be read | [Benchmark guide](benchmark.md) |
 
-The task registry has 346 cards: 261 done, 10 in progress, and 75 pending.
+The task registry has 346 cards: 261 done, 11 in progress, and 74 pending.
 Those counts were checked against `tasks.json` on 27 October 2026.
 
 Current qualification uses stable Rust 1.99.1. The seeded fault oracle now
@@ -34,16 +34,22 @@ another epoch-recovery timeout. Its retained 60-byte seed passes exact replays;
 the timeout remains unexplained. No campaign is currently running and no
 24-hour run has passed. See the [current fuzz result](evidence/broker/fuzz/20261027-candidate06/README.md).
 
-The Fetch corruption waiter now wakes correctly in both feature modes. The
-whole-broker checks still fail: default passes 602 and fails 10; all features
-passes 735 and fails 21. Remaining failures include Apache response goldens,
-caller/deadline checks and transport accounting. Core/full conformance also
-fails. See the
-[readiness assessment](evidence/broker/qualification-20261027/status.json) and
-[failed campaign and integrity repair](evidence/broker/journal-partial-offset-20261027/README.md).
-The [Fetch notification repair](evidence/broker/fetch-poison-notification-20261027/README.md)
-retains the full results and serial rechecks. Production readiness and
-fastest-performance claims remain unqualified.
+The repaired broker candidate passes all 615 default-feature tests and all
+759 all-feature tests. Strict Clippy passes for every target in both modes.
+The fixes cover transport accounting, absolute deadlines, credential-buffer
+cleanup, group-assignment bounds and Kafka read response fields. Live Apache
+Kafka 4.1.2 checks confirmed the response semantics.
+
+The [active qualification goal](plan/goal-qualification.json) continues through
+the client build/runtime gates, independent conformance, sustained runs and
+matched benchmarks on this x86_64 workspace. Client build failures are under
+repair, and core/full conformance remains incomplete. A bounded syscall
+diagnostic is tracing the retained recovery input. No 24-hour run has passed.
+
+The [earlier readiness assessment](evidence/broker/qualification-20261027/status.json)
+and [failed campaigns](evidence/broker/fuzz/20261027-candidate06/README.md) retain
+the previous failures. Production readiness and fastest-performance claims
+remain unqualified.
 
 ## Client
 
