@@ -1,0 +1,282 @@
+[
+    {
+        "Id": "f057c9760c8d1103579dcb6e7c093501599606f6d2ef6cc38dbf123db4d66cf8",
+        "Created": "2026-10-28T03:39:33.164657298Z",
+        "Path": "/__cacert_entrypoint.sh",
+        "Args": [
+            "/etc/kafka/docker/run"
+        ],
+        "State": {
+            "Status": "running",
+            "Running": true,
+            "Paused": false,
+            "Restarting": false,
+            "OOMKilled": false,
+            "Dead": false,
+            "Pid": 29608,
+            "ExitCode": 0,
+            "Error": "",
+            "StartedAt": "2026-10-28T03:39:38.479936789Z",
+            "FinishedAt": "0001-01-01T00:00:00Z"
+        },
+        "Image": "sha256:69972c3ac7ce245bd7135c7fbe394ccfc7d9226ffa4009412da848748c3c9df6",
+        "ResolvConfPath": "/var/lib/docker/containers/f057c9760c8d1103579dcb6e7c093501599606f6d2ef6cc38dbf123db4d66cf8/resolv.conf",
+        "HostnamePath": "/var/lib/docker/containers/f057c9760c8d1103579dcb6e7c093501599606f6d2ef6cc38dbf123db4d66cf8/hostname",
+        "HostsPath": "/var/lib/docker/containers/f057c9760c8d1103579dcb6e7c093501599606f6d2ef6cc38dbf123db4d66cf8/hosts",
+        "LogPath": "/var/lib/docker/containers/f057c9760c8d1103579dcb6e7c093501599606f6d2ef6cc38dbf123db4d66cf8/f057c9760c8d1103579dcb6e7c093501599606f6d2ef6cc38dbf123db4d66cf8-json.log",
+        "Name": "/pl-fetch-recovery-547d338706ae4f509265dc875034b84b",
+        "RestartCount": 0,
+        "Driver": "vfs",
+        "Platform": "linux",
+        "MountLabel": "",
+        "ProcessLabel": "",
+        "AppArmorProfile": "",
+        "ExecIDs": null,
+        "HostConfig": {
+            "Binds": null,
+            "ContainerIDFile": "",
+            "LogConfig": {
+                "Type": "json-file",
+                "Config": {}
+            },
+            "NetworkMode": "bridge",
+            "PortBindings": {
+                "9092/tcp": [
+                    {
+                        "HostIp": "127.0.0.1",
+                        "HostPort": "19292"
+                    }
+                ]
+            },
+            "RestartPolicy": {
+                "Name": "no",
+                "MaximumRetryCount": 0
+            },
+            "AutoRemove": false,
+            "VolumeDriver": "",
+            "VolumesFrom": null,
+            "ConsoleSize": [
+                0,
+                0
+            ],
+            "CapAdd": null,
+            "CapDrop": null,
+            "CgroupnsMode": "private",
+            "Dns": [],
+            "DnsOptions": [],
+            "DnsSearch": [],
+            "ExtraHosts": null,
+            "GroupAdd": null,
+            "IpcMode": "private",
+            "Cgroup": "",
+            "Links": null,
+            "OomScoreAdj": 0,
+            "PidMode": "",
+            "Privileged": false,
+            "PublishAllPorts": false,
+            "ReadonlyRootfs": false,
+            "SecurityOpt": null,
+            "UTSMode": "",
+            "UsernsMode": "",
+            "ShmSize": 67108864,
+            "Runtime": "runc",
+            "Isolation": "",
+            "CpuShares": 0,
+            "Memory": 1073741824,
+            "NanoCpus": 1000000000,
+            "CgroupParent": "",
+            "BlkioWeight": 0,
+            "BlkioWeightDevice": [],
+            "BlkioDeviceReadBps": [],
+            "BlkioDeviceWriteBps": [],
+            "BlkioDeviceReadIOps": [],
+            "BlkioDeviceWriteIOps": [],
+            "CpuPeriod": 0,
+            "CpuQuota": 0,
+            "CpuRealtimePeriod": 0,
+            "CpuRealtimeRuntime": 0,
+            "CpusetCpus": "",
+            "CpusetMems": "",
+            "Devices": [],
+            "DeviceCgroupRules": null,
+            "DeviceRequests": null,
+            "MemoryReservation": 0,
+            "MemorySwap": 2147483648,
+            "MemorySwappiness": null,
+            "OomKillDisable": null,
+            "PidsLimit": 256,
+            "Ulimits": [],
+            "CpuCount": 0,
+            "CpuPercent": 0,
+            "IOMaximumIOps": 0,
+            "IOMaximumBandwidth": 0,
+            "MaskedPaths": [
+                "/proc/asound",
+                "/proc/acpi",
+                "/proc/interrupts",
+                "/proc/kcore",
+                "/proc/keys",
+                "/proc/latency_stats",
+                "/proc/timer_list",
+                "/proc/timer_stats",
+                "/proc/sched_debug",
+                "/proc/scsi",
+                "/sys/firmware",
+                "/sys/devices/virtual/powercap"
+            ],
+            "ReadonlyPaths": [
+                "/proc/bus",
+                "/proc/fs",
+                "/proc/irq",
+                "/proc/sys",
+                "/proc/sysrq-trigger"
+            ]
+        },
+        "GraphDriver": {
+            "Data": {
+                "ID": "f057c9760c8d1103579dcb6e7c093501599606f6d2ef6cc38dbf123db4d66cf8"
+            },
+            "Name": "vfs"
+        },
+        "Mounts": [
+            {
+                "Type": "volume",
+                "Name": "35f200c947359b5124f7d723036fbf7d77a66e3341077016a9fb645ff26d8913",
+                "Source": "/var/lib/docker/volumes/35f200c947359b5124f7d723036fbf7d77a66e3341077016a9fb645ff26d8913/_data",
+                "Destination": "/mnt/shared/config",
+                "Driver": "local",
+                "Mode": "",
+                "RW": true,
+                "Propagation": ""
+            },
+            {
+                "Type": "volume",
+                "Name": "59d2f7519ae899a6d2c51709dc667523faa7914264f4fa502ae9fa47e05d0816",
+                "Source": "/var/lib/docker/volumes/59d2f7519ae899a6d2c51709dc667523faa7914264f4fa502ae9fa47e05d0816/_data",
+                "Destination": "/var/lib/kafka/data",
+                "Driver": "local",
+                "Mode": "",
+                "RW": true,
+                "Propagation": ""
+            },
+            {
+                "Type": "volume",
+                "Name": "47aa7eb5171cc85044519d600baab8884c1f1140bdb2fa5e7992270cc22c43b3",
+                "Source": "/var/lib/docker/volumes/47aa7eb5171cc85044519d600baab8884c1f1140bdb2fa5e7992270cc22c43b3/_data",
+                "Destination": "/etc/kafka/secrets",
+                "Driver": "local",
+                "Mode": "",
+                "RW": true,
+                "Propagation": ""
+            }
+        ],
+        "Config": {
+            "Hostname": "f057c9760c8d",
+            "Domainname": "",
+            "User": "appuser",
+            "AttachStdin": false,
+            "AttachStdout": true,
+            "AttachStderr": true,
+            "ExposedPorts": {
+                "9092/tcp": {}
+            },
+            "Tty": false,
+            "OpenStdin": false,
+            "StdinOnce": false,
+            "Env": [
+                "KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS=0",
+                "KAFKA_LISTENERS=PLAINTEXT://:9092,INTERNAL://:9094,CONTROLLER://:9093",
+                "KAFKA_CONTROLLER_QUORUM_VOTERS=1@localhost:9093",
+                "KAFKA_AUTO_CREATE_TOPICS_ENABLE=false",
+                "HTTP_PROXY=http://172.31.3.13:8080",
+                "HTTPS_PROXY=http://172.31.3.13:8080",
+                "NO_PROXY=localhost,127.0.0.1,::1",
+                "KAFKA_PROCESS_ROLES=broker,controller",
+                "KAFKA_CONTROLLER_LISTENER_NAMES=CONTROLLER",
+                "KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR=1",
+                "KAFKA_TRANSACTION_STATE_LOG_MIN_ISR=1",
+                "http_proxy=http://172.31.3.13:8080",
+                "https_proxy=http://172.31.3.13:8080",
+                "KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://127.0.0.1:19293,INTERNAL://localhost:9094",
+                "KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR=1",
+                "KAFKA_HEAP_OPTS=-Xmx256m -Xms256m",
+                "no_proxy=localhost,127.0.0.1,::1",
+                "KAFKA_NODE_ID=1",
+                "KAFKA_LISTENER_SECURITY_PROTOCOL_MAP=PLAINTEXT:PLAINTEXT,INTERNAL:PLAINTEXT,CONTROLLER:PLAINTEXT",
+                "KAFKA_INTER_BROKER_LISTENER_NAME=INTERNAL",
+                "PATH=/opt/java/openjdk/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+                "JAVA_HOME=/opt/java/openjdk",
+                "LANG=en_US.UTF-8",
+                "LANGUAGE=en_US:en",
+                "LC_ALL=en_US.UTF-8",
+                "JAVA_VERSION=jdk-21.0.10+7"
+            ],
+            "Cmd": [
+                "/etc/kafka/docker/run"
+            ],
+            "Image": "apache/kafka:4.1.2@sha256:5cc2a2fd93fa2687b44015eee04fb2c3edd9e526bd64bf8bec5ff1e268772e0e",
+            "Volumes": {
+                "/etc/kafka/secrets": {},
+                "/mnt/shared/config": {},
+                "/var/lib/kafka/data": {}
+            },
+            "WorkingDir": "/",
+            "Entrypoint": [
+                "/__cacert_entrypoint.sh"
+            ],
+            "OnBuild": null,
+            "Labels": {
+                "maintainer": "Apache Kafka",
+                "org.label-schema.build-date": "2026-02-25",
+                "org.label-schema.description": "Apache Kafka",
+                "org.label-schema.name": "kafka",
+                "org.label-schema.vcs-url": "https://github.com/apache/kafka"
+            }
+        },
+        "NetworkSettings": {
+            "Bridge": "",
+            "SandboxID": "53dbb824cbadd8962a83af10b64e689a9259ead25f938bbb81359c7e8994783b",
+            "SandboxKey": "/run/codex-docker/exec-cnb0re3e/netns/53dbb824cbad",
+            "Ports": {
+                "9092/tcp": [
+                    {
+                        "HostIp": "127.0.0.1",
+                        "HostPort": "19292"
+                    }
+                ]
+            },
+            "HairpinMode": false,
+            "LinkLocalIPv6Address": "",
+            "LinkLocalIPv6PrefixLen": 0,
+            "SecondaryIPAddresses": null,
+            "SecondaryIPv6Addresses": null,
+            "EndpointID": "b8fbe9ce81fc5bf1b722340a2d928dd353c7808cc14effed66c4f5e144e944f5",
+            "Gateway": "172.17.0.1",
+            "GlobalIPv6Address": "",
+            "GlobalIPv6PrefixLen": 0,
+            "IPAddress": "172.17.0.3",
+            "IPPrefixLen": 16,
+            "IPv6Gateway": "",
+            "MacAddress": "46:42:ec:3f:29:8d",
+            "Networks": {
+                "bridge": {
+                    "IPAMConfig": null,
+                    "Links": null,
+                    "Aliases": null,
+                    "MacAddress": "46:42:ec:3f:29:8d",
+                    "DriverOpts": null,
+                    "GwPriority": 0,
+                    "NetworkID": "97e5590894a43bb6d29af51e65da8bce288fce5e8098f4fc712993f10cbc53fc",
+                    "EndpointID": "b8fbe9ce81fc5bf1b722340a2d928dd353c7808cc14effed66c4f5e144e944f5",
+                    "Gateway": "172.17.0.1",
+                    "IPAddress": "172.17.0.3",
+                    "IPPrefixLen": 16,
+                    "IPv6Gateway": "",
+                    "GlobalIPv6Address": "",
+                    "GlobalIPv6PrefixLen": 0,
+                    "DNSNames": null
+                }
+            }
+        }
+    }
+]

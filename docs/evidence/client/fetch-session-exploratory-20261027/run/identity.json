@@ -1,0 +1,247 @@
+{
+  "reference": "apache/kafka:4.1.2@sha256:5cc2a2fd93fa2687b44015eee04fb2c3edd9e526bd64bf8bec5ff1e268772e0e",
+  "container": "pl-fetch-recovery-547d338706ae4f509265dc875034b84b",
+  "topic": "plfetch-recovery-547d338706ae4f509265dc875034b84b",
+  "proxy": "127.0.0.1:19293",
+  "backend": "127.0.0.1:19292",
+  "status": "observed pass, exploratory baseline only",
+  "build_provenance": "Prebuilt test executable produced during baseline cargo build, which failed in a different test target. Exact mapping from Cargo executable to the recorded source receipt is not cryptographically bound; this run is exploratory, not a candidate qualification.",
+  "baseline_source_receipt": "client-all-features.json",
+  "baseline_source_receipt_sha256": "8951679e3710657561f26192953375ef5e7bb890a3ed9f2b7e2c71d3e52760a4",
+  "source_label": "e7f5761a9c6fe13e08efb0759f7924709287165b",
+  "binary": "/workspace/work/qualification-20261027/broker-check-target/debug/deps/consumer_fetch_semantics-40d8232eced90b73",
+  "binary_sha256": "dbd41888cd8c75c4f38c8f416d1bc821c52f11d066832d69d17fc719a54c1059",
+  "platform": "Linux-6.18.55-x86_64-with-glibc2.41",
+  "machine": "x86_64",
+  "start_ns": 1793158773091000066,
+  "commands": [
+    {
+      "name": "binary-list",
+      "args": [
+        "/workspace/work/qualification-20261027/broker-check-target/debug/deps/consumer_fetch_semantics-40d8232eced90b73",
+        "--list"
+      ],
+      "start_ns": 1793158773091004779,
+      "exit": 0,
+      "end_ns": 1793158773099986174
+    },
+    {
+      "name": "create",
+      "args": [
+        "docker",
+        "--host=unix:///var/run/docker.sock",
+        "create",
+        "--name",
+        "pl-fetch-recovery-547d338706ae4f509265dc875034b84b",
+        "--cpus=1",
+        "--memory=1g",
+        "--pids-limit=256",
+        "-p",
+        "127.0.0.1:19292:9092",
+        "-e",
+        "KAFKA_NODE_ID=1",
+        "-e",
+        "KAFKA_PROCESS_ROLES=broker,controller",
+        "-e",
+        "KAFKA_LISTENERS=PLAINTEXT://:9092,INTERNAL://:9094,CONTROLLER://:9093",
+        "-e",
+        "KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://127.0.0.1:19293,INTERNAL://localhost:9094",
+        "-e",
+        "KAFKA_LISTENER_SECURITY_PROTOCOL_MAP=PLAINTEXT:PLAINTEXT,INTERNAL:PLAINTEXT,CONTROLLER:PLAINTEXT",
+        "-e",
+        "KAFKA_INTER_BROKER_LISTENER_NAME=INTERNAL",
+        "-e",
+        "KAFKA_CONTROLLER_LISTENER_NAMES=CONTROLLER",
+        "-e",
+        "KAFKA_CONTROLLER_QUORUM_VOTERS=1@localhost:9093",
+        "-e",
+        "KAFKA_AUTO_CREATE_TOPICS_ENABLE=false",
+        "-e",
+        "KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR=1",
+        "-e",
+        "KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR=1",
+        "-e",
+        "KAFKA_TRANSACTION_STATE_LOG_MIN_ISR=1",
+        "-e",
+        "KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS=0",
+        "-e",
+        "KAFKA_HEAP_OPTS=-Xmx256m -Xms256m",
+        "apache/kafka:4.1.2@sha256:5cc2a2fd93fa2687b44015eee04fb2c3edd9e526bd64bf8bec5ff1e268772e0e"
+      ],
+      "start_ns": 1793158773100727217,
+      "exit": 0,
+      "end_ns": 1793158778443405529
+    },
+    {
+      "name": "start",
+      "args": [
+        "docker",
+        "--host=unix:///var/run/docker.sock",
+        "start",
+        "pl-fetch-recovery-547d338706ae4f509265dc875034b84b"
+      ],
+      "start_ns": 1793158778444236886,
+      "exit": 0,
+      "end_ns": 1793158778767085856
+    },
+    {
+      "name": "inspect",
+      "args": [
+        "docker",
+        "--host=unix:///var/run/docker.sock",
+        "inspect",
+        "pl-fetch-recovery-547d338706ae4f509265dc875034b84b"
+      ],
+      "start_ns": 1793158778773582806,
+      "exit": 0,
+      "end_ns": 1793158778811704159
+    },
+    {
+      "name": "image-inspect",
+      "args": [
+        "docker",
+        "--host=unix:///var/run/docker.sock",
+        "image",
+        "inspect",
+        "apache/kafka:4.1.2@sha256:5cc2a2fd93fa2687b44015eee04fb2c3edd9e526bd64bf8bec5ff1e268772e0e"
+      ],
+      "start_ns": 1793158778814219996,
+      "exit": 0,
+      "end_ns": 1793158778850081006
+    },
+    {
+      "name": "port",
+      "args": [
+        "docker",
+        "--host=unix:///var/run/docker.sock",
+        "port",
+        "pl-fetch-recovery-547d338706ae4f509265dc875034b84b",
+        "9092/tcp"
+      ],
+      "start_ns": 1793158778850584592,
+      "exit": 0,
+      "end_ns": 1793158778884120672
+    },
+    {
+      "name": "java-version",
+      "args": [
+        "docker",
+        "--host=unix:///var/run/docker.sock",
+        "exec",
+        "pl-fetch-recovery-547d338706ae4f509265dc875034b84b",
+        "/opt/kafka/bin/kafka-topics.sh",
+        "--version"
+      ],
+      "start_ns": 1793158778884493916,
+      "exit": 0,
+      "end_ns": 1793158785637424717
+    },
+    {
+      "name": "readiness-1",
+      "args": [
+        "docker",
+        "--host=unix:///var/run/docker.sock",
+        "exec",
+        "pl-fetch-recovery-547d338706ae4f509265dc875034b84b",
+        "/opt/kafka/bin/kafka-broker-api-versions.sh",
+        "--bootstrap-server",
+        "localhost:9094"
+      ],
+      "start_ns": 1793158785638641205,
+      "exit": 0,
+      "end_ns": 1793158795183715782
+    },
+    {
+      "name": "create-topic",
+      "args": [
+        "docker",
+        "--host=unix:///var/run/docker.sock",
+        "exec",
+        "pl-fetch-recovery-547d338706ae4f509265dc875034b84b",
+        "/opt/kafka/bin/kafka-topics.sh",
+        "--bootstrap-server",
+        "localhost:9094",
+        "--create",
+        "--topic",
+        "plfetch-recovery-547d338706ae4f509265dc875034b84b",
+        "--partitions",
+        "32",
+        "--replication-factor",
+        "1"
+      ],
+      "start_ns": 1793158795188562892,
+      "exit": 0,
+      "end_ns": 1793158800776407015
+    },
+    {
+      "name": "runtime",
+      "args": [
+        "/workspace/work/qualification-20261027/broker-check-target/debug/deps/consumer_fetch_semantics-40d8232eced90b73",
+        "--ignored",
+        "--exact",
+        "live_fetch_session_recovery_required",
+        "--nocapture"
+      ],
+      "start_ns": 1793158800777010504,
+      "exit": 0,
+      "end_ns": 1793158816592624592
+    },
+    {
+      "name": "java-records",
+      "args": [
+        "docker",
+        "--host=unix:///var/run/docker.sock",
+        "exec",
+        "pl-fetch-recovery-547d338706ae4f509265dc875034b84b",
+        "/opt/kafka/bin/kafka-console-consumer.sh",
+        "--bootstrap-server",
+        "localhost:9094",
+        "--topic",
+        "plfetch-recovery-547d338706ae4f509265dc875034b84b",
+        "--from-beginning",
+        "--max-messages",
+        "65",
+        "--timeout-ms",
+        "20000",
+        "--property",
+        "print.partition=true",
+        "--property",
+        "print.offset=true",
+        "--property",
+        "print.key=true"
+      ],
+      "start_ns": 1793158816593876045,
+      "exit": 0,
+      "end_ns": 1793158828510207640
+    },
+    {
+      "name": "broker-logs",
+      "args": [
+        "docker",
+        "--host=unix:///var/run/docker.sock",
+        "logs",
+        "pl-fetch-recovery-547d338706ae4f509265dc875034b84b"
+      ],
+      "start_ns": 1793158828545538376,
+      "exit": 0,
+      "end_ns": 1793158828666175469
+    },
+    {
+      "name": "cleanup",
+      "args": [
+        "docker",
+        "--host=unix:///var/run/docker.sock",
+        "rm",
+        "-f",
+        "pl-fetch-recovery-547d338706ae4f509265dc875034b84b"
+      ],
+      "start_ns": 1793158828670463602,
+      "exit": 0,
+      "end_ns": 1793158829191433759
+    }
+  ],
+  "wire_cases": 7,
+  "java_records": 65,
+  "scope": "32 partitions; exact producer acknowledgments, consumer deliveries, positions, observed fetch session lifecycle and independent Apache Java readback; binary not source-bound",
+  "end_ns": 1793158829192172427
+}

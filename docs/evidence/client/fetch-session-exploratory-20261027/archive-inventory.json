@@ -1,0 +1,329 @@
+{
+  "schema_version": 1,
+  "files": [
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/fetch-session-evidence-readme.md",
+      "original_sha256": "72931f1dc214c041e7e3dbf6e4d058b91bccb711a0bf35359b3b63d65b604d6b",
+      "original_bytes": 1941,
+      "stored_path": "README.md",
+      "stored_sha256": "72931f1dc214c041e7e3dbf6e4d058b91bccb711a0bf35359b3b63d65b604d6b",
+      "stored_bytes": 1941,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/fetch-session-live-baseline.py",
+      "original_sha256": "c78e20b9e532c4d6ad0a10e72baa04d3c3f158f483a5bfe51b8f14f0a8efa833",
+      "original_bytes": 5962,
+      "stored_path": "driver.py",
+      "stored_sha256": "c78e20b9e532c4d6ad0a10e72baa04d3c3f158f483a5bfe51b8f14f0a8efa833",
+      "stored_bytes": 5962,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/fetch-session-baseline-source.tar.gz",
+      "original_sha256": "4acf83a74cbdb27ab608e1b16a68f88d4441e561bf16fc3a5daab978448bea9e",
+      "original_bytes": 1545220,
+      "stored_path": "source/baseline-source.tar.gz",
+      "stored_sha256": "4acf83a74cbdb27ab608e1b16a68f88d4441e561bf16fc3a5daab978448bea9e",
+      "stored_bytes": 1545220,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/qualification-20261027/broker-check-target/debug/deps/consumer_fetch_semantics-40d8232eced90b73",
+      "original_sha256": "dbd41888cd8c75c4f38c8f416d1bc821c52f11d066832d69d17fc719a54c1059",
+      "original_bytes": 42999488,
+      "stored_path": "executables/consumer-fetch-semantics.elf.gz",
+      "stored_sha256": "19aac3253ff76c3d57bbb513f8c5e5df27936e67e8ab029c9fba96412e08612a",
+      "stored_bytes": 8409860,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/client-default.log",
+      "original_sha256": "485938488d5011fd477cf3a6aeb1d40c4bcc3829bbd97a7b6262857f05bc844c",
+      "original_bytes": 15498,
+      "stored_path": "build/client-default.log",
+      "stored_sha256": "485938488d5011fd477cf3a6aeb1d40c4bcc3829bbd97a7b6262857f05bc844c",
+      "stored_bytes": 15498,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/client-default.json",
+      "original_sha256": "727c26c57fdb79365df06f97e98785a0c9da7e9e7e433176fc5265f99063fe7d",
+      "original_bytes": 11839,
+      "stored_path": "build/client-default.json",
+      "stored_sha256": "727c26c57fdb79365df06f97e98785a0c9da7e9e7e433176fc5265f99063fe7d",
+      "stored_bytes": 11839,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/client-all-features.log",
+      "original_sha256": "41f2480a41d8be0213f0c95267302cc236937a5fcdef864db4638485a1104177",
+      "original_bytes": 13667,
+      "stored_path": "build/client-all-features.log",
+      "stored_sha256": "41f2480a41d8be0213f0c95267302cc236937a5fcdef864db4638485a1104177",
+      "stored_bytes": 13667,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/client-all-features.json",
+      "original_sha256": "8951679e3710657561f26192953375ef5e7bb890a3ed9f2b7e2c71d3e52760a4",
+      "original_bytes": 11860,
+      "stored_path": "build/client-all-features.json",
+      "stored_sha256": "8951679e3710657561f26192953375ef5e7bb890a3ed9f2b7e2c71d3e52760a4",
+      "stored_bytes": 11860,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/live-fetch-baseline-547d338706ae4f509265dc875034b84b/binary-list.stderr",
+      "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "original_bytes": 0,
+      "stored_path": "run/binary-list.stderr",
+      "stored_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stored_bytes": 0,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/live-fetch-baseline-547d338706ae4f509265dc875034b84b/binary-list.stdout",
+      "original_sha256": "c494293d67fe75806bdb6f93d832869db91c59052a5c0907c19f86432cf2b7a2",
+      "original_bytes": 10086,
+      "stored_path": "run/binary-list.stdout",
+      "stored_sha256": "c494293d67fe75806bdb6f93d832869db91c59052a5c0907c19f86432cf2b7a2",
+      "stored_bytes": 10086,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/live-fetch-baseline-547d338706ae4f509265dc875034b84b/broker-logs.stderr",
+      "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "original_bytes": 0,
+      "stored_path": "run/broker-logs.stderr",
+      "stored_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stored_bytes": 0,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/live-fetch-baseline-547d338706ae4f509265dc875034b84b/broker-logs.stdout",
+      "original_sha256": "8127412550b6793a8d29b8462afee41fa0059c89aad3cd3b32571f9c9380219c",
+      "original_bytes": 169883,
+      "stored_path": "run/broker-logs.stdout.gz",
+      "stored_sha256": "485f2b3425cb5ccadb64b915c340aa73b88e9911017babca34345e0ba1202664",
+      "stored_bytes": 13669,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/live-fetch-baseline-547d338706ae4f509265dc875034b84b/cleanup.stderr",
+      "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "original_bytes": 0,
+      "stored_path": "run/cleanup.stderr",
+      "stored_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stored_bytes": 0,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/live-fetch-baseline-547d338706ae4f509265dc875034b84b/cleanup.stdout",
+      "original_sha256": "4e543bc7a51a9c924c1c48144f0ba70455e0f65f15f3b59abbd7e441dd24730c",
+      "original_bytes": 51,
+      "stored_path": "run/cleanup.stdout",
+      "stored_sha256": "4e543bc7a51a9c924c1c48144f0ba70455e0f65f15f3b59abbd7e441dd24730c",
+      "stored_bytes": 51,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/live-fetch-baseline-547d338706ae4f509265dc875034b84b/create-topic.stderr",
+      "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "original_bytes": 0,
+      "stored_path": "run/create-topic.stderr",
+      "stored_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stored_bytes": 0,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/live-fetch-baseline-547d338706ae4f509265dc875034b84b/create-topic.stdout",
+      "original_sha256": "4412676c4b75c140b51165ae072fd4703c0d0d5d74755ba75e14528598c5aaa1",
+      "original_bytes": 65,
+      "stored_path": "run/create-topic.stdout",
+      "stored_sha256": "4412676c4b75c140b51165ae072fd4703c0d0d5d74755ba75e14528598c5aaa1",
+      "stored_bytes": 65,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/live-fetch-baseline-547d338706ae4f509265dc875034b84b/create.stderr",
+      "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "original_bytes": 0,
+      "stored_path": "run/create.stderr",
+      "stored_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stored_bytes": 0,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/live-fetch-baseline-547d338706ae4f509265dc875034b84b/create.stdout",
+      "original_sha256": "d27bde889efea41f13b05bfab6efed9a949653365491a92aa333be35dcbb58b0",
+      "original_bytes": 65,
+      "stored_path": "run/create.stdout",
+      "stored_sha256": "d27bde889efea41f13b05bfab6efed9a949653365491a92aa333be35dcbb58b0",
+      "stored_bytes": 65,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/live-fetch-baseline-547d338706ae4f509265dc875034b84b/identity.json",
+      "original_sha256": "b96b91300280e5674e345ebebc289058b77daefc5aeb3ac392d1ad223b7a8bb9",
+      "original_bytes": 7709,
+      "stored_path": "run/identity.json",
+      "stored_sha256": "b96b91300280e5674e345ebebc289058b77daefc5aeb3ac392d1ad223b7a8bb9",
+      "stored_bytes": 7709,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/live-fetch-baseline-547d338706ae4f509265dc875034b84b/image-inspect.stderr",
+      "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "original_bytes": 0,
+      "stored_path": "run/image-inspect.stderr",
+      "stored_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stored_bytes": 0,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/live-fetch-baseline-547d338706ae4f509265dc875034b84b/image-inspect.stdout",
+      "original_sha256": "a073ae6fbc40b5c46568577301f5ba911a76ab0e23215d2eb91336e611eaef26",
+      "original_bytes": 3070,
+      "stored_path": "run/image-inspect.stdout",
+      "stored_sha256": "a073ae6fbc40b5c46568577301f5ba911a76ab0e23215d2eb91336e611eaef26",
+      "stored_bytes": 3070,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/live-fetch-baseline-547d338706ae4f509265dc875034b84b/inspect.stderr",
+      "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "original_bytes": 0,
+      "stored_path": "run/inspect.stderr",
+      "stored_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stored_bytes": 0,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/live-fetch-baseline-547d338706ae4f509265dc875034b84b/inspect.stdout",
+      "original_sha256": "79d9c05caec4367a9d16b0abc8047ef0292750cd1498fe0604b83b6de2cd399c",
+      "original_bytes": 10940,
+      "stored_path": "run/inspect.stdout",
+      "stored_sha256": "79d9c05caec4367a9d16b0abc8047ef0292750cd1498fe0604b83b6de2cd399c",
+      "stored_bytes": 10940,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/live-fetch-baseline-547d338706ae4f509265dc875034b84b/java-records.stderr",
+      "original_sha256": "06475d2d419068f492e76b9f792ab9f11f637f0be262fc6ec70836fd59e2d395",
+      "original_bytes": 33,
+      "stored_path": "run/java-records.stderr",
+      "stored_sha256": "06475d2d419068f492e76b9f792ab9f11f637f0be262fc6ec70836fd59e2d395",
+      "stored_bytes": 33,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/live-fetch-baseline-547d338706ae4f509265dc875034b84b/java-records.stdout",
+      "original_sha256": "c9470d1f8a3db89d04c3f860e6c78b22b311ac5a2bfa22a382a2494cb06924af",
+      "original_bytes": 2407,
+      "stored_path": "run/java-records.stdout",
+      "stored_sha256": "c9470d1f8a3db89d04c3f860e6c78b22b311ac5a2bfa22a382a2494cb06924af",
+      "stored_bytes": 2407,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/live-fetch-baseline-547d338706ae4f509265dc875034b84b/java-version.stderr",
+      "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "original_bytes": 0,
+      "stored_path": "run/java-version.stderr",
+      "stored_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stored_bytes": 0,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/live-fetch-baseline-547d338706ae4f509265dc875034b84b/java-version.stdout",
+      "original_sha256": "b3bb6f691586de9019e3cc79bc93f052fe628911cf38bff77319a05242cc7fec",
+      "original_bytes": 6,
+      "stored_path": "run/java-version.stdout",
+      "stored_sha256": "b3bb6f691586de9019e3cc79bc93f052fe628911cf38bff77319a05242cc7fec",
+      "stored_bytes": 6,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/live-fetch-baseline-547d338706ae4f509265dc875034b84b/port.stderr",
+      "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "original_bytes": 0,
+      "stored_path": "run/port.stderr",
+      "stored_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stored_bytes": 0,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/live-fetch-baseline-547d338706ae4f509265dc875034b84b/port.stdout",
+      "original_sha256": "87da214b06527d77999aa8f8ff3ff38ca9a3c413b1a3f15ae433cf57c99b7ca2",
+      "original_bytes": 16,
+      "stored_path": "run/port.stdout",
+      "stored_sha256": "87da214b06527d77999aa8f8ff3ff38ca9a3c413b1a3f15ae433cf57c99b7ca2",
+      "stored_bytes": 16,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/live-fetch-baseline-547d338706ae4f509265dc875034b84b/readiness-1.stderr",
+      "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "original_bytes": 0,
+      "stored_path": "run/readiness-1.stderr",
+      "stored_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stored_bytes": 0,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/live-fetch-baseline-547d338706ae4f509265dc875034b84b/readiness-1.stdout",
+      "original_sha256": "c9f7d7afe7a6c0bcdebab9af4598b50a69b2ac85b8b3d3ebe1b733648eb06676",
+      "original_bytes": 3247,
+      "stored_path": "run/readiness-1.stdout",
+      "stored_sha256": "c9f7d7afe7a6c0bcdebab9af4598b50a69b2ac85b8b3d3ebe1b733648eb06676",
+      "stored_bytes": 3247,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/live-fetch-baseline-547d338706ae4f509265dc875034b84b/runtime.stderr",
+      "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "original_bytes": 0,
+      "stored_path": "run/runtime.stderr",
+      "stored_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stored_bytes": 0,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/live-fetch-baseline-547d338706ae4f509265dc875034b84b/runtime.stdout",
+      "original_sha256": "887680c92ab1c24cf73d3b1893ff1bf002b3ad3b9cf4141250f8ee470bae4c6f",
+      "original_bytes": 6622,
+      "stored_path": "run/runtime.stdout",
+      "stored_sha256": "887680c92ab1c24cf73d3b1893ff1bf002b3ad3b9cf4141250f8ee470bae4c6f",
+      "stored_bytes": 6622,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/live-fetch-baseline-547d338706ae4f509265dc875034b84b/start.stderr",
+      "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "original_bytes": 0,
+      "stored_path": "run/start.stderr",
+      "stored_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stored_bytes": 0,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/live-fetch-baseline-547d338706ae4f509265dc875034b84b/start.stdout",
+      "original_sha256": "4e543bc7a51a9c924c1c48144f0ba70455e0f65f15f3b59abbd7e441dd24730c",
+      "original_bytes": 51,
+      "stored_path": "run/start.stdout",
+      "stored_sha256": "4e543bc7a51a9c924c1c48144f0ba70455e0f65f15f3b59abbd7e441dd24730c",
+      "stored_bytes": 51,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/live-fetch-baseline-547d338706ae4f509265dc875034b84b/validated-history.json",
+      "original_sha256": "cd584d71c9e7776df3285001a5bfce60492ff8f0d29a29e3992ce5cef2281659",
+      "original_bytes": 17246,
+      "stored_path": "run/validated-history.json",
+      "stored_sha256": "cd584d71c9e7776df3285001a5bfce60492ff8f0d29a29e3992ce5cef2281659",
+      "stored_bytes": 17246,
+      "encoding": "identity"
+    }
+  ]
+}

@@ -33240,8 +33240,10 @@
       "title": "Enforce client/connection/replication request quotas",
       "priority": "P1",
       "kind": "implementation",
-      "status": "done",
-      "owner": "cursor-cloud",
+      "status": "in_progress",
+      "owner": "codex-goal-qualification-20261028",
+      "previous_owner": "cursor-cloud",
+      "scope": "In-memory quota accounting is being repaired; Kafka wire throttling, durable administration and independent overload fairness remain open. Earlier evidence describes an in-memory foundation and does not satisfy the full deliverable.",
       "depends_on": [
         "KL11-02",
         "KL11-21"

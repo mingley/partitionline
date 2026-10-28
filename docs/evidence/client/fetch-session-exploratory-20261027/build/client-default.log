@@ -1,0 +1,337 @@
+    Updating crates.io index
+ Downloading crates ...
+  Downloaded parking_lot v0.12.5
+  Downloaded hybrid-array v0.4.14
+  Downloaded cc v1.4.4
+  Downloaded smallvec v1.15.2
+  Downloaded find-msvc-tools v0.1.11
+  Downloaded errno v0.3.14
+  Downloaded signal-hook-registry v1.4.8
+  Downloaded cfg-if v1.0.4
+  Downloaded lock_api v0.4.14
+  Downloaded crc32fast v1.5.1
+  Downloaded parking_lot_core v0.9.12
+  Downloaded syn v3.0.4
+  Downloaded twox-hash v2.1.2
+  Downloaded scopeguard v1.2.0
+  Downloaded unicode-ident v1.0.24
+  Downloaded mio v1.2.2
+  Downloaded webpki-roots v1.0.9
+  Downloaded tokio v1.53.2
+   Compiling cfg-if v1.0.4
+   Compiling find-msvc-tools v0.1.11
+   Compiling hybrid-array v0.4.14
+   Compiling unicode-ident v1.0.24
+   Compiling getrandom v0.2.17
+   Compiling proc-macro2 v1.0.107
+   Compiling cc v1.4.4
+   Compiling errno v0.3.14
+   Compiling crc32fast v1.5.1
+   Compiling quote v1.0.47
+   Compiling crypto-common v0.2.2
+   Compiling block-buffer v0.12.1
+   Compiling syn v3.0.4
+   Compiling parking_lot_core v0.9.12
+   Compiling signal-hook-registry v1.4.8
+   Compiling mio v1.2.2
+   Compiling digest v0.11.3
+   Compiling scopeguard v1.2.0
+   Compiling smallvec v1.15.2
+   Compiling hmac v0.13.0
+   Compiling lock_api v0.4.14
+   Compiling ring v0.17.14
+   Compiling twox-hash v2.1.2
+   Compiling zlib-rs v0.6.8
+   Compiling lz4_flex v0.14.0
+   Compiling sha2 v0.11.0
+   Compiling parking_lot v0.12.5
+   Compiling pbkdf2 v0.13.0
+   Compiling getrandom v0.4.3
+   Compiling webpki-roots v1.0.9
+   Compiling rustls v0.23.45
+   Compiling tokio-macros v2.7.2
+   Compiling tokio v1.53.2
+   Compiling rustls-webpki v0.103.15
+   Compiling flate2 v1.1.10
+   Compiling tokio-rustls v0.26.6
+   Compiling partitionline v0.1.0 (/workspace/partitionline)
+warning: unnecessary parentheses around function argument
+    --> src/protocol/records.rs:6286:41
+     |
+6286 |         put_record_count(&mut negative, (-1i32));
+     |                                         ^     ^
+     |
+     = note: `#[warn(unused_parens)]` (part of `#[warn(unused)]`) on by default
+help: remove these parentheses
+     |
+6286 -         put_record_count(&mut negative, (-1i32));
+6286 +         put_record_count(&mut negative, -1i32);
+     |
+
+warning: unnecessary parentheses around function argument
+    --> src/protocol/records.rs:7087:36
+     |
+7087 |         put_batch_length(&mut neg, (-1i32));
+     |                                    ^     ^
+     |
+help: remove these parentheses
+     |
+7087 -         put_batch_length(&mut neg, (-1i32));
+7087 +         put_batch_length(&mut neg, -1i32);
+     |
+
+error[E0308]: mismatched types
+   --> tests/codec_matrix.rs:189:40
+    |
+189 |                 assert_eq!(record.key, key(count));
+    |                                        ^^^^^^^^^^ expected `Option<RecordBytes>`, found `Option<Bytes>`
+    |
+    = note: expected enum `Option<RecordBytes>`
+               found enum `Option<bytes::Bytes>`
+
+For more information about this error, try `rustc --explain E0308`.
+error: could not compile `partitionline` (test "codec_matrix") due to 1 previous error
+warning: build failed, waiting for other jobs to finish...
+error[E0277]: `dyn FnOnce(Result<Vec<(TopicPartition, _)>, Error>) + Send` cannot be shared between threads safely
+    --> tests/full_surface.rs:3866:18
+     |
+3866 |       let b_join = tokio::spawn({
+     |  __________________^
+3867 | |         let ccfg = ccfg.clone();
+3868 | |         async move { ConsumerGroup::join(ccfg, "rg", "g4").await }
+3869 | |     });
+     | |______^ `dyn FnOnce(Result<Vec<(TopicPartition, _)>, Error>) + Send` cannot be shared between threads safely
+     |
+     = help: the trait `Sync` is not implemented for `dyn FnOnce(Result<Vec<(TopicPartition, _)>, Error>) + Send`
+     = note: required for `Unique<dyn FnOnce(Result<Vec<(TopicPartition, _)>, Error>) + Send>` to implement `Sync`
+note: required because it appears within the type `Box<dyn FnOnce(Result<Vec<(TopicPartition, _)>, Error>) + Send>`
+    --> /rustc/58cf8f9c35b355199727627d07ae34a4e2846d67/library/alloc/src/boxed.rs:236:11
+note: required because it appears within the type `Option<Box<dyn FnOnce(Result<Vec<(_, _)>, Error>) + Send>>`
+    --> /rustc/58cf8f9c35b355199727627d07ae34a4e2846d67/library/core/src/option.rs:598:9
+     = note: required because it appears within the type `(Vec<(TopicPartition, OffsetAndMetadata)>, Option<Box<_>>, _)`
+note: required because it appears within the type `PhantomData<(Vec<(TopicPartition, OffsetAndMetadata)>, Option<_>, _)>`
+    --> /rustc/58cf8f9c35b355199727627d07ae34a4e2846d67/library/core/src/marker.rs:811:11
+note: required because it appears within the type `RawVec<(Vec<(TopicPartition, OffsetAndMetadata)>, Option<Box<_>>, _)>`
+    --> /rustc/58cf8f9c35b355199727627d07ae34a4e2846d67/library/alloc/src/raw_vec/mod.rs:73:18
+note: required because it appears within the type `Vec<(Vec<(TopicPartition, OffsetAndMetadata)>, Option<Box<_>>, _)>`
+    --> /rustc/58cf8f9c35b355199727627d07ae34a4e2846d67/library/alloc/src/vec/mod.rs:436:11
+note: required because it appears within the type `ConsumerGroup`
+    --> src/group.rs:1308:12
+     |
+1308 | pub struct ConsumerGroup {
+     |            ^^^^^^^^^^^^^
+     = note: required for `&ConsumerGroup` to implement `Send`
+note: required because it's used within this `async` fn body
+    --> src/group.rs:3470:77
+     |
+3470 |       async fn join_protocol_entries(&self) -> Result<Vec<(String, Vec<u8>)>> {
+     |  _____________________________________________________________________________^
+3471 | |         let owned = self.consumer.assignment_pairs_cooperative().await;
+3472 | |         let names = if self.assignors.is_empty() {
+3473 | |             vec![self.protocol.clone()]
+...    |
+3489 | |         Ok(out)
+3490 | |     }
+     | |_____^
+note: required because it's used within this `async` fn body
+    --> src/group.rs:3492:86
+     |
+3492 |       async fn rejoin_once(&mut self, deadline: Instant) -> Result<Vec<(String, i32)>> {
+     |  ______________________________________________________________________________________^
+3493 | |         let entries = self.join_protocol_entries().await?;
+3494 | |         let protocols: Vec<JoinGroupProtocol<'_>> = entries
+3495 | |             .iter()
+...    |
+3785 | |         Ok(revoked)
+3786 | |     }
+     | |_____^
+note: required because it's used within this `async` fn body
+    --> src/group.rs:3456:72
+     |
+3456 |       async fn rejoin_within(&mut self, deadline: Instant) -> Result<()> {
+     |  ________________________________________________________________________^
+3457 | |         let rejoining = !self.member_id.is_empty();
+3458 | |         for _ in 0..8 {
+3459 | |             let revoked = self.rejoin_once(deadline).await?;
+...    |
+3467 | |         Err(Error::protocol("cooperative-sticky did not settle"))
+3468 | |     }
+     | |_____^
+note: required because it's used within this `async` fn body
+    --> src/group.rs:1492:23
+     |
+1492 |       ) -> Result<Self> {
+     |  _______________________^
+1493 | |         reject_java_empty_group_id(&group_id)?;
+1494 | |         let mut cfg = cfg;
+1495 | |         cfg.bootstrap = crate::net::parse_and_validate_addresses(&cfg.bootstrap)?;
+...    |
+1576 | |         Ok(g)
+1577 | |     }
+     | |_____^
+note: required because it's used within this `async` fn body
+    --> src/group.rs:1448:23
+     |
+1448 |       ) -> Result<Self> {
+     |  _______________________^
+1449 | |         let group_id = group_id.into();
+1450 | |         reject_java_empty_group_id(&group_id)?;
+1451 | |         let topics = collect_topics(topics)?;
+1452 | |         Self::join_with_protocol_list(cfg, group_id, topics, vec![protocol.to_string()], None).await
+1453 | |     }
+     | |_____^
+note: required because it's used within this `async` fn body
+    --> src/group.rs:1400:23
+     |
+1400 |       ) -> Result<Self> {
+     |  _______________________^
+1401 | |         Self::join_with_protocol(cfg, group_id, topics, "range").await
+1402 | |     }
+     | |_____^
+note: required because it's used within this `async` fn body
+    --> src/group.rs:1391:23
+     |
+1391 |       ) -> Result<Self> {
+     |  _______________________^
+1392 | |         Self::join_topics(cfg, group_id, std::iter::once(topic)).await
+1393 | |     }
+     | |_____^
+note: required because it's used within this `async` block
+    --> tests/full_surface.rs:3868:9
+     |
+3868 |         async move { ConsumerGroup::join(ccfg, "rg", "g4").await }
+     |         ^^^^^^^^^^
+note: required by a bound in `tokio::spawn`
+    --> /workspace/work/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tokio-1.53.2/src/task/spawn.rs:176:21
+     |
+ 174 |     pub fn spawn<F>(future: F) -> JoinHandle<F::Output>
+     |            ----- required by a bound in this function
+ 175 |     where
+ 176 |         F: Future + Send + 'static,
+     |                     ^^^^ required by this bound in `spawn`
+     = note: the full name for the type has been written to '/workspace/work/qualification-20261027/broker-check-target/debug/deps/full_surface-e102b38d1447c2a3.long-type-17529949228411623856.txt'
+     = note: consider using `--verbose` to print the full type name to the console
+
+error[E0277]: `dyn FnOnce(Result<Vec<(TopicPartition, _)>, Error>) + Send` cannot be shared between threads safely
+    --> tests/full_surface.rs:3916:18
+     |
+3916 |       let b_join = tokio::spawn({
+     |  __________________^
+3917 | |         let ccfg = ccfg.clone();
+3918 | |         async move { ConsumerGroup::join_sticky(ccfg, "sg", "s4").await }
+3919 | |     });
+     | |______^ `dyn FnOnce(Result<Vec<(TopicPartition, _)>, Error>) + Send` cannot be shared between threads safely
+     |
+     = help: the trait `Sync` is not implemented for `dyn FnOnce(Result<Vec<(TopicPartition, _)>, Error>) + Send`
+     = note: required for `Unique<dyn FnOnce(Result<Vec<(TopicPartition, _)>, Error>) + Send>` to implement `Sync`
+note: required because it appears within the type `Box<dyn FnOnce(Result<Vec<(TopicPartition, _)>, Error>) + Send>`
+    --> /rustc/58cf8f9c35b355199727627d07ae34a4e2846d67/library/alloc/src/boxed.rs:236:11
+note: required because it appears within the type `Option<Box<dyn FnOnce(Result<Vec<(_, _)>, Error>) + Send>>`
+    --> /rustc/58cf8f9c35b355199727627d07ae34a4e2846d67/library/core/src/option.rs:598:9
+     = note: required because it appears within the type `(Vec<(TopicPartition, OffsetAndMetadata)>, Option<Box<_>>, _)`
+note: required because it appears within the type `PhantomData<(Vec<(TopicPartition, OffsetAndMetadata)>, Option<_>, _)>`
+    --> /rustc/58cf8f9c35b355199727627d07ae34a4e2846d67/library/core/src/marker.rs:811:11
+note: required because it appears within the type `RawVec<(Vec<(TopicPartition, OffsetAndMetadata)>, Option<Box<_>>, _)>`
+    --> /rustc/58cf8f9c35b355199727627d07ae34a4e2846d67/library/alloc/src/raw_vec/mod.rs:73:18
+note: required because it appears within the type `Vec<(Vec<(TopicPartition, OffsetAndMetadata)>, Option<Box<_>>, _)>`
+    --> /rustc/58cf8f9c35b355199727627d07ae34a4e2846d67/library/alloc/src/vec/mod.rs:436:11
+note: required because it appears within the type `ConsumerGroup`
+    --> src/group.rs:1308:12
+     |
+1308 | pub struct ConsumerGroup {
+     |            ^^^^^^^^^^^^^
+     = note: required for `&ConsumerGroup` to implement `Send`
+note: required because it's used within this `async` fn body
+    --> src/group.rs:3470:77
+     |
+3470 |       async fn join_protocol_entries(&self) -> Result<Vec<(String, Vec<u8>)>> {
+     |  _____________________________________________________________________________^
+3471 | |         let owned = self.consumer.assignment_pairs_cooperative().await;
+3472 | |         let names = if self.assignors.is_empty() {
+3473 | |             vec![self.protocol.clone()]
+...    |
+3489 | |         Ok(out)
+3490 | |     }
+     | |_____^
+note: required because it's used within this `async` fn body
+    --> src/group.rs:3492:86
+     |
+3492 |       async fn rejoin_once(&mut self, deadline: Instant) -> Result<Vec<(String, i32)>> {
+     |  ______________________________________________________________________________________^
+3493 | |         let entries = self.join_protocol_entries().await?;
+3494 | |         let protocols: Vec<JoinGroupProtocol<'_>> = entries
+3495 | |             .iter()
+...    |
+3785 | |         Ok(revoked)
+3786 | |     }
+     | |_____^
+note: required because it's used within this `async` fn body
+    --> src/group.rs:3456:72
+     |
+3456 |       async fn rejoin_within(&mut self, deadline: Instant) -> Result<()> {
+     |  ________________________________________________________________________^
+3457 | |         let rejoining = !self.member_id.is_empty();
+3458 | |         for _ in 0..8 {
+3459 | |             let revoked = self.rejoin_once(deadline).await?;
+...    |
+3467 | |         Err(Error::protocol("cooperative-sticky did not settle"))
+3468 | |     }
+     | |_____^
+note: required because it's used within this `async` fn body
+    --> src/group.rs:1492:23
+     |
+1492 |       ) -> Result<Self> {
+     |  _______________________^
+1493 | |         reject_java_empty_group_id(&group_id)?;
+1494 | |         let mut cfg = cfg;
+1495 | |         cfg.bootstrap = crate::net::parse_and_validate_addresses(&cfg.bootstrap)?;
+...    |
+1576 | |         Ok(g)
+1577 | |     }
+     | |_____^
+note: required because it's used within this `async` fn body
+    --> src/group.rs:1448:23
+     |
+1448 |       ) -> Result<Self> {
+     |  _______________________^
+1449 | |         let group_id = group_id.into();
+1450 | |         reject_java_empty_group_id(&group_id)?;
+1451 | |         let topics = collect_topics(topics)?;
+1452 | |         Self::join_with_protocol_list(cfg, group_id, topics, vec![protocol.to_string()], None).await
+1453 | |     }
+     | |_____^
+note: required because it's used within this `async` fn body
+    --> src/group.rs:1418:23
+     |
+1418 |       ) -> Result<Self> {
+     |  _______________________^
+1419 | |         Self::join_with_protocol(cfg, group_id, topics, "sticky").await
+1420 | |     }
+     | |_____^
+note: required because it's used within this `async` fn body
+    --> src/group.rs:1409:23
+     |
+1409 |       ) -> Result<Self> {
+     |  _______________________^
+1410 | |         Self::join_sticky_topics(cfg, group_id, std::iter::once(topic)).await
+1411 | |     }
+     | |_____^
+note: required because it's used within this `async` block
+    --> tests/full_surface.rs:3918:9
+     |
+3918 |         async move { ConsumerGroup::join_sticky(ccfg, "sg", "s4").await }
+     |         ^^^^^^^^^^
+note: required by a bound in `tokio::spawn`
+    --> /workspace/work/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tokio-1.53.2/src/task/spawn.rs:176:21
+     |
+ 174 |     pub fn spawn<F>(future: F) -> JoinHandle<F::Output>
+     |            ----- required by a bound in this function
+ 175 |     where
+ 176 |         F: Future + Send + 'static,
+     |                     ^^^^ required by this bound in `spawn`
+     = note: the full name for the type has been written to '/workspace/work/qualification-20261027/broker-check-target/debug/deps/full_surface-e102b38d1447c2a3.long-type-17529949228411623856.txt'
+     = note: consider using `--verbose` to print the full type name to the console
+
+For more information about this error, try `rustc --explain E0277`.
+error: could not compile `partitionline` (test "full_surface") due to 2 previous errors
+warning: `partitionline` (lib test) generated 2 warnings (run `cargo fix --lib -p partitionline --tests` to apply 2 suggestions)
