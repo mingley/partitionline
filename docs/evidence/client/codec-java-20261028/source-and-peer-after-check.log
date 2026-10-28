@@ -1,0 +1,10 @@
+src/protocol/records.rs: OK
+tests/codec_sparse.rs: OK
+tests/codec_matrix.rs: OK
+tests/conformance/java/SparseFixture.java: OK
+tests/conformance/java/CodecMatrix.java: OK
+/workspace/work/goal-qualification-20261028/narrow-profile/java/kafka-clients-4.3.1.jar: OK
+/workspace/work/goal-qualification-20261028/codec-peer-jars/lz4-java-1.10.2.jar: OK
+/workspace/work/goal-qualification-20261028/codec-peer-jars/slf4j-api-1.7.36.jar: OK
+/workspace/work/goal-qualification-20261028/codec-peer-jars/snappy-java-1.1.10.7.jar: OK
+/workspace/work/goal-qualification-20261028/codec-peer-jars/zstd-jni-1.5.6-10.jar: OK

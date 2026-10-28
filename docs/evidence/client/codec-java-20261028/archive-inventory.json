@@ -1,0 +1,95 @@
+{
+  "schema_version": 1,
+  "files": [
+    {
+      "original_path": "/workspace/partitionline/docs/evidence/client/codec-java-20261028/README.md",
+      "original_sha256": "307d5574f5c23dca3da8e9a72ad23171592d1428d623c50accaec615d0544b12",
+      "original_bytes": 3628,
+      "stored_path": "README.md",
+      "stored_sha256": "307d5574f5c23dca3da8e9a72ad23171592d1428d623c50accaec615d0544b12",
+      "stored_bytes": 3628,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/partitionline/docs/evidence/client/codec-java-20261028/SHA256SUMS",
+      "original_sha256": "6158111154e1c088680a13a647b6d855c1de6d955238006f5449dab9861476f8",
+      "original_bytes": 767,
+      "stored_path": "SHA256SUMS",
+      "stored_sha256": "6158111154e1c088680a13a647b6d855c1de6d955238006f5449dab9861476f8",
+      "stored_bytes": 767,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/codec-all-features-01/artifacts.sha256",
+      "original_sha256": "73e22520861402bc86ef4187fd9a306779eae12b53f3754993a3f097e11c392a",
+      "original_bytes": 4005,
+      "stored_path": "artifacts.sha256",
+      "stored_sha256": "73e22520861402bc86ef4187fd9a306779eae12b53f3754993a3f097e11c392a",
+      "stored_bytes": 4005,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/codec-all-features-01/java-matrix-verify/commands.json",
+      "original_sha256": "0cc06a961086e17f608ea1b539884f5a8e56eca72fde31b036e554e793b76a35",
+      "original_bytes": 744,
+      "stored_path": "commands.json",
+      "stored_sha256": "0cc06a961086e17f608ea1b539884f5a8e56eca72fde31b036e554e793b76a35",
+      "stored_bytes": 744,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/codec-all-features-01/java-matrix-verify/java-read-rust.log",
+      "original_sha256": "93964cada66add866bdf93c9cbdfa78d714adfe4223f6662f64bc10d06f044a1",
+      "original_bytes": 303,
+      "stored_path": "java-read-rust.log",
+      "stored_sha256": "93964cada66add866bdf93c9cbdfa78d714adfe4223f6662f64bc10d06f044a1",
+      "stored_bytes": 303,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/codec-all-features-01/java-sparse-verify.log",
+      "original_sha256": "319925f863d2acb6e57f3bf3e40060ce8529c7b204d147e7a483959fa6f35161",
+      "original_bytes": 255,
+      "stored_path": "java-sparse-verify.log",
+      "stored_sha256": "319925f863d2acb6e57f3bf3e40060ce8529c7b204d147e7a483959fa6f35161",
+      "stored_bytes": 255,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/codec-all-features-01/rust-tests.log",
+      "original_sha256": "93c6ddf9bcad00b1ebfea6eca89d672d0439225bafcb6a53bbc477b6ee218c24",
+      "original_bytes": 1103,
+      "stored_path": "rust-tests.log",
+      "stored_sha256": "93c6ddf9bcad00b1ebfea6eca89d672d0439225bafcb6a53bbc477b6ee218c24",
+      "stored_bytes": 1103,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/codec-all-features-01/source-and-peer-after-check.log",
+      "original_sha256": "33cc9d43570f4c6dc6315f431d23dcd100c5c2409dc4feaf776f1b58a53f773b",
+      "original_bytes": 606,
+      "stored_path": "source-and-peer-after-check.log",
+      "stored_sha256": "33cc9d43570f4c6dc6315f431d23dcd100c5c2409dc4feaf776f1b58a53f773b",
+      "stored_bytes": 606,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/codec-all-features-01/source-and-peer-before.sha256",
+      "original_sha256": "5e3f3b5a8eb5efe7e42ae0524e1c76f163b27343285e399a2a5ab4719760d136",
+      "original_bytes": 1226,
+      "stored_path": "source-and-peer-before.sha256",
+      "stored_sha256": "5e3f3b5a8eb5efe7e42ae0524e1c76f163b27343285e399a2a5ab4719760d136",
+      "stored_bytes": 1226,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/codec-all-features-01/java-matrix-verify/summary.json",
+      "original_sha256": "1ac9402aeecd1a349d99bd2fa30720f5f1696da3eccecde9feebcf85fe156723",
+      "original_bytes": 201,
+      "stored_path": "summary.json",
+      "stored_sha256": "1ac9402aeecd1a349d99bd2fa30720f5f1696da3eccecde9feebcf85fe156723",
+      "stored_bytes": 201,
+      "encoding": "identity"
+    }
+  ]
+}

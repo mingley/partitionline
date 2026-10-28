@@ -1,0 +1,10 @@
+3e0d3f7a45586610da4697cce84585993736ca6d2db163f8a2e27274f0c5292d  src/protocol/records.rs
+03c32d5fb9febf8d062bc6a882ea69598522ba44c389ac69b6966c409e888d3e  tests/codec_sparse.rs
+aa8c2a06bf9275aa7fe33a05df8b3b88c483269858cd63a95fd054ae77edda1b  tests/codec_matrix.rs
+766817d45dfa979edf740bfd3fdeaa4b64e05780bbe015aef3ec8eccb7be4955  tests/conformance/java/SparseFixture.java
+6d8d8c2670b7f26dc9854a8cd60344d240aeaa5d339e8d1181cfbce63d71d974  tests/conformance/java/CodecMatrix.java
+52501b7b47510c66f898871adaf6d2968ab7246561d44ced43643a8a587f0b36  /workspace/work/goal-qualification-20261028/narrow-profile/java/kafka-clients-4.3.1.jar
+252dabd586d22149a31661a8afc1a50747714eb1a298bd4a6e780c8c91a13866  /workspace/work/goal-qualification-20261028/codec-peer-jars/lz4-java-1.10.2.jar
+d3ef575e3e4979678dc01bf1dcce51021493b4d11fb7f1be8ad982877c16a1c0  /workspace/work/goal-qualification-20261028/codec-peer-jars/slf4j-api-1.7.36.jar
+4c766cb3f855415ee734b2392949a0b6f12a60879334a74518deaf6270d32e36  /workspace/work/goal-qualification-20261028/codec-peer-jars/snappy-java-1.1.10.7.jar
+b6c3237e24b8252a5a9c3a0e1ae30ef8f323412e74bd358548b7a9e527d676df  /workspace/work/goal-qualification-20261028/codec-peer-jars/zstd-jni-1.5.6-10.jar

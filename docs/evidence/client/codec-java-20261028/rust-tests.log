@@ -1,0 +1,19 @@
+   Compiling partitionline v0.1.0 (/workspace/partitionline)
+    Finished `test` profile [unoptimized] target(s) in 1m 01s
+     Running tests/codec_matrix.rs (/workspace/work/qualification-20261027/broker-check-target/debug/deps/codec_matrix-dfe6a66d6b251a65)
+
+running 4 tests
+test independent_java_codec_batches_roundtrip_all_record_fields ... ok
+test native_codec_matrix_peer ... ignored, requires explicit owned native broker topic and independent SDK peers
+test native_stored_codec_batches_match_independent_record_fields ... ignored, requires all segments from the completed owned native codec matrix
+test signed_offset_and_timestamp_delta_boundary_matches_java_without_panicking ... ok
+
+test result: ok. 2 passed; 0 failed; 2 ignored; 0 measured; 0 filtered out; finished in 0.47s
+
+     Running tests/codec_sparse.rs (/workspace/work/qualification-20261027/broker-check-target/debug/deps/codec_sparse-95e9724074721f29)
+
+running 1 test
+test java_sparse_batches_preserve_offsets_and_header_delta ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

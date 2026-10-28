@@ -1,0 +1,7 @@
+{
+  "status": "pass",
+  "mode": "verify",
+  "manifest_sha256": "bf5df9b489697ae7e49a4477d4dfbab9b8b7506f2c9eea6855bf5140e6dfb2d1",
+  "performance_claims_valid": false,
+  "rust_reverse_checked": true
+}

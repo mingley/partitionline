@@ -1,0 +1,21 @@
+[
+  {
+    "name": "java-read-rust",
+    "argv": [
+      "java",
+      "-Xmx128m",
+      "--class-path",
+      "/workspace/work/goal-qualification-20261028/narrow-profile/java/kafka-clients-4.3.1.jar:/workspace/work/goal-qualification-20261028/codec-peer-jars/*",
+      "/workspace/partitionline/tests/conformance/java/CodecMatrix.java",
+      "verify-fixtures",
+      "/workspace/partitionline/tests/fixtures/codec-matrix",
+      "/workspace/work/goal-qualification-20261028/codec-all-features-01/rust-matrix"
+    ],
+    "exit_code": 0,
+    "timeout_seconds": 60,
+    "deadline_expired": false,
+    "parent_waited": true,
+    "expected_failure": false,
+    "log_sha256": "93964cada66add866bdf93c9cbdfa78d714adfe4223f6662f64bc10d06f044a1"
+  }
+]
