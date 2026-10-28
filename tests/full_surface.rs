@@ -2558,6 +2558,7 @@ async fn group_coord_reconnects_when_connection_idle() {
     let mut group = ConsumerGroup::join(
         ConsumerConfig::bootstrap([mock.addr.clone()])
             .max_wait_ms(10)
+            .session_timeout(Duration::from_secs(120))
             .heartbeat_interval(Duration::from_secs(60))
             .connections_max_idle(Duration::from_millis(30)),
         "idle-coord",
@@ -3448,7 +3449,7 @@ async fn consumer_end_offsets_batches_by_leader() {
 #[tokio::test]
 async fn fetch_offset_out_of_range_jumps_to_log_start() {
     let mock = common::Mock::start().await;
-    mock.set_log_start("t", 0, 10);
+    mock.set_empty_log_start("t", 0, 10);
     let mut ccfg = ConsumerConfig::bootstrap([mock.addr.clone()]);
     ccfg.max_wait_ms = 10;
     let mut consumer = Consumer::new(ccfg).await.unwrap();
@@ -14877,13 +14878,26 @@ async fn describe_quorum_absent_api_and_invalid_deadlines_are_explicit() {
 async fn describe_quorum_reconnect_renegotiates_and_deadline_is_total() {
     let mock = common::Mock::start().await;
     mock.drop_describe_quorum_responses(1);
+    mock.capture_api_versions_responses();
     let mut admin = Admin::connect(&mock.addr).await.unwrap();
+    let accepted_before = mock.accept_count();
+    let handshakes_before = mock.api_versions_response_keys().len();
+    // The first request uses the range already negotiated on the old socket.
+    // The dropped response forces a fresh socket to negotiate the new range.
+    mock.set_api_max(partitionline::protocol::api_keys::DESCRIBE_QUORUM, 0);
     admin
         .describe_quorum_timeout(Duration::from_secs(2))
         .await
         .unwrap();
     assert_eq!(mock.describe_quorum_requests().len(), 2);
-    mock.set_api_max(partitionline::protocol::api_keys::DESCRIBE_QUORUM, 0);
+    assert_eq!(mock.describe_quorum_requests()[0].1, 2);
+    assert_eq!(mock.describe_quorum_requests()[1].1, 0);
+    assert_eq!(mock.accept_count(), accepted_before + 1);
+    let handshakes = mock.api_versions_response_keys();
+    assert_eq!(handshakes.len(), handshakes_before + 1);
+    assert!(handshakes.last().unwrap().iter().any(|api| {
+        api.api_key == partitionline::protocol::api_keys::DESCRIBE_QUORUM && api.max_version == 0
+    }));
     admin.describe_quorum().await.unwrap();
     assert_eq!(mock.describe_quorum_requests()[2].1, 0);
     mock.set_describe_quorum_delay(Duration::from_secs(2));
@@ -15041,6 +15055,29 @@ async fn add_raft_voter_broker_errors_are_terminal_and_preserve_messages() {
     admin.close().await.unwrap();
 }
 
+// Retire the only client socket before changing the capabilities advertised
+// to a replacement. The single accepted connection and captured handshake make
+// it clear which capability response the following Admin request uses.
+async fn reconnect_admin_with_hidden_api(
+    mock: &common::Mock,
+    admin: Admin,
+    api_key: i16,
+) -> Result<Admin, Error> {
+    admin.close().await?;
+    common::wait_pred("old Admin connection closes", || mock.open_conns() == 0).await;
+    mock.hide_api(api_key);
+    mock.capture_api_versions_responses();
+    let accepts = mock.accept_count();
+    let admin = Admin::connect(&mock.addr).await?;
+    assert_eq!(mock.accept_count(), accepts + 1);
+    let responses = mock.api_versions_response_keys();
+    assert_eq!(responses.len(), 1);
+    assert!(responses
+        .first()
+        .is_some_and(|keys| keys.iter().all(|api| api.api_key != api_key)));
+    Ok(admin)
+}
+
 #[tokio::test]
 async fn add_raft_voter_lost_response_retries_without_masking_duplicate_outcome() {
     let mock = common::Mock::start().await;
@@ -15068,7 +15105,14 @@ async fn add_raft_voter_lost_response_retries_without_masking_duplicate_outcome(
         requests[1].2.voter_directory_id
     );
     assert_eq!(requests[0].2.listeners, requests[1].2.listeners);
-    mock.hide_api(partitionline::protocol::api_keys::ADD_RAFT_VOTER);
+    admin = reconnect_admin_with_hidden_api(
+        &mock,
+        admin,
+        partitionline::protocol::api_keys::ADD_RAFT_VOTER,
+    )
+    .await
+    .unwrap();
+    let accepts_after_reconnect = mock.accept_count();
     assert!(matches!(
         admin
             .add_raft_voter(
@@ -15082,6 +15126,7 @@ async fn add_raft_voter_lost_response_retries_without_masking_duplicate_outcome(
         Error::Unsupported(_)
     ));
     assert_eq!(mock.add_raft_voter_requests().len(), 2);
+    assert_eq!(mock.accept_count(), accepts_after_reconnect);
     admin.close().await.unwrap();
 }
 
@@ -15127,7 +15172,14 @@ async fn add_raft_voter_invalid_input_and_unavailable_versions_send_nothing() {
             .unwrap_err();
         assert!(matches!(error, Error::Timeout | Error::Protocol(_)));
     }
-    mock.hide_api(partitionline::protocol::api_keys::ADD_RAFT_VOTER);
+    admin = reconnect_admin_with_hidden_api(
+        &mock,
+        admin,
+        partitionline::protocol::api_keys::ADD_RAFT_VOTER,
+    )
+    .await
+    .unwrap();
+    let accepts_after_reconnect = mock.accept_count();
     assert!(matches!(
         admin
             .add_raft_voter(42, valid_id, raft_voter_endpoints(), Default::default())
@@ -15136,6 +15188,7 @@ async fn add_raft_voter_invalid_input_and_unavailable_versions_send_nothing() {
         Error::Unsupported(_)
     ));
     assert!(mock.add_raft_voter_requests().is_empty());
+    assert_eq!(mock.accept_count(), accepts_after_reconnect);
     admin.close().await.unwrap();
 }
 
@@ -15327,7 +15380,14 @@ async fn remove_raft_voter_lost_response_preserves_not_found_as_ambiguous_error(
     let requests = mock.remove_raft_voter_requests();
     assert_eq!(requests.len(), 2);
     assert_eq!(requests[0].2, requests[1].2);
-    mock.hide_api(partitionline::protocol::api_keys::REMOVE_RAFT_VOTER);
+    admin = reconnect_admin_with_hidden_api(
+        &mock,
+        admin,
+        partitionline::protocol::api_keys::REMOVE_RAFT_VOTER,
+    )
+    .await
+    .unwrap();
+    let accepts_after_reconnect = mock.accept_count();
     assert!(matches!(
         admin
             .remove_raft_voter(
@@ -15340,6 +15400,7 @@ async fn remove_raft_voter_lost_response_preserves_not_found_as_ambiguous_error(
         Error::Unsupported(_)
     ));
     assert_eq!(mock.remove_raft_voter_requests().len(), 2);
+    assert_eq!(mock.accept_count(), accepts_after_reconnect);
     admin.close().await.unwrap();
 }
 
@@ -15373,7 +15434,14 @@ async fn remove_raft_voter_invalid_input_and_unavailable_versions_send_nothing()
             .unwrap_err();
         assert!(matches!(error, Error::Timeout | Error::Protocol(_)));
     }
-    mock.hide_api(partitionline::protocol::api_keys::REMOVE_RAFT_VOTER);
+    admin = reconnect_admin_with_hidden_api(
+        &mock,
+        admin,
+        partitionline::protocol::api_keys::REMOVE_RAFT_VOTER,
+    )
+    .await
+    .unwrap();
+    let accepts_after_reconnect = mock.accept_count();
     assert!(matches!(
         admin
             .remove_raft_voter(42, valid_id, Default::default())
@@ -15382,6 +15450,7 @@ async fn remove_raft_voter_invalid_input_and_unavailable_versions_send_nothing()
         Error::Unsupported(_)
     ));
     assert!(mock.remove_raft_voter_requests().is_empty());
+    assert_eq!(mock.accept_count(), accepts_after_reconnect);
     admin.close().await.unwrap();
 }
 

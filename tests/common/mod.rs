@@ -325,6 +325,7 @@ struct State {
     last_metadata_version: Option<i16>,
     last_api_versions_version: Option<i16>,
     api_versions_versions: Vec<i16>,
+    api_versions_response_keys: Option<Vec<Vec<ApiVersion>>>,
     api_versions_delay: Option<Duration>,
     /// Last Metadata topic filter: `None` = never recorded;
     /// `Some(None)` = all topics; `Some(Some(names))` = named.
@@ -857,6 +858,7 @@ fn new_state(
         last_metadata_version: None,
         last_api_versions_version: None,
         api_versions_versions: Vec::new(),
+        api_versions_response_keys: None,
         api_versions_delay: None,
         last_metadata_topics: None,
         last_metadata_topic_ids: None,
@@ -2179,6 +2181,16 @@ impl Mock {
             .insert((topic.to_string(), partition), offset);
     }
 
+    /// Model an empty log after all earlier records were removed by retention.
+    pub fn set_empty_log_start(&self, topic: &str, partition: i32, offset: i64) {
+        assert!(offset >= 0);
+        let mut state = self.state.lock();
+        let key = (topic.to_owned(), partition);
+        assert!(state.log.get(&key).is_none_or(Vec::is_empty));
+        state.log_start.insert(key.clone(), offset);
+        state.next_offset.insert(key, offset);
+    }
+
     pub fn log_len(&self, topic: &str, partition: i32) -> usize {
         self.state
             .lock()
@@ -2206,6 +2218,20 @@ impl Mock {
 
     pub fn api_versions_versions(&self) -> Vec<i16> {
         self.state.lock().api_versions_versions.clone()
+    }
+
+    /// Capture successful ApiVersions responses in send order for this test.
+    pub fn capture_api_versions_responses(&self) {
+        self.state.lock().api_versions_response_keys = Some(Vec::new());
+    }
+
+    /// Successful ApiVersions responses captured since recording was enabled.
+    pub fn api_versions_response_keys(&self) -> Vec<Vec<ApiVersion>> {
+        self.state
+            .lock()
+            .api_versions_response_keys
+            .clone()
+            .unwrap_or_default()
     }
 
     pub fn set_api_versions_delay(&self, delay: Duration) {
@@ -5159,6 +5185,9 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                     )
                     .unwrap();
                 } else {
+                    if let Some(responses) = &mut st.api_versions_response_keys {
+                        responses.push(advertised.api_keys.clone());
+                    }
                     encode_api_versions_response(&mut body, header.api_version, &advertised)
                         .unwrap();
                 }

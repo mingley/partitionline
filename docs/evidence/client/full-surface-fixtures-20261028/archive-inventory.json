@@ -1,0 +1,410 @@
+{
+  "schema_version": 1,
+  "files": [
+    {
+      "original_path": "/workspace/partitionline/docs/evidence/client/full-surface-fixtures-20261028/README.md",
+      "original_sha256": "2c9be7ca24b238ddfb66c5453bf64b07b2cbae745dda6f33ccef01663e1377ca",
+      "original_bytes": 3123,
+      "stored_path": "README.md",
+      "stored_sha256": "2c9be7ca24b238ddfb66c5453bf64b07b2cbae745dda6f33ccef01663e1377ca",
+      "stored_bytes": 3123,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/client-fixtures-validation-01/build.jsonl",
+      "original_sha256": "ff83b4f48d0c6fed518c1fb69ccd209c3b400b782a26e351ed53185c32b6e50a",
+      "original_bytes": 62432,
+      "stored_path": "v1/build.jsonl.gz",
+      "stored_sha256": "4b9b537b55f4d4841d709f9e58a811fcf8fad2214d611400a2a76f0cc1ee4f98",
+      "stored_bytes": 4704,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/client-fixtures-validation-01/build.stderr.log",
+      "original_sha256": "f4ad857d5c54485dadeb366d0bdd547238ae6ff006614364a15e74dac98cf284",
+      "original_bytes": 140,
+      "stored_path": "v1/build.stderr.log.gz",
+      "stored_sha256": "7d6994cd8b5cc549d2efea5ce027cbe897e327ba933a6a347ddfb6382031fb42",
+      "stored_bytes": 137,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/client-fixtures-validation-01/candidate.diff",
+      "original_sha256": "fc2846e6f65151d9ced227608052a65ed1073b1582d1c2bb5b0c5431da312ec5",
+      "original_bytes": 10136,
+      "stored_path": "v1/candidate.diff.gz",
+      "stored_sha256": "3484098a509d959f948db333e0f7b50d2027904748058981c6a23b545d8e43eb",
+      "stored_bytes": 2653,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/client-fixtures-validation-01/cargo.txt",
+      "original_sha256": "c35608815f43d0b8788a9b826fad2bb17384f49fb328dc4fe64da9db5f5ef4d6",
+      "original_bytes": 36,
+      "stored_path": "v1/cargo.txt.gz",
+      "stored_sha256": "9f94010dd2fa2e3659e6811572f7be98f92870ca5bf0d866595b8b09150021db",
+      "stored_bytes": 56,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/client-fixtures-validation-01/clippy.log",
+      "original_sha256": "4071183b0335b4ce62263a2ec0a81f31ec12854794e924f66a4a973a97f05443",
+      "original_bytes": 1462,
+      "stored_path": "v1/clippy.log.gz",
+      "stored_sha256": "8c2ea99acb3093cf3b4032f1353cb5b1773d4074f8303af9e63c7067547fecaa",
+      "stored_bytes": 540,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/client-fixtures-validation-01/executable.json",
+      "original_sha256": "c883efc64352ef424d2ceb45d29ca7ffa4bbb14ef7676e127a2a6a8b2e35c92f",
+      "original_bytes": 1340,
+      "stored_path": "v1/executable.json.gz",
+      "stored_sha256": "2385de92e0727fa93d9f85f0084c1338b3e076d7962234cec3594a7a8c6d7492",
+      "stored_bytes": 517,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/client-fixtures-validation-01/full-surface.log",
+      "original_sha256": "f9b9f6691f4243671bed7dd44b78847ea3bcac8da18166a9a8d93b5ab61a8378",
+      "original_bytes": 21453,
+      "stored_path": "v1/full-surface.log.gz",
+      "stored_sha256": "f9dc9365c8d8957ca969e0eb1a7679bfc1559976212c403c0a82008d3ddaf0fa",
+      "stored_bytes": 4482,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/client-fixtures-validation-01/head.txt",
+      "original_sha256": "943bda75218bab6ec0dbf3ab02e56233d6c61680ade3705ab0d9095326fd2e8b",
+      "original_bytes": 41,
+      "stored_path": "v1/head.txt.gz",
+      "stored_sha256": "c23827c4ce93b9678c2f062e75f5b008194839ce4a4ea6dcfb97ad1607b237fb",
+      "stored_bytes": 59,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/client-fixtures-validation-01/inputs-after.sha256",
+      "original_sha256": "e98a518cf42f60380fc4b69ee5fcaf5a120be6645481c1642fe6aa85875685f6",
+      "original_bytes": 253200,
+      "stored_path": "v1/inputs-after.sha256.gz",
+      "stored_sha256": "1ae8c49dfc4e86f8fda3795bd89b993ab92352081a86a83c5a10dda35c345620",
+      "stored_bytes": 71453,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/client-fixtures-validation-01/inputs-before.sha256",
+      "original_sha256": "e98a518cf42f60380fc4b69ee5fcaf5a120be6645481c1642fe6aa85875685f6",
+      "original_bytes": 253200,
+      "stored_path": "v1/inputs-before.sha256.gz",
+      "stored_sha256": "1ae8c49dfc4e86f8fda3795bd89b993ab92352081a86a83c5a10dda35c345620",
+      "stored_bytes": 71453,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/client-fixtures-validation-01/rustc.txt",
+      "original_sha256": "f22d5e4e9ced367e774ce5bc140d9e6b1235c1882fec80d011044851f3ae6369",
+      "original_bytes": 196,
+      "stored_path": "v1/rustc.txt.gz",
+      "stored_sha256": "3bbc73e917112825daa074175c423dc871551bdad39c10b9031e615604bac2f8",
+      "stored_bytes": 170,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/client-fixtures-validation-01/status.txt",
+      "original_sha256": "6844a6c0eece05d5f150ec566eb23b716f2864c82501cc900b473ee5d2df833e",
+      "original_bytes": 48,
+      "stored_path": "v1/status.txt.gz",
+      "stored_sha256": "8eb03296efe8e38942ad26009350802317f627625e7c0c11bc442fec1636d0eb",
+      "stored_bytes": 59,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/client-fixtures-validation-01/summary.json",
+      "original_sha256": "d37ef256a58d879936ca1d1d535e93660d8b2877e8d85436b1548f5894f86383",
+      "original_bytes": 5846,
+      "stored_path": "v1/summary.json.gz",
+      "stored_sha256": "069b5ceeae0612dc192ad1a458e7f15bfd64d3d569bcf4317d0bf515717a83bf",
+      "stored_bytes": 1394,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/client-fixtures-validation-01/test-01.log",
+      "original_sha256": "53c8cb75af53f7a0ae3d04fa9f04607aef424d94e2693055b9fe3bf127d8fe18",
+      "original_bytes": 170,
+      "stored_path": "v1/test-01.log.gz",
+      "stored_sha256": "db9af369513d9bd99076382f53c46b580d70fcf01a2e510af60d5edff2fd2c30",
+      "stored_bytes": 140,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/client-fixtures-validation-01/test-02.log",
+      "original_sha256": "04dd76677f4d995ef8c3c6eaccf8eaf040e1c03bfd848bbe4474230f1234dbd9",
+      "original_bytes": 171,
+      "stored_path": "v1/test-02.log.gz",
+      "stored_sha256": "8a703e14cc201413d9cefab849a4349b3bd64f9424e920a3f4803a1fd2cb5265",
+      "stored_bytes": 142,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/client-fixtures-validation-01/test-03.log",
+      "original_sha256": "24dab9ce556ab149ee19579cdffab329aab2bed9947c551a93431145ee71242e",
+      "original_bytes": 187,
+      "stored_path": "v1/test-03.log.gz",
+      "stored_sha256": "d1d200b08aff6f94cb1b77c6cd00569f6fbe60c9423c2643159ca0dc61136e5e",
+      "stored_bytes": 151,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/client-fixtures-validation-01/test-04.log",
+      "original_sha256": "fde52b058553633d7433e51a8bd9010843bc19b6574794d579924eae6e523a67",
+      "original_bytes": 197,
+      "stored_path": "v1/test-04.log.gz",
+      "stored_sha256": "841f3caad763593b8d028f102141f9ffd78ff94c042fee2a1cbc81a0a4db871e",
+      "stored_bytes": 158,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/client-fixtures-validation-01/test-05.log",
+      "original_sha256": "f9a2d74a8361af3cf236c7ec4fe78e7109444bca2b7946b04211ad715d0995e8",
+      "original_bytes": 193,
+      "stored_path": "v1/test-05.log.gz",
+      "stored_sha256": "3f32b57c2670a7f064ae5f21bdca683a4c5682310a0a5c11af25a180ecdf332e",
+      "stored_bytes": 155,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/client-fixtures-validation-01/test-06.log",
+      "original_sha256": "cd90c910f2215df4a4366359bbf0709a3cd5b0f4357514f0d8755bb07741c250",
+      "original_bytes": 197,
+      "stored_path": "v1/test-06.log.gz",
+      "stored_sha256": "203aa7a369048f7c16566fd3d78b709f80b8ac00ef1f85411491fb67e22c1a92",
+      "stored_bytes": 158,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/client-fixtures-validation-01/test-07.log",
+      "original_sha256": "a69bb7446a8e41ce6a80f1c592f6b9f7661b82b686a133b7598457775f4798c0",
+      "original_bytes": 196,
+      "stored_path": "v1/test-07.log.gz",
+      "stored_sha256": "d2814c09786e137af51d6e873f4f0dd2f9448c5e652f9beb7445098a6dc0ee7b",
+      "stored_bytes": 157,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/client-fixtures-validation-01/test-list.log",
+      "original_sha256": "51a22767cc20b1bf173960bed5deb8778f389feaaf0bdf4a247aec46e841b5d7",
+      "original_bytes": 17825,
+      "stored_path": "v1/test-list.log.gz",
+      "stored_sha256": "b9072fb5e6f238b61825855396b92f8e0bcbce163692fed5ec2c717ee11c9170",
+      "stored_bytes": 3901,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/client-fixtures-runner.py",
+      "original_sha256": "d575eec75aae68c1235beab4b981d6d4cdbd94ce3773d6fc04b07fc510488fe2",
+      "original_bytes": 6552,
+      "stored_path": "v1/runner.py.gz",
+      "stored_sha256": "fca1cf25e58a1f4eac47ba6a23008f8bd9b912227778594a1419ccdb2652954d",
+      "stored_bytes": 2724,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/client-fixtures-validation-02/build.jsonl",
+      "original_sha256": "725fb59555424eb497e3f442a13a861d1bfa47e8562d7668e3868acf43129e49",
+      "original_bytes": 62432,
+      "stored_path": "v2/build.jsonl.gz",
+      "stored_sha256": "3dc833bc6be7dd880c91384212c20db19cba57bfd16d40e76328ee4c75fc89ab",
+      "stored_bytes": 4709,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/client-fixtures-validation-02/build.stderr.log",
+      "original_sha256": "898b5acd33488be5063757b8b02a6b4353ba6894ea8c2f9930c2fb82d2443419",
+      "original_bytes": 140,
+      "stored_path": "v2/build.stderr.log.gz",
+      "stored_sha256": "a120b6c1b5a6c04d32a89da29b08a3589f864f32e722268407d6e5dddbf8eb39",
+      "stored_bytes": 138,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/client-fixtures-validation-02/candidate.diff",
+      "original_sha256": "649b892a123320266556d21e317885fb7f6e5ad89a51fb41ed18fdd9c2231d4a",
+      "original_bytes": 10249,
+      "stored_path": "v2/candidate.diff.gz",
+      "stored_sha256": "4157f432ce964304a7215c8adfb34f6bcd680798052bed41fdf524e91eddba70",
+      "stored_bytes": 2692,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/client-fixtures-validation-02/cargo.txt",
+      "original_sha256": "c35608815f43d0b8788a9b826fad2bb17384f49fb328dc4fe64da9db5f5ef4d6",
+      "original_bytes": 36,
+      "stored_path": "v2/cargo.txt.gz",
+      "stored_sha256": "9f94010dd2fa2e3659e6811572f7be98f92870ca5bf0d866595b8b09150021db",
+      "stored_bytes": 56,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/client-fixtures-validation-02/clippy.log",
+      "original_sha256": "39e74a7efb72ad9b66ecdd9cd78d5b265bf78eae42c41ea7742737874f90f1c1",
+      "original_bytes": 139,
+      "stored_path": "v2/clippy.log.gz",
+      "stored_sha256": "7beea9551498a779493639854af10e99878c061645c4195a886a1504737d8a4a",
+      "stored_bytes": 139,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/client-fixtures-validation-02/executable.json",
+      "original_sha256": "deeb58c80b478bf0f4c1f2774fe828bfb5867a3ced1761d20f16b96a0f59eced",
+      "original_bytes": 1340,
+      "stored_path": "v2/executable.json.gz",
+      "stored_sha256": "286c26e52e9b6acb8edab45cffa6d0827740cb44477691d3b27d0e020289f279",
+      "stored_bytes": 517,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/client-fixtures-validation-02/full-surface.log",
+      "original_sha256": "64859a52135e67693302a621c0acc4e7be391d515c9ec6b599f4bd0cf0de23d2",
+      "original_bytes": 21192,
+      "stored_path": "v2/full-surface.log.gz",
+      "stored_sha256": "0f8d632a2e7d453108adbb9079160a11568a6a1df56fbdc10d2c91817448ba75",
+      "stored_bytes": 4406,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/client-fixtures-validation-02/head.txt",
+      "original_sha256": "943bda75218bab6ec0dbf3ab02e56233d6c61680ade3705ab0d9095326fd2e8b",
+      "original_bytes": 41,
+      "stored_path": "v2/head.txt.gz",
+      "stored_sha256": "c23827c4ce93b9678c2f062e75f5b008194839ce4a4ea6dcfb97ad1607b237fb",
+      "stored_bytes": 59,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/client-fixtures-validation-02/inputs-after.sha256",
+      "original_sha256": "6dacf637cfc027e2505b24f2f0342765a93a868ce9db2e61f590d590a0f70f86",
+      "original_bytes": 253200,
+      "stored_path": "v2/inputs-after.sha256.gz",
+      "stored_sha256": "e653b0c79a308bb1b0e09a04a915308c9d5529aa6e544a2ed4addad41f919d35",
+      "stored_bytes": 71452,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/client-fixtures-validation-02/inputs-before.sha256",
+      "original_sha256": "6dacf637cfc027e2505b24f2f0342765a93a868ce9db2e61f590d590a0f70f86",
+      "original_bytes": 253200,
+      "stored_path": "v2/inputs-before.sha256.gz",
+      "stored_sha256": "e653b0c79a308bb1b0e09a04a915308c9d5529aa6e544a2ed4addad41f919d35",
+      "stored_bytes": 71452,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/client-fixtures-validation-02/rustc.txt",
+      "original_sha256": "f22d5e4e9ced367e774ce5bc140d9e6b1235c1882fec80d011044851f3ae6369",
+      "original_bytes": 196,
+      "stored_path": "v2/rustc.txt.gz",
+      "stored_sha256": "3bbc73e917112825daa074175c423dc871551bdad39c10b9031e615604bac2f8",
+      "stored_bytes": 170,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/client-fixtures-validation-02/status.txt",
+      "original_sha256": "6844a6c0eece05d5f150ec566eb23b716f2864c82501cc900b473ee5d2df833e",
+      "original_bytes": 48,
+      "stored_path": "v2/status.txt.gz",
+      "stored_sha256": "8eb03296efe8e38942ad26009350802317f627625e7c0c11bc442fec1636d0eb",
+      "stored_bytes": 59,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/client-fixtures-validation-02/summary.json",
+      "original_sha256": "514e76f5e4bf42d034f4286127ba8d3ee143e0bc2b96ed3b97c0cc56d34c1389",
+      "original_bytes": 5844,
+      "stored_path": "v2/summary.json.gz",
+      "stored_sha256": "13907559726f255d9683b5b7adee0d67c89bb4bb0c185433dd20c39a162b3990",
+      "stored_bytes": 1395,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/client-fixtures-validation-02/test-01.log",
+      "original_sha256": "53c8cb75af53f7a0ae3d04fa9f04607aef424d94e2693055b9fe3bf127d8fe18",
+      "original_bytes": 170,
+      "stored_path": "v2/test-01.log.gz",
+      "stored_sha256": "db9af369513d9bd99076382f53c46b580d70fcf01a2e510af60d5edff2fd2c30",
+      "stored_bytes": 140,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/client-fixtures-validation-02/test-02.log",
+      "original_sha256": "04dd76677f4d995ef8c3c6eaccf8eaf040e1c03bfd848bbe4474230f1234dbd9",
+      "original_bytes": 171,
+      "stored_path": "v2/test-02.log.gz",
+      "stored_sha256": "8a703e14cc201413d9cefab849a4349b3bd64f9424e920a3f4803a1fd2cb5265",
+      "stored_bytes": 142,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/client-fixtures-validation-02/test-03.log",
+      "original_sha256": "24dab9ce556ab149ee19579cdffab329aab2bed9947c551a93431145ee71242e",
+      "original_bytes": 187,
+      "stored_path": "v2/test-03.log.gz",
+      "stored_sha256": "d1d200b08aff6f94cb1b77c6cd00569f6fbe60c9423c2643159ca0dc61136e5e",
+      "stored_bytes": 151,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/client-fixtures-validation-02/test-04.log",
+      "original_sha256": "fde52b058553633d7433e51a8bd9010843bc19b6574794d579924eae6e523a67",
+      "original_bytes": 197,
+      "stored_path": "v2/test-04.log.gz",
+      "stored_sha256": "841f3caad763593b8d028f102141f9ffd78ff94c042fee2a1cbc81a0a4db871e",
+      "stored_bytes": 158,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/client-fixtures-validation-02/test-05.log",
+      "original_sha256": "f9a2d74a8361af3cf236c7ec4fe78e7109444bca2b7946b04211ad715d0995e8",
+      "original_bytes": 193,
+      "stored_path": "v2/test-05.log.gz",
+      "stored_sha256": "3f32b57c2670a7f064ae5f21bdca683a4c5682310a0a5c11af25a180ecdf332e",
+      "stored_bytes": 155,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/client-fixtures-validation-02/test-06.log",
+      "original_sha256": "cc3724e5834ac38d25f3eb61111a0a0eb0039c0bdbac4d52252c7afde782ef3b",
+      "original_bytes": 197,
+      "stored_path": "v2/test-06.log.gz",
+      "stored_sha256": "873a3581ca46c22df40e872b0d658ba73def5a06c3cb997e0cc206db4ea1df3a",
+      "stored_bytes": 158,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/client-fixtures-validation-02/test-07.log",
+      "original_sha256": "a69bb7446a8e41ce6a80f1c592f6b9f7661b82b686a133b7598457775f4798c0",
+      "original_bytes": 196,
+      "stored_path": "v2/test-07.log.gz",
+      "stored_sha256": "d2814c09786e137af51d6e873f4f0dd2f9448c5e652f9beb7445098a6dc0ee7b",
+      "stored_bytes": 157,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/client-fixtures-validation-02/test-list.log",
+      "original_sha256": "51a22767cc20b1bf173960bed5deb8778f389feaaf0bdf4a247aec46e841b5d7",
+      "original_bytes": 17825,
+      "stored_path": "v2/test-list.log.gz",
+      "stored_sha256": "b9072fb5e6f238b61825855396b92f8e0bcbce163692fed5ec2c717ee11c9170",
+      "stored_bytes": 3901,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/client-fixtures-runner-v2.py",
+      "original_sha256": "ce3ccd2f035877c8078297b8e4eda7382e906daffaf0ecb0f9b7746ee5638eb7",
+      "original_bytes": 6552,
+      "stored_path": "v2/runner.py.gz",
+      "stored_sha256": "58ee8d5860f52e16d6af17d641ce4d88863e725435a0a24b023cf234a0c2497a",
+      "stored_bytes": 2724,
+      "encoding": "gzip"
+    }
+  ]
+}
