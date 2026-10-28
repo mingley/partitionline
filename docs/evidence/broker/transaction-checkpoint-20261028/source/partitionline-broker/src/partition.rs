@@ -1,0 +1,883 @@
+//! Bounded ordinary Kafka batch storage with synchronized assigned offsets.
+//!
+//! Each admitted input is one atomic journal entry, including inputs with several
+//! batches. This stores only the uncompressed, nontransactional subset admitted
+//! by `records`; it does not advertise a Kafka handler or replication guarantee.
+//! Run this synchronous API on an exclusively owned storage thread. Paths and
+//! cross-process ownership are caller configuration, as for `Journal`.
+
+use crate::{batch, compaction, journal, records, segments};
+use std::path::Path;
+
+/// Storage errors retain neither input records nor configured paths.
+#[derive(Debug)]
+pub enum Error {
+    /// Negative base or recovery output budget smaller than a possible entry.
+    InvalidLimits,
+    /// Retention requires explicitly selected rolling storage.
+    RetentionUnsupported,
+    /// Ordinary cleaning requires explicitly selected rolling storage.
+    CompactionUnsupported,
+    /// Input exceeds the configured journal entry bound.
+    InputTooLarge,
+    /// Assigned offsets exceed the nonnegative signed Kafka offset domain.
+    OffsetOverflow,
+    /// Complete input failed ordinary batch admission.
+    Records(records::Error),
+    /// Journal initialization, recovery, append, or fetch failed.
+    Storage(journal::Error),
+    /// Rolling publication, seek work, layout or resource policy failed.
+    Segments(segments::Error),
+    /// A checksummed payload disagrees with its stored logical record range.
+    CorruptPayload,
+    /// A bounded payload allocation failed.
+    AllocationFailed,
+    /// A prior payload or storage failure requires reopening.
+    Poisoned,
+}
+impl std::fmt::Display for Error {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Records(error) => write!(f, "partition records: {error}"),
+            Self::Storage(error) => write!(f, "partition storage: {error}"),
+            Self::Segments(error) => write!(f, "partition segments: {error}"),
+            _ => write!(f, "partition error: {self:?}"),
+        }
+    }
+}
+impl std::error::Error for Error {}
+impl From<journal::Error> for Error {
+    fn from(error: journal::Error) -> Self {
+        Self::Storage(error)
+    }
+}
+impl From<records::Error> for Error {
+    fn from(error: records::Error) -> Self {
+        Self::Records(error)
+    }
+}
+impl From<segments::Error> for Error {
+    fn from(error: segments::Error) -> Self {
+        match error {
+            segments::Error::Storage(error) => Self::Storage(error),
+            other => Self::Segments(other),
+        }
+    }
+}
+
+#[allow(
+    clippy::large_enum_variant,
+    reason = "One bounded inline backend per configured store; avoids an infallible heap allocation when selecting rolling storage."
+)]
+enum Backend {
+    Journal(journal::Journal),
+    Segments(segments::Log),
+}
+impl Backend {
+    fn append(
+        &mut self,
+        count: u32,
+        payload: &[u8],
+        checksum: u32,
+    ) -> Result<journal::Append, Error> {
+        match self {
+            Self::Journal(log) => Ok(log.append_with_checksum(count, payload, checksum)?),
+            Self::Segments(log) => Ok(log.append(count, payload)?),
+        }
+    }
+    fn append_staged(
+        &mut self,
+        count: u32,
+        payload: &[u8],
+        checksum: u32,
+        grouped: bool,
+    ) -> Result<std::fs::File, Error> {
+        match self {
+            Self::Journal(log) if grouped => {
+                Ok(log.append_staged_grouped(count, payload, checksum)?)
+            }
+            Self::Journal(log) => Ok(log.append_staged(count, payload, checksum)?),
+            Self::Segments(_) => Err(Error::InvalidLimits),
+        }
+    }
+    fn commit_staged(&mut self) -> Result<journal::Append, Error> {
+        match self {
+            Self::Journal(log) => Ok(log.commit_staged()?),
+            Self::Segments(_) => Err(Error::InvalidLimits),
+        }
+    }
+    fn abort_staged(&mut self) {
+        if let Self::Journal(log) = self {
+            log.abort_staged();
+        }
+    }
+    fn unstage_last(&mut self) -> Result<u64, Error> {
+        match self {
+            Self::Journal(log) => Ok(log.unstage_last()?),
+            Self::Segments(_) => Err(Error::InvalidLimits),
+        }
+    }
+    fn is_journal(&self) -> bool {
+        matches!(self, Self::Journal(_))
+    }
+    fn invalidate_length_observation(&mut self) {
+        match self {
+            Self::Journal(log) => log.invalidate_length_observation(),
+            Self::Segments(log) => log.invalidate_length_observation(),
+        }
+    }
+    fn fetch(
+        &mut self,
+        offset: u64,
+        entries: usize,
+        bytes: usize,
+    ) -> Result<Vec<journal::Entry>, Error> {
+        match self {
+            Self::Journal(log) => Ok(log.fetch(offset, entries, bytes)?),
+            Self::Segments(log) => Ok(log.fetch(offset, entries, bytes)?),
+        }
+    }
+    fn next_offset(&self) -> u64 {
+        match self {
+            Self::Journal(log) => log.next_offset(),
+            Self::Segments(log) => log.next_offset(),
+        }
+    }
+    fn entry_count(&self) -> usize {
+        match self {
+            Self::Journal(log) => log.entry_count(),
+            Self::Segments(log) => log.entry_count(),
+        }
+    }
+    fn is_poisoned(&self) -> bool {
+        match self {
+            Self::Journal(log) => log.is_poisoned(),
+            Self::Segments(log) => log.is_poisoned(),
+        }
+    }
+}
+
+/// A monolithic journal write waiting for `sync_data` on `file`.
+pub(crate) struct StagedWrite {
+    /// Cloned descriptor. Synchronize this before [`Partition::commit_staged`].
+    pub file: std::fs::File,
+    /// Batches in the staged input.
+    pub batch_count: usize,
+}
+
+/// Either a fully durable append or a journal write that still needs sync.
+pub(crate) enum Stage {
+    /// Rolling storage already synchronized this append.
+    Done(Append),
+    /// Monolithic journal. Sync `file`, then commit or abort.
+    Sync(StagedWrite),
+}
+
+/// Successfully synchronized, contiguous record range assigned to one input.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct Append {
+    /// First assigned record offset.
+    pub base_offset: i64,
+    /// Exclusive end of the assigned record range.
+    pub next_offset: i64,
+    /// Number of ordinary records, independent of input byte count.
+    pub record_count: u32,
+    /// Number of batches in the input.
+    pub batch_count: usize,
+}
+
+/// An exclusively owned journal whose complete payloads are validated batches.
+pub struct Partition {
+    journal: Backend,
+    record_limits: records::Limits,
+    journal_limits: journal::Limits,
+    poisoned: bool,
+    next_offset: i64,
+}
+/// Offsets collected while a payload is still borrowed for validation.
+enum Stamp {
+    /// One batch, patched at the first byte.
+    One(u32, i64),
+    /// Several batches, each start remembered before the payload is patched.
+    Many(u32, i64, usize, Vec<(usize, i64)>),
+}
+
+impl Partition {
+    /// Recover and validate every complete entry, including its assigned range.
+    ///
+    /// The output budget must fit one maximum-size journal entry including its
+    /// owned `Entry` charge, permitting bounded one-entry recovery. Journal first
+    /// repairs only a demonstrably incomplete final entry and synchronizes its
+    /// recovered bytes; structurally corrupt complete Kafka payloads then fail
+    /// closed. Index, total file, entry, validation and output limits all apply.
+    pub fn open(
+        path: impl AsRef<Path>,
+        base_offset: i64,
+        journal_limits: journal::Limits,
+        record_limits: records::Limits,
+    ) -> Result<(Self, journal::Recovery), Error> {
+        let base_offset = u64::try_from(base_offset).map_err(|_| Error::InvalidLimits)?;
+        let recovery_bytes = journal_limits
+            .max_entry_bytes()
+            .checked_add(std::mem::size_of::<journal::Entry>())
+            .ok_or(Error::InvalidLimits)?;
+        if recovery_bytes > journal_limits.max_fetch_bytes() {
+            return Err(Error::InvalidLimits);
+        }
+        let (journal, recovery) = journal::Journal::open(path, base_offset, journal_limits)?;
+        let next_offset =
+            i64::try_from(journal.next_offset()).map_err(|_| Error::OffsetOverflow)?;
+        let mut result = Self {
+            journal: Backend::Journal(journal),
+            record_limits,
+            journal_limits,
+            poisoned: false,
+            next_offset,
+        };
+        let mut cursor = base_offset;
+        while cursor < result.journal.next_offset() {
+            let entries = result.journal.fetch(cursor, 1, recovery_bytes)?;
+            let entry = entries.first().ok_or(Error::CorruptPayload)?;
+            if entry.first_offset != cursor {
+                return Err(Error::CorruptPayload);
+            }
+            cursor = result.check_entry(entry)?;
+        }
+        Ok((result, recovery))
+    }
+
+    /// Select genuine rolling storage with bounded verified seek checkpoints.
+    ///
+    /// The directory must use the rolling layout; existing monolithic files are
+    /// never silently migrated or hidden. Recovery validates all ordinary data,
+    /// rejects/rebuilds stale indexes and reports active-tail/staging outcomes.
+    /// The caller still owns exclusive synchronous access to this partition.
+    pub fn open_segmented(
+        path: impl AsRef<Path>,
+        base_offset: i64,
+        journal_limits: journal::Limits,
+        record_limits: records::Limits,
+        segment_limits: segments::Limits,
+    ) -> Result<(Self, segments::Recovery), Error> {
+        let base = u64::try_from(base_offset).map_err(|_| Error::InvalidLimits)?;
+        let (log, recovery) =
+            segments::Log::open(path, base, journal_limits, record_limits, segment_limits)?;
+        let next_offset = i64::try_from(log.next_offset()).map_err(|_| Error::OffsetOverflow)?;
+        Ok((
+            Self {
+                journal: Backend::Segments(log),
+                record_limits,
+                journal_limits,
+                poisoned: false,
+                next_offset,
+            },
+            recovery,
+        ))
+    }
+
+    /// Validate the entire input, assign offsets, then append and synchronize once.
+    ///
+    /// Only the eight-byte base offset of each batch is replaced. Record data,
+    /// timestamps, leader epoch and protected CRC bytes stay identical. Selected
+    /// leader epochs/timestamp policy belong to the future Produce handler.
+    /// Validation/allocation/budget failures cause no append. A journal write or
+    /// synchronization failure is ambiguous and disables further use until reopen.
+    pub fn append(&mut self, bytes: &[u8]) -> Result<Append, Error> {
+        let mut owned = Vec::new();
+        owned
+            .try_reserve_exact(bytes.len())
+            .map_err(|_| Error::AllocationFailed)?;
+        owned.extend_from_slice(bytes);
+        self.append_in_place(&mut owned)
+    }
+
+    /// Assign base offsets in `bytes` and append that same buffer.
+    ///
+    /// The eight-byte base offset sits outside the batch CRC. Callers that
+    /// already own the payload avoid the extra copy [`Self::append`] makes.
+    fn assign_offsets(
+        &mut self,
+        bytes: &mut [u8],
+        trusted: bool,
+    ) -> Result<(u32, i64, i64, usize), Error> {
+        self.check_alive()?;
+        if bytes.len() > self.journal_limits.max_entry_bytes() {
+            return Err(Error::InputTooLarge);
+        }
+        if trusted {
+            if let Some(assigned) = self.assign_trusted_batch(bytes)? {
+                return Ok(assigned);
+            }
+        }
+        let base_offset = self.next_offset();
+        // One batch always starts at the first byte, so its offset is stamped
+        // without a span list. Several batches remember each start first.
+        let stamped = {
+            let checked = records::validate(bytes, self.record_limits)?;
+            let record_count =
+                u32::try_from(checked.record_count()).map_err(|_| Error::OffsetOverflow)?;
+            let next_offset = base_offset
+                .checked_add(i64::from(record_count))
+                .ok_or(Error::OffsetOverflow)?;
+            if checked.batch_count() == 1 {
+                let mut batches = checked.batches();
+                let (len, count) = {
+                    let batch = batches.next().ok_or(Error::CorruptPayload)??;
+                    (batch.bytes.len(), batch.record_count)
+                };
+                if batches.next().is_some() || len != bytes.len() {
+                    return Err(Error::CorruptPayload);
+                }
+                let advanced = base_offset
+                    .checked_add(i64::from(count))
+                    .ok_or(Error::OffsetOverflow)?;
+                if advanced != next_offset {
+                    return Err(Error::CorruptPayload);
+                }
+                Stamp::One(record_count, next_offset)
+            } else {
+                let batch_count = checked.batch_count();
+                let mut spans = Vec::new();
+                spans
+                    .try_reserve_exact(batch_count)
+                    .map_err(|_| Error::AllocationFailed)?;
+                let mut cursor = 0usize;
+                let mut offset = base_offset;
+                for batch in checked.batches() {
+                    let batch = batch?;
+                    let len = batch.bytes.len();
+                    if bytes.get(cursor..cursor.saturating_add(len)).is_none() {
+                        return Err(Error::CorruptPayload);
+                    }
+                    spans.push((cursor, offset));
+                    cursor = cursor.checked_add(len).ok_or(Error::CorruptPayload)?;
+                    offset = offset
+                        .checked_add(i64::from(batch.record_count))
+                        .ok_or(Error::OffsetOverflow)?;
+                }
+                if offset != next_offset || cursor != bytes.len() {
+                    return Err(Error::CorruptPayload);
+                }
+                Stamp::Many(record_count, next_offset, batch_count, spans)
+            }
+        };
+        match stamped {
+            Stamp::One(record_count, next_offset) => {
+                bytes
+                    .get_mut(..8)
+                    .ok_or(Error::CorruptPayload)?
+                    .copy_from_slice(&base_offset.to_be_bytes());
+                Ok((record_count, base_offset, next_offset, 1))
+            }
+            Stamp::Many(record_count, next_offset, batch_count, spans) => {
+                for (start, assigned) in spans {
+                    let end = start.checked_add(8).ok_or(Error::CorruptPayload)?;
+                    bytes
+                        .get_mut(start..end)
+                        .ok_or(Error::CorruptPayload)?
+                        .copy_from_slice(&assigned.to_be_bytes());
+                }
+                Ok((record_count, base_offset, next_offset, batch_count))
+            }
+        }
+    }
+
+    /// One already-validated batch: patch its base offset and read `numRecords`.
+    ///
+    /// Produce admission already matched the CRC and walked the records. Those
+    /// bytes are unchanged by the base-offset and leader-epoch patches. Any
+    /// other shape returns `Ok(None)` so the caller runs a full validate.
+    fn assign_trusted_batch(
+        &mut self,
+        bytes: &mut [u8],
+    ) -> Result<Option<(u32, i64, i64, usize)>, Error> {
+        let Some(header) = bytes.get(..batch::LEN) else {
+            return Ok(None);
+        };
+        let mut length_bytes = [0u8; 4];
+        length_bytes.copy_from_slice(&header[batch::LENGTH..batch::PREFIX]);
+        let declared = usize::try_from(i32::from_be_bytes(length_bytes))
+            .ok()
+            .and_then(|n| n.checked_add(batch::PREFIX));
+        if declared != Some(bytes.len()) || header[batch::MAGIC] != batch::MAGIC_V2 {
+            return Ok(None);
+        }
+        let mut count_bytes = [0u8; 4];
+        count_bytes.copy_from_slice(&header[batch::RECORD_COUNT..batch::LEN]);
+        let count = i32::from_be_bytes(count_bytes);
+        if count <= 0 {
+            return Err(Error::CorruptPayload);
+        }
+        let record_count = u32::try_from(count).map_err(|_| Error::OffsetOverflow)?;
+        let body = bytes.len().saturating_sub(61);
+        if usize::try_from(record_count).unwrap_or(usize::MAX) > body / 7 {
+            return Err(Error::CorruptPayload);
+        }
+        let base_offset = self.next_offset();
+        let next_offset = base_offset
+            .checked_add(i64::from(record_count))
+            .ok_or(Error::OffsetOverflow)?;
+        bytes
+            .get_mut(..8)
+            .ok_or(Error::CorruptPayload)?
+            .copy_from_slice(&base_offset.to_be_bytes());
+        Ok(Some((record_count, base_offset, next_offset, 1)))
+    }
+
+    fn append_trusted(&mut self, bytes: &mut [u8]) -> Result<Append, Error> {
+        let (record_count, base_offset, next_offset, batch_count) =
+            self.assign_offsets(bytes, true)?;
+        let checksum = journal::checksum_reusing_record_crc(bytes, batch_count);
+        self.journal.append(record_count, bytes, checksum)?;
+        self.next_offset = next_offset;
+        Ok(Append {
+            base_offset,
+            next_offset,
+            record_count,
+            batch_count,
+        })
+    }
+
+    pub(crate) fn append_in_place(&mut self, bytes: &mut [u8]) -> Result<Append, Error> {
+        let (record_count, base_offset, next_offset, batch_count) =
+            self.assign_offsets(bytes, false)?;
+        let checksum = journal::checksum_reusing_record_crc(bytes, batch_count);
+        self.journal.append(record_count, bytes, checksum)?;
+        self.next_offset = next_offset;
+        Ok(Append {
+            base_offset,
+            next_offset,
+            record_count,
+            batch_count,
+        })
+    }
+
+    /// Write the payload without syncing a monolithic journal.
+    ///
+    /// [`Stage::Sync`] must be synchronized, then [`Self::commit_staged`] or
+    /// [`Self::abort_staged`]. Rolling storage returns [`Stage::Done`] because
+    /// its append already synchronized.
+    pub(crate) fn stage_in_place(&mut self, bytes: &mut [u8]) -> Result<Stage, Error> {
+        self.stage_in_place_inner(bytes, false)
+    }
+
+    /// Like [`Self::stage_in_place`], and a second call may queue another
+    /// entry on the same monolithic journal before either one is committed.
+    ///
+    /// The logical end advances when the write succeeds so the next grouped
+    /// call assigns the following offsets. One sync of the last descriptor
+    /// covers every queued entry. Commits stay in order.
+    pub(crate) fn stage_in_place_grouped(&mut self, bytes: &mut [u8]) -> Result<Stage, Error> {
+        self.stage_in_place_inner(bytes, true)
+    }
+
+    fn stage_in_place_inner(&mut self, bytes: &mut [u8], grouped: bool) -> Result<Stage, Error> {
+        if !self.journal.is_journal() {
+            return Ok(Stage::Done(self.append_trusted(bytes)?));
+        }
+        let (record_count, _base_offset, next_offset, batch_count) =
+            self.assign_offsets(bytes, true)?;
+        let checksum = journal::checksum_reusing_record_crc(bytes, batch_count);
+        let file = self
+            .journal
+            .append_staged(record_count, bytes, checksum, grouped)?;
+        if grouped {
+            self.next_offset = next_offset;
+        }
+        Ok(Stage::Sync(StagedWrite { file, batch_count }))
+    }
+
+    pub(crate) fn commit_staged(&mut self, batch_count: usize) -> Result<Append, Error> {
+        let appended = self.journal.commit_staged()?;
+        let base_offset =
+            i64::try_from(appended.first_offset).map_err(|_| Error::OffsetOverflow)?;
+        let next_offset = i64::try_from(appended.next_offset).map_err(|_| Error::OffsetOverflow)?;
+        self.next_offset = next_offset;
+        Ok(Append {
+            base_offset,
+            next_offset,
+            record_count: appended.record_count,
+            batch_count,
+        })
+    }
+
+    pub(crate) fn abort_staged(&mut self) {
+        self.journal.abort_staged();
+        self.poisoned = true;
+    }
+
+    /// Remove the newest unsynced staged entry without poisoning on success.
+    ///
+    /// The logical end returns to that entry's base offset.
+    pub(crate) fn unstage_last(&mut self) -> Result<(), Error> {
+        self.check_alive()?;
+        let first = self.journal.unstage_last()?;
+        self.next_offset = i64::try_from(first).map_err(|_| Error::OffsetOverflow)?;
+        Ok(())
+    }
+
+    /// Fetch bounded whole atomic inputs containing/following the supplied offset.
+    ///
+    /// An offset inside an entry returns the entire entry, possibly several Kafka
+    /// batches before that offset. The wire Fetch owner must select batch boundaries
+    /// and implement its oversized-first-batch policy. Charge and stop semantics
+    /// are exactly `Journal::fetch`; no retained secondary index or extra copy.
+    pub fn fetch(
+        &mut self,
+        first_offset: i64,
+        max_entries: usize,
+        max_bytes: usize,
+    ) -> Result<Vec<journal::Entry>, Error> {
+        self.check_alive()?;
+        let offset = u64::try_from(first_offset).map_err(|_| Error::OffsetOverflow)?;
+        let entries = self.journal.fetch(offset, max_entries, max_bytes)?;
+        for entry in &entries {
+            if let Err(error) = self.check_for_read(entry) {
+                self.poisoned = true;
+                return Err(error);
+            }
+        }
+        Ok(entries)
+    }
+
+    /// Exclusive durable end offset; no failed append advances this value.
+    pub fn next_offset(&self) -> i64 {
+        self.next_offset
+    }
+    /// Monotonic logical start; a containing batch may start before this offset.
+    pub fn log_start_offset(&self) -> i64 {
+        match &self.journal {
+            Backend::Journal(log) => log.base_offset() as i64,
+            Backend::Segments(log) => log.log_start_offset(),
+        }
+    }
+    /// Durably advance rolling storage's logical start within caller safety bounds.
+    ///
+    /// Negative values and wire sentinel conversion belong to the caller. Whole
+    /// sealed files ending at/below the requested boundary may be removed; the
+    /// containing batch and active file are preserved. An ambiguous failure
+    /// poisons the rolling handle and reopening completes recorded victims.
+    /// Monolithic journals reject retention without mutating their format.
+    pub fn delete_records(
+        &mut self,
+        offset: i64,
+        guard: segments::DeletionGuard,
+    ) -> Result<segments::DeletionOutcome, Error> {
+        self.check_alive()?;
+        match &mut self.journal {
+            Backend::Segments(log) => Ok(log.delete_records(offset, guard)?),
+            Backend::Journal(_) => Err(Error::RetentionUnsupported),
+        }
+    }
+    /// Explicit bounded whole-prefix age/size sweep on rolling storage.
+    /// No clock task or retention policy is enabled by opening/appending a log.
+    pub fn apply_retention(
+        &mut self,
+        now_ms: i64,
+        policy: segments::RetentionPolicy,
+        guard: segments::DeletionGuard,
+    ) -> Result<segments::DeletionOutcome, Error> {
+        self.check_alive()?;
+        match &mut self.journal {
+            Backend::Segments(log) => Ok(log.apply_retention(now_ms, policy, guard)?),
+            Backend::Journal(_) => Err(Error::RetentionUnsupported),
+        }
+    }
+    /// Atomically clean a caller-protected sealed ordinary prefix. Actual record
+    /// counts can shrink; logical offsets, floor and exclusive end do not.
+    /// Unsupported producer/transaction/control features fail before mutation.
+    pub fn compact(
+        &mut self,
+        now_ms: i64,
+        policy: compaction::Policy,
+        guard: segments::DeletionGuard,
+    ) -> Result<compaction::Outcome, Error> {
+        self.check_alive()?;
+        match &mut self.journal {
+            Backend::Segments(log) => Ok(log.compact(now_ms, policy, guard)?),
+            Backend::Journal(_) => Err(Error::CompactionUnsupported),
+        }
+    }
+    /// Retained atomic journal entries, bounded by the configured index budget.
+    pub fn entry_count(&self) -> usize {
+        self.journal.entry_count()
+    }
+    /// Data segment count; the inherited monolithic backend always has one.
+    pub fn segment_count(&self) -> usize {
+        match &self.journal {
+            Backend::Journal(_) => 1,
+            Backend::Segments(log) => log.segment_count(),
+        }
+    }
+    /// Byte-preserving atomic rewrite of a sealed rolling generation.
+    ///
+    /// The storage owner must serialize this with all append/read operations.
+    /// Monolithic storage has no sealed generation and rejects the operation.
+    /// This operation implements no compaction or Kafka administration API.
+    pub fn replace_sealed(&mut self, base_offset: i64) -> Result<(), Error> {
+        self.check_alive()?;
+        let base = u64::try_from(base_offset).map_err(|_| Error::OffsetOverflow)?;
+        match &mut self.journal {
+            Backend::Segments(log) => Ok(log.replace_sealed(base)?),
+            Backend::Journal(_) => Err(Error::InvalidLimits),
+        }
+    }
+    pub(crate) fn timestamp_start(&self, wanted: i64) -> Result<i64, Error> {
+        self.check_alive()?;
+        let offset = match &self.journal {
+            Backend::Journal(log) => log.base_offset(),
+            Backend::Segments(log) => log.timestamp_start(wanted)?,
+        };
+        i64::try_from(offset).map_err(|_| Error::OffsetOverflow)
+    }
+    /// Append one kept payload onto `dest`.
+    ///
+    /// Monolithic logs and rolling generations read into `dest`. On failure
+    /// `dest` is restored.
+    pub(crate) fn read_into(
+        &mut self,
+        offset: i64,
+        maximum: usize,
+        scan_bytes: usize,
+        scan_entries: usize,
+        dest: &mut Vec<u8>,
+    ) -> Result<(Option<journal::PayloadView>, segments::Work), Error> {
+        self.check_alive()?;
+        let offset = u64::try_from(offset).map_err(|_| Error::OffsetOverflow)?;
+        let mark = dest.len();
+        let loaded = match &mut self.journal {
+            Backend::Journal(log) => {
+                let view = log.fetch_one_into(offset, maximum, dest)?;
+                let work = view.map_or(segments::Work::default(), |view| segments::Work {
+                    bytes: view.len,
+                    entries: 1,
+                });
+                (view, work)
+            }
+            Backend::Segments(log) => {
+                log.read_one_into(offset, maximum, scan_bytes, scan_entries, dest)?
+            }
+        };
+        if let Some(view) = loaded.0 {
+            let payload = match dest.get(mark..) {
+                Some(payload) if payload.len() == view.len => payload,
+                _ => {
+                    dest.truncate(mark);
+                    self.poisoned = true;
+                    return Err(Error::CorruptPayload);
+                }
+            };
+            if let Err(error) = self.check_view(view.first_offset, view.record_count, payload) {
+                dest.truncate(mark);
+                self.poisoned = true;
+                return Err(error);
+            }
+        }
+        Ok(loaded)
+    }
+
+    fn check_view(
+        &self,
+        first_offset: u64,
+        record_count: u32,
+        payload: &[u8],
+    ) -> Result<u64, Error> {
+        if matches!(&self.journal, Backend::Segments(log) if log.sparse_at(first_offset)) {
+            self.check_sparse_slice(first_offset, record_count, payload)
+        } else {
+            self.check_fetched_slice(first_offset, record_count, payload)
+        }
+    }
+
+    fn check_sparse_slice(
+        &self,
+        first_offset: u64,
+        record_count: u32,
+        payload: &[u8],
+    ) -> Result<u64, Error> {
+        let checked = records::validate_read(payload, self.record_limits)
+            .map_err(|_| Error::CorruptPayload)?;
+        let next = first_offset
+            .checked_add(u64::from(record_count))
+            .ok_or(Error::CorruptPayload)?;
+        if record_count == 0 {
+            return Err(Error::CorruptPayload);
+        }
+        for batch in checked.batches() {
+            let batch = batch.map_err(|_| Error::CorruptPayload)?;
+            if u64::try_from(batch.base_offset)
+                .ok()
+                .is_none_or(|n| n < first_offset)
+                || u64::try_from(batch.next_offset)
+                    .ok()
+                    .is_none_or(|n| n > next)
+            {
+                return Err(Error::CorruptPayload);
+            }
+        }
+        Ok(next)
+    }
+
+    fn check_for_read(&self, entry: &journal::Entry) -> Result<u64, Error> {
+        if matches!(&self.journal, Backend::Segments(log) if log.sparse_at(entry.first_offset)) {
+            self.check_entry(entry)
+        } else {
+            self.check_fetched_entry(entry)
+        }
+    }
+    pub(crate) fn invalidate_length_observation(&mut self) {
+        self.journal.invalidate_length_observation();
+    }
+
+    /// Whether reopening is required after a payload or storage failure.
+    pub fn is_poisoned(&self) -> bool {
+        self.poisoned || self.journal.is_poisoned()
+    }
+    fn check_alive(&self) -> Result<(), Error> {
+        if self.is_poisoned() {
+            Err(Error::Poisoned)
+        } else {
+            Ok(())
+        }
+    }
+    /// Assignment check after the journal payload checksum has matched.
+    ///
+    /// Append and recovery already walked the records. A later fetch only
+    /// checks that the declared bases still form that assigned range.
+    fn check_fetched_entry(&self, entry: &journal::Entry) -> Result<u64, Error> {
+        self.check_fetched_slice(entry.first_offset, entry.record_count, &entry.payload)
+    }
+
+    fn check_fetched_slice(
+        &self,
+        first_offset: u64,
+        record_count: u32,
+        payload: &[u8],
+    ) -> Result<u64, Error> {
+        let framed = records::framed_assignment(payload, self.record_limits)
+            .map_err(|_| Error::CorruptPayload)?;
+        if framed.record_count() != record_count as usize {
+            return Err(Error::CorruptPayload);
+        }
+        let offset = i64::try_from(first_offset).map_err(|_| Error::CorruptPayload)?;
+        let next = first_offset
+            .checked_add(u64::from(record_count))
+            .ok_or(Error::CorruptPayload)?;
+        if framed.first_offset() != offset || u64::try_from(framed.next_offset()).ok() != Some(next)
+        {
+            return Err(Error::CorruptPayload);
+        }
+        Ok(next)
+    }
+
+    fn check_entry(&self, entry: &journal::Entry) -> Result<u64, Error> {
+        if matches!(&self.journal,Backend::Segments(log) if log.sparse_at(entry.first_offset)) {
+            let checked = records::validate_read(&entry.payload, self.record_limits)
+                .map_err(|_| Error::CorruptPayload)?;
+            let next = entry
+                .first_offset
+                .checked_add(u64::from(entry.record_count))
+                .ok_or(Error::CorruptPayload)?;
+            if entry.record_count == 0 {
+                return Err(Error::CorruptPayload);
+            }
+            for batch in checked.batches() {
+                let batch = batch.map_err(|_| Error::CorruptPayload)?;
+                if u64::try_from(batch.base_offset)
+                    .ok()
+                    .is_none_or(|n| n < entry.first_offset)
+                    || u64::try_from(batch.next_offset)
+                        .ok()
+                        .is_none_or(|n| n > next)
+                {
+                    return Err(Error::CorruptPayload);
+                }
+            }
+            return Ok(next);
+        }
+        let checked = records::validate(&entry.payload, self.record_limits)
+            .map_err(|_| Error::CorruptPayload)?;
+        if checked.record_count() != entry.record_count as usize {
+            return Err(Error::CorruptPayload);
+        }
+        let mut offset = i64::try_from(entry.first_offset).map_err(|_| Error::CorruptPayload)?;
+        for batch in checked.batches() {
+            let batch = batch.map_err(|_| Error::CorruptPayload)?;
+            if batch.base_offset != offset {
+                return Err(Error::CorruptPayload);
+            }
+            offset = batch.next_offset;
+        }
+        let next = entry
+            .first_offset
+            .checked_add(u64::from(entry.record_count))
+            .ok_or(Error::CorruptPayload)?;
+        if u64::try_from(offset).ok() != Some(next) {
+            return Err(Error::CorruptPayload);
+        }
+        Ok(next)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::batch;
+
+    #[test]
+    fn fetch_does_not_walk_records_already_checked_at_append(
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        let path = std::env::temp_dir().join(format!(
+            "pl-fetch-novisit-{}",
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .map_err(std::io::Error::other)?
+                .as_nanos()
+        ));
+        let journal_limits = journal::Limits::new(1024 * 1024, 1 << 30, 1000, 8 * 1024 * 1024)?;
+        let (mut part, _) = Partition::open(&path, 0, journal_limits, records::Limits::default())?;
+        part.append(include_bytes!("../tests/fixtures/records/valid-basic.bin"))?;
+        records::reset_record_visits();
+        let got = part.fetch(0, 4, 1024 * 1024)?;
+        assert_eq!(got.len(), 1);
+        assert_eq!(records::record_visits(), 0);
+        records::reset_record_visits();
+        let mut dest = Vec::new();
+        let (view, _) = part.read_into(0, 1024 * 1024, 1024 * 1024, 4, &mut dest)?;
+        assert!(view.is_some());
+        assert!(!dest.is_empty());
+        assert_eq!(records::record_visits(), 0);
+        drop(part);
+        let _ = std::fs::remove_file(path);
+        Ok(())
+    }
+
+    #[test]
+    fn trusted_assign_rejects_a_count_the_body_cannot_hold(
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        let path = std::env::temp_dir().join(format!(
+            "pl-trusted-count-{}",
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .map_err(std::io::Error::other)?
+                .as_nanos()
+        ));
+        let journal_limits = journal::Limits::new(1024 * 1024, 1 << 30, 1000, 8 * 1024 * 1024)?;
+        let (mut part, _) = Partition::open(&path, 0, journal_limits, records::Limits::default())?;
+        let mut bytes = vec![0u8; 80];
+        let length = i32::try_from(bytes.len() - batch::PREFIX)?;
+        bytes[batch::LENGTH..batch::PREFIX].copy_from_slice(&length.to_be_bytes());
+        bytes[batch::MAGIC] = batch::MAGIC_V2;
+        bytes[batch::RECORD_COUNT..batch::LEN].copy_from_slice(&100_000i32.to_be_bytes());
+        let error = match part.stage_in_place(&mut bytes) {
+            Err(error) => error,
+            Ok(_) => return Err("trusted assign accepted an impossible count".into()),
+        };
+        assert!(matches!(error, Error::CorruptPayload));
+        assert_eq!(part.next_offset(), 0);
+        assert!(!part.is_poisoned());
+        drop(part);
+        let _ = std::fs::remove_file(path);
+        Ok(())
+    }
+}

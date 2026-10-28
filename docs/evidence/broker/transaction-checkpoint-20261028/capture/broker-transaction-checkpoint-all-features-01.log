@@ -1,0 +1,34 @@
+   Compiling partitionline-broker v0.1.0 (/workspace/work/broker-txn-checkpoint/partitionline-broker)
+    Finished `test` profile [unoptimized] target(s) in 43.26s
+     Running unittests src/lib.rs (/workspace/work/qualification-20261027/broker-check-target/debug/deps/partitionline_broker-f263a2f5b501ae2f)
+
+running 20 tests
+test transactions::coordinator::tests::a_second_begin_does_not_reset_an_ongoing_transaction ... ok
+test transactions::coordinator::tests::a_replayed_add_cannot_change_a_prepared_transaction ... ok
+test transactions::coordinator::tests::a_replayed_init_cannot_skip_the_producer_sequence ... ok
+test transactions::coordinator::tests::a_repeated_partition_does_not_consume_a_journal_record ... ok
+test transactions::coordinator::tests::checkpoint_rejects_invalid_state_and_non_initial_position ... ok
+test transactions::coordinator::tests::checkpoint_limits_fail_before_changing_acknowledged_state ... ok
+test transactions::coordinator::tests::admitted_transactions_keep_closure_and_fencing_headroom_at_512_bytes ... ok
+test transactions::coordinator::tests::completed_legacy_transaction_can_shrink_and_roll_over_at_capacity ... ok
+test transactions::coordinator::tests::empty_journal_with_tiny_legacy_limits_remains_readable ... ok
+
+running 1 test
+test transactions::coordinator::tests::entry_file_and_fetch_boundaries_preserve_admitted_state ... ok
+test transactions::coordinator::tests::event_only_history_replays_and_rolls_to_checkpoint ... ok
+test transactions::coordinator::tests::failed_checkpoint_does_not_acknowledge_or_expose_a_decision ... ok
+test transactions::coordinator::tests::init_leaves_a_prepared_transaction_in_place ... ok
+test transactions::coordinator::tests::oversized_legacy_history_remains_accessible_until_it_can_roll_over ... ok
+test transactions::coordinator::tests::checkpoints_preserve_fencing_and_all_transaction_states ... ok
+test transactions::coordinator::tests::prepared_commit_survives_failover_and_an_old_epoch_cannot_finish ... ok
+test transactions::coordinator::tests::valid_legacy_growth_can_exceed_the_maximum_single_entry ... ok
+test transactions::coordinator::tests::producer_id_exhaustion_does_not_append ... ok
+
+running 1 test
+
+running 1 test
+test transactions::coordinator::tests::checkpoint_process_exit_recovers_complete_transaction_state ... ok
+test transactions::coordinator::tests::compacted_and_uncompacted_histories_remain_equivalent ... ok
+
+test result: ok. 20 passed; 0 failed; 0 ignored; 0 measured; 424 filtered out; finished in 0.05s
+

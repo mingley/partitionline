@@ -483,6 +483,16 @@ impl Journal {
                 .is_some_and(|size| size <= self.inner.limits.max_file_bytes)
     }
 
+    // True only if a one-record snapshot can fit an otherwise empty journal.
+    pub(crate) fn snapshot_fits(&self, payload_len: usize) -> bool {
+        payload_len > 0
+            && payload_len <= self.inner.limits.max_entry_bytes
+            && (FILE_HEADER as u64)
+                .checked_add(ENTRY_HEADER as u64)
+                .and_then(|size| size.checked_add(payload_len as u64))
+                .is_some_and(|size| size <= self.inner.limits.max_file_bytes)
+    }
+
     // Publish a complete, synchronized one-record image with an atomic rename.
     // The adjacent `<journal>.checkpoint.tmp` name is reserved for this use.
     // External writers must still obey Journal's exclusive ownership contract.

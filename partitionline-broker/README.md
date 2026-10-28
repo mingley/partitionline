@@ -56,7 +56,19 @@ over to a complete checkpoint when it reaches a configured history limit.
 The checkpoint format supports up to 65,535 groups and 65,535 offsets per group;
 larger configured limits are rejected. The lifecycle coordinator returns
 `Result` from `owned`, and both `owned` and `commit` report `Error::Poisoned`
-after persistence fails. Reopen the lifecycle store to recover.
+after persistence fails. Reopen the lifecycle store to recover. The transaction
+coordinator returns `Result` from `epoch` and `state` and must likewise be
+reopened after a persistence error. Its checkpoints must fit in one configured
+journal entry, file and fetch budget, and reserve the adjacent `.checkpoint.tmp`
+pathname. A legacy event-only journal whose state cannot fit a checkpoint stays
+readable and can append events until its configured history, index or file limit
+is reached. Those appends can grow state beyond the 64 MiB entry maximum, after
+which increasing limits cannot enable single-entry rollover. A multi-entry format
+is not yet implemented. Once a new checkpoint is written, older binaries cannot
+read the journal. Transaction
+marker propagation and fencing integration are not implemented: initializing
+an ongoing transaction currently clears its stored partition set. Checkpoint and
+recovery allocations are not bounded as total process memory.
 
 ```sh
 sh scripts/broker-package.sh

@@ -1,0 +1,1657 @@
+//! Durable classic consumer-group Join and Sync.
+//!
+//! The first joiner is the leader. A new member or a session timeout starts a
+//! new generation and clears assignments. Sync succeeds only when every current
+//! member has joined that generation. The leader's assignment must cover each
+//! member at most once and must not give the same partition to two members.
+//! A stale generation is `ILLEGAL_GENERATION`. A stale coordinator epoch is
+//! `NOT_COORDINATOR`.
+//!
+//! Successful transitions are journaled, so failover reopens the same
+//! generation and assignment. This is not the JoinGroup or SyncGroup RPC.
+
+use crate::journal::{self, Journal};
+use std::collections::{BTreeMap, BTreeSet};
+use std::path::Path;
+
+const RECORD_MAGIC: &[u8; 8] = b"PLGRP001";
+const CHECKPOINT_MAGIC: &[u8; 8] = b"PLGRCP01";
+
+/// Kafka `NOT_COORDINATOR`.
+pub const NOT_COORDINATOR: i16 = 16;
+/// Kafka `ILLEGAL_GENERATION`.
+pub const ILLEGAL_GENERATION: i16 = 22;
+/// Kafka `INCONSISTENT_GROUP_PROTOCOL`.
+pub const INCONSISTENT_GROUP_PROTOCOL: i16 = 23;
+/// Kafka `UNKNOWN_MEMBER_ID`.
+pub const UNKNOWN_MEMBER_ID: i16 = 25;
+/// Kafka `REBALANCE_IN_PROGRESS`.
+pub const REBALANCE_IN_PROGRESS: i16 = 27;
+
+/// Result of a join.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Join {
+    /// Assigned member id.
+    pub member_id: String,
+    /// Generation the member must sync.
+    pub generation: i32,
+    /// Leader member id.
+    pub leader_id: String,
+}
+
+/// Why a group operation was refused.
+#[derive(Debug)]
+pub enum Error {
+    /// The coordinator epoch is not current.
+    NotCoordinator,
+    /// The generation does not match the group.
+    IllegalGeneration,
+    /// The protocol does not match the group.
+    InconsistentProtocol,
+    /// The member id is not in the group.
+    UnknownMember,
+    /// Not every member has joined this generation.
+    RebalanceInProgress,
+    /// The group id, member, or assignment is not usable.
+    InvalidRequest,
+    /// A persistence failure requires reopening before reads or writes.
+    Poisoned,
+    /// The limits cannot store the group.
+    InvalidLimits,
+    /// The journal rejected the record or could not be recovered.
+    Storage(journal::Error),
+}
+
+impl Error {
+    /// Kafka code for a member-visible refusal. Storage failures have none.
+    pub fn code(&self) -> Option<i16> {
+        Some(match self {
+            Self::NotCoordinator => NOT_COORDINATOR,
+            Self::IllegalGeneration => ILLEGAL_GENERATION,
+            Self::InconsistentProtocol => INCONSISTENT_GROUP_PROTOCOL,
+            Self::UnknownMember => UNKNOWN_MEMBER_ID,
+            Self::RebalanceInProgress => REBALANCE_IN_PROGRESS,
+            Self::InvalidRequest | Self::InvalidLimits => return None,
+            Self::Poisoned | Self::Storage(_) => return None,
+        })
+    }
+}
+
+impl From<journal::Error> for Error {
+    fn from(error: journal::Error) -> Self {
+        Self::Storage(error)
+    }
+}
+
+/// Group bounds.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct Limits {
+    max_members: usize,
+    session_timeout_ms: u64,
+    max_records: usize,
+    journal: journal::Limits,
+}
+
+impl Limits {
+    /// Configure a positive member cap and session timeout.
+    pub fn new(
+        max_members: usize,
+        session_timeout_ms: u64,
+        max_records: usize,
+        journal: journal::Limits,
+    ) -> Result<Self, Error> {
+        if !(1..=1_000).contains(&max_members)
+            || session_timeout_ms == 0
+            || !(1..=1_000_000).contains(&max_records)
+            || journal.max_entry_bytes() < 4096
+            || journal.max_index_entries() < max_records
+        {
+            return Err(Error::InvalidLimits);
+        }
+        Ok(Self {
+            max_members,
+            session_timeout_ms,
+            max_records,
+            journal,
+        })
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct Member {
+    joined_generation: i32,
+    last_seen_ms: u64,
+    assignment: Vec<i32>,
+    synced: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct Group {
+    protocol: String,
+    generation: i32,
+    /// Clock when `generation` last changed. Members who have not joined it
+    /// are removed once a session timeout has passed from this time.
+    generation_started_ms: u64,
+    leader: String,
+    members: BTreeMap<String, Member>,
+}
+
+/// Durable classic group coordinator.
+pub struct Groups {
+    limits: Limits,
+    epoch: i64,
+    next_member: u64,
+    groups: BTreeMap<String, Group>,
+    journal: Journal,
+    stored: usize,
+    poisoned: bool,
+    /// Reused journal image. Cleared and rewritten on each commit.
+    encoded: Vec<u8>,
+}
+
+impl Groups {
+    /// Open or recover group state. The coordinator epoch starts at 0.
+    ///
+    /// The adjacent `<path>.checkpoint.tmp` name is reserved for atomic
+    /// checkpoint publication and must not be used by other applications.
+    pub fn open(path: impl AsRef<Path>, limits: Limits) -> Result<Self, Error> {
+        let (journal, _) = Journal::open(path, 0, limits.journal)?;
+        let mut groups = Self {
+            limits,
+            epoch: 0,
+            next_member: 1,
+            groups: BTreeMap::new(),
+            journal,
+            stored: 0,
+            poisoned: false,
+            encoded: Vec::new(),
+        };
+        let mut offset = groups.journal.base_offset();
+        loop {
+            let batch = groups.journal.fetch(
+                offset,
+                16.min(groups.limits.journal.max_index_entries()),
+                groups.limits.journal.max_fetch_bytes(),
+            )?;
+            if batch.is_empty() {
+                break;
+            }
+            for entry in batch {
+                if entry.record_count != 1 {
+                    return Err(Error::InvalidRequest);
+                }
+                if entry.payload.get(..8) == Some(CHECKPOINT_MAGIC.as_slice()) {
+                    if entry.first_offset != groups.journal.base_offset() || groups.stored != 0 {
+                        return Err(Error::InvalidRequest);
+                    }
+                    let (epoch, next_member, state) = decode(&entry.payload)?;
+                    validate_checkpoint(epoch, next_member, &state, groups.limits)?;
+                    groups.epoch = epoch;
+                    groups.next_member = next_member;
+                    groups.groups = state;
+                } else {
+                    groups.apply(&entry.payload)?;
+                }
+                groups.stored = groups.stored.saturating_add(1);
+                offset = entry
+                    .first_offset
+                    .checked_add(1)
+                    .ok_or(Error::InvalidRequest)?;
+            }
+        }
+        Ok(groups)
+    }
+
+    /// Current coordinator epoch.
+    pub fn epoch(&self) -> Result<i64, Error> {
+        self.ready()?;
+        Ok(self.epoch)
+    }
+
+    /// Current generation, if the group exists.
+    pub fn generation(&self, group: &str) -> Result<Option<i32>, Error> {
+        self.ready()?;
+        Ok(self.groups.get(group).map(|group| group.generation))
+    }
+
+    /// Partitions assigned to a member in the stable generation.
+    pub fn assignment(&self, group: &str, member: &str) -> Result<Option<&[i32]>, Error> {
+        self.ready()?;
+        Ok(self
+            .groups
+            .get(group)
+            .and_then(|group| group.members.get(member))
+            .filter(|member| member.synced)
+            .map(|member| member.assignment.as_slice()))
+    }
+
+    /// Move the coordinator lineage forward.
+    pub fn advance(&mut self, epoch: i64) -> Result<i64, Error> {
+        self.ready()?;
+        if epoch <= self.epoch {
+            return Err(Error::NotCoordinator);
+        }
+        self.epoch = epoch;
+        self.persist_all()?;
+        Ok(epoch)
+    }
+
+    /// Join `group` with `protocol`. An empty `member_id` allocates one.
+    pub fn join(
+        &mut self,
+        group_id: &str,
+        member_id: &str,
+        protocol: &str,
+        coordinator_epoch: i64,
+        now_ms: u64,
+    ) -> Result<Join, Error> {
+        self.ready()?;
+        self.require_coordinator(coordinator_epoch)?;
+        validate_name(group_id)?;
+        validate_name(protocol)?;
+        let fresh = member_id.is_empty();
+        let next_member = if fresh {
+            Some(
+                self.next_member
+                    .checked_add(1)
+                    .ok_or(Error::InvalidRequest)?,
+            )
+        } else {
+            validate_name(member_id)?;
+            None
+        };
+        let member_id = if fresh {
+            format!("m-{}", self.next_member)
+        } else {
+            member_id.to_owned()
+        };
+        let next_generation = match self.groups.get(group_id) {
+            Some(group) => {
+                let known = group.members.contains_key(&member_id);
+                if !fresh && !known {
+                    return Err(Error::UnknownMember);
+                }
+                if group.protocol != protocol {
+                    return Err(Error::InconsistentProtocol);
+                }
+                if fresh && known {
+                    return Err(Error::InvalidRequest);
+                }
+                if !known && group.members.len() >= self.limits.max_members {
+                    return Err(Error::InvalidLimits);
+                }
+                if !known || group.members.values().any(|member| member.synced) {
+                    Some(advance_epoch(group.generation)?)
+                } else {
+                    None
+                }
+            }
+            None if !fresh => return Err(Error::UnknownMember),
+            None if self.groups.len() >= usize::from(u16::MAX) => return Err(Error::InvalidLimits),
+            None => Some(1),
+        };
+        let group = super::occupy(&mut self.groups, group_id, || Group {
+            protocol: protocol.to_owned(),
+            generation: 0,
+            generation_started_ms: now_ms,
+            leader: String::new(),
+            members: BTreeMap::new(),
+        })
+        .ok_or(Error::InvalidRequest)?;
+        if let Some(generation) = next_generation {
+            group.generation = generation;
+            group.generation_started_ms = now_ms;
+            for member in group.members.values_mut() {
+                member.assignment.clear();
+                member.synced = false;
+                member.joined_generation = 0;
+            }
+        }
+        if let Some(next_member) = next_member {
+            self.next_member = next_member;
+        }
+        let last_seen_ms = group
+            .members
+            .get(&member_id)
+            .map(|member| later_seen(member.last_seen_ms, now_ms))
+            .unwrap_or(now_ms);
+        group.members.insert(
+            member_id.clone(),
+            Member {
+                joined_generation: group.generation,
+                last_seen_ms,
+                assignment: Vec::new(),
+                synced: false,
+            },
+        );
+        if group.leader.is_empty() || !group.members.contains_key(&group.leader) {
+            group.leader = member_id.clone();
+        }
+        let join = Join {
+            member_id,
+            generation: group.generation,
+            leader_id: group.leader.clone(),
+        };
+        self.persist_all()?;
+        Ok(join)
+    }
+
+    /// Publish the leader assignment or accept it as a follower.
+    ///
+    /// Followers pass an empty assignment. The leader's map must name every
+    /// current member and must not repeat a partition. A successful sync
+    /// refreshes the member session clock.
+    pub fn sync(
+        &mut self,
+        group_id: &str,
+        member_id: &str,
+        generation: i32,
+        coordinator_epoch: i64,
+        now_ms: u64,
+        assignment: &BTreeMap<String, Vec<i32>>,
+    ) -> Result<Vec<i32>, Error> {
+        self.ready()?;
+        self.require_coordinator(coordinator_epoch)?;
+        let Some(group) = self.groups.get(group_id) else {
+            return Err(Error::UnknownMember);
+        };
+        if generation != group.generation {
+            return Err(Error::IllegalGeneration);
+        }
+        if !group.members.contains_key(member_id) {
+            return Err(Error::UnknownMember);
+        }
+        if group
+            .members
+            .values()
+            .any(|member| member.joined_generation != generation)
+        {
+            return Err(Error::RebalanceInProgress);
+        }
+        if member_id != group.leader && !assignment.is_empty() {
+            return Err(Error::InvalidRequest);
+        }
+        if member_id != group.leader
+            && !group
+                .members
+                .get(&group.leader)
+                .is_some_and(|member| member.synced)
+        {
+            return Err(Error::RebalanceInProgress);
+        }
+        if member_id == group.leader
+            && !group
+                .members
+                .get(member_id)
+                .is_some_and(|member| member.synced)
+        {
+            validate_assignment(group, assignment)?;
+            let group = self.groups.get_mut(group_id).ok_or(Error::UnknownMember)?;
+            for (id, partitions) in assignment {
+                let member = group.members.get_mut(id).ok_or(Error::UnknownMember)?;
+                member.assignment = partitions.clone();
+            }
+        }
+        let group = self.groups.get_mut(group_id).ok_or(Error::UnknownMember)?;
+        let member = group
+            .members
+            .get_mut(member_id)
+            .ok_or(Error::UnknownMember)?;
+        member.synced = true;
+        member.last_seen_ms = later_seen(member.last_seen_ms, now_ms);
+        let owned = member.assignment.clone();
+        self.persist_all()?;
+        Ok(owned)
+    }
+
+    /// Refresh one member's session clock.
+    ///
+    /// A member who has joined the current generation must name that
+    /// generation. A member who is still in the group but has not joined the
+    /// new generation stays alive and is told the rebalance is in progress.
+    /// An unknown member does not move any clock.
+    pub fn heartbeat(
+        &mut self,
+        group_id: &str,
+        member_id: &str,
+        generation: i32,
+        coordinator_epoch: i64,
+        now_ms: u64,
+    ) -> Result<(), Error> {
+        self.ready()?;
+        self.require_coordinator(coordinator_epoch)?;
+        let Some(group) = self.groups.get_mut(group_id) else {
+            return Err(Error::UnknownMember);
+        };
+        let Some(member) = group.members.get_mut(member_id) else {
+            return Err(Error::UnknownMember);
+        };
+        if member.joined_generation == group.generation && generation != group.generation {
+            return Err(Error::IllegalGeneration);
+        }
+        let stable = member.joined_generation == group.generation;
+        member.last_seen_ms = later_seen(member.last_seen_ms, now_ms);
+        self.persist_all()?;
+        if stable {
+            Ok(())
+        } else {
+            Err(Error::RebalanceInProgress)
+        }
+    }
+
+    /// Remove one member and start a new generation.
+    ///
+    /// A member who has already joined the current generation must name that
+    /// generation. A member who has not joined it yet may still leave. The
+    /// remaining members lose the published assignment and must rejoin.
+    pub fn leave(
+        &mut self,
+        group_id: &str,
+        member_id: &str,
+        generation: i32,
+        coordinator_epoch: i64,
+        now_ms: u64,
+    ) -> Result<(), Error> {
+        self.ready()?;
+        self.require_coordinator(coordinator_epoch)?;
+        if member_id.is_empty() {
+            return Err(Error::InvalidRequest);
+        }
+        let empty = {
+            let Some(group) = self.groups.get_mut(group_id) else {
+                return Err(Error::UnknownMember);
+            };
+            let Some(member) = group.members.get(member_id) else {
+                return Err(Error::UnknownMember);
+            };
+            if member.joined_generation == group.generation && generation != group.generation {
+                return Err(Error::IllegalGeneration);
+            }
+            let generation = advance_epoch(group.generation)?;
+            group.members.remove(member_id);
+            group.generation = generation;
+            group.generation_started_ms = now_ms;
+            for member in group.members.values_mut() {
+                member.assignment.clear();
+                member.synced = false;
+                member.joined_generation = 0;
+            }
+            if !group.members.is_empty() && !group.members.contains_key(&group.leader) {
+                group.leader = group.members.keys().next().cloned().unwrap_or_default();
+            }
+            group.members.is_empty()
+        };
+        if empty {
+            self.groups.remove(group_id);
+        }
+        self.persist_all()?;
+        Ok(())
+    }
+
+    /// Remove members that have been silent longer than the session timeout.
+    pub fn expire(&mut self, now_ms: u64) -> Result<usize, Error> {
+        self.ready()?;
+        let timeout = self.limits.session_timeout_ms;
+        let mut removed = 0usize;
+        let ids: Vec<String> = self.groups.keys().cloned().collect();
+        for id in &ids {
+            let Some(group) = self.groups.get(id) else {
+                continue;
+            };
+            let stale = stale_member_ids(group, now_ms, timeout);
+            if !stale.is_empty() && stale.len() != group.members.len() {
+                let _generation = advance_epoch(group.generation)?;
+            }
+        }
+        for id in ids {
+            let empty = {
+                let Some(group) = self.groups.get_mut(&id) else {
+                    continue;
+                };
+                let stale = stale_member_ids(group, now_ms, timeout);
+                if stale.is_empty() {
+                    false
+                } else {
+                    for member_id in stale {
+                        group.members.remove(&member_id);
+                        removed = removed.saturating_add(1);
+                    }
+                    if !group.members.is_empty() {
+                        group.generation = advance_epoch(group.generation)?;
+                        group.generation_started_ms = now_ms;
+                        for member in group.members.values_mut() {
+                            member.assignment.clear();
+                            member.synced = false;
+                            member.joined_generation = 0;
+                        }
+                        if !group.members.contains_key(&group.leader) {
+                            group.leader = group.members.keys().next().cloned().unwrap_or_default();
+                        }
+                    }
+                    group.members.is_empty()
+                }
+            };
+            if empty {
+                self.groups.remove(&id);
+            }
+        }
+        if removed > 0 {
+            self.persist_all()?;
+        }
+        Ok(removed)
+    }
+
+    fn require_coordinator(&self, epoch: i64) -> Result<(), Error> {
+        if epoch == self.epoch {
+            Ok(())
+        } else {
+            Err(Error::NotCoordinator)
+        }
+    }
+
+    fn ready(&self) -> Result<(), Error> {
+        if self.poisoned || self.journal.is_poisoned() {
+            Err(Error::Poisoned)
+        } else {
+            Ok(())
+        }
+    }
+
+    fn persist_all(&mut self) -> Result<(), Error> {
+        let mut payload = std::mem::take(&mut self.encoded);
+        let result = (|| {
+            let length = encoded_len(&self.groups)?;
+            if length > self.limits.journal.max_entry_bytes()
+                || length
+                    .checked_add(std::mem::size_of::<journal::Entry>())
+                    .is_none_or(|size| size > self.limits.journal.max_fetch_bytes())
+            {
+                return Err(Error::InvalidLimits);
+            }
+            payload.clear();
+            payload
+                .try_reserve_exact(length)
+                .map_err(|_| Error::InvalidLimits)?;
+            encode_into(self.epoch, self.next_member, &self.groups, &mut payload)?;
+            debug_assert_eq!(payload.len(), length);
+            let rollover = self.stored >= self.limits.max_records
+                || !self.journal.can_append_snapshot(payload.len());
+            if rollover {
+                payload[..8].copy_from_slice(CHECKPOINT_MAGIC);
+                let result = self.journal.replace_with_snapshot(&payload);
+                payload[..8].copy_from_slice(RECORD_MAGIC);
+                result?;
+                self.stored = 1;
+            } else {
+                self.journal.append(1, &payload)?;
+                self.stored = self.stored.saturating_add(1);
+            }
+            Ok(())
+        })();
+        self.encoded = payload;
+        if result.is_err() {
+            self.poisoned = true;
+        }
+        result
+    }
+
+    fn apply(&mut self, bytes: &[u8]) -> Result<(), Error> {
+        let (epoch, next_member, groups) = decode(bytes)?;
+        validate_checkpoint(epoch, next_member, &groups, self.limits)?;
+        if epoch < self.epoch
+            || (next_member != self.next_member
+                && self.next_member.checked_add(1) != Some(next_member))
+        {
+            return Err(Error::InvalidRequest);
+        }
+        for (id, group) in &groups {
+            match self.groups.get(id) {
+                None => {
+                    if group.generation != 1 {
+                        return Err(Error::InvalidRequest);
+                    }
+                }
+                Some(previous) => {
+                    if group.protocol != previous.protocol
+                        || (group.generation != previous.generation
+                            && previous.generation.checked_add(1) != Some(group.generation))
+                    {
+                        return Err(Error::InvalidRequest);
+                    }
+                }
+            }
+        }
+        self.epoch = epoch;
+        self.next_member = next_member;
+        self.groups = groups;
+        Ok(())
+    }
+}
+
+fn advance_epoch(epoch: i32) -> Result<i32, Error> {
+    epoch.checked_add(1).ok_or(Error::InvalidRequest)
+}
+
+fn stale_member_ids(group: &Group, now_ms: u64, timeout: u64) -> Vec<String> {
+    let started = group.generation_started_ms;
+    let generation = group.generation;
+    group
+        .members
+        .iter()
+        .filter(|(_, member)| {
+            let session = now_ms.saturating_sub(member.last_seen_ms) > timeout;
+            let rebalance =
+                member.joined_generation != generation && now_ms.saturating_sub(started) > timeout;
+            session || rebalance
+        })
+        .map(|(member_id, _)| member_id.clone())
+        .collect()
+}
+
+fn later_seen(current: u64, now_ms: u64) -> u64 {
+    current.max(now_ms)
+}
+
+fn validate_checkpoint(
+    epoch: i64,
+    next_member: u64,
+    groups: &BTreeMap<String, Group>,
+    limits: Limits,
+) -> Result<(), Error> {
+    if epoch < 0 || next_member == 0 {
+        return Err(Error::InvalidRequest);
+    }
+    let mut ids = BTreeSet::new();
+    for group in groups.values() {
+        if group.generation < 1 || group.members.len() > limits.max_members {
+            return Err(Error::InvalidRequest);
+        }
+        for (id, member) in &group.members {
+            let number = id
+                .strip_prefix("m-")
+                .and_then(|number| number.parse::<u64>().ok());
+            if number.is_none_or(|number| {
+                number == 0 || number >= next_member || format!("m-{number}") != *id
+            }) || !ids.insert(id.as_str())
+                || (member.joined_generation != 0 && member.joined_generation != group.generation)
+                || (member.synced && member.joined_generation != group.generation)
+                || (member.joined_generation == 0 && !member.assignment.is_empty())
+            {
+                return Err(Error::InvalidRequest);
+            }
+        }
+        if group.members.values().any(|member| member.synced)
+            && !group
+                .members
+                .get(&group.leader)
+                .is_some_and(|leader| leader.synced)
+        {
+            return Err(Error::InvalidRequest);
+        }
+    }
+    Ok(())
+}
+
+fn validate_recovered(id: &str, group: &Group) -> Result<(), Error> {
+    validate_name(id)?;
+    validate_name(&group.protocol)?;
+    if group.members.is_empty() || !group.members.contains_key(&group.leader) {
+        return Err(Error::InvalidRequest);
+    }
+    validate_name(&group.leader)?;
+    let mut seen = BTreeSet::new();
+    for (member_id, member) in &group.members {
+        validate_name(member_id)?;
+        for partition in &member.assignment {
+            if *partition < 0 || !seen.insert(*partition) {
+                return Err(Error::InvalidRequest);
+            }
+        }
+    }
+    Ok(())
+}
+
+fn validate_name(name: &str) -> Result<(), Error> {
+    if name.is_empty() || name.len() > 249 || name.chars().any(|c| c.is_control()) {
+        Err(Error::InvalidRequest)
+    } else {
+        Ok(())
+    }
+}
+
+fn validate_assignment(
+    group: &Group,
+    assignment: &BTreeMap<String, Vec<i32>>,
+) -> Result<(), Error> {
+    if assignment.len() != group.members.len() {
+        return Err(Error::InvalidRequest);
+    }
+    let mut seen = BTreeSet::new();
+    for (member, partitions) in assignment {
+        if !group.members.contains_key(member) {
+            return Err(Error::UnknownMember);
+        }
+        if partitions.len() > usize::from(u16::MAX) {
+            return Err(Error::InvalidLimits);
+        }
+        for partition in partitions {
+            if *partition < 0 || !seen.insert(*partition) {
+                return Err(Error::InvalidRequest);
+            }
+        }
+    }
+    Ok(())
+}
+
+#[cfg(test)]
+fn encode(
+    epoch: i64,
+    next_member: u64,
+    groups: &BTreeMap<String, Group>,
+) -> Result<Vec<u8>, Error> {
+    let mut bytes = Vec::new();
+    encode_into(epoch, next_member, groups, &mut bytes)?;
+    Ok(bytes)
+}
+
+fn encoded_len(groups: &BTreeMap<String, Group>) -> Result<usize, Error> {
+    let _ = u16::try_from(groups.len()).map_err(|_| Error::InvalidRequest)?;
+    let mut len = RECORD_MAGIC.len() + 8 + 8 + 2;
+    for (id, group) in groups {
+        let _ = u16::try_from(id.len()).map_err(|_| Error::InvalidRequest)?;
+        let _ = u16::try_from(group.protocol.len()).map_err(|_| Error::InvalidRequest)?;
+        let _ = u16::try_from(group.leader.len()).map_err(|_| Error::InvalidRequest)?;
+        let _ = u16::try_from(group.members.len()).map_err(|_| Error::InvalidRequest)?;
+        len = len
+            .checked_add(
+                2 + id.len() + 2 + group.protocol.len() + 4 + 8 + 2 + group.leader.len() + 2,
+            )
+            .ok_or(Error::InvalidLimits)?;
+        for (id, member) in &group.members {
+            let _ = u16::try_from(id.len()).map_err(|_| Error::InvalidRequest)?;
+            let _ = u16::try_from(member.assignment.len()).map_err(|_| Error::InvalidRequest)?;
+            let assignment_bytes = member
+                .assignment
+                .len()
+                .checked_mul(4)
+                .ok_or(Error::InvalidLimits)?;
+            len = len
+                .checked_add(2 + id.len() + 4 + 8 + 1 + 2)
+                .and_then(|len| len.checked_add(assignment_bytes))
+                .ok_or(Error::InvalidLimits)?;
+        }
+    }
+    Ok(len)
+}
+
+fn encode_into(
+    epoch: i64,
+    next_member: u64,
+    groups: &BTreeMap<String, Group>,
+    bytes: &mut Vec<u8>,
+) -> Result<(), Error> {
+    bytes.clear();
+    bytes.extend_from_slice(RECORD_MAGIC);
+    bytes.extend_from_slice(&epoch.to_be_bytes());
+    bytes.extend_from_slice(&next_member.to_be_bytes());
+    put_u16(bytes, groups.len())?;
+    for (id, group) in groups {
+        put_str(bytes, id)?;
+        put_str(bytes, &group.protocol)?;
+        bytes.extend_from_slice(&group.generation.to_be_bytes());
+        bytes.extend_from_slice(&group.generation_started_ms.to_be_bytes());
+        put_str(bytes, &group.leader)?;
+        put_u16(bytes, group.members.len())?;
+        for (member_id, member) in &group.members {
+            put_str(bytes, member_id)?;
+            bytes.extend_from_slice(&member.joined_generation.to_be_bytes());
+            bytes.extend_from_slice(&member.last_seen_ms.to_be_bytes());
+            bytes.push(u8::from(member.synced));
+            put_u16(bytes, member.assignment.len())?;
+            for partition in &member.assignment {
+                bytes.extend_from_slice(&partition.to_be_bytes());
+            }
+        }
+    }
+    Ok(())
+}
+
+fn decode(mut bytes: &[u8]) -> Result<(i64, u64, BTreeMap<String, Group>), Error> {
+    if bytes.len() < RECORD_MAGIC.len()
+        || (&bytes[..RECORD_MAGIC.len()] != RECORD_MAGIC
+            && &bytes[..RECORD_MAGIC.len()] != CHECKPOINT_MAGIC)
+    {
+        return Err(Error::InvalidRequest);
+    }
+    bytes = &bytes[RECORD_MAGIC.len()..];
+    let epoch = take_i64(&mut bytes)?;
+    let next_member = take_u64(&mut bytes)?;
+    let group_count = take_u16(&mut bytes)?;
+    let mut groups = BTreeMap::new();
+    for _ in 0..group_count {
+        let id = take_str(&mut bytes)?;
+        let protocol = take_str(&mut bytes)?;
+        let generation = take_i32(&mut bytes)?;
+        let generation_started_ms = take_u64(&mut bytes)?;
+        let leader = take_str(&mut bytes)?;
+        let member_count = take_u16(&mut bytes)?;
+        let mut members = BTreeMap::new();
+        for _ in 0..member_count {
+            let member_id = take_str(&mut bytes)?;
+            let joined_generation = take_i32(&mut bytes)?;
+            let last_seen_ms = take_u64(&mut bytes)?;
+            let synced_byte = take_u8(&mut bytes)?;
+            let assignment_len = take_u16(&mut bytes)?;
+            if assignment_len > bytes.len() / 4 {
+                return Err(Error::InvalidRequest);
+            }
+            let mut assignment = Vec::new();
+            assignment
+                .try_reserve_exact(assignment_len)
+                .map_err(|_| Error::InvalidLimits)?;
+            for _ in 0..assignment_len {
+                assignment.push(take_i32(&mut bytes)?);
+            }
+            if synced_byte > 1 {
+                return Err(Error::InvalidRequest);
+            }
+            if members
+                .insert(
+                    member_id,
+                    Member {
+                        joined_generation,
+                        last_seen_ms,
+                        assignment,
+                        synced: synced_byte == 1,
+                    },
+                )
+                .is_some()
+            {
+                return Err(Error::InvalidRequest);
+            }
+        }
+        let group = Group {
+            protocol,
+            generation,
+            generation_started_ms,
+            leader,
+            members,
+        };
+        validate_recovered(&id, &group)?;
+        if groups.insert(id, group).is_some() {
+            return Err(Error::InvalidRequest);
+        }
+    }
+    if !bytes.is_empty() {
+        return Err(Error::InvalidRequest);
+    }
+    Ok((epoch, next_member, groups))
+}
+
+fn put_str(bytes: &mut Vec<u8>, value: &str) -> Result<(), Error> {
+    put_u16(bytes, value.len())?;
+    bytes.extend_from_slice(value.as_bytes());
+    Ok(())
+}
+
+fn put_u16(bytes: &mut Vec<u8>, value: usize) -> Result<(), Error> {
+    let value = u16::try_from(value).map_err(|_| Error::InvalidRequest)?;
+    bytes.extend_from_slice(&value.to_be_bytes());
+    Ok(())
+}
+
+fn take<'a>(input: &mut &'a [u8], len: usize) -> Result<&'a [u8], Error> {
+    if input.len() < len {
+        return Err(Error::InvalidRequest);
+    }
+    let (head, tail) = input.split_at(len);
+    *input = tail;
+    Ok(head)
+}
+
+fn take_u16(input: &mut &[u8]) -> Result<usize, Error> {
+    Ok(usize::from(u16::from_be_bytes(
+        take(input, 2)?
+            .try_into()
+            .map_err(|_| Error::InvalidRequest)?,
+    )))
+}
+
+fn take_str(input: &mut &[u8]) -> Result<String, Error> {
+    let len = take_u16(input)?;
+    let bytes = take(input, len)?;
+    std::str::from_utf8(bytes)
+        .map(|text| text.to_owned())
+        .map_err(|_| Error::InvalidRequest)
+}
+
+fn take_i64(input: &mut &[u8]) -> Result<i64, Error> {
+    let mut value = [0u8; 8];
+    value.copy_from_slice(take(input, 8)?);
+    Ok(i64::from_be_bytes(value))
+}
+
+fn take_u64(input: &mut &[u8]) -> Result<u64, Error> {
+    let mut value = [0u8; 8];
+    value.copy_from_slice(take(input, 8)?);
+    Ok(u64::from_be_bytes(value))
+}
+
+fn take_i32(input: &mut &[u8]) -> Result<i32, Error> {
+    let mut value = [0u8; 4];
+    value.copy_from_slice(take(input, 4)?);
+    Ok(i32::from_be_bytes(value))
+}
+
+fn take_u8(input: &mut &[u8]) -> Result<u8, Error> {
+    Ok(take(input, 1)?[0])
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::time::{SystemTime, UNIX_EPOCH};
+
+    fn limits() -> Limits {
+        let journal = journal::Limits::new(4096, 1 << 20, 100, 1 << 20)
+            .unwrap_or_else(|_| panic!("journal limits"));
+        Limits::new(8, 1_000, 32, journal).unwrap_or_else(|_| panic!("group limits"))
+    }
+
+    fn open(name: &str) -> (Groups, std::path::PathBuf) {
+        let nanos = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_nanos();
+        let path = std::env::temp_dir().join(format!("pl-group-{name}-{nanos}"));
+        let groups = Groups::open(&path, limits()).unwrap_or_else(|error| panic!("{error:?}"));
+        (groups, path)
+    }
+
+    #[test]
+    fn a_member_counter_or_generation_jump_is_not_recovered() {
+        let (mut groups, _) = open("jump");
+        let mut members = BTreeMap::new();
+        members.insert(
+            "m-1".to_owned(),
+            Member {
+                joined_generation: 4,
+                last_seen_ms: 0,
+                assignment: Vec::new(),
+                synced: false,
+            },
+        );
+        let group = Group {
+            protocol: "range".to_owned(),
+            generation: 4,
+            generation_started_ms: 0,
+            leader: "m-1".to_owned(),
+            members,
+        };
+        let mut stored = BTreeMap::new();
+        stored.insert("orders".to_owned(), group);
+        let encoded = encode(0, 2, &stored).unwrap_or_else(|error| panic!("{error:?}"));
+        assert!(matches!(groups.apply(&encoded), Err(Error::InvalidRequest)));
+        let mut members = BTreeMap::new();
+        members.insert(
+            "m-1".to_owned(),
+            Member {
+                joined_generation: 1,
+                last_seen_ms: 0,
+                assignment: Vec::new(),
+                synced: false,
+            },
+        );
+        let group = Group {
+            protocol: "range".to_owned(),
+            generation: 1,
+            generation_started_ms: 0,
+            leader: "m-1".to_owned(),
+            members,
+        };
+        let mut stored = BTreeMap::new();
+        stored.insert("orders".to_owned(), group);
+        let encoded = encode(0, 9, &stored).unwrap_or_else(|error| panic!("{error:?}"));
+        assert!(matches!(groups.apply(&encoded), Err(Error::InvalidRequest)));
+        assert!(groups.groups.is_empty());
+        assert_eq!(groups.next_member, 1);
+    }
+
+    #[test]
+    fn a_negative_or_repeated_assignment_is_not_recovered() {
+        let mut members = BTreeMap::new();
+        members.insert(
+            "m-1".to_owned(),
+            Member {
+                joined_generation: 1,
+                last_seen_ms: 0,
+                assignment: vec![-1],
+                synced: true,
+            },
+        );
+        let group = Group {
+            protocol: "range".to_owned(),
+            generation: 1,
+            generation_started_ms: 0,
+            leader: "m-1".to_owned(),
+            members,
+        };
+        let mut groups = BTreeMap::new();
+        groups.insert("orders".to_owned(), group);
+        let encoded = encode(0, 2, &groups).unwrap_or_else(|error| panic!("{error:?}"));
+        assert!(matches!(decode(&encoded), Err(Error::InvalidRequest)));
+        let mut members = BTreeMap::new();
+        members.insert(
+            "m-1".to_owned(),
+            Member {
+                joined_generation: 1,
+                last_seen_ms: 0,
+                assignment: vec![0],
+                synced: true,
+            },
+        );
+        members.insert(
+            "m-2".to_owned(),
+            Member {
+                joined_generation: 1,
+                last_seen_ms: 0,
+                assignment: vec![0],
+                synced: true,
+            },
+        );
+        let group = Group {
+            protocol: "range".to_owned(),
+            generation: 1,
+            generation_started_ms: 0,
+            leader: "m-1".to_owned(),
+            members,
+        };
+        let mut groups = BTreeMap::new();
+        groups.insert("orders".to_owned(), group);
+        let encoded = encode(0, 3, &groups).unwrap_or_else(|error| panic!("{error:?}"));
+        assert!(matches!(decode(&encoded), Err(Error::InvalidRequest)));
+    }
+
+    #[test]
+    fn two_members_receive_disjoint_assignments_that_survive_failover() {
+        let (mut groups, path) = open("join");
+        let leader = groups
+            .join("orders", "", "range", 0, 0)
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        let follower = groups
+            .join("orders", "", "range", 0, 0)
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        let leader = groups
+            .join("orders", &leader.member_id, "range", 0, 0)
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        assert_eq!(leader.generation, follower.generation);
+        assert_eq!(follower.leader_id, leader.member_id);
+        let mut assignment = BTreeMap::new();
+        assignment.insert(leader.member_id.clone(), vec![0, 1]);
+        assignment.insert(follower.member_id.clone(), vec![2]);
+        assert!(matches!(
+            groups.sync(
+                "orders",
+                &follower.member_id,
+                leader.generation,
+                0,
+                0,
+                &assignment
+            ),
+            Err(Error::InvalidRequest)
+        ));
+        assert!(matches!(
+            groups.sync(
+                "orders",
+                &follower.member_id,
+                leader.generation,
+                0,
+                0,
+                &BTreeMap::new(),
+            ),
+            Err(Error::RebalanceInProgress)
+        ));
+        let owned = groups
+            .sync(
+                "orders",
+                &leader.member_id,
+                leader.generation,
+                0,
+                0,
+                &assignment,
+            )
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        assert_eq!(owned, vec![0, 1]);
+        let mut rewritten = assignment.clone();
+        rewritten
+            .get_mut(&leader.member_id)
+            .unwrap_or_else(|| panic!("leader assignment"))
+            .push(9);
+        let again = groups
+            .sync(
+                "orders",
+                &leader.member_id,
+                leader.generation,
+                0,
+                0,
+                &rewritten,
+            )
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        assert_eq!(again, vec![0, 1]);
+        let followed = groups
+            .sync(
+                "orders",
+                &follower.member_id,
+                follower.generation,
+                0,
+                0,
+                &BTreeMap::new(),
+            )
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        assert_eq!(followed, vec![2]);
+        groups
+            .advance(1)
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        assert!(matches!(
+            groups.sync(
+                "orders",
+                &leader.member_id,
+                leader.generation,
+                0,
+                0,
+                &assignment
+            ),
+            Err(Error::NotCoordinator)
+        ));
+        drop(groups);
+        let restored = Groups::open(&path, limits()).unwrap_or_else(|error| panic!("{error:?}"));
+        assert_eq!(restored.epoch().unwrap(), 1);
+        assert_eq!(
+            restored.assignment("orders", &leader.member_id).unwrap(),
+            Some(&[0, 1][..])
+        );
+        assert_eq!(
+            restored.assignment("orders", &follower.member_id).unwrap(),
+            Some(&[2][..])
+        );
+    }
+
+    #[test]
+    fn leave_drops_one_member_and_revokes_the_generation() {
+        let (mut groups, _) = open("leave");
+        let leader = groups
+            .join("orders", "", "range", 0, 0)
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        let follower = groups
+            .join("orders", "", "range", 0, 0)
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        let leader = groups
+            .join("orders", &leader.member_id, "range", 0, 0)
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        let mut assignment = BTreeMap::new();
+        assignment.insert(leader.member_id.clone(), vec![0]);
+        assignment.insert(follower.member_id.clone(), vec![1]);
+        groups
+            .sync(
+                "orders",
+                &leader.member_id,
+                leader.generation,
+                0,
+                0,
+                &assignment,
+            )
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        assert!(matches!(
+            groups.leave("orders", &follower.member_id, leader.generation + 1, 0, 0),
+            Err(Error::IllegalGeneration)
+        ));
+        let followed = groups
+            .sync(
+                "orders",
+                &follower.member_id,
+                leader.generation,
+                0,
+                0,
+                &BTreeMap::new(),
+            )
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        assert_eq!(followed, vec![1]);
+        assert_eq!(
+            groups.assignment("orders", &follower.member_id).unwrap(),
+            Some(&[1][..])
+        );
+        groups
+            .leave("orders", &follower.member_id, leader.generation, 0, 0)
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        assert!(groups
+            .assignment("orders", &follower.member_id)
+            .unwrap()
+            .is_none());
+        assert_eq!(
+            groups.generation("orders").unwrap(),
+            Some(leader.generation + 1)
+        );
+        assert!(groups
+            .assignment("orders", &leader.member_id)
+            .unwrap()
+            .is_none());
+        assert!(matches!(
+            groups.sync(
+                "orders",
+                &leader.member_id,
+                leader.generation,
+                0,
+                0,
+                &assignment,
+            ),
+            Err(Error::IllegalGeneration)
+        ));
+        groups
+            .leave("orders", &leader.member_id, leader.generation + 1, 0, 0)
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        assert_eq!(groups.generation("orders").unwrap(), None);
+    }
+
+    #[test]
+    fn sync_holds_the_session_until_the_new_clock() {
+        let (mut groups, _) = open("sync-session");
+        let leader = groups
+            .join("orders", "", "range", 0, 0)
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        let mut assignment = BTreeMap::new();
+        assignment.insert(leader.member_id.clone(), vec![0]);
+        groups
+            .sync(
+                "orders",
+                &leader.member_id,
+                leader.generation,
+                0,
+                1_000,
+                &assignment,
+            )
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        assert_eq!(groups.expire(1_001).unwrap_or(99), 0);
+        assert_eq!(groups.expire(2_001).unwrap_or(99), 1);
+    }
+
+    #[test]
+    fn heartbeat_during_rebalance_keeps_the_member() {
+        let (mut groups, _) = open("rebalance-heartbeat");
+        let leader = groups
+            .join("orders", "", "range", 0, 0)
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        let _follower = groups
+            .join("orders", "", "range", 0, 0)
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        assert!(matches!(
+            groups.heartbeat("orders", &leader.member_id, leader.generation, 0, 400),
+            Err(Error::RebalanceInProgress)
+        ));
+        assert_eq!(groups.expire(500).unwrap_or(99), 0);
+        assert_eq!(groups.expire(1_001).unwrap_or(99), 2);
+        assert!(matches!(
+            groups.heartbeat("orders", &leader.member_id, leader.generation, 0, 1_500),
+            Err(Error::UnknownMember)
+        ));
+        assert!(matches!(
+            groups.heartbeat("orders", "gone", leader.generation, 0, 1_500),
+            Err(Error::UnknownMember)
+        ));
+    }
+
+    #[test]
+    fn an_older_clock_does_not_shorten_the_session() {
+        let (mut groups, _) = open("clock");
+        let leader = groups
+            .join("orders", "", "range", 0, 5_000)
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        groups
+            .heartbeat("orders", &leader.member_id, leader.generation, 0, 1)
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        assert_eq!(groups.expire(5_001).unwrap_or(99), 0);
+        groups
+            .join("orders", &leader.member_id, "range", 0, 0)
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        assert_eq!(groups.expire(5_001).unwrap_or(99), 0);
+        assert_eq!(groups.expire(6_001).unwrap_or(99), 1);
+    }
+
+    #[test]
+    fn heartbeat_holds_the_session_and_a_stale_generation_does_not() {
+        let (mut groups, _) = open("heartbeat");
+        let leader = groups
+            .join("orders", "", "range", 0, 0)
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        let encoded_capacity = groups.encoded.capacity();
+        assert!(encoded_capacity > 0);
+        groups
+            .heartbeat("orders", &leader.member_id, leader.generation, 0, 1_000)
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        assert!(groups.encoded.capacity() >= encoded_capacity);
+        assert_eq!(groups.expire(1_001).unwrap_or(99), 0);
+        assert!(matches!(
+            groups.heartbeat("orders", &leader.member_id, leader.generation + 1, 0, 1_500),
+            Err(Error::IllegalGeneration)
+        ));
+        assert_eq!(groups.expire(1_501).unwrap_or(99), 0);
+        assert_eq!(groups.expire(2_001).unwrap_or(99), 1);
+        assert!(groups
+            .assignment("orders", &leader.member_id)
+            .unwrap()
+            .is_none());
+    }
+
+    #[test]
+    fn timeout_revokes_ownership_and_a_stale_generation_cannot_sync() {
+        let (mut groups, _) = open("timeout");
+        let leader = groups
+            .join("orders", "", "range", 0, 0)
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        let follower = groups
+            .join("orders", "", "range", 0, 10)
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        assert_eq!(groups.expire(1_001).unwrap_or(99), 1);
+        assert!(matches!(
+            groups.sync(
+                "orders",
+                &leader.member_id,
+                leader.generation,
+                0,
+                0,
+                &BTreeMap::new()
+            ),
+            Err(Error::IllegalGeneration)
+        ));
+        assert_eq!(
+            groups.generation("orders").unwrap(),
+            Some(follower.generation + 1)
+        );
+        assert!(groups
+            .assignment("orders", &leader.member_id)
+            .unwrap()
+            .is_none());
+        assert!(matches!(
+            groups.join("orders", "ghost", "range", 0, 2_000),
+            Err(Error::UnknownMember)
+        ));
+    }
+
+    #[test]
+    fn a_generation_at_i32_max_does_not_accept_another_member() {
+        let (mut groups, _) = open("generation-max");
+        let leader = groups
+            .join("orders", "", "range", 0, 0)
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        groups
+            .groups
+            .get_mut("orders")
+            .unwrap_or_else(|| panic!("group"))
+            .generation = i32::MAX;
+        assert!(matches!(
+            groups.join("orders", "", "range", 0, 1),
+            Err(Error::InvalidRequest)
+        ));
+        let group = groups
+            .groups
+            .get("orders")
+            .unwrap_or_else(|| panic!("group"));
+        assert_eq!(group.generation, i32::MAX);
+        assert_eq!(group.members.len(), 1);
+        assert!(group.members.contains_key(&leader.member_id));
+    }
+    #[test]
+    fn rejected_fresh_joins_do_not_consume_member_ids_or_break_recovery() {
+        let journal = journal::Limits::new(4096, 1 << 20, 32, 1 << 20).unwrap();
+        let limits = Limits::new(1, 1_000, 32, journal).unwrap();
+        let (_, path) = open("rejected-joins");
+        let mut groups = Groups::open(&path, limits).unwrap();
+        let first = groups.join("one", "", "range", 0, 0).unwrap();
+        assert!(matches!(
+            groups.join("one", "unknown", "other", 0, 1),
+            Err(Error::UnknownMember)
+        ));
+        assert!(matches!(
+            groups.join("one", "", "other", 0, 1),
+            Err(Error::InconsistentProtocol)
+        ));
+        assert!(matches!(
+            groups.join("one", "", "range", 0, 1),
+            Err(Error::InvalidLimits)
+        ));
+        assert_eq!(groups.next_member, 2);
+        let second = groups.join("two", "", "range", 0, 1).unwrap();
+        assert_eq!(first.member_id, "m-1");
+        assert_eq!(second.member_id, "m-2");
+        drop(groups);
+        let mut groups = Groups::open(&path, limits).unwrap();
+        assert_eq!(groups.generation("one").unwrap(), Some(1));
+        assert_eq!(groups.generation("two").unwrap(), Some(1));
+        let third = groups.join("three", "", "range", 0, 2).unwrap();
+        assert_eq!(third.member_id, "m-3");
+        drop(groups);
+        let _ = std::fs::remove_file(path);
+    }
+
+    #[test]
+    fn member_id_exhaustion_is_rejected_without_mutation() {
+        let (mut groups, path) = open("member-id-exhaustion");
+        groups.next_member = u64::MAX;
+        assert!(matches!(
+            groups.join("one", "", "range", 0, 0),
+            Err(Error::InvalidRequest)
+        ));
+        assert!(groups.groups.is_empty());
+        assert_eq!(groups.next_member, u64::MAX);
+        drop(groups);
+        let _ = std::fs::remove_file(path);
+    }
+
+    #[test]
+    fn checkpoints_preserve_classic_groups_through_repeated_reopen() {
+        for (file_bytes, index_entries, max_records) in
+            [(1 << 20, 2, 2), (1 << 20, 100, 2), (512, 100, 100)]
+        {
+            let journal = journal::Limits::new(4096, file_bytes, index_entries, 1 << 20).unwrap();
+            let limits = Limits::new(8, 1_000, max_records, journal).unwrap();
+            let (_, path) = open("classic-checkpoint");
+            let mut groups = Groups::open(&path, limits).unwrap();
+            groups.advance(1).unwrap();
+            let leader = groups.join("one", "", "range", 1, 0).unwrap();
+            let follower = groups.join("one", "", "range", 1, 0).unwrap();
+            let leader = groups
+                .join("one", &leader.member_id, "range", 1, 0)
+                .unwrap();
+            let assignment = BTreeMap::from([
+                (leader.member_id.clone(), vec![0]),
+                (follower.member_id.clone(), vec![1]),
+            ]);
+            groups
+                .sync(
+                    "one",
+                    &leader.member_id,
+                    leader.generation,
+                    1,
+                    0,
+                    &assignment,
+                )
+                .unwrap();
+            groups
+                .sync(
+                    "one",
+                    &follower.member_id,
+                    leader.generation,
+                    1,
+                    0,
+                    &BTreeMap::new(),
+                )
+                .unwrap();
+            let other = groups.join("two", "", "range", 1, 0).unwrap();
+            for now in 1..=25 {
+                groups
+                    .heartbeat("one", &leader.member_id, leader.generation, 1, now)
+                    .unwrap();
+                groups
+                    .heartbeat("one", &follower.member_id, leader.generation, 1, now)
+                    .unwrap();
+                assert!(groups.journal.entry_count() <= index_entries.min(max_records));
+                assert!(groups.journal.file_bytes() <= file_bytes);
+                if now % 5 == 0 {
+                    drop(groups);
+                    groups = Groups::open(&path, limits).unwrap();
+                    assert_eq!(groups.epoch().unwrap(), 1);
+                    assert_eq!(groups.generation("one").unwrap(), Some(leader.generation));
+                    assert_eq!(
+                        groups.assignment("one", &leader.member_id).unwrap(),
+                        Some(&[0][..])
+                    );
+                    assert_eq!(
+                        groups.assignment("one", &follower.member_id).unwrap(),
+                        Some(&[1][..])
+                    );
+                    assert_eq!(groups.generation("two").unwrap(), Some(other.generation));
+                }
+            }
+            let next = groups.join("three", "", "range", 1, 25).unwrap();
+            assert_eq!(next.member_id, "m-4");
+            drop(groups);
+            let groups = Groups::open(&path, limits).unwrap();
+            assert_eq!(groups.generation("three").unwrap(), Some(1));
+            drop(groups);
+            let _ = std::fs::remove_file(path);
+        }
+    }
+
+    #[test]
+    fn checkpoint_recovery_rejects_invalid_state_and_late_checkpoints() {
+        let (mut groups, path) = open("classic-checkpoint-position");
+        groups.join("one", "", "range", 0, 0).unwrap();
+        let mut image = encode(groups.epoch, groups.next_member, &groups.groups).unwrap();
+        image[..8].copy_from_slice(CHECKPOINT_MAGIC);
+        groups.journal.append(1, &image).unwrap();
+        drop(groups);
+        assert!(matches!(
+            Groups::open(&path, limits()),
+            Err(Error::InvalidRequest)
+        ));
+        let _ = std::fs::remove_file(path);
+        for invalid in ["epoch", "counter", "generation", "member", "synced"] {
+            let (mut groups, path) = open("classic-checkpoint-invalid");
+            let joined = groups.join("one", "", "range", 0, 0).unwrap();
+            match invalid {
+                "epoch" => groups.epoch = -1,
+                "counter" => groups.next_member = 1,
+                "generation" => groups.groups.get_mut("one").unwrap().generation = 0,
+                "member" => {
+                    let group = groups.groups.get_mut("one").unwrap();
+                    let member = group.members.remove(&joined.member_id).unwrap();
+                    group.leader = "bad".to_owned();
+                    group.members.insert("bad".to_owned(), member);
+                }
+                "synced" => {
+                    let member = groups
+                        .groups
+                        .get_mut("one")
+                        .unwrap()
+                        .members
+                        .get_mut(&joined.member_id)
+                        .unwrap();
+                    member.synced = true;
+                    member.joined_generation = 0;
+                }
+                _ => unreachable!(),
+            }
+            let mut image = encode(groups.epoch, groups.next_member, &groups.groups).unwrap();
+            image[..8].copy_from_slice(CHECKPOINT_MAGIC);
+            groups.journal.replace_with_snapshot(&image).unwrap();
+            drop(groups);
+            assert!(
+                matches!(Groups::open(&path, limits()), Err(Error::InvalidRequest)),
+                "{invalid}"
+            );
+            let _ = std::fs::remove_file(path);
+        }
+    }
+
+    #[test]
+    fn checkpoint_failures_block_all_reads_until_recovery() {
+        for phase in ["prepared", "renamed"] {
+            let journal = journal::Limits::new(4096, 1 << 20, 1, 1 << 20).unwrap();
+            let limits = Limits::new(8, 1_000, 1, journal).unwrap();
+            let (_, path) = open("classic-checkpoint-fail");
+            let mut groups = Groups::open(&path, limits).unwrap();
+            let leader = groups.join("one", "", "range", 0, 0).unwrap();
+            journal::fail_checkpoint_once_at(phase);
+            assert!(matches!(groups.advance(1), Err(Error::Storage(_))));
+            assert!(matches!(groups.epoch(), Err(Error::Poisoned)));
+            assert!(matches!(groups.generation("one"), Err(Error::Poisoned)));
+            assert!(matches!(
+                groups.assignment("one", &leader.member_id),
+                Err(Error::Poisoned)
+            ));
+            assert!(matches!(groups.advance(2), Err(Error::Poisoned)));
+            drop(groups);
+            let mut groups = Groups::open(&path, limits).unwrap();
+            assert_eq!(
+                groups.epoch().unwrap(),
+                if phase == "prepared" { 0 } else { 1 }
+            );
+            groups.advance(2).unwrap();
+            drop(groups);
+            let groups = Groups::open(&path, limits).unwrap();
+            assert_eq!(groups.epoch().unwrap(), 2);
+            drop(groups);
+            let _ = std::fs::remove_file(format!("{}.checkpoint.tmp", path.display()));
+            let _ = std::fs::remove_file(path);
+        }
+    }
+    #[test]
+    fn duplicate_member_in_snapshot_is_not_recovered() {
+        let (mut groups, path) = open("duplicate-member");
+        groups.join("one", "", "range", 0, 0).unwrap();
+        let mut image = encode(groups.epoch, groups.next_member, &groups.groups).unwrap();
+        let count = 8 + 8 + 8 + 2 + (2 + 3) + (2 + 5) + 4 + 8 + (2 + 3);
+        assert_eq!(&image[count..count + 2], &1u16.to_be_bytes());
+        let member = image[count + 2..].to_vec();
+        image[count..count + 2].copy_from_slice(&2u16.to_be_bytes());
+        image.extend_from_slice(&member);
+        assert!(matches!(decode(&image), Err(Error::InvalidRequest)));
+        drop(groups);
+        let _ = std::fs::remove_file(path);
+    }
+
+    #[test]
+    fn oversized_snapshot_poisons_reads_and_recovers_previous_state() {
+        let journal = journal::Limits::new(4096, 1 << 20, 1, 1 << 20).unwrap();
+        let limits = Limits::new(8, 1_000, 1, journal).unwrap();
+        let (_, path) = open("classic-oversize");
+        let mut groups = Groups::open(&path, limits).unwrap();
+        let leader = groups.join("one", "", "range", 0, 0).unwrap();
+        let old_capacity = groups.encoded.capacity();
+        let assignment = BTreeMap::from([(leader.member_id.clone(), (0..1_024).collect())]);
+        assert!(matches!(
+            groups.sync(
+                "one",
+                &leader.member_id,
+                leader.generation,
+                0,
+                0,
+                &assignment
+            ),
+            Err(Error::InvalidLimits)
+        ));
+        assert_eq!(groups.encoded.capacity(), old_capacity);
+        assert!(matches!(
+            groups.assignment("one", &leader.member_id),
+            Err(Error::Poisoned)
+        ));
+        drop(groups);
+        let groups = Groups::open(&path, limits).unwrap();
+        assert_eq!(groups.generation("one").unwrap(), Some(1));
+        assert!(groups
+            .assignment("one", &leader.member_id)
+            .unwrap()
+            .is_none());
+        drop(groups);
+        let _ = std::fs::remove_file(path);
+    }
+}
