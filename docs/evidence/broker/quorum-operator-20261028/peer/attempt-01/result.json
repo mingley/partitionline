@@ -1,0 +1,31 @@
+{
+  "failure": "PermissionError: [Errno 13] Permission denied: '/workspace/work/quorum-profile-runs/quorum-operator-build-01.elf'",
+  "jar_sha256": {
+    "kafka-clients-4.1.2.jar": "33b4d9f24ba793ce0ed06607aa92b61d764015d8a0ef72d2558dbb81def4b3ed",
+    "slf4j-api-1.7.36.jar": "d3ef575e3e4979678dc01bf1dcce51021493b4d11fb7f1be8ad982877c16a1c0"
+  },
+  "java_class_sha256": "301eaae543df3ef8e62df611f8d7217e367846b542f9142726e0ce17b62c025f",
+  "members": "0@00000000000000000000000000000001@127.0.0.1:38747@127.0.0.1:50609,1@00000000000000000000000000000002@127.0.0.1:53925@127.0.0.1:51161,2@00000000000000000000000000000003@127.0.0.1:50693@127.0.0.1:56935",
+  "operator_sha256": "df2cba0195962002fb008c18ef898159842f30a8d2f43dba68c705249147c966",
+  "peer_source_sha256": "e255497e22c701bc11a7bfe2db26fe2bb586e542305d78b3b5d002e58b9d66e2",
+  "results": [],
+  "scope": "One local fixed three-node private metadata-only quorum and one Java Admin; no replicated data, native KRaft, security or performance qualification",
+  "source_stable": true,
+  "sources_after": {
+    "partitionline-broker/Cargo.lock": "ff225be2e645a11d33954cb47064a26a77572b1ab12a8f9362d146b237801624",
+    "partitionline-broker/Cargo.toml": "0a77e3b2b41244f94a01684dc9ead21818e5875800fa12abdd13eeed4428cfaf",
+    "partitionline-broker/src/bin/operator.rs": "f33dc39cb78813ddcb18c56f3d75395999173cae37efb8d5ab64fcba7408619c",
+    "partitionline-broker/src/bin/operator/quorum.rs": "87089b52855aa3988a4db1e4c1d5b2eeeccb87df50d6df230fab0fed012d12c7",
+    "partitionline-broker/src/bin/operator/serve.rs": "cd516e7ca8c3e777e65eb322ce21bfc7629cd9df97103206217cd45ba515a56e",
+    "partitionline-broker/src/metadata.rs": "6fb8167b7e15b91c85813edfe0aa9e27d351e9305d9468789e26d8cdf6f899f2"
+  },
+  "sources_before": {
+    "partitionline-broker/Cargo.lock": "ff225be2e645a11d33954cb47064a26a77572b1ab12a8f9362d146b237801624",
+    "partitionline-broker/Cargo.toml": "0a77e3b2b41244f94a01684dc9ead21818e5875800fa12abdd13eeed4428cfaf",
+    "partitionline-broker/src/bin/operator.rs": "f33dc39cb78813ddcb18c56f3d75395999173cae37efb8d5ab64fcba7408619c",
+    "partitionline-broker/src/bin/operator/quorum.rs": "87089b52855aa3988a4db1e4c1d5b2eeeccb87df50d6df230fab0fed012d12c7",
+    "partitionline-broker/src/bin/operator/serve.rs": "cd516e7ca8c3e777e65eb322ce21bfc7629cd9df97103206217cd45ba515a56e",
+    "partitionline-broker/src/metadata.rs": "6fb8167b7e15b91c85813edfe0aa9e27d351e9305d9468789e26d8cdf6f899f2"
+  },
+  "state": "failed"
+}

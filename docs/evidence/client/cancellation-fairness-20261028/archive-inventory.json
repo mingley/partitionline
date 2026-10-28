@@ -468,6 +468,60 @@
       "stored_sha256": "0da19ea7e517a53055656fcea3ba782e2d0816e551ecc062048be40435bd086e",
       "stored_bytes": 541,
       "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/kip848-original-stack-replay.json",
+      "original_sha256": "b8163601fecaa0fede28f406c35ecf898640e91e820822ef88a834cf54f8509e",
+      "original_bytes": 2523,
+      "stored_path": "runs/stack/kip848-original-stack-replay.json",
+      "stored_sha256": "b8163601fecaa0fede28f406c35ecf898640e91e820822ef88a834cf54f8509e",
+      "stored_bytes": 2523,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/kip848-original-stack-2m.log",
+      "original_sha256": "f2d25b0c81e229c341dbb44ca1a4d2883000cab4f0555dadcec76c1ba9b59714",
+      "original_bytes": 132,
+      "stored_path": "runs/stack/kip848-original-stack-2m.log",
+      "stored_sha256": "f2d25b0c81e229c341dbb44ca1a4d2883000cab4f0555dadcec76c1ba9b59714",
+      "stored_bytes": 132,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/kip848-original-stack-2m-02.log",
+      "original_sha256": "7bd8c41b135800aea80caab1e7f829ba788af4802db3d9f84730d86937edf7cd",
+      "original_bytes": 149,
+      "stored_path": "runs/stack/kip848-original-stack-2m-02.log",
+      "stored_sha256": "7bd8c41b135800aea80caab1e7f829ba788af4802db3d9f84730d86937edf7cd",
+      "stored_bytes": 149,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/kip848-original-stack-8m.log",
+      "original_sha256": "b4deb361c779510f9d04fa214c9c0aca41813ca7ed08c34bef0dfdf4b414b8ad",
+      "original_bytes": 170,
+      "stored_path": "runs/stack/kip848-original-stack-8m.log",
+      "stored_sha256": "b4deb361c779510f9d04fa214c9c0aca41813ca7ed08c34bef0dfdf4b414b8ad",
+      "stored_bytes": 170,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/kip848-stack-probe.json",
+      "original_sha256": "ae24d29eaed368882001526d65502828ecfedf5497090d0b790a1b291f316ffb",
+      "original_bytes": 1296,
+      "stored_path": "runs/stack/kip848-stack-probe.json",
+      "stored_sha256": "ae24d29eaed368882001526d65502828ecfedf5497090d0b790a1b291f316ffb",
+      "stored_bytes": 1296,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/client-retest-full_surface.json",
+      "original_sha256": "6493eb9c86a2c760cf43436bf29dadaad7e2db176689e6874d1f134271a738e8",
+      "original_bytes": 1213438,
+      "stored_path": "runs/stack/client-retest-full_surface.json.gz",
+      "stored_sha256": "e3b2cc9253866870cdb0ef9bba0d2031212102d18db33de14a5087a5d8b08d43",
+      "stored_bytes": 231498,
+      "encoding": "gzip"
     }
   ]
 }

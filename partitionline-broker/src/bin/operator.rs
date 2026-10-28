@@ -3,6 +3,9 @@
 #[path = "operator/serve.rs"]
 mod serve;
 
+#[path = "operator/quorum.rs"]
+mod quorum;
+
 use partitionline_broker::admin::{self, Admin, Assignment};
 use partitionline_broker::journal;
 use std::env;
@@ -25,6 +28,7 @@ fn run(args: impl Iterator<Item = String>) -> Result<(), String> {
     let command = args.first().map(String::as_str).unwrap_or("");
     match command {
         "serve" => serve::run(&args),
+        "serve-quorum" => quorum::run(&args),
         "init" => init(&args),
         "register-dir" => register_dir(&args),
         "assign" => assign(&args),
@@ -33,7 +37,7 @@ fn run(args: impl Iterator<Item = String>) -> Result<(), String> {
         "backup" => backup(&args),
         "restore" => restore(&args),
         _ => Err(
-            "usage: operator serve|init|register-dir|assign|feature|status|backup|restore"
+            "usage: operator serve|serve-quorum|init|register-dir|assign|feature|status|backup|restore"
                 .to_owned(),
         ),
     }

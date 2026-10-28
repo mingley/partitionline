@@ -1,0 +1,26 @@
+{
+  "command": [
+    "java",
+    "--add-modules",
+    "jdk.compiler",
+    "com.sun.tools.javac.Main",
+    "-Xlint:all",
+    "-Werror",
+    "-cp",
+    "/workspace/work/security-qualification-20261028/java-peer/jars/kafka-clients-4.1.2.jar:/workspace/work/security-qualification-20261028/java-peer/jars/slf4j-api-1.7.36.jar",
+    "-d",
+    "/workspace/work/quorum-java-peer/classes",
+    "/workspace/work/quorum-java-peer/QuorumPeer.java"
+  ],
+  "exit": 0,
+  "files": {
+    "/workspace/work/quorum-java-peer/QuorumPeer.java": "e255497e22c701bc11a7bfe2db26fe2bb586e542305d78b3b5d002e58b9d66e2",
+    "/workspace/work/quorum-java-peer/classes/QuorumPeer.class": "301eaae543df3ef8e62df611f8d7217e367846b542f9142726e0ce17b62c025f",
+    "/workspace/work/security-qualification-20261028/java-peer/jars/kafka-clients-4.1.2.jar": "33b4d9f24ba793ce0ed06607aa92b61d764015d8a0ef72d2558dbb81def4b3ed",
+    "/workspace/work/security-qualification-20261028/java-peer/jars/slf4j-api-1.7.36.jar": "d3ef575e3e4979678dc01bf1dcce51021493b4d11fb7f1be8ad982877c16a1c0"
+  },
+  "jdk_version_log_sha256": "bf61371a588e139353579c26bedbc9693004380fe8e053aa012cb6f7d2c43f20",
+  "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "dependency_source": "Apache Kafka 4.1.2 jars extracted from the previously pinned apache/kafka image; see linked Java peer extraction receipt."
+}

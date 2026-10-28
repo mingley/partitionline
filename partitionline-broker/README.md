@@ -36,7 +36,8 @@ data directory at a time; other programs must not write its files while the
 server runs. The directory must retain the same cluster and broker identity on
 restart. Use
 `--advertise-port` if clients must connect to a port different from the bound
-port.
+port. `--sync-concurrency` sets the maximum concurrent partition syncs per
+storage actor (1–64, default 4); measure the setting on your storage.
 
 The other operator commands configure a separate on-disk admin journal. Their
 backup and restore commands cover that admin journal only; they do not back up
@@ -58,3 +59,23 @@ The [null broker](../benchmarks/nullbroker) is a benchmark tool with synthetic
 responses. Use the storage and replication components in this crate when working
 on broker behavior. Production and comparative performance qualification are
 still pending.
+
+The experimental metadata-only quorum mode runs three fixed controllers on
+loopback addresses. It uses a private protocol, does not authenticate peers,
+and must not be exposed to an untrusted network. Each member uses the same
+`--members` list with entries `ID@DIRECTORY_HEX@PRIVATE_ADDR@CLIENT_ADDR` and
+its own `--id` and `--data` values. The directory ID is 32 nonzero hexadecimal
+characters. For example, run one command per member using this shared list:
+
+```sh
+members='0@00000000000000000000000000000001@127.0.0.1:19100@127.0.0.1:19200,1@00000000000000000000000000000002@127.0.0.1:19101@127.0.0.1:19201,2@00000000000000000000000000000003@127.0.0.1:19102@127.0.0.1:19202'
+cargo run --manifest-path partitionline-broker/Cargo.toml --bin operator -- \
+  serve-quorum --data ./quorum-0 --cluster local-quorum --id 0 --members "$members"
+```
+
+Run the same command for IDs 1 and 2 with `./quorum-1` and `./quorum-2`.
+Controller endpoints are advertised to metadata clients; partitions have no
+leader or replicas, and Produce and Fetch are unavailable. The configured
+limits retain at most 64 metadata positions and 1 MiB of source payload; the
+mode does not automatically prune that history. This mode does not run a
+replicated Kafka data plane or interoperate with Kafka KRaft.

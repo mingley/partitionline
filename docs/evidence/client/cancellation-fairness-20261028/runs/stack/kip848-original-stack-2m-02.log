@@ -1,0 +1,5 @@
+
+running 1 test
+
+thread 'kip848_broker_heartbeat_interval_scheduling' (65636) has overflowed its stack
+fatal runtime error: stack overflow, aborting

@@ -1,0 +1,600 @@
+[
+  {
+    "brokers": [
+      {
+        "host": "127.0.0.1",
+        "id": 0,
+        "port": 51919,
+        "rack": null
+      },
+      {
+        "host": "127.0.0.1",
+        "id": 1,
+        "port": 33409,
+        "rack": null
+      },
+      {
+        "host": "127.0.0.1",
+        "id": 2,
+        "port": 56779,
+        "rack": null
+      }
+    ],
+    "controller": -1,
+    "queried_node": 0,
+    "response_hex": "0000004d000000030000000000093132372e302e302e310000cacfffff0000000100093132372e302e302e3100008281ffff0000000200093132372e302e302e310000ddcbffffffffffff00000000",
+    "response_sha256": "d640b28edf7597cf65e51215f094f5d652b65e43d364d18b79d928c23194cf7b"
+  },
+  {
+    "brokers": [
+      {
+        "host": "127.0.0.1",
+        "id": 0,
+        "port": 51919,
+        "rack": null
+      },
+      {
+        "host": "127.0.0.1",
+        "id": 1,
+        "port": 33409,
+        "rack": null
+      },
+      {
+        "host": "127.0.0.1",
+        "id": 2,
+        "port": 56779,
+        "rack": null
+      }
+    ],
+    "controller": -1,
+    "queried_node": 1,
+    "response_hex": "0000004d000000030000000000093132372e302e302e310000cacfffff0000000100093132372e302e302e3100008281ffff0000000200093132372e302e302e310000ddcbffffffffffff00000000",
+    "response_sha256": "d640b28edf7597cf65e51215f094f5d652b65e43d364d18b79d928c23194cf7b"
+  },
+  {
+    "brokers": [
+      {
+        "host": "127.0.0.1",
+        "id": 0,
+        "port": 51919,
+        "rack": null
+      },
+      {
+        "host": "127.0.0.1",
+        "id": 1,
+        "port": 33409,
+        "rack": null
+      },
+      {
+        "host": "127.0.0.1",
+        "id": 2,
+        "port": 56779,
+        "rack": null
+      }
+    ],
+    "controller": -1,
+    "queried_node": 2,
+    "response_hex": "0000004d000000030000000000093132372e302e302e310000cacfffff0000000100093132372e302e302e3100008281ffff0000000200093132372e302e302e310000ddcbffffffffffff00000000",
+    "response_sha256": "d640b28edf7597cf65e51215f094f5d652b65e43d364d18b79d928c23194cf7b"
+  },
+  {
+    "brokers": [
+      {
+        "host": "127.0.0.1",
+        "id": 0,
+        "port": 51919,
+        "rack": null
+      },
+      {
+        "host": "127.0.0.1",
+        "id": 1,
+        "port": 33409,
+        "rack": null
+      },
+      {
+        "host": "127.0.0.1",
+        "id": 2,
+        "port": 56779,
+        "rack": null
+      }
+    ],
+    "controller": -1,
+    "queried_node": 0,
+    "response_hex": "0000004d000000030000000000093132372e302e302e310000cacfffff0000000100093132372e302e302e3100008281ffff0000000200093132372e302e302e310000ddcbffffffffffff00000000",
+    "response_sha256": "d640b28edf7597cf65e51215f094f5d652b65e43d364d18b79d928c23194cf7b"
+  },
+  {
+    "brokers": [
+      {
+        "host": "127.0.0.1",
+        "id": 0,
+        "port": 51919,
+        "rack": null
+      },
+      {
+        "host": "127.0.0.1",
+        "id": 1,
+        "port": 33409,
+        "rack": null
+      },
+      {
+        "host": "127.0.0.1",
+        "id": 2,
+        "port": 56779,
+        "rack": null
+      }
+    ],
+    "controller": -1,
+    "queried_node": 1,
+    "response_hex": "0000004d000000030000000000093132372e302e302e310000cacfffff0000000100093132372e302e302e3100008281ffff0000000200093132372e302e302e310000ddcbffffffffffff00000000",
+    "response_sha256": "d640b28edf7597cf65e51215f094f5d652b65e43d364d18b79d928c23194cf7b"
+  },
+  {
+    "brokers": [
+      {
+        "host": "127.0.0.1",
+        "id": 0,
+        "port": 51919,
+        "rack": null
+      },
+      {
+        "host": "127.0.0.1",
+        "id": 1,
+        "port": 33409,
+        "rack": null
+      },
+      {
+        "host": "127.0.0.1",
+        "id": 2,
+        "port": 56779,
+        "rack": null
+      }
+    ],
+    "controller": -1,
+    "queried_node": 2,
+    "response_hex": "0000004d000000030000000000093132372e302e302e310000cacfffff0000000100093132372e302e302e3100008281ffff0000000200093132372e302e302e310000ddcbffffffffffff00000000",
+    "response_sha256": "d640b28edf7597cf65e51215f094f5d652b65e43d364d18b79d928c23194cf7b"
+  },
+  {
+    "brokers": [
+      {
+        "host": "127.0.0.1",
+        "id": 0,
+        "port": 51919,
+        "rack": null
+      },
+      {
+        "host": "127.0.0.1",
+        "id": 1,
+        "port": 33409,
+        "rack": null
+      },
+      {
+        "host": "127.0.0.1",
+        "id": 2,
+        "port": 56779,
+        "rack": null
+      }
+    ],
+    "controller": -1,
+    "queried_node": 0,
+    "response_hex": "0000004d000000030000000000093132372e302e302e310000cacfffff0000000100093132372e302e302e3100008281ffff0000000200093132372e302e302e310000ddcbffffffffffff00000000",
+    "response_sha256": "d640b28edf7597cf65e51215f094f5d652b65e43d364d18b79d928c23194cf7b"
+  },
+  {
+    "brokers": [
+      {
+        "host": "127.0.0.1",
+        "id": 0,
+        "port": 51919,
+        "rack": null
+      },
+      {
+        "host": "127.0.0.1",
+        "id": 1,
+        "port": 33409,
+        "rack": null
+      },
+      {
+        "host": "127.0.0.1",
+        "id": 2,
+        "port": 56779,
+        "rack": null
+      }
+    ],
+    "controller": -1,
+    "queried_node": 1,
+    "response_hex": "0000004d000000030000000000093132372e302e302e310000cacfffff0000000100093132372e302e302e3100008281ffff0000000200093132372e302e302e310000ddcbffffffffffff00000000",
+    "response_sha256": "d640b28edf7597cf65e51215f094f5d652b65e43d364d18b79d928c23194cf7b"
+  },
+  {
+    "brokers": [
+      {
+        "host": "127.0.0.1",
+        "id": 0,
+        "port": 51919,
+        "rack": null
+      },
+      {
+        "host": "127.0.0.1",
+        "id": 1,
+        "port": 33409,
+        "rack": null
+      },
+      {
+        "host": "127.0.0.1",
+        "id": 2,
+        "port": 56779,
+        "rack": null
+      }
+    ],
+    "controller": -1,
+    "queried_node": 2,
+    "response_hex": "0000004d000000030000000000093132372e302e302e310000cacfffff0000000100093132372e302e302e3100008281ffff0000000200093132372e302e302e310000ddcbffffffffffff00000000",
+    "response_sha256": "d640b28edf7597cf65e51215f094f5d652b65e43d364d18b79d928c23194cf7b"
+  },
+  {
+    "brokers": [
+      {
+        "host": "127.0.0.1",
+        "id": 0,
+        "port": 51919,
+        "rack": null
+      },
+      {
+        "host": "127.0.0.1",
+        "id": 1,
+        "port": 33409,
+        "rack": null
+      },
+      {
+        "host": "127.0.0.1",
+        "id": 2,
+        "port": 56779,
+        "rack": null
+      }
+    ],
+    "controller": 0,
+    "queried_node": 0,
+    "response_hex": "0000004d000000030000000000093132372e302e302e310000cacfffff0000000100093132372e302e302e3100008281ffff0000000200093132372e302e302e310000ddcbffff0000000000000000",
+    "response_sha256": "0e0651bd74ae01bb4285c8e7cd176785a7f5e92c5d9113fea46a57a861208e17"
+  },
+  {
+    "brokers": [
+      {
+        "host": "127.0.0.1",
+        "id": 0,
+        "port": 51919,
+        "rack": null
+      },
+      {
+        "host": "127.0.0.1",
+        "id": 1,
+        "port": 33409,
+        "rack": null
+      },
+      {
+        "host": "127.0.0.1",
+        "id": 2,
+        "port": 56779,
+        "rack": null
+      }
+    ],
+    "controller": 0,
+    "queried_node": 1,
+    "response_hex": "0000004d000000030000000000093132372e302e302e310000cacfffff0000000100093132372e302e302e3100008281ffff0000000200093132372e302e302e310000ddcbffff00000000000000010000000b6a6176612d6265666f72650000000001000500000000ffffffff0000000000000000",
+    "response_sha256": "3424f604e43a094f1967c800fe1d3e1225b181fc155b6fcc408929fa2b1039ae"
+  },
+  {
+    "brokers": [
+      {
+        "host": "127.0.0.1",
+        "id": 0,
+        "port": 51919,
+        "rack": null
+      },
+      {
+        "host": "127.0.0.1",
+        "id": 1,
+        "port": 33409,
+        "rack": null
+      },
+      {
+        "host": "127.0.0.1",
+        "id": 2,
+        "port": 56779,
+        "rack": null
+      }
+    ],
+    "controller": 0,
+    "queried_node": 2,
+    "response_hex": "0000004d000000030000000000093132372e302e302e310000cacfffff0000000100093132372e302e302e3100008281ffff0000000200093132372e302e302e310000ddcbffff00000000000000010000000b6a6176612d6265666f72650000000001000500000000ffffffff0000000000000000",
+    "response_sha256": "3424f604e43a094f1967c800fe1d3e1225b181fc155b6fcc408929fa2b1039ae"
+  },
+  {
+    "brokers": [
+      {
+        "host": "127.0.0.1",
+        "id": 0,
+        "port": 51919,
+        "rack": null
+      },
+      {
+        "host": "127.0.0.1",
+        "id": 1,
+        "port": 33409,
+        "rack": null
+      },
+      {
+        "host": "127.0.0.1",
+        "id": 2,
+        "port": 56779,
+        "rack": null
+      }
+    ],
+    "controller": 0,
+    "queried_node": 1,
+    "response_hex": "0000004d000000030000000000093132372e302e302e310000cacfffff0000000100093132372e302e302e3100008281ffff0000000200093132372e302e302e310000ddcbffff00000000000000010000000b6a6176612d6265666f72650000000001000500000000ffffffff0000000000000000",
+    "response_sha256": "3424f604e43a094f1967c800fe1d3e1225b181fc155b6fcc408929fa2b1039ae"
+  },
+  {
+    "brokers": [
+      {
+        "host": "127.0.0.1",
+        "id": 0,
+        "port": 51919,
+        "rack": null
+      },
+      {
+        "host": "127.0.0.1",
+        "id": 1,
+        "port": 33409,
+        "rack": null
+      },
+      {
+        "host": "127.0.0.1",
+        "id": 2,
+        "port": 56779,
+        "rack": null
+      }
+    ],
+    "controller": 0,
+    "queried_node": 2,
+    "response_hex": "0000004d000000030000000000093132372e302e302e310000cacfffff0000000100093132372e302e302e3100008281ffff0000000200093132372e302e302e310000ddcbffff00000000000000010000000b6a6176612d6265666f72650000000001000500000000ffffffff0000000000000000",
+    "response_sha256": "3424f604e43a094f1967c800fe1d3e1225b181fc155b6fcc408929fa2b1039ae"
+  },
+  {
+    "brokers": [
+      {
+        "host": "127.0.0.1",
+        "id": 0,
+        "port": 51919,
+        "rack": null
+      },
+      {
+        "host": "127.0.0.1",
+        "id": 1,
+        "port": 33409,
+        "rack": null
+      },
+      {
+        "host": "127.0.0.1",
+        "id": 2,
+        "port": 56779,
+        "rack": null
+      }
+    ],
+    "controller": 0,
+    "queried_node": 1,
+    "response_hex": "0000004d000000030000000000093132372e302e302e310000cacfffff0000000100093132372e302e302e3100008281ffff0000000200093132372e302e302e310000ddcbffff00000000000000010000000b6a6176612d6265666f72650000000001000500000000ffffffff0000000000000000",
+    "response_sha256": "3424f604e43a094f1967c800fe1d3e1225b181fc155b6fcc408929fa2b1039ae"
+  },
+  {
+    "brokers": [
+      {
+        "host": "127.0.0.1",
+        "id": 0,
+        "port": 51919,
+        "rack": null
+      },
+      {
+        "host": "127.0.0.1",
+        "id": 1,
+        "port": 33409,
+        "rack": null
+      },
+      {
+        "host": "127.0.0.1",
+        "id": 2,
+        "port": 56779,
+        "rack": null
+      }
+    ],
+    "controller": 0,
+    "queried_node": 2,
+    "response_hex": "0000004d000000030000000000093132372e302e302e310000cacfffff0000000100093132372e302e302e3100008281ffff0000000200093132372e302e302e310000ddcbffff00000000000000010000000b6a6176612d6265666f72650000000001000500000000ffffffff0000000000000000",
+    "response_sha256": "3424f604e43a094f1967c800fe1d3e1225b181fc155b6fcc408929fa2b1039ae"
+  },
+  {
+    "brokers": [
+      {
+        "host": "127.0.0.1",
+        "id": 0,
+        "port": 51919,
+        "rack": null
+      },
+      {
+        "host": "127.0.0.1",
+        "id": 1,
+        "port": 33409,
+        "rack": null
+      },
+      {
+        "host": "127.0.0.1",
+        "id": 2,
+        "port": 56779,
+        "rack": null
+      }
+    ],
+    "controller": 0,
+    "queried_node": 1,
+    "response_hex": "0000004d000000030000000000093132372e302e302e310000cacfffff0000000100093132372e302e302e3100008281ffff0000000200093132372e302e302e310000ddcbffff00000000000000010000000b6a6176612d6265666f72650000000001000500000000ffffffff0000000000000000",
+    "response_sha256": "3424f604e43a094f1967c800fe1d3e1225b181fc155b6fcc408929fa2b1039ae"
+  },
+  {
+    "brokers": [
+      {
+        "host": "127.0.0.1",
+        "id": 0,
+        "port": 51919,
+        "rack": null
+      },
+      {
+        "host": "127.0.0.1",
+        "id": 1,
+        "port": 33409,
+        "rack": null
+      },
+      {
+        "host": "127.0.0.1",
+        "id": 2,
+        "port": 56779,
+        "rack": null
+      }
+    ],
+    "controller": 0,
+    "queried_node": 2,
+    "response_hex": "0000004d000000030000000000093132372e302e302e310000cacfffff0000000100093132372e302e302e3100008281ffff0000000200093132372e302e302e310000ddcbffff00000000000000010000000b6a6176612d6265666f72650000000001000500000000ffffffff0000000000000000",
+    "response_sha256": "3424f604e43a094f1967c800fe1d3e1225b181fc155b6fcc408929fa2b1039ae"
+  },
+  {
+    "brokers": [
+      {
+        "host": "127.0.0.1",
+        "id": 0,
+        "port": 51919,
+        "rack": null
+      },
+      {
+        "host": "127.0.0.1",
+        "id": 1,
+        "port": 33409,
+        "rack": null
+      },
+      {
+        "host": "127.0.0.1",
+        "id": 2,
+        "port": 56779,
+        "rack": null
+      }
+    ],
+    "controller": 0,
+    "queried_node": 1,
+    "response_hex": "0000004d000000030000000000093132372e302e302e310000cacfffff0000000100093132372e302e302e3100008281ffff0000000200093132372e302e302e310000ddcbffff00000000000000010000000b6a6176612d6265666f72650000000001000500000000ffffffff0000000000000000",
+    "response_sha256": "3424f604e43a094f1967c800fe1d3e1225b181fc155b6fcc408929fa2b1039ae"
+  },
+  {
+    "brokers": [
+      {
+        "host": "127.0.0.1",
+        "id": 0,
+        "port": 51919,
+        "rack": null
+      },
+      {
+        "host": "127.0.0.1",
+        "id": 1,
+        "port": 33409,
+        "rack": null
+      },
+      {
+        "host": "127.0.0.1",
+        "id": 2,
+        "port": 56779,
+        "rack": null
+      }
+    ],
+    "controller": 0,
+    "queried_node": 2,
+    "response_hex": "0000004d000000030000000000093132372e302e302e310000cacfffff0000000100093132372e302e302e3100008281ffff0000000200093132372e302e302e310000ddcbffff00000000000000010000000b6a6176612d6265666f72650000000001000500000000ffffffff0000000000000000",
+    "response_sha256": "3424f604e43a094f1967c800fe1d3e1225b181fc155b6fcc408929fa2b1039ae"
+  },
+  {
+    "brokers": [
+      {
+        "host": "127.0.0.1",
+        "id": 0,
+        "port": 51919,
+        "rack": null
+      },
+      {
+        "host": "127.0.0.1",
+        "id": 1,
+        "port": 33409,
+        "rack": null
+      },
+      {
+        "host": "127.0.0.1",
+        "id": 2,
+        "port": 56779,
+        "rack": null
+      }
+    ],
+    "controller": -1,
+    "queried_node": 1,
+    "response_hex": "0000004d000000030000000000093132372e302e302e310000cacfffff0000000100093132372e302e302e3100008281ffff0000000200093132372e302e302e310000ddcbffffffffffff000000010000000b6a6176612d6265666f72650000000001000500000000ffffffff0000000000000000",
+    "response_sha256": "83e8e7a461e030596e1cd48bcec685e427b7015e147b6e17d05ab7ba57fc8865"
+  },
+  {
+    "brokers": [
+      {
+        "host": "127.0.0.1",
+        "id": 0,
+        "port": 51919,
+        "rack": null
+      },
+      {
+        "host": "127.0.0.1",
+        "id": 1,
+        "port": 33409,
+        "rack": null
+      },
+      {
+        "host": "127.0.0.1",
+        "id": 2,
+        "port": 56779,
+        "rack": null
+      }
+    ],
+    "controller": 2,
+    "queried_node": 2,
+    "response_hex": "0000004d000000030000000000093132372e302e302e310000cacfffff0000000100093132372e302e302e3100008281ffff0000000200093132372e302e302e310000ddcbffff00000002000000010000000b6a6176612d6265666f72650000000001000500000000ffffffff0000000000000000",
+    "response_sha256": "33670cf23a309fa90574cdcaca58acadb18c496ab6c40e31511bee20baf17b09"
+  },
+  {
+    "brokers": [
+      {
+        "host": "127.0.0.1",
+        "id": 0,
+        "port": 51919,
+        "rack": null
+      },
+      {
+        "host": "127.0.0.1",
+        "id": 1,
+        "port": 33409,
+        "rack": null
+      },
+      {
+        "host": "127.0.0.1",
+        "id": 2,
+        "port": 56779,
+        "rack": null
+      }
+    ],
+    "controller": 2,
+    "queried_node": 0,
+    "response_hex": "0000004d000000030000000000093132372e302e302e310000cacfffff0000000100093132372e302e302e3100008281ffff0000000200093132372e302e302e310000ddcbffff00000002000000020000000b6a6176612d6265666f72650000000001000500000000ffffffff00000000000000000000000a6a6176612d61667465720000000001000500000000ffffffff0000000000000000",
+    "response_sha256": "d09ed6ccafba22ad29ee23e3b982c9ac98b62f42ea34877f896b45ffeea1ff62"
+  }
+]

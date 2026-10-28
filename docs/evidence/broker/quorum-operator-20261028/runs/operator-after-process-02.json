@@ -1,0 +1,7 @@
+{
+  "binary_sha256": "324596380593e9ad9b5399bca0810e86d3ccd1ca0e200fcf693de63c579ca630",
+  "source": "/workspace/work/qualification-20261027/broker-check-target/debug/operator",
+  "retained": "/workspace/work/quorum-profile-runs/operator-after-process-02.elf",
+  "post_run_snapshot": true,
+  "note": "The test runner did not hash the operator binary at execution; this copy cannot by itself prove which bytes were executed."
+}

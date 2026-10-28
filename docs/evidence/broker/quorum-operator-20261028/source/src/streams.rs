@@ -1,0 +1,1065 @@
+//! Caller-driven Streams group heartbeats. The caller runs and reconciles tasks.
+
+use std::collections::HashMap;
+use std::time::Duration;
+
+use crate::admin::AdminConfig;
+use crate::error::{self, Error, Result};
+use crate::net::{BrokerConn, Deadline};
+use crate::protocol::api::{negotiate_api_versions, ApiVersion, ApiVersionsResponse};
+use crate::protocol::api_keys::{pick_version, FIND_COORDINATOR, STREAMS_GROUP_HEARTBEAT};
+use crate::protocol::group::{
+    decode_find_coordinator_response_coordinators, encode_find_coordinator_request_typed,
+    COORDINATOR_GROUP,
+};
+use crate::protocol::sasl;
+pub use crate::protocol::streams::{
+    Limits as StreamsLimits, StreamsGroupHeartbeatRequest, StreamsGroupHeartbeatResponse,
+};
+
+const MAX_BOOTSTRAP_SERVERS: usize = 16;
+
+async fn open_streams_heartbeat(
+    cfg: &AdminConfig,
+    address: &str,
+    deadline: Deadline,
+) -> Result<(BrokerConn, ApiVersionsResponse)> {
+    let opened = async {
+        let mut conn = BrokerConn::connect_tls(
+            address,
+            &cfg.client_id,
+            cfg.connect_timeout.min(deadline.remaining()?),
+            cfg.tls.as_ref(),
+        )
+        .await?;
+        let versions = negotiate_api_versions(&mut conn, deadline.remaining()?).await?;
+        if versions
+            .api_version(STREAMS_GROUP_HEARTBEAT)
+            .and_then(|api| pick_version(api.min_version, api.max_version, 0, 0))
+            .is_none()
+        {
+            return Err(Error::Unsupported(
+                "broker does not support StreamsGroupHeartbeat v0".into(),
+            ));
+        }
+        sasl::apply_api_keys(&mut conn, &versions.api_keys);
+        sasl::authenticate(
+            &mut conn,
+            cfg.sasl_plain.as_ref(),
+            cfg.sasl_scram.as_ref(),
+            cfg.sasl_scram_sha512.as_ref(),
+            cfg.sasl_oauthbearer.as_deref(),
+            cfg.sasl_oauthbearer_oidc.as_ref(),
+            deadline.remaining()?,
+        )
+        .await?;
+        Ok((conn, versions))
+    }
+    .await;
+    // A failed handshake drops its socket in this call. Yield so the broker
+    // observes that close before the error returns. A successful dial keeps
+    // the socket and does not wait.
+    if opened.is_err() {
+        for _ in 0..8 {
+            tokio::task::yield_now().await;
+        }
+    }
+    opened
+}
+
+/// Versions learned for the bootstrap lookup and the coordinator socket.
+#[derive(Clone)]
+struct LearnedStreams {
+    bootstrap_addr: String,
+    bootstrap_keys: Vec<ApiVersion>,
+    find_version: i16,
+    coord_addr: String,
+    coord_keys: Vec<ApiVersion>,
+    /// ApiVersions already learned for a coordinator this member left.
+    prior: HashMap<String, Vec<ApiVersion>>,
+}
+
+impl LearnedStreams {
+    /// Remember the current coordinator, then record `address`.
+    fn moved_to(&self, address: &str, keys: Vec<ApiVersion>) -> Self {
+        let mut prior = self.prior.clone();
+        if address != self.coord_addr && !self.coord_keys.is_empty() {
+            let _stored = prior.insert(self.coord_addr.clone(), self.coord_keys.clone());
+        }
+        Self {
+            bootstrap_addr: self.bootstrap_addr.clone(),
+            bootstrap_keys: self.bootstrap_keys.clone(),
+            find_version: self.find_version,
+            coord_addr: address.to_string(),
+            coord_keys: keys,
+            prior,
+        }
+    }
+}
+
+async fn open_known_streams(
+    cfg: &AdminConfig,
+    address: &str,
+    keys: &[ApiVersion],
+    deadline: Deadline,
+) -> Result<BrokerConn> {
+    let opened = async {
+        let mut conn = BrokerConn::connect_tls(
+            address,
+            &cfg.client_id,
+            cfg.connect_timeout.min(deadline.remaining()?),
+            cfg.tls.as_ref(),
+        )
+        .await?;
+        sasl::apply_api_keys(&mut conn, keys);
+        sasl::authenticate(
+            &mut conn,
+            cfg.sasl_plain.as_ref(),
+            cfg.sasl_scram.as_ref(),
+            cfg.sasl_scram_sha512.as_ref(),
+            cfg.sasl_oauthbearer.as_deref(),
+            cfg.sasl_oauthbearer_oidc.as_ref(),
+            deadline.remaining()?,
+        )
+        .await?;
+        Ok(conn)
+    }
+    .await;
+    if opened.is_err() {
+        for _ in 0..8 {
+            tokio::task::yield_now().await;
+        }
+    }
+    opened
+}
+
+fn coordinator_address(body: &[u8], version: i16, group_id: &str) -> Result<String> {
+    if body.len() > MAX_COORDINATOR_BODY || (version >= 4 && body.get(4) != Some(&2)) {
+        return Err(Error::protocol(
+            "Streams coordinator response exceeds bounds",
+        ));
+    }
+    let mut cursor = body;
+    let (mut coords, _) = decode_find_coordinator_response_coordinators(&mut cursor, version)?;
+    if !cursor.is_empty() || coords.len() != 1 {
+        return Err(Error::protocol("invalid Streams coordinator response"));
+    }
+    let coord = coords
+        .pop()
+        .ok_or_else(|| Error::protocol("missing Streams coordinator"))?;
+    if version >= 4 && coord.key != group_id {
+        return Err(Error::protocol("Streams coordinator key differs"));
+    }
+    if coord.error_code != 0 {
+        return Err(Error::broker(coord.error_code, "FindCoordinator"));
+    }
+    crate::cluster::dial_address(&coord.host, coord.port)
+        .ok_or_else(|| Error::protocol("invalid Streams coordinator address"))
+}
+const MAX_ATTEMPTS: u32 = 8;
+const MAX_COORDINATOR_BODY: usize = 64 * 1024;
+
+/// Connection settings and admission policy for [`StreamsClient`].
+#[derive(Clone, Default)]
+pub struct StreamsConfig {
+    /// Bootstrap addresses, client identity, TLS/SASL and timeout/backoff settings.
+    /// No Admin operations are required by the Streams client.
+    pub connection: AdminConfig,
+    /// Explicitly opt into Streams v0. Its version does not identify whether a
+    /// broker release treats it as stable. Default false refuses all network I/O.
+    pub allow_unstable: bool,
+    /// Limits applied to the complete heartbeat request and response.
+    pub limits: StreamsLimits,
+}
+
+impl StreamsConfig {
+    /// Use the supplied bootstrap servers with the default admission policy.
+    pub fn bootstrap<S: Into<String>>(servers: impl IntoIterator<Item = S>) -> Self {
+        Self {
+            connection: AdminConfig::bootstrap(servers),
+            ..Self::default()
+        }
+    }
+}
+
+/// One caller-driven Streams heartbeat at a time.
+///
+/// There is no heartbeat task, automatic epoch advancement, assignment mutation
+/// or Streams execution engine. The caller keeps a stable member ID, sends join
+/// epoch0/update epochs/leave epochs-1 or-2, and reconciles the returned tasks.
+/// A successful operation retains one coordinator connection for subsequent
+/// heartbeats. Each operation owns at most two connections; failure/cancellation
+/// drops them. Retries stop after eight attempts or the original deadline.
+pub struct StreamsClient {
+    cfg: StreamsConfig,
+    cached: Option<(String, BrokerConn)>,
+    learned: Option<LearnedStreams>,
+}
+
+/// Shut a streams socket down before another connection replaces it.
+///
+/// Dropping the connection aborts its idle watch, so the broker stays in its
+/// read until that watch is scheduled.
+async fn retire_streams_conn(mut conn: BrokerConn) {
+    conn.close();
+    conn.release_if_closed().await;
+}
+
+impl StreamsClient {
+    /// Validate local settings. Connections are opened by [`Self::heartbeat`].
+    pub fn new(mut cfg: StreamsConfig) -> Result<Self> {
+        if !cfg.allow_unstable {
+            return Err(Error::Unsupported(
+                "Streams v0 requires explicit allow_unstable".into(),
+            ));
+        }
+        cfg.limits.validate()?;
+        if cfg.connection.bootstrap.len() > MAX_BOOTSTRAP_SERVERS {
+            return Err(Error::protocol("too many Streams bootstrap servers"));
+        }
+        if cfg.connection.client_id.len() > i16::MAX as usize {
+            return Err(Error::protocol("Streams client ID exceeds header limit"));
+        }
+        cfg.connection.bootstrap =
+            crate::net::parse_and_validate_addresses(&cfg.connection.bootstrap)?;
+        Ok(Self {
+            cfg,
+            cached: None,
+            learned: None,
+        })
+    }
+
+    /// Send a typed heartbeat using the configured total request timeout.
+    ///
+    /// Terminal member, authorization and topology errors are returned in the
+    /// typed response, including all assignment/status fields. Only coordinator
+    /// errors14/15/16 and retriable transport errors trigger automatic retries.
+    /// A lost reply or cancellation may have followed an accepted heartbeat;
+    /// the client does not infer that the broker left membership unchanged.
+    pub async fn heartbeat(
+        &mut self,
+        request: &StreamsGroupHeartbeatRequest,
+    ) -> Result<StreamsGroupHeartbeatResponse> {
+        self.heartbeat_timeout(request, self.cfg.connection.request_timeout)
+            .await
+    }
+
+    /// [`Self::heartbeat`] with one deadline covering validation, encoding,
+    /// bootstrap negotiation, authentication, discovery, reconnects and retries.
+    pub async fn heartbeat_timeout(
+        &mut self,
+        request: &StreamsGroupHeartbeatRequest,
+        timeout: Duration,
+    ) -> Result<StreamsGroupHeartbeatResponse> {
+        let now = std::time::Instant::now();
+        let target = now.checked_add(timeout).ok_or(Error::Timeout)?;
+        let deadline = Deadline::from_std(target);
+        deadline.check_expired()?;
+        let body = crate::protocol::streams::encode_streams_group_heartbeat_request(
+            request,
+            0,
+            self.cfg.limits,
+        )?;
+        deadline.check_expired()?;
+        let cached_group = self.cached.as_ref().map(|(group, _)| group.clone());
+        let cached = match self.cached.take() {
+            Some((group, conn))
+                if group == request.group_id
+                    && !conn.idle_expired(self.cfg.connection.connections_max_idle) =>
+            {
+                Some(conn)
+            }
+            Some((_, conn)) => {
+                retire_streams_conn(conn).await;
+                None
+            }
+            None => None,
+        };
+        if cached_group.as_deref() != Some(request.group_id.as_str()) {
+            self.learned = None;
+        }
+        let learned = self.learned.clone();
+        let (response, conn, learned) = self
+            .heartbeat_until(request, &body, deadline, cached, learned)
+            .await?;
+        let group = request.group_id.clone();
+        deadline.check_expired()?;
+        self.cached = Some((group, conn));
+        self.learned = Some(learned);
+        Ok(response)
+    }
+
+    /// Close the cached socket. This does not send a membership leave or change
+    /// the epoch; send an explicit leave heartbeat when that is intended.
+    ///
+    /// The socket is dropped before this returns. On a current-thread runtime
+    /// the broker stays in its read until this caller yields.
+    pub async fn close(&mut self) {
+        self.cached = None;
+        for _ in 0..8 {
+            tokio::task::yield_now().await;
+        }
+    }
+
+    async fn heartbeat_until(
+        &self,
+        request: &StreamsGroupHeartbeatRequest,
+        body: &[u8],
+        deadline: Deadline,
+        mut cached: Option<BrokerConn>,
+        mut learned: Option<LearnedStreams>,
+    ) -> Result<(StreamsGroupHeartbeatResponse, BrokerConn, LearnedStreams)> {
+        let finished = async {
+            let mut last = Error::Timeout;
+            for attempt in 0..MAX_ATTEMPTS {
+                match self
+                    .heartbeat_once(request, body, deadline, cached.take(), learned.clone())
+                    .await
+                {
+                    Ok((response, _conn, known))
+                        if error::coordinator_retriable(response.error_code) =>
+                    {
+                        learned = Some(known);
+                        last = Error::broker(response.error_code, "StreamsGroupHeartbeat");
+                    }
+                    Ok(response) => return Ok(response),
+                    Err(err) if err.is_retriable() => {
+                        last = err;
+                    }
+                    Err(err) => return Err(err),
+                }
+                if attempt + 1 < MAX_ATTEMPTS {
+                    let cfg = &self.cfg.connection;
+                    let (base, max) = if last.broker_code().is_none() {
+                        (cfg.reconnect_backoff, cfg.reconnect_backoff_max)
+                    } else {
+                        (cfg.retry_backoff, cfg.retry_backoff_max)
+                    };
+                    crate::config::sleep_retry_backoff(
+                        base,
+                        max,
+                        attempt,
+                        deadline.target().into_std(),
+                    )
+                    .await;
+                    deadline.check_expired()?;
+                }
+            }
+            Err(last)
+        }
+        .await;
+        for _ in 0..8 {
+            tokio::task::yield_now().await;
+        }
+        finished
+    }
+
+    async fn open(
+        &self,
+        address: &str,
+        deadline: Deadline,
+    ) -> Result<(BrokerConn, ApiVersionsResponse)> {
+        open_streams_heartbeat(&self.cfg.connection, address, deadline).await
+    }
+
+    /// Race bootstrap handshakes and return once the losers have stopped.
+    ///
+    /// A heartbeat continues with coordinator lookup after this race, which
+    /// hides a handshake that was only aborted.
+    #[doc(hidden)]
+    pub async fn test_race_bootstrap(cfg: StreamsConfig) -> Result<()> {
+        let client = Self::new(cfg)?;
+        let deadline = Deadline::from_std(
+            std::time::Instant::now()
+                .checked_add(client.cfg.connection.request_timeout)
+                .ok_or(Error::Timeout)?,
+        );
+        let _opened = client.open_any(deadline).await?;
+        Ok(())
+    }
+
+    /// Cancel handshakes that lost the bootstrap race and wait until they stop.
+    ///
+    /// Abort only schedules cancellation. On a current-thread runtime a read
+    /// stays inside the broker until this caller yields.
+    async fn finish_aborted_handshakes(
+        mut set: tokio::task::JoinSet<(usize, Result<(BrokerConn, ApiVersionsResponse)>)>,
+    ) {
+        set.abort_all();
+        let mut extra = 0u32;
+        while !set.is_empty() {
+            tokio::select! {
+                biased;
+                joined = set.join_next() => {
+                    let Some(joined) = joined else {
+                        break;
+                    };
+                    if let Ok((_, Ok((conn, _)))) = joined {
+                        retire_streams_conn(conn).await;
+                    }
+                }
+                () = tokio::task::yield_now() => {
+                    extra = extra.saturating_add(1);
+                    if extra >= 8 {
+                        break;
+                    }
+                }
+            }
+        }
+        // A cancelled streams handshake drops its socket when the task is polled.
+        // The idle watch then has to run before that broker sees the close.
+        for _ in 0..8 {
+            tokio::task::yield_now().await;
+        }
+    }
+
+    async fn open_any(
+        &self,
+        deadline: Deadline,
+    ) -> Result<(
+        BrokerConn,
+        ApiVersionsResponse,
+        Vec<(String, Vec<ApiVersion>)>,
+    )> {
+        let addresses = &self.cfg.connection.bootstrap;
+        if addresses.len() <= 1 {
+            let mut last = Error::Timeout;
+            for address in addresses {
+                match self.open(address, deadline).await {
+                    Ok((conn, versions)) => return Ok((conn, versions, Vec::new())),
+                    Err(err) if err.is_retriable() => last = err,
+                    Err(err) => return Err(err),
+                }
+            }
+            return Err(last);
+        }
+        let mut inflight = tokio::task::JoinSet::new();
+        for (index, address) in addresses.iter().enumerate() {
+            let cfg = self.cfg.connection.clone();
+            let address = address.clone();
+            let _ = inflight.spawn(async move {
+                let opened = open_streams_heartbeat(&cfg, &address, deadline).await;
+                (index, opened)
+            });
+        }
+        let mut last = Error::protocol("all bootstrap servers failed");
+        let mut finished = Vec::new();
+        while !inflight.is_empty() {
+            let Some(joined) = inflight.join_next().await else {
+                break;
+            };
+            match joined {
+                Ok((index, Ok(opened))) => {
+                    finished.push((index, opened));
+                    let gather = deadline
+                        .remaining()
+                        .unwrap_or(Duration::ZERO)
+                        .min(Duration::from_millis(5));
+                    let gather_done = tokio::time::sleep(gather);
+                    tokio::pin!(gather_done);
+                    loop {
+                        tokio::select! {
+                            biased;
+                            joined = inflight.join_next(), if !inflight.is_empty() => {
+                                match joined {
+                                    Some(Ok((index, Ok(opened)))) => finished.push((index, opened)),
+                                    Some(Ok((_, Err(error)))) => last = error,
+                                    _ => {}
+                                }
+                            }
+                            () = &mut gather_done => break,
+                        }
+                    }
+                    break;
+                }
+                Ok((_, Err(error))) => last = error,
+                Err(error) => last = Error::protocol(format!("streams bootstrap: {error}")),
+            }
+        }
+        Self::finish_aborted_handshakes(inflight).await;
+        finished.sort_by_key(|(index, _)| *index);
+        let mut rest = finished.into_iter();
+        let Some((_, (conn, versions))) = rest.next() else {
+            return Err(last);
+        };
+        let mut learned = Vec::new();
+        for (_, (spare, spare_versions)) in rest {
+            if !spare_versions.api_keys.is_empty() {
+                learned.push((spare.addr().to_string(), spare_versions.api_keys));
+            }
+            retire_streams_conn(spare).await;
+        }
+        Ok((conn, versions, learned))
+    }
+
+    async fn discover(
+        &self,
+        request: &StreamsGroupHeartbeatRequest,
+        deadline: Deadline,
+    ) -> Result<(BrokerConn, LearnedStreams)> {
+        let (mut bootstrap, versions, siblings) = self.open_any(deadline).await?;
+        let Some(version) = versions
+            .api_version(FIND_COORDINATOR)
+            .and_then(|api| pick_version(api.min_version, api.max_version, 1, 6))
+        else {
+            retire_streams_conn(bootstrap).await;
+            return Err(Error::Unsupported(
+                "broker does not support FindCoordinator v1-6".into(),
+            ));
+        };
+        let body = match bootstrap
+            .roundtrip_deadline(
+                FIND_COORDINATOR,
+                version,
+                |buf| {
+                    encode_find_coordinator_request_typed(
+                        buf,
+                        version,
+                        &request.group_id,
+                        COORDINATOR_GROUP,
+                    )
+                },
+                deadline,
+            )
+            .await
+        {
+            Ok(body) => body,
+            Err(error) => {
+                retire_streams_conn(bootstrap).await;
+                return Err(error);
+            }
+        };
+        let address = match coordinator_address(&body, version, &request.group_id) {
+            Ok(address) => address,
+            Err(error) => {
+                retire_streams_conn(bootstrap).await;
+                return Err(error);
+            }
+        };
+        let bootstrap_addr = bootstrap.addr().to_string();
+        let bootstrap_keys = versions.api_keys.clone();
+        if address == bootstrap.addr() {
+            return Ok((
+                bootstrap,
+                LearnedStreams {
+                    bootstrap_addr,
+                    bootstrap_keys: bootstrap_keys.clone(),
+                    find_version: version,
+                    coord_addr: address,
+                    coord_keys: bootstrap_keys,
+                    prior: HashMap::new(),
+                },
+            ));
+        }
+        if let Some(keys) = siblings
+            .iter()
+            .find(|(addr, keys)| addr == &address && !keys.is_empty())
+            .map(|(_, keys)| keys.clone())
+        {
+            let opened = open_known_streams(&self.cfg.connection, &address, &keys, deadline).await;
+            retire_streams_conn(bootstrap).await;
+            let conn = opened?;
+            return Ok((
+                conn,
+                LearnedStreams {
+                    bootstrap_addr,
+                    bootstrap_keys,
+                    find_version: version,
+                    coord_addr: address,
+                    coord_keys: keys,
+                    prior: HashMap::new(),
+                },
+            ));
+        }
+        let opened = self.open(&address, deadline).await;
+        retire_streams_conn(bootstrap).await;
+        let (conn, coord_versions) = opened?;
+        Ok((
+            conn,
+            LearnedStreams {
+                bootstrap_addr,
+                bootstrap_keys,
+                find_version: version,
+                coord_addr: address,
+                coord_keys: coord_versions.api_keys,
+                prior: HashMap::new(),
+            },
+        ))
+    }
+
+    async fn rediscover(
+        &self,
+        request: &StreamsGroupHeartbeatRequest,
+        deadline: Deadline,
+        known: &LearnedStreams,
+    ) -> Result<(BrokerConn, LearnedStreams)> {
+        let mut hop = open_known_streams(
+            &self.cfg.connection,
+            &known.bootstrap_addr,
+            &known.bootstrap_keys,
+            deadline,
+        )
+        .await?;
+        let body = match hop
+            .roundtrip_deadline(
+                FIND_COORDINATOR,
+                known.find_version,
+                |buf| {
+                    encode_find_coordinator_request_typed(
+                        buf,
+                        known.find_version,
+                        &request.group_id,
+                        COORDINATOR_GROUP,
+                    )
+                },
+                deadline,
+            )
+            .await
+        {
+            Ok(body) => body,
+            Err(error) => {
+                retire_streams_conn(hop).await;
+                return Err(error);
+            }
+        };
+        let address = match coordinator_address(&body, known.find_version, &request.group_id) {
+            Ok(address) => address,
+            Err(error) => {
+                retire_streams_conn(hop).await;
+                return Err(error);
+            }
+        };
+        if address == known.coord_addr {
+            if address == hop.addr() {
+                return Ok((hop, known.clone()));
+            }
+            let opened =
+                open_known_streams(&self.cfg.connection, &address, &known.coord_keys, deadline)
+                    .await;
+            retire_streams_conn(hop).await;
+            let conn = opened?;
+            return Ok((conn, known.clone()));
+        }
+        if address == hop.addr() {
+            return Ok((hop, known.moved_to(&address, known.bootstrap_keys.clone())));
+        }
+        if let Some(keys) = known
+            .prior
+            .get(&address)
+            .filter(|keys| !keys.is_empty())
+            .cloned()
+        {
+            let opened = open_known_streams(&self.cfg.connection, &address, &keys, deadline).await;
+            retire_streams_conn(hop).await;
+            let conn = opened?;
+            return Ok((conn, known.moved_to(&address, keys)));
+        }
+        if address == known.bootstrap_addr && !known.bootstrap_keys.is_empty() {
+            let opened = open_known_streams(
+                &self.cfg.connection,
+                &address,
+                &known.bootstrap_keys,
+                deadline,
+            )
+            .await;
+            retire_streams_conn(hop).await;
+            let conn = opened?;
+            return Ok((conn, known.moved_to(&address, known.bootstrap_keys.clone())));
+        }
+        let opened = self.open(&address, deadline).await;
+        retire_streams_conn(hop).await;
+        let (conn, coord_versions) = opened?;
+        Ok((conn, known.moved_to(&address, coord_versions.api_keys)))
+    }
+
+    async fn heartbeat_once(
+        &self,
+        request: &StreamsGroupHeartbeatRequest,
+        encoded: &[u8],
+        deadline: Deadline,
+        cached: Option<BrokerConn>,
+        learned: Option<LearnedStreams>,
+    ) -> Result<(StreamsGroupHeartbeatResponse, BrokerConn, LearnedStreams)> {
+        let (mut conn, learned) = match cached {
+            Some(conn) => (
+                conn,
+                learned.ok_or_else(|| Error::protocol("missing Streams versions"))?,
+            ),
+            None => match learned {
+                Some(known) => self.rediscover(request, deadline, &known).await?,
+                None => self.discover(request, deadline).await?,
+            },
+        };
+        let response = conn
+            .roundtrip_deadline(
+                STREAMS_GROUP_HEARTBEAT,
+                0,
+                |buf| {
+                    buf.extend_from_slice(encoded);
+                    Ok(())
+                },
+                deadline,
+            )
+            .await?;
+        let decoded = crate::protocol::streams::decode_streams_group_heartbeat_response(
+            &response,
+            0,
+            self.cfg.limits,
+        )?;
+        deadline.check_expired()?;
+        Ok((decoded, conn, learned))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::open_streams_heartbeat;
+    use crate::net::Deadline;
+    use crate::AdminConfig;
+    use std::sync::atomic::{AtomicUsize, Ordering};
+    use std::sync::Arc;
+    use std::time::{Duration, Instant};
+    use tokio::io::AsyncReadExt;
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn a_streams_rediscovery_lets_the_broker_leave() {
+        use super::{LearnedStreams, StreamsClient, StreamsConfig};
+        use crate::net::Deadline;
+        use crate::protocol::api::ApiVersion;
+        use crate::protocol::api_keys::FIND_COORDINATOR;
+        use crate::protocol::streams::StreamsGroupHeartbeatRequest;
+        use tokio::io::{AsyncReadExt, AsyncWriteExt};
+
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap().to_string();
+        let open = Arc::new(AtomicUsize::new(0));
+        let accepted = Arc::new(AtomicUsize::new(0));
+        let flag = Arc::clone(&open);
+        let accepted_flag = Arc::clone(&accepted);
+        let peer = tokio::spawn(async move {
+            let Ok((mut socket, _)) = listener.accept().await else {
+                return;
+            };
+            let _accepted = accepted_flag.fetch_add(1, Ordering::SeqCst);
+            let _started = flag.fetch_add(1, Ordering::SeqCst);
+            let mut size_buf = [0u8; 4];
+            if socket.read_exact(&mut size_buf).await.is_ok() {
+                let size = i32::from_be_bytes(size_buf).max(0) as usize;
+                let mut request = vec![0u8; size];
+                if socket.read_exact(&mut request).await.is_ok() {
+                    if let Some(bytes) = request.get(4..8) {
+                        let correlation = i32::from_be_bytes([
+                            bytes.first().copied().unwrap_or(0),
+                            bytes.get(1).copied().unwrap_or(0),
+                            bytes.get(2).copied().unwrap_or(0),
+                            bytes.get(3).copied().unwrap_or(0),
+                        ]);
+                        let mut response = Vec::with_capacity(8);
+                        response.extend_from_slice(&4i32.to_be_bytes());
+                        response.extend_from_slice(&correlation.to_be_bytes());
+                        let _wrote = socket.write_all(&response).await;
+                    }
+                }
+            }
+            let mut buf = [0u8; 8];
+            loop {
+                match socket.read(&mut buf).await {
+                    Ok(0) | Err(_) => break,
+                    Ok(_) => continue,
+                }
+            }
+            let _left = flag.fetch_sub(1, Ordering::SeqCst);
+        });
+        let mut cfg = StreamsConfig::bootstrap([addr.clone()]);
+        cfg.allow_unstable = true;
+        let client = StreamsClient::new(cfg).unwrap();
+        let keys = vec![ApiVersion {
+            api_key: FIND_COORDINATOR,
+            min_version: 1,
+            max_version: 1,
+        }];
+        let known = LearnedStreams {
+            bootstrap_addr: addr,
+            bootstrap_keys: keys.clone(),
+            find_version: 1,
+            coord_addr: "127.0.0.1:1".to_string(),
+            coord_keys: keys,
+            prior: std::collections::HashMap::new(),
+        };
+        let request = StreamsGroupHeartbeatRequest {
+            group_id: "group".to_string(),
+            member_id: String::new(),
+            member_epoch: 0,
+            endpoint_information_epoch: 0,
+            instance_id: None,
+            rack_id: None,
+            rebalance_timeout_ms: -1,
+            topology: None,
+            active_tasks: None,
+            standby_tasks: None,
+            warmup_tasks: None,
+            process_id: None,
+            user_endpoint: None,
+            client_tags: None,
+            task_offsets: None,
+            task_end_offsets: None,
+            shutdown_application: false,
+        };
+        let found = client
+            .rediscover(
+                &request,
+                Deadline::from_timeout(Duration::from_secs(2)),
+                &known,
+            )
+            .await;
+        let failed = found.is_err();
+        assert_eq!(
+            accepted.load(Ordering::SeqCst),
+            1,
+            "the streams rediscovery never dialed, failed={failed}"
+        );
+        assert_eq!(
+            open.load(Ordering::SeqCst),
+            0,
+            "a streams rediscovery left the broker blocked in a read, failed={failed}"
+        );
+        peer.abort();
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn replacing_a_streams_socket_lets_the_broker_leave() {
+        use super::retire_streams_conn;
+        use crate::net::BrokerConn;
+
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap().to_string();
+        let open = Arc::new(AtomicUsize::new(0));
+        let flag = Arc::clone(&open);
+        let peer = tokio::spawn(async move {
+            let Ok((mut socket, _)) = listener.accept().await else {
+                return;
+            };
+            let _started = flag.fetch_add(1, Ordering::SeqCst);
+            let mut buf = [0u8; 8];
+            loop {
+                match socket.read(&mut buf).await {
+                    Ok(0) | Err(_) => break,
+                    Ok(_) => continue,
+                }
+            }
+            let _left = flag.fetch_sub(1, Ordering::SeqCst);
+        });
+        let conn = BrokerConn::connect(&addr, "streams-replace", Duration::from_secs(2))
+            .await
+            .unwrap();
+        while open.load(Ordering::SeqCst) == 0 {
+            tokio::task::yield_now().await;
+        }
+        retire_streams_conn(conn).await;
+        assert_eq!(
+            open.load(Ordering::SeqCst),
+            0,
+            "replacing a streams socket left the broker blocked in a read"
+        );
+        peer.abort();
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn remembered_sasl_timeout_closes_the_socket() {
+        use super::open_known_streams;
+        use crate::net::Deadline;
+        use crate::protocol::api::ApiVersion;
+        use crate::protocol::api_keys::{SASL_AUTHENTICATE, SASL_HANDSHAKE};
+        use std::time::{Duration, Instant};
+
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap().to_string();
+        let open = Arc::new(AtomicUsize::new(0));
+        let open_flag = Arc::clone(&open);
+        let peer = tokio::spawn(async move {
+            let (mut sock, _) = listener.accept().await.unwrap();
+            let _started = open_flag.fetch_add(1, Ordering::SeqCst);
+            let mut buf = [0u8; 64];
+            loop {
+                match sock.read(&mut buf).await {
+                    Ok(0) | Err(_) => break,
+                    Ok(_) => continue,
+                }
+            }
+            let _left = open_flag.fetch_sub(1, Ordering::SeqCst);
+        });
+        let mut cfg = AdminConfig::bootstrap([addr.clone()]);
+        cfg.connect_timeout = Duration::from_millis(200);
+        cfg.sasl_plain = Some(("user".into(), "pass".into()));
+        let keys = [
+            ApiVersion {
+                api_key: SASL_HANDSHAKE,
+                min_version: 0,
+                max_version: 1,
+            },
+            ApiVersion {
+                api_key: SASL_AUTHENTICATE,
+                min_version: 0,
+                max_version: 2,
+            },
+        ];
+        let result = open_known_streams(
+            &cfg,
+            &addr,
+            &keys,
+            Deadline::from_std(Instant::now() + Duration::from_millis(200)),
+        )
+        .await;
+        assert!(matches!(result, Err(crate::Error::Timeout)));
+        assert_eq!(
+            open.load(Ordering::SeqCst),
+            0,
+            "streams sasl left the socket open"
+        );
+        peer.abort();
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn streams_heartbeat_handshake_timeout_closes_the_socket() {
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap().to_string();
+        let open = Arc::new(AtomicUsize::new(0));
+        let open_flag = Arc::clone(&open);
+        let peer = tokio::spawn(async move {
+            let (mut sock, _) = listener.accept().await.unwrap();
+            let _started = open_flag.fetch_add(1, Ordering::SeqCst);
+            let mut buf = [0u8; 64];
+            loop {
+                match sock.read(&mut buf).await {
+                    Ok(0) | Err(_) => break,
+                    Ok(_) => continue,
+                }
+            }
+            let _left = open_flag.fetch_sub(1, Ordering::SeqCst);
+        });
+        let mut cfg = AdminConfig::bootstrap([addr.clone()]);
+        cfg.connect_timeout = Duration::from_millis(200);
+        let result = open_streams_heartbeat(
+            &cfg,
+            &addr,
+            Deadline::from_std(Instant::now() + Duration::from_millis(200)),
+        )
+        .await;
+        assert!(
+            matches!(result, Err(crate::Error::Timeout)),
+            "a silent Streams broker should time out the handshake"
+        );
+        assert_eq!(
+            open.load(Ordering::SeqCst),
+            0,
+            "Streams heartbeat handshake left the socket blocked in a broker read"
+        );
+        peer.abort();
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn stopping_a_finished_streams_handshake_lets_the_broker_leave() {
+        use super::StreamsClient;
+        use crate::net::BrokerConn;
+        use crate::protocol::api::ApiVersionsResponse;
+        use tokio::io::AsyncReadExt;
+
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap().to_string();
+        let open = Arc::new(AtomicUsize::new(0));
+        let flag = Arc::clone(&open);
+        let peer = tokio::spawn(async move {
+            let Ok((mut socket, _)) = listener.accept().await else {
+                return;
+            };
+            let _started = flag.fetch_add(1, Ordering::SeqCst);
+            let mut buf = [0u8; 8];
+            loop {
+                match socket.read(&mut buf).await {
+                    Ok(0) | Err(_) => break,
+                    Ok(_) => continue,
+                }
+            }
+            let _left = flag.fetch_sub(1, Ordering::SeqCst);
+        });
+        let conn = BrokerConn::connect(&addr, "streams-handshake", Duration::from_secs(2))
+            .await
+            .unwrap();
+        while open.load(Ordering::SeqCst) == 0 {
+            tokio::task::yield_now().await;
+        }
+        let versions = ApiVersionsResponse {
+            error_code: 0,
+            api_keys: Vec::new(),
+            throttle_time_ms: 0,
+            supported_features: Vec::new(),
+            finalized_features_epoch: None,
+            finalized_features: Vec::new(),
+            zk_migration_ready: false,
+        };
+        let mut set =
+            tokio::task::JoinSet::<(usize, crate::Result<(BrokerConn, ApiVersionsResponse)>)>::new(
+            );
+        let _ = set.spawn(async move { (0usize, Ok((conn, versions))) });
+        for _ in 0..8 {
+            tokio::task::yield_now().await;
+        }
+        StreamsClient::finish_aborted_handshakes(set).await;
+        assert_eq!(
+            open.load(Ordering::SeqCst),
+            0,
+            "stopping a finished streams handshake left the broker blocked in a read"
+        );
+        peer.abort();
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn an_aborted_streams_handshake_lets_the_broker_leave() {
+        use super::StreamsClient;
+        use crate::net::BrokerConn;
+        use crate::protocol::api::ApiVersionsResponse;
+        use tokio::io::AsyncReadExt;
+
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap().to_string();
+        let open = Arc::new(AtomicUsize::new(0));
+        let flag = Arc::clone(&open);
+        let peer = tokio::spawn(async move {
+            let Ok((mut socket, _)) = listener.accept().await else {
+                return;
+            };
+            let _started = flag.fetch_add(1, Ordering::SeqCst);
+            let mut buf = [0u8; 8];
+            loop {
+                match socket.read(&mut buf).await {
+                    Ok(0) | Err(_) => break,
+                    Ok(_) => continue,
+                }
+            }
+            let _left = flag.fetch_sub(1, Ordering::SeqCst);
+        });
+        let conn = BrokerConn::connect(&addr, "abort-streams", Duration::from_secs(2))
+            .await
+            .unwrap();
+        while open.load(Ordering::SeqCst) == 0 {
+            tokio::task::yield_now().await;
+        }
+        let mut set =
+            tokio::task::JoinSet::<(usize, crate::Result<(BrokerConn, ApiVersionsResponse)>)>::new(
+            );
+        let _spawned = set.spawn(async move {
+            let _hold = conn;
+            std::future::pending().await
+        });
+        for _ in 0..8 {
+            tokio::task::yield_now().await;
+        }
+        StreamsClient::finish_aborted_handshakes(set).await;
+        assert_eq!(
+            open.load(Ordering::SeqCst),
+            0,
+            "an aborted streams handshake left the broker blocked in a read"
+        );
+        peer.abort();
+    }
+}

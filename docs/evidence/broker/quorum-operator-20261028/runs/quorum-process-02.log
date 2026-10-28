@@ -1,0 +1,9 @@
+   Compiling partitionline-broker v0.1.0 (/workspace/work/partitionline-quorum/partitionline-broker)
+    Finished `test` profile [unoptimized] target(s) in 0.66s
+     Running tests/operator_quorum.rs (/workspace/work/qualification-20261027/broker-check-target/debug/deps/operator_quorum-984e5c20ad258d11)
+
+running 1 test
+test three_process_metadata_quorum_fails_over_and_replays ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 4.22s
+

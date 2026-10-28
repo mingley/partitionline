@@ -1,0 +1,69 @@
+{
+  "scope": "Original client-default-matrix-02 full_surface test binary. RUST_MIN_STACK controls the Rust test thread default. Not a committed-source or production qualification.",
+  "binary_path": "/workspace/work/goal-qualification-20261028/client-default-matrix-02-20.elf",
+  "binary_sha256": "4651bdd680078546e58e76ac4088435582df6df8b5d5feec7521e1c12db334a0",
+  "binary_source_receipt": "client-default-matrix-02.json",
+  "core_dump_limit": "ulimit -c 0",
+  "outer_timeout_seconds": 30,
+  "runs": [
+    {
+      "requested_rust_min_stack_bytes": 2097152,
+      "command": [
+        "timeout",
+        "30s",
+        "/workspace/work/goal-qualification-20261028/client-default-matrix-02-20.elf",
+        "--exact",
+        "kip848_broker_heartbeat_interval_scheduling",
+        "--nocapture"
+      ],
+      "environment": {
+        "RUST_MIN_STACK": "2097152"
+      },
+      "exit_code": 126,
+      "reason": "retained copy was not executable",
+      "log": "kip848-original-stack-2m.log"
+    },
+    {
+      "requested_rust_min_stack_bytes": 2097152,
+      "command": [
+        "timeout",
+        "30s",
+        "/workspace/work/goal-qualification-20261028/client-default-matrix-02-20.elf",
+        "--exact",
+        "kip848_broker_heartbeat_interval_scheduling",
+        "--nocapture"
+      ],
+      "environment": {
+        "RUST_MIN_STACK": "2097152"
+      },
+      "precondition": "chmod u+x on retained copy",
+      "exit_code": 134,
+      "reason": "stack overflow and SIGABRT",
+      "log": "kip848-original-stack-2m-02.log"
+    },
+    {
+      "requested_rust_min_stack_bytes": 8388608,
+      "command": [
+        "timeout",
+        "30s",
+        "/workspace/work/goal-qualification-20261028/client-default-matrix-02-20.elf",
+        "--exact",
+        "kip848_broker_heartbeat_interval_scheduling",
+        "--nocapture"
+      ],
+      "environment": {
+        "RUST_MIN_STACK": "8388608"
+      },
+      "exit_code": 0,
+      "reason": "test passed",
+      "log": "kip848-original-stack-8m.log"
+    }
+  ],
+  "later_binary": {
+    "binary_path": "/workspace/work/qualification-20261027/broker-check-target/debug/deps/full_surface-e102b38d1447c2a3",
+    "sha256": "bb18b14aa44c36a8b55e137b939afa736899829a9d8034f7af0243153be79a6c",
+    "build_receipt": "client-retest-full_surface.json",
+    "stack_probe": "kip848-stack-probe.json",
+    "note": "A different test executable; stack-frame disassembly estimates are observations of this later binary, not the original one. Raw disassembly was not retained."
+  }
+}

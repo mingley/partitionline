@@ -1,0 +1,36 @@
+{
+  "schema_version": 1,
+  "base_commit": "99868cad0ecab5e9664427096e0cada4c9ac6037",
+  "worktree": "/workspace/work/partitionline-quorum",
+  "status": "targeted_checks_passed_uncommitted",
+  "source_sha256": {
+    "partitionline-broker/README.md": "33315764c9e6895ada5e9b5729cd5c0a58261ff17d87dc93b9868781b016b310",
+    "partitionline-broker/src/bin/operator.rs": "f33dc39cb78813ddcb18c56f3d75395999173cae37efb8d5ab64fcba7408619c",
+    "partitionline-broker/src/bin/operator/serve.rs": "cd516e7ca8c3e777e65eb322ce21bfc7629cd9df97103206217cd45ba515a56e",
+    "partitionline-broker/src/bin/operator/quorum.rs": "87089b52855aa3988a4db1e4c1d5b2eeeccb87df50d6df230fab0fed012d12c7",
+    "partitionline-broker/src/metadata.rs": "6fb8167b7e15b91c85813edfe0aa9e27d351e9305d9468789e26d8cdf6f899f2",
+    "partitionline-broker/tests/operator_quorum.rs": "d95e8a81eeab389414742670046b3b15a11fe71fe2574ac1a0ea0228cbd62908"
+  },
+  "scope": "Experimental loopback three-controller metadata-only private quorum; no Kafka KRaft or replicated data, security or performance qualification.",
+  "checks_completed": [
+    "git diff --check",
+    "cargo check --locked --offline --manifest-path partitionline-broker/Cargo.toml --bin operator",
+    "broker metadata integration tests 8 passed and metadata quorum tests 2 passed",
+    "final three-process operator_quorum test passed",
+    "strict Clippy passed for operator and operator_quorum",
+    "operator build and executable hash pinned"
+  ],
+  "next_checks": [
+    "independent Apache Java Kafka Admin discovery/create/delete/failover with exact source and process records",
+    "full broker default/all-feature suites on a final committed candidate"
+  ],
+  "limitations": [
+    "Parent requested separate worktree; main remains unchanged.",
+    "Loopback private peer protocol has no authentication and uses custom metadata records.",
+    "Client Metadata reports unavailable partition leaders with empty replica/ISR lists.",
+    "The profile has fixed three-node membership and bounded 64 source positions; no data-plane support.",
+    "Test source inputs were hashed, but the separately copied operator binary was not hashed by the test harness at execution.",
+    "Candidate is uncommitted; broker metadata and operator behavior remain scoped to fixed trusted loopback controllers."
+  ],
+  "results_dir": "/workspace/work/quorum-profile-runs"
+}

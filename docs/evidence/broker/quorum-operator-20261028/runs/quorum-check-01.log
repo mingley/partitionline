@@ -1,0 +1,12 @@
+error: failed searching for potential workspace
+package manifest: `/workspace/work/partitionline-quorum/partitionline-broker/Cargo.toml`
+invalid potential workspace manifest: `/workspace/work/partitionline-quorum/Cargo.toml`
+
+help: to avoid searching for a non-existent workspace, add `[workspace]` to the package manifest
+
+Caused by:
+  failed to parse manifest at `/workspace/work/partitionline-quorum/Cargo.toml`
+
+Caused by:
+  no targets specified in the manifest
+  either src/lib.rs, src/main.rs, a [lib] section, or [[bin]] section must be present

@@ -40,6 +40,7 @@ fn args(data: &Path, port: u16, cluster: &str) -> Vec<String> {
 fn start(data: &Path, port: u16) -> Process {
     let mut child = Command::new(env!("CARGO_BIN_EXE_operator"))
         .args(args(data, port, "operator-test"))
+        .args(["--sync-concurrency", "2"])
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
         .spawn()
@@ -198,6 +199,15 @@ fn durable_rf1_server_restarts_and_rejects_shared_or_wrong_identity() {
     drop(held);
     let process = start(&data, port);
     assert_advertised_profile(port);
+    for invalid in ["0", "65"] {
+        let result = Command::new(env!("CARGO_BIN_EXE_operator"))
+            .args(args(&data, port, "operator-test"))
+            .args(["--sync-concurrency", invalid])
+            .output()
+            .unwrap();
+        assert!(!result.status.success());
+        assert!(String::from_utf8_lossy(&result.stderr).contains("sync concurrency"));
+    }
     let conflicting = Command::new(env!("CARGO_BIN_EXE_operator"))
         .args(args(&data, port, "operator-test"))
         .output()

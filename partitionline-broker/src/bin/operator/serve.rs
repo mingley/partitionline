@@ -17,6 +17,7 @@ struct Config {
     advertised_port: u16,
     cluster: String,
     broker_id: i32,
+    sync_concurrency: Option<usize>,
 }
 
 fn parse(args: &[String]) -> Result<Config, String> {
@@ -34,6 +35,7 @@ fn parse(args: &[String]) -> Result<Config, String> {
                 | "--advertise-port"
                 | "--cluster"
                 | "--broker-id"
+                | "--sync-concurrency"
         ) {
             return Err(format!("unknown serve option {name}"));
         }
@@ -76,6 +78,17 @@ fn parse(args: &[String]) -> Result<Config, String> {
     if broker_id < 0 {
         return Err("broker ID must be nonnegative".into());
     }
+    let sync_concurrency = options
+        .get("--sync-concurrency")
+        .map(|value| {
+            value
+                .parse::<usize>()
+                .map_err(|_| "invalid sync concurrency")
+        })
+        .transpose()?;
+    if sync_concurrency.is_some_and(|value| !(1..=produce::MAX_SYNC_CONCURRENCY).contains(&value)) {
+        return Err("sync concurrency must be between 1 and 64".into());
+    }
     Ok(Config {
         data,
         listen,
@@ -83,6 +96,7 @@ fn parse(args: &[String]) -> Result<Config, String> {
         advertised_port,
         cluster,
         broker_id,
+        sync_concurrency,
     })
 }
 
@@ -99,6 +113,9 @@ fn lock_and_validate_identity(config: &Config) -> Result<File, String> {
         .map_err(|error| format!("data lock: {error}"))?;
     lock.try_lock()
         .map_err(|error| format!("data directory already in use or cannot be locked: {error}"))?;
+    if config.data.join("quorum.identity").exists() {
+        return Err("metadata quorum data cannot be opened as an ordinary server".into());
+    }
     let identity = format!(
         "partitionline-rf1-v1\n{}\n{}\n",
         config.cluster, config.broker_id
@@ -158,10 +175,14 @@ async fn serve(config: Config) -> Result<(), String> {
         config.advertised_port,
         config.cluster,
     );
+    let mut produce_config = produce::Config::new(config.data.join("partitions"));
+    if let Some(concurrency) = config.sync_concurrency {
+        produce_config.max_sync_concurrency = concurrency;
+    }
     let (router, recovery) = metadata::Router::open_with_read_store(
         config.data.join("catalog.journal"),
         router_config,
-        produce::Config::new(config.data.join("partitions")),
+        produce_config,
         fetch::Limits::default(),
     )
     .await

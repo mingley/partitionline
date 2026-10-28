@@ -1,0 +1,24 @@
+   Compiling partitionline-broker v0.1.0 (/workspace/work/partitionline-quorum/partitionline-broker)
+    Finished `test` profile [unoptimized] target(s) in 2.80s
+     Running tests/metadata.rs (/workspace/work/qualification-20261027/broker-check-target/debug/deps/metadata-f087c34bb37efa4d)
+
+running 8 tests
+test corrupt_complete_catalog_fails_startup_without_partial_metadata ... ok
+test persistent_create_validate_delete_and_fresh_identity ... ok
+test serve_live_probe ... ok
+test resource_bounds_and_response_preflight_are_non_mutating ... ok
+test shutdown_is_joined_idempotent_and_stops_admission ... ok
+test native_null_array_compatibility_is_exact_and_read_only ... ok
+test validation_errors_timeout_and_no_peer_paths ... ok
+test independent_apache_metadata_admin_goldens ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.06s
+
+     Running tests/metadata_quorum.rs (/workspace/work/qualification-20261027/broker-check-target/debug/deps/metadata_quorum-ec3ab2f3b5245911)
+
+running 2 tests
+test three_node_tcp_router_waits_for_source_commit_and_replays_after_minority_restart ... ok
+test five_node_tcp_metadata_application_keeps_committed_views_through_two_restarts ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.50s
+

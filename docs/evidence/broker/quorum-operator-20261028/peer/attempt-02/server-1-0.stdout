@@ -1,0 +1,2 @@
+ready 127.0.0.1:33409 private=127.0.0.1:55187 profile=metadata-only-quorum
+stopped accepted=16 joined=16 worker_failures=0

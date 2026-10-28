@@ -28,6 +28,25 @@ without a fresh run. Before those individual runs, a broader serial replay was
 stopped after 85 successes and five failures; its `exit_code: 143` receipt and
 partial log are retained. It did not complete all 415 selected tests.
 
+The original matrix `full_surface` executable, SHA-256
+`4651bdd680078546e58e76ac4088435582df6df8b5d5feec7521e1c12db334a0`,
+was also replayed on `kip848_broker_heartbeat_interval_scheduling`. With
+`RUST_MIN_STACK=2097152` it aborted with stack overflow (exit 134); with
+`RUST_MIN_STACK=8388608` it passed (exit 0). Each run had a 30-second timeout
+and core dumps disabled. An initial 2 MiB attempt failed with exit 126 because
+the copied executable lacked execute permission; that failure is retained.
+Commands, limits and outputs are under `runs/stack/`. The executable itself is
+not included here. A larger stack was used only to diagnose the failure and is
+not a fix or qualification result.
+
+The later `full_surface` binary, SHA-256
+`bb18b14aa44c36a8b55e137b939afa736899829a9d8034f7af0243153be79a6c`,
+was separately examined. Its recorded stack probe is retained; exploratory
+`objdump` inspection suggested an approximately 1 MiB test poll frame and
+roughly 154 KiB join/rejoin poll frames. Raw disassembly was not retained, so
+these frame estimates are not attributed to the original executable. The
+binary and its complete source snapshot are not included in this archive.
+
 `proposal.md` explains one candidate cancellation design for the group
 rebalance path, including owner lifetime, memory accounting, saturation,
 unpolled futures, final drop, and validation. Large owned iterators and partial

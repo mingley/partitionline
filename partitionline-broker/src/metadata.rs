@@ -50,6 +50,17 @@ const ZERO: [u8; 16] = [0; 16];
 const TOPIC_OPS: i32 = 8 | 16 | 32 | 64 | 128 | 256 | 1024 | 2048;
 const CLUSTER_OPS: i32 = 32 | 128 | 256 | 512 | 1024 | 2048 | 4096;
 
+/// One reachable controller endpoint in an explicit metadata-only quorum.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ControllerEndpoint {
+    /// Nonnegative controller/voter ID.
+    pub id: i32,
+    /// Kafka client-reachable host.
+    pub host: String,
+    /// Kafka client-reachable nonzero port.
+    pub port: u16,
+}
+
 /// Validated actor, parser, response and standalone-node configuration.
 #[derive(Debug, Clone)]
 pub struct Config {
@@ -238,9 +249,15 @@ struct CompactJob {
     reply: oneshot::Sender<Result<compaction::Outcome, Error>>,
 }
 #[derive(Clone, Copy)]
-struct DataOptions {
+struct DataOptions<'a> {
     reads: Option<fetch::Limits>,
     retention: Option<retention::Config>,
+    endpoints: &'a [ControllerEndpoint],
+}
+#[derive(Clone, Copy)]
+struct Routing<'a> {
+    config: &'a Config,
+    endpoints: &'a [ControllerEndpoint],
 }
 struct DataJob {
     request: Vec<u8>,
@@ -270,6 +287,7 @@ struct QuorumOpening {
     executor: tokio::runtime::Handle,
     limits: crate::metadata_quorum::Limits,
     deadline: Duration,
+    endpoints: Vec<ControllerEndpoint>,
 }
 
 /// Composed bounded Kafka handler and exclusive asynchronous catalog owner.
@@ -466,9 +484,93 @@ impl Router {
         application: crate::metadata_quorum::Limits,
         deadline: Duration,
     ) -> Result<(Self, journal::Recovery), Error> {
-        let (cluster, _, _, _) = source
+        Self::open_quorum_inner(
+            path.into(),
+            config,
+            source,
+            application,
+            deadline,
+            Vec::new(),
+        )
+        .await
+    }
+
+    /// Open a metadata-only quorum frontend with bounded client-facing controller
+    /// endpoints. IDs must exactly match the private quorum's genesis and current
+    /// voter set. The caller must keep voter membership fixed for this router's
+    /// lifetime and reopen the router before changing it. Metadata reports no
+    /// partition leaders or data replicas. The caller joins the private runtime
+    /// after the router shuts down.
+    pub async fn open_quorum_with_controllers(
+        path: impl Into<PathBuf>,
+        config: Config,
+        source: crate::raft::runtime::Handle,
+        application: crate::metadata_quorum::Limits,
+        deadline: Duration,
+        endpoints: Vec<ControllerEndpoint>,
+    ) -> Result<(Self, journal::Recovery), Error> {
+        if endpoints.is_empty() {
+            return Err(Error::InvalidConfig);
+        }
+        Self::open_quorum_inner(
+            path.into(),
+            config,
+            source,
+            application,
+            deadline,
+            endpoints,
+        )
+        .await
+    }
+
+    async fn open_quorum_inner(
+        path: PathBuf,
+        config: Config,
+        source: crate::raft::runtime::Handle,
+        application: crate::metadata_quorum::Limits,
+        deadline: Duration,
+        endpoints: Vec<ControllerEndpoint>,
+    ) -> Result<(Self, journal::Recovery), Error> {
+        let (cluster, _, _, genesis) = source
             .metadata_binding()
             .map_err(|_| Error::InvalidConfig)?;
+        if !endpoints.is_empty() {
+            if endpoints.len() > 64
+                || !endpoints.iter().any(|endpoint| {
+                    endpoint.id == config.broker_id
+                        && wire_advertised_host(&endpoint.host)
+                            == wire_advertised_host(&config.advertised_host)
+                        && endpoint.port == config.advertised_port
+                })
+                || endpoints.iter().enumerate().any(|(index, endpoint)| {
+                    endpoint.id < 0
+                        || endpoint.port == 0
+                        || wire_advertised_host(&endpoint.host).is_none()
+                        || endpoints[..index].iter().any(|old| {
+                            old.id == endpoint.id
+                                || (wire_advertised_host(&old.host)
+                                    == wire_advertised_host(&endpoint.host)
+                                    && old.port == endpoint.port)
+                        })
+                })
+            {
+                return Err(Error::InvalidConfig);
+            }
+            let genesis = crate::raft::membership::Voters::decode(&genesis)
+                .map_err(|_| Error::InvalidConfig)?;
+            let current = source.voters().await.map_err(|_| Error::InvalidConfig)?;
+            let matches = |voters: &crate::raft::membership::Voters| {
+                voters.voters().len() == endpoints.len()
+                    && voters.voters().iter().all(|voter| {
+                        endpoints
+                            .iter()
+                            .any(|endpoint| u32::try_from(endpoint.id).ok() == Some(voter.key().id))
+                    })
+            };
+            if !matches(&genesis) || !matches(&current) || genesis.voters() != current.voters() {
+                return Err(Error::InvalidConfig);
+            }
+        }
         if cluster != config.cluster_id || application.catalog != config.catalog_limits {
             return Err(Error::InvalidConfig);
         }
@@ -477,8 +579,9 @@ impl Router {
             executor: tokio::runtime::Handle::current(),
             limits: application,
             deadline,
+            endpoints,
         };
-        Self::open_inner(path.into(), config, None, None, None, None, Some(opening)).await
+        Self::open_inner(path, config, None, None, None, None, Some(opening)).await
     }
 
     async fn open_inner(
@@ -501,15 +604,21 @@ impl Router {
         let change_tx = Arc::new(change_tx);
         let wakeup = Arc::downgrade(&change_tx);
         let task = tokio::task::spawn_blocking(move || {
-            let startup = match quorum {
-                Some(opening) => Catalog::open_quorum(
-                    path,
-                    opening.source,
-                    opening.executor,
-                    opening.limits,
-                    opening.deadline,
+            let (startup, endpoints) = match quorum {
+                Some(opening) => (
+                    Catalog::open_quorum(
+                        path,
+                        opening.source,
+                        opening.executor,
+                        opening.limits,
+                        opening.deadline,
+                    ),
+                    opening.endpoints,
                 ),
-                None => Catalog::open(path, worker_config.catalog_limits),
+                None => (
+                    Catalog::open(path, worker_config.catalog_limits),
+                    Vec::new(),
+                ),
             };
             match startup {
                 Ok((catalog, recovery)) => {
@@ -539,7 +648,11 @@ impl Router {
                             receiver,
                             &worker_config,
                             &worker_stop,
-                            DataOptions { reads, retention },
+                            DataOptions {
+                                reads,
+                                retention,
+                                endpoints: &endpoints,
+                            },
                             &change_tx,
                         );
                     }
@@ -918,7 +1031,7 @@ fn actor(
     mut receiver: mpsc::Receiver<Command>,
     config: &Config,
     stopping: &AtomicBool,
-    options: DataOptions,
+    options: DataOptions<'_>,
     changes: &watch::Sender<()>,
 ) {
     let mut pending: Option<Command> = None;
@@ -953,7 +1066,10 @@ fn actor(
                 let result = process(
                     &mut catalog,
                     &request,
-                    config,
+                    Routing {
+                        config,
+                        endpoints: options.endpoints,
+                    },
                     admitted,
                     &reply,
                     stopping,
@@ -1223,12 +1339,13 @@ fn prefix(request: &[u8], config: &Config) -> Result<(i16, i16), Error> {
 fn process(
     catalog: &mut Catalog,
     request: &[u8],
-    config: &Config,
+    routing: Routing<'_>,
     admitted: Instant,
     reply: &oneshot::Sender<Handled>,
     stopping: &AtomicBool,
     spare: Vec<u8>,
 ) -> Result<Vec<u8>, Error> {
+    let Routing { config, endpoints } = routing;
     if catalog.is_poisoned() {
         return Err(Error::StoragePoisoned);
     }
@@ -1254,7 +1371,7 @@ fn process(
             check_active(reply, stopping)?;
             catalog.refresh().map_err(Error::Catalog)?;
             check_active(reply, stopping)?;
-            metadata(catalog, config, header, parsed, flexible, spare)
+            metadata(catalog, config, endpoints, header, parsed, flexible, spare)
         }
         19 => {
             let mut parsed = read_create(&mut reader)?;
@@ -1718,6 +1835,7 @@ fn add_len(total: usize, next: usize) -> Result<usize, Error> {
 
 fn metadata_response_len(
     config: &Config,
+    endpoints: &[ControllerEndpoint],
     version: i16,
     flex: bool,
     semantic_error: bool,
@@ -1730,19 +1848,30 @@ fn metadata_response_len(
     if version >= 3 {
         total = add_len(total, 4)?;
     }
-    total = add_len(total, count_len(if semantic_error { 0 } else { 1 }, flex)?)?;
+    let quorum = !endpoints.is_empty();
+    let brokers = if semantic_error {
+        0
+    } else if quorum {
+        endpoints.len()
+    } else {
+        1
+    };
+    total = add_len(total, count_len(brokers, flex)?)?;
     if !semantic_error {
-        total = add_len(total, 4)?;
-        total = add_len(
-            total,
-            string_len(wire_advertised_host(&config.advertised_host), flex, false)?,
-        )?;
-        total = add_len(total, 4)?;
-        if version >= 1 {
-            total = add_len(total, string_len(None, flex, true)?)?;
-        }
-        if flex {
-            total = add_len(total, 1)?;
+        let hosts = endpoints
+            .iter()
+            .map(|endpoint| endpoint.host.as_str())
+            .chain(std::iter::once(config.advertised_host.as_str()).filter(|_| !quorum));
+        for host in hosts {
+            total = add_len(total, 4)?;
+            total = add_len(total, string_len(wire_advertised_host(host), flex, false)?)?;
+            total = add_len(total, 4)?;
+            if version >= 1 {
+                total = add_len(total, string_len(None, flex, true)?)?;
+            }
+            if flex {
+                total = add_len(total, 1)?;
+            }
         }
     }
     if version >= 2 {
@@ -1778,8 +1907,8 @@ fn metadata_response_len(
         if version >= 7 {
             partition += 4;
         }
-        partition += count_len(1, flex)? + 4;
-        partition += count_len(1, flex)? + 4;
+        partition += count_len(usize::from(!quorum), flex)? + if quorum { 0 } else { 4 };
+        partition += count_len(usize::from(!quorum), flex)? + if quorum { 0 } else { 4 };
         if version >= 5 {
             partition += count_len(0, flex)?;
         }
@@ -1943,6 +2072,7 @@ struct MetadataTopic<'a> {
 fn metadata(
     catalog: &Catalog,
     config: &Config,
+    endpoints: &[ControllerEndpoint],
     header: RequestHeader<'_>,
     request: MetadataRequest<'_>,
     flex: bool,
@@ -1979,22 +2109,43 @@ fn metadata(
             });
         }
     }
-    let planned = metadata_response_len(config, version, flex, semantic_error, &results)?;
+    let planned =
+        metadata_response_len(config, endpoints, version, flex, semantic_error, &results)?;
     let mut writer = Writer::reusing(config.max_response_bytes, spare)?;
     writer.reserve(planned)?;
     writer.header(header.correlation_id, flex)?;
     if version >= 3 {
         writer.i32(0)?;
     }
-    writer.count(if semantic_error { 0 } else { 1 }, flex)?;
+    let quorum = !endpoints.is_empty();
+    let brokers = if semantic_error {
+        0
+    } else if quorum {
+        endpoints.len()
+    } else {
+        1
+    };
+    writer.count(brokers, flex)?;
     if !semantic_error {
-        writer.i32(config.broker_id)?;
-        writer.string(wire_advertised_host(&config.advertised_host), flex, false)?;
-        writer.i32(i32::from(config.advertised_port))?;
-        if version >= 1 {
-            writer.string(None, flex, true)?;
+        if quorum {
+            for endpoint in endpoints {
+                writer.i32(endpoint.id)?;
+                writer.string(wire_advertised_host(&endpoint.host), flex, false)?;
+                writer.i32(i32::from(endpoint.port))?;
+                if version >= 1 {
+                    writer.string(None, flex, true)?;
+                }
+                writer.tags(flex)?;
+            }
+        } else {
+            writer.i32(config.broker_id)?;
+            writer.string(wire_advertised_host(&config.advertised_host), flex, false)?;
+            writer.i32(i32::from(config.advertised_port))?;
+            if version >= 1 {
+                writer.string(None, flex, true)?;
+            }
+            writer.tags(flex)?;
         }
-        writer.tags(flex)?;
     }
     if version >= 2 {
         writer.string(
@@ -2011,7 +2162,12 @@ fn metadata(
         writer.i32(if semantic_error {
             -1
         } else {
-            catalog.controller_id().unwrap_or(config.broker_id)
+            let controller = catalog.controller_id().unwrap_or(config.broker_id);
+            if quorum && !endpoints.iter().any(|endpoint| endpoint.id == controller) {
+                -1
+            } else {
+                controller
+            }
         })?;
     }
     writer.count(results.len(), flex)?;
@@ -2029,16 +2185,21 @@ fn metadata(
         let partitions = result.topic.map_or(0, Topic::partition_count) as usize;
         writer.count(partitions, flex)?;
         for partition in 0..partitions {
-            writer.i16(0)?;
+            // A metadata-only controller has no data replica or partition leader.
+            writer.i16(if quorum { 5 } else { 0 })?;
             writer.i32(partition as i32)?;
-            writer.i32(config.broker_id)?;
+            writer.i32(if quorum { -1 } else { config.broker_id })?;
             if version >= 7 {
-                writer.i32(0)?;
+                writer.i32(if quorum { -1 } else { 0 })?;
             }
-            writer.count(1, flex)?;
-            writer.i32(config.broker_id)?;
-            writer.count(1, flex)?;
-            writer.i32(config.broker_id)?;
+            writer.count(usize::from(!quorum), flex)?;
+            if !quorum {
+                writer.i32(config.broker_id)?;
+            }
+            writer.count(usize::from(!quorum), flex)?;
+            if !quorum {
+                writer.i32(config.broker_id)?;
+            }
             if version >= 5 {
                 writer.count(0, flex)?;
             }
@@ -2866,13 +3027,13 @@ mod tests {
             cluster_ops: false,
             topic_ops: false,
         };
-        let first = metadata(&catalog, &config, header, request(), true, Vec::new())
+        let first = metadata(&catalog, &config, &[], header, request(), true, Vec::new())
             .unwrap_or_else(|error| panic!("{error}"));
         assert!(first.len() > 8);
         let capacity = first.capacity();
         assert!(capacity >= first.len());
         assert!(capacity < 64 * 1024);
-        let again = metadata(&catalog, &config, header, request(), true, first)
+        let again = metadata(&catalog, &config, &[], header, request(), true, first)
             .unwrap_or_else(|error| panic!("{error}"));
         assert_eq!(again.capacity(), capacity);
         assert!(again.capacity() >= again.len());
@@ -3240,7 +3401,11 @@ mod tests {
                     receiver,
                     &worker_config,
                     &worker_stop,
-                    DataOptions { reads, retention },
+                    DataOptions {
+                        reads,
+                        retention,
+                        endpoints: &[],
+                    },
                     &change_tx,
                 );
             }
@@ -3379,7 +3544,10 @@ mod tests {
                 let response = process(
                     &mut catalog,
                     &request(19),
-                    &config,
+                    Routing {
+                        config: &config,
+                        endpoints: &[],
+                    },
                     Instant::now(),
                     &reply,
                     &stop,

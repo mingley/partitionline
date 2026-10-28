@@ -1,0 +1,30 @@
+{
+  "binary": "/workspace/work/qualification-20261027/broker-check-target/debug/deps/full_surface-e102b38d1447c2a3",
+  "sha256": "bb18b14aa44c36a8b55e137b939afa736899829a9d8034f7af0243153be79a6c",
+  "results": [
+    {
+      "stack_bytes": 2097152,
+      "exit": -6,
+      "stdout": "\nrunning 1 test\n",
+      "stderr": "\nthread 'kip848_broker_heartbeat_interval_scheduling' (57665) has overflowed its stack\nfatal runtime error: stack overflow, aborting\n"
+    },
+    {
+      "stack_bytes": 3145728,
+      "exit": 0,
+      "stdout": "\nrunning 1 test\ntest kip848_broker_heartbeat_interval_scheduling ... ok\n\ntest result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 337 filtered out; finished in 0.83s\n\n",
+      "stderr": ""
+    },
+    {
+      "stack_bytes": 4194304,
+      "exit": 0,
+      "stdout": "\nrunning 1 test\ntest kip848_broker_heartbeat_interval_scheduling ... ok\n\ntest result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 337 filtered out; finished in 0.82s\n\n",
+      "stderr": ""
+    },
+    {
+      "stack_bytes": 8388608,
+      "exit": 0,
+      "stdout": "\nrunning 1 test\ntest kip848_broker_heartbeat_interval_scheduling ... ok\n\ntest result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 337 filtered out; finished in 0.83s\n\n",
+      "stderr": ""
+    }
+  ]
+}
