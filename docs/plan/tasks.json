@@ -33356,8 +33356,10 @@
       "title": "Commit consumer offsets atomically with transactions",
       "priority": "P0",
       "kind": "implementation",
-      "status": "done",
-      "owner": "cursor-cloud",
+      "status": "pending",
+      "owner": null,
+      "previous_owner": "cursor-cloud",
+      "scope": "Local transactional-offset state exists; Kafka RPC integration and independent atomic crash/lost-ack histories remain open.",
       "depends_on": [
         "KL11-25",
         "KL11-29"
@@ -33384,8 +33386,10 @@
       "title": "Implement classic consumer group Join/Sync coordinator",
       "priority": "P1",
       "kind": "implementation",
-      "status": "done",
-      "owner": "cursor-cloud",
+      "status": "pending",
+      "owner": null,
+      "previous_owner": "cursor-cloud",
+      "scope": "Classic membership foundation exists; wire RPC integration, bounded journal lifecycle and independent client convergence remain open.",
       "depends_on": [
         "KL11-14",
         "KL11-05"
@@ -33410,8 +33414,10 @@
       "title": "Bound group heartbeat, rebalance and leave lifecycle",
       "priority": "P1",
       "kind": "implementation",
-      "status": "done",
-      "owner": "cursor-cloud",
+      "status": "pending",
+      "owner": null,
+      "previous_owner": "cursor-cloud",
+      "scope": "Local lifecycle foundation exists; wire integration, bounded durable history and end-to-end expiration/ownership checks remain open.",
       "depends_on": [
         "KL11-27"
       ],
@@ -33435,8 +33441,10 @@
       "title": "Persist group offsets and expose group administration",
       "priority": "P1",
       "kind": "implementation",
-      "status": "done",
-      "owner": "cursor-cloud",
+      "status": "pending",
+      "owner": null,
+      "previous_owner": "cursor-cloud",
+      "scope": "Local offset foundation exists; OffsetCommit/Fetch/Delete RPCs, bounded journal lifecycle and independent versioned client behavior remain open.",
       "depends_on": [
         "KL11-27",
         "KL11-28"

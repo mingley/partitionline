@@ -21,7 +21,7 @@ requirements are met.
 | Which work items are open | [Task registry](plan/tasks.json) |
 | How a benchmark number should be read | [Benchmark guide](benchmark.md) |
 
-The task registry has 346 cards: 254 done, 13 in progress, and 79 pending.
+The task registry has 346 cards: 250 done, 13 in progress, and 83 pending.
 Those counts were checked against `tasks.json` on 27 October 2026.
 
 Current qualification uses stable Rust 1.99.1. The seeded fault oracle now

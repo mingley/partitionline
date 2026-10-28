@@ -1,0 +1,26 @@
+   Compiling partitionline-broker v0.1.0 (/workspace/work/broker-group-journal/partitionline-broker)
+    Finished `test` profile [unoptimized] target(s) in 27.87s
+     Running unittests src/lib.rs (/workspace/work/group-journal-target/debug/deps/partitionline_broker-2a454c0708a72949)
+
+running 12 tests
+test groups::consumer::tests::recovery_rejects_an_invalid_initial_checkpoint ... ok
+test groups::consumer::tests::recovery_rejects_checkpoint_after_an_ordinary_record ... ok
+test groups::consumer::tests::sustained_heartbeats_checkpoint_and_recover_session_state ... ok
+test groups::share::tests::recovery_rejects_an_invalid_initial_checkpoint ... ok
+test groups::share::tests::recovery_rejects_checkpoint_after_an_ordinary_record ... ok
+test groups::share::tests::sustained_heartbeats_checkpoint_and_recover_session_state ... ok
+test groups::streams::tests::recovery_rejects_an_invalid_initial_checkpoint ... ok
+test groups::streams::tests::recovery_rejects_checkpoint_after_an_ordinary_record ... ok
+test groups::streams::tests::sustained_heartbeats_checkpoint_and_recover_session_state ... ok
+test journal::tests::checkpoint_preserves_exclusive_inode_ownership ... ok
+test journal::tests::checkpoint_publication_survives_process_exit ... 
+running 1 test
+
+running 1 test
+
+running 1 test
+ok
+test journal::tests::checkpoint_refuses_a_symlink_at_its_reserved_temp_path ... ok
+
+test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 342 filtered out; finished in 0.05s
+
