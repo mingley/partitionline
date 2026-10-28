@@ -1,0 +1,203 @@
+{
+  "schema_version": 1,
+  "files": [
+    {
+      "original_path": "/workspace/partitionline/docs/evidence/client/heartbeat-budget-integrated-20261028/README.md",
+      "original_sha256": "17370877f150dc3cf56655da6449d1fb3b4860eed6695d5b2b977f81f699d127",
+      "original_bytes": 2860,
+      "stored_path": "README.md",
+      "stored_sha256": "17370877f150dc3cf56655da6449d1fb3b4860eed6695d5b2b977f81f699d127",
+      "stored_bytes": 2860,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/heartbeat-integrated-validation-01/build.jsonl",
+      "original_sha256": "034def3b4dec23b816241d0b79cb230d17a8759b5ee44915637a3a6d171afa1a",
+      "original_bytes": 63000,
+      "stored_path": "build.jsonl.gz",
+      "stored_sha256": "9c0509e27cc9334d3b5b8e878193a72c5fc253b74aaa25b55639d17f248263c7",
+      "stored_bytes": 4729,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/heartbeat-integrated-validation-01/build.stderr.log",
+      "original_sha256": "87dd3dcfb239ce4517a69b04eb502e91d7ba9bb31f5c90821e576c21729876ef",
+      "original_bytes": 123,
+      "stored_path": "build.stderr.log",
+      "stored_sha256": "87dd3dcfb239ce4517a69b04eb502e91d7ba9bb31f5c90821e576c21729876ef",
+      "stored_bytes": 123,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/heartbeat-integrated-validation-01/cargo.txt",
+      "original_sha256": "c35608815f43d0b8788a9b826fad2bb17384f49fb328dc4fe64da9db5f5ef4d6",
+      "original_bytes": 36,
+      "stored_path": "cargo.txt",
+      "stored_sha256": "c35608815f43d0b8788a9b826fad2bb17384f49fb328dc4fe64da9db5f5ef4d6",
+      "stored_bytes": 36,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/heartbeat-integrated-validation-01/clippy.log",
+      "original_sha256": "a32c4ae1034a9b811af8bc2f0056fc75c7e73f6a48700960f859fc2dbf3ca105",
+      "original_bytes": 122,
+      "stored_path": "clippy.log",
+      "stored_sha256": "a32c4ae1034a9b811af8bc2f0056fc75c7e73f6a48700960f859fc2dbf3ca105",
+      "stored_bytes": 122,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/heartbeat-integrated-validation-01/executables.json",
+      "original_sha256": "4be5a3e714a8b7f5d62364b12a3816eeda4e627517ab6507829fca46d8d9546e",
+      "original_bytes": 917,
+      "stored_path": "executables.json",
+      "stored_sha256": "4be5a3e714a8b7f5d62364b12a3816eeda4e627517ab6507829fca46d8d9546e",
+      "stored_bytes": 917,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/heartbeat-integrated-validation-01/head.txt",
+      "original_sha256": "cc548207ed809bc593d5f6ac9f8386bc5f386c59fc789ef22e17a33a34516b88",
+      "original_bytes": 41,
+      "stored_path": "head.txt",
+      "stored_sha256": "cc548207ed809bc593d5f6ac9f8386bc5f386c59fc789ef22e17a33a34516b88",
+      "stored_bytes": 41,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/heartbeat-integrated-validation-01/inputs-after.sha256",
+      "original_sha256": "f8d15ebd671c213832db778e9b6c71b268859f7126c245b3b3a229339a7290cf",
+      "original_bytes": 1174948,
+      "stored_path": "inputs-after.sha256.gz",
+      "stored_sha256": "703e4ac1879a4302dc3026ea148e731e2ad2ddab9cb00da19dfb3d067ff806c6",
+      "stored_bytes": 243297,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/heartbeat-integrated-validation-01/inputs-before.sha256",
+      "original_sha256": "f8d15ebd671c213832db778e9b6c71b268859f7126c245b3b3a229339a7290cf",
+      "original_bytes": 1174948,
+      "stored_path": "inputs-before.sha256.gz",
+      "stored_sha256": "703e4ac1879a4302dc3026ea148e731e2ad2ddab9cb00da19dfb3d067ff806c6",
+      "stored_bytes": 243297,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/heartbeat-integrated-validation-01/run.py",
+      "original_sha256": "a1e51a64b49e1321089c6bb271baf783043d0132e2af3f4e71aa723c857a2633",
+      "original_bytes": 6349,
+      "stored_path": "run.py",
+      "stored_sha256": "a1e51a64b49e1321089c6bb271baf783043d0132e2af3f4e71aa723c857a2633",
+      "stored_bytes": 6349,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/heartbeat-integrated-validation-01/rustc.txt",
+      "original_sha256": "f22d5e4e9ced367e774ce5bc140d9e6b1235c1882fec80d011044851f3ae6369",
+      "original_bytes": 196,
+      "stored_path": "rustc.txt",
+      "stored_sha256": "f22d5e4e9ced367e774ce5bc140d9e6b1235c1882fec80d011044851f3ae6369",
+      "stored_bytes": 196,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/heartbeat-integrated-validation-01/status-before.txt",
+      "original_sha256": "8bfe31aa63261cc8ed51075b9dcf8647e97d2072a768e76ec9132f1dbe84bdf2",
+      "original_bytes": 31,
+      "stored_path": "status-before.txt",
+      "stored_sha256": "8bfe31aa63261cc8ed51075b9dcf8647e97d2072a768e76ec9132f1dbe84bdf2",
+      "stored_bytes": 31,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/heartbeat-integrated-validation-01/summary.json",
+      "original_sha256": "0a064451728fc6ee745653095997eaed385dfd59794e90bebac2c54c0cd90d48",
+      "original_bytes": 4294,
+      "stored_path": "summary.json",
+      "stored_sha256": "0a064451728fc6ee745653095997eaed385dfd59794e90bebac2c54c0cd90d48",
+      "stored_bytes": 4294,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/heartbeat-integrated-validation-01/test-01.log",
+      "original_sha256": "91c2ad78146f61e9be641000740371792b9b704b8e5198fffb9adc7c8d4b382b",
+      "original_bytes": 218,
+      "stored_path": "test-01.log.gz",
+      "stored_sha256": "3b83cb0ab22c58e0f8ac4a605533ed9d0da185eed148f45256f9472562a3abfd",
+      "stored_bytes": 165,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/heartbeat-integrated-validation-01/test-02.log",
+      "original_sha256": "096622644ee951a49bec2499c6658c68539e5aa3f7a59a5873d56ee73a2bbf95",
+      "original_bytes": 210,
+      "stored_path": "test-02.log.gz",
+      "stored_sha256": "a7efcbf3ee7025d098cd3e806509c93adc0b534cc0234b7a35a38c5fc6159359",
+      "stored_bytes": 162,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/heartbeat-integrated-validation-01/test-03.log",
+      "original_sha256": "54fa5ff4b098c1957384fb68ea443f5b3521a9d10f42d88a54cf6bc3e71cf382",
+      "original_bytes": 214,
+      "stored_path": "test-03.log.gz",
+      "stored_sha256": "fac5fe4641addd0362cdad34bc8482410e842db2964a62633bf370c942f77f06",
+      "stored_bytes": 166,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/heartbeat-integrated-validation-01/test-04.log",
+      "original_sha256": "69170fbc523cde814e315b2d95a3d5d40e6d02cf09e2ca836f4cb1b6586bccd0",
+      "original_bytes": 215,
+      "stored_path": "test-04.log.gz",
+      "stored_sha256": "bd0971f5043db4d3c3f9d2b88351d403944adb7783da7eeb9e08e471015ec063",
+      "stored_bytes": 167,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/heartbeat-integrated-validation-01/test-05.log",
+      "original_sha256": "8fea59849aca7d8f0ccf6571c007c112124ac6b7c4fffecda4a078a0d8ef4ff6",
+      "original_bytes": 219,
+      "stored_path": "test-05.log.gz",
+      "stored_sha256": "c64a7b0522cd67f92d012a6cb3fe2afb7c8f7bd950eaa48689522f3080bb6e36",
+      "stored_bytes": 169,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/heartbeat-integrated-validation-01/test-06.log",
+      "original_sha256": "8cb667bd961fc732f85555f85c0f67f17378ba15dc543ba897734118dfaf929f",
+      "original_bytes": 202,
+      "stored_path": "test-06.log.gz",
+      "stored_sha256": "78d79e6e8759384dc70151414303c683ebe7cff9ee3492f06081d5ef6cb30e84",
+      "stored_bytes": 161,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/heartbeat-integrated-validation-01/test-07.log",
+      "original_sha256": "cc570163b1021ef7d8ee8db421a4ab37a7a7bd492b40688c69ee7605d7b14ada",
+      "original_bytes": 170,
+      "stored_path": "test-07.log.gz",
+      "stored_sha256": "3d6482e62e34a1497f868bdd1299f1b11e08f04e9f6cf364e2c82ff41da88e45",
+      "stored_bytes": 145,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/heartbeat-integrated-validation-01/test-results.json",
+      "original_sha256": "32cb4eebf8df29d6cbe29f047fc11b28b624fc7cadee53a8bee4caa34f29f5cb",
+      "original_bytes": 3873,
+      "stored_path": "test-results.json",
+      "stored_sha256": "32cb4eebf8df29d6cbe29f047fc11b28b624fc7cadee53a8bee4caa34f29f5cb",
+      "stored_bytes": 3873,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/heartbeat-integrated-validation-01/tracked-source.patch",
+      "original_sha256": "720e3389d0da4d970a2a8641f898461a09b49efdde750c8ab8873f7fb3826cce",
+      "original_bytes": 20793,
+      "stored_path": "tracked-source.patch.gz",
+      "stored_sha256": "4686854ea12abbd7c6a2208c9934e4f7202afa1777371d6ff168caaa959547c2",
+      "stored_bytes": 4112,
+      "encoding": "gzip"
+    }
+  ]
+}

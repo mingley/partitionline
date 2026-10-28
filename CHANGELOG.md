@@ -7,6 +7,10 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
 
 ## [Unreleased]
 
+- Consumer group heartbeat decoders limit decoded metadata to 128 MiB by
+  default. The explicit metadata-limit decoder APIs accept a different limit;
+  very large messages may now require one.
+
 - `ConsumerConfig` now includes `fetch_metadata_max_bytes`, which limits Fetch
   response metadata to 128 MiB by default. Exhaustive struct literals must add
   `fetch_metadata_max_bytes: 128 * 1024 * 1024`, or use a default struct update

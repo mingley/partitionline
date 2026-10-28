@@ -5,7 +5,78 @@ use std::collections::HashMap;
 use bytes::{Buf, BufMut, BytesMut};
 
 use super::buf;
+use super::records::DecodeMetadataBudget;
 use crate::error::{Error, Result};
+
+/// Maximum decoded metadata capacity for heartbeat messages by default.
+///
+/// This includes strings and vector capacity, including both allocations during
+/// vector growth. Allocator bookkeeping and a briefly returned excess capacity
+/// are outside this limit. The wire frame has a separate size limit.
+pub const DEFAULT_MAX_HEARTBEAT_DECODE_METADATA_BYTES: usize = 128 * 1024 * 1024;
+
+fn metadata_error() -> Error {
+    Error::protocol("consumer group heartbeat metadata exceeds maximum allowable size")
+}
+
+fn decode_string<B: Buf>(buf: &mut B, budget: &mut DecodeMetadataBudget) -> Result<Option<String>> {
+    let size = buf::get_unsigned_varint(buf)?;
+    if size == 0 {
+        return Ok(None);
+    }
+    let len = buf::usize_from_u32(size - 1)?;
+    buf::need(buf, len)?;
+    let mut bytes = Vec::new();
+    budget
+        .reserve(&mut bytes, len)
+        .map_err(|_| metadata_error())?;
+    while bytes.len() < len {
+        let chunk = buf.chunk();
+        let take = chunk.len().min(len - bytes.len());
+        let piece = chunk
+            .get(..take)
+            .filter(|_| take > 0)
+            .ok_or_else(|| Error::protocol("compact string has no remaining bytes"))?;
+        bytes.extend_from_slice(piece);
+        buf.advance(take);
+    }
+    String::from_utf8(bytes)
+        .map(Some)
+        .map_err(|error| Error::protocol(error.to_string()))
+}
+
+fn reserve_initial<T>(count: usize, budget: &mut DecodeMetadataBudget) -> Result<Vec<T>> {
+    budget.require::<T>(count).map_err(|_| metadata_error())?;
+    let mut values = Vec::new();
+    budget
+        .reserve(&mut values, count.min(64))
+        .map_err(|_| metadata_error())?;
+    Ok(values)
+}
+
+fn push_budgeted<T>(
+    values: &mut Vec<T>,
+    value: T,
+    count: usize,
+    budget: &mut DecodeMetadataBudget,
+) -> Result<()> {
+    if values.len() == values.capacity() {
+        let target = values
+            .capacity()
+            .saturating_mul(2)
+            .max(4)
+            .min(count)
+            .min(budget.remaining_slots::<T>());
+        if target <= values.capacity() {
+            return Err(metadata_error());
+        }
+        budget
+            .reserve(values, target)
+            .map_err(|_| metadata_error())?;
+    }
+    values.push(value);
+    Ok(())
+}
 
 /// Topic UUID plus partition indexes in a KIP-848 assignment.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -388,37 +459,56 @@ fn consumer_group_heartbeat_request_len(
 }
 
 /// Decode a flexible v0–v1 ConsumerGroupHeartbeat request.
+///
+/// Decoded strings and array capacity share
+/// [`DEFAULT_MAX_HEARTBEAT_DECODE_METADATA_BYTES`]. Use
+/// [`decode_consumer_group_heartbeat_request_with_metadata_limit`] to change it.
 pub fn decode_consumer_group_heartbeat_request<B: Buf>(
     buf: &mut B,
     version: i16,
 ) -> Result<ConsumerGroupHeartbeatRequest> {
+    decode_consumer_group_heartbeat_request_with_metadata_limit(
+        buf,
+        version,
+        DEFAULT_MAX_HEARTBEAT_DECODE_METADATA_BYTES,
+    )
+}
+
+/// Decode a heartbeat request with a limit on retained and peak metadata capacity.
+pub fn decode_consumer_group_heartbeat_request_with_metadata_limit<B: Buf>(
+    buf: &mut B,
+    version: i16,
+    metadata_limit: usize,
+) -> Result<ConsumerGroupHeartbeatRequest> {
     let _ = consumer_group_heartbeat_spoken(version)?;
-    let group_id = buf::get_compact_string(buf)?.unwrap_or_default();
-    let member_id = buf::get_compact_string(buf)?.unwrap_or_default();
+    let mut budget = DecodeMetadataBudget::with_limit(metadata_limit);
+    let group_id = decode_string(buf, &mut budget)?.unwrap_or_default();
+    let member_id = decode_string(buf, &mut budget)?.unwrap_or_default();
     let member_epoch = buf::get_i32(buf)?;
-    let instance_id = buf::get_compact_string(buf)?;
-    let rack_id = buf::get_compact_string(buf)?;
+    let instance_id = decode_string(buf, &mut budget)?;
+    let rack_id = decode_string(buf, &mut budget)?;
     let rebalance_timeout_ms = buf::get_i32(buf)?;
     let subscribed_topic_names = {
         let n = buf::get_array_len(buf, true)?;
         match n {
             None => None,
             Some(n) => {
-                let mut names = Vec::with_capacity(n);
+                let mut names = reserve_initial(n, &mut budget)?;
                 for _ in 0..n {
-                    names.push(buf::get_compact_string(buf)?.unwrap_or_default());
+                    let name = decode_string(buf, &mut budget)?.unwrap_or_default();
+                    push_budgeted(&mut names, name, n, &mut budget)?;
                 }
                 Some(names)
             }
         }
     };
     let subscribed_topic_regex = if version >= 1 {
-        buf::get_compact_string(buf)?
+        decode_string(buf, &mut budget)?
     } else {
         None
     };
-    let server_assignor = buf::get_compact_string(buf)?;
-    let topic_partitions = decode_topic_partitions(buf)?;
+    let server_assignor = decode_string(buf, &mut budget)?;
+    let topic_partitions = decode_topic_partitions(buf, &mut budget)?;
     buf::skip_tagged_fields(buf)?;
     Ok(ConsumerGroupHeartbeatRequest {
         group_id,
@@ -547,15 +637,31 @@ fn hb_string_len(value: Option<&str>) -> Result<usize> {
 /// Decode a flexible v0–v1 ConsumerGroupHeartbeat response.
 ///
 /// ThrottleTimeMs is JSON `0+` (always on the wire).
+/// Decoded strings and arrays share [`DEFAULT_MAX_HEARTBEAT_DECODE_METADATA_BYTES`].
+/// Use [`decode_consumer_group_heartbeat_response_with_metadata_limit`] to change it.
 pub fn decode_consumer_group_heartbeat_response<B: Buf>(
     buf: &mut B,
     version: i16,
 ) -> Result<ConsumerGroupHeartbeatResponse> {
+    decode_consumer_group_heartbeat_response_with_metadata_limit(
+        buf,
+        version,
+        DEFAULT_MAX_HEARTBEAT_DECODE_METADATA_BYTES,
+    )
+}
+
+/// Decode a heartbeat response with a limit on retained and peak metadata capacity.
+pub fn decode_consumer_group_heartbeat_response_with_metadata_limit<B: Buf>(
+    buf: &mut B,
+    version: i16,
+    metadata_limit: usize,
+) -> Result<ConsumerGroupHeartbeatResponse> {
     let _ = consumer_group_heartbeat_spoken(version)?;
+    let mut budget = DecodeMetadataBudget::with_limit(metadata_limit);
     let throttle_time_ms = buf::get_i32(buf)?;
     let error_code = buf::get_i16(buf)?;
-    let error_message = buf::get_compact_string(buf)?;
-    let member_id = buf::get_compact_string(buf)?;
+    let error_message = decode_string(buf, &mut budget)?;
+    let member_id = decode_string(buf, &mut budget)?;
     let member_epoch = buf::get_i32(buf)?;
     let heartbeat_interval_ms = buf::get_i32(buf)?;
     // Nullable structs use a signed byte, unlike compact nullable arrays.
@@ -564,7 +670,7 @@ pub fn decode_consumer_group_heartbeat_response<B: Buf>(
     let assignment = if present < 0 {
         None
     } else {
-        let parts = decode_topic_partitions(buf)?
+        let parts = decode_topic_partitions(buf, &mut budget)?
             .ok_or_else(|| Error::protocol("Assignment.TopicPartitions serialized as null"))?;
         buf::skip_tagged_fields(buf)?;
         Some(parts)
@@ -584,15 +690,32 @@ pub fn decode_consumer_group_heartbeat_response<B: Buf>(
 /// [`decode_consumer_group_heartbeat_response`], yielding while assignments are still being read.
 ///
 /// Decoding 1,000,000 topics held the caller for 367ms.
+/// Use [`decode_consumer_group_heartbeat_response_cooperative_with_metadata_limit`]
+/// to select a different decoded metadata limit.
 pub async fn decode_consumer_group_heartbeat_response_cooperative<B: Buf>(
     buf: &mut B,
     version: i16,
 ) -> Result<ConsumerGroupHeartbeatResponse> {
+    decode_consumer_group_heartbeat_response_cooperative_with_metadata_limit(
+        buf,
+        version,
+        DEFAULT_MAX_HEARTBEAT_DECODE_METADATA_BYTES,
+    )
+    .await
+}
+
+/// Decode a heartbeat response cooperatively with an explicit metadata limit.
+pub async fn decode_consumer_group_heartbeat_response_cooperative_with_metadata_limit<B: Buf>(
+    buf: &mut B,
+    version: i16,
+    metadata_limit: usize,
+) -> Result<ConsumerGroupHeartbeatResponse> {
     let _ = consumer_group_heartbeat_spoken(version)?;
+    let mut budget = DecodeMetadataBudget::with_limit(metadata_limit);
     let throttle_time_ms = buf::get_i32(buf)?;
     let error_code = buf::get_i16(buf)?;
-    let error_message = buf::get_compact_string(buf)?;
-    let member_id = buf::get_compact_string(buf)?;
+    let error_message = decode_string(buf, &mut budget)?;
+    let member_id = decode_string(buf, &mut budget)?;
     let member_epoch = buf::get_i32(buf)?;
     let heartbeat_interval_ms = buf::get_i32(buf)?;
     let present = buf::get_i8(buf)?;
@@ -601,14 +724,25 @@ pub async fn decode_consumer_group_heartbeat_response_cooperative<B: Buf>(
     } else {
         let n = buf::get_array_len(buf, true)?
             .ok_or_else(|| Error::protocol("Assignment.TopicPartitions serialized as null"))?;
-        let mut parts = Vec::with_capacity(n);
+        if n > buf.remaining() / 18 {
+            return Err(Error::protocol(
+                "heartbeat topic count exceeds remaining bytes",
+            ));
+        }
+        let mut parts = reserve_initial(n, &mut budget)?;
         let mut walked = 0usize;
         for _ in 0..n {
             let topic_id = buf::get_uuid(buf)?;
             let pn = buf::get_array_len(buf, true)?.unwrap_or(0);
-            let mut partitions = Vec::with_capacity(pn);
+            if pn > buf.remaining() / 4 {
+                return Err(Error::protocol(
+                    "heartbeat partition count exceeds remaining bytes",
+                ));
+            }
+            let mut partitions = reserve_initial(pn, &mut budget)?;
             for _ in 0..pn {
-                partitions.push(buf::get_i32(buf)?);
+                let partition = buf::get_i32(buf)?;
+                push_budgeted(&mut partitions, partition, pn, &mut budget)?;
                 walked = walked.saturating_add(1);
                 if walked == 8 * 1024 {
                     walked = 0;
@@ -616,10 +750,15 @@ pub async fn decode_consumer_group_heartbeat_response_cooperative<B: Buf>(
                 }
             }
             buf::skip_tagged_fields(buf)?;
-            parts.push(TopicPartitions {
-                topic_id,
-                partitions,
-            });
+            push_budgeted(
+                &mut parts,
+                TopicPartitions {
+                    topic_id,
+                    partitions,
+                },
+                n,
+                &mut budget,
+            )?;
             walked = walked.saturating_add(1);
             if walked == 8 * 1024 {
                 walked = 0;
@@ -662,24 +801,43 @@ fn encode_topic_partitions(
     Ok(())
 }
 
-fn decode_topic_partitions<B: Buf>(buf: &mut B) -> Result<Option<Vec<TopicPartitions>>> {
+fn decode_topic_partitions<B: Buf>(
+    buf: &mut B,
+    budget: &mut DecodeMetadataBudget,
+) -> Result<Option<Vec<TopicPartitions>>> {
     let n = buf::get_array_len(buf, true)?;
     let Some(n) = n else {
         return Ok(None);
     };
-    let mut out = Vec::with_capacity(n);
+    if n > buf.remaining() / 18 {
+        return Err(Error::protocol(
+            "heartbeat topic count exceeds remaining bytes",
+        ));
+    }
+    let mut out = reserve_initial(n, budget)?;
     for _ in 0..n {
         let topic_id = buf::get_uuid(buf)?;
         let pn = buf::get_array_len(buf, true)?.unwrap_or(0);
-        let mut partitions = Vec::with_capacity(pn);
+        if pn > buf.remaining() / 4 {
+            return Err(Error::protocol(
+                "heartbeat partition count exceeds remaining bytes",
+            ));
+        }
+        let mut partitions = reserve_initial(pn, budget)?;
         for _ in 0..pn {
-            partitions.push(buf::get_i32(buf)?);
+            let partition = buf::get_i32(buf)?;
+            push_budgeted(&mut partitions, partition, pn, budget)?;
         }
         buf::skip_tagged_fields(buf)?;
-        out.push(TopicPartitions {
-            topic_id,
-            partitions,
-        });
+        push_budgeted(
+            &mut out,
+            TopicPartitions {
+                topic_id,
+                partitions,
+            },
+            n,
+            budget,
+        )?;
     }
     Ok(Some(out))
 }
@@ -690,6 +848,201 @@ mod tests {
     use std::collections::HashMap;
 
     use bytes::{Buf, BufMut};
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn heartbeat_metadata_limit_is_shared_across_nested_assignments() {
+        let response = ConsumerGroupHeartbeatResponse {
+            throttle_time_ms: 0,
+            error_code: 0,
+            error_message: Some("ok".into()),
+            member_id: Some("member".into()),
+            member_epoch: 1,
+            heartbeat_interval_ms: 1000,
+            assignment: Some(
+                (0..100)
+                    .map(|_| TopicPartitions {
+                        topic_id: [7; 16],
+                        partitions: (0..20).collect(),
+                    })
+                    .collect(),
+            ),
+        };
+        let mut wire = BytesMut::new();
+        encode_consumer_group_heartbeat_response(&mut wire, 1, &response).unwrap();
+        let sync = decode_consumer_group_heartbeat_response_with_metadata_limit(
+            &mut wire.as_ref(),
+            1,
+            64 * 1024,
+        )
+        .unwrap();
+        let cooperative = decode_consumer_group_heartbeat_response_cooperative_with_metadata_limit(
+            &mut wire.as_ref(),
+            1,
+            64 * 1024,
+        )
+        .await
+        .unwrap();
+        assert_eq!(sync, response);
+        assert_eq!(cooperative, response);
+        let sync_error = decode_consumer_group_heartbeat_response_with_metadata_limit(
+            &mut wire.as_ref(),
+            1,
+            4096,
+        )
+        .unwrap_err();
+        let async_error = decode_consumer_group_heartbeat_response_cooperative_with_metadata_limit(
+            &mut wire.as_ref(),
+            1,
+            4096,
+        )
+        .await
+        .unwrap_err();
+        assert!(sync_error.to_string().contains("heartbeat metadata"));
+        assert!(async_error.to_string().contains("heartbeat metadata"));
+    }
+
+    #[test]
+    fn heartbeat_request_counts_and_strings_share_one_limit() {
+        let mut request = join_req();
+        request.group_id = "group".into();
+        request.subscribed_topic_names = Some((0..100).map(|_| "topic".repeat(10)).collect());
+        request.topic_partitions = Some(
+            (0..30)
+                .map(|_| TopicPartitions {
+                    topic_id: [3; 16],
+                    partitions: vec![0, 1, 2, 3],
+                })
+                .collect(),
+        );
+        let mut wire = BytesMut::new();
+        encode_consumer_group_heartbeat_request(&mut wire, 1, &request).unwrap();
+        let decoded = decode_consumer_group_heartbeat_request_with_metadata_limit(
+            &mut wire.as_ref(),
+            1,
+            64 * 1024,
+        )
+        .unwrap();
+        assert_eq!(decoded, request);
+        let split = 3;
+        let mut segmented = (&wire[..split]).chain(&wire[split..]);
+        let segmented_decoded = decode_consumer_group_heartbeat_request_with_metadata_limit(
+            &mut segmented,
+            1,
+            64 * 1024,
+        )
+        .unwrap();
+        assert_eq!(segmented_decoded, request);
+        let error = decode_consumer_group_heartbeat_request_with_metadata_limit(
+            &mut wire.as_ref(),
+            1,
+            8192,
+        )
+        .unwrap_err();
+        assert!(error.to_string().contains("heartbeat metadata"));
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn heartbeat_rejects_inflated_topic_count_before_allocation() {
+        let mut wire = BytesMut::new();
+        wire.put_i32(0);
+        wire.put_i16(0);
+        buf::put_compact_string(&mut wire, None).unwrap();
+        buf::put_compact_string(&mut wire, None).unwrap();
+        wire.put_i32(0);
+        wire.put_i32(1000);
+        wire.put_i8(1);
+        buf::put_array_len(&mut wire, true, Some(2048)).unwrap();
+        wire.resize(wire.len() + 2048, 0);
+        let sync = decode_consumer_group_heartbeat_response(&mut wire.as_ref(), 1).unwrap_err();
+        let cooperative =
+            decode_consumer_group_heartbeat_response_cooperative(&mut wire.as_ref(), 1)
+                .await
+                .unwrap_err();
+        assert!(sync.to_string().contains("topic count exceeds"));
+        assert!(cooperative.to_string().contains("topic count exceeds"));
+
+        let mut partition_wire = BytesMut::new();
+        partition_wire.put_i32(0);
+        partition_wire.put_i16(0);
+        buf::put_compact_string(&mut partition_wire, None).unwrap();
+        buf::put_compact_string(&mut partition_wire, None).unwrap();
+        partition_wire.put_i32(0);
+        partition_wire.put_i32(1000);
+        partition_wire.put_i8(1);
+        buf::put_array_len(&mut partition_wire, true, Some(1)).unwrap();
+        partition_wire.extend_from_slice(&[0; 16]);
+        buf::put_array_len(&mut partition_wire, true, Some(512)).unwrap();
+        partition_wire.resize(partition_wire.len() + 512, 0);
+        let sync =
+            decode_consumer_group_heartbeat_response(&mut partition_wire.as_ref(), 1).unwrap_err();
+        let cooperative =
+            decode_consumer_group_heartbeat_response_cooperative(&mut partition_wire.as_ref(), 1)
+                .await
+                .unwrap_err();
+        assert!(sync.to_string().contains("partition count exceeds"));
+        assert!(cooperative.to_string().contains("partition count exceeds"));
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn heartbeat_cooperative_decode_can_be_cancelled_after_yield() {
+        use std::future::{poll_fn, Future};
+        use std::task::Poll;
+
+        let response = ConsumerGroupHeartbeatResponse {
+            throttle_time_ms: 0,
+            error_code: 0,
+            error_message: None,
+            member_id: None,
+            member_epoch: 1,
+            heartbeat_interval_ms: 1000,
+            assignment: Some(vec![TopicPartitions {
+                topic_id: [1; 16],
+                partitions: (0..8193).collect(),
+            }]),
+        };
+        let mut wire = BytesMut::new();
+        encode_consumer_group_heartbeat_response(&mut wire, 1, &response).unwrap();
+        let mut input: &[u8] = wire.as_ref();
+        {
+            let mut decode = Box::pin(decode_consumer_group_heartbeat_response_cooperative(
+                &mut input, 1,
+            ));
+            poll_fn(|context| {
+                assert!(decode.as_mut().poll(context).is_pending());
+                Poll::Ready(())
+            })
+            .await;
+        }
+        assert!(input.len() < wire.len());
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn heartbeat_large_valid_assignment_finishes_with_default_budget() {
+        let response = ConsumerGroupHeartbeatResponse {
+            throttle_time_ms: 0,
+            error_code: 0,
+            error_message: None,
+            member_id: None,
+            member_epoch: 1,
+            heartbeat_interval_ms: 1000,
+            assignment: Some(
+                (0..100_000)
+                    .map(|index| TopicPartitions {
+                        topic_id: [1; 16],
+                        partitions: vec![index],
+                    })
+                    .collect(),
+            ),
+        };
+        let mut wire = BytesMut::new();
+        encode_consumer_group_heartbeat_response(&mut wire, 1, &response).unwrap();
+        let sync = decode_consumer_group_heartbeat_response(&mut wire.as_ref(), 1).unwrap();
+        assert_eq!(sync, response);
+        let decoded = decode_consumer_group_heartbeat_response_cooperative(&mut wire.as_ref(), 1)
+            .await
+            .unwrap();
+        assert_eq!(decoded, response);
+    }
 
     #[tokio::test(flavor = "current_thread")]
     async fn encoding_many_heartbeat_topics_does_not_hold_the_caller() {

@@ -1,0 +1,106 @@
+{
+  "build_exit": 0,
+  "tests": [
+    {
+      "name": "protocol::cgheartbeat::tests::heartbeat_metadata_limit_is_shared_across_nested_assignments",
+      "argv": [
+        "/workspace/work/goal-qualification-20261028/heartbeat-integrated-validation-01/partitionline-candidate.elf",
+        "--exact",
+        "protocol::cgheartbeat::tests::heartbeat_metadata_limit_is_shared_across_nested_assignments",
+        "--test-threads=1"
+      ],
+      "exit_code": 0,
+      "timed_out": false,
+      "seconds": 0.034,
+      "log_sha256": "91c2ad78146f61e9be641000740371792b9b704b8e5198fffb9adc7c8d4b382b",
+      "exactly_one_pass": true
+    },
+    {
+      "name": "protocol::cgheartbeat::tests::heartbeat_request_counts_and_strings_share_one_limit",
+      "argv": [
+        "/workspace/work/goal-qualification-20261028/heartbeat-integrated-validation-01/partitionline-candidate.elf",
+        "--exact",
+        "protocol::cgheartbeat::tests::heartbeat_request_counts_and_strings_share_one_limit",
+        "--test-threads=1"
+      ],
+      "exit_code": 0,
+      "timed_out": false,
+      "seconds": 0.008,
+      "log_sha256": "096622644ee951a49bec2499c6658c68539e5aa3f7a59a5873d56ee73a2bbf95",
+      "exactly_one_pass": true
+    },
+    {
+      "name": "protocol::cgheartbeat::tests::heartbeat_rejects_inflated_topic_count_before_allocation",
+      "argv": [
+        "/workspace/work/goal-qualification-20261028/heartbeat-integrated-validation-01/partitionline-candidate.elf",
+        "--exact",
+        "protocol::cgheartbeat::tests::heartbeat_rejects_inflated_topic_count_before_allocation",
+        "--test-threads=1"
+      ],
+      "exit_code": 0,
+      "timed_out": false,
+      "seconds": 0.008,
+      "log_sha256": "54fa5ff4b098c1957384fb68ea443f5b3521a9d10f42d88a54cf6bc3e71cf382",
+      "exactly_one_pass": true
+    },
+    {
+      "name": "protocol::cgheartbeat::tests::heartbeat_cooperative_decode_can_be_cancelled_after_yield",
+      "argv": [
+        "/workspace/work/goal-qualification-20261028/heartbeat-integrated-validation-01/partitionline-candidate.elf",
+        "--exact",
+        "protocol::cgheartbeat::tests::heartbeat_cooperative_decode_can_be_cancelled_after_yield",
+        "--test-threads=1"
+      ],
+      "exit_code": 0,
+      "timed_out": false,
+      "seconds": 0.017,
+      "log_sha256": "69170fbc523cde814e315b2d95a3d5d40e6d02cf09e2ca836f4cb1b6586bccd0",
+      "exactly_one_pass": true
+    },
+    {
+      "name": "protocol::cgheartbeat::tests::heartbeat_large_valid_assignment_finishes_with_default_budget",
+      "argv": [
+        "/workspace/work/goal-qualification-20261028/heartbeat-integrated-validation-01/partitionline-candidate.elf",
+        "--exact",
+        "protocol::cgheartbeat::tests::heartbeat_large_valid_assignment_finishes_with_default_budget",
+        "--test-threads=1"
+      ],
+      "exit_code": 0,
+      "timed_out": false,
+      "seconds": 0.268,
+      "log_sha256": "8fea59849aca7d8f0ccf6571c007c112124ac6b7c4fffecda4a078a0d8ef4ff6",
+      "exactly_one_pass": true
+    },
+    {
+      "name": "group::tests::decoding_many_heartbeat_assignments_does_not_hold_the_caller",
+      "argv": [
+        "/workspace/work/goal-qualification-20261028/heartbeat-integrated-validation-01/partitionline-candidate.elf",
+        "--exact",
+        "group::tests::decoding_many_heartbeat_assignments_does_not_hold_the_caller",
+        "--test-threads=1"
+      ],
+      "exit_code": 0,
+      "timed_out": false,
+      "seconds": 0.773,
+      "log_sha256": "8cb667bd961fc732f85555f85c0f67f17378ba15dc543ba897734118dfaf929f",
+      "exactly_one_pass": true
+    },
+    {
+      "name": "kip848_broker_heartbeat_interval_scheduling",
+      "argv": [
+        "/workspace/work/goal-qualification-20261028/heartbeat-integrated-validation-01/full_surface-candidate.elf",
+        "--exact",
+        "kip848_broker_heartbeat_interval_scheduling",
+        "--test-threads=1"
+      ],
+      "exit_code": 0,
+      "timed_out": false,
+      "seconds": 0.868,
+      "log_sha256": "cc570163b1021ef7d8ee8db421a4ab37a7a7bd492b40688c69ee7605d7b14ada",
+      "exactly_one_pass": true
+    }
+  ],
+  "clippy_exit": 0,
+  "same_visible_inputs": true,
+  "source_scope": "visible files selected by rg excluding docs, .git and target; external dependencies and ignored files are not pinned"
+}
