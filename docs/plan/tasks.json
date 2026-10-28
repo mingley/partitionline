@@ -33086,8 +33086,10 @@
       "title": "Register brokers and fence stale controller/broker epochs",
       "priority": "P1",
       "kind": "implementation",
-      "status": "done",
-      "owner": "cursor-cloud",
+      "status": "pending",
+      "owner": null,
+      "previous_owner": "cursor-cloud",
+      "scope": "Local registration state is implemented; versioned KRaft RPCs, caught-up tracking and listener fencing remain open.",
       "depends_on": [
         "KL11-05",
         "KL11-14",
@@ -33113,8 +33115,10 @@
       "title": "Assign partitions and maintain leader/ISR metadata",
       "priority": "P1",
       "kind": "implementation",
-      "status": "done",
-      "owner": "cursor-cloud",
+      "status": "pending",
+      "owner": null,
+      "previous_owner": "cursor-cloud",
+      "scope": "Local assignment and epoch journal is implemented; controller-quorum placement, movement and failover replay remain open.",
       "depends_on": [
         "KL11-16"
       ],
@@ -33138,8 +33142,10 @@
       "title": "Replicate partition logs through follower Fetch",
       "priority": "P1",
       "kind": "implementation",
-      "status": "done",
-      "owner": "cursor-cloud",
+      "status": "pending",
+      "owner": null,
+      "previous_owner": "cursor-cloud",
+      "scope": "Local replica-log foundations are implemented; network follower Fetch, fencing and restart histories remain open.",
       "depends_on": [
         "KL11-07",
         "KL11-17"
@@ -33164,8 +33170,10 @@
       "title": "Enforce high watermarks, min ISR and replicated acknowledgments",
       "priority": "P0",
       "kind": "implementation",
-      "status": "done",
-      "owner": "cursor-cloud",
+      "status": "pending",
+      "owner": null,
+      "previous_owner": "cursor-cloud",
+      "scope": "The local durability model is implemented; replica progress, Produce acknowledgments and Fetch visibility are not wired together.",
       "depends_on": [
         "KL11-18"
       ],
@@ -33189,8 +33197,10 @@
       "title": "Recover leader epochs and replica divergence after failover",
       "priority": "P1",
       "kind": "implementation",
-      "status": "done",
-      "owner": "cursor-cloud",
+      "status": "pending",
+      "owner": null,
+      "previous_owner": "cursor-cloud",
+      "scope": "Local epoch-log recovery is implemented; OffsetForLeaderEpoch RPC and network crash/partition histories remain open.",
       "depends_on": [
         "KL11-19"
       ],
