@@ -1,0 +1,15 @@
+
+running 1 test
+test producer::tests::assembling_many_produce_topics_does_not_hold_the_caller ... 
+thread 'producer::tests::assembling_many_produce_topics_does_not_hold_the_caller' (85987) panicked at src/producer.rs:14237:9:
+assembling produce topics held the caller for 292.26351ms
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+FAILED
+
+failures:
+
+failures:
+    producer::tests::assembling_many_produce_topics_does_not_hold_the_caller
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 2106 filtered out; finished in 1.69s
+

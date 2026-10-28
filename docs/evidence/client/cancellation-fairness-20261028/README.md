@@ -16,15 +16,31 @@ original matrix failures. It is identified by `later-binary-build.json`; it is
 The same target path was rebuilt between runs. The driver text originally
 called it the old matrix executable; that scope text was incorrect. The
 corrected replay receipts preserve both identities. Neither executable is
-included in this small archive; their hashes and the runner's retained paths
-are in the receipts. The complete source snapshot is not included either.
+included in this small archive; the complete source snapshot is not included
+either.
+
+The 41 tests were subsequently replayed against the retained original matrix
+library executable at
+`/workspace/work/goal-qualification-20261028/client-default-matrix-02-0.elf`,
+whose SHA-256 is `85fac653d27e763431e32a561397ab08f450866560d68b84e030532451dd5397`.
+The matrix build-input receipt is `runs/original-matrix.json.gz`; the input
+matrix log has SHA-256
+`2bfbec951c08116385742139436556ac91c46e5b520a80eaa208e739f565f697`.
+The driver `runs/original-individual-replay-driver.py` selected distinct
+`does_not_hold_the_caller` failures from that log and ran each as
+`client-default-matrix-02-0.elf --exact <test-name> --test-threads=1 --nocapture`,
+with a 30-second subprocess timeout. On the shared x86 host, 26 passed, 14
+failed, and one timed out. The timeout output records only the test start;
+it is not evidence of a completed assertion. The unmodified result receipt
+and all 41 raw logs are in `runs/original-individual/`. The driver's aggregate
+failure count includes the timeout, which is separated here for clarity.
 
 Each selected test ran alone with one test thread and a 30-second process
 limit. Of the 41 later-binary runs, 24 passed, 16 failed and one timed out.
 The timed-out test reported a failed elapsed assertion before its process was
 terminated; its output is retained and it is not counted as a pass. Results
-cannot be attributed to the original executable or to the current source
-without a fresh run. Before those individual runs, a broader serial replay was
+from the later binary cannot be attributed to the original executable or to
+the current source. Before those individual runs, a broader serial replay was
 stopped after 85 successes and five failures; its `exit_code: 143` receipt and
 partial log are retained. It did not complete all 415 selected tests.
 

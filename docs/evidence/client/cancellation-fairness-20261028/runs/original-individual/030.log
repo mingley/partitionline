@@ -1,0 +1,15 @@
+
+running 1 test
+test group::tests::retaining_many_interval_commits_does_not_hold_the_caller ... 
+thread 'group::tests::retaining_many_interval_commits_does_not_hold_the_caller' (85985) panicked at src/group.rs:10776:9:
+retaining interval commits held the caller for 111.298766ms
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+FAILED
+
+failures:
+
+failures:
+    group::tests::retaining_many_interval_commits_does_not_hold_the_caller
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 2106 filtered out; finished in 5.72s
+

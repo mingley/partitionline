@@ -1,0 +1,17 @@
+{
+  "base_commit": "923bc2ad8140a726111b52f8971d914e3e9ba355",
+  "patch_sha256": "3cbe247590b1d0cbed6ca175b565f9beda54eca738c91ff2fabf0473119755ba",
+  "sources": {
+    "src/protocol/api.rs": "e27b31c1d1be3417f624aa10dfb4c1bb3b23246eb5847aafa4f8915b4b592ce1",
+    "src/protocol/mod.rs": "2f96030ca823ae62e9b7fef97ec885fcb3d70df60a64f5ba758a933386af6680",
+    "tests/api_versions_allocation.rs": "5de0b31e9ec00d9ac0c05968c47dffc12b78f4a49b53e94be8d29c74c50fa3b1"
+  },
+  "checks": [
+    "rustfmt +stable",
+    "git diff --check"
+  ],
+  "cargo_tests": "Final socket-02 (2/2), unit-02 (19/19) passed; clippy-02 passed. See individual receipts and logs.",
+  "limits": "Default 128 MiB decoded metadata; input frame and allocator overhead separate; negotiation not configurable; synchronous CPU work remains bounded only by input/frame.",
+  "lint_attempt": "clippy-01 failed on fake-broker helper unwrap/indexing; helper rewritten and clippy-02 passed.",
+  "setup_failure": "First socket-02 invocation launched outside worktree and exited before Cargo (git rev-parse failed); rerun from correct worktree passed."
+}

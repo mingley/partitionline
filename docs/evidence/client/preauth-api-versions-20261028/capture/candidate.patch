@@ -1,0 +1,575 @@
+diff --git a/src/protocol/api.rs b/src/protocol/api.rs
+index 772743794..558972432 100644
+--- a/src/protocol/api.rs
++++ b/src/protocol/api.rs
+@@ -373,15 +373,41 @@ pub fn decode_api_versions_request<B: Buf>(buf: &mut B, version: i16) -> Result<
+ }
+ 
+ /// Decode ApiVersions v0–v4 (classic v0–2, flexible v3–v4).
++///
++/// The decoded API-version and feature metadata is limited to 128 MiB,
++/// independently of the input frame limit. Oversized metadata returns a
++/// protocol error; allocator bookkeeping and the input buffer are separate.
+ pub fn decode_api_versions_response<B: Buf>(
+     buf: &mut B,
+     version: i16,
++) -> Result<ApiVersionsResponse> {
++    decode_api_versions_response_with_metadata_limit(buf, version, API_VERSIONS_METADATA_BUDGET)
++}
++
++/// Decode an ApiVersions response with an explicit limit for decoded array
++/// slots and feature-name allocations, in bytes. This low-level setting does
++/// not change the limit used by connection negotiation. The input buffer,
++/// transient errors and allocator bookkeeping are not included in the limit.
++pub fn decode_api_versions_response_with_metadata_limit<B: Buf>(
++    buf: &mut B,
++    version: i16,
++    max_metadata_bytes: usize,
+ ) -> Result<ApiVersionsResponse> {
+     let flexible = api_versions_flexible(version)?;
+     let error_code = buf::get_i16(buf)?;
+     let count = buf::get_array_len(buf, flexible)?.unwrap_or(0);
+-    let mut api_keys = Vec::with_capacity(count);
++    let mut budget = ApiVersionsDecodeBudget {
++        charged: 0,
++        limit: max_metadata_bytes,
++    };
++    let mut api_keys = bounded_api_versions_vec::<ApiVersion, _>(
++        buf,
++        count,
++        if flexible { 7 } else { 6 },
++        &mut budget,
++    )?;
+     for _ in 0..count {
++        reserve_api_versions_item(&mut api_keys, count, &mut budget)?;
+         let api_key = buf::get_i16(buf)?;
+         let min_version = buf::get_i16(buf)?;
+         let max_version = buf::get_i16(buf)?;
+@@ -396,7 +422,7 @@ pub fn decode_api_versions_response<B: Buf>(
+     }
+     let throttle_time_ms = if version >= 1 { buf::get_i32(buf)? } else { 0 };
+     let tagged = if flexible {
+-        decode_api_versions_tagged_fields(buf)?
++        decode_api_versions_tagged_fields(buf, &mut budget)?
+     } else {
+         ApiVersionsTaggedFields {
+             supported: Vec::new(),
+@@ -416,6 +442,107 @@ pub fn decode_api_versions_response<B: Buf>(
+     })
+ }
+ 
++// ApiVersions runs before authentication. Bound retained vector slots and
++// feature-name storage independently of the framed input buffer. The network
++// frame limit is separate, and allocator bookkeeping is not included here.
++const API_VERSIONS_METADATA_BUDGET: usize = 128 * 1024 * 1024;
++const API_VERSIONS_INITIAL_SLOTS: usize = 256;
++
++struct ApiVersionsDecodeBudget {
++    charged: usize,
++    limit: usize,
++}
++
++#[cfg(test)]
++impl Default for ApiVersionsDecodeBudget {
++    fn default() -> Self {
++        Self {
++            charged: 0,
++            limit: API_VERSIONS_METADATA_BUDGET,
++        }
++    }
++}
++
++impl ApiVersionsDecodeBudget {
++    fn charge(&mut self, bytes: usize) -> Result<()> {
++        let next = self
++            .charged
++            .checked_add(bytes)
++            .ok_or_else(|| Error::protocol("ApiVersions metadata size overflow"))?;
++        if next > self.limit {
++            return Err(Error::protocol("ApiVersions metadata budget exceeded"));
++        }
++        self.charged = next;
++        Ok(())
++    }
++}
++
++fn bounded_api_versions_vec<T, B: Buf>(
++    buf: &B,
++    count: usize,
++    minimum_wire_bytes: usize,
++    budget: &mut ApiVersionsDecodeBudget,
++) -> Result<Vec<T>> {
++    if count > buf.remaining() / minimum_wire_bytes {
++        return Err(Error::protocol("ApiVersions array exceeds remaining bytes"));
++    }
++    let slots = count
++        .checked_mul(std::mem::size_of::<T>())
++        .ok_or_else(|| Error::protocol("ApiVersions metadata size overflow"))?;
++    budget.charge(slots)?;
++    Ok(Vec::new())
++}
++
++// Reserve at most a small initial chunk, then grow after earlier elements
++// have parsed. Geometric growth keeps large responses amortized linear. The
++// declared slot count is already charged; account for any reported excess.
++fn reserve_api_versions_item<T>(
++    out: &mut Vec<T>,
++    count: usize,
++    budget: &mut ApiVersionsDecodeBudget,
++) -> Result<()> {
++    if out.len() < out.capacity() {
++        return Ok(());
++    }
++    let target = out
++        .capacity()
++        .saturating_mul(2)
++        .max(API_VERSIONS_INITIAL_SLOTS)
++        .min(count);
++    let additional = target.saturating_sub(out.len());
++    out.try_reserve_exact(additional)
++        .map_err(|_| Error::protocol("ApiVersions array allocation failed"))?;
++    if out.capacity() > count {
++        let excess = out
++            .capacity()
++            .saturating_sub(count)
++            .checked_mul(std::mem::size_of::<T>())
++            .ok_or_else(|| Error::protocol("ApiVersions metadata size overflow"))?;
++        budget.charge(excess)?;
++    }
++    Ok(())
++}
++
++fn api_versions_feature_name<B: Buf>(
++    buf: &mut B,
++    budget: &mut ApiVersionsDecodeBudget,
++) -> Result<String> {
++    let encoded = buf::get_unsigned_varint(buf)?;
++    if encoded == 0 {
++        return Ok(String::new());
++    }
++    let len = buf::usize_from_u32(encoded - 1)?;
++    if len > buf.remaining() {
++        return Err(Error::protocol(
++            "ApiVersions feature name exceeds remaining bytes",
++        ));
++    }
++    budget.charge(len)?;
++    let bytes = buf::copy_exact(buf, len)?;
++    budget.charge(bytes.capacity().saturating_sub(len))?;
++    String::from_utf8(bytes).map_err(|error| Error::protocol(error.to_string()))
++}
++
+ /// Parse an ApiVersions body, falling back to v0 when the sent version does
+ /// not leftover-empty (KIP-511: brokers 2.4+ answer an unsupported request
+ /// with a v0 UNSUPPORTED_VERSION body).
+@@ -684,11 +811,15 @@ fn write_supported_features(
+     Ok(())
+ }
+ 
+-fn decode_supported_feature_keys<B: Buf>(buf: &mut B) -> Result<Vec<SupportedFeatureKey>> {
++fn decode_supported_feature_keys<B: Buf>(
++    buf: &mut B,
++    budget: &mut ApiVersionsDecodeBudget,
++) -> Result<Vec<SupportedFeatureKey>> {
+     let n = buf::get_array_len(buf, true)?.unwrap_or(0);
+-    let mut out = Vec::with_capacity(n);
++    let mut out = bounded_api_versions_vec::<SupportedFeatureKey, _>(buf, n, 6, budget)?;
+     for _ in 0..n {
+-        let name = buf::get_compact_string(buf)?.unwrap_or_default();
++        reserve_api_versions_item(&mut out, n, budget)?;
++        let name = api_versions_feature_name(buf, budget)?;
+         let min_version = buf::get_i16(buf)?;
+         let max_version = buf::get_i16(buf)?;
+         buf::skip_tagged_fields(buf)?;
+@@ -712,11 +843,15 @@ fn write_finalized_features(buf: &mut BytesMut, features: &[FinalizedFeatureKey]
+     Ok(())
+ }
+ 
+-fn decode_finalized_feature_keys<B: Buf>(buf: &mut B) -> Result<Vec<FinalizedFeatureKey>> {
++fn decode_finalized_feature_keys<B: Buf>(
++    buf: &mut B,
++    budget: &mut ApiVersionsDecodeBudget,
++) -> Result<Vec<FinalizedFeatureKey>> {
+     let n = buf::get_array_len(buf, true)?.unwrap_or(0);
+-    let mut out = Vec::with_capacity(n);
++    let mut out = bounded_api_versions_vec::<FinalizedFeatureKey, _>(buf, n, 6, budget)?;
+     for _ in 0..n {
+-        let name = buf::get_compact_string(buf)?.unwrap_or_default();
++        reserve_api_versions_item(&mut out, n, budget)?;
++        let name = api_versions_feature_name(buf, budget)?;
+         let max_version_level = buf::get_i16(buf)?;
+         let min_version_level = buf::get_i16(buf)?;
+         buf::skip_tagged_fields(buf)?;
+@@ -780,37 +915,57 @@ fn put_api_versions_tag(buf: &mut BytesMut, tag: u32, payload: usize) -> Result<
+     Ok(())
+ }
+ 
+-fn decode_api_versions_tagged_fields<B: Buf>(buf: &mut B) -> Result<ApiVersionsTaggedFields> {
+-    let tags = buf::get_tagged_fields(buf)?;
++fn decode_api_versions_tagged_fields<B: Buf>(
++    buf: &mut B,
++    budget: &mut ApiVersionsDecodeBudget,
++) -> Result<ApiVersionsTaggedFields> {
++    let tags = buf::usize_from_u32(buf::get_unsigned_varint(buf)?)?;
++    // Every tag needs at least one byte for its ID and one for its size.
++    if tags > buf.remaining() / 2 {
++        return Err(Error::protocol(
++            "ApiVersions tagged field count exceeds remaining bytes",
++        ));
++    }
+     let mut supported = Vec::new();
+     let mut epoch = None;
+     let mut finalized = Vec::new();
+     let mut zk = false;
+-    for (tag, value) in tags {
++    let mut previous = None;
++    for _ in 0..tags {
++        let tag = buf::get_unsigned_varint(buf)?;
++        if previous.is_some_and(|old| tag <= old) {
++            return Err(Error::protocol(
++                "tagged fields must be in ascending tag order",
++            ));
++        }
++        previous = Some(tag);
++        let size = buf::usize_from_u32(buf::get_unsigned_varint(buf)?)?;
++        if size > buf.remaining() {
++            return Err(Error::protocol("ApiVersions tag exceeds remaining bytes"));
++        }
++        // Take limits reads to this field without collecting every unknown tag
++        // or copying large fields, including when B is a segmented buffer.
++        let mut value = (&mut *buf).take(size);
+         match tag {
+             0 => {
+-                let mut cur = value.as_ref();
+-                supported = decode_supported_feature_keys(&mut cur)?;
+-                leftover_empty(&cur, "supported_features")?;
++                supported = decode_supported_feature_keys(&mut value, budget)?;
++                leftover_empty(&value, "supported_features")?;
+             }
+             1 => {
+-                let mut cur = value.as_ref();
+-                let v = buf::get_i64(&mut cur)?;
+-                leftover_empty(&cur, "finalized_features_epoch")?;
++                let v = buf::get_i64(&mut value)?;
++                leftover_empty(&value, "finalized_features_epoch")?;
+                 epoch = (v != ApiVersionsResponse::UNKNOWN_FINALIZED_FEATURES_EPOCH && v >= 0)
+                     .then_some(v);
+             }
+             2 => {
+-                let mut cur = value.as_ref();
+-                finalized = decode_finalized_feature_keys(&mut cur)?;
+-                leftover_empty(&cur, "finalized_features")?;
++                finalized = decode_finalized_feature_keys(&mut value, budget)?;
++                leftover_empty(&value, "finalized_features")?;
+             }
+             3 => {
+-                let mut cur = value.as_ref();
+-                zk = buf::get_bool(&mut cur)?;
+-                leftover_empty(&cur, "zk_migration_ready")?;
++                zk = buf::get_bool(&mut value)?;
++                leftover_empty(&value, "zk_migration_ready")?;
+             }
+-            _ => {}
++            _ => value.advance(size),
+         }
+     }
+     Ok(ApiVersionsTaggedFields {
+@@ -5641,6 +5796,173 @@ mod tests {
+     use bytes::Bytes;
+     use std::collections::{HashMap, HashSet};
+ 
++    #[test]
++    fn api_versions_rejects_padded_counts_before_allocating_output() {
++        let n = 100_000usize;
++        for version in [0, 4] {
++            let flexible = version >= 3;
++            let mut wire = BytesMut::new();
++            wire.put_i16(0);
++            buf::put_array_len(&mut wire, flexible, Some(n)).unwrap();
++            wire.resize(wire.len() + n, 0);
++            let mut input = wire.as_ref();
++            assert!(decode_api_versions_response(&mut input, version).is_err());
++        }
++        let mut budget = ApiVersionsDecodeBudget::default();
++        let padded = vec![0; n];
++        assert!(
++            bounded_api_versions_vec::<ApiVersion, _>(&padded.as_slice(), n, 6, &mut budget)
++                .is_err()
++        );
++        assert_eq!(budget.charged, 0);
++    }
++
++    #[test]
++    fn api_versions_feature_arrays_and_metadata_budget_are_bounded() {
++        let n = 100_000usize;
++        let mut padded = BytesMut::new();
++        buf::put_array_len(&mut padded, true, Some(n)).unwrap();
++        padded.resize(padded.len() + n, 0);
++        let mut budget = ApiVersionsDecodeBudget::default();
++        assert!(decode_supported_feature_keys(&mut padded.as_ref(), &mut budget).is_err());
++        assert_eq!(budget.charged, 0);
++        assert!(decode_finalized_feature_keys(&mut padded.as_ref(), &mut budget).is_err());
++        assert_eq!(budget.charged, 0);
++        let valid = &[0u8; 6][..];
++        let mut near_limit = ApiVersionsDecodeBudget {
++            charged: API_VERSIONS_METADATA_BUDGET - 1,
++            limit: API_VERSIONS_METADATA_BUDGET,
++        };
++        assert!(
++            bounded_api_versions_vec::<SupportedFeatureKey, _>(&valid, 1, 6, &mut near_limit)
++                .is_err()
++        );
++        let mut budget = ApiVersionsDecodeBudget::default();
++        let out = bounded_api_versions_vec::<ApiVersion, _>(&valid, 1, 6, &mut budget).unwrap();
++        assert_eq!(
++            out.capacity(),
++            0,
++            "declared count must not eagerly allocate"
++        );
++    }
++
++    #[test]
++    fn api_versions_low_level_metadata_limit_is_explicit() {
++        let response = ApiVersionsResponse {
++            api_keys: vec![ApiVersion {
++                api_key: 18,
++                min_version: 0,
++                max_version: 4,
++            }],
++            ..ApiVersionsResponse::default()
++        };
++        let mut wire = BytesMut::new();
++        encode_api_versions_response(&mut wire, 4, &response).unwrap();
++        let item_bytes = std::mem::size_of::<ApiVersion>();
++        let mut too_small = wire.as_ref();
++        assert!(decode_api_versions_response_with_metadata_limit(
++            &mut too_small,
++            4,
++            item_bytes - 1
++        )
++        .is_err());
++        let mut exact = wire.as_ref();
++        assert_eq!(
++            decode_api_versions_response_with_metadata_limit(&mut exact, 4, item_bytes).unwrap(),
++            response
++        );
++        assert!(!exact.has_remaining());
++    }
++
++    #[test]
++    fn api_versions_metadata_budget_is_shared_across_tagged_arrays() {
++        let response = ApiVersionsResponse {
++            supported_features: vec![SupportedFeatureKey {
++                name: "a".to_string(),
++                min_version: 1,
++                max_version: 2,
++            }],
++            finalized_features: vec![FinalizedFeatureKey {
++                name: "b".to_string(),
++                max_version_level: 2,
++                min_version_level: 1,
++            }],
++            ..ApiVersionsResponse::default()
++        };
++        let mut wire = BytesMut::new();
++        encode_api_versions_response(&mut wire, 4, &response).unwrap();
++        let first_only = std::mem::size_of::<SupportedFeatureKey>() + 1;
++        let mut limited = wire.as_ref();
++        assert!(
++            decode_api_versions_response_with_metadata_limit(&mut limited, 4, first_only).is_err()
++        );
++        let mut enough = wire.as_ref();
++        assert_eq!(
++            decode_api_versions_response_with_metadata_limit(&mut enough, 4, 4096).unwrap(),
++            response
++        );
++        assert!(!enough.has_remaining());
++    }
++
++    #[test]
++    fn api_versions_large_valid_arrays_grow_fallibly_and_preserve_entries() {
++        let count = 100_000usize;
++        let response = ApiVersionsResponse {
++            api_keys: (0..count)
++                .map(|index| ApiVersion {
++                    api_key: i16::try_from(index % 1000).unwrap(),
++                    min_version: 0,
++                    max_version: 4,
++                })
++                .collect(),
++            ..ApiVersionsResponse::default()
++        };
++        for version in [0, 1, 2, 3, 4] {
++            let mut encoded = BytesMut::new();
++            encode_api_versions_response(&mut encoded, version, &response).unwrap();
++            let mut input = encoded.as_ref();
++            let decoded = decode_api_versions_response(&mut input, version).unwrap();
++            assert_eq!(decoded.api_keys, response.api_keys);
++            assert!(!input.has_remaining());
++        }
++    }
++
++    #[test]
++    fn api_versions_streams_unknown_tags_and_segmented_feature_fields() {
++        let mut supported = BytesMut::new();
++        buf::put_array_len(&mut supported, true, Some(1)).unwrap();
++        buf::put_compact_string(&mut supported, Some("feature-α")).unwrap();
++        supported.put_i16(1);
++        supported.put_i16(7);
++        buf::put_empty_tagged_fields(&mut supported);
++        let mut finalized = BytesMut::new();
++        buf::put_array_len(&mut finalized, true, Some(1)).unwrap();
++        buf::put_compact_string(&mut finalized, Some("ready")).unwrap();
++        finalized.put_i16(5);
++        finalized.put_i16(2);
++        buf::put_empty_tagged_fields(&mut finalized);
++        let mut body = BytesMut::new();
++        body.put_i16(0);
++        buf::put_array_len(&mut body, true, Some(0)).unwrap();
++        body.put_i32(0);
++        buf::put_unsigned_varint(&mut body, 3);
++        put_api_versions_tag(&mut body, 0, supported.len()).unwrap();
++        body.extend_from_slice(&supported);
++        put_api_versions_tag(&mut body, 2, finalized.len()).unwrap();
++        body.extend_from_slice(&finalized);
++        put_api_versions_tag(&mut body, 99, 1024).unwrap();
++        body.resize(body.len() + 1024, 0x5a);
++        let split = 16; // split inside the first tagged feature name
++        let mut segmented =
++            Bytes::copy_from_slice(&body[..split]).chain(Bytes::copy_from_slice(&body[split..]));
++        let decoded = decode_api_versions_response(&mut segmented, 4).unwrap();
++        assert_eq!(decoded.supported_features.len(), 1);
++        assert_eq!(decoded.supported_features[0].name, "feature-α");
++        assert_eq!(decoded.finalized_features.len(), 1);
++        assert_eq!(decoded.finalized_features[0].name, "ready");
++        assert!(!segmented.has_remaining());
++    }
++
+     fn empty_batch() -> crate::protocol::records::RecordBatch {
+         crate::protocol::records::RecordBatch {
+             base_offset: 0,
+diff --git a/src/protocol/mod.rs b/src/protocol/mod.rs
+index 61ed09e43..b4012a8fc 100644
+--- a/src/protocol/mod.rs
++++ b/src/protocol/mod.rs
+@@ -20,7 +20,8 @@ pub mod streams;
+ pub mod txn;
+ 
+ pub use api::{
+-    decode_api_versions_handshake, decode_api_versions_response, decode_metadata_request,
++    decode_api_versions_handshake, decode_api_versions_response,
++    decode_api_versions_response_with_metadata_limit, decode_metadata_request,
+     decode_metadata_request_topics, decode_metadata_response, decode_produce_request,
+     decode_produce_response, encode_api_versions_request, encode_api_versions_response,
+     encode_metadata_request, encode_metadata_request_topics,
+diff --git a/tests/api_versions_allocation.rs b/tests/api_versions_allocation.rs
+new file mode 100644
+index 000000000..4b7654a98
+--- /dev/null
++++ b/tests/api_versions_allocation.rs
+@@ -0,0 +1,105 @@
++//! ApiVersions is exchanged before SASL, so its response must not trust counts.
++use std::{io, time::Duration};
++
++use bytes::{Buf, BufMut, BytesMut};
++use partitionline::net::BrokerConn;
++use partitionline::protocol::api::{
++    encode_api_versions_response, negotiate_api_versions, ApiVersion, ApiVersionsResponse,
++};
++use partitionline::protocol::buf;
++use tokio::io::{AsyncReadExt, AsyncWriteExt};
++use tokio::net::TcpListener;
++
++async fn serve_one(
++    body: BytesMut,
++) -> io::Result<(String, tokio::task::JoinHandle<io::Result<()>>)> {
++    let listener = TcpListener::bind("127.0.0.1:0").await?;
++    let address = listener.local_addr()?.to_string();
++    let task = tokio::spawn(async move {
++        let (mut socket, _) = listener.accept().await?;
++        let mut size = [0u8; 4];
++        let _ = socket.read_exact(&mut size).await?;
++        let length = usize::try_from(i32::from_be_bytes(size))
++            .map_err(|_| io::Error::new(io::ErrorKind::InvalidData, "negative frame size"))?;
++        if !(8..=4096).contains(&length) {
++            return Err(io::Error::new(
++                io::ErrorKind::InvalidData,
++                "unexpected frame size",
++            ));
++        }
++        let mut request = vec![0; length];
++        let _ = socket.read_exact(&mut request).await?;
++        let mut request = request.as_slice();
++        let api = request.get_i16();
++        let version = request.get_i16();
++        let correlation = request.get_i32();
++        if api != 18 || version != 4 {
++            return Err(io::Error::new(
++                io::ErrorKind::InvalidData,
++                "unexpected API version request",
++            ));
++        }
++        let frame_len = body
++            .len()
++            .checked_add(4)
++            .and_then(|n| i32::try_from(n).ok())
++            .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidData, "response too large"))?;
++        socket.write_all(&frame_len.to_be_bytes()).await?;
++        socket.write_all(&correlation.to_be_bytes()).await?;
++        socket.write_all(&body).await?;
++        // Keep the peer open until the client has consumed the response.
++        let mut tail = [0u8; 1];
++        let _closed = tokio::time::timeout(Duration::from_secs(2), socket.read(&mut tail)).await;
++        Ok(())
++    });
++    Ok((address, task))
++}
++
++#[tokio::test]
++async fn preauth_rejects_padded_array_count_from_real_socket() {
++    let count = 100_000usize;
++    let mut body = BytesMut::new();
++    body.put_i16(0);
++    buf::put_array_len(&mut body, true, Some(count)).unwrap();
++    body.resize(body.len() + count, 0);
++    let (address, peer) = serve_one(body).await.unwrap();
++    let mut connection = BrokerConn::connect(&address, "budget-test", Duration::from_secs(2))
++        .await
++        .unwrap();
++    let error = negotiate_api_versions(&mut connection, Duration::from_secs(2))
++        .await
++        .unwrap_err();
++    assert!(
++        matches!(error, partitionline::Error::Protocol(_)),
++        "{error:?}"
++    );
++    drop(connection);
++    peer.await.unwrap().unwrap();
++}
++
++#[tokio::test]
++async fn preauth_accepts_large_valid_api_version_list() {
++    let count = 100_000usize;
++    let response = ApiVersionsResponse {
++        api_keys: (0..count)
++            .map(|index| ApiVersion {
++                api_key: i16::try_from(index % 1000).unwrap(),
++                min_version: 0,
++                max_version: 4,
++            })
++            .collect(),
++        ..ApiVersionsResponse::default()
++    };
++    let mut body = BytesMut::new();
++    encode_api_versions_response(&mut body, 4, &response).unwrap();
++    let (address, peer) = serve_one(body).await.unwrap();
++    let mut connection = BrokerConn::connect(&address, "budget-test", Duration::from_secs(2))
++        .await
++        .unwrap();
++    let decoded = negotiate_api_versions(&mut connection, Duration::from_secs(2))
++        .await
++        .unwrap();
++    assert_eq!(decoded.api_keys, response.api_keys);
++    drop(connection);
++    peer.await.unwrap().unwrap();
++}

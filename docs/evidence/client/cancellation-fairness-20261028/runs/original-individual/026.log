@@ -1,0 +1,15 @@
+
+running 1 test
+test consumer::tests::retaining_many_pending_runs_does_not_hold_the_caller ... 
+thread 'consumer::tests::retaining_many_pending_runs_does_not_hold_the_caller' (85973) panicked at src/consumer.rs:14454:9:
+retaining pending runs held the caller for 100.179142ms
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+FAILED
+
+failures:
+
+failures:
+    consumer::tests::retaining_many_pending_runs_does_not_hold_the_caller
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 2106 filtered out; finished in 4.13s
+

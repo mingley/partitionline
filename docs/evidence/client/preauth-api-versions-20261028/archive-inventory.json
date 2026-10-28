@@ -1,0 +1,239 @@
+{
+  "schema_version": 1,
+  "files": [
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/preauth-budget/README.md",
+      "original_sha256": "4709a7cffe9bb94acbe733b69d207a1537a30be9daefefbaf49c5dfae2966ec2",
+      "original_bytes": 2058,
+      "stored_path": "capture/README.md",
+      "stored_sha256": "4709a7cffe9bb94acbe733b69d207a1537a30be9daefefbaf49c5dfae2966ec2",
+      "stored_bytes": 2058,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/preauth-budget/candidate.patch",
+      "original_sha256": "3cbe247590b1d0cbed6ca175b565f9beda54eca738c91ff2fabf0473119755ba",
+      "original_bytes": 23102,
+      "stored_path": "capture/candidate.patch",
+      "stored_sha256": "3cbe247590b1d0cbed6ca175b565f9beda54eca738c91ff2fabf0473119755ba",
+      "stored_bytes": 23102,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/preauth-budget/candidate.json",
+      "original_sha256": "8d6dc9e8bbbeab763aa5e69d97963dd64ee09dddf80f17c4a6b6c2ebdfb76890",
+      "original_bytes": 1108,
+      "stored_path": "capture/candidate.json",
+      "stored_sha256": "8d6dc9e8bbbeab763aa5e69d97963dd64ee09dddf80f17c4a6b6c2ebdfb76890",
+      "stored_bytes": 1108,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/preauth-budget/run-recorded.py",
+      "original_sha256": "8623c58540bab000c8faaa7e56f2b6ad1e74966815df12d93129ae012e21c9b0",
+      "original_bytes": 6297,
+      "stored_path": "capture/run-recorded.py",
+      "stored_sha256": "8623c58540bab000c8faaa7e56f2b6ad1e74966815df12d93129ae012e21c9b0",
+      "stored_bytes": 6297,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/preauth-budget/preauth-unit-01.log",
+      "original_sha256": "f3f441c3f1d2c873f8852945f132c94e246b8e6e674e6529754080ec230e7ad5",
+      "original_bytes": 4729,
+      "stored_path": "capture/preauth-unit-01.log",
+      "stored_sha256": "f3f441c3f1d2c873f8852945f132c94e246b8e6e674e6529754080ec230e7ad5",
+      "stored_bytes": 4729,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/preauth-budget/preauth-unit-01.json",
+      "original_sha256": "04f079650c91aca81103f08e465d1940c18603234f869d10fe02a0631dc41454",
+      "original_bytes": 217272,
+      "stored_path": "capture/preauth-unit-01.json.gz",
+      "stored_sha256": "f22341b63e7d3f87cbed676eb715020f041132be42dec5b6d75f2c63981cacab",
+      "stored_bytes": 50057,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/preauth-budget/preauth-socket-01.log",
+      "original_sha256": "71e8f13e833117a117fe7313c53dc1f091de80ba039f6ceaece8aa1d06def15c",
+      "original_bytes": 508,
+      "stored_path": "capture/preauth-socket-01.log",
+      "stored_sha256": "71e8f13e833117a117fe7313c53dc1f091de80ba039f6ceaece8aa1d06def15c",
+      "stored_bytes": 508,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/preauth-budget/preauth-socket-01.json",
+      "original_sha256": "3d26d6fd6f6cc0670b9cab95e30fa90999fcafe257de8043aa167ab3c040c3f3",
+      "original_bytes": 217290,
+      "stored_path": "capture/preauth-socket-01.json.gz",
+      "stored_sha256": "4c3570180efc821be658a178570d18438e89f79cc0f479320a36750a85c7ff51",
+      "stored_bytes": 50043,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/preauth-budget/preauth-clippy-01.log",
+      "original_sha256": "a2f5df01b4a4a0f883201621f5a6ec277548252916bbb3f0b53601bfe3df888e",
+      "original_bytes": 7829,
+      "stored_path": "capture/preauth-clippy-01.log",
+      "stored_sha256": "a2f5df01b4a4a0f883201621f5a6ec277548252916bbb3f0b53601bfe3df888e",
+      "stored_bytes": 7829,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/preauth-budget/preauth-clippy-01.json",
+      "original_sha256": "2b0ec3200ac25a158ceccddc5984b44cabd84e4ef6c6a849f154c801f5c7fffd",
+      "original_bytes": 216870,
+      "stored_path": "capture/preauth-clippy-01.json.gz",
+      "stored_sha256": "2923d3ecf881d1e2e18cbae9b70b4ef0dbf0041025331de9f6993c39a04f24cd",
+      "stored_bytes": 49829,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/preauth-budget/preauth-unit-02.log",
+      "original_sha256": "819e75fa46684dba35959e1807c48ed8a16e1e260af5564fa2f482a6ddb651b2",
+      "original_bytes": 2876,
+      "stored_path": "capture/preauth-unit-02.log",
+      "stored_sha256": "819e75fa46684dba35959e1807c48ed8a16e1e260af5564fa2f482a6ddb651b2",
+      "stored_bytes": 2876,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/preauth-budget/preauth-unit-02.json",
+      "original_sha256": "cafec323eb1115a40a93d71bab61e2ad3bb4a39ae44381b7be3a4c5c583fec7e",
+      "original_bytes": 217252,
+      "stored_path": "capture/preauth-unit-02.json.gz",
+      "stored_sha256": "1c325c8bf4521e6d4a6441449f7c2c2906a17838b530fc91e5304ac83c671866",
+      "stored_bytes": 50061,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/preauth-budget/preauth-socket-02.log",
+      "original_sha256": "e0cf657cd42e44a88081a525db53c3b2fa24763efbfa65b57ed9c28e11adf3ae",
+      "original_bytes": 507,
+      "stored_path": "capture/preauth-socket-02.log",
+      "stored_sha256": "e0cf657cd42e44a88081a525db53c3b2fa24763efbfa65b57ed9c28e11adf3ae",
+      "stored_bytes": 507,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/preauth-budget/preauth-socket-02.json",
+      "original_sha256": "09e401d7d230590f518899d6ea580de1d7c958ef23db763637c2aa5bde29ebe6",
+      "original_bytes": 217291,
+      "stored_path": "capture/preauth-socket-02.json.gz",
+      "stored_sha256": "800ab6f46ab0d0413826f04b006e8359f119ae2f49b0d85e4624dd2ebaf29610",
+      "stored_bytes": 50042,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/preauth-budget/preauth-clippy-02.log",
+      "original_sha256": "9f2b495e2a083b7401c045b1b62682ee1c1da636614f9d9c5e18f73b0b3fd7aa",
+      "original_bytes": 134,
+      "stored_path": "capture/preauth-clippy-02.log",
+      "stored_sha256": "9f2b495e2a083b7401c045b1b62682ee1c1da636614f9d9c5e18f73b0b3fd7aa",
+      "stored_bytes": 134,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/preauth-budget/preauth-clippy-02.json",
+      "original_sha256": "95fd4e5f59bdcb476a1e7968e1eee054f2d577c4017849462cb793a2a3264af9",
+      "original_bytes": 216869,
+      "stored_path": "capture/preauth-clippy-02.json.gz",
+      "stored_sha256": "1dfddf8182d5c23da120b3f286c948ac4ddfc71c6c5691cada2d39be6250e907",
+      "stored_bytes": 49830,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/preauth-budget/preauth-unit-01-0.elf",
+      "original_sha256": "bd23811f7000ec58619e433f979afaddd0c97180222ea9401d21c72c2a0c7895",
+      "original_bytes": 120015064,
+      "stored_path": "capture/preauth-unit-01-0.elf.gz",
+      "stored_sha256": "7ffa4f95e1548253e14bb82fae8303064732159f7b63418e13d77c2a417d4fc6",
+      "stored_bytes": 17973977,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/preauth-budget/preauth-socket-01-0.elf",
+      "original_sha256": "c5172ea77e694a3087f699f59a393a3f541e6c088379f5d2961c930d835c64cc",
+      "original_bytes": 8627136,
+      "stored_path": "capture/preauth-socket-01-0.elf.gz",
+      "stored_sha256": "de5a1e409594145dad40d4b9a1f883b8cd19bd590916d28f4015cec1bde4084d",
+      "stored_bytes": 2406395,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/preauth-budget/preauth-socket-02-0.elf",
+      "original_sha256": "0b15fc631c5621ac613488d90a7b1b28ec277884a21105290adc4c53cae805b3",
+      "original_bytes": 8634032,
+      "stored_path": "capture/preauth-socket-02-0.elf.gz",
+      "stored_sha256": "352ded4218773ba590748181d698b906ec7a1710e260ffd7425e458fe3f565c8",
+      "stored_bytes": 2407496,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/partitionline-preauth/src/protocol/api.rs",
+      "original_sha256": "e27b31c1d1be3417f624aa10dfb4c1bb3b23246eb5847aafa4f8915b4b592ce1",
+      "original_bytes": 442864,
+      "stored_path": "source/src/protocol/api.rs.gz",
+      "stored_sha256": "07fd414ed04d1a9e4e2e3c014bc290e3e158e616e641eb90ed6a2b5eb82fd7f7",
+      "stored_bytes": 62601,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/partitionline-preauth/src/protocol/mod.rs",
+      "original_sha256": "2f96030ca823ae62e9b7fef97ec885fcb3d70df60a64f5ba758a933386af6680",
+      "original_bytes": 1833,
+      "stored_path": "source/src/protocol/mod.rs",
+      "stored_sha256": "2f96030ca823ae62e9b7fef97ec885fcb3d70df60a64f5ba758a933386af6680",
+      "stored_bytes": 1833,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/partitionline-preauth/tests/api_versions_allocation.rs",
+      "original_sha256": "5de0b31e9ec00d9ac0c05968c47dffc12b78f4a49b53e94be8d29c74c50fa3b1",
+      "original_bytes": 3957,
+      "stored_path": "source/tests/api_versions_allocation.rs",
+      "stored_sha256": "5de0b31e9ec00d9ac0c05968c47dffc12b78f4a49b53e94be8d29c74c50fa3b1",
+      "stored_bytes": 3957,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/partitionline-preauth/Cargo.toml",
+      "original_sha256": "72571422ff9478f925346ae5eec272daff633fb5bd7693665b048b31e7b44ac9",
+      "original_bytes": 4276,
+      "stored_path": "source/Cargo.toml",
+      "stored_sha256": "72571422ff9478f925346ae5eec272daff633fb5bd7693665b048b31e7b44ac9",
+      "stored_bytes": 4276,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/partitionline-preauth/Cargo.lock",
+      "original_sha256": "8048d24692864e4b3e3b7e40b8489f483161b1c5c9f8805ae5fd7ce337593a82",
+      "original_bytes": 18368,
+      "stored_path": "source/Cargo.lock",
+      "stored_sha256": "8048d24692864e4b3e3b7e40b8489f483161b1c5c9f8805ae5fd7ce337593a82",
+      "stored_bytes": 18368,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/partitionline-preauth/rust-toolchain.toml",
+      "original_sha256": "7458b2d74495e6fb1c1edeea4d5a793705476431dadb60627187111f91441e13",
+      "original_bytes": 86,
+      "stored_path": "source/rust-toolchain.toml",
+      "stored_sha256": "7458b2d74495e6fb1c1edeea4d5a793705476431dadb60627187111f91441e13",
+      "stored_bytes": 86,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/partitionline-preauth/clippy.toml",
+      "original_sha256": "7ad5c55d408b8e15adb48a7054705ef3828ce59ff464a4a62a9842c88788fba6",
+      "original_bytes": 1522,
+      "stored_path": "source/clippy.toml",
+      "stored_sha256": "7ad5c55d408b8e15adb48a7054705ef3828ce59ff464a4a62a9842c88788fba6",
+      "stored_bytes": 1522,
+      "encoding": "identity"
+    }
+  ]
+}

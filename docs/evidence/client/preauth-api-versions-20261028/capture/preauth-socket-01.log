@@ -1,0 +1,10 @@
+   Compiling partitionline v0.1.0 (/workspace/work/partitionline-preauth)
+    Finished `test` profile [unoptimized] target(s) in 56.97s
+     Running tests/api_versions_allocation.rs (/workspace/work/preauth-budget-target/debug/deps/api_versions_allocation-276fb5f04343e873)
+
+running 2 tests
+test preauth_accepts_large_valid_api_version_list ... ok
+test preauth_rejects_padded_array_count_from_real_socket ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.05s
+

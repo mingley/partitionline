@@ -1,0 +1,15 @@
+
+running 1 test
+test cluster::tests::applying_many_topics_does_not_hold_the_caller ... 
+thread 'cluster::tests::applying_many_topics_does_not_hold_the_caller' (85836) panicked at src/cluster.rs:1026:9:
+applying metadata topics held the caller for 87.474587ms
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+FAILED
+
+failures:
+
+failures:
+    cluster::tests::applying_many_topics_does_not_hold_the_caller
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 2106 filtered out; finished in 1.06s
+

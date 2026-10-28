@@ -1,0 +1,15 @@
+
+running 1 test
+test consumer::tests::resolving_many_topic_identities_does_not_hold_the_caller ... 
+thread 'consumer::tests::resolving_many_topic_identities_does_not_hold_the_caller' (85958) panicked at src/consumer.rs:17504:9:
+resolving topic identities held the caller for 229.776771ms
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+FAILED
+
+failures:
+
+failures:
+    consumer::tests::resolving_many_topic_identities_does_not_hold_the_caller
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 2106 filtered out; finished in 2.69s
+

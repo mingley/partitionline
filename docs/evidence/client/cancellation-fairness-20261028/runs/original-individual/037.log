@@ -1,0 +1,15 @@
+
+running 1 test
+test share::tests::grouping_many_share_ack_topics_does_not_hold_the_caller ... 
+thread 'share::tests::grouping_many_share_ack_topics_does_not_hold_the_caller' (86010) panicked at src/share.rs:9224:9:
+grouping share acknowledgement topics held the caller for 88.161499ms
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+FAILED
+
+failures:
+
+failures:
+    share::tests::grouping_many_share_ack_topics_does_not_hold_the_caller
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 2106 filtered out; finished in 0.20s
+
