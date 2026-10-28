@@ -2,7 +2,7 @@
   "schema_version": 1,
   "task_id": "KL11-47",
   "status": "in_progress",
-  "source_sha": "d6643def5a08b302b05ef7380d72f13dd7e2a002",
+  "source_sha": "bdf28a1b987cbc73e12ef54ac9cc516e741b6c4a",
   "compiler": "rustc 1.99.1 (58cf8f9c3 2026-10-13)\nbinary: rustc\ncommit-hash: 58cf8f9c35b355199727627d07ae34a4e2846d67\ncommit-date: 2026-10-13\nhost: x86_64-unknown-linux-gnu\nrelease: 1.99.1\nLLVM version: 23.1.1\n",
   "profile": "broker default features only",
   "campaign_qualified": false,
@@ -104,7 +104,8 @@
     "docs/evidence/broker/fuzz/20261027-recovery-io-guard/README.md",
     "docs/evidence/broker/faults/20261027-generation-oracle/README.md",
     "docs/evidence/broker/fuzz/20261027-detached-launch/README.md",
-    "docs/evidence/broker/fuzz/20261027-detached-launch/archive-inventory.json"
+    "docs/evidence/broker/fuzz/20261027-detached-launch/archive-inventory.json",
+    "docs/evidence/broker/fuzz/20261027-candidate06/README.md"
   ],
   "limits": [
     "24-hour campaigns are running, not passed. Missing or interrupted completion remains unqualified.",
@@ -230,40 +231,83 @@
   },
   "current_attempt": {
     "kind": "campaign",
-    "container_id": "c86f8168550fec96e9b085685c7c7afc60941e8974bbfcdb675d68b65e71ab76",
-    "container_name": "pl-broker-fuzz-campaign-20261027-03",
+    "source_sha": "bdf28a1b987cbc73e12ef54ac9cc516e741b6c4a",
+    "container_id": "88e80e4ab4d8881e09998f155af3f9157831f9c42beebcdf8df699dcd66b11fe",
+    "container_name": "pl-broker-fuzz-campaign-20261027-04",
     "image_id": "sha256:3f3bce42ebbf8f78bb2c2d54ec8067a92eeb225e37a9dfb37d16b7d9a3d49ea7",
-    "directory": "/workspace/work/broker-fuzz-container-20261027/campaign-03",
-    "started_chicago": "2026-10-27T14:45:45-05:00",
-    "earliest_completion_chicago": "2026-10-28T14:45:45-05:00",
-    "state_at_snapshot": "running",
-    "snapshot_utc": "2026-10-27T19:47:26Z",
-    "seconds_per_target": 86400,
-    "resources": {
-      "NetworkMode": "none",
-      "NanoCpus": 3000000000,
-      "Memory": 4294967296,
-      "PidsLimit": 128,
-      "ReadonlyRootfs": true,
-      "Init": true,
-      "RestartPolicy": {
-        "Name": "no",
-        "MaximumRetryCount": 0
-      }
-    },
-    "pid_namespace": "container",
-    "supervisor_checks": 9,
-    "supervisor_checks_exit": 0,
-    "qualification_complete": false,
-    "stop": "docker --host=unix:///var/run/docker.sock stop --time 15 pl-broker-fuzz-campaign-20261027-03",
-    "state_at_latest_observation": "failed",
-    "elapsed_seconds": 3223.225606527,
+    "directory": "/workspace/work/broker-fuzz-container-20261027/campaign-04",
+    "started_utc": "2026-10-27T22:36:24Z",
+    "finished_utc": "2026-10-27T23:21:28Z",
+    "latest_observation_utc": "2026-10-28T02:00:36.390516+00:00",
+    "state": "failed",
+    "elapsed_seconds": 2704.2508395999994,
     "reason": "recover_epoch failed with 70",
     "parent_waited_workers": 5,
+    "seconds_per_target": 86400,
     "credited_qualification_seconds": 0,
-    "failure_evidence": "docs/evidence/broker/journal-partial-offset-20261027/README.md"
+    "qualification_complete": false,
+    "production_qualified": false,
+    "performance_claim_qualified": false,
+    "controls": {
+      "tests": 9,
+      "exit": 0
+    },
+    "artifact_root": "docs/evidence/broker/fuzz/20261027-candidate06/",
+    "failure_input": {
+      "bytes": 60,
+      "sha256": "5b0672076adf8cd11e1e17ebac172ba91c42ca06a4742b1128143c6f815e18d1",
+      "identical_tracked_seed": "fuzz/broker/seeds/recover_epoch/one-entry",
+      "container_replay_invocations": 3,
+      "runs_per_invocation": 100,
+      "replay_exit_codes": [
+        0,
+        0,
+        0
+      ],
+      "timeout_reproduced_in_replay": false
+    },
+    "next_check": "Locate the timeout with syscall/scheduler tracing on a fixed candidate; preserve failures and the 2-second per-input budget."
   },
   "partial_offset_integrity_fix": "docs/plan/evidence/KL11-78.json",
   "next_candidate_source_sha": "bdf28a1b987cbc73e12ef54ac9cc516e741b6c4a",
-  "fetch_notification_fix": "docs/plan/evidence/KL11-79.json"
+  "fetch_notification_fix": "docs/plan/evidence/KL11-79.json",
+  "previous_detached_attempts": [
+    {
+      "kind": "campaign",
+      "container_id": "c86f8168550fec96e9b085685c7c7afc60941e8974bbfcdb675d68b65e71ab76",
+      "container_name": "pl-broker-fuzz-campaign-20261027-03",
+      "image_id": "sha256:3f3bce42ebbf8f78bb2c2d54ec8067a92eeb225e37a9dfb37d16b7d9a3d49ea7",
+      "directory": "/workspace/work/broker-fuzz-container-20261027/campaign-03",
+      "started_chicago": "2026-10-27T14:45:45-05:00",
+      "earliest_completion_chicago": "2026-10-28T14:45:45-05:00",
+      "state_at_snapshot": "running",
+      "snapshot_utc": "2026-10-27T19:47:26Z",
+      "seconds_per_target": 86400,
+      "resources": {
+        "NetworkMode": "none",
+        "NanoCpus": 3000000000,
+        "Memory": 4294967296,
+        "PidsLimit": 128,
+        "ReadonlyRootfs": true,
+        "Init": true,
+        "RestartPolicy": {
+          "Name": "no",
+          "MaximumRetryCount": 0
+        }
+      },
+      "pid_namespace": "container",
+      "supervisor_checks": 9,
+      "supervisor_checks_exit": 0,
+      "qualification_complete": false,
+      "stop": "docker --host=unix:///var/run/docker.sock stop --time 15 pl-broker-fuzz-campaign-20261027-03",
+      "state_at_latest_observation": "failed",
+      "elapsed_seconds": 3223.225606527,
+      "reason": "recover_epoch failed with 70",
+      "parent_waited_workers": 5,
+      "credited_qualification_seconds": 0,
+      "failure_evidence": "docs/evidence/broker/journal-partial-offset-20261027/README.md",
+      "source_sha": "d6643def5a08b302b05ef7380d72f13dd7e2a002"
+    }
+  ],
+  "next_check": "Locate the timeout with syscall/scheduler tracing on a fixed candidate; preserve failures and the 2-second per-input budget."
 }

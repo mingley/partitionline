@@ -34944,7 +34944,8 @@
       ],
       "evidence": [
         "docs/evidence/broker/fuzz/20261027-launch/README.md",
-        "docs/plan/evidence/KL11-47.json"
+        "docs/plan/evidence/KL11-47.json",
+        "docs/evidence/broker/fuzz/20261027-candidate06/README.md"
       ],
       "write_set": [
         "fuzz/broker/",
@@ -34962,7 +34963,7 @@
         "docs/plan/tasks.json",
         "docs/STATUS.md"
       ],
-      "qualification_limit": "Partial offset and Fetch notification repairs are complete. Preparing fresh stable instrumented binaries; no active campaign or completed 24-hour result yet. Earlier failed attempts contribute zero time. Broader behavioral and conformance gates remain failed."
+      "qualification_limit": "Candidate06 includes both integrity/notification repairs and passes nine isolated supervisor controls. Campaign04 failed after 2,704 seconds with another epoch timeout70; all five workers joined, no OOM, no credited qualification time. Exact 60-byte seed replays pass, so timeout diagnosis remains open. No campaign is currently running; production/performance gates remain failed."
     },
     {
       "id": "KL11-48",

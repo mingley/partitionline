@@ -27,10 +27,12 @@ Those counts were checked against `tasks.json` on 27 October 2026.
 Current qualification uses stable Rust 1.99.1. The seeded fault oracle now
 checks generation fencing and post-abort reuse; default and all-feature runs
 each pass 3,004 outcomes with zero observer discrepancies. Nine supervisor
-checks also pass inside the detached fuzz runtime. The five-target campaign
-failed after 3,223 seconds with an unreproduced epoch-recovery timeout. Its
-retained input exposed a journal truncation bug, now fixed and checked in both
-feature modes. No campaign is currently running; failed time is not credited.
+checks also pass inside the detached fuzz runtime. One campaign failed after
+3,223 seconds and exposed a journal truncation bug, now fixed and checked in
+both feature modes. The rebuilt candidate failed after 2,704 seconds with
+another epoch-recovery timeout. Its retained 60-byte seed passes exact replays;
+the timeout remains unexplained. No campaign is currently running and no
+24-hour run has passed. See the [current fuzz result](evidence/broker/fuzz/20261027-candidate06/README.md).
 
 The Fetch corruption waiter now wakes correctly in both feature modes. The
 whole-broker checks still fail: default passes 602 and fails 10; all features

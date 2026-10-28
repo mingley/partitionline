@@ -1,0 +1,82 @@
+{
+  "state": "running",
+  "supervisor_pid": 7,
+  "targets": [
+    {
+      "Threads": 2,
+      "VmHWM": 29810688,
+      "VmRSS": 29810688,
+      "coverage": 52,
+      "disk_bytes": 14097,
+      "elapsed_seconds": 11.099943219000124,
+      "engine_elapsed_seconds": null,
+      "executions": 4194304,
+      "files": 45,
+      "final_stats_present": false,
+      "pid": 10,
+      "returncode": null,
+      "target": "parse_header"
+    },
+    {
+      "Threads": 2,
+      "VmHWM": 31002624,
+      "VmRSS": 31002624,
+      "coverage": 1018,
+      "disk_bytes": 360961,
+      "elapsed_seconds": 11.18170636800096,
+      "engine_elapsed_seconds": null,
+      "executions": 577138,
+      "files": 860,
+      "final_stats_present": false,
+      "pid": 11,
+      "returncode": null,
+      "target": "decode_kraft"
+    },
+    {
+      "Threads": 2,
+      "VmHWM": 30552064,
+      "VmRSS": 30552064,
+      "coverage": 369,
+      "disk_bytes": 229456,
+      "elapsed_seconds": 11.273451549001038,
+      "engine_elapsed_seconds": null,
+      "executions": 1782387,
+      "files": 385,
+      "final_stats_present": false,
+      "pid": 12,
+      "returncode": null,
+      "target": "controller_respond"
+    },
+    {
+      "Threads": 2,
+      "VmHWM": 30179328,
+      "VmRSS": 30179328,
+      "coverage": 216,
+      "disk_bytes": 33242,
+      "elapsed_seconds": 11.362922447999154,
+      "engine_elapsed_seconds": null,
+      "executions": 84112,
+      "files": 136,
+      "final_stats_present": false,
+      "pid": 13,
+      "returncode": null,
+      "target": "recover_journal"
+    },
+    {
+      "Threads": 2,
+      "VmHWM": 30269440,
+      "VmRSS": 30269440,
+      "coverage": 279,
+      "disk_bytes": 34153,
+      "elapsed_seconds": 11.372406411001066,
+      "engine_elapsed_seconds": null,
+      "executions": 67365,
+      "files": 130,
+      "final_stats_present": false,
+      "pid": 14,
+      "returncode": null,
+      "target": "recover_epoch"
+    }
+  ],
+  "utc": "2026-10-27T22:36:36Z"
+}

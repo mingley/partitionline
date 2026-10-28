@@ -1,0 +1,39 @@
+{
+  "kind": "campaign",
+  "source_sha": "bdf28a1b987cbc73e12ef54ac9cc516e741b6c4a",
+  "container_id": "88e80e4ab4d8881e09998f155af3f9157831f9c42beebcdf8df699dcd66b11fe",
+  "container_name": "pl-broker-fuzz-campaign-20261027-04",
+  "image_id": "sha256:3f3bce42ebbf8f78bb2c2d54ec8067a92eeb225e37a9dfb37d16b7d9a3d49ea7",
+  "directory": "/workspace/work/broker-fuzz-container-20261027/campaign-04",
+  "started_utc": "2026-10-27T22:36:24Z",
+  "finished_utc": "2026-10-27T23:21:28Z",
+  "latest_observation_utc": "2026-10-28T02:00:36.390516+00:00",
+  "state": "failed",
+  "elapsed_seconds": 2704.2508395999994,
+  "reason": "recover_epoch failed with 70",
+  "parent_waited_workers": 5,
+  "seconds_per_target": 86400,
+  "credited_qualification_seconds": 0,
+  "qualification_complete": false,
+  "production_qualified": false,
+  "performance_claim_qualified": false,
+  "controls": {
+    "tests": 9,
+    "exit": 0
+  },
+  "artifact_root": "docs/evidence/broker/fuzz/20261027-candidate06/",
+  "failure_input": {
+    "bytes": 60,
+    "sha256": "5b0672076adf8cd11e1e17ebac172ba91c42ca06a4742b1128143c6f815e18d1",
+    "identical_tracked_seed": "fuzz/broker/seeds/recover_epoch/one-entry",
+    "container_replay_invocations": 3,
+    "runs_per_invocation": 100,
+    "replay_exit_codes": [
+      0,
+      0,
+      0
+    ],
+    "timeout_reproduced_in_replay": false
+  },
+  "next_check": "Locate the timeout with syscall/scheduler tracing on a fixed candidate; preserve failures and the 2-second per-input budget."
+}

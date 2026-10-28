@@ -1,0 +1,10 @@
+{
+  "command": [
+    "python3",
+    "scripts/broker-fuzz-campaign.py",
+    "audit",
+    "--output",
+    "/workspace/work/broker-fuzz-container-20261027/campaign-04"
+  ],
+  "exit": 1
+}

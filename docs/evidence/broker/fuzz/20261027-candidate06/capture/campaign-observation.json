@@ -1,0 +1,115 @@
+{
+  "observed_utc": "2026-10-27T22:36:38.200841+00:00",
+  "state": {
+    "Status": "running",
+    "Running": true,
+    "Paused": false,
+    "Restarting": false,
+    "OOMKilled": false,
+    "Dead": false,
+    "Pid": 9902,
+    "ExitCode": 0,
+    "Error": "",
+    "StartedAt": "2026-10-27T22:36:24.170007369Z",
+    "FinishedAt": "0001-01-01T00:00:00Z"
+  },
+  "limits": {
+    "NetworkMode": "none",
+    "NanoCpus": 3000000000,
+    "Memory": 4294967296,
+    "PidsLimit": 128,
+    "ReadonlyRootfs": true,
+    "Init": true,
+    "RestartPolicy": {
+      "Name": "no",
+      "MaximumRetryCount": 0
+    }
+  },
+  "actual_cgroup": {
+    "cpu.max": "300000 100000",
+    "memory.max": "4294967296",
+    "pids.max": "128"
+  },
+  "latest_telemetry": {
+    "utc": "2026-10-27T22:36:36Z",
+    "elapsed_seconds": 11.381495043000541,
+    "targets": [
+      {
+        "target": "parse_header",
+        "pid": 10,
+        "returncode": null,
+        "elapsed_seconds": 11.099943219000124,
+        "disk_bytes": 14097,
+        "files": 45,
+        "VmHWM": 29810688,
+        "VmRSS": 29810688,
+        "Threads": 2,
+        "coverage": 52,
+        "executions": 4194304,
+        "engine_elapsed_seconds": null,
+        "final_stats_present": false
+      },
+      {
+        "target": "decode_kraft",
+        "pid": 11,
+        "returncode": null,
+        "elapsed_seconds": 11.18170636800096,
+        "disk_bytes": 360961,
+        "files": 860,
+        "VmHWM": 31002624,
+        "VmRSS": 31002624,
+        "Threads": 2,
+        "coverage": 1018,
+        "executions": 577138,
+        "engine_elapsed_seconds": null,
+        "final_stats_present": false
+      },
+      {
+        "target": "controller_respond",
+        "pid": 12,
+        "returncode": null,
+        "elapsed_seconds": 11.273451549001038,
+        "disk_bytes": 229456,
+        "files": 385,
+        "VmHWM": 30552064,
+        "VmRSS": 30552064,
+        "Threads": 2,
+        "coverage": 369,
+        "executions": 1782387,
+        "engine_elapsed_seconds": null,
+        "final_stats_present": false
+      },
+      {
+        "target": "recover_journal",
+        "pid": 13,
+        "returncode": null,
+        "elapsed_seconds": 11.362922447999154,
+        "disk_bytes": 33242,
+        "files": 136,
+        "VmHWM": 30179328,
+        "VmRSS": 30179328,
+        "Threads": 2,
+        "coverage": 216,
+        "executions": 84112,
+        "engine_elapsed_seconds": null,
+        "final_stats_present": false
+      },
+      {
+        "target": "recover_epoch",
+        "pid": 14,
+        "returncode": null,
+        "elapsed_seconds": 11.372406411001066,
+        "disk_bytes": 34153,
+        "files": 130,
+        "VmHWM": 30269440,
+        "VmRSS": 30269440,
+        "Threads": 2,
+        "coverage": 279,
+        "executions": 67365,
+        "engine_elapsed_seconds": null,
+        "final_stats_present": false
+      }
+    ]
+  },
+  "completed_qualification": false
+}
