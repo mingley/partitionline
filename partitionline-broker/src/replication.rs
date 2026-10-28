@@ -9,6 +9,9 @@
 //! Confirmed records and truncations are journaled. Reopen replays the logical
 //! log, so an interrupted copy resumes at the last confirmed offset. This is
 //! not a Kafka Fetch response and it does not replicate through the network.
+//! This local model has no committed-watermark guard, and the leader fence is
+//! derived only from retained records. Do not use it to truncate a production
+//! replica or to authorize a network leader.
 
 use crate::journal::{self, Journal};
 use std::path::Path;
@@ -104,8 +107,10 @@ pub struct Limits {
 impl Limits {
     /// Configure a record cap up to one million and a positive payload cap.
     ///
-    /// The journal must accept one maximum record and index every confirmed
-    /// append and truncation.
+    /// The journal entry limit must accept a maximum record plus its 25-byte
+    /// header, and its index must hold every confirmed append and truncation.
+    /// Earlier versions accepted a 21-byte allowance; raise an affected
+    /// journal's entry limit by up to four bytes before opening it.
     pub fn new(
         max_records: usize,
         max_payload_bytes: usize,
@@ -114,7 +119,7 @@ impl Limits {
         if !(1..=1_000_000).contains(&max_records)
             || max_payload_bytes == 0
             || max_payload_bytes > 1024 * 1024
-            || journal.max_entry_bytes() < max_payload_bytes.saturating_add(21)
+            || journal.max_entry_bytes() < max_payload_bytes.saturating_add(25)
             || journal.max_index_entries() < max_records
         {
             return Err(Error::InvalidLimits);
@@ -149,9 +154,11 @@ impl Log {
         };
         let mut offset = log.journal.base_offset();
         loop {
-            let batch = log
-                .journal
-                .fetch(offset, 64, log.limits.journal.max_fetch_bytes())?;
+            let batch = log.journal.fetch(
+                offset,
+                64.min(log.limits.journal.max_index_entries()),
+                log.limits.journal.max_fetch_bytes(),
+            )?;
             if batch.is_empty() {
                 break;
             }
@@ -237,7 +244,13 @@ impl Log {
     ///
     /// `leader_epoch` is the epoch the caller claims for this leader. If it is
     /// older than an epoch already stored here, the call is fenced and the
-    /// follower log is unchanged.
+    /// follower log is unchanged. A divergent suffix is not truncated unless
+    /// a replacement fits this call and the journal has capacity for both the
+    /// truncate and first replacement. If later records exhaust the budget,
+    /// the returned progress covers the records already durably copied. A
+    /// process exit or storage failure after a successful truncation can leave
+    /// that prefix without the replacement; reopen before retrying. This local
+    /// model has no committed-watermark guard.
     pub fn replicate_from(
         &mut self,
         leader: &Log,
@@ -245,6 +258,7 @@ impl Log {
         budget: FetchBudget,
     ) -> Result<Progress, Error> {
         self.ready()?;
+        leader.ready()?;
         if budget.max_bytes == 0 || budget.max_records == 0 {
             return Err(Error::Budget);
         }
@@ -261,7 +275,87 @@ impl Log {
                     && follower.bytes == source.bytes
             })
             .count();
+        // Inspect only the prefix this request and this journal can admit.
+        // Validate it before a divergent suffix is durably removed.
         let truncated = self.records.len() - keep;
+        let mut preflight_bytes = 0usize;
+        let available = self.limits.max_records.saturating_sub(keep);
+        let mut first_encoded_len = None;
+        let mut planned = 0usize;
+        let truncate_entries = usize::from(truncated > 0);
+        let mut available_entries = self
+            .limits
+            .journal
+            .max_index_entries()
+            .saturating_sub(self.stored)
+            .saturating_sub(truncate_entries);
+        let truncation_cost = if truncated > 0 {
+            journal::ENTRY_HEADER as u64 + 17
+        } else {
+            0
+        };
+        let mut available_file = self
+            .limits
+            .journal
+            .max_file_bytes()
+            .saturating_sub(self.journal.file_bytes())
+            .saturating_sub(truncation_cost);
+        for (index, source) in leader
+            .records
+            .iter()
+            .skip(keep)
+            .take(budget.max_records.min(available))
+            .enumerate()
+        {
+            if source.bytes.len() > budget.max_bytes.saturating_sub(preflight_bytes)
+                || available_entries == 0
+            {
+                break;
+            }
+            let encoded_len = source.bytes.len().checked_add(25).ok_or(Error::Budget)?;
+            let file_cost = (journal::ENTRY_HEADER as u64)
+                .checked_add(u64::try_from(encoded_len).map_err(|_| Error::Budget)?)
+                .ok_or(Error::Budget)?;
+            if file_cost > available_file {
+                break;
+            }
+            if source.bytes.is_empty() || source.bytes.len() > self.limits.max_payload_bytes {
+                return Err(Error::Budget);
+            }
+            if encoded_len
+                .checked_add(std::mem::size_of::<journal::Entry>())
+                .is_none_or(|bytes| bytes > self.limits.journal.max_fetch_bytes())
+            {
+                return Err(Error::Budget);
+            }
+            let expected = keep
+                .checked_add(index)
+                .and_then(|value| i64::try_from(value).ok())
+                .ok_or(Error::InvalidRecord)?;
+            if source.offset != expected || source.offset.checked_add(1).is_none() {
+                return Err(Error::InvalidRecord);
+            }
+            if first_encoded_len.is_none() {
+                first_encoded_len = Some(encoded_len);
+            }
+            preflight_bytes = preflight_bytes.saturating_add(source.bytes.len());
+            available_entries -= 1;
+            available_file -= file_cost;
+            planned += 1;
+        }
+        if truncated > 0 && leader.records.get(keep).is_some() {
+            // Ensure both writes fit and pre-reserve their index entries. The
+            // truncate and replacement are still separate durable operations.
+            let first = first_encoded_len.ok_or(Error::Budget)?;
+            if 17usize
+                .checked_add(std::mem::size_of::<journal::Entry>())
+                .is_none_or(|bytes| bytes > self.limits.journal.max_fetch_bytes())
+                || !self.journal.can_append_pair(17, first)
+            {
+                return Err(Error::Budget);
+            }
+            self.journal.reserve_append_pair()?;
+        }
         if truncated > 0 {
             let offset = self
                 .records
@@ -270,10 +364,12 @@ impl Log {
                 .unwrap_or(0);
             self.persist(&encode_truncate(offset)?)?;
             self.records.truncate(keep);
+            #[cfg(test)]
+            replication_test_crash("truncated");
         }
         let mut copied = 0usize;
         let mut used = 0usize;
-        while copied < budget.max_records {
+        while copied < planned {
             let Some(source) = leader.records.get(self.records.len()) else {
                 break;
             };
@@ -289,7 +385,13 @@ impl Log {
             if source.offset.checked_add(1).is_none() {
                 return Err(Error::InvalidRecord);
             }
-            self.persist(&encode_record(source)?)?;
+            match self.persist(&encode_record(source)?) {
+                Ok(()) => {}
+                // Already durable work is progress. The caller can resume and
+                // observe the remaining budget refusal on its next attempt.
+                Err(Error::Budget) if copied > 0 || truncated > 0 => break,
+                Err(error) => return Err(error),
+            }
             used = used.saturating_add(source.bytes.len());
             self.records.push(source.clone());
             copied = copied.saturating_add(1);
@@ -352,7 +454,13 @@ impl Log {
     fn persist(&mut self, payload: &[u8]) -> Result<(), Error> {
         // Truncation is a journal record of its own. The logical cap limits
         // live records; the index cap limits the append and truncate history.
-        if self.stored >= self.limits.journal.max_index_entries() {
+        if self.stored >= self.limits.journal.max_index_entries()
+            || !self.journal.can_append_snapshot(payload.len())
+            || payload
+                .len()
+                .checked_add(std::mem::size_of::<journal::Entry>())
+                .is_none_or(|bytes| bytes > self.limits.journal.max_fetch_bytes())
+        {
             return Err(Error::Budget);
         }
         match self.journal.append(1, payload) {
@@ -361,10 +469,19 @@ impl Log {
                 Ok(())
             }
             Err(error) => {
-                self.poisoned = true;
+                // Journal admission errors happen before writing; only an
+                // ambiguous write or synchronization failure poisons the log.
+                self.poisoned = self.journal.is_poisoned();
                 Err(Error::Storage(error))
             }
         }
+    }
+}
+
+#[cfg(test)]
+fn replication_test_crash(phase: &str) {
+    if std::env::var("PLB_REPLICATION_CRASH").ok().as_deref() == Some(phase) {
+        std::process::exit(71);
     }
 }
 
@@ -376,7 +493,7 @@ fn split_kind(bytes: &[u8]) -> Result<(u8, &[u8]), Error> {
 }
 
 fn encode_record(record: &Record) -> Result<Vec<u8>, Error> {
-    let mut bytes = Vec::with_capacity(21 + record.bytes.len());
+    let mut bytes = Vec::with_capacity(25 + record.bytes.len());
     bytes.extend_from_slice(RECORD_MAGIC);
     bytes.push(KIND_RECORD);
     bytes.extend_from_slice(&record.offset.to_be_bytes());
@@ -691,5 +808,389 @@ mod tests {
         let diverge = Log::open(&diverge_path, tight).unwrap_or_else(|error| panic!("{error:?}"));
         assert_eq!(diverge.records().len(), 2);
         assert_eq!(diverge.records()[1].bytes, b"bbb");
+    }
+    #[test]
+    fn maximum_record_header_uses_twenty_five_bytes() {
+        let too_small = journal::Limits::new(56, 1024, 2, 1024).unwrap();
+        assert!(matches!(
+            Limits::new(1, 32, too_small),
+            Err(Error::InvalidLimits)
+        ));
+        let exact = journal::Limits::new(57, 1024, 2, 1024).unwrap();
+        assert!(Limits::new(1, 32, exact).is_ok());
+    }
+
+    #[test]
+    fn smaller_follower_payload_limit_rejects_before_divergent_truncation() {
+        let (mut leader, _) = log("larger-leader");
+        leader.append(2, b"large-record").unwrap();
+        let nanos = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        let path = std::env::temp_dir().join(format!("pl-repl-small-payload-{nanos}"));
+        let j = journal::Limits::new(64, 1 << 20, 100, 1 << 20).unwrap();
+        let limits = Limits::new(4, 4, j).unwrap();
+        let mut follower = Log::open(&path, limits).unwrap();
+        follower.append(1, b"old").unwrap();
+        assert!(matches!(
+            follower.replicate_from(&leader, 2, budget(4)),
+            Err(Error::Budget)
+        ));
+        assert_eq!(follower.records()[0].bytes, b"old");
+        drop(follower);
+        let mut follower = Log::open(&path, limits).unwrap();
+        assert_eq!(follower.records()[0].bytes, b"old");
+        follower.append(1, b"next").unwrap();
+        drop(follower);
+        let follower = Log::open(&path, limits).unwrap();
+        assert_eq!(follower.records().len(), 2);
+        let _ = std::fs::remove_file(path);
+    }
+
+    #[test]
+    fn recovery_fetch_admission_refuses_unreadable_record_without_poison() {
+        let nanos = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        let path = std::env::temp_dir().join(format!("pl-repl-fetch-limit-{nanos}"));
+        let fetch = std::mem::size_of::<journal::Entry>() + 29;
+        let j = journal::Limits::new(64, 1 << 20, 3, fetch).unwrap();
+        let limits = Limits::new(2, 32, j).unwrap();
+        let mut log = Log::open(&path, limits).unwrap();
+        assert!(matches!(log.append(1, b"12345"), Err(Error::Budget)));
+        log.append(1, b"1234").unwrap();
+        drop(log);
+        let log = Log::open(&path, limits).unwrap();
+        assert_eq!(log.records()[0].bytes, b"1234");
+        drop(log);
+        let _ = std::fs::remove_file(path);
+    }
+
+    #[test]
+    fn full_file_rejection_keeps_confirmed_data_readable() {
+        let nanos = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        let path = std::env::temp_dir().join(format!("pl-repl-file-limit-{nanos}"));
+        let j = journal::Limits::new(64, 24 + 32 + 28, 3, 1024).unwrap();
+        let limits = Limits::new(2, 32, j).unwrap();
+        let mut log = Log::open(&path, limits).unwrap();
+        log.append(1, b"old").unwrap();
+        assert!(matches!(log.append(1, b"new"), Err(Error::Budget)));
+        assert!(matches!(log.append(1, b"x"), Err(Error::Budget)));
+        drop(log);
+        let log = Log::open(&path, limits).unwrap();
+        assert_eq!(log.records()[0].bytes, b"old");
+        drop(log);
+        let _ = std::fs::remove_file(path);
+    }
+
+    #[test]
+    fn one_index_entry_can_replicate_and_recover_one_record() {
+        let nanos = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        let path = std::env::temp_dir().join(format!("pl-repl-one-index-{nanos}"));
+        let j = journal::Limits::new(64, 1024, 1, 1024).unwrap();
+        let limits = Limits::new(1, 32, j).unwrap();
+        let (mut leader, _) = log("single-index-leader");
+        leader.append(1, b"one").unwrap();
+        let mut follower = Log::open(&path, limits).unwrap();
+        assert_eq!(
+            follower
+                .replicate_from(&leader, 1, budget(1))
+                .unwrap()
+                .copied,
+            1
+        );
+        drop(follower);
+        let follower = Log::open(&path, limits).unwrap();
+        assert_eq!(follower.records(), leader.records());
+        drop(follower);
+        let _ = std::fs::remove_file(path);
+    }
+
+    #[test]
+    fn replication_refuses_poisoned_source_before_changing_follower() {
+        let (mut leader, _) = log("poisoned-source");
+        let (mut follower, _) = log("poisoned-source-follower");
+        leader.append(1, b"first").unwrap();
+        journal::fail_append_once_after_sync();
+        assert!(leader.append(1, b"unknown").is_err());
+        assert!(matches!(
+            follower.replicate_from(&leader, 1, budget(8)),
+            Err(Error::Poisoned)
+        ));
+        assert!(follower.records().is_empty());
+    }
+    #[test]
+    fn divergent_replacement_needs_two_journal_slots_and_file_space_before_truncation() {
+        let (mut leader, _) = log("admission-leader");
+        leader.append(2, b"new").unwrap();
+        let nanos = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        for (name, index, file_bytes) in [("index", 2, 1024), ("file", 3, 192)] {
+            let path = std::env::temp_dir().join(format!("pl-repl-admission-{name}-{nanos}"));
+            let journal = journal::Limits::new(64, file_bytes, index, 1024).unwrap();
+            let limits = Limits::new(2, 32, journal).unwrap();
+            let mut follower = Log::open(&path, limits).unwrap();
+            follower.append(1, b"old").unwrap();
+            assert!(matches!(
+                follower.replicate_from(&leader, 2, budget(2)),
+                Err(Error::Budget)
+            ));
+            assert_eq!(follower.records()[0].bytes, b"old");
+            follower.append(1, b"x").unwrap();
+            drop(follower);
+            let follower = Log::open(&path, limits).unwrap();
+            assert_eq!(follower.records().len(), 2);
+            assert_eq!(follower.records()[0].bytes, b"old");
+            drop(follower);
+            let _ = std::fs::remove_file(path);
+        }
+    }
+
+    #[test]
+    fn divergence_with_no_copyable_first_record_is_unchanged() {
+        let (mut leader, _) = log("no-first-leader");
+        leader.append(2, b"long").unwrap();
+        let (mut follower, path) = log("no-first-follower");
+        follower.append(1, b"old").unwrap();
+        assert!(matches!(
+            follower.replicate_from(
+                &leader,
+                2,
+                FetchBudget {
+                    max_bytes: 3,
+                    max_records: 1
+                }
+            ),
+            Err(Error::Budget)
+        ));
+        assert_eq!(follower.records()[0].bytes, b"old");
+        drop(follower);
+        let follower = Log::open(&path, limits()).unwrap();
+        assert_eq!(follower.records()[0].bytes, b"old");
+    }
+
+    #[test]
+    fn later_unselected_record_does_not_reject_valid_bounded_prefix() {
+        let (mut leader, _) = log("partial-limit-leader");
+        leader.append(1, b"ok").unwrap();
+        leader.append(1, b"too-large").unwrap();
+        let nanos = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        let path = std::env::temp_dir().join(format!("pl-repl-partial-limit-{nanos}"));
+        let journal = journal::Limits::new(64, 1024, 4, 1024).unwrap();
+        let limits = Limits::new(2, 4, journal).unwrap();
+        let mut follower = Log::open(&path, limits).unwrap();
+        let progress = follower
+            .replicate_from(
+                &leader,
+                1,
+                FetchBudget {
+                    max_bytes: 2,
+                    max_records: 2,
+                },
+            )
+            .unwrap();
+        assert_eq!(progress.copied, 1);
+        assert_eq!(follower.records()[0].bytes, b"ok");
+        assert!(matches!(
+            follower.replicate_from(&leader, 1, budget(2)),
+            Err(Error::Budget)
+        ));
+        drop(follower);
+        let follower = Log::open(&path, limits).unwrap();
+        assert_eq!(follower.records().len(), 1);
+        assert_eq!(follower.records()[0].bytes, b"ok");
+        drop(follower);
+        let _ = std::fs::remove_file(path);
+    }
+
+    #[test]
+    fn later_journal_capacity_exhaustion_reports_durable_partial_progress() {
+        let (mut leader, _) = log("partial-journal-leader");
+        leader.append(1, b"one").unwrap();
+        leader.append(1, b"two").unwrap();
+        let nanos = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        let path = std::env::temp_dir().join(format!("pl-repl-partial-journal-{nanos}"));
+        // One previously confirmed truncate consumes a slot with no live data.
+        let journal = journal::Limits::new(64, 1024, 2, 1024).unwrap();
+        let limits = Limits::new(2, 32, journal).unwrap();
+        let mut follower = Log::open(&path, limits).unwrap();
+        follower.append(1, b"old").unwrap();
+        follower.persist(&encode_truncate(0).unwrap()).unwrap();
+        follower.records.clear();
+        drop(follower);
+        let mut follower = Log::open(&path, limits).unwrap();
+        // Both history entries are occupied, so zero-progress refusal remains
+        // an error and leaves the handle usable and recoverable.
+        assert!(matches!(
+            follower.replicate_from(&leader, 1, budget(2)),
+            Err(Error::Budget)
+        ));
+        assert!(follower.records().is_empty());
+        drop(follower);
+        let follower = Log::open(&path, limits).unwrap();
+        assert!(follower.records().is_empty());
+        drop(follower);
+        let _ = std::fs::remove_file(path);
+
+        let path = std::env::temp_dir().join(format!("pl-repl-partial-copy-{nanos}"));
+        let journal = journal::Limits::new(64, 24 + 32 + 28, 2, 1024).unwrap();
+        let limits = Limits::new(2, 32, journal).unwrap();
+        let mut follower = Log::open(&path, limits).unwrap();
+        let progress = follower.replicate_from(&leader, 1, budget(2)).unwrap();
+        assert_eq!(progress.copied, 1);
+        assert!(matches!(
+            follower.replicate_from(&leader, 1, budget(2)),
+            Err(Error::Budget)
+        ));
+        drop(follower);
+        let follower = Log::open(&path, limits).unwrap();
+        assert_eq!(follower.records().len(), 1);
+        assert_eq!(follower.records()[0].bytes, b"one");
+        drop(follower);
+        let _ = std::fs::remove_file(path);
+    }
+
+    #[test]
+    fn old_small_entry_configuration_recovers_with_migrated_limit() {
+        let nanos = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        let path = std::env::temp_dir().join(format!("pl-repl-migrated-{nanos}"));
+        let old = journal::Limits::new(56, 1024, 1, 1024).unwrap();
+        let (mut journal, _) = Journal::open(&path, 0, old).unwrap();
+        let bytes = encode_record(&Record {
+            offset: 0,
+            leader_epoch: 1,
+            bytes: b"old".to_vec(),
+        })
+        .unwrap();
+        journal.append(1, &bytes).unwrap();
+        drop(journal);
+        assert!(matches!(Limits::new(1, 32, old), Err(Error::InvalidLimits)));
+        let migrated = journal::Limits::new(57, 1024, 1, 1024).unwrap();
+        let mut log = Log::open(&path, Limits::new(1, 32, migrated).unwrap()).unwrap();
+        assert_eq!(log.records()[0].bytes, b"old");
+        assert!(matches!(log.append(1, b"new"), Err(Error::Budget)));
+        drop(log);
+        let _ = std::fs::remove_file(path);
+    }
+    #[test]
+    fn index_reservation_failure_precedes_durable_truncation() {
+        let (mut leader, _) = log("reserve-fail-leader");
+        leader.append(2, b"new").unwrap();
+        let (mut follower, path) = log("reserve-fail-follower");
+        follower.append(1, b"old").unwrap();
+        journal::fail_pair_reserve_once();
+        assert!(matches!(
+            follower.replicate_from(&leader, 2, budget(1)),
+            Err(Error::Storage(journal::Error::AllocationFailed))
+        ));
+        assert_eq!(follower.records()[0].bytes, b"old");
+        drop(follower);
+        let mut follower = Log::open(&path, limits()).unwrap();
+        assert_eq!(follower.records()[0].bytes, b"old");
+        assert_eq!(
+            follower
+                .replicate_from(&leader, 2, budget(1))
+                .unwrap()
+                .copied,
+            1
+        );
+        assert_eq!(follower.records(), leader.records());
+    }
+
+    #[test]
+    fn record_beyond_journal_capacity_does_not_block_valid_prefix() {
+        let (mut leader, _) = log("file-prefix-leader");
+        leader.append(1, b"ok").unwrap();
+        leader.append(1, b"too-large").unwrap();
+        let nanos = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        let path = std::env::temp_dir().join(format!("pl-repl-file-prefix-{nanos}"));
+        let journal = journal::Limits::new(64, 24 + 32 + 27, 2, 1024).unwrap();
+        let limits = Limits::new(2, 4, journal).unwrap();
+        let mut follower = Log::open(&path, limits).unwrap();
+        let progress = follower.replicate_from(&leader, 1, budget(2)).unwrap();
+        assert_eq!(progress.copied, 1);
+        assert!(matches!(
+            follower.replicate_from(&leader, 1, budget(2)),
+            Err(Error::Budget)
+        ));
+        drop(follower);
+        let follower = Log::open(&path, limits).unwrap();
+        assert_eq!(follower.records()[0].bytes, b"ok");
+        drop(follower);
+        let _ = std::fs::remove_file(path);
+    }
+
+    #[test]
+    #[cfg(unix)]
+    fn replication_resumes_after_process_exit_following_truncation() {
+        const TEST: &str =
+            "replication::tests::replication_resumes_after_process_exit_following_truncation";
+        if let Some(dir) = std::env::var_os("PLB_REPLICATION_CRASH_DIR") {
+            let dir = std::path::PathBuf::from(dir);
+            let leader = Log::open(dir.join("leader"), limits()).unwrap();
+            let mut follower = Log::open(dir.join("follower"), limits()).unwrap();
+            follower.replicate_from(&leader, 2, budget(1)).unwrap();
+            panic!("replication failpoint did not exit");
+        }
+        let nanos = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        let dir = std::env::temp_dir().join(format!(
+            "pl-repl-trunc-crash-{}-{nanos}",
+            std::process::id()
+        ));
+        std::fs::create_dir_all(&dir).unwrap();
+        let mut leader = Log::open(dir.join("leader"), limits()).unwrap();
+        leader.append(2, b"new").unwrap();
+        let mut follower = Log::open(dir.join("follower"), limits()).unwrap();
+        follower.append(1, b"old").unwrap();
+        drop(leader);
+        drop(follower);
+        let status = std::process::Command::new(std::env::current_exe().unwrap())
+            .args(["--exact", TEST, "--nocapture"])
+            .env("PLB_REPLICATION_CRASH", "truncated")
+            .env("PLB_REPLICATION_CRASH_DIR", &dir)
+            .status()
+            .unwrap();
+        assert_eq!(status.code(), Some(71));
+        let leader = Log::open(dir.join("leader"), limits()).unwrap();
+        let mut follower = Log::open(dir.join("follower"), limits()).unwrap();
+        assert!(follower.records().is_empty());
+        assert_eq!(
+            follower
+                .replicate_from(&leader, 2, budget(1))
+                .unwrap()
+                .copied,
+            1
+        );
+        drop(follower);
+        let follower = Log::open(dir.join("follower"), limits()).unwrap();
+        assert_eq!(follower.records(), leader.records());
+        drop(follower);
+        drop(leader);
+        std::fs::remove_dir_all(dir).unwrap();
     }
 }

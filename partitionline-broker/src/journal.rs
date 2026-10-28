@@ -29,7 +29,7 @@ use crate::batch;
 const FILE_MAGIC: &[u8; 8] = b"PLJRNL01";
 const ENTRY_MAGIC: &[u8; 8] = b"PLENTRY1";
 const FILE_HEADER: usize = 24;
-const ENTRY_HEADER: usize = 32;
+pub(crate) const ENTRY_HEADER: usize = 32;
 const MAX_BYTES: usize = 64 * 1024 * 1024;
 const MAX_FETCH_BYTES: usize = 128 * 1024 * 1024;
 
@@ -48,6 +48,7 @@ fn checkpoint_test_point(phase: &str) {
 thread_local! {
     static CHECKPOINT_TEST_ERROR: std::cell::Cell<Option<&'static str>> = const { std::cell::Cell::new(None) };
     static APPEND_AFTER_SYNC_TEST_ERROR: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
+    static PAIR_RESERVE_TEST_ERROR: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
 }
 
 #[cfg(test)]
@@ -58,6 +59,11 @@ pub(crate) fn fail_checkpoint_once_at(phase: &'static str) {
 #[cfg(test)]
 pub(crate) fn fail_append_once_after_sync() {
     APPEND_AFTER_SYNC_TEST_ERROR.with(|failure| failure.set(true));
+}
+
+#[cfg(test)]
+pub(crate) fn fail_pair_reserve_once() {
+    PAIR_RESERVE_TEST_ERROR.with(|failure| failure.set(true));
 }
 
 #[cfg(test)]
@@ -493,6 +499,43 @@ impl Journal {
                 .checked_add(ENTRY_HEADER as u64)
                 .and_then(|size| size.checked_add(payload_len as u64))
                 .is_some_and(|size| size <= self.inner.limits.max_file_bytes)
+    }
+
+    // Check two sequential unstaged appends as one admission decision. No I/O
+    // or reservation occurs; callers still handle allocation and sync errors.
+    pub(crate) fn can_append_pair(&self, first: usize, second: usize) -> bool {
+        first > 0
+            && second > 0
+            && first <= self.inner.limits.max_entry_bytes
+            && second <= self.inner.limits.max_entry_bytes
+            && self
+                .inner
+                .index
+                .len()
+                .checked_add(2)
+                .is_some_and(|count| count <= self.inner.limits.max_index_entries)
+            && self.inner.next_offset.checked_add(2).is_some()
+            && self
+                .inner
+                .file_bytes
+                .checked_add(2 * ENTRY_HEADER as u64)
+                .and_then(|bytes| bytes.checked_add(first as u64))
+                .and_then(|bytes| bytes.checked_add(second as u64))
+                .is_some_and(|bytes| bytes <= self.inner.limits.max_file_bytes)
+    }
+
+    // Reserve index entries before a two-entry transition. This is not
+    // atomic publication: I/O failure or process exit can still occur after
+    // the first entry has been synchronized.
+    pub(crate) fn reserve_append_pair(&mut self) -> Result<(), Error> {
+        #[cfg(test)]
+        if PAIR_RESERVE_TEST_ERROR.with(|failure| failure.replace(false)) {
+            return Err(Error::AllocationFailed);
+        }
+        self.inner
+            .index
+            .try_reserve_exact(2)
+            .map_err(|_| Error::AllocationFailed)
     }
 
     // True only if a one-record snapshot can fit an otherwise empty journal.

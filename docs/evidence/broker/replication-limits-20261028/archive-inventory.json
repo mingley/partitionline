@@ -1,0 +1,266 @@
+{
+  "schema_version": 1,
+  "files": [
+    {
+      "original_path": "/workspace/partitionline/docs/evidence/broker/replication-limits-20261028/README.md",
+      "original_sha256": "d3c3cfa4890a5b93dfb666552822496e029e92ba26e301ff899feecb9e95e3bb",
+      "original_bytes": 4277,
+      "stored_path": "README.md",
+      "stored_sha256": "d3c3cfa4890a5b93dfb666552822496e029e92ba26e301ff899feecb9e95e3bb",
+      "stored_bytes": 4277,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/replication-limits-candidate/candidate-v1.patch",
+      "original_sha256": "15a23cccd30d0ac9c91a4f8f0f531c0c1597c5483bd0950bedcb4d034fca8483",
+      "original_bytes": 9653,
+      "stored_path": "candidate-v1.patch.gz",
+      "stored_sha256": "740bc6ac345443c90e44fdc1fe3103edba189a19f97ab8e65d59495ef7fbbcc4",
+      "stored_bytes": 2423,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/replication-limits-candidate/candidate-v2.patch",
+      "original_sha256": "f401b4522073d2d1674b760a16314e184c80c48ee47a6fdd7ec4621a532503dc",
+      "original_bytes": 21311,
+      "stored_path": "candidate-v2.patch.gz",
+      "stored_sha256": "1714f656d5c29db557c32aeec9a0710f39858b6f6075a049a9470283fece7910",
+      "stored_bytes": 4617,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/replication-limits-candidate/candidate-v3.patch",
+      "original_sha256": "f9a87b7aca2c23f8df39635fabb4843b19c5265179957db9faee5c16b14f6088",
+      "original_bytes": 29244,
+      "stored_path": "candidate-v3.patch.gz",
+      "stored_sha256": "697a6c445d730fb2de5f2afd27974542f555d3ecf9f1b8de125ecacb47354a88",
+      "stored_bytes": 6075,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/replication-fence-design/candidate.patch",
+      "original_sha256": "07e30f0d4e16fbea9a2a8917e99de770710b94c543ae6568a32dc2925b81c755",
+      "original_bytes": 14890,
+      "stored_path": "epoch-fence-untested.patch.gz",
+      "stored_sha256": "17dd335fb82f60550dfe4b9601e6112db83214632f2607d418e1bdf81c6f5381",
+      "stored_bytes": 3972,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/replication-limits-candidate/INTEGRATION-DESIGN.md",
+      "original_sha256": "2afb02685495ee52c2ee941b0e0046a6c450b8b981cb39fe2ca6b425a90ce5c3",
+      "original_bytes": 7967,
+      "stored_path": "integration-design.md",
+      "stored_sha256": "2afb02685495ee52c2ee941b0e0046a6c450b8b981cb39fe2ca6b425a90ce5c3",
+      "stored_bytes": 7967,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/replication-limits-candidate/journal.rs",
+      "original_sha256": "2ff177e85969470e35ccdb22b8453a3350ee9f2e1931961a57ce2513496fd5bf",
+      "original_bytes": 87745,
+      "stored_path": "journal.rs.gz",
+      "stored_sha256": "c60caad3c13a6a26974d516ca9ea32a4d355b8f83b77ed413962ab1293a6bbbf",
+      "stored_bytes": 19072,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/replication-limits-candidate/replication.rs",
+      "original_sha256": "a98dd6ba343491d66ef10004cb3184e5920f776c235abf8a72619e43d89cc0c0",
+      "original_bytes": 45288,
+      "stored_path": "replication.rs.gz",
+      "stored_sha256": "e684395eca49771014442214b68bf7289a0a5652568900e755af3163850ffb4c",
+      "stored_bytes": 8362,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/partitionline/docs/evidence/broker/replication-limits-20261028/review.md",
+      "original_sha256": "d07bb8b64bb8ef6c131209fd2ac650e9ca62ff3d4414aeca00de123ea0b80246",
+      "original_bytes": 1888,
+      "stored_path": "review.md",
+      "stored_sha256": "d07bb8b64bb8ef6c131209fd2ac650e9ca62ff3d4414aeca00de123ea0b80246",
+      "stored_bytes": 1888,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/replication-limits-candidate/run-validation.py",
+      "original_sha256": "ec67b8b6ccba3be45780789525d95bc0cd27d242a351b5250f200240deb221ec",
+      "original_bytes": 6042,
+      "stored_path": "run-validation-v3b.py",
+      "stored_sha256": "ec67b8b6ccba3be45780789525d95bc0cd27d242a351b5250f200240deb221ec",
+      "stored_bytes": 6042,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/replication-limits-validation/source-snapshot.json",
+      "original_sha256": "05917646f2a2cbd06570cd0907eb6437406d22e87689c69b778539397c246422",
+      "original_bytes": 1980506,
+      "stored_path": "source-snapshot.json.gz",
+      "stored_sha256": "9bc261b0bda173287aed917e43fd43c5c50e0a09836f2f3e94c91a070cade0ed",
+      "stored_bytes": 357180,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/replication-limits-candidate/validation-v3/default.log",
+      "original_sha256": "9ca1746067c04fe731ee02adc1d280b52d8e0036105cc9dc79017276190966a3",
+      "original_bytes": 5377,
+      "stored_path": "v3-failed-default.log.gz",
+      "stored_sha256": "8f461be624a16c6b436b32892d983cd3e97fc8df2af422a0b3b1074549a1351f",
+      "stored_bytes": 527,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/replication-limits-candidate/validation-v3/receipt.json",
+      "original_sha256": "2f0f2e1aebfb8bc5a2f07efea0c6eee9b2387ff23a3332e2b40a598969d55afd",
+      "original_bytes": 1976031,
+      "stored_path": "v3-failed-receipt.json.gz",
+      "stored_sha256": "a3284858df75b81c5287de1b6b341333adea4fba87ce7645be5820fefd838619",
+      "stored_bytes": 355078,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/replication-limits-candidate/validation-v3b/all-features.log",
+      "original_sha256": "012604d31c78ea84a551ef7d8b987ba524631ce9b58166e12dcf7eafc6af8e99",
+      "original_bytes": 78869,
+      "stored_path": "v3b-all-features.log.gz",
+      "stored_sha256": "e619a81f2d760fe84385e83d10231a87232982c19adb24ca752d3de22eea9eef",
+      "stored_bytes": 6515,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/replication-limits-candidate/validation-v3b/clippy.log",
+      "original_sha256": "0c640d3e6056e973186018eb9b5813373e71f3ed6be436183c1506ae0042300e",
+      "original_bytes": 60,
+      "stored_path": "v3b-clippy.log.gz",
+      "stored_sha256": "7fdf7273b73d0e22457d4d8a3db909d9b6dac790d892a07889b488e980997012",
+      "stored_bytes": 80,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/replication-limits-candidate/validation-v3b/default.log",
+      "original_sha256": "0d6d0f61d9744e026d4345f27fb277896e08fba74235c2dd81e1689ab691fcef",
+      "original_bytes": 24268,
+      "stored_path": "v3b-default.log.gz",
+      "stored_sha256": "5ce7942526a92a6e9849cfacce59abc9485ab2b05caa748e350bffa85e1ae2b5",
+      "stored_bytes": 2910,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/replication-limits-candidate/validation-v3b/receipt.json",
+      "original_sha256": "f89cbc0977d6adf389cbd0ba35fda5ed6a586974067b64e9731d4144405f4430",
+      "original_bytes": 1985446,
+      "stored_path": "v3b-receipt.json.gz",
+      "stored_sha256": "275eb93345a2ce819dea71490b8f91880941bb4380c02090793bf935e913b1b4",
+      "stored_bytes": 358659,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/replication-limits-candidate/run-integrated.py",
+      "original_sha256": "b4df3466a8f130e926c2892866e3dcce71c3e02c71c64e462c758c7f5c7d23a3",
+      "original_bytes": 5018,
+      "stored_path": "run-integrated.py",
+      "stored_sha256": "b4df3466a8f130e926c2892866e3dcce71c3e02c71c64e462c758c7f5c7d23a3",
+      "stored_bytes": 5018,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/run-v2.py",
+      "original_sha256": "ef6f96a56fadded219a6d75a66ce664d0b30a59bb2c4927a7fa683b5e2ae0b1b",
+      "original_bytes": 6248,
+      "stored_path": "run-v2.py",
+      "stored_sha256": "ef6f96a56fadded219a6d75a66ce664d0b30a59bb2c4927a7fa683b5e2ae0b1b",
+      "stored_bytes": 6248,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/replication-limits-candidate/integrated-validation-01/summary.json",
+      "original_sha256": "821b2db55acf7da5f80567f20f820d3e834c2f49bbcd727154cff84bdc914391",
+      "original_bytes": 14319,
+      "stored_path": "integrated-summary.json",
+      "stored_sha256": "821b2db55acf7da5f80567f20f820d3e834c2f49bbcd727154cff84bdc914391",
+      "stored_bytes": 14319,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/broker-replication-integrated-unit-01.json",
+      "original_sha256": "3f55cd6c10420a3add11751231911df33d580e38eb5268919edcc552373d2810",
+      "original_bytes": 1224874,
+      "stored_path": "broker-replication-integrated-unit-01.json.gz",
+      "stored_sha256": "d66823cc25ee6479dec00b83e71c8756d877005ae8b011017b220d8f4b68b5bf",
+      "stored_bytes": 232359,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/broker-replication-integrated-unit-01.log",
+      "original_sha256": "8feb60a3e29d9f0c3b02ca39f7ae3693151a25dd0ae097455aa9153a6f0c22a6",
+      "original_bytes": 24184,
+      "stored_path": "broker-replication-integrated-unit-01.log.gz",
+      "stored_sha256": "122a9a2fad49b12e6878567b0289eca95b004ff0c10c4f4a9b7fc90eb7a3923e",
+      "stored_bytes": 2894,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/replication-limits-candidate/integrated-validation-01/broker-replication-integrated-unit-01-driver.log",
+      "original_sha256": "9b2b07385c42c1ffe40fe61e947056d4ce158c19d5ec12c27dc7f459195a4eeb",
+      "original_bytes": 249,
+      "stored_path": "broker-replication-integrated-unit-01-driver.log.gz",
+      "stored_sha256": "56d441c6f5f2b1d0bf56ddf63b3acba9df577350dd5caaa9375246b492f784b6",
+      "stored_bytes": 201,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/broker-replication-integrated-all-features-01.json",
+      "original_sha256": "d4419b50196a8f076616e6ddfb24087acfe919c35eb5ce7897058b4e94b35a21",
+      "original_bytes": 1224895,
+      "stored_path": "broker-replication-integrated-all-features-01.json.gz",
+      "stored_sha256": "0e6598887dc7135db64950d74a28cfd80e8460c084a1bec383d71d590184ebd7",
+      "stored_bytes": 232368,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/broker-replication-integrated-all-features-01.log",
+      "original_sha256": "01cadd67f1c3fae15d7d88239d987e0461e93895043e9390947c5eb4c4484fb5",
+      "original_bytes": 78785,
+      "stored_path": "broker-replication-integrated-all-features-01.log.gz",
+      "stored_sha256": "b02b1138db03a0b9f135aa44360e60ce286d93db01a7e3939e25d54e63366c4a",
+      "stored_bytes": 6517,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/replication-limits-candidate/integrated-validation-01/broker-replication-integrated-all-features-01-driver.log",
+      "original_sha256": "1ff581367b70990870f4b610c3fdb93a027c2ebdac05e93d9d0f56e59fcb4b70",
+      "original_bytes": 256,
+      "stored_path": "broker-replication-integrated-all-features-01-driver.log.gz",
+      "stored_sha256": "f3c76e3cab228d49be3d43a36ab5aae256eecf4dda9800c1a2b819e349c200fd",
+      "stored_bytes": 207,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/broker-replication-integrated-clippy-01.json",
+      "original_sha256": "cb581da1991d108f8c4367d6d3bf61c3b7191386e5931a78f5d1c9f6a28405a9",
+      "original_bytes": 1224388,
+      "stored_path": "broker-replication-integrated-clippy-01.json.gz",
+      "stored_sha256": "903a53375cb8c757a0ea73f583433f07a664786999e3d4bb94296c750c1a0807",
+      "stored_bytes": 232072,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/broker-replication-integrated-clippy-01.log",
+      "original_sha256": "feb36f8e4048a6465101191bae71b60fc1114296749b1d9c637c9c6edea4ed0d",
+      "original_bytes": 150,
+      "stored_path": "broker-replication-integrated-clippy-01.log.gz",
+      "stored_sha256": "0c8c11581e5d8bcf4fb0481300f7c327f53b766853053dc0589319446ff31276",
+      "stored_bytes": 132,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/replication-limits-candidate/integrated-validation-01/broker-replication-integrated-clippy-01-driver.log",
+      "original_sha256": "c828cdd155006f7f8ec09bfe8bec305397ef1e392d25f14e6c3d59810c991ac2",
+      "original_bytes": 153,
+      "stored_path": "broker-replication-integrated-clippy-01-driver.log.gz",
+      "stored_sha256": "1b9a1ba1d79d983dc902db78eb0800f9dac402b82a5b5d46476ba569ce837c75",
+      "stored_bytes": 147,
+      "encoding": "gzip"
+    }
+  ]
+}
