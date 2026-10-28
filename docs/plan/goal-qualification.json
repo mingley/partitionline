@@ -1,0 +1,51 @@
+{
+  "schema_version": 1,
+  "task": "KL11-56",
+  "status": "in_progress",
+  "owner": "codex-goal-qualification-20261028",
+  "request": "Qualify production and performance claims; fix all failures, continue across cards, and push directly to main.",
+  "completion_conditions": [
+    "Client and broker default/all-feature tests, format, strict Clippy, rustdoc and package gates pass on latest stable Rust.",
+    "Required independent protocol and runtime conformance passes without excluding unsupported or missing features.",
+    "Security lifecycle, fault recovery, overload and sustained 24-hour/seven-day operational gates pass with exact source and artifact pins.",
+    "Equal-settings client/server benchmark matrices, x86_64/arm64 repetitions, independent verification and claim audit satisfy the frozen contract.",
+    "All required cards and failures are closed with evidence; every result names its measured scope."
+  ],
+  "current_phase": "Repair whole-candidate behavioral gates and diagnose repeated recovery fuzz timeouts.",
+  "baseline": {
+    "source_sha": "981ed100a0dc2ad910aa40163be9c4ae766eb4c6",
+    "broker_default": {
+      "passed": 602,
+      "failed": 10
+    },
+    "broker_all_features": {
+      "passed": 735,
+      "failed": 21
+    },
+    "client_conformance": {
+      "independent": 75,
+      "required": 182,
+      "unqualified": 107
+    },
+    "completed_24h_campaigns": 0,
+    "production_ready": false,
+    "fastest_client_qualified": false,
+    "fastest_server_qualified": false
+  },
+  "phases": [
+    "Whole-candidate correctness and release gates",
+    "Independent client/server compatibility and security qualification",
+    "Fixed-candidate reliability and operational campaigns",
+    "Matched comparative benchmarks, optimization and independent claim audit"
+  ],
+  "external_requirements": [
+    "Controlled native x86_64 and arm64 benchmark machines satisfying the frozen host contract",
+    "Independent human benchmark reproduction and required operator/adopter signoffs"
+  ],
+  "rules": [
+    "Do not weaken thresholds to turn failures into passes.",
+    "Do not count launched jobs, successful replays or unsigned local measurements as completed qualification.",
+    "Retain original failures and all benchmark losses.",
+    "Use latest stable Rust; push reviewed changes directly to main."
+  ]
+}

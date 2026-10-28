@@ -611,7 +611,7 @@
       "priority": "P1",
       "kind": "analysis",
       "status": "in_progress",
-      "owner": "codex-coordinator-20261003",
+      "owner": "codex-goal-qualification-20261028",
       "depends_on": [
         "KL01-09",
         "KL01-11",
@@ -817,7 +817,9 @@
         "tests/conformance/test_check_protocol_coverage.py",
         "docs/plan/tasks.json",
         "docs/evidence/client/protocol-inventory-current/"
-      ]
+      ],
+      "previous_owner": "codex-coordinator-20261003",
+      "session_scope": "User explicitly requested /goal to fix all qualification blockers and finish the full client/server goal, overriding the one-card stopping convention. Existing acceptance criteria remain required."
     },
     {
       "id": "KL01-15",
@@ -34585,74 +34587,76 @@
       "integration_coordinator": "consumer_lookups owns connection/session/credential/transport production and tests, plus wire oracle/peer evidence within36. Root alone edits shared security/lib exports, protocol registries/verifiers and plan. Coordinate public Peer additions with06/13 while preserving Handler trait. Source-freeze credential foundation before socket integration if useful;36 closes only after all named live/admin/durability gates. KL11-72 owns independent SASL wire fixtures/oracles/live Java/C probes;36 production worker consumes them without editing."
     },
     {
-  "id": "KL11-37",
-  "title": "Validate OIDC access tokens, refresh authorities and expire live sessions",
-  "priority": "P1",
-  "kind": "implementation",
-  "status": "in_progress",
-  "owner": "codex-consumer-lookups-20261003",
-  "depends_on": [
-    "KL11-36"
-  ],
-  "files": [
-    "partitionline-broker/src/security/oidc.rs"
-  ],
-  "deliverable": "Cryptographically validating OAUTHBEARER/OIDC with expiry/refresh/key rotation.",
-  "acceptance": [
-    "Validate signature/issuer/audience/time; reject expired/revoked/malformed tokens.",
-    "IdP/JWKS outages and session expiry fail closed with bounded cached state.",
-    "Record exact tested source, commands, case counts, failures and limitations; do not infer production qualification from a unit test or scaffold.",
-    "Qualified online mode uses bounded HTTPS discovery/JWKS and explicit revocation authority; static pinned JWKS alone is a documented signed-JWT profile and cannot close full OIDC.",
-    "Typed issuer/subject authority never inherits SCRAM administrator permission through matching subject names. Expiry/revocation interrupts idle/read/permit/handler/write admission; an already admitted durable mutation may complete without a delivered receipt.",
-    "Default dependency activation remains unchanged; OIDC optional graph, RS256/ES256 signatures and strict latest-stable Rust checks are required. Actual Java/C/Rust token acquisition/reconnect, authority rotation/outage, negative signed-token schemas and bounded shutdown histories remain required; no client-credential/token persistence in evidence."
-  ],
-  "validation": [
-    "Run the named behavioral/fault cases for this contract on latest stable Rust, with strict format/lint checks.",
-    "Retain independent upstream or cross-peer evidence where the contract concerns Kafka semantics."
-  ],
-  "evidence": [],
-  "write_set": [
-    "partitionline-broker/src/security/oidc.rs",
-    "partitionline-broker/src/security/oidc/",
-    "partitionline-broker/src/security/session.rs",
-    "partitionline-broker/src/security/sasl.rs",
-    "partitionline-broker/src/transport.rs",
-    "partitionline-broker/tests/oidc_validation.rs",
-    "partitionline-broker/tests/oidc_http.rs",
-    "partitionline-broker/tests/oidc_support/mod.rs",
-    "partitionline-broker/tests/oidc_sessions.rs",
-    "partitionline-broker/tests/sasl_sessions.rs",
-    "docs/evidence/broker/KL11-37/production/",
-    "docs/plan/evidence/KL11-37.json",
-    "partitionline-broker/examples/oidc_live_probe.rs"
-  ],
-  "delegated_write_sets": {
-    "codex-coordinator-20261003": [
-      "partitionline-broker/Cargo.toml",
-      "partitionline-broker/Cargo.lock",
-      "partitionline-broker/src/security/mod.rs",
-      "partitionline-broker/src/lib.rs",
-      "docs/evidence/broker/KL11-37/oracle/",
-      "docs/evidence/broker/KL11-37/peers/",
-      "partitionline-broker/tests/fixtures/oidc/"
-    ],
-    "codex-c-peer-20261003": [
-      "docs/evidence/broker/KL11-37/oracle/jwt/",
-      "partitionline-broker/tests/fixtures/oidc/"
-    ],
+      "id": "KL11-37",
+      "title": "Validate OIDC access tokens, refresh authorities and expire live sessions",
+      "priority": "P1",
+      "kind": "implementation",
+      "status": "in_progress",
+      "owner": "codex-goal-qualification-20261028",
+      "depends_on": [
+        "KL11-36"
+      ],
+      "files": [
+        "partitionline-broker/src/security/oidc.rs"
+      ],
+      "deliverable": "Cryptographically validating OAUTHBEARER/OIDC with expiry/refresh/key rotation.",
+      "acceptance": [
+        "Validate signature/issuer/audience/time; reject expired/revoked/malformed tokens.",
+        "IdP/JWKS outages and session expiry fail closed with bounded cached state.",
+        "Record exact tested source, commands, case counts, failures and limitations; do not infer production qualification from a unit test or scaffold.",
+        "Qualified online mode uses bounded HTTPS discovery/JWKS and explicit revocation authority; static pinned JWKS alone is a documented signed-JWT profile and cannot close full OIDC.",
+        "Typed issuer/subject authority never inherits SCRAM administrator permission through matching subject names. Expiry/revocation interrupts idle/read/permit/handler/write admission; an already admitted durable mutation may complete without a delivered receipt.",
+        "Default dependency activation remains unchanged; OIDC optional graph, RS256/ES256 signatures and strict latest-stable Rust checks are required. Actual Java/C/Rust token acquisition/reconnect, authority rotation/outage, negative signed-token schemas and bounded shutdown histories remain required; no client-credential/token persistence in evidence."
+      ],
+      "validation": [
+        "Run the named behavioral/fault cases for this contract on latest stable Rust, with strict format/lint checks.",
+        "Retain independent upstream or cross-peer evidence where the contract concerns Kafka semantics."
+      ],
+      "evidence": [],
+      "write_set": [
+        "partitionline-broker/src/security/oidc.rs",
+        "partitionline-broker/src/security/oidc/",
+        "partitionline-broker/src/security/session.rs",
+        "partitionline-broker/src/security/sasl.rs",
+        "partitionline-broker/src/transport.rs",
+        "partitionline-broker/tests/oidc_validation.rs",
+        "partitionline-broker/tests/oidc_http.rs",
+        "partitionline-broker/tests/oidc_support/mod.rs",
+        "partitionline-broker/tests/oidc_sessions.rs",
+        "partitionline-broker/tests/sasl_sessions.rs",
+        "docs/evidence/broker/KL11-37/production/",
+        "docs/plan/evidence/KL11-37.json",
+        "partitionline-broker/examples/oidc_live_probe.rs"
+      ],
+      "delegated_write_sets": {
+        "codex-coordinator-20261003": [
+          "partitionline-broker/Cargo.toml",
+          "partitionline-broker/Cargo.lock",
+          "partitionline-broker/src/security/mod.rs",
+          "partitionline-broker/src/lib.rs",
+          "docs/evidence/broker/KL11-37/oracle/",
+          "docs/evidence/broker/KL11-37/peers/",
+          "partitionline-broker/tests/fixtures/oidc/"
+        ],
+        "codex-c-peer-20261003": [
+          "docs/evidence/broker/KL11-37/oracle/jwt/",
+          "partitionline-broker/tests/fixtures/oidc/"
+        ],
         "codex-avro-adapter-20261003": [
           "docs/evidence/broker/KL11-37/peers/java/",
           "docs/evidence/broker/KL11-37/oracle/https/live-issuer/"
-    ],
-    "codex-consumer-lookups-20261003": [
-      "docs/evidence/broker/KL11-37/peers/native/",
-      "docs/evidence/broker/KL11-37/peers/rust/",
-      "docs/evidence/broker/KL11-37/peers/driver/"
-    ]
-  },
-  "dependency_note": "37 establishes signed OAUTHBEARER/OIDC, bounded real HTTPS discovery/JWKS/introspection authority refresh and post-authentication lease expiry/reconnect. Positive session lifetime and mid-connection renewed-token SASL reauthentication belong to dependent71; zero lifetime until71 qualification.",
-  "integration_coordinator": "Root owns Cargo resolution/exports/shared profile gates, task state and independent issuer/JWT/official-peer proof; production worker owns stated security/session/transport writes.71 remains sequential/unclaimed until37 source freezes. Stage foundation, HTTPS authority manager, socket runtime separately; full37 closure waits for all live evidence. c_peer exclusively owns independent RS256/ES256 signed fixtures and three official Java SDK JWT validators under oracle/jwt and fixtures/oidc; root retains live HTTPS issuer and other peer paths. Production worker additionally owns additive examples/oidc_live_probe.rs using the real managed OIDC service and TLS SASL transport; explicitly scoped metadata-only and ordinary read/write router profiles share no held source changes. Avro owns additive Java live peers under peers/java only; root owns native/Rust/live issuer orchestration and review. No default feature activation or full Kafka/reauth/read-write claim from metadata-only evidence."
-},
+        ],
+        "codex-consumer-lookups-20261003": [
+          "docs/evidence/broker/KL11-37/peers/native/",
+          "docs/evidence/broker/KL11-37/peers/rust/",
+          "docs/evidence/broker/KL11-37/peers/driver/"
+        ]
+      },
+      "dependency_note": "37 establishes signed OAUTHBEARER/OIDC, bounded real HTTPS discovery/JWKS/introspection authority refresh and post-authentication lease expiry/reconnect. Positive session lifetime and mid-connection renewed-token SASL reauthentication belong to dependent71; zero lifetime until71 qualification.",
+      "integration_coordinator": "Root owns Cargo resolution/exports/shared profile gates, task state and independent issuer/JWT/official-peer proof; production worker owns stated security/session/transport writes.71 remains sequential/unclaimed until37 source freezes. Stage foundation, HTTPS authority manager, socket runtime separately; full37 closure waits for all live evidence. c_peer exclusively owns independent RS256/ES256 signed fixtures and three official Java SDK JWT validators under oracle/jwt and fixtures/oidc; root retains live HTTPS issuer and other peer paths. Production worker additionally owns additive examples/oidc_live_probe.rs using the real managed OIDC service and TLS SASL transport; explicitly scoped metadata-only and ordinary read/write router profiles share no held source changes. Avro owns additive Java live peers under peers/java only; root owns native/Rust/live issuer orchestration and review. No default feature activation or full Kafka/reauth/read-write claim from metadata-only evidence.",
+      "previous_owner": "codex-consumer-lookups-20261003",
+      "session_scope": "User explicitly requested /goal to fix all qualification blockers and finish the full client/server goal, overriding the one-card stopping convention. Existing acceptance criteria remain required."
+    },
     {
       "id": "KL11-38",
       "title": "Implement the approved optional Kerberos/GSSAPI boundary",
@@ -35206,8 +35210,8 @@
       "title": "Qualify the complete Rust Kafka client and broker goal",
       "priority": "P0",
       "kind": "analysis",
-      "status": "pending",
-      "owner": null,
+      "status": "in_progress",
+      "owner": "codex-goal-qualification-20261028",
       "depends_on": [
         "KL11-55",
         "KL01-01",
@@ -35466,7 +35470,22 @@
         "Run the named behavioral/fault cases for this contract on latest stable Rust, with strict format/lint checks.",
         "Retain independent upstream or cross-peer evidence where the contract concerns Kafka semantics."
       ],
-      "evidence": []
+      "evidence": [
+        "docs/plan/goal-qualification.json"
+      ],
+      "previous_owner": null,
+      "session_scope": "User explicitly requested /goal to fix all qualification blockers and finish the full client/server goal, overriding the one-card stopping convention. Existing acceptance criteria remain required.",
+      "write_set": [
+        "src/",
+        "partitionline-broker/",
+        "tests/",
+        "scripts/",
+        "benchmarks/",
+        "fuzz/",
+        "docs/",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
     },
     {
       "priority": "P0",
@@ -44336,7 +44355,7 @@
       "priority": "P1",
       "kind": "implementation",
       "status": "in_progress",
-      "owner": "codex-open-loop-20261003",
+      "owner": "codex-goal-qualification-20261028",
       "depends_on": [
         "KL11-36",
         "KL11-37"
@@ -44373,7 +44392,9 @@
         "partitionline-broker/tests/sasl_sessions.rs",
         "docs/evidence/broker/KL11-71/"
       ],
-      "scope": "Installed opt-in bounded same-mechanism/same-identity renewal and explicit post-Ready read/handler/write deadline fences. Default lifetime stays zero. Source review and parser checks alone do not qualify the18 new tests, fresh blocked-write/OAuth cancellation or genuine SDK matrix."
+      "scope": "Installed opt-in bounded same-mechanism/same-identity renewal and explicit post-Ready read/handler/write deadline fences. Default lifetime stays zero. Source review and parser checks alone do not qualify the18 new tests, fresh blocked-write/OAuth cancellation or genuine SDK matrix.",
+      "previous_owner": "codex-open-loop-20261003",
+      "session_scope": "User explicitly requested /goal to fix all qualification blockers and finish the full client/server goal, overriding the one-card stopping convention. Existing acceptance criteria remain required."
     },
     {
       "id": "KL11-72",
