@@ -44,6 +44,10 @@ backup and restore commands cover that admin journal only; they do not back up
 the listener's catalog or partition journals. See
 [broker operations](../docs/broker-operations.md).
 
+The experimental consumer, share and streams group coordinators expose
+`describe` as `Result<Option<_>, Error>`. Callers must handle `Error::Poisoned`
+after an uncertain storage write and reopen the coordinator to recover.
+
 ```sh
 sh scripts/broker-package.sh
 ```

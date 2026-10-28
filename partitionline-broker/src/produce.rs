@@ -2711,6 +2711,10 @@ mod tests {
     }
 
     #[test]
+    #[allow(
+        clippy::disallowed_methods,
+        reason = "This synchronous test holds worker threads briefly to observe overlap"
+    )]
     fn bounded_sync_waves_join_all_workers_and_handle_failures() {
         use std::sync::atomic::{AtomicUsize, Ordering};
         struct Active<'a>(&'a AtomicUsize);

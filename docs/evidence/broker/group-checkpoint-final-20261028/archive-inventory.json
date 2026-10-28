@@ -1,0 +1,725 @@
+{
+  "schema_version": 1,
+  "files": [
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/group-checkpoint-final-test.log",
+      "original_sha256": "0b3ed2082d15b4a778e4c5aec6d293f569fc8d180caa28b35bcd79deb03380c4",
+      "original_bytes": 1860,
+      "stored_path": "capture/group-checkpoint-final-test.log",
+      "stored_sha256": "0b3ed2082d15b4a778e4c5aec6d293f569fc8d180caa28b35bcd79deb03380c4",
+      "stored_bytes": 1860,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/group-checkpoint-final-test.json",
+      "original_sha256": "1b46818dd6769911fce80b6599fc2a5b89e47091be4ba36e750a5db451cf583f",
+      "original_bytes": 1192497,
+      "stored_path": "capture/group-checkpoint-final-test.json.gz",
+      "stored_sha256": "aeebe84ce597eb43e5ab74d901944687475362bc559829769c0a0e91afdedebd",
+      "stored_bytes": 222674,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/group-checkpoint-final-clippy.log",
+      "original_sha256": "11f60e78eb2378bd7c31c64838ba519fe3d04efab606ca8ab4d4423c83b82c7e",
+      "original_bytes": 162,
+      "stored_path": "capture/group-checkpoint-final-clippy.log",
+      "stored_sha256": "11f60e78eb2378bd7c31c64838ba519fe3d04efab606ca8ab4d4423c83b82c7e",
+      "stored_bytes": 162,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/group-checkpoint-final-clippy.json",
+      "original_sha256": "692ddfaa6b9a23573f5a23f8f1eaa7556460f5dacff82883bec2141dde76237b",
+      "original_bytes": 1192081,
+      "stored_path": "capture/group-checkpoint-final-clippy.json.gz",
+      "stored_sha256": "009a293e613a69710c6cc9e864fdf4a3a1f81800ac02ca05f74710047ea40c1b",
+      "stored_bytes": 222448,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/group-checkpoint/final-candidate.diff",
+      "original_sha256": "27c519e120fae997466540581509c416344845ad0e8cc4bb9d6dc0ead8b3a4fe",
+      "original_bytes": 69173,
+      "stored_path": "capture/final-candidate.diff",
+      "stored_sha256": "27c519e120fae997466540581509c416344845ad0e8cc4bb9d6dc0ead8b3a4fe",
+      "stored_bytes": 69173,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/group-checkpoint/run-recorded.py",
+      "original_sha256": "4665af176551b4d87da2264ec9681947c06c621941fa57458c3ab784a7d1b33e",
+      "original_bytes": 543,
+      "stored_path": "capture/run-recorded.py",
+      "stored_sha256": "4665af176551b4d87da2264ec9681947c06c621941fa57458c3ab784a7d1b33e",
+      "stored_bytes": 543,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/run-v2.py",
+      "original_sha256": "ef6f96a56fadded219a6d75a66ce664d0b30a59bb2c4927a7fa683b5e2ae0b1b",
+      "original_bytes": 6248,
+      "stored_path": "capture/run-v2.py",
+      "stored_sha256": "ef6f96a56fadded219a6d75a66ce664d0b30a59bb2c4927a7fa683b5e2ae0b1b",
+      "stored_bytes": 6248,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/group-checkpoint-final-test.elf",
+      "original_sha256": "138b788813d66f885cd6cbebd5d96c31091dfd6e0fd341fda1029ff29650eec1",
+      "original_bytes": 28327632,
+      "stored_path": "executables/checkpoint-tests.elf.gz",
+      "stored_sha256": "4acad5bb46cb58d81ad1b5e6b783856392e0c780868ba2c72f609c7639fbf0a5",
+      "stored_bytes": 5165309,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/broker-group-journal/partitionline-broker/src/admin.rs",
+      "original_sha256": "280376f7972f3fc6f79abef52f2617fad84af5ee1c6bb6eeecd44ae0e43851c8",
+      "original_bytes": 35340,
+      "stored_path": "source/partitionline-broker/src/admin.rs",
+      "stored_sha256": "280376f7972f3fc6f79abef52f2617fad84af5ee1c6bb6eeecd44ae0e43851c8",
+      "stored_bytes": 35340,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/broker-group-journal/partitionline-broker/src/batch.rs",
+      "original_sha256": "fdfd904c99ecb1af9e2f8b79dff4918a344433de61829c1bd3ea674a9cb2ba20",
+      "original_bytes": 3923,
+      "stored_path": "source/partitionline-broker/src/batch.rs",
+      "stored_sha256": "fdfd904c99ecb1af9e2f8b79dff4918a344433de61829c1bd3ea674a9cb2ba20",
+      "stored_bytes": 3923,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/broker-group-journal/partitionline-broker/src/bin/operator/serve.rs",
+      "original_sha256": "a81b4162732c6ca9b6d8caf65adc1a9dd0144fcb53c7a805c96998c2ab42dcaf",
+      "original_bytes": 8165,
+      "stored_path": "source/partitionline-broker/src/bin/operator/serve.rs",
+      "stored_sha256": "a81b4162732c6ca9b6d8caf65adc1a9dd0144fcb53c7a805c96998c2ab42dcaf",
+      "stored_bytes": 8165,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/broker-group-journal/partitionline-broker/src/bin/operator.rs",
+      "original_sha256": "5bdc2da678029961e8a12b080134c51dded202beb438ab5732ec3504953234bb",
+      "original_bytes": 6044,
+      "stored_path": "source/partitionline-broker/src/bin/operator.rs",
+      "stored_sha256": "5bdc2da678029961e8a12b080134c51dded202beb438ab5732ec3504953234bb",
+      "stored_bytes": 6044,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/broker-group-journal/partitionline-broker/src/catalog.rs",
+      "original_sha256": "a84daa807f55e07985f377ed00bcc415e50db1ec5b6b4ca2b03a199d76b5d826",
+      "original_bytes": 39602,
+      "stored_path": "source/partitionline-broker/src/catalog.rs",
+      "stored_sha256": "a84daa807f55e07985f377ed00bcc415e50db1ec5b6b4ca2b03a199d76b5d826",
+      "stored_bytes": 39602,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/broker-group-journal/partitionline-broker/src/codecs.rs",
+      "original_sha256": "f6bec95418f389dbb66c2ddc9da7a795a5e3cffb2240f279354d5b23d3888e2d",
+      "original_bytes": 23361,
+      "stored_path": "source/partitionline-broker/src/codecs.rs",
+      "stored_sha256": "f6bec95418f389dbb66c2ddc9da7a795a5e3cffb2240f279354d5b23d3888e2d",
+      "stored_bytes": 23361,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/broker-group-journal/partitionline-broker/src/compaction.rs",
+      "original_sha256": "dbe7b94718fff2c2f8e65e928a55b5c4f80fe3aa1c101c6086562a23732bbbd1",
+      "original_bytes": 66084,
+      "stored_path": "source/partitionline-broker/src/compaction.rs",
+      "stored_sha256": "dbe7b94718fff2c2f8e65e928a55b5c4f80fe3aa1c101c6086562a23732bbbd1",
+      "stored_bytes": 66084,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/broker-group-journal/partitionline-broker/src/configs.rs",
+      "original_sha256": "226507b819989db4d3a7ffc5578dc51d74c614ed918602c2ed0c85234e15c5e7",
+      "original_bytes": 24844,
+      "stored_path": "source/partitionline-broker/src/configs.rs",
+      "stored_sha256": "226507b819989db4d3a7ffc5578dc51d74c614ed918602c2ed0c85234e15c5e7",
+      "stored_bytes": 24844,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/broker-group-journal/partitionline-broker/src/controller/mod.rs",
+      "original_sha256": "f2eec8419616697e298035bd529fb15e620826cef7ffb8e6cf88bf89951a4909",
+      "original_bytes": 245,
+      "stored_path": "source/partitionline-broker/src/controller/mod.rs",
+      "stored_sha256": "f2eec8419616697e298035bd529fb15e620826cef7ffb8e6cf88bf89951a4909",
+      "stored_bytes": 245,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/broker-group-journal/partitionline-broker/src/controller/partitions.rs",
+      "original_sha256": "6da5676aab41721e9b038705c9dee1caf43f28acea88c2a2a78828c9d28cc9b8",
+      "original_bytes": 32223,
+      "stored_path": "source/partitionline-broker/src/controller/partitions.rs",
+      "stored_sha256": "6da5676aab41721e9b038705c9dee1caf43f28acea88c2a2a78828c9d28cc9b8",
+      "stored_bytes": 32223,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/broker-group-journal/partitionline-broker/src/controller/registration.rs",
+      "original_sha256": "c67ae1b52dc01d7db63ea029c3c76d1f0a069dfe07753fd807f2da9d7ce217f4",
+      "original_bytes": 41391,
+      "stored_path": "source/partitionline-broker/src/controller/registration.rs",
+      "stored_sha256": "c67ae1b52dc01d7db63ea029c3c76d1f0a069dfe07753fd807f2da9d7ce217f4",
+      "stored_bytes": 41391,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/broker-group-journal/partitionline-broker/src/fetch.rs",
+      "original_sha256": "a4475f343f4be0364e0eae5afb29acbe943ca87545b6673d13912f7a23e75357",
+      "original_bytes": 45977,
+      "stored_path": "source/partitionline-broker/src/fetch.rs",
+      "stored_sha256": "a4475f343f4be0364e0eae5afb29acbe943ca87545b6673d13912f7a23e75357",
+      "stored_bytes": 45977,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/broker-group-journal/partitionline-broker/src/groups/classic.rs",
+      "original_sha256": "f05a89c38a357b665910beeaf56d7f6fc820d45b88fc14b04df88bec1f860812",
+      "original_bytes": 42409,
+      "stored_path": "source/partitionline-broker/src/groups/classic.rs",
+      "stored_sha256": "f05a89c38a357b665910beeaf56d7f6fc820d45b88fc14b04df88bec1f860812",
+      "stored_bytes": 42409,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/broker-group-journal/partitionline-broker/src/groups/consumer.rs",
+      "original_sha256": "bbd200224b4d85a58a585b2f219be1c1291c785a30860f80461cb23e2f05f04a",
+      "original_bytes": 70299,
+      "stored_path": "source/partitionline-broker/src/groups/consumer.rs",
+      "stored_sha256": "bbd200224b4d85a58a585b2f219be1c1291c785a30860f80461cb23e2f05f04a",
+      "stored_bytes": 70299,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/broker-group-journal/partitionline-broker/src/groups/lifecycle.rs",
+      "original_sha256": "0be42154e56a2f548b0987c546613460bc7cd5c51d3c6b2a58f158501b775064",
+      "original_bytes": 32497,
+      "stored_path": "source/partitionline-broker/src/groups/lifecycle.rs",
+      "stored_sha256": "0be42154e56a2f548b0987c546613460bc7cd5c51d3c6b2a58f158501b775064",
+      "stored_bytes": 32497,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/broker-group-journal/partitionline-broker/src/groups/mod.rs",
+      "original_sha256": "d37c00d8b333e3dad9fad5df72c249e955a738bc14ad47db8ef3221573a20fb0",
+      "original_bytes": 3692,
+      "stored_path": "source/partitionline-broker/src/groups/mod.rs",
+      "stored_sha256": "d37c00d8b333e3dad9fad5df72c249e955a738bc14ad47db8ef3221573a20fb0",
+      "stored_bytes": 3692,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/broker-group-journal/partitionline-broker/src/groups/offsets.rs",
+      "original_sha256": "1afac385a926f00e4037cda0901f3678f7416ab95d3c60819bb308aa9858543b",
+      "original_bytes": 28137,
+      "stored_path": "source/partitionline-broker/src/groups/offsets.rs",
+      "stored_sha256": "1afac385a926f00e4037cda0901f3678f7416ab95d3c60819bb308aa9858543b",
+      "stored_bytes": 28137,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/broker-group-journal/partitionline-broker/src/groups/share.rs",
+      "original_sha256": "4f8c077bb26e404eaafa36c0ddcbeac18d144c98621f3bf004ca53d114f6e234",
+      "original_bytes": 66826,
+      "stored_path": "source/partitionline-broker/src/groups/share.rs",
+      "stored_sha256": "4f8c077bb26e404eaafa36c0ddcbeac18d144c98621f3bf004ca53d114f6e234",
+      "stored_bytes": 66826,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/broker-group-journal/partitionline-broker/src/groups/streams.rs",
+      "original_sha256": "6ec0088b2a39611245182ef8669f21953884650e41b68cd8bfa30324fe01a7bd",
+      "original_bytes": 59363,
+      "stored_path": "source/partitionline-broker/src/groups/streams.rs",
+      "stored_sha256": "6ec0088b2a39611245182ef8669f21953884650e41b68cd8bfa30324fe01a7bd",
+      "stored_bytes": 59363,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/broker-group-journal/partitionline-broker/src/high_watermark.rs",
+      "original_sha256": "335e1d9fca4ee6214895970175bd1f0c12327a8406fcc237b8a71f9b0a768bab",
+      "original_bytes": 23944,
+      "stored_path": "source/partitionline-broker/src/high_watermark.rs",
+      "stored_sha256": "335e1d9fca4ee6214895970175bd1f0c12327a8406fcc237b8a71f9b0a768bab",
+      "stored_bytes": 23944,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/broker-group-journal/partitionline-broker/src/idempotence.rs",
+      "original_sha256": "e2f4a871218d508f211431a68f01573161f8c8c652800cc4184a63f6e9b9b056",
+      "original_bytes": 23615,
+      "stored_path": "source/partitionline-broker/src/idempotence.rs",
+      "stored_sha256": "e2f4a871218d508f211431a68f01573161f8c8c652800cc4184a63f6e9b9b056",
+      "stored_bytes": 23615,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/broker-group-journal/partitionline-broker/src/journal.rs",
+      "original_sha256": "decb9319d8e54c3b8326d3d13bd024e5b39a87c13663c85dbf02d99e1c72ce79",
+      "original_bytes": 84953,
+      "stored_path": "source/partitionline-broker/src/journal.rs",
+      "stored_sha256": "decb9319d8e54c3b8326d3d13bd024e5b39a87c13663c85dbf02d99e1c72ce79",
+      "stored_bytes": 84953,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/broker-group-journal/partitionline-broker/src/lib.rs",
+      "original_sha256": "a28c2ba8289b70225276498dde441ff0236385fa48757423d42641093ad3135f",
+      "original_bytes": 1105,
+      "stored_path": "source/partitionline-broker/src/lib.rs",
+      "stored_sha256": "a28c2ba8289b70225276498dde441ff0236385fa48757423d42641093ad3135f",
+      "stored_bytes": 1105,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/broker-group-journal/partitionline-broker/src/metadata.rs",
+      "original_sha256": "55a53a0fcac4bc8efc2d44818d287d22f5d982be700bf4dcca987c93b7875e74",
+      "original_bytes": 138815,
+      "stored_path": "source/partitionline-broker/src/metadata.rs.gz",
+      "stored_sha256": "c1cd99198510d74e81cf01717a31b8bb1b61584b8ab595a279c0effa2112baaa",
+      "stored_bytes": 26045,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/broker-group-journal/partitionline-broker/src/metadata_quorum.rs",
+      "original_sha256": "ae66e8fdbe9d06e4e81e0685cd42da779585cce804971047d2ea9c87d23f3573",
+      "original_bytes": 45889,
+      "stored_path": "source/partitionline-broker/src/metadata_quorum.rs",
+      "stored_sha256": "ae66e8fdbe9d06e4e81e0685cd42da779585cce804971047d2ea9c87d23f3573",
+      "stored_bytes": 45889,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/broker-group-journal/partitionline-broker/src/metrics.rs",
+      "original_sha256": "f147dfb3354d3847e8756a3af67606ea59d63fac060a967a85b933c869b09c1b",
+      "original_bytes": 13429,
+      "stored_path": "source/partitionline-broker/src/metrics.rs",
+      "stored_sha256": "f147dfb3354d3847e8756a3af67606ea59d63fac060a967a85b933c869b09c1b",
+      "stored_bytes": 13429,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/broker-group-journal/partitionline-broker/src/partition.rs",
+      "original_sha256": "2623cdcf43735e1941a2bf7e6db67931cee70a23d9d4b2358e9ac954f04f61eb",
+      "original_bytes": 35213,
+      "stored_path": "source/partitionline-broker/src/partition.rs",
+      "stored_sha256": "2623cdcf43735e1941a2bf7e6db67931cee70a23d9d4b2358e9ac954f04f61eb",
+      "stored_bytes": 35213,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/broker-group-journal/partitionline-broker/src/produce.rs",
+      "original_sha256": "7aea7f204d07358f13d2be9cfef6932f016ccaa3c9c644f6b36d244c4fc46cc4",
+      "original_bytes": 93026,
+      "stored_path": "source/partitionline-broker/src/produce.rs",
+      "stored_sha256": "7aea7f204d07358f13d2be9cfef6932f016ccaa3c9c644f6b36d244c4fc46cc4",
+      "stored_bytes": 93026,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/broker-group-journal/partitionline-broker/src/protocol.rs",
+      "original_sha256": "c0c81bcaba200dc27e670146fc6bf37342aadc506547ef606b597d708df5207a",
+      "original_bytes": 13554,
+      "stored_path": "source/partitionline-broker/src/protocol.rs",
+      "stored_sha256": "c0c81bcaba200dc27e670146fc6bf37342aadc506547ef606b597d708df5207a",
+      "stored_bytes": 13554,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/broker-group-journal/partitionline-broker/src/quotas.rs",
+      "original_sha256": "d5a9adaa2f24c1e92b02ca2749a65dcda977a8b7f1b62c249a583dacf2176036",
+      "original_bytes": 28559,
+      "stored_path": "source/partitionline-broker/src/quotas.rs",
+      "stored_sha256": "d5a9adaa2f24c1e92b02ca2749a65dcda977a8b7f1b62c249a583dacf2176036",
+      "stored_bytes": 28559,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/broker-group-journal/partitionline-broker/src/raft/election.rs",
+      "original_sha256": "0ee1a9a0d293772f37e8328b07225f0cb6e9df78dc153052294f8f31ad94ab96",
+      "original_bytes": 71977,
+      "stored_path": "source/partitionline-broker/src/raft/election.rs",
+      "stored_sha256": "0ee1a9a0d293772f37e8328b07225f0cb6e9df78dc153052294f8f31ad94ab96",
+      "stored_bytes": 71977,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/broker-group-journal/partitionline-broker/src/raft/membership.rs",
+      "original_sha256": "7a2edfce6bd1f73924a2294c23da2dba620c93111cfdf468109d30ccbd15e18f",
+      "original_bytes": 22326,
+      "stored_path": "source/partitionline-broker/src/raft/membership.rs",
+      "stored_sha256": "7a2edfce6bd1f73924a2294c23da2dba620c93111cfdf468109d30ccbd15e18f",
+      "stored_bytes": 22326,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/broker-group-journal/partitionline-broker/src/raft/mod.rs",
+      "original_sha256": "09e9113eb9fa486ea0ab3d8f7b590f1223a7a7887589a03a5cdd78e9a9fbbf46",
+      "original_bytes": 611,
+      "stored_path": "source/partitionline-broker/src/raft/mod.rs",
+      "stored_sha256": "09e9113eb9fa486ea0ab3d8f7b590f1223a7a7887589a03a5cdd78e9a9fbbf46",
+      "stored_bytes": 611,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/broker-group-journal/partitionline-broker/src/raft/peer_codec.rs",
+      "original_sha256": "905b927d1b14e5ebcd31a7eb57a77fe4db48f874cf20479adb00096983caedcb",
+      "original_bytes": 28825,
+      "stored_path": "source/partitionline-broker/src/raft/peer_codec.rs",
+      "stored_sha256": "905b927d1b14e5ebcd31a7eb57a77fe4db48f874cf20479adb00096983caedcb",
+      "stored_bytes": 28825,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/broker-group-journal/partitionline-broker/src/raft/protocol.rs",
+      "original_sha256": "562e31d232cca69605fdb303969e5eb33140750dc98ac38e82deb82b2cb37458",
+      "original_bytes": 193086,
+      "stored_path": "source/partitionline-broker/src/raft/protocol.rs.gz",
+      "stored_sha256": "0ca9ee656164763ff09ef23acf40119326c6fc41536833ae439f0b5e63893e29",
+      "stored_bytes": 30323,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/broker-group-journal/partitionline-broker/src/raft/replication.rs",
+      "original_sha256": "f74747a0e7c9c4e211388a9428b0eaf1c5773f9c41c942b9ab72c2d4132c573e",
+      "original_bytes": 190822,
+      "stored_path": "source/partitionline-broker/src/raft/replication.rs.gz",
+      "stored_sha256": "c3683a09f5436e8f158decee6d54cc18108b1d7f46b9bc56f91ba4472cf91c22",
+      "stored_bytes": 35775,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/broker-group-journal/partitionline-broker/src/raft/runtime.rs",
+      "original_sha256": "a0c136fcc728cfc4580ef30b2ca3fa964f32329f65fce301ef70985dfcd91754",
+      "original_bytes": 207609,
+      "stored_path": "source/partitionline-broker/src/raft/runtime.rs.gz",
+      "stored_sha256": "7d153abf63469e79b47619eaf2648f12532c4c9557df39279f64e14b3563ba33",
+      "stored_bytes": 38757,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/broker-group-journal/partitionline-broker/src/raft/snapshot.rs",
+      "original_sha256": "8ffdf39d7d3af7c9f1dfc17494354c6941a5696eccdbb36ef6545d5a572d78f6",
+      "original_bytes": 53243,
+      "stored_path": "source/partitionline-broker/src/raft/snapshot.rs",
+      "stored_sha256": "8ffdf39d7d3af7c9f1dfc17494354c6941a5696eccdbb36ef6545d5a572d78f6",
+      "stored_bytes": 53243,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/broker-group-journal/partitionline-broker/src/records.rs",
+      "original_sha256": "408a814bf89826961e4170b8822d67b0bc2efeb59510ec614a4653afb0824d8e",
+      "original_bytes": 54344,
+      "stored_path": "source/partitionline-broker/src/records.rs",
+      "stored_sha256": "408a814bf89826961e4170b8822d67b0bc2efeb59510ec614a4653afb0824d8e",
+      "stored_bytes": 54344,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/broker-group-journal/partitionline-broker/src/recovery.rs",
+      "original_sha256": "1b146f3af39cbd68e0a2bfa5c786ff027f63775d3eebf085c10a618ae2f1e4d4",
+      "original_bytes": 19502,
+      "stored_path": "source/partitionline-broker/src/recovery.rs",
+      "stored_sha256": "1b146f3af39cbd68e0a2bfa5c786ff027f63775d3eebf085c10a618ae2f1e4d4",
+      "stored_bytes": 19502,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/broker-group-journal/partitionline-broker/src/replication.rs",
+      "original_sha256": "fb4e75614a5c593dfc5305b82cc7a6c4e1f7ed56cbe5b78d849d90f133c2a5e8",
+      "original_bytes": 24104,
+      "stored_path": "source/partitionline-broker/src/replication.rs",
+      "stored_sha256": "fb4e75614a5c593dfc5305b82cc7a6c4e1f7ed56cbe5b78d849d90f133c2a5e8",
+      "stored_bytes": 24104,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/broker-group-journal/partitionline-broker/src/retention.rs",
+      "original_sha256": "e6ce84a33cc72849a2452b0d56298c098628f77ed78bf84054066defff7ce8b8",
+      "original_bytes": 17435,
+      "stored_path": "source/partitionline-broker/src/retention.rs",
+      "stored_sha256": "e6ce84a33cc72849a2452b0d56298c098628f77ed78bf84054066defff7ce8b8",
+      "stored_bytes": 17435,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/broker-group-journal/partitionline-broker/src/security/acl.rs",
+      "original_sha256": "a63da8e4d1739d5f16e9054f8aa081f9ef49b676bc82b4b47dd1b63d7a360154",
+      "original_bytes": 25796,
+      "stored_path": "source/partitionline-broker/src/security/acl.rs",
+      "stored_sha256": "a63da8e4d1739d5f16e9054f8aa081f9ef49b676bc82b4b47dd1b63d7a360154",
+      "stored_bytes": 25796,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/broker-group-journal/partitionline-broker/src/security/credentials.rs",
+      "original_sha256": "0e08bcf5886f7efc11d98b91b27b2d77e596308336375e842edb59d0dde28ef7",
+      "original_bytes": 37866,
+      "stored_path": "source/partitionline-broker/src/security/credentials.rs",
+      "stored_sha256": "0e08bcf5886f7efc11d98b91b27b2d77e596308336375e842edb59d0dde28ef7",
+      "stored_bytes": 37866,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/broker-group-journal/partitionline-broker/src/security/mod.rs",
+      "original_sha256": "e9c55316e53f93550089fa29d7c4b2f9a07622846eb45a9713eacb4c2920fb96",
+      "original_bytes": 402,
+      "stored_path": "source/partitionline-broker/src/security/mod.rs",
+      "stored_sha256": "e9c55316e53f93550089fa29d7c4b2f9a07622846eb45a9713eacb4c2920fb96",
+      "stored_bytes": 402,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/broker-group-journal/partitionline-broker/src/security/oidc/cache.rs",
+      "original_sha256": "87f7ead09a741e6b95546fcb54ed237ef88e6955963e8c27fab1fea4227eb011",
+      "original_bytes": 32310,
+      "stored_path": "source/partitionline-broker/src/security/oidc/cache.rs",
+      "stored_sha256": "87f7ead09a741e6b95546fcb54ed237ef88e6955963e8c27fab1fea4227eb011",
+      "stored_bytes": 32310,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/broker-group-journal/partitionline-broker/src/security/oidc/http.rs",
+      "original_sha256": "6f44c8de03e9ff249039aa169b9951d9b262ee63bf1f9ffa10fadd93b45df77c",
+      "original_bytes": 24907,
+      "stored_path": "source/partitionline-broker/src/security/oidc/http.rs",
+      "stored_sha256": "6f44c8de03e9ff249039aa169b9951d9b262ee63bf1f9ffa10fadd93b45df77c",
+      "stored_bytes": 24907,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/broker-group-journal/partitionline-broker/src/security/oidc/introspection.rs",
+      "original_sha256": "3db692d142611b7aa40674cab9c4aafca3c95708deace9e93cfd1e5ae0c418f2",
+      "original_bytes": 6778,
+      "stored_path": "source/partitionline-broker/src/security/oidc/introspection.rs",
+      "stored_sha256": "3db692d142611b7aa40674cab9c4aafca3c95708deace9e93cfd1e5ae0c418f2",
+      "stored_bytes": 6778,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/broker-group-journal/partitionline-broker/src/security/oidc/jwt.rs",
+      "original_sha256": "289a8e346e4e42f33668d077c6a4f119d2776b1c6788faf944aaf4b3f740a536",
+      "original_bytes": 35775,
+      "stored_path": "source/partitionline-broker/src/security/oidc/jwt.rs",
+      "stored_sha256": "289a8e346e4e42f33668d077c6a4f119d2776b1c6788faf944aaf4b3f740a536",
+      "stored_bytes": 35775,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/broker-group-journal/partitionline-broker/src/security/oidc/sasl.rs",
+      "original_sha256": "cc0636300a380dabadb30096fefdd06b76866df25cfe697013807658b9d6f344",
+      "original_bytes": 4148,
+      "stored_path": "source/partitionline-broker/src/security/oidc/sasl.rs",
+      "stored_sha256": "cc0636300a380dabadb30096fefdd06b76866df25cfe697013807658b9d6f344",
+      "stored_bytes": 4148,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/broker-group-journal/partitionline-broker/src/security/oidc.rs",
+      "original_sha256": "540cf7ced55e0a74676bb9808836f02942e5e35fd4694d4e310c14c7aa59c5ab",
+      "original_bytes": 21211,
+      "stored_path": "source/partitionline-broker/src/security/oidc.rs",
+      "stored_sha256": "540cf7ced55e0a74676bb9808836f02942e5e35fd4694d4e310c14c7aa59c5ab",
+      "stored_bytes": 21211,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/broker-group-journal/partitionline-broker/src/security/sasl.rs",
+      "original_sha256": "49d9783dd197a7105b7df489177d8121cf9a8b18d3d66c3ce24fd53601be5d61",
+      "original_bytes": 48016,
+      "stored_path": "source/partitionline-broker/src/security/sasl.rs",
+      "stored_sha256": "49d9783dd197a7105b7df489177d8121cf9a8b18d3d66c3ce24fd53601be5d61",
+      "stored_bytes": 48016,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/broker-group-journal/partitionline-broker/src/security/session.rs",
+      "original_sha256": "63901540e4a97add4e3c9a6486b684357e315ae7a577325c3c1259dd5d7c5990",
+      "original_bytes": 74932,
+      "stored_path": "source/partitionline-broker/src/security/session.rs",
+      "stored_sha256": "63901540e4a97add4e3c9a6486b684357e315ae7a577325c3c1259dd5d7c5990",
+      "stored_bytes": 74932,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/broker-group-journal/partitionline-broker/src/security/tls.rs",
+      "original_sha256": "3c9714c5754378f5486a4441ce6fba92d4b75dea65cf48994a466dfa0c1fe040",
+      "original_bytes": 12136,
+      "stored_path": "source/partitionline-broker/src/security/tls.rs",
+      "stored_sha256": "3c9714c5754378f5486a4441ce6fba92d4b75dea65cf48994a466dfa0c1fe040",
+      "stored_bytes": 12136,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/broker-group-journal/partitionline-broker/src/security/tokens.rs",
+      "original_sha256": "27792d1452f8791ceae023c58461166932f3a5bb5b967d7dc09075507a671429",
+      "original_bytes": 32045,
+      "stored_path": "source/partitionline-broker/src/security/tokens.rs",
+      "stored_sha256": "27792d1452f8791ceae023c58461166932f3a5bb5b967d7dc09075507a671429",
+      "stored_bytes": 32045,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/broker-group-journal/partitionline-broker/src/segments.rs",
+      "original_sha256": "67cb953fccf334848d1ab069809174c0384abfb9523485879d7d810716224be5",
+      "original_bytes": 135500,
+      "stored_path": "source/partitionline-broker/src/segments.rs.gz",
+      "stored_sha256": "734169a5653f02c88da0d221c972a8bad12bd693c2dad8b5bc520cb388f929d8",
+      "stored_bytes": 26070,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/broker-group-journal/partitionline-broker/src/share_delivery.rs",
+      "original_sha256": "ebd9e5919cac95949329d87945e65f6950dd5992d1806f5ce4daded124ecfabc",
+      "original_bytes": 32661,
+      "stored_path": "source/partitionline-broker/src/share_delivery.rs",
+      "stored_sha256": "ebd9e5919cac95949329d87945e65f6950dd5992d1806f5ce4daded124ecfabc",
+      "stored_bytes": 32661,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/broker-group-journal/partitionline-broker/src/share_state.rs",
+      "original_sha256": "ae9e2a060e745e5a7714d5629243278b6613a970cb82e6102b44f46ec20d6b53",
+      "original_bytes": 35377,
+      "stored_path": "source/partitionline-broker/src/share_state.rs",
+      "stored_sha256": "ae9e2a060e745e5a7714d5629243278b6613a970cb82e6102b44f46ec20d6b53",
+      "stored_bytes": 35377,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/broker-group-journal/partitionline-broker/src/tiered.rs",
+      "original_sha256": "9d64b3c8340d0c7001e9eb875b4db4722d69f9373fdaaf2d19cdca33373326cc",
+      "original_bytes": 26925,
+      "stored_path": "source/partitionline-broker/src/tiered.rs",
+      "stored_sha256": "9d64b3c8340d0c7001e9eb875b4db4722d69f9373fdaaf2d19cdca33373326cc",
+      "stored_bytes": 26925,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/broker-group-journal/partitionline-broker/src/transactions/coordinator.rs",
+      "original_sha256": "1798e81b6c3a9b038c39c830359b417ad036d5fb631b1430a8fb712778a6b5b4",
+      "original_bytes": 36337,
+      "stored_path": "source/partitionline-broker/src/transactions/coordinator.rs",
+      "stored_sha256": "1798e81b6c3a9b038c39c830359b417ad036d5fb631b1430a8fb712778a6b5b4",
+      "stored_bytes": 36337,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/broker-group-journal/partitionline-broker/src/transactions/markers.rs",
+      "original_sha256": "9720fe5c3daa1c8111fba3c2dfdc20031eae4713388ae5744d929014a060a81a",
+      "original_bytes": 21004,
+      "stored_path": "source/partitionline-broker/src/transactions/markers.rs",
+      "stored_sha256": "9720fe5c3daa1c8111fba3c2dfdc20031eae4713388ae5744d929014a060a81a",
+      "stored_bytes": 21004,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/broker-group-journal/partitionline-broker/src/transactions/mod.rs",
+      "original_sha256": "ce42aa40a677010f96a2d7b6dc89c86581e594bba058f3a6b13302f2834f27ea",
+      "original_bytes": 348,
+      "stored_path": "source/partitionline-broker/src/transactions/mod.rs",
+      "stored_sha256": "ce42aa40a677010f96a2d7b6dc89c86581e594bba058f3a6b13302f2834f27ea",
+      "stored_bytes": 348,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/broker-group-journal/partitionline-broker/src/transactions/offsets.rs",
+      "original_sha256": "57aedf5ec6a053ec87e80e42f6bd8c4234a59083247c3f16670ab80b3024b4ea",
+      "original_bytes": 33431,
+      "stored_path": "source/partitionline-broker/src/transactions/offsets.rs",
+      "stored_sha256": "57aedf5ec6a053ec87e80e42f6bd8c4234a59083247c3f16670ab80b3024b4ea",
+      "stored_bytes": 33431,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/broker-group-journal/partitionline-broker/src/transport.rs",
+      "original_sha256": "2400acb381f06e30fa2df5832072c6efcc96986b2f93ce8f07eae0ceee242841",
+      "original_bytes": 115231,
+      "stored_path": "source/partitionline-broker/src/transport.rs.gz",
+      "stored_sha256": "d3dcc712e2fc20083ab2d00d48d1d5c9ad9a37f8fd967ea19202e0035e4d4a4e",
+      "stored_bytes": 18935,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/broker-group-journal/partitionline-broker/README.md",
+      "original_sha256": "0dc1bd9a30baac3f6ec642566faf72946a5db5ffc73e858a2d34957029fdf2a7",
+      "original_bytes": 2860,
+      "stored_path": "source/partitionline-broker/README.md",
+      "stored_sha256": "0dc1bd9a30baac3f6ec642566faf72946a5db5ffc73e858a2d34957029fdf2a7",
+      "stored_bytes": 2860,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/broker-group-journal/partitionline-broker/Cargo.toml",
+      "original_sha256": "0a77e3b2b41244f94a01684dc9ead21818e5875800fa12abdd13eeed4428cfaf",
+      "original_bytes": 2337,
+      "stored_path": "source/partitionline-broker/Cargo.toml",
+      "stored_sha256": "0a77e3b2b41244f94a01684dc9ead21818e5875800fa12abdd13eeed4428cfaf",
+      "stored_bytes": 2337,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/broker-group-journal/partitionline-broker/Cargo.lock",
+      "original_sha256": "ff225be2e645a11d33954cb47064a26a77572b1ab12a8f9362d146b237801624",
+      "original_bytes": 19995,
+      "stored_path": "source/partitionline-broker/Cargo.lock",
+      "stored_sha256": "ff225be2e645a11d33954cb47064a26a77572b1ab12a8f9362d146b237801624",
+      "stored_bytes": 19995,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/broker-group-journal/Cargo.toml",
+      "original_sha256": "72571422ff9478f925346ae5eec272daff633fb5bd7693665b048b31e7b44ac9",
+      "original_bytes": 4276,
+      "stored_path": "source/Cargo.toml",
+      "stored_sha256": "72571422ff9478f925346ae5eec272daff633fb5bd7693665b048b31e7b44ac9",
+      "stored_bytes": 4276,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/broker-group-journal/Cargo.lock",
+      "original_sha256": "8048d24692864e4b3e3b7e40b8489f483161b1c5c9f8805ae5fd7ce337593a82",
+      "original_bytes": 18368,
+      "stored_path": "source/Cargo.lock",
+      "stored_sha256": "8048d24692864e4b3e3b7e40b8489f483161b1c5c9f8805ae5fd7ce337593a82",
+      "stored_bytes": 18368,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/broker-group-journal/rust-toolchain.toml",
+      "original_sha256": "7458b2d74495e6fb1c1edeea4d5a793705476431dadb60627187111f91441e13",
+      "original_bytes": 86,
+      "stored_path": "source/rust-toolchain.toml",
+      "stored_sha256": "7458b2d74495e6fb1c1edeea4d5a793705476431dadb60627187111f91441e13",
+      "stored_bytes": 86,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/broker-group-journal/clippy.toml",
+      "original_sha256": "7ad5c55d408b8e15adb48a7054705ef3828ce59ff464a4a62a9842c88788fba6",
+      "original_bytes": 1522,
+      "stored_path": "source/clippy.toml",
+      "stored_sha256": "7ad5c55d408b8e15adb48a7054705ef3828ce59ff464a4a62a9842c88788fba6",
+      "stored_bytes": 1522,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/broker-group-journal/docs/evidence/broker/KL11-59/topic-name-cases.tsv",
+      "original_sha256": "f1e15f524df69214017f6dc2b87604ff85a63e74e9f857e2a87a3b75e1a2cb43",
+      "original_bytes": 1450,
+      "stored_path": "source/docs/evidence/broker/KL11-59/topic-name-cases.tsv",
+      "stored_sha256": "f1e15f524df69214017f6dc2b87604ff85a63e74e9f857e2a87a3b75e1a2cb43",
+      "stored_bytes": 1450,
+      "encoding": "identity"
+    }
+  ]
+}

@@ -21,6 +21,7 @@ use std::sync::Arc;
 pub type AssignmentMap = Arc<BTreeMap<String, Vec<i32>>>;
 
 const RECORD_MAGIC: &[u8; 8] = b"PLSHR001";
+const CHECKPOINT_MAGIC: &[u8; 8] = b"PLSHCP01";
 
 /// Java `ShareGroupHeartbeatRequest.JOIN_GROUP_MEMBER_EPOCH`.
 pub const JOIN_GROUP_MEMBER_EPOCH: i32 = 0;
@@ -206,6 +207,10 @@ pub struct Groups {
 
 impl Groups {
     /// Open or recover share groups.
+    ///
+    /// The adjacent `<path>.checkpoint.tmp` pathname is reserved for crash-safe
+    /// rollover. A rollover may temporarily require space for both the old
+    /// journal and one replacement snapshot.
     pub fn open(path: impl AsRef<Path>, limits: Limits) -> Result<Self, Error> {
         let (journal, _) = Journal::open(path, 0, limits.journal)?;
         let mut groups = Self {
@@ -222,10 +227,11 @@ impl Groups {
         };
         let mut cursor = groups.journal.base_offset();
         loop {
-            let batch =
-                groups
-                    .journal
-                    .fetch(cursor, 32, groups.limits.journal.max_fetch_bytes())?;
+            let batch = groups.journal.fetch(
+                cursor,
+                32.min(groups.limits.journal.max_index_entries()),
+                groups.limits.journal.max_fetch_bytes(),
+            )?;
             if batch.is_empty() {
                 break;
             }
@@ -233,8 +239,16 @@ impl Groups {
                 if entry.record_count != 1 {
                     return Err(Error::InvalidRequest);
                 }
+                let checkpoint = entry.payload.get(..8) == Some(CHECKPOINT_MAGIC.as_slice());
                 let decoded = decode(&entry.payload)?;
-                accept_share_group_state(&groups.state, &decoded)?;
+                if checkpoint {
+                    if entry.first_offset != groups.journal.base_offset() || groups.stored != 0 {
+                        return Err(Error::InvalidRequest);
+                    }
+                    validate_checkpoint(&decoded, groups.limits)?;
+                } else {
+                    accept_share_group_state(&groups.state, &decoded)?;
+                }
                 groups.state = decoded;
                 groups.stored = groups.stored.saturating_add(1);
                 cursor = entry
@@ -300,8 +314,12 @@ impl Groups {
     }
 
     /// Current epochs, negotiated version, and assignments.
-    pub fn describe(&self, group_id: &str) -> Option<Description> {
-        let group = self.state.groups.get(group_id)?;
+    /// Returns `Error::Poisoned` when a failed write makes durable state uncertain.
+    pub fn describe(&self, group_id: &str) -> Result<Option<Description>, Error> {
+        self.ready()?;
+        let Some(group) = self.state.groups.get(group_id) else {
+            return Ok(None);
+        };
         let mut members = Vec::new();
         for (member_id, member) in &group.members {
             members.push(MemberView {
@@ -310,12 +328,12 @@ impl Groups {
                 assignment: Arc::clone(&member.assignment),
             });
         }
-        Some(Description {
+        Ok(Some(Description {
             group_epoch: group.epoch,
             assignment_epoch: group.assignment_epoch,
             version: group.version,
             members,
-        })
+        }))
     }
 
     /// Remove members silent longer than the session timeout and reassign the rest.
@@ -363,7 +381,10 @@ impl Groups {
         let mut next = self.state.clone();
         let member_number = next.next_member;
         if request.member_id.is_empty() {
-            next.next_member = next.next_member.saturating_add(1);
+            next.next_member = next
+                .next_member
+                .checked_add(1)
+                .ok_or(Error::InvalidRequest)?;
         }
         let result = {
             let State {
@@ -607,11 +628,17 @@ impl Groups {
     }
 
     fn persist_encoded(&mut self) -> Result<(), Error> {
-        if self.encoded.len() > self.limits.journal.max_entry_bytes() {
+        if self.encoded.len() > self.limits.journal.max_entry_bytes()
+            || self
+                .encoded
+                .len()
+                .checked_add(std::mem::size_of::<journal::Entry>())
+                .is_none_or(|size| size > self.limits.journal.max_fetch_bytes())
+        {
             return Err(Error::InvalidLimits);
         }
-        let payload = std::mem::take(&mut self.encoded);
-        let result = self.persist(&payload);
+        let mut payload = std::mem::take(&mut self.encoded);
+        let result = self.persist(&mut payload);
         self.encoded = payload;
         result
     }
@@ -624,13 +651,22 @@ impl Groups {
         }
     }
 
-    fn persist(&mut self, payload: &[u8]) -> Result<(), Error> {
-        if self.stored >= self.limits.max_members.saturating_mul(8) {
-            return Err(Error::InvalidLimits);
-        }
-        match self.journal.append(1, payload) {
-            Ok(_) => {
-                self.stored = self.stored.saturating_add(1);
+    fn persist(&mut self, payload: &mut [u8]) -> Result<(), Error> {
+        let rollover = self.stored >= self.limits.max_members.saturating_mul(8)
+            || !self.journal.can_append_snapshot(payload.len());
+        let result = if rollover {
+            payload[..8].copy_from_slice(CHECKPOINT_MAGIC);
+            let result = self.journal.replace_with_snapshot(payload);
+            payload[..8].copy_from_slice(RECORD_MAGIC);
+            result.map(|()| 1)
+        } else {
+            self.journal
+                .append(1, payload)
+                .map(|_| self.stored.saturating_add(1))
+        };
+        match result {
+            Ok(stored) => {
+                self.stored = stored;
                 Ok(())
             }
             Err(error) => {
@@ -973,7 +1009,10 @@ fn encode_into(state: &State, bytes: &mut Vec<u8>) -> Result<(), Error> {
 }
 
 fn decode(mut bytes: &[u8]) -> Result<State, Error> {
-    if bytes.len() < RECORD_MAGIC.len() || &bytes[..RECORD_MAGIC.len()] != RECORD_MAGIC {
+    if bytes.len() < RECORD_MAGIC.len()
+        || (&bytes[..RECORD_MAGIC.len()] != RECORD_MAGIC
+            && &bytes[..RECORD_MAGIC.len()] != CHECKPOINT_MAGIC)
+    {
         return Err(Error::InvalidRequest);
     }
     bytes = &bytes[RECORD_MAGIC.len()..];
@@ -1066,6 +1105,22 @@ fn decode(mut bytes: &[u8]) -> Result<State, Error> {
     }
     validate_decoded(&state)?;
     Ok(state)
+}
+
+fn validate_checkpoint(state: &State, limits: Limits) -> Result<(), Error> {
+    if state.next_member == 0
+        || state.topics.len() > limits.max_topics
+        || state.groups.values().any(|group| {
+            group.epoch < 0
+                || group.assignment_epoch < -1
+                || group.members.len() > limits.max_members
+                || group.members.values().any(|member| member.epoch < 0)
+                || group.members.values().map(|member| member.version).min() != Some(group.version)
+        })
+    {
+        return Err(Error::InvalidRequest);
+    }
+    Ok(())
 }
 
 fn validate_decoded(state: &State) -> Result<(), Error> {
@@ -1269,6 +1324,163 @@ mod tests {
     }
 
     #[test]
+    fn sustained_heartbeats_checkpoint_and_recover_session_state() {
+        // Exercise the index, snapshot-count and byte limits separately.
+        for (file_bytes, entries) in [(1 << 20, 2), (1 << 20, 100), (512, 100)] {
+            check_heartbeat_rollover(file_bytes, entries);
+        }
+    }
+
+    fn check_heartbeat_rollover(file_bytes: u64, entries: usize) {
+        let (old, path) = open("checkpoint-share");
+        drop(old);
+        let journal = journal::Limits::new(8192, file_bytes, entries, 1 << 20)
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        let limits =
+            Limits::new(1, 8, 100, 1_000, journal).unwrap_or_else(|error| panic!("{error:?}"));
+        let mut groups = Groups::open(&path, limits).unwrap_or_else(|error| panic!("{error:?}"));
+        groups
+            .set_topic("orders", 1)
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        let joined = groups
+            .heartbeat(Heartbeat {
+                version: 1,
+                group_id: "g",
+                member_id: "alice",
+                member_epoch: 0,
+                now_ms: 0,
+                subscribed_topics: Some(&["orders"]),
+            })
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        let mut epoch = joined.member_epoch;
+        for now in 1..=40 {
+            let ping = groups
+                .heartbeat(Heartbeat {
+                    version: 1,
+                    group_id: "g",
+                    member_id: &joined.member_id,
+                    member_epoch: epoch,
+                    now_ms: now,
+                    subscribed_topics: None,
+                })
+                .unwrap_or_else(|error| panic!("{error:?}"));
+            epoch = ping.member_epoch;
+            assert!(groups.journal.entry_count() <= entries.min(8));
+            assert!(groups.journal.file_bytes() <= file_bytes);
+            if now % 10 == 0 {
+                drop(groups);
+                groups = Groups::open(&path, limits).unwrap_or_else(|error| panic!("{error:?}"));
+                let view = groups
+                    .describe("g")
+                    .unwrap_or_else(|error| panic!("{error:?}"))
+                    .unwrap_or_else(|| panic!("missing group"));
+                assert_eq!(view.members[0].member_epoch, epoch);
+                assert_eq!(
+                    Some(Arc::clone(&view.members[0].assignment)),
+                    joined.assignment
+                );
+                assert_eq!(groups.expire(now + 999).unwrap_or(99), 0);
+            }
+        }
+        assert_eq!(groups.expire(1_041).unwrap_or(99), 1);
+        drop(groups);
+        let recovered = Groups::open(&path, limits).unwrap_or_else(|error| panic!("{error:?}"));
+        assert!(recovered
+            .describe("g")
+            .unwrap_or_else(|error| panic!("{error:?}"))
+            .is_none());
+        drop(recovered);
+        let _ = std::fs::remove_file(path);
+    }
+
+    #[test]
+    fn recovery_rejects_checkpoint_after_an_ordinary_record() {
+        let (mut groups, path) = open("checkpoint-position");
+        groups
+            .set_topic("orders", 1)
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        let mut image = encode(&groups.state).unwrap_or_else(|error| panic!("{error:?}"));
+        image[..8].copy_from_slice(CHECKPOINT_MAGIC);
+        groups
+            .journal
+            .append(1, &image)
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        drop(groups);
+        assert!(matches!(
+            Groups::open(&path, limits()),
+            Err(Error::InvalidRequest)
+        ));
+        let _ = std::fs::remove_file(path);
+    }
+
+    #[test]
+    fn recovery_rejects_an_invalid_initial_checkpoint() {
+        let (mut groups, path) = open("checkpoint-invalid");
+        let mut state = groups.state.clone();
+        state.next_member = 0;
+        let mut image = encode(&state).unwrap_or_else(|error| panic!("{error:?}"));
+        image[..8].copy_from_slice(CHECKPOINT_MAGIC);
+        groups
+            .journal
+            .append(1, &image)
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        drop(groups);
+        assert!(matches!(
+            Groups::open(&path, limits()),
+            Err(Error::InvalidRequest)
+        ));
+        let _ = std::fs::remove_file(path);
+    }
+
+    #[test]
+    fn checkpoint_failure_blocks_reads_and_recovers_the_complete_state() {
+        for (phase, recovered_seen) in [("prepared", 0), ("renamed", 42)] {
+            let (old, path) = open("checkpoint-failure-share");
+            drop(old);
+            let journal = journal::Limits::new(8192, 1 << 20, 1, 1 << 20)
+                .unwrap_or_else(|error| panic!("{error:?}"));
+            let limits =
+                Limits::new(1, 8, 100, 1_000, journal).unwrap_or_else(|error| panic!("{error:?}"));
+            let mut groups =
+                Groups::open(&path, limits).unwrap_or_else(|error| panic!("{error:?}"));
+            groups
+                .set_topic("orders", 1)
+                .unwrap_or_else(|error| panic!("{error:?}"));
+            let joined = groups
+                .heartbeat(Heartbeat {
+                    version: 1,
+                    group_id: "g",
+                    member_id: "alice",
+                    member_epoch: 0,
+                    now_ms: 0,
+                    subscribed_topics: Some(&["orders"]),
+                })
+                .unwrap_or_else(|error| panic!("{error:?}"));
+            let ping = Heartbeat {
+                version: 1,
+                group_id: "g",
+                member_id: &joined.member_id,
+                member_epoch: joined.member_epoch,
+                now_ms: 42,
+                subscribed_topics: None,
+            };
+            journal::fail_checkpoint_once_at(phase);
+            assert!(matches!(groups.heartbeat(ping), Err(Error::Storage(_))));
+            assert!(matches!(groups.describe("g"), Err(Error::Poisoned)));
+            assert!(matches!(groups.heartbeat(ping), Err(Error::Poisoned)));
+            drop(groups);
+            let recovered = Groups::open(&path, limits).unwrap_or_else(|error| panic!("{error:?}"));
+            assert_eq!(
+                recovered.state.groups["g"].members[&joined.member_id].last_seen_ms,
+                recovered_seen
+            );
+            drop(recovered);
+            let _ = std::fs::remove_file(&path);
+            let _ = std::fs::remove_file(format!("{}.checkpoint.tmp", path.display()));
+        }
+    }
+
+    #[test]
     fn a_topic_list_matches_in_any_order() {
         let short: Set<String> = ["orders", "payments"]
             .into_iter()
@@ -1390,7 +1602,10 @@ mod tests {
             })
             .unwrap_or_else(|error| panic!("{error:?}"));
         assert_eq!(groups.expire(1_001).unwrap_or(99), 1);
-        assert!(groups.describe("g").is_none());
+        assert!(groups
+            .describe("g")
+            .unwrap_or_else(|error| panic!("{error:?}"))
+            .is_none());
         let joined = groups
             .heartbeat(Heartbeat {
                 version: 1,
@@ -1424,7 +1639,10 @@ mod tests {
             .unwrap_or_else(|error| panic!("{error:?}"));
         assert_eq!(groups.expire(1_500).unwrap_or(99), 0);
         assert_eq!(groups.expire(2_001).unwrap_or(99), 1);
-        assert!(groups.describe("g").is_none());
+        assert!(groups
+            .describe("g")
+            .unwrap_or_else(|error| panic!("{error:?}"))
+            .is_none());
         let joined = groups
             .heartbeat(Heartbeat {
                 version: 1,
@@ -1445,7 +1663,10 @@ mod tests {
                 subscribed_topics: None,
             })
             .unwrap_or_else(|error| panic!("{error:?}"));
-        assert!(groups.describe("g").is_none());
+        assert!(groups
+            .describe("g")
+            .unwrap_or_else(|error| panic!("{error:?}"))
+            .is_none());
     }
 
     #[test]
@@ -1516,7 +1737,10 @@ mod tests {
                 .map(Vec::as_slice),
             Some(&[0, 1][..])
         );
-        let described = groups.describe("g").unwrap_or_else(|| panic!("describe"));
+        let described = groups
+            .describe("g")
+            .unwrap_or_else(|error| panic!("{error:?}"))
+            .unwrap_or_else(|| panic!("describe"));
         let stored = described
             .members
             .iter()
@@ -1563,7 +1787,10 @@ mod tests {
                 subscribed_topics: None,
             })
             .unwrap_or_else(|error| panic!("{error:?}"));
-        let described = groups.describe("g").unwrap_or_else(|| panic!("describe"));
+        let described = groups
+            .describe("g")
+            .unwrap_or_else(|error| panic!("{error:?}"))
+            .unwrap_or_else(|| panic!("describe"));
         assert_eq!(described.version, 1);
         let mut owned = Set::new();
         for member in &described.members {
@@ -1576,7 +1803,10 @@ mod tests {
         assert_eq!(owned.len(), 4);
         drop(groups);
         let restored = Groups::open(&path, limits()).unwrap_or_else(|error| panic!("{error:?}"));
-        let again = restored.describe("g").unwrap_or_else(|| panic!("restored"));
+        let again = restored
+            .describe("g")
+            .unwrap_or_else(|error| panic!("{error:?}"))
+            .unwrap_or_else(|| panic!("restored"));
         assert_eq!(again.group_epoch, described.group_epoch);
         assert_eq!(again.assignment_epoch, described.assignment_epoch);
         assert_eq!(again.members.len(), 1);
@@ -1624,7 +1854,10 @@ mod tests {
         assert_eq!(again.group_epoch, lowered.group_epoch);
         drop(groups);
         let restored = Groups::open(&path, limits()).unwrap_or_else(|error| panic!("{error:?}"));
-        let described = restored.describe("g").unwrap_or_else(|| panic!("describe"));
+        let described = restored
+            .describe("g")
+            .unwrap_or_else(|error| panic!("{error:?}"))
+            .unwrap_or_else(|| panic!("describe"));
         assert_eq!(described.version, 0);
         assert_eq!(described.group_epoch, lowered.group_epoch);
     }
@@ -1662,7 +1895,10 @@ mod tests {
             }),
             Err(Error::InvalidRequest)
         ));
-        let described = groups.describe("g").unwrap_or_else(|| panic!("describe"));
+        let described = groups
+            .describe("g")
+            .unwrap_or_else(|error| panic!("{error:?}"))
+            .unwrap_or_else(|| panic!("describe"));
         assert_eq!(described.group_epoch, i32::MAX);
         assert_eq!(described.members.len(), 1);
         assert_eq!(described.members[0].member_id, joined.member_id);

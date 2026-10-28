@@ -22,7 +22,7 @@ use std::collections::VecDeque;
 use std::fs::{File, OpenOptions};
 use std::io::{self, IoSlice, Read, Seek, SeekFrom, Write};
 use std::mem::size_of;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use crate::batch;
 
@@ -32,6 +32,39 @@ const FILE_HEADER: usize = 24;
 const ENTRY_HEADER: usize = 32;
 const MAX_BYTES: usize = 64 * 1024 * 1024;
 const MAX_FETCH_BYTES: usize = 128 * 1024 * 1024;
+
+#[cfg(test)]
+fn checkpoint_test_point(phase: &str) {
+    if std::env::var("PLB_JOURNAL_CHECKPOINT_CRASH")
+        .ok()
+        .as_deref()
+        == Some(phase)
+    {
+        std::process::exit(71);
+    }
+}
+
+#[cfg(test)]
+thread_local! {
+    static CHECKPOINT_TEST_ERROR: std::cell::Cell<Option<&'static str>> = const { std::cell::Cell::new(None) };
+}
+
+#[cfg(test)]
+pub(crate) fn fail_checkpoint_once_at(phase: &'static str) {
+    CHECKPOINT_TEST_ERROR.with(|failure| failure.set(Some(phase)));
+}
+
+#[cfg(test)]
+fn checkpoint_test_error(phase: &str) -> io::Result<()> {
+    CHECKPOINT_TEST_ERROR.with(|failure| {
+        if failure.get() == Some(phase) {
+            failure.set(None);
+            Err(io::Error::other("injected checkpoint failure"))
+        } else {
+            Ok(())
+        }
+    })
+}
 
 /// Validated entry, total-file, retained-index and owned-fetch limits.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -241,6 +274,7 @@ pub(crate) struct PayloadView {
 pub struct Journal {
     inner: Engine<File>,
     _ownership: ownership::Guard,
+    path: PathBuf,
 }
 
 // The rolled backend shares this parser rather than retaining a dense Journal
@@ -422,6 +456,7 @@ impl Journal {
             Self {
                 inner,
                 _ownership: ownership,
+                path: resolved,
             },
             recovery,
         ))
@@ -433,6 +468,98 @@ impl Journal {
     /// whether the failed operation left a complete entry or an incomplete tail.
     pub fn append(&mut self, record_count: u32, payload: &[u8]) -> Result<Append, Error> {
         self.inner.append(record_count, payload)
+    }
+
+    // The coordinator snapshots its entire state in each record. Roll it over
+    // before either the index or file limit prevents the next append.
+    pub(crate) fn can_append_snapshot(&self, payload_len: usize) -> bool {
+        payload_len <= self.inner.limits.max_entry_bytes
+            && self.inner.index.len() < self.inner.limits.max_index_entries
+            && self
+                .inner
+                .file_bytes
+                .checked_add(ENTRY_HEADER as u64)
+                .and_then(|size| size.checked_add(payload_len as u64))
+                .is_some_and(|size| size <= self.inner.limits.max_file_bytes)
+    }
+
+    // Publish a complete, synchronized one-record image with an atomic rename.
+    // The adjacent `<journal>.checkpoint.tmp` name is reserved for this use.
+    // External writers must still obey Journal's exclusive ownership contract.
+    pub(crate) fn replace_with_snapshot(&mut self, payload: &[u8]) -> Result<(), Error> {
+        self.inner.check_alive()?;
+        if self.inner.base_offset != 0 {
+            return Err(Error::BaseOffsetMismatch);
+        }
+        if !self.inner.staged.is_empty() {
+            self.inner.poisoned = true;
+            return Err(Error::Poisoned);
+        }
+        if payload.is_empty() || payload.len() > self.inner.limits.max_entry_bytes {
+            return Err(Error::EntryTooLarge);
+        }
+        if (FILE_HEADER as u64)
+            .checked_add(ENTRY_HEADER as u64)
+            .and_then(|size| size.checked_add(payload.len() as u64))
+            .is_none_or(|size| size > self.inner.limits.max_file_bytes)
+        {
+            return Err(Error::FileBudgetExceeded);
+        }
+        let mut name = self
+            .path
+            .file_name()
+            .ok_or(Error::ChangedFile)?
+            .to_os_string();
+        name.push(".checkpoint.tmp");
+        let tmp = self.path.with_file_name(name);
+        let mut owner = ownership::Guard::acquire(&tmp)?;
+        match std::fs::symlink_metadata(&tmp) {
+            Ok(metadata) if metadata.file_type().is_file() => {
+                // A stale name can be a hard link to a different open journal.
+                // Reserve its inode before unlinking, and keep the pathname
+                // reserved until the replacement inode has been installed.
+                let stale = File::open(&tmp)?;
+                owner.identify(&stale)?;
+                std::fs::remove_file(&tmp)?;
+                owner.release_inode()?;
+            }
+            Ok(_) => return Err(Error::ChangedFile),
+            Err(error) if error.kind() == io::ErrorKind::NotFound => {}
+            Err(error) => return Err(error.into()),
+        }
+        let file = OpenOptions::new()
+            .read(true)
+            .write(true)
+            .create_new(true)
+            .open(&tmp)?;
+        owner.identify(&file)?;
+        let (mut replacement, _) = Engine::recover(file, 0, self.inner.limits)?;
+        replacement.append(1, payload)?;
+        #[cfg(test)]
+        checkpoint_test_point("prepared");
+        #[cfg(test)]
+        checkpoint_test_error("prepared")?;
+        std::fs::rename(&tmp, &self.path)?;
+        #[cfg(test)]
+        checkpoint_test_point("renamed");
+        if let Err(error) = self._ownership.adopt_replacement(&mut owner) {
+            self.inner.poisoned = true;
+            return Err(error);
+        }
+        self.inner = replacement;
+        let parent = self.path.parent().ok_or(Error::ChangedFile)?;
+        #[cfg(test)]
+        let synchronized = checkpoint_test_error("renamed")
+            .and_then(|()| File::open(parent).and_then(|directory| directory.sync_all()));
+        #[cfg(not(test))]
+        let synchronized = File::open(parent).and_then(|directory| directory.sync_all());
+        if let Err(error) = synchronized {
+            self.inner.poisoned = true;
+            return Err(error.into());
+        }
+        #[cfg(test)]
+        checkpoint_test_point("synced");
+        Ok(())
     }
 
     /// Append using a caller-supplied payload checksum.
@@ -979,6 +1106,50 @@ mod ownership {
             {
                 let _ = file;
             }
+            Ok(())
+        }
+
+        pub(super) fn release_inode(&mut self) -> Result<(), Error> {
+            #[cfg(unix)]
+            {
+                let mut open = registry().lock().map_err(|_| Error::OwnershipUnavailable)?;
+                self.keys.retain(|key| {
+                    if matches!(key, Key::Inode(..)) {
+                        open.remove(key);
+                        false
+                    } else {
+                        true
+                    }
+                });
+            }
+            Ok(())
+        }
+
+        // Transfer the replacement inode without releasing it between the
+        // rename and installation. Keep the original pathname reservation.
+        pub(super) fn adopt_replacement(&mut self, replacement: &mut Self) -> Result<(), Error> {
+            #[cfg(unix)]
+            {
+                let position = replacement
+                    .keys
+                    .iter()
+                    .position(|key| matches!(key, Key::Inode(..)))
+                    .ok_or(Error::OwnershipUnavailable)?;
+                let new_inode = replacement.keys[position].clone();
+                let mut open = registry().lock().map_err(|_| Error::OwnershipUnavailable)?;
+                self.keys.retain(|key| {
+                    if matches!(key, Key::Inode(..)) {
+                        open.remove(key);
+                        false
+                    } else {
+                        true
+                    }
+                });
+                replacement.keys.remove(position);
+                self.keys.push(new_inode);
+            }
+            #[cfg(not(unix))]
+            let _ = replacement;
             Ok(())
         }
     }
@@ -1860,6 +2031,138 @@ mod tests {
         drop(reopened);
         drop(recovered);
         let _ = std::fs::remove_dir_all(&dir);
+        Ok(())
+    }
+
+    #[test]
+    #[cfg(unix)]
+    fn checkpoint_publication_survives_process_exit() -> Result<(), Box<dyn std::error::Error>> {
+        const TEST: &str = "journal::tests::checkpoint_publication_survives_process_exit";
+        if let Some(path) = std::env::var_os("PLB_JOURNAL_CHECKPOINT_PATH") {
+            let (mut journal, _) = Journal::open(path, 0, Limits::default())?;
+            journal.replace_with_snapshot(b"new")?;
+            panic!("checkpoint failpoint did not exit");
+        }
+        let nanos = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)?
+            .as_nanos();
+        let dir =
+            std::env::temp_dir().join(format!("pl-checkpoint-{}-{nanos}", std::process::id()));
+        std::fs::create_dir_all(&dir)?;
+        for phase in ["prepared", "renamed", "synced"] {
+            let path = dir.join(phase);
+            let (mut journal, _) = Journal::open(&path, 0, Limits::default())?;
+            journal.append(1, b"old")?;
+            drop(journal);
+            let status = std::process::Command::new(std::env::current_exe()?)
+                .args(["--exact", TEST, "--nocapture"])
+                .env("PLB_JOURNAL_CHECKPOINT_CRASH", phase)
+                .env("PLB_JOURNAL_CHECKPOINT_PATH", &path)
+                .status()?;
+            assert_eq!(status.code(), Some(71), "{phase}");
+            let (mut recovered, _) = Journal::open(&path, 0, Limits::default())?;
+            let entries = recovered.fetch(0, 1, 1024)?;
+            assert_eq!(
+                entries[0].payload,
+                if phase == "prepared" { b"old" } else { b"new" }
+            );
+            // A leftover temp file from a crash is reclaimed on the next roll.
+            recovered.replace_with_snapshot(b"next")?;
+            assert_eq!(recovered.fetch(0, 1, 1024)?[0].payload, b"next");
+        }
+        std::fs::remove_dir_all(dir)?;
+        Ok(())
+    }
+
+    #[test]
+    #[cfg(unix)]
+    fn checkpoint_preserves_exclusive_inode_ownership() -> Result<(), Box<dyn std::error::Error>> {
+        let nanos = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)?
+            .as_nanos();
+        let dir = std::env::temp_dir().join(format!(
+            "pl-checkpoint-owner-{}-{nanos}",
+            std::process::id()
+        ));
+        std::fs::create_dir_all(&dir)?;
+        let path = dir.join("log");
+        let alias = dir.join("alias");
+        let (mut journal, _) = Journal::open(&path, 0, Limits::default())?;
+        for _ in 0..16 {
+            journal.replace_with_snapshot(b"state")?;
+            std::fs::hard_link(&path, &alias)?;
+            assert!(matches!(
+                Journal::open(&alias, 0, Limits::default()),
+                Err(Error::AlreadyOpen)
+            ));
+            std::fs::remove_file(&alias)?;
+        }
+        drop(journal);
+        std::fs::remove_dir_all(dir)?;
+        Ok(())
+    }
+
+    #[test]
+    #[cfg(unix)]
+    fn checkpoint_refuses_a_symlink_at_its_reserved_temp_path(
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        let nanos = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)?
+            .as_nanos();
+        let dir = std::env::temp_dir().join(format!(
+            "pl-checkpoint-symlink-{}-{nanos}",
+            std::process::id()
+        ));
+        std::fs::create_dir_all(&dir)?;
+        let path = dir.join("log");
+        let target = dir.join("untouched");
+        File::create(&target)?.write_all(b"keep")?;
+        let (mut journal, _) = Journal::open(&path, 0, Limits::default())?;
+        journal.append(1, b"old")?;
+        std::os::unix::fs::symlink(&target, dir.join("log.checkpoint.tmp"))?;
+        assert!(matches!(
+            journal.replace_with_snapshot(b"new"),
+            Err(Error::ChangedFile)
+        ));
+        let mut content = Vec::new();
+        File::open(&target)?.read_to_end(&mut content)?;
+        assert_eq!(content, b"keep");
+        assert_eq!(journal.fetch(0, 1, 1024)?[0].payload, b"old");
+        drop(journal);
+        std::fs::remove_dir_all(dir)?;
+        Ok(())
+    }
+
+    #[test]
+    #[cfg(unix)]
+    fn checkpoint_preserves_a_temp_hard_link_to_an_open_journal(
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        let nanos = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)?
+            .as_nanos();
+        let dir = std::env::temp_dir().join(format!(
+            "pl-checkpoint-alias-{}-{nanos}",
+            std::process::id()
+        ));
+        std::fs::create_dir_all(&dir)?;
+        let path = dir.join("log");
+        let other_path = dir.join("other");
+        let temporary = dir.join("log.checkpoint.tmp");
+        let (mut journal, _) = Journal::open(&path, 0, Limits::default())?;
+        journal.append(1, b"old")?;
+        let (mut other, _) = Journal::open(&other_path, 0, Limits::default())?;
+        other.append(1, b"other")?;
+        std::fs::hard_link(&other_path, &temporary)?;
+        assert!(matches!(
+            journal.replace_with_snapshot(b"new"),
+            Err(Error::AlreadyOpen)
+        ));
+        assert!(temporary.exists());
+        assert_eq!(other.fetch(0, 1, 1024)?[0].payload, b"other");
+        assert_eq!(journal.fetch(0, 1, 1024)?[0].payload, b"old");
+        drop(journal);
+        drop(other);
+        std::fs::remove_dir_all(dir)?;
         Ok(())
     }
 

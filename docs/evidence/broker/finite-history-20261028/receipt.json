@@ -1,0 +1,114 @@
+{
+  "source_commit": "352c2a315720bb865cf4572edb459a087eef4370",
+  "checked_utc": "2026-10-28T14:30:03.054578+00:00",
+  "scope": "Read-only source inventory; no runtime, crash or peer test executed. Snapshot and delta formats are classified separately.",
+  "source_files": {
+    "partitionline-broker/src/groups/classic.rs": {
+      "workspace_sha256": "f05a89c38a357b665910beeaf56d7f6fc820d45b88fc14b04df88bec1f860812",
+      "commit_sha256": "f05a89c38a357b665910beeaf56d7f6fc820d45b88fc14b04df88bec1f860812"
+    },
+    "partitionline-broker/src/groups/lifecycle.rs": {
+      "workspace_sha256": "0be42154e56a2f548b0987c546613460bc7cd5c51d3c6b2a58f158501b775064",
+      "commit_sha256": "0be42154e56a2f548b0987c546613460bc7cd5c51d3c6b2a58f158501b775064"
+    },
+    "partitionline-broker/src/groups/offsets.rs": {
+      "workspace_sha256": "1afac385a926f00e4037cda0901f3678f7416ab95d3c60819bb308aa9858543b",
+      "commit_sha256": "1afac385a926f00e4037cda0901f3678f7416ab95d3c60819bb308aa9858543b"
+    },
+    "partitionline-broker/src/groups/consumer.rs": {
+      "workspace_sha256": "c30f6e95529c222487a9049a0a6c13e3b9d70c54a36de0055c0d231f6684047e",
+      "commit_sha256": "c30f6e95529c222487a9049a0a6c13e3b9d70c54a36de0055c0d231f6684047e"
+    },
+    "partitionline-broker/src/groups/share.rs": {
+      "workspace_sha256": "6f66bcaa9b96ea5dd69ae47cde85a71c5f50f63fe463d7c7055bc9273fb0c822",
+      "commit_sha256": "6f66bcaa9b96ea5dd69ae47cde85a71c5f50f63fe463d7c7055bc9273fb0c822"
+    },
+    "partitionline-broker/src/groups/streams.rs": {
+      "workspace_sha256": "aa5db99ad26a128352e4cae34447e8cab75688add663075c0a06a08c1cc7285b",
+      "commit_sha256": "aa5db99ad26a128352e4cae34447e8cab75688add663075c0a06a08c1cc7285b"
+    },
+    "partitionline-broker/src/transactions/coordinator.rs": {
+      "workspace_sha256": "1798e81b6c3a9b038c39c830359b417ad036d5fb631b1430a8fb712778a6b5b4",
+      "commit_sha256": "1798e81b6c3a9b038c39c830359b417ad036d5fb631b1430a8fb712778a6b5b4"
+    },
+    "partitionline-broker/src/transactions/markers.rs": {
+      "workspace_sha256": "9720fe5c3daa1c8111fba3c2dfdc20031eae4713388ae5744d929014a060a81a",
+      "commit_sha256": "9720fe5c3daa1c8111fba3c2dfdc20031eae4713388ae5744d929014a060a81a"
+    },
+    "partitionline-broker/src/transactions/offsets.rs": {
+      "workspace_sha256": "57aedf5ec6a053ec87e80e42f6bd8c4234a59083247c3f16670ab80b3024b4ea",
+      "commit_sha256": "57aedf5ec6a053ec87e80e42f6bd8c4234a59083247c3f16670ab80b3024b4ea"
+    },
+    "partitionline-broker/src/idempotence.rs": {
+      "workspace_sha256": "e2f4a871218d508f211431a68f01573161f8c8c652800cc4184a63f6e9b9b056",
+      "commit_sha256": "e2f4a871218d508f211431a68f01573161f8c8c652800cc4184a63f6e9b9b056"
+    },
+    "partitionline-broker/src/share_state.rs": {
+      "workspace_sha256": "ae9e2a060e745e5a7714d5629243278b6613a970cb82e6102b44f46ec20d6b53",
+      "commit_sha256": "ae9e2a060e745e5a7714d5629243278b6613a970cb82e6102b44f46ec20d6b53"
+    },
+    "partitionline-broker/src/share_delivery.rs": {
+      "workspace_sha256": "ebd9e5919cac95949329d87945e65f6950dd5992d1806f5ce4daded124ecfabc",
+      "commit_sha256": "ebd9e5919cac95949329d87945e65f6950dd5992d1806f5ce4daded124ecfabc"
+    },
+    "partitionline-broker/src/configs.rs": {
+      "workspace_sha256": "226507b819989db4d3a7ffc5578dc51d74c614ed918602c2ed0c85234e15c5e7",
+      "commit_sha256": "226507b819989db4d3a7ffc5578dc51d74c614ed918602c2ed0c85234e15c5e7"
+    },
+    "partitionline-broker/src/high_watermark.rs": {
+      "workspace_sha256": "335e1d9fca4ee6214895970175bd1f0c12327a8406fcc237b8a71f9b0a768bab",
+      "commit_sha256": "335e1d9fca4ee6214895970175bd1f0c12327a8406fcc237b8a71f9b0a768bab"
+    },
+    "partitionline-broker/src/recovery.rs": {
+      "workspace_sha256": "1b146f3af39cbd68e0a2bfa5c786ff027f63775d3eebf085c10a618ae2f1e4d4",
+      "commit_sha256": "1b146f3af39cbd68e0a2bfa5c786ff027f63775d3eebf085c10a618ae2f1e4d4"
+    },
+    "partitionline-broker/src/replication.rs": {
+      "workspace_sha256": "fb4e75614a5c593dfc5305b82cc7a6c4e1f7ed56cbe5b78d849d90f133c2a5e8",
+      "commit_sha256": "fb4e75614a5c593dfc5305b82cc7a6c4e1f7ed56cbe5b78d849d90f133c2a5e8"
+    },
+    "partitionline-broker/src/security/tokens.rs": {
+      "workspace_sha256": "27792d1452f8791ceae023c58461166932f3a5bb5b967d7dc09075507a671429",
+      "commit_sha256": "27792d1452f8791ceae023c58461166932f3a5bb5b967d7dc09075507a671429"
+    },
+    "partitionline-broker/src/security/acl.rs": {
+      "workspace_sha256": "a63da8e4d1739d5f16e9054f8aa081f9ef49b676bc82b4b47dd1b63d7a360154",
+      "commit_sha256": "a63da8e4d1739d5f16e9054f8aa081f9ef49b676bc82b4b47dd1b63d7a360154"
+    },
+    "partitionline-broker/src/tiered.rs": {
+      "workspace_sha256": "9d64b3c8340d0c7001e9eb875b4db4722d69f9373fdaaf2d19cdca33373326cc",
+      "commit_sha256": "9d64b3c8340d0c7001e9eb875b4db4722d69f9373fdaaf2d19cdca33373326cc"
+    },
+    "partitionline-broker/src/admin.rs": {
+      "workspace_sha256": "280376f7972f3fc6f79abef52f2617fad84af5ee1c6bb6eeecd44ae0e43851c8",
+      "commit_sha256": "280376f7972f3fc6f79abef52f2617fad84af5ee1c6bb6eeecd44ae0e43851c8"
+    },
+    "partitionline-broker/src/journal.rs": {
+      "workspace_sha256": "b901b3d460055b2287346b2091e6a96e275700f904347cf9b072ddb8fb39273b",
+      "commit_sha256": "b901b3d460055b2287346b2091e6a96e275700f904347cf9b072ddb8fb39273b"
+    }
+  },
+  "workspace_commit_mismatches": [],
+  "card_snapshot_sha256": "aa804a6331edccf88b286d67d13143b468b704e418f21eb050dc1944ab200e5f",
+  "evidence": [
+    "docs/plan/evidence/KL11-18.json",
+    "docs/plan/evidence/KL11-19.json",
+    "docs/plan/evidence/KL11-20.json",
+    "docs/plan/evidence/KL11-21.json",
+    "docs/plan/evidence/KL11-23.json",
+    "docs/plan/evidence/KL11-24.json",
+    "docs/plan/evidence/KL11-25.json",
+    "docs/plan/evidence/KL11-26.json",
+    "docs/plan/evidence/KL11-27.json",
+    "docs/plan/evidence/KL11-28.json",
+    "docs/plan/evidence/KL11-29.json",
+    "docs/plan/evidence/KL11-31.json",
+    "docs/plan/evidence/KL11-32.json",
+    "docs/plan/evidence/KL11-33.json",
+    "docs/plan/evidence/KL11-34.json",
+    "docs/plan/evidence/KL11-39.json",
+    "docs/plan/evidence/KL11-40.json",
+    "docs/plan/evidence/KL11-41.json",
+    "docs/plan/evidence/KL11-42.json"
+  ]
+}

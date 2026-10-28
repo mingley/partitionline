@@ -1,0 +1,3602 @@
+{
+  "git_base": "352c2a315720bb865cf4572edb459a087eef4370",
+  "observed_utc": "2026-10-28T14:39:41.824016+00:00",
+  "scope": "Static lexical inventory. Includes encode code, test code and sites with separate validation; not a count of confirmed vulnerabilities. This is an uncommitted working-tree snapshot, not a final candidate.",
+  "source_sha256": {
+    "src/protocol/buf.rs": "c97d92b352fcb4a70ece8d6cd825809a62d31c6f05f912de762ccc8959e436d5",
+    "src/protocol/api.rs": "914f6ba429f8b271aea01f384a03d79de4911cd2938671e7e8d1b85e68af7ae2",
+    "src/protocol/fetch.rs": "2c0010d6ad5cd457ca8350f4428eafc5ebf1debd2f7912e2773814ef6ff57749",
+    "src/protocol/group.rs": "ed121c28691803ad255ea952a3fd930ca9c5150b7193d164e5874fe9eec7a82c",
+    "src/protocol/share.rs": "1685ff01fcf8b207ac71ba5d10fa14110dedc4f7934bbcc818dfc562f5c25e52",
+    "src/protocol/admin.rs": "db13c1f629266fd657e723119be5f3844ec9c2ed069db75c4df89cbddc75723c",
+    "src/protocol/txn.rs": "bc0dfb67b7237f70eff891478f3ffc6efa18497a1e3c9326cd35e62ff202be39",
+    "src/protocol/records.rs": "fb1fc8a27514ef04104fdbf463d5a11871fe244dc698a8f39986957844a7a391",
+    "src/consumer.rs": "3e4e0db6a57e6e69f0a284a74b8aeee173fc4b5411f7f163610e2d11a743f483",
+    "src/producer.rs": "9fe8f7f499cab78ad9952c473529a74ebe591729c2d9d0be53ac58a07aebec39",
+    "src/net.rs": "caaa9c1e31355d28337d9e63b74e76c5abb65e0bab1b0c7792298bb8842abd42"
+  },
+  "matches": {
+    "src/protocol/buf.rs": [
+      {
+        "line": 156,
+        "text": "out.try_reserve_exact(len)"
+      },
+      {
+        "line": 1038,
+        "text": "let mut out = Vec::with_capacity(n);"
+      },
+      {
+        "line": 1430,
+        "text": "assert!(get_array_len(&mut cur, false).is_err());"
+      },
+      {
+        "line": 1436,
+        "text": "assert!(get_array_len(&mut cur, true).is_err());"
+      }
+    ],
+    "src/protocol/api.rs": [
+      {
+        "line": 346,
+        "text": "buf.reserve(needed - buf.capacity());"
+      },
+      {
+        "line": 382,
+        "text": "let count = buf::get_array_len(buf, flexible)?.unwrap_or(0);"
+      },
+      {
+        "line": 383,
+        "text": "let mut api_keys = Vec::with_capacity(count);"
+      },
+      {
+        "line": 502,
+        "text": "buf.reserve(needed - buf.capacity());"
+      },
+      {
+        "line": 688,
+        "text": "let n = buf::get_array_len(buf, true)?.unwrap_or(0);"
+      },
+      {
+        "line": 689,
+        "text": "let mut out = Vec::with_capacity(n);"
+      },
+      {
+        "line": 716,
+        "text": "let n = buf::get_array_len(buf, true)?.unwrap_or(0);"
+      },
+      {
+        "line": 717,
+        "text": "let mut out = Vec::with_capacity(n);"
+      },
+      {
+        "line": 1067,
+        "text": "let n = buf::get_array_len(buf, true)?.unwrap_or(0);"
+      },
+      {
+        "line": 1068,
+        "text": "let mut out = Vec::with_capacity(n);"
+      },
+      {
+        "line": 1269,
+        "text": "let count = buf::get_array_len(buf, true)?.unwrap_or(0);"
+      },
+      {
+        "line": 1273,
+        "text": "let mut out = Vec::with_capacity(count);"
+      },
+      {
+        "line": 2212,
+        "text": "buf.reserve(needed - buf.capacity());"
+      },
+      {
+        "line": 2697,
+        "text": "let topics = match buf::get_array_len(buf, flexible)? {"
+      },
+      {
+        "line": 2700,
+        "text": "let mut topics = Vec::with_capacity(n);"
+      },
+      {
+        "line": 2746,
+        "text": "let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);"
+      },
+      {
+        "line": 2749,
+        "text": "out.try_reserve(n)"
+      },
+      {
+        "line": 2807,
+        "text": "let broker_count = buf::get_array_len(buf, flexible)?.unwrap_or(0);"
+      },
+      {
+        "line": 2860,
+        "text": "let topic_count = buf::get_array_len(buf, flexible)?.unwrap_or(0);"
+      },
+      {
+        "line": 2952,
+        "text": "let broker_count = buf::get_array_len(buf, flexible)?.unwrap_or(0);"
+      },
+      {
+        "line": 3011,
+        "text": "let topic_count = buf::get_array_len(buf, flexible)?.unwrap_or(0);"
+      },
+      {
+        "line": 3115,
+        "text": "let part_count = buf::get_array_len(buf, flexible)?.unwrap_or(0);"
+      },
+      {
+        "line": 4241,
+        "text": "Vec::with_capacity(partitions.len());"
+      },
+      {
+        "line": 4403,
+        "text": "buf.reserve(needed - buf.capacity());"
+      },
+      {
+        "line": 4612,
+        "text": "let topic_count = buf::get_array_len(buf, flexible)?.unwrap_or(0);"
+      },
+      {
+        "line": 4613,
+        "text": "let mut topics = Vec::with_capacity(topic_count);"
+      },
+      {
+        "line": 4622,
+        "text": "let part_count = buf::get_array_len(buf, flexible)?.unwrap_or(0);"
+      },
+      {
+        "line": 4623,
+        "text": "let mut partitions = Vec::with_capacity(part_count);"
+      },
+      {
+        "line": 4671,
+        "text": "let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);"
+      },
+      {
+        "line": 4672,
+        "text": "let mut errors = Vec::with_capacity(n);"
+      },
+      {
+        "line": 4792,
+        "text": "buf.reserve(needed - buf.capacity());"
+      },
+      {
+        "line": 4950,
+        "text": "buf.reserve(needed - buf.capacity());"
+      },
+      {
+        "line": 5171,
+        "text": "buf.reserve(needed - buf.capacity());"
+      },
+      {
+        "line": 5338,
+        "text": ".try_reserve_exact(need - items.capacity())"
+      },
+      {
+        "line": 5349,
+        "text": "let topic_count = buf::get_array_len(buf, flexible)?.unwrap_or(0);"
+      },
+      {
+        "line": 5360,
+        "text": "let part_count = buf::get_array_len(buf, flexible)?.unwrap_or(0);"
+      },
+      {
+        "line": 5489,
+        "text": "let topic_count = buf::get_array_len(buf, flexible)?.unwrap_or(0);"
+      },
+      {
+        "line": 5498,
+        "text": "let part_count = buf::get_array_len(buf, flexible)?.unwrap_or(0);"
+      },
+      {
+        "line": 5535,
+        "text": "let topic_count = buf::get_array_len(buf, flexible)?.unwrap_or(0);"
+      },
+      {
+        "line": 5545,
+        "text": "let part_count = buf::get_array_len(buf, flexible)?.unwrap_or(0);"
+      }
+    ],
+    "src/protocol/fetch.rs": [
+      {
+        "line": 1677,
+        "text": "buf.reserve(needed - buf.capacity());"
+      },
+      {
+        "line": 1966,
+        "text": "buf.reserve(needed - buf.capacity());"
+      },
+      {
+        "line": 2486,
+        "text": "let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);"
+      },
+      {
+        "line": 2487,
+        "text": "let mut topics = Vec::with_capacity(n);"
+      },
+      {
+        "line": 2490,
+        "text": "let pn = buf::get_array_len(buf, flexible)?.unwrap_or(0);"
+      },
+      {
+        "line": 2491,
+        "text": "let mut partitions = Vec::with_capacity(pn);"
+      },
+      {
+        "line": 2492,
+        "text": "let mut topic_high_watermarks = high_watermarks.as_ref().map(|_| Vec::with_capacity(pn));"
+      },
+      {
+        "line": 2544,
+        "text": "let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);"
+      },
+      {
+        "line": 2545,
+        "text": "forgotten_out.reserve(n);"
+      },
+      {
+        "line": 2548,
+        "text": "let pn = buf::get_array_len(buf, flexible)?.unwrap_or(0);"
+      },
+      {
+        "line": 2549,
+        "text": "let mut partitions = Vec::with_capacity(pn);"
+      },
+      {
+        "line": 2677,
+        "text": "buf.reserve(needed - buf.capacity());"
+      },
+      {
+        "line": 2786,
+        "text": "buf.reserve(needed - buf.capacity());"
+      },
+      {
+        "line": 2903,
+        "text": "buf.reserve(needed - buf.capacity());"
+      },
+      {
+        "line": 3318,
+        "text": ".try_reserve_exact(count - items.capacity())"
+      },
+      {
+        "line": 3352,
+        "text": "let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);"
+      },
+      {
+        "line": 3390,
+        "text": "let pn = buf::get_array_len(buf, flexible)?.unwrap_or(0);"
+      },
+      {
+        "line": 3472,
+        "text": "let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);"
+      },
+      {
+        "line": 3511,
+        "text": "let pn = buf::get_array_len(buf, flexible)?.unwrap_or(0);"
+      },
+      {
+        "line": 3600,
+        "text": "let aborted_len = buf::get_array_len(buf, flexible)?.unwrap_or(0);"
+      },
+      {
+        "line": 3613,
+        "text": ".try_reserve(aborted_len)"
+      },
+      {
+        "line": 3704,
+        "text": "let aborted_len = buf::get_array_len(buf, flexible)?.unwrap_or(0);"
+      },
+      {
+        "line": 3717,
+        "text": ".try_reserve(aborted_len)"
+      }
+    ],
+    "src/protocol/group.rs": [
+      {
+        "line": 32,
+        "text": "let mut out = Vec::with_capacity(current.len().saturating_add(new_topics.len()));"
+      },
+      {
+        "line": 522,
+        "text": "let n = buf::get_array_len(&mut bytes, false)?.unwrap_or(0);"
+      },
+      {
+        "line": 526,
+        "text": "let pn = buf::get_array_len(&mut bytes, false)?.unwrap_or(0);"
+      },
+      {
+        "line": 548,
+        "text": "let n = buf::get_array_len(&mut bytes, false)?.unwrap_or(0);"
+      },
+      {
+        "line": 549,
+        "text": "let mut topics = Vec::with_capacity(n);"
+      },
+      {
+        "line": 566,
+        "text": "let tn = buf::get_array_len(&mut bytes, false)?.unwrap_or(0);"
+      },
+      {
+        "line": 569,
+        "text": "let pn = buf::get_array_len(&mut bytes, false)?.unwrap_or(0);"
+      },
+      {
+        "line": 600,
+        "text": "let n = buf::get_array_len(&mut bytes, false)?.unwrap_or(0);"
+      },
+      {
+        "line": 601,
+        "text": "let mut topics = Vec::with_capacity(n);"
+      },
+      {
+        "line": 624,
+        "text": "let tn = buf::get_array_len(&mut bytes, false)?.unwrap_or(0);"
+      },
+      {
+        "line": 627,
+        "text": "let pn = buf::get_array_len(&mut bytes, false)?.unwrap_or(0);"
+      },
+      {
+        "line": 886,
+        "text": "let mut slots = Vec::with_capacity(parts.len());"
+      },
+      {
+        "line": 906,
+        "text": "let mut by_topic: Vec<Option<(String, Vec<i32>)>> = Vec::with_capacity(topic_count);"
+      },
+      {
+        "line": 1256,
+        "text": "let n = buf::get_array_len(buf, true)?.unwrap_or(0);"
+      },
+      {
+        "line": 1257,
+        "text": "let mut keys = Vec::with_capacity(n);"
+      },
+      {
+        "line": 1524,
+        "text": "let n = buf::get_array_len(buf, true)?.unwrap_or(0);"
+      },
+      {
+        "line": 1525,
+        "text": "let mut out = Vec::with_capacity(n);"
+      },
+      {
+        "line": 1590,
+        "text": "let n = buf::get_array_len(buf, true)?.unwrap_or(0);"
+      },
+      {
+        "line": 1591,
+        "text": "let mut out = Vec::with_capacity(n);"
+      },
+      {
+        "line": 2061,
+        "text": "buf.reserve(needed - buf.capacity());"
+      },
+      {
+        "line": 2218,
+        "text": "let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);"
+      },
+      {
+        "line": 2219,
+        "text": "let mut protocols = Vec::with_capacity(n);"
+      },
+      {
+        "line": 2557,
+        "text": "let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);"
+      },
+      {
+        "line": 2558,
+        "text": "let mut members = Vec::with_capacity(n);"
+      },
+      {
+        "line": 2626,
+        "text": "let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);"
+      },
+      {
+        "line": 2627,
+        "text": "let mut members = Vec::with_capacity(n);"
+      },
+      {
+        "line": 2955,
+        "text": "let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);"
+      },
+      {
+        "line": 2956,
+        "text": "let mut assignments = Vec::with_capacity(n);"
+      },
+      {
+        "line": 3282,
+        "text": "buf.reserve(needed - buf.capacity());"
+      },
+      {
+        "line": 3576,
+        "text": "let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);"
+      },
+      {
+        "line": 3577,
+        "text": "let mut members = Vec::with_capacity(n);"
+      },
+      {
+        "line": 3714,
+        "text": "let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);"
+      },
+      {
+        "line": 3747,
+        "text": "let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);"
+      },
+      {
+        "line": 3748,
+        "text": "members.reserve(n);"
+      },
+      {
+        "line": 5915,
+        "text": "let tn = buf::get_array_len(buf, flexible)?.unwrap_or(0);"
+      },
+      {
+        "line": 5916,
+        "text": "let mut topics = Vec::with_capacity(tn);"
+      },
+      {
+        "line": 5919,
+        "text": "let pn = buf::get_array_len(buf, flexible)?.unwrap_or(0);"
+      },
+      {
+        "line": 5920,
+        "text": "let mut partitions = Vec::with_capacity(pn);"
+      },
+      {
+        "line": 6447,
+        "text": "let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);"
+      },
+      {
+        "line": 6448,
+        "text": "let mut topics = Vec::with_capacity(n);"
+      },
+      {
+        "line": 6451,
+        "text": "let pn = buf::get_array_len(buf, flexible)?.unwrap_or(0);"
+      },
+      {
+        "line": 6452,
+        "text": "let mut partitions = Vec::with_capacity(pn);"
+      },
+      {
+        "line": 6487,
+        "text": "let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);"
+      },
+      {
+        "line": 6488,
+        "text": "let mut topics = Vec::with_capacity(n);"
+      },
+      {
+        "line": 6492,
+        "text": "let pn = buf::get_array_len(buf, flexible)?.unwrap_or(0);"
+      },
+      {
+        "line": 6493,
+        "text": "let mut partitions = Vec::with_capacity(pn);"
+      },
+      {
+        "line": 6675,
+        "text": "let Some(n) = buf::get_array_len(buf, flexible)? else {"
+      },
+      {
+        "line": 6678,
+        "text": "let mut topics = Vec::with_capacity(n);"
+      },
+      {
+        "line": 6681,
+        "text": "let pn = buf::get_array_len(buf, flexible)?.unwrap_or(0);"
+      },
+      {
+        "line": 6682,
+        "text": "let mut partitions = Vec::with_capacity(pn);"
+      },
+      {
+        "line": 7055,
+        "text": "let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);"
+      },
+      {
+        "line": 7056,
+        "text": "let mut topics = Vec::with_capacity(n);"
+      },
+      {
+        "line": 7059,
+        "text": "let pn = buf::get_array_len(buf, flexible)?.unwrap_or(0);"
+      },
+      {
+        "line": 7060,
+        "text": "let mut partitions = Vec::with_capacity(pn);"
+      },
+      {
+        "line": 7075,
+        "text": "let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);"
+      },
+      {
+        "line": 7076,
+        "text": "let mut topics = Vec::with_capacity(n);"
+      },
+      {
+        "line": 7080,
+        "text": "let pn = buf::get_array_len(buf, flexible)?.unwrap_or(0);"
+      },
+      {
+        "line": 7081,
+        "text": "let mut partitions = Vec::with_capacity(pn);"
+      },
+      {
+        "line": 7170,
+        "text": "let n = buf::get_array_len(buf, true)?.unwrap_or(0);"
+      },
+      {
+        "line": 7171,
+        "text": "let mut groups = Vec::with_capacity(n);"
+      },
+      {
+        "line": 7877,
+        "text": "let n = buf::get_array_len(buf, true)?.unwrap_or(0);"
+      },
+      {
+        "line": 7878,
+        "text": "let mut groups = Vec::with_capacity(n);"
+      },
+      {
+        "line": 8356,
+        "text": "let n = buf::get_array_len(buf, true)?.unwrap_or(0);"
+      },
+      {
+        "line": 8357,
+        "text": "let mut groups = Vec::with_capacity(n);"
+      },
+      {
+        "line": 8752,
+        "text": "let n = buf::get_array_len(buf, false)?.unwrap_or(0);"
+      },
+      {
+        "line": 8753,
+        "text": "let mut topics = Vec::with_capacity(n);"
+      },
+      {
+        "line": 8756,
+        "text": "let pn = buf::get_array_len(buf, false)?.unwrap_or(0);"
+      },
+      {
+        "line": 8757,
+        "text": "let mut partitions = Vec::with_capacity(pn);"
+      },
+      {
+        "line": 8993,
+        "text": "let n = buf::get_array_len(buf, false)?.unwrap_or(0);"
+      },
+      {
+        "line": 8997,
+        "text": "let pn = buf::get_array_len(buf, false)?.unwrap_or(0);"
+      },
+      {
+        "line": 9024,
+        "text": "let n = buf::get_array_len(buf, false)?.unwrap_or(0);"
+      },
+      {
+        "line": 9029,
+        "text": "let pn = buf::get_array_len(buf, false)?.unwrap_or(0);"
+      },
+      {
+        "line": 9112,
+        "text": "buf.reserve(needed - buf.capacity());"
+      },
+      {
+        "line": 9203,
+        "text": "let mut merged = Vec::with_capacity(order.len());"
+      },
+      {
+        "line": 9289,
+        "text": "buf.reserve(needed - buf.capacity());"
+      },
+      {
+        "line": 9409,
+        "text": "buf.reserve(needed - buf.capacity());"
+      },
+      {
+        "line": 9452,
+        "text": "buf.reserve(needed - buf.capacity());"
+      },
+      {
+        "line": 9477,
+        "text": "buf.reserve(needed - buf.capacity());"
+      },
+      {
+        "line": 9596,
+        "text": "let n = buf::get_array_len(&mut bytes, false)?.unwrap_or(0);"
+      },
+      {
+        "line": 9601,
+        "text": "let pn = buf::get_array_len(&mut bytes, false)?.unwrap_or(0);"
+      },
+      {
+        "line": 9639,
+        "text": "let mut slots = Vec::with_capacity(parts.len());"
+      },
+      {
+        "line": 9661,
+        "text": "let mut by_topic: Vec<Option<(String, Vec<i32>)>> = Vec::with_capacity(topic_count);"
+      }
+    ],
+    "src/protocol/share.rs": [
+      {
+        "line": 420,
+        "text": "let mut topics = Vec::with_capacity(topic_order.len());"
+      },
+      {
+        "line": 425,
+        "text": "let mut partitions = Vec::with_capacity(part_order.len());"
+      },
+      {
+        "line": 648,
+        "text": "let mut topics: Vec<ShareFetchedTopic> = Vec::with_capacity(entries.len());"
+      },
+      {
+        "line": 840,
+        "text": "let mut topics: Vec<ShareAcknowledgeResponseTopic> = Vec::with_capacity(entries.len());"
+      },
+      {
+        "line": 922,
+        "text": "buf.reserve(needed - buf.capacity());"
+      },
+      {
+        "line": 957,
+        "text": "buf.reserve(needed - buf.capacity());"
+      },
+      {
+        "line": 1038,
+        "text": "let n = buf::get_array_len(buf, flexible)?;"
+      },
+      {
+        "line": 1042,
+        "text": "let mut names = Vec::with_capacity(n);"
+      },
+      {
+        "line": 1076,
+        "text": "buf.reserve(needed - buf.capacity());"
+      },
+      {
+        "line": 1175,
+        "text": "let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);"
+      },
+      {
+        "line": 1176,
+        "text": "let mut parts = Vec::with_capacity(n);"
+      },
+      {
+        "line": 1179,
+        "text": "let pn = buf::get_array_len(buf, flexible)?.unwrap_or(0);"
+      },
+      {
+        "line": 1180,
+        "text": "let mut partitions = Vec::with_capacity(pn);"
+      },
+      {
+        "line": 1233,
+        "text": "let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);"
+      },
+      {
+        "line": 1234,
+        "text": "let mut parts = Vec::with_capacity(n);"
+      },
+      {
+        "line": 1238,
+        "text": "let pn = buf::get_array_len(buf, flexible)?.unwrap_or(0);"
+      },
+      {
+        "line": 1239,
+        "text": "let mut partitions = Vec::with_capacity(pn);"
+      },
+      {
+        "line": 1324,
+        "text": "let n = buf::get_array_len(buf, true)?.unwrap_or(0);"
+      },
+      {
+        "line": 1325,
+        "text": "let mut out = Vec::with_capacity(n);"
+      },
+      {
+        "line": 1329,
+        "text": "let tn = buf::get_array_len(buf, true)?.unwrap_or(0);"
+      },
+      {
+        "line": 1330,
+        "text": "let mut types = Vec::with_capacity(tn);"
+      },
+      {
+        "line": 1666,
+        "text": "buf.reserve(needed - buf.capacity());"
+      },
+      {
+        "line": 1773,
+        "text": "buf.reserve(needed - buf.capacity());"
+      },
+      {
+        "line": 1992,
+        "text": "let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);"
+      },
+      {
+        "line": 1993,
+        "text": "let mut topics = Vec::with_capacity(n);"
+      },
+      {
+        "line": 1996,
+        "text": "let pn = buf::get_array_len(buf, flexible)?.unwrap_or(0);"
+      },
+      {
+        "line": 1997,
+        "text": "let mut partitions = Vec::with_capacity(pn);"
+      },
+      {
+        "line": 2019,
+        "text": "let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);"
+      },
+      {
+        "line": 2020,
+        "text": "let mut forgotten_out = Vec::with_capacity(n);"
+      },
+      {
+        "line": 2023,
+        "text": "let pn = buf::get_array_len(buf, flexible)?.unwrap_or(0);"
+      },
+      {
+        "line": 2024,
+        "text": "let mut partitions = Vec::with_capacity(pn);"
+      },
+      {
+        "line": 2802,
+        "text": "let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);"
+      },
+      {
+        "line": 2834,
+        "text": "let pn = buf::get_array_len(buf, flexible)?.unwrap_or(0);"
+      },
+      {
+        "line": 2916,
+        "text": "let an = buf::get_array_len(buf, flexible)?.unwrap_or(0);"
+      },
+      {
+        "line": 2998,
+        "text": "let count = buf::get_array_len(buf, true)?.unwrap_or(0);"
+      },
+      {
+        "line": 2999,
+        "text": "let mut endpoints = Vec::with_capacity(count);"
+      },
+      {
+        "line": 3037,
+        "text": "let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);"
+      },
+      {
+        "line": 3070,
+        "text": "let pn = buf::get_array_len(buf, flexible)?.unwrap_or(0);"
+      },
+      {
+        "line": 3148,
+        "text": "let an = buf::get_array_len(buf, flexible)?.unwrap_or(0);"
+      },
+      {
+        "line": 3220,
+        "text": "let en = buf::get_array_len(buf, true)?.unwrap_or(0);"
+      },
+      {
+        "line": 3221,
+        "text": "let mut endpoints = Vec::with_capacity(en);"
+      },
+      {
+        "line": 3433,
+        "text": ".try_reserve_exact(extra)"
+      },
+      {
+        "line": 3565,
+        "text": "let mut topics = Vec::with_capacity(topic_order.len());"
+      },
+      {
+        "line": 3570,
+        "text": "let mut partitions = Vec::with_capacity(part_order.len());"
+      },
+      {
+        "line": 3664,
+        "text": "buf.reserve(needed - buf.capacity());"
+      },
+      {
+        "line": 3961,
+        "text": "buf.reserve(needed - buf.capacity());"
+      },
+      {
+        "line": 4030,
+        "text": "let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);"
+      },
+      {
+        "line": 4034,
+        "text": "let pn = buf::get_array_len(buf, flexible)?.unwrap_or(0);"
+      },
+      {
+        "line": 4452,
+        "text": "let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);"
+      },
+      {
+        "line": 4453,
+        "text": "let mut topics = Vec::with_capacity(n);"
+      },
+      {
+        "line": 4456,
+        "text": "let pn = buf::get_array_len(buf, flexible)?.unwrap_or(0);"
+      },
+      {
+        "line": 4457,
+        "text": "let mut partitions = Vec::with_capacity(pn);"
+      },
+      {
+        "line": 4515,
+        "text": "let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);"
+      },
+      {
+        "line": 4516,
+        "text": "let mut topics = Vec::with_capacity(n);"
+      },
+      {
+        "line": 4520,
+        "text": "let pn = buf::get_array_len(buf, flexible)?.unwrap_or(0);"
+      },
+      {
+        "line": 4521,
+        "text": "let mut partitions = Vec::with_capacity(pn);"
+      },
+      {
+        "line": 4556,
+        "text": "let en = buf::get_array_len(buf, true)?.unwrap_or(0);"
+      },
+      {
+        "line": 4557,
+        "text": "let mut endpoints = Vec::with_capacity(en);"
+      },
+      {
+        "line": 5417,
+        "text": "let mut records = Vec::with_capacity(batches.saturating_mul(frame.len()));"
+      },
+      {
+        "line": 5714,
+        "text": "crate::protocol::buf::get_array_len(&mut cur, true)"
+      },
+      {
+        "line": 5720,
+        "text": "crate::protocol::buf::get_array_len(&mut cur, true)"
+      },
+      {
+        "line": 7230,
+        "text": "let n = buf::get_array_len(&mut cur, true).unwrap().unwrap_or(0);"
+      },
+      {
+        "line": 7233,
+        "text": "let pn = buf::get_array_len(&mut cur, true).unwrap().unwrap_or(0);"
+      }
+    ],
+    "src/protocol/admin.rs": [
+      {
+        "line": 1030,
+        "text": "let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);"
+      },
+      {
+        "line": 1031,
+        "text": "let mut out = Vec::with_capacity(n);"
+      },
+      {
+        "line": 1039,
+        "text": "let n = buf::get_array_len(buf, flexible)?;"
+      },
+      {
+        "line": 1043,
+        "text": "let mut out = Vec::with_capacity(n);"
+      },
+      {
+        "line": 1321,
+        "text": "buf.reserve(needed - buf.capacity());"
+      },
+      {
+        "line": 1449,
+        "text": "buf.reserve(needed - buf.capacity());"
+      },
+      {
+        "line": 1589,
+        "text": "let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);"
+      },
+      {
+        "line": 1590,
+        "text": "let mut topics = Vec::with_capacity(n);"
+      },
+      {
+        "line": 1595,
+        "text": "let an = buf::get_array_len(buf, flexible)?.unwrap_or(0);"
+      },
+      {
+        "line": 1596,
+        "text": "let mut assignments = Vec::with_capacity(an);"
+      },
+      {
+        "line": 1608,
+        "text": "let cn = buf::get_array_len(buf, flexible)?.unwrap_or(0);"
+      },
+      {
+        "line": 1609,
+        "text": "let mut configs = Vec::with_capacity(cn);"
+      },
+      {
+        "line": 1673,
+        "text": "buf.reserve(needed - buf.capacity());"
+      },
+      {
+        "line": 1764,
+        "text": "buf.reserve(needed - buf.capacity());"
+      },
+      {
+        "line": 1833,
+        "text": "let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);"
+      },
+      {
+        "line": 1834,
+        "text": "let mut out = Vec::with_capacity(n);"
+      },
+      {
+        "line": 1851,
+        "text": "let cn = buf::get_array_len(buf, true)?.unwrap_or(0);"
+      },
+      {
+        "line": 1852,
+        "text": "let mut configs = Vec::with_capacity(cn);"
+      },
+      {
+        "line": 1898,
+        "text": "let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);"
+      },
+      {
+        "line": 1899,
+        "text": "let mut out = Vec::with_capacity(n);"
+      },
+      {
+        "line": 1917,
+        "text": "let cn = buf::get_array_len(buf, true)?.unwrap_or(0);"
+      },
+      {
+        "line": 1918,
+        "text": "let mut configs = Vec::with_capacity(cn);"
+      },
+      {
+        "line": 2190,
+        "text": "buf.reserve(needed - buf.capacity());"
+      },
+      {
+        "line": 2302,
+        "text": "buf.reserve(needed - buf.capacity());"
+      },
+      {
+        "line": 2368,
+        "text": "buf.reserve(needed - buf.capacity());"
+      },
+      {
+        "line": 2461,
+        "text": "let n = buf::get_array_len(buf, true)?.unwrap_or(0);"
+      },
+      {
+        "line": 2462,
+        "text": "topics.reserve(n);"
+      },
+      {
+        "line": 2470,
+        "text": "let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);"
+      },
+      {
+        "line": 2471,
+        "text": "topics.reserve(n);"
+      },
+      {
+        "line": 2514,
+        "text": "buf.reserve(needed - buf.capacity());"
+      },
+      {
+        "line": 2602,
+        "text": "buf.reserve(needed - buf.capacity());"
+      },
+      {
+        "line": 2674,
+        "text": "let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);"
+      },
+      {
+        "line": 2675,
+        "text": "let mut out = Vec::with_capacity(n);"
+      },
+      {
+        "line": 2721,
+        "text": "let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);"
+      },
+      {
+        "line": 2722,
+        "text": "let mut out = Vec::with_capacity(n);"
+      },
+      {
+        "line": 2899,
+        "text": "buf.reserve(needed - buf.capacity());"
+      },
+      {
+        "line": 2989,
+        "text": "buf.reserve(needed - buf.capacity());"
+      },
+      {
+        "line": 3095,
+        "text": "let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);"
+      },
+      {
+        "line": 3096,
+        "text": "let mut resources = Vec::with_capacity(n);"
+      },
+      {
+        "line": 3185,
+        "text": "buf.reserve(needed - buf.capacity());"
+      },
+      {
+        "line": 3313,
+        "text": "buf.reserve(needed - buf.capacity());"
+      },
+      {
+        "line": 3366,
+        "text": "let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);"
+      },
+      {
+        "line": 3367,
+        "text": "let mut out = Vec::with_capacity(n);"
+      },
+      {
+        "line": 3373,
+        "text": "let en = buf::get_array_len(buf, flexible)?.unwrap_or(0);"
+      },
+      {
+        "line": 3374,
+        "text": "let mut entries = Vec::with_capacity(en);"
+      },
+      {
+        "line": 3391,
+        "text": "let sn = buf::get_array_len(buf, flexible)?.unwrap_or(0);"
+      },
+      {
+        "line": 3392,
+        "text": "synonyms.reserve(sn);"
+      },
+      {
+        "line": 3452,
+        "text": "let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);"
+      },
+      {
+        "line": 3453,
+        "text": "let mut out = Vec::with_capacity(n);"
+      },
+      {
+        "line": 3460,
+        "text": "let en = buf::get_array_len(buf, flexible)?.unwrap_or(0);"
+      },
+      {
+        "line": 3461,
+        "text": "let mut entries = Vec::with_capacity(en);"
+      },
+      {
+        "line": 3478,
+        "text": "let sn = buf::get_array_len(buf, flexible)?.unwrap_or(0);"
+      },
+      {
+        "line": 3479,
+        "text": "synonyms.reserve(sn);"
+      },
+      {
+        "line": 3814,
+        "text": "buf.reserve(needed - buf.capacity());"
+      },
+      {
+        "line": 3931,
+        "text": "buf.reserve(needed - buf.capacity());"
+      },
+      {
+        "line": 4040,
+        "text": "let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);"
+      },
+      {
+        "line": 4041,
+        "text": "let mut topics = Vec::with_capacity(n);"
+      },
+      {
+        "line": 4045,
+        "text": "let assignments = match buf::get_array_len(buf, flexible)? {"
+      },
+      {
+        "line": 4048,
+        "text": "let mut assignments = Vec::with_capacity(an);"
+      },
+      {
+        "line": 4105,
+        "text": "buf.reserve(needed - buf.capacity());"
+      },
+      {
+        "line": 4160,
+        "text": "buf.reserve(needed - buf.capacity());"
+      },
+      {
+        "line": 4206,
+        "text": "let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);"
+      },
+      {
+        "line": 4207,
+        "text": "let mut out = Vec::with_capacity(n);"
+      },
+      {
+        "line": 4232,
+        "text": "let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);"
+      },
+      {
+        "line": 4233,
+        "text": "let mut out = Vec::with_capacity(n);"
+      },
+      {
+        "line": 4548,
+        "text": "buf.reserve(needed - buf.capacity());"
+      },
+      {
+        "line": 4656,
+        "text": "buf.reserve(needed - buf.capacity());"
+      },
+      {
+        "line": 4836,
+        "text": "buf.reserve(needed - buf.capacity());"
+      },
+      {
+        "line": 4928,
+        "text": "buf.reserve(needed - buf.capacity());"
+      },
+      {
+        "line": 5039,
+        "text": "let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);"
+      },
+      {
+        "line": 5040,
+        "text": "let mut resources = Vec::with_capacity(n);"
+      },
+      {
+        "line": 5044,
+        "text": "let cn = buf::get_array_len(buf, flexible)?.unwrap_or(0);"
+      },
+      {
+        "line": 5045,
+        "text": "let mut configs = Vec::with_capacity(cn);"
+      },
+      {
+        "line": 5087,
+        "text": "buf.reserve(needed - buf.capacity());"
+      },
+      {
+        "line": 5123,
+        "text": "buf.reserve(needed - buf.capacity());"
+      },
+      {
+        "line": 5182,
+        "text": "buf.reserve(needed - buf.capacity());"
+      },
+      {
+        "line": 5260,
+        "text": "let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);"
+      },
+      {
+        "line": 5261,
+        "text": "let mut out = Vec::with_capacity(n);"
+      },
+      {
+        "line": 5292,
+        "text": "let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);"
+      },
+      {
+        "line": 5293,
+        "text": "let mut out = Vec::with_capacity(n);"
+      },
+      {
+        "line": 5404,
+        "text": "let mut deduped = Vec::with_capacity(indexes.len());"
+      },
+      {
+        "line": 5495,
+        "text": "buf.reserve(needed - buf.capacity());"
+      },
+      {
+        "line": 5625,
+        "text": "buf.reserve(needed - buf.capacity());"
+      },
+      {
+        "line": 5715,
+        "text": "buf.reserve(needed - buf.capacity());"
+      },
+      {
+        "line": 5822,
+        "text": "let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);"
+      },
+      {
+        "line": 5823,
+        "text": "let mut resources = Vec::with_capacity(n);"
+      },
+      {
+        "line": 5827,
+        "text": "let cn = buf::get_array_len(buf, flexible)?.unwrap_or(0);"
+      },
+      {
+        "line": 5828,
+        "text": "let mut configs = Vec::with_capacity(cn);"
+      },
+      {
+        "line": 5868,
+        "text": "buf.reserve(needed - buf.capacity());"
+      },
+      {
+        "line": 5937,
+        "text": "buf.reserve(needed - buf.capacity());"
+      },
+      {
+        "line": 5997,
+        "text": "buf.reserve(needed - buf.capacity());"
+      },
+      {
+        "line": 6051,
+        "text": "let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);"
+      },
+      {
+        "line": 6052,
+        "text": "let mut out = Vec::with_capacity(n);"
+      },
+      {
+        "line": 6083,
+        "text": "let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);"
+      },
+      {
+        "line": 6084,
+        "text": "let mut out = Vec::with_capacity(n);"
+      },
+      {
+        "line": 6274,
+        "text": "buf.reserve(needed - buf.capacity());"
+      },
+      {
+        "line": 6376,
+        "text": "buf.reserve(needed - buf.capacity());"
+      },
+      {
+        "line": 6435,
+        "text": "buf.reserve(needed - buf.capacity());"
+      },
+      {
+        "line": 6556,
+        "text": "let tn = buf::get_array_len(buf, flexible)?.unwrap_or(0);"
+      },
+      {
+        "line": 6557,
+        "text": "let mut topics = Vec::with_capacity(tn);"
+      },
+      {
+        "line": 6560,
+        "text": "let pn = buf::get_array_len(buf, flexible)?.unwrap_or(0);"
+      },
+      {
+        "line": 6561,
+        "text": "let mut partitions = Vec::with_capacity(pn);"
+      },
+      {
+        "line": 6599,
+        "text": "buf.reserve(needed - buf.capacity());"
+      },
+      {
+        "line": 6659,
+        "text": "buf.reserve(needed - buf.capacity());"
+      },
+      {
+        "line": 6723,
+        "text": "buf.reserve(needed - buf.capacity());"
+      },
+      {
+        "line": 6801,
+        "text": "let tn = buf::get_array_len(buf, flexible)?.unwrap_or(0);"
+      },
+      {
+        "line": 6802,
+        "text": "let mut topics = Vec::with_capacity(tn);"
+      },
+      {
+        "line": 6805,
+        "text": "let pn = buf::get_array_len(buf, flexible)?.unwrap_or(0);"
+      },
+      {
+        "line": 6806,
+        "text": "let mut partitions = Vec::with_capacity(pn);"
+      },
+      {
+        "line": 6840,
+        "text": "let tn = buf::get_array_len(buf, flexible)?.unwrap_or(0);"
+      },
+      {
+        "line": 6841,
+        "text": "let mut topics = Vec::with_capacity(tn);"
+      },
+      {
+        "line": 6845,
+        "text": "let pn = buf::get_array_len(buf, flexible)?.unwrap_or(0);"
+      },
+      {
+        "line": 6846,
+        "text": "let mut partitions = Vec::with_capacity(pn);"
+      },
+      {
+        "line": 7347,
+        "text": "buf.reserve(needed - buf.capacity());"
+      },
+      {
+        "line": 7411,
+        "text": "buf.reserve(needed - buf.capacity());"
+      },
+      {
+        "line": 7764,
+        "text": "let Some(n) = buf::get_array_len(buf, true)? else {"
+      },
+      {
+        "line": 7767,
+        "text": "let mut out = Vec::with_capacity(n);"
+      },
+      {
+        "line": 7951,
+        "text": "buf.reserve(needed - buf.capacity());"
+      },
+      {
+        "line": 8038,
+        "text": "let count = buf::get_array_len(input, true)?"
+      },
+      {
+        "line": 8085,
+        "text": "let mut topics = Vec::with_capacity(n);"
+      },
+      {
+        "line": 8091,
+        "text": "let mut partitions = Vec::with_capacity(pn);"
+      },
+      {
+        "line": 8094,
+        "text": "let replicas = match buf::get_array_len(buf, true)? {"
+      },
+      {
+        "line": 8101,
+        "text": "let mut replicas = Vec::with_capacity(count);"
+      },
+      {
+        "line": 8180,
+        "text": "buf.reserve(needed - buf.capacity());"
+      },
+      {
+        "line": 8273,
+        "text": "let mut results = Vec::with_capacity(n);"
+      },
+      {
+        "line": 8278,
+        "text": "let mut partitions = Vec::with_capacity(pn);"
+      },
+      {
+        "line": 8622,
+        "text": "buf.reserve(needed - buf.capacity());"
+      },
+      {
+        "line": 8685,
+        "text": "buf.reserve(needed - buf.capacity());"
+      },
+      {
+        "line": 8745,
+        "text": "let topics = match buf::get_array_len(buf, true)? {"
+      },
+      {
+        "line": 8748,
+        "text": "let mut topics = Vec::with_capacity(n);"
+      },
+      {
+        "line": 8774,
+        "text": "buf.reserve(needed - buf.capacity());"
+      },
+      {
+        "line": 8832,
+        "text": "let n = buf::get_array_len(buf, true)?.unwrap_or(0);"
+      },
+      {
+        "line": 8833,
+        "text": "let mut topics = Vec::with_capacity(n);"
+      },
+      {
+        "line": 8836,
+        "text": "let pn = buf::get_array_len(buf, true)?.unwrap_or(0);"
+      },
+      {
+        "line": 8837,
+        "text": "let mut partitions = Vec::with_capacity(pn);"
+      },
+      {
+        "line": 8872,
+        "text": "let n = buf::get_array_len(buf, true)?.unwrap_or(0);"
+      },
+      {
+        "line": 8873,
+        "text": "let mut topics = Vec::with_capacity(n);"
+      },
+      {
+        "line": 8877,
+        "text": "let pn = buf::get_array_len(buf, true)?.unwrap_or(0);"
+      },
+      {
+        "line": 8878,
+        "text": "let mut partitions = Vec::with_capacity(pn);"
+      },
+      {
+        "line": 9392,
+        "text": "buf.reserve(needed - buf.capacity());"
+      },
+      {
+        "line": 9480,
+        "text": "buf.reserve(needed - buf.capacity());"
+      },
+      {
+        "line": 9544,
+        "text": "let n = buf::get_array_len(buf, true)?"
+      },
+      {
+        "line": 9546,
+        "text": "let mut updates = Vec::with_capacity(n);"
+      },
+      {
+        "line": 9588,
+        "text": "buf.reserve(needed - buf.capacity());"
+      },
+      {
+        "line": 9641,
+        "text": "let n = buf::get_array_len(buf, true)?"
+      },
+      {
+        "line": 9643,
+        "text": "results.reserve(n);"
+      },
+      {
+        "line": 9679,
+        "text": "let n = buf::get_array_len(buf, true)?"
+      },
+      {
+        "line": 9681,
+        "text": "results.reserve(n);"
+      },
+      {
+        "line": 9996,
+        "text": "buf.reserve(needed - buf.capacity());"
+      },
+      {
+        "line": 10074,
+        "text": "buf.reserve(needed - buf.capacity());"
+      },
+      {
+        "line": 10158,
+        "text": "let n_del = buf::get_array_len(buf, true)?.unwrap_or(0);"
+      },
+      {
+        "line": 10159,
+        "text": "let mut deletions = Vec::with_capacity(n_del);"
+      },
+      {
+        "line": 10166,
+        "text": "let n_up = buf::get_array_len(buf, true)?.unwrap_or(0);"
+      },
+      {
+        "line": 10167,
+        "text": "let mut upsertions = Vec::with_capacity(n_up);"
+      },
+      {
+        "line": 10210,
+        "text": "buf.reserve(needed - buf.capacity());"
+      },
+      {
+        "line": 10248,
+        "text": "let n = buf::get_array_len(buf, true)?.unwrap_or(0);"
+      },
+      {
+        "line": 10249,
+        "text": "let mut results = Vec::with_capacity(n);"
+      },
+      {
+        "line": 10272,
+        "text": "let n = buf::get_array_len(buf, true)?.unwrap_or(0);"
+      },
+      {
+        "line": 10273,
+        "text": "let mut results = Vec::with_capacity(n);"
+      },
+      {
+        "line": 10547,
+        "text": "buf.reserve(needed - buf.capacity());"
+      },
+      {
+        "line": 10572,
+        "text": "buf.reserve(needed - buf.capacity());"
+      },
+      {
+        "line": 10634,
+        "text": "let n = buf::get_array_len(buf, true)?;"
+      },
+      {
+        "line": 10638,
+        "text": "let mut users = Vec::with_capacity(n);"
+      },
+      {
+        "line": 10660,
+        "text": "buf.reserve(needed - buf.capacity());"
+      },
+      {
+        "line": 10717,
+        "text": "let n = buf::get_array_len(buf, true)?.unwrap_or(0);"
+      },
+      {
+        "line": 10718,
+        "text": "let mut results = Vec::with_capacity(n);"
+      },
+      {
+        "line": 10723,
+        "text": "let cn = buf::get_array_len(buf, true)?.unwrap_or(0);"
+      },
+      {
+        "line": 10724,
+        "text": "let mut credential_infos = Vec::with_capacity(cn);"
+      },
+      {
+        "line": 10760,
+        "text": "let n = buf::get_array_len(buf, true)?.unwrap_or(0);"
+      },
+      {
+        "line": 10761,
+        "text": "let mut results = Vec::with_capacity(n);"
+      },
+      {
+        "line": 10767,
+        "text": "let cn = buf::get_array_len(buf, true)?.unwrap_or(0);"
+      },
+      {
+        "line": 10768,
+        "text": "let mut credential_infos = Vec::with_capacity(cn);"
+      },
+      {
+        "line": 11043,
+        "text": "let mut out = Vec::with_capacity(components.len());"
+      },
+      {
+        "line": 11648,
+        "text": "buf.reserve(needed - buf.capacity());"
+      },
+      {
+        "line": 11724,
+        "text": "buf.reserve(needed - buf.capacity());"
+      },
+      {
+        "line": 11836,
+        "text": "let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);"
+      },
+      {
+        "line": 11837,
+        "text": "let mut entries = Vec::with_capacity(n);"
+      },
+      {
+        "line": 11839,
+        "text": "let en = buf::get_array_len(buf, flexible)?.unwrap_or(0);"
+      },
+      {
+        "line": 11840,
+        "text": "let mut entity = Vec::with_capacity(en);"
+      },
+      {
+        "line": 11849,
+        "text": "let on = buf::get_array_len(buf, flexible)?.unwrap_or(0);"
+      },
+      {
+        "line": 11850,
+        "text": "let mut ops = Vec::with_capacity(on);"
+      },
+      {
+        "line": 11900,
+        "text": "buf.reserve(needed - buf.capacity());"
+      },
+      {
+        "line": 11942,
+        "text": "buf.reserve(needed - buf.capacity());"
+      },
+      {
+        "line": 12027,
+        "text": "let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);"
+      },
+      {
+        "line": 12028,
+        "text": "let mut results = Vec::with_capacity(n);"
+      },
+      {
+        "line": 12032,
+        "text": "let en = buf::get_array_len(buf, flexible)?.unwrap_or(0);"
+      },
+      {
+        "line": 12033,
+        "text": "let mut entity = Vec::with_capacity(en);"
+      },
+      {
+        "line": 12066,
+        "text": "let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);"
+      },
+      {
+        "line": 12067,
+        "text": "let mut results = Vec::with_capacity(n);"
+      },
+      {
+        "line": 12072,
+        "text": "let en = buf::get_array_len(buf, flexible)?.unwrap_or(0);"
+      },
+      {
+        "line": 12073,
+        "text": "let mut entity = Vec::with_capacity(en);"
+      },
+      {
+        "line": 12148,
+        "text": "buf.reserve(needed - buf.capacity());"
+      },
+      {
+        "line": 12207,
+        "text": "buf.reserve(needed - buf.capacity());"
+      },
+      {
+        "line": 12270,
+        "text": "let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);"
+      },
+      {
+        "line": 12271,
+        "text": "let mut components = Vec::with_capacity(n);"
+      },
+      {
+        "line": 12307,
+        "text": "buf.reserve(needed - buf.capacity());"
+      },
+      {
+        "line": 12406,
+        "text": "let entries = match buf::get_array_len(buf, flexible)? {"
+      },
+      {
+        "line": 12409,
+        "text": "let mut entries = Vec::with_capacity(n);"
+      },
+      {
+        "line": 12411,
+        "text": "let en = buf::get_array_len(buf, flexible)?.unwrap_or(0);"
+      },
+      {
+        "line": 12412,
+        "text": "let mut entity = Vec::with_capacity(en);"
+      },
+      {
+        "line": 12421,
+        "text": "let vn = buf::get_array_len(buf, flexible)?.unwrap_or(0);"
+      },
+      {
+        "line": 12422,
+        "text": "let mut values = Vec::with_capacity(vn);"
+      },
+      {
+        "line": 12461,
+        "text": "let entries = match buf::get_array_len(buf, flexible)? {"
+      },
+      {
+        "line": 12464,
+        "text": "let mut entries = Vec::with_capacity(n);"
+      },
+      {
+        "line": 12467,
+        "text": "let en = buf::get_array_len(buf, flexible)?.unwrap_or(0);"
+      },
+      {
+        "line": 12468,
+        "text": "let mut entity = Vec::with_capacity(en);"
+      },
+      {
+        "line": 12482,
+        "text": "let vn = buf::get_array_len(buf, flexible)?.unwrap_or(0);"
+      },
+      {
+        "line": 12483,
+        "text": "let mut values = Vec::with_capacity(vn);"
+      },
+      {
+        "line": 12862,
+        "text": "buf.reserve(needed - buf.capacity());"
+      },
+      {
+        "line": 12934,
+        "text": "buf.reserve(needed - buf.capacity());"
+      },
+      {
+        "line": 12985,
+        "text": "buf.reserve(needed - buf.capacity());"
+      },
+      {
+        "line": 13045,
+        "text": "let n = buf::get_array_len(buf, true)?.unwrap_or(0);"
+      },
+      {
+        "line": 13046,
+        "text": "let mut topics = Vec::with_capacity(n);"
+      },
+      {
+        "line": 13049,
+        "text": "let pn = buf::get_array_len(buf, true)?.unwrap_or(0);"
+      },
+      {
+        "line": 13050,
+        "text": "let mut partition_indexes = Vec::with_capacity(pn);"
+      },
+      {
+        "line": 13077,
+        "text": "buf.reserve(needed - buf.capacity());"
+      },
+      {
+        "line": 13147,
+        "text": "let tn = buf::get_array_len(buf, true)?.unwrap_or(0);"
+      },
+      {
+        "line": 13148,
+        "text": "let mut topics = Vec::with_capacity(tn);"
+      },
+      {
+        "line": 13151,
+        "text": "let pn = buf::get_array_len(buf, true)?.unwrap_or(0);"
+      },
+      {
+        "line": 13152,
+        "text": "let mut partitions = Vec::with_capacity(pn);"
+      },
+      {
+        "line": 13157,
+        "text": "let an = buf::get_array_len(buf, true)?.unwrap_or(0);"
+      },
+      {
+        "line": 13158,
+        "text": "let mut active_producers = Vec::with_capacity(an);"
+      },
+      {
+        "line": 13201,
+        "text": "let tn = buf::get_array_len(buf, true)?.unwrap_or(0);"
+      },
+      {
+        "line": 13202,
+        "text": "let mut topics = Vec::with_capacity(tn);"
+      },
+      {
+        "line": 13206,
+        "text": "let pn = buf::get_array_len(buf, true)?.unwrap_or(0);"
+      },
+      {
+        "line": 13207,
+        "text": "let mut partitions = Vec::with_capacity(pn);"
+      },
+      {
+        "line": 13212,
+        "text": "let an = buf::get_array_len(buf, true)?.unwrap_or(0);"
+      },
+      {
+        "line": 13213,
+        "text": "let mut active_producers = Vec::with_capacity(an);"
+      },
+      {
+        "line": 13343,
+        "text": "buf.reserve(needed - buf.capacity());"
+      },
+      {
+        "line": 13373,
+        "text": "buf.reserve(needed - buf.capacity());"
+      },
+      {
+        "line": 13597,
+        "text": "buf.reserve(needed - buf.capacity());"
+      },
+      {
+        "line": 13619,
+        "text": "buf.reserve(needed - buf.capacity());"
+      },
+      {
+        "line": 13662,
+        "text": "let n = buf::get_array_len(buf, true)?.unwrap_or(0);"
+      },
+      {
+        "line": 13663,
+        "text": "let mut ids = Vec::with_capacity(n);"
+      },
+      {
+        "line": 13695,
+        "text": "buf.reserve(needed - buf.capacity());"
+      },
+      {
+        "line": 13756,
+        "text": "let n = buf::get_array_len(buf, true)?.unwrap_or(0);"
+      },
+      {
+        "line": 13757,
+        "text": "let mut states = Vec::with_capacity(n);"
+      },
+      {
+        "line": 13766,
+        "text": "let tn = buf::get_array_len(buf, true)?.unwrap_or(0);"
+      },
+      {
+        "line": 13767,
+        "text": "let mut topics = Vec::with_capacity(tn);"
+      },
+      {
+        "line": 13770,
+        "text": "let pn = buf::get_array_len(buf, true)?.unwrap_or(0);"
+      },
+      {
+        "line": 13771,
+        "text": "let mut partitions = Vec::with_capacity(pn);"
+      },
+      {
+        "line": 13801,
+        "text": "let n = buf::get_array_len(buf, true)?.unwrap_or(0);"
+      },
+      {
+        "line": 13802,
+        "text": "let mut states = Vec::with_capacity(n);"
+      },
+      {
+        "line": 13812,
+        "text": "let tn = buf::get_array_len(buf, true)?.unwrap_or(0);"
+      },
+      {
+        "line": 13813,
+        "text": "let mut topics = Vec::with_capacity(tn);"
+      },
+      {
+        "line": 13816,
+        "text": "let pn = buf::get_array_len(buf, true)?.unwrap_or(0);"
+      },
+      {
+        "line": 13817,
+        "text": "let mut partitions = Vec::with_capacity(pn);"
+      },
+      {
+        "line": 14164,
+        "text": "buf.reserve(needed - buf.capacity());"
+      },
+      {
+        "line": 14266,
+        "text": "let n = buf::get_array_len(buf, true)?"
+      },
+      {
+        "line": 14273,
+        "text": "let mut state_filters = Vec::with_capacity(n);"
+      },
+      {
+        "line": 14281,
+        "text": "let pn = buf::get_array_len(buf, true)?"
+      },
+      {
+        "line": 14288,
+        "text": "let mut producer_id_filters = Vec::with_capacity(pn);"
+      },
+      {
+        "line": 14323,
+        "text": "buf.reserve(needed - buf.capacity());"
+      },
+      {
+        "line": 14382,
+        "text": "let un = buf::get_array_len(buf, true)?.unwrap_or(0);"
+      },
+      {
+        "line": 14383,
+        "text": "let mut unknown_state_filters = Vec::with_capacity(un);"
+      },
+      {
+        "line": 14387,
+        "text": "let n = buf::get_array_len(buf, true)?.unwrap_or(0);"
+      },
+      {
+        "line": 14388,
+        "text": "let mut transaction_states = Vec::with_capacity(n);"
+      },
+      {
+        "line": 14511,
+        "text": "buf.reserve(needed - buf.capacity());"
+      },
+      {
+        "line": 14539,
+        "text": "buf.reserve(needed - buf.capacity());"
+      },
+      {
+        "line": 14593,
+        "text": "let n = buf::get_array_len(buf, true)?.unwrap_or(0);"
+      },
+      {
+        "line": 14594,
+        "text": "let mut brokers = Vec::with_capacity(n);"
+      },
+      {
+        "line": 14646,
+        "text": "let n = buf::get_array_len(buf, true)?.unwrap_or(0);"
+      },
+      {
+        "line": 14647,
+        "text": "let mut brokers = Vec::with_capacity(n);"
+      },
+      {
+        "line": 15147,
+        "text": "buf.reserve(needed - buf.capacity());"
+      },
+      {
+        "line": 15173,
+        "text": "buf.reserve(needed - buf.capacity());"
+      },
+      {
+        "line": 15223,
+        "text": "let n = buf::get_array_len(buf, true)?.unwrap_or(0);"
+      },
+      {
+        "line": 15224,
+        "text": "let mut group_ids = Vec::with_capacity(n);"
+      },
+      {
+        "line": 15252,
+        "text": "let n = buf::get_array_len(buf, true)?.unwrap_or(0);"
+      },
+      {
+        "line": 15253,
+        "text": "let mut topic_partitions = Vec::with_capacity(n);"
+      },
+      {
+        "line": 15257,
+        "text": "let pn = buf::get_array_len(buf, true)?.unwrap_or(0);"
+      },
+      {
+        "line": 15258,
+        "text": "let mut partitions = Vec::with_capacity(pn);"
+      },
+      {
+        "line": 15305,
+        "text": "let sn = buf::get_array_len(buf, true)?.unwrap_or(0);"
+      },
+      {
+        "line": 15306,
+        "text": "let mut subscribed_topic_names = Vec::with_capacity(sn);"
+      },
+      {
+        "line": 15358,
+        "text": "buf.reserve(needed - buf.capacity());"
+      },
+      {
+        "line": 15471,
+        "text": "let n = buf::get_array_len(buf, true)?.unwrap_or(0);"
+      },
+      {
+        "line": 15472,
+        "text": "let mut groups = Vec::with_capacity(n);"
+      },
+      {
+        "line": 15481,
+        "text": "let mn = buf::get_array_len(buf, true)?.unwrap_or(0);"
+      },
+      {
+        "line": 15482,
+        "text": "let mut members = Vec::with_capacity(mn);"
+      },
+      {
+        "line": 15513,
+        "text": "let n = buf::get_array_len(buf, true)?.unwrap_or(0);"
+      },
+      {
+        "line": 15514,
+        "text": "let mut groups = Vec::with_capacity(n);"
+      },
+      {
+        "line": 15524,
+        "text": "let mn = buf::get_array_len(buf, true)?.unwrap_or(0);"
+      },
+      {
+        "line": 15525,
+        "text": "let mut members = Vec::with_capacity(mn);"
+      },
+      {
+        "line": 15954,
+        "text": "buf.reserve(needed - buf.capacity());"
+      },
+      {
+        "line": 15984,
+        "text": "buf.reserve(needed - buf.capacity());"
+      },
+      {
+        "line": 16056,
+        "text": "let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);"
+      },
+      {
+        "line": 16057,
+        "text": "let mut group_ids = Vec::with_capacity(n);"
+      },
+      {
+        "line": 16146,
+        "text": "buf.reserve(needed - buf.capacity());"
+      },
+      {
+        "line": 16338,
+        "text": "let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);"
+      },
+      {
+        "line": 16339,
+        "text": "let mut groups = Vec::with_capacity(n);"
+      },
+      {
+        "line": 16351,
+        "text": "let mn = buf::get_array_len(buf, flexible)?.unwrap_or(0);"
+      },
+      {
+        "line": 16352,
+        "text": "let mut members = Vec::with_capacity(mn);"
+      },
+      {
+        "line": 16390,
+        "text": "let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);"
+      },
+      {
+        "line": 16391,
+        "text": "let mut groups = Vec::with_capacity(n);"
+      },
+      {
+        "line": 16404,
+        "text": "let mn = buf::get_array_len(buf, flexible)?.unwrap_or(0);"
+      },
+      {
+        "line": 16405,
+        "text": "let mut members = Vec::with_capacity(mn);"
+      },
+      {
+        "line": 16816,
+        "text": "buf.reserve(needed - buf.capacity());"
+      },
+      {
+        "line": 16882,
+        "text": "buf.reserve(needed - buf.capacity());"
+      },
+      {
+        "line": 16965,
+        "text": "let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);"
+      },
+      {
+        "line": 16966,
+        "text": "let mut states_filter = Vec::with_capacity(n);"
+      },
+      {
+        "line": 16975,
+        "text": "let tn = buf::get_array_len(buf, flexible)?.unwrap_or(0);"
+      },
+      {
+        "line": 16976,
+        "text": "let mut types_filter = Vec::with_capacity(tn);"
+      },
+      {
+        "line": 17017,
+        "text": "buf.reserve(needed - buf.capacity());"
+      },
+      {
+        "line": 17092,
+        "text": "let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);"
+      },
+      {
+        "line": 17093,
+        "text": "let mut groups = Vec::with_capacity(n);"
+      },
+      {
+        "line": 17133,
+        "text": "let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);"
+      },
+      {
+        "line": 17134,
+        "text": "let mut groups = Vec::with_capacity(n);"
+      },
+      {
+        "line": 17361,
+        "text": "buf.reserve(needed - buf.capacity());"
+      },
+      {
+        "line": 17387,
+        "text": "buf.reserve(needed - buf.capacity());"
+      },
+      {
+        "line": 17440,
+        "text": "let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);"
+      },
+      {
+        "line": 17441,
+        "text": "let mut group_ids = Vec::with_capacity(n);"
+      },
+      {
+        "line": 17480,
+        "text": "buf.reserve(needed - buf.capacity());"
+      },
+      {
+        "line": 17527,
+        "text": "let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);"
+      },
+      {
+        "line": 17528,
+        "text": "let mut results = Vec::with_capacity(n);"
+      },
+      {
+        "line": 17555,
+        "text": "let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);"
+      },
+      {
+        "line": 17556,
+        "text": "let mut results = Vec::with_capacity(n);"
+      },
+      {
+        "line": 17995,
+        "text": "buf.reserve(needed - buf.capacity());"
+      },
+      {
+        "line": 18023,
+        "text": "buf.reserve(needed - buf.capacity());"
+      },
+      {
+        "line": 18085,
+        "text": "let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);"
+      },
+      {
+        "line": 18086,
+        "text": "let mut group_ids = Vec::with_capacity(n);"
+      },
+      {
+        "line": 18124,
+        "text": "let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);"
+      },
+      {
+        "line": 18125,
+        "text": "let mut topic_partitions = Vec::with_capacity(n);"
+      },
+      {
+        "line": 18129,
+        "text": "let pn = buf::get_array_len(buf, flexible)?.unwrap_or(0);"
+      },
+      {
+        "line": 18130,
+        "text": "let mut partitions = Vec::with_capacity(pn);"
+      },
+      {
+        "line": 18176,
+        "text": "let sn = buf::get_array_len(buf, flexible)?.unwrap_or(0);"
+      },
+      {
+        "line": 18177,
+        "text": "let mut subscribed_topic_names = Vec::with_capacity(sn);"
+      },
+      {
+        "line": 18224,
+        "text": "buf.reserve(needed - buf.capacity());"
+      },
+      {
+        "line": 18357,
+        "text": "let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);"
+      },
+      {
+        "line": 18358,
+        "text": "let mut groups = Vec::with_capacity(n);"
+      },
+      {
+        "line": 18367,
+        "text": "let mn = buf::get_array_len(buf, flexible)?.unwrap_or(0);"
+      },
+      {
+        "line": 18368,
+        "text": "let mut members = Vec::with_capacity(mn);"
+      },
+      {
+        "line": 18403,
+        "text": "let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);"
+      },
+      {
+        "line": 18404,
+        "text": "let mut groups = Vec::with_capacity(n);"
+      },
+      {
+        "line": 18414,
+        "text": "let mn = buf::get_array_len(buf, flexible)?.unwrap_or(0);"
+      },
+      {
+        "line": 18415,
+        "text": "let mut members = Vec::with_capacity(mn);"
+      },
+      {
+        "line": 18867,
+        "text": "buf.reserve(needed - buf.capacity());"
+      },
+      {
+        "line": 18943,
+        "text": "buf.reserve(needed - buf.capacity());"
+      },
+      {
+        "line": 19027,
+        "text": "let mut groups = Vec::with_capacity(n);"
+      },
+      {
+        "line": 19030,
+        "text": "let topics = match buf::get_array_len(buf, true)? {"
+      },
+      {
+        "line": 19034,
+        "text": "let mut topics = Vec::with_capacity(tn);"
+      },
+      {
+        "line": 19039,
+        "text": "let mut partitions = Vec::with_capacity(pn);"
+      },
+      {
+        "line": 19083,
+        "text": "buf.reserve(needed - buf.capacity());"
+      },
+      {
+        "line": 19247,
+        "text": "buf::get_array_len(buf, true)?"
+      },
+      {
+        "line": 19303,
+        "text": "buf.reserve(needed - buf.capacity());"
+      },
+      {
+        "line": 19382,
+        "text": "let mut groups = Vec::with_capacity(n);"
+      },
+      {
+        "line": 19387,
+        "text": "let mut topics = Vec::with_capacity(tn);"
+      },
+      {
+        "line": 19393,
+        "text": "let mut partitions = Vec::with_capacity(pn);"
+      },
+      {
+        "line": 19445,
+        "text": "let mut groups = Vec::with_capacity(n);"
+      },
+      {
+        "line": 19451,
+        "text": "let mut topics = Vec::with_capacity(tn);"
+      },
+      {
+        "line": 19457,
+        "text": "let mut partitions = Vec::with_capacity(pn);"
+      },
+      {
+        "line": 19787,
+        "text": "buf.reserve(needed - buf.capacity());"
+      },
+      {
+        "line": 19836,
+        "text": "buf.reserve(needed - buf.capacity());"
+      },
+      {
+        "line": 19900,
+        "text": "let n = buf::get_array_len(buf, true)?.unwrap_or(0);"
+      },
+      {
+        "line": 19901,
+        "text": "let mut topics = Vec::with_capacity(n);"
+      },
+      {
+        "line": 19904,
+        "text": "let pn = buf::get_array_len(buf, true)?.unwrap_or(0);"
+      },
+      {
+        "line": 19905,
+        "text": "let mut partitions = Vec::with_capacity(pn);"
+      },
+      {
+        "line": 19937,
+        "text": "buf.reserve(needed - buf.capacity());"
+      },
+      {
+        "line": 19993,
+        "text": "let n = buf::get_array_len(buf, true)?.unwrap_or(0);"
+      },
+      {
+        "line": 19994,
+        "text": "let mut topics = Vec::with_capacity(n);"
+      },
+      {
+        "line": 19998,
+        "text": "let pn = buf::get_array_len(buf, true)?.unwrap_or(0);"
+      },
+      {
+        "line": 19999,
+        "text": "let mut partitions = Vec::with_capacity(pn);"
+      },
+      {
+        "line": 20036,
+        "text": "let n = buf::get_array_len(buf, true)?.unwrap_or(0);"
+      },
+      {
+        "line": 20037,
+        "text": "let mut topics = Vec::with_capacity(n);"
+      },
+      {
+        "line": 20042,
+        "text": "let pn = buf::get_array_len(buf, true)?.unwrap_or(0);"
+      },
+      {
+        "line": 20043,
+        "text": "let mut partitions = Vec::with_capacity(pn);"
+      },
+      {
+        "line": 20290,
+        "text": "buf.reserve(needed - buf.capacity());"
+      },
+      {
+        "line": 20328,
+        "text": "buf.reserve(needed - buf.capacity());"
+      },
+      {
+        "line": 20371,
+        "text": "let n = buf::get_array_len(buf, true)?.unwrap_or(0);"
+      },
+      {
+        "line": 20372,
+        "text": "let mut topics = Vec::with_capacity(n);"
+      },
+      {
+        "line": 20394,
+        "text": "buf.reserve(needed - buf.capacity());"
+      },
+      {
+        "line": 20440,
+        "text": "let n = buf::get_array_len(buf, true)?.unwrap_or(0);"
+      },
+      {
+        "line": 20441,
+        "text": "let mut topics = Vec::with_capacity(n);"
+      },
+      {
+        "line": 20473,
+        "text": "let n = buf::get_array_len(buf, true)?.unwrap_or(0);"
+      },
+      {
+        "line": 20474,
+        "text": "let mut topics = Vec::with_capacity(n);"
+      },
+      {
+        "line": 20823,
+        "text": "let n = buf::get_array_len(buf, true)?.unwrap_or(0);"
+      },
+      {
+        "line": 20824,
+        "text": "let mut out = Vec::with_capacity(n);"
+      },
+      {
+        "line": 20842,
+        "text": "let Some(n) = buf::get_array_len(buf, true)? else {"
+      },
+      {
+        "line": 20845,
+        "text": "let mut out = Vec::with_capacity(n);"
+      },
+      {
+        "line": 20943,
+        "text": "buf.reserve(needed - buf.capacity());"
+      },
+      {
+        "line": 20970,
+        "text": "buf.reserve(needed - buf.capacity());"
+      },
+      {
+        "line": 21038,
+        "text": "let n = buf::get_array_len(buf, true)?.unwrap_or(0);"
+      },
+      {
+        "line": 21039,
+        "text": "let mut topics = Vec::with_capacity(n);"
+      },
+      {
+        "line": 21063,
+        "text": "buf.reserve(needed - buf.capacity());"
+      },
+      {
+        "line": 21140,
+        "text": "let n = buf::get_array_len(buf, true)?.unwrap_or(0);"
+      },
+      {
+        "line": 21141,
+        "text": "let mut topics = Vec::with_capacity(n);"
+      },
+      {
+        "line": 21147,
+        "text": "let pn = buf::get_array_len(buf, true)?.unwrap_or(0);"
+      },
+      {
+        "line": 21148,
+        "text": "let mut partitions = Vec::with_capacity(pn);"
+      },
+      {
+        "line": 21199,
+        "text": "let n = buf::get_array_len(buf, true)?.unwrap_or(0);"
+      },
+      {
+        "line": 21200,
+        "text": "let mut topics = Vec::with_capacity(n);"
+      },
+      {
+        "line": 21207,
+        "text": "let pn = buf::get_array_len(buf, true)?.unwrap_or(0);"
+      },
+      {
+        "line": 21208,
+        "text": "let mut partitions = Vec::with_capacity(pn);"
+      },
+      {
+        "line": 21461,
+        "text": "buf.reserve(needed - buf.capacity());"
+      },
+      {
+        "line": 21487,
+        "text": "let n = buf::get_array_len(buf, true)?.unwrap_or(0);"
+      },
+      {
+        "line": 21488,
+        "text": "let mut resource_types = Vec::with_capacity(n);"
+      },
+      {
+        "line": 21514,
+        "text": "buf.reserve(needed - buf.capacity());"
+      },
+      {
+        "line": 21563,
+        "text": "let n = buf::get_array_len(buf, true)?.unwrap_or(0);"
+      },
+      {
+        "line": 21564,
+        "text": "let mut config_resources = Vec::with_capacity(n);"
+      },
+      {
+        "line": 21596,
+        "text": "let n = buf::get_array_len(buf, true)?.unwrap_or(0);"
+      },
+      {
+        "line": 21597,
+        "text": "let mut config_resources = Vec::with_capacity(n);"
+      },
+      {
+        "line": 21832,
+        "text": "buf.reserve(needed - buf.capacity());"
+      },
+      {
+        "line": 21859,
+        "text": "buf.reserve(needed - buf.capacity());"
+      },
+      {
+        "line": 21911,
+        "text": "let n = buf::get_array_len(buf, true)?.unwrap_or(0);"
+      },
+      {
+        "line": 21912,
+        "text": "let mut accepted_compression_types = Vec::with_capacity(n);"
+      },
+      {
+        "line": 21919,
+        "text": "let mn = buf::get_array_len(buf, true)?.unwrap_or(0);"
+      },
+      {
+        "line": 21920,
+        "text": "let mut requested_metrics = Vec::with_capacity(mn);"
+      },
+      {
+        "line": 21948,
+        "text": "let n = buf::get_array_len(buf, true)?.unwrap_or(0);"
+      },
+      {
+        "line": 21949,
+        "text": "let mut accepted_compression_types = Vec::with_capacity(n);"
+      },
+      {
+        "line": 21962,
+        "text": "let mn = buf::get_array_len(buf, true)?.unwrap_or(0);"
+      },
+      {
+        "line": 21963,
+        "text": "let mut requested_metrics = Vec::with_capacity(mn);"
+      },
+      {
+        "line": 22222,
+        "text": "buf.reserve(needed - buf.capacity());"
+      },
+      {
+        "line": 22269,
+        "text": "buf.reserve(needed - buf.capacity());"
+      },
+      {
+        "line": 22628,
+        "text": "buf.reserve(needed - buf.capacity());"
+      },
+      {
+        "line": 22678,
+        "text": "let n = buf::get_array_len(buf, true)?.unwrap_or(0);"
+      },
+      {
+        "line": 22679,
+        "text": "let mut directories = Vec::with_capacity(n);"
+      },
+      {
+        "line": 22682,
+        "text": "let tn = buf::get_array_len(buf, true)?.unwrap_or(0);"
+      },
+      {
+        "line": 22683,
+        "text": "let mut topics = Vec::with_capacity(tn);"
+      },
+      {
+        "line": 22686,
+        "text": "let pn = buf::get_array_len(buf, true)?.unwrap_or(0);"
+      },
+      {
+        "line": 22687,
+        "text": "let mut partitions = Vec::with_capacity(pn);"
+      },
+      {
+        "line": 22722,
+        "text": "buf.reserve(needed - buf.capacity());"
+      },
+      {
+        "line": 22775,
+        "text": "let n = buf::get_array_len(buf, true)?.unwrap_or(0);"
+      },
+      {
+        "line": 22776,
+        "text": "let mut directories = Vec::with_capacity(n);"
+      },
+      {
+        "line": 22779,
+        "text": "let tn = buf::get_array_len(buf, true)?.unwrap_or(0);"
+      },
+      {
+        "line": 22780,
+        "text": "let mut topics = Vec::with_capacity(tn);"
+      },
+      {
+        "line": 22783,
+        "text": "let pn = buf::get_array_len(buf, true)?.unwrap_or(0);"
+      },
+      {
+        "line": 22784,
+        "text": "let mut partitions = Vec::with_capacity(pn);"
+      },
+      {
+        "line": 23257,
+        "text": "buf.reserve(needed - buf.capacity());"
+      },
+      {
+        "line": 23342,
+        "text": "buf.reserve(needed - buf.capacity());"
+      },
+      {
+        "line": 23440,
+        "text": "let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);"
+      },
+      {
+        "line": 23441,
+        "text": "let mut dirs = Vec::with_capacity(n);"
+      },
+      {
+        "line": 23444,
+        "text": "let tn = buf::get_array_len(buf, flexible)?.unwrap_or(0);"
+      },
+      {
+        "line": 23445,
+        "text": "let mut topics = Vec::with_capacity(tn);"
+      },
+      {
+        "line": 23448,
+        "text": "let pn = buf::get_array_len(buf, flexible)?.unwrap_or(0);"
+      },
+      {
+        "line": 23449,
+        "text": "let mut partitions = Vec::with_capacity(pn);"
+      },
+      {
+        "line": 23484,
+        "text": "buf.reserve(needed - buf.capacity());"
+      },
+      {
+        "line": 23546,
+        "text": "let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);"
+      },
+      {
+        "line": 23547,
+        "text": "let mut results = Vec::with_capacity(n);"
+      },
+      {
+        "line": 23550,
+        "text": "let pn = buf::get_array_len(buf, flexible)?.unwrap_or(0);"
+      },
+      {
+        "line": 23551,
+        "text": "let mut partitions = Vec::with_capacity(pn);"
+      },
+      {
+        "line": 23589,
+        "text": "let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);"
+      },
+      {
+        "line": 23590,
+        "text": "let mut results = Vec::with_capacity(n);"
+      },
+      {
+        "line": 23594,
+        "text": "let pn = buf::get_array_len(buf, flexible)?.unwrap_or(0);"
+      },
+      {
+        "line": 23595,
+        "text": "let mut partitions = Vec::with_capacity(pn);"
+      },
+      {
+        "line": 24090,
+        "text": "buf.reserve(needed - buf.capacity());"
+      },
+      {
+        "line": 24173,
+        "text": "buf.reserve(needed - buf.capacity());"
+      },
+      {
+        "line": 24258,
+        "text": "let topics = match buf::get_array_len(buf, flexible)? {"
+      },
+      {
+        "line": 24261,
+        "text": "let mut topics = Vec::with_capacity(n);"
+      },
+      {
+        "line": 24264,
+        "text": "let pn = buf::get_array_len(buf, flexible)?.unwrap_or(0);"
+      },
+      {
+        "line": 24265,
+        "text": "let mut partitions = Vec::with_capacity(pn);"
+      },
+      {
+        "line": 24299,
+        "text": "buf.reserve(needed - buf.capacity());"
+      },
+      {
+        "line": 24400,
+        "text": "let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);"
+      },
+      {
+        "line": 24401,
+        "text": "let mut results = Vec::with_capacity(n);"
+      },
+      {
+        "line": 24405,
+        "text": "let tn = buf::get_array_len(buf, flexible)?.unwrap_or(0);"
+      },
+      {
+        "line": 24406,
+        "text": "let mut topics = Vec::with_capacity(tn);"
+      },
+      {
+        "line": 24409,
+        "text": "let pn = buf::get_array_len(buf, flexible)?.unwrap_or(0);"
+      },
+      {
+        "line": 24410,
+        "text": "let mut partitions = Vec::with_capacity(pn);"
+      },
+      {
+        "line": 24473,
+        "text": "let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);"
+      },
+      {
+        "line": 24474,
+        "text": "let mut results = Vec::with_capacity(n);"
+      },
+      {
+        "line": 24479,
+        "text": "let tn = buf::get_array_len(buf, flexible)?.unwrap_or(0);"
+      },
+      {
+        "line": 24480,
+        "text": "let mut topics = Vec::with_capacity(tn);"
+      },
+      {
+        "line": 24483,
+        "text": "let pn = buf::get_array_len(buf, flexible)?.unwrap_or(0);"
+      },
+      {
+        "line": 24484,
+        "text": "let mut partitions = Vec::with_capacity(pn);"
+      },
+      {
+        "line": 25074,
+        "text": "buf.reserve(needed - buf.capacity());"
+      },
+      {
+        "line": 25146,
+        "text": "buf.reserve(needed - buf.capacity());"
+      },
+      {
+        "line": 25231,
+        "text": "let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);"
+      },
+      {
+        "line": 25232,
+        "text": "let mut renewers = Vec::with_capacity(n);"
+      },
+      {
+        "line": 25268,
+        "text": "buf.reserve(needed - buf.capacity());"
+      },
+      {
+        "line": 25584,
+        "text": "buf.reserve(needed - buf.capacity());"
+      },
+      {
+        "line": 25632,
+        "text": "buf.reserve(needed - buf.capacity());"
+      },
+      {
+        "line": 25909,
+        "text": "buf.reserve(needed - buf.capacity());"
+      },
+      {
+        "line": 26469,
+        "text": "buf.reserve(needed - buf.capacity());"
+      },
+      {
+        "line": 26537,
+        "text": "buf.reserve(needed - buf.capacity());"
+      },
+      {
+        "line": 26610,
+        "text": "let owners = match buf::get_array_len(buf, flexible)? {"
+      },
+      {
+        "line": 26613,
+        "text": "let mut owners = Vec::with_capacity(n);"
+      },
+      {
+        "line": 26646,
+        "text": "buf.reserve(needed - buf.capacity());"
+      },
+      {
+        "line": 26743,
+        "text": "let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);"
+      },
+      {
+        "line": 26744,
+        "text": "let mut tokens = Vec::with_capacity(n);"
+      },
+      {
+        "line": 26761,
+        "text": "let rn = buf::get_array_len(buf, flexible)?.unwrap_or(0);"
+      },
+      {
+        "line": 26762,
+        "text": "let mut renewers = Vec::with_capacity(rn);"
+      },
+      {
+        "line": 26810,
+        "text": "let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);"
+      },
+      {
+        "line": 26811,
+        "text": "let mut tokens = Vec::with_capacity(n);"
+      },
+      {
+        "line": 26829,
+        "text": "let rn = buf::get_array_len(buf, flexible)?.unwrap_or(0);"
+      },
+      {
+        "line": 26830,
+        "text": "let mut renewers = Vec::with_capacity(rn);"
+      },
+      {
+        "line": 27141,
+        "text": "buf.reserve(needed - buf.capacity());"
+      },
+      {
+        "line": 27234,
+        "text": "buf.reserve(needed - buf.capacity());"
+      },
+      {
+        "line": 27331,
+        "text": "let topics = match buf::get_array_len(buf, flexible)? {"
+      },
+      {
+        "line": 27334,
+        "text": "let mut out = Vec::with_capacity(n);"
+      },
+      {
+        "line": 27337,
+        "text": "let pn = buf::get_array_len(buf, flexible)?.unwrap_or(0);"
+      },
+      {
+        "line": 27338,
+        "text": "let mut partitions = Vec::with_capacity(pn);"
+      },
+      {
+        "line": 27387,
+        "text": "buf.reserve(needed - buf.capacity());"
+      },
+      {
+        "line": 27433,
+        "text": "buf.reserve(needed - buf.capacity());"
+      },
+      {
+        "line": 27543,
+        "text": "let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);"
+      },
+      {
+        "line": 27544,
+        "text": "let mut results = Vec::with_capacity(n);"
+      },
+      {
+        "line": 27547,
+        "text": "let pn = buf::get_array_len(buf, flexible)?.unwrap_or(0);"
+      },
+      {
+        "line": 27548,
+        "text": "let mut partitions = Vec::with_capacity(pn);"
+      },
+      {
+        "line": 27587,
+        "text": "let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);"
+      },
+      {
+        "line": 27588,
+        "text": "let mut results = Vec::with_capacity(n);"
+      },
+      {
+        "line": 27592,
+        "text": "let pn = buf::get_array_len(buf, flexible)?.unwrap_or(0);"
+      },
+      {
+        "line": 27593,
+        "text": "let mut partitions = Vec::with_capacity(pn);"
+      },
+      {
+        "line": 27936,
+        "text": "let count = buf::get_array_len(input, true)?"
+      },
+      {
+        "line": 27944,
+        "text": ".try_reserve_exact(count)"
+      },
+      {
+        "line": 27962,
+        "text": ".try_reserve_exact(length)"
+      },
+      {
+        "line": 28149,
+        "text": "buf.reserve(needed - buf.capacity());"
+      },
+      {
+        "line": 28327,
+        "text": "buf.reserve(needed - buf.capacity());"
+      },
+      {
+        "line": 28442,
+        "text": "buf.reserve(needed - buf.capacity());"
+      },
+      {
+        "line": 28553,
+        "text": "buf.reserve(needed - buf.capacity());"
+      },
+      {
+        "line": 28925,
+        "text": "buf.reserve(needed - buf.capacity());"
+      },
+      {
+        "line": 28976,
+        "text": "buf::get_array_len(buf, true)?.ok_or_else(|| Error::protocol(\"null voter listeners\"))?;"
+      },
+      {
+        "line": 28977,
+        "text": "let mut listeners = Vec::with_capacity(count);"
+      },
+      {
+        "line": 29019,
+        "text": "buf.reserve(needed - buf.capacity());"
+      },
+      {
+        "line": 29099,
+        "text": "buf.reserve(needed - buf.capacity());"
+      },
+      {
+        "line": 29143,
+        "text": "buf.reserve(needed - buf.capacity());"
+      }
+    ],
+    "src/protocol/txn.rs": [
+      {
+        "line": 694,
+        "text": "buf.reserve(needed - buf.capacity());"
+      },
+      {
+        "line": 754,
+        "text": "buf.reserve(needed - buf.capacity());"
+      },
+      {
+        "line": 831,
+        "text": "let tn = buf::get_array_len(buf, flexible)?.unwrap_or(0);"
+      },
+      {
+        "line": 832,
+        "text": "let mut topics = Vec::with_capacity(tn);"
+      },
+      {
+        "line": 835,
+        "text": "let pn = buf::get_array_len(buf, flexible)?.unwrap_or(0);"
+      },
+      {
+        "line": 836,
+        "text": "let mut partitions = Vec::with_capacity(pn);"
+      },
+      {
+        "line": 994,
+        "text": "buf.reserve(needed - buf.capacity());"
+      },
+      {
+        "line": 1041,
+        "text": "buf.reserve(needed - buf.capacity());"
+      },
+      {
+        "line": 1069,
+        "text": "buf.reserve(needed - buf.capacity());"
+      },
+      {
+        "line": 1150,
+        "text": "buf.reserve(needed - buf.capacity());"
+      },
+      {
+        "line": 1354,
+        "text": "buf.reserve(needed - buf.capacity());"
+      },
+      {
+        "line": 1404,
+        "text": "let tn = buf::get_array_len(buf, flexible)?.unwrap_or(0);"
+      },
+      {
+        "line": 1405,
+        "text": "let mut topics = Vec::with_capacity(tn);"
+      },
+      {
+        "line": 1408,
+        "text": "let pn = buf::get_array_len(buf, flexible)?.unwrap_or(0);"
+      },
+      {
+        "line": 1409,
+        "text": "let mut partitions = Vec::with_capacity(pn);"
+      },
+      {
+        "line": 1441,
+        "text": "let tn = buf::get_array_len(buf, flexible)?.unwrap_or(0);"
+      },
+      {
+        "line": 1442,
+        "text": "let mut topics = Vec::with_capacity(tn);"
+      },
+      {
+        "line": 1446,
+        "text": "let pn = buf::get_array_len(buf, flexible)?.unwrap_or(0);"
+      },
+      {
+        "line": 1447,
+        "text": "let mut partitions = Vec::with_capacity(pn);"
+      },
+      {
+        "line": 1575,
+        "text": "buf.reserve(needed - buf.capacity());"
+      },
+      {
+        "line": 1648,
+        "text": "buf.reserve(needed - buf.capacity());"
+      },
+      {
+        "line": 1712,
+        "text": "buf.reserve(needed - buf.capacity());"
+      },
+      {
+        "line": 1786,
+        "text": "buf.reserve(needed - buf.capacity());"
+      },
+      {
+        "line": 2032,
+        "text": "buf.reserve(needed - buf.capacity());"
+      },
+      {
+        "line": 2572,
+        "text": "buf.reserve(needed - buf.capacity());"
+      },
+      {
+        "line": 2732,
+        "text": "buf.reserve(needed - buf.capacity());"
+      },
+      {
+        "line": 2884,
+        "text": "let tn = buf::get_array_len(buf, flexible)?.unwrap_or(0);"
+      },
+      {
+        "line": 2885,
+        "text": "let mut topics = Vec::with_capacity(tn);"
+      },
+      {
+        "line": 2888,
+        "text": "let pn = buf::get_array_len(buf, flexible)?.unwrap_or(0);"
+      },
+      {
+        "line": 2889,
+        "text": "let mut partitions = Vec::with_capacity(pn);"
+      },
+      {
+        "line": 2956,
+        "text": "buf.reserve(needed - buf.capacity());"
+      },
+      {
+        "line": 2998,
+        "text": "buf.reserve(needed - buf.capacity());"
+      },
+      {
+        "line": 3039,
+        "text": "buf.reserve(needed - buf.capacity());"
+      },
+      {
+        "line": 3394,
+        "text": "buf.reserve(needed - buf.capacity());"
+      },
+      {
+        "line": 3430,
+        "text": "let tn = buf::get_array_len(buf, flexible)?.unwrap_or(0);"
+      },
+      {
+        "line": 3431,
+        "text": "let mut topics = Vec::with_capacity(tn);"
+      },
+      {
+        "line": 3434,
+        "text": "let pn = buf::get_array_len(buf, flexible)?.unwrap_or(0);"
+      },
+      {
+        "line": 3435,
+        "text": "let mut partitions = Vec::with_capacity(pn);"
+      },
+      {
+        "line": 3467,
+        "text": "let tn = buf::get_array_len(buf, flexible)?.unwrap_or(0);"
+      },
+      {
+        "line": 3468,
+        "text": "let mut topics = Vec::with_capacity(tn);"
+      },
+      {
+        "line": 3472,
+        "text": "let pn = buf::get_array_len(buf, flexible)?.unwrap_or(0);"
+      },
+      {
+        "line": 3473,
+        "text": "let mut partitions = Vec::with_capacity(pn);"
+      },
+      {
+        "line": 4095,
+        "text": "buf.reserve(needed - buf.capacity());"
+      },
+      {
+        "line": 4236,
+        "text": "buf.reserve(needed - buf.capacity());"
+      },
+      {
+        "line": 4329,
+        "text": "buf::get_array_len(buf, flexible)?"
+      },
+      {
+        "line": 4351,
+        "text": "let mut markers = Vec::with_capacity(n);"
+      },
+      {
+        "line": 4358,
+        "text": "let mut topics = Vec::with_capacity(tn);"
+      },
+      {
+        "line": 4364,
+        "text": "let mut partitions = Vec::with_capacity(pn);"
+      },
+      {
+        "line": 4406,
+        "text": "buf.reserve(needed - buf.capacity());"
+      },
+      {
+        "line": 4492,
+        "text": "buf.reserve(needed - buf.capacity());"
+      },
+      {
+        "line": 4598,
+        "text": "buf.reserve(needed - buf.capacity());"
+      },
+      {
+        "line": 4852,
+        "text": "buf.reserve(needed - buf.capacity());"
+      },
+      {
+        "line": 4878,
+        "text": "let mut markers = Vec::with_capacity(n);"
+      },
+      {
+        "line": 4883,
+        "text": "let mut topics = Vec::with_capacity(tn);"
+      },
+      {
+        "line": 4889,
+        "text": "let mut partitions = Vec::with_capacity(pn);"
+      },
+      {
+        "line": 4930,
+        "text": "let mut markers = Vec::with_capacity(n);"
+      },
+      {
+        "line": 4936,
+        "text": "let mut topics = Vec::with_capacity(tn);"
+      },
+      {
+        "line": 4942,
+        "text": "let mut partitions = Vec::with_capacity(pn);"
+      }
+    ],
+    "src/protocol/records.rs": [
+      {
+        "line": 65,
+        "text": ".try_reserve_exact(target.saturating_sub(slots.len()))"
+      },
+      {
+        "line": 1847,
+        "text": "out.reserve(buf::usize_from_i32(est).unwrap_or(0));"
+      },
+      {
+        "line": 1868,
+        "text": "out.reserve(buf::usize_from_i32(est).unwrap_or(0));"
+      },
+      {
+        "line": 1895,
+        "text": "out.try_reserve(hint)"
+      },
+      {
+        "line": 1932,
+        "text": "out.try_reserve(hint)"
+      },
+      {
+        "line": 2149,
+        "text": "out.reserve(buf::usize_from_i32(est).unwrap_or(0));"
+      },
+      {
+        "line": 2177,
+        "text": "out.reserve(buf::usize_from_i32(est).unwrap_or(0));"
+      },
+      {
+        "line": 2601,
+        "text": "self.section.reserve(bytes - self.section.capacity());"
+      },
+      {
+        "line": 2616,
+        "text": "self.packed = Vec::with_capacity(self.packed_cap);"
+      },
+      {
+        "line": 2786,
+        "text": "scratch.section.reserve(1024);"
+      },
+      {
+        "line": 2839,
+        "text": "scratch.section.reserve(1024);"
+      },
+      {
+        "line": 3255,
+        "text": ".try_reserve_exact(extra)"
+      },
+      {
+        "line": 3425,
+        "text": "out.try_reserve_exact(count)"
+      },
+      {
+        "line": 3643,
+        "text": "pub(crate) fn reserve_hint(&self) -> usize {"
+      },
+      {
+        "line": 3681,
+        "text": "Self::Many(Vec::with_capacity(count))"
+      },
+      {
+        "line": 3873,
+        "text": "many.try_reserve_exact(extra.saturating_add(1))"
+      },
+      {
+        "line": 3895,
+        "text": "many.try_reserve_exact(extra.saturating_add(1))"
+      },
+      {
+        "line": 4215,
+        "text": "metadata.reserve(&mut records, count_usize.min(64))?;"
+      },
+      {
+        "line": 4697,
+        "text": "let mut headers = Vec::with_capacity(num_headers_usize);"
+      },
+      {
+        "line": 4854,
+        "text": "let mut frame = Vec::with_capacity(overhead.saturating_add(records_len));"
+      },
+      {
+        "line": 5971,
+        "text": "assert_eq!(batch.reserve_hint(), 0);"
+      }
+    ],
+    "src/consumer.rs": [
+      {
+        "line": 1266,
+        "text": "let mut out = Vec::with_capacity(seen_order.len());"
+      },
+      {
+        "line": 1355,
+        "text": "let mut out = Vec::with_capacity(last.len());"
+      },
+      {
+        "line": 1448,
+        "text": "let mut out = Vec::with_capacity(pairs.len());"
+      },
+      {
+        "line": 1953,
+        "text": "let mut out = Vec::with_capacity(self.topics.len());"
+      },
+      {
+        "line": 1955,
+        "text": "let mut indexes = Vec::with_capacity(partitions.len());"
+      },
+      {
+        "line": 1995,
+        "text": "let mut out = Vec::with_capacity(preferred.topics.len());"
+      },
+      {
+        "line": 1998,
+        "text": "let mut rows = Vec::with_capacity(partitions.len());"
+      },
+      {
+        "line": 2225,
+        "text": "self.order.reserve(runs);"
+      },
+      {
+        "line": 2227,
+        "text": "staged.reserve(runs);"
+      },
+      {
+        "line": 2312,
+        "text": "self.order.reserve(added);"
+      },
+      {
+        "line": 2379,
+        "text": "queue.reserve(count);"
+      },
+      {
+        "line": 2383,
+        "text": ".insert_owned(topic, partition, VecDeque::with_capacity(count));"
+      },
+      {
+        "line": 2551,
+        "text": "let mut out = Vec::with_capacity(available.min(cap));"
+      },
+      {
+        "line": 3073,
+        "text": "let mut out = Vec::with_capacity(topics.len());"
+      },
+      {
+        "line": 3076,
+        "text": "let mut partitions = Vec::with_capacity(topic.partitions.len());"
+      },
+      {
+        "line": 4149,
+        "text": "let mut out = Vec::with_capacity(self.assigned.len());"
+      },
+      {
+        "line": 4163,
+        "text": "let mut out = Vec::with_capacity(self.assigned.len());"
+      },
+      {
+        "line": 4320,
+        "text": "let mut out = Vec::with_capacity(parts.len());"
+      },
+      {
+        "line": 4508,
+        "text": "let mut kept_assigned = Vec::with_capacity(assigned.len());"
+      },
+      {
+        "line": 4509,
+        "text": "let mut kept_epochs = Vec::with_capacity(assigned.len());"
+      },
+      {
+        "line": 6369,
+        "text": "let mut fetched = Vec::with_capacity(parts.len());"
+      },
+      {
+        "line": 7200,
+        "text": ".reserve(self.assigned.len().max(epoch_len));"
+      },
+      {
+        "line": 7725,
+        "text": "let mut dropped = Vec::with_capacity(need_offsets.len());"
+      },
+      {
+        "line": 7758,
+        "text": "let mut cuts = Vec::with_capacity(fenced.len());"
+      },
+      {
+        "line": 8585,
+        "text": "declared = declared.saturating_add(batch.reserve_hint());"
+      },
+      {
+        "line": 8587,
+        "text": "reserve_fetch_records(out, declared, saw_batch, self.last_fetch_records);"
+      },
+      {
+        "line": 11468,
+        "text": "reserve_fetch_records(&mut out, 0, false, 4);"
+      },
+      {
+        "line": 11471,
+        "text": "reserve_fetch_records(&mut out, 3, true, 4);"
+      },
+      {
+        "line": 11474,
+        "text": "reserve_fetch_records(&mut compressed, 0, true, 4);"
+      },
+      {
+        "line": 11643,
+        "text": "out.reserve(hint);"
+      },
+      {
+        "line": 11660,
+        "text": "fn reserve_fetch_records("
+      },
+      {
+        "line": 11667,
+        "text": "out.reserve(declared);"
+      },
+      {
+        "line": 11669,
+        "text": "out.reserve(previous);"
+      },
+      {
+        "line": 13176,
+        "text": "parts.push(Vec::with_capacity(tmd.partitions.len()));"
+      },
+      {
+        "line": 13255,
+        "text": "partitions: Vec::with_capacity(topic.partitions.len()),"
+      },
+      {
+        "line": 13324,
+        "text": "parts.push(Vec::with_capacity(tmd.partitions.len()));"
+      },
+      {
+        "line": 13813,
+        "text": "let mut topics = Vec::with_capacity(count);"
+      },
+      {
+        "line": 13950,
+        "text": "let mut records = Vec::with_capacity(usize::try_from(count).unwrap_or(0));"
+      },
+      {
+        "line": 14578,
+        "text": "let mut records = Vec::with_capacity(6_000_000);"
+      },
+      {
+        "line": 14614,
+        "text": "let mut records = Vec::with_capacity(2_000_000);"
+      },
+      {
+        "line": 14626,
+        "text": "let mut out = Vec::with_capacity(records.len());"
+      },
+      {
+        "line": 16468,
+        "text": "let mut records = Vec::with_capacity(4);"
+      },
+      {
+        "line": 17360,
+        "text": "let mut assigned = Vec::with_capacity(2_000_000);"
+      },
+      {
+        "line": 17464,
+        "text": "let mut assigned = Vec::with_capacity(2_000_000);"
+      }
+    ],
+    "src/producer.rs": [
+      {
+        "line": 2296,
+        "text": "let mut pending = VecDeque::with_capacity(upper.unwrap_or(lower));"
+      },
+      {
+        "line": 2320,
+        "text": "let mut rest = VecDeque::with_capacity(pending.len());"
+      },
+      {
+        "line": 2455,
+        "text": "let mut out = Vec::with_capacity(slots.len());"
+      },
+      {
+        "line": 2920,
+        "text": "let mut leader_nodes = Vec::with_capacity(n);"
+      },
+      {
+        "line": 2942,
+        "text": "let mut handles = Vec::with_capacity(leader_nodes.len());"
+      },
+      {
+        "line": 3304,
+        "text": "let mut rxs = Vec::with_capacity(workers.len());"
+      },
+      {
+        "line": 3937,
+        "text": "let mut rxs = Vec::with_capacity(workers.len());"
+      },
+      {
+        "line": 6282,
+        "text": "pending: Vec::with_capacity(shared.cfg.batch_records.min(8192)),"
+      },
+      {
+        "line": 6593,
+        "text": "match tokio::time::timeout(rest, w.data.reserve()).await {"
+      },
+      {
+        "line": 8872,
+        "text": "let mut group_of = Vec::with_capacity(pendings.len());"
+      },
+      {
+        "line": 8899,
+        "text": "let mut group_of = Vec::with_capacity(pendings.len());"
+      },
+      {
+        "line": 9718,
+        "text": "let mut chunk = Vec::with_capacity(8 * 1024);"
+      },
+      {
+        "line": 9731,
+        "text": "taken.reserve(8 * 1024);"
+      },
+      {
+        "line": 9735,
+        "text": "kept.reserve(8 * 1024);"
+      },
+      {
+        "line": 10188,
+        "text": "items.reserve(count - items.capacity());"
+      },
+      {
+        "line": 10665,
+        "text": "buf.reserve(needed - buf.capacity());"
+      },
+      {
+        "line": 11723,
+        "text": "let mut response = Vec::with_capacity(8);"
+      },
+      {
+        "line": 11812,
+        "text": "let mut response = Vec::with_capacity(8);"
+      },
+      {
+        "line": 12107,
+        "text": "let mut response = Vec::with_capacity(8);"
+      },
+      {
+        "line": 12578,
+        "text": "let mut batch = Vec::with_capacity(4_000_000);"
+      },
+      {
+        "line": 12621,
+        "text": "let mut batch = Vec::with_capacity(4_000_000);"
+      },
+      {
+        "line": 12647,
+        "text": "let mut batch = Vec::with_capacity(4_000_000);"
+      },
+      {
+        "line": 12690,
+        "text": "let mut batch = Vec::with_capacity(4_000_000);"
+      },
+      {
+        "line": 12717,
+        "text": "let mut batch = Vec::with_capacity(4_000_000);"
+      },
+      {
+        "line": 12742,
+        "text": "let mut batch = Vec::with_capacity(4_000_000);"
+      },
+      {
+        "line": 12767,
+        "text": "let mut batch = Vec::with_capacity(4_000_000);"
+      },
+      {
+        "line": 12840,
+        "text": "let mut batch = Vec::with_capacity(4_000_000);"
+      },
+      {
+        "line": 12864,
+        "text": "let mut batch = Vec::with_capacity(4_000_000);"
+      },
+      {
+        "line": 12889,
+        "text": "let mut batch = Vec::with_capacity(4_000_000);"
+      },
+      {
+        "line": 12942,
+        "text": "let mut batch = Vec::with_capacity(4_000_000);"
+      },
+      {
+        "line": 14175,
+        "text": "let mut order = Vec::with_capacity(2_000_000);"
+      },
+      {
+        "line": 14275,
+        "text": "let mut order = Vec::with_capacity(200_000);"
+      },
+      {
+        "line": 14363,
+        "text": "let mut batch = Vec::with_capacity(2_000_000);"
+      },
+      {
+        "line": 14607,
+        "text": "reused.spare_parts.push(Vec::with_capacity(8));"
+      },
+      {
+        "line": 14617,
+        "text": "let mut shell = Vec::with_capacity(4);"
+      },
+      {
+        "line": 14632,
+        "text": "mixed.spare_orders.push(Vec::with_capacity(4));"
+      },
+      {
+        "line": 14834,
+        "text": "let mut excessive = Vec::with_capacity(4 * 1024 * 1024);"
+      },
+      {
+        "line": 14843,
+        "text": "let mut headers = Vec::with_capacity(4096);"
+      }
+    ],
+    "src/net.rs": [
+      {
+        "line": 270,
+        "text": "buf.reserve(need);"
+      },
+      {
+        "line": 799,
+        "text": "read_buf.reserve(budget);"
+      },
+      {
+        "line": 1883,
+        "text": "self.read_buf.reserve(budget);"
+      },
+      {
+        "line": 3206,
+        "text": "let mut body = Vec::with_capacity(4 + body_len);"
+      },
+      {
+        "line": 3226,
+        "text": "let mut body = Vec::with_capacity(4 + body_len);"
+      },
+      {
+        "line": 3246,
+        "text": "let mut body = Vec::with_capacity(4 + body_len);"
+      },
+      {
+        "line": 3645,
+        "text": "let mut body = Vec::with_capacity(4 + body_len);"
+      }
+    ]
+  }
+}

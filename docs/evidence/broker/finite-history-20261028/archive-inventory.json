@@ -1,0 +1,392 @@
+{
+  "schema_version": 1,
+  "files": [
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/future-work/broker-finite-history-audit.md",
+      "original_sha256": "f325e5ecc8893deb2488cd6bdb9d6b339dc723c07752e00942fcafcb4285dde1",
+      "original_bytes": 7032,
+      "stored_path": "README.md",
+      "stored_sha256": "f325e5ecc8893deb2488cd6bdb9d6b339dc723c07752e00942fcafcb4285dde1",
+      "stored_bytes": 7032,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/future-work/card-snapshot.json",
+      "original_sha256": "aa804a6331edccf88b286d67d13143b468b704e418f21eb050dc1944ab200e5f",
+      "original_bytes": 23397,
+      "stored_path": "card-snapshot.json",
+      "stored_sha256": "aa804a6331edccf88b286d67d13143b468b704e418f21eb050dc1944ab200e5f",
+      "stored_bytes": 23397,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/future-work/receipt.json",
+      "original_sha256": "5780af9a919354b7e31dfffa1997b9342e82ea8f2e769fcc183ec3027ed3d658",
+      "original_bytes": 6251,
+      "stored_path": "receipt.json",
+      "stored_sha256": "5780af9a919354b7e31dfffa1997b9342e82ea8f2e769fcc183ec3027ed3d658",
+      "stored_bytes": 6251,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/partitionline/partitionline-broker/src/groups/classic.rs",
+      "original_sha256": "f05a89c38a357b665910beeaf56d7f6fc820d45b88fc14b04df88bec1f860812",
+      "original_bytes": 42409,
+      "stored_path": "source/partitionline-broker/src/groups/classic.rs",
+      "stored_sha256": "f05a89c38a357b665910beeaf56d7f6fc820d45b88fc14b04df88bec1f860812",
+      "stored_bytes": 42409,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/partitionline/partitionline-broker/src/groups/lifecycle.rs",
+      "original_sha256": "0be42154e56a2f548b0987c546613460bc7cd5c51d3c6b2a58f158501b775064",
+      "original_bytes": 32497,
+      "stored_path": "source/partitionline-broker/src/groups/lifecycle.rs",
+      "stored_sha256": "0be42154e56a2f548b0987c546613460bc7cd5c51d3c6b2a58f158501b775064",
+      "stored_bytes": 32497,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/partitionline/partitionline-broker/src/groups/offsets.rs",
+      "original_sha256": "1afac385a926f00e4037cda0901f3678f7416ab95d3c60819bb308aa9858543b",
+      "original_bytes": 28137,
+      "stored_path": "source/partitionline-broker/src/groups/offsets.rs",
+      "stored_sha256": "1afac385a926f00e4037cda0901f3678f7416ab95d3c60819bb308aa9858543b",
+      "stored_bytes": 28137,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/partitionline/partitionline-broker/src/groups/consumer.rs",
+      "original_sha256": "c30f6e95529c222487a9049a0a6c13e3b9d70c54a36de0055c0d231f6684047e",
+      "original_bytes": 61091,
+      "stored_path": "source/partitionline-broker/src/groups/consumer.rs",
+      "stored_sha256": "c30f6e95529c222487a9049a0a6c13e3b9d70c54a36de0055c0d231f6684047e",
+      "stored_bytes": 61091,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/partitionline/partitionline-broker/src/groups/share.rs",
+      "original_sha256": "6f66bcaa9b96ea5dd69ae47cde85a71c5f50f63fe463d7c7055bc9273fb0c822",
+      "original_bytes": 57416,
+      "stored_path": "source/partitionline-broker/src/groups/share.rs",
+      "stored_sha256": "6f66bcaa9b96ea5dd69ae47cde85a71c5f50f63fe463d7c7055bc9273fb0c822",
+      "stored_bytes": 57416,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/partitionline/partitionline-broker/src/groups/streams.rs",
+      "original_sha256": "aa5db99ad26a128352e4cae34447e8cab75688add663075c0a06a08c1cc7285b",
+      "original_bytes": 50078,
+      "stored_path": "source/partitionline-broker/src/groups/streams.rs",
+      "stored_sha256": "aa5db99ad26a128352e4cae34447e8cab75688add663075c0a06a08c1cc7285b",
+      "stored_bytes": 50078,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/partitionline/partitionline-broker/src/transactions/coordinator.rs",
+      "original_sha256": "1798e81b6c3a9b038c39c830359b417ad036d5fb631b1430a8fb712778a6b5b4",
+      "original_bytes": 36337,
+      "stored_path": "source/partitionline-broker/src/transactions/coordinator.rs",
+      "stored_sha256": "1798e81b6c3a9b038c39c830359b417ad036d5fb631b1430a8fb712778a6b5b4",
+      "stored_bytes": 36337,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/partitionline/partitionline-broker/src/transactions/markers.rs",
+      "original_sha256": "9720fe5c3daa1c8111fba3c2dfdc20031eae4713388ae5744d929014a060a81a",
+      "original_bytes": 21004,
+      "stored_path": "source/partitionline-broker/src/transactions/markers.rs",
+      "stored_sha256": "9720fe5c3daa1c8111fba3c2dfdc20031eae4713388ae5744d929014a060a81a",
+      "stored_bytes": 21004,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/partitionline/partitionline-broker/src/transactions/offsets.rs",
+      "original_sha256": "57aedf5ec6a053ec87e80e42f6bd8c4234a59083247c3f16670ab80b3024b4ea",
+      "original_bytes": 33431,
+      "stored_path": "source/partitionline-broker/src/transactions/offsets.rs",
+      "stored_sha256": "57aedf5ec6a053ec87e80e42f6bd8c4234a59083247c3f16670ab80b3024b4ea",
+      "stored_bytes": 33431,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/partitionline/partitionline-broker/src/idempotence.rs",
+      "original_sha256": "e2f4a871218d508f211431a68f01573161f8c8c652800cc4184a63f6e9b9b056",
+      "original_bytes": 23615,
+      "stored_path": "source/partitionline-broker/src/idempotence.rs",
+      "stored_sha256": "e2f4a871218d508f211431a68f01573161f8c8c652800cc4184a63f6e9b9b056",
+      "stored_bytes": 23615,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/partitionline/partitionline-broker/src/share_state.rs",
+      "original_sha256": "ae9e2a060e745e5a7714d5629243278b6613a970cb82e6102b44f46ec20d6b53",
+      "original_bytes": 35377,
+      "stored_path": "source/partitionline-broker/src/share_state.rs",
+      "stored_sha256": "ae9e2a060e745e5a7714d5629243278b6613a970cb82e6102b44f46ec20d6b53",
+      "stored_bytes": 35377,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/partitionline/partitionline-broker/src/share_delivery.rs",
+      "original_sha256": "ebd9e5919cac95949329d87945e65f6950dd5992d1806f5ce4daded124ecfabc",
+      "original_bytes": 32661,
+      "stored_path": "source/partitionline-broker/src/share_delivery.rs",
+      "stored_sha256": "ebd9e5919cac95949329d87945e65f6950dd5992d1806f5ce4daded124ecfabc",
+      "stored_bytes": 32661,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/partitionline/partitionline-broker/src/configs.rs",
+      "original_sha256": "226507b819989db4d3a7ffc5578dc51d74c614ed918602c2ed0c85234e15c5e7",
+      "original_bytes": 24844,
+      "stored_path": "source/partitionline-broker/src/configs.rs",
+      "stored_sha256": "226507b819989db4d3a7ffc5578dc51d74c614ed918602c2ed0c85234e15c5e7",
+      "stored_bytes": 24844,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/partitionline/partitionline-broker/src/high_watermark.rs",
+      "original_sha256": "335e1d9fca4ee6214895970175bd1f0c12327a8406fcc237b8a71f9b0a768bab",
+      "original_bytes": 23944,
+      "stored_path": "source/partitionline-broker/src/high_watermark.rs",
+      "stored_sha256": "335e1d9fca4ee6214895970175bd1f0c12327a8406fcc237b8a71f9b0a768bab",
+      "stored_bytes": 23944,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/partitionline/partitionline-broker/src/recovery.rs",
+      "original_sha256": "1b146f3af39cbd68e0a2bfa5c786ff027f63775d3eebf085c10a618ae2f1e4d4",
+      "original_bytes": 19502,
+      "stored_path": "source/partitionline-broker/src/recovery.rs",
+      "stored_sha256": "1b146f3af39cbd68e0a2bfa5c786ff027f63775d3eebf085c10a618ae2f1e4d4",
+      "stored_bytes": 19502,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/partitionline/partitionline-broker/src/replication.rs",
+      "original_sha256": "fb4e75614a5c593dfc5305b82cc7a6c4e1f7ed56cbe5b78d849d90f133c2a5e8",
+      "original_bytes": 24104,
+      "stored_path": "source/partitionline-broker/src/replication.rs",
+      "stored_sha256": "fb4e75614a5c593dfc5305b82cc7a6c4e1f7ed56cbe5b78d849d90f133c2a5e8",
+      "stored_bytes": 24104,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/partitionline/partitionline-broker/src/security/tokens.rs",
+      "original_sha256": "27792d1452f8791ceae023c58461166932f3a5bb5b967d7dc09075507a671429",
+      "original_bytes": 32045,
+      "stored_path": "source/partitionline-broker/src/security/tokens.rs",
+      "stored_sha256": "27792d1452f8791ceae023c58461166932f3a5bb5b967d7dc09075507a671429",
+      "stored_bytes": 32045,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/partitionline/partitionline-broker/src/security/acl.rs",
+      "original_sha256": "a63da8e4d1739d5f16e9054f8aa081f9ef49b676bc82b4b47dd1b63d7a360154",
+      "original_bytes": 25796,
+      "stored_path": "source/partitionline-broker/src/security/acl.rs",
+      "stored_sha256": "a63da8e4d1739d5f16e9054f8aa081f9ef49b676bc82b4b47dd1b63d7a360154",
+      "stored_bytes": 25796,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/partitionline/partitionline-broker/src/tiered.rs",
+      "original_sha256": "9d64b3c8340d0c7001e9eb875b4db4722d69f9373fdaaf2d19cdca33373326cc",
+      "original_bytes": 26925,
+      "stored_path": "source/partitionline-broker/src/tiered.rs",
+      "stored_sha256": "9d64b3c8340d0c7001e9eb875b4db4722d69f9373fdaaf2d19cdca33373326cc",
+      "stored_bytes": 26925,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/partitionline/partitionline-broker/src/admin.rs",
+      "original_sha256": "280376f7972f3fc6f79abef52f2617fad84af5ee1c6bb6eeecd44ae0e43851c8",
+      "original_bytes": 35340,
+      "stored_path": "source/partitionline-broker/src/admin.rs",
+      "stored_sha256": "280376f7972f3fc6f79abef52f2617fad84af5ee1c6bb6eeecd44ae0e43851c8",
+      "stored_bytes": 35340,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/partitionline/partitionline-broker/src/journal.rs",
+      "original_sha256": "b901b3d460055b2287346b2091e6a96e275700f904347cf9b072ddb8fb39273b",
+      "original_bytes": 73096,
+      "stored_path": "source/partitionline-broker/src/journal.rs",
+      "stored_sha256": "b901b3d460055b2287346b2091e6a96e275700f904347cf9b072ddb8fb39273b",
+      "stored_bytes": 73096,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/partitionline/docs/plan/evidence/KL11-18.json",
+      "original_sha256": "73bcaec09ba7f710633e8286ea803a0e46f004f25d2f95325264980c3ef39294",
+      "original_bytes": 1365,
+      "stored_path": "source/docs/plan/evidence/KL11-18.json",
+      "stored_sha256": "73bcaec09ba7f710633e8286ea803a0e46f004f25d2f95325264980c3ef39294",
+      "stored_bytes": 1365,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/partitionline/docs/plan/evidence/KL11-19.json",
+      "original_sha256": "26dc2ba1dfe682ebb57de2b6acac137a308beb34b3ef368810109128b2edfada",
+      "original_bytes": 1398,
+      "stored_path": "source/docs/plan/evidence/KL11-19.json",
+      "stored_sha256": "26dc2ba1dfe682ebb57de2b6acac137a308beb34b3ef368810109128b2edfada",
+      "stored_bytes": 1398,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/partitionline/docs/plan/evidence/KL11-20.json",
+      "original_sha256": "29ae1febb86eff1dbba550e9665f5b71114902e91ea878ffca83ea071d5570d0",
+      "original_bytes": 1264,
+      "stored_path": "source/docs/plan/evidence/KL11-20.json",
+      "stored_sha256": "29ae1febb86eff1dbba550e9665f5b71114902e91ea878ffca83ea071d5570d0",
+      "stored_bytes": 1264,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/partitionline/docs/plan/evidence/KL11-21.json",
+      "original_sha256": "f52f8225a13423dc874fd9445c07be3ae2e3cfbde22773ab271d4e9b584125e3",
+      "original_bytes": 1175,
+      "stored_path": "source/docs/plan/evidence/KL11-21.json",
+      "stored_sha256": "f52f8225a13423dc874fd9445c07be3ae2e3cfbde22773ab271d4e9b584125e3",
+      "stored_bytes": 1175,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/partitionline/docs/plan/evidence/KL11-23.json",
+      "original_sha256": "86e2cc6ceca379b542c33d095fe066abd16f7c34ee4247fc297fd94d81bf2c7e",
+      "original_bytes": 1239,
+      "stored_path": "source/docs/plan/evidence/KL11-23.json",
+      "stored_sha256": "86e2cc6ceca379b542c33d095fe066abd16f7c34ee4247fc297fd94d81bf2c7e",
+      "stored_bytes": 1239,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/partitionline/docs/plan/evidence/KL11-24.json",
+      "original_sha256": "db15984fe2457835d212d8c00546290274d0ed3fca9f10da6840c6541fa81b81",
+      "original_bytes": 1377,
+      "stored_path": "source/docs/plan/evidence/KL11-24.json",
+      "stored_sha256": "db15984fe2457835d212d8c00546290274d0ed3fca9f10da6840c6541fa81b81",
+      "stored_bytes": 1377,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/partitionline/docs/plan/evidence/KL11-25.json",
+      "original_sha256": "610d01962e536bee0273f48d83b1312b29857639db9a0349508afa6a2a69bf8e",
+      "original_bytes": 1265,
+      "stored_path": "source/docs/plan/evidence/KL11-25.json",
+      "stored_sha256": "610d01962e536bee0273f48d83b1312b29857639db9a0349508afa6a2a69bf8e",
+      "stored_bytes": 1265,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/partitionline/docs/plan/evidence/KL11-26.json",
+      "original_sha256": "12fb864849f7abec745624e8444d3401f690ae6f1215890eb9d90bb134ab0e41",
+      "original_bytes": 1483,
+      "stored_path": "source/docs/plan/evidence/KL11-26.json",
+      "stored_sha256": "12fb864849f7abec745624e8444d3401f690ae6f1215890eb9d90bb134ab0e41",
+      "stored_bytes": 1483,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/partitionline/docs/plan/evidence/KL11-27.json",
+      "original_sha256": "379c3537b86f10ff55ddda7c23af436ed0be20ea7e7f85c9161a96f8ac23d4e2",
+      "original_bytes": 1327,
+      "stored_path": "source/docs/plan/evidence/KL11-27.json",
+      "stored_sha256": "379c3537b86f10ff55ddda7c23af436ed0be20ea7e7f85c9161a96f8ac23d4e2",
+      "stored_bytes": 1327,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/partitionline/docs/plan/evidence/KL11-28.json",
+      "original_sha256": "4d240e4237cdc4503d5371b99c5627cd0bfac1d97ff9b990a244a20fbce23265",
+      "original_bytes": 1315,
+      "stored_path": "source/docs/plan/evidence/KL11-28.json",
+      "stored_sha256": "4d240e4237cdc4503d5371b99c5627cd0bfac1d97ff9b990a244a20fbce23265",
+      "stored_bytes": 1315,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/partitionline/docs/plan/evidence/KL11-29.json",
+      "original_sha256": "a6c866645b931a88dd1a27f8638e4b14d61c7b88e18c0f32f384758b096e4b96",
+      "original_bytes": 1190,
+      "stored_path": "source/docs/plan/evidence/KL11-29.json",
+      "stored_sha256": "a6c866645b931a88dd1a27f8638e4b14d61c7b88e18c0f32f384758b096e4b96",
+      "stored_bytes": 1190,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/partitionline/docs/plan/evidence/KL11-31.json",
+      "original_sha256": "25ed10afd9f5f84a0731febbd68c10cdea76a3add2dd7aa9a8fd5d95d65bfc69",
+      "original_bytes": 1547,
+      "stored_path": "source/docs/plan/evidence/KL11-31.json",
+      "stored_sha256": "25ed10afd9f5f84a0731febbd68c10cdea76a3add2dd7aa9a8fd5d95d65bfc69",
+      "stored_bytes": 1547,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/partitionline/docs/plan/evidence/KL11-32.json",
+      "original_sha256": "6b5b6d39de519110ba701d731c4507999d0adacf1f466787436a6880e3d9f2f6",
+      "original_bytes": 1659,
+      "stored_path": "source/docs/plan/evidence/KL11-32.json",
+      "stored_sha256": "6b5b6d39de519110ba701d731c4507999d0adacf1f466787436a6880e3d9f2f6",
+      "stored_bytes": 1659,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/partitionline/docs/plan/evidence/KL11-33.json",
+      "original_sha256": "4fde59e7f74b90b3c7b31baad2205af2b2532b70a985491c53dfa83c984ca1fa",
+      "original_bytes": 1282,
+      "stored_path": "source/docs/plan/evidence/KL11-33.json",
+      "stored_sha256": "4fde59e7f74b90b3c7b31baad2205af2b2532b70a985491c53dfa83c984ca1fa",
+      "stored_bytes": 1282,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/partitionline/docs/plan/evidence/KL11-34.json",
+      "original_sha256": "8a50691f1f4265eb21ad390f48677dc2ce117055a3312aac0bd145d43532f5dc",
+      "original_bytes": 1416,
+      "stored_path": "source/docs/plan/evidence/KL11-34.json",
+      "stored_sha256": "8a50691f1f4265eb21ad390f48677dc2ce117055a3312aac0bd145d43532f5dc",
+      "stored_bytes": 1416,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/partitionline/docs/plan/evidence/KL11-39.json",
+      "original_sha256": "dca8194aadf0dec1aedb0a117a49203aa84a59f00236195f514c2a8256fd581c",
+      "original_bytes": 1234,
+      "stored_path": "source/docs/plan/evidence/KL11-39.json",
+      "stored_sha256": "dca8194aadf0dec1aedb0a117a49203aa84a59f00236195f514c2a8256fd581c",
+      "stored_bytes": 1234,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/partitionline/docs/plan/evidence/KL11-40.json",
+      "original_sha256": "8341df26dc7f5386fe0f2121ad81e8883d4ad8fe69f5d02c16729ea270916977",
+      "original_bytes": 1292,
+      "stored_path": "source/docs/plan/evidence/KL11-40.json",
+      "stored_sha256": "8341df26dc7f5386fe0f2121ad81e8883d4ad8fe69f5d02c16729ea270916977",
+      "stored_bytes": 1292,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/partitionline/docs/plan/evidence/KL11-41.json",
+      "original_sha256": "d88a97541d3f1d1bab11c7472415d799217e8a0e1632f4f5d13664d65711eb0a",
+      "original_bytes": 1480,
+      "stored_path": "source/docs/plan/evidence/KL11-41.json",
+      "stored_sha256": "d88a97541d3f1d1bab11c7472415d799217e8a0e1632f4f5d13664d65711eb0a",
+      "stored_bytes": 1480,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/partitionline/docs/plan/evidence/KL11-42.json",
+      "original_sha256": "9172ce91bcd2a623f5f564555bf20eea41ea7f4a27c62f19d658c62d5c497cf1",
+      "original_bytes": 1355,
+      "stored_path": "source/docs/plan/evidence/KL11-42.json",
+      "stored_sha256": "9172ce91bcd2a623f5f564555bf20eea41ea7f4a27c62f19d658c62d5c497cf1",
+      "stored_bytes": 1355,
+      "encoding": "identity"
+    }
+  ]
+}

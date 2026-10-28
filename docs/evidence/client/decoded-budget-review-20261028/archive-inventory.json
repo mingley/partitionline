@@ -1,0 +1,122 @@
+{
+  "schema_version": 1,
+  "files": [
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/decode-budget-audit/README.md",
+      "original_sha256": "fc5f0a76618a91346e0d69cfc79767a00fe62bf97ef01cd3de918765d855d933",
+      "original_bytes": 6165,
+      "stored_path": "README.md",
+      "stored_sha256": "fc5f0a76618a91346e0d69cfc79767a00fe62bf97ef01cd3de918765d855d933",
+      "stored_bytes": 6165,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/decode-budget-audit/inventory.json",
+      "original_sha256": "7b63f069a8b90c66499901a79c8e67bc86e30e5f0e5e2c7048058c6ecb9a8425",
+      "original_bytes": 94526,
+      "stored_path": "inventory.json",
+      "stored_sha256": "7b63f069a8b90c66499901a79c8e67bc86e30e5f0e5e2c7048058c6ecb9a8425",
+      "stored_bytes": 94526,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/decode-budget-audit/source/src/consumer.rs",
+      "original_sha256": "3e4e0db6a57e6e69f0a284a74b8aeee173fc4b5411f7f163610e2d11a743f483",
+      "original_bytes": 740977,
+      "stored_path": "source/src/consumer.rs.gz",
+      "stored_sha256": "e29c2e53bac186e353eba2f560774ac5e074f5efe5a58f12de264e36d0271dd0",
+      "stored_bytes": 123195,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/decode-budget-audit/source/src/net.rs",
+      "original_sha256": "caaa9c1e31355d28337d9e63b74e76c5abb65e0bab1b0c7792298bb8842abd42",
+      "original_bytes": 188442,
+      "stored_path": "source/src/net.rs.gz",
+      "stored_sha256": "257d6ac2a74061b81686d1b9f1809fe8a194caacee8eaf3fd485e80e92833e5f",
+      "stored_bytes": 32787,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/decode-budget-audit/source/src/producer.rs",
+      "original_sha256": "9fe8f7f499cab78ad9952c473529a74ebe591729c2d9d0be53ac58a07aebec39",
+      "original_bytes": 606111,
+      "stored_path": "source/src/producer.rs.gz",
+      "stored_sha256": "c248a28adb4b8739d63b0b0e936f826ab24ad9de8281b2686e1d20edbec08ad4",
+      "stored_bytes": 103923,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/decode-budget-audit/source/src/protocol/admin.rs",
+      "original_sha256": "db13c1f629266fd657e723119be5f3844ec9c2ed069db75c4df89cbddc75723c",
+      "original_bytes": 2052344,
+      "stored_path": "source/src/protocol/admin.rs.gz",
+      "stored_sha256": "841db81c9a8f9fd9d9aebd9962dc3b7bea182af4bbfb11a84a32920d695dd517",
+      "stored_bytes": 233170,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/decode-budget-audit/source/src/protocol/api.rs",
+      "original_sha256": "914f6ba429f8b271aea01f384a03d79de4911cd2938671e7e8d1b85e68af7ae2",
+      "original_bytes": 430579,
+      "stored_path": "source/src/protocol/api.rs.gz",
+      "stored_sha256": "532af09a71d19047b06df47b2ff01ead0436ad03652795b4c9abdc3f6c83511d",
+      "stored_bytes": 59938,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/decode-budget-audit/source/src/protocol/buf.rs",
+      "original_sha256": "c97d92b352fcb4a70ece8d6cd825809a62d31c6f05f912de762ccc8959e436d5",
+      "original_bytes": 75835,
+      "stored_path": "source/src/protocol/buf.rs",
+      "stored_sha256": "c97d92b352fcb4a70ece8d6cd825809a62d31c6f05f912de762ccc8959e436d5",
+      "stored_bytes": 75835,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/decode-budget-audit/source/src/protocol/fetch.rs",
+      "original_sha256": "2c0010d6ad5cd457ca8350f4428eafc5ebf1debd2f7912e2773814ef6ff57749",
+      "original_bytes": 356251,
+      "stored_path": "source/src/protocol/fetch.rs.gz",
+      "stored_sha256": "544733fe63befb88c5efe87a18633af6c8f5c803d5382bc028a494ed3d06c7b4",
+      "stored_bytes": 45894,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/decode-budget-audit/source/src/protocol/group.rs",
+      "original_sha256": "ed121c28691803ad255ea952a3fd930ca9c5150b7193d164e5874fe9eec7a82c",
+      "original_bytes": 835276,
+      "stored_path": "source/src/protocol/group.rs.gz",
+      "stored_sha256": "e57283a4b34025265062f53d4ec17b31dd4bfd35d2828bd168469d66480c8184",
+      "stored_bytes": 106004,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/decode-budget-audit/source/src/protocol/records.rs",
+      "original_sha256": "fb1fc8a27514ef04104fdbf463d5a11871fe244dc698a8f39986957844a7a391",
+      "original_bytes": 285885,
+      "stored_path": "source/src/protocol/records.rs.gz",
+      "stored_sha256": "08cbb427a13f55ed85640f81251d908153a8f019e38c3f45eeeaeb876d3fb9bd",
+      "stored_bytes": 49285,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/decode-budget-audit/source/src/protocol/share.rs",
+      "original_sha256": "1685ff01fcf8b207ac71ba5d10fa14110dedc4f7934bbcc818dfc562f5c25e52",
+      "original_bytes": 376881,
+      "stored_path": "source/src/protocol/share.rs.gz",
+      "stored_sha256": "e829cc16fe95f08e558540042ede371c702b5517454207866a2dc3661349ce02",
+      "stored_bytes": 47747,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/decode-budget-audit/source/src/protocol/txn.rs",
+      "original_sha256": "bc0dfb67b7237f70eff891478f3ffc6efa18497a1e3c9326cd35e62ff202be39",
+      "original_bytes": 388479,
+      "stored_path": "source/src/protocol/txn.rs.gz",
+      "stored_sha256": "11ecb4602237efea3b47405b6e82337f5b0e93a5640de0fa631f54ef145f2c96",
+      "stored_bytes": 46904,
+      "encoding": "gzip"
+    }
+  ]
+}
