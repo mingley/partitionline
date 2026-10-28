@@ -1,0 +1,19 @@
+   Compiling partitionline-broker v0.1.0 (/workspace/work/broker-journal-candidate/partitionline-broker)
+    Finished `test` profile [unoptimized] target(s) in 35.54s
+     Running unittests src/lib.rs (/workspace/work/qualification-20261027/broker-check-target/debug/deps/partitionline_broker-2a454c0708a72949)
+
+running 11 tests
+test groups::offsets::tests::a_negative_offset_is_not_recovered ... ok
+test groups::offsets::tests::an_offset_generation_jump_is_not_recovered ... ok
+test groups::offsets::tests::a_duplicate_commit_keeps_the_first_offset ... ok
+test groups::offsets::tests::limits_reject_counts_the_snapshot_cannot_encode ... ok
+test groups::offsets::tests::checkpoint_position_and_generation_are_checked_on_recovery ... ok
+test groups::offsets::tests::oversized_snapshot_poison_blocks_reads_without_replacing_durable_state ... ok
+test groups::offsets::tests::partial_commit_keeps_the_valid_partition_and_the_other_group ... ok
+test groups::offsets::tests::replacing_an_offset_does_not_consume_another_slot ... ok
+test groups::offsets::tests::snapshot_larger_than_file_budget_preserves_previous_commit ... ok
+test groups::offsets::tests::failed_checkpoint_poison_blocks_reads_until_reopen ... ok
+test groups::offsets::tests::offset_checkpoints_support_sustained_writes_and_recovery ... ok
+
+test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 363 filtered out; finished in 0.01s
+

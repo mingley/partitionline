@@ -37,7 +37,10 @@ fn disjoint(life: &Lifecycle, ids: &[&str]) {
     for id in ids {
         if let Some(owned) = life.owned(id) {
             for partition in owned {
-                assert!(seen.insert(*partition), "partition {partition} has two owners");
+                assert!(
+                    seen.insert(*partition),
+                    "partition {partition} has two owners"
+                );
             }
         }
     }
@@ -64,8 +67,10 @@ fn commit_processed(
 fn cooperative_and_static_histories_keep_disjoint_ownership() {
     let life_path = path("life");
     let offset_path = path("offsets");
-    let mut life = Lifecycle::open(&life_path, life_limits()).unwrap_or_else(|error| panic!("{error:?}"));
-    let mut offsets = Offsets::open(&offset_path, offset_limits()).unwrap_or_else(|error| panic!("{error:?}"));
+    let mut life =
+        Lifecycle::open(&life_path, life_limits()).unwrap_or_else(|error| panic!("{error:?}"));
+    let mut offsets =
+        Offsets::open(&offset_path, offset_limits()).unwrap_or_else(|error| panic!("{error:?}"));
     let mut failures = Vec::new();
 
     life.join("alice", None, &[0, 1], 0)
@@ -81,7 +86,10 @@ fn cooperative_and_static_histories_keep_disjoint_ownership() {
     disjoint(&life, &["alice", "bob"]);
 
     commit_processed(&life, &mut offsets, "alice", 1, 5, &mut failures);
-    assert!(offsets.fetch("orders", "orders", 1).is_none());
+    assert!(offsets
+        .fetch("orders", "orders", 1)
+        .unwrap_or_else(|error| panic!("{error:?}"))
+        .is_none());
     life.mark_delivered("alice", 0)
         .unwrap_or_else(|error| panic!("{error:?}"));
     commit_processed(&life, &mut offsets, "alice", 0, 10, &mut failures);
@@ -93,13 +101,15 @@ fn cooperative_and_static_histories_keep_disjoint_ownership() {
     assert_eq!(
         offsets
             .fetch("orders", "orders", 0)
+            .unwrap_or_else(|error| panic!("{error:?}"))
             .map(|committed| committed.offset),
         Some(10)
     );
 
     life.revoke("alice", &[1], 0)
         .unwrap_or_else(|error| panic!("{error:?}"));
-    life.leave("bob").unwrap_or_else(|error| panic!("{error:?}"));
+    life.leave("bob")
+        .unwrap_or_else(|error| panic!("{error:?}"));
     life.join("bob", None, &[1, 2, 3], 10)
         .unwrap_or_else(|error| panic!("{error:?}"));
     disjoint(&life, &["alice", "bob"]);
@@ -116,28 +126,37 @@ fn cooperative_and_static_histories_keep_disjoint_ownership() {
 
     drop(life);
     drop(offsets);
-    let mut life = Lifecycle::open(&life_path, life_limits()).unwrap_or_else(|error| panic!("{error:?}"));
-    let offsets = Offsets::open(&offset_path, offset_limits()).unwrap_or_else(|error| panic!("{error:?}"));
+    let mut life =
+        Lifecycle::open(&life_path, life_limits()).unwrap_or_else(|error| panic!("{error:?}"));
+    let offsets =
+        Offsets::open(&offset_path, offset_limits()).unwrap_or_else(|error| panic!("{error:?}"));
     disjoint(&life, &["alice", "bob", "carol2"]);
     assert_eq!(
         offsets
             .fetch("orders", "orders", 0)
+            .unwrap_or_else(|error| panic!("{error:?}"))
             .map(|committed| committed.offset),
         Some(10)
     );
     assert_eq!(
         offsets
             .fetch("orders", "orders", 1)
+            .unwrap_or_else(|error| panic!("{error:?}"))
             .map(|committed| committed.offset),
         Some(20)
     );
-    assert!(offsets.fetch("orders", "orders", 2).is_none());
+    assert!(offsets
+        .fetch("orders", "orders", 2)
+        .unwrap_or_else(|error| panic!("{error:?}"))
+        .is_none());
 
     life.heartbeat("bob", 500)
         .unwrap_or_else(|error| panic!("{error:?}"));
     life.heartbeat("carol2", 500)
         .unwrap_or_else(|error| panic!("{error:?}"));
-    let expired = life.expire(1_001).unwrap_or_else(|error| panic!("{error:?}"));
+    let expired = life
+        .expire(1_001)
+        .unwrap_or_else(|error| panic!("{error:?}"));
     assert!(expired.iter().any(|id| id == "alice"));
     failures.push("member-crash");
     assert!(life.owned("alice").is_none());
@@ -145,6 +164,7 @@ fn cooperative_and_static_histories_keep_disjoint_ownership() {
     assert_eq!(
         offsets
             .fetch("orders", "orders", 0)
+            .unwrap_or_else(|error| panic!("{error:?}"))
             .map(|committed| committed.offset),
         Some(10)
     );

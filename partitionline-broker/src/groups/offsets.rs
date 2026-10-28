@@ -14,6 +14,7 @@ use std::path::Path;
 use std::sync::Arc;
 
 const RECORD_MAGIC: &[u8; 8] = b"PLGOFF01";
+const CHECKPOINT_MAGIC: &[u8; 8] = b"PLGOCP01";
 
 /// Kafka `ILLEGAL_GENERATION`.
 pub const ILLEGAL_GENERATION: i16 = 22;
@@ -55,7 +56,7 @@ pub enum Error {
     InvalidRequest,
     /// The group has no stored offsets.
     UnknownGroup,
-    /// A failed append left this store unable to confirm further commits.
+    /// A persistence failure requires reopening before reads or writes.
     Poisoned,
     /// The limits cannot store the groups.
     InvalidLimits,
@@ -94,15 +95,16 @@ pub struct Limits {
 }
 
 impl Limits {
-    /// Configure positive group and offset caps.
+    /// Configure positive group and offset caps. The snapshot format supports
+    /// at most 65,535 groups and 65,535 offsets per group.
     pub fn new(
         max_groups: usize,
         max_offsets: usize,
         max_records: usize,
         journal: journal::Limits,
     ) -> Result<Self, Error> {
-        if !(1..=100_000).contains(&max_groups)
-            || !(1..=1_000_000).contains(&max_offsets)
+        if !(1..=usize::from(u16::MAX)).contains(&max_groups)
+            || !(1..=usize::from(u16::MAX)).contains(&max_offsets)
             || !(1..=1_000_000).contains(&max_records)
             || journal.max_entry_bytes() < 8192
             || journal.max_index_entries() < max_records
@@ -143,6 +145,9 @@ pub struct Offsets {
 
 impl Offsets {
     /// Open or recover committed offsets.
+    ///
+    /// The adjacent `<path>.checkpoint.tmp` name is reserved for atomic
+    /// checkpoint publication and must not be used by other applications.
     pub fn open(path: impl AsRef<Path>, limits: Limits) -> Result<Self, Error> {
         let (journal, _) = Journal::open(path, 0, limits.journal)?;
         let mut offsets = Self {
@@ -155,10 +160,11 @@ impl Offsets {
         };
         let mut cursor = offsets.journal.base_offset();
         loop {
-            let batch =
-                offsets
-                    .journal
-                    .fetch(cursor, 16, offsets.limits.journal.max_fetch_bytes())?;
+            let batch = offsets.journal.fetch(
+                cursor,
+                16.min(offsets.limits.journal.max_index_entries()),
+                offsets.limits.journal.max_fetch_bytes(),
+            )?;
             if batch.is_empty() {
                 break;
             }
@@ -166,8 +172,16 @@ impl Offsets {
                 if entry.record_count != 1 {
                     return Err(Error::InvalidRequest);
                 }
+                let checkpoint = entry.payload.get(..8) == Some(CHECKPOINT_MAGIC.as_slice());
                 let decoded = decode(&entry.payload)?;
-                accept_offset_groups(&offsets.groups, &decoded, offsets.limits)?;
+                if checkpoint {
+                    if entry.first_offset != offsets.journal.base_offset() || offsets.stored != 0 {
+                        return Err(Error::InvalidRequest);
+                    }
+                    validate_offset_groups(&decoded, offsets.limits)?;
+                } else {
+                    accept_offset_groups(&offsets.groups, &decoded, offsets.limits)?;
+                }
                 offsets.groups = decoded;
                 offsets.stored = offsets.stored.saturating_add(1);
                 cursor = entry
@@ -180,22 +194,32 @@ impl Offsets {
     }
 
     /// Group ids that currently have state.
-    pub fn list(&self) -> Vec<String> {
-        self.groups.keys().cloned().collect()
+    pub fn list(&self) -> Result<Vec<String>, Error> {
+        self.ready()?;
+        Ok(self.groups.keys().cloned().collect())
     }
 
     /// Generation and offset count for one group.
-    pub fn describe(&self, group: &str) -> Option<(i32, usize)> {
-        self.groups
+    pub fn describe(&self, group: &str) -> Result<Option<(i32, usize)>, Error> {
+        self.ready()?;
+        Ok(self
+            .groups
             .get(group)
-            .map(|group| (group.generation, offset_count(&group.offsets)))
+            .map(|group| (group.generation, offset_count(&group.offsets))))
     }
 
     /// Fetch one committed offset.
-    pub fn fetch(&self, group: &str, topic: &str, partition: i32) -> Option<&Committed> {
-        self.groups
+    pub fn fetch(
+        &self,
+        group: &str,
+        topic: &str,
+        partition: i32,
+    ) -> Result<Option<&Committed>, Error> {
+        self.ready()?;
+        Ok(self
+            .groups
             .get(group)
-            .and_then(|group| group.offsets.get(topic)?.get(&partition))
+            .and_then(|group| group.offsets.get(topic)?.get(&partition)))
     }
 
     /// Commit a batch. A generation mismatch stores nothing.
@@ -379,25 +403,44 @@ impl Offsets {
     }
 
     fn persist(&mut self) -> Result<(), Error> {
-        if self.stored >= self.limits.max_records {
-            return Err(Error::InvalidLimits);
-        }
-        let mut encoded = std::mem::take(&mut self.encoded);
-        let encoded_result = encode_into(&self.groups, &mut encoded);
-        self.encoded = encoded;
-        encoded_result?;
-        let payload = std::mem::take(&mut self.encoded);
-        let result = match self.journal.append(1, &payload) {
-            Ok(_) => {
+        let mut payload = std::mem::take(&mut self.encoded);
+        let result = (|| {
+            let length = encoded_len(&self.groups)?;
+            if length > self.limits.journal.max_entry_bytes()
+                || length
+                    .checked_add(std::mem::size_of::<journal::Entry>())
+                    .is_none_or(|size| size > self.limits.journal.max_fetch_bytes())
+            {
+                return Err(Error::InvalidLimits);
+            }
+            // Reserve once after checking the bound, instead of growing an
+            // oversized image while discovering that it cannot be written.
+            payload.clear();
+            payload
+                .try_reserve_exact(length)
+                .map_err(|_| Error::InvalidLimits)?;
+            encode_into(&self.groups, &mut payload)?;
+            debug_assert_eq!(payload.len(), length);
+            let rollover = self.stored >= self.limits.max_records
+                || !self.journal.can_append_snapshot(payload.len());
+            if rollover {
+                payload[..8].copy_from_slice(CHECKPOINT_MAGIC);
+                let result = self.journal.replace_with_snapshot(&payload);
+                payload[..8].copy_from_slice(RECORD_MAGIC);
+                result?;
+                self.stored = 1;
+            } else {
+                self.journal.append(1, &payload)?;
                 self.stored = self.stored.saturating_add(1);
-                Ok(())
             }
-            Err(error) => {
-                self.poisoned = true;
-                Err(error.into())
-            }
-        };
+            Ok(())
+        })();
         self.encoded = payload;
+        if result.is_err() {
+            // Mutation happened before persistence. Never expose it as durable;
+            // reopen to recover the outcome of an ambiguous write or rename.
+            self.poisoned = true;
+        }
         result
     }
 }
@@ -407,23 +450,7 @@ fn accept_offset_groups(
     next: &BTreeMap<String, Group>,
     limits: Limits,
 ) -> Result<(), Error> {
-    if next.len() > limits.max_groups
-        || next
-            .values()
-            .any(|group| offset_count(&group.offsets) > limits.max_offsets)
-    {
-        return Err(Error::InvalidLimits);
-    }
-    for group in next.values() {
-        if group
-            .offsets
-            .values()
-            .flat_map(BTreeMap::values)
-            .any(|committed| committed.generation != group.generation)
-        {
-            return Err(Error::InvalidRequest);
-        }
-    }
+    validate_offset_groups(next, limits)?;
     let mut added = None;
     let mut removed = 0usize;
     let mut changed = None;
@@ -477,6 +504,26 @@ fn accept_offset_groups(
     }
 }
 
+fn validate_offset_groups(groups: &BTreeMap<String, Group>, limits: Limits) -> Result<(), Error> {
+    if groups.len() > limits.max_groups
+        || groups
+            .values()
+            .any(|group| offset_count(&group.offsets) > limits.max_offsets)
+    {
+        return Err(Error::InvalidLimits);
+    }
+    if groups.values().any(|group| {
+        group
+            .offsets
+            .values()
+            .flat_map(BTreeMap::values)
+            .any(|committed| committed.generation != group.generation)
+    }) {
+        return Err(Error::InvalidRequest);
+    }
+    Ok(())
+}
+
 fn validate_group(group: &str) -> Result<(), Error> {
     if group.is_empty() || group.len() > 249 || group.chars().any(|c| c.is_control()) {
         Err(Error::InvalidRequest)
@@ -490,6 +537,28 @@ fn encode(groups: &BTreeMap<String, Group>) -> Result<Vec<u8>, Error> {
     let mut bytes = Vec::new();
     encode_into(groups, &mut bytes)?;
     Ok(bytes)
+}
+
+fn encoded_len(groups: &BTreeMap<String, Group>) -> Result<usize, Error> {
+    let _ = u16::try_from(groups.len()).map_err(|_| Error::InvalidRequest)?;
+    let mut len = RECORD_MAGIC.len() + 2;
+    for (id, group) in groups {
+        let _ = u16::try_from(id.len()).map_err(|_| Error::InvalidRequest)?;
+        let _ = u16::try_from(offset_count(&group.offsets)).map_err(|_| Error::InvalidRequest)?;
+        len = len
+            .checked_add(2 + id.len() + 4 + 2)
+            .ok_or(Error::InvalidLimits)?;
+        for (topic, parts) in &group.offsets {
+            let _ = u16::try_from(topic.len()).map_err(|_| Error::InvalidRequest)?;
+            for committed in parts.values() {
+                let _ =
+                    u16::try_from(committed.metadata.len()).map_err(|_| Error::InvalidRequest)?;
+                let entry_len = 2 + topic.len() + 4 + 8 + 4 + 2 + committed.metadata.len();
+                len = len.checked_add(entry_len).ok_or(Error::InvalidLimits)?;
+            }
+        }
+    }
+    Ok(len)
 }
 
 fn encode_into(groups: &BTreeMap<String, Group>, bytes: &mut Vec<u8>) -> Result<(), Error> {
@@ -514,7 +583,10 @@ fn encode_into(groups: &BTreeMap<String, Group>, bytes: &mut Vec<u8>) -> Result<
 }
 
 fn decode(mut bytes: &[u8]) -> Result<BTreeMap<String, Group>, Error> {
-    if bytes.len() < RECORD_MAGIC.len() || &bytes[..RECORD_MAGIC.len()] != RECORD_MAGIC {
+    if bytes.len() < RECORD_MAGIC.len()
+        || (&bytes[..RECORD_MAGIC.len()] != RECORD_MAGIC
+            && &bytes[..RECORD_MAGIC.len()] != CHECKPOINT_MAGIC)
+    {
         return Err(Error::InvalidRequest);
     }
     bytes = &bytes[RECORD_MAGIC.len()..];
@@ -659,6 +731,20 @@ mod tests {
     }
 
     #[test]
+    fn limits_reject_counts_the_snapshot_cannot_encode() {
+        let journal = journal::Limits::new(8192, 1 << 20, 100, 1 << 20).unwrap();
+        assert!(Limits::new(usize::from(u16::MAX), usize::from(u16::MAX), 32, journal).is_ok());
+        assert!(matches!(
+            Limits::new(usize::from(u16::MAX) + 1, 32, 32, journal),
+            Err(Error::InvalidLimits)
+        ));
+        assert!(matches!(
+            Limits::new(8, usize::from(u16::MAX) + 1, 32, journal),
+            Err(Error::InvalidLimits)
+        ));
+    }
+
+    #[test]
     fn an_offset_generation_jump_is_not_recovered() {
         let (offsets, _) = open("jump");
         let mut groups = BTreeMap::new();
@@ -734,6 +820,7 @@ mod tests {
         assert_eq!(
             offsets
                 .fetch("orders", "orders", 0)
+                .unwrap_or_else(|error| panic!("{error:?}"))
                 .map(|committed| committed.offset),
             Some(4)
         );
@@ -769,31 +856,51 @@ mod tests {
         assert_eq!(
             offsets
                 .fetch("orders", "orders", 0)
+                .unwrap_or_else(|error| panic!("{error:?}"))
                 .map(|committed| committed.offset),
             Some(9)
         );
-        assert!(offsets.fetch("orders", "orders", 1).is_none());
+        assert!(offsets
+            .fetch("orders", "orders", 1)
+            .unwrap_or_else(|error| panic!("{error:?}"))
+            .is_none());
         assert_eq!(
             offsets
                 .fetch("payments", "paid", 0)
+                .unwrap_or_else(|error| panic!("{error:?}"))
                 .map(|committed| committed.offset),
             Some(5)
         );
         offsets
             .delete_group("orders")
             .unwrap_or_else(|error| panic!("{error:?}"));
-        assert!(offsets.fetch("orders", "orders", 0).is_none());
-        assert_eq!(offsets.list(), vec!["payments".to_owned()]);
+        assert!(offsets
+            .fetch("orders", "orders", 0)
+            .unwrap_or_else(|error| panic!("{error:?}"))
+            .is_none());
+        assert_eq!(
+            offsets.list().unwrap_or_else(|error| panic!("{error:?}")),
+            vec!["payments".to_owned()]
+        );
         drop(offsets);
         let restored = Offsets::open(&path, limits()).unwrap_or_else(|error| panic!("{error:?}"));
         assert_eq!(
             restored
                 .fetch("payments", "paid", 0)
+                .unwrap_or_else(|error| panic!("{error:?}"))
                 .map(|committed| committed.offset),
             Some(5)
         );
-        assert_eq!(restored.describe("payments"), Some((1, 1)));
-        assert!(restored.describe("orders").is_none());
+        assert_eq!(
+            restored
+                .describe("payments")
+                .unwrap_or_else(|error| panic!("{error:?}")),
+            Some((1, 1))
+        );
+        assert!(restored
+            .describe("orders")
+            .unwrap_or_else(|error| panic!("{error:?}"))
+            .is_none());
     }
 
     #[test]
@@ -823,6 +930,7 @@ mod tests {
         assert_eq!(
             offsets
                 .fetch("orders", "orders", 0)
+                .unwrap_or_else(|error| panic!("{error:?}"))
                 .map(|committed| committed.offset),
             Some(9)
         );
@@ -830,8 +938,16 @@ mod tests {
             offsets.commit("orders", "m-1", 1, &[("orders", 1, 1, "")]),
             Err(Error::InvalidLimits)
         ));
-        assert!(offsets.fetch("orders", "orders", 1).is_none());
-        assert_eq!(offsets.describe("orders"), Some((1, 1)));
+        assert!(offsets
+            .fetch("orders", "orders", 1)
+            .unwrap_or_else(|error| panic!("{error:?}"))
+            .is_none());
+        assert_eq!(
+            offsets
+                .describe("orders")
+                .unwrap_or_else(|error| panic!("{error:?}")),
+            Some((1, 1))
+        );
         assert!(matches!(
             offsets.commit(
                 "payments",
@@ -841,6 +957,179 @@ mod tests {
             ),
             Err(Error::InvalidLimits)
         ));
-        assert!(offsets.describe("payments").is_none());
+        assert!(offsets
+            .describe("payments")
+            .unwrap_or_else(|error| panic!("{error:?}"))
+            .is_none());
+    }
+    #[test]
+    fn offset_checkpoints_support_sustained_writes_and_recovery() {
+        // Exercise history, index and file limits independently.
+        for (file_bytes, index_entries, max_records) in
+            [(1 << 20, 2, 2), (1 << 20, 100, 2), (512, 100, 100)]
+        {
+            let journal = journal::Limits::new(8192, file_bytes, index_entries, 1 << 20).unwrap();
+            let limits = Limits::new(8, 32, max_records, journal).unwrap();
+            let (_, path) = open("sustained-placeholder");
+            let mut offsets = Offsets::open(&path, limits).unwrap();
+            for n in 0..25 {
+                let group = if n % 2 == 0 { "orders" } else { "payments" };
+                offsets
+                    .commit(group, "member", 1, &[("topic", 0, n, "meta")])
+                    .unwrap();
+                assert!(offsets.journal.entry_count() <= index_entries.min(max_records));
+                assert!(offsets.journal.file_bytes() <= file_bytes);
+                if n % 5 == 4 {
+                    drop(offsets);
+                    offsets = Offsets::open(&path, limits).unwrap();
+                    assert_eq!(offsets.fetch(group, "topic", 0).unwrap().unwrap().offset, n);
+                }
+            }
+            offsets
+                .delete_partitions("payments", &[("topic", 0)])
+                .unwrap();
+            drop(offsets);
+            let mut offsets = Offsets::open(&path, limits).unwrap();
+            assert_eq!(
+                offsets.fetch("orders", "topic", 0).unwrap().unwrap().offset,
+                24
+            );
+            assert_eq!(offsets.describe("payments").unwrap(), Some((1, 0)));
+            offsets
+                .commit("payments", "member", 1, &[("topic", 0, 99, "")])
+                .unwrap();
+            drop(offsets);
+            let offsets = Offsets::open(&path, limits).unwrap();
+            assert_eq!(
+                offsets
+                    .fetch("payments", "topic", 0)
+                    .unwrap()
+                    .unwrap()
+                    .offset,
+                99
+            );
+            drop(offsets);
+            let _ = std::fs::remove_file(path);
+        }
+    }
+
+    #[test]
+    fn checkpoint_position_and_generation_are_checked_on_recovery() {
+        let (mut offsets, path) = open("checkpoint-invalid");
+        offsets.commit("a", "m", 1, &[("topic", 0, 1, "")]).unwrap();
+        let mut payload = encode(&offsets.groups).unwrap();
+        payload[..8].copy_from_slice(CHECKPOINT_MAGIC);
+        offsets.journal.append(1, &payload).unwrap();
+        drop(offsets);
+        assert!(matches!(
+            Offsets::open(&path, limits()),
+            Err(Error::InvalidRequest)
+        ));
+        let _ = std::fs::remove_file(&path);
+        let (mut offsets, path) = open("checkpoint-generation");
+        offsets.commit("a", "m", 1, &[("topic", 0, 1, "")]).unwrap();
+        offsets
+            .groups
+            .get_mut("a")
+            .unwrap()
+            .offsets
+            .get_mut("topic")
+            .unwrap()
+            .get_mut(&0)
+            .unwrap()
+            .generation = 2;
+        let mut payload = encode(&offsets.groups).unwrap();
+        payload[..8].copy_from_slice(CHECKPOINT_MAGIC);
+        offsets.journal.replace_with_snapshot(&payload).unwrap();
+        drop(offsets);
+        assert!(matches!(
+            Offsets::open(&path, limits()),
+            Err(Error::InvalidRequest)
+        ));
+        let _ = std::fs::remove_file(path);
+    }
+
+    #[test]
+    fn failed_checkpoint_poison_blocks_reads_until_reopen() {
+        for phase in ["prepared", "renamed"] {
+            let journal = journal::Limits::new(8192, 1 << 20, 1, 1 << 20).unwrap();
+            let limits = Limits::new(8, 32, 1, journal).unwrap();
+            let (_, path) = open("checkpoint-failure");
+            let mut offsets = Offsets::open(&path, limits).unwrap();
+            offsets.commit("a", "m", 1, &[("topic", 0, 1, "")]).unwrap();
+            journal::fail_checkpoint_once_at(phase);
+            assert!(offsets.commit("a", "m", 1, &[("topic", 0, 2, "")]).is_err());
+            assert!(matches!(
+                offsets.fetch("a", "topic", 0),
+                Err(Error::Poisoned)
+            ));
+            assert!(matches!(offsets.describe("a"), Err(Error::Poisoned)));
+            assert!(matches!(offsets.list(), Err(Error::Poisoned)));
+            drop(offsets);
+            let mut offsets = Offsets::open(&path, limits).unwrap();
+            let recovered = offsets.fetch("a", "topic", 0).unwrap().unwrap().offset;
+            assert_eq!(recovered, if phase == "prepared" { 1 } else { 2 });
+            offsets.commit("a", "m", 1, &[("topic", 0, 3, "")]).unwrap();
+            drop(offsets);
+            let offsets = Offsets::open(&path, limits).unwrap();
+            assert_eq!(offsets.fetch("a", "topic", 0).unwrap().unwrap().offset, 3);
+            drop(offsets);
+            let _ = std::fs::remove_file(format!("{}.checkpoint.tmp", path.display()));
+            let _ = std::fs::remove_file(path);
+        }
+    }
+
+    #[test]
+    fn oversized_snapshot_poison_blocks_reads_without_replacing_durable_state() {
+        let journal = journal::Limits::new(8192, 1 << 20, 1, 1 << 20).unwrap();
+        let limits = Limits::new(8, 32, 1, journal).unwrap();
+        let (_, path) = open("snapshot-too-large");
+        let mut offsets = Offsets::open(&path, limits).unwrap();
+        offsets.commit("a", "m", 1, &[("topic", 0, 1, "")]).unwrap();
+        let capacity = offsets.encoded.capacity();
+        let metadata = "x".repeat(4096);
+        assert!(matches!(
+            offsets.commit(
+                "a",
+                "m",
+                1,
+                &[("topic", 1, 2, &metadata), ("topic", 2, 3, &metadata)]
+            ),
+            Err(Error::InvalidLimits)
+        ));
+        assert_eq!(offsets.encoded.capacity(), capacity);
+        assert!(matches!(
+            offsets.fetch("a", "topic", 1),
+            Err(Error::Poisoned)
+        ));
+        drop(offsets);
+        let offsets = Offsets::open(&path, limits).unwrap();
+        assert_eq!(offsets.fetch("a", "topic", 0).unwrap().unwrap().offset, 1);
+        assert!(offsets.fetch("a", "topic", 1).unwrap().is_none());
+        drop(offsets);
+        let _ = std::fs::remove_file(path);
+    }
+    #[test]
+    fn snapshot_larger_than_file_budget_preserves_previous_commit() {
+        let journal = journal::Limits::new(8192, 512, 4, 1 << 20).unwrap();
+        let limits = Limits::new(8, 32, 4, journal).unwrap();
+        let (_, path) = open("snapshot-file-limit");
+        let mut offsets = Offsets::open(&path, limits).unwrap();
+        offsets.commit("a", "m", 1, &[("topic", 0, 1, "")]).unwrap();
+        let metadata = "x".repeat(512);
+        assert!(matches!(
+            offsets.commit("a", "m", 1, &[("topic", 1, 2, &metadata)]),
+            Err(Error::Storage(journal::Error::FileBudgetExceeded))
+        ));
+        assert!(matches!(
+            offsets.fetch("a", "topic", 1),
+            Err(Error::Poisoned)
+        ));
+        drop(offsets);
+        let offsets = Offsets::open(&path, limits).unwrap();
+        assert_eq!(offsets.fetch("a", "topic", 0).unwrap().unwrap().offset, 1);
+        assert!(offsets.fetch("a", "topic", 1).unwrap().is_none());
+        drop(offsets);
+        let _ = std::fs::remove_file(path);
     }
 }

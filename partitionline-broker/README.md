@@ -46,7 +46,12 @@ the listener's catalog or partition journals. See
 
 The experimental consumer, share and streams group coordinators expose
 `describe` as `Result<Option<_>, Error>`. Callers must handle `Error::Poisoned`
-after an uncertain storage write and reopen the coordinator to recover.
+after an uncertain storage write and reopen the coordinator to recover. The
+classic offset store similarly returns `Result` from `list`, `describe`, and
+`fetch`; handle `Error::Poisoned` by reopening the store. Its journal rolls
+over to a complete checkpoint when it reaches a configured history limit.
+The checkpoint format supports up to 65,535 groups and 65,535 offsets per group;
+larger configured limits are rejected.
 
 ```sh
 sh scripts/broker-package.sh
