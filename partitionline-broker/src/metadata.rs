@@ -994,7 +994,7 @@ impl Handler for Router {
 }
 fn reserve_count<T>(items: &mut Vec<T>, count: usize) {
     if items.capacity() < count {
-        items.reserve(count - items.capacity());
+        items.reserve(count - items.len());
     }
 }
 
@@ -1717,7 +1717,7 @@ impl Writer {
         }
         if self.bytes.capacity() < bytes {
             self.bytes
-                .try_reserve_exact(bytes - self.bytes.capacity())
+                .try_reserve_exact(bytes - self.bytes.len())
                 .map_err(|_| Error::ResponseLimit)?;
         }
         Ok(())
@@ -2800,6 +2800,52 @@ fn delete(
 mod tests {
     use super::*;
     use std::{error::Error as StdError, sync::atomic::AtomicU64};
+
+    #[test]
+    fn reused_job_list_reserves_the_requested_total() {
+        let mut items = Vec::with_capacity(32);
+        items.extend_from_slice(&[1_u8, 2, 3]);
+        let needed = items.capacity() + 1;
+        reserve_count(&mut items, needed);
+        assert!(items.capacity() >= needed);
+        assert_eq!(items, [1, 2, 3]);
+        let capacity = items.capacity();
+        reserve_count(&mut items, capacity);
+        assert_eq!(items.capacity(), capacity);
+    }
+
+    #[test]
+    fn reused_response_reserves_the_requested_total_and_reports_limits() {
+        let spare = vec![7; 32];
+        let needed = spare.capacity() + 1;
+        let mut writer = Writer::reusing(needed, spare).expect("writer");
+        assert!(writer.bytes.is_empty());
+        writer.reserve(needed).expect("reserve larger response");
+        assert!(writer.bytes.capacity() >= needed);
+        let capacity = writer.bytes.capacity();
+        writer.put(&vec![9; needed]).expect("write response");
+        assert_eq!(writer.bytes.capacity(), capacity);
+        assert!(matches!(
+            writer.reserve(needed + 1),
+            Err(Error::ResponseLimit)
+        ));
+        assert_eq!(writer.bytes.len(), needed);
+
+        let mut writer = Writer::reusing(1024, Vec::with_capacity(32)).expect("writer");
+        writer.put(&[1, 2, 3]).expect("write prefix");
+        let needed = writer.bytes.capacity() + 1;
+        writer.reserve(needed).expect("reserve with a prefix");
+        assert!(writer.bytes.capacity() >= needed);
+        assert_eq!(writer.bytes, [1, 2, 3]);
+
+        let mut writer = Writer::new(usize::MAX).expect("writer");
+        writer.put(&[1, 2, 3]).expect("write prefix");
+        assert!(matches!(
+            writer.reserve(usize::MAX),
+            Err(Error::ResponseLimit)
+        ));
+        assert_eq!(writer.bytes, [1, 2, 3]);
+    }
 
     #[test]
     fn a_queued_produce_sizes_its_job_lists_once() {

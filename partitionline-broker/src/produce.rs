@@ -1472,7 +1472,7 @@ fn note_append(part: &mut ResultPart, result: partition::Append, log_start: Opti
 }
 fn reserve_count<T>(items: &mut Vec<T>, count: usize) {
     if items.capacity() < count {
-        items.reserve(count - items.capacity());
+        items.reserve(count - items.len());
     }
 }
 
@@ -2368,6 +2368,12 @@ mod tests {
         assert_eq!(joins.capacity(), kept);
         super::reserve_count(&mut joins, 3);
         assert_eq!(joins.capacity(), kept);
+
+        joins.extend_from_slice(&[1, 2, 3]);
+        let needed = joins.capacity() + 1;
+        super::reserve_count(&mut joins, needed);
+        assert!(joins.capacity() >= needed);
+        assert_eq!(joins, [1, 2, 3]);
     }
 
     #[test]
