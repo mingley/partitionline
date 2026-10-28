@@ -4038,7 +4038,7 @@ mod ownership_tests {
             tokio::io::AsyncReadExt::read(&mut socket, &mut buf),
         )
         .await;
-        if !matches!(still_open, Err(_)) {
+        if still_open.is_ok() {
             let _ = release.send(());
             running.abort();
             return Err("outbound dropped the socket before the peer closed".into());
@@ -4148,7 +4148,7 @@ mod ownership_tests {
             tokio::io::AsyncReadExt::read(&mut socket, &mut buf),
         )
         .await;
-        if !matches!(still_open, Err(_)) {
+        if still_open.is_ok() {
             running.abort();
             return Err("outbound dropped the socket after a successful acknowledge".into());
         }
@@ -4262,7 +4262,7 @@ mod ownership_tests {
             tokio::io::AsyncReadExt::read(&mut socket, &mut buf),
         )
         .await;
-        if !matches!(still_open, Err(_)) {
+        if still_open.is_ok() {
             running.abort();
             return Err("outbound dropped the socket before frame admission waited".into());
         }
@@ -4378,7 +4378,7 @@ mod ownership_tests {
             tokio::io::AsyncReadExt::read(&mut socket, &mut buf),
         )
         .await;
-        if !matches!(still_open, Err(_)) {
+        if still_open.is_ok() {
             let _ = release.send(());
             running.abort();
             return Err("outbound dropped the socket before prepare".into());
@@ -4496,7 +4496,7 @@ mod ownership_tests {
             tokio::io::AsyncReadExt::read(&mut socket, &mut buf),
         )
         .await;
-        if !matches!(still_open, Err(_)) {
+        if still_open.is_ok() {
             let _ = release.send(());
             running.abort();
             return Err("outbound dropped the socket before the chunk read".into());

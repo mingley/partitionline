@@ -703,158 +703,6 @@ fn first_timestamp(
     Ok(None)
 }
 
-#[cfg(test)]
-mod tests {
-    use super::list_query;
-    use super::ListQuery;
-
-    fn part(index: i32) -> super::Part {
-        super::Part {
-            index,
-            offset: 0,
-            maximum: 0,
-        }
-    }
-
-    #[test]
-    fn a_header_after_records_does_not_double_the_buffer() {
-        let mut writer = super::Writer::new(64, 1024 * 1024, Vec::new())
-            .unwrap_or_else(|error| panic!("{error:?}"));
-        let payload = vec![1u8; 4096];
-        writer
-            .bytes(&payload)
-            .unwrap_or_else(|error| panic!("{error:?}"));
-        let grown = writer.bytes.capacity();
-        writer.i32(7).unwrap_or_else(|error| panic!("{error:?}"));
-        assert!(writer.bytes.capacity() >= writer.bytes.len());
-        assert!(writer.bytes.capacity() < grown.saturating_mul(2));
-        assert_eq!(
-            writer.bytes.get(writer.bytes.len() - 4..),
-            Some(&[0, 0, 0, 7][..])
-        );
-    }
-
-    #[test]
-    fn a_single_fetch_slot_stays_inline() {
-        let mut parts = super::exact_list(1).unwrap_or_else(|error| panic!("{error:?}"));
-        assert!(matches!(parts, super::List::Empty));
-        parts.push(part(0));
-        assert!(matches!(parts, super::List::One(_)));
-        assert_eq!(parts.len(), 1);
-        assert_eq!(parts.first().map(|part| part.index), Some(0));
-        let mut many = super::exact_list(2).unwrap_or_else(|error| panic!("{error:?}"));
-        assert!(matches!(many, super::List::Many(_)));
-        many.push(part(0));
-        many.push(part(1));
-        assert_eq!(many.len(), 2);
-        assert!(matches!(many, super::List::Many(_)));
-    }
-
-    #[test]
-    fn repeated_partitions_are_only_tracked_when_the_list_is_not_increasing() {
-        assert!(super::repeated_partition_indexes(&[part(0), part(1), part(4)]).is_empty());
-        assert!(super::repeated_partition_indexes(&[part(2), part(0), part(1)]).is_empty());
-        assert!(super::repeated_partition_indexes(&[part(3)]).is_empty());
-        let adjacent = super::repeated_partition_indexes(&[part(1), part(1)]);
-        assert!(adjacent.contains(&1));
-        let later = super::repeated_partition_indexes(&[part(1), part(0), part(1)]);
-        assert!(later.contains(&1));
-        assert!(!later.contains(&0));
-        assert!(!super::index_repeats(&[part(1), part(0)], 1));
-        assert!(super::index_repeats(&[part(1), part(0), part(1)], 1));
-        assert!(!super::index_repeats(&[part(1), part(0), part(1)], 0));
-        let flags = super::short_repeated_partitions(&[part(1), part(0), part(1)]);
-        assert_eq!(
-            (
-                flags.first().copied(),
-                flags.get(1).copied(),
-                flags.get(2).copied()
-            ),
-            (Some(true), Some(false), Some(true))
-        );
-        assert!(super::parts_increase(&[part(0), part(2)]));
-        assert!(!super::parts_increase(&[part(2), part(0)]));
-    }
-
-    #[test]
-    fn a_short_topic_list_finds_a_repeated_name_without_a_count_map() {
-        assert!(!super::name_repeats(["orders", "payments"], "orders"));
-        assert!(super::name_repeats(
-            ["orders", "payments", "orders"],
-            "orders"
-        ));
-        assert!(!super::name_repeats(
-            ["orders", "payments", "orders"],
-            "payments"
-        ));
-        assert!(!super::name_repeats(["orders"], "orders"));
-    }
-
-    #[test]
-    fn response_bytes_keep_earlier_fields_as_the_buffer_grows() {
-        let mut writer = super::Writer::new(4, 10_000, Vec::new()).unwrap();
-        writer.i32(1).unwrap();
-        for value in 2..40 {
-            writer.i32(value).unwrap();
-        }
-        assert_eq!(writer.bytes.len(), 39 * 4);
-        assert_eq!(&writer.bytes[..4], &1i32.to_be_bytes());
-        assert_eq!(&writer.bytes[38 * 4..], &39i32.to_be_bytes());
-    }
-
-    #[test]
-    fn a_batch_that_crosses_the_high_watermark_is_not_fetched() {
-        assert!(!super::batch_crosses_watermark(0, 2, 2));
-        assert!(super::batch_crosses_watermark(0, 3, 2));
-        assert!(super::batch_crosses_watermark(2, 4, 2));
-        assert!(!super::batch_crosses_watermark(0, 1, 2));
-    }
-
-    #[test]
-    fn a_listed_offset_must_fall_inside_the_log() {
-        assert!(super::offset_in_log(1, 1, 4));
-        assert!(super::offset_in_log(3, 1, 4));
-        assert!(!super::offset_in_log(0, 1, 4));
-        assert!(!super::offset_in_log(4, 1, 4));
-        assert!(!super::offset_in_log(1, 2, 2));
-    }
-
-    #[test]
-    fn a_log_start_past_the_high_watermark_is_storage_corruption() {
-        assert_eq!(super::stored_log_error(0, 5, 2), 56);
-        assert_eq!(super::stored_log_error(0, 2, 2), 0);
-        assert_eq!(super::stored_log_error(0, 1, 4), 0);
-        assert_eq!(super::stored_log_error(3, 5, 2), 3);
-    }
-
-    #[test]
-    fn failed_fetch_uses_unknown_log_boundaries() {
-        assert_eq!(super::fetch_boundary(0, 4, 1), (4, 4, 1));
-        assert_eq!(super::fetch_boundary(1, 4, 1), (-1, -1, -1));
-        assert_eq!(super::fetch_boundary(3, 4, 1), (-1, -1, -1));
-    }
-
-    #[test]
-    fn a_tied_max_timestamp_keeps_the_earlier_offset() {
-        assert_eq!(super::earlier_max_offset(None, 5, 3), (5, 3));
-        assert_eq!(super::earlier_max_offset(Some((5, 1)), 5, 3), (5, 1));
-        assert_eq!(super::earlier_max_offset(Some((5, 4)), 5, 2), (5, 2));
-        assert_eq!(super::earlier_max_offset(Some((4, 1)), 9, 2), (9, 2));
-        assert_eq!(super::earlier_max_offset(Some((9, 4)), 4, 1), (9, 4));
-    }
-
-    #[test]
-    fn a_pre_epoch_timestamp_is_searched() {
-        assert_eq!(list_query(-1), ListQuery::Latest);
-        assert_eq!(list_query(-2), ListQuery::Earliest);
-        assert_eq!(list_query(-4), ListQuery::Earliest);
-        assert_eq!(list_query(-3), ListQuery::MaxTimestamp);
-        assert_eq!(list_query(-5), ListQuery::TieredEnd);
-        assert_eq!(list_query(-100), ListQuery::Timestamp(-100));
-        assert_eq!(list_query(0), ListQuery::Timestamp(0));
-    }
-}
-
 fn stored_records(
     payload: &[u8],
     first_offset: u64,
@@ -1273,4 +1121,156 @@ pub(crate) fn process(
         )),
         immediate: immediate || key == 2,
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::list_query;
+    use super::ListQuery;
+
+    fn part(index: i32) -> super::Part {
+        super::Part {
+            index,
+            offset: 0,
+            maximum: 0,
+        }
+    }
+
+    #[test]
+    fn a_header_after_records_does_not_double_the_buffer() {
+        let mut writer = super::Writer::new(64, 1024 * 1024, Vec::new())
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        let payload = vec![1u8; 4096];
+        writer
+            .bytes(&payload)
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        let grown = writer.bytes.capacity();
+        writer.i32(7).unwrap_or_else(|error| panic!("{error:?}"));
+        assert!(writer.bytes.capacity() >= writer.bytes.len());
+        assert!(writer.bytes.capacity() < grown.saturating_mul(2));
+        assert_eq!(
+            writer.bytes.get(writer.bytes.len() - 4..),
+            Some(&[0, 0, 0, 7][..])
+        );
+    }
+
+    #[test]
+    fn a_single_fetch_slot_stays_inline() {
+        let mut parts = super::exact_list(1).unwrap_or_else(|error| panic!("{error:?}"));
+        assert!(matches!(parts, super::List::Empty));
+        parts.push(part(0));
+        assert!(matches!(parts, super::List::One(_)));
+        assert_eq!(parts.len(), 1);
+        assert_eq!(parts.first().map(|part| part.index), Some(0));
+        let mut many = super::exact_list(2).unwrap_or_else(|error| panic!("{error:?}"));
+        assert!(matches!(many, super::List::Many(_)));
+        many.push(part(0));
+        many.push(part(1));
+        assert_eq!(many.len(), 2);
+        assert!(matches!(many, super::List::Many(_)));
+    }
+
+    #[test]
+    fn repeated_partitions_are_only_tracked_when_the_list_is_not_increasing() {
+        assert!(super::repeated_partition_indexes(&[part(0), part(1), part(4)]).is_empty());
+        assert!(super::repeated_partition_indexes(&[part(2), part(0), part(1)]).is_empty());
+        assert!(super::repeated_partition_indexes(&[part(3)]).is_empty());
+        let adjacent = super::repeated_partition_indexes(&[part(1), part(1)]);
+        assert!(adjacent.contains(&1));
+        let later = super::repeated_partition_indexes(&[part(1), part(0), part(1)]);
+        assert!(later.contains(&1));
+        assert!(!later.contains(&0));
+        assert!(!super::index_repeats(&[part(1), part(0)], 1));
+        assert!(super::index_repeats(&[part(1), part(0), part(1)], 1));
+        assert!(!super::index_repeats(&[part(1), part(0), part(1)], 0));
+        let flags = super::short_repeated_partitions(&[part(1), part(0), part(1)]);
+        assert_eq!(
+            (
+                flags.first().copied(),
+                flags.get(1).copied(),
+                flags.get(2).copied()
+            ),
+            (Some(true), Some(false), Some(true))
+        );
+        assert!(super::parts_increase(&[part(0), part(2)]));
+        assert!(!super::parts_increase(&[part(2), part(0)]));
+    }
+
+    #[test]
+    fn a_short_topic_list_finds_a_repeated_name_without_a_count_map() {
+        assert!(!super::name_repeats(["orders", "payments"], "orders"));
+        assert!(super::name_repeats(
+            ["orders", "payments", "orders"],
+            "orders"
+        ));
+        assert!(!super::name_repeats(
+            ["orders", "payments", "orders"],
+            "payments"
+        ));
+        assert!(!super::name_repeats(["orders"], "orders"));
+    }
+
+    #[test]
+    fn response_bytes_keep_earlier_fields_as_the_buffer_grows() {
+        let mut writer = super::Writer::new(4, 10_000, Vec::new()).unwrap();
+        writer.i32(1).unwrap();
+        for value in 2..40 {
+            writer.i32(value).unwrap();
+        }
+        assert_eq!(writer.bytes.len(), 39 * 4);
+        assert_eq!(&writer.bytes[..4], &1i32.to_be_bytes());
+        assert_eq!(&writer.bytes[38 * 4..], &39i32.to_be_bytes());
+    }
+
+    #[test]
+    fn a_batch_that_crosses_the_high_watermark_is_not_fetched() {
+        assert!(!super::batch_crosses_watermark(0, 2, 2));
+        assert!(super::batch_crosses_watermark(0, 3, 2));
+        assert!(super::batch_crosses_watermark(2, 4, 2));
+        assert!(!super::batch_crosses_watermark(0, 1, 2));
+    }
+
+    #[test]
+    fn a_listed_offset_must_fall_inside_the_log() {
+        assert!(super::offset_in_log(1, 1, 4));
+        assert!(super::offset_in_log(3, 1, 4));
+        assert!(!super::offset_in_log(0, 1, 4));
+        assert!(!super::offset_in_log(4, 1, 4));
+        assert!(!super::offset_in_log(1, 2, 2));
+    }
+
+    #[test]
+    fn a_log_start_past_the_high_watermark_is_storage_corruption() {
+        assert_eq!(super::stored_log_error(0, 5, 2), 56);
+        assert_eq!(super::stored_log_error(0, 2, 2), 0);
+        assert_eq!(super::stored_log_error(0, 1, 4), 0);
+        assert_eq!(super::stored_log_error(3, 5, 2), 3);
+    }
+
+    #[test]
+    fn failed_fetch_uses_unknown_log_boundaries() {
+        assert_eq!(super::fetch_boundary(0, 4, 1), (4, 4, 1));
+        assert_eq!(super::fetch_boundary(1, 4, 1), (-1, -1, -1));
+        assert_eq!(super::fetch_boundary(3, 4, 1), (-1, -1, -1));
+    }
+
+    #[test]
+    fn a_tied_max_timestamp_keeps_the_earlier_offset() {
+        assert_eq!(super::earlier_max_offset(None, 5, 3), (5, 3));
+        assert_eq!(super::earlier_max_offset(Some((5, 1)), 5, 3), (5, 1));
+        assert_eq!(super::earlier_max_offset(Some((5, 4)), 5, 2), (5, 2));
+        assert_eq!(super::earlier_max_offset(Some((4, 1)), 9, 2), (9, 2));
+        assert_eq!(super::earlier_max_offset(Some((9, 4)), 4, 1), (9, 4));
+    }
+
+    #[test]
+    fn a_pre_epoch_timestamp_is_searched() {
+        assert_eq!(list_query(-1), ListQuery::Latest);
+        assert_eq!(list_query(-2), ListQuery::Earliest);
+        assert_eq!(list_query(-4), ListQuery::Earliest);
+        assert_eq!(list_query(-3), ListQuery::MaxTimestamp);
+        assert_eq!(list_query(-5), ListQuery::TieredEnd);
+        assert_eq!(list_query(-100), ListQuery::Timestamp(-100));
+        assert_eq!(list_query(0), ListQuery::Timestamp(0));
+    }
 }

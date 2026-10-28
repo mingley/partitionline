@@ -2911,7 +2911,7 @@ mod tests {
         assert!(claim_assignment_index(&mut seen, 1));
         assert!(claim_assignment_index(&mut seen, 0));
         assert!(!claim_assignment_index(&mut seen, 0));
-        assert!(!claim_assignment_index(&mut vec![false], -1));
+        assert!(!claim_assignment_index(&mut [false], -1));
         assert!(topic_names_collide("foo.bar", "foo_bar"));
         assert!(topic_names_collide("foo.bar", "foo.bar"));
         assert!(!topic_names_collide("foo.bar", "foo.baz"));

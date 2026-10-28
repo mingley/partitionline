@@ -831,7 +831,7 @@ mod tests {
             "pl-fetch-novisit-{}",
             std::time::SystemTime::now()
                 .duration_since(std::time::UNIX_EPOCH)
-                .map_err(|e| std::io::Error::other(e))?
+                .map_err(std::io::Error::other)?
                 .as_nanos()
         ));
         let journal_limits = journal::Limits::new(1024 * 1024, 1 << 30, 1000, 8 * 1024 * 1024)?;
@@ -859,7 +859,7 @@ mod tests {
             "pl-trusted-count-{}",
             std::time::SystemTime::now()
                 .duration_since(std::time::UNIX_EPOCH)
-                .map_err(|e| std::io::Error::other(e))?
+                .map_err(std::io::Error::other)?
                 .as_nanos()
         ));
         let journal_limits = journal::Limits::new(1024 * 1024, 1 << 30, 1000, 8 * 1024 * 1024)?;

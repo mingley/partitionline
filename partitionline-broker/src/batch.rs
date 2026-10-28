@@ -34,6 +34,7 @@ pub(crate) const MAX_TIMESTAMP: usize = 35;
 /// Producer id. A value of `-1` means the batch is not idempotent.
 pub(crate) const PRODUCER_ID: usize = 43;
 /// Producer epoch.
+#[cfg(any(test, feature = "codecs"))]
 pub(crate) const PRODUCER_EPOCH: usize = 51;
 /// Base sequence.
 #[allow(

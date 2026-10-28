@@ -730,17 +730,28 @@ fn reassign(group: &mut Group, topics: &BTreeMap<String, i32>) -> Result<(), Err
         member.assignment = Arc::new(BTreeMap::new());
     }
     let member_ids: Vec<String> = group.members.keys().cloned().collect();
-    let mut by_topic: HashMap<&str, Vec<usize>> = HashMap::with_capacity(topics.len());
-    for topic in topics.keys() {
-        let _ = by_topic.insert(topic.as_str(), Vec::new());
+    let mut by_topic: HashMap<&str, (Vec<usize>, usize)> = HashMap::with_capacity(topics.len());
+    let mut unfilled = 0usize;
+    for (topic, count) in topics {
+        let count = usize::try_from(*count).unwrap_or(0);
+        unfilled += usize::from(count > 0);
+        let _ = by_topic.insert(topic.as_str(), (Vec::new(), count));
     }
     for (index, id) in member_ids.iter().enumerate() {
+        if unfilled == 0 {
+            break;
+        }
         let Some(member) = group.members.get(id) else {
             continue;
         };
         for topic in &member.topics {
-            if let Some(subscribers) = by_topic.get_mut(topic.as_str()) {
-                subscribers.push(index);
+            if let Some((subscribers, count)) = by_topic.get_mut(topic.as_str()) {
+                // Range assignment uses at most one owner per partition;
+                // later eligible members cannot receive work for this topic.
+                if subscribers.len() < *count {
+                    subscribers.push(index);
+                    unfilled -= usize::from(subscribers.len() == *count);
+                }
             }
         }
     }
@@ -748,7 +759,7 @@ fn reassign(group: &mut Group, topics: &BTreeMap<String, i32>) -> Result<(), Err
         if *count <= 0 {
             continue;
         }
-        let Some(subscribers) = by_topic.get(topic.as_str()) else {
+        let Some((subscribers, _)) = by_topic.get(topic.as_str()) else {
             continue;
         };
         assign(group, topic, *count, &member_ids, subscribers);
@@ -1158,6 +1169,41 @@ mod tests {
     use super::*;
     use std::collections::BTreeSet as Set;
     use std::time::{SystemTime, UNIX_EPOCH};
+
+    #[test]
+    fn capped_subscribers_preserve_every_range_assignment() {
+        super::super::check_range_assignments(|topics, subscriptions| {
+            let members = subscriptions
+                .into_iter()
+                .enumerate()
+                .map(|(index, topics)| {
+                    (
+                        format!("member-{index}"),
+                        Member {
+                            epoch: 1,
+                            last_seen_ms: 0,
+                            acked: true,
+                            version: 0,
+                            topics,
+                            assignment: Arc::new(BTreeMap::new()),
+                        },
+                    )
+                })
+                .collect();
+            let mut group = Group {
+                epoch: 1,
+                assignment_epoch: 1,
+                version: 0,
+                members,
+            };
+            reassign(&mut group, topics).unwrap_or_else(|error| panic!("{error:?}"));
+            group
+                .members
+                .values()
+                .map(|member| (*member.assignment).clone())
+                .collect()
+        });
+    }
 
     #[test]
     fn reassigning_many_share_topics_does_not_hold_the_caller() {

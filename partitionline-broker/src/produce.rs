@@ -2291,10 +2291,11 @@ mod tests {
             assert!(!store.take_changed());
             dest.truncate(1);
             let path = root.join("data").join(filename(id, 0));
-            let mut bytes = std::fs::read(&path)?;
+            let mut bytes = Vec::new();
+            std::io::Read::read_to_end(&mut File::open(&path)?, &mut bytes)?;
             let end = bytes.len() - 1;
             bytes[end] ^= 1;
-            std::fs::write(&path, &bytes)?;
+            std::io::Write::write_all(&mut File::create(&path)?, &bytes)?;
             store.begin_read();
             assert!(store.read_entry_at(log, 0, 1 << 20, 8, &mut dest).is_err());
             assert_eq!(dest, [0x55]);
@@ -2304,7 +2305,9 @@ mod tests {
             assert!(store.read_entry_at(log, 0, 1 << 20, 8, &mut dest).is_err());
             assert!(!store.take_changed());
             assert_eq!(store.log_bounds(id, 1), Ok((0, 0)));
-            assert_eq!(std::fs::read(&path)?, bytes);
+            let mut retained = Vec::new();
+            std::io::Read::read_to_end(&mut File::open(&path)?, &mut retained)?;
+            assert_eq!(retained, bytes);
             drop(store);
             drop(catalog);
             std::fs::remove_dir_all(root)?;

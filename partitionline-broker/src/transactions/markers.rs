@@ -488,7 +488,7 @@ mod tests {
         let mut entries = Vec::with_capacity(8_001);
         for index in 0..8_000 {
             entries.push(Entry::Data {
-                offset: i64::try_from(index).unwrap_or(0),
+                offset: i64::from(index),
                 producer_id: 7,
                 epoch: 1,
                 id: u64::try_from(index).unwrap_or(0),

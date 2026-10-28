@@ -721,7 +721,13 @@ fn read_error(error: io::Error) -> Exit {
 }
 
 #[cfg(feature = "sasl")]
-struct Frame(zeroize::Zeroizing<Vec<u8>>);
+struct Frame(Vec<u8>);
+#[cfg(feature = "sasl")]
+impl Drop for Frame {
+    fn drop(&mut self) {
+        wipe_credential(&mut self.0);
+    }
+}
 #[cfg(feature = "sasl")]
 impl std::fmt::Debug for Frame {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -746,7 +752,7 @@ type Frame = Vec<u8>;
 fn new_frame() -> Frame {
     #[cfg(feature = "sasl")]
     {
-        Frame(zeroize::Zeroizing::new(Vec::new()))
+        Frame(Vec::new())
     }
     #[cfg(not(feature = "sasl"))]
     {
@@ -767,7 +773,7 @@ fn dispatch_frame(mut frame: Frame) -> Vec<u8> {
 fn frame_from_vec(bytes: Vec<u8>) -> Frame {
     #[cfg(feature = "sasl")]
     {
-        Frame(zeroize::Zeroizing::new(bytes))
+        Frame(bytes)
     }
     #[cfg(not(feature = "sasl"))]
     {
@@ -782,7 +788,11 @@ fn frame_from_vec(bytes: Vec<u8>) -> Frame {
 #[cfg(feature = "sasl")]
 fn wipe_credential(bytes: &mut Vec<u8>) {
     use zeroize::Zeroize;
-    bytes.zeroize();
+    // Wipe each capacity region once. Vec's generic element iterator places
+    // a compiler fence after every byte and then rewrites its full capacity.
+    bytes.as_mut_slice().zeroize();
+    bytes.spare_capacity_mut().zeroize();
+    bytes.clear();
 }
 
 fn park_request(mut bytes: Vec<u8>) -> Frame {
