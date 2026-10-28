@@ -1,0 +1,33 @@
+{
+  "source_commit": "64da3d2db9ffa80fb680806dc377e52f4652b38e",
+  "source_files": {
+    "examples/common/bench_produce_settings.rs": "76f751c2f5bd713a895b118a22b6ee472db48c7609af6dacc7159abcd17b8ad1",
+    "benchmarks/peers/librdkafka/peer.c": "90bfefe3c8eb112b3ede5c0fd161fd9e49730f7815726e45386a347ca535fcb9",
+    "benchmarks/peers/franz-go/records.go": "765dfd6f009ef5427dda85f1c3e5e5a8eee5bfde43ec770737fcd353015765a0"
+  },
+  "fragment_sha256": {
+    "native": "3005092e16092cf6dceb3785d59017cd547fb508145cee9ce773e0078d184ef4",
+    "c": "ab6b7f20bdc6f0ce7a7526bbd8b54b6fc1509e6df54ead9dfb615f37248dac03",
+    "go_transformed_package": "b3a3fd56f860ec36f40e8172d0d4197eb62dbb1afa54c1c5ae17e4e95a9c782a"
+  },
+  "harness_source_sha256": {
+    "native-harness.rs": "c6a6e161201491875ccc8e02e31eb4d93ea3593f2d2ae57a8f641cc28ab0ef0f",
+    "c-harness.c": "a44169dfcc7a56267d8069b1d7b36814076e37f33a3ec7647fa26b6493f73d77",
+    "go-harness.go": "e63d956dc14ccd99c51f7a939610e627b58d0c39ac8b020f9647aac19409e28a",
+    "go-records.go": "b3a3fd56f860ec36f40e8172d0d4197eb62dbb1afa54c1c5ae17e4e95a9c782a"
+  },
+  "binary_sha256": {
+    "native": "9d2b41866bd09f31142be5f0451051c049b851f4dd529aaaeca325091d7cdd01",
+    "c": "a2e2df1bdc30f592f205e57d7f8c76c7acf916b7ae7ba421a191e8d7aa288749",
+    "go": "2e40d9fcc7f8ba1a7db8647cf7905cced380b93a4da7cddc26111c59d5cf86c9"
+  },
+  "input_sha256": "409c0db5efc09aaa705bb1d1c903de905d2bfa87e4eddb3983c26358b36e77f6",
+  "output_sha256": {
+    "native": "7b43543e71a9d6ccc542ad954af1e6f099289687a94abea34e444b824868d540",
+    "c": "7b43543e71a9d6ccc542ad954af1e6f099289687a94abea34e444b824868d540",
+    "go": "7b43543e71a9d6ccc542ad954af1e6f099289687a94abea34e444b824868d540"
+  },
+  "cases": 224,
+  "failures": [],
+  "scope": "Extracted deterministic generator functions only. Rust uses a byte-container stand-in; Go package declaration is changed for the standalone harness. Size 0 exercises the generator but the native benchmark configuration rejects it. No Kafka broker, actual driver, performance, batch or queue qualification."
+}

@@ -35147,8 +35147,10 @@
       "title": "Package the broker and provide reproducible operator setup",
       "priority": "P1",
       "kind": "documentation",
-      "status": "done",
-      "owner": "cursor-cloud",
+      "status": "in_progress",
+      "owner": "codex-goal-qualification-20261028",
+      "previous_owner": "cursor-cloud",
+      "scope": "The existing packaged operator opens storage but does not serve Kafka. A bounded single-node server and independently verified start, recovery, and upgrade workflows remain open.",
       "depends_on": [
         "KL11-08",
         "KL11-35",

@@ -1,0 +1,15 @@
+{
+  "args": [
+    "cc",
+    "-std=c11",
+    "-O2",
+    "-Wall",
+    "-Wextra",
+    "-Werror",
+    "-Wno-unused-function",
+    "c-harness.c",
+    "-o",
+    "c-harness"
+  ],
+  "exit": 0
+}

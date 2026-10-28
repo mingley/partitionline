@@ -1,0 +1,6 @@
+{
+  "args": [
+    "./native-harness"
+  ],
+  "exit": 0
+}

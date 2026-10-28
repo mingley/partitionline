@@ -1,0 +1,13 @@
+{
+  "args": [
+    "/workspace/work/cargo/bin/rustc",
+    "+stable",
+    "--edition=2021",
+    "-C",
+    "opt-level=2",
+    "native-harness.rs",
+    "-o",
+    "native-harness"
+  ],
+  "exit": 0
+}

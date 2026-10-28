@@ -1,0 +1,11 @@
+{
+  "args": [
+    "/workspace/work/goal-qualification-20261028/go-toolchain/go/bin/go",
+    "build",
+    "-o",
+    "go-harness",
+    "go-harness.go",
+    "go-records.go"
+  ],
+  "exit": 0
+}
