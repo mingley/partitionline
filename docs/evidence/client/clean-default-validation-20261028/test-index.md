@@ -1,0 +1,122 @@
+# Failed and ignored tests
+
+These names are extracted from the unmodified test log. Refer to the log for failure messages and details.
+
+## Failures
+
+- `unittests src/lib.rs`: `admin::tests::decoding_many_consumer_group_members_does_not_hold_the_caller`
+- `unittests src/lib.rs`: `admin::tests::decoding_many_delegation_tokens_does_not_hold_the_caller`
+- `unittests src/lib.rs`: `admin::tests::decoding_many_described_group_members_does_not_hold_the_caller`
+- `unittests src/lib.rs`: `admin::tests::extending_many_described_topics_does_not_hold_the_caller`
+- `unittests src/lib.rs`: `admin::tests::grouping_many_named_results_does_not_hold_the_caller`
+- `unittests src/lib.rs`: `admin::tests::indexing_many_coordinators_does_not_hold_the_caller`
+- `unittests src/lib.rs`: `consumer::tests::applying_many_one_record_fetch_batches_does_not_hold_the_caller`
+- `unittests src/lib.rs`: `consumer::tests::checking_many_fresh_assignments_does_not_hold_the_caller`
+- `unittests src/lib.rs`: `consumer::tests::indexing_many_metadata_names_does_not_hold_the_caller`
+- `unittests src/lib.rs`: `consumer::tests::listing_many_topic_partitions_does_not_hold_the_caller`
+- `unittests src/lib.rs`: `consumer::tests::prepending_many_pending_runs_does_not_hold_the_caller`
+- `unittests src/lib.rs`: `consumer::tests::resolving_many_topic_identities_does_not_hold_the_caller`
+- `unittests src/lib.rs`: `consumer::tests::scheduling_many_parallel_dials_does_not_hold_the_caller`
+- `unittests src/lib.rs`: `group::tests::collecting_many_revoked_commits_does_not_hold_the_caller`
+- `unittests src/lib.rs`: `group::tests::copying_many_assigned_members_does_not_hold_the_caller`
+- `unittests src/lib.rs`: `group::tests::indexing_many_previous_members_does_not_hold_the_caller`
+- `unittests src/lib.rs`: `group::tests::cloning_many_topic_ids_does_not_hold_the_caller`
+- `unittests src/lib.rs`: `group::tests::resolving_many_owned_partitions_does_not_hold_the_caller`
+- `unittests src/lib.rs`: `group::tests::pairing_many_committed_offsets_does_not_hold_the_caller`
+- `unittests src/lib.rs`: `group::tests::retaining_many_interval_commits_does_not_hold_the_caller`
+- `unittests src/lib.rs`: `producer::tests::assembling_many_produce_topics_does_not_hold_the_caller`
+- `unittests src/lib.rs`: `producer::tests::dropping_many_ack_topics_does_not_hold_the_caller`
+- `unittests src/lib.rs`: `producer::tests::replacing_an_idle_metadata_socket_lets_the_broker_leave`
+- `unittests src/lib.rs`: `protocol::acl::tests::grouping_many_acl_resources_does_not_hold_the_caller`
+- `unittests src/lib.rs`: `protocol::group::tests::grouping_many_owned_topics_does_not_hold_the_caller`
+- `unittests src/lib.rs`: `protocol::records::tests::counting_framed_batches_does_not_hold_the_caller`
+- `unittests src/lib.rs`: `protocol::records::tests::decode_record_batch_count_checks_match_java`
+- `unittests src/lib.rs`: `protocol::records::tests::decode_record_invalid_headers_match_java`
+- `unittests src/lib.rs`: `protocol::share::tests::a_share_fetch_with_several_batches_sizes_the_batch_list_once`
+- `unittests src/lib.rs`: `share::tests::ranging_many_acquisitions_does_not_hold_the_caller`
+- `unittests src/lib.rs`: `share::tests::naming_many_share_topics_does_not_hold_the_caller`
+- `unittests src/lib.rs`: `share::tests::summing_many_share_records_does_not_hold_the_caller`
+- `tests/buffer_ownership.rs`: `presend_failure_write_retry_exhaustion_releases_permit`
+- `tests/consumer_fetch_semantics.rs`: `assign_keeps_the_previous_assignment_when_metadata_fails`
+- `tests/consumer_fetch_semantics.rs`: `fetch_mixed_version_leader_movement_and_reconnect`
+- `tests/consumer_fetch_semantics.rs`: `fetch_session_recovery_recreated_topic_reassignment_discards_previous_id_buffer`
+- `tests/consumer_fetch_semantics.rs`: `fetch_throttle_preserves_interval_during_idle_reconnection`
+- `tests/consumer_fetch_semantics.rs`: `group_join_dials_reset_leaders_while_fetching_offsets`
+- `tests/consumer_fetch_semantics.rs`: `group_leave_negotiates_only_the_new_coordinator`
+- `tests/consumer_fetch_semantics.rs`: `group_rejoin_dials_leaders_during_sync`
+- `tests/consumer_fetch_semantics.rs`: `idle_metadata_reconnect_reuses_bootstrap_for_the_next_fetch`
+- `tests/consumer_fetch_semantics.rs`: `leave_reuses_the_other_bootstrap_handshake`
+- `tests/consumer_fetch_semantics.rs`: `metadata_reconnect_forgets_a_leader_list_offsets_range`
+- `tests/full_surface.rs`: `add_raft_voter_invalid_input_and_unavailable_versions_send_nothing`
+- `tests/full_surface.rs`: `add_raft_voter_lost_response_retries_without_masking_duplicate_outcome`
+- `tests/full_surface.rs`: `admin_reconnect_honors_backoff`
+- `tests/full_surface.rs`: `describe_quorum_reconnect_renegotiates_and_deadline_is_total`
+- `tests/full_surface.rs`: `fetch_offset_out_of_range_jumps_to_log_start`
+- `tests/full_surface.rs`: `fetch_reconnect_honors_backoff`
+- `tests/full_surface.rs`: `group_coord_reconnects_when_connection_idle`
+- `tests/full_surface.rs`: `idempotent_lost_ack_ambiguous_expiration_remains_explicit`
+- `tests/full_surface.rs`: `idempotent_lost_ack_several_inflight_appended_before_disconnect`
+- `tests/full_surface.rs`: `remove_raft_voter_invalid_input_and_unavailable_versions_send_nothing`
+- `tests/full_surface.rs`: `remove_raft_voter_lost_response_preserves_not_found_as_ambiguous_error`
+- `tests/legacy_discovery_v0.rs`: `producer_consumer_and_group_startup_keep_the_initial_deadline`
+- `tests/mock_produce.rs`: `commit_reuses_a_produce_handshake_for_the_moved_coordinator`
+- `tests/mock_produce.rs`: `commit_reuses_bootstrap_when_the_coordinator_returns`
+- `tests/mock_produce.rs`: `epoch_bump_reuses_a_produce_handshake`
+- `tests/mock_produce.rs`: `idle_metadata_reuses_learned_api_versions`
+- `tests/mock_produce.rs`: `idle_produce_leader_reuses_learned_api_versions`
+- `tests/mock_produce.rs`: `multi_bootstrap_commit_reuses_known_coordinator_handshakes`
+- `tests/mock_produce.rs`: `multi_bootstrap_send_offsets_reuses_known_handshakes`
+- `tests/mock_produce.rs`: `multi_bootstrap_transaction_reuses_the_other_bootstrap_handshake`
+- `tests/mock_produce.rs`: `produce_reuses_bootstrap_api_versions`
+- `tests/mock_produce.rs`: `produce_reuses_the_transaction_coordinator_handshake`
+- `tests/mock_produce.rs`: `produce_reuses_a_finished_bootstrap_handshake`
+- `tests/mock_produce.rs`: `retry_refreshes_waiting_topics_together`
+- `tests/mock_produce.rs`: `send_offsets_reuses_bootstrap_api_versions`
+- `tests/mock_produce.rs`: `send_offsets_negotiates_a_new_group_coordinator`
+- `tests/mock_produce.rs`: `send_all_redials_leaders_while_refreshing_metadata`
+- `tests/mock_produce.rs`: `send_offsets_repeats_a_remote_coordinator_without_another_handshake`
+- `tests/mock_produce.rs`: `transactional_rediscover_skips_a_second_bootstrap_handshake`
+- `tests/mock_produce.rs`: `transactional_startup_skips_a_second_bootstrap_handshake`
+- `tests/offset_client.rs`: `recreated_assignment_revokes_old_identity_and_reads_new_committed_position`
+- `tests/offset_client.rs`: `recreation_during_initial_assignment_cannot_bind_old_committed_offset_to_new_uuid`
+- `tests/producer_retained_backing.rs`: `cancelled_channel_admission_releases_only_the_unenqueued_reservation`
+
+## Ignored
+
+- `tests/allocate_producer_ids_raw_conformance.rs`: `actual_sdk_allocate_producer_ids_bodies`, requires guarded authentic Apache SDK fixtures and reverse parsing
+- `tests/allocate_producer_ids_raw_conformance.rs`: `native_allocate_producer_ids_raw_history`, requires an owned current Kafka controller and independent SDK parsing
+- `tests/assign_replicas_to_dirs_raw_conformance.rs`: `actual_sdk_assign_replicas_to_dirs_bodies`, requires guarded authentic Apache fixtures and independent reverse parsing
+- `tests/assign_replicas_to_dirs_raw_conformance.rs`: `native_assign_replicas_to_dirs_raw_history`, requires an owned current Kafka controller, topic and independent SDK parsing
+- `tests/broker_compatibility.rs`: `live_compatibility_required`, requires explicit fresh digest-pinned Kafka cell; runner selects this exact test
+- `tests/codec_matrix.rs`: `native_codec_matrix_peer`, requires explicit owned native broker topic and independent SDK peers
+- `tests/codec_matrix.rs`: `native_stored_codec_batches_match_independent_record_fields`, requires all segments from the completed owned native codec matrix
+- `tests/consumer_fetch_semantics.rs`: `live_fetch_session_recovery_required`, requires the owned digest-pinned KL05-07 broker and explicit observer ports
+- `tests/describe_quorum_conformance.rs`: `actual_sdk_describe_quorum_bodies`, requires guarded genuine Apache SDK fixtures and reverse parsing
+- `tests/describe_quorum_conformance.rs`: `native_describe_quorum_raw_history`, requires an owned native Kafka broker and independent SDK parsing
+- `tests/describe_quorum_conformance.rs`: `public_describe_quorum_probe`, requires an owned socket peer or native Kafka broker and SDK field checks
+- `tests/init_producer_id_v6.rs`: `native_ordinary_transaction_history`, requires an explicitly isolated Kafka broker and independent Java readback
+- `tests/kip848_live.rs`: `kip848_join_against_local_broker`, needs a live Kafka 4.x broker with ConsumerGroupHeartbeat
+- `tests/legacy_discovery_v0.rs`: `actual_sdk_legacy_discovery_bodies`, requires pinned Apache fixture generations and owned process runner
+- `tests/legacy_discovery_v0.rs`: `serve_legacy_discovery_probe`, requires owned pinned SDK process runner
+- `tests/list_transactions_pattern_v2.rs`: `actual_sdk_pattern_frames`, requires actual SDK-generated144 profiles; runner supplies mandatory fixture paths
+- `tests/list_transactions_pattern_v2.rs`: `serve_list_pattern_probe`, requires source-bound actual SDK fixtures and owned process runner
+- `tests/list_transactions_routing.rs`: `serve_list_transactions_probe`, requires source-bound actual SDK fixtures and owned process runner
+- `tests/offset_client.rs`: `serve_offset_id_probe`, requires pinned SDK seeds and owned process runner
+- `tests/offset_topic_ids_v10.rs`: `actual_sdk_offset_id_bodies`, requires generated pinned SDK fixtures and owned runner
+- `tests/producer_retained_backing.rs`: `native_retained_backing_peer`, requires an owned native Kafka topic and independent Java/C readback
+- `tests/protocol_oracles.rs`: `live_broker_decoded_semantics`, live broker; scripts/ci-protocol-oracles.sh REQUIRE_BROKER=1
+- `tests/reassignment_options_v1.rs`: `actual_public_java_options_match_bounded_policy_peer`, requires explicitly pinned Java SDK jars, libraries and an artifact directory
+- `tests/reassignment_options_v1.rs`: `native_reference_cluster_preserves_factor_policy_and_cancels_pending_move`, requires a fresh pinned three-broker reference cluster and isolated topics
+- `tests/share_offsets_v1.rs`: `actual_apache_share_fixtures_and_reverse_frames`, requires actual pinned SDK fixtures and retained reverse output
+- `tests/share_offsets_v1.rs`: `serve_share_admin_probe`, requires actual pinned public Java Admin and retained input/output paths
+- `tests/share_semantics.rs`: `live_current_v2_share_delivery_renew_release_expiry_accept`, requires an explicitly selected fresh digest-pinned Apache Kafka 4.3.1 Docker cell
+- `tests/streams_describe.rs`: `serve_streams_describe_probe`, requires pinned SDK inputs and owned process runner
+- `tests/streams_heartbeat.rs`: `actual_sdk_public_heartbeat_histories`, requires freshly generated pinned Apache builder/error-response inputs
+- `tests/update_features_conformance.rs`: `actual_sdk_update_features_bodies`, requires guarded Apache SDK fixtures and independent reverse parsing
+- `tests/update_features_conformance.rs`: `actual_sdk_update_features_malformed_bodies`, requires independently rejected Apache SDK malformed messages
+- `tests/update_features_conformance.rs`: `actual_sdk_update_features_source_cases`, requires actual Apache source-case bodies
+- `tests/update_features_conformance.rs`: `native_public_update_features_history`, requires an owned Apache Kafka broker and independent public Admin caller
+- `tests/update_features_conformance.rs`: `public_update_features_controller_and_deadline_history`, requires the guarded Apache SDK TCP controller peer
+- `tests/update_features_conformance.rs`: `public_update_features_name_validation_history`, requires independent Apache public argument checks and a physical TCP peer
+- `tests/write_txn_markers_v2.rs`: `actual_apache_marker_fixtures_and_reverse_frames`, requires freshly generated pinned Apache fixtures and reverse-parse output
+- `tests/write_txn_markers_v2.rs`: `serve_public_admin_probe`, requires actual pinned public Java Admin and retained input/output paths
