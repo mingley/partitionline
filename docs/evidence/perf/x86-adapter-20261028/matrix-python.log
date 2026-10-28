@@ -1,0 +1,32 @@
+test_actual_config_mismatch_prevents_second_arm_provisioning (test_matrix.MatrixProcessTests.test_actual_config_mismatch_prevents_second_arm_provisioning) ... ok
+test_ceiling_cell_name_cannot_be_registered_as_kafka_throughput (test_matrix.MatrixProcessTests.test_ceiling_cell_name_cannot_be_registered_as_kafka_throughput) ... ok
+test_ceiling_result_kind_cannot_use_a_kafka_manifest (test_matrix.MatrixProcessTests.test_ceiling_result_kind_cannot_use_a_kafka_manifest) ... ok
+test_ceiling_shaped_output_is_retained_and_refused_in_kafka_cell (test_matrix.MatrixProcessTests.test_ceiling_shaped_output_is_retained_and_refused_in_kafka_cell) ... ok
+test_client_ceiling_target_cannot_use_a_kafka_manifest (test_matrix.MatrixProcessTests.test_client_ceiling_target_cannot_use_a_kafka_manifest) ... ok
+test_completed_raw_artifact_tamper_prevents_resume (test_matrix.MatrixProcessTests.test_completed_raw_artifact_tamper_prevents_resume) ... ok
+test_concurrent_resume_does_not_spawn (test_matrix.MatrixProcessTests.test_concurrent_resume_does_not_spawn) ... ok
+test_franz_go_crash_keeps_the_failed_process_receipt (test_matrix.MatrixProcessTests.test_franz_go_crash_keeps_the_failed_process_receipt) ... ok
+test_franz_go_missing_settings_are_named_without_guessing_defaults (test_matrix.MatrixProcessTests.test_franz_go_missing_settings_are_named_without_guessing_defaults) ... ok
+test_franz_go_resume_keeps_original_attempts (test_matrix.MatrixProcessTests.test_franz_go_resume_keeps_original_attempts) ... ok
+test_franz_go_timeout_still_reaps_the_adapter_children (test_matrix.MatrixProcessTests.test_franz_go_timeout_still_reaps_the_adapter_children) ... ok
+test_history_tamper_prevents_cleanup (test_matrix.MatrixProcessTests.test_history_tamper_prevents_cleanup) ... ok
+test_interrupted_attempt_resumes_in_new_directory (test_matrix.MatrixProcessTests.test_interrupted_attempt_resumes_in_new_directory) ... ok
+test_kafka_shaped_result_cannot_satisfy_a_null_broker_cell (test_matrix.MatrixProcessTests.test_kafka_shaped_result_cannot_satisfy_a_null_broker_cell) ... ok
+test_null_broker_manifest_cannot_invent_a_cluster_id (test_matrix.MatrixProcessTests.test_null_broker_manifest_cannot_invent_a_cluster_id) ... ok
+test_null_broker_rehearsal_stays_a_client_ceiling_fixture (test_matrix.MatrixProcessTests.test_null_broker_rehearsal_stays_a_client_ceiling_fixture) ... ok
+test_orphan_after_success_is_rejected_and_joined (test_matrix.MatrixProcessTests.test_orphan_after_success_is_rejected_and_joined) ... ok
+test_plan_tamper_prevents_cleanup (test_matrix.MatrixProcessTests.test_plan_tamper_prevents_cleanup) ... ok
+test_randomized_order_repeats_warmup_and_cleanup (test_matrix.MatrixProcessTests.test_randomized_order_repeats_warmup_and_cleanup) ... ok
+test_resume_rejects_changed_peer_input_and_completed_artifact (test_matrix.MatrixProcessTests.test_resume_rejects_changed_peer_input_and_completed_artifact) ... ok
+test_retained_integrity_failure_is_not_erased (test_matrix.MatrixProcessTests.test_retained_integrity_failure_is_not_erased) ... ok
+test_review_plan_has_no_process_or_topic_operations (test_matrix.MatrixProcessTests.test_review_plan_has_no_process_or_topic_operations) ... ok
+test_secret_environment_and_duplicate_manifest_keys_rejected (test_matrix.MatrixProcessTests.test_secret_environment_and_duplicate_manifest_keys_rejected) ... ok
+test_security_disagreement_prevents_provisioning (test_matrix.MatrixProcessTests.test_security_disagreement_prevents_provisioning) ... ok
+test_timeout_kills_and_reaps_grandchild (test_matrix.MatrixProcessTests.test_timeout_kills_and_reaps_grandchild) ... ok
+test_unapplied_batch_record_cap_is_rejected_before_provisioning (test_matrix.MatrixProcessTests.test_unapplied_batch_record_cap_is_rejected_before_provisioning) ... ok
+test_unsupported_and_crash_are_retained (test_matrix.MatrixProcessTests.test_unsupported_and_crash_are_retained) ... ok
+
+----------------------------------------------------------------------
+Ran 27 tests in 26.835s
+
+OK

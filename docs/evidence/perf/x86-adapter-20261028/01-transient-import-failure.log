@@ -1,0 +1,5 @@
+ok  	github.com/mingley/partitionline/benchmarks/peers/franz-go	(cached)
+# github.com/mingley/partitionline/benchmarks/peers/franz-go/cmd/peer [github.com/mingley/partitionline/benchmarks/peers/franz-go/cmd/peer.test]
+cmd/peer/main.go:705:21: undefined: math
+FAIL	github.com/mingley/partitionline/benchmarks/peers/franz-go/cmd/peer [build failed]
+FAIL

@@ -1,0 +1,65 @@
+{
+  "scope": "x86_64 adapter regression checks; not a matched peer benchmark or performance qualification",
+  "go_toolchain": {
+    "version": "go1.26.0 linux/amd64",
+    "source_image": "golang@sha256:fb612b7831d53a89cbc0aaa7855b69ad7b0caf603715860cf538df854d047b84",
+    "binary_sha256": "61e7455a40a2fdfcdab99e881cd30ba10e216e3d0f32ab5f8e59d10cac4ecf57"
+  },
+  "source_sha256": {
+    "benchmarks/peers/franz-go/config.go": "24fa11d4749157147597b977b4166f7f7bb98c485f3e9e8f5dc8e434dbc1a624",
+    "benchmarks/peers/franz-go/config_test.go": "bdd53791297d98367db089a6020eecdcf6d23e79753756a813cfb778c6032e5e",
+    "benchmarks/peers/franz-go/cmd/peer/main.go": "af78c71442000b0f03c36bf2b0e3b42903e44cf257c61074a8bdb40ea1e07abe",
+    "benchmarks/peers/franz-go/cmd/peer/main_test.go": "fd677c998787297aa8eaf756d64e448369438aae65cca39335382a603b760220",
+    "benchmarks/peers/franz-go/go.mod": "b5793b705706989de71b7203ada4190acaf653756a2bb9cc7cb3079d25edfcdd",
+    "benchmarks/peers/franz-go/go.sum": "f31c9a400c3518f79e08ea6ee1d26ed5cab18f009c80436122243f32cda56464",
+    "benchmarks/tests/test_matrix.py": "c70b22dfe3d9ae96655108dd115802aca7f16de3b778e9ca19b8795f2dd1c80b",
+    "scripts/run-benchmark-matrix.py": "0151ca4e271c5fabd175fad40f2623a7234d183c8b79fc5305173a582998d2b0"
+  },
+  "local_dependency_replacements": {
+    "modfile_sha256": "a90884f9ab03a1529c1deae06072306b0655d5e8733ac53f14b6e0927e262d1d",
+    "sum_sha256": "f31c9a400c3518f79e08ea6ee1d26ed5cab18f009c80436122243f32cda56464",
+    "source_trees": {
+      "compress": {
+        "path": "docs/evidence/perf/nullbroker-peers/go-sdk-source/github.com/klauspost/compress@v1.20.0",
+        "files": 469,
+        "sha256_of_relative_file_hashes": "baad6eef19a9f43b15b484741e9ba3788916f49b7a1c4d4eff935b061337dce6"
+      },
+      "lz4": {
+        "path": "docs/evidence/perf/nullbroker-peers/go-sdk-source/github.com/pierrec/lz4/v4@v4.1.30",
+        "files": 79,
+        "sha256_of_relative_file_hashes": "9087198cdbc01c57e0272cbcf38d7c19fe35843c7cb3cda8e6dbccab86e4ec4d"
+      }
+    }
+  },
+  "attempts": [
+    {
+      "kind": "initial default dependency resolution",
+      "result": "failed: proxy redirected compression archives to storage.googleapis.com and request was forbidden; signed redirect URLs intentionally omitted"
+    },
+    {
+      "log": "franz-go-tests.log",
+      "sha256": "cd9677ad04f55bda466d8aa22ec605a680ec0edafc3c65d752352e4812d02f66",
+      "result": "failed after use of local replacements: transient missing math import"
+    },
+    {
+      "log": "franz-go-tests-02.log",
+      "sha256": "a8efcf0f00b245e955631a62933de894b78eb7fc9d118773cab04c500084fbbc",
+      "result": "pass before later TLS and no-ack fixes"
+    },
+    {
+      "log": "franz-go-tests-03.log",
+      "sha256": "45ee80d5c468000f4b200a61a56906f42b8ddecd7649ae8212da577f84023a97",
+      "result": "pass before later no-ack fix"
+    },
+    {
+      "log": "franz-go-tests-04.log",
+      "sha256": "170b0ede9f827a65f3b9deca4c7f75868c85646ae6dd6705572b471d9976895f",
+      "result": "pass on source_sha256 above"
+    }
+  ],
+  "tests": {
+    "command": "GOMAXPROCS=2 GOTOOLCHAIN=local GOPROXY=off GOPATH=<study>/go-cache GOCACHE=<study>/go-build <study>/go-toolchain/go/bin/go test -p 2 -count=1 -modfile=<study>/franz-test.mod ./...",
+    "python": "python3 -B -m unittest discover -s benchmarks/tests -p test_matrix.py -v (27 passed)",
+    "limits": "Compression dependency replacements use checked-in historical source copies and were not revalidated against upstream zip checksums in this run."
+  }
+}

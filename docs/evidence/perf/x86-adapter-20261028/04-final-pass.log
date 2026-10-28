@@ -1,0 +1,2 @@
+ok  	github.com/mingley/partitionline/benchmarks/peers/franz-go	0.016s
+ok  	github.com/mingley/partitionline/benchmarks/peers/franz-go/cmd/peer	0.035s
