@@ -22,7 +22,7 @@ requirements are met.
 | How a benchmark number should be read | [Benchmark guide](benchmark.md) |
 
 The task registry has 346 cards: 249 done, 13 in progress, and 84 pending.
-Those counts were checked against `tasks.json` on 27 October 2026.
+Those counts were checked against `tasks.json` on 28 October 2026.
 
 Current qualification uses stable Rust 1.99.1. The seeded fault oracle now
 checks generation fencing and post-abort reuse; default and all-feature runs
@@ -34,19 +34,23 @@ another epoch-recovery timeout. Its retained 60-byte seed passes exact replays;
 the timeout remains unexplained. No campaign is currently running and no
 24-hour run has passed. See the [current fuzz result](evidence/broker/fuzz/20261027-candidate06/README.md).
 
-Intermediate broker candidates passed all 615 default-feature tests and all
-759 all-feature tests. Strict Clippy passed for every target in both modes.
-The full suites still need a run on the committed candidate.
-The fixes cover transport accounting, absolute deadlines, credential-buffer
-cleanup, group-assignment bounds and Kafka read response fields. Live Apache
-Kafka 4.1.2 checks confirmed the response semantics. The [test receipts and
-raw peer responses](evidence/broker/qualification-20261028/README.md) record
-the tested versions and source limits.
+On clean commit `de38cd3df`, broker default all-target tests reported 687
+passed. All-feature tests reported 830 passed and one OIDC revocation-order
+failure. All-target, all-feature strict Clippy and the documentation build
+passed. Several live-peer probes returned early without their environment
+variables. The original run stopped before doctests at its disk guard; two
+separate doctest commands passed but found zero tests. See the [clean broker
+results](evidence/broker/clean-validation-20261028/README.md). Later OIDC
+ordering tests passed on an integrated working tree; the full broker matrix
+has not been rerun on the current commit.
 
 The [active qualification goal](plan/goal-qualification.json) continues through
 the client build/runtime gates, independent conformance, sustained runs and
-matched benchmarks on this x86_64 workspace. Client build failures are under
-repair, and core/full conformance remains incomplete. A bounded syscall
+matched benchmarks on this x86_64 workspace. On clean commit `53b5af47f`,
+the client default all-target matrix reported 3,354 passed, 76 failed and
+37 ignored across eight failing targets. See the [client results and failure
+index](evidence/client/clean-default-validation-20261028/README.md). The
+all-feature client matrix and core/full conformance remain incomplete. A bounded syscall
 diagnostic reproduced a timeout under tracing and a lower CPU limit; the cause
 of the original untraced timeout remains unresolved. No 24-hour run has passed.
 
@@ -54,6 +58,9 @@ The [earlier readiness assessment](evidence/broker/qualification-20261027/status
 and [failed campaigns](evidence/broker/fuzz/20261027-candidate06/README.md) retain
 the previous failures. Production readiness and fastest-performance claims
 remain unqualified.
+
+The [next-work handoff](plan/next-work.md) records the main correctness
+blockers, candidate status, validation steps and benchmark scope.
 
 ## Client
 

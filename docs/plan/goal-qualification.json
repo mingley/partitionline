@@ -11,7 +11,7 @@
     "Equal-settings client/server x86_64 benchmark matrices, repeated runs, independent record verification and scoped claim audit satisfy the frozen workload and integrity thresholds.",
     "All required cards and failures are closed with evidence; every result names its measured scope."
   ],
-  "current_phase": "Broker functional suites and strict Clippy passed on intermediate candidates; rerun full suites on the committed candidate, repair client gates, reconcile conformance, and investigate recovery timeouts.",
+  "current_phase": "Repair the clean client matrix failures and remaining broker correctness gaps; rerun integrated gates, conformance, reliability and scoped x86_64 comparisons.",
   "baseline": {
     "source_sha": "981ed100a0dc2ad910aa40163be9c4ae766eb4c6",
     "broker_default": {
@@ -46,18 +46,19 @@
     "Use latest stable Rust; push reviewed changes directly to main."
   ],
   "progress": {
-    "broker_default_functional_tests": 615,
-    "broker_all_features_functional_tests": 759,
+    "broker_default_functional_tests": 687,
+    "broker_all_features_functional_tests": "830 passed, 1 failed at clean commit de38cd3df; later focused OIDC checks passed on a dirty integrated tree.",
     "broker_strict_clippy_default_exit": 0,
     "broker_strict_clippy_all_features_exit": 0,
     "broker_format_exit": 0,
-    "client_full_suite": "Baseline build failures retained; repaired library and Tokio-spawn integration target compile on an uncommitted candidate. Full client suites remain open.",
+    "client_full_suite": "Clean commit 53b5af47f: default all-target matrix 3354 passed, 76 failed, 37 ignored; all-feature matrix remains open.",
     "independent_apache_checks": "Pinned Apache Kafka 4.1.2 confirms Fetch unknown boundaries and legacy ListOffsets selector errors; a separate exploratory fetch-session run has independent Java readback but an unpinned client build.",
     "recovery_diagnostic": "The retained input timed out under strace with 0.25 CPU; tracing and limits differ from the failed 3-CPU untraced campaign, so its cause remains unresolved. No qualification time credited.",
     "production_ready": false,
     "fastest_client_qualified": false,
     "fastest_server_qualified": false,
-    "broker_evidence": "docs/evidence/broker/qualification-20261028/README.md; full suites must be rerun on the committed candidate."
+    "broker_evidence": "docs/evidence/broker/clean-validation-20261028/README.md; original sequence incomplete, live-peer probes not established, and full current-commit gates remain open.",
+    "next_work": "docs/plan/next-work.md"
   },
   "platform_scope": {
     "architecture": "x86_64",
