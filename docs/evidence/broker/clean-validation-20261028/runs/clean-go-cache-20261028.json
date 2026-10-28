@@ -1,0 +1,18 @@
+{
+  "command": [
+    "/workspace/work/goal-qualification-20261028/go-toolchain/go/bin/go",
+    "clean",
+    "-cache"
+  ],
+  "GOCACHE": "/workspace/work/goal-qualification-20261028/go-build",
+  "started_utc": "2026-10-28T16:54:10.186839+00:00",
+  "finished_utc": "2026-10-28T16:54:10.345770+00:00",
+  "active_go_processes_before": [],
+  "exit": 0,
+  "allocated_before": 187314176,
+  "allocated_after": 12288,
+  "disk_free_before": 3219517440,
+  "disk_free_after": 3406819328,
+  "disk_free_delta": 187301888,
+  "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+}

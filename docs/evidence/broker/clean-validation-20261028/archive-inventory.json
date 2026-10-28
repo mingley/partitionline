@@ -1,0 +1,194 @@
+{
+  "schema_version": 1,
+  "files": [
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/broker-clean-matrix-01/all-features.json",
+      "original_sha256": "f6e40ba84455dbf4ea108453575e3e56d60d99e5ad7b6ac25306915b3ccf2625",
+      "original_bytes": 1284669,
+      "stored_path": "runs/broker-clean-matrix-01/all-features.json.gz",
+      "stored_sha256": "a9271ec09fb58ba2ab1e3eb1a55eb4acbf3396f1c808c811fa68a04d712c2250",
+      "stored_bytes": 240328,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/broker-clean-matrix-01/all-features.log",
+      "original_sha256": "0712fccffebaaa58ec4557d8038bb0731c5c88896bcdbc1c6568907591dda8d4",
+      "original_bytes": 79773,
+      "stored_path": "runs/broker-clean-matrix-01/all-features.log",
+      "stored_sha256": "0712fccffebaaa58ec4557d8038bb0731c5c88896bcdbc1c6568907591dda8d4",
+      "stored_bytes": 79773,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/broker-clean-matrix-01/clippy.json",
+      "original_sha256": "64c1e4b50ffe183cf70ad88c3ff5654392ff12875c56f4b9932d2ee4fd070cb1",
+      "original_bytes": 1225967,
+      "stored_path": "runs/broker-clean-matrix-01/clippy.json.gz",
+      "stored_sha256": "08ce9f7c35c5d05ae3a41aecd873180737102847bbd8a1a4b735cf482fa455c7",
+      "stored_bytes": 233308,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/broker-clean-matrix-01/clippy.log",
+      "original_sha256": "3c36a86d1f8e2ba6779ac82ce8969341695609527501872a7e4d6c1537fc3866",
+      "original_bytes": 150,
+      "stored_path": "runs/broker-clean-matrix-01/clippy.log",
+      "stored_sha256": "3c36a86d1f8e2ba6779ac82ce8969341695609527501872a7e4d6c1537fc3866",
+      "stored_bytes": 150,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/broker-clean-matrix-01/default.json",
+      "original_sha256": "687790a5e1288589a7d1395564bcf1b0c9a4bb4109f99ce27cf4d3d2a5672c5e",
+      "original_bytes": 1269527,
+      "stored_path": "runs/broker-clean-matrix-01/default.json.gz",
+      "stored_sha256": "b8b75f4fc8e9d736c14e4aa151ca2585fe8870eeae180c90bed342b2b9f6329b",
+      "stored_bytes": 238643,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/broker-clean-matrix-01/default.log",
+      "original_sha256": "d0fcccd433897e8cb59903fe735bc7f5a8eb35c4ebd58b6e69ac8eb12de052a8",
+      "original_bytes": 67453,
+      "stored_path": "runs/broker-clean-matrix-01/default.log",
+      "stored_sha256": "d0fcccd433897e8cb59903fe735bc7f5a8eb35c4ebd58b6e69ac8eb12de052a8",
+      "stored_bytes": 67453,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/broker-clean-matrix-01/doc-build.json",
+      "original_sha256": "88e1ef8564d0efd25666967f79a45c6de010319a09537ae5f23a40a3f369a2b3",
+      "original_bytes": 1219972,
+      "stored_path": "runs/broker-clean-matrix-01/doc-build.json.gz",
+      "stored_sha256": "0e2cb72d30e612c36f824ae0ffd791c25a96098a31692e75ca3ca6ea08f64a72",
+      "stored_bytes": 232596,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/broker-clean-matrix-01/doc-build.log",
+      "original_sha256": "b2896fb74b06d37bc785a81bd995d721105a7467c8171ff227cfed5d14de3df0",
+      "original_bytes": 364,
+      "stored_path": "runs/broker-clean-matrix-01/doc-build.log",
+      "stored_sha256": "b2896fb74b06d37bc785a81bd995d721105a7467c8171ff227cfed5d14de3df0",
+      "stored_bytes": 364,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/broker-clean-matrix-01/format.json",
+      "original_sha256": "18e609217585146a4b9c77cac2e8ec6a7b638874da44693fcf13e8eb8ba47ac9",
+      "original_bytes": 1215981,
+      "stored_path": "runs/broker-clean-matrix-01/format.json.gz",
+      "stored_sha256": "e398d38b416595e5a7e2e67f81afd01dbf6779081e09b98f6a7a82be4e21be9e",
+      "stored_bytes": 232095,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/broker-clean-matrix-01/format.log",
+      "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "original_bytes": 0,
+      "stored_path": "runs/broker-clean-matrix-01/format.log",
+      "stored_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stored_bytes": 0,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/broker-clean-matrix-01/summary.json",
+      "original_sha256": "495256276b21d62cc673223302891934218f0661a271805c82a29a901ec16ae6",
+      "original_bytes": 2131,
+      "stored_path": "runs/broker-clean-matrix-01/summary.json.gz",
+      "stored_sha256": "5f9894bc973a977b268074c5c8d2f41ce65689aa4d9210365b37853e700345fa",
+      "stored_bytes": 459,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/broker-clean-doctests-01/doc-all-features.json",
+      "original_sha256": "2efdb48d1f31b5d292924374527796a07e8ca907105709b1b0f9d1d58f544ac0",
+      "original_bytes": 1215121,
+      "stored_path": "runs/broker-clean-doctests-01/doc-all-features.json.gz",
+      "stored_sha256": "b96818f2be1bc0cbe592b3c5b563cc2dce9004e5bbb54e98680a6496ed2d252a",
+      "stored_bytes": 232060,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/broker-clean-doctests-01/doc-all-features.log",
+      "original_sha256": "3fec84996589007a7a6a8e3d2771a3201561f86e08db8b79fc2cb0090c040a14",
+      "original_bytes": 208,
+      "stored_path": "runs/broker-clean-doctests-01/doc-all-features.log",
+      "stored_sha256": "3fec84996589007a7a6a8e3d2771a3201561f86e08db8b79fc2cb0090c040a14",
+      "stored_bytes": 208,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/broker-clean-doctests-01/doc-default.json",
+      "original_sha256": "30a7b1c0d8f83d0b5dce5547fe062b70b7931d3d1fb1ff1a7adb2d70f6bfa499",
+      "original_bytes": 1215098,
+      "stored_path": "runs/broker-clean-doctests-01/doc-default.json.gz",
+      "stored_sha256": "ea92b4ca1df6f5432b0d719d6c8a59e5522b4fbf7cbf9dd971eaba5669872804",
+      "stored_bytes": 232038,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/broker-clean-doctests-01/doc-default.log",
+      "original_sha256": "3fec84996589007a7a6a8e3d2771a3201561f86e08db8b79fc2cb0090c040a14",
+      "original_bytes": 208,
+      "stored_path": "runs/broker-clean-doctests-01/doc-default.log",
+      "stored_sha256": "3fec84996589007a7a6a8e3d2771a3201561f86e08db8b79fc2cb0090c040a14",
+      "stored_bytes": 208,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/broker-clean-doctests-01/summary.json",
+      "original_sha256": "a25e42a99cbc01cc310e8625191ab42b30026eca7a9eee4bb9d04a7c640262d5",
+      "original_bytes": 1127,
+      "stored_path": "runs/broker-clean-doctests-01/summary.json.gz",
+      "stored_sha256": "adc2c6c3aa314b97bad254829716350be2456e8974da7cceccd780119832b98f",
+      "stored_bytes": 390,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/broker-full-validation-runner/run.py",
+      "original_sha256": "5df43ca52dff25855bd72557f5a5b12158c4c423a9c1798d51586b2a155d3149",
+      "original_bytes": 13305,
+      "stored_path": "runner/run.py",
+      "stored_sha256": "5df43ca52dff25855bd72557f5a5b12158c4c423a9c1798d51586b2a155d3149",
+      "stored_bytes": 13305,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/broker-full-validation-runner/run-doctests.py",
+      "original_sha256": "0764a4e7eacb3032131488f949151a07a72e4ec42d9c8991a6708d3c44fbff97",
+      "original_bytes": 2211,
+      "stored_path": "runner/run-doctests.py",
+      "stored_sha256": "0764a4e7eacb3032131488f949151a07a72e4ec42d9c8991a6708d3c44fbff97",
+      "stored_bytes": 2211,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/clean-go-cache-20261028.json",
+      "original_sha256": "339a3c7d33361ba58b0a872405d140d591f9bed1d1ab026b098856263c5dffd0",
+      "original_bytes": 592,
+      "stored_path": "runs/clean-go-cache-20261028.json",
+      "stored_sha256": "339a3c7d33361ba58b0a872405d140d591f9bed1d1ab026b098856263c5dffd0",
+      "stored_bytes": 592,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/clean-go-cache-20261028.log",
+      "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "original_bytes": 0,
+      "stored_path": "runs/clean-go-cache-20261028.log",
+      "stored_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stored_bytes": 0,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/partitionline/docs/evidence/broker/clean-validation-20261028/README.md",
+      "original_sha256": "0b5291eb47cb5cf01a7b12965e833692ec39d44a8d1573d6479f2cd9905e7a30",
+      "original_bytes": 3635,
+      "stored_path": "README.md",
+      "stored_sha256": "0b5291eb47cb5cf01a7b12965e833692ec39d44a8d1573d6479f2cd9905e7a30",
+      "stored_bytes": 3635,
+      "encoding": "identity"
+    }
+  ]
+}

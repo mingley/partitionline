@@ -1,0 +1,1128 @@
+   Compiling partitionline-broker v0.1.0 (/workspace/partitionline/partitionline-broker)
+    Finished `test` profile [unoptimized] target(s) in 55.22s
+     Running unittests src/lib.rs (/workspace/work/qualification-20261027/broker-check-target/debug/deps/partitionline_broker-f263a2f5b501ae2f)
+
+running 448 tests
+test batch::tests::fields_tile_the_header_without_gaps ... ok
+test admin::tests::a_leader_outside_the_replica_set_is_not_recovered ... ok
+test catalog::tests::complete_unconfirmed_create_is_invisible_until_synced_replay ... ok
+test catalog::tests::complete_unconfirmed_tombstone_keeps_previous_state_until_recovery ... ok
+test admin::tests::an_admin_snapshot_cannot_change_epoch_and_voters_together ... ok
+test compaction::cleaner_tests::a_transactional_record_without_a_producer_is_not_replayed ... ok
+test compaction::cleaner_tests::a_plan_that_is_not_the_cleaned_source_is_not_recovered ... ok
+test compaction::cleaner_tests::a_later_transaction_in_the_same_epoch_stays_undecided ... ok
+test admin::tests::admin_dispositions_and_failover_keep_validated_mutations ... ok
+test compaction::cleaner_tests::transactional_prefix_tombstones_and_interrupted_swap ... ok
+test configs::tests::a_replay_cannot_pass_the_resource_cap ... ok
+test configs::tests::a_zero_retention_is_not_recovered ... ok
+test configs::tests::validate_only_and_read_only_do_not_mutate ... ok
+test configs::tests::incremental_alter_persists_without_clearing_the_budget ... ok
+test controller::partitions::tests::a_negative_partition_is_refused_before_it_is_stored ... ok
+test controller::partitions::tests::placement_and_leader_epoch_replay_after_controller_failover ... ok
+test controller::partitions::tests::a_recovered_placement_must_match_a_live_transition ... ok
+test controller::partitions::tests::unclean_election_is_refused_until_explicitly_enabled ... ok
+test controller::partitions::tests::reassignment_cannot_drop_the_leader_and_shrinks_the_isr ... ok
+test controller::registration::tests::a_recovered_registration_must_match_a_live_session ... ok
+test controller::registration::tests::an_older_heartbeat_does_not_shorten_the_session ... ok
+test controller::registration::tests::expired_and_replaced_epochs_cannot_write_or_mutate ... ok
+test controller::registration::tests::first_registration_starts_at_epoch_zero_and_replays ... ok
+test fetch::tests::a_batch_that_crosses_the_high_watermark_is_not_fetched ... ok
+test controller::registration::tests::older_versions_reject_fields_they_cannot_express ... ok
+test fetch::tests::a_header_after_records_does_not_double_the_buffer ... ok
+test controller::registration::tests::stale_epoch_does_not_replace_or_refresh_the_live_session ... ok
+test fetch::tests::a_log_start_past_the_high_watermark_is_storage_corruption ... ok
+test fetch::tests::a_listed_offset_must_fall_inside_the_log ... ok
+test fetch::tests::a_short_topic_list_finds_a_repeated_name_without_a_count_map ... ok
+test fetch::tests::a_single_fetch_slot_stays_inline ... ok
+test fetch::tests::a_tied_max_timestamp_keeps_the_earlier_offset ... ok
+test fetch::tests::failed_fetch_uses_unknown_log_boundaries ... ok
+test fetch::tests::a_pre_epoch_timestamp_is_searched ... ok
+test fetch::tests::repeated_partitions_are_only_tracked_when_the_list_is_not_increasing ... ok
+test fetch::tests::response_bytes_keep_earlier_fields_as_the_buffer_grows ... ok
+test groups::classic::tests::a_negative_or_repeated_assignment_is_not_recovered ... ok
+test groups::classic::tests::a_member_counter_or_generation_jump_is_not_recovered ... ok
+test groups::classic::tests::a_generation_at_i32_max_does_not_accept_another_member ... ok
+test groups::classic::tests::an_older_clock_does_not_shorten_the_session ... ok
+test groups::classic::tests::checkpoint_failures_block_all_reads_until_recovery ... ok
+test groups::classic::tests::duplicate_member_in_snapshot_is_not_recovered ... ok
+test groups::classic::tests::heartbeat_during_rebalance_keeps_the_member ... ok
+test groups::classic::tests::heartbeat_holds_the_session_and_a_stale_generation_does_not ... ok
+test groups::classic::tests::checkpoint_recovery_rejects_invalid_state_and_late_checkpoints ... ok
+test groups::classic::tests::member_id_exhaustion_is_rejected_without_mutation ... ok
+test groups::classic::tests::leave_drops_one_member_and_revokes_the_generation ... ok
+test groups::classic::tests::rejected_fresh_joins_do_not_consume_member_ids_or_break_recovery ... ok
+test groups::classic::tests::oversized_snapshot_poisons_reads_and_recovers_previous_state ... ok
+test groups::classic::tests::timeout_revokes_ownership_and_a_stale_generation_cannot_sync ... ok
+test groups::classic::tests::sync_holds_the_session_until_the_new_clock ... ok
+test groups::classic::tests::two_members_receive_disjoint_assignments_that_survive_failover ... ok
+test groups::consumer::tests::a_group_epoch_jump_is_not_recovered ... ok
+test groups::consumer::tests::a_negative_assignment_is_not_recovered ... ok
+test groups::consumer::tests::a_group_epoch_at_i32_max_does_not_accept_another_member ... ok
+test groups::consumer::tests::a_topic_list_matches_in_any_order ... ok
+test groups::consumer::tests::a_partition_claim_is_once_per_topic_name ... ok
+test groups::consumer::tests::an_illegal_topic_name_is_not_declared ... ok
+test groups::classic::tests::checkpoints_preserve_classic_groups_through_repeated_reopen ... ok
+test groups::consumer::tests::checkpoint_failure_blocks_reads_and_recovers_the_complete_state ... ok
+test groups::consumer::tests::range_assignment_fences_epochs_and_survives_coordinator_failover ... ok
+test groups::consumer::tests::recovery_rejects_an_invalid_initial_checkpoint ... ok
+test groups::consumer::tests::recovery_rejects_checkpoint_after_an_ordinary_record ... ok
+test groups::consumer::tests::session_timeout_removes_a_silent_member ... ok
+test groups::consumer::tests::sustained_heartbeats_checkpoint_and_recover_session_state ... ok
+test groups::consumer::tests::unchanged_subscription_keeps_the_assignment ... ok
+test groups::lifecycle::tests::a_delivered_partition_that_is_not_owned_is_not_recovered ... ok
+test groups::lifecycle::tests::a_join_that_is_already_delivered_is_not_recovered ... ok
+test groups::lifecycle::tests::a_same_id_static_rejoin_refreshes_a_newer_session ... ok
+test groups::lifecycle::tests::an_older_revoke_does_not_expire_a_fresh_session ... ok
+test groups::consumer::tests::capped_subscribers_preserve_every_range_assignment ... ok
+test groups::lifecycle::tests::checkpoint_recovery_rejects_late_or_invalid_state ... ok
+test groups::lifecycle::tests::failed_delivery_checkpoint_blocks_commit_and_ownership_reads ... ok
+test groups::lifecycle::tests::failed_revocation_checkpoint_blocks_commit_until_recovery ... ok
+test groups::lifecycle::tests::leave_and_expiration_revoke_within_the_session_budget ... ok
+test compaction::cleaner_tests::planning_many_transactional_records_does_not_hold_the_caller ... ok
+test groups::lifecycle::tests::oversized_snapshot_does_not_grow_output_buffer_or_expose_mutation ... ok
+test groups::lifecycle::tests::static_rejoin_and_cooperative_revoke_do_not_commit_undelivered_records ... ok
+test groups::lifecycle::tests::lifecycle_checkpoint_preserves_ownership_and_delivery_across_reopens ... ok
+test groups::offsets::tests::a_duplicate_commit_keeps_the_first_offset ... ok
+test groups::offsets::tests::a_negative_offset_is_not_recovered ... ok
+test groups::lifecycle::tests::static_replacement_with_older_clock_preserves_rebalance_deadline_on_recovery ... ok
+test groups::offsets::tests::an_offset_generation_jump_is_not_recovered ... ok
+test groups::offsets::tests::checkpoint_position_and_generation_are_checked_on_recovery ... ok
+test groups::offsets::tests::limits_reject_counts_the_snapshot_cannot_encode ... ok
+test groups::offsets::tests::failed_checkpoint_poison_blocks_reads_until_reopen ... ok
+test groups::offsets::tests::oversized_snapshot_poison_blocks_reads_without_replacing_durable_state ... ok
+test groups::offsets::tests::partial_commit_keeps_the_valid_partition_and_the_other_group ... ok
+test groups::offsets::tests::replacing_an_offset_does_not_consume_another_slot ... ok
+test groups::offsets::tests::snapshot_larger_than_file_budget_preserves_previous_commit ... ok
+test groups::share::tests::a_group_epoch_at_i32_max_does_not_accept_another_member ... ok
+test groups::share::tests::a_partition_claim_is_once_per_topic_name ... ok
+test groups::share::tests::a_partition_past_the_topic_count_is_not_recovered ... ok
+test groups::share::tests::a_share_epoch_jump_is_not_recovered ... ok
+test groups::share::tests::a_share_member_version_change_bumps_the_group_epoch ... ok
+test groups::share::tests::a_topic_list_matches_in_any_order ... ok
+test groups::offsets::tests::offset_checkpoints_support_sustained_writes_and_recovery ... ok
+test groups::share::tests::an_illegal_topic_name_is_not_declared ... ok
+test groups::share::tests::checkpoint_failure_blocks_reads_and_recovers_the_complete_state ... ok
+test groups::lifecycle::tests::checking_many_owned_partitions_does_not_hold_the_caller ... ok
+test groups::share::tests::recovery_rejects_an_invalid_initial_checkpoint ... ok
+test groups::share::tests::recovery_rejects_checkpoint_after_an_ordinary_record ... ok
+test groups::share::tests::session_timeout_removes_a_silent_share_member ... ok
+test groups::share::tests::capped_subscribers_preserve_every_range_assignment ... ok
+test groups::share::tests::share_versions_assignment_epoch_and_fence_survive_restart ... ok
+test groups::streams::tests::a_group_epoch_at_i32_max_does_not_accept_another_member ... ok
+test groups::streams::tests::a_streams_epoch_jump_is_not_recovered ... ok
+test groups::share::tests::sustained_heartbeats_checkpoint_and_recover_session_state ... ok
+test groups::streams::tests::an_older_endpoint_epoch_does_not_replace_a_newer_one ... ok
+test groups::streams::tests::checkpoint_failure_blocks_reads_and_recovers_the_complete_state ... ok
+test groups::streams::tests::a_task_past_the_count_is_not_recovered ... ok
+test groups::streams::tests::recovery_rejects_an_invalid_initial_checkpoint ... ok
+test groups::streams::tests::recovery_rejects_checkpoint_after_an_ordinary_record ... ok
+test groups::streams::tests::session_timeout_removes_a_silent_streams_member ... ok
+test groups::streams::tests::streams_tasks_stay_disjoint_and_a_bad_topology_stores_nothing ... ok
+test groups::streams::tests::reading_many_stream_task_ids_does_not_hold_the_caller ... ok
+test groups::tests::an_existing_group_keeps_its_value ... ok
+test high_watermark::tests::a_commit_at_i64_max_is_not_recovered ... ok
+test high_watermark::tests::a_replayed_commit_cannot_move_an_id_to_another_offset ... ok
+test high_watermark::tests::a_replica_outside_the_isr_can_catch_up_and_rejoin ... ok
+test high_watermark::tests::acks_all_waits_for_the_isr_and_committed_ids_survive_failover ... ok
+test high_watermark::tests::an_append_past_the_end_of_i64_does_not_store_a_partial_batch ... ok
+test high_watermark::tests::below_min_isr_rejects_after_the_leader_append ... ok
+test high_watermark::tests::removing_a_lagging_replica_advances_the_high_watermark ... ok
+test idempotence::tests::a_replayed_append_with_a_bad_count_or_epoch_is_refused ... ok
+test idempotence::tests::a_replayed_producer_cannot_skip_the_id_sequence ... ok
+test idempotence::tests::a_sequence_that_overflows_is_not_persisted ... ok
+test idempotence::tests::duplicate_retry_returns_the_original_offset_after_restart ... ok
+test idempotence::tests::old_epoch_and_exhausted_epoch_do_not_append ... ok
+test journal::tests::a_known_payload_crc_extends_the_fingerprint ... ok
+test journal::tests::bounded_index_capacity_and_rejections_never_write ... ok
+test journal::tests::checkpoint_preserves_a_temp_hard_link_to_an_open_journal ... ok
+test journal::tests::checkpoint_preserves_exclusive_inode_ownership ... ok
+test groups::consumer::tests::applying_many_topics_does_not_hold_the_caller ... ok
+test groups::streams::tests::sustained_heartbeats_checkpoint_and_recover_session_state ... ok
+
+running 1 test
+test journal::tests::checkpoint_refuses_a_symlink_at_its_reserved_temp_path ... ok
+test journal::tests::complete_recovery_sync_failure_never_reports_durable_state ... ok
+test journal::tests::corrupted_file_header_and_recovery_offset_overflow_fail_closed ... ok
+test journal::tests::early_zero_read_does_not_become_a_successful_tail_repair ... ok
+test journal::tests::header_length_bomb_fails_before_tail_allocation_or_repair ... ok
+test journal::tests::length_is_rechecked_after_invalidation ... ok
+test journal::tests::grouped_stages_share_one_sync_and_commit_in_order ... ok
+test journal::tests::partial_header_and_payload_writes_poison_without_advancing ... ok
+test journal::tests::record_crc_plus_prefix_matches_the_payload_checksum ... ok
+test journal::tests::repeated_reads_append_without_dropping_earlier_bytes ... ok
+test journal::tests::recovery_loops_through_partial_reads_and_interrupted_calls ... ok
+test journal::tests::staged_sync_commits_and_abort_poisons ... ok
+test journal::tests::success_synchronizes_complete_bytes_before_return ... ok
+test journal::tests::tail_repair_truncate_and_sync_errors_never_report_success ... ok
+
+running 1 test
+test journal::tests::valid_later_header_prevents_repair_after_interior_byte_loss ... ok
+test journal::tests::zero_write_and_sync_failure_poison_with_ambiguous_recovery ... ok
+test metadata::tests::a_create_request_collides_when_dot_and_underscore_differ ... ok
+test metadata::tests::a_bracketed_advertised_host_is_sent_without_brackets ... ok
+test metadata::tests::a_metadata_request_resolves_each_topic_by_its_own_id_or_name ... ok
+test metadata::tests::a_metadata_response_does_not_reserve_the_maximum ... ok
+test metadata::tests::a_create_response_reserves_its_budget_before_writing ... ok
+test metadata::tests::a_queued_produce_sizes_its_job_lists_once ... ok
+test metadata::tests::a_metadata_response_sizes_its_buffer_once ... ok
+test metadata::tests::a_short_metadata_target_list_does_not_allocate_a_set ... ok
+
+running 1 test
+test metadata::tests::canceled_shutdown_retains_join_and_pending_work_is_rejected ... ok
+test metadata::tests::canceled_compaction_skips_rewrite_and_releases_shared_slot ... ok
+test journal::tests::checkpoint_publication_survives_process_exit ... ok
+test metadata::tests::canceled_sweep_and_shared_full_admission_never_retire ... ok
+test metadata::tests::committed_data_with_lost_receipt_replays_without_deduplication ... ok
+test metadata::tests::committed_operation_with_lost_receipt_replays ... ok
+test metadata::tests::canceled_sweep_shutdown_keeps_join_and_rejects_pending_retirement ... ok
+test metadata::tests::queued_cancel_and_full_admission_never_mutate ... ok
+test metadata::tests::failed_actor_join_remains_failed_on_retry ... ok
+test metadata::tests::reused_job_list_reserves_the_requested_total ... ok
+test metadata::tests::reused_response_reserves_the_requested_total_and_reports_limits ... ok
+test metadata::tests::the_first_copy_of_a_name_or_id_is_the_one_that_is_answered ... ok
+test metadata::tests::queued_data_cancel_and_full_admission_never_append ... ok
+test metadata::tests::compaction_shutdown_rejects_queued_rewrite_and_keeps_join ... ok
+test metadata::tests::unconsumed_data_receipt_keeps_admission_bounded ... ok
+test metadata_quorum::tests::complete_synced_receipt_before_publication_replays_once_and_partial_tail_repairs ... ok
+test metadata_quorum::tests::duplicate_request_replay_returns_original_receipt_without_second_mutation ... ok
+test metadata_quorum::tests::exact_source_payload_term_and_gap_forgery_fail_before_journal_mutation ... ok
+test metadata::tests::unconsumed_sweep_receipt_holds_shared_admission ... ok
+test metadata_quorum::tests::group_and_semantic_limit_changes_cannot_reinterpret_durable_outcomes ... ok
+test metadata::tests::unconsumed_compaction_receipt_holds_shared_slot_after_publication ... ok
+test metadata_quorum::tests::malformed_data_and_application_budget_failure_leave_cursor_unchanged ... ok
+test metadata_quorum::tests::racing_commands_and_reused_tokens_are_committed_deterministic_noops ... ok
+test metadata_quorum::tests::new_leader_repairs_uncommitted_metadata_without_creating_a_ghost_topic ... ok
+test metrics::tests::a_counter_that_would_overflow_is_refused ... ok
+test metadata_quorum::tests::three_node_metadata_is_invisible_before_majority_and_survives_minority_reopen ... ok
+test metadata_quorum::tests::five_node_old_minority_cannot_publish_metadata_and_majority_reopens_exact_prefix ... ok
+test metrics::tests::redacts_secrets_caps_series_and_backpressures_a_stalled_subscriber ... ok
+test partition::tests::fetch_does_not_walk_records_already_checked_at_append ... ok
+test produce::tests::a_multi_partition_produce_sizes_its_sync_list_once ... ok
+test partition::tests::trusted_assign_rejects_a_count_the_body_cannot_hold ... ok
+test produce::tests::a_multi_partition_sync_sizes_its_join_list_once ... ok
+test produce::tests::a_produce_response_reuses_a_parked_buffer ... ok
+test produce::tests::a_produce_topic_key_borrows_the_request_name ... ok
+test produce::tests::a_single_produce_slot_stays_inline ... ok
+test produce::tests::a_timestamp_scan_reuses_its_payload_buffer ... ok
+test produce::tests::a_second_grouped_produce_reuses_the_capture_list ... ok
+test produce::tests::bounded_sync_waves_sync_real_files ... ok
+test produce::tests::finished_append_keeps_its_offset_after_the_request_timer ... ok
+test produce::tests::cached_read_errors_report_poison_for_direct_and_relocated_handles ... ok
+test produce::tests::queued_produces_keep_the_last_sync_for_each_partition ... ok
+test produce::tests::strictly_increasing_partition_indexes_need_no_duplicate_map ... ok
+test produce::tests::grouped_sync_propagates_one_partition_failure_to_all_its_batches ... ok
+test produce::tests::sync_concurrency_requires_a_positive_bounded_limit ... ok
+test quotas::tests::an_older_clock_does_not_refill_a_spent_quota ... ok
+test quotas::tests::arithmetic_and_work_ids_fail_closed_without_losing_permits ... ok
+test quotas::tests::disconnect_and_quota_changes_keep_accepted_work ... ok
+test quotas::tests::independent_buckets_and_fractional_refill_survive_interleaved_requests ... ok
+test quotas::tests::identity_churn_is_bounded_without_erasing_live_quota_debt ... ok
+test quotas::tests::legacy_connect_reuses_latest_time_without_regressing_on_older_calls ... ok
+test quotas::tests::malformed_direct_limits_and_extreme_debt_do_not_panic ... ok
+test quotas::tests::one_client_cannot_spend_another_clients_produce_quota ... ok
+test quotas::tests::simultaneous_delayed_work_accumulates_debt_and_rejections_do_not_spend ... ok
+test quotas::tests::timed_rate_changes_refill_at_the_old_rate_and_keep_debt ... ok
+test raft::election::tests::a_second_election_record_reuses_the_journal_image ... ok
+test raft::election::tests::a_steady_term_keeps_the_encoded_voter_configuration ... ok
+test raft::election::tests::failed_higher_term_persistence_disables_old_leader_before_any_reply ... ok
+test raft::election::tests::higher_term_revokes_old_leadership_even_if_timer_cannot_be_armed ... ok
+test raft::election::tests::owner_reconciliation_preserves_term_vote_and_checks_floor_and_role ... ok
+test raft::election::tests::synchronization_precedes_grant_and_ambiguous_failure_requires_recovery ... ok
+test raft::election::tests::strict_state_encoding_rejects_reserved_bits_unknown_votes_and_empty_mismatch ... ok
+test raft::peer_codec::tests::a_second_frame_reuses_the_encode_buffer ... ok
+test raft::peer_codec::tests::response_echo_must_match_original_request_and_directory ... ok
+test raft::peer_codec::tests::every_prefix_crc_version_reserved_unknown_and_trailing_mutation_rejects ... ok
+test raft::peer_codec::tests::writer_keeps_earlier_bytes_as_it_grows ... ok
+test raft::protocol::prevote_tests::a_foreign_cluster_id_is_refused_before_directory_or_epoch ... ok
+test raft::protocol::prevote_tests::a_stale_successor_directory_is_not_rank_zero ... ok
+test raft::protocol::prevote_tests::a_vote_for_another_replica_is_not_a_grant ... ok
+test raft::protocol::prevote_tests::begin_v0_parses_and_v1_directory_mismatch_does_not_change_state ... ok
+test raft::protocol::prevote_tests::a_follower_with_a_leader_does_not_grant_the_same_epoch ... ok
+test raft::protocol::prevote_tests::end_rejects_a_self_or_duplicate_successor_list ... ok
+test raft::protocol::prevote_tests::describe_quorum_v2_directory_mismatch_is_not_advertised ... ok
+test raft::protocol::prevote_tests::end_v0_parses_and_v1_stale_directory_is_not_a_successor ... ok
+test raft::protocol::prevote_tests::epoch_response_v0_matches_the_handler_and_v1_endpoint_is_not_applied ... ok
+test raft::protocol::prevote_tests::fetch_snapshot_v1_directory_mismatch_is_not_advertised ... ok
+test raft::protocol::prevote_tests::prevote_does_not_change_the_stable_term_or_vote ... ok
+test raft::protocol::prevote_tests::prevote_offset_zero_with_nonzero_epoch_is_not_an_empty_log ... ok
+test raft::protocol::prevote_tests::stale_directory_or_term_or_log_is_refused ... ok
+test raft::protocol::prevote_tests::standard_directory_vote_refuses_a_losing_candidate_without_persisting ... ok
+test raft::protocol::prevote_tests::vote_response_v0_matches_the_handler_and_v1_endpoint_is_not_applied ... ok
+test raft::protocol::prevote_tests::vote_v0_matches_the_existing_request_and_v2_prevote_is_not_persisted ... ok
+test raft::protocol::prevote_tests::voter_directory_changes_are_parsed_and_not_applied ... ok
+test raft::protocol::response_buffer_tests::a_controller_response_reuses_its_buffer ... ok
+test groups::share::tests::reassigning_many_share_topics_does_not_hold_the_caller ... ok
+test raft::replication::tests::follower_commit_runtime_checks_entry_term_before_persistence ... ok
+test raft::replication::tests::snapshot_install_process_cut_helper ... ok
+test raft::replication::tests::unconsumed_fetch_receipt_keeps_admission_bounded ... ok
+test raft::runtime::frame_deadline_tests::a_ready_peer_flood_does_not_hold_the_command_wait ... ok
+test raft::replication::tests::full_queue_canceled_work_and_owner_completion_have_distinct_outcomes ... ok
+test raft::runtime::frame_deadline_tests::an_illegal_length_after_a_frame_ends_the_idle_read ... ok
+test raft::runtime::frame_deadline_tests::an_illegal_length_already_buffered_ends_the_peer_write ... ok
+test raft::runtime::frame_deadline_tests::an_illegal_peer_length_ends_the_idle_read ... ok
+test raft::replication::tests::snapshot_install_receipt_and_summary_process_cuts_recover_prefix_and_local_vote ... ok
+test produce::tests::bounded_sync_waves_join_all_workers_and_handle_failures ... ok
+test raft::runtime::frame_deadline_tests::read_deadline_stops_a_ready_peer_frame ... ok
+test raft::runtime::frame_deadline_tests::read_deadline_stops_a_greedy_peer_frame ... ok
+test raft::runtime::ownership_tests::abandoned_peer_socket_ends_a_flooded_read ... ok
+test raft::runtime::ownership_tests::abandoned_peer_socket_is_closed_before_the_caller_returns ... ok
+test raft::runtime::frame_deadline_tests::write_deadline_stops_a_ready_peer_frame ... ok
+test raft::runtime::frame_deadline_tests::write_deadline_stops_a_greedy_peer_frame ... ok
+test raft::runtime::ownership_tests::abandoned_vote_vector_and_full_route_release_every_exact_correlation ... ok
+test raft::runtime::ownership_tests::exact_append_timeout_rejects_real_late_ack_and_cannot_cancel_newer_request ... ok
+test raft::runtime::ownership_tests::expired_outer_budget_cannot_admit_a_genuine_leader_write ... ok
+test raft::runtime::ownership_tests::configured_route_does_not_authorize_unknown_configuration_leader_over_tcp ... ok
+test raft::runtime::ownership_tests::observer_addition_keeps_real_log_budget_failure_terminal ... ok
+test raft::runtime::ownership_tests::observer_addition_retries_real_snapshot_busy_then_commits_new_set ... ok
+test raft::runtime::ownership_tests::outbound_closes_when_the_peer_leaves_during_acknowledge ... ok
+test raft::runtime::ownership_tests::outbound_closes_when_the_peer_leaves_during_a_chunk ... ok
+test raft::runtime::ownership_tests::outbound_closes_when_the_peer_leaves_between_jobs ... ok
+test raft::runtime::ownership_tests::peer_socket_configuration_disables_nagle_on_both_directions ... ok
+test raft::runtime::frame_deadline_tests::a_run_of_minimum_frames_does_not_hold_the_peer_watch ... ok
+test raft::runtime::ownership_tests::serve_closes_the_socket_when_frame_admission_fails ... ok
+test raft::runtime::ownership_tests::serve_closes_when_a_command_is_flooded ... ok
+test raft::runtime::ownership_tests::serve_closes_when_hello_is_flooded ... ok
+test raft::runtime::ownership_tests::outbound_closes_when_the_peer_leaves_during_frame_admission ... ok
+test raft::runtime::ownership_tests::reliable_stop_waits_for_saturated_owner_even_after_command_deadline ... ok
+test raft::runtime::ownership_tests::serve_returns_when_the_peer_closes_during_a_command ... ok
+test raft::runtime::ownership_tests::serve_closes_when_the_peer_leaves_during_frame_admission ... ok
+test raft::runtime::ownership_tests::outbound_closes_when_the_peer_leaves_during_prepare ... ok
+test raft::runtime::tests::actual_three_peer_tcp_observer_multichunk_image_install_reopen_and_join ... ok
+test raft::runtime::tests::canceled_ready_and_shutdown_keep_owner_until_successful_join_and_port_reuse ... ok
+test raft::runtime::tests::incomplete_oversized_hello_saturation_closes_all_tasks_on_join ... ok
+test raft::runtime::tests::runtime_child_process ... ok
+test raft::snapshot::tests::inner_publication_io_failures_preserve_previous_complete_image ... ok
+
+running 1 test
+
+running 1 test
+
+running 1 test
+test raft::snapshot::tests::inner_publication_process_exits_preserve_previous_complete_image ... ok
+test raft::snapshot::tests::inner_publication_process_helper ... ok
+test raft::snapshot::tests::node_inner_publication_io_failures_replay_previous_receipt_and_committed_suffix ... ok
+
+running 1 test
+
+running 1 test
+
+running 1 test
+test raft::runtime::tests::actual_five_peer_tcp_observer_multichunk_image_install_reopen_and_join ... ok
+test raft::snapshot::tests::node_inner_publication_process_helper ... ok
+test raft::snapshot::tests::node_inner_publication_process_exits_replay_previous_receipt_and_committed_suffix ... ok
+test records::tests::framed_assignment_matches_validated_contiguous_batches ... ok
+test recovery::tests::a_gapped_recovered_record_is_refused ... ok
+test recovery::tests::a_record_at_i64_max_is_not_recovered ... ok
+test recovery::tests::an_offset_at_the_end_of_i64_is_not_appended ... ok
+test recovery::tests::offset_for_leader_epoch_hides_a_truncated_suffix ... ok
+test recovery::tests::seeded_failover_keeps_committed_ids_once ... ok
+test replication::tests::a_full_follower_keeps_records_copied_before_the_cap ... ok
+test replication::tests::a_gapped_replica_record_is_not_recovered ... ok
+test replication::tests::a_record_at_i64_max_is_not_recovered_or_copied ... ok
+test replication::tests::an_offset_at_the_end_of_i64_is_not_appended ... ok
+test replication::tests::divergent_suffix_is_truncated_and_a_stale_leader_is_fenced ... ok
+test replication::tests::fetch_budget_stops_before_a_later_record_and_an_empty_budget_is_refused ... ok
+test replication::tests::follower_matches_leader_bytes_and_resumes_after_restart ... ok
+test retention::tests::a_delete_records_response_reuses_its_buffer ... ok
+test security::acl::tests::a_revoke_or_superuser_the_live_path_would_not_store_is_refused ... ok
+test security::acl::tests::deny_beats_allow_superuser_bypasses_and_reopen_restores ... ok
+test records::tests::plain_batches_match_the_generic_walk ... ok
+test security::credentials::tests::corrupt_payload_and_duplicate_changes_cannot_become_a_generation ... ok
+test security::credentials::tests::failed_storage_before_append_has_no_ack_or_published_generation ... ok
+test security::credentials::tests::ambiguous_failure_after_complete_append_poison_disables_auth_until_recovery ... ok
+test security::oidc::cache::tests::an_observed_deadline_is_terminal_even_if_a_later_status_is_restored ... ok
+test security::oidc::cache::tests::bounded_key_epochs_preserve_refresh_and_removal_even_when_watch_coalesces ... ok
+test security::oidc::cache::tests::runtime_configuration_cannot_create_unbounded_refresh_or_lease_admission ... ok
+test security::oidc::http::tests::authority_urls_and_transport_limits_are_bounded ... ok
+test security::oidc::http::tests::cancelled_resolution_keeps_http_admission_and_is_joined ... ok
+test security::oidc::http::tests::https_response_closes_the_socket ... ok
+test raft::runtime::tests::actual_five_node_tcp_minority_partition_late_ack_image_restart_and_removal ... ok
+test security::oidc::introspection::tests::form_and_basic_credential_encoding_is_literal ... ok
+test security::oidc::jwt::tests::authentic_signature_is_required_before_identity ... ok
+test security::oidc::jwt::tests::bounds_are_checked_before_unbounded_structures ... ok
+test security::oidc::jwt::tests::duplicate_json_and_whole_input_are_enforced ... ok
+test security::oidc::jwt::tests::es256_fixed_signature_and_typed_principal ... ok
+test security::oidc::jwt::tests::expiration_has_no_skew_or_clock_rollback_authority_extension ... ok
+test security::credentials::tests::stalled_started_commit_survives_cancellation_queued_cancel_skips_and_auth_is_busy ... ok
+test security::oidc::jwt::tests::jwks_duplicates_private_forms_and_weak_rsa_fail ... ok
+test security::oidc::jwt::tests::provider_access_discriminator_is_explicit ... ok
+test security::oidc::jwt::tests::signed_wrong_claims_fail ... ok
+test security::oidc::jwt::tests::token_authorities_critical_fields_and_segments_are_rejected ... ok
+test security::oidc::sasl::tests::whole_bounded_rfc_initial_and_escaped_authorization ... ok
+test security::oidc::tests::cancellation_retains_actual_worker_and_shutdown_joins_it ... ok
+test security::oidc::tests::cancelling_shutdown_leaves_actual_work_joinable ... ok
+test security::oidc::tests::configuration_defaults_and_authorities_are_bounded ... ok
+test security::oidc::jwt::tests::independent_openssl_controlled_epoch_matrix ... ok
+test raft::runtime::tests::actual_three_node_tcp_minority_partition_late_ack_image_restart_and_removal ... ok
+test security::oidc::http::tests::https_timeout_closes_the_socket ... ok
+test security::sasl::tests::apache_first_message_parser_scope_and_stricter_policy ... ok
+test security::sasl::tests::cancelled_queued_work_does_not_execute_after_pool_unblocks ... ok
+test security::sasl::tests::constant_time_api_rejects_first_middle_last_and_wrong_length ... ok
+test security::sasl::tests::contended_credential_access_is_bounded_and_releases_admission ... ok
+test security::sasl::tests::cancellation_releases_admission_and_running_worker_remains_bounded ... ok
+test security::session::tests::all_authentic_apache_wire_fields_headers_lengths_and_response_goldens ... ok
+test security::session::tests::malformed_varint_tag_order_count_and_null_sentinels_fail_boundedly ... ok
+test security::session::tests::admin_runtime_encoders_match_apache_success_and_all_truncated_mutations_are_uncommitted ... ok
+test security::session::tests::renewal_authority_is_pending_until_final_reply_write_and_cannot_outlive_old_expiry ... ok
+test security::session::tests::renewal_lifetime_wire_layout_matches_literal_independent_vectors ... ok
+test security::session::tests::renewal_policy_accepts_only_positive_whole_milliseconds_through_one_day ... ok
+test security::tokens::tests::a_skipped_or_unsorted_token_is_not_recovered ... ok
+test security::sasl::tests::authentic_apache_plain_decisions ... ok
+test security::tokens::tests::owner_renewer_expiry_and_redacted_secret_survive_restart ... ok
+test segments::tests::checksum_valid_impossible_victim_descriptor_is_rejected_before_unlink ... ok
+test segments::tests::compaction_one_record_cap_rejects_before_parsing_any_large_entry_body ... ok
+
+running 1 test
+test segments::tests::compaction_one_byte_cap_rejects_before_loading_a_large_payload ... ok
+
+running 1 test
+
+running 1 test
+
+running 1 test
+
+running 1 test
+test security::session::tests::renewal_budgets_reset_once_include_handshake_and_keep_absolute_deadline ... ok
+
+running 1 test
+test segments::tests::every_roll_publication_failure_preserves_prior_acknowledgments ... ok
+
+running 1 test
+
+running 1 test
+test segments::tests::failed_floor_getter_reports_confirmed_state_and_reopen_never_decreases ... ok
+
+running 1 test
+test segments::tests::compaction_publication_partial_cleanup_io_errors_recover_one_complete_selected_round ... ok
+
+running 1 test
+
+running 1 test
+test segments::tests::process_exit_at_each_roll_publication_stage_recovers_committed_payloads ... ok
+
+running 1 test
+
+running 1 test
+
+running 1 test
+
+running 1 test
+test segments::tests::process_exit_during_partial_copy_and_each_replacement_publication_recovers_all_records ... ok
+
+running 1 test
+test segments::tests::replacement_publication_and_cleanup_failures_select_complete_generations ... ok
+test segments::tests::compaction_process_exit_at_publication_and_cleanup_recovers_atomic_round ... ok
+test share_delivery::tests::a_negative_delivery_offset_is_not_recovered ... ok
+test share_delivery::tests::a_record_that_starts_accepted_is_not_recovered ... ok
+test share_delivery::tests::acquire_takes_a_lock_whose_deadline_has_passed ... ok
+test share_delivery::tests::expiry_at_the_delivery_limit_archives_the_record ... ok
+test share_delivery::tests::partial_ack_expiry_and_leader_loss_do_not_accept_undelivered_records ... ok
+test share_delivery::tests::release_gap_and_expired_ack_at_the_delivery_limit_archive_the_record ... ok
+test share_state::tests::a_batch_before_the_start_offset_is_not_recovered ... ok
+test share_state::tests::a_snapshot_that_skips_a_live_change_is_not_recovered ... ok
+test share_state::tests::a_start_offset_does_not_move_backward_or_cover_an_earlier_batch ... ok
+test share_state::tests::an_acknowledged_span_at_i64_max_is_refused ... ok
+test share_state::tests::write_is_atomic_and_timeout_keeps_delivery_counts ... ok
+test tiered::tests::a_negative_partition_is_not_recovered ... ok
+test tiered::tests::an_abandoned_partial_is_dropped_when_its_deadline_passes ... ok
+test tiered::tests::an_abort_of_a_published_object_is_not_recovered ... ok
+test tiered::tests::partial_offload_keeps_local_data_and_restore_checks_the_checksum ... ok
+test transactions::coordinator::tests::a_repeated_partition_does_not_consume_a_journal_record ... ok
+test transactions::coordinator::tests::a_replayed_add_cannot_change_a_prepared_transaction ... ok
+test transactions::coordinator::tests::a_replayed_init_cannot_skip_the_producer_sequence ... ok
+test transactions::coordinator::tests::a_second_begin_does_not_reset_an_ongoing_transaction ... ok
+test transactions::coordinator::tests::admitted_transactions_keep_closure_and_fencing_headroom_at_512_bytes ... ok
+test transactions::coordinator::tests::checkpoint_limits_fail_before_changing_acknowledged_state ... ok
+
+running 1 test
+
+running 1 test
+
+running 1 test
+test transactions::coordinator::tests::checkpoint_process_exit_recovers_complete_transaction_state ... ok
+test transactions::coordinator::tests::checkpoint_rejects_invalid_state_and_non_initial_position ... ok
+test segments::tests::retention_publication_partial_unlink_and_active_retirement_failures_preserve_acknowledged_floor ... ok
+test segments::tests::process_exit_at_retention_publication_partial_unlink_and_active_retirement_recovers_monotonic_floor ... ok
+test transactions::coordinator::tests::completed_legacy_transaction_can_shrink_and_roll_over_at_capacity ... ok
+test transactions::coordinator::tests::empty_journal_with_tiny_legacy_limits_remains_readable ... ok
+test transactions::coordinator::tests::entry_file_and_fetch_boundaries_preserve_admitted_state ... ok
+test transactions::coordinator::tests::event_only_history_replays_and_rolls_to_checkpoint ... ok
+test transactions::coordinator::tests::checkpoints_preserve_fencing_and_all_transaction_states ... ok
+test transactions::coordinator::tests::init_leaves_a_prepared_transaction_in_place ... ok
+test transactions::coordinator::tests::failed_checkpoint_does_not_acknowledge_or_expose_a_decision ... ok
+test transactions::coordinator::tests::prepared_commit_survives_failover_and_an_old_epoch_cannot_finish ... ok
+test transactions::coordinator::tests::producer_id_exhaustion_does_not_append ... ok
+test transactions::coordinator::tests::valid_legacy_growth_can_exceed_the_maximum_single_entry ... ok
+test transactions::coordinator::tests::oversized_legacy_history_remains_accessible_until_it_can_roll_over ... ok
+test transactions::markers::tests::a_gapped_marker_offset_is_not_recovered ... ok
+test transactions::markers::tests::a_later_transaction_in_the_same_epoch_waits_for_its_own_marker ... ok
+test transactions::markers::tests::ambiguous_data_append_recovers_uncommitted_record_without_exposing_it ... ok
+test transactions::markers::tests::aborted_and_incomplete_records_stay_hidden_and_a_later_commit_is_visible ... ok
+test transactions::markers::tests::ambiguous_marker_append_blocks_reads_and_recovers_durable_decision ... ok
+test transactions::markers::tests::interleaved_marker_retries_remain_correct_after_reopen ... ok
+test transactions::markers::tests::fetch_budget_is_checked_before_append_and_small_indexes_reopen ... ok
+test transactions::offsets::tests::a_later_transaction_in_the_same_epoch_does_not_publish_early ... ok
+test transactions::offsets::tests::a_negative_staged_partition_is_not_recovered ... ok
+test transactions::offsets::tests::an_aborted_generation_does_not_fence_the_next_transaction ... ok
+test transactions::offsets::tests::an_older_epoch_or_repeated_marker_is_not_recovered ... ok
+test transactions::offsets::tests::offsets_and_data_stay_hidden_until_commit_and_a_lost_ack_does_not_duplicate ... ok
+test transactions::markers::tests::reading_many_committed_markers_does_not_hold_the_caller ... ok
+test transport::disconnect_tests::client_disconnect_stops_the_handler ... ok
+test transport::disconnect_tests::flooded_request_stops_the_handler ... ok
+test transport::disconnect_tests::pipelined_disconnect_stops_the_handler ... ok
+test transactions::coordinator::tests::compacted_and_uncompacted_histories_remain_equivalent ... ok
+test transport::frame_read_deadline_tests::a_handler_deadline_stops_a_greedy_pipeline ... ok
+test transport::frame_read_deadline_tests::an_expired_buffered_frame_is_rejected_before_consumption ... ok
+test transactions::offsets::tests::reading_many_txn_generations_does_not_hold_the_caller ... ok
+test transport::frame_read_deadline_tests::read_deadline_stops_a_greedy_buffered_body ... ok
+test transport::frame_read_deadline_tests::read_deadline_stops_a_greedy_frame_body ... ok
+test transport::frame_read_deadline_tests::read_deadline_stops_a_ready_length_prefix ... ok
+test transport::handler_deadline_tests::an_illegal_length_after_a_frame_stops_the_handler ... ok
+test transport::frame_read_deadline_tests::read_deadline_stops_a_ready_frame_body ... ok
+test transport::read_ahead_tests::a_parked_request_keeps_its_capacity ... ok
+test transport::read_ahead_tests::a_partial_tail_compacts_without_the_consumed_frame ... ok
+test transport::read_ahead_tests::a_second_frame_reuses_the_body_buffer ... ok
+test transport::read_ahead_tests::a_short_prefix_waits_for_the_rest_of_the_frame ... ok
+test transport::read_ahead_tests::an_empty_body_is_a_frame ... ok
+test transport::read_ahead_tests::an_oversized_length_is_rejected_before_its_body ... ok
+test transport::read_ahead_tests::one_buffered_frame_keeps_its_allocation ... ok
+test transport::read_ahead_tests::pipelined_frames_are_split_without_moving_the_tail ... ok
+test transport::handler_deadline_tests::handler_deadline_runs_during_a_ready_prefetch ... ok
+test transport::reject_connection_tests::rejected_connection_closes_before_the_caller_returns ... ok
+test transport::sasl_frame_tests::a_control_reply_is_wiped_before_the_buffer_is_cleared ... ok
+test transport::sasl_frame_tests::owned_authentication_frame_debug_is_redacted ... ok
+test transport::shutdown_tests::shutdown_closes_the_accepted_socket ... ok
+test transport::read_deadline_tests::read_deadline_closes_the_socket ... ok
+test transport::write_prefetch_tests::a_failed_prefetch_does_not_wait_out_the_write ... ok
+test transport::write_prefetch_tests::an_illegal_length_after_a_frame_does_not_wait_out_the_write ... ok
+test transport::write_prefetch_tests::an_illegal_prefetch_length_does_not_wait_out_the_write ... ok
+test transport::write_prefetch_tests::prefix_only_deadline_leaves_peer_with_truncated_frame_and_eof ... ok
+test transport::write_prefetch_tests::vectored_partial_prefix_and_body_writes_preserve_wire_order ... ok
+test transport::write_prefetch_tests::vectored_write_offers_prefix_and_body_within_budget ... ok
+test transport::write_prefetch_tests::vectored_write_supports_empty_body_and_single_slice_writers ... ok
+test transport::tls_deadline_tests::tls_handshake_deadline_closes_the_socket ... ok
+test transport::write_prefetch_tests::write_deadline_stops_a_greedy_prefetch ... ok
+test transport::write_prefetch_tests::write_deadline_stops_a_greedy_response ... ok
+test transport::write_prefetch_tests::write_deadline_stops_a_ready_partial_write ... ok
+test transport::write_prefetch_tests::write_deadline_stops_a_ready_prefetch ... ok
+test transport::frame_read_deadline_tests::a_run_of_empty_frames_does_not_hold_the_handler_watch ... ok
+test security::sasl::tests::authentic_apache_and_literal_rfc_scram_proofs ... ok
+
+test result: ok. 448 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 6.12s
+
+     Running unittests src/bin/operator.rs (/workspace/work/qualification-20261027/broker-check-target/debug/deps/operator-e3ee5bd48a14fe9b)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/catalog.rs (/workspace/work/qualification-20261027/broker-check-target/debug/deps/catalog-e89c769971477bf8)
+
+running 14 tests
+test changed_file_poisoning_keeps_confirmed_state_and_recovery_repairs_tail ... ok
+test atomic_create_delete_tombstone_and_name_recreation_survive_restart ... ok
+test deleted_collision_name_is_released_but_identity_is_not ... ok
+test complete_journal_corruption_and_interior_byte_loss_fail_closed ... ok
+test independent_apache_name_vectors_match_and_reserved_ids_are_rejected ... ok
+test invalid_limits_and_tightened_journal_bounds_are_explicit ... ok
+test deletes_count_against_operation_replay_and_journal_budgets ... ok
+test invalid_names_partitions_duplicate_names_ids_and_collisions_do_not_mutate ... ok
+test oversized_persisted_entry_and_duplicate_owner_are_rejected ... ok
+test checksummed_malformed_operations_and_conflicting_histories_fail_closed ... ok
+test stricter_restart_budgets_fail_without_rewriting_complete_history ... ok
+test topic_identity_partition_operation_and_replay_budgets_hold_before_append ... ok
+test process_exit_without_destructors_preserves_durable_history_and_reports_tails ... ok
+test every_torn_tombstone_tail_prefix_recovers_whole_previous_catalog ... ok
+
+test result: ok. 14 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/codecs.rs (/workspace/work/qualification-20261027/broker-check-target/debug/deps/codecs-a5ebf5a9da1c06e9)
+
+running 12 tests
+test advertised_window_and_content_size_bombs_fail_without_decoding ... ok
+test dictionary_skippable_legacy_reserved_and_optional_header_forms_are_rejected ... ok
+test codec_units_are_aggregate_across_preflighted_frames_and_decoded_gzip_members ... ok
+test each_normalization_budget_is_independent_and_positive ... ok
+test encoded_crc_and_count_checks_precede_bad_codec_streams ... ok
+test decoded_records_keep_existing_field_header_and_semantic_rejections ... ok
+test exact_decoded_bounds_succeed_and_one_byte_less_rejects_all_codecs ... ok
+test every_encoded_truncation_and_trailing_incomplete_batch_is_rejected ... ok
+test uncompressed_fast_path_borrows_and_still_validates_every_record ... ok
+test four_codecs_raw_snappy_and_concatenated_streams_preserve_exact_history_bytes ... ok
+test all_actual_apache_fixtures_have_the_declared_admission_outcome ... ok
+test independent_expanding_streams_exercise_compressed_blocks_and_output_caps ... ok
+
+test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/compaction.rs (/workspace/work/qualification-20261027/broker-check-target/debug/deps/compaction-9e52d8a59bf51d81)
+
+running 9 tests
+test corrupted_sealed_source_poison_preserves_selected_manifest_and_confirmed_offsets ... ok
+test carried_empty_batch_maximum_allows_guarded_age_reclamation_without_timestamp_records ... ok
+test horizon_varint_growth_exceeds_entry_ceiling_before_creating_a_generation ... ok
+test every_round_budget_and_invalid_clock_fails_before_any_file_change ... ok
+test monolithic_storage_and_strict_sparse_admission_remain_unchanged ... ok
+test zero_horizon_window_never_resurrects_old_values_and_segment_cap_is_atomic ... ok
+test independently_protected_sealed_and_active_suffixes_never_enter_key_map ... ok
+test genuine_apache_cleaner_horizons_exact_bytes_offsets_and_restart ... ok
+test genuine_empty_last_batch_and_deleted_intermediate_batch_preserve_logical_span ... ok
+
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.06s
+
+     Running tests/fault_campaign.rs (/workspace/work/qualification-20261027/broker-check-target/debug/deps/fault_campaign-414f9c05bc244dff)
+
+running 1 test
+test seeded_faults_preserve_committed_outcomes ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.11s
+
+     Running tests/fetch.rs (/workspace/work/qualification-20261027/broker-check-target/debug/deps/fetch-e72c53834579eadc)
+
+running 26 tests
+test explicit_read_profile_preserves_metadata_and_produce_advertisements ... ok
+test global_first_batch_exception_and_request_order_preserve_capped_reads ... ok
+test absolute_wait_cap_and_minimum_clamping ... ok
+test invalid_local_read_limits_are_rejected_before_io ... ok
+test lazy_empty_reads_and_delete_recreate_resolve_current_identity ... ok
+test list_offsets_answers_earliest_and_latest_for_one_partition ... ok
+test malformed_counts_prefixes_duplicates_and_semantic_bounds_never_mutate ... ok
+test compacted_fetch_preserves_apache_bytes_holes_timestamps_and_restart ... ok
+test registered_handle_corruption_poison_wakes_waiters_and_maps_legacy_errors ... ok
+test restart_and_containing_multi_batch_entry_keep_exact_records ... ok
+test real_tcp_supported_goldens_and_unsupported_version_eof ... ok
+test rolling_hidden_checkpoint_work_exhausts_request_budget_without_false_miss ... ok
+test rolling_lost_append_receipt_and_delete_wake_without_blocking_actor ... ok
+test rolling_actual_tcp_restart_keeps_whole_batch_offsets_and_oversized_rules ... ok
+test scan_and_hard_output_limits_fail_without_false_timestamp_miss ... ok
+test serve_live_probe ... ok
+test transactional_control_and_idempotent_writes_cannot_change_committed_visibility ... ok
+test independent_apache_read_goldens ... ok
+test transport_joined_shutdown_cancels_live_long_poll_without_stopping_store ... ok
+test unpolled_snapshot_holds_combined_admission_and_cancel_releases ... ok
+test wait_keeps_admission_cancel_releases_and_shutdown_wakes ... ok
+test waiting_read_does_not_block_append_and_delete_wakes ... ok
+test wake_between_snapshot_and_receipt_is_not_lost ... ok
+test transport_deadline_cancels_wait_and_releases_read_admission ... ok
+test rolling_real_router_replays_all_independent_read_goldens ... ok
+test authentic_apache_rolled_records_match_real_tcp_timestamp_and_whole_batch_seeks ... ok
+
+test result: ok. 26 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.81s
+
+     Running tests/group_transition_histories.rs (/workspace/work/qualification-20261027/broker-check-target/debug/deps/group_transition_histories-837dd3576d320b42)
+
+running 1 test
+test cooperative_and_static_histories_keep_disjoint_ownership ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/journal.rs (/workspace/work/qualification-20261027/broker-check-target/debug/deps/journal-cb97842587ad94ac)
+
+running 18 tests
+test actual_file_matches_documented_checksums_and_can_be_retained_for_oracle ... ok
+test durable_restart_preserves_explicit_record_counts_and_logical_ranges ... ok
+test complete_payload_and_header_corruption_never_truncate ... ok
+test external_file_growth_poisons_append_without_offset_advance ... ok
+test failed_open_releases_ownership_and_positive_limits_are_validated ... ok
+test fetch_output_charges_entry_storage_and_never_returns_partial_failure ... ok
+test file_header_identity_and_partial_prefix_damage_fail_closed ... ok
+test interior_missing_payload_with_later_entry_is_not_a_torn_final_entry ... ok
+test file_and_index_budgets_hold_on_append_and_recovery ... ok
+test every_partial_offset_byte_is_checked_before_tail_repair ... ok
+test invalid_append_and_offset_overflow_leave_committed_state_unchanged ... ok
+test live_inode_aliases_are_rejected_and_guard_releases_after_drop ... ok
+test protected_invalid_lengths_counts_and_offset_gaps_fail_closed ... ok
+test retained_partial_offset_corruption_preserves_every_byte ... ok
+test simultaneous_new_file_open_rejects_a_second_live_handle ... ok
+test partial_offsets_check_nonzero_bytes_and_keep_valid_torn_tails ... ok
+test every_incomplete_tail_prefix_repairs_to_last_complete_entry ... ok
+test process_exit_without_destructors_recovers_durable_and_incomplete_entries ... ok
+
+test result: ok. 18 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/kraft_layout.rs (/workspace/work/qualification-20261027/broker-check-target/debug/deps/kraft_layout-6ba9a80b58335e30)
+
+running 6 tests
+test fetch_snapshot_v1_includes_the_snapshot_id_tag_suffix ... ok
+test begin_end_update_and_voters_record_match_the_independent_layout ... ok
+test vote_v0_matches_the_independent_layout ... ok
+test vote_v2_matches_the_independent_layout ... ok
+test apache_431_responses_round_trip ... ok
+test apache_431_bodies_round_trip_and_stay_unadvertised ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/metadata.rs (/workspace/work/qualification-20261027/broker-check-target/debug/deps/metadata-086b1be3a6f57e63)
+
+running 8 tests
+test corrupt_complete_catalog_fails_startup_without_partial_metadata ... ok
+test persistent_create_validate_delete_and_fresh_identity ... ok
+test resource_bounds_and_response_preflight_are_non_mutating ... ok
+test serve_live_probe ... ok
+test native_null_array_compatibility_is_exact_and_read_only ... ok
+test shutdown_is_joined_idempotent_and_stops_admission ... ok
+test validation_errors_timeout_and_no_peer_paths ... ok
+test independent_apache_metadata_admin_goldens ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.58s
+
+     Running tests/metadata_quorum.rs (/workspace/work/qualification-20261027/broker-check-target/debug/deps/metadata_quorum-1ccd835ef753b4ad)
+
+running 2 tests
+test three_node_tcp_router_waits_for_source_commit_and_replays_after_minority_restart ... ok
+test five_node_tcp_metadata_application_keeps_committed_views_through_two_restarts ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.46s
+
+     Running tests/oidc_http.rs (/workspace/work/qualification-20261027/broker-check-target/debug/deps/oidc_http-7c2f7d7b933d3dc0)
+
+running 10 tests
+test actual_https_discovery_trust_whole_json_and_size_policy ... ok
+test registered_jwks_media_is_accepted_only_for_signing_keys ... ok
+test removed_or_changed_key_interrupts_stalled_introspection ... ok
+test key_rotation_during_initial_introspection_cannot_publish_old_authentication ... ok
+test shutdown_invalidates_a_lease_queued_behind_stalled_key_refresh ... ok
+test failed_refresh_keeps_finite_generation_but_valid_empty_keys_revoke ... ok
+test unknown_kid_requests_are_single_flight_and_globally_bounded ... ok
+test slow_successful_periodic_refresh_cannot_starve_queued_lease_work ... ok
+test revocation_binding_and_outage_never_extend_a_lease ... ok
+test authority_outage_expiry_admission_and_joined_shutdown ... ok
+
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.82s
+
+     Running tests/oidc_sessions.rs (/workspace/work/qualification-20261027/broker-check-target/debug/deps/oidc_sessions-7235736bf587b20d)
+
+running 12 tests
+test changed_key_closes_existing_socket_and_new_generation_authenticates ... ok
+test all_auth_versions_and_legacy_bind_exact_issuer_and_escaped_subject ... ok
+test invalid_token_challenge_requires_one_exact_terminal_ack ... ok
+test oauth_renewal_preserves_issuer_subject_and_uses_fresh_bounded_token_lease ... ok
+test oauth_renewal_valid_other_subject_and_authz_mismatch_need_terminal_failure_ack ... ok
+test oauth_renewal_wait_cannot_extend_expired_session_or_dispatch_application ... ok
+test only_installed_oauth_apis_and_mechanisms_are_advertised ... ok
+test revocation_cancels_active_handler_and_waiting_handler_admission ... FAILED
+test oauth_subject_never_inherits_credential_administrator_authority ... ok
+test revocation_interrupts_a_blocked_write_without_delivering_the_complete_response ... ok
+test stalled_initial_authority_obeys_absolute_socket_deadline_and_releases_validation ... ok
+test hard_expiry_closes_idle_and_partial_reads_then_fresh_reconnects ... ok
+
+failures:
+
+---- revocation_cancels_active_handler_and_waiting_handler_admission stdout ----
+
+thread 'revocation_cancels_active_handler_and_waiting_handler_admission' (118576) panicked at tests/oidc_sessions.rs:723:5:
+assertion `left == right` failed
+  left: 2
+ right: 1
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    revocation_cancels_active_handler_and_waiting_handler_admission
+
+test result: FAILED. 11 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 4.02s
+
+error: test failed, to rerun pass `--test oidc_sessions`
+     Running tests/oidc_validation.rs (/workspace/work/qualification-20261027/broker-check-target/debug/deps/oidc_validation-afe0f8a7e76e2eeb)
+
+running 6 tests
+test configured_issuer_and_access_discriminator_are_required ... ok
+test public_diagnostics_redact_tokens_and_authorities ... ok
+test static_authority_never_has_an_infinite_freshness_lease ... ok
+test shutdown_is_shared_and_retryable ... ok
+test malformed_and_oversized_bearers_fail_without_echo ... ok
+test monotonic_authority_expiry_is_enforced ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/operator_quorum.rs (/workspace/work/qualification-20261027/broker-check-target/debug/deps/operator_quorum-95a9952cc5ef77f1)
+
+running 1 test
+test three_process_metadata_quorum_fails_over_and_replays ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 4.44s
+
+     Running tests/operator_server.rs (/workspace/work/qualification-20261027/broker-check-target/debug/deps/operator_server-23ba3cce91c62e6c)
+
+running 1 test
+test durable_rf1_server_restarts_and_rejects_shared_or_wrong_identity ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.08s
+
+     Running tests/partition.rs (/workspace/work/qualification-20261027/broker-check-target/debug/deps/partition-f910947dcf9c25f8)
+
+running 10 tests
+test external_payload_change_poisoned_live_handle_returns_no_partial_output ... ok
+test configured_entry_index_output_and_disk_budgets_prevent_growth ... ok
+test assigned_batches_preserve_all_other_bytes_and_survive_restart ... ok
+test invalid_later_batch_and_unsupported_features_never_append_a_prefix ... ok
+test outer_checksummed_forged_counts_offsets_crc_and_batch_gaps_fail_recovery ... ok
+test retention_requires_rolling_and_keeps_atomic_payload_below_logical_floor ... ok
+test partition_retention_preserves_protected_records_and_synchronized_end ... ok
+test rolling_backend_assigns_atomic_multi_batch_ranges_and_replacement_survives_restart ... ok
+test signed_offset_end_bound_is_checked_before_any_write ... ok
+test every_incomplete_final_entry_prefix_repairs_to_the_previous_whole_input ... ok
+
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/produce.rs (/workspace/work/qualification-20261027/broker-check-target/debug/deps/produce-a56ff8b4bf1b4fe1)
+
+running 9 tests
+test historical_store_and_index_budgets_do_not_advance_offsets ... ok
+test corrupt_or_unknown_store_fails_recovery_without_partial_router ... ok
+test offsets_replay_and_deleted_identity_never_reuses_data ... ok
+test response_and_normalized_budgets_fail_before_append ... ok
+test rolling_store_preserves_offsets_historical_budget_and_rejects_wrong_layout ... ok
+test serve_live_probe ... ok
+test malformed_entire_body_never_appends ... ok
+test acks_zero_sends_no_frame_keeps_channel_and_errors_close ... ok
+test independent_apache_produce_goldens ... ok
+
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.95s
+
+     Running tests/protocol.rs (/workspace/work/qualification-20261027/broker-check-target/debug/deps/protocol-86f11f759905d676)
+
+running 9 tests
+test all_supported_request_truncations_fail_without_panicking ... ok
+test classic_and_flexible_headers_borrow_classic_client_id ... ok
+test semantic_software_validation_matches_apache_pattern ... ok
+test software_utf8_null_string_length_and_tag_faults_fail_closed ... ok
+test unsupported_api_versions_ignore_unknown_body_and_echo_signed_correlation ... ok
+test validated_limits_bound_frame_and_tag_work ... ok
+test compiled_registry_and_all_apache_goldens ... ok
+test malformed_or_unimplemented_connection_closes_while_peer_continues ... ok
+test real_tcp_pipeline_success_semantic_error_and_unsupported_fallback ... ok
+
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.32s
+
+     Running tests/raft_election.rs (/workspace/work/qualification-20261027/broker-check-target/debug/deps/raft_election-7cb29b3eeb859ba8)
+
+running 10 tests
+test duplicate_stale_negative_and_misrouted_responses_cannot_create_a_majority ... ok
+test a_real_peer_vote_elects_and_stale_leader_assertions_are_fenced ... ok
+test durable_log_freshness_uses_term_then_index_and_denials_persist_higher_term ... ok
+test exhausted_storage_poison_prevents_even_repeat_grants_until_recovery ... ok
+test membership_clock_term_and_timeout_bounds_fail_explicitly ... ok
+test seeded_timers_are_reproducible_node_separated_and_always_bounded ... ok
+test synchronized_vote_survives_restart_and_never_changes_in_same_term ... ok
+test torn_unconfirmed_tail_repairs_but_checksummed_double_vote_and_corruption_fail_closed ... ok
+test tagged_owner_reconciliation_replay_validates_complete_checksums_and_state_invariants ... ok
+test deterministic_seeded_losing_partition_and_restart_histories ... ok
+
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s
+
+     Running tests/raft_membership.rs (/workspace/work/qualification-20261027/broker-check-target/debug/deps/raft_membership-938449e287c9369d)
+
+running 32 tests
+test arbitrary_set_jumps_same_size_replacements_and_descriptor_updates_reject ... ok
+test bootstrap_genesis_is_immutable_and_a_new_directory_starts_as_an_observer ... ok
+test all_truncations_and_reserved_count_utf8_identity_mutations_reject ... ok
+test configuration_epoch_and_authoritative_position_cannot_be_forged ... ok
+
+running 1 test
+test dynamic_membership_history_child ... test durable_addition_activates_new_set_old_majority_cannot_commit_and_restart_preserves_it ... ok
+test complete_maximum_configuration_and_overlimit_counts_remain_bounded ... ok
+test checksum_valid_equal_view_source_ordinal_forgery_rejects_even_when_final_context_matches ... ok
+test dynamic_membership_history_child ... ok
+test feature_preparation_has_explicit_cancel_and_deadline_without_reverting_voters ... ok
+test exact_vote_cancellation_preserves_real_campaign_grants_and_all_durable_bytes ... ok
+test five_voter_campaign_preserves_remaining_correlations_after_denial_and_first_grant ... ok
+test incoming_dynamic_image_old_offer_cannot_survive_a_real_higher_term_known_leader ... ok
+test dynamic_snapshot_replays_voters_and_suffix_without_importing_local_vote ... ok
+test incoming_dynamic_image_publication_io_error_poison_fences_late_chunks_and_finish ... ok
+test last_voter_and_unsupported_features_are_rejected_before_changes ... ok
+test listener_endpoint_and_feature_range_validation_is_explicit ... ok
+test malformed_or_uncommitted_multiple_configs_cannot_advance_epoch_or_truncate ... ok
+test incoming_dynamic_image_rejects_changed_offer_and_abort_or_expiry_cannot_revive_it ... ok
+test native_recent_catchup_admission_is_not_redefined_as_current_end_equality ... ok
+test noncanonical_order_and_duplicate_voters_do_not_decode ... ok
+test one_added_voter_uses_new_majority_and_preserves_exact_existing_descriptors ... ok
+test incoming_dynamic_image_survives_follower_polls_and_preserves_local_vote_on_reopen ... ok
+test observer_feature_mismatch_directory_forgery_and_unqualified_legacy_paths_reject ... ok
+test prior_fetch_end_catchup_uses_previous_contact_and_time_zero_is_insufficient ... ok
+test pending_addition_can_elect_known_directory_across_configuration_epochs_and_commit ... ok
+test removed_leader_identity_is_absent_from_new_voters_and_both_survivors_are_needed ... ok
+test same_id_with_stale_directory_cannot_remove_or_replace_an_existing_voter ... ok
+test removed_leader_counts_no_self_vote_and_fences_after_commit_even_without_caller ... ok
+test unadvertised_prevote_does_not_repair_quorum_loss_or_cross_a_partition ... ok
+test unknown_added_leader_laggard_refuses_before_mutation_then_known_history_allows_it ... ok
+test removed_id_rejoins_new_directory_without_old_progress_or_reinterpreting_saved_vote ... ok
+
+running 1 test
+test dynamic_membership_history_child ... test actual_three_and_five_voter_membership_fault_restart_histories ... ok
+
+test result: ok. 32 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.32s
+
+     Running tests/raft_protocol.rs (/workspace/work/qualification-20261027/broker-check-target/debug/deps/raft_protocol-6ea1ed260b32159b)
+
+running 13 tests
+test configured_request_queue_and_identity_budgets_validate ... ok
+test cross_peer_wire_votes_count_distinct_members_and_fence_correlations ... ok
+test dynamic_directory_owner_closes_fixed_v0_wire_before_persistent_changes ... ok
+test end_rank_timers_are_exact_and_invalid_successors_cannot_mutate ... ok
+test dynamic_owner_fences_unadvertised_directory_wire_without_persisting ... ok
+test a_leader_cannot_remove_the_only_voter ... ok
+test initial_epoch_zero_nonempty_log_and_restart_preserve_vote ... ok
+test malformed_prefixes_tags_and_counts_are_bounded_before_mutation ... ok
+test semantic_errors_and_stale_epochs_do_not_rewrite_state ... ok
+test wire_overflow_and_storage_exhaustion_fail_without_affirmative_reply ... ok
+test independent_apache_controller_goldens_and_registry ... ok
+test actual_transport_dispatch_advertises_controller_profile_and_joins ... ok
+test independent_controller_goldens_cross_actual_tcp_transport ... ok
+
+test result: ok. 13 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.11s
+
+     Running tests/raft_replication.rs (/workspace/work/qualification-20261027/broker-check-target/debug/deps/raft_replication-86d8f0fda3cfeb34)
+
+running 29 tests
+test actual_three_node_process_history ... ok
+test actor_serializes_controller_and_typed_storage_and_joins_shutdown ... ok
+test bounds_queue_envelope_fetch_and_fixed_membership_are_explicit ... ok
+test changed_external_file_poison_prevents_reply_and_known_torn_tail_can_reopen ... ok
+test checksummed_authority_term_regression_fails_recovery_even_for_an_older_entry ... ok
+test checksummed_follower_commit_cannot_authorize_a_newer_entry_term ... ok
+test checksummed_snapshot_install_receipt_mutations_fail_replay ... ok
+test committed_prefix_and_same_term_payload_conflicts_fail_before_wal_mutation ... ok
+test complete_wal_ahead_of_core_is_reconciled_before_vote_or_committed_read ... ok
+test actual_five_node_process_history ... ok
+test five_voters_need_three_distinct_durable_positions_and_reject_forged_replies ... ok
+test foreign_identity_corrupt_complete_and_torn_tail_have_distinct_outcomes ... ok
+test minority_partition_expiry_and_lost_ack_cannot_commit ... ok
+test higher_term_repairs_only_uncommitted_suffix_and_preserves_vote_after_restart ... ok
+test partial_request_does_not_commit_an_unverified_old_suffix ... ok
+test selected_snapshot_file_corruption_fences_the_owner_before_transfer ... ok
+test snapshot_checkpoint_retains_later_wal_and_explicit_mode_is_required_for_replay ... ok
+test snapshot_committed_overlap_and_same_term_conflicts_leave_publication_inert ... ok
+test snapshot_exact_overlap_retains_suffix_and_higher_term_repair_drops_only_uncommitted_bytes ... ok
+test snapshot_owner_rejects_nonidle_foreign_and_overbudget_stores ... ok
+test actual_five_node_snapshot_process_history ... ok
+test snapshot_publication_before_failed_wal_sync_is_inert_and_poisoned_until_reopen ... ok
+test snapshot_receipt_catchup_reconciles_from_the_proven_preinstall_commit_floor ... ok
+test snapshot_transfer_deadline_reordered_chunks_and_changed_epoch_cannot_select ... ok
+test actual_three_node_snapshot_process_history ... ok
+test unowned_legacy_log_summary_is_not_silently_replaced_by_an_empty_new_wal ... ok
+test strict_majority_barrier_and_committed_visibility_survive_reopen ... ok
+test wal_success_then_core_budget_failure_is_ambiguous_and_poisoned_until_reconciliation ... ok
+test snapshot_actor_checkpoint_and_joined_partial_cleanup_are_owner_local ... ok
+
+test result: ok. 29 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.04s
+
+     Running tests/raft_runtime.rs (/workspace/work/qualification-20261027/broker-check-target/debug/deps/raft_runtime-8ec516f99403fbd8)
+
+running 7 tests
+test actual_three_peer_tcp_observer_multichunk_image_install_reopen_and_join ... ok
+test canceled_ready_and_shutdown_keep_owner_until_successful_join_and_port_reuse ... ok
+test actual_five_peer_tcp_observer_multichunk_image_install_reopen_and_join ... ok
+test runtime_child_process ... ok
+test incomplete_oversized_hello_saturation_closes_all_tasks_on_join ... ok
+test actual_three_node_tcp_minority_partition_late_ack_image_restart_and_removal ... ok
+test actual_five_node_tcp_minority_partition_late_ack_image_restart_and_removal ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.16s
+
+     Running tests/raft_snapshot.rs (/workspace/work/qualification-20261027/broker-check-target/debug/deps/raft_snapshot-11feed0701a93c3d)
+
+running 10 tests
+test actual_apache_opaque_observation_preserves_order_and_boundary_mapping ... ok
+test canonical_prefix_round_trip_and_sequential_transfer ... ok
+test ambiguous_rename_error_poison_preserves_previous_image ... ok
+test empty_prefix_and_canceled_reader_have_explicit_boundaries ... ok
+test fully_rehashed_hostile_images_cannot_bless_malformed_content ... ok
+test identity_and_generation_budgets_are_preflighted ... ok
+test snapshot_crash_helper ... ok
+
+running 1 test
+test foreign_fixed_group_and_namespace_are_rejected ... ok
+test exact_completion_seal_and_crc_are_required ... ok
+test actual_process_exit_during_transfer_keeps_old_image_recoverable ... ok
+
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/records.rs (/workspace/work/qualification-20261027/broker-check-target/debug/deps/records-63522d9c0e20a517)
+
+running 14 tests
+test borrowed_projection_preserves_input_and_independent_batch_bases ... ok
+test each_protected_bit_flip_fails_checksum_before_record_parsing ... ok
+test empty_read_headers_require_canonical_no_horizon_base_time_and_full_consumption ... ok
+test every_independent_byte_and_work_budget_is_checked ... ok
+test damaged_unsupported_batches_still_fail_checksum_first ... ok
+test exact_byte_and_count_limits_admit_the_complete_batch ... ok
+test every_truncation_and_incomplete_trailing_prefix_is_rejected ... ok
+test limits_are_positive_and_have_checked_hard_maxima ... ok
+test signed_timestamp_varlong_boundaries_are_checked_without_wrapping ... ok
+test variable_fields_cannot_read_beyond_the_enclosing_record ... ok
+test zero_header_records_are_accepted_and_header_keys_values_remain_nullable_correctly ... ok
+test apache_generated_valid_features_and_hostile_fixtures_have_typed_outcomes ... ok
+test rejected_admission_leaves_journal_state_and_validated_restart_bytes_intact ... ok
+test independently_generated_sparse_empty_and_hostile_apache_cases_separate_read_from_admission ... ok
+
+test result: ok. 14 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/retention.rs (/workspace/work/qualification-20261027/broker-check-target/debug/deps/retention-a225e891f384565f)
+
+running 12 tests
+test explicit_policy_work_and_thresholds_are_checked ... ok
+test age_sweep_uses_strict_max_timestamp_boundary_and_restarts ... ok
+test high_watermark_deletion_preserves_append_end_and_empty_partition ... ok
+test hostile_counts_utf8_varints_and_tag_order_fail_before_deletion ... ok
+test complete_parse_and_response_preflight_precede_every_mutation ... ok
+test invalid_offsets_unknown_internal_and_last_duplicate_are_partition_local ... ok
+test old_profiles_and_nonrolling_config_do_not_advertise_retention ... ok
+test serve_live_probe ... ok
+test size_sweep_counts_payload_bytes_and_keeps_a_segment_larger_than_excess ... ok
+test middle_of_batch_floor_is_durable_and_keeps_containing_bytes ... ok
+test floor_advance_wakes_waiting_fetch_without_new_append ... ok
+test independent_apache_delete_records_goldens ... ok
+
+test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.44s
+
+     Running tests/sasl.rs (/workspace/work/qualification-20261027/broker-check-target/debug/deps/sasl-6bc0c0c030b75152)
+
+running 10 tests
+test malformed_first_is_terminal_and_limits_are_checked ... ok
+test imported_forms_and_all_hard_bounds_reject_invalid_values ... ok
+test plain_wrong_password_unknown_identity_authz_and_malformed ... ok
+test credential_generation_rotation_and_snapshot_admission_bound ... ok
+test scram_escaped_name_self_authz_and_unrelated_authz ... ok
+test strong_fresh_nonces_salts_and_redacted_debug_errors ... ok
+test scram_wrong_password_nonce_channel_binding_proof_and_replay ... ok
+test optional_extensions_are_ignored_but_bound_to_the_exact_proof ... ok
+test kafka_raw_utf8_passwords_and_identities_are_preserved ... ok
+test valid_scram_both_hashes_and_plain_from_verifiers ... ok
+
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.01s
+
+     Running tests/sasl_credentials.rs (/workspace/work/qualification-20261027/broker-check-target/debug/deps/sasl_credentials-6e55c43841843672)
+
+running 9 tests
+test file_permissions_and_symlinks_are_enforced_without_diagnostics_leaks ... ok
+test incomplete_tail_repair_is_reported_but_complete_corruption_fails_closed ... ok
+test invalid_and_missing_changes_never_partially_commit ... ok
+test raw_utf8_plain_identity_and_password_survive_restart ... ok
+test shutdown_disables_new_authentication_and_admin ... ok
+test negotiated_plain_keeps_its_generation_while_new_sessions_observe_rotation ... ok
+test persisted_bytes_contain_only_verifier_form ... ok
+test retained_operation_budget_preserves_last_confirmed_generation ... ok
+test two_algorithms_restart_rotation_delete_and_metadata_only_description ... ok
+
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.54s
+
+     Running tests/sasl_sessions.rs (/workspace/work/qualification-20261027/broker-check-target/debug/deps/sasl_sessions-36999bc467950078)
+
+running 27 tests
+test absolute_sasl_admission_deadline_also_caps_unfinished_tls_handshake ... ok
+test admin_authority_is_explicit_and_unauthorized_alter_never_reaches_storage ... ok
+test authentic_native_106_and_apache_canonical_105_frames_commit_without_rewriting ... ok
+test authenticated_alter_control_ceiling_precedes_header_parse_and_storage ... ok
+test authenticated_authenticate_control_ceiling_precedes_header_parse ... ok
+test authenticated_describe_control_ceiling_precedes_header_parse ... ok
+test authenticated_handshake_control_ceiling_precedes_header_parse ... ok
+test cumulative_preauth_bytes_include_prefixes_and_cannot_be_reset_by_valid_negotiation ... ok
+test actual_socket_scram_all_versions_legacy_and_typed_identity_gate ... ok
+test preauth_deadline_rounds_bytes_and_shutdown_are_bound_to_each_socket ... ok
+test authorized_wire_rotation_restart_duplicate_policy_invalid_credentials_and_delete ... ok
+test ready_handler_after_expiry_does_not_emit_expired_reply ... ok
+test renewable_profile_auth0_remains_zero_and_cannot_start_renewal ... ok
+test canonical_and_native_redundant_empty_alter_tag_commit_once_and_survive_restart ... ok
+test malformed_alter_tails_and_other_api_empty_tails_never_mutate_or_dispatch ... ok
+test renewal_application_and_remaining_byte_budget_never_bypass_authentication ... ok
+test renewable_idle_expiry_and_incomplete_renewal_cannot_extend_old_deadline ... ok
+test renewal_expiry_cancels_application_handler_and_joins_owned_connection ... ok
+test renewal_handshake_waits_for_prior_application_reply_and_resumes_after_proof ... ok
+test renewal_handler_admission_wait_consumes_authentication_deadline ... ok
+test renewed_principal_change_valid_proof_is_terminal_and_cannot_dispatch ... ok
+test renewed_mechanism_unknown_and_authenticate_without_handshake_are_terminal ... ok
+test unsupported_plain_early_application_wrong_proof_and_repeated_handshake_are_terminal ... ok
+test tls_plain_renewal_validates_fresh_password_and_preserves_principal ... ok
+test renewable_scram_versions_rotation_and_same_principal_preserve_socket_identity ... ok
+test wire_budget_failure_never_acknowledges_success_or_publishes_new_credentials ... ok
+test tls_plain_all_versions_legacy_unicode_and_poison_shutdown_dispatch_gate ... ok
+
+test result: ok. 27 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 5.06s
+
+     Running tests/segments.rs (/workspace/work/qualification-20261027/broker-check-target/debug/deps/segments-57ec162a9576323b)
+
+running 23 tests
+test age_is_strict_prefix_ordered_and_size_keeps_whole_segment_target ... ok
+test atomic_multi_batch_input_and_containing_offsets_are_not_split ... ok
+test count_and_seek_work_exhaustion_never_invent_a_successful_miss ... ok
+test corrupt_or_missing_authoritative_data_fails_closed_without_tail_repair ... ok
+test deletion_guards_reject_unconfirmed_and_protected_ranges_before_mutation ... ok
+test end_floor_retires_dead_active_bytes_and_preserves_empty_successor_on_restart ... ok
+test hidden_scan_exhaustion_cannot_return_a_successful_partial_fetch ... ok
+test disk_and_staging_reservations_hold_before_mutation_and_after_restart ... ok
+test logical_floor_preserves_containing_input_and_only_explicitly_migrates_layout ... ok
+test missing_and_valid_crc_stale_indexes_are_rejected_and_rebuilt ... ok
+test only_active_incomplete_tail_is_repaired_and_ownership_is_exclusive ... ok
+test one_segment_limit_can_reclaim_active_and_continue_appending ... ok
+test replacement_is_byte_preserving_and_old_generations_are_durably_removed ... ok
+test sparse_time_checkpoints_keep_first_equal_and_regressing_timestamp_offsets ... ok
+test rolls_and_physical_offset_timestamp_seeks_survive_restart ... ok
+test sweep_limit_and_protected_boundary_bound_physical_prefix_progress ... ok
+test unknown_negative_timestamps_have_no_age_clock_but_size_and_guarded_delete_work ... ok
+test v2_corrupt_floor_or_victim_descriptors_fail_closed_with_valid_checksum ... ok
+test sparse_zero_count_and_sparse_kind_in_legacy_manifest_fail_closed ... ok
+test valid_crc_generation_overflow_is_rejected_before_any_publication ... ok
+test v3_zero_payload_extents_rebuild_derived_indexes_and_reject_unrecorded_obsolete_files ... ok
+test every_active_entry_prefix_recovers_prior_acks_and_complete_ambiguous_append ... ok
+test every_partial_index_and_valid_crc_stale_hint_is_rebuilt_from_checked_data ... ok
+
+test result: ok. 23 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.10s
+
+     Running tests/tls.rs (/workspace/work/qualification-20261027/broker-check-target/debug/deps/tls-6487c66a0d92e894)
+
+running 15 tests
+test handshakes_and_established_sessions_share_cap_and_joined_shutdown ... ok
+test admitted_pending_handshake_retains_pre_rotation_generation ... ok
+test oversized_tls_record_and_handshake_lengths_fail_closed ... ok
+test pending_handshake_shutdown_can_be_cancelled_retried_and_drop_cleaned ... ok
+test rejects_invalid_limits_der_keys_trust_and_totals_eagerly ... ok
+test plaintext_never_falls_back_on_tls_listener ... ok
+test required_mtls_rejects_missing_untrusted_expired_and_wrong_purpose_clients ... ok
+test required_mtls_verifies_intermediate_chain_and_preserves_peer_metadata ... ok
+test server_only_tls_has_no_authenticated_client_identity ... ok
+test verified_peer_chain_cap_closes_before_handler_dispatch ... ok
+test idle_and_fragmented_tls_progress_share_absolute_handshake_deadline ... ok
+test verifying_clients_reject_wrong_server_name_expiry_and_trust ... ok
+test verified_tls12_and_tls13_frame_roundtrip ... ok
+test rotation_updates_new_server_identity_and_client_trust_preserving_old_session ... ok
+test independent_openssl_peer_verifies_tls_versions_and_mtls_rejections ... ok
+
+test result: ok. 15 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.32s
+
+     Running tests/transport.rs (/workspace/work/qualification-20261027/broker-check-target/debug/deps/transport-5d370c4f2a14be46)
+
+running 16 tests
+test connection_overload_rejects_without_spawning_handler ... ok
+test cancelled_shutdown_await_can_be_retried_and_still_joins ... ok
+test dropping_transport_requests_socket_and_handler_cleanup ... ok
+test fragmented_prefix_body_empty_and_exact_limit_roundtrip ... ok
+test adversarial_lengths_close_before_payload_or_handler_and_isolate_peers ... ok
+test handler_error_and_oversized_response_close_only_their_connections ... ok
+test handler_work_is_bounded_and_shutdown_joins_active_and_queued_requests ... ok
+test pipelined_no_reply_sends_no_frame_and_keeps_connection_usable ... ok
+test hanging_handler_times_out_and_its_future_is_dropped ... ok
+test rejects_zero_and_out_of_range_configuration_without_io ... ok
+test idle_connection_has_an_absolute_read_deadline ... ok
+test truncated_prefix_and_body_never_invoke_handler ... ok
+test pipelined_requests_keep_wire_and_handler_order ... ok
+test slowloris_progress_does_not_reset_prefix_plus_body_deadline ... ok
+test unread_large_response_hits_absolute_write_deadline_and_joins ... ok
+test handler_deadline_includes_waiting_for_concurrency_permit ... ok
+
+test result: ok. 16 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.31s
+
+     Running tests/upgrade_campaign.rs (/workspace/work/qualification-20261027/broker-check-target/debug/deps/upgrade_campaign-578f615a56797abd)
+
+running 1 test
+test unsupported_downgrade_restores_the_proven_feature_level ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests examples/oidc_live_probe.rs (/workspace/work/qualification-20261027/broker-check-target/debug/examples/oidc_live_probe-8d4aad58f3d24005)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+error: 1 target failed:
+    `--test oidc_sessions`
