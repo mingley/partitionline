@@ -1,0 +1,86 @@
+{
+  "checked_utc": "2026-10-28T03:50:17.757433+00:00",
+  "rows": [
+    {
+      "name": "rustls-rustcrypto",
+      "version": "0.0.2-alpha",
+      "created_at": "2024-04-24T19:59:22.297486Z",
+      "yanked": false,
+      "checksum": "f12052947763ab8515f753315357599e9b0b4dab3b8ba15f30f725fe6d025557",
+      "download_sha256": "f12052947763ab8515f753315357599e9b0b4dab3b8ba15f30f725fe6d025557",
+      "checksum_matches": true
+    },
+    {
+      "name": "rustls-rustcrypto-azul",
+      "version": "0.1.0",
+      "created_at": "2026-10-24T04:58:01.363259Z",
+      "yanked": false,
+      "checksum": "3946088625fc81b5a2180e90a3f205957169ada51dbda2acce175b0d41bbebf6",
+      "download_sha256": "3946088625fc81b5a2180e90a3f205957169ada51dbda2acce175b0d41bbebf6",
+      "checksum_matches": true
+    },
+    {
+      "name": "oxitls-rustcrypto-provider",
+      "version": "0.3.0",
+      "created_at": "2026-08-06T15:50:46.103274Z",
+      "yanked": false,
+      "checksum": "18bd3866bdaa054b6f018b47b01baac05f8b6a8d789ebfb341d0e909e34917c5",
+      "download_sha256": "18bd3866bdaa054b6f018b47b01baac05f8b6a8d789ebfb341d0e909e34917c5",
+      "checksum_matches": true
+    },
+    {
+      "name": "rustls-provider-rustcrypto-pq",
+      "version": "0.1.1",
+      "created_at": "2026-10-16T19:17:58.684739Z",
+      "yanked": false,
+      "checksum": "b7ffbb625218cb0ec4f69418b624c8ee01d303bc07c68e0677a6f20b028e321d",
+      "download_sha256": "b7ffbb625218cb0ec4f69418b624c8ee01d303bc07c68e0677a6f20b028e321d",
+      "checksum_matches": true
+    },
+    {
+      "name": "rustls-pure",
+      "version": "0.15.4",
+      "created_at": "2026-10-27T06:12:09.296269Z",
+      "yanked": false,
+      "checksum": "0cb411ce187caac7001e460c965ed5fdc761afa105408bc668767ee5c291cd28",
+      "download_sha256": "0cb411ce187caac7001e460c965ed5fdc761afa105408bc668767ee5c291cd28",
+      "checksum_matches": true
+    },
+    {
+      "name": "ferritls-rustls",
+      "version": "0.9.0",
+      "created_at": "2026-10-11T23:14:32.747893Z",
+      "yanked": false,
+      "checksum": "d86fd2af4b9e7922c29264c0251161d7c628eae6809c01322a4566dcf73d6454",
+      "download_sha256": "d86fd2af4b9e7922c29264c0251161d7c628eae6809c01322a4566dcf73d6454",
+      "checksum_matches": true
+    },
+    {
+      "name": "ferritls-core",
+      "version": "0.9.0",
+      "created_at": "2026-10-11T23:14:30.875103Z",
+      "yanked": false,
+      "checksum": "ff45d388d87708acf71c2a7c89e985795165b78beee1b5eaddd192cf69b167ca",
+      "download_sha256": "ff45d388d87708acf71c2a7c89e985795165b78beee1b5eaddd192cf69b167ca",
+      "checksum_matches": true
+    },
+    {
+      "name": "moirai-crypto",
+      "version": "0.11.3",
+      "created_at": "2026-10-27T06:44:35.957014Z",
+      "yanked": false,
+      "checksum": "af2c51ded9fc7162b630e0726e57d882fb86cd5f79585bd089cc754ff67d4093",
+      "download_sha256": "af2c51ded9fc7162b630e0726e57d882fb86cd5f79585bd089cc754ff67d4093",
+      "checksum_matches": true
+    },
+    {
+      "name": "ps-rustcrypto",
+      "version": "0.4.0",
+      "created_at": "2026-10-12T12:46:53.044596Z",
+      "yanked": false,
+      "checksum": "25b782298f0cddf37d6e400695d3f2298b6661bf7851e8535caa3d341d3331b0",
+      "download_sha256": "25b782298f0cddf37d6e400695d3f2298b6661bf7851e8535caa3d341d3331b0",
+      "checksum_matches": true
+    }
+  ]
+}

@@ -1,0 +1,18 @@
+{
+  "checked_utc": "2026-10-28T03:50:33.997229+00:00",
+  "source_commit": "4ede0c83d11a878b07198a360939d78126240d4f",
+  "source_sha256": {
+    "Cargo.toml": "72571422ff9478f925346ae5eec272daff633fb5bd7693665b048b31e7b44ac9",
+    "Cargo.lock": "8048d24692864e4b3e3b7e40b8489f483161b1c5c9f8805ae5fd7ce337593a82",
+    "partitionline-broker/Cargo.toml": "22fc753af7e6bc4c4dc0f99951d59bd60de5c39ea56ce767ba418eb4706f33a4",
+    "partitionline-broker/Cargo.lock": "87fd9aeecadd3772cf459a48f7f6bc37ebdc12099c02aaa76cade8fe4287e146",
+    "partitionline-broker/src/security/oidc/jwt.rs": "289a8e346e4e42f33668d077c6a4f119d2776b1c6788faf944aaf4b3f740a536",
+    "partitionline-broker/src/security/tls.rs": "3c9714c5754378f5486a4441ce6fba92d4b75dea65cf48994a466dfa0c1fe040",
+    "partitionline-broker/src/security/oidc/http.rs": "6f44c8de03e9ff249039aa169b9951d9b262ee63bf1f9ffa10fadd93b45df77c",
+    "partitionline-schema/Cargo.toml": "fe47662be235137595a78d4f415be770a01558bb3e37ae44355193357388fde1",
+    "partitionline-schema/src/registry.rs": "e52fdb0821cf50895f84fee8dd27dbdc0b43a557953ff676adcfea66a026173f",
+    "src/net.rs": "3ee974431c43e183a27e80cdc2933dc649df2ff84f028fbf83d913c1c2f0ba11"
+  },
+  "scope": "Read-only source and registry review; no provider builds, network peers or performance tests. Source files listed were clean at source_commit.",
+  "network": "Package-manager destinations allowed by enforced managed-environment policy; normal HTTPS proxy and CA trust used."
+}
