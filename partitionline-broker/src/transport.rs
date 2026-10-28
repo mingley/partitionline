@@ -665,8 +665,8 @@ async fn establish<H: Handler>(
             .await
             {
                 Ok(Ok(stream)) => stream,
-                Ok(Err(_)) => return rejected_handshake(Exit::TlsError).await,
-                Err(_) => return rejected_handshake(Exit::TlsDeadline).await,
+                Ok(Err(_)) => return Exit::TlsError,
+                Err(_) => return Exit::TlsDeadline,
             };
             let mut peer = peer;
             peer.tls = match crate::security::tls::VerifiedPeer::new(
@@ -674,7 +674,7 @@ async fn establish<H: Handler>(
                 stream.get_ref().1.peer_certificates(),
             ) {
                 Ok(verified) => Some(verified),
-                Err(_) => return rejected_handshake(Exit::TlsError).await,
+                Err(_) => return Exit::TlsError,
             };
             exchange(stream, config, handler, handlers, peer, Some(auth)).await
         }
@@ -687,8 +687,8 @@ async fn establish<H: Handler>(
             .await
             {
                 Ok(Ok(stream)) => stream,
-                Ok(Err(_)) => return rejected_handshake(Exit::TlsError).await,
-                Err(_) => return rejected_handshake(Exit::TlsDeadline).await,
+                Ok(Err(_)) => return Exit::TlsError,
+                Err(_) => return Exit::TlsDeadline,
             };
             let mut peer = peer;
             peer.tls = match crate::security::tls::VerifiedPeer::new(
@@ -696,7 +696,7 @@ async fn establish<H: Handler>(
                 stream.get_ref().1.peer_certificates(),
             ) {
                 Ok(verified) => Some(verified),
-                Err(_) => return rejected_handshake(Exit::TlsError).await,
+                Err(_) => return Exit::TlsError,
             };
             exchange(
                 stream,
@@ -710,16 +710,6 @@ async fn establish<H: Handler>(
             .await
         }
     }
-}
-
-#[cfg(feature = "tls")]
-async fn rejected_handshake(exit: Exit) -> Exit {
-    // Dropping the accepted socket only schedules the close. Yield so the
-    // peer observes it before this handshake failure returns.
-    for _ in 0..8 {
-        tokio::task::yield_now().await;
-    }
-    exit
 }
 
 fn read_error(error: io::Error) -> Exit {
@@ -816,9 +806,14 @@ async fn read_exact_spare<S: AsyncRead + Unpin>(
     socket: &mut S,
     payload: &mut Vec<u8>,
     length: usize,
+    deadline: Instant,
 ) -> Result<(), Exit> {
     payload.try_reserve_exact(length).map_err(|_| Exit::Io)?;
+    let mut yielded_at = payload.len();
     while payload.len() < length {
+        if Instant::now() >= deadline {
+            return Err(Exit::ReadDeadline);
+        }
         // One ready read can fill every spare byte. Stop after one chunk so
         // the frame deadline runs before the rest of the body is copied.
         let step = length.saturating_sub(payload.len()).min(8 * 1024);
@@ -830,11 +825,16 @@ async fn read_exact_spare<S: AsyncRead + Unpin>(
                 "frame body closed",
             )));
         }
-        // A ready body never returns from this read, so the frame deadline
-        // cannot run until every byte is buffered.
-        tokio::task::yield_now().await;
+        if payload.len().saturating_sub(yielded_at) >= 64 * 1024 {
+            yielded_at = payload.len();
+            tokio::task::yield_now().await;
+        }
     }
-    Ok(())
+    if Instant::now() >= deadline {
+        Err(Exit::ReadDeadline)
+    } else {
+        Ok(())
+    }
 }
 
 enum Ahead {
@@ -1035,6 +1035,9 @@ async fn read_frame<S: AsyncRead + Unpin>(
         let mut prefix = [0; 4];
         let mut filled = 0usize;
         while filled < prefix.len() {
+            if Instant::now() >= deadline {
+                return Err(Exit::ReadDeadline);
+            }
             let n = socket
                 .read(prefix.get_mut(filled..).ok_or(Exit::InvalidLength)?)
                 .await
@@ -1046,9 +1049,6 @@ async fn read_frame<S: AsyncRead + Unpin>(
                 )));
             }
             filled += n;
-            // `read_exact` would keep a ready prefix in this poll, so the
-            // frame deadline could not run until all four bytes arrived.
-            tokio::task::yield_now().await;
         }
         let length =
             usize::try_from(i32::from_be_bytes(prefix)).map_err(|_| Exit::InvalidLength)?;
@@ -1058,7 +1058,7 @@ async fn read_frame<S: AsyncRead + Unpin>(
         // No allocation based on the peer's length occurs before this check.
         // The body is filled directly into spare capacity so a large request
         // is not zeroed and then overwritten.
-        read_exact_spare(&mut *socket, frame_mut(&mut spare), length).await?;
+        read_exact_spare(&mut *socket, frame_mut(&mut spare), length, deadline).await?;
         Ok(spare)
     })
     .await
@@ -1072,16 +1072,27 @@ async fn read_frame_buffered<S: AsyncRead + Unpin>(
     ahead: &mut ReadAhead,
     mut spare: Frame,
 ) -> Result<Frame, Exit> {
-    if fill_complete_frame(ahead, config.max_request_bytes, &mut spare)? {
-        return Ok(spare);
-    }
     if Instant::now() >= deadline {
         return Err(Exit::ReadDeadline);
     }
+    if fill_complete_frame(ahead, config.max_request_bytes, &mut spare)? {
+        return if Instant::now() >= deadline {
+            Err(Exit::ReadDeadline)
+        } else {
+            Ok(spare)
+        };
+    }
     timeout_at(deadline, async {
         loop {
+            if Instant::now() >= deadline {
+                return Err(Exit::ReadDeadline);
+            }
             if fill_complete_frame(ahead, config.max_request_bytes, &mut spare)? {
-                return Ok(spare);
+                return if Instant::now() >= deadline {
+                    Err(Exit::ReadDeadline)
+                } else {
+                    Ok(spare)
+                };
             }
             let Ahead::Need(budget) = classify_ahead(ahead.pending(), config.max_request_bytes)
             else {
@@ -1102,9 +1113,6 @@ async fn read_frame_buffered<S: AsyncRead + Unpin>(
                     "frame body closed",
                 )));
             }
-            // A ready body never returns from this read, so the frame deadline
-            // cannot run until every byte is buffered.
-            tokio::task::yield_now().await;
         }
     })
     .await
@@ -1142,12 +1150,18 @@ async fn write_and_prefetch<S: AsyncRead + AsyncWrite + Unpin>(
     }
     let length = i32::try_from(response.len()).map_err(|_| Exit::OversizedResponse)?;
     let prefix = length.to_be_bytes();
-    timeout_at(deadline, async {
+    let written = timeout_at(deadline, async {
         let mut slices = [IoSlice::new(&prefix), IoSlice::new(response)];
         let mut bufs: &mut [IoSlice<'_>] = &mut slices;
         let mut stop_read = !prefetch;
         let mut scanned = 0usize;
         poll_fn(|cx| {
+            if Instant::now() >= deadline {
+                return Poll::Ready(Err(io::Error::new(
+                    io::ErrorKind::TimedOut,
+                    "response write deadline",
+                )));
+            }
             if bufs.is_empty() {
                 return Poll::Ready(Ok(()));
             }
@@ -1256,9 +1270,11 @@ async fn write_and_prefetch<S: AsyncRead + AsyncWrite + Unpin>(
         .await
     })
     .await
-    .map_err(|_| Exit::WriteDeadline)?
-    .map_err(|_| Exit::Io)?;
-    Ok(())
+    .map_err(|_| Exit::WriteDeadline)?;
+    if Instant::now() >= deadline {
+        return Err(Exit::WriteDeadline);
+    }
+    written.map_err(|_| Exit::Io)
 }
 
 fn operation_deadline(absolute: Option<Instant>, timeout: Duration) -> Instant {
@@ -1541,11 +1557,8 @@ async fn exchange<H: Handler, S: AsyncRead + AsyncWrite + Unpin>(
         }
     }
     .await;
-    // Dropping the socket only schedules the close. Yield so the peer
-    // observes it before this connection failure returns.
-    for _ in 0..8 {
-        tokio::task::yield_now().await;
-    }
+    // Publish the established exit in this poll. Yielding after the socket
+    // closes lets shutdown cancel this completed failure and erase its cause.
     exit
 }
 
@@ -1803,12 +1816,15 @@ mod tls_deadline_tests {
         )
         .await;
         assert!(matches!(result, Exit::TlsDeadline));
+        tokio::time::timeout(Duration::from_secs(1), client)
+            .await
+            .unwrap_or_else(|error| panic!("peer did not observe TLS close: {error}"))
+            .unwrap_or_else(|error| panic!("peer task failed: {error}"));
         assert_eq!(
             open.load(Ordering::SeqCst),
             0,
             "tls handshake deadline left the accepted socket blocked in a read"
         );
-        client.abort();
     }
 }
 
@@ -2234,12 +2250,15 @@ mod read_deadline_tests {
         )
         .await;
         assert!(matches!(result, Exit::ReadDeadline));
+        tokio::time::timeout(Duration::from_secs(1), client)
+            .await
+            .unwrap_or_else(|error| panic!("peer did not observe read close: {error}"))
+            .unwrap_or_else(|error| panic!("peer task failed: {error}"));
         assert_eq!(
             open.load(Ordering::SeqCst),
             0,
             "read deadline left the accepted socket blocked in a read"
         );
-        client.abort();
     }
 }
 
@@ -2314,17 +2333,26 @@ mod write_prefetch_tests {
             announced: false,
             left: 4 * 1024 * 1024,
         };
+        // The connection owns this buffer after the write. SASL wipes it on
+        // teardown, so measure that cleanup separately from the write deadline.
+        let mut ahead = ReadAhead::new();
         let started = Instant::now();
         let result = write_and_prefetch(
             &mut socket,
             b"response-bytes",
             Instant::now() + Duration::from_millis(30),
-            &mut ReadAhead::new(),
+            &mut ahead,
             8 * 1024 * 1024,
             true,
         )
         .await;
         let elapsed = started.elapsed();
+        let cleanup_started = Instant::now();
+        drop(ahead);
+        eprintln!(
+            "write elapsed {elapsed:?}; buffer cleanup {:?}",
+            cleanup_started.elapsed()
+        );
         assert!(
             matches!(result, Err(Exit::WriteDeadline)),
             "prefetch finished the write instead of hitting the deadline"
@@ -2958,6 +2986,23 @@ mod frame_read_deadline_tests {
     use std::time::Duration;
     use tokio::io::{AsyncRead, ReadBuf};
     use tokio::time::Instant;
+
+    #[tokio::test]
+    async fn an_expired_buffered_frame_is_rejected_before_consumption() {
+        let mut ahead = ReadAhead::new();
+        frame_mut(&mut ahead.bytes).extend_from_slice(&1i32.to_be_bytes());
+        frame_mut(&mut ahead.bytes).push(1);
+        let result = read_frame(
+            &mut PendingRead,
+            Config::default(),
+            Instant::now() - Duration::from_millis(1),
+            &mut ahead,
+            new_frame(),
+        )
+        .await;
+        assert!(matches!(result, Err(Exit::ReadDeadline)));
+        assert_eq!(ahead.pending(), &[0, 0, 0, 1, 1]);
+    }
 
     struct PendingRead;
 

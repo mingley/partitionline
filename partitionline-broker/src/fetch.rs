@@ -613,7 +613,7 @@ fn stored_log_error(error: i16, log_start: i64, watermark: i64) -> i16 {
 /// partition. Offset-out-of-range still carries the boundaries so the
 /// consumer can reset without another lookup. Other errors clear them.
 fn fetch_boundary(error: i16, watermark: i64, log_start: i64) -> (i64, i64, i64) {
-    if error == 0 || error == 1 {
+    if error == 0 {
         (watermark, watermark, log_start)
     } else {
         (-1, -1, -1)
@@ -828,9 +828,9 @@ mod tests {
     }
 
     #[test]
-    fn out_of_range_keeps_the_log_boundaries() {
+    fn failed_fetch_uses_unknown_log_boundaries() {
         assert_eq!(super::fetch_boundary(0, 4, 1), (4, 4, 1));
-        assert_eq!(super::fetch_boundary(1, 4, 1), (4, 4, 1));
+        assert_eq!(super::fetch_boundary(1, 4, 1), (-1, -1, -1));
         assert_eq!(super::fetch_boundary(3, 4, 1), (-1, -1, -1));
     }
 
@@ -1002,6 +1002,11 @@ pub(crate) fn process(
             if key == 2 {
                 let mut timestamp = -1;
                 let mut offset = -1;
+                // This profile serves ListOffsets v1-v3. Negative selectors
+                // other than earliest/latest require a newer request version.
+                if error == 0 && part.offset < -2 {
+                    error = 35;
+                }
                 if error == 0 {
                     // -1 latest, -2 earliest, -4 earliest local. -5 is the
                     // tiered end, which this log does not have. -3 is the
