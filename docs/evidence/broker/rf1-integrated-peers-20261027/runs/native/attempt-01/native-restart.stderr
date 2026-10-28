@@ -1,0 +1,211 @@
+%7|1793159924.557|BROKER|ordinary-native-peer#consumer-1| [thrd:app]: GroupCoordinator: Added new broker with NodeId -1
+%7|1793159924.557|BRKMAIN|ordinary-native-peer#consumer-1| [thrd:GroupCoordinator]: GroupCoordinator: Enter main broker thread
+%7|1793159924.558|BROKER|ordinary-native-peer#consumer-1| [thrd:app]: 127.0.0.1:19398/bootstrap: Added new broker with NodeId -1
+%7|1793159924.558|CONNECT|ordinary-native-peer#consumer-1| [thrd:main]: 127.0.0.1:19398/bootstrap: Selected for cluster connection: coordinator query (broker has 0 connection attempt(s))
+%7|1793159924.561|BRKMAIN|ordinary-native-peer#consumer-1| [thrd::0/internal]: :0/internal: Enter main broker thread
+%7|1793159924.561|BRKMAIN|ordinary-native-peer#consumer-1| [thrd:127.0.0.1:19398/bootstrap]: 127.0.0.1:19398/bootstrap: Enter main broker thread
+%7|1793159924.561|CONNECT|ordinary-native-peer#consumer-1| [thrd:127.0.0.1:19398/bootstrap]: 127.0.0.1:19398/bootstrap: Received CONNECT op
+%7|1793159924.561|STATE|ordinary-native-peer#consumer-1| [thrd:127.0.0.1:19398/bootstrap]: 127.0.0.1:19398/bootstrap: Broker changed state INIT -> TRY_CONNECT
+%7|1793159924.561|CONNECT|ordinary-native-peer#consumer-1| [thrd:127.0.0.1:19398/bootstrap]: 127.0.0.1:19398/bootstrap: broker in state TRY_CONNECT connecting
+%7|1793159924.561|STATE|ordinary-native-peer#consumer-1| [thrd:127.0.0.1:19398/bootstrap]: 127.0.0.1:19398/bootstrap: Broker changed state TRY_CONNECT -> CONNECT
+%7|1793159924.561|INIT|ordinary-native-peer#consumer-1| [thrd:app]: librdkafka v2.15.0 (0x20f00ff) ordinary-native-peer#consumer-1 initialized (builtin.features gzip,snappy,ssl,sasl,regex,lz4,sasl_plain,sasl_scram,plugins,zstd,sasl_oauthbearer, GCC GXX PKGCONFIG INSTALL GNULD LDS C11THREADS LIBDL PLUGINS ZLIB SSL ZSTD HDRHISTOGRAM SYSLOG SNAPPY SOCKEM SASL_SCRAM SASL_OAUTHBEARER CRC32C_HW, debug 0x92)
+%7|1793159924.561|CONNECT|ordinary-native-peer#consumer-1| [thrd:app]: Not selecting any broker for cluster connection: still suppressed for 46ms: application metadata request
+%7|1793159924.561|CONNECT|ordinary-native-peer#consumer-1| [thrd:main]: Not selecting any broker for cluster connection: still suppressed for 46ms: coordinator query
+%7|1793159924.562|CONNECT|ordinary-native-peer#consumer-1| [thrd:127.0.0.1:19398/bootstrap]: 127.0.0.1:19398/bootstrap: Connecting to ipv4#127.0.0.1:19398 (plaintext) with socket 9
+%7|1793159924.563|CONNECT|ordinary-native-peer#consumer-1| [thrd:127.0.0.1:19398/bootstrap]: 127.0.0.1:19398/bootstrap: Connected to ipv4#127.0.0.1:19398
+%7|1793159924.563|CONNECTED|ordinary-native-peer#consumer-1| [thrd:127.0.0.1:19398/bootstrap]: 127.0.0.1:19398/bootstrap: Connected (#1)
+%7|1793159924.563|FEATURE|ordinary-native-peer#consumer-1| [thrd:127.0.0.1:19398/bootstrap]: 127.0.0.1:19398/bootstrap: Updated enabled protocol features +ApiVersion to ApiVersion
+%7|1793159924.563|STATE|ordinary-native-peer#consumer-1| [thrd:127.0.0.1:19398/bootstrap]: 127.0.0.1:19398/bootstrap: Broker changed state CONNECT -> APIVERSION_QUERY
+%7|1793159924.563|CONNECT|ordinary-native-peer#consumer-1| [thrd:app]: Not selecting any broker for cluster connection: still suppressed for 44ms: application metadata request
+%7|1793159924.563|SEND|ordinary-native-peer#consumer-1| [thrd:127.0.0.1:19398/bootstrap]: 127.0.0.1:19398/bootstrap: Sent ApiVersionRequest (v3, 54 bytes @ 0, CorrId 1)
+%7|1793159924.563|RECV|ordinary-native-peer#consumer-1| [thrd:127.0.0.1:19398/bootstrap]: 127.0.0.1:19398/bootstrap: Received ApiVersionResponse (v3, 57 bytes, CorrId 1, rtt 0.33ms)
+%7|1793159924.563|APIVERSION|ordinary-native-peer#consumer-1| [thrd:127.0.0.1:19398/bootstrap]: 127.0.0.1:19398/bootstrap: Broker API support:
+%7|1793159924.563|APIVERSION|ordinary-native-peer#consumer-1| [thrd:127.0.0.1:19398/bootstrap]: 127.0.0.1:19398/bootstrap:   ApiKey Produce (0) Versions 3..13
+%7|1793159924.563|APIVERSION|ordinary-native-peer#consumer-1| [thrd:127.0.0.1:19398/bootstrap]: 127.0.0.1:19398/bootstrap:   ApiKey Fetch (1) Versions 4..6
+%7|1793159924.563|APIVERSION|ordinary-native-peer#consumer-1| [thrd:127.0.0.1:19398/bootstrap]: 127.0.0.1:19398/bootstrap:   ApiKey ListOffsets (2) Versions 1..3
+%7|1793159924.563|APIVERSION|ordinary-native-peer#consumer-1| [thrd:127.0.0.1:19398/bootstrap]: 127.0.0.1:19398/bootstrap:   ApiKey Metadata (3) Versions 0..13
+%7|1793159924.563|APIVERSION|ordinary-native-peer#consumer-1| [thrd:127.0.0.1:19398/bootstrap]: 127.0.0.1:19398/bootstrap:   ApiKey ApiVersion (18) Versions 0..4
+%7|1793159924.563|APIVERSION|ordinary-native-peer#consumer-1| [thrd:127.0.0.1:19398/bootstrap]: 127.0.0.1:19398/bootstrap:   ApiKey CreateTopics (19) Versions 2..4
+%7|1793159924.563|APIVERSION|ordinary-native-peer#consumer-1| [thrd:127.0.0.1:19398/bootstrap]: 127.0.0.1:19398/bootstrap:   ApiKey DeleteTopics (20) Versions 1..6
+%7|1793159924.563|APIVERSION|ordinary-native-peer#consumer-1| [thrd:127.0.0.1:19398/bootstrap]: 127.0.0.1:19398/bootstrap:  Feature MsgVer1: Produce (2..32767) supported by broker
+%7|1793159924.563|APIVERSION|ordinary-native-peer#consumer-1| [thrd:127.0.0.1:19398/bootstrap]: 127.0.0.1:19398/bootstrap:  Feature MsgVer1: Fetch (2..32767) supported by broker
+%7|1793159924.563|APIVERSION|ordinary-native-peer#consumer-1| [thrd:127.0.0.1:19398/bootstrap]: 127.0.0.1:19398/bootstrap: Enabling feature MsgVer1
+%7|1793159924.563|APIVERSION|ordinary-native-peer#consumer-1| [thrd:127.0.0.1:19398/bootstrap]: 127.0.0.1:19398/bootstrap:  Feature MsgVer2: Produce (3..32767) supported by broker
+%7|1793159924.563|APIVERSION|ordinary-native-peer#consumer-1| [thrd:127.0.0.1:19398/bootstrap]: 127.0.0.1:19398/bootstrap:  Feature MsgVer2: Fetch (4..32767) supported by broker
+%7|1793159924.563|APIVERSION|ordinary-native-peer#consumer-1| [thrd:127.0.0.1:19398/bootstrap]: 127.0.0.1:19398/bootstrap: Enabling feature MsgVer2
+%7|1793159924.563|APIVERSION|ordinary-native-peer#consumer-1| [thrd:127.0.0.1:19398/bootstrap]: 127.0.0.1:19398/bootstrap:  Feature ApiVersion: ApiVersion (0..32767) supported by broker
+%7|1793159924.563|APIVERSION|ordinary-native-peer#consumer-1| [thrd:127.0.0.1:19398/bootstrap]: 127.0.0.1:19398/bootstrap: Enabling feature ApiVersion
+%7|1793159924.563|APIVERSION|ordinary-native-peer#consumer-1| [thrd:127.0.0.1:19398/bootstrap]: 127.0.0.1:19398/bootstrap:  Feature BrokerGroupCoordinator: FindCoordinator (0..32767) NOT supported by broker
+%7|1793159924.564|APIVERSION|ordinary-native-peer#consumer-1| [thrd:127.0.0.1:19398/bootstrap]: 127.0.0.1:19398/bootstrap: Disabling feature BrokerGroupCoordinator
+%7|1793159924.564|APIVERSION|ordinary-native-peer#consumer-1| [thrd:127.0.0.1:19398/bootstrap]: 127.0.0.1:19398/bootstrap:  Feature BrokerBalancedConsumer: FindCoordinator (0..32767) NOT supported by broker
+%7|1793159924.564|APIVERSION|ordinary-native-peer#consumer-1| [thrd:127.0.0.1:19398/bootstrap]: 127.0.0.1:19398/bootstrap:  Feature BrokerBalancedConsumer: OffsetCommit (1..32767) NOT supported by broker
+%7|1793159924.564|APIVERSION|ordinary-native-peer#consumer-1| [thrd:127.0.0.1:19398/bootstrap]: 127.0.0.1:19398/bootstrap:  Feature BrokerBalancedConsumer: OffsetFetch (1..32767) NOT supported by broker
+%7|1793159924.564|APIVERSION|ordinary-native-peer#consumer-1| [thrd:127.0.0.1:19398/bootstrap]: 127.0.0.1:19398/bootstrap:  Feature BrokerBalancedConsumer: JoinGroup (0..32767) NOT supported by broker
+%7|1793159924.564|APIVERSION|ordinary-native-peer#consumer-1| [thrd:127.0.0.1:19398/bootstrap]: 127.0.0.1:19398/bootstrap:  Feature BrokerBalancedConsumer: SyncGroup (0..32767) NOT supported by broker
+%7|1793159924.564|APIVERSION|ordinary-native-peer#consumer-1| [thrd:127.0.0.1:19398/bootstrap]: 127.0.0.1:19398/bootstrap:  Feature BrokerBalancedConsumer: Heartbeat (0..32767) NOT supported by broker
+%7|1793159924.564|APIVERSION|ordinary-native-peer#consumer-1| [thrd:127.0.0.1:19398/bootstrap]: 127.0.0.1:19398/bootstrap:  Feature BrokerBalancedConsumer: LeaveGroup (0..32767) NOT supported by broker
+%7|1793159924.564|APIVERSION|ordinary-native-peer#consumer-1| [thrd:127.0.0.1:19398/bootstrap]: 127.0.0.1:19398/bootstrap: Disabling feature BrokerBalancedConsumer
+%7|1793159924.564|APIVERSION|ordinary-native-peer#consumer-1| [thrd:127.0.0.1:19398/bootstrap]: 127.0.0.1:19398/bootstrap:  Feature BrokerBalancedConsumer: ConsumerGroupHeartbeat (0..32767) NOT supported by broker
+%7|1793159924.564|APIVERSION|ordinary-native-peer#consumer-1| [thrd:127.0.0.1:19398/bootstrap]: 127.0.0.1:19398/bootstrap:  Feature BrokerBalancedConsumer: OffsetCommit (9..32767) NOT supported by broker
+%7|1793159924.564|APIVERSION|ordinary-native-peer#consumer-1| [thrd:127.0.0.1:19398/bootstrap]: 127.0.0.1:19398/bootstrap:  Feature BrokerBalancedConsumer: OffsetFetch (9..32767) NOT supported by broker
+%7|1793159924.564|APIVERSION|ordinary-native-peer#consumer-1| [thrd:127.0.0.1:19398/bootstrap]: 127.0.0.1:19398/bootstrap: Disabling feature BrokerBalancedConsumer
+%7|1793159924.564|APIVERSION|ordinary-native-peer#consumer-1| [thrd:127.0.0.1:19398/bootstrap]: 127.0.0.1:19398/bootstrap:  Feature ThrottleTime: Produce (1..32767) supported by broker
+%7|1793159924.564|APIVERSION|ordinary-native-peer#consumer-1| [thrd:127.0.0.1:19398/bootstrap]: 127.0.0.1:19398/bootstrap:  Feature ThrottleTime: Fetch (1..32767) supported by broker
+%7|1793159924.564|APIVERSION|ordinary-native-peer#consumer-1| [thrd:127.0.0.1:19398/bootstrap]: 127.0.0.1:19398/bootstrap: Enabling feature ThrottleTime
+%7|1793159924.564|APIVERSION|ordinary-native-peer#consumer-1| [thrd:127.0.0.1:19398/bootstrap]: 127.0.0.1:19398/bootstrap:  Feature Sasl: JoinGroup (0..32767) NOT supported by broker
+%7|1793159924.564|APIVERSION|ordinary-native-peer#consumer-1| [thrd:127.0.0.1:19398/bootstrap]: 127.0.0.1:19398/bootstrap: Disabling feature Sasl
+%7|1793159924.564|APIVERSION|ordinary-native-peer#consumer-1| [thrd:127.0.0.1:19398/bootstrap]: 127.0.0.1:19398/bootstrap:  Feature Sasl: SaslHandshake (0..32767) NOT supported by broker
+%7|1793159924.564|APIVERSION|ordinary-native-peer#consumer-1| [thrd:127.0.0.1:19398/bootstrap]: 127.0.0.1:19398/bootstrap: Disabling feature Sasl
+%7|1793159924.564|APIVERSION|ordinary-native-peer#consumer-1| [thrd:127.0.0.1:19398/bootstrap]: 127.0.0.1:19398/bootstrap:  Feature SaslHandshake: SaslHandshake (0..32767) NOT supported by broker
+%7|1793159924.564|APIVERSION|ordinary-native-peer#consumer-1| [thrd:127.0.0.1:19398/bootstrap]: 127.0.0.1:19398/bootstrap: Disabling feature SaslHandshake
+%7|1793159924.564|APIVERSION|ordinary-native-peer#consumer-1| [thrd:127.0.0.1:19398/bootstrap]: 127.0.0.1:19398/bootstrap:  Feature LZ4: FindCoordinator (0..32767) NOT supported by broker
+%7|1793159924.564|APIVERSION|ordinary-native-peer#consumer-1| [thrd:127.0.0.1:19398/bootstrap]: 127.0.0.1:19398/bootstrap: Disabling feature LZ4
+%7|1793159924.564|APIVERSION|ordinary-native-peer#consumer-1| [thrd:127.0.0.1:19398/bootstrap]: 127.0.0.1:19398/bootstrap:  Feature OffsetTime: ListOffsets (1..32767) supported by broker
+%7|1793159924.564|APIVERSION|ordinary-native-peer#consumer-1| [thrd:127.0.0.1:19398/bootstrap]: 127.0.0.1:19398/bootstrap: Enabling feature OffsetTime
+%7|1793159924.564|APIVERSION|ordinary-native-peer#consumer-1| [thrd:127.0.0.1:19398/bootstrap]: 127.0.0.1:19398/bootstrap:  Feature IdempotentProducer: InitProducerId (0..32767) NOT supported by broker
+%7|1793159924.564|APIVERSION|ordinary-native-peer#consumer-1| [thrd:127.0.0.1:19398/bootstrap]: 127.0.0.1:19398/bootstrap: Disabling feature IdempotentProducer
+%7|1793159924.564|APIVERSION|ordinary-native-peer#consumer-1| [thrd:127.0.0.1:19398/bootstrap]: 127.0.0.1:19398/bootstrap:  Feature ZSTD: Produce (7..32767) supported by broker
+%7|1793159924.564|APIVERSION|ordinary-native-peer#consumer-1| [thrd:127.0.0.1:19398/bootstrap]: 127.0.0.1:19398/bootstrap:  Feature ZSTD: Fetch (10..32767) NOT supported by broker
+%7|1793159924.564|APIVERSION|ordinary-native-peer#consumer-1| [thrd:127.0.0.1:19398/bootstrap]: 127.0.0.1:19398/bootstrap: Disabling feature ZSTD
+%7|1793159924.564|APIVERSION|ordinary-native-peer#consumer-1| [thrd:127.0.0.1:19398/bootstrap]: 127.0.0.1:19398/bootstrap:  Feature SaslAuthReq: SaslHandshake (1..32767) NOT supported by broker
+%7|1793159924.564|APIVERSION|ordinary-native-peer#consumer-1| [thrd:127.0.0.1:19398/bootstrap]: 127.0.0.1:19398/bootstrap:  Feature SaslAuthReq: SaslAuthenticate (0..32767) NOT supported by broker
+%7|1793159924.564|APIVERSION|ordinary-native-peer#consumer-1| [thrd:127.0.0.1:19398/bootstrap]: 127.0.0.1:19398/bootstrap: Disabling feature SaslAuthReq
+%7|1793159924.564|FEATURE|ordinary-native-peer#consumer-1| [thrd:127.0.0.1:19398/bootstrap]: 127.0.0.1:19398/bootstrap: Updated enabled protocol features to MsgVer1,ApiVersion,ThrottleTime,OffsetTime,MsgVer2
+%7|1793159924.564|STATE|ordinary-native-peer#consumer-1| [thrd:127.0.0.1:19398/bootstrap]: 127.0.0.1:19398/bootstrap: Broker changed state APIVERSION_QUERY -> UP
+%7|1793159924.564|SEND|ordinary-native-peer#consumer-1| [thrd:127.0.0.1:19398/bootstrap]: 127.0.0.1:19398/bootstrap: Sent MetadataRequest (v13, 39 bytes @ 0, CorrId 2)
+%7|1793159924.564|SEND|ordinary-native-peer#consumer-1| [thrd:127.0.0.1:19398/bootstrap]: 127.0.0.1:19398/bootstrap: Sent MetadataRequest (v13, 42 bytes @ 0, CorrId 3)
+%7|1793159924.605|RECV|ordinary-native-peer#consumer-1| [thrd:127.0.0.1:19398/bootstrap]: 127.0.0.1:19398/bootstrap: Received MetadataResponse (v13, 56 bytes, CorrId 2, rtt 41.77ms)
+%7|1793159924.606|RECV|ordinary-native-peer#consumer-1| [thrd:127.0.0.1:19398/bootstrap]: 127.0.0.1:19398/bootstrap: Received MetadataResponse (v13, 149 bytes, CorrId 3, rtt 42.74ms)
+%7|1793159924.607|BROKER|ordinary-native-peer#consumer-1| [thrd:main]: 127.0.0.1:19398/0: Added new broker with NodeId 0
+%7|1793159924.607|DESTROY|ordinary-native-peer#consumer-1| [thrd:main]: Sending TERMINATE to 127.0.0.1:19398/bootstrap
+%7|1793159924.607|CLUSTERID|ordinary-native-peer#consumer-1| [thrd:main]: 127.0.0.1:19398/bootstrap: ClusterId update "" -> "rf1-native-integrated"
+%7|1793159924.607|CONTROLLERID|ordinary-native-peer#consumer-1| [thrd:main]: 127.0.0.1:19398/bootstrap: ControllerId update -1 -> 0
+%7|1793159924.607|TERM|ordinary-native-peer#consumer-1| [thrd:127.0.0.1:19398/bootstrap]: 127.0.0.1:19398/bootstrap: Received TERMINATE op in state UP: 5 refcnts, 0 toppar(s), 0 active toppar(s), 0 outbufs, 0 waitresps, 0 retrybufs
+%7|1793159924.607|FAIL|ordinary-native-peer#consumer-1| [thrd:127.0.0.1:19398/bootstrap]: 127.0.0.1:19398/bootstrap: Decommissioning this broker (after 43ms in state UP) (_DESTROY_BROKER)
+%7|1793159924.607|STATE|ordinary-native-peer#consumer-1| [thrd:127.0.0.1:19398/bootstrap]: 127.0.0.1:19398/bootstrap: Broker changed state UP -> DOWN
+%7|1793159924.607|TERMINATE|ordinary-native-peer#consumer-1| [thrd:127.0.0.1:19398/bootstrap]: 127.0.0.1:19398/bootstrap: Handle is terminating in state DOWN: 4 refcnts (0x55d45449e280), 0 toppar(s), 0 active toppar(s), 0 outbufs, 0 waitresps, 0 retrybufs: failed 0 request(s) in retry+outbuf
+%7|1793159924.607|STATE|ordinary-native-peer#consumer-1| [thrd:127.0.0.1:19398/bootstrap]: 127.0.0.1:19398/bootstrap: Broker changed state DOWN -> INIT
+%7|1793159924.607|BRKMAIN|ordinary-native-peer#consumer-1| [thrd:127.0.0.1:19398/0]: 127.0.0.1:19398/0: Enter main broker thread
+%7|1793159924.607|CONNECT|ordinary-native-peer#consumer-1| [thrd:main]: Not selecting any broker for cluster connection: still suppressed for 0ms: coordinator query
+%7|1793159924.607|TOPBRK|ordinary-native-peer#consumer-1| [thrd:127.0.0.1:19398/0]: 127.0.0.1:19398/0: Topic ordinary-native [0]: joining broker (rktp 0x7f71e001ed00, 0 message(s) queued)
+%7|1793159924.607|CONNECT|ordinary-native-peer#consumer-1| [thrd:main]: Not selecting any broker for cluster connection: still suppressed for 0ms: coordinator query
+%7|1793159924.607|TOPBRK|ordinary-native-peer#consumer-1| [thrd:127.0.0.1:19398/0]: 127.0.0.1:19398/0: Topic ordinary-native [1]: joining broker (rktp 0x7f71e001f290, 0 message(s) queued)
+%7|1793159924.607|CONNECT|ordinary-native-peer#consumer-1| [thrd:main]: Not selecting any broker for cluster connection: still suppressed for 0ms: coordinator query
+%7|1793159924.607|CONNECT|ordinary-native-peer#consumer-1| [thrd:main]: Not selecting any broker for cluster connection: still suppressed for 0ms: coordinator query
+%7|1793159924.607|STATE|ordinary-native-peer#consumer-1| [thrd:127.0.0.1:19398/0]: 127.0.0.1:19398/0: Broker changed state INIT -> TRY_CONNECT
+%7|1793159924.607|CONNECT|ordinary-native-peer#consumer-1| [thrd:127.0.0.1:19398/0]: 127.0.0.1:19398/0: broker in state TRY_CONNECT connecting
+%7|1793159924.607|STATE|ordinary-native-peer#consumer-1| [thrd:127.0.0.1:19398/0]: 127.0.0.1:19398/0: Broker changed state TRY_CONNECT -> CONNECT
+%7|1793159924.607|CONNECT|ordinary-native-peer#consumer-1| [thrd:127.0.0.1:19398/0]: 127.0.0.1:19398/0: Connecting to ipv4#127.0.0.1:19398 (plaintext) with socket 9
+%7|1793159924.608|CONNECT|ordinary-native-peer#consumer-1| [thrd:127.0.0.1:19398/0]: 127.0.0.1:19398/0: Connected to ipv4#127.0.0.1:19398
+%7|1793159924.608|CONNECTED|ordinary-native-peer#consumer-1| [thrd:127.0.0.1:19398/0]: 127.0.0.1:19398/0: Connected (#1)
+%7|1793159924.608|FEATURE|ordinary-native-peer#consumer-1| [thrd:127.0.0.1:19398/0]: 127.0.0.1:19398/0: Updated enabled protocol features +ApiVersion to ApiVersion
+%7|1793159924.608|STATE|ordinary-native-peer#consumer-1| [thrd:127.0.0.1:19398/0]: 127.0.0.1:19398/0: Broker changed state CONNECT -> APIVERSION_QUERY
+%7|1793159924.608|SEND|ordinary-native-peer#consumer-1| [thrd:127.0.0.1:19398/0]: 127.0.0.1:19398/0: Sent ApiVersionRequest (v3, 54 bytes @ 0, CorrId 1)
+%7|1793159924.608|TERMINATE|ordinary-native-peer#consumer-1| [thrd:127.0.0.1:19398/bootstrap]: 127.0.0.1:19398/bootstrap: Handle is terminating in state INIT: 1 refcnts (0x55d45449e280), 0 toppar(s), 0 active toppar(s), 0 outbufs, 0 waitresps, 0 retrybufs: failed 0 request(s) in retry+outbuf
+%7|1793159924.608|FAIL|ordinary-native-peer#consumer-1| [thrd:127.0.0.1:19398/bootstrap]: 127.0.0.1:19398/bootstrap: Broker handle is terminating (after 1ms in state INIT) (_DESTROY_BROKER)
+%7|1793159924.608|STATE|ordinary-native-peer#consumer-1| [thrd:127.0.0.1:19398/bootstrap]: 127.0.0.1:19398/bootstrap: Broker changed state INIT -> DOWN
+%7|1793159924.608|TERMINATE|ordinary-native-peer#consumer-1| [thrd:127.0.0.1:19398/bootstrap]: 127.0.0.1:19398/bootstrap: Handle terminates in state DOWN: 1 refcnts (0x55d45449e280), 0 toppar(s), 0 active toppar(s), 0 outbufs, 0 waitresps, 0 retrybufs
+%7|1793159924.608|RECV|ordinary-native-peer#consumer-1| [thrd:127.0.0.1:19398/0]: 127.0.0.1:19398/0: Received ApiVersionResponse (v3, 57 bytes, CorrId 1, rtt 0.60ms)
+%7|1793159924.608|APIVERSION|ordinary-native-peer#consumer-1| [thrd:127.0.0.1:19398/0]: 127.0.0.1:19398/0: Broker API support:
+%7|1793159924.608|APIVERSION|ordinary-native-peer#consumer-1| [thrd:127.0.0.1:19398/0]: 127.0.0.1:19398/0:   ApiKey Produce (0) Versions 3..13
+%7|1793159924.608|CONNECT|ordinary-native-peer#consumer-1| [thrd:main]: Cluster connection already in progress: coordinator query
+%7|1793159924.608|APIVERSION|ordinary-native-peer#consumer-1| [thrd:127.0.0.1:19398/0]: 127.0.0.1:19398/0:   ApiKey Fetch (1) Versions 4..6
+%7|1793159924.608|APIVERSION|ordinary-native-peer#consumer-1| [thrd:127.0.0.1:19398/0]: 127.0.0.1:19398/0:   ApiKey ListOffsets (2) Versions 1..3
+%7|1793159924.608|APIVERSION|ordinary-native-peer#consumer-1| [thrd:127.0.0.1:19398/0]: 127.0.0.1:19398/0:   ApiKey Metadata (3) Versions 0..13
+%7|1793159924.608|APIVERSION|ordinary-native-peer#consumer-1| [thrd:127.0.0.1:19398/0]: 127.0.0.1:19398/0:   ApiKey ApiVersion (18) Versions 0..4
+%7|1793159924.608|APIVERSION|ordinary-native-peer#consumer-1| [thrd:127.0.0.1:19398/0]: 127.0.0.1:19398/0:   ApiKey CreateTopics (19) Versions 2..4
+%7|1793159924.608|APIVERSION|ordinary-native-peer#consumer-1| [thrd:127.0.0.1:19398/0]: 127.0.0.1:19398/0:   ApiKey DeleteTopics (20) Versions 1..6
+%7|1793159924.608|APIVERSION|ordinary-native-peer#consumer-1| [thrd:127.0.0.1:19398/0]: 127.0.0.1:19398/0:  Feature MsgVer1: Produce (2..32767) supported by broker
+%7|1793159924.608|APIVERSION|ordinary-native-peer#consumer-1| [thrd:127.0.0.1:19398/0]: 127.0.0.1:19398/0:  Feature MsgVer1: Fetch (2..32767) supported by broker
+%7|1793159924.608|APIVERSION|ordinary-native-peer#consumer-1| [thrd:127.0.0.1:19398/0]: 127.0.0.1:19398/0: Enabling feature MsgVer1
+%7|1793159924.609|APIVERSION|ordinary-native-peer#consumer-1| [thrd:127.0.0.1:19398/0]: 127.0.0.1:19398/0:  Feature MsgVer2: Produce (3..32767) supported by broker
+%7|1793159924.609|APIVERSION|ordinary-native-peer#consumer-1| [thrd:127.0.0.1:19398/0]: 127.0.0.1:19398/0:  Feature MsgVer2: Fetch (4..32767) supported by broker
+%7|1793159924.609|APIVERSION|ordinary-native-peer#consumer-1| [thrd:127.0.0.1:19398/0]: 127.0.0.1:19398/0: Enabling feature MsgVer2
+%7|1793159924.609|APIVERSION|ordinary-native-peer#consumer-1| [thrd:127.0.0.1:19398/0]: 127.0.0.1:19398/0:  Feature ApiVersion: ApiVersion (0..32767) supported by broker
+%7|1793159924.609|APIVERSION|ordinary-native-peer#consumer-1| [thrd:127.0.0.1:19398/0]: 127.0.0.1:19398/0: Enabling feature ApiVersion
+%7|1793159924.609|APIVERSION|ordinary-native-peer#consumer-1| [thrd:127.0.0.1:19398/0]: 127.0.0.1:19398/0:  Feature BrokerGroupCoordinator: FindCoordinator (0..32767) NOT supported by broker
+%7|1793159924.609|APIVERSION|ordinary-native-peer#consumer-1| [thrd:127.0.0.1:19398/0]: 127.0.0.1:19398/0: Disabling feature BrokerGroupCoordinator
+%7|1793159924.609|APIVERSION|ordinary-native-peer#consumer-1| [thrd:127.0.0.1:19398/0]: 127.0.0.1:19398/0:  Feature BrokerBalancedConsumer: FindCoordinator (0..32767) NOT supported by broker
+%7|1793159924.609|APIVERSION|ordinary-native-peer#consumer-1| [thrd:127.0.0.1:19398/0]: 127.0.0.1:19398/0:  Feature BrokerBalancedConsumer: OffsetCommit (1..32767) NOT supported by broker
+%7|1793159924.609|APIVERSION|ordinary-native-peer#consumer-1| [thrd:127.0.0.1:19398/0]: 127.0.0.1:19398/0:  Feature BrokerBalancedConsumer: OffsetFetch (1..32767) NOT supported by broker
+%7|1793159924.609|APIVERSION|ordinary-native-peer#consumer-1| [thrd:127.0.0.1:19398/0]: 127.0.0.1:19398/0:  Feature BrokerBalancedConsumer: JoinGroup (0..32767) NOT supported by broker
+%7|1793159924.609|APIVERSION|ordinary-native-peer#consumer-1| [thrd:127.0.0.1:19398/0]: 127.0.0.1:19398/0:  Feature BrokerBalancedConsumer: SyncGroup (0..32767) NOT supported by broker
+%7|1793159924.609|APIVERSION|ordinary-native-peer#consumer-1| [thrd:127.0.0.1:19398/0]: 127.0.0.1:19398/0:  Feature BrokerBalancedConsumer: Heartbeat (0..32767) NOT supported by broker
+%7|1793159924.609|APIVERSION|ordinary-native-peer#consumer-1| [thrd:127.0.0.1:19398/0]: 127.0.0.1:19398/0:  Feature BrokerBalancedConsumer: LeaveGroup (0..32767) NOT supported by broker
+%7|1793159924.609|APIVERSION|ordinary-native-peer#consumer-1| [thrd:127.0.0.1:19398/0]: 127.0.0.1:19398/0: Disabling feature BrokerBalancedConsumer
+%7|1793159924.609|APIVERSION|ordinary-native-peer#consumer-1| [thrd:127.0.0.1:19398/0]: 127.0.0.1:19398/0:  Feature BrokerBalancedConsumer: ConsumerGroupHeartbeat (0..32767) NOT supported by broker
+%7|1793159924.609|APIVERSION|ordinary-native-peer#consumer-1| [thrd:127.0.0.1:19398/0]: 127.0.0.1:19398/0:  Feature BrokerBalancedConsumer: OffsetCommit (9..32767) NOT supported by broker
+%7|1793159924.609|APIVERSION|ordinary-native-peer#consumer-1| [thrd:127.0.0.1:19398/0]: 127.0.0.1:19398/0:  Feature BrokerBalancedConsumer: OffsetFetch (9..32767) NOT supported by broker
+%7|1793159924.609|APIVERSION|ordinary-native-peer#consumer-1| [thrd:127.0.0.1:19398/0]: 127.0.0.1:19398/0: Disabling feature BrokerBalancedConsumer
+%7|1793159924.609|APIVERSION|ordinary-native-peer#consumer-1| [thrd:127.0.0.1:19398/0]: 127.0.0.1:19398/0:  Feature ThrottleTime: Produce (1..32767) supported by broker
+%7|1793159924.609|APIVERSION|ordinary-native-peer#consumer-1| [thrd:127.0.0.1:19398/0]: 127.0.0.1:19398/0:  Feature ThrottleTime: Fetch (1..32767) supported by broker
+%7|1793159924.609|APIVERSION|ordinary-native-peer#consumer-1| [thrd:127.0.0.1:19398/0]: 127.0.0.1:19398/0: Enabling feature ThrottleTime
+%7|1793159924.609|APIVERSION|ordinary-native-peer#consumer-1| [thrd:127.0.0.1:19398/0]: 127.0.0.1:19398/0:  Feature Sasl: JoinGroup (0..32767) NOT supported by broker
+%7|1793159924.609|APIVERSION|ordinary-native-peer#consumer-1| [thrd:127.0.0.1:19398/0]: 127.0.0.1:19398/0: Disabling feature Sasl
+%7|1793159924.609|APIVERSION|ordinary-native-peer#consumer-1| [thrd:127.0.0.1:19398/0]: 127.0.0.1:19398/0:  Feature Sasl: SaslHandshake (0..32767) NOT supported by broker
+%7|1793159924.609|APIVERSION|ordinary-native-peer#consumer-1| [thrd:127.0.0.1:19398/0]: 127.0.0.1:19398/0: Disabling feature Sasl
+%7|1793159924.609|APIVERSION|ordinary-native-peer#consumer-1| [thrd:127.0.0.1:19398/0]: 127.0.0.1:19398/0:  Feature SaslHandshake: SaslHandshake (0..32767) NOT supported by broker
+%7|1793159924.609|APIVERSION|ordinary-native-peer#consumer-1| [thrd:127.0.0.1:19398/0]: 127.0.0.1:19398/0: Disabling feature SaslHandshake
+%7|1793159924.609|APIVERSION|ordinary-native-peer#consumer-1| [thrd:127.0.0.1:19398/0]: 127.0.0.1:19398/0:  Feature LZ4: FindCoordinator (0..32767) NOT supported by broker
+%7|1793159924.609|APIVERSION|ordinary-native-peer#consumer-1| [thrd:127.0.0.1:19398/0]: 127.0.0.1:19398/0: Disabling feature LZ4
+%7|1793159924.609|APIVERSION|ordinary-native-peer#consumer-1| [thrd:127.0.0.1:19398/0]: 127.0.0.1:19398/0:  Feature OffsetTime: ListOffsets (1..32767) supported by broker
+%7|1793159924.609|APIVERSION|ordinary-native-peer#consumer-1| [thrd:127.0.0.1:19398/0]: 127.0.0.1:19398/0: Enabling feature OffsetTime
+%7|1793159924.609|APIVERSION|ordinary-native-peer#consumer-1| [thrd:127.0.0.1:19398/0]: 127.0.0.1:19398/0:  Feature IdempotentProducer: InitProducerId (0..32767) NOT supported by broker
+%7|1793159924.609|APIVERSION|ordinary-native-peer#consumer-1| [thrd:127.0.0.1:19398/0]: 127.0.0.1:19398/0: Disabling feature IdempotentProducer
+%7|1793159924.609|APIVERSION|ordinary-native-peer#consumer-1| [thrd:127.0.0.1:19398/0]: 127.0.0.1:19398/0:  Feature ZSTD: Produce (7..32767) supported by broker
+%7|1793159924.609|APIVERSION|ordinary-native-peer#consumer-1| [thrd:127.0.0.1:19398/0]: 127.0.0.1:19398/0:  Feature ZSTD: Fetch (10..32767) NOT supported by broker
+%7|1793159924.609|APIVERSION|ordinary-native-peer#consumer-1| [thrd:127.0.0.1:19398/0]: 127.0.0.1:19398/0: Disabling feature ZSTD
+%7|1793159924.609|APIVERSION|ordinary-native-peer#consumer-1| [thrd:127.0.0.1:19398/0]: 127.0.0.1:19398/0:  Feature SaslAuthReq: SaslHandshake (1..32767) NOT supported by broker
+%7|1793159924.609|APIVERSION|ordinary-native-peer#consumer-1| [thrd:127.0.0.1:19398/0]: 127.0.0.1:19398/0:  Feature SaslAuthReq: SaslAuthenticate (0..32767) NOT supported by broker
+%7|1793159924.609|APIVERSION|ordinary-native-peer#consumer-1| [thrd:127.0.0.1:19398/0]: 127.0.0.1:19398/0: Disabling feature SaslAuthReq
+%7|1793159924.609|FEATURE|ordinary-native-peer#consumer-1| [thrd:127.0.0.1:19398/0]: 127.0.0.1:19398/0: Updated enabled protocol features to MsgVer1,ApiVersion,ThrottleTime,OffsetTime,MsgVer2
+%7|1793159924.609|STATE|ordinary-native-peer#consumer-1| [thrd:127.0.0.1:19398/0]: 127.0.0.1:19398/0: Broker changed state APIVERSION_QUERY -> UP
+%7|1793159924.609|SEND|ordinary-native-peer#consumer-1| [thrd:127.0.0.1:19398/0]: 127.0.0.1:19398/0: Sent FetchRequest (v6, 124 bytes @ 0, CorrId 2)
+%7|1793159924.650|RECV|ordinary-native-peer#consumer-1| [thrd:127.0.0.1:19398/0]: 127.0.0.1:19398/0: Received FetchResponse (v6, 2031 bytes, CorrId 2, rtt 40.83ms)
+%7|1793159924.650|SEND|ordinary-native-peer#consumer-1| [thrd:127.0.0.1:19398/0]: 127.0.0.1:19398/0: Sent FetchRequest (v6, 124 bytes @ 0, CorrId 3)
+%7|1793159924.650|SEND|ordinary-native-peer#consumer-1| [thrd:127.0.0.1:19398/0]: 127.0.0.1:19398/0: Sent ListOffsetsRequest (v3, 76 bytes @ 0, CorrId 4)
+%7|1793159924.650|SEND|ordinary-native-peer#consumer-1| [thrd:127.0.0.1:19398/0]: 127.0.0.1:19398/0: Sent ListOffsetsRequest (v3, 76 bytes @ 0, CorrId 5)
+%7|1793159924.714|RECV|ordinary-native-peer#consumer-1| [thrd:127.0.0.1:19398/0]: 127.0.0.1:19398/0: Received FetchResponse (v6, 105 bytes, CorrId 3, rtt 63.85ms)
+%7|1793159924.714|RECV|ordinary-native-peer#consumer-1| [thrd:127.0.0.1:19398/0]: 127.0.0.1:19398/0: Received ListOffsetsResponse (v3, 51 bytes, CorrId 4, rtt 63.54ms)
+%7|1793159924.714|RECV|ordinary-native-peer#consumer-1| [thrd:127.0.0.1:19398/0]: 127.0.0.1:19398/0: Received ListOffsetsResponse (v3, 51 bytes, CorrId 5, rtt 63.55ms)
+%7|1793159924.714|SEND|ordinary-native-peer#consumer-1| [thrd:127.0.0.1:19398/0]: 127.0.0.1:19398/0: Sent FetchRequest (v6, 124 bytes @ 0, CorrId 6)
+%7|1793159924.714|SEND|ordinary-native-peer#consumer-1| [thrd:127.0.0.1:19398/0]: 127.0.0.1:19398/0: Sent ListOffsetsRequest (v3, 76 bytes @ 0, CorrId 7)
+%7|1793159924.714|SEND|ordinary-native-peer#consumer-1| [thrd:127.0.0.1:19398/0]: 127.0.0.1:19398/0: Sent ListOffsetsRequest (v3, 76 bytes @ 0, CorrId 8)
+%7|1793159924.781|RECV|ordinary-native-peer#consumer-1| [thrd:127.0.0.1:19398/0]: 127.0.0.1:19398/0: Received FetchResponse (v6, 105 bytes, CorrId 6, rtt 67.86ms)
+%7|1793159924.782|RECV|ordinary-native-peer#consumer-1| [thrd:127.0.0.1:19398/0]: 127.0.0.1:19398/0: Received ListOffsetsResponse (v3, 51 bytes, CorrId 7, rtt 67.68ms)
+%7|1793159924.782|RECV|ordinary-native-peer#consumer-1| [thrd:127.0.0.1:19398/0]: 127.0.0.1:19398/0: Received ListOffsetsResponse (v3, 51 bytes, CorrId 8, rtt 67.69ms)
+%7|1793159924.782|SEND|ordinary-native-peer#consumer-1| [thrd:127.0.0.1:19398/0]: 127.0.0.1:19398/0: Sent FetchRequest (v6, 124 bytes @ 0, CorrId 9)
+%7|1793159924.782|SEND|ordinary-native-peer#consumer-1| [thrd:127.0.0.1:19398/0]: 127.0.0.1:19398/0: Sent ListOffsetsRequest (v3, 88 bytes @ 0, CorrId 10)
+%7|1793159924.846|RECV|ordinary-native-peer#consumer-1| [thrd:127.0.0.1:19398/0]: 127.0.0.1:19398/0: Received FetchResponse (v6, 105 bytes, CorrId 9, rtt 64.24ms)
+%7|1793159924.846|RECV|ordinary-native-peer#consumer-1| [thrd:127.0.0.1:19398/0]: 127.0.0.1:19398/0: Received ListOffsetsResponse (v3, 73 bytes, CorrId 10, rtt 63.88ms)
+%7|1793159924.846|SEND|ordinary-native-peer#consumer-1| [thrd:127.0.0.1:19398/0]: 127.0.0.1:19398/0: Sent FetchRequest (v6, 124 bytes @ 0, CorrId 11)
+%7|1793159924.848|DESTROY|ordinary-native-peer#consumer-1| [thrd:app]: Terminating instance (destroy flags none (0x0))
+%7|1793159924.849|DESTROY|ordinary-native-peer#consumer-1| [thrd:main]: Destroy internal
+%7|1793159924.849|DESTROY|ordinary-native-peer#consumer-1| [thrd:main]: Removing all topics
+%7|1793159924.849|DESTROY|ordinary-native-peer#consumer-1| [thrd:main]: Sending TERMINATE to 127.0.0.1:19398/0
+%7|1793159924.849|DESTROY|ordinary-native-peer#consumer-1| [thrd:main]: Sending TERMINATE to GroupCoordinator
+%7|1793159924.849|TERM|ordinary-native-peer#consumer-1| [thrd:GroupCoordinator]: GroupCoordinator: Received TERMINATE op in state INIT: 3 refcnts, 0 toppar(s), 0 active toppar(s), 0 outbufs, 0 waitresps, 0 retrybufs
+%7|1793159924.849|FAIL|ordinary-native-peer#consumer-1| [thrd:GroupCoordinator]: GroupCoordinator: Decommissioning this broker (after 295ms in state INIT) (_DESTROY)
+%7|1793159924.849|STATE|ordinary-native-peer#consumer-1| [thrd:GroupCoordinator]: GroupCoordinator: Broker changed state INIT -> DOWN
+%7|1793159924.849|BRKTERM|ordinary-native-peer#consumer-1| [thrd:GroupCoordinator]: GroupCoordinator: terminating: broker still has 3 refcnt(s), 0 buffer(s), 0 partition(s)
+%7|1793159924.849|TERMINATE|ordinary-native-peer#consumer-1| [thrd:GroupCoordinator]: GroupCoordinator: Handle is terminating in state DOWN: 1 refcnts (0x55d454453670), 0 toppar(s), 0 active toppar(s), 0 outbufs, 0 waitresps, 0 retrybufs: failed 0 request(s) in retry+outbuf
+%7|1793159924.849|FAIL|ordinary-native-peer#consumer-1| [thrd:GroupCoordinator]: GroupCoordinator: Broker handle is terminating (after 0ms in state DOWN) (_DESTROY)
+%7|1793159924.849|TERMINATE|ordinary-native-peer#consumer-1| [thrd:GroupCoordinator]: GroupCoordinator: Handle terminates in state DOWN: 1 refcnts (0x55d454453670), 0 toppar(s), 0 active toppar(s), 0 outbufs, 0 waitresps, 0 retrybufs
+%7|1793159924.849|TERM|ordinary-native-peer#consumer-1| [thrd::0/internal]: :0/internal: Received TERMINATE op in state INIT: 3 refcnts, 0 toppar(s), 0 active toppar(s), 0 outbufs, 0 waitresps, 0 retrybufs
+%7|1793159924.849|FAIL|ordinary-native-peer#consumer-1| [thrd::0/internal]: :0/internal: Decommissioning this broker (after 291ms in state INIT) (_DESTROY)
+%7|1793159924.849|STATE|ordinary-native-peer#consumer-1| [thrd::0/internal]: :0/internal: Broker changed state INIT -> DOWN
+%7|1793159924.849|BRKTERM|ordinary-native-peer#consumer-1| [thrd::0/internal]: :0/internal: terminating: broker still has 3 refcnt(s), 0 buffer(s), 0 partition(s)
+%7|1793159924.849|TERMINATE|ordinary-native-peer#consumer-1| [thrd::0/internal]: :0/internal: Handle is terminating in state DOWN: 1 refcnts (0x55d4544814a0), 0 toppar(s), 0 active toppar(s), 0 outbufs, 0 waitresps, 0 retrybufs: failed 0 request(s) in retry+outbuf
+%7|1793159924.849|FAIL|ordinary-native-peer#consumer-1| [thrd::0/internal]: :0/internal: Broker handle is terminating (after 0ms in state DOWN) (_DESTROY)
+%7|1793159924.849|TERMINATE|ordinary-native-peer#consumer-1| [thrd::0/internal]: :0/internal: Handle terminates in state DOWN: 1 refcnts (0x55d4544814a0), 0 toppar(s), 0 active toppar(s), 0 outbufs, 0 waitresps, 0 retrybufs
+%7|1793159924.849|TOPBRK|ordinary-native-peer#consumer-1| [thrd:127.0.0.1:19398/0]: 127.0.0.1:19398/0: Topic ordinary-native [0]: leaving broker (0 messages in xmitq, next broker (none), rktp 0x7f71e001ed00)
+%7|1793159924.849|TOPBRK|ordinary-native-peer#consumer-1| [thrd:127.0.0.1:19398/0]: 127.0.0.1:19398/0: Topic ordinary-native [0]: no next broker, failing 0 message(s) in partition queue
+%7|1793159924.849|TOPBRK|ordinary-native-peer#consumer-1| [thrd:127.0.0.1:19398/0]: 127.0.0.1:19398/0: Topic ordinary-native [1]: leaving broker (0 messages in xmitq, next broker (none), rktp 0x7f71e001f290)
+%7|1793159924.849|TOPBRK|ordinary-native-peer#consumer-1| [thrd:127.0.0.1:19398/0]: 127.0.0.1:19398/0: Topic ordinary-native [1]: no next broker, failing 0 message(s) in partition queue
+%7|1793159924.849|TERM|ordinary-native-peer#consumer-1| [thrd:127.0.0.1:19398/0]: 127.0.0.1:19398/0: Received TERMINATE op in state UP: 6 refcnts, 0 toppar(s), 0 active toppar(s), 0 outbufs, 1 waitresps, 0 retrybufs
+%7|1793159924.849|FAIL|ordinary-native-peer#consumer-1| [thrd:127.0.0.1:19398/0]: 127.0.0.1:19398/0: Decommissioning this broker (after 240ms in state UP) (_DESTROY)
+%7|1793159924.849|STATE|ordinary-native-peer#consumer-1| [thrd:127.0.0.1:19398/0]: 127.0.0.1:19398/0: Broker changed state UP -> DOWN
+%7|1793159924.849|BRKTERM|ordinary-native-peer#consumer-1| [thrd:127.0.0.1:19398/0]: 127.0.0.1:19398/0: terminating: broker still has 3 refcnt(s), 0 buffer(s), 0 partition(s)
+%7|1793159924.849|TERMINATE|ordinary-native-peer#consumer-1| [thrd:127.0.0.1:19398/0]: 127.0.0.1:19398/0: Handle is terminating in state DOWN: 1 refcnts (0x7f71e0001bd0), 0 toppar(s), 0 active toppar(s), 0 outbufs, 0 waitresps, 0 retrybufs: failed 0 request(s) in retry+outbuf
+%7|1793159924.849|FAIL|ordinary-native-peer#consumer-1| [thrd:127.0.0.1:19398/0]: 127.0.0.1:19398/0: Broker handle is terminating (after 0ms in state DOWN) (_DESTROY)
+%7|1793159924.849|TERMINATE|ordinary-native-peer#consumer-1| [thrd:127.0.0.1:19398/0]: 127.0.0.1:19398/0: Handle terminates in state DOWN: 1 refcnts (0x7f71e0001bd0), 0 toppar(s), 0 active toppar(s), 0 outbufs, 0 waitresps, 0 retrybufs

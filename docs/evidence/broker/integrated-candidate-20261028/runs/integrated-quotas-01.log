@@ -1,0 +1,18 @@
+   Compiling partitionline-broker v0.1.0 (/workspace/partitionline/partitionline-broker)
+    Finished `test` profile [unoptimized] target(s) in 35.23s
+     Running unittests src/lib.rs (/workspace/work/qualification-20261027/broker-check-target/debug/deps/partitionline_broker-2a454c0708a72949)
+
+running 10 tests
+test quotas::tests::disconnect_and_quota_changes_keep_accepted_work ... ok
+test quotas::tests::arithmetic_and_work_ids_fail_closed_without_losing_permits ... ok
+test quotas::tests::identity_churn_is_bounded_without_erasing_live_quota_debt ... ok
+test quotas::tests::an_older_clock_does_not_refill_a_spent_quota ... ok
+test quotas::tests::independent_buckets_and_fractional_refill_survive_interleaved_requests ... ok
+test quotas::tests::legacy_connect_reuses_latest_time_without_regressing_on_older_calls ... ok
+test quotas::tests::malformed_direct_limits_and_extreme_debt_do_not_panic ... ok
+test quotas::tests::simultaneous_delayed_work_accumulates_debt_and_rejections_do_not_spend ... ok
+test quotas::tests::one_client_cannot_spend_another_clients_produce_quota ... ok
+test quotas::tests::timed_rate_changes_refill_at_the_old_rate_and_keep_debt ... ok
+
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 332 filtered out; finished in 0.00s
+

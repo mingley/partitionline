@@ -1,0 +1,28 @@
+{
+  "first": {
+    "command": "javac -Xlint:all -Werror ...",
+    "exit_code": 127,
+    "error": "attempt-01/preflight-compile.stderr"
+  },
+  "second": {
+    "command": [
+      "java",
+      "-Xmx128m",
+      "--add-modules",
+      "jdk.compiler",
+      "com.sun.tools.javac.Main",
+      "-Xlint:all",
+      "-Werror",
+      "-cp",
+      "<included Kafka and SLF4J jars>",
+      "-d",
+      "classes",
+      "Rf1Peer.java"
+    ],
+    "exit_code": 0,
+    "stdout": "compile-02.stdout",
+    "stderr": "compile-02.stderr"
+  },
+  "peer_sha256": "0a550e0a9a9294ad57be9e44707c397feb3b8b5803a394b9865e2da0db909831",
+  "class_sha256": "cf29ed31f3b614fe8150e0b98213097637fdbd77e1219c0eedd8aa997e490e06"
+}

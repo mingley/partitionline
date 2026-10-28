@@ -1,0 +1,149 @@
+{
+  "schema_version": 1,
+  "files": [
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/integrated-evidence/README.md",
+      "original_sha256": "d722ae61d366f99e24ffb76b04e64cbc59ff3b1d240dc3b6087c1c67949e26d0",
+      "original_bytes": 2188,
+      "stored_path": "README.md",
+      "stored_sha256": "d722ae61d366f99e24ffb76b04e64cbc59ff3b1d240dc3b6087c1c67949e26d0",
+      "stored_bytes": 2188,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/integrated-rf1-01.json",
+      "original_sha256": "e91300da3bea66ac6339d74595c6feccbd69692694983d4b8932370c459934fb",
+      "original_bytes": 12689,
+      "stored_path": "runs/integrated-rf1-01.json",
+      "stored_sha256": "e91300da3bea66ac6339d74595c6feccbd69692694983d4b8932370c459934fb",
+      "stored_bytes": 12689,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/integrated-rf1-01.log",
+      "original_sha256": "fdd025ee66e4af143e8f0c3554ca41e1115a7f0dafacd908b9ce3e4c67354ab5",
+      "original_bytes": 482,
+      "stored_path": "runs/integrated-rf1-01.log",
+      "stored_sha256": "fdd025ee66e4af143e8f0c3554ca41e1115a7f0dafacd908b9ce3e4c67354ab5",
+      "stored_bytes": 482,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/integrated-evidence/integrated-rf1-01-0.elf",
+      "original_sha256": "1faa3aff5f772a60b188991ad307841aace690a4ced2ac50ef4a5299d71296f3",
+      "original_bytes": 1428672,
+      "stored_path": "executables/integrated-rf1-01-0.elf.gz",
+      "stored_sha256": "efd6349aaf538758662c6796c16ac1715ce89fa0a8023d88de4855995c8f1a59",
+      "stored_bytes": 523870,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/integrated-quotas-01.json",
+      "original_sha256": "44fb73ed48d7958b07416563ad010b3dbf1ad4e0db461f3fd62a1f41a40e021b",
+      "original_bytes": 12664,
+      "stored_path": "runs/integrated-quotas-01.json",
+      "stored_sha256": "44fb73ed48d7958b07416563ad010b3dbf1ad4e0db461f3fd62a1f41a40e021b",
+      "stored_bytes": 12664,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/integrated-quotas-01.log",
+      "original_sha256": "09b0f371e8f1985063081d3e4a7a63c69cbe02465a98b9cc06f930f6f5da67ca",
+      "original_bytes": 1266,
+      "stored_path": "runs/integrated-quotas-01.log",
+      "stored_sha256": "09b0f371e8f1985063081d3e4a7a63c69cbe02465a98b9cc06f930f6f5da67ca",
+      "stored_bytes": 1266,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/integrated-evidence/integrated-quotas-01-0.elf",
+      "original_sha256": "9c0e4567de07b4b959493e5764ad306d291dd31c921d82fb4d62d8a3be97614c",
+      "original_bytes": 28054888,
+      "stored_path": "executables/integrated-quotas-01-0.elf.gz",
+      "stored_sha256": "1dd325002a5e37dec1d09f1ada979c4d7d8a28216e010566a77d93f51fb4b2fb",
+      "stored_bytes": 5124845,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/partitionline/partitionline-broker/src/quotas.rs",
+      "original_sha256": "d5a9adaa2f24c1e92b02ca2749a65dcda977a8b7f1b62c249a583dacf2176036",
+      "original_bytes": 28559,
+      "stored_path": "source/partitionline-broker/src/quotas.rs",
+      "stored_sha256": "d5a9adaa2f24c1e92b02ca2749a65dcda977a8b7f1b62c249a583dacf2176036",
+      "stored_bytes": 28559,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/partitionline/partitionline-broker/src/bin/operator.rs",
+      "original_sha256": "5bdc2da678029961e8a12b080134c51dded202beb438ab5732ec3504953234bb",
+      "original_bytes": 6044,
+      "stored_path": "source/partitionline-broker/src/bin/operator.rs",
+      "stored_sha256": "5bdc2da678029961e8a12b080134c51dded202beb438ab5732ec3504953234bb",
+      "stored_bytes": 6044,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/partitionline/partitionline-broker/src/bin/operator/serve.rs",
+      "original_sha256": "a81b4162732c6ca9b6d8caf65adc1a9dd0144fcb53c7a805c96998c2ab42dcaf",
+      "original_bytes": 8165,
+      "stored_path": "source/partitionline-broker/src/bin/operator/serve.rs",
+      "stored_sha256": "a81b4162732c6ca9b6d8caf65adc1a9dd0144fcb53c7a805c96998c2ab42dcaf",
+      "stored_bytes": 8165,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/partitionline/partitionline-broker/Cargo.toml",
+      "original_sha256": "0a77e3b2b41244f94a01684dc9ead21818e5875800fa12abdd13eeed4428cfaf",
+      "original_bytes": 2337,
+      "stored_path": "post-run-snapshots/partitionline-broker/Cargo.toml",
+      "stored_sha256": "0a77e3b2b41244f94a01684dc9ead21818e5875800fa12abdd13eeed4428cfaf",
+      "stored_bytes": 2337,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/partitionline/partitionline-broker/Cargo.lock",
+      "original_sha256": "ff225be2e645a11d33954cb47064a26a77572b1ab12a8f9362d146b237801624",
+      "original_bytes": 19995,
+      "stored_path": "post-run-snapshots/partitionline-broker/Cargo.lock",
+      "stored_sha256": "ff225be2e645a11d33954cb47064a26a77572b1ab12a8f9362d146b237801624",
+      "stored_bytes": 19995,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/partitionline/partitionline-broker/tests/operator_server.rs",
+      "original_sha256": "906962bf29b92969dc87dce3fcfcfeec7160bdac799389006ee09082f14f69bd",
+      "original_bytes": 8511,
+      "stored_path": "post-run-snapshots/partitionline-broker/tests/operator_server.rs",
+      "stored_sha256": "906962bf29b92969dc87dce3fcfcfeec7160bdac799389006ee09082f14f69bd",
+      "stored_bytes": 8511,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/partitionline/partitionline-broker/tests/fixtures/produce/4.1.2/produce-v3-acks1.request.bin",
+      "original_sha256": "2cc4054e8dd72f75ecf5c2c39987e910b1903aa626d83f0b80bcae6250603d91",
+      "original_bytes": 147,
+      "stored_path": "post-run-snapshots/partitionline-broker/tests/fixtures/produce/4.1.2/produce-v3-acks1.request.bin",
+      "stored_sha256": "2cc4054e8dd72f75ecf5c2c39987e910b1903aa626d83f0b80bcae6250603d91",
+      "stored_bytes": 147,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/partitionline/partitionline-broker/tests/fixtures/fetch/4.1.2/fetch-v4-offset0.request.bin",
+      "original_sha256": "c89c847bd1fcd675e11b0f2ae4c9b9c67edb8bebba107a78916ec30f3346cc54",
+      "original_bytes": 70,
+      "stored_path": "post-run-snapshots/partitionline-broker/tests/fixtures/fetch/4.1.2/fetch-v4-offset0.request.bin",
+      "stored_sha256": "c89c847bd1fcd675e11b0f2ae4c9b9c67edb8bebba107a78916ec30f3346cc54",
+      "stored_bytes": 70,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/goal-qualification-20261028/integrated-evidence/operator-post-run.elf",
+      "original_sha256": "46638c7015988797b85bd1fb857b01057f8d44747e411e15871eb1db3f70480b",
+      "original_bytes": 6712472,
+      "stored_path": "executables/operator-post-run.elf.gz",
+      "stored_sha256": "8b525fb41466475c8057d411b51390caa87ee16c66e6f9ab49d405151c3e6030",
+      "stored_bytes": 1633631,
+      "encoding": "gzip"
+    }
+  ]
+}

@@ -1,0 +1,91 @@
+{
+  "status": "pass",
+  "base_commit": "c3b17722a76d3ddb5689811c55ce53cb5d64be9a",
+  "exact_commit": null,
+  "source_receipt_sha256": "0cd21b7e4707e0dee4be45da912477094f1c965af683542d1332827cb6ad5f06",
+  "binary_sha256": "46638c7015988797b85bd1fb857b01057f8d44747e411e15871eb1db3f70480b",
+  "library_sha256": "23698e1d7ec1f3f496133b946474f997ed690fa57222d3785c3a176ed57563ca",
+  "peer_sha256": "5034a5364caf13ad2af8c584b438be9ba401910ff0341587e8b7495817f0a94f",
+  "peer_source_sha256": "2a3386957827dc62b7c4029d8b7fbb3e77ceec2b72c51348b95f8ec6e4067b5c",
+  "header_sha256": "33cca14d9fc87117100ce90bd84f2006b8ba521c788055db6af614d0f2f7ca2f",
+  "start_ns": 1793159923163805390,
+  "steps": [
+    {
+      "phase": "server-seed",
+      "command": [
+        "/workspace/work/goal-qualification-20261028/integrated-peer-20261028/binary/operator.elf",
+        "serve",
+        "--data",
+        "/workspace/work/goal-qualification-20261028/integrated-peer-20261028/native/attempt-01/data",
+        "--listen",
+        "127.0.0.1:19398",
+        "--advertise-host",
+        "127.0.0.1",
+        "--cluster",
+        "rf1-native-integrated",
+        "--broker-id",
+        "0"
+      ],
+      "pid": 43899,
+      "started_ns": 1793159923447766914,
+      "exit": 0,
+      "ended_ns": 1793159924205778841
+    },
+    {
+      "phase": "native-append",
+      "command": [
+        "/workspace/work/goal-qualification-20261028/integrated-peer-20261028/native/ordinary-native",
+        "127.0.0.1:19398",
+        "append"
+      ],
+      "started_ns": 1793159923498493863,
+      "exit": 0,
+      "ended_ns": 1793159923865877961
+    },
+    {
+      "phase": "native-fetch",
+      "command": [
+        "/workspace/work/goal-qualification-20261028/integrated-peer-20261028/native/ordinary-native",
+        "127.0.0.1:19398",
+        "fetch"
+      ],
+      "started_ns": 1793159923867082765,
+      "exit": 0,
+      "ended_ns": 1793159924189357178
+    },
+    {
+      "phase": "server-restart",
+      "command": [
+        "/workspace/work/goal-qualification-20261028/integrated-peer-20261028/binary/operator.elf",
+        "serve",
+        "--data",
+        "/workspace/work/goal-qualification-20261028/integrated-peer-20261028/native/attempt-01/data",
+        "--listen",
+        "127.0.0.1:19398",
+        "--advertise-host",
+        "127.0.0.1",
+        "--cluster",
+        "rf1-native-integrated",
+        "--broker-id",
+        "0"
+      ],
+      "pid": 43938,
+      "started_ns": 1793159924485100055,
+      "exit": 0,
+      "ended_ns": 1793159924866434816
+    },
+    {
+      "phase": "native-restart",
+      "command": [
+        "/workspace/work/goal-qualification-20261028/integrated-peer-20261028/native/ordinary-native",
+        "127.0.0.1:19398",
+        "restart"
+      ],
+      "started_ns": 1793159924536659741,
+      "exit": 0,
+      "ended_ns": 1793159924857950467
+    }
+  ],
+  "scope": "actual librdkafka ordinary 2 partitions 24 receipts; acks=1 idempotence=false; manual fetch and ListOffsets before and after clean restart",
+  "end_ns": 1793159925110095695
+}

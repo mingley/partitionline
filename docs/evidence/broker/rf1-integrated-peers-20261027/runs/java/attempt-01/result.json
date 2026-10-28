@@ -1,0 +1,106 @@
+{
+  "status": "pass",
+  "source_receipt_sha256": "0cd21b7e4707e0dee4be45da912477094f1c965af683542d1332827cb6ad5f06",
+  "base_commit": "c3b17722a76d3ddb5689811c55ce53cb5d64be9a",
+  "exact_commit": null,
+  "binary_sha256": "46638c7015988797b85bd1fb857b01057f8d44747e411e15871eb1db3f70480b",
+  "java_source_sha256": "0a550e0a9a9294ad57be9e44707c397feb3b8b5803a394b9865e2da0db909831",
+  "java_class_sha256": "cf29ed31f3b614fe8150e0b98213097637fdbd77e1219c0eedd8aa997e490e06",
+  "kafka_client_sha256": "33b4d9f24ba793ce0ed06607aa92b61d764015d8a0ef72d2558dbb81def4b3ed",
+  "kafka_source": "apache/kafka@sha256:5cc2a2fd93fa2687b44015eee04fb2c3edd9e526bd64bf8bec5ff1e268772e0e, extracted previously as documented by security-qualification-20261028/java-peer/receipt.json",
+  "topic": "rf1-java-integrated-20261028",
+  "addr": "127.0.0.1:19397",
+  "start_ns": 1793159923131920458,
+  "steps": [
+    {
+      "phase": "server-seed",
+      "command": [
+        "/workspace/work/goal-qualification-20261028/integrated-peer-20261028/binary/operator.elf",
+        "serve",
+        "--data",
+        "/workspace/work/goal-qualification-20261028/integrated-peer-20261028/java/attempt-01/data",
+        "--listen",
+        "127.0.0.1:19397",
+        "--advertise-host",
+        "127.0.0.1",
+        "--cluster",
+        "rf1-java-integrated",
+        "--broker-id",
+        "0"
+      ],
+      "pid": 43893,
+      "started_ns": 1793159923406706124,
+      "exit": 0,
+      "ended_ns": 1793159926053744903
+    },
+    {
+      "phase": "java-seed",
+      "command": [
+        "java",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/goal-qualification-20261028/integrated-peer-20261028/java/classes:/workspace/work/security-qualification-20261028/java-peer/jars/kafka-clients-4.1.2.jar:/workspace/work/security-qualification-20261028/java-peer/jars/slf4j-api-1.7.36.jar",
+        "Rf1Peer",
+        "seed",
+        "127.0.0.1:19397",
+        "rf1-java-integrated-20261028"
+      ],
+      "started_ns": 1793159923459123851,
+      "exit": 0,
+      "ended_ns": 1793159926048988971
+    },
+    {
+      "phase": "server-restart",
+      "command": [
+        "/workspace/work/goal-qualification-20261028/integrated-peer-20261028/binary/operator.elf",
+        "serve",
+        "--data",
+        "/workspace/work/goal-qualification-20261028/integrated-peer-20261028/java/attempt-01/data",
+        "--listen",
+        "127.0.0.1:19397",
+        "--advertise-host",
+        "127.0.0.1",
+        "--cluster",
+        "rf1-java-integrated",
+        "--broker-id",
+        "0"
+      ],
+      "pid": 43966,
+      "started_ns": 1793159926314212251,
+      "exit": 0,
+      "ended_ns": 1793159929024732101
+    },
+    {
+      "phase": "java-recover",
+      "command": [
+        "java",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/goal-qualification-20261028/integrated-peer-20261028/java/classes:/workspace/work/security-qualification-20261028/java-peer/jars/kafka-clients-4.1.2.jar:/workspace/work/security-qualification-20261028/java-peer/jars/slf4j-api-1.7.36.jar",
+        "Rf1Peer",
+        "recover",
+        "127.0.0.1:19397",
+        "rf1-java-integrated-20261028"
+      ],
+      "started_ns": 1793159926365518149,
+      "exit": 0,
+      "ended_ns": 1793159929019478167
+    }
+  ],
+  "journal_after_seed": {
+    "catalog.journal": "cc125e8a12b02ac0c2ba6a1a5e6dfb13267f6873f1ee4139cc8f16b9952246b7",
+    "partitions/449ab2eda35d4ec7a5c1343cbff74e6a-0.journal": "a7d3b684aa3c073d0baf7fbddc29477b6da2c282d155808e99928ed2c20dda62",
+    "partitions/449ab2eda35d4ec7a5c1343cbff74e6a-1.journal": "7578f9fc3eadc672d4dabc5581f4a2f7af59b9c8b16a03caf95955ebc0942e9f",
+    "serve.identity": "36f5bbcc21f6ee68b8e309e9188725d103f2c160d82966ef83cff1388e919815",
+    "serve.lock": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "journal_after_restart": {
+    "catalog.journal": "cc125e8a12b02ac0c2ba6a1a5e6dfb13267f6873f1ee4139cc8f16b9952246b7",
+    "partitions/449ab2eda35d4ec7a5c1343cbff74e6a-0.journal": "641a52a6593503f57ed40b01c7c47f1cbaaa2842761748a08e0208cb68ea47be",
+    "partitions/449ab2eda35d4ec7a5c1343cbff74e6a-1.journal": "afc1398c6861a703583264a9acb2aa2e0385df609a009254bb2da7896bce15d8",
+    "serve.identity": "36f5bbcc21f6ee68b8e309e9188725d103f2c160d82966ef83cff1388e919815",
+    "serve.lock": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "scope": "single plaintext RF1, two partitions, acks=1 and idempotence=false; six seed records and eight total after clean restart, exact Java manual-consumer payload and headers",
+  "end_ns": 1793159929295293982
+}

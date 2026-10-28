@@ -1,0 +1,105 @@
+{
+  "source_commit": "64da3d2db9ffa80fb680806dc377e52f4652b38e",
+  "source_sha256": "82b810d3e78d6ea76e9ae75d8a9c782b52a9ffea993ee4b72c41c91d62336e1a",
+  "image": "apache/kafka@sha256:5cc2a2fd93fa2687b44015eee04fb2c3edd9e526bd64bf8bec5ff1e268772e0e",
+  "copy_results": [
+    {
+      "file": "kafka-clients-4.1.2.jar",
+      "exit_code": 0,
+      "stderr": ""
+    },
+    {
+      "file": "jackson-annotations-2.19.4.jar",
+      "exit_code": 0,
+      "stderr": ""
+    },
+    {
+      "file": "jackson-core-2.19.4.jar",
+      "exit_code": 0,
+      "stderr": ""
+    },
+    {
+      "file": "jackson-databind-2.19.4.jar",
+      "exit_code": 0,
+      "stderr": ""
+    },
+    {
+      "file": "jose4j-0.9.6.jar",
+      "exit_code": 0,
+      "stderr": ""
+    },
+    {
+      "file": "slf4j-api-1.7.36.jar",
+      "exit_code": 0,
+      "stderr": ""
+    }
+  ],
+  "jars": [
+    {
+      "file": "kafka-clients-4.1.2.jar",
+      "sha256": "33b4d9f24ba793ce0ed06607aa92b61d764015d8a0ef72d2558dbb81def4b3ed",
+      "expected_sha256": "33b4d9f24ba793ce0ed06607aa92b61d764015d8a0ef72d2558dbb81def4b3ed",
+      "match": true
+    },
+    {
+      "file": "jackson-annotations-2.19.4.jar",
+      "sha256": "ab26383fa3c10c0df1ffd1bb035d81161c059b1af71927d73c24473c058baa16",
+      "expected_sha256": "ab26383fa3c10c0df1ffd1bb035d81161c059b1af71927d73c24473c058baa16",
+      "match": true
+    },
+    {
+      "file": "jackson-core-2.19.4.jar",
+      "sha256": "466ae4dc4f7054f51525f4211df411d9a64d65cc169995d32bf49e20e6f586e5",
+      "expected_sha256": "466ae4dc4f7054f51525f4211df411d9a64d65cc169995d32bf49e20e6f586e5",
+      "match": true
+    },
+    {
+      "file": "jackson-databind-2.19.4.jar",
+      "sha256": "b781c431be870deb0bf84421e99e774c256a701f4ba678df80248f55cd16ff74",
+      "expected_sha256": "b781c431be870deb0bf84421e99e774c256a701f4ba678df80248f55cd16ff74",
+      "match": true
+    },
+    {
+      "file": "jose4j-0.9.6.jar",
+      "sha256": "7314af50cde9c99e8eaf43eee617a23edcc6bb43036221064355094999d837ef",
+      "expected_sha256": "7314af50cde9c99e8eaf43eee617a23edcc6bb43036221064355094999d837ef",
+      "match": true
+    },
+    {
+      "file": "slf4j-api-1.7.36.jar",
+      "sha256": "d3ef575e3e4979678dc01bf1dcce51021493b4d11fb7f1be8ad982877c16a1c0",
+      "expected_sha256": "d3ef575e3e4979678dc01bf1dcce51021493b4d11fb7f1be8ad982877c16a1c0",
+      "match": true
+    }
+  ],
+  "command": [
+    "java",
+    "-Xmx128m",
+    "--add-modules",
+    "jdk.compiler",
+    "com.sun.tools.javac.Main",
+    "-Xlint:all",
+    "-Werror",
+    "-cp",
+    "/workspace/work/security-qualification-20261028/java-peer/jars/kafka-clients-4.1.2.jar:/workspace/work/security-qualification-20261028/java-peer/jars/jackson-annotations-2.19.4.jar:/workspace/work/security-qualification-20261028/java-peer/jars/jackson-core-2.19.4.jar:/workspace/work/security-qualification-20261028/java-peer/jars/jackson-databind-2.19.4.jar:/workspace/work/security-qualification-20261028/java-peer/jars/jose4j-0.9.6.jar:/workspace/work/security-qualification-20261028/java-peer/jars/slf4j-api-1.7.36.jar",
+    "-d",
+    "/workspace/work/security-qualification-20261028/java-peer/classes",
+    "/workspace/partitionline/docs/evidence/broker/KL11-37/peers/java/OAuthMetadataPeer.java"
+  ],
+  "scope": "Java peer build only; no broker OIDC qualification",
+  "exit_code": 0,
+  "class_files": [
+    {
+      "path": "classes/OAuthMetadataPeer$Clients.class",
+      "sha256": "11af515144b988081d3056666229aa32ae7a9c3ba39385758b4332b93872c209"
+    },
+    {
+      "path": "classes/OAuthMetadataPeer$ObservedLoginCallback.class",
+      "sha256": "8181de681b9efc71f6d2f89055f739cc3e0367a99e498e6ae66680e0721c3ab4"
+    },
+    {
+      "path": "classes/OAuthMetadataPeer.class",
+      "sha256": "8455f786c67d5e9ff160ade4c4b3ff23a8c73f614990eb870ec1a71d067e95c4"
+    }
+  ]
+}
