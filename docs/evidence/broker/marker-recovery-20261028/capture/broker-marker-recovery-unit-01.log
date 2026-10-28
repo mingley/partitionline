@@ -1,0 +1,16 @@
+   Compiling partitionline-broker v0.1.0 (/workspace/work/broker-marker-recovery/partitionline-broker)
+    Finished `test` profile [unoptimized] target(s) in 27.55s
+     Running unittests src/lib.rs (/workspace/work/qualification-20261027/broker-check-target/debug/deps/partitionline_broker-2a454c0708a72949)
+
+running 8 tests
+test transactions::markers::tests::a_gapped_marker_offset_is_not_recovered ... ok
+test transactions::markers::tests::aborted_and_incomplete_records_stay_hidden_and_a_later_commit_is_visible ... ok
+test transactions::markers::tests::a_later_transaction_in_the_same_epoch_waits_for_its_own_marker ... ok
+test transactions::markers::tests::ambiguous_data_append_recovers_uncommitted_record_without_exposing_it ... ok
+test transactions::markers::tests::ambiguous_marker_append_blocks_reads_and_recovers_durable_decision ... ok
+test transactions::markers::tests::fetch_budget_is_checked_before_append_and_small_indexes_reopen ... ok
+test transactions::markers::tests::interleaved_marker_retries_remain_correct_after_reopen ... ok
+test transactions::markers::tests::reading_many_committed_markers_does_not_hold_the_caller ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 383 filtered out; finished in 0.03s
+

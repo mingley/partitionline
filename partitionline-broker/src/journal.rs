@@ -47,11 +47,17 @@ fn checkpoint_test_point(phase: &str) {
 #[cfg(test)]
 thread_local! {
     static CHECKPOINT_TEST_ERROR: std::cell::Cell<Option<&'static str>> = const { std::cell::Cell::new(None) };
+    static APPEND_AFTER_SYNC_TEST_ERROR: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
 }
 
 #[cfg(test)]
 pub(crate) fn fail_checkpoint_once_at(phase: &'static str) {
     CHECKPOINT_TEST_ERROR.with(|failure| failure.set(Some(phase)));
+}
+
+#[cfg(test)]
+pub(crate) fn fail_append_once_after_sync() {
+    APPEND_AFTER_SYNC_TEST_ERROR.with(|failure| failure.set(true));
 }
 
 #[cfg(test)]
@@ -467,7 +473,13 @@ impl Journal {
     /// A failed write/synchronization poisons this handle. Reopen to establish
     /// whether the failed operation left a complete entry or an incomplete tail.
     pub fn append(&mut self, record_count: u32, payload: &[u8]) -> Result<Append, Error> {
-        self.inner.append(record_count, payload)
+        let result = self.inner.append(record_count, payload);
+        #[cfg(test)]
+        if result.is_ok() && APPEND_AFTER_SYNC_TEST_ERROR.with(|failure| failure.replace(false)) {
+            self.inner.poisoned = true;
+            return Err(io::Error::other("injected failure after append sync").into());
+        }
+        result
     }
 
     // The coordinator snapshots its entire state in each record. Roll it over

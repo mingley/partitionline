@@ -181,11 +181,17 @@ fn marker_profile() -> Report {
         }
         report.lost_acks = report.lost_acks.saturating_add(1);
         report.faults = report.faults.saturating_add(1);
-        let visible = log.read_committed(0);
+        let visible = log
+            .read_committed(0)
+            .unwrap_or_else(|error| panic!("{error:?}"));
         if log.append_marker(4, 0, !commit).is_ok() {
             report.observer_failures = report.observer_failures.saturating_add(1);
         }
-        if log.read_committed(0) != visible {
+        if log
+            .read_committed(0)
+            .unwrap_or_else(|error| panic!("{error:?}"))
+            != visible
+        {
             report.observer_failures = report.observer_failures.saturating_add(1);
         }
         report.fences = report.fences.saturating_add(1);
@@ -193,14 +199,26 @@ fn marker_profile() -> Report {
         drop(log);
         let restored =
             MarkerLog::open(&log_path, limits).unwrap_or_else(|error| panic!("{error:?}"));
-        if restored.read_committed(0) != visible {
+        if restored
+            .read_committed(0)
+            .unwrap_or_else(|error| panic!("{error:?}"))
+            != visible
+        {
             report.observer_failures = report.observer_failures.saturating_add(1);
         }
         if commit {
-            if !restored.read_committed(0).contains(&id) {
+            if !restored
+                .read_committed(0)
+                .unwrap_or_else(|error| panic!("{error:?}"))
+                .contains(&id)
+            {
                 report.observer_failures = report.observer_failures.saturating_add(1);
             }
-        } else if restored.read_committed(0).contains(&id) {
+        } else if restored
+            .read_committed(0)
+            .unwrap_or_else(|error| panic!("{error:?}"))
+            .contains(&id)
+        {
             report.observer_failures = report.observer_failures.saturating_add(1);
         }
         report.crashes = report.crashes.saturating_add(1);

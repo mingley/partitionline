@@ -1,0 +1,510 @@
+diff --git a/partitionline-broker/README.md b/partitionline-broker/README.md
+index 385064b1c..8b9f474ac 100644
+--- a/partitionline-broker/README.md
++++ b/partitionline-broker/README.md
+@@ -56,7 +56,10 @@ over to a complete checkpoint when it reaches a configured history limit.
+ The checkpoint format supports up to 65,535 groups and 65,535 offsets per group;
+ larger configured limits are rejected. The lifecycle coordinator returns
+ `Result` from `owned`, and both `owned` and `commit` report `Error::Poisoned`
+-after persistence fails. Reopen the lifecycle store to recover.
++after persistence fails. Reopen the lifecycle store to recover. The transaction
++marker log returns `Result` from its end-offset, stable-offset and
++`read_committed` methods; reopen it after a persistence failure. The marker log
++retains finite history and does not itself fence producers.
+ 
+ ```sh
+ sh scripts/broker-package.sh
+diff --git a/partitionline-broker/src/journal.rs b/partitionline-broker/src/journal.rs
+index 65345eb3e..bd8093b09 100644
+--- a/partitionline-broker/src/journal.rs
++++ b/partitionline-broker/src/journal.rs
+@@ -47,6 +47,7 @@ fn checkpoint_test_point(phase: &str) {
+ #[cfg(test)]
+ thread_local! {
+     static CHECKPOINT_TEST_ERROR: std::cell::Cell<Option<&'static str>> = const { std::cell::Cell::new(None) };
++    static APPEND_AFTER_SYNC_TEST_ERROR: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
+ }
+ 
+ #[cfg(test)]
+@@ -54,6 +55,11 @@ pub(crate) fn fail_checkpoint_once_at(phase: &'static str) {
+     CHECKPOINT_TEST_ERROR.with(|failure| failure.set(Some(phase)));
+ }
+ 
++#[cfg(test)]
++pub(crate) fn fail_append_once_after_sync() {
++    APPEND_AFTER_SYNC_TEST_ERROR.with(|failure| failure.set(true));
++}
++
+ #[cfg(test)]
+ fn checkpoint_test_error(phase: &str) -> io::Result<()> {
+     CHECKPOINT_TEST_ERROR.with(|failure| {
+@@ -467,7 +473,13 @@ impl Journal {
+     /// A failed write/synchronization poisons this handle. Reopen to establish
+     /// whether the failed operation left a complete entry or an incomplete tail.
+     pub fn append(&mut self, record_count: u32, payload: &[u8]) -> Result<Append, Error> {
+-        self.inner.append(record_count, payload)
++        let result = self.inner.append(record_count, payload);
++        #[cfg(test)]
++        if result.is_ok() && APPEND_AFTER_SYNC_TEST_ERROR.with(|failure| failure.replace(false)) {
++            self.inner.poisoned = true;
++            return Err(io::Error::other("injected failure after append sync").into());
++        }
++        result
+     }
+ 
+     // The coordinator snapshots its entire state in each record. Roll it over
+diff --git a/partitionline-broker/src/transactions/markers.rs b/partitionline-broker/src/transactions/markers.rs
+index fc4556799..b68980cd6 100644
+--- a/partitionline-broker/src/transactions/markers.rs
++++ b/partitionline-broker/src/transactions/markers.rs
+@@ -55,7 +55,7 @@ pub enum Error {
+     ConflictingMarker,
+     /// The producer, epoch, or id is not usable.
+     InvalidRequest,
+-    /// A failed append left this log unable to confirm further markers.
++    /// A persistence failure requires reopening before reads or writes.
+     Poisoned,
+     /// The limits cannot store the log.
+     InvalidLimits,
+@@ -101,6 +101,8 @@ pub struct MarkerLog {
+     encoded: Vec<u8>,
+     stored: usize,
+     poisoned: bool,
++    /// Most recent marker only while no subsequent data has reopened its epoch.
++    trailing: HashMap<(i64, i16), (i64, bool)>,
+ }
+ 
+ fn stable_offset(entries: &[Entry], markers: &[Option<bool>]) -> i64 {
+@@ -123,12 +125,15 @@ impl MarkerLog {
+             encoded: Vec::new(),
+             stored: 0,
+             poisoned: false,
++            trailing: HashMap::new(),
+         };
+         let mut offset = log.journal.base_offset();
+         loop {
+-            let batch = log
+-                .journal
+-                .fetch(offset, 64, log.limits.journal.max_fetch_bytes())?;
++            let batch = log.journal.fetch(
++                offset,
++                64.min(log.limits.journal.max_index_entries()),
++                log.limits.journal.max_fetch_bytes(),
++            )?;
+             if batch.is_empty() {
+                 break;
+             }
+@@ -148,21 +153,24 @@ impl MarkerLog {
+     }
+ 
+     /// Exclusive log end.
+-    pub fn log_end_offset(&self) -> i64 {
+-        self.entries.len() as i64
++    pub fn log_end_offset(&self) -> Result<i64, Error> {
++        self.ready()?;
++        Ok(self.entries.len() as i64)
+     }
+ 
+     /// First offset that is not yet stable.
+-    pub fn last_stable_offset(&self) -> i64 {
++    pub fn last_stable_offset(&self) -> Result<i64, Error> {
++        self.ready()?;
+         let markers = self.closing_markers();
+-        stable_offset(&self.entries, &markers)
++        Ok(stable_offset(&self.entries, &markers))
+     }
+ 
+     /// Application ids visible to a `read_committed` consumer from `from`.
+     ///
+     /// Offsets at or after the last stable offset are omitted. Aborted
+     /// transactions are omitted. Control markers are not application data.
+-    pub fn read_committed(&self, from: i64) -> Vec<u64> {
++    pub fn read_committed(&self, from: i64) -> Result<Vec<u64>, Error> {
++        self.ready()?;
+         let markers = self.closing_markers();
+         let stable = stable_offset(&self.entries, &markers);
+         let mut ids = Vec::new();
+@@ -177,7 +185,7 @@ impl MarkerLog {
+                 }
+             }
+         }
+-        ids
++        Ok(ids)
+     }
+ 
+     /// First later marker for every entry. One backward pass.
+@@ -215,14 +223,18 @@ impl MarkerLog {
+         if self.entries.len() >= self.limits.max_records {
+             return Err(Error::InvalidLimits);
+         }
+-        let offset = self.log_end_offset();
++        let offset = self.log_end_offset()?;
+         let entry = Entry::Data {
+             offset,
+             producer_id,
+             epoch,
+             id,
+         };
++        self.entries
++            .try_reserve(1)
++            .map_err(|_| Error::InvalidLimits)?;
+         self.append_encoded(|bytes| write(bytes, &entry))?;
++        self.note(&entry);
+         self.entries.push(entry);
+         Ok(offset)
+     }
+@@ -252,38 +264,47 @@ impl MarkerLog {
+         if self.entries.len() >= self.limits.max_records {
+             return Err(Error::InvalidLimits);
+         }
+-        let offset = self.log_end_offset();
++        let offset = self.log_end_offset()?;
+         let entry = Entry::Marker {
+             offset,
+             producer_id,
+             epoch,
+             commit,
+         };
++        self.entries
++            .try_reserve(1)
++            .map_err(|_| Error::InvalidLimits)?;
++        self.trailing
++            .try_reserve(1)
++            .map_err(|_| Error::InvalidLimits)?;
+         self.append_encoded(|bytes| write(bytes, &entry))?;
++        self.note(&entry);
+         self.entries.push(entry);
+         Ok(offset)
+     }
+ 
+     /// Marker that already decided this epoch and has no data after it.
+     fn trailing_marker(&self, producer_id: i64, epoch: i16) -> Option<(i64, bool)> {
+-        let mut marker = None;
+-        for entry in &self.entries {
+-            match entry {
+-                Entry::Data {
+-                    producer_id: id,
+-                    epoch: stored,
+-                    ..
+-                } if *id == producer_id && *stored == epoch => marker = None,
+-                Entry::Marker {
+-                    offset,
+-                    producer_id: id,
+-                    epoch: stored,
+-                    commit,
+-                } if *id == producer_id && *stored == epoch => marker = Some((*offset, *commit)),
+-                _ => {}
++        self.trailing.get(&(producer_id, epoch)).copied()
++    }
++
++    fn note(&mut self, entry: &Entry) {
++        match entry {
++            Entry::Data {
++                producer_id, epoch, ..
++            } => {
++                self.trailing.remove(&(*producer_id, *epoch));
++            }
++            Entry::Marker {
++                offset,
++                producer_id,
++                epoch,
++                commit,
++            } => {
++                self.trailing
++                    .insert((*producer_id, *epoch), (*offset, *commit));
+             }
+         }
+-        marker
+     }
+ 
+     fn ready(&self) -> Result<(), Error> {
+@@ -307,6 +328,13 @@ impl MarkerLog {
+     }
+ 
+     fn persist(&mut self, payload: &[u8]) -> Result<(), Error> {
++        if payload
++            .len()
++            .checked_add(std::mem::size_of::<journal::Entry>())
++            .is_none_or(|size| size > self.limits.journal.max_fetch_bytes())
++        {
++            return Err(Error::InvalidLimits);
++        }
+         if self.stored >= self.limits.max_records {
+             return Err(Error::InvalidLimits);
+         }
+@@ -419,6 +447,15 @@ fn replay_payload(log: &mut MarkerLog, payload: &[u8]) -> Result<(), Error> {
+             });
+         }
+     }
++    log.entries
++        .try_reserve(1)
++        .map_err(|_| Error::InvalidLimits)?;
++    if matches!(decoded, Entry::Marker { .. }) {
++        log.trailing
++            .try_reserve(1)
++            .map_err(|_| Error::InvalidLimits)?;
++    }
++    log.note(&decoded);
+     log.entries.push(decoded);
+     Ok(())
+ }
+@@ -502,7 +539,7 @@ mod tests {
+         });
+         log.entries = entries;
+         let started = std::time::Instant::now();
+-        let visible = log.read_committed(0);
++        let visible = log.read_committed(0).unwrap();
+         let elapsed = started.elapsed();
+         assert_eq!(visible.len(), 8_000);
+         assert!(
+@@ -521,7 +558,7 @@ mod tests {
+             epoch: 2,
+             commit: false,
+         });
+-        let visible = log.read_committed(0);
++        let visible = log.read_committed(0).unwrap();
+         assert_eq!(visible.len(), 8_000);
+         assert!(!visible.contains(&80_000));
+     }
+@@ -540,13 +577,13 @@ mod tests {
+             replay_payload(&mut log, &encoded),
+             Err(Error::InvalidRequest)
+         ));
+-        assert_eq!(log.log_end_offset(), 0);
++        assert_eq!(log.log_end_offset().unwrap(), 0);
+         log.append_data(7, 0, 1)
+             .unwrap_or_else(|error| panic!("{error:?}"));
+         log.append_marker(7, 0, true)
+             .unwrap_or_else(|error| panic!("{error:?}"));
+         let repeated = Entry::Marker {
+-            offset: log.log_end_offset(),
++            offset: log.log_end_offset().unwrap(),
+             producer_id: 7,
+             epoch: 0,
+             commit: false,
+@@ -556,7 +593,7 @@ mod tests {
+             replay_payload(&mut log, &encoded),
+             Err(Error::ConflictingMarker)
+         ));
+-        assert_eq!(log.read_committed(0), vec![1]);
++        assert_eq!(log.read_committed(0).unwrap(), vec![1]);
+     }
+ 
+     #[test]
+@@ -587,12 +624,15 @@ mod tests {
+             .unwrap_or_else(|error| panic!("{error:?}"));
+         log.append_data(8, 0, 4)
+             .unwrap_or_else(|error| panic!("{error:?}"));
+-        assert_eq!(log.last_stable_offset(), log.log_end_offset() - 1);
+-        assert_eq!(log.read_committed(0), vec![3]);
++        assert_eq!(
++            log.last_stable_offset().unwrap(),
++            log.log_end_offset().unwrap() - 1
++        );
++        assert_eq!(log.read_committed(0).unwrap(), vec![3]);
+         drop(log);
+         let restored = MarkerLog::open(&path, limits()).unwrap_or_else(|error| panic!("{error:?}"));
+-        let first = restored.read_committed(0);
+-        let second = restored.read_committed(0);
++        let first = restored.read_committed(0).unwrap();
++        let second = restored.read_committed(0).unwrap();
+         assert_eq!(first, second);
+         assert_eq!(first, vec![3]);
+         assert!(!first.contains(&1) && !first.contains(&2) && !first.contains(&4));
+@@ -614,13 +654,13 @@ mod tests {
+         let second_data = log
+             .append_data(7, 0, 2)
+             .unwrap_or_else(|error| panic!("{error:?}"));
+-        assert_eq!(log.last_stable_offset(), second_data);
+-        assert_eq!(log.read_committed(0), vec![1]);
++        assert_eq!(log.last_stable_offset().unwrap(), second_data);
++        assert_eq!(log.read_committed(0).unwrap(), vec![1]);
+         let second = log
+             .append_marker(7, 0, true)
+             .unwrap_or_else(|error| panic!("{error:?}"));
+         assert_ne!(second, first);
+-        assert_eq!(log.read_committed(0), vec![1, 2]);
++        assert_eq!(log.read_committed(0).unwrap(), vec![1, 2]);
+         assert_eq!(
+             log.append_marker(7, 0, true)
+                 .unwrap_or_else(|error| panic!("{error:?}")),
+@@ -634,11 +674,121 @@ mod tests {
+             .unwrap_or_else(|error| panic!("{error:?}"));
+         log.append_marker(7, 0, false)
+             .unwrap_or_else(|error| panic!("{error:?}"));
+-        assert_eq!(log.read_committed(0), vec![1, 2]);
+-        assert_eq!(log.last_stable_offset(), log.log_end_offset());
++        assert_eq!(log.read_committed(0).unwrap(), vec![1, 2]);
++        assert_eq!(
++            log.last_stable_offset().unwrap(),
++            log.log_end_offset().unwrap()
++        );
+         drop(log);
+         let restored = MarkerLog::open(&path, limits()).unwrap_or_else(|error| panic!("{error:?}"));
+-        assert_eq!(restored.read_committed(0), vec![1, 2]);
+-        assert!(!restored.read_committed(0).contains(&3));
++        assert_eq!(restored.read_committed(0).unwrap(), vec![1, 2]);
++        assert!(!restored.read_committed(0).unwrap().contains(&3));
++    }
++    #[test]
++    fn fetch_budget_is_checked_before_append_and_small_indexes_reopen() {
++        let entry_charge = std::mem::size_of::<journal::Entry>();
++        for (payload_budget, data_fits) in [(28usize, false), (34, false), (35, true)] {
++            let journal =
++                journal::Limits::new(40, 1 << 20, 2, entry_charge + payload_budget).unwrap();
++            let limits = Limits::new(2, journal).unwrap();
++            let (_, path) = open("marker-fetch-budget");
++            let mut log = MarkerLog::open(&path, limits).unwrap();
++            if data_fits {
++                assert_eq!(log.append_data(7, 0, 99).unwrap(), 0);
++                assert_eq!(log.append_marker(7, 0, true).unwrap(), 1);
++            } else {
++                assert!(matches!(
++                    log.append_data(7, 0, 99),
++                    Err(Error::InvalidLimits)
++                ));
++                assert_eq!(log.log_end_offset().unwrap(), 0);
++                assert_eq!(log.append_marker(7, 0, true).unwrap(), 0);
++            }
++            drop(log);
++            let log = MarkerLog::open(&path, limits).unwrap();
++            assert_eq!(
++                log.read_committed(0).unwrap(),
++                if data_fits { vec![99] } else { Vec::new() }
++            );
++            assert_eq!(log.log_end_offset().unwrap(), if data_fits { 2 } else { 1 });
++            drop(log);
++            let _ = std::fs::remove_file(path);
++        }
++    }
++
++    #[test]
++    fn ambiguous_marker_append_blocks_reads_and_recovers_durable_decision() {
++        let (mut log, path) = open("marker-ambiguous");
++        log.append_data(7, 0, 42).unwrap();
++        journal::fail_append_once_after_sync();
++        assert!(matches!(
++            log.append_marker(7, 0, true),
++            Err(Error::Storage(_))
++        ));
++        assert!(matches!(log.log_end_offset(), Err(Error::Poisoned)));
++        assert!(matches!(log.last_stable_offset(), Err(Error::Poisoned)));
++        assert!(matches!(log.read_committed(0), Err(Error::Poisoned)));
++        assert!(matches!(
++            log.append_marker(7, 0, true),
++            Err(Error::Poisoned)
++        ));
++        drop(log);
++        let mut log = MarkerLog::open(&path, limits()).unwrap();
++        assert_eq!(log.read_committed(0).unwrap(), vec![42]);
++        assert_eq!(log.append_marker(7, 0, true).unwrap(), 1);
++        assert!(matches!(
++            log.append_marker(7, 0, false),
++            Err(Error::ConflictingMarker)
++        ));
++        drop(log);
++        let _ = std::fs::remove_file(path);
++    }
++
++    #[test]
++    fn ambiguous_data_append_recovers_uncommitted_record_without_exposing_it() {
++        let (mut log, path) = open("data-ambiguous");
++        log.append_data(7, 0, 1).unwrap();
++        log.append_marker(7, 0, true).unwrap();
++        journal::fail_append_once_after_sync();
++        assert!(matches!(log.append_data(7, 0, 2), Err(Error::Storage(_))));
++        assert!(matches!(log.read_committed(0), Err(Error::Poisoned)));
++        drop(log);
++        let mut log = MarkerLog::open(&path, limits()).unwrap();
++        assert_eq!(log.last_stable_offset().unwrap(), 2);
++        assert_eq!(log.read_committed(0).unwrap(), vec![1]);
++        assert_eq!(log.append_marker(7, 0, true).unwrap(), 3);
++        assert_eq!(log.read_committed(0).unwrap(), vec![1, 2]);
++        drop(log);
++        let _ = std::fs::remove_file(path);
++    }
++
++    #[test]
++    fn interleaved_marker_retries_remain_correct_after_reopen() {
++        let (mut log, path) = open("marker-index");
++        log.append_data(1, 0, 11).unwrap();
++        log.append_data(2, 0, 21).unwrap();
++        let first = log.append_marker(1, 0, true).unwrap();
++        let other = log.append_marker(2, 0, false).unwrap();
++        assert_eq!(log.append_marker(1, 0, true).unwrap(), first);
++        assert_eq!(log.append_marker(2, 0, false).unwrap(), other);
++        log.append_data(1, 0, 12).unwrap();
++        let second = log.append_marker(1, 0, false).unwrap();
++        assert_ne!(first, second);
++        assert_eq!(log.trailing.len(), 2);
++        drop(log);
++        let mut log = MarkerLog::open(&path, limits()).unwrap();
++        assert_eq!(log.read_committed(0).unwrap(), vec![11]);
++        assert_eq!(log.append_marker(1, 0, false).unwrap(), second);
++        assert!(matches!(
++            log.append_marker(1, 0, true),
++            Err(Error::ConflictingMarker)
++        ));
++        assert_eq!(log.append_marker(2, 0, false).unwrap(), other);
++        log.append_data(2, 0, 22).unwrap();
++        let next = log.append_marker(2, 0, true).unwrap();
++        assert_ne!(next, other);
++        assert_eq!(log.read_committed(0).unwrap(), vec![11, 22]);
++        drop(log);
++        let _ = std::fs::remove_file(path);
+     }
+ }
+diff --git a/partitionline-broker/tests/fault_campaign.rs b/partitionline-broker/tests/fault_campaign.rs
+index c91dddf8d..23082c16a 100644
+--- a/partitionline-broker/tests/fault_campaign.rs
++++ b/partitionline-broker/tests/fault_campaign.rs
+@@ -181,11 +181,17 @@ fn marker_profile() -> Report {
+         }
+         report.lost_acks = report.lost_acks.saturating_add(1);
+         report.faults = report.faults.saturating_add(1);
+-        let visible = log.read_committed(0);
++        let visible = log
++            .read_committed(0)
++            .unwrap_or_else(|error| panic!("{error:?}"));
+         if log.append_marker(4, 0, !commit).is_ok() {
+             report.observer_failures = report.observer_failures.saturating_add(1);
+         }
+-        if log.read_committed(0) != visible {
++        if log
++            .read_committed(0)
++            .unwrap_or_else(|error| panic!("{error:?}"))
++            != visible
++        {
+             report.observer_failures = report.observer_failures.saturating_add(1);
+         }
+         report.fences = report.fences.saturating_add(1);
+@@ -193,14 +199,26 @@ fn marker_profile() -> Report {
+         drop(log);
+         let restored =
+             MarkerLog::open(&log_path, limits).unwrap_or_else(|error| panic!("{error:?}"));
+-        if restored.read_committed(0) != visible {
++        if restored
++            .read_committed(0)
++            .unwrap_or_else(|error| panic!("{error:?}"))
++            != visible
++        {
+             report.observer_failures = report.observer_failures.saturating_add(1);
+         }
+         if commit {
+-            if !restored.read_committed(0).contains(&id) {
++            if !restored
++                .read_committed(0)
++                .unwrap_or_else(|error| panic!("{error:?}"))
++                .contains(&id)
++            {
+                 report.observer_failures = report.observer_failures.saturating_add(1);
+             }
+-        } else if restored.read_committed(0).contains(&id) {
++        } else if restored
++            .read_committed(0)
++            .unwrap_or_else(|error| panic!("{error:?}"))
++            .contains(&id)
++        {
+             report.observer_failures = report.observer_failures.saturating_add(1);
+         }
+         report.crashes = report.crashes.saturating_add(1);

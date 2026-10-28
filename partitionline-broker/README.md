@@ -69,6 +69,9 @@ read the journal. Transaction
 marker propagation and fencing integration are not implemented: initializing
 an ongoing transaction currently clears its stored partition set. Checkpoint and
 recovery allocations are not bounded as total process memory.
+The transaction marker log returns `Result` from its end-offset, stable-offset
+and `read_committed` methods; reopen it after a persistence failure. The marker
+log retains finite history and does not itself fence producers.
 
 ```sh
 sh scripts/broker-package.sh
