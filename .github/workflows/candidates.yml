@@ -71,7 +71,7 @@ jobs:
         run: python3 -B scripts/ci-qualify-broker-candidate.py --spec "$QUALIFICATION_SPEC" --output "$RUNNER_TEMP/candidate-qualification"
       - name: Retain attempts and failures
         if: always()
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: candidate-${{ matrix.kind }}-${{ github.sha }}-${{ github.run_id }}
           path: |
@@ -81,7 +81,7 @@ jobs:
           retention-days: 30
       - name: Retain qualification reports
         if: always()
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: candidate-reports-${{ matrix.kind }}-${{ github.sha }}-${{ github.run_id }}
           path: |
