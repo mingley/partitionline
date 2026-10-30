@@ -1,151 +1,102 @@
 # Status
 
-Partitionline 0.1.0 is the crates.io release. This repository is the working
-source after that release. Build it with the latest stable Rust.
+Updated 30 October 2026.
 
-The client is a usable asynchronous Kafka client: produce, fetch, groups,
-transactions, and Admin. The broker is an experimental crate in this
-repository. It is not a production cluster, and it is not published.
+`partitionline` 0.1.0 is published on crates.io. This repository contains later
+changes and requires the latest stable Rust. The next client release must be
+at least 0.2.0 because of public API and compiler-requirement changes. The broker
+and schema companion remain unpublished.
 
-No fastest-client or fastest-server result is established. Suite HOLD stays
-in effect until the [benchmark contract](benchmark-contract.md) comparison
-requirements are met.
+Production readiness and fastest-client/server claims are unqualified.
+The client implements produce, fetch, groups, transactions and Admin. The broker
+is experimental: its operator has an RF1 data path and a separate metadata
+quorum, without replicated partition data or native Kafka KRaft.
 
-## Where to look
+## Recent changes
 
-| Question | Read |
+- Buffer growth fixes restored the codec allocation gate without raising its
+  budgets. A 48-cell encoder census dropped from 84 growth allocations to 48,
+  with identical bodies and zero warmed allocations. This was an allocation
+  comparison, not a throughput measurement. See [buffer results][buffers].
+- Replacement sockets negotiate and authenticate independently. Offset retries
+  re-encode for the destination's ranges or reject fields that cannot be
+  represented. Fourteen focused unit controls and six integration targets
+  passed. The latest broad Fetch run reported 167 passed, two failed and one
+  ignored; earlier timing and timeout failures remain recorded. See
+  [reconnect results][reconnect].
+- Dependency minimums now exclude the versions named by the recorded TLS,
+  certificate, Tokio and RustCrypto advisories. Fourteen metadata graphs and
+  eleven resolver controls passed. The subsequent GitHub audit and dependency
+  policy checks also pass. New runtime qualification remains open. See
+  [dependency results][dependencies] and the [CI snapshot][ci].
+- The extracted crate passes documentation navigation, license and exclusion
+  checks: 30 documents, 225 local links and 51 pinned repository targets.
+  All 20 documentation tests passed. GitHub documentation consumers, package
+  consumers and the publish dry run also pass at `77021f7dc`.
+  See [package results][package].
+
+## Validation
+
+| Check | Recorded result |
 | --- | --- |
-| What the client can call | [Protocol support](gaps.md) and rustdoc |
-| Which brokers and platforms are tested | [Support matrix](support.md) |
-| What the broker implements | [Broker README](https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/partitionline-broker/README.md) |
-| Which work items are open | [Task registry](https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/docs/plan/tasks.json) |
-| How a benchmark number should be read | [Benchmark guide](benchmark.md) |
+| Client default library at `77021f7dc` | 2,145 passed, 24 failed; later integration targets did not run |
+| Client all-feature library at that commit | 2,152 passed, 17 failed; later integration targets did not run |
+| Broker default all targets at that commit | 701 passed |
+| Broker all features at that commit | 710 passed, two failed; stopped at `raft_runtime` |
+| Client strict all-target Clippy, security, documentation and package jobs | Passed at that commit |
+| Exact current-commit CI and release gates | Not passed |
 
-The task registry has 346 cards: 249 done, 13 in progress, and 84 pending.
-Those counts were checked against `tasks.json` on 28 October 2026.
+The [client failure index][client] and [CI snapshot][ci] preserve the results.
+The broker workflow also failed its source-pinned inventory and fuzz supervisor
+setup. Both capability lanes have stale case counts; the repaired selection
+requires 93 named Rust cases and reports two external servers separately.
+Successful opt-in probes do not establish external peer coverage. Later focused
+results do not replace a clean full matrix.
 
-Current qualification uses stable Rust 1.99.1. The seeded fault oracle now
-checks generation fencing and post-abort reuse; default and all-feature runs
-each pass 3,004 outcomes with zero observer discrepancies. Nine supervisor
-checks also pass inside the detached fuzz runtime. One campaign failed after
-3,223 seconds and exposed a journal truncation bug, now fixed and checked in
-both feature modes. The rebuilt candidate failed after 2,704 seconds with
-another epoch-recovery timeout. Its retained 60-byte seed passes exact replays;
-the timeout remains unexplained. No campaign is currently running and no
-24-hour run has passed. See the [current fuzz result](https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/docs/evidence/broker/fuzz/20261027-candidate06/README.md).
+## Open work
 
-On clean commit `de38cd3df`, broker default all-target tests reported 687
-passed. All-feature tests reported 830 passed and one OIDC revocation-order
-failure. All-target, all-feature strict Clippy and the documentation build
-passed. Several live-peer probes returned early without their environment
-variables. The original run stopped before doctests at its disk guard; two
-separate doctest commands passed but found zero tests. See the [clean broker
-results](https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/docs/evidence/broker/clean-validation-20261028/README.md). Later OIDC
-ordering tests passed on an integrated working tree; the full broker matrix
-has not been rerun on the current commit.
+Producer worker retirement, shutdown and retry cancellation have 33 passing
+focused controls. The broader candidate library run has 2,176 passes and 20
+failures; seven producer integration targets have 118 passes, 19 failures and
+two ignored tests. These local runs used one test thread and an 8 MiB stack;
+see [producer results][producer]. Partition issue ordering, modular sequence wrap, producer-identity
+transitions and unresolved-batch replay still need repair and peer histories.
 
-The [active qualification goal](https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/docs/plan/goal-qualification.json) continues through
-the client build/runtime gates, independent conformance, sustained runs and
-matched benchmarks on this x86_64 workspace. On clean commit `53b5af47f`,
-the client default all-target matrix reported 3,354 passed, 76 failed and
-37 ignored across eight failing targets. See the [client results and failure
-index](https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/docs/evidence/client/clean-default-validation-20261028/README.md). The
-all-feature client matrix and core/full conformance remain incomplete. A bounded syscall
-diagnostic reproduced a timeout under tracing and a lower CPU limit; the cause
-of the original untraced timeout remains unresolved. No 24-hour run has passed.
+Consumer delivery, buffered offsets and aborted-transaction state must remain
+consistent across errors, cancellation and topic recreation. Join/reset-leader
+overlap, live group retries and a compatibility-test stack overflow also remain
+open. GSSAPI and connection-driven SASL reauthentication
+are incomplete; [protocol support](gaps.md) lists those feature gaps.
 
-Later [buffer reservation checks](https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/docs/evidence/perf/buffer-reservations-20261030/README.md)
-corrected 219 length-relative reservation calls and restored the codec
-allocation gate without raising budgets. The 48-cell encoder census dropped
-from 84 growth allocations to 48, with identical encoded bodies and no warmed
-allocations. Default protocol unit tests reported 1,385 passed and two existing
-failures; scoped codec tests and strict Clippy passed. These checks did not
-measure throughput or replace the full client matrix.
+The broker still needs replicated partition data, authenticated network
+leadership, committed-watermark protection and transaction participant/marker
+propagation. Local replica-epoch and journal-publication fixes are under
+qualification. A local log test does not establish a production cluster.
 
-The [earlier readiness assessment](https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/docs/evidence/broker/qualification-20261027/status.json)
-and [failed campaigns](https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/docs/evidence/broker/fuzz/20261027-candidate06/README.md) retain
-the previous failures. Production readiness and fastest-performance claims
-remain unqualified.
+No 24-hour fault campaign or seven-day continuity run has passed. The retained
+2,704-second epoch-recovery timeout is unexplained; successful seed replays
+do not resolve it. See the [fault campaign record][faults].
 
-The [next-work handoff](https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/docs/plan/next-work.md) records the main correctness
-blockers, candidate status, validation steps and benchmark scope.
+Performance work is authorized on this shared x86_64 workspace. Matched
+comparisons and independent record verification remain open. The
+[benchmark rules](benchmark-contract.md) govern any claim. Current TLS uses
+Ring, whose dependency includes C and assembly; an all-dependency Rust-only
+claim is not established.
 
-## Client
+Use [next work][next] for the detailed handoff, [support](support.md) for tested
+combinations, and the [release guide](RELEASE.md) for publication gates.
+The [task registry][tasks] remains at 249 done, 13 in progress and 84 pending;
+these changes close no cards. The [previous status][previous] retains older
+measurements and dated notes.
 
-The client speaks the versions listed in the [design notes](design.md#wire-format-notes).
-Selected tests cover Apache Kafka 3.9.1, 4.1.0, 4.1.2, 4.2.1, and 4.3.1.
-Which combination was run is in the [support matrix](support.md).
-
-Ordinary produce, fetch, groups, and transactions are in the tree.
-InitProducerId negotiates v0–v6 and leaves both two-phase flags false
-(KL05-35). These items are still open:
-
-| Gap | Standing |
-|---|---|
-| Opt-in two-phase initialization, and resume when a prepared transaction is unavailable | KL05-36, pending |
-| SASL reauthentication driven by producer connections | KL06-11, in progress. Shared round-trip callers are KL06-12, pending. Client loops do not reauthenticate on a timer. |
-| Broker SASL connection reauthentication | KL11-71, in progress |
-| Recorded producer, consumer, and transaction fault histories | KL03-19 and KL03-20, pending. These are evidence cards. |
-| GSSAPI / Kerberos | Not implemented. KL06-08, the provider proposal, is in progress. |
-
-## Broker
-
-KL11-01 through KL11-09 are done. That range covers framed transport, the
-checksummed journal, topic metadata, validated Produce, Fetch, ListOffsets,
-and independent clients against one persisted node. KL11-46 still needs a rolling mixed-version network history; its existing
-evidence covers one local admin journal. Unit and integration tests do not
-by themselves make the broker production-ready. The
-[broker plan](https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/docs/plan/broker-implementation.md) records the remaining checks,
-including sustained fuzz, resource soaks, and peer authentication.
-
-## Snapshot from 8 October 2026
-
-The notes below describe that date's source. They are not a count of today's
-test suite.
-
-Earlier full-suite checks with Rust 1.99.0 passed 2,090 default-feature tests
-and 2,102 all-feature tests. Formatting, strict Clippy, and rustdoc checks
-passed. The packaged default, tracing, zstd, and combined-feature builds each
-compiled 24 documentation examples.
-
-Whole-broker checks passed 344 default and 484 all-feature tests. A fixed-peer
-metadata runtime passed finite three-node and five-node private TCP fault,
-snapshot, and restart histories with independent journal replay. Native Kafka
-replication and production qualification were still open.
-
-UpdateFeatures v0 rejected validation-only requests before encoding or
-dispatch. The qualification record is
-[q-conf-updatefeatures](https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/docs/evidence/conformance/q-conf-updatefeatures/qualification-20261008/README.md).
-
-A pinned local baseline recorded codec, null-broker, native broker, and
-open-loop latency measurements. All five 80% latency profiles contained
-bounded-capacity rejections. Those failures and the missing-cell list are in
-the [baseline evidence](https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/docs/evidence/perf/baseline/README.md). A
-[build-profile comparison](https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/docs/evidence/perf/build-profiles/README.md) recorded
-LTO, codegen-unit, CPU-target, and PGO variants. Those local results did not
-change library defaults.
-
-The benchmark report enforced the complete schema. Corrected null-broker
-produce, fetch, and connect outputs passed, with explicit fields for absent
-durability and warmup. See
-[format evidence](https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/docs/evidence/perf/null-result-schema/README.md).
-
-Pinned Java, librdkafka, and franz-go clients passed bounded Produce and Fetch
-checks against the null broker. Fetch used the fixture's seeded stream.
-[Peer evidence](https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/docs/evidence/perf/nullbroker-peers/README.md) records the limit,
-source hashes, retained failures, and process cleanup. That is fixture
-compatibility, not a storage or speed claim.
-
-The orchestrator rejected client-ceiling cells inside Kafka-throughput
-manifests. Its null-broker tier still needed qualified adapters. The franz-go
-driver was missing ten settings required by the comparison preflight, and
-those omissions were reported. [Orchestrator evidence](https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/docs/evidence/perf/matrix-tiers/README.md)
-keeps the earlier tier-mixing failure. KL09-68 was open in that snapshot.
-
-The Go peer applied its reported `none` compression setting explicitly.
-[Compression evidence](https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/docs/evidence/perf/franz-compression-20261008/README.md)
-records the tested source. The shared configuration was incomplete, so the
-correction did not qualify a comparable campaign.
-
-The [workspace archive](https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/docs/evidence/workspace-publication-20261008/README.md)
-preserves the original evidence files from that publication.
+[buffers]: https://github.com/mingley/partitionline/blob/77021f7dc6c0d19aa93c7bf0b7fad125ee632e23/docs/evidence/perf/buffer-reservations-20261030/README.md
+[reconnect]: https://github.com/mingley/partitionline/blob/77021f7dc6c0d19aa93c7bf0b7fad125ee632e23/docs/evidence/client/reconnect-versions-20261030/README.md
+[dependencies]: https://github.com/mingley/partitionline/blob/77021f7dc6c0d19aa93c7bf0b7fad125ee632e23/docs/evidence/security/dependency-floors-20261030/README.md
+[package]: https://github.com/mingley/partitionline/blob/77021f7dc6c0d19aa93c7bf0b7fad125ee632e23/docs/evidence/releases/package-navigation-20261030/README.md
+[client]: https://github.com/mingley/partitionline/blob/77021f7dc6c0d19aa93c7bf0b7fad125ee632e23/docs/evidence/client/clean-default-validation-20261028/README.md
+[ci]: https://github.com/mingley/partitionline/blob/908dbdf2f20c8462a741ce59a4f56be2f310048e/docs/evidence/releases/main-ci-77021-20261030/README.md
+[producer]: https://github.com/mingley/partitionline/blob/908dbdf2f20c8462a741ce59a4f56be2f310048e/docs/evidence/client/producer-admission-20261030/README.md
+[faults]: https://github.com/mingley/partitionline/blob/77021f7dc6c0d19aa93c7bf0b7fad125ee632e23/docs/evidence/broker/fuzz/20261027-candidate06/README.md
+[next]: https://github.com/mingley/partitionline/blob/908dbdf2f20c8462a741ce59a4f56be2f310048e/docs/plan/next-work.md
+[tasks]: https://github.com/mingley/partitionline/blob/77021f7dc6c0d19aa93c7bf0b7fad125ee632e23/docs/plan/tasks.json
+[previous]: https://github.com/mingley/partitionline/blob/77021f7dc6c0d19aa93c7bf0b7fad125ee632e23/docs/STATUS.md
