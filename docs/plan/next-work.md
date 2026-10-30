@@ -12,26 +12,28 @@ Client 0.1.0 is already published. The next client version must be at least
 
 | Scope | Recorded result |
 | --- | --- |
-| Client default library, `77021f7dc` | 2,145 passed, 24 failed; later integration targets did not run |
-| Client all-feature library at that commit | 2,152 passed, 17 failed; later integration targets did not run |
+| Client default library, `fe65ac783` | 2,174 passed, 22 failed; later integration targets did not run |
+| Client all-feature library at that commit | 2,180 passed, 16 failed; later integration targets did not run |
 | Broker default all targets at that commit | 701 passed |
-| Broker all features at that commit | 710 passed, two failed; stopped at `raft_runtime` |
+| Broker all-feature all targets at that commit | 849 passed |
 | Client strict all-target Clippy, audit and dependency policy at that commit | Passed |
 | Reconnect candidate | 14 unit controls and six integration targets passed; latest broad Fetch 167 passed, two failed, one ignored |
 | Integrated-source package navigation | 20 documentation tests passed; extracted crate checked 30 documents, 225 local links, 51 pinned repository targets |
-| Package consumers and publication dry run at `77021f7dc` | Passed; actual publication remains gated |
+| Package consumers and publication dry run at `fe65ac783` | Passed; actual publication remains gated |
 | New dependency floors | 14 metadata graphs and 11 resolver controls passed; GitHub audit and policy checks pass |
 | Fault/continuity campaigns | No passing 24-hour or seven-day run |
 
 The [client matrix](../evidence/client/clean-default-validation-20261028/README.md),
-[CI snapshot](../evidence/releases/main-ci-77021-20261030/README.md),
+[CI snapshot](../evidence/releases/main-ci-fe65-20261030/README.md),
 [reconnect record](../evidence/client/reconnect-versions-20261030/README.md),
 [package checks](../evidence/releases/package-navigation-20261030/README.md)
 and [dependency record](../evidence/security/dependency-floors-20261030/README.md)
 retain the exact scopes. Passing opt-in probes alone does not prove external
-peer coverage. The broker workflow still failed its inventory and fuzz
-supervisor setup. The previous commit's full broker passes remain in the
-[earlier snapshot](../evidence/releases/main-ci-20261030/README.md).
+peer coverage. The broker inventory still failed its source bindings. The
+reviewed 11-hash refresh passes the static checker; CI must still run all 55
+negative controls. Fuzz supervision now passes 12 controls using real workers.
+The two earlier Raft observer failures remain recorded despite the later
+849-test pass. No long campaign is credited.
 Current-commit green CI and the complete release gates remain open.
 
 ## Correctness priorities
@@ -105,22 +107,37 @@ Current-commit green CI and the complete release gates remain open.
 Run clean-commit client, broker and schema default/all-feature suites,
 all-target strict Clippy, formatting, rustdoc, package consumers and independent
 peer histories after fixes. Test-lint cleanup passes the remote client
-all-target/all-feature gate at `77021f7dc`. Preserve all failed, skipped and ignored
+all-target/all-feature gate at `fe65ac783`. Preserve all failed, skipped and ignored
 cases. The [release guide](../RELEASE.md) requires exact-commit CI, package
 checks and interruption-recovery rehearsal before publication.
 
-The repaired capability inventory requires 93 named Rust cases and separately
-reports two external server tests. Its 11 Python controls pass; both Rust lanes
-still need to run. The Java codec setup now uses the LZ4 coordinate in Kafka's
-published POM, with the existing jar hash. Missing cgroup quota metadata now
-records an unknown value; the three pure controls pass, while actual worker
-supervision remains unqualified. See the
-[selection](../evidence/client/capability-selection-20261030/README.md) and
-[CI prerequisite](../evidence/releases/ci-repairs-20261030/README.md) records.
+The capability inventory still requires 93 named Rust cases and separately
+reports two external server tests. At `fe65ac783`, the default lane has 91 raw
+passes and two ignored required Java-fixture cases; its original parser reports
+67 verified passes. Both lanes remain failed. The follow-up installs Java 21,
+generates pinned fixtures, runs those two cases and requires Java reverse
+parsing. All 31 pure controls pass; actual fixture qualification awaits CI.
+The corrected LZ4 coordinate now passes the Java/Rust codec lane. See the
+[fixture gate](../evidence/client/capability-java-20261030/README.md) and
+[CI snapshot](../evidence/releases/main-ci-fe65-20261030/README.md).
+
+The new candidate workflow runs isolated client and broker sources on existing
+x86 GitHub runners. The client contract requires 108 library controls, 14
+integration controls and full runs of ten chosen binaries in both feature
+configurations. Its ordinary test stack is 8 MiB, with a separate 2 MiB mock
+group-lifecycle probe; live stack safety remains open. The broker contract
+requires seven baseline failures, 12 fixed controls, full default/all-feature
+targets, strict Clippy/docs and the 55 inventory controls. These are prepared
+contracts, not native passing results. Original production Rust remains
+unchanged by the workflow setup. See the
+[client candidate](../evidence/client/candidate-20261030/v3/README.md) and
+[broker candidate](../evidence/broker/candidate-20261030/v1/README.md).
 
 The workspace has a four-CPU quota and limited disk. Serialize builds and
 timing runs, retain source/executable hashes, and monitor a 1.5 GiB free-space
-floor. Inactive Cargo cache files may be reclaimed only after exact compressed
+floor. The latest local broker baseline build hit that floor before any tests
+ran; it is incomplete, not a test result. Native candidate qualification moves
+to the existing GitHub runners without lowering the local guard. Inactive Cargo cache files may be reclaimed only after exact compressed
 retention is verified. Do not remove immutable executable archives, failed
 campaigns or their inputs. Candidate files under `/workspace/work` are local
 scratch and are not promised as repository downloads.

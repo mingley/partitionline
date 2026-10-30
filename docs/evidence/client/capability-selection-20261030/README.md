@@ -1,5 +1,9 @@
 # Capability case selection
 
+This record covers the first selection repair. The later
+[Java fixture record](../capability-java-20261030/README.md) describes the two
+required ignored cases missed by that repair and preserves the failed CI run.
+
 The capability workflow at `77021f7dc` failed because its expected counts were
 stale. It also included two ignored external server tests in the total it
 expected to execute. Those tests require independent peers and do not establish

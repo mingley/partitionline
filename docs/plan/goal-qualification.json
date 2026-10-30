@@ -11,7 +11,7 @@
     "Equal-settings client/server x86_64 benchmark matrices, repeated runs, independent record verification and scoped claim audit satisfy the frozen workload and integrity thresholds.",
     "All required cards and failures are closed with evidence; every result names its measured scope."
   ],
-  "current_phase": "Qualify producer admission, lifecycle and retry ownership on patched dependencies; then broker epoch durability and journal permissions. Continue issue-order repair, full matrices, peer histories, sustained runs and scoped x86 comparisons.",
+  "current_phase": "Run prepared client and broker fixes through exact-source x86 CI. Repair observed failures without weakening gates; then integrate qualified source, run the complete main matrices, and continue issue/replay ownership, independent histories, sustained runs and matched x86 comparisons.",
   "baseline": {
     "source_sha": "981ed100a0dc2ad910aa40163be9c4ae766eb4c6",
     "broker_default": {
@@ -47,25 +47,26 @@
   ],
   "progress": {
     "broker_default_functional_tests": 701,
-    "broker_all_features_functional_tests": "At 77021f7dc, GitHub default all targets: 701 passed. All features stopped at raft_runtime: 710 passed and 2 failed across 25 result blocks. Earlier 02ce806d7 full all-feature 849 passed remains historical.",
+    "broker_all_features_functional_tests": "At fe65ac783, full GitHub default701 and all-feature849 passed. Strict all-target/all-feature Clippy, rustdoc and both doctest profiles passed. The two earlier77021 Raft observer failures remain unexplained.",
     "broker_strict_clippy_default_exit": 0,
     "broker_strict_clippy_all_features_exit": 0,
     "broker_format_exit": 0,
-    "client_full_suite": "At 77021f7dc, GitHub library: default 2145 passed/24 failed; all features 2152 passed/17 failed. Both all-target commands stopped at library failures. Earlier 53b5af47f default all-target 3354 passed/76 failed/37 ignored remains historical.",
+    "client_full_suite": "At fe65ac783, GitHub library default2174 passed/22 failed; all features2180 passed/16 failed. Both all-target commands stopped at library failures. Older full integration and local8MiB observations remain retained, not replaced.",
     "independent_apache_checks": "Pinned Apache Kafka 4.1.2 confirms Fetch unknown boundaries and legacy ListOffsets selector errors; a separate exploratory fetch-session run has independent Java readback but an unpinned client build.",
     "recovery_diagnostic": "The retained input timed out under strace with 0.25 CPU; tracing and limits differ from the failed 3-CPU untraced campaign, so its cause remains unresolved. No qualification time credited.",
     "production_ready": false,
     "fastest_client_qualified": false,
     "fastest_server_qualified": false,
-    "broker_evidence": "docs/evidence/releases/main-ci-77021-20261030/README.md; current default passed, all-feature raft_runtime failed. Inventory and fuzz supervisor setup also failed. Current-commit gates remain open.",
+    "broker_evidence": "docs/evidence/releases/main-ci-fe65-20261030/README.md. Inventory still failed11stale hashes; reviewed digest-only refresh passes static inventory but55negativecontrols await CI. Real instrumented fuzz build/lint and12supervisor controls pass; no24h campaign completed.",
     "next_work": "docs/plan/next-work.md",
     "reconnect": "14 focused unit controls and six integration targets passed; latest phase 10 broad Fetch: 167 passed, 2 failed, 1 ignored. Earlier timing/timeout failures retained. Final phase 11 changed-test replay passed; no fresh broad matrix claimed.",
     "dependency_floors": "Five dependencies patched across ten active lockfiles; 14 metadata graphs and 11 resolver controls passed. At 77021f7dc audit reports zero vulnerabilities and warnings against database 2295466c4e9df26647fd67d8fa1c705ac2fc7f81; dependency policy passed. Runtime qualification remains open.",
     "package_navigation": "20 documentation tests and extracted-crate navigation passed: 30 documents, 225 local links, 51 pinned repository targets. At 77021f7dc remote documentation/package consumers and publish dry run passed. Actual release remains gated.",
-    "integrated_source": "77021f7dc6c0d19aa93c7bf0b7fad125ee632e23; no release or production-readiness qualification.",
+    "integrated_source": "fe65ac7833fbaaa81331e31a182964c4ef3657a5 product Rust; prepared CI assets add no production Rust changes. No release or production qualification.",
     "producer_ownership": "33 focused producer/protocol controls pass; baseline failures retained and strict all-target/all-feature Clippy passed. Candidate default library: 2176 passed/20 failed. Seven producer integration targets: 118 passed/19 failed/2 ignored. Partition issue ownership and accepted-payload cancellation across awaits remain open.",
-    "capability_case_selection": "Exact discovery requires 95 named cases: 93 semantic Rust cases and 2 external peer servers. 11 Python controls passed; the original 77021f7dc workflow remains failed and repaired Rust lanes await CI.",
-    "client_strict_clippy": "77021f7dc remote all-target/all-feature Clippy passed."
+    "capability_case_selection": "93required Rust cases, including2required Java-fixture cases;2SDK servers separate. fe65 default raw91pass/2requiredignored; original report67verified and failed. Follow-up generates pinned Java fixtures and requires450reverse checks.31pure controls pass; actual new Java/Rust lane pending CI.",
+    "client_strict_clippy": "fe65ac783 remote all-target/all-feature Clippy passed.",
+    "candidate_qualification": "Prepared isolated client contract:108library/14integration controls, full10chosenbinaries default/allfeatures,8MiBordinary stack plus2MiBmockprobe. Broker:7negative/12fixedcontrols,fullmatrices/Clippy/docs/55inventorycontrols.17client+11broker guard controls and6shared process-tree controls pass. Native candidate results pending; local broker compile stopped at1.5GiBdiskfloor before tests."
   },
   "platform_scope": {
     "architecture": "x86_64",

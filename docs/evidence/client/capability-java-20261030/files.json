@@ -15,24 +15,32 @@
     "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
   },
   {
-    "path": "fe65-default/share_offsets_v1-execution.stderr",
-    "bytes": 195,
-    "sha256": "50ce85d5c3e218c41b39550819b1ad7c96c4b24654817c3f6cd852fe678e0e3d"
+    "path": "fe65-default/share_offsets_v1-execution.stderr.gz",
+    "bytes": 166,
+    "sha256": "5df6524dff5179fc2ba5d99ef2b54b46268238834e672ba7664916a391ec23c6",
+    "uncompressed_bytes": 195,
+    "uncompressed_sha256": "50ce85d5c3e218c41b39550819b1ad7c96c4b24654817c3f6cd852fe678e0e3d"
   },
   {
-    "path": "fe65-default/share_offsets_v1-execution.stdout",
-    "bytes": 1159,
-    "sha256": "da29448db696526647a07c770463b07cb3d0e4843a1bd9c08b2c5edf9ca3cc86"
+    "path": "fe65-default/share_offsets_v1-execution.stdout.gz",
+    "bytes": 566,
+    "sha256": "516bdcdc1fca551067255265c79ed3b951c9858878f297e587b3d8e60d3a3329",
+    "uncompressed_bytes": 1159,
+    "uncompressed_sha256": "da29448db696526647a07c770463b07cb3d0e4843a1bd9c08b2c5edf9ca3cc86"
   },
   {
-    "path": "fe65-default/write_txn_markers_v2-execution.stderr",
-    "bytes": 203,
-    "sha256": "17203c0ad465454fe47a208eaa14a7173fd7c7f226ab87d09357ffc6ec11f91c"
+    "path": "fe65-default/write_txn_markers_v2-execution.stderr.gz",
+    "bytes": 171,
+    "sha256": "49e369fc8334f65f0b8018b46b2d8425578e14c0769403e9f3401bd577685199",
+    "uncompressed_bytes": 203,
+    "uncompressed_sha256": "17203c0ad465454fe47a208eaa14a7173fd7c7f226ab87d09357ffc6ec11f91c"
   },
   {
-    "path": "fe65-default/write_txn_markers_v2-execution.stdout",
-    "bytes": 1136,
-    "sha256": "2e231a1209c4962582c49808dffac64a36fb2097133b732728332a8dbf2adce5"
+    "path": "fe65-default/write_txn_markers_v2-execution.stdout.gz",
+    "bytes": 576,
+    "sha256": "74fbe8498f30785fe6ddf3282bf0d02b1fbd8d3723d322400fb6ccc772736e12",
+    "uncompressed_bytes": 1136,
+    "uncompressed_sha256": "2e231a1209c4962582c49808dffac64a36fb2097133b732728332a8dbf2adce5"
   },
   {
     "path": "fe65-default-artifact-manifest.json.gz",
