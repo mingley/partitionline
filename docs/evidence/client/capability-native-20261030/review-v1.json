@@ -1,0 +1,309 @@
+{
+  "schema_version": 1,
+  "agent": "/root/capability_review",
+  "reviewed_at": "2026-10-30T22:32:48.892940+00:00",
+  "verdict": "PASS for the narrow recorded exact-source capability and Apache marker/share codec-fixture contract in default and all-feature profiles.",
+  "source_sha": "209d0b068796884a7fb0a1b6ef6032cc23d388d8",
+  "run_id": 41137429080,
+  "profiles": {
+    "default": {
+      "compact_zip": {
+        "path": "/workspace/attachments/46f9afc5-50a5-4ae9-a57e-86dcea399d79/capabilities-209-default-report.zip",
+        "bytes": 33812,
+        "sha256": "8ae5049406aa068d0adb937b0c1d89c864f2d7f1cf9e8057c2689e3581c8ec19"
+      },
+      "inner_validation_sha256": "91d500e07cc1913447e60505e0afcc7dad9c8617d3b42342b0dc34fcad2a5829",
+      "commands": {
+        "count": 38,
+        "all_returned_zero": true,
+        "all_no_guard_trigger": true,
+        "all_joined": true
+      },
+      "native_cases": {
+        "passed": 93,
+        "failed": 0,
+        "ignored": 0,
+        "suite_counts": {
+          "write_txn_markers_v2": 13,
+          "share_offsets_v1": 13,
+          "partitioner": 14,
+          "sticky_partitioner": 29,
+          "streams_protocol": 24
+        }
+      },
+      "java": {
+        "generated_fixture_files": 663,
+        "final_members_including_Rust_exports": 669,
+        "Rust_export_pairs": 225,
+        "actual_reverse_parse_checks": 450,
+        "null_rejection_controls": 85,
+        "counts_by_release": {
+          "write_txn_markers_v2": {
+            "4.1.2": {
+              "generated_files": 83,
+              "supported": 36,
+              "unsupported": 61,
+              "null_controls": 8,
+              "rust_pairs": 25,
+              "actual_java_reverse_checks": 50
+            },
+            "4.2.1": {
+              "generated_files": 163,
+              "supported": 72,
+              "unsupported": 25,
+              "null_controls": 16,
+              "rust_pairs": 50,
+              "actual_java_reverse_checks": 100
+            },
+            "4.3.1": {
+              "generated_files": 163,
+              "supported": 72,
+              "unsupported": 25,
+              "null_controls": 16,
+              "rust_pairs": 50,
+              "actual_java_reverse_checks": 100
+            }
+          },
+          "share_offsets_v1": {
+            "4.1.2": {
+              "generated_files": 52,
+              "supported": 20,
+              "unsupported": 20,
+              "null_controls": 9,
+              "rust_pairs": 20,
+              "actual_java_reverse_checks": 40
+            },
+            "4.2.1": {
+              "generated_files": 101,
+              "supported": 40,
+              "unsupported": 0,
+              "null_controls": 18,
+              "rust_pairs": 40,
+              "actual_java_reverse_checks": 80
+            },
+            "4.3.1": {
+              "generated_files": 101,
+              "supported": 40,
+              "unsupported": 0,
+              "null_controls": 18,
+              "rust_pairs": 40,
+              "actual_java_reverse_checks": 80
+            }
+          }
+        }
+      },
+      "source_guard_reported_matching": true,
+      "source_file_count_reported": 136419,
+      "streams": {
+        "passed": true,
+        "case_count": 24,
+        "export_files": 234,
+        "export_bytes": 218229,
+        "Java_reverse_qualified": false
+      },
+      "SDK_socket_qualified": false,
+      "full_external_evidence_archive": {
+        "path": "evidence.tar.gz",
+        "sha256": "42ded7650feea87bd953ac7e5803d6f6d91608232cc845172c7f8ea9e61ea912",
+        "bytes": 37526211,
+        "original_full_mode": 384
+      }
+    },
+    "all-features": {
+      "compact_zip": {
+        "path": "/workspace/attachments/2eab85e1-ff73-4901-96c1-0a791124ed9d/capabilities-209-all-features-report.zip",
+        "bytes": 33841,
+        "sha256": "2f71f58087483c48497e21cbe6c00db93ad73d6129985dfa317d35fd31a8e53e"
+      },
+      "inner_validation_sha256": "c9a112f9e7386f1f0826adb6ee3f31b9a3e05f18a362e9894b2ad8005643dbd2",
+      "commands": {
+        "count": 38,
+        "all_returned_zero": true,
+        "all_no_guard_trigger": true,
+        "all_joined": true
+      },
+      "native_cases": {
+        "passed": 93,
+        "failed": 0,
+        "ignored": 0,
+        "suite_counts": {
+          "write_txn_markers_v2": 13,
+          "share_offsets_v1": 13,
+          "partitioner": 14,
+          "sticky_partitioner": 29,
+          "streams_protocol": 24
+        }
+      },
+      "java": {
+        "generated_fixture_files": 663,
+        "final_members_including_Rust_exports": 669,
+        "Rust_export_pairs": 225,
+        "actual_reverse_parse_checks": 450,
+        "null_rejection_controls": 85,
+        "counts_by_release": {
+          "write_txn_markers_v2": {
+            "4.1.2": {
+              "generated_files": 83,
+              "supported": 36,
+              "unsupported": 61,
+              "null_controls": 8,
+              "rust_pairs": 25,
+              "actual_java_reverse_checks": 50
+            },
+            "4.2.1": {
+              "generated_files": 163,
+              "supported": 72,
+              "unsupported": 25,
+              "null_controls": 16,
+              "rust_pairs": 50,
+              "actual_java_reverse_checks": 100
+            },
+            "4.3.1": {
+              "generated_files": 163,
+              "supported": 72,
+              "unsupported": 25,
+              "null_controls": 16,
+              "rust_pairs": 50,
+              "actual_java_reverse_checks": 100
+            }
+          },
+          "share_offsets_v1": {
+            "4.1.2": {
+              "generated_files": 52,
+              "supported": 20,
+              "unsupported": 20,
+              "null_controls": 9,
+              "rust_pairs": 20,
+              "actual_java_reverse_checks": 40
+            },
+            "4.2.1": {
+              "generated_files": 101,
+              "supported": 40,
+              "unsupported": 0,
+              "null_controls": 18,
+              "rust_pairs": 40,
+              "actual_java_reverse_checks": 80
+            },
+            "4.3.1": {
+              "generated_files": 101,
+              "supported": 40,
+              "unsupported": 0,
+              "null_controls": 18,
+              "rust_pairs": 40,
+              "actual_java_reverse_checks": 80
+            }
+          }
+        }
+      },
+      "source_guard_reported_matching": true,
+      "source_file_count_reported": 136419,
+      "streams": {
+        "passed": true,
+        "case_count": 24,
+        "export_files": 234,
+        "export_bytes": 218229,
+        "Java_reverse_qualified": false
+      },
+      "SDK_socket_qualified": false,
+      "full_external_evidence_archive": {
+        "path": "evidence.tar.gz",
+        "sha256": "b92bcb9eefac40652f7582c5cdf03f125553641e990644c1b17e39aefec463ae",
+        "bytes": 37525781,
+        "original_full_mode": 384
+      }
+    }
+  },
+  "cross_profile_consistency": {
+    "source_manifest_metadata_identical": true,
+    "Cargo_lock_and_case_inventory_identical": true,
+    "toolchain_identities_identical": true,
+    "all_Java_input_fixture_reverse_metadata_identical": true,
+    "all_Streams_export_metadata_identical": true,
+    "114_original_Streams_fixture_hashes_independently_match_Git_objects_at_source": true
+  },
+  "source_inputs_independently_checked": {
+    "scripts/ci-client-capabilities.py": {
+      "bytes": 23808,
+      "sha256": "e37763ec7aded21e3aa89b872c545a850ababa65ff250c6e3700c17a20276665"
+    },
+    "scripts/client-capability-java.py": {
+      "bytes": 20167,
+      "sha256": "a90ad6b88d809b194a758e5271903dedee1cbcdab7405dfe8bfe6c8c335132bb"
+    },
+    "scripts/client-capability-cases.py": {
+      "bytes": 4307,
+      "sha256": "c78da427813fb86f64927f2ae3e494e3254a097a4ef3d110d5f06254af2615a4"
+    },
+    "tests/conformance/client-capability-cases.json": {
+      "bytes": 9055,
+      "sha256": "8fcfd5972397aa41a7dece1fc1dd3c0401b656f215c17f646bf0f8ccd38a0cda"
+    },
+    "Cargo.lock": {
+      "bytes": 18399,
+      "sha256": "bdc37c48feb0d7a17a1b08e70c5301ec30b9a90e64c93adaf28aef6b6f9f46bc"
+    },
+    ".github/workflows/capabilities.yml": {
+      "bytes": 3680,
+      "sha256": "2b0016d0ec42791fbf19bdebc5af6822b698c0eb5443c7c974d0b45e118008ca"
+    },
+    "docs/evidence/client/write-txn-markers-v2/oracle/CapabilityOracle.java": {
+      "bytes": 21332,
+      "sha256": "bba1a3c3c005ff40149096c628edc81937a683373b87a3d757bb7eb9c7f795ca"
+    },
+    "docs/evidence/client/write-txn-markers-v2/oracle/MarkerNullOracle.java": {
+      "bytes": 3662,
+      "sha256": "fdc72702ce67659a062377181ba895aab2a0e1c62eef5498323672c3bcf17fbc"
+    },
+    "docs/evidence/client/share-offsets-v1/oracle/ShareCapabilityOracle.java": {
+      "bytes": 17877,
+      "sha256": "2f75916c9a77231735fd2dffbed013ec689d1eefcfd5a6fb6d7acefda6af5029"
+    },
+    "docs/evidence/client/share-offsets-v1/oracle/ShareNullOracle.java": {
+      "bytes": 3873,
+      "sha256": "a4a51e4441f25e6680f1226e4a7a09931724df8594646f1a3cd236dd04aee6cf"
+    }
+  },
+  "toolchain": {
+    "rustc": "1.99.1 (58cf8f9c3 2026-10-13)",
+    "cargo": "1.99.1 (5f94df478 2026-08-27)",
+    "host": "x86_64-unknown-linux-gnu",
+    "LLVM": "23.1.1"
+  },
+  "limits": [
+    "Compact report bytes, wrapper binding, exact test identities, command outcomes, metadata consistency and listed source input hashes were independently checked. Java, Rust and fixture parsing were not re-executed locally.",
+    "Full external artifacts and inner evidence tarballs, raw command logs, full136419file source inventory, jars, generated fixture bytes and Rust-emitted bytes were not downloaded or rehashed locally. Their retained digests/results were read from the verified compact reports.",
+    "No OOM counters are included in this driver report; zero OOM events and broad resource qualification are not established. No command reported a guard trigger.",
+    "SDK public socket peers and Streams Java reverse remain unqualified. This passing lane does not establish broad production readiness, live cluster compatibility, performance rank, default-stack qualification or release readiness."
+  ],
+  "retained_original_reports": {
+    "default-validation.json.gz": {
+      "bytes": 32813,
+      "sha256": "bb52bca58cd897f838202e68b4937c622653ec5150ce0bd417d4ef0accc285a8",
+      "uncompressed_bytes": 441415,
+      "uncompressed_sha256": "91d500e07cc1913447e60505e0afcc7dad9c8617d3b42342b0dc34fcad2a5829"
+    },
+    "default-artifact-manifest.json": {
+      "bytes": 830,
+      "sha256": "65aac9fe775333e6a7788c63ff45dd31263254f910148a3c93db5ed78dede68a"
+    },
+    "all-features-validation.json.gz": {
+      "bytes": 32835,
+      "sha256": "dc3da69f9f332daf1600ea4fe4c4aaa9accbaf88a798076dde0bc9c13c20c990",
+      "uncompressed_bytes": 442117,
+      "uncompressed_sha256": "c9a112f9e7386f1f0826adb6ee3f31b9a3e05f18a362e9894b2ad8005643dbd2"
+    },
+    "all-features-artifact-manifest.json": {
+      "bytes": 835,
+      "sha256": "a53eb6c84516b8cd5f371c9eee441d61f5113c2da88e507264ac323f5685631b"
+    }
+  },
+  "prior_408_limited_review_preserved": true,
+  "network_downloads_or_native_local_execution": false,
+  "root_or_frozen_input_edits": false,
+  "review_setup_correction": "An initial review-only assertion incorrectly required --all-features on cargo -V. It was corrected to apply only to cargo test commands; native proof reports were unchanged.",
+  "review_script": {
+    "path": "review-v2.py",
+    "bytes": 19573,
+    "sha256": "a2c8e01b3012b6d8c6a00cb23048aab3a5a3d6fefe2caa5c510500b817b40626"
+  }
+}

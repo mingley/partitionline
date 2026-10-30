@@ -1,0 +1,155 @@
+{
+  "scope": "Test-only lint repairs and one reviewed unrelated broker registry metadata refresh. No production client behavior change, Cargo/compiler/native Rust qualification.",
+  "prepared_utc": "2026-10-30T22:46:10.958234+00:00",
+  "prior_v6_spec_sha256": "9ccf867be25a19175aa07050e42e01d66228791c19567b414f17e2b679642288",
+  "test_lint_repair": {
+    "scope": "Two test-only lint repairs, source preparation only. No Cargo/compiler/native Rust test.",
+    "prepared_utc": "2026-10-30T22:40:49.091170+00:00",
+    "actual_native_diagnostics": {
+      "log_sha256": "cbe496f3889b78f45d1a709cc9e973d523cb84e93d5235109b8c9445d3153fa1",
+      "error": "unused Option<TopicPartitionCursor> in admin::tests::described_topics_keep_the_first_page",
+      "unreachable_pub_peer_methods": 4,
+      "tests_run": false
+    },
+    "changes": [
+      "Bind the topic page decoder result and assert its cursor is None, matching the encoded fixture.",
+      "Restrict four test-only peer start/finish methods to pub(crate), preserving access from group/consumer/share sibling modules."
+    ],
+    "files": {
+      "src/admin.rs": {
+        "before": "7f0c7b5db034796dc1ce9da9de80b5ca2979a2d3801c477a092930abd3243a33",
+        "after": "f3a0f4029237ad7b918362b59088a1e96add4e0e69b3ccd70c53e44863ab26a3"
+      },
+      "src/net/test_peer.rs": {
+        "before": "5d1030413562bc937efe9ff638fde7ec0f5169ac7c27650cfff9f8e18f0a27e1",
+        "after": "e45283c9f1852be0ae63689dbb910a183d5db38fed5eb4974d7f9be33d6c993c"
+      }
+    },
+    "patch_sha256": "25b1117dd009ac54068e746a38ad4f22aeec8adaa0d5ea1c53c915b5afc1a930",
+    "patch_gzip_sha256": "5862da6dfc272b61ef5ebedce8b9fbaa278532d23c0808621c28528a8c2ee484",
+    "rustfmt": {
+      "command": [
+        "/workspace/work/cargo/bin/rustup",
+        "run",
+        "stable",
+        "rustfmt",
+        "--edition",
+        "2021",
+        "--config",
+        "skip_children=true",
+        "--check",
+        "/workspace/work/client-v7-integration-20261030/repaired/src/admin.rs",
+        "/workspace/work/client-v7-integration-20261030/repaired/src/net/test_peer.rs"
+      ],
+      "exit": 0,
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "source_audit": "Reviewed added decoder-call chains in cumulative patch. Wrapped continuations belong to explicit let bindings or containing expressions; the reported page fixture is the only newly bare test decoder unwrap found. Static audit is not an all-feature compilation proof.",
+    "legacy_baseline_warnings": "Dormant Preparing field/helpers generate expected controls-only baseline dead-code warnings. No lint allowances added; fixed production must still pass strict Clippy."
+  },
+  "changed_phase_hashes": {
+    "base": {
+      "tests/conformance/broker/implemented-api-versions.json": {
+        "before": "12063effcbf9c60ebcfda7d1627f1c5fb4e34103aefa6bc4cb5424d21a47d946",
+        "after": "511b2e432d609381b7878704aa1036c2db506b2244f6ffc28bcd0be169541dc8"
+      }
+    },
+    "baseline": {
+      "src/admin.rs": {
+        "before": "7f0c7b5db034796dc1ce9da9de80b5ca2979a2d3801c477a092930abd3243a33",
+        "after": "f3a0f4029237ad7b918362b59088a1e96add4e0e69b3ccd70c53e44863ab26a3"
+      },
+      "src/net/test_peer.rs": {
+        "before": "5d1030413562bc937efe9ff638fde7ec0f5169ac7c27650cfff9f8e18f0a27e1",
+        "after": "e45283c9f1852be0ae63689dbb910a183d5db38fed5eb4974d7f9be33d6c993c"
+      },
+      "tests/conformance/broker/implemented-api-versions.json": {
+        "before": "12063effcbf9c60ebcfda7d1627f1c5fb4e34103aefa6bc4cb5424d21a47d946",
+        "after": "511b2e432d609381b7878704aa1036c2db506b2244f6ffc28bcd0be169541dc8"
+      }
+    },
+    "fixed": {
+      "src/admin.rs": {
+        "before": "7f0c7b5db034796dc1ce9da9de80b5ca2979a2d3801c477a092930abd3243a33",
+        "after": "f3a0f4029237ad7b918362b59088a1e96add4e0e69b3ccd70c53e44863ab26a3"
+      },
+      "src/net/test_peer.rs": {
+        "before": "5d1030413562bc937efe9ff638fde7ec0f5169ac7c27650cfff9f8e18f0a27e1",
+        "after": "e45283c9f1852be0ae63689dbb910a183d5db38fed5eb4974d7f9be33d6c993c"
+      },
+      "tests/conformance/broker/implemented-api-versions.json": {
+        "before": "12063effcbf9c60ebcfda7d1627f1c5fb4e34103aefa6bc4cb5424d21a47d946",
+        "after": "511b2e432d609381b7878704aa1036c2db506b2244f6ffc28bcd0be169541dc8"
+      }
+    }
+  },
+  "ancillary_refresh": {
+    "path": "tests/conformance/broker/implemented-api-versions.json",
+    "before_sha256": "12063effcbf9c60ebcfda7d1627f1c5fb4e34103aefa6bc4cb5424d21a47d946",
+    "after_sha256": "511b2e432d609381b7878704aa1036c2db506b2244f6ffc28bcd0be169541dc8",
+    "reason": "Root adopted the independently native-qualified broker change and repinned its implementation-source digests; shared test fixture metadata is identical across all three client catalogs. Broker production tree remains outside sparse client source scope."
+  },
+  "source_input_counts": {
+    "base": 1741,
+    "baseline": 1748,
+    "fixed": 1748
+  },
+  "changed_Rust_paths": [
+    "src/admin.rs",
+    "src/admin/cooperative_tests.rs",
+    "src/cluster.rs",
+    "src/consumer.rs",
+    "src/group.rs",
+    "src/group/offsets.rs",
+    "src/net.rs",
+    "src/net/test_peer.rs",
+    "src/producer.rs",
+    "src/producer/prepare.rs",
+    "src/producer/prepare_tests.rs",
+    "src/protocol/acl.rs",
+    "src/protocol/admin.rs",
+    "src/protocol/cooperative.rs",
+    "src/protocol/cooperative/tests.rs",
+    "src/protocol/group.rs",
+    "src/protocol/mod.rs",
+    "src/share.rs",
+    "tests/common/mod.rs",
+    "tests/group_coordinator_startup.rs",
+    "tests/group_stack.rs",
+    "tests/mock_produce.rs"
+  ],
+  "required_controls": {
+    "library": 127,
+    "integrations": 14
+  },
+  "baseline_case_count": 22,
+  "fixed_delta_raw_and_compressed_bytes_identical_to_v6": true,
+  "controls_and_baseline_cases_unchanged": true,
+  "patches": {
+    "baseline.patch": {
+      "path": "baseline.patch.gz",
+      "sha256": "c5b875f6ad66e65d8a133d26eb03d02738056b1cbded8415824d28c30eb39129",
+      "bytes": 71440,
+      "uncompressed_sha256": "10ba23086d06bff310a49ef879791a113117d6623d01fad331018a5cfeb3ca28",
+      "uncompressed_bytes": 397865
+    },
+    "fixed.patch": {
+      "path": "fixed.patch.gz",
+      "sha256": "245d3b5091e96cd7de892c979143213b567fff611dedf93415fd3ad8daa657ff",
+      "bytes": 79084,
+      "uncompressed_sha256": "b9081e742e188b819053cd71074945f12cf36d2260e47cd0b661db6be3ff528c",
+      "uncompressed_bytes": 435401
+    },
+    "fixed-delta.patch": {
+      "path": "fixed-delta.patch.gz",
+      "sha256": "fff9664d03432bd4ed9a7806c12504199bb21a66aafa42e0ca7a71a38a81dbb6",
+      "bytes": 9153,
+      "uncompressed_bytes": 41198,
+      "uncompressed_sha256": "deb6e12fed287174249b4590272372ec320229c16171c288aceff48911ce8e3c"
+    }
+  },
+  "cumulative_forward_reverse_exact_bytes_verified": true,
+  "historical_v5_v6_source_and_evidence_preserved": true,
+  "production_ready": false,
+  "fastest_claim_qualified": false
+}

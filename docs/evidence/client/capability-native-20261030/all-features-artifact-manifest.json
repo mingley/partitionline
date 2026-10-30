@@ -1,0 +1,24 @@
+{
+  "schema_version": 1,
+  "source_sha": "209d0b068796884a7fb0a1b6ef6032cc23d388d8",
+  "toolchain": "stable",
+  "features": "all-features",
+  "passed": true,
+  "public_ci": {
+    "GITHUB_REPOSITORY": "mingley/partitionline",
+    "GITHUB_SHA": "209d0b068796884a7fb0a1b6ef6032cc23d388d8",
+    "GITHUB_RUN_ID": "41137429080",
+    "GITHUB_RUN_ATTEMPT": "1",
+    "GITHUB_JOB": "client-capabilities",
+    "GITHUB_SERVER_URL": "https://github.com"
+  },
+  "archive": {
+    "path": "evidence.tar.gz",
+    "sha256": "b92bcb9eefac40652f7582c5cdf03f125553641e990644c1b17e39aefec463ae",
+    "bytes": 37525781,
+    "original_full_mode": 384
+  },
+  "inner_validation_path": "evidence/validation.json",
+  "inner_validation_sha256": "c9a112f9e7386f1f0826adb6ee3f31b9a3e05f18a362e9894b2ad8005643dbd2",
+  "export_transfer_modes_preserved_in_tar": true
+}

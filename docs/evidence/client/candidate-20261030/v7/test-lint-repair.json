@@ -1,0 +1,45 @@
+{
+  "scope": "Two test-only lint repairs, source preparation only. No Cargo/compiler/native Rust test.",
+  "prepared_utc": "2026-10-30T22:40:49.091170+00:00",
+  "actual_native_diagnostics": {
+    "log_sha256": "cbe496f3889b78f45d1a709cc9e973d523cb84e93d5235109b8c9445d3153fa1",
+    "error": "unused Option<TopicPartitionCursor> in admin::tests::described_topics_keep_the_first_page",
+    "unreachable_pub_peer_methods": 4,
+    "tests_run": false
+  },
+  "changes": [
+    "Bind the topic page decoder result and assert its cursor is None, matching the encoded fixture.",
+    "Restrict four test-only peer start/finish methods to pub(crate), preserving access from group/consumer/share sibling modules."
+  ],
+  "files": {
+    "src/admin.rs": {
+      "before": "7f0c7b5db034796dc1ce9da9de80b5ca2979a2d3801c477a092930abd3243a33",
+      "after": "f3a0f4029237ad7b918362b59088a1e96add4e0e69b3ccd70c53e44863ab26a3"
+    },
+    "src/net/test_peer.rs": {
+      "before": "5d1030413562bc937efe9ff638fde7ec0f5169ac7c27650cfff9f8e18f0a27e1",
+      "after": "e45283c9f1852be0ae63689dbb910a183d5db38fed5eb4974d7f9be33d6c993c"
+    }
+  },
+  "patch_sha256": "25b1117dd009ac54068e746a38ad4f22aeec8adaa0d5ea1c53c915b5afc1a930",
+  "patch_gzip_sha256": "5862da6dfc272b61ef5ebedce8b9fbaa278532d23c0808621c28528a8c2ee484",
+  "rustfmt": {
+    "command": [
+      "/workspace/work/cargo/bin/rustup",
+      "run",
+      "stable",
+      "rustfmt",
+      "--edition",
+      "2021",
+      "--config",
+      "skip_children=true",
+      "--check",
+      "/workspace/work/client-v7-integration-20261030/repaired/src/admin.rs",
+      "/workspace/work/client-v7-integration-20261030/repaired/src/net/test_peer.rs"
+    ],
+    "exit": 0,
+    "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "source_audit": "Reviewed added decoder-call chains in cumulative patch. Wrapped continuations belong to explicit let bindings or containing expressions; the reported page fixture is the only newly bare test decoder unwrap found. Static audit is not an all-feature compilation proof.",
+  "legacy_baseline_warnings": "Dormant Preparing field/helpers generate expected controls-only baseline dead-code warnings. No lint allowances added; fixed production must still pass strict Clippy."
+}

@@ -1,0 +1,238 @@
+{
+  "scope": "Retained failed native candidate rounds; no source adoption, production readiness, release or performance ranking credited. Broker OOM counters unavailable; client runtime tests did not start. Full executable archives remain in the separately named GitHub artifacts, not these small ZIPs.",
+  "rounds": [
+    {
+      "artifact_id": 13015531895,
+      "zip": "broker-dcbb-reports.zip",
+      "source_commit": "dcbbfa84e11e98382f82443fc1cc78691dab8dcf",
+      "zip_bytes": 177213,
+      "zip_sha256": "da4781e1a27033f9bf899c2b01392dd3e44da89c7fbe8f6bc1f8f623409ada4e",
+      "passed": false,
+      "error": null,
+      "gate_errors": [
+        {
+          "gate": "fixed-default-all-targets",
+          "error": "command failed: fixed-default-all-targets-behavior"
+        },
+        {
+          "gate": "strict-clippy",
+          "error": "command failed: strict-clippy"
+        }
+      ],
+      "command_count": 23,
+      "source_guards_all_stable": true,
+      "runner_guards_all_stable": true,
+      "minimum_sampled_disk_free_bytes": 83954618368,
+      "oom_statuses": [
+        "unavailable"
+      ],
+      "baseline_negative_counts": [
+        [
+          0,
+          7,
+          0
+        ]
+      ],
+      "fixed_focused_counts": {
+        "fixed-default-focused": [
+          [
+            12,
+            0,
+            0
+          ]
+        ],
+        "fixed-all-features-focused": [
+          [
+            12,
+            0,
+            0
+          ]
+        ]
+      },
+      "full_behavior": [
+        {
+          "name": "fixed-default-all-targets-behavior",
+          "passed": 719,
+          "failed": 1,
+          "ignored": 0,
+          "failed_cases": [
+            "transport_deadline_cancels_wait_and_releases_read_admission"
+          ]
+        },
+        {
+          "name": "fixed-all-features-all-targets-behavior",
+          "passed": 868,
+          "failed": 0,
+          "ignored": 0,
+          "failed_cases": []
+        }
+      ]
+    },
+    {
+      "artifact_id": 13016317542,
+      "zip": "broker-3ba-reports.zip",
+      "source_commit": "3ba5b544f72c00d6a22336f3a3b673be2109d03f",
+      "zip_bytes": 175318,
+      "zip_sha256": "8352121252691c5dcc5acacd58fbfa5502b48dbf8d93f305d29e0a0217331bc5",
+      "passed": false,
+      "error": null,
+      "gate_errors": [
+        {
+          "gate": "fixed-default-all-targets",
+          "error": "command failed: fixed-default-all-targets-behavior"
+        },
+        {
+          "gate": "strict-clippy",
+          "error": "command failed: strict-clippy"
+        }
+      ],
+      "command_count": 23,
+      "source_guards_all_stable": true,
+      "runner_guards_all_stable": true,
+      "minimum_sampled_disk_free_bytes": 83954696192,
+      "oom_statuses": [
+        "unavailable"
+      ],
+      "baseline_negative_counts": [
+        [
+          0,
+          7,
+          0
+        ]
+      ],
+      "fixed_focused_counts": {
+        "fixed-default-focused": [
+          [
+            12,
+            0,
+            0
+          ]
+        ],
+        "fixed-all-features-focused": [
+          [
+            12,
+            0,
+            0
+          ]
+        ]
+      },
+      "full_behavior": [
+        {
+          "name": "fixed-default-all-targets-behavior",
+          "passed": 718,
+          "failed": 2,
+          "ignored": 0,
+          "failed_cases": [
+            "transport_joined_shutdown_cancels_live_long_poll_without_stopping_store",
+            "actual_five_node_tcp_minority_partition_late_ack_image_restart_and_removal"
+          ]
+        },
+        {
+          "name": "fixed-all-features-all-targets-behavior",
+          "passed": 868,
+          "failed": 0,
+          "ignored": 0,
+          "failed_cases": []
+        }
+      ]
+    },
+    {
+      "artifact_id": 13016605764,
+      "zip": "client-3ba-reports.zip",
+      "source_commit": "3ba5b544f72c00d6a22336f3a3b673be2109d03f",
+      "zip_bytes": 360458,
+      "zip_sha256": "33ec6288219e4194a51439cc2325dd27627ed67c22c5626d89d875211e161497",
+      "passed": false,
+      "error": "build failed baseline-build",
+      "gate_errors": null,
+      "baseline_build": {
+        "exit": 101,
+        "stop_reason": null,
+        "elapsed_seconds": 42.368,
+        "inputs_stable": true,
+        "memory_counter_status": "unknown",
+        "oom_event_delta": null,
+        "minimum_disk_free_bytes": 84687335424,
+        "owned_command_cleanup": {
+          "leader_pid": 2729,
+          "leader_waited": true,
+          "reaped_descendants": [],
+          "remaining_descendants": [],
+          "observed_session_members": [
+            {
+              "pid": 2729,
+              "state": "Z",
+              "ppid": 2665,
+              "pgrp": 2729,
+              "session": 2729,
+              "start": 10403
+            }
+          ],
+          "descendants_present_at_close": [],
+          "leader_exit": 101
+        }
+      },
+      "runtime_tests_executed": 0
+    },
+    {
+      "artifact_id": 13016634087,
+      "zip": "client-209-reports.zip",
+      "source_commit": "209d0b068796884a7fb0a1b6ef6032cc23d388d8",
+      "zip_bytes": 363517,
+      "zip_sha256": "1e462ac8ee6ea8525f6a7b7197abbf92fa1561137f3ee33e9f2c2b7bea39a7d1",
+      "passed": false,
+      "error": "build failed baseline-build",
+      "gate_errors": null,
+      "baseline_build": {
+        "exit": 101,
+        "stop_reason": null,
+        "elapsed_seconds": 104.386,
+        "inputs_stable": true,
+        "memory_counter_status": "unknown",
+        "oom_event_delta": null,
+        "minimum_disk_free_bytes": 84493549568,
+        "owned_command_cleanup": {
+          "leader_pid": 2784,
+          "leader_waited": true,
+          "reaped_descendants": [],
+          "remaining_descendants": [],
+          "observed_session_members": [
+            {
+              "pid": 2784,
+              "state": "Z",
+              "ppid": 2719,
+              "pgrp": 2784,
+              "session": 2784,
+              "start": 34544
+            }
+          ],
+          "descendants_present_at_close": [],
+          "leader_exit": 101
+        }
+      },
+      "runtime_tests_executed": 0
+    }
+  ],
+  "full_artifacts": [
+    {
+      "artifact_id": 13015766687,
+      "bytes": 133322760,
+      "sha256": "47b25251be18504a955020051add382caee3f5ab8febfa27f43e86ae85bd955b"
+    },
+    {
+      "artifact_id": 13017042130,
+      "bytes": 133314071,
+      "sha256": "8333ae7fa83491169063a670837e93339c740f36cfb0da1d1192ed39678410d6"
+    },
+    {
+      "artifact_id": 13017105661,
+      "bytes": 7744398,
+      "sha256": "89842c3a9b3df4bb2926cb7df0b7c7ff1f553a7bf03b25c4823008d446f210cb"
+    },
+    {
+      "artifact_id": 13016734166,
+      "bytes": 7777623,
+      "sha256": "50e68d66b44eac131f8c7882c2105af79f7e607cf0afc2da2350dea100650315"
+    }
+  ]
+}

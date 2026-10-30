@@ -2213,10 +2213,9 @@ struct Writer {
 impl Writer {
     fn new(cap: usize, mut bytes: Vec<u8>) -> Result<Self, Error> {
         bytes.clear();
-        let extra = cap.saturating_sub(bytes.capacity());
-        if extra > 0 {
+        if bytes.capacity() < cap {
             bytes
-                .try_reserve_exact(extra)
+                .try_reserve_exact(cap - bytes.len())
                 .map_err(|_| Error::ResourceLimit)?;
         }
         Ok(Self { bytes, cap })
@@ -2413,6 +2412,36 @@ mod tests {
         assert!(body.capacity() >= capacity);
         let reused = Writer::new(32, body).unwrap_or_else(|error| panic!("{error:?}"));
         assert!(reused.bytes.capacity() >= capacity);
+    }
+
+    #[test]
+    fn partial_response_buffer_is_reserved_before_encoding() {
+        const PLANNED: usize = 192;
+        let expected: Vec<u8> = (0_i32..48).flat_map(i32::to_be_bytes).collect();
+        for initial in [0, 1, 64, 128, 191, 192, 256] {
+            let mut spare = Vec::with_capacity(initial);
+            spare.resize(initial.min(17), 0xa5);
+            let mut writer = Writer::new(PLANNED, spare).unwrap();
+            assert!(writer.bytes.is_empty());
+            assert!(
+                writer.bytes.capacity() >= PLANNED,
+                "initial capacity {initial}"
+            );
+            let capacity = writer.bytes.capacity();
+            let pointer = writer.bytes.as_ptr();
+            for value in 0_i32..48 {
+                writer.i32(value).unwrap();
+            }
+            assert_eq!(writer.bytes, expected);
+            assert_eq!(writer.bytes.capacity(), capacity);
+            assert_eq!(writer.bytes.as_ptr(), pointer);
+            assert!(matches!(writer.byte(0), Err(Error::ResourceLimit)));
+            let mut warm = Writer::new(PLANNED, writer.bytes).unwrap();
+            warm.put(&expected).unwrap();
+            assert_eq!(warm.bytes, expected);
+            assert_eq!(warm.bytes.capacity(), capacity);
+            assert_eq!(warm.bytes.as_ptr(), pointer);
+        }
     }
 
     #[test]

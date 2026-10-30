@@ -39,7 +39,9 @@ fn unhex(s: &str) -> TestResult<Vec<u8>> {
         return Err("bounded hex".into());
     }
     s.as_bytes()
-        .as_chunks::<2>().0.iter()
+        .as_chunks::<2>()
+        .0
+        .iter()
         .map(|b| Ok(u8::from_str_radix(std::str::from_utf8(b)?, 16)?))
         .collect()
 }
@@ -51,6 +53,45 @@ fn read_text(path: &Path, limit: u64) -> TestResult<String> {
     }
     Ok(out)
 }
+fn proposal_position_response(answer: &str) -> TestResult<(u64, u64)> {
+    let mut fields = answer.split_whitespace();
+    if fields.next() != Some("position") {
+        return Err(format!("proposal did not return a position: {answer:?}").into());
+    }
+    let parsed = (|| {
+        let term: u64 = fields.next().ok_or("missing term")?.parse()?;
+        let index: u64 = fields.next().ok_or("missing index")?.parse()?;
+        if term == 0 || index == 0 || fields.next().is_some() {
+            return Err("invalid position fields".into());
+        }
+        Ok((term, index))
+    })();
+    parsed.map_err(|error: Box<dyn std::error::Error + Send + Sync>| {
+        format!("invalid proposal position response {answer:?}: {error}").into()
+    })
+}
+
+#[test]
+fn proposal_responses_require_a_complete_position_and_retain_failures() {
+    assert_eq!(
+        proposal_position_response("position 2 17").unwrap(),
+        (2, 17)
+    );
+    for answer in [
+        "error private peer runtime: Node(NotLeader)",
+        "error private peer runtime: Deadline",
+        "position 1 x",
+        "position x 2",
+        "position 1 2 extra",
+        "position 0 1",
+        "position 1 0",
+        "position 1",
+    ] {
+        let error = proposal_position_response(answer).unwrap_err().to_string();
+        assert!(error.contains(answer), "the actual reply was lost: {error}");
+    }
+}
+
 fn write_text(path: &Path, s: &str) -> TestResult {
     let tmp = path.with_extension("partial");
     let mut file = File::create(&tmp)?;
@@ -383,7 +424,10 @@ impl Gate {
         self.capture_file(&format!("{name}.forward.json"), metadata.as_bytes())
     }
 }
-#[expect(clippy::too_many_arguments, reason = "test proxy tracks each stream's gate, direction, identity and stop receiver")]
+#[expect(
+    clippy::too_many_arguments,
+    reason = "test proxy tracks each stream's gate, direction, identity and stop receiver"
+)]
 async fn pipe<R: AsyncRead + Unpin, W: AsyncWrite + Unpin>(
     mut r: R,
     mut w: W,
@@ -633,7 +677,11 @@ impl Cluster {
             let mut ready = true;
             for p in self.processes.iter_mut().flatten() {
                 if let Some(code) = p.child.try_wait()? {
-                    return Err(format!("child startup {code}; retained logs at {}", p.root.display()).into());
+                    return Err(format!(
+                        "child startup {code}; retained logs at {}",
+                        p.root.display()
+                    )
+                    .into());
                 }
                 ready &= p.root.join("ready").exists();
             }
@@ -676,8 +724,14 @@ impl Cluster {
     fn ready_to_write(&self, id: usize) -> TestResult<bool> {
         let process = self.processes[id].as_ref().ok_or("node closed")?;
         let text = read_text(&process.root.join("state"), 1024 * 1024)?;
-        Ok(text.lines().next().ok_or("state header")?
-            .split_whitespace().nth(4).ok_or("state readiness")?.parse()?)
+        Ok(text
+            .lines()
+            .next()
+            .ok_or("state header")?
+            .split_whitespace()
+            .nth(4)
+            .ok_or("state readiness")?
+            .parse()?)
     }
     fn require_completed_image_frames(&self, source: usize, target: usize) -> TestResult {
         let Some(root) = &self.gate.capture else {
@@ -719,13 +773,18 @@ impl Cluster {
         loop {
             let candidates = (0..self.processes.len())
                 .filter(|i| self.processes[*i].is_some() && !excluded.contains(i))
-                .filter(|i| self.state(*i).is_ok_and(|s| s.1 == "Leader" && s.3 > 0
-                    && s.4.split(';').next_back().is_some_and(|record| {
-                        let mut fields = record.split(':');
-                        fields.next().and_then(|term| term.parse::<u64>().ok()) == Some(s.0)
-                            && fields.next().and_then(|index| index.parse::<u64>().ok()) == Some(s.3)
-                    }))
-                    && self.ready_to_write(*i).unwrap_or(false))
+                .filter(|i| {
+                    self.state(*i).is_ok_and(|s| {
+                        s.1 == "Leader"
+                            && s.3 > 0
+                            && s.4.split(';').next_back().is_some_and(|record| {
+                                let mut fields = record.split(':');
+                                fields.next().and_then(|term| term.parse::<u64>().ok()) == Some(s.0)
+                                    && fields.next().and_then(|index| index.parse::<u64>().ok())
+                                        == Some(s.3)
+                            })
+                    }) && self.ready_to_write(*i).unwrap_or(false)
+                })
                 .collect::<Vec<_>>();
             if candidates.len() == 1 {
                 return Ok(candidates[0]);
@@ -755,6 +814,18 @@ impl Cluster {
             }
             tokio::time::sleep(Duration::from_millis(20)).await;
         }
+    }
+    fn proposal_position(&mut self, id: usize, phase: &str, answer: &str) -> TestResult<u64> {
+        proposal_position_response(answer)
+            .map(|(_, index)| index)
+            .map_err(|error| {
+                let ids = (0..self.processes.len()).collect::<Vec<_>>();
+                format!(
+                    "{phase} on node{id}: {error}; {}",
+                    self.commit_diagnostics(phase, 0, &ids)
+                )
+                .into()
+            })
     }
     fn commit_diagnostics(&mut self, phase: &str, index: u64, ids: &[usize]) -> String {
         let mut text =
@@ -836,7 +907,9 @@ impl Cluster {
             if let Some(code) = p.child.try_wait()? {
                 assert_eq!(code.code(), Some(88));
                 if let Some(wire) = &self.gate.capture {
-                    let target = wire.parent().ok_or("case capture parent")?
+                    let target = wire
+                        .parent()
+                        .ok_or("case capture parent")?
                         .join(format!("crashed-node-{id}-pid-{}.json", p.child.id()));
                     write_text(&target, &format!(
                         "{{\"node_id\":{id},\"pid\":{},\"exit_code\":88,\"parent_waited\":true,\"runtime_joined\":false,\"fault\":\"controlled process exit before restart\"}}\n",
@@ -909,11 +982,7 @@ async fn observer_image_history(total: usize) -> TestResult {
         let answer = cluster
             .command(leader, &format!("propose {}", hex(&vec![byte; 40 * 1024])?))
             .await?;
-        committed = answer
-            .split_whitespace()
-            .nth(2)
-            .ok_or("proposal response")?
-            .parse()?;
+        committed = cluster.proposal_position(leader, "observer-prefix-proposal", &answer)?;
         cluster
             .commit("observer-prefix-on-genesis", committed, &voters)
             .await?;
@@ -987,11 +1056,7 @@ async fn observer_image_history(total: usize) -> TestResult {
             ),
         )
         .await?;
-    let suffix: u64 = answer
-        .split_whitespace()
-        .nth(2)
-        .ok_or("suffix position")?
-        .parse()?;
+    let suffix = cluster.proposal_position(current, "observer-post-reopen-proposal", &answer)?;
     cluster
         .commit("observer-post-reopen-suffix", suffix, &all)
         .await?;
@@ -1142,7 +1207,11 @@ async fn fault_history(count: usize) -> TestResult {
     let removed = cluster
         .command(current, &format!("remove {current}"))
         .await?;
-    assert!(removed.starts_with("change "), "remove returned {removed}; {}", cluster.commit_diagnostics("before-removal", committed, &all));
+    assert!(
+        removed.starts_with("change "),
+        "remove returned {removed}; {}",
+        cluster.commit_diagnostics("before-removal", committed, &all)
+    );
     let removal: u64 = removed
         .split_whitespace()
         .nth(2)

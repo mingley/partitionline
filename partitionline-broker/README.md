@@ -69,6 +69,25 @@ read the journal. Transaction
 marker propagation and fencing integration are not implemented: initializing
 an ongoing transaction currently clears its stored partition set. Checkpoint and
 recovery allocations are not bounded as total process memory.
+The local replica log now returns `Result` from `records`, `next_offset`, and
+`leader_epoch`; reopen after `Poisoned`. Accepted leader epochs are stored in
+CRC-protected journal header bytes and survive empty leader responses,
+truncation, and restart. Raising an epoch atomically replaces the journal with
+unchanged event entries, preserving one-entry journal capacity. This copies the
+whole bounded journal file and temporarily needs space for both files; the
+adjacent `.epoch.tmp` pathname is reserved. Older binaries reject the new
+nonzero header field rather than silently forgetting the fence. Legacy event
+journals remain readable. The caller still supplies the claimed leader epoch;
+this is not authenticated leadership or a committed-watermark truncation guard.
+
+Epoch replacement preserves permission bits, not original uid/gid or ACLs.
+Ownership guards are process-local; operators must provide exclusive file
+ownership. The configured canonical pathname is authoritative: hard-link aliases
+and backups still refer to the old inode after replacement. An error from rename
+is treated as an ambiguous publication; reads and writes require reopening.
+Process-exit tests do not establish power-loss durability or cross-platform
+filesystem guarantees.
+
 The transaction marker log returns `Result` from its end-offset, stable-offset
 and `read_committed` methods; reopen it after a persistence failure. The marker
 log retains finite history and does not itself fence producers.

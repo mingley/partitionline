@@ -1187,36 +1187,57 @@ async fn transport_deadline_cancels_wait_and_releases_read_admission(
         Arc::clone(&router),
     )
     .await?;
-    let mut socket = TcpStream::connect(transport.local_addr()).await?;
-    send(
-        &mut socket,
-        &fetch_request(6, 0, 30000, 1, 10000, &[(0, 10000)]),
-    )
-    .await?;
-    let mut byte = [0];
-    assert_eq!(
-        tokio::time::timeout(Duration::from_secs(2), socket.read(&mut byte)).await??,
-        0
-    );
-    // Deadline drops the handler future and its held data permit. A fresh socket
-    // can append immediately and retrieve the same exact protected record bytes.
-    let mut socket = TcpStream::connect(transport.local_addr()).await?;
-    let batch =
-        tokio::task::spawn_blocking(|| read(&base().join("4.3.1/log-batch-0.bin"))).await??;
-    send(&mut socket, &produce(&batch, 0)).await?;
-    let ack = receive(&mut socket).await?;
-    assert_eq!(&ack[25..33], &0i64.to_be_bytes());
-    send(
-        &mut socket,
-        &fetch_request(6, 0, 0, 0, 10000, &[(0, 10000)]),
-    )
-    .await?;
-    let response = receive(&mut socket).await?;
-    assert_eq!(&records(&response, 6)[16..], &batch[16..]);
-    let report = transport.shutdown().await?;
-    assert_eq!(report.handler_deadlines, 1);
+    let mut phase = "initial Fetch connect";
+    let result = async {
+        let mut socket = TcpStream::connect(transport.local_addr()).await?;
+        phase = "initial Fetch send";
+        send(
+            &mut socket,
+            &fetch_request(6, 0, 30000, 1, 10000, &[(0, 10000)]),
+        )
+        .await?;
+        phase = "initial Fetch deadline EOF";
+        let mut byte = [0];
+        assert_eq!(
+            tokio::time::timeout(Duration::from_secs(2), socket.read(&mut byte)).await??,
+            0
+        );
+        // Cancellation releases the data permit before the socket closes. If
+        // its snapshot was still queued, consume it before testing fresh work;
+        // queue occupancy and held data permits are separate admission limits.
+        phase = "canceled snapshot actor barrier";
+        barrier(&router).await?;
+        phase = "Produce fixture read";
+        let batch =
+            tokio::task::spawn_blocking(|| read(&base().join("4.3.1/log-batch-0.bin"))).await??;
+        phase = "fresh Produce connect";
+        let mut socket = TcpStream::connect(transport.local_addr()).await?;
+        phase = "fresh Produce send";
+        send(&mut socket, &produce(&batch, 0)).await?;
+        phase = "fresh Produce acknowledgement";
+        let ack = receive(&mut socket).await?;
+        assert_eq!(&ack[25..33], &0i64.to_be_bytes());
+        phase = "fresh Fetch send";
+        send(
+            &mut socket,
+            &fetch_request(6, 0, 0, 0, 10000, &[(0, 10000)]),
+        )
+        .await?;
+        phase = "fresh Fetch response";
+        let response = receive(&mut socket).await?;
+        assert_eq!(&records(&response, 6)[16..], &batch[16..]);
+        Ok::<_, Box<dyn StdError>>(())
+    }
+    .await;
+    let report = transport.shutdown().await;
+    if let Err(error) = &result {
+        eprintln!("transport admission failed at {phase}: {error:?}; report={report:?}");
+    }
+    let report = report?;
     router.shutdown().await?;
     clean(root).await?;
+    result?;
+    assert_eq!(report.handler_deadlines, 1);
     Ok(())
 }
 

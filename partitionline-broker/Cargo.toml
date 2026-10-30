@@ -41,6 +41,9 @@ rustls = { version = "0.23.46", optional = true, default-features = false, featu
 tokio-rustls = { version = "0.26", optional = true, default-features = false, features = ["ring", "tls12"] }
 tokio = { version = "1.53.3", features = ["io-util", "macros", "net", "rt-multi-thread", "signal", "sync", "time"] }
 
+[dev-dependencies]
+tokio = { version = "1.53.3", features = ["fs"] }
+
 [lints.rust]
 unsafe_code = "forbid"
 missing_docs = "deny"

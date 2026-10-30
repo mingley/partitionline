@@ -1,0 +1,27 @@
+[
+  {
+    "path": "broker-3ba-reports.zip",
+    "bytes": 175318,
+    "sha256": "8352121252691c5dcc5acacd58fbfa5502b48dbf8d93f305d29e0a0217331bc5"
+  },
+  {
+    "path": "broker-dcbb-reports.zip",
+    "bytes": 177213,
+    "sha256": "da4781e1a27033f9bf899c2b01392dd3e44da89c7fbe8f6bc1f8f623409ada4e"
+  },
+  {
+    "path": "client-209-reports.zip",
+    "bytes": 363517,
+    "sha256": "1e462ac8ee6ea8525f6a7b7197abbf92fa1561137f3ee33e9f2c2b7bea39a7d1"
+  },
+  {
+    "path": "client-3ba-reports.zip",
+    "bytes": 360458,
+    "sha256": "33ec6288219e4194a51439cc2325dd27627ed67c22c5626d89d875211e161497"
+  },
+  {
+    "path": "summary.json",
+    "bytes": 6766,
+    "sha256": "6240cfa3cdf8ae6b4fd50c74ab9badd1d163a0f1a182e0343e5ff41555054f94"
+  }
+]

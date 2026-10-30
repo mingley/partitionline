@@ -1,0 +1,15 @@
+{
+  "command": [
+    "python3",
+    "-B",
+    "scripts/check-broker-api-matrix.py",
+    "--report",
+    "/workspace/partitionline/docs/evidence/broker/epoch-journal-20261030/integrated-inventory.json"
+  ],
+  "exit": 0,
+  "duration_seconds": 1.0175504850012658,
+  "source_before_after_matches_qualified": true,
+  "static_implementation_claim": false,
+  "static_qualification": "not_run",
+  "local_native_work": false
+}

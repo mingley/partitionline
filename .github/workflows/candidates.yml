@@ -32,9 +32,9 @@ jobs:
       matrix:
         include:
           - kind: client
-            source_version: v6
-          - kind: broker
-            source_version: v2
+            source_version: v7
+          # Broker v2 is adopted. broker.yml validates its main source;
+          # its frozen candidate spec remains bound to the pre-adoption tree.
     env:
       CARGO_BUILD_JOBS: '1'
       CARGO_INCREMENTAL: '0'

@@ -14,8 +14,10 @@ Client 0.1.0 is already published. The next client version must be at least
 | --- | --- |
 | Client default library, `fe65ac783` | 2,174 passed, 22 failed; later integration targets did not run |
 | Client all-feature library at that commit | 2,180 passed, 16 failed; later integration targets did not run |
-| Broker default all targets at that commit | 701 passed |
-| Broker all-feature all targets at that commit | 849 passed |
+| Qualified broker v2 default all targets, `209d0b068` | 720 passed |
+| Qualified broker v2 all-feature all targets at that commit | 868 passed |
+| Broker v2 strict Clippy, docs, inventory and six fresh-process Fetch deadline checks | Passed |
+| Client capability lanes at that commit | 93 passed in each profile; 450 Java reverse checks in each |
 | Client strict all-target Clippy, audit and dependency policy at that commit | Passed |
 | Reconnect candidate | 14 unit controls and six integration targets passed; latest broad Fetch 167 passed, two failed, one ignored |
 | Integrated-source package navigation | 20 documentation tests passed; extracted crate checked 30 documents, 225 local links, 51 pinned repository targets |
@@ -29,11 +31,13 @@ The [client matrix](../evidence/client/clean-default-validation-20261028/README.
 [package checks](../evidence/releases/package-navigation-20261030/README.md)
 and [dependency record](../evidence/security/dependency-floors-20261030/README.md)
 retain the exact scopes. Passing opt-in probes alone does not prove external
-peer coverage. The broker inventory still failed its source bindings. The
-reviewed 11-hash refresh passes the static checker; CI must still run all 55
-negative controls. Fuzz supervision now passes 12 controls using real workers.
-The two earlier Raft observer failures remain recorded despite the later
-849-test pass. No long campaign is credited.
+peer coverage. The broker inventory now passes all 55 controls; fuzz
+supervision passes its 12 short-run controls. The qualified broker changes
+are adopted byte-for-byte from v2; see the
+[epoch/journal record](../evidence/broker/epoch-journal-20261030/README.md).
+Earlier Fetch EOF, joined-shutdown QueueFull and Raft observer parse failures
+remain recorded and unexplained beyond the passing specific controls.
+No long campaign is credited.
 Current-commit green CI and the complete release gates remain open.
 
 ## Correctness priorities
@@ -111,33 +115,42 @@ all-target/all-feature gate at `fe65ac783`. Preserve all failed, skipped and ign
 cases. The [release guide](../RELEASE.md) requires exact-commit CI, package
 checks and interruption-recovery rehearsal before publication.
 
-The capability inventory still requires 93 named Rust cases and separately
-reports two external server tests. At `fe65ac783`, the default lane has 91 raw
-passes and two ignored required Java-fixture cases; its original parser reports
-67 verified passes. Both lanes remain failed. The follow-up installs Java 21,
-generates pinned fixtures, runs those two cases and requires Java reverse
-parsing. All 31 pure controls pass; actual fixture qualification awaits CI.
-The corrected LZ4 coordinate now passes the Java/Rust codec lane. See the
-[fixture gate](../evidence/client/capability-java-20261030/README.md) and
-[CI snapshot](../evidence/releases/main-ci-fe65-20261030/README.md).
+Both capability profiles pass at `209d0b068`: 93 cases, no failed or ignored
+required tests, 450 Java reverse checks over 225 Rust pairs, and 234 Streams
+exports. The two SDK servers remain separate and unrun; Streams Java reverse
+coverage is also unqualified. The actual compact reports and independent
+review are in the
+[capability record](../evidence/client/capability-native-20261030/README.md).
+The earlier ignored-fixture failure remains in the
+[fixture gate record](../evidence/client/capability-java-20261030/README.md).
 
-The new candidate workflow runs isolated client and broker sources on existing
-x86 GitHub runners. The client contract requires 108 library controls, 14
-integration controls and full runs of ten chosen binaries in both feature
-configurations. Its ordinary test stack is 8 MiB, with a separate 2 MiB mock
-group-lifecycle probe; live stack safety remains open. The broker contract
-requires seven baseline failures, 12 fixed controls, full default/all-feature
-targets, strict Clippy/docs and the 55 inventory controls. These are prepared
-contracts, not native passing results. Original production Rust remains
-unchanged by the workflow setup. See the
-[client candidate](../evidence/client/candidate-20261030/v3/README.md) and
-[broker candidate](../evidence/broker/candidate-20261030/v1/README.md).
+The client v7 candidate has 127 library controls, 14 integration controls and
+full runs of ten chosen binaries in both feature configurations. Its stack is
+8 MiB except a separate 2 MiB mock group-lifecycle probe; live stack safety
+remains open. Earlier candidate builds failed on return-value and test-scope
+lint errors before runtime tests. The failures are retained in the
+[native-round record](../evidence/releases/candidate-native-20261030/README.md).
+V7 repairs those test errors without changing the 141 required identities or
+22 baseline cases. Worker-owned preparation, in-place identity filtering,
+bounded Admin projection, socket lifecycle and group retry changes still need
+native runtime proof. See the
+[client candidate](../evidence/client/candidate-20261030/v7/README.md).
+
+Broker v2 observed seven baseline failures and passed twelve fixed controls,
+three asynchronous filesystem controls and full default/all-feature targets,
+strict Clippy/docs and all 55 inventory controls. Three fresh-process Fetch
+checks passed in each profile. OOM counters were unavailable. Those exact
+source bytes are now adopted; ordinary CI must still run on the resulting main
+commit. This local replica model is not a production replicated cluster.
 
 The workspace has a four-CPU quota and limited disk. Serialize builds and
 timing runs, retain source/executable hashes, and monitor a 1.5 GiB free-space
 floor. The latest local broker baseline build hit that floor before any tests
 ran; it is incomplete, not a test result. Native candidate qualification moves
-to the existing GitHub runners without lowering the local guard. Inactive Cargo cache files may be reclaimed only after exact compressed
+to the existing GitHub runners without lowering the local guard. Static
+source/evidence writes can leave the workspace below the compile floor; no
+local native work may start there. Inactive Cargo cache files may be reclaimed
+only after exact compressed
 retention is verified. Do not remove immutable executable archives, failed
 campaigns or their inputs. Candidate files under `/workspace/work` are local
 scratch and are not promised as repository downloads.

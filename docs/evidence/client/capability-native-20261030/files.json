@@ -1,0 +1,27 @@
+[
+  {
+    "path": "all-features-artifact-manifest.json",
+    "bytes": 835,
+    "sha256": "a53eb6c84516b8cd5f371c9eee441d61f5113c2da88e507264ac323f5685631b"
+  },
+  {
+    "path": "all-features-validation.json.gz",
+    "bytes": 32835,
+    "sha256": "dc3da69f9f332daf1600ea4fe4c4aaa9accbaf88a798076dde0bc9c13c20c990"
+  },
+  {
+    "path": "default-artifact-manifest.json",
+    "bytes": 830,
+    "sha256": "65aac9fe775333e6a7788c63ff45dd31263254f910148a3c93db5ed78dede68a"
+  },
+  {
+    "path": "default-validation.json.gz",
+    "bytes": 32813,
+    "sha256": "bb52bca58cd897f838202e68b4937c622653ec5150ce0bd417d4ef0accc285a8"
+  },
+  {
+    "path": "review-v1.json",
+    "bytes": 11536,
+    "sha256": "10d68f805afefbd9633ab8f943b25eb87940658198515f376d1f11129072185e"
+  }
+]

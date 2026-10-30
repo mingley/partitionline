@@ -9,9 +9,11 @@
 //! Confirmed records and truncations are journaled. Reopen replays the logical
 //! log, so an interrupted copy resumes at the last confirmed offset. This is
 //! not a Kafka Fetch response and it does not replicate through the network.
-//! This local model has no committed-watermark guard, and the leader fence is
-//! derived only from retained records. Do not use it to truncate a production
-//! replica or to authorize a network leader.
+//! Accepted leader epochs are persisted in a protected journal header, even
+//! when the leader has no new records. Raising the epoch atomically replaces
+//! the journal and needs temporary space for both files. Older readers reject
+//! that header. This local model still has no committed-watermark guard or
+//! authenticated leadership; do not use it to authorize a network leader.
 
 use crate::journal::{self, Journal};
 use std::path::Path;
@@ -65,7 +67,7 @@ pub enum Error {
     OffsetOutOfRange,
     /// The payload or budget is empty or too large.
     Budget,
-    /// A failed append left this log unable to confirm further copies.
+    /// A persistence or integrity failure requires reopening this log.
     Poisoned,
     /// The limits cannot store one maximum record.
     InvalidLimits,
@@ -139,18 +141,24 @@ pub struct Log {
     journal: Journal,
     stored: usize,
     poisoned: bool,
+    accepted_epoch: i32,
 }
 
 impl Log {
     /// Open or recover a replica log.
+    ///
+    /// `<path>.epoch.tmp` is reserved for atomic epoch-fence publication.
+    /// Once a fence is stored, older binaries reject the journal header.
     pub fn open(path: impl AsRef<Path>, limits: Limits) -> Result<Self, Error> {
-        let (journal, _) = Journal::open(path, 0, limits.journal)?;
+        let (journal, _) = Journal::open_replica(path, 0, limits.journal)?;
+        let accepted_epoch = journal.replica_epoch().unwrap_or(-1);
         let mut log = Self {
             limits,
             records: Vec::new(),
             journal,
             stored: 0,
             poisoned: false,
+            accepted_epoch,
         };
         let mut offset = log.journal.base_offset();
         loop {
@@ -183,40 +191,41 @@ impl Log {
     }
 
     /// Confirmed records in offset order.
-    pub fn records(&self) -> &[Record] {
-        &self.records
+    pub fn records(&self) -> Result<&[Record], Error> {
+        self.ready()?;
+        Ok(&self.records)
     }
 
     /// Next offset a new leader append would receive.
-    pub fn next_offset(&self) -> i64 {
-        self.records
+    pub fn next_offset(&self) -> Result<i64, Error> {
+        self.ready()?;
+        Ok(self
+            .records
             .last()
             .map(|record| record.offset.saturating_add(1))
-            .unwrap_or(0)
+            .unwrap_or(0))
     }
 
-    /// Highest leader epoch stored, or -1 when the log is empty.
-    pub fn leader_epoch(&self) -> i32 {
-        self.records
-            .iter()
-            .map(|record| record.leader_epoch)
-            .max()
-            .unwrap_or(-1)
+    /// Highest accepted leader epoch, or -1 before any epoch is accepted.
+    ///
+    /// Unlike a maximum over the retained records, this fence survives empty
+    /// leader responses, truncation and restart.
+    pub fn leader_epoch(&self) -> Result<i32, Error> {
+        self.ready()?;
+        Ok(self.accepted_epoch)
     }
 
     /// Append one payload at the next offset under `leader_epoch`.
     ///
-    /// The epoch must be nonnegative and at least the epoch of the previous
-    /// record. This is the leader write path.
+    /// The epoch must be nonnegative and at least the highest accepted epoch,
+    /// including epochs accepted without a new record. This is the leader write path.
     pub fn append(&mut self, leader_epoch: i32, bytes: &[u8]) -> Result<i64, Error> {
         self.ready()?;
         if leader_epoch < 0 || bytes.is_empty() || bytes.len() > self.limits.max_payload_bytes {
             return Err(Error::InvalidRecord);
         }
-        if let Some(last) = self.records.last() {
-            if leader_epoch < last.leader_epoch {
-                return Err(Error::FencedLeader);
-            }
+        if leader_epoch < self.accepted_epoch {
+            return Err(Error::FencedLeader);
         }
         if self.records.len() >= self.limits.max_records {
             return Err(Error::Budget);
@@ -237,6 +246,7 @@ impl Log {
         };
         self.persist(&encode_record(&record)?)?;
         self.records.push(record);
+        self.accepted_epoch = self.accepted_epoch.max(leader_epoch);
         Ok(offset)
     }
 
@@ -262,7 +272,10 @@ impl Log {
         if budget.max_bytes == 0 || budget.max_records == 0 {
             return Err(Error::Budget);
         }
-        if leader_epoch < self.leader_epoch() {
+        if leader_epoch < 0 {
+            return Err(Error::InvalidRecord);
+        }
+        if leader_epoch < self.accepted_epoch || leader_epoch < leader.accepted_epoch {
             return Err(Error::FencedLeader);
         }
         let keep = self
@@ -356,6 +369,16 @@ impl Log {
             }
             self.journal.reserve_append_pair()?;
         }
+        if truncated == 0 && planned == 0 && leader.records.len() > keep {
+            return Err(Error::Budget);
+        }
+        if leader_epoch > self.journal.replica_epoch().unwrap_or(-1) {
+            if let Err(error) = self.journal.persist_replica_epoch(leader_epoch) {
+                self.poisoned = self.journal.is_poisoned();
+                return Err(Error::Storage(error));
+            }
+            self.accepted_epoch = leader_epoch;
+        }
         if truncated > 0 {
             let offset = self
                 .records
@@ -405,7 +428,7 @@ impl Log {
         Ok(Progress {
             truncated,
             copied,
-            next_offset: self.next_offset(),
+            next_offset: self.next_offset()?,
         })
     }
 
@@ -437,6 +460,7 @@ impl Log {
                 if record.offset != expected {
                     return Err(Error::InvalidRecord);
                 }
+                self.accepted_epoch = self.accepted_epoch.max(record.leader_epoch);
                 self.records.push(record);
             }
             KIND_TRUNCATE => {
@@ -607,13 +631,13 @@ mod tests {
         };
         let encoded = encode_record(&record).unwrap_or_else(|error| panic!("{error:?}"));
         assert!(matches!(log.apply(&encoded), Err(Error::InvalidRecord)));
-        assert_eq!(log.next_offset(), 0);
+        assert_eq!(log.next_offset().unwrap(), 0);
         log.append(1, b"kept")
             .unwrap_or_else(|error| panic!("{error:?}"));
         let truncate = encode_truncate(1).unwrap_or_else(|error| panic!("{error:?}"));
         assert!(matches!(log.apply(&truncate), Err(Error::InvalidRecord)));
-        assert_eq!(log.next_offset(), 1);
-        assert_eq!(log.records()[0].bytes, b"kept");
+        assert_eq!(log.next_offset().unwrap(), 1);
+        assert_eq!(log.records().unwrap()[0].bytes, b"kept");
     }
 
     #[test]
@@ -633,14 +657,14 @@ mod tests {
             .replicate_from(&leader, 2, budget(1))
             .unwrap_or_else(|error| panic!("{error:?}"));
         assert_eq!(first.copied, 1);
-        assert_eq!(follower.next_offset(), 1);
+        assert_eq!(follower.next_offset().unwrap(), 1);
         drop(follower);
         let mut follower = Log::open(&path, limits()).unwrap_or_else(|error| panic!("{error:?}"));
         let rest = follower
             .replicate_from(&leader, 2, budget(8))
             .unwrap_or_else(|error| panic!("{error:?}"));
         assert_eq!(rest.copied, 2);
-        assert_eq!(follower.records(), leader.records());
+        assert_eq!(follower.records().unwrap(), leader.records().unwrap());
     }
 
     #[test]
@@ -649,13 +673,13 @@ mod tests {
         log.append(1, b"aaa")
             .unwrap_or_else(|error| panic!("{error:?}"));
         log.records[0].offset = i64::MAX - 1;
-        assert_eq!(log.next_offset(), i64::MAX);
+        assert_eq!(log.next_offset().unwrap(), i64::MAX);
         assert!(matches!(
             log.append(1, b"bbb"),
             Err(Error::OffsetOutOfRange)
         ));
-        assert_eq!(log.records().len(), 1);
-        assert_eq!(log.records()[0].bytes, b"aaa");
+        assert_eq!(log.records().unwrap().len(), 1);
+        assert_eq!(log.records().unwrap()[0].bytes, b"aaa");
     }
 
     #[test]
@@ -671,7 +695,7 @@ mod tests {
             follower.apply(&encoded),
             Err(Error::InvalidRecord)
         ));
-        assert!(follower.records().is_empty());
+        assert!(follower.records().unwrap().is_empty());
 
         let (mut leader, _) = log("max-leader");
         leader
@@ -682,7 +706,7 @@ mod tests {
             follower.replicate_from(&leader, 1, budget(8)),
             Err(Error::InvalidRecord)
         ));
-        assert!(follower.records().is_empty());
+        assert!(follower.records().unwrap().is_empty());
     }
 
     #[test]
@@ -705,17 +729,17 @@ mod tests {
             .replicate_from(&leader, 2, budget(8))
             .unwrap_or_else(|error| panic!("{error:?}"));
         assert_eq!(progress.truncated, 1);
-        assert_eq!(follower.records(), leader.records());
+        assert_eq!(follower.records().unwrap(), leader.records().unwrap());
         let (mut stale, _) = log("stale-leader");
         stale
             .append(1, b"aaa")
             .unwrap_or_else(|error| panic!("{error:?}"));
-        let before = follower.records().to_vec();
+        let before = follower.records().unwrap().to_vec();
         assert!(matches!(
             follower.replicate_from(&stale, 1, budget(8)),
             Err(Error::FencedLeader)
         ));
-        assert_eq!(follower.records(), before.as_slice());
+        assert_eq!(follower.records().unwrap(), before.as_slice());
     }
 
     #[test]
@@ -739,7 +763,7 @@ mod tests {
             )
             .unwrap_or_else(|error| panic!("{error:?}"));
         assert_eq!(progress.copied, 1);
-        assert_eq!(follower.records().len(), 1);
+        assert_eq!(follower.records().unwrap().len(), 1);
         assert!(matches!(
             follower.replicate_from(
                 &leader,
@@ -781,13 +805,13 @@ mod tests {
             .replicate_from(&leader, 1, budget(8))
             .unwrap_or_else(|error| panic!("{error:?}"));
         assert_eq!(progress.copied, 2);
-        assert_eq!(follower.records().len(), 2);
-        assert_eq!(follower.records()[1].bytes, b"bbb");
+        assert_eq!(follower.records().unwrap().len(), 2);
+        assert_eq!(follower.records().unwrap()[1].bytes, b"bbb");
         assert!(matches!(
             follower.replicate_from(&leader, 1, budget(8)),
             Err(Error::Budget)
         ));
-        assert_eq!(follower.records().len(), 2);
+        assert_eq!(follower.records().unwrap().len(), 2);
         let diverge_path = std::env::temp_dir().join(format!("pl-repl-cap-diverge-{nanos}"));
         let mut diverge =
             Log::open(&diverge_path, tight).unwrap_or_else(|error| panic!("{error:?}"));
@@ -802,12 +826,12 @@ mod tests {
             .unwrap_or_else(|error| panic!("{error:?}"));
         assert_eq!(replaced.truncated, 1);
         assert_eq!(replaced.copied, 1);
-        assert_eq!(diverge.records()[1].bytes, b"bbb");
-        assert_eq!(diverge.records().len(), 2);
+        assert_eq!(diverge.records().unwrap()[1].bytes, b"bbb");
+        assert_eq!(diverge.records().unwrap().len(), 2);
         drop(diverge);
         let diverge = Log::open(&diverge_path, tight).unwrap_or_else(|error| panic!("{error:?}"));
-        assert_eq!(diverge.records().len(), 2);
-        assert_eq!(diverge.records()[1].bytes, b"bbb");
+        assert_eq!(diverge.records().unwrap().len(), 2);
+        assert_eq!(diverge.records().unwrap()[1].bytes, b"bbb");
     }
     #[test]
     fn maximum_record_header_uses_twenty_five_bytes() {
@@ -837,14 +861,14 @@ mod tests {
             follower.replicate_from(&leader, 2, budget(4)),
             Err(Error::Budget)
         ));
-        assert_eq!(follower.records()[0].bytes, b"old");
+        assert_eq!(follower.records().unwrap()[0].bytes, b"old");
         drop(follower);
         let mut follower = Log::open(&path, limits).unwrap();
-        assert_eq!(follower.records()[0].bytes, b"old");
+        assert_eq!(follower.records().unwrap()[0].bytes, b"old");
         follower.append(1, b"next").unwrap();
         drop(follower);
         let follower = Log::open(&path, limits).unwrap();
-        assert_eq!(follower.records().len(), 2);
+        assert_eq!(follower.records().unwrap().len(), 2);
         let _ = std::fs::remove_file(path);
     }
 
@@ -863,7 +887,7 @@ mod tests {
         log.append(1, b"1234").unwrap();
         drop(log);
         let log = Log::open(&path, limits).unwrap();
-        assert_eq!(log.records()[0].bytes, b"1234");
+        assert_eq!(log.records().unwrap()[0].bytes, b"1234");
         drop(log);
         let _ = std::fs::remove_file(path);
     }
@@ -883,7 +907,7 @@ mod tests {
         assert!(matches!(log.append(1, b"x"), Err(Error::Budget)));
         drop(log);
         let log = Log::open(&path, limits).unwrap();
-        assert_eq!(log.records()[0].bytes, b"old");
+        assert_eq!(log.records().unwrap()[0].bytes, b"old");
         drop(log);
         let _ = std::fs::remove_file(path);
     }
@@ -909,7 +933,7 @@ mod tests {
         );
         drop(follower);
         let follower = Log::open(&path, limits).unwrap();
-        assert_eq!(follower.records(), leader.records());
+        assert_eq!(follower.records().unwrap(), leader.records().unwrap());
         drop(follower);
         let _ = std::fs::remove_file(path);
     }
@@ -925,7 +949,7 @@ mod tests {
             follower.replicate_from(&leader, 1, budget(8)),
             Err(Error::Poisoned)
         ));
-        assert!(follower.records().is_empty());
+        assert!(follower.records().unwrap().is_empty());
     }
     #[test]
     fn divergent_replacement_needs_two_journal_slots_and_file_space_before_truncation() {
@@ -945,12 +969,12 @@ mod tests {
                 follower.replicate_from(&leader, 2, budget(2)),
                 Err(Error::Budget)
             ));
-            assert_eq!(follower.records()[0].bytes, b"old");
+            assert_eq!(follower.records().unwrap()[0].bytes, b"old");
             follower.append(1, b"x").unwrap();
             drop(follower);
             let follower = Log::open(&path, limits).unwrap();
-            assert_eq!(follower.records().len(), 2);
-            assert_eq!(follower.records()[0].bytes, b"old");
+            assert_eq!(follower.records().unwrap().len(), 2);
+            assert_eq!(follower.records().unwrap()[0].bytes, b"old");
             drop(follower);
             let _ = std::fs::remove_file(path);
         }
@@ -973,10 +997,10 @@ mod tests {
             ),
             Err(Error::Budget)
         ));
-        assert_eq!(follower.records()[0].bytes, b"old");
+        assert_eq!(follower.records().unwrap()[0].bytes, b"old");
         drop(follower);
         let follower = Log::open(&path, limits()).unwrap();
-        assert_eq!(follower.records()[0].bytes, b"old");
+        assert_eq!(follower.records().unwrap()[0].bytes, b"old");
     }
 
     #[test]
@@ -1003,15 +1027,15 @@ mod tests {
             )
             .unwrap();
         assert_eq!(progress.copied, 1);
-        assert_eq!(follower.records()[0].bytes, b"ok");
+        assert_eq!(follower.records().unwrap()[0].bytes, b"ok");
         assert!(matches!(
             follower.replicate_from(&leader, 1, budget(2)),
             Err(Error::Budget)
         ));
         drop(follower);
         let follower = Log::open(&path, limits).unwrap();
-        assert_eq!(follower.records().len(), 1);
-        assert_eq!(follower.records()[0].bytes, b"ok");
+        assert_eq!(follower.records().unwrap().len(), 1);
+        assert_eq!(follower.records().unwrap()[0].bytes, b"ok");
         drop(follower);
         let _ = std::fs::remove_file(path);
     }
@@ -1041,10 +1065,10 @@ mod tests {
             follower.replicate_from(&leader, 1, budget(2)),
             Err(Error::Budget)
         ));
-        assert!(follower.records().is_empty());
+        assert!(follower.records().unwrap().is_empty());
         drop(follower);
         let follower = Log::open(&path, limits).unwrap();
-        assert!(follower.records().is_empty());
+        assert!(follower.records().unwrap().is_empty());
         drop(follower);
         let _ = std::fs::remove_file(path);
 
@@ -1060,8 +1084,8 @@ mod tests {
         ));
         drop(follower);
         let follower = Log::open(&path, limits).unwrap();
-        assert_eq!(follower.records().len(), 1);
-        assert_eq!(follower.records()[0].bytes, b"one");
+        assert_eq!(follower.records().unwrap().len(), 1);
+        assert_eq!(follower.records().unwrap()[0].bytes, b"one");
         drop(follower);
         let _ = std::fs::remove_file(path);
     }
@@ -1086,7 +1110,7 @@ mod tests {
         assert!(matches!(Limits::new(1, 32, old), Err(Error::InvalidLimits)));
         let migrated = journal::Limits::new(57, 1024, 1, 1024).unwrap();
         let mut log = Log::open(&path, Limits::new(1, 32, migrated).unwrap()).unwrap();
-        assert_eq!(log.records()[0].bytes, b"old");
+        assert_eq!(log.records().unwrap()[0].bytes, b"old");
         assert!(matches!(log.append(1, b"new"), Err(Error::Budget)));
         drop(log);
         let _ = std::fs::remove_file(path);
@@ -1102,10 +1126,10 @@ mod tests {
             follower.replicate_from(&leader, 2, budget(1)),
             Err(Error::Storage(journal::Error::AllocationFailed))
         ));
-        assert_eq!(follower.records()[0].bytes, b"old");
+        assert_eq!(follower.records().unwrap()[0].bytes, b"old");
         drop(follower);
         let mut follower = Log::open(&path, limits()).unwrap();
-        assert_eq!(follower.records()[0].bytes, b"old");
+        assert_eq!(follower.records().unwrap()[0].bytes, b"old");
         assert_eq!(
             follower
                 .replicate_from(&leader, 2, budget(1))
@@ -1113,7 +1137,7 @@ mod tests {
                 .copied,
             1
         );
-        assert_eq!(follower.records(), leader.records());
+        assert_eq!(follower.records().unwrap(), leader.records().unwrap());
     }
 
     #[test]
@@ -1137,7 +1161,7 @@ mod tests {
         ));
         drop(follower);
         let follower = Log::open(&path, limits).unwrap();
-        assert_eq!(follower.records()[0].bytes, b"ok");
+        assert_eq!(follower.records().unwrap()[0].bytes, b"ok");
         drop(follower);
         let _ = std::fs::remove_file(path);
     }
@@ -1178,7 +1202,7 @@ mod tests {
         assert_eq!(status.code(), Some(71));
         let leader = Log::open(dir.join("leader"), limits()).unwrap();
         let mut follower = Log::open(dir.join("follower"), limits()).unwrap();
-        assert!(follower.records().is_empty());
+        assert!(follower.records().unwrap().is_empty());
         assert_eq!(
             follower
                 .replicate_from(&leader, 2, budget(1))
@@ -1188,9 +1212,382 @@ mod tests {
         );
         drop(follower);
         let follower = Log::open(dir.join("follower"), limits()).unwrap();
-        assert_eq!(follower.records(), leader.records());
+        assert_eq!(follower.records().unwrap(), leader.records().unwrap());
         drop(follower);
         drop(leader);
         std::fs::remove_dir_all(dir).unwrap();
+    }
+
+    #[tokio::test]
+    async fn empty_epoch_fence_preserves_one_entry_capacity_and_blocks_old_readers() {
+        let (leader, leader_path) = log("empty-fence-source");
+        let (_, path) = log("empty-fence-target-name");
+        // The helper's empty handle was dropped at the statement boundary.
+        let journal_limits = journal::Limits::new(57, 24 + 32 + 57, 1, 1024).unwrap();
+        let limits = Limits::new(1, 32, journal_limits).unwrap();
+        let mut follower = Log::open(&path, limits).unwrap();
+        for epoch in [0, 4, i32::MAX] {
+            let progress = follower.replicate_from(&leader, epoch, budget(1)).unwrap();
+            assert_eq!(
+                (progress.copied, progress.truncated, progress.next_offset),
+                (0, 0, 0)
+            );
+            assert_eq!(follower.journal.file_bytes(), 24);
+            assert_eq!(follower.stored, 0);
+        }
+        drop(follower);
+        let original = tokio::fs::read(&path).await.unwrap();
+        assert!(matches!(
+            Journal::open(&path, 0, journal_limits),
+            Err(journal::Error::Corrupt {
+                kind: journal::Corruption::FileHeader,
+                ..
+            })
+        ));
+        assert_eq!(tokio::fs::read(&path).await.unwrap(), original);
+        let mut follower = Log::open(&path, limits).unwrap();
+        assert_eq!(follower.leader_epoch().unwrap(), i32::MAX);
+        assert!(matches!(
+            follower.append(i32::MAX - 1, b"stale"),
+            Err(Error::FencedLeader)
+        ));
+        assert_eq!(follower.append(i32::MAX, &[1; 32]).unwrap(), 0);
+        drop(follower);
+        let follower = Log::open(&path, limits).unwrap();
+        assert_eq!(follower.records().unwrap()[0].bytes, [1; 32]);
+        drop(follower);
+        drop(leader);
+        std::fs::remove_file(path).unwrap();
+        std::fs::remove_file(leader_path).unwrap();
+    }
+
+    #[test]
+    fn unchanged_full_one_entry_log_accepts_later_epochs_without_index_growth() {
+        let (mut leader, _) = log("full-fence-source");
+        leader.append(1, b"same").unwrap();
+        let (_, path) = log("full-fence-target-name");
+        let j = journal::Limits::new(57, 24 + 32 + 57, 1, 1024).unwrap();
+        let limits = Limits::new(1, 32, j).unwrap();
+        let mut follower = Log::open(&path, limits).unwrap();
+        follower.append(1, b"same").unwrap();
+        let bytes = follower.journal.file_bytes();
+        for epoch in [2, 8, 9] {
+            assert_eq!(
+                follower
+                    .replicate_from(&leader, epoch, budget(1))
+                    .unwrap()
+                    .copied,
+                0
+            );
+            assert_eq!(follower.journal.file_bytes(), bytes);
+            assert_eq!(follower.stored, 1);
+        }
+        drop(follower);
+        let mut follower = Log::open(&path, limits).unwrap();
+        assert_eq!(follower.leader_epoch().unwrap(), 9);
+        assert!(matches!(
+            follower.replicate_from(&leader, 8, budget(1)),
+            Err(Error::FencedLeader)
+        ));
+        assert_eq!(follower.records().unwrap(), leader.records().unwrap());
+    }
+
+    #[test]
+    fn accepted_epoch_survives_removing_its_last_record() {
+        let (mut follower, path) = log("truncate-fence-target");
+        follower.append(1, b"shared").unwrap();
+        follower.append(7, b"divergent").unwrap();
+        let (mut leader, _) = log("truncate-fence-source");
+        leader.append(1, b"shared").unwrap();
+        let progress = follower.replicate_from(&leader, 7, budget(1)).unwrap();
+        assert_eq!((progress.truncated, progress.copied), (1, 0));
+        assert_eq!(follower.leader_epoch().unwrap(), 7);
+        drop(follower);
+        let mut follower = Log::open(&path, limits()).unwrap();
+        assert_eq!(follower.leader_epoch().unwrap(), 7);
+        assert!(matches!(
+            follower.append(6, b"stale"),
+            Err(Error::FencedLeader)
+        ));
+        assert!(matches!(
+            follower.replicate_from(&leader, 6, budget(1)),
+            Err(Error::FencedLeader)
+        ));
+        let (empty, _) = log("truncate-fence-empty");
+        assert_eq!(
+            follower
+                .replicate_from(&empty, 8, budget(1))
+                .unwrap()
+                .truncated,
+            1
+        );
+        drop(follower);
+        let mut follower = Log::open(&path, limits()).unwrap();
+        assert!(follower.records().unwrap().is_empty());
+        assert_eq!(follower.leader_epoch().unwrap(), 8);
+        assert!(matches!(
+            follower.append(7, b"stale"),
+            Err(Error::FencedLeader)
+        ));
+        assert_eq!(follower.append(8, b"new").unwrap(), 0);
+    }
+
+    #[test]
+    fn legacy_event_replay_remembers_epochs_from_truncated_records() {
+        let (_, path) = log("legacy-epoch-history");
+        let (mut journal, _) = Journal::open(&path, 0, limits().journal).unwrap();
+        for payload in [
+            encode_record(&Record {
+                offset: 0,
+                leader_epoch: 5,
+                bytes: b"old".to_vec(),
+            })
+            .unwrap(),
+            encode_truncate(0).unwrap(),
+            encode_record(&Record {
+                offset: 0,
+                leader_epoch: 1,
+                bytes: b"legacy".to_vec(),
+            })
+            .unwrap(),
+        ] {
+            journal.append(1, &payload).unwrap();
+        }
+        drop(journal);
+        let mut log = Log::open(&path, limits()).unwrap();
+        assert_eq!(log.records().unwrap()[0].leader_epoch, 1);
+        assert_eq!(log.leader_epoch().unwrap(), 5);
+        assert!(matches!(log.append(4, b"stale"), Err(Error::FencedLeader)));
+        assert_eq!(log.append(5, b"current").unwrap(), 1);
+    }
+
+    #[test]
+    fn epoch_publication_errors_distinguish_pre_rename_from_ambiguous_outcomes() {
+        for phase in [
+            "epoch-permissions-sync",
+            "epoch-sync",
+            "epoch-prepared",
+            "epoch-rename",
+            "epoch-renamed",
+        ] {
+            let (mut follower, path) = log(phase);
+            follower.append(1, b"same").unwrap();
+            let (mut leader, _) = log("epoch-error-source");
+            leader.append(1, b"same").unwrap();
+            journal::fail_checkpoint_once_at(phase);
+            assert!(matches!(
+                follower.replicate_from(&leader, 7, budget(1)),
+                Err(Error::Storage(journal::Error::Io(_)))
+            ));
+            let published = matches!(phase, "epoch-rename" | "epoch-renamed");
+            if phase == "epoch-permissions-sync" {
+                let mut temporary = path.clone().into_os_string();
+                temporary.push(".epoch.tmp");
+                assert_eq!(
+                    std::fs::metadata(std::path::PathBuf::from(temporary))
+                        .unwrap()
+                        .len(),
+                    0
+                );
+            }
+            if !published {
+                assert_eq!(follower.leader_epoch().unwrap(), 1);
+                assert_eq!(follower.records().unwrap()[0].bytes, b"same");
+                assert_eq!(follower.append(1, b"next").unwrap(), 1);
+            } else {
+                assert!(matches!(follower.records(), Err(Error::Poisoned)));
+                assert!(matches!(follower.next_offset(), Err(Error::Poisoned)));
+                assert!(matches!(follower.leader_epoch(), Err(Error::Poisoned)));
+                assert!(matches!(follower.append(7, b"next"), Err(Error::Poisoned)));
+            }
+            drop(follower);
+            let mut follower = Log::open(&path, limits()).unwrap();
+            assert_eq!(
+                follower.leader_epoch().unwrap(),
+                if published { 7 } else { 1 }
+            );
+            assert!(!follower.records().unwrap().is_empty());
+            follower.replicate_from(&leader, 7, budget(1)).unwrap();
+            assert_eq!(follower.leader_epoch().unwrap(), 7);
+        }
+    }
+
+    #[test]
+    #[cfg(unix)]
+    fn epoch_header_recovery_at_each_atomic_publication_stage() {
+        const TEST: &str =
+            "replication::tests::epoch_header_recovery_at_each_atomic_publication_stage";
+        if let Some(dir) = std::env::var_os("PLB_EPOCH_HEADER_CRASH_DIR") {
+            let dir = std::path::PathBuf::from(dir);
+            let leader = Log::open(dir.join("leader"), limits()).unwrap();
+            let mut follower = Log::open(dir.join("follower"), limits()).unwrap();
+            follower.replicate_from(&leader, 7, budget(1)).unwrap();
+            panic!("epoch publication failpoint did not exit");
+        }
+        for phase in ["epoch-prepared", "epoch-renamed", "epoch-synced"] {
+            let (mut leader, leader_path) = log("epoch-crash-parent-source");
+            leader.append(1, b"same").unwrap();
+            let parent = leader_path.with_extension(phase);
+            std::fs::create_dir_all(&parent).unwrap();
+            let mut follower = Log::open(parent.join("follower"), limits()).unwrap();
+            follower.append(1, b"same").unwrap();
+            drop(follower);
+            drop(leader);
+            std::fs::rename(leader_path, parent.join("leader")).unwrap();
+            let status = std::process::Command::new(std::env::current_exe().unwrap())
+                .args(["--exact", TEST, "--nocapture"])
+                .env("PLB_JOURNAL_CHECKPOINT_CRASH", phase)
+                .env("PLB_EPOCH_HEADER_CRASH_DIR", &parent)
+                .status()
+                .unwrap();
+            assert_eq!(status.code(), Some(71));
+            let leader = Log::open(parent.join("leader"), limits()).unwrap();
+            let mut follower = Log::open(parent.join("follower"), limits()).unwrap();
+            let expected = if phase == "epoch-prepared" { 1 } else { 7 };
+            assert_eq!(follower.leader_epoch().unwrap(), expected);
+            assert_eq!(follower.records().unwrap(), leader.records().unwrap());
+            if expected == 7 {
+                assert!(matches!(
+                    follower.replicate_from(&leader, 6, budget(1)),
+                    Err(Error::FencedLeader)
+                ));
+            }
+            follower.replicate_from(&leader, 7, budget(1)).unwrap();
+            drop(follower);
+            let follower = Log::open(parent.join("follower"), limits()).unwrap();
+            assert_eq!(follower.leader_epoch().unwrap(), 7);
+            drop(follower);
+            drop(leader);
+            std::fs::remove_dir_all(parent).unwrap();
+        }
+    }
+
+    #[tokio::test]
+    async fn corrupted_or_unsupported_epoch_headers_are_not_repaired() {
+        let (mut log, path) = log("invalid-epoch-header");
+        log.append(1, b"old").unwrap();
+        drop(log);
+        let original = tokio::fs::read(&path).await.unwrap();
+        for encoded in [u32::MAX, (i32::MAX as u32) + 2] {
+            let mut damaged = original.clone();
+            damaged[16..20].copy_from_slice(&encoded.to_be_bytes());
+            let checksum = crc32c::crc32c(&damaged[..20]);
+            damaged[20..24].copy_from_slice(&checksum.to_be_bytes());
+            tokio::fs::write(&path, &damaged).await.unwrap();
+            assert!(matches!(
+                Log::open(&path, limits()),
+                Err(Error::Storage(journal::Error::Corrupt {
+                    kind: journal::Corruption::FileHeader,
+                    ..
+                }))
+            ));
+            assert_eq!(tokio::fs::read(&path).await.unwrap(), damaged);
+        }
+        let mut damaged = original;
+        damaged[16] ^= 1;
+        tokio::fs::write(&path, &damaged).await.unwrap();
+        assert!(matches!(
+            Log::open(&path, limits()),
+            Err(Error::Storage(journal::Error::Corrupt {
+                kind: journal::Corruption::FileHeader,
+                ..
+            }))
+        ));
+        assert_eq!(tokio::fs::read(&path).await.unwrap(), damaged);
+    }
+
+    #[test]
+    #[cfg(unix)]
+    fn accepted_epoch_replacement_preserves_private_file_permissions() {
+        use std::os::unix::fs::PermissionsExt;
+        for mode in [0o600, 0o700, 0o4700, 0o2700] {
+            let (mut follower, path) = log("private-epoch-header");
+            follower.append(1, b"private").unwrap();
+            std::fs::set_permissions(&path, std::fs::Permissions::from_mode(mode)).unwrap();
+            assert_eq!(
+                std::fs::metadata(&path).unwrap().permissions().mode() & 0o7777,
+                mode
+            );
+            let (mut leader, _) = log("private-epoch-source");
+            leader.append(1, b"private").unwrap();
+            journal::fail_checkpoint_once_at("epoch-prepared");
+            assert!(matches!(
+                follower.replicate_from(&leader, 2, budget(1)),
+                Err(Error::Storage(journal::Error::Io(_)))
+            ));
+            assert_eq!(follower.leader_epoch().unwrap(), 1);
+            assert_eq!(follower.records().unwrap()[0].bytes, b"private");
+            let mut temporary = path.clone().into_os_string();
+            temporary.push(".epoch.tmp");
+            assert_eq!(
+                std::fs::metadata(std::path::PathBuf::from(temporary))
+                    .unwrap()
+                    .permissions()
+                    .mode()
+                    & 0o7777,
+                mode
+            );
+            follower.replicate_from(&leader, 2, budget(1)).unwrap();
+            assert_eq!(
+                std::fs::metadata(&path).unwrap().permissions().mode() & 0o7777,
+                mode
+            );
+            drop(follower);
+            let follower = Log::open(&path, limits()).unwrap();
+            assert_eq!(follower.leader_epoch().unwrap(), 2);
+            assert_eq!(follower.records().unwrap()[0].bytes, b"private");
+            assert_eq!(
+                std::fs::metadata(&path).unwrap().permissions().mode() & 0o7777,
+                mode
+            );
+        }
+    }
+
+    #[tokio::test]
+    async fn detected_source_changes_poison_reads_and_writes_without_repair() {
+        for kind in [0, 1, 2] {
+            let (mut follower, path) = log("active-source-corruption");
+            follower.append(1, b"old").unwrap();
+            let (mut leader, _) = log("active-source-corruption-leader");
+            leader.append(1, b"old").unwrap();
+            let mut damaged = tokio::fs::read(&path).await.unwrap();
+            // Deliberately violate exclusive ownership to verify fail-closed
+            // source checks, including a changed record with valid CRCs.
+            damaged[if kind == 0 { 16 } else { 24 + 32 + 25 }] ^= 1;
+            if kind == 2 {
+                let payload_crc = crc32c::crc32c(&damaged[24 + 32..]);
+                damaged[24 + 24..24 + 28].copy_from_slice(&payload_crc.to_be_bytes());
+                let header_crc = crc32c::crc32c(&damaged[24..24 + 28]);
+                damaged[24 + 28..24 + 32].copy_from_slice(&header_crc.to_be_bytes());
+            }
+            tokio::fs::write(&path, &damaged).await.unwrap();
+            let result = follower.replicate_from(&leader, 2, budget(1));
+            if kind == 2 {
+                assert!(matches!(
+                    result,
+                    Err(Error::Storage(journal::Error::ChangedFile))
+                ));
+            } else {
+                assert!(matches!(
+                    result,
+                    Err(Error::Storage(journal::Error::Corrupt { .. }))
+                ));
+            }
+            assert!(matches!(follower.records(), Err(Error::Poisoned)));
+            assert!(matches!(follower.next_offset(), Err(Error::Poisoned)));
+            assert!(matches!(follower.leader_epoch(), Err(Error::Poisoned)));
+            assert!(matches!(follower.append(2, b"later"), Err(Error::Poisoned)));
+            assert_eq!(tokio::fs::read(&path).await.unwrap(), damaged);
+            drop(follower);
+            if kind == 2 {
+                let reopened = Log::open(&path, limits()).unwrap();
+                assert_ne!(reopened.records().unwrap()[0].bytes, b"old");
+            } else {
+                assert!(matches!(
+                    Log::open(&path, limits()),
+                    Err(Error::Storage(journal::Error::Corrupt { .. }))
+                ));
+            }
+        }
     }
 }

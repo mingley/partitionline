@@ -991,9 +991,8 @@ fn response_into(
     let flexible = key == 52;
     out.clear();
     let need = config.topic.len().saturating_add(64);
-    let extra = need.saturating_sub(out.capacity());
-    if extra > 0 {
-        out.try_reserve_exact(extra)
+    if out.capacity() < need {
+        out.try_reserve_exact(need - out.len())
             .map_err(|_| Error::Allocation)?;
     }
     out.extend_from_slice(&correlation.to_be_bytes());
@@ -4073,6 +4072,35 @@ mod response_buffer_tests {
             .unwrap_or_else(|error| panic!("{error:?}"));
         assert!(second.capacity() >= kept);
         assert!(!second.is_empty());
+    }
+
+    #[test]
+    fn partial_response_buffer_is_reserved_before_encoding() {
+        let config = Config::new(1, vec![1], "cluster".into()).unwrap();
+        let planned = config.topic.len() + 64;
+        for key in [52, 53] {
+            let expected = if key == 52 {
+                vec![0, 0, 0, 7, 0, 0, 0, 1, 0]
+            } else {
+                vec![0, 0, 0, 7, 0, 0, 0, 0, 0, 0]
+            };
+            for initial in [0, 1, planned / 2 + 1, planned - 1, planned, planned + 64] {
+                let mut spare = Vec::with_capacity(initial);
+                spare.resize(initial.min(17), 0xa5);
+                let first = response_into(key, 7, 0, None, &config, state(), spare).unwrap();
+                assert!(
+                    first.capacity() >= planned,
+                    "key {key}, initial capacity {initial}"
+                );
+                assert_eq!(first, expected);
+                let capacity = first.capacity();
+                let pointer = first.as_ptr();
+                let warm = response_into(key, 7, 0, None, &config, state(), first).unwrap();
+                assert_eq!(warm, expected);
+                assert_eq!(warm.capacity(), capacity);
+                assert_eq!(warm.as_ptr(), pointer);
+            }
+        }
     }
 }
 

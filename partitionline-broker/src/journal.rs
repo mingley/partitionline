@@ -287,6 +287,7 @@ pub struct Journal {
     inner: Engine<File>,
     _ownership: ownership::Guard,
     path: PathBuf,
+    replica_header: bool,
 }
 
 // The rolled backend shares this parser rather than retaining a dense Journal
@@ -448,7 +449,25 @@ impl Journal {
         base_offset: u64,
         limits: Limits,
     ) -> Result<(Self, Recovery), Error> {
-        let path = path.as_ref();
+        Self::open_with_header(path.as_ref(), base_offset, limits, false)
+    }
+
+    // Replica epochs use the protected header's formerly reserved bytes.
+    // Normal Journal readers intentionally continue to reject that format.
+    pub(crate) fn open_replica(
+        path: impl AsRef<Path>,
+        base_offset: u64,
+        limits: Limits,
+    ) -> Result<(Self, Recovery), Error> {
+        Self::open_with_header(path.as_ref(), base_offset, limits, true)
+    }
+
+    fn open_with_header(
+        path: &Path,
+        base_offset: u64,
+        limits: Limits,
+        replica_header: bool,
+    ) -> Result<(Self, Recovery), Error> {
         let mut ownership = ownership::Guard::acquire(path)?;
         let file = OpenOptions::new()
             .read(true)
@@ -457,7 +476,8 @@ impl Journal {
             .truncate(false)
             .open(path)?;
         ownership.identify(&file)?;
-        let (inner, recovery) = Engine::recover(file, base_offset, limits)?;
+        let (inner, recovery) =
+            Engine::recover_with_header(file, base_offset, limits, replica_header)?;
         let resolved = std::fs::canonicalize(path)?;
         let parent = resolved
             .parent()
@@ -469,9 +489,207 @@ impl Journal {
                 inner,
                 _ownership: ownership,
                 path: resolved,
+                replica_header,
             },
             recovery,
         ))
+    }
+
+    pub(crate) fn replica_epoch(&self) -> Option<i32> {
+        self.inner.header_epoch
+    }
+
+    // Copy the journal's protected entries unchanged while raising only its
+    // header fence. Atomic replacement costs O(file bytes) per epoch change,
+    // but consumes no additional payload, index or configured file capacity.
+    // `<path>.epoch.tmp` is reserved; temporary disk space is still required.
+    pub(crate) fn persist_replica_epoch(&mut self, epoch: i32) -> Result<(), Error> {
+        self.inner.check_alive()?;
+        if !self.replica_header
+            || epoch < 0
+            || self.inner.header_epoch.is_some_and(|old| epoch < old)
+        {
+            return Err(Error::InvalidEntry);
+        }
+        if self.inner.header_epoch == Some(epoch) {
+            return Ok(());
+        }
+        if !self.inner.staged.is_empty() {
+            return Err(Error::InvalidEntry);
+        }
+        let source_metadata = match self.inner.storage.metadata() {
+            Ok(metadata) => metadata,
+            Err(error) => {
+                self.inner.poisoned = true;
+                return Err(error.into());
+            }
+        };
+        if source_metadata.len() != self.inner.file_bytes {
+            self.inner.poisoned = true;
+            return Err(Error::ChangedFile);
+        }
+        let mut name = self
+            .path
+            .file_name()
+            .ok_or(Error::ChangedFile)?
+            .to_os_string();
+        name.push(".epoch.tmp");
+        let tmp = self.path.with_file_name(name);
+        let mut owner = ownership::Guard::acquire(&tmp)?;
+        match std::fs::symlink_metadata(&tmp) {
+            Ok(metadata) if metadata.file_type().is_file() => {
+                let stale = File::open(&tmp)?;
+                owner.identify(&stale)?;
+                std::fs::remove_file(&tmp)?;
+                owner.release_inode()?;
+            }
+            Ok(_) => return Err(Error::ChangedFile),
+            Err(error) if error.kind() == io::ErrorKind::NotFound => {}
+            Err(error) => return Err(error.into()),
+        }
+        let mut file = OpenOptions::new()
+            .read(true)
+            .write(true)
+            .create_new(true)
+            .open(&tmp)?;
+        owner.identify(&file)?;
+        file.set_permissions(source_metadata.permissions())?;
+        // Persist access permissions before any private bytes can reach disk.
+        #[cfg(test)]
+        let synchronized =
+            checkpoint_test_error("epoch-permissions-sync").and_then(|()| file.sync_all());
+        #[cfg(not(test))]
+        let synchronized = file.sync_all();
+        synchronized?;
+        let header = replica_file_header(self.inner.base_offset, epoch)?;
+        file.write_all(&header)?;
+        // try_clone shares a cursor on some platforms. Invalidate the cached
+        // read position before touching either handle, including on failure.
+        self.inner.read_pos = None;
+        self.inner.length_ok = false;
+        let mut source = self.inner.storage.try_clone()?;
+        if let Err(error) = source.seek(SeekFrom::Start(0)) {
+            self.inner.poisoned = true;
+            return Err(error.into());
+        }
+        let expected_header = match self.inner.header_epoch {
+            Some(previous) => replica_file_header(self.inner.base_offset, previous)?,
+            None => file_header(self.inner.base_offset),
+        };
+        let mut observed_header = [0u8; FILE_HEADER];
+        if let Err(error) = source.read_exact(&mut observed_header) {
+            self.inner.poisoned = true;
+            return Err(error.into());
+        }
+        if observed_header != expected_header {
+            self.inner.poisoned = true;
+            return Err(corrupt(0, Corruption::FileHeader));
+        }
+        let mut remaining = self.inner.file_bytes - FILE_HEADER as u64;
+        let mut buffer = [0u8; 8192];
+        while remaining > 0 {
+            let len = usize::try_from(remaining.min(buffer.len() as u64))
+                .map_err(|_| Error::ChangedFile)?;
+            if let Err(error) = source.read_exact(&mut buffer[..len]) {
+                self.inner.poisoned = true;
+                return Err(error.into());
+            }
+            file.write_all(&buffer[..len])?;
+            remaining -= len as u64;
+        }
+        let final_length = match source.metadata() {
+            Ok(metadata) => metadata.len(),
+            Err(error) => {
+                self.inner.poisoned = true;
+                return Err(error.into());
+            }
+        };
+        if final_length != self.inner.file_bytes {
+            self.inner.poisoned = true;
+            return Err(Error::ChangedFile);
+        }
+        drop(source);
+        // Recovery validates every copied header and payload, builds the new
+        // bounded index, and synchronizes the complete replacement file.
+        let (mut replacement, _) = match Engine::recover_with_header(
+            file,
+            self.inner.base_offset,
+            self.inner.limits,
+            true,
+        ) {
+            Ok(recovered) => recovered,
+            Err(error) => {
+                // The source bytes were copied unchanged. Format/integrity
+                // errors identify a source we can no longer safely append to;
+                // temporary-file allocation or I/O preparation errors do not.
+                if !matches!(&error, Error::AllocationFailed | Error::Io(_)) {
+                    self.inner.poisoned = true;
+                }
+                return Err(error);
+            }
+        };
+        // Preserve an explicit pre-reservation for the caller's following
+        // appends. Rebuilding the index must not silently discard that guard.
+        if replacement.index.capacity() < self.inner.index.capacity() {
+            replacement
+                .index
+                .try_reserve_exact(
+                    self.inner
+                        .index
+                        .capacity()
+                        .saturating_sub(replacement.index.len()),
+                )
+                .map_err(|_| Error::AllocationFailed)?;
+        }
+        if replacement.file_bytes != self.inner.file_bytes
+            || replacement.next_offset != self.inner.next_offset
+            || replacement.index != self.inner.index
+            || replacement.header_epoch != Some(epoch)
+        {
+            self.inner.poisoned = true;
+            return Err(Error::ChangedFile);
+        }
+        // Writing can clear set-ID bits; restore the source mode before sync.
+        replacement
+            .storage
+            .set_permissions(source_metadata.permissions())?;
+        #[cfg(test)]
+        let synchronized =
+            checkpoint_test_error("epoch-sync").and_then(|()| replacement.storage.sync_all());
+        #[cfg(not(test))]
+        let synchronized = replacement.storage.sync_all();
+        synchronized?;
+        #[cfg(test)]
+        checkpoint_test_point("epoch-prepared");
+        #[cfg(test)]
+        checkpoint_test_error("epoch-prepared")?;
+        let published = std::fs::rename(&tmp, &self.path);
+        #[cfg(test)]
+        let published = published.and_then(|()| checkpoint_test_error("epoch-rename"));
+        if let Err(error) = published {
+            self.inner.poisoned = true;
+            return Err(error.into());
+        }
+        #[cfg(test)]
+        checkpoint_test_point("epoch-renamed");
+        if let Err(error) = self._ownership.adopt_replacement(&mut owner) {
+            self.inner.poisoned = true;
+            return Err(error);
+        }
+        self.inner = replacement;
+        let parent = self.path.parent().ok_or(Error::ChangedFile)?;
+        #[cfg(test)]
+        let synchronized = checkpoint_test_error("epoch-renamed")
+            .and_then(|()| File::open(parent).and_then(|directory| directory.sync_all()));
+        #[cfg(not(test))]
+        let synchronized = File::open(parent).and_then(|directory| directory.sync_all());
+        if let Err(error) = synchronized {
+            self.inner.poisoned = true;
+            return Err(error.into());
+        }
+        #[cfg(test)]
+        checkpoint_test_point("epoch-synced");
+        Ok(())
     }
 
     /// Append a nonempty opaque payload, synchronize data, then advance offsets.
@@ -553,6 +771,9 @@ impl Journal {
     // External writers must still obey Journal's exclusive ownership contract.
     pub(crate) fn replace_with_snapshot(&mut self, payload: &[u8]) -> Result<(), Error> {
         self.inner.check_alive()?;
+        if self.replica_header {
+            return Err(Error::InvalidEntry);
+        }
         if self.inner.base_offset != 0 {
             return Err(Error::BaseOffsetMismatch);
         }
@@ -570,6 +791,7 @@ impl Journal {
         {
             return Err(Error::FileBudgetExceeded);
         }
+        let permissions = self.inner.storage.metadata()?.permissions();
         let mut name = self
             .path
             .file_name()
@@ -597,14 +819,37 @@ impl Journal {
             .write(true)
             .create_new(true)
             .open(&tmp)?;
+        // Apply and persist access permissions before writing private data.
+        file.set_permissions(permissions.clone())?;
+        #[cfg(test)]
+        let synchronized =
+            checkpoint_test_error("checkpoint-permissions-sync").and_then(|()| file.sync_all());
+        #[cfg(not(test))]
+        let synchronized = file.sync_all();
+        synchronized?;
         owner.identify(&file)?;
         let (mut replacement, _) = Engine::recover(file, 0, self.inner.limits)?;
         replacement.append(1, payload)?;
+        // Writing can clear set-ID bits; restore the source mode before sync.
+        replacement.storage.set_permissions(permissions)?;
+        // Certify the complete replacement before publishing its name.
+        #[cfg(test)]
+        let synchronized =
+            checkpoint_test_error("snapshot-sync").and_then(|()| replacement.storage.sync_all());
+        #[cfg(not(test))]
+        let synchronized = replacement.storage.sync_all();
+        synchronized?;
         #[cfg(test)]
         checkpoint_test_point("prepared");
         #[cfg(test)]
         checkpoint_test_error("prepared")?;
-        std::fs::rename(&tmp, &self.path)?;
+        let published = std::fs::rename(&tmp, &self.path);
+        #[cfg(test)]
+        let published = published.and_then(|()| checkpoint_test_error("rename"));
+        if let Err(error) = published {
+            self.inner.poisoned = true;
+            return Err(error.into());
+        }
         #[cfg(test)]
         checkpoint_test_point("renamed");
         if let Err(error) = self._ownership.adopt_replacement(&mut owner) {
@@ -793,7 +1038,7 @@ impl Storage for File {
     }
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq, Eq)]
 struct Index {
     first_offset: u64,
     next_offset: u64,
@@ -810,6 +1055,7 @@ struct Engine<S> {
     storage: S,
     limits: Limits,
     base_offset: u64,
+    header_epoch: Option<i32>,
     next_offset: u64,
     file_bytes: u64,
     index: Vec<Index>,
@@ -979,6 +1225,15 @@ fn file_header(base_offset: u64) -> [u8; FILE_HEADER] {
     header[20..24].copy_from_slice(&checksum.to_be_bytes());
     header
 }
+fn replica_file_header(base_offset: u64, epoch: i32) -> Result<[u8; FILE_HEADER], Error> {
+    let mut header = file_header(base_offset);
+    let encoded = u32::try_from(epoch).map_err(|_| Error::InvalidEntry)? + 1;
+    header[16..20].copy_from_slice(&encoded.to_be_bytes());
+    let checksum = crc32c::crc32c(&header[..20]);
+    header[20..24].copy_from_slice(&checksum.to_be_bytes());
+    Ok(header)
+}
+
 /// Write `first` then `second` with one vectored transfer.
 pub(crate) fn write_two<W: Write>(w: &mut W, first: &[u8], second: &[u8]) -> io::Result<()> {
     let mut slices = [IoSlice::new(first), IoSlice::new(second)];
@@ -1233,10 +1488,15 @@ mod ownership {
 }
 
 impl<S: Storage> Engine<S> {
-    fn recover(
+    fn recover(storage: S, base_offset: u64, limits: Limits) -> Result<(Self, Recovery), Error> {
+        Self::recover_with_header(storage, base_offset, limits, false)
+    }
+
+    fn recover_with_header(
         mut storage: S,
         base_offset: u64,
         limits: Limits,
+        replica_header: bool,
     ) -> Result<(Self, Recovery), Error> {
         let original = storage.byte_len()?;
         if original > limits.max_file_bytes {
@@ -1244,6 +1504,7 @@ impl<S: Storage> Engine<S> {
         }
         storage.seek(SeekFrom::Start(0))?;
         let initialized = original == 0;
+        let mut header_epoch = None;
         if initialized {
             storage.write_all(&file_header(base_offset))?;
         } else {
@@ -1253,10 +1514,17 @@ impl<S: Storage> Engine<S> {
             let mut header = [0; FILE_HEADER];
             require_read(&mut storage, &mut header)?;
             if &header[..8] != FILE_MAGIC
-                || header[16..20] != [0; 4]
+                || (!replica_header && header[16..20] != [0; 4])
                 || crc32c::crc32c(&header[..20]) != u32_at(&header, 20)
             {
                 return Err(corrupt(0, Corruption::FileHeader));
+            }
+            let encoded_epoch = u32_at(&header, 16);
+            if replica_header && encoded_epoch != 0 {
+                header_epoch = Some(
+                    i32::try_from(encoded_epoch - 1)
+                        .map_err(|_| corrupt(0, Corruption::FileHeader))?,
+                );
             }
             if u64_at(&header, 8) != base_offset {
                 return Err(Error::BaseOffsetMismatch);
@@ -1271,6 +1539,7 @@ impl<S: Storage> Engine<S> {
             storage,
             limits,
             base_offset,
+            header_epoch,
             next_offset: base_offset,
             file_bytes: FILE_HEADER as u64,
             index: Vec::new(),
@@ -2337,5 +2606,151 @@ mod tests {
         assert!(journal.is_poisoned());
         drop(journal);
         let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn checkpoint_namespace_error_requires_reopen_but_preparation_error_does_not(
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        let nanos = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)?
+            .as_nanos();
+        let dir = std::env::temp_dir().join(format!(
+            "pl-checkpoint-namespace-{}-{nanos}",
+            std::process::id()
+        ));
+        std::fs::create_dir_all(&dir)?;
+        for phase in ["prepared", "rename", "renamed"] {
+            let path = dir.join(phase);
+            let (mut journal, _) = Journal::open(&path, 0, Limits::default())?;
+            journal.append(1, b"old")?;
+            fail_checkpoint_once_at(phase);
+            assert!(matches!(
+                journal.replace_with_snapshot(b"new"),
+                Err(Error::Io(_))
+            ));
+            assert!(matches!(
+                Journal::open(&path, 0, Limits::default()),
+                Err(Error::AlreadyOpen)
+            ));
+            if phase == "prepared" {
+                assert!(!journal.is_poisoned());
+                assert_eq!(journal.fetch(0, 1, 1024)?[0].payload, b"old");
+                journal.append(1, b"later")?;
+            } else {
+                assert!(journal.is_poisoned());
+                assert!(matches!(journal.fetch(0, 1, 1024), Err(Error::Poisoned)));
+                assert!(matches!(journal.append(1, b"later"), Err(Error::Poisoned)));
+            }
+            drop(journal);
+            let (mut reopened, _) = Journal::open(&path, 0, Limits::default())?;
+            assert_eq!(
+                reopened.fetch(0, 1, 1024)?[0].payload,
+                if phase == "prepared" { b"old" } else { b"new" }
+            );
+            reopened.replace_with_snapshot(b"retry")?;
+            assert_eq!(reopened.fetch(0, 1, 1024)?[0].payload, b"retry");
+        }
+        std::fs::remove_dir_all(dir)?;
+        Ok(())
+    }
+
+    #[test]
+    #[cfg(unix)]
+    fn checkpoint_replacement_preserves_permissions_before_publication(
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        use std::os::unix::fs::PermissionsExt;
+        let nanos = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)?
+            .as_nanos();
+        let dir =
+            std::env::temp_dir().join(format!("pl-checkpoint-mode-{}-{nanos}", std::process::id()));
+        std::fs::create_dir_all(&dir)?;
+        // The execute bit makes a lost mode observable under every process
+        // umask: a newly created ordinary file never acquires that bit.
+        for mode in [0o600, 0o700, 0o4700, 0o2700] {
+            let path = dir.join(format!("mode-{mode:o}"));
+            let temporary = dir.join(format!("mode-{mode:o}.checkpoint.tmp"));
+            let (mut journal, _) = Journal::open(&path, 0, Limits::default())?;
+            journal.append(1, b"old")?;
+            std::fs::set_permissions(&path, std::fs::Permissions::from_mode(mode))?;
+            assert_eq!(
+                std::fs::metadata(&path)?.permissions().mode() & 0o7777,
+                mode
+            );
+            fail_checkpoint_once_at("prepared");
+            assert!(matches!(
+                journal.replace_with_snapshot(b"private-prepared"),
+                Err(Error::Io(_))
+            ));
+            assert!(!journal.is_poisoned());
+            assert_eq!(journal.fetch(0, 1, 1024)?[0].payload, b"old");
+            assert_eq!(
+                std::fs::metadata(&temporary)?.permissions().mode() & 0o7777,
+                mode,
+                "temporary replacement mode {mode:o}"
+            );
+            journal.append(1, b"still-usable")?;
+            // An ordinary source write can clear set-ID bits for an
+            // unprivileged owner. Establish the intended publication mode
+            // again after proving the failed preparation left writes usable.
+            std::fs::set_permissions(&path, std::fs::Permissions::from_mode(mode))?;
+            assert_eq!(
+                std::fs::metadata(&path)?.permissions().mode() & 0o7777,
+                mode
+            );
+            journal.replace_with_snapshot(b"private-published")?;
+            assert_eq!(
+                std::fs::metadata(&path)?.permissions().mode() & 0o7777,
+                mode
+            );
+            assert_eq!(journal.fetch(0, 1, 1024)?[0].payload, b"private-published");
+            drop(journal);
+            let (mut reopened, _) = Journal::open(&path, 0, Limits::default())?;
+            assert_eq!(
+                std::fs::metadata(&path)?.permissions().mode() & 0o7777,
+                mode
+            );
+            assert_eq!(reopened.fetch(0, 1, 1024)?[0].payload, b"private-published");
+        }
+        std::fs::remove_dir_all(dir)?;
+        Ok(())
+    }
+
+    #[test]
+    fn checkpoint_file_sync_error_does_not_publish_the_replacement(
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        let nanos = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)?
+            .as_nanos();
+        let dir = std::env::temp_dir().join(format!(
+            "pl-checkpoint-file-sync-{}-{nanos}",
+            std::process::id()
+        ));
+        std::fs::create_dir_all(&dir)?;
+        for phase in ["checkpoint-permissions-sync", "snapshot-sync"] {
+            let path = dir.join(phase);
+            let (mut journal, _) = Journal::open(&path, 0, Limits::default())?;
+            journal.append(1, b"old")?;
+            fail_checkpoint_once_at(phase);
+            assert!(matches!(
+                journal.replace_with_snapshot(b"not-published"),
+                Err(Error::Io(_))
+            ));
+            assert!(!journal.is_poisoned());
+            assert_eq!(journal.fetch(0, 1, 1024)?[0].payload, b"old");
+            assert!(matches!(
+                Journal::open(&path, 0, Limits::default()),
+                Err(Error::AlreadyOpen)
+            ));
+            if phase == "checkpoint-permissions-sync" {
+                let temporary = dir.join(format!("{phase}.checkpoint.tmp"));
+                assert_eq!(std::fs::metadata(temporary)?.len(), 0);
+            }
+            journal.append(1, b"still-usable")?;
+            journal.replace_with_snapshot(b"retry")?;
+            assert_eq!(journal.fetch(0, 1, 1024)?[0].payload, b"retry");
+        }
+        std::fs::remove_dir_all(dir)?;
+        Ok(())
     }
 }

@@ -339,10 +339,9 @@ impl Writer {
             return Err(Error::ResourceLimit);
         }
         bytes.clear();
-        let extra = planned.saturating_sub(bytes.capacity());
-        if extra > 0 {
+        if bytes.capacity() < planned {
             bytes
-                .try_reserve_exact(extra)
+                .try_reserve_exact(planned - bytes.len())
                 .map_err(|_| Error::ResourceLimit)?;
         }
         Ok(Self { bytes, planned })
@@ -517,5 +516,38 @@ mod tests {
             Writer::reusing(16, 1024, writer.bytes).unwrap_or_else(|error| panic!("{error}"));
         assert!(again.bytes.is_empty());
         assert!(again.bytes.capacity() >= kept);
+    }
+
+    #[test]
+    fn partial_response_buffer_is_reserved_before_encoding() {
+        const PLANNED: usize = 192;
+        let expected: Vec<u8> = (0_i32..48).flat_map(i32::to_be_bytes).collect();
+        for initial in [0, 1, 64, 128, 191, 192, 256] {
+            let mut spare = Vec::with_capacity(initial);
+            spare.resize(initial.min(17), 0xa5);
+            let mut writer = Writer::reusing(PLANNED, PLANNED, spare).unwrap();
+            assert!(writer.bytes.is_empty());
+            assert!(
+                writer.bytes.capacity() >= PLANNED,
+                "initial capacity {initial}"
+            );
+            let capacity = writer.bytes.capacity();
+            let pointer = writer.bytes.as_ptr();
+            for value in 0_i32..48 {
+                writer.bytes(&value.to_be_bytes()).unwrap();
+            }
+            assert_eq!(writer.bytes, expected);
+            assert_eq!(writer.bytes.capacity(), capacity);
+            assert_eq!(writer.bytes.as_ptr(), pointer);
+            assert!(matches!(
+                writer.bytes(&[0]),
+                Err(super::Error::ResourceLimit)
+            ));
+            let mut warm = Writer::reusing(PLANNED, PLANNED, writer.bytes).unwrap();
+            warm.bytes(&expected).unwrap();
+            assert_eq!(warm.bytes, expected);
+            assert_eq!(warm.bytes.capacity(), capacity);
+            assert_eq!(warm.bytes.as_ptr(), pointer);
+        }
     }
 }

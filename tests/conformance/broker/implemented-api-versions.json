@@ -1281,7 +1281,7 @@
     "4.3.1/schema-only/metadata-v13-null-zero.response.bin": "52defe47987713fde5bcaadba96f28cfc3257b93396e5202446792a6f0aafada"
   },
   "controller_source": "partitionline-broker/src/raft/protocol.rs",
-  "controller_source_sha256": "562e31d232cca69605fdb303969e5eb33140750dc98ac38e82deb82b2cb37458",
+  "controller_source_sha256": "47ae96c84080813e4b81cfbfcdbe8bd45e48389c13c8562c0963dfc743137127",
   "controller_test_source": "partitionline-broker/tests/raft_protocol.rs",
   "controller_test_source_sha256": "2212994acdd0cb6b9115e0f6a6c4f5426b2978bbb988a5d827a4b263476ab515",
   "election_source": "partitionline-broker/src/raft/election.rs",
@@ -2297,7 +2297,7 @@
   "controller_implementation_gate": "KL11-13",
   "produce_fixture_root": "partitionline-broker/tests/fixtures/produce",
   "produce_source": "partitionline-broker/src/produce.rs",
-  "produce_source_sha256": "d2999e9e6f207a31de5428ff8a44dfbd39dc1ba04e700717c64a271cc0f13db4",
+  "produce_source_sha256": "00d0f238c6ad5ac35afafe49ea7f97fcf37230a60028df407e8762729324b9ef",
   "produce_test_source": "partitionline-broker/tests/produce.rs",
   "produce_test_source_sha256": "449eb0f4b2774ff7f3d4759a32f5362a39cb775f564f1cc44bb4314fd09da733",
   "produce_fixtures_sha256": {
@@ -3631,9 +3631,9 @@
   ],
   "read_write_implementation_gate": "KL11-07",
   "fetch_source": "partitionline-broker/src/fetch.rs",
-  "fetch_source_sha256": "a4475f343f4be0364e0eae5afb29acbe943ca87545b6673d13912f7a23e75357",
+  "fetch_source_sha256": "709bb09abf20706648785b7695e3fca5d6a72eb409f6a57dd64c550d1af55ffe",
   "fetch_test_source": "partitionline-broker/tests/fetch.rs",
-  "fetch_test_source_sha256": "88a7f34f9d2770199fbab00e21632a6fe62d66e2197a72e8ec32cda82be58336",
+  "fetch_test_source_sha256": "1e3ba56c59e765a7c1d5f0cd3f5a56b980b991d3ee1508e1872ddf109e2b583d",
   "fetch_fixture_root": "partitionline-broker/tests/fixtures/fetch",
   "fetch_fixtures_sha256": {
     "4.1.2/cases.tsv": "f80ab5cc0e21fb8ef35e3d2cf508a35234c2e8851d71e79e0233993b7a6319e5",
@@ -5106,7 +5106,7 @@
     "4.3.1/goldens.json": "30ad2193ecdebfd72aa20718415ab540204bebb4c802217c683b7a2fb8a69aed"
   },
   "retention_source": "partitionline-broker/src/retention.rs",
-  "retention_source_sha256": "e6ce84a33cc72849a2452b0d56298c098628f77ed78bf84054066defff7ce8b8",
+  "retention_source_sha256": "e88e9876999b411b4ff0c953f47bf2b469ea2daa2f026a7b53ff50d02e06b49f",
   "retention_test_source": "partitionline-broker/tests/retention.rs",
   "retention_test_source_sha256": "dfe982791f08ce3c13040dc02f4a5386630c3f27f5298a10fac338450020aa3e",
   "segments_source": "partitionline-broker/src/segments.rs",

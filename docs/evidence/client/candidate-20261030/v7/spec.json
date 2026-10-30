@@ -1,0 +1,178 @@
+{
+  "schema": 1,
+  "kind": "client",
+  "base_client_Rust_commit": "fe65ac7833fbaaa81331e31a182964c4ef3657a5",
+  "base_inputs": {
+    "path": "base-inputs.json",
+    "sha256": "bc708694045724a1e5732853501e59db4f92d344fdcdfc03f557cd42625ccd02",
+    "bytes": 225447
+  },
+  "baseline_inputs": {
+    "path": "baseline-inputs.json",
+    "sha256": "82ffffff2e30eb63e1e6529dd3bcc1d7b02284ebde951320d24c5dc7250c669a",
+    "bytes": 226147
+  },
+  "fixed_inputs": {
+    "path": "fixed-inputs.json",
+    "sha256": "30c1afdc3ffcf94a0b6d33f355be90b0b19b101dcd0b7473451017c0c9d76dc3",
+    "bytes": 226147
+  },
+  "controls": {
+    "path": "controls.json",
+    "sha256": "106c1e0eb4e838ebe088f08be757cd0c40b110926b9e69cae17b445ddabe9421",
+    "bytes": 47349
+  },
+  "baseline_patch": {
+    "path": "baseline.patch.gz",
+    "sha256": "c5b875f6ad66e65d8a133d26eb03d02738056b1cbded8415824d28c30eb39129",
+    "bytes": 71440,
+    "uncompressed_sha256": "10ba23086d06bff310a49ef879791a113117d6623d01fad331018a5cfeb3ca28",
+    "uncompressed_bytes": 397865
+  },
+  "fixed_delta": {
+    "path": "fixed-delta.patch.gz",
+    "sha256": "fff9664d03432bd4ed9a7806c12504199bb21a66aafa42e0ca7a71a38a81dbb6",
+    "bytes": 9153,
+    "uncompressed_bytes": 41198,
+    "uncompressed_sha256": "deb6e12fed287174249b4590272372ec320229c16171c288aceff48911ce8e3c"
+  },
+  "baseline_cases": [
+    {
+      "target": "partitionline",
+      "test": "producer::tests::cancelled_pending_drain_retains_accepted_records_until_worker_cleanup",
+      "expect": "pass",
+      "reason": "V5 baseline deliberately includes scoped drain fix733c0f2640ac... before the new actual-fire grouping negative."
+    },
+    {
+      "target": "partitionline",
+      "test": "producer::tests::cancelled_pending_deadline_scan_retains_the_detached_prefix_until_worker_cleanup",
+      "expect": "pass",
+      "reason": "V5 baseline deliberately includes scoped drain fix733c0f2640ac... before the new actual-fire grouping negative."
+    },
+    {
+      "target": "group_coordinator_startup",
+      "test": "classic_join_recovers_after_repeated_typed_coordinator_responses",
+      "expect": "fail"
+    },
+    {
+      "target": "group_coordinator_startup",
+      "test": "classic_join_retains_a_required_member_id_across_coordinator_responses",
+      "expect": "fail"
+    },
+    {
+      "target": "group_coordinator_startup",
+      "test": "classic_join_returns_terminal_response_after_transient_coordinator_errors",
+      "expect": "fail"
+    },
+    {
+      "target": "group_coordinator_startup",
+      "test": "persistent_join_responses_stop_at_the_original_deadline_with_backoff",
+      "expect": "fail"
+    },
+    {
+      "target": "group_coordinator_startup",
+      "test": "cancelling_a_join_after_written_coordinator_responses_stops_new_requests",
+      "expect": "fail"
+    },
+    {
+      "target": "group_coordinator_startup",
+      "test": "classic_join_recovers_when_rediscovery_itself_is_still_loading",
+      "expect": "fail"
+    },
+    {
+      "target": "group_coordinator_startup",
+      "test": "classic_join_returns_terminal_rediscovery_errors_without_another_join",
+      "expect": "fail"
+    },
+    {
+      "target": "group_coordinator_startup",
+      "test": "classic_join_does_not_retry_terminal_authorization_or_fencing_responses",
+      "expect": "pass"
+    },
+    {
+      "target": "partitionline",
+      "test": "group::tests::delayed_first_poll_does_not_restart_the_coordinator_deadline",
+      "expect": "fail"
+    },
+    {
+      "target": "mock_produce",
+      "test": "retry_refreshes_waiting_topics_together",
+      "expect": "fail"
+    },
+    {
+      "target": "group_stack",
+      "test": "public_group_lifecycle_fits_the_standard_two_mib_stack",
+      "expect": "observe"
+    },
+    {
+      "target": "partitionline",
+      "test": "cluster::tests::declared_topic_count_does_not_allocate_duplicate_tracking",
+      "expect": "fail"
+    },
+    {
+      "target": "partitionline",
+      "test": "cluster::tests::topic_duplicate_tracking_keeps_names_across_the_heap_transition",
+      "expect": "fail"
+    },
+    {
+      "target": "partitionline",
+      "test": "cluster::tests::unchanged_metadata_partitions_yield_without_discarding_the_cache",
+      "expect": "fail"
+    },
+    {
+      "target": "partitionline",
+      "test": "cluster::tests::unchanged_metadata_partition_budget_spans_multiple_topics",
+      "expect": "fail"
+    },
+    {
+      "target": "partitionline",
+      "test": "consumer::tests::cancelling_assigned_id_retention_keeps_all_still_assigned_identities",
+      "expect": "fail"
+    },
+    {
+      "target": "partitionline",
+      "test": "consumer::tests::retained_assigned_ids_keep_their_existing_storage",
+      "expect": "fail"
+    },
+    {
+      "target": "partitionline",
+      "test": "consumer::tests::cancelled_assigned_id_removals_can_resume_without_losing_kept_ids",
+      "expect": "pass"
+    },
+    {
+      "target": "partitionline",
+      "test": "consumer::tests::retaining_many_empty_assigned_id_topics_yields",
+      "expect": "fail"
+    },
+    {
+      "target": "partitionline",
+      "test": "producer::prepare_tests::cancelled_fire_grouping_retains_actual_accepted_records",
+      "expect": "fail",
+      "reason": "Actual legacy fire grouping with scoped drain ownership already fixed; direct helper controls are not old-code causal evidence."
+    }
+  ],
+  "fixed_full_targets": [
+    "partitionline",
+    "group_coordinator_startup",
+    "group_stack",
+    "produce_cancel",
+    "buffer_ownership",
+    "mock_produce",
+    "producer_initialization",
+    "producer_retained_backing",
+    "sticky_partitioner",
+    "init_producer_id_v6"
+  ],
+  "limits": [
+    "Prepared v5 source: no Cargo build, compiled discovery or Rust runtime has run for this combination.",
+    "V4 actual native compile stopped with8ignored-throttle-result errors and1unused helper warning, before any tests; those diagnostics are repaired here but not yet recompiled.",
+    "V5 baseline includes the earlier scoped drain fix to isolate the new actual-fire grouping negative; the original v4 13case predictions remain retained as historical evidence.",
+    "Only actual legacy-fire grouping is the new staging causal negative;10other direct-owner controls do not independently prove old-code failures.",
+    "Full runs of ten chosen binaries in default/all-feature lanes are required; other integration binaries and ordinary whole-main runtime remain separate gates.",
+    "Runtime stack remains8MiB except an explicit standard2MiB group child; this mock does not establish live Kafka stack safety.",
+    "Producer sticky/expired splitting, asynchronous terminal/requeue, acknowledgement andacks0 completion still have ownership gaps outside this patch.",
+    "Issue ordering, sequence wrap, PID/epoch transitions, whole-batch replay and physical socket retirement before ambiguous retry remain unresolved.",
+    "Hashing/map growth, final Drop, callbacks and deque-suffix conversion can perform linear synchronous work; global memory and cancellation latency are not bounded.",
+    "No external broker, multi-node durability, release readiness or fastest-performance ranking is established."
+  ]
+}

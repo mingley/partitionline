@@ -369,34 +369,39 @@ impl Writer {
             return Err(Error::ResponseLimit);
         }
         bytes.clear();
-        let extra = fixed.saturating_sub(bytes.capacity());
-        if extra > 0 {
+        if bytes.capacity() < fixed {
             bytes
-                .try_reserve_exact(extra)
+                .try_reserve_exact(fixed - bytes.len())
                 .map_err(|_| Error::Allocation)?;
         }
         Ok(Self { bytes, maximum })
     }
-    fn bytes(&mut self, value: &[u8]) -> Result<(), Error> {
+    fn reserve_bytes(&mut self, length: usize) -> Result<(), Error> {
         if self
             .bytes
             .len()
-            .checked_add(value.len())
+            .checked_add(length)
             .is_none_or(|n| n > self.maximum)
         {
             return Err(Error::ResponseLimit);
         }
         let spare = self.bytes.capacity().saturating_sub(self.bytes.len());
-        if spare < value.len() {
+        if spare < length {
             let room = self.maximum.saturating_sub(self.bytes.len());
-            let need = value.len().saturating_sub(spare);
-            let grow = need.max(Self::HEADER_SLACK).min(room);
-            if grow > 0 {
+            let need = length.saturating_sub(spare);
+            // Vec reserves relative to length, so include the existing spare
+            // capacity as well as the desired capacity growth.
+            let additional = spare.saturating_add(need.max(Self::HEADER_SLACK)).min(room);
+            if additional > 0 {
                 self.bytes
-                    .try_reserve_exact(grow)
+                    .try_reserve_exact(additional)
                     .map_err(|_| Error::Allocation)?;
             }
         }
+        Ok(())
+    }
+    fn bytes(&mut self, value: &[u8]) -> Result<(), Error> {
+        self.reserve_bytes(value.len())?;
         self.bytes.extend_from_slice(value);
         Ok(())
     }
@@ -1220,6 +1225,69 @@ mod tests {
         assert_eq!(writer.bytes.len(), 39 * 4);
         assert_eq!(&writer.bytes[..4], &1i32.to_be_bytes());
         assert_eq!(&writer.bytes[38 * 4..], &39i32.to_be_bytes());
+    }
+
+    #[test]
+    fn partial_response_buffer_is_reserved_before_encoding() {
+        const PLANNED: usize = 192;
+        let expected: Vec<u8> = (0_i32..48).flat_map(i32::to_be_bytes).collect();
+        for initial in [0, 1, 64, 128, 191, 192, 256] {
+            let mut spare = Vec::with_capacity(initial);
+            spare.resize(initial.min(17), 0xa5);
+            let mut writer = super::Writer::new(PLANNED, PLANNED, spare).unwrap();
+            assert!(writer.bytes.is_empty());
+            assert!(
+                writer.bytes.capacity() >= PLANNED,
+                "initial capacity {initial}"
+            );
+            let capacity = writer.bytes.capacity();
+            let pointer = writer.bytes.as_ptr();
+            for value in 0_i32..48 {
+                writer.i32(value).unwrap();
+            }
+            assert_eq!(writer.bytes, expected);
+            assert_eq!(writer.bytes.capacity(), capacity);
+            assert_eq!(writer.bytes.as_ptr(), pointer);
+            assert!(matches!(
+                writer.bytes(&[0]),
+                Err(super::Error::ResponseLimit)
+            ));
+            let mut warm = super::Writer::new(PLANNED, PLANNED, writer.bytes).unwrap();
+            warm.bytes(&expected).unwrap();
+            assert_eq!(warm.bytes, expected);
+            assert_eq!(warm.bytes.capacity(), capacity);
+            assert_eq!(warm.bytes.as_ptr(), pointer);
+        }
+    }
+
+    #[test]
+    fn partially_spare_fetch_buffer_reserves_the_entire_next_field() {
+        for maximum in [500, 1000] {
+            let mut writer = super::Writer::new(0, maximum, Vec::with_capacity(400)).unwrap();
+            writer.bytes(&[0x11; 100]).unwrap();
+            writer.reserve_bytes(400).unwrap();
+            assert!(writer.bytes.capacity() - writer.bytes.len() >= 400);
+            let capacity = writer.bytes.capacity();
+            let pointer = writer.bytes.as_ptr();
+            writer.bytes(&[0x22; 400]).unwrap();
+            assert_eq!(&writer.bytes[..100], &[0x11; 100]);
+            assert_eq!(&writer.bytes[100..], &[0x22; 400]);
+            assert_eq!(writer.bytes.capacity(), capacity);
+            assert_eq!(writer.bytes.as_ptr(), pointer);
+            let expected = writer.bytes.clone();
+            let mut warm = super::Writer::new(0, maximum, writer.bytes).unwrap();
+            warm.bytes(&expected).unwrap();
+            assert_eq!(warm.bytes, expected);
+            assert_eq!(warm.bytes.capacity(), capacity);
+            assert_eq!(warm.bytes.as_ptr(), pointer);
+            let before = warm.bytes.clone();
+            assert!(matches!(
+                warm.reserve_bytes(maximum - expected.len() + 1),
+                Err(super::Error::ResponseLimit)
+            ));
+            assert_eq!(warm.bytes, before);
+            assert_eq!(warm.bytes.capacity(), capacity);
+        }
     }
 
     #[test]
