@@ -1060,7 +1060,7 @@ Use `current_thread` when one application thread can drive the client and its
 other work. Use `multi_thread` when application tasks need parallel scheduling,
 and choose its worker count from measurements of that workload.
 
-The [local runtime comparison](evidence/perf/runtime-flavors/README.md) tested
+The [local runtime comparison](https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/docs/evidence/perf/runtime-flavors/README.md) tested
 current-thread and 1, 2, 4 and 5 background workers on two client CPUs with Kafka
 4.3.1. Median native bulk throughput was 245,443 records/s on current-thread and
 214,721–233,172 records/s on the multithread configurations. Current-thread also
@@ -1085,7 +1085,7 @@ allocator. `partitionline` does not depend on jemalloc or mimalloc. Alternate
 allocators exist only as features of the workspace-excluded `benchmarks/runtime`
 crate.
 
-The [build-profile study](evidence/perf/build-profiles/README.md) compared LTO,
+The [build-profile study](https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/docs/evidence/perf/build-profiles/README.md) compared LTO,
 codegen units, `target-cpu`, and PGO on this class of host. Throughput
 intervals against the portable baseline included zero. PGO's CPU change was
 specific to those fixtures. Do not treat thin LTO, fat LTO, native CPU, or PGO

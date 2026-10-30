@@ -1,0 +1,21 @@
+{
+  "command": [
+    "/workspace/work/cargo/bin/cargo",
+    "+stable",
+    "metadata",
+    "--locked",
+    "--format-version",
+    "1",
+    "--filter-platform",
+    "x86_64-unknown-linux-gnu",
+    "--manifest-path",
+    "benchmarks/peers/rust/Cargo.toml"
+  ],
+  "exit": 0,
+  "elapsed_seconds": 6.103258076999737,
+  "stdout_sha256": "61726461207264bf1a9d1bda69fa61c03d0e6d51a964d5f1ca5e65d0aec68b34",
+  "stderr_sha256": "42981c0c21506121098ee54ad3191036384e6ccf52bb152e756fa9dacc6a914f",
+  "free_bytes_before": 1923985408,
+  "free_bytes_after": 1891524608,
+  "scope": "locked dependency resolution and missing source retrieval; no compilation"
+}

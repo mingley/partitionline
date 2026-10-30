@@ -1,0 +1,21 @@
+{
+  "command": [
+    "/workspace/work/cargo/bin/cargo",
+    "+stable",
+    "metadata",
+    "--locked",
+    "--format-version",
+    "1",
+    "--filter-platform",
+    "x86_64-unknown-linux-gnu",
+    "--manifest-path",
+    "benchmarks/sticky-partitioner/Cargo.toml"
+  ],
+  "exit": 0,
+  "elapsed_seconds": 0.2649072169997453,
+  "stdout_sha256": "70f1f19bc000013a598f7562fdbb9a6a64b793e1c679ab8fa3ee0270ac5ba86d",
+  "stderr_sha256": "48789d6d7580d720341eba6c9c77187c04bf61c8c6599046d41c3ed925a8e318",
+  "free_bytes_before": 1926074368,
+  "free_bytes_after": 1923989504,
+  "scope": "locked dependency resolution and missing source retrieval; no compilation"
+}

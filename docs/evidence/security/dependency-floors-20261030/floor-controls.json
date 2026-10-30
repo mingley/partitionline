@@ -1,0 +1,95 @@
+[
+  {
+    "variant": "before",
+    "package": "ctutils",
+    "version": "0.4.2",
+    "exit": 0,
+    "expected_success": true,
+    "verified": true
+  },
+  {
+    "variant": "before",
+    "package": "rustls",
+    "version": "0.23.45",
+    "exit": 0,
+    "expected_success": true,
+    "verified": true
+  },
+  {
+    "variant": "before",
+    "package": "rustls-webpki",
+    "version": "0.103.15",
+    "exit": 0,
+    "expected_success": true,
+    "verified": true
+  },
+  {
+    "variant": "before",
+    "package": "tokio",
+    "version": "1.53.2",
+    "exit": 0,
+    "expected_success": true,
+    "verified": true
+  },
+  {
+    "variant": "before",
+    "package": "webpki-roots",
+    "version": "1.0.9",
+    "exit": 0,
+    "expected_success": true,
+    "verified": true
+  },
+  {
+    "variant": "after",
+    "package": "ctutils",
+    "version": "0.4.2",
+    "exit": 101,
+    "expected_success": false,
+    "verified": true
+  },
+  {
+    "variant": "after",
+    "package": "rustls",
+    "version": "0.23.45",
+    "exit": 101,
+    "expected_success": false,
+    "verified": true
+  },
+  {
+    "variant": "after",
+    "package": "rustls-webpki",
+    "version": "0.103.15",
+    "exit": 101,
+    "expected_success": false,
+    "verified": true
+  },
+  {
+    "variant": "after",
+    "package": "tokio",
+    "version": "1.53.2",
+    "exit": 101,
+    "expected_success": false,
+    "verified": true
+  },
+  {
+    "variant": "after",
+    "package": "webpki-roots",
+    "version": "1.0.9",
+    "exit": 101,
+    "expected_success": false,
+    "verified": true
+  },
+  {
+    "variant": "after",
+    "packages": {
+      "ctutils": "0.4.7",
+      "rustls": "0.23.46",
+      "rustls-webpki": "0.103.16",
+      "tokio": "1.53.3",
+      "webpki-roots": "1.0.11"
+    },
+    "exit": 0,
+    "expected_success": true,
+    "verified": true
+  }
+]

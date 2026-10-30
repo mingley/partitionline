@@ -1,0 +1,14 @@
+{
+  "name": "floor-after-webpki-roots",
+  "command": [
+    "/workspace/work/cargo/bin/cargo",
+    "+stable",
+    "generate-lockfile",
+    "--offline"
+  ],
+  "cwd": "/workspace/work/security-dependencies-20261030/controls/floor-after-webpki-roots",
+  "exit": 101,
+  "elapsed_seconds": 0.03240293399994698,
+  "log_sha256": "d2b1374dadde72ee022fc98849359e392ac02b922d22c3712c44b175d109778b",
+  "scope": "dependency resolution only; no compilation"
+}

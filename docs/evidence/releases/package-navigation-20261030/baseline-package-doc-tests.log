@@ -1,0 +1,42 @@
+test_actual_packaged_file_and_anchor_resolve (test_package_docs.PackageDocsTests.test_actual_packaged_file_and_anchor_resolve) ... ok
+test_checkout_file_does_not_satisfy_missing_package_link (test_package_docs.PackageDocsTests.test_checkout_file_does_not_satisfy_missing_package_link) ... ok
+test_immutable_excluded_repository_target_allowed (test_package_docs.PackageDocsTests.test_immutable_excluded_repository_target_allowed) ... ok
+test_missing_package_anchor_rejected (test_package_docs.PackageDocsTests.test_missing_package_anchor_rejected) ... ok
+test_mutable_repository_target_rejected (test_package_docs.PackageDocsTests.test_mutable_repository_target_rejected) ... ok
+test_notice_inventory_cannot_be_empty (test_package_docs.PackageDocsTests.test_notice_inventory_cannot_be_empty) ... ok
+test_peer_raw_evidence_and_private_material_excluded (test_package_docs.PackageDocsTests.test_peer_raw_evidence_and_private_material_excluded) ... ok
+test_wrapped_link_labels_still_require_a_packaged_target_and_anchor (test_package_docs.PackageDocsTests.test_wrapped_link_labels_still_require_a_packaged_target_and_anchor) ... 
+  test_wrapped_link_labels_still_require_a_packaged_target_and_anchor (test_package_docs.PackageDocsTests.test_wrapped_link_labels_still_require_a_packaged_target_and_anchor) (target='absent.md') ... FAIL
+  test_wrapped_link_labels_still_require_a_packaged_target_and_anchor (test_package_docs.PackageDocsTests.test_wrapped_link_labels_still_require_a_packaged_target_and_anchor) (target='docs/index.md#absent') ... FAIL
+test_wrapped_link_labels_still_require_a_packaged_target_and_anchor (test_package_docs.PackageDocsTests.test_wrapped_link_labels_still_require_a_packaged_target_and_anchor) ... FAIL
+
+======================================================================
+FAIL: test_wrapped_link_labels_still_require_a_packaged_target_and_anchor (test_package_docs.PackageDocsTests.test_wrapped_link_labels_still_require_a_packaged_target_and_anchor) (target='absent.md')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/partitionline/tests/docs/test_package_docs.py", line 49, in test_wrapped_link_labels_still_require_a_packaged_target_and_anchor
+    with self.assertRaisesRegex(CHECK.DOC.CheckError, error):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: CheckError not raised
+
+======================================================================
+FAIL: test_wrapped_link_labels_still_require_a_packaged_target_and_anchor (test_package_docs.PackageDocsTests.test_wrapped_link_labels_still_require_a_packaged_target_and_anchor) (target='docs/index.md#absent')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/partitionline/tests/docs/test_package_docs.py", line 49, in test_wrapped_link_labels_still_require_a_packaged_target_and_anchor
+    with self.assertRaisesRegex(CHECK.DOC.CheckError, error):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: CheckError not raised
+
+======================================================================
+FAIL: test_wrapped_link_labels_still_require_a_packaged_target_and_anchor (test_package_docs.PackageDocsTests.test_wrapped_link_labels_still_require_a_packaged_target_and_anchor)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/partitionline/tests/docs/test_package_docs.py", line 52, in test_wrapped_link_labels_still_require_a_packaged_target_and_anchor
+    self.assertEqual(CHECK.check(self.root)['local_links'], 1)
+AssertionError: 0 != 1
+
+----------------------------------------------------------------------
+Ran 8 tests in 0.014s
+
+FAILED (failures=3)

@@ -10,7 +10,7 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
 Source changes after the published 0.1.0 release. The next release is still
 being qualified; see [status](docs/STATUS.md) and the [release guide](docs/RELEASE.md).
 Earlier working notes and dated measurements are in the
-[archive](docs/plan/archive/unreleased-notes-20261030.md).
+[archive](https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/docs/plan/archive/unreleased-notes-20261030.md).
 
 ### API and configuration changes
 
@@ -62,6 +62,10 @@ Earlier working notes and dated measurements are in the
   connection, capability lookup and retries share the caller deadline, with
   one ApiVersions control request per attempt. Live tiered-storage behavior
   remains unqualified.
+- Replacement sockets negotiate their own API ranges and authenticate before
+  application requests. Name-based offset requests re-encode when coordinators
+  change versions; unrepresentable fields and UUID downgrades fail before the
+  request is sent. Discovery and retries share the original deadline.
 - gzip uses the default `zlib-rs` feature. Disable default features to use
   miniz_oxide. Runtime CRC detection is enabled; compressed bytes can differ
   while the wire format and decode limits stay the same. See
@@ -79,6 +83,11 @@ Earlier working notes and dated measurements are in the
 
 ### Fixes and maintenance
 
+- Raise dependency minimums past the recorded Tokio, Rustls, WebPKI, trust-root
+  and RustCrypto advisories, including compatible versions retained by
+  downstream lockfiles. Refresh the active product, benchmark and fuzz locks.
+- Repair links to repository-only material in packaged documentation. Check
+  wrapped link labels and changelog navigation as well as the README and guides.
 - Correct reservation sizes for reused encoding, producer, and share buffers.
   Allocation checks now cover partially occupied buffers and warm reuse.
 - Record decoding uses a bounded initial reservation for small batches while

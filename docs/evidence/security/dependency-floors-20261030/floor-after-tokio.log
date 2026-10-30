@@ -1,0 +1,11 @@
+error: failed to select a version for `tokio`.
+    ... required by package `partitionline v0.1.0 (/workspace/work/security-dependencies-20261030/candidate)`
+    ... which satisfies path dependency `partitionline` of package `floor-control v0.0.0 (/workspace/work/security-dependencies-20261030/controls/floor-after-tokio)`
+versions that meet the requirements `^1.53.3` are: 1.53.3
+
+all possible versions conflict with previously selected packages
+
+  previously selected package `tokio v1.53.2`
+    ... which satisfies dependency `tokio = "=1.53.2"` of package `floor-control v0.0.0 (/workspace/work/security-dependencies-20261030/controls/floor-after-tokio)`
+
+failed to select a version for `tokio` which could resolve this conflict

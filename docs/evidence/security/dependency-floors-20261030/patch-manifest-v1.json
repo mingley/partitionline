@@ -1,0 +1,105 @@
+{
+  "main_head": "02ce806d7ea4970897d51604e71e6a1fa069ca4c",
+  "patch_sha256": "7530fd7368d7363c4ebc35c8ea039cf6a92865b6a7129b988306e5be48305b73",
+  "files": [
+    {
+      "path": "Cargo.lock",
+      "before_sha256": "8048d24692864e4b3e3b7e40b8489f483161b1c5c9f8805ae5fd7ce337593a82",
+      "after_sha256": "bdc37c48feb0d7a17a1b08e70c5301ec30b9a90e64c93adaf28aef6b6f9f46bc",
+      "before_bytes": 18368,
+      "after_bytes": 18399
+    },
+    {
+      "path": "Cargo.toml",
+      "before_sha256": "72571422ff9478f925346ae5eec272daff633fb5bd7693665b048b31e7b44ac9",
+      "after_sha256": "98b437d0dab4d8289a9fd097f9f7a8c4b6e227c505584eb1ea22e0c8bc28f389",
+      "before_bytes": 4276,
+      "after_bytes": 4488
+    },
+    {
+      "path": "benchmarks/codec/Cargo.lock",
+      "before_sha256": "336af559d1114bce04fc95becbcf2281954910482cdc22c4532056656c7f6709",
+      "after_sha256": "839ad5c64e8fa1ebf043d2b5c29ee001b015630f881a170019b89bdb65f1f5d9",
+      "before_bytes": 35558,
+      "after_bytes": 35589
+    },
+    {
+      "path": "benchmarks/runtime/Cargo.lock",
+      "before_sha256": "d1fd4a22712f1348e232bdf6373d657f2b5b3fe69b8286890c0c7d8fe730f524",
+      "after_sha256": "e27da95514a16bbf56c6f9f3fb43c3cded105124b7ebd12b5a41b3f98c84869c",
+      "before_bytes": 24176,
+      "after_bytes": 24207
+    },
+    {
+      "path": "benchmarks/sticky-partitioner/Cargo.lock",
+      "before_sha256": "d1e8cb76b82db196b84eea196d0dd05bba79023e138c1f958b08692fe88610c6",
+      "after_sha256": "8c7b6c0d9aed38f12e956dfe7f854ee72ed4136f14407355d35bd17737545feb",
+      "before_bytes": 19857,
+      "after_bytes": 19970
+    },
+    {
+      "path": "deny.toml",
+      "before_sha256": "bea4daf2953cf456bcdfceb91e6a52a6ee73f39591301cc4e7a96fc6c8d34164",
+      "after_sha256": "a1cd58bc4fdd58a130c0c9bdd9bf9538a8024aef4abff203ab9421fd503b2a9f",
+      "before_bytes": 1672,
+      "after_bytes": 1683
+    },
+    {
+      "path": "fuzz/Cargo.lock",
+      "before_sha256": "4bd325689c474b38e87292f1c194d8a0addbefb86918a7423c9dc8e86e46366a",
+      "after_sha256": "a1d8e566c124e19086de3a17e9858218b428743af7b7af36ea7e34ee4a4691b9",
+      "before_bytes": 17939,
+      "after_bytes": 17970
+    },
+    {
+      "path": "fuzz/broker/Cargo.lock",
+      "before_sha256": "5c433eb0a9f591e6c9b24a32ab634730f3ddbeb04fb83bb7c29685de3811aed1",
+      "after_sha256": "86dab63e7588c424bd2763c130d4741e8758ae8dced51e5fc70635ff570fbd67",
+      "before_bytes": 6090,
+      "after_bytes": 6591
+    },
+    {
+      "path": "partitionline-broker/Cargo.lock",
+      "before_sha256": "ff225be2e645a11d33954cb47064a26a77572b1ab12a8f9362d146b237801624",
+      "after_sha256": "42eaddf993ab4dfbe99e5af9d7c1a7cd858776a214eedbd6112de6a146933a2c",
+      "before_bytes": 19995,
+      "after_bytes": 20025
+    },
+    {
+      "path": "partitionline-broker/Cargo.toml",
+      "before_sha256": "0a77e3b2b41244f94a01684dc9ead21818e5875800fa12abdd13eeed4428cfaf",
+      "after_sha256": "bdb317c4ef19ea44b39cd4ae419279c38c68a6cdeab8443520a4f6e1793b50a7",
+      "before_bytes": 2337,
+      "after_bytes": 2616
+    },
+    {
+      "path": "partitionline-schema/Cargo.lock",
+      "before_sha256": "0774a868db3c31b8ab221f63be5f186193773deaaed5dd275d21ed8898008f2c",
+      "after_sha256": "770345d59d16bae62484087d4fa605e8ef754e528c1887a7460cc5e1175343b8",
+      "before_bytes": 40000,
+      "after_bytes": 40019
+    },
+    {
+      "path": "partitionline-schema/Cargo.toml",
+      "before_sha256": "fe47662be235137595a78d4f415be770a01558bb3e37ae44355193357388fde1",
+      "after_sha256": "c542d871599d3e157320e7bf36321c4f4061f6cd89d6071e6d739d426043a4f0",
+      "before_bytes": 2370,
+      "after_bytes": 2571
+    },
+    {
+      "path": "tests/conformance/broker/interop/Cargo.lock",
+      "before_sha256": "7ca4ffda72baa65ac10cfefb8e138fd6833670d48abdc3777df1afd7f94cb959",
+      "after_sha256": "4d5b3af6119fec579f95a6e07f5a049b8f858c2cc8a908ac17eb213ba168c483",
+      "before_bytes": 18295,
+      "after_bytes": 18326
+    },
+    {
+      "path": "tests/conformance/librdkafka/rust/Cargo.lock",
+      "before_sha256": "2c67770f1bee13fe774a510bdbec9f6d1105ec3adb8987d368acb6b4aa513616",
+      "after_sha256": "cce63a57287f318deb85addcfa1e8a2a63e83c8f67a48fe42cb957fd48bc08eb",
+      "before_bytes": 18806,
+      "after_bytes": 18837
+    }
+  ],
+  "qualification": "metadata controls still running; no runtime/build/audit pass claimed"
+}

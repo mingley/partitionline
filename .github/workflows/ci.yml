@@ -497,7 +497,7 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
       - run: cargo package
       - name: List crate contents
-        run: tar -tzf target/package/partitionline-*.crate | head -80
+        run: tar -tzf target/package/partitionline-*.crate | sed -n '1,80p'
       - name: Packed-crate adopter consumer
         # Operator surface must compile against the packed .crate (not only workspace path).
         run: bash scripts/ci-crate-consumer.sh

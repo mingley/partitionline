@@ -1,0 +1,14 @@
+{
+  "name": "floor-after-rustls-webpki",
+  "command": [
+    "/workspace/work/cargo/bin/cargo",
+    "+stable",
+    "generate-lockfile",
+    "--offline"
+  ],
+  "cwd": "/workspace/work/security-dependencies-20261030/controls/floor-after-rustls-webpki",
+  "exit": 101,
+  "elapsed_seconds": 0.0644163019996995,
+  "log_sha256": "8dad966bcb27d519e7b6ad95baaf182538d3cb5d26bc3c92fb737c592b32f056",
+  "scope": "dependency resolution only; no compilation"
+}

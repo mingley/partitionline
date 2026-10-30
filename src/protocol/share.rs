@@ -4759,7 +4759,9 @@ mod tests {
     async fn encoding_many_share_fetches_does_not_hold_the_caller() {
         let topics: Vec<ShareFetchTopic> = (0..2_000_000)
             .map(|index| ShareFetchTopic {
-                topic_id: (index as u128).to_le_bytes(),
+                topic_id: u128::try_from(index)
+                    .expect("nonnegative test index")
+                    .to_le_bytes(),
                 partitions: vec![ShareFetchPartition {
                     partition: 0,
                     partition_max_bytes: 0,
@@ -4836,7 +4838,9 @@ mod tests {
     async fn encoding_many_share_ack_topics_does_not_hold_the_caller() {
         let topics: Vec<ShareAckTopic> = (0..2_000_000)
             .map(|index| ShareAckTopic {
-                topic_id: (index as u128).to_le_bytes(),
+                topic_id: u128::try_from(index)
+                    .expect("nonnegative test index")
+                    .to_le_bytes(),
                 partitions: vec![(0, Vec::new())],
             })
             .collect();
@@ -4846,7 +4850,7 @@ mod tests {
             encoded = encode_share_acknowledge_topics_cooperative(
                 &mut body, 1, "group", "member", 1, &topics,
             ) => {
-                let _encoded = encoded.unwrap_or_else(|error| panic!("{error}"));
+                encoded.unwrap_or_else(|error| panic!("{error}"));
             }
             () = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
         }
@@ -5369,7 +5373,7 @@ mod tests {
         body.extend_from_slice(&suffix);
         let started = std::time::Instant::now();
         tokio::select! {
-            _ = async { let _ = decode_share_fetch_response(&mut body, 1); } => {}
+            _ = async { let _unused_result = decode_share_fetch_response(&mut body, 1); } => {}
             _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
         }
         let elapsed = started.elapsed();
@@ -8023,7 +8027,11 @@ mod tests {
             .map(|index| {
                 let mut id = [0u8; 16];
                 id[..4].copy_from_slice(&index.to_be_bytes());
-                (id, index as i32, body.clone())
+                (
+                    id,
+                    i32::try_from(index).expect("test index fits i32"),
+                    body.clone(),
+                )
             })
             .collect();
         let started = std::time::Instant::now();
@@ -9479,7 +9487,11 @@ mod tests {
             .map(|index| {
                 let mut id = [0u8; 16];
                 id[..4].copy_from_slice(&index.to_be_bytes());
-                (id, index as i32, body.clone())
+                (
+                    id,
+                    i32::try_from(index).expect("test index fits i32"),
+                    body.clone(),
+                )
             })
             .collect();
         let started = std::time::Instant::now();

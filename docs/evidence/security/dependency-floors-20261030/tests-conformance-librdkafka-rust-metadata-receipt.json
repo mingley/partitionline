@@ -1,0 +1,20 @@
+{
+  "command": [
+    "/workspace/work/cargo/bin/cargo",
+    "+stable",
+    "metadata",
+    "--locked",
+    "--offline",
+    "--format-version",
+    "1",
+    "--filter-platform",
+    "x86_64-unknown-linux-gnu",
+    "--manifest-path",
+    "tests/conformance/librdkafka/rust/Cargo.toml"
+  ],
+  "exit": 0,
+  "elapsed_seconds": 0.1661809279994486,
+  "stdout_sha256": "0b3fb7f3f2885e6837eaf5ef119a14634982b5ad745b5335e7cb4536dcb09c2a",
+  "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "scope": "locked dependency resolution; no compilation"
+}

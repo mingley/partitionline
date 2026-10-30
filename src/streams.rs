@@ -744,7 +744,8 @@ mod tests {
             let _started = flag.fetch_add(1, Ordering::SeqCst);
             let mut size_buf = [0u8; 4];
             if socket.read_exact(&mut size_buf).await.is_ok() {
-                let size = i32::from_be_bytes(size_buf).max(0) as usize;
+                let size = usize::try_from(i32::from_be_bytes(size_buf).max(0))
+                    .expect("nonnegative test frame size fits usize");
                 let mut request = vec![0u8; size];
                 if socket.read_exact(&mut request).await.is_ok() {
                     if let Some(bytes) = request.get(4..8) {

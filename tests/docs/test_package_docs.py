@@ -41,6 +41,21 @@ class PackageDocsTests(unittest.TestCase):
         with self.assertRaisesRegex(CHECK.DOC.CheckError, 'missing local anchor'):
             CHECK.check(self.root)
 
+    def test_wrapped_link_labels_still_require_a_packaged_target_and_anchor(self):
+        for target, error in (('absent.md', 'missing local file'),
+                              ('docs/index.md#absent', 'missing local anchor')):
+            with self.subTest(target=target):
+                (self.root / 'README.md').write_text(f'[wrapped\nlabel]({target})\n')
+                with self.assertRaisesRegex(CHECK.DOC.CheckError, error):
+                    CHECK.check(self.root)
+        (self.root / 'README.md').write_text('[wrapped\nlabel](docs/index.md#navigation)\n')
+        self.assertEqual(CHECK.check(self.root)['local_links'], 1)
+
+    def test_packaged_changelog_links_are_checked(self):
+        (self.root / 'CHANGELOG.md').write_text('[notes](docs/plan/excluded.md)\n')
+        with self.assertRaisesRegex(CHECK.DOC.CheckError, 'missing local file'):
+            CHECK.check(self.root)
+
     def test_immutable_excluded_repository_target_allowed(self):
         target = 'https://github.com/mingley/partitionline/blob/' + 'a' * 40 + '/docs/plan/tasks.json'
         with (self.root / 'README.md').open('a') as out:

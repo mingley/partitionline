@@ -1,0 +1,18 @@
+{
+  "command": [
+    "/workspace/work/cargo/bin/cargo",
+    "+stable",
+    "update",
+    "--manifest-path",
+    "tests/conformance/broker/interop/Cargo.toml",
+    "-p",
+    "tokio",
+    "--precise",
+    "1.53.3"
+  ],
+  "cwd": "/workspace/work/security-dependencies-20261030/candidate",
+  "exit": 0,
+  "elapsed_seconds": 1.5141058210001574,
+  "log_sha256": "729592fb36fdb183b8f4e686d2fca510128dd178a7569cd04066dbda5d87c46a",
+  "note": "metadata-only dependency resolution; no compile"
+}

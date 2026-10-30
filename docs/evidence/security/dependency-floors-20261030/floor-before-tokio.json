@@ -1,0 +1,14 @@
+{
+  "name": "floor-before-tokio",
+  "command": [
+    "/workspace/work/cargo/bin/cargo",
+    "+stable",
+    "generate-lockfile",
+    "--offline"
+  ],
+  "cwd": "/workspace/work/security-dependencies-20261030/controls/floor-before-tokio",
+  "exit": 0,
+  "elapsed_seconds": 0.16530001800038008,
+  "log_sha256": "d3c29e910284c6bee763d6d7087d840da38a4068ed75b8cc9828465b773acdd6",
+  "scope": "dependency resolution only; no compilation"
+}

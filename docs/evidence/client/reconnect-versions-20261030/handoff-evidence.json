@@ -1,0 +1,166 @@
+{
+  "generated_utc": "2026-10-30T19:27:36.037641+00:00",
+  "product_base": "02ce806d7ea4970897d51604e71e6a1fa069ca4c",
+  "main_head_at_final_check": "02ce806d7ea4970897d51604e71e6a1fa069ca4c",
+  "patch": "/workspace/work/client-fresh-versions-overlay/typed-refreshed-20261030-11/current-main-to-candidate.patch",
+  "patch_sha256": "cd906c757b582c394f4a0cbf995d892cc7d8b6a3ab4aac013bf94cafb969e6ea",
+  "apply_check_current_main": true,
+  "candidate_inputs_currently_match_final_snapshot": true,
+  "product_src_and_unit_fixture_identical_to_phase07": true,
+  "input_manifest_sha256": {
+    "inputs-before": "487b8c2bf8d5bcf723e6a6a3a2f6fe6b0cd283e33332e2ad4b791ec63ad764ca",
+    "inputs-after": "487b8c2bf8d5bcf723e6a6a3a2f6fe6b0cd283e33332e2ad4b791ec63ad764ca",
+    "inputs-full-before": "1db258aee8e37aa65a3a809330353e47c560de61d37186699dda512a43b95dcf",
+    "inputs-full-after": "1db258aee8e37aa65a3a809330353e47c560de61d37186699dda512a43b95dcf"
+  },
+  "product_module_sha256": {
+    "src/consumer.rs": {
+      "main_before": "63d63cdca1f49dd9b49132daaba7685bbfc1f2c9969c52e416d862717fbfffbb",
+      "candidate_current": "cee83d3e13e91e0edfb9bbbd3849b5da66ce4ee0a4000a3ea9a719e983287d93"
+    },
+    "src/net.rs": {
+      "main_before": "c02971df7b2b1a7272f618ee31d345f864ffb31a021a5f68e34097d94c519de7",
+      "candidate_current": "32b9b85c162ee0358c18c44f8a9e3fa92009ece5ccd841c146db2047597d0055"
+    },
+    "src/group.rs": {
+      "main_before": "61ec808d26071b6db06fa9398de97992a15091c96450c0e5e578183477b91137",
+      "candidate_current": "7a4a99d135569490e19846b2869fc8f494f5cc38e0f89a8132fb04bbae6e8384"
+    },
+    "src/group/offsets.rs": {
+      "main_before": "3a2d132244d62fdade8fa7e7b67408d44f212981762eb8b27544a157409d98b4",
+      "candidate_current": "c059b3f7885989a35d81eb17d04c5452694f0a92a7e0d1b50e477ed398b8108d"
+    },
+    "src/producer.rs": {
+      "main_before": "1e5d3c150537f34fd1fecab2e66efd32e8b138b80317a418c5295dc84c124d8b",
+      "candidate_current": "53cec9fc3d4626f65fbf9d38e42e3d151a44be75ccc34a09771c711081f11373"
+    },
+    "src/share.rs": {
+      "main_before": "6d40cc9d0f9c0476190296e46258d673758088c8ceb81be050d0ef3ff209a0a9",
+      "candidate_current": "2a0c1cb30db48fb1711d3ab9da0e301574a2e567634a9de7687b45b4f6477835"
+    }
+  },
+  "unit_controls": {
+    "outcomes": {
+      "group::offsets::tests::name_based_offsets_follow_both_bounds_of_the_new_socket": true,
+      "group::offsets::tests::offset_downgrade_does_not_drop_identity_or_stability_fields": true,
+      "group::offsets::tests::large_offset_reencode_yields_before_completion": true,
+      "group::offsets::tests::typed_offset_reconnect_reencodes_for_both_new_range_bounds": true,
+      "group::offsets::tests::typed_offset_reconnect_rejects_unrepresentable_fields_before_wire": true,
+      "group::offsets::tests::offset_encoding_deadline_expires_before_any_request_is_sent": true,
+      "net::tests::cancelling_first_poll_of_large_frame_retires_connection": true,
+      "net::tests::expired_preencoded_frame_sends_no_request": true,
+      "group::offsets::reconnect_tests::offset_load_retry_rediscovers_after_second_coordinator_error": true,
+      "group::offsets::reconnect_tests::v10_load_retry_never_downgrades_uuid_requests": true,
+      "group::rediscover_stop_tests::remembered_coordinator_dial_uses_versions_from_new_socket": true,
+      "group::rediscover_stop_tests::moved_coordinator_dial_uses_remaining_lookup_deadline": true,
+      "share::tests::unremembered_share_leader_fallback_uses_one_deadline": true,
+      "share::tests::unremembered_share_leader_stalled_tls_obeys_deadline": true
+    },
+    "all_passed": true
+  },
+  "phase10_full_targets": {
+    "bootstrap_handshake": {
+      "results": [
+        "test result: ok. 86 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 9.91s"
+      ],
+      "failures": [],
+      "receipt": "/workspace/work/client-fresh-versions-overlay/typed-refreshed-20261030-10/suite-bootstrap_handshake.json"
+    },
+    "consumer_fetch_semantics": {
+      "results": [
+        "test result: FAILED. 167 passed; 2 failed; 1 ignored; 0 measured; 0 filtered out; finished in 37.17s"
+      ],
+      "failures": [
+        "fetch_session_recovery_recreated_topic_reassignment_discards_previous_id_buffer",
+        "group_join_dials_reset_leaders_while_fetching_offsets"
+      ],
+      "receipt": "/workspace/work/client-fresh-versions-overlay/typed-refreshed-20261030-10/suite-consumer_fetch_semantics.json"
+    }
+  },
+  "other_target_results_phase09": {
+    "heartbeat_load_reuse": {
+      "results": [
+        "test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.39s"
+      ],
+      "failures": [],
+      "receipt": "/workspace/work/client-fresh-versions-overlay/typed-refreshed-20261030-09/suite-heartbeat_load_reuse.json"
+    },
+    "legacy_discovery_v0": {
+      "results": [
+        "test result: ok. 17 passed; 0 failed; 2 ignored; 0 measured; 0 filtered out; finished in 0.39s"
+      ],
+      "failures": [],
+      "receipt": "/workspace/work/client-fresh-versions-overlay/typed-refreshed-20261030-09/suite-legacy_discovery_v0.json"
+    },
+    "live_bootstrap_rediscovery": {
+      "results": [
+        "test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.67s"
+      ],
+      "failures": [],
+      "receipt": "/workspace/work/client-fresh-versions-overlay/typed-refreshed-20261030-09/suite-live_bootstrap_rediscovery.json"
+    },
+    "lookup_auth_version": {
+      "results": [
+        "test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.08s"
+      ],
+      "failures": [],
+      "receipt": "/workspace/work/client-fresh-versions-overlay/typed-refreshed-20261030-09/suite-lookup_auth_version.json"
+    },
+    "wire_trace_fixture": {
+      "results": [
+        "test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.17s"
+      ],
+      "failures": [],
+      "receipt": "/workspace/work/client-fresh-versions-overlay/typed-refreshed-20261030-09/suite-wire_trace_fixture.json"
+    }
+  },
+  "verification_artifact": "/workspace/work/client-fresh-versions-overlay/typed-refreshed-20261030-11/independent-verification.json",
+  "failure_index": "/workspace/work/client-fresh-versions-overlay/typed-refreshed-20261030-11/failure-index.json",
+  "phase11_summary": {
+    "outcomes": {
+      "strict-all-feature-consumer-clippy": true,
+      "format": true,
+      "group_commit_reuses_bootstrap_when_the_coordinator_returns": true
+    },
+    "client_inputs_stable": true,
+    "full_inputs_stable": true,
+    "scope": "Only changed role-specific predicate/comment requalified by fresh focused runtime and strict scoped lint",
+    "phase10_broad_consumer_result": "167pass2fail1ignored; not rerun in phase11",
+    "qualification": "Full consumerFetch remains unqualified; no release, full production, or global speed claim"
+  },
+  "source_archive": {
+    "path": "/workspace/work/client-fresh-versions-overlay/typed-refreshed-20261030-11/client-source-snapshot.tar.gz",
+    "bytes": 7833510,
+    "sha256": "03d267b8051582311e40522617ae52973b4ef471757f9ebb172962ed1f1ef822",
+    "source_files": 1809,
+    "member_bytes_match_manifest": true,
+    "scope": "Exact complete1809-file client input scope, including allsrc/tests/common/fixtures/Cargo/lock/toolchain/lint/.cargo/README; excluded broker tree is not needed by selected build/test inputs, verified by source include/dependency audit. External installed toolchain and dependency cache bytes not included.",
+    "reconstruction": "Extract archive into a new empty directory; verify every member against inputs-before.json. No git base or mutable candidate directory required."
+  },
+  "claims": "Full consumer Fetch suite unqualified. No full production, release, external interoperability, or global speed qualification. No unrelated assignment/ReadCommitted repair applied.",
+  "retained_exact_elfs_verified": 19,
+  "verified_case_receipts": 92,
+  "minimum_sampled_free_bytes_all_phases": 1782075392,
+  "disk_guard_bytes_future_focused_cases": 1610612736,
+  "log_buffer_bytes": 8388608,
+  "all_recorded_memory_event_counters_unchanged": true,
+  "final_patch_scope_paths": [
+    "src/consumer.rs",
+    "src/group.rs",
+    "src/group/offsets.rs",
+    "src/group/offsets/reconnect_tests.rs",
+    "src/net.rs",
+    "src/producer.rs",
+    "src/share.rs",
+    "tests/bootstrap_handshake.rs",
+    "tests/common/mod.rs",
+    "tests/consumer_fetch_semantics.rs",
+    "tests/fixtures/legacy-discovery-v0/socket_peer.rs",
+    "tests/heartbeat_load_reuse.rs",
+    "tests/legacy_discovery_v0.rs",
+    "tests/live_bootstrap_rediscovery.rs",
+    "tests/lookup_auth_version.rs",
+    "tests/wire_trace_fixture.rs"
+  ],
+  "final_phase11_diff_from_phase10": "Only one test predicate/comment; phase10 broad Fetch167pass2fail1ignored is not claimed as a fresh phase11 broad run."
+}

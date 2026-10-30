@@ -1,0 +1,1066 @@
+{
+  "ctutils": {
+    "name": "ctutils",
+    "vers": "0.4.7",
+    "deps": [
+      {
+        "name": "cmov",
+        "req": "^0.5.4",
+        "features": [],
+        "optional": false,
+        "default_features": true,
+        "target": null,
+        "kind": "normal"
+      },
+      {
+        "name": "proptest",
+        "req": "^1.11",
+        "features": [],
+        "optional": false,
+        "default_features": true,
+        "target": null,
+        "kind": "dev"
+      },
+      {
+        "name": "subtle",
+        "req": "^2.6",
+        "features": [],
+        "optional": true,
+        "default_features": false,
+        "target": null,
+        "kind": "normal"
+      }
+    ],
+    "cksum": "a2376ffd6f96d8a9db59875b4b6b0237d6900b5baf64279714e05493ce64828a",
+    "features": {
+      "alloc": []
+    },
+    "features2": {
+      "subtle": [
+        "dep:subtle"
+      ]
+    },
+    "yanked": false,
+    "rust_version": "1.87",
+    "pubtime": "2026-10-29T00:03:26Z",
+    "v": 2
+  },
+  "rustls": {
+    "name": "rustls",
+    "vers": "0.23.46",
+    "deps": [
+      {
+        "name": "aws-lc-rs",
+        "req": "^1.18",
+        "features": [],
+        "optional": true,
+        "default_features": false,
+        "target": null,
+        "kind": "normal"
+      },
+      {
+        "name": "base64",
+        "req": "^0.22",
+        "features": [],
+        "optional": false,
+        "default_features": true,
+        "target": null,
+        "kind": "dev"
+      },
+      {
+        "name": "bencher",
+        "req": "^0.1.5",
+        "features": [],
+        "optional": false,
+        "default_features": true,
+        "target": null,
+        "kind": "dev"
+      },
+      {
+        "name": "brotli",
+        "req": "^8",
+        "features": [
+          "std"
+        ],
+        "optional": true,
+        "default_features": false,
+        "target": null,
+        "kind": "normal"
+      },
+      {
+        "name": "brotli-decompressor",
+        "req": "^5.0.0",
+        "features": [],
+        "optional": true,
+        "default_features": true,
+        "target": null,
+        "kind": "normal"
+      },
+      {
+        "name": "env_logger",
+        "req": "^0.11",
+        "features": [],
+        "optional": false,
+        "default_features": true,
+        "target": null,
+        "kind": "dev"
+      },
+      {
+        "name": "hashbrown",
+        "req": "^0.15",
+        "features": [
+          "default-hasher",
+          "inline-more"
+        ],
+        "optional": true,
+        "default_features": false,
+        "target": null,
+        "kind": "normal"
+      },
+      {
+        "name": "hex",
+        "req": "^0.4",
+        "features": [],
+        "optional": false,
+        "default_features": true,
+        "target": null,
+        "kind": "dev"
+      },
+      {
+        "name": "log",
+        "req": "^0.4.8",
+        "features": [],
+        "optional": true,
+        "default_features": true,
+        "target": null,
+        "kind": "normal"
+      },
+      {
+        "name": "log",
+        "req": "^0.4.8",
+        "features": [],
+        "optional": false,
+        "default_features": true,
+        "target": null,
+        "kind": "dev"
+      },
+      {
+        "name": "macro_rules_attribute",
+        "req": "^0.2",
+        "features": [],
+        "optional": false,
+        "default_features": true,
+        "target": null,
+        "kind": "dev"
+      },
+      {
+        "name": "num-bigint",
+        "req": "^0.4.4",
+        "features": [],
+        "optional": false,
+        "default_features": true,
+        "target": null,
+        "kind": "dev"
+      },
+      {
+        "name": "once_cell",
+        "req": "^1.16",
+        "features": [
+          "alloc",
+          "race"
+        ],
+        "optional": false,
+        "default_features": false,
+        "target": null,
+        "kind": "normal"
+      },
+      {
+        "name": "pki-types",
+        "req": "^1.12",
+        "features": [
+          "alloc"
+        ],
+        "optional": false,
+        "default_features": true,
+        "target": null,
+        "kind": "normal",
+        "package": "rustls-pki-types"
+      },
+      {
+        "name": "rcgen",
+        "req": "^0.14",
+        "features": [
+          "pem",
+          "aws_lc_rs"
+        ],
+        "optional": false,
+        "default_features": false,
+        "target": null,
+        "kind": "dev"
+      },
+      {
+        "name": "ring",
+        "req": "^0.17",
+        "features": [],
+        "optional": true,
+        "default_features": true,
+        "target": null,
+        "kind": "normal"
+      },
+      {
+        "name": "rustversion",
+        "req": "^1.0.6",
+        "features": [],
+        "optional": true,
+        "default_features": true,
+        "target": null,
+        "kind": "build"
+      },
+      {
+        "name": "serde",
+        "req": "^1",
+        "features": [
+          "derive"
+        ],
+        "optional": false,
+        "default_features": true,
+        "target": null,
+        "kind": "dev"
+      },
+      {
+        "name": "serde_json",
+        "req": "^1",
+        "features": [],
+        "optional": false,
+        "default_features": true,
+        "target": null,
+        "kind": "dev"
+      },
+      {
+        "name": "subtle",
+        "req": "^2.5.0",
+        "features": [],
+        "optional": false,
+        "default_features": false,
+        "target": null,
+        "kind": "normal"
+      },
+      {
+        "name": "time",
+        "req": "^0.3.6",
+        "features": [],
+        "optional": false,
+        "default_features": false,
+        "target": null,
+        "kind": "dev"
+      },
+      {
+        "name": "webpki",
+        "req": "^0.103.14",
+        "features": [
+          "alloc"
+        ],
+        "optional": false,
+        "default_features": false,
+        "target": null,
+        "kind": "normal",
+        "package": "rustls-webpki"
+      },
+      {
+        "name": "webpki-roots",
+        "req": "^1",
+        "features": [],
+        "optional": false,
+        "default_features": true,
+        "target": null,
+        "kind": "dev"
+      },
+      {
+        "name": "x509-parser",
+        "req": "^0.17",
+        "features": [],
+        "optional": false,
+        "default_features": true,
+        "target": null,
+        "kind": "dev"
+      },
+      {
+        "name": "zeroize",
+        "req": "^1.8",
+        "features": [],
+        "optional": false,
+        "default_features": true,
+        "target": null,
+        "kind": "normal"
+      },
+      {
+        "name": "zlib-rs",
+        "req": "^0.6",
+        "features": [],
+        "optional": true,
+        "default_features": true,
+        "target": null,
+        "kind": "normal"
+      }
+    ],
+    "cksum": "48e13bd8c0e9365c43cfa5c9e8f9ad49d3c8444926c9aac819e0e4dc503c8fdf",
+    "features": {
+      "custom-provider": [],
+      "logging": [
+        "log"
+      ],
+      "read_buf": [
+        "rustversion",
+        "std"
+      ],
+      "std": [
+        "webpki/std",
+        "pki-types/std",
+        "once_cell/std"
+      ],
+      "tls12": []
+    },
+    "features2": {
+      "aws-lc-rs": [
+        "aws_lc_rs"
+      ],
+      "aws_lc_rs": [
+        "dep:aws-lc-rs",
+        "webpki/aws-lc-rs",
+        "aws-lc-rs/aws-lc-sys",
+        "aws-lc-rs/prebuilt-nasm"
+      ],
+      "brotli": [
+        "dep:brotli",
+        "dep:brotli-decompressor",
+        "std"
+      ],
+      "default": [
+        "aws_lc_rs",
+        "logging",
+        "prefer-post-quantum",
+        "std",
+        "tls12"
+      ],
+      "fips": [
+        "aws_lc_rs",
+        "aws-lc-rs?/fips",
+        "webpki/aws-lc-rs-fips"
+      ],
+      "prefer-post-quantum": [
+        "aws_lc_rs"
+      ],
+      "ring": [
+        "dep:ring",
+        "webpki/ring"
+      ],
+      "zlib": [
+        "dep:zlib-rs"
+      ]
+    },
+    "yanked": false,
+    "rust_version": "1.71",
+    "pubtime": "2026-10-14T09:54:15Z",
+    "v": 2
+  },
+  "rustls-webpki": {
+    "name": "rustls-webpki",
+    "vers": "0.103.16",
+    "deps": [
+      {
+        "name": "aws-lc-rs",
+        "req": "^1.18",
+        "features": [],
+        "optional": true,
+        "default_features": false,
+        "target": null,
+        "kind": "normal"
+      },
+      {
+        "name": "base64",
+        "req": "^0.23",
+        "features": [],
+        "optional": false,
+        "default_features": true,
+        "target": null,
+        "kind": "dev"
+      },
+      {
+        "name": "bencher",
+        "req": "^0.1.5",
+        "features": [],
+        "optional": false,
+        "default_features": true,
+        "target": null,
+        "kind": "dev"
+      },
+      {
+        "name": "bzip2",
+        "req": "^0.6",
+        "features": [],
+        "optional": false,
+        "default_features": true,
+        "target": null,
+        "kind": "dev"
+      },
+      {
+        "name": "once_cell",
+        "req": "^1.17.2",
+        "features": [],
+        "optional": false,
+        "default_features": true,
+        "target": null,
+        "kind": "dev"
+      },
+      {
+        "name": "pki-types",
+        "req": "^1.12",
+        "features": [],
+        "optional": false,
+        "default_features": false,
+        "target": null,
+        "kind": "normal",
+        "package": "rustls-pki-types"
+      },
+      {
+        "name": "rcgen",
+        "req": "^0.14.2",
+        "features": [
+          "aws_lc_rs"
+        ],
+        "optional": false,
+        "default_features": false,
+        "target": null,
+        "kind": "dev"
+      },
+      {
+        "name": "ring",
+        "req": "^0.17",
+        "features": [],
+        "optional": true,
+        "default_features": false,
+        "target": null,
+        "kind": "normal"
+      },
+      {
+        "name": "serde",
+        "req": "^1.0",
+        "features": [
+          "derive"
+        ],
+        "optional": false,
+        "default_features": true,
+        "target": null,
+        "kind": "dev"
+      },
+      {
+        "name": "serde_json",
+        "req": "^1.0",
+        "features": [],
+        "optional": false,
+        "default_features": true,
+        "target": null,
+        "kind": "dev"
+      },
+      {
+        "name": "untrusted",
+        "req": "^0.9",
+        "features": [],
+        "optional": false,
+        "default_features": true,
+        "target": null,
+        "kind": "normal"
+      },
+      {
+        "name": "x509-parser",
+        "req": "^0.18.1",
+        "features": [],
+        "optional": false,
+        "default_features": true,
+        "target": null,
+        "kind": "dev"
+      }
+    ],
+    "cksum": "4443b1b6d39d7c663139942cc4558262562d2c84123bb6282ef177009ca8b281",
+    "features": {},
+    "features2": {
+      "alloc": [
+        "ring?/alloc",
+        "pki-types/alloc"
+      ],
+      "aws-lc-rs": [
+        "dep:aws-lc-rs",
+        "aws-lc-rs/aws-lc-sys",
+        "aws-lc-rs/prebuilt-nasm"
+      ],
+      "aws-lc-rs-fips": [
+        "dep:aws-lc-rs",
+        "aws-lc-rs/fips"
+      ],
+      "aws-lc-rs-unstable": [
+        "aws-lc-rs"
+      ],
+      "default": [
+        "std"
+      ],
+      "ring": [
+        "dep:ring"
+      ],
+      "std": [
+        "alloc",
+        "pki-types/std"
+      ]
+    },
+    "yanked": false,
+    "rust_version": "1.71",
+    "pubtime": "2026-10-20T08:58:28Z",
+    "v": 2
+  },
+  "webpki-roots": {
+    "name": "webpki-roots",
+    "vers": "1.0.11",
+    "deps": [
+      {
+        "name": "aws-lc-rs",
+        "req": "^1.15.2",
+        "features": [],
+        "optional": false,
+        "default_features": true,
+        "target": null,
+        "kind": "dev"
+      },
+      {
+        "name": "hex",
+        "req": "^0.4.3",
+        "features": [],
+        "optional": false,
+        "default_features": true,
+        "target": null,
+        "kind": "dev"
+      },
+      {
+        "name": "percent-encoding",
+        "req": "^2.3",
+        "features": [],
+        "optional": false,
+        "default_features": true,
+        "target": null,
+        "kind": "dev"
+      },
+      {
+        "name": "pki-types",
+        "req": "^1.8",
+        "features": [],
+        "optional": false,
+        "default_features": false,
+        "target": null,
+        "kind": "normal",
+        "package": "rustls-pki-types"
+      },
+      {
+        "name": "rcgen",
+        "req": "^0.14.3",
+        "features": [],
+        "optional": false,
+        "default_features": true,
+        "target": null,
+        "kind": "dev"
+      },
+      {
+        "name": "rustls",
+        "req": "^0.23",
+        "features": [],
+        "optional": false,
+        "default_features": true,
+        "target": null,
+        "kind": "dev"
+      },
+      {
+        "name": "tokio",
+        "req": "^1",
+        "features": [
+          "macros",
+          "rt-multi-thread"
+        ],
+        "optional": false,
+        "default_features": true,
+        "target": null,
+        "kind": "dev"
+      },
+      {
+        "name": "webpki",
+        "req": "^0.103",
+        "features": [
+          "alloc"
+        ],
+        "optional": false,
+        "default_features": true,
+        "target": null,
+        "kind": "dev",
+        "package": "rustls-webpki"
+      },
+      {
+        "name": "x509-parser",
+        "req": "^0.18",
+        "features": [],
+        "optional": false,
+        "default_features": true,
+        "target": null,
+        "kind": "dev"
+      },
+      {
+        "name": "yasna",
+        "req": "^0.6",
+        "features": [],
+        "optional": false,
+        "default_features": true,
+        "target": null,
+        "kind": "dev"
+      }
+    ],
+    "cksum": "f5f280bbb2b287bc8e7de7e3852945a0ff50d1bbcb5ed42b6c7a568c546df171",
+    "features": {},
+    "yanked": false,
+    "rust_version": "1.71",
+    "pubtime": "2026-10-23T08:25:08Z"
+  },
+  "tokio": {
+    "name": "tokio",
+    "vers": "1.53.3",
+    "deps": [
+      {
+        "name": "async-stream",
+        "req": "^0.3",
+        "features": [],
+        "optional": false,
+        "default_features": true,
+        "target": null,
+        "kind": "dev"
+      },
+      {
+        "name": "backtrace",
+        "req": "^0.3.58",
+        "features": [],
+        "optional": true,
+        "default_features": true,
+        "target": "cfg(all(tokio_unstable, target_os = \"linux\"))",
+        "kind": "normal"
+      },
+      {
+        "name": "backtrace",
+        "req": "^0.3.58",
+        "features": [],
+        "optional": false,
+        "default_features": true,
+        "target": "cfg(all(tokio_unstable, target_os = \"linux\"))",
+        "kind": "dev"
+      },
+      {
+        "name": "bytes",
+        "req": "^1.2.1",
+        "features": [],
+        "optional": true,
+        "default_features": true,
+        "target": null,
+        "kind": "normal"
+      },
+      {
+        "name": "futures",
+        "req": "^0.3.0",
+        "features": [
+          "async-await"
+        ],
+        "optional": false,
+        "default_features": true,
+        "target": null,
+        "kind": "dev"
+      },
+      {
+        "name": "futures-concurrency",
+        "req": "^7.6.3",
+        "features": [],
+        "optional": false,
+        "default_features": true,
+        "target": null,
+        "kind": "dev"
+      },
+      {
+        "name": "futures-test",
+        "req": "^0.3.31",
+        "features": [],
+        "optional": false,
+        "default_features": true,
+        "target": null,
+        "kind": "dev"
+      },
+      {
+        "name": "io-uring",
+        "req": "^0.7.11",
+        "features": [],
+        "optional": true,
+        "default_features": false,
+        "target": "cfg(all(tokio_unstable, target_os = \"linux\"))",
+        "kind": "normal"
+      },
+      {
+        "name": "libc",
+        "req": "^0.2.168",
+        "features": [],
+        "optional": true,
+        "default_features": true,
+        "target": "cfg(all(tokio_unstable, target_os = \"linux\"))",
+        "kind": "normal"
+      },
+      {
+        "name": "libc",
+        "req": "^0.2.168",
+        "features": [],
+        "optional": true,
+        "default_features": true,
+        "target": "cfg(target_os = \"wasi\")",
+        "kind": "normal"
+      },
+      {
+        "name": "libc",
+        "req": "^0.2.168",
+        "features": [],
+        "optional": true,
+        "default_features": true,
+        "target": "cfg(unix)",
+        "kind": "normal"
+      },
+      {
+        "name": "libc",
+        "req": "^0.2.168",
+        "features": [],
+        "optional": false,
+        "default_features": true,
+        "target": "cfg(unix)",
+        "kind": "dev"
+      },
+      {
+        "name": "loom",
+        "req": "^0.7",
+        "features": [
+          "futures",
+          "checkpoint"
+        ],
+        "optional": false,
+        "default_features": true,
+        "target": "cfg(loom)",
+        "kind": "dev"
+      },
+      {
+        "name": "mio",
+        "req": "^1.2.0",
+        "features": [],
+        "optional": true,
+        "default_features": false,
+        "target": null,
+        "kind": "normal"
+      },
+      {
+        "name": "mio",
+        "req": "^1.2.0",
+        "features": [
+          "os-poll",
+          "os-ext"
+        ],
+        "optional": true,
+        "default_features": false,
+        "target": "cfg(all(tokio_unstable, target_os = \"linux\"))",
+        "kind": "normal"
+      },
+      {
+        "name": "mio-aio",
+        "req": "^2",
+        "features": [
+          "tokio"
+        ],
+        "optional": false,
+        "default_features": true,
+        "target": "cfg(target_os = \"freebsd\")",
+        "kind": "dev"
+      },
+      {
+        "name": "mockall",
+        "req": "^0.13.0",
+        "features": [],
+        "optional": false,
+        "default_features": true,
+        "target": null,
+        "kind": "dev"
+      },
+      {
+        "name": "nix",
+        "req": "^0.31.0",
+        "features": [
+          "aio",
+          "fs",
+          "socket"
+        ],
+        "optional": false,
+        "default_features": false,
+        "target": "cfg(unix)",
+        "kind": "dev"
+      },
+      {
+        "name": "parking_lot",
+        "req": "^0.12.0",
+        "features": [],
+        "optional": true,
+        "default_features": true,
+        "target": null,
+        "kind": "normal"
+      },
+      {
+        "name": "pin-project-lite",
+        "req": "^0.2.11",
+        "features": [],
+        "optional": false,
+        "default_features": true,
+        "target": null,
+        "kind": "normal"
+      },
+      {
+        "name": "proptest",
+        "req": "^1",
+        "features": [],
+        "optional": false,
+        "default_features": true,
+        "target": "cfg(not(target_family = \"wasm\"))",
+        "kind": "dev"
+      },
+      {
+        "name": "rand",
+        "req": "^0.9",
+        "features": [],
+        "optional": false,
+        "default_features": true,
+        "target": "cfg(not(all(target_family = \"wasm\", target_os = \"unknown\")))",
+        "kind": "dev"
+      },
+      {
+        "name": "signal-hook-registry",
+        "req": "^1.1.1",
+        "features": [],
+        "optional": true,
+        "default_features": true,
+        "target": "cfg(unix)",
+        "kind": "normal"
+      },
+      {
+        "name": "slab",
+        "req": "^0.4.9",
+        "features": [],
+        "optional": true,
+        "default_features": true,
+        "target": "cfg(all(tokio_unstable, target_os = \"linux\"))",
+        "kind": "normal"
+      },
+      {
+        "name": "socket2",
+        "req": "^0.6.3",
+        "features": [
+          "all"
+        ],
+        "optional": true,
+        "default_features": true,
+        "target": "cfg(any(not(target_family = \"wasm\"), all(target_os = \"wasi\", not(target_env = \"p1\"))))",
+        "kind": "normal"
+      },
+      {
+        "name": "socket2",
+        "req": "^0.6.0",
+        "features": [],
+        "optional": false,
+        "default_features": true,
+        "target": "cfg(not(target_family = \"wasm\"))",
+        "kind": "dev"
+      },
+      {
+        "name": "tempfile",
+        "req": "^3.1.0",
+        "features": [],
+        "optional": false,
+        "default_features": true,
+        "target": "cfg(not(target_family = \"wasm\"))",
+        "kind": "dev"
+      },
+      {
+        "name": "tokio-macros",
+        "req": "~2.7.0",
+        "features": [],
+        "optional": true,
+        "default_features": true,
+        "target": null,
+        "kind": "normal"
+      },
+      {
+        "name": "tokio-stream",
+        "req": "^0.1",
+        "features": [],
+        "optional": false,
+        "default_features": true,
+        "target": null,
+        "kind": "dev"
+      },
+      {
+        "name": "tokio-test",
+        "req": "^0.4.0",
+        "features": [],
+        "optional": false,
+        "default_features": true,
+        "target": null,
+        "kind": "dev"
+      },
+      {
+        "name": "tokio-util",
+        "req": "^0.7",
+        "features": [
+          "rt"
+        ],
+        "optional": false,
+        "default_features": true,
+        "target": null,
+        "kind": "dev"
+      },
+      {
+        "name": "tracing",
+        "req": "^0.1.29",
+        "features": [
+          "std"
+        ],
+        "optional": true,
+        "default_features": false,
+        "target": "cfg(tokio_unstable)",
+        "kind": "normal"
+      },
+      {
+        "name": "tracing-mock",
+        "req": "=0.1.0-beta.1",
+        "features": [],
+        "optional": false,
+        "default_features": true,
+        "target": "cfg(all(tokio_unstable, target_has_atomic = \"64\"))",
+        "kind": "dev"
+      },
+      {
+        "name": "wasm-bindgen-test",
+        "req": "^0.3.0",
+        "features": [],
+        "optional": false,
+        "default_features": true,
+        "target": "cfg(all(target_family = \"wasm\", not(target_os = \"wasi\")))",
+        "kind": "dev"
+      },
+      {
+        "name": "windows-sys",
+        "req": "^0.61",
+        "features": [],
+        "optional": true,
+        "default_features": true,
+        "target": "cfg(windows)",
+        "kind": "normal"
+      },
+      {
+        "name": "windows-sys",
+        "req": "^0.61",
+        "features": [
+          "Win32_Foundation",
+          "Win32_Security_Authorization"
+        ],
+        "optional": false,
+        "default_features": true,
+        "target": "cfg(windows)",
+        "kind": "dev"
+      }
+    ],
+    "cksum": "ce3335fa71841cda333a58d7615b03901380ecf09d59b3296d21f8bbac0dde4e",
+    "features": {
+      "default": [],
+      "fs": [],
+      "full": [
+        "fs",
+        "io-util",
+        "io-std",
+        "macros",
+        "net",
+        "parking_lot",
+        "process",
+        "rt",
+        "rt-multi-thread",
+        "signal",
+        "sync",
+        "time"
+      ],
+      "io-std": [],
+      "io-util": [
+        "bytes"
+      ],
+      "macros": [
+        "tokio-macros"
+      ],
+      "net": [
+        "libc",
+        "mio/os-poll",
+        "mio/os-ext",
+        "mio/net",
+        "socket2",
+        "windows-sys/Win32_Foundation",
+        "windows-sys/Win32_Security",
+        "windows-sys/Win32_Storage_FileSystem",
+        "windows-sys/Win32_System_Pipes",
+        "windows-sys/Win32_System_SystemServices"
+      ],
+      "process": [
+        "bytes",
+        "libc",
+        "mio/os-poll",
+        "mio/os-ext",
+        "mio/net",
+        "signal-hook-registry",
+        "windows-sys/Win32_Foundation",
+        "windows-sys/Win32_System_Threading",
+        "windows-sys/Win32_System_WindowsProgramming"
+      ],
+      "rt": [],
+      "rt-multi-thread": [
+        "rt"
+      ],
+      "schedule-latency": [],
+      "signal": [
+        "libc",
+        "mio/os-poll",
+        "mio/net",
+        "mio/os-ext",
+        "signal-hook-registry",
+        "windows-sys/Win32_Foundation",
+        "windows-sys/Win32_System_Console"
+      ],
+      "sync": [],
+      "test-util": [
+        "rt",
+        "sync",
+        "time"
+      ],
+      "time": []
+    },
+    "features2": {
+      "io-uring": [
+        "dep:io-uring",
+        "libc",
+        "mio/os-poll",
+        "mio/os-ext",
+        "dep:slab"
+      ],
+      "taskdump": [
+        "dep:backtrace"
+      ]
+    },
+    "yanked": false,
+    "rust_version": "1.71",
+    "pubtime": "2026-10-13T20:51:46Z",
+    "v": 2
+  }
+}

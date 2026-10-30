@@ -129,4 +129,4 @@ KL06-09 implements the approved client exchange, KL06-10 qualifies expiry and
 reconnect, and KL11-38 implements the approved broker boundary. Enterprise
 profile completeness stays blocked while this decision or its qualifications
 remain open. The source audit is in
-[the review evidence](evidence/security/gssapi-boundary/README.md).
+[the review evidence](https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/docs/evidence/security/gssapi-boundary/README.md).

@@ -1067,7 +1067,7 @@ mod tests {
                 .and_then(|slots| slots.first().copied()),
             Some(4)
         );
-        assert!(paced.leaders.get("empty").is_none());
+        assert!(!paced.leaders.contains_key("empty"));
         assert_eq!(paced.topic_ids.get("empty").copied(), Some(topic_id));
     }
 
@@ -1095,7 +1095,7 @@ mod tests {
         cluster
             .invalidate_topics_cooperative(std::iter::once("orders"))
             .await;
-        assert!(cluster.leaders.get("orders").is_none());
+        assert!(!cluster.leaders.contains_key("orders"));
         assert_eq!(
             cluster.leaders.get("payments").map(Vec::as_slice),
             Some(&[5][..])
@@ -1821,7 +1821,7 @@ mod tests {
         image.topics[0].partitions.clear();
         cluster.apply(&image, 13);
         assert!(cluster.leader("t", 0).is_err());
-        assert!(cluster.leaders.get("t").is_none());
+        assert!(!cluster.leaders.contains_key("t"));
         image.topics[0].partitions.push(leader);
         image.topics.push(TopicMetadata {
             error_code: 0,
@@ -2247,7 +2247,7 @@ mod tests {
             cluster.leader_epoch("t", 0),
             RecordBatch::NO_PARTITION_LEADER_EPOCH
         );
-        assert!(cluster.topic_ids.get("t").is_none());
+        assert!(!cluster.topic_ids.contains_key("t"));
     }
 
     #[test]

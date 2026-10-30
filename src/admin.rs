@@ -18243,7 +18243,8 @@ mod tests {
             let _started = open.fetch_add(1, Ordering::SeqCst);
             let mut size_buf = [0u8; 4];
             if socket.read_exact(&mut size_buf).await.is_ok() {
-                let size = i32::from_be_bytes(size_buf).max(0) as usize;
+                let size = usize::try_from(i32::from_be_bytes(size_buf).max(0))
+                    .expect("nonnegative test frame size fits usize");
                 let mut request = vec![0u8; size];
                 if socket.read_exact(&mut request).await.is_ok() {
                     if let Some(bytes) = request.get(4..8) {
@@ -21573,7 +21574,7 @@ mod tests {
         let both = TopicResult::error(0, Some("orders"), [9; 16]);
         assert_eq!(delete_pending_slot(&index, &both), Some(0));
         assert!(pending
-            .get(0)
+            .first()
             .is_some_and(|topic| delete_state_matches(topic, &both)));
         assert!(pending
             .get(1)
@@ -23680,7 +23681,13 @@ mod tests {
         let topics = vec![DescribeProducersTopic::new("orders", partitions)];
         let mut indexed = index_described_producers(topics).await;
         let order: Vec<(usize, &str, i32)> = (0..2_000_000i32)
-            .map(|index| (index as usize, "orders", index))
+            .map(|index| {
+                (
+                    usize::try_from(index).expect("nonnegative test index"),
+                    "orders",
+                    index,
+                )
+            })
             .collect();
         let started = std::time::Instant::now();
         tokio::select! {
@@ -23857,7 +23864,13 @@ mod tests {
         )];
         let mut indexed = index_listed_offsets(topics).await;
         let order: Vec<(usize, &str, i32)> = (0..2_000_000i32)
-            .map(|index| (index as usize, "orders", index))
+            .map(|index| {
+                (
+                    usize::try_from(index).expect("nonnegative test index"),
+                    "orders",
+                    index,
+                )
+            })
             .collect();
         let started = std::time::Instant::now();
         tokio::select! {
@@ -23920,7 +23933,13 @@ mod tests {
         }];
         let mut indexed = index_deleted_records(topics).await;
         let order: Vec<(usize, &str, i32)> = (0..2_000_000i32)
-            .map(|index| (index as usize, "orders", index))
+            .map(|index| {
+                (
+                    usize::try_from(index).expect("nonnegative test index"),
+                    "orders",
+                    index,
+                )
+            })
             .collect();
         let started = std::time::Instant::now();
         tokio::select! {
@@ -24057,7 +24076,7 @@ mod tests {
         tokio::select! {
             decoded = decode_offset_delete_response_cooperative(&mut body) => {
                 let (_top, results, _throttle) = decoded.unwrap_or_else(|error| panic!("{error}"));
-                assert_eq!(results.len(), partitions as usize);
+                assert_eq!(results.len(), usize::try_from(partitions).expect("nonnegative test partition count"));
                 assert_eq!(results.first().map(|result| result.topic.as_str()), Some("orders"));
                 assert_eq!(results.first().map(|result| result.partition), Some(0));
             }

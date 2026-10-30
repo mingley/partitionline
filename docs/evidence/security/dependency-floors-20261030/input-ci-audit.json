@@ -1,0 +1,601 @@
+{
+  "database": {
+    "advisory-count": 1395,
+    "last-commit": "2295466c4e9df26647fd67d8fa1c705ac2fc7f81",
+    "last-updated": "2026-10-30T12:12:39+01:00"
+  },
+  "lockfile": {
+    "dependency-count": 81
+  },
+  "settings": {
+    "target_arch": [],
+    "target_os": [],
+    "severity": null,
+    "ignore": [],
+    "informational_warnings": [
+      "unmaintained",
+      "unsound",
+      "notice"
+    ]
+  },
+  "vulnerabilities": {
+    "found": true,
+    "count": 7,
+    "list": [
+      {
+        "advisory": {
+          "id": "RUSTSEC-2026-0385",
+          "package": "ctutils",
+          "title": "Non-constant-time mask generation and `u128` comparisons",
+          "description": "## Summary\n\nThe `ctutils::Choice` type has mask generation functions for each unsigned\ninteger size (`u8`, `u16`, `u32`, `u64`, `u128`). These are `const fn` and\ntherefore can't reuse the `asm!`-backed mask generation in the `cmov` crate\nthat's otherwise used to ensure constant-time.\n\nIn releases prior to v0.4.4, the generated code from these functions could\ninclude a branch on commonly used platforms. This has been corrected in this\nrelease and now verified on several platforms using BINSEC.\n\nAdditionally, `u128` comparison operations provided via `ctutils::Choice` and\nintended to work in constant-time were generating branches on 32-bit targets.\nThis has been resolved via a special case implementation of these functions\nfor such targets.\n\n## Impact\n\nBranch instructions on secret values can potentially leak such values via\ncovert channels. This can enable attackers to potentially recover such secrets.\n\n## Resolution\n\nThis has been resolved by calling `Choice::to_u8()` when generating the mask,\nwhich in turn uses `black_box` as an optimization barrier. Verification that\nthis resulted in the desired change in the generated assembly across a variety\nof target CPU architectures was performed by BINSEC, which now runs\nautomatically in CI using `cargo checkct`.",
+          "date": "2026-10-23",
+          "aliases": [],
+          "related": [
+            "RUSTSEC-2026-0003"
+          ],
+          "collection": "crates",
+          "categories": [
+            "crypto-failure"
+          ],
+          "keywords": [],
+          "cvss": null,
+          "informational": null,
+          "references": [],
+          "source": null,
+          "url": "https://github.com/RustCrypto/utils/pull/1569",
+          "withdrawn": null,
+          "license": "CC-BY-4.0",
+          "expect-deleted": false
+        },
+        "versions": {
+          "patched": [
+            ">=0.4.4"
+          ],
+          "unaffected": []
+        },
+        "affected": null,
+        "package": {
+          "name": "ctutils",
+          "version": "0.4.2",
+          "source": "registry+https://github.com/rust-lang/crates.io-index",
+          "checksum": "7d5515a3834141de9eafb9717ad39eea8247b5674e6066c404e8c4b365d2a29e",
+          "dependencies": [
+            {
+              "name": "cmov",
+              "version": "0.5.4",
+              "source": "registry+https://github.com/rust-lang/crates.io-index"
+            }
+          ],
+          "replace": null
+        }
+      },
+      {
+        "advisory": {
+          "id": "RUSTSEC-2026-0346",
+          "package": "rustls",
+          "title": "`Debug` impls for client session values expose TLS secrets",
+          "description": "The `Debug` implementations of `Tls12ClientSessionValue` and\n`Tls13ClientSessionValue` were derived, and so included the TLS 1.2 master\nsecret or TLS 1.3 resumption PSK in their output.\n\nCustom `ClientSessionStore` implementations that format these values with\n`Debug` (for example, when logging) could disclose these secrets to readers of\nthe logs. This conflicts with rustls's\n[key-material redaction policy](https://github.com/rustls/rustls/blob/99f2358cae2954837dbb866faf6727de75489ab9/SECURITY.md#boundary-public-api).\n\nOrdinary connection and built-in session cache `Debug` output is redacted and\nis not affected.",
+          "date": "2026-10-14",
+          "aliases": [
+            "GHSA-c8m5-c952-6cm4"
+          ],
+          "related": [],
+          "collection": "crates",
+          "categories": [
+            "crypto-failure"
+          ],
+          "keywords": [],
+          "cvss": "CVSS:3.1/AV:L/AC:H/PR:H/UI:R/S:U/C:H/I:N/A:N",
+          "informational": null,
+          "references": [],
+          "source": null,
+          "url": "https://github.com/rustls/rustls/pull/3299",
+          "withdrawn": null,
+          "license": "CC0-1.0",
+          "expect-deleted": false
+        },
+        "versions": {
+          "patched": [
+            ">=0.23.46"
+          ],
+          "unaffected": [
+            "<0.21.0"
+          ]
+        },
+        "affected": null,
+        "package": {
+          "name": "rustls",
+          "version": "0.23.45",
+          "source": "registry+https://github.com/rust-lang/crates.io-index",
+          "checksum": "0d41d731c7d2f962d1ccc364cec258de3c0e93b38c2fb3ba97ac74513048d634",
+          "dependencies": [
+            {
+              "name": "once_cell",
+              "version": "1.21.4",
+              "source": "registry+https://github.com/rust-lang/crates.io-index"
+            },
+            {
+              "name": "ring",
+              "version": "0.17.14",
+              "source": "registry+https://github.com/rust-lang/crates.io-index"
+            },
+            {
+              "name": "rustls-pki-types",
+              "version": "1.15.1",
+              "source": "registry+https://github.com/rust-lang/crates.io-index"
+            },
+            {
+              "name": "rustls-webpki",
+              "version": "0.103.15",
+              "source": "registry+https://github.com/rust-lang/crates.io-index"
+            },
+            {
+              "name": "subtle",
+              "version": "2.6.1",
+              "source": "registry+https://github.com/rust-lang/crates.io-index"
+            },
+            {
+              "name": "zeroize",
+              "version": "1.9.0",
+              "source": "registry+https://github.com/rust-lang/crates.io-index"
+            }
+          ],
+          "replace": null
+        }
+      },
+      {
+        "advisory": {
+          "id": "RUSTSEC-2026-0347",
+          "package": "rustls",
+          "title": "Buffered application data sent to outer server after ECH rejection",
+          "description": "When a server rejects Encrypted Client Hello (ECH), the client completes the\nhandshake using the outer ClientHello and authenticates the server against the\nECH config's `public_name`. At the end of that handshake, rustls encrypted and\nqueued any application data buffered via `ClientConnection::writer()` *before*\nqueueing the `ech_required` alert.\n\nThe application correctly receives\n`Error::PeerIncompatible(ServerRejectedEncryptedClientHello)`, but the next\n`write_tls()` call (needed to send the alert) also sends the buffered\napplication data. Plaintext meant for the inner server therefore goes to the\nclient-facing server named by `public_name`.\n\nThat server is authenticated, so this is not exploitable by an unauthenticated\nparty, but it violates RFC 9849 section 6.1.6, which requires the client to\nabort with `ech_required` \"before sending any application data to the server\".\n\nThis affects only clients that:\n\n- use `EchMode::Enable` (GREASE ECH is not affected),\n- write application data before the handshake completes, and\n- connect to a server that rejects their ECH config (for example, because it is stale).\n\nThe underlying ordering bug is older, but before 0.23.44 the client checked\nthe server certificate against the inner server name rather than `public_name`,\nso certificate verification failed first and no data was sent.",
+          "date": "2026-10-14",
+          "aliases": [
+            "GHSA-vp88-798v-h67f"
+          ],
+          "related": [],
+          "collection": "crates",
+          "categories": [
+            "crypto-failure"
+          ],
+          "keywords": [],
+          "cvss": "CVSS:3.1/AV:L/AC:L/PR:H/UI:N/S:U/C:L/I:N/A:N",
+          "informational": null,
+          "references": [],
+          "source": null,
+          "url": "https://github.com/rustls/rustls/pull/3300",
+          "withdrawn": null,
+          "license": "CC0-1.0",
+          "expect-deleted": false
+        },
+        "versions": {
+          "patched": [
+            ">=0.23.46"
+          ],
+          "unaffected": [
+            "<0.23.44"
+          ]
+        },
+        "affected": null,
+        "package": {
+          "name": "rustls",
+          "version": "0.23.45",
+          "source": "registry+https://github.com/rust-lang/crates.io-index",
+          "checksum": "0d41d731c7d2f962d1ccc364cec258de3c0e93b38c2fb3ba97ac74513048d634",
+          "dependencies": [
+            {
+              "name": "once_cell",
+              "version": "1.21.4",
+              "source": "registry+https://github.com/rust-lang/crates.io-index"
+            },
+            {
+              "name": "ring",
+              "version": "0.17.14",
+              "source": "registry+https://github.com/rust-lang/crates.io-index"
+            },
+            {
+              "name": "rustls-pki-types",
+              "version": "1.15.1",
+              "source": "registry+https://github.com/rust-lang/crates.io-index"
+            },
+            {
+              "name": "rustls-webpki",
+              "version": "0.103.15",
+              "source": "registry+https://github.com/rust-lang/crates.io-index"
+            },
+            {
+              "name": "subtle",
+              "version": "2.6.1",
+              "source": "registry+https://github.com/rust-lang/crates.io-index"
+            },
+            {
+              "name": "zeroize",
+              "version": "1.9.0",
+              "source": "registry+https://github.com/rust-lang/crates.io-index"
+            }
+          ],
+          "replace": null
+        }
+      },
+      {
+        "advisory": {
+          "id": "RUSTSEC-2026-0348",
+          "package": "rustls",
+          "title": "Brotli certificate decompression can allocate up to 1 GiB before authentication",
+          "description": "The built-in Brotli certificate decompressor (enabled by the non-default\n`brotli` crate feature) bounded the size of the decompressed output, but\naccepted a peer-selected history window. Brotli's large-window extension was\nenabled, so a five-byte header could cause an allocation of 1 GiB. A peer can\nabort a process whose allocator cannot satisfy that request.\n\nNo trusted certificate is required by the attacker. Affected configurations are:\n\n- clients that enable the `brotli` feature and connect to a malicious server, and\n- servers that enable the `brotli` feature and request client certificates.\n\nApplications that do not enable the `brotli` feature are not affected.",
+          "date": "2026-10-14",
+          "aliases": [
+            "GHSA-h2v8-394m-p7vv"
+          ],
+          "related": [],
+          "collection": "crates",
+          "categories": [
+            "denial-of-service"
+          ],
+          "keywords": [],
+          "cvss": "CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:N/I:N/A:L",
+          "informational": null,
+          "references": [],
+          "source": null,
+          "url": "https://github.com/rustls/rustls/pull/3297",
+          "withdrawn": null,
+          "license": "CC0-1.0",
+          "expect-deleted": false
+        },
+        "versions": {
+          "patched": [
+            ">=0.23.46"
+          ],
+          "unaffected": [
+            "<0.23.9"
+          ]
+        },
+        "affected": null,
+        "package": {
+          "name": "rustls",
+          "version": "0.23.45",
+          "source": "registry+https://github.com/rust-lang/crates.io-index",
+          "checksum": "0d41d731c7d2f962d1ccc364cec258de3c0e93b38c2fb3ba97ac74513048d634",
+          "dependencies": [
+            {
+              "name": "once_cell",
+              "version": "1.21.4",
+              "source": "registry+https://github.com/rust-lang/crates.io-index"
+            },
+            {
+              "name": "ring",
+              "version": "0.17.14",
+              "source": "registry+https://github.com/rust-lang/crates.io-index"
+            },
+            {
+              "name": "rustls-pki-types",
+              "version": "1.15.1",
+              "source": "registry+https://github.com/rust-lang/crates.io-index"
+            },
+            {
+              "name": "rustls-webpki",
+              "version": "0.103.15",
+              "source": "registry+https://github.com/rust-lang/crates.io-index"
+            },
+            {
+              "name": "subtle",
+              "version": "2.6.1",
+              "source": "registry+https://github.com/rust-lang/crates.io-index"
+            },
+            {
+              "name": "zeroize",
+              "version": "1.9.0",
+              "source": "registry+https://github.com/rust-lang/crates.io-index"
+            }
+          ],
+          "replace": null
+        }
+      },
+      {
+        "advisory": {
+          "id": "RUSTSEC-2026-0349",
+          "package": "rustls",
+          "title": "Unauthenticated ServerHello can downgrade later connections to classical key exchange",
+          "description": "The client recorded the server-selected key exchange group for each server\nname when processing the ServerHello, before the server was authenticated.\nThis record is used to predict which key share to send in future ClientHellos\nto that server name.\n\nA network attacker can answer one connection attempt with a ServerHello\nselecting X25519, and then close the connection. Later ClientHellos for that\nname carry only an X25519 key share, while `supported_groups` still lists\nX25519MLKEM768 first. If the genuine server accepts that share rather than\nsending a HelloRetryRequest for its preferred hybrid group, the handshake\ncompletes with classical-only key exchange and no error. This persists for as\nlong as the entry stays in the client's session store.\n\nThe impact is loss of post-quantum confidentiality for affected connections\n(\"harvest now, decrypt later\"). There is no key compromise and no\nauthentication bypass.\n\nThe following are not affected:\n\n- connections to servers which send a HelloRetryRequest for their preferred group,\n- clients with resumption disabled (as nothing is stored), and\n- other server names.\n\nThis behaviour is discussed in\n[draft-ietf-tls-key-share-prediction](https://www.ietf.org/archive/id/draft-ietf-tls-key-share-prediction-01.html#name-security-considerations),\nso the practical impact depends largely on server policy.",
+          "date": "2026-10-14",
+          "aliases": [
+            "GHSA-w44r-93j7-qv28"
+          ],
+          "related": [],
+          "collection": "crates",
+          "categories": [
+            "crypto-failure"
+          ],
+          "keywords": [],
+          "cvss": "CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:L/I:N/A:N",
+          "informational": null,
+          "references": [],
+          "source": null,
+          "url": "https://github.com/rustls/rustls/pull/3355",
+          "withdrawn": null,
+          "license": "CC0-1.0",
+          "expect-deleted": false
+        },
+        "versions": {
+          "patched": [
+            ">=0.23.46"
+          ],
+          "unaffected": []
+        },
+        "affected": null,
+        "package": {
+          "name": "rustls",
+          "version": "0.23.45",
+          "source": "registry+https://github.com/rust-lang/crates.io-index",
+          "checksum": "0d41d731c7d2f962d1ccc364cec258de3c0e93b38c2fb3ba97ac74513048d634",
+          "dependencies": [
+            {
+              "name": "once_cell",
+              "version": "1.21.4",
+              "source": "registry+https://github.com/rust-lang/crates.io-index"
+            },
+            {
+              "name": "ring",
+              "version": "0.17.14",
+              "source": "registry+https://github.com/rust-lang/crates.io-index"
+            },
+            {
+              "name": "rustls-pki-types",
+              "version": "1.15.1",
+              "source": "registry+https://github.com/rust-lang/crates.io-index"
+            },
+            {
+              "name": "rustls-webpki",
+              "version": "0.103.15",
+              "source": "registry+https://github.com/rust-lang/crates.io-index"
+            },
+            {
+              "name": "subtle",
+              "version": "2.6.1",
+              "source": "registry+https://github.com/rust-lang/crates.io-index"
+            },
+            {
+              "name": "zeroize",
+              "version": "1.9.0",
+              "source": "registry+https://github.com/rust-lang/crates.io-index"
+            }
+          ],
+          "replace": null
+        }
+      },
+      {
+        "advisory": {
+          "id": "RUSTSEC-2026-0382",
+          "package": "rustls-webpki",
+          "title": "Certificate verification may accept distrusted intermediates",
+          "description": "Affected versions may accept certificate paths containing distrusted emSign\nintermediate public keys when the configured trust anchors allow such paths.\nThe private keys corresponding to these intermediates are now well known.\n\nVersions 0.103.16 and 0.104.0-alpha.8 reject paths containing these public keys.",
+          "date": "2026-10-20",
+          "aliases": [
+            "CVE-2026-111943"
+          ],
+          "related": [],
+          "collection": "crates",
+          "categories": [
+            "crypto-failure"
+          ],
+          "keywords": [
+            "certificate",
+            "distrust",
+            "x509"
+          ],
+          "cvss": null,
+          "informational": null,
+          "references": [
+            "https://emudhra.we-have-a-problem.com/",
+            "https://bugzilla.mozilla.org/show_bug.cgi?id=2083449"
+          ],
+          "source": null,
+          "url": "https://github.com/rustls/webpki/pull/546",
+          "withdrawn": null,
+          "license": "CC0-1.0",
+          "expect-deleted": false
+        },
+        "versions": {
+          "patched": [
+            ">=0.103.16, <0.104.0-alpha.1",
+            ">=0.104.0-alpha.8"
+          ],
+          "unaffected": []
+        },
+        "affected": null,
+        "package": {
+          "name": "rustls-webpki",
+          "version": "0.103.15",
+          "source": "registry+https://github.com/rust-lang/crates.io-index",
+          "checksum": "f3c3cf1d8b1e7d4927e2d154c3fcb02979afb9939629c62cd9048d4f07b60ac2",
+          "dependencies": [
+            {
+              "name": "ring",
+              "version": "0.17.14",
+              "source": "registry+https://github.com/rust-lang/crates.io-index"
+            },
+            {
+              "name": "rustls-pki-types",
+              "version": "1.15.1",
+              "source": "registry+https://github.com/rust-lang/crates.io-index"
+            },
+            {
+              "name": "untrusted",
+              "version": "0.9.0",
+              "source": "registry+https://github.com/rust-lang/crates.io-index"
+            }
+          ],
+          "replace": null
+        }
+      },
+      {
+        "advisory": {
+          "id": "RUSTSEC-2026-0381",
+          "package": "webpki-roots",
+          "title": "Bundled root certificates allow trust in distrusted emSign intermediates",
+          "description": "Affected versions include `emSign ECC Root CA - G3`, which can allow certificate\npaths through distrusted emSign intermediates.\n\nAffected versions may accept certificate paths containing distrusted emSign\nintermediate public keys. The private keys corresponding to these intermediates\nare now well known.\n\nVersion 1.0.10+ removes this root.\n\nThe `webpki-roots` 0.26.11 compatibility package contains no independent trust\nstore and re-exports the roots from its separately resolved 1.x dependency.\nThat parent dependency must resolve to 1.0.10 or newer; an older parent remains\naffected by this advisory.",
+          "date": "2026-10-19",
+          "aliases": [
+            "CVE-2026-111943"
+          ],
+          "related": [],
+          "collection": "crates",
+          "categories": [
+            "crypto-failure"
+          ],
+          "keywords": [
+            "certificate",
+            "distrust",
+            "x509"
+          ],
+          "cvss": null,
+          "informational": null,
+          "references": [
+            "https://emudhra.we-have-a-problem.com/",
+            "https://bugzilla.mozilla.org/show_bug.cgi?id=2083449"
+          ],
+          "source": null,
+          "url": "https://github.com/rustls/webpki-roots/pull/133",
+          "withdrawn": null,
+          "license": "CC0-1.0",
+          "expect-deleted": false
+        },
+        "versions": {
+          "patched": [
+            ">=1.0.10"
+          ],
+          "unaffected": [
+            "=0.26.11"
+          ]
+        },
+        "affected": null,
+        "package": {
+          "name": "webpki-roots",
+          "version": "1.0.9",
+          "source": "registry+https://github.com/rust-lang/crates.io-index",
+          "checksum": "7dcd9d09a39985f5344844e66b0c530a33843579125f23e21e9f0f220850f22a",
+          "dependencies": [
+            {
+              "name": "rustls-pki-types",
+              "version": "1.15.1",
+              "source": "registry+https://github.com/rust-lang/crates.io-index"
+            }
+          ],
+          "replace": null
+        }
+      }
+    ]
+  },
+  "warnings": {
+    "unsound": [
+      {
+        "kind": "unsound",
+        "package": {
+          "name": "tokio",
+          "version": "1.53.2",
+          "source": "registry+https://github.com/rust-lang/crates.io-index",
+          "checksum": "e95f91fcc7a621e8b030f6aa23c71fe9838ae2fb4d8118b75602a328f5144044",
+          "dependencies": [
+            {
+              "name": "bytes",
+              "version": "1.12.1",
+              "source": "registry+https://github.com/rust-lang/crates.io-index"
+            },
+            {
+              "name": "libc",
+              "version": "0.2.189",
+              "source": "registry+https://github.com/rust-lang/crates.io-index"
+            },
+            {
+              "name": "mio",
+              "version": "1.2.2",
+              "source": "registry+https://github.com/rust-lang/crates.io-index"
+            },
+            {
+              "name": "pin-project-lite",
+              "version": "0.2.17",
+              "source": "registry+https://github.com/rust-lang/crates.io-index"
+            },
+            {
+              "name": "signal-hook-registry",
+              "version": "1.4.8",
+              "source": "registry+https://github.com/rust-lang/crates.io-index"
+            },
+            {
+              "name": "socket2",
+              "version": "0.6.5",
+              "source": "registry+https://github.com/rust-lang/crates.io-index"
+            },
+            {
+              "name": "tokio-macros",
+              "version": "2.7.2",
+              "source": "registry+https://github.com/rust-lang/crates.io-index"
+            },
+            {
+              "name": "windows-sys",
+              "version": "0.61.2",
+              "source": "registry+https://github.com/rust-lang/crates.io-index"
+            }
+          ],
+          "replace": null
+        },
+        "advisory": {
+          "id": "RUSTSEC-2026-0386",
+          "package": "tokio",
+          "title": "`AsyncFd::new` and related constructors violate I/O safety",
+          "description": "`tokio::io::unix::AsyncFd` provides safe constructors (`new`, `with_interest`, `try_new`, and `try_with_interest`) that accept any `T: AsRawFd` rather than requiring proof of ownership or validity of the file descriptor. Because `RawFd` implements `AsRawFd`, safe code can construct an `AsyncFd` from an arbitrary or closed file descriptor, or close/replace the underlying file descriptor while the `AsyncFd` is still alive.\n\nThis violates I/O safety in two ways:\n\n1. `AsyncFd<T>` implements `AsFd` for all `T: AsRawFd` by calling `BorrowedFd::borrow_raw(self.as_raw_fd())`, allowing safe code to obtain an arbitrary `BorrowedFd<'_>` without owning the file descriptor.\n2. Tokio's I/O driver stores a pointer to an internal allocation in the `epoll`/`kqueue` user data for registered file descriptors. If the underlying file descriptor is duplicated and then closed while an `AsyncFd` is alive, and the OS reuses that file descriptor number for a another IO resource on the same runtime, dropping the first `AsyncFd` deregisters the reused file descriptor number and frees the first while the original file description remains registered in `epoll`, leading to a use-after-free when a readiness event fires.\n\nStarting in Tokio 1.51.6, 1.53.3, and 1.54.0, `AsyncFd::new`, `AsyncFd::with_interest`, `AsyncFd::try_new`, and `AsyncFd::try_with_interest` are deprecated in favor of the `unsafe` constructors `AsyncFd::register` and `AsyncFd::register_with_interest`. Callers must ensure that the file descriptor remains valid, open, and unchanged for the lifetime of the `AsyncFd`.",
+          "date": "2026-10-13",
+          "aliases": [],
+          "related": [],
+          "collection": "crates",
+          "categories": [
+            "memory-corruption"
+          ],
+          "keywords": [
+            "io-safety",
+            "use-after-free"
+          ],
+          "cvss": null,
+          "informational": "unsound",
+          "references": [
+            "https://github.com/tokio-rs/tokio/issues/8538",
+            "https://github.com/tokio-rs/tokio/issues/8539"
+          ],
+          "source": null,
+          "url": "https://github.com/tokio-rs/tokio/pull/8587",
+          "withdrawn": null,
+          "license": "CC0-1.0",
+          "expect-deleted": false
+        },
+        "affected": {
+          "arch": [],
+          "os": [],
+          "functions": {
+            "tokio::io::unix::AsyncFd::new": [
+              ">=0.3.2"
+            ],
+            "tokio::io::unix::AsyncFd::try_new": [
+              ">=1.37.0"
+            ],
+            "tokio::io::unix::AsyncFd::try_with_interest": [
+              ">=1.37.0"
+            ],
+            "tokio::io::unix::AsyncFd::with_interest": [
+              ">=0.3.2"
+            ]
+          }
+        },
+        "versions": {
+          "patched": [
+            ">=1.51.6, <1.52.0",
+            ">=1.53.3"
+          ],
+          "unaffected": [
+            "<0.3.2"
+          ]
+        }
+      }
+    ]
+  }
+}
+

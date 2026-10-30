@@ -1,0 +1,20 @@
+{
+  "name": "broker-default-metadata",
+  "command": [
+    "/workspace/work/cargo/bin/cargo",
+    "+stable",
+    "metadata",
+    "--locked",
+    "--format-version",
+    "1",
+    "--filter-platform",
+    "x86_64-unknown-linux-gnu",
+    "--manifest-path",
+    "partitionline-broker/Cargo.toml"
+  ],
+  "exit": 0,
+  "elapsed_seconds": 0.1646651490000295,
+  "stdout_sha256": "c2e9501916e81a72afcd3e64ae2fd76ffa5bc568078c6ee0707ea4465d49e145",
+  "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "scope": "dependency metadata only; no compilation"
+}

@@ -1,0 +1,11 @@
+error: failed to select a version for `rustls-webpki`.
+    ... required by package `partitionline v0.1.0 (/workspace/work/security-dependencies-20261030/candidate)`
+    ... which satisfies path dependency `partitionline` of package `floor-control v0.0.0 (/workspace/work/security-dependencies-20261030/controls/floor-after-rustls-webpki)`
+versions that meet the requirements `^0.103.16` are: 0.103.16
+
+all possible versions conflict with previously selected packages
+
+  previously selected package `rustls-webpki v0.103.15`
+    ... which satisfies dependency `rustls-webpki = "=0.103.15"` of package `floor-control v0.0.0 (/workspace/work/security-dependencies-20261030/controls/floor-after-rustls-webpki)`
+
+failed to select a version for `rustls-webpki` which could resolve this conflict

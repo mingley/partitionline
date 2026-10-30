@@ -1,0 +1,440 @@
+{
+  "base_commit": "02ce806d7ea4970897d51604e71e6a1fa069ca4c",
+  "changes": [
+    {
+      "document": "README.md",
+      "line": 5,
+      "old": "partitionline-broker/README.md",
+      "new": "https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/partitionline-broker/README.md",
+      "source_kind": "blob"
+    },
+    {
+      "document": "README.md",
+      "line": 6,
+      "old": "partitionline-schema/README.md",
+      "new": "https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/partitionline-schema/README.md",
+      "source_kind": "blob"
+    },
+    {
+      "document": "README.md",
+      "line": 20,
+      "old": "docs/plan/tasks.json",
+      "new": "https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/docs/plan/tasks.json",
+      "source_kind": "blob"
+    },
+    {
+      "document": "docs/ADOPTION.md",
+      "line": 52,
+      "old": "../partitionline-schema/README.md",
+      "new": "https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/partitionline-schema/README.md",
+      "source_kind": "blob"
+    },
+    {
+      "document": "docs/CIVILIZATION.md",
+      "line": 6,
+      "old": "plan/tasks.json",
+      "new": "https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/docs/plan/tasks.json",
+      "source_kind": "blob"
+    },
+    {
+      "document": "docs/CIVILIZATION.md",
+      "line": 7,
+      "old": "plan/README.md",
+      "new": "https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/docs/plan/README.md",
+      "source_kind": "blob"
+    },
+    {
+      "document": "docs/CIVILIZATION.md",
+      "line": 8,
+      "old": "audits/2026-09-21.md",
+      "new": "https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/docs/audits/2026-09-21.md",
+      "source_kind": "blob"
+    },
+    {
+      "document": "docs/RELEASE.md",
+      "line": 6,
+      "old": "plan/next-work.md",
+      "new": "https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/docs/plan/next-work.md",
+      "source_kind": "blob"
+    },
+    {
+      "document": "docs/RELEASE.md",
+      "line": 66,
+      "old": "../.github/workflows/release.yml",
+      "new": "https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/.github/workflows/release.yml",
+      "source_kind": "blob"
+    },
+    {
+      "document": "docs/RELEASE.md",
+      "line": 86,
+      "old": "plan/archive/release-0.1.0.md",
+      "new": "https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/docs/plan/archive/release-0.1.0.md",
+      "source_kind": "blob"
+    },
+    {
+      "document": "docs/ROADMAP.md",
+      "line": 5,
+      "old": "plan/tasks.json",
+      "new": "https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/docs/plan/tasks.json",
+      "source_kind": "blob"
+    },
+    {
+      "document": "docs/ROADMAP.md",
+      "line": 7,
+      "old": "../TODO.md",
+      "new": "https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/TODO.md",
+      "source_kind": "blob"
+    },
+    {
+      "document": "docs/ROADMAP.md",
+      "line": 8,
+      "old": "plan/README.md",
+      "new": "https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/docs/plan/README.md",
+      "source_kind": "blob"
+    },
+    {
+      "document": "docs/ROADMAP.md",
+      "line": 56,
+      "old": "../src/protocol",
+      "new": "https://github.com/mingley/partitionline/tree/02ce806d7ea4970897d51604e71e6a1fa069ca4c/src/protocol",
+      "source_kind": "tree"
+    },
+    {
+      "document": "docs/ROADMAP.md",
+      "line": 57,
+      "old": "../scripts/ci-broker-smoke.sh",
+      "new": "https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/scripts/ci-broker-smoke.sh",
+      "source_kind": "blob"
+    },
+    {
+      "document": "docs/ROADMAP.md",
+      "line": 58,
+      "old": "../.github/workflows/ci.yml",
+      "new": "https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/.github/workflows/ci.yml",
+      "source_kind": "blob"
+    },
+    {
+      "document": "docs/ROADMAP.md",
+      "line": 124,
+      "old": "latency-ci-policy.json",
+      "new": "https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/docs/latency-ci-policy.json",
+      "source_kind": "blob"
+    },
+    {
+      "document": "docs/ROADMAP.md",
+      "line": 147,
+      "old": "../fuzz",
+      "new": "https://github.com/mingley/partitionline/tree/02ce806d7ea4970897d51604e71e6a1fa069ca4c/fuzz",
+      "source_kind": "tree"
+    },
+    {
+      "document": "docs/ROADMAP.md",
+      "line": 155,
+      "old": "../scripts/ci-integrity-smoke.sh",
+      "new": "https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/scripts/ci-integrity-smoke.sh",
+      "source_kind": "blob"
+    },
+    {
+      "document": "docs/ROADMAP.md",
+      "line": 156,
+      "old": "../scripts/ci-latency-gate.sh",
+      "new": "https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/scripts/ci-latency-gate.sh",
+      "source_kind": "blob"
+    },
+    {
+      "document": "docs/ROADMAP.md",
+      "line": 262,
+      "old": "../examples",
+      "new": "https://github.com/mingley/partitionline/tree/02ce806d7ea4970897d51604e71e6a1fa069ca4c/examples",
+      "source_kind": "tree"
+    },
+    {
+      "document": "docs/ROADMAP.md",
+      "line": 329,
+      "old": "../scripts/ci-auth-smoke.sh",
+      "new": "https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/scripts/ci-auth-smoke.sh",
+      "source_kind": "blob"
+    },
+    {
+      "document": "docs/ROADMAP.md",
+      "line": 356,
+      "old": "../scripts/ci-crate-consumer.sh",
+      "new": "https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/scripts/ci-crate-consumer.sh",
+      "source_kind": "blob"
+    },
+    {
+      "document": "docs/ROADMAP.md",
+      "line": 367,
+      "old": "../.github/workflows/release-plz.yml",
+      "new": "https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/.github/workflows/release-plz.yml",
+      "source_kind": "blob"
+    },
+    {
+      "document": "docs/ROADMAP.md",
+      "line": 421,
+      "old": "plan/performance-leadership.md",
+      "new": "https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/docs/plan/performance-leadership.md",
+      "source_kind": "blob"
+    },
+    {
+      "document": "docs/ROADMAP.md",
+      "line": 449,
+      "old": "../benchmarks",
+      "new": "https://github.com/mingley/partitionline/tree/02ce806d7ea4970897d51604e71e6a1fa069ca4c/benchmarks",
+      "source_kind": "tree"
+    },
+    {
+      "document": "docs/ROADMAP.md",
+      "line": 463,
+      "old": "plan/gateway-adoption.md",
+      "new": "https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/docs/plan/gateway-adoption.md",
+      "source_kind": "blob"
+    },
+    {
+      "document": "docs/STATUS.md",
+      "line": 20,
+      "old": "../partitionline-broker/README.md",
+      "new": "https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/partitionline-broker/README.md",
+      "source_kind": "blob"
+    },
+    {
+      "document": "docs/STATUS.md",
+      "line": 21,
+      "old": "plan/tasks.json",
+      "new": "https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/docs/plan/tasks.json",
+      "source_kind": "blob"
+    },
+    {
+      "document": "docs/STATUS.md",
+      "line": 35,
+      "old": "evidence/broker/fuzz/20261027-candidate06/README.md",
+      "new": "https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/docs/evidence/broker/fuzz/20261027-candidate06/README.md",
+      "source_kind": "blob"
+    },
+    {
+      "document": "docs/STATUS.md",
+      "line": 47,
+      "old": "plan/goal-qualification.json",
+      "new": "https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/docs/plan/goal-qualification.json",
+      "source_kind": "blob"
+    },
+    {
+      "document": "docs/STATUS.md",
+      "line": 57,
+      "old": "evidence/perf/buffer-reservations-20261030/README.md",
+      "new": "https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/docs/evidence/perf/buffer-reservations-20261030/README.md",
+      "source_kind": "blob"
+    },
+    {
+      "document": "docs/STATUS.md",
+      "line": 65,
+      "old": "evidence/broker/qualification-20261027/status.json",
+      "new": "https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/docs/evidence/broker/qualification-20261027/status.json",
+      "source_kind": "blob"
+    },
+    {
+      "document": "docs/STATUS.md",
+      "line": 70,
+      "old": "plan/next-work.md",
+      "new": "https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/docs/plan/next-work.md",
+      "source_kind": "blob"
+    },
+    {
+      "document": "docs/STATUS.md",
+      "line": 98,
+      "old": "plan/broker-implementation.md",
+      "new": "https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/docs/plan/broker-implementation.md",
+      "source_kind": "blob"
+    },
+    {
+      "document": "docs/STATUS.md",
+      "line": 118,
+      "old": "evidence/conformance/q-conf-updatefeatures/qualification-20261008/README.md",
+      "new": "https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/docs/evidence/conformance/q-conf-updatefeatures/qualification-20261008/README.md",
+      "source_kind": "blob"
+    },
+    {
+      "document": "docs/STATUS.md",
+      "line": 123,
+      "old": "evidence/perf/baseline/README.md",
+      "new": "https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/docs/evidence/perf/baseline/README.md",
+      "source_kind": "blob"
+    },
+    {
+      "document": "docs/STATUS.md",
+      "line": 124,
+      "old": "evidence/perf/build-profiles/README.md",
+      "new": "https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/docs/evidence/perf/build-profiles/README.md",
+      "source_kind": "blob"
+    },
+    {
+      "document": "docs/STATUS.md",
+      "line": 131,
+      "old": "evidence/perf/null-result-schema/README.md",
+      "new": "https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/docs/evidence/perf/null-result-schema/README.md",
+      "source_kind": "blob"
+    },
+    {
+      "document": "docs/STATUS.md",
+      "line": 135,
+      "old": "evidence/perf/nullbroker-peers/README.md",
+      "new": "https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/docs/evidence/perf/nullbroker-peers/README.md",
+      "source_kind": "blob"
+    },
+    {
+      "document": "docs/STATUS.md",
+      "line": 142,
+      "old": "evidence/perf/matrix-tiers/README.md",
+      "new": "https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/docs/evidence/perf/matrix-tiers/README.md",
+      "source_kind": "blob"
+    },
+    {
+      "document": "docs/STATUS.md",
+      "line": 146,
+      "old": "evidence/perf/franz-compression-20261008/README.md",
+      "new": "https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/docs/evidence/perf/franz-compression-20261008/README.md",
+      "source_kind": "blob"
+    },
+    {
+      "document": "docs/STATUS.md",
+      "line": 150,
+      "old": "evidence/workspace-publication-20261008/README.md",
+      "new": "https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/docs/evidence/workspace-publication-20261008/README.md",
+      "source_kind": "blob"
+    },
+    {
+      "document": "docs/STATUS.md",
+      "line": 42,
+      "old": "evidence/broker/clean-validation-20261028/README.md",
+      "new": "https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/docs/evidence/broker/clean-validation-20261028/README.md",
+      "source_kind": "blob"
+    },
+    {
+      "document": "docs/STATUS.md",
+      "line": 51,
+      "old": "evidence/client/clean-default-validation-20261028/README.md",
+      "new": "https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/docs/evidence/client/clean-default-validation-20261028/README.md",
+      "source_kind": "blob"
+    },
+    {
+      "document": "docs/benchmark-contract.md",
+      "line": 184,
+      "old": "../benchmarks/scenarios.json",
+      "new": "https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/benchmarks/scenarios.json",
+      "source_kind": "blob"
+    },
+    {
+      "document": "docs/gaps.md",
+      "line": 33,
+      "old": "plan/tasks.json",
+      "new": "https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/docs/plan/tasks.json",
+      "source_kind": "blob"
+    },
+    {
+      "document": "docs/gssapi-boundary.md",
+      "line": 132,
+      "old": "evidence/security/gssapi-boundary/README.md",
+      "new": "https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/docs/evidence/security/gssapi-boundary/README.md",
+      "source_kind": "blob"
+    },
+    {
+      "document": "docs/guide.md",
+      "line": 1063,
+      "old": "evidence/perf/runtime-flavors/README.md",
+      "new": "https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/docs/evidence/perf/runtime-flavors/README.md",
+      "source_kind": "blob"
+    },
+    {
+      "document": "docs/guide.md",
+      "line": 1088,
+      "old": "evidence/perf/build-profiles/README.md",
+      "new": "https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/docs/evidence/perf/build-profiles/README.md",
+      "source_kind": "blob"
+    },
+    {
+      "document": "docs/gzip-backend.md",
+      "line": 9,
+      "old": "plan/performance-leadership.md#9-boundaries-unchanged-unless-the-maintainer-decides-otherwise",
+      "new": "https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/docs/plan/performance-leadership.md#9-boundaries-unchanged-unless-the-maintainer-decides-otherwise",
+      "source_kind": "blob"
+    },
+    {
+      "document": "docs/index.md",
+      "line": 16,
+      "old": "../partitionline-broker/README.md",
+      "new": "https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/partitionline-broker/README.md",
+      "source_kind": "blob"
+    },
+    {
+      "document": "docs/index.md",
+      "line": 17,
+      "old": "../partitionline-schema/README.md",
+      "new": "https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/partitionline-schema/README.md",
+      "source_kind": "blob"
+    },
+    {
+      "document": "docs/index.md",
+      "line": 25,
+      "old": "plan/tasks.json",
+      "new": "https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/docs/plan/tasks.json",
+      "source_kind": "blob"
+    },
+    {
+      "document": "docs/index.md",
+      "line": 26,
+      "old": "plan/README.md",
+      "new": "https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/docs/plan/README.md",
+      "source_kind": "blob"
+    },
+    {
+      "document": "docs/index.md",
+      "line": 27,
+      "old": "plan/performance-leadership.md",
+      "new": "https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/docs/plan/performance-leadership.md",
+      "source_kind": "blob"
+    },
+    {
+      "document": "docs/index.md",
+      "line": 28,
+      "old": "plan/gateway-adoption.md",
+      "new": "https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/docs/plan/gateway-adoption.md",
+      "source_kind": "blob"
+    },
+    {
+      "document": "docs/index.md",
+      "line": 29,
+      "old": "plan/broker-implementation.md",
+      "new": "https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/docs/plan/broker-implementation.md",
+      "source_kind": "blob"
+    },
+    {
+      "document": "docs/migrate-from-rdkafka.md",
+      "line": 358,
+      "old": "../partitionline-schema/README.md",
+      "new": "https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/partitionline-schema/README.md",
+      "source_kind": "blob"
+    },
+    {
+      "document": "docs/schema-companion.md",
+      "line": 129,
+      "old": "../partitionline-schema/tests/oracles/protobuf/README.md",
+      "new": "https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/partitionline-schema/tests/oracles/protobuf/README.md",
+      "source_kind": "blob"
+    },
+    {
+      "document": "docs/support.md",
+      "line": 10,
+      "old": "plan/README.md",
+      "new": "https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/docs/plan/README.md",
+      "source_kind": "blob"
+    },
+    {
+      "document": "docs/support.md",
+      "line": 12,
+      "old": "audits/2026-09-21.md",
+      "new": "https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/docs/audits/2026-09-21.md",
+      "source_kind": "blob"
+    }
+  ],
+  "scope": "package-shape copy; no Cargo packaging, compile or network-link check"
+}

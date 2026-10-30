@@ -1714,29 +1714,41 @@ impl Producer {
         deadline: Instant,
     ) -> Result<(BrokerConn, ApiVersionsResponse)> {
         let opened = async {
-            let mut conn = BrokerConn::connect_tls(
-                addr,
-                &cfg.client_id,
-                cfg.connect_timeout.min(timeout_remaining(deadline)?),
-                cfg.tls.as_ref(),
+            let remaining = timeout_remaining(deadline)?;
+            let mut conn = tokio::time::timeout(
+                remaining,
+                BrokerConn::connect_tls(
+                    addr,
+                    &cfg.client_id,
+                    cfg.connect_timeout.min(remaining),
+                    cfg.tls.as_ref(),
+                ),
             )
-            .await?;
-            let resp = crate::protocol::api::negotiate_api_versions(
-                &mut conn,
-                timeout_remaining(deadline)?,
+            .await
+            .map_err(|_| Error::Timeout)??;
+            let remaining = timeout_remaining(deadline)?;
+            let resp = tokio::time::timeout(
+                remaining,
+                crate::protocol::api::negotiate_api_versions(&mut conn, remaining),
             )
-            .await?;
+            .await
+            .map_err(|_| Error::Timeout)??;
             crate::protocol::sasl::apply_api_keys(&mut conn, &resp.api_keys);
-            crate::protocol::sasl::authenticate(
-                &mut conn,
-                cfg.sasl_plain.as_ref(),
-                cfg.sasl_scram.as_ref(),
-                cfg.sasl_scram_sha512.as_ref(),
-                cfg.sasl_oauthbearer.as_deref(),
-                cfg.sasl_oauthbearer_oidc.as_ref(),
-                timeout_remaining(deadline)?,
+            let remaining = timeout_remaining(deadline)?;
+            tokio::time::timeout(
+                remaining,
+                crate::protocol::sasl::authenticate(
+                    &mut conn,
+                    cfg.sasl_plain.as_ref(),
+                    cfg.sasl_scram.as_ref(),
+                    cfg.sasl_scram_sha512.as_ref(),
+                    cfg.sasl_oauthbearer.as_deref(),
+                    cfg.sasl_oauthbearer_oidc.as_ref(),
+                    remaining,
+                ),
             )
-            .await?;
+            .await
+            .map_err(|_| Error::Timeout)??;
             Ok((conn, resp))
         }
         .await;
@@ -4179,13 +4191,18 @@ async fn open_idle_replacement(
     deadline: Instant,
 ) -> Result<(BrokerConn, ApiVersionsResponse)> {
     let opened = async {
-        let mut conn = BrokerConn::connect_tls(
-            addr,
-            &cfg.client_id,
-            cfg.connect_timeout.min(timeout_remaining(deadline)?),
-            cfg.tls.as_ref(),
+        let remaining = timeout_remaining(deadline)?;
+        let mut conn = tokio::time::timeout(
+            remaining,
+            BrokerConn::connect_tls(
+                addr,
+                &cfg.client_id,
+                cfg.connect_timeout.min(remaining),
+                cfg.tls.as_ref(),
+            ),
         )
-        .await?;
+        .await
+        .map_err(|_| Error::Timeout)??;
         let remaining = timeout_remaining(deadline)?;
         let versions_resp = tokio::time::timeout(
             remaining,
@@ -4194,16 +4211,21 @@ async fn open_idle_replacement(
         .await
         .map_err(|_| Error::Timeout)??;
         configure_produce_conn(&mut conn, &versions_resp, cfg, transaction_v2);
-        crate::protocol::sasl::authenticate(
-            &mut conn,
-            cfg.sasl_plain.as_ref(),
-            cfg.sasl_scram.as_ref(),
-            cfg.sasl_scram_sha512.as_ref(),
-            cfg.sasl_oauthbearer.as_deref(),
-            cfg.sasl_oauthbearer_oidc.as_ref(),
-            timeout_remaining(deadline)?,
+        let remaining = timeout_remaining(deadline)?;
+        tokio::time::timeout(
+            remaining,
+            crate::protocol::sasl::authenticate(
+                &mut conn,
+                cfg.sasl_plain.as_ref(),
+                cfg.sasl_scram.as_ref(),
+                cfg.sasl_scram_sha512.as_ref(),
+                cfg.sasl_oauthbearer.as_deref(),
+                cfg.sasl_oauthbearer_oidc.as_ref(),
+                remaining,
+            ),
         )
-        .await?;
+        .await
+        .map_err(|_| Error::Timeout)??;
         Ok((conn, versions_resp))
     }
     .await;
@@ -4247,13 +4269,18 @@ async fn open_conn_with_versions(
         let deadline = Instant::now()
             .checked_add(cfg.request_timeout)
             .ok_or(Error::Timeout)?;
-        let mut conn = BrokerConn::connect_tls(
-            addr,
-            &cfg.client_id,
-            cfg.connect_timeout.min(timeout_remaining(deadline)?),
-            cfg.tls.as_ref(),
+        let remaining = timeout_remaining(deadline)?;
+        let mut conn = tokio::time::timeout(
+            remaining,
+            BrokerConn::connect_tls(
+                addr,
+                &cfg.client_id,
+                cfg.connect_timeout.min(remaining),
+                cfg.tls.as_ref(),
+            ),
         )
-        .await?;
+        .await
+        .map_err(|_| Error::Timeout)??;
         let remaining = timeout_remaining(deadline)?;
         let versions_resp = tokio::time::timeout(
             remaining,
@@ -4262,16 +4289,21 @@ async fn open_conn_with_versions(
         .await
         .map_err(|_| Error::Timeout)??;
         configure_produce_conn(&mut conn, &versions_resp, cfg, transaction_v2);
-        crate::protocol::sasl::authenticate(
-            &mut conn,
-            cfg.sasl_plain.as_ref(),
-            cfg.sasl_scram.as_ref(),
-            cfg.sasl_scram_sha512.as_ref(),
-            cfg.sasl_oauthbearer.as_deref(),
-            cfg.sasl_oauthbearer_oidc.as_ref(),
-            timeout_remaining(deadline)?,
+        let remaining = timeout_remaining(deadline)?;
+        tokio::time::timeout(
+            remaining,
+            crate::protocol::sasl::authenticate(
+                &mut conn,
+                cfg.sasl_plain.as_ref(),
+                cfg.sasl_scram.as_ref(),
+                cfg.sasl_scram_sha512.as_ref(),
+                cfg.sasl_oauthbearer.as_deref(),
+                cfg.sasl_oauthbearer_oidc.as_ref(),
+                remaining,
+            ),
         )
-        .await?;
+        .await
+        .map_err(|_| Error::Timeout)??;
         Ok((conn, versions_resp))
     }
     .await;
@@ -11286,7 +11318,7 @@ mod tests {
         let topics: Vec<crate::protocol::txn::TxnPartitionsTopic> = (0..200_000)
             .map(|index| crate::protocol::txn::TxnPartitionsTopic {
                 topic: format!("topic-{index}"),
-                partitions: vec![index as i32],
+                partitions: vec![index],
             })
             .collect();
         let mut body = bytes::BytesMut::new();
@@ -11341,7 +11373,7 @@ mod tests {
             .map(|index| crate::protocol::txn::TxnOffsetCommitResponseTopic {
                 topic: format!("topic-{index}"),
                 partitions: vec![crate::protocol::txn::TxnOffsetCommitResponsePartition {
-                    partition: index as i32,
+                    partition: index,
                     error_code: 0,
                 }],
             })
@@ -11710,7 +11742,8 @@ mod tests {
             let _started = first_flag.fetch_add(1, Ordering::SeqCst);
             let mut size_buf = [0u8; 4];
             if socket.read_exact(&mut size_buf).await.is_ok() {
-                let size = i32::from_be_bytes(size_buf).max(0) as usize;
+                let size = usize::try_from(i32::from_be_bytes(size_buf).max(0))
+                    .expect("nonnegative test frame size fits usize");
                 let mut request = vec![0u8; size];
                 if socket.read_exact(&mut request).await.is_ok() {
                     if let Some(bytes) = request.get(4..8) {
@@ -11799,7 +11832,8 @@ mod tests {
             let _started = flag.fetch_add(1, Ordering::SeqCst);
             let mut size_buf = [0u8; 4];
             if socket.read_exact(&mut size_buf).await.is_ok() {
-                let size = i32::from_be_bytes(size_buf).max(0) as usize;
+                let size = usize::try_from(i32::from_be_bytes(size_buf).max(0))
+                    .expect("nonnegative test frame size fits usize");
                 let mut request = vec![0u8; size];
                 if socket.read_exact(&mut request).await.is_ok() {
                     if let Some(bytes) = request.get(4..8) {
@@ -11871,7 +11905,8 @@ mod tests {
                     let _reader = tokio::spawn(async move {
                         let mut size_buf = [0u8; 4];
                         if socket.read_exact(&mut size_buf).await.is_ok() {
-                            let size = i32::from_be_bytes(size_buf).max(0) as usize;
+                            let size = usize::try_from(i32::from_be_bytes(size_buf).max(0))
+                                .expect("nonnegative test frame size fits usize");
                             let mut request = vec![0u8; size];
                             if socket.read_exact(&mut request).await.is_ok() {
                                 if let Some(bytes) = request.get(4..8) {
@@ -11923,7 +11958,8 @@ mod tests {
                     let _reader = tokio::spawn(async move {
                         let mut size_buf = [0u8; 4];
                         if socket.read_exact(&mut size_buf).await.is_ok() {
-                            let size = i32::from_be_bytes(size_buf).max(0) as usize;
+                            let size = usize::try_from(i32::from_be_bytes(size_buf).max(0))
+                                .expect("nonnegative test frame size fits usize");
                             let mut request = vec![0u8; size];
                             if socket.read_exact(&mut request).await.is_ok() {
                                 if let Some(bytes) = request.get(4..8) {
@@ -11983,7 +12019,8 @@ mod tests {
             let _started = open.fetch_add(1, Ordering::SeqCst);
             let mut size_buf = [0u8; 4];
             if socket.read_exact(&mut size_buf).await.is_ok() {
-                let size = i32::from_be_bytes(size_buf).max(0) as usize;
+                let size = usize::try_from(i32::from_be_bytes(size_buf).max(0))
+                    .expect("nonnegative test frame size fits usize");
                 let mut request = vec![0u8; size];
                 if socket.read_exact(&mut request).await.is_ok() {
                     if let Some(bytes) = request.get(4..8) {
@@ -12090,7 +12127,8 @@ mod tests {
             if socket.read_exact(&mut size_buf).await.is_err() {
                 return;
             }
-            let size = i32::from_be_bytes(size_buf).max(0) as usize;
+            let size = usize::try_from(i32::from_be_bytes(size_buf).max(0))
+                .expect("nonnegative test frame size fits usize");
             let mut request = vec![0u8; size];
             if socket.read_exact(&mut request).await.is_err() {
                 return;
@@ -12309,7 +12347,7 @@ mod tests {
         assert!(quiet, "a queued byte was treated as a lost metadata socket");
         let saw = accepted.await.unwrap();
         assert!(
-            matches!(saw, Err(_)),
+            saw.is_err(),
             "a queued byte shut the metadata socket down: {saw:?}"
         );
         drop(conn);
@@ -12362,7 +12400,7 @@ mod tests {
                 saw = accepted => {
                     let saw = saw.unwrap();
                     assert!(
-                        matches!(saw, Err(_)),
+                        saw.is_err(),
                         "a queued byte shut the coordinator socket down before the backoff: {saw:?}"
                     );
                 }
@@ -13532,7 +13570,7 @@ mod tests {
         assert!(!txn_part_present(&set, &orders, 0));
         assert!(txn_part_present(&set, &orders, 1));
         forget_txn_part(&mut set, &orders_again, 1);
-        assert!(set.get("orders").is_none());
+        assert!(!set.contains_key("orders"));
         assert!(txn_part_present(&set, &payments, 3));
         let parts = [
             (Arc::clone(&orders), 1),
@@ -13630,7 +13668,7 @@ mod tests {
         ];
         let mut index = HashMap::new();
         fill_ids_by_uuid(&repeated, &mut index).await;
-        assert!(index.get(&[0; 16]).is_none());
+        assert!(!index.contains_key(&[0; 16]));
         assert_eq!(index.get(&[1; 16]).map(Arc::as_ref), Some("orders"));
     }
 
@@ -14248,8 +14286,10 @@ mod tests {
             "shelling produce partitions held the caller for {:?}",
             started.elapsed()
         );
-        let mut sample = ProduceGroupScratch::default();
-        sample.partition_order = vec![3, 1];
+        let mut sample = ProduceGroupScratch {
+            partition_order: vec![3, 1],
+            ..ProduceGroupScratch::default()
+        };
         let _ = sample.partition_slots.insert(3, 2usize);
         let _ = sample.partition_slots.insert(1, 1usize);
         let opened = shell_one_topic_groups(&topic, &mut sample, Vec::new()).await;
@@ -15232,11 +15272,11 @@ mod rediscover_stop_tests {
         };
         use crate::protocol::api_keys::{METADATA, PRODUCE};
         use crate::protocol::records::RecordBatch;
+        use parking_lot::Mutex as SlotMutex;
         use std::collections::HashSet;
         use std::sync::atomic::{
             AtomicBool, AtomicI16, AtomicI64, AtomicU64, AtomicUsize, Ordering,
         };
-        use std::sync::Mutex as StdMutex;
         use tokio::io::{AsyncReadExt, AsyncWriteExt};
         use tokio::sync::{mpsc, Mutex, Notify};
 
@@ -15244,7 +15284,7 @@ mod rediscover_stop_tests {
         let addr = listener.local_addr().unwrap().to_string();
         let open = Arc::new(AtomicUsize::new(0));
         let accepted = Arc::new(AtomicUsize::new(0));
-        let slot: Arc<StdMutex<Option<Arc<Shared>>>> = Arc::new(StdMutex::new(None));
+        let slot: Arc<SlotMutex<Option<Arc<Shared>>>> = Arc::new(SlotMutex::new(None));
         let flag = Arc::clone(&open);
         let accepted_flag = Arc::clone(&accepted);
         let peer_slot = Arc::clone(&slot);
@@ -15274,7 +15314,8 @@ mod rediscover_stop_tests {
                 let _reader = tokio::spawn(async move {
                     let mut size_buf = [0u8; 4];
                     if socket.read_exact(&mut size_buf).await.is_ok() {
-                        let size = i32::from_be_bytes(size_buf).max(0) as usize;
+                        let size = usize::try_from(i32::from_be_bytes(size_buf).max(0))
+                            .expect("nonnegative test frame size fits usize");
                         let mut request = vec![0u8; size];
                         if socket.read_exact(&mut request).await.is_ok() {
                             if let Some(bytes) = request.get(4..8) {
@@ -15320,9 +15361,7 @@ mod rediscover_stop_tests {
                             }
                         }
                     }
-                    if let Some(shared) =
-                        peer_slot.lock().unwrap_or_else(|e| e.into_inner()).clone()
-                    {
+                    if let Some(shared) = peer_slot.lock().clone() {
                         shared.closed.store(true, Ordering::SeqCst);
                     }
                     let mut buf = [0u8; 8];
@@ -15418,7 +15457,7 @@ mod rediscover_stop_tests {
             topics: parking_lot::Mutex::new(HashMap::new()),
             pre_send_fault: parking_lot::Mutex::new(None),
         });
-        *slot.lock().unwrap_or_else(|e| e.into_inner()) = Some(Arc::clone(&shared));
+        *slot.lock() = Some(Arc::clone(&shared));
         let opened = spawn_slot_worker(&shared, 1, &addr, 8).await;
         assert!(
             matches!(opened, Err(crate::Error::Closed)),
@@ -15471,7 +15510,8 @@ mod rediscover_stop_tests {
                 let _reader = tokio::spawn(async move {
                     let mut size_buf = [0u8; 4];
                     if socket.read_exact(&mut size_buf).await.is_ok() {
-                        let size = i32::from_be_bytes(size_buf).max(0) as usize;
+                        let size = usize::try_from(i32::from_be_bytes(size_buf).max(0))
+                            .expect("nonnegative test frame size fits usize");
                         let mut request = vec![0u8; size];
                         if socket.read_exact(&mut request).await.is_ok() {
                             if let Some(bytes) = request.get(4..8) {
@@ -15888,7 +15928,7 @@ mod rediscover_stop_tests {
             let _exit = MetadataRefreshExit(Arc::clone(&shared_task));
             let mut guard = shared_task.meta.lock().await;
             ready_tx.send(true).unwrap_or(());
-            let _ = guard
+            let _unused_result = guard
                 .roundtrip(0, 0, |_| Ok(()), Duration::from_secs(5))
                 .await;
         });

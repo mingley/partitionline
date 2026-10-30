@@ -1,0 +1,182 @@
+[
+  {
+    "command": [
+      "/workspace/work/cargo/bin/cargo",
+      "+stable",
+      "metadata",
+      "--locked",
+      "--offline",
+      "--format-version",
+      "1",
+      "--filter-platform",
+      "x86_64-unknown-linux-gnu",
+      "--manifest-path",
+      "fuzz/Cargo.toml"
+    ],
+    "exit": 101,
+    "elapsed_seconds": 0.11526557700017293,
+    "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "stderr_sha256": "baa3c55567065972a1a8f16170fa624284db271102e398006edceb3f3cbfb6fb",
+    "scope": "locked dependency resolution; no compilation"
+  },
+  {
+    "command": [
+      "/workspace/work/cargo/bin/cargo",
+      "+stable",
+      "metadata",
+      "--locked",
+      "--offline",
+      "--format-version",
+      "1",
+      "--filter-platform",
+      "x86_64-unknown-linux-gnu",
+      "--manifest-path",
+      "fuzz/broker/Cargo.toml"
+    ],
+    "exit": 0,
+    "elapsed_seconds": 0.11449090600035561,
+    "stdout_sha256": "7f43edd6b7ee3d289ccd8d6ec525b7b186730473517e378eff867554f986d5b2",
+    "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "scope": "locked dependency resolution; no compilation"
+  },
+  {
+    "command": [
+      "/workspace/work/cargo/bin/cargo",
+      "+stable",
+      "metadata",
+      "--locked",
+      "--offline",
+      "--format-version",
+      "1",
+      "--filter-platform",
+      "x86_64-unknown-linux-gnu",
+      "--manifest-path",
+      "benchmarks/codec/Cargo.toml"
+    ],
+    "exit": 0,
+    "elapsed_seconds": 0.21492299799956527,
+    "stdout_sha256": "04e0a6a08d44ada3c0585f69291925b9794ded813f157152e5752b45168eef20",
+    "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "scope": "locked dependency resolution; no compilation"
+  },
+  {
+    "command": [
+      "/workspace/work/cargo/bin/cargo",
+      "+stable",
+      "metadata",
+      "--locked",
+      "--offline",
+      "--format-version",
+      "1",
+      "--filter-platform",
+      "x86_64-unknown-linux-gnu",
+      "--manifest-path",
+      "benchmarks/runtime/Cargo.toml"
+    ],
+    "exit": 101,
+    "elapsed_seconds": 0.11481991299933725,
+    "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "stderr_sha256": "a874c91df85233a39ff434629082d69b9528ac0c3fdff7fe5029b3c0989dda0f",
+    "scope": "locked dependency resolution; no compilation"
+  },
+  {
+    "command": [
+      "/workspace/work/cargo/bin/cargo",
+      "+stable",
+      "metadata",
+      "--locked",
+      "--offline",
+      "--format-version",
+      "1",
+      "--filter-platform",
+      "x86_64-unknown-linux-gnu",
+      "--manifest-path",
+      "benchmarks/sticky-partitioner/Cargo.toml"
+    ],
+    "exit": 101,
+    "elapsed_seconds": 0.1147363439995388,
+    "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "stderr_sha256": "027ca4c8918218a24eb712ad5d46b354e98089661a9a67d04bba44f5ad9bdde5",
+    "scope": "locked dependency resolution; no compilation"
+  },
+  {
+    "command": [
+      "/workspace/work/cargo/bin/cargo",
+      "+stable",
+      "metadata",
+      "--locked",
+      "--offline",
+      "--format-version",
+      "1",
+      "--filter-platform",
+      "x86_64-unknown-linux-gnu",
+      "--manifest-path",
+      "tests/conformance/broker/interop/Cargo.toml"
+    ],
+    "exit": 0,
+    "elapsed_seconds": 0.16537461500047357,
+    "stdout_sha256": "083ab914c0e7c0eb8399a019f3e21f3aee5619210bbd8019ec3b2fe2e0bece4c",
+    "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "scope": "locked dependency resolution; no compilation"
+  },
+  {
+    "command": [
+      "/workspace/work/cargo/bin/cargo",
+      "+stable",
+      "metadata",
+      "--locked",
+      "--offline",
+      "--format-version",
+      "1",
+      "--filter-platform",
+      "x86_64-unknown-linux-gnu",
+      "--manifest-path",
+      "tests/conformance/librdkafka/rust/Cargo.toml"
+    ],
+    "exit": 0,
+    "elapsed_seconds": 0.1661809279994486,
+    "stdout_sha256": "0b3fb7f3f2885e6837eaf5ef119a14634982b5ad745b5335e7cb4536dcb09c2a",
+    "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "scope": "locked dependency resolution; no compilation"
+  },
+  {
+    "command": [
+      "/workspace/work/cargo/bin/cargo",
+      "+stable",
+      "metadata",
+      "--locked",
+      "--offline",
+      "--format-version",
+      "1",
+      "--filter-platform",
+      "x86_64-unknown-linux-gnu",
+      "--manifest-path",
+      "benchmarks/nullbroker/Cargo.toml"
+    ],
+    "exit": 0,
+    "elapsed_seconds": 0.06461726399993495,
+    "stdout_sha256": "5c2969bcbca2f6cb09751e7b4f8d8016caa539324909f7786bb91206dd45cfec",
+    "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "scope": "locked dependency resolution; no compilation"
+  },
+  {
+    "command": [
+      "/workspace/work/cargo/bin/cargo",
+      "+stable",
+      "metadata",
+      "--locked",
+      "--offline",
+      "--format-version",
+      "1",
+      "--filter-platform",
+      "x86_64-unknown-linux-gnu",
+      "--manifest-path",
+      "benchmarks/peers/rust/Cargo.toml"
+    ],
+    "exit": 101,
+    "elapsed_seconds": 0.065174332999959,
+    "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "stderr_sha256": "84b53fc2da424c86aba8b8a6c7a183ef6a7a2a2dd79c8a8680b0057b7f4e3197",
+    "scope": "locked dependency resolution; no compilation"
+  }
+]

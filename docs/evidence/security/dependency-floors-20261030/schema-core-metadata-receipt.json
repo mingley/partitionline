@@ -1,0 +1,21 @@
+{
+  "name": "schema-core-metadata",
+  "command": [
+    "/workspace/work/cargo/bin/cargo",
+    "+stable",
+    "metadata",
+    "--locked",
+    "--format-version",
+    "1",
+    "--filter-platform",
+    "x86_64-unknown-linux-gnu",
+    "--manifest-path",
+    "partitionline-schema/Cargo.toml",
+    "--no-default-features"
+  ],
+  "exit": 0,
+  "elapsed_seconds": 0.16504221000013786,
+  "stdout_sha256": "b7e7e48a5213a81c18ad5cf1ab9d4dd69f27c8f7643301e78f35ec1d874ee14d",
+  "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "scope": "dependency metadata only; no compilation"
+}

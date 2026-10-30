@@ -1,0 +1,41 @@
+{
+  "base": "02ce806d7",
+  "executed_builds_or_checks": false,
+  "diagnostic_rows": 106,
+  "patch_sha256": "c01bd370fcdf8bdc842b86a8d806c169d97b7a72decca62c7e15e5bf179e20ad",
+  "files": {
+    "src/admin.rs": "a2839d1b97ff4fc74e626e198d614c83a6236bc1d3629524c631baa641cce94c",
+    "src/cluster.rs": "8e537c2783a6fd1df680a2c046c6cd4957694803290d8d277d59f96cd737b058",
+    "src/consumer.rs": "ffc1dcc34aa06d8945d485f70db5405feff0be838cdacbffadc817e78f7ccf50",
+    "src/group.rs": "9849a92370286ebbab9763d90442c608137a9faa923b1393d41bb04acc7039bf",
+    "src/net.rs": "398557cf7afdc634bf118900bc16fbde18d2aac4cb1b67d1168c986ef6c5f557",
+    "src/offsets.rs": "afa0aee7d5ab0ffc7e363d4acdf826702b999f7540f4ce881013be08535d4897",
+    "src/producer.rs": "2e6ecf3edd330b2481571a57d3316965904e14c1ec04dfa3a0a2284ed546343a",
+    "src/protocol/records.rs": "1cb9495eb624ffce501b7c26e04d6544a554365335885c8d9844858f50a00ef3",
+    "src/protocol/share.rs": "1cba05f6a2aabcd4570d40c32da834e11267c99a697ae84119191b50bca1aa8c",
+    "src/share.rs": "f1d03a0f35666f80c0367427fe69799c0b8c1b8b70f39c8e32f2353789e6819f",
+    "src/streams.rs": "5059477d906bf2c21ddb060f499a086d3967826d6fa870acc064ee1f3e0a0621",
+    "tests/tls_shutdown_deadline.rs": "65cd8ba1583acaed05361c0ea7114d96ef7df37dbe1fab5d33a8f4df5d067ea3"
+  },
+  "note": "Static candidate only. Parent must format and run exact all-target Clippy/test checks after correctness patches are integrated.",
+  "static_patch_apply_check": {
+    "against": "exact source snapshot 02ce806d7",
+    "exit_code": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  "deliberate_fixture_expectation": {
+    "lint": "clippy::disallowed_methods",
+    "scope": "one cfg(test) stall_ready_test_io helper",
+    "reason": "test IO deliberately spends wall time inside a ready synchronous poll",
+    "root_direction": "2026-10-30; preserve std::thread::sleep with a narrow fulfilled expectation, not a park_timeout substitution"
+  },
+  "required_checks": [
+    "Latest stable rustfmt on changed files",
+    "Exact all-target all-feature Clippy command from captured CI workflow",
+    "Targeted scripted-IO deadline tests",
+    "Two fetch quota-watch/close tests exercising owned future drop",
+    "TLS shutdown/cancellation deadline tests",
+    "Relevant test set after correctness patches and this candidate are combined"
+  ]
+}

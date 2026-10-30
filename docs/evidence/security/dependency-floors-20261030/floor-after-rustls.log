@@ -1,0 +1,11 @@
+error: failed to select a version for `rustls`.
+    ... required by package `partitionline v0.1.0 (/workspace/work/security-dependencies-20261030/candidate)`
+    ... which satisfies path dependency `partitionline` of package `floor-control v0.0.0 (/workspace/work/security-dependencies-20261030/controls/floor-after-rustls)`
+versions that meet the requirements `^0.23.46` are: 0.23.46
+
+all possible versions conflict with previously selected packages
+
+  previously selected package `rustls v0.23.45`
+    ... which satisfies dependency `rustls = "=0.23.45"` of package `floor-control v0.0.0 (/workspace/work/security-dependencies-20261030/controls/floor-after-rustls)`
+
+failed to select a version for `rustls` which could resolve this conflict

@@ -1,0 +1,1721 @@
+Current runner version: '2.338.2'
+##[group]Runner Image Provisioner
+Hosted Compute Agent
+Version: 20261021.618
+Commit: 21505ad2541d5be6135ed84fc33697146cf75b8e
+Build Date: 2026-10-21T00:45:21Z
+Worker ID: {c083c630-6a4c-4823-b0de-85037136e982}
+Region: eastus
+Cloud: Azure
+##[endgroup]
+##[group]Operating System
+Ubuntu
+24.04.5
+LTS
+##[endgroup]
+##[group]Runner Image
+Image: ubuntu-24.04
+Version: 20261025.353.1
+Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20261025.353/images/ubuntu/Ubuntu2404-Readme.md
+Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20261025.353
+##[endgroup]
+##[group]GITHUB_TOKEN Permissions
+Actions: write
+ArtifactMetadata: write
+Attestations: write
+Checks: write
+CodeQuality: write
+Contents: write
+CopilotRequests: write
+Deployments: write
+Discussions: write
+Drives: write
+Issues: write
+Metadata: read
+Models: read
+Packages: write
+Pages: write
+PullRequests: write
+RepositoryProjects: write
+SecurityEvents: write
+Statuses: write
+VulnerabilityAlerts: read
+##[endgroup]
+Secret source: Actions
+Cache mode: write
+Prepare workflow directory
+Prepare all required actions
+Getting action download info
+Download action repository 'actions/checkout@v7' (SHA:3d3c42e5aac5ba805825da76410c181273ba90b1)
+Download action repository 'dtolnay/rust-toolchain@stable' (SHA:b725eda525362e7cf34af9a7243cac1e3f01a7ec)
+Complete job name: clippy
+##[group]Run actions/checkout@v7
+with:
+  repository: mingley/partitionline
+  token: ***
+  ssh-strict: true
+  ssh-user: git
+  persist-credentials: true
+  clean: true
+  sparse-checkout-cone-mode: true
+  fetch-depth: 1
+  fetch-tags: false
+  show-progress: true
+  lfs: false
+  submodules: false
+  set-safe-directory: true
+  allow-unsafe-pr-checkout: false
+##[endgroup]
+Syncing repository: mingley/partitionline
+##[group]Getting Git version info
+Working directory is '/home/runner/work/partitionline/partitionline'
+[command]/usr/bin/git version
+git version 2.56.0
+##[endgroup]
+Temporarily overriding HOME='/home/runner/work/_temp/f88631a4-f3d0-4b5f-b2d9-7aef10db8fc1' before making global git config changes
+Adding repository directory to the temporary git global config as a safe directory
+[command]/usr/bin/git config --global --add safe.directory /home/runner/work/partitionline/partitionline
+Deleting the contents of '/home/runner/work/partitionline/partitionline'
+##[group]Determining repository object format
+##[endgroup]
+##[group]Initializing the repository
+[command]/usr/bin/git init /home/runner/work/partitionline/partitionline
+hint: Using 'master' as the name for the initial branch. This default branch name
+hint: will change to "main" in Git 3.0. To configure the initial branch name
+hint: to use in all of your new repositories, which will suppress this warning,
+hint: call:
+hint:
+hint: 	git config --global init.defaultBranch <name>
+hint:
+hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+hint: 'development'. The just-created branch can be renamed via this command:
+hint:
+hint: 	git branch -m <name>
+hint:
+hint: Disable this message with "git config set advice.defaultBranchName false"
+Initialized empty Git repository in /home/runner/work/partitionline/partitionline/.git/
+[command]/usr/bin/git remote add origin https://github.com/mingley/partitionline
+##[endgroup]
+##[group]Disabling automatic garbage collection
+[command]/usr/bin/git config --local gc.auto 0
+##[endgroup]
+##[group]Setting up auth
+Removing SSH command configuration
+[command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+[command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+Removing HTTP extra header
+[command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+[command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+Removing includeIf entries pointing to credentials config files
+[command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+[command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+[command]/usr/bin/git config --file /home/runner/work/_temp/git-credentials-5c041008-8122-4cc3-ada1-3701012318c4.config http.https://github.com/.extraheader AUTHORIZATION: basic ***
+[command]/usr/bin/git config --local includeIf.gitdir:/home/runner/work/partitionline/partitionline/.git.path /home/runner/work/_temp/git-credentials-5c041008-8122-4cc3-ada1-3701012318c4.config
+[command]/usr/bin/git config --local includeIf.gitdir:/home/runner/work/partitionline/partitionline/.git/worktrees/*.path /home/runner/work/_temp/git-credentials-5c041008-8122-4cc3-ada1-3701012318c4.config
+[command]/usr/bin/git config --local includeIf.gitdir:/github/workspace/.git.path /github/runner_temp/git-credentials-5c041008-8122-4cc3-ada1-3701012318c4.config
+[command]/usr/bin/git config --local includeIf.gitdir:/github/workspace/.git/worktrees/*.path /github/runner_temp/git-credentials-5c041008-8122-4cc3-ada1-3701012318c4.config
+##[endgroup]
+##[group]Fetching the repository
+[command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +02ce806d7ea4970897d51604e71e6a1fa069ca4c:refs/remotes/origin/main
+From https://github.com/mingley/partitionline
+ * [new ref]           02ce806d7ea4970897d51604e71e6a1fa069ca4c -> origin/main
+[command]/usr/bin/git branch --list --remote origin/main
+  origin/main
+[command]/usr/bin/git rev-parse refs/remotes/origin/main
+02ce806d7ea4970897d51604e71e6a1fa069ca4c
+##[endgroup]
+##[group]Determining the checkout info
+##[endgroup]
+[command]/usr/bin/git sparse-checkout disable
+[command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+##[group]Checking out the ref
+[command]/usr/bin/git checkout --progress --force -B main refs/remotes/origin/main
+Updating files:  16% (22511/136047)
+Updating files:  17% (23128/136047)
+Updating files:  18% (24489/136047)
+Updating files:  19% (25849/136047)
+Updating files:  20% (27210/136047)
+Updating files:  21% (28570/136047)
+Updating files:  22% (29931/136047)
+Updating files:  23% (31291/136047)
+Updating files:  24% (32652/136047)
+Updating files:  25% (34012/136047)
+Updating files:  26% (35373/136047)
+Updating files:  27% (36733/136047)
+Updating files:  27% (37832/136047)
+Updating files:  28% (38094/136047)
+Updating files:  29% (39454/136047)
+Updating files:  30% (40815/136047)
+Updating files:  31% (42175/136047)
+Updating files:  32% (43536/136047)
+Updating files:  33% (44896/136047)
+Updating files:  34% (46256/136047)
+Updating files:  35% (47617/136047)
+Updating files:  36% (48977/136047)
+Updating files:  37% (50338/136047)
+Updating files:  38% (51698/136047)
+Updating files:  39% (53059/136047)
+Updating files:  40% (54419/136047)
+Updating files:  41% (55780/136047)
+Updating files:  42% (57140/136047)
+Updating files:  43% (58501/136047)
+Updating files:  44% (59861/136047)
+Updating files:  44% (60358/136047)
+Updating files:  45% (61222/136047)
+Updating files:  46% (62582/136047)
+Updating files:  47% (63943/136047)
+Updating files:  48% (65303/136047)
+Updating files:  49% (66664/136047)
+Updating files:  50% (68024/136047)
+Updating files:  51% (69384/136047)
+Updating files:  52% (70745/136047)
+Updating files:  53% (72105/136047)
+Updating files:  54% (73466/136047)
+Updating files:  55% (74826/136047)
+Updating files:  56% (76187/136047)
+Updating files:  56% (77348/136047)
+Updating files:  57% (77547/136047)
+Updating files:  58% (78908/136047)
+Updating files:  59% (80268/136047)
+Updating files:  60% (81629/136047)
+Updating files:  61% (82989/136047)
+Updating files:  62% (84350/136047)
+Updating files:  63% (85710/136047)
+Updating files:  64% (87071/136047)
+Updating files:  64% (87757/136047)
+Updating files:  65% (88431/136047)
+Updating files:  66% (89792/136047)
+Updating files:  67% (91152/136047)
+Updating files:  68% (92512/136047)
+Updating files:  69% (93873/136047)
+Updating files:  70% (95233/136047)
+Updating files:  71% (96594/136047)
+Updating files:  72% (97954/136047)
+Updating files:  73% (99315/136047)
+Updating files:  74% (100675/136047)
+Updating files:  75% (102036/136047)
+Updating files:  75% (102363/136047)
+Updating files:  76% (103396/136047)
+Updating files:  77% (104757/136047)
+Updating files:  78% (106117/136047)
+Updating files:  79% (107478/136047)
+Updating files:  80% (108838/136047)
+Updating files:  81% (110199/136047)
+Updating files:  82% (111559/136047)
+Updating files:  83% (112920/136047)
+Updating files:  84% (114280/136047)
+Updating files:  85% (115640/136047)
+Updating files:  86% (117001/136047)
+Updating files:  86% (117930/136047)
+Updating files:  87% (118361/136047)
+Updating files:  88% (119722/136047)
+Updating files:  89% (121082/136047)
+Updating files:  90% (122443/136047)
+Updating files:  91% (123803/136047)
+Updating files:  91% (124729/136047)
+Updating files:  92% (125164/136047)
+Updating files:  93% (126524/136047)
+Updating files:  93% (127847/136047)
+Updating files:  93% (127868/136047)
+Updating files:  94% (127885/136047)
+Updating files:  94% (127888/136047)
+Updating files:  95% (129245/136047)
+Updating files:  96% (130606/136047)
+Updating files:  97% (131966/136047)
+Updating files:  98% (133327/136047)
+Updating files:  99% (134687/136047)
+Updating files: 100% (136047/136047)
+Updating files: 100% (136047/136047), done.
+Switched to a new branch 'main'
+branch 'main' set up to track 'origin/main'.
+##[endgroup]
+[command]/usr/bin/git log -1 --format=%H
+02ce806d7ea4970897d51604e71e6a1fa069ca4c
+##[group]Run dtolnay/rust-toolchain@stable
+with:
+  components: clippy
+  toolchain: stable
+##[endgroup]
+##[start-action display=Parse toolchain version;id=__dtolnay_rust-toolchain.parse]
+##[group]Run if [[ -z $toolchain ]]; then
+if [[ -z $toolchain ]]; then
+  # GitHub does not enforce `required: true` inputs itself. https://github.com/actions/runner/issues/1070
+  echo "'toolchain' is a required input" >&2
+  exit 1
+elif [[ $toolchain =~ ^stable' '[0-9]+' '(year|month|week|day)s?' 'ago$ ]]; then
+  if [[ Linux == macOS ]]; then
+    echo "toolchain=1.$((($(date -v-$(sed 's/stable \([0-9]*\) \(.\).*/\1\2/' <<< $toolchain) +%s)/60/60/24-16569)/7/6))" >> $GITHUB_OUTPUT
+  else
+    echo "toolchain=1.$((($(date --date "${toolchain#stable }" +%s)/60/60/24-16569)/7/6))" >> $GITHUB_OUTPUT
+  fi
+elif [[ $toolchain =~ ^stable' 'minus' '[0-9]+' 'releases?$ ]]; then
+  echo "toolchain=1.$((($(date +%s)/60/60/24-16569)/7/6-${toolchain//[^0-9]/}))" >> $GITHUB_OUTPUT
+elif [[ $toolchain =~ ^1\.[0-9]+$ ]]; then
+  echo "toolchain=1.$((i=${toolchain#1.}, c=($(date +%s)/60/60/24-16569)/7/6, i+9*i*(10*i<=c)+90*i*(100*i<=c)))" >> $GITHUB_OUTPUT
+else
+  delimiter=EOF
+  while [[ $toolchain == *$delimiter* ]]; do delimiter+=_; done
+  printf 'toolchain<<%s\n%s\n%s\n' "$delimiter" "$toolchain" "$delimiter" >> $GITHUB_OUTPUT
+fi
+shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+env:
+  toolchain: stable
+##[endgroup]
+##[end-action id=__dtolnay_rust-toolchain.parse;outcome=success;conclusion=success;duration_ms=356]
+##[start-action display=Set $CARGO_HOME;id=__dtolnay_rust-toolchain.__run]
+##[group]Run echo CARGO_HOME=${CARGO_HOME:-"$HOME/.cargo"} >> $GITHUB_ENV
+echo CARGO_HOME=${CARGO_HOME:-"$HOME/.cargo"} >> $GITHUB_ENV
+shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+##[endgroup]
+##[end-action id=__dtolnay_rust-toolchain.__run;outcome=success;conclusion=success;duration_ms=298]
+##[start-action display=Install rustup if needed;id=__dtolnay_rust-toolchain.__run_2]
+##[group]Run if ! command -v rustup &>/dev/null; then
+if ! command -v rustup &>/dev/null; then
+  curl --proto '=https' --tlsv1.2 --retry 10 --retry-connrefused --location --silent --show-error --fail https://sh.rustup.rs | sh -s -- --default-toolchain none -y
+  echo "$CARGO_HOME/bin" >> $GITHUB_PATH
+fi
+shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+env:
+  CARGO_HOME: /home/runner/.cargo
+##[endgroup]
+##[end-action id=__dtolnay_rust-toolchain.__run_2;outcome=success;conclusion=success;duration_ms=300]
+##[start-action display=Install rustup if needed on windows;id=__dtolnay_rust-toolchain.__run_3]
+##[end-action id=__dtolnay_rust-toolchain.__run_3;outcome=skipped;conclusion=skipped;duration_ms=0]
+##[start-action display=rustup toolchain install stable;id=__dtolnay_rust-toolchain.__run_4]
+##[group]Run set -f  # split targets and components on commas and whitespace, without glob expansion
+set -f  # split targets and components on commas and whitespace, without glob expansion
+flags=()
+for t in ${targets//,/ }; do flags+=(--target "$t"); done
+for c in ${components//,/ }; do flags+=(--component "$c"); done
+if [[ $toolchain == nightly && -n $components ]]; then flags+=(--allow-downgrade); fi
+log=$(mktemp)
+trap 'rm -f "$log"' EXIT
+for attempt in 1 2 3 4 5; do
+  if rustup toolchain install "$toolchain" "${flags[@]}" --profile minimal --no-self-update --force-non-host 2>&1 | tee "$log"; then
+    break
+  else
+    status=$?
+  fi
+  if [[ $attempt == 5 ]] || ! grep -Fq 'checksum failed for ' "$log" \
+      || ! grep -Fq 'this is likely due to an ongoing update of the official release server' "$log"; then
+    exit "$status"
+  fi
+  echo "Retrying rustup toolchain install in 30 seconds (retry $attempt of 4)" >&2
+  sleep 30
+done
+shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+env:
+  CARGO_HOME: /home/runner/.cargo
+  toolchain: stable
+  targets: 
+  components: clippy
+  RUSTUP_PERMIT_COPY_RENAME: 1
+##[endgroup]
+info: syncing channel updates for stable-x86_64-unknown-linux-gnu
+info: latest update on 2026-10-15 for version 1.99.1 (58cf8f9c3 2026-10-13)
+info: component clippy is up to date
+
+  stable-x86_64-unknown-linux-gnu unchanged - rustc 1.99.1 (58cf8f9c3 2026-10-13)
+
+##[end-action id=__dtolnay_rust-toolchain.__run_4;outcome=success;conclusion=success;duration_ms=3153]
+##[start-action display=rustup default stable;id=__dtolnay_rust-toolchain.__run_5]
+##[group]Run rustup default "$toolchain" --force-non-host
+rustup default "$toolchain" --force-non-host
+shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+env:
+  CARGO_HOME: /home/runner/.cargo
+  toolchain: stable
+##[endgroup]
+info: using existing install for stable-x86_64-unknown-linux-gnu
+info: default toolchain set to stable-x86_64-unknown-linux-gnu
+
+  stable-x86_64-unknown-linux-gnu unchanged - rustc 1.99.1 (58cf8f9c3 2026-10-13)
+info: note that the toolchain 'stable-x86_64-unknown-linux-gnu' is currently in use (overridden by '/home/runner/work/partitionline/partitionline/rust-toolchain.toml')
+
+##[end-action id=__dtolnay_rust-toolchain.__run_5;outcome=success;conclusion=success;duration_ms=23]
+##[start-action display=Create cachekey;id=__dtolnay_rust-toolchain.rustc-version]
+##[group]Run DATE=$(rustc +"$toolchain" --version --verbose | sed -ne 's/^commit-date: \(20[0-9][0-9]\)-\([01][0-9]\)-\([0-3][0-9]\)$/\1\2\3/p')
+DATE=$(rustc +"$toolchain" --version --verbose | sed -ne 's/^commit-date: \(20[0-9][0-9]\)-\([01][0-9]\)-\([0-3][0-9]\)$/\1\2\3/p')
+HASH=$(rustc +"$toolchain" --version --verbose | sed -ne 's/^commit-hash: //p')
+echo "cachekey=$(echo $DATE$HASH | head -c12)" >> $GITHUB_OUTPUT
+shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+env:
+  CARGO_HOME: /home/runner/.cargo
+  toolchain: stable
+##[endgroup]
+##[end-action id=__dtolnay_rust-toolchain.rustc-version;outcome=success;conclusion=success;duration_ms=39]
+##[start-action display=Disable incremental compilation;id=__dtolnay_rust-toolchain.__run_6]
+##[group]Run if [ -z "${CARGO_INCREMENTAL+set}" ]; then
+if [ -z "${CARGO_INCREMENTAL+set}" ]; then
+  echo CARGO_INCREMENTAL=0 >> $GITHUB_ENV
+fi
+shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+env:
+  CARGO_HOME: /home/runner/.cargo
+##[endgroup]
+##[end-action id=__dtolnay_rust-toolchain.__run_6;outcome=success;conclusion=success;duration_ms=10]
+##[start-action display=Enable colors in Cargo output;id=__dtolnay_rust-toolchain.__run_7]
+##[group]Run if [ -z "${CARGO_TERM_COLOR+set}" ]; then
+if [ -z "${CARGO_TERM_COLOR+set}" ]; then
+  echo CARGO_TERM_COLOR=always >> $GITHUB_ENV
+fi
+shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+env:
+  CARGO_HOME: /home/runner/.cargo
+  CARGO_INCREMENTAL: 0
+##[endgroup]
+##[end-action id=__dtolnay_rust-toolchain.__run_7;outcome=success;conclusion=success;duration_ms=8]
+##[start-action display=Enable Cargo sparse registry;id=__dtolnay_rust-toolchain.__run_8]
+##[group]Run # implemented in 1.66, stabilized in 1.68, made default in 1.70
+# implemented in 1.66, stabilized in 1.68, made default in 1.70
+if [ -z "${CARGO_REGISTRIES_CRATES_IO_PROTOCOL+set}" -o -f "/home/runner/work/_temp"/.implicit_cargo_registries_crates_io_protocol ]; then
+  if rustc +"$toolchain" --version --verbose | grep -q '^release: 1\.6[89]\.'; then
+    touch "/home/runner/work/_temp"/.implicit_cargo_registries_crates_io_protocol || true
+    echo CARGO_REGISTRIES_CRATES_IO_PROTOCOL=sparse >> $GITHUB_ENV
+  elif rustc +"$toolchain" --version --verbose | grep -q '^release: 1\.6[67]\.'; then
+    touch "/home/runner/work/_temp"/.implicit_cargo_registries_crates_io_protocol || true
+    echo CARGO_REGISTRIES_CRATES_IO_PROTOCOL=git >> $GITHUB_ENV
+  fi
+fi
+shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+env:
+  CARGO_HOME: /home/runner/.cargo
+  CARGO_INCREMENTAL: 0
+  CARGO_TERM_COLOR: always
+  toolchain: stable
+##[endgroup]
+##[end-action id=__dtolnay_rust-toolchain.__run_8;outcome=success;conclusion=success;duration_ms=37]
+##[start-action display=Work around spurious network errors in curl 8.0;id=__dtolnay_rust-toolchain.__run_9]
+##[group]Run # https://rust-lang.zulipchat.com/#narrow/stream/246057-t-cargo/topic/timeout.20investigation
+# https://rust-lang.zulipchat.com/#narrow/stream/246057-t-cargo/topic/timeout.20investigation
+if rustc +"$toolchain" --version --verbose | grep -q '^release: 1\.7[01]\.'; then
+  echo CARGO_HTTP_MULTIPLEXING=false >> $GITHUB_ENV
+fi
+shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+env:
+  CARGO_HOME: /home/runner/.cargo
+  CARGO_INCREMENTAL: 0
+  CARGO_TERM_COLOR: always
+  toolchain: stable
+##[endgroup]
+##[end-action id=__dtolnay_rust-toolchain.__run_9;outcome=success;conclusion=success;duration_ms=21]
+##[start-action display=rustc +stable --version --verbose;id=__dtolnay_rust-toolchain.__run_10]
+##[group]Run rustc +"$toolchain" --version --verbose
+rustc +"$toolchain" --version --verbose
+shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+env:
+  CARGO_HOME: /home/runner/.cargo
+  CARGO_INCREMENTAL: 0
+  CARGO_TERM_COLOR: always
+  toolchain: stable
+##[endgroup]
+rustc 1.99.1 (58cf8f9c3 2026-10-13)
+binary: rustc
+commit-hash: 58cf8f9c35b355199727627d07ae34a4e2846d67
+commit-date: 2026-10-13
+host: x86_64-unknown-linux-gnu
+release: 1.99.1
+LLVM version: 23.1.1
+##[end-action id=__dtolnay_rust-toolchain.__run_10;outcome=success;conclusion=success;duration_ms=21]
+##[group]Run cargo clippy --all-targets --all-features -- -D warnings
+cargo clippy --all-targets --all-features -- -D warnings
+shell: /usr/bin/bash -e {0}
+env:
+  CARGO_HOME: /home/runner/.cargo
+  CARGO_INCREMENTAL: 0
+  CARGO_TERM_COLOR: always
+##[endgroup]
+    Updating crates.io index
+ Downloading crates ...
+  Downloaded adler2 v2.0.1
+  Downloaded crc32fast v1.5.1
+  Downloaded pbkdf2 v0.13.0
+  Downloaded digest v0.11.3
+  Downloaded block-buffer v0.12.1
+  Downloaded bytes v1.12.1
+  Downloaded once_cell v1.21.4
+  Downloaded cc v1.4.4
+  Downloaded const-oid v0.10.2
+  Downloaded tokio-rustls v0.26.6
+  Downloaded unicode-ident v1.0.24
+  Downloaded webpki-roots v1.0.9
+  Downloaded base64 v0.23.1
+  Downloaded proc-macro2 v1.0.107
+  Downloaded socket2 v0.6.5
+  Downloaded ctutils v0.4.2
+  Downloaded quote v1.0.47
+  Downloaded rustls-pki-types v1.15.1
+  Downloaded zstd-rs v0.1.0
+  Downloaded semver v1.0.28
+  Downloaded smallvec v1.15.2
+  Downloaded tokio-macros v2.7.2
+  Downloaded cfg-if v1.0.4
+  Downloaded crc32c v0.6.8
+  Downloaded miniz_oxide v0.9.1
+  Downloaded parking_lot_core v0.9.12
+  Downloaded rustls-webpki v0.103.15
+  Downloaded scopeguard v1.2.0
+  Downloaded simd-adler32 v0.3.10
+  Downloaded errno v0.3.14
+  Downloaded subtle v2.6.1
+  Downloaded untrusted v0.9.0
+  Downloaded cmov v0.5.4
+  Downloaded rustc_version v0.4.1
+  Downloaded parking_lot v0.12.5
+  Downloaded find-msvc-tools v0.1.11
+  Downloaded hybrid-array v0.4.14
+  Downloaded tracing-attributes v0.1.31
+  Downloaded cpufeatures v0.3.1
+  Downloaded getrandom v0.4.3
+  Downloaded signal-hook-registry v1.4.8
+  Downloaded twox-hash v2.1.2
+  Downloaded crypto-common v0.2.2
+  Downloaded hmac v0.13.0
+  Downloaded lz4_flex v0.14.0
+  Downloaded pin-project-lite v0.2.17
+  Downloaded shlex v2.0.1
+  Downloaded zeroize v1.9.0
+  Downloaded lock_api v0.4.14
+  Downloaded sha2 v0.11.0
+  Downloaded snap v1.1.2
+  Downloaded getrandom v0.2.17
+  Downloaded mio v1.2.2
+  Downloaded tracing-core v0.1.36
+  Downloaded flate2 v1.1.10
+  Downloaded syn v3.0.4
+  Downloaded typenum v1.20.1
+  Downloaded zlib-rs v0.6.8
+  Downloaded rustls v0.23.45
+  Downloaded syn v2.0.119
+  Downloaded tracing v0.1.44
+  Downloaded libc v0.2.189
+  Downloaded tokio v1.53.2
+  Downloaded ring v0.17.14
+   Compiling libc v0.2.189
+    Checking cfg-if v1.0.4
+   Compiling proc-macro2 v1.0.107
+   Compiling unicode-ident v1.0.24
+   Compiling quote v1.0.47
+   Compiling shlex v2.0.1
+   Compiling find-msvc-tools v0.1.11
+   Compiling cc v1.4.4
+    Checking typenum v1.20.1
+    Checking hybrid-array v0.4.14
+    Checking zeroize v1.9.0
+    Checking cmov v0.5.4
+    Checking rustls-pki-types v1.15.1
+   Compiling ring v0.17.14
+    Checking ctutils v0.4.2
+    Checking crypto-common v0.2.2
+    Checking block-buffer v0.12.1
+    Checking getrandom v0.2.17
+    Checking untrusted v0.9.0
+   Compiling semver v1.0.28
+    Checking const-oid v0.10.2
+    Checking once_cell v1.21.4
+   Compiling rustc_version v0.4.1
+    Checking errno v0.3.14
+   Compiling syn v3.0.4
+    Checking digest v0.11.3
+   Compiling crc32fast v1.5.1
+   Compiling parking_lot_core v0.9.12
+    Checking pin-project-lite v0.2.17
+   Compiling rustls v0.23.45
+   Compiling crc32c v0.6.8
+    Checking signal-hook-registry v1.4.8
+    Checking socket2 v0.6.5
+    Checking mio v1.2.2
+   Compiling syn v2.0.119
+    Checking subtle v2.6.1
+   Compiling snap v1.1.2
+    Checking simd-adler32 v0.3.10
+    Checking smallvec v1.15.2
+    Checking bytes v1.12.1
+    Checking adler2 v2.0.1
+    Checking scopeguard v1.2.0
+   Compiling getrandom v0.4.3
+    Checking lock_api v0.4.14
+    Checking miniz_oxide v0.9.1
+    Checking hmac v0.13.0
+    Checking tracing-core v0.1.36
+    Checking zlib-rs v0.6.8
+   Compiling tokio-macros v2.7.2
+    Checking tokio v1.53.2
+    Checking rustls-webpki v0.103.15
+    Checking cpufeatures v0.3.1
+    Checking twox-hash v2.1.2
+    Checking lz4_flex v0.14.0
+    Checking sha2 v0.11.0
+    Checking flate2 v1.1.10
+   Compiling tracing-attributes v0.1.31
+    Checking pbkdf2 v0.13.0
+    Checking parking_lot v0.12.5
+    Checking webpki-roots v1.0.9
+    Checking zstd-rs v0.1.0
+    Checking tracing v0.1.44
+    Checking base64 v0.23.1
+    Checking tokio-rustls v0.26.6
+    Checking partitionline v0.1.0 (/home/runner/work/partitionline/partitionline)
+error: non-binding `let` on an expression with `#[must_use]` type
+  --> tests/tls_shutdown_deadline.rs:46:9
+   |
+46 |         let _ = handshake_tx.send(());
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: consider explicitly using expression value
+note: type is `std::result::Result`
+  --> tests/tls_shutdown_deadline.rs:46:17
+   |
+46 |         let _ = handshake_tx.send(());
+   |                 ^^^^^^^^^^^^^^^^^^^^^
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#let_underscore_must_use
+   = note: requested on the command line with `-D clippy::let-underscore-must-use`
+
+error: non-binding `let` on an expression with `#[must_use]` type
+  --> tests/tls_shutdown_deadline.rs:47:9
+   |
+47 |         let _ = release_rx.await;
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: consider explicitly using expression value
+note: type is `std::result::Result`
+  --> tests/tls_shutdown_deadline.rs:47:17
+   |
+47 |         let _ = release_rx.await;
+   |                 ^^^^^^^^^^^^^^^^
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#let_underscore_must_use
+
+error: non-binding `let` on an expression with `#[must_use]` type
+  --> tests/tls_shutdown_deadline.rs:68:5
+   |
+68 |     let _ = release_tx.send(());
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: consider explicitly using expression value
+note: type is `std::result::Result`
+  --> tests/tls_shutdown_deadline.rs:68:13
+   |
+68 |     let _ = release_tx.send(());
+   |             ^^^^^^^^^^^^^^^^^^^
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#let_underscore_must_use
+
+error: non-binding `let` on an expression with `#[must_use]` type
+  --> tests/tls_shutdown_deadline.rs:94:9
+   |
+94 |         let _ = handshake_tx.send(());
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: consider explicitly using expression value
+note: type is `std::result::Result`
+  --> tests/tls_shutdown_deadline.rs:94:17
+   |
+94 |         let _ = handshake_tx.send(());
+   |                 ^^^^^^^^^^^^^^^^^^^^^
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#let_underscore_must_use
+
+error: non-binding `let` on an expression with `#[must_use]` type
+  --> tests/tls_shutdown_deadline.rs:95:9
+   |
+95 |         let _ = release_rx.await;
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: consider explicitly using expression value
+note: type is `std::result::Result`
+  --> tests/tls_shutdown_deadline.rs:95:17
+   |
+95 |         let _ = release_rx.await;
+   |                 ^^^^^^^^^^^^^^^^
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#let_underscore_must_use
+
+error: non-binding `let` on an expression with `#[must_use]` type
+   --> tests/tls_shutdown_deadline.rs:118:5
+    |
+118 |     let _ = release_tx.send(());
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: consider explicitly using expression value
+note: type is `std::result::Result`
+   --> tests/tls_shutdown_deadline.rs:118:13
+    |
+118 |     let _ = release_tx.send(());
+    |             ^^^^^^^^^^^^^^^^^^^
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#let_underscore_must_use
+
+error: could not compile `partitionline` (test "tls_shutdown_deadline") due to 6 previous errors
+warning: build failed, waiting for other jobs to finish...
+error: casting `i32` to `usize` may lose the sign of the value
+     --> src/admin.rs:18246:28
+      |
+18246 |                 let size = i32::from_be_bytes(size_buf).max(0) as usize;
+      |                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+      |
+      = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#cast_sign_loss
+      = note: requested on the command line with `-D clippy::cast-sign-loss`
+
+error: accessing first element with `pending.get(0)`
+     --> src/admin.rs:21575:17
+      |
+21575 |           assert!(pending
+      |  _________________^
+21576 | |             .get(0)
+      | |___________________^ help: try: `pending.first()`
+      |
+      = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#get_first
+      = note: `-D clippy::get-first` implied by `-D warnings`
+      = help: to override `-D warnings` add `#[allow(clippy::get_first)]`
+
+error: casting `i32` to `usize` may lose the sign of the value
+     --> src/admin.rs:23683:27
+      |
+23683 |             .map(|index| (index as usize, "orders", index))
+      |                           ^^^^^^^^^^^^^^
+      |
+      = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#cast_sign_loss
+
+error: casting `i32` to `usize` may lose the sign of the value
+     --> src/admin.rs:23860:27
+      |
+23860 |             .map(|index| (index as usize, "orders", index))
+      |                           ^^^^^^^^^^^^^^
+      |
+      = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#cast_sign_loss
+
+error: casting `i32` to `usize` may lose the sign of the value
+     --> src/admin.rs:23923:27
+      |
+23923 |             .map(|index| (index as usize, "orders", index))
+      |                           ^^^^^^^^^^^^^^
+      |
+      = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#cast_sign_loss
+
+error: casting `i32` to `usize` may lose the sign of the value
+     --> src/admin.rs:24060:43
+      |
+24060 |                 assert_eq!(results.len(), partitions as usize);
+      |                                           ^^^^^^^^^^^^^^^^^^^
+      |
+      = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#cast_sign_loss
+
+error: unnecessary use of `get("empty").is_none()`
+    --> src/cluster.rs:1070:31
+     |
+1070 |         assert!(paced.leaders.get("empty").is_none());
+     |                 --------------^^^^^^^^^^^^^^^^^^^^^^
+     |                 |
+     |                 help: replace it with: `!paced.leaders.contains_key("empty")`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#unnecessary_get_then_check
+     = note: `-D clippy::unnecessary-get-then-check` implied by `-D warnings`
+     = help: to override `-D warnings` add `#[allow(clippy::unnecessary_get_then_check)]`
+
+error: unnecessary use of `get("orders").is_none()`
+    --> src/cluster.rs:1098:33
+     |
+1098 |         assert!(cluster.leaders.get("orders").is_none());
+     |                 ----------------^^^^^^^^^^^^^^^^^^^^^^^
+     |                 |
+     |                 help: replace it with: `!cluster.leaders.contains_key("orders")`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#unnecessary_get_then_check
+
+error: unnecessary use of `get("t").is_none()`
+    --> src/cluster.rs:1824:33
+     |
+1824 |         assert!(cluster.leaders.get("t").is_none());
+     |                 ----------------^^^^^^^^^^^^^^^^^^
+     |                 |
+     |                 help: replace it with: `!cluster.leaders.contains_key("t")`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#unnecessary_get_then_check
+
+error: unnecessary use of `get("t").is_none()`
+    --> src/cluster.rs:2250:35
+     |
+2250 |         assert!(cluster.topic_ids.get("t").is_none());
+     |                 ------------------^^^^^^^^^^^^^^^^^^
+     |                 |
+     |                 help: replace it with: `!cluster.topic_ids.contains_key("t")`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#unnecessary_get_then_check
+
+error: unnecessary use of `get(&partition).is_some()`
+     --> src/consumer.rs:14899:33
+      |
+14899 |                     if previous.get(&partition).is_some() {
+      |                                 ^^^^^^^^^^^^^^^^^^^^^^^^^ help: replace it with: `contains_key(&partition)`
+      |
+      = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#unnecessary_get_then_check
+
+error: casting `i32` to `usize` may lose the sign of the value
+     --> src/consumer.rs:15424:28
+      |
+15424 |                 let size = i32::from_be_bytes(size_buf).max(0) as usize;
+      |                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+      |
+      = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#cast_sign_loss
+
+error: redundant pattern matching
+     --> src/consumer.rs:16036:13
+      |
+16036 |             matches!(saw, Err(_)),
+      |             ^^^^^^^^^^^^^^^^^^^^^
+      |
+      = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#redundant_pattern_matching
+      = note: `-D clippy::redundant-pattern-matching` implied by `-D warnings`
+      = help: to override `-D warnings` add `#[allow(clippy::redundant_pattern_matching)]`
+help: consider using `is_err()`
+      |
+16036 -             matches!(saw, Err(_)),
+16036 +             saw.is_err(),
+      |
+
+error: field assignment outside of initializer for an instance created with Default::default()
+     --> src/consumer.rs:16062:9
+      |
+16062 |         session.metadata = FetchMetadata::new(42, 3);
+      |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+      |
+note: consider initializing the variable with `consumer::BrokerFetchSession { metadata: FetchMetadata::new(42, 3), awaiting_response: true, ..Default::default() }` and removing relevant reassignments
+     --> src/consumer.rs:16061:9
+      |
+16061 |         let mut session = BrokerFetchSession::default();
+      |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+      = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#field_reassign_with_default
+      = note: `-D clippy::field-reassign-with-default` implied by `-D warnings`
+      = help: to override `-D warnings` add `#[allow(clippy::field_reassign_with_default)]`
+
+error: call to `std::mem::drop` with a value that does not implement `Drop`. Dropping such a type only extends its contained lifetimes
+     --> src/consumer.rs:16222:9
+      |
+16222 |         drop(watching);
+      |         ^^^^^^^^^^^^^^
+      |
+note: argument has type `std::pin::Pin<&mut impl std::future::Future<Output = bool>>`
+     --> src/consumer.rs:16222:14
+      |
+16222 |         drop(watching);
+      |              ^^^^^^^^
+      = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#drop_non_drop
+      = note: `-D clippy::drop-non-drop` implied by `-D warnings`
+      = help: to override `-D warnings` add `#[allow(clippy::drop_non_drop)]`
+
+error: non-binding `let` on an expression with `#[must_use]` type
+     --> src/consumer.rs:16239:13
+      |
+16239 |             let _ = wrote_tx.send(Instant::now());
+      |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+      |
+      = help: consider explicitly using expression value
+note: type is `std::result::Result`
+     --> src/consumer.rs:16239:21
+      |
+16239 |             let _ = wrote_tx.send(Instant::now());
+      |                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+      = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#let_underscore_must_use
+      = note: requested on the command line with `-D clippy::let-underscore-must-use`
+
+error: call to `std::mem::drop` with a value that does not implement `Drop`. Dropping such a type only extends its contained lifetimes
+     --> src/consumer.rs:16285:9
+      |
+16285 |         drop(closing);
+      |         ^^^^^^^^^^^^^
+      |
+note: argument has type `std::pin::Pin<&mut impl std::future::Future<Output = std::result::Result<(), error::Error>>>`
+     --> src/consumer.rs:16285:14
+      |
+16285 |         drop(closing);
+      |              ^^^^^^^
+      = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#drop_non_drop
+
+error: unnecessary use of `get(&[7u8; 16]).is_none()`
+     --> src/consumer.rs:17284:23
+      |
+17284 |         assert!(by_id.get(&[7u8; 16]).is_none());
+      |                 ------^^^^^^^^^^^^^^^^^^^^^^^^^
+      |                 |
+      |                 help: replace it with: `!by_id.contains_key(&[7u8; 16])`
+      |
+      = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#unnecessary_get_then_check
+
+error: unnecessary use of `get(&2).is_none()`
+     --> src/consumer.rs:17880:22
+      |
+17880 |         assert!(plan.get(&2).is_none());
+      |                 -----^^^^^^^^^^^^^^^^^
+      |                 |
+      |                 help: replace it with: `!plan.contains_key(&2)`
+      |
+      = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#unnecessary_get_then_check
+
+error: casting `i32` to `u64` may lose the sign of the value
+     --> src/consumer.rs:17981:48
+      |
+17981 |                 topic_id[..8].copy_from_slice(&(index as u64).to_le_bytes());
+      |                                                ^^^^^^^^^^^^^^
+      |
+      = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#cast_sign_loss
+
+error: field assignment outside of initializer for an instance created with Default::default()
+     --> src/consumer.rs:18393:9
+      |
+18393 |         session.id_names_dirty = true;
+      |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+      |
+note: consider initializing the variable with `consumer::BrokerFetchSession { id_names_dirty: true, ..Default::default() }` and removing relevant reassignments
+     --> src/consumer.rs:18392:9
+      |
+18392 |         let mut session = BrokerFetchSession::default();
+      |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+      = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#field_reassign_with_default
+
+error: field assignment outside of initializer for an instance created with Default::default()
+     --> src/consumer.rs:18419:9
+      |
+18419 |         clean.id_names_dirty = false;
+      |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+      |
+note: consider initializing the variable with `consumer::BrokerFetchSession { id_names_dirty: false, ..Default::default() }` and removing relevant reassignments
+     --> src/consumer.rs:18418:9
+      |
+18418 |         let mut clean = BrokerFetchSession::default();
+      |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+      = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#field_reassign_with_default
+
+error: field assignment outside of initializer for an instance created with Default::default()
+     --> src/consumer.rs:18428:9
+      |
+18428 |         fresh.id_names_dirty = true;
+      |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+      |
+note: consider initializing the variable with `consumer::BrokerFetchSession { id_names_dirty: true, ..Default::default() }` and removing relevant reassignments
+     --> src/consumer.rs:18427:9
+      |
+18427 |         let mut fresh = BrokerFetchSession::default();
+      |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+      = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#field_reassign_with_default
+
+error: field assignment outside of initializer for an instance created with Default::default()
+     --> src/consumer.rs:18459:9
+      |
+18459 |         session.version = Some(12);
+      |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+      |
+note: consider initializing the variable with `consumer::BrokerFetchSession { version: Some(12), metadata: FetchMetadata::new(7, 1), stamp: 1, ..Default::default() }` and removing relevant reassignments
+     --> src/consumer.rs:18458:9
+      |
+18458 |         let mut session = BrokerFetchSession::default();
+      |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+      = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#field_reassign_with_default
+
+error: field assignment outside of initializer for an instance created with Default::default()
+     --> src/consumer.rs:18486:9
+      |
+18486 |         session.version = Some(12);
+      |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+      |
+note: consider initializing the variable with `consumer::BrokerFetchSession { version: Some(12), metadata: FetchMetadata::new(7, 1), stamp: 1, ..Default::default() }` and removing relevant reassignments
+     --> src/consumer.rs:18485:9
+      |
+18485 |         let mut session = BrokerFetchSession::default();
+      |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+      = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#field_reassign_with_default
+
+error: unnecessary use of `get(&7).is_none()`
+     --> src/consumer.rs:18985:27
+      |
+18985 |         assert!(by_leader.get(&7).is_none());
+      |                 ----------^^^^^^^^^^^^^^^^^
+      |                 |
+      |                 help: replace it with: `!by_leader.contains_key(&7)`
+      |
+      = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#unnecessary_get_then_check
+
+error: casting `usize` to `i32` may truncate the value on targets with 64-bit wide pointers
+    --> src/group.rs:8885:38
+     |
+8885 |                     partitions: vec![index as i32],
+     |                                      ^^^^^^^^^^^^
+     |
+     = help: if this is intentional allow the lint with `#[allow(clippy::cast_possible_truncation)]` ...
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#cast_possible_truncation
+     = note: requested on the command line with `-D clippy::cast-possible-truncation`
+help: ... or use `try_from` and handle the error accordingly
+     |
+8885 -                     partitions: vec![index as i32],
+8885 +                     partitions: vec![i32::try_from(index)],
+     |
+
+error: casting `usize` to `i32` may wrap around the value on targets with 32-bit wide pointers
+    --> src/group.rs:8885:38
+     |
+8885 |                     partitions: vec![index as i32],
+     |                                      ^^^^^^^^^^^^
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#cast_possible_wrap
+     = note: requested on the command line with `-D clippy::cast-possible-wrap`
+
+error: unnecessary use of `get(&("orders", 3)).is_none()`
+    --> src/group.rs:9050:23
+     |
+9050 |         assert!(index.get(&("orders", 3)).is_none());
+     |                 ------^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |                 |
+     |                 help: replace it with: `!index.contains_key(&("orders", 3))`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#unnecessary_get_then_check
+
+error: casting `i32` to `usize` may lose the sign of the value
+    --> src/group.rs:9638:28
+     |
+9638 |                 let size = i32::from_be_bytes(size_buf).max(0) as usize;
+     |                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#cast_sign_loss
+
+error: casting `i32` to `usize` may lose the sign of the value
+    --> src/group.rs:9740:28
+     |
+9740 |                 let size = i32::from_be_bytes(size_buf).max(0) as usize;
+     |                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#cast_sign_loss
+
+error: casting `i32` to `usize` may lose the sign of the value
+     --> src/group.rs:10821:54
+      |
+10821 |             let _ = assigned_parts.insert(partition, partition as usize);
+      |                                                      ^^^^^^^^^^^^^^^^^^
+      |
+      = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#cast_sign_loss
+
+error: casting `i32` to `u64` may lose the sign of the value
+     --> src/group.rs:11076:42
+      |
+11076 |                 id[..8].copy_from_slice(&(index as u64).to_le_bytes());
+      |                                          ^^^^^^^^^^^^^^
+      |
+      = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#cast_sign_loss
+
+error: casting `i32` to `u64` may lose the sign of the value
+     --> src/group.rs:11108:48
+      |
+11108 |                 topic_id[..8].copy_from_slice(&(index as u64).to_le_bytes());
+      |                                                ^^^^^^^^^^^^^^
+      |
+      = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#cast_sign_loss
+
+error: casting `i32` to `u64` may lose the sign of the value
+     --> src/group.rs:11352:48
+      |
+11352 |                 topic_id[..8].copy_from_slice(&(index as u64).to_le_bytes());
+      |                                                ^^^^^^^^^^^^^^
+      |
+      = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#cast_sign_loss
+
+error: casting `i32` to `usize` may lose the sign of the value
+     --> src/group.rs:12060:40
+      |
+12060 | ...                   let size = i32::from_be_bytes(size_buf).max(0) as usize;
+      |                                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+      |
+      = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#cast_sign_loss
+
+error: casting `i32` to `usize` may lose the sign of the value
+     --> src/group.rs:12096:36
+      |
+12096 |                         let size = i32::from_be_bytes(size_buf).max(0) as usize;
+      |                                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+      |
+      = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#cast_sign_loss
+
+error: casting `i32` to `usize` may lose the sign of the value
+     --> src/group.rs:12496:40
+      |
+12496 | ...                   let size = i32::from_be_bytes(size_buf).max(0) as usize;
+      |                                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+      |
+      = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#cast_sign_loss
+
+error: casting `i32` to `usize` may lose the sign of the value
+     --> src/group.rs:12543:36
+      |
+12543 |                         let size = i32::from_be_bytes(size_buf).max(0) as usize;
+      |                                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+      |
+      = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#cast_sign_loss
+
+error: casting `i32` to `usize` may lose the sign of the value
+     --> src/group.rs:12688:40
+      |
+12688 | ...                   let size = i32::from_be_bytes(size_buf).max(0) as usize;
+      |                                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+      |
+      = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#cast_sign_loss
+
+error: casting `i32` to `usize` may lose the sign of the value
+     --> src/group.rs:12740:36
+      |
+12740 |                         let size = i32::from_be_bytes(size_buf).max(0) as usize;
+      |                                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+      |
+      = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#cast_sign_loss
+
+error: use of a disallowed method `std::thread::sleep`
+   --> src/net.rs:886:9
+    |
+886 |         std::thread::sleep(self.pause.saturating_mul(units));
+    |         ^^^^^^^^^^^^^^^^^^
+    |
+    = note: Blocks the executor thread. Use tokio::time::sleep.
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#disallowed_methods
+    = note: requested on the command line with `-D clippy::disallowed-methods`
+
+error: use of a disallowed method `std::thread::sleep`
+   --> src/net.rs:900:13
+    |
+900 |             std::thread::sleep(self.pause.saturating_mul(units));
+    |             ^^^^^^^^^^^^^^^^^^
+    |
+    = note: Blocks the executor thread. Use tokio::time::sleep.
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#disallowed_methods
+
+error: use of a disallowed method `std::thread::sleep`
+    --> src/net.rs:3617:13
+     |
+3617 |             std::thread::sleep(Duration::from_millis(2).saturating_mul(units));
+     |             ^^^^^^^^^^^^^^^^^^
+     |
+     = note: Blocks the executor thread. Use tokio::time::sleep.
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#disallowed_methods
+
+error: non-binding `let` on an expression with `#[must_use]` type
+    --> src/net.rs:3935:13
+     |
+3935 |             let _ = wrote.send(());
+     |             ^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = help: consider explicitly using expression value
+note: type is `std::result::Result`
+    --> src/net.rs:3935:21
+     |
+3935 |             let _ = wrote.send(());
+     |                     ^^^^^^^^^^^^^^
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#let_underscore_must_use
+
+error: non-binding `let` on an expression with `#[must_use]` type
+    --> src/net.rs:4326:13
+     |
+4326 |             let _ = saw_fin_tx.send(());
+     |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = help: consider explicitly using expression value
+note: type is `std::result::Result`
+    --> src/net.rs:4326:21
+     |
+4326 |             let _ = saw_fin_tx.send(());
+     |                     ^^^^^^^^^^^^^^^^^^^
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#let_underscore_must_use
+
+error: non-binding `let` on an expression with `#[must_use]` type
+    --> src/net.rs:4327:13
+     |
+4327 |             let _ = release_rx.await;
+     |             ^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = help: consider explicitly using expression value
+note: type is `std::result::Result`
+    --> src/net.rs:4327:21
+     |
+4327 |             let _ = release_rx.await;
+     |                     ^^^^^^^^^^^^^^^^
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#let_underscore_must_use
+
+error: non-binding `let` on an expression with `#[must_use]` type
+    --> src/net.rs:4341:9
+     |
+4341 |         let _ = release_tx.send(());
+     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = help: consider explicitly using expression value
+note: type is `std::result::Result`
+    --> src/net.rs:4341:17
+     |
+4341 |         let _ = release_tx.send(());
+     |                 ^^^^^^^^^^^^^^^^^^^
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#let_underscore_must_use
+
+error: non-binding `let` on an expression with `#[must_use]` type
+    --> src/net.rs:4359:17
+     |
+4359 |                 let _ = ready_tx.send(());
+     |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = help: consider explicitly using expression value
+note: type is `std::result::Result`
+    --> src/net.rs:4359:25
+     |
+4359 |                 let _ = ready_tx.send(());
+     |                         ^^^^^^^^^^^^^^^^^
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#let_underscore_must_use
+
+error: non-binding `let` on an expression with `#[must_use]` type
+    --> src/net.rs:4360:17
+     |
+4360 |                 let _ = gate_rx.recv();
+     |                 ^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = help: consider explicitly using expression value
+note: type is `std::result::Result`
+    --> src/net.rs:4360:25
+     |
+4360 |                 let _ = gate_rx.recv();
+     |                         ^^^^^^^^^^^^^^
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#let_underscore_must_use
+
+error: non-binding `let` on an expression with `#[must_use]` type
+    --> src/net.rs:4368:17
+     |
+4368 |                 let _ = done_tx.send(());
+     |                 ^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = help: consider explicitly using expression value
+note: type is `std::result::Result`
+    --> src/net.rs:4368:25
+     |
+4368 |                 let _ = done_tx.send(());
+     |                         ^^^^^^^^^^^^^^^^
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#let_underscore_must_use
+
+error: non-binding `let` on an expression with `#[must_use]` type
+    --> src/net.rs:4397:9
+     |
+4397 |         let _ = gate_tx.send(());
+     |         ^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = help: consider explicitly using expression value
+note: type is `std::result::Result`
+    --> src/net.rs:4397:17
+     |
+4397 |         let _ = gate_tx.send(());
+     |                 ^^^^^^^^^^^^^^^^
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#let_underscore_must_use
+
+error: this loop never actually loops
+    --> src/net.rs:4600:13
+     |
+4600 | /             loop {
+4601 | |                 tokio::select! {
+4602 | |                     biased;
+4603 | |                     _ = conn.peer_left(), if !conn.is_closed() => break,
+...    |
+4606 | |             }
+     | |_____________^
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#never_loop
+     = note: `#[deny(clippy::never_loop)]` on by default
+
+error: redundant pattern matching
+    --> src/net.rs:4844:13
+     |
+4844 |             matches!(saw, Err(_)),
+     |             ^^^^^^^^^^^^^^^^^^^^^
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#redundant_pattern_matching
+help: consider using `is_err()`
+     |
+4844 -             matches!(saw, Err(_)),
+4844 +             saw.is_err(),
+     |
+
+error: casting `i32` to `usize` may lose the sign of the value
+    --> src/offsets.rs:1916:28
+     |
+1916 |                 let size = i32::from_be_bytes(size_buf).max(0) as usize;
+     |                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#cast_sign_loss
+
+error: casting `i32` to `usize` may lose the sign of the value
+    --> src/offsets.rs:2056:28
+     |
+2056 |                 let size = i32::from_be_bytes(size_buf).max(0) as usize;
+     |                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#cast_sign_loss
+
+error: casting `i32` to `usize` may lose the sign of the value
+    --> src/offsets.rs:2119:28
+     |
+2119 |                 let size = i32::from_be_bytes(size_buf).max(0) as usize;
+     |                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#cast_sign_loss
+
+error: casting `i32` to `usize` may lose the sign of the value
+    --> src/offsets.rs:2260:28
+     |
+2260 |                 let size = i32::from_be_bytes(size_buf).max(0) as usize;
+     |                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#cast_sign_loss
+
+error: casting `i32` to `usize` may lose the sign of the value
+    --> src/offsets.rs:2364:28
+     |
+2364 |                 let size = i32::from_be_bytes(size_buf).max(0) as usize;
+     |                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#cast_sign_loss
+
+error: casting `i32` to `usize` may lose the sign of the value
+    --> src/offsets.rs:2536:24
+     |
+2536 |             let size = i32::from_be_bytes(size_buf).max(0) as usize;
+     |                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#cast_sign_loss
+
+error: casting to the same type is unnecessary (`i32` -> `i32`)
+     --> src/producer.rs:11289:34
+      |
+11289 |                 partitions: vec![index as i32],
+      |                                  ^^^^^^^^^^^^ help: try: `index`
+      |
+      = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#unnecessary_cast
+      = note: `-D clippy::unnecessary-cast` implied by `-D warnings`
+      = help: to override `-D warnings` add `#[allow(clippy::unnecessary_cast)]`
+
+error: casting to the same type is unnecessary (`i32` -> `i32`)
+     --> src/producer.rs:11344:32
+      |
+11344 |                     partition: index as i32,
+      |                                ^^^^^^^^^^^^ help: try: `index`
+      |
+      = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#unnecessary_cast
+
+error: casting `i32` to `usize` may lose the sign of the value
+     --> src/producer.rs:11713:28
+      |
+11713 |                 let size = i32::from_be_bytes(size_buf).max(0) as usize;
+      |                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+      |
+      = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#cast_sign_loss
+
+error: casting `i32` to `usize` may lose the sign of the value
+     --> src/producer.rs:11802:28
+      |
+11802 |                 let size = i32::from_be_bytes(size_buf).max(0) as usize;
+      |                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+      |
+      = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#cast_sign_loss
+
+error: casting `i32` to `usize` may lose the sign of the value
+     --> src/producer.rs:11874:40
+      |
+11874 | ...                   let size = i32::from_be_bytes(size_buf).max(0) as usize;
+      |                                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+      |
+      = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#cast_sign_loss
+
+error: casting `i32` to `usize` may lose the sign of the value
+     --> src/producer.rs:11926:40
+      |
+11926 | ...                   let size = i32::from_be_bytes(size_buf).max(0) as usize;
+      |                                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+      |
+      = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#cast_sign_loss
+
+error: casting `i32` to `usize` may lose the sign of the value
+     --> src/producer.rs:11986:28
+      |
+11986 |                 let size = i32::from_be_bytes(size_buf).max(0) as usize;
+      |                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+      |
+      = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#cast_sign_loss
+
+error: casting `i32` to `usize` may lose the sign of the value
+     --> src/producer.rs:12093:24
+      |
+12093 |             let size = i32::from_be_bytes(size_buf).max(0) as usize;
+      |                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+      |
+      = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#cast_sign_loss
+
+error: redundant pattern matching
+     --> src/producer.rs:12312:13
+      |
+12312 |             matches!(saw, Err(_)),
+      |             ^^^^^^^^^^^^^^^^^^^^^
+      |
+      = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#redundant_pattern_matching
+help: consider using `is_err()`
+      |
+12312 -             matches!(saw, Err(_)),
+12312 +             saw.is_err(),
+      |
+
+error: redundant pattern matching
+     --> src/producer.rs:12365:25
+      |
+12365 |                         matches!(saw, Err(_)),
+      |                         ^^^^^^^^^^^^^^^^^^^^^
+      |
+      = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#redundant_pattern_matching
+help: consider using `is_err()`
+      |
+12365 -                         matches!(saw, Err(_)),
+12365 +                         saw.is_err(),
+      |
+
+error: unnecessary use of `get("orders").is_none()`
+     --> src/producer.rs:13535:21
+      |
+13535 |         assert!(set.get("orders").is_none());
+      |                 ----^^^^^^^^^^^^^^^^^^^^^^^
+      |                 |
+      |                 help: replace it with: `!set.contains_key("orders")`
+      |
+      = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#unnecessary_get_then_check
+
+error: unnecessary use of `get(&[0; 16]).is_none()`
+     --> src/producer.rs:13633:23
+      |
+13633 |         assert!(index.get(&[0; 16]).is_none());
+      |                 ------^^^^^^^^^^^^^^^^^^^^^^^
+      |                 |
+      |                 help: replace it with: `!index.contains_key(&[0; 16])`
+      |
+      = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#unnecessary_get_then_check
+
+error: field assignment outside of initializer for an instance created with Default::default()
+     --> src/producer.rs:14252:9
+      |
+14252 |         sample.partition_order = vec![3, 1];
+      |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+      |
+note: consider initializing the variable with `producer::ProduceGroupScratch { partition_order: vec![3, 1], ..Default::default() }` and removing relevant reassignments
+     --> src/producer.rs:14251:9
+      |
+14251 |         let mut sample = ProduceGroupScratch::default();
+      |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+      = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#field_reassign_with_default
+
+error: use of a disallowed type `std::sync::Mutex`
+     --> src/producer.rs:15239:9
+      |
+15239 |         use std::sync::Mutex as StdMutex;
+      |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+      |
+      = note: Easy to hold across await. Use tokio::sync::Mutex, or parking_lot for short non-async sections.
+      = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#disallowed_types
+      = note: requested on the command line with `-D clippy::disallowed-types`
+
+error: use of a disallowed type `std::sync::Mutex`
+     --> src/producer.rs:15247:65
+      |
+15247 |         let slot: Arc<StdMutex<Option<Arc<Shared>>>> = Arc::new(StdMutex::new(None));
+      |                                                                 ^^^^^^^^
+      |
+      = note: Easy to hold across await. Use tokio::sync::Mutex, or parking_lot for short non-async sections.
+      = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#disallowed_types
+
+error: use of a disallowed type `std::sync::Mutex`
+     --> src/producer.rs:15247:23
+      |
+15247 |         let slot: Arc<StdMutex<Option<Arc<Shared>>>> = Arc::new(StdMutex::new(None));
+      |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+      |
+      = note: Easy to hold across await. Use tokio::sync::Mutex, or parking_lot for short non-async sections.
+      = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#disallowed_types
+
+error: casting `i32` to `usize` may lose the sign of the value
+     --> src/producer.rs:15277:36
+      |
+15277 |                         let size = i32::from_be_bytes(size_buf).max(0) as usize;
+      |                                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+      |
+      = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#cast_sign_loss
+
+error: casting `i32` to `usize` may lose the sign of the value
+     --> src/producer.rs:15474:36
+      |
+15474 |                         let size = i32::from_be_bytes(size_buf).max(0) as usize;
+      |                                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+      |
+      = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#cast_sign_loss
+
+error: non-binding `let` on an expression with `#[must_use]` type
+     --> src/producer.rs:15891:13
+      |
+15891 | /             let _ = guard
+15892 | |                 .roundtrip(0, 0, |_| Ok(()), Duration::from_secs(5))
+15893 | |                 .await;
+      | |_______________________^
+      |
+      = help: consider explicitly using expression value
+note: type is `std::result::Result`
+     --> src/producer.rs:15891:21
+      |
+15891 |               let _ = guard
+      |  _____________________^
+15892 | |                 .roundtrip(0, 0, |_| Ok(()), Duration::from_secs(5))
+15893 | |                 .await;
+      | |______________________^
+      = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#let_underscore_must_use
+
+error: non-binding `let` on an expression with `#[must_use]` type
+    --> src/protocol/records.rs:5162:25
+     |
+5162 |             _ = async { let _ = decode_record_batches(&mut &raw[..]); } => {}
+     |                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = help: consider explicitly using expression value
+note: type is `std::result::Result`
+    --> src/protocol/records.rs:5162:33
+     |
+5162 |             _ = async { let _ = decode_record_batches(&mut &raw[..]); } => {}
+     |                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#let_underscore_must_use
+
+error: casting `u32` to `u8` may truncate the value
+    --> src/protocol/records.rs:5336:17
+     |
+5336 |                 state as u8
+     |                 ^^^^^^^^^^^
+     |
+     = help: if this is intentional allow the lint with `#[allow(clippy::cast_possible_truncation)]` ...
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#cast_possible_truncation
+help: ... or use `try_from` and handle the error accordingly
+     |
+5336 -                 state as u8
+5336 +                 u8::try_from(state)
+     |
+
+error: casting `i32` to `u128` may lose the sign of the value
+    --> src/protocol/share.rs:4762:27
+     |
+4762 |                 topic_id: (index as u128).to_le_bytes(),
+     |                           ^^^^^^^^^^^^^^^
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#cast_sign_loss
+
+error: casting `i32` to `u128` may lose the sign of the value
+    --> src/protocol/share.rs:4839:27
+     |
+4839 |                 topic_id: (index as u128).to_le_bytes(),
+     |                           ^^^^^^^^^^^^^^^
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#cast_sign_loss
+
+error: this let-binding has unit value
+    --> src/protocol/share.rs:4849:17
+     |
+4849 |                 let _encoded = encoded.unwrap_or_else(|error| panic!("{error}"));
+     |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#let_unit_value
+     = note: `-D clippy::let-unit-value` implied by `-D warnings`
+     = help: to override `-D warnings` add `#[allow(clippy::let_unit_value)]`
+help: omit the `let` binding
+     |
+4849 -                 let _encoded = encoded.unwrap_or_else(|error| panic!("{error}"));
+4849 +                 encoded.unwrap_or_else(|error| panic!("{error}"));
+     |
+
+error: non-binding `let` on an expression with `#[must_use]` type
+    --> src/protocol/share.rs:5372:25
+     |
+5372 |             _ = async { let _ = decode_share_fetch_response(&mut body, 1); } => {}
+     |                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = help: consider explicitly using expression value
+note: type is `std::result::Result`
+    --> src/protocol/share.rs:5372:33
+     |
+5372 |             _ = async { let _ = decode_share_fetch_response(&mut body, 1); } => {}
+     |                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#let_underscore_must_use
+
+error: casting `u32` to `i32` may wrap around the value
+    --> src/protocol/share.rs:8026:22
+     |
+8026 |                 (id, index as i32, body.clone())
+     |                      ^^^^^^^^^^^^ help: if this is intentional, use `cast_signed()` instead: `index.cast_signed()`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#cast_possible_wrap
+
+error: casting `u32` to `i32` may wrap around the value
+    --> src/protocol/share.rs:9482:22
+     |
+9482 |                 (id, index as i32, body.clone())
+     |                      ^^^^^^^^^^^^ help: if this is intentional, use `cast_signed()` instead: `index.cast_signed()`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#cast_possible_wrap
+
+error: casting `usize` to `i32` may truncate the value on targets with 64-bit wide pointers
+    --> src/share.rs:8709:38
+     |
+8709 |                     partitions: vec![index as i32],
+     |                                      ^^^^^^^^^^^^
+     |
+     = help: if this is intentional allow the lint with `#[allow(clippy::cast_possible_truncation)]` ...
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#cast_possible_truncation
+help: ... or use `try_from` and handle the error accordingly
+     |
+8709 -                     partitions: vec![index as i32],
+8709 +                     partitions: vec![i32::try_from(index)],
+     |
+
+error: casting `usize` to `i32` may wrap around the value on targets with 32-bit wide pointers
+    --> src/share.rs:8709:38
+     |
+8709 |                     partitions: vec![index as i32],
+     |                                      ^^^^^^^^^^^^
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#cast_possible_wrap
+
+error: casting `usize` to `i32` may truncate the value on targets with 64-bit wide pointers
+    --> src/share.rs:8785:36
+     |
+8785 |                         partition: index as i32,
+     |                                    ^^^^^^^^^^^^
+     |
+     = help: if this is intentional allow the lint with `#[allow(clippy::cast_possible_truncation)]` ...
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#cast_possible_truncation
+help: ... or use `try_from` and handle the error accordingly
+     |
+8785 -                         partition: index as i32,
+8785 +                         partition: i32::try_from(index),
+     |
+
+error: casting `usize` to `i32` may wrap around the value on targets with 32-bit wide pointers
+    --> src/share.rs:8785:36
+     |
+8785 |                         partition: index as i32,
+     |                                    ^^^^^^^^^^^^
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#cast_possible_wrap
+
+error: casting `usize` to `i32` may truncate the value on targets with 64-bit wide pointers
+    --> src/share.rs:8868:29
+     |
+8868 | ...                   index as i32,
+     |                       ^^^^^^^^^^^^
+     |
+     = help: if this is intentional allow the lint with `#[allow(clippy::cast_possible_truncation)]` ...
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#cast_possible_truncation
+help: ... or use `try_from` and handle the error accordingly
+     |
+8868 -                             index as i32,
+8868 +                             i32::try_from(index),
+     |
+
+error: casting `usize` to `i32` may wrap around the value on targets with 32-bit wide pointers
+    --> src/share.rs:8868:29
+     |
+8868 | ...                   index as i32,
+     |                       ^^^^^^^^^^^^
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#cast_possible_wrap
+
+error: unnecessary use of `get(&0).is_none()`
+     --> src/share.rs:10389:23
+      |
+10389 |         assert!(found.get(&0).is_none());
+      |                 ------^^^^^^^^^^^^^^^^^
+      |                 |
+      |                 help: replace it with: `!found.contains_key(&0)`
+      |
+      = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#unnecessary_get_then_check
+
+error: casting `i32` to `u64` may lose the sign of the value
+     --> src/share.rs:10531:42
+      |
+10531 |                 id[..8].copy_from_slice(&(index as u64).to_le_bytes());
+      |                                          ^^^^^^^^^^^^^^
+      |
+      = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#cast_sign_loss
+
+error: casting `i32` to `u64` may lose the sign of the value
+     --> src/share.rs:10581:42
+      |
+10581 |                 id[..8].copy_from_slice(&(index as u64).to_le_bytes());
+      |                                          ^^^^^^^^^^^^^^
+      |
+      = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#cast_sign_loss
+
+error: unnecessary use of `get("orders").is_some()`
+     --> src/share.rs:11551:24
+      |
+11551 |         assert!(sample.get("orders").is_some());
+      |                        ^^^^^^^^^^^^^^^^^^^^^^^ help: replace it with: `contains_key("orders")`
+      |
+      = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#unnecessary_get_then_check
+
+error: unnecessary use of `get("payments").is_none()`
+     --> src/share.rs:11552:24
+      |
+11552 |         assert!(sample.get("payments").is_none());
+      |                 -------^^^^^^^^^^^^^^^^^^^^^^^^^
+      |                 |
+      |                 help: replace it with: `!sample.contains_key("payments")`
+      |
+      = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#unnecessary_get_then_check
+
+error: redundant pattern matching
+     --> src/share.rs:12258:13
+      |
+12258 |             matches!(saw, Err(_)),
+      |             ^^^^^^^^^^^^^^^^^^^^^
+      |
+      = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#redundant_pattern_matching
+help: consider using `is_err()`
+      |
+12258 -             matches!(saw, Err(_)),
+12258 +             saw.is_err(),
+      |
+
+error: casting `i32` to `usize` may lose the sign of the value
+   --> src/streams.rs:747:28
+    |
+747 |                 let size = i32::from_be_bytes(size_buf).max(0) as usize;
+    |                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#cast_sign_loss
+
+error: could not compile `partitionline` (lib test) due to 100 previous errors
+##[error]Process completed with exit code 101.
+Post job cleanup.
+[command]/usr/bin/git version
+git version 2.56.0
+Temporarily overriding HOME='/home/runner/work/_temp/6dfd831d-4761-4619-8776-c2dd7c2018f2' before making global git config changes
+Adding repository directory to the temporary git global config as a safe directory
+[command]/usr/bin/git config --global --add safe.directory /home/runner/work/partitionline/partitionline
+Removing SSH command configuration
+[command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+[command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+Removing HTTP extra header
+[command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+[command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+Removing includeIf entries pointing to credentials config files
+[command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+includeif.gitdir:/home/runner/work/partitionline/partitionline/.git.path
+includeif.gitdir:/home/runner/work/partitionline/partitionline/.git/worktrees/*.path
+includeif.gitdir:/github/workspace/.git.path
+includeif.gitdir:/github/workspace/.git/worktrees/*.path
+[command]/usr/bin/git config --local --get-all includeif.gitdir:/home/runner/work/partitionline/partitionline/.git.path
+/home/runner/work/_temp/git-credentials-5c041008-8122-4cc3-ada1-3701012318c4.config
+[command]/usr/bin/git config --local --unset includeif.gitdir:/home/runner/work/partitionline/partitionline/.git.path \/home\/runner\/work\/_temp\/git\-credentials\-5c041008\-8122\-4cc3\-ada1\-3701012318c4\.config
+[command]/usr/bin/git config --local --get-all includeif.gitdir:/home/runner/work/partitionline/partitionline/.git/worktrees/*.path
+/home/runner/work/_temp/git-credentials-5c041008-8122-4cc3-ada1-3701012318c4.config
+[command]/usr/bin/git config --local --unset includeif.gitdir:/home/runner/work/partitionline/partitionline/.git/worktrees/*.path \/home\/runner\/work\/_temp\/git\-credentials\-5c041008\-8122\-4cc3\-ada1\-3701012318c4\.config
+[command]/usr/bin/git config --local --get-all includeif.gitdir:/github/workspace/.git.path
+/github/runner_temp/git-credentials-5c041008-8122-4cc3-ada1-3701012318c4.config
+[command]/usr/bin/git config --local --unset includeif.gitdir:/github/workspace/.git.path \/github\/runner_temp\/git\-credentials\-5c041008\-8122\-4cc3\-ada1\-3701012318c4\.config
+[command]/usr/bin/git config --local --get-all includeif.gitdir:/github/workspace/.git/worktrees/*.path
+/github/runner_temp/git-credentials-5c041008-8122-4cc3-ada1-3701012318c4.config
+[command]/usr/bin/git config --local --unset includeif.gitdir:/github/workspace/.git/worktrees/*.path \/github\/runner_temp\/git\-credentials\-5c041008\-8122\-4cc3\-ada1\-3701012318c4\.config
+[command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+Removing credentials config '/home/runner/work/_temp/git-credentials-5c041008-8122-4cc3-ada1-3701012318c4.config'
+Cleaning up orphan processes
+

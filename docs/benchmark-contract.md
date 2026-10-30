@@ -181,7 +181,7 @@ shared cargo cache. Its timings are diagnostics. They never rank a client.
 
 Scenario `matched-bulk-acks-all-6p-uncompressed`. Profile `bulk`, required
 tier, status `not_run`. The commands below are the checked-in invocations
-from [scenarios.json](../benchmarks/scenarios.json). Running one of them
+from [scenarios.json](https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/benchmarks/scenarios.json). Running one of them
 once does not fill the cell.
 
 The workload is idempotent produce of 8,000,000 uncompressed records,

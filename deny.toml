@@ -1,4 +1,4 @@
-# cargo-deny: supply-chain policy for a no-C Kafka client.
+# cargo-deny: dependency, advisory and license policy for the client.
 # Run: bash scripts/ci-deny.sh
 # CI: deny job in .github/workflows/ci.yml (EmbarkStudios/cargo-deny-action)
 

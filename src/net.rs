@@ -850,6 +850,17 @@ enum ConnIo {
     Script(ScriptIo),
 }
 
+// These test doubles model a ready IO call that takes wall time inside one
+// poll. An async timer would yield and stop testing the caller's poll budget.
+#[cfg(test)]
+#[expect(
+    clippy::disallowed_methods,
+    reason = "test IO deliberately spends wall time inside a ready synchronous poll"
+)]
+fn stall_ready_test_io(duration: Duration) {
+    std::thread::sleep(duration);
+}
+
 /// One ready chunk, then a pause, so a read loop that never yields can be timed.
 #[cfg(test)]
 struct ScriptIo {
@@ -883,7 +894,7 @@ impl AsyncRead for ScriptIo {
         // One pause covers one kibibyte, so a single poll that fills a whole
         // frame outruns a short deadline.
         let units = u32::try_from(n.div_ceil(1024)).unwrap_or(u32::MAX);
-        std::thread::sleep(self.pause.saturating_mul(units));
+        stall_ready_test_io(self.pause.saturating_mul(units));
         Poll::Ready(Ok(()))
     }
 }
@@ -897,7 +908,7 @@ impl AsyncWrite for ScriptIo {
     ) -> Poll<io::Result<usize>> {
         if !buf.is_empty() {
             let units = u32::try_from(buf.len().div_ceil(1024)).unwrap_or(u32::MAX);
-            std::thread::sleep(self.pause.saturating_mul(units));
+            stall_ready_test_io(self.pause.saturating_mul(units));
         }
         Poll::Ready(Ok(buf.len()))
     }
@@ -1215,10 +1226,14 @@ pub struct BrokerConn {
     /// Classic consumer groups pick 2–10 from ApiVersions. v10 uses topic
     /// UUIDs. Kafka 4.0 removed v0–v1, so `0` is not a spoken version.
     pub(crate) offset_commit_version: i16,
+    /// Broker-advertised OffsetCommit range on this socket.
+    pub(crate) offset_commit_range: Option<(i16, i16)>,
     /// OffsetFetch version negotiated on coordinator sockets (`0` unset).
     /// Classic consumer groups pick 1–10 from ApiVersions. v10 uses topic
     /// UUIDs. `0` is not a spoken version.
     pub(crate) offset_fetch_version: i16,
+    /// Broker-advertised OffsetFetch range on this socket.
+    pub(crate) offset_fetch_range: Option<(i16, i16)>,
     /// Heartbeat version negotiated on coordinator sockets (`-1` unset).
     /// Classic consumer groups pick 0–4 from ApiVersions. `0` is a spoken
     /// version, so it cannot mean unset.
@@ -1437,7 +1452,9 @@ impl BrokerConn {
             produce_version: -1,
             fetch_version: -1,
             offset_commit_version: 0,
+            offset_commit_range: None,
             offset_fetch_version: 0,
+            offset_fetch_range: None,
             heartbeat_version: -1,
             sync_group_version: -1,
             join_group_version: 0,
@@ -1490,7 +1507,9 @@ impl BrokerConn {
             produce_version: -1,
             fetch_version: -1,
             offset_commit_version: 0,
+            offset_commit_range: None,
             offset_fetch_version: 0,
+            offset_fetch_range: None,
             heartbeat_version: -1,
             sync_group_version: -1,
             join_group_version: 0,
@@ -2228,6 +2247,105 @@ impl BrokerConn {
         let correlation = self
             .send_deadline(api_key, api_version, encode_body, deadline)
             .await?;
+        let result = self
+            .read_response_deadline(api_key, api_version, correlation, deadline)
+            .await;
+        if let Some(stats) = &self.stats {
+            stats.record(started.elapsed(), result.is_ok());
+        }
+        if result.is_ok() {
+            guard.complete();
+        }
+        result
+    }
+
+    /// Send a pre-encoded body, chunking large writes with bounded work per poll.
+    /// Cancellation retires the connection before it can be reused.
+    pub(crate) async fn roundtrip_preencoded_cooperative(
+        &mut self,
+        api_key: i16,
+        api_version: i16,
+        body: &[u8],
+        deadline: Deadline,
+    ) -> Result<Bytes> {
+        if self.is_closed() {
+            return Err(Error::Closed);
+        }
+        if self.is_session_expired() {
+            return Err(Error::protocol(
+                "broker SASL session lifetime expired; connection must be reauthenticated or closed",
+            ));
+        }
+        let _remaining = deadline.remaining()?;
+        // Typical offset requests fit in one bounded copy and one write.
+        if body.len() <= 64 * 1024 {
+            return self
+                .roundtrip_deadline(
+                    api_key,
+                    api_version,
+                    |buf| {
+                        buf.extend_from_slice(body);
+                        Ok(())
+                    },
+                    deadline,
+                )
+                .await;
+        }
+        let started = Instant::now();
+        let mut guard = CloseOnDrop::new(self.closed.clone(), Arc::clone(&self.idle_arm));
+        let correlation = self.next_correlation();
+        self.write_buf.clear();
+        self.write_buf.put_i32(0);
+        encode_request_header_fields(
+            &mut self.write_buf,
+            api_key,
+            api_version,
+            correlation,
+            Some(self.client_id.as_str()),
+        )?;
+        let frame_len = self
+            .write_buf
+            .len()
+            .saturating_sub(4)
+            .checked_add(body.len())
+            .ok_or_else(|| Error::protocol("request frame length overflow"))?;
+        let size = crate::protocol::buf::i32_from_usize(frame_len)?;
+        let slot = self
+            .write_buf
+            .get_mut(..4)
+            .ok_or_else(|| Error::protocol("short length prefix"))?;
+        slot.copy_from_slice(&size.to_be_bytes());
+        let mut header = std::mem::take(&mut self.write_buf);
+        let mut rearm = Rearm::arm(Arc::clone(&self.idle_arm));
+        let stream = Arc::clone(&self.stream);
+        let mut stream = match timeout_at(deadline.target(), stream.lock()).await {
+            Ok(stream) => stream,
+            Err(_) => {
+                self.close();
+                return Err(Error::Timeout);
+            }
+        };
+        self.drain_prefetch();
+        let result = deadline
+            .run_io(async {
+                write_all_pump(&mut *stream, &mut self.read_buf, &header).await?;
+                if !body.is_empty() {
+                    write_all_pump(&mut *stream, &mut self.read_buf, body).await?;
+                }
+                Ok(())
+            })
+            .await;
+        self.release_stream(stream);
+        rearm.disarm();
+        header.clear();
+        self.write_buf = header;
+        if let Err(error) = result {
+            self.close();
+            self.release_if_closed().await;
+            return Err(error);
+        }
+        self.touch();
+        self.in_flight += 1;
         let result = self
             .read_response_deadline(api_key, api_version, correlation, deadline)
             .await;
@@ -3141,6 +3259,69 @@ mod tests {
     use tokio::net::TcpListener;
 
     #[tokio::test(flavor = "current_thread")]
+    async fn cancelling_first_poll_of_large_frame_retires_connection() {
+        use std::future::Future;
+
+        let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap();
+        let mut conn =
+            BrokerConn::connect(&addr.to_string(), "cancel-frame", Duration::from_secs(1))
+                .await
+                .unwrap();
+        let (mut peer, _) = listener.accept().await.unwrap();
+        let body = vec![7u8; 2 * 1024 * 1024];
+        let mut pending = Box::pin(conn.roundtrip_preencoded_cooperative(
+            1,
+            0,
+            &body,
+            Deadline::from_timeout(Duration::from_secs(1)),
+        ));
+        let first = std::future::poll_fn(|cx| Poll::Ready(pending.as_mut().poll(cx))).await;
+        assert!(first.is_pending(), "large frame write must yield");
+        drop(pending);
+        assert!(conn.is_closed(), "cancellation must retire the connection");
+        conn.release_if_closed().await;
+        let mut received = Vec::new();
+        let _read = tokio::time::timeout(Duration::from_secs(1), peer.read_to_end(&mut received))
+            .await
+            .unwrap()
+            .unwrap();
+        assert!(
+            received.len() < body.len(),
+            "cancelling after the first bounded write poll must leave this large frame incomplete"
+        );
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn expired_preencoded_frame_sends_no_request() {
+        let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap();
+        let mut conn =
+            BrokerConn::connect(&addr.to_string(), "expired-frame", Duration::from_secs(1))
+                .await
+                .unwrap();
+        let (mut peer, _) = listener.accept().await.unwrap();
+        let result = conn
+            .roundtrip_preencoded_cooperative(
+                1,
+                0,
+                &[0; 1024],
+                Deadline::from_timeout(Duration::ZERO),
+            )
+            .await;
+        assert!(matches!(result, Err(Error::Timeout)));
+        let mut byte = [0u8; 1];
+        assert!(
+            tokio::time::timeout(Duration::from_millis(20), peer.read(&mut byte))
+                .await
+                .is_err(),
+            "expired frame must not write any request bytes"
+        );
+        conn.close();
+        conn.release_if_closed().await;
+    }
+
+    #[tokio::test(flavor = "current_thread")]
     async fn a_run_of_empty_frames_does_not_hold_the_caller() {
         let body = vec![0u8; 1024];
         let stream = Arc::new(tokio::sync::Mutex::new(ConnIo::Script(ScriptIo {
@@ -3614,7 +3795,7 @@ mod tests {
             buf.put_slice(chunk);
             this.pos = end;
             let units = u32::try_from(n.div_ceil(1024)).unwrap_or(u32::MAX);
-            std::thread::sleep(Duration::from_millis(2).saturating_mul(units));
+            stall_ready_test_io(Duration::from_millis(2).saturating_mul(units));
             Poll::Ready(Ok(()))
         }
     }
@@ -3932,7 +4113,7 @@ mod tests {
         let server = tokio::spawn(async move {
             let (mut socket, _) = listener.accept().await.unwrap();
             socket.write_all(&queued).await.unwrap();
-            let _ = wrote.send(());
+            let _unused_result = wrote.send(());
             tokio::time::sleep(Duration::from_secs(2)).await;
         });
         let mut conn = BrokerConn::connect(&addr, "ack", Duration::from_secs(2))
@@ -4323,8 +4504,8 @@ mod tests {
             let (mut socket, _) = listener.accept().await.unwrap();
             let mut byte = [0u8; 1];
             assert_eq!(socket.read(&mut byte).await.unwrap(), 0);
-            let _ = saw_fin_tx.send(());
-            let _ = release_rx.await;
+            let _unused_result = saw_fin_tx.send(());
+            let _unused_result = release_rx.await;
         });
         let mut conn =
             BrokerConn::connect(&addr.to_string(), "closed-watch", Duration::from_secs(1))
@@ -4338,7 +4519,7 @@ mod tests {
         tokio::time::timeout(Duration::from_secs(1), conn.release_if_closed())
             .await
             .expect("peer kept the idle watch from releasing the stream lock");
-        let _ = release_tx.send(());
+        let _unused_result = release_tx.send(());
         peer.await.unwrap();
     }
 
@@ -4356,8 +4537,8 @@ mod tests {
             let mut peer = socket.into_std().unwrap();
             peer.set_nonblocking(false).unwrap();
             let _thread = std::thread::spawn(move || {
-                let _ = ready_tx.send(());
-                let _ = gate_rx.recv();
+                let _unused_result = ready_tx.send(());
+                let _unused_result = gate_rx.recv();
                 let mut buf = [0u8; 8];
                 loop {
                     match peer.read(&mut buf) {
@@ -4365,7 +4546,7 @@ mod tests {
                         Ok(_) => continue,
                     }
                 }
-                let _ = done_tx.send(());
+                let _unused_result = done_tx.send(());
             });
         });
         let mut conn = BrokerConn::connect(&addr, "write-timeout", Duration::from_secs(2))
@@ -4394,7 +4575,7 @@ mod tests {
             matches!(result, Err(Error::Timeout)),
             "the write finished instead of timing out"
         );
-        let _ = gate_tx.send(());
+        let _unused_result = gate_tx.send(());
         assert!(
             done_rx.recv_timeout(Duration::from_millis(300)).is_ok(),
             "a write timeout left the broker blocked in a read"
@@ -4597,12 +4778,10 @@ mod tests {
         assert!(queued.is_ok(), "the queued byte never became visible");
         gate_tx.send(()).unwrap();
         let noticed = tokio::time::timeout(Duration::from_millis(300), async {
-            loop {
-                tokio::select! {
-                    biased;
-                    _ = conn.peer_left(), if !conn.is_closed() => break,
-                    _ = tokio::time::sleep(Duration::from_millis(50)) => break,
-                }
+            tokio::select! {
+                biased;
+                _ = conn.peer_left(), if !conn.is_closed() => {},
+                _ = tokio::time::sleep(Duration::from_millis(50)) => {},
             }
         })
         .await;
@@ -4841,7 +5020,7 @@ mod tests {
         let pipeline = BrokerPipeline::new(conn);
         let saw = accepted.await.unwrap();
         assert!(
-            matches!(saw, Err(_)),
+            saw.is_err(),
             "a queued byte closed an idle pipeline: {saw:?}"
         );
         assert!(

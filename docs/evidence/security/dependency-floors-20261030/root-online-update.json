@@ -1,0 +1,16 @@
+{
+  "command": [
+    "/workspace/work/cargo/bin/cargo",
+    "+stable",
+    "update",
+    "-p",
+    "tokio",
+    "--precise",
+    "1.53.3"
+  ],
+  "cwd": "/workspace/work/security-dependencies-20261030/candidate",
+  "exit": 0,
+  "elapsed_seconds": 2.575718916000369,
+  "log_sha256": "bdd791dd1e07eaaec96ec75ae0abe6d6ab03da582086d0873fc9286fc94e91dc",
+  "note": "metadata-only dependency resolution; no compile"
+}

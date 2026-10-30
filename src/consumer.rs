@@ -3644,8 +3644,8 @@ impl Consumer {
 
     /// Remember ApiVersions for the broker at `addr`.
     ///
-    /// A later fetch to that leader skips ApiVersions. The node id is recorded
-    /// too once metadata names that address.
+    /// The node id is also recorded once metadata names that address. A new
+    /// connection negotiates its own versions before using it.
     pub(crate) fn remember_broker_versions(&mut self, addr: &str, keys: Vec<ApiVersion>) {
         if keys.is_empty() || addr.is_empty() {
             return;
@@ -3711,29 +3711,41 @@ impl Consumer {
         deadline: Instant,
     ) -> Result<(BrokerConn, crate::protocol::api::ApiVersionsResponse)> {
         let opened = async {
-            let mut conn = BrokerConn::connect_tls(
-                addr,
-                &cfg.client_id,
-                cfg.connect_timeout.min(startup_remaining(deadline)?),
-                cfg.tls.as_ref(),
+            let remaining = startup_remaining(deadline)?;
+            let mut conn = tokio::time::timeout(
+                remaining,
+                BrokerConn::connect_tls(
+                    addr,
+                    &cfg.client_id,
+                    cfg.connect_timeout.min(remaining),
+                    cfg.tls.as_ref(),
+                ),
             )
-            .await?;
-            let resp = crate::protocol::api::negotiate_api_versions(
-                &mut conn,
-                startup_remaining(deadline)?,
+            .await
+            .map_err(|_| Error::Timeout)??;
+            let remaining = startup_remaining(deadline)?;
+            let resp = tokio::time::timeout(
+                remaining,
+                crate::protocol::api::negotiate_api_versions(&mut conn, remaining),
             )
-            .await?;
+            .await
+            .map_err(|_| Error::Timeout)??;
             sasl::apply_api_keys(&mut conn, &resp.api_keys);
-            sasl::authenticate(
-                &mut conn,
-                cfg.sasl_plain.as_ref(),
-                cfg.sasl_scram.as_ref(),
-                cfg.sasl_scram_sha512.as_ref(),
-                cfg.sasl_oauthbearer.as_deref(),
-                cfg.sasl_oauthbearer_oidc.as_ref(),
-                startup_remaining(deadline)?,
+            let remaining = startup_remaining(deadline)?;
+            tokio::time::timeout(
+                remaining,
+                sasl::authenticate(
+                    &mut conn,
+                    cfg.sasl_plain.as_ref(),
+                    cfg.sasl_scram.as_ref(),
+                    cfg.sasl_scram_sha512.as_ref(),
+                    cfg.sasl_oauthbearer.as_deref(),
+                    cfg.sasl_oauthbearer_oidc.as_ref(),
+                    remaining,
+                ),
             )
-            .await?;
+            .await
+            .map_err(|_| Error::Timeout)??;
             Ok((conn, resp))
         }
         .await;
@@ -5001,6 +5013,20 @@ impl Consumer {
         }
     }
 
+    fn apply_bootstrap_versions(&mut self, resp: ApiVersionsResponse) -> Result<()> {
+        let metadata_version = resp
+            .api_version(METADATA)
+            .and_then(|v| pick_version(v.min_version, v.max_version, 0, 13))
+            .ok_or_else(|| Error::Unsupported("broker does not support Metadata".into()))?;
+        let telemetry_version = resp
+            .api_version(GET_TELEMETRY_SUBSCRIPTIONS)
+            .and_then(|v| pick_version(v.min_version, v.max_version, 0, 0));
+        self.metadata_version = metadata_version;
+        self.telemetry_version = telemetry_version;
+        self.versions = resp.api_keys.into_iter().map(|v| (v.api_key, v)).collect();
+        Ok(())
+    }
+
     async fn reconnect_bootstrap(&mut self, deadline: Instant) -> Result<()> {
         let nodes: Vec<i32> = self.conns.keys().copied().collect();
         for node in nodes {
@@ -5008,15 +5034,7 @@ impl Consumer {
         }
         let addr = self.conn.addr().to_string();
         let (conn, resp) = self.open_leader_socket(&addr, deadline).await?;
-        self.metadata_version = resp
-            .api_version(METADATA)
-            .and_then(|v| pick_version(v.min_version, v.max_version, 0, 13))
-            .ok_or_else(|| Error::Unsupported("broker does not support Metadata".into()))?;
-        self.versions = resp
-            .api_keys
-            .into_iter()
-            .map(|range| (range.api_key, range))
-            .collect();
+        self.apply_bootstrap_versions(resp)?;
         Self::retire_consumer_socket(&mut self.conn).await;
         self.conn = conn;
         self.list_offsets_ranges.clear();
@@ -5068,14 +5086,14 @@ impl Consumer {
     ) -> Result<()> {
         let full_listing = topics.is_none();
         self.full_metadata_at = None;
+        if self.conn.idle_expired(self.cfg.connections_max_idle) {
+            self.reconnect_bootstrap(deadline).await?;
+        }
         if self.metadata_version == 0 {
             // A rejected body must fail here. Encode failure inside roundtrip
             // closes the bootstrap socket.
             let allow = self.cfg.allow_auto_topic_creation || topics.is_none();
             metadata_v0_names_ref(topics, allow)?;
-        }
-        if self.conn.idle_expired(self.cfg.connections_max_idle) {
-            self.reconnect_bootstrap(deadline).await?;
         }
         let mut version = self.metadata_version;
         let allow = self.cfg.allow_auto_topic_creation || version < 4 && topics.is_none();
@@ -5439,11 +5457,7 @@ impl Consumer {
                     } else {
                         self.open_leader_socket(&addr, deadline).await?
                     };
-                    self.versions = versions
-                        .api_keys
-                        .into_iter()
-                        .map(|api| (api.api_key, api))
-                        .collect();
+                    self.apply_bootstrap_versions(versions)?;
                     Self::retire_consumer_socket(&mut self.conn).await;
                     self.conn = conn;
                 }
@@ -5535,29 +5549,36 @@ impl Consumer {
         deadline: Instant,
     ) -> Result<(BrokerConn, ApiVersionsResponse)> {
         let opened = async {
-            let mut conn = BrokerConn::connect_tls(
-                addr,
-                client_id,
-                connect_timeout.min(startup_remaining(deadline)?),
-                tls,
+            let remaining = startup_remaining(deadline)?;
+            let mut conn = tokio::time::timeout(
+                remaining,
+                BrokerConn::connect_tls(addr, client_id, connect_timeout.min(remaining), tls),
             )
-            .await?;
-            let versions_resp = crate::protocol::api::negotiate_api_versions(
-                &mut conn,
-                startup_remaining(deadline)?,
+            .await
+            .map_err(|_| Error::Timeout)??;
+            let remaining = startup_remaining(deadline)?;
+            let versions_resp = tokio::time::timeout(
+                remaining,
+                crate::protocol::api::negotiate_api_versions(&mut conn, remaining),
             )
-            .await?;
+            .await
+            .map_err(|_| Error::Timeout)??;
             configure_fetch_conn(&mut conn, &versions_resp);
-            sasl::authenticate(
-                &mut conn,
-                sasl_plain,
-                sasl_scram,
-                sasl_scram_sha512,
-                sasl_oauthbearer,
-                sasl_oauthbearer_oidc,
-                startup_remaining(deadline)?,
+            let remaining = startup_remaining(deadline)?;
+            tokio::time::timeout(
+                remaining,
+                sasl::authenticate(
+                    &mut conn,
+                    sasl_plain,
+                    sasl_scram,
+                    sasl_scram_sha512,
+                    sasl_oauthbearer,
+                    sasl_oauthbearer_oidc,
+                    remaining,
+                ),
             )
-            .await?;
+            .await
+            .map_err(|_| Error::Timeout)??;
             Ok((conn, versions_resp))
         }
         .await;
@@ -5572,7 +5593,7 @@ impl Consumer {
         opened
     }
 
-    /// Open a leader socket, reusing bootstrap versions when the address matches.
+    /// Open a leader socket and negotiate the versions it supports.
     pub(crate) async fn open_leader_socket(
         &self,
         addr: &str,
@@ -5626,7 +5647,7 @@ impl Consumer {
         .await
     }
 
-    /// Dial a broker whose versions were already learned on another socket.
+    /// Negotiate versions for the newly opened socket, even for a known address.
     #[expect(
         clippy::too_many_arguments,
         reason = "a leader dial carries the shared SASL and TLS settings"
@@ -5641,49 +5662,22 @@ impl Consumer {
         sasl_scram_sha512: Option<&(String, String)>,
         sasl_oauthbearer: Option<&str>,
         sasl_oauthbearer_oidc: Option<&crate::OidcConfig>,
-        keys: &[ApiVersion],
+        _keys: &[ApiVersion],
         deadline: Instant,
     ) -> Result<(BrokerConn, ApiVersionsResponse)> {
-        let opened = async {
-            let mut conn = BrokerConn::connect_tls(
-                addr,
-                client_id,
-                connect_timeout.min(startup_remaining(deadline)?),
-                tls,
-            )
-            .await?;
-            let versions_resp = ApiVersionsResponse {
-                error_code: 0,
-                api_keys: keys.to_vec(),
-                throttle_time_ms: 0,
-                supported_features: Vec::new(),
-                finalized_features_epoch: None,
-                finalized_features: Vec::new(),
-                zk_migration_ready: false,
-            };
-            configure_fetch_conn(&mut conn, &versions_resp);
-            sasl::authenticate(
-                &mut conn,
-                sasl_plain,
-                sasl_scram,
-                sasl_scram_sha512,
-                sasl_oauthbearer,
-                sasl_oauthbearer_oidc,
-                startup_remaining(deadline)?,
-            )
-            .await?;
-            Ok((conn, versions_resp))
-        }
-        .await;
-        // A failed SASL handshake drops its socket in this call. Yield so the
-        // broker observes that close before the error returns. A successful
-        // dial keeps the socket and does not wait.
-        if opened.is_err() {
-            for _ in 0..8 {
-                tokio::task::yield_now().await;
-            }
-        }
-        opened
+        Self::open_fetch_conn(
+            addr,
+            client_id,
+            connect_timeout,
+            tls,
+            sasl_plain,
+            sasl_scram,
+            sasl_scram_sha512,
+            sasl_oauthbearer,
+            sasl_oauthbearer_oidc,
+            deadline,
+        )
+        .await
     }
 
     async fn connect_parallel_fetch_nodes(
@@ -6077,7 +6071,7 @@ impl Consumer {
         Self::finish_aborted_dial_set(inflight).await;
     }
 
-    /// Open a leader socket, reusing versions already learned for this broker.
+    /// Open a leader socket and negotiate its current versions.
     async fn open_node_or_remembered(
         &self,
         node: i32,
@@ -6681,23 +6675,19 @@ impl Consumer {
             return Ok(crate::Uuid::from_bytes(id));
         }
         self.reject_pending_wakeup()?;
-        let version = self.telemetry_version.ok_or_else(|| {
-            Error::Unsupported("broker does not support GetTelemetrySubscriptions".into())
-        })?;
         let deadline = Instant::now().checked_add(timeout).ok_or(Error::Timeout)?;
         if self.conn.idle_expired(self.cfg.connections_max_idle) {
             let addr = self.conn.addr().to_string();
             let (conn, versions) = self.open_leader_socket(&addr, deadline).await?;
-            self.versions = versions
-                .api_keys
-                .into_iter()
-                .map(|api| (api.api_key, api))
-                .collect();
+            self.apply_bootstrap_versions(versions)?;
             Self::retire_consumer_socket(&mut self.conn).await;
             self.conn = conn;
             // The new socket does not own the previous connection's fetch session.
             self.reset_fetch_sessions_using_bootstrap();
         }
+        let version = self.telemetry_version.ok_or_else(|| {
+            Error::Unsupported("broker does not support GetTelemetrySubscriptions".into())
+        })?;
         let id = crate::admin::fetch_client_instance_id(
             &mut self.conn,
             version,
@@ -7724,7 +7714,7 @@ impl Consumer {
                         }
                         continue;
                     }
-                    Err(e) if e.is_retriable() => {
+                    Err(e) if e.is_retriable() || matches!(e, Error::Closed) => {
                         let used_bootstrap = !self.conns.contains_key(&node)
                             && self
                                 .cluster
@@ -8454,11 +8444,11 @@ impl Consumer {
                 }
                 let dial_deadline = Instant::now() + self.cfg.connect_timeout;
                 if let Ok((conn, versions)) = self.open_leader_socket(&addr, dial_deadline).await {
-                    self.versions = versions
-                        .api_keys
-                        .into_iter()
-                        .map(|api| (api.api_key, api))
-                        .collect();
+                    if self.apply_bootstrap_versions(versions).is_err() {
+                        self.conn.close();
+                        self.note_reconnect_failure(node);
+                        return true;
+                    }
                     self.conn = conn;
                     let _previous = self.reconnect_fails.remove(&node);
                     self.reset_fetch_sessions_using_bootstrap();
@@ -13786,6 +13776,61 @@ where
 
 #[cfg(test)]
 mod tests {
+    async fn stall_after_api_versions(
+        mut socket: tokio::net::TcpStream,
+        saw_sasl: Arc<std::sync::atomic::AtomicBool>,
+    ) {
+        use tokio::io::{AsyncReadExt, AsyncWriteExt};
+        async fn frame(socket: &mut tokio::net::TcpStream) -> Vec<u8> {
+            let size = socket.read_i32().await.unwrap();
+            assert!((8..=4096).contains(&size));
+            let mut request = vec![0; usize::try_from(size).unwrap()];
+            let _read = socket.read_exact(&mut request).await.unwrap();
+            request
+        }
+        let request = frame(&mut socket).await;
+        assert_eq!(i16::from_be_bytes(request[0..2].try_into().unwrap()), 18);
+        assert_eq!(i16::from_be_bytes(request[2..4].try_into().unwrap()), 4);
+        let versions = crate::protocol::api::ApiVersionsResponse {
+            error_code: 0,
+            api_keys: vec![
+                crate::protocol::api::ApiVersion {
+                    api_key: crate::protocol::api_keys::FIND_COORDINATOR,
+                    min_version: 0,
+                    max_version: 6,
+                },
+                crate::protocol::api::ApiVersion {
+                    api_key: crate::protocol::api_keys::SASL_HANDSHAKE,
+                    min_version: 0,
+                    max_version: 1,
+                },
+                crate::protocol::api::ApiVersion {
+                    api_key: crate::protocol::api_keys::SASL_AUTHENTICATE,
+                    min_version: 0,
+                    max_version: 2,
+                },
+            ],
+            throttle_time_ms: 0,
+            supported_features: Vec::new(),
+            finalized_features_epoch: None,
+            finalized_features: Vec::new(),
+            zk_migration_ready: false,
+        };
+        let mut body = bytes::BytesMut::new();
+        crate::protocol::api::encode_api_versions_response(&mut body, 4, &versions).unwrap();
+        socket
+            .write_i32(i32::try_from(4 + body.len()).unwrap())
+            .await
+            .unwrap();
+        socket.write_all(&request[4..8]).await.unwrap();
+        socket.write_all(&body).await.unwrap();
+        let request = frame(&mut socket).await;
+        assert_eq!(i16::from_be_bytes(request[0..2].try_into().unwrap()), 17);
+        saw_sasl.store(true, std::sync::atomic::Ordering::SeqCst);
+        let mut buf = [0; 64];
+        while matches!(socket.read(&mut buf).await, Ok(n) if n > 0) {}
+    }
+
     use std::collections::{HashMap, HashSet};
 
     use super::*;
@@ -14896,7 +14941,7 @@ mod tests {
                 let mut hits = 0usize;
                 let mut walked = 0usize;
                 for partition in 0..2_000_000 {
-                    if previous.get(&partition).is_some() {
+                    if previous.contains_key(&partition) {
                         hits = hits.saturating_add(1);
                     }
                     walked = walked.saturating_add(1);
@@ -15421,7 +15466,8 @@ mod tests {
             let _started = open.fetch_add(1, Ordering::SeqCst);
             let mut size_buf = [0u8; 4];
             if socket.read_exact(&mut size_buf).await.is_ok() {
-                let size = i32::from_be_bytes(size_buf).max(0) as usize;
+                let size = usize::try_from(i32::from_be_bytes(size_buf).max(0))
+                    .expect("nonnegative test frame size fits usize");
                 let mut request = vec![0u8; size];
                 if socket.read_exact(&mut request).await.is_ok() {
                     if let Some(bytes) = request.get(4..8) {
@@ -16033,7 +16079,7 @@ mod tests {
         }
         let saw = accepted.await.unwrap();
         assert!(
-            matches!(saw, Err(_)),
+            saw.is_err(),
             "ending the fetch quota watch shut a live leader socket: {saw:?}"
         );
         assert!(
@@ -16058,9 +16104,11 @@ mod tests {
         cfg.max_wait_ms = 10;
         let mut consumer = Consumer::test_holding(cfg, conn);
         let _previous = consumer.cluster.brokers.insert(1, addr);
-        let mut session = BrokerFetchSession::default();
-        session.metadata = FetchMetadata::new(42, 3);
-        session.awaiting_response = true;
+        let session = BrokerFetchSession {
+            metadata: FetchMetadata::new(42, 3),
+            awaiting_response: true,
+            ..BrokerFetchSession::default()
+        };
         let _previous = consumer.fetch_sessions.insert(1, session);
         consumer.conn.close();
         assert!(consumer.conn.is_closed());
@@ -16105,6 +16153,7 @@ mod tests {
         .expect("watch ignored an already-closed bootstrap");
         assert!(watched);
         assert!(!consumer.conn.is_closed());
+        assert_eq!(consumer.metadata_version, 7);
         assert_eq!(consumer.conn.fetch_version(), 7);
         let session = consumer.fetch_sessions.get(&1).unwrap();
         assert_eq!(session.metadata.epoch(), FetchMetadata::INITIAL_EPOCH);
@@ -16210,7 +16259,7 @@ mod tests {
         let mut consumer = Consumer::test_holding(cfg, bootstrap);
         let _ = consumer.conns.insert(1, leader);
         let started = Instant::now();
-        let mut watching = std::pin::pin!(consumer.watch_muted_fetch_sockets(&[1]));
+        let mut watching = Box::pin(consumer.watch_muted_fetch_sockets(&[1]));
         tokio::select! {
             biased;
             done = &mut watching => panic!(
@@ -16236,7 +16285,7 @@ mod tests {
             writer.write_all(&[0x01]).await.unwrap();
             let mut buf = [0u8; 64];
             let n = reader.read(&mut buf).await.unwrap();
-            let _ = wrote_tx.send(Instant::now());
+            let _unused_result = wrote_tx.send(Instant::now());
             assert!(n > 0, "the fetch close was not written");
             tokio::time::sleep(Duration::from_secs(2)).await;
         });
@@ -16263,15 +16312,14 @@ mod tests {
         let session = BrokerFetchSession::default();
         let mut cfg = ConsumerConfig::bootstrap([addr.to_string()]);
         cfg.max_wait_ms = 10;
-        let closing = send_fetch_session_close(
+        let mut closing = Box::pin(send_fetch_session_close(
             &mut conn,
             &session,
             Some(Instant::now() + Duration::from_millis(400)),
             &wakeup_tx,
             &cfg,
             Instant::now() + Duration::from_secs(2),
-        );
-        tokio::pin!(closing);
+        ));
         let wrote = tokio::select! {
             result = &mut closing => panic!("the close finished before the peer read it: {result:?}"),
             wrote = wrote_rx => wrote,
@@ -16331,22 +16379,17 @@ mod tests {
         use crate::protocol::api::ApiVersion;
         use crate::protocol::api_keys::{SASL_AUTHENTICATE, SASL_HANDSHAKE};
         use std::sync::atomic::AtomicUsize;
-        use tokio::io::AsyncReadExt;
 
         let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
         let addr = listener.local_addr().unwrap().to_string();
         let open = Arc::new(AtomicUsize::new(0));
         let open_flag = Arc::clone(&open);
+        let saw_sasl = Arc::new(std::sync::atomic::AtomicBool::new(false));
+        let peer_saw_sasl = Arc::clone(&saw_sasl);
         let peer = tokio::spawn(async move {
-            let (mut sock, _) = listener.accept().await.unwrap();
+            let (sock, _) = listener.accept().await.unwrap();
             let _started = open_flag.fetch_add(1, Ordering::SeqCst);
-            let mut buf = [0u8; 64];
-            loop {
-                match sock.read(&mut buf).await {
-                    Ok(0) | Err(_) => break,
-                    Ok(_) => continue,
-                }
-            }
+            stall_after_api_versions(sock, peer_saw_sasl).await;
             let _left = open_flag.fetch_sub(1, Ordering::SeqCst);
         });
         let keys = [
@@ -16385,7 +16428,11 @@ mod tests {
             0,
             "sasl handshake left the socket blocked in a broker read"
         );
-        peer.abort();
+        peer.await.unwrap();
+        assert!(
+            saw_sasl.load(Ordering::SeqCst),
+            "the peer did not receive SASL_HANDSHAKE"
+        );
     }
 
     #[tokio::test(flavor = "current_thread")]
@@ -17281,7 +17328,7 @@ mod tests {
         .await;
         assert_eq!(by_name.get("orders").copied(), Some([7u8; 16]));
         assert_eq!(by_name.get("trades").copied(), Some([7u8; 16]));
-        assert!(by_id.get(&[7u8; 16]).is_none());
+        assert!(!by_id.contains_key(&[7u8; 16]));
         let named = fetch_topic_name("", [7u8; 16], &by_id);
         assert!(named.is_ok());
         if let Ok(name) = named {
@@ -17877,7 +17924,7 @@ mod tests {
         let _stored = plan.insert(1, topics);
         let _stored = plan.insert(2, HashMap::new());
         Consumer::prune_fetch_plan(&mut plan).await;
-        assert!(plan.get(&2).is_none());
+        assert!(!plan.contains_key(&2));
         let kept = plan.get(&1).and_then(|topics| topics.get("orders"));
         assert_eq!(kept.map(|parts| parts.len()), Some(1));
         assert_eq!(
@@ -17978,7 +18025,11 @@ mod tests {
         let topics: Vec<(String, [u8; 16])> = (0..2_000_000)
             .map(|index| {
                 let mut topic_id = [0u8; 16];
-                topic_id[..8].copy_from_slice(&(index as u64).to_le_bytes());
+                topic_id[..8].copy_from_slice(
+                    &u64::try_from(index)
+                        .expect("nonnegative test index")
+                        .to_le_bytes(),
+                );
                 (format!("topic-{index}"), topic_id)
             })
             .collect();
@@ -18389,8 +18440,10 @@ mod tests {
     #[tokio::test(flavor = "current_thread")]
     async fn refreshing_many_session_topic_ids_does_not_hold_the_caller() {
         let topic: Arc<str> = Arc::from("orders");
-        let mut session = BrokerFetchSession::default();
-        session.id_names_dirty = true;
+        let mut session = BrokerFetchSession {
+            id_names_dirty: true,
+            ..BrokerFetchSession::default()
+        };
         let mut parts = SessionParts::new();
         for partition in 0..2_000_000i32 {
             let mut id = [0u8; 16];
@@ -18415,8 +18468,10 @@ mod tests {
             elapsed < std::time::Duration::from_millis(80),
             "refreshing session topic ids held the caller for {elapsed:?}"
         );
-        let mut clean = BrokerFetchSession::default();
-        clean.id_names_dirty = false;
+        let mut clean = BrokerFetchSession {
+            id_names_dirty: false,
+            ..BrokerFetchSession::default()
+        };
         let _ = clean.id_names.insert([9u8; 16], Arc::from("kept"));
         clean.refresh_id_names().await;
         assert_eq!(
@@ -18424,8 +18479,10 @@ mod tests {
             Some("kept")
         );
         let topic: Arc<str> = Arc::from("orders");
-        let mut fresh = BrokerFetchSession::default();
-        fresh.id_names_dirty = true;
+        let mut fresh = BrokerFetchSession {
+            id_names_dirty: true,
+            ..BrokerFetchSession::default()
+        };
         let mut parts = SessionParts::new();
         let _ = parts.insert(
             1,
@@ -18455,10 +18512,12 @@ mod tests {
     #[tokio::test(flavor = "current_thread")]
     async fn dropping_many_unprepared_session_partitions_does_not_hold_the_caller() {
         let topic: Arc<str> = Arc::from("orders");
-        let mut session = BrokerFetchSession::default();
-        session.version = Some(12);
-        session.metadata = FetchMetadata::new(7, 1);
-        session.stamp = 1;
+        let mut session = BrokerFetchSession {
+            version: Some(12),
+            metadata: FetchMetadata::new(7, 1),
+            stamp: 1,
+            ..BrokerFetchSession::default()
+        };
         let mut parts = SessionParts::new();
         for partition in 0..2_000_000 {
             let _ = parts.insert(
@@ -18482,10 +18541,12 @@ mod tests {
             "dropping unprepared session partitions held the caller for {elapsed:?}"
         );
         let topic: Arc<str> = Arc::from("orders");
-        let mut session = BrokerFetchSession::default();
-        session.version = Some(12);
-        session.metadata = FetchMetadata::new(7, 1);
-        session.stamp = 1;
+        let mut session = BrokerFetchSession {
+            version: Some(12),
+            metadata: FetchMetadata::new(7, 1),
+            stamp: 1,
+            ..BrokerFetchSession::default()
+        };
         let kept = FetchPartition::partition_data(1, 0, -1, 1, None, None);
         let mut parts = SessionParts::new();
         let _ = parts.insert(
@@ -18982,7 +19043,7 @@ mod tests {
             &mut by_leader
         ));
         assert!(preferred.get("t", 0).is_none());
-        assert!(by_leader.get(&7).is_none());
+        assert!(!by_leader.contains_key(&7));
         assert_eq!(
             by_leader
                 .get(&1)

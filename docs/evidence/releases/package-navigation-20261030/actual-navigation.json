@@ -1,0 +1,17 @@
+{
+  "name": "actual-navigation",
+  "command": [
+    "python3",
+    "-B",
+    "/workspace/partitionline/scripts/check-package-docs.py",
+    "/workspace/work/package-docs-20261030/actual-extracted/partitionline-0.1.0",
+    "--report",
+    "/workspace/work/package-docs-20261030/actual-navigation-report.json"
+  ],
+  "exit": 0,
+  "stopped": null,
+  "elapsed_seconds": 0.4023435690005499,
+  "disk_floor_bytes": 1610612736,
+  "minimum_free_bytes": 1776959488,
+  "log_sha256": "f0743e97a2d3443af6a6fb0a671c9800f42256c46b3931b9f905f4a63ffe7436"
+}

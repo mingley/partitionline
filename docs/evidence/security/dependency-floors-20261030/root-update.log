@@ -1,0 +1,11 @@
+error: failed to select a version for `rustls-webpki`.
+    ... required by package `rustls v0.23.46`
+    ... which satisfies dependency `rustls = "^0.23.46"` of package `partitionline v0.1.0 (/workspace/work/security-dependencies-20261030/candidate)`
+versions that meet the requirements `^0.103.14` are: 0.103.15
+
+all possible versions conflict with previously selected packages
+
+  previously selected package `rustls-webpki v0.103.16`
+    ... which satisfies dependency `rustls-webpki = "^0.103.16"` of package `partitionline v0.1.0 (/workspace/work/security-dependencies-20261030/candidate)`
+
+failed to select a version for `rustls-webpki` which could resolve this conflict

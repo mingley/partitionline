@@ -126,7 +126,7 @@ recursion use that library's limits. Neither the core client nor the
 companion gains a serialization-library dependency or a default feature
 for it.
 
-The [offline peer](../partitionline-schema/tests/oracles/protobuf/README.md)
+The [offline peer](https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/partitionline-schema/tests/oracles/protobuf/README.md)
 pins Confluent Schema Registry 8.1.0 source, Apache Kafka 4.1.0
 `ByteUtils`, JDK 21.0.12.1, and Google protoc 3.21.12. It builds frames
 and payloads on its own and checks Rust output in the other direction,

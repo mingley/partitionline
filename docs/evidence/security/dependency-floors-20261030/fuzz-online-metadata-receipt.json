@@ -1,0 +1,21 @@
+{
+  "command": [
+    "/workspace/work/cargo/bin/cargo",
+    "+stable",
+    "metadata",
+    "--locked",
+    "--format-version",
+    "1",
+    "--filter-platform",
+    "x86_64-unknown-linux-gnu",
+    "--manifest-path",
+    "fuzz/Cargo.toml"
+  ],
+  "exit": 0,
+  "elapsed_seconds": 0.36957973100015806,
+  "stdout_sha256": "11ceafabebfd0c2688c1f8c74feae69f7f7b9ee1bd210e5ce0c0ef9fde550839",
+  "stderr_sha256": "e3dd4d3bf68658c26f50b1cb79b59df5edc83ae5f9cc17fa5ee9d42db75a3b7a",
+  "free_bytes_before": 1931202560,
+  "free_bytes_after": 1929969664,
+  "scope": "locked dependency resolution and missing source retrieval; no compilation"
+}

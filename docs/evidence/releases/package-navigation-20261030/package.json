@@ -1,0 +1,17 @@
+{
+  "name": "package",
+  "command": [
+    "cargo",
+    "+stable",
+    "package",
+    "--locked",
+    "--allow-dirty",
+    "--no-verify"
+  ],
+  "exit": 0,
+  "stopped": null,
+  "elapsed_seconds": 4.316040042999703,
+  "disk_floor_bytes": 1610612736,
+  "minimum_free_bytes": 1803948032,
+  "log_sha256": "c6aa402281398e0136d7390f15029b7c764207125507e094e0a5a472eab9546f"
+}

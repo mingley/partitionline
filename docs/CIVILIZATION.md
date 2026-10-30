@@ -3,9 +3,9 @@
 This file is the older foundation plan. The work packages below are history.
 They are not the queue for new work.
 
-Current work is one card at a time in [tasks.json](plan/tasks.json). The
-[task workflow](plan/README.md) says how to pick a card. Profile gates are in
-[ROADMAP.md](ROADMAP.md). The [2026-09-21 audit](audits/2026-09-21.md)
+Current work is one card at a time in [tasks.json](https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/docs/plan/tasks.json). The
+[task workflow](https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/docs/plan/README.md) says how to pick a card. Profile gates are in
+[ROADMAP.md](ROADMAP.md). The [2026-09-21 audit](https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/docs/audits/2026-09-21.md)
 supersedes any completion claim read out of the checklist below.
 
 The client goal is documented behavior, reliable operation, and measurements

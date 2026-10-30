@@ -1,0 +1,14 @@
+{
+  "name": "floor-after-rustls",
+  "command": [
+    "/workspace/work/cargo/bin/cargo",
+    "+stable",
+    "generate-lockfile",
+    "--offline"
+  ],
+  "cwd": "/workspace/work/security-dependencies-20261030/controls/floor-after-rustls",
+  "exit": 101,
+  "elapsed_seconds": 0.06435184099973412,
+  "log_sha256": "938f295cc991876bfe789692cfa48c17b7e8b90abf2760b1b8ed8a3243e225c3",
+  "scope": "dependency resolution only; no compilation"
+}

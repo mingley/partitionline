@@ -1,0 +1,18 @@
+{
+  "command": [
+    "/workspace/work/cargo/bin/cargo",
+    "+stable",
+    "update",
+    "--manifest-path",
+    "partitionline-schema/Cargo.toml",
+    "-p",
+    "tokio",
+    "--precise",
+    "1.53.3"
+  ],
+  "cwd": "/workspace/work/security-dependencies-20261030/candidate",
+  "exit": 0,
+  "elapsed_seconds": 3.08159182899999,
+  "log_sha256": "13d416de5bff65db8fff3429fe51ebf9e65b17f3ff875c96b668389eb9b21d58",
+  "note": "metadata-only dependency resolution; no compile"
+}

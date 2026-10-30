@@ -17,8 +17,8 @@ requirements are met.
 | --- | --- |
 | What the client can call | [Protocol support](gaps.md) and rustdoc |
 | Which brokers and platforms are tested | [Support matrix](support.md) |
-| What the broker implements | [Broker README](../partitionline-broker/README.md) |
-| Which work items are open | [Task registry](plan/tasks.json) |
+| What the broker implements | [Broker README](https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/partitionline-broker/README.md) |
+| Which work items are open | [Task registry](https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/docs/plan/tasks.json) |
 | How a benchmark number should be read | [Benchmark guide](benchmark.md) |
 
 The task registry has 346 cards: 249 done, 13 in progress, and 84 pending.
@@ -32,7 +32,7 @@ checks also pass inside the detached fuzz runtime. One campaign failed after
 both feature modes. The rebuilt candidate failed after 2,704 seconds with
 another epoch-recovery timeout. Its retained 60-byte seed passes exact replays;
 the timeout remains unexplained. No campaign is currently running and no
-24-hour run has passed. See the [current fuzz result](evidence/broker/fuzz/20261027-candidate06/README.md).
+24-hour run has passed. See the [current fuzz result](https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/docs/evidence/broker/fuzz/20261027-candidate06/README.md).
 
 On clean commit `de38cd3df`, broker default all-target tests reported 687
 passed. All-feature tests reported 830 passed and one OIDC revocation-order
@@ -40,21 +40,21 @@ failure. All-target, all-feature strict Clippy and the documentation build
 passed. Several live-peer probes returned early without their environment
 variables. The original run stopped before doctests at its disk guard; two
 separate doctest commands passed but found zero tests. See the [clean broker
-results](evidence/broker/clean-validation-20261028/README.md). Later OIDC
+results](https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/docs/evidence/broker/clean-validation-20261028/README.md). Later OIDC
 ordering tests passed on an integrated working tree; the full broker matrix
 has not been rerun on the current commit.
 
-The [active qualification goal](plan/goal-qualification.json) continues through
+The [active qualification goal](https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/docs/plan/goal-qualification.json) continues through
 the client build/runtime gates, independent conformance, sustained runs and
 matched benchmarks on this x86_64 workspace. On clean commit `53b5af47f`,
 the client default all-target matrix reported 3,354 passed, 76 failed and
 37 ignored across eight failing targets. See the [client results and failure
-index](evidence/client/clean-default-validation-20261028/README.md). The
+index](https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/docs/evidence/client/clean-default-validation-20261028/README.md). The
 all-feature client matrix and core/full conformance remain incomplete. A bounded syscall
 diagnostic reproduced a timeout under tracing and a lower CPU limit; the cause
 of the original untraced timeout remains unresolved. No 24-hour run has passed.
 
-Later [buffer reservation checks](evidence/perf/buffer-reservations-20261030/README.md)
+Later [buffer reservation checks](https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/docs/evidence/perf/buffer-reservations-20261030/README.md)
 corrected 219 length-relative reservation calls and restored the codec
 allocation gate without raising budgets. The 48-cell encoder census dropped
 from 84 growth allocations to 48, with identical encoded bodies and no warmed
@@ -62,12 +62,12 @@ allocations. Default protocol unit tests reported 1,385 passed and two existing
 failures; scoped codec tests and strict Clippy passed. These checks did not
 measure throughput or replace the full client matrix.
 
-The [earlier readiness assessment](evidence/broker/qualification-20261027/status.json)
-and [failed campaigns](evidence/broker/fuzz/20261027-candidate06/README.md) retain
+The [earlier readiness assessment](https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/docs/evidence/broker/qualification-20261027/status.json)
+and [failed campaigns](https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/docs/evidence/broker/fuzz/20261027-candidate06/README.md) retain
 the previous failures. Production readiness and fastest-performance claims
 remain unqualified.
 
-The [next-work handoff](plan/next-work.md) records the main correctness
+The [next-work handoff](https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/docs/plan/next-work.md) records the main correctness
 blockers, candidate status, validation steps and benchmark scope.
 
 ## Client
@@ -95,7 +95,7 @@ checksummed journal, topic metadata, validated Produce, Fetch, ListOffsets,
 and independent clients against one persisted node. KL11-46 still needs a rolling mixed-version network history; its existing
 evidence covers one local admin journal. Unit and integration tests do not
 by themselves make the broker production-ready. The
-[broker plan](plan/broker-implementation.md) records the remaining checks,
+[broker plan](https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/docs/plan/broker-implementation.md) records the remaining checks,
 including sustained fuzz, resource soaks, and peer authentication.
 
 ## Snapshot from 8 October 2026
@@ -115,37 +115,37 @@ replication and production qualification were still open.
 
 UpdateFeatures v0 rejected validation-only requests before encoding or
 dispatch. The qualification record is
-[q-conf-updatefeatures](evidence/conformance/q-conf-updatefeatures/qualification-20261008/README.md).
+[q-conf-updatefeatures](https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/docs/evidence/conformance/q-conf-updatefeatures/qualification-20261008/README.md).
 
 A pinned local baseline recorded codec, null-broker, native broker, and
 open-loop latency measurements. All five 80% latency profiles contained
 bounded-capacity rejections. Those failures and the missing-cell list are in
-the [baseline evidence](evidence/perf/baseline/README.md). A
-[build-profile comparison](evidence/perf/build-profiles/README.md) recorded
+the [baseline evidence](https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/docs/evidence/perf/baseline/README.md). A
+[build-profile comparison](https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/docs/evidence/perf/build-profiles/README.md) recorded
 LTO, codegen-unit, CPU-target, and PGO variants. Those local results did not
 change library defaults.
 
 The benchmark report enforced the complete schema. Corrected null-broker
 produce, fetch, and connect outputs passed, with explicit fields for absent
 durability and warmup. See
-[format evidence](evidence/perf/null-result-schema/README.md).
+[format evidence](https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/docs/evidence/perf/null-result-schema/README.md).
 
 Pinned Java, librdkafka, and franz-go clients passed bounded Produce and Fetch
 checks against the null broker. Fetch used the fixture's seeded stream.
-[Peer evidence](evidence/perf/nullbroker-peers/README.md) records the limit,
+[Peer evidence](https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/docs/evidence/perf/nullbroker-peers/README.md) records the limit,
 source hashes, retained failures, and process cleanup. That is fixture
 compatibility, not a storage or speed claim.
 
 The orchestrator rejected client-ceiling cells inside Kafka-throughput
 manifests. Its null-broker tier still needed qualified adapters. The franz-go
 driver was missing ten settings required by the comparison preflight, and
-those omissions were reported. [Orchestrator evidence](evidence/perf/matrix-tiers/README.md)
+those omissions were reported. [Orchestrator evidence](https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/docs/evidence/perf/matrix-tiers/README.md)
 keeps the earlier tier-mixing failure. KL09-68 was open in that snapshot.
 
 The Go peer applied its reported `none` compression setting explicitly.
-[Compression evidence](evidence/perf/franz-compression-20261008/README.md)
+[Compression evidence](https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/docs/evidence/perf/franz-compression-20261008/README.md)
 records the tested source. The shared configuration was incomplete, so the
 correction did not qualify a comparable campaign.
 
-The [workspace archive](evidence/workspace-publication-20261008/README.md)
+The [workspace archive](https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/docs/evidence/workspace-publication-20261008/README.md)
 preserves the original evidence files from that publication.

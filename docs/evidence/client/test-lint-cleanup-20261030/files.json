@@ -1,0 +1,30 @@
+{
+  "README.md": {
+    "sha256": "69aa983d2e9f18707f44c5d5670369942455067021c5dad1538f9e5a998edfe1",
+    "bytes": 2328
+  },
+  "ci-normalized.log": {
+    "sha256": "14f30562dd98e3c305a06f98a01934921b8ec879e77661a7a6f817e39f204e4b",
+    "bytes": 78828
+  },
+  "diagnostics.json": {
+    "sha256": "bc95357374205045db2fb5cf21a94ce0a3314ad286f92e75a6767a962160b045",
+    "bytes": 69636
+  },
+  "preparation-receipt.json": {
+    "sha256": "80007d94596829c5651031af686752ac374c3d20db1c76fe36863752326f52cb",
+    "bytes": 2336
+  },
+  "prepare.py": {
+    "sha256": "4795e6fa31ef1ee3c9e4dfe778093635ddcf59606038d49032250ea8ce478cc3",
+    "bytes": 9200
+  },
+  "source-receipt.json": {
+    "sha256": "09bfbe09809d4b4bbcc5f4836bc0d3b6b51dd21427178cb5c7988484dcd04faa",
+    "bytes": 1330
+  },
+  "test-lint-cleanup.patch": {
+    "sha256": "c01bd370fcdf8bdc842b86a8d806c169d97b7a72decca62c7e15e5bf179e20ad",
+    "bytes": 47761
+  }
+}

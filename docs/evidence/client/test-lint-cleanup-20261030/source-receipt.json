@@ -1,0 +1,20 @@
+{
+  "base": "02ce806d7",
+  "ci_log": "/workspace/work/ci-main-02ce-20261030/job-124240489310.log",
+  "ci_log_sha256": "92f459f12518304490ff498ae456fc985bfd95743fb772c3b4bbe8c529944b83",
+  "diagnostics": 106,
+  "files": {
+    "src/admin.rs": "58e471135536e606ed5b3bf78fc2511363b0b6fc1063bb1f23c820dd6898c9cb",
+    "src/cluster.rs": "8cf378051860e09a47519ffada80416fc4e50262f2cfb1cfc72cff9a229e8474",
+    "src/consumer.rs": "63d63cdca1f49dd9b49132daaba7685bbfc1f2c9969c52e416d862717fbfffbb",
+    "src/group.rs": "61ec808d26071b6db06fa9398de97992a15091c96450c0e5e578183477b91137",
+    "src/net.rs": "c02971df7b2b1a7272f618ee31d345f864ffb31a021a5f68e34097d94c519de7",
+    "src/offsets.rs": "887ab17babd5338f6e9aac0b27797b9a63677eaccc24bbe4719f346089192355",
+    "src/producer.rs": "1e5d3c150537f34fd1fecab2e66efd32e8b138b80317a418c5295dc84c124d8b",
+    "src/protocol/records.rs": "887b064d50ce748effb5375824fa6c0f4a4148fced64a47465aaefd38969149a",
+    "src/protocol/share.rs": "994d5649b1170305fec291f2670a11f58994512a36ea2bd7760abd8ae6d3eb14",
+    "src/share.rs": "6d40cc9d0f9c0476190296e46258d673758088c8ceb81be050d0ef3ff209a0a9",
+    "src/streams.rs": "a5b37f3ca8448b5d42493dc3b0f2dfde38fb41d2b9a9fa62bb4a12964f1880a8",
+    "tests/tls_shutdown_deadline.rs": "2fb4b0c3a626209937fc19bd077045e2a3c73e8d42503273b7b34ad79bea03b4"
+  }
+}

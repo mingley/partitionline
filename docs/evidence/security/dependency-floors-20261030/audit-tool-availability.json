@@ -1,0 +1,9 @@
+{
+  "cargo-audit": null,
+  "cargo-deny": null,
+  "explicit_cargo_home_bins": {
+    "cargo-audit": false,
+    "cargo-deny": false
+  },
+  "scope": "Installed tool lookup only; no installation or compilation attempted."
+}

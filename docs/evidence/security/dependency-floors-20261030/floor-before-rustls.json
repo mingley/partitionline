@@ -1,0 +1,14 @@
+{
+  "name": "floor-before-rustls",
+  "command": [
+    "/workspace/work/cargo/bin/cargo",
+    "+stable",
+    "generate-lockfile",
+    "--offline"
+  ],
+  "cwd": "/workspace/work/security-dependencies-20261030/controls/floor-before-rustls",
+  "exit": 0,
+  "elapsed_seconds": 0.16509016800046084,
+  "log_sha256": "2c0930ad073be9b01ef33ab4b0e486720e237145f7d4383a85d9840893413aaf",
+  "scope": "dependency resolution only; no compilation"
+}

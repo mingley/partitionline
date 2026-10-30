@@ -31,7 +31,10 @@ def check(root):
         if not data.strip():
             raise DOC.CheckError(f'empty required license/notice: {name}')
         licenses[name] = hashlib.sha256(data).hexdigest()
-    documents = [root / 'README.md', *sorted((root / 'docs').glob('*.md'))]
+    documents = [root / 'README.md']
+    if (root / 'CHANGELOG.md').is_file():
+        documents.append(root / 'CHANGELOG.md')
+    documents.extend(sorted((root / 'docs').glob('*.md')))
     links = DOC.check_links(root, documents)
     pinned = []
     for document in documents:

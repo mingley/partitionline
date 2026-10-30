@@ -1,0 +1,25 @@
+test_actual_broken_rust_fence_fails_real_compiler (test_check_doc_examples.DocExamplesTests.test_actual_broken_rust_fence_fails_real_compiler) ... ok
+test_extracts_actual_body_and_new_fences_without_copied_registry (test_check_doc_examples.DocExamplesTests.test_extracts_actual_body_and_new_fences_without_copied_registry) ... ok
+test_hidden_setup_compiles_and_no_run_does_not_execute (test_check_doc_examples.DocExamplesTests.test_hidden_setup_compiles_and_no_run_does_not_execute) ... ok
+test_ignore_requires_reason_and_is_reported_separately (test_check_doc_examples.DocExamplesTests.test_ignore_requires_reason_and_is_reported_separately) ... ok
+test_links_handle_unicode_duplicates_references_and_angle_paths (test_check_doc_examples.DocExamplesTests.test_links_handle_unicode_duplicates_references_and_angle_paths) ... ok
+test_literal_links_in_code_are_not_navigation (test_check_doc_examples.DocExamplesTests.test_literal_links_in_code_are_not_navigation) ... ok
+test_local_navigation_cannot_escape_repository (test_check_doc_examples.DocExamplesTests.test_local_navigation_cannot_escape_repository) ... ok
+test_missing_anchor_fails_even_when_file_exists (test_check_doc_examples.DocExamplesTests.test_missing_anchor_fails_even_when_file_exists) ... ok
+test_missing_local_file_fails (test_check_doc_examples.DocExamplesTests.test_missing_local_file_fails) ... ok
+test_unclosed_fence_fails (test_check_doc_examples.DocExamplesTests.test_unclosed_fence_fails) ... ok
+test_unknown_flags_fail_instead_of_silently_skipping (test_check_doc_examples.DocExamplesTests.test_unknown_flags_fail_instead_of_silently_skipping) ... ok
+test_actual_packaged_file_and_anchor_resolve (test_package_docs.PackageDocsTests.test_actual_packaged_file_and_anchor_resolve) ... ok
+test_checkout_file_does_not_satisfy_missing_package_link (test_package_docs.PackageDocsTests.test_checkout_file_does_not_satisfy_missing_package_link) ... ok
+test_immutable_excluded_repository_target_allowed (test_package_docs.PackageDocsTests.test_immutable_excluded_repository_target_allowed) ... ok
+test_missing_package_anchor_rejected (test_package_docs.PackageDocsTests.test_missing_package_anchor_rejected) ... ok
+test_mutable_repository_target_rejected (test_package_docs.PackageDocsTests.test_mutable_repository_target_rejected) ... ok
+test_notice_inventory_cannot_be_empty (test_package_docs.PackageDocsTests.test_notice_inventory_cannot_be_empty) ... ok
+test_packaged_changelog_links_are_checked (test_package_docs.PackageDocsTests.test_packaged_changelog_links_are_checked) ... ok
+test_peer_raw_evidence_and_private_material_excluded (test_package_docs.PackageDocsTests.test_peer_raw_evidence_and_private_material_excluded) ... ok
+test_wrapped_link_labels_still_require_a_packaged_target_and_anchor (test_package_docs.PackageDocsTests.test_wrapped_link_labels_still_require_a_packaged_target_and_anchor) ... ok
+
+----------------------------------------------------------------------
+Ran 20 tests in 0.325s
+
+OK

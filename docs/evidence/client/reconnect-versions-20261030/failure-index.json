@@ -1,0 +1,283 @@
+{
+  "scope": "Every recorded runtime assertion failure across phases07-11; exact final broad10 status retained. Phase11 changed only the role-specific test predicate/comment and ran that focused test, not the broad suite. Focused diagnostics never replace broad results.",
+  "tests": {
+    "bootstrap_handshake::list_offsets_renegotiates_a_remote_leader_after_idle": {
+      "target": "bootstrap_handshake",
+      "test": "list_offsets_renegotiates_a_remote_leader_after_idle",
+      "occurrences": [
+        {
+          "phase": "09",
+          "case": "suite-bootstrap_handshake",
+          "log": "/workspace/work/client-fresh-versions-overlay/typed-refreshed-20261030-09/suite-bootstrap_handshake.log",
+          "failure_excerpt": "panicked at tests/bootstrap_handshake.rs:536:5:\nassertion `left == right` failed\n  left: 3\n right: 2\nnote: run with `RUST_BACKTRACE=1` environment variable to display a backtrace"
+        }
+      ],
+      "phase10_full_target_status": "passed in phase10 broad target",
+      "cause_status": "Phase09 global initial negotiation count assumed the40ms bootstrap idle timer never expired. Phase10 tests actual leader socket ranges/order/once and replacement identity, retaining400ms."
+    },
+    "consumer_fetch_semantics::fetch_session_recovery_recreated_topic_reassignment_discards_previous_id_buffer": {
+      "target": "consumer_fetch_semantics",
+      "test": "fetch_session_recovery_recreated_topic_reassignment_discards_previous_id_buffer",
+      "occurrences": [
+        {
+          "phase": "07",
+          "case": "suite-consumer_fetch_semantics",
+          "log": "/workspace/work/client-fresh-versions-overlay/typed-refreshed-20261030-07/suite-consumer_fetch_semantics.log",
+          "failure_excerpt": "panicked at tests/consumer_fetch_semantics.rs:8483:9:\nassertion `left == right` failed\n  left: 1\n right: 2\nnote: run with `RUST_BACKTRACE=1` environment variable to display a backtrace"
+        },
+        {
+          "phase": "08",
+          "case": "suite-consumer_fetch_semantics",
+          "log": "/workspace/work/client-fresh-versions-overlay/typed-refreshed-20261030-08/suite-consumer_fetch_semantics.log",
+          "failure_excerpt": "panicked at tests/consumer_fetch_semantics.rs:8615:9:\nassertion `left == right` failed\n  left: 1\n right: 2\nnote: run with `RUST_BACKTRACE=1` environment variable to display a backtrace"
+        },
+        {
+          "phase": "09",
+          "case": "suite-consumer_fetch_semantics",
+          "log": "/workspace/work/client-fresh-versions-overlay/typed-refreshed-20261030-09/suite-consumer_fetch_semantics.log",
+          "failure_excerpt": "panicked at tests/consumer_fetch_semantics.rs:8615:9:\nassertion `left == right` failed\n  left: 1\n right: 2\nnote: run with `RUST_BACKTRACE=1` environment variable to display a backtrace"
+        },
+        {
+          "phase": "10",
+          "case": "suite-consumer_fetch_semantics",
+          "log": "/workspace/work/client-fresh-versions-overlay/typed-refreshed-20261030-10/suite-consumer_fetch_semantics.log",
+          "failure_excerpt": "panicked at tests/consumer_fetch_semantics.rs:8682:9:\nassertion `left == right` failed\n  left: 1\n right: 2\nnote: run with `RUST_BACKTRACE=1` environment variable to display a backtrace"
+        }
+      ],
+      "phase10_full_target_status": "FAILED",
+      "cause_status": "Semantic ownership/recreation assertion remains open; excluded assignment repair not applied."
+    },
+    "consumer_fetch_semantics::group_commit_redials_coordinator_while_finding_it": {
+      "target": "consumer_fetch_semantics",
+      "test": "group_commit_redials_coordinator_while_finding_it",
+      "occurrences": [
+        {
+          "phase": "07",
+          "case": "suite-consumer_fetch_semantics",
+          "log": "/workspace/work/client-fresh-versions-overlay/typed-refreshed-20261030-07/suite-consumer_fetch_semantics.log",
+          "failure_excerpt": "panicked at tests/consumer_fetch_semantics.rs:4184:5:\nthe actual coordinator lookup and committing socket handshake must overlap"
+        },
+        {
+          "phase": "08",
+          "case": "suite-consumer_fetch_semantics",
+          "log": "/workspace/work/client-fresh-versions-overlay/typed-refreshed-20261030-08/suite-consumer_fetch_semantics.log",
+          "failure_excerpt": "panicked at tests/consumer_fetch_semantics.rs:4239:5:\ncommit found the coordinator before redialing it: 734.336802ms"
+        }
+      ],
+      "phase10_full_target_status": "passed in phase10 broad target",
+      "cause_status": "Phase07 interval assertion compared discovery against earlier required negotiation. Phase08+ use overlap of both ApiVersions windows and exact socket reuse, retaining650ms; later wall failures retained."
+    },
+    "consumer_fetch_semantics::group_commit_reuses_a_previous_coordinator": {
+      "target": "consumer_fetch_semantics",
+      "test": "group_commit_reuses_a_previous_coordinator",
+      "occurrences": [
+        {
+          "phase": "08",
+          "case": "suite-consumer_fetch_semantics",
+          "log": "/workspace/work/client-fresh-versions-overlay/typed-refreshed-20261030-08/suite-consumer_fetch_semantics.log",
+          "failure_excerpt": "panicked at tests/consumer_fetch_semantics.rs:5461:5:\nreturning coordinator exceeded the two-handshake bound: 809.716089ms"
+        }
+      ],
+      "phase10_full_target_status": "passed in phase10 broad target",
+      "cause_status": "Unresolved; timing values alone do not prove socket serialization or runtime scheduling cause."
+    },
+    "consumer_fetch_semantics::group_commit_reuses_bootstrap_when_the_coordinator_returns": {
+      "target": "consumer_fetch_semantics",
+      "test": "group_commit_reuses_bootstrap_when_the_coordinator_returns",
+      "occurrences": [
+        {
+          "phase": "08",
+          "case": "suite-consumer_fetch_semantics",
+          "log": "/workspace/work/client-fresh-versions-overlay/typed-refreshed-20261030-08/suite-consumer_fetch_semantics.log",
+          "failure_excerpt": "panicked at tests/consumer_fetch_semantics.rs:5787:5:\nreturning bootstrap required more than one handshake: 600.244918ms"
+        },
+        {
+          "phase": "09",
+          "case": "suite-consumer_fetch_semantics",
+          "log": "/workspace/work/client-fresh-versions-overlay/typed-refreshed-20261030-09/suite-consumer_fetch_semantics.log",
+          "failure_excerpt": "panicked at tests/consumer_fetch_semantics.rs:5798:5:\nassertion `left == right` failed: the discovered bootstrap socket must be reused\n  left: 2\n right: 1"
+        }
+      ],
+      "phase10_full_target_status": "passed in phase10 broad target",
+      "cause_status": "Phase10 wire timeline proves independent heartbeat and commit discovery on node1: socket6 FindCoordinator\u2192Heartbeat and socket7 FindCoordinator\u2192OffsetCommit. Global node1 Accept==1 is invalid. Final phase11 selects discovery by the actual OffsetCommit socket; checks successful negotiation/order/once, preserves450ms and next-commit same-socket reuse. Phase11 focused exact test and strict lint pass; phase10 broad result retained."
+    },
+    "consumer_fetch_semantics::group_heartbeat_dials_coordinator_while_finding_it": {
+      "target": "consumer_fetch_semantics",
+      "test": "group_heartbeat_dials_coordinator_while_finding_it",
+      "occurrences": [
+        {
+          "phase": "08",
+          "case": "suite-consumer_fetch_semantics",
+          "log": "/workspace/work/client-fresh-versions-overlay/typed-refreshed-20261030-08/suite-consumer_fetch_semantics.log",
+          "failure_excerpt": "panicked at tests/consumer_fetch_semantics.rs:4005:5:\nidle heartbeat found the coordinator before redialing it: 1.760573444s"
+        }
+      ],
+      "phase10_full_target_status": "passed in phase10 broad target",
+      "cause_status": "Unresolved; timing values alone do not prove socket serialization or runtime scheduling cause."
+    },
+    "consumer_fetch_semantics::group_heartbeat_retries_without_another_handshake": {
+      "target": "consumer_fetch_semantics",
+      "test": "group_heartbeat_retries_without_another_handshake",
+      "occurrences": [
+        {
+          "phase": "08",
+          "case": "suite-consumer_fetch_semantics",
+          "log": "/workspace/work/client-fresh-versions-overlay/typed-refreshed-20261030-08/suite-consumer_fetch_semantics.log",
+          "failure_excerpt": "panicked at tests/consumer_fetch_semantics.rs:5605:5:\nheartbeat retry repeated ApiVersions: 446.910798ms"
+        }
+      ],
+      "phase10_full_target_status": "passed in phase10 broad target",
+      "cause_status": "Unresolved; timing values alone do not prove socket serialization or runtime scheduling cause."
+    },
+    "consumer_fetch_semantics::group_heartbeat_reuses_a_previous_coordinator": {
+      "target": "consumer_fetch_semantics",
+      "test": "group_heartbeat_reuses_a_previous_coordinator",
+      "occurrences": [
+        {
+          "phase": "09",
+          "case": "suite-consumer_fetch_semantics",
+          "log": "/workspace/work/client-fresh-versions-overlay/typed-refreshed-20261030-09/suite-consumer_fetch_semantics.log",
+          "failure_excerpt": "panicked at tests/consumer_fetch_semantics.rs:5546:5:\nreturning heartbeat exceeded the two-handshake bound: 943.94366ms"
+        }
+      ],
+      "phase10_full_target_status": "passed in phase10 broad target",
+      "cause_status": "Unresolved; timing values alone do not prove socket serialization or runtime scheduling cause."
+    },
+    "consumer_fetch_semantics::group_heartbeat_reuses_coordinator_api_versions_after_idle": {
+      "target": "consumer_fetch_semantics",
+      "test": "group_heartbeat_reuses_coordinator_api_versions_after_idle",
+      "occurrences": [
+        {
+          "phase": "09",
+          "case": "suite-consumer_fetch_semantics",
+          "log": "/workspace/work/client-fresh-versions-overlay/typed-refreshed-20261030-09/suite-consumer_fetch_semantics.log",
+          "failure_excerpt": "panicked at tests/consumer_fetch_semantics.rs:3956:13:\nidle heartbeat did not reconnect"
+        }
+      ],
+      "phase10_full_target_status": "passed in phase10 broad target",
+      "cause_status": "Unresolved; timing values alone do not prove socket serialization or runtime scheduling cause."
+    },
+    "consumer_fetch_semantics::group_join_dials_reset_leaders_while_fetching_offsets": {
+      "target": "consumer_fetch_semantics",
+      "test": "group_join_dials_reset_leaders_while_fetching_offsets",
+      "occurrences": [
+        {
+          "phase": "07",
+          "case": "suite-consumer_fetch_semantics",
+          "log": "/workspace/work/client-fresh-versions-overlay/typed-refreshed-20261030-07/suite-consumer_fetch_semantics.log",
+          "failure_excerpt": "panicked at tests/consumer_fetch_semantics.rs:7448:5:\njoin fetched offsets before dialing the reset leader: 760.901494ms"
+        },
+        {
+          "phase": "08",
+          "case": "suite-consumer_fetch_semantics",
+          "log": "/workspace/work/client-fresh-versions-overlay/typed-refreshed-20261030-08/suite-consumer_fetch_semantics.log",
+          "failure_excerpt": "panicked at tests/consumer_fetch_semantics.rs:7580:5:\njoin fetched offsets before dialing the reset leader: 774.11994ms"
+        },
+        {
+          "phase": "09",
+          "case": "suite-consumer_fetch_semantics",
+          "log": "/workspace/work/client-fresh-versions-overlay/typed-refreshed-20261030-09/suite-consumer_fetch_semantics.log",
+          "failure_excerpt": "panicked at tests/consumer_fetch_semantics.rs:7580:5:\njoin fetched offsets before dialing the reset leader: 1.34038292s"
+        },
+        {
+          "phase": "10",
+          "case": "suite-consumer_fetch_semantics",
+          "log": "/workspace/work/client-fresh-versions-overlay/typed-refreshed-20261030-10/suite-consumer_fetch_semantics.log",
+          "failure_excerpt": "panicked at tests/consumer_fetch_semantics.rs:7647:5:\njoin fetched offsets before dialing the reset leader: 759.195698ms"
+        }
+      ],
+      "phase10_full_target_status": "FAILED",
+      "cause_status": "True join/Fetch/dial overlap requirement remains open; unrelated repair excluded."
+    },
+    "consumer_fetch_semantics::group_join_loads_metadata_while_finding_the_coordinator": {
+      "target": "consumer_fetch_semantics",
+      "test": "group_join_loads_metadata_while_finding_the_coordinator",
+      "occurrences": [
+        {
+          "phase": "09",
+          "case": "suite-consumer_fetch_semantics",
+          "log": "/workspace/work/client-fresh-versions-overlay/typed-refreshed-20261030-09/suite-consumer_fetch_semantics.log",
+          "failure_excerpt": "panicked at tests/consumer_fetch_semantics.rs:7046:5:\njoin loaded metadata after coordinator discovery: 607.211528ms"
+        }
+      ],
+      "phase10_full_target_status": "passed in phase10 broad target",
+      "cause_status": "Unresolved; timing values alone do not prove socket serialization or runtime scheduling cause."
+    },
+    "consumer_fetch_semantics::group_leave_negotiates_only_the_new_coordinator": {
+      "target": "consumer_fetch_semantics",
+      "test": "group_leave_negotiates_only_the_new_coordinator",
+      "occurrences": [
+        {
+          "phase": "09",
+          "case": "suite-consumer_fetch_semantics",
+          "log": "/workspace/work/client-fresh-versions-overlay/typed-refreshed-20261030-09/suite-consumer_fetch_semantics.log",
+          "failure_excerpt": "panicked at tests/consumer_fetch_semantics.rs:5316:5:\nleave repeated the bootstrap handshake: 1.053235585s"
+        }
+      ],
+      "phase10_full_target_status": "passed in phase10 broad target",
+      "cause_status": "Unresolved; timing values alone do not prove socket serialization or runtime scheduling cause."
+    },
+    "consumer_fetch_semantics::group_pattern_join_lists_topics_while_finding_the_coordinator": {
+      "target": "consumer_fetch_semantics",
+      "test": "group_pattern_join_lists_topics_while_finding_the_coordinator",
+      "occurrences": [
+        {
+          "phase": "09",
+          "case": "suite-consumer_fetch_semantics",
+          "log": "/workspace/work/client-fresh-versions-overlay/typed-refreshed-20261030-09/suite-consumer_fetch_semantics.log",
+          "failure_excerpt": "panicked at tests/consumer_fetch_semantics.rs:7069:5:\npattern join listed topics after coordinator discovery: 1.674634011s"
+        }
+      ],
+      "phase10_full_target_status": "passed in phase10 broad target",
+      "cause_status": "Unresolved; timing values alone do not prove socket serialization or runtime scheduling cause."
+    },
+    "consumer_fetch_semantics::group_rejoin_dials_leaders_during_sync": {
+      "target": "consumer_fetch_semantics",
+      "test": "group_rejoin_dials_leaders_during_sync",
+      "occurrences": [
+        {
+          "phase": "09",
+          "case": "suite-consumer_fetch_semantics",
+          "log": "/workspace/work/client-fresh-versions-overlay/typed-refreshed-20261030-09/suite-consumer_fetch_semantics.log",
+          "failure_excerpt": "panicked at tests/consumer_fetch_semantics.rs:5906:5:\nrejoin synced before dialing the leader: 587.875088ms"
+        }
+      ],
+      "phase10_full_target_status": "passed in phase10 broad target",
+      "cause_status": "Unresolved; timing values alone do not prove socket serialization or runtime scheduling cause."
+    },
+    "consumer_fetch_semantics::idle_coordinator_reuses_the_other_bootstrap_handshake": {
+      "target": "consumer_fetch_semantics",
+      "test": "idle_coordinator_reuses_the_other_bootstrap_handshake",
+      "occurrences": [
+        {
+          "phase": "07",
+          "case": "suite-consumer_fetch_semantics",
+          "log": "/workspace/work/client-fresh-versions-overlay/typed-refreshed-20261030-07/suite-consumer_fetch_semantics.log",
+          "failure_excerpt": "panicked at tests/consumer_fetch_semantics.rs:5091:5:\nidle coordinator rediscovery repeated ApiVersions: 454.83779ms"
+        }
+      ],
+      "phase10_full_target_status": "passed in phase10 broad target",
+      "cause_status": "Phase07 wall bound included200ms periodic wait plus250ms required negotiation. Phase08+ separate scheduling from active reconnect, retaining450ms active bound and socket proof."
+    }
+  },
+  "nonruntime_failures": [
+    {
+      "phase": "07",
+      "case": "clippy",
+      "exit": 101,
+      "log": "/workspace/work/client-fresh-versions-overlay/typed-refreshed-20261030-07/clippy.log"
+    },
+    {
+      "phase": "08",
+      "case": "additional-fixture-compile-check",
+      "exit": 101,
+      "log": "/workspace/work/client-fresh-versions-overlay/typed-refreshed-20261030-08/additional-fixture-compile-check.log"
+    },
+    {
+      "phase": "08",
+      "case": "clippy",
+      "exit": 101,
+      "log": "/workspace/work/client-fresh-versions-overlay/typed-refreshed-20261030-08/clippy.log"
+    }
+  ]
+}

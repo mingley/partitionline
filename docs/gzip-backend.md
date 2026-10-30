@@ -6,7 +6,7 @@ on 2026-10-01 (KL10-05). The record is
 `docs/plan/evidence/KL10-05.json`.
 
 This is one exception to the boundary in
-[performance leadership, section 9](plan/performance-leadership.md#9-boundaries-unchanged-unless-the-maintainer-decides-otherwise).
+[performance leadership, section 9](https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/docs/plan/performance-leadership.md#9-boundaries-unchanged-unless-the-maintainer-decides-otherwise).
 It covers this dependency. The crate still forbids `unsafe` in its own code.
 
 | Build | gzip backend | `unsafe` in the gzip path |

@@ -1,0 +1,376 @@
+{
+  "commands": [
+    {
+      "name": "root-fetch",
+      "command": [
+        "/workspace/work/cargo/bin/cargo",
+        "+stable",
+        "fetch",
+        "--locked",
+        "--target",
+        "x86_64-unknown-linux-gnu"
+      ],
+      "cwd": "/workspace/work/security-dependencies-20261030/candidate",
+      "exit": 0,
+      "elapsed_seconds": 0.6669275169997491,
+      "log_sha256": "9d462b0c57318188eb1ee90b873291b27e44a0b9152a86d8ab0d38a5af0cc5f6",
+      "scope": "dependency resolution only; no compilation"
+    },
+    {
+      "name": "root-all-metadata",
+      "command": [
+        "/workspace/work/cargo/bin/cargo",
+        "+stable",
+        "metadata",
+        "--locked",
+        "--format-version",
+        "1",
+        "--filter-platform",
+        "x86_64-unknown-linux-gnu",
+        "--manifest-path",
+        "Cargo.toml",
+        "--all-features"
+      ],
+      "exit": 0,
+      "elapsed_seconds": 0.16549159199985297,
+      "stdout_sha256": "c480f197e56d754604cc83ac0eb0776cfb34cf9470e350228d14350eeeb799dd",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "scope": "dependency metadata only; no compilation"
+    },
+    {
+      "name": "broker-all-metadata",
+      "command": [
+        "/workspace/work/cargo/bin/cargo",
+        "+stable",
+        "metadata",
+        "--locked",
+        "--format-version",
+        "1",
+        "--filter-platform",
+        "x86_64-unknown-linux-gnu",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--all-features"
+      ],
+      "exit": 0,
+      "elapsed_seconds": 0.16514674099926197,
+      "stdout_sha256": "d89dc46fbdc8fc4f73dc3dfa5624ad93d887a5a4f84b66b1012fd1b0cfbaaeb5",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "scope": "dependency metadata only; no compilation"
+    },
+    {
+      "name": "broker-default-metadata",
+      "command": [
+        "/workspace/work/cargo/bin/cargo",
+        "+stable",
+        "metadata",
+        "--locked",
+        "--format-version",
+        "1",
+        "--filter-platform",
+        "x86_64-unknown-linux-gnu",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml"
+      ],
+      "exit": 0,
+      "elapsed_seconds": 0.1646651490000295,
+      "stdout_sha256": "c2e9501916e81a72afcd3e64ae2fd76ffa5bc568078c6ee0707ea4465d49e145",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "scope": "dependency metadata only; no compilation"
+    },
+    {
+      "name": "schema-all-metadata",
+      "command": [
+        "/workspace/work/cargo/bin/cargo",
+        "+stable",
+        "metadata",
+        "--locked",
+        "--format-version",
+        "1",
+        "--filter-platform",
+        "x86_64-unknown-linux-gnu",
+        "--manifest-path",
+        "partitionline-schema/Cargo.toml",
+        "--all-features"
+      ],
+      "exit": 0,
+      "elapsed_seconds": 1.5194780380006705,
+      "stdout_sha256": "995ce8711b1a6e666d250081d4a3f5e24cab51c0ca95c770531f498da11ec3f1",
+      "stderr_sha256": "32890e23017d0961c88b574b08dcfc3d405622d96481d934d39059e8af8267d7",
+      "scope": "dependency metadata only; no compilation"
+    },
+    {
+      "name": "schema-core-metadata",
+      "command": [
+        "/workspace/work/cargo/bin/cargo",
+        "+stable",
+        "metadata",
+        "--locked",
+        "--format-version",
+        "1",
+        "--filter-platform",
+        "x86_64-unknown-linux-gnu",
+        "--manifest-path",
+        "partitionline-schema/Cargo.toml",
+        "--no-default-features"
+      ],
+      "exit": 0,
+      "elapsed_seconds": 0.16504221000013786,
+      "stdout_sha256": "b7e7e48a5213a81c18ad5cf1ab9d4dd69f27c8f7643301e78f35ec1d874ee14d",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "scope": "dependency metadata only; no compilation"
+    },
+    {
+      "name": "floor-before-ctutils",
+      "command": [
+        "/workspace/work/cargo/bin/cargo",
+        "+stable",
+        "generate-lockfile",
+        "--offline"
+      ],
+      "cwd": "/workspace/work/security-dependencies-20261030/controls/floor-before-ctutils",
+      "exit": 0,
+      "elapsed_seconds": 0.16554073099996458,
+      "log_sha256": "82da34dc78e2799f72b0f2d67e6576b492b16650e0763b76b5abf28c71282702",
+      "scope": "dependency resolution only; no compilation"
+    },
+    {
+      "name": "floor-before-rustls",
+      "command": [
+        "/workspace/work/cargo/bin/cargo",
+        "+stable",
+        "generate-lockfile",
+        "--offline"
+      ],
+      "cwd": "/workspace/work/security-dependencies-20261030/controls/floor-before-rustls",
+      "exit": 0,
+      "elapsed_seconds": 0.16509016800046084,
+      "log_sha256": "2c0930ad073be9b01ef33ab4b0e486720e237145f7d4383a85d9840893413aaf",
+      "scope": "dependency resolution only; no compilation"
+    },
+    {
+      "name": "floor-before-rustls-webpki",
+      "command": [
+        "/workspace/work/cargo/bin/cargo",
+        "+stable",
+        "generate-lockfile",
+        "--offline"
+      ],
+      "cwd": "/workspace/work/security-dependencies-20261030/controls/floor-before-rustls-webpki",
+      "exit": 0,
+      "elapsed_seconds": 0.16517704799935018,
+      "log_sha256": "713164e7b2a98475cf344b06a63b58b78fdbe810e4c709595ecf88129b16e84e",
+      "scope": "dependency resolution only; no compilation"
+    },
+    {
+      "name": "floor-before-tokio",
+      "command": [
+        "/workspace/work/cargo/bin/cargo",
+        "+stable",
+        "generate-lockfile",
+        "--offline"
+      ],
+      "cwd": "/workspace/work/security-dependencies-20261030/controls/floor-before-tokio",
+      "exit": 0,
+      "elapsed_seconds": 0.16530001800038008,
+      "log_sha256": "d3c29e910284c6bee763d6d7087d840da38a4068ed75b8cc9828465b773acdd6",
+      "scope": "dependency resolution only; no compilation"
+    },
+    {
+      "name": "floor-before-webpki-roots",
+      "command": [
+        "/workspace/work/cargo/bin/cargo",
+        "+stable",
+        "generate-lockfile",
+        "--offline"
+      ],
+      "cwd": "/workspace/work/security-dependencies-20261030/controls/floor-before-webpki-roots",
+      "exit": 0,
+      "elapsed_seconds": 0.16461159000027692,
+      "log_sha256": "08be1ace85f7d617a3a914346fd48619b9a5071c7bcd4666723069f70466d780",
+      "scope": "dependency resolution only; no compilation"
+    },
+    {
+      "name": "floor-after-ctutils",
+      "command": [
+        "/workspace/work/cargo/bin/cargo",
+        "+stable",
+        "generate-lockfile",
+        "--offline"
+      ],
+      "cwd": "/workspace/work/security-dependencies-20261030/controls/floor-after-ctutils",
+      "exit": 101,
+      "elapsed_seconds": 0.03240936400015926,
+      "log_sha256": "5be7d7b153db25870588906c250960ae07c00ad1073b6d91b926a46c4bc547cc",
+      "scope": "dependency resolution only; no compilation"
+    },
+    {
+      "name": "floor-after-rustls",
+      "command": [
+        "/workspace/work/cargo/bin/cargo",
+        "+stable",
+        "generate-lockfile",
+        "--offline"
+      ],
+      "cwd": "/workspace/work/security-dependencies-20261030/controls/floor-after-rustls",
+      "exit": 101,
+      "elapsed_seconds": 0.06435184099973412,
+      "log_sha256": "938f295cc991876bfe789692cfa48c17b7e8b90abf2760b1b8ed8a3243e225c3",
+      "scope": "dependency resolution only; no compilation"
+    },
+    {
+      "name": "floor-after-rustls-webpki",
+      "command": [
+        "/workspace/work/cargo/bin/cargo",
+        "+stable",
+        "generate-lockfile",
+        "--offline"
+      ],
+      "cwd": "/workspace/work/security-dependencies-20261030/controls/floor-after-rustls-webpki",
+      "exit": 101,
+      "elapsed_seconds": 0.0644163019996995,
+      "log_sha256": "8dad966bcb27d519e7b6ad95baaf182538d3cb5d26bc3c92fb737c592b32f056",
+      "scope": "dependency resolution only; no compilation"
+    },
+    {
+      "name": "floor-after-tokio",
+      "command": [
+        "/workspace/work/cargo/bin/cargo",
+        "+stable",
+        "generate-lockfile",
+        "--offline"
+      ],
+      "cwd": "/workspace/work/security-dependencies-20261030/controls/floor-after-tokio",
+      "exit": 101,
+      "elapsed_seconds": 0.06451443799960543,
+      "log_sha256": "f9bbfc5f69caafce8c80b005b383f62a3c6bf43d31f2cac3c73dc5102f959d25",
+      "scope": "dependency resolution only; no compilation"
+    },
+    {
+      "name": "floor-after-webpki-roots",
+      "command": [
+        "/workspace/work/cargo/bin/cargo",
+        "+stable",
+        "generate-lockfile",
+        "--offline"
+      ],
+      "cwd": "/workspace/work/security-dependencies-20261030/controls/floor-after-webpki-roots",
+      "exit": 101,
+      "elapsed_seconds": 0.03240293399994698,
+      "log_sha256": "d2b1374dadde72ee022fc98849359e392ac02b922d22c3712c44b175d109778b",
+      "scope": "dependency resolution only; no compilation"
+    },
+    {
+      "name": "floor-after-patched",
+      "command": [
+        "/workspace/work/cargo/bin/cargo",
+        "+stable",
+        "generate-lockfile",
+        "--offline"
+      ],
+      "cwd": "/workspace/work/security-dependencies-20261030/controls/floor-after-patched",
+      "exit": 0,
+      "elapsed_seconds": 0.16533710200019414,
+      "log_sha256": "7068aa26dff10f865b65538ea9c925894202e9dac8ab99a9c274a21b2b7d4771",
+      "scope": "dependency resolution only; no compilation"
+    }
+  ],
+  "floor_controls": [
+    {
+      "variant": "before",
+      "package": "ctutils",
+      "version": "0.4.2",
+      "exit": 0,
+      "expected_success": true,
+      "verified": true
+    },
+    {
+      "variant": "before",
+      "package": "rustls",
+      "version": "0.23.45",
+      "exit": 0,
+      "expected_success": true,
+      "verified": true
+    },
+    {
+      "variant": "before",
+      "package": "rustls-webpki",
+      "version": "0.103.15",
+      "exit": 0,
+      "expected_success": true,
+      "verified": true
+    },
+    {
+      "variant": "before",
+      "package": "tokio",
+      "version": "1.53.2",
+      "exit": 0,
+      "expected_success": true,
+      "verified": true
+    },
+    {
+      "variant": "before",
+      "package": "webpki-roots",
+      "version": "1.0.9",
+      "exit": 0,
+      "expected_success": true,
+      "verified": true
+    },
+    {
+      "variant": "after",
+      "package": "ctutils",
+      "version": "0.4.2",
+      "exit": 101,
+      "expected_success": false,
+      "verified": true
+    },
+    {
+      "variant": "after",
+      "package": "rustls",
+      "version": "0.23.45",
+      "exit": 101,
+      "expected_success": false,
+      "verified": true
+    },
+    {
+      "variant": "after",
+      "package": "rustls-webpki",
+      "version": "0.103.15",
+      "exit": 101,
+      "expected_success": false,
+      "verified": true
+    },
+    {
+      "variant": "after",
+      "package": "tokio",
+      "version": "1.53.2",
+      "exit": 101,
+      "expected_success": false,
+      "verified": true
+    },
+    {
+      "variant": "after",
+      "package": "webpki-roots",
+      "version": "1.0.9",
+      "exit": 101,
+      "expected_success": false,
+      "verified": true
+    },
+    {
+      "variant": "after",
+      "packages": {
+        "ctutils": "0.4.7",
+        "rustls": "0.23.46",
+        "rustls-webpki": "0.103.16",
+        "tokio": "1.53.3",
+        "webpki-roots": "1.0.11"
+      },
+      "exit": 0,
+      "expected_success": true,
+      "verified": true
+    }
+  ],
+  "candidate_manifests_locks_unchanged": true,
+  "no_build_target_created": true,
+  "scope": "No compilation, runtime, cargo-audit or cargo-deny performed by this runner."
+}

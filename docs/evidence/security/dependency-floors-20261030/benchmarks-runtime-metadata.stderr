@@ -1,0 +1,4 @@
+error: failed to download `deranged v0.5.8`
+
+Caused by:
+  attempting to make an HTTP request, but --offline was specified

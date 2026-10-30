@@ -1,0 +1,63 @@
+{
+  "archive_sha256": "08cf9aedac76434a4f330a96a4bf11e2f073bc05cd8043ce82545a4264df2fc1",
+  "archive_bytes": 6575201,
+  "inputs_unchanged": true,
+  "qualification": "actual dirty source package; no library compilation, package consumer or publish validation",
+  "commands": [
+    {
+      "name": "docs-tests",
+      "command": [
+        "python3",
+        "-B",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests/docs",
+        "-p",
+        "test_*.py",
+        "-v"
+      ],
+      "exit": 0,
+      "stopped": null,
+      "elapsed_seconds": 0.5016993039998852,
+      "disk_floor_bytes": 1610612736,
+      "minimum_free_bytes": 1817133056,
+      "log_sha256": "2e2f3d433329414829d7fc347bcb44c0ec2054fcdd6fda3841d18b21b80afb8e"
+    },
+    {
+      "name": "package",
+      "command": [
+        "cargo",
+        "+stable",
+        "package",
+        "--locked",
+        "--allow-dirty",
+        "--no-verify"
+      ],
+      "exit": 0,
+      "stopped": null,
+      "elapsed_seconds": 4.316040042999703,
+      "disk_floor_bytes": 1610612736,
+      "minimum_free_bytes": 1803948032,
+      "log_sha256": "c6aa402281398e0136d7390f15029b7c764207125507e094e0a5a472eab9546f"
+    },
+    {
+      "name": "actual-navigation",
+      "command": [
+        "python3",
+        "-B",
+        "/workspace/partitionline/scripts/check-package-docs.py",
+        "/workspace/work/package-docs-20261030/actual-extracted/partitionline-0.1.0",
+        "--report",
+        "/workspace/work/package-docs-20261030/actual-navigation-report.json"
+      ],
+      "exit": 0,
+      "stopped": null,
+      "elapsed_seconds": 0.4023435690005499,
+      "disk_floor_bytes": 1610612736,
+      "minimum_free_bytes": 1776959488,
+      "log_sha256": "f0743e97a2d3443af6a6fb0a671c9800f42256c46b3931b9f905f4a63ffe7436"
+    }
+  ]
+}

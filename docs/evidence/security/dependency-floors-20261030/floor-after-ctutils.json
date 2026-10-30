@@ -1,0 +1,14 @@
+{
+  "name": "floor-after-ctutils",
+  "command": [
+    "/workspace/work/cargo/bin/cargo",
+    "+stable",
+    "generate-lockfile",
+    "--offline"
+  ],
+  "cwd": "/workspace/work/security-dependencies-20261030/controls/floor-after-ctutils",
+  "exit": 101,
+  "elapsed_seconds": 0.03240936400015926,
+  "log_sha256": "5be7d7b153db25870588906c250960ae07c00ad1073b6d91b926a46c4bc547cc",
+  "scope": "dependency resolution only; no compilation"
+}

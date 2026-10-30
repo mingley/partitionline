@@ -1,0 +1,21 @@
+{
+  "name": "root-all-metadata",
+  "command": [
+    "/workspace/work/cargo/bin/cargo",
+    "+stable",
+    "metadata",
+    "--locked",
+    "--format-version",
+    "1",
+    "--filter-platform",
+    "x86_64-unknown-linux-gnu",
+    "--manifest-path",
+    "Cargo.toml",
+    "--all-features"
+  ],
+  "exit": 0,
+  "elapsed_seconds": 0.16549159199985297,
+  "stdout_sha256": "c480f197e56d754604cc83ac0eb0776cfb34cf9470e350228d14350eeeb799dd",
+  "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "scope": "dependency metadata only; no compilation"
+}

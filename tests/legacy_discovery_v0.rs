@@ -486,35 +486,10 @@ async fn producer_consumer_and_group_startup_keep_the_initial_deadline() {
     use std::time::Duration;
     for driver in ["producer", "consumer", "group"] {
         let peer = socket_peer::Peer::start().await;
-        {
-            let mut state = peer.state.lock().await;
-            if driver == "group" {
-                state.startup.push_back(socket_peer::Reply::Delay(
-                    Duration::from_millis(20),
-                    socket_peer::versions(Some((0, 0)), Some((0, 0)), 35),
-                ));
-                state
-                    .startup
-                    .push_back(socket_peer::Reply::Body(socket_peer::versions(
-                        Some((0, 0)),
-                        Some((0, 0)),
-                        0,
-                    )));
-                state.startup.push_back(socket_peer::Reply::Delay(
-                    Duration::from_millis(50),
-                    socket_peer::versions(Some((0, 0)), Some((0, 0)), 35),
-                ));
-            } else {
-                state.startup.push_back(socket_peer::Reply::Delay(
-                    Duration::from_millis(40),
-                    socket_peer::versions(Some((0, 0)), Some((0, 0)), 35),
-                ));
-                state.startup.push_back(socket_peer::Reply::Delay(
-                    Duration::from_millis(50),
-                    socket_peer::versions(Some((0, 0)), Some((0, 0)), 0),
-                ));
-            }
-        }
+        // Every socket receives the same version-specific script. Group
+        // startup opens member and coordinator sockets concurrently.
+        peer.state.lock().await.startup_delays =
+            Some((Duration::from_millis(40), Duration::from_millis(50)));
         let address = peer.addresses[0].to_string();
         let started = std::time::Instant::now();
         let error = if driver == "producer" {
@@ -543,7 +518,22 @@ async fn producer_consumer_and_group_startup_keep_the_initial_deadline() {
         );
         assert!(started.elapsed() < Duration::from_millis(90));
         let frames = peer.close().await;
-        assert!(frames.iter().all(|f| f.api == 18));
+        let versions: Vec<i16> = frames.iter().map(|frame| frame.version).collect();
+        assert!(
+            frames.iter().all(|frame| frame.api == 18),
+            "{driver} sent an application request before negotiation timed out"
+        );
+        assert!(
+            frames.iter().enumerate().any(|(index, fallback)| {
+                fallback.version == 0
+                    && frames[..index].iter().any(|first| {
+                        first.version == 4
+                            && first.slot == fallback.slot
+                            && first.connection == fallback.connection
+                    })
+            }),
+            "{driver} did not attempt ApiVersions v4 then v0 on one socket: {versions:?}"
+        );
     }
 }
 

@@ -1,0 +1,9 @@
+{
+  "path": "/workspace/work/client-fresh-versions-overlay/typed-refreshed-20261030-11/client-source-snapshot.tar.gz",
+  "bytes": 7833510,
+  "sha256": "03d267b8051582311e40522617ae52973b4ef471757f9ebb172962ed1f1ef822",
+  "source_files": 1809,
+  "member_bytes_match_manifest": true,
+  "scope": "Exact complete1809-file client input scope, including allsrc/tests/common/fixtures/Cargo/lock/toolchain/lint/.cargo/README; excluded broker tree is not needed by selected build/test inputs, verified by source include/dependency audit. External installed toolchain and dependency cache bytes not included.",
+  "reconstruction": "Extract archive into a new empty directory; verify every member against inputs-before.json. No git base or mutable candidate directory required."
+}

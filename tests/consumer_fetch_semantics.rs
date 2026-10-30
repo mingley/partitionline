@@ -38,7 +38,8 @@ use partitionline::protocol::api::{
     Broker, MetadataResponse, PartitionMetadata, TopicMetadata,
 };
 use partitionline::protocol::api_keys::{
-    API_VERSIONS, FETCH, HEARTBEAT, LIST_OFFSETS, METADATA, OFFSET_FOR_LEADER_EPOCH,
+    API_VERSIONS, FETCH, GET_TELEMETRY_SUBSCRIPTIONS, HEARTBEAT, LIST_OFFSETS, METADATA,
+    OFFSET_FOR_LEADER_EPOCH,
 };
 use partitionline::protocol::fetch::{
     decode_fetch_request, encode_fetch_response, FetchPartition, FetchTopic, FetchedPartition,
@@ -60,6 +61,190 @@ use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::{TcpListener, TcpStream};
 use tokio::sync::oneshot;
 use tokio::task::JoinSet;
+
+/// Locate an operation on a socket opened after `start`, and verify that the
+/// socket negotiated that API before sending it.
+fn migrated_fresh_request(
+    events: &[common::WireEvent],
+    start: usize,
+    node: i32,
+    api: i16,
+    expected: i16,
+) -> u64 {
+    use common::WireEventKind;
+    let recent = events.get(start..).expect("trace cursor remains in bounds");
+    let request = recent.iter().find(|event| {
+        event.node == node && matches!(&event.kind,
+            WireEventKind::Request { api_key, api_version } if *api_key == api && *api_version == expected)
+    }).expect("the expected API and version must reach the intended broker");
+    let socket = request.socket;
+    assert!(
+        recent.iter().any(|event| event.node == node
+            && event.socket == socket
+            && event.sequence < request.sequence
+            && matches!(&event.kind, WireEventKind::Accept)),
+        "the operation must use a newly accepted socket"
+    );
+    let versions = recent
+        .iter()
+        .find(|event| {
+            event.node == node
+                && event.socket == socket
+                && event.sequence < request.sequence
+                && matches!(
+                    &event.kind,
+                    WireEventKind::Request {
+                        api_key: API_VERSIONS,
+                        ..
+                    }
+                )
+        })
+        .expect("the new socket must request ApiVersions before the operation");
+    let response = recent
+        .iter()
+        .find(|event| {
+            event.node == node
+                && event.socket == socket
+                && event.sequence > versions.sequence
+                && event.sequence < request.sequence
+                && matches!(
+                    &event.kind,
+                    WireEventKind::ApiVersionsResponse { error_code: 0, .. }
+                )
+        })
+        .expect("the new socket must receive a successful ApiVersions response first");
+    assert!(
+        matches!(&response.kind, WireEventKind::ApiVersionsResponse { ranges, .. }
+            if ranges.iter().any(|range| range.api_key == api
+                && range.max_version == expected
+                && (range.min_version..=range.max_version).contains(&expected))),
+        "the request must use this socket's configured advertised maximum"
+    );
+    socket
+}
+
+/// Verify that a later operation stays on an already negotiated live socket.
+fn migrated_reused_request(
+    events: &[common::WireEvent],
+    start: usize,
+    node: i32,
+    api: i16,
+    socket: u64,
+) {
+    use common::WireEventKind;
+    let recent = events.get(start..).expect("trace cursor remains in bounds");
+    assert!(
+        recent.iter().any(|event| event.node == node
+            && event.socket == socket
+            && matches!(&event.kind, WireEventKind::Request { api_key, .. } if *api_key == api)),
+        "the operation must use the existing connection"
+    );
+    assert!(
+        !recent.iter().any(|event| event.node == node
+            && event.socket == socket
+            && matches!(
+                &event.kind,
+                WireEventKind::Request {
+                    api_key: API_VERSIONS,
+                    ..
+                }
+            )),
+        "an established socket must not negotiate again"
+    );
+}
+
+fn migrated_last_request_socket(events: &[common::WireEvent], node: i32, api: i16) -> u64 {
+    use common::WireEventKind;
+    events
+        .iter()
+        .rev()
+        .find(|event| {
+            event.node == node
+                && matches!(&event.kind, WireEventKind::Request { api_key, .. } if *api_key == api)
+        })
+        .expect("the warm operation must have reached the intended broker")
+        .socket
+}
+
+/// Check that a request used a version advertised on its own connection.
+fn assert_negotiated_request(mock: &common::Mock, since: usize, node: i32, api: i16) -> u64 {
+    use common::WireEventKind;
+    let trace = mock.wire_trace();
+    let recent = trace.get(since..).expect("trace cursor remains in bounds");
+    let (request, api_version) = recent
+        .iter()
+        .rev()
+        .find_map(|event| match &event.kind {
+            WireEventKind::Request {
+                api_key,
+                api_version,
+            } if event.node == node && *api_key == api => Some((event, *api_version)),
+            _ => None,
+        })
+        .expect("the expected API request must reach the intended broker");
+    let ranges = trace
+        .iter()
+        .rev()
+        .find_map(|event| match &event.kind {
+            WireEventKind::ApiVersionsResponse {
+                error_code: 0,
+                ranges,
+            } if event.socket == request.socket
+                && event.node == node
+                && event.sequence < request.sequence =>
+            {
+                Some(ranges)
+            }
+            _ => None,
+        })
+        .expect("request socket must complete ApiVersions first");
+    assert!(ranges.iter().any(|range| range.api_key == api && (range.min_version..=range.max_version).contains(&api_version)),
+        "node {node} socket {} sent API {api} v{api_version} outside its advertised ranges: {ranges:?}", request.socket);
+    request.socket
+}
+
+/// Check both the sent version and the exact advertised ceiling on that socket.
+fn assert_negotiated_version(
+    mock: &common::Mock,
+    since: usize,
+    node: i32,
+    api: i16,
+    expected: i16,
+) -> u64 {
+    let socket = assert_negotiated_request(mock, since, node, api);
+    let trace = mock.wire_trace();
+    let recent = trace.get(since..).expect("trace cursor remains in bounds");
+    let request = recent.iter().rev().find(|event| {
+        event.node == node && event.socket == socket
+            && matches!(event.kind, common::WireEventKind::Request { api_key, .. } if api_key == api)
+    }).expect("negotiated request was not retained");
+    assert!(
+        matches!(request.kind, common::WireEventKind::Request { api_version, .. } if api_version == expected),
+        "API {api} on node {node} did not use downgraded v{expected}: {:?}",
+        request.kind
+    );
+    let response = trace
+        .iter()
+        .rev()
+        .find(|event| {
+            event.node == node
+                && event.socket == socket
+                && event.sequence < request.sequence
+                && matches!(
+                    event.kind,
+                    common::WireEventKind::ApiVersionsResponse { error_code: 0, .. }
+                )
+        })
+        .expect("negotiated response was not retained");
+    assert!(
+        matches!(&response.kind, common::WireEventKind::ApiVersionsResponse { ranges, .. }
+        if ranges.iter().any(|range| range.api_key == api && range.max_version == expected
+            && range.min_version <= expected)),
+        "API {api} on node {node} did not advertise ceiling v{expected}: {:?}",
+        response.kind
+    );
+    socket
+}
 
 /// Startup drops a slower bootstrap handshake before the consumer race returns.
 #[tokio::test(flavor = "current_thread")]
@@ -185,6 +370,8 @@ async fn assign_keeps_the_previous_assignment_when_metadata_fails() {
         broker
             .config()
             .max_wait_ms(1)
+            // Force a metadata request after the broker shuts down.
+            .metadata_max_age(Duration::ZERO)
             .request_timeout(Duration::from_millis(200))
             .retry_backoff(Duration::from_millis(1)),
     )
@@ -3570,87 +3757,119 @@ async fn fetch_dials_leaders_while_refreshing_metadata() {
     consumer.close().await.unwrap();
 }
 
-/// An idle bootstrap fetch socket reconnects without a second ApiVersions handshake.
+/// An idle bootstrap Fetch socket negotiates the replacement broker's version.
 #[tokio::test]
-async fn fetch_reuses_bootstrap_api_versions_after_idle() {
+async fn fetch_negotiates_bootstrap_socket_after_idle() {
     let mock = common::Mock::start().await;
+    mock.enable_wire_trace(512);
     let mut cfg = ConsumerConfig::bootstrap([mock.addr.clone()]).max_wait_ms(10);
-    cfg.connections_max_idle = Duration::from_millis(40);
+    cfg.connections_max_idle = Duration::from_millis(100);
     let mut consumer = Consumer::new(cfg).await.unwrap();
     consumer.assign("t", 0, 0).await.unwrap();
     let _first = consumer.fetch().await.unwrap();
-    tokio::time::sleep(Duration::from_millis(60)).await;
-    let versions_before = mock.api_versions_versions().len();
+    let old_socket = migrated_last_request_socket(&mock.wire_trace(), 1, FETCH);
+    tokio::time::sleep(Duration::from_millis(150)).await;
+    let start = mock.wire_trace().len();
     let accepts_before = mock.accepts();
+    mock.set_node_api_max(1, FETCH, 7);
     mock.set_api_versions_delay(Duration::from_millis(250));
     let started = Instant::now();
     let _again = consumer.fetch().await.unwrap();
-    let elapsed = started.elapsed();
-    assert_eq!(
-        mock.api_versions_versions().len(),
-        versions_before,
-        "an idle bootstrap fetch should reuse the versions already learned"
-    );
+    assert!(started.elapsed() < Duration::from_millis(700));
     assert_eq!(
         mock.accepts(),
         accepts_before + 1,
-        "idle expiry replaces the TCP socket"
+        "idle expiry replaces one TCP socket"
     );
+    let trace = mock.wire_trace();
+    let socket = migrated_fresh_request(&trace, start, 1, FETCH, 7);
+    assert_ne!(socket, old_socket);
+    assert_eq!(mock.last_fetch_version_for_node(1), Some(7));
+    let start = trace.len();
+    let accepts_after = mock.accepts();
+    let started = Instant::now();
+    let _again = consumer.fetch().await.unwrap();
     assert!(
-        elapsed < Duration::from_millis(200),
-        "idle bootstrap fetch repeated ApiVersions: {elapsed:?}"
+        started.elapsed() < Duration::from_millis(200),
+        "live socket should not wait for another handshake"
+    );
+    migrated_reused_request(&mock.wire_trace(), start, 1, FETCH, socket);
+    assert_eq!(
+        mock.accepts(),
+        accepts_after,
+        "the live operation opened a new socket"
     );
     consumer.close().await.unwrap();
 }
 
-/// An idle metadata refresh reconnects the bootstrap socket without ApiVersions.
+/// An idle bootstrap Metadata socket uses the replacement broker's version.
 #[tokio::test]
-async fn metadata_reuses_bootstrap_api_versions_after_idle() {
+async fn metadata_negotiates_bootstrap_socket_after_idle() {
     let mock = common::Mock::start().await;
+    mock.enable_wire_trace(512);
     let mut cfg = ConsumerConfig::bootstrap([mock.addr.clone()]);
     cfg.metadata_max_age = Duration::ZERO;
-    cfg.connections_max_idle = Duration::from_millis(40);
+    cfg.connections_max_idle = Duration::from_millis(100);
     let mut consumer = Consumer::new(cfg).await.unwrap();
     let _warm = consumer.list_topics().await.unwrap();
-    tokio::time::sleep(Duration::from_millis(60)).await;
-    let versions_before = mock.api_versions_versions().len();
+    let old_socket = migrated_last_request_socket(&mock.wire_trace(), 1, METADATA);
+    tokio::time::sleep(Duration::from_millis(150)).await;
+    let start = mock.wire_trace().len();
     let accepts_before = mock.accepts();
+    mock.set_node_api_max(1, METADATA, 7);
     mock.set_api_versions_delay(Duration::from_millis(250));
     let started = Instant::now();
     let _topics = consumer.list_topics().await.unwrap();
-    let elapsed = started.elapsed();
-    assert_eq!(
-        mock.api_versions_versions().len(),
-        versions_before,
-        "an idle metadata refresh should reuse the versions already learned"
-    );
+    assert!(started.elapsed() < Duration::from_millis(700));
     assert_eq!(
         mock.accepts(),
         accepts_before + 1,
-        "idle expiry replaces the TCP socket"
+        "idle expiry replaces one TCP socket"
     );
+    let trace = mock.wire_trace();
+    let socket = migrated_fresh_request(&trace, start, 1, METADATA, 7);
+    assert_ne!(socket, old_socket);
+    assert_eq!(mock.last_metadata_version(), Some(7));
+    let start = trace.len();
+    let accepts_after = mock.accepts();
+    let started = Instant::now();
+    let _topics = consumer.list_topics().await.unwrap();
     assert!(
-        elapsed < Duration::from_millis(200),
-        "idle metadata refresh repeated ApiVersions: {elapsed:?}"
+        started.elapsed() < Duration::from_millis(200),
+        "live socket should not wait for another handshake"
+    );
+    migrated_reused_request(&mock.wire_trace(), start, 1, METADATA, socket);
+    assert_eq!(
+        mock.accepts(),
+        accepts_after,
+        "the live operation opened a new socket"
     );
     consumer.close().await.unwrap();
 }
 
-/// An idle group commit reconnects the coordinator without ApiVersions.
+/// An idle group commit negotiates on its replacement coordinator socket.
 #[tokio::test]
 async fn group_commit_reuses_coordinator_api_versions_after_idle() {
     let mock = common::Mock::start().await;
+    mock.enable_wire_trace(10_000);
     let mut cfg = ConsumerConfig::bootstrap([mock.addr.clone()]).max_wait_ms(10);
-    cfg.connections_max_idle = Duration::from_millis(40);
+    cfg.connections_max_idle = Duration::from_millis(100);
     cfg.heartbeat_interval = Duration::from_secs(5);
     let mut group = ConsumerGroup::join(cfg, "idle-commit", "t").await.unwrap();
     group
         .commit_offsets([(TopicPartition::new("t", 0), 1)])
         .await
         .unwrap();
-    tokio::time::sleep(Duration::from_millis(60)).await;
-    let versions_before = mock.api_versions_versions().len();
+    let old_socket = assert_negotiated_request(
+        &mock,
+        0,
+        1,
+        partitionline::protocol::api_keys::OFFSET_COMMIT,
+    );
+    tokio::time::sleep(Duration::from_millis(150)).await;
+    let trace_before = mock.wire_trace().len();
     let accepts_before = mock.accepts();
+    mock.set_node_api_max(1, partitionline::protocol::api_keys::LEAVE_GROUP, 0);
     mock.set_api_versions_delay(Duration::from_millis(250));
     let started = Instant::now();
     group
@@ -3658,26 +3877,62 @@ async fn group_commit_reuses_coordinator_api_versions_after_idle() {
         .await
         .unwrap();
     let elapsed = started.elapsed();
-    assert_eq!(
-        mock.api_versions_versions().len(),
-        versions_before,
-        "an idle group commit should reuse the coordinator versions already learned"
+    let replacement = assert_negotiated_request(
+        &mock,
+        trace_before,
+        1,
+        partitionline::protocol::api_keys::OFFSET_COMMIT,
+    );
+    assert_ne!(
+        replacement, old_socket,
+        "idle expiry must replace the coordinator socket"
     );
     assert!(
         mock.accepts() > accepts_before,
         "idle expiry replaces the coordinator socket"
     );
     assert!(
-        elapsed < Duration::from_millis(200),
-        "idle group commit repeated ApiVersions: {elapsed:?}"
+        elapsed < Duration::from_millis(450),
+        "idle commit failed to negotiate one replacement within the bound: {elapsed:?}"
     );
+    let next_trace = mock.wire_trace().len();
+    let started = Instant::now();
+    group
+        .commit_offsets([(TopicPartition::new("t", 0), 1)])
+        .await
+        .unwrap();
+    assert!(
+        started.elapsed() < Duration::from_millis(200),
+        "a live coordinator socket was not reused"
+    );
+    assert_eq!(
+        assert_negotiated_request(
+            &mock,
+            next_trace,
+            1,
+            partitionline::protocol::api_keys::OFFSET_COMMIT
+        ),
+        replacement
+    );
+    let leave_trace = mock.wire_trace().len();
     group.leave().await.unwrap();
+    assert_eq!(mock.last_leave_group_version(), Some(0));
+    assert_eq!(
+        assert_negotiated_request(
+            &mock,
+            leave_trace,
+            1,
+            partitionline::protocol::api_keys::LEAVE_GROUP
+        ),
+        replacement
+    );
 }
 
-/// An idle heartbeat reconnects the coordinator without ApiVersions.
+/// An idle heartbeat negotiates again on its replacement coordinator socket.
 #[tokio::test]
 async fn group_heartbeat_reuses_coordinator_api_versions_after_idle() {
     let mock = common::Mock::start().await;
+    mock.enable_wire_trace(10_000);
     let mut cfg = ConsumerConfig::bootstrap([mock.addr.clone()]).max_wait_ms(10);
     cfg.heartbeat_interval = Duration::from_millis(80);
     cfg.connections_max_idle = Duration::from_millis(20);
@@ -3689,8 +3944,10 @@ async fn group_heartbeat_reuses_coordinator_api_versions_after_idle() {
         }
         tokio::time::sleep(Duration::from_millis(5)).await;
     }
-    let versions_before = mock.api_versions_versions().len();
+    let old_socket = assert_negotiated_version(&mock, 0, 1, HEARTBEAT, 4);
+    let trace_before = mock.wire_trace().len();
     let accepts_before = mock.accepts();
+    mock.set_node_api_max(1, HEARTBEAT, 0);
     mock.set_api_versions_delay(Duration::from_millis(250));
     let before = mock.heartbeat_total("hb-idle");
     let started = Instant::now();
@@ -3701,18 +3958,19 @@ async fn group_heartbeat_reuses_coordinator_api_versions_after_idle() {
         tokio::time::sleep(Duration::from_millis(5)).await;
     }
     let elapsed = started.elapsed();
-    assert_eq!(
-        mock.api_versions_versions().len(),
-        versions_before,
-        "an idle heartbeat should reuse the coordinator versions already learned"
+    let replacement = assert_negotiated_version(&mock, trace_before, 1, HEARTBEAT, 0);
+    assert_ne!(
+        replacement, old_socket,
+        "idle heartbeat must replace its socket"
     );
+    assert_eq!(mock.last_heartbeat_version(), Some(0));
     assert!(
         mock.accepts() > accepts_before,
         "idle expiry replaces the heartbeat socket"
     );
     assert!(
-        elapsed < Duration::from_millis(220),
-        "idle heartbeat repeated ApiVersions: {elapsed:?}"
+        elapsed < Duration::from_millis(500),
+        "idle heartbeat exceeded the reconnect bound: {elapsed:?}"
     );
     group.leave().await.unwrap();
 }
@@ -3751,10 +4009,81 @@ async fn group_heartbeat_dials_coordinator_while_finding_it() {
     group.leave().await.unwrap();
 }
 
+/// A load retry that reports a moved coordinator must continue rediscovery.
+#[tokio::test]
+async fn offset_commit_load_then_coordinator_error_rediscovers_with_one_deadline() {
+    use partitionline::error::{COORDINATOR_LOAD_IN_PROGRESS, NOT_COORDINATOR};
+    use partitionline::protocol::api_keys::{FIND_COORDINATOR, OFFSET_COMMIT};
+
+    let mock = common::Mock::start().await;
+    mock.enable_wire_trace(10_000);
+    mock.set_topic_partitions("t", 1);
+    let producer =
+        Producer::new(ProducerConfig::bootstrap([mock.addr.clone()]).linger(Duration::ZERO))
+            .await
+            .unwrap();
+    let _sent = producer
+        .send(ProduceRecord::to("t").value(&b"v"[..]))
+        .await
+        .unwrap();
+    producer.close().await.unwrap();
+    let mut cfg = ConsumerConfig::bootstrap([mock.addr.clone()]).max_wait_ms(10);
+    cfg.heartbeat_interval = Duration::from_secs(5);
+    let mut group = ConsumerGroup::join(cfg, "load-then-moved", "t")
+        .await
+        .unwrap();
+    assert_eq!(group.poll().await.unwrap().len(), 1);
+    let trace_before = mock.wire_trace().len();
+    let calls_before = mock.offset_commit_calls();
+    mock.script_offset_commit_errors(&[COORDINATOR_LOAD_IN_PROGRESS, NOT_COORDINATOR]);
+    group.commit().await.unwrap();
+    assert_eq!(
+        mock.offset_commit_script_observed(),
+        vec![COORDINATOR_LOAD_IN_PROGRESS, NOT_COORDINATOR]
+    );
+    assert_eq!(mock.offset_commit_calls() - calls_before, 3);
+    assert_eq!(mock.committed_offset("load-then-moved", "t", 0), Some(1));
+    let trace = mock.wire_trace();
+    let recent = &trace[trace_before..];
+    let commits: Vec<_> = recent
+        .iter()
+        .filter(|event| {
+            matches!(
+                event.kind,
+                common::WireEventKind::Request {
+                    api_key: OFFSET_COMMIT,
+                    ..
+                }
+            )
+        })
+        .collect();
+    assert_eq!(commits.len(), 3);
+    assert_eq!(
+        commits[0].socket, commits[1].socket,
+        "load retry must reuse its healthy socket"
+    );
+    assert!(
+        recent
+            .iter()
+            .any(|event| event.sequence > commits[1].sequence
+                && event.sequence < commits[2].sequence
+                && matches!(
+                    event.kind,
+                    common::WireEventKind::Request {
+                        api_key: FIND_COORDINATOR,
+                        ..
+                    }
+                )),
+        "the second coordinator error must cause a lookup before the successful commit"
+    );
+    group.leave().await.unwrap();
+}
+
 /// A coordinator retry looks up the coordinator while that broker reconnects.
 #[tokio::test]
 async fn group_commit_redials_coordinator_while_finding_it() {
     let mock = common::Mock::start_two_node().await;
+    mock.enable_wire_trace(10_000);
     mock.set_topic_partitions("t", 1);
     mock.set_partition_leader("t", 0, 1);
     mock.move_coordinator();
@@ -3775,14 +4104,138 @@ async fn group_commit_redials_coordinator_while_finding_it() {
     .await
     .unwrap();
     assert_eq!(group.poll().await.unwrap().len(), 1);
-    mock.offset_commit_load_once();
+    common::wait_pred("initial heartbeat", || {
+        mock.heartbeat_total("commit-coord") >= 1
+    })
+    .await;
+    mock.fail_offset_commit_once(partitionline::error::NOT_COORDINATOR);
+    let trace_before = mock.wire_trace().len();
     let delay = Duration::from_millis(250);
     mock.set_find_coordinator_delay(delay);
     mock.set_api_versions_delay(delay);
     let started = Instant::now();
     group.commit().await.unwrap();
     let elapsed = started.elapsed();
-    assert_eq!(mock.offset_commit_load_in_progress(), 1);
+    assert_eq!(mock.offset_commit_once_observed(), 1);
+    let socket = assert_negotiated_request(
+        &mock,
+        trace_before,
+        2,
+        partitionline::protocol::api_keys::OFFSET_COMMIT,
+    );
+    let trace = mock.wire_trace();
+    let recent = &trace[trace_before..];
+    let lookup = recent
+        .iter()
+        .find(|event| {
+            event.node == 1
+                && matches!(
+                    event.kind,
+                    common::WireEventKind::Request {
+                        api_key: partitionline::protocol::api_keys::FIND_COORDINATOR,
+                        ..
+                    }
+                )
+        })
+        .expect("the retry must look up its coordinator on the bootstrap");
+    let lookup_done = recent
+        .iter()
+        .find(|event| {
+            event.socket == lookup.socket
+                && event.sequence > lookup.sequence
+                && matches!(
+                    event.kind,
+                    common::WireEventKind::Response {
+                        api_key: partitionline::protocol::api_keys::FIND_COORDINATOR,
+                        ..
+                    }
+                )
+        })
+        .expect("the coordinator lookup must receive a response");
+    let handshake = recent
+        .iter()
+        .find(|event| {
+            event.node == 2
+                && event.socket == socket
+                && matches!(
+                    event.kind,
+                    common::WireEventKind::Request {
+                        api_key: API_VERSIONS,
+                        ..
+                    }
+                )
+        })
+        .expect("the socket carrying the successful commit must negotiate");
+    let handshake_done = recent
+        .iter()
+        .find(|event| {
+            event.socket == socket
+                && event.sequence > handshake.sequence
+                && matches!(
+                    event.kind,
+                    common::WireEventKind::ApiVersionsResponse { error_code: 0, .. }
+                )
+        })
+        .expect("the committing socket must complete its handshake");
+    let bootstrap_handshake = recent
+        .iter()
+        .find(|event| {
+            event.socket == lookup.socket
+                && event.sequence < lookup.sequence
+                && matches!(
+                    event.kind,
+                    common::WireEventKind::Request {
+                        api_key: API_VERSIONS,
+                        ..
+                    }
+                )
+        })
+        .expect("the lookup socket must negotiate before FindCoordinator");
+    let bootstrap_handshake_done = recent
+        .iter()
+        .find(|event| {
+            event.socket == lookup.socket
+                && event.sequence > bootstrap_handshake.sequence
+                && event.sequence < lookup.sequence
+                && matches!(
+                    event.kind,
+                    common::WireEventKind::ApiVersionsResponse { error_code: 0, .. }
+                )
+        })
+        .expect("the lookup socket must complete its handshake first");
+    assert!(
+        bootstrap_handshake.at < handshake_done.at
+            && handshake.at < bootstrap_handshake_done.at
+            && handshake.at < lookup_done.at,
+        "coordinator discovery and the committing socket must negotiate concurrently"
+    );
+    for expected_socket in [lookup.socket, socket] {
+        assert_eq!(
+            recent
+                .iter()
+                .filter(|event| event.socket == expected_socket
+                    && matches!(
+                        event.kind,
+                        common::WireEventKind::Request {
+                            api_key: API_VERSIONS,
+                            ..
+                        }
+                    ))
+                .count(),
+            1,
+            "each actual socket must negotiate exactly once"
+        );
+    }
+    assert_eq!(
+        assert_negotiated_request(
+            &mock,
+            trace_before,
+            1,
+            partitionline::protocol::api_keys::FIND_COORDINATOR,
+        ),
+        lookup.socket,
+        "the coordinator lookup must use its own negotiated socket"
+    );
     assert!(
         elapsed < Duration::from_millis(650),
         "commit found the coordinator before redialing it: {elapsed:?}"
@@ -3925,6 +4378,7 @@ async fn max_poll_leave_reuses_the_heartbeat_socket() {
 #[tokio::test]
 async fn offset_commit_reuses_the_other_bootstrap_handshake() {
     let mock = common::Mock::start_two_node().await;
+    mock.enable_wire_trace(10_000);
     mock.set_topic_partitions("t", 1);
     mock.set_partition_leader("t", 0, 1);
     let producer =
@@ -3942,16 +4396,26 @@ async fn offset_commit_reuses_the_other_bootstrap_handshake() {
     let mut group = ConsumerGroup::join(cfg, "commit-other", "t").await.unwrap();
     assert_eq!(group.poll().await.unwrap().len(), 1);
     group.commit().await.unwrap();
-    let versions_before = mock.api_versions_versions().len();
+    let _socket = assert_negotiated_version(
+        &mock,
+        0,
+        1,
+        partitionline::protocol::api_keys::OFFSET_COMMIT,
+        9,
+    );
+    let trace_before = mock.wire_trace().len();
+    mock.set_node_api_max(2, partitionline::protocol::api_keys::OFFSET_COMMIT, 8);
     mock.set_coordinator(2);
     mock.set_api_versions_delay(Duration::from_millis(250));
     let started = Instant::now();
     group.commit().await.unwrap();
     let elapsed = started.elapsed();
-    assert_eq!(
-        mock.api_versions_versions().len(),
-        versions_before,
-        "offset commit rediscovery renegotiated the other bootstrap"
+    let _socket = assert_negotiated_version(
+        &mock,
+        trace_before,
+        2,
+        partitionline::protocol::api_keys::OFFSET_COMMIT,
+        8,
     );
     assert!(
         elapsed < Duration::from_millis(400),
@@ -3964,6 +4428,7 @@ async fn offset_commit_reuses_the_other_bootstrap_handshake() {
 #[tokio::test]
 async fn kip848_rejoin_reuses_the_other_bootstrap_handshake() {
     let mock = common::Mock::start_two_node().await;
+    mock.enable_wire_trace(10_000);
     mock.set_topic_partitions("t", 1);
     mock.set_partition_leader("t", 0, 1);
     let producer =
@@ -3982,17 +4447,31 @@ async fn kip848_rejoin_reuses_the_other_bootstrap_handshake() {
         .await
         .unwrap();
     assert_eq!(group.poll().await.unwrap().len(), 1);
+    let _socket = assert_negotiated_version(
+        &mock,
+        0,
+        1,
+        partitionline::protocol::api_keys::CONSUMER_GROUP_HEARTBEAT,
+        1,
+    );
     mock.set_topic_partitions("u", 1);
-    let versions_before = mock.api_versions_versions().len();
+    let trace_before = mock.wire_trace().len();
+    mock.set_node_api_max(
+        2,
+        partitionline::protocol::api_keys::CONSUMER_GROUP_HEARTBEAT,
+        0,
+    );
     mock.set_coordinator(2);
     mock.set_api_versions_delay(Duration::from_millis(250));
     let started = Instant::now();
     group.subscribe(["t", "u"]).await.unwrap();
     let elapsed = started.elapsed();
-    assert_eq!(
-        mock.api_versions_versions().len(),
-        versions_before,
-        "KIP-848 rejoin rediscovery renegotiated the other bootstrap"
+    let _socket = assert_negotiated_version(
+        &mock,
+        trace_before,
+        2,
+        partitionline::protocol::api_keys::CONSUMER_GROUP_HEARTBEAT,
+        0,
     );
     assert!(
         elapsed < Duration::from_millis(400),
@@ -4005,6 +4484,7 @@ async fn kip848_rejoin_reuses_the_other_bootstrap_handshake() {
 #[tokio::test]
 async fn poll_commit_reuses_the_other_bootstrap_handshake() {
     let mock = common::Mock::start_two_node().await;
+    mock.enable_wire_trace(10_000);
     mock.set_topic_partitions("t", 1);
     mock.set_partition_leader("t", 0, 1);
     let producer =
@@ -4025,16 +4505,17 @@ async fn poll_commit_reuses_the_other_bootstrap_handshake() {
     let mut group = ConsumerGroup::join(cfg, "poll-commit", "t").await.unwrap();
     assert_eq!(group.poll().await.unwrap().len(), 1);
     tokio::time::sleep(Duration::from_millis(5)).await;
-    let versions_before = mock.api_versions_versions().len();
+    let trace_before = mock.wire_trace().len();
     mock.set_coordinator(2);
     mock.set_api_versions_delay(Duration::from_millis(250));
     let started = Instant::now();
     let _again = group.poll().await.unwrap();
     let elapsed = started.elapsed();
-    assert_eq!(
-        mock.api_versions_versions().len(),
-        versions_before,
-        "poll commit rediscovery renegotiated the other bootstrap"
+    let _socket = assert_negotiated_request(
+        &mock,
+        trace_before,
+        2,
+        partitionline::protocol::api_keys::OFFSET_COMMIT,
     );
     assert!(
         elapsed < Duration::from_millis(400),
@@ -4047,6 +4528,7 @@ async fn poll_commit_reuses_the_other_bootstrap_handshake() {
 #[tokio::test]
 async fn sync_group_reuses_the_other_bootstrap_handshake() {
     let mock = common::Mock::start_two_node().await;
+    mock.enable_wire_trace(10_000);
     mock.set_topic_partitions("t", 1);
     mock.set_partition_leader("t", 0, 1);
     let producer =
@@ -4063,6 +4545,13 @@ async fn sync_group_reuses_the_other_bootstrap_handshake() {
     cfg.heartbeat_interval = Duration::from_secs(5);
     let mut group = ConsumerGroup::join(cfg, "sync-moved", "t").await.unwrap();
     assert_eq!(group.poll().await.unwrap().len(), 1);
+    let _socket = assert_negotiated_version(
+        &mock,
+        0,
+        1,
+        partitionline::protocol::api_keys::SYNC_GROUP,
+        5,
+    );
     mock.set_topic_partitions("u", 1);
     mock.set_partition_leader("u", 0, 1);
     let arrived_before = mock.join_group_arrived();
@@ -4070,7 +4559,7 @@ async fn sync_group_reuses_the_other_bootstrap_handshake() {
     mock.set_join_group_delay(Duration::from_millis(200));
     let mut armed = false;
     let mut measuring = false;
-    let mut versions_before = 0usize;
+    let mut trace_before = 0usize;
     let mut started = Instant::now();
     {
         let subscribe = group.subscribe(["t", "u"]);
@@ -4088,7 +4577,8 @@ async fn sync_group_reuses_the_other_bootstrap_handshake() {
                 }
                 _ = tokio::time::sleep(Duration::from_millis(5)) => {
                     if !armed && mock.join_group_arrived() > arrived_before {
-                        versions_before = mock.api_versions_versions().len();
+                        trace_before = mock.wire_trace().len();
+                        mock.set_node_api_max(2, partitionline::protocol::api_keys::SYNC_GROUP, 4);
                         mock.set_coordinator(2);
                         mock.set_api_versions_delay(Duration::from_millis(250));
                         armed = true;
@@ -4106,10 +4596,12 @@ async fn sync_group_reuses_the_other_bootstrap_handshake() {
     );
     assert!(measuring, "JoinGroup delay ended before SyncGroup");
     let elapsed = started.elapsed();
-    assert_eq!(
-        mock.api_versions_versions().len(),
-        versions_before,
-        "SyncGroup rediscovery renegotiated the other bootstrap"
+    let _socket = assert_negotiated_version(
+        &mock,
+        trace_before,
+        2,
+        partitionline::protocol::api_keys::SYNC_GROUP,
+        4,
     );
     assert!(
         elapsed < Duration::from_millis(400),
@@ -4122,6 +4614,7 @@ async fn sync_group_reuses_the_other_bootstrap_handshake() {
 #[tokio::test]
 async fn rejoin_reuses_the_other_bootstrap_handshake() {
     let mock = common::Mock::start_two_node().await;
+    mock.enable_wire_trace(10_000);
     mock.set_topic_partitions("t", 1);
     mock.set_partition_leader("t", 0, 1);
     let producer =
@@ -4138,17 +4631,27 @@ async fn rejoin_reuses_the_other_bootstrap_handshake() {
     cfg.heartbeat_interval = Duration::from_secs(5);
     let mut group = ConsumerGroup::join(cfg, "rejoin-moved", "t").await.unwrap();
     assert_eq!(group.poll().await.unwrap().len(), 1);
+    let _socket = assert_negotiated_version(
+        &mock,
+        0,
+        1,
+        partitionline::protocol::api_keys::JOIN_GROUP,
+        9,
+    );
     mock.set_topic_partitions("u", 1);
-    let versions_before = mock.api_versions_versions().len();
+    let trace_before = mock.wire_trace().len();
+    mock.set_node_api_max(2, partitionline::protocol::api_keys::JOIN_GROUP, 8);
     mock.set_coordinator(2);
     mock.set_api_versions_delay(Duration::from_millis(250));
     let started = Instant::now();
     group.subscribe(["t", "u"]).await.unwrap();
     let elapsed = started.elapsed();
-    assert_eq!(
-        mock.api_versions_versions().len(),
-        versions_before,
-        "rejoin rediscovery renegotiated the other bootstrap"
+    let _socket = assert_negotiated_version(
+        &mock,
+        trace_before,
+        2,
+        partitionline::protocol::api_keys::JOIN_GROUP,
+        8,
     );
     assert!(
         elapsed < Duration::from_millis(400),
@@ -4161,6 +4664,7 @@ async fn rejoin_reuses_the_other_bootstrap_handshake() {
 #[tokio::test]
 async fn rebalance_commit_reuses_the_other_bootstrap_handshake() {
     let mock = common::Mock::start_two_node().await;
+    mock.enable_wire_trace(10_000);
     mock.set_topic_partitions("t", 1);
     mock.set_partition_leader("t", 0, 1);
     let producer =
@@ -4182,17 +4686,26 @@ async fn rebalance_commit_reuses_the_other_bootstrap_handshake() {
         .unwrap();
     assert_eq!(group.poll().await.unwrap().len(), 1);
     mock.set_topic_partitions("u", 1);
-    let versions_before = mock.api_versions_versions().len();
+    let trace_before = mock.wire_trace().len();
     mock.set_coordinator(2);
     mock.set_api_versions_delay(Duration::from_millis(250));
     let started = Instant::now();
     group.subscribe(["t", "u"]).await.unwrap();
     let elapsed = started.elapsed();
-    assert_eq!(
-        mock.api_versions_versions().len(),
-        versions_before,
-        "rebalance commit rediscovery renegotiated the other bootstrap"
+    let _socket = assert_negotiated_request(
+        &mock,
+        trace_before,
+        2,
+        partitionline::protocol::api_keys::JOIN_GROUP,
     );
+    let _commit_socket = assert_negotiated_request(
+        &mock,
+        trace_before,
+        2,
+        partitionline::protocol::api_keys::OFFSET_COMMIT,
+    );
+    assert_eq!(mock.last_offset_commit_node(), Some(2));
+    assert_eq!(mock.committed_offset("rebalance-commit", "t", 0), Some(1));
     assert!(
         elapsed < Duration::from_millis(400),
         "rebalance commit rediscovery repeated ApiVersions: {elapsed:?}"
@@ -4204,6 +4717,7 @@ async fn rebalance_commit_reuses_the_other_bootstrap_handshake() {
 #[tokio::test]
 async fn leave_reuses_the_other_bootstrap_handshake() {
     let mock = common::Mock::start_two_node().await;
+    mock.enable_wire_trace(10_000);
     mock.set_topic_partitions("t", 1);
     mock.set_partition_leader("t", 0, 1);
     let producer =
@@ -4220,8 +4734,9 @@ async fn leave_reuses_the_other_bootstrap_handshake() {
     cfg.heartbeat_interval = Duration::from_secs(5);
     let mut group = ConsumerGroup::join(cfg, "leave-moved", "t").await.unwrap();
     assert_eq!(group.poll().await.unwrap().len(), 1);
-    let versions_before = mock.api_versions_versions().len();
+    let trace_before = mock.wire_trace().len();
     mock.set_coordinator(2);
+    mock.set_node_api_max(2, partitionline::protocol::api_keys::LEAVE_GROUP, 0);
     mock.set_api_versions_delay(Duration::from_millis(250));
     let started = Instant::now();
     group.leave().await.unwrap();
@@ -4231,11 +4746,13 @@ async fn leave_reuses_the_other_bootstrap_handshake() {
         Some(2),
         "leave should reach the moved coordinator"
     );
-    assert_eq!(
-        mock.api_versions_versions().len(),
-        versions_before,
-        "leave rediscovery renegotiated the other bootstrap"
+    let _socket = assert_negotiated_request(
+        &mock,
+        trace_before,
+        2,
+        partitionline::protocol::api_keys::LEAVE_GROUP,
     );
+    assert_eq!(mock.last_leave_group_version(), Some(0));
     assert!(
         elapsed < Duration::from_millis(400),
         "leave rediscovery repeated ApiVersions: {elapsed:?}"
@@ -4246,6 +4763,7 @@ async fn leave_reuses_the_other_bootstrap_handshake() {
 #[tokio::test]
 async fn heartbeat_after_failed_idle_reconnect_reuses_known_versions() {
     let mock = common::Mock::start_two_node().await;
+    mock.enable_wire_trace(10_000);
     mock.set_topic_partitions("t", 1);
     mock.set_partition_leader("t", 0, 1);
     mock.set_coordinator(2);
@@ -4269,12 +4787,19 @@ async fn heartbeat_after_failed_idle_reconnect_reuses_known_versions() {
         }
         tokio::time::sleep(Duration::from_millis(5)).await;
     }
-    mock.refuse_connections(20);
+    mock.refuse_node_connections(2, 20);
     tokio::time::sleep(Duration::from_millis(80)).await;
-    mock.refuse_connections(0);
-    let versions_before = mock.api_versions_versions().len();
+    mock.refuse_node_connections(2, 0);
+    assert!(
+        mock.wire_trace()
+            .iter()
+            .any(|event| event.node == 2 && matches!(event.kind, common::WireEventKind::Refused)),
+        "the coordinator node must have actually refused a connection"
+    );
+    let trace_before = mock.wire_trace().len();
     let accepts_before = mock.accepts();
     let beats_before = mock.heartbeat_total("hb-idle-fail");
+    mock.set_node_api_max(2, HEARTBEAT, 0);
     mock.set_api_versions_delay(Duration::from_millis(250));
     let started = Instant::now();
     while mock.heartbeat_total("hb-idle-fail") <= beats_before {
@@ -4288,14 +4813,11 @@ async fn heartbeat_after_failed_idle_reconnect_reuses_known_versions() {
         mock.accepts() > accepts_before,
         "resumed heartbeat should open a new coordinator socket"
     );
-    assert_eq!(
-        mock.api_versions_versions().len(),
-        versions_before,
-        "resumed heartbeat negotiated the coordinator again"
-    );
+    let _socket = assert_negotiated_request(&mock, trace_before, 2, HEARTBEAT);
+    assert_eq!(mock.last_heartbeat_version(), Some(0));
     assert!(
-        elapsed < Duration::from_millis(200),
-        "resumed heartbeat repeated ApiVersions: {elapsed:?}"
+        elapsed < Duration::from_millis(700),
+        "heartbeat did not resume within the replacement handshake bound: {elapsed:?}"
     );
     group.leave().await.unwrap();
 }
@@ -4359,40 +4881,77 @@ async fn max_poll_leave_reuses_a_dropped_remote_coordinator() {
     drop(group);
 }
 
-/// A list-offsets call to another bootstrap reuses the handshake from startup.
+/// A new leader socket negotiates even when its bootstrap handshake completed.
 #[tokio::test]
-async fn list_offsets_reuses_a_finished_bootstrap_handshake() {
+async fn list_offsets_negotiates_a_new_socket_for_a_finished_bootstrap() {
+    use common::WireEventKind;
     let mock = common::Mock::start_two_node().await;
+    mock.enable_wire_trace(512);
     mock.set_topic_partitions("t", 1);
     mock.set_partition_leader("t", 0, 2);
-    mock.set_api_versions_delay(Duration::from_millis(250));
+    // Keep both startup handshakes in the same bounded gather window.
+    mock.set_api_versions_delay(Duration::from_millis(20));
     let addr2 = mock.broker_addr(2).unwrap();
     let mut cfg = ConsumerConfig::bootstrap([mock.addr.clone(), addr2]);
     cfg.request_timeout = Duration::from_secs(3);
+    cfg.metadata_max_age = Duration::ZERO;
     let started = Instant::now();
     let mut consumer = Consumer::new(cfg).await.unwrap();
-    let startup = started.elapsed();
-    let versions = mock.api_versions_versions().len();
     assert!(
-        versions <= 4,
-        "startup negotiated a bootstrap more than once: {versions}"
+        started.elapsed() < Duration::from_millis(700),
+        "startup repeated a bootstrap handshake"
     );
+    let _topics = consumer.list_topics().await.unwrap();
+    let initial = mock.wire_trace();
+    let bootstrap = initial
+        .iter()
+        .rev()
+        .find(|event| {
+            matches!(
+                &event.kind,
+                WireEventKind::Request {
+                    api_key: METADATA,
+                    ..
+                }
+            )
+        })
+        .expect("the active bootstrap must receive Metadata")
+        .node;
+    let leader = if bootstrap == 1 { 2 } else { 1 };
     assert!(
-        startup < Duration::from_millis(700),
-        "startup repeated a bootstrap handshake: {startup:?}"
+        initial.iter().any(|event| event.node == leader
+            && matches!(
+                &event.kind,
+                WireEventKind::ApiVersionsResponse { error_code: 0, .. }
+            )),
+        "the other bootstrap must have finished its startup handshake"
     );
+    let start = initial.len();
+    mock.set_partition_leader("t", 0, leader);
+    mock.set_node_api_max(leader, LIST_OFFSETS, 7);
+    mock.set_node_api_versions_delay(leader, Duration::from_millis(250));
     let started = Instant::now();
     let offset = consumer.list_offsets("t", 0, -1).await.unwrap();
-    let elapsed = started.elapsed();
     assert!(offset >= 0);
-    assert_eq!(
-        mock.api_versions_versions().len(),
-        versions,
-        "list offsets renegotiated a bootstrap that finished at startup"
-    );
+    assert!(started.elapsed() < Duration::from_millis(700));
+    let trace = mock.wire_trace();
+    let socket = migrated_fresh_request(&trace, start, leader, LIST_OFFSETS, 7);
+    assert_eq!(mock.last_list_offsets_node(), Some(leader));
+    assert_eq!(mock.last_list_offsets_version(), Some(7));
+    let start = trace.len();
+    let accepts_after = mock.accepts();
+    let started = Instant::now();
+    let offset = consumer.list_offsets("t", 0, -1).await.unwrap();
+    assert!(offset >= 0);
     assert!(
-        elapsed < Duration::from_millis(200),
-        "list offsets repeated ApiVersions: {elapsed:?}"
+        started.elapsed() < Duration::from_millis(200),
+        "a second ListOffsets must use the live leader socket"
+    );
+    migrated_reused_request(&mock.wire_trace(), start, leader, LIST_OFFSETS, socket);
+    assert_eq!(
+        mock.accepts(),
+        accepts_after,
+        "the live operation opened a new socket"
     );
     consumer.close().await.unwrap();
 }
@@ -4491,6 +5050,7 @@ async fn multi_bootstrap_heartbeat_reuses_known_coordinator_handshakes() {
 #[tokio::test]
 async fn multi_bootstrap_heartbeat_reuses_the_other_bootstrap_handshake() {
     let mock = common::Mock::start_two_node().await;
+    mock.enable_wire_trace(10_000);
     mock.set_topic_partitions("t", 1);
     mock.set_partition_leader("t", 0, 1);
     let producer =
@@ -4515,7 +5075,7 @@ async fn multi_bootstrap_heartbeat_reuses_the_other_bootstrap_handshake() {
         }
         tokio::time::sleep(Duration::from_millis(5)).await;
     }
-    let versions_before = mock.api_versions_versions().len();
+    let trace_before = mock.wire_trace().len();
     let beats_before = mock.heartbeat_total("hb-other-bootstrap");
     mock.set_coordinator(2);
     mock.fail_heartbeat_once(14);
@@ -4528,11 +5088,7 @@ async fn multi_bootstrap_heartbeat_reuses_the_other_bootstrap_handshake() {
         tokio::time::sleep(Duration::from_millis(5)).await;
     }
     let elapsed = started.elapsed();
-    assert_eq!(
-        mock.api_versions_versions().len(),
-        versions_before,
-        "rediscovery renegotiated the other bootstrap"
-    );
+    let _socket = assert_negotiated_request(&mock, trace_before, 2, HEARTBEAT);
     assert!(
         elapsed < Duration::from_millis(400),
         "multi-bootstrap heartbeat rediscovery repeated ApiVersions: {elapsed:?}"
@@ -4544,6 +5100,7 @@ async fn multi_bootstrap_heartbeat_reuses_the_other_bootstrap_handshake() {
 #[tokio::test]
 async fn idle_coordinator_reuses_the_other_bootstrap_handshake() {
     let mock = common::Mock::start_two_node().await;
+    mock.enable_wire_trace(10_000);
     mock.set_topic_partitions("t", 1);
     mock.set_partition_leader("t", 0, 1);
     let producer =
@@ -4569,7 +5126,7 @@ async fn idle_coordinator_reuses_the_other_bootstrap_handshake() {
         }
         tokio::time::sleep(Duration::from_millis(5)).await;
     }
-    let versions_before = mock.api_versions_versions().len();
+    let trace_before = mock.wire_trace().len();
     let beats_before = mock.heartbeat_total("hb-idle-other");
     mock.set_coordinator(2);
     mock.set_api_versions_delay(Duration::from_millis(250));
@@ -4581,14 +5138,91 @@ async fn idle_coordinator_reuses_the_other_bootstrap_handshake() {
         tokio::time::sleep(Duration::from_millis(5)).await;
     }
     let elapsed = started.elapsed();
+    let socket = assert_negotiated_request(&mock, trace_before, 2, HEARTBEAT);
+    let trace = mock.wire_trace();
+    let recent = trace
+        .get(trace_before..)
+        .expect("trace cursor remains in bounds");
+    let first_negotiation = recent
+        .iter()
+        .find(|event| {
+            matches!(
+                event.kind,
+                common::WireEventKind::Request {
+                    api_key: API_VERSIONS,
+                    ..
+                }
+            )
+        })
+        .expect("the idle reconnect must negotiate a fresh socket");
+    let heartbeat = recent
+        .iter()
+        .find(|event| {
+            event.socket == socket
+                && event.node == 2
+                && matches!(
+                    event.kind,
+                    common::WireEventKind::Request {
+                        api_key: HEARTBEAT,
+                        ..
+                    }
+                )
+        })
+        .expect("the retry must send its heartbeat on the negotiated socket");
+    let active_elapsed = heartbeat
+        .at
+        .checked_duration_since(first_negotiation.at)
+        .expect("fresh negotiation precedes the heartbeat");
+    let negotiations: Vec<_> = recent
+        .iter()
+        .filter(|event| {
+            event.node == 2
+                && matches!(
+                    event.kind,
+                    common::WireEventKind::Request {
+                        api_key: API_VERSIONS,
+                        ..
+                    }
+                )
+        })
+        .collect();
     assert_eq!(
-        mock.api_versions_versions().len(),
-        versions_before,
-        "idle rediscovery renegotiated the other bootstrap"
+        negotiations.len(),
+        1,
+        "rediscovery must negotiate node 2 only once: {negotiations:?}"
     );
+    assert_eq!(negotiations.first().unwrap().socket, socket);
+    let timeline: Vec<_> = recent
+        .iter()
+        .filter_map(|event| match &event.kind {
+            common::WireEventKind::Request { api_key, .. }
+            | common::WireEventKind::Response { api_key, .. }
+                if [
+                    API_VERSIONS,
+                    HEARTBEAT,
+                    partitionline::protocol::api_keys::FIND_COORDINATOR,
+                ]
+                .contains(api_key) =>
+            {
+                Some((
+                    event.sequence,
+                    event.node,
+                    event.socket,
+                    event.at.saturating_duration_since(started),
+                    &event.kind,
+                ))
+            }
+            _ => None,
+        })
+        .collect();
+    eprintln!(
+        "idle coordinator timeline: {timeline:?}; wall: {elapsed:?}; active: {active_elapsed:?}"
+    );
+    // Exclude the 200ms periodic-heartbeat wait. Two serialized 250ms
+    // negotiations still exceed this unchanged 450ms active-work budget.
     assert!(
-        elapsed < Duration::from_millis(450),
-        "idle coordinator rediscovery repeated ApiVersions: {elapsed:?}"
+        active_elapsed < Duration::from_millis(450),
+        "idle coordinator rediscovery serialized ApiVersions: {active_elapsed:?}"
     );
     group.leave().await.unwrap();
 }
@@ -4634,6 +5268,7 @@ async fn fetch_reuses_the_group_coordinator_handshake() {
 #[tokio::test]
 async fn group_leave_negotiates_only_the_new_coordinator() {
     let mock = common::Mock::start_three_node().await;
+    mock.enable_wire_trace(10_000);
     mock.set_topic_partitions("t", 1);
     mock.set_partition_leader("t", 0, 1);
     mock.set_coordinator(2);
@@ -4650,17 +5285,33 @@ async fn group_leave_negotiates_only_the_new_coordinator() {
     cfg.heartbeat_interval = Duration::from_secs(5);
     let mut group = ConsumerGroup::join(cfg, "leave-new", "t").await.unwrap();
     assert_eq!(group.poll().await.unwrap().len(), 1);
-    let versions_before = mock.api_versions_versions().len();
+    common::wait_pred("initial heartbeat", || {
+        mock.heartbeat_total("leave-new") >= 1
+    })
+    .await;
+    let trace_before = mock.wire_trace().len();
     mock.set_coordinator(3);
+    mock.set_node_api_max(3, partitionline::protocol::api_keys::LEAVE_GROUP, 0);
     mock.set_api_versions_delay(Duration::from_millis(250));
     let started = Instant::now();
     group.leave().await.unwrap();
     let elapsed = started.elapsed();
     assert_eq!(mock.last_leave_group_node(), Some(3));
+    let _socket = assert_negotiated_request(
+        &mock,
+        trace_before,
+        3,
+        partitionline::protocol::api_keys::LEAVE_GROUP,
+    );
+    assert_eq!(mock.last_leave_group_version(), Some(0));
+    let trace = mock.wire_trace();
     assert_eq!(
-        mock.api_versions_versions().len(),
-        versions_before + 2,
-        "leave should negotiate only the new coordinator"
+        trace[trace_before..]
+            .iter()
+            .filter(|event| event.node == 3 && matches!(event.kind, common::WireEventKind::Accept))
+            .count(),
+        1,
+        "the moved coordinator should receive one new connection"
     );
     assert!(
         elapsed < Duration::from_millis(700),
@@ -4672,6 +5323,7 @@ async fn group_leave_negotiates_only_the_new_coordinator() {
 #[tokio::test]
 async fn group_fetch_reuses_a_previous_coordinator() {
     let mock = common::Mock::start_three_node().await;
+    mock.enable_wire_trace(10_000);
     mock.set_topic_partitions("t", 1);
     mock.set_partition_leader("t", 0, 1);
     mock.set_coordinator(2);
@@ -4690,6 +5342,13 @@ async fn group_fetch_reuses_a_previous_coordinator() {
     assert_eq!(group.poll().await.unwrap().len(), 1);
     let first = group.committed().await.unwrap();
     assert_eq!(first.len(), 1);
+    let original_socket = assert_negotiated_version(
+        &mock,
+        0,
+        2,
+        partitionline::protocol::api_keys::OFFSET_FETCH,
+        9,
+    );
     let versions_before = mock.api_versions_versions().len();
     mock.set_coordinator(3);
     let moved = group.committed().await.unwrap();
@@ -4699,20 +5358,45 @@ async fn group_fetch_reuses_a_previous_coordinator() {
         versions_moved > versions_before,
         "a new coordinator must negotiate"
     );
+    mock.set_node_api_max(2, partitionline::protocol::api_keys::OFFSET_FETCH, 8);
     mock.set_coordinator(2);
+    let trace_before = mock.wire_trace().len();
     mock.set_api_versions_delay(Duration::from_millis(250));
     let started = Instant::now();
     let returned = group.committed().await.unwrap();
     let elapsed = started.elapsed();
     assert_eq!(returned.len(), 1);
-    assert_eq!(
-        mock.api_versions_versions().len(),
-        versions_moved,
-        "returning to a known coordinator repeated ApiVersions"
+    let replacement = assert_negotiated_version(
+        &mock,
+        trace_before,
+        2,
+        partitionline::protocol::api_keys::OFFSET_FETCH,
+        8,
+    );
+    assert_ne!(
+        replacement, original_socket,
+        "returning after a move must negotiate on the new socket"
     );
     assert!(
-        elapsed < Duration::from_millis(200),
-        "returning to a known coordinator repeated ApiVersions: {elapsed:?}"
+        elapsed < Duration::from_millis(700),
+        "returning coordinator exceeded the two-handshake bound: {elapsed:?}"
+    );
+    let after_return = mock.wire_trace().len();
+    let started = Instant::now();
+    let again = group.committed().await.unwrap();
+    assert_eq!(again.len(), 1);
+    assert!(
+        started.elapsed() < Duration::from_millis(200),
+        "the live returned coordinator was not reused"
+    );
+    assert_eq!(
+        assert_negotiated_request(
+            &mock,
+            after_return,
+            2,
+            partitionline::protocol::api_keys::OFFSET_FETCH
+        ),
+        replacement
     );
     group.leave().await.unwrap();
 }
@@ -4721,6 +5405,7 @@ async fn group_fetch_reuses_a_previous_coordinator() {
 #[tokio::test]
 async fn group_commit_reuses_a_previous_coordinator() {
     let mock = common::Mock::start_three_node().await;
+    mock.enable_wire_trace(10_000);
     mock.set_topic_partitions("t", 1);
     mock.set_partition_leader("t", 0, 1);
     mock.set_coordinator(2);
@@ -4741,6 +5426,12 @@ async fn group_commit_reuses_a_previous_coordinator() {
     assert_eq!(group.poll().await.unwrap().len(), 1);
     group.commit().await.unwrap();
     assert_eq!(mock.last_offset_commit_node(), Some(2));
+    let original_socket = assert_negotiated_request(
+        &mock,
+        0,
+        2,
+        partitionline::protocol::api_keys::OFFSET_COMMIT,
+    );
     let versions_before = mock.api_versions_versions().len();
     mock.set_coordinator(3);
     group.commit().await.unwrap();
@@ -4751,27 +5442,51 @@ async fn group_commit_reuses_a_previous_coordinator() {
         "a new coordinator must negotiate"
     );
     mock.set_coordinator(2);
+    let trace_before = mock.wire_trace().len();
     mock.set_api_versions_delay(Duration::from_millis(250));
     let started = Instant::now();
     group.commit().await.unwrap();
     let elapsed = started.elapsed();
     assert_eq!(mock.last_offset_commit_node(), Some(2));
-    assert_eq!(
-        mock.api_versions_versions().len(),
-        versions_moved,
-        "returning to a known coordinator repeated ApiVersions"
+    let replacement = assert_negotiated_request(
+        &mock,
+        trace_before,
+        2,
+        partitionline::protocol::api_keys::OFFSET_COMMIT,
+    );
+    assert_ne!(
+        replacement, original_socket,
+        "returning after a move must negotiate on the new socket"
     );
     assert!(
-        elapsed < Duration::from_millis(200),
-        "returning to a known coordinator repeated ApiVersions: {elapsed:?}"
+        elapsed < Duration::from_millis(700),
+        "returning coordinator exceeded the two-handshake bound: {elapsed:?}"
+    );
+    let after_return = mock.wire_trace().len();
+    let started = Instant::now();
+    group.commit().await.unwrap();
+    assert_eq!(mock.last_offset_commit_node(), Some(2));
+    assert!(
+        started.elapsed() < Duration::from_millis(200),
+        "the live returned coordinator was not reused"
+    );
+    assert_eq!(
+        assert_negotiated_request(
+            &mock,
+            after_return,
+            2,
+            partitionline::protocol::api_keys::OFFSET_COMMIT
+        ),
+        replacement
     );
     group.leave().await.unwrap();
 }
 
-/// A coordinator that returns to a broker already contacted skips ApiVersions.
+/// A heartbeat negotiates on a new socket after the coordinator returns.
 #[tokio::test]
 async fn group_heartbeat_reuses_a_previous_coordinator() {
     let mock = common::Mock::start_three_node().await;
+    mock.enable_wire_trace(10_000);
     mock.set_topic_partitions("t", 1);
     mock.set_partition_leader("t", 0, 1);
     mock.set_coordinator(2);
@@ -4794,6 +5509,8 @@ async fn group_heartbeat_reuses_a_previous_coordinator() {
         }
         tokio::time::sleep(Duration::from_millis(5)).await;
     }
+    let original_socket =
+        assert_negotiated_request(&mock, 0, 2, partitionline::protocol::api_keys::HEARTBEAT);
     let versions_before = mock.api_versions_versions().len();
     let beats_before = mock.heartbeat_total("hb-return");
     mock.set_coordinator(3);
@@ -4811,6 +5528,7 @@ async fn group_heartbeat_reuses_a_previous_coordinator() {
     );
     let beats_moved = mock.heartbeat_total("hb-return");
     mock.set_coordinator(2);
+    let trace_before = mock.wire_trace().len();
     mock.set_api_versions_delay(Duration::from_millis(250));
     let started = Instant::now();
     while mock.heartbeat_total("hb-return") <= beats_moved {
@@ -4820,14 +5538,28 @@ async fn group_heartbeat_reuses_a_previous_coordinator() {
         tokio::time::sleep(Duration::from_millis(5)).await;
     }
     let elapsed = started.elapsed();
-    assert_eq!(
-        mock.api_versions_versions().len(),
-        versions_moved,
-        "returning to a known coordinator repeated ApiVersions"
+    let replacement = assert_negotiated_request(&mock, trace_before, 2, HEARTBEAT);
+    assert_ne!(
+        replacement, original_socket,
+        "returning after a move must negotiate on the new socket"
     );
     assert!(
-        elapsed < Duration::from_millis(200),
-        "returning to a known coordinator repeated ApiVersions: {elapsed:?}"
+        elapsed < Duration::from_millis(700),
+        "returning heartbeat exceeded the two-handshake bound: {elapsed:?}"
+    );
+    let after_return = mock.wire_trace().len();
+    let beats = mock.heartbeat_total("hb-return");
+    let started = Instant::now();
+    while mock.heartbeat_total("hb-return") <= beats {
+        assert!(
+            started.elapsed() < Duration::from_millis(200),
+            "the live heartbeat socket was not reused"
+        );
+        tokio::time::sleep(Duration::from_millis(5)).await;
+    }
+    assert_eq!(
+        assert_negotiated_request(&mock, after_return, 2, HEARTBEAT),
+        replacement
     );
     group.leave().await.unwrap();
 }
@@ -4882,6 +5614,7 @@ async fn group_heartbeat_retries_without_another_handshake() {
 #[tokio::test]
 async fn group_commit_retries_a_remote_coordinator_without_another_bootstrap_handshake() {
     let mock = common::Mock::start_two_node().await;
+    mock.enable_wire_trace(10_000);
     mock.set_topic_partitions("t", 1);
     mock.set_partition_leader("t", 0, 1);
     mock.move_coordinator();
@@ -4900,6 +5633,11 @@ async fn group_commit_retries_a_remote_coordinator_without_another_bootstrap_han
         .await
         .unwrap();
     assert_eq!(group.poll().await.unwrap().len(), 1);
+    common::wait_pred("initial heartbeat", || {
+        mock.heartbeat_total("commit-remote-known") >= 1
+    })
+    .await;
+    let trace_before = mock.wire_trace().len();
     let versions_before = mock.api_versions_versions().len();
     mock.offset_commit_load_once();
     mock.set_api_versions_delay(Duration::from_millis(250));
@@ -4912,6 +5650,35 @@ async fn group_commit_retries_a_remote_coordinator_without_another_bootstrap_han
         "remote coordinator retry repeated the bootstrap handshake: {elapsed:?}"
     );
     assert_eq!(mock.api_versions_versions().len(), versions_before);
+    let trace = mock.wire_trace();
+    let commits: Vec<_> = trace[trace_before..]
+        .iter()
+        .filter(|event| {
+            event.node == 2
+                && matches!(
+                    event.kind,
+                    common::WireEventKind::Request {
+                        api_key: partitionline::protocol::api_keys::OFFSET_COMMIT,
+                        ..
+                    }
+                )
+        })
+        .collect();
+    assert_eq!(
+        commits.len(),
+        2,
+        "the original request and retry must both reach the coordinator"
+    );
+    assert_eq!(
+        commits[0].socket, commits[1].socket,
+        "coordinator load must not discard a healthy socket"
+    );
+    let _socket = assert_negotiated_request(
+        &mock,
+        trace_before,
+        2,
+        partitionline::protocol::api_keys::OFFSET_COMMIT,
+    );
     group.leave().await.unwrap();
 }
 
@@ -4989,6 +5756,7 @@ async fn group_commit_negotiates_a_moved_coordinator() {
 #[tokio::test]
 async fn group_commit_reuses_bootstrap_when_the_coordinator_returns() {
     let mock = common::Mock::start_two_node().await;
+    mock.enable_wire_trace(10_000);
     mock.set_topic_partitions("t", 1);
     mock.set_partition_leader("t", 0, 1);
     mock.move_coordinator();
@@ -5009,7 +5777,7 @@ async fn group_commit_reuses_bootstrap_when_the_coordinator_returns() {
     assert_eq!(group.poll().await.unwrap().len(), 1);
     group.commit().await.unwrap();
     assert_eq!(mock.last_offset_commit_node(), Some(2));
-    let versions_before = mock.api_versions_versions().len();
+    let trace_before = mock.wire_trace().len();
     mock.move_coordinator();
     mock.set_api_versions_delay(Duration::from_millis(250));
     let started = Instant::now();
@@ -5017,10 +5785,108 @@ async fn group_commit_reuses_bootstrap_when_the_coordinator_returns() {
     let elapsed = started.elapsed();
     assert_eq!(mock.last_offset_commit_node(), Some(1));
     assert!(
-        elapsed < Duration::from_millis(200),
-        "a coordinator that returned to bootstrap repeated ApiVersions: {elapsed:?}"
+        elapsed < Duration::from_millis(450),
+        "returning bootstrap required more than one handshake: {elapsed:?}"
     );
-    assert_eq!(mock.api_versions_versions().len(), versions_before);
+    let socket = assert_negotiated_request(
+        &mock,
+        trace_before,
+        1,
+        partitionline::protocol::api_keys::OFFSET_COMMIT,
+    );
+    let trace = mock.wire_trace();
+    // The heartbeat task can discover its own coordinator concurrently. Prove
+    // commit reuse on its actual lookup socket rather than counting all accepts.
+    let recent = &trace[trace_before..];
+    let lookup = recent
+        .iter()
+        .find(|event| {
+            event.node == 1
+                && event.socket == socket
+                && matches!(
+                    event.kind,
+                    common::WireEventKind::Request {
+                        api_key: partitionline::protocol::api_keys::FIND_COORDINATOR,
+                        ..
+                    }
+                )
+        })
+        .expect("FindCoordinator must reach the returned bootstrap");
+    assert_eq!(
+        lookup.socket, socket,
+        "OffsetCommit must reuse the actual lookup socket"
+    );
+    assert_eq!(
+        recent
+            .iter()
+            .filter(|event| {
+                event.node == 1
+                    && event.socket == socket
+                    && matches!(
+                        event.kind,
+                        common::WireEventKind::Request {
+                            api_key: partitionline::protocol::api_keys::API_VERSIONS,
+                            ..
+                        }
+                    )
+            })
+            .count(),
+        1,
+        "the actual lookup socket must negotiate exactly once"
+    );
+    assert!(
+        trace.iter().any(|event| {
+            event.node == 1
+                && event.socket == socket
+                && event.sequence < lookup.sequence
+                && matches!(
+                    event.kind,
+                    common::WireEventKind::ApiVersionsResponse { error_code: 0, .. }
+                )
+        }),
+        "the lookup socket must negotiate successfully before discovery"
+    );
+    let origin = trace.first().unwrap().at;
+    let timeline: Vec<_> = trace
+        .iter()
+        .filter_map(|event| {
+            if event.node != 1 {
+                return None;
+            }
+            let role = match event.kind {
+                common::WireEventKind::Accept => "accept".to_owned(),
+                common::WireEventKind::Request {
+                    api_key,
+                    api_version,
+                } => format!("request {api_key} v{api_version}"),
+                common::WireEventKind::Close => "close".to_owned(),
+                _ => return None,
+            };
+            Some((
+                event.at.duration_since(origin),
+                event.socket,
+                event.sequence,
+                role,
+            ))
+        })
+        .collect();
+    eprintln!("bootstrap accept/request timeline before and during commit: {timeline:?}");
+    let next = trace.len();
+    let started = Instant::now();
+    group.commit().await.unwrap();
+    assert!(
+        started.elapsed() < Duration::from_millis(200),
+        "a live returned coordinator was not reused"
+    );
+    assert_eq!(
+        assert_negotiated_request(
+            &mock,
+            next,
+            1,
+            partitionline::protocol::api_keys::OFFSET_COMMIT
+        ),
+        socket
+    );
     group.leave().await.unwrap();
 }
 
@@ -5208,10 +6074,12 @@ async fn preferred_replica_dials_overlap() {
     consumer.close().await.unwrap();
 }
 
-/// A fetch leader that is the bootstrap broker does not negotiate again.
+/// Two new leader sockets negotiate in parallel and use their own versions.
 #[tokio::test]
-async fn multi_leader_fetch_reuses_bootstrap_api_versions() {
+async fn multi_leader_fetch_negotiates_each_socket_in_parallel() {
+    use common::WireEventKind;
     let mock = common::Mock::start_two_node().await;
+    mock.enable_wire_trace(512);
     mock.set_topic_partitions("t", 2);
     mock.set_partition_leader("t", 0, 1);
     mock.set_partition_leader("t", 1, 2);
@@ -5223,66 +6091,134 @@ async fn multi_leader_fetch_reuses_bootstrap_api_versions() {
         .assign_many([(("t", 0), 0), (("t", 1), 0)])
         .await
         .unwrap();
-    let versions_before = mock.api_versions_versions().len();
+    let start = mock.wire_trace().len();
     let accepts_before = mock.accepts();
+    mock.set_node_api_max(1, FETCH, 7);
+    mock.set_node_api_max(2, FETCH, 11);
     mock.set_api_versions_delay(Duration::from_millis(250));
     let started = Instant::now();
     let got = consumer.fetch().await.unwrap();
     let elapsed = started.elapsed();
     assert!(got.is_empty());
     assert_eq!(
-        mock.api_versions_versions().len(),
-        versions_before + 1,
-        "only the non-bootstrap leader should negotiate"
-    );
-    assert_eq!(
         mock.accepts(),
         accepts_before + 2,
-        "both leaders open a socket; the bootstrap leader skips ApiVersions"
+        "both leaders open a new socket"
     );
     assert!(
         elapsed < Duration::from_millis(400),
-        "multi-leader fetch repeated the bootstrap handshake: {elapsed:?}"
+        "leader handshakes did not overlap: {elapsed:?}"
     );
+    let trace = mock.wire_trace();
+    let first = migrated_fresh_request(&trace, start, 1, FETCH, 7);
+    let second = migrated_fresh_request(&trace, start, 2, FETCH, 11);
+    assert_ne!(first, second);
+    assert_eq!(mock.last_fetch_version_for_node(1), Some(7));
+    assert_eq!(mock.last_fetch_version_for_node(2), Some(11));
+    let interval = |node, socket| {
+        let request = trace[start..]
+            .iter()
+            .find(|event| {
+                event.node == node
+                    && event.socket == socket
+                    && matches!(
+                        &event.kind,
+                        WireEventKind::Request {
+                            api_key: API_VERSIONS,
+                            ..
+                        }
+                    )
+            })
+            .unwrap();
+        let response = trace[start..]
+            .iter()
+            .find(|event| {
+                event.node == node
+                    && event.socket == socket
+                    && matches!(
+                        &event.kind,
+                        WireEventKind::ApiVersionsResponse { error_code: 0, .. }
+                    )
+            })
+            .unwrap();
+        (request.at, response.at)
+    };
+    let (first_start, first_end) = interval(1, first);
+    let (second_start, second_end) = interval(2, second);
+    assert!(
+        first_start < second_end && second_start < first_end,
+        "leader ApiVersions request intervals must overlap"
+    );
+    let start = trace.len();
+    let accepts_after = mock.accepts();
+    let started = Instant::now();
+    assert!(consumer.fetch().await.unwrap().is_empty());
+    assert!(
+        started.elapsed() < Duration::from_millis(200),
+        "live leader sockets should not renegotiate"
+    );
+    assert_eq!(
+        mock.accepts(),
+        accepts_after,
+        "the live fetch opened another socket"
+    );
+    let reused = mock.wire_trace();
+    migrated_reused_request(&reused, start, 1, FETCH, first);
+    migrated_reused_request(&reused, start, 2, FETCH, second);
     consumer.close().await.unwrap();
 }
 
-/// An idle non-bootstrap fetch leader reconnects without ApiVersions.
+/// An idle remote Fetch leader negotiates the replacement socket.
 #[tokio::test]
-async fn idle_leader_fetch_reuses_learned_api_versions() {
+async fn idle_leader_fetch_negotiates_the_replacement_socket() {
     let mock = common::Mock::start_two_node().await;
+    mock.enable_wire_trace(512);
     mock.set_topic_partitions("t", 1);
     mock.set_partition_leader("t", 0, 2);
     let mut cfg = ConsumerConfig::bootstrap([mock.addr.clone()]).max_wait_ms(10);
-    cfg.connections_max_idle = Duration::from_millis(40);
+    cfg.connections_max_idle = Duration::from_millis(100);
     let mut consumer = Consumer::new(cfg).await.unwrap();
     consumer.assign("t", 0, 0).await.unwrap();
     let _warm = consumer.fetch().await.unwrap();
-    tokio::time::sleep(Duration::from_millis(60)).await;
-    let versions_before = mock.api_versions_versions().len();
+    let old_socket = migrated_last_request_socket(&mock.wire_trace(), 2, FETCH);
+    tokio::time::sleep(Duration::from_millis(150)).await;
+    let start = mock.wire_trace().len();
     let accepts_before = mock.accepts();
+    mock.set_node_api_max(2, FETCH, 7);
     mock.set_api_versions_delay(Duration::from_millis(250));
     let started = Instant::now();
     let _again = consumer.fetch().await.unwrap();
-    let elapsed = started.elapsed();
-    assert_eq!(
-        mock.api_versions_versions().len(),
-        versions_before,
-        "an idle leader should reuse the versions already learned"
-    );
+    assert!(started.elapsed() < Duration::from_millis(700));
     assert!(
         mock.accepts() > accepts_before,
         "idle expiry replaces the leader socket"
     );
+    let trace = mock.wire_trace();
+    let socket = migrated_fresh_request(&trace, start, 2, FETCH, 7);
+    assert_ne!(socket, old_socket);
+    assert_eq!(mock.last_fetch_version_for_node(2), Some(7));
+    let start = trace.len();
+    let accepts_after = mock.accepts();
+    let started = Instant::now();
+    let _again = consumer.fetch().await.unwrap();
     assert!(
-        elapsed < Duration::from_millis(200),
-        "idle leader fetch repeated ApiVersions: {elapsed:?}"
+        started.elapsed() < Duration::from_millis(200),
+        "live leader socket should not wait for another handshake"
+    );
+    migrated_reused_request(&mock.wire_trace(), start, 2, FETCH, socket);
+    assert_eq!(
+        mock.accepts(),
+        accepts_after,
+        "the live operation opened a new socket"
     );
     consumer.close().await.unwrap();
 }
+/// A refused bootstrap leader retries and negotiates its replacement socket.
 #[tokio::test]
-async fn refused_bootstrap_fetch_leader_reuses_api_versions() {
+async fn refused_bootstrap_fetch_leader_negotiates_the_retry() {
+    use common::WireEventKind;
     let mock = common::Mock::start_two_node().await;
+    mock.enable_wire_trace(512);
     mock.set_topic_partitions("t", 2);
     mock.set_partition_leader("t", 0, 1);
     mock.set_partition_leader("t", 1, 2);
@@ -5294,16 +6230,43 @@ async fn refused_bootstrap_fetch_leader_reuses_api_versions() {
         .assign_many([(("t", 0), 0), (("t", 1), 0)])
         .await
         .unwrap();
-    let versions_before = mock.api_versions_versions().len();
-    mock.refuse_connections(1);
+    let start = mock.wire_trace().len();
+    mock.set_node_api_max(1, FETCH, 7);
+    mock.set_node_api_max(2, FETCH, 11);
+    mock.refuse_node_connections(1, 1);
     mock.set_api_versions_delay(Duration::from_millis(250));
-    let got = consumer.fetch().await.unwrap();
-    assert!(got.is_empty());
-    assert_eq!(
-        mock.api_versions_versions().len(),
-        versions_before + 1,
-        "a retried bootstrap leader must not repeat ApiVersions"
-    );
+    let deadline = Instant::now() + Duration::from_secs(3);
+    loop {
+        let got =
+            tokio::time::timeout_at(tokio::time::Instant::from_std(deadline), consumer.fetch())
+                .await
+                .expect("the refused leader exceeded the retry deadline")
+                .unwrap();
+        assert!(got.is_empty());
+        let trace = mock.wire_trace();
+        let reached = |node, version| {
+            trace[start..].iter().any(|event| event.node == node
+            && matches!(&event.kind, WireEventKind::Request { api_key: FETCH, api_version } if *api_version == version))
+        };
+        if reached(1, 7) && reached(2, 11) {
+            assert!(
+                trace[start..]
+                    .iter()
+                    .any(|event| event.node == 1 && matches!(&event.kind, WireEventKind::Refused)),
+                "node 1 must be the refused broker"
+            );
+            let first = migrated_fresh_request(&trace, start, 1, FETCH, 7);
+            let second = migrated_fresh_request(&trace, start, 2, FETCH, 11);
+            assert_ne!(first, second);
+            assert_eq!(mock.last_fetch_version_for_node(1), Some(7));
+            assert_eq!(mock.last_fetch_version_for_node(2), Some(11));
+            break;
+        }
+        assert!(
+            Instant::now() < deadline,
+            "the refused leader did not recover within the retry deadline"
+        );
+    }
     consumer.close().await.unwrap();
 }
 #[tokio::test]
@@ -6803,6 +7766,7 @@ async fn kip848_resubscribe_loads_metadata_while_joining() {
 #[tokio::test]
 async fn kip848_assignment_reuses_the_other_bootstrap_handshake() {
     let mock = common::Mock::start_two_node().await;
+    mock.enable_wire_trace(10_000);
     mock.set_topic_partitions("t", 1);
     mock.set_partition_leader("t", 0, 1);
     mock.set_cg_heartbeat_interval_ms(200);
@@ -6819,17 +7783,18 @@ async fn kip848_assignment_reuses_the_other_bootstrap_handshake() {
     mock.set_cg_heartbeat_interval_ms(60_000);
     mock.refresh_kip848_assignments();
     tokio::time::sleep(Duration::from_millis(400)).await;
-    let versions_before = mock.api_versions_versions().len();
+    let trace_before = mock.wire_trace().len();
     mock.set_coordinator(2);
     mock.set_api_versions_delay(Duration::from_millis(250));
     let started = Instant::now();
     let _got = group.poll().await.unwrap();
     let elapsed = started.elapsed();
     assert_eq!(group.assignment().len(), 2);
-    assert_eq!(
-        mock.api_versions_versions().len(),
-        versions_before,
-        "assignment offset fetch renegotiated the other bootstrap"
+    let _socket = assert_negotiated_request(
+        &mock,
+        trace_before,
+        2,
+        partitionline::protocol::api_keys::OFFSET_FETCH,
     );
     assert!(
         elapsed < Duration::from_millis(400),
@@ -7314,7 +8279,10 @@ async fn idle_metadata_reconnect_reuses_bootstrap_for_the_next_fetch() {
     let mut consumer = Consumer::new(
         ConsumerConfig::bootstrap([mock.addr.clone()])
             .max_wait_ms(10)
-            .connections_max_idle(Duration::from_millis(1)),
+            // The later sleep expires both the metadata and the idle socket,
+            // while leaving enough time for the next fetch to reuse it.
+            .metadata_max_age(Duration::from_millis(100))
+            .connections_max_idle(Duration::from_millis(100)),
     )
     .await
     .unwrap();
@@ -7324,9 +8292,14 @@ async fn idle_metadata_reconnect_reuses_bootstrap_for_the_next_fetch() {
         .unwrap();
     assert!(consumer.fetch().await.unwrap().is_empty());
     assert!(consumer.fetch().await.unwrap().is_empty());
-    tokio::time::sleep(Duration::from_millis(30)).await;
+    tokio::time::sleep(Duration::from_millis(150)).await;
     let before_assign = mock.accept_count();
+    let metadata_before = mock.metadata_calls();
     consumer.assign("t", 0, 0).await.unwrap();
+    assert!(
+        mock.metadata_calls() > metadata_before,
+        "assignment must refresh the expired topic metadata"
+    );
     let after_assign = mock.accept_count();
     assert!(
         after_assign > before_assign,
@@ -7355,15 +8328,17 @@ async fn idle_metadata_reconnect_reuses_bootstrap_for_the_next_fetch() {
     consumer.close().await.unwrap();
 }
 
+/// Telemetry on a replacement bootstrap resets the previous Fetch session.
 #[tokio::test]
 async fn idle_client_instance_id_resets_the_bootstrap_fetch_session() {
     let mock = common::Mock::start().await;
+    mock.enable_wire_trace(512);
     mock.set_topic_partitions("t", 2);
     mock.enable_fetch_sessions([1]);
     let mut consumer = Consumer::new(
         ConsumerConfig::bootstrap([mock.addr.clone()])
             .max_wait_ms(10)
-            .connections_max_idle(Duration::from_millis(1)),
+            .connections_max_idle(Duration::from_millis(100)),
     )
     .await
     .unwrap();
@@ -7373,33 +8348,35 @@ async fn idle_client_instance_id_resets_the_bootstrap_fetch_session() {
         .unwrap();
     assert!(consumer.fetch().await.unwrap().is_empty());
     assert!(consumer.fetch().await.unwrap().is_empty());
-    tokio::time::sleep(Duration::from_millis(30)).await;
+    let old_socket = migrated_last_request_socket(&mock.wire_trace(), 1, FETCH);
+    tokio::time::sleep(Duration::from_millis(150)).await;
     let before = mock.accept_count();
-    let versions_before = mock.api_versions_versions().len();
+    let start = mock.wire_trace().len();
     mock.set_api_versions_delay(Duration::from_millis(250));
     let started = Instant::now();
     let _id = consumer.client_instance_id().await.unwrap();
-    let elapsed = started.elapsed();
+    assert!(started.elapsed() < Duration::from_millis(700));
     let after = mock.accept_count();
     assert!(
         after > before,
         "idle clientInstanceId must replace the bootstrap socket"
     );
-    assert_eq!(
-        mock.api_versions_versions().len(),
-        versions_before,
-        "idle clientInstanceId should reuse the versions already learned"
-    );
-    assert!(
-        elapsed < Duration::from_millis(200),
-        "idle clientInstanceId repeated ApiVersions: {elapsed:?}"
-    );
+    let trace = mock.wire_trace();
+    let socket = migrated_fresh_request(&trace, start, 1, GET_TELEMETRY_SUBSCRIPTIONS, 0);
+    assert_ne!(socket, old_socket);
+    let start = trace.len();
+    let started = Instant::now();
     assert!(consumer.fetch().await.unwrap().is_empty());
+    assert!(
+        started.elapsed() < Duration::from_millis(200),
+        "Fetch should reuse the new live socket"
+    );
     assert_eq!(
         mock.accept_count(),
         after,
         "the next fetch must reuse the socket opened for clientInstanceId"
     );
+    migrated_reused_request(&mock.wire_trace(), start, 1, FETCH, socket);
     let next = mock
         .fetch_session_requests()
         .last()

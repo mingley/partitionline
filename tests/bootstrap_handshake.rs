@@ -56,6 +56,91 @@ async fn producer_telemetry_reconnect_rejects_a_removed_api() {
     producer.close().await.unwrap();
 }
 
+#[tokio::test]
+async fn consumer_telemetry_reconnect_rejects_a_removed_api() {
+    let mock = common::Mock::start().await;
+    let mut consumer = Consumer::new(
+        ConsumerConfig::bootstrap([mock.addr.clone()])
+            .max_wait_ms(10)
+            .connections_max_idle(Duration::from_millis(20)),
+    )
+    .await
+    .unwrap();
+    mock.hide_api(GET_TELEMETRY_SUBSCRIPTIONS);
+    tokio::time::sleep(Duration::from_millis(40)).await;
+    assert!(matches!(
+        consumer
+            .client_instance_id_timeout(Duration::from_secs(2))
+            .await,
+        Err(Error::Unsupported(_))
+    ));
+    assert_eq!(mock.last_get_telemetry_subscriptions(), None);
+    consumer.close().await.unwrap();
+}
+
+#[tokio::test]
+async fn consumer_metadata_reconnect_uses_new_broker_version() {
+    let mock = common::Mock::start().await;
+    let mut consumer = Consumer::new(
+        ConsumerConfig::bootstrap([mock.addr.clone()])
+            .max_wait_ms(10)
+            .metadata_max_age(Duration::ZERO)
+            .connections_max_idle(Duration::from_millis(20)),
+    )
+    .await
+    .unwrap();
+    let _topics = consumer.list_topics().await.unwrap();
+    assert_eq!(mock.last_metadata_version(), Some(13));
+    mock.set_node_api_max(1, METADATA, 7);
+    tokio::time::sleep(Duration::from_millis(40)).await;
+    let _topics = consumer.list_topics().await.unwrap();
+    assert_eq!(mock.last_metadata_version(), Some(7));
+    consumer.close().await.unwrap();
+}
+
+/// TLS and the subsequent Kafka handshake share the producer startup deadline.
+#[tokio::test]
+async fn producer_startup_deadline_spans_tls_and_api_versions() {
+    use std::sync::Arc;
+    use tokio::io::AsyncReadExt;
+
+    let (server, ca) = common::tls_server_identity();
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let addr = listener.local_addr().unwrap().to_string();
+    let peer = tokio::spawn(async move {
+        let (socket, _) = listener.accept().await.unwrap();
+        tokio::time::sleep(Duration::from_millis(150)).await;
+        let acceptor = tokio_rustls::TlsAcceptor::from(Arc::new(server));
+        let mut socket = acceptor.accept(socket).await.unwrap();
+        let len = socket.read_i32().await.unwrap();
+        assert!((8..=4096).contains(&len));
+        let mut request = vec![0; usize::try_from(len).unwrap()];
+        let _read = socket.read_exact(&mut request).await.unwrap();
+        assert_eq!(i16::from_be_bytes(request[0..2].try_into().unwrap()), 18);
+        let mut remaining = [0; 64];
+        while matches!(socket.read(&mut remaining).await, Ok(n) if n > 0) {}
+    });
+    let tls = partitionline::TlsConfig::default()
+        .ca_pem(ca)
+        .server_name("localhost");
+    let cfg = ProducerConfig::bootstrap([addr])
+        .tls(tls)
+        .connect_timeout(Duration::from_secs(1))
+        .request_timeout(Duration::from_millis(250));
+    let started = Instant::now();
+    let result = Producer::new(cfg).await;
+    let elapsed = started.elapsed();
+    assert!(
+        matches!(result, Err(Error::Timeout)),
+        "expected the overall startup timeout"
+    );
+    assert!(
+        elapsed < Duration::from_millis(400),
+        "TLS and Kafka handshakes exceeded one deadline: {elapsed:?}"
+    );
+    peer.await.unwrap();
+}
+
 #[expect(clippy::unwrap_used, reason = "the loopback test fixture must start")]
 async fn stall_listener() -> String {
     let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
@@ -439,6 +524,7 @@ async fn admin_startup_reuses_a_finished_bootstrap_handshake() {
 #[tokio::test]
 async fn list_offsets_renegotiates_a_remote_leader_after_idle() {
     let mock = common::Mock::start_two_node().await;
+    mock.enable_wire_trace(10_000);
     let mut cfg =
         AdminConfig::bootstrap([mock.addr.clone()]).connections_max_idle(Duration::from_millis(40));
     cfg.request_timeout = Duration::from_secs(3);
@@ -448,7 +534,60 @@ async fn list_offsets_renegotiates_a_remote_leader_after_idle() {
         .await
         .unwrap();
     assert_eq!(listed.len(), 1, "{listed:?}");
-    assert_eq!(mock.api_versions_versions().len(), 2);
+    // The bootstrap may itself expire during the initial admin work. The
+    // contract is successful negotiation on each actual leader socket, rather
+    // than a process-wide count that depends on the 40ms idle timer.
+    let assert_leader_socket = |trace: &[common::WireEvent], since: usize| {
+        let (request, api_version) = trace
+            .get(since..)
+            .expect("valid trace anchor")
+            .iter()
+            .find_map(|event| match event.kind {
+                common::WireEventKind::Request {
+                    api_key: LIST_OFFSETS,
+                    api_version,
+                } if event.node == 2 => Some((event, api_version)),
+                _ => None,
+            })
+            .expect("ListOffsets must reach node 2");
+        let (reply, range) = trace
+            .iter()
+            .find_map(|event| match &event.kind {
+                common::WireEventKind::ApiVersionsResponse {
+                    error_code: 0,
+                    ranges,
+                } if event.node == 2 && event.socket == request.socket => ranges
+                    .iter()
+                    .find(|range| range.api_key == LIST_OFFSETS)
+                    .map(|range| (event, range)),
+                _ => None,
+            })
+            .expect("the actual leader socket must return ListOffsets ranges");
+        assert!(reply.sequence < request.sequence);
+        assert!((range.min_version..=range.max_version).contains(&api_version));
+        assert_eq!(
+            trace
+                .iter()
+                .filter(|event| {
+                    event.node == 2
+                        && event.socket == request.socket
+                        && matches!(
+                            event.kind,
+                            common::WireEventKind::Request {
+                                api_key: partitionline::protocol::api_keys::API_VERSIONS,
+                                ..
+                            }
+                        )
+                })
+                .count(),
+            1,
+            "the used leader socket must negotiate exactly once"
+        );
+        request.socket
+    };
+    let initial_trace = mock.wire_trace();
+    let original_socket = assert_leader_socket(&initial_trace, 0);
+    let next = initial_trace.len();
     tokio::time::sleep(Duration::from_millis(60)).await;
     mock.set_node_api_max(2, LIST_OFFSETS, 7);
     mock.set_api_versions_delay(Duration::from_millis(250));
@@ -463,7 +602,32 @@ async fn list_offsets_renegotiates_a_remote_leader_after_idle() {
         elapsed < Duration::from_millis(400),
         "remote leader renegotiation exceeded its budget: {elapsed:?}"
     );
-    assert_eq!(mock.api_versions_versions().len(), 3);
+    let trace = mock.wire_trace();
+    let replacement = assert_leader_socket(&trace, next);
+    assert_ne!(
+        replacement, original_socket,
+        "idle expiry must replace the leader socket"
+    );
+    let origin = trace.first().unwrap().at;
+    let requests: Vec<_> = trace
+        .iter()
+        .filter_map(|event| match event.kind {
+            common::WireEventKind::Request {
+                api_key,
+                api_version,
+            } => Some((
+                event.at.duration_since(origin),
+                event.node,
+                event.socket,
+                api_key,
+                api_version,
+            )),
+            _ => None,
+        })
+        .collect();
+    eprintln!(
+        "initial and replacement leader requests (elapsed,node,socket,api,version): {requests:?}"
+    );
     assert_eq!(mock.last_list_offsets_version(), Some(7));
 }
 

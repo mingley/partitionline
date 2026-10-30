@@ -1,0 +1,68 @@
+{
+  "Cargo.lock": {
+    "ctutils": "0.4.2",
+    "rustls": "0.23.45",
+    "rustls-webpki": "0.103.15",
+    "tokio": "1.53.2",
+    "webpki-roots": "1.0.9"
+  },
+  "partitionline-broker/Cargo.lock": {
+    "ctutils": "0.4.2",
+    "rustls": "0.23.45",
+    "rustls-webpki": "0.103.15",
+    "tokio": "1.53.1"
+  },
+  "partitionline-schema/Cargo.lock": {
+    "rustls": "0.23.45",
+    "rustls-webpki": "0.103.15",
+    "tokio": "1.53.1",
+    "webpki-roots": "1.0.9"
+  },
+  "fuzz/Cargo.lock": {
+    "ctutils": "0.4.2",
+    "rustls": "0.23.43",
+    "rustls-webpki": "0.103.15",
+    "tokio": "1.53.1",
+    "webpki-roots": "1.0.9"
+  },
+  "fuzz/broker/Cargo.lock": {
+    "tokio": "1.53.3"
+  },
+  "benchmarks/codec/Cargo.lock": {
+    "ctutils": "0.4.2",
+    "rustls": "0.23.45",
+    "rustls-webpki": "0.103.15",
+    "tokio": "1.53.1",
+    "webpki-roots": "1.0.9"
+  },
+  "benchmarks/nullbroker/Cargo.lock": {},
+  "benchmarks/runtime/Cargo.lock": {
+    "ctutils": "0.4.2",
+    "rustls": "0.23.45",
+    "rustls-webpki": "0.103.15",
+    "tokio": "1.53.1",
+    "webpki-roots": "1.0.9"
+  },
+  "benchmarks/sticky-partitioner/Cargo.lock": {
+    "ctutils": "0.4.2",
+    "rustls": "0.23.45",
+    "rustls-webpki": "0.103.15",
+    "tokio": "1.53.1",
+    "webpki-roots": "1.0.9"
+  },
+  "benchmarks/peers/rust/Cargo.lock": {},
+  "tests/conformance/broker/interop/Cargo.lock": {
+    "ctutils": "0.4.2",
+    "rustls": "0.23.45",
+    "rustls-webpki": "0.103.15",
+    "tokio": "1.53.1",
+    "webpki-roots": "1.0.9"
+  },
+  "tests/conformance/librdkafka/rust/Cargo.lock": {
+    "ctutils": "0.4.2",
+    "rustls": "0.23.45",
+    "rustls-webpki": "0.103.15",
+    "tokio": "1.53.1",
+    "webpki-roots": "1.0.9"
+  }
+}

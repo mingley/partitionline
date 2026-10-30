@@ -1,0 +1,487 @@
+{
+  "Cargo.lock": {
+    "removed": [
+      {
+        "name": "ctutils",
+        "version": "0.4.2"
+      },
+      {
+        "name": "rustls",
+        "version": "0.23.45"
+      },
+      {
+        "name": "rustls-webpki",
+        "version": "0.103.15"
+      },
+      {
+        "name": "tokio",
+        "version": "1.53.2"
+      },
+      {
+        "name": "webpki-roots",
+        "version": "1.0.9"
+      }
+    ],
+    "added": [
+      {
+        "name": "ctutils",
+        "version": "0.4.7"
+      },
+      {
+        "name": "rustls",
+        "version": "0.23.46"
+      },
+      {
+        "name": "rustls-webpki",
+        "version": "0.103.16"
+      },
+      {
+        "name": "tokio",
+        "version": "1.53.3"
+      },
+      {
+        "name": "webpki-roots",
+        "version": "1.0.11"
+      }
+    ],
+    "selected_security_packages": {
+      "ctutils": "0.4.7",
+      "rustls": "0.23.46",
+      "rustls-webpki": "0.103.16",
+      "tokio": "1.53.3",
+      "webpki-roots": "1.0.11"
+    }
+  },
+  "benchmarks/codec/Cargo.lock": {
+    "removed": [
+      {
+        "name": "ctutils",
+        "version": "0.4.2"
+      },
+      {
+        "name": "rustls",
+        "version": "0.23.45"
+      },
+      {
+        "name": "rustls-webpki",
+        "version": "0.103.15"
+      },
+      {
+        "name": "tokio",
+        "version": "1.53.1"
+      },
+      {
+        "name": "webpki-roots",
+        "version": "1.0.9"
+      }
+    ],
+    "added": [
+      {
+        "name": "ctutils",
+        "version": "0.4.7"
+      },
+      {
+        "name": "rustls",
+        "version": "0.23.46"
+      },
+      {
+        "name": "rustls-webpki",
+        "version": "0.103.16"
+      },
+      {
+        "name": "tokio",
+        "version": "1.53.3"
+      },
+      {
+        "name": "webpki-roots",
+        "version": "1.0.11"
+      }
+    ],
+    "selected_security_packages": {
+      "ctutils": "0.4.7",
+      "rustls": "0.23.46",
+      "rustls-webpki": "0.103.16",
+      "tokio": "1.53.3",
+      "webpki-roots": "1.0.11"
+    }
+  },
+  "benchmarks/nullbroker/Cargo.lock": {
+    "removed": [],
+    "added": [],
+    "selected_security_packages": {}
+  },
+  "benchmarks/peers/rust/Cargo.lock": {
+    "removed": [],
+    "added": [],
+    "selected_security_packages": {}
+  },
+  "benchmarks/runtime/Cargo.lock": {
+    "removed": [
+      {
+        "name": "ctutils",
+        "version": "0.4.2"
+      },
+      {
+        "name": "rustls",
+        "version": "0.23.45"
+      },
+      {
+        "name": "rustls-webpki",
+        "version": "0.103.15"
+      },
+      {
+        "name": "tokio",
+        "version": "1.53.1"
+      },
+      {
+        "name": "webpki-roots",
+        "version": "1.0.9"
+      }
+    ],
+    "added": [
+      {
+        "name": "ctutils",
+        "version": "0.4.7"
+      },
+      {
+        "name": "rustls",
+        "version": "0.23.46"
+      },
+      {
+        "name": "rustls-webpki",
+        "version": "0.103.16"
+      },
+      {
+        "name": "tokio",
+        "version": "1.53.3"
+      },
+      {
+        "name": "webpki-roots",
+        "version": "1.0.11"
+      }
+    ],
+    "selected_security_packages": {
+      "ctutils": "0.4.7",
+      "rustls": "0.23.46",
+      "rustls-webpki": "0.103.16",
+      "tokio": "1.53.3",
+      "webpki-roots": "1.0.11"
+    }
+  },
+  "benchmarks/sticky-partitioner/Cargo.lock": {
+    "removed": [
+      {
+        "name": "ctutils",
+        "version": "0.4.2"
+      },
+      {
+        "name": "rustls",
+        "version": "0.23.45"
+      },
+      {
+        "name": "rustls-webpki",
+        "version": "0.103.15"
+      },
+      {
+        "name": "tokio",
+        "version": "1.53.1"
+      },
+      {
+        "name": "webpki-roots",
+        "version": "1.0.9"
+      }
+    ],
+    "added": [
+      {
+        "name": "ctutils",
+        "version": "0.4.7"
+      },
+      {
+        "name": "rustls",
+        "version": "0.23.46"
+      },
+      {
+        "name": "rustls-webpki",
+        "version": "0.103.16"
+      },
+      {
+        "name": "tokio",
+        "version": "1.53.3"
+      },
+      {
+        "name": "webpki-roots",
+        "version": "1.0.11"
+      }
+    ],
+    "selected_security_packages": {
+      "ctutils": "0.4.7",
+      "rustls": "0.23.46",
+      "rustls-webpki": "0.103.16",
+      "tokio": "1.53.3",
+      "webpki-roots": "1.0.11"
+    }
+  },
+  "fuzz/Cargo.lock": {
+    "removed": [
+      {
+        "name": "ctutils",
+        "version": "0.4.2"
+      },
+      {
+        "name": "rustls",
+        "version": "0.23.43"
+      },
+      {
+        "name": "rustls-webpki",
+        "version": "0.103.15"
+      },
+      {
+        "name": "tokio",
+        "version": "1.53.1"
+      },
+      {
+        "name": "webpki-roots",
+        "version": "1.0.9"
+      }
+    ],
+    "added": [
+      {
+        "name": "ctutils",
+        "version": "0.4.7"
+      },
+      {
+        "name": "rustls",
+        "version": "0.23.46"
+      },
+      {
+        "name": "rustls-webpki",
+        "version": "0.103.16"
+      },
+      {
+        "name": "tokio",
+        "version": "1.53.3"
+      },
+      {
+        "name": "webpki-roots",
+        "version": "1.0.11"
+      }
+    ],
+    "selected_security_packages": {
+      "ctutils": "0.4.7",
+      "rustls": "0.23.46",
+      "rustls-webpki": "0.103.16",
+      "tokio": "1.53.3",
+      "webpki-roots": "1.0.11"
+    }
+  },
+  "fuzz/broker/Cargo.lock": {
+    "removed": [],
+    "added": [
+      {
+        "name": "errno",
+        "version": "0.3.14"
+      },
+      {
+        "name": "signal-hook-registry",
+        "version": "1.4.8"
+      }
+    ],
+    "selected_security_packages": {
+      "tokio": "1.53.3"
+    }
+  },
+  "partitionline-broker/Cargo.lock": {
+    "removed": [
+      {
+        "name": "ctutils",
+        "version": "0.4.2"
+      },
+      {
+        "name": "rustls",
+        "version": "0.23.45"
+      },
+      {
+        "name": "rustls-webpki",
+        "version": "0.103.15"
+      },
+      {
+        "name": "tokio",
+        "version": "1.53.1"
+      }
+    ],
+    "added": [
+      {
+        "name": "ctutils",
+        "version": "0.4.7"
+      },
+      {
+        "name": "rustls",
+        "version": "0.23.46"
+      },
+      {
+        "name": "rustls-webpki",
+        "version": "0.103.16"
+      },
+      {
+        "name": "tokio",
+        "version": "1.53.3"
+      }
+    ],
+    "selected_security_packages": {
+      "ctutils": "0.4.7",
+      "rustls": "0.23.46",
+      "rustls-webpki": "0.103.16",
+      "tokio": "1.53.3"
+    }
+  },
+  "partitionline-schema/Cargo.lock": {
+    "removed": [
+      {
+        "name": "rustls",
+        "version": "0.23.45"
+      },
+      {
+        "name": "rustls-webpki",
+        "version": "0.103.15"
+      },
+      {
+        "name": "tokio",
+        "version": "1.53.1"
+      },
+      {
+        "name": "webpki-roots",
+        "version": "1.0.9"
+      }
+    ],
+    "added": [
+      {
+        "name": "rustls",
+        "version": "0.23.46"
+      },
+      {
+        "name": "rustls-webpki",
+        "version": "0.103.16"
+      },
+      {
+        "name": "tokio",
+        "version": "1.53.3"
+      },
+      {
+        "name": "webpki-roots",
+        "version": "1.0.11"
+      }
+    ],
+    "selected_security_packages": {
+      "rustls": "0.23.46",
+      "rustls-webpki": "0.103.16",
+      "tokio": "1.53.3",
+      "webpki-roots": "1.0.11"
+    }
+  },
+  "tests/conformance/broker/interop/Cargo.lock": {
+    "removed": [
+      {
+        "name": "ctutils",
+        "version": "0.4.2"
+      },
+      {
+        "name": "rustls",
+        "version": "0.23.45"
+      },
+      {
+        "name": "rustls-webpki",
+        "version": "0.103.15"
+      },
+      {
+        "name": "tokio",
+        "version": "1.53.1"
+      },
+      {
+        "name": "webpki-roots",
+        "version": "1.0.9"
+      }
+    ],
+    "added": [
+      {
+        "name": "ctutils",
+        "version": "0.4.7"
+      },
+      {
+        "name": "rustls",
+        "version": "0.23.46"
+      },
+      {
+        "name": "rustls-webpki",
+        "version": "0.103.16"
+      },
+      {
+        "name": "tokio",
+        "version": "1.53.3"
+      },
+      {
+        "name": "webpki-roots",
+        "version": "1.0.11"
+      }
+    ],
+    "selected_security_packages": {
+      "ctutils": "0.4.7",
+      "rustls": "0.23.46",
+      "rustls-webpki": "0.103.16",
+      "tokio": "1.53.3",
+      "webpki-roots": "1.0.11"
+    }
+  },
+  "tests/conformance/librdkafka/rust/Cargo.lock": {
+    "removed": [
+      {
+        "name": "ctutils",
+        "version": "0.4.2"
+      },
+      {
+        "name": "rustls",
+        "version": "0.23.45"
+      },
+      {
+        "name": "rustls-webpki",
+        "version": "0.103.15"
+      },
+      {
+        "name": "tokio",
+        "version": "1.53.1"
+      },
+      {
+        "name": "webpki-roots",
+        "version": "1.0.9"
+      }
+    ],
+    "added": [
+      {
+        "name": "ctutils",
+        "version": "0.4.7"
+      },
+      {
+        "name": "rustls",
+        "version": "0.23.46"
+      },
+      {
+        "name": "rustls-webpki",
+        "version": "0.103.16"
+      },
+      {
+        "name": "tokio",
+        "version": "1.53.3"
+      },
+      {
+        "name": "webpki-roots",
+        "version": "1.0.11"
+      }
+    ],
+    "selected_security_packages": {
+      "ctutils": "0.4.7",
+      "rustls": "0.23.46",
+      "rustls-webpki": "0.103.16",
+      "tokio": "1.53.3",
+      "webpki-roots": "1.0.11"
+    }
+  }
+}

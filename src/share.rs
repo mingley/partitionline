@@ -4064,11 +4064,10 @@ impl ShareGroup {
                 } else {
                     self.share_api_keys.get(&node).cloned()
                 };
-                let (mut conn, versions, already_authenticated) = if reuse {
-                    let opened = self.consumer.open_leader_socket(&addr, deadline).await?;
-                    (opened.0, opened.1, true)
+                let (conn, versions) = if reuse {
+                    self.consumer.open_leader_socket(&addr, deadline).await?
                 } else if let Some(keys) = remembered {
-                    let opened = Consumer::open_fetch_conn_known(
+                    Consumer::open_fetch_conn_known(
                         &addr,
                         &self.cfg.client_id,
                         self.cfg.connect_timeout,
@@ -4081,23 +4080,21 @@ impl ShareGroup {
                         &keys,
                         deadline,
                     )
-                    .await?;
-                    (opened.0, opened.1, true)
+                    .await?
                 } else {
-                    let mut conn = BrokerConn::connect_tls(
+                    Consumer::open_fetch_conn(
                         &addr,
                         &self.cfg.client_id,
-                        self.cfg.connect_timeout.min(rest),
+                        self.cfg.connect_timeout,
                         self.cfg.tls.as_ref(),
+                        self.cfg.sasl_plain.as_ref(),
+                        self.cfg.sasl_scram.as_ref(),
+                        self.cfg.sasl_scram_sha512.as_ref(),
+                        self.cfg.sasl_oauthbearer.as_deref(),
+                        self.cfg.sasl_oauthbearer_oidc.as_ref(),
+                        deadline,
                     )
-                    .await?;
-                    let rest = deadline.saturating_duration_since(Instant::now());
-                    if rest.is_zero() {
-                        return Err(Error::Timeout);
-                    }
-                    let versions =
-                        crate::protocol::api::negotiate_api_versions(&mut conn, rest).await?;
-                    (conn, versions, false)
+                    .await?
                 };
                 let fetch_version = versions
                     .api_version(SHARE_FETCH)
@@ -4121,23 +4118,6 @@ impl ShareGroup {
                         )
                     })
                     .unwrap_or(-1);
-                if !already_authenticated {
-                    crate::protocol::sasl::apply_api_keys(&mut conn, &versions.api_keys);
-                    let rest = deadline.saturating_duration_since(Instant::now());
-                    if rest.is_zero() {
-                        return Err(Error::Timeout);
-                    }
-                    crate::protocol::sasl::authenticate(
-                        &mut conn,
-                        self.cfg.sasl_plain.as_ref(),
-                        self.cfg.sasl_scram.as_ref(),
-                        self.cfg.sasl_scram_sha512.as_ref(),
-                        self.cfg.sasl_oauthbearer.as_deref(),
-                        self.cfg.sasl_oauthbearer_oidc.as_ref(),
-                        rest,
-                    )
-                    .await?;
-                }
                 let _stored = self.share_api_keys.insert(node, versions.api_keys);
                 let _ = self.share_addresses.insert(node, addr);
                 let _ = entry.insert(ShareNodeConnection {
@@ -8661,6 +8641,151 @@ mod tests {
 
     use super::*;
 
+    async fn share_group_for_dial_test() -> (ShareGroup, tokio::net::TcpListener) {
+        let parked = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = parked.local_addr().unwrap().to_string();
+        let consumer = BrokerConn::connect(&addr, "share-consumer", Duration::from_secs(1))
+            .await
+            .unwrap();
+        let coord = BrokerConn::connect(&addr, "share-coordinator", Duration::from_secs(1))
+            .await
+            .unwrap();
+        let leader = BrokerConn::connect(&addr, "share-leader", Duration::from_secs(1))
+            .await
+            .unwrap();
+        let group = ShareGroup::test_holding(
+            Consumer::test_holding(ConsumerConfig::default(), consumer),
+            coord,
+            leader,
+        );
+        (group, parked)
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn unremembered_share_leader_fallback_uses_one_deadline() {
+        use crate::protocol::api::{encode_api_versions_response, ApiVersion, ApiVersionsResponse};
+        use crate::protocol::api_keys::API_VERSIONS;
+        use std::sync::atomic::Ordering;
+        use tokio::io::{AsyncReadExt, AsyncWriteExt};
+
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap().to_string();
+        let saw_fallback = Arc::new(AtomicBool::new(false));
+        let flag = Arc::clone(&saw_fallback);
+        let peer = tokio::spawn(async move {
+            let (mut socket, _) = listener.accept().await.unwrap();
+            let length = socket.read_i32().await.unwrap();
+            assert!((8..=4096).contains(&length));
+            let mut request = vec![0; usize::try_from(length).unwrap()];
+            let _read = socket.read_exact(&mut request).await.unwrap();
+            assert_eq!(
+                i16::from_be_bytes(request[0..2].try_into().unwrap()),
+                API_VERSIONS
+            );
+            assert_eq!(i16::from_be_bytes(request[2..4].try_into().unwrap()), 4);
+            tokio::time::sleep(Duration::from_millis(500)).await;
+            let response = ApiVersionsResponse {
+                error_code: crate::error::UNSUPPORTED_VERSION,
+                api_keys: vec![ApiVersion {
+                    api_key: API_VERSIONS,
+                    min_version: 0,
+                    max_version: 0,
+                }],
+                throttle_time_ms: 0,
+                supported_features: Vec::new(),
+                finalized_features_epoch: None,
+                finalized_features: Vec::new(),
+                zk_migration_ready: false,
+            };
+            let mut body = bytes::BytesMut::new();
+            encode_api_versions_response(&mut body, 4, &response).unwrap();
+            socket
+                .write_i32(i32::try_from(4 + body.len()).unwrap())
+                .await
+                .unwrap();
+            socket.write_all(&request[4..8]).await.unwrap();
+            socket.write_all(&body).await.unwrap();
+            let length = socket.read_i32().await.unwrap();
+            assert!((8..=4096).contains(&length));
+            let mut fallback = vec![0; usize::try_from(length).unwrap()];
+            let _read = socket.read_exact(&mut fallback).await.unwrap();
+            assert_eq!(
+                i16::from_be_bytes(fallback[0..2].try_into().unwrap()),
+                API_VERSIONS
+            );
+            assert_eq!(i16::from_be_bytes(fallback[2..4].try_into().unwrap()), 0);
+            flag.store(true, Ordering::SeqCst);
+            let mut bytes = [0u8; 64];
+            while matches!(socket.read(&mut bytes).await, Ok(n) if n > 0) {}
+        });
+        let (mut group, _parked) = share_group_for_dial_test().await;
+        group.cfg.connect_timeout = Duration::from_secs(2);
+        let leaders = HashMap::from([(2, addr)]);
+        let start = Instant::now();
+        let deadline = start + Duration::from_millis(700);
+        let result = group
+            .node_share_version_until(2, SHARE_FETCH, deadline, Some(&leaders))
+            .await;
+        assert!(
+            matches!(result, Err(Error::Timeout)),
+            "unexpected result: {result:?}"
+        );
+        assert!(
+            saw_fallback.load(Ordering::SeqCst),
+            "the broker did not receive the fallback request"
+        );
+        assert!(
+            start.elapsed() < Duration::from_millis(1050),
+            "fallback exceeded the total deadline: {:?}",
+            start.elapsed()
+        );
+        tokio::time::timeout(Duration::from_secs(1), peer)
+            .await
+            .unwrap()
+            .unwrap();
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn unremembered_share_leader_stalled_tls_obeys_deadline() {
+        use tokio::io::AsyncReadExt;
+
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap().to_string();
+        let saw_tls = Arc::new(AtomicBool::new(false));
+        let flag = Arc::clone(&saw_tls);
+        let peer = tokio::spawn(async move {
+            let (mut socket, _) = listener.accept().await.unwrap();
+            let mut bytes = [0u8; 256];
+            let first = socket.read(&mut bytes).await.unwrap();
+            assert!(first > 0, "client did not start TLS");
+            flag.store(true, std::sync::atomic::Ordering::SeqCst);
+            while matches!(socket.read(&mut bytes).await, Ok(n) if n > 0) {}
+        });
+        let (mut group, _parked) = share_group_for_dial_test().await;
+        group.cfg.tls = Some(crate::net::TlsConfig::default().server_name("localhost"));
+        group.cfg.connect_timeout = Duration::from_secs(1);
+        let leaders = HashMap::from([(2, addr)]);
+        let start = Instant::now();
+        let deadline = start + Duration::from_millis(200);
+        let result = group
+            .node_share_version_until(2, SHARE_FETCH, deadline, Some(&leaders))
+            .await;
+        assert!(
+            matches!(result, Err(Error::Timeout)),
+            "unexpected result: {result:?}"
+        );
+        assert!(saw_tls.load(std::sync::atomic::Ordering::SeqCst));
+        assert!(
+            start.elapsed() < Duration::from_millis(500),
+            "TLS exceeded the total deadline: {:?}",
+            start.elapsed()
+        );
+        tokio::time::timeout(Duration::from_secs(1), peer)
+            .await
+            .unwrap()
+            .unwrap();
+    }
+
     #[tokio::test(flavor = "current_thread")]
     async fn reusing_many_share_topics_does_not_hold_the_caller() {
         let topics: Vec<String> = (0..4_000_000)
@@ -8706,7 +8831,7 @@ mod tests {
                 topic_id[..8].copy_from_slice(&index.to_le_bytes());
                 crate::protocol::share::ShareTopicPartitions {
                     topic_id,
-                    partitions: vec![index as i32],
+                    partitions: vec![i32::try_from(index).expect("test index fits i32")],
                 }
             })
             .collect();
@@ -8782,7 +8907,7 @@ mod tests {
                 crate::protocol::share::ShareAcknowledgeResponseTopic {
                     topic_id,
                     partitions: vec![crate::protocol::share::ShareAcknowledgeResponsePartition {
-                        partition: index as i32,
+                        partition: i32::try_from(index).expect("test index fits i32"),
                         error_code: 0,
                         error_message: None,
                         current_leader_id: 1,
@@ -8865,7 +8990,7 @@ mod tests {
                     topic_id,
                     partitions: vec![
                         crate::protocol::share::ShareFetchedPartition::partition_response(
-                            index as i32,
+                            i32::try_from(index).expect("test index fits i32"),
                             0,
                         ),
                     ],
@@ -10386,7 +10511,7 @@ mod tests {
         .await;
         let elapsed = started.elapsed();
         assert_eq!(found.get(&511).map(String::as_str), Some("10.0.0.1:9000"));
-        assert!(found.get(&0).is_none());
+        assert!(!found.contains_key(&0));
         assert!(
             elapsed < std::time::Duration::from_millis(80),
             "finding share leader addresses held the caller for {elapsed:?}"
@@ -10528,7 +10653,11 @@ mod tests {
         let mut topic_ids: HashMap<Arc<str>, [u8; 16]> = (0..2_000_000)
             .map(|index| {
                 let mut id = [0u8; 16];
-                id[..8].copy_from_slice(&(index as u64).to_le_bytes());
+                id[..8].copy_from_slice(
+                    &u64::try_from(index)
+                        .expect("nonnegative test index")
+                        .to_le_bytes(),
+                );
                 (Arc::from(format!("topic-{index}")), id)
             })
             .collect();
@@ -10578,7 +10707,11 @@ mod tests {
         let stored: HashMap<Arc<str>, [u8; 16]> = (0..2_000_000)
             .map(|index| {
                 let mut id = [0u8; 16];
-                id[..8].copy_from_slice(&(index as u64).to_le_bytes());
+                id[..8].copy_from_slice(
+                    &u64::try_from(index)
+                        .expect("nonnegative test index")
+                        .to_le_bytes(),
+                );
                 (Arc::from(format!("topic-{index}")), id)
             })
             .collect();
@@ -11548,8 +11681,8 @@ mod tests {
             topic.as_str() == "orders" && run.first == 0
         })
         .await;
-        assert!(sample.get("orders").is_some());
-        assert!(sample.get("payments").is_none());
+        assert!(sample.contains_key("orders"));
+        assert!(!sample.contains_key("payments"));
     }
 
     #[tokio::test(flavor = "current_thread")]
@@ -12255,7 +12388,7 @@ mod dial_tests {
         }
         let saw = accepted.await.unwrap();
         assert!(
-            matches!(saw, Err(_)),
+            saw.is_err(),
             "ending the share retry watch shut a live leader socket: {saw:?}"
         );
         assert!(

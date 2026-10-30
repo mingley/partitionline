@@ -1,0 +1,1014 @@
+--- a/src/admin.rs
++++ b/src/admin.rs
+@@ -18243,7 +18243,8 @@
+             let _started = open.fetch_add(1, Ordering::SeqCst);
+             let mut size_buf = [0u8; 4];
+             if socket.read_exact(&mut size_buf).await.is_ok() {
+-                let size = i32::from_be_bytes(size_buf).max(0) as usize;
++                let size = usize::try_from(i32::from_be_bytes(size_buf).max(0))
++                    .expect("nonnegative test frame size fits usize");
+                 let mut request = vec![0u8; size];
+                 if socket.read_exact(&mut request).await.is_ok() {
+                     if let Some(bytes) = request.get(4..8) {
+@@ -21573,7 +21574,7 @@
+         let both = TopicResult::error(0, Some("orders"), [9; 16]);
+         assert_eq!(delete_pending_slot(&index, &both), Some(0));
+         assert!(pending
+-            .get(0)
++            .first()
+             .is_some_and(|topic| delete_state_matches(topic, &both)));
+         assert!(pending
+             .get(1)
+@@ -23680,7 +23681,7 @@
+         let topics = vec![DescribeProducersTopic::new("orders", partitions)];
+         let mut indexed = index_described_producers(topics).await;
+         let order: Vec<(usize, &str, i32)> = (0..2_000_000i32)
+-            .map(|index| (index as usize, "orders", index))
++            .map(|index| (usize::try_from(index).expect("nonnegative test index"), "orders", index))
+             .collect();
+         let started = std::time::Instant::now();
+         tokio::select! {
+@@ -23857,7 +23858,7 @@
+         )];
+         let mut indexed = index_listed_offsets(topics).await;
+         let order: Vec<(usize, &str, i32)> = (0..2_000_000i32)
+-            .map(|index| (index as usize, "orders", index))
++            .map(|index| (usize::try_from(index).expect("nonnegative test index"), "orders", index))
+             .collect();
+         let started = std::time::Instant::now();
+         tokio::select! {
+@@ -23920,7 +23921,7 @@
+         }];
+         let mut indexed = index_deleted_records(topics).await;
+         let order: Vec<(usize, &str, i32)> = (0..2_000_000i32)
+-            .map(|index| (index as usize, "orders", index))
++            .map(|index| (usize::try_from(index).expect("nonnegative test index"), "orders", index))
+             .collect();
+         let started = std::time::Instant::now();
+         tokio::select! {
+@@ -24057,7 +24058,7 @@
+         tokio::select! {
+             decoded = decode_offset_delete_response_cooperative(&mut body) => {
+                 let (_top, results, _throttle) = decoded.unwrap_or_else(|error| panic!("{error}"));
+-                assert_eq!(results.len(), partitions as usize);
++                assert_eq!(results.len(), usize::try_from(partitions).expect("nonnegative test partition count"));
+                 assert_eq!(results.first().map(|result| result.topic.as_str()), Some("orders"));
+                 assert_eq!(results.first().map(|result| result.partition), Some(0));
+             }
+--- a/src/cluster.rs
++++ b/src/cluster.rs
+@@ -1067,7 +1067,7 @@
+                 .and_then(|slots| slots.first().copied()),
+             Some(4)
+         );
+-        assert!(paced.leaders.get("empty").is_none());
++        assert!(!paced.leaders.contains_key("empty"));
+         assert_eq!(paced.topic_ids.get("empty").copied(), Some(topic_id));
+     }
+ 
+@@ -1095,7 +1095,7 @@
+         cluster
+             .invalidate_topics_cooperative(std::iter::once("orders"))
+             .await;
+-        assert!(cluster.leaders.get("orders").is_none());
++        assert!(!cluster.leaders.contains_key("orders"));
+         assert_eq!(
+             cluster.leaders.get("payments").map(Vec::as_slice),
+             Some(&[5][..])
+@@ -1821,7 +1821,7 @@
+         image.topics[0].partitions.clear();
+         cluster.apply(&image, 13);
+         assert!(cluster.leader("t", 0).is_err());
+-        assert!(cluster.leaders.get("t").is_none());
++        assert!(!cluster.leaders.contains_key("t"));
+         image.topics[0].partitions.push(leader);
+         image.topics.push(TopicMetadata {
+             error_code: 0,
+@@ -2247,7 +2247,7 @@
+             cluster.leader_epoch("t", 0),
+             RecordBatch::NO_PARTITION_LEADER_EPOCH
+         );
+-        assert!(cluster.topic_ids.get("t").is_none());
++        assert!(!cluster.topic_ids.contains_key("t"));
+     }
+ 
+     #[test]
+--- a/src/consumer.rs
++++ b/src/consumer.rs
+@@ -14896,7 +14896,7 @@
+                 let mut hits = 0usize;
+                 let mut walked = 0usize;
+                 for partition in 0..2_000_000 {
+-                    if previous.get(&partition).is_some() {
++                    if previous.contains_key(&partition) {
+                         hits = hits.saturating_add(1);
+                     }
+                     walked = walked.saturating_add(1);
+@@ -15421,7 +15421,8 @@
+             let _started = open.fetch_add(1, Ordering::SeqCst);
+             let mut size_buf = [0u8; 4];
+             if socket.read_exact(&mut size_buf).await.is_ok() {
+-                let size = i32::from_be_bytes(size_buf).max(0) as usize;
++                let size = usize::try_from(i32::from_be_bytes(size_buf).max(0))
++                    .expect("nonnegative test frame size fits usize");
+                 let mut request = vec![0u8; size];
+                 if socket.read_exact(&mut request).await.is_ok() {
+                     if let Some(bytes) = request.get(4..8) {
+@@ -16033,7 +16034,7 @@
+         }
+         let saw = accepted.await.unwrap();
+         assert!(
+-            matches!(saw, Err(_)),
++            saw.is_err(),
+             "ending the fetch quota watch shut a live leader socket: {saw:?}"
+         );
+         assert!(
+@@ -16058,9 +16059,11 @@
+         cfg.max_wait_ms = 10;
+         let mut consumer = Consumer::test_holding(cfg, conn);
+         let _previous = consumer.cluster.brokers.insert(1, addr);
+-        let mut session = BrokerFetchSession::default();
+-        session.metadata = FetchMetadata::new(42, 3);
+-        session.awaiting_response = true;
++        let session = BrokerFetchSession {
++            metadata: FetchMetadata::new(42, 3),
++            awaiting_response: true,
++            ..BrokerFetchSession::default()
++        };
+         let _previous = consumer.fetch_sessions.insert(1, session);
+         consumer.conn.close();
+         assert!(consumer.conn.is_closed());
+@@ -16210,7 +16213,7 @@
+         let mut consumer = Consumer::test_holding(cfg, bootstrap);
+         let _ = consumer.conns.insert(1, leader);
+         let started = Instant::now();
+-        let mut watching = std::pin::pin!(consumer.watch_muted_fetch_sockets(&[1]));
++        let mut watching = Box::pin(consumer.watch_muted_fetch_sockets(&[1]));
+         tokio::select! {
+             biased;
+             done = &mut watching => panic!(
+@@ -16236,7 +16239,7 @@
+             writer.write_all(&[0x01]).await.unwrap();
+             let mut buf = [0u8; 64];
+             let n = reader.read(&mut buf).await.unwrap();
+-            let _ = wrote_tx.send(Instant::now());
++            let _unused_result = wrote_tx.send(Instant::now());
+             assert!(n > 0, "the fetch close was not written");
+             tokio::time::sleep(Duration::from_secs(2)).await;
+         });
+@@ -16263,15 +16266,14 @@
+         let session = BrokerFetchSession::default();
+         let mut cfg = ConsumerConfig::bootstrap([addr.to_string()]);
+         cfg.max_wait_ms = 10;
+-        let closing = send_fetch_session_close(
++        let mut closing = Box::pin(send_fetch_session_close(
+             &mut conn,
+             &session,
+             Some(Instant::now() + Duration::from_millis(400)),
+             &wakeup_tx,
+             &cfg,
+             Instant::now() + Duration::from_secs(2),
+-        );
+-        tokio::pin!(closing);
++        ));
+         let wrote = tokio::select! {
+             result = &mut closing => panic!("the close finished before the peer read it: {result:?}"),
+             wrote = wrote_rx => wrote,
+@@ -17281,7 +17283,7 @@
+         .await;
+         assert_eq!(by_name.get("orders").copied(), Some([7u8; 16]));
+         assert_eq!(by_name.get("trades").copied(), Some([7u8; 16]));
+-        assert!(by_id.get(&[7u8; 16]).is_none());
++        assert!(!by_id.contains_key(&[7u8; 16]));
+         let named = fetch_topic_name("", [7u8; 16], &by_id);
+         assert!(named.is_ok());
+         if let Ok(name) = named {
+@@ -17877,7 +17879,7 @@
+         let _stored = plan.insert(1, topics);
+         let _stored = plan.insert(2, HashMap::new());
+         Consumer::prune_fetch_plan(&mut plan).await;
+-        assert!(plan.get(&2).is_none());
++        assert!(!plan.contains_key(&2));
+         let kept = plan.get(&1).and_then(|topics| topics.get("orders"));
+         assert_eq!(kept.map(|parts| parts.len()), Some(1));
+         assert_eq!(
+@@ -17978,7 +17980,7 @@
+         let topics: Vec<(String, [u8; 16])> = (0..2_000_000)
+             .map(|index| {
+                 let mut topic_id = [0u8; 16];
+-                topic_id[..8].copy_from_slice(&(index as u64).to_le_bytes());
++                topic_id[..8].copy_from_slice(&u64::try_from(index).expect("nonnegative test index").to_le_bytes());
+                 (format!("topic-{index}"), topic_id)
+             })
+             .collect();
+@@ -18389,8 +18391,10 @@
+     #[tokio::test(flavor = "current_thread")]
+     async fn refreshing_many_session_topic_ids_does_not_hold_the_caller() {
+         let topic: Arc<str> = Arc::from("orders");
+-        let mut session = BrokerFetchSession::default();
+-        session.id_names_dirty = true;
++        let mut session = BrokerFetchSession {
++            id_names_dirty: true,
++            ..BrokerFetchSession::default()
++        };
+         let mut parts = SessionParts::new();
+         for partition in 0..2_000_000i32 {
+             let mut id = [0u8; 16];
+@@ -18415,8 +18419,10 @@
+             elapsed < std::time::Duration::from_millis(80),
+             "refreshing session topic ids held the caller for {elapsed:?}"
+         );
+-        let mut clean = BrokerFetchSession::default();
+-        clean.id_names_dirty = false;
++        let mut clean = BrokerFetchSession {
++            id_names_dirty: false,
++            ..BrokerFetchSession::default()
++        };
+         let _ = clean.id_names.insert([9u8; 16], Arc::from("kept"));
+         clean.refresh_id_names().await;
+         assert_eq!(
+@@ -18424,8 +18430,10 @@
+             Some("kept")
+         );
+         let topic: Arc<str> = Arc::from("orders");
+-        let mut fresh = BrokerFetchSession::default();
+-        fresh.id_names_dirty = true;
++        let mut fresh = BrokerFetchSession {
++            id_names_dirty: true,
++            ..BrokerFetchSession::default()
++        };
+         let mut parts = SessionParts::new();
+         let _ = parts.insert(
+             1,
+@@ -18455,10 +18463,12 @@
+     #[tokio::test(flavor = "current_thread")]
+     async fn dropping_many_unprepared_session_partitions_does_not_hold_the_caller() {
+         let topic: Arc<str> = Arc::from("orders");
+-        let mut session = BrokerFetchSession::default();
+-        session.version = Some(12);
+-        session.metadata = FetchMetadata::new(7, 1);
+-        session.stamp = 1;
++        let mut session = BrokerFetchSession {
++            version: Some(12),
++            metadata: FetchMetadata::new(7, 1),
++            stamp: 1,
++            ..BrokerFetchSession::default()
++        };
+         let mut parts = SessionParts::new();
+         for partition in 0..2_000_000 {
+             let _ = parts.insert(
+@@ -18482,10 +18492,12 @@
+             "dropping unprepared session partitions held the caller for {elapsed:?}"
+         );
+         let topic: Arc<str> = Arc::from("orders");
+-        let mut session = BrokerFetchSession::default();
+-        session.version = Some(12);
+-        session.metadata = FetchMetadata::new(7, 1);
+-        session.stamp = 1;
++        let mut session = BrokerFetchSession {
++            version: Some(12),
++            metadata: FetchMetadata::new(7, 1),
++            stamp: 1,
++            ..BrokerFetchSession::default()
++        };
+         let kept = FetchPartition::partition_data(1, 0, -1, 1, None, None);
+         let mut parts = SessionParts::new();
+         let _ = parts.insert(
+@@ -18982,7 +18994,7 @@
+             &mut by_leader
+         ));
+         assert!(preferred.get("t", 0).is_none());
+-        assert!(by_leader.get(&7).is_none());
++        assert!(!by_leader.contains_key(&7));
+         assert_eq!(
+             by_leader
+                 .get(&1)
+--- a/src/group.rs
++++ b/src/group.rs
+@@ -8882,7 +8882,7 @@
+                 topic_id[..8].copy_from_slice(&index.to_le_bytes());
+                 crate::protocol::cgheartbeat::TopicPartitions {
+                     topic_id,
+-                    partitions: vec![index as i32],
++                    partitions: vec![i32::try_from(index).expect("test index fits i32")],
+                 }
+             })
+             .collect();
+@@ -9047,7 +9047,7 @@
+             index.get(&("orders", 0)).copied().map(|part| part.offset),
+             fetched_committed(&fetched, "orders", 0).map(|part| part.offset)
+         );
+-        assert!(index.get(&("orders", 3)).is_none());
++        assert!(!index.contains_key(&("orders", 3)));
+     }
+ 
+     #[tokio::test(flavor = "current_thread")]
+@@ -9635,7 +9635,8 @@
+             let _started = first_flag.fetch_add(1, Ordering::SeqCst);
+             let mut size_buf = [0u8; 4];
+             if socket.read_exact(&mut size_buf).await.is_ok() {
+-                let size = i32::from_be_bytes(size_buf).max(0) as usize;
++                let size = usize::try_from(i32::from_be_bytes(size_buf).max(0))
++                    .expect("nonnegative test frame size fits usize");
+                 let mut request = vec![0u8; size];
+                 if socket.read_exact(&mut request).await.is_ok() {
+                     if let Some(bytes) = request.get(4..8) {
+@@ -9737,7 +9738,8 @@
+             let _started = flag.fetch_add(1, Ordering::SeqCst);
+             let mut size_buf = [0u8; 4];
+             if socket.read_exact(&mut size_buf).await.is_ok() {
+-                let size = i32::from_be_bytes(size_buf).max(0) as usize;
++                let size = usize::try_from(i32::from_be_bytes(size_buf).max(0))
++                    .expect("nonnegative test frame size fits usize");
+                 let mut request = vec![0u8; size];
+                 if socket.read_exact(&mut request).await.is_ok() {
+                     if let Some(bytes) = request.get(4..8) {
+@@ -10818,7 +10820,7 @@
+         let mut assigned_parts = HashMap::new();
+         for partition in 0..2_000_000 {
+             let _ = stored_parts.insert(partition, [1u8; 16]);
+-            let _ = assigned_parts.insert(partition, partition as usize);
++            let _ = assigned_parts.insert(partition, usize::try_from(partition).expect("nonnegative test partition"));
+         }
+         let mut ids = HashMap::new();
+         let _ = ids.insert(Arc::clone(&topic), stored_parts);
+@@ -11073,7 +11075,7 @@
+         let identities: HashMap<Arc<str>, [u8; 16]> = (0..2_000_000)
+             .map(|index| {
+                 let mut id = [0u8; 16];
+-                id[..8].copy_from_slice(&(index as u64).to_le_bytes());
++                id[..8].copy_from_slice(&u64::try_from(index).expect("nonnegative test index").to_le_bytes());
+                 (Arc::from(format!("topic-{index}")), id)
+             })
+             .collect();
+@@ -11105,7 +11107,7 @@
+         let assignment: Vec<TopicPartitions> = (0..2_000_000)
+             .map(|index| {
+                 let mut topic_id = [0u8; 16];
+-                topic_id[..8].copy_from_slice(&(index as u64).to_le_bytes());
++                topic_id[..8].copy_from_slice(&u64::try_from(index).expect("nonnegative test index").to_le_bytes());
+                 let _stored = names.insert(topic_id, ());
+                 TopicPartitions {
+                     topic_id,
+@@ -11349,7 +11351,7 @@
+         let owned: Vec<TopicPartitions> = (0..2_000_000)
+             .map(|index| {
+                 let mut topic_id = [0u8; 16];
+-                topic_id[..8].copy_from_slice(&(index as u64).to_le_bytes());
++                topic_id[..8].copy_from_slice(&u64::try_from(index).expect("nonnegative test index").to_le_bytes());
+                 TopicPartitions {
+                     topic_id,
+                     partitions: vec![index],
+@@ -12057,7 +12059,8 @@
+                     let _reader = tokio::spawn(async move {
+                         let mut size_buf = [0u8; 4];
+                         if socket.read_exact(&mut size_buf).await.is_ok() {
+-                            let size = i32::from_be_bytes(size_buf).max(0) as usize;
++                            let size = usize::try_from(i32::from_be_bytes(size_buf).max(0))
++                                .expect("nonnegative test frame size fits usize");
+                             let mut request = vec![0u8; size];
+                             if socket.read_exact(&mut request).await.is_ok() {
+                                 if let Some(bytes) = request.get(4..8) {
+@@ -12093,7 +12096,8 @@
+                         if socket.read_exact(&mut size_buf).await.is_err() {
+                             return;
+                         }
+-                        let size = i32::from_be_bytes(size_buf).max(0) as usize;
++                        let size = usize::try_from(i32::from_be_bytes(size_buf).max(0))
++                            .expect("nonnegative test frame size fits usize");
+                         let mut request = vec![0u8; size];
+                         if socket.read_exact(&mut request).await.is_err() {
+                             return;
+@@ -12493,7 +12497,8 @@
+                     let _reader = tokio::spawn(async move {
+                         let mut size_buf = [0u8; 4];
+                         if socket.read_exact(&mut size_buf).await.is_ok() {
+-                            let size = i32::from_be_bytes(size_buf).max(0) as usize;
++                            let size = usize::try_from(i32::from_be_bytes(size_buf).max(0))
++                                .expect("nonnegative test frame size fits usize");
+                             let mut request = vec![0u8; size];
+                             if socket.read_exact(&mut request).await.is_ok() {
+                                 if let Some(bytes) = request.get(4..8) {
+@@ -12540,7 +12545,8 @@
+                         if socket.read_exact(&mut size_buf).await.is_err() {
+                             return;
+                         }
+-                        let size = i32::from_be_bytes(size_buf).max(0) as usize;
++                        let size = usize::try_from(i32::from_be_bytes(size_buf).max(0))
++                            .expect("nonnegative test frame size fits usize");
+                         let mut request = vec![0u8; size];
+                         if socket.read_exact(&mut request).await.is_err() {
+                             return;
+@@ -12685,7 +12691,8 @@
+                     let _reader = tokio::spawn(async move {
+                         let mut size_buf = [0u8; 4];
+                         if socket.read_exact(&mut size_buf).await.is_ok() {
+-                            let size = i32::from_be_bytes(size_buf).max(0) as usize;
++                            let size = usize::try_from(i32::from_be_bytes(size_buf).max(0))
++                                .expect("nonnegative test frame size fits usize");
+                             let mut request = vec![0u8; size];
+                             if socket.read_exact(&mut request).await.is_ok() {
+                                 if let Some(bytes) = request.get(4..8) {
+@@ -12737,7 +12744,8 @@
+                         if socket.read_exact(&mut size_buf).await.is_err() {
+                             return;
+                         }
+-                        let size = i32::from_be_bytes(size_buf).max(0) as usize;
++                        let size = usize::try_from(i32::from_be_bytes(size_buf).max(0))
++                            .expect("nonnegative test frame size fits usize");
+                         let mut request = vec![0u8; size];
+                         if socket.read_exact(&mut request).await.is_err() {
+                             return;
+--- a/src/net.rs
++++ b/src/net.rs
+@@ -850,6 +850,17 @@
+     Script(ScriptIo),
+ }
+ 
++// These test doubles model a ready IO call that takes wall time inside one
++// poll. An async timer would yield and stop testing the caller's poll budget.
++#[cfg(test)]
++#[expect(
++    clippy::disallowed_methods,
++    reason = "test IO deliberately spends wall time inside a ready synchronous poll"
++)]
++fn stall_ready_test_io(duration: Duration) {
++    std::thread::sleep(duration);
++}
++
+ /// One ready chunk, then a pause, so a read loop that never yields can be timed.
+ #[cfg(test)]
+ struct ScriptIo {
+@@ -883,7 +894,7 @@
+         // One pause covers one kibibyte, so a single poll that fills a whole
+         // frame outruns a short deadline.
+         let units = u32::try_from(n.div_ceil(1024)).unwrap_or(u32::MAX);
+-        std::thread::sleep(self.pause.saturating_mul(units));
++        stall_ready_test_io(self.pause.saturating_mul(units));
+         Poll::Ready(Ok(()))
+     }
+ }
+@@ -897,7 +908,7 @@
+     ) -> Poll<io::Result<usize>> {
+         if !buf.is_empty() {
+             let units = u32::try_from(buf.len().div_ceil(1024)).unwrap_or(u32::MAX);
+-            std::thread::sleep(self.pause.saturating_mul(units));
++            stall_ready_test_io(self.pause.saturating_mul(units));
+         }
+         Poll::Ready(Ok(buf.len()))
+     }
+@@ -3614,7 +3625,7 @@
+             buf.put_slice(chunk);
+             this.pos = end;
+             let units = u32::try_from(n.div_ceil(1024)).unwrap_or(u32::MAX);
+-            std::thread::sleep(Duration::from_millis(2).saturating_mul(units));
++            stall_ready_test_io(Duration::from_millis(2).saturating_mul(units));
+             Poll::Ready(Ok(()))
+         }
+     }
+@@ -3932,7 +3943,7 @@
+         let server = tokio::spawn(async move {
+             let (mut socket, _) = listener.accept().await.unwrap();
+             socket.write_all(&queued).await.unwrap();
+-            let _ = wrote.send(());
++            let _unused_result = wrote.send(());
+             tokio::time::sleep(Duration::from_secs(2)).await;
+         });
+         let mut conn = BrokerConn::connect(&addr, "ack", Duration::from_secs(2))
+@@ -4323,8 +4334,8 @@
+             let (mut socket, _) = listener.accept().await.unwrap();
+             let mut byte = [0u8; 1];
+             assert_eq!(socket.read(&mut byte).await.unwrap(), 0);
+-            let _ = saw_fin_tx.send(());
+-            let _ = release_rx.await;
++            let _unused_result = saw_fin_tx.send(());
++            let _unused_result = release_rx.await;
+         });
+         let mut conn =
+             BrokerConn::connect(&addr.to_string(), "closed-watch", Duration::from_secs(1))
+@@ -4338,7 +4349,7 @@
+         tokio::time::timeout(Duration::from_secs(1), conn.release_if_closed())
+             .await
+             .expect("peer kept the idle watch from releasing the stream lock");
+-        let _ = release_tx.send(());
++        let _unused_result = release_tx.send(());
+         peer.await.unwrap();
+     }
+ 
+@@ -4356,8 +4367,8 @@
+             let mut peer = socket.into_std().unwrap();
+             peer.set_nonblocking(false).unwrap();
+             let _thread = std::thread::spawn(move || {
+-                let _ = ready_tx.send(());
+-                let _ = gate_rx.recv();
++                let _unused_result = ready_tx.send(());
++                let _unused_result = gate_rx.recv();
+                 let mut buf = [0u8; 8];
+                 loop {
+                     match peer.read(&mut buf) {
+@@ -4365,7 +4376,7 @@
+                         Ok(_) => continue,
+                     }
+                 }
+-                let _ = done_tx.send(());
++                let _unused_result = done_tx.send(());
+             });
+         });
+         let mut conn = BrokerConn::connect(&addr, "write-timeout", Duration::from_secs(2))
+@@ -4394,7 +4405,7 @@
+             matches!(result, Err(Error::Timeout)),
+             "the write finished instead of timing out"
+         );
+-        let _ = gate_tx.send(());
++        let _unused_result = gate_tx.send(());
+         assert!(
+             done_rx.recv_timeout(Duration::from_millis(300)).is_ok(),
+             "a write timeout left the broker blocked in a read"
+@@ -4597,12 +4608,10 @@
+         assert!(queued.is_ok(), "the queued byte never became visible");
+         gate_tx.send(()).unwrap();
+         let noticed = tokio::time::timeout(Duration::from_millis(300), async {
+-            loop {
+-                tokio::select! {
+-                    biased;
+-                    _ = conn.peer_left(), if !conn.is_closed() => break,
+-                    _ = tokio::time::sleep(Duration::from_millis(50)) => break,
+-                }
++            tokio::select! {
++                biased;
++                _ = conn.peer_left(), if !conn.is_closed() => {},
++                _ = tokio::time::sleep(Duration::from_millis(50)) => {},
+             }
+         })
+         .await;
+@@ -4841,7 +4850,7 @@
+         let pipeline = BrokerPipeline::new(conn);
+         let saw = accepted.await.unwrap();
+         assert!(
+-            matches!(saw, Err(_)),
++            saw.is_err(),
+             "a queued byte closed an idle pipeline: {saw:?}"
+         );
+         assert!(
+--- a/src/offsets.rs
++++ b/src/offsets.rs
+@@ -1913,7 +1913,8 @@
+             let _started = flag.fetch_add(1, Ordering::SeqCst);
+             let mut size_buf = [0u8; 4];
+             if socket.read_exact(&mut size_buf).await.is_ok() {
+-                let size = i32::from_be_bytes(size_buf).max(0) as usize;
++                let size = usize::try_from(i32::from_be_bytes(size_buf).max(0))
++                    .expect("nonnegative test frame size fits usize");
+                 let mut request = vec![0u8; size];
+                 if socket.read_exact(&mut request).await.is_ok() {
+                     if let Some(bytes) = request.get(4..8) {
+@@ -2053,7 +2054,8 @@
+             let _started = bootstrap_flag.fetch_add(1, Ordering::SeqCst);
+             let mut size_buf = [0u8; 4];
+             if socket.read_exact(&mut size_buf).await.is_ok() {
+-                let size = i32::from_be_bytes(size_buf).max(0) as usize;
++                let size = usize::try_from(i32::from_be_bytes(size_buf).max(0))
++                    .expect("nonnegative test frame size fits usize");
+                 let mut request = vec![0u8; size];
+                 if socket.read_exact(&mut request).await.is_ok() {
+                     if let Some(bytes) = request.get(4..8) {
+@@ -2116,7 +2118,8 @@
+             let _started = slow_flag.fetch_add(1, Ordering::SeqCst);
+             let mut size_buf = [0u8; 4];
+             if socket.read_exact(&mut size_buf).await.is_ok() {
+-                let size = i32::from_be_bytes(size_buf).max(0) as usize;
++                let size = usize::try_from(i32::from_be_bytes(size_buf).max(0))
++                    .expect("nonnegative test frame size fits usize");
+                 let mut request = vec![0u8; size];
+                 if socket.read_exact(&mut request).await.is_ok() {
+                     if let Some(bytes) = request.get(4..8) {
+@@ -2257,7 +2260,8 @@
+                 if socket.read_exact(&mut size_buf).await.is_err() {
+                     return;
+                 }
+-                let size = i32::from_be_bytes(size_buf).max(0) as usize;
++                let size = usize::try_from(i32::from_be_bytes(size_buf).max(0))
++                    .expect("nonnegative test frame size fits usize");
+                 let mut request = vec![0u8; size];
+                 if socket.read_exact(&mut request).await.is_err() {
+                     return;
+@@ -2361,7 +2365,8 @@
+             let _started = flag.fetch_add(1, Ordering::SeqCst);
+             let mut size_buf = [0u8; 4];
+             if socket.read_exact(&mut size_buf).await.is_ok() {
+-                let size = i32::from_be_bytes(size_buf).max(0) as usize;
++                let size = usize::try_from(i32::from_be_bytes(size_buf).max(0))
++                    .expect("nonnegative test frame size fits usize");
+                 let mut request = vec![0u8; size];
+                 if socket.read_exact(&mut request).await.is_ok() {
+                     if let Some(bytes) = request.get(4..8) {
+@@ -2533,7 +2538,8 @@
+             if socket.read_exact(&mut size_buf).await.is_err() {
+                 return;
+             }
+-            let size = i32::from_be_bytes(size_buf).max(0) as usize;
++            let size = usize::try_from(i32::from_be_bytes(size_buf).max(0))
++                .expect("nonnegative test frame size fits usize");
+             let mut request = vec![0u8; size];
+             if socket.read_exact(&mut request).await.is_err() {
+                 return;
+--- a/src/producer.rs
++++ b/src/producer.rs
+@@ -11286,7 +11286,7 @@
+         let topics: Vec<crate::protocol::txn::TxnPartitionsTopic> = (0..200_000)
+             .map(|index| crate::protocol::txn::TxnPartitionsTopic {
+                 topic: format!("topic-{index}"),
+-                partitions: vec![index as i32],
++                partitions: vec![index],
+             })
+             .collect();
+         let mut body = bytes::BytesMut::new();
+@@ -11341,7 +11341,7 @@
+             .map(|index| crate::protocol::txn::TxnOffsetCommitResponseTopic {
+                 topic: format!("topic-{index}"),
+                 partitions: vec![crate::protocol::txn::TxnOffsetCommitResponsePartition {
+-                    partition: index as i32,
++                    partition: index,
+                     error_code: 0,
+                 }],
+             })
+@@ -11710,7 +11710,8 @@
+             let _started = first_flag.fetch_add(1, Ordering::SeqCst);
+             let mut size_buf = [0u8; 4];
+             if socket.read_exact(&mut size_buf).await.is_ok() {
+-                let size = i32::from_be_bytes(size_buf).max(0) as usize;
++                let size = usize::try_from(i32::from_be_bytes(size_buf).max(0))
++                    .expect("nonnegative test frame size fits usize");
+                 let mut request = vec![0u8; size];
+                 if socket.read_exact(&mut request).await.is_ok() {
+                     if let Some(bytes) = request.get(4..8) {
+@@ -11799,7 +11800,8 @@
+             let _started = flag.fetch_add(1, Ordering::SeqCst);
+             let mut size_buf = [0u8; 4];
+             if socket.read_exact(&mut size_buf).await.is_ok() {
+-                let size = i32::from_be_bytes(size_buf).max(0) as usize;
++                let size = usize::try_from(i32::from_be_bytes(size_buf).max(0))
++                    .expect("nonnegative test frame size fits usize");
+                 let mut request = vec![0u8; size];
+                 if socket.read_exact(&mut request).await.is_ok() {
+                     if let Some(bytes) = request.get(4..8) {
+@@ -11871,7 +11873,8 @@
+                     let _reader = tokio::spawn(async move {
+                         let mut size_buf = [0u8; 4];
+                         if socket.read_exact(&mut size_buf).await.is_ok() {
+-                            let size = i32::from_be_bytes(size_buf).max(0) as usize;
++                            let size = usize::try_from(i32::from_be_bytes(size_buf).max(0))
++                                .expect("nonnegative test frame size fits usize");
+                             let mut request = vec![0u8; size];
+                             if socket.read_exact(&mut request).await.is_ok() {
+                                 if let Some(bytes) = request.get(4..8) {
+@@ -11923,7 +11926,8 @@
+                     let _reader = tokio::spawn(async move {
+                         let mut size_buf = [0u8; 4];
+                         if socket.read_exact(&mut size_buf).await.is_ok() {
+-                            let size = i32::from_be_bytes(size_buf).max(0) as usize;
++                            let size = usize::try_from(i32::from_be_bytes(size_buf).max(0))
++                                .expect("nonnegative test frame size fits usize");
+                             let mut request = vec![0u8; size];
+                             if socket.read_exact(&mut request).await.is_ok() {
+                                 if let Some(bytes) = request.get(4..8) {
+@@ -11983,7 +11987,8 @@
+             let _started = open.fetch_add(1, Ordering::SeqCst);
+             let mut size_buf = [0u8; 4];
+             if socket.read_exact(&mut size_buf).await.is_ok() {
+-                let size = i32::from_be_bytes(size_buf).max(0) as usize;
++                let size = usize::try_from(i32::from_be_bytes(size_buf).max(0))
++                    .expect("nonnegative test frame size fits usize");
+                 let mut request = vec![0u8; size];
+                 if socket.read_exact(&mut request).await.is_ok() {
+                     if let Some(bytes) = request.get(4..8) {
+@@ -12090,7 +12095,8 @@
+             if socket.read_exact(&mut size_buf).await.is_err() {
+                 return;
+             }
+-            let size = i32::from_be_bytes(size_buf).max(0) as usize;
++            let size = usize::try_from(i32::from_be_bytes(size_buf).max(0))
++                .expect("nonnegative test frame size fits usize");
+             let mut request = vec![0u8; size];
+             if socket.read_exact(&mut request).await.is_err() {
+                 return;
+@@ -12309,7 +12315,7 @@
+         assert!(quiet, "a queued byte was treated as a lost metadata socket");
+         let saw = accepted.await.unwrap();
+         assert!(
+-            matches!(saw, Err(_)),
++            saw.is_err(),
+             "a queued byte shut the metadata socket down: {saw:?}"
+         );
+         drop(conn);
+@@ -12362,7 +12368,7 @@
+                 saw = accepted => {
+                     let saw = saw.unwrap();
+                     assert!(
+-                        matches!(saw, Err(_)),
++                        saw.is_err(),
+                         "a queued byte shut the coordinator socket down before the backoff: {saw:?}"
+                     );
+                 }
+@@ -13532,7 +13538,7 @@
+         assert!(!txn_part_present(&set, &orders, 0));
+         assert!(txn_part_present(&set, &orders, 1));
+         forget_txn_part(&mut set, &orders_again, 1);
+-        assert!(set.get("orders").is_none());
++        assert!(!set.contains_key("orders"));
+         assert!(txn_part_present(&set, &payments, 3));
+         let parts = [
+             (Arc::clone(&orders), 1),
+@@ -13630,7 +13636,7 @@
+         ];
+         let mut index = HashMap::new();
+         fill_ids_by_uuid(&repeated, &mut index).await;
+-        assert!(index.get(&[0; 16]).is_none());
++        assert!(!index.contains_key(&[0; 16]));
+         assert_eq!(index.get(&[1; 16]).map(Arc::as_ref), Some("orders"));
+     }
+ 
+@@ -14248,8 +14254,10 @@
+             "shelling produce partitions held the caller for {:?}",
+             started.elapsed()
+         );
+-        let mut sample = ProduceGroupScratch::default();
+-        sample.partition_order = vec![3, 1];
++        let mut sample = ProduceGroupScratch {
++            partition_order: vec![3, 1],
++            ..ProduceGroupScratch::default()
++        };
+         let _ = sample.partition_slots.insert(3, 2usize);
+         let _ = sample.partition_slots.insert(1, 1usize);
+         let opened = shell_one_topic_groups(&topic, &mut sample, Vec::new()).await;
+@@ -15236,7 +15244,7 @@
+         use std::sync::atomic::{
+             AtomicBool, AtomicI16, AtomicI64, AtomicU64, AtomicUsize, Ordering,
+         };
+-        use std::sync::Mutex as StdMutex;
++        use parking_lot::Mutex as SlotMutex;
+         use tokio::io::{AsyncReadExt, AsyncWriteExt};
+         use tokio::sync::{mpsc, Mutex, Notify};
+ 
+@@ -15244,7 +15252,7 @@
+         let addr = listener.local_addr().unwrap().to_string();
+         let open = Arc::new(AtomicUsize::new(0));
+         let accepted = Arc::new(AtomicUsize::new(0));
+-        let slot: Arc<StdMutex<Option<Arc<Shared>>>> = Arc::new(StdMutex::new(None));
++        let slot: Arc<SlotMutex<Option<Arc<Shared>>>> = Arc::new(SlotMutex::new(None));
+         let flag = Arc::clone(&open);
+         let accepted_flag = Arc::clone(&accepted);
+         let peer_slot = Arc::clone(&slot);
+@@ -15274,7 +15282,8 @@
+                 let _reader = tokio::spawn(async move {
+                     let mut size_buf = [0u8; 4];
+                     if socket.read_exact(&mut size_buf).await.is_ok() {
+-                        let size = i32::from_be_bytes(size_buf).max(0) as usize;
++                        let size = usize::try_from(i32::from_be_bytes(size_buf).max(0))
++                            .expect("nonnegative test frame size fits usize");
+                         let mut request = vec![0u8; size];
+                         if socket.read_exact(&mut request).await.is_ok() {
+                             if let Some(bytes) = request.get(4..8) {
+@@ -15321,7 +15330,7 @@
+                         }
+                     }
+                     if let Some(shared) =
+-                        peer_slot.lock().unwrap_or_else(|e| e.into_inner()).clone()
++                        peer_slot.lock().clone()
+                     {
+                         shared.closed.store(true, Ordering::SeqCst);
+                     }
+@@ -15418,7 +15427,7 @@
+             topics: parking_lot::Mutex::new(HashMap::new()),
+             pre_send_fault: parking_lot::Mutex::new(None),
+         });
+-        *slot.lock().unwrap_or_else(|e| e.into_inner()) = Some(Arc::clone(&shared));
++        *slot.lock() = Some(Arc::clone(&shared));
+         let opened = spawn_slot_worker(&shared, 1, &addr, 8).await;
+         assert!(
+             matches!(opened, Err(crate::Error::Closed)),
+@@ -15471,7 +15480,8 @@
+                 let _reader = tokio::spawn(async move {
+                     let mut size_buf = [0u8; 4];
+                     if socket.read_exact(&mut size_buf).await.is_ok() {
+-                        let size = i32::from_be_bytes(size_buf).max(0) as usize;
++                        let size = usize::try_from(i32::from_be_bytes(size_buf).max(0))
++                            .expect("nonnegative test frame size fits usize");
+                         let mut request = vec![0u8; size];
+                         if socket.read_exact(&mut request).await.is_ok() {
+                             if let Some(bytes) = request.get(4..8) {
+@@ -15888,7 +15898,7 @@
+             let _exit = MetadataRefreshExit(Arc::clone(&shared_task));
+             let mut guard = shared_task.meta.lock().await;
+             ready_tx.send(true).unwrap_or(());
+-            let _ = guard
++            let _unused_result = guard
+                 .roundtrip(0, 0, |_| Ok(()), Duration::from_secs(5))
+                 .await;
+         });
+--- a/src/protocol/records.rs
++++ b/src/protocol/records.rs
+@@ -5159,7 +5159,7 @@
+         let raw = vec![0u8; 48 * 1024 * 1024];
+         let started = std::time::Instant::now();
+         tokio::select! {
+-            _ = async { let _ = decode_record_batches(&mut &raw[..]); } => {}
++            _ = async { let _unused_result = decode_record_batches(&mut &raw[..]); } => {}
+             _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+         }
+         let elapsed = started.elapsed();
+@@ -5333,7 +5333,7 @@
+                 state ^= state << 13;
+                 state ^= state >> 17;
+                 state ^= state << 5;
+-                state as u8
++                state.to_le_bytes()[0]
+             })
+             .collect();
+         let mut framed = Vec::new();
+--- a/src/protocol/share.rs
++++ b/src/protocol/share.rs
+@@ -4759,7 +4759,7 @@
+     async fn encoding_many_share_fetches_does_not_hold_the_caller() {
+         let topics: Vec<ShareFetchTopic> = (0..2_000_000)
+             .map(|index| ShareFetchTopic {
+-                topic_id: (index as u128).to_le_bytes(),
++                topic_id: u128::try_from(index).expect("nonnegative test index").to_le_bytes(),
+                 partitions: vec![ShareFetchPartition {
+                     partition: 0,
+                     partition_max_bytes: 0,
+@@ -4836,7 +4836,7 @@
+     async fn encoding_many_share_ack_topics_does_not_hold_the_caller() {
+         let topics: Vec<ShareAckTopic> = (0..2_000_000)
+             .map(|index| ShareAckTopic {
+-                topic_id: (index as u128).to_le_bytes(),
++                topic_id: u128::try_from(index).expect("nonnegative test index").to_le_bytes(),
+                 partitions: vec![(0, Vec::new())],
+             })
+             .collect();
+@@ -4846,7 +4846,7 @@
+             encoded = encode_share_acknowledge_topics_cooperative(
+                 &mut body, 1, "group", "member", 1, &topics,
+             ) => {
+-                let _encoded = encoded.unwrap_or_else(|error| panic!("{error}"));
++                encoded.unwrap_or_else(|error| panic!("{error}"));
+             }
+             () = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+         }
+@@ -5369,7 +5369,7 @@
+         body.extend_from_slice(&suffix);
+         let started = std::time::Instant::now();
+         tokio::select! {
+-            _ = async { let _ = decode_share_fetch_response(&mut body, 1); } => {}
++            _ = async { let _unused_result = decode_share_fetch_response(&mut body, 1); } => {}
+             _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+         }
+         let elapsed = started.elapsed();
+@@ -8023,7 +8023,7 @@
+             .map(|index| {
+                 let mut id = [0u8; 16];
+                 id[..4].copy_from_slice(&index.to_be_bytes());
+-                (id, index as i32, body.clone())
++                (id, i32::try_from(index).expect("test index fits i32"), body.clone())
+             })
+             .collect();
+         let started = std::time::Instant::now();
+@@ -9479,7 +9479,7 @@
+             .map(|index| {
+                 let mut id = [0u8; 16];
+                 id[..4].copy_from_slice(&index.to_be_bytes());
+-                (id, index as i32, body.clone())
++                (id, i32::try_from(index).expect("test index fits i32"), body.clone())
+             })
+             .collect();
+         let started = std::time::Instant::now();
+--- a/src/share.rs
++++ b/src/share.rs
+@@ -8706,7 +8706,7 @@
+                 topic_id[..8].copy_from_slice(&index.to_le_bytes());
+                 crate::protocol::share::ShareTopicPartitions {
+                     topic_id,
+-                    partitions: vec![index as i32],
++                    partitions: vec![i32::try_from(index).expect("test index fits i32")],
+                 }
+             })
+             .collect();
+@@ -8782,7 +8782,7 @@
+                 crate::protocol::share::ShareAcknowledgeResponseTopic {
+                     topic_id,
+                     partitions: vec![crate::protocol::share::ShareAcknowledgeResponsePartition {
+-                        partition: index as i32,
++                        partition: i32::try_from(index).expect("test index fits i32"),
+                         error_code: 0,
+                         error_message: None,
+                         current_leader_id: 1,
+@@ -8865,7 +8865,7 @@
+                     topic_id,
+                     partitions: vec![
+                         crate::protocol::share::ShareFetchedPartition::partition_response(
+-                            index as i32,
++                            i32::try_from(index).expect("test index fits i32"),
+                             0,
+                         ),
+                     ],
+@@ -10386,7 +10386,7 @@
+         .await;
+         let elapsed = started.elapsed();
+         assert_eq!(found.get(&511).map(String::as_str), Some("10.0.0.1:9000"));
+-        assert!(found.get(&0).is_none());
++        assert!(!found.contains_key(&0));
+         assert!(
+             elapsed < std::time::Duration::from_millis(80),
+             "finding share leader addresses held the caller for {elapsed:?}"
+@@ -10528,7 +10528,7 @@
+         let mut topic_ids: HashMap<Arc<str>, [u8; 16]> = (0..2_000_000)
+             .map(|index| {
+                 let mut id = [0u8; 16];
+-                id[..8].copy_from_slice(&(index as u64).to_le_bytes());
++                id[..8].copy_from_slice(&u64::try_from(index).expect("nonnegative test index").to_le_bytes());
+                 (Arc::from(format!("topic-{index}")), id)
+             })
+             .collect();
+@@ -10578,7 +10578,7 @@
+         let stored: HashMap<Arc<str>, [u8; 16]> = (0..2_000_000)
+             .map(|index| {
+                 let mut id = [0u8; 16];
+-                id[..8].copy_from_slice(&(index as u64).to_le_bytes());
++                id[..8].copy_from_slice(&u64::try_from(index).expect("nonnegative test index").to_le_bytes());
+                 (Arc::from(format!("topic-{index}")), id)
+             })
+             .collect();
+@@ -11548,8 +11548,8 @@
+             topic.as_str() == "orders" && run.first == 0
+         })
+         .await;
+-        assert!(sample.get("orders").is_some());
+-        assert!(sample.get("payments").is_none());
++        assert!(sample.contains_key("orders"));
++        assert!(!sample.contains_key("payments"));
+     }
+ 
+     #[tokio::test(flavor = "current_thread")]
+@@ -12255,7 +12255,7 @@
+         }
+         let saw = accepted.await.unwrap();
+         assert!(
+-            matches!(saw, Err(_)),
++            saw.is_err(),
+             "ending the share retry watch shut a live leader socket: {saw:?}"
+         );
+         assert!(
+--- a/src/streams.rs
++++ b/src/streams.rs
+@@ -744,7 +744,8 @@
+             let _started = flag.fetch_add(1, Ordering::SeqCst);
+             let mut size_buf = [0u8; 4];
+             if socket.read_exact(&mut size_buf).await.is_ok() {
+-                let size = i32::from_be_bytes(size_buf).max(0) as usize;
++                let size = usize::try_from(i32::from_be_bytes(size_buf).max(0))
++                    .expect("nonnegative test frame size fits usize");
+                 let mut request = vec![0u8; size];
+                 if socket.read_exact(&mut request).await.is_ok() {
+                     if let Some(bytes) = request.get(4..8) {
+--- a/tests/tls_shutdown_deadline.rs
++++ b/tests/tls_shutdown_deadline.rs
+@@ -43,8 +43,8 @@
+     let peer = tokio::spawn(async move {
+         let (socket, _) = listener.accept().await.unwrap();
+         let stream = acceptor.accept(socket).await.unwrap();
+-        let _ = handshake_tx.send(());
+-        let _ = release_rx.await;
++        let _unused_result = handshake_tx.send(());
++        let _unused_result = release_rx.await;
+         peer_observes_full_close(stream).await
+     });
+     let tls = TlsConfig::default().ca_pem(ca_pem).server_name("localhost");
+@@ -65,7 +65,7 @@
+     .await;
+     let elapsed = started.elapsed();
+     let closed = conn.is_closed();
+-    let _ = release_tx.send(());
++    let _unused_result = release_tx.send(());
+     let peer_closed = peer.await.unwrap();
+     assert!(
+         peer_closed,
+@@ -91,8 +91,8 @@
+     let peer = tokio::spawn(async move {
+         let (socket, _) = listener.accept().await.unwrap();
+         let stream = acceptor.accept(socket).await.unwrap();
+-        let _ = handshake_tx.send(());
+-        let _ = release_rx.await;
++        let _unused_result = handshake_tx.send(());
++        let _unused_result = release_rx.await;
+         peer_observes_full_close(stream).await
+     });
+     let tls = TlsConfig::default().ca_pem(ca_pem).server_name("localhost");
+@@ -115,7 +115,7 @@
+         conn.is_closed(),
+         "cancelled write must poison its connection"
+     );
+-    let _ = release_tx.send(());
++    let _unused_result = release_tx.send(());
+     assert!(
+         peer.await.unwrap(),
+         "cancelled TLS connection retained its peer socket"

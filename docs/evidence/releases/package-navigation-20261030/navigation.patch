@@ -1,0 +1,494 @@
+--- a/README.md
++++ b/README.md
+@@ -2,8 +2,8 @@
+ 
+ An asynchronous Apache Kafka client with producer, consumer, group, transaction,
+ and Admin APIs. This repository also contains an experimental
+-[broker](partitionline-broker/README.md) and a
+-[Schema Registry companion](partitionline-schema/README.md).
++[broker](https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/partitionline-broker/README.md) and a
++[Schema Registry companion](https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/partitionline-schema/README.md).
+ 
+ [![ci](https://github.com/mingley/partitionline/actions/workflows/ci.yml/badge.svg)](https://github.com/mingley/partitionline/actions/workflows/ci.yml)
+ [![crates.io](https://img.shields.io/crates/v/partitionline.svg)](https://crates.io/crates/partitionline)
+@@ -17,7 +17,7 @@
+ Version 0.1.0 is available on [crates.io](https://crates.io/crates/partitionline).
+ The repository includes changes made after that release. See the
+ [support matrix](docs/support.md) for tested versions and platforms and the
+-[task registry](docs/plan/tasks.json) for remaining work. Production and
++[task registry](https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/docs/plan/tasks.json) for remaining work. Production and
+ performance qualification are ongoing.
+ 
+ Use the latest stable Rust to build the current source.
+--- a/docs/ADOPTION.md
++++ b/docs/ADOPTION.md
+@@ -49,7 +49,7 @@
+ | crates.io release | **0.1.0 published.** Depend on `partitionline = "0.1"`. |
+ | zstd | Optional feature, off by default. Encoding and decoding exist. Qualification is finite. See [zstd](zstd-spike.md). |
+ | Kerberos / GSSAPI | Not implemented. The [provider proposal](gssapi-boundary.md) is waiting for approval. |
+-| Schema Registry | Separate unpublished [companion](../partitionline-schema/README.md). The application picks the serializer. |
++| Schema Registry | Separate unpublished [companion](https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/partitionline-schema/README.md). The application picks the serializer. |
+ | Signed Suite HOLD benches | Still unsigned. See [STATUS.md](STATUS.md). |
+ 
+ Tell us what blocks a pilot: issue
+--- a/docs/CIVILIZATION.md
++++ b/docs/CIVILIZATION.md
+@@ -3,9 +3,9 @@
+ This file is the older foundation plan. The work packages below are history.
+ They are not the queue for new work.
+ 
+-Current work is one card at a time in [tasks.json](plan/tasks.json). The
+-[task workflow](plan/README.md) says how to pick a card. Profile gates are in
+-[ROADMAP.md](ROADMAP.md). The [2026-09-21 audit](audits/2026-09-21.md)
++Current work is one card at a time in [tasks.json](https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/docs/plan/tasks.json). The
++[task workflow](https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/docs/plan/README.md) says how to pick a card. Profile gates are in
++[ROADMAP.md](ROADMAP.md). The [2026-09-21 audit](https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/docs/audits/2026-09-21.md)
+ supersedes any completion claim read out of the checklist below.
+ 
+ The client goal is documented behavior, reliable operation, and measurements
+--- a/docs/RELEASE.md
++++ b/docs/RELEASE.md
+@@ -3,7 +3,7 @@
+ `partitionline` 0.1.0 is already published on crates.io. Never recut that
+ version. Current source contains API changes and unresolved correctness
+ failures; it is not ready for the next release. The [status](STATUS.md) and
+-[next-work handoff](plan/next-work.md) link to the recorded results.
++[next-work handoff](https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/docs/plan/next-work.md) link to the recorded results.
+ 
+ ## Crates and versions
+ 
+@@ -63,7 +63,7 @@
+ `X.Y.Z` version, and registry authentication. `DRY_RUN=1` rehearses actions;
+ it does not publish. The script uses local publication when a registry token
+ is available, or pushes the matching final tag for
+-[release.yml](../.github/workflows/release.yml). Set `PUBLISH_LOCAL=0` to use
++[release.yml](https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/.github/workflows/release.yml). Set `PUBLISH_LOCAL=0` to use
+ the workflow explicitly. The workflow supports crates.io Trusted Publishing
+ and a `CARGO_REGISTRY_TOKEN` fallback.
+ 
+@@ -83,5 +83,5 @@
+ 
+ Keep retries idempotent: resume index confirmation or release-note creation
+ for an existing version without uploading a different archive under that
+-version. The [archived guide](plan/archive/release-0.1.0.md) records the older
++version. The [archived guide](https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/docs/plan/archive/release-0.1.0.md) records the older
+ first-publication procedure and its evidence links.
+--- a/docs/ROADMAP.md
++++ b/docs/ROADMAP.md
+@@ -2,10 +2,10 @@
+ 
+ The goals are a production-ready Kafka client and broker, the protocol
+ behavior this repository commits to, and leading performance at the same
+-Kafka settings. [tasks.json](plan/tasks.json) is the queue: one card, its
++Kafka settings. [tasks.json](https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/docs/plan/tasks.json) is the queue: one card, its
+ dependencies, the files it starts from, and the check that closes it.
+-[TODO.md](../TODO.md) is the short launch order. It is not a second status
+-list. The [task workflow](plan/README.md) says how to pick a card.
++[TODO.md](https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/TODO.md) is the short launch order. It is not a second status
++list. The [task workflow](https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/docs/plan/README.md) says how to pick a card.
+ 
+ The KL packages below are scope and closing gates. They are not one session
+ of work. The numbers in the scorecard are proposed targets. They are not
+@@ -53,9 +53,9 @@
+ | Area | Existing evidence and source | Qualification gap |
+ |---|---|---|
+ | Package and dependency boundary | [Cargo.toml](../Cargo.toml): published `partitionline` 0.1.0, latest stable Rust declaration, MIT OR Apache-2.0. Client code forbids unsafe; no librdkafka dependency. TLS uses `rustls`/`ring`, including native compilation via `cc`. | Published/installable does not mean production-qualified. Do not claim the full build has no C dependencies. |
+-| Producer, consumer and protocol | [producer](../src/producer.rs), [consumer](../src/consumer.rs), [protocol](../src/protocol), [mock tests](../tests/full_surface.rs): routing, negotiated versions, batching, retries, idempotence and transactions. | The five baseline consumer defects are fixed (KL03-01 through KL03-07). Independent replay is still KL01-22. Mock agreement is not an independent broker oracle. |
+-| Group and share APIs | [group](../src/group.rs), [share](../src/share.rs), [broker smoke](../scripts/ci-broker-smoke.sh): classic/cooperative, KIP-848 and share-group paths. | Existing 3.9.1/4.1.0 CI smoke is not multi-broker chaos. Check executed cases and capability gates; an ignored live test is not covered by default `cargo test`. |
+-| Build and safety CI | [CI](../.github/workflows/ci.yml) uses latest stable Rust, features, package, audit/deny, short fuzz, broker and auth lanes; the audited run is green. | Strict rustdoc and doctests run in CI (KL07-01, KL07-02). Release eligibility rejects a non-CI workflow (KL08-01, KL08-02). Independent replay of the consumer histories is still KL01-22. |
++| Producer, consumer and protocol | [producer](../src/producer.rs), [consumer](../src/consumer.rs), [protocol](https://github.com/mingley/partitionline/tree/02ce806d7ea4970897d51604e71e6a1fa069ca4c/src/protocol), [mock tests](../tests/full_surface.rs): routing, negotiated versions, batching, retries, idempotence and transactions. | The five baseline consumer defects are fixed (KL03-01 through KL03-07). Independent replay is still KL01-22. Mock agreement is not an independent broker oracle. |
++| Group and share APIs | [group](../src/group.rs), [share](../src/share.rs), [broker smoke](https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/scripts/ci-broker-smoke.sh): classic/cooperative, KIP-848 and share-group paths. | Existing 3.9.1/4.1.0 CI smoke is not multi-broker chaos. Check executed cases and capability gates; an ignored live test is not covered by default `cargo test`. |
++| Build and safety CI | [CI](https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/.github/workflows/ci.yml) uses latest stable Rust, features, package, audit/deny, short fuzz, broker and auth lanes; the audited run is green. | Strict rustdoc and doctests run in CI (KL07-01, KL07-02). Release eligibility rejects a non-CI workflow (KL08-01, KL08-02). Independent replay of the consumer histories is still KL01-22. |
+ | Codecs and ecosystem | [zstd spike](zstd-spike.md), [schema companion](schema-companion.md): gzip/snappy/LZ4 and optional zstd are implemented; `partitionline-schema` remains unpublished with bounded framing, lookup/cache and caller-selected adapters. | The finite bidirectional codec matrix is KL05-05 and is done. It is a correctness check, not a performance qualification. Broader schema qualification and a live registry round trip remain separate. Default dependencies stay unchanged. |
+ | Performance | [benchmark.md](benchmark.md) separates locked Lab A produce results from unsigned this-VM fetch/latency results. Recorded produce latency was 62/95 us p50/p99 versus rust-rdkafka 58/90 us. | No universal speed claim. Preserve Suite HOLD and its signoff rules; do not combine different hosts/configurations into one victory. |
+ | Operations | [metrics](../src/metrics.rs), optional `tracing`, [security policy](security.md), [adoption checklist](ADOPTION.md) already exist. | Redaction on the auth lifecycle paths is KL06-07 and is done. TLS rotation checks are KL06-05 and are done. Still open: the live credential-lifecycle matrix (KL06-06), two newcomer exercises (KL07-09), and operator rollback rehearsal (KL08-12). |
+@@ -109,7 +109,7 @@
+ building blocks, **not proof that new acceptance criteria already pass**.
+ New harnesses must be added and wired into CI before their package can close.
+ Use the corresponding `KL01-*` through `KL10-*` cards in
+-[tasks.json](plan/tasks.json). One session takes one ready card, not a
++[tasks.json](https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/docs/plan/tasks.json). One session takes one ready card, not a
+ whole numbered package.
+ 
+ ### KL-01: Recover the baseline and establish protocol oracles
+@@ -121,7 +121,7 @@
+    every required upstream case to evidence. Separate harness noise from a
+    client regression; retain historical failures rather than overwriting them.
+    **Partial (2026-09-05):** shared-runner vs local-native vs controlled-host
+-   budgets recorded in [latency-ci-policy.json](latency-ci-policy.json);
++   budgets recorded in [latency-ci-policy.json](https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/docs/latency-ci-policy.json);
+    nested 1,344/750 µs miss is historical (`SKIP_LATENCY_GATE` on integrity).
+    GHA 5000 µs and local 750 µs relative gate unchanged. Controlled-host
+    reproduce remains open. Not Done.
+@@ -144,16 +144,16 @@
+    KL01-03 through KL01-08 are done: they added the independent Java
+    fixtures and wired the reports into CI. Later evidence cards, including
+    KL01-22 and KL01-24, are still pending.
+-4. Extend existing [fuzz targets](../fuzz) beyond short CI smoke, focusing on
++4. Extend existing [fuzz targets](https://github.com/mingley/partitionline/tree/02ce806d7ea4970897d51604e71e6a1fa069ca4c/fuzz) beyond short CI smoke, focusing on
+    lengths, tagged fields, truncated batches, CRC, allocation and decompression
+    bounds. Retain minimized failures and campaign/coverage metadata.
+    **Partial (2026-09-05):** campaign metadata harness (`scripts/ci-fuzz-campaign.sh`,
+    `fuzz/campaign/metadata.example.json`) is distinct from 15s CI smoke; minimized
+    failures are retained under `fuzz/artifacts/minimized/`. Not a sustained-campaign close.
+ 
+-**Work surfaces:** [protocol](../src/protocol), [fuzz smoke](../tests/fuzz_decode_smoke.rs),
+-[broker smoke](../scripts/ci-broker-smoke.sh), [integrity smoke](../scripts/ci-integrity-smoke.sh),
+-[latency gate](../scripts/ci-latency-gate.sh).
++**Work surfaces:** [protocol](https://github.com/mingley/partitionline/tree/02ce806d7ea4970897d51604e71e6a1fa069ca4c/src/protocol), [fuzz smoke](../tests/fuzz_decode_smoke.rs),
++[broker smoke](https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/scripts/ci-broker-smoke.sh), [integrity smoke](https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/scripts/ci-integrity-smoke.sh),
++[latency gate](https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/scripts/ci-latency-gate.sh).
+ **Done when:** required CI is green without silent skips or weaker assertions;
+ each advertised matrix cell names the actual broker and cases; differential
+ fixtures and sustained campaigns have linked results and no unresolved failures.
+@@ -220,7 +220,7 @@
+ 
+ **Work surfaces:** [producer](../src/producer.rs), [consumer](../src/consumer.rs),
+ [group](../src/group.rs), [share](../src/share.rs), [transaction protocol](../src/protocol/txn.rs),
+-[live tests](../tests/kip848_live.rs), [broker smoke](../scripts/ci-broker-smoke.sh).
++[live tests](../tests/kip848_live.rs), [broker smoke](https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/scripts/ci-broker-smoke.sh).
+ **Done when:** seeded histories satisfy each profile's invariants and recovery
+ budget across supported broker versions, with no unexplained outcomes.
+ `acks=all` alone is not an exactly-once guarantee.
+@@ -241,7 +241,7 @@
+    another Rust client when its semantics match. Preserve the existing Lab A
+    contracts and compare separate producer, consumer and end-to-end results.
+    **Partial (2026-09-05):** CI vs local vs controlled-host budgets recorded
+-   in [latency-ci-policy.json](latency-ci-policy.json). Shared-runner smoke
++   in [latency-ci-policy.json](https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/docs/latency-ci-policy.json). Shared-runner smoke
+    is not Lab A; unsigned samples must not lift Suite HOLD. Controlled-host
+    qualification remains open. Not Done.
+ 2. Match acks, idempotence, isolation, replication/ISR, compression, batch/linger,
+@@ -259,7 +259,7 @@
+    and executor contention. Land one explained, reversible optimization per PR.
+    Reject apparent wins from weaker durability, hidden errors or one bespoke schema.
+ 
+-**Work surfaces:** [benchmark examples](../examples), [latency gate](../scripts/ci-latency-gate.sh),
++**Work surfaces:** [benchmark examples](https://github.com/mingley/partitionline/tree/02ce806d7ea4970897d51604e71e6a1fa069ca4c/examples), [latency gate](https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/scripts/ci-latency-gate.sh),
+ [producer](../src/producer.rs), [network](../src/net.rs), [record codec](../src/protocol/records.rs).
+ **Done when:** an independent operator reproduces named scorecard wins from
+ raw artifacts and exact configs/revisions. Publish losses too. Performance
+@@ -326,7 +326,7 @@
+    progress), shared callers KL06-12, and GSSAPI KL06-08 through KL06-10.
+ 
+ **Work surfaces:** [network](../src/net.rs), [OAuth](../src/protocol/oauth.rs),
+-[OIDC](../src/protocol/oidc.rs), [auth smoke](../scripts/ci-auth-smoke.sh),
++[OIDC](../src/protocol/oidc.rs), [auth smoke](https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/scripts/ci-auth-smoke.sh),
+ [security policy](security.md).
+ **Done when:** short-lived-credential fixtures and real secure broker cases
+ cover multiple rotations/outages with documented outcomes, bounded recovery
+@@ -353,7 +353,7 @@
+    stale leader and blocked consumer using telemetry rather than payload logging.
+ 
+ **Work surfaces:** [metrics](../src/metrics.rs), [interceptors](../src/interceptor.rs),
+-[guide](guide.md), [examples](../examples), [consumer fixture](../scripts/ci-crate-consumer.sh).
++[guide](guide.md), [examples](https://github.com/mingley/partitionline/tree/02ce806d7ea4970897d51604e71e6a1fa069ca4c/examples), [consumer fixture](https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/scripts/ci-crate-consumer.sh).
+ **Done when:** examples run from a fresh package consumer, usability feedback
+ is resolved, and disabled/enabled instrumentation costs and redaction are measured.
+ 
+@@ -364,7 +364,7 @@
+ for adoption and API stabilization. Optional KL-05 features do not gate everyone.
+ 
+ 1. Select one serialized publication path across
+-   [release-plz](../.github/workflows/release-plz.yml) and legacy workflows.
++   [release-plz](https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/.github/workflows/release-plz.yml) and legacy workflows.
+    Require green evidence for the exact release SHA, isolated package consumers,
+    author/license/notice inventory and an idempotent partial-release recovery.
+    Reconcile [release policy](RELEASE.md), metadata checks and stale handoff
+@@ -418,9 +418,9 @@
+ **Depends on:** KL-04 contract and result format; KL-03 for consumer
+ optimizations; KL-04 campaigns before any claim.
+ 
+-The [performance leadership program](plan/performance-leadership.md) holds
++The [performance leadership program](https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/docs/plan/performance-leadership.md) holds
+ the strategy, hot-path map, and worker protocol. Status is
+-[tasks.json](plan/tasks.json). 51 of 74 KL09 cards are done. KL09-13,
++[tasks.json](https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/docs/plan/tasks.json). 51 of 74 KL09 cards are done. KL09-13,
+ ranking the hotspot hypotheses, is in progress. Suite HOLD remains. The
+ hot-path notes on that page name the pending cards. Do not read an older
+ blob of either file as the current queue.
+@@ -446,7 +446,7 @@
+ 
+ **Work surfaces:** [producer](../src/producer.rs), [consumer](../src/consumer.rs),
+ [record codec](../src/protocol/records.rs), [network](../src/net.rs),
+-[benchmarks](../benchmarks).
++[benchmarks](https://github.com/mingley/partitionline/tree/02ce806d7ea4970897d51604e71e6a1fa069ca4c/benchmarks).
+ **Done when:** every KL09 card is accepted, has a measured rejection or
+ is explicitly blocked; the allocation and instruction gates run in CI;
+ and KL09-70 records a per-cell verdict from raw artifacts. Public wording
+@@ -460,9 +460,9 @@
+ **Depends on:** KL-04 peers and result format; KL-09 worker protocol and
+ codec benchmarks; KL-05 for zstd.
+ 
+-The [gateway adoption plan](plan/gateway-adoption.md) holds the profile,
++The [gateway adoption plan](https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/docs/plan/gateway-adoption.md) holds the profile,
+ the dated evidence and the card map. Cards are KL10-01 through KL10-17 in
+-[tasks.json](plan/tasks.json).
++[tasks.json](https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/docs/plan/tasks.json).
+ 
+ 1. Restore a green `main`: the verifiable contract tests must find the
+    example binaries they run (KL10-01). This card is done.
+@@ -482,7 +482,7 @@
+ 
+ **Work surfaces:** [record codec](../src/protocol/records.rs),
+ [producer](../src/producer.rs), [consumer](../src/consumer.rs),
+-[CI](../.github/workflows/ci.yml), [benchmarks](../benchmarks).
++[CI](https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/.github/workflows/ci.yml), [benchmarks](https://github.com/mingley/partitionline/tree/02ce806d7ea4970897d51604e71e6a1fa069ca4c/benchmarks).
+ **Done when:** `main` CI is green; on the gateway cells partitionline uses
+ no more CPU per record than librdkafka for gzip produce and gzip consume at
+ matched settings, with p99 no worse; per-record acknowledgment costs at
+@@ -503,7 +503,7 @@
+ | Alongside, specifications | KL01-01: conformance registry. KL02-01: resource contract. KL04-01: benchmark contract. KL05-01: feature matrix. | Independent fixtures, bounds, comparable peer drivers, and one-feature cards. |
+ 
+ Read one ready card and the evidence it names. Long evidence runs are
+-resumable jobs. The handoff rules are in the [task workflow](plan/README.md).
++resumable jobs. The handoff rules are in the [task workflow](https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/docs/plan/README.md).
+ 
+ Existing proof entry points (from the repository root):
+ 
+--- a/docs/STATUS.md
++++ b/docs/STATUS.md
+@@ -17,8 +17,8 @@
+ | --- | --- |
+ | What the client can call | [Protocol support](gaps.md) and rustdoc |
+ | Which brokers and platforms are tested | [Support matrix](support.md) |
+-| What the broker implements | [Broker README](../partitionline-broker/README.md) |
+-| Which work items are open | [Task registry](plan/tasks.json) |
++| What the broker implements | [Broker README](https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/partitionline-broker/README.md) |
++| Which work items are open | [Task registry](https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/docs/plan/tasks.json) |
+ | How a benchmark number should be read | [Benchmark guide](benchmark.md) |
+ 
+ The task registry has 346 cards: 249 done, 13 in progress, and 84 pending.
+@@ -32,7 +32,7 @@
+ both feature modes. The rebuilt candidate failed after 2,704 seconds with
+ another epoch-recovery timeout. Its retained 60-byte seed passes exact replays;
+ the timeout remains unexplained. No campaign is currently running and no
+-24-hour run has passed. See the [current fuzz result](evidence/broker/fuzz/20261027-candidate06/README.md).
++24-hour run has passed. See the [current fuzz result](https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/docs/evidence/broker/fuzz/20261027-candidate06/README.md).
+ 
+ On clean commit `de38cd3df`, broker default all-target tests reported 687
+ passed. All-feature tests reported 830 passed and one OIDC revocation-order
+@@ -40,21 +40,21 @@
+ passed. Several live-peer probes returned early without their environment
+ variables. The original run stopped before doctests at its disk guard; two
+ separate doctest commands passed but found zero tests. See the [clean broker
+-results](evidence/broker/clean-validation-20261028/README.md). Later OIDC
++results](https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/docs/evidence/broker/clean-validation-20261028/README.md). Later OIDC
+ ordering tests passed on an integrated working tree; the full broker matrix
+ has not been rerun on the current commit.
+ 
+-The [active qualification goal](plan/goal-qualification.json) continues through
++The [active qualification goal](https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/docs/plan/goal-qualification.json) continues through
+ the client build/runtime gates, independent conformance, sustained runs and
+ matched benchmarks on this x86_64 workspace. On clean commit `53b5af47f`,
+ the client default all-target matrix reported 3,354 passed, 76 failed and
+ 37 ignored across eight failing targets. See the [client results and failure
+-index](evidence/client/clean-default-validation-20261028/README.md). The
++index](https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/docs/evidence/client/clean-default-validation-20261028/README.md). The
+ all-feature client matrix and core/full conformance remain incomplete. A bounded syscall
+ diagnostic reproduced a timeout under tracing and a lower CPU limit; the cause
+ of the original untraced timeout remains unresolved. No 24-hour run has passed.
+ 
+-Later [buffer reservation checks](evidence/perf/buffer-reservations-20261030/README.md)
++Later [buffer reservation checks](https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/docs/evidence/perf/buffer-reservations-20261030/README.md)
+ corrected 219 length-relative reservation calls and restored the codec
+ allocation gate without raising budgets. The 48-cell encoder census dropped
+ from 84 growth allocations to 48, with identical encoded bodies and no warmed
+@@ -62,12 +62,12 @@
+ failures; scoped codec tests and strict Clippy passed. These checks did not
+ measure throughput or replace the full client matrix.
+ 
+-The [earlier readiness assessment](evidence/broker/qualification-20261027/status.json)
+-and [failed campaigns](evidence/broker/fuzz/20261027-candidate06/README.md) retain
++The [earlier readiness assessment](https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/docs/evidence/broker/qualification-20261027/status.json)
++and [failed campaigns](https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/docs/evidence/broker/fuzz/20261027-candidate06/README.md) retain
+ the previous failures. Production readiness and fastest-performance claims
+ remain unqualified.
+ 
+-The [next-work handoff](plan/next-work.md) records the main correctness
++The [next-work handoff](https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/docs/plan/next-work.md) records the main correctness
+ blockers, candidate status, validation steps and benchmark scope.
+ 
+ ## Client
+@@ -95,7 +95,7 @@
+ and independent clients against one persisted node. KL11-46 still needs a rolling mixed-version network history; its existing
+ evidence covers one local admin journal. Unit and integration tests do not
+ by themselves make the broker production-ready. The
+-[broker plan](plan/broker-implementation.md) records the remaining checks,
++[broker plan](https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/docs/plan/broker-implementation.md) records the remaining checks,
+ including sustained fuzz, resource soaks, and peer authentication.
+ 
+ ## Snapshot from 8 October 2026
+@@ -115,37 +115,37 @@
+ 
+ UpdateFeatures v0 rejected validation-only requests before encoding or
+ dispatch. The qualification record is
+-[q-conf-updatefeatures](evidence/conformance/q-conf-updatefeatures/qualification-20261008/README.md).
++[q-conf-updatefeatures](https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/docs/evidence/conformance/q-conf-updatefeatures/qualification-20261008/README.md).
+ 
+ A pinned local baseline recorded codec, null-broker, native broker, and
+ open-loop latency measurements. All five 80% latency profiles contained
+ bounded-capacity rejections. Those failures and the missing-cell list are in
+-the [baseline evidence](evidence/perf/baseline/README.md). A
+-[build-profile comparison](evidence/perf/build-profiles/README.md) recorded
++the [baseline evidence](https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/docs/evidence/perf/baseline/README.md). A
++[build-profile comparison](https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/docs/evidence/perf/build-profiles/README.md) recorded
+ LTO, codegen-unit, CPU-target, and PGO variants. Those local results did not
+ change library defaults.
+ 
+ The benchmark report enforced the complete schema. Corrected null-broker
+ produce, fetch, and connect outputs passed, with explicit fields for absent
+ durability and warmup. See
+-[format evidence](evidence/perf/null-result-schema/README.md).
++[format evidence](https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/docs/evidence/perf/null-result-schema/README.md).
+ 
+ Pinned Java, librdkafka, and franz-go clients passed bounded Produce and Fetch
+ checks against the null broker. Fetch used the fixture's seeded stream.
+-[Peer evidence](evidence/perf/nullbroker-peers/README.md) records the limit,
++[Peer evidence](https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/docs/evidence/perf/nullbroker-peers/README.md) records the limit,
+ source hashes, retained failures, and process cleanup. That is fixture
+ compatibility, not a storage or speed claim.
+ 
+ The orchestrator rejected client-ceiling cells inside Kafka-throughput
+ manifests. Its null-broker tier still needed qualified adapters. The franz-go
+ driver was missing ten settings required by the comparison preflight, and
+-those omissions were reported. [Orchestrator evidence](evidence/perf/matrix-tiers/README.md)
++those omissions were reported. [Orchestrator evidence](https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/docs/evidence/perf/matrix-tiers/README.md)
+ keeps the earlier tier-mixing failure. KL09-68 was open in that snapshot.
+ 
+ The Go peer applied its reported `none` compression setting explicitly.
+-[Compression evidence](evidence/perf/franz-compression-20261008/README.md)
++[Compression evidence](https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/docs/evidence/perf/franz-compression-20261008/README.md)
+ records the tested source. The shared configuration was incomplete, so the
+ correction did not qualify a comparable campaign.
+ 
+-The [workspace archive](evidence/workspace-publication-20261008/README.md)
++The [workspace archive](https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/docs/evidence/workspace-publication-20261008/README.md)
+ preserves the original evidence files from that publication.
+--- a/docs/benchmark-contract.md
++++ b/docs/benchmark-contract.md
+@@ -181,7 +181,7 @@
+ 
+ Scenario `matched-bulk-acks-all-6p-uncompressed`. Profile `bulk`, required
+ tier, status `not_run`. The commands below are the checked-in invocations
+-from [scenarios.json](../benchmarks/scenarios.json). Running one of them
++from [scenarios.json](https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/benchmarks/scenarios.json). Running one of them
+ once does not fill the cell.
+ 
+ The workload is idempotent produce of 8,000,000 uncompressed records,
+--- a/docs/gaps.md
++++ b/docs/gaps.md
+@@ -30,7 +30,7 @@
+ 
+ ## Remaining work
+ 
+-Production qualification is ongoing. The [task registry](plan/tasks.json)
++Production qualification is ongoing. The [task registry](https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/docs/plan/tasks.json)
+ tracks protocol option gaps, fault histories, security lifecycle tests, resource
+ limits, diagnostics and platform checks. Common deployment support and optional
+ enterprise features have separate test profiles.
+--- a/docs/gssapi-boundary.md
++++ b/docs/gssapi-boundary.md
+@@ -129,4 +129,4 @@
+ reconnect, and KL11-38 implements the approved broker boundary. Enterprise
+ profile completeness stays blocked while this decision or its qualifications
+ remain open. The source audit is in
+-[the review evidence](evidence/security/gssapi-boundary/README.md).
++[the review evidence](https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/docs/evidence/security/gssapi-boundary/README.md).
+--- a/docs/guide.md
++++ b/docs/guide.md
+@@ -1060,7 +1060,7 @@
+ other work. Use `multi_thread` when application tasks need parallel scheduling,
+ and choose its worker count from measurements of that workload.
+ 
+-The [local runtime comparison](evidence/perf/runtime-flavors/README.md) tested
++The [local runtime comparison](https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/docs/evidence/perf/runtime-flavors/README.md) tested
+ current-thread and 1, 2, 4 and 5 background workers on two client CPUs with Kafka
+ 4.3.1. Median native bulk throughput was 245,443 records/s on current-thread and
+ 214,721–233,172 records/s on the multithread configurations. Current-thread also
+@@ -1085,7 +1085,7 @@
+ allocators exist only as features of the workspace-excluded `benchmarks/runtime`
+ crate.
+ 
+-The [build-profile study](evidence/perf/build-profiles/README.md) compared LTO,
++The [build-profile study](https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/docs/evidence/perf/build-profiles/README.md) compared LTO,
+ codegen units, `target-cpu`, and PGO on this class of host. Throughput
+ intervals against the portable baseline included zero. PGO's CPU change was
+ specific to those fixtures. Do not treat thin LTO, fat LTO, native CPU, or PGO
+--- a/docs/gzip-backend.md
++++ b/docs/gzip-backend.md
+@@ -6,7 +6,7 @@
+ `docs/plan/evidence/KL10-05.json`.
+ 
+ This is one exception to the boundary in
+-[performance leadership, section 9](plan/performance-leadership.md#9-boundaries-unchanged-unless-the-maintainer-decides-otherwise).
++[performance leadership, section 9](https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/docs/plan/performance-leadership.md#9-boundaries-unchanged-unless-the-maintainer-decides-otherwise).
+ It covers this dependency. The crate still forbids `unsafe` in its own code.
+ 
+ | Build | gzip backend | `unsafe` in the gzip path |
+--- a/docs/index.md
++++ b/docs/index.md
+@@ -13,8 +13,8 @@
+ | Protocol versions and missing features | [Protocol support](gaps.md) |
+ | TLS, SASL, and credential handling | [Security](security.md) and [token lifecycle](auth-refresh.md) |
+ | Client internals | [Design](design.md) |
+-| Broker development | [Broker README](../partitionline-broker/README.md) |
+-| Schema Registry and serialization | [Companion README](../partitionline-schema/README.md) |
++| Broker development | [Broker README](https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/partitionline-broker/README.md) |
++| Schema Registry and serialization | [Companion README](https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/partitionline-schema/README.md) |
+ | Versions this client speaks | [Wire versions](wire-versions.md) |
+ | Run and compare benchmarks | [Benchmark instructions](benchmark.md) and [measurement rules](benchmark-contract.md) |
+ | Release process | [Release guide](RELEASE.md) |
+@@ -22,11 +22,11 @@
+ 
+ ## Development plans
+ 
+-The [task registry](plan/tasks.json) tracks status and dependencies. Use the
+-[session guide](plan/README.md) to select work. The [roadmap](ROADMAP.md),
+-[client performance plan](plan/performance-leadership.md),
+-[gateway plan](plan/gateway-adoption.md), and
+-[broker plan](plan/broker-implementation.md) describe the goals and checks.
++The [task registry](https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/docs/plan/tasks.json) tracks status and dependencies. Use the
++[session guide](https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/docs/plan/README.md) to select work. The [roadmap](ROADMAP.md),
++[client performance plan](https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/docs/plan/performance-leadership.md),
++[gateway plan](https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/docs/plan/gateway-adoption.md), and
++[broker plan](https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/docs/plan/broker-implementation.md) describe the goals and checks.
+ 
+ [STATUS.md](STATUS.md), [CIVILIZATION.md](CIVILIZATION.md), and dated audits
+ preserve earlier plans and results. Use the task registry for current status.
+--- a/docs/migrate-from-rdkafka.md
++++ b/docs/migrate-from-rdkafka.md
+@@ -355,7 +355,7 @@
+ | ListOffsets v11 | `manual_consumer.list_offsets_v11` (present) | Earliest-pending-upload is exposed. There is no live tiered-storage qualification. |
+ | Incremental Fetch | `manual_consumer.incremental_fetch_runtime` (present) | Sessions run on Fetch v7–v18. Older peers get a full fetch. Live qualification of reset histories is KL01-24. |
+ | OIDC refresh and SASL lifetime | `auth.sasl_oidc_refresh` (missing) | An owned `OidcTokenManager` refreshes before expiry. The shared connect-time cache does not. Producer, consumer, admin, and group loops do not reauthenticate on a timer. The pipeline closes when the SASL session expires. See [token lifecycle](auth-refresh.md). |
+-| Schema Registry | `schema_ecosystem.registry_client` (present in the companion) | Unpublished crate, read-only lookups. The application picks the serializer. See the [companion](../partitionline-schema/README.md). |
++| Schema Registry | `schema_ecosystem.registry_client` (present in the companion) | Unpublished crate, read-only lookups. The application picks the serializer. See the [companion](https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/partitionline-schema/README.md). |
+ | ElectLeaders | `full_admin.elect_leaders` (present) | Per-partition results, controller route, one deadline. Unclean election needs v1 or later. No live unclean-election qualification. |
+ | DescribeQuorum | `full_admin.describe_quorum` (present) | Reads metadata partition 0 through broker bootstrap. Unknown timestamps stay `-1`. |
+ | Raft voters | `full_admin.add_raft_voter`, `full_admin.remove_raft_voter` (present) | Broker-forwarded. A v1 local append is not committed membership. No live membership-change qualification. |
+--- a/docs/schema-companion.md
++++ b/docs/schema-companion.md
+@@ -126,7 +126,7 @@
+ companion gains a serialization-library dependency or a default feature
+ for it.
+ 
+-The [offline peer](../partitionline-schema/tests/oracles/protobuf/README.md)
++The [offline peer](https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/partitionline-schema/tests/oracles/protobuf/README.md)
+ pins Confluent Schema Registry 8.1.0 source, Apache Kafka 4.1.0
+ `ByteUtils`, JDK 21.0.12.1, and Google protoc 3.21.12. It builds frames
+ and payloads on its own and checks Rust output in the other direction,
+--- a/docs/support.md
++++ b/docs/support.md
+@@ -7,9 +7,9 @@
+ API changes follow the [0.x policy](api-stability.md). Cuts are described in
+ [RELEASE.md](RELEASE.md). Adopter steps are in [ADOPTION.md](ADOPTION.md).
+ Broader correctness, fault, and performance work stays in the
+-[task queue](plan/README.md).
++[task queue](https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/docs/plan/README.md).
+ 
+-The [2026-09-21 source audit](audits/2026-09-21.md) reproduced five consumer
++The [2026-09-21 source audit](https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/docs/audits/2026-09-21.md) reproduced five consumer
+ correctness cases at `cb7e97d`. Those cases are fixed in later source.
+ Apache 4.1.2, 4.2.1, and 4.3.1 have their own digest-pinned profiles. The
+ older 3.9.1 and 4.1.0 smoke runs are historical coverage.

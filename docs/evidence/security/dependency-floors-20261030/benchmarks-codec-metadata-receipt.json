@@ -1,0 +1,20 @@
+{
+  "command": [
+    "/workspace/work/cargo/bin/cargo",
+    "+stable",
+    "metadata",
+    "--locked",
+    "--offline",
+    "--format-version",
+    "1",
+    "--filter-platform",
+    "x86_64-unknown-linux-gnu",
+    "--manifest-path",
+    "benchmarks/codec/Cargo.toml"
+  ],
+  "exit": 0,
+  "elapsed_seconds": 0.21492299799956527,
+  "stdout_sha256": "04e0a6a08d44ada3c0585f69291925b9794ded813f157152e5752b45168eef20",
+  "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "scope": "locked dependency resolution; no compilation"
+}

@@ -1,0 +1,744 @@
+[
+  {
+    "error": "non-binding `let` on an expression with `#[must_use]` type",
+    "path": "tests/tls_shutdown_deadline.rs",
+    "line": 46,
+    "column": 9,
+    "body": "non-binding `let` on an expression with `#[must_use]` type\n  --> tests/tls_shutdown_deadline.rs:46:9\n   |\n46 |         let _ = handshake_tx.send(());\n   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n   |\n   = help: consider explicitly using expression value\nnote: type is `std::result::Result`\n  --> tests/tls_shutdown_deadline.rs:46:17\n   |\n46 |         let _ = handshake_tx.send(());\n   |                 ^^^^^^^^^^^^^^^^^^^^^\n   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#let_underscore_must_use\n   = note: requested on the command line with `-D clippy::let-underscore-must-use`\n"
+  },
+  {
+    "error": "non-binding `let` on an expression with `#[must_use]` type",
+    "path": "tests/tls_shutdown_deadline.rs",
+    "line": 47,
+    "column": 9,
+    "body": "non-binding `let` on an expression with `#[must_use]` type\n  --> tests/tls_shutdown_deadline.rs:47:9\n   |\n47 |         let _ = release_rx.await;\n   |         ^^^^^^^^^^^^^^^^^^^^^^^^^\n   |\n   = help: consider explicitly using expression value\nnote: type is `std::result::Result`\n  --> tests/tls_shutdown_deadline.rs:47:17\n   |\n47 |         let _ = release_rx.await;\n   |                 ^^^^^^^^^^^^^^^^\n   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#let_underscore_must_use\n"
+  },
+  {
+    "error": "non-binding `let` on an expression with `#[must_use]` type",
+    "path": "tests/tls_shutdown_deadline.rs",
+    "line": 68,
+    "column": 5,
+    "body": "non-binding `let` on an expression with `#[must_use]` type\n  --> tests/tls_shutdown_deadline.rs:68:5\n   |\n68 |     let _ = release_tx.send(());\n   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n   |\n   = help: consider explicitly using expression value\nnote: type is `std::result::Result`\n  --> tests/tls_shutdown_deadline.rs:68:13\n   |\n68 |     let _ = release_tx.send(());\n   |             ^^^^^^^^^^^^^^^^^^^\n   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#let_underscore_must_use\n"
+  },
+  {
+    "error": "non-binding `let` on an expression with `#[must_use]` type",
+    "path": "tests/tls_shutdown_deadline.rs",
+    "line": 94,
+    "column": 9,
+    "body": "non-binding `let` on an expression with `#[must_use]` type\n  --> tests/tls_shutdown_deadline.rs:94:9\n   |\n94 |         let _ = handshake_tx.send(());\n   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n   |\n   = help: consider explicitly using expression value\nnote: type is `std::result::Result`\n  --> tests/tls_shutdown_deadline.rs:94:17\n   |\n94 |         let _ = handshake_tx.send(());\n   |                 ^^^^^^^^^^^^^^^^^^^^^\n   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#let_underscore_must_use\n"
+  },
+  {
+    "error": "non-binding `let` on an expression with `#[must_use]` type",
+    "path": "tests/tls_shutdown_deadline.rs",
+    "line": 95,
+    "column": 9,
+    "body": "non-binding `let` on an expression with `#[must_use]` type\n  --> tests/tls_shutdown_deadline.rs:95:9\n   |\n95 |         let _ = release_rx.await;\n   |         ^^^^^^^^^^^^^^^^^^^^^^^^^\n   |\n   = help: consider explicitly using expression value\nnote: type is `std::result::Result`\n  --> tests/tls_shutdown_deadline.rs:95:17\n   |\n95 |         let _ = release_rx.await;\n   |                 ^^^^^^^^^^^^^^^^\n   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#let_underscore_must_use\n"
+  },
+  {
+    "error": "non-binding `let` on an expression with `#[must_use]` type",
+    "path": "tests/tls_shutdown_deadline.rs",
+    "line": 118,
+    "column": 5,
+    "body": "non-binding `let` on an expression with `#[must_use]` type\n   --> tests/tls_shutdown_deadline.rs:118:5\n    |\n118 |     let _ = release_tx.send(());\n    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n    |\n    = help: consider explicitly using expression value\nnote: type is `std::result::Result`\n   --> tests/tls_shutdown_deadline.rs:118:13\n    |\n118 |     let _ = release_tx.send(());\n    |             ^^^^^^^^^^^^^^^^^^^\n    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#let_underscore_must_use\n"
+  },
+  {
+    "error": "casting `i32` to `usize` may lose the sign of the value",
+    "path": "src/admin.rs",
+    "line": 18246,
+    "column": 28,
+    "body": "casting `i32` to `usize` may lose the sign of the value\n     --> src/admin.rs:18246:28\n      |\n18246 |                 let size = i32::from_be_bytes(size_buf).max(0) as usize;\n      |                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n      |\n      = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#cast_sign_loss\n      = note: requested on the command line with `-D clippy::cast-sign-loss`\n"
+  },
+  {
+    "error": "accessing first element with `pending.get(0)`",
+    "path": "src/admin.rs",
+    "line": 21575,
+    "column": 17,
+    "body": "accessing first element with `pending.get(0)`\n     --> src/admin.rs:21575:17\n      |\n21575 |           assert!(pending\n      |  _________________^\n21576 | |             .get(0)\n      | |___________________^ help: try: `pending.first()`\n      |\n      = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#get_first\n      = note: `-D clippy::get-first` implied by `-D warnings`\n      = help: to override `-D warnings` add `#[allow(clippy::get_first)]`\n"
+  },
+  {
+    "error": "casting `i32` to `usize` may lose the sign of the value",
+    "path": "src/admin.rs",
+    "line": 23683,
+    "column": 27,
+    "body": "casting `i32` to `usize` may lose the sign of the value\n     --> src/admin.rs:23683:27\n      |\n23683 |             .map(|index| (index as usize, \"orders\", index))\n      |                           ^^^^^^^^^^^^^^\n      |\n      = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#cast_sign_loss\n"
+  },
+  {
+    "error": "casting `i32` to `usize` may lose the sign of the value",
+    "path": "src/admin.rs",
+    "line": 23860,
+    "column": 27,
+    "body": "casting `i32` to `usize` may lose the sign of the value\n     --> src/admin.rs:23860:27\n      |\n23860 |             .map(|index| (index as usize, \"orders\", index))\n      |                           ^^^^^^^^^^^^^^\n      |\n      = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#cast_sign_loss\n"
+  },
+  {
+    "error": "casting `i32` to `usize` may lose the sign of the value",
+    "path": "src/admin.rs",
+    "line": 23923,
+    "column": 27,
+    "body": "casting `i32` to `usize` may lose the sign of the value\n     --> src/admin.rs:23923:27\n      |\n23923 |             .map(|index| (index as usize, \"orders\", index))\n      |                           ^^^^^^^^^^^^^^\n      |\n      = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#cast_sign_loss\n"
+  },
+  {
+    "error": "casting `i32` to `usize` may lose the sign of the value",
+    "path": "src/admin.rs",
+    "line": 24060,
+    "column": 43,
+    "body": "casting `i32` to `usize` may lose the sign of the value\n     --> src/admin.rs:24060:43\n      |\n24060 |                 assert_eq!(results.len(), partitions as usize);\n      |                                           ^^^^^^^^^^^^^^^^^^^\n      |\n      = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#cast_sign_loss\n"
+  },
+  {
+    "error": "unnecessary use of `get(\"empty\").is_none()`",
+    "path": "src/cluster.rs",
+    "line": 1070,
+    "column": 31,
+    "body": "unnecessary use of `get(\"empty\").is_none()`\n    --> src/cluster.rs:1070:31\n     |\n1070 |         assert!(paced.leaders.get(\"empty\").is_none());\n     |                 --------------^^^^^^^^^^^^^^^^^^^^^^\n     |                 |\n     |                 help: replace it with: `!paced.leaders.contains_key(\"empty\")`\n     |\n     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#unnecessary_get_then_check\n     = note: `-D clippy::unnecessary-get-then-check` implied by `-D warnings`\n     = help: to override `-D warnings` add `#[allow(clippy::unnecessary_get_then_check)]`\n"
+  },
+  {
+    "error": "unnecessary use of `get(\"orders\").is_none()`",
+    "path": "src/cluster.rs",
+    "line": 1098,
+    "column": 33,
+    "body": "unnecessary use of `get(\"orders\").is_none()`\n    --> src/cluster.rs:1098:33\n     |\n1098 |         assert!(cluster.leaders.get(\"orders\").is_none());\n     |                 ----------------^^^^^^^^^^^^^^^^^^^^^^^\n     |                 |\n     |                 help: replace it with: `!cluster.leaders.contains_key(\"orders\")`\n     |\n     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#unnecessary_get_then_check\n"
+  },
+  {
+    "error": "unnecessary use of `get(\"t\").is_none()`",
+    "path": "src/cluster.rs",
+    "line": 1824,
+    "column": 33,
+    "body": "unnecessary use of `get(\"t\").is_none()`\n    --> src/cluster.rs:1824:33\n     |\n1824 |         assert!(cluster.leaders.get(\"t\").is_none());\n     |                 ----------------^^^^^^^^^^^^^^^^^^\n     |                 |\n     |                 help: replace it with: `!cluster.leaders.contains_key(\"t\")`\n     |\n     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#unnecessary_get_then_check\n"
+  },
+  {
+    "error": "unnecessary use of `get(\"t\").is_none()`",
+    "path": "src/cluster.rs",
+    "line": 2250,
+    "column": 35,
+    "body": "unnecessary use of `get(\"t\").is_none()`\n    --> src/cluster.rs:2250:35\n     |\n2250 |         assert!(cluster.topic_ids.get(\"t\").is_none());\n     |                 ------------------^^^^^^^^^^^^^^^^^^\n     |                 |\n     |                 help: replace it with: `!cluster.topic_ids.contains_key(\"t\")`\n     |\n     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#unnecessary_get_then_check\n"
+  },
+  {
+    "error": "unnecessary use of `get(&partition).is_some()`",
+    "path": "src/consumer.rs",
+    "line": 14899,
+    "column": 33,
+    "body": "unnecessary use of `get(&partition).is_some()`\n     --> src/consumer.rs:14899:33\n      |\n14899 |                     if previous.get(&partition).is_some() {\n      |                                 ^^^^^^^^^^^^^^^^^^^^^^^^^ help: replace it with: `contains_key(&partition)`\n      |\n      = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#unnecessary_get_then_check\n"
+  },
+  {
+    "error": "casting `i32` to `usize` may lose the sign of the value",
+    "path": "src/consumer.rs",
+    "line": 15424,
+    "column": 28,
+    "body": "casting `i32` to `usize` may lose the sign of the value\n     --> src/consumer.rs:15424:28\n      |\n15424 |                 let size = i32::from_be_bytes(size_buf).max(0) as usize;\n      |                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n      |\n      = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#cast_sign_loss\n"
+  },
+  {
+    "error": "redundant pattern matching",
+    "path": "src/consumer.rs",
+    "line": 16036,
+    "column": 13,
+    "body": "redundant pattern matching\n     --> src/consumer.rs:16036:13\n      |\n16036 |             matches!(saw, Err(_)),\n      |             ^^^^^^^^^^^^^^^^^^^^^\n      |\n      = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#redundant_pattern_matching\n      = note: `-D clippy::redundant-pattern-matching` implied by `-D warnings`\n      = help: to override `-D warnings` add `#[allow(clippy::redundant_pattern_matching)]`\nhelp: consider using `is_err()`\n      |\n16036 -             matches!(saw, Err(_)),\n16036 +             saw.is_err(),\n      |\n"
+  },
+  {
+    "error": "field assignment outside of initializer for an instance created with Default::default()",
+    "path": "src/consumer.rs",
+    "line": 16062,
+    "column": 9,
+    "body": "field assignment outside of initializer for an instance created with Default::default()\n     --> src/consumer.rs:16062:9\n      |\n16062 |         session.metadata = FetchMetadata::new(42, 3);\n      |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n      |\nnote: consider initializing the variable with `consumer::BrokerFetchSession { metadata: FetchMetadata::new(42, 3), awaiting_response: true, ..Default::default() }` and removing relevant reassignments\n     --> src/consumer.rs:16061:9\n      |\n16061 |         let mut session = BrokerFetchSession::default();\n      |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n      = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#field_reassign_with_default\n      = note: `-D clippy::field-reassign-with-default` implied by `-D warnings`\n      = help: to override `-D warnings` add `#[allow(clippy::field_reassign_with_default)]`\n"
+  },
+  {
+    "error": "call to `std::mem::drop` with a value that does not implement `Drop`. Dropping such a type only extends its contained lifetimes",
+    "path": "src/consumer.rs",
+    "line": 16222,
+    "column": 9,
+    "body": "call to `std::mem::drop` with a value that does not implement `Drop`. Dropping such a type only extends its contained lifetimes\n     --> src/consumer.rs:16222:9\n      |\n16222 |         drop(watching);\n      |         ^^^^^^^^^^^^^^\n      |\nnote: argument has type `std::pin::Pin<&mut impl std::future::Future<Output = bool>>`\n     --> src/consumer.rs:16222:14\n      |\n16222 |         drop(watching);\n      |              ^^^^^^^^\n      = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#drop_non_drop\n      = note: `-D clippy::drop-non-drop` implied by `-D warnings`\n      = help: to override `-D warnings` add `#[allow(clippy::drop_non_drop)]`\n"
+  },
+  {
+    "error": "non-binding `let` on an expression with `#[must_use]` type",
+    "path": "src/consumer.rs",
+    "line": 16239,
+    "column": 13,
+    "body": "non-binding `let` on an expression with `#[must_use]` type\n     --> src/consumer.rs:16239:13\n      |\n16239 |             let _ = wrote_tx.send(Instant::now());\n      |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n      |\n      = help: consider explicitly using expression value\nnote: type is `std::result::Result`\n     --> src/consumer.rs:16239:21\n      |\n16239 |             let _ = wrote_tx.send(Instant::now());\n      |                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n      = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#let_underscore_must_use\n      = note: requested on the command line with `-D clippy::let-underscore-must-use`\n"
+  },
+  {
+    "error": "call to `std::mem::drop` with a value that does not implement `Drop`. Dropping such a type only extends its contained lifetimes",
+    "path": "src/consumer.rs",
+    "line": 16285,
+    "column": 9,
+    "body": "call to `std::mem::drop` with a value that does not implement `Drop`. Dropping such a type only extends its contained lifetimes\n     --> src/consumer.rs:16285:9\n      |\n16285 |         drop(closing);\n      |         ^^^^^^^^^^^^^\n      |\nnote: argument has type `std::pin::Pin<&mut impl std::future::Future<Output = std::result::Result<(), error::Error>>>`\n     --> src/consumer.rs:16285:14\n      |\n16285 |         drop(closing);\n      |              ^^^^^^^\n      = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#drop_non_drop\n"
+  },
+  {
+    "error": "unnecessary use of `get(&[7u8; 16]).is_none()`",
+    "path": "src/consumer.rs",
+    "line": 17284,
+    "column": 23,
+    "body": "unnecessary use of `get(&[7u8; 16]).is_none()`\n     --> src/consumer.rs:17284:23\n      |\n17284 |         assert!(by_id.get(&[7u8; 16]).is_none());\n      |                 ------^^^^^^^^^^^^^^^^^^^^^^^^^\n      |                 |\n      |                 help: replace it with: `!by_id.contains_key(&[7u8; 16])`\n      |\n      = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#unnecessary_get_then_check\n"
+  },
+  {
+    "error": "unnecessary use of `get(&2).is_none()`",
+    "path": "src/consumer.rs",
+    "line": 17880,
+    "column": 22,
+    "body": "unnecessary use of `get(&2).is_none()`\n     --> src/consumer.rs:17880:22\n      |\n17880 |         assert!(plan.get(&2).is_none());\n      |                 -----^^^^^^^^^^^^^^^^^\n      |                 |\n      |                 help: replace it with: `!plan.contains_key(&2)`\n      |\n      = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#unnecessary_get_then_check\n"
+  },
+  {
+    "error": "casting `i32` to `u64` may lose the sign of the value",
+    "path": "src/consumer.rs",
+    "line": 17981,
+    "column": 48,
+    "body": "casting `i32` to `u64` may lose the sign of the value\n     --> src/consumer.rs:17981:48\n      |\n17981 |                 topic_id[..8].copy_from_slice(&(index as u64).to_le_bytes());\n      |                                                ^^^^^^^^^^^^^^\n      |\n      = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#cast_sign_loss\n"
+  },
+  {
+    "error": "field assignment outside of initializer for an instance created with Default::default()",
+    "path": "src/consumer.rs",
+    "line": 18393,
+    "column": 9,
+    "body": "field assignment outside of initializer for an instance created with Default::default()\n     --> src/consumer.rs:18393:9\n      |\n18393 |         session.id_names_dirty = true;\n      |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n      |\nnote: consider initializing the variable with `consumer::BrokerFetchSession { id_names_dirty: true, ..Default::default() }` and removing relevant reassignments\n     --> src/consumer.rs:18392:9\n      |\n18392 |         let mut session = BrokerFetchSession::default();\n      |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n      = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#field_reassign_with_default\n"
+  },
+  {
+    "error": "field assignment outside of initializer for an instance created with Default::default()",
+    "path": "src/consumer.rs",
+    "line": 18419,
+    "column": 9,
+    "body": "field assignment outside of initializer for an instance created with Default::default()\n     --> src/consumer.rs:18419:9\n      |\n18419 |         clean.id_names_dirty = false;\n      |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n      |\nnote: consider initializing the variable with `consumer::BrokerFetchSession { id_names_dirty: false, ..Default::default() }` and removing relevant reassignments\n     --> src/consumer.rs:18418:9\n      |\n18418 |         let mut clean = BrokerFetchSession::default();\n      |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n      = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#field_reassign_with_default\n"
+  },
+  {
+    "error": "field assignment outside of initializer for an instance created with Default::default()",
+    "path": "src/consumer.rs",
+    "line": 18428,
+    "column": 9,
+    "body": "field assignment outside of initializer for an instance created with Default::default()\n     --> src/consumer.rs:18428:9\n      |\n18428 |         fresh.id_names_dirty = true;\n      |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n      |\nnote: consider initializing the variable with `consumer::BrokerFetchSession { id_names_dirty: true, ..Default::default() }` and removing relevant reassignments\n     --> src/consumer.rs:18427:9\n      |\n18427 |         let mut fresh = BrokerFetchSession::default();\n      |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n      = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#field_reassign_with_default\n"
+  },
+  {
+    "error": "field assignment outside of initializer for an instance created with Default::default()",
+    "path": "src/consumer.rs",
+    "line": 18459,
+    "column": 9,
+    "body": "field assignment outside of initializer for an instance created with Default::default()\n     --> src/consumer.rs:18459:9\n      |\n18459 |         session.version = Some(12);\n      |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^\n      |\nnote: consider initializing the variable with `consumer::BrokerFetchSession { version: Some(12), metadata: FetchMetadata::new(7, 1), stamp: 1, ..Default::default() }` and removing relevant reassignments\n     --> src/consumer.rs:18458:9\n      |\n18458 |         let mut session = BrokerFetchSession::default();\n      |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n      = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#field_reassign_with_default\n"
+  },
+  {
+    "error": "field assignment outside of initializer for an instance created with Default::default()",
+    "path": "src/consumer.rs",
+    "line": 18486,
+    "column": 9,
+    "body": "field assignment outside of initializer for an instance created with Default::default()\n     --> src/consumer.rs:18486:9\n      |\n18486 |         session.version = Some(12);\n      |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^\n      |\nnote: consider initializing the variable with `consumer::BrokerFetchSession { version: Some(12), metadata: FetchMetadata::new(7, 1), stamp: 1, ..Default::default() }` and removing relevant reassignments\n     --> src/consumer.rs:18485:9\n      |\n18485 |         let mut session = BrokerFetchSession::default();\n      |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n      = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#field_reassign_with_default\n"
+  },
+  {
+    "error": "unnecessary use of `get(&7).is_none()`",
+    "path": "src/consumer.rs",
+    "line": 18985,
+    "column": 27,
+    "body": "unnecessary use of `get(&7).is_none()`\n     --> src/consumer.rs:18985:27\n      |\n18985 |         assert!(by_leader.get(&7).is_none());\n      |                 ----------^^^^^^^^^^^^^^^^^\n      |                 |\n      |                 help: replace it with: `!by_leader.contains_key(&7)`\n      |\n      = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#unnecessary_get_then_check\n"
+  },
+  {
+    "error": "casting `usize` to `i32` may truncate the value on targets with 64-bit wide pointers",
+    "path": "src/group.rs",
+    "line": 8885,
+    "column": 38,
+    "body": "casting `usize` to `i32` may truncate the value on targets with 64-bit wide pointers\n    --> src/group.rs:8885:38\n     |\n8885 |                     partitions: vec![index as i32],\n     |                                      ^^^^^^^^^^^^\n     |\n     = help: if this is intentional allow the lint with `#[allow(clippy::cast_possible_truncation)]` ...\n     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#cast_possible_truncation\n     = note: requested on the command line with `-D clippy::cast-possible-truncation`\nhelp: ... or use `try_from` and handle the error accordingly\n     |\n8885 -                     partitions: vec![index as i32],\n8885 +                     partitions: vec![i32::try_from(index)],\n     |\n"
+  },
+  {
+    "error": "casting `usize` to `i32` may wrap around the value on targets with 32-bit wide pointers",
+    "path": "src/group.rs",
+    "line": 8885,
+    "column": 38,
+    "body": "casting `usize` to `i32` may wrap around the value on targets with 32-bit wide pointers\n    --> src/group.rs:8885:38\n     |\n8885 |                     partitions: vec![index as i32],\n     |                                      ^^^^^^^^^^^^\n     |\n     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#cast_possible_wrap\n     = note: requested on the command line with `-D clippy::cast-possible-wrap`\n"
+  },
+  {
+    "error": "unnecessary use of `get(&(\"orders\", 3)).is_none()`",
+    "path": "src/group.rs",
+    "line": 9050,
+    "column": 23,
+    "body": "unnecessary use of `get(&(\"orders\", 3)).is_none()`\n    --> src/group.rs:9050:23\n     |\n9050 |         assert!(index.get(&(\"orders\", 3)).is_none());\n     |                 ------^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n     |                 |\n     |                 help: replace it with: `!index.contains_key(&(\"orders\", 3))`\n     |\n     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#unnecessary_get_then_check\n"
+  },
+  {
+    "error": "casting `i32` to `usize` may lose the sign of the value",
+    "path": "src/group.rs",
+    "line": 9638,
+    "column": 28,
+    "body": "casting `i32` to `usize` may lose the sign of the value\n    --> src/group.rs:9638:28\n     |\n9638 |                 let size = i32::from_be_bytes(size_buf).max(0) as usize;\n     |                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n     |\n     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#cast_sign_loss\n"
+  },
+  {
+    "error": "casting `i32` to `usize` may lose the sign of the value",
+    "path": "src/group.rs",
+    "line": 9740,
+    "column": 28,
+    "body": "casting `i32` to `usize` may lose the sign of the value\n    --> src/group.rs:9740:28\n     |\n9740 |                 let size = i32::from_be_bytes(size_buf).max(0) as usize;\n     |                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n     |\n     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#cast_sign_loss\n"
+  },
+  {
+    "error": "casting `i32` to `usize` may lose the sign of the value",
+    "path": "src/group.rs",
+    "line": 10821,
+    "column": 54,
+    "body": "casting `i32` to `usize` may lose the sign of the value\n     --> src/group.rs:10821:54\n      |\n10821 |             let _ = assigned_parts.insert(partition, partition as usize);\n      |                                                      ^^^^^^^^^^^^^^^^^^\n      |\n      = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#cast_sign_loss\n"
+  },
+  {
+    "error": "casting `i32` to `u64` may lose the sign of the value",
+    "path": "src/group.rs",
+    "line": 11076,
+    "column": 42,
+    "body": "casting `i32` to `u64` may lose the sign of the value\n     --> src/group.rs:11076:42\n      |\n11076 |                 id[..8].copy_from_slice(&(index as u64).to_le_bytes());\n      |                                          ^^^^^^^^^^^^^^\n      |\n      = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#cast_sign_loss\n"
+  },
+  {
+    "error": "casting `i32` to `u64` may lose the sign of the value",
+    "path": "src/group.rs",
+    "line": 11108,
+    "column": 48,
+    "body": "casting `i32` to `u64` may lose the sign of the value\n     --> src/group.rs:11108:48\n      |\n11108 |                 topic_id[..8].copy_from_slice(&(index as u64).to_le_bytes());\n      |                                                ^^^^^^^^^^^^^^\n      |\n      = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#cast_sign_loss\n"
+  },
+  {
+    "error": "casting `i32` to `u64` may lose the sign of the value",
+    "path": "src/group.rs",
+    "line": 11352,
+    "column": 48,
+    "body": "casting `i32` to `u64` may lose the sign of the value\n     --> src/group.rs:11352:48\n      |\n11352 |                 topic_id[..8].copy_from_slice(&(index as u64).to_le_bytes());\n      |                                                ^^^^^^^^^^^^^^\n      |\n      = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#cast_sign_loss\n"
+  },
+  {
+    "error": "casting `i32` to `usize` may lose the sign of the value",
+    "path": "src/group.rs",
+    "line": 12060,
+    "column": 40,
+    "body": "casting `i32` to `usize` may lose the sign of the value\n     --> src/group.rs:12060:40\n      |\n12060 | ...                   let size = i32::from_be_bytes(size_buf).max(0) as usize;\n      |                                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n      |\n      = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#cast_sign_loss\n"
+  },
+  {
+    "error": "casting `i32` to `usize` may lose the sign of the value",
+    "path": "src/group.rs",
+    "line": 12096,
+    "column": 36,
+    "body": "casting `i32` to `usize` may lose the sign of the value\n     --> src/group.rs:12096:36\n      |\n12096 |                         let size = i32::from_be_bytes(size_buf).max(0) as usize;\n      |                                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n      |\n      = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#cast_sign_loss\n"
+  },
+  {
+    "error": "casting `i32` to `usize` may lose the sign of the value",
+    "path": "src/group.rs",
+    "line": 12496,
+    "column": 40,
+    "body": "casting `i32` to `usize` may lose the sign of the value\n     --> src/group.rs:12496:40\n      |\n12496 | ...                   let size = i32::from_be_bytes(size_buf).max(0) as usize;\n      |                                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n      |\n      = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#cast_sign_loss\n"
+  },
+  {
+    "error": "casting `i32` to `usize` may lose the sign of the value",
+    "path": "src/group.rs",
+    "line": 12543,
+    "column": 36,
+    "body": "casting `i32` to `usize` may lose the sign of the value\n     --> src/group.rs:12543:36\n      |\n12543 |                         let size = i32::from_be_bytes(size_buf).max(0) as usize;\n      |                                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n      |\n      = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#cast_sign_loss\n"
+  },
+  {
+    "error": "casting `i32` to `usize` may lose the sign of the value",
+    "path": "src/group.rs",
+    "line": 12688,
+    "column": 40,
+    "body": "casting `i32` to `usize` may lose the sign of the value\n     --> src/group.rs:12688:40\n      |\n12688 | ...                   let size = i32::from_be_bytes(size_buf).max(0) as usize;\n      |                                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n      |\n      = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#cast_sign_loss\n"
+  },
+  {
+    "error": "casting `i32` to `usize` may lose the sign of the value",
+    "path": "src/group.rs",
+    "line": 12740,
+    "column": 36,
+    "body": "casting `i32` to `usize` may lose the sign of the value\n     --> src/group.rs:12740:36\n      |\n12740 |                         let size = i32::from_be_bytes(size_buf).max(0) as usize;\n      |                                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n      |\n      = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#cast_sign_loss\n"
+  },
+  {
+    "error": "use of a disallowed method `std::thread::sleep`",
+    "path": "src/net.rs",
+    "line": 886,
+    "column": 9,
+    "body": "use of a disallowed method `std::thread::sleep`\n   --> src/net.rs:886:9\n    |\n886 |         std::thread::sleep(self.pause.saturating_mul(units));\n    |         ^^^^^^^^^^^^^^^^^^\n    |\n    = note: Blocks the executor thread. Use tokio::time::sleep.\n    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#disallowed_methods\n    = note: requested on the command line with `-D clippy::disallowed-methods`\n"
+  },
+  {
+    "error": "use of a disallowed method `std::thread::sleep`",
+    "path": "src/net.rs",
+    "line": 900,
+    "column": 13,
+    "body": "use of a disallowed method `std::thread::sleep`\n   --> src/net.rs:900:13\n    |\n900 |             std::thread::sleep(self.pause.saturating_mul(units));\n    |             ^^^^^^^^^^^^^^^^^^\n    |\n    = note: Blocks the executor thread. Use tokio::time::sleep.\n    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#disallowed_methods\n"
+  },
+  {
+    "error": "use of a disallowed method `std::thread::sleep`",
+    "path": "src/net.rs",
+    "line": 3617,
+    "column": 13,
+    "body": "use of a disallowed method `std::thread::sleep`\n    --> src/net.rs:3617:13\n     |\n3617 |             std::thread::sleep(Duration::from_millis(2).saturating_mul(units));\n     |             ^^^^^^^^^^^^^^^^^^\n     |\n     = note: Blocks the executor thread. Use tokio::time::sleep.\n     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#disallowed_methods\n"
+  },
+  {
+    "error": "non-binding `let` on an expression with `#[must_use]` type",
+    "path": "src/net.rs",
+    "line": 3935,
+    "column": 13,
+    "body": "non-binding `let` on an expression with `#[must_use]` type\n    --> src/net.rs:3935:13\n     |\n3935 |             let _ = wrote.send(());\n     |             ^^^^^^^^^^^^^^^^^^^^^^^\n     |\n     = help: consider explicitly using expression value\nnote: type is `std::result::Result`\n    --> src/net.rs:3935:21\n     |\n3935 |             let _ = wrote.send(());\n     |                     ^^^^^^^^^^^^^^\n     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#let_underscore_must_use\n"
+  },
+  {
+    "error": "non-binding `let` on an expression with `#[must_use]` type",
+    "path": "src/net.rs",
+    "line": 4326,
+    "column": 13,
+    "body": "non-binding `let` on an expression with `#[must_use]` type\n    --> src/net.rs:4326:13\n     |\n4326 |             let _ = saw_fin_tx.send(());\n     |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n     |\n     = help: consider explicitly using expression value\nnote: type is `std::result::Result`\n    --> src/net.rs:4326:21\n     |\n4326 |             let _ = saw_fin_tx.send(());\n     |                     ^^^^^^^^^^^^^^^^^^^\n     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#let_underscore_must_use\n"
+  },
+  {
+    "error": "non-binding `let` on an expression with `#[must_use]` type",
+    "path": "src/net.rs",
+    "line": 4327,
+    "column": 13,
+    "body": "non-binding `let` on an expression with `#[must_use]` type\n    --> src/net.rs:4327:13\n     |\n4327 |             let _ = release_rx.await;\n     |             ^^^^^^^^^^^^^^^^^^^^^^^^^\n     |\n     = help: consider explicitly using expression value\nnote: type is `std::result::Result`\n    --> src/net.rs:4327:21\n     |\n4327 |             let _ = release_rx.await;\n     |                     ^^^^^^^^^^^^^^^^\n     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#let_underscore_must_use\n"
+  },
+  {
+    "error": "non-binding `let` on an expression with `#[must_use]` type",
+    "path": "src/net.rs",
+    "line": 4341,
+    "column": 9,
+    "body": "non-binding `let` on an expression with `#[must_use]` type\n    --> src/net.rs:4341:9\n     |\n4341 |         let _ = release_tx.send(());\n     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n     |\n     = help: consider explicitly using expression value\nnote: type is `std::result::Result`\n    --> src/net.rs:4341:17\n     |\n4341 |         let _ = release_tx.send(());\n     |                 ^^^^^^^^^^^^^^^^^^^\n     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#let_underscore_must_use\n"
+  },
+  {
+    "error": "non-binding `let` on an expression with `#[must_use]` type",
+    "path": "src/net.rs",
+    "line": 4359,
+    "column": 17,
+    "body": "non-binding `let` on an expression with `#[must_use]` type\n    --> src/net.rs:4359:17\n     |\n4359 |                 let _ = ready_tx.send(());\n     |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^\n     |\n     = help: consider explicitly using expression value\nnote: type is `std::result::Result`\n    --> src/net.rs:4359:25\n     |\n4359 |                 let _ = ready_tx.send(());\n     |                         ^^^^^^^^^^^^^^^^^\n     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#let_underscore_must_use\n"
+  },
+  {
+    "error": "non-binding `let` on an expression with `#[must_use]` type",
+    "path": "src/net.rs",
+    "line": 4360,
+    "column": 17,
+    "body": "non-binding `let` on an expression with `#[must_use]` type\n    --> src/net.rs:4360:17\n     |\n4360 |                 let _ = gate_rx.recv();\n     |                 ^^^^^^^^^^^^^^^^^^^^^^^\n     |\n     = help: consider explicitly using expression value\nnote: type is `std::result::Result`\n    --> src/net.rs:4360:25\n     |\n4360 |                 let _ = gate_rx.recv();\n     |                         ^^^^^^^^^^^^^^\n     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#let_underscore_must_use\n"
+  },
+  {
+    "error": "non-binding `let` on an expression with `#[must_use]` type",
+    "path": "src/net.rs",
+    "line": 4368,
+    "column": 17,
+    "body": "non-binding `let` on an expression with `#[must_use]` type\n    --> src/net.rs:4368:17\n     |\n4368 |                 let _ = done_tx.send(());\n     |                 ^^^^^^^^^^^^^^^^^^^^^^^^^\n     |\n     = help: consider explicitly using expression value\nnote: type is `std::result::Result`\n    --> src/net.rs:4368:25\n     |\n4368 |                 let _ = done_tx.send(());\n     |                         ^^^^^^^^^^^^^^^^\n     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#let_underscore_must_use\n"
+  },
+  {
+    "error": "non-binding `let` on an expression with `#[must_use]` type",
+    "path": "src/net.rs",
+    "line": 4397,
+    "column": 9,
+    "body": "non-binding `let` on an expression with `#[must_use]` type\n    --> src/net.rs:4397:9\n     |\n4397 |         let _ = gate_tx.send(());\n     |         ^^^^^^^^^^^^^^^^^^^^^^^^^\n     |\n     = help: consider explicitly using expression value\nnote: type is `std::result::Result`\n    --> src/net.rs:4397:17\n     |\n4397 |         let _ = gate_tx.send(());\n     |                 ^^^^^^^^^^^^^^^^\n     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#let_underscore_must_use\n"
+  },
+  {
+    "error": "this loop never actually loops",
+    "path": "src/net.rs",
+    "line": 4600,
+    "column": 13,
+    "body": "this loop never actually loops\n    --> src/net.rs:4600:13\n     |\n4600 | /             loop {\n4601 | |                 tokio::select! {\n4602 | |                     biased;\n4603 | |                     _ = conn.peer_left(), if !conn.is_closed() => break,\n...    |\n4606 | |             }\n     | |_____________^\n     |\n     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#never_loop\n     = note: `#[deny(clippy::never_loop)]` on by default\n"
+  },
+  {
+    "error": "redundant pattern matching",
+    "path": "src/net.rs",
+    "line": 4844,
+    "column": 13,
+    "body": "redundant pattern matching\n    --> src/net.rs:4844:13\n     |\n4844 |             matches!(saw, Err(_)),\n     |             ^^^^^^^^^^^^^^^^^^^^^\n     |\n     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#redundant_pattern_matching\nhelp: consider using `is_err()`\n     |\n4844 -             matches!(saw, Err(_)),\n4844 +             saw.is_err(),\n     |\n"
+  },
+  {
+    "error": "casting `i32` to `usize` may lose the sign of the value",
+    "path": "src/offsets.rs",
+    "line": 1916,
+    "column": 28,
+    "body": "casting `i32` to `usize` may lose the sign of the value\n    --> src/offsets.rs:1916:28\n     |\n1916 |                 let size = i32::from_be_bytes(size_buf).max(0) as usize;\n     |                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n     |\n     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#cast_sign_loss\n"
+  },
+  {
+    "error": "casting `i32` to `usize` may lose the sign of the value",
+    "path": "src/offsets.rs",
+    "line": 2056,
+    "column": 28,
+    "body": "casting `i32` to `usize` may lose the sign of the value\n    --> src/offsets.rs:2056:28\n     |\n2056 |                 let size = i32::from_be_bytes(size_buf).max(0) as usize;\n     |                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n     |\n     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#cast_sign_loss\n"
+  },
+  {
+    "error": "casting `i32` to `usize` may lose the sign of the value",
+    "path": "src/offsets.rs",
+    "line": 2119,
+    "column": 28,
+    "body": "casting `i32` to `usize` may lose the sign of the value\n    --> src/offsets.rs:2119:28\n     |\n2119 |                 let size = i32::from_be_bytes(size_buf).max(0) as usize;\n     |                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n     |\n     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#cast_sign_loss\n"
+  },
+  {
+    "error": "casting `i32` to `usize` may lose the sign of the value",
+    "path": "src/offsets.rs",
+    "line": 2260,
+    "column": 28,
+    "body": "casting `i32` to `usize` may lose the sign of the value\n    --> src/offsets.rs:2260:28\n     |\n2260 |                 let size = i32::from_be_bytes(size_buf).max(0) as usize;\n     |                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n     |\n     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#cast_sign_loss\n"
+  },
+  {
+    "error": "casting `i32` to `usize` may lose the sign of the value",
+    "path": "src/offsets.rs",
+    "line": 2364,
+    "column": 28,
+    "body": "casting `i32` to `usize` may lose the sign of the value\n    --> src/offsets.rs:2364:28\n     |\n2364 |                 let size = i32::from_be_bytes(size_buf).max(0) as usize;\n     |                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n     |\n     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#cast_sign_loss\n"
+  },
+  {
+    "error": "casting `i32` to `usize` may lose the sign of the value",
+    "path": "src/offsets.rs",
+    "line": 2536,
+    "column": 24,
+    "body": "casting `i32` to `usize` may lose the sign of the value\n    --> src/offsets.rs:2536:24\n     |\n2536 |             let size = i32::from_be_bytes(size_buf).max(0) as usize;\n     |                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n     |\n     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#cast_sign_loss\n"
+  },
+  {
+    "error": "casting to the same type is unnecessary (`i32` -> `i32`)",
+    "path": "src/producer.rs",
+    "line": 11289,
+    "column": 34,
+    "body": "casting to the same type is unnecessary (`i32` -> `i32`)\n     --> src/producer.rs:11289:34\n      |\n11289 |                 partitions: vec![index as i32],\n      |                                  ^^^^^^^^^^^^ help: try: `index`\n      |\n      = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#unnecessary_cast\n      = note: `-D clippy::unnecessary-cast` implied by `-D warnings`\n      = help: to override `-D warnings` add `#[allow(clippy::unnecessary_cast)]`\n"
+  },
+  {
+    "error": "casting to the same type is unnecessary (`i32` -> `i32`)",
+    "path": "src/producer.rs",
+    "line": 11344,
+    "column": 32,
+    "body": "casting to the same type is unnecessary (`i32` -> `i32`)\n     --> src/producer.rs:11344:32\n      |\n11344 |                     partition: index as i32,\n      |                                ^^^^^^^^^^^^ help: try: `index`\n      |\n      = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#unnecessary_cast\n"
+  },
+  {
+    "error": "casting `i32` to `usize` may lose the sign of the value",
+    "path": "src/producer.rs",
+    "line": 11713,
+    "column": 28,
+    "body": "casting `i32` to `usize` may lose the sign of the value\n     --> src/producer.rs:11713:28\n      |\n11713 |                 let size = i32::from_be_bytes(size_buf).max(0) as usize;\n      |                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n      |\n      = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#cast_sign_loss\n"
+  },
+  {
+    "error": "casting `i32` to `usize` may lose the sign of the value",
+    "path": "src/producer.rs",
+    "line": 11802,
+    "column": 28,
+    "body": "casting `i32` to `usize` may lose the sign of the value\n     --> src/producer.rs:11802:28\n      |\n11802 |                 let size = i32::from_be_bytes(size_buf).max(0) as usize;\n      |                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n      |\n      = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#cast_sign_loss\n"
+  },
+  {
+    "error": "casting `i32` to `usize` may lose the sign of the value",
+    "path": "src/producer.rs",
+    "line": 11874,
+    "column": 40,
+    "body": "casting `i32` to `usize` may lose the sign of the value\n     --> src/producer.rs:11874:40\n      |\n11874 | ...                   let size = i32::from_be_bytes(size_buf).max(0) as usize;\n      |                                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n      |\n      = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#cast_sign_loss\n"
+  },
+  {
+    "error": "casting `i32` to `usize` may lose the sign of the value",
+    "path": "src/producer.rs",
+    "line": 11926,
+    "column": 40,
+    "body": "casting `i32` to `usize` may lose the sign of the value\n     --> src/producer.rs:11926:40\n      |\n11926 | ...                   let size = i32::from_be_bytes(size_buf).max(0) as usize;\n      |                                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n      |\n      = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#cast_sign_loss\n"
+  },
+  {
+    "error": "casting `i32` to `usize` may lose the sign of the value",
+    "path": "src/producer.rs",
+    "line": 11986,
+    "column": 28,
+    "body": "casting `i32` to `usize` may lose the sign of the value\n     --> src/producer.rs:11986:28\n      |\n11986 |                 let size = i32::from_be_bytes(size_buf).max(0) as usize;\n      |                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n      |\n      = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#cast_sign_loss\n"
+  },
+  {
+    "error": "casting `i32` to `usize` may lose the sign of the value",
+    "path": "src/producer.rs",
+    "line": 12093,
+    "column": 24,
+    "body": "casting `i32` to `usize` may lose the sign of the value\n     --> src/producer.rs:12093:24\n      |\n12093 |             let size = i32::from_be_bytes(size_buf).max(0) as usize;\n      |                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n      |\n      = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#cast_sign_loss\n"
+  },
+  {
+    "error": "redundant pattern matching",
+    "path": "src/producer.rs",
+    "line": 12312,
+    "column": 13,
+    "body": "redundant pattern matching\n     --> src/producer.rs:12312:13\n      |\n12312 |             matches!(saw, Err(_)),\n      |             ^^^^^^^^^^^^^^^^^^^^^\n      |\n      = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#redundant_pattern_matching\nhelp: consider using `is_err()`\n      |\n12312 -             matches!(saw, Err(_)),\n12312 +             saw.is_err(),\n      |\n"
+  },
+  {
+    "error": "redundant pattern matching",
+    "path": "src/producer.rs",
+    "line": 12365,
+    "column": 25,
+    "body": "redundant pattern matching\n     --> src/producer.rs:12365:25\n      |\n12365 |                         matches!(saw, Err(_)),\n      |                         ^^^^^^^^^^^^^^^^^^^^^\n      |\n      = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#redundant_pattern_matching\nhelp: consider using `is_err()`\n      |\n12365 -                         matches!(saw, Err(_)),\n12365 +                         saw.is_err(),\n      |\n"
+  },
+  {
+    "error": "unnecessary use of `get(\"orders\").is_none()`",
+    "path": "src/producer.rs",
+    "line": 13535,
+    "column": 21,
+    "body": "unnecessary use of `get(\"orders\").is_none()`\n     --> src/producer.rs:13535:21\n      |\n13535 |         assert!(set.get(\"orders\").is_none());\n      |                 ----^^^^^^^^^^^^^^^^^^^^^^^\n      |                 |\n      |                 help: replace it with: `!set.contains_key(\"orders\")`\n      |\n      = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#unnecessary_get_then_check\n"
+  },
+  {
+    "error": "unnecessary use of `get(&[0; 16]).is_none()`",
+    "path": "src/producer.rs",
+    "line": 13633,
+    "column": 23,
+    "body": "unnecessary use of `get(&[0; 16]).is_none()`\n     --> src/producer.rs:13633:23\n      |\n13633 |         assert!(index.get(&[0; 16]).is_none());\n      |                 ------^^^^^^^^^^^^^^^^^^^^^^^\n      |                 |\n      |                 help: replace it with: `!index.contains_key(&[0; 16])`\n      |\n      = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#unnecessary_get_then_check\n"
+  },
+  {
+    "error": "field assignment outside of initializer for an instance created with Default::default()",
+    "path": "src/producer.rs",
+    "line": 14252,
+    "column": 9,
+    "body": "field assignment outside of initializer for an instance created with Default::default()\n     --> src/producer.rs:14252:9\n      |\n14252 |         sample.partition_order = vec![3, 1];\n      |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n      |\nnote: consider initializing the variable with `producer::ProduceGroupScratch { partition_order: vec![3, 1], ..Default::default() }` and removing relevant reassignments\n     --> src/producer.rs:14251:9\n      |\n14251 |         let mut sample = ProduceGroupScratch::default();\n      |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n      = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#field_reassign_with_default\n"
+  },
+  {
+    "error": "use of a disallowed type `std::sync::Mutex`",
+    "path": "src/producer.rs",
+    "line": 15239,
+    "column": 9,
+    "body": "use of a disallowed type `std::sync::Mutex`\n     --> src/producer.rs:15239:9\n      |\n15239 |         use std::sync::Mutex as StdMutex;\n      |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n      |\n      = note: Easy to hold across await. Use tokio::sync::Mutex, or parking_lot for short non-async sections.\n      = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#disallowed_types\n      = note: requested on the command line with `-D clippy::disallowed-types`\n"
+  },
+  {
+    "error": "use of a disallowed type `std::sync::Mutex`",
+    "path": "src/producer.rs",
+    "line": 15247,
+    "column": 65,
+    "body": "use of a disallowed type `std::sync::Mutex`\n     --> src/producer.rs:15247:65\n      |\n15247 |         let slot: Arc<StdMutex<Option<Arc<Shared>>>> = Arc::new(StdMutex::new(None));\n      |                                                                 ^^^^^^^^\n      |\n      = note: Easy to hold across await. Use tokio::sync::Mutex, or parking_lot for short non-async sections.\n      = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#disallowed_types\n"
+  },
+  {
+    "error": "use of a disallowed type `std::sync::Mutex`",
+    "path": "src/producer.rs",
+    "line": 15247,
+    "column": 23,
+    "body": "use of a disallowed type `std::sync::Mutex`\n     --> src/producer.rs:15247:23\n      |\n15247 |         let slot: Arc<StdMutex<Option<Arc<Shared>>>> = Arc::new(StdMutex::new(None));\n      |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n      |\n      = note: Easy to hold across await. Use tokio::sync::Mutex, or parking_lot for short non-async sections.\n      = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#disallowed_types\n"
+  },
+  {
+    "error": "casting `i32` to `usize` may lose the sign of the value",
+    "path": "src/producer.rs",
+    "line": 15277,
+    "column": 36,
+    "body": "casting `i32` to `usize` may lose the sign of the value\n     --> src/producer.rs:15277:36\n      |\n15277 |                         let size = i32::from_be_bytes(size_buf).max(0) as usize;\n      |                                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n      |\n      = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#cast_sign_loss\n"
+  },
+  {
+    "error": "casting `i32` to `usize` may lose the sign of the value",
+    "path": "src/producer.rs",
+    "line": 15474,
+    "column": 36,
+    "body": "casting `i32` to `usize` may lose the sign of the value\n     --> src/producer.rs:15474:36\n      |\n15474 |                         let size = i32::from_be_bytes(size_buf).max(0) as usize;\n      |                                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n      |\n      = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#cast_sign_loss\n"
+  },
+  {
+    "error": "non-binding `let` on an expression with `#[must_use]` type",
+    "path": "src/producer.rs",
+    "line": 15891,
+    "column": 13,
+    "body": "non-binding `let` on an expression with `#[must_use]` type\n     --> src/producer.rs:15891:13\n      |\n15891 | /             let _ = guard\n15892 | |                 .roundtrip(0, 0, |_| Ok(()), Duration::from_secs(5))\n15893 | |                 .await;\n      | |_______________________^\n      |\n      = help: consider explicitly using expression value\nnote: type is `std::result::Result`\n     --> src/producer.rs:15891:21\n      |\n15891 |               let _ = guard\n      |  _____________________^\n15892 | |                 .roundtrip(0, 0, |_| Ok(()), Duration::from_secs(5))\n15893 | |                 .await;\n      | |______________________^\n      = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#let_underscore_must_use\n"
+  },
+  {
+    "error": "non-binding `let` on an expression with `#[must_use]` type",
+    "path": "src/protocol/records.rs",
+    "line": 5162,
+    "column": 25,
+    "body": "non-binding `let` on an expression with `#[must_use]` type\n    --> src/protocol/records.rs:5162:25\n     |\n5162 |             _ = async { let _ = decode_record_batches(&mut &raw[..]); } => {}\n     |                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n     |\n     = help: consider explicitly using expression value\nnote: type is `std::result::Result`\n    --> src/protocol/records.rs:5162:33\n     |\n5162 |             _ = async { let _ = decode_record_batches(&mut &raw[..]); } => {}\n     |                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#let_underscore_must_use\n"
+  },
+  {
+    "error": "casting `u32` to `u8` may truncate the value",
+    "path": "src/protocol/records.rs",
+    "line": 5336,
+    "column": 17,
+    "body": "casting `u32` to `u8` may truncate the value\n    --> src/protocol/records.rs:5336:17\n     |\n5336 |                 state as u8\n     |                 ^^^^^^^^^^^\n     |\n     = help: if this is intentional allow the lint with `#[allow(clippy::cast_possible_truncation)]` ...\n     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#cast_possible_truncation\nhelp: ... or use `try_from` and handle the error accordingly\n     |\n5336 -                 state as u8\n5336 +                 u8::try_from(state)\n     |\n"
+  },
+  {
+    "error": "casting `i32` to `u128` may lose the sign of the value",
+    "path": "src/protocol/share.rs",
+    "line": 4762,
+    "column": 27,
+    "body": "casting `i32` to `u128` may lose the sign of the value\n    --> src/protocol/share.rs:4762:27\n     |\n4762 |                 topic_id: (index as u128).to_le_bytes(),\n     |                           ^^^^^^^^^^^^^^^\n     |\n     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#cast_sign_loss\n"
+  },
+  {
+    "error": "casting `i32` to `u128` may lose the sign of the value",
+    "path": "src/protocol/share.rs",
+    "line": 4839,
+    "column": 27,
+    "body": "casting `i32` to `u128` may lose the sign of the value\n    --> src/protocol/share.rs:4839:27\n     |\n4839 |                 topic_id: (index as u128).to_le_bytes(),\n     |                           ^^^^^^^^^^^^^^^\n     |\n     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#cast_sign_loss\n"
+  },
+  {
+    "error": "this let-binding has unit value",
+    "path": "src/protocol/share.rs",
+    "line": 4849,
+    "column": 17,
+    "body": "this let-binding has unit value\n    --> src/protocol/share.rs:4849:17\n     |\n4849 |                 let _encoded = encoded.unwrap_or_else(|error| panic!(\"{error}\"));\n     |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n     |\n     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#let_unit_value\n     = note: `-D clippy::let-unit-value` implied by `-D warnings`\n     = help: to override `-D warnings` add `#[allow(clippy::let_unit_value)]`\nhelp: omit the `let` binding\n     |\n4849 -                 let _encoded = encoded.unwrap_or_else(|error| panic!(\"{error}\"));\n4849 +                 encoded.unwrap_or_else(|error| panic!(\"{error}\"));\n     |\n"
+  },
+  {
+    "error": "non-binding `let` on an expression with `#[must_use]` type",
+    "path": "src/protocol/share.rs",
+    "line": 5372,
+    "column": 25,
+    "body": "non-binding `let` on an expression with `#[must_use]` type\n    --> src/protocol/share.rs:5372:25\n     |\n5372 |             _ = async { let _ = decode_share_fetch_response(&mut body, 1); } => {}\n     |                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n     |\n     = help: consider explicitly using expression value\nnote: type is `std::result::Result`\n    --> src/protocol/share.rs:5372:33\n     |\n5372 |             _ = async { let _ = decode_share_fetch_response(&mut body, 1); } => {}\n     |                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#let_underscore_must_use\n"
+  },
+  {
+    "error": "casting `u32` to `i32` may wrap around the value",
+    "path": "src/protocol/share.rs",
+    "line": 8026,
+    "column": 22,
+    "body": "casting `u32` to `i32` may wrap around the value\n    --> src/protocol/share.rs:8026:22\n     |\n8026 |                 (id, index as i32, body.clone())\n     |                      ^^^^^^^^^^^^ help: if this is intentional, use `cast_signed()` instead: `index.cast_signed()`\n     |\n     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#cast_possible_wrap\n"
+  },
+  {
+    "error": "casting `u32` to `i32` may wrap around the value",
+    "path": "src/protocol/share.rs",
+    "line": 9482,
+    "column": 22,
+    "body": "casting `u32` to `i32` may wrap around the value\n    --> src/protocol/share.rs:9482:22\n     |\n9482 |                 (id, index as i32, body.clone())\n     |                      ^^^^^^^^^^^^ help: if this is intentional, use `cast_signed()` instead: `index.cast_signed()`\n     |\n     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#cast_possible_wrap\n"
+  },
+  {
+    "error": "casting `usize` to `i32` may truncate the value on targets with 64-bit wide pointers",
+    "path": "src/share.rs",
+    "line": 8709,
+    "column": 38,
+    "body": "casting `usize` to `i32` may truncate the value on targets with 64-bit wide pointers\n    --> src/share.rs:8709:38\n     |\n8709 |                     partitions: vec![index as i32],\n     |                                      ^^^^^^^^^^^^\n     |\n     = help: if this is intentional allow the lint with `#[allow(clippy::cast_possible_truncation)]` ...\n     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#cast_possible_truncation\nhelp: ... or use `try_from` and handle the error accordingly\n     |\n8709 -                     partitions: vec![index as i32],\n8709 +                     partitions: vec![i32::try_from(index)],\n     |\n"
+  },
+  {
+    "error": "casting `usize` to `i32` may wrap around the value on targets with 32-bit wide pointers",
+    "path": "src/share.rs",
+    "line": 8709,
+    "column": 38,
+    "body": "casting `usize` to `i32` may wrap around the value on targets with 32-bit wide pointers\n    --> src/share.rs:8709:38\n     |\n8709 |                     partitions: vec![index as i32],\n     |                                      ^^^^^^^^^^^^\n     |\n     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#cast_possible_wrap\n"
+  },
+  {
+    "error": "casting `usize` to `i32` may truncate the value on targets with 64-bit wide pointers",
+    "path": "src/share.rs",
+    "line": 8785,
+    "column": 36,
+    "body": "casting `usize` to `i32` may truncate the value on targets with 64-bit wide pointers\n    --> src/share.rs:8785:36\n     |\n8785 |                         partition: index as i32,\n     |                                    ^^^^^^^^^^^^\n     |\n     = help: if this is intentional allow the lint with `#[allow(clippy::cast_possible_truncation)]` ...\n     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#cast_possible_truncation\nhelp: ... or use `try_from` and handle the error accordingly\n     |\n8785 -                         partition: index as i32,\n8785 +                         partition: i32::try_from(index),\n     |\n"
+  },
+  {
+    "error": "casting `usize` to `i32` may wrap around the value on targets with 32-bit wide pointers",
+    "path": "src/share.rs",
+    "line": 8785,
+    "column": 36,
+    "body": "casting `usize` to `i32` may wrap around the value on targets with 32-bit wide pointers\n    --> src/share.rs:8785:36\n     |\n8785 |                         partition: index as i32,\n     |                                    ^^^^^^^^^^^^\n     |\n     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#cast_possible_wrap\n"
+  },
+  {
+    "error": "casting `usize` to `i32` may truncate the value on targets with 64-bit wide pointers",
+    "path": "src/share.rs",
+    "line": 8868,
+    "column": 29,
+    "body": "casting `usize` to `i32` may truncate the value on targets with 64-bit wide pointers\n    --> src/share.rs:8868:29\n     |\n8868 | ...                   index as i32,\n     |                       ^^^^^^^^^^^^\n     |\n     = help: if this is intentional allow the lint with `#[allow(clippy::cast_possible_truncation)]` ...\n     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#cast_possible_truncation\nhelp: ... or use `try_from` and handle the error accordingly\n     |\n8868 -                             index as i32,\n8868 +                             i32::try_from(index),\n     |\n"
+  },
+  {
+    "error": "casting `usize` to `i32` may wrap around the value on targets with 32-bit wide pointers",
+    "path": "src/share.rs",
+    "line": 8868,
+    "column": 29,
+    "body": "casting `usize` to `i32` may wrap around the value on targets with 32-bit wide pointers\n    --> src/share.rs:8868:29\n     |\n8868 | ...                   index as i32,\n     |                       ^^^^^^^^^^^^\n     |\n     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#cast_possible_wrap\n"
+  },
+  {
+    "error": "unnecessary use of `get(&0).is_none()`",
+    "path": "src/share.rs",
+    "line": 10389,
+    "column": 23,
+    "body": "unnecessary use of `get(&0).is_none()`\n     --> src/share.rs:10389:23\n      |\n10389 |         assert!(found.get(&0).is_none());\n      |                 ------^^^^^^^^^^^^^^^^^\n      |                 |\n      |                 help: replace it with: `!found.contains_key(&0)`\n      |\n      = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#unnecessary_get_then_check\n"
+  },
+  {
+    "error": "casting `i32` to `u64` may lose the sign of the value",
+    "path": "src/share.rs",
+    "line": 10531,
+    "column": 42,
+    "body": "casting `i32` to `u64` may lose the sign of the value\n     --> src/share.rs:10531:42\n      |\n10531 |                 id[..8].copy_from_slice(&(index as u64).to_le_bytes());\n      |                                          ^^^^^^^^^^^^^^\n      |\n      = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#cast_sign_loss\n"
+  },
+  {
+    "error": "casting `i32` to `u64` may lose the sign of the value",
+    "path": "src/share.rs",
+    "line": 10581,
+    "column": 42,
+    "body": "casting `i32` to `u64` may lose the sign of the value\n     --> src/share.rs:10581:42\n      |\n10581 |                 id[..8].copy_from_slice(&(index as u64).to_le_bytes());\n      |                                          ^^^^^^^^^^^^^^\n      |\n      = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#cast_sign_loss\n"
+  },
+  {
+    "error": "unnecessary use of `get(\"orders\").is_some()`",
+    "path": "src/share.rs",
+    "line": 11551,
+    "column": 24,
+    "body": "unnecessary use of `get(\"orders\").is_some()`\n     --> src/share.rs:11551:24\n      |\n11551 |         assert!(sample.get(\"orders\").is_some());\n      |                        ^^^^^^^^^^^^^^^^^^^^^^^ help: replace it with: `contains_key(\"orders\")`\n      |\n      = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#unnecessary_get_then_check\n"
+  },
+  {
+    "error": "unnecessary use of `get(\"payments\").is_none()`",
+    "path": "src/share.rs",
+    "line": 11552,
+    "column": 24,
+    "body": "unnecessary use of `get(\"payments\").is_none()`\n     --> src/share.rs:11552:24\n      |\n11552 |         assert!(sample.get(\"payments\").is_none());\n      |                 -------^^^^^^^^^^^^^^^^^^^^^^^^^\n      |                 |\n      |                 help: replace it with: `!sample.contains_key(\"payments\")`\n      |\n      = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#unnecessary_get_then_check\n"
+  },
+  {
+    "error": "redundant pattern matching",
+    "path": "src/share.rs",
+    "line": 12258,
+    "column": 13,
+    "body": "redundant pattern matching\n     --> src/share.rs:12258:13\n      |\n12258 |             matches!(saw, Err(_)),\n      |             ^^^^^^^^^^^^^^^^^^^^^\n      |\n      = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#redundant_pattern_matching\nhelp: consider using `is_err()`\n      |\n12258 -             matches!(saw, Err(_)),\n12258 +             saw.is_err(),\n      |\n"
+  },
+  {
+    "error": "casting `i32` to `usize` may lose the sign of the value",
+    "path": "src/streams.rs",
+    "line": 747,
+    "column": 28,
+    "body": "casting `i32` to `usize` may lose the sign of the value\n   --> src/streams.rs:747:28\n    |\n747 |                 let size = i32::from_be_bytes(size_buf).max(0) as usize;\n    |                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n    |\n    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#cast_sign_loss\n"
+  }
+]

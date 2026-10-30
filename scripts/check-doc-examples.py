@@ -98,7 +98,7 @@ def link_targets(text):
     text = outside_fences(text)
     # Do not treat literal Markdown in inline code as navigation.
     text = re.sub(r'(`+).*?\1', lambda m: ' ' * len(m.group(0)), text)
-    pattern = r'!?\[[^]\n]*\]\(\s*(<[^>\n]+>|[^\s()]+(?:\([^\s()]*\)[^\s()]*)*)(?:\s+["\'][^\n]*?["\'])?\s*\)'
+    pattern = r'!?\[[^]\n]*(?:\n[^]\n]+)*\]\(\s*(<[^>\n]+>|[^\s()]+(?:\([^\s()]*\)[^\s()]*)*)(?:\s+["\'][^\n]*?["\'])?\s*\)'
     for match in re.finditer(pattern, text):
         yield text.count('\n', 0, match.start()) + 1, match.group(1).strip('<>')
     for match in re.finditer(r'^ {0,3}\[[^]\n]+\]:\s*(<[^>\n]+>|\S+)', text, re.M):

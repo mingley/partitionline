@@ -25,6 +25,8 @@ pub(crate) fn find_error(code: i16) -> Vec<u8> {
 #[derive(Clone)]
 pub(crate) struct Frame {
     pub slot: usize,
+    /// Sequence number of the accepted socket within this listener.
+    pub connection: usize,
     pub api: i16,
     pub version: i16,
     pub body: Vec<u8>,
@@ -40,6 +42,9 @@ pub(crate) struct State {
     pub replies: VecDeque<Reply>,
     pub offset_replies: VecDeque<Reply>,
     pub startup: VecDeque<Reply>,
+    /// Optional delays for v4 and v0 ApiVersions responses, respectively.
+    /// Matching by version keeps concurrent startup handshakes independent.
+    pub startup_delays: Option<(Duration, Duration)>,
     pub metadata_replies: VecDeque<Reply>,
     pub workers: usize,
     bytes: usize,
@@ -218,6 +223,7 @@ pub(crate) fn versions(
 async fn worker(
     mut socket: TcpStream,
     slot: usize,
+    connection: usize,
     addresses: [SocketAddr; 3],
     state: Arc<Mutex<State>>,
     mut stop: watch::Receiver<bool>,
@@ -255,19 +261,30 @@ async fn worker(
             assert!(s.frames.len() < 128 && s.bytes <= 4 * 1024 * 1024);
             s.frames.push(Frame {
                 slot,
+                connection,
                 api,
                 version,
                 body: body.clone(),
                 raw: raw.clone(),
             });
             match api {
-                18 => s.startup.pop_front().unwrap_or_else(|| {
-                    Reply::Body(versions(
-                        s.metadata,
-                        s.find,
-                        if version == 0 { 0 } else { 35 },
-                    ))
-                }),
+                18 => {
+                    if let Some((modern_delay, legacy_delay)) = s.startup_delays {
+                        let legacy = version == 0;
+                        Reply::Delay(
+                            if legacy { legacy_delay } else { modern_delay },
+                            versions(s.metadata, s.find, if legacy { 0 } else { 35 }),
+                        )
+                    } else {
+                        s.startup.pop_front().unwrap_or_else(|| {
+                            Reply::Body(versions(
+                                s.metadata,
+                                s.find,
+                                if version == 0 { 0 } else { 35 },
+                            ))
+                        })
+                    }
+                }
                 3 => s.metadata_replies.pop_front().unwrap_or_else(|| {
                     Reply::Body(metadata_members(
                         addresses[1],
@@ -323,6 +340,7 @@ async fn worker(
             assert!(s.responses.len() < 128 && s.bytes <= 4 * 1024 * 1024);
             s.responses.push(Frame {
                 slot,
+                connection,
                 api,
                 version,
                 body: response,
@@ -358,6 +376,7 @@ impl Peer {
             replies: VecDeque::new(),
             offset_replies: VecDeque::new(),
             startup: VecDeque::new(),
+            startup_delays: None,
             metadata_replies: VecDeque::new(),
             workers: 0,
             bytes: 0,
@@ -367,7 +386,7 @@ impl Peer {
         for (slot, socket) in sockets.into_iter().enumerate() {
             let state = Arc::clone(&state);
             let mut rx = rx.clone();
-            listeners.push(tokio::spawn(async move {let mut workers=JoinSet::new();let mut accepted=0;loop {tokio::select!{biased;_=rx.changed()=>break,result=workers.join_next(),if !workers.is_empty()=>{result.unwrap().unwrap();},result=socket.accept()=>{accepted+=1;assert!(accepted<=32);let(socket,_)=result.unwrap();let _owned=workers.spawn(worker(socket,slot,addresses,Arc::clone(&state),rx.clone()));}}}drop(socket);while let Some(result)=workers.join_next().await{result.unwrap();}}));
+            listeners.push(tokio::spawn(async move {let mut workers=JoinSet::new();let mut accepted=0;loop {tokio::select!{biased;_=rx.changed()=>break,result=workers.join_next(),if !workers.is_empty()=>{result.unwrap().unwrap();},result=socket.accept()=>{accepted+=1;assert!(accepted<=32);let(socket,_)=result.unwrap();let _owned=workers.spawn(worker(socket,slot,accepted,addresses,Arc::clone(&state),rx.clone()));}}}drop(socket);while let Some(result)=workers.join_next().await{result.unwrap();}}));
         }
         Self {
             addresses,

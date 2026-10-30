@@ -1,0 +1,70 @@
+{
+  "README.md": {
+    "sha256": "47b8602f8179c99b623d7911bda99f2b8e107c8c2df2da8fef0af3fa2c333178",
+    "bytes": 1665
+  },
+  "actual-inputs-after.json": {
+    "sha256": "8f99092829685776f88ff19a88fa964791b5f0f673aaadf40f06eba6a4dde5d2",
+    "bytes": 3389
+  },
+  "actual-inputs-before.json": {
+    "sha256": "8f99092829685776f88ff19a88fa964791b5f0f673aaadf40f06eba6a4dde5d2",
+    "bytes": 3389
+  },
+  "actual-navigation-report.json": {
+    "sha256": "448c75212cc2f8a44dde0f5e1c8f011f352764437b99da9746bfad4ec3d20e50",
+    "bytes": 111542
+  },
+  "actual-navigation.json": {
+    "sha256": "0ba8e8cd4ff2758a1ed7bff4d38c273ddba919b78020585758d1c9ce74fcd46d",
+    "bytes": 540
+  },
+  "actual-navigation.log": {
+    "sha256": "f0743e97a2d3443af6a6fb0a671c9800f42256c46b3931b9f905f4a63ffe7436",
+    "bytes": 114
+  },
+  "actual-summary.json": {
+    "sha256": "e4d2d5b9c762c6c0b72993bcc94f4e5da159723c8d8d071bce3bf2f53544141a",
+    "bytes": 1817
+  },
+  "baseline-changelog-doc-tests.log": {
+    "sha256": "6dac10ed155cddc0b6a8ffe8f5acd32e97fcfdd339f0032d741f0c9d7107f341",
+    "bytes": 1990
+  },
+  "baseline-package-doc-tests.log": {
+    "sha256": "a44ffe7f7f6908a99bc6a8e513e654cf7f8924712e44cdd710c4610d903da6c5",
+    "bytes": 3817
+  },
+  "docs-tests.json": {
+    "sha256": "d06034c7ebb0fb3eedc829f42a4cefee0f95a5d087382f03e3a37cb37ffbd2c8",
+    "bytes": 405
+  },
+  "docs-tests.log": {
+    "sha256": "2e2f3d433329414829d7fc347bcb44c0ec2054fcdd6fda3841d18b21b80afb8e",
+    "bytes": 2983
+  },
+  "fixed-all-package-doc-tests.log": {
+    "sha256": "25cfe9c1a99bfefd2a7742868c910afe4ba11ea6816187a9133c8171f24c56cf",
+    "bytes": 1354
+  },
+  "navigation.json": {
+    "sha256": "965498f5401702c834e054980f0b21446f243689cee9a3d3ac4793a332f084ab",
+    "bytes": 17610
+  },
+  "navigation.patch": {
+    "sha256": "a57c345b15221c1c1eacd0db2fbc4f39862a6c2b0eca68bd8fff08d1137f86ec",
+    "bytes": 39269
+  },
+  "package.json": {
+    "sha256": "ee56f353fffb6c4154fd0577e54f9c5539043ee3903da6e0a30e720a8de284b8",
+    "bytes": 368
+  },
+  "package.log": {
+    "sha256": "c6aa402281398e0136d7390f15029b7c764207125507e094e0a5a472eab9546f",
+    "bytes": 143
+  },
+  "run-actual.py": {
+    "sha256": "d89e86858ceb71c25d129301ad718fe856e6be1b056d1597557d5eedd23b26c5",
+    "bytes": 3542
+  }
+}

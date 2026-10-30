@@ -5159,7 +5159,7 @@ mod tests {
         let raw = vec![0u8; 48 * 1024 * 1024];
         let started = std::time::Instant::now();
         tokio::select! {
-            _ = async { let _ = decode_record_batches(&mut &raw[..]); } => {}
+            _ = async { let _unused_result = decode_record_batches(&mut &raw[..]); } => {}
             _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
         }
         let elapsed = started.elapsed();
@@ -5333,7 +5333,7 @@ mod tests {
                 state ^= state << 13;
                 state ^= state >> 17;
                 state ^= state << 5;
-                state as u8
+                state.to_le_bytes()[0]
             })
             .collect();
         let mut framed = Vec::new();

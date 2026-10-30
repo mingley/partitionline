@@ -1,0 +1,21 @@
+{
+  "name": "docs-tests",
+  "command": [
+    "python3",
+    "-B",
+    "-m",
+    "unittest",
+    "discover",
+    "-s",
+    "tests/docs",
+    "-p",
+    "test_*.py",
+    "-v"
+  ],
+  "exit": 0,
+  "stopped": null,
+  "elapsed_seconds": 0.5016993039998852,
+  "disk_floor_bytes": 1610612736,
+  "minimum_free_bytes": 1817133056,
+  "log_sha256": "2e2f3d433329414829d7fc347bcb44c0ec2054fcdd6fda3841d18b21b80afb8e"
+}

@@ -43,8 +43,8 @@ async fn stalled_tls_peer_cannot_hold_a_write_timeout_during_shutdown() {
     let peer = tokio::spawn(async move {
         let (socket, _) = listener.accept().await.unwrap();
         let stream = acceptor.accept(socket).await.unwrap();
-        let _ = handshake_tx.send(());
-        let _ = release_rx.await;
+        let _unused_result = handshake_tx.send(());
+        let _unused_result = release_rx.await;
         peer_observes_full_close(stream).await
     });
     let tls = TlsConfig::default().ca_pem(ca_pem).server_name("localhost");
@@ -65,7 +65,7 @@ async fn stalled_tls_peer_cannot_hold_a_write_timeout_during_shutdown() {
     .await;
     let elapsed = started.elapsed();
     let closed = conn.is_closed();
-    let _ = release_tx.send(());
+    let _unused_result = release_tx.send(());
     let peer_closed = peer.await.unwrap();
     assert!(
         peer_closed,
@@ -91,8 +91,8 @@ async fn cancelled_tls_write_releases_peer_while_client_is_retained() {
     let peer = tokio::spawn(async move {
         let (socket, _) = listener.accept().await.unwrap();
         let stream = acceptor.accept(socket).await.unwrap();
-        let _ = handshake_tx.send(());
-        let _ = release_rx.await;
+        let _unused_result = handshake_tx.send(());
+        let _unused_result = release_rx.await;
         peer_observes_full_close(stream).await
     });
     let tls = TlsConfig::default().ca_pem(ca_pem).server_name("localhost");
@@ -115,7 +115,7 @@ async fn cancelled_tls_write_releases_peer_while_client_is_retained() {
         conn.is_closed(),
         "cancelled write must poison its connection"
     );
-    let _ = release_tx.send(());
+    let _unused_result = release_tx.send(());
     assert!(
         peer.await.unwrap(),
         "cancelled TLS connection retained its peer socket"

@@ -3,7 +3,7 @@
 `partitionline` 0.1.0 is already published on crates.io. Never recut that
 version. Current source contains API changes and unresolved correctness
 failures; it is not ready for the next release. The [status](STATUS.md) and
-[next-work handoff](plan/next-work.md) link to the recorded results.
+[next-work handoff](https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/docs/plan/next-work.md) link to the recorded results.
 
 ## Crates and versions
 
@@ -63,7 +63,7 @@ A real cut requires exact-commit green CI, package-consumer evidence, a final
 `X.Y.Z` version, and registry authentication. `DRY_RUN=1` rehearses actions;
 it does not publish. The script uses local publication when a registry token
 is available, or pushes the matching final tag for
-[release.yml](../.github/workflows/release.yml). Set `PUBLISH_LOCAL=0` to use
+[release.yml](https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/.github/workflows/release.yml). Set `PUBLISH_LOCAL=0` to use
 the workflow explicitly. The workflow supports crates.io Trusted Publishing
 and a `CARGO_REGISTRY_TOKEN` fallback.
 
@@ -83,5 +83,5 @@ checks and documentation updates; inspect its result before reporting success.
 
 Keep retries idempotent: resume index confirmation or release-note creation
 for an existing version without uploading a different archive under that
-version. The [archived guide](plan/archive/release-0.1.0.md) records the older
+version. The [archived guide](https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/docs/plan/archive/release-0.1.0.md) records the older
 first-publication procedure and its evidence links.

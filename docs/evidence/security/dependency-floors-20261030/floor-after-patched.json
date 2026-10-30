@@ -1,0 +1,14 @@
+{
+  "name": "floor-after-patched",
+  "command": [
+    "/workspace/work/cargo/bin/cargo",
+    "+stable",
+    "generate-lockfile",
+    "--offline"
+  ],
+  "cwd": "/workspace/work/security-dependencies-20261030/controls/floor-after-patched",
+  "exit": 0,
+  "elapsed_seconds": 0.16533710200019414,
+  "log_sha256": "7068aa26dff10f865b65538ea9c925894202e9dac8ab99a9c274a21b2b7d4771",
+  "scope": "dependency resolution only; no compilation"
+}

@@ -1,0 +1,14 @@
+{
+  "name": "floor-before-ctutils",
+  "command": [
+    "/workspace/work/cargo/bin/cargo",
+    "+stable",
+    "generate-lockfile",
+    "--offline"
+  ],
+  "cwd": "/workspace/work/security-dependencies-20261030/controls/floor-before-ctutils",
+  "exit": 0,
+  "elapsed_seconds": 0.16554073099996458,
+  "log_sha256": "82da34dc78e2799f72b0f2d67e6576b492b16650e0763b76b5abf28c71282702",
+  "scope": "dependency resolution only; no compilation"
+}

@@ -205,7 +205,7 @@ use partitionline::protocol::txn::{
 };
 use std::collections::{BTreeMap, HashMap, HashSet, VecDeque};
 use std::sync::Arc;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 use tokio::io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt};
 use tokio::net::TcpListener;
 use tokio::sync::{watch, Notify};
@@ -271,6 +271,111 @@ struct MockShareLock {
     expires_ms: u64,
 }
 
+/// A single event captured from one mock-broker socket.
+#[derive(Clone, Debug)]
+pub struct WireEvent {
+    pub sequence: u64,
+    pub at: Instant,
+    pub node: i32,
+    pub socket: u64,
+    pub kind: WireEventKind,
+}
+
+/// Events recorded by the opt-in bounded wire trace.
+#[derive(Clone, Debug)]
+pub enum WireEventKind {
+    Accept,
+    Refused,
+    Request {
+        api_key: i16,
+        api_version: i16,
+    },
+    Response {
+        api_key: i16,
+        api_version: i16,
+    },
+    ApiVersionsResponse {
+        error_code: i16,
+        ranges: Vec<ApiVersion>,
+    },
+    Close,
+}
+
+struct WireTrace {
+    events: Vec<WireEvent>,
+    limit: usize,
+    overflow: bool,
+    next_socket: u64,
+    next_sequence: u64,
+}
+
+impl WireTrace {
+    fn socket(&mut self) -> u64 {
+        let socket = self.next_socket;
+        self.next_socket = self
+            .next_socket
+            .checked_add(1)
+            .expect("wire socket id overflow");
+        socket
+    }
+
+    fn record(&mut self, node: i32, socket: u64, kind: WireEventKind) {
+        if self.events.len() >= self.limit {
+            self.overflow = true;
+            return;
+        }
+        let sequence = self.next_sequence;
+        self.next_sequence = self
+            .next_sequence
+            .checked_add(1)
+            .expect("wire event sequence overflow");
+        self.events.push(WireEvent {
+            sequence,
+            at: Instant::now(),
+            node,
+            socket,
+            kind,
+        });
+    }
+}
+
+fn trace_response(
+    state: &Mutex<State>,
+    node: i32,
+    socket: Option<u64>,
+    api_key: i16,
+    api_version: i16,
+) {
+    if let Some(socket) = socket {
+        if let Some(trace) = state.lock().wire_trace.as_mut() {
+            trace.record(
+                node,
+                socket,
+                WireEventKind::Response {
+                    api_key,
+                    api_version,
+                },
+            );
+        }
+    }
+}
+
+/// Records TLS sockets that close before the Kafka handler takes ownership.
+struct PendingTlsTrace {
+    state: Arc<Mutex<State>>,
+    socket: Option<u64>,
+}
+
+impl Drop for PendingTlsTrace {
+    fn drop(&mut self) {
+        if let Some(socket) = self.socket.take() {
+            if let Some(trace) = self.state.lock().wire_trace.as_mut() {
+                trace.record(1, socket, WireEventKind::Close);
+            }
+        }
+    }
+}
+
 struct State {
     /// Current TLS acceptor for TLS mocks; swapped by rotation (KL06-05).
     tls_acceptor: Option<Arc<Mutex<tokio_rustls::TlsAcceptor>>>,
@@ -326,7 +431,9 @@ struct State {
     last_api_versions_version: Option<i16>,
     api_versions_versions: Vec<i16>,
     api_versions_response_keys: Option<Vec<Vec<ApiVersion>>>,
+    api_versions_nodes: Vec<(i32, i16)>,
     api_versions_delay: Option<Duration>,
+    node_api_versions_delay: HashMap<i32, Duration>,
     /// Last Metadata topic filter: `None` = never recorded;
     /// `Some(None)` = all topics; `Some(Some(names))` = named.
     last_metadata_topics: Option<Option<Vec<String>>>,
@@ -530,6 +637,7 @@ struct State {
     leave_group_delay: Option<Duration>,
     join_group_delay: Option<Duration>,
     sync_group_delay: Option<Duration>,
+    sync_assignment_override: Option<Vec<u8>>,
     last_sasl_handshake_version: Option<i16>,
     last_sasl_handshake_correlation: Option<i32>,
     last_sasl_authenticate_version: Option<i16>,
@@ -699,6 +807,10 @@ struct State {
     last_share_group_heartbeat_version: Option<i16>,
     offset_commit_not_coordinator: u32,
     offset_commit_error: Option<i16>,
+    offset_commit_once: Option<i16>,
+    offset_commit_once_observed: u32,
+    offset_commit_script: VecDeque<i16>,
+    offset_commit_script_observed: Vec<i16>,
     offset_commit_load_left: u32,
     offset_commit_load_in_progress: u32,
     add_partitions_to_txn_calls: u32,
@@ -718,6 +830,8 @@ struct State {
     shutdown_write_gen: watch::Sender<u32>,
     shutdown_write_node_gen: HashMap<i32, watch::Sender<u32>>,
     refuse_conns: u32,
+    refuse_node_conns: HashMap<i32, u32>,
+    wire_trace: Option<WireTrace>,
     accepts: u32,
     open_conns: u32,
     coord_node: i32,
@@ -730,6 +844,8 @@ struct State {
     find_coordinator_calls: u32,
     find_coordinator_delay: Option<Duration>,
     find_coordinator_faults: VecDeque<i16>,
+    find_coordinator_disconnect_node: Option<i32>,
+    find_coordinator_nodes: Vec<i32>,
     last_init_producer_id_node: Option<i32>,
     last_init_producer_id_timeout: Option<i32>,
     last_init_producer_id_version: Option<i16>,
@@ -859,7 +975,9 @@ fn new_state(
         last_api_versions_version: None,
         api_versions_versions: Vec::new(),
         api_versions_response_keys: None,
+        api_versions_nodes: Vec::new(),
         api_versions_delay: None,
+        node_api_versions_delay: HashMap::new(),
         last_metadata_topics: None,
         last_metadata_topic_ids: None,
         last_metadata_include_topic_authorized: None,
@@ -1044,6 +1162,7 @@ fn new_state(
         leave_group_delay: None,
         join_group_delay: None,
         sync_group_delay: None,
+        sync_assignment_override: None,
         last_sasl_handshake_version: None,
         last_sasl_handshake_correlation: None,
         last_sasl_authenticate_version: None,
@@ -1213,6 +1332,10 @@ fn new_state(
         last_share_group_heartbeat_version: None,
         offset_commit_not_coordinator: 0,
         offset_commit_error: None,
+        offset_commit_once: None,
+        offset_commit_once_observed: 0,
+        offset_commit_script: VecDeque::new(),
+        offset_commit_script_observed: Vec::new(),
         offset_commit_load_left: 0,
         offset_commit_load_in_progress: 0,
         add_partitions_to_txn_calls: 0,
@@ -1231,6 +1354,8 @@ fn new_state(
         shutdown_write_gen: watch::channel(0).0,
         shutdown_write_node_gen: HashMap::new(),
         refuse_conns: 0,
+        refuse_node_conns: HashMap::new(),
+        wire_trace: None,
         accepts: 0,
         open_conns: 0,
         coord_node: 1,
@@ -1243,6 +1368,8 @@ fn new_state(
         find_coordinator_calls: 0,
         find_coordinator_delay: None,
         find_coordinator_faults: VecDeque::new(),
+        find_coordinator_disconnect_node: None,
+        find_coordinator_nodes: Vec::new(),
         last_init_producer_id_node: None,
         last_init_producer_id_timeout: None,
         last_init_producer_id_version: None,
@@ -1741,30 +1868,52 @@ fn spawn_plain(listener: TcpListener, node_id: i32, state: Arc<Mutex<State>>) {
             let Ok((stream, _)) = listener.accept().await else {
                 break;
             };
-            if take_refuse(&state) {
+            if take_refuse(&state, node_id) {
                 continue;
             }
-            note_accept(&state);
+            let trace_socket = note_accept(&state, node_id);
             stream.set_nodelay(true).ok();
             let st = state.clone();
-            tokio::spawn(handle_conn(stream, node_id, st));
+            tokio::spawn(handle_conn(stream, node_id, trace_socket, st));
         }
     });
 }
 
-fn take_refuse(state: &Mutex<State>) -> bool {
+fn take_refuse(state: &Mutex<State>, node_id: i32) -> bool {
     let mut st = state.lock();
-    if st.refuse_conns > 0 {
+    let node_refused = st.refuse_node_conns.get_mut(&node_id).is_some_and(|left| {
+        if *left == 0 {
+            false
+        } else {
+            *left -= 1;
+            true
+        }
+    });
+    let refused = if node_refused {
+        true
+    } else if st.refuse_conns > 0 {
         st.refuse_conns -= 1;
         true
     } else {
         false
+    };
+    if refused {
+        if let Some(trace) = st.wire_trace.as_mut() {
+            let socket = trace.socket();
+            trace.record(node_id, socket, WireEventKind::Refused);
+        }
     }
+    refused
 }
 
-fn note_accept(state: &Mutex<State>) {
+fn note_accept(state: &Mutex<State>, node_id: i32) -> Option<u64> {
     let mut st = state.lock();
     st.accepts = st.accepts.saturating_add(1);
+    st.wire_trace.as_mut().map(|trace| {
+        let socket = trace.socket();
+        trace.record(node_id, socket, WireEventKind::Accept);
+        socket
+    })
 }
 
 fn broker_host_port(st: &State, node_id: i32) -> (String, i32) {
@@ -2013,18 +2162,25 @@ impl Mock {
                 let Ok((tcp, _)) = listener.accept().await else {
                     break;
                 };
-                if take_refuse(&st) {
+                if take_refuse(&st, 1) {
                     continue;
                 }
-                note_accept(&st);
+                let trace_socket = note_accept(&st, 1);
                 tcp.set_nodelay(true).ok();
                 let st = st.clone();
                 let acceptor = acceptor.lock().clone();
+                let pending_trace = trace_socket.map(|socket| PendingTlsTrace {
+                    state: Arc::clone(&st),
+                    socket: Some(socket),
+                });
                 tokio::spawn(async move {
                     let Ok(stream) = acceptor.accept(tcp).await else {
                         return;
                     };
-                    handle_conn(stream, 1, st).await;
+                    if let Some(mut pending) = pending_trace {
+                        pending.socket = None;
+                    }
+                    handle_conn(stream, 1, trace_socket, st).await;
                 });
             }
         });
@@ -2220,6 +2376,10 @@ impl Mock {
         self.state.lock().api_versions_versions.clone()
     }
 
+    pub fn api_versions_nodes(&self) -> Vec<(i32, i16)> {
+        self.state.lock().api_versions_nodes.clone()
+    }
+
     /// Capture successful ApiVersions responses in send order for this test.
     pub fn capture_api_versions_responses(&self) {
         self.state.lock().api_versions_response_keys = Some(Vec::new());
@@ -2236,6 +2396,20 @@ impl Mock {
 
     pub fn set_api_versions_delay(&self, delay: Duration) {
         self.state.lock().api_versions_delay = Some(delay);
+    }
+
+    /// Delay ApiVersions responses from one node independently of the others.
+    pub fn set_node_api_versions_delay(&self, node: i32, delay: Duration) {
+        let _previous = self
+            .state
+            .lock()
+            .node_api_versions_delay
+            .insert(node, delay);
+    }
+
+    /// Remove one node's ApiVersions delay override.
+    pub fn clear_node_api_versions_delay(&self, node: i32) {
+        let _previous = self.state.lock().node_api_versions_delay.remove(&node);
     }
 
     pub fn last_metadata_topics(&self) -> Option<Option<Vec<String>>> {
@@ -3915,6 +4089,27 @@ impl Mock {
         self.state.lock().offset_commit_not_coordinator
     }
 
+    /// Return `code` on exactly one OffsetCommit, without persisting offsets.
+    pub fn fail_offset_commit_once(&self, code: i16) {
+        self.state.lock().offset_commit_once = Some(code);
+    }
+
+    /// Number of one-shot OffsetCommit faults sent by this mock.
+    pub fn offset_commit_once_observed(&self) -> u32 {
+        self.state.lock().offset_commit_once_observed
+    }
+
+    /// Script ordered OffsetCommit errors before accepting a later request.
+    pub fn script_offset_commit_errors(&self, errors: &[i16]) {
+        let mut state = self.state.lock();
+        state.offset_commit_script = errors.iter().copied().collect();
+        state.offset_commit_script_observed.clear();
+    }
+
+    pub fn offset_commit_script_observed(&self) -> Vec<i16> {
+        self.state.lock().offset_commit_script_observed.clone()
+    }
+
     pub fn offset_commit_load_once(&self) {
         self.state.lock().offset_commit_load_left = 1;
     }
@@ -4034,6 +4229,37 @@ impl Mock {
         let _ = sender.send(n.saturating_add(1));
     }
 
+    /// Record bounded socket events; enable before any client connects.
+    pub fn enable_wire_trace(&self, limit: usize) {
+        assert!((1..=1_000_000).contains(&limit), "invalid wire trace limit");
+        let mut st = self.state.lock();
+        assert_eq!(
+            st.accepts, 0,
+            "enable the wire trace before connecting clients"
+        );
+        assert!(st.wire_trace.is_none(), "wire trace already enabled");
+        st.wire_trace = Some(WireTrace {
+            events: Vec::new(),
+            limit,
+            overflow: false,
+            next_socket: 1,
+            next_sequence: 0,
+        });
+    }
+
+    /// Copy all captured events. An overflow invalidates the trace.
+    pub fn wire_trace(&self) -> Vec<WireEvent> {
+        let st = self.state.lock();
+        let trace = st.wire_trace.as_ref().expect("wire trace is not enabled");
+        assert!(!trace.overflow, "wire trace event limit exceeded");
+        trace.events.clone()
+    }
+
+    /// Drop the next `count` connections accepted at one node before Kafka negotiation.
+    pub fn refuse_node_connections(&self, node: i32, count: u32) {
+        let _previous = self.state.lock().refuse_node_conns.insert(node, count);
+    }
+
     /// Accept then immediately drop the next `n` TCP connections (no Kafka handshake).
     pub fn refuse_connections(&self, n: u32) {
         self.state.lock().refuse_conns = n;
@@ -4112,6 +4338,14 @@ impl Mock {
         self.state.lock().find_coordinator_faults.push_back(code);
     }
 
+    pub fn disconnect_find_coordinator_on(&self, node: i32) {
+        self.state.lock().find_coordinator_disconnect_node = Some(node);
+    }
+
+    pub fn find_coordinator_nodes(&self) -> Vec<i32> {
+        self.state.lock().find_coordinator_nodes.clone()
+    }
+
     pub fn find_coordinator_calls(&self) -> u32 {
         self.state.lock().find_coordinator_calls
     }
@@ -4162,6 +4396,12 @@ impl Mock {
 
     pub fn set_join_group_delay(&self, delay: Duration) {
         self.state.lock().join_group_delay = Some(delay);
+    }
+
+    /// Override exactly one SyncGroup assignment response.
+    pub fn override_next_sync_assignment(&self, parts: &[(String, i32)]) {
+        let assignment = partitionline::protocol::group::encode_tp_assignment(parts).unwrap();
+        self.state.lock().sync_assignment_override = Some(assignment);
     }
 
     pub fn set_sync_group_delay(&self, delay: Duration) {
@@ -5040,25 +5280,37 @@ fn encode_not_coordinator(api_key: i16, api_version: i16, body: &mut BytesMut) {
     }
 }
 
-struct LiveConn<'a>(&'a Mutex<State>);
+struct LiveConn<'a> {
+    state: &'a Mutex<State>,
+    node: i32,
+    trace_socket: Option<u64>,
+}
 
 impl Drop for LiveConn<'_> {
     fn drop(&mut self) {
-        let mut st = self.0.lock();
+        let mut st = self.state.lock();
         st.open_conns = st.open_conns.saturating_sub(1);
+        if let (Some(socket), Some(trace)) = (self.trace_socket, st.wire_trace.as_mut()) {
+            trace.record(self.node, socket, WireEventKind::Close);
+        }
     }
 }
 
 async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
     mut stream: S,
     node_id: i32,
+    trace_socket: Option<u64>,
     state: Arc<Mutex<State>>,
 ) {
     {
         let mut st = state.lock();
         st.open_conns = st.open_conns.saturating_add(1);
     }
-    let _live = LiveConn(&state);
+    let _live = LiveConn {
+        state: &state,
+        node: node_id,
+        trace_socket,
+    };
     let mut buf = BytesMut::new();
     let mut drop_rx = state.lock().drop_gen.subscribe();
     let mut shutdown_rx = state.lock().shutdown_write_gen.subscribe();
@@ -5102,6 +5354,18 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
             Ok(h) => h,
             Err(_) => break,
         };
+        if let Some(socket) = trace_socket {
+            if let Some(trace) = state.lock().wire_trace.as_mut() {
+                trace.record(
+                    node_id,
+                    socket,
+                    WireEventKind::Request {
+                        api_key: header.api_key,
+                        api_version: header.api_version,
+                    },
+                );
+            }
+        }
         if !authed
             && !matches!(
                 header.api_key,
@@ -5111,6 +5375,7 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
             break;
         }
         let mut body = BytesMut::new();
+        let mut trace_versions = None;
         encode_response_header(
             &mut body,
             header.api_key,
@@ -5151,22 +5416,50 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
             if write_frame(&mut stream, &body).await.is_err() {
                 break;
             }
+            trace_response(
+                &state,
+                node_id,
+                trace_socket,
+                header.api_key,
+                header.api_version,
+            );
             continue;
         }
         match header.api_key {
             API_VERSIONS => {
-                let delay = state.lock().api_versions_delay;
+                let delay = {
+                    let st = state.lock();
+                    st.node_api_versions_delay
+                        .get(&node_id)
+                        .copied()
+                        .or(st.api_versions_delay)
+                };
                 if let Some(delay) = delay {
                     tokio::time::sleep(delay).await;
                 }
                 let mut st = state.lock();
                 st.last_api_versions_version = Some(header.api_version);
                 st.api_versions_versions.push(header.api_version);
+                st.api_versions_nodes.push((node_id, header.api_version));
                 let advertised = versions(&st, node_id);
                 let (av_min, av_max) = advertised
                     .api_version(API_VERSIONS)
                     .map(|k| (k.min_version, k.max_version))
                     .unwrap_or((0, 4));
+                if trace_socket.is_some() {
+                    trace_versions = Some(if header.api_version > av_max {
+                        (
+                            error::UNSUPPORTED_VERSION,
+                            vec![ApiVersion {
+                                api_key: API_VERSIONS,
+                                min_version: av_min,
+                                max_version: av_max,
+                            }],
+                        )
+                    } else {
+                        (advertised.error_code, advertised.api_keys.clone())
+                    });
+                }
                 if header.api_version > av_max {
                     // KIP-511: unsupported ApiVersions is a v0 body listing
                     // only the ApiVersions key range.
@@ -7122,7 +7415,15 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                         )
                         .unwrap();
                     }
-                    write_frame(&mut stream, &body).await.ok();
+                    if write_frame(&mut stream, &body).await.is_ok() {
+                        trace_response(
+                            &state,
+                            node_id,
+                            trace_socket,
+                            header.api_key,
+                            header.api_version,
+                        );
+                    }
                     continue;
                 }
                 let txn_id = decoded.0;
@@ -8039,6 +8340,14 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 }
             }
             FIND_COORDINATOR => {
+                let disconnect = {
+                    let mut st = state.lock();
+                    st.find_coordinator_nodes.push(node_id);
+                    st.find_coordinator_disconnect_node == Some(node_id)
+                };
+                if disconnect {
+                    break;
+                }
                 let (keys, key_type) =
                     decode_find_coordinator_request_keys(&mut frame, header.api_version).unwrap();
                 let delay = state.lock().find_coordinator_delay;
@@ -8449,6 +8758,13 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                     if write_frame(&mut stream, &body).await.is_err() {
                         break;
                     }
+                    trace_response(
+                        &state,
+                        node_id,
+                        trace_socket,
+                        header.api_key,
+                        header.api_version,
+                    );
                     continue;
                 }
                 let mut st = state.lock();
@@ -8692,6 +9008,9 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                     }
                     tokio::time::sleep(std::time::Duration::from_millis(25)).await;
                 }
+                if let Some(assignment) = state.lock().sync_assignment_override.take() {
+                    asg = assignment;
+                }
                 encode_sync_group_response(&mut body, header.api_version, 0, &asg).unwrap();
             }
             HEARTBEAT => {
@@ -8777,6 +9096,15 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 st.last_offset_commit_member = Some(member);
                 st.last_offset_commit_generation = Some(generation);
                 if let Some(code) = st.offset_commit_error {
+                    encode_offset_commit_response(&mut body, header.api_version, &topics, code)
+                        .unwrap();
+                } else if let Some(code) = st.offset_commit_script.pop_front() {
+                    st.offset_commit_script_observed.push(code);
+                    encode_offset_commit_response(&mut body, header.api_version, &topics, code)
+                        .unwrap();
+                } else if let Some(code) = st.offset_commit_once.take() {
+                    st.offset_commit_once_observed =
+                        st.offset_commit_once_observed.saturating_add(1);
                     encode_offset_commit_response(&mut body, header.api_version, &topics, code)
                         .unwrap();
                 } else if st.offset_commit_load_left > 0 {
@@ -9536,6 +9864,22 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
         }
         if write_frame(&mut stream, &body).await.is_err() {
             break;
+        }
+        trace_response(
+            &state,
+            node_id,
+            trace_socket,
+            header.api_key,
+            header.api_version,
+        );
+        if let (Some(socket), Some((error_code, ranges))) = (trace_socket, trace_versions) {
+            if let Some(trace) = state.lock().wire_trace.as_mut() {
+                trace.record(
+                    node_id,
+                    socket,
+                    WireEventKind::ApiVersionsResponse { error_code, ranges },
+                );
+            }
         }
     }
 }

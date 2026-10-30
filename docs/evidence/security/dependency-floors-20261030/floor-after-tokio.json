@@ -1,0 +1,14 @@
+{
+  "name": "floor-after-tokio",
+  "command": [
+    "/workspace/work/cargo/bin/cargo",
+    "+stable",
+    "generate-lockfile",
+    "--offline"
+  ],
+  "cwd": "/workspace/work/security-dependencies-20261030/controls/floor-after-tokio",
+  "exit": 101,
+  "elapsed_seconds": 0.06451443799960543,
+  "log_sha256": "f9bbfc5f69caafce8c80b005b383f62a3c6bf43d31f2cac3c73dc5102f959d25",
+  "scope": "dependency resolution only; no compilation"
+}

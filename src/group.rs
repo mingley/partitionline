@@ -34,15 +34,12 @@ use crate::protocol::group::{
     decode_offset_fetch_response, decode_offset_fetch_response_cooperative,
     decode_sync_group_response, encode_find_coordinator_request_typed, encode_heartbeat_request,
     encode_join_group_protocols_request, encode_leave_group_request_members,
-    encode_offset_commit_request, encode_offset_commit_request_cooperative,
-    encode_offset_fetch_request, encode_offset_fetch_request_cooperative,
     encode_sync_group_request, encode_sync_group_request_cooperative,
     encode_tp_assignment_cooperative, BorrowedOffsetPartition, BorrowedOffsetTopic,
     ConsumerProtocol, ConsumerProtocolSubscription, FetchedOffset, FetchedOffsetTopic,
     JoinGroupProtocol, JoinGroupProtocolsRequest, JoinGroupRequest, JoinGroupResponse,
     LeaveGroupMember, OffsetCommitRequestData, OffsetFetchRequestData, OffsetFetchTopic,
     OffsetPartition, OffsetTopic, SyncGroupRequest, Topic, COORDINATOR_GROUP,
-    DEFAULT_RETENTION_TIME,
 };
 use crate::protocol::sasl;
 
@@ -2171,42 +2168,19 @@ impl ConsumerGroup {
         };
         let bootstrap_keys = self.consumer.copy_api_keys();
         let address_keys = self.consumer.copy_learned_broker_keys();
-        let prepared_version = negotiated_coord_version(&self.coord, OFFSET_FETCH).ok();
-        let mut payload = BytesMut::new();
-        if let Some(version) = prepared_version {
-            encode_offset_fetch_request_cooperative(
-                &mut payload,
-                version,
-                &self.group_id,
-                member_id,
-                member_epoch,
-                require_stable,
-                Some(topics),
-            )
-            .await?;
-        }
-        let (version, body) = coord_roundtrip_with_bootstrap(
+        let request = offsets::LegacyOffsetRequest::Fetch {
+            group_id: &self.group_id,
+            member_id,
+            member_epoch,
+            require_stable,
+            topics: Some(topics),
+        };
+        let (version, body) = offsets::coord_offsets_typed(
             &mut self.coord,
             &self.cfg,
             &self.group_id,
             COORDINATOR_GROUP,
-            OFFSET_FETCH,
-            |version, buf| {
-                if prepared_version == Some(version) {
-                    buf.extend_from_slice(&payload);
-                    Ok(())
-                } else {
-                    encode_offset_fetch_request(
-                        buf,
-                        version,
-                        &self.group_id,
-                        member_id,
-                        member_epoch,
-                        require_stable,
-                        Some(topics),
-                    )
-                }
-            },
+            &request,
             &bootstrap_keys,
             &address_keys,
             &mut self.prior_coords,
@@ -2713,44 +2687,19 @@ impl ConsumerGroup {
     ) -> Result<()> {
         let bootstrap_keys = self.consumer.copy_api_keys();
         let address_keys = self.consumer.copy_learned_broker_keys();
-        let prepared = negotiated_coord_version(&self.coord, OFFSET_COMMIT).ok();
-        let mut encoded = bytes::BytesMut::new();
-        if let Some(version) = prepared {
-            encode_offset_commit_request_cooperative(
-                &mut encoded,
-                version,
-                &self.group_id,
-                self.generation_id,
-                &self.member_id,
-                self.cfg.group_instance_id.as_deref(),
-                DEFAULT_RETENTION_TIME,
-                topics,
-            )
-            .await?;
-        }
-        let (version, body) = coord_roundtrip_with_bootstrap(
+        let request = offsets::LegacyOffsetRequest::Commit {
+            group_id: &self.group_id,
+            generation: self.generation_id,
+            member_id: &self.member_id,
+            instance: self.cfg.group_instance_id.as_deref(),
+            topics,
+        };
+        let (version, body) = offsets::coord_offsets_typed(
             &mut self.coord,
             &self.cfg,
             &self.group_id,
             COORDINATOR_GROUP,
-            OFFSET_COMMIT,
-            |version, buf| {
-                if prepared == Some(version) {
-                    buf.extend_from_slice(&encoded);
-                    Ok(())
-                } else {
-                    encode_offset_commit_request(
-                        buf,
-                        version,
-                        &self.group_id,
-                        self.generation_id,
-                        &self.member_id,
-                        self.cfg.group_instance_id.as_deref(),
-                        DEFAULT_RETENTION_TIME,
-                        topics,
-                    )
-                }
-            },
+            &request,
             &bootstrap_keys,
             &address_keys,
             &mut self.prior_coords,
@@ -2916,45 +2865,20 @@ impl ConsumerGroup {
         let cfg = &self.cfg;
         let consumer = &mut self.consumer;
         let prior = &mut self.prior_coords;
-        let prepared = negotiated_coord_version(coord, OFFSET_COMMIT).ok();
-        let mut encoded = bytes::BytesMut::new();
-        if let Some(version) = prepared {
-            encode_offset_commit_request_cooperative(
-                &mut encoded,
-                version,
-                &group_id,
-                generation_id,
-                &member_id,
-                instance.as_deref(),
-                DEFAULT_RETENTION_TIME,
-                &topics,
-            )
-            .await?;
-        }
+        let request = offsets::LegacyOffsetRequest::Commit {
+            group_id: &group_id,
+            generation: generation_id,
+            member_id: &member_id,
+            instance: instance.as_deref(),
+            topics: &topics,
+        };
         let (committed, fetched) = tokio::join!(
-            coord_roundtrip_with_bootstrap(
+            offsets::coord_offsets_typed(
                 coord,
                 cfg,
                 &group_id,
                 COORDINATOR_GROUP,
-                OFFSET_COMMIT,
-                |version, buf| {
-                    if prepared == Some(version) {
-                        buf.extend_from_slice(&encoded);
-                        Ok(())
-                    } else {
-                        encode_offset_commit_request(
-                            buf,
-                            version,
-                            &group_id,
-                            generation_id,
-                            &member_id,
-                            instance.as_deref(),
-                            DEFAULT_RETENTION_TIME,
-                            &topics,
-                        )
-                    }
-                },
+                &request,
                 &bootstrap_keys,
                 &address_keys,
                 prior,
@@ -4282,46 +4206,29 @@ impl ConsumerGroup {
                     let group_id = self.group_id.clone();
                     let bootstrap_keys = self.consumer.copy_api_keys();
                     let address_keys = self.consumer.copy_learned_broker_keys();
-                    let prepared_version = negotiated_coord_version(&self.coord, OFFSET_FETCH).ok();
-                    let mut payload = BytesMut::new();
-                    if let Some(version) = prepared_version {
-                        encode_offset_fetch_request_cooperative(
-                            &mut payload,
-                            version,
-                            &group_id,
-                            member_id.as_deref(),
-                            member_epoch,
-                            require_stable,
-                            Some(&topics),
-                        )
-                        .await?;
+                    let timeout = deadline.saturating_duration_since(Instant::now());
+                    if timeout.is_zero() {
+                        self.classic_fetch_topics = topics;
+                        self.keep_leader_flight(dials, deadline).await;
+                        return Err(Error::Timeout);
                     }
                     let fetched = {
                         let refresh_fut = self
                             .consumer
                             .refresh_metadata_timeout(Some(&self.topics), timeout);
-                        let fetch_fut = coord_roundtrip_with_bootstrap(
+                        let request = offsets::LegacyOffsetRequest::Fetch {
+                            group_id: &group_id,
+                            member_id: member_id.as_deref(),
+                            member_epoch,
+                            require_stable,
+                            topics: Some(&topics),
+                        };
+                        let fetch_fut = offsets::coord_offsets_typed(
                             &mut self.coord,
                             &self.cfg,
                             &group_id,
                             COORDINATOR_GROUP,
-                            OFFSET_FETCH,
-                            |version, buf| {
-                                if prepared_version == Some(version) {
-                                    buf.extend_from_slice(&payload);
-                                    Ok(())
-                                } else {
-                                    encode_offset_fetch_request(
-                                        buf,
-                                        version,
-                                        &group_id,
-                                        member_id.as_deref(),
-                                        member_epoch,
-                                        require_stable,
-                                        Some(&topics),
-                                    )
-                                }
-                            },
+                            &request,
                             &bootstrap_keys,
                             &address_keys,
                             &mut self.prior_coords,
@@ -4427,43 +4334,26 @@ impl ConsumerGroup {
                     let group_id = self.group_id.clone();
                     let bootstrap_keys = self.consumer.copy_api_keys();
                     let address_keys = self.consumer.copy_learned_broker_keys();
-                    let prepared_version = negotiated_coord_version(&self.coord, OFFSET_FETCH).ok();
-                    let mut payload = BytesMut::new();
-                    if let Some(version) = prepared_version {
-                        encode_offset_fetch_request_cooperative(
-                            &mut payload,
-                            version,
-                            &group_id,
-                            member_id.as_deref(),
-                            member_epoch,
-                            require_stable,
-                            Some(&topics),
-                        )
-                        .await?;
+                    let timeout = deadline.saturating_duration_since(Instant::now());
+                    if timeout.is_zero() {
+                        self.classic_fetch_topics = topics;
+                        self.keep_leader_flight(dials, deadline).await;
+                        return Err(Error::Timeout);
                     }
                     let fetched = {
-                        let fetch_fut = coord_roundtrip_with_bootstrap(
+                        let request = offsets::LegacyOffsetRequest::Fetch {
+                            group_id: &group_id,
+                            member_id: member_id.as_deref(),
+                            member_epoch,
+                            require_stable,
+                            topics: Some(&topics),
+                        };
+                        let fetch_fut = offsets::coord_offsets_typed(
                             &mut self.coord,
                             &self.cfg,
                             &group_id,
                             COORDINATOR_GROUP,
-                            OFFSET_FETCH,
-                            |version, buf| {
-                                if prepared_version == Some(version) {
-                                    buf.extend_from_slice(&payload);
-                                    Ok(())
-                                } else {
-                                    encode_offset_fetch_request(
-                                        buf,
-                                        version,
-                                        &group_id,
-                                        member_id.as_deref(),
-                                        member_epoch,
-                                        require_stable,
-                                        Some(&topics),
-                                    )
-                                }
-                            },
+                            &request,
                             &bootstrap_keys,
                             &address_keys,
                             &mut self.prior_coords,
@@ -4893,14 +4783,18 @@ impl ConsumerGroup {
                         .await
                         {
                             if error::coordinator_retriable(resp.error_code) {
-                                if let Some(current) = conn.as_ref() {
-                                    remembered = Some(
-                                        KnownCoord::capture(current)
-                                            .with_bootstrap_keys(&bootstrap_keys)
-                                            .with_address_keys(&address_keys),
-                                    );
+                                // A loading coordinator is still the correct broker and
+                                // the successful response leaves the socket reusable.
+                                if resp.error_code != error::COORDINATOR_LOAD_IN_PROGRESS {
+                                    if let Some(current) = conn.as_ref() {
+                                        remembered = Some(
+                                            KnownCoord::capture(current)
+                                                .with_bootstrap_keys(&bootstrap_keys)
+                                                .with_address_keys(&address_keys),
+                                        );
+                                    }
+                                    retire_group_conn(&mut conn).await;
                                 }
-                                retire_group_conn(&mut conn).await;
                                 let retry_delay = cfg.retry_backoff.max(Duration::from_millis(50));
                                 next_hb_deadline = Instant::now() + retry_delay;
                                 *hb_deadline.lock() = Some(next_hb_deadline);
@@ -5110,14 +5004,18 @@ impl ConsumerGroup {
                         if let Ok((err, ..)) = decode_heartbeat_response(&mut body.clone(), version)
                         {
                             if error::coordinator_retriable(err) {
-                                if let Some(current) = conn.as_ref() {
-                                    remembered = Some(
-                                        KnownCoord::capture(current)
-                                            .with_bootstrap_keys(&bootstrap_keys)
-                                            .with_address_keys(&address_keys),
-                                    );
+                                // Retry a loading coordinator on its live socket.
+                                // Other coordinator errors still trigger rediscovery.
+                                if err != error::COORDINATOR_LOAD_IN_PROGRESS {
+                                    if let Some(current) = conn.as_ref() {
+                                        remembered = Some(
+                                            KnownCoord::capture(current)
+                                                .with_bootstrap_keys(&bootstrap_keys)
+                                                .with_address_keys(&address_keys),
+                                        );
+                                    }
+                                    retire_group_conn(&mut conn).await;
                                 }
-                                retire_group_conn(&mut conn).await;
                             } else {
                                 hb_err.store(err, Ordering::SeqCst);
                             }
@@ -7584,11 +7482,11 @@ async fn discover_coord_once(
 
 /// How to open one broker while a coordinator is rediscovered.
 enum RememberedDial {
-    /// Stamp versions already learned for this address.
+    /// The coordinator address was previously contacted.
     Known(KnownCoord),
-    /// Apply a stored ApiVersions list. No new handshake.
+    /// Versions were previously learned for the address.
     Keys(Vec<ApiVersion>),
-    /// First contact. Negotiate ApiVersions.
+    /// First contact.
     Negotiate,
 }
 
@@ -7629,15 +7527,7 @@ async fn open_remembered_dial(
     dial: RememberedDial,
 ) -> Result<CoordHandshake> {
     match dial {
-        RememberedDial::Known(known) => {
-            let conn = connect_known_coord(cfg, &known).await?;
-            let version = conn.find_coordinator_version;
-            Ok((
-                conn,
-                version,
-                remembered_coord_versions(&known.bootstrap_keys),
-            ))
-        }
+        RememberedDial::Known(known) => open_coord_with_find_version(cfg, &known.addr).await,
         RememberedDial::Keys(keys) => open_coord_with_keys(cfg, addr, &keys).await,
         RememberedDial::Negotiate => open_coord_with_find_version(cfg, addr).await,
     }
@@ -7987,10 +7877,7 @@ fn take_ready_handshake(
     ready.get_mut(index)?.take()?.ok()
 }
 
-/// Open a new TCP socket to a coordinator whose versions were already learned.
-///
-/// Idle expiry and a dropped connection still need a new socket. The broker
-/// address did not change, so ApiVersions would only repeat the previous handshake.
+/// Open and negotiate a replacement TCP socket to the coordinator.
 pub(crate) async fn reopen_known_coord(
     cfg: &ConsumerConfig,
     previous: &BrokerConn,
@@ -8066,7 +7953,7 @@ impl KnownCoord {
     }
 }
 
-/// Dial `known.addr` and stamp the versions already learned there.
+/// Dial `known.addr` and negotiate versions on the new socket.
 pub(crate) async fn connect_known_coord(
     cfg: &ConsumerConfig,
     known: &KnownCoord,
@@ -8076,24 +7963,42 @@ pub(crate) async fn connect_known_coord(
             .checked_add(cfg.request_timeout)
             .ok_or(Error::Timeout)?;
         let bound = crate::net::Deadline::from_std(deadline);
-        let mut conn = BrokerConn::connect_tls(
-            &known.addr,
-            &cfg.client_id,
-            cfg.connect_timeout.min(bound.remaining()?),
-            cfg.tls.as_ref(),
+        let remaining = bound.remaining()?;
+        let mut conn = tokio::time::timeout(
+            remaining,
+            BrokerConn::connect_tls(
+                &known.addr,
+                &cfg.client_id,
+                cfg.connect_timeout.min(remaining),
+                cfg.tls.as_ref(),
+            ),
         )
-        .await?;
+        .await
+        .map_err(|_| Error::Timeout)??;
         known.apply(&mut conn);
-        sasl::authenticate(
-            &mut conn,
-            cfg.sasl_plain.as_ref(),
-            cfg.sasl_scram.as_ref(),
-            cfg.sasl_scram_sha512.as_ref(),
-            cfg.sasl_oauthbearer.as_deref(),
-            cfg.sasl_oauthbearer_oidc.as_ref(),
-            bound.remaining()?,
+        let remaining = bound.remaining()?;
+        let resp = tokio::time::timeout(
+            remaining,
+            crate::protocol::api::negotiate_api_versions(&mut conn, remaining),
         )
-        .await?;
+        .await
+        .map_err(|_| Error::Timeout)??;
+        let _version = stamp_coord_versions(&mut conn, &resp)?;
+        let remaining = bound.remaining()?;
+        tokio::time::timeout(
+            remaining,
+            sasl::authenticate(
+                &mut conn,
+                cfg.sasl_plain.as_ref(),
+                cfg.sasl_scram.as_ref(),
+                cfg.sasl_scram_sha512.as_ref(),
+                cfg.sasl_oauthbearer.as_deref(),
+                cfg.sasl_oauthbearer_oidc.as_ref(),
+                remaining,
+            ),
+        )
+        .await
+        .map_err(|_| Error::Timeout)??;
         Ok(conn)
     }
     .await;
@@ -8103,6 +8008,59 @@ pub(crate) async fn connect_known_coord(
         }
     }
     opened
+}
+
+/// Discover through an authenticated live bootstrap socket when possible.
+/// A returned `None` keeps the existing coordinator connection; a new address
+/// is opened and negotiated before it can replace that connection.
+async fn rediscover_with_live_bootstrap(
+    coord: &mut BrokerConn,
+    cfg: &ConsumerConfig,
+    group_id: &str,
+    key_type: i8,
+    known: &KnownCoord,
+    prior: &mut HashMap<String, KnownCoord>,
+    deadline: crate::net::Deadline,
+) -> Result<Option<BrokerConn>> {
+    let usable = !coord.is_closed()
+        && coord.find_coordinator_version >= 0
+        && cfg.bootstrap.iter().any(|addr| addr == coord.addr());
+    if usable {
+        let _stored = prior.insert(known.addr.clone(), known.clone());
+        let version = coord.find_coordinator_version;
+        let attempt = async {
+            let addr = coordinator_address_of(coord, version, group_id, key_type, deadline).await?;
+            if addr == coord.addr() {
+                return Ok(None);
+            }
+            let bounded = bounded_coord_config(cfg, deadline)?;
+            open_discovered_coord(&bounded, &addr, known, prior)
+                .await
+                .map(Some)
+        }
+        .await;
+        match attempt {
+            Ok(conn) => return Ok(conn),
+            Err(error) if rediscovery_retryable(&error, cfg.bootstrap.len() > 1) => {}
+            Err(error) => return Err(error),
+        }
+    }
+    let bounded = bounded_coord_config(cfg, deadline)?;
+    let conn = Box::pin(rediscover_known_coord(
+        &bounded, group_id, key_type, known, prior,
+    ))
+    .await?;
+    Ok(Some(conn))
+}
+
+fn rediscovery_retryable(error: &Error, multiple_bootstraps: bool) -> bool {
+    match error {
+        Error::Broker { code, .. } => crate::error::coordinator_retriable(*code),
+        Error::Io(_) | Error::Timeout | Error::Closed => true,
+        // Raced discovery already tries the remaining bootstraps for other
+        // non-broker failures, including malformed and unsupported responses.
+        _ => multiple_bootstraps,
+    }
 }
 
 /// Find the coordinator again while the previous address is dialed.
@@ -8151,33 +8109,69 @@ pub(crate) async fn rediscover_known_coord(
         let located = locate_known_coordinator(&bounded, group_id, key_type, deadline, known);
         tokio::pin!(speculative);
         tokio::pin!(located);
-        let addr = tokio::select! {
+        let (addr, hop) = tokio::select! {
             biased;
-            addr = &mut located => addr?,
+            located = &mut located => located?,
             opened = &mut speculative => {
-                let addr = located.await?;
+                let (addr, hop) = match located.await {
+                    Ok(located) => located,
+                    Err(error) => {
+                        if let Ok(conn) = opened {
+                            retire_lookup_conn(conn).await;
+                        }
+                        return Err(error);
+                    }
+                };
+                if addr == hop.addr() {
+                    if let Ok(conn) = opened {
+                        retire_lookup_conn(conn).await;
+                    }
+                    return finish_reused_lookup(hop, crate::net::Deadline::from_std(deadline)).await;
+                }
+                retire_lookup_conn(hop).await;
                 if addr == known.addr {
                     return opened;
                 }
-                return open_discovered_coord(&bounded, &addr, known, prior).await;
+                if let Ok(conn) = opened {
+                    retire_lookup_conn(conn).await;
+                }
+                let remaining = bounded_coord_config(cfg, crate::net::Deadline::from_std(deadline))?;
+                return open_discovered_coord(&remaining, &addr, known, prior).await;
             }
         };
+        if addr == hop.addr() {
+            return finish_reused_lookup(hop, crate::net::Deadline::from_std(deadline)).await;
+        }
+        retire_lookup_conn(hop).await;
         if addr == known.addr {
             return speculative.await;
         }
-        open_discovered_coord(&bounded, &addr, known, prior).await
-    }
-    .await;
+        let remaining = bounded_coord_config(cfg, crate::net::Deadline::from_std(deadline))?;
+        open_discovered_coord(&remaining, &addr, known, prior).await
+    }    .await;
     for _ in 0..8 {
         tokio::task::yield_now().await;
     }
-    discovered
+    match discovered {
+        Ok(conn) => finish_reused_lookup(conn, crate::net::Deadline::from_std(deadline)).await,
+        Err(error) => Err(error),
+    }
+}
+
+async fn finish_reused_lookup(
+    hop: BrokerConn,
+    deadline: crate::net::Deadline,
+) -> Result<BrokerConn> {
+    if let Err(error) = deadline.remaining() {
+        retire_lookup_conn(hop).await;
+        return Err(error);
+    }
+    Ok(hop)
 }
 
 /// Dial a coordinator found by lookup.
 ///
-/// The bootstrap broker already completed ApiVersions at startup. A
-/// coordinator that returns there reuses those versions.
+/// Every newly opened coordinator socket negotiates its own versions.
 async fn open_discovered_coord(
     cfg: &ConsumerConfig,
     addr: &str,
@@ -8210,46 +8204,32 @@ async fn locate_known_coordinator(
     key_type: i8,
     deadline: Instant,
     known: &KnownCoord,
-) -> Result<String> {
+) -> Result<(String, BrokerConn)> {
     let bootstrap = cfg
         .bootstrap
         .first()
         .ok_or_else(|| Error::protocol("find coordinator failed"))?;
-    if bootstrap != &known.addr {
-        if known.bootstrap_keys.is_empty() {
-            return locate_coordinator_address(cfg, group_id, key_type, deadline).await;
-        }
-        let deadline = crate::net::Deadline::from_std(deadline);
-        let bounded = bounded_coord_config(cfg, deadline)?;
-        let (mut hop, version, _) =
-            open_coord_with_keys(&bounded, bootstrap, &known.bootstrap_keys).await?;
-        let address = coordinator_address_of(&mut hop, version, group_id, key_type, deadline).await;
-        retire_lookup_conn(hop).await;
-        return address;
-    }
     let deadline = crate::net::Deadline::from_std(deadline);
     let bounded = bounded_coord_config(cfg, deadline)?;
-    let mut hop = connect_known_coord(&bounded, known).await?;
-    let version = known.find_coordinator_version;
-    let body = hop
-        .roundtrip(
-            FIND_COORDINATOR,
-            version,
-            |buf| encode_find_coordinator_request_typed(buf, version, group_id, key_type),
-            deadline.remaining()?,
-        )
-        .await?;
-    let (err, _node, host, port) = decode_find_coordinator_response(&mut body.clone(), version)
-        .map_err(|e| group_decode_context(e, "FindCoordinator", version, body.len()))?;
-    if err != 0 {
-        let error = Err(Error::broker(err, "FindCoordinator"));
-        retire_lookup_conn(hop).await;
-        return error;
+    let (mut hop, version) = if bootstrap == &known.addr {
+        let conn = connect_known_coord(&bounded, known).await?;
+        let version = conn.find_coordinator_version;
+        (conn, version)
+    } else if known.bootstrap_keys.is_empty() {
+        let (conn, version, _) = open_coord_with_find_version(&bounded, bootstrap).await?;
+        (conn, version)
+    } else {
+        let (conn, version, _) =
+            open_coord_with_keys(&bounded, bootstrap, &known.bootstrap_keys).await?;
+        (conn, version)
+    };
+    match coordinator_address_of(&mut hop, version, group_id, key_type, deadline).await {
+        Ok(addr) => Ok((addr, hop)),
+        Err(error) => {
+            retire_lookup_conn(hop).await;
+            Err(error)
+        }
     }
-    let address = crate::cluster::dial_address(&host, port)
-        .ok_or_else(|| Error::protocol("invalid coordinator address"));
-    retire_lookup_conn(hop).await;
-    address
 }
 
 async fn rediscover_coord(
@@ -8322,11 +8302,11 @@ async fn coordinator_address_of(
     deadline: crate::net::Deadline,
 ) -> Result<String> {
     let body = hop
-        .roundtrip(
+        .roundtrip_deadline(
             FIND_COORDINATOR,
             version,
             |buf| encode_find_coordinator_request_typed(buf, version, group_id, key_type),
-            deadline.remaining()?,
+            deadline,
         )
         .await?;
     let (err, _node, host, port) = decode_find_coordinator_response(&mut body.clone(), version)
@@ -8338,23 +8318,17 @@ async fn coordinator_address_of(
         .ok_or_else(|| Error::protocol("invalid coordinator address"))
 }
 
-fn remembered_coord_versions(keys: &[ApiVersion]) -> ApiVersionsResponse {
-    ApiVersionsResponse {
-        error_code: 0,
-        api_keys: keys.to_vec(),
-        throttle_time_ms: 0,
-        supported_features: Vec::new(),
-        finalized_features_epoch: None,
-        finalized_features: Vec::new(),
-        zk_migration_ready: false,
-    }
-}
-
 fn stamp_coord_versions(conn: &mut BrokerConn, resp: &ApiVersionsResponse) -> Result<i16> {
     let version = resp
         .api_version(FIND_COORDINATOR)
         .and_then(|v| pick_version(v.min_version, v.max_version, 0, 6))
         .ok_or_else(|| Error::Unsupported("broker does not support FindCoordinator v0-6".into()))?;
+    conn.offset_commit_range = resp
+        .api_version(OFFSET_COMMIT)
+        .map(|v| (v.min_version, v.max_version));
+    conn.offset_fetch_range = resp
+        .api_version(OFFSET_FETCH)
+        .map(|v| (v.min_version, v.max_version));
     conn.offset_commit_version = resp
         .api_version(OFFSET_COMMIT)
         .and_then(|v| pick_version(v.min_version, v.max_version, 2, 10))
@@ -8400,13 +8374,18 @@ async fn open_coord_socket(
         .checked_add(cfg.request_timeout)
         .ok_or(Error::Timeout)?;
     let bound = crate::net::Deadline::from_std(deadline);
-    let conn = BrokerConn::connect_tls(
-        addr,
-        &cfg.client_id,
-        cfg.connect_timeout.min(bound.remaining()?),
-        cfg.tls.as_ref(),
+    let remaining = bound.remaining()?;
+    let conn = tokio::time::timeout(
+        remaining,
+        BrokerConn::connect_tls(
+            addr,
+            &cfg.client_id,
+            cfg.connect_timeout.min(remaining),
+            cfg.tls.as_ref(),
+        ),
     )
-    .await?;
+    .await
+    .map_err(|_| Error::Timeout)??;
     Ok((conn, bound))
 }
 
@@ -8415,37 +8394,29 @@ async fn authenticate_coord(
     cfg: &ConsumerConfig,
     bound: crate::net::Deadline,
 ) -> Result<()> {
-    sasl::authenticate(
-        conn,
-        cfg.sasl_plain.as_ref(),
-        cfg.sasl_scram.as_ref(),
-        cfg.sasl_scram_sha512.as_ref(),
-        cfg.sasl_oauthbearer.as_deref(),
-        cfg.sasl_oauthbearer_oidc.as_ref(),
-        bound.remaining()?,
+    let remaining = bound.remaining()?;
+    tokio::time::timeout(
+        remaining,
+        sasl::authenticate(
+            conn,
+            cfg.sasl_plain.as_ref(),
+            cfg.sasl_scram.as_ref(),
+            cfg.sasl_scram_sha512.as_ref(),
+            cfg.sasl_oauthbearer.as_deref(),
+            cfg.sasl_oauthbearer_oidc.as_ref(),
+            remaining,
+        ),
     )
     .await
+    .map_err(|_| Error::Timeout)?
 }
 
 async fn open_coord_with_keys(
     cfg: &ConsumerConfig,
     addr: &str,
-    keys: &[ApiVersion],
+    _keys: &[ApiVersion],
 ) -> Result<(BrokerConn, i16, ApiVersionsResponse)> {
-    let opened = async {
-        let (mut conn, bound) = open_coord_socket(cfg, addr).await?;
-        let resp = remembered_coord_versions(keys);
-        let version = stamp_coord_versions(&mut conn, &resp)?;
-        authenticate_coord(&mut conn, cfg, bound).await?;
-        Ok((conn, version, resp))
-    }
-    .await;
-    if opened.is_err() {
-        for _ in 0..8 {
-            tokio::task::yield_now().await;
-        }
-    }
-    opened
+    open_coord_with_find_version(cfg, addr).await
 }
 
 async fn open_coord_with_find_version(
@@ -8454,8 +8425,13 @@ async fn open_coord_with_find_version(
 ) -> Result<(BrokerConn, i16, ApiVersionsResponse)> {
     let opened = async {
         let (mut conn, bound) = open_coord_socket(cfg, addr).await?;
-        let resp =
-            crate::protocol::api::negotiate_api_versions(&mut conn, bound.remaining()?).await?;
+        let remaining = bound.remaining()?;
+        let resp = tokio::time::timeout(
+            remaining,
+            crate::protocol::api::negotiate_api_versions(&mut conn, remaining),
+        )
+        .await
+        .map_err(|_| Error::Timeout)??;
         let version = stamp_coord_versions(&mut conn, &resp)?;
         authenticate_coord(&mut conn, cfg, bound).await?;
         Ok((conn, version, resp))
@@ -8503,21 +8479,20 @@ where
         );
         if api_key == OFFSET_COMMIT || api_key == OFFSET_FETCH {
             let version = negotiated_coord_version(coord, api_key)?;
-            let body = offsets::coord_offsets_legacy(
+            return offsets::coord_offsets_legacy(
                 coord,
                 cfg,
                 group_id,
                 key_type,
                 api_key,
                 version,
-                |buf| encode_body(version, buf),
+                |version, buf| encode_body(version, buf),
                 bootstrap_keys,
                 address_keys,
                 prior,
                 deadline.remaining()?,
             )
-            .await?;
-            return Ok((version, body));
+            .await;
         }
         if coord.idle_expired(cfg.connections_max_idle) {
             let bounded = bounded_coord_config(cfg, deadline)?;
@@ -8613,16 +8588,17 @@ async fn finish_coord_roundtrip(
         coordinator_error(api_key, version, &body)
     };
     if coordinator.is_some_and(error::coordinator_retriable) {
-        let bounded = bounded_coord_config(cfg, deadline)?;
         let known = KnownCoord::capture(coord)
             .with_bootstrap_keys(bootstrap_keys)
             .with_address_keys(address_keys);
-        let replacement = Box::pin(rediscover_known_coord(
-            &bounded, group_id, key_type, &known, prior,
+        if let Some(replacement) = Box::pin(rediscover_with_live_bootstrap(
+            coord, cfg, group_id, key_type, &known, prior, deadline,
         ))
-        .await?;
-        let previous = std::mem::replace(coord, replacement);
-        retire_lookup_conn(previous).await;
+        .await?
+        {
+            let previous = std::mem::replace(coord, replacement);
+            retire_lookup_conn(previous).await;
+        }
         let version = negotiated_coord_version(coord, api_key)?;
         let body = coord
             .roundtrip_deadline(api_key, version, |buf| encode_body(version, buf), deadline)
@@ -8882,7 +8858,7 @@ mod tests {
                 topic_id[..8].copy_from_slice(&index.to_le_bytes());
                 crate::protocol::cgheartbeat::TopicPartitions {
                     topic_id,
-                    partitions: vec![index as i32],
+                    partitions: vec![i32::try_from(index).expect("test index fits i32")],
                 }
             })
             .collect();
@@ -9047,7 +9023,7 @@ mod tests {
             index.get(&("orders", 0)).copied().map(|part| part.offset),
             fetched_committed(&fetched, "orders", 0).map(|part| part.offset)
         );
-        assert!(index.get(&("orders", 3)).is_none());
+        assert!(!index.contains_key(&("orders", 3)));
     }
 
     #[tokio::test(flavor = "current_thread")]
@@ -9635,7 +9611,8 @@ mod tests {
             let _started = first_flag.fetch_add(1, Ordering::SeqCst);
             let mut size_buf = [0u8; 4];
             if socket.read_exact(&mut size_buf).await.is_ok() {
-                let size = i32::from_be_bytes(size_buf).max(0) as usize;
+                let size = usize::try_from(i32::from_be_bytes(size_buf).max(0))
+                    .expect("nonnegative test frame size fits usize");
                 let mut request = vec![0u8; size];
                 if socket.read_exact(&mut request).await.is_ok() {
                     if let Some(bytes) = request.get(4..8) {
@@ -9737,7 +9714,8 @@ mod tests {
             let _started = flag.fetch_add(1, Ordering::SeqCst);
             let mut size_buf = [0u8; 4];
             if socket.read_exact(&mut size_buf).await.is_ok() {
-                let size = i32::from_be_bytes(size_buf).max(0) as usize;
+                let size = usize::try_from(i32::from_be_bytes(size_buf).max(0))
+                    .expect("nonnegative test frame size fits usize");
                 let mut request = vec![0u8; size];
                 if socket.read_exact(&mut request).await.is_ok() {
                     if let Some(bytes) = request.get(4..8) {
@@ -10818,7 +10796,10 @@ mod tests {
         let mut assigned_parts = HashMap::new();
         for partition in 0..2_000_000 {
             let _ = stored_parts.insert(partition, [1u8; 16]);
-            let _ = assigned_parts.insert(partition, partition as usize);
+            let _ = assigned_parts.insert(
+                partition,
+                usize::try_from(partition).expect("nonnegative test partition"),
+            );
         }
         let mut ids = HashMap::new();
         let _ = ids.insert(Arc::clone(&topic), stored_parts);
@@ -11073,7 +11054,11 @@ mod tests {
         let identities: HashMap<Arc<str>, [u8; 16]> = (0..2_000_000)
             .map(|index| {
                 let mut id = [0u8; 16];
-                id[..8].copy_from_slice(&(index as u64).to_le_bytes());
+                id[..8].copy_from_slice(
+                    &u64::try_from(index)
+                        .expect("nonnegative test index")
+                        .to_le_bytes(),
+                );
                 (Arc::from(format!("topic-{index}")), id)
             })
             .collect();
@@ -11105,7 +11090,11 @@ mod tests {
         let assignment: Vec<TopicPartitions> = (0..2_000_000)
             .map(|index| {
                 let mut topic_id = [0u8; 16];
-                topic_id[..8].copy_from_slice(&(index as u64).to_le_bytes());
+                topic_id[..8].copy_from_slice(
+                    &u64::try_from(index)
+                        .expect("nonnegative test index")
+                        .to_le_bytes(),
+                );
                 let _stored = names.insert(topic_id, ());
                 TopicPartitions {
                     topic_id,
@@ -11349,7 +11338,11 @@ mod tests {
         let owned: Vec<TopicPartitions> = (0..2_000_000)
             .map(|index| {
                 let mut topic_id = [0u8; 16];
-                topic_id[..8].copy_from_slice(&(index as u64).to_le_bytes());
+                topic_id[..8].copy_from_slice(
+                    &u64::try_from(index)
+                        .expect("nonnegative test index")
+                        .to_le_bytes(),
+                );
                 TopicPartitions {
                     topic_id,
                     partitions: vec![index],
@@ -11484,6 +11477,61 @@ mod tests {
 
 #[cfg(test)]
 mod rediscover_stop_tests {
+    async fn stall_after_api_versions(
+        mut socket: tokio::net::TcpStream,
+        saw_sasl: Arc<std::sync::atomic::AtomicBool>,
+    ) {
+        use tokio::io::{AsyncReadExt, AsyncWriteExt};
+        async fn frame(socket: &mut tokio::net::TcpStream) -> Vec<u8> {
+            let size = socket.read_i32().await.unwrap();
+            assert!((8..=4096).contains(&size));
+            let mut request = vec![0; usize::try_from(size).unwrap()];
+            let _read = socket.read_exact(&mut request).await.unwrap();
+            request
+        }
+        let request = frame(&mut socket).await;
+        assert_eq!(i16::from_be_bytes(request[0..2].try_into().unwrap()), 18);
+        assert_eq!(i16::from_be_bytes(request[2..4].try_into().unwrap()), 4);
+        let versions = crate::protocol::api::ApiVersionsResponse {
+            error_code: 0,
+            api_keys: vec![
+                crate::protocol::api::ApiVersion {
+                    api_key: crate::protocol::api_keys::FIND_COORDINATOR,
+                    min_version: 0,
+                    max_version: 6,
+                },
+                crate::protocol::api::ApiVersion {
+                    api_key: crate::protocol::api_keys::SASL_HANDSHAKE,
+                    min_version: 0,
+                    max_version: 1,
+                },
+                crate::protocol::api::ApiVersion {
+                    api_key: crate::protocol::api_keys::SASL_AUTHENTICATE,
+                    min_version: 0,
+                    max_version: 2,
+                },
+            ],
+            throttle_time_ms: 0,
+            supported_features: Vec::new(),
+            finalized_features_epoch: None,
+            finalized_features: Vec::new(),
+            zk_migration_ready: false,
+        };
+        let mut body = bytes::BytesMut::new();
+        crate::protocol::api::encode_api_versions_response(&mut body, 4, &versions).unwrap();
+        socket
+            .write_i32(i32::try_from(4 + body.len()).unwrap())
+            .await
+            .unwrap();
+        socket.write_all(&request[4..8]).await.unwrap();
+        socket.write_all(&body).await.unwrap();
+        let request = frame(&mut socket).await;
+        assert_eq!(i16::from_be_bytes(request[0..2].try_into().unwrap()), 17);
+        saw_sasl.store(true, std::sync::atomic::Ordering::SeqCst);
+        let mut buf = [0; 64];
+        while matches!(socket.read(&mut buf).await, Ok(n) if n > 0) {}
+    }
+
     use super::{
         connect_known_coord, open_coord_with_find_version, open_coord_with_keys,
         rediscover_known_coord, KnownCoord,
@@ -11495,27 +11543,255 @@ mod rediscover_stop_tests {
     use std::sync::Arc;
     use std::time::Duration;
 
+    #[test]
+    fn live_discovery_preserves_multi_bootstrap_failure_policy() {
+        assert!(super::rediscovery_retryable(
+            &crate::Error::protocol("malformed coordinator response"),
+            true,
+        ));
+        assert!(!super::rediscovery_retryable(
+            &crate::Error::protocol("malformed coordinator response"),
+            false,
+        ));
+        assert!(!super::rediscovery_retryable(
+            &crate::Error::broker(30, "FindCoordinator"),
+            true,
+        ));
+        assert!(super::rediscovery_retryable(&crate::Error::Closed, true));
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn remembered_coordinator_dial_uses_versions_from_new_socket() {
+        use super::{open_remembered_dial, RememberedDial};
+        use crate::protocol::api::{encode_api_versions_response, ApiVersion, ApiVersionsResponse};
+        use crate::protocol::api_keys::{FIND_COORDINATOR, HEARTBEAT};
+        use bytes::BytesMut;
+        use tokio::io::{AsyncReadExt, AsyncWriteExt};
+
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap().to_string();
+        let peer = tokio::spawn(async move {
+            let (mut socket, _) = listener.accept().await.unwrap();
+            let length = socket.read_i32().await.unwrap();
+            assert!((8..=4096).contains(&length));
+            let mut request = vec![0; usize::try_from(length).unwrap()];
+            let _read = socket.read_exact(&mut request).await.unwrap();
+            assert_eq!(i16::from_be_bytes(request[0..2].try_into().unwrap()), 18);
+            assert_eq!(i16::from_be_bytes(request[2..4].try_into().unwrap()), 4);
+            let versions = ApiVersionsResponse {
+                error_code: 0,
+                api_keys: vec![
+                    ApiVersion {
+                        api_key: FIND_COORDINATOR,
+                        min_version: 0,
+                        max_version: 2,
+                    },
+                    ApiVersion {
+                        api_key: HEARTBEAT,
+                        min_version: 0,
+                        max_version: 1,
+                    },
+                ],
+                throttle_time_ms: 0,
+                supported_features: Vec::new(),
+                finalized_features_epoch: None,
+                finalized_features: Vec::new(),
+                zk_migration_ready: false,
+            };
+            let mut body = BytesMut::new();
+            encode_api_versions_response(&mut body, 4, &versions).unwrap();
+            socket
+                .write_i32(i32::try_from(4 + body.len()).unwrap())
+                .await
+                .unwrap();
+            socket.write_all(&request[4..8]).await.unwrap();
+            socket.write_all(&body).await.unwrap();
+        });
+        let mut cfg = ConsumerConfig::bootstrap([addr.clone()]);
+        cfg.max_wait_ms = 10;
+        let known = KnownCoord {
+            addr: addr.clone(),
+            offset_commit_version: 9,
+            offset_fetch_version: 9,
+            heartbeat_version: 4,
+            sync_group_version: 5,
+            join_group_version: 9,
+            leave_group_version: 5,
+            consumer_group_heartbeat_version: 1,
+            share_group_heartbeat_version: 1,
+            sasl_handshake_version: -1,
+            sasl_authenticate_version: -1,
+            find_coordinator_version: 6,
+            bootstrap_keys: vec![ApiVersion {
+                api_key: FIND_COORDINATOR,
+                min_version: 0,
+                max_version: 6,
+            }],
+            address_keys: HashMap::new(),
+        };
+        let (conn, version, response) =
+            open_remembered_dial(&cfg, &addr, RememberedDial::Known(known))
+                .await
+                .unwrap();
+        assert_eq!(version, 2);
+        assert_eq!(conn.find_coordinator_version, 2);
+        assert_eq!(conn.heartbeat_version, 1);
+        assert_eq!(
+            response.api_version(FIND_COORDINATOR).unwrap().max_version,
+            2
+        );
+        peer.await.unwrap();
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn moved_coordinator_dial_uses_remaining_lookup_deadline() {
+        use crate::protocol::api::{encode_api_versions_response, ApiVersion, ApiVersionsResponse};
+        use crate::protocol::api_keys::{API_VERSIONS, FIND_COORDINATOR};
+        use crate::protocol::group::encode_find_coordinator_response;
+        use std::time::Instant;
+        use tokio::io::{AsyncReadExt, AsyncWriteExt};
+
+        let destination = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let destination_addr = destination.local_addr().unwrap();
+        let saw_destination = Arc::new(AtomicBool::new(false));
+        let flag = Arc::clone(&saw_destination);
+        let stalled_peer = tokio::spawn(async move {
+            let (mut socket, _) = destination.accept().await.unwrap();
+            flag.store(true, Ordering::SeqCst);
+            let mut bytes = [0u8; 128];
+            while matches!(socket.read(&mut bytes).await, Ok(n) if n > 0) {}
+        });
+        let bootstrap = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let bootstrap_addr = bootstrap.local_addr().unwrap().to_string();
+        let bootstrap_peer = tokio::spawn(async move {
+            while let Ok((mut socket, _)) = bootstrap.accept().await {
+                drop(tokio::spawn(async move {
+                    loop {
+                        let Ok(length) = socket.read_i32().await else {
+                            return;
+                        };
+                        if !(8..=4096).contains(&length) {
+                            return;
+                        }
+                        let mut request = vec![0; usize::try_from(length).unwrap()];
+                        if socket.read_exact(&mut request).await.is_err() {
+                            return;
+                        }
+                        let api = i16::from_be_bytes(request[0..2].try_into().unwrap());
+                        let version = i16::from_be_bytes(request[2..4].try_into().unwrap());
+                        let mut body = bytes::BytesMut::new();
+                        if api == API_VERSIONS {
+                            assert_eq!(version, 4);
+                            encode_api_versions_response(
+                                &mut body,
+                                4,
+                                &ApiVersionsResponse {
+                                    error_code: 0,
+                                    api_keys: vec![ApiVersion {
+                                        api_key: FIND_COORDINATOR,
+                                        min_version: 1,
+                                        max_version: 1,
+                                    }],
+                                    throttle_time_ms: 0,
+                                    supported_features: Vec::new(),
+                                    finalized_features_epoch: None,
+                                    finalized_features: Vec::new(),
+                                    zk_migration_ready: false,
+                                },
+                            )
+                            .unwrap();
+                        } else if api == FIND_COORDINATOR {
+                            assert_eq!(version, 1);
+                            tokio::time::sleep(Duration::from_millis(500)).await;
+                            encode_find_coordinator_response(
+                                &mut body,
+                                1,
+                                2,
+                                "127.0.0.1",
+                                i32::from(destination_addr.port()),
+                                "g",
+                            )
+                            .unwrap();
+                        } else {
+                            panic!("unexpected API {api}");
+                        }
+                        if socket
+                            .write_i32(i32::try_from(4 + body.len()).unwrap())
+                            .await
+                            .is_err()
+                        {
+                            return;
+                        }
+                        if socket.write_all(&request[4..8]).await.is_err() {
+                            return;
+                        }
+                        if socket.write_all(&body).await.is_err() {
+                            return;
+                        }
+                    }
+                }));
+            }
+        });
+        let mut cfg = ConsumerConfig::bootstrap([bootstrap_addr.clone()]);
+        cfg.request_timeout = Duration::from_millis(700);
+        cfg.connect_timeout = Duration::from_secs(1);
+        let known = KnownCoord {
+            addr: bootstrap_addr,
+            offset_commit_version: 0,
+            offset_fetch_version: 0,
+            heartbeat_version: -1,
+            sync_group_version: -1,
+            join_group_version: 0,
+            leave_group_version: -1,
+            consumer_group_heartbeat_version: -1,
+            share_group_heartbeat_version: -1,
+            sasl_handshake_version: -1,
+            sasl_authenticate_version: -1,
+            find_coordinator_version: 1,
+            bootstrap_keys: Vec::new(),
+            address_keys: HashMap::new(),
+        };
+        let mut prior = HashMap::new();
+        let started = Instant::now();
+        let result = tokio::time::timeout(
+            Duration::from_secs(2),
+            rediscover_known_coord(&cfg, "g", COORDINATOR_GROUP, &known, &mut prior),
+        )
+        .await
+        .expect("rediscovery exceeded the test deadline");
+        assert!(matches!(result, Err(crate::Error::Timeout)));
+        assert!(
+            saw_destination.load(Ordering::SeqCst),
+            "the moved coordinator was not contacted"
+        );
+        assert!(
+            started.elapsed() < Duration::from_millis(1050),
+            "lookup time was not deducted from the coordinator dial deadline: {:?}",
+            started.elapsed()
+        );
+        tokio::time::timeout(Duration::from_secs(1), stalled_peer)
+            .await
+            .unwrap()
+            .unwrap();
+        bootstrap_peer.abort();
+    }
+
     #[tokio::test(flavor = "current_thread")]
     async fn remembered_keys_sasl_timeout_closes_the_socket() {
         use crate::protocol::api::ApiVersion;
         use crate::protocol::api_keys::{FIND_COORDINATOR, SASL_AUTHENTICATE, SASL_HANDSHAKE};
         use std::sync::atomic::AtomicUsize;
-        use tokio::io::AsyncReadExt;
 
         let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
         let addr = listener.local_addr().unwrap().to_string();
         let open = Arc::new(AtomicUsize::new(0));
         let open_flag = Arc::clone(&open);
+        let saw_sasl = Arc::new(std::sync::atomic::AtomicBool::new(false));
+        let peer_saw_sasl = Arc::clone(&saw_sasl);
         let peer = tokio::spawn(async move {
-            let (mut sock, _) = listener.accept().await.unwrap();
+            let (sock, _) = listener.accept().await.unwrap();
             let _started = open_flag.fetch_add(1, Ordering::SeqCst);
-            let mut buf = [0u8; 64];
-            loop {
-                match sock.read(&mut buf).await {
-                    Ok(0) | Err(_) => break,
-                    Ok(_) => continue,
-                }
-            }
+            stall_after_api_versions(sock, peer_saw_sasl).await;
             let _left = open_flag.fetch_sub(1, Ordering::SeqCst);
         });
         let mut cfg = ConsumerConfig::bootstrap([addr.clone()]);
@@ -11547,28 +11823,27 @@ mod rediscover_stop_tests {
             0,
             "remembered coordinator sasl left the socket open"
         );
-        peer.abort();
+        peer.await.unwrap();
+        assert!(
+            saw_sasl.load(Ordering::SeqCst),
+            "the peer did not receive SASL_HANDSHAKE"
+        );
     }
 
     #[tokio::test(flavor = "current_thread")]
     async fn remembered_sasl_timeout_closes_the_socket() {
         use std::sync::atomic::AtomicUsize;
-        use tokio::io::AsyncReadExt;
 
         let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
         let addr = listener.local_addr().unwrap().to_string();
         let open = Arc::new(AtomicUsize::new(0));
         let open_flag = Arc::clone(&open);
+        let saw_sasl = Arc::new(std::sync::atomic::AtomicBool::new(false));
+        let peer_saw_sasl = Arc::clone(&saw_sasl);
         let peer = tokio::spawn(async move {
-            let (mut sock, _) = listener.accept().await.unwrap();
+            let (sock, _) = listener.accept().await.unwrap();
             let _started = open_flag.fetch_add(1, Ordering::SeqCst);
-            let mut buf = [0u8; 64];
-            loop {
-                match sock.read(&mut buf).await {
-                    Ok(0) | Err(_) => break,
-                    Ok(_) => continue,
-                }
-            }
+            stall_after_api_versions(sock, peer_saw_sasl).await;
             let _left = open_flag.fetch_sub(1, Ordering::SeqCst);
         });
         let mut cfg = ConsumerConfig::bootstrap([addr.clone()]);
@@ -11599,7 +11874,11 @@ mod rediscover_stop_tests {
             0,
             "coordinator sasl left the socket open"
         );
-        peer.abort();
+        peer.await.unwrap();
+        assert!(
+            saw_sasl.load(Ordering::SeqCst),
+            "the peer did not receive SASL_HANDSHAKE"
+        );
     }
 
     #[tokio::test(flavor = "current_thread")]
@@ -12014,7 +12293,7 @@ mod rediscover_stop_tests {
             COORDINATOR_GROUP,
             OFFSET_FETCH,
             8,
-            |_buf| Ok(()),
+            |_version, _buf| Ok(()),
             &[],
             &HashMap::new(),
             &mut prior,
@@ -12057,7 +12336,8 @@ mod rediscover_stop_tests {
                     let _reader = tokio::spawn(async move {
                         let mut size_buf = [0u8; 4];
                         if socket.read_exact(&mut size_buf).await.is_ok() {
-                            let size = i32::from_be_bytes(size_buf).max(0) as usize;
+                            let size = usize::try_from(i32::from_be_bytes(size_buf).max(0))
+                                .expect("nonnegative test frame size fits usize");
                             let mut request = vec![0u8; size];
                             if socket.read_exact(&mut request).await.is_ok() {
                                 if let Some(bytes) = request.get(4..8) {
@@ -12093,7 +12373,8 @@ mod rediscover_stop_tests {
                         if socket.read_exact(&mut size_buf).await.is_err() {
                             return;
                         }
-                        let size = i32::from_be_bytes(size_buf).max(0) as usize;
+                        let size = usize::try_from(i32::from_be_bytes(size_buf).max(0))
+                            .expect("nonnegative test frame size fits usize");
                         let mut request = vec![0u8; size];
                         if socket.read_exact(&mut request).await.is_err() {
                             return;
@@ -12363,7 +12644,7 @@ mod rediscover_stop_tests {
             COORDINATOR_GROUP,
             OFFSET_FETCH,
             2,
-            |_buf| fail(),
+            |_version, _buf| fail(),
             &[],
             &HashMap::new(),
             &mut prior,
@@ -12493,7 +12774,8 @@ mod rediscover_stop_tests {
                     let _reader = tokio::spawn(async move {
                         let mut size_buf = [0u8; 4];
                         if socket.read_exact(&mut size_buf).await.is_ok() {
-                            let size = i32::from_be_bytes(size_buf).max(0) as usize;
+                            let size = usize::try_from(i32::from_be_bytes(size_buf).max(0))
+                                .expect("nonnegative test frame size fits usize");
                             let mut request = vec![0u8; size];
                             if socket.read_exact(&mut request).await.is_ok() {
                                 if let Some(bytes) = request.get(4..8) {
@@ -12540,7 +12822,8 @@ mod rediscover_stop_tests {
                         if socket.read_exact(&mut size_buf).await.is_err() {
                             return;
                         }
-                        let size = i32::from_be_bytes(size_buf).max(0) as usize;
+                        let size = usize::try_from(i32::from_be_bytes(size_buf).max(0))
+                            .expect("nonnegative test frame size fits usize");
                         let mut request = vec![0u8; size];
                         if socket.read_exact(&mut request).await.is_err() {
                             return;
@@ -12639,7 +12922,7 @@ mod rediscover_stop_tests {
             COORDINATOR_GROUP,
             OFFSET_FETCH,
             2,
-            |_buf| Ok(()),
+            |_version, _buf| Ok(()),
             &[],
             &HashMap::new(),
             &mut prior,
@@ -12685,7 +12968,8 @@ mod rediscover_stop_tests {
                     let _reader = tokio::spawn(async move {
                         let mut size_buf = [0u8; 4];
                         if socket.read_exact(&mut size_buf).await.is_ok() {
-                            let size = i32::from_be_bytes(size_buf).max(0) as usize;
+                            let size = usize::try_from(i32::from_be_bytes(size_buf).max(0))
+                                .expect("nonnegative test frame size fits usize");
                             let mut request = vec![0u8; size];
                             if socket.read_exact(&mut request).await.is_ok() {
                                 if let Some(bytes) = request.get(4..8) {
@@ -12737,7 +13021,8 @@ mod rediscover_stop_tests {
                         if socket.read_exact(&mut size_buf).await.is_err() {
                             return;
                         }
-                        let size = i32::from_be_bytes(size_buf).max(0) as usize;
+                        let size = usize::try_from(i32::from_be_bytes(size_buf).max(0))
+                            .expect("nonnegative test frame size fits usize");
                         let mut request = vec![0u8; size];
                         if socket.read_exact(&mut request).await.is_err() {
                             return;
@@ -13002,5 +13287,263 @@ mod rediscover_stop_tests {
             "an aborted group handshake left the broker blocked in a read"
         );
         peer.abort();
+    }
+}
+// Paste this complete module into src/group.rs. The peer scripts deliberately
+// use distinct bootstrap and previously-known coordinator listeners.
+#[cfg(test)]
+mod lookup_reuse_regressions {
+    use super::{rediscover_known_coord, KnownCoord};
+    use crate::protocol::api::{encode_api_versions_response, ApiVersion, ApiVersionsResponse};
+    use crate::protocol::api_keys::{API_VERSIONS, FIND_COORDINATOR};
+    use crate::protocol::group::{encode_find_coordinator_response, COORDINATOR_GROUP};
+    use crate::{ConsumerConfig, Error};
+    use bytes::BytesMut;
+    use std::collections::HashMap;
+    use std::net::SocketAddr;
+    use std::sync::atomic::{AtomicBool, Ordering};
+    use std::sync::Arc;
+    use std::time::{Duration, Instant};
+    use tokio::io::{AsyncReadExt, AsyncWriteExt};
+    use tokio::net::{TcpListener, TcpStream};
+
+    fn known(addr: String) -> KnownCoord {
+        KnownCoord {
+            addr,
+            offset_commit_version: 2,
+            offset_fetch_version: 1,
+            heartbeat_version: 0,
+            sync_group_version: 0,
+            join_group_version: 2,
+            leave_group_version: 0,
+            consumer_group_heartbeat_version: -1,
+            share_group_heartbeat_version: -1,
+            sasl_handshake_version: -1,
+            sasl_authenticate_version: -1,
+            find_coordinator_version: 1,
+            bootstrap_keys: Vec::new(),
+            address_keys: HashMap::new(),
+        }
+    }
+
+    async fn frame(socket: &mut TcpStream, api: i16, version: i16) -> Vec<u8> {
+        let size = socket.read_i32().await.unwrap();
+        assert!((8..=4096).contains(&size));
+        let mut request = vec![0; usize::try_from(size).unwrap()];
+        let _read = socket.read_exact(&mut request).await.unwrap();
+        assert_eq!(i16::from_be_bytes(request[0..2].try_into().unwrap()), api);
+        assert_eq!(
+            i16::from_be_bytes(request[2..4].try_into().unwrap()),
+            version
+        );
+        request
+    }
+
+    async fn respond(socket: &mut TcpStream, request: &[u8], body: &[u8]) {
+        socket
+            .write_i32(i32::try_from(4 + body.len()).unwrap())
+            .await
+            .unwrap();
+        socket.write_all(&request[4..8]).await.unwrap();
+        socket.write_all(body).await.unwrap();
+    }
+
+    async fn answer_versions(socket: &mut TcpStream) {
+        let request = frame(socket, API_VERSIONS, 4).await;
+        let response = ApiVersionsResponse {
+            api_keys: vec![ApiVersion {
+                api_key: FIND_COORDINATOR,
+                min_version: 1,
+                max_version: 1,
+            }],
+            ..ApiVersionsResponse::default()
+        };
+        let mut body = BytesMut::new();
+        encode_api_versions_response(&mut body, 4, &response).unwrap();
+        respond(socket, &request, &body).await;
+    }
+
+    fn find_response(addr: SocketAddr, error: i16) -> BytesMut {
+        let mut body = BytesMut::new();
+        encode_find_coordinator_response(&mut body, 1, 1, "127.0.0.1", i32::from(addr.port()), "g")
+            .unwrap();
+        // The v1 classic FindCoordinator body starts with throttle i32 and error i16.
+        body[4..6].copy_from_slice(&error.to_be_bytes());
+        body
+    }
+
+    async fn wait_for_close(mut socket: TcpStream, closed: Arc<AtomicBool>) {
+        let mut bytes = [0u8; 256];
+        while matches!(socket.read(&mut bytes).await, Ok(n) if n > 0) {}
+        closed.store(true, Ordering::SeqCst);
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn expired_lookup_socket_is_retired_before_timeout_returns() {
+        let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap().to_string();
+        let conn = crate::net::BrokerConn::connect(&addr, "expired-lookup", Duration::from_secs(1))
+            .await
+            .unwrap();
+        let (mut peer, _) = listener.accept().await.unwrap();
+        let deadline = crate::net::Deadline::from_std(Instant::now() - Duration::from_millis(1));
+        let result = super::finish_reused_lookup(conn, deadline).await;
+        assert!(matches!(result, Err(Error::Timeout)));
+        let mut byte = [0u8; 1];
+        let read = tokio::time::timeout(Duration::from_secs(1), peer.read(&mut byte))
+            .await
+            .unwrap()
+            .unwrap_or(0);
+        assert_eq!(read, 0, "expired lookup connection was not closed");
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn fatal_lookup_retires_an_already_negotiated_speculative_connection() {
+        let bootstrap = TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let bootstrap_addr = bootstrap.local_addr().unwrap();
+        let speculative = TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let speculative_addr = speculative.local_addr().unwrap();
+        let closed = Arc::new(AtomicBool::new(false));
+        let flag = Arc::clone(&closed);
+        let (ready_tx, ready_rx) = tokio::sync::oneshot::channel();
+        let speculative_peer = tokio::spawn(async move {
+            let (mut socket, _) = speculative.accept().await.unwrap();
+            answer_versions(&mut socket).await;
+            let _sent = ready_tx.send(());
+            wait_for_close(socket, flag).await;
+        });
+        let lookup_peer = tokio::spawn(async move {
+            let (mut socket, _) = bootstrap.accept().await.unwrap();
+            answer_versions(&mut socket).await;
+            let request = frame(&mut socket, FIND_COORDINATOR, 1).await;
+            ready_rx.await.unwrap();
+            // Allow the client to finish polling the successful speculative dial
+            // before the lookup returns its fatal broker error.
+            tokio::time::sleep(Duration::from_millis(40)).await;
+            let body = find_response(bootstrap_addr, 30);
+            respond(&mut socket, &request, &body).await;
+        });
+        let mut cfg = ConsumerConfig::bootstrap([bootstrap_addr.to_string()]);
+        cfg.request_timeout = Duration::from_secs(1);
+        let mut prior = HashMap::new();
+        let result = rediscover_known_coord(
+            &cfg,
+            "g",
+            COORDINATOR_GROUP,
+            &known(speculative_addr.to_string()),
+            &mut prior,
+        )
+        .await;
+        assert!(matches!(result, Err(Error::Broker { code: 30, .. })));
+        assert!(
+            closed.load(Ordering::SeqCst),
+            "completed speculative socket remained open when the error returned"
+        );
+        tokio::time::timeout(Duration::from_secs(1), speculative_peer)
+            .await
+            .unwrap()
+            .unwrap();
+        lookup_peer.await.unwrap();
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn successful_lookup_cancels_a_stalled_speculative_handshake() {
+        let bootstrap = TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let bootstrap_addr = bootstrap.local_addr().unwrap();
+        let speculative = TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let speculative_addr = speculative.local_addr().unwrap();
+        let closed = Arc::new(AtomicBool::new(false));
+        let flag = Arc::clone(&closed);
+        let (ready_tx, ready_rx) = tokio::sync::oneshot::channel();
+        let speculative_peer = tokio::spawn(async move {
+            let (mut socket, _) = speculative.accept().await.unwrap();
+            let _request = frame(&mut socket, API_VERSIONS, 4).await;
+            let _sent = ready_tx.send(());
+            // Do not answer ApiVersions; cancellation must release this socket.
+            wait_for_close(socket, flag).await;
+        });
+        let lookup_peer = tokio::spawn(async move {
+            let (mut socket, _) = bootstrap.accept().await.unwrap();
+            answer_versions(&mut socket).await;
+            let request = frame(&mut socket, FIND_COORDINATOR, 1).await;
+            ready_rx.await.unwrap();
+            let body = find_response(bootstrap_addr, 0);
+            respond(&mut socket, &request, &body).await;
+            wait_for_close(socket, Arc::new(AtomicBool::new(false))).await;
+        });
+        let mut cfg = ConsumerConfig::bootstrap([bootstrap_addr.to_string()]);
+        cfg.request_timeout = Duration::from_secs(1);
+        let mut prior = HashMap::new();
+        let conn = rediscover_known_coord(
+            &cfg,
+            "g",
+            COORDINATOR_GROUP,
+            &known(speculative_addr.to_string()),
+            &mut prior,
+        )
+        .await
+        .unwrap();
+        assert_eq!(conn.addr(), bootstrap_addr.to_string());
+        assert!(
+            closed.load(Ordering::SeqCst),
+            "stalled speculative socket remained open when lookup returned"
+        );
+        tokio::time::timeout(Duration::from_secs(1), speculative_peer)
+            .await
+            .unwrap()
+            .unwrap();
+        drop(conn);
+        tokio::time::timeout(Duration::from_secs(1), lookup_peer)
+            .await
+            .unwrap()
+            .unwrap();
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn lookup_return_after_deadline_cannot_be_reused() {
+        let bootstrap = TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let bootstrap_addr = bootstrap.local_addr().unwrap();
+        let speculative = TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let speculative_addr = speculative.local_addr().unwrap();
+        let (ready_tx, ready_rx) = tokio::sync::oneshot::channel();
+        let speculative_peer = tokio::spawn(async move {
+            let (mut socket, _) = speculative.accept().await.unwrap();
+            answer_versions(&mut socket).await;
+            let _sent = ready_tx.send(());
+            wait_for_close(socket, Arc::new(AtomicBool::new(false))).await;
+        });
+        let lookup_peer = tokio::spawn(async move {
+            let (mut socket, _) = bootstrap.accept().await.unwrap();
+            answer_versions(&mut socket).await;
+            let request = frame(&mut socket, FIND_COORDINATOR, 1).await;
+            ready_rx.await.unwrap();
+            // Hold the lookup until after the entire operation budget.
+            tokio::time::sleep(Duration::from_millis(160)).await;
+            let body = find_response(bootstrap_addr, 0);
+            let _written = socket
+                .write_i32(i32::try_from(4 + body.len()).unwrap())
+                .await;
+            let _written = socket.write_all(&request[4..8]).await;
+            let _written = socket.write_all(&body).await;
+        });
+        let mut cfg = ConsumerConfig::bootstrap([bootstrap_addr.to_string()]);
+        cfg.request_timeout = Duration::from_millis(100);
+        let mut prior = HashMap::new();
+        let started = Instant::now();
+        let result = rediscover_known_coord(
+            &cfg,
+            "g",
+            COORDINATOR_GROUP,
+            &known(speculative_addr.to_string()),
+            &mut prior,
+        )
+        .await;
+        assert!(matches!(result, Err(Error::Timeout)));
+        assert!(started.elapsed() < Duration::from_millis(250));
+        tokio::time::timeout(Duration::from_secs(1), speculative_peer)
+            .await
+            .unwrap()
+            .unwrap();
+        lookup_peer.abort();
     }
 }

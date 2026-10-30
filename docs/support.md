@@ -7,9 +7,9 @@ qualified.
 API changes follow the [0.x policy](api-stability.md). Cuts are described in
 [RELEASE.md](RELEASE.md). Adopter steps are in [ADOPTION.md](ADOPTION.md).
 Broader correctness, fault, and performance work stays in the
-[task queue](plan/README.md).
+[task queue](https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/docs/plan/README.md).
 
-The [2026-09-21 source audit](audits/2026-09-21.md) reproduced five consumer
+The [2026-09-21 source audit](https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/docs/audits/2026-09-21.md) reproduced five consumer
 correctness cases at `cb7e97d`. Those cases are fixed in later source.
 Apache 4.1.2, 4.2.1, and 4.3.1 have their own digest-pinned profiles. The
 older 3.9.1 and 4.1.0 smoke runs are historical coverage.
