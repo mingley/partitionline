@@ -1,0 +1,109 @@
+{
+  "scope": "Cross-host source inventory repair only; no Cargo/compiler/native runtime.",
+  "prepared_utc": "2026-10-30T21:49:52.862163+00:00",
+  "prior_v3_spec_sha256": "dd9287c1eb9e35dee796541810e7e967c877f0224ee2d2551866a1468fcbe8c7",
+  "prior_v3_preparation_sha256": "ec12222dec6ee5ac3b5f64c0506471170d577e8ec321c6f9417533e80d29bd93",
+  "reason": "The first actual x86 CI checkout cannot contain ignored, untracked, host-generated CPython bytecode. Rust had not started.",
+  "removed_generated_inputs_by_phase": {
+    "base": {
+      "scripts/__pycache__/benchmark-report.cpython-312.pyc": "976d9e39e29fb4a68d6e57d6cc2a3ce89e2b07b75cebafc2a1a8445a97f2ed43",
+      "scripts/__pycache__/broker-recovery-diagnostic.cpython-312.pyc": "f9e9aad69cd5c1b8d9e815a95ef45c0a9fe58a17d79ec22968837a77e7d10d14",
+      "scripts/__pycache__/check-doc-examples.cpython-312.pyc": "9963d469629dfe43b3df79f176f9f8b410ccd95acd82c9a87120813007d3bcc4",
+      "scripts/__pycache__/report-fetch-session-recovery.cpython-312.pyc": "2b29d8b3b0d2602896a0c688ee8e80642cf49056de0190b21433ef494e5e8d86",
+      "tests/ci/__pycache__/test_alloc_gate.cpython-312.pyc": "61f11008de27aeefc186dead6ffb42835cd5da17bbd38b8592abab2bc9d9fa45"
+    },
+    "baseline": {
+      "scripts/__pycache__/benchmark-report.cpython-312.pyc": "976d9e39e29fb4a68d6e57d6cc2a3ce89e2b07b75cebafc2a1a8445a97f2ed43",
+      "scripts/__pycache__/broker-recovery-diagnostic.cpython-312.pyc": "f9e9aad69cd5c1b8d9e815a95ef45c0a9fe58a17d79ec22968837a77e7d10d14",
+      "scripts/__pycache__/check-doc-examples.cpython-312.pyc": "9963d469629dfe43b3df79f176f9f8b410ccd95acd82c9a87120813007d3bcc4",
+      "scripts/__pycache__/report-fetch-session-recovery.cpython-312.pyc": "2b29d8b3b0d2602896a0c688ee8e80642cf49056de0190b21433ef494e5e8d86",
+      "tests/ci/__pycache__/test_alloc_gate.cpython-312.pyc": "61f11008de27aeefc186dead6ffb42835cd5da17bbd38b8592abab2bc9d9fa45"
+    },
+    "fixed": {
+      "scripts/__pycache__/benchmark-report.cpython-312.pyc": "976d9e39e29fb4a68d6e57d6cc2a3ce89e2b07b75cebafc2a1a8445a97f2ed43",
+      "scripts/__pycache__/broker-recovery-diagnostic.cpython-312.pyc": "f9e9aad69cd5c1b8d9e815a95ef45c0a9fe58a17d79ec22968837a77e7d10d14",
+      "scripts/__pycache__/check-doc-examples.cpython-312.pyc": "9963d469629dfe43b3df79f176f9f8b410ccd95acd82c9a87120813007d3bcc4",
+      "scripts/__pycache__/report-fetch-session-recovery.cpython-312.pyc": "2b29d8b3b0d2602896a0c688ee8e80642cf49056de0190b21433ef494e5e8d86",
+      "tests/ci/__pycache__/test_alloc_gate.cpython-312.pyc": "61f11008de27aeefc186dead6ffb42835cd5da17bbd38b8592abab2bc9d9fa45"
+    }
+  },
+  "removed_paths_are_all_untracked": true,
+  "retained_base_paths_are_all_tracked": true,
+  "retained_base_checkout_hashes_match": true,
+  "retained_source_hashes_unchanged": true,
+  "candidate_delta_paths_unchanged": {
+    "baseline": [
+      "src/admin.rs",
+      "src/admin/cooperative_tests.rs",
+      "src/consumer.rs",
+      "src/group.rs",
+      "src/group/offsets.rs",
+      "src/net.rs",
+      "src/net/test_peer.rs",
+      "src/producer.rs",
+      "src/protocol/acl.rs",
+      "src/protocol/admin.rs",
+      "src/protocol/cooperative.rs",
+      "src/protocol/cooperative/tests.rs",
+      "src/protocol/group.rs",
+      "src/protocol/mod.rs",
+      "src/share.rs",
+      "tests/common/mod.rs",
+      "tests/group_coordinator_startup.rs",
+      "tests/group_stack.rs",
+      "tests/mock_produce.rs"
+    ],
+    "fixed": [
+      "src/admin.rs",
+      "src/admin/cooperative_tests.rs",
+      "src/consumer.rs",
+      "src/group.rs",
+      "src/group/offsets.rs",
+      "src/net.rs",
+      "src/net/test_peer.rs",
+      "src/producer.rs",
+      "src/protocol/acl.rs",
+      "src/protocol/admin.rs",
+      "src/protocol/cooperative.rs",
+      "src/protocol/cooperative/tests.rs",
+      "src/protocol/group.rs",
+      "src/protocol/mod.rs",
+      "src/share.rs",
+      "tests/common/mod.rs",
+      "tests/group_coordinator_startup.rs",
+      "tests/group_stack.rs",
+      "tests/mock_produce.rs"
+    ]
+  },
+  "source_input_counts": {
+    "base": 1741,
+    "baseline": 1746,
+    "fixed": 1746
+  },
+  "unchanged_assets": {
+    "controls.json": {
+      "sha256": "511780956fc5cb7a1f5ceabe8df2c4f2b1d871cedbff01415b798e2dd56cf42e",
+      "bytes": 40935
+    },
+    "baseline.patch.gz": {
+      "sha256": "65c0d1155606c76c4debe13cecd346ee99dfdba84a1e3bbea76b3d3d3e96812d",
+      "bytes": 62092
+    },
+    "fixed-delta.patch.gz": {
+      "sha256": "1389c0e34cb02e686efdddf49229ce1307a091a2855547f403be2adb60bb8de8",
+      "bytes": 3243
+    },
+    "fixed.patch.gz": {
+      "sha256": "03691fbbb59063093303f3f1d940daf9b2c1f0ada26ac1b97ac01039e8a57697",
+      "bytes": 64692
+    }
+  },
+  "required_controls": {
+    "library": 108,
+    "integrations": 14
+  },
+  "explicit_cache_exclusion_reproduces_fixed_inventory": true,
+  "patch_reconstruction": "v3 sequential source reconstruction remains valid: every retained phase source hash and every patch byte is identical; only five unchanged cache inputs are omitted from all phases.",
+  "production_ready": false,
+  "fastest_claim_qualified": false
+}

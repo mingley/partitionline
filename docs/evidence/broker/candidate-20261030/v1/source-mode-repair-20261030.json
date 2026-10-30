@@ -1,0 +1,84 @@
+{
+  "started_utc": "2026-10-30T21:51:02.031011+00:00",
+  "scope": "Source metadata repair qualification only: 13 pure/mocked/real-Git controls plus six small Python process-tree controls. No local Cargo, native broker or Kafka tests. Prior native CI failure and preparation proof remain unchanged.",
+  "source_hashes_before": {
+    "scripts/ci-qualify-broker-candidate.py": "b0920a0b4cefbc06a7647515ae4a9513f44527ffafb70d93d42ce5c1faf98a4b",
+    "tests/ci/test_broker_candidate_qualification.py": "75c305225bc17e0a395993e8a6a8b9f70af919a166470bad022b152f2800dfe8",
+    "scripts/candidate-command-ownership.py": "34ddbf04a4bbead974fad4a451d30c7a56818248bd5b58c88c87bdfc41896da9",
+    "tests/ci/test_candidate_command_ownership.py": "0b786e63d059d9f3a3a3bf290ac4fe84313fe2f140243a292a87995e61877293",
+    "docs/evidence/broker/candidate-20261030/v1/spec.json": "7496f3d373d07d702504dd079cc6d9264659384cd6203a833d28858b7e82022d",
+    "docs/evidence/broker/candidate-20261030/v1/source-manifests.json": "d3e16e62fb92c42b5dec1f7663ded92235668ea00dc79f64875cbc8724f579d4",
+    "docs/evidence/broker/candidate-20261030/v1/baseline-source.tar.gz": "f5470b0c234a0ee3235bab7dacabc1f2999246c76cf9003a8edd95991ba8ffd4",
+    "docs/evidence/broker/candidate-20261030/v1/fixed-source.patch.gz": "8a5a28c1c9bae7c8aff265e82e22e3a631deba36b0b4ab17e58f4d8115652218"
+  },
+  "commands": [
+    {
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+        "-B",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests/ci",
+        "-p",
+        "test_broker_candidate_qualification.py",
+        "-v"
+      ],
+      "exit": 0,
+      "control_count": 13,
+      "elapsed_seconds": 0.5444655680003052
+    },
+    {
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+        "-B",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests/ci",
+        "-p",
+        "test_candidate_command_ownership.py",
+        "-v"
+      ],
+      "exit": 0,
+      "control_count": 6,
+      "elapsed_seconds": 3.6420175910006947
+    }
+  ],
+  "real_git_probe": {
+    "git_version": "git version 2.52.0",
+    "git_apply_umask": 18,
+    "initial_source_mode": 384,
+    "patch_applied_source_mode": 420,
+    "restored_source_mode": 384,
+    "fixed_source_bytes": 6,
+    "fixed_source_sha256": "0c3071418e6356e614898c84ed064ca95e88551bc0811b534bdf1952ecdae534",
+    "binary_fixture_mode_after": 256,
+    "mode_receipt": "source-mode-probe-20261030.json",
+    "mode_receipt_sha256": "49070d498916860ccbc3333cb7aac04350930b85faf2835593e1c6723bbcec85"
+  },
+  "unchanged_source_assets": {
+    "docs/evidence/broker/candidate-20261030/v1/spec.json": "7496f3d373d07d702504dd079cc6d9264659384cd6203a833d28858b7e82022d",
+    "docs/evidence/broker/candidate-20261030/v1/source-manifests.json": "d3e16e62fb92c42b5dec1f7663ded92235668ea00dc79f64875cbc8724f579d4",
+    "docs/evidence/broker/candidate-20261030/v1/baseline-source.tar.gz": "f5470b0c234a0ee3235bab7dacabc1f2999246c76cf9003a8edd95991ba8ffd4",
+    "docs/evidence/broker/candidate-20261030/v1/fixed-source.patch.gz": "8a5a28c1c9bae7c8aff265e82e22e3a631deba36b0b4ab17e58f4d8115652218"
+  },
+  "source_hashes_after": {
+    "scripts/ci-qualify-broker-candidate.py": "b0920a0b4cefbc06a7647515ae4a9513f44527ffafb70d93d42ce5c1faf98a4b",
+    "tests/ci/test_broker_candidate_qualification.py": "75c305225bc17e0a395993e8a6a8b9f70af919a166470bad022b152f2800dfe8",
+    "scripts/candidate-command-ownership.py": "34ddbf04a4bbead974fad4a451d30c7a56818248bd5b58c88c87bdfc41896da9",
+    "tests/ci/test_candidate_command_ownership.py": "0b786e63d059d9f3a3a3bf290ac4fe84313fe2f140243a292a87995e61877293",
+    "docs/evidence/broker/candidate-20261030/v1/spec.json": "7496f3d373d07d702504dd079cc6d9264659384cd6203a833d28858b7e82022d",
+    "docs/evidence/broker/candidate-20261030/v1/source-manifests.json": "d3e16e62fb92c42b5dec1f7663ded92235668ea00dc79f64875cbc8724f579d4",
+    "docs/evidence/broker/candidate-20261030/v1/baseline-source.tar.gz": "f5470b0c234a0ee3235bab7dacabc1f2999246c76cf9003a8edd95991ba8ffd4",
+    "docs/evidence/broker/candidate-20261030/v1/fixed-source.patch.gz": "8a5a28c1c9bae7c8aff265e82e22e3a631deba36b0b4ab17e58f4d8115652218"
+  },
+  "inputs_stable": true,
+  "passed": true,
+  "elapsed_seconds": 4.342954075000307,
+  "finished_utc": "2026-10-30T21:51:06.379327+00:00",
+  "log_sha256": "1ce75ccc8af709a9ee90d930b0cde00decdfb75f59a3dad54e1472b9b8e92139",
+  "free_after": 1626648576
+}

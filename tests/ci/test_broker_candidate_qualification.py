@@ -5,7 +5,9 @@ import hashlib
 import importlib.util
 import io
 import json
+import os
 from pathlib import Path
+import stat
 import subprocess
 import sys
 import tarfile
@@ -35,7 +37,62 @@ def archive(path, rows):
     path.write_bytes(gzip.compress(raw.getvalue(), mtime=0))
 
 
+def apply_private_source_patch(root):
+    source = root/'source'
+    source.mkdir()
+    (source/'file.rs').write_bytes(b'old\n')
+    (source/'file.rs').chmod(0o600)
+    (source/'fixture.bin').write_bytes(b'unchanged fixture')
+    (source/'fixture.bin').chmod(0o400)
+    fixed = {'file.rs': dict(entry(b'fixed\n'), mode=0o600),
+        'fixture.bin': dict(entry(b'unchanged fixture'), mode=0o400)}
+    patch = root/'source.patch'
+    patch.write_text('diff --git a/file.rs b/file.rs\n--- a/file.rs\n+++ b/file.rs\n'
+        '@@ -1 +1 @@\n-old\n+fixed\n')
+    old_mask = os.umask(0o022)
+    try:
+        subprocess.run(['git', 'apply', str(patch)], cwd=source, check=True,
+            capture_output=True, text=True)
+    finally:
+        os.umask(old_mask)
+    return source, fixed
+
+
 class BrokerCandidateQualification(unittest.TestCase):
+    def test_real_git_patch_restores_only_pinned_private_source_mode(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            source, fixed = apply_private_source_patch(root)
+            self.assertEqual(stat.S_IMODE((source/'file.rs').stat().st_mode), 0o644)
+            receipt = DRIVER.restore_patched_source_modes(
+                source, fixed, {'file.rs'}, root/'source-modes.json')
+            self.assertTrue(receipt['passed'])
+            self.assertTrue(receipt['byte_inventory_verified_before_restoration'])
+            self.assertEqual(receipt['observed_modes_before'], {'file.rs': 0o644})
+            self.assertEqual(receipt['observed_modes_after'], {'file.rs': 0o600})
+            self.assertEqual((source/'file.rs').read_bytes(), b'fixed\n')
+            self.assertEqual(stat.S_IMODE((source/'fixture.bin').stat().st_mode), 0o400)
+            DRIVER.verify_source(source, fixed)
+
+    def test_source_mode_restoration_cannot_hide_byte_inventory_or_unlisted_mode_drift(self):
+        for kind in ('bytes', 'inventory', 'unlisted-mode'):
+            with self.subTest(kind=kind), tempfile.TemporaryDirectory() as temporary:
+                root = Path(temporary)
+                source, fixed = apply_private_source_patch(root)
+                if kind == 'bytes':
+                    (source/'file.rs').write_bytes(b'forged\n')
+                elif kind == 'inventory':
+                    (source/'extra.rs').write_bytes(b'not pinned')
+                else:
+                    (source/'fixture.bin').chmod(0o600)
+                with self.assertRaises(ValueError):
+                    DRIVER.restore_patched_source_modes(source, fixed, {'file.rs'}, root/'source-modes.json')
+                self.assertEqual(stat.S_IMODE((source/'file.rs').stat().st_mode), 0o644)
+                receipt = json.loads((root/'source-modes.json').read_text())
+                self.assertFalse(receipt['passed'])
+                self.assertEqual(receipt['observed_modes_after'], {})
+                self.assertEqual(receipt['byte_inventory_verified_before_restoration'], kind == 'unlisted-mode')
+
     def test_optimized_python_retains_hash_failure_before_running_commands(self):
         with tempfile.TemporaryDirectory(dir=ROOT) as spec_temporary, tempfile.TemporaryDirectory() as temporary:
             spec_root = Path(spec_temporary)

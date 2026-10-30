@@ -34,7 +34,8 @@ def digest(path):
 
 def manifest():
     result = subprocess.run(['rg', '--files', '--hidden', '-0', '-g', '!/target/**',
-                             '-g', '!/docs/**'], cwd=ROOT, capture_output=True, check=True)
+                             '-g', '!/docs/**', '-g', '!**/__pycache__/*.pyc',
+                             '-g', '!**/__pycache__/*.pyo'], cwd=ROOT, capture_output=True, check=True)
     return {os.fsdecode(path): digest(ROOT / os.fsdecode(path))
             for path in sorted(result.stdout.split(b'\0')) if path}
 

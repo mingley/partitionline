@@ -148,6 +148,29 @@ class ClientCandidateGuards(unittest.TestCase):
             self.assertFalse(receipt['owned_command_cleanup']['remaining_descendants'])
             self.assertIsNotNone(receipt['exit'])
 
+
+    def test_cross_host_generated_bytecode_is_excluded_but_source_is_retained(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            source = ['src/lib.rs', 'scripts/report.py', 'scripts/__pycache__/real_source.py',
+                      'scripts/fixture.pyc', 'scripts/__pycache__/fixture.pyc.source']
+            generated = ['scripts/__pycache__/report.cpython-312.pyc',
+                         'tests/ci/__pycache__/test_report.cpython-312.pyo',
+                         '__pycache__/root.cpython-312.pyc']
+            for name in source + generated:
+                path = root / name
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_bytes(('bytes for ' + name).encode())
+            with mock.patch.object(DRIVER, 'ROOT', root):
+                first = DRIVER.manifest()
+                for name in generated:
+                    (root / name).write_bytes(b'different cross-host bytecode')
+                self.assertEqual(first, DRIVER.manifest())
+                for name in generated:
+                    (root / name).unlink()
+                self.assertEqual(first, DRIVER.manifest())
+            self.assertEqual(set(first), set(source))
+
     def test_missing_cgroup_metadata_is_unknown(self):
         with mock.patch.object(Path, 'read_text', side_effect=FileNotFoundError):
             self.assertIsNone(DRIVER.memory())

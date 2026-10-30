@@ -1,0 +1,19 @@
+{
+  "passed": true,
+  "started_utc": "2026-10-30T21:51:06.367838+00:00",
+  "scope": "Pinned source checkout metadata only; no runtime journal or fixture modes changed.",
+  "byte_inventory_verified_before_restoration": true,
+  "allowed_paths": [
+    "file.rs"
+  ],
+  "observed_modes_before": {
+    "file.rs": 420
+  },
+  "observed_modes_after": {
+    "file.rs": 384
+  },
+  "changed_paths": [
+    "file.rs"
+  ],
+  "finished_utc": "2026-10-30T21:51:06.369569+00:00"
+}

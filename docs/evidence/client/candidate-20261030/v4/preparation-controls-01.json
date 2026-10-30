@@ -1,0 +1,34 @@
+{
+  "scope": "18 Python pure/mocked guard and small Python timeout controls only; no Cargo/Rust/native client or broker execution.",
+  "command": [
+    "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+    "-B",
+    "-m",
+    "unittest",
+    "discover",
+    "-s",
+    "tests/ci",
+    "-p",
+    "test_client_candidate_qualification.py",
+    "-v"
+  ],
+  "exit": 0,
+  "passed": true,
+  "log": {
+    "path": "preparation-client-controls-01.log",
+    "sha256": "cb2f39a762a6663c19c2b7842415bcd45b05130af184d291b80c6ad1557bec85",
+    "bytes": 3332
+  },
+  "source": {
+    "scripts/ci-qualify-client-candidate.py": {
+      "sha256": "b25fe0390d4e4c3227e45c2b27ab671f0f6d8dace7ada911be1aa1391085e2c5",
+      "bytes": 29067
+    },
+    "tests/ci/test_client_candidate_qualification.py": {
+      "sha256": "4285e1b9e0cb5bfdd8398554dcd584207753ccf568d72a6264d845e240ade18b",
+      "bytes": 11830
+    }
+  },
+  "shared_ownership_helper_sha256": "34ddbf04a4bbead974fad4a451d30c7a56818248bd5b58c88c87bdfc41896da9",
+  "shared_helper_unchanged_from_v3": true
+}

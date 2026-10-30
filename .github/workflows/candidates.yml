@@ -32,7 +32,7 @@ jobs:
       matrix:
         include:
           - kind: client
-            source_version: v3
+            source_version: v4
           - kind: broker
             source_version: v1
     env:
@@ -43,7 +43,6 @@ jobs:
       CARGO_TERM_COLOR: never
       PYTHONDONTWRITEBYTECODE: '1'
       QUALIFICATION_SPEC: docs/evidence/${{ matrix.kind }}/candidate-20261030/${{ matrix.source_version }}/spec.json
-      QUALIFICATION_OUTPUT: ${{ github.workspace }}/../candidate-qualification
     steps:
       - uses: actions/checkout@v7
       - uses: dtolnay/rust-toolchain@stable
@@ -61,18 +60,28 @@ jobs:
         run: openssl version
       - name: Qualify isolated client candidate
         if: matrix.kind == 'client'
-        run: python3 -B scripts/ci-qualify-client-candidate.py --spec "$QUALIFICATION_SPEC" --output "$QUALIFICATION_OUTPUT"
+        run: python3 -B scripts/ci-qualify-client-candidate.py --spec "$QUALIFICATION_SPEC" --output "$RUNNER_TEMP/candidate-qualification"
       - name: Qualify isolated broker candidate
         if: matrix.kind == 'broker'
-        run: python3 -B scripts/ci-qualify-broker-candidate.py --spec "$QUALIFICATION_SPEC" --output "$QUALIFICATION_OUTPUT"
+        run: python3 -B scripts/ci-qualify-broker-candidate.py --spec "$QUALIFICATION_SPEC" --output "$RUNNER_TEMP/candidate-qualification"
       - name: Retain attempts and failures
         if: always()
         uses: actions/upload-artifact@v6
         with:
           name: candidate-${{ matrix.kind }}-${{ github.sha }}-${{ github.run_id }}
           path: |
-            ${{ env.QUALIFICATION_OUTPUT }}
-            !${{ env.QUALIFICATION_OUTPUT }}/native-target/**
-            !${{ env.QUALIFICATION_OUTPUT }}/source/**
+            ${{ runner.temp }}/candidate-qualification
+            !${{ runner.temp }}/candidate-qualification/source/**
+          if-no-files-found: error
+          retention-days: 30
+      - name: Retain qualification reports
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: candidate-reports-${{ matrix.kind }}-${{ github.sha }}-${{ github.run_id }}
+          path: |
+            ${{ runner.temp }}/candidate-qualification/*.json
+            ${{ runner.temp }}/candidate-qualification/*.log
+            ${{ runner.temp }}/candidate-qualification/assets/*.py
           if-no-files-found: error
           retention-days: 30

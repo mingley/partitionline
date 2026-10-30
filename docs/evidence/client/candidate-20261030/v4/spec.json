@@ -1,0 +1,128 @@
+{
+  "schema": 1,
+  "kind": "client",
+  "base_client_Rust_commit": "fe65ac7833fbaaa81331e31a182964c4ef3657a5",
+  "base_inputs": {
+    "path": "base-inputs.json",
+    "sha256": "1397833a8d8402ca881f63129f1f3ad0532a212a93bad2be7fb3c0099b699bf0",
+    "bytes": 225447
+  },
+  "baseline_inputs": {
+    "path": "baseline-inputs.json",
+    "sha256": "ba61733d3b59d539ac56c5d5235132affb50c5571bb376b35f52f073d08cdeb9",
+    "bytes": 225947
+  },
+  "fixed_inputs": {
+    "path": "fixed-inputs.json",
+    "sha256": "4039d3fc895d2b46036d300f1ef27ae4b327c433670160fbec9d82fc5e803eeb",
+    "bytes": 225947
+  },
+  "controls": {
+    "path": "controls.json",
+    "sha256": "511780956fc5cb7a1f5ceabe8df2c4f2b1d871cedbff01415b798e2dd56cf42e",
+    "bytes": 40935
+  },
+  "baseline_patch": {
+    "path": "baseline.patch.gz",
+    "sha256": "65c0d1155606c76c4debe13cecd346ee99dfdba84a1e3bbea76b3d3d3e96812d",
+    "bytes": 62092,
+    "uncompressed_sha256": "b92e127ed03fef0153a17b38fcfe3f0d7a5a88d8cd5f759af47f20966861edfc",
+    "uncompressed_bytes": 346084
+  },
+  "fixed_delta": {
+    "path": "fixed-delta.patch.gz",
+    "sha256": "1389c0e34cb02e686efdddf49229ce1307a091a2855547f403be2adb60bb8de8",
+    "bytes": 3243,
+    "uncompressed_sha256": "eb6832ac02f67b70d4de2a0930309c4e697d6290658f8992b8f90854dfb0808e",
+    "uncompressed_bytes": 11155
+  },
+  "baseline_cases": [
+    {
+      "target": "partitionline",
+      "test": "producer::tests::cancelled_pending_drain_retains_accepted_records_until_worker_cleanup",
+      "expect": "fail"
+    },
+    {
+      "target": "partitionline",
+      "test": "producer::tests::cancelled_pending_deadline_scan_retains_the_detached_prefix_until_worker_cleanup",
+      "expect": "fail"
+    },
+    {
+      "target": "group_coordinator_startup",
+      "test": "classic_join_recovers_after_repeated_typed_coordinator_responses",
+      "expect": "fail"
+    },
+    {
+      "target": "group_coordinator_startup",
+      "test": "classic_join_retains_a_required_member_id_across_coordinator_responses",
+      "expect": "fail"
+    },
+    {
+      "target": "group_coordinator_startup",
+      "test": "classic_join_returns_terminal_response_after_transient_coordinator_errors",
+      "expect": "fail"
+    },
+    {
+      "target": "group_coordinator_startup",
+      "test": "persistent_join_responses_stop_at_the_original_deadline_with_backoff",
+      "expect": "fail"
+    },
+    {
+      "target": "group_coordinator_startup",
+      "test": "cancelling_a_join_after_written_coordinator_responses_stops_new_requests",
+      "expect": "fail"
+    },
+    {
+      "target": "group_coordinator_startup",
+      "test": "classic_join_recovers_when_rediscovery_itself_is_still_loading",
+      "expect": "fail"
+    },
+    {
+      "target": "group_coordinator_startup",
+      "test": "classic_join_returns_terminal_rediscovery_errors_without_another_join",
+      "expect": "fail"
+    },
+    {
+      "target": "group_coordinator_startup",
+      "test": "classic_join_does_not_retry_terminal_authorization_or_fencing_responses",
+      "expect": "pass"
+    },
+    {
+      "target": "partitionline",
+      "test": "group::tests::delayed_first_poll_does_not_restart_the_coordinator_deadline",
+      "expect": "fail"
+    },
+    {
+      "target": "mock_produce",
+      "test": "retry_refreshes_waiting_topics_together",
+      "expect": "fail"
+    },
+    {
+      "target": "group_stack",
+      "test": "public_group_lifecycle_fits_the_standard_two_mib_stack",
+      "expect": "observe"
+    }
+  ],
+  "fixed_full_targets": [
+    "partitionline",
+    "group_coordinator_startup",
+    "group_stack",
+    "produce_cancel",
+    "buffer_ownership",
+    "mock_produce",
+    "producer_initialization",
+    "producer_retained_backing",
+    "sticky_partitioner",
+    "init_producer_id_v6"
+  ],
+  "limits": [
+    "Prepared candidate: no Rust build, discovery, or test has run for this combined source yet.",
+    "Baseline negatives are predictions and must be checked against retained actual failures; unrelated failure causes do not establish the proposed fixes.",
+    "Qualification runs full chosen binaries in default/all-feature lanes, not every integration target or the ordinary whole-main runtime matrix.",
+    "Runtime stack is 8MiB except the explicit standard2MiB group child control; that mock does not establish live Kafka stack safety.",
+    "Existing producer_retained_backing and metadata/leader timing failures remain gates, with unchanged assertions.",
+    "Broader producer issue/replay ownership, global memory bounds and synchronous final output/Drop work remain open.",
+    "No external broker qualification, multi-node durability evidence, release approval, or performance ranking is established.",
+    "The five untracked generated Python cache paths in v3 are excluded identically from each manifest; all retained source, 19 Rust changes, and122 required control identities are unchanged."
+  ]
+}

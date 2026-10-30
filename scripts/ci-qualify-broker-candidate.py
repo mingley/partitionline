@@ -127,7 +127,7 @@ def extract_source(archive, destination, expected):
             path.chmod(entry['mode'])
 
 
-def verify_source(source, expected):
+def verify_source_bytes(source, expected):
     require(not any(path.is_symlink() for path in source.rglob('*')), 'source contains a symlink')
     files = {str(path.relative_to(source)): path for path in source.rglob('*') if path.is_file()}
     require(set(files) == set(expected), 'source file inventory changed')
@@ -135,7 +135,50 @@ def verify_source(source, expected):
         entry = expected[name]
         require(not path.is_symlink() and path.stat().st_size == entry['bytes']
                 and sha(path) == entry['sha256'], 'source bytes changed: '+name)
+    return files
+
+
+def verify_source(source, expected):
+    for name, path in verify_source_bytes(source, expected).items():
+        entry = expected[name]
         require(stat.S_IMODE(path.stat().st_mode) == entry['mode'], 'source mode changed: '+name)
+
+
+def restore_patched_source_modes(source, expected, allowed, receipt_path):
+    """Restore pinned checkout modes only after the complete byte inventory holds.
+
+    Git applies a textual patch by replacing source files with the current umask.
+    This changes checkout metadata on hosts whose umask differs from the capsule.
+    Runtime-created journal files and binary fixtures are outside this allowlist.
+    """
+    receipt = {'passed': False, 'started_utc': utc(),
+        'scope': 'Pinned source checkout metadata only; no runtime journal or fixture modes changed.',
+        'byte_inventory_verified_before_restoration': False,
+        'allowed_paths': sorted(allowed), 'observed_modes_before': {}, 'observed_modes_after': {}}
+    try:
+        require(not receipt_path.resolve().is_relative_to(source.resolve()),
+                'source mode receipt must be outside the source checkout')
+        files = verify_source_bytes(source, expected)
+        receipt['byte_inventory_verified_before_restoration'] = True
+        require(set(allowed) <= set(files), 'unknown source mode restoration path')
+        modes = {name: stat.S_IMODE(path.stat().st_mode) for name, path in files.items()}
+        receipt['observed_modes_before'] = {name: modes[name] for name in sorted(allowed)}
+        changed = sorted(name for name in files if modes[name] != expected[name]['mode'])
+        receipt['changed_paths'] = changed
+        require(set(changed) <= set(allowed), 'unexpected source mode drift outside patched paths')
+        for name in changed:
+            files[name].chmod(expected[name]['mode'])
+        receipt['observed_modes_after'] = {
+            name: stat.S_IMODE(files[name].stat().st_mode) for name in sorted(allowed)}
+        verify_source(source, expected)
+        receipt['passed'] = True
+    except Exception as error:
+        receipt['error'] = str(error)
+        raise
+    finally:
+        receipt['finished_utc'] = utc()
+        save(receipt_path, receipt)
+    return receipt
 
 
 def oom_events():
@@ -404,7 +447,8 @@ def main():
         # Mutation is confined to the fresh extracted candidate source.
         subprocess.run(['git', 'apply', '--check', str(patch)], cwd=source, check=True)
         subprocess.run(['git', 'apply', str(patch)], cwd=source, check=True)
-        verify_source(source, fixed)
+        report['patched_source_mode_restoration'] = restore_patched_source_modes(
+            source, fixed, set(manifests['fixed_overrides']), output/'patched-source-modes.json')
         qualification.expected = fixed
         for path in (source/'partitionline-broker/src').rglob('*.rs'):
             path.touch()
