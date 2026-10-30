@@ -59,6 +59,44 @@ def apply_private_source_patch(root):
 
 
 class BrokerCandidateQualification(unittest.TestCase):
+    def test_v2_derivation_keeps_legacy_controls_and_requires_every_repeat(self):
+        with tempfile.TemporaryDirectory(dir=ROOT) as temporary:
+            root = Path(temporary)
+            legacy = {'schema_version': 1, 'kind': 'broker', 'base_main_sha': 'pinned',
+                'base_prerequisite': 'unchanged', 'baseline_cases': sorted(DRIVER.BASELINE),
+                'fixed_cases': sorted(DRIVER.FIXED)}
+            path = root/'legacy.json'
+            path.write_text(json.dumps(legacy))
+            spec = dict(legacy, schema_version=2,
+                v1_source_spec={'path': str(path.relative_to(ROOT)), 'sha256': DRIVER.sha(path)},
+                extra_fixed_cases=sorted(DRIVER.ASYNC_FS_CASES),
+                fetch_deadline_repeats={'case': DRIVER.FETCH_DEADLINE_CASE, 'per_profile': 3,
+                    'profiles': ['default', 'all-features']})
+            self.assertEqual(DRIVER.source_specification(root/'v2.json', spec), (path, legacy))
+            mutations = [
+                dict(spec, extra_fixed_cases=sorted(DRIVER.ASYNC_FS_CASES)[:-1]),
+                dict(spec, fetch_deadline_repeats=dict(spec['fetch_deadline_repeats'], per_profile=2)),
+                dict(spec, baseline_cases=sorted(DRIVER.BASELINE)[:-1]),
+                dict(spec, v1_source_spec=dict(spec['v1_source_spec'], sha256='0'*64)),
+            ]
+            for changed in mutations:
+                with self.subTest(changed=changed), self.assertRaises(ValueError):
+                    DRIVER.source_specification(root/'v2.json', changed)
+
+    def test_v2_overlay_requires_exact_source_paths_hash_bindings_and_modes(self):
+        fixed = {name: {'sha256': 'a'*64, 'bytes': 1, 'mode': 0o600} for name in DRIVER.V2_FILES}
+        files = {name: dict(entry(b'new'), before_sha256='a'*64, mode=0o600) for name in DRIVER.V2_FILES}
+        result = DRIVER.v2_source_overlay(fixed, {'files': files})
+        self.assertEqual(set(result), DRIVER.V2_FILES)
+        first = sorted(DRIVER.V2_FILES)[0]
+        for changed in [
+                {name: value for name, value in files.items() if name != first},
+                dict(files, **{first: dict(files[first], before_sha256='0'*64)}),
+                dict(files, **{first: dict(files[first], mode=0o644)}),
+        ]:
+            with self.subTest(changed=changed), self.assertRaises(ValueError):
+                DRIVER.v2_source_overlay(fixed, {'files': changed})
+
     def test_real_git_patch_restores_only_pinned_private_source_mode(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)

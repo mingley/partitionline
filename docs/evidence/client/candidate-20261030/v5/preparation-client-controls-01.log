@@ -1,0 +1,24 @@
+{"name": "timeout", "exit": -15, "stop_reason": "timeout", "elapsed_seconds": 0.267, "inputs_stable": true, "test_results": [], "test_failures": []}
+test_actual_failed_status_cannot_hide_behind_a_passing_summary (test_client_candidate_qualification.ClientCandidateGuards.test_actual_failed_status_cannot_hide_behind_a_passing_summary) ... ok
+test_actual_ignored_identities_must_match_discovery (test_client_candidate_qualification.ClientCandidateGuards.test_actual_ignored_identities_must_match_discovery) ... ok
+test_asset_hash_is_checked_before_source_mutation (test_client_candidate_qualification.ClientCandidateGuards.test_asset_hash_is_checked_before_source_mutation) ... ok
+test_cross_host_generated_bytecode_is_excluded_but_source_is_retained (test_client_candidate_qualification.ClientCandidateGuards.test_cross_host_generated_bytecode_is_excluded_but_source_is_retained) ... ok
+test_duplicate_actual_identities_cannot_replace_a_missing_case (test_client_candidate_qualification.ClientCandidateGuards.test_duplicate_actual_identities_cannot_replace_a_missing_case) ... ok
+test_gzip_patch_raw_bytes_are_independently_pinned (test_client_candidate_qualification.ClientCandidateGuards.test_gzip_patch_raw_bytes_are_independently_pinned) ... ok
+test_ignored_reasons_preserve_the_actual_identity (test_client_candidate_qualification.ClientCandidateGuards.test_ignored_reasons_preserve_the_actual_identity) ... ok
+test_ignored_required_control_cannot_pass (test_client_candidate_qualification.ClientCandidateGuards.test_ignored_required_control_cannot_pass) ... ok
+test_known_oom_increase_and_reset_are_visible (test_client_candidate_qualification.ClientCandidateGuards.test_known_oom_increase_and_reset_are_visible) ... ok
+test_missing_cgroup_metadata_is_unknown (test_client_candidate_qualification.ClientCandidateGuards.test_missing_cgroup_metadata_is_unknown) ... ok
+test_missing_required_identity_cannot_pass (test_client_candidate_qualification.ClientCandidateGuards.test_missing_required_identity_cannot_pass) ... ok
+test_other_test_failure_still_fails_when_required_cases_pass (test_client_candidate_qualification.ClientCandidateGuards.test_other_test_failure_still_fails_when_required_cases_pass) ... ok
+test_patch_cannot_touch_an_unlisted_path (test_client_candidate_qualification.ClientCandidateGuards.test_patch_cannot_touch_an_unlisted_path) ... ok
+test_source_drift_stops_before_starting_a_command (test_client_candidate_qualification.ClientCandidateGuards.test_source_drift_stops_before_starting_a_command) ... ok
+test_substituted_actual_identity_cannot_pass_the_same_count (test_client_candidate_qualification.ClientCandidateGuards.test_substituted_actual_identity_cannot_pass_the_same_count) ... ok
+test_timeout_retains_failed_receipt_after_waiting_for_its_leader (test_client_candidate_qualification.ClientCandidateGuards.test_timeout_retains_failed_receipt_after_waiting_for_its_leader) ... ok
+test_unsafe_or_ambiguous_paths_are_rejected (test_client_candidate_qualification.ClientCandidateGuards.test_unsafe_or_ambiguous_paths_are_rejected) ... ok
+test_zero_executed_tests_cannot_pass_a_full_run (test_client_candidate_qualification.ClientCandidateGuards.test_zero_executed_tests_cannot_pass_a_full_run) ... ok
+
+----------------------------------------------------------------------
+Ran 18 tests in 0.306s
+
+OK

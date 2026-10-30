@@ -1,0 +1,26 @@
+{
+  "passed": true,
+  "started_utc": "2026-10-30T22:16:46.386105+00:00",
+  "scope": "Pinned source checkout metadata only; no runtime journal or fixture modes changed.",
+  "byte_inventory_verified_before_restoration": true,
+  "allowed_paths": [
+    "partitionline-broker/Cargo.toml",
+    "partitionline-broker/src/replication.rs",
+    "partitionline-broker/tests/fetch.rs",
+    "tests/conformance/broker/implemented-api-versions.json"
+  ],
+  "observed_modes_before": {
+    "partitionline-broker/Cargo.toml": 384,
+    "partitionline-broker/src/replication.rs": 384,
+    "partitionline-broker/tests/fetch.rs": 384,
+    "tests/conformance/broker/implemented-api-versions.json": 384
+  },
+  "observed_modes_after": {
+    "partitionline-broker/Cargo.toml": 384,
+    "partitionline-broker/src/replication.rs": 384,
+    "partitionline-broker/tests/fetch.rs": 384,
+    "tests/conformance/broker/implemented-api-versions.json": 384
+  },
+  "changed_paths": [],
+  "finished_utc": "2026-10-30T22:16:46.389315+00:00"
+}

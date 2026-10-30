@@ -1,0 +1,35 @@
+{
+  "scope": "Only isolated v2 source overrides from immutable v1fixed source. No baseline names or original assertions/budgets removed. Native qualification pending.",
+  "files": {
+    "partitionline-broker/Cargo.toml": {
+      "sha256": "88c9f2efaec47615dba40c4d1feb5e481b38bd51796e76ca6fc87cf064495bf5",
+      "bytes": 2686,
+      "mode": 384,
+      "before_sha256": "bdb317c4ef19ea44b39cd4ae419279c38c68a6cdeab8443520a4f6e1793b50a7"
+    },
+    "partitionline-broker/src/replication.rs": {
+      "sha256": "d9c3370690bf53cf971d8c4a8cdfb79ce9218a42205e2fc75a9dd1611934159e",
+      "bytes": 63349,
+      "mode": 384,
+      "before_sha256": "8fa89041c1c36dfecfb80c192a92b2fdb51252230585dd710431326b6c4dfe3c"
+    },
+    "partitionline-broker/tests/fetch.rs": {
+      "sha256": "1e3ba56c59e765a7c1d5f0cd3f5a56b980b991d3ee1508e1872ddf109e2b583d",
+      "bytes": 75478,
+      "mode": 384,
+      "before_sha256": "88a7f34f9d2770199fbab00e21632a6fe62d66e2197a72e8ec32cda82be58336"
+    },
+    "tests/conformance/broker/implemented-api-versions.json": {
+      "sha256": "511b2e432d609381b7878704aa1036c2db506b2244f6ffc28bcd0be169541dc8",
+      "bytes": 592268,
+      "mode": 384,
+      "before_sha256": "c75a4419eb8a7060f3bc8cba4da620af9631391b281251180fc6d81d6873de36"
+    }
+  },
+  "fixed_patch": {
+    "path": "v2-fix.patch.gz",
+    "sha256": "acfb181754da701d38112dcc8ed93a953bb95943edd85ebcf5c8f938aff73c3a",
+    "expanded_bytes": 9940,
+    "expanded_sha256": "0acde554221323323bb1a4424b9f022d9d5066c05b24ae2b679cf2ea1dada71b"
+  }
+}

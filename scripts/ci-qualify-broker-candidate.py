@@ -39,6 +39,18 @@ FIXED = BASELINE | {
     'retention::tests::a_delete_records_response_reuses_its_buffer',
     'raft::protocol::response_buffer_tests::a_controller_response_reuses_its_buffer',
 }
+V2_FILES = {
+    'partitionline-broker/Cargo.toml', 'partitionline-broker/src/replication.rs',
+    'partitionline-broker/tests/fetch.rs',
+    'tests/conformance/broker/implemented-api-versions.json',
+}
+ASYNC_FS_CASES = {
+    'replication::tests::empty_epoch_fence_preserves_one_entry_capacity_and_blocks_old_readers',
+    'replication::tests::corrupted_or_unsupported_epoch_headers_are_not_repaired',
+    'replication::tests::detected_source_changes_poison_reads_and_writes_without_repair',
+}
+FETCH_DEADLINE_CASE = 'transport_deadline_cancels_wait_and_releases_read_admission'
+FETCH_DEADLINE_REPEATS = 3
 
 
 def require(condition, message):
@@ -85,6 +97,42 @@ def valid_name(name):
     path = PurePosixPath(name)
     return (bool(name) and not path.is_absolute() and '..' not in path.parts
             and str(path) == name and '\\' not in name and '\x00' not in name)
+
+
+def source_specification(spec_path, spec):
+    if spec['schema_version'] == 1:
+        return spec_path, spec
+    require(spec['schema_version'] == 2, 'unsupported broker specification schema')
+    require(set(spec['extra_fixed_cases']) == ASYNC_FS_CASES
+            and len(spec['extra_fixed_cases']) == len(ASYNC_FS_CASES),
+            'v2 asynchronous filesystem control contract changed')
+    repeat = spec['fetch_deadline_repeats']
+    require(repeat == {'case': FETCH_DEADLINE_CASE, 'per_profile': FETCH_DEADLINE_REPEATS,
+            'profiles': ['default', 'all-features']}, 'v2 Fetch repeat contract changed')
+    item = spec['v1_source_spec']
+    require(valid_name(item['path']), 'invalid v1 source specification path')
+    path = (ROOT/item['path']).resolve()
+    require(path.is_relative_to(ROOT) and path.is_file() and sha(path) == item['sha256'],
+            'v1 source specification hash mismatch')
+    source_spec = load(path)
+    require(source_spec['schema_version'] == 1 and source_spec['kind'] == 'broker',
+            'v2 must derive from a legacy broker source specification')
+    for key in ('base_main_sha', 'base_prerequisite', 'baseline_cases', 'fixed_cases'):
+        require(spec[key] == source_spec[key], 'v2 changed legacy source contract: '+key)
+    return path, source_spec
+
+
+def v2_source_overlay(fixed, overlay):
+    require(set(overlay['files']) == V2_FILES, 'v2 source override inventory changed')
+    result = dict(fixed)
+    for name, entry in overlay['files'].items():
+        require(entry['before_sha256'] == fixed[name]['sha256'],
+                'v2 source override does not bind v1 source: '+name)
+        require(entry['mode'] == fixed[name]['mode'], 'v2 source override changed source mode: '+name)
+        require(0 < entry['bytes'] <= 1024**2 and len(entry['sha256']) == 64,
+                'invalid v2 source override: '+name)
+        result[name] = {key: entry[key] for key in ('sha256', 'bytes', 'mode')}
+    return result
 
 
 def materialize_patch(path, destination, expected):
@@ -214,6 +262,7 @@ class Qualification:
     def __init__(self, output, source, expected):
         self.output, self.source, self.expected = output, source, expected
         self.records = []
+        self.built_artifacts = {}
         self.env = dict(os.environ)
         for key in ('RUSTFLAGS', 'CARGO_ENCODED_RUSTFLAGS', 'RUSTC_WRAPPER',
                     'RUSTC_WORKSPACE_WRAPPER', 'RUST_TEST_THREADS', 'RUST_MIN_STACK',
@@ -350,6 +399,7 @@ class Qualification:
         if not all_targets:
             require(len(artifacts) == 1 and artifacts[0]['cargo_fresh'] is False,
                     'missing fresh broker unit test artifact')
+        self.built_artifacts[label] = artifacts
         return artifacts
 
     def exact(self, label, artifact, cases, negative=False):
@@ -403,15 +453,16 @@ def main():
         spec_path = (ROOT/args.spec).resolve()
         require(spec_path.is_relative_to(ROOT), 'specification must be in the checkout')
         spec = load(spec_path)
-        require(spec['schema_version'] == 1 and spec['kind'] == 'broker', 'invalid broker specification')
+        require(spec['schema_version'] in (1, 2) and spec['kind'] == 'broker', 'invalid broker specification')
         require(platform.machine() == 'x86_64', 'broker candidate lane requires x86_64')
         require(set(spec['baseline_cases']) == BASELINE and len(spec['baseline_cases']) == len(BASELINE),
                 'baseline test contract changed')
         require(set(spec['fixed_cases']) == FIXED and len(spec['fixed_cases']) == len(FIXED),
                 'fixed test contract changed')
-        archive = asset(spec_path, spec['baseline_archive'])
-        manifests_path = asset(spec_path, spec['source_manifests'])
-        patch_asset = asset(spec_path, spec['fixed_patch'])
+        source_spec_path, source_spec = source_specification(spec_path, spec)
+        archive = asset(source_spec_path, source_spec['baseline_archive'])
+        manifests_path = asset(source_spec_path, source_spec['source_manifests'])
+        patch_asset = asset(source_spec_path, source_spec['fixed_patch'])
         manifests = load(manifests_path)
         base = manifests['base_files']
         for name, entry in base.items():
@@ -421,17 +472,34 @@ def main():
         baseline.update(manifests['baseline_overrides'])
         fixed = dict(baseline)
         fixed.update(manifests['fixed_overrides'])
+        v1_fixed = dict(fixed)
+        v2_overlay_path, v2_patch_asset, v2_overlay = None, None, None
+        if spec['schema_version'] == 2:
+            v2_overlay_path = asset(spec_path, spec['source_overrides'])
+            v2_patch_asset = asset(spec_path, spec['fixed_patch'])
+            v2_overlay = load(v2_overlay_path)
+            require(v2_overlay['fixed_patch'] == spec['fixed_patch'], 'v2 patch binding differs')
+            fixed = v2_source_overlay(fixed, v2_overlay)
         source = output/'source'
         source.mkdir()
         extract_source(archive, source, baseline)
         verify_source(source, baseline)
         assets = output/'assets'
         assets.mkdir()
-        for path in (spec_path, manifests_path, archive, patch_asset, Path(__file__),
+        for path in (source_spec_path, manifests_path, archive, patch_asset, Path(__file__),
                      Path(__file__).with_name('candidate-command-ownership.py')):
             shutil.copyfile(path, assets/path.name)
-        patch = materialize_patch(patch_asset, assets/'fixed-source.patch', spec['fixed_patch'])
+        patch = materialize_patch(patch_asset, assets/'fixed-source.patch', source_spec['fixed_patch'])
+        v2_patch = None
+        if v2_overlay is not None:
+            v2_assets = assets/'v2'
+            v2_assets.mkdir()
+            for path in (spec_path, v2_overlay_path, v2_patch_asset):
+                shutil.copyfile(path, v2_assets/path.name)
+            v2_patch = materialize_patch(v2_patch_asset, v2_assets/'fixed-source.patch', spec['fixed_patch'])
         report.update(spec_sha256=sha(spec_path), driver_sha256=sha(__file__),
+            source_spec_sha256=sha(source_spec_path), source_spec_schema=source_spec['schema_version'],
+            qualification_spec_schema=spec['schema_version'],
             ownership_helper_sha256=sha(Path(__file__).with_name('candidate-command-ownership.py')),
             actual_checkout_sha=subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip(),
             declared_base=spec['base_main_sha'], base_prerequisite=spec['base_prerequisite'],
@@ -448,7 +516,14 @@ def main():
         subprocess.run(['git', 'apply', '--check', str(patch)], cwd=source, check=True)
         subprocess.run(['git', 'apply', str(patch)], cwd=source, check=True)
         report['patched_source_mode_restoration'] = restore_patched_source_modes(
-            source, fixed, set(manifests['fixed_overrides']), output/'patched-source-modes.json')
+            source, v1_fixed, set(manifests['fixed_overrides']), output/'patched-source-modes.json')
+        if v2_patch is not None:
+            subprocess.run(['git', 'apply', '--check', str(v2_patch)], cwd=source, check=True)
+            subprocess.run(['git', 'apply', str(v2_patch)], cwd=source, check=True)
+            report['v2_patched_source_mode_restoration'] = restore_patched_source_modes(
+                source, fixed, V2_FILES, output/'v2-patched-source-modes.json')
+            report['v2_extra_fixed_cases'] = sorted(ASYNC_FS_CASES)
+            report['v2_fetch_deadline_repeats'] = spec['fetch_deadline_repeats']
         qualification.expected = fixed
         for path in (source/'partitionline-broker/src').rglob('*.rs'):
             path.touch()
@@ -465,7 +540,22 @@ def main():
         for profile, all_features in [('default', False), ('all-features', True)]:
             unit = qualification.build('fixed-'+profile, all_features)[0]
             attempt('fixed-'+profile+'-focused', lambda: qualification.exact('fixed-'+profile+'-focused', unit, FIXED))
-            attempt('fixed-'+profile+'-all-targets', lambda: qualification.full('fixed-'+profile+'-all-targets', all_features))
+            if v2_patch is not None:
+                attempt('fixed-'+profile+'-async-filesystem', lambda: qualification.exact(
+                    'fixed-'+profile+'-async-filesystem', unit, ASYNC_FS_CASES))
+            full_label = 'fixed-'+profile+'-all-targets'
+            attempt(full_label, lambda: qualification.full(full_label, all_features))
+            if v2_patch is not None:
+                fetch_artifacts = [item for item in qualification.built_artifacts.get(full_label, [])
+                    if item['cargo_artifact']['target']['name'] == 'fetch']
+                if len(fetch_artifacts) != 1:
+                    gate_errors.append({'gate': 'fixed-'+profile+'-fetch-repeats',
+                        'error': 'missing unique freshly inventoried Fetch executable'})
+                else:
+                    for iteration in range(FETCH_DEADLINE_REPEATS):
+                        label = 'fixed-'+profile+'-fetch-deadline-repeat-'+str(iteration+1)
+                        attempt(label, lambda: qualification.exact(label, fetch_artifacts[0],
+                            {FETCH_DEADLINE_CASE}))
         attempt('source-format', lambda: qualification.run('source-format', ['cargo', '+stable', 'fmt',
             '--manifest-path', 'partitionline-broker/Cargo.toml', '--check']))
         attempt('strict-clippy', lambda: qualification.run('strict-clippy', ['cargo', '+stable', 'clippy',

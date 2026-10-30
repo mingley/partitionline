@@ -1,0 +1,106 @@
+{
+  "scope": "Thin combined source rustfmt parsing/check and18lightweight Python guard controls only. No Cargo/compiler/native client or broker tests.",
+  "prepared_utc": "2026-10-30T22:16:29.594293+00:00",
+  "rustfmt": [
+    {
+      "phase": "v5-fixed",
+      "command": [
+        "/workspace/work/cargo/bin/rustup",
+        "run",
+        "stable",
+        "rustfmt",
+        "--edition",
+        "2021",
+        "--config",
+        "skip_children=true",
+        "--check",
+        "/workspace/work/client-v5-integration-20261030/v5-fixed/src/admin.rs",
+        "/workspace/work/client-v5-integration-20261030/v5-fixed/src/cluster.rs",
+        "/workspace/work/client-v5-integration-20261030/v5-fixed/src/consumer.rs",
+        "/workspace/work/client-v5-integration-20261030/v5-fixed/src/group/offsets.rs",
+        "/workspace/work/client-v5-integration-20261030/v5-fixed/src/group.rs",
+        "/workspace/work/client-v5-integration-20261030/v5-fixed/src/producer/prepare.rs",
+        "/workspace/work/client-v5-integration-20261030/v5-fixed/src/producer/prepare_tests.rs",
+        "/workspace/work/client-v5-integration-20261030/v5-fixed/src/producer.rs"
+      ],
+      "exit": 0,
+      "log": "preparation-v5-fixed-rustfmt.log",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "source_before": {
+        "/workspace/work/client-v5-integration-20261030/v5-fixed/src/admin.rs": "7f0c7b5db034796dc1ce9da9de80b5ca2979a2d3801c477a092930abd3243a33",
+        "/workspace/work/client-v5-integration-20261030/v5-fixed/src/cluster.rs": "17edc534f7e42075c1e888242e07386c734e7338f35a80618fe83442cb78be5f",
+        "/workspace/work/client-v5-integration-20261030/v5-fixed/src/consumer.rs": "a3e02294e93e93aa59938f6700fe3f1e8d8ee9ffb0d34d6b10d071649cceac37",
+        "/workspace/work/client-v5-integration-20261030/v5-fixed/src/group/offsets.rs": "162515f67bfa1234b99d0779bd2915c5f79893b599d014ddd9b2ca855423bc0b",
+        "/workspace/work/client-v5-integration-20261030/v5-fixed/src/group.rs": "8bcca7ca5b6a59d61066f7892613ea0770d530d833615e66a1cebbb2ab5af97d",
+        "/workspace/work/client-v5-integration-20261030/v5-fixed/src/producer/prepare.rs": "51bf8d6839d1531217c6a79c8986bb4fe547ac35c11d9bd4b0315892f1b5f08a",
+        "/workspace/work/client-v5-integration-20261030/v5-fixed/src/producer/prepare_tests.rs": "9976068306a809f985d4d982ac217fd5d424ff8333523bd5aaf08bb469a46fde",
+        "/workspace/work/client-v5-integration-20261030/v5-fixed/src/producer.rs": "78e02236b9a1a8280be7d491f3ef02f301a6b2fadc2b2a5932ea0e9c66256123"
+      },
+      "source_after": {
+        "/workspace/work/client-v5-integration-20261030/v5-fixed/src/admin.rs": "7f0c7b5db034796dc1ce9da9de80b5ca2979a2d3801c477a092930abd3243a33",
+        "/workspace/work/client-v5-integration-20261030/v5-fixed/src/cluster.rs": "17edc534f7e42075c1e888242e07386c734e7338f35a80618fe83442cb78be5f",
+        "/workspace/work/client-v5-integration-20261030/v5-fixed/src/consumer.rs": "a3e02294e93e93aa59938f6700fe3f1e8d8ee9ffb0d34d6b10d071649cceac37",
+        "/workspace/work/client-v5-integration-20261030/v5-fixed/src/group/offsets.rs": "162515f67bfa1234b99d0779bd2915c5f79893b599d014ddd9b2ca855423bc0b",
+        "/workspace/work/client-v5-integration-20261030/v5-fixed/src/group.rs": "8bcca7ca5b6a59d61066f7892613ea0770d530d833615e66a1cebbb2ab5af97d",
+        "/workspace/work/client-v5-integration-20261030/v5-fixed/src/producer/prepare.rs": "51bf8d6839d1531217c6a79c8986bb4fe547ac35c11d9bd4b0315892f1b5f08a",
+        "/workspace/work/client-v5-integration-20261030/v5-fixed/src/producer/prepare_tests.rs": "9976068306a809f985d4d982ac217fd5d424ff8333523bd5aaf08bb469a46fde",
+        "/workspace/work/client-v5-integration-20261030/v5-fixed/src/producer.rs": "78e02236b9a1a8280be7d491f3ef02f301a6b2fadc2b2a5932ea0e9c66256123"
+      }
+    },
+    {
+      "phase": "v5-baseline",
+      "command": [
+        "/workspace/work/cargo/bin/rustup",
+        "run",
+        "stable",
+        "rustfmt",
+        "--edition",
+        "2021",
+        "--config",
+        "skip_children=true",
+        "--check",
+        "/workspace/work/client-v5-integration-20261030/v5-baseline/src/cluster.rs",
+        "/workspace/work/client-v5-integration-20261030/v5-baseline/src/consumer.rs",
+        "/workspace/work/client-v5-integration-20261030/v5-baseline/src/group.rs",
+        "/workspace/work/client-v5-integration-20261030/v5-baseline/src/producer.rs"
+      ],
+      "exit": 0,
+      "log": "preparation-v5-baseline-rustfmt.log",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "source_before": {
+        "/workspace/work/client-v5-integration-20261030/v5-baseline/src/cluster.rs": "75efab80fc37ee1ece961cc3efe7eedcf4a05a20ac5646d8655526e92ba84ea8",
+        "/workspace/work/client-v5-integration-20261030/v5-baseline/src/consumer.rs": "59abadbad6a751e0af9ec2b2b79286394b65c816dc866c2f4c4bc6d967302c9f",
+        "/workspace/work/client-v5-integration-20261030/v5-baseline/src/group.rs": "f1df85ff755a511ff40ca87a154a24d4398745bb3c95f618f62d4d1b0f26c09d",
+        "/workspace/work/client-v5-integration-20261030/v5-baseline/src/producer.rs": "e2ae567383d68b5953370f97df61b0a20c00c6889903f1ede5ece30b08eeed83"
+      },
+      "source_after": {
+        "/workspace/work/client-v5-integration-20261030/v5-baseline/src/cluster.rs": "75efab80fc37ee1ece961cc3efe7eedcf4a05a20ac5646d8655526e92ba84ea8",
+        "/workspace/work/client-v5-integration-20261030/v5-baseline/src/consumer.rs": "59abadbad6a751e0af9ec2b2b79286394b65c816dc866c2f4c4bc6d967302c9f",
+        "/workspace/work/client-v5-integration-20261030/v5-baseline/src/group.rs": "f1df85ff755a511ff40ca87a154a24d4398745bb3c95f618f62d4d1b0f26c09d",
+        "/workspace/work/client-v5-integration-20261030/v5-baseline/src/producer.rs": "e2ae567383d68b5953370f97df61b0a20c00c6889903f1ede5ece30b08eeed83"
+      }
+    }
+  ],
+  "client_guards": {
+    "command": [
+      "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+      "-B",
+      "-m",
+      "unittest",
+      "discover",
+      "-s",
+      "tests/ci",
+      "-p",
+      "test_client_candidate_qualification.py",
+      "-v"
+    ],
+    "exit": 0,
+    "log": "preparation-client-controls-01.log",
+    "log_sha256": "079f920a630be6900f86a69bfa1eb239d66cd704939139edceb1571c2831e0e9",
+    "expected_controls": 18
+  },
+  "driver_sha256": "b25fe0390d4e4c3227e45c2b27ab671f0f6d8dace7ada911be1aa1391085e2c5",
+  "driver_unchanged_from_v4_root": true,
+  "tests_sha256": "4285e1b9e0cb5bfdd8398554dcd584207753ccf568d72a6264d845e240ade18b",
+  "passed": true
+}

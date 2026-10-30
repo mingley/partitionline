@@ -1,0 +1,127 @@
+{
+  "started_utc": "2026-10-30T22:16:46.056160+00:00",
+  "scope": "Static source/patch/lockfile/assertion checks, Rustfmt, fifteen pure/mocked/real-Git driver controls and six small Python process-tree controls. No Cargo, native broker runtime or performance qualification.",
+  "inputs_before": {
+    "scripts/ci-qualify-broker-candidate.py": "c1361fa8cabc00f1702bf2e25c8716cfe247b29e5824aeec90c13cb928f8f7c2",
+    "scripts/candidate-command-ownership.py": "34ddbf04a4bbead974fad4a451d30c7a56818248bd5b58c88c87bdfc41896da9",
+    "tests/ci/test_broker_candidate_qualification.py": "28f081f5508e82c17651ebf1b7465349dbec4865fe5588866506eb274bab8772",
+    "tests/ci/test_candidate_command_ownership.py": "0b786e63d059d9f3a3a3bf290ac4fe84313fe2f140243a292a87995e61877293",
+    "docs/evidence/broker/candidate-20261030/v2/README.md": "ec8de2a4ff053de87c3341b534cbc62c9cceeca7e240afaf49d076304c0c24e5",
+    "docs/evidence/broker/candidate-20261030/v2/spec.json": "e5ac8a64528c0472efaea01312438482488722e18956785620561198b1a3e34d",
+    "docs/evidence/broker/candidate-20261030/v2/source-overrides.json": "500b19d4818b3785b388ab64c720f183bcbfa75d664cfe25c7a129c9d104752f",
+    "docs/evidence/broker/candidate-20261030/v2/source-pin-review.json": "a2c3bd0d19c069bc9e3d4d6075edbc67d6034fc492ae9e2e6aa681f00f48027e",
+    "docs/evidence/broker/candidate-20261030/v2/v2-fix.patch.gz": "acfb181754da701d38112dcc8ed93a953bb95943edd85ebcf5c8f938aff73c3a",
+    "source/partitionline-broker/Cargo.toml": "88c9f2efaec47615dba40c4d1feb5e481b38bd51796e76ca6fc87cf064495bf5",
+    "source/partitionline-broker/src/replication.rs": "d9c3370690bf53cf971d8c4a8cdfb79ce9218a42205e2fc75a9dd1611934159e",
+    "source/partitionline-broker/tests/fetch.rs": "1e3ba56c59e765a7c1d5f0cd3f5a56b980b991d3ee1508e1872ddf109e2b583d"
+  },
+  "commands": [
+    {
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+        "-B",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests/ci",
+        "-p",
+        "test_broker_candidate_qualification.py",
+        "-v"
+      ],
+      "exit": 0,
+      "expected_controls": 15,
+      "elapsed_seconds": 0.5157581099992967
+    },
+    {
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+        "-B",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests/ci",
+        "-p",
+        "test_candidate_command_ownership.py",
+        "-v"
+      ],
+      "exit": 0,
+      "expected_controls": 6,
+      "elapsed_seconds": 3.679291379998176
+    },
+    {
+      "command": [
+        "/workspace/work/cargo/bin/rustfmt",
+        "+stable",
+        "--check",
+        "--edition",
+        "2021",
+        "partitionline-broker/src/replication.rs",
+        "partitionline-broker/tests/fetch.rs"
+      ],
+      "exit": 0,
+      "scope": "Rustfmt parsing and formatting only"
+    }
+  ],
+  "lockfiles": {
+    "partitionline-broker/Cargo.lock": {
+      "sha256": "42eaddf993ab4dfbe99e5af9d7c1a7cd858776a214eedbd6112de6a146933a2c",
+      "bytes": 20025,
+      "modified_by_v2": false
+    },
+    "tests/conformance/broker/interop/Cargo.lock": {
+      "sha256": "4d5b3af6119fec579f95a6e07f5a049b8f858c2cc8a908ac17eb213ba168c483",
+      "bytes": 18326,
+      "modified_by_v2": false
+    }
+  },
+  "patch_roundtrip": {
+    "paths": [
+      "partitionline-broker/Cargo.toml",
+      "partitionline-broker/src/replication.rs",
+      "partitionline-broker/tests/fetch.rs",
+      "tests/conformance/broker/implemented-api-versions.json"
+    ],
+    "forward_and_reverse": true,
+    "expanded_sha256": "0acde554221323323bb1a4424b9f022d9d5066c05b24ae2b679cf2ea1dada71b",
+    "expanded_bytes": 9940
+  },
+  "static_source_checks": {
+    "production_Cargo_settings_unchanged": true,
+    "development_dependency_added": "tokio1.53.3 filesystem module",
+    "replication_changes_exactly_three_async_tests_and_ten_file_calls": true,
+    "Fetch_original_assertions_preserved": 4,
+    "Fetch_handler_timeout_milliseconds": 100,
+    "Fetch_read_write_timeout_seconds": 2,
+    "inventory_changed_fields": [
+      "fetch_test_source_sha256"
+    ]
+  },
+  "v1_assets_unchanged": {
+    "docs/evidence/broker/candidate-20261030/v1/spec.json": "7496f3d373d07d702504dd079cc6d9264659384cd6203a833d28858b7e82022d",
+    "docs/evidence/broker/candidate-20261030/v1/source-manifests.json": "d3e16e62fb92c42b5dec1f7663ded92235668ea00dc79f64875cbc8724f579d4",
+    "docs/evidence/broker/candidate-20261030/v1/baseline-source.tar.gz": "f5470b0c234a0ee3235bab7dacabc1f2999246c76cf9003a8edd95991ba8ffd4",
+    "docs/evidence/broker/candidate-20261030/v1/fixed-source.patch.gz": "8a5a28c1c9bae7c8aff265e82e22e3a631deba36b0b4ab17e58f4d8115652218"
+  },
+  "inputs_after": {
+    "scripts/ci-qualify-broker-candidate.py": "c1361fa8cabc00f1702bf2e25c8716cfe247b29e5824aeec90c13cb928f8f7c2",
+    "scripts/candidate-command-ownership.py": "34ddbf04a4bbead974fad4a451d30c7a56818248bd5b58c88c87bdfc41896da9",
+    "tests/ci/test_broker_candidate_qualification.py": "28f081f5508e82c17651ebf1b7465349dbec4865fe5588866506eb274bab8772",
+    "tests/ci/test_candidate_command_ownership.py": "0b786e63d059d9f3a3a3bf290ac4fe84313fe2f140243a292a87995e61877293",
+    "docs/evidence/broker/candidate-20261030/v2/README.md": "ec8de2a4ff053de87c3341b534cbc62c9cceeca7e240afaf49d076304c0c24e5",
+    "docs/evidence/broker/candidate-20261030/v2/spec.json": "e5ac8a64528c0472efaea01312438482488722e18956785620561198b1a3e34d",
+    "docs/evidence/broker/candidate-20261030/v2/source-overrides.json": "500b19d4818b3785b388ab64c720f183bcbfa75d664cfe25c7a129c9d104752f",
+    "docs/evidence/broker/candidate-20261030/v2/source-pin-review.json": "a2c3bd0d19c069bc9e3d4d6075edbc67d6034fc492ae9e2e6aa681f00f48027e",
+    "docs/evidence/broker/candidate-20261030/v2/v2-fix.patch.gz": "acfb181754da701d38112dcc8ed93a953bb95943edd85ebcf5c8f938aff73c3a",
+    "source/partitionline-broker/Cargo.toml": "88c9f2efaec47615dba40c4d1feb5e481b38bd51796e76ca6fc87cf064495bf5",
+    "source/partitionline-broker/src/replication.rs": "d9c3370690bf53cf971d8c4a8cdfb79ce9218a42205e2fc75a9dd1611934159e",
+    "source/partitionline-broker/tests/fetch.rs": "1e3ba56c59e765a7c1d5f0cd3f5a56b980b991d3ee1508e1872ddf109e2b583d"
+  },
+  "inputs_stable": true,
+  "passed": true,
+  "finished_utc": "2026-10-30T22:16:50.674581+00:00",
+  "elapsed_seconds": 4.618446366999706,
+  "log_sha256": "f40329f1a30c276c7b88d0a1021f820765e9f9ee961166f09ac3bf65fc837c02",
+  "free_after": 1603489792
+}

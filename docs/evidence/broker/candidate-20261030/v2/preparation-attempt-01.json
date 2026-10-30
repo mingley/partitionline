@@ -1,0 +1,8 @@
+{
+  "passed": false,
+  "scope": "Initial static preparation attempt stopped before sparse patch reconstruction, driver controls or Rustfmt. No Cargo/native test.",
+  "error": "KeyError: filename 'Cargo.lock' not found",
+  "reason": "Proof script assumed the root client lockfile was a broker capsule member. The capsule actually contains the separate broker and interop lockfiles; neither will change.",
+  "proof_script_sha256": "cf4ccc78f60396e4d97e53176c7094450adf7a7e7d1ec8ea942928d9bd49e045",
+  "retained_script_gzip_sha256": "6a256b97895dc00e55f9bee2bada8429b0c79d5f6f48c87037656ebf08e079d2"
+}

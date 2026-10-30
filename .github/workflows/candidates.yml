@@ -32,9 +32,9 @@ jobs:
       matrix:
         include:
           - kind: client
-            source_version: v4
+            source_version: v5
           - kind: broker
-            source_version: v1
+            source_version: v2
     env:
       CARGO_BUILD_JOBS: '1'
       CARGO_INCREMENTAL: '0'

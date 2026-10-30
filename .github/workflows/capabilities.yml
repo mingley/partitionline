@@ -62,7 +62,22 @@ jobs:
             target/client-capabilities/${{ matrix.rust }}/${{ matrix.features }}/artifact-manifest.json
           if-no-files-found: error
           retention-days: 30
+      - id: report
+        name: Retain small focused validation report
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: client-capabilities-report-${{ github.sha }}-${{ matrix.rust }}-${{ matrix.features }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            target/client-capabilities/${{ matrix.rust }}/${{ matrix.features }}/evidence/validation.json
+            target/client-capabilities/${{ matrix.rust }}/${{ matrix.features }}/artifact-manifest.json
+          if-no-files-found: error
+          retention-days: 30
       - name: Record public artifact identity
         if: always() && steps.proof.outcome == 'success'
         run: |
           printf '%s\n' 'artifact_id=${{ steps.proof.outputs.artifact-id }}' 'artifact_url=${{ steps.proof.outputs.artifact-url }}' 'artifact_digest=${{ steps.proof.outputs.artifact-digest }}' >> "$GITHUB_STEP_SUMMARY"
+      - name: Record small report artifact identity
+        if: always() && steps.report.outcome == 'success'
+        run: |
+          printf '%s\n' 'report_artifact_id=${{ steps.report.outputs.artifact-id }}' 'report_artifact_url=${{ steps.report.outputs.artifact-url }}' 'report_artifact_digest=${{ steps.report.outputs.artifact-digest }}' >> "$GITHUB_STEP_SUMMARY"

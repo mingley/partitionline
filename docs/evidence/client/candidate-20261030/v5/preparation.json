@@ -1,0 +1,312 @@
+{
+  "scope": "Thin source overlay composition and exact patch reconstruction only; no Cargo/compiler/native Rust execution.",
+  "prepared_utc": "2026-10-30T22:15:23.971319+00:00",
+  "v4_spec_sha256": "c7f5b15ccc462e048c29d1760de794aa27e331712e4186d7f20f55bc7ecf4913",
+  "v4_source_unchanged": true,
+  "base_client_Rust_commit": "fe65ac7833fbaaa81331e31a182964c4ef3657a5",
+  "source_input_counts": {
+    "base": 1741,
+    "baseline": 1748,
+    "fixed": 1748
+  },
+  "changed_Rust_paths": [
+    "src/admin.rs",
+    "src/admin/cooperative_tests.rs",
+    "src/cluster.rs",
+    "src/consumer.rs",
+    "src/group.rs",
+    "src/group/offsets.rs",
+    "src/net.rs",
+    "src/net/test_peer.rs",
+    "src/producer.rs",
+    "src/producer/prepare.rs",
+    "src/producer/prepare_tests.rs",
+    "src/protocol/acl.rs",
+    "src/protocol/admin.rs",
+    "src/protocol/cooperative.rs",
+    "src/protocol/cooperative/tests.rs",
+    "src/protocol/group.rs",
+    "src/protocol/mod.rs",
+    "src/share.rs",
+    "tests/common/mod.rs",
+    "tests/group_coordinator_startup.rs",
+    "tests/group_stack.rs",
+    "tests/mock_produce.rs"
+  ],
+  "stage_receipts": [
+    {
+      "patch": "/workspace/work/client-v5-integration-20261030/native-lint-fix.patch",
+      "sha256": "49ef77147e1dcb3d3f2609c7d8116e59dd630eb2db49bb3b22cb1b6d7c63b01a",
+      "direction": "forward",
+      "scope": "/workspace/work/client-v5-integration-20261030/v5-fixed",
+      "apply_and_inverse_check": true
+    },
+    {
+      "patch": "/workspace/work/client-v5-integration-20261030/v5-input-patches/cluster-complete.patch",
+      "sha256": "c60f185b9ce1b9faf9f4cf543c2681f2d7aa026eb3961c7e8542aa34048809eb",
+      "direction": "forward",
+      "scope": "/workspace/work/client-v5-integration-20261030/v5-fixed",
+      "apply_and_inverse_check": true
+    },
+    {
+      "patch": "/workspace/work/client-v5-integration-20261030/v5-input-patches/producer-complete.patch",
+      "sha256": "866d71970740f965669e6d783bd5d1224340e8f08ab2a5ceb8503057ac6c8aa3",
+      "direction": "forward",
+      "scope": "/workspace/work/client-v5-integration-20261030/v5-fixed",
+      "apply_and_inverse_check": true
+    },
+    {
+      "patch": "/workspace/work/client-v5-integration-20261030/v5-input-patches/producer-fix-only.patch",
+      "sha256": "37ead6d4700cc4667dff91989c39c0d175716e0c92016d23e12c4b95206d8562",
+      "direction": "reverse",
+      "scope": "/workspace/work/client-v5-integration-20261030/v5-baseline",
+      "apply_and_inverse_check": true
+    },
+    {
+      "patch": "/workspace/work/client-v5-integration-20261030/v5-input-patches/cluster-fix-only.patch",
+      "sha256": "3a283bb9ec88a11cda687ca59dc744c4ee0cb031b5fe99cf6e483ba66eae1c98",
+      "direction": "reverse",
+      "scope": "/workspace/work/client-v5-integration-20261030/v5-baseline",
+      "apply_and_inverse_check": true
+    },
+    {
+      "patch": "/workspace/work/live-group-77021/join-transient-fix-v3.patch",
+      "sha256": "bb80c8b28984dce36749a1ad71cf0fc72343fe4169541bf33d483ade6298edb9",
+      "direction": "reverse",
+      "scope": "/workspace/work/client-v5-integration-20261030/v5-baseline",
+      "apply_and_inverse_check": true
+    },
+    {
+      "patch": "/workspace/work/producer-small-chunk-77021/avoid-final-empty-chunk-yield-v1.patch",
+      "sha256": "34528882299be1d89445a10241686f5ca264cbcde06aaeb7152b0a72d175e1e5",
+      "direction": "reverse",
+      "scope": "/workspace/work/client-v5-integration-20261030/v5-baseline",
+      "apply_and_inverse_check": true
+    },
+    {
+      "patch": "/workspace/work/client-v5-integration-20261030/v5-exact-reconstruction-ziew97lq/baseline.patch",
+      "sha256": "45f95ed4ab486e86b946644a41231a9ae50fd563f1a3a3be69a09e2e195bda0e",
+      "direction": "forward",
+      "scope": "/workspace/work/client-v5-integration-20261030/v5-exact-reconstruction-ziew97lq",
+      "apply_and_inverse_check": true
+    },
+    {
+      "patch": "/workspace/work/client-v5-integration-20261030/v5-exact-reconstruction-ziew97lq/fixed-delta.patch",
+      "sha256": "deb6e12fed287174249b4590272372ec320229c16171c288aceff48911ce8e3c",
+      "direction": "forward",
+      "scope": "/workspace/work/client-v5-integration-20261030/v5-exact-reconstruction-ziew97lq",
+      "apply_and_inverse_check": true
+    },
+    {
+      "patch": "/workspace/work/client-v5-integration-20261030/v5-exact-reconstruction-ziew97lq/fixed-delta.patch",
+      "sha256": "deb6e12fed287174249b4590272372ec320229c16171c288aceff48911ce8e3c",
+      "direction": "reverse",
+      "scope": "/workspace/work/client-v5-integration-20261030/v5-exact-reconstruction-ziew97lq",
+      "apply_and_inverse_check": true
+    },
+    {
+      "patch": "/workspace/work/client-v5-integration-20261030/v5-exact-reconstruction-ziew97lq/baseline.patch",
+      "sha256": "45f95ed4ab486e86b946644a41231a9ae50fd563f1a3a3be69a09e2e195bda0e",
+      "direction": "reverse",
+      "scope": "/workspace/work/client-v5-integration-20261030/v5-exact-reconstruction-ziew97lq",
+      "apply_and_inverse_check": true
+    }
+  ],
+  "patches": {
+    "baseline.patch": {
+      "path": "baseline.patch.gz",
+      "sha256": "92d93587e9f22e1bfd5669bd589d29b2470ba3da64d92d84a0a0ecf5b06205f9",
+      "bytes": 71414,
+      "uncompressed_bytes": 397771,
+      "uncompressed_sha256": "45f95ed4ab486e86b946644a41231a9ae50fd563f1a3a3be69a09e2e195bda0e"
+    },
+    "fixed-delta.patch": {
+      "path": "fixed-delta.patch.gz",
+      "sha256": "fff9664d03432bd4ed9a7806c12504199bb21a66aafa42e0ca7a71a38a81dbb6",
+      "bytes": 9153,
+      "uncompressed_bytes": 41198,
+      "uncompressed_sha256": "deb6e12fed287174249b4590272372ec320229c16171c288aceff48911ce8e3c"
+    },
+    "fixed.patch": {
+      "path": "fixed.patch.gz",
+      "sha256": "917d64ce2bbc5ba1110ff354c5f23ca6fbe0fe8eb607916948604d0f1cd3f899",
+      "bytes": 79057,
+      "uncompressed_bytes": 435307,
+      "uncompressed_sha256": "15ea856a2972414b684b7ff9b8f4228adf9d41f08953a896cacf9a829ed5f1ec"
+    }
+  },
+  "cumulative_baseline_fixed_forward_and_reverse_exact_bytes_verified": true,
+  "prior122control_identities_retained": true,
+  "required_controls": {
+    "library": 127,
+    "integrations": 14
+  },
+  "baseline_cases": {
+    "v4_historical_predictions": [
+      {
+        "target": "partitionline",
+        "test": "producer::tests::cancelled_pending_drain_retains_accepted_records_until_worker_cleanup",
+        "expect": "fail"
+      },
+      {
+        "target": "partitionline",
+        "test": "producer::tests::cancelled_pending_deadline_scan_retains_the_detached_prefix_until_worker_cleanup",
+        "expect": "fail"
+      },
+      {
+        "target": "group_coordinator_startup",
+        "test": "classic_join_recovers_after_repeated_typed_coordinator_responses",
+        "expect": "fail"
+      },
+      {
+        "target": "group_coordinator_startup",
+        "test": "classic_join_retains_a_required_member_id_across_coordinator_responses",
+        "expect": "fail"
+      },
+      {
+        "target": "group_coordinator_startup",
+        "test": "classic_join_returns_terminal_response_after_transient_coordinator_errors",
+        "expect": "fail"
+      },
+      {
+        "target": "group_coordinator_startup",
+        "test": "persistent_join_responses_stop_at_the_original_deadline_with_backoff",
+        "expect": "fail"
+      },
+      {
+        "target": "group_coordinator_startup",
+        "test": "cancelling_a_join_after_written_coordinator_responses_stops_new_requests",
+        "expect": "fail"
+      },
+      {
+        "target": "group_coordinator_startup",
+        "test": "classic_join_recovers_when_rediscovery_itself_is_still_loading",
+        "expect": "fail"
+      },
+      {
+        "target": "group_coordinator_startup",
+        "test": "classic_join_returns_terminal_rediscovery_errors_without_another_join",
+        "expect": "fail"
+      },
+      {
+        "target": "group_coordinator_startup",
+        "test": "classic_join_does_not_retry_terminal_authorization_or_fencing_responses",
+        "expect": "pass"
+      },
+      {
+        "target": "partitionline",
+        "test": "group::tests::delayed_first_poll_does_not_restart_the_coordinator_deadline",
+        "expect": "fail"
+      },
+      {
+        "target": "mock_produce",
+        "test": "retry_refreshes_waiting_topics_together",
+        "expect": "fail"
+      },
+      {
+        "target": "group_stack",
+        "test": "public_group_lifecycle_fits_the_standard_two_mib_stack",
+        "expect": "observe"
+      }
+    ],
+    "v5_count": 22,
+    "drain_expectations_now_pass_because_fix_precedes_staging_negative": [
+      "producer::tests::cancelled_pending_drain_retains_accepted_records_until_worker_cleanup",
+      "producer::tests::cancelled_pending_deadline_scan_retains_the_detached_prefix_until_worker_cleanup"
+    ]
+  },
+  "producer_baseline_causality": "Controls-only adds a dormant preparation field/helper and fixtures. It does not modify legacy fire, group_pending, assembly or Worker::drop. Only the real fire regression is a required baseline negative; the other direct-owner controls do not supply old-code causal evidence.",
+  "producer_legacy_method_hashes": {
+    "fire": "999d07345d853f61db155fc539de5728c75f414609a169ab88c448d310d1e196",
+    "worker_drop": "e917f48963dbcefb1c6b1630e27a4b706f5c3a3a68b889a90345211f6a281ae4",
+    "grouping": "01f2aa9894eaca2f715a1644935528542e001374cada2280a2892da35b252257",
+    "assembly": "e04103e36dc4eedfb19da974c4bf86b464a693e0c096f4006098f688ebed94f8"
+  },
+  "ancillary_workflow_provenance": {
+    "path": ".github/workflows/capabilities.yml",
+    "sha256": "2b0016d0ec42791fbf19bdebc5af6822b698c0eb5443c7c974d0b45e118008ca",
+    "scope": "Report-only upload delta owned by root; deliberately excluded from sparse native source catalogs."
+  },
+  "source_reviews": {
+    "path": "source-reviews.tar.gz",
+    "sha256": "66047f048e8e8956538f35383a7f992e22fd8dcfe8d6661221481d32cb89befa",
+    "bytes": 46648,
+    "members": {
+      "cluster/complete.patch.gz": {
+        "sha256": "730578bd83d9bc90a44ee5880d0c215fd10932ee572bed2aa3583ddd624a31d1",
+        "bytes": 4246
+      },
+      "cluster/controls-only.patch.gz": {
+        "sha256": "4b706993ed481368c6d0ad72aea5c5991f72a7cd5cf34cd7e81297f36f4bc3fa",
+        "bytes": 2313
+      },
+      "cluster/controls.json": {
+        "sha256": "744cd56a0829205641cce821ef7b93fd08bb1b24c69269c585d6f2b427126a8a",
+        "bytes": 1805
+      },
+      "cluster/fix-only.patch.gz": {
+        "sha256": "4bd3390f2304e08d6447c551bd5fda56dcb5b9245e1e272fed965f2757c416da",
+        "bytes": 2298
+      },
+      "cluster/receipt.json": {
+        "sha256": "1281fb99ba8757a9267bd188fffbb452665cd2369ba8bb557330a098f40ea4c0",
+        "bytes": 3297
+      },
+      "lint/native-lint-fix.patch.gz": {
+        "sha256": "12140fc55694e3d6484567c5b6be32ae2ad6b10cc459bd395115d66b2d62a62d",
+        "bytes": 909
+      },
+      "lint/native-lint-repair.json": {
+        "sha256": "cf37d03666c4dc57d2d8a0136d3b642e169e8d0678ca49c82090ca800f384b7f",
+        "bytes": 2629
+      },
+      "producer/README.md": {
+        "sha256": "ffb89381b65223aeb24b2d83aa94230200fdc4360727347a96a075bbef56f8f6",
+        "bytes": 3306
+      },
+      "producer/complete.patch.gz": {
+        "sha256": "6af2ac69cb7cb206811bbe5176892b2638001b19a9ceb21cba569ddbe7365eb1",
+        "bytes": 11951
+      },
+      "producer/controls-only.patch.gz": {
+        "sha256": "fd52944fe160915f65a52087a5c19a4e5011b11a3ac7ddc935eb67ef86c6acf4",
+        "bytes": 8122
+      },
+      "producer/fix-only.patch.gz": {
+        "sha256": "3404b50735094ab19217a738c8b848b8b07d33fbab1d7ec31c5e2f57287c1858",
+        "bytes": 4913
+      },
+      "producer/independent-review-v1.json": {
+        "sha256": "3120fa2c44272a16aebd49fdf1c11f7f1fd70e6a56a6150e08ebcc5f3522d84a",
+        "bytes": 3603
+      },
+      "producer/independent-review.json": {
+        "sha256": "799da4e73e2b0911cbd3e52635d66d0de45ee4e264f57e93a086ddfba7d2c228",
+        "bytes": 3525
+      },
+      "producer/patch-reconstruction.json": {
+        "sha256": "82b72eb9ac44909d83a922d7ed2f2f95ed051daad48db1bc42031eecb4067c7e",
+        "bytes": 3528
+      },
+      "producer/rustfmt-receipt.json": {
+        "sha256": "396866b739fa5a194c1e2168efd3052d6032d2e4d044b9e64d665f8e1fc56075",
+        "bytes": 1531
+      },
+      "producer/source-case-inventory.json": {
+        "sha256": "100899a5d016d75e958ba5b4cfba38d8131f012a1e59aef4a1ae0f43aaa2481f",
+        "bytes": 1274
+      },
+      "producer/source-manifests.json": {
+        "sha256": "a7fd2a30d9e13a84a9f94ee3b4a8c168fff3eee231be50ebbefc26f919ecc129",
+        "bytes": 1062
+      },
+      "producer/spec.json": {
+        "sha256": "641d623a4f30e415edc317b0b90b46b02a4d3b82f0a7b5bf4ae5103cbf1f944a",
+        "bytes": 4123
+      }
+    },
+    "readback_verified": true
+  },
+  "production_ready": false,
+  "fastest_claim_qualified": false
+}

@@ -1,0 +1,77 @@
+{
+  "schema_version": 1,
+  "agent": "/root/capability_review",
+  "reviewed_at": "2026-10-30T22:16:58.743538+00:00",
+  "passed": true,
+  "blocking_findings": [],
+  "inputs": {
+    "scripts/ci-qualify-broker-candidate.py": {
+      "bytes": 31863,
+      "sha256": "c1361fa8cabc00f1702bf2e25c8716cfe247b29e5824aeec90c13cb928f8f7c2"
+    },
+    "scripts/candidate-command-ownership.py": {
+      "bytes": 5725,
+      "sha256": "34ddbf04a4bbead974fad4a451d30c7a56818248bd5b58c88c87bdfc41896da9"
+    },
+    "docs/evidence/broker/candidate-20261030/v2/spec.json": {
+      "bytes": 3633,
+      "sha256": "e5ac8a64528c0472efaea01312438482488722e18956785620561198b1a3e34d"
+    },
+    "docs/evidence/broker/candidate-20261030/v2/source-overrides.json": {
+      "bytes": 1529,
+      "sha256": "500b19d4818b3785b388ab64c720f183bcbfa75d664cfe25c7a129c9d104752f"
+    },
+    "docs/evidence/broker/candidate-20261030/v2/v2-fix.patch.gz": {
+      "bytes": 2786,
+      "sha256": "acfb181754da701d38112dcc8ed93a953bb95943edd85ebcf5c8f938aff73c3a"
+    }
+  },
+  "v1_spec": {
+    "bytes": 3065,
+    "sha256": "7496f3d373d07d702504dd079cc6d9264659384cd6203a833d28858b7e82022d"
+  },
+  "whole_v1_capsule_verified": {
+    "files": 5982,
+    "bytes": 11033212,
+    "every_member_hash_size_mode_matches_baseline_manifest": true
+  },
+  "static_patch_reconstruction": {
+    "selected_source_files": 10,
+    "v1_and_v2_apply_and_reverse_checks_passed": true,
+    "v1_fixed_hashes_match": true,
+    "v2_override_hashes_and_before_bindings_match": true,
+    "unlisted_v1_fixed_paths_unchanged": true,
+    "registry_changed_json_properties": [
+      "$.fetch_test_source_sha256"
+    ]
+  },
+  "reviewed_contract": {
+    "baseline_negative_cases": 7,
+    "fixed_cases_per_profile": 12,
+    "additional_async_filesystem_cases_per_profile": 3,
+    "fetch_deadline_repetitions_per_profile": 3,
+    "original_handler_budget_ms": 100,
+    "original_socket_bound_seconds": 2,
+    "source_change_scope": "Test-only changes plus Tokio fs dev feature and exact Fetch test digest; v1 production logic unchanged.",
+    "phase_reporting": "I/O errors retain current phase and TransportReport; assertion panics remain test failures.",
+    "actor_barrier": "Metadata request shares FIFO actor channel with canceled data requests; this clears queue occupancy but cannot release leaked data-slot permits.",
+    "test_assertions": "EOF, offset acknowledgement, exact protected record bytes and one handler deadline assertions retained.",
+    "limitations": "Static review and pure/process controls only; no new native, fsync SLO, production readiness, or performance qualification."
+  },
+  "controls": [
+    {
+      "command": "python3 -B -m unittest discover -s tests/ci -p test_broker_candidate_qualification.py -v",
+      "passed": 15,
+      "exit": 0,
+      "observed_tool_chunk": "84c848"
+    },
+    {
+      "command": "python3 -B -m unittest discover -s tests/ci -p test_candidate_command_ownership.py -v",
+      "passed": 6,
+      "exit": 0,
+      "observed_tool_chunk": "45b1e4"
+    }
+  ],
+  "local_Cargo_or_Rust_native_execution": false,
+  "frozen_inputs_modified": false
+}

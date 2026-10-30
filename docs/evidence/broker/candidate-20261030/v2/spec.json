@@ -1,0 +1,58 @@
+{
+  "schema_version": 2,
+  "kind": "broker",
+  "base_main_sha": "fe65ac7833fbaaa81331e31a182964c4ef3657a5",
+  "base_prerequisite": "The independently reviewed current-main eleven stale source-digest replacements (patch SHA25668a080a9c94825e2df8264dbcf2569f0254a3f20fcf80048c1b1dec91f7a5cb9). No Rust source/range/qualification flags changed.",
+  "v1_source_spec": {
+    "path": "docs/evidence/broker/candidate-20261030/v1/spec.json",
+    "sha256": "7496f3d373d07d702504dd079cc6d9264659384cd6203a833d28858b7e82022d"
+  },
+  "source_overrides": {
+    "path": "source-overrides.json",
+    "sha256": "500b19d4818b3785b388ab64c720f183bcbfa75d664cfe25c7a129c9d104752f"
+  },
+  "fixed_patch": {
+    "path": "v2-fix.patch.gz",
+    "sha256": "acfb181754da701d38112dcc8ed93a953bb95943edd85ebcf5c8f938aff73c3a",
+    "expanded_bytes": 9940,
+    "expanded_sha256": "0acde554221323323bb1a4424b9f022d9d5066c05b24ae2b679cf2ea1dada71b"
+  },
+  "baseline_cases": [
+    "fetch::tests::partial_response_buffer_is_reserved_before_encoding",
+    "fetch::tests::partially_spare_fetch_buffer_reserves_the_entire_next_field",
+    "journal::tests::checkpoint_replacement_preserves_permissions_before_publication",
+    "produce::tests::partial_response_buffer_is_reserved_before_encoding",
+    "raft::protocol::response_buffer_tests::partial_response_buffer_is_reserved_before_encoding",
+    "replication::tests::accepted_epoch_replacement_preserves_private_file_permissions",
+    "retention::tests::partial_response_buffer_is_reserved_before_encoding"
+  ],
+  "fixed_cases": [
+    "fetch::tests::a_header_after_records_does_not_double_the_buffer",
+    "fetch::tests::partial_response_buffer_is_reserved_before_encoding",
+    "fetch::tests::partially_spare_fetch_buffer_reserves_the_entire_next_field",
+    "journal::tests::checkpoint_file_sync_error_does_not_publish_the_replacement",
+    "journal::tests::checkpoint_replacement_preserves_permissions_before_publication",
+    "produce::tests::a_produce_response_reuses_a_parked_buffer",
+    "produce::tests::partial_response_buffer_is_reserved_before_encoding",
+    "raft::protocol::response_buffer_tests::a_controller_response_reuses_its_buffer",
+    "raft::protocol::response_buffer_tests::partial_response_buffer_is_reserved_before_encoding",
+    "replication::tests::accepted_epoch_replacement_preserves_private_file_permissions",
+    "retention::tests::a_delete_records_response_reuses_its_buffer",
+    "retention::tests::partial_response_buffer_is_reserved_before_encoding"
+  ],
+  "extra_fixed_cases": [
+    "replication::tests::corrupted_or_unsupported_epoch_headers_are_not_repaired",
+    "replication::tests::detected_source_changes_poison_reads_and_writes_without_repair",
+    "replication::tests::empty_epoch_fence_preserves_one_entry_capacity_and_blocks_old_readers"
+  ],
+  "fetch_deadline_repeats": {
+    "case": "transport_deadline_cancels_wait_and_releases_read_admission",
+    "per_profile": 3,
+    "profiles": [
+      "default",
+      "all-features"
+    ]
+  },
+  "status": "Prepared only. The retained v1 run passed all seven negative controls and twelve fixed controls in each profile. Its full default run had 719 passes and one Fetch EOF failure; all features had 868 passes. Strict Clippy rejected ten blocking read/write calls in new tests. V2 has not run native qualification.",
+  "scope": "Test-only asynchronous file access and explicit Fetch test synchronization and diagnostics. All v1 product source stays unchanged. The original 100 ms handler limit, two-second socket limits and all assertions remain required. No production readiness, 100 ms fsync SLO or performance rank claim."
+}
