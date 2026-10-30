@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "archive_sha256": "d8c96abe064c37cbf08ced454ba2edecc544231d938e27a9f5b5a2a9f5f4e30e",
+  "physical_members": 308,
+  "physical_objects": 307,
+  "referenced_objects": 306,
+  "unreferenced_objects": {
+    "objects/4a287aedfd721eae901a327fb53c3d9dc995962bdc0d5c28e6e04d102175197f": {
+      "bytes": 2721,
+      "sha256": "4a287aedfd721eae901a327fb53c3d9dc995962bdc0d5c28e6e04d102175197f",
+      "provenance": "Original qualified-handoff-v1 README retained by deduplicator after its virtual path was updated."
+    }
+  },
+  "virtual_files": 646,
+  "every_physical_object_content_address_checked": true,
+  "every_virtual_record_checked": true,
+  "source_files_equal_integrated": true,
+  "native_tests_rerun_by_import": false
+}

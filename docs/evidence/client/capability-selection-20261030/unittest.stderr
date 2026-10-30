@@ -1,0 +1,16 @@
+test_current_inventory_requires_all_93_semantic_cases_and_lists_both_external_servers (test_client_capability_cases.CapabilityCaseTests.test_current_inventory_requires_all_93_semantic_cases_and_lists_both_external_servers) ... ok
+test_equal_count_renaming_does_not_satisfy_coverage (test_client_capability_cases.CapabilityCaseTests.test_equal_count_renaming_does_not_satisfy_coverage) ... ok
+test_execution_rejects_inconsistent_summary_and_compiler_errors (test_client_capability_cases.CapabilityCaseTests.test_execution_rejects_inconsistent_summary_and_compiler_errors) ... ok
+test_execution_requires_each_selected_identity_once (test_client_capability_cases.CapabilityCaseTests.test_execution_requires_each_selected_identity_once) ... ok
+test_external_server_names_must_also_match_discovery (test_client_capability_cases.CapabilityCaseTests.test_external_server_names_must_also_match_discovery) ... ok
+test_helper_import_failure_retains_an_unpassed_report (test_client_capability_cases.CapabilityCaseTests.test_helper_import_failure_retains_an_unpassed_report) ... ok
+test_missing_extra_and_duplicate_cases_all_fail_discovery (test_client_capability_cases.CapabilityCaseTests.test_missing_extra_and_duplicate_cases_all_fail_discovery) ... ok
+test_optimized_python_fails_before_any_proof_command_and_retains_failure (test_client_capability_cases.CapabilityCaseTests.test_optimized_python_fails_before_any_proof_command_and_retains_failure) ... ok
+test_required_case_cannot_be_reclassified_as_external (test_client_capability_cases.CapabilityCaseTests.test_required_case_cannot_be_reclassified_as_external) ... ok
+test_required_ignored_failed_or_nonzero_exit_never_pass (test_client_capability_cases.CapabilityCaseTests.test_required_ignored_failed_or_nonzero_exit_never_pass) ... ok
+test_suite_removal_or_filter_changes_cannot_reduce_coverage (test_client_capability_cases.CapabilityCaseTests.test_suite_removal_or_filter_changes_cannot_reduce_coverage) ... ok
+
+----------------------------------------------------------------------
+Ran 11 tests in 0.580s
+
+OK

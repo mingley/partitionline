@@ -1,0 +1,44 @@
+[
+  {
+    "path": "validation.json",
+    "sha256": "812d06e4625eff270f75b8a9e62639d6dded13b0eb6440f99c0911238aa45d99",
+    "bytes": 14976
+  },
+  {
+    "path": "archive-manifest.json",
+    "sha256": "11446f05ef1abd102e58d49901a6e9a37ddd73e80ae353f9d14c9b9840d8b140",
+    "bytes": 328
+  },
+  {
+    "path": "qualification-evidence.tar.gz",
+    "sha256": "d8c96abe064c37cbf08ced454ba2edecc544231d938e27a9f5b5a2a9f5f4e30e",
+    "bytes": 8223565
+  },
+  {
+    "path": "read-evidence.py",
+    "sha256": "24d1a289d7d6dd4c66b23d910ae9e8db9eef61ffca8ed38d77dfc0680198dafa",
+    "bytes": 1108
+  },
+  {
+    "path": "test_read_evidence.py",
+    "sha256": "695b1ed79106e885f8c9e4579a785a1b42eaae417c9f97e08eecb6553eb48b56",
+    "bytes": 2043
+  },
+  {
+    "path": "reader-validation.json",
+    "sha256": "b8be69b9964e8d4193bb9c2ede12661341b9e4848bb76cbcd8c60fab6e70ba0b",
+    "bytes": 1823
+  },
+  {
+    "path": "producer-and-protocol.patch.gz",
+    "sha256": "eb1a3166deecb7c7013e9a44111a0117adba690684a9d515c3fb2b12e71fa802",
+    "bytes": 21959,
+    "uncompressed_sha256": "e7b7a98b0119a86d41cad9bfb293c41db7539cf978746dd9f6fbf8a083d5a9e8",
+    "uncompressed_bytes": 120523
+  },
+  {
+    "path": "README.md",
+    "sha256": "57426fe824c8dd299ea1504d8d0a4236c12efe36a27582a985e4786a6051c432",
+    "bytes": 3580
+  }
+]

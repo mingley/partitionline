@@ -3,6 +3,7 @@
 import argparse
 import gzip
 import hashlib
+import importlib.util
 import json
 import os
 from pathlib import Path
@@ -37,13 +38,10 @@ ACTIVE = None
 SOURCE_SHA = None
 TOOLCHAIN_VERIFIED = False
 FLOOR = 350 * 1024 * 1024
-SUITES = [
-    ('write_txn_markers_v2', ['--test', 'write_txn_markers_v2'], 12),
-    ('share_offsets_v1', ['--test', 'share_offsets_v1'], 10),
-    ('partitioner', ['--lib', 'partitioner::'], 14),
-    ('sticky_partitioner', ['--test', 'sticky_partitioner'], 29),
-    ('streams_protocol', ['--test', 'streams_protocol'], 24),
-]
+CASE_SPEC = importlib.util.spec_from_file_location('capability_cases', Path(__file__).with_name('client-capability-cases.py'))
+CASES = None
+SUITES = []
+EXPECTED_TOTAL = 0
 FOUR = {
     'public_abort_negotiates_v2_and_default_transaction_version',
     'omitted_duplicate_or_unrelated_abort_results_cannot_succeed',
@@ -203,18 +201,7 @@ def list_names(data, prefix):
 
 
 def execution(row, data, errors, names):
-    text = data.decode()
-    summaries = re.findall(r'^test result: (ok|FAILED)\. (\d+) passed; (\d+) failed; (\d+) ignored;', text, re.M)
-    executed = re.findall(r'^test ([A-Za-z_][A-Za-z_0-9:]*) \.\.\. (ok|FAILED|ignored)$', text, re.M)
-    assert len(executed) == len(names) and {n for n, _ in executed} == set(names)
-    passed = sum(s == 'ok' for _, s in executed)
-    failed = sum(s == 'FAILED' for _, s in executed)
-    ignored = sum(s == 'ignored' for _, s in executed)
-    assert summaries == [('ok' if failed == 0 else 'FAILED', str(passed), str(failed), str(ignored))]
-    assert 'could not compile' not in errors.decode() and 'error[E' not in errors.decode()
-    return {'command_name': row['name'], 'actual_names': [n for n, _ in executed],
-            'actual_results': executed, 'actual_passed': passed, 'actual_failed': failed,
-            'actual_ignored': ignored, 'passed': row['exit_code'] == 0 and failed == ignored == 0}
+    return CASES.verify_execution(row, data, errors, names)
 
 
 def export_inventory():
@@ -279,6 +266,10 @@ def export_inventory():
 
 
 try:
+    if not __debug__:
+        raise RuntimeError('capability proof requires Python assertions enabled')
+    CASES = importlib.util.module_from_spec(CASE_SPEC)
+    CASE_SPEC.loader.exec_module(CASES)
     assert not (os.getenv('RUSTFLAGS') or os.getenv('CARGO_ENCODED_RUSTFLAGS'))
     assert not os.getenv('PARTITIONLINE_CAPABILITY_PEER_DIR'), 'SDK probe opt-in must be unset'
     SOURCE_SHA = checked('source-commit', ['git', 'rev-parse', 'HEAD']).decode().strip()
@@ -299,7 +290,14 @@ try:
     TOOLCHAIN_VERIFIED = True
     additions = {'STREAMS_REVERSE_OUT': str(REVERSE), 'CARGO_TARGET_DIR': str(BUILD)}
     flags = [] if args.features == 'default' else ['--all-features']
-    for label, selector, count in SUITES:
+    CURRENT_STAGE = 'case-inventory'
+    inventory_path = ROOT / 'tests/conformance/client-capability-cases.json'
+    case_inventory = save('case-inventory.json', inventory_path.read_bytes())
+    SUITES = CASES.load_suites(inventory_path)
+    EXPECTED_TOTAL = sum(len(suite['required_cases']) for suite in SUITES)
+    for suite in SUITES:
+        label, selector = suite['label'], suite['selector']
+        count = len(suite['required_cases'])
         CURRENT_STAGE = label + '-discovery'
         argv = ['cargo', 'test', '--locked'] + selector + flags
         discovery_row, discovery, discovery_errors = command(label + '-discovery', argv + ['--', '--list'], additions)
@@ -310,21 +308,29 @@ try:
                             'actual_failed': 0, 'actual_ignored': 0, 'passed': False,
                             'command_name': discovery_row['name'], 'setup_failure': 'discovery_or_compile_failed'})
             continue
-        names = list_names(discovery, label)
-        if len(names) != count:
+        names = []
+        try:
+            names = list_names(discovery, label)
+            selected = CASES.selected_names(suite, names)
+        except (AssertionError, CASES.CaseInventoryError) as failure:
             RESULTS.append({'suite': label, 'expected_count': count, 'discovered_names': names,
                             'actual_names': [], 'actual_results': [], 'actual_passed': 0,
                             'actual_failed': 0, 'actual_ignored': 0, 'passed': False,
-                            'command_name': discovery_row['name'], 'setup_failure': 'source_case_count_changed'})
+                            'command_name': discovery_row['name'], 'setup_failure': 'source_case_inventory_changed',
+                            'detail': str(failure), 'external_probes_not_run': suite['external_probes']})
             continue
-        row, out, err = command(label + '-execution', argv + ['--', '--test-threads=1'], additions)
+        run_flags = ['--', '--test-threads=1']
+        for probe in suite['external_probes']:
+            run_flags.extend(['--skip', probe])
+        row, out, err = command(label + '-execution', argv + run_flags, additions)
         try:
-            result = execution(row, out, err, names)
-        except AssertionError as failure:
+            result = execution(row, out, err, selected)
+        except (AssertionError, CASES.CaseExecutionError) as failure:
             result = {'command_name': row['name'], 'actual_names': [], 'actual_results': [],
                       'actual_passed': 0, 'actual_failed': 0, 'actual_ignored': 0, 'passed': False,
                       'setup_failure': 'execution_result_unverified', 'detail': str(failure)}
-        result.update({'suite': label, 'expected_count': count, 'discovered_names': names})
+        result.update({'suite': label, 'expected_count': count, 'discovered_names': names,
+                       'external_probes_not_run': suite['external_probes']})
         RESULTS.append(result)
         assert source_snapshot(tree) == BASELINE
     # Even a failed sticky case/discovery cannot prevent the independent
@@ -332,7 +338,7 @@ try:
     CURRENT_STAGE = 'exports'
     EXPORTS = export_inventory()
     CURRENT_STAGE = 'aggregate'
-    assert sum(len(r['actual_names']) for r in RESULTS) == 89
+    assert sum(len(r['actual_names']) for r in RESULTS) == EXPECTED_TOTAL
     actual = {n for r in RESULTS for n in r['actual_names']}
     assert FOUR <= actual
     assert 'unlimited_byte_budget_tracks_payload_reservations_and_terminal_releases' in actual
@@ -358,11 +364,12 @@ finally:
     report = {'schema_version': 1, 'source_sha': SOURCE_SHA, 'toolchain': args.toolchain, 'features': args.features,
               'passed': FAILURE is None, 'failure': FAILURE, 'public_ci': public,
               'source_inventory': locals().get('source_manifest'), 'cargo_lock': locals().get('lock'),
+              'case_inventory': locals().get('case_inventory'),
               'source_before_after_all_Git_blobs_and_full_modes_match': BASELINE is not None and after == BASELINE,
               'rustc_identity': locals().get('rustc'), 'cargo_identity': locals().get('cargo'),
               'commands': LEDGER, 'actual_command_count': len(LEDGER), 'suites': RESULTS,
               'actual_executed_tests': sum(len(r['actual_names']) for r in RESULTS),
-              'actual_passed_tests': sum(r['actual_passed'] for r in RESULTS), 'expected_unique_tests': 89,
+              'actual_passed_tests': sum(r['actual_passed'] for r in RESULTS), 'expected_unique_tests': EXPECTED_TOTAL,
               'actual_unique_verified_test_cases': len({(r['suite'], name) for r in RESULTS for name in r['actual_names']}),
               'exports': EXPORTS, 'SDK_runtime_or_Java_reverse_qualification': False,
               'components': {'streams': {'passed': streams_component_passed,
@@ -372,7 +379,7 @@ finally:
                   'expected_tests': 24, 'export_file_count': EXPORTS['file_count'] if EXPORTS is not None else 0,
                   'external_Java_reverse_completed': False}},
               'dedicated_build_target_initially_absent': True, 'build_target': str(BUILD),
-              'opt_in_public_admin_probe_returns_without_external_SDK': True,
+              'external_admin_probe_tests_not_run': [name for suite in SUITES for name in suite['external_probes']],
               'no_Docker_required': True, 'captured_environment': {k: os.getenv(k) for k in [
                   'RUSTUP_TOOLCHAIN', 'CARGO_BUILD_JOBS', 'CARGO_INCREMENTAL', 'CARGO_PROFILE_DEV_DEBUG', 'CARGO_PROFILE_TEST_DEBUG']}}
     save('validation.json', report)

@@ -1,0 +1,43 @@
+{
+  "original_reader_sha256": "bb2e987d26b773ad6566cc600eb9286d04dcfa8f0b37e0611ec4702c359ebd0e",
+  "fixed_reader_sha256": "24d1a289d7d6dd4c66b23d910ae9e8db9eef61ffca8ed38d77dfc0680198dafa",
+  "controls_sha256": "695b1ed79106e885f8c9e4579a785a1b42eaae417c9f97e08eecb6553eb48b56",
+  "archive_sha256": "d8c96abe064c37cbf08ced454ba2edecc544231d938e27a9f5b5a2a9f5f4e30e",
+  "native_receipts_changed": false,
+  "archive_changed": false,
+  "unit_controls": {
+    "passed": 3,
+    "failed": 0
+  },
+  "attribution": "Original reader accepts both contradictory repeated-object aliases; fixed reader rejects both while preserving one shared-object valid control.",
+  "cases": [
+    {
+      "case": "contradictory-length",
+      "reader": "original-v3",
+      "exit": 0,
+      "stdout": "{\"virtual_files\": 2, \"verified_objects\": 1}\n",
+      "stderr": ""
+    },
+    {
+      "case": "contradictory-length",
+      "reader": "fixed-v4",
+      "exit": 1,
+      "stdout": "",
+      "stderr": "Traceback (most recent call last):\n  File \"/workspace/work/producer-lane-work/evidence-reader-v4/read-evidence.py\", line 24, in <module>\n    raise RuntimeError(\"evidence bytes differ: \" + path)\nRuntimeError: evidence bytes differ: duplicate.log\n"
+    },
+    {
+      "case": "contradictory-digest",
+      "reader": "original-v3",
+      "exit": 0,
+      "stdout": "{\"virtual_files\": 2, \"verified_objects\": 1}\n",
+      "stderr": ""
+    },
+    {
+      "case": "contradictory-digest",
+      "reader": "fixed-v4",
+      "exit": 1,
+      "stdout": "",
+      "stderr": "Traceback (most recent call last):\n  File \"/workspace/work/producer-lane-work/evidence-reader-v4/read-evidence.py\", line 24, in <module>\n    raise RuntimeError(\"evidence bytes differ: \" + path)\nRuntimeError: evidence bytes differ: duplicate.log\n"
+    }
+  ]
+}

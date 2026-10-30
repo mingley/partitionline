@@ -83,6 +83,13 @@ Earlier working notes and dated measurements are in the
 
 ### Fixes and maintenance
 
+- Close producer admission before retiring a worker. Cached handles and held
+  channel permits cannot accept records after its final drain.
+- Keep workers and retry records counted until callbacks and payload cleanup
+  finish, including cancellation before a task's first poll.
+- Fix incremental reservation growth above 8,192 elements. Decode grouped
+  assignments directly from borrowed topic names, and size small Share batch
+  lists from framing without changing validation errors.
 - Raise dependency minimums past the recorded Tokio, Rustls, WebPKI, trust-root
   and RustCrypto advisories, including compatible versions retained by
   downstream lockfiles. Refresh the active product, benchmark and fuzz locks.

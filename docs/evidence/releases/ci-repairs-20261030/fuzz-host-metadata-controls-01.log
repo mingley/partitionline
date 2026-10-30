@@ -1,0 +1,8 @@
+test_available_cpu_quota_keeps_its_source (test_broker_fuzz_campaign.BrokerFuzzHostMetadata.test_available_cpu_quota_keeps_its_source) ... ok
+test_missing_controller_is_explicitly_unknown (test_broker_fuzz_campaign.BrokerFuzzHostMetadata.test_missing_controller_is_explicitly_unknown) ... ok
+test_other_metadata_read_errors_are_not_silently_relabelled (test_broker_fuzz_campaign.BrokerFuzzHostMetadata.test_other_metadata_read_errors_are_not_silently_relabelled) ... ok
+
+----------------------------------------------------------------------
+Ran 3 tests in 0.001s
+
+OK

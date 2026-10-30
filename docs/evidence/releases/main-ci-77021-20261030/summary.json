@@ -1,0 +1,51 @@
+{
+  "schema_version": 1,
+  "source_sha": "77021f7dc6c0d19aa93c7bf0b7fad125ee632e23",
+  "retrieved_date_utc": "2026-10-30",
+  "main_run": 41117187887,
+  "broker_run": 41117187877,
+  "capabilities_run": 41117187886,
+  "overall_qualified": false,
+  "main_run_still_in_progress_at_snapshot": true,
+  "broker_default": {
+    "result_blocks": 36,
+    "passed": 701,
+    "failed": 0,
+    "ignored": 0
+  },
+  "broker_all_features_incomplete": {
+    "result_blocks": 25,
+    "passed": 710,
+    "failed": 2,
+    "ignored": 0
+  },
+  "client_default_library": {
+    "result_blocks": 1,
+    "passed": 2145,
+    "failed": 24,
+    "ignored": 0
+  },
+  "client_all_features_library": {
+    "result_blocks": 1,
+    "passed": 2152,
+    "failed": 17,
+    "ignored": 0
+  },
+  "client_macos_default_library": {
+    "result_blocks": 1,
+    "passed": 2154,
+    "failed": 15,
+    "ignored": 0
+  },
+  "client_windows_default_library": {
+    "result_blocks": 1,
+    "passed": 2137,
+    "failed": 32,
+    "ignored": 0
+  },
+  "audit_job": 124274360758,
+  "audit_database_commit": "2295466c4e9df26647fd67d8fa1c705ac2fc7f81",
+  "audit_vulnerability_count": 0,
+  "audit_warning_count": 0,
+  "note": "All-target client runs stopped at a failing library target; all-feature broker stopped at raft_runtime. Individual green jobs do not qualify a release."
+}

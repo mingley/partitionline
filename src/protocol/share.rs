@@ -2730,6 +2730,7 @@ pub(crate) async fn decode_share_fetch_response_reusing_cooperative<B: Buf>(
         };
         let mut rec_buf = pending.bytes;
         let mut used_batches = 0usize;
+        reserve_small_share_batch_list(&rec_buf, &mut records, remaining)?;
         loop {
             if !rec_buf.has_remaining() {
                 break;
@@ -2894,10 +2895,8 @@ fn decode_share_fetch_response_reusing_inner<B: Buf>(
                         bytes: rec_bytes,
                     });
                 } else {
-                    // Do not count every framed batch before decoding. A long run
-                    // of batches holds the caller for the whole count, and the
-                    // decode loop already rejects a batch it cannot read.
                     let mut rec_buf = rec_bytes;
+                    reserve_small_share_batch_list(&rec_buf, &mut records, remaining_decode_bytes)?;
                     let more = consume_share_batches(
                         &mut rec_buf,
                         &mut remaining_decode_bytes,
@@ -3130,6 +3129,7 @@ async fn decode_share_fetch_response_reusing_inner_cooperative<B: Buf>(
                     });
                 } else {
                     let mut rec_buf = rec_bytes;
+                    reserve_small_share_batch_list(&rec_buf, &mut records, remaining_decode_bytes)?;
                     let more = consume_share_batches(
                         &mut rec_buf,
                         &mut remaining_decode_bytes,
@@ -3426,9 +3426,25 @@ fn consume_share_batches(
     Ok(false)
 }
 
+fn reserve_small_share_batch_list(
+    bytes: &Bytes,
+    batches: &mut Vec<RecordBatch>,
+    remaining_decode_bytes: usize,
+) -> Result<()> {
+    let Some(count) = records::small_framed_batch_count(bytes) else {
+        return Ok(());
+    };
+    // A hint must not turn a malformed short record set into a large
+    // speculative allocation or change its first decoding error.
+    if count <= 256 && count <= remaining_decode_bytes / std::mem::size_of::<RecordBatch>().max(1) {
+        reserve_share_slots(batches, count)?;
+    }
+    Ok(())
+}
+
 fn reserve_share_slots<T>(slots: &mut Vec<T>, needed: usize) -> Result<()> {
     if slots.capacity() < needed {
-        let extra = needed - slots.capacity();
+        let extra = needed - slots.len();
         slots
             .try_reserve_exact(extra)
             .map_err(|_| Error::protocol("ShareFetch response reserve"))?;
@@ -6956,6 +6972,103 @@ mod tests {
                 .map(|batch| batch.records.as_ptr()),
             list_ptr
         );
+    }
+
+    #[test]
+    fn small_share_record_sets_reserve_once_before_decoding_and_reuse() {
+        let batch = RecordBatch::from_records(vec![Record {
+            offset: 0,
+            timestamp: 1,
+            key: None,
+            value: Some(Bytes::from_static(b"s")),
+            headers: Vec::new(),
+        }]);
+        let mut encoded = BytesMut::new();
+        for _ in 0..5 {
+            records::encode_record_batch(&mut encoded, &batch).unwrap();
+        }
+        let encoded = encoded.freeze();
+        for (capacity, occupied) in [(0, 0), (2, 0), (4, 1), (8, 0)] {
+            let mut batches = Vec::with_capacity(capacity);
+            for _ in 0..occupied {
+                batches.push(batch.clone());
+            }
+            reserve_small_share_batch_list(&encoded, &mut batches, usize::MAX).unwrap();
+            assert!(batches.capacity() >= 5);
+            let pointer = batches.as_ptr();
+            let capacity = batches.capacity();
+            for _ in 0..2 {
+                let mut cursor = encoded.clone();
+                let mut remaining = records::DEFAULT_MAX_RECORD_BATCH_DECODE_BYTES;
+                let mut used = 0;
+                let more = consume_share_batches(
+                    &mut cursor,
+                    &mut remaining,
+                    &mut batches,
+                    &mut used,
+                    usize::MAX,
+                )
+                .unwrap();
+                assert!(!more);
+                assert_eq!(used, 5);
+                assert_eq!(batches.len(), 5);
+                assert_eq!(batches.as_ptr(), pointer);
+                assert_eq!(batches.capacity(), capacity);
+                assert!(batches.iter().all(|decoded| decoded == &batch));
+                reserve_small_share_batch_list(&encoded, &mut batches, usize::MAX).unwrap();
+            }
+        }
+    }
+
+    #[test]
+    fn share_batch_hints_remain_bounded_and_preserve_first_crc_error() {
+        let batch = RecordBatch::from_records(vec![Record {
+            offset: 0,
+            timestamp: 1,
+            key: None,
+            value: Some(Bytes::from_static(b"s")),
+            headers: Vec::new(),
+        }]);
+        let mut encoded = BytesMut::new();
+        records::encode_record_batch(&mut encoded, &batch).unwrap();
+        let one = encoded.freeze();
+        let mut many = BytesMut::new();
+        for _ in 0..257 {
+            many.extend_from_slice(&one);
+        }
+        let many = many.freeze();
+        let mut batches = Vec::new();
+        reserve_small_share_batch_list(&many, &mut batches, usize::MAX).unwrap();
+        assert_eq!(batches.capacity(), 0);
+        let too_large = Bytes::from(vec![0; 64 * 1024 + 1]);
+        reserve_small_share_batch_list(&too_large, &mut batches, usize::MAX).unwrap();
+        assert_eq!(batches.capacity(), 0);
+        reserve_small_share_batch_list(&one, &mut batches, 0).unwrap();
+        assert_eq!(batches.capacity(), 0);
+
+        let mut malformed = one.to_vec();
+        *malformed.last_mut().unwrap() ^= 1;
+        malformed.extend_from_slice(&[0; 8]);
+        malformed.extend_from_slice(&(-1_i32).to_be_bytes());
+        let malformed = Bytes::from(malformed);
+        reserve_small_share_batch_list(&malformed, &mut batches, usize::MAX).unwrap();
+        assert_eq!(batches.capacity(), 0);
+        let expected = records::decode_record_batch(&mut malformed.clone()).unwrap_err();
+        let mut cursor = malformed;
+        let mut remaining = records::DEFAULT_MAX_RECORD_BATCH_DECODE_BYTES;
+        let mut used = 0;
+        let actual = consume_share_batches(
+            &mut cursor,
+            &mut remaining,
+            &mut batches,
+            &mut used,
+            usize::MAX,
+        )
+        .unwrap_err();
+        assert_eq!(actual.to_string(), expected.to_string());
+        assert!(actual
+            .to_string()
+            .contains("Record is corrupt (stored crc ="));
     }
 
     #[test]

@@ -888,19 +888,183 @@ enum Ctrl {
 #[derive(Clone)]
 struct WorkerHandle {
     id: Arc<()>,
+    admission: Arc<WorkerAdmission>,
     data: mpsc::Sender<Pending>,
     ctrl: mpsc::Sender<Ctrl>,
-    task: Arc<tokio::task::JoinHandle<()>>,
+    task: Arc<WorkerTask>,
 }
 
-impl Drop for WorkerHandle {
+/// Final worker ownership is separate from task handles used for observation.
+struct WorkerTask {
+    handle: Arc<tokio::task::JoinHandle<()>>,
+    admission: Arc<WorkerAdmission>,
+}
+
+impl WorkerTask {
+    fn abort(&self) {
+        self.handle.abort();
+    }
+
+    #[cfg(test)]
+    fn is_finished(&self) -> bool {
+        self.handle.is_finished()
+    }
+}
+
+impl Drop for WorkerTask {
     fn drop(&mut self) {
-        // The dial that created this worker can be cancelled before the handle
-        // is stored. Dropping the last handle must abort that task; dropping
-        // the `JoinHandle` alone would detach it.
-        if Arc::strong_count(&self.task) == 1 {
-            self.task.abort();
+        self.admission.close();
+        self.handle.abort();
+    }
+}
+
+/// Linearizes a channel send with worker retirement. Receiver::close alone
+/// cannot reject a permit that a sender acquired before the close.
+struct WorkerAdmission {
+    accepting: AtomicBool,
+    commit: parking_lot::Mutex<()>,
+    producer_closed: Option<Arc<AtomicBool>>,
+    closed: Notify,
+}
+
+impl WorkerAdmission {
+    fn new() -> Self {
+        Self {
+            accepting: AtomicBool::new(true),
+            commit: parking_lot::Mutex::new(()),
+            producer_closed: None,
+            closed: Notify::new(),
         }
+    }
+
+    fn for_producer(closed: Arc<AtomicBool>) -> Self {
+        Self {
+            producer_closed: Some(closed),
+            ..Self::new()
+        }
+    }
+
+    fn is_accepting(&self) -> bool {
+        self.accepting.load(Ordering::Acquire)
+            && self
+                .producer_closed
+                .as_ref()
+                .is_none_or(|closed| !closed.load(Ordering::SeqCst))
+    }
+
+    fn close(&self) {
+        let commit = self.commit.lock();
+        let was_accepting = self.accepting.swap(false, Ordering::AcqRel);
+        drop(commit);
+        if was_accepting {
+            self.closed.notify_waiters();
+        }
+    }
+}
+
+struct WorkerPermit<'a> {
+    admission: &'a WorkerAdmission,
+    permit: mpsc::Permit<'a, Pending>,
+}
+
+impl WorkerPermit<'_> {
+    #[expect(
+        clippy::result_large_err,
+        reason = "Rejected sends return the owned record without allocating."
+    )]
+    fn send(self, pending: Pending) -> std::result::Result<(), Pending> {
+        let _commit = self.admission.commit.lock();
+        if !self.admission.is_accepting() {
+            return Err(pending);
+        }
+        self.permit.send(pending);
+        Ok(())
+    }
+}
+
+impl WorkerHandle {
+    fn new(
+        id: Arc<()>,
+        admission: Arc<WorkerAdmission>,
+        data: mpsc::Sender<Pending>,
+        ctrl: mpsc::Sender<Ctrl>,
+        task: Arc<tokio::task::JoinHandle<()>>,
+    ) -> Self {
+        let task = Arc::new(WorkerTask {
+            handle: task,
+            admission: Arc::clone(&admission),
+        });
+        Self {
+            id,
+            admission,
+            data,
+            ctrl,
+            task,
+        }
+    }
+
+    async fn reserve(&self) -> std::result::Result<WorkerPermit<'_>, mpsc::error::SendError<()>> {
+        if !self.admission.is_accepting() {
+            return Err(mpsc::error::SendError(()));
+        }
+        match self.data.try_reserve() {
+            Ok(permit) => {
+                return Ok(WorkerPermit {
+                    admission: &self.admission,
+                    permit,
+                });
+            }
+            Err(mpsc::error::TrySendError::Closed(())) => {
+                return Err(mpsc::error::SendError(()));
+            }
+            Err(mpsc::error::TrySendError::Full(())) => {}
+        }
+        // Register before checking closure. Retirement need not wait for the
+        // old receiver to be dropped before a blocked admission can reroute.
+        let closed = self.admission.closed.notified();
+        tokio::pin!(closed);
+        let _registered = closed.as_mut().enable();
+        if !self.admission.is_accepting() {
+            return Err(mpsc::error::SendError(()));
+        }
+        let permit = tokio::select! {
+            biased;
+            () = closed.as_mut() => return Err(mpsc::error::SendError(())),
+            result = self.data.reserve() => result?,
+        };
+        Ok(WorkerPermit {
+            admission: &self.admission,
+            permit,
+        })
+    }
+
+    #[expect(
+        clippy::result_large_err,
+        reason = "Rejected sends return the owned record without allocating."
+    )]
+    async fn send(
+        &self,
+        pending: Pending,
+    ) -> std::result::Result<(), mpsc::error::SendError<Pending>> {
+        match self.reserve().await {
+            Ok(permit) => permit.send(pending).map_err(mpsc::error::SendError),
+            Err(_) => Err(mpsc::error::SendError(pending)),
+        }
+    }
+
+    #[expect(
+        clippy::result_large_err,
+        reason = "Rejected sends return the owned record without allocating."
+    )]
+    fn try_send(
+        &self,
+        pending: Pending,
+    ) -> std::result::Result<(), mpsc::error::TrySendError<Pending>> {
+        let _commit = self.admission.commit.lock();
+        if !self.admission.is_accepting() {
+            return Err(mpsc::error::TrySendError::Closed(pending));
+        }
+        self.data.try_send(pending)
     }
 }
 
@@ -1047,6 +1211,7 @@ struct Shared {
     meta_tx: mpsc::Sender<Arc<str>>,
     connect_tx: mpsc::Sender<(i32, usize)>,
     retry_tx: mpsc::Sender<Pending>,
+    retry_admission: WorkerAdmission,
     meta_task: parking_lot::Mutex<Option<Arc<tokio::task::JoinHandle<()>>>>,
     connect_task: parking_lot::Mutex<Option<Arc<tokio::task::JoinHandle<()>>>>,
     retry_task: parking_lot::Mutex<Option<Arc<tokio::task::JoinHandle<()>>>>,
@@ -1062,8 +1227,8 @@ struct Shared {
     reconnect_busy: parking_lot::Mutex<HashSet<(i32, usize)>>,
     /// Sleeping reconnect timers. Close aborts them so they do not outlive the producer.
     reconnect_tasks: parking_lot::Mutex<Vec<Arc<tokio::task::JoinHandle<()>>>>,
-    /// Worker tasks inside `Worker::run`, including one whose handle was dropped
-    /// before close could wait on it.
+    /// Workers still owning resources, including unpolled and retired tasks
+    /// whose handles are absent from the published node map.
     live_workers: AtomicUsize,
     /// `send_all` metadata refreshes still inside their broker call.
     live_metadata_refreshes: AtomicUsize,
@@ -1082,7 +1247,7 @@ struct Shared {
     buffered_bytes: AtomicU64,
     /// Set by [`Producer::close`] / [`Producer::close_timeout`] so clones cannot
     /// respawn workers after shutdown (KL-02 durable Closed outcome).
-    closed: AtomicBool,
+    closed: Arc<AtomicBool>,
     ack_latency: crate::metrics::LatencyTracker,
     interceptors: crate::interceptor::ProducerInterceptors,
     topics: parking_lot::Mutex<HashMap<Arc<str>, Arc<crate::metrics::ProduceTopicTracker>>>,
@@ -1217,6 +1382,21 @@ impl Drop for BufferReservation<'_> {
 }
 
 impl Shared {
+    #[expect(
+        clippy::result_large_err,
+        reason = "Rejected sends return the owned record without allocating."
+    )]
+    fn try_retry(
+        &self,
+        pending: Pending,
+    ) -> std::result::Result<(), mpsc::error::TrySendError<Pending>> {
+        let _commit = self.retry_admission.commit.lock();
+        if self.closed.load(Ordering::SeqCst) || !self.retry_admission.is_accepting() {
+            return Err(mpsc::error::TrySendError::Closed(pending));
+        }
+        self.retry_tx.try_send(pending)
+    }
+
     fn clear_sticky(&self) {
         if let Some(state) = &self.sticky {
             state.lock().clear();
@@ -2075,6 +2255,7 @@ impl Producer {
             meta_tx,
             connect_tx,
             retry_tx,
+            retry_admission: WorkerAdmission::new(),
             meta_task: parking_lot::Mutex::new(None),
             connect_task: parking_lot::Mutex::new(None),
             retry_task: parking_lot::Mutex::new(None),
@@ -2099,7 +2280,7 @@ impl Producer {
             m_errors: AtomicU64::new(0),
             m_bytes: AtomicU64::new(0),
             buffered_bytes: AtomicU64::new(0),
-            closed: AtomicBool::new(false),
+            closed: Arc::new(AtomicBool::new(false)),
             ack_latency: crate::metrics::LatencyTracker::new(),
             interceptors: cfg.interceptors.clone(),
             topics: parking_lot::Mutex::new(HashMap::new()),
@@ -2152,9 +2333,7 @@ impl Producer {
             connect_loop(weak, connect_rx, cap).await;
         });
         let weak = Arc::downgrade(&shared);
-        let retry_handle = tokio::spawn(async move {
-            retry_loop(weak, retry_rx).await;
-        });
+        let retry_handle = tokio::spawn(retry_loop(weak, retry_rx));
 
         *shared.meta_task.lock() = Some(Arc::new(meta_handle));
         *shared.connect_task.lock() = Some(Arc::new(connect_handle));
@@ -2587,36 +2766,43 @@ impl Producer {
         let now = Instant::now();
         let deadline = now + self.inner.shared.cfg.delivery_timeout;
         let topic = tracker.is_none().then(|| Arc::clone(&rec.topic));
-        let rest_block = block_deadline.saturating_duration_since(now);
-        if rest_block.is_zero() {
-            return Err(Error::Timeout);
-        }
-        let send_res = tokio::time::timeout(
-            rest_block,
-            w.data.send(Pending {
-                sticky_record: None,
-                sticky: None,
-                rec,
-                tx: Some(tx),
-                seq: None,
-                batch_base_seq: None,
-                batch_len: 1,
-                epoch_gen: self.inner.shared.epoch_gen.load(Ordering::SeqCst),
-                deadline,
-                queued_at: now,
-                retry: 0,
-                skip_meta_refresh: false,
-                retry_after: now,
-            }),
-        )
-        .await;
-        match send_res {
-            Ok(Ok(())) => reservation.active = false,
-            Ok(Err(_)) => {
-                return Err(Error::Closed);
-            }
-            Err(_) => {
+        let mut pending = Pending {
+            sticky_record: None,
+            sticky: None,
+            rec,
+            tx: Some(tx),
+            seq: None,
+            batch_base_seq: None,
+            batch_len: 1,
+            epoch_gen: self.inner.shared.epoch_gen.load(Ordering::SeqCst),
+            deadline,
+            queued_at: now,
+            retry: 0,
+            skip_meta_refresh: false,
+            retry_after: now,
+        };
+        let mut worker = w;
+        loop {
+            let rest_block = block_deadline.saturating_duration_since(Instant::now());
+            if rest_block.is_zero() {
                 return Err(Error::Timeout);
+            }
+            match tokio::time::timeout(rest_block, worker.send(pending)).await {
+                Ok(Ok(())) => {
+                    reservation.active = false;
+                    break;
+                }
+                Ok(Err(mpsc::error::SendError(returned))) => {
+                    pending = returned;
+                    if self.inner.shared.closed.load(Ordering::SeqCst) {
+                        return Err(Error::Closed);
+                    }
+                    retire_observed_worker(&self.inner.shared, &worker.id);
+                    self.ensure_ready(&mut pending.rec, block_deadline).await?;
+                    worker = Arc::new(self.worker_for(&pending.rec).ok_or(Error::Closed)?);
+                    self.remember_fast(&pending.rec);
+                }
+                Err(_) => return Err(Error::Timeout),
             }
         }
         if let Some(tracker) = tracker {
@@ -2721,7 +2907,7 @@ impl Producer {
         let Some(pending) = pending_slot.take() else {
             return Err(Error::Closed);
         };
-        match worker.data.try_send(pending) {
+        match worker.try_send(pending) {
             Ok(()) => {
                 policy.commit(&topic, partition, &worker.id, unkeyed, plan, &cluster);
                 Ok(())
@@ -2734,7 +2920,12 @@ impl Producer {
             Err(mpsc::error::TrySendError::Closed(mut pending)) => {
                 pending.sticky = None;
                 *pending_slot = Some(pending);
-                Err(Error::Closed)
+                if shared.closed.load(Ordering::SeqCst) {
+                    Err(Error::Closed)
+                } else {
+                    retire_closed_worker(shared, node, slot, &worker.id);
+                    Err(Error::QueueFull)
+                }
             }
         }
     }
@@ -2873,8 +3064,11 @@ impl Producer {
             return None;
         }
         let i = usize::try_from(p).ok()?;
-        let w = Arc::clone(f.handles.get(i)?);
-        Some((p, w, Arc::clone(&f.tracker)))
+        let w = f.handles.get(i)?;
+        if !w.admission.is_accepting() {
+            return None;
+        }
+        Some((p, Arc::clone(w), Arc::clone(&f.tracker)))
     }
 
     /// A cached route whose metadata is still inside `metadata_max_age`.
@@ -2912,8 +3106,11 @@ impl Producer {
             return None;
         }
         let i = usize::try_from(p).ok()?;
-        let w = Arc::clone(f.handles.get(i)?);
-        Some((p, w, Arc::clone(&f.tracker)))
+        let w = f.handles.get(i)?;
+        if !w.admission.is_accepting() {
+            return None;
+        }
+        Some((p, Arc::clone(w), Arc::clone(&f.tracker)))
     }
 
     fn remember_fast(&self, rec: &ProduceRecord) {
@@ -3081,7 +3278,7 @@ impl Producer {
             active: true,
         };
         compact_record_backing(&mut rec);
-        if let Err(e) = w.data.try_send(Pending {
+        if let Err(e) = w.try_send(Pending {
             sticky_record: None,
             sticky: None,
             rec,
@@ -3098,7 +3295,14 @@ impl Producer {
         }) {
             return Err(match e {
                 mpsc::error::TrySendError::Full(_) => Error::QueueFull,
-                mpsc::error::TrySendError::Closed(_) => Error::Closed,
+                mpsc::error::TrySendError::Closed(_) => {
+                    if self.inner.shared.closed.load(Ordering::SeqCst) {
+                        Error::Closed
+                    } else {
+                        retire_observed_worker(&self.inner.shared, &w.id);
+                        Error::QueueFull
+                    }
+                }
             });
         }
         reservation.active = false;
@@ -3213,7 +3417,7 @@ impl Producer {
             .values()
             .flatten()
             .flatten()
-            .map(|w| Arc::clone(&w.task))
+            .map(|w| Arc::clone(&w.task.handle))
             .collect()
     }
 
@@ -4017,7 +4221,7 @@ impl Producer {
         }
         for w in &published {
             w.task.abort();
-            wait_until_finished(&w.task, deadline).await;
+            wait_until_finished(&w.task.handle, deadline).await;
         }
         let mut extra = 0u32;
         while self.inner.shared.live_workers.load(Ordering::SeqCst) > 0 {
@@ -6022,23 +6226,65 @@ fn try_nudge_slot(tx: &mpsc::Sender<(i32, usize)>, node: i32, slot: usize) {
     tx.try_send((node, slot)).unwrap_or(());
 }
 
-/// KL09-25: drop a dead node's slots and re-nudge exactly the slots that
-/// were live, so a reconnect restores the previously demanded set and no more.
-fn remove_node_nudge_live(shared: &Shared, node: i32) {
-    let live: Vec<usize> = shared
-        .nodes
-        .lock()
-        .remove(&node)
-        .map(|slots| {
+fn retire_worker_nudge(shared: &Shared, node: i32, id: &Arc<()>) -> Option<WorkerHandle> {
+    let (slot, retired) = {
+        let mut nodes = shared.nodes.lock();
+        let slots = nodes.get_mut(&node)?;
+        let slot = slots.iter().position(|entry| {
+            entry
+                .as_ref()
+                .is_some_and(|worker| Arc::ptr_eq(&worker.id, id))
+        })?;
+        let retired = slots.get_mut(slot)?.take();
+        if let Some(worker) = &retired {
+            worker.admission.close();
+        }
+        (slot, retired)
+    };
+    try_nudge_slot(&shared.connect_tx, node, slot);
+    retired
+}
+
+fn retire_closed_worker(shared: &Shared, node: i32, slot: usize, id: &Arc<()>) {
+    let removed = {
+        let mut nodes = shared.nodes.lock();
+        let current = nodes.get_mut(&node).and_then(|slots| slots.get_mut(slot));
+        match current {
+            Some(current)
+                if current
+                    .as_ref()
+                    .is_some_and(|worker| Arc::ptr_eq(&worker.id, id)) =>
+            {
+                let retired = current.take();
+                if let Some(worker) = &retired {
+                    worker.admission.close();
+                }
+                retired
+            }
+            _ => None,
+        }
+    };
+    drop(removed);
+    try_nudge_slot(&shared.connect_tx, node, slot);
+    shared.cache_nudge.notify_waiters();
+}
+
+fn retire_observed_worker(shared: &Shared, id: &Arc<()>) {
+    let found = {
+        let nodes = shared.nodes.lock();
+        nodes.iter().find_map(|(&node, slots)| {
             slots
                 .iter()
-                .enumerate()
-                .filter_map(|(i, s)| s.as_ref().map(|_| i))
-                .collect()
+                .position(|entry| {
+                    entry
+                        .as_ref()
+                        .is_some_and(|worker| Arc::ptr_eq(&worker.id, id))
+                })
+                .map(|slot| (node, slot))
         })
-        .unwrap_or_default();
-    for slot in live {
-        try_nudge_slot(&shared.connect_tx, node, slot);
+    };
+    if let Some((node, slot)) = found {
+        retire_closed_worker(shared, node, slot, id);
     }
 }
 
@@ -6239,6 +6485,7 @@ fn test_shared(cfg: ProducerConfig, meta: BrokerConn) -> Arc<Shared> {
         meta_tx,
         connect_tx,
         retry_tx,
+        retry_admission: WorkerAdmission::new(),
         meta_task: parking_lot::Mutex::new(None),
         connect_task: parking_lot::Mutex::new(None),
         retry_task: parking_lot::Mutex::new(None),
@@ -6263,7 +6510,7 @@ fn test_shared(cfg: ProducerConfig, meta: BrokerConn) -> Arc<Shared> {
         m_errors: AtomicU64::new(0),
         m_bytes: AtomicU64::new(0),
         buffered_bytes: AtomicU64::new(0),
-        closed: AtomicBool::new(false),
+        closed: Arc::new(AtomicBool::new(false)),
         ack_latency: crate::metrics::LatencyTracker::new(),
         interceptors: cfg.interceptors.clone(),
         topics: parking_lot::Mutex::new(HashMap::new()),
@@ -6302,8 +6549,10 @@ async fn spawn_slot_worker(
         batch_cap
     };
     let id = Arc::new(());
+    let admission = Arc::new(WorkerAdmission::for_producer(Arc::clone(&shared.closed)));
     let worker = Worker {
         id: Arc::clone(&id),
+        admission: Arc::clone(&admission),
         node_id: node,
         throttle: shared.broker_throttle(node),
         conn,
@@ -6325,91 +6574,163 @@ async fn spawn_slot_worker(
         ack_requested: HashMap::new(),
         ack_seen: HashMap::new(),
         ack_tracker: None,
+        _live: WorkerLease::register(shared),
     };
     let handle = tokio::spawn(worker.run());
-    Ok(WorkerHandle {
+    Ok(WorkerHandle::new(
         id,
-        data: data_tx,
-        ctrl: ctrl_tx,
-        task: Arc::new(handle),
-    })
+        admission,
+        data_tx,
+        ctrl_tx,
+        Arc::new(handle),
+    ))
 }
 
-async fn retry_loop(weak: std::sync::Weak<Shared>, mut rx: mpsc::Receiver<Pending>) {
-    struct RxDrain<'a> {
-        weak: &'a std::sync::Weak<Shared>,
-        rx: &'a mut mpsc::Receiver<Pending>,
-    }
-    impl Drop for RxDrain<'_> {
-        fn drop(&mut self) {
-            if let Some(shared) = self.weak.upgrade() {
-                while let Ok(p) = self.rx.try_recv() {
-                    let _ = shared.retries_out.fetch_sub(1, Ordering::SeqCst);
-                    fail_pendings(&shared, vec![p], Error::Timeout);
-                }
+struct RetryReceiver {
+    weak: std::sync::Weak<Shared>,
+    rx: mpsc::Receiver<Pending>,
+}
+
+impl Drop for RetryReceiver {
+    fn drop(&mut self) {
+        if let Some(shared) = self.weak.upgrade() {
+            shared.retry_admission.close();
+            self.rx.close();
+            while let Ok(p) = self.rx.try_recv() {
+                let _count = RetryCountGuard {
+                    shared: &shared,
+                    count: 1,
+                };
+                fail_pendings(&shared, vec![p], Error::Timeout);
             }
         }
     }
-    let drainer = RxDrain {
-        weak: &weak,
-        rx: &mut rx,
-    };
-    while let Some(p) = drainer.rx.recv().await {
-        let Some(shared) = weak.upgrade() else {
-            break;
-        };
-        let mut batch = vec![p];
-        while let Ok(next) = drainer.rx.try_recv() {
-            batch.push(next);
-        }
-        if shared.closed.load(Ordering::SeqCst) {
-            let _ = shared.retries_out.fetch_sub(batch.len(), Ordering::SeqCst);
-            fail_pendings(&shared, batch, Error::Timeout);
-            shared.cache_nudge.notify_waiters();
-            continue;
-        }
-        let mut topics = Vec::new();
-        let mut seen = HashSet::new();
-        for pending in &batch {
-            if pending.skip_meta_refresh {
+}
+
+fn retry_loop(
+    weak: std::sync::Weak<Shared>,
+    rx: mpsc::Receiver<Pending>,
+) -> impl std::future::Future<Output = ()> + Send {
+    // Capture the whole owner before the future can be dropped or spawned.
+    // Its weak Shared reference adds no cycle through Shared::retry_task.
+    let drainer = RetryReceiver { weak, rx };
+    async move {
+        let mut drainer = drainer;
+        while let Some(p) = drainer.rx.recv().await {
+            let Some(shared) = drainer.weak.upgrade() else {
+                break;
+            };
+            let mut drained = vec![p];
+            while let Ok(next) = drainer.rx.try_recv() {
+                drained.push(next);
+            }
+            let mut batch = RetryBatchGuard {
+                shared: &shared,
+                remaining: drained.into_iter(),
+            };
+            if shared.closed.load(Ordering::SeqCst) {
+                drop(batch);
                 continue;
             }
-            let _ = remember_unique_arc(&mut topics, &mut seen, &pending.rec.topic);
+            let mut topics = Vec::new();
+            let mut seen = HashSet::new();
+            for pending in batch.remaining.as_slice() {
+                if pending.skip_meta_refresh {
+                    continue;
+                }
+                let _ = remember_unique_arc(&mut topics, &mut seen, &pending.rec.topic);
+            }
+            let refreshed = if topics.is_empty() {
+                true
+            } else {
+                for topic in &topics {
+                    invalidate_cached_topic(&shared, topic);
+                }
+                let now = Instant::now();
+                let mut meta_timeout = shared.cfg.request_timeout;
+                for pending in batch.remaining.as_slice() {
+                    let rest = pending.deadline.saturating_duration_since(now);
+                    if rest < meta_timeout {
+                        meta_timeout = rest;
+                    }
+                }
+                match refresh_queued_topics(&shared, &topics, meta_timeout).await {
+                    None | Some(Ok(())) => true,
+                    Some(Err(error)) => {
+                        publish_meta_err(&shared, Some(clone_err(&error)));
+                        false
+                    }
+                }
+            };
+            if refreshed {
+                for pending in batch.remaining.as_mut_slice() {
+                    pending.skip_meta_refresh = true;
+                }
+                // The sockets start while each record still waits for retry_after.
+                // Nothing is sent until that per-record deadline.
+                nudge_retry_leaders(&shared, batch.remaining.as_slice()).await;
+            }
+            for pending in batch.remaining.by_ref() {
+                let _count = RetryCountGuard {
+                    shared: &shared,
+                    count: 1,
+                };
+                retry_one(&shared, pending).await;
+            }
         }
-        let refreshed = if topics.is_empty() {
-            true
-        } else {
-            for topic in &topics {
-                invalidate_cached_topic(&shared, topic);
-            }
-            let now = Instant::now();
-            let mut meta_timeout = shared.cfg.request_timeout;
-            for pending in &batch {
-                let rest = pending.deadline.saturating_duration_since(now);
-                if rest < meta_timeout {
-                    meta_timeout = rest;
-                }
-            }
-            match refresh_queued_topics(&shared, &topics, meta_timeout).await {
-                None | Some(Ok(())) => true,
-                Some(Err(error)) => {
-                    publish_meta_err(&shared, Some(clone_err(&error)));
-                    false
-                }
-            }
+    }
+}
+
+/// Owns retry-actor accounting until a transfer or terminal disposition finishes.
+struct RetryCountGuard<'a> {
+    shared: &'a Shared,
+    count: usize,
+}
+
+impl Drop for RetryCountGuard<'_> {
+    fn drop(&mut self) {
+        if self.count != 0 {
+            let _ = self
+                .shared
+                .retries_out
+                .fetch_sub(self.count, Ordering::SeqCst);
+            self.shared.cache_nudge.notify_waiters();
+        }
+    }
+}
+
+/// Records drained from the retry channel remain owned across metadata waits.
+struct RetryBatchGuard<'a> {
+    shared: &'a Shared,
+    remaining: std::vec::IntoIter<Pending>,
+}
+
+impl Drop for RetryBatchGuard<'_> {
+    fn drop(&mut self) {
+        if self.remaining.as_slice().is_empty() {
+            return;
+        }
+        // Retire counts after releasing payload ownership and callbacks. A
+        // separate ticket owns the item currently awaited in retry_one.
+        let _counts = RetryCountGuard {
+            shared: self.shared,
+            count: self.remaining.len(),
         };
-        if refreshed {
-            for pending in &mut batch {
-                pending.skip_meta_refresh = true;
+        // A local iterator drops before the count ticket even if a callback
+        // panics; fields would otherwise drop after this Drop body's locals.
+        let mut remaining = std::mem::take(&mut self.remaining);
+        let pending = remaining.as_slice();
+        self.shared.retire_sticky(pending, true);
+        self.shared.release_buffer(pendings_bytes(pending));
+        let one_topic = one_failure_topic(pending);
+        if one_topic {
+            if let Some(first) = pending.first() {
+                let count = u64::try_from(pending.len()).unwrap_or(u64::MAX);
+                self.shared.note_errors(&first.rec.topic, count);
             }
-            // The sockets start while each record still waits for retry_after.
-            // Nothing is sent until that per-record deadline.
-            nudge_retry_leaders(&shared, &batch).await;
         }
-        for pending in batch {
-            retry_one(&shared, pending).await;
-            let _ = shared.retries_out.fetch_sub(1, Ordering::SeqCst);
-            shared.cache_nudge.notify_waiters();
+        for pending in remaining.by_ref() {
+            fail_one_pending(self.shared, pending, &Error::Timeout, one_topic);
         }
     }
 }
@@ -6622,18 +6943,21 @@ async fn retry_one(shared: &Arc<Shared>, p: Pending) {
             if rest.is_zero() {
                 return;
             }
-            match tokio::time::timeout(rest, w.data.reserve()).await {
+            match tokio::time::timeout(rest, w.reserve()).await {
                 Ok(Ok(permit)) => {
                     if let Some(p) = guard.p.take() {
-                        permit.send(p);
+                        if let Err(p) = permit.send(p) {
+                            guard.p = Some(p);
+                            retire_closed_worker(shared, node, slot, &w.id);
+                            continue;
+                        }
                     }
                     return;
                 }
                 Ok(Err(_)) => {
-                    if let Some(p) = guard.p.take() {
-                        fail_pendings(shared, vec![p], Error::Closed);
-                    }
-                    return;
+                    // A worker can exit after its handle was read. Keep the
+                    // original pending record and reservation through redial.
+                    retire_closed_worker(shared, node, slot, &w.id);
                 }
                 Err(_) => {
                     return;
@@ -6697,7 +7021,7 @@ async fn retry_sticky_one(shared: &Arc<Shared>, guard: &mut RetryGuard<'_>) {
                 if let Some(worker) = worker {
                     if let Some(pending) = guard.p.take() {
                         let tag = pending.sticky;
-                        match worker.data.try_send(pending) {
+                        match worker.try_send(pending) {
                             Ok(()) => {
                                 if let Some(tag) = tag {
                                     policy.rebind(tag, &worker.id);
@@ -6710,7 +7034,7 @@ async fn retry_sticky_one(shared: &Arc<Shared>, guard: &mut RetryGuard<'_>) {
                             }
                             Err(mpsc::error::TrySendError::Closed(pending)) => {
                                 guard.p = Some(pending);
-                                Some(Err(()))
+                                Some(Err((node, slot, Arc::clone(&worker.id))))
                             }
                         }
                     } else {
@@ -6728,11 +7052,8 @@ async fn retry_sticky_one(shared: &Arc<Shared>, guard: &mut RetryGuard<'_>) {
                 shared.cache_nudge.notify_waiters();
                 return;
             }
-            Some(Err(())) => {
-                if let Some(pending) = guard.p.take() {
-                    fail_pendings(shared, vec![pending], Error::Closed);
-                }
-                return;
+            Some(Err((node, slot, id))) => {
+                retire_closed_worker(shared, node, slot, &id);
             }
             None => {}
         }
@@ -6743,8 +7064,25 @@ async fn retry_sticky_one(shared: &Arc<Shared>, guard: &mut RetryGuard<'_>) {
     }
 }
 
+/// Registers owned worker resources before its future can be published.
+struct WorkerLease(Arc<Shared>);
+
+impl WorkerLease {
+    fn register(shared: &Arc<Shared>) -> Self {
+        let _previous = shared.live_workers.fetch_add(1, Ordering::SeqCst);
+        Self(Arc::clone(shared))
+    }
+}
+
+impl Drop for WorkerLease {
+    fn drop(&mut self) {
+        let _remaining = self.0.live_workers.fetch_sub(1, Ordering::SeqCst);
+    }
+}
+
 struct Worker {
     id: Arc<()>,
+    admission: Arc<WorkerAdmission>,
     node_id: i32,
     throttle: Arc<BrokerThrottle>,
     conn: BrokerConn,
@@ -6777,6 +7115,9 @@ struct Worker {
     ack_seen: HashMap<Arc<str>, HashSet<i32>>,
     /// Topic metrics from the previous acknowledgement on this connection.
     ack_tracker: Option<(Arc<str>, Arc<crate::metrics::ProduceTopicTracker>)>,
+    // Keep last: struct fields drop in declaration order after the Drop body.
+    // Shutdown must observe all other worker resources released before zero.
+    _live: WorkerLease,
 }
 
 #[derive(Default)]
@@ -7018,6 +7359,8 @@ impl Drop for InFlightGuard {
 
 impl Drop for Worker {
     fn drop(&mut self) {
+        self.admission.close();
+        self.data.close();
         while let Ok(p) = self.data.try_recv() {
             self.pending.push(p);
         }
@@ -7438,20 +7781,18 @@ impl Worker {
     }
 
     async fn run(mut self) {
-        let live = Arc::clone(&self.shared);
-        let _started = live.live_workers.fetch_add(1, Ordering::SeqCst);
-        struct ExitLive(Arc<Shared>);
-        impl Drop for ExitLive {
-            fn drop(&mut self) {
-                let _left = self.0.live_workers.fetch_sub(1, Ordering::SeqCst);
-            }
-        }
-        let _exit_live = ExitLive(live);
+        let admission = Arc::clone(&self.admission);
+        let retired = admission.closed.notified();
+        tokio::pin!(retired);
+        let _registered = retired.as_mut().enable();
         let mut linger_start: Option<Instant> = None;
         // One timer for linger and delivery deadlines. Resetting it avoids a
         // new sleep registration on every wait.
         let mut linger_timer = std::pin::pin!(tokio::time::sleep(Duration::ZERO));
         loop {
+            if !admission.accepting.load(Ordering::Acquire) {
+                break;
+            }
             if self.shared.closed.load(Ordering::SeqCst)
                 && self.pending.is_empty()
                 && self.in_flight.is_empty()
@@ -7536,6 +7877,7 @@ impl Worker {
             }
             tokio::select! {
                 biased;
+                () = retired.as_mut() => break,
                 _ = wake_shared.cache_nudge.notified(), if wake_shared.sticky.is_some() => {}
                 n = self.data.recv_many(&mut self.pending, room) => {
                     self.account_pending_from(self.pending.len().saturating_sub(n))
@@ -7676,7 +8018,7 @@ impl Worker {
             return Ok(());
         }
         if self.conn.is_closed() {
-            remove_node_nudge_live(&self.shared, self.node_id);
+            let _retired = retire_worker_nudge(&self.shared, self.node_id, &self.id);
             let pending = self.take_all_pending();
             self.requeue_pendings(pending).await;
             while let Some(remaining) = self.in_flight.pop_front() {
@@ -7705,7 +8047,7 @@ impl Worker {
                 Err(e) => {
                     let pending = self.take_all_pending();
                     if e.is_retriable() {
-                        let _ = self.shared.nodes.lock().remove(&self.node_id);
+                        let _retired = retire_worker_nudge(&self.shared, self.node_id, &self.id);
                         self.requeue_pendings(pending).await;
                         return Ok(());
                     }
@@ -7937,7 +8279,7 @@ impl Worker {
             return Err(e);
         }
         if fault == Some(PreSendFault::WriteRetriable) {
-            let _ = self.shared.nodes.lock().remove(&self.node_id);
+            let _retired = retire_worker_nudge(&self.shared, self.node_id, &self.id);
             self.requeue(groups).await;
             return Ok(());
         }
@@ -7958,7 +8300,7 @@ impl Worker {
             .await
         {
             if e.is_retriable() {
-                remove_node_nudge_live(&self.shared, self.node_id);
+                let _retired = retire_worker_nudge(&self.shared, self.node_id, &self.id);
                 self.requeue(groups).await;
                 while let Some(remaining) = self.in_flight.pop_front() {
                     self.requeue(remaining.groups).await;
@@ -8029,7 +8371,7 @@ impl Worker {
             Err(e) => {
                 if let Some(inf) = guard.inf.take() {
                     if e.is_retriable() {
-                        remove_node_nudge_live(&self.shared, self.node_id);
+                        let _retired = retire_worker_nudge(&self.shared, self.node_id, &self.id);
                         self.requeue(inf.groups).await;
                         while let Some(remaining) = self.in_flight.pop_front() {
                             self.requeue(remaining.groups).await;
@@ -8630,7 +8972,7 @@ impl Worker {
             );
             p.retry_after = now + delay;
             let _ = self.shared.retries_out.fetch_add(1, Ordering::SeqCst);
-            match self.shared.retry_tx.try_send(p) {
+            match self.shared.try_retry(p) {
                 Ok(()) => {}
                 Err(mpsc::error::TrySendError::Full(p)) => {
                     let _ = self.shared.retries_out.fetch_sub(1, Ordering::SeqCst);
@@ -8685,7 +9027,7 @@ impl Worker {
                 );
                 pending.retry_after = now + delay;
                 let _ = self.shared.retries_out.fetch_add(1, Ordering::SeqCst);
-                match self.shared.retry_tx.try_send(pending) {
+                match self.shared.try_retry(pending) {
                     Ok(()) => {}
                     Err(mpsc::error::TrySendError::Full(pending)) => {
                         let _ = self.shared.retries_out.fetch_sub(1, Ordering::SeqCst);
@@ -9162,7 +9504,9 @@ async fn pause_walk(walked: &mut usize) {
 async fn reserve_additional<T>(items: &mut Vec<T>, count: usize) {
     while items.capacity() < count {
         let step = count.saturating_sub(items.capacity()).min(8 * 1024);
-        items.reserve_exact(step);
+        // The target cannot exceed count; Vec reserves relative to its length.
+        let target = items.capacity() + step;
+        items.reserve_exact(target - items.len());
         if items.capacity() < count {
             tokio::task::yield_now().await;
         }
@@ -11168,6 +11512,1341 @@ fn record_metadata(
 mod tests {
     use super::*;
 
+    #[tokio::test(flavor = "current_thread")]
+    async fn unpolled_retired_worker_is_counted_until_its_resources_drop() {
+        use tokio::io::AsyncReadExt;
+
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap().to_string();
+        let meta = BrokerConn::connect(&addr, "unpolled-meta", Duration::from_secs(1))
+            .await
+            .unwrap();
+        let (_meta_peer, _) = listener.accept().await.unwrap();
+        let conn = BrokerConn::connect(&addr, "unpolled-worker", Duration::from_secs(1))
+            .await
+            .unwrap();
+        let (mut worker_peer, _) = listener.accept().await.unwrap();
+        let shared = test_shared(ProducerConfig::default(), meta);
+        let (data, data_rx) = mpsc::channel(1);
+        let (ctrl, ctrl_rx) = mpsc::channel(1);
+        let id = Arc::new(());
+        let admission = Arc::new(WorkerAdmission::for_producer(Arc::clone(&shared.closed)));
+        let worker = Worker {
+            id: Arc::clone(&id),
+            admission: Arc::clone(&admission),
+            node_id: 1,
+            throttle: shared.broker_throttle(1),
+            conn,
+            data: data_rx,
+            ctrl: ctrl_rx,
+            shared: Arc::clone(&shared),
+            write_buf: BytesMut::new(),
+            pending: Vec::new(),
+            spare_batch: Vec::new(),
+            pending_estimate: 0,
+            earliest_deadline: None,
+            in_flight: VecDeque::new(),
+            fail: None,
+            compress_scratch: CompressScratch::default(),
+            group_scratch: ProduceGroupScratch::default(),
+            ack_index: AckIndex::default(),
+            ack_slots: Vec::new(),
+            spare_acks: Vec::new(),
+            ack_requested: HashMap::new(),
+            ack_seen: HashMap::new(),
+            ack_tracker: None,
+            _live: WorkerLease::register(&shared),
+        };
+        let handle = WorkerHandle::new(
+            Arc::clone(&id),
+            admission,
+            data,
+            ctrl,
+            Arc::new(tokio::spawn(worker.run())),
+        );
+        let cached = Arc::new(handle.clone());
+        let _previous = shared.nodes.lock().insert(1, vec![Some(handle)]);
+        let (result, outcome) = oneshot::channel();
+        let mut pending = queued("t", Some(0));
+        pending.rec.value = Some(Bytes::from_static(b"value"));
+        pending.tx = Some(result);
+        shared.buffered_bytes.store(5, Ordering::SeqCst);
+        assert!(cached.try_send(pending).is_ok());
+        let retired = retire_worker_nudge(&shared, 1, &id).unwrap();
+        // No await has run since spawn on this current-thread runtime. The
+        // owned Worker must already be counted even before its first poll.
+        assert!(!cached.task.is_finished());
+        assert_eq!(
+            shared.live_workers.load(Ordering::SeqCst),
+            1,
+            "an unpolled retired worker was invisible to shutdown"
+        );
+        shared.closed.store(true, Ordering::SeqCst);
+        cached.task.abort();
+        tokio::time::timeout(Duration::from_secs(1), async {
+            while !cached.task.is_finished() {
+                tokio::task::yield_now().await;
+            }
+        })
+        .await
+        .expect("unpolled worker cancellation did not finish");
+        assert_eq!(shared.live_workers.load(Ordering::SeqCst), 0);
+        assert_eq!(shared.buffered_bytes.load(Ordering::SeqCst), 0);
+        assert_eq!(shared.retries_out.load(Ordering::SeqCst), 0);
+        assert_eq!(shared.m_errors.load(Ordering::SeqCst), 1);
+        assert!(cached.data.is_closed());
+        assert!(matches!(outcome.await, Ok(Err(Error::Closed))));
+        let mut byte = [0_u8; 1];
+        assert_eq!(
+            tokio::time::timeout(Duration::from_secs(1), worker_peer.read(&mut byte))
+                .await
+                .expect("unpolled worker socket stayed open")
+                .unwrap(),
+            0
+        );
+        drop(retired);
+        drop(cached);
+    }
+
+    #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+    async fn retired_worker_live_count_and_shutdown_wait_for_drop_callbacks() {
+        use tokio::io::AsyncReadExt;
+
+        type ReleaseLatch = Arc<(parking_lot::Mutex<bool>, parking_lot::Condvar)>;
+        struct BlockCleanup {
+            entered: Arc<Notify>,
+            release: ReleaseLatch,
+        }
+        impl crate::interceptor::ProducerInterceptor for BlockCleanup {
+            fn on_error(&self, _error: &Error) {
+                self.entered.notify_one();
+                let (released, changed) = &*self.release;
+                let mut released = released.lock();
+                while !*released {
+                    changed.wait(&mut released);
+                }
+            }
+        }
+        struct ReleaseOnDrop(ReleaseLatch);
+        impl Drop for ReleaseOnDrop {
+            fn drop(&mut self) {
+                let (released, changed) = &*self.0;
+                *released.lock() = true;
+                let _notified = changed.notify_all();
+            }
+        }
+        let entered = Arc::new(Notify::new());
+        let release = Arc::new((parking_lot::Mutex::new(false), parking_lot::Condvar::new()));
+        // An expected baseline assertion failure must still release the runtime thread.
+        let release_on_drop = ReleaseOnDrop(Arc::clone(&release));
+        let cfg = ProducerConfig::default()
+            .linger(Duration::from_secs(30))
+            .interceptor(BlockCleanup {
+                entered: Arc::clone(&entered),
+                release,
+            });
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap().to_string();
+        let meta = BrokerConn::connect(&addr, "retired-drop-meta", Duration::from_secs(1))
+            .await
+            .unwrap();
+        let (_meta_peer, _) = listener.accept().await.unwrap();
+        let conn = BrokerConn::connect(&addr, "retired-drop-worker", Duration::from_secs(1))
+            .await
+            .unwrap();
+        let (mut worker_peer, _) = listener.accept().await.unwrap();
+        let shared = test_shared(cfg, meta);
+        let (data, data_rx) = mpsc::channel(1);
+        let (ctrl, ctrl_rx) = mpsc::channel(1);
+        let id = Arc::new(());
+        let admission = Arc::new(WorkerAdmission::for_producer(Arc::clone(&shared.closed)));
+        let worker = Worker {
+            id: Arc::clone(&id),
+            admission: Arc::clone(&admission),
+            node_id: 1,
+            throttle: shared.broker_throttle(1),
+            conn,
+            data: data_rx,
+            ctrl: ctrl_rx,
+            shared: Arc::clone(&shared),
+            write_buf: BytesMut::new(),
+            pending: Vec::new(),
+            spare_batch: Vec::new(),
+            pending_estimate: 0,
+            earliest_deadline: None,
+            in_flight: VecDeque::new(),
+            fail: None,
+            compress_scratch: CompressScratch::default(),
+            group_scratch: ProduceGroupScratch::default(),
+            ack_index: AckIndex::default(),
+            ack_slots: Vec::new(),
+            spare_acks: Vec::new(),
+            ack_requested: HashMap::new(),
+            ack_seen: HashMap::new(),
+            ack_tracker: None,
+            _live: WorkerLease::register(&shared),
+        };
+        let handle = WorkerHandle::new(
+            Arc::clone(&id),
+            admission,
+            data,
+            ctrl,
+            Arc::new(tokio::spawn(worker.run())),
+        );
+        let cached = Arc::new(handle.clone());
+        let _previous = shared.nodes.lock().insert(1, vec![Some(handle)]);
+        tokio::time::timeout(Duration::from_secs(1), async {
+            while shared.live_workers.load(Ordering::SeqCst) == 0 {
+                tokio::task::yield_now().await;
+            }
+        })
+        .await
+        .expect("worker did not start");
+        let (result, mut outcome) = oneshot::channel();
+        let mut pending = queued("t", Some(0));
+        pending.rec.value = Some(Bytes::from_static(b"value"));
+        pending.tx = Some(result);
+        pending.deadline = Instant::now() + Duration::from_secs(60);
+        shared.buffered_bytes.store(5, Ordering::SeqCst);
+        assert!(cached.try_send(pending).is_ok());
+        let retired = retire_worker_nudge(&shared, 1, &id).unwrap();
+        tokio::time::timeout(Duration::from_secs(1), entered.notified())
+            .await
+            .expect("retired worker did not enter its Drop callback");
+        assert!(!cached.task.is_finished());
+        assert_eq!(
+            shared.live_workers.load(Ordering::SeqCst),
+            1,
+            "live count reached zero before retired-worker cleanup finished"
+        );
+        assert!(cached.data.is_closed());
+        assert!(matches!(
+            outcome.try_recv(),
+            Err(oneshot::error::TryRecvError::Empty)
+        ));
+        let producer = Producer {
+            inner: Arc::new(Inner {
+                shared: Arc::clone(&shared),
+            }),
+        };
+        let closing = tokio::spawn(async move {
+            producer
+                .shutdown_workers(Some(Instant::now() + Duration::from_secs(5)))
+                .await;
+        });
+        tokio::time::timeout(Duration::from_secs(1), async {
+            while !shared.closed.load(Ordering::SeqCst) {
+                tokio::task::yield_now().await;
+            }
+        })
+        .await
+        .expect("shutdown did not start");
+        for _ in 0..32 {
+            tokio::task::yield_now().await;
+        }
+        assert!(
+            !closing.is_finished(),
+            "shutdown passed the outstanding callback"
+        );
+        drop(release_on_drop);
+        tokio::time::timeout(Duration::from_secs(1), closing)
+            .await
+            .expect("shutdown did not finish after callback release")
+            .unwrap();
+        tokio::time::timeout(Duration::from_secs(1), async {
+            while !cached.task.is_finished() {
+                tokio::task::yield_now().await;
+            }
+        })
+        .await
+        .expect("retired task did not publish completion");
+        assert_eq!(shared.live_workers.load(Ordering::SeqCst), 0);
+        assert_eq!(shared.buffered_bytes.load(Ordering::SeqCst), 0);
+        assert_eq!(shared.retries_out.load(Ordering::SeqCst), 0);
+        assert!(matches!(outcome.await, Ok(Err(Error::Closed))));
+        let mut byte = [0_u8; 1];
+        assert_eq!(
+            tokio::time::timeout(Duration::from_secs(1), worker_peer.read(&mut byte))
+                .await
+                .expect("worker socket did not close")
+                .unwrap(),
+            0
+        );
+        drop(retired);
+        drop(cached);
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn retry_actor_cancellation_during_metadata_releases_the_drained_batch() {
+        struct ObserveRetryCount {
+            shared: Arc<parking_lot::Mutex<std::sync::Weak<Shared>>>,
+            counts: Arc<parking_lot::Mutex<Vec<usize>>>,
+        }
+        impl crate::interceptor::ProducerInterceptor for ObserveRetryCount {
+            fn on_error(&self, _error: &Error) {
+                let shared = self.shared.lock().upgrade();
+                if let Some(shared) = shared {
+                    self.counts
+                        .lock()
+                        .push(shared.retries_out.load(Ordering::SeqCst));
+                }
+            }
+        }
+        let observed_shared = Arc::new(parking_lot::Mutex::new(std::sync::Weak::new()));
+        let observed_counts = Arc::new(parking_lot::Mutex::new(Vec::new()));
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap().to_string();
+        let meta = BrokerConn::connect(&addr, "retry-metadata-cancel", Duration::from_secs(1))
+            .await
+            .unwrap();
+        let (_peer, _) = listener.accept().await.unwrap();
+        let cfg = ProducerConfig::default().interceptor(ObserveRetryCount {
+            shared: Arc::clone(&observed_shared),
+            counts: Arc::clone(&observed_counts),
+        });
+        let mut shared = test_shared(cfg, meta);
+        let (tx, rx) = mpsc::channel(4);
+        Arc::get_mut(&mut shared).unwrap().retry_tx = tx.clone();
+        *observed_shared.lock() = Arc::downgrade(&shared);
+        let metadata_lock = shared.meta.lock().await;
+        let mut outcomes = Vec::new();
+        for partition in 0..3 {
+            let (result, outcome) = oneshot::channel();
+            let mut pending = queued("t", Some(partition));
+            pending.rec.value = Some(Bytes::from_static(b"value"));
+            pending.tx = Some(result);
+            pending.deadline = Instant::now() + Duration::from_secs(30);
+            outcomes.push(outcome);
+            assert!(shared.try_retry(pending).is_ok());
+        }
+        shared.buffered_bytes.store(15, Ordering::SeqCst);
+        shared.retries_out.store(3, Ordering::SeqCst);
+        let retry = tokio::spawn(retry_loop(Arc::downgrade(&shared), rx));
+        tokio::time::timeout(Duration::from_secs(1), async {
+            while tx.capacity() != 4 {
+                tokio::task::yield_now().await;
+            }
+        })
+        .await
+        .expect("the actor did not drain the retry batch");
+        assert!(!retry.is_finished());
+        assert!(outcomes
+            .iter_mut()
+            .all(|outcome| matches!(outcome.try_recv(), Err(oneshot::error::TryRecvError::Empty))));
+        retry.abort();
+        assert!(retry.await.unwrap_err().is_cancelled());
+        drop(metadata_lock);
+        for outcome in outcomes {
+            assert!(matches!(outcome.await, Ok(Err(Error::Timeout))));
+        }
+        assert_eq!(shared.buffered_bytes.load(Ordering::SeqCst), 0);
+        assert_eq!(shared.retries_out.load(Ordering::SeqCst), 0);
+        assert_eq!(shared.m_errors.load(Ordering::SeqCst), 3);
+        let observed_counts = observed_counts.lock();
+        assert_eq!(observed_counts.len(), 3);
+        assert!(observed_counts.iter().all(|count| *count > 0));
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn retry_actor_cancellation_during_transfer_releases_current_and_remaining_records() {
+        struct ObserveRetryCount {
+            shared: Arc<parking_lot::Mutex<std::sync::Weak<Shared>>>,
+            counts: Arc<parking_lot::Mutex<Vec<usize>>>,
+        }
+        impl crate::interceptor::ProducerInterceptor for ObserveRetryCount {
+            fn on_error(&self, _error: &Error) {
+                if let Some(shared) = self.shared.lock().upgrade() {
+                    self.counts
+                        .lock()
+                        .push(shared.retries_out.load(Ordering::SeqCst));
+                }
+            }
+        }
+        for sticky in [false, true] {
+            for count in [1_usize, 3] {
+                let observed_shared = Arc::new(parking_lot::Mutex::new(std::sync::Weak::new()));
+                let observed_counts = Arc::new(parking_lot::Mutex::new(Vec::new()));
+                let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+                let addr = listener.local_addr().unwrap().to_string();
+                let meta =
+                    BrokerConn::connect(&addr, "retry-transfer-cancel", Duration::from_secs(1))
+                        .await
+                        .unwrap();
+                let (_peer, _) = listener.accept().await.unwrap();
+                let mut cfg = ProducerConfig::default().interceptor(ObserveRetryCount {
+                    shared: Arc::clone(&observed_shared),
+                    counts: Arc::clone(&observed_counts),
+                });
+                if sticky {
+                    cfg = cfg.partitioner(crate::partitioner::StickyPartitioner::new());
+                }
+                let mut shared = test_shared(cfg, meta);
+                let (tx, rx) = mpsc::channel(4);
+                Arc::get_mut(&mut shared).unwrap().retry_tx = tx.clone();
+                *observed_shared.lock() = Arc::downgrade(&shared);
+                let _previous = shared.cluster.lock().brokers.insert(1, addr.clone());
+                let _previous = shared
+                    .cluster
+                    .lock()
+                    .leaders
+                    .insert(Arc::from("t"), vec![1]);
+                let (worker, mut worker_rx) = admission_worker(1);
+                assert!(worker.try_send(queued("occupier", Some(0))).is_ok());
+                let _previous = shared.nodes.lock().insert(1, vec![Some(worker)]);
+                let mut outcomes = Vec::new();
+                for _ in 0..count {
+                    let (result, outcome) = oneshot::channel();
+                    let mut pending = queued("t", Some(0));
+                    pending.rec.value = Some(Bytes::from_static(b"value"));
+                    pending.tx = Some(result);
+                    pending.skip_meta_refresh = true;
+                    pending.deadline = Instant::now() + Duration::from_secs(30);
+                    pending.sticky_record = shared.sticky_records.as_ref().map(|records| {
+                        records
+                            .acquire()
+                            .expect("the test record budget is available")
+                    });
+                    outcomes.push(outcome);
+                    assert!(shared.try_retry(pending).is_ok());
+                }
+                shared
+                    .buffered_bytes
+                    .store(5 * u64::try_from(count).unwrap(), Ordering::SeqCst);
+                shared.retries_out.store(count, Ordering::SeqCst);
+                let retry = tokio::spawn(retry_loop(Arc::downgrade(&shared), rx));
+                tokio::time::timeout(Duration::from_secs(1), async {
+                    while tx.capacity() != 4 {
+                        tokio::task::yield_now().await;
+                    }
+                })
+                .await
+                .expect("the actor did not drain the retry batch");
+                assert!(!retry.is_finished());
+                assert!(outcomes.iter_mut().all(|outcome| matches!(
+                    outcome.try_recv(),
+                    Err(oneshot::error::TryRecvError::Empty)
+                )));
+                retry.abort();
+                assert!(retry.await.unwrap_err().is_cancelled());
+                for outcome in outcomes {
+                    assert!(matches!(outcome.await, Ok(Err(Error::Timeout))));
+                }
+                assert_eq!(shared.buffered_bytes.load(Ordering::SeqCst), 0);
+                assert_eq!(shared.retries_out.load(Ordering::SeqCst), 0);
+                assert_eq!(
+                    shared.m_errors.load(Ordering::SeqCst),
+                    u64::try_from(count).unwrap()
+                );
+                assert_eq!(observed_counts.lock().len(), count);
+                assert!(observed_counts
+                    .lock()
+                    .iter()
+                    .all(|outstanding| *outstanding > 0));
+                if let Some(records) = &shared.sticky_records {
+                    assert_eq!(records.used.load(Ordering::Acquire), 0);
+                }
+                assert_eq!(worker_rx.try_recv().unwrap().rec.topic.as_ref(), "occupier");
+                assert!(worker_rx.try_recv().is_err());
+            }
+        }
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn retry_actor_cancellation_preserves_records_already_transferred_to_a_worker() {
+        for sticky in [false, true] {
+            let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+            let addr = listener.local_addr().unwrap().to_string();
+            let meta =
+                BrokerConn::connect(&addr, "retry-transferred-cancel", Duration::from_secs(1))
+                    .await
+                    .unwrap();
+            let (_peer, _) = listener.accept().await.unwrap();
+            let mut cfg = ProducerConfig::default();
+            if sticky {
+                cfg = cfg.partitioner(crate::partitioner::StickyPartitioner::new());
+            }
+            let mut shared = test_shared(cfg, meta);
+            let (tx, rx) = mpsc::channel(4);
+            Arc::get_mut(&mut shared).unwrap().retry_tx = tx.clone();
+            let _previous = shared.cluster.lock().brokers.insert(1, addr.clone());
+            let _previous = shared
+                .cluster
+                .lock()
+                .leaders
+                .insert(Arc::from("t"), vec![1]);
+            let (worker, mut worker_rx) = admission_worker(1);
+            let _previous = shared.nodes.lock().insert(1, vec![Some(worker)]);
+            let (result, mut outcome) = oneshot::channel();
+            let mut pending = queued("t", Some(0));
+            pending.rec.value = Some(Bytes::from_static(b"value"));
+            pending.tx = Some(result);
+            pending.skip_meta_refresh = true;
+            pending.deadline = Instant::now() + Duration::from_secs(30);
+            pending.sticky_record = shared.sticky_records.as_ref().map(|records| {
+                records
+                    .acquire()
+                    .expect("the test record budget is available")
+            });
+            assert!(shared.try_retry(pending).is_ok());
+            shared.buffered_bytes.store(5, Ordering::SeqCst);
+            shared.retries_out.store(1, Ordering::SeqCst);
+            let retry = tokio::spawn(retry_loop(Arc::downgrade(&shared), rx));
+            tokio::time::timeout(Duration::from_secs(1), async {
+                while worker_rx.is_empty() {
+                    tokio::task::yield_now().await;
+                }
+            })
+            .await
+            .expect("the worker never received the retry");
+            let transferred = worker_rx.try_recv().expect("the worker received the retry");
+            assert_eq!(shared.retries_out.load(Ordering::SeqCst), 0);
+            retry.abort();
+            assert!(retry.await.unwrap_err().is_cancelled());
+            assert_eq!(shared.buffered_bytes.load(Ordering::SeqCst), 5);
+            assert_eq!(shared.retries_out.load(Ordering::SeqCst), 0);
+            assert_eq!(shared.m_errors.load(Ordering::SeqCst), 0);
+            assert!(matches!(
+                outcome.try_recv(),
+                Err(oneshot::error::TryRecvError::Empty)
+            ));
+            if let Some(records) = &shared.sticky_records {
+                assert_eq!(records.used.load(Ordering::Acquire), 1);
+            }
+            fail_pendings(&shared, vec![transferred], Error::Timeout);
+            assert!(matches!(outcome.await, Ok(Err(Error::Timeout))));
+            assert_eq!(shared.buffered_bytes.load(Ordering::SeqCst), 0);
+            assert_eq!(shared.m_errors.load(Ordering::SeqCst), 1);
+            if let Some(records) = &shared.sticky_records {
+                assert_eq!(records.used.load(Ordering::Acquire), 0);
+            }
+        }
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn retry_actor_final_channel_drain_keeps_counts_until_callbacks_finish() {
+        struct ObserveRetryCount {
+            shared: Arc<parking_lot::Mutex<std::sync::Weak<Shared>>>,
+            counts: Arc<parking_lot::Mutex<Vec<usize>>>,
+        }
+        impl crate::interceptor::ProducerInterceptor for ObserveRetryCount {
+            fn on_error(&self, _error: &Error) {
+                if let Some(shared) = self.shared.lock().upgrade() {
+                    self.counts
+                        .lock()
+                        .push(shared.retries_out.load(Ordering::SeqCst));
+                }
+            }
+        }
+        let observed_shared = Arc::new(parking_lot::Mutex::new(std::sync::Weak::new()));
+        let observed_counts = Arc::new(parking_lot::Mutex::new(Vec::new()));
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap().to_string();
+        let meta = BrokerConn::connect(&addr, "retry-final-drain", Duration::from_secs(1))
+            .await
+            .unwrap();
+        let (_peer, _) = listener.accept().await.unwrap();
+        let cfg = ProducerConfig::default().interceptor(ObserveRetryCount {
+            shared: Arc::clone(&observed_shared),
+            counts: Arc::clone(&observed_counts),
+        });
+        let mut shared = test_shared(cfg, meta);
+        let (tx, rx) = mpsc::channel(4);
+        Arc::get_mut(&mut shared).unwrap().retry_tx = tx.clone();
+        *observed_shared.lock() = Arc::downgrade(&shared);
+        let _previous = shared.cluster.lock().brokers.insert(1, addr.clone());
+        let _previous = shared
+            .cluster
+            .lock()
+            .leaders
+            .insert(Arc::from("t"), vec![1]);
+        let (worker, mut worker_rx) = admission_worker(1);
+        let _previous = shared.nodes.lock().insert(1, vec![Some(worker)]);
+        let (result, mut seed_outcome) = oneshot::channel();
+        let mut seed = queued("t", Some(0));
+        seed.rec.value = Some(Bytes::from_static(b"value"));
+        seed.tx = Some(result);
+        seed.skip_meta_refresh = true;
+        seed.deadline = Instant::now() + Duration::from_secs(30);
+        shared.buffered_bytes.store(5, Ordering::SeqCst);
+        shared.retries_out.store(1, Ordering::SeqCst);
+        assert!(shared.try_retry(seed).is_ok());
+        let retry = tokio::spawn(retry_loop(Arc::downgrade(&shared), rx));
+        let transferred = tokio::time::timeout(Duration::from_secs(1), worker_rx.recv())
+            .await
+            .expect("the seed retry was not transferred")
+            .unwrap();
+        assert_eq!(shared.retries_out.load(Ordering::SeqCst), 0);
+        // On this current-thread runtime, the actor completed its seed transfer
+        // and suspended in recv. Enqueue and abort without yielding so these
+        // three records belong to RxDrain rather than the actor's local batch.
+        let mut outcomes = Vec::new();
+        shared.buffered_bytes.store(20, Ordering::SeqCst);
+        shared.retries_out.store(3, Ordering::SeqCst);
+        for partition in 0..3 {
+            let (result, outcome) = oneshot::channel();
+            let mut pending = queued("t", Some(partition));
+            pending.rec.value = Some(Bytes::from_static(b"value"));
+            pending.tx = Some(result);
+            pending.deadline = Instant::now() + Duration::from_secs(30);
+            outcomes.push(outcome);
+            assert!(shared.try_retry(pending).is_ok());
+        }
+        assert_eq!(tx.capacity(), 1);
+        retry.abort();
+        assert!(retry.await.unwrap_err().is_cancelled());
+        for outcome in outcomes {
+            assert!(matches!(outcome.await, Ok(Err(Error::Timeout))));
+        }
+        assert_eq!(observed_counts.lock().as_slice(), &[3, 2, 1]);
+        assert_eq!(shared.retries_out.load(Ordering::SeqCst), 0);
+        assert_eq!(shared.buffered_bytes.load(Ordering::SeqCst), 5);
+        assert_eq!(shared.m_errors.load(Ordering::SeqCst), 3);
+        assert!(matches!(
+            seed_outcome.try_recv(),
+            Err(oneshot::error::TryRecvError::Empty)
+        ));
+        fail_pendings(&shared, vec![transferred], Error::Timeout);
+        assert!(matches!(seed_outcome.await, Ok(Err(Error::Timeout))));
+        assert_eq!(shared.buffered_bytes.load(Ordering::SeqCst), 0);
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn ready_reservation_does_not_bypass_an_earlier_capacity_waiter() {
+        let (worker, mut rx) = admission_worker(1);
+        assert!(worker.try_send(queued("t", Some(0))).is_ok());
+        let first = worker.reserve();
+        tokio::pin!(first);
+        assert!(
+            std::future::poll_fn(|context| {
+                std::task::Poll::Ready(
+                    std::future::Future::poll(first.as_mut(), context).is_pending(),
+                )
+            })
+            .await
+        );
+        assert_eq!(rx.try_recv().unwrap().rec.partition, Some(0));
+
+        // The released channel slot belongs to the already registered waiter.
+        // A later try_reserve fast path must respect the semaphore's FIFO queue.
+        let second = worker.reserve();
+        tokio::pin!(second);
+        assert!(
+            std::future::poll_fn(|context| {
+                std::task::Poll::Ready(
+                    std::future::Future::poll(second.as_mut(), context).is_pending(),
+                )
+            })
+            .await
+        );
+        let first = tokio::time::timeout(Duration::from_secs(1), first.as_mut())
+            .await
+            .expect("the first capacity waiter did not wake")
+            .unwrap();
+        assert!(first.send(queued("t", Some(1))).is_ok());
+        assert_eq!(rx.try_recv().unwrap().rec.partition, Some(1));
+        let second = tokio::time::timeout(Duration::from_secs(1), second.as_mut())
+            .await
+            .expect("the second capacity waiter did not wake")
+            .unwrap();
+        assert!(second.send(queued("t", Some(2))).is_ok());
+        assert_eq!(rx.try_recv().unwrap().rec.partition, Some(2));
+        assert!(rx.try_recv().is_err());
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn concurrent_last_worker_handle_drops_cancel_the_task_with_observers() {
+        struct MarkDropped(Arc<AtomicBool>);
+        impl Drop for MarkDropped {
+            fn drop(&mut self) {
+                self.0.store(true, Ordering::Release);
+            }
+        }
+        struct AbortOnDrop(tokio::task::AbortHandle);
+        impl Drop for AbortOnDrop {
+            fn drop(&mut self) {
+                self.0.abort();
+            }
+        }
+        let dropped = Arc::new(AtomicBool::new(false));
+        let mark = MarkDropped(Arc::clone(&dropped));
+        // A raw task observer, like test_worker_tasks(), must not extend the
+        // lifetime of the worker owner. Keeping it also makes the old sampled
+        // strong-count failure deterministic for either thread schedule.
+        let task = Arc::new(tokio::spawn(async move {
+            let _mark = mark;
+            std::future::pending::<()>().await;
+        }));
+        let watch = task.abort_handle();
+        let _cleanup = AbortOnDrop(watch.clone());
+        let admission = Arc::new(WorkerAdmission::new());
+        let (data, _data_rx) = mpsc::channel(1);
+        let (ctrl, _ctrl_rx) = mpsc::channel(1);
+        let first = WorkerHandle::new(
+            Arc::new(()),
+            Arc::clone(&admission),
+            data,
+            ctrl,
+            Arc::clone(&task),
+        );
+        let second = first.clone();
+        let transient = first.clone();
+        drop(transient);
+        assert!(admission.is_accepting());
+        assert!(
+            !watch.is_finished(),
+            "dropping one clone stopped the worker"
+        );
+        let start = Arc::new(std::sync::Barrier::new(3));
+        std::thread::scope(|scope| {
+            let first_start = Arc::clone(&start);
+            let first = scope.spawn(move || {
+                let _arrival = first_start.wait();
+                drop(first);
+            });
+            let second_start = Arc::clone(&start);
+            let second = scope.spawn(move || {
+                let _arrival = second_start.wait();
+                drop(second);
+            });
+            let _arrival = start.wait();
+            first.join().unwrap();
+            second.join().unwrap();
+        });
+        tokio::time::timeout(Duration::from_secs(1), async {
+            while !watch.is_finished() {
+                tokio::task::yield_now().await;
+            }
+        })
+        .await
+        .expect("last worker owners detached the task while an observer remained");
+        assert!(dropped.load(Ordering::Acquire));
+        assert!(!admission.is_accepting());
+        assert!(task.is_finished());
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn unpolled_retry_actor_releases_queued_records_and_closes_admission() {
+        struct ObserveRetryCount {
+            shared: Arc<parking_lot::Mutex<std::sync::Weak<Shared>>>,
+            counts: Arc<parking_lot::Mutex<Vec<usize>>>,
+        }
+        impl crate::interceptor::ProducerInterceptor for ObserveRetryCount {
+            fn on_error(&self, _error: &Error) {
+                if let Some(shared) = self.shared.lock().upgrade() {
+                    self.counts
+                        .lock()
+                        .push(shared.retries_out.load(Ordering::SeqCst));
+                }
+            }
+        }
+        for sticky in [false, true] {
+            for spawned in [false, true] {
+                let observed_shared = Arc::new(parking_lot::Mutex::new(std::sync::Weak::new()));
+                let observed_counts = Arc::new(parking_lot::Mutex::new(Vec::new()));
+                let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+                let addr = listener.local_addr().unwrap().to_string();
+                let meta = BrokerConn::connect(&addr, "unpolled-retry", Duration::from_secs(1))
+                    .await
+                    .unwrap();
+                let (_peer, _) = listener.accept().await.unwrap();
+                let mut cfg = ProducerConfig::default().interceptor(ObserveRetryCount {
+                    shared: Arc::clone(&observed_shared),
+                    counts: Arc::clone(&observed_counts),
+                });
+                if sticky {
+                    cfg = cfg.partitioner(crate::partitioner::StickyPartitioner::new());
+                }
+                let mut shared = test_shared(cfg, meta);
+                let (tx, rx) = mpsc::channel(4);
+                Arc::get_mut(&mut shared).unwrap().retry_tx = tx.clone();
+                *observed_shared.lock() = Arc::downgrade(&shared);
+                let mut outcomes = Vec::new();
+                for partition in 0..3 {
+                    let (result, outcome) = oneshot::channel();
+                    let mut pending = queued("t", Some(partition));
+                    pending.rec.value = Some(Bytes::from_static(b"value"));
+                    pending.tx = Some(result);
+                    pending.deadline = Instant::now() + Duration::from_secs(30);
+                    pending.sticky_record = shared.sticky_records.as_ref().map(|records| {
+                        records
+                            .acquire()
+                            .expect("the test record budget is available")
+                    });
+                    outcomes.push(outcome);
+                    assert!(shared.try_retry(pending).is_ok());
+                }
+                shared.buffered_bytes.store(15, Ordering::SeqCst);
+                shared.retries_out.store(3, Ordering::SeqCst);
+                let actor = retry_loop(Arc::downgrade(&shared), rx);
+                if spawned {
+                    let task = tokio::spawn(actor);
+                    // No await since spawn on this current-thread runtime.
+                    task.abort();
+                    assert!(task.await.unwrap_err().is_cancelled());
+                } else {
+                    drop(actor);
+                }
+                for outcome in outcomes {
+                    assert!(matches!(outcome.await, Ok(Err(Error::Timeout))));
+                }
+                assert_eq!(observed_counts.lock().as_slice(), &[3, 2, 1]);
+                assert_eq!(shared.buffered_bytes.load(Ordering::SeqCst), 0);
+                assert_eq!(shared.retries_out.load(Ordering::SeqCst), 0);
+                assert_eq!(shared.m_errors.load(Ordering::SeqCst), 3);
+                assert!(tx.is_closed());
+                assert!(matches!(
+                    shared.try_retry(queued("later", Some(0))),
+                    Err(mpsc::error::TrySendError::Closed(_))
+                ));
+                if let Some(records) = &shared.sticky_records {
+                    assert_eq!(records.used.load(Ordering::Acquire), 0);
+                }
+            }
+        }
+    }
+
+    fn admission_worker(capacity: usize) -> (WorkerHandle, mpsc::Receiver<Pending>) {
+        let (data, rx) = mpsc::channel(capacity);
+        let (ctrl, _ctrl_rx) = mpsc::channel(1);
+        (
+            WorkerHandle::new(
+                Arc::new(()),
+                Arc::new(WorkerAdmission::new()),
+                data,
+                ctrl,
+                Arc::new(tokio::spawn(std::future::pending())),
+            ),
+            rx,
+        )
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn incremental_reservation_completes_for_empty_and_cleared_vectors() {
+        let mut timed_out = Vec::new();
+        for capacity in [0, 8 * 1024] {
+            let mut items = Vec::<usize>::with_capacity(capacity);
+            if capacity != 0 {
+                items.extend(0..64);
+                items.clear();
+            }
+            let before_capacity = items.capacity();
+            let target = before_capacity.max(8 * 1024) + 2 * 8 * 1024 + 37;
+            let result = tokio::time::timeout(
+                Duration::from_secs(1),
+                reserve_additional(&mut items, target),
+            )
+            .await;
+            assert!(items.is_empty(), "reservation changed the vector length");
+            if result.is_err() {
+                timed_out.push((before_capacity, items.capacity(), target));
+                continue;
+            }
+            assert!(items.capacity() >= target);
+            let reserved = items.capacity();
+            items.extend(0..target);
+            assert_eq!(items.capacity(), reserved);
+            assert!(items.iter().copied().eq(0..target));
+        }
+        assert!(
+            timed_out.is_empty(),
+            "incremental reservation did not finish: {timed_out:?}"
+        );
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn incremental_reservation_preserves_partially_filled_vectors() {
+        let mut items = Vec::with_capacity(8 * 1024);
+        items.extend(0_usize..64);
+        let before = items.clone();
+        let target = items.capacity() + 2 * 8 * 1024 + 37;
+        let result = tokio::time::timeout(
+            Duration::from_secs(1),
+            reserve_additional(&mut items, target),
+        )
+        .await;
+        assert_eq!(items, before, "reservation changed existing contents");
+        assert!(
+            result.is_ok(),
+            "partially filled reservation did not finish"
+        );
+        assert!(items.capacity() >= target);
+        let reserved = items.capacity();
+        items.extend(64..target);
+        assert_eq!(items.capacity(), reserved);
+        assert!(items.iter().copied().eq(0..target));
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn incremental_reservation_handles_zero_sized_elements() {
+        let mut items = vec![(); 7];
+        tokio::time::timeout(
+            Duration::from_secs(1),
+            reserve_additional(&mut items, usize::MAX),
+        )
+        .await
+        .expect("zero-sized reservation did not finish");
+        assert_eq!(items, [(); 7]);
+        assert_eq!(items.capacity(), usize::MAX);
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn grouping_large_partitions_completes_with_reused_record_lists() {
+        let topic = Arc::<str>::from("orders");
+        let mut scratch = ProduceGroupScratch::default();
+        for _ in 0..2 {
+            let mut records = Vec::with_capacity(8 * 1024);
+            records.push(queued("old", Some(0)));
+            records.clear();
+            scratch.spare_parts.push(records);
+        }
+        for per_partition in [2 * 8 * 1024 + 37, 4 * 8 * 1024 + 74] {
+            let mut batch = Vec::with_capacity(2 * per_partition);
+            for index in 0..per_partition {
+                for partition in [1, 0] {
+                    let mut pending = queued("orders", Some(partition));
+                    pending.rec.topic = Arc::clone(&topic);
+                    pending.rec.timestamp = Some(i64::try_from(index).unwrap());
+                    batch.push(pending);
+                }
+            }
+            let (groups, shell) =
+                tokio::time::timeout(Duration::from_secs(2), group_pending(batch, &mut scratch))
+                    .await
+                    .expect("grouping large partitions did not finish");
+            assert!(shell.is_empty());
+            let ProduceGroups::Many(groups) = groups else {
+                panic!("expected two partition groups");
+            };
+            assert_eq!(groups.len(), 2);
+            for (index, (name, partition, mut records)) in groups.into_iter().enumerate() {
+                assert!(Arc::ptr_eq(&name, &topic));
+                assert_eq!(partition, if index == 0 { 1 } else { 0 });
+                assert_eq!(records.len(), per_partition);
+                assert!(records.iter().enumerate().all(|(offset, pending)| {
+                    pending.rec.partition == Some(partition)
+                        && pending.rec.timestamp == Some(i64::try_from(offset).unwrap())
+                }));
+                records.clear();
+                scratch.spare_parts.push(records);
+            }
+        }
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn retiring_worker_rejects_a_previously_reserved_permit() {
+        let (worker, mut rx) = admission_worker(1);
+        let permit = worker.reserve().await.unwrap();
+        worker.admission.close();
+        rx.close();
+        let record = permit.send(queued("t", Some(0))).err().unwrap();
+        assert_eq!(record.rec.partition, Some(0));
+        assert!(rx.try_recv().is_err());
+        assert!(matches!(
+            worker.try_send(record),
+            Err(mpsc::error::TrySendError::Closed(_))
+        ));
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn retiring_worker_drains_every_send_committed_before_close() {
+        let (worker, mut rx) = admission_worker(2);
+        let committed = worker.reserve().await.unwrap();
+        let held = worker.reserve().await.unwrap();
+        assert!(committed.send(queued("t", Some(3))).is_ok());
+        worker.admission.close();
+        rx.close();
+        assert!(held.send(queued("t", Some(4))).is_err());
+        let received = rx.try_recv().unwrap();
+        assert_eq!(received.rec.partition, Some(3));
+        assert!(rx.try_recv().is_err());
+        assert!(rx.recv().await.is_none());
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn retiring_worker_returns_an_unaccepted_blocked_send() {
+        let (worker, mut rx) = admission_worker(1);
+        assert!(worker.try_send(queued("t", Some(0))).is_ok());
+        let sending = worker.clone();
+        let task = tokio::spawn(async move { sending.send(queued("t", Some(1))).await });
+        tokio::task::yield_now().await;
+        assert!(!task.is_finished());
+        worker.admission.close();
+        rx.close();
+        let failed = task.await.unwrap().err().unwrap();
+        assert_eq!(failed.0.rec.partition, Some(1));
+        assert_eq!(rx.try_recv().unwrap().rec.partition, Some(0));
+        assert!(rx.recv().await.is_none());
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn closing_admission_wakes_capacity_waiters_while_receiver_stays_live() {
+        let (worker, mut rx) = admission_worker(1);
+        assert!(worker.try_send(queued("t", Some(0))).is_ok());
+        let waiting_worker = worker.clone();
+        let task = tokio::spawn(async move { waiting_worker.send(queued("t", Some(1))).await });
+        tokio::task::yield_now().await;
+        assert!(!task.is_finished());
+        worker.admission.close();
+        let returned = tokio::time::timeout(Duration::from_secs(1), task)
+            .await
+            .expect("retired channel waiter did not wake")
+            .unwrap()
+            .err()
+            .unwrap();
+        assert_eq!(returned.0.rec.partition, Some(1));
+        // There has been no receiver close or receive to release capacity.
+        assert_eq!(worker.data.capacity(), 0);
+        assert_eq!(rx.try_recv().unwrap().rec.partition, Some(0));
+        assert!(rx.try_recv().is_err());
+        assert!(worker.reserve().await.is_err());
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn retired_idle_worker_exits_while_cached_handles_remain() {
+        use tokio::io::AsyncReadExt;
+
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap().to_string();
+        let meta = BrokerConn::connect(&addr, "retired-idle-meta", Duration::from_secs(1))
+            .await
+            .unwrap();
+        let (_meta_peer, _) = listener.accept().await.unwrap();
+        let conn = BrokerConn::connect(&addr, "retired-idle-worker", Duration::from_secs(1))
+            .await
+            .unwrap();
+        let (mut worker_peer, _) = listener.accept().await.unwrap();
+        let shared = test_shared(ProducerConfig::default(), meta);
+        let (data, data_rx) = mpsc::channel(1);
+        let (ctrl, ctrl_rx) = mpsc::channel(1);
+        let id = Arc::new(());
+        let admission = Arc::new(WorkerAdmission::for_producer(Arc::clone(&shared.closed)));
+        let worker = Worker {
+            id: Arc::clone(&id),
+            admission: Arc::clone(&admission),
+            node_id: 1,
+            throttle: shared.broker_throttle(1),
+            conn,
+            data: data_rx,
+            ctrl: ctrl_rx,
+            shared: Arc::clone(&shared),
+            write_buf: BytesMut::new(),
+            pending: Vec::new(),
+            spare_batch: Vec::new(),
+            pending_estimate: 0,
+            earliest_deadline: None,
+            in_flight: VecDeque::new(),
+            fail: None,
+            compress_scratch: CompressScratch::default(),
+            group_scratch: ProduceGroupScratch::default(),
+            ack_index: AckIndex::default(),
+            ack_slots: Vec::new(),
+            spare_acks: Vec::new(),
+            ack_requested: HashMap::new(),
+            ack_seen: HashMap::new(),
+            ack_tracker: None,
+            _live: WorkerLease::register(&shared),
+        };
+        let handle = WorkerHandle::new(
+            Arc::clone(&id),
+            admission,
+            data,
+            ctrl,
+            Arc::new(tokio::spawn(worker.run())),
+        );
+        // FastRoutes retains an Arc<WorkerHandle> after the nodes entry leaves.
+        let cached = Arc::new(handle.clone());
+        let _previous = shared.nodes.lock().insert(1, vec![Some(handle)]);
+        tokio::task::yield_now().await;
+        assert_eq!(shared.live_workers.load(Ordering::SeqCst), 1);
+        let retired = retire_worker_nudge(&shared, 1, &id).unwrap();
+        tokio::time::timeout(Duration::from_secs(1), async {
+            while !cached.task.is_finished() {
+                tokio::task::yield_now().await;
+            }
+        })
+        .await
+        .expect("a cached handle kept the retired worker alive");
+        assert_eq!(shared.live_workers.load(Ordering::SeqCst), 0);
+        assert!(cached.data.is_closed());
+        let mut byte = [0_u8; 1];
+        assert_eq!(
+            tokio::time::timeout(Duration::from_secs(1), worker_peer.read(&mut byte))
+                .await
+                .expect("retired worker socket stayed open")
+                .unwrap(),
+            0
+        );
+        drop(retired);
+        drop(cached);
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn retired_fast_route_falls_back_to_the_live_worker() {
+        for asynchronous in [false, true] {
+            let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+            let addr = listener.local_addr().unwrap();
+            let meta =
+                BrokerConn::connect(&addr.to_string(), "admission-cache", Duration::from_secs(1))
+                    .await
+                    .unwrap();
+            let (peer, _) = listener.accept().await.unwrap();
+            let shared = test_shared(ProducerConfig::default(), meta);
+            let mut image = MetadataResponse::blank();
+            image.brokers = vec![crate::protocol::api::Broker::new(
+                1,
+                "127.0.0.1",
+                i32::from(addr.port()),
+                None,
+            )];
+            image.topics = vec![crate::protocol::api::TopicMetadata::new(
+                0,
+                "t",
+                false,
+                vec![crate::protocol::api::PartitionMetadata {
+                    error_code: 0,
+                    partition_index: 0,
+                    leader_id: 1,
+                    leader_epoch: 1,
+                    replica_nodes: Vec::new(),
+                    isr_nodes: Vec::new(),
+                    offline_replicas: Vec::new(),
+                }],
+            )];
+            let mut cluster = Cluster::default();
+            cluster.apply_image(&image, 7).await;
+            *shared.cluster.lock() = cluster;
+            let producer = Producer {
+                inner: Arc::new(Inner {
+                    shared: Arc::clone(&shared),
+                }),
+            };
+            let (old, mut old_rx) = admission_worker(1);
+            let old_id = Arc::clone(&old.id);
+            let _previous = shared.nodes.lock().insert(1, vec![Some(old)]);
+            let rec = ProduceRecord::to("t").partition(0).value("value");
+            producer.remember_fast(&rec);
+            assert!(producer.fast_route(&rec).is_some());
+            let retired = retire_worker_nudge(&shared, 1, &old_id).unwrap();
+            let (replacement, mut replacement_rx) = admission_worker(1);
+            let _previous = shared.nodes.lock().insert(1, vec![Some(replacement)]);
+            assert!(producer.fast_route(&rec).is_none());
+            assert!(producer.fresh_fast_route(&rec).is_none());
+            let rx = if asynchronous {
+                Some(producer.enqueue_one(rec).await.unwrap())
+            } else {
+                producer.try_send(rec).unwrap();
+                None
+            };
+            assert!(old_rx.try_recv().is_err());
+            let accepted = replacement_rx
+                .try_recv()
+                .expect("replacement never received the record");
+            assert_eq!(accepted.rec.partition, Some(0));
+            assert_eq!(shared.buffered_bytes.load(Ordering::SeqCst), 5);
+            fail_pendings(&shared, vec![accepted], Error::Timeout);
+            assert_eq!(shared.buffered_bytes.load(Ordering::SeqCst), 0);
+            if let Some(rx) = rx {
+                assert!(matches!(rx.await.unwrap(), Err(Error::Timeout)));
+            }
+            drop(retired);
+            drop(peer);
+        }
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn closed_retry_admission_rejects_after_the_final_drain() {
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap();
+        let meta =
+            BrokerConn::connect(&addr.to_string(), "retry-admission", Duration::from_secs(1))
+                .await
+                .unwrap();
+        let (peer, _) = listener.accept().await.unwrap();
+        let mut shared = test_shared(ProducerConfig::default(), meta);
+        let (tx, mut rx) = mpsc::channel(2);
+        Arc::get_mut(&mut shared).unwrap().retry_tx = tx;
+        assert!(shared.try_retry(queued("t", Some(0))).is_ok());
+        shared.retry_admission.close();
+        rx.close();
+        assert_eq!(rx.try_recv().unwrap().rec.partition, Some(0));
+        assert!(rx.try_recv().is_err());
+        assert!(matches!(
+            shared.try_retry(queued("t", Some(1))),
+            Err(mpsc::error::TrySendError::Closed(_))
+        ));
+        assert!(rx.recv().await.is_none());
+        drop(peer);
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn closed_worker_retries_keep_pending_and_do_not_remove_replacement() {
+        for sticky in [false, true] {
+            let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+            let addr = listener.local_addr().unwrap().to_string();
+            let meta = BrokerConn::connect(&addr, "retry-closed-worker", Duration::from_secs(1))
+                .await
+                .unwrap();
+            let (peer, _) = listener.accept().await.unwrap();
+            let mut cfg = ProducerConfig::bootstrap([addr.clone()]).connections(1);
+            if sticky {
+                cfg = cfg.partitioner(crate::partitioner::StickyPartitioner::new());
+            }
+            let shared = test_shared(cfg, meta);
+            {
+                let mut cluster = shared.cluster.lock();
+                let _previous = cluster.brokers.insert(1, addr);
+                let _previous = cluster.leaders.insert(Arc::from("t"), vec![1]);
+            }
+            let (old_tx, old_rx) = mpsc::channel(1);
+            drop(old_rx);
+            let (old_ctrl, _old_ctrl_rx) = mpsc::channel(1);
+            let old_id = Arc::new(());
+            let old = WorkerHandle::new(
+                Arc::clone(&old_id),
+                Arc::new(WorkerAdmission::new()),
+                old_tx,
+                old_ctrl,
+                Arc::new(tokio::spawn(std::future::pending())),
+            );
+            let _previous = shared.nodes.lock().insert(1, vec![Some(old)]);
+            let now = Instant::now();
+            let deadline = now + Duration::from_secs(2);
+            let (result_tx, mut result_rx) = oneshot::channel();
+            let pending = Pending {
+                sticky_record: None,
+                sticky: None,
+                rec: ProduceRecord::to("t").partition(0).value("value"),
+                tx: Some(result_tx),
+                seq: Some(7),
+                batch_base_seq: Some(7),
+                batch_len: 1,
+                epoch_gen: 3,
+                deadline,
+                queued_at: now,
+                retry: 2,
+                skip_meta_refresh: true,
+                retry_after: now,
+            };
+            shared.buffered_bytes.store(5, Ordering::SeqCst);
+            let task_shared = Arc::clone(&shared);
+            let retry = tokio::spawn(async move { retry_one(&task_shared, pending).await });
+            tokio::time::timeout(Duration::from_secs(1), async {
+                loop {
+                    let removed = shared
+                        .nodes
+                        .lock()
+                        .get(&1)
+                        .and_then(|slots| slots.first())
+                        .is_some_and(Option::is_none);
+                    if removed {
+                        break;
+                    }
+                    tokio::task::yield_now().await;
+                }
+            })
+            .await
+            .expect("retry did not retire the closed worker");
+            assert!(matches!(
+                result_rx.try_recv(),
+                Err(oneshot::error::TryRecvError::Empty)
+            ));
+            assert_eq!(shared.buffered_bytes.load(Ordering::SeqCst), 5);
+
+            let (new_tx, mut new_rx) = mpsc::channel(1);
+            let (new_ctrl, _new_ctrl_rx) = mpsc::channel(1);
+            let new_id = Arc::new(());
+            let replacement = WorkerHandle::new(
+                Arc::clone(&new_id),
+                Arc::new(WorkerAdmission::new()),
+                new_tx,
+                new_ctrl,
+                Arc::new(tokio::spawn(std::future::pending())),
+            );
+            let _previous = shared.nodes.lock().insert(1, vec![Some(replacement)]);
+            // A delayed observation of the old worker must not evict the new one.
+            retire_closed_worker(&shared, 1, 0, &old_id);
+            assert!(shared.nodes.lock().get(&1).unwrap()[0]
+                .as_ref()
+                .is_some_and(|worker| Arc::ptr_eq(&worker.id, &new_id)));
+            let retried = tokio::time::timeout(Duration::from_secs(1), new_rx.recv())
+                .await
+                .unwrap()
+                .expect("retry failed to transfer the pending record");
+            retry.await.unwrap();
+            assert_eq!(retried.seq, Some(7));
+            assert_eq!(retried.batch_base_seq, Some(7));
+            assert_eq!(retried.epoch_gen, 3);
+            assert_eq!(retried.deadline, deadline);
+            assert_eq!(retried.retry, 2);
+            assert_eq!(shared.buffered_bytes.load(Ordering::SeqCst), 5);
+            assert!(matches!(
+                result_rx.try_recv(),
+                Err(oneshot::error::TryRecvError::Empty)
+            ));
+            drop(retried);
+            drop(peer);
+        }
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn retired_worker_handle_keeps_transfer_alive_and_preserves_other_slots() {
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap().to_string();
+        let meta = BrokerConn::connect(&addr, "worker-retire", Duration::from_secs(1))
+            .await
+            .unwrap();
+        let (peer, _) = listener.accept().await.unwrap();
+        let shared = test_shared(ProducerConfig::bootstrap([addr]).connections(2), meta);
+        let (first_tx, _first_rx) = mpsc::channel(1);
+        let (first_ctrl, _first_ctrl_rx) = mpsc::channel(1);
+        let first_task = tokio::spawn(std::future::pending());
+        let first_abort = first_task.abort_handle();
+        let first_id = Arc::new(());
+        let first = WorkerHandle::new(
+            Arc::clone(&first_id),
+            Arc::new(WorkerAdmission::new()),
+            first_tx,
+            first_ctrl,
+            Arc::new(first_task),
+        );
+        let (second_tx, _second_rx) = mpsc::channel(1);
+        let (second_ctrl, _second_ctrl_rx) = mpsc::channel(1);
+        let second_task = tokio::spawn(std::future::pending());
+        let second_abort = second_task.abort_handle();
+        let second_id = Arc::new(());
+        let second = WorkerHandle::new(
+            Arc::clone(&second_id),
+            Arc::new(WorkerAdmission::new()),
+            second_tx,
+            second_ctrl,
+            Arc::new(second_task),
+        );
+        let _previous = shared
+            .nodes
+            .lock()
+            .insert(1, vec![Some(first), Some(second)]);
+        let retired = retire_worker_nudge(&shared, 1, &first_id).unwrap();
+        tokio::task::yield_now().await;
+        assert!(
+            !first_abort.is_finished(),
+            "retry transfer lost its task owner"
+        );
+        assert!(!second_abort.is_finished(), "another live slot was aborted");
+        assert!(shared.nodes.lock().get(&1).unwrap()[1]
+            .as_ref()
+            .is_some_and(|worker| Arc::ptr_eq(&worker.id, &second_id)));
+        drop(retired);
+        tokio::time::timeout(Duration::from_secs(1), async {
+            while !first_abort.is_finished() {
+                tokio::task::yield_now().await;
+            }
+        })
+        .await
+        .expect("retired worker remained alive after its owner was dropped");
+        assert!(!second_abort.is_finished());
+        drop(peer);
+    }
+
     // A fresh connection must negotiate before SASL. Answer that handshake,
     // then leave the SASL request unanswered until the client closes.
     async fn stall_after_producer_api_versions(
@@ -12584,12 +14263,13 @@ mod tests {
             tokio::time::sleep(Duration::from_secs(30)).await;
         }));
         let watch = task.abort_handle();
-        let handle = WorkerHandle {
-            id: Arc::new(()),
-            data: mpsc::channel(1).0,
-            ctrl: mpsc::channel(1).0,
+        let handle = WorkerHandle::new(
+            Arc::new(()),
+            Arc::new(WorkerAdmission::new()),
+            mpsc::channel(1).0,
+            mpsc::channel(1).0,
             task,
-        };
+        );
         assert!(!watch.is_finished(), "the worker should still be sleeping");
         drop(handle);
         let started = Instant::now();
@@ -15108,7 +16788,10 @@ mod tests {
 
 #[cfg(test)]
 mod rediscover_stop_tests {
-    use super::{discover_typed_coord, rediscover_producer_coordinator, RediscoverProducer};
+    use super::{
+        discover_typed_coord, rediscover_producer_coordinator, RediscoverProducer, WorkerAdmission,
+        WorkerLease,
+    };
     use crate::protocol::group::COORDINATOR_TRANSACTION;
     use crate::ProducerConfig;
     use std::collections::HashMap;
@@ -15427,6 +17110,7 @@ mod rediscover_stop_tests {
             meta_tx,
             connect_tx,
             retry_tx,
+            retry_admission: WorkerAdmission::new(),
             meta_task: parking_lot::Mutex::new(None),
             connect_task: parking_lot::Mutex::new(None),
             retry_task: parking_lot::Mutex::new(None),
@@ -15451,7 +17135,7 @@ mod rediscover_stop_tests {
             m_errors: AtomicU64::new(0),
             m_bytes: AtomicU64::new(0),
             buffered_bytes: AtomicU64::new(0),
-            closed: AtomicBool::new(false),
+            closed: Arc::new(AtomicBool::new(false)),
             ack_latency: crate::metrics::LatencyTracker::new(),
             interceptors: cfg.interceptors.clone(),
             topics: parking_lot::Mutex::new(HashMap::new()),
@@ -15574,6 +17258,7 @@ mod rediscover_stop_tests {
         let (_ctrl_tx, ctrl_rx) = tokio::sync::mpsc::channel(1);
         let mut worker = Worker {
             id: Arc::new(()),
+            admission: Arc::new(WorkerAdmission::new()),
             node_id: 1,
             throttle: Arc::new(BrokerThrottle {
                 active: AtomicBool::new(false),
@@ -15582,7 +17267,7 @@ mod rediscover_stop_tests {
             conn,
             data: data_rx,
             ctrl: ctrl_rx,
-            shared,
+            shared: Arc::clone(&shared),
             write_buf: bytes::BytesMut::new(),
             pending: Vec::new(),
             spare_batch: Vec::new(),
@@ -15598,6 +17283,7 @@ mod rediscover_stop_tests {
             ack_requested: HashMap::new(),
             ack_seen: HashMap::new(),
             ack_tracker: None,
+            _live: WorkerLease::register(&shared),
         };
         worker.reconnect_if_idle().await;
         assert_eq!(
@@ -15712,12 +17398,13 @@ mod rediscover_stop_tests {
         }
         let (data, _data_rx) = tokio::sync::mpsc::channel::<Pending>(1);
         let (ctrl, _ctrl_rx) = tokio::sync::mpsc::channel::<Ctrl>(1);
-        let handle = WorkerHandle {
-            id: Arc::new(()),
+        let handle = WorkerHandle::new(
+            Arc::new(()),
+            Arc::new(WorkerAdmission::new()),
             data,
             ctrl,
-            task: Arc::new(worker),
-        };
+            Arc::new(worker),
+        );
         let mut set = tokio::task::JoinSet::new();
         let _ = set.spawn(async move { handle });
         for _ in 0..8 {

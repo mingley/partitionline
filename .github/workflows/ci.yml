@@ -201,7 +201,8 @@ jobs:
           curl --fail --location --max-time 60 https://repo.maven.apache.org/maven2/com/github/luben/zstd-jni/1.5.6-10/zstd-jni-1.5.6-10.jar -o target/zstd-peers/libs/zstd-jni.jar
           curl --fail --location --max-time 60 https://repo.maven.apache.org/maven2/org/slf4j/slf4j-api/1.7.36/slf4j-api-1.7.36.jar -o target/zstd-peers/libs/slf4j-api.jar
           curl --fail --location --max-time 60 https://repo.maven.apache.org/maven2/org/xerial/snappy/snappy-java/1.1.10.7/snappy-java-1.1.10.7.jar -o target/zstd-peers/libs/snappy-java.jar
-          curl --fail --location --max-time 60 https://repo.maven.apache.org/maven2/org/lz4/lz4-java/1.10.2/lz4-java-1.10.2.jar -o target/zstd-peers/libs/lz4-java.jar
+          curl --fail --location --max-time 60 https://repo.maven.apache.org/maven2/at/yawk/lz4/lz4-java/1.10.2/lz4-java-1.10.2.jar -o target/zstd-peers/libs/lz4-java.jar
+          echo '252dabd586d22149a31661a8afc1a50747714eb1a298bd4a6e780c8c91a13866  target/zstd-peers/libs/lz4-java.jar' | sha256sum --check
           echo 'd3ef575e3e4979678dc01bf1dcce51021493b4d11fb7f1be8ad982877c16a1c0  target/zstd-peers/libs/slf4j-api.jar' | sha256sum --check
       - name: Independent Java decoder and fixture pins
         run: python3 tests/conformance/run-zstd-decode.py verify --jar target/zstd-peers/kafka-clients.jar --libs target/zstd-peers/libs --fixtures tests/fixtures/zstd-decode --report target/zstd-peers/report.json

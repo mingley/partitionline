@@ -9578,34 +9578,35 @@ pub fn decode_assignment(bytes: &[u8]) -> Result<Vec<(String, Vec<i32>)>> {
     Ok(group_owned_assignment(assignment.partitions))
 }
 
-/// [`decode_assignment`], yielding while topics and long partition lists are decoded.
-///
-/// Decoding 2,000,000 topics held the caller for 619ms. A topic name and a partition are still read.
+/// [`decode_assignment`], yielding while topics and partition indexes are read.
 pub async fn decode_assignment_cooperative(bytes: &[u8]) -> Result<Vec<(String, Vec<i32>)>> {
-    let assignment = deserialize_assignment_cooperative(bytes).await?;
-    Ok(group_owned_assignment_cooperative(assignment.partitions).await)
-}
-
-async fn deserialize_assignment_cooperative(bytes: &[u8]) -> Result<ConsumerProtocolAssignment> {
     if bytes.is_empty() {
-        return Ok(ConsumerProtocolAssignment::default());
+        return Ok(Vec::new());
     }
     let mut bytes = bytes;
     let raw = buf::get_i16(&mut bytes)?;
     let _ver = check_assignment_version(raw)?;
     let n = buf::get_array_len(&mut bytes, false)?.unwrap_or(0);
-    let mut partitions = Vec::new();
+    let mut by_topic = Vec::new();
+    // The keys borrow the input frame, so neither the index nor the parser
+    // needs one owned topic name per partition.
+    let mut index = HashMap::new();
     let mut walked = 0usize;
     for _ in 0..n {
-        let mut topic = buf::get_classic_nullable_string(&mut bytes)?.unwrap_or_default();
+        let topic = assignment_topic_name(&mut bytes)?;
         let pn = buf::get_array_len(&mut bytes, false)?.unwrap_or(0);
-        let mut next = 0usize;
-        while next < pn {
-            let end = next.saturating_add(8 * 1024).min(pn);
-            pull_named_partitions(&mut bytes, &mut topic, pn, next, end, &mut partitions)?;
-            next = end;
-            if next < pn {
-                tokio::task::yield_now().await;
+        if pn > 0 {
+            let slot = assignment_topic_slot(&mut by_topic, &mut index, topic);
+            let Some((_, partitions)) = by_topic.get_mut(slot) else {
+                return Err(Error::protocol("assignment topic slot missing"));
+            };
+            for _ in 0..pn {
+                partitions.push(buf::get_i32(&mut bytes)?);
+                walked = walked.saturating_add(1);
+                if walked == 8 * 1024 {
+                    walked = 0;
+                    tokio::task::yield_now().await;
+                }
             }
         }
         walked = walked.saturating_add(1);
@@ -9614,10 +9615,51 @@ async fn deserialize_assignment_cooperative(bytes: &[u8]) -> Result<ConsumerProt
             tokio::task::yield_now().await;
         }
     }
-    if !bytes.is_empty() {
-        let _user = buf::get_classic_bytes(&mut bytes)?;
+    skip_assignment_user_data(&mut bytes)?;
+    Ok(by_topic)
+}
+
+fn skip_assignment_user_data(bytes: &mut &[u8]) -> Result<()> {
+    if bytes.is_empty() {
+        return Ok(());
     }
-    Ok(ConsumerProtocolAssignment { partitions })
+    let length = buf::get_i32(bytes)?;
+    if length >= 0 {
+        let length = buf::usize_from_i32(length)?;
+        buf::need(bytes, length)?;
+        bytes.advance(length);
+    }
+    Ok(())
+}
+
+fn assignment_topic_name<'a>(bytes: &mut &'a [u8]) -> Result<&'a str> {
+    let len = buf::get_i16(bytes)?;
+    if len < 0 {
+        return Ok("");
+    }
+    let len = buf::usize_from_i16(len)?;
+    buf::need(bytes, len)?;
+    let input = *bytes;
+    let name = input
+        .get(..len)
+        .ok_or_else(|| Error::protocol("short assignment topic name"))?;
+    let name = std::str::from_utf8(name).map_err(|error| Error::protocol(error.to_string()))?;
+    bytes.advance(len);
+    Ok(name)
+}
+
+fn assignment_topic_slot<'a>(
+    by_topic: &mut Vec<(String, Vec<i32>)>,
+    index: &mut HashMap<&'a str, usize>,
+    topic: &'a str,
+) -> usize {
+    if let Some(&slot) = index.get(topic) {
+        return slot;
+    }
+    let slot = by_topic.len();
+    let _previous = index.insert(topic, slot);
+    by_topic.push((topic.to_owned(), Vec::new()));
+    slot
 }
 
 fn pull_named_partitions(
@@ -9634,52 +9676,133 @@ fn pull_named_partitions(
     Ok(())
 }
 
-async fn group_owned_assignment_cooperative(parts: Vec<(String, i32)>) -> Vec<(String, Vec<i32>)> {
-    let mut index: HashMap<&str, usize> = HashMap::new();
-    let mut slots = Vec::with_capacity(parts.len());
-    let mut walked = 0usize;
-    for (topic, _) in &parts {
-        if let Some(&slot) = index.get(topic.as_str()) {
-            slots.push(slot);
-        } else {
-            let slot = index.len();
-            let _previous = index.insert(topic.as_str(), slot);
-            slots.push(slot);
-        }
-        walked = walked.saturating_add(1);
-        if walked == 8 * 1024 {
-            walked = 0;
-            tokio::task::yield_now().await;
-        }
-    }
-    let topic_count = slots
-        .iter()
-        .copied()
-        .max()
-        .map(|slot| slot.saturating_add(1))
-        .unwrap_or(0);
-    let mut by_topic: Vec<Option<(String, Vec<i32>)>> = Vec::with_capacity(topic_count);
-    by_topic.resize_with(topic_count, || None);
-    walked = 0;
-    for ((topic, part), slot) in parts.into_iter().zip(slots) {
-        match by_topic.get_mut(slot) {
-            Some(Some((_, partitions))) => partitions.push(part),
-            Some(empty) => *empty = Some((topic, vec![part])),
-            None => {}
-        }
-        walked = walked.saturating_add(1);
-        if walked == 8 * 1024 {
-            walked = 0;
-            tokio::task::yield_now().await;
-        }
-    }
-    by_topic.into_iter().flatten().collect()
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
     use std::collections::HashMap;
+
+    fn assignment_wire_with_duplicate_topics(version: i16) -> BytesMut {
+        let topics: &[(Option<&str>, &[i32])] = &[
+            (Some("empty"), &[]),
+            (Some("b"), &[3, 1]),
+            (Some("a"), &[4]),
+            (Some("b"), &[2, 2]),
+            (None, &[7]),
+            (Some(""), &[8]),
+        ];
+        let mut body = BytesMut::new();
+        body.put_i16(version);
+        buf::put_array_len(&mut body, false, Some(topics.len())).unwrap();
+        for (topic, partitions) in topics {
+            buf::put_classic_nullable_string(&mut body, *topic).unwrap();
+            buf::put_array_len(&mut body, false, Some(partitions.len())).unwrap();
+            for partition in *partitions {
+                body.put_i32(*partition);
+            }
+        }
+        buf::put_classic_bytes(&mut body, Some(b"discarded user data")).unwrap();
+        body
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn grouped_assignment_decode_matches_flat_decoder_and_errors() {
+        assert!(decode_assignment_cooperative(&[]).await.unwrap().is_empty());
+        for version in [-1, 0, 1, 2, 3, 4, i16::MAX] {
+            let body = assignment_wire_with_duplicate_topics(version);
+            for length in 0..=body.len() {
+                let wire = body.get(..length).unwrap();
+                let expected = decode_assignment(wire);
+                let actual = decode_assignment_cooperative(wire).await;
+                match (expected, actual) {
+                    (Ok(expected), Ok(actual)) => assert_eq!(actual, expected),
+                    (Err(expected), Err(actual)) => {
+                        assert_eq!(actual.to_string(), expected.to_string());
+                    }
+                    (expected, actual) => panic!(
+                        "assignment version {version}, length {length}: {expected:?} != {actual:?}"
+                    ),
+                }
+            }
+            if version >= 0 {
+                let decoded = decode_assignment_cooperative(&body).await.unwrap();
+                assert_eq!(
+                    decoded,
+                    vec![
+                        ("b".to_string(), vec![3, 1, 2, 2]),
+                        ("a".to_string(), vec![4]),
+                        (String::new(), vec![7, 8]),
+                    ]
+                );
+            }
+        }
+        let mut invalid_name = BytesMut::new();
+        invalid_name.put_i16(0);
+        invalid_name.put_i32(1);
+        invalid_name.put_i16(1);
+        invalid_name.put_u8(0xff);
+        invalid_name.put_i32(0);
+        assert_eq!(
+            decode_assignment_cooperative(&invalid_name)
+                .await
+                .unwrap_err()
+                .to_string(),
+            decode_assignment(&invalid_name).unwrap_err().to_string()
+        );
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn decoding_many_medium_assignment_lists_does_not_hold_the_caller() {
+        let mut body = BytesMut::new();
+        body.put_i16(0);
+        body.put_i32(64);
+        for topic in 0..64 {
+            buf::put_classic_nullable_string(&mut body, Some(&format!("topic-{topic}"))).unwrap();
+            body.put_i32(8 * 1024);
+            for partition in 0..8 * 1024 {
+                body.put_i32(partition);
+            }
+        }
+        body.put_i32(-1);
+        let started = std::time::Instant::now();
+        tokio::select! {
+            decoded = decode_assignment_cooperative(&body) => { let _decoded = decoded.unwrap(); }
+            () = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        assert!(
+            started.elapsed() < std::time::Duration::from_millis(80),
+            "decoding medium assignment lists held the caller for {:?}",
+            started.elapsed()
+        );
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn grouped_assignment_decode_completes_large_repeated_lists() {
+        let mut body = BytesMut::new();
+        body.put_i16(2);
+        body.put_i32(3);
+        for (topic, first, count) in [
+            ("orders", 0, 20_000),
+            ("other", 99, 1),
+            ("orders", 20_000, 33),
+        ] {
+            buf::put_classic_nullable_string(&mut body, Some(topic)).unwrap();
+            body.put_i32(count);
+            for partition in first..first + count {
+                body.put_i32(partition);
+            }
+        }
+        body.put_i32(-1);
+        let expected = decode_assignment(&body).unwrap();
+        let decoded = tokio::time::timeout(
+            std::time::Duration::from_secs(2),
+            decode_assignment_cooperative(&body),
+        )
+        .await
+        .unwrap()
+        .unwrap();
+        assert_eq!(decoded, expected);
+        assert_eq!(decoded.first().map(|(_, parts)| parts.len()), Some(20_033));
+    }
 
     #[tokio::test(flavor = "current_thread")]
     async fn encoding_many_offset_commit_response_topics_does_not_hold_the_caller() {
@@ -14171,21 +14294,27 @@ mod tests {
     }
 
     #[tokio::test(flavor = "current_thread")]
-    async fn grouping_many_owned_topics_does_not_hold_the_caller() {
-        // Same 20_000-name scan as assignment grouping, which held the caller 1.2s.
-        // Placing 1_000_000 owned names without a pause held the caller 1.2s.
-        let parts: Vec<(String, i32)> = (0..1_000_000)
-            .map(|index| (format!("topic-{index}"), 0))
-            .collect();
+    async fn decoding_many_owned_topics_does_not_hold_the_caller() {
+        // Decode grouped output directly; cancellation must not drop a fully
+        // materialized, flat million-name assignment before returning.
+        let mut body = BytesMut::new();
+        body.put_i16(0);
+        body.put_i32(1_000_000);
+        for index in 0..1_000_000 {
+            buf::put_classic_nullable_string(&mut body, Some(&format!("topic-{index}"))).unwrap();
+            body.put_i32(1);
+            body.put_i32(0);
+        }
+        body.put_i32(-1);
         let started = std::time::Instant::now();
         tokio::select! {
-            _ = group_owned_assignment_cooperative(parts) => {}
+            _ = decode_assignment_cooperative(&body) => {}
             _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
         }
         let elapsed = started.elapsed();
         assert!(
             elapsed < std::time::Duration::from_millis(80),
-            "grouping owned topics held the caller for {elapsed:?}"
+            "decoding owned topics held the caller for {elapsed:?}"
         );
     }
 
@@ -14206,7 +14335,8 @@ mod tests {
             vec![("b", vec![1, 3]), ("a", vec![2])]
         );
         let owned = group_owned_assignment(parts.clone());
-        let owned_cooperative = group_owned_assignment_cooperative(parts).await;
+        let encoded = encode_tp_assignment(&parts).unwrap();
+        let owned_cooperative = decode_assignment_cooperative(&encoded).await.unwrap();
         assert_eq!(owned, owned_cooperative);
         assert_eq!(
             owned

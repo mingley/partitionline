@@ -1,0 +1,321 @@
+{
+  "base_commit": "77021f7dc6c0d19aa93c7bf0b7fad125ee632e23",
+  "source_files": {
+    "src/producer.rs": {
+      "base_sha256": "8162d874894decb6a507a79c81aaabd91bebc9271193ccc66e1c1150391744d0",
+      "candidate_sha256": "4f461c00864e3da5e20925796c1f489580a4046202cffd86fefeb64cbd145a32"
+    },
+    "src/protocol/group.rs": {
+      "base_sha256": "97cd15ca4d0a08815d4f0a8aec1545b32d28c5ffe25679ded91e0df1e64d6430",
+      "candidate_sha256": "d42b6be0b926c585c38ed5164488c0ccac30d801c3fc9c33d95485eac227b54f"
+    },
+    "src/protocol/share.rs": {
+      "base_sha256": "5d14a7771a0de99250717821d2fa2ed503c57ebdb64c607fd75374e72b041044",
+      "candidate_sha256": "91616473b8a448550d7708bd9b184a1a1e701b76c1e0b28eece98d02e9eb6f1c"
+    },
+    "src/protocol/records.rs": {
+      "base_sha256": "1cb9495eb624ffce501b7c26e04d6544a554365335885c8d9844858f50a00ef3",
+      "candidate_sha256": "a0d5b6ff6e1bb76b48057278654f4f43535fd6bf27075badda88b993c4f535f4"
+    }
+  },
+  "patch_sha256": "e7b7a98b0119a86d41cad9bfb293c41db7539cf978746dd9f6fbf8a083d5a9e8",
+  "proof_scope": "Isolated candidate on shared x86_64; default runtime features and all-target/all-feature strict Clippy. Exact scoped qualification, not production readiness or a performance comparison.",
+  "source_capsules": {
+    "script_sha256": "979a68aa916f137501b617bd4c8817fda14a31079f1d2289645b3a5d62b3b1de",
+    "fixed": {
+      "path": "/workspace/work/producer-admission-qualification-20261030/fixed-source.tar.gz",
+      "sha256": "d4229206eb3f8738d8ea36c5768607cf89c2260bb6d8ea9c4d1c6da8cc7300df",
+      "bytes": 7248051,
+      "member_count": 1741,
+      "all_members_read_back": true
+    },
+    "baseline04_delta": {
+      "path": "/workspace/work/producer-admission-qualification-20261030/baseline04-source-delta.tar.gz",
+      "sha256": "5e69e3fbb74bfd5d20dd5a0f395027a1b385f225773dd078b602179cee9a3eb3",
+      "bytes": 322498,
+      "member_count": 4,
+      "all_members_read_back": true
+    },
+    "baseline_reconstruction": "Start from the fixed source capsule and replace only the four paths in the baseline04 delta. Verify all 1741 paths against baseline-lib-04-inputs-before.json.",
+    "scope": "All visible rg files including fixtures; target and docs excluded. Dependency/toolchain bytes not exhaustively pinned. Source was retained after execution with every file checked against the build input manifest."
+  },
+  "baseline": {
+    "build": "baseline-lib-04",
+    "selections": 31,
+    "passed": 17,
+    "failed": 14,
+    "attribution_limit": "The retired callback-barrier baseline first fails on retirement wakeup, not its later count assertion."
+  },
+  "fixed_focused": {
+    "build": "fixed-lib",
+    "selections": 33,
+    "passed": 33,
+    "failed": 0,
+    "exact_nonzero_selection": true
+  },
+  "full_default_library": {
+    "passed": 2176,
+    "failed": 20,
+    "ignored": 0,
+    "failure_names": [
+      "admin::tests::decoding_many_delegation_tokens_does_not_hold_the_caller",
+      "admin::tests::extending_many_described_topics_does_not_hold_the_caller",
+      "admin::tests::grouping_many_named_results_does_not_hold_the_caller",
+      "admin::tests::indexing_many_coordinators_does_not_hold_the_caller",
+      "admin::tests::indexing_many_described_producers_does_not_hold_the_caller",
+      "consumer::tests::indexing_many_metadata_names_does_not_hold_the_caller",
+      "consumer::tests::wakeup_keeps_a_leader_dial_that_already_finished",
+      "group::rediscover_stop_tests::replacing_an_idle_coordinator_lets_the_broker_leave",
+      "group::rediscover_stop_tests::replacing_an_idle_legacy_offset_coordinator_lets_the_broker_leave",
+      "group::rediscover_stop_tests::replacing_an_idle_offset_coordinator_lets_the_broker_leave",
+      "group::tests::collecting_many_revoked_commits_does_not_hold_the_caller",
+      "group::tests::copying_many_assigned_members_does_not_hold_the_caller",
+      "group::tests::extending_many_joined_topics_does_not_hold_the_caller",
+      "group::tests::pairing_many_committed_offsets_does_not_hold_the_caller",
+      "group::tests::retaining_many_interval_commits_does_not_hold_the_caller",
+      "producer::tests::assembling_many_produce_topics_does_not_hold_the_caller",
+      "producer::tests::replacing_an_idle_metadata_socket_lets_the_broker_leave",
+      "protocol::acl::tests::grouping_many_acl_resources_does_not_hold_the_caller",
+      "share::dial_tests::wakeup_keeps_a_share_dial_that_already_finished",
+      "share::tests::naming_many_share_topics_does_not_hold_the_caller"
+    ],
+    "result": [
+      "test result: FAILED. 2176 passed; 20 failed; 0 ignored; 0 measured; 0 filtered out; finished in 517.46s"
+    ],
+    "elapsed_seconds": 518.194
+  },
+  "default_integrations": {
+    "passed": 118,
+    "failed": 19,
+    "ignored": 2,
+    "targets": [
+      {
+        "target": "produce_cancel",
+        "build": "fixed-integration-01-build",
+        "run": "fixed-integration-01-run",
+        "exit": 0,
+        "test_results": [
+          "test result: ok. 23 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.31s"
+        ],
+        "test_failures": []
+      },
+      {
+        "target": "buffer_ownership",
+        "build": "fixed-integration-02-build",
+        "run": "fixed-integration-02-run",
+        "exit": 0,
+        "test_results": [
+          "test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.26s"
+        ],
+        "test_failures": []
+      },
+      {
+        "target": "mock_produce",
+        "build": "fixed-integration-03-build",
+        "run": "fixed-integration-03-run",
+        "exit": 101,
+        "test_results": [
+          "test result: FAILED. 27 passed; 18 failed; 0 ignored; 0 measured; 0 filtered out; finished in 12.28s"
+        ],
+        "test_failures": [
+          "commit_reuses_a_produce_handshake_for_the_moved_coordinator",
+          "commit_reuses_bootstrap_when_the_coordinator_returns",
+          "epoch_bump_reuses_a_produce_handshake",
+          "idle_metadata_reuses_learned_api_versions",
+          "idle_produce_leader_reuses_learned_api_versions",
+          "multi_bootstrap_commit_reuses_known_coordinator_handshakes",
+          "multi_bootstrap_send_offsets_reuses_known_handshakes",
+          "multi_bootstrap_transaction_reuses_the_other_bootstrap_handshake",
+          "produce_reuses_a_finished_bootstrap_handshake",
+          "produce_reuses_bootstrap_api_versions",
+          "produce_reuses_the_transaction_coordinator_handshake",
+          "retry_refreshes_waiting_topics_together",
+          "send_all_redials_leaders_while_refreshing_metadata",
+          "send_offsets_negotiates_a_new_group_coordinator",
+          "send_offsets_repeats_a_remote_coordinator_without_another_handshake",
+          "send_offsets_reuses_bootstrap_api_versions",
+          "transactional_rediscover_skips_a_second_bootstrap_handshake",
+          "transactional_startup_skips_a_second_bootstrap_handshake"
+        ]
+      },
+      {
+        "target": "producer_initialization",
+        "build": "fixed-integration-04-build",
+        "run": "fixed-integration-04-run",
+        "exit": 0,
+        "test_results": [
+          "test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.73s"
+        ],
+        "test_failures": []
+      },
+      {
+        "target": "producer_retained_backing",
+        "build": "fixed-integration-05-build",
+        "run": "fixed-integration-05-run",
+        "exit": 101,
+        "test_results": [
+          "test result: FAILED. 7 passed; 1 failed; 1 ignored; 0 measured; 0 filtered out; finished in 27.79s"
+        ],
+        "test_failures": [
+          "cancelled_channel_admission_releases_only_the_unenqueued_reservation"
+        ]
+      },
+      {
+        "target": "sticky_partitioner",
+        "build": "fixed-integration-06-build",
+        "run": "fixed-integration-06-run",
+        "exit": 0,
+        "test_results": [
+          "test result: ok. 29 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.46s"
+        ],
+        "test_failures": []
+      },
+      {
+        "target": "init_producer_id_v6",
+        "build": "fixed-integration-07-build",
+        "run": "fixed-integration-07-run",
+        "exit": 0,
+        "test_results": [
+          "test result: ok. 12 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.23s"
+        ],
+        "test_failures": []
+      }
+    ]
+  },
+  "strict_clippy": {
+    "passed": true,
+    "receipt": "fixed-clippy-all-targets-03.json",
+    "features": "all",
+    "targets": "all"
+  },
+  "all_features_runtime": "not run in this phase",
+  "historical_attempts": "Earlier fixture compile failures, original setup errors, corrected genuine baseline failures, and intermediate strict lint failures are preserved in the bundle. They are not successful product baselines.",
+  "retained_backing_failure_comparison": {
+    "earlier_commit": "53b5af47fd18898a68364d9b88edc181c225bfe4",
+    "earlier_path": "docs/evidence/client/clean-default-validation-20261028/runs/default-all-targets.log",
+    "earlier_failure": "Error: Timeout",
+    "current_failure": "after_cancel=4096, expected accepted=4097",
+    "interpretation": "Same test failed historically with a different observation. Current result alone does not establish a new regression or overrelease. The fixture allows acknowledgements during task.abort().await; no ack counter is captured to determine whether that happened."
+  },
+  "ignored_tests": [
+    {
+      "name": "native_retained_backing_peer",
+      "reason": "requires owned native Kafka topic and independent Java/C readback"
+    },
+    {
+      "name": "native_ordinary_transaction_history",
+      "reason": "requires isolated Kafka broker and independent Java readback"
+    }
+  ],
+  "local_retained_elf_readbacks": [
+    {
+      "build_artifacts": "baseline-lib-03-artifacts.json",
+      "target": "partitionline",
+      "elf_sha256": "9aeb4990216c193f7fd293dd9e12f267a40180c3f2abc489afae6187dce87625",
+      "elf_bytes": 128031896,
+      "retained_gzip_sha256": "8e39e997c1b0342019b2f6fa2eaf5b5b4d16052362b3486fccf7c1ba535de6b8",
+      "archive_locally_retained": true,
+      "read_back_verified": true
+    },
+    {
+      "build_artifacts": "baseline-lib-04-artifacts.json",
+      "target": "partitionline",
+      "elf_sha256": "b7d44de7fbb19b05b94d29251bbd6f3bd7eb6ff4ee5b6f361457ec90df7efd10",
+      "elf_bytes": 128033824,
+      "retained_gzip_sha256": "faf3c2a06dd8ed22601152f70622d029c57f34195bdaf404e7be06e5ba2fabb9",
+      "archive_locally_retained": true,
+      "read_back_verified": true
+    },
+    {
+      "build_artifacts": "fixed-integration-01-build-artifacts.json",
+      "target": "produce_cancel",
+      "elf_sha256": "4cc697c1f2c7a3d415412fa9b190e2d8a8c6c71568ce1387cdbb5c897adb8e2e",
+      "elf_bytes": 23989288,
+      "retained_gzip_sha256": "d04586c576f543cda613f53f5a6ee9df37bc5f3da91886f10a9f6641c0f8d001",
+      "archive_locally_retained": true,
+      "read_back_verified": true
+    },
+    {
+      "build_artifacts": "fixed-integration-02-build-artifacts.json",
+      "target": "buffer_ownership",
+      "elf_sha256": "bb3d9037a73605433c6cc30a2ba6523779bf5d3334f30d57e43986831de56af2",
+      "elf_bytes": 22093448,
+      "retained_gzip_sha256": "f88793a90ba2eab95844a7cd190acd557d45a5f7b3ca8d00c68374809b7ce2e3",
+      "archive_locally_retained": true,
+      "read_back_verified": true
+    },
+    {
+      "build_artifacts": "fixed-integration-03-build-artifacts.json",
+      "target": "mock_produce",
+      "elf_sha256": "c0d570c9292eab6991f28748fad919b6b5b07a350e420dc746b5636413d4fbd3",
+      "elf_bytes": 27900848,
+      "retained_gzip_sha256": "d9dd021ca5d6c1c34da247823fe6bd6d2891aae6d34684f7e5d02847f5e6056e",
+      "archive_locally_retained": true,
+      "read_back_verified": true
+    },
+    {
+      "build_artifacts": "fixed-integration-04-build-artifacts.json",
+      "target": "producer_initialization",
+      "elf_sha256": "5772751516c57ba481b55e67e322278a4601285e5862bdb54245043e8b6f62f9",
+      "elf_bytes": 21541992,
+      "retained_gzip_sha256": "c89e23122ff2eddb2d52984403b7fc4e123a350ba7dc67534f5092c659a11bf4",
+      "archive_locally_retained": true,
+      "read_back_verified": true
+    },
+    {
+      "build_artifacts": "fixed-integration-05-build-artifacts.json",
+      "target": "producer_retained_backing",
+      "elf_sha256": "dd1ebc91cda3ba993ed27ac4c076b5db6585f5a04e7b47c0c83829b371f49b0b",
+      "elf_bytes": 22966000,
+      "retained_gzip_sha256": "a1712db9447419dfd8938b65dfe2d9f49f1b9cd89ecb930fbb3465d6408a687f",
+      "archive_locally_retained": true,
+      "read_back_verified": true
+    },
+    {
+      "build_artifacts": "fixed-integration-06-build-artifacts.json",
+      "target": "sticky_partitioner",
+      "elf_sha256": "3f9fe4e9b1bdf6edc95244d9f824233a4e91fd37b2765ddadce01e0cbec0c026",
+      "elf_bytes": 23044672,
+      "retained_gzip_sha256": "ceec5f91a7a5045319cb9b4c932e659cf9fb4e0bc24110ebd145543fca6766a8",
+      "archive_locally_retained": true,
+      "read_back_verified": true
+    },
+    {
+      "build_artifacts": "fixed-integration-07-build-artifacts.json",
+      "target": "init_producer_id_v6",
+      "elf_sha256": "527880c9c76292d578b83f84cab5210eb16264b58169a7bc868798af432d745f",
+      "elf_bytes": 21958576,
+      "retained_gzip_sha256": "bc5366fccd937a715d3b087f2cd216d29f4b59d610d1cfa9ec565060f3e87c85",
+      "archive_locally_retained": true,
+      "read_back_verified": true
+    },
+    {
+      "build_artifacts": "fixed-lib-artifacts.json",
+      "target": "partitionline",
+      "elf_sha256": "3ab7d3069a20b5fdd058da7e87ac645d1e1857a4d803bbd2584131fd52b762b8",
+      "elf_bytes": 127872368,
+      "retained_gzip_sha256": "6166e1d57230bd96e1d8962b15ba7d96b62e299ac205a7a4d4316006b1a16272",
+      "archive_locally_retained": true,
+      "read_back_verified": true
+    }
+  ],
+  "resources": {
+    "native_run_receipts": 120,
+    "all_inputs_stable": true,
+    "all_memory_events_unchanged": true,
+    "no_guard_stop": true,
+    "minimum_sampled_free_bytes": 1663963136,
+    "disk_stop_bytes": 1610612736,
+    "sample_interval_seconds": 0.25,
+    "build_jobs": 1,
+    "test_threads": 1,
+    "test_stack_bytes": 8388608
+  },
+  "remaining_limits": [
+    "Accepted Worker::fire payload ownership across grouping and encoding awaits is still open.",
+    "Sequence wrap, producer identity changes, retry ordering/replay and cross-worker issue ownership remain open.",
+    "Twenty default library failures and nineteen integration failures remain, including stale cross-socket capability-reuse expectations and unresolved metadata coalescing/overlap behavior.",
+    "No sustained load, independent Kafka peer history, throughput ranking, or release qualification is established.",
+    "Successful source capsules reconstruct baseline04 and fixed inputs; earlier failed attempts retain their original receipts and source hashes. Toolchain/dependency bytes are not exhaustively captured."
+  ]
+}

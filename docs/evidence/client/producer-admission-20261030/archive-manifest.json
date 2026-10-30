@@ -1,0 +1,9 @@
+{
+  "sha256": "d8c96abe064c37cbf08ced454ba2edecc544231d938e27a9f5b5a2a9f5f4e30e",
+  "bytes": 8223565,
+  "member_count": 308,
+  "virtual_file_count": 646,
+  "all_objects_read_back": true,
+  "format": "sha256-content-addressed-v1",
+  "virtual_manifest_sha256": "e1423a39b765105dd0b3a02833e5bd8c7513313abf4b3eff8b1c2bc0788bf36c"
+}

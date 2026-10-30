@@ -1,0 +1,85 @@
+{
+  "schema_version": 1,
+  "base_commit": "77021f7dc6c0d19aa93c7bf0b7fad125ee632e23",
+  "worktree_dirty": true,
+  "started_utc": "2026-10-30T20:30:30.478004+00:00",
+  "finished_utc": "2026-10-30T20:30:31.211298+00:00",
+  "command": [
+    "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+    "-B",
+    "-m",
+    "unittest",
+    "discover",
+    "-s",
+    "tests/ci",
+    "-p",
+    "test_client_capability_cases.py",
+    "-v"
+  ],
+  "exit_code": 0,
+  "pure_python_controls_passed": 11,
+  "inputs_before": {
+    ".github/workflows/capabilities.yml": "44e7ee9e8dbc69088d1d79d21786e46f128592e7d5072c1a58df6e51e3de5c0a",
+    "scripts/ci-client-capabilities.py": "960dca455e118525cf7633ca1db09a2296100c85f7dce2e6af3423adc4b3f5d3",
+    "scripts/client-capability-cases.py": "2ff815e59d605a4a365089445fce38460a6d80956826497e80fa38683865fe39",
+    "tests/conformance/client-capability-cases.json": "6a237b1926e4907afa8b858efc2be2551cc6e4d0581d4f60e2dac42cc0e9a8c5",
+    "tests/ci/test_client_capability_cases.py": "92ad25ca670b9b3e0bcc949a3f50901bfd3c4c3ea8967f3dbc9c846c1cc13222"
+  },
+  "inputs_after": {
+    ".github/workflows/capabilities.yml": "44e7ee9e8dbc69088d1d79d21786e46f128592e7d5072c1a58df6e51e3de5c0a",
+    "scripts/ci-client-capabilities.py": "960dca455e118525cf7633ca1db09a2296100c85f7dce2e6af3423adc4b3f5d3",
+    "scripts/client-capability-cases.py": "2ff815e59d605a4a365089445fce38460a6d80956826497e80fa38683865fe39",
+    "tests/conformance/client-capability-cases.json": "6a237b1926e4907afa8b858efc2be2551cc6e4d0581d4f60e2dac42cc0e9a8c5",
+    "tests/ci/test_client_capability_cases.py": "92ad25ca670b9b3e0bcc949a3f50901bfd3c4c3ea8967f3dbc9c846c1cc13222"
+  },
+  "inputs_unchanged": true,
+  "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "stderr_sha256": "d1e54e95a2d4d668da6efa088caadcb6e4708775ed0414d360c7e235d30e8ec6",
+  "compiled_discovery_replayed_from": {
+    "run_id": 41117187886,
+    "job_id": 124274360326,
+    "artifact_id": 13006707295,
+    "zip_sha256": "70ff15d273ce923c5323afa5bb2868869691980c606419613e9217ce76fdf977",
+    "inner_validation_sha256": "cffe36af653c98a61318d4b89fb7bc5cf57fcd07cfd5f6dc7c6eb72e4a70b754",
+    "original_overall_passed": false
+  },
+  "selection": [
+    {
+      "suite": "write_txn_markers_v2",
+      "discovered": 14,
+      "required": 13,
+      "external_servers_not_run": [
+        "serve_public_admin_probe"
+      ]
+    },
+    {
+      "suite": "share_offsets_v1",
+      "discovered": 14,
+      "required": 13,
+      "external_servers_not_run": [
+        "serve_share_admin_probe"
+      ]
+    },
+    {
+      "suite": "partitioner",
+      "discovered": 14,
+      "required": 14,
+      "external_servers_not_run": []
+    },
+    {
+      "suite": "sticky_partitioner",
+      "discovered": 29,
+      "required": 29,
+      "external_servers_not_run": []
+    },
+    {
+      "suite": "streams_protocol",
+      "discovered": 24,
+      "required": 24,
+      "external_servers_not_run": []
+    }
+  ],
+  "rust_test_invocations_in_this_check": 0,
+  "new_required_rust_suite_pass_claimed": false,
+  "external_java_or_sdk_qualification": false
+}

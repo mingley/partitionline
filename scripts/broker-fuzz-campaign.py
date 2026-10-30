@@ -41,6 +41,19 @@ def utc():
     return time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime())
 
 
+def cpu_quota_metadata():
+    path = Path('/sys/fs/cgroup/cpu.max')
+    try:
+        value = path.read_text(encoding='ascii').strip()
+    except FileNotFoundError:
+        # Some Linux runners expose cgroup v1 or no visible CPU controller.
+        # This is observational metadata, not an enforced worker CPU limit.
+        return {'cpu_quota': None, 'cpu_quota_source': None,
+                'cpu_quota_status': 'unavailable'}
+    return {'cpu_quota': value, 'cpu_quota_source': str(path),
+            'cpu_quota_status': 'available'}
+
+
 def pin_sources():
     names = subprocess.check_output(['git', 'ls-files', '-z', 'partitionline-broker/src',
                                     'partitionline-broker/Cargo.toml', 'fuzz/broker'], cwd=ROOT).decode().split('\0')
@@ -172,7 +185,7 @@ def run(build_dir, output, kind, seconds, resume_from=None):
                 'supervisor_pid': os.getpid(), 'build_directory': str(build_dir), 'build_sha256': sha(build_dir / 'build.json'),
                 'build': receipt, 'resume_from': previous, 'targets': {},
                 'host': {'machine': platform.machine(), 'platform': platform.platform(),
-                         'cpu_quota': Path('/sys/fs/cgroup/cpu.max').read_text().strip()},
+                         **cpu_quota_metadata()},
                 'limits': {'rss_mib_per_target': 512, 'input_bytes': 65536, 'timeout_seconds_per_input': 2,
                            'disk_bytes_per_target': 512 * 1024 * 1024, 'files_per_target': 100000,
                            'log_bytes_per_target': 64 * 1024 * 1024},

@@ -1,85 +1,141 @@
 # Next work
 
-Updated 30 October 2026.
-Use the latest stable Rust and push reviewed changes directly to `main`.
-The [task registry](tasks.json) remains the list of cards; no card is closed by
-this handoff.
+Updated 30 October 2026. Use latest stable Rust and push reviewed changes
+directly to `main`. The [task registry](tasks.json) remains unchanged:
+249 done, 13 in progress and 84 pending.
 
 ## Qualification state
 
-- Client default all-target tests at `53b5af47f`: 3,354 passed, 76 failed,
-  37 ignored; eight targets failed. The complete [logs and failure index](../evidence/client/clean-default-validation-20261028/README.md)
-  are retained. The all-feature client matrix has not passed.
-- Broker default all-target tests at `de38cd3df`: 687 passed. All features:
-  830 passed, one OIDC test failed. The [broker receipt](../evidence/broker/clean-validation-20261028/README.md)
-  explains its incomplete sequence, hash-only executables, and live probes
-  that did not establish external coverage. Later [OIDC ordering checks](../evidence/broker/oidc-revocation-order-20261028/README.md)
-  passed on an integrated dirty tree; rerun the full broker gates on a clean
-  current commit.
-- Production readiness and fastest-client/server claims are unqualified.
-  No 24-hour fault campaign or seven-day continuity run has passed. The
-  retained epoch-recovery timeout remains unexplained.
-- Later [buffer reservation checks](../evidence/perf/buffer-reservations-20261030/README.md)
-  restored the codec allocation gate and corrected 219 reservation calls.
-  Default protocol tests reported 1,385 passed and two existing failures;
-  scoped codec tests and strict Clippy passed. No throughput comparison ran.
-  The [release guide](../RELEASE.md) now requires default and all-feature tests
-  and interruption-recovery rehearsal before a new release.
+Production readiness and fastest-client/server claims remain unqualified.
+Client 0.1.0 is already published. The next client version must be at least
+0.2.0; broker and schema publication remain disabled.
+
+| Scope | Recorded result |
+| --- | --- |
+| Client default library, `77021f7dc` | 2,145 passed, 24 failed; later integration targets did not run |
+| Client all-feature library at that commit | 2,152 passed, 17 failed; later integration targets did not run |
+| Broker default all targets at that commit | 701 passed |
+| Broker all features at that commit | 710 passed, two failed; stopped at `raft_runtime` |
+| Client strict all-target Clippy, audit and dependency policy at that commit | Passed |
+| Reconnect candidate | 14 unit controls and six integration targets passed; latest broad Fetch 167 passed, two failed, one ignored |
+| Integrated-source package navigation | 20 documentation tests passed; extracted crate checked 30 documents, 225 local links, 51 pinned repository targets |
+| Package consumers and publication dry run at `77021f7dc` | Passed; actual publication remains gated |
+| New dependency floors | 14 metadata graphs and 11 resolver controls passed; GitHub audit and policy checks pass |
+| Fault/continuity campaigns | No passing 24-hour or seven-day run |
+
+The [client matrix](../evidence/client/clean-default-validation-20261028/README.md),
+[CI snapshot](../evidence/releases/main-ci-77021-20261030/README.md),
+[reconnect record](../evidence/client/reconnect-versions-20261030/README.md),
+[package checks](../evidence/releases/package-navigation-20261030/README.md)
+and [dependency record](../evidence/security/dependency-floors-20261030/README.md)
+retain the exact scopes. Passing opt-in probes alone does not prove external
+peer coverage. The broker workflow still failed its inventory and fuzz
+supervisor setup. The previous commit's full broker passes remain in the
+[earlier snapshot](../evidence/releases/main-ci-20261030/README.md).
+Current-commit green CI and the complete release gates remain open.
 
 ## Correctness priorities
 
-1. Fix producer ordering and ownership. A deterministic retry test showed a
-   later record overtaking an earlier unsent record and receiving Kafka error
-   45. Sequence allocation also saturates at `i32::MAX`; Kafka Java wraps to
-   zero. A safe fix needs per-partition issue ownership across worker and
-   leader changes, epoch-bound sequence reservations, cancellation-safe batch
-   transfer, and bounded shutdown. See the [diagnostic and lane design](../evidence/client/producer-retry-diagnostic-20261028/README.md).
-   A separate incremental-reservation loop can stop growing a cleared vector
-   above 8,192 elements. Its completion controls and worker-retirement fixes
-   are prepared locally but remain unqualified.
-2. Fix consumer delivery and isolation across errors and cancellation. A
-   ReadCommitted retry can expose an aborted record when aborted-interval
-   state is not rolled back. Poll cancellation can also lose or reorder records
-   removed from pending buffers before delivery. Validate offsets, buffered
-   records, aborted state and delivery as one ownership transition.
-   An automatic cybersecurity review rejected a proposed validation action for
-   the ReadCommitted rollback repair. An already-running test had exposed the
-   defect; the rejected validation was not rerun, and the repair remains open.
-3. Complete reconnect and version negotiation. Replacement sockets must use
-   their own negotiated ranges; name-based offset requests need safe
-   re-encoding when a coordinator changes versions. Preserve UUID identity,
-   deadlines, socket ownership and cancellation. A separate join/OffsetFetch
-   overlap draft is unsafe until parked Fetch and idle-watcher ownership are
-   handled. An earlier broad isolated Fetch replay had 141 passed, 27 failed and
-   one ignored; its draft was not integrated.
-4. Extend bounded decoding beyond the covered Fetch, ApiVersions, record and
-   group-heartbeat paths. Per-message budgets do not establish a process-wide
-   retained-memory bound. Check valid large messages, malformed inputs and
-   cancellation without weakening wire compatibility.
-5. Complete broker replication and transactions. The operator supports an
-   RF1 data path and a separate metadata-only quorum, not replicated partition
-   data or native Kafka KRaft. The local replica log still needs durable leader
-   epoch fencing, a committed-watermark guard and network integration. The
-   transaction coordinator checkpoint does not implement participant/marker
-   propagation; marker and transactional-offset event histories still have
-   finite retention limits. See the [replication](../evidence/broker/replication-limits-20261028/README.md)
+1. **Producer ownership and order.** Admission, worker retirement, task
+   ownership, shutdown barriers and retry cancellation are under qualification.
+   Controls cover held permits, cached handles, concurrent final-handle drops,
+   cancellation before a task's first poll, callback cleanup and accepted retry
+   handoffs. Thirty-three focused producer and decoder controls now pass,
+   along with strict all-target/all-feature Clippy. The broader candidate
+   default library run reports 2,176 passed and 20 failed. Seven producer
+   integration targets report 118 passed, 19 failed and two ignored. The
+   incremental reservation fix also prevents a stalled growth loop above
+   8,192 elements. Keep those failed suites open.
+   The broader issue-order repair is a separate prototype. A retained history
+   shows an earlier unsent record being overtaken and receiving Kafka error 45.
+   Sequence allocation saturates at `i32::MAX` instead of wrapping modulo
+   2^31. Repair whole-batch issue ownership, unresolved-prefix replay, identity
+   transitions, socket completion and cancellation together. See the
+   [producer diagnostic](../evidence/client/producer-retry-diagnostic-20261028/README.md).
+
+2. **Consumer delivery and isolation.** Topic recreation still fails one
+   ownership control. Cancellation and mixed-error recovery must preserve
+   buffered records, delivered offsets, fetch cursors and aborted-transaction
+   state together. A ReadCommitted retry can expose an aborted record when
+   its interval state is not rolled back. An automatic cybersecurity review
+   rejected a proposed validation action for that repair; it was not rerun,
+   and the repair remains open.
+
+3. **Remaining reconnect work.** Replacement sockets now negotiate their own
+   ranges and authenticate. Name-based offset retries re-encode for both range
+   bounds, preserve fields or fail unsupported, and share one deadline. UUID
+   requests refuse downgrade. The phase 10 Fetch run still failed recreation
+   ownership and join/reset-leader overlap. Fifteen distinct historical failures
+   include earlier timing and timeout cases; later focused passes do not close
+   them. Large v10 encoding and duplicate response-classification decoding
+   remain follow-ups.
+
+   The current CI also exposes seven socket lifecycle failures. The pending
+   repair retires idle sockets before attempting replacement and makes the
+   completed-dial tests wait for real ApiVersions and authentication. A separate
+   live compatibility test aborts with stack overflow. Classic JoinGroup can
+   return a transient coordinator error after only one rediscovery retry;
+   its bounded retry loop still needs controls.
+
+4. **Bounded decoding.** Extend protection beyond the covered Fetch,
+   ApiVersions, record and heartbeat paths. The grouped-assignment decoder and
+   small Share batch-reservation fixes are being validated with producer builds.
+   Per-message logical budgets do not bound all retained capacities or total
+   process memory. Check valid large inputs, malformed error ordering and
+   cancellation without raising existing budgets to hide regressions.
+   Admin response projection, assignment aggregation, commit filtering and
+   empty producer-request shells have prepared changes without native proof.
+   Cancellation of accepted producer payloads across grouping and encoding
+   awaits remains a separate ownership defect.
+
+5. **Broker replication and transactions.** The operator has an RF1 data path
+   and a separate metadata-only quorum. Replicated partition data and native
+   Kafka KRaft are absent. Durable accepted leader epochs, journal permissions
+   and five buffer-reservation fixes are prepared for default/all-feature
+   qualification. A committed-watermark truncation guard and authenticated
+   network integration remain open. Transaction checkpoints do not implement
+   participant/marker propagation; marker and transactional-offset histories
+   retain finite limits. See the
+   [replication](../evidence/broker/replication-limits-20261028/README.md)
    and [transaction](../evidence/broker/transaction-checkpoint-20261028/README.md)
-   evidence.
+   records.
 
 ## Validation and performance
 
-Run clean-commit client and broker default/all-feature suites, all-target strict
-Clippy, formatting, rustdoc, packaging and independent peer histories after
-fixes. Preserve failures and ignored cases. The host has a four-CPU quota and
-limited disk; avoid concurrent timing runs, monitor free space, and retain
-source and binary hashes. Test outputs and candidate patches in `/workspace/work`
-are local scratch, not part of the repository or guaranteed to persist.
+Run clean-commit client, broker and schema default/all-feature suites,
+all-target strict Clippy, formatting, rustdoc, package consumers and independent
+peer histories after fixes. Test-lint cleanup passes the remote client
+all-target/all-feature gate at `77021f7dc`. Preserve all failed, skipped and ignored
+cases. The [release guide](../RELEASE.md) requires exact-commit CI, package
+checks and interruption-recovery rehearsal before publication.
 
-The current authorized benchmark scope is this shared x86_64 host, without
-additional machines. A source-bound, single-partition closed-loop diagnostic
-was prepared locally but its Rust driver was not built and no campaign ran.
-It cannot establish a global fastest claim. The [benchmark contract](../benchmark-contract.md)
-still governs broader claims, including independent reproduction.
+The repaired capability inventory requires 93 named Rust cases and separately
+reports two external server tests. Its 11 Python controls pass; both Rust lanes
+still need to run. The Java codec setup now uses the LZ4 coordinate in Kafka's
+published POM, with the existing jar hash. Missing cgroup quota metadata now
+records an unknown value; the three pure controls pass, while actual worker
+supervision remains unqualified. See the
+[selection](../evidence/client/capability-selection-20261030/README.md) and
+[CI prerequisite](../evidence/releases/ci-repairs-20261030/README.md) records.
 
-The default TLS dependency graph includes Ring's C/assembly; a strict
-all-dependency Rust-only claim is not established. See the [provider review](../evidence/security/rustls-provider-review-20261028/README.md).
+The workspace has a four-CPU quota and limited disk. Serialize builds and
+timing runs, retain source/executable hashes, and monitor a 1.5 GiB free-space
+floor. Inactive Cargo cache files may be reclaimed only after exact compressed
+retention is verified. Do not remove immutable executable archives, failed
+campaigns or their inputs. Candidate files under `/workspace/work` are local
+scratch and are not promised as repository downloads.
+
+The retained epoch-recovery timeout after 2,704 seconds remains unexplained.
+Successful exact-seed replays and different-limit diagnostics do not replace
+the failed campaign. No campaign is running.
+
+Benchmark scope is this shared x86_64 host, without extra machines or an
+external operator. A source-bound, one-partition closed-loop diagnostic is
+prepared but unbuilt and unrun. Its supervisor has passing synthetic controls;
+that is process-cleanup evidence, not a performance result. Keep any eventual
+numbers limited to their settings, peers and architecture. The
+[benchmark contract](../benchmark-contract.md) governs broader claims.
+
+The TLS graph still includes Ring C/assembly. The dependency update keeps that
+provider. The passing audit applies to its checked lockfile and advisory
+database revision; it does not establish an all-dependency Rust-only claim.

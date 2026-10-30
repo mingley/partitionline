@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "utc": "2026-10-30T20:28:11.105111+00:00",
+  "files": [
+    {
+      "path": "kafka-clients-4.3.1.pom",
+      "url": "https://repo.maven.apache.org/maven2/org/apache/kafka/kafka-clients/4.3.1/kafka-clients-4.3.1.pom",
+      "sha256": "cc3bb1a0ff194719df93ff2928c8e11d9f4664c9157f02d4d087a7f4a5a0a2d2",
+      "bytes": 1420,
+      "http_status": 200
+    },
+    {
+      "path": "lz4-java-1.10.2.jar",
+      "url": "https://repo.maven.apache.org/maven2/at/yawk/lz4/lz4-java/1.10.2/lz4-java-1.10.2.jar",
+      "sha256": "252dabd586d22149a31661a8afc1a50747714eb1a298bd4a6e780c8c91a13866",
+      "bytes": 1002267,
+      "http_status": 200
+    }
+  ],
+  "existing_java_sha256_pin_matched": true,
+  "java_executed": false,
+  "rust_tests_executed": false
+}

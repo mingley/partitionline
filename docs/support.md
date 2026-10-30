@@ -1,8 +1,8 @@
 # Support matrix
 
-What CI actually runs for partitionline 0.1.x, and what it does not promise.
-A row here means that lane executes. It does not mean every client behavior is
-qualified.
+This describes CI coverage for the current source. A configured lane can fail;
+see [current validation](STATUS.md#validation) for recorded results.
+Published 0.1.0 is a separate source baseline.
 
 API changes follow the [0.x policy](api-stability.md). Cuts are described in
 [RELEASE.md](RELEASE.md). Adopter steps are in [ADOPTION.md](ADOPTION.md).
@@ -14,9 +14,9 @@ correctness cases at `cb7e97d`. Those cases are fixed in later source.
 Apache 4.1.2, 4.2.1, and 4.3.1 have their own digest-pinned profiles. The
 older 3.9.1 and 4.1.0 smoke runs are historical coverage.
 
-## Supported (CI-backed)
+## CI coverage
 
-| Dimension | Supported now | Evidence |
+| Dimension | Configured scope | Evidence |
 |---|---|---|
 | Crate version | `0.1.0` on crates.io | Installable; do not re-cut `0.1.0` |
 | Rust | Latest stable; currently **1.99** (`rust-version` in `Cargo.toml`) | Stable-only CI for the client, broker and schema companion. Older compilers are not supported. |
@@ -147,14 +147,10 @@ crates.io `partitionline` 0.1.0 is tag `v0.1.0` (4 September 2026, 8:28 PM CT). 
 
 An older check compared commit `ca50ca1` (22 September 2026, 1:08 PM CT) with that tag. At that commit, 14 files under `src/` differed from the published crate. That count belongs to the check. Current source is later than both the tag and `ca50ca1`.
 
-Mapped configuration defaults still match the published crate. Later source adds two fields that 0.1.0 does not have:
-
-| Field | Current source |
-|---|---|
-| `ConsumerConfig::buffer_memory` | Fetch cap. Default 32 MiB. Zero means no aggregate cap. |
-| `ProducerConfig::pre_send_fault` | Hidden test hook (`#[doc(hidden)]`). Default unset. |
-
-Adopters who depend on the packed `0.1.0` crate get that older runtime. The examples in the migration guide compile against that dependency.
+The published crate predates the buffer limits, record representations and
+compiler requirement in the [unreleased changes](../CHANGELOG.md#unreleased).
+The next client release must be at least 0.2.0. Build configurations with
+builders so new fields do not require exhaustive struct literals.
 
 The 0.x caller contract for error categories (retryable, abort-required, fatal, unsupported, timeout, ambiguous delivery) and for public config fields is in [api-stability.md](api-stability.md). Match error categories, not `Display` text. Build configs with the builders, or with `Default` plus overrides.
 

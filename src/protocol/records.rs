@@ -4218,6 +4218,18 @@ fn count_framed_batches_from(bytes: &[u8], start: usize, budget: usize) -> Resul
     Ok((count, offset))
 }
 
+/// Count a complete record set only when its framing walk is bounded.
+///
+/// Framing errors and partial tails return no hint so the record decoder
+/// retains its own validation order.
+pub(crate) fn small_framed_batch_count(bytes: &[u8]) -> Option<usize> {
+    if bytes.len() > 64 * 1024 {
+        return None;
+    }
+    let (count, end) = count_framed_batches_from(bytes, 0, 64 * 1024).ok()?;
+    (end == bytes.len()).then_some(count)
+}
+
 /// [`count_framed_batches`], yielding between slices so a caller can run.
 pub(crate) async fn count_framed_batches_cooperative(bytes: &[u8]) -> Result<usize> {
     let mut offset = 0usize;

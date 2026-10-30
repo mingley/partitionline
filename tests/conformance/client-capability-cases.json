@@ -1,0 +1,154 @@
+{
+  "schema_version": 1,
+  "audited_discovery_source": "77021f7dc6c0d19aa93c7bf0b7fad125ee632e23",
+  "scope": "Exact Rust case identities. Ignored external peer servers are discovered and reported separately; this lane does not run or qualify them.",
+  "suites": [
+    {
+      "label": "write_txn_markers_v2",
+      "selector": [
+        "--test",
+        "write_txn_markers_v2"
+      ],
+      "required_cases": [
+        "actual_apache_marker_fixtures_and_reverse_frames",
+        "authorization_and_producer_or_coordinator_fencing_are_terminal",
+        "broker_and_replica_unavailability_refresh_the_selected_partition_leader",
+        "canceled_abort_and_stalled_deadline_leave_unrelated_metadata_usable",
+        "codecs::nested_counts_and_every_truncated_prefix_fail_with_bounded_input",
+        "codecs::signed_transaction_version_and_legacy_projection_are_explicit",
+        "nonnullable_marker_fields_reject_null_on_the_wire",
+        "omitted_duplicate_or_unrelated_abort_results_cannot_succeed",
+        "pinned_schema_reference_frame_keeps_v2_field_after_coordinator_epoch",
+        "public_abort_negotiates_v2_and_default_transaction_version",
+        "retry_deadline_is_one_absolute_budget",
+        "truncated_or_trailing_marker_response_is_a_protocol_error",
+        "unsupported_abort_fails_before_metadata_or_marker_work"
+      ],
+      "external_probes": [
+        "serve_public_admin_probe"
+      ]
+    },
+    {
+      "label": "share_offsets_v1",
+      "selector": [
+        "--test",
+        "share_offsets_v1"
+      ],
+      "required_cases": [
+        "actual_apache_share_fixtures_and_reverse_frames",
+        "canceled_share_request_leaves_unrelated_operation_usable",
+        "duplicate_request_groups_and_reordered_results_preserve_request_order",
+        "group_hop_errors_refresh_coordinator_while_partition_errors_remain_results",
+        "impossible_share_offset_counts_fail_before_nested_allocation",
+        "lag_signed_extremes_follow_official_negative_is_absent_interpretation",
+        "missing_group_truncated_and_trailing_responses_fail_without_fabricated_lag",
+        "nonnullable_share_offset_fields_reject_null_before_projection",
+        "nullable_empty_named_requests_and_schema_counts_are_bounded",
+        "pinned_schema_reference_frame_keeps_lag_before_partition_error",
+        "share_retry_and_stalled_rpc_use_one_absolute_deadline",
+        "typed_and_existing_operations_negotiate_and_consume_lag",
+        "unsupported_share_offsets_fail_before_coordinator_or_metadata_work"
+      ],
+      "external_probes": [
+        "serve_share_admin_probe"
+      ]
+    },
+    {
+      "label": "partitioner",
+      "selector": [
+        "--lib",
+        "partitioner::"
+      ],
+      "required_cases": [
+        "partitioner::sticky_pressure_rng_tests::cached_route_pressure_never_consumes_a_draw_that_was_not_used_for_selection",
+        "partitioner::sticky_rejection_tests::non_power_of_two_rejection_peeks_do_not_consume_rng_and_commit_all_attempted_draws",
+        "partitioner::sticky_rejection_tests::rotation_and_pressure_consume_the_returned_rejection_state_for_eligible_leaders",
+        "partitioner::sticky_tests::close_discards_bounded_history_and_late_callbacks_cannot_recreate_it",
+        "partitioner::sticky_tests::keyed_overhead_is_not_charged_to_the_unkeyed_counter",
+        "partitioner::sticky_tests::partial_terminal_expiry_shrinks_members_and_sequenced_cancellation_is_sticky",
+        "partitioner::sticky_tests::prepared_routes_and_plans_are_pure_until_commit",
+        "partitioner::sticky_tests::real_tail_fullness_defers_b_then_zero_byte_drain_completes_rotation",
+        "partitioner::sticky_tests::two_b_forces_rotation_with_an_incomplete_tail_and_can_redraw_same_partition",
+        "partitioner::sticky_tests::uuid_reset_and_removed_partition_preserve_old_delivery_rows_without_stale_rotation",
+        "partitioner::sticky_uniformity_tests::actual_seeded_policy_rotations_are_uniform_over_available_leaders",
+        "partitioner::tests::abs_matches_java_utils",
+        "partitioner::tests::default_partitioner_keys_match_murmur2",
+        "partitioner::tests::murmur2_matches_java_utils"
+      ],
+      "external_probes": []
+    },
+    {
+      "label": "sticky_partitioner",
+      "selector": [
+        "--test",
+        "sticky_partitioner"
+      ],
+      "required_cases": [
+        "absolute_max_block_with_unavailable_leaders_is_bounded_and_uncharged",
+        "asynchronous_mixed_admissions_across_connection_slots_complete_and_release_ledger",
+        "broker_terminal_error_and_acks_zero_both_retire_rows",
+        "cancellation_before_buffer_admission_does_not_charge_or_leak",
+        "cancellation_before_enqueue_releases_the_reserved_record_slot_without_policy_charge",
+        "cancellation_while_waiting_record_capacity_creates_no_reservation_or_admission",
+        "cancelled_accepted_null_send_retains_slot_until_terminal_delivery",
+        "cancelled_queued_send_still_delivers_and_retires_its_cohort",
+        "existing_sticky_selection_survives_leader_loss_without_consuming_draws",
+        "expiry_and_close_clear_state_without_late_history_recreation",
+        "failed_buffer_admission_does_not_charge_or_consume_route",
+        "failed_leader_routing_does_not_create_history_or_advance_accounting",
+        "independent_producers_from_one_config_have_independent_histories",
+        "leader_movement_retries_original_partition_and_complete_cohort",
+        "mixed_keyed_and_explicit_records_share_real_tail_without_unkeyed_charge",
+        "new_uniform_draws_exclude_unavailable_partitions",
+        "pressure_singletons_are_not_merged_and_ledger_is_bounded",
+        "produce_v13_uses_admitted_uuid_after_metadata_recreation",
+        "retained_topic_text_and_idle_eviction_stay_within_hard_caps",
+        "retries_preserve_cohort_membership_and_never_charge_twice",
+        "retry_backoff_retains_record_slots_without_double_acquisition_or_charge",
+        "sequenced_retry_expiry_cancels_remaining_cohort_without_resending_short_batch",
+        "sticky_burst_is_one_real_batch_and_partial_flush_preserves_partition",
+        "terminal_errors_retire_all_cohort_rows_and_payload_reservations",
+        "terminal_failure_and_failed_routing_release_record_slots_exactly_once",
+        "transaction_partition_failure_retires_cohort_and_allows_abort",
+        "two_record_cap_bounds_null_and_empty_payloads_even_with_unlimited_byte_budget",
+        "unlimited_byte_budget_tracks_payload_reservations_and_terminal_releases",
+        "zero_caps_use_stateless_singletons_without_new_admission_errors"
+      ],
+      "external_probes": []
+    },
+    {
+      "label": "streams_protocol",
+      "selector": [
+        "--test",
+        "streams_protocol"
+      ],
+      "required_cases": [
+        "apache::actual_complete_sdk_messages_reject_every_truncation_and_extra_tail",
+        "apache::actual_three_sdk_flexible_headers_keep_correlation_and_body_boundaries",
+        "apache::actual_three_sdk_vectors_preserve_every_field_and_local_policy",
+        "describe::describe_all_truncated_response_prefixes_and_trailing_bytes_fail",
+        "describe::describe_array_string_and_decoded_reservations_are_bounded",
+        "describe::describe_hostile_counts_varints_and_nonnullable_null_rejected",
+        "describe::describe_nonzero_boolean_matches_generated_reader",
+        "describe::describe_request_and_complete_response_local_round_trip",
+        "describe::describe_topology_null_and_empty_subtopologies_are_distinct",
+        "describe::describe_unknown_tag_discard_and_local_tag_order_policy",
+        "describe::describe_wire_boundary_and_unsupported_versions_rejected",
+        "describe::describe_zero_limits_are_rejected_eagerly",
+        "heartbeat::heartbeat_aggregate_nested_elements_limit_precedes_output",
+        "heartbeat::heartbeat_all_truncated_prefixes_and_trailing_bytes_fail",
+        "heartbeat::heartbeat_every_request_field_local_round_trip",
+        "heartbeat::heartbeat_generated_reader_boolean_and_nullable_marker_leniency",
+        "heartbeat::heartbeat_invalid_utf8_and_unsupported_versions_rejected",
+        "heartbeat::heartbeat_nested_and_root_tags_share_one_aggregate_budget",
+        "heartbeat::heartbeat_nullable_arrays_are_changes_and_not_interchangeable",
+        "heartbeat::heartbeat_response_preserves_null_empty_status_and_signed_values",
+        "heartbeat::heartbeat_string_output_and_decoded_limits_bound_admission",
+        "heartbeat::heartbeat_struct_array_minimum_wire_prevents_count_allocation",
+        "heartbeat::heartbeat_unknown_tags_are_discarded_but_duplicates_rejected",
+        "heartbeat::heartbeat_zero_nullable_presence_marker_is_present"
+      ],
+      "external_probes": []
+    }
+  ]
+}

@@ -11,12 +11,35 @@ import sys
 import tempfile
 import time
 import unittest
+from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[2]
 SCRIPT = ROOT / 'scripts/broker-fuzz-campaign.py'
 spec = importlib.util.spec_from_file_location('broker_campaign', SCRIPT)
 campaign = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(campaign)
+
+
+class BrokerFuzzHostMetadata(unittest.TestCase):
+    def test_available_cpu_quota_keeps_its_source(self):
+        with patch.object(campaign.Path, 'read_text', return_value='400000 100000\n'):
+            self.assertEqual(campaign.cpu_quota_metadata(), {
+                'cpu_quota': '400000 100000',
+                'cpu_quota_source': '/sys/fs/cgroup/cpu.max',
+                'cpu_quota_status': 'available',
+            })
+
+    def test_missing_controller_is_explicitly_unknown(self):
+        with patch.object(campaign.Path, 'read_text', side_effect=FileNotFoundError):
+            self.assertEqual(campaign.cpu_quota_metadata(), {
+                'cpu_quota': None, 'cpu_quota_source': None,
+                'cpu_quota_status': 'unavailable',
+            })
+
+    def test_other_metadata_read_errors_are_not_silently_relabelled(self):
+        with patch.object(campaign.Path, 'read_text', side_effect=PermissionError):
+            with self.assertRaises(PermissionError):
+                campaign.cpu_quota_metadata()
 
 
 class BrokerCampaign(unittest.TestCase):

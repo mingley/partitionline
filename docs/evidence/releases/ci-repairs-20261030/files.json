@@ -1,0 +1,29 @@
+[
+  {
+    "path": "codec-url-receipt.json",
+    "bytes": 772,
+    "sha256": "dd5375402bf962a79969c27392913eec691dea814bef95ab96cae107507fa9be"
+  },
+  {
+    "path": "kafka-clients-4.3.1.pom",
+    "bytes": 1420,
+    "sha256": "cc3bb1a0ff194719df93ff2928c8e11d9f4664c9157f02d4d087a7f4a5a0a2d2"
+  },
+  {
+    "path": "fuzz-host-metadata-controls-01.json",
+    "bytes": 1217,
+    "sha256": "606f123ddb407dafa3b29708ca4ac62eed05297ab4b868a201f911ea562bffc1"
+  },
+  {
+    "path": "fuzz-host-metadata-controls-01.log",
+    "bytes": 568,
+    "sha256": "9f1cf5f478ba5f8da2d9e5fc10a5894410a0bbb8b2804c11449fecc4c37abfc4"
+  },
+  {
+    "path": "fuzz-host-metadata-fix-v1.patch.gz",
+    "bytes": 1128,
+    "sha256": "a9f967146c885508d28738a06f7fbf0b219bb11044dfc9b648c72fb62bbb1494",
+    "uncompressed_sha256": "6f801684bfea8f15048beae33a68be35722b7306f4fe42831a81f6c0af4d8403",
+    "uncompressed_bytes": 3022
+  }
+]

@@ -1,0 +1,38 @@
+{
+  "command": [
+    "python3",
+    "-B",
+    "-m",
+    "unittest",
+    "discover",
+    "-s",
+    "tests/ci",
+    "-p",
+    "test_broker_fuzz_campaign.py",
+    "-k",
+    "BrokerFuzzHostMetadata",
+    "-v"
+  ],
+  "cwd": "/workspace/work/broker-ci-repairs-20261030/candidate",
+  "exit": 0,
+  "elapsed_seconds": 0.30411576900041837,
+  "stop_reason": null,
+  "disk_stop_bytes": 1610612736,
+  "observed_min_free_bytes": 1733767168,
+  "oom_deltas": {
+    "oom": 0,
+    "oom_kill": 0,
+    "oom_group_kill": 0
+  },
+  "inputs_before": {
+    "scripts/broker-fuzz-campaign.py": "f6703c2084d87ababedfc867e0f3df427d9346b7b4bf58951202ed16d753e9a1",
+    "tests/ci/test_broker_fuzz_campaign.py": "7630c383994cc8b872eed8573a0609b6e42d04918e38c5a253b18180411b5bf5"
+  },
+  "inputs_after": {
+    "scripts/broker-fuzz-campaign.py": "f6703c2084d87ababedfc867e0f3df427d9346b7b4bf58951202ed16d753e9a1",
+    "tests/ci/test_broker_fuzz_campaign.py": "7630c383994cc8b872eed8573a0609b6e42d04918e38c5a253b18180411b5bf5"
+  },
+  "inputs_stable": true,
+  "log_sha256": "9f1cf5f478ba5f8da2d9e5fc10a5894410a0bbb8b2804c11449fecc4c37abfc4",
+  "scope": "Three pure cgroup host-metadata controls only. Native supervisor/fuzz behavior is not exercised."
+}
