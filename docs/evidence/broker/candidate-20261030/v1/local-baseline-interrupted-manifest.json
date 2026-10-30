@@ -1,0 +1,68 @@
+{
+  "status": "Compile interrupted by1.5GiB guard before any broker test. No behavioral baseline proof.",
+  "archive_sha256": "f8bf8441088fa65392f371ec30580938b845aafd584f2ba37c6c5a63444a0a52",
+  "archive_bytes": 300089,
+  "members": {
+    "baseline-01/default-build.log": {
+      "bytes": 23197,
+      "sha256": "b9748e45dfdad3b8467348b7c4e76de717fd7367c6e9951e5de1d87e85201b44"
+    },
+    "baseline-01/default-build.json": {
+      "bytes": 34714,
+      "sha256": "305b8e818d0eafde8620b12d4b625791c45e0283532cbeb45329d54f06c8d471"
+    },
+    "baseline-01/failure-summary.json": {
+      "bytes": 1103,
+      "sha256": "9cb784fdd46ba3c85d28be7c79c7015af00ed153aeed8c045ace0c813cde569d"
+    },
+    "baseline-01/inputs-before.json": {
+      "bytes": 1176146,
+      "sha256": "eac60c1e43063420b589b22da177d92f6825534d0f96236706ef7df5e01d7343"
+    },
+    "baseline-01/runner-identity.json": {
+      "bytes": 481,
+      "sha256": "31596299d29bcd26e8427042f374eda3b650245a6a5ec1c60714ebb20268e272"
+    },
+    "baseline-01/scope.json": {
+      "bytes": 595,
+      "sha256": "bddc7a38d03ffd286c2e016bd1ead371dc314411eecc529c36fe3ea4aab5de2c"
+    },
+    "baseline-01/rustc.log": {
+      "bytes": 196,
+      "sha256": "f22d5e4e9ced367e774ce5bc140d9e6b1235c1882fec80d011044851f3ae6369"
+    },
+    "baseline-01/cargo.log": {
+      "bytes": 36,
+      "sha256": "c35608815f43d0b8788a9b826fad2bb17384f49fb328dc4fe64da9db5f5ef4d6"
+    },
+    "baseline-01/stopped-build-retained/reclamation-receipt.json": {
+      "bytes": 598,
+      "sha256": "f17277ba982d3fedaf821c1fbea30c1dbdadeca051189ebfedeba1c98ebee85e"
+    },
+    "baseline-01/stopped-build-retained/manifest-before-removal.json": {
+      "bytes": 14673,
+      "sha256": "cea6e2eb5647da07628b45b39b69d6907a8205d7728d5c9dba4c7d6adac21d54"
+    },
+    "client-refresh-working-77021-producer-20261030.json": {
+      "bytes": 311878,
+      "sha256": "0a182013552311a9a6c472546dcd2845447d163ca9356d6f5c6ae734b0a511e0"
+    },
+    "baseline-ready-v3-manifest.json": {
+      "bytes": 1870,
+      "sha256": "b16a82cb0b7a97f15d0bbf21dc0ab37d0773caf718a68c181402dc37bd30f821"
+    },
+    "baseline-runner-v5-manifest.json": {
+      "bytes": 572,
+      "sha256": "ca76dd7aa9bd656370a0762459ab1ed84499ed0e7e8e575186aa6b95ed564947"
+    },
+    "qualify-v5.py": {
+      "bytes": 10671,
+      "sha256": "86ee7d0ddf8d26eb4b600c80ad65141f2dec37f39efc0941275267af0d6fa9da"
+    },
+    "run-v2.py": {
+      "bytes": 10903,
+      "sha256": "00c7896a193b0ff3298090cbf419ba332dbb7b6c094dd724f11443f7e17e2b63"
+    }
+  },
+  "retained_native_cache_note": "Maps describe new stopped-build regenerable cache retained locally before exact-copy removal. Those cache.gz bytes are not included in this public source/receipt archive and are not executed qualification artifacts."
+}

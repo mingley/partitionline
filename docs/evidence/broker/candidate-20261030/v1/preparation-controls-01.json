@@ -1,0 +1,39 @@
+{
+  "command": [
+    "python3",
+    "-B",
+    "-m",
+    "unittest",
+    "discover",
+    "-s",
+    "tests/ci",
+    "-p",
+    "test_broker_candidate_qualification.py",
+    "-v"
+  ],
+  "started_utc": "2026-10-30T21:14:20.640626+00:00",
+  "elapsed_seconds": 0.6007386139990558,
+  "exit": 0,
+  "source_hashes_before": {
+    "scripts/ci-qualify-broker-candidate.py": "47382f9036846a364500ef08fffdadaaaaebd8814dfdfe1371d027b85bb179fd",
+    "tests/ci/test_broker_candidate_qualification.py": "b7505054ba2a61f0f49e9674bf71f553c3212ec1b9a1f402f1a73775835e8ed0",
+    "docs/evidence/broker/candidate-20261030/v1/baseline-source.tar.gz": "f5470b0c234a0ee3235bab7dacabc1f2999246c76cf9003a8edd95991ba8ffd4",
+    "docs/evidence/broker/candidate-20261030/v1/fixed-source.patch": "a8073b31af40ecdac02851bd8247d6779e94859ca922e2241b64a8e1d6430757",
+    "docs/evidence/broker/candidate-20261030/v1/source-manifests.json": "d3e16e62fb92c42b5dec1f7663ded92235668ea00dc79f64875cbc8724f579d4",
+    "docs/evidence/broker/candidate-20261030/v1/source-pin-review.json": "7478250e22602b3e6f1b5c3e2dedce29169d3af8c6ff4f40219bd9e7a0ed17ff",
+    "docs/evidence/broker/candidate-20261030/v1/spec.json": "565aa7bafe4e084766b460a64d537ef5b3ae58c702973898e4b3ec77a037cc33"
+  },
+  "source_hashes_after": {
+    "scripts/ci-qualify-broker-candidate.py": "47382f9036846a364500ef08fffdadaaaaebd8814dfdfe1371d027b85bb179fd",
+    "tests/ci/test_broker_candidate_qualification.py": "b7505054ba2a61f0f49e9674bf71f553c3212ec1b9a1f402f1a73775835e8ed0",
+    "docs/evidence/broker/candidate-20261030/v1/baseline-source.tar.gz": "f5470b0c234a0ee3235bab7dacabc1f2999246c76cf9003a8edd95991ba8ffd4",
+    "docs/evidence/broker/candidate-20261030/v1/fixed-source.patch": "a8073b31af40ecdac02851bd8247d6779e94859ca922e2241b64a8e1d6430757",
+    "docs/evidence/broker/candidate-20261030/v1/source-manifests.json": "d3e16e62fb92c42b5dec1f7663ded92235668ea00dc79f64875cbc8724f579d4",
+    "docs/evidence/broker/candidate-20261030/v1/source-pin-review.json": "7478250e22602b3e6f1b5c3e2dedce29169d3af8c6ff4f40219bd9e7a0ed17ff",
+    "docs/evidence/broker/candidate-20261030/v1/spec.json": "565aa7bafe4e084766b460a64d537ef5b3ae58c702973898e4b3ec77a037cc33"
+  },
+  "inputs_stable": true,
+  "log_sha256": "cdf76c3c1053f7e4051b4f15fb119eff75d6c7587829875cb3d5968e92a93e99",
+  "scope": "Seven pure/mocked archive/source/count controls, including actual optimized Python rejection subprocess. No Cargo, Rust/Kafka runtime or native candidate test.",
+  "free_after": 1625030656
+}

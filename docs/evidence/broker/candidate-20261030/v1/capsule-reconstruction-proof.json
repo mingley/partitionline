@@ -1,0 +1,11 @@
+{
+  "created_utc": "2026-10-30T21:14:21.183154+00:00",
+  "scope": "All source archive member bytes/sizes/modes readback plus sparse8-file fixed patch reconstruction. No Cargo or runtime test.",
+  "archive_sha256": "f5470b0c234a0ee3235bab7dacabc1f2999246c76cf9003a8edd95991ba8ffd4",
+  "members_verified": 5982,
+  "raw_file_bytes": 11033212,
+  "fixed_patch_sha256": "a8073b31af40ecdac02851bd8247d6779e94859ca922e2241b64a8e1d6430757",
+  "fixed_overlay_files_verified": 8,
+  "current_root_base_file_drift": [],
+  "reviewed_metadata_prerequisite": "Only implemented-api-versions.json drift is expected until root applies reviewed11pinmetadata patch."
+}

@@ -1,0 +1,78 @@
+{
+  "started_utc": "2026-10-30T21:36:36.829864+00:00",
+  "scope": "Eleven pure/mocked qualification controls, six small actual Python process-tree controls, archive member readback and sparse eight-file patch reconstruction. No Cargo, Kafka, native broker runtime or performance test.",
+  "source_hashes_before": {
+    "scripts/ci-qualify-broker-candidate.py": "cf06bbc9ee6fa08b6091c9ecf50a637f0230b95b46238f662eec9a9b7ee12e91",
+    "scripts/candidate-command-ownership.py": "34ddbf04a4bbead974fad4a451d30c7a56818248bd5b58c88c87bdfc41896da9",
+    "tests/ci/test_broker_candidate_qualification.py": "7418a9d10d108e8bd5d9a02f07e3751f4cb7749d711a0447f125575d7804ca31",
+    "tests/ci/test_candidate_command_ownership.py": "0b786e63d059d9f3a3a3bf290ac4fe84313fe2f140243a292a87995e61877293",
+    "docs/evidence/broker/candidate-20261030/v1/spec.json": "7496f3d373d07d702504dd079cc6d9264659384cd6203a833d28858b7e82022d",
+    "docs/evidence/broker/candidate-20261030/v1/baseline-source.tar.gz": "f5470b0c234a0ee3235bab7dacabc1f2999246c76cf9003a8edd95991ba8ffd4",
+    "docs/evidence/broker/candidate-20261030/v1/fixed-source.patch.gz": "8a5a28c1c9bae7c8aff265e82e22e3a631deba36b0b4ab17e58f4d8115652218",
+    "docs/evidence/broker/candidate-20261030/v1/source-manifests.json": "d3e16e62fb92c42b5dec1f7663ded92235668ea00dc79f64875cbc8724f579d4",
+    "docs/evidence/broker/candidate-20261030/v1/source-pin-review.json": "7478250e22602b3e6f1b5c3e2dedce29169d3af8c6ff4f40219bd9e7a0ed17ff",
+    "docs/evidence/broker/candidate-20261030/v1/README.md": "292baf268150808f495d77c82ddef2b7d1c1e3f2d7019494c108bb9cfa6aeb14"
+  },
+  "commands": [
+    {
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+        "-B",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests/ci",
+        "-p",
+        "test_broker_candidate_qualification.py",
+        "-v"
+      ],
+      "exit": 0,
+      "elapsed_seconds": 0.734038258999135,
+      "expected_control_count": 11
+    },
+    {
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+        "-B",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests/ci",
+        "-p",
+        "test_candidate_command_ownership.py",
+        "-v"
+      ],
+      "exit": 0,
+      "elapsed_seconds": 3.979801157000111,
+      "expected_control_count": 6
+    }
+  ],
+  "capsule": {
+    "sha256": "f5470b0c234a0ee3235bab7dacabc1f2999246c76cf9003a8edd95991ba8ffd4",
+    "members_verified": 5982,
+    "raw_file_bytes": 11033212,
+    "fixed_overlay_files_verified": 8,
+    "expanded_patch_sha256": "a8073b31af40ecdac02851bd8247d6779e94859ca922e2241b64a8e1d6430757"
+  },
+  "current_root_base_drift": [],
+  "source_hashes_after": {
+    "scripts/ci-qualify-broker-candidate.py": "cf06bbc9ee6fa08b6091c9ecf50a637f0230b95b46238f662eec9a9b7ee12e91",
+    "scripts/candidate-command-ownership.py": "34ddbf04a4bbead974fad4a451d30c7a56818248bd5b58c88c87bdfc41896da9",
+    "tests/ci/test_broker_candidate_qualification.py": "7418a9d10d108e8bd5d9a02f07e3751f4cb7749d711a0447f125575d7804ca31",
+    "tests/ci/test_candidate_command_ownership.py": "0b786e63d059d9f3a3a3bf290ac4fe84313fe2f140243a292a87995e61877293",
+    "docs/evidence/broker/candidate-20261030/v1/spec.json": "7496f3d373d07d702504dd079cc6d9264659384cd6203a833d28858b7e82022d",
+    "docs/evidence/broker/candidate-20261030/v1/baseline-source.tar.gz": "f5470b0c234a0ee3235bab7dacabc1f2999246c76cf9003a8edd95991ba8ffd4",
+    "docs/evidence/broker/candidate-20261030/v1/fixed-source.patch.gz": "8a5a28c1c9bae7c8aff265e82e22e3a631deba36b0b4ab17e58f4d8115652218",
+    "docs/evidence/broker/candidate-20261030/v1/source-manifests.json": "d3e16e62fb92c42b5dec1f7663ded92235668ea00dc79f64875cbc8724f579d4",
+    "docs/evidence/broker/candidate-20261030/v1/source-pin-review.json": "7478250e22602b3e6f1b5c3e2dedce29169d3af8c6ff4f40219bd9e7a0ed17ff",
+    "docs/evidence/broker/candidate-20261030/v1/README.md": "292baf268150808f495d77c82ddef2b7d1c1e3f2d7019494c108bb9cfa6aeb14"
+  },
+  "elapsed_seconds": 5.4338884230000986,
+  "finished_utc": "2026-10-30T21:36:42.269692+00:00",
+  "log_sha256": "824892a0611e7ad11162b822aa276dc73a31bf0978d82d85851cc92fe11493da",
+  "free_after": 1621180416,
+  "inputs_stable": true,
+  "passed": true
+}

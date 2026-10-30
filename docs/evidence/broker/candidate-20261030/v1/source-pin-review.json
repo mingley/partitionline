@@ -1,0 +1,36 @@
+{
+  "scope": "Only four current-main source-digest fields change after known candidate product/test changes, without paths, API ranges, qualification gates or flags changing.",
+  "fields": [
+    {
+      "field": "controller_source_sha256",
+      "path": "partitionline-broker/src/raft/protocol.rs",
+      "before_sha256": "562e31d232cca69605fdb303969e5eb33140750dc98ac38e82deb82b2cb37458",
+      "after_sha256": "47ae96c84080813e4b81cfbfcdbe8bd45e48389c13c8562c0963dfc743137127"
+    },
+    {
+      "field": "produce_source_sha256",
+      "path": "partitionline-broker/src/produce.rs",
+      "before_sha256": "d2999e9e6f207a31de5428ff8a44dfbd39dc1ba04e700717c64a271cc0f13db4",
+      "after_sha256": "00d0f238c6ad5ac35afafe49ea7f97fcf37230a60028df407e8762729324b9ef"
+    },
+    {
+      "field": "fetch_source_sha256",
+      "path": "partitionline-broker/src/fetch.rs",
+      "before_sha256": "a4475f343f4be0364e0eae5afb29acbe943ca87545b6673d13912f7a23e75357",
+      "after_sha256": "709bb09abf20706648785b7695e3fca5d6a72eb409f6a57dd64c550d1af55ffe"
+    },
+    {
+      "field": "retention_source_sha256",
+      "path": "partitionline-broker/src/retention.rs",
+      "before_sha256": "e6ce84a33cc72849a2452b0d56298c098628f77ed78bf84054066defff7ce8b8",
+      "after_sha256": "e88e9876999b411b4ff0c953f47bf2b469ea2daa2f026a7b53ff50d02e06b49f"
+    }
+  ],
+  "semantic_changes": {
+    "controller_source": "Correct length-relative reservation in bounded response encoder, plus capacity/pointer/wire/warm-reuse regression control; advertised controller APIs and refusal semantics unchanged.",
+    "produce_source": "Correct length-relative response reservation, plus capacity/pointer/wire/warm-reuse control; RF1 and transaction/idempotence refusal unchanged.",
+    "fetch_source": "Correct length-relative constructor reserve and spare-capacity-aware field growth capped by response maximum, plus capacity/wire/limit controls; wire versions unchanged.",
+    "retention_source": "Correct length-relative response reserve plus capacity/pointer/wire/warm-reuse control; range/refusal semantics unchanged."
+  },
+  "status": "Prepared isolated candidate only. Static source review passed earlier; no new behavioral or55-control execution. Exact fixed source hashes in this file are after rustfmt."
+}

@@ -1,0 +1,123 @@
+{
+  "prepared_utc": "2026-10-30T21:36:14.546153+00:00",
+  "scope": "Source preparation and reconstruction only; no Cargo/compiler/native runtime.",
+  "base_client_Rust_commit": "fe65ac7833fbaaa81331e31a182964c4ef3657a5",
+  "supersedes_source_assets": "v2 (retained locally unchanged)",
+  "v3_ancillary_overrides": [
+    {
+      "path": "scripts/ci-client-capabilities.py",
+      "before": "62bcc42cf7cf753d619450f55b0e317cf0be47277050f7ce21913c681cbc4acc",
+      "after": "e37763ec7aded21e3aa89b872c545a850ababa65ff250c6e3700c17a20276665"
+    },
+    {
+      "path": "scripts/client-capability-java.py",
+      "before": null,
+      "after": "a90ad6b88d809b194a758e5271903dedee1cbcdab7405dfe8bfe6c8c335132bb"
+    },
+    {
+      "path": "tests/ci/test_client_capability_java.py",
+      "before": null,
+      "after": "accb02f5feac2f7fdf26b04d2448bbdbefed3d26480a8d52fe3b32184062f461"
+    }
+  ],
+  "v2_ancillary_overrides": [
+    {
+      "path": "scripts/ci-client-capabilities.py",
+      "before": "960dca455e118525cf7633ca1db09a2296100c85f7dce2e6af3423adc4b3f5d3",
+      "after": "62bcc42cf7cf753d619450f55b0e317cf0be47277050f7ce21913c681cbc4acc",
+      "scope": "Reviewed non-Rust ancillary changes in the same main push; client Rust remains fe65/4f."
+    },
+    {
+      "path": "tests/conformance/broker/implemented-api-versions.json",
+      "before": "c61dff71a173acf865968a4b53f3ded305c8d1a9120bf41a25abb8ffb3cdeb69",
+      "after": "12063effcbf9c60ebcfda7d1627f1c5fb4e34103aefa6bc4cb5424d21a47d946",
+      "scope": "Reviewed non-Rust ancillary changes in the same main push; client Rust remains fe65/4f."
+    },
+    {
+      "path": "scripts/client-capability-cases.py",
+      "before": "2ff815e59d605a4a365089445fce38460a6d80956826497e80fa38683865fe39",
+      "after": "c78da427813fb86f64927f2ae3e494e3254a097a4ef3d110d5f06254af2615a4",
+      "scope": "Reviewed non-Rust ancillary changes in the same main push; client Rust remains fe65/4f."
+    },
+    {
+      "path": "tests/ci/test_client_capability_cases.py",
+      "before": "92ad25ca670b9b3e0bcc949a3f50901bfd3c4c3ea8967f3dbc9c846c1cc13222",
+      "after": "d0ed127e85de4c94c00a6284f6f4f9105a478eeec09c29b7528a5febc7287912",
+      "scope": "Reviewed non-Rust ancillary changes in the same main push; client Rust remains fe65/4f."
+    },
+    {
+      "path": "tests/conformance/client-capability-cases.json",
+      "before": "6a237b1926e4907afa8b858efc2be2551cc6e4d0581d4f60e2dac42cc0e9a8c5",
+      "after": "8fcfd5972397aa41a7dece1fc1dd3c0401b656f215c17f646bf0f8ccd38a0cda",
+      "scope": "Reviewed non-Rust ancillary changes in the same main push; client Rust remains fe65/4f."
+    }
+  ],
+  "source_input_counts": {
+    "base": 1746,
+    "baseline": 1751,
+    "fixed": 1751
+  },
+  "changed_paths": [
+    "src/admin.rs",
+    "src/admin/cooperative_tests.rs",
+    "src/consumer.rs",
+    "src/group.rs",
+    "src/group/offsets.rs",
+    "src/net.rs",
+    "src/net/test_peer.rs",
+    "src/producer.rs",
+    "src/protocol/acl.rs",
+    "src/protocol/admin.rs",
+    "src/protocol/cooperative.rs",
+    "src/protocol/cooperative/tests.rs",
+    "src/protocol/group.rs",
+    "src/protocol/mod.rs",
+    "src/share.rs",
+    "tests/common/mod.rs",
+    "tests/group_coordinator_startup.rs",
+    "tests/group_stack.rs",
+    "tests/mock_produce.rs"
+  ],
+  "sequential_baseline_fixed_reconstruction_verified": true,
+  "prepared_controls": {
+    "library": 108,
+    "integration": 14
+  },
+  "baseline_cases": 13,
+  "patches": {
+    "baseline.patch": {
+      "path": "baseline.patch.gz",
+      "sha256": "65c0d1155606c76c4debe13cecd346ee99dfdba84a1e3bbea76b3d3d3e96812d",
+      "bytes": 62092,
+      "uncompressed_sha256": "b92e127ed03fef0153a17b38fcfe3f0d7a5a88d8cd5f759af47f20966861edfc",
+      "uncompressed_bytes": 346084
+    },
+    "fixed-delta.patch": {
+      "path": "fixed-delta.patch.gz",
+      "sha256": "1389c0e34cb02e686efdddf49229ce1307a091a2855547f403be2adb60bb8de8",
+      "bytes": 3243,
+      "uncompressed_sha256": "eb6832ac02f67b70d4de2a0930309c4e697d6290658f8992b8f90854dfb0808e",
+      "uncompressed_bytes": 11155
+    },
+    "fixed.patch": {
+      "path": "fixed.patch.gz",
+      "sha256": "03691fbbb59063093303f3f1d940daf9b2c1f0ada26ac1b97ac01039e8a57697",
+      "bytes": 64692,
+      "uncompressed_sha256": "bec5159cb5615c163f56d97b49cb4c074f297bc1f73d98fd4aab4111166bf9ec",
+      "uncompressed_bytes": 356446
+    }
+  },
+  "prior_v2_preparation_sha256": "a286c65b3d894761ee1fec262b12da11ebf723129ae49626ae3ebab1f83fc262",
+  "mainfe65_additional_observed_failures": {
+    "manifest_sha256": "9d3219ab303da560f01df3d365bee69b3b3b6a44baf6fcbb85cad4320d084e7b",
+    "added": [
+      "cluster::tests::applying_many_topics_does_not_hold_the_caller",
+      "consumer::tests::prepending_many_pending_runs_does_not_hold_the_caller",
+      "consumer::tests::retaining_many_assigned_topic_ids_does_not_hold_the_caller",
+      "producer::tests::decoding_many_added_partitions_does_not_hold_the_caller",
+      "producer::tests::dropping_many_ack_topics_does_not_hold_the_caller",
+      "producer::tests::encoding_many_produce_topics_does_not_hold_the_caller"
+    ],
+    "scope": "Additional observed failures stay required; no product fix is claimed for them."
+  }
+}

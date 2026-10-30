@@ -1,0 +1,27 @@
+{
+  "main_head": "fe65ac7833fbaaa81331e31a182964c4ef3657a5",
+  "scope": "Only eleven independently reviewed stale source-binding digest strings. No Rust source, advertisement, range, gate or qualification flag change.",
+  "previous_patch_manifest_sha256": "f5f83078f67bc5a10fda01f0cfea0dddd6d264873c6025fe30356cc99e0259c5",
+  "patch_sha256": "68a080a9c94825e2df8264dbcf2569f0254a3f20fcf80048c1b1dec91f7a5cb9",
+  "review_sha256": "3b8a73bac9e2939dc48b24c8a352e8e6a89d1a4b949961769026de07f725b2c5",
+  "historical_provenance_sha256": "7f64ccc567b39c6da2b934ae7f948b506d25834673a5777e2aa1c7953852cb0f",
+  "current_main_all_eleven_source_paths_byte_identical_to_prior_review": true,
+  "checker_byte_identical": true,
+  "changed_json_fields": [
+    "controller_source_sha256",
+    "controller_test_source_sha256",
+    "election_source_sha256",
+    "fetch_source_sha256",
+    "fetch_test_source_sha256",
+    "metadata_source_sha256",
+    "partition_source_sha256",
+    "produce_source_sha256",
+    "produce_test_source_sha256",
+    "retention_source_sha256",
+    "segments_source_sha256"
+  ],
+  "current_main_before_registry_sha256": "c61dff71a173acf865968a4b53f3ded305c8d1a9120bf41a25abb8ffb3cdeb69",
+  "after_registry_sha256": "12063effcbf9c60ebcfda7d1627f1c5fb4e34103aefa6bc4cb5424d21a47d946",
+  "new_runtime_or_55_control_execution": "not_run; existing partial attempts retained. Next main CI must actually execute all55 controls before a passed claim.",
+  "candidate_later_overlap": "Four current-main source digests need separate final-candidate refresh, only inside isolated candidate qualification source."
+}

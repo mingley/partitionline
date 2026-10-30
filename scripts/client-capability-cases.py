@@ -22,6 +22,10 @@ EXTERNAL_PROBES = {
     'write_txn_markers_v2': ['serve_public_admin_probe'],
     'share_offsets_v1': ['serve_share_admin_probe'],
 }
+FIXTURE_CASES = {
+    'write_txn_markers_v2': ['actual_apache_marker_fixtures_and_reverse_frames'],
+    'share_offsets_v1': ['actual_apache_share_fixtures_and_reverse_frames'],
+}
 
 
 def load_suites(path):
@@ -39,6 +43,8 @@ def load_suites(path):
         names = required + external
         if (suite['selector'] != SELECTORS[label] or not required
                 or external != EXTERNAL_PROBES.get(label, [])
+                or suite.get('fixture_cases') != FIXTURE_CASES.get(label, [])
+                or not set(suite['fixture_cases']) <= set(required)
                 or len(names) != len(set(names))
                 or any(not isinstance(name, str) or not re.fullmatch(r'[A-Za-z_][A-Za-z_0-9:]*', name)
                        for name in names)):
@@ -60,7 +66,8 @@ def selected_names(suite, discovered):
 def verify_execution(row, data, errors, names):
     text = data.decode()
     summaries = re.findall(r'^test result: (ok|FAILED)\. (\d+) passed; (\d+) failed; (\d+) ignored;', text, re.M)
-    executed = re.findall(r'^test ([A-Za-z_][A-Za-z_0-9:]*) \.\.\. (ok|FAILED|ignored)$', text, re.M)
+    reported = re.findall(r'^test ([A-Za-z_][A-Za-z_0-9:]*) \.\.\. (ok|FAILED|ignored(?:, [^\r\n]+)?)$', text, re.M)
+    executed = [(name, status.split(', ', 1)[0]) for name, status in reported]
     if len(names) != len(set(names)) or len(executed) != len(names) or {n for n, _ in executed} != set(names):
         raise CaseExecutionError('executed case identities differ from the selection')
     passed = sum(s == 'ok' for _, s in executed)
@@ -73,3 +80,12 @@ def verify_execution(row, data, errors, names):
     return {'command_name': row['name'], 'actual_names': [n for n, _ in executed],
             'actual_results': executed, 'actual_passed': passed, 'actual_failed': failed,
             'actual_ignored': ignored, 'passed': row['exit_code'] == 0 and failed == ignored == 0}
+
+
+def execution_flags(suite):
+    flags = ['--', '--test-threads=1']
+    if suite['fixture_cases']:
+        flags.append('--include-ignored')
+    for probe in suite['external_probes']:
+        flags.extend(['--skip', probe])
+    return flags

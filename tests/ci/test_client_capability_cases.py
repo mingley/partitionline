@@ -68,6 +68,30 @@ class CapabilityCaseTests(unittest.TestCase):
                                         'FAILED. 1 passed; 1 failed; 0 ignored;', exit_code=101)['passed'])
         self.assertFalse(self.execution(['test case_a ... ok', 'test case_b ... ok'], exit_code=101)['passed'])
 
+    def test_ignored_reason_is_retained_as_an_unexecuted_required_case(self):
+        result = self.execution(['test case_a ... ok', 'test case_b ... ignored, requires fresh Java fixtures'],
+                                'ok. 1 passed; 0 failed; 1 ignored;')
+        self.assertFalse(result['passed'])
+        self.assertEqual(result['actual_names'], ['case_a', 'case_b'])
+        self.assertEqual((result['actual_passed'], result['actual_failed'], result['actual_ignored']), (1, 0, 1))
+
+    def test_fixture_controls_run_with_ignored_enabled_and_only_server_names_are_skipped(self):
+        for suite in self.suites:
+            flags = CASES.execution_flags(suite)
+            self.assertEqual('--include-ignored' in flags, bool(suite['fixture_cases']))
+            self.assertTrue(set(suite['fixture_cases']) <= set(suite['required_cases']))
+            self.assertEqual([flags[i + 1] for i, flag in enumerate(flags) if flag == '--skip'],
+                             suite['external_probes'])
+
+    def test_fixture_control_cannot_be_reclassified_to_avoid_execution(self):
+        value = json.loads(INVENTORY.read_text())
+        value['suites'][0]['fixture_cases'] = []
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / 'inventory.json'
+            path.write_text(json.dumps(value))
+            with self.assertRaises(CASES.CaseInventoryError):
+                CASES.load_suites(path)
+
     def test_execution_rejects_inconsistent_summary_and_compiler_errors(self):
         lines = ['test case_a ... ok', 'test case_b ... ok']
         with self.assertRaises(CASES.CaseExecutionError):

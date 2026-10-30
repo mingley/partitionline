@@ -1,0 +1,71 @@
+{
+  "scope": "Lightweight Python pure/mocked guard and actual small Python ownership-process controls only; no Cargo/Rust/native client or broker execution.",
+  "time_utc": "2026-10-30T21:38:56.449412+00:00",
+  "attempts": [
+    {
+      "name": "client",
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+        "-B",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests/ci",
+        "-p",
+        "test_client_candidate_qualification.py",
+        "-v"
+      ],
+      "exit": 0,
+      "log": "preparation-client-controls-01.log",
+      "log_sha256": "54418c943ee4287ef81e336a5f8b7053a66204f15b71c73a6ab629423775018c",
+      "bytes": 3125
+    },
+    {
+      "name": "ownership",
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+        "-B",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests/ci",
+        "-p",
+        "test_candidate_command_ownership.py",
+        "-v"
+      ],
+      "exit": 0,
+      "log": "preparation-ownership-controls-01.log",
+      "log_sha256": "74dd5c5a72db32c0c7f42d3954946c561f782f794035e0083a46946de06294ff",
+      "bytes": 1276
+    }
+  ],
+  "passed": true,
+  "files": {
+    "scripts/ci-qualify-client-candidate.py": {
+      "sha256": "ae0cc3da60bed45adf601db33702faa4e76a17bd77b449401caea0319af05074",
+      "bytes": 28976
+    },
+    "scripts/candidate-command-ownership.py": {
+      "sha256": "34ddbf04a4bbead974fad4a451d30c7a56818248bd5b58c88c87bdfc41896da9",
+      "bytes": 5725
+    },
+    "tests/ci/test_client_candidate_qualification.py": {
+      "sha256": "965abddb8c9ca7035c961b6a14e709473dc841b7c698fb24d5ee65b493fa9f28",
+      "bytes": 10580
+    },
+    "tests/ci/test_candidate_command_ownership.py": {
+      "sha256": "0b786e63d059d9f3a3a3bf290ac4fe84313fe2f140243a292a87995e61877293",
+      "bytes": 7057
+    },
+    ".github/workflows/candidates.yml": {
+      "sha256": "784da214869a6908e55c88ba37e49f98cbe13902422fd10866d3da7e53ee754b",
+      "bytes": 2979
+    }
+  },
+  "initial_ownership_discovery_attempt": {
+    "passed": false,
+    "reason": "Local isolated client assets initially lacked the broker driver required by one shared ownership control; FileNotFoundError. Copied the exact final broker driver before final six-control rerun. Both drivers are imported together in the reviewed main push."
+  }
+}

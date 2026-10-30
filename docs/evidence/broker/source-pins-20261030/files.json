@@ -1,0 +1,39 @@
+[
+  {
+    "path": "README.md",
+    "bytes": 1217,
+    "sha256": "7f486942d1c34a8e76731494fca7ebdec3fc88f9f73a9309cad24bdf0847c84d"
+  },
+  {
+    "path": "changed-fields.json",
+    "bytes": 2588,
+    "sha256": "b547ce57a7377c53364adb030ed4bbff03e49c323138e3381f2a5b270f252277"
+  },
+  {
+    "path": "historical-review.md",
+    "bytes": 4451,
+    "sha256": "3b8a73bac9e2939dc48b24c8a352e8e6a89d1a4b949961769026de07f725b2c5"
+  },
+  {
+    "path": "historical-source-pins.json",
+    "bytes": 19399,
+    "sha256": "7f64ccc567b39c6da2b934ae7f948b506d25834673a5777e2aa1c7953852cb0f"
+  },
+  {
+    "path": "review.json",
+    "bytes": 1610,
+    "sha256": "068e9805b3d548ea2d143db52b3b0b7687f784cf3749282b95b0358bb6d14b75"
+  },
+  {
+    "path": "source-pins-main-fe65.patch.gz",
+    "bytes": 1940,
+    "sha256": "90a30d35574d4b7b310c729d00d6064ae8659c85c6d73d735677d7513698556e",
+    "uncompressed_bytes": 4955,
+    "uncompressed_sha256": "68a080a9c94825e2df8264dbcf2569f0254a3f20fcf80048c1b1dec91f7a5cb9"
+  },
+  {
+    "path": "static-inventory.json",
+    "bytes": 6427,
+    "sha256": "d0046cd89c4cec0ee89c2845b6257690e781707a9f43bd01e7b8c53586fcfbe8"
+  }
+]

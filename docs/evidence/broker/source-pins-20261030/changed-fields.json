@@ -1,0 +1,62 @@
+{
+  "changed_fields": [
+    {
+      "path": "/metadata_source_sha256",
+      "before": "f481fb447773e6b7170ab4d1ef5d356d1265b23e37df0bcd01c1851bd4a40c91",
+      "after": "01869e2d0dd55cf390c9c2a9c00fd83ea1d300d38fac69a89dc6dc247b05ca90"
+    },
+    {
+      "path": "/controller_source_sha256",
+      "before": "e2cd0254eec50c8da1ed940ac794f02e9e80a98dd3ccbfa41331823f514dcb6a",
+      "after": "562e31d232cca69605fdb303969e5eb33140750dc98ac38e82deb82b2cb37458"
+    },
+    {
+      "path": "/controller_test_source_sha256",
+      "before": "42a61312b6beef1411713f5ddc04c23267746344a956c5847a41797b70d7e720",
+      "after": "2212994acdd0cb6b9115e0f6a6c4f5426b2978bbb988a5d827a4b263476ab515"
+    },
+    {
+      "path": "/election_source_sha256",
+      "before": "d3d8c916054d75a8c7817e1b11ee2d59af8d5ae7b71c203d1e5308e78a89020a",
+      "after": "0ee1a9a0d293772f37e8328b07225f0cb6e9df78dc153052294f8f31ad94ab96"
+    },
+    {
+      "path": "/produce_source_sha256",
+      "before": "b851f2ce8c3288c5ab96febc2188b7c6905e412232b42d1fd0197ab7ce688ff8",
+      "after": "d2999e9e6f207a31de5428ff8a44dfbd39dc1ba04e700717c64a271cc0f13db4"
+    },
+    {
+      "path": "/produce_test_source_sha256",
+      "before": "07c3336730947ef16e0b777fbc41cc429a8a28bcd0e8e94eb782901236ae1cb0",
+      "after": "449eb0f4b2774ff7f3d4759a32f5362a39cb775f564f1cc44bb4314fd09da733"
+    },
+    {
+      "path": "/fetch_source_sha256",
+      "before": "a76240c081d42013eff275b27e7727ea924e26b5cebbff3c449e16da88d3f0b8",
+      "after": "a4475f343f4be0364e0eae5afb29acbe943ca87545b6673d13912f7a23e75357"
+    },
+    {
+      "path": "/fetch_test_source_sha256",
+      "before": "0a059d931ec37cbec0db77d1b0431b1e4d97944f641601e89e6d68f63dbba6b2",
+      "after": "88a7f34f9d2770199fbab00e21632a6fe62d66e2197a72e8ec32cda82be58336"
+    },
+    {
+      "path": "/retention_source_sha256",
+      "before": "da9a74aec25080b48b0dd0bbf82b223cafb1126064a53cbf3af0d245eff9547b",
+      "after": "e6ce84a33cc72849a2452b0d56298c098628f77ed78bf84054066defff7ce8b8"
+    },
+    {
+      "path": "/segments_source_sha256",
+      "before": "9b9683ef52615ff4e63a5741dc039ad4306327ab8bc1d25ace7aa37e6f3922a3",
+      "after": "67cb953fccf334848d1ab069809174c0384abfb9523485879d7d810716224be5"
+    },
+    {
+      "path": "/partition_source_sha256",
+      "before": "76a317f8d493a69b80d29c57fc2eabafd6224a173c2c96fd68fd329921266fca",
+      "after": "2623cdcf43735e1941a2bf7e6db67931cee70a23d9d4b2358e9ac954f04f61eb"
+    }
+  ],
+  "other_values_identical": true,
+  "native_execution": false,
+  "negative_controls": "not_run_locally; required in next CI"
+}

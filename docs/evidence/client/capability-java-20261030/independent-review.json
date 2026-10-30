@@ -1,0 +1,68 @@
+{
+  "schema_version": 1,
+  "reviewed_at": "2026-10-30T21:33:29.719750+00:00",
+  "agent": "/root/capability_review",
+  "root": "/workspace/partitionline",
+  "review": "No blocking integration defect found. Existing pinned Java source and Rust fixture/reverse contracts were read and compared. No repository files edited.",
+  "inputs": {
+    "scripts/ci-client-capabilities.py": {
+      "sha256": "e37763ec7aded21e3aa89b872c545a850ababa65ff250c6e3700c17a20276665",
+      "bytes": 23808
+    },
+    "scripts/client-capability-cases.py": {
+      "sha256": "c78da427813fb86f64927f2ae3e494e3254a097a4ef3d110d5f06254af2615a4",
+      "bytes": 4307
+    },
+    "scripts/client-capability-java.py": {
+      "sha256": "a90ad6b88d809b194a758e5271903dedee1cbcdab7405dfe8bfe6c8c335132bb",
+      "bytes": 20167
+    },
+    "tests/ci/test_client_capability_cases.py": {
+      "sha256": "d0ed127e85de4c94c00a6284f6f4f9105a478eeec09c29b7528a5febc7287912",
+      "bytes": 8752
+    },
+    "tests/ci/test_client_capability_java.py": {
+      "sha256": "accb02f5feac2f7fdf26b04d2448bbdbefed3d26480a8d52fe3b32184062f461",
+      "bytes": 13367
+    },
+    "tests/conformance/client-capability-cases.json": {
+      "sha256": "8fcfd5972397aa41a7dece1fc1dd3c0401b656f215c17f646bf0f8ccd38a0cda",
+      "bytes": 9055
+    },
+    ".github/workflows/capabilities.yml": {
+      "sha256": "f96ad7d505e9a177d0da1ccb637dc826595752219b3fac2d0d8f83870c36704f",
+      "bytes": 2722
+    }
+  },
+  "pure_controls": {
+    "command": [
+      "python3",
+      "-B",
+      "-m",
+      "unittest",
+      "discover",
+      "-s",
+      "tests/ci",
+      "-p",
+      "test_client_capability_*.py",
+      "-v"
+    ],
+    "cwd": "/workspace/partitionline",
+    "exit_code": 0,
+    "passed": 31,
+    "reported_duration_seconds": 0.868,
+    "retained_tool_chunk": "6c9359",
+    "scope": "Pure fixture-metadata, command-plan, exact-selection and failure controls. Synthetic fixtures do not qualify Kafka codecs."
+  },
+  "reviewed_invariants": [
+    "All 93 required Rust case identities remain in reviewed inventory.",
+    "--include-ignored applies to the two fixture-bearing suites and skips only named external SDK servers.",
+    "Fresh pinned Java generation and null checks precede required Rust fixture cases.",
+    "Rust exported case identities and API versions must match the exact supported target cases.",
+    "Java reverse parse results must report exactly 450 total checks across the two suites and three releases.",
+    "Original generated fixture hashes are checked after Rust and Java phases and at final reporting.",
+    "SDK public socket peers and Streams Java reverse remain unqualified."
+  ],
+  "java_rust_or_network_executed": false,
+  "blocking_findings": []
+}

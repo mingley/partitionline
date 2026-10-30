@@ -1,0 +1,18 @@
+
+running 13 tests
+test actual_apache_share_fixtures_and_reverse_frames ... ignored, requires actual pinned SDK fixtures and retained reverse output
+test canceled_share_request_leaves_unrelated_operation_usable ... ok
+test duplicate_request_groups_and_reordered_results_preserve_request_order ... ok
+test group_hop_errors_refresh_coordinator_while_partition_errors_remain_results ... ok
+test impossible_share_offset_counts_fail_before_nested_allocation ... ok
+test lag_signed_extremes_follow_official_negative_is_absent_interpretation ... ok
+test missing_group_truncated_and_trailing_responses_fail_without_fabricated_lag ... ok
+test nonnullable_share_offset_fields_reject_null_before_projection ... ok
+test nullable_empty_named_requests_and_schema_counts_are_bounded ... ok
+test pinned_schema_reference_frame_keeps_lag_before_partition_error ... ok
+test share_retry_and_stalled_rpc_use_one_absolute_deadline ... ok
+test typed_and_existing_operations_negotiate_and_consume_lag ... ok
+test unsupported_share_offsets_fail_before_coordinator_or_metadata_work ... ok
+
+test result: ok. 12 passed; 0 failed; 1 ignored; 0 measured; 1 filtered out; finished in 0.16s
+

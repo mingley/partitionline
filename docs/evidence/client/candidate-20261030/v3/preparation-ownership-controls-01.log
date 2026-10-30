@@ -1,0 +1,11 @@
+test_child_in_another_group_in_the_private_session_is_joined (test_candidate_command_ownership.CandidateCommandOwnership.test_child_in_another_group_in_the_private_session_is_joined) ... ok
+test_driver_timeout_retains_failure_after_joining_its_tree (test_candidate_command_ownership.CandidateCommandOwnership.test_driver_timeout_retains_failure_after_joining_its_tree) ... ok
+test_exited_leader_cannot_leave_its_ignoring_grandchild_or_kill_a_bystander (test_candidate_command_ownership.CandidateCommandOwnership.test_exited_leader_cannot_leave_its_ignoring_grandchild_or_kill_a_bystander) ... ok
+test_observer_exception_still_kills_and_joins_the_owned_tree (test_candidate_command_ownership.CandidateCommandOwnership.test_observer_exception_still_kills_and_joins_the_owned_tree) ... ok
+test_success_restores_subreaper_and_waits_for_its_leader (test_candidate_command_ownership.CandidateCommandOwnership.test_success_restores_subreaper_and_waits_for_its_leader) ... ok
+test_term_int_and_hup_interruptions_join_children_and_restore_handlers (test_candidate_command_ownership.CandidateCommandOwnership.test_term_int_and_hup_interruptions_join_children_and_restore_handlers) ... ok
+
+----------------------------------------------------------------------
+Ran 6 tests in 3.747s
+
+OK

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Hosted exact-source focused Rust proof; no Docker or external SDK qualification."""
+"""Hosted Rust cases and pinned Apache codec fixtures; no Docker required."""
 import argparse
 import gzip
 import hashlib
@@ -42,6 +42,9 @@ CASE_SPEC = importlib.util.spec_from_file_location('capability_cases', Path(__fi
 CASES = None
 SUITES = []
 EXPECTED_TOTAL = 0
+JAVA_PROOF = None
+JAVA_SETUP_FAILURE = None
+JAVA_FINAL_REPORT = None
 FOUR = {
     'public_abort_negotiates_v2_and_default_transaction_version',
     'omitted_duplicate_or_unrelated_abort_results_cannot_succeed',
@@ -105,16 +108,19 @@ signal.signal(signal.SIGTERM, interrupted)
 signal.signal(signal.SIGINT, interrupted)
 
 
-def command(name, argv, env=None, timeout=600):
+def command(name, argv, env=None, timeout=600, remove_env=()):
     global ACTIVE
     out = EVIDENCE / (name + '.stdout')
     err = EVIDENCE / (name + '.stderr')
     start = time.monotonic()
     trigger = None
     row = {'name': name, 'argv': argv, 'cwd': str(ROOT),
-           'environment_additions': env or {}, 'timeout_seconds': timeout}
+           'environment_additions': env or {}, 'environment_keys_removed': list(remove_env),
+           'timeout_seconds': timeout}
     child_env = dict(os.environ)
     child_env.update(env or {})
+    for key in remove_env:
+        child_env.pop(key, None)
     with out.open('xb') as stdout, err.open('xb') as stderr:
         child = subprocess.Popen(argv, cwd=ROOT, env=child_env,
                                  stdout=stdout, stderr=stderr, start_new_session=True)
@@ -295,6 +301,17 @@ try:
     case_inventory = save('case-inventory.json', inventory_path.read_bytes())
     SUITES = CASES.load_suites(inventory_path)
     EXPECTED_TOTAL = sum(len(suite['required_cases']) for suite in SUITES)
+    CURRENT_STAGE = 'java-fixture-setup'
+    try:
+        java_spec = importlib.util.spec_from_file_location('capability_java', Path(__file__).with_name('client-capability-java.py'))
+        java_module = importlib.util.module_from_spec(java_spec)
+        java_spec.loader.exec_module(java_module)
+        JAVA_PROOF = java_module.JavaFixtureProof(ROOT, EVIDENCE, command, save)
+        JAVA_PROOF.prepare()
+    except Exception as failure:
+        if LEDGER and LEDGER[-1].get('trigger') is not None:
+            raise
+        JAVA_SETUP_FAILURE = {'type': type(failure).__name__, 'detail': str(failure)}
     for suite in SUITES:
         label, selector = suite['label'], suite['selector']
         count = len(suite['required_cases'])
@@ -319,10 +336,25 @@ try:
                             'command_name': discovery_row['name'], 'setup_failure': 'source_case_inventory_changed',
                             'detail': str(failure), 'external_probes_not_run': suite['external_probes']})
             continue
-        run_flags = ['--', '--test-threads=1']
-        for probe in suite['external_probes']:
-            run_flags.extend(['--skip', probe])
-        row, out, err = command(label + '-execution', argv + run_flags, additions)
+        suite_environment = dict(additions)
+        if suite['fixture_cases']:
+            CURRENT_STAGE = label + '-fixture-generation'
+            try:
+                if JAVA_SETUP_FAILURE is not None or JAVA_PROOF is None:
+                    raise RuntimeError('Java fixture preparation failed: ' + str(JAVA_SETUP_FAILURE))
+                suite_environment.update(JAVA_PROOF.generate(label))
+            except Exception as failure:
+                if LEDGER and LEDGER[-1].get('trigger') is not None:
+                    raise
+                RESULTS.append({'suite': label, 'expected_count': count, 'discovered_names': names,
+                                'actual_names': [], 'actual_results': [], 'actual_passed': 0,
+                                'actual_failed': 0, 'actual_ignored': 0, 'passed': False,
+                                'command_name': discovery_row['name'], 'setup_failure': 'java_fixture_generation_failed',
+                                'detail': str(failure), 'external_probes_not_run': suite['external_probes']})
+                continue
+        CURRENT_STAGE = label + '-execution'
+        run_flags = CASES.execution_flags(suite)
+        row, out, err = command(label + '-execution', argv + run_flags, suite_environment)
         try:
             result = execution(row, out, err, selected)
         except (AssertionError, CASES.CaseExecutionError) as failure:
@@ -331,6 +363,17 @@ try:
                       'setup_failure': 'execution_result_unverified', 'detail': str(failure)}
         result.update({'suite': label, 'expected_count': count, 'discovered_names': names,
                        'external_probes_not_run': suite['external_probes']})
+        if suite['fixture_cases']:
+            if result['passed']:
+                CURRENT_STAGE = label + '-java-reverse'
+                try:
+                    result['java_reverse'] = JAVA_PROOF.reverse(label)
+                except Exception as failure:
+                    if LEDGER and LEDGER[-1].get('trigger') is not None:
+                        raise
+                    result.update(passed=False, java_reverse_failure={'type': type(failure).__name__, 'detail': str(failure)})
+            else:
+                result['java_reverse_not_run'] = 'required Rust execution did not pass'
         RESULTS.append(result)
         assert source_snapshot(tree) == BASELINE
     # Even a failed sticky case/discovery cannot prevent the independent
@@ -338,16 +381,21 @@ try:
     CURRENT_STAGE = 'exports'
     EXPORTS = export_inventory()
     CURRENT_STAGE = 'aggregate'
-    assert sum(len(r['actual_names']) for r in RESULTS) == EXPECTED_TOTAL
+    assert sum(len(r['actual_names']) for r in RESULTS) == EXPECTED_TOTAL, 'required focused cases were not all executed'
     actual = {n for r in RESULTS for n in r['actual_names']}
     assert FOUR <= actual
     assert 'unlimited_byte_budget_tracks_payload_reservations_and_terminal_releases' in actual
     assert all(r['passed'] for r in RESULTS), 'actual focused test failures retained'
+    assert JAVA_PROOF is not None and JAVA_PROOF.report()['passed'], 'required Java fixture and reverse checks did not pass'
 except BaseException as failure:
     FAILURE = {'type': type(failure).__name__, 'detail': str(failure), 'stage': CURRENT_STAGE}
 finally:
     if ACTIVE is not None:
         join_group(ACTIVE, True)
+    if JAVA_PROOF is not None:
+        JAVA_FINAL_REPORT = JAVA_PROOF.report()
+        if not JAVA_FINAL_REPORT['passed'] and FAILURE is None:
+            FAILURE = {'type': 'JavaFixtureFailure', 'detail': 'final Java fixture validation did not pass', 'stage': 'final_java_guard'}
     after = None
     try:
         if BASELINE is not None:
@@ -368,10 +416,15 @@ finally:
               'source_before_after_all_Git_blobs_and_full_modes_match': BASELINE is not None and after == BASELINE,
               'rustc_identity': locals().get('rustc'), 'cargo_identity': locals().get('cargo'),
               'commands': LEDGER, 'actual_command_count': len(LEDGER), 'suites': RESULTS,
-              'actual_executed_tests': sum(len(r['actual_names']) for r in RESULTS),
+              'actual_executed_tests': sum(r['actual_passed'] + r['actual_failed'] for r in RESULTS),
               'actual_passed_tests': sum(r['actual_passed'] for r in RESULTS), 'expected_unique_tests': EXPECTED_TOTAL,
-              'actual_unique_verified_test_cases': len({(r['suite'], name) for r in RESULTS for name in r['actual_names']}),
-              'exports': EXPORTS, 'SDK_runtime_or_Java_reverse_qualification': False,
+              'actual_unique_verified_test_cases': len({(r['suite'], name) for r in RESULTS
+                  for name, status in r['actual_results'] if status != 'ignored'}),
+              'exports': EXPORTS, 'SDK_public_runtime_qualification': False,
+              'java_fixture_setup_failure': JAVA_SETUP_FAILURE,
+              'java_fixture_proof': JAVA_FINAL_REPORT,
+              'java_fixture_reverse_qualified': (TOOLCHAIN_VERIFIED and BASELINE is not None and after == BASELINE
+                  and JAVA_FINAL_REPORT is not None and JAVA_FINAL_REPORT['passed']),
               'components': {'streams': {'passed': streams_component_passed,
                   'qualification_scope': 'exact-source Rust Streams24 and234 exports; independent of unrelated focused suite failures',
                   'toolchain_verified': TOOLCHAIN_VERIFIED, 'overall_focused_passed': FAILURE is None,

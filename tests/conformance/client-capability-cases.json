@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "audited_discovery_source": "77021f7dc6c0d19aa93c7bf0b7fad125ee632e23",
-  "scope": "Exact Rust case identities. Ignored external peer servers are discovered and reported separately; this lane does not run or qualify them.",
+  "scope": "Exact Rust case identities: 91 ordinary cases and two required cases using fresh Java fixtures. Two ignored external peer servers are reported separately and not run by this lane.",
   "suites": [
     {
       "label": "write_txn_markers_v2",
@@ -26,6 +26,9 @@
       ],
       "external_probes": [
         "serve_public_admin_probe"
+      ],
+      "fixture_cases": [
+        "actual_apache_marker_fixtures_and_reverse_frames"
       ]
     },
     {
@@ -51,6 +54,9 @@
       ],
       "external_probes": [
         "serve_share_admin_probe"
+      ],
+      "fixture_cases": [
+        "actual_apache_share_fixtures_and_reverse_frames"
       ]
     },
     {
@@ -75,7 +81,8 @@
         "partitioner::tests::default_partitioner_keys_match_murmur2",
         "partitioner::tests::murmur2_matches_java_utils"
       ],
-      "external_probes": []
+      "external_probes": [],
+      "fixture_cases": []
     },
     {
       "label": "sticky_partitioner",
@@ -114,7 +121,8 @@
         "unlimited_byte_budget_tracks_payload_reservations_and_terminal_releases",
         "zero_caps_use_stateless_singletons_without_new_admission_errors"
       ],
-      "external_probes": []
+      "external_probes": [],
+      "fixture_cases": []
     },
     {
       "label": "streams_protocol",
@@ -148,7 +156,8 @@
         "heartbeat::heartbeat_unknown_tags_are_discarded_but_duplicates_rejected",
         "heartbeat::heartbeat_zero_nullable_presence_marker_is_present"
       ],
-      "external_probes": []
+      "external_probes": [],
+      "fixture_cases": []
     }
   ]
 }

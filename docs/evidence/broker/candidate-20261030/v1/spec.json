@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "kind": "broker",
+  "base_main_sha": "fe65ac7833fbaaa81331e31a182964c4ef3657a5",
+  "base_prerequisite": "The independently reviewed current-main eleven stale source-digest replacements (patch SHA25668a080a9c94825e2df8264dbcf2569f0254a3f20fcf80048c1b1dec91f7a5cb9). No Rust source/range/qualification flags changed.",
+  "baseline_archive": {
+    "path": "baseline-source.tar.gz",
+    "sha256": "f5470b0c234a0ee3235bab7dacabc1f2999246c76cf9003a8edd95991ba8ffd4"
+  },
+  "source_manifests": {
+    "path": "source-manifests.json",
+    "sha256": "d3e16e62fb92c42b5dec1f7663ded92235668ea00dc79f64875cbc8724f579d4"
+  },
+  "fixed_patch": {
+    "path": "fixed-source.patch.gz",
+    "sha256": "8a5a28c1c9bae7c8aff265e82e22e3a631deba36b0b4ab17e58f4d8115652218",
+    "expanded_bytes": 16694,
+    "expanded_sha256": "a8073b31af40ecdac02851bd8247d6779e94859ca922e2241b64a8e1d6430757"
+  },
+  "baseline_cases": [
+    "fetch::tests::partial_response_buffer_is_reserved_before_encoding",
+    "fetch::tests::partially_spare_fetch_buffer_reserves_the_entire_next_field",
+    "journal::tests::checkpoint_replacement_preserves_permissions_before_publication",
+    "produce::tests::partial_response_buffer_is_reserved_before_encoding",
+    "raft::protocol::response_buffer_tests::partial_response_buffer_is_reserved_before_encoding",
+    "replication::tests::accepted_epoch_replacement_preserves_private_file_permissions",
+    "retention::tests::partial_response_buffer_is_reserved_before_encoding"
+  ],
+  "fixed_cases": [
+    "fetch::tests::a_header_after_records_does_not_double_the_buffer",
+    "fetch::tests::partial_response_buffer_is_reserved_before_encoding",
+    "fetch::tests::partially_spare_fetch_buffer_reserves_the_entire_next_field",
+    "journal::tests::checkpoint_file_sync_error_does_not_publish_the_replacement",
+    "journal::tests::checkpoint_replacement_preserves_permissions_before_publication",
+    "produce::tests::a_produce_response_reuses_a_parked_buffer",
+    "produce::tests::partial_response_buffer_is_reserved_before_encoding",
+    "raft::protocol::response_buffer_tests::a_controller_response_reuses_its_buffer",
+    "raft::protocol::response_buffer_tests::partial_response_buffer_is_reserved_before_encoding",
+    "replication::tests::accepted_epoch_replacement_preserves_private_file_permissions",
+    "retention::tests::a_delete_records_response_reuses_its_buffer",
+    "retention::tests::partial_response_buffer_is_reserved_before_encoding"
+  ],
+  "status": "Prepared only; local native baseline compilation was stopped by1.5GiB disk guard before any test ran. Product source stays isolated until real CI proof.",
+  "local_interrupted_baseline": "broker-epoch-validation-20261030/baseline-01/default-build.json",
+  "scope": "Local replica accepted-epoch persistence, journal publication permissions/synchronization, five buffer growth repairs, and public Raft proposal diagnostics. Does not implement RF3 data, leadership authentication, committed-watermark truncation, native KRaft, production readiness or fastest claims."
+}
