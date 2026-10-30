@@ -7,666 +7,95 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
 
 ## [Unreleased]
 
+Source changes after the published 0.1.0 release. The next release is still
+being qualified; see [status](docs/STATUS.md) and the [release guide](docs/RELEASE.md).
+Earlier working notes and dated measurements are in the
+[archive](docs/plan/archive/unreleased-notes-20261030.md).
+
+### API and configuration changes
+
+- Build with the latest stable Rust. Package manifests now require Rust 1.99.
+  The compiler requirement and public API changes require at least a 0.2.0
+  client release.
+- `ConsumerConfig` adds `buffer_memory` (32 MiB by default) and
+  `fetch_metadata_max_bytes` (128 MiB by default). Use their builders or add
+  both fields to exhaustive struct literals. The first limits retained Fetch
+  data; the second limits decoded Fetch metadata.
+- `FetchedRecord.topic` and `ShareRecord.topic` use `TopicName`. Names up to
+  23 bytes are stored inline; longer names use a `String`. `as_str()`, string
+  dereferencing, and comparisons with `str` and `String` remain available.
+  Share-acquisition keys use the same representation.
+- `FetchedRecord.key` uses `Option<RecordBytes>`. Keys up to 24 bytes are
+  stored inline; longer keys use a shared buffer.
+- `ProducerMetrics` and `ConsumerMetrics` add `throttle`
+  (`metrics::ThrottleStats`). Add the field to exhaustive struct literals or
+  use `..Default::default()`.
+- `DescribeLogDirsResult` adds `is_cordoned` for DescribeLogDirs v5. The
+  existing five-argument constructor defaults it to false; `with_cordoned`
+  sets it. Older wire versions omit it and decode false.
+- `Error::Closed` displays as `client closed`. Match the error variant rather
+  than its message.
+
+### Protocol and runtime changes
+
+- Produce v13 uses Metadata topic IDs and maps replies through the identity
+  snapshot sent with each request. Stale IDs refresh within the original
+  delivery deadline; v3–v12 fallback remains. Transactions stay at Produce v11
+  unless initialization finalizes `transaction.version >= 2` and supports
+  EndTxn v5.
+- Consumers negotiate Fetch v18 per broker. Replica helpers support the
+  KIP-1166 HighWatermark tag; ordinary consumer requests omit its default.
+  This adds wire support, not follower-acknowledgement behavior.
+- Incremental Fetch sessions run per broker on v7–v18, with full Fetch fallback
+  on v4–v6. Requests track changed and forgotten partitions. Session recovery
+  uses the original deadline, and topic recreation clears stale buffered data.
+- Fetch frames and CRCs are checked on arrival. Record decompression waits
+  until a batch can be applied within `buffer_memory`; batches that cannot be
+  retained are fetched again later. Decompression errors can therefore surface
+  when the batch is applied.
+- Produce v6–v13 and Fetch v8–v18 honor broker throttles while other eligible
+  connections can make progress. Quota waits use the original delivery, request,
+  poll, or close budget.
+- ListOffsets v11 adds `EARLIEST_PENDING_UPLOAD_TIMESTAMP` and
+  `OffsetSpec::earliest_pending_upload`. Each leader negotiates its own range;
+  unsupported selectors or isolation return `Error::Unsupported`. Discovery,
+  connection, capability lookup and retries share the caller deadline, with
+  one ApiVersions control request per attempt. Live tiered-storage behavior
+  remains unqualified.
+- gzip uses the default `zlib-rs` feature. Disable default features to use
+  miniz_oxide. Runtime CRC detection is enabled; compressed bytes can differ
+  while the wire format and decode limits stay the same. See
+  [gzip backends](docs/gzip-backend.md) for the measured tradeoffs.
+- Consumer-group heartbeat decoders limit decoded metadata to 128 MiB by
+  default. Explicit metadata-limit APIs accept another limit; very large
+  responses may require one.
+- Large protocol encoders yield every 8,192 topics, partitions, brokers, or
+  results so other tasks and caller deadlines can run. This covers Metadata,
+  Produce, Fetch, share, transaction, and offset encoders without changing
+  their encoded bytes.
+- The unpublished schema companion checks bounded Apache Avro Rust 0.22.0
+  encoding against Java Avro 1.12.1 in both directions. It rejects truncated
+  strings that the backend can otherwise resolve as null.
+
+### Fixes and maintenance
+
+- Correct reservation sizes for reused encoding, producer, and share buffers.
+  Allocation checks now cover partially occupied buffers and warm reuse.
+- Record decoding uses a bounded initial reservation for small batches while
+  continuing to charge allocation peaks to the shared metadata limit. The
+  existing 1,000-record allocation budget is restored without raising it.
 - Restore Kafka Java's error ordering for malformed record counts and negative
   header-key lengths while retaining decoded-metadata limits.
-
-- Consumer group heartbeat decoders limit decoded metadata to 128 MiB by
-  default. The explicit metadata-limit decoder APIs accept a different limit;
-  very large messages may now require one.
-
-- `ConsumerConfig` now includes `fetch_metadata_max_bytes`, which limits Fetch
-  response metadata to 128 MiB by default. Exhaustive struct literals must add
-  `fetch_metadata_max_bytes: 128 * 1024 * 1024`, or use a default struct update
-  and the `fetch_metadata_max_bytes` builder to choose a different limit.
-
-- Encoding a TxnOffsetCommit error response pauses every 8,192 topics.
-  Writing 800,000 topics held the caller for 217ms before that pause. The
-  encoded bytes are unchanged.
-- Encoding an AddPartitionsToTxn error response pauses every 8,192 topics.
-  Writing 800,000 topics held the caller for 221ms before that pause. The
-  encoded bytes are unchanged.
-- Encoding an OffsetDelete response pauses every 8,192 results. Grouping
-  400,000 topics held the caller for 429ms before that pause. The encoded
-  bytes are unchanged.
-- Encoding an OffsetCommit error response pauses every 8,192 topics.
-  Writing 800,000 topics held the caller for 209ms before that pause. The
-  encoded bytes are unchanged.
-- Encoding an OffsetFetch response pauses every 8,192 topics. Writing
-  800,000 topics held the caller for 343ms before that pause. The encoded
-  bytes are unchanged.
-- Encoding an OffsetCommit response pauses every 8,192 topics. Writing
-  800,000 topics held the caller for 202ms before that pause. The encoded
-  bytes are unchanged.
-- Encoding an AddPartitionsToTxn response pauses every 8,192 topics.
-  Writing 800,000 topics held the caller for 217ms before that pause. The
-  encoded bytes are unchanged.
-- Encoding a TxnOffsetCommit response pauses every 8,192 topics. Writing
-  800,000 topics held the caller for 212ms before that pause. The encoded
-  bytes are unchanged.
-- Encoding a WriteTxnMarkers error response pauses every 8,192
-  partitions. Writing 400,000 partitions held the caller for 237ms before
-  that pause. The encoded bytes are unchanged.
-- Encoding a WriteTxnMarkers response pauses every 8,192 topics. Writing
-  800,000 topics held the caller for 208ms before that pause. The encoded
-  bytes are unchanged.
-- Encoding a WriteTxnMarkers request pauses every 8,192 topics. Writing
-  800,000 topics held the caller for 184ms before that pause. The encoded
-  bytes are unchanged.
-- Encoding a ShareAcknowledge response pauses every 8,192 partitions.
-  Writing 600,000 partitions held the caller for 209ms before that pause.
-  The encoded bytes are unchanged.
-- Encoding a ShareFetch response pauses every 8,192 partitions. Writing
-  300,000 partitions held the caller for 214ms before that pause. The
-  encoded bytes are unchanged.
-- Encoding a Produce request pauses every 8,192 partitions. Writing
-  400,000 empty batches held the caller for 516ms before that pause. The
-  encoded bytes are unchanged.
-- Encoding a Fetch response pauses every 8,192 partitions. Writing
-  500,000 partitions held the caller for 219ms before that pause. The
-  encoded bytes are unchanged.
-- Encoding a Produce response pauses every 8,192 partitions. Writing
-  600,000 partitions held the caller for 212ms before that pause. The
-  encoded bytes are unchanged.
-- Encoding a Metadata response also pauses every 8,192 brokers. Writing
-  2,000,000 brokers held the caller for 499ms before that pause.
-- Encoding a Metadata response pauses every 8,192 topics so a caller
-  deadline can fire. The encoded bytes are unchanged.
-- Encoding node endpoints pauses every 8,192 hosts so a caller deadline
-  can fire. The encoded bytes are unchanged.
-- Encoding a Fetch response pauses every 8,192 aborted transactions so a
-  caller deadline can fire. The encoded bytes are unchanged.
-- The operator guide puts the packed-package exercise's produce, commit,
-  and coordinator rules in one table. The expected four output lines stay
-  with the exercise.
-- The Lab A fetch note says that table is the 2026-08-24 Apple M4 Pro
-  sample, and that it was not reproduced on the later VM.
-- The benchmark page prints the 2026-08-28 fetch and latency source rows
-  as tables. Every recorded digit stays. The fetch sample is an unsigned
-  comparison with rust-rdkafka 0.39.0 polling one record at a time.
-- The session guide names the broker lane, KL11, and no longer describes
-  gateway work as a red CI failure. The broker plan opens on that lane
-  and keeps the production list separate from the open-card table.
-- The performance plan leads with what has changed since the 2026-09-26
-  snapshot. Hot-path rows carry the card status. Observed costs stay that
-  day's hypothesis. Suite HOLD remains.
-- The gateway findings table states which 2026-09-30 items have landed.
-  zlib-rs is the default gzip backend, and zstd is an optional feature.
-  The 7.8× fetch CPU figure and the 1,426 MB RSS figure are still the
-  2026-09-30 run.
-- The support page separates published crates.io 0.1.0 from later source.
-  The 14-file `src/` difference belongs to the 22 September 2026 check at
-  `ca50ca1`, and current `main` is later than that snapshot.
-- The wire-version page explains its repeated terms, and Produce, Fetch,
-  OffsetCommit, and OffsetFetch are written as version tables. Produce
-  flexible versions are 9–13.
-- InitProducerId, ListOffsets, OffsetForLeaderEpoch, the transaction
-  RPCs, and FindCoordinator use the same version tables.
-- OffsetDelete, the classic group RPCs, and the consumer and share
-  group heartbeat and describe RPCs use the same version tables.
-- ShareFetch, ShareAcknowledge, DescribeShareGroupOffsets, SASL, and
-  ListTransactions use the same version tables.
-- DescribeTransactions, CreateTopics, DeleteTopics, DescribeConfigs,
-  CreatePartitions, partition reassignments, and UpdateFeatures use
-  the same version tables.
-- Quotas, log directories, delegation tokens, and the group admin RPCs
-  use the same version tables.
-- AlterConfigs through ApiVersions, including Metadata, ACLs, and the
-  quorum RPCs, use the same version tables. The ApiVersions response
-  header stays classic.
-- Share-group offset changes, ListConfigResources, telemetry, and
-  AssignReplicasToDirs use the same version tables.
-- The support matrix leads with the CI table. Broker-profile checks,
-  platform lanes, and items that are not promised are separate sections.
-- The roadmap opens on the current task queue. The 2026-09-21 audit
-  stays a frozen baseline, and the first consumer cards are marked done.
-- The civilization plan is labeled as history and points at the current
-  task queue. Its capability table is not a qualification result.
-- The rust-rdkafka migration guide names files and symbols. The line
-  numbers pinned to `ca50ca1` no longer matched current source.
-- The adoption page lists zstd as an optional feature and points at the
-  current schema companion. Dependency bumps land on main.
-- The operator guide splits the produce buffer budget into what it counts
-  and what stays outside it.
-- The operator guide describes the fetch buffer as one cap across partitions,
-  with framed batches held until decode fits.
-- The operator guide splits metrics, Produce version selection, and broker
-  throttle into separate sections.
-- The operator guide introduces group kinds before the 8,192-item walks,
-  and the integrity scripts are described as checks that do not lift Suite HOLD.
-- The produce cancellation recipe states when a dropped send is ambiguous
-  and when close returns `Error::Closed`.
-- The one-batch consumer recipe says the commit covers only the returned
-  records, and a failed commit can still have stored an offset.
-- The gzip page states the default zlib-rs backend, the miniz_oxide
-  fallback, and that another crate can still pull in C zlib.
-- The schema companion page lists registry lookup bounds and cache
-  defaults in tables.
-- The schema companion page describes the crate that is in the tree.
-  It does not depend on the core client or on reqwest.
-- The operator guide separates name-based offset calls from UUID calls.
-  A recreated topic name does not inherit an old commit.
-- Auto-commit stays off by default. Leave, close, and unsubscribe do not
-  store positions. Metadata v0 and GROUP FindCoordinator v0 are spelled out.
-- The resource-soak page separates the local rehearsal, resume, and the
-  controlled-host profile. A short run is not a 24-hour qualification.
-- The open-loop latency page separates the schedule, the four latency
-  distributions, and the outcomes a JSONL file does not qualify.
-- The task workflow no longer recommends KL03-01, KL07-01, KL08-01,
-  KL01-01, KL04-01, or KL10-01. Those cards are done.
-- The task workflow records that the five baseline consumer defects are
-  fixed. Independent replay remains KL01-22.
-- The performance-leadership snapshot from 2026-09-26 stays dated. A note
-  records that zstd encoding, incremental Fetch, and the bench driver
-  knobs have since landed. Suite HOLD is unchanged.
-- The rust-rdkafka migration guide separates features that have no
-  equivalent from features that exist with a stated limit. zstd, Produce
-  v13, Fetch v18, and incremental Fetch are in the second list.
-- The performance-leadership pickup list no longer starts on KL09-01 or
-  KL09-14. Those cards, and the other named first pickups, are done.
-- The benchmark page opens its historical produce samples with one map.
-  The four uncompressed medians stay dated samples. Fetch `RackId` and
-  the admin APIs are no longer described in the middle of those tables.
-- The measurement contract says the matched bulk cell is `not_run`.
-  The printed `bench_produce` command leaves connections at the default
-  of 8, and the historical Java command does not qualify that cell.
-- The benchmark page maps the two fetch samples and the latency sample
-  before the per-run tables. The latency sample remains a loss against
-  rust-rdkafka 0.39.0.
-- The design page describes the current Produce encoder. Uncompressed
-  batches are written into the request buffer. Compressed batches are
-  packed first and then copied. KL09-15 stays open.
-- The status page names the open client gaps. Ordinary InitProducerId and
-  the broker's first nine cards are already done. Mixed-version rolling
-  upgrade is KL11-46, which is done.
-- The roadmap no longer tells a session to start KL07-01 or KL08-01.
-  Those lanes are done through the release gate. Adopter records KL08-08
-  through KL08-13 are still open. Current source requires Rust 1.99.
-- The next-session queue no longer starts on KL10-01 or KL03-01. Every
-  card named in that launch list is done. Independent consumer replay
-  remains KL01-22.
-- The broker plan lists the 13 KL11 cards that are not done. Sixty-three
-  of the 76 broker cards are done, including retention, compaction, and
-  failover. KL11-37 and KL11-71 already have owners.
-- The gateway plan's work order matches the queue. Green CI, zstd, the
-  gzip backend, and applied-batch fetch decompression are done. The
-  gateway produce and fetch cells are still pending. KL10-07 is in
-  progress.
-- The release page leads with the next cut. The 0.1.0 bootstrap, including
-  the retired first-publish workflow, is marked as history. Rust 1.99 is
-  the declared minimum.
-- The operator troubleshooting table says a SASL session expiry closes the
-  connection. Client loops do not reauthenticate on a timer.
-- The zstd page opens with the feature switch and the byte limits. The
-  feature stays off by default. Levels remain 1 through 19, default 3.
-- The schema companion README lists cache defaults in a table: 256
-  entries, 8 MiB, 16 active keys, and the three freshness windows.
-- The same README lists Protobuf, Avro, and JSON Schema frame bounds in
-  one table. Defaults stay 1 MiB frames.
-- The schema companion README no longer lists built-in serializers as
-  planned work. The application supplies the serializer.
-- The broker README says 63 of 76 KL11 cards are done. OIDC validation
-  and SASL reauthentication are in progress. The crate is not a production
-  cluster.
-- The root README's produce example is a local sample with seeded payloads.
-  It is not a historical comparison row, and Kerberos is not implemented.
-- The operator guide opens with links to produce, fetch, groups, defaults,
-  and troubleshooting. The runtime measurements are not setup steps.
-- The security page lists its checks in a table. Those checks do not
-  qualify GSSAPI, a live OIDC rotation soak, or a signed benchmark.
-- The operator guide's group section keeps the results that do not change
-  with list size. The 8,192-item walks are named in the resource contract.
-- The operator guide says a replica move keeps the replication factor only
-  on AlterPartitionReassignments v1. A v0 controller fails the call before
-  the reassignment is sent.
-- The operator guide lists Metadata v0 behavior in a table, and adds the
-  10 second session timeout and 150 millisecond heartbeat next to the Java
-  defaults.
-- The operator guide lists Produce version selection and broker throttle
-  in tables. Transactional Produce still stays at v11 unless
-  `transaction.version` 2 and EndTxn v5 are both finalized.
-- The operator guide lists Fetch v18 and incremental Fetch sessions in
-  tables. Ordinary consumers still omit the high-watermark tag. Sessions
-  still run on Fetch v7–v18. The 128-partition figure is a request-size
-  measurement, from 4,268 bytes to 25 bytes.
-- The one-batch consumer recipe lists what to do when a commit fails,
-  when pause is on, and when a cooperative rejoin revokes partitions.
-  A failed commit can still have stored an offset.
-- The exactly-once recipe lists each transaction outcome. A lost commit
-  stays ambiguous and is retried as the same commit. Fencing stops that
-  producer instance.
-- The produce-cancellation table includes `close_timeout` and a later
-  send. A record already transmitted stays ambiguous, and a new send can
-  duplicate it even when idempotence is on.
-- The operator guide names the three coordinator errors that discovery
-  retries: load in progress (14), coordinator not available (15), and not
-  coordinator (16).
-- The performance hot-path table is labeled as the 2026-09-26 hypothesis.
-  KL09-14, KL09-16, and KL09-17 are done. KL09-15 stays open.
-- The same table notes that incremental Fetch, pre-sized decompression,
-  and prefetch-within-budget have landed. The zero-copy batch view is
-  still KL09-37 through KL09-39.
-- Share fetch limits, overlapped leaders, and range indexes are done.
-  Reused RPC buffers, pre-encoded headers, a shared TLS config, and a
-  shared OIDC manager are done. Write-shape and socket-buffer cards stay
-  pending.
-- The producer hot-path rows name the cards that are still pending:
-  KL09-15, KL09-20, KL09-21, KL09-23, KL09-26, KL09-27, KL09-29, and
-  KL09-30. The codec fast paths and KL09-40 through KL09-48 are done.
-- The performance-leadership risks no longer say zstd is policy-blocked.
-  The optional encoder has shipped. The required zstd benchmark cells
-  are still not run.
-- The KL09 card index does not show status. The cross-lane list records
-  that zstd, incremental Fetch, throttle handling, Produce v13, and
-  Fetch v18 are done. The sticky partitioner is in progress. An io_uring
-  backend still needs a dependency-policy decision.
-- The gateway findings are dated 2026-09-30. The 7.8× fetch CPU ratio and
-  the 1,426 MB RSS have not been re-measured after the later decompression
-  changes.
-- The gateway produce profiles used miniz_oxide. The default gzip backend
-  is now zlib-rs. The 24.3 µs and 477k records/s figures have not been
-  re-measured on that backend.
-- The gateway codec table labels miniz_oxide as the 2026-09-30 default
-  and zlib-rs as the default now. The feed-gap card KL10-04 is still
-  pending. The 2026-09-26 example-binary CI failure was fixed by KL10-01.
-- The civilization plan's dependency rule records that optional zstd has
-  shipped through `zstd-rs`. GSSAPI is still not implemented.
-- The civilization progress note no longer says zstd would be opt-in C
-  or `ruzstd`. The historical baseline row says Kerberos did not ship.
-- The roadmap records that the zstd evaluation selected `zstd-rs`.
-  `ruzstd` was not selected. The migration guide points Kerberos at the
-  helper-process proposal and describes which OIDC refresh actually runs.
-- The roadmap's codec lane records KL05-06 through KL05-09 and KL05-11
-  through KL05-15 as done. The sticky partitioner, KL05-10, is in
-  progress. `zstd-sys` stays banned.
-- The roadmap's auth lane records KL06-01 through KL06-05, KL06-07, and
-  KL06-13 as done. The live lifecycle matrix and GSSAPI remain open.
-  Client loops still do not reauthenticate on a timer.
-- The roadmap no longer says to start with KL03-01. Those consumer repairs
-  are done. Independent replay remains KL01-22. KL01-03 through KL01-08,
-  the independent Java fixtures, are done.
-- The roadmap records 10 of 12 memory cards and 9 of 14 measurement cards
-  as done. The 24-hour overload, producer shutdown completion, and the
-  controlled benchmark campaigns are still pending. Suite HOLD remains.
-- The roadmap points KL09 at the current performance page. 51 of 74 KL09
-  cards are done. KL09-13 is in progress. An older blob of that page is
-  not the queue.
-- Roadmap links to source, scripts, and plans open the current tree. The
-  2026-09-21 audit links stay on that snapshot.
-- The roadmap's gap table records that strict rustdoc and the finite codec
-  matrix have landed. Consumer-history replay and a live schema round trip
-  remain open.
-- The operations gap records that auth redaction and TLS rotation checks
-  are done. The live credential matrix, newcomer exercises, and rollback
-  rehearsal remain open.
-- The support matrix lists quorum admin behavior in a table. A local Raft
-  append is not committed membership. The live credential matrix is still
-  KL06-06.
-- The support matrix lists Produce and Fetch quota versions, incremental
-  Fetch sessions, and Fetch v18 in tables. No live quota deployment or
-  throughput claim is made.
-- The support matrix lists Produce v13, ListOffsets v11, offset v10, and
-  Streams v0 in one table, with the live cases each row does not qualify.
-- The gateway profile names zstd as an optional codec that has shipped.
-  Its measured cells remain gzip and lz4.
-
-- The broker SASL reauthentication page matches the listener profile: opt-in
-  lifetime, Handshake v1, and the deadline that does not move after the
-  Handshake arrives.
-
-- The token lifecycle page matches the OIDC manager, the shared connect-time
-  cache, and SASL session lifetime. Sections 4.2, 6.1, and 6.3 stay the
-  contract those calculations implement.
-
-- Crate rustdoc opens with produce, fetch, group, transaction, and admin
-  examples. The Java client name catalog lives in the `java_crosswalk` module.
-
-- `FetchedRecord.key` stores keys of at most 24 bytes inside the record.
-  Longer keys stay in a shared buffer. The null-broker bulk fetch still
-  verifies every key; allocation count on that cell fell from 629 to 359.
-
-- `ShareRecord.topic` and share-acquisition keys use the same inline `TopicName`
-  as fetched records, so a short topic is not allocated again for every
-  shared record.
-
-- `FetchedRecord.topic` is a `TopicName`. Names of at most 23 bytes are stored
-  in the record and clone without a heap allocation. Longer names still use a
-  `String`. `as_str()`, `Deref<Target = str>`, and equality with `str` and
-  `String` cover the previous field uses. On the null-broker bulk fetch cell
-  this removed the per-record topic allocation (135,629 allocations to 629)
-  and raised verified records/s by about 21% (paired mean ratio 1.215, 95% CI
-  1.129–1.315).
-
-- Development and CI use the latest stable Rust only. Package manifests now
-  require Rust 1.99; Rust 1.85 is no longer supported.
-- The schema companion checks a bounded Apache Avro Rust 0.22.0 codec against
-  Java Avro 1.12.1 in both directions (KL05-43). The bridge rejects truncated
-  strings that the pinned backend can otherwise resolve as null.
-
-- Consumer negotiates Fetch18 per broker. KIP-1166 HighWatermark tag1 is
-  supported through added replica sidecar helpers while ordinary consumers omit
-  its default; existing `FetchPartition` and encoder/decoder signatures remain.
-  Lower-version fallbacks, sessions and maintained delivery/commit regressions
-  retain coverage. This codec adds no follower acknowledgment behavior (KL05-12).
-
-- Producer supports Produce v13 using nonzero Metadata topic IDs and maps replies
-  through the identity snapshot sent with each request. Stale IDs refresh and
-  retry within the original delivery deadline; v3–v12 fallback remains available.
-  TransactionV1 stays at v11 unless the initialization snapshot finalizes
-  `transaction.version >=2` and supports EndTxn5. Independent Apache
-  4.1.2/4.2.1/4.3.1 fixtures and live Java decoding cover the wire delta (KL05-11).
-
-- `Consumer::fetch` no longer decompresses fetched batches it cannot keep. Each
-  batch is framed and CRC-checked when its response arrives but decoded only
-  when applied, so batches past `buffer_memory` stay compressed and are fetched
-  again later instead of being inflated and dropped. Against a local broker
-  with real gzip, 8 MiB per partition and the default 32 MiB budget, client CPU
-  fell from 15.1 to 4.5 µs per record and peak RSS from 1.33 GB to 308 MB.
-  Framing, CRC and codec errors still fail the whole fetch; errors found only
-  while decompressing now surface when that batch is applied (KL10-16).
-
-- Consumer uses broker-local incremental Fetch sessions on v7–v18, retaining
-  full v4–v6 fallback, changed/forgotten partitions and independent epochs.
-  Session errors retry within the original deadline, response identities and
-  partition sets are validated before records are applied, and topic recreation
-  clears stale buffered records. Close retires known sessions within one remaining
-  budget; wakeup notifications no longer leak into a later fetch. Request-byte
-  reduction is measured against Apache serialization; no throughput gain is claimed.
-
-- Consumer honors Fetch v8–v18 broker quotas while delivering from eligible peers
-  and buffered records. Quota waits retain poll/request budgets and accept wakeup
-  and caller cancellation; cancelling a one-shot poll preserves later settings.
-  `ConsumerMetrics` adds `throttle` (`metrics::ThrottleStats`); exhaustive struct
-  literals must add the field or use `..Default::default()`.
-
-- Producer honors positive broker quotas for Produce v6–v13 across connection
-  slots, retaining original delivery and close budgets while other brokers and
-  in-flight acknowledgements make progress. `ProducerMetrics` adds `throttle`
-  (`metrics::ThrottleStats`); callers using exhaustive struct literals must add
-  the field or use `..Default::default()`.
-
-- KIP-848 heartbeat responses now encode and decode a nullable assignment with
-  Apache's signed byte marker. This fixes closing a consumer and receiving an
-  unchanged assignment from real brokers. Truncated responses missing the final
-  tag count are rejected.
-
-- ListOffsets v11 exposes KIP-1023 earliest pending upload with
-  `EARLIEST_PENDING_UPLOAD_TIMESTAMP` and `OffsetSpec::earliest_pending_upload`.
-  Each selected leader negotiates its own range; unsupported selectors/isolation
-  return `Error::Unsupported`. Metadata, connection, capability lookup and retries
-  now share the caller deadline; wire TimeoutMs uses the remaining budget. This
-  adds one ApiVersions control RPC per attempt. No live tiered-storage claim.
-
-### Changed
-
-- gzip now uses zlib-rs by default through the new default `zlib-rs` feature.
-  On the json1k gzip cells this gives up to 1.7× compress and up to 2×
-  decompress throughput on arm64 and x86_64. Decoding incompressible gzip on
-  arm64 is 11.5% slower. `default-features = false` keeps miniz_oxide (which
-  forbids `unsafe`; only `crc32fast`'s CRC-32 kernel uses it). flate2 `runtime_detection` is now on, so generic
-  x86_64 and aarch64 Linux builds use hardware CRC-32. Compressed bytes differ
-  from earlier releases; the wire format and decode limits are unchanged. See
-  [docs/gzip-backend.md](docs/gzip-backend.md).
-
-- DescribeLogDirs now supports v5's `IsCordoned` state, with broker routing and
-  v1–v4 fallback preserved. The evolving `DescribeLogDirsResult` type adds
-  `is_cordoned`; struct-literal callers must initialize it. Its existing
-  five-argument `new` constructor stays available and defaults to false;
-  `with_cordoned` sets the new field. Older wire versions omit it and decode false.
-
-- Scripts: tip Verifiable quiet soft-latency recovery — after `latency gate failed (soft)`, `ci-tip-verifiable-broker` sleeps and re-runs integrity (`TIP_VERIFIABLE_QUIET_RETRIES` default 1, `TIP_VERIFIABLE_QUIET_SLEEP_SECS` default 8; `0` disables). Only a clean recheck may restore `ok`; still-soft stays PARTIAL/exit 2. `--self-test` + bars gate quiet retry (no greenwash).
-- Scripts: tip Verifiable soft-latency honesty — soft latency miss is PARTIAL even when integrity-smoke prints `ok`; handoff `--self-test` gates day1 README/ADOPTION preserve on `LAND_PARKS=1`.
-- Scripts/docs: cut-release `PUBLISH_LOCAL` auto-defaults to 1 when `CARGO_REGISTRY_TOKEN` is in-env; CIVILIZATION agent priority leads with WP-0.5 token cut.
-- Scripts: `check-installable-preflight` runs honesty self-tests (`check-registry-token --self-test` + `ci-tip-verifiable-broker --self-test`) before `READY_EXCEPT_TOKEN`, so the one-screen Installable gate cannot skip PARTIAL/token-normalize units; bars require preflight wiring.
-- Scripts: `owner-finish-installable` runs honesty self-tests before the token gate (`check-registry-token --self-test` + `ci-tip-verifiable-broker --self-test`) so the cut path cannot skip PARTIAL/token-normalize units; bars require finish wiring.
-- Scripts: tip Verifiable soft-skip honesty is now executable — `ci-tip-verifiable-broker --self-test` proves finalize `ok`/PARTIAL exit 2/soft PARTIAL exit 0; wired into `ci-branch-lite` / `check-cut-path`; bars run the self-test (not grep-only).
-- Scripts: tip Verifiable `PARTIAL` now exits **2** by default (was 0) so `set -e` tip proxies (`ci-branch-lite` / `check-cut-path`) cannot greenwash mid-chain soft-skips; `TIP_VERIFIABLE_SOFT=1` keeps PARTIAL exit 0 for constrained sandboxes. Bars audit requires `exit 2`.
-- Scripts: tip Verifiable soft-skip honesty — `ci-tip-verifiable-broker` prints `ok` only when broker+auth+integrity all pass; mid-chain soft-skips print `PARTIAL` (not evidence). Capable envs (Java/openssl/keytool/python3 + Kafka) auto-set `REQUIRE_BROKER=1` / `REQUIRE_AUTH=1` unless `TIP_VERIFIABLE_SOFT=1`. Bars audit gates the pattern.
-- Scripts: Verifiable bar now requires tip live-broker scripts (`ci-tip-verifiable-broker`, integrity/latency, `ensure-broker`) wired into `ci-branch-lite` / `check-cut-path`; `ci-civilization-check` no longer stops the shared native broker after broker-smoke (avoids integrity Connection refused / soft-miss greenwash). Opt-in old stop: `STOP_NATIVE_AFTER_BROKER=1`.
-- Scripts: tip Verifiable (`ci-branch-lite` / `check-cut-path`) now runs `ci-tip-verifiable-broker` (ensure-broker → broker-smoke kip848+share → auth → integrity/latency) with soft-skip honesty when tooling/broker is absent — tip Verifiable is no longer fmt/clippy/lib-only while Installable waits.
-- Scripts: `owner-finish-installable` missing-token path prints `owner-request-registry-token` inline so the publish-new Secrets ask is unavoidable.
-- Scripts: `check-installable-preflight` surfaces `owner-request-registry-token` on READY_EXCEPT_TOKEN so the one-screen publish-new ask is the default next step.
-- Scripts/docs: `owner-request-registry-token.sh` one-screen Installable token ask (Secrets deep link + publish-new scope + finish path); wired from `owner-status` / `owner-unblock`. CIVILIZATION post-cut parks tip ancestor stamp → `bb2506c`.
-- Docs: same-day native Verifiable recheck on tip `67072a5` (broker kip848+share, auth matrix, integrity COUNT=2000, latency quiet p99≈150µs after under-load ≈380µs, fuzz decode smoke) recorded unsigned; not a Suite HOLD lift.
-- Scripts: `check-registry-token --self-test` covers whitespace-only TOKEN / TOKEN_FILE normalize units (tip Verifiable + cut-path) before the fake-token network probe.
-- Scripts: `check-registry-token` / `owner-finish-installable` treat whitespace-only `CARGO_REGISTRY_TOKEN` as unset (and trim leading/trailing space) via `pl_normalize_cargo_registry_token` / `pl_prepare_cargo_registry_token`, so a blank Secrets paste cannot look "set" while Installable stays blocked.
-- Scripts: `lab-a-common` `prepare_broker` falls back to `ensure-broker` (native Kafka) when Docker overlay fails in nested Cloud Agent VMs, so direct Lab A integrity/produce/fetch no longer soft-skip without a broker.
-- Scripts: `ci-broker-smoke` `SKIP_DOCKER=1` path now uses `ensure-broker` to start native Kafka when 9092 is down (agent Verifiable re-entry after auth/integrity) instead of hard-failing.
-- Scripts: shared `scripts/lib/ensure-broker.sh` starts native Kafka when 9092 is down; `ci-latency-gate` uses it before benching, and `ci-integrity-smoke` no longer stops a shared native broker on EXIT (so agent Verifiable chains integrity → latency without Connection refused).
-- Scripts: `ci-broker-smoke` auto-starts native Kafka (`ci-native-kafka.sh`) when Docker overlay mounts fail in nested Cloud Agent VMs, so local Verifiable does not soft-skip the broker gate.
-- Docs: same-day native Verifiable recheck on tip `3a1b00a` (broker kip848+share, auth matrix, integrity COUNT=2000, latency quiet p99≈147–161µs after under-load miss ≈1007µs, fuzz decode smoke) recorded unsigned; not a Suite HOLD lift.
-- Scripts/docs: `check-registry-token` / `owner-finish-installable` load `CARGO_REGISTRY_TOKEN_FILE` into the current shell and WARN on common misnamed env vars (`CARGO_TOKEN`, `CRATES_IO_TOKEN`, …) so Secrets UI typos cannot silently block Installable; shared helper `scripts/lib/cargo-registry-token.sh`.
-- Scripts/docs: Cursor env Secrets deep link defaults to `.../secrets` so login redirect lands on the Secrets tab for `CARGO_REGISTRY_TOKEN` injection.
-- Scripts: `check-actions-hygiene` probes for the GitHub `dependencies` label Dependabot expects and prints the owner `gh label create` one-shot (agents 403); surfaces in `owner-unblock` / cut-path hygiene.
-- Tip: merge `main` `first-publish.yml` **publish-new** honesty; `check-post-cut-parks-stack` now requires tip↔main workflow match (not tip-soft-only) so tip-delta stays docs/scripts-only after the main Actions alternate landed.
-- Scripts/docs: shared `scripts/lib/cursor-env-secrets-url.sh` prints the Cloud Agent Environments → Secrets deep link (overridable via `PARTITIONLINE_CURSOR_ENV_SECRETS_URL`); wired into `owner-finish-installable` / `owner-unblock` / RELEASE so token injection is one click away.
-- Scripts: `ci-branch-lite` + `check-cut-path` run `DRY_RUN=1` `owner-enable-trusted-publishing` so tip Verifiable and cut-path rehearse the post-Installable OIDC UI checklist (crate may be absent); Installable preflight READY_EXCEPT_TOKEN messaging spells publish-new + Cursor/Actions secret paths.
-- Scripts: `check-cut-path` runs `DRY_RUN=1` `day1-after-publish` (README flip rehearsal) and `check-actions-hygiene` (stale queue surface); tip Verifiable (`ci-branch-lite`) also surfaces Actions hygiene before Installable preflight.
-- Scripts: `ci-branch-lite` + `check-cut-path` run `DRY_RUN=1` `owner-dispatch-first-publish` so tip Verifiable and cut-path prove `first-publish.yml` stays workflow_dispatch-visible on main (Actions-secret alternate) before the token cut.
-- Docs: same-day native Verifiable recheck on tip (broker kip848+share, auth matrix, integrity COUNT=2000, latency quiet p99≈220µs after under-load miss ≈837µs, fuzz decode smoke) recorded unsigned; not a Suite HOLD lift.
-- Scripts/docs: owner-finish / owner-unblock / RELEASE spell out Cursor Environments → Secrets for `CARGO_REGISTRY_TOKEN`; tip Verifiable + cut-path gate `check-merge-ready`.
-- Scripts: `ci-branch-lite` + `check-cut-path` run `check-crate-metadata`; tip Verifiable also runs `check-installable-preflight` so READY_EXCEPT_TOKEN stays tip-gated before the token cut.
-- Scripts: `ci-branch-lite` runs `cargo publish --dry-run` + `check-trusted-publishing-ready` so tip Verifiable proves upload shape and OIDC release.yml shape before the token cut.
-- Scripts: `ci-branch-lite` + `check-cut-path` run `PRE_PUBLISH=1` `audit-civilization-bars` so five civilization bars are tip-gated before the token cut (Installable credentials may remain BLOCKED).
-- Scripts: `ci-branch-lite` + `check-cut-path` run `ci-crate-consumer` so the packed `.crate` tarball is proven dependable (Installable packaging) before the token cut, not only via publish-ready.
-- Scripts: `ci-branch-lite` + `check-cut-path` run `ci-deny` so the Independent bar (no C Kafka/OpenSSL/zstd defaults) is tip-gated, not only in publish-ready.
-- Scripts: `ci-branch-lite` + `check-cut-path` run `ci-msrv` so Installable MSRV is exercised (compile+lib tests on declared rust-version), not only declared in Cargo.toml.
-- Scripts: `check-post-cut-parks-stack` requires tip `first-publish.yml` to match `main` while Installable is unmet (main may already document publish-new) + park publish-new — so tip-delta stays docs/scripts-only.
-- Scripts: `ci-branch-lite` + `check-cut-path` run `MODE=path` `verify-crates-io-consumer` so the day1 adopter compile proof is rehearsed before crates.io `0.1.0` exists.
-- Scripts: `ci-branch-lite` rehearses `refresh-post-cut-parks` DRY_RUN (tip→Verifiable→SCRAM→lz4→checkout) before the parks stack gate.
-- Scripts: `check-cut-path` rehearses `refresh-post-cut-parks` DRY_RUN (tip→Verifiable→SCRAM→lz4→checkout) before parks stack + publish dry-run.
-- Docs: same-day native Verifiable recheck on tip (broker kip848+share, auth matrix, integrity COUNT=2000, latency quiet p99≈207µs after under-load miss ≈1049µs, fuzz decode smoke) recorded unsigned; not a Suite HOLD lift.
-- Scripts: `refresh-post-cut-parks.sh` refreshes parks in land order (tip→Verifiable→SCRAM→lz4→checkout) so parallel tip merges cannot fork the tip⊆… chain; wired into owner-status / owner-unblock.
-- Scripts: `check-post-cut-parks-stack` also gates park chain (Verifiable⊆SCRAM⊆lz4⊆checkout) so parallel tip refreshes cannot fork CHANGELOG histories that only conflict at stacked land time.
-- Scripts/docs: rebuild lz4 + actions/checkout post-cut parks stacked on SCRAM (SCRAM⊆lz4⊆checkout) so tip→Verifiable→SCRAM→lz4→checkout DRY_RUN stays merge-clean after tip-is-ancestor gate; tip stays docs/scripts-only.
-- Scripts: `check-post-cut-parks-stack` gates tip-is-ancestor of every post-cut park (catches parks lagging tip after docs/scripts commits) before stacked DRY_RUN merge + `cargo test --lib`.
-- CI: bump `actions/checkout` to v7 on parked `dev/actions-checkout-bump-b686` (covers Dependabot #92; land after Installable).
-- Dependencies: `lz4_flex` 0.11→0.14. Parked off tip until after Installable (lockfile breaks docs-only tip-delta).
-- Dependencies: flate2 1.1.9→1.1.10 (gzip write header/footer infinite-loop fix; miniz_oxide 0.8→0.9). Parked off tip until after Installable (lockfile breaks docs-only tip-delta).
-- Dependencies: SCRAM stack hmac 0.12→0.13, pbkdf2 0.12→0.13, sha2 0.10→0.11 (KeyInit import). Parked off tip until after Installable; auth-smoke green.
-- Scripts/docs: `owner-enable-trusted-publishing` post-Installable helper verifies release.yml OIDC shape and prints exact crates.io Trusted Publishing UI steps; wired into day1 / owner-status / RELEASE.
-- Scripts: `check-cut-path` runs `cargo publish --dry-run` so Installable rehearsal proves package upload shape before `CARGO_REGISTRY_TOKEN` arrives.
-- Scripts/docs: park `actions/checkout` v7 on `dev/actions-checkout-bump-b686` and append it to post-cut land order (after Verifiable + SCRAM + lz4); tip stays docs/scripts-only until Installable.
-- Scripts/docs: park `lz4_flex` 0.11→0.14 on `dev/lz4-flex-bump-b686` and wire it into post-cut parks land order (after Verifiable + SCRAM); tip stays docs/scripts-only until Installable.
-- Docs/scripts: same-day native Verifiable recheck on tip (broker kip848+share, auth matrix, integrity COUNT=2000, latency quiet p99≈126–203µs after under-load miss) recorded unsigned; owner-status + publish-ready surface post-cut parks stack and Trusted Publishing shape.
-- Scripts: `owner-land-post-cut-parks.sh` lands Verifiable + flate2 + SCRAM crypto parks after Installable; `owner-finish-installable` chains it by default.
-- Scripts: READY_EXCEPT_TOKEN / owner-status / owner-unblock note that `owner-finish-installable` chains parked Verifiable merge by default.
-- Scripts: `owner-finish-installable` defaults to chaining `owner-merge-parked-verifiable` after Installable (`MERGE_PARKED_VERIFIABLE=0` skips).
-- Scripts: `owner-merge-parked-verifiable.sh` lands post-Installable Actions auth+integrity + ConsumerGroupHeartbeat fuzz from parked branch.
-- Docs/scripts: post-cut Verifiable handoff for parked `dev/verifiable-auth-integrity-fuzz-b686` (Actions auth+integrity jobs + ConsumerGroupHeartbeat fuzz); tip stays docs/scripts-only until Installable.
-- Docs: same-day native Verifiable recheck (broker kip848+share, auth matrix,
-  integrity COUNT=2000, latency gate p99≈71–86µs) recorded in STATUS /
-  ADOPTION / CIVILIZATION — unsigned; not a Suite HOLD lift.
-- Changed: `Error::Closed` now displays as `client closed` (was `producer closed`) on all paths, including consumer/admin/net; match on the variant, never the text.
-
-### Fixed
-
-- Scripts: post-cut parks DRY_RUN cleanup uses globals under `set -u` so conflict exits do not abort worktree teardown.
-- Docs: CIVILIZATION live tip SHA + [#86](https://github.com/mingley/partitionline/issues/86) cut path aligned to publish-new + `owner-finish-installable` (issue body no longer steers to publish-update-only / owner-cut-release).
-- Scripts: `owner-status` / `audit-civilization-bars` / `check-merge-ready` probe crates.io publish-new auth (not token presence alone) so publish-update-only or garbage tokens cannot greenwash Installable readiness; `owner-unblock` surfaces both post-cut parks and the token probe.
-- Docs: CIVILIZATION tip SHA + post-cut parks list (Verifiable + SCRAM/flate2) aligned with live cut path and structured registry-token probe.
-- Scripts: `check-registry-token` probes crates.io publish-new auth via PUT `/api/v1/crates/new` with a structured empty-tarball body (not `/api/v1/me`, which 403s publish-only tokens; not an empty body, which 400s before auth and false-accepts); `--self-test` proves fake tokens fail; wired into preflight, cut-path, finish, and `ci-branch-lite`.
-- Docs/scripts: first-cut token guidance requires crates.io `publish-new` (not only `publish-update`) so a wrong-scoped token cannot silently block Installable.
-- Scripts/docs: `check-trusted-publishing-ready` validates release.yml OIDC shape; ADOPTION warns not to merge Dependabot flate2/SCRAM bumps onto tip before Installable (covered by post-cut SCRAM park); Verifiable park refreshed onto tip.
-- Scripts: finish DRY_RUN hard-fails dirty post-cut parks stacks (no `|| true` greenwash); `check-cut-path` + owner-unblock surface tip→Verifiable→SCRAM stack gate.
-- Scripts: post-cut parks DRY_RUN uses a disposable worktree (no `checkout -f` on tip) so tip WIP is not discarded; tip Verifiable proxy hard-fails on dirty tip→Verifiable→SCRAM stacks (`check-post-cut-parks-stack`).
-- Scripts: tip Verifiable proxy (`ci-branch-lite` / `ci-publish-ready`) hard-fails when parked post-cut branches no longer stack-clean onto tip (`check-post-cut-parks-stack`); lander DRY_RUN prefers local tip when ahead of origin and honors `REQUIRE_PARKS=1`.
-- Scripts: `owner-land-post-cut-parks` DRY_RUN now performs real stacked merges (per-park merge-tree vs bare target hid tip→Verifiable→SCRAM CHANGELOG conflicts); SCRAM/flate2 park rebased onto tip for clean post-cut land.
-- Soft-skip honesty: optional kip848/share broker soft-skips only on Unsupported*/truncated-Protocol signals; civilization-check fails unexpected auth/integrity errors instead of SKIP-greenwashing.
-- CI broker-smoke: when `REQUIRE_KIP848=0` / `REQUIRE_SHARE=0` (Kafka 3.9 matrix), soft-skip kip848/share on truncated `Protocol` decode errors instead of hard-failing — KIP-848/share remain required on 4.x. Optional kip848 also stops retrying immediately on `Protocol(need N bytes)` so 3.9 matrix cells do not wait out six timeouts.
-- CI: stop injecting partial `KAFKA_*` env on `apache/kafka:4.x` Docker (was breaking KRaft format with missing `process.roles`); enable share via post-ready `share.version=1` upgrade only.
-- CI latency gate: honor `LATENCY_LIMIT_US` absolute ceiling; Actions sets `5000` for GHA+Docker noise (local relative baseline unchanged).
-
-- `release.yml`: add complementary `ghost-noop` job so branch-push evaluations
-  that skip `publish` stay green (avoids empty-job / all-skipped red X on tip).
-- `scripts/owner-cut-release.sh`: `DRY_RUN=1` allowed on non-`main` (civilization
-  tip rehearsal); still refuses real cuts off `main` without
-  `ALLOW_NON_MAIN_PUBLISH=1`.
-
-### Added
-
-- Verifiable: Actions `auth-smoke` + `integrity-smoke` jobs (REQUIRE_AUTH/REQUIRE_INTEGRITY); ConsumerGroupHeartbeat (KIP-848) decode fuzz target + decode-smoke coverage; auth-smoke self-bootstraps Kafka binaries when missing.
-- `scripts/check-installable-preflight.sh`: one-shot pre-publish probe that
-  exits `0` with `READY_EXCEPT_TOKEN` when merge-ready + metadata + main CI
-  are green and only `CARGO_REGISTRY_TOKEN` / crates.io cut remains (exit `3`
-  if main CI is still running; exit `2` if already Installable).
-- `scripts/check-main-ci.sh`: probe whether `origin/main` HEAD has terminal
-  green CI (exit 0/1/2). Wired into `owner-finish-installable` step 2b —
-  refuses Installable cut on red main unless `ALLOW_RED_MAIN=1`; real cuts
-  default `REQUIRE_MAIN_CI=1` (inconclusive also refuses); `DRY_RUN=1` keeps
-  soft warn unless `REQUIRE_MAIN_CI` is set explicitly.
-- `.github/workflows/first-publish.yml`: workflow_dispatch first crates.io
-  cut when `CARGO_REGISTRY_TOKEN` is an Actions secret (confirm=publish);
-  documented in ADOPTION / RELEASE / owner-finish-installable as the
-  Actions-only alternate to the in-env finish script.
-- `scripts/owner-dispatch-first-publish.sh`: owner helper to
-  `gh workflow run first-publish.yml` after tip is on `main` (dispatch is
-  only listed from the default branch).
-- `scripts/owner-sync-main.sh`: explicit tip→main FF with `CONFIRM=1` (avoids cancel-in-progress thrash on main CI while Installable waits). Refuses when main HEAD CI is still running unless `ALLOW_BUSY_MAIN=1`. Also refuses docs/scripts-only tip→main while crates.io cut is still absent unless `ALLOW_DOCS_THRASH=1` (leave tip ahead; `owner-finish-installable` FF's once at cut).
-
-- `owner-finish-installable.sh`: `DRY_RUN=1` rehearses merge/cut without a
-  token; `check-merge-ready` next steps detect when HEAD already matches
-  `main` (skip FF; point at first-publish dispatch).
-- `scripts/lib/adopter-consumer-main.sh`: shared operator-surface consumer
-  used by `ci-crate-consumer` and `verify-crates-io-consumer` so packed-crate
-  and crates.io proofs cannot drift.
-- `scripts/verify-crates-io-consumer.sh`: prove an adopter can compile against
-  partitionline — `MODE=registry` (default) after crates.io publish; `MODE=path`
-  pre-publish rehearsal wired into `ci-publish-ready` so day1 cannot fail on
-  API drift. Registry mode wired into `day1-after-publish` +
-  `owner-finish-installable`.
-- `scripts/owner-finish-installable.sh`: one-shot Installable finish once
-  `CARGO_REGISTRY_TOKEN` is in-env — FF-merge civilization → `main`, local
-  `cargo publish` (bypasses starved Actions), day1, prove Installable; after
-  success, best-effort `gh secret set CARGO_REGISTRY_TOKEN` for later tags.
-  `owner-status` / `ci-publish-ready` / bars audit point at this path first.
-- `scripts/lib/crates-io.sh`: shared Installable probe (crates.io API + sparse
-  index fallback; required User-Agent — CDN returns empty 403 without one).
-  Wired into `check-installable`, `check-merge-ready`, and `owner-status`.
-- `scripts/check-merge-ready.sh`: `git merge-tree --write-tree` conflict probe
-  vs `origin/main` (flush-left `changed in both` fallback; avoids doc/script
-  false positives); owner next steps prefer `owner-cut-release.sh`.
-- `scripts/check-actions-hygiene.sh`: classifies stale queued Actions (RC-tag
-  release zombies vs tip CI leftovers); wired into `owner-status` /
-  `owner-unblock`. `owner-cancel-stuck-runs` labels the same classes.
-- `scripts/ci-crate-consumer.sh`: packed-crate downstream check now links the
-  operator surface (Producer/Consumer/ConsumerGroup/ShareGroup/Admin +
-  SASL/TLS config), not only Producer.
-- `scripts/ci-civilization-check.sh`: Installable section uses shared crates.io
-  probe, day1 README `DRY_RUN` preflight, merge-ready gate, and actions hygiene;
-  ends with `PRE_PUBLISH=1` civilization-bars audit.
-- `scripts/audit-civilization-bars.sh`: evidence audit for the six CIVILIZATION
-  success bars (PASS/PARTIAL/BLOCKED/FAIL); wired into `owner-status`.
-  `PRE_PUBLISH=1` treats Installable BLOCKED as expected so publish-ready can
-  gate on the other five bars before the first crates.io cut.
-- `scripts/check-crate-metadata.sh`: crates.io package-shape gate (version,
-  description identity, keywords/categories, license files, include allowlist,
-  packed-crate omits scripts/fuzz); wired into merge-ready and publish-ready.
-- `scripts/owner-cut-release.sh`: best-effort Actions `CARGO_REGISTRY_TOKEN`
-  preflight (`REQUIRE_ACTIONS_SECRET=1` to hard-fail); runs
-  `audit-civilization-bars` after a successful cut.
-
-- `examples/kip848`: KIP-848 next-gen consumer group join (`ConsumerGroup::join_consumer_topics`).
-  Broker smoke runs it on Kafka 4.x (`REQUIRE_KIP848=1` default). Join now sends an
-  **empty** `TopicPartitions` array (null was rejected: "must be empty when (re-)joining").
-  ConsumerGroupHeartbeat decode accepts truncated error bodies that omit trailing
-  tagged fields (Kafka 4.x `INVALID_REQUEST` path).
-
-- Auth smoke covers **OIDC client_credentials** (local `scripts/oidc-token-stub.py`)
-  and **mTLS** (SSL listener with `ssl.client.auth=required`; `examples/tls`
-  accepts `TLS_CLIENT_CERT_PEM` / `TLS_CLIENT_KEY_PEM`). X.509 v3 client certs
-  required for rustls. Wired into `scripts/ci-auth-smoke.sh` / civilization-check.
-
-- `scripts/ci-auth-smoke.sh`: native Kafka SASL_SSL + SCRAM-SHA-256/512 +
-  OAUTHBEARER (unsecured JWT) smoke (private CA, isolated ports,
-  `examples/sasl` / `examples/oauth` with `TLS_CA_PEM`); TLS-only produce must
-  fail closed. Wired into `scripts/ci-civilization-check.sh`.
-- `examples/sasl` and `examples/oauth` accept optional `TLS_CA_PEM` /
-  `TLS_SERVER_NAME` for the production SASL_SSL path.
-- `scripts/owner-status.sh` prints Installable/Verifiable blocker status
-  (token, crates.io, Actions tip/main); wired into civilization-check and
-  publish-ready as an informational footer.
-- CI concurrency cancels superseded runs on `main` too, so a stuck queued
-  `main` job cannot permanently block the next push after merge.
-- `scripts/owner-cancel-stuck-runs.sh` cancels queued Actions runs older than
-  15 minutes (`DRY_RUN=1` supported); wired from `owner-status` / ADOPTION for
-  the org-wide runner starvation case (agents get 403 — owner must run it).
-- `scripts/owner-unblock.sh` one-shot owner checklist: status probe, dry-run
-  cancel targets, merge → tag `v0.1.0` → day1 path after token + runners.
-- `scripts/lab-a-common.sh` shared broker helpers; `scripts/lab-a-integrity.sh`
-  combined produce→HW→fetch integrity; `scripts/ci-integrity-smoke.sh` small-
-  count local/CI smoke (+ unsigned latency) wired into civilization-check.
-  `lab-a-fetch.sh` now also requires HW delta == acked.
-- `tests/fuzz_decode_smoke.rs` also hammers group / share / txn response
-  decoders (not only fetch/produce/metadata). `scripts/ci-branch-lite.sh` and
-  civilization-check now **run** that smoke (tip Verifiable no longer
-  `--lib`-only); optional short libFuzzer smoke when nightly+g++ are present.
-- CI: `dev/**` tip pushes no longer auto-queue (org runner starvation /
-  perpetual tip re-queue); full matrix on PR/`main`/`workflow_dispatch` only.
-- Git install pin `v0.1.0-rc.6` (README / ADOPTION / migrate guide) for
-  adopters before crates.io; does not trigger `release.yml` (final `vX.Y.Z`
-  only). Advances `v0.1.0-rc.5` with `owner-publish` → `day1-after-publish`
-  chaining and a refreshed native Kafka 4.1 broker smoke (kip848/share).
-- `scripts/check-adopter-pin.sh` (wired into branch-lite / publish-ready /
-  owner-status) so git pins cannot silently lag tip.
-- `scripts/post-publish-readme.sh` `DRY_RUN=1` preflight (wired into
-  `ci-publish-ready`) so day-1 README flip cannot silently break before
-  crates.io exists. `owner-unblock` points at release issue #86 and the
-  `v0.1.0-rc.6` interim git pin.
-
-### Changed
-
-- `scripts/owner-cut-release.sh` one-shot owner cut on clean `main` (tag → Actions publish → crates.io wait → day1; `PUBLISH_LOCAL=1` / `DRY_RUN=1`). Wired into `owner-unblock` and RELEASE.md.
-- `ci-publish-ready` and `owner-status` also run `check-merge-ready` so the
-  merge→tag path is visible in the same probes as Installable/Verifiable.
-- Tip re-verified auth smoke (SASL_SSL PLAIN+SCRAM+OAUTHBEARER+OIDC + mTLS fail-closed) on 2026-09-04.
-- Tip re-verified native Kafka 4.1 broker smoke (`ci-native-kafka` + kip848/share required) on 2026-09-04.
-- `scripts/check-merge-ready.sh` (wired into `owner-unblock`, documented in
-  RELEASE.md) gates civilization → main → `vX.Y.Z` without requiring a token:
-  final version + CHANGELOG section, release.yml OIDC/secret auth, workflow
-  YAML, adopter pin, and tip-vs-`main` ancestry (`FULL=1` adds branch-lite).
-- `release.yml` prefers crates.io **Trusted Publishing** (OIDC via
-  `rust-lang/crates-io-auth-action`, `id-token: write`) and falls back to
-  `CARGO_REGISTRY_TOKEN` for the first publish. RELEASE.md / owner-unblock /
-  day1 document the post-0.1.0 migration off long-lived Actions secrets.
-- Tip Verifiable gates (`ci-branch-lite` / `ci-publish-ready`) run
-  `scripts/check-workflows.sh` so invalid workflow YAML (the flush-left
-  `run: |` class that empty-failed `release` on branch pushes) cannot regress
-  unnoticed. `owner-status` prefers Actions runs for the exact HEAD SHA.
-- `release.yml` hardens the crates.io publish trigger: fix invalid YAML in the
-  GitHub Release notes step (flush-left multiline string caused empty-job
-  `release` failures on branch pushes), input-safe concurrency / checkout
-  expressions, job-level skip unless final tag or `workflow_dispatch`, and an
-  explicit `X.Y.Z` tag shape check. Still publishes on `v0.1.0`.
-- `scripts/post-publish-readme.sh` also inserts crates.io + docs.rs badges on
-  day-1 README flip (`DRY_RUN=1` asserts badges). `release.yml` creates a
-  GitHub Release after a successful crates.io publish.
-- `scripts/check-adopter-pin.sh` allows docs/scripts tip drift without a new rc;
-  library/`Cargo.toml` changes since the pin still fail the gate.
-
-- `scripts/owner-publish.sh` runs `day1-after-publish` by default after a
-  successful manual `cargo publish` (`RUN_DAY1_AFTER_PUBLISH=0` to skip).
-- Migration guide git pin → `v0.1.0-rc.6`; guide documents KIP-848 empty
-  `TopicPartitions` join + `examples/kip848`. Cargo.toml lists remaining
-  examples (`share`, `cooperative`, `metrics`, `offsets`, `pause`, `wakeup`)
-  so the packaged crate surface matches README.
-- ADOPTION owner unblock: `main` Actions recovered; remaining cancel targets
-  are stale tip/tag queues (not an eternal `main` queue).
-
-- Mock TLS fixtures use the `openssl` CLI instead of `rcgen`, dropping
-  `time` from the dependency graph and clearing the `RUSTSEC-2026-0009`
-  ignore in `deny.toml` / `.cargo/audit.toml` without raising MSRV.
-- Auth smoke covers PLAIN, SCRAM-SHA-256/512, and OAUTHBEARER over SASL_SSL;
-  CI `test` jobs assert `openssl version` before `cargo test`.
-- ADOPTION / CIVILIZATION record local civilization-check evidence
-  (broker + SASL_SSL PLAIN + SCRAM-256/512 + OAUTHBEARER) while GitHub Actions
-  remains queued.
-
-### Fixed
-
-- Mock TLS fixture reads cert/key PEMs via `File` + `Read` instead of
-  `std::fs::read`, restoring `clippy::disallowed_methods` / publish-ready.
-- `release.yml` only runs on final `vX.Y.Z` tags (not `v0.1.0-rc.*`), so git
-  RC install pins do not queue crates.io publish jobs or burn Actions capacity.
+- KIP-848 heartbeat responses use Apache's signed-byte nullable-assignment
+  marker. Unchanged assignments and consumer close are handled, and responses
+  missing the final tag count are rejected.
+- Release readiness requires default and all-feature tests, exact-commit CI,
+  package-consumer checks, and the interruption-recovery rehearsal before
+  publication. Client 0.1.0 is already published; the broker and schema crates
+  remain unpublished.
+- Guides describe buffer accounting, cancellation and ambiguous delivery,
+  protocol versions, and the limits of recorded benchmarks. Production and
+  fastest-performance claims remain unqualified.
 
 ## [0.1.0] - 2026-09-04
 

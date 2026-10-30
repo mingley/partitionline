@@ -343,7 +343,7 @@ pub fn encode_api_versions_request(
         let planned = api_versions_request_len(software_name, software_version)?;
         let needed = body_start.saturating_add(planned);
         if buf.capacity() < needed {
-            buf.reserve(needed - buf.capacity());
+            buf.reserve(needed - buf.len());
         }
         buf::put_string(buf, flexible, Some(software_name))?;
         buf::put_string(buf, flexible, Some(software_version))?;
@@ -626,7 +626,7 @@ pub fn encode_api_versions_response(
     let planned = api_versions_response_len(version, flexible, resp)?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     buf.put_i16(resp.error_code);
     buf::put_array_len(buf, flexible, Some(resp.api_keys.len()))?;
@@ -2514,7 +2514,7 @@ fn metadata_topic_rows_len(
 fn reserve_metadata_body(buf: &mut BytesMut, planned: usize) {
     let needed = buf.len().saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
 }
 
@@ -4705,7 +4705,7 @@ fn encode_produce_request_fields(
     let plan = produce_request_plan(version, flexible, transactional_id, topics)?;
     let needed = body_start.saturating_add(plan.len);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     let mut staged = plan.staged.into_iter();
     if version >= 3 {
@@ -5094,7 +5094,7 @@ fn encode_produce_response_id_fields(
     let planned = produce_response_len(version, flexible, parts, &order, &slots, endpoints)?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     buf::put_array_len(buf, flexible, Some(order.len()))?;
     for topic in &order {
@@ -5252,7 +5252,7 @@ pub async fn encode_produce_request_cooperative(
         produce_request_plan_cooperative(version, flexible, transactional_id, topics).await?;
     let needed = body_start.saturating_add(plan.len);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     let mut staged = plan.staged.into_iter();
     if version >= 3 {
@@ -5473,7 +5473,7 @@ async fn encode_produce_response_id_fields_cooperative(
             .await?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     buf::put_array_len(buf, flexible, Some(order.len()))?;
     let mut walked = 0usize;

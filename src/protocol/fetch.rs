@@ -1674,7 +1674,7 @@ where
     )?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     // ReplicaId is untagged only through v14. v15+ uses ReplicaState tagged
     // field 1 (KIP-903). Consumers omit it (ReplicaId / ReplicaEpoch default
@@ -1963,7 +1963,7 @@ where
     .await?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     if version <= 14 {
         buf.put_i32(replica_id);
@@ -2674,7 +2674,7 @@ fn encode_fetch_error_response(
     let planned = fetch_error_len(version, flexible, topics)?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     buf.put_i32(throttle_time_ms);
     if version >= 7 {
@@ -2783,7 +2783,7 @@ fn encode_fetch_response_fields(
     let plan = fetch_response_plan(version, flexible, topics, endpoints)?;
     let needed = body_start.saturating_add(plan.len);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     let mut staged = plan.staged.into_iter();
     buf.put_i32(throttle_time_ms);
@@ -2900,7 +2900,7 @@ pub async fn encode_fetch_response_cooperative(
     let plan = fetch_response_plan_cooperative(version, flexible, topics, &[]).await?;
     let needed = body_start.saturating_add(plan.len);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     let mut staged = plan.staged.into_iter();
     buf.put_i32(0);

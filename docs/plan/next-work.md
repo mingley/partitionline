@@ -1,9 +1,9 @@
 # Next work
 
-This handoff describes the repository after `8f046e006` on 28 October 2026.
+Updated 30 October 2026.
 Use the latest stable Rust and push reviewed changes directly to `main`.
 The [task registry](tasks.json) remains the list of cards; no card is closed by
-this handoff. The working branch may have later documentation commits.
+this handoff.
 
 ## Qualification state
 
@@ -19,6 +19,12 @@ this handoff. The working branch may have later documentation commits.
 - Production readiness and fastest-client/server claims are unqualified.
   No 24-hour fault campaign or seven-day continuity run has passed. The
   retained epoch-recovery timeout remains unexplained.
+- Later [buffer reservation checks](../evidence/perf/buffer-reservations-20261030/README.md)
+  restored the codec allocation gate and corrected 219 reservation calls.
+  Default protocol tests reported 1,385 passed and two existing failures;
+  scoped codec tests and strict Clippy passed. No throughput comparison ran.
+  The [release guide](../RELEASE.md) now requires default and all-feature tests
+  and interruption-recovery rehearsal before a new release.
 
 ## Correctness priorities
 
@@ -28,6 +34,9 @@ this handoff. The working branch may have later documentation commits.
    zero. A safe fix needs per-partition issue ownership across worker and
    leader changes, epoch-bound sequence reservations, cancellation-safe batch
    transfer, and bounded shutdown. See the [diagnostic and lane design](../evidence/client/producer-retry-diagnostic-20261028/README.md).
+   A separate incremental-reservation loop can stop growing a cleared vector
+   above 8,192 elements. Its completion controls and worker-retirement fixes
+   are prepared locally but remain unqualified.
 2. Fix consumer delivery and isolation across errors and cancellation. A
    ReadCommitted retry can expose an aborted record when aborted-interval
    state is not rolled back. Poll cancellation can also lose or reorder records
@@ -41,7 +50,7 @@ this handoff. The working branch may have later documentation commits.
    re-encoding when a coordinator changes versions. Preserve UUID identity,
    deadlines, socket ownership and cancellation. A separate join/OffsetFetch
    overlap draft is unsafe until parked Fetch and idle-watcher ownership are
-   handled. The last broad isolated Fetch replay had 141 passed, 27 failed and
+   handled. An earlier broad isolated Fetch replay had 141 passed, 27 failed and
    one ignored; its draft was not integrated.
 4. Extend bounded decoding beyond the covered Fetch, ApiVersions, record and
    group-heartbeat paths. Per-message budgets do not establish a process-wide

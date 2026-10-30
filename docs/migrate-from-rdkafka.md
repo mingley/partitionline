@@ -21,12 +21,12 @@ The tables name the Rust symbol and the file. They do not cite line numbers.
 An older revision pinned those lines to `ca50ca1`, and the lines no longer
 matched current source.
 
-The default values were compared, field by field, between the packed
-crates.io `0.1.0` crate and later source. The mapped defaults match, with
-two additions only on current source: `ConsumerConfig::buffer_memory` (a
-32 MiB fetch cap) and the hidden `ProducerConfig::pre_send_fault` test hook.
-Adopters on published `0.1.0` get the same mapped defaults and the older
-runtime. The examples below compile against that packed dependency.
+The default-value comparison below covers the packed crates.io `0.1.0` crate
+and later source. Current source also adds `ConsumerConfig::buffer_memory`
+(a 32 MiB Fetch cap) and `fetch_metadata_max_bytes` (a 128 MiB decoded-metadata
+cap). Published `0.1.0` has the older runtime and feature set. The examples
+below target that dependency; see the [changelog](../CHANGELOG.md#unreleased)
+for current API changes.
 
 ## Dependency
 
@@ -104,10 +104,11 @@ let _custom = ProducerConfig::bootstrap(["127.0.0.1:9092"]).partitioner(ModN);
 
 Equivalence: `murmur2` matches `org.apache.kafka.common.utils.Utils.murmur2`
 byte-for-byte, proven by unit vectors in `src/partitioner.rs`
-(`murmur2(b"kafka") == -798_503_068`). Unkeyed placement is **not**
-equivalent to either Java (sticky batching) or librdkafka, and the sticky
-partitioner is an explicit gap (`producer.sticky_partitioner`, missing in the
-[feature registry](../tests/conformance/features.json)).
+(`murmur2(b"kafka") == -798_503_068`). Default unkeyed placement differs from
+Java's sticky batching and librdkafka. Current source also provides an opt-in
+`StickyPartitioner`, selected with `ProducerConfig::partitioner`; its
+independent qualification remains open in the
+[feature registry](../tests/conformance/features.json).
 
 ## Acks, idempotence, transactions
 

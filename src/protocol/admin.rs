@@ -1318,7 +1318,7 @@ fn encode_creatable_topic_views<T: CreatableTopicView>(
     let planned = create_topics_request_len(version, flexible, topics)?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     buf::put_array_len(buf, flexible, Some(topics.len()))?;
     for topic in topics {
@@ -1446,7 +1446,7 @@ where
     let planned = create_topics_request_len_cooperative(version, flexible, topics).await?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     buf::put_array_len(buf, flexible, Some(topics.len()))?;
     let mut walked = 0usize;
@@ -1670,7 +1670,7 @@ pub fn encode_create_topics_response_with_throttle(
     let planned = create_topics_response_len(version, flexible, results)?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     if version >= 2 {
         buf.put_i32(throttle_time_ms);
@@ -1761,7 +1761,7 @@ fn encode_create_topics_error_response(
     let planned = create_topics_error_len(version, flexible, topics)?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     if version >= 2 {
         buf.put_i32(throttle_time_ms);
@@ -2187,7 +2187,7 @@ pub fn encode_delete_topics_request(
     let planned = delete_topics_names_len(version, flexible, names)?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     if version >= 6 {
         buf::put_array_len(buf, true, Some(names.len()))?;
@@ -2299,7 +2299,7 @@ pub(crate) fn encode_delete_topic_list<T: DeleteTopicView>(
     let planned = delete_topics_request_len(version, flexible, topics)?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     if version >= 6 {
         buf::put_array_len(buf, true, Some(topics.len()))?;
@@ -2365,7 +2365,7 @@ pub(crate) async fn encode_delete_topic_list_cooperative<T: DeleteTopicView + Sy
     let planned = delete_topics_request_len_cooperative(version, flexible, topics).await?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     let mut walked = 0usize;
     if version >= 6 {
@@ -2511,7 +2511,7 @@ pub fn encode_delete_topics_response_with_throttle(
     let planned = delete_topics_response_len(version, flexible, results)?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     if version >= 1 {
         buf.put_i32(throttle_time_ms);
@@ -2599,7 +2599,7 @@ fn encode_delete_topics_error_response(
     let planned = delete_topics_error_len(version, flexible, topics)?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     if version >= 1 {
         buf.put_i32(throttle_time_ms);
@@ -2896,7 +2896,7 @@ fn encode_describe_configs_resource_views<T: DescribeConfigsResourceView>(
     let planned = describe_configs_request_len(version, flexible, resources)?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     buf::put_array_len(buf, flexible, Some(resources.len()))?;
     for resource in resources {
@@ -2986,7 +2986,7 @@ async fn encode_describe_configs_resource_views_cooperative<
     let planned = describe_configs_request_len_cooperative(version, flexible, resources).await?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     buf::put_array_len(buf, flexible, Some(resources.len()))?;
     let mut walked = 0usize;
@@ -3182,7 +3182,7 @@ pub fn encode_describe_configs_response_with_throttle(
     let planned = describe_configs_response_len(version, flexible, results)?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     buf.put_i32(throttle_time_ms);
     buf::put_array_len(buf, flexible, Some(results.len()))?;
@@ -3310,7 +3310,7 @@ fn encode_describe_configs_error_response(
     let planned = describe_configs_error_len(flexible, resources)?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     buf.put_i32(throttle_time_ms);
     buf::put_array_len(buf, flexible, Some(resources.len()))?;
@@ -3811,7 +3811,7 @@ fn encode_create_partitions_topic_views<T: CreatePartitionsTopicView>(
     let planned = create_partitions_request_len(flexible, topics)?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     buf::put_array_len(buf, flexible, Some(topics.len()))?;
     for topic in topics {
@@ -3928,7 +3928,7 @@ async fn encode_create_partitions_topic_views_cooperative<T: CreatePartitionsTop
     let planned = create_partitions_request_len_cooperative(flexible, topics).await?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     buf::put_array_len(buf, flexible, Some(topics.len()))?;
     let mut walked = 0usize;
@@ -4102,7 +4102,7 @@ pub fn encode_create_partitions_response_with_throttle(
     let planned = create_partitions_response_len(flexible, results)?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     buf.put_i32(throttle_time_ms);
     buf::put_array_len(buf, flexible, Some(results.len()))?;
@@ -4157,7 +4157,7 @@ fn encode_create_partitions_error_response(
     let planned = create_partitions_error_len(flexible, topics)?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     buf.put_i32(throttle_time_ms);
     buf::put_array_len(buf, flexible, Some(topics.len()))?;
@@ -4545,7 +4545,7 @@ impl IncrementalAlterConfigsResponse {
         let planned = incremental_alter_configs_reported_len(flexible, &rows)?;
         let needed = body_start.saturating_add(planned);
         if buf.capacity() < needed {
-            buf.reserve(needed - buf.capacity());
+            buf.reserve(needed - buf.len());
         }
         buf.put_i32(throttle_time_ms);
         buf::put_array_len(buf, flexible, Some(rows.len()))?;
@@ -4653,7 +4653,7 @@ pub fn encode_incremental_alter_configs_request(
     let planned = incremental_alter_configs_one_len(flexible, name, configs)?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     buf::put_array_len(buf, flexible, Some(1))?;
     buf.put_i8(resource_type);
@@ -4833,7 +4833,7 @@ fn encode_alterable_resource_views<T: AlterableResourceView>(
     let planned = incremental_alter_configs_request_len(flexible, resources)?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     buf::put_array_len(buf, flexible, Some(resources.len()))?;
     for resource in resources {
@@ -4925,7 +4925,7 @@ where
     let planned = incremental_alter_configs_request_len_cooperative(flexible, resources).await?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     buf::put_array_len(buf, flexible, Some(resources.len()))?;
     let mut walked = 0usize;
@@ -5084,7 +5084,7 @@ pub fn encode_incremental_alter_configs_response(
     let planned = alter_configs_one_response_len(flexible, name)?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     buf.put_i32(0);
     encode_one_alter_configs_result(buf, flexible, error_code, RESOURCE_TOPIC, name)?;
@@ -5120,7 +5120,7 @@ pub fn encode_incremental_alter_configs_resource_results_with_throttle(
     let planned = incremental_alter_configs_response_len(flexible, results)?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     buf.put_i32(throttle_time_ms);
     buf::put_array_len(buf, flexible, Some(results.len()))?;
@@ -5179,7 +5179,7 @@ fn encode_incremental_alter_configs_error_response(
     let planned = incremental_alter_configs_error_len(flexible, resources)?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     buf.put_i32(0);
     buf::put_array_len(buf, flexible, Some(resources.len()))?;
@@ -5492,7 +5492,7 @@ pub fn encode_alter_configs_request(
     let planned = alter_configs_one_len(flexible, name, configs)?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     buf::put_array_len(buf, flexible, Some(1))?;
     buf.put_i8(resource_type);
@@ -5622,7 +5622,7 @@ fn encode_alter_configs_resource_views<T: AlterConfigsResourceView>(
     let planned = alter_configs_request_len(flexible, resources)?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     buf::put_array_len(buf, flexible, Some(resources.len()))?;
     for resource in resources {
@@ -5712,7 +5712,7 @@ where
     let planned = alter_configs_request_len_cooperative(flexible, resources).await?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     buf::put_array_len(buf, flexible, Some(resources.len()))?;
     let mut walked = 0usize;
@@ -5865,7 +5865,7 @@ pub fn encode_alter_configs_response(
     let planned = alter_configs_one_response_len(flexible, name)?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     buf.put_i32(0);
     encode_one_alter_configs_result(buf, flexible, error_code, RESOURCE_TOPIC, name)?;
@@ -5934,7 +5934,7 @@ pub fn encode_alter_configs_resource_results_with_throttle(
     let planned = alter_configs_response_len(flexible, results)?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     buf.put_i32(throttle_time_ms);
     buf::put_array_len(buf, flexible, Some(results.len()))?;
@@ -5994,7 +5994,7 @@ fn encode_alter_configs_error_response(
     let planned = alter_configs_error_len(flexible, resources)?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     buf.put_i32(throttle_time_ms);
     buf::put_array_len(buf, flexible, Some(resources.len()))?;
@@ -6271,7 +6271,7 @@ pub fn encode_delete_records_request(
     let planned = delete_records_one_len(flexible, topic)?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     buf::put_array_len(buf, flexible, Some(1))?;
     buf::put_string(buf, flexible, Some(topic))?;
@@ -6373,7 +6373,7 @@ fn encode_delete_records_topic_views<T: DeleteRecordsTopicView>(
     let planned = delete_records_request_len(flexible, topics)?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     buf::put_array_len(buf, flexible, Some(topics.len()))?;
     for topic in topics {
@@ -6432,7 +6432,7 @@ async fn encode_delete_records_views_cooperative<T: DeleteRecordsTopicView + Syn
     let planned = delete_records_request_len_cooperative(flexible, topics).await?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     buf::put_array_len(buf, flexible, Some(topics.len()))?;
     let mut walked = 0usize;
@@ -6596,7 +6596,7 @@ pub fn encode_delete_records_response(
     let planned = delete_records_one_response_len(flexible, topic)?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     buf.put_i32(0);
     buf::put_array_len(buf, flexible, Some(1))?;
@@ -6656,7 +6656,7 @@ pub fn encode_delete_records_topics_response_with_throttle(
     let planned = delete_records_response_len(flexible, topics)?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     buf.put_i32(throttle_time_ms);
     buf::put_array_len(buf, flexible, Some(topics.len()))?;
@@ -6720,7 +6720,7 @@ fn encode_delete_records_error_response(
     let planned = delete_records_error_len(flexible, topics)?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     buf.put_i32(throttle_time_ms);
     buf::put_array_len(buf, flexible, Some(topics.len()))?;
@@ -7344,7 +7344,7 @@ pub fn encode_describe_cluster_request(
     let planned = describe_cluster_request_len(version);
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     buf.put_u8(u8::from(include_authorized_operations));
     if version >= 1 {
@@ -7408,7 +7408,7 @@ pub fn encode_describe_cluster_response(
     let planned = describe_cluster_response_len(version, desc)?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     buf.put_i32(desc.throttle_time_ms);
     buf.put_i16(desc.error_code);
@@ -7948,7 +7948,7 @@ fn encode_reassignment_topic_views<T: ReassignmentTopicView>(
     let planned = reassignment_request_len(version, topics)?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     buf.put_i32(timeout_ms);
     if version >= 1 {
@@ -8177,7 +8177,7 @@ fn encode_reassignment_response_fields(
     let planned = reassignment_response_len(version, resp)?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     buf.put_i32(resp.throttle_time_ms);
     if version >= 1 {
@@ -8619,7 +8619,7 @@ fn encode_list_reassignment_topic_views<T: ListReassignmentTopicView>(
     let planned = list_reassignments_request_len(topics)?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     buf.put_i32(timeout_ms);
     match topics {
@@ -8682,7 +8682,7 @@ async fn encode_list_reassignment_topic_views_cooperative<T: ListReassignmentTop
     let planned = list_reassignments_request_len_cooperative(topics).await?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     buf.put_i32(timeout_ms);
     let mut walked = 0usize;
@@ -8771,7 +8771,7 @@ pub fn encode_list_partition_reassignments_response(
     let planned = list_reassignments_response_len(resp)?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     buf.put_i32(resp.throttle_time_ms);
     buf.put_i16(resp.error_code);
@@ -9389,7 +9389,7 @@ fn encode_feature_update_views<T: FeatureUpdateView>(
     let planned = update_features_request_len(version, updates)?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     buf.put_i32(timeout_ms);
     buf::put_array_len(buf, true, Some(updates.len()))?;
@@ -9477,7 +9477,7 @@ async fn encode_feature_update_views_cooperative<T: FeatureUpdateView + Sync>(
     let planned = update_features_request_len_cooperative(version, updates).await?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     buf.put_i32(timeout_ms);
     buf::put_array_len(buf, true, Some(updates.len()))?;
@@ -9585,7 +9585,7 @@ pub fn encode_update_features_response(
     let planned = update_features_response_len(version, resp)?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     buf.put_i32(resp.throttle_time_ms);
     buf.put_i16(resp.error_code);
@@ -9993,7 +9993,7 @@ fn encode_scram_credential_views<D: ScramDeletionView, U: ScramUpsertionView>(
     let planned = alter_user_scram_request_len(deletions, upsertions)?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     buf::put_array_len(buf, true, Some(deletions.len()))?;
     for deletion in deletions {
@@ -10071,7 +10071,7 @@ async fn encode_scram_credential_views_cooperative<
     let planned = alter_user_scram_request_len_cooperative(deletions, upsertions).await?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     buf::put_array_len(buf, true, Some(deletions.len()))?;
     let mut walked = 0usize;
@@ -10207,7 +10207,7 @@ pub fn encode_alter_user_scram_credentials_response_with_throttle(
     let planned = alter_user_scram_response_len(results)?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     buf.put_i32(throttle_time_ms);
     buf::put_array_len(buf, true, Some(results.len()))?;
@@ -10544,7 +10544,7 @@ pub(crate) fn encode_describe_user_scram_credentials_ids<T: AsRef<str>>(
     let planned = describe_user_scram_request_len(users)?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     buf::put_array_len(buf, true, users.map(<[_]>::len))?;
     if let Some(users) = users {
@@ -10569,7 +10569,7 @@ pub(crate) async fn encode_describe_user_scram_credentials_ids_cooperative<T: As
     let planned = describe_user_scram_request_len_cooperative(users).await?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     buf::put_array_len(buf, true, users.map(<[_]>::len))?;
     if let Some(users) = users {
@@ -10657,7 +10657,7 @@ pub fn encode_describe_user_scram_credentials_response(
     let planned = describe_user_scram_response_len(resp)?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     buf.put_i32(resp.throttle_time_ms);
     buf.put_i16(resp.error_code);
@@ -11645,7 +11645,7 @@ pub fn encode_alter_client_quotas_request(
     let planned = alter_client_quotas_request_len(flexible, entries)?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     buf::put_array_len(buf, flexible, Some(entries.len()))?;
     for e in entries {
@@ -11721,7 +11721,7 @@ pub(crate) async fn encode_alter_client_quotas_request_cooperative(
     let planned = alter_client_quotas_request_len_cooperative(flexible, entries).await?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     buf::put_array_len(buf, flexible, Some(entries.len()))?;
     let mut walked = 0usize;
@@ -11897,7 +11897,7 @@ pub fn encode_alter_client_quotas_response_with_throttle(
     let planned = alter_client_quotas_response_len(flexible, results)?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     buf.put_i32(throttle_time_ms);
     buf::put_array_len(buf, flexible, Some(results.len()))?;
@@ -11939,7 +11939,7 @@ fn encode_alter_client_quotas_error_response(
     let planned = alter_client_quotas_error_len(flexible, entries)?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     buf.put_i32(throttle_time_ms);
     buf::put_array_len(buf, flexible, Some(entries.len()))?;
@@ -12145,7 +12145,7 @@ pub fn encode_describe_client_quotas_request(
     let planned = describe_client_quotas_request_len(flexible, components)?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     buf::put_array_len(buf, flexible, Some(components.len()))?;
     for c in components {
@@ -12204,7 +12204,7 @@ pub(crate) async fn encode_describe_client_quotas_request_cooperative(
     let planned = describe_client_quotas_request_len_cooperative(flexible, components).await?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     buf::put_array_len(buf, flexible, Some(components.len()))?;
     let mut walked = 0usize;
@@ -12304,7 +12304,7 @@ pub fn encode_describe_client_quotas_response(
     let planned = describe_client_quotas_response_len(flexible, resp)?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     buf.put_i32(resp.throttle_time_ms);
     buf.put_i16(resp.error_code);
@@ -12859,7 +12859,7 @@ pub fn encode_describe_producers_request(
     let planned = describe_producers_one_len(topic, partitions)?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     buf::put_array_len(buf, true, Some(1))?;
     buf::put_compact_string(buf, Some(topic))?;
@@ -12931,7 +12931,7 @@ fn encode_describe_producers_topic_views<T: DescribeProducersTopicView>(
     let planned = describe_producers_request_len(topics)?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     buf::put_array_len(buf, true, Some(topics.len()))?;
     for topic in topics {
@@ -12982,7 +12982,7 @@ async fn encode_describe_producers_topic_views_cooperative<T: DescribeProducersT
     let planned = describe_producers_request_len_cooperative(topics).await?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     buf::put_array_len(buf, true, Some(topics.len()))?;
     let mut walked = 0usize;
@@ -13074,7 +13074,7 @@ pub fn encode_describe_producers_response(
     let planned = describe_producers_response_len(resp)?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     buf.put_i32(resp.throttle_time_ms);
     buf::put_array_len(buf, true, Some(resp.topics.len()))?;
@@ -13340,7 +13340,7 @@ pub fn encode_allocate_producer_ids_request(
     let planned = 12 + buf::unsigned_varint_size(0);
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     buf.put_i32(broker_id);
     buf.put_i64(broker_epoch);
@@ -13370,7 +13370,7 @@ pub fn encode_allocate_producer_ids_response(
     let planned = 18 + buf::unsigned_varint_size(0);
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     buf.put_i32(resp.throttle_time_ms);
     buf.put_i16(resp.error_code);
@@ -13594,7 +13594,7 @@ pub(crate) fn encode_describe_transactions_ids<T: AsRef<str>>(
     let planned = describe_transactions_request_len(transactional_ids)?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     buf::put_array_len(buf, true, Some(transactional_ids.len()))?;
     for id in transactional_ids {
@@ -13616,7 +13616,7 @@ pub(crate) async fn encode_describe_transactions_ids_cooperative<T: AsRef<str> +
     let planned = describe_transactions_request_len_cooperative(transactional_ids).await?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     buf::put_array_len(buf, true, Some(transactional_ids.len()))?;
     let mut walked = 0usize;
@@ -13692,7 +13692,7 @@ pub fn encode_describe_transactions_response_with_throttle(
     let planned = describe_transactions_response_len(states)?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     buf.put_i32(throttle_time_ms);
     buf::put_array_len(buf, true, Some(states.len()))?;
@@ -14161,7 +14161,7 @@ pub(crate) fn encode_list_transactions_states<T: AsRef<str>>(
         list_transactions_request_len(version, state_filters, producer_id_filters, pattern)?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     buf::put_array_len(buf, true, Some(state_filters.len()))?;
     for state in state_filters {
@@ -14320,7 +14320,7 @@ pub fn encode_list_transactions_response(
     let planned = list_transactions_response_len(resp)?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     buf.put_i32(resp.throttle_time_ms);
     buf.put_i16(resp.error_code);
@@ -14508,7 +14508,7 @@ pub fn encode_unregister_broker_request(
     let planned = 4 + buf::unsigned_varint_size(0);
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     buf.put_i32(broker_id);
     buf::put_empty_tagged_fields(buf);
@@ -14536,7 +14536,7 @@ pub fn encode_unregister_broker_response(
     let planned = unregister_broker_response_len(resp.error_message.as_deref())?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     buf.put_i32(resp.throttle_time_ms);
     buf.put_i16(resp.error_code);
@@ -15144,7 +15144,7 @@ pub(crate) fn encode_consumer_group_describe_ids<T: AsRef<str>>(
     let planned = consumer_group_describe_request_len(group_ids)?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     buf::put_array_len(buf, true, Some(group_ids.len()))?;
     for id in group_ids {
@@ -15170,7 +15170,7 @@ pub(crate) async fn encode_consumer_group_describe_ids_cooperative<T: AsRef<str>
     let planned = consumer_group_describe_request_len_cooperative(group_ids).await?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     buf::put_array_len(buf, true, Some(group_ids.len()))?;
     let mut walked = 0usize;
@@ -15355,7 +15355,7 @@ pub fn encode_consumer_group_describe_response_with_throttle(
     let planned = consumer_group_describe_response_len(version, groups)?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     buf.put_i32(throttle_time_ms);
     buf::put_array_len(buf, true, Some(groups.len()))?;
@@ -15951,7 +15951,7 @@ pub(crate) fn encode_describe_groups_ids<T: AsRef<str>>(
     let planned = describe_groups_request_len(version, flexible, group_ids)?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     buf::put_array_len(buf, flexible, Some(group_ids.len()))?;
     for id in group_ids {
@@ -15981,7 +15981,7 @@ pub(crate) async fn encode_describe_groups_ids_cooperative<T: AsRef<str> + Sync>
     let planned = describe_groups_request_len_cooperative(version, flexible, group_ids).await?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     buf::put_array_len(buf, flexible, Some(group_ids.len()))?;
     let mut walked = 0usize;
@@ -16143,7 +16143,7 @@ pub fn encode_describe_groups_response_with_throttle(
     let planned = describe_groups_response_len(version, flexible, groups)?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     if version >= 1 {
         buf.put_i32(throttle_time_ms);
@@ -16813,7 +16813,7 @@ pub(crate) fn encode_list_groups_filters<S: AsRef<str>, T: AsRef<str>>(
     let planned = list_groups_request_len(version, flexible, states_filter, types_filter)?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     if version >= 4 {
         buf::put_array_len(buf, flexible, Some(states_filter.len()))?;
@@ -16879,7 +16879,7 @@ pub(crate) async fn encode_list_groups_filters_cooperative<
         list_groups_request_len_cooperative(version, flexible, states_filter, types_filter).await?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     let mut walked = 0usize;
     if version >= 4 {
@@ -17014,7 +17014,7 @@ pub fn encode_list_groups_response_with_throttle(
     let planned = list_groups_response_len(version, flexible, resp)?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     if version >= 1 {
         buf.put_i32(throttle_time_ms);
@@ -17358,7 +17358,7 @@ pub(crate) fn encode_delete_groups_ids<T: AsRef<str>>(
     let planned = delete_groups_request_len(flexible, group_ids)?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     buf::put_array_len(buf, flexible, Some(group_ids.len()))?;
     for id in group_ids {
@@ -17384,7 +17384,7 @@ pub(crate) async fn encode_delete_groups_ids_cooperative<T: AsRef<str> + Sync>(
     let planned = delete_groups_request_len_cooperative(flexible, group_ids).await?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     buf::put_array_len(buf, flexible, Some(group_ids.len()))?;
     let mut walked = 0usize;
@@ -17477,7 +17477,7 @@ pub fn encode_delete_groups_response_with_throttle(
     let planned = delete_groups_response_len(flexible, results)?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     buf.put_i32(throttle_time_ms);
     buf::put_array_len(buf, flexible, Some(results.len()))?;
@@ -17992,7 +17992,7 @@ pub(crate) fn encode_share_group_describe_ids<T: AsRef<str>>(
     let planned = share_group_describe_request_len(flexible, group_ids)?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     buf::put_array_len(buf, flexible, Some(group_ids.len()))?;
     for id in group_ids {
@@ -18020,7 +18020,7 @@ pub(crate) async fn encode_share_group_describe_ids_cooperative<T: AsRef<str> + 
     let planned = share_group_describe_request_len_cooperative(flexible, group_ids).await?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     buf::put_array_len(buf, flexible, Some(group_ids.len()))?;
     let mut walked = 0usize;
@@ -18221,7 +18221,7 @@ pub fn encode_share_group_describe_response_with_throttle(
     let planned = share_group_describe_response_len(flexible, groups)?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     buf.put_i32(throttle_time_ms);
     buf::put_array_len(buf, flexible, Some(groups.len()))?;
@@ -18864,7 +18864,7 @@ fn encode_describe_share_group_offsets_request_views<G: ShareOffsetsRequestGroup
     let planned = describe_share_offsets_request_len(groups)?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     buf::put_array_len(buf, true, Some(groups.len()))?;
     for group in groups {
@@ -18940,7 +18940,7 @@ async fn encode_describe_share_group_offsets_request_views_cooperative<
     let planned = describe_share_offsets_request_len_cooperative(groups).await?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     buf::put_array_len(buf, true, Some(groups.len()))?;
     let mut walked = 0usize;
@@ -19080,7 +19080,7 @@ pub fn encode_describe_share_group_offsets_response_with_throttle(
     let planned = describe_share_offsets_response_len(groups)?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     buf.put_i32(throttle_time_ms);
     buf::put_array_len(buf, true, Some(groups.len()))?;
@@ -19300,7 +19300,7 @@ pub fn encode_describe_share_group_offsets_response_versioned(
     let planned = describe_share_offsets_response_with_lag_len(version, groups)?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     buf.put_i32(throttle_time_ms);
     buf::put_array_len(buf, true, Some(groups.len()))?;
@@ -19784,7 +19784,7 @@ pub fn encode_alter_share_group_offsets_request(
     let planned = alter_share_offsets_request_len(group_id, topics)?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     buf::put_compact_string(buf, Some(group_id))?;
     buf::put_array_len(buf, true, Some(topics.len()))?;
@@ -19833,7 +19833,7 @@ pub(crate) async fn encode_alter_share_group_offsets_request_cooperative(
     let planned = alter_share_offsets_request_len_cooperative(group_id, topics).await?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     buf::put_compact_string(buf, Some(group_id))?;
     buf::put_array_len(buf, true, Some(topics.len()))?;
@@ -19934,7 +19934,7 @@ pub fn encode_alter_share_group_offsets_response(
     let planned = alter_share_offsets_response_len(resp)?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     buf.put_i32(resp.throttle_time_ms);
     buf.put_i16(resp.error_code);
@@ -20287,7 +20287,7 @@ pub fn encode_delete_share_group_offsets_request(
     let planned = delete_share_offsets_request_len(group_id, topics)?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     buf::put_compact_string(buf, Some(group_id))?;
     buf::put_array_len(buf, true, Some(topics.len()))?;
@@ -20325,7 +20325,7 @@ pub(crate) async fn encode_delete_share_group_offsets_request_cooperative(
     let planned = delete_share_offsets_request_len_cooperative(group_id, topics).await?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     buf::put_compact_string(buf, Some(group_id))?;
     buf::put_array_len(buf, true, Some(topics.len()))?;
@@ -20391,7 +20391,7 @@ pub fn encode_delete_share_group_offsets_response(
     let planned = delete_share_offsets_response_len(resp)?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     buf.put_i32(resp.throttle_time_ms);
     buf.put_i16(resp.error_code);
@@ -20940,7 +20940,7 @@ pub(crate) fn encode_describe_topic_partitions_names<T: AsRef<str>>(
     let planned = describe_topic_partitions_request_len(topics, cursor)?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     buf::put_array_len(buf, true, Some(topics.len()))?;
     for name in topics {
@@ -20967,7 +20967,7 @@ pub(crate) async fn encode_describe_topic_partitions_names_cooperative<T: AsRef<
     let planned = describe_topic_partitions_request_len_cooperative(topics, cursor).await?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     buf::put_array_len(buf, true, Some(topics.len()))?;
     let mut walked = 0usize;
@@ -21060,7 +21060,7 @@ pub fn encode_describe_topic_partitions_response(
     let planned = describe_topic_partitions_response_len(resp)?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     buf.put_i32(resp.throttle_time_ms);
     buf::put_array_len(buf, true, Some(resp.topics.len()))?;
@@ -21458,7 +21458,7 @@ pub fn encode_list_config_resources_request(
     let planned = list_config_resources_request_len(version, resource_types)?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     if version >= 1 {
         buf::put_array_len(buf, true, Some(resource_types.len()))?;
@@ -21511,7 +21511,7 @@ pub fn encode_list_config_resources_response(
     let planned = list_config_resources_response_len(version, resp)?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     buf.put_i32(resp.throttle_time_ms);
     buf.put_i16(resp.error_code);
@@ -21829,7 +21829,7 @@ pub fn encode_get_telemetry_subscriptions_request(
     let planned = 16 + buf::unsigned_varint_size(0);
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     buf.extend_from_slice(client_instance_id);
     buf::put_empty_tagged_fields(buf);
@@ -21856,7 +21856,7 @@ pub fn encode_get_telemetry_subscriptions_response(
     let planned = get_telemetry_subscriptions_response_len(resp)?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     buf.put_i32(resp.throttle_time_ms);
     buf.put_i16(resp.error_code);
@@ -22219,7 +22219,7 @@ pub(crate) fn encode_push_telemetry_metrics(
     let planned = push_telemetry_metrics_len(metrics)?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     buf.extend_from_slice(client_instance_id);
     buf.put_i32(subscription_id);
@@ -22266,7 +22266,7 @@ pub fn encode_push_telemetry_response(
     let planned = 6 + buf::unsigned_varint_size(0);
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     buf.put_i32(resp.throttle_time_ms);
     buf.put_i16(resp.error_code);
@@ -22625,7 +22625,7 @@ pub fn encode_assign_replicas_to_dirs_request(
     let planned = assign_replicas_request_len(req)?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     buf.put_i32(req.broker_id);
     buf.put_i64(req.broker_epoch);
@@ -22719,7 +22719,7 @@ pub fn encode_assign_replicas_to_dirs_response(
     let planned = assign_replicas_response_len(resp)?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     buf.put_i32(resp.throttle_time_ms);
     buf.put_i16(resp.error_code);
@@ -23254,7 +23254,7 @@ fn encode_alter_replica_log_dir_views<T: AlterReplicaLogDirView>(
     let planned = alter_replica_log_dirs_request_len(flexible, dirs)?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     buf::put_array_len(buf, flexible, Some(dirs.len()))?;
     for directory in dirs {
@@ -23339,7 +23339,7 @@ async fn encode_alter_replica_log_dir_views_cooperative<T: AlterReplicaLogDirVie
     let planned = alter_replica_log_dirs_request_len_cooperative(flexible, dirs).await?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     buf::put_array_len(buf, flexible, Some(dirs.len()))?;
     let mut walked = 0usize;
@@ -23481,7 +23481,7 @@ pub fn encode_alter_replica_log_dirs_response(
     let planned = alter_replica_log_dirs_response_len(flexible, resp)?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     buf.put_i32(resp.throttle_time_ms);
     buf::put_array_len(buf, flexible, Some(resp.results.len()))?;
@@ -24087,7 +24087,7 @@ fn encode_describe_log_dirs_topic_views<T: DescribableLogDirTopicView>(
     let planned = describe_log_dirs_request_len(flexible, topics)?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     match topics {
         None => buf::put_array_len(buf, flexible, None)?,
@@ -24170,7 +24170,7 @@ async fn encode_describe_log_dirs_topic_views_cooperative<T: DescribableLogDirTo
     let planned = describe_log_dirs_request_len_cooperative(flexible, topics).await?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     match topics {
         None => buf::put_array_len(buf, flexible, None)?,
@@ -24296,7 +24296,7 @@ pub fn encode_describe_log_dirs_response(
     let planned = describe_log_dirs_response_len(version, flexible, resp)?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     buf.put_i32(resp.throttle_time_ms);
     if version >= 3 {
@@ -25071,7 +25071,7 @@ pub fn encode_create_delegation_token_request(
     let planned = create_delegation_token_request_len(version, flexible, req)?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     if version >= 3 {
         buf::put_string(buf, flexible, req.owner_principal_type.as_deref())?;
@@ -25143,7 +25143,7 @@ pub(crate) async fn encode_create_delegation_token_request_cooperative(
     let planned = create_delegation_token_request_len_cooperative(version, flexible, req).await?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     if version >= 3 {
         buf::put_string(buf, flexible, req.owner_principal_type.as_deref())?;
@@ -25265,7 +25265,7 @@ pub fn encode_create_delegation_token_response(
     let planned = create_delegation_token_response_len(version, flexible, resp)?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     buf.put_i16(resp.error_code);
     buf::put_string(buf, flexible, Some(&resp.principal_type))?;
@@ -25581,7 +25581,7 @@ fn encode_delegation_token_hmac_request(
     let planned = delegation_token_hmac_request_len(flexible, hmac)?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     buf::put_bytes(buf, flexible, Some(hmac))?;
     buf.put_i64(period_ms);
@@ -25629,7 +25629,7 @@ pub fn encode_renew_delegation_token_response(
     let planned = delegation_token_timestamp_response_len(flexible)?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     buf.put_i16(resp.error_code);
     buf.put_i64(resp.expiry_timestamp_ms);
@@ -25906,7 +25906,7 @@ pub fn encode_expire_delegation_token_response(
     let planned = delegation_token_timestamp_response_len(flexible)?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     buf.put_i16(resp.error_code);
     buf.put_i64(resp.expiry_timestamp_ms);
@@ -26466,7 +26466,7 @@ pub fn encode_describe_delegation_token_request(
     let planned = describe_delegation_token_request_len(flexible, req)?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     buf::put_array_len(buf, flexible, req.owners.as_ref().map(Vec::len))?;
     if let Some(owners) = &req.owners {
@@ -26534,7 +26534,7 @@ pub(crate) async fn encode_describe_delegation_token_request_cooperative(
     let planned = describe_delegation_token_request_len_cooperative(flexible, req).await?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     buf::put_array_len(buf, flexible, req.owners.as_ref().map(Vec::len))?;
     let mut walked = 0usize;
@@ -26643,7 +26643,7 @@ pub fn encode_describe_delegation_token_response(
     let planned = describe_delegation_token_response_len(version, flexible, resp)?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     buf.put_i16(resp.error_code);
     buf::put_array_len(buf, flexible, Some(resp.tokens.len()))?;
@@ -27138,7 +27138,7 @@ fn encode_elect_leaders_topic_views<T: ElectLeadersTopicView>(
     let planned = elect_leaders_request_len(version, flexible, topics)?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     if version >= 1 {
         buf.put_i8(election_type);
@@ -27231,7 +27231,7 @@ async fn encode_elect_leaders_topic_views_cooperative<T: ElectLeadersTopicView +
     let planned = elect_leaders_request_len_cooperative(version, flexible, topics).await?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     if version >= 1 {
         buf.put_i8(election_type);
@@ -27384,7 +27384,7 @@ fn encode_elect_leaders_response_with_throttle(
     let planned = elect_leaders_response_len(version, flexible, resp)?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     buf.put_i32(resp.throttle_time_ms);
     if version >= 1 {
@@ -27430,7 +27430,7 @@ fn encode_elect_leaders_error_response(
     let planned = elect_leaders_error_len(version, flexible, topics, error_message)?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     buf.put_i32(throttle_time_ms);
     if version >= 1 {
@@ -28146,7 +28146,7 @@ fn encode_describe_quorum_topic_views<T: DescribeQuorumTopicView>(
     let planned = describe_quorum_request_len(flexible, topics)?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     buf::put_array_len(buf, flexible, Some(topics.len()))?;
     for topic in topics {
@@ -28324,7 +28324,7 @@ pub fn encode_describe_quorum_response(
     let planned = describe_quorum_response_len(version, flexible, resp)?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     buf.put_i16(resp.error_code);
     if version >= 2 {
@@ -28439,7 +28439,7 @@ fn encode_describe_quorum_partition_errors(
     let planned = describe_quorum_partition_error_len(version, flexible, topics, error_message)?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     buf.put_i16(0);
     if version >= 2 {
@@ -28550,7 +28550,7 @@ fn encode_describe_quorum_top_level_error(
     let planned = describe_quorum_top_level_error_len(version, flexible, error_message)?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     buf.put_i16(error_code);
     if version >= 2 {
@@ -28922,7 +28922,7 @@ pub fn encode_add_raft_voter_request(
     let planned = add_raft_voter_request_len(version, req)?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     buf::put_string(buf, true, req.cluster_id.as_deref())?;
     buf.put_i32(req.timeout_ms);
@@ -29016,7 +29016,7 @@ pub fn encode_add_raft_voter_response(
     let planned = raft_voter_response_len(resp.error_message.as_deref())?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     buf.put_i32(resp.throttle_time_ms);
     buf.put_i16(resp.error_code);
@@ -29096,7 +29096,7 @@ pub fn encode_remove_raft_voter_request(
     let planned = remove_raft_voter_request_len(req)?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     buf::put_string(buf, true, req.cluster_id.as_deref())?;
     buf.put_i32(req.voter_id);
@@ -29140,7 +29140,7 @@ pub fn encode_remove_raft_voter_response(
     let planned = raft_voter_response_len(resp.error_message.as_deref())?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     buf.put_i32(resp.throttle_time_ms);
     buf.put_i16(resp.error_code);

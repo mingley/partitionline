@@ -56,10 +56,18 @@ class AllocationGate(unittest.TestCase):
         self.assertIn("Incomplete allocation-gate execution", annotation)
         self.assertNotEqual(result.returncode, 0)
 
-    def test_both_actual_tests_required(self):
+    def test_missing_reservation_census_fails(self):
         summary = "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s"
         result = self.run_gate("test alloc_budgets ... ok\n" + summary + "\n"
                                "test seeded_json1k_payloads_and_allocation_baselines ... ok\n" + summary, 0)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("Incomplete allocation-gate execution", result.stdout)
+
+    def test_all_three_actual_tests_required(self):
+        summary = "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s"
+        result = self.run_gate("test alloc_budgets ... ok\n" + summary + "\n"
+                               "test seeded_json1k_payloads_and_allocation_baselines ... ok\n" + summary + "\n"
+                               "test planned_encoder_growth_uses_at_most_one_allocation ... ok\n" + summary, 0)
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertNotIn("::error", result.stdout)
 

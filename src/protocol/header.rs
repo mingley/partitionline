@@ -505,7 +505,7 @@ pub fn encode_request_header_fields(
     let planned = request_header_len(api_key, api_version, client_id)?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     buf.put_i16(api_key);
     buf.put_i16(api_version);
@@ -580,7 +580,7 @@ pub fn encode_response_header(
     let planned = response_header_len(api_key, api_version);
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     buf.put_i32(correlation_id);
     if response_header_version(api_key, api_version) >= 1 {

@@ -12,8 +12,8 @@
       "value_bytes": 16384
     },
     {
-      "allocated_bytes": 139352,
-      "allocations": 7,
+      "allocated_bytes": 98792,
+      "allocations": 5,
       "cell": "micro-decompress:gzip:json1k/16k",
       "compressed_bytes": 4248,
       "compressed_to_section_ratio": 0.2530981887511916,
@@ -56,8 +56,8 @@
       "value_bytes": 16384
     },
     {
-      "allocated_bytes": 190104,
-      "allocations": 7,
+      "allocated_bytes": 149544,
+      "allocations": 5,
       "cell": "micro-decompress:lz4:json1k/16k",
       "compressed_bytes": 6993,
       "compressed_to_section_ratio": 0.41664680648236413,
@@ -100,8 +100,8 @@
       "value_bytes": 16384
     },
     {
-      "allocated_bytes": 35256,
-      "allocations": 4,
+      "allocated_bytes": 18472,
+      "allocations": 3,
       "cell": "micro-decompress:snappy:json1k/16k",
       "compressed_bytes": 5891,
       "compressed_to_section_ratio": 0.350989037178265,
@@ -144,8 +144,8 @@
       "value_bytes": 262144
     },
     {
-      "allocated_bytes": 1147352,
-      "allocations": 11,
+      "allocated_bytes": 375896,
+      "allocations": 5,
       "cell": "micro-decompress:gzip:json1k/256k",
       "compressed_bytes": 55934,
       "compressed_to_section_ratio": 0.20798875535459305,
@@ -188,8 +188,8 @@
       "value_bytes": 262144
     },
     {
-      "allocated_bytes": 1198104,
-      "allocations": 11,
+      "allocated_bytes": 426648,
+      "allocations": 5,
       "cell": "micro-decompress:lz4:json1k/256k",
       "compressed_bytes": 105554,
       "compressed_to_section_ratio": 0.39249910756782486,
@@ -232,8 +232,8 @@
       "value_bytes": 262144
     },
     {
-      "allocated_bytes": 564504,
-      "allocations": 4,
+      "allocated_bytes": 295576,
+      "allocations": 3,
       "cell": "micro-decompress:snappy:json1k/256k",
       "compressed_bytes": 88719,
       "compressed_to_section_ratio": 0.32989870894811996,

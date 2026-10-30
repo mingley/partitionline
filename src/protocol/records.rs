@@ -27,6 +27,10 @@ pub const DEFAULT_MAX_RECORD_BATCH_DECODE_BYTES: usize = 64 * 1024 * 1024;
 // records; the ceiling limits metadata retained by any one decoded batch.
 const MIN_DECODE_METADATA_BYTES: usize = 64 * 1024;
 const MAX_DECODE_METADATA_BYTES: usize = 2 * DEFAULT_MAX_RECORD_BATCH_DECODE_BYTES;
+// Bound speculative reservation while keeping ordinary batches in one allocation.
+const MAX_INITIAL_RECORD_METADATA_BYTES: usize = 128 * 1024;
+const MAX_INITIAL_RECORD_SLOTS: usize =
+    1 << (MAX_INITIAL_RECORD_METADATA_BYTES / std::mem::size_of::<Record>()).ilog2();
 
 /// Per-response accounting for retained decoded container capacity.
 #[derive(Clone, Copy)]
@@ -2742,7 +2746,7 @@ impl CompressScratch {
 
     pub(crate) fn reserve_section(&mut self, bytes: usize) {
         if self.section.capacity() < bytes {
-            self.section.reserve(bytes - self.section.capacity());
+            self.section.reserve(bytes - self.section.len());
         }
     }
 
@@ -4481,7 +4485,14 @@ fn assemble_open_batch(
     }
     // A magic-v2 record needs a length prefix and six one-byte fields. Use
     // that minimum only as an allocation hint, never as a parse verdict.
-    let initial = count_usize.min(64).min(records_cur.remaining() / 7);
+    // A power-of-two cap preserves the later doubling sequence. Reused
+    // vectors keep their existing growth schedule and peak-budget behavior.
+    let hint_cap = if records.capacity() == 0 {
+        MAX_INITIAL_RECORD_SLOTS
+    } else {
+        64
+    };
+    let initial = count_usize.min(hint_cap).min(records_cur.remaining() / 7);
     metadata.reserve(&mut records, initial)?;
     Ok(OpenBatch {
         base_offset,
@@ -6542,6 +6553,63 @@ mod tests {
             error.to_string().contains("premature EOF reached"),
             "{error}"
         );
+    }
+
+    #[test]
+    fn malformed_large_section_keeps_initial_record_reservation_bounded() {
+        let mut inner = record_body_before_headers();
+        buf::put_varint(&mut inner, 1);
+        buf::put_varint(&mut inner, -1);
+        let mut records = wrap_record_body(&inner).to_vec();
+        records.resize(256 * 1024, 0);
+        let frame = test_batch_with_records(10_000, 0, &records);
+        let (base, body) = take_checked_batch(&mut frame.as_ref()).unwrap();
+        let mut open = open_checked_batch(
+            base,
+            body,
+            DEFAULT_MAX_RECORD_BATCH_DECODE_BYTES,
+            Vec::new(),
+        )
+        .unwrap();
+        assert!(
+            open.records.capacity() * std::mem::size_of::<Record>()
+                <= MAX_INITIAL_RECORD_METADATA_BYTES
+        );
+        let error = pull_checked_records(&mut open, 1).unwrap_err();
+        assert!(
+            error
+                .to_string()
+                .contains("Invalid negative header key size -1"),
+            "{error}"
+        );
+    }
+
+    #[test]
+    fn reused_record_capacity_keeps_its_existing_peak_budget() {
+        let count = 1290;
+        let reused_capacity = 750;
+        let batch = RecordBatch::from_records(vec![sample_record(); count]);
+        let mut frame = BytesMut::new();
+        encode_record_batch(&mut frame, &batch).unwrap();
+        let (base, body) = take_checked_batch(&mut frame.as_ref()).unwrap();
+        let budget = DecodeMetadataBudget::with_limit(
+            (count + reused_capacity) * std::mem::size_of::<Record>(),
+        );
+        let mut open = open_checked_batch_with_budget(
+            base,
+            body,
+            DEFAULT_MAX_RECORD_BATCH_DECODE_BYTES,
+            Vec::with_capacity(reused_capacity),
+            budget,
+        )
+        .unwrap();
+        pull_checked_records(&mut open, count).unwrap();
+        let decoded = finish_checked_batch(open).unwrap();
+        assert_eq!(decoded.records.len(), count);
+        assert!(decoded
+            .records
+            .iter()
+            .all(|record| record.value == batch.records[0].value));
     }
 
     #[tokio::test(flavor = "current_thread")]

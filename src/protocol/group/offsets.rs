@@ -522,7 +522,7 @@ fn encode_into<T: Wire>(
     value.write(&mut measure)?;
     let needed = buf.len().saturating_add(measure.length);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     let mut writer = Writer::appending(buf, limits, version)?;
     value.write(&mut writer)?;

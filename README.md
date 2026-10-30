@@ -38,8 +38,9 @@ producer.close().await?;
 # }
 ```
 
-`send` waits for that record's offset. For many records, `send_all` queues
-then waits; `try_send` plus `flush` is the throughput path.
+`send` waits for that record's offset. `send_all` queues multiple records and
+waits for their results. `try_send` queues without waiting for acknowledgements;
+use `flush` to observe delivery.
 
 ## Fetch
 
@@ -57,9 +58,9 @@ let recs = consumer.fetch().await?;
 
 `fetch` and group `poll` return `ConsumerRecords`, with records grouped by
 partition and the next offsets to commit. Share `poll` returns `ShareRecords`.
-`assign_topic` assigns every partition. `seek` / `pause` / `resume` /
-`wakeup` match the Java consumer. Fetch talks to every partition leader;
-fenced partitions recover with OffsetForLeaderEpoch.
+`assign_topic` assigns every partition. Use `seek`, `pause`, `resume`, and
+`wakeup` to control fetching. Fetch talks to every partition leader, and
+leader-epoch recovery uses OffsetForLeaderEpoch.
 
 ## Groups
 

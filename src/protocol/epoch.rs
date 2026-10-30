@@ -328,7 +328,7 @@ pub(crate) async fn encode_borrowed_offset_for_leader_epoch_topics_cooperative(
     )?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     if version >= 3 {
         buf.put_i32(CONSUMER_REPLICA_ID);
@@ -446,7 +446,7 @@ where
     let planned = offset_for_leader_request_len(version, flexible, topic_count, topics.clone())?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     if version >= 3 {
         buf.put_i32(replica_id);
@@ -639,7 +639,7 @@ fn encode_offset_for_leader_epoch_response_views<T: EpochResponseTopicView>(
     let planned = offset_for_leader_response_len(version, flexible, topics)?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     if version >= 2 {
         buf.put_i32(throttle_time_ms);

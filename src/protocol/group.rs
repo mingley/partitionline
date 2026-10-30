@@ -2058,7 +2058,7 @@ fn group_bytes_len(flexible: bool, value: &[u8]) -> Result<usize> {
 fn reserve_group_body(buf: &mut BytesMut, planned: usize) {
     let needed = buf.len().saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
 }
 
@@ -3279,7 +3279,7 @@ pub fn encode_heartbeat_response_with_throttle(
     let planned = heartbeat_response_len(version, flexible)?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     if version >= 1 {
         buf.put_i32(throttle_time_ms);
@@ -9109,7 +9109,7 @@ fn write_subscription(
     let planned = subscription_len(version, topics, &topic_order, &by_topic, rack_id)?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     buf.put_i16(version);
     buf::put_array_len(buf, false, Some(topic_order.len()))?;
@@ -9286,7 +9286,7 @@ async fn write_subscription_cooperative(
         subscription_len_cooperative(version, topics, &topic_order, &by_topic, rack_id).await?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     buf.put_i16(version);
     buf::put_array_len(buf, false, Some(topic_order.len()))?;
@@ -9406,7 +9406,7 @@ pub fn encode_assignment(topic: &str, partitions: &[i32]) -> Result<Vec<u8>> {
     let planned = assignment_one_len(topic, partitions)?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     buf.put_i16(ConsumerProtocol::HIGHEST_SUPPORTED_VERSION);
     buf::put_array_len(&mut buf, false, Some(1))?;
@@ -9449,7 +9449,7 @@ fn write_assignment_topics<T: AsRef<str>>(
     let planned = assignment_topics_len(by_topic)?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     buf.put_i16(version);
     buf::put_array_len(buf, false, Some(by_topic.len()))?;
@@ -9474,7 +9474,7 @@ async fn write_assignment_topics_cooperative(
     let planned = assignment_topics_len_cooperative(by_topic).await?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     buf.put_i16(version);
     buf::put_array_len(buf, false, Some(by_topic.len()))?;

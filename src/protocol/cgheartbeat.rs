@@ -261,7 +261,7 @@ pub fn encode_consumer_group_heartbeat_request(
     let planned = consumer_group_heartbeat_request_len(version, req)?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     buf::put_compact_string(buf, Some(&req.group_id))?;
     buf::put_compact_string(buf, Some(&req.member_id))?;
@@ -302,7 +302,7 @@ pub async fn encode_consumer_group_heartbeat_request_cooperative(
     let planned = consumer_group_heartbeat_request_len_cooperative(version, req).await?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     buf::put_compact_string(buf, Some(&req.group_id))?;
     buf::put_compact_string(buf, Some(&req.member_id))?;
@@ -538,7 +538,7 @@ pub fn encode_consumer_group_heartbeat_response(
     let planned = consumer_group_heartbeat_response_len(resp)?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     buf.put_i32(resp.throttle_time_ms);
     buf.put_i16(resp.error_code);

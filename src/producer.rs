@@ -10185,7 +10185,7 @@ async fn accept_solicited_acks(
 
 fn reserve_len<T>(items: &mut Vec<T>, count: usize) {
     if items.capacity() < count {
-        items.reserve(count - items.capacity());
+        items.reserve(count - items.len());
     }
 }
 
@@ -10662,7 +10662,7 @@ fn sequence_of(map: &mut SequenceMap, topic: &Arc<str>, partition: i32, count: u
 fn reserve_produce_tail(buf: &mut BytesMut, extra: usize) {
     let needed = buf.len().saturating_add(extra);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
 }
 

@@ -817,7 +817,7 @@ fn encode_list_offsets_topic_views<T: ListOffsetsTopicView>(
     let planned = list_offsets_request_len(version, flexible, topics)?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     buf.put_i32(replica_id);
     if version >= 2 {
@@ -868,7 +868,7 @@ where
     let planned = list_offsets_request_len(version, flexible, topics)?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     buf.put_i32(CONSUMER_REPLICA_ID);
     if version >= 2 {
@@ -1061,7 +1061,7 @@ fn encode_list_offsets_response_views<T: ListOffsetsResponseView>(
     let planned = list_offsets_response_len(version, flexible, topics)?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     if version >= 2 {
         buf.put_i32(throttle_time_ms);
@@ -1110,7 +1110,7 @@ fn encode_list_offsets_error_response(
     let planned = list_offsets_error_len(version, flexible, topics)?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     if version >= 2 {
         buf.put_i32(throttle_time_ms);

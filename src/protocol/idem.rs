@@ -152,7 +152,7 @@ fn encode_request_fields(
     let planned = init_producer_id_request_len(version, flexible, transactional_id)?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     buf::put_string(buf, flexible, transactional_id)?;
     buf.put_i32(transaction_timeout_ms);
@@ -274,7 +274,7 @@ pub fn encode_init_producer_id_response_data(
     let planned = init_producer_id_response_len(version, flexible);
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     buf.put_i32(d.throttle_time_ms);
     buf.put_i16(d.error_code);

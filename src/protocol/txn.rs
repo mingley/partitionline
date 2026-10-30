@@ -691,7 +691,7 @@ fn encode_add_partitions_to_txn_views<T: AddPartitionsTopicView>(
     let planned = add_partitions_request_len(flexible, transactional_id, topics)?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     buf::put_string(buf, flexible, Some(transactional_id))?;
     buf.put_i64(producer_id);
@@ -751,7 +751,7 @@ async fn encode_add_partitions_to_txn_views_cooperative<T: AddPartitionsTopicVie
         add_partitions_request_len_cooperative(flexible, transactional_id, topics).await?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     buf::put_string(buf, flexible, Some(transactional_id))?;
     buf.put_i64(producer_id);
@@ -991,7 +991,7 @@ pub async fn encode_add_partitions_to_txn_topics_response_cooperative(
     }
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     buf.put_i32(0);
     buf::put_array_len(buf, flexible, Some(topics.len()))?;
@@ -1038,7 +1038,7 @@ pub async fn encode_add_partitions_to_txn_response_cooperative(
     }
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     buf.put_i32(0);
     buf::put_array_len(buf, flexible, Some(topics.len()))?;
@@ -1066,7 +1066,7 @@ fn encode_add_partitions_to_txn_error_response(
     let planned = add_partitions_error_len(flexible, topics)?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     buf.put_i32(throttle_time_ms);
     buf::put_array_len(buf, flexible, Some(topics.len()))?;
@@ -1147,7 +1147,7 @@ where
     let planned = add_partitions_grouped_error_len(flexible, &groups)?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     buf.put_i32(throttle_time_ms);
     buf::put_array_len(buf, flexible, Some(groups.len()))?;
@@ -1351,7 +1351,7 @@ pub fn encode_add_partitions_to_txn_topics_response_with_throttle(
     let planned = add_partitions_response_len(flexible, topics)?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     buf.put_i32(throttle_time_ms);
     buf::put_array_len(buf, flexible, Some(topics.len()))?;
@@ -1572,7 +1572,7 @@ pub fn encode_add_offsets_to_txn_request(
     let planned = add_offsets_request_len(flexible, transactional_id, group_id)?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     buf::put_string(buf, flexible, Some(transactional_id))?;
     buf.put_i64(producer_id);
@@ -1645,7 +1645,7 @@ pub fn encode_add_offsets_to_txn_response_with_throttle(
     let planned = add_offsets_response_len(flexible)?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     buf.put_i32(throttle_time_ms);
     buf.put_i16(error);
@@ -1709,7 +1709,7 @@ pub fn encode_end_txn_request(
     let planned = end_txn_request_len(flexible, transactional_id)?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     buf::put_string(buf, flexible, Some(transactional_id))?;
     buf.put_i64(producer_id);
@@ -1783,7 +1783,7 @@ pub fn encode_end_txn_response_with_throttle(
     let planned = end_txn_response_len(version, flexible)?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     buf.put_i32(throttle_time_ms);
     buf.put_i16(error);
@@ -2029,7 +2029,7 @@ impl TxnOffsetCommitResponse {
         let planned = txn_offset_commit_grouped_error_len(flexible, &groups)?;
         let needed = body_start.saturating_add(planned);
         if buf.capacity() < needed {
-            buf.reserve(needed - buf.capacity());
+            buf.reserve(needed - buf.len());
         }
         buf.put_i32(throttle_time_ms);
         buf::put_array_len(buf, flexible, Some(groups.len()))?;
@@ -2569,7 +2569,7 @@ fn encode_txn_offset_commit_views<T: TxnOffsetTopicView>(
     )?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     buf::put_string(buf, flexible, Some(transactional_id))?;
     buf::put_string(buf, flexible, Some(group_id))?;
@@ -2729,7 +2729,7 @@ where
     .await?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     buf::put_string(buf, flexible, Some(transactional_id))?;
     buf::put_string(buf, flexible, Some(group_id))?;
@@ -2953,7 +2953,7 @@ pub async fn encode_txn_offset_commit_response_cooperative(
     }
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     buf.put_i32(0);
     buf::put_array_len(buf, flexible, Some(topics.len()))?;
@@ -2995,7 +2995,7 @@ pub fn encode_txn_offset_commit_topics_response_with_throttle(
     let planned = txn_offset_commit_response_len(flexible, topics)?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     buf.put_i32(throttle_time_ms);
     buf::put_array_len(buf, flexible, Some(topics.len()))?;
@@ -3036,7 +3036,7 @@ fn encode_txn_offset_commit_error_response(
     let planned = txn_offset_commit_error_len(flexible, topics)?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     buf.put_i32(throttle_time_ms);
     buf::put_array_len(buf, flexible, Some(topics.len()))?;
@@ -3391,7 +3391,7 @@ pub async fn encode_txn_offset_commit_topics_response_cooperative(
     }
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     buf.put_i32(0);
     buf::put_array_len(buf, flexible, Some(topics.len()))?;
@@ -4092,7 +4092,7 @@ where
     let planned = write_txn_markers_request_len(version, flexible, count, markers.clone())?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     buf::put_array_len(buf, flexible, Some(count))?;
     for (marker, transaction_version) in markers {
@@ -4233,7 +4233,7 @@ pub async fn encode_write_txn_markers_request_cooperative(
     }
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     buf::put_array_len(buf, flexible, Some(markers.len()))?;
     for marker in markers {
@@ -4403,7 +4403,7 @@ pub fn encode_write_txn_markers_response(
     let planned = write_txn_markers_response_len(flexible, markers)?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     buf::put_array_len(buf, flexible, Some(markers.len()))?;
     for m in markers {
@@ -4489,7 +4489,7 @@ fn encode_write_txn_markers_error_response(
     let planned = write_txn_markers_error_len(flexible, &grouped)?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     buf::put_array_len(buf, flexible, Some(grouped.len()))?;
     for marker in &grouped {
@@ -4595,7 +4595,7 @@ async fn encode_write_txn_markers_error_response_cooperative(
     let planned = write_txn_markers_error_len_cooperative(flexible, &grouped).await?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     buf::put_array_len(buf, flexible, Some(grouped.len()))?;
     walked = 0;
@@ -4849,7 +4849,7 @@ pub async fn encode_write_txn_markers_response_cooperative(
     }
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     buf::put_array_len(buf, flexible, Some(markers.len()))?;
     for marker in markers {

@@ -54,6 +54,14 @@ all-feature client matrix and core/full conformance remain incomplete. A bounded
 diagnostic reproduced a timeout under tracing and a lower CPU limit; the cause
 of the original untraced timeout remains unresolved. No 24-hour run has passed.
 
+Later [buffer reservation checks](evidence/perf/buffer-reservations-20261030/README.md)
+corrected 219 length-relative reservation calls and restored the codec
+allocation gate without raising budgets. The 48-cell encoder census dropped
+from 84 growth allocations to 48, with identical encoded bodies and no warmed
+allocations. Default protocol unit tests reported 1,385 passed and two existing
+failures; scoped codec tests and strict Clippy passed. These checks did not
+measure throughput or replace the full client matrix.
+
 The [earlier readiness assessment](evidence/broker/qualification-20261027/status.json)
 and [failed campaigns](evidence/broker/fuzz/20261027-candidate06/README.md) retain
 the previous failures. Production readiness and fastest-performance claims

@@ -1838,7 +1838,7 @@ pub fn encode_create_acls_request(
     let planned = create_acls_request_len(version, flexible, acls)?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     buf::put_array_len(buf, flexible, Some(acls.len()))?;
     for a in acls {
@@ -1899,7 +1899,7 @@ pub(crate) async fn encode_create_acls_request_cooperative(
     let planned = create_acls_request_len_cooperative(version, flexible, acls).await?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     buf::put_array_len(buf, flexible, Some(acls.len()))?;
     let mut walked = 0usize;
@@ -2092,7 +2092,7 @@ pub fn encode_create_acls_response_with_throttle(
     let planned = create_acls_response_len(flexible, results)?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     buf.put_i32(throttle_time_ms);
     buf::put_array_len(buf, flexible, Some(results.len()))?;
@@ -2125,7 +2125,7 @@ fn encode_create_acls_error_response(
     let planned = create_acls_error_len(flexible, n)?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     buf.put_i32(throttle_time_ms);
     buf::put_array_len(buf, flexible, Some(n))?;
@@ -2272,7 +2272,7 @@ pub fn encode_describe_acls_request(
     let planned = describe_acls_request_len(version, flexible, filter)?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     put_acl_filter_fields(buf, version, flexible, filter)?;
     if flexible {
@@ -2384,7 +2384,7 @@ fn encode_describe_acls_response_body(
     let planned = describe_acls_response_len(version, flexible, error_message, &resources)?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     buf.put_i32(throttle_time_ms);
     buf.put_i16(error_code);
@@ -2742,7 +2742,7 @@ pub fn encode_delete_acls_request(
     let planned = delete_acls_request_len(version, flexible, filters)?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     buf::put_array_len(buf, flexible, Some(filters.len()))?;
     for filter in filters {
@@ -2788,7 +2788,7 @@ pub(crate) async fn encode_delete_acls_request_cooperative(
     let planned = delete_acls_request_len_cooperative(version, flexible, filters).await?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     buf::put_array_len(buf, flexible, Some(filters.len()))?;
     let mut walked = 0usize;
@@ -3014,7 +3014,7 @@ pub fn encode_delete_acls_filter_results_with_throttle(
     let planned = delete_acls_response_len(version, flexible, results)?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     buf.put_i32(throttle_time_ms);
     buf::put_array_len(buf, flexible, Some(results.len()))?;
@@ -3052,7 +3052,7 @@ fn encode_delete_acls_error_response(
     let planned = delete_acls_error_len(flexible, n)?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     buf.put_i32(throttle_time_ms);
     buf::put_array_len(buf, flexible, Some(n))?;

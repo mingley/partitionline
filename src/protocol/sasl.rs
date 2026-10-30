@@ -90,7 +90,7 @@ pub fn encode_sasl_handshake_request(
     let planned = sasl_string_len(flexible, Some(mechanism))?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     buf::put_string(buf, flexible, Some(mechanism))?;
     debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
@@ -115,7 +115,7 @@ pub fn encode_sasl_handshake_response(
     let planned = sasl_handshake_response_len(flexible, mechanisms)?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     buf.put_i16(error_code);
     buf::put_array_len(buf, flexible, Some(mechanisms.len()))?;
@@ -196,7 +196,7 @@ pub fn encode_sasl_authenticate_request(
     let planned = sasl_authenticate_request_len(flexible, auth_bytes)?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     buf::put_bytes(buf, flexible, Some(auth_bytes))?;
     if flexible {
@@ -242,7 +242,7 @@ pub fn encode_sasl_authenticate_response(
     let planned = sasl_authenticate_response_len(version, flexible, message, auth_bytes)?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     buf.put_i16(error_code);
     buf::put_string(buf, flexible, message)?;

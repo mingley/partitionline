@@ -13,7 +13,7 @@ mkdir -p "$report"
 } >"$report/identity.log"
 set +e
 cargo test --locked --manifest-path benchmarks/codec/Cargo.toml \
-  --test alloc_budget --test json1k 2>&1 | tee "$report/tests.log"
+  --test alloc_budget --test json1k --test reserve_reuse 2>&1 | tee "$report/tests.log"
 statuses=("${PIPESTATUS[@]}")
 result=${statuses[0]}
 if [[ "$result" -eq 0 && "${statuses[1]}" -ne 0 ]]; then
@@ -30,9 +30,10 @@ result = int(sys.argv[2])
 reason = "Allocation census"
 if not result:
     summaries = re.findall(r"^test result: ok\. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out;", log, re.M)
-    cases = ("alloc_budgets", "seeded_json1k_payloads_and_allocation_baselines")
-    if len(summaries) != 2 or any(not re.search(r"^test " + name + r" \.\.\. ok$", log, re.M) for name in cases):
-        reason = "Incomplete allocation-gate execution: require both serial census tests"
+    cases = ("alloc_budgets", "seeded_json1k_payloads_and_allocation_baselines",
+             "planned_encoder_growth_uses_at_most_one_allocation")
+    if len(summaries) != len(cases) or any(not re.search(r"^test " + name + r" \.\.\. ok$", log, re.M) for name in cases):
+        reason = "Incomplete allocation-gate execution: require all three serial census tests"
         log = reason + ".\n" + log
         result = 1
 if result:

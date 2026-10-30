@@ -1659,7 +1659,7 @@ fn park_fetched_topics(spare: &mut Vec<ShareFetchedTopic>, topics: Vec<ShareFetc
 fn reserve_share_delivery(pending: &mut Vec<ShareRecord>, additional: usize) {
     let needed = pending.len().saturating_add(additional);
     if pending.capacity() < needed {
-        pending.reserve(needed - pending.capacity());
+        pending.reserve(needed - pending.len());
     }
 }
 
@@ -2668,7 +2668,7 @@ async fn prune_share_leader_topics(topics: &mut HashMap<Arc<str>, Vec<i32>>) {
 
 fn reserve_share_len<T>(items: &mut Vec<T>, count: usize) {
     if items.capacity() < count {
-        items.reserve(count - items.capacity());
+        items.reserve(count - items.len());
     }
 }
 

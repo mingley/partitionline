@@ -919,7 +919,7 @@ pub fn encode_share_group_heartbeat_request(
     let planned = share_group_heartbeat_request_len(req)?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     buf::put_string(buf, flexible, Some(&req.group_id))?;
     buf::put_string(buf, flexible, Some(&req.member_id))?;
@@ -954,7 +954,7 @@ pub(crate) async fn encode_share_group_heartbeat_request_cooperative(
     let planned = share_group_heartbeat_request_len_cooperative(req).await?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     buf::put_string(buf, flexible, Some(&req.group_id))?;
     buf::put_string(buf, flexible, Some(&req.member_id))?;
@@ -1073,7 +1073,7 @@ pub fn encode_share_group_heartbeat_response(
     let planned = share_group_heartbeat_response_len(flexible, resp)?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     buf.put_i32(resp.throttle_time_ms);
     buf.put_i16(resp.error_code);
@@ -1663,7 +1663,7 @@ fn encode_share_fetch_request_fields(
     let planned = share_fetch_request_len(version, group_id, member_id, topics, forgotten)?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     buf::put_string(buf, flexible, Some(group_id))?;
     buf::put_string(buf, flexible, Some(member_id))?;
@@ -1770,7 +1770,7 @@ pub async fn encode_share_fetch_request_with_options_cooperative(
             .await?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     buf::put_string(buf, flexible, Some(group_id))?;
     buf::put_string(buf, flexible, Some(member_id))?;
@@ -3661,7 +3661,7 @@ fn share_acknowledge_topics_len(topics: &[ShareAckTopic]) -> Result<usize> {
 fn reserve_share_body(buf: &mut BytesMut, planned: usize) {
     let needed = buf.len().saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
 }
 
@@ -3958,7 +3958,7 @@ pub fn encode_share_fetch_error_with_throttle(
     let planned = share_fetch_error_len(version)?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
+        buf.reserve(needed - buf.len());
     }
     buf.put_i32(throttle_time_ms);
     buf.put_i16(error_code);
