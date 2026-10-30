@@ -43,7 +43,7 @@ jobs:
       CARGO_TERM_COLOR: never
       PYTHONDONTWRITEBYTECODE: '1'
       QUALIFICATION_SPEC: docs/evidence/${{ matrix.kind }}/candidate-20261030/${{ matrix.source_version }}/spec.json
-      QUALIFICATION_OUTPUT: ${{ runner.temp }}/candidate-qualification
+      QUALIFICATION_OUTPUT: ${{ github.workspace }}/../candidate-qualification
     steps:
       - uses: actions/checkout@v7
       - uses: dtolnay/rust-toolchain@stable
