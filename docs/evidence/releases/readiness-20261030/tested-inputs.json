@@ -1,0 +1,8 @@
+{
+  "scripts/check-main-ci.sh": "a89e7ad688293c448066f343ddcd8990945434fb64bbbd6522c09e1f526f87a8",
+  "scripts/ci-publish-ready.sh": "845a02b8ff9fab8d99821d2a1b10514f7cd6721b97471df1ffde34e380342e43",
+  "scripts/audit-civilization-bars.sh": "8b8c425bfcbd9f75c19579e40003e73eb56513aacefb05e12fd4953c8c3c8a89",
+  "tests/release/test_ci_gate.py": "9486dedc31694f232d3ca18e1bbbe852bc343c7f199aa89dd016cc32fae00328",
+  "tests/release/test_publish_ready.py": "3629a0ac7835f2a877f6900f7e5b168bc3c6588d643adc6f51def0c1fa852cda",
+  "docs/RELEASE.md": "b12ea4095bc0cfa3a1b80027e96390d7af353afa6cb891b901adf46eec5f88bf"
+}

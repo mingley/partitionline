@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Pre-publish readiness gate (WP-0.5). Does not publish.
-# Run before tagging v0.1.0 once CARGO_REGISTRY_TOKEN is available.
+# Run before tagging a new final version; this script does not publish.
 set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
@@ -13,10 +13,11 @@ echo "== fmt =="
 cargo fmt --all -- --check
 
 echo "== clippy =="
-cargo clippy --all-targets --all-features -- -D warnings
+cargo clippy --locked --all-targets --all-features -- -D warnings
 
 echo "== test =="
-cargo test --all-targets
+cargo test --locked --all-targets
+cargo test --locked --all-targets --all-features
 
 echo "== deny =="
 bash scripts/ci-deny.sh

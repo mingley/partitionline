@@ -1,16 +1,13 @@
 # Next-session queue
 
-Every card named in the tables on this page is done. That includes
-`KL10-01`, `KL03-01` through `KL03-07`, `KL07-01`, `KL08-01`, `KL01-01`,
-`KL02-01`, `KL04-01`, `KL05-01`, `KL03-12`, `KL03-13`, `KL09-01`,
-`KL09-14`, `KL09-34`, `KL09-08`, `KL09-07`, `KL09-02`, `KL09-03`,
-`KL04-07`, and `KL05-02`. Do not start them again.
+Start with the [current handoff](docs/plan/next-work.md) and
+[status](docs/STATUS.md). The [task registry](docs/plan/tasks.json) records card
+status and dependencies. Earlier completion records describe their tested
+source and scope; new failures remain open until fixed and revalidated.
 
-Pick the next card with the ready query in
-[one task per session](docs/plan/README.md). The
-[task registry](docs/plan/tasks.json) is the queue. Claim one ready ID,
-complete it, record the result, and stop. Do not take an entire KL package
-as one assignment.
+Prioritize producer ordering and ownership, consumer delivery/isolation,
+connection negotiation, replicated broker data and the full release gates.
+Preserve failed runs and qualify performance on the authorized x86_64 host.
 
 The [2026-09-21 source audit](docs/audits/2026-09-21.md) is frozen at
 `cb7e97d`. The five consumer probes in that audit were fixed by `KL03-01`
@@ -151,7 +148,7 @@ performance win. Preserve Suite HOLD and all existing benchmark signoff rules.
 Link the implementing PR and record owner/reviewer, source and peer/tool versions,
 commands, configuration, raw artifacts, observed results and remaining limits.
 Partial PRs do not close the parent package. New harnesses must exist and run;
-the roadmap's [existing commands](docs/ROADMAP.md#5-first-prs-and-proof-discipline)
+the roadmap's [existing commands](docs/ROADMAP.md#5-original-first-deliveries)
 are only starting points.
 
 Review proposed scorecard thresholds before each exercise. Do not silently move

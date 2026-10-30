@@ -1,0 +1,50 @@
+{
+  "schema_version": 1,
+  "files": [
+    {
+      "stored_path": "README.md",
+      "stored_sha256": "7b4654100899edf80f6a4efaa6565ce0a404ef77d78f1176e41c3d44daa42004",
+      "stored_bytes": 1972,
+      "original_path": "README.md",
+      "original_sha256": "7b4654100899edf80f6a4efaa6565ce0a404ef77d78f1176e41c3d44daa42004",
+      "original_bytes": 1972,
+      "encoding": "identity"
+    },
+    {
+      "stored_path": "ci-gate-selftest.log.gz",
+      "stored_sha256": "e487f3f5e7b41686e544abef1d4702c1efbfa1470e3847ce87395ab10471a56c",
+      "stored_bytes": 212,
+      "original_path": "ci-gate-selftest.log",
+      "original_sha256": "48f73e8e9070d0305b0703a3547533216b84feab3c0676cb0a5c7547a792d666",
+      "original_bytes": 390,
+      "encoding": "gzip"
+    },
+    {
+      "stored_path": "profile-before.log.gz",
+      "stored_sha256": "f98d3ae192741014b0c314b08dd04193c2bf5a1212be080efbf109d1ed5f3f82",
+      "stored_bytes": 801,
+      "original_path": "profile-before.log",
+      "original_sha256": "b85ebdbee5bd977d4c737bfda8dd8f25544905ab61409ab286049afce149513f",
+      "original_bytes": 7530,
+      "encoding": "gzip"
+    },
+    {
+      "stored_path": "tested-inputs.json",
+      "stored_sha256": "e477ea87ae4ce6cd3dd348151724049d0fc8d420ad63614b2ab81492acabb19f",
+      "stored_bytes": 611,
+      "original_path": "tested-inputs.json",
+      "original_sha256": "e477ea87ae4ce6cd3dd348151724049d0fc8d420ad63614b2ab81492acabb19f",
+      "original_bytes": 611,
+      "encoding": "identity"
+    },
+    {
+      "stored_path": "tests-after.log.gz",
+      "stored_sha256": "71ef2f4a61d543d465d3c81d06b3030bf8049c677508cd9a2e8afbd28273cfe8",
+      "stored_bytes": 57,
+      "original_path": "tests-after.log",
+      "original_sha256": "782f47b97313f080fa50e133633076a2d798dcb3c53d0f0f7cc76714a32ac236",
+      "original_bytes": 158,
+      "encoding": "gzip"
+    }
+  ]
+}

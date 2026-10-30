@@ -83,7 +83,7 @@ tmp, sha, other, run = sys.argv[1], sys.argv[2], sys.argv[3], int(sys.argv[4])
 runs = [{"databaseId": run, "name": "ci", "workflowName": "ci",
          "status": "completed", "conclusion": "success", "headSha": sha,
          "createdAt": "2026-09-21T12:00:00Z", "attempt": 1}]
-jobs_all = ["fmt", "clippy", "docs", "schema", "test (stable)", "audit",
+jobs_all = ["fmt", "clippy", "docs", "schema", "release-rehearsal", "test (stable)", "audit",
             "deny", "package", "features", "fuzz-smoke",
             "broker-smoke (apache/kafka:3.9.1)", "broker-smoke (apache/kafka:4.1.0)",
             "latency-gate", "auth-smoke", "integrity-smoke", "conformance-fixtures"]
@@ -417,7 +417,7 @@ PY
 selected_run_id="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["run_id"])' "$selected_out")"
 selected_attempt="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["attempt"])' "$selected_out")"
 
-DEFAULT_REQUIRED_JOBS="fmt,clippy,docs,schema,test (stable),audit,deny,package,features,fuzz-smoke,broker-smoke (apache/kafka:3.9.1),broker-smoke (apache/kafka:4.1.0),latency-gate,auth-smoke,integrity-smoke,conformance-fixtures"
+DEFAULT_REQUIRED_JOBS="fmt,clippy,docs,schema,release-rehearsal,test (stable),audit,deny,package,features,fuzz-smoke,broker-smoke (apache/kafka:3.9.1),broker-smoke (apache/kafka:4.1.0),latency-gate,auth-smoke,integrity-smoke,conformance-fixtures"
 DEFAULT_REQUIRED_ARTIFACTS="conformance-fixture-artifacts"
 REQUIRED_JOBS="${REQUIRED_JOBS:-$DEFAULT_REQUIRED_JOBS}"
 REQUIRED_ARTIFACTS="${REQUIRED_ARTIFACTS:-$DEFAULT_REQUIRED_ARTIFACTS}"

@@ -620,7 +620,7 @@ if [[ -x scripts/owner-post-installable-handoff.sh ]] \
   && grep -qF 'expected pre-Installable' scripts/owner-status.sh \
   && grep -qF 'expected pre-Installable' scripts/check-installable-preflight.sh \
   && grep -qF 'expected pre-Installable' docs/CIVILIZATION.md \
-  && grep -qF 'expected pre-Installable' docs/RELEASE.md \
+  && grep -qF '0.1.0 is already published' docs/RELEASE.md \
   && grep -qF 'Installable is met' docs/CIVILIZATION.md \
   && grep -qF '0.1.0 published' docs/CIVILIZATION.md \
   && grep -qF 'Version 0.1.0 is published.' docs/ADOPTION.md \

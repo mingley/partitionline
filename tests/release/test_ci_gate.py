@@ -604,7 +604,8 @@ REQUIRED_JOB_NAMES = [
     "fmt",
     "clippy",
     "docs",
-    "test (1.85)",
+    "schema",
+    "release-rehearsal",
     "test (stable)",
     "audit",
     "deny",
@@ -755,6 +756,16 @@ class TestReleaseProfileGate(unittest.TestCase):
         self.assertEqual(res.returncode, 1)
         self.assertIn("[outcome=missing_jobs]", res.stderr)
         self.assertIn("conformance-fixtures", res.stderr)
+
+    def test_schema_and_release_rehearsal_cannot_be_omitted(self):
+        for required in ["schema", "release-rehearsal"]:
+            with self.subTest(required=required):
+                jobs = make_profile_jobs()
+                jobs["jobs"] = [j for j in jobs["jobs"] if j["name"] != required]
+                res = run_profile_gate(jobs_data=jobs, artifacts_data=make_profile_artifacts())
+                self.assertEqual(res.returncode, 1)
+                self.assertIn("[outcome=missing_jobs]", res.stderr)
+                self.assertIn(required, res.stderr)
 
     def test_skipped_matrix_cell_fails(self):
         jobs = make_profile_jobs(overrides={"test (stable)": {"conclusion": "skipped"}})
