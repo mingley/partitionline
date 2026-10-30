@@ -32,7 +32,7 @@ jobs:
       matrix:
         include:
           - kind: client
-            source_version: v5
+            source_version: v6
           - kind: broker
             source_version: v2
     env:

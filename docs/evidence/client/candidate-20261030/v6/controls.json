@@ -1,0 +1,1598 @@
+{
+  "scope": "Prepared exact selections only; no compilation, discovery, or runtime has run for this combined source. Native discovery must confirm every qualified name and no zero-test pass.",
+  "prior_default_library": {
+    "passed": 2176,
+    "failed": 20,
+    "receipt_sha256": "42d9bee14dc640c07454d641548d9c798ae164e81cb655b607a2aecf4b4b8238"
+  },
+  "prior_CI_library_failed_names": 24,
+  "identity_mapping": {
+    "group::tests::collecting_many_revoked_commits_does_not_hold_the_caller": "consumer::tests::collecting_many_revoked_commits_does_not_hold_the_caller",
+    "protocol::group::tests::grouping_many_owned_topics_does_not_hold_the_caller": "protocol::group::tests::decoding_many_owned_topics_does_not_hold_the_caller"
+  },
+  "library": [
+    {
+      "test": "admin::cooperative_tests::a_single_member_with_many_partitions_yields_before_completion",
+      "target": "partitionline",
+      "roles": [
+        "semantic_or_cancellation"
+      ],
+      "origins": [
+        "Adminv1 candidate controls"
+      ],
+      "runtime": "not_run_for_bundle"
+    },
+    {
+      "test": "admin::cooperative_tests::cancellation_while_building_named_slots_borrows_request_names",
+      "target": "partitionline",
+      "roles": [
+        "semantic_or_cancellation"
+      ],
+      "origins": [
+        "Adminv1 candidate controls"
+      ],
+      "runtime": "not_run_for_bundle"
+    },
+    {
+      "test": "admin::cooperative_tests::cooperative_admin_values_errors_and_consumption_match_sync",
+      "target": "partitionline",
+      "roles": [
+        "semantic_or_cancellation"
+      ],
+      "origins": [
+        "Adminv1 candidate controls"
+      ],
+      "runtime": "not_run_for_bundle"
+    },
+    {
+      "test": "admin::cooperative_tests::describe_topics_pages_share_one_request_deadline",
+      "target": "partitionline",
+      "roles": [
+        "semantic_or_cancellation"
+      ],
+      "origins": [
+        "Adminv1 candidate controls"
+      ],
+      "runtime": "not_run_for_bundle"
+    },
+    {
+      "test": "admin::cooperative_tests::one_member_large_metadata_bytes_yields_before_completion",
+      "target": "partitionline",
+      "roles": [
+        "semantic_or_cancellation"
+      ],
+      "origins": [
+        "Adminv1 candidate controls"
+      ],
+      "runtime": "not_run_for_bundle"
+    },
+    {
+      "test": "admin::cooperative_tests::requested_named_slots_preserve_subset_order_fifo_and_first_error",
+      "target": "partitionline",
+      "roles": [
+        "semantic_or_cancellation"
+      ],
+      "origins": [
+        "Adminv1 candidate controls"
+      ],
+      "runtime": "not_run_for_bundle"
+    },
+    {
+      "test": "admin::cooperative_tests::share_offsets_lag_and_null_fields_match_sync_at_every_prefix",
+      "target": "partitionline",
+      "roles": [
+        "semantic_or_cancellation"
+      ],
+      "origins": [
+        "Adminv1 candidate controls"
+      ],
+      "runtime": "not_run_for_bundle"
+    },
+    {
+      "test": "admin::cooperative_tests::streamed_named_results_keep_fifo_and_report_wire_errors_first",
+      "target": "partitionline",
+      "roles": [
+        "semantic_or_cancellation"
+      ],
+      "origins": [
+        "Adminv1 candidate controls"
+      ],
+      "runtime": "not_run_for_bundle"
+    },
+    {
+      "test": "admin::cooperative_tests::streamed_nested_partition_shapes_and_cursors_match_sync",
+      "target": "partitionline",
+      "roles": [
+        "semantic_or_cancellation"
+      ],
+      "origins": [
+        "Adminv1 candidate controls"
+      ],
+      "runtime": "not_run_for_bundle"
+    },
+    {
+      "test": "admin::cooperative_tests::streamed_topic_pages_match_first_header_and_append_semantics",
+      "target": "partitionline",
+      "roles": [
+        "semantic_or_cancellation"
+      ],
+      "origins": [
+        "Adminv1 candidate controls"
+      ],
+      "runtime": "not_run_for_bundle"
+    },
+    {
+      "test": "admin::tests::decoding_many_consumer_group_members_does_not_hold_the_caller",
+      "target": "partitionline",
+      "roles": [
+        "observed_prior_negative",
+        "Admin_regression"
+      ],
+      "origins": [
+        "main770 GitHub client unit job124274360765",
+        "Adminv1 required cases"
+      ],
+      "runtime": "not_run_for_bundle"
+    },
+    {
+      "test": "admin::tests::decoding_many_created_topics_does_not_hold_the_caller",
+      "target": "partitionline",
+      "roles": [
+        "observed_prior_negative",
+        "Admin_regression"
+      ],
+      "origins": [
+        "main770 GitHub client unit job124274360765",
+        "Adminv1 required cases"
+      ],
+      "runtime": "not_run_for_bundle"
+    },
+    {
+      "test": "admin::tests::decoding_many_delegation_tokens_does_not_hold_the_caller",
+      "target": "partitionline",
+      "roles": [
+        "observed_prior_negative",
+        "Admin_regression"
+      ],
+      "origins": [
+        "producer fixed-full-lib-01",
+        "main770 GitHub client unit job124274360765",
+        "Adminv1 required cases"
+      ],
+      "runtime": "not_run_for_bundle"
+    },
+    {
+      "test": "admin::tests::decoding_many_described_group_members_does_not_hold_the_caller",
+      "target": "partitionline",
+      "roles": [
+        "observed_prior_negative",
+        "Admin_regression"
+      ],
+      "origins": [
+        "main770 GitHub client unit job124274360765",
+        "Adminv1 required cases"
+      ],
+      "runtime": "not_run_for_bundle"
+    },
+    {
+      "test": "admin::tests::decoding_many_transactions_does_not_hold_the_caller",
+      "target": "partitionline",
+      "roles": [
+        "observed_prior_negative",
+        "Admin_regression"
+      ],
+      "origins": [
+        "main770 GitHub client unit job124274360765",
+        "Adminv1 required cases"
+      ],
+      "runtime": "not_run_for_bundle"
+    },
+    {
+      "test": "admin::tests::extending_many_described_topics_does_not_hold_the_caller",
+      "target": "partitionline",
+      "roles": [
+        "observed_prior_negative",
+        "Admin_regression"
+      ],
+      "origins": [
+        "producer fixed-full-lib-01",
+        "main770 GitHub client unit job124274360765",
+        "Adminv1 required cases"
+      ],
+      "runtime": "not_run_for_bundle"
+    },
+    {
+      "test": "admin::tests::grouping_many_named_results_does_not_hold_the_caller",
+      "target": "partitionline",
+      "roles": [
+        "observed_prior_negative",
+        "Admin_regression"
+      ],
+      "origins": [
+        "producer fixed-full-lib-01",
+        "main770 GitHub client unit job124274360765",
+        "Adminv1 required cases"
+      ],
+      "runtime": "not_run_for_bundle"
+    },
+    {
+      "test": "admin::tests::indexing_many_coordinators_does_not_hold_the_caller",
+      "target": "partitionline",
+      "roles": [
+        "observed_prior_negative",
+        "Admin_regression"
+      ],
+      "origins": [
+        "producer fixed-full-lib-01",
+        "main770 GitHub client unit job124274360765",
+        "Adminv1 required cases"
+      ],
+      "runtime": "not_run_for_bundle"
+    },
+    {
+      "test": "admin::tests::indexing_many_described_producers_does_not_hold_the_caller",
+      "target": "partitionline",
+      "roles": [
+        "observed_prior_negative",
+        "Admin_regression"
+      ],
+      "origins": [
+        "producer fixed-full-lib-01",
+        "main770 GitHub client unit job124274360765",
+        "Adminv1 required cases"
+      ],
+      "runtime": "not_run_for_bundle"
+    },
+    {
+      "test": "cluster::tests::applying_many_topics_does_not_hold_the_caller",
+      "target": "partitionline",
+      "roles": [
+        "observed_prior_negative_unchanged_gate"
+      ],
+      "origins": [
+        "mainfe65 logs/job-124309438269.log.gz"
+      ],
+      "runtime": "not_run_for_bundle"
+    },
+    {
+      "test": "cluster::tests::declared_topic_count_does_not_allocate_duplicate_tracking",
+      "target": "partitionline",
+      "roles": [
+        "cluster_or_retained_identity_regression"
+      ],
+      "origins": [
+        "cluster-cooperative-20261030/v2"
+      ],
+      "runtime": "not_run_for_bundle"
+    },
+    {
+      "test": "cluster::tests::topic_duplicate_tracking_keeps_names_across_the_heap_transition",
+      "target": "partitionline",
+      "roles": [
+        "cluster_or_retained_identity_regression"
+      ],
+      "origins": [
+        "cluster-cooperative-20261030/v2"
+      ],
+      "runtime": "not_run_for_bundle"
+    },
+    {
+      "test": "cluster::tests::unchanged_metadata_partition_budget_spans_multiple_topics",
+      "target": "partitionline",
+      "roles": [
+        "cluster_or_retained_identity_regression"
+      ],
+      "origins": [
+        "cluster-cooperative-20261030/v2"
+      ],
+      "runtime": "not_run_for_bundle"
+    },
+    {
+      "test": "cluster::tests::unchanged_metadata_partitions_yield_without_discarding_the_cache",
+      "target": "partitionline",
+      "roles": [
+        "cluster_or_retained_identity_regression"
+      ],
+      "origins": [
+        "cluster-cooperative-20261030/v2"
+      ],
+      "runtime": "not_run_for_bundle"
+    },
+    {
+      "test": "consumer::tests::cancelled_assigned_id_removals_can_resume_without_losing_kept_ids",
+      "target": "partitionline",
+      "roles": [
+        "cluster_or_retained_identity_regression"
+      ],
+      "origins": [
+        "cluster-cooperative-20261030/v2"
+      ],
+      "runtime": "not_run_for_bundle"
+    },
+    {
+      "test": "consumer::tests::cancelling_assigned_id_retention_keeps_all_still_assigned_identities",
+      "target": "partitionline",
+      "roles": [
+        "cluster_or_retained_identity_regression"
+      ],
+      "origins": [
+        "cluster-cooperative-20261030/v2"
+      ],
+      "runtime": "not_run_for_bundle"
+    },
+    {
+      "test": "consumer::tests::collecting_many_revoked_commits_does_not_hold_the_caller",
+      "target": "partitionline",
+      "roles": [
+        "observed_prior_negative",
+        "regression"
+      ],
+      "origins": [
+        "producer fixed-full-lib-01",
+        "main770 GitHub client unit job124274360765",
+        "aggregationv3 controls"
+      ],
+      "runtime": "not_run_for_bundle",
+      "old_identity": "group::tests::collecting_many_revoked_commits_does_not_hold_the_caller"
+    },
+    {
+      "test": "consumer::tests::indexing_many_metadata_names_does_not_hold_the_caller",
+      "target": "partitionline",
+      "roles": [
+        "observed_prior_negative",
+        "regression"
+      ],
+      "origins": [
+        "producer fixed-full-lib-01",
+        "aggregationv3 controls"
+      ],
+      "runtime": "not_run_for_bundle"
+    },
+    {
+      "test": "consumer::tests::prepending_many_pending_runs_does_not_hold_the_caller",
+      "target": "partitionline",
+      "roles": [
+        "observed_prior_negative_unchanged_gate"
+      ],
+      "origins": [
+        "mainfe65 logs/job-124309437967.log.gz"
+      ],
+      "runtime": "not_run_for_bundle"
+    },
+    {
+      "test": "consumer::tests::requested_metadata_indexes_match_copy_error_and_partition_semantics",
+      "target": "partitionline",
+      "roles": [
+        "semantic/cancellation"
+      ],
+      "origins": [
+        "aggregationv3 controls"
+      ],
+      "runtime": "not_run_for_bundle"
+    },
+    {
+      "test": "consumer::tests::requested_metadata_rejected_partition_walk_yields_without_moving_the_image",
+      "target": "partitionline",
+      "roles": [
+        "semantic/cancellation"
+      ],
+      "origins": [
+        "aggregationv3 controls"
+      ],
+      "runtime": "not_run_for_bundle"
+    },
+    {
+      "test": "consumer::tests::retained_assigned_ids_keep_their_existing_storage",
+      "target": "partitionline",
+      "roles": [
+        "cluster_or_retained_identity_regression"
+      ],
+      "origins": [
+        "cluster-cooperative-20261030/v2"
+      ],
+      "runtime": "not_run_for_bundle"
+    },
+    {
+      "test": "consumer::tests::retaining_many_assigned_topic_ids_does_not_hold_the_caller",
+      "target": "partitionline",
+      "roles": [
+        "observed_prior_negative_unchanged_gate"
+      ],
+      "origins": [
+        "mainfe65 logs/job-124309438269.log.gz"
+      ],
+      "runtime": "not_run_for_bundle"
+    },
+    {
+      "test": "consumer::tests::retaining_many_empty_assigned_id_topics_yields",
+      "target": "partitionline",
+      "roles": [
+        "cluster_or_retained_identity_regression"
+      ],
+      "origins": [
+        "cluster-cooperative-20261030/v2"
+      ],
+      "runtime": "not_run_for_bundle"
+    },
+    {
+      "test": "consumer::tests::wakeup_keeps_a_leader_dial_that_already_finished",
+      "target": "partitionline",
+      "roles": [
+        "observed_prior_negative",
+        "socket_lifecycle"
+      ],
+      "origins": [
+        "producer fixed-full-lib-01",
+        "main770 GitHub client unit job124274360765",
+        "socketv4 required cases"
+      ],
+      "runtime": "not_run_for_bundle"
+    },
+    {
+      "test": "consumer::tests::wakeup_stops_a_blocked_leader_dial",
+      "target": "partitionline",
+      "roles": [
+        "socket_lifecycle"
+      ],
+      "origins": [
+        "socketv4 required cases"
+      ],
+      "runtime": "not_run_for_bundle"
+    },
+    {
+      "test": "group::rediscover_stop_tests::expired_reconnect_retires_the_old_socket_without_dialing",
+      "target": "partitionline",
+      "roles": [
+        "socket_lifecycle"
+      ],
+      "origins": [
+        "socketv4 required cases"
+      ],
+      "runtime": "not_run_for_bundle"
+    },
+    {
+      "test": "group::rediscover_stop_tests::replacing_an_idle_coordinator_lets_the_broker_leave",
+      "target": "partitionline",
+      "roles": [
+        "observed_prior_negative",
+        "socket_lifecycle"
+      ],
+      "origins": [
+        "producer fixed-full-lib-01",
+        "main770 GitHub client unit job124274360765",
+        "socketv4 required cases"
+      ],
+      "runtime": "not_run_for_bundle"
+    },
+    {
+      "test": "group::rediscover_stop_tests::replacing_an_idle_legacy_offset_coordinator_lets_the_broker_leave",
+      "target": "partitionline",
+      "roles": [
+        "observed_prior_negative",
+        "socket_lifecycle"
+      ],
+      "origins": [
+        "producer fixed-full-lib-01",
+        "main770 GitHub client unit job124274360765",
+        "socketv4 required cases"
+      ],
+      "runtime": "not_run_for_bundle"
+    },
+    {
+      "test": "group::rediscover_stop_tests::replacing_an_idle_offset_coordinator_lets_the_broker_leave",
+      "target": "partitionline",
+      "roles": [
+        "observed_prior_negative",
+        "socket_lifecycle"
+      ],
+      "origins": [
+        "producer fixed-full-lib-01",
+        "main770 GitHub client unit job124274360765",
+        "socketv4 required cases"
+      ],
+      "runtime": "not_run_for_bundle"
+    },
+    {
+      "test": "group::rediscover_stop_tests::replacing_an_idle_typed_offset_coordinator_lets_the_broker_leave",
+      "target": "partitionline",
+      "roles": [
+        "socket_lifecycle"
+      ],
+      "origins": [
+        "socketv4 required cases"
+      ],
+      "runtime": "not_run_for_bundle"
+    },
+    {
+      "test": "group::tests::cancelled_interval_filter_preserves_the_delivered_snapshot",
+      "target": "partitionline",
+      "roles": [
+        "semantic/cancellation"
+      ],
+      "origins": [
+        "aggregationv3 controls"
+      ],
+      "runtime": "not_run_for_bundle"
+    },
+    {
+      "test": "group::tests::cancelled_joined_topic_extension_keeps_a_reusable_first_seen_prefix",
+      "target": "partitionline",
+      "roles": [
+        "semantic/cancellation"
+      ],
+      "origins": [
+        "aggregationv3 controls"
+      ],
+      "runtime": "not_run_for_bundle"
+    },
+    {
+      "test": "group::tests::cooperative_committed_pairs_match_one_shot",
+      "target": "partitionline",
+      "roles": [
+        "semantic/cancellation"
+      ],
+      "origins": [
+        "aggregationv3 controls"
+      ],
+      "runtime": "not_run_for_bundle"
+    },
+    {
+      "test": "group::tests::copying_many_assigned_members_does_not_hold_the_caller",
+      "target": "partitionline",
+      "roles": [
+        "observed_prior_negative",
+        "regression"
+      ],
+      "origins": [
+        "producer fixed-full-lib-01",
+        "main770 GitHub client unit job124274360765",
+        "aggregationv3 controls"
+      ],
+      "runtime": "not_run_for_bundle"
+    },
+    {
+      "test": "group::tests::delayed_first_poll_does_not_restart_the_coordinator_deadline",
+      "target": "partitionline",
+      "roles": [
+        "baseline_then_fixed"
+      ],
+      "origins": [
+        "JoinGroupv3 absolute-deadline control"
+      ],
+      "runtime": "not_run_for_bundle"
+    },
+    {
+      "test": "group::tests::direct_range_assignment_sorts_and_deduplicates_across_work_chunks",
+      "target": "partitionline",
+      "roles": [
+        "semantic/cancellation"
+      ],
+      "origins": [
+        "aggregationv3 controls"
+      ],
+      "runtime": "not_run_for_bundle"
+    },
+    {
+      "test": "group::tests::direct_subscribed_assignments_match_multi_topic_oracles",
+      "target": "partitionline",
+      "roles": [
+        "semantic/cancellation"
+      ],
+      "origins": [
+        "aggregationv3 controls"
+      ],
+      "runtime": "not_run_for_bundle"
+    },
+    {
+      "test": "group::tests::extending_many_joined_topics_does_not_hold_the_caller",
+      "target": "partitionline",
+      "roles": [
+        "observed_prior_negative",
+        "regression"
+      ],
+      "origins": [
+        "producer fixed-full-lib-01",
+        "aggregationv3 controls"
+      ],
+      "runtime": "not_run_for_bundle"
+    },
+    {
+      "test": "group::tests::fetched_pairs_preserve_duplicates_metadata_epochs_and_first_error",
+      "target": "partitionline",
+      "roles": [
+        "semantic/cancellation"
+      ],
+      "origins": [
+        "aggregationv3 controls"
+      ],
+      "runtime": "not_run_for_bundle"
+    },
+    {
+      "test": "group::tests::joined_topic_hash_collisions_preserve_names_and_first_seen_order",
+      "target": "partitionline",
+      "roles": [
+        "semantic/cancellation"
+      ],
+      "origins": [
+        "aggregationv3 controls"
+      ],
+      "runtime": "not_run_for_bundle"
+    },
+    {
+      "test": "group::tests::joined_topics_keep_the_first_name",
+      "target": "partitionline",
+      "roles": [
+        "semantic/cancellation"
+      ],
+      "origins": [
+        "aggregationv3 controls"
+      ],
+      "runtime": "not_run_for_bundle"
+    },
+    {
+      "test": "group::tests::pairing_many_committed_offsets_does_not_hold_the_caller",
+      "target": "partitionline",
+      "roles": [
+        "observed_prior_negative",
+        "regression"
+      ],
+      "origins": [
+        "producer fixed-full-lib-01",
+        "main770 GitHub client unit job124274360765",
+        "aggregationv3 controls"
+      ],
+      "runtime": "not_run_for_bundle"
+    },
+    {
+      "test": "group::tests::retaining_many_interval_commits_does_not_hold_the_caller",
+      "target": "partitionline",
+      "roles": [
+        "observed_prior_negative",
+        "regression"
+      ],
+      "origins": [
+        "producer fixed-full-lib-01",
+        "aggregationv3 controls"
+      ],
+      "runtime": "not_run_for_bundle"
+    },
+    {
+      "test": "group::tests::revoked_commits_exclude_reset_markers_and_other_partitions",
+      "target": "partitionline",
+      "roles": [
+        "semantic/cancellation"
+      ],
+      "origins": [
+        "aggregationv3 controls"
+      ],
+      "runtime": "not_run_for_bundle"
+    },
+    {
+      "test": "group::tests::small_joined_topic_extensions_share_one_work_allowance",
+      "target": "partitionline",
+      "roles": [
+        "aggregate work across member-sized calls, unique and duplicate subscriptions"
+      ],
+      "origins": [
+        "aggregationv3 controls"
+      ],
+      "runtime": "not_run_for_bundle"
+    },
+    {
+      "test": "group::tests::subscribed_assignors_yield_for_rejected_partitions_and_unsubscribed_topics",
+      "target": "partitionline",
+      "roles": [
+        "semantic/cancellation"
+      ],
+      "origins": [
+        "aggregationv3 controls"
+      ],
+      "runtime": "not_run_for_bundle"
+    },
+    {
+      "test": "net::tests::write_timeout_shuts_the_broker_down",
+      "target": "partitionline",
+      "roles": [
+        "observed_prior_negative",
+        "socket_lifecycle"
+      ],
+      "origins": [
+        "main770 GitHub client unit job124274360765",
+        "socketv4 required cases"
+      ],
+      "runtime": "not_run_for_bundle"
+    },
+    {
+      "test": "producer::prepare_tests::cancelled_fire_grouping_retains_actual_accepted_records",
+      "target": "partitionline",
+      "roles": [
+        "accepted_preparation_ownership"
+      ],
+      "origins": [
+        "producer-prepare-ownership-20261030/v2"
+      ],
+      "runtime": "not_run_for_bundle"
+    },
+    {
+      "test": "producer::prepare_tests::cancelled_mixed_assembly_keeps_the_current_partition_cursor",
+      "target": "partitionline",
+      "roles": [
+        "accepted_preparation_ownership"
+      ],
+      "origins": [
+        "producer-prepare-ownership-20261030/v2"
+      ],
+      "runtime": "not_run_for_bundle"
+    },
+    {
+      "test": "producer::prepare_tests::cancelled_mixed_distribution_keeps_bucket_prefix_and_source_suffix",
+      "target": "partitionline",
+      "roles": [
+        "accepted_preparation_ownership"
+      ],
+      "origins": [
+        "producer-prepare-ownership-20261030/v2"
+      ],
+      "runtime": "not_run_for_bundle"
+    },
+    {
+      "test": "producer::prepare_tests::cancelled_one_topic_distribution_keeps_group_prefix_and_source_suffix",
+      "target": "partitionline",
+      "roles": [
+        "accepted_preparation_ownership"
+      ],
+      "origins": [
+        "producer-prepare-ownership-20261030/v2"
+      ],
+      "runtime": "not_run_for_bundle"
+    },
+    {
+      "test": "producer::prepare_tests::cancelled_preparation_classification_keeps_payloads_in_worker",
+      "target": "partitionline",
+      "roles": [
+        "accepted_preparation_ownership"
+      ],
+      "origins": [
+        "producer-prepare-ownership-20261030/v2"
+      ],
+      "runtime": "not_run_for_bundle"
+    },
+    {
+      "test": "producer::prepare_tests::cancelled_produce_encoding_keeps_accepted_payloads",
+      "target": "partitionline",
+      "roles": [
+        "accepted_preparation_ownership"
+      ],
+      "origins": [
+        "producer-prepare-ownership-20261030/v2"
+      ],
+      "runtime": "not_run_for_bundle"
+    },
+    {
+      "test": "producer::prepare_tests::cancelled_sequence_stamping_keeps_the_partially_stamped_batch",
+      "target": "partitionline",
+      "roles": [
+        "accepted_preparation_ownership"
+      ],
+      "origins": [
+        "producer-prepare-ownership-20261030/v2"
+      ],
+      "runtime": "not_run_for_bundle"
+    },
+    {
+      "test": "producer::prepare_tests::cancelled_transaction_partition_walk_keeps_accepted_payloads",
+      "target": "partitionline",
+      "roles": [
+        "accepted_preparation_ownership"
+      ],
+      "origins": [
+        "producer-prepare-ownership-20261030/v2"
+      ],
+      "runtime": "not_run_for_bundle"
+    },
+    {
+      "test": "producer::prepare_tests::closed_write_phase_cleanup_times_out_each_first_or_retry_record_once",
+      "target": "partitionline",
+      "roles": [
+        "accepted_preparation_ownership"
+      ],
+      "origins": [
+        "producer-prepare-ownership-20261030/v2"
+      ],
+      "runtime": "not_run_for_bundle"
+    },
+    {
+      "test": "producer::prepare_tests::forward_preparation_cursor_preserves_the_reusable_batch_allocation",
+      "target": "partitionline",
+      "roles": [
+        "accepted_preparation_ownership"
+      ],
+      "origins": [
+        "producer-prepare-ownership-20261030/v2"
+      ],
+      "runtime": "not_run_for_bundle"
+    },
+    {
+      "test": "producer::prepare_tests::open_worker_cleanup_transfers_prepared_prefix_before_its_partition_suffix",
+      "target": "partitionline",
+      "roles": [
+        "accepted_preparation_ownership"
+      ],
+      "origins": [
+        "producer-prepare-ownership-20261030/v2"
+      ],
+      "runtime": "not_run_for_bundle"
+    },
+    {
+      "test": "producer::tests::assembling_many_produce_topics_does_not_hold_the_caller",
+      "target": "partitionline",
+      "roles": [
+        "observed_prior_negative",
+        "regression"
+      ],
+      "origins": [
+        "producer fixed-full-lib-01",
+        "main770 GitHub client unit job124274360765",
+        "aggregationv3 controls"
+      ],
+      "runtime": "not_run_for_bundle"
+    },
+    {
+      "test": "producer::tests::cancelled_pending_deadline_scan_retains_the_detached_prefix_until_worker_cleanup",
+      "target": "partitionline",
+      "roles": [
+        "baseline_then_fixed"
+      ],
+      "origins": [
+        "accepted drain ownership controls"
+      ],
+      "runtime": "not_run_for_bundle"
+    },
+    {
+      "test": "producer::tests::cancelled_pending_drain_retains_accepted_records_until_worker_cleanup",
+      "target": "partitionline",
+      "roles": [
+        "baseline_then_fixed"
+      ],
+      "origins": [
+        "accepted drain ownership controls"
+      ],
+      "runtime": "not_run_for_bundle"
+    },
+    {
+      "test": "producer::tests::cancelling_empty_shell_preparation_and_cleanup_preserves_reusable_capacity",
+      "target": "partitionline",
+      "roles": [
+        "semantic/cancellation"
+      ],
+      "origins": [
+        "aggregationv3 controls"
+      ],
+      "runtime": "not_run_for_bundle"
+    },
+    {
+      "test": "producer::tests::closed_retry_admission_rejects_after_the_final_drain",
+      "target": "partitionline",
+      "roles": [
+        "producer_admission_regression"
+      ],
+      "origins": [
+        "fixed-producer-11.json"
+      ],
+      "runtime": "not_run_for_bundle"
+    },
+    {
+      "test": "producer::tests::closed_worker_retries_keep_pending_and_do_not_remove_replacement",
+      "target": "partitionline",
+      "roles": [
+        "producer_admission_regression"
+      ],
+      "origins": [
+        "fixed-producer-12.json"
+      ],
+      "runtime": "not_run_for_bundle"
+    },
+    {
+      "test": "producer::tests::closing_admission_wakes_capacity_waiters_while_receiver_stays_live",
+      "target": "partitionline",
+      "roles": [
+        "producer_admission_regression"
+      ],
+      "origins": [
+        "fixed-producer-08.json"
+      ],
+      "runtime": "not_run_for_bundle"
+    },
+    {
+      "test": "producer::tests::concurrent_last_worker_handle_drops_cancel_the_task_with_observers",
+      "target": "partitionline",
+      "roles": [
+        "producer_admission_regression"
+      ],
+      "origins": [
+        "fixed-producer-21.json"
+      ],
+      "runtime": "not_run_for_bundle"
+    },
+    {
+      "test": "producer::tests::decoding_many_added_partitions_does_not_hold_the_caller",
+      "target": "partitionline",
+      "roles": [
+        "observed_prior_negative_unchanged_gate"
+      ],
+      "origins": [
+        "mainfe65 logs/job-124309437967.log.gz"
+      ],
+      "runtime": "not_run_for_bundle"
+    },
+    {
+      "test": "producer::tests::dropping_many_ack_topics_does_not_hold_the_caller",
+      "target": "partitionline",
+      "roles": [
+        "observed_prior_negative_unchanged_gate"
+      ],
+      "origins": [
+        "mainfe65 logs/job-124309437967.log.gz"
+      ],
+      "runtime": "not_run_for_bundle"
+    },
+    {
+      "test": "producer::tests::encoding_many_produce_topics_does_not_hold_the_caller",
+      "target": "partitionline",
+      "roles": [
+        "observed_prior_negative_unchanged_gate"
+      ],
+      "origins": [
+        "mainfe65 logs/job-124309438269.log.gz"
+      ],
+      "runtime": "not_run_for_bundle"
+    },
+    {
+      "test": "producer::tests::grouping_large_partitions_completes_with_reused_record_lists",
+      "target": "partitionline",
+      "roles": [
+        "producer_admission_regression"
+      ],
+      "origins": [
+        "fixed-producer-04.json"
+      ],
+      "runtime": "not_run_for_bundle"
+    },
+    {
+      "test": "producer::tests::incremental_reservation_completes_for_empty_and_cleared_vectors",
+      "target": "partitionline",
+      "roles": [
+        "producer_admission_regression"
+      ],
+      "origins": [
+        "fixed-producer-01.json"
+      ],
+      "runtime": "not_run_for_bundle"
+    },
+    {
+      "test": "producer::tests::incremental_reservation_handles_zero_sized_elements",
+      "target": "partitionline",
+      "roles": [
+        "producer_admission_regression"
+      ],
+      "origins": [
+        "fixed-producer-03.json"
+      ],
+      "runtime": "not_run_for_bundle"
+    },
+    {
+      "test": "producer::tests::incremental_reservation_preserves_partially_filled_vectors",
+      "target": "partitionline",
+      "roles": [
+        "producer_admission_regression"
+      ],
+      "origins": [
+        "fixed-producer-02.json"
+      ],
+      "runtime": "not_run_for_bundle"
+    },
+    {
+      "test": "producer::tests::mixed_assembly_preserves_recycled_empty_partition_capacity",
+      "target": "partitionline",
+      "roles": [
+        "semantic/cancellation"
+      ],
+      "origins": [
+        "aggregationv3 controls"
+      ],
+      "runtime": "not_run_for_bundle"
+    },
+    {
+      "test": "producer::tests::ready_reservation_does_not_bypass_an_earlier_capacity_waiter",
+      "target": "partitionline",
+      "roles": [
+        "producer_admission_regression"
+      ],
+      "origins": [
+        "fixed-producer-20.json"
+      ],
+      "runtime": "not_run_for_bundle"
+    },
+    {
+      "test": "producer::tests::replacing_an_idle_metadata_socket_lets_the_broker_leave",
+      "target": "partitionline",
+      "roles": [
+        "observed_prior_negative",
+        "socket_lifecycle"
+      ],
+      "origins": [
+        "producer fixed-full-lib-01",
+        "main770 GitHub client unit job124274360765",
+        "socketv4 required cases"
+      ],
+      "runtime": "not_run_for_bundle"
+    },
+    {
+      "test": "producer::tests::retired_fast_route_falls_back_to_the_live_worker",
+      "target": "partitionline",
+      "roles": [
+        "producer_admission_regression"
+      ],
+      "origins": [
+        "fixed-producer-10.json"
+      ],
+      "runtime": "not_run_for_bundle"
+    },
+    {
+      "test": "producer::tests::retired_idle_worker_exits_while_cached_handles_remain",
+      "target": "partitionline",
+      "roles": [
+        "producer_admission_regression"
+      ],
+      "origins": [
+        "fixed-producer-09.json"
+      ],
+      "runtime": "not_run_for_bundle"
+    },
+    {
+      "test": "producer::tests::retired_worker_handle_keeps_transfer_alive_and_preserves_other_slots",
+      "target": "partitionline",
+      "roles": [
+        "producer_admission_regression"
+      ],
+      "origins": [
+        "fixed-producer-13.json"
+      ],
+      "runtime": "not_run_for_bundle"
+    },
+    {
+      "test": "producer::tests::retired_worker_live_count_and_shutdown_wait_for_drop_callbacks",
+      "target": "partitionline",
+      "roles": [
+        "producer_admission_regression"
+      ],
+      "origins": [
+        "fixed-producer-15.json"
+      ],
+      "runtime": "not_run_for_bundle"
+    },
+    {
+      "test": "producer::tests::retiring_worker_drains_every_send_committed_before_close",
+      "target": "partitionline",
+      "roles": [
+        "producer_admission_regression"
+      ],
+      "origins": [
+        "fixed-producer-06.json"
+      ],
+      "runtime": "not_run_for_bundle"
+    },
+    {
+      "test": "producer::tests::retiring_worker_rejects_a_previously_reserved_permit",
+      "target": "partitionline",
+      "roles": [
+        "producer_admission_regression"
+      ],
+      "origins": [
+        "fixed-producer-05.json"
+      ],
+      "runtime": "not_run_for_bundle"
+    },
+    {
+      "test": "producer::tests::retiring_worker_returns_an_unaccepted_blocked_send",
+      "target": "partitionline",
+      "roles": [
+        "producer_admission_regression"
+      ],
+      "origins": [
+        "fixed-producer-07.json"
+      ],
+      "runtime": "not_run_for_bundle"
+    },
+    {
+      "test": "producer::tests::retry_actor_cancellation_during_metadata_releases_the_drained_batch",
+      "target": "partitionline",
+      "roles": [
+        "producer_admission_regression"
+      ],
+      "origins": [
+        "fixed-producer-16.json"
+      ],
+      "runtime": "not_run_for_bundle"
+    },
+    {
+      "test": "producer::tests::retry_actor_cancellation_during_transfer_releases_current_and_remaining_records",
+      "target": "partitionline",
+      "roles": [
+        "producer_admission_regression"
+      ],
+      "origins": [
+        "fixed-producer-17.json"
+      ],
+      "runtime": "not_run_for_bundle"
+    },
+    {
+      "test": "producer::tests::retry_actor_cancellation_preserves_records_already_transferred_to_a_worker",
+      "target": "partitionline",
+      "roles": [
+        "producer_admission_regression"
+      ],
+      "origins": [
+        "fixed-producer-18.json"
+      ],
+      "runtime": "not_run_for_bundle"
+    },
+    {
+      "test": "producer::tests::retry_actor_final_channel_drain_keeps_counts_until_callbacks_finish",
+      "target": "partitionline",
+      "roles": [
+        "producer_admission_regression"
+      ],
+      "origins": [
+        "fixed-producer-19.json"
+      ],
+      "runtime": "not_run_for_bundle"
+    },
+    {
+      "test": "producer::tests::shelling_many_produce_partitions_does_not_hold_the_caller",
+      "target": "partitionline",
+      "roles": [
+        "observed_prior_negative",
+        "regression"
+      ],
+      "origins": [
+        "main770 GitHub client unit job124274360765",
+        "aggregationv3 controls"
+      ],
+      "runtime": "not_run_for_bundle"
+    },
+    {
+      "test": "producer::tests::unpolled_retired_worker_is_counted_until_its_resources_drop",
+      "target": "partitionline",
+      "roles": [
+        "producer_admission_regression"
+      ],
+      "origins": [
+        "fixed-producer-14.json"
+      ],
+      "runtime": "not_run_for_bundle"
+    },
+    {
+      "test": "producer::tests::unpolled_retry_actor_releases_queued_records_and_closes_admission",
+      "target": "partitionline",
+      "roles": [
+        "producer_admission_regression"
+      ],
+      "origins": [
+        "fixed-producer-22.json"
+      ],
+      "runtime": "not_run_for_bundle"
+    },
+    {
+      "test": "protocol::acl::tests::duplicate_acl_input_does_not_reserve_proportional_output_capacity",
+      "target": "partitionline",
+      "roles": [
+        "semantic/cancellation"
+      ],
+      "origins": [
+        "aggregationv3 controls"
+      ],
+      "runtime": "not_run_for_bundle"
+    },
+    {
+      "test": "protocol::acl::tests::grouped_acls_match_independent_first_seen_pattern_and_entry_walk",
+      "target": "partitionline",
+      "roles": [
+        "semantic/cancellation"
+      ],
+      "origins": [
+        "aggregationv3 controls"
+      ],
+      "runtime": "not_run_for_bundle"
+    },
+    {
+      "test": "protocol::acl::tests::grouping_many_acl_resources_does_not_hold_the_caller",
+      "target": "partitionline",
+      "roles": [
+        "observed_prior_negative",
+        "regression"
+      ],
+      "origins": [
+        "producer fixed-full-lib-01",
+        "main770 GitHub client unit job124274360765",
+        "aggregationv3 controls"
+      ],
+      "runtime": "not_run_for_bundle"
+    },
+    {
+      "test": "protocol::cooperative::tests::byte_fields_match_sync_across_fragmentation_and_truncation",
+      "target": "partitionline",
+      "roles": [
+        "semantic_or_cancellation"
+      ],
+      "origins": [
+        "Adminv1 candidate controls"
+      ],
+      "runtime": "not_run_for_bundle"
+    },
+    {
+      "test": "protocol::cooperative::tests::invalid_large_utf8_yields_while_consuming_the_rest_of_its_field",
+      "target": "partitionline",
+      "roles": [
+        "semantic_or_cancellation"
+      ],
+      "origins": [
+        "Adminv1 candidate controls"
+      ],
+      "runtime": "not_run_for_bundle"
+    },
+    {
+      "test": "protocol::cooperative::tests::null_strings_and_bytes_preserve_classic_and_compact_consumption",
+      "target": "partitionline",
+      "roles": [
+        "semantic_or_cancellation"
+      ],
+      "origins": [
+        "Adminv1 candidate controls"
+      ],
+      "runtime": "not_run_for_bundle"
+    },
+    {
+      "test": "protocol::cooperative::tests::one_large_field_yields_during_copy_and_utf8_validation",
+      "target": "partitionline",
+      "roles": [
+        "semantic_or_cancellation"
+      ],
+      "origins": [
+        "Adminv1 candidate controls"
+      ],
+      "runtime": "not_run_for_bundle"
+    },
+    {
+      "test": "protocol::cooperative::tests::speculative_metadata_reservation_is_bounded_by_bytes",
+      "target": "partitionline",
+      "roles": [
+        "semantic_or_cancellation"
+      ],
+      "origins": [
+        "Adminv1 candidate controls"
+      ],
+      "runtime": "not_run_for_bundle"
+    },
+    {
+      "test": "protocol::cooperative::tests::strings_match_sync_values_errors_and_consumption_across_chunks",
+      "target": "partitionline",
+      "roles": [
+        "semantic_or_cancellation"
+      ],
+      "origins": [
+        "Adminv1 candidate controls"
+      ],
+      "runtime": "not_run_for_bundle"
+    },
+    {
+      "test": "protocol::cooperative::tests::tagged_fields_match_sync_errors_and_consumption_across_chunks",
+      "target": "partitionline",
+      "roles": [
+        "semantic_or_cancellation"
+      ],
+      "origins": [
+        "Adminv1 candidate controls"
+      ],
+      "runtime": "not_run_for_bundle"
+    },
+    {
+      "test": "protocol::group::tests::decoding_a_large_assignment_does_not_hold_the_caller",
+      "target": "partitionline",
+      "roles": [
+        "producer_admission_regression"
+      ],
+      "origins": [
+        "fixed-group-05.json"
+      ],
+      "runtime": "not_run_for_bundle"
+    },
+    {
+      "test": "protocol::group::tests::decoding_many_assignments_does_not_hold_the_caller",
+      "target": "partitionline",
+      "roles": [
+        "producer_admission_regression"
+      ],
+      "origins": [
+        "fixed-group-04.json"
+      ],
+      "runtime": "not_run_for_bundle"
+    },
+    {
+      "test": "protocol::group::tests::decoding_many_medium_assignment_lists_does_not_hold_the_caller",
+      "target": "partitionline",
+      "roles": [
+        "producer_admission_regression"
+      ],
+      "origins": [
+        "fixed-group-02.json"
+      ],
+      "runtime": "not_run_for_bundle"
+    },
+    {
+      "test": "protocol::group::tests::decoding_many_owned_topics_does_not_hold_the_caller",
+      "target": "partitionline",
+      "roles": [
+        "observed_prior_negative",
+        "producer_admission_regression"
+      ],
+      "origins": [
+        "main770 GitHub client unit job124274360765",
+        "fixed-group-08.json"
+      ],
+      "runtime": "not_run_for_bundle",
+      "old_identity": "protocol::group::tests::grouping_many_owned_topics_does_not_hold_the_caller"
+    },
+    {
+      "test": "protocol::group::tests::grouped_assignment_decode_completes_large_repeated_lists",
+      "target": "partitionline",
+      "roles": [
+        "producer_admission_regression"
+      ],
+      "origins": [
+        "fixed-group-03.json"
+      ],
+      "runtime": "not_run_for_bundle"
+    },
+    {
+      "test": "protocol::group::tests::grouped_assignment_decode_matches_flat_decoder_and_errors",
+      "target": "partitionline",
+      "roles": [
+        "producer_admission_regression"
+      ],
+      "origins": [
+        "fixed-group-01.json"
+      ],
+      "runtime": "not_run_for_bundle"
+    },
+    {
+      "test": "protocol::group::tests::grouped_topics_keep_the_first_seen_name",
+      "target": "partitionline",
+      "roles": [
+        "producer_admission_regression"
+      ],
+      "origins": [
+        "fixed-group-07.json"
+      ],
+      "runtime": "not_run_for_bundle"
+    },
+    {
+      "test": "protocol::group::tests::grouping_many_owned_partitions_does_not_hold_the_caller",
+      "target": "partitionline",
+      "roles": [
+        "producer_admission_regression"
+      ],
+      "origins": [
+        "fixed-group-06.json"
+      ],
+      "runtime": "not_run_for_bundle"
+    },
+    {
+      "test": "protocol::share::tests::a_share_fetch_with_several_batches_sizes_the_batch_list_once",
+      "target": "partitionline",
+      "roles": [
+        "observed_prior_negative",
+        "producer_admission_regression"
+      ],
+      "origins": [
+        "main770 GitHub client unit job124274360765",
+        "fixed-share-01.json"
+      ],
+      "runtime": "not_run_for_bundle"
+    },
+    {
+      "test": "protocol::share::tests::share_batch_hints_remain_bounded_and_preserve_first_crc_error",
+      "target": "partitionline",
+      "roles": [
+        "producer_admission_regression"
+      ],
+      "origins": [
+        "fixed-share-03.json"
+      ],
+      "runtime": "not_run_for_bundle"
+    },
+    {
+      "test": "protocol::share::tests::small_share_record_sets_reserve_once_before_decoding_and_reuse",
+      "target": "partitionline",
+      "roles": [
+        "producer_admission_regression"
+      ],
+      "origins": [
+        "fixed-share-02.json"
+      ],
+      "runtime": "not_run_for_bundle"
+    },
+    {
+      "test": "share::dial_tests::wakeup_keeps_a_share_dial_that_already_finished",
+      "target": "partitionline",
+      "roles": [
+        "observed_prior_negative",
+        "socket_lifecycle"
+      ],
+      "origins": [
+        "producer fixed-full-lib-01",
+        "main770 GitHub client unit job124274360765",
+        "socketv4 required cases"
+      ],
+      "runtime": "not_run_for_bundle"
+    },
+    {
+      "test": "share::dial_tests::wakeup_stops_a_blocked_share_dial",
+      "target": "partitionline",
+      "roles": [
+        "socket_lifecycle"
+      ],
+      "origins": [
+        "socketv4 required cases"
+      ],
+      "runtime": "not_run_for_bundle"
+    },
+    {
+      "test": "share::tests::cancelled_share_id_index_keeps_the_subscribed_name_owners",
+      "target": "partitionline",
+      "roles": [
+        "semantic/cancellation"
+      ],
+      "origins": [
+        "aggregationv3 controls"
+      ],
+      "runtime": "not_run_for_bundle"
+    },
+    {
+      "test": "share::tests::duplicate_share_ids_do_not_reserve_one_output_slot_per_name",
+      "target": "partitionline",
+      "roles": [
+        "semantic/cancellation"
+      ],
+      "origins": [
+        "aggregationv3 controls"
+      ],
+      "runtime": "not_run_for_bundle"
+    },
+    {
+      "test": "share::tests::naming_many_share_topics_does_not_hold_the_caller",
+      "target": "partitionline",
+      "roles": [
+        "observed_prior_negative",
+        "regression"
+      ],
+      "origins": [
+        "producer fixed-full-lib-01",
+        "aggregationv3 controls"
+      ],
+      "runtime": "not_run_for_bundle"
+    }
+  ],
+  "library_count": 127,
+  "integrations": [
+    {
+      "target": "group_coordinator_startup",
+      "test": "classic_join_recovers_after_repeated_typed_coordinator_responses",
+      "role": "baseline_then_fixed",
+      "runtime": "not_run_for_bundle"
+    },
+    {
+      "target": "group_coordinator_startup",
+      "test": "classic_join_retains_a_required_member_id_across_coordinator_responses",
+      "role": "baseline_then_fixed",
+      "runtime": "not_run_for_bundle"
+    },
+    {
+      "target": "group_coordinator_startup",
+      "test": "classic_join_returns_terminal_response_after_transient_coordinator_errors",
+      "role": "baseline_then_fixed",
+      "runtime": "not_run_for_bundle"
+    },
+    {
+      "target": "group_coordinator_startup",
+      "test": "persistent_join_responses_stop_at_the_original_deadline_with_backoff",
+      "role": "baseline_then_fixed",
+      "runtime": "not_run_for_bundle"
+    },
+    {
+      "target": "group_coordinator_startup",
+      "test": "cancelling_a_join_after_written_coordinator_responses_stops_new_requests",
+      "role": "baseline_then_fixed",
+      "runtime": "not_run_for_bundle",
+      "old_identity": "cancelling_a_join_during_coordinator_backoff_stops_new_requests"
+    },
+    {
+      "target": "group_coordinator_startup",
+      "test": "classic_join_recovers_when_rediscovery_itself_is_still_loading",
+      "role": "baseline_then_fixed",
+      "runtime": "not_run_for_bundle"
+    },
+    {
+      "target": "group_coordinator_startup",
+      "test": "classic_join_returns_terminal_rediscovery_errors_without_another_join",
+      "role": "baseline_then_fixed",
+      "runtime": "not_run_for_bundle"
+    },
+    {
+      "target": "group_coordinator_startup",
+      "test": "classic_join_does_not_retry_terminal_authorization_or_fencing_responses",
+      "role": "positive_terminal_control",
+      "runtime": "not_run_for_bundle"
+    },
+    {
+      "target": "group_stack",
+      "test": "public_group_lifecycle_fits_the_standard_two_mib_stack",
+      "role": "standard_stack_2MiB",
+      "runtime": "not_run_for_bundle"
+    },
+    {
+      "target": "mock_produce",
+      "test": "idle_produce_leader_renegotiates_on_its_replacement_socket",
+      "role": "replacement_socket_wire_negotiation",
+      "runtime": "not_run_for_bundle"
+    },
+    {
+      "target": "mock_produce",
+      "test": "idle_metadata_renegotiates_on_its_replacement_socket",
+      "role": "replacement_socket_wire_negotiation",
+      "runtime": "not_run_for_bundle"
+    },
+    {
+      "target": "mock_produce",
+      "test": "idle_metadata_negotiation_uses_the_original_request_deadline",
+      "role": "replacement_socket_wire_negotiation",
+      "runtime": "not_run_for_bundle"
+    },
+    {
+      "target": "mock_produce",
+      "test": "retry_refreshes_waiting_topics_together",
+      "role": "observed_prior_negative_unchanged_gate_with_diagnostics",
+      "runtime": "not_run_for_bundle"
+    },
+    {
+      "target": "mock_produce",
+      "test": "send_all_redials_leaders_while_refreshing_metadata",
+      "role": "observed_prior_negative_unchanged_gate_with_diagnostics",
+      "runtime": "not_run_for_bundle"
+    }
+  ],
+  "integration_count": 14,
+  "required_matrix": [
+    "default_features",
+    "all_features"
+  ],
+  "full_library_and_integrations": "Both feature matrices remain required after focused controls; source selection is not execution evidence.",
+  "remaining_known_prior_integration_failure": {
+    "target": "producer_retained_backing",
+    "test": "cancelled_channel_admission_releases_only_the_unenqueued_reservation",
+    "status": "open; original failure retained"
+  },
+  "mainfe65_new_negative_controls": {
+    "manifest_sha256": "9d3219ab303da560f01df3d365bee69b3b3b6a44baf6fcbb85cad4320d084e7b",
+    "added": [
+      "cluster::tests::applying_many_topics_does_not_hold_the_caller",
+      "consumer::tests::prepending_many_pending_runs_does_not_hold_the_caller",
+      "consumer::tests::retaining_many_assigned_topic_ids_does_not_hold_the_caller",
+      "producer::tests::decoding_many_added_partitions_does_not_hold_the_caller",
+      "producer::tests::dropping_many_ack_topics_does_not_hold_the_caller",
+      "producer::tests::encoding_many_produce_topics_does_not_hold_the_caller"
+    ],
+    "scope": "Additional observed failures stay required; no product fix is claimed for them."
+  },
+  "v5_scope": "Prior122required identities retained, plus8cluster and11producer controls. No compiled discovery or native execution for this combined source."
+}

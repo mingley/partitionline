@@ -1,0 +1,127 @@
+{
+  "scope": "Only qualify one Preparing type name in a nested test initializer, identically in baseline and fixed. No functional production source change, Cargo build, compiler or native Rust test.",
+  "prepared_utc": "2026-10-30T22:27:53.702836+00:00",
+  "prior_v5_spec_sha256": "cac4d9d217baff490ddfcdf34ef8913ef2e49a54fad8b64d59fe5f77b0a94902",
+  "actual_native_compile_failure": {
+    "log_sha256": "88cf815bbc9ca449c57ffe05995e8381c93b271740aa40550f0f15d2a66e53e4",
+    "error": "E0433 missing Preparing in rediscover_stop_tests explicit-import scope",
+    "line": 17531,
+    "tests_run": false
+  },
+  "repairs": [
+    {
+      "phase": "baseline",
+      "before": "e2ae567383d68b5953370f97df61b0a20c00c6889903f1ede5ece30b08eeed83",
+      "after": "e19a34440dfe5c5ad0eee465e291a04c63f0d386e8da39eb384638391cf977ce",
+      "bytes_before": 687756,
+      "bytes_after": 687763,
+      "repair": {
+        "path": "baseline-type-qualification.patch.gz",
+        "sha256": "1f6de3cb1a109f853d097b39438ea020f35e5181a0e5686933cc3f763805c470",
+        "bytes": 221,
+        "uncompressed_bytes": 418,
+        "uncompressed_sha256": "87325738cb6df919b730b4d88d097644ac795f7bf98c4e7d06dce913dc514e59"
+      }
+    },
+    {
+      "phase": "fixed",
+      "before": "78e02236b9a1a8280be7d491f3ef02f301a6b2fadc2b2a5932ea0e9c66256123",
+      "after": "131872c3dc4c0db6376f4c477ce21672128386e79ddba2a487631fbc5a4cfc23",
+      "bytes_before": 683622,
+      "bytes_after": 683629,
+      "repair": {
+        "path": "fixed-type-qualification.patch.gz",
+        "sha256": "b1c33aa717a1bf074e3267e599316723277da8d0e522ecb78ce9319b690dfa92",
+        "bytes": 221,
+        "uncompressed_bytes": 418,
+        "uncompressed_sha256": "0a9185130724fd3379d8f07c91b882a531256c9f79bd2744b14357b7d1a3232e"
+      }
+    }
+  ],
+  "only_one_source_line_changed_per_phase": true,
+  "all_other_phase_source_hashes_unchanged": true,
+  "source_input_counts": {
+    "base": 1741,
+    "baseline": 1748,
+    "fixed": 1748
+  },
+  "changed_Rust_paths": [
+    "src/admin.rs",
+    "src/admin/cooperative_tests.rs",
+    "src/cluster.rs",
+    "src/consumer.rs",
+    "src/group.rs",
+    "src/group/offsets.rs",
+    "src/net.rs",
+    "src/net/test_peer.rs",
+    "src/producer.rs",
+    "src/producer/prepare.rs",
+    "src/producer/prepare_tests.rs",
+    "src/protocol/acl.rs",
+    "src/protocol/admin.rs",
+    "src/protocol/cooperative.rs",
+    "src/protocol/cooperative/tests.rs",
+    "src/protocol/group.rs",
+    "src/protocol/mod.rs",
+    "src/share.rs",
+    "tests/common/mod.rs",
+    "tests/group_coordinator_startup.rs",
+    "tests/group_stack.rs",
+    "tests/mock_produce.rs"
+  ],
+  "fixed_delta_raw_and_gzip_bytes_identical_to_v5": true,
+  "controls_file_bytes_identical_to_v5": true,
+  "required_controls": {
+    "library": 127,
+    "integrations": 14
+  },
+  "baseline_cases_unchanged_from_v5": true,
+  "baseline_case_count": 22,
+  "patches": {
+    "baseline.patch": {
+      "path": "baseline.patch.gz",
+      "sha256": "6306bbdb33475001e42b832c8f8dd4514f2e51a45d0a5a276f3270e2a03f38e9",
+      "bytes": 71420,
+      "uncompressed_bytes": 397778,
+      "uncompressed_sha256": "f85145a115a457e57a33273279aaf5ef53ddf4f2a0aba68ea828008e40a7ccaf"
+    },
+    "fixed.patch": {
+      "path": "fixed.patch.gz",
+      "sha256": "895a65c64dc35a140ac86421a8cbb69971f92b3834d7acb5bedd0bdc5c14fb6e",
+      "bytes": 79063,
+      "uncompressed_bytes": 435314,
+      "uncompressed_sha256": "9f940158a7f87c68315199a06a7b61231c4b735bd015670c967f5cc8ac9e190f"
+    },
+    "fixed-delta.patch": {
+      "path": "fixed-delta.patch.gz",
+      "sha256": "fff9664d03432bd4ed9a7806c12504199bb21a66aafa42e0ca7a71a38a81dbb6",
+      "bytes": 9153,
+      "uncompressed_bytes": 41198,
+      "uncompressed_sha256": "deb6e12fed287174249b4590272372ec320229c16171c288aceff48911ce8e3c"
+    }
+  },
+  "cumulative_forward_reverse_exact_bytes_verified": true,
+  "rustfmt": {
+    "command": [
+      "/workspace/work/cargo/bin/rustup",
+      "run",
+      "stable",
+      "rustfmt",
+      "--edition",
+      "2021",
+      "--config",
+      "skip_children=true",
+      "--check",
+      "/workspace/work/client-v6-integration-20261030/baseline/src/producer.rs",
+      "/workspace/work/client-v6-integration-20261030/fixed/src/producer.rs"
+    ],
+    "exit": 0,
+    "log": "preparation-rustfmt.log",
+    "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "inputs_stable": true
+  },
+  "v5_source_and_proofs_unchanged": true,
+  "historical_source_reviews_sha256": "66047f048e8e8956538f35383a7f992e22fd8dcfe8d6661221481d32cb89befa",
+  "production_ready": false,
+  "fastest_claim_qualified": false
+}
