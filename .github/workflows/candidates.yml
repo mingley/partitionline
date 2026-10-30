@@ -48,6 +48,11 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: rustfmt, clippy
+      - name: Install source inventory prerequisite
+        if: matrix.kind == 'client'
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes ripgrep
       - name: Check command ownership controls
         run: python3 -B -m unittest discover -s tests/ci -p 'test_candidate_command_ownership.py' -v
       - name: Check client qualification guards
