@@ -1,0 +1,19 @@
+{
+  "generator": "Kafka Java 4.3.1, OpenJDK 21.0.12.1",
+  "kafka_jar_sha256": "52501b7b47510c66f898871adaf6d2968ab7246561d44ced43643a8a587f0b36",
+  "generator_sha256": "e69b8caca755c2966b8e014201625597a22273ba6bc5b682290e9b564be42ca7",
+  "files": {
+    "excess-headers.batch": "93930d7f0c50820c15f356850544a20f7329caa5fc5f5abfe7b892ee2f5a8b51",
+    "first-malformed-before-eof.batch": "1fda481e53e65abec6dc9af5ce9da10856f3e074da1b5956653b32d00c512924",
+    "huge-count.batch": "1147eb86e836c73aa69580e20930af7106a0ccc4aea47c096e058f76320f69dd",
+    "negative-header-key.batch": "57838c79f5db6ddc4f04c9d139e83c8de47ceae79e5fe8ffa7abc7e653058b05",
+    "premature-eof.batch": "bef5310d1d8064e92c654f8621795b7f9cce8a80dfbdfdb2ddf27c2215d522ce"
+  },
+  "cases": {
+    "premature-eof": "Java: Incorrect declared batch size, premature EOF reached",
+    "huge-count": "Java: premature EOF; Rust intentionally rejects the declared metadata capacity before parsing",
+    "negative-header-key": "Java: Invalid negative header key size -1",
+    "first-malformed-before-eof": "Java reports the negative header key before the later batch-count EOF",
+    "excess-headers": "Java: Found invalid number of record headers. 10 is larger than the remaining size of the buffer"
+  }
+}

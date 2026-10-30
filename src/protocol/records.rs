@@ -4461,12 +4461,9 @@ fn assemble_open_batch(
     mut metadata: DecodeMetadataBudget,
 ) -> Result<OpenBatch> {
     let count_usize = buf::usize_from_i32(prefix.count)?;
-    // A magic-v2 record requires a length prefix plus six one-byte fields.
-    if count_usize > records_cur.remaining() / 7 {
-        return Err(Error::protocol(
-            "Incorrect declared record count, exceeds remaining bytes",
-        ));
-    }
+    // Count admission protects the metadata budget, but do not reject a
+    // structurally impossible count before reading the records: Java reports
+    // errors in earlier records before the eventual premature EOF.
     metadata.require::<Record>(count_usize)?;
     records.clear();
     let retained_bytes = records
@@ -4482,7 +4479,10 @@ fn assemble_open_batch(
     } else {
         metadata.charge::<Record>(records.capacity())?;
     }
-    metadata.reserve(&mut records, count_usize.min(64))?;
+    // A magic-v2 record needs a length prefix and six one-byte fields. Use
+    // that minimum only as an allocation hint, never as a parse verdict.
+    let initial = count_usize.min(64).min(records_cur.remaining() / 7);
+    metadata.reserve(&mut records, initial)?;
     Ok(OpenBatch {
         base_offset,
         partition_leader_epoch: prefix.partition_leader_epoch,
@@ -4991,8 +4991,9 @@ fn decode_record_mode<const WIRE_WRAP: bool, B: Buf>(
         )));
     }
     let num_headers_usize = buf::usize_from_i32(num_headers)?;
-    // A header needs at least one byte each for key and value lengths.
-    if num_headers_usize > inner.remaining() / 2 {
+    // Java first compares the count with the remaining bytes. A negative key
+    // length can occupy the last byte and must be reported as such.
+    if num_headers_usize > inner.remaining() {
         return Err(Error::protocol(format!(
             "Found invalid number of record headers. {num_headers} is larger than the remaining size of the buffer"
         )));
@@ -6512,6 +6513,60 @@ mod tests {
         restamp_crc(&mut empty);
         let skipped = decode_record_batch(&mut empty.as_slice()).unwrap();
         assert!(skipped.records.is_empty());
+    }
+
+    #[test]
+    fn malformed_first_record_precedes_batch_count_eof() {
+        let mut inner = record_body_before_headers();
+        buf::put_varint(&mut inner, 1);
+        buf::put_varint(&mut inner, -1);
+        let record = wrap_record_body(&inner);
+        let frame = test_batch_with_records(2, 0, &record);
+        let error = decode_record_batch(&mut frame.as_ref()).unwrap_err();
+        assert!(
+            error
+                .to_string()
+                .contains("Invalid negative header key size -1"),
+            "{error}"
+        );
+    }
+
+    #[test]
+    fn impossible_count_does_not_reserve_for_absent_records() {
+        let frame = test_batch_with_records(2, 0, &[]);
+        let (base, body) = take_checked_batch(&mut frame.as_ref()).unwrap();
+        let mut open = open_checked_batch(base, body, 64 * 1024, Vec::new()).unwrap();
+        assert_eq!(open.records.capacity(), 0);
+        let error = pull_checked_records(&mut open, 2).unwrap_err();
+        assert!(
+            error.to_string().contains("premature EOF reached"),
+            "{error}"
+        );
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn large_valid_record_count_decodes_with_bounded_growth() {
+        let batch = RecordBatch::from_records(vec![sample_record(); 10_000]);
+        let mut frame = BytesMut::new();
+        encode_record_batch(&mut frame, &batch).unwrap();
+        let decoded = decode_record_batch(&mut frame.as_ref()).unwrap();
+        let cooperative = decode_record_batch_reusing_cooperative(
+            &mut frame.as_ref(),
+            DEFAULT_MAX_RECORD_BATCH_DECODE_BYTES,
+            Vec::with_capacity(1),
+        )
+        .await
+        .unwrap();
+        assert_eq!(decoded.records.len(), 10_000);
+        assert_eq!(cooperative.records.len(), decoded.records.len());
+        for (offset, (plain, yielded)) in
+            decoded.records.iter().zip(&cooperative.records).enumerate()
+        {
+            assert_eq!(plain.offset, i64::try_from(offset).unwrap());
+            assert_eq!(yielded.offset, plain.offset);
+            assert_eq!(yielded.value, plain.value);
+            assert_eq!(plain.value.as_deref(), Some(b"x".as_slice()));
+        }
     }
 
     #[test]

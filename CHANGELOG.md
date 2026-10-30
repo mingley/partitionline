@@ -7,6 +7,9 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
 
 ## [Unreleased]
 
+- Restore Kafka Java's error ordering for malformed record counts and negative
+  header-key lengths while retaining decoded-metadata limits.
+
 - Consumer group heartbeat decoders limit decoded metadata to 128 MiB by
   default. The explicit metadata-limit decoder APIs accept a different limit;
   very large messages may now require one.
