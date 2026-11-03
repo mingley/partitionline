@@ -1,0 +1,9 @@
+{
+  "label": "before-controls",
+  "mode": "controls",
+  "exit": -15,
+  "stop_reason": "timeout",
+  "seconds": 240.165,
+  "minimum_free_bytes": 428056576,
+  "log_sha256": "6f7651230c69c72fd05afc95567bcea929a61fd81453abe43d3b91d0ff018c5d"
+}

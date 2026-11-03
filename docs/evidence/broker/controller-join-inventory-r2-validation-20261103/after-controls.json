@@ -1,0 +1,9 @@
+{
+  "label": "after-controls",
+  "mode": "controls",
+  "exit": 0,
+  "stop_reason": null,
+  "seconds": 235.077,
+  "minimum_free_bytes": 410361856,
+  "log_sha256": "a33153b2e681e6b5f7330c133e2804915542ef64c4d2f6c7785887e1b273ac91"
+}

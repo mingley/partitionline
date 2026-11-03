@@ -1,0 +1,19 @@
+{
+  "passed": true,
+  "started_utc": "2026-11-03T07:51:52.776519+00:00",
+  "scope": "Pinned source checkout metadata only; no runtime journal or fixture modes changed.",
+  "byte_inventory_verified_before_restoration": true,
+  "allowed_paths": [
+    "partitionline-broker/src/raft/runtime.rs"
+  ],
+  "observed_modes_before": {
+    "partitionline-broker/src/raft/runtime.rs": 384
+  },
+  "observed_modes_after": {
+    "partitionline-broker/src/raft/runtime.rs": 436
+  },
+  "changed_paths": [
+    "partitionline-broker/src/raft/runtime.rs"
+  ],
+  "finished_utc": "2026-11-03T07:51:54.123488+00:00"
+}

@@ -1,0 +1,70 @@
+{
+  "status": "source frozen; unchanged 55-control suite pending; hosted qualification not run",
+  "r1_spec_sha256": "232f4cae75d7ba6efe0f69058ac787df089bdbc44b4daee605ef4bd5a9f6df4b",
+  "workflow_preimage_sha256": "09fc1b57f3e2dc21562fecb35354d0e14c5b2ae63e1567c904e6d82fd9671b00",
+  "workflow_postimage_sha256": "97101330984500aa0b0fe6ae0d45fa287def807378c1c92e685d47430974a641",
+  "files": {
+    "base-source.tar.gz": {
+      "sha256": "d2799c22004030742b3922fd5b30947f66939fc27879617b6617bcd8ee85e00f",
+      "bytes": 1841044
+    },
+    "base-files.json": {
+      "sha256": "6e620da92aa89604b412707d5d9befe12ab4d4dd28ab15b1e145b2ca4a072255",
+      "bytes": 1295669
+    },
+    "runtime-capacity-v2.patch": {
+      "sha256": "7f36df7c94bfd5265c5586c8a2749d3180f5e7da0534e053848154b3cdbdfbab",
+      "bytes": 10469
+    },
+    "join-fixed.patch": {
+      "sha256": "879595b42050f6ba7a5995d341263e6a163e64ca2e35420fd10cf0eb910beaef",
+      "bytes": 9533
+    },
+    "join-baseline.patch": {
+      "sha256": "4865489843dae983459bfd182a286fe935d6f76212277589fafb080154d62a81",
+      "bytes": 7372
+    },
+    "join-registry.patch": {
+      "sha256": "456442c2afa7f5ae49d060945dd1a9c92de6eaa99a29724e19c4986cf18ad5b7",
+      "bytes": 793
+    },
+    "qualify.py": {
+      "sha256": "5921944995f2da7d40772562ea43e3c853703eba6e9c317f0e3c9611124ad50f",
+      "bytes": 19945
+    },
+    "test_static.py": {
+      "sha256": "a594c72fd9b3ed1d7ff3d3e2352542ce119682e4a95ff7066bb27b17c80ad383",
+      "bytes": 28335
+    },
+    "spec.json": {
+      "sha256": "ab738fcaa40fc9f565c105513d512553105bfde778a1769bfcaf6c239a80eb0e",
+      "bytes": 8332
+    },
+    "candidates-workflow.patch": {
+      "sha256": "6b2318e8cfa11cbb3a7d737bedbe2fd8a3920aef1050c5e0d6025677a6bd81bf",
+      "bytes": 3294
+    },
+    "workflow-r2.yml": {
+      "sha256": "97101330984500aa0b0fe6ae0d45fa287def807378c1c92e685d47430974a641",
+      "bytes": 14867
+    },
+    "README.md": {
+      "sha256": "7bc29adf7afde9e1d7e819c881a6cc993c531ecbee599bd387ad9505196b70b3",
+      "bytes": 3368
+    }
+  },
+  "source_only_observations": {
+    "pre_inventory_log_sha256": "dd85c3e53adc363365e37cd8da2d981d38487d2c9ce23c03b52a363211d94b43",
+    "post_inventory_log_sha256": "7a5233dd505dcdb4dd90c7387234563095808f30bae1ba502f1f87c34aba39bc",
+    "partial_pre_controls_log_sha256": "6f7651230c69c72fd05afc95567bcea929a61fd81453abe43d3b91d0ff018c5d",
+    "partial_pre_controls": "interrupted: diagnostic 240s timeout",
+    "static_12_log_sha256": "f41111c9309f81cd87d386cf5ead319b07080adf4e8fc5e8ec6aa6cd168c810d",
+    "verified_workflow_loader_log_sha256": "ea353f38821d1ca8d8ab4d3d3f2f3e0ba29de9ff9cad94223b10b783485658a9",
+    "full_repaired_55_controls": "pending; separate validation receipt required"
+  },
+  "limits": [
+    "No local r2 Cargo/native execution or hosted qualification.",
+    "Hosted compact report bytes were inaccessible; local mismatch is a reproduction, not observed hosted stderr.",
+    "The separate reviewed join/capacity patches have not been adopted on main."
+  ]
+}

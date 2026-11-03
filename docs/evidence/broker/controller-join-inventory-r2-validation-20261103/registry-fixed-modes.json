@@ -1,0 +1,19 @@
+{
+  "passed": true,
+  "started_utc": "2026-11-03T07:56:51.034382+00:00",
+  "scope": "Pinned source checkout metadata only; no runtime journal or fixture modes changed.",
+  "byte_inventory_verified_before_restoration": true,
+  "allowed_paths": [
+    "tests/conformance/broker/implemented-api-versions.json"
+  ],
+  "observed_modes_before": {
+    "tests/conformance/broker/implemented-api-versions.json": 384
+  },
+  "observed_modes_after": {
+    "tests/conformance/broker/implemented-api-versions.json": 436
+  },
+  "changed_paths": [
+    "tests/conformance/broker/implemented-api-versions.json"
+  ],
+  "finished_utc": "2026-11-03T07:56:52.427775+00:00"
+}

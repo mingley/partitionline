@@ -1,0 +1,9 @@
+{
+  "label": "before-inventory",
+  "mode": "inventory",
+  "exit": 1,
+  "stop_reason": null,
+  "seconds": 0.803,
+  "minimum_free_bytes": 463826944,
+  "log_sha256": "dd85c3e53adc363365e37cd8da2d981d38487d2c9ce23c03b52a363211d94b43"
+}

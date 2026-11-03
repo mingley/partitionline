@@ -1,0 +1,19 @@
+socket guard active
+test_assets_and_exact_base_archive (verified_join_static_controls.Controls.test_assets_and_exact_base_archive) ... ok
+test_existing_broker_runner_controls_are_pinned (verified_join_static_controls.Controls.test_existing_broker_runner_controls_are_pinned) ... ok
+test_expected_negative_is_confined_to_one_failure_section (verified_join_static_controls.Controls.test_expected_negative_is_confined_to_one_failure_section) ... ok
+test_join_assets_source_and_control_contract (verified_join_static_controls.Controls.test_join_assets_source_and_control_contract) ... ok
+test_join_capacity_then_baseline_and_fixed_roundtrip (verified_join_static_controls.Controls.test_join_capacity_then_baseline_and_fixed_roundtrip) ... ok
+test_join_negative_parser_rejects_wrong_or_unrelated_failures (verified_join_static_controls.Controls.test_join_negative_parser_rejects_wrong_or_unrelated_failures) ... ok
+test_join_workflow_loader_and_unchanged_existing_steps (verified_join_static_controls.Controls.test_join_workflow_loader_and_unchanged_existing_steps) ... ok
+test_registry_patch_only_rebinds_reviewed_fixed_controller_source (verified_join_static_controls.Controls.test_registry_patch_only_rebinds_reviewed_fixed_controller_source) ... ok
+test_scratch_rejects_checkout_and_other_git_trees (verified_join_static_controls.Controls.test_scratch_rejects_checkout_and_other_git_trees) ... ok
+test_sparse_roundtrip_and_unchanged_test_bodies (verified_join_static_controls.Controls.test_sparse_roundtrip_and_unchanged_test_bodies) ... ok
+test_workflow_runs_the_verified_suite_and_rejects_zero_skips_or_failures (verified_join_static_controls.Controls.test_workflow_runs_the_verified_suite_and_rejects_zero_skips_or_failures) ... ok
+test_wrapper_sanitizes_git_and_rejects_other_worktrees (verified_join_static_controls.Controls.test_wrapper_sanitizes_git_and_rejects_other_worktrees) ... ok
+
+----------------------------------------------------------------------
+Ran 12 tests in 1.157s
+
+OK
+verified workflow-byte loader and 12 tests passed; stopped before qualification

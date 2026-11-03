@@ -1,0 +1,73 @@
+{
+  "status": "local Python-only inventory and unchanged 55 controls passed; hosted qualification not run",
+  "candidate_manifest_sha256": "4af9522fce97817864f1a5f4ae17bb7d553d3e2396b4575d71d9dbeee34578cc",
+  "candidate_checksums_sha256": "bb90d2f37e2e10c8ed71c3ace7ca4fbf6b8219fd77d83f1d8a6e127a8358185f",
+  "before_inventory": {
+    "label": "before-inventory",
+    "mode": "inventory",
+    "exit": 1,
+    "stop_reason": null,
+    "seconds": 0.803,
+    "minimum_free_bytes": 463826944,
+    "log_sha256": "dd85c3e53adc363365e37cd8da2d981d38487d2c9ce23c03b52a363211d94b43"
+  },
+  "before_controls": {
+    "label": "before-controls",
+    "mode": "controls",
+    "exit": -15,
+    "stop_reason": "timeout",
+    "seconds": 240.165,
+    "minimum_free_bytes": 428056576,
+    "log_sha256": "6f7651230c69c72fd05afc95567bcea929a61fd81453abe43d3b91d0ff018c5d"
+  },
+  "after_inventory": {
+    "label": "after-inventory",
+    "mode": "inventory",
+    "exit": 0,
+    "stop_reason": null,
+    "seconds": 1.203,
+    "minimum_free_bytes": 442949632,
+    "log_sha256": "7a5233dd505dcdb4dd90c7387234563095808f30bae1ba502f1f87c34aba39bc"
+  },
+  "after_controls": {
+    "label": "after-controls",
+    "mode": "controls",
+    "exit": 0,
+    "stop_reason": null,
+    "seconds": 235.077,
+    "minimum_free_bytes": 410361856,
+    "log_sha256": "a33153b2e681e6b5f7330c133e2804915542ef64c4d2f6c7785887e1b273ac91"
+  },
+  "static_12": {
+    "mode": "static",
+    "exit": 0,
+    "seconds": 1.428,
+    "log_sha256": "864e22bc865fe906faf9c6ca85519d9c55174a46b7f0e7bcc01ac13ab47f4dee"
+  },
+  "workflow_loader_12": {
+    "mode": "loader",
+    "exit": 0,
+    "seconds": 1.369,
+    "log_sha256": "cfd8b12f47c97c7268f84a457f172f71aa2f7ab40096244049cd25c048b5ebd0"
+  },
+  "after_source_verification": {
+    "candidate_spec_sha256": "ab738fcaa40fc9f565c105513d512553105bfde778a1769bfcaf6c239a80eb0e",
+    "source_file_count": 5982,
+    "expected_manifest_canonical_sha256": "ef6948df2e76ca6f6ffcbe01ede9c3b6e05b4a54108f11c5d4c32e41eb81a6c6",
+    "all_source_hashes_lengths_and_modes_verified": true,
+    "source_directory": "/workspace/work/broker-join-inventory-investigation-20261103/source"
+  },
+  "limits": [
+    "No Rust compilation, Cargo, native tests, live broker, hosted r2 run, or File Service artifact access.",
+    "The hosted inventory stderr was inaccessible. Local source-bound reproduction is not direct proof of the hosted failure text.",
+    "The pre-repair Python controls were interrupted at 240 seconds and must not be reported as a complete 55-control result.",
+    "The inventory checks source hashes and retained fixtures; its report explicitly does not claim compiled-handler execution or production readiness."
+  ],
+  "local_replay_limits": {
+    "monitor_disk_floor_bytes": 335544320,
+    "suite_timeout_seconds": 900,
+    "per_file_size_limit_bytes": 16777216,
+    "hosted_qualification_disk_floor_bytes": 1610612736,
+    "hosted_floor_unchanged": true
+  }
+}

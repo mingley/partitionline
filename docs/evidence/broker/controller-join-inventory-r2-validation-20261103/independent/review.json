@@ -1,0 +1,66 @@
+{
+  "decision": "Independent source and local Python validation review passed for the frozen r2 qualification capsule. Hosted/native qualification and production adoption remain pending.",
+  "capsule": "/workspace/work/broker-join-inventory-r2-20261103",
+  "capsule_manifest_sha256": "4af9522fce97817864f1a5f4ae17bb7d553d3e2396b4575d71d9dbeee34578cc",
+  "capsule_sha256sums_sha256": "bb90d2f37e2e10c8ed71c3ace7ca4fbf6b8219fd77d83f1d8a6e127a8358185f",
+  "validation": "/workspace/work/broker-join-inventory-r2-validation-20261103",
+  "validation_json_sha256": "7c568e8328918d1d556f6a3ee85c424062d38d63dcd811245205c4eedc0bf6ff",
+  "validation_sha256sums_sha256": "144072eb9ad374c58f4793d142492a3e3e921b90aea644bcc0be2c896e850b4d",
+  "previous_pending_review_sha256": "10bd6103dcea2ee2ece0fe6c2292d8c3462d24556e80ee49334851c998294a18",
+  "source_review": {
+    "base_members": 5982,
+    "base_archive_sha256": "d2799c22004030742b3922fd5b30947f66939fc27879617b6617bcd8ee85e00f",
+    "spec_sha256": "ab738fcaa40fc9f565c105513d512553105bfde778a1769bfcaf6c239a80eb0e",
+    "registry_patch_sha256": "456442c2afa7f5ae49d060945dd1a9c92de6eaa99a29724e19c4986cf18ad5b7",
+    "protocol_before": "47ae96c84080813e4b81cfbfcdbe8bd45e48389c13c8562c0963dfc743137127",
+    "protocol_fixed": "86c8971a500208bb93ff015d9d3dd056efd8a34d7204b7de1f0d27c59a4499c3",
+    "registry_before": "511b2e432d609381b7878704aa1036c2db506b2244f6ffc28bcd0be169541dc8",
+    "registry_after": "e127e3daeca095363f66ed45d7a2ffa1adbef17ff584d3f23dcfde63fb576e0a",
+    "source_roundtrips": "passed",
+    "exact_only_registry_sha_change": true,
+    "original_baseline_and_fixed_gates_byte_identical": true,
+    "workflow_r1_to_r2_only_expected_join_delta": true
+  },
+  "actual_git_checkout_loader": {
+    "actual_git_checkout_loader": "12 passed, no skips or expected failures",
+    "conflicting_git_environment": true,
+    "git_only_path": true,
+    "checkout_clean_after": true,
+    "loader_stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "loader_stderr_sha256": "0f48d69a81642d7f6090e83e6406f67b326314c34c0f9ad0e4c71ab8377cb804",
+    "scope": "verified workflow prefix only, qualification not run"
+  },
+  "validation_review": {
+    "candidate_manifest_sha256": "4af9522fce97817864f1a5f4ae17bb7d553d3e2396b4575d71d9dbeee34578cc",
+    "validation_sha256": "7c568e8328918d1d556f6a3ee85c424062d38d63dcd811245205c4eedc0bf6ff",
+    "validation_checksums_sha256": "144072eb9ad374c58f4793d142492a3e3e921b90aea644bcc0be2c896e850b4d",
+    "checked_evidence_files": 40,
+    "unchanged_test_identities_passed": 55,
+    "after_controls_exit": 0,
+    "after_controls_stop": null,
+    "after_controls_elapsed_seconds": 235.077,
+    "after_controls_log_sha256": "a33153b2e681e6b5f7330c133e2804915542ef64c4d2f6c7785887e1b273ac91",
+    "pre_controls_interrupted": "timeout",
+    "pre_inventory_exit": 1,
+    "post_inventory_exit": 0,
+    "repaired_source_hash_length_mode_file_count": 5982,
+    "canonical_manifest_sha256": "ef6948df2e76ca6f6ffcbe01ede9c3b6e05b4a54108f11c5d4c32e41eb81a6c6",
+    "local_python_floor_bytes": 335544320,
+    "hosted_floor_bytes": 1610612736
+  },
+  "independent_validation_script_sha256": "7e3c0a2d2d793c56341430b25d9f7428a8b2de00b66cddd8439bf07c4f19ae42",
+  "independent_validation_output_sha256": "1c23535c540ac29683b8c9e8da8ae639450d5784e8f95f96c216b466ff66438e",
+  "findings": [
+    "The exact controller registry patch changes only the source SHA from 47ae96c84080813e4b81cfbfcdbe8bd45e48389c13c8562c0963dfc743137127 to the reviewed fixed controller SHA 86c8971a500208bb93ff015d9d3dd056efd8a34d7204b7de1f0d27c59a4499c3.",
+    "The 55 unique passing Python test identities exactly match the unchanged test module. Local pre-repair controls were interrupted and are not a completed baseline run.",
+    "All 5982 reconstructed repaired source files matched expected hashes, lengths and modes after the suite. Sparse source and workflow patches round-tripped; legacy baseline and fixed gates, timing and workflows are preserved.",
+    "The source/workflow verified-byte loader independently ran 12 static controls in a disposable real Git checkout with conflicting Git variables, with no skips or expected failures.",
+    "All 40 validation files are retained and checksummed, including the pre-repair inventory mismatch, post-repair inventory success, partial pre-controls, 55 completed post-controls, static and loader logs, and source-mode records."
+  ],
+  "limitations": [
+    "This is local Python/Git source evidence. No Cargo, Rust/native test, actual broker, or hosted r2 qualification was run by the reviewer.",
+    "The hosted r1 compact artifact is unavailable, so the local checksum mismatch is a reproduction rather than proof of the hosted stderr.",
+    "The local Python-only monitor used a 320 MiB disk floor; the unchanged hosted qualification retains its 1536 MiB floor.",
+    "Source pins and this inventory check do not establish production readiness, actor/WAL/transport behavior or performance leadership."
+  ]
+}

@@ -1,0 +1,7 @@
+{
+  "candidate_spec_sha256": "ab738fcaa40fc9f565c105513d512553105bfde778a1769bfcaf6c239a80eb0e",
+  "source_file_count": 5982,
+  "expected_manifest_canonical_sha256": "ef6948df2e76ca6f6ffcbe01ede9c3b6e05b4a54108f11c5d4c32e41eb81a6c6",
+  "all_source_hashes_lengths_and_modes_verified": true,
+  "source_directory": "/workspace/work/broker-join-inventory-investigation-20261103/source"
+}

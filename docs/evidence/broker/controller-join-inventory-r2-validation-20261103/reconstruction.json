@@ -1,0 +1,11 @@
+{
+  "source": "/workspace/work/broker-join-inventory-investigation-20261103/source",
+  "base_archive_sha256": "d2799c22004030742b3922fd5b30947f66939fc27879617b6617bcd8ee85e00f",
+  "candidate_spec_sha256": "232f4cae75d7ba6efe0f69058ac787df089bdbc44b4daee605ef4bd5a9f6df4b",
+  "source_files": 5982,
+  "capacity_fixed_sha256": "38c50bcd93e5dea91d10264c984fef1a5bfe9e4e33686a5ec64c03ae7945b66d",
+  "join_fixed_sha256": "86c8971a500208bb93ff015d9d3dd056efd8a34d7204b7de1f0d27c59a4499c3",
+  "registry_sha256": "511b2e432d609381b7878704aa1036c2db506b2244f6ffc28bcd0be169541dc8",
+  "registry_controller_pin": "47ae96c84080813e4b81cfbfcdbe8bd45e48389c13c8562c0963dfc743137127",
+  "remaining_bytes": 463872000
+}

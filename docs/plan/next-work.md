@@ -83,8 +83,12 @@ Its [hosted job](../evidence/broker/controller-join-native-664b-20261103/README.
 failed the broker inventory and inventory-negative-control gates. The pinned
 runner's control flow indicates the earlier synthetic controls completed
 without recorded gate errors, but their individual logs and the inventory
-failure cause are unavailable. Real controller, WAL and transport coverage
-also remains open.
+failure cause are unavailable. A local reconstruction reproduced a stale
+controller-source hash. The [r2 candidate](../evidence/broker/candidate-20261030/controller-join-v2-r2/README.md)
+updates that candidate-only registry pin; the [local validation](../evidence/broker/controller-join-inventory-r2-validation-20261103/README.md)
+passed the inventory and all 55 unchanged Python controls. Its hosted run is
+pending, and the local reproduction does not establish the unavailable hosted
+error text. Real controller, WAL and transport coverage also remains open.
 
 ## Correctness priorities
 

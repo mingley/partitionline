@@ -1,0 +1,52 @@
+--- a/.github/workflows/candidates.yml
++++ b/.github/workflows/candidates.yml
+@@ -42,7 +42,7 @@
+             source_version: runtime-capacity-v2-r2
+             checkout_sha: ${{ github.sha }}
+           - kind: broker
+-            source_version: controller-join-v2-r1
++            source_version: controller-join-v2-r2
+             checkout_sha: ${{ github.sha }}
+           # Broker v2 is adopted. broker.yml validates its main source;
+           # its frozen candidate spec remains bound to the pre-adoption tree.
+@@ -144,7 +144,7 @@
+         if: matrix.kind == 'client'
+         run: python3 -B scripts/ci-qualify-client-candidate.py --spec "$QUALIFICATION_SPEC" --output "$RUNNER_TEMP/candidate-qualification"
+       - name: Qualify isolated broker candidate
+-        if: matrix.kind == 'broker' && matrix.source_version != 'runtime-capacity-v2-r2' && matrix.source_version != 'controller-join-v2-r1'
++        if: matrix.kind == 'broker' && matrix.source_version != 'runtime-capacity-v2-r2' && matrix.source_version != 'controller-join-v2-r2'
+         run: python3 -B scripts/ci-qualify-broker-candidate.py --spec "$QUALIFICATION_SPEC" --output "$RUNNER_TEMP/candidate-qualification"
+       - name: Check and qualify pinned broker runtime capacity
+         if: matrix.kind == 'broker' && matrix.source_version == 'runtime-capacity-v2-r2'
+@@ -208,17 +208,17 @@
+                   raise
+           PYCODE
+       - name: Check and qualify pinned broker controller join
+-        if: matrix.kind == 'broker' && matrix.source_version == 'controller-join-v2-r1'
++        if: matrix.kind == 'broker' && matrix.source_version == 'controller-join-v2-r2'
+         run: |
+           python3 -B - <<'PYJOIN'
+           import hashlib, os, stat, sys, types, unittest
+           from pathlib import Path
+           root = Path(os.environ['GITHUB_WORKSPACE']).resolve()
+-          base = 'docs/evidence/broker/candidate-20261030/controller-join-v2-r1'
++          base = 'docs/evidence/broker/candidate-20261030/controller-join-v2-r2'
+           pins = {
+-              'qualify.py': ('32cf64d1a3d718714ee23d6d1e501aa0d20240fc8817d37c160897f4e69deef2', 19066),
+-              'test_static.py': ('487ac493339cd3b4d35c6d0081d8a9873df5792bb5282b6bc20edbb2cf1a27fc', 26347),
+-              'spec.json': ('232f4cae75d7ba6efe0f69058ac787df089bdbc44b4daee605ef4bd5a9f6df4b', 7613),
++              'qualify.py': ('5921944995f2da7d40772562ea43e3c853703eba6e9c317f0e3c9611124ad50f', 19945),
++              'test_static.py': ('a594c72fd9b3ed1d7ff3d3e2352542ce119682e4a95ff7066bb27b17c80ad383', 28335),
++              'spec.json': ('ab738fcaa40fc9f565c105513d512553105bfde778a1769bfcaf6c239a80eb0e', 8332),
+           }
+           directory = os.open(root, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
+           try:
+@@ -259,7 +259,7 @@
+                       del sys.modules[name]
+                   else:
+                       sys.modules[name] = previous
+-          run_static(verified['test_static.py'], str(root/base/'test_static.py'), 11)
++          run_static(verified['test_static.py'], str(root/base/'test_static.py'), 12)
+           path = str(root/base/'qualify.py')
+           sys.argv = [path, '--checkout', str(root), '--output', os.environ['RUNNER_TEMP']+'/candidate-qualification']
+           try:

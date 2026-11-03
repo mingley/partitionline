@@ -1,0 +1,9 @@
+{
+  "label": "after-inventory",
+  "mode": "inventory",
+  "exit": 0,
+  "stop_reason": null,
+  "seconds": 1.203,
+  "minimum_free_bytes": 442949632,
+  "log_sha256": "7a5233dd505dcdb4dd90c7387234563095808f30bae1ba502f1f87c34aba39bc"
+}

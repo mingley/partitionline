@@ -1,0 +1,30 @@
+{
+  "decision": "pass source-only review of isolated join v2, subject to required hosted compilation and tests",
+  "base_commit": "6fa8cdb3588d884580d01331e44df657c02f7670",
+  "archive_sha256": "72edcdc82cd2b1490b11e516a5f54984bd458bca0f2eebf39c814e88b8625fb7",
+  "receipt_sha256": "18b25e36e95a7efd22c72832ada4638f578e1988a459e8beb57f012ffde6ef2a",
+  "patch_sha256": "879595b42050f6ba7a5995d341263e6a163e64ca2e35420fd10cf0eb910beaef",
+  "baseline_patch_sha256": "4865489843dae983459bfd182a286fe935d6f76212277589fafb080154d62a81",
+  "fixed_source_sha256": "86c8971a500208bb93ff015d9d3dd056efd8a34d7204b7de1f0d27c59a4499c3",
+  "baseline_test_source_sha256": "d8930b26edd533ac4534570eeb41a7cc9a3b129435c3d7b2502b69d50853a8b0",
+  "checks": {
+    "archive_and_all_file_pins_match": true,
+    "repository_and_tokio_source_pins_match": true,
+    "fixed_and_baseline_forward_reverse_exact": true,
+    "baseline_production_identical_and_three_type_adaptations_only": true,
+    "five_synthetic_test_identities_and_existing_integration_source_retained": true,
+    "running_handle_borrowed_until_ready_and_outcome_persisted_before_unlock_and_drop": true,
+    "panic_payload_and_repoll_source_mechanisms_checked": true
+  },
+  "assessment": [
+    "Cancellation while the join is pending drops the future and mutex guard while preserving the owned Running handle; when it returns Ready, the same poll records Succeeded or Failed before releasing the mutex.",
+    "The JoinError and possible arbitrary panic payload are dropped only after the terminal outcome is stored and the mutex released. A payload destructor panic can still propagate to its first shutdown caller, while subsequent callers see Failed and return Actor.",
+    "Five source-only controls use synthetic gated blocking tasks; their phase witnesses and sender-drop cleanup are explicit. Four expected baseline failures and one baseline success are predictions, not observed outcomes."
+  ],
+  "limits": [
+    "No Cargo, Rust compilation, Clippy, rustdoc, Rust/native tests, WAL, network, benchmark, hosted run or root edits; the author reports source-only rustfmt success.",
+    "Tests do not exercise the real controller actor, WAL or transport. Actor wake/stop behavior and the separately blocked ControllerHandler byte-budget redesign are not changed or qualified.",
+    "Panic injection requires unwind; panic=abort terminates the process. A panic payload destructor can itself panic, reenter, block or abort; no blanket recovery guarantee.",
+    "No production readiness, release readiness or performance conclusion."
+  ]
+}
