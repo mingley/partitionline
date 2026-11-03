@@ -105,8 +105,8 @@ The producer's pending queue can repeatedly scan deadlines and shift records
 when small batches drain. A replica epoch change rewrites the broker journal.
 Both are candidates for optimization; neither has a measured end-to-end
 speedup yet. The required matched x86 peer comparison has not run.
-An uncompiled queue candidate needs native tests and a benchmark before its
-effect is known.
+An uncompiled [queue candidate][queue] needs native tests and a benchmark
+before its effect is known.
 
 The release registry probe, recovery rehearsal and workflow confirmation have
 offline-tested fixes for unavailable indexes, candidate versions and API/index
@@ -132,6 +132,7 @@ measurements and dated notes.
 [native]: https://github.com/mingley/partitionline/blob/dfad6573e46adf8aa91626854e4f816cfff2c2bf/docs/evidence/releases/candidate-native-20261030/README.md
 [producer]: https://github.com/mingley/partitionline/blob/908dbdf2f20c8462a741ce59a4f56be2f310048e/docs/evidence/client/producer-admission-20261030/README.md
 [faults]: https://github.com/mingley/partitionline/blob/77021f7dc6c0d19aa93c7bf0b7fad125ee632e23/docs/evidence/broker/fuzz/20261027-candidate06/README.md
-[next]: https://github.com/mingley/partitionline/blob/a9d37d7887458f6358bc5cdca5363e92d63cbd69/docs/plan/next-work.md
+[next]: https://github.com/mingley/partitionline/blob/8cc4889f11e583d20a9e502569af635f1ce6302c/docs/plan/next-work.md
+[queue]: https://github.com/mingley/partitionline/blob/8cc4889f11e583d20a9e502569af635f1ce6302c/docs/evidence/perf/producer-pending-20261102/README.md
 [tasks]: https://github.com/mingley/partitionline/blob/77021f7dc6c0d19aa93c7bf0b7fad125ee632e23/docs/plan/tasks.json
 [previous]: https://github.com/mingley/partitionline/blob/77021f7dc6c0d19aa93c7bf0b7fad125ee632e23/docs/STATUS.md
