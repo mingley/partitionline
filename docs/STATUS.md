@@ -61,6 +61,7 @@ quorum, without replicated partition data or native Kafka KRaft.
 | Isolated client v10 library, each profile | 2,280 passed initially; repeat 2,279 passed, one failed |
 | Isolated client v14, 10 targets per profile | 2,431 passed, 17 failed and two ignored in each profile |
 | Isolated client v16, 10 targets per profile | 2,432 passed, 16 failed and two ignored in each profile |
+| Isolated client v16 repeat | Default: 2,432 passed, 16 failed, two ignored; all features: 2,431 passed, 17 failed, two ignored |
 | Qualified broker v2 default all targets, `209d0b068` | 720 passed |
 | Qualified broker v2 all-feature all targets at that commit | 868 passed |
 | Broker v2 strict Clippy, docs, inventory and six repeated Fetch checks | Passed |
@@ -97,6 +98,9 @@ consistent across errors, cancellation and topic recreation. Join/reset-leader
 overlap, live group retries and a compatibility-test stack overflow also remain
 open. GSSAPI and connection-driven SASL reauthentication
 are incomplete; [protocol support](gaps.md) lists those feature gaps.
+The [producer expiry review][sasl-expiry] also found a raw-write path without
+an expiry check. It is source evidence; an expired request has not been
+observed on a broker.
 
 The [latest recorded main broker CI][broker-ci] passed after the bounded-read test fix.
 Earlier runs reported `NotLeader`
@@ -126,12 +130,16 @@ Both are candidates for optimization; neither has a measured end-to-end
 speedup yet. The required matched x86 peer comparison has not run.
 The [queue candidate][queue] needs passing native tests and a benchmark
 before its effect is known; the [v17 benchmark prototype][queue-v17] remains
-inactive until its same-job correctness gates pass. The [first combined candidate][candidate-build]
+inactive until the baseline cancellation witness is repaired and the
+same-job correctness gates pass. The [first combined candidate][candidate-build]
 failed its test build because a test module omitted an import. The corrected
 v16 candidate passed both library profiles and the revised deadline control,
 but both profiles still failed 15 Mock Produce tests and one retained-buffer
-test. The [v17 candidate][candidate-v17] adds a timeout diagnostic and awaits
-hosted execution. See the [v16 results][candidate-v16] and [next work][next] for details.
+test. A [repeat][candidate-v16-repeat] added one all-feature timing failure
+and showed that baseline case 23 can match a coordinator error before its
+cancellation barrier. The [v17 candidate][candidate-v17] adds a timeout
+diagnostic but retains that matcher; its hosted result is pending. See the
+[v16 results][candidate-v16] and [next work][next] for details.
 
 The [release scripts][release-gates] check API/index agreement, consumer lockfile
 identity and exact-SHA CI more strictly. The token check reports presence without
@@ -154,6 +162,8 @@ measurements and dated notes.
 [main-ci]: https://github.com/mingley/partitionline/actions/runs/41576616173
 [comparison]: https://github.com/mingley/partitionline/blob/f655b99c449b76ff09b30867ef58c42e51a38b65/docs/evidence/client/main-comparison-b1-20261103/README.md
 [candidate-v16]: https://github.com/mingley/partitionline/blob/60212c74a31790a6c42052715b1d6e579d3cd961/docs/evidence/client/candidate-v16-job-20261103/REPORT.md
+[candidate-v16-repeat]: https://github.com/mingley/partitionline/blob/5dfafef402abe292011cb6dac478dd89ab771277/docs/evidence/client/candidate-v16-repeat-e2a0-20261103/README.md
+[sasl-expiry]: https://github.com/mingley/partitionline/blob/5dfafef402abe292011cb6dac478dd89ab771277/docs/evidence/client/sasl-expiry-boundary-20261103/README.md
 [candidate-v17]: https://github.com/mingley/partitionline/blob/c06dfd345315c1fd0847872a1176fde8c5959043/docs/evidence/client/candidate-20261030/v17/README.md
 [broker-capacity]: https://github.com/mingley/partitionline/blob/c06dfd345315c1fd0847872a1176fde8c5959043/docs/evidence/broker/runtime-capacity-native-e2a0-20261103/README.md
 [queue-v17]: https://github.com/mingley/partitionline/blob/c06dfd345315c1fd0847872a1176fde8c5959043/docs/evidence/perf/pending-queue-v17-20261103/README.md
@@ -169,7 +179,7 @@ measurements and dated notes.
 [native]: https://github.com/mingley/partitionline/blob/dfad6573e46adf8aa91626854e4f816cfff2c2bf/docs/evidence/releases/candidate-native-20261030/README.md
 [producer]: https://github.com/mingley/partitionline/blob/908dbdf2f20c8462a741ce59a4f56be2f310048e/docs/evidence/client/producer-admission-20261030/README.md
 [faults]: https://github.com/mingley/partitionline/blob/77021f7dc6c0d19aa93c7bf0b7fad125ee632e23/docs/evidence/broker/fuzz/20261027-candidate06/README.md
-[next]: https://github.com/mingley/partitionline/blob/466a87f242e8b043ae25d8f3a7ce2af7d1157559/docs/plan/next-work.md
+[next]: https://github.com/mingley/partitionline/blob/5dfafef402abe292011cb6dac478dd89ab771277/docs/plan/next-work.md
 [queue]: https://github.com/mingley/partitionline/blob/c06dfd345315c1fd0847872a1176fde8c5959043/docs/evidence/perf/producer-pending-20261102/README.md
 [tasks]: https://github.com/mingley/partitionline/blob/77021f7dc6c0d19aa93c7bf0b7fad125ee632e23/docs/plan/tasks.json
 [previous]: https://github.com/mingley/partitionline/blob/77021f7dc6c0d19aa93c7bf0b7fad125ee632e23/docs/STATUS.md
