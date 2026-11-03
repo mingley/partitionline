@@ -37,8 +37,8 @@ matrix.
 
 - **Producer delivery and ordering.** `flush` can miss delivery timeouts or
   return before a retiring worker hands off retries. Cancellation can also
-  consume an error without returning it. Focused x86 tests reproduced these
-  failures in both feature profiles. Repair the barrier and error
+  consume an error without returning it. [Focused x86 tests][flush] reproduced
+  these failures in both feature profiles. Repair the barrier and error
   ownership together. Partition issue order, sequence wrap, transaction
   fencing and unresolved-batch replay need further work and independent
   histories. Use `send` for an individual delivery result; with `acks=0`, a
@@ -67,5 +67,6 @@ The [support matrix](support.md) describes configured coverage, and the
 [release guide](RELEASE.md) lists publication gates. No new release is ready.
 
 [ci]: https://github.com/mingley/partitionline/blob/399b349504a95fe5c4672f46d7f99c27bc978e6b/docs/evidence/releases/main-ci-45cb-20261103/README.md
-[next]: https://github.com/mingley/partitionline/blob/8974b2efcbe1ecc08a373c5c8a397641a8ed40d0/docs/plan/next-work.md
+[next]: https://github.com/mingley/partitionline/blob/e980829c439aa43edc01312c91838e58a412221a/docs/plan/next-work.md
 [previous]: https://github.com/mingley/partitionline/blob/5c2a000639d9a8a7dccd56e8c1d6f3a58dca1601/docs/STATUS.md
+[flush]: https://github.com/mingley/partitionline/blob/e980829c439aa43edc01312c91838e58a412221a/docs/evidence/client/producer-flush-native-86f2-20261103/README.md
