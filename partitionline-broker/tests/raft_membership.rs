@@ -478,6 +478,17 @@ fn durable_addition_activates_new_set_old_majority_cannot_commit_and_restart_pre
 
 #[test]
 fn stale_genesis_leader_observation_is_fenced_before_proposal_append() -> Result {
+    use std::io::Read;
+    fn wal_bytes(path: &std::path::Path) -> Result<Vec<u8>> {
+        let mut bytes = Vec::new();
+        fs::File::open(path)?
+            .take(1024 * 1024 + 1)
+            .read_to_end(&mut bytes)?;
+        if bytes.len() > 1024 * 1024 {
+            return Err("stale-leader journal bound".into());
+        }
+        Ok(bytes)
+    }
     let mut group = DynamicGroup::new(3, voter(4)?)?;
     group.elect(10)?;
     group.catch_up(1, 11)?;
@@ -494,7 +505,7 @@ fn stale_genesis_leader_observation_is_fenced_before_proposal_append() -> Result
     let key = group.key(0);
     let name = format!("{}-{}", key.id, hex_bytes(&key.directory)?);
     let wal_path = group.root.join(format!("{name}.wal"));
-    let before_wal = fs::read(&wal_path)?;
+    let before_wal = wal_bytes(&wal_path)?;
     let before_records = group.node(0)?.fetch_committed(1, 8, 1024 * 1024)?;
     assert_eq!(before_records.len(), 1);
     assert_eq!(before_records[0].index, 1);
@@ -509,7 +520,7 @@ fn stale_genesis_leader_observation_is_fenced_before_proposal_append() -> Result
     assert_ne!(after.election.role, Role::Leader);
     assert_eq!(after.last_position, selected.last_position);
     assert_eq!(after.committed_end, selected.committed_end);
-    assert_eq!(fs::read(&wal_path)?, before_wal);
+    assert_eq!(wal_bytes(&wal_path)?, before_wal);
     assert_eq!(
         group.node(0)?.fetch_committed(1, 8, 1024 * 1024)?,
         before_records

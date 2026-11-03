@@ -60,8 +60,8 @@ quorum, without replicated partition data or native Kafka KRaft.
 | Qualified broker v2 all-feature all targets at that commit | 868 passed |
 | Broker v2 strict Clippy, docs, inventory and six repeated Fetch checks | Passed |
 | Client focused capability profiles at that commit | 93 passed and 450 Java reverse checks per profile |
-| Main broker CI | Default library had 439 passes and one Raft failure at `33744862c` |
-| Main capability profiles | Passed at `c03416372` |
+| Main broker CI | Default and all-feature tests passed at `32ec4ab80`; strict Clippy failed |
+| Main capability profiles | Passed at `33744862c` |
 | Main strict Clippy, security, documentation and package jobs | Passed at `e7660f6e5` |
 | Main client and live Kafka compatibility CI | Failed at `e7660f6e5` |
 
@@ -88,9 +88,11 @@ overlap, live group retries and a compatibility-test stack overflow also remain
 open. GSSAPI and connection-driven SASL reauthentication
 are incomplete; [protocol support](gaps.md) lists those feature gaps.
 
-The [latest broker run][broker-ci] reported `NotLeader` during a Raft
-leader-removal test. Earlier runs also had two `ParseIntError` failures and a
-separate observer `NotLeader`. The broker
+The [latest broker run][broker-ci] passed its behavioral tests but failed
+strict Clippy on the new test's file reads. A bounded-read correction awaits
+CI. Earlier runs reported `NotLeader`
+during leader removal and in a separate observer test, plus two `ParseIntError`
+failures. The broker
 still needs replicated partition data, authenticated network
 leadership, committed-watermark protection and transaction participant/marker
 propagation. The adopted local epoch and journal fixes have passing x86
@@ -120,7 +122,8 @@ corrected candidate needs native qualification.
 The [release scripts][release-gates] now check API/index agreement, consumer lockfile identity
 and exact-SHA CI more strictly. The token check reports presence without
 claiming authorization. Offline controls passed; live GitHub job evidence
-and the complete release gates remain open.
+and the complete release gates remain open. The installed GitHub CLI rejects
+a field requested by the live CI checker, so that path needs repair.
 
 Use [next work][next] for the detailed handoff, [support](support.md) for tested
 combinations, and the [release guide](RELEASE.md) for publication gates.

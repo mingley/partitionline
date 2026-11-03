@@ -1,0 +1,33 @@
+{
+  "scope": "Independent static review of stale-leader WAL Clippy correction and retained preimage CI log",
+  "patch_sha256": "f3cc76fd3a2b2865ee81e4a60bc089fc36ba1a0c0c39a8670eb3749814a7533e",
+  "base_commit": "32ec4ab8040721339181918dafaa8edda0a8cce8",
+  "before_sha256": "91a57c87a92410e134949d8c02868d931ba064a1ccb52704ae14edf70f442e89",
+  "after_sha256": "3937891be004bf90453371a547cd288f24088de93348fe7e9f44ac0ddaebf1f0",
+  "ci_log_sha256": "16cf387bdf185f122c7902540176bff5d08894b8fa32125f061c53676109deab",
+  "ci_log_gzip_sha256": "d759312d9167e17d454d6488e7b76a77f3549d1d69bd6f6bfe1082753c9d4069",
+  "focused_preimage_test": "1 passed, 0 failed, 32 filtered",
+  "default_preimage_all_targets": {
+    "test_binaries": 36,
+    "passed": 727,
+    "failed": 0,
+    "ignored": 0
+  },
+  "all_features_preimage_all_targets": {
+    "test_binaries": 36,
+    "passed": 875,
+    "failed": 0,
+    "ignored": 0
+  },
+  "ci_clippy": "failed exit 101, two disallowed fs::read diagnostics",
+  "checks": [
+    "Exact current worktree and base Git preimages; exact forward/reverse apply and stable rustfmt",
+    "All original assertions/timing and all unrelated bytes retained; both snapshots read complete bytes up to 1 MiB, and larger WALs return an error instead of comparing a prefix",
+    "No broad lint suppression; no source or runtime changes outside the synchronous test"
+  ],
+  "limitations": [
+    "No local Cargo, Clippy, native runtime or benchmark; passing hosted tests apply to the preimage and the patch still requires a rerun.",
+    "A WAL larger than 1 MiB now fails explicitly; the previous test accepted any size.",
+    "The retained hosted job log was verified byte-for-byte but its origin was not independently queried over the network."
+  ]
+}

@@ -19,8 +19,8 @@ Client 0.1.0 is already published. The next client version must be at least
 | Qualified broker v2 all-feature all targets at that commit | 868 passed |
 | Broker v2 strict Clippy, docs, inventory and six fresh-process Fetch deadline checks | Passed |
 | Client capability lanes at that commit | 93 passed in each profile; 450 Java reverse checks in each |
-| Main broker CI at `33744862c` | Default library had 439 passes and one Raft failure; later targets did not run |
-| Main capability profiles | Passed at `c03416372` |
+| Main broker CI at `32ec4ab80` | Default and all-feature tests passed; strict Clippy failed on two new test reads |
+| Main capability profiles | Passed at `33744862c` |
 | Main strict Clippy, audit, dependency policy, docs and package jobs | Passed at `e7660f6e5` |
 | Main client and live Kafka compatibility CI | Failed at `e7660f6e5` |
 | Reconnect candidate | 14 unit controls and six integration targets passed; latest broad Fetch 167 passed, two failed, one ignored |
@@ -48,8 +48,9 @@ passed its three added controls in the default library run and exposed a
 `NotLeader` response during a five-node leader-removal test. The underlying
 cause and all-feature qualification remain open. A
 [stale-leader control](../evidence/broker/raft-stale-selection-20261103/README.md)
-tests one pre-append rejection path; it does not justify retrying every
-`NotLeader` response and awaits its native run.
+tests one pre-append rejection path and passed natively; it does not justify
+retrying every `NotLeader` response. A correction for its two Clippy failures
+still needs a hosted rerun.
 No long campaign is credited.
 Current-commit green CI and the complete release gates remain open.
 
@@ -223,8 +224,9 @@ require matching API and index identity before reporting confirmation. Consumer
 checks bind the selected version and source to the target package, and release
 paths fail closed on unconfirmed exact-SHA CI. The token check reports presence
 without claiming authorization. One hundred offline tests passed on the final
-patch, and the hosted offline rehearsal passed at `33744862c`. Live GitHub
-job-response shape and attempt binding remain unverified.
+patch, and the hosted offline rehearsal passed at `33744862c`. The installed
+GitHub CLI 2.46.0 rejects the live checker's requested `attempt` JSON field;
+job-response shape and attempt binding also remain unverified.
 The [local release record](../evidence/releases/local-release-gates-20261103/README.md)
 retains the new controls and original failures. The
 [release tooling record](../evidence/releases/release-readiness-20261102/README.md)

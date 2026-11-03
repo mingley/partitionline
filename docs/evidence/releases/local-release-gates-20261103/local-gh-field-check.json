@@ -1,0 +1,16 @@
+{
+  "scope": "Local GitHub CLI argument validation; no API request or publication.",
+  "cli_version": "gh version 2.46.0 (2025-01-13 Debian 2.46.0-3)",
+  "command": [
+    "gh",
+    "run",
+    "list",
+    "--json",
+    "attempt",
+    "--limit",
+    "1"
+  ],
+  "exit": 1,
+  "diagnostic": "Unknown JSON field: \"attempt\"",
+  "limitation": "This proves the installed CLI rejects the field; hosted runner CLI compatibility and live attempt/job/artifact provenance remain separate."
+}

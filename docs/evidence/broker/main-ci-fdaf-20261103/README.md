@@ -40,3 +40,9 @@ minority-partition history received `Node(NotLeader)` during
 leader. This establishes that response for this run, not the cause of the
 earlier bare parse errors. Later targets and all-feature tests did not run.
 The [complete job log](job-125734535528.log.gz) is retained.
+
+At `32ec4ab80`, [broker run 41581442986](https://github.com/mingley/partitionline/actions/runs/41581442986)
+passed the focused stale-leader control and all default and all-feature
+behavioral tests. Strict Clippy then failed on the two `std::fs::read` calls
+in that new synchronous test. Later broker documentation steps did not run.
+The earlier Raft failures remain open despite this passing repeat.

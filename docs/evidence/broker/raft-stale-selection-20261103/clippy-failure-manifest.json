@@ -1,0 +1,63 @@
+{
+  "base_commit": "32ec4ab8040721339181918dafaa8edda0a8cce8",
+  "source": "partitionline-broker/tests/raft_membership.rs",
+  "before_sha256": "91a57c87a92410e134949d8c02868d931ba064a1ccb52704ae14edf70f442e89",
+  "after_sha256": "3937891be004bf90453371a547cd288f24088de93348fe7e9f44ac0ddaebf1f0",
+  "patch_sha256": "f3cc76fd3a2b2865ee81e4a60bc089fc36ba1a0c0c39a8670eb3749814a7533e",
+  "root_apply_check": 0,
+  "roundtrip": [
+    {
+      "args": [
+        "--check"
+      ],
+      "exit": 0,
+      "stderr": ""
+    },
+    {
+      "args": [],
+      "exit": 0,
+      "stderr": ""
+    },
+    {
+      "args": [
+        "--reverse",
+        "--check"
+      ],
+      "exit": 0,
+      "stderr": ""
+    },
+    {
+      "args": [
+        "--reverse"
+      ],
+      "exit": 0,
+      "stderr": ""
+    }
+  ],
+  "rustfmt_check": 0,
+  "job": {
+    "run_id": 41581442986,
+    "job_id": 125736974518,
+    "log_sha256": "16cf387bdf185f122c7902540176bff5d08894b8fa32125f061c53676109deab",
+    "log_gzip_sha256": "d759312d9167e17d454d6488e7b76a77f3549d1d69bd6f6bfe1082753c9d4069",
+    "focused": "1 passed, 0 failed, 32 filtered",
+    "default_all_targets": {
+      "test_binaries": 36,
+      "passed": 727,
+      "failed": 0,
+      "ignored": 0
+    },
+    "all_features_all_targets": {
+      "test_binaries": 36,
+      "passed": 875,
+      "failed": 0,
+      "ignored": 0
+    },
+    "clippy": "failed: std::fs::read disallowed at tests/raft_membership.rs:497:22 and :512:16; exit 101"
+  },
+  "limits": [
+    "Source-only patch: no Cargo, native tests or Clippy were run locally.",
+    "Bounded helper fails on files above 1 MiB rather than comparing a truncated prefix.",
+    "The hosted test passes apply to the preimage only; rerun on the candidate."
+  ]
+}

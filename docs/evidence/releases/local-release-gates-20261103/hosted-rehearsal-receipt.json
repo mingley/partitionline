@@ -1,0 +1,65 @@
+{
+  "repository": "mingley/partitionline",
+  "run_id": 41580681922,
+  "run_attempt": 1,
+  "event": "push",
+  "head_branch": "main",
+  "head_sha": "33744862cd9e3263de502d57525619bd41704fec",
+  "job_id": 125734536185,
+  "job_name": "release-rehearsal",
+  "job_status": "completed",
+  "job_conclusion": "success",
+  "steps": [
+    {
+      "name": "Release gate and recovery negative tests",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 4
+    },
+    {
+      "name": "Exact-source offline release recovery rehearsal",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 5
+    },
+    {
+      "name": "Retain all scenario outputs and substituted commands",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 6
+    }
+  ],
+  "job_log_observed": {
+    "release_unittest_count": 100,
+    "release_unittest_result": "OK",
+    "executed_recovery_scenarios": 25,
+    "recovery_scenario_result": "all passed",
+    "scope": "offline service substitutes; not a package release"
+  },
+  "artifact": {
+    "id": 13205278134,
+    "name": "release-rehearsal-33744862cd9e3263de502d57525619bd41704fec",
+    "size_in_bytes": 1034802,
+    "github_reported_sha256": "6331c9b65dd00b37716f23189176c539a41c8a85fe190f96ca74bc6b4102f23e",
+    "downloaded_bytes_verified": false,
+    "archive_retained": false
+  },
+  "transfer_limit": "The GitHub connector returned a File Service reference. The available workspace downloader supports only Sediment IDs, and the reference host is outside the enforced network allowlist. No policy bypass was attempted.",
+  "qualification_limit": "Job outcome and artifact metadata are observed; archive contents, report contents, registry publication, release completeness, production readiness and performance are not independently established.",
+  "connector_job_log_utf8_sha256": "b1ee66d4bb3868655fcae4122ff64e0d1932ae1c83cd79ff063d639c6987847f",
+  "connector_job_log_utf8_bytes": 26522,
+  "local_git_source_files": {
+    ".github/workflows/ci.yml": {
+      "sha256": "fc67488aadadc5a962daac048b6eed97e3125dba6c76a430b7cb81eebc9e4957",
+      "bytes": 33133
+    },
+    "scripts/rehearse-partial-release.sh": {
+      "sha256": "31892184defbf6a033efa2757283b3fa34b4d358c6ff54a76e3ae88777bc103f",
+      "bytes": 12090
+    },
+    "scripts/report-release-rehearsal.py": {
+      "sha256": "8311bffce48bd08e4fd661cf3c792d3ae8daa3fcf66c5c4cadcf5531ef4939c9",
+      "bytes": 20374
+    }
+  }
+}

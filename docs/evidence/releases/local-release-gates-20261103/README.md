@@ -21,10 +21,14 @@ dispatcher override. No real publish or live credential check occurred.
 
 The hosted [release rehearsal](https://github.com/mingley/partitionline/actions/runs/41580681922)
 also passed at `33744862c`, using substituted commands and offline scenarios.
+The [job receipt](hosted-rehearsal-receipt.json) records its outcome and
+artifact digest; the artifact contents were not downloaded or verified.
 
 The [manifest](manifest.json), [validation](validation.json) and
 [independent review](independent-review.json) bind the exact source patch and
 offline results. Live GitHub job-response shape and attempt binding remain
-unverified. API/index identity alone does not prove a crate can be downloaded
+unverified. The installed GitHub CLI 2.46.0 [rejects the `attempt` JSON field](local-gh-field-check.json)
+requested by the live checker, so that path also needs repair. API/index
+identity alone does not prove a crate can be downloaded
 and compiled. Current client and broker failures and the remaining release
 gates still block a release.
