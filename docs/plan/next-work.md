@@ -21,11 +21,11 @@ Client 0.1.0 is already published. The next client version must be at least
 | Qualified broker v2 all-feature all targets at that commit | 868 passed |
 | Broker v2 strict Clippy, docs, inventory and six fresh-process Fetch deadline checks | Passed |
 | Client capability lanes at that commit | 93 passed in each profile; 450 Java reverse checks in each |
-| Main broker CI at `2645e96ce` | 729 default and 877 all-feature tests, strict Clippy, docs, inventory and fuzz supervision passed |
+| Main broker CI at `0ef1cf858` | 734 default and 882 all-feature tests, strict Clippy, docs, inventory and fuzz supervision passed |
 | Main capability profiles | Passed at `33744862c` |
 | Main strict Clippy, audit, dependency policy, docs and package jobs | Passed at `e7660f6e5` |
 | Main client CI | Failed at `e7660f6e5` |
-| [Main live Kafka compatibility CI](../evidence/client/main-ci-2645-20261103/REPORT.md) | Kafka 4.1.2, 4.2.1 and 4.3.1 runs at `2645e96ce` aborted with a stack overflow during classic group join |
+| [Main live Kafka compatibility CI](../evidence/client/main-ci-2645-20261103/REPORT.md) | Kafka 4.1.2, 4.2.1 and 4.3.1 runs at `2645e96ce` and [`0ef1cf858`](https://github.com/mingley/partitionline/actions/runs/41603566048) aborted with a stack overflow during classic group join |
 | Windows default library at `2645e96ce` | 2,181 passed and 15 failed |
 | Reconnect candidate | 14 unit controls and six integration targets passed; latest broad Fetch 167 passed, two failed, one ignored |
 | Integrated-source package navigation | 20 documentation tests passed; extracted crate checked 30 documents, 225 local links, 51 pinned repository targets |
@@ -91,8 +91,9 @@ reported a successful qualification; the individual command reports and
 resource receipts were inaccessible, so gate details follow from the pinned
 runner's control flow. The shutdown and registry patches are applied. The
 one-off r2 lane is retired, and v17 now checks out the historical `7e91e2b`
-source because its catalog pins the earlier registry. Fresh main broker CI and
-real controller failure, WAL and transport coverage remain open.
+source because its catalog pins the earlier registry. The [fresh main broker CI](../evidence/broker/main-ci-0ef1-20261103/README.md)
+passed both profiles; real controller failure, WAL and transport coverage
+remain open.
 
 ## Correctness priorities
 

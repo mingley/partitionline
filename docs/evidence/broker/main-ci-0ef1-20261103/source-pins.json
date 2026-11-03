@@ -1,0 +1,45 @@
+{
+  "commit": "0ef1cf8581605cedff1117c99bcbbccc6a9cb68e",
+  "files": {
+    ".github/workflows/broker.yml": {
+      "bytes": 5583,
+      "sha256": "12f56c99c2fbae3387ec14ae5a26e93857471c6a4330a7e1aa12ca03fa5c8a42",
+      "git_blob_oid": "686b5b2447801ea702049763c8777ed4b994516e"
+    },
+    "partitionline-broker/Cargo.lock": {
+      "bytes": 20025,
+      "sha256": "42eaddf993ab4dfbe99e5af9d7c1a7cd858776a214eedbd6112de6a146933a2c",
+      "git_blob_oid": "19652acd96b929402b1e4a9394a33d12a7e69449"
+    },
+    "partitionline-broker/src/raft/protocol.rs": {
+      "bytes": 202137,
+      "sha256": "86c8971a500208bb93ff015d9d3dd056efd8a34d7204b7de1f0d27c59a4499c3",
+      "git_blob_oid": "e7a2cb31ff8874cf963e6ce8220b7ed13b28f726"
+    },
+    "tests/conformance/broker/implemented-api-versions.json": {
+      "bytes": 592268,
+      "sha256": "e127e3daeca095363f66ed45d7a2ffa1adbef17ff584d3f23dcfde63fb576e0a",
+      "git_blob_oid": "af3ebb7c0866a7e313710584f916abe6ba4a2ef7"
+    },
+    "scripts/check-broker-api-matrix.py": {
+      "bytes": 93367,
+      "sha256": "ee281c06eb5c2f39171b8a24dc6967b383ddc99a696a21c8ec8c2c1c776a4f83",
+      "git_blob_oid": "f186411c284d4e2281b5b0246413599c710c4275"
+    },
+    "tests/ci/test_broker_api_matrix.py": {
+      "bytes": 59605,
+      "sha256": "18c480081ae2510a66b9d57bb3ac95d8dad088c79e6c18df1d8fc880d1e5fee6",
+      "git_blob_oid": "fb7c1f7ff50f5a34a3b6f95d1e2bfe310f2980d7"
+    },
+    "scripts/broker-fuzz-campaign.py": {
+      "bytes": 17605,
+      "sha256": "f6703c2084d87ababedfc867e0f3df427d9346b7b4bf58951202ed16d753e9a1",
+      "git_blob_oid": "14463c0bc97f80a0d0d4b852eb4f4bf49e102183"
+    },
+    "tests/ci/test_broker_fuzz_campaign.py": {
+      "bytes": 10011,
+      "sha256": "7630c383994cc8b872eed8573a0609b6e42d04918e38c5a253b18180411b5bf5",
+      "git_blob_oid": "3ab045d30a25a3ea324795b914f7ff465dee3a5b"
+    }
+  }
+}

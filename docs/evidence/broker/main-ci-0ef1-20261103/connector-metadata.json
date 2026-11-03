@@ -1,0 +1,262 @@
+{
+  "repository": "mingley/partitionline",
+  "run_id": 41603566088,
+  "head_sha": "0ef1cf8581605cedff1117c99bcbbccc6a9cb68e",
+  "run_conclusion": "success",
+  "jobs": [
+    {
+      "id": 125807810258,
+      "name": "broker (stable)",
+      "status": "completed",
+      "conclusion": "success",
+      "run_id": 41603566088,
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1
+        },
+        {
+          "name": "Run actions/checkout@v7",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2
+        },
+        {
+          "name": "Run dtolnay/rust-toolchain@master",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3
+        },
+        {
+          "name": "Independent TLS peer prerequisite",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4
+        },
+        {
+          "name": "Broker format",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5
+        },
+        {
+          "name": "Check stale-leader proposal fencing",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6
+        },
+        {
+          "name": "Locked default-feature behavioral tests",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 7
+        },
+        {
+          "name": "Locked all-feature behavioral tests",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 8
+        },
+        {
+          "name": "Strict all-feature broker Clippy",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 9
+        },
+        {
+          "name": "Strict all-feature broker Rustdoc",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 10
+        },
+        {
+          "name": "Strict default-feature broker doctests",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 11
+        },
+        {
+          "name": "Strict all-feature broker doctests",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 12
+        },
+        {
+          "name": "Post Run actions/checkout@v7",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 24
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 25
+        }
+      ]
+    },
+    {
+      "id": 125807810560,
+      "name": "instrumented broker fuzz supervision (stable)",
+      "status": "completed",
+      "conclusion": "success",
+      "run_id": 41603566088,
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1
+        },
+        {
+          "name": "Run actions/checkout@v7",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2
+        },
+        {
+          "name": "Run dtolnay/rust-toolchain@stable",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3
+        },
+        {
+          "name": "Build the actual instrumented broker targets",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4
+        },
+        {
+          "name": "Check source formatting",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5
+        },
+        {
+          "name": "Strict fuzz harness Clippy",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6
+        },
+        {
+          "name": "Exercise real workers, interruption, resume and artifact checks",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 7
+        },
+        {
+          "name": "Retain short-run evidence and failures",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 8
+        },
+        {
+          "name": "Post Run actions/checkout@v7",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 16
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 17
+        }
+      ]
+    },
+    {
+      "id": 125807810755,
+      "name": "pinned Apache API inventory and negative controls",
+      "status": "completed",
+      "conclusion": "success",
+      "run_id": 41603566088,
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1
+        },
+        {
+          "name": "Run actions/checkout@v7",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2
+        },
+        {
+          "name": "Run actions/setup-python@v7",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3
+        },
+        {
+          "name": "Verify retained pinned Apache API inventory",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4
+        },
+        {
+          "name": "Reject corrupted pins, inventories and unsupported claims",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5
+        },
+        {
+          "name": "Retain upstream inventory verdict, including failures",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6
+        },
+        {
+          "name": "Post Run actions/setup-python@v7",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 11
+        },
+        {
+          "name": "Post Run actions/checkout@v7",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 12
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 13
+        }
+      ]
+    }
+  ],
+  "artifacts": [
+    {
+      "id": 13215951406,
+      "name": "broker-fuzz-supervisor-0ef1cf8581605cedff1117c99bcbbccc6a9cb68e",
+      "size_in_bytes": 7654276,
+      "digest": "sha256:2a2d65d68fefbc1fc1fd47c21a88f76cd81c59f5f24c0ef243c0e769971d8e45",
+      "workflow_run": {
+        "id": 41603566088,
+        "repository_id": 1342911983,
+        "head_repository_id": 1342911983,
+        "head_branch": "main",
+        "head_sha": "0ef1cf8581605cedff1117c99bcbbccc6a9cb68e"
+      }
+    },
+    {
+      "id": 13215926853,
+      "name": "broker-api-inventory-0ef1cf8581605cedff1117c99bcbbccc6a9cb68e",
+      "size_in_bytes": 1599,
+      "digest": "sha256:fdf7f3126bd15ca84a4faf41441575edb2919e19be89fdb7f62ca93a90dcd8f0",
+      "workflow_run": {
+        "id": 41603566088,
+        "repository_id": 1342911983,
+        "head_repository_id": 1342911983,
+        "head_branch": "main",
+        "head_sha": "0ef1cf8581605cedff1117c99bcbbccc6a9cb68e"
+      }
+    }
+  ],
+  "artifact_bytes_downloaded": false
+}

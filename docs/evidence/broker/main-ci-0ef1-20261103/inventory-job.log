@@ -1,0 +1,621 @@
+﻿2026-11-03T08:28:46.5691574Z Current runner version: '2.338.2'
+2026-11-03T08:28:46.5717012Z ##[group]Runner Image Provisioner
+2026-11-03T08:28:46.5718001Z Hosted Compute Agent
+2026-11-03T08:28:46.5718518Z Version: 20261021.618
+2026-11-03T08:28:46.5719144Z Commit: 21505ad2541d5be6135ed84fc33697146cf75b8e
+2026-11-03T08:28:46.5719821Z Build Date: 2026-10-21T00:45:21Z
+2026-11-03T08:28:46.5720505Z Worker ID: {08c405a9-7a56-4fbe-8c81-ef56310033d9}
+2026-11-03T08:28:46.5721159Z Region: westus3
+2026-11-03T08:28:46.5721644Z Cloud: Azure
+2026-11-03T08:28:46.5722146Z ##[endgroup]
+2026-11-03T08:28:46.5723883Z ##[group]Operating System
+2026-11-03T08:28:46.5724537Z Ubuntu
+2026-11-03T08:28:46.5725021Z 24.04.5
+2026-11-03T08:28:46.5725479Z LTS
+2026-11-03T08:28:46.5725961Z ##[endgroup]
+2026-11-03T08:28:46.5726483Z ##[group]Runner Image
+2026-11-03T08:28:46.5727574Z Image: ubuntu-24.04
+2026-11-03T08:28:46.5728262Z Version: 20261025.353.1
+2026-11-03T08:28:46.5729415Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20261025.353/images/ubuntu/Ubuntu2404-Readme.md
+2026-11-03T08:28:46.5730929Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20261025.353
+2026-11-03T08:28:46.5731777Z ##[endgroup]
+2026-11-03T08:28:46.5732833Z ##[group]GITHUB_TOKEN Permissions
+2026-11-03T08:28:46.5735001Z Contents: read
+2026-11-03T08:28:46.5735644Z Metadata: read
+2026-11-03T08:28:46.5736150Z ##[endgroup]
+2026-11-03T08:28:46.5738642Z Secret source: Actions
+2026-11-03T08:28:46.5739485Z Cache mode: write
+2026-11-03T08:28:46.5740359Z Prepare workflow directory
+2026-11-03T08:28:46.6155552Z Prepare all required actions
+2026-11-03T08:28:46.6205595Z Getting action download info
+2026-11-03T08:28:46.9405359Z Download action repository 'actions/checkout@v7' (SHA:3d3c42e5aac5ba805825da76410c181273ba90b1)
+2026-11-03T08:28:47.0392453Z Download action repository 'actions/setup-python@v7' (SHA:6d4fd22b20465ccc0f7354476588e8df7c9ca0e0)
+2026-11-03T08:28:47.6193072Z Download action repository 'actions/upload-artifact@v6' (SHA:b7c566a772e6b6bfb58ed0dc250532a479d7789f)
+2026-11-03T08:28:47.7971372Z Complete job name: pinned Apache API inventory and negative controls
+2026-11-03T08:28:47.8950012Z ##[group]Run actions/checkout@v7
+2026-11-03T08:28:47.8950991Z with:
+2026-11-03T08:28:47.8951511Z   repository: mingley/partitionline
+2026-11-03T08:28:47.8955471Z   token: ***
+2026-11-03T08:28:47.8955951Z   ssh-strict: true
+2026-11-03T08:28:47.8956444Z   ssh-user: git
+2026-11-03T08:28:47.8956940Z   persist-credentials: true
+2026-11-03T08:28:47.8957627Z   clean: true
+2026-11-03T08:28:47.8958131Z   sparse-checkout-cone-mode: true
+2026-11-03T08:28:47.8958711Z   fetch-depth: 1
+2026-11-03T08:28:47.8959199Z   fetch-tags: false
+2026-11-03T08:28:47.8959696Z   show-progress: true
+2026-11-03T08:28:47.8960216Z   lfs: false
+2026-11-03T08:28:47.8960686Z   submodules: false
+2026-11-03T08:28:47.8961181Z   set-safe-directory: true
+2026-11-03T08:28:47.8961732Z   allow-unsafe-pr-checkout: false
+2026-11-03T08:28:47.8962581Z ##[endgroup]
+2026-11-03T08:28:48.1423517Z Syncing repository: mingley/partitionline
+2026-11-03T08:28:48.1426132Z ##[group]Getting Git version info
+2026-11-03T08:28:48.1427878Z Working directory is '/home/runner/work/partitionline/partitionline'
+2026-11-03T08:28:48.1429138Z [command]/usr/bin/git version
+2026-11-03T08:28:48.1479245Z git version 2.56.0
+2026-11-03T08:28:48.1509106Z ##[endgroup]
+2026-11-03T08:28:48.1524602Z Temporarily overriding HOME='/home/runner/work/_temp/c23c6832-c47f-410a-b63f-c2ce40911445' before making global git config changes
+2026-11-03T08:28:48.1527708Z Adding repository directory to the temporary git global config as a safe directory
+2026-11-03T08:28:48.1533877Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/partitionline/partitionline
+2026-11-03T08:28:48.1579435Z Deleting the contents of '/home/runner/work/partitionline/partitionline'
+2026-11-03T08:28:48.1583631Z ##[group]Determining repository object format
+2026-11-03T08:28:48.1585892Z ##[endgroup]
+2026-11-03T08:28:48.1587924Z ##[group]Initializing the repository
+2026-11-03T08:28:48.1591493Z [command]/usr/bin/git init /home/runner/work/partitionline/partitionline
+2026-11-03T08:28:48.1688709Z hint: Using 'master' as the name for the initial branch. This default branch name
+2026-11-03T08:28:48.1691393Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+2026-11-03T08:28:48.1693523Z hint: to use in all of your new repositories, which will suppress this warning,
+2026-11-03T08:28:48.1694865Z hint: call:
+2026-11-03T08:28:48.1696113Z hint:
+2026-11-03T08:28:48.1697907Z hint: 	git config --global init.defaultBranch <name>
+2026-11-03T08:28:48.1699182Z hint:
+2026-11-03T08:28:48.1700236Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2026-11-03T08:28:48.1702119Z hint: 'development'. The just-created branch can be renamed via this command:
+2026-11-03T08:28:48.1703587Z hint:
+2026-11-03T08:28:48.1704552Z hint: 	git branch -m <name>
+2026-11-03T08:28:48.1705540Z hint:
+2026-11-03T08:28:48.1706687Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2026-11-03T08:28:48.1709268Z Initialized empty Git repository in /home/runner/work/partitionline/partitionline/.git/
+2026-11-03T08:28:48.1715452Z [command]/usr/bin/git remote add origin https://github.com/mingley/partitionline
+2026-11-03T08:28:48.1759062Z ##[endgroup]
+2026-11-03T08:28:48.1761173Z ##[group]Disabling automatic garbage collection
+2026-11-03T08:28:48.1763327Z [command]/usr/bin/git config --local gc.auto 0
+2026-11-03T08:28:48.1793466Z ##[endgroup]
+2026-11-03T08:28:48.1795493Z ##[group]Setting up auth
+2026-11-03T08:28:48.1796618Z Removing SSH command configuration
+2026-11-03T08:28:48.1799065Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-11-03T08:28:48.1833682Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-11-03T08:28:48.2155789Z Removing HTTP extra header
+2026-11-03T08:28:48.2162367Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-11-03T08:28:48.2201848Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-11-03T08:28:48.2414306Z Removing includeIf entries pointing to credentials config files
+2026-11-03T08:28:48.2419054Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-11-03T08:28:48.2458671Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-11-03T08:28:48.2655124Z [command]/usr/bin/git config --file /home/runner/work/_temp/git-credentials-d5aa34bc-5bc8-42b9-ab32-32b6fcec0f5e.config http.https://github.com/.extraheader AUTHORIZATION: basic ***
+2026-11-03T08:28:48.2692705Z [command]/usr/bin/git config --local includeIf.gitdir:/home/runner/work/partitionline/partitionline/.git.path /home/runner/work/_temp/git-credentials-d5aa34bc-5bc8-42b9-ab32-32b6fcec0f5e.config
+2026-11-03T08:28:48.2725319Z [command]/usr/bin/git config --local includeIf.gitdir:/home/runner/work/partitionline/partitionline/.git/worktrees/*.path /home/runner/work/_temp/git-credentials-d5aa34bc-5bc8-42b9-ab32-32b6fcec0f5e.config
+2026-11-03T08:28:48.2758745Z [command]/usr/bin/git config --local includeIf.gitdir:/github/workspace/.git.path /github/runner_temp/git-credentials-d5aa34bc-5bc8-42b9-ab32-32b6fcec0f5e.config
+2026-11-03T08:28:48.2791684Z [command]/usr/bin/git config --local includeIf.gitdir:/github/workspace/.git/worktrees/*.path /github/runner_temp/git-credentials-d5aa34bc-5bc8-42b9-ab32-32b6fcec0f5e.config
+2026-11-03T08:28:48.2822797Z ##[endgroup]
+2026-11-03T08:28:48.2824580Z ##[group]Fetching the repository
+2026-11-03T08:28:48.2832288Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +0ef1cf8581605cedff1117c99bcbbccc6a9cb68e:refs/remotes/origin/main
+2026-11-03T08:29:35.5471221Z From https://github.com/mingley/partitionline
+2026-11-03T08:29:35.5473426Z  * [new ref]           0ef1cf8581605cedff1117c99bcbbccc6a9cb68e -> origin/main
+2026-11-03T08:29:35.5480727Z [command]/usr/bin/git branch --list --remote origin/main
+2026-11-03T08:29:35.5509926Z   origin/main
+2026-11-03T08:29:35.5519470Z [command]/usr/bin/git rev-parse refs/remotes/origin/main
+2026-11-03T08:29:35.5549221Z 0ef1cf8581605cedff1117c99bcbbccc6a9cb68e
+2026-11-03T08:29:35.5553370Z ##[endgroup]
+2026-11-03T08:29:35.5554133Z ##[group]Determining the checkout info
+2026-11-03T08:29:35.5555161Z ##[endgroup]
+2026-11-03T08:29:35.5560816Z [command]/usr/bin/git sparse-checkout disable
+2026-11-03T08:29:35.5622499Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+2026-11-03T08:29:35.5652619Z ##[group]Checking out the ref
+2026-11-03T08:29:35.5658030Z [command]/usr/bin/git checkout --progress --force -B main refs/remotes/origin/main
+2026-11-03T08:29:36.8028617Z Updating files:  26% (35955/137236)
+2026-11-03T08:29:37.0399514Z Updating files:  27% (37054/137236)
+2026-11-03T08:29:37.0850772Z Updating files:  28% (38427/137236)
+2026-11-03T08:29:37.1606059Z Updating files:  29% (39799/137236)
+2026-11-03T08:29:37.1836231Z Updating files:  30% (41171/137236)
+2026-11-03T08:29:37.2061846Z Updating files:  31% (42544/137236)
+2026-11-03T08:29:37.2401920Z Updating files:  32% (43916/137236)
+2026-11-03T08:29:37.2791835Z Updating files:  33% (45288/137236)
+2026-11-03T08:29:37.3255345Z Updating files:  34% (46661/137236)
+2026-11-03T08:29:37.3604789Z Updating files:  35% (48033/137236)
+2026-11-03T08:29:37.3864363Z Updating files:  36% (49405/137236)
+2026-11-03T08:29:37.4217923Z Updating files:  37% (50778/137236)
+2026-11-03T08:29:37.4481955Z Updating files:  38% (52150/137236)
+2026-11-03T08:29:37.4707015Z Updating files:  39% (53523/137236)
+2026-11-03T08:29:37.4926352Z Updating files:  40% (54895/137236)
+2026-11-03T08:29:37.5464525Z Updating files:  41% (56267/137236)
+2026-11-03T08:29:37.5838948Z Updating files:  42% (57640/137236)
+2026-11-03T08:29:37.6473104Z Updating files:  43% (59012/137236)
+2026-11-03T08:29:37.6782647Z Updating files:  44% (60384/137236)
+2026-11-03T08:29:37.7108395Z Updating files:  44% (60579/137236)
+2026-11-03T08:29:37.8117042Z Updating files:  45% (61757/137236)
+2026-11-03T08:29:38.1862241Z Updating files:  46% (63129/137236)
+2026-11-03T08:29:38.2106807Z Updating files:  47% (64501/137236)
+2026-11-03T08:29:38.2352935Z Updating files:  48% (65874/137236)
+2026-11-03T08:29:38.2600325Z Updating files:  49% (67246/137236)
+2026-11-03T08:29:38.2842239Z Updating files:  50% (68618/137236)
+2026-11-03T08:29:38.3086142Z Updating files:  51% (69991/137236)
+2026-11-03T08:29:38.3327817Z Updating files:  52% (71363/137236)
+2026-11-03T08:29:38.3573681Z Updating files:  53% (72736/137236)
+2026-11-03T08:29:38.3815450Z Updating files:  54% (74108/137236)
+2026-11-03T08:29:38.4058794Z Updating files:  55% (75480/137236)
+2026-11-03T08:29:38.4601738Z Updating files:  56% (76853/137236)
+2026-11-03T08:29:38.4847514Z Updating files:  57% (78225/137236)
+2026-11-03T08:29:38.5088399Z Updating files:  58% (79597/137236)
+2026-11-03T08:29:38.5334514Z Updating files:  59% (80970/137236)
+2026-11-03T08:29:38.5578634Z Updating files:  60% (82342/137236)
+2026-11-03T08:29:38.6867786Z Updating files:  61% (83714/137236)
+2026-11-03T08:29:38.9572097Z Updating files:  61% (84104/137236)
+2026-11-03T08:29:39.1667995Z Updating files:  62% (85087/137236)
+2026-11-03T08:29:39.2408363Z Updating files:  63% (86459/137236)
+2026-11-03T08:29:39.2929458Z Updating files:  64% (87832/137236)
+2026-11-03T08:29:39.6511009Z Updating files:  65% (89204/137236)
+2026-11-03T08:29:39.6816115Z Updating files:  66% (90576/137236)
+2026-11-03T08:29:39.8798143Z Updating files:  66% (90676/137236)
+2026-11-03T08:29:39.9393377Z Updating files:  67% (91949/137236)
+2026-11-03T08:29:40.0018334Z Updating files:  68% (93321/137236)
+2026-11-03T08:29:40.0427951Z Updating files:  69% (94693/137236)
+2026-11-03T08:29:40.0787375Z Updating files:  70% (96066/137236)
+2026-11-03T08:29:40.1416729Z Updating files:  71% (97438/137236)
+2026-11-03T08:29:40.1952925Z Updating files:  72% (98810/137236)
+2026-11-03T08:29:40.2316641Z Updating files:  73% (100183/137236)
+2026-11-03T08:29:40.2684062Z Updating files:  74% (101555/137236)
+2026-11-03T08:29:40.3111369Z Updating files:  75% (102927/137236)
+2026-11-03T08:29:40.3589860Z Updating files:  76% (104300/137236)
+2026-11-03T08:29:40.4969449Z Updating files:  77% (105672/137236)
+2026-11-03T08:29:40.5211805Z Updating files:  78% (107045/137236)
+2026-11-03T08:29:40.5445657Z Updating files:  79% (108417/137236)
+2026-11-03T08:29:40.5652699Z Updating files:  80% (109789/137236)
+2026-11-03T08:29:40.5868601Z Updating files:  81% (111162/137236)
+2026-11-03T08:29:40.6236084Z Updating files:  82% (112534/137236)
+2026-11-03T08:29:40.6579944Z Updating files:  83% (113906/137236)
+2026-11-03T08:29:40.6779824Z Updating files:  84% (115279/137236)
+2026-11-03T08:29:40.7184464Z Updating files:  84% (115807/137236)
+2026-11-03T08:29:40.7603237Z Updating files:  85% (116651/137236)
+2026-11-03T08:29:41.1556469Z Updating files:  86% (118023/137236)
+2026-11-03T08:29:41.2840909Z Updating files:  87% (119396/137236)
+2026-11-03T08:29:41.4241300Z Updating files:  88% (120768/137236)
+2026-11-03T08:29:41.6783780Z Updating files:  89% (122141/137236)
+2026-11-03T08:29:41.7187766Z Updating files:  89% (123302/137236)
+2026-11-03T08:29:42.1355351Z Updating files:  90% (123513/137236)
+2026-11-03T08:29:42.4041631Z Updating files:  91% (124885/137236)
+2026-11-03T08:29:42.6598961Z Updating files:  92% (126258/137236)
+2026-11-03T08:29:42.6799604Z Updating files:  93% (127630/137236)
+2026-11-03T08:29:42.7859763Z Updating files:  93% (127736/137236)
+2026-11-03T08:29:43.7043755Z Updating files:  94% (129002/137236)
+2026-11-03T08:29:44.6856516Z Updating files:  94% (129028/137236)
+2026-11-03T08:29:45.0481355Z Updating files:  94% (129050/137236)
+2026-11-03T08:29:45.0741067Z Updating files:  95% (130375/137236)
+2026-11-03T08:29:45.0977271Z Updating files:  96% (131747/137236)
+2026-11-03T08:29:45.1871601Z Updating files:  97% (133119/137236)
+2026-11-03T08:29:45.2473678Z Updating files:  98% (134492/137236)
+2026-11-03T08:29:45.2804672Z Updating files:  99% (135864/137236)
+2026-11-03T08:29:45.2805312Z Updating files: 100% (137236/137236)
+2026-11-03T08:29:45.2805870Z Updating files: 100% (137236/137236), done.
+2026-11-03T08:29:45.4850867Z Switched to a new branch 'main'
+2026-11-03T08:29:45.4851511Z branch 'main' set up to track 'origin/main'.
+2026-11-03T08:29:45.5209089Z ##[endgroup]
+2026-11-03T08:29:45.5264341Z [command]/usr/bin/git log -1 --format=%H
+2026-11-03T08:29:45.5289114Z 0ef1cf8581605cedff1117c99bcbbccc6a9cb68e
+2026-11-03T08:29:45.5993014Z ##[group]Run actions/setup-python@v7
+2026-11-03T08:29:45.5993298Z with:
+2026-11-03T08:29:45.5993507Z   python-version: 3.13
+2026-11-03T08:29:45.5993733Z   check-latest: false
+2026-11-03T08:29:45.5996110Z   token: ***
+2026-11-03T08:29:45.5996440Z   mirror: https://raw.githubusercontent.com/actions/python-versions/main
+2026-11-03T08:29:45.5996870Z   update-environment: true
+2026-11-03T08:29:45.5997311Z   allow-prereleases: false
+2026-11-03T08:29:45.5997576Z   freethreaded: false
+2026-11-03T08:29:45.5997789Z ##[endgroup]
+2026-11-03T08:29:45.7991805Z ##[group]Installed versions
+2026-11-03T08:29:46.1447526Z Successfully set up CPython (3.13.17)
+2026-11-03T08:29:46.1448339Z ##[endgroup]
+2026-11-03T08:29:46.2842273Z ##[group]Run python3 -B scripts/check-broker-api-matrix.py --report target/broker-ci/api-matrix.json
+2026-11-03T08:29:46.2843176Z [36;1mpython3 -B scripts/check-broker-api-matrix.py --report target/broker-ci/api-matrix.json[0m
+2026-11-03T08:29:46.4402842Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-11-03T08:29:46.4403250Z env:
+2026-11-03T08:29:46.4403584Z   pythonLocation: /opt/hostedtoolcache/Python/3.13.17/x64
+2026-11-03T08:29:46.4404094Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.13.17/x64/lib/pkgconfig
+2026-11-03T08:29:46.4404597Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.17/x64
+2026-11-03T08:29:46.4405311Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.17/x64
+2026-11-03T08:29:46.4405753Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.17/x64
+2026-11-03T08:29:46.4406211Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.13.17/x64/lib
+2026-11-03T08:29:46.4406606Z ##[endgroup]
+2026-11-03T08:29:48.4760031Z {
+2026-11-03T08:29:48.4760496Z   "schema_version": 1,
+2026-11-03T08:29:48.4760954Z   "verdict": "passed",
+2026-11-03T08:29:48.4761360Z   "implementation_claim": false,
+2026-11-03T08:29:48.4761819Z   "releases": [
+2026-11-03T08:29:48.4762170Z     {
+2026-11-03T08:29:48.4762500Z       "version": "4.1.2",
+2026-11-03T08:29:48.4763001Z       "commit": "c82fd9b934b4c1e6fa799e3f1dcc8f08d997740c",
+2026-11-03T08:29:48.4764065Z       "retained_archive_sha256": "b966a4628d6c022063fa0345b9677c6acbb148c33b520734e0adf8f9fb2061b8",
+2026-11-03T08:29:48.4765049Z       "retained_files": 207,
+2026-11-03T08:29:48.4765524Z       "api_keys": 93,
+2026-11-03T08:29:48.4765874Z       "active_api_keys": 89,
+2026-11-03T08:29:48.4766165Z       "removed_api_keys": [
+2026-11-03T08:29:48.4766427Z         4,
+2026-11-03T08:29:48.4766642Z         5,
+2026-11-03T08:29:48.4766851Z         6,
+2026-11-03T08:29:48.4767058Z         7
+2026-11-03T08:29:48.4767544Z       ],
+2026-11-03T08:29:48.4767790Z       "unstable_latest_api_keys": [
+2026-11-03T08:29:48.4768089Z         8,
+2026-11-03T08:29:48.4768337Z         9,
+2026-11-03T08:29:48.4768550Z         22,
+2026-11-03T08:29:48.4768764Z         88,
+2026-11-03T08:29:48.4768982Z         89
+2026-11-03T08:29:48.4769199Z       ],
+2026-11-03T08:29:48.4769430Z       "header_version_pairs": 292
+2026-11-03T08:29:48.4769708Z     },
+2026-11-03T08:29:48.4769915Z     {
+2026-11-03T08:29:48.4770131Z       "version": "4.2.1",
+2026-11-03T08:29:48.4770457Z       "commit": "18d5ecd939c8d510fdd72d0abb1f7099659dcd58",
+2026-11-03T08:29:48.4771056Z       "retained_archive_sha256": "2d0882c3a7ca4b1a7aadb3ca38b469105b346d17c8d49b35fdbd63faebdb25ff",
+2026-11-03T08:29:48.4771687Z       "retained_files": 207,
+2026-11-03T08:29:48.4771968Z       "api_keys": 93,
+2026-11-03T08:29:48.4772217Z       "active_api_keys": 89,
+2026-11-03T08:29:48.4772488Z       "removed_api_keys": [
+2026-11-03T08:29:48.4772738Z         4,
+2026-11-03T08:29:48.4772953Z         5,
+2026-11-03T08:29:48.4773160Z         6,
+2026-11-03T08:29:48.4773362Z         7
+2026-11-03T08:29:48.4773606Z       ],
+2026-11-03T08:29:48.4773842Z       "unstable_latest_api_keys": [
+2026-11-03T08:29:48.4774155Z         22
+2026-11-03T08:29:48.4774357Z       ],
+2026-11-03T08:29:48.4774593Z       "header_version_pairs": 300
+2026-11-03T08:29:48.4774878Z     },
+2026-11-03T08:29:48.4775091Z     {
+2026-11-03T08:29:48.4775318Z       "version": "4.3.1",
+2026-11-03T08:29:48.4775647Z       "commit": "26b251a451ce941d3d7a55e6487bcb7f16b5ad48",
+2026-11-03T08:29:48.4776233Z       "retained_archive_sha256": "71dc8ab97c292015e1adaa685e76edaabfb88fa6e3fb3a5da075ebff4aa10332",
+2026-11-03T08:29:48.4776785Z       "retained_files": 208,
+2026-11-03T08:29:48.4777057Z       "api_keys": 93,
+2026-11-03T08:29:48.4777545Z       "active_api_keys": 89,
+2026-11-03T08:29:48.4777824Z       "removed_api_keys": [
+2026-11-03T08:29:48.4778077Z         4,
+2026-11-03T08:29:48.4778285Z         5,
+2026-11-03T08:29:48.4778489Z         6,
+2026-11-03T08:29:48.4778691Z         7
+2026-11-03T08:29:48.4778897Z       ],
+2026-11-03T08:29:48.4779491Z       "unstable_latest_api_keys": [
+2026-11-03T08:29:48.4779779Z         22
+2026-11-03T08:29:48.4779982Z       ],
+2026-11-03T08:29:48.4780230Z       "header_version_pairs": 302
+2026-11-03T08:29:48.4780500Z     }
+2026-11-03T08:29:48.4780701Z   ],
+2026-11-03T08:29:48.4780931Z   "local_implementation": {
+2026-11-03T08:29:48.4781353Z     "implemented_api_versions": [
+2026-11-03T08:29:48.4781666Z       {
+2026-11-03T08:29:48.4781882Z         "api_key": 3,
+2026-11-03T08:29:48.4782134Z         "min_version": 0,
+2026-11-03T08:29:48.4782407Z         "max_version": 13
+2026-11-03T08:29:48.4782657Z       },
+2026-11-03T08:29:48.4782865Z       {
+2026-11-03T08:29:48.4783200Z         "api_key": 18,
+2026-11-03T08:29:48.4783452Z         "min_version": 0,
+2026-11-03T08:29:48.4783713Z         "max_version": 4
+2026-11-03T08:29:48.4784018Z       },
+2026-11-03T08:29:48.4784227Z       {
+2026-11-03T08:29:48.4784437Z         "api_key": 19,
+2026-11-03T08:29:48.4784682Z         "min_version": 2,
+2026-11-03T08:29:48.4784945Z         "max_version": 4
+2026-11-03T08:29:48.4785310Z       },
+2026-11-03T08:29:48.4785541Z       {
+2026-11-03T08:29:48.4785764Z         "api_key": 20,
+2026-11-03T08:29:48.4786026Z         "min_version": 1,
+2026-11-03T08:29:48.4786292Z         "max_version": 6
+2026-11-03T08:29:48.4786544Z       }
+2026-11-03T08:29:48.4786756Z     ],
+2026-11-03T08:29:48.4787018Z     "source_and_fixture_hashes_checked": true,
+2026-11-03T08:29:48.4787639Z     "golden_cases": 99,
+2026-11-03T08:29:48.4787915Z     "metadata_golden_cases": 555,
+2026-11-03T08:29:48.4788223Z     "metadata_response_cases": 522,
+2026-11-03T08:29:48.4788547Z     "metadata_local_rejections": 33,
+2026-11-03T08:29:48.4788908Z     "compiled_metadata_report_checked": false,
+2026-11-03T08:29:48.4789264Z     "compiled_handler_report_checked": false,
+2026-11-03T08:29:48.4789590Z     "data_api_versions": [
+2026-11-03T08:29:48.4789842Z       {
+2026-11-03T08:29:48.4790048Z         "api_key": 0,
+2026-11-03T08:29:48.4790296Z         "min_version": 3,
+2026-11-03T08:29:48.4790551Z         "max_version": 13
+2026-11-03T08:29:48.4790789Z       },
+2026-11-03T08:29:48.4790987Z       {
+2026-11-03T08:29:48.4791197Z         "api_key": 3,
+2026-11-03T08:29:48.4791441Z         "min_version": 0,
+2026-11-03T08:29:48.4791708Z         "max_version": 13
+2026-11-03T08:29:48.4791945Z       },
+2026-11-03T08:29:48.4792150Z       {
+2026-11-03T08:29:48.4792358Z         "api_key": 18,
+2026-11-03T08:29:48.4792603Z         "min_version": 0,
+2026-11-03T08:29:48.4792859Z         "max_version": 4
+2026-11-03T08:29:48.4793100Z       },
+2026-11-03T08:29:48.4793303Z       {
+2026-11-03T08:29:48.4793514Z         "api_key": 19,
+2026-11-03T08:29:48.4793758Z         "min_version": 2,
+2026-11-03T08:29:48.4794029Z         "max_version": 4
+2026-11-03T08:29:48.4794271Z       },
+2026-11-03T08:29:48.4794482Z       {
+2026-11-03T08:29:48.4794695Z         "api_key": 20,
+2026-11-03T08:29:48.4794939Z         "min_version": 1,
+2026-11-03T08:29:48.4795189Z         "max_version": 6
+2026-11-03T08:29:48.4795434Z       }
+2026-11-03T08:29:48.4795631Z     ],
+2026-11-03T08:29:48.4795924Z     "read_write_api_versions": [
+2026-11-03T08:29:48.4796200Z       {
+2026-11-03T08:29:48.4796412Z         "api_key": 0,
+2026-11-03T08:29:48.4796662Z         "min_version": 3,
+2026-11-03T08:29:48.4796935Z         "max_version": 13
+2026-11-03T08:29:48.4797375Z       },
+2026-11-03T08:29:48.4797605Z       {
+2026-11-03T08:29:48.4797821Z         "api_key": 1,
+2026-11-03T08:29:48.4798070Z         "min_version": 4,
+2026-11-03T08:29:48.4798330Z         "max_version": 6
+2026-11-03T08:29:48.4798576Z       },
+2026-11-03T08:29:48.4798785Z       {
+2026-11-03T08:29:48.4798991Z         "api_key": 2,
+2026-11-03T08:29:48.4799240Z         "min_version": 1,
+2026-11-03T08:29:48.4799495Z         "max_version": 3
+2026-11-03T08:29:48.4799733Z       },
+2026-11-03T08:29:48.4799934Z       {
+2026-11-03T08:29:48.4800143Z         "api_key": 3,
+2026-11-03T08:29:48.4800381Z         "min_version": 0,
+2026-11-03T08:29:48.4800634Z         "max_version": 13
+2026-11-03T08:29:48.4800871Z       },
+2026-11-03T08:29:48.4801275Z       {
+2026-11-03T08:29:48.4801488Z         "api_key": 18,
+2026-11-03T08:29:48.4801734Z         "min_version": 0,
+2026-11-03T08:29:48.4801989Z         "max_version": 4
+2026-11-03T08:29:48.4802233Z       },
+2026-11-03T08:29:48.4802434Z       {
+2026-11-03T08:29:48.4802643Z         "api_key": 19,
+2026-11-03T08:29:48.4802893Z         "min_version": 2,
+2026-11-03T08:29:48.4803155Z         "max_version": 4
+2026-11-03T08:29:48.4803396Z       },
+2026-11-03T08:29:48.4803601Z       {
+2026-11-03T08:29:48.4803808Z         "api_key": 20,
+2026-11-03T08:29:48.4804055Z         "min_version": 1,
+2026-11-03T08:29:48.4804306Z         "max_version": 6
+2026-11-03T08:29:48.4804653Z       }
+2026-11-03T08:29:48.4804853Z     ],
+2026-11-03T08:29:48.4805087Z     "controller_api_versions": [
+2026-11-03T08:29:48.4805358Z       {
+2026-11-03T08:29:48.4805569Z         "api_key": 18,
+2026-11-03T08:29:48.4805815Z         "min_version": 0,
+2026-11-03T08:29:48.4806078Z         "max_version": 4
+2026-11-03T08:29:48.4806321Z       },
+2026-11-03T08:29:48.4806528Z       {
+2026-11-03T08:29:48.4806738Z         "api_key": 52,
+2026-11-03T08:29:48.4806982Z         "min_version": 0,
+2026-11-03T08:29:48.4807440Z         "max_version": 0
+2026-11-03T08:29:48.4807691Z       },
+2026-11-03T08:29:48.4807900Z       {
+2026-11-03T08:29:48.4808120Z         "api_key": 53,
+2026-11-03T08:29:48.4808375Z         "min_version": 0,
+2026-11-03T08:29:48.4808630Z         "max_version": 0
+2026-11-03T08:29:48.4808878Z       },
+2026-11-03T08:29:48.4809081Z       {
+2026-11-03T08:29:48.4809289Z         "api_key": 54,
+2026-11-03T08:29:48.4809532Z         "min_version": 0,
+2026-11-03T08:29:48.4809791Z         "max_version": 0
+2026-11-03T08:29:48.4810031Z       }
+2026-11-03T08:29:48.4810226Z     ],
+2026-11-03T08:29:48.4810456Z     "retention_api_versions": [
+2026-11-03T08:29:48.4810733Z       {
+2026-11-03T08:29:48.4810938Z         "api_key": 0,
+2026-11-03T08:29:48.4811180Z         "min_version": 3,
+2026-11-03T08:29:48.4811430Z         "max_version": 13
+2026-11-03T08:29:48.4811684Z       },
+2026-11-03T08:29:48.4811880Z       {
+2026-11-03T08:29:48.4812088Z         "api_key": 1,
+2026-11-03T08:29:48.4812326Z         "min_version": 4,
+2026-11-03T08:29:48.4812578Z         "max_version": 6
+2026-11-03T08:29:48.4812820Z       },
+2026-11-03T08:29:48.4813020Z       {
+2026-11-03T08:29:48.4813228Z         "api_key": 2,
+2026-11-03T08:29:48.4813531Z         "min_version": 1,
+2026-11-03T08:29:48.4813786Z         "max_version": 3
+2026-11-03T08:29:48.4814029Z       },
+2026-11-03T08:29:48.4814232Z       {
+2026-11-03T08:29:48.4814442Z         "api_key": 3,
+2026-11-03T08:29:48.4814683Z         "min_version": 0,
+2026-11-03T08:29:48.4814943Z         "max_version": 13
+2026-11-03T08:29:48.4815183Z       },
+2026-11-03T08:29:48.4815747Z       {
+2026-11-03T08:29:48.4816037Z         "api_key": 18,
+2026-11-03T08:29:48.4816287Z         "min_version": 0,
+2026-11-03T08:29:48.4816543Z         "max_version": 4
+2026-11-03T08:29:48.4816794Z       },
+2026-11-03T08:29:48.4817019Z       {
+2026-11-03T08:29:48.4817661Z         "api_key": 19,
+2026-11-03T08:29:48.4817925Z         "min_version": 2,
+2026-11-03T08:29:48.4818200Z         "max_version": 4
+2026-11-03T08:29:48.4818449Z       },
+2026-11-03T08:29:48.4818661Z       {
+2026-11-03T08:29:48.4818872Z         "api_key": 20,
+2026-11-03T08:29:48.4819118Z         "min_version": 1,
+2026-11-03T08:29:48.4819385Z         "max_version": 6
+2026-11-03T08:29:48.4819619Z       },
+2026-11-03T08:29:48.4819820Z       {
+2026-11-03T08:29:48.4820030Z         "api_key": 21,
+2026-11-03T08:29:48.4820279Z         "min_version": 0,
+2026-11-03T08:29:48.4820532Z         "max_version": 2
+2026-11-03T08:29:48.4820765Z       }
+2026-11-03T08:29:48.4820969Z     ],
+2026-11-03T08:29:48.4821194Z     "produce_golden_cases": 708,
+2026-11-03T08:29:48.4821496Z     "controller_golden_cases": 201,
+2026-11-03T08:29:48.4821811Z     "fetch_golden_cases": 366,
+2026-11-03T08:29:48.4822119Z     "compiled_fetch_report_checked": false,
+2026-11-03T08:29:48.4822506Z     "compiled_read_write_api_versions_layouts_checked": 0,
+2026-11-03T08:29:48.4823062Z     "retention_golden_cases": 363,
+2026-11-03T08:29:48.4823373Z     "retention_response_cases": 345,
+2026-11-03T08:29:48.4823694Z     "retention_local_rejections": 18,
+2026-11-03T08:29:48.4824036Z     "compiled_retention_report_checked": false,
+2026-11-03T08:29:48.4824431Z     "compiled_retention_api_versions_layouts_checked": 0,
+2026-11-03T08:29:48.4824822Z     "compiled_produce_report_checked": false,
+2026-11-03T08:29:48.4825181Z     "compiled_controller_report_checked": false,
+2026-11-03T08:29:48.4825550Z     "controller_tcp_capture_bytes_checked": false,
+2026-11-03T08:29:48.4825919Z     "controller_tcp_capture_pairs": 0,
+2026-11-03T08:29:48.4826309Z     "controller_tcp_capture_sha256": {},
+2026-11-03T08:29:48.4826616Z     "data_api_versions_wire": {},
+2026-11-03T08:29:48.4826910Z     "read_write_api_versions_wire": {},
+2026-11-03T08:29:48.4828565Z     "source_hash_scope": "Verifier hashes actual source files; compiled controller/protocol/metadata hash fields reflect registry labels. Actual execution provenance requires the retained immutable-source command reports.",
+2026-11-03T08:29:48.4830218Z     "controller_core_state_reported": false,
+2026-11-03T08:29:48.4831380Z     "wire_advertisement_scope": "Compiled static ranges and golden ApiVersions bytes; actual live TCP profile evidence is retained separately in KL11-68/KL11-69.",
+2026-11-03T08:29:48.4832560Z     "qualification": "not_run"
+2026-11-03T08:29:48.4832840Z   },
+2026-11-03T08:29:48.4833042Z   "checks": [
+2026-11-03T08:29:48.4833278Z     "immutable source pins",
+2026-11-03T08:29:48.4833572Z     "bounded archives without extraction",
+2026-11-03T08:29:48.4833901Z     "archive and per-file hashes",
+2026-11-03T08:29:48.4834269Z     "93 unique complete request/response pairs per release",
+2026-11-03T08:29:48.4834677Z     "ApiKeys flags and listener classifications",
+2026-11-03T08:29:48.4835053Z     "exact valid/flexible/deprecated/stable ranges",
+2026-11-03T08:29:48.4835451Z     "generator-derived header versions and exceptions",
+2026-11-03T08:29:48.4835823Z     "truthful feature dispositions",
+2026-11-03T08:29:48.4836217Z     "checked local implementation registry and source/fixture hashes"
+2026-11-03T08:29:48.4836594Z   ],
+2026-11-03T08:29:48.4836793Z   "limitations": [
+2026-11-03T08:29:48.4837399Z     "Static upstream inventory, not handler behavior or broker qualification.",
+2026-11-03T08:29:48.4838321Z     "Future advertisement must use actual implemented and tested versions; upstream Produce minimum-0 workaround is not a partitionline support claim."
+2026-11-03T08:29:48.4839015Z   ]
+2026-11-03T08:29:48.4839211Z }
+2026-11-03T08:29:48.4872108Z ##[group]Run python3 -B -m unittest discover -s tests/ci -p test_broker_api_matrix.py -v
+2026-11-03T08:29:48.4872711Z [36;1mpython3 -B -m unittest discover -s tests/ci -p test_broker_api_matrix.py -v[0m
+2026-11-03T08:29:48.4886313Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-11-03T08:29:48.4886640Z env:
+2026-11-03T08:29:48.4886896Z   pythonLocation: /opt/hostedtoolcache/Python/3.13.17/x64
+2026-11-03T08:29:48.4887485Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.13.17/x64/lib/pkgconfig
+2026-11-03T08:29:48.4887906Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.17/x64
+2026-11-03T08:29:48.4888283Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.17/x64
+2026-11-03T08:29:48.4888646Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.17/x64
+2026-11-03T08:29:48.4889017Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.13.17/x64/lib
+2026-11-03T08:29:48.4889330Z ##[endgroup]
+2026-11-03T08:29:49.2960956Z test_api_versions_response_header_exception_and_classic_client_id (test_broker_api_matrix.BrokerApiMatrix.test_api_versions_response_header_exception_and_classic_client_id) ... ok
+2026-11-03T08:29:49.3214230Z test_archive_corruption_fails_even_with_unchanged_matrix (test_broker_api_matrix.BrokerApiMatrix.test_archive_corruption_fails_even_with_unchanged_matrix) ... ok
+2026-11-03T08:29:49.3245851Z test_archive_duplicate_member_symlink_and_traversal_rejected (test_broker_api_matrix.BrokerApiMatrix.test_archive_duplicate_member_symlink_and_traversal_rejected) ... ok
+2026-11-03T08:29:49.3261874Z test_archive_limits_and_missing_license_rejected (test_broker_api_matrix.BrokerApiMatrix.test_archive_limits_and_missing_license_rejected) ... ok
+2026-11-03T08:29:50.0345104Z test_checked_registry_and_synthetic_report_gate (test_broker_api_matrix.BrokerApiMatrix.test_checked_registry_and_synthetic_report_gate) ... ok
+2026-11-03T08:29:50.1119944Z test_cli_failure_has_nonzero_status_and_retains_failed_report (test_broker_api_matrix.BrokerApiMatrix.test_cli_failure_has_nonzero_status_and_retains_failed_report) ... ok
+2026-11-03T08:29:50.1122380Z test_comment_scanner_preserves_urls_and_escaped_quotes (test_broker_api_matrix.BrokerApiMatrix.test_comment_scanner_preserves_urls_and_escaped_quotes) ... ok
+2026-11-03T08:29:55.0217929Z test_compiled_handler_report_corruption_fails (test_broker_api_matrix.BrokerApiMatrix.test_compiled_handler_report_corruption_fails) ... ok
+2026-11-03T08:29:55.0219316Z test_complete_keys_include_controller_and_new_group_apis (test_broker_api_matrix.BrokerApiMatrix.test_complete_keys_include_controller_and_new_group_apis) ... ok
+2026-11-03T08:30:03.3422491Z test_controller_report_missing_forged_bytes_labels_and_profiles_fail (test_broker_api_matrix.BrokerApiMatrix.test_controller_report_missing_forged_bytes_labels_and_profiles_fail) ... ok
+2026-11-03T08:30:03.3572458Z test_controller_tcp_bytes_and_frames_positive_and_corrupt_controls (test_broker_api_matrix.BrokerApiMatrix.test_controller_tcp_bytes_and_frames_positive_and_corrupt_controls) ... ok
+2026-11-03T08:30:03.3664353Z test_data_wire_profile_actual_baseline_and_forged_fields_fail (test_broker_api_matrix.BrokerApiMatrix.test_data_wire_profile_actual_baseline_and_forged_fields_fail) ... ok
+2026-11-03T08:30:03.3666268Z test_duplicate_json_properties_and_unterminated_comments_fail (test_broker_api_matrix.BrokerApiMatrix.test_duplicate_json_properties_and_unterminated_comments_fail) ... ok
+2026-11-03T08:30:07.0832267Z test_feature_claims_or_retired_dispositions_fail (test_broker_api_matrix.BrokerApiMatrix.test_feature_claims_or_retired_dispositions_fail) ... ok
+2026-11-03T08:30:09.5513168Z test_feature_versions_and_local_gate_cannot_be_forged (test_broker_api_matrix.BrokerApiMatrix.test_feature_versions_and_local_gate_cannot_be_forged) ... ok
+2026-11-03T08:30:21.3218083Z test_fetch_report_missing_forged_outcomes_bytes_layouts_and_profiles_fail (test_broker_api_matrix.BrokerApiMatrix.test_fetch_report_missing_forged_outcomes_bytes_layouts_and_profiles_fail) ... ok
+2026-11-03T08:30:21.8659136Z test_fetch_seed_cannot_be_rehashed_into_unreviewed_history (test_broker_api_matrix.BrokerApiMatrix.test_fetch_seed_cannot_be_rehashed_into_unreviewed_history) ... ok
+2026-11-03T08:30:22.6488044Z test_matrix_key_duplicates_missing_ranges_and_flags_fail (test_broker_api_matrix.BrokerApiMatrix.test_matrix_key_duplicates_missing_ranges_and_flags_fail) ... ok
+2026-11-03T08:30:24.2475143Z test_metadata_missing_changed_and_self_rehashed_fixtures_fail (test_broker_api_matrix.BrokerApiMatrix.test_metadata_missing_changed_and_self_rehashed_fixtures_fail) ... ok
+2026-11-03T08:30:30.8596877Z test_metadata_source_and_report_cannot_forge_runtime_coverage (test_broker_api_matrix.BrokerApiMatrix.test_metadata_source_and_report_cannot_forge_runtime_coverage) ... ok
+2026-11-03T08:30:30.9300592Z test_missing_or_changed_per_file_hash_fails (test_broker_api_matrix.BrokerApiMatrix.test_missing_or_changed_per_file_hash_fails) ... ok
+2026-11-03T08:30:30.9759769Z test_missing_or_duplicate_release_fails (test_broker_api_matrix.BrokerApiMatrix.test_missing_or_duplicate_release_fails) ... ok
+2026-11-03T08:30:50.7201479Z test_optional_feature_dispositions_cannot_claim_full_or_modern_support (test_broker_api_matrix.BrokerApiMatrix.test_optional_feature_dispositions_cannot_claim_full_or_modern_support) ... ok
+2026-11-03T08:30:51.4164190Z test_optional_profiles_positive_baseline_is_scoped (test_broker_api_matrix.BrokerApiMatrix.test_optional_profiles_positive_baseline_is_scoped) ... ok
+2026-11-03T08:30:51.5314909Z test_original_pin_and_reviewed_subset_hash_fail_closed (test_broker_api_matrix.BrokerApiMatrix.test_original_pin_and_reviewed_subset_hash_fail_closed) ... ok
+2026-11-03T08:30:53.2457778Z test_produce_and_controller_rehashed_manifest_forgery_fails (test_broker_api_matrix.BrokerApiMatrix.test_produce_and_controller_rehashed_manifest_forgery_fails) ... ok
+2026-11-03T08:31:00.1333233Z test_produce_report_missing_forged_bytes_outcomes_and_profiles_fail (test_broker_api_matrix.BrokerApiMatrix.test_produce_report_missing_forged_bytes_outcomes_and_profiles_fail) ... ok
+2026-11-03T08:31:00.1335964Z test_produce_workaround_is_separate_from_schema_support (test_broker_api_matrix.BrokerApiMatrix.test_produce_workaround_is_separate_from_schema_support) ... ok
+2026-11-03T08:31:06.8028658Z test_profile_fixture_corruption_missing_extra_and_index_fail (test_broker_api_matrix.BrokerApiMatrix.test_profile_fixture_corruption_missing_extra_and_index_fail) ... ok
+2026-11-03T08:31:14.3260069Z test_profile_registry_ranges_sources_and_gates_fail_closed (test_broker_api_matrix.BrokerApiMatrix.test_profile_registry_ranges_sources_and_gates_fail_closed) ... ok
+2026-11-03T08:31:16.5138262Z test_read_write_registry_source_and_profile_forgery_fail (test_broker_api_matrix.BrokerApiMatrix.test_read_write_registry_source_and_profile_forgery_fail) ... ok
+2026-11-03T08:31:17.2115677Z test_read_write_seven_profile_and_compiled_layout_baseline (test_broker_api_matrix.BrokerApiMatrix.test_read_write_seven_profile_and_compiled_layout_baseline) ... ok
+2026-11-03T08:31:17.2311351Z test_read_write_wire_synthetic_controls_reject_missing_pairs_and_forged_fields (test_broker_api_matrix.BrokerApiMatrix.test_read_write_wire_synthetic_controls_reject_missing_pairs_and_forged_fields) ... ok
+2026-11-03T08:31:17.8412921Z test_real_retained_sources_verify (test_broker_api_matrix.BrokerApiMatrix.test_real_retained_sources_verify) ... ok
+2026-11-03T08:31:20.1729410Z test_registry_cannot_claim_qualification_or_unchecked_source (test_broker_api_matrix.BrokerApiMatrix.test_registry_cannot_claim_qualification_or_unchecked_source) ... ok
+2026-11-03T08:31:22.4940767Z test_registry_forged_extra_or_out_of_range_claims_fail (test_broker_api_matrix.BrokerApiMatrix.test_registry_forged_extra_or_out_of_range_claims_fail) ... ok
+2026-11-03T08:31:23.5016040Z test_registry_missing_extra_and_changed_fixtures_fail (test_broker_api_matrix.BrokerApiMatrix.test_registry_missing_extra_and_changed_fixtures_fail) ... ok
+2026-11-03T08:31:23.5018386Z test_removed_keys_reserve_ids_without_versions_or_listener (test_broker_api_matrix.BrokerApiMatrix.test_removed_keys_reserve_ids_without_versions_or_listener) ... ok
+2026-11-03T08:31:25.9968752Z test_retention_actual_source_changes_fail_without_registry_rebinding (test_broker_api_matrix.BrokerApiMatrix.test_retention_actual_source_changes_fail_without_registry_rebinding) ... ok
+2026-11-03T08:31:32.9756725Z test_retention_api_versions_missing_pairs_and_forged_input_output_fail (test_broker_api_matrix.BrokerApiMatrix.test_retention_api_versions_missing_pairs_and_forged_input_output_fail) ... ok
+2026-11-03T08:31:33.6745359Z test_retention_eight_profile_preserves_other_profiles_and_checks_all_layouts (test_broker_api_matrix.BrokerApiMatrix.test_retention_eight_profile_preserves_other_profiles_and_checks_all_layouts) ... ok
+2026-11-03T08:31:36.5974783Z test_retention_fixture_missing_extra_corrupt_and_index_controls_fail (test_broker_api_matrix.BrokerApiMatrix.test_retention_fixture_missing_extra_corrupt_and_index_controls_fail) ... ok
+2026-11-03T08:31:36.6721193Z test_retention_is_byte_preserving_and_deterministic (test_broker_api_matrix.BrokerApiMatrix.test_retention_is_byte_preserving_and_deterministic) ... ok
+2026-11-03T08:31:40.9766716Z test_retention_registry_range_gate_source_and_fixture_path_forgery_fail (test_broker_api_matrix.BrokerApiMatrix.test_retention_registry_range_gate_source_and_fixture_path_forgery_fail) ... ok
+2026-11-03T08:31:44.6431134Z test_retention_rehashed_manifest_cannot_bless_changed_policy_or_observations (test_broker_api_matrix.BrokerApiMatrix.test_retention_rehashed_manifest_cannot_bless_changed_policy_or_observations) ... ok
+2026-11-03T08:31:52.3659798Z test_retention_report_missing_duplicate_outcome_and_response_forgery_fail (test_broker_api_matrix.BrokerApiMatrix.test_retention_report_missing_duplicate_outcome_and_response_forgery_fail) ... ok
+2026-11-03T08:31:52.4157865Z test_rewritten_source_and_self_reported_hashes_cannot_bless_a_pin (test_broker_api_matrix.BrokerApiMatrix.test_rewritten_source_and_self_reported_hashes_cannot_bless_a_pin) ... ok
+2026-11-03T08:31:52.7602132Z test_self_rehashed_golden_rewrite_still_fails_independent_pin (test_broker_api_matrix.BrokerApiMatrix.test_self_rehashed_golden_rewrite_still_fails_independent_pin) ... ok
+2026-11-03T08:31:52.8260497Z test_source_api_keys_missing_duplicate_and_changed_generator_fail (test_broker_api_matrix.BrokerApiMatrix.test_source_api_keys_missing_duplicate_and_changed_generator_fail) ... ok
+2026-11-03T08:31:52.9494408Z test_source_bad_listener_and_header_client_id_fail (test_broker_api_matrix.BrokerApiMatrix.test_source_bad_listener_and_header_client_id_fail) ... ok
+2026-11-03T08:31:53.0411484Z test_source_missing_key_and_unknown_key_fail (test_broker_api_matrix.BrokerApiMatrix.test_source_missing_key_and_unknown_key_fail) ... ok
+2026-11-03T08:31:53.1338805Z test_source_missing_response_and_duplicate_request_fail (test_broker_api_matrix.BrokerApiMatrix.test_source_missing_response_and_duplicate_request_fail) ... ok
+2026-11-03T08:31:53.3226983Z test_source_pair_disagreement_fails (test_broker_api_matrix.BrokerApiMatrix.test_source_pair_disagreement_fails) ... ok
+2026-11-03T08:31:53.9104667Z test_unreviewed_global_profile_claims_fail (test_broker_api_matrix.BrokerApiMatrix.test_unreviewed_global_profile_claims_fail) ... ok
+2026-11-03T08:31:53.9108148Z test_unstable_versions_and_release_deltas_are_preserved (test_broker_api_matrix.BrokerApiMatrix.test_unstable_versions_and_release_deltas_are_preserved) ... ok
+2026-11-03T08:31:53.9110100Z 
+2026-11-03T08:31:53.9110512Z ----------------------------------------------------------------------
+2026-11-03T08:31:53.9111292Z Ran 55 tests in 124.657s
+2026-11-03T08:31:53.9111540Z 
+2026-11-03T08:31:53.9111661Z OK
+2026-11-03T08:31:53.9378775Z ##[group]Run actions/upload-artifact@v6
+2026-11-03T08:31:53.9379102Z with:
+2026-11-03T08:31:53.9379472Z   name: broker-api-inventory-0ef1cf8581605cedff1117c99bcbbccc6a9cb68e
+2026-11-03T08:31:53.9379943Z   path: target/broker-ci/api-matrix.json
+2026-11-03T08:31:53.9380256Z   if-no-files-found: error
+2026-11-03T08:31:53.9380503Z   retention-days: 30
+2026-11-03T08:31:53.9380728Z   compression-level: 6
+2026-11-03T08:31:53.9380979Z   overwrite: false
+2026-11-03T08:31:53.9381192Z   include-hidden-files: false
+2026-11-03T08:31:53.9381432Z env:
+2026-11-03T08:31:53.9381678Z   pythonLocation: /opt/hostedtoolcache/Python/3.13.17/x64
+2026-11-03T08:31:53.9382083Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.13.17/x64/lib/pkgconfig
+2026-11-03T08:31:53.9382482Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.17/x64
+2026-11-03T08:31:53.9382840Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.17/x64
+2026-11-03T08:31:53.9383247Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.17/x64
+2026-11-03T08:31:53.9383616Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.13.17/x64/lib
+2026-11-03T08:31:53.9383926Z ##[endgroup]
+2026-11-03T08:31:54.1015503Z With the provided path, there will be 1 file uploaded
+2026-11-03T08:31:54.1023029Z Artifact name is valid!
+2026-11-03T08:31:54.1023764Z Root directory input is valid!
+2026-11-03T08:31:54.4623939Z Beginning upload of artifact content to blob storage
+2026-11-03T08:31:54.7062651Z Uploaded bytes 1599
+2026-11-03T08:31:54.7647346Z Finished uploading artifact content to blob storage!
+2026-11-03T08:31:54.7648849Z SHA256 digest of uploaded artifact zip is fdf7f3126bd15ca84a4faf41441575edb2919e19be89fdb7f62ca93a90dcd8f0
+2026-11-03T08:31:54.7650314Z Finalizing artifact upload
+2026-11-03T08:31:55.3984774Z Artifact broker-api-inventory-0ef1cf8581605cedff1117c99bcbbccc6a9cb68e.zip successfully finalized. Artifact ID 13215926853
+2026-11-03T08:31:55.3987261Z Artifact broker-api-inventory-0ef1cf8581605cedff1117c99bcbbccc6a9cb68e has been successfully uploaded! Final size is 1599 bytes. Artifact ID is 13215926853
+2026-11-03T08:31:55.3989866Z Artifact download URL: https://github.com/mingley/partitionline/actions/runs/41603566088/artifacts/13215926853
+2026-11-03T08:31:55.4149434Z Post job cleanup.
+2026-11-03T08:31:55.5416623Z Post job cleanup.
+2026-11-03T08:31:55.6408424Z [command]/usr/bin/git version
+2026-11-03T08:31:55.6458871Z git version 2.56.0
+2026-11-03T08:31:55.6560579Z Temporarily overriding HOME='/home/runner/work/_temp/80ddf0e0-52b6-40e1-84c8-1a2e774b1a6e' before making global git config changes
+2026-11-03T08:31:55.6601032Z Adding repository directory to the temporary git global config as a safe directory
+2026-11-03T08:31:55.6602747Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/partitionline/partitionline
+2026-11-03T08:31:55.6630938Z Removing SSH command configuration
+2026-11-03T08:31:55.6631726Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-11-03T08:31:55.6633218Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-11-03T08:31:55.7278125Z Removing HTTP extra header
+2026-11-03T08:31:55.7284899Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-11-03T08:31:55.7330129Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-11-03T08:31:55.7810391Z Removing includeIf entries pointing to credentials config files
+2026-11-03T08:31:55.7818077Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-11-03T08:31:55.7846878Z includeif.gitdir:/home/runner/work/partitionline/partitionline/.git.path
+2026-11-03T08:31:55.7847683Z includeif.gitdir:/home/runner/work/partitionline/partitionline/.git/worktrees/*.path
+2026-11-03T08:31:55.7848167Z includeif.gitdir:/github/workspace/.git.path
+2026-11-03T08:31:55.7848550Z includeif.gitdir:/github/workspace/.git/worktrees/*.path
+2026-11-03T08:31:55.7856860Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/home/runner/work/partitionline/partitionline/.git.path
+2026-11-03T08:31:55.7884299Z /home/runner/work/_temp/git-credentials-d5aa34bc-5bc8-42b9-ab32-32b6fcec0f5e.config
+2026-11-03T08:31:55.7895595Z [command]/usr/bin/git config --local --unset includeif.gitdir:/home/runner/work/partitionline/partitionline/.git.path \/home\/runner\/work\/_temp\/git\-credentials\-d5aa34bc\-5bc8\-42b9\-ab32\-32b6fcec0f5e\.config
+2026-11-03T08:31:55.7932393Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/home/runner/work/partitionline/partitionline/.git/worktrees/*.path
+2026-11-03T08:31:55.7959720Z /home/runner/work/_temp/git-credentials-d5aa34bc-5bc8-42b9-ab32-32b6fcec0f5e.config
+2026-11-03T08:31:55.7968660Z [command]/usr/bin/git config --local --unset includeif.gitdir:/home/runner/work/partitionline/partitionline/.git/worktrees/*.path \/home\/runner\/work\/_temp\/git\-credentials\-d5aa34bc\-5bc8\-42b9\-ab32\-32b6fcec0f5e\.config
+2026-11-03T08:31:55.8003730Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/github/workspace/.git.path
+2026-11-03T08:31:55.8028793Z /github/runner_temp/git-credentials-d5aa34bc-5bc8-42b9-ab32-32b6fcec0f5e.config
+2026-11-03T08:31:55.8037265Z [command]/usr/bin/git config --local --unset includeif.gitdir:/github/workspace/.git.path \/github\/runner_temp\/git\-credentials\-d5aa34bc\-5bc8\-42b9\-ab32\-32b6fcec0f5e\.config
+2026-11-03T08:31:55.8074127Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/github/workspace/.git/worktrees/*.path
+2026-11-03T08:31:55.8098206Z /github/runner_temp/git-credentials-d5aa34bc-5bc8-42b9-ab32-32b6fcec0f5e.config
+2026-11-03T08:31:55.8106198Z [command]/usr/bin/git config --local --unset includeif.gitdir:/github/workspace/.git/worktrees/*.path \/github\/runner_temp\/git\-credentials\-d5aa34bc\-5bc8\-42b9\-ab32\-32b6fcec0f5e\.config
+2026-11-03T08:31:55.8142500Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-11-03T08:31:55.8573414Z Removing credentials config '/home/runner/work/_temp/git-credentials-d5aa34bc-5bc8-42b9-ab32-32b6fcec0f5e.config'
+2026-11-03T08:31:55.8725030Z Cleaning up orphan processes
