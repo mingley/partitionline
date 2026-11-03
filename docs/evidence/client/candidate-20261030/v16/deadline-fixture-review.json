@@ -1,0 +1,21 @@
+{
+  "scope": "Independent source-only review of fixed-v14 cancelled deadline drain fixture",
+  "manifest_sha256": "a0e1b30f2602eee320ac15599dc7ac40c5f691c3f6fdd043469fc1e981af2e7d",
+  "patch_sha256": "bff6fc134996b97cfc493fd4657f360c911127213ec88f0ca728548c7d9dfeeb",
+  "fixed_producer_preimage_sha256": "ecf14e7e89fff1d1c29faa6778061d58545f9df565eb7858561d4de58920b279",
+  "fixed_producer_postimage_sha256": "38add9415de68efd3ede5a27ce3c182adea92cbd94cd8c77e07b74774d30f6d1",
+  "checks": [
+    "Full fixed source matches v14 catalog. The patch applies and reverses byte-exactly and passes whitespace checking. Only shared test fixture setup changes.",
+    "Code before fixture setup and everything from polling the drain through cancellation, callback/accounting/ownership/socket assertions are byte-identical. Both existing caller identities and timeouts remain unchanged.",
+    "For n=1, earliest first deadline and a later out-of-order last deadline force the unordered suffix branch; 8,192 retained records reach the fold yield before any move.",
+    "For n=8,193, equal deadlines keep the ordered flag true while the prefix accounting loop reaches its yield after 8,192 records before any move.",
+    "The exact v14 baseline producer e19a34440dfe5c5ad0eee465e291a04c63f0d386e8da39eb384638391cf977ce has the original suffix scan; baseline case 02 is untouched and its hosted observation was pass. The separate ordered/unordered control file hash is unchanged."
+  ],
+  "hosted_evidence": "The v14 job identified this test as the sole failed library identity in both feature profiles; available log lacks the panic text. Approximately 301 seconds was the entire library harness duration. The ordered-fast-path explanation is source reasoning, not an observed panic diagnosis.",
+  "decision": "No blocker found in the fixed-only fixture change; native qualification is still required.",
+  "limits": [
+    "No Cargo, native Rust test, Clippy, live Kafka or benchmark was run.",
+    "The modified test is not evidence that the producer, client, broker, release or performance goals qualify.",
+    "The patch must be applied only to the fixed phase; baseline case 02 and its existing observation must remain unchanged."
+  ]
+}

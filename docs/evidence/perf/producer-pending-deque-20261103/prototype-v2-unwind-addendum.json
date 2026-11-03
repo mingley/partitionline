@@ -1,0 +1,28 @@
+{
+  "scope": "source-only review addendum to frozen producer pending deque v2 prototype",
+  "prototype_patch_sha256": "d539ab29021a6307b8a4070b982920191c7641b2f9f0ee3cfea01098b12e7c99",
+  "evidence_archive_sha256": "6cb7a0f09174d2cd4eafb6c171bbf4cd2e89ab480523cb77a7f74dc373ea43d1",
+  "decision": "Do not adopt or claim cancellation/unwind safety; await a complete cleanup design, independent review and native testing.",
+  "findings": [
+    {
+      "path": "src/producer.rs",
+      "location": "Worker::absorb_received",
+      "issue": "Constructing receiving.drain before VecDeque::extend may reserve can drop accepted records not yet transferred if an allocation or capacity panic unwinds. Pre-reserving alone does not solve the potentially allocating scratch merge in Worker::drop."
+    },
+    {
+      "path": "src/producer/split.rs",
+      "location": "Split::first",
+      "issue": "The selected Vec push can allocate after removing a record from the pending queue. The same pop/remove-before-push pattern is present in v14; it is not an established new regression."
+    },
+    {
+      "path": "src/producer.rs",
+      "location": "large synchronous transfers and retained scratch",
+      "issue": "Scratch transfer, large batch or Drop work may be O(n), and scratch can retain peak capacity. No scheduler latency or whole-producer memory bound has been established."
+    }
+  ],
+  "limits": [
+    "These are conditional source-level unwind/capacity-panic concerns, not observed failures. Many out-of-memory conditions abort rather than unwind.",
+    "No native compilation, tests, Kafka run, benchmark or production qualification occurred.",
+    "The hosted retained-backing failure phase and cause remain unknown."
+  ]
+}

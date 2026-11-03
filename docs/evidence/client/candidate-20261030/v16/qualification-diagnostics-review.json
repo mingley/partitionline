@@ -1,0 +1,32 @@
+{
+  "scope": "Independent offline review of client-candidate diagnostic-emission patch v3",
+  "base_commit": "020f3a734a9dccb1b778c5fd60782e604a13e3a9",
+  "patch_sha256": "c4e2c9faf72f49796205b2c9ae254d2f65e203191f76f25dfcbdee9175b74717",
+  "manifest_sha256": "0986f1654142d8d34f1fc69922be27dfe4dd069d1c39a6063c0697070a719427",
+  "v2_to_v3_delta_sha256": "2dbec71125b2d6d0902b3037de42cf4f451ee384b570b5dfd329a281d21ccc56",
+  "source_hashes": {
+    "scripts/ci-qualify-client-candidate.py": "9fe00abe6523c05a23b01b986932491939217ea024768c82751eeec4c1ab2d44",
+    "tests/ci/test_client_candidate_qualification.py": "07355b7a71833a87cab618c0dc6a3edba5fe4e043385f66314bbbc46c52b8003",
+    "scripts/candidate-command-ownership.py": "34ddbf04a4bbead974fad4a451d30c7a56818248bd5b58c88c87bdfc41896da9"
+  },
+  "checks": [
+    "Exact two base/current preimages, frozen postimages and unchanged ownership helper match; full patch and v2-to-v3 delta apply and reverse byte-exactly; whitespace check passes.",
+    "All 30 frozen offline Python tests pass independently. Tests include actual owned subprocess simulations, not Rust or Cargo.",
+    "Both archived e766 partitionline failure logs replay with their real final summary and panic context after trailing blank lines.",
+    "Independent fake-log replay rejects injected status and section lines from the console projection, preserves the complete raw log/receipt and its unchanged raw failure list, bounds long summaries and reports truncation, and suppresses a forged final summary on timeout.",
+    "Console diagnostic lines are ASCII and escape command delimiters and control characters; per-block output caps are enforced. JSON summaries remain parseable and escape command delimiters.",
+    "Expected baseline failures suppress panic emission; mismatching baselines and failed full-target gates emit scoped diagnostic context. Split compiler stderr and structured compiler messages are handled. Reviewed source changes do not alter test selection, timeouts, raw receipt extraction or gate decisions."
+  ],
+  "independent_tests": "30 passed",
+  "test_log_sha256": "7eb0f8ea7d98970c66928169107c8138dc3faef479ae69bc5aac4bde7ba8e5f2",
+  "replay_script_sha256": "5dea7d38dfd1d69450e734ffe405bcdf33c4a69061c2286afd1b094456ad7463",
+  "replay_log_sha256": "ef1c40f5ea33e3efb7f5af30f36f50474b51ad4fbd6aa70ddb2e3b977c0d36e6",
+  "decision": "No blocker found in the scoped source and offline review.",
+  "limits": [
+    "No Cargo, Rust compilation, live GitHub API, publication or native qualification.",
+    "The output bounds apply per emitted summary/diagnostic block, not to existing in-memory log reads or all output over an entire workflow.",
+    "Libtest output is unframed and can be forged, including spoofing a genuine other failure heading; attribution is best effort and no secret redaction is claimed.",
+    "The original raw result parser/gating consumes unframed log data as before; console projection is labeled unverified and is not an independent correctness proof.",
+    "Missing panic sections, abrupt termination, and a clipped test name can prevent useful context from appearing."
+  ]
+}

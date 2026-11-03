@@ -1,0 +1,76 @@
+{
+  "schema": 1,
+  "workflow_run": 41581442964,
+  "job_id": 125741909203,
+  "checkout_sha": "32ec4ab8040721339181918dafaa8edda0a8cce8",
+  "fixed_candidate_base_sha": "33744862cd9e3263de502d57525619bd41704fec",
+  "toolchain": "stable rustc 1.99.1 x86_64",
+  "baseline_declared_expectations_matched": 21,
+  "baseline_observe_only": {
+    "baseline-case-07": "pass",
+    "baseline-case-13": "pass"
+  },
+  "profile_totals": {
+    "default": {
+      "passed": 2431,
+      "failed": 17,
+      "ignored": 2
+    },
+    "all-features": {
+      "passed": 2431,
+      "failed": 17,
+      "ignored": 2
+    }
+  },
+  "reported_artifact": {
+    "id": 13207777434,
+    "size_in_bytes": 15508957,
+    "sha256": "4ae1e7bf190fa904831b5a757eb4de1f263db7eb5721163f0f5650f6cb8d2ffa",
+    "archive_obtained": false,
+    "members_or_digest_verified": false
+  },
+  "files": {
+    "job-125741909203.log": {
+      "sha256": "bf08503de58b290a893768f3ad7c5b12eb43a6f7e636efe6df3efc12037d3fdb",
+      "bytes": 98305
+    },
+    "job-125741909203.log.gz": {
+      "sha256": "a08764ae4e6a37630a3757105e621b4db6caa58d6dd5ee191f45d92902d111e0",
+      "bytes": 17565
+    },
+    "github-metadata.json": {
+      "sha256": "8fe083fb20ecf777c4cf070ea7cdfdc1c26d1e0e0a21a174349d95f93066b359",
+      "bytes": 4750
+    },
+    "spec.json": {
+      "sha256": "d51f80f274fe28802c7f9c44bf11008605cea6a297bde209e9a47e24ad21ba3a",
+      "bytes": 12097
+    },
+    "fixed-inputs.json": {
+      "sha256": "96741778c14d8ea03358b8ece94850cbf7f89f156c4b50bacf818fe4a2530e9a",
+      "bytes": 226796
+    },
+    "observed-results.json": {
+      "sha256": "1a1797bc7e4af30a0b7e22116d1401c9f0d925418a7d2a0b5a15261c0e104093",
+      "bytes": 24305
+    },
+    "REPORT.md": {
+      "sha256": "5750c90f010b0158deb27a067a82566f62e4e24ef49b836a7751cc409c91ed6c",
+      "bytes": 2876
+    },
+    "source-pins/tests/producer_retained_backing.rs": {
+      "sha256": "ed6b5fd8646b580e238f7521c68ae82d6d51bb739ddcb87cf7d89231954fa882",
+      "bytes": 19124
+    },
+    "source-pins/tests/init_producer_id_v6.rs": {
+      "sha256": "410c32dcc78455661521b696d09d687f077c71d1c04ea42f5062b2d024abde62",
+      "bytes": 16787
+    }
+  },
+  "limits": [
+    "No actual panic diagnostics were printed in decoded job log.",
+    "Report artifact bytes and members unavailable via supported downloader.",
+    "Other comparison job status is metadata only.",
+    "No local Cargo, compilation, tests or benchmark."
+  ]
+}

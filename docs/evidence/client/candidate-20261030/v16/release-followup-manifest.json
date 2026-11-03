@@ -1,0 +1,24 @@
+{
+  "base_commit": "020f3a734a9dccb1b778c5fd60782e604a13e3a9",
+  "all_preimages_match_base_commit_and_worktree": true,
+  "patch": "/workspace/work/release-ci-colon-20261103/colon-tmpdir.patch",
+  "patch_sha256": "fd297a226e4c82a10ea9a5fba7bb2b791de98852f71f1267846f573da0d4fe80",
+  "snapshot": "/workspace/work/release-ci-colon-20261103/v1-frozen",
+  "changes": [
+    {
+      "path": "scripts/check-main-ci.sh",
+      "before_sha256": "6a511e841593998f3b3cca49792f515378876a964b0d8c11a88258ea4499416e",
+      "after_sha256": "4c55f121382f3cf345b53882d4cfadd7ab8edfc95707391c53441ff4bd3b8517"
+    },
+    {
+      "path": "tests/release/test_live_ci_evidence.py",
+      "before_sha256": "41cf1e213c021d78d74f6b52ed3d3d7deaac64e5c7a14b868e4b343b2d2500bc",
+      "after_sha256": "6b0eadb385b14baf175f53ff4da2e70c5d95cb8129a6c49fde1a5aa28ebe2c63"
+    }
+  ],
+  "fixture_path_semantics": "Live paths are literal; fixture values remain colon-delimited by default. PL_CI_FIXTURE_SINGLE_PATHS=1 opts all fixture values into literal single paths, including colons, and is ignored for live path selection.",
+  "limits": [
+    "Offline fixture tests only; no GitHub API, Cargo or publication.",
+    "Live compatibility and current release readiness remain unqualified."
+  ]
+}

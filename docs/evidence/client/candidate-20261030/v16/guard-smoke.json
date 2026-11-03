@@ -1,0 +1,18 @@
+{
+  "scope": "Run the exact staged v16 workflow guard bodies against the actual final import manifest and six exact helper files in a private directory; no native build.",
+  "manifest_sha256": "327f9f05c1ab9e321951ea86d841006943ec8f93c74a5b5d960c63a68252e58c",
+  "results": [
+    {
+      "name": "Verify v16 helper pins and controls",
+      "exit": 0,
+      "stdout_sha256": "2691e6cbf9f709d303e5e84d332cc7aeb3ff45df24842114953f04b8f33b8eb1",
+      "stderr_sha256": "344dd05daefffa14ee48ec9de6008dc3525fe786adf2f6b80b8fc78a9a4f2f2d"
+    },
+    {
+      "name": "Recheck v16 helper pins",
+      "exit": 0,
+      "stdout_sha256": "2691e6cbf9f709d303e5e84d332cc7aeb3ff45df24842114953f04b8f33b8eb1",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ]
+}

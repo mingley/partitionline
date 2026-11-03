@@ -1,0 +1,13 @@
+test_duplicate_keys_and_nonfinite_constants_fail (__main__.GuardTests.test_duplicate_keys_and_nonfinite_constants_fail) ... ok
+test_exact_helpers_pass (__main__.GuardTests.test_exact_helpers_pass) ... ok
+test_file_and_parent_symlinks_fail (__main__.GuardTests.test_file_and_parent_symlinks_fail) ... ok
+test_invalid_or_external_manifest_fails (__main__.GuardTests.test_invalid_or_external_manifest_fails) ... ok
+test_invalid_pins_and_manifest_symlink_fail (__main__.GuardTests.test_invalid_pins_and_manifest_symlink_fail) ... ok
+test_missing_extra_and_unsafe_names_fail (__main__.GuardTests.test_missing_extra_and_unsafe_names_fail) ... ok
+test_missing_tampered_and_size_mismatch_fail (__main__.GuardTests.test_missing_tampered_and_size_mismatch_fail) ... ok
+test_ownership_test_and_broker_driver_same_size_mutation_fails (__main__.GuardTests.test_ownership_test_and_broker_driver_same_size_mutation_fails) ... ok
+
+----------------------------------------------------------------------
+Ran 8 tests in 0.015s
+
+OK

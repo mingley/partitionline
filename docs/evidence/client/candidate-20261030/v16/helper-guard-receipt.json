@@ -1,0 +1,16 @@
+{
+  "scope": "Six exact external helper pins, including ownership control and its broker-driver dependency; update v16-only literal guard bootstrap.",
+  "base_commit": "020f3a734a9dccb1b778c5fd60782e604a13e3a9",
+  "v4_guard_sha256": "fbe959cb0c42d1849034c08a85f30527c7a8881feddb718fc7ea7c00a89163e0",
+  "v5_guard_sha256": "b5f624d5d7ca13c479703416683c458fffae62f41ba885df0cc4c15a59c3a462",
+  "v5_guard_bytes": 8759,
+  "v4_workflow_sha256": "5d31187107e0f4a9dfaae0d1d206c836938e5264bec46a95a3af39614e891c42",
+  "v5_workflow_sha256": "46b1ce0c34db289d7512323f6f6b5824649f8071fbd86a58f362c1188feefc58",
+  "followup_patch_sha256": "fd85a708ac4383c00533adaa73d946cc4d38c5076085ee0c5574c2d741a0e1cd",
+  "full_workflow_patch_sha256": "cb24aabef3eb5b0c296251ce10388f16a29b8935ea97f139f58829ac4d279c20",
+  "historical_checkout": "8f960c3e60609703f23f79b3f368355ed8c057d8",
+  "followup_forward_reverse_exact": true,
+  "limits": [
+    "Offline source and workflow tests only; no hosted CI, Cargo or native build."
+  ]
+}

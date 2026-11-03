@@ -1,0 +1,111 @@
+{
+  "source_root": "/workspace/work/client-v15-release-ci-v6-final-postoverlay-20261103",
+  "scope": "V14 client source with release-CI overlay pins updated.",
+  "files": {
+    "docs/evidence/client/candidate-20261030/v15/README.md": {
+      "sha256": "d5353e3d9b6ee5bdeb753d71e890d95077221cb843e19aa4fbafd93e7a9967e8",
+      "bytes": 481
+    },
+    "docs/evidence/client/candidate-20261030/v15/base-inputs.json": {
+      "sha256": "5e746cec95ab8d50e1aae0e8a4415bb812d8ed89effa4b81087567e9f4f5f8e9",
+      "bytes": 226013
+    },
+    "docs/evidence/client/candidate-20261030/v15/baseline-inputs.json": {
+      "sha256": "d0646c6a0680bd19c31b0025871aaff6e0d3e976f2ee6e77fc164f8359e39925",
+      "bytes": 226713
+    },
+    "docs/evidence/client/candidate-20261030/v15/baseline.patch.gz": {
+      "sha256": "191709351911f47e5fda9fbb52910c645e0570afbb411db802a34bdfb018b86e",
+      "bytes": 71659
+    },
+    "docs/evidence/client/candidate-20261030/v15/controls.json": {
+      "sha256": "a67f4ab8e3ed90381749d7dfbf934746300e800788fb3524de368a88560711ea",
+      "bytes": 60616
+    },
+    "docs/evidence/client/candidate-20261030/v15/fixed-delta.patch.gz": {
+      "sha256": "7de01de9954e9e6137845eda8119152e09f621f7eb4a9fae23e6bb6e944ecde6",
+      "bytes": 39699
+    },
+    "docs/evidence/client/candidate-20261030/v15/fixed-inputs.json": {
+      "sha256": "04e49f1c2b9096e7c0926448b20ae53180ce7e86a98a638e20dbf48d391c299b",
+      "bytes": 226908
+    },
+    "docs/evidence/client/candidate-20261030/v15/fixed.patch.gz": {
+      "sha256": "bc2e3690fa1ed6ef11a33c0230dcf5e541ae6a80681a3935014c2141a9f06394",
+      "bytes": 108071
+    },
+    "docs/evidence/client/candidate-20261030/v15/preparation.json": {
+      "sha256": "552e06857097003774ecc4f4261826f57d95f990eae4f1c478c1fb85e68c7c95",
+      "bytes": 6545
+    },
+    "docs/evidence/client/candidate-20261030/v15/prior-provisional-v15-history.json": {
+      "sha256": "50468e29dd3b7ab24d70b8ff229127b5d02913bd697b141d935955482ba91cf7",
+      "bytes": 17449
+    },
+    "docs/evidence/client/candidate-20261030/v15/prior-provisional-v15-objects.tar.gz": {
+      "sha256": "63367c1a4b12032c72c5db08f81649830f88d95ff5ca804133084e4d3ebca85b",
+      "bytes": 4386243
+    },
+    "docs/evidence/client/candidate-20261030/v15/prior-v14-assets.tar.gz": {
+      "sha256": "9eae1d2aa6c12221ad01ffbfdc5e8c832e7ba2d38225a8d1ed0acd40bc0ae0f7",
+      "bytes": 3175390
+    },
+    "docs/evidence/client/candidate-20261030/v15/prior-v14-import-manifest.json": {
+      "sha256": "691f728efb658609bbb8f896ab89549a2821a5968d6381084c4be696bf7a538c",
+      "bytes": 4554
+    },
+    "docs/evidence/client/candidate-20261030/v15/release-ci-manifest.json": {
+      "sha256": "a9cf8cd3840a95335d7f07e9d71526a8e7cb82661e7431d82d77efb2503cd872",
+      "bytes": 2716
+    },
+    "docs/evidence/client/candidate-20261030/v15/release-ci-review.json": {
+      "sha256": "ee972285c9f7a92349f5ca86cece8643000cc54c29a39302c879657812728a80",
+      "bytes": 3092
+    },
+    "docs/evidence/client/candidate-20261030/v15/release-ci-validation.json": {
+      "sha256": "d5d3100f6c3efb5127afa81890d21a45b1a267d17751a0f3c03c2f6f1d32abea",
+      "bytes": 3596
+    },
+    "docs/evidence/client/candidate-20261030/v15/release-ci.patch.gz": {
+      "sha256": "f8e8ecb9293492d5eb9324619f0f965030a60b49a29924bde5ecb50bfb9f5686",
+      "bytes": 16845
+    },
+    "docs/evidence/client/candidate-20261030/v15/spec.json": {
+      "sha256": "5cef7cbc64b17bc95bd7ac549fcd50da6f64e4fa860149b9fc5b683b96ff69a1",
+      "bytes": 12959
+    }
+  },
+  "required_existing_root_files": {
+    "scripts/ci-qualify-client-candidate.py": {
+      "sha256": "b25fe0390d4e4c3227e45c2b27ab671f0f6d8dace7ada911be1aa1391085e2c5",
+      "bytes": 29067
+    },
+    "tests/ci/test_client_candidate_qualification.py": {
+      "sha256": "4285e1b9e0cb5bfdd8398554dcd584207753ccf568d72a6264d845e240ade18b",
+      "bytes": 11830
+    },
+    "scripts/candidate-command-ownership.py": {
+      "sha256": "34ddbf04a4bbead974fad4a451d30c7a56818248bd5b58c88c87bdfc41896da9",
+      "bytes": 5725
+    }
+  },
+  "required_release_patch_sha256": "132974792fb5898b87503a14c40ddde36ba061434fe65d74b638191e2e9f6135",
+  "release_review_status": "reviewed",
+  "release_validation_status": "complete",
+  "provisional": false,
+  "workflow_version_requested": "client source_version:v15; preserve historical lane (root-owned workflow)",
+  "counts": {
+    "base": 1746,
+    "baseline": 1753,
+    "fixed": 1755,
+    "library": 166,
+    "integration": 17,
+    "total": 183,
+    "baseline_cases": 23
+  },
+  "prior_v14_preserved": true,
+  "prior_provisional_history_preserved": true,
+  "full_source_forward_reverse_exact": true,
+  "root_production_edits": false,
+  "native_qualification": "not run"
+}

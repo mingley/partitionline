@@ -1,0 +1,125 @@
+{
+  "source_sha256": "6a511e841593998f3b3cca49792f515378876a964b0d8c11a88258ea4499416e",
+  "fake_service_only": true,
+  "network_or_cargo": false,
+  "cases": {
+    "normal": {
+      "exit_code": 0,
+      "stdout": "check-main-ci: sha=aaaaaaa (branch=main check_sha=aaaaaaa)\ncheck-main-ci: run 123 (attempt unresolved) status=completed conclusion=success \u2014 ci\ncheck-main-ci: workflow conclusion is successful (run 123); checking release profile\ncheck-main-ci: live run 123 attempt 2 confirmed; fetching profile\ncheck-main-ci: profile jobs OK \u2014 27 required jobs green on run 123 (attempt 2)\ncheck-main-ci: profile artifacts OK \u2014 1 required artifacts bound to run 123 SHA aaaaaaa\ncheck-main-ci: OK \u2014 [outcome=success] release profile complete (run 123 attempt 2 sha aaaaaaa)\n",
+      "stderr": "",
+      "calls": [
+        [
+          "run",
+          "list",
+          "--repo",
+          "github.com/example/partitionline",
+          "--branch",
+          "main",
+          "--limit",
+          "50",
+          "--json",
+          "databaseId,status,conclusion,headSha,name,workflowName,event,displayTitle,createdAt"
+        ],
+        [
+          "api",
+          "--hostname",
+          "github.com",
+          "repos/example/partitionline/actions/runs/123"
+        ],
+        [
+          "api",
+          "--hostname",
+          "github.com",
+          "repos/example/partitionline/actions/runs/123/attempts/2/jobs?per_page=100",
+          "--paginate"
+        ],
+        [
+          "api",
+          "--hostname",
+          "github.com",
+          "repos/example/partitionline/actions/runs/123/artifacts?per_page=100",
+          "--paginate"
+        ],
+        [
+          "api",
+          "--hostname",
+          "github.com",
+          "repos/example/partitionline/actions/runs/123"
+        ],
+        [
+          "run",
+          "list",
+          "--repo",
+          "github.com/example/partitionline",
+          "--branch",
+          "main",
+          "--limit",
+          "50",
+          "--json",
+          "databaseId,status,conclusion,headSha,name,workflowName,event,displayTitle,createdAt"
+        ]
+      ],
+      "leftover_tmp_entries": []
+    },
+    "colon_run_list": {
+      "exit_code": 1,
+      "stdout": "check-main-ci: sha=aaaaaaa (branch=main check_sha=aaaaaaa)\n",
+      "stderr": "check-main-ci: WARN \u2014 [outcome=missing] could not parse gh JSON from /tmp/release-ci-colon-jwxu_pc8/colon-run-list/temporary ([Errno 2] No such file or directory: '/tmp/release-ci-colon-jwxu_pc8/colon-run-list/temporary')\n",
+      "calls": [
+        [
+          "run",
+          "list",
+          "--repo",
+          "github.com/example/partitionline",
+          "--branch",
+          "main",
+          "--limit",
+          "50",
+          "--json",
+          "databaseId,status,conclusion,headSha,name,workflowName,event,displayTitle,createdAt"
+        ]
+      ],
+      "leftover_tmp_entries": []
+    },
+    "colon_profile": {
+      "exit_code": 1,
+      "stdout": "check-main-ci: sha=aaaaaaa (branch=main check_sha=aaaaaaa)\ncheck-main-ci: run 123 (attempt unresolved) status=completed conclusion=success \u2014 ci\ncheck-main-ci: workflow conclusion is successful (run 123); checking release profile\ncheck-main-ci: live run 123 attempt 2 confirmed; fetching profile\n",
+      "stderr": "check-main-ci: FAIL \u2014 [outcome=missing] missing: could not parse jobs evidence JSON ([Errno 2] No such file or directory: '/tmp/release-ci-colon-jwxu_pc8/colon-profile/temporary')\n",
+      "calls": [
+        [
+          "run",
+          "list",
+          "--repo",
+          "github.com/example/partitionline",
+          "--branch",
+          "main",
+          "--limit",
+          "50",
+          "--json",
+          "databaseId,status,conclusion,headSha,name,workflowName,event,displayTitle,createdAt"
+        ],
+        [
+          "api",
+          "--hostname",
+          "github.com",
+          "repos/example/partitionline/actions/runs/123"
+        ],
+        [
+          "api",
+          "--hostname",
+          "github.com",
+          "repos/example/partitionline/actions/runs/123/attempts/2/jobs?per_page=100",
+          "--paginate"
+        ],
+        [
+          "api",
+          "--hostname",
+          "github.com",
+          "repos/example/partitionline/actions/runs/123/artifacts?per_page=100",
+          "--paginate"
+        ]
+      ],
+      "leftover_tmp_entries": []
+    }
+  }
+}

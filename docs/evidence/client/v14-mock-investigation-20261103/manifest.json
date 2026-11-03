@@ -1,0 +1,31 @@
+{
+  "schema": 1,
+  "kind": "source-bound diagnosis and proposed controls; not a fix",
+  "v14_job": 125741909203,
+  "v14_run": 41581442964,
+  "hosted_summary": "32 passed, 15 failed, 0 ignored in each profile; exact panic bodies unavailable",
+  "v14_fixed_source_sha256": {
+    "tests/mock_produce.rs": "d3d85b55e0e9ebf342435a253d289873c3b9f2d854c5ca55fd8d3d27c53d9ab1",
+    "src/producer.rs": "ecf14e7e89fff1d1c29faa6778061d58545f9df565eb7858561d4de58920b279",
+    "src/net.rs": "f73aa7a04d3e2571f347f6a9245cf6f4df4ab218f653e71ca824e86e7893907c",
+    "tests/common/mod.rs": "c129003ccb42305c1871a685210884f5db9a5779eb2de5872224d5c8d3001c8f"
+  },
+  "v14_fixed_inputs_sha256": "96741778c14d8ea03358b8ece94850cbf7f89f156c4b50bacf818fe4a2530e9a",
+  "evidence": {
+    "/workspace/work/client-v14-job-evidence-20261103/job-125741909203.log.gz": "a08764ae4e6a37630a3757105e621b4db6caa58d6dd5ee191f45d92902d111e0",
+    "/workspace/work/client-v14-job-evidence-20261103/observed-results.json": "1a1797bc7e4af30a0b7e22116d1401c9f0d925418a7d2a0b5a15261c0e104093",
+    "/workspace/work/client-candidate-native-c025-20261030/default-mock_produce.log": "77f25da192f9178c97c24eb6d8814d026f827735b4334e69fc223de3b09b603d",
+    "/workspace/work/client-handshake-wire-phase-20261103/triage.md": "6cb323a7506e9d55cead424585fc5191e2d5213c7fc6619507ff421e05fdb051",
+    "/workspace/partitionline/docs/evidence/client/producer-handshake-v10-20261103/README.md": "69ef1d2721f7feea2f0fa0eff15e0f91089b9a0c00d09611809c681afa41a3a2",
+    "/workspace/partitionline/docs/evidence/client/producer-handshake-v10-20261103/analysis.json": "68fcb3ed3db97d29eb0ff6ea63af872278708749bdccd2b101e2338d7e042c11"
+  },
+  "artifacts": {
+    "REPORT.md": "d438b7e4467542441fca254c48b8f661cbe5ff4e4593d7cc1b9e12cbed428f30",
+    "cases.json": "f052a83a9e6f321f954e138bac35f3dcc7b34f96e285e97432f5d5e6507c3524"
+  },
+  "limits": [
+    "Historical v7/v10 observations do not establish the exact v14 failure phases or timings.",
+    "Original tests, performance thresholds and source files were not changed.",
+    "No Cargo, Clippy, native test, benchmark, compilation or production claim."
+  ]
+}

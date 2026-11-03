@@ -26,3 +26,10 @@ found a conflicting eviction test, an existing close-cancellation gap,
 ordering limited to individual retry attempts, possible lane saturation by
 one group, and no bound on request bytes waiting before admission. It has not
 been compiled or run and must not be adopted in its current form.
+
+A [test-only follow-up](supervised-followup-v3-evidence.tar.gz) adds controls
+for eviction, close cancellation, lane saturation and retry ordering. The
+[review](supervised-followup-v3-review.json) preserves its limits: the retry
+control lacks a deterministic backoff witness, the saturation control uses a
+timing window, and the proposed close and public-call ordering guarantees
+need an API decision. These controls have not been compiled or run.

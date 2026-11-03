@@ -1,0 +1,9 @@
+{
+  "base_commit": "020f3a734a9dccb1b778c5fd60782e604a13e3a9",
+  "patch_sha256": "c4e2c9faf72f49796205b2c9ae254d2f65e203191f76f25dfcbdee9175b74717",
+  "manifest_sha256": "0986f1654142d8d34f1fc69922be27dfe4dd069d1c39a6063c0697070a719427",
+  "delta_sha256": "2dbec71125b2d6d0902b3037de42cf4f451ee384b570b5dfd329a281d21ccc56",
+  "two_file_forward_reverse": "pass",
+  "v2_to_v3_roundtrip": "pass",
+  "network_or_cargo": false
+}

@@ -307,6 +307,41 @@ class LiveCIEvidence(unittest.TestCase):
         result,_=self.run_case(fixture(), spaced_tmp=True)
         self.assertEqual(result.returncode,0,result.stdout+result.stderr)
 
+    def test_live_evidence_with_colon_in_tmpdir(self):
+        with tempfile.TemporaryDirectory(prefix='pl-live-ci-colon-') as directory:
+            temporary=Path(directory)/'directory:with-colon'; temporary.mkdir()
+            result,calls=self.run_case(fixture(), {'TMPDIR':str(temporary)})
+            self.assertEqual(result.returncode,0,result.stdout+result.stderr)
+            self.assertIn('release profile complete',result.stdout)
+            self.assertTrue(any('/attempts/' in ' '.join(call) for call in calls))
+            self.assertEqual(list(temporary.iterdir()),[])
+            data=fixture(); data['jobs'][0]['jobs'][0]['conclusion']='failure'
+            result,_=self.run_case(data, {'TMPDIR':str(temporary)})
+            self.assertNotEqual(result.returncode,0,result.stdout+result.stderr)
+            self.assertNotIn('release profile complete',result.stdout)
+            self.assertEqual(list(temporary.iterdir()),[])
+
+    def test_colon_delimited_fixture_lists_remain_supported(self):
+        with tempfile.TemporaryDirectory(prefix='pl-fixture-lists-') as directory:
+            folder=Path(directory); data=fixture()
+            run=data['runs'][0]; run['attempt']=ATTEMPT
+            jobs=data['jobs'][0]['jobs']; artifact=data['artifacts'][0]['artifacts'][0]
+            files={'runs1':[], 'runs2':[run],
+                   'jobs1':{'run_id':RUN,'head_sha':SHA,'attempt':ATTEMPT,'jobs':jobs[:1]},
+                   'jobs2':{'run_id':RUN,'head_sha':SHA,'attempt':ATTEMPT,'jobs':jobs[1:]},
+                   'arts1':{'artifacts':[]}, 'arts2':{'artifacts':[artifact]}}
+            for name,content in files.items(): (folder/name).write_text(json.dumps(content))
+            env={'PATH':'/usr/bin:/bin','LANG':'C.UTF-8','CHECK_SHA':SHA,
+                 'REQUIRE_MAIN_CI':'1','REQUIRE_PROFILE_EVIDENCE':'1','TMPDIR':directory,
+                 'GH_RUNS_JSON':str(folder/'runs1')+':'+str(folder/'runs2'),
+                 'GH_JOBS_JSON':str(folder/'jobs1')+':'+str(folder/'jobs2'),
+                 'GH_ARTIFACTS_JSON':str(folder/'arts1')+':'+str(folder/'arts2'),
+                 'PYTHONDONTWRITEBYTECODE':'1'}
+            result=subprocess.run(['bash','scripts/check-main-ci.sh'],cwd=ROOT,env=env,
+                                  capture_output=True,text=True,timeout=30)
+            self.assertEqual(result.returncode,0,result.stdout+result.stderr)
+            self.assertIn('release profile complete',result.stdout)
+
     def test_cleanup_on_early_run_selection_failure(self):
         data=fixture(); data['runs'][0]['headSha']=OTHER
         result,_=self.run_case(data, spaced_tmp=True)
@@ -335,6 +370,17 @@ class LiveCIEvidence(unittest.TestCase):
             env={'PATH':'/usr/bin:/bin', 'LANG':'C.UTF-8', 'TMPDIR':str(temporary),
                  'PYTHONDONTWRITEBYTECODE':'1'}
             result=subprocess.run(['bash','scripts/check-main-ci.sh','--self-test'], cwd=ROOT, env=env,
+                                  capture_output=True,text=True,timeout=30)
+            self.assertEqual(result.returncode,0,result.stdout+result.stderr)
+            self.assertIn('self-test: OK',result.stdout)
+            self.assertEqual(list(temporary.iterdir()),[])
+
+    def test_self_test_handles_colon_in_tmpdir(self):
+        with tempfile.TemporaryDirectory(prefix='pl-self-test-colon-') as directory:
+            temporary=Path(directory)/'directory:with-colon'; temporary.mkdir()
+            env={'PATH':'/usr/bin:/bin','LANG':'C.UTF-8','TMPDIR':str(temporary),
+                 'PYTHONDONTWRITEBYTECODE':'1'}
+            result=subprocess.run(['bash','scripts/check-main-ci.sh','--self-test'],cwd=ROOT,env=env,
                                   capture_output=True,text=True,timeout=30)
             self.assertEqual(result.returncode,0,result.stdout+result.stderr)
             self.assertIn('self-test: OK',result.stdout)

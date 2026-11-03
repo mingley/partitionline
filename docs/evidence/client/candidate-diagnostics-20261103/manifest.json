@@ -1,0 +1,30 @@
+{
+  "base_commit": "020f3a734a9dccb1b778c5fd60782e604a13e3a9",
+  "all_preimages_match_base_and_worktree": true,
+  "patch": "/workspace/work/client-candidate-diagnostics-20261103/candidate-diagnostics-v3.patch",
+  "patch_sha256": "c4e2c9faf72f49796205b2c9ae254d2f65e203191f76f25dfcbdee9175b74717",
+  "snapshot": "/workspace/work/client-candidate-diagnostics-20261103/v3-frozen",
+  "changes": [
+    {
+      "path": "scripts/ci-qualify-client-candidate.py",
+      "before_sha256": "b25fe0390d4e4c3227e45c2b27ab671f0f6d8dace7ada911be1aa1391085e2c5",
+      "after_sha256": "9fe00abe6523c05a23b01b986932491939217ea024768c82751eeec4c1ab2d44"
+    },
+    {
+      "path": "tests/ci/test_client_candidate_qualification.py",
+      "before_sha256": "4285e1b9e0cb5bfdd8398554dcd584207753ccf568d72a6264d845e240ade18b",
+      "after_sha256": "07355b7a71833a87cab618c0dc6a3edba5fe4e043385f66314bbbc46c52b8003"
+    }
+  ],
+  "unchanged_helper": {
+    "path": "scripts/candidate-command-ownership.py",
+    "sha256": "34ddbf04a4bbead974fad4a451d30c7a56818248bd5b58c88c87bdfc41896da9"
+  },
+  "v2_patch_sha256": "6a7a53c6382cd45f9a428b3e7206f77b9e0e4873c405bce5517dccf198abe0ff",
+  "v3_from_v2_sha256": "2dbec71125b2d6d0902b3037de42cf4f451ee384b570b5dfd329a281d21ccc56",
+  "limits": [
+    "Only emitted diagnostic and summary bytes/lines are bounded; the existing runner reads its primary log in full.",
+    "Libtest output is unframed and can be forged; attribution is best-effort and no secret redaction is claimed.",
+    "No Cargo, GitHub network or native builds were run."
+  ]
+}

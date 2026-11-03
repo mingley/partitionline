@@ -15,6 +15,7 @@ Client 0.1.0 is already published. The next client version must be at least
 | Client default library on `main`, `e7660f6e5` | 2,168 passed, 28 failed; later integration targets did not run |
 | Client all-feature library on `main` at that commit | 2,170 passed, 26 failed; later integration targets did not run |
 | Isolated client v10 library in each profile | 2,280 passed; selected producer tests still failed |
+| Isolated client v14, 10 targets per profile | 2,431 passed, 17 failed and two ignored in each profile |
 | Qualified broker v2 default all targets, `209d0b068` | 720 passed |
 | Qualified broker v2 all-feature all targets at that commit | 868 passed |
 | Broker v2 strict Clippy, docs, inventory and six fresh-process Fetch deadline checks | Passed |
@@ -193,13 +194,36 @@ failed Clippy and the default test build because a test module did not import
 `PendingWork`; no fixed runtime controls ran. Its successor v13 retains the
 same client source with reviewed release-tooling inputs, so that compilation
 error is corrected in the staged
-[v15 candidate](../evidence/client/candidate-20261030/v15/README.md), which
-retains v14's Rust patches and needs native compilation and tests. It keeps
-166 library and 17 integration controls, 23 baseline cases and the original
-timing limits. The v14 hosted run was still in progress when this was recorded.
+[v16 candidate](../evidence/client/candidate-20261030/v16/README.md), which
+retains v14's production Rust changes and needs native compilation and tests.
+It keeps 166 library and 17 integration controls, 23 baseline cases and the
+original timing limits. Its fixed-only deadline fixture now forces the
+unordered scan that its existing cancellation assertion intends to exercise;
+the unavailable v14 panic text leaves that failure's cause unconfirmed. The
+[v14 run](../evidence/client/candidate-v14-job-20261103/REPORT.md)
+passed format, strict Clippy and both builds, but each profile failed the same
+15 Mock Produce tests, one pending-deadline cancellation test and one
+retained-backing test. The job log does not contain their panic diagnostics.
+These profile counts overlap and must not be added as independent tests.
+The [mock-produce source review](../evidence/client/v14-mock-investigation-20261103/REPORT.md)
+maps the failing identities to their distinct assertions. Several expect
+reuse of a live negotiated socket, while v14 opens a new socket and negotiates
+it separately. Preserve socket-specific versions and authentication when
+designing reuse; the missing panic bodies leave individual causes unconfirmed.
+The retained-backing fixture sends more than 4,096 single-record batches with
+one request in flight. Repeated vector prefix drains shift the remaining
+records; their contribution to the failure has not been measured. The reviewed
+[deque design](../evidence/perf/producer-pending-deque-20261103/README.md)
+explores avoiding those shifts while preserving order, cancellation ownership
+and deadline accounting. Its isolated prototype is uncompiled and unmeasured;
+the review found unresolved allocation-unwind and resource-bound issues.
 The [v13 job log](../evidence/client/candidate-job-337-20261103/REPORT.md)
 also reports failed Clippy and default builds; its compiler diagnostics and
 report archive could not be retrieved through the available transfer path.
+The [qualification runner](../evidence/client/candidate-diagnostics-20261103/README.md)
+now prints bounded failure context in the job log while retaining full reports.
+It needs a hosted run; its console projection is not an independent proof and
+is not secret-redacted.
 The new baseline group control failed before demonstrating its intended
 third-request barrier. Vec prefix shifts and unordered or sticky deadline
 scans remain, and no performance change is measured.
@@ -232,8 +256,9 @@ without claiming authorization. One hundred offline tests passed on the final
 patch, and the hosted offline rehearsal passed at `33744862c`. The installed
 GitHub CLI 2.46.0 rejects the earlier checker's requested `attempt` JSON field.
 Its [replacement](../evidence/releases/ci-attempt-binding-20261103/README.md)
-binds jobs and artifacts to the run attempt and passed 119 offline tests.
-Live pagination and end-to-end current-attempt verification remain open.
+binds jobs and artifacts to the run attempt. A [temporary-path follow-up](../evidence/releases/ci-colon-tmpdir-20261103/README.md)
+passed the expanded 122-test offline suite. Live pagination and end-to-end
+current-attempt verification remain open.
 The [local release record](../evidence/releases/local-release-gates-20261103/README.md)
 retains the new controls and original failures. The
 [release tooling record](../evidence/releases/release-readiness-20261102/README.md)

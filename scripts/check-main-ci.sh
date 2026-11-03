@@ -52,6 +52,8 @@
 #                      "workflow_run": {"id": N, "head_sha": "..."}}]} (also accepts
 #                      a plain [...] list or paginated forms). Enables the
 #                      required-artifact phase offline.
+#   PL_CI_FIXTURE_SINGLE_PATHS=1  treat each fixture value as one literal path,
+#                      including any colons, rather than as a path list.
 #   REQUIRE_PROFILE_EVIDENCE=1  in fixture mode (GH_RUNS_JSON set), fail closed
 #                      when GH_JOBS_JSON or GH_ARTIFACTS_JSON is absent instead
 #                      of skipping that phase. Live mode always requires the
@@ -111,7 +113,7 @@ PY
       return 1
     fi
   }
-  base_env=(env "CHECK_SHA=${SHA}" "REQUIRE_MAIN_CI=1" "GH_RUNS_JSON=${tmp}/runs.json")
+  base_env=(env "CHECK_SHA=${SHA}" "REQUIRE_MAIN_CI=1" "GH_RUNS_JSON=${tmp}/runs.json" "PL_CI_FIXTURE_SINGLE_PATHS=1")
   # 1. Complete positive evidence.
   check_case "positive-full-profile" 0 "[outcome=success]" \
     "${base_env[@]}" GH_JOBS_JSON="${tmp}/jobs_ok.json" GH_ARTIFACTS_JSON="${tmp}/art_ok.json" \
@@ -190,7 +192,7 @@ json.dump([{"databaseId": 777001, "name": "release", "workflowName": "release",
           open(f"{tmp}/runs_other.json", "w"))
 PY
   check_case "unrelated-workflow-rejected" 1 "[outcome=wrong_sha]" \
-    env CHECK_SHA="${SHA}" REQUIRE_MAIN_CI=1 GH_RUNS_JSON="${tmp}/runs_other.json" \
+    "${base_env[@]}" GH_RUNS_JSON="${tmp}/runs_other.json" \
     bash scripts/check-main-ci.sh || return 1
   # 9. Jobs evidence for another run is stale, not readiness.
   python3 - "$tmp" "$SHA" <<'PY'
@@ -331,7 +333,10 @@ trap 'rm -f -- "$selected_out"; if [[ -n "$tmp" ]]; then rm -f -- "$tmp"; fi' EX
 HEAD_SHA="$main_sha" REQUIRE_MAIN_CI="$REQUIRE_MAIN_CI" SELECTED_OUT="$selected_out" python3 - "$input_json" <<'PY'
 import json, os, re, sys
 
-paths = sys.argv[1].split(":")
+raw_paths = sys.argv[1]
+fixture = bool(os.environ.get("GH_RUNS_JSON"))
+single_fixture = os.environ.get("PL_CI_FIXTURE_SINGLE_PATHS") == "1"
+paths = [raw_paths] if not fixture or single_fixture else raw_paths.split(":")
 head = os.environ["HEAD_SHA"]
 require = os.environ.get("REQUIRE_MAIN_CI", "0") == "1"
 
@@ -709,7 +714,8 @@ def load_items(paths, list_keys, kind):
         raise ValueError("invalid JSON constant " + value)
 
     decoder = json.JSONDecoder(object_pairs_hook=reject_duplicates, parse_constant=reject_constant)
-    for path in paths.split(":"):
+    single_fixture = os.environ.get("PL_CI_FIXTURE_SINGLE_PATHS") == "1"
+    for path in ([paths] if live or single_fixture else paths.split(":")):
         if not path:
             continue
         try:

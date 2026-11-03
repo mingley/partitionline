@@ -1,0 +1,162 @@
+{
+  "repo": "mingley/partitionline",
+  "run": {
+    "id": 41581442964,
+    "name": "candidate qualification",
+    "status": "completed",
+    "conclusion": "failure",
+    "head_sha": "32ec4ab8040721339181918dafaa8edda0a8cce8",
+    "run_attempt": 1,
+    "event": "push",
+    "head_branch": "main",
+    "created_at": "2026-11-03T05:01:31Z",
+    "updated_at": "2026-11-03T05:42:54Z"
+  },
+  "jobs": [
+    {
+      "id": 125741908903,
+      "name": "client main-comparison-b1 (stable, x86_64)",
+      "status": "completed",
+      "conclusion": "failure",
+      "run_id": 41581442964
+    },
+    {
+      "id": 125741909203,
+      "name": "client v14 (stable, x86_64)",
+      "status": "completed",
+      "conclusion": "failure",
+      "run_id": 41581442964
+    }
+  ],
+  "steps": [
+    {
+      "name": "Set up job",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 1
+    },
+    {
+      "name": "Run actions/checkout@v7",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 2
+    },
+    {
+      "name": "Verify checkout commit",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 3
+    },
+    {
+      "name": "Run dtolnay/rust-toolchain@stable",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 4
+    },
+    {
+      "name": "Install source inventory prerequisite",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 5
+    },
+    {
+      "name": "Check command ownership controls",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 6
+    },
+    {
+      "name": "Check client qualification guards",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 7
+    },
+    {
+      "name": "Check broker qualification guards",
+      "status": "completed",
+      "conclusion": "skipped",
+      "number": 8
+    },
+    {
+      "name": "Check local TLS peer prerequisite",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 9
+    },
+    {
+      "name": "Qualify isolated client candidate",
+      "status": "completed",
+      "conclusion": "failure",
+      "number": 10
+    },
+    {
+      "name": "Qualify isolated broker candidate",
+      "status": "completed",
+      "conclusion": "skipped",
+      "number": 11
+    },
+    {
+      "name": "Retain attempts and failures",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 12
+    },
+    {
+      "name": "Retain qualification reports",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 13
+    },
+    {
+      "name": "Post Run actions/checkout@v7",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 26
+    },
+    {
+      "name": "Complete job",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 27
+    }
+  ],
+  "artifacts": [
+    {
+      "id": 13207777434,
+      "name": "candidate-reports-client-v14-trigger-32ec4ab8040721339181918dafaa8edda0a8cce8-checkout-32ec4ab8040721339181918dafaa8edda0a8cce8-41581442964",
+      "size_in_bytes": 15508957,
+      "digest": "sha256:4ae1e7bf190fa904831b5a757eb4de1f263db7eb5721163f0f5650f6cb8d2ffa",
+      "expired": false,
+      "created_at": "2026-11-03T05:42:51Z",
+      "updated_at": "2026-11-03T05:42:51Z"
+    },
+    {
+      "id": 13207308071,
+      "name": "candidate-client-v14-trigger-32ec4ab8040721339181918dafaa8edda0a8cce8-checkout-32ec4ab8040721339181918dafaa8edda0a8cce8-41581442964",
+      "size_in_bytes": 203034993,
+      "digest": "sha256:f9af64ef470ca9716f0c9e9b6137a2c6925e006fd0bad096b11ef89c7189300a",
+      "expired": false,
+      "created_at": "2026-11-03T05:42:48Z",
+      "updated_at": "2026-11-03T05:42:48Z"
+    },
+    {
+      "id": 13206992510,
+      "name": "candidate-client-main-comparison-b1-trigger-32ec4ab8040721339181918dafaa8edda0a8cce8-checkout-8f960c3e60609703f23f79b3f368355ed8c057d8-41581442964",
+      "size_in_bytes": 88428134,
+      "digest": "sha256:6e2c7583b293357247ecb415ad4f31f7ffa59adbcbd668f109dffbdeff1d3d2e",
+      "expired": false,
+      "created_at": "2026-11-03T05:32:58Z",
+      "updated_at": "2026-11-03T05:32:58Z"
+    },
+    {
+      "id": 13206644255,
+      "name": "candidate-reports-client-main-comparison-b1-trigger-32ec4ab8040721339181918dafaa8edda0a8cce8-checkout-8f960c3e60609703f23f79b3f368355ed8c057d8-41581442964",
+      "size_in_bytes": 3553185,
+      "digest": "sha256:c991f2872f0200fd09ae9ee26c989122a1e45462f7f59650e42ceb9a965b9426",
+      "expired": false,
+      "created_at": "2026-11-03T05:33:00Z",
+      "updated_at": "2026-11-03T05:33:00Z"
+    }
+  ],
+  "limits": "Job list is first-page latest-attempt only. Artifact sizes and digests are reported by GitHub; archive contents are not independently verified."
+}

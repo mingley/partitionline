@@ -1,0 +1,23 @@
+{
+  "patch_sha256": "c4e2c9faf72f49796205b2c9ae254d2f65e203191f76f25dfcbdee9175b74717",
+  "archive_sha256": "ea71b04d77fb7ca3f1d824f382c3f162f7c2463fdfd1f62128584388446c4503",
+  "historical_controls": [
+    {
+      "object": "498ea5fd2582575f0bcd2f09eff4bbde0a37787d7a5cf5b1d1eea77d397b7cda",
+      "input_sha256": "498ea5fd2582575f0bcd2f09eff4bbde0a37787d7a5cf5b1d1eea77d397b7cda",
+      "failure_count": 1,
+      "result_preserved": true,
+      "panic_visible": true,
+      "output_sha256": "3242e4fcb2f1db039fde6151e9b25d7e586e25911459a7417d652af8025b222f"
+    },
+    {
+      "object": "ce3cfcaec3930cd1c7dcf6b19196e42484124d64be03b8667092cfae6d142e62",
+      "input_sha256": "ce3cfcaec3930cd1c7dcf6b19196e42484124d64be03b8667092cfae6d142e62",
+      "failure_count": 1,
+      "result_preserved": true,
+      "panic_visible": true,
+      "output_sha256": "968e43adcf37afc252885548bfa2a7dbd5611fab32106a8312c4105df330a449"
+    }
+  ],
+  "limits": "Retained e766 logs; not evidence for the current hosted failure."
+}

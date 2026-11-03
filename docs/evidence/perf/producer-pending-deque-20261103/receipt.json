@@ -1,0 +1,46 @@
+{
+  "scope": "source-only pending queue design and retained-backing investigation; no production/test patch",
+  "status": "v2 source-only design; unmeasured; source pins verified; independent review pending; no identified root cause",
+  "source_pins": {
+    "src/producer.rs": "ecf14e7e89fff1d1c29faa6778061d58545f9df565eb7858561d4de58920b279",
+    "src/producer/split.rs": "03e893bc8b41182cae2d35f8702cb7821a41fafab6306205d017df4bd5593ad0",
+    "src/net.rs": "f73aa7a04d3e2571f347f6a9245cf6f4df4ab218f653e71ca824e86e7893907c",
+    "tests/producer_retained_backing.rs": "ed6b5fd8646b580e238f7521c68ae82d6d51bb739ddcb87cf7d89231954fa882",
+    "tests/common/mod.rs": "c129003ccb42305c1871a685210884f5db9a5779eb2de5872224d5c8d3001c8f"
+  },
+  "v14_fixed_catalog_sha256": "96741778c14d8ea03358b8ece94850cbf7f89f156c4b50bacf818fe4a2530e9a",
+  "v14_spec_sha256": "d51f80f274fe28802c7f9c44bf11008605cea6a297bde209e9a47e24ad21ba3a",
+  "github_run": 41581442964,
+  "job": 125741909203,
+  "job_log_sha256": "bf08503de58b290a893768f3ad7c5b12eb43a6f7e636efe6df3efc12037d3fdb",
+  "observed_default": {
+    "passed": 8,
+    "failed": 1,
+    "ignored": 1
+  },
+  "observed_all_features": {
+    "passed": 8,
+    "failed": 1,
+    "ignored": 1
+  },
+  "failed_test": "cancelled_channel_admission_releases_only_the_unenqueued_reservation",
+  "reported_artifact_id": 13207777434,
+  "reported_artifact_sha256": "4ae1e7bf190fa904831b5a757eb4de1f263db7eb5721163f0f5650f6cb8d2ffa",
+  "reported_artifact_bytes_verified": false,
+  "checks": [
+    "verified five reconstructed source files against v14 catalog",
+    "observed hosted job summary and preserved full compact source-bound hosted job evidence"
+  ],
+  "limitations": [
+    "hosted failure body and timeout diagnostics unavailable through a supported local artifact transfer",
+    "source-deduced quadratic prefix movement and serial RTT costs are not measured causes",
+    "no source patch, tests, Cargo, native execution or benchmarks",
+    "no cancellation, memory, interoperability, production or performance qualification"
+  ],
+  "files": {
+    "README.md": "b8aad33077cf9d0d7794ea310460499a2f4b5d9393d9eb72f75dc058a0647729",
+    "verify_sources.py": "ea5f90979726868371c4120cd7a5fd81260a6b0696932703863cfa20fc317891",
+    "producer-pending-deque-design-v1-evidence.tar.gz": "560ce6db04a6d7ab90fe5e9430f109634cdde7d4f8620fcf304e7acd036702f2"
+  },
+  "revision": "Preserves frozen v1; adds review concerns on mock TCP_NODELAY, success/cancel reversal, Tokio recv_many, sticky lock and singleton paths, receive chunk semantics, and synchronous drain/Drop latency."
+}

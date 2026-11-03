@@ -1,0 +1,125 @@
+{
+  "scope": "source-pinned test assertions and hosted summary, not causal diagnoses",
+  "cases": [
+    {
+      "test": "commit_reuses_a_produce_handshake_for_the_moved_coordinator",
+      "source": "tests/mock_produce.rs",
+      "line": 1349,
+      "category": "transaction_move",
+      "test_assertions": "Requires initial negotiation count 2, then no increase and <200 ms after coordinator move.",
+      "v14_failure_phase": "unknown: decoded job summary has no panic body"
+    },
+    {
+      "test": "commit_reuses_bootstrap_when_the_coordinator_returns",
+      "source": "tests/mock_produce.rs",
+      "line": 1380,
+      "category": "transaction_move",
+      "test_assertions": "Requires initial negotiation count 2, then no increase and <200 ms after coordinator returns.",
+      "v14_failure_phase": "unknown: decoded job summary has no panic body"
+    },
+    {
+      "test": "epoch_bump_reuses_a_produce_handshake",
+      "source": "tests/mock_produce.rs",
+      "line": 1512,
+      "category": "epoch_bump",
+      "test_assertions": "Requires initial negotiation count 2, correct coordinator node, no extra ApiVersions and abort <200 ms.",
+      "v14_failure_phase": "unknown: decoded job summary has no panic body"
+    },
+    {
+      "test": "multi_bootstrap_commit_reuses_known_coordinator_handshakes",
+      "source": "tests/mock_produce.rs",
+      "line": 1477,
+      "category": "multi_bootstrap_move",
+      "test_assertions": "No extra ApiVersions after coordinator move and commit <200 ms.",
+      "v14_failure_phase": "unknown: decoded job summary has no panic body"
+    },
+    {
+      "test": "multi_bootstrap_send_offsets_reuses_known_handshakes",
+      "source": "tests/mock_produce.rs",
+      "line": 1607,
+      "category": "group_commit_multi",
+      "test_assertions": "No extra ApiVersions and offset commit <200 ms.",
+      "v14_failure_phase": "unknown: decoded job summary has no panic body"
+    },
+    {
+      "test": "multi_bootstrap_transaction_reuses_the_other_bootstrap_handshake",
+      "source": "tests/mock_produce.rs",
+      "line": 1452,
+      "category": "multi_bootstrap_startup",
+      "test_assertions": "Startup negotiation count <=2 and elapsed <400 ms with 250 ms ApiVersions delay.",
+      "v14_failure_phase": "unknown: decoded job summary has no panic body"
+    },
+    {
+      "test": "produce_reuses_a_finished_bootstrap_handshake",
+      "source": "tests/mock_produce.rs",
+      "line": 1411,
+      "category": "bootstrap_spare",
+      "test_assertions": "Startup count <=4 and <700 ms; no later increase and produce <200 ms.",
+      "v14_failure_phase": "unknown: decoded job summary has no panic body"
+    },
+    {
+      "test": "produce_reuses_bootstrap_api_versions",
+      "source": "tests/mock_produce.rs",
+      "line": 110,
+      "category": "first_produce",
+      "test_assertions": "No added ApiVersions after startup; first produce <200 ms with 250 ms negotiation delay.",
+      "v14_failure_phase": "unknown: decoded job summary has no panic body"
+    },
+    {
+      "test": "produce_reuses_the_transaction_coordinator_handshake",
+      "source": "tests/mock_produce.rs",
+      "line": 1550,
+      "category": "coordinator_to_produce",
+      "test_assertions": "Requires initial count 2; no extra ApiVersions and produce <200 ms.",
+      "v14_failure_phase": "unknown: decoded job summary has no panic body"
+    },
+    {
+      "test": "send_all_redials_leaders_while_refreshing_metadata",
+      "source": "tests/mock_produce.rs",
+      "line": 455,
+      "category": "end_to_end_redial",
+      "test_assertions": "Two acknowledgements and complete action <450 ms with 250 ms ApiVersions and Metadata delays, 40 ms idle and 60 ms idle sleep.",
+      "v14_failure_phase": "unknown: decoded job summary has no panic body"
+    },
+    {
+      "test": "send_offsets_negotiates_a_new_group_coordinator",
+      "source": "tests/mock_produce.rs",
+      "line": 1641,
+      "category": "group_commit_remote",
+      "test_assertions": "Exactly one additional ApiVersions and offset commit <450 ms.",
+      "v14_failure_phase": "unknown: decoded job summary has no panic body"
+    },
+    {
+      "test": "send_offsets_repeats_a_remote_coordinator_without_another_handshake",
+      "source": "tests/mock_produce.rs",
+      "line": 1670,
+      "category": "group_commit_repeat",
+      "test_assertions": "Second offset commit <200 ms and no extra ApiVersions.",
+      "v14_failure_phase": "unknown: decoded job summary has no panic body"
+    },
+    {
+      "test": "send_offsets_reuses_bootstrap_api_versions",
+      "source": "tests/mock_produce.rs",
+      "line": 1579,
+      "category": "group_commit",
+      "test_assertions": "Requires initial negotiation count 1; no increase and offset commit <200 ms.",
+      "v14_failure_phase": "unknown: decoded job summary has no panic body"
+    },
+    {
+      "test": "transactional_rediscover_skips_a_second_bootstrap_handshake",
+      "source": "tests/mock_produce.rs",
+      "line": 1323,
+      "category": "transaction_rediscovery",
+      "test_assertions": "Exactly one startup ApiVersions after injected coordinator-load response; <450 ms.",
+      "v14_failure_phase": "unknown: decoded job summary has no panic body"
+    },
+    {
+      "test": "transactional_startup_skips_a_second_bootstrap_handshake",
+      "source": "tests/mock_produce.rs",
+      "line": 1298,
+      "category": "transaction_startup",
+      "test_assertions": "Exactly one startup ApiVersions; complete startup <650 ms with 250 ms ApiVersions and FindCoordinator delays.",
+      "v14_failure_phase": "unknown: decoded job summary has no panic body"
+    }
+  ]
+}

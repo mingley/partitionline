@@ -1,0 +1,8 @@
+{
+  "base_commit": "020f3a734a9dccb1b778c5fd60782e604a13e3a9",
+  "patch_sha256": "fd297a226e4c82a10ea9a5fba7bb2b791de98852f71f1267846f573da0d4fe80",
+  "manifest_sha256": "73563d32fa06af9dc245fbdf73107134a39806ab57e5e940263ff5d3340c60a3",
+  "forward_reverse": "pass",
+  "paths": 2,
+  "network_or_cargo": false
+}

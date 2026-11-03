@@ -26,6 +26,203 @@ EXPECTED = None
 OWNERSHIP = None
 RUNTIME_FLOOR = 3 * 1024 ** 3 // 2
 COMPILE_FLOOR = RUNTIME_FLOOR
+DIAGNOSTIC_BYTES = 32 * 1024
+DIAGNOSTIC_LINES = 128
+DIAGNOSTIC_LINE_BYTES = 384
+DIAGNOSTIC_CASES = 16
+DIAGNOSTIC_BODY_LINES = 6
+CONSOLE_SUMMARY_BYTES = 8192
+CONSOLE_SUMMARY_CASES = 32
+CONSOLE_SUMMARY_ITEM_CHARS = 256
+
+
+class DiagnosticOutput:
+    """Print bounded ASCII lines that cannot become GitHub workflow commands."""
+    def __init__(self):
+        self.bytes = 0
+        self.lines = 0
+        self.truncated = False
+
+    def write(self, text):
+        text = str(text)
+        escaped = text[:512].encode('unicode_escape').decode('ascii').replace('::', r'\x3a\x3a')
+        if len(text) > 512 or len(escaped) > DIAGNOSTIC_LINE_BYTES:
+            escaped = escaped[:DIAGNOSTIC_LINE_BYTES - 20] + '... [line truncated]'
+            self.truncated = True
+        rendered = 'candidate-diagnostic | ' + escaped + '\n'
+        # Reserve space and one line for the truncation notice.
+        if self.lines >= DIAGNOSTIC_LINES - 1 or self.bytes + len(rendered) > DIAGNOSTIC_BYTES - 64:
+            self.truncated = True
+            return
+        print(rendered, end='', flush=True)
+        self.lines += 1
+        self.bytes += len(rendered)
+
+    def finish(self):
+        if self.truncated:
+            print('candidate-diagnostic | [diagnostics truncated]', flush=True)
+
+
+def emit_test_diagnostics(name, log, failures):
+    """Show only panic/error context from libtest's failed-test sections."""
+    ordered = list(dict.fromkeys(failures))
+    selected = set(ordered[:DIAGNOSTIC_CASES])
+    sections = {}
+    in_failures = False
+    current = None
+    for line in log.split('\n'):
+        if line == 'failures:':
+            if in_failures:
+                break
+            in_failures = True
+            continue
+        if not in_failures:
+            continue
+        if line.startswith('---- ') and line.endswith(' stdout ----'):
+            case = line[5:-12]
+            current = case if case in selected and case not in sections else None
+            if current is not None:
+                sections[current] = {'lines': [], 'started': False, 'truncated': False}
+            continue
+        if current is None:
+            continue
+        section = sections[current]
+        if not section['started']:
+            section['started'] = ((line.startswith('thread ') and ' panicked at ' in line)
+                                  or line.startswith('Error: '))
+            if not section['started']:
+                continue
+        if re.match(r'^test .* \.\.\. (?:ok|FAILED|ignored)$', line) or line.startswith('test result:'):
+            current = None
+            continue
+        if line.startswith('note: run with '):
+            current = None
+            continue
+        if len(section['lines']) < DIAGNOSTIC_BODY_LINES:
+            section['lines'].append(line)
+        elif line:
+            section['truncated'] = True
+    output = DiagnosticOutput()
+    output.write(name + ': failed-test diagnostics')
+    for case in ordered[:DIAGNOSTIC_CASES]:
+        output.write('test: ' + case)
+        section = sections.get(case)
+        if not section or not section['lines']:
+            output.write('[panic/error context unavailable in retained log]')
+            continue
+        for line in section['lines']:
+            output.write(line)
+        output.truncated |= section['truncated']
+    output.truncated |= len(ordered) > DIAGNOSTIC_CASES
+    output.finish()
+
+
+def report_baseline_case(name, expected, matches, row, log):
+    if matches:
+        return
+    output = DiagnosticOutput()
+    output.write(name + ': baseline expectation mismatch; expected=' + str(expected) + ' exit=' + str(row['exit']))
+    output.finish()
+    failures, _, _ = console_failures(log)
+    if failures:
+        emit_test_diagnostics(name, log, failures)
+
+
+def emit_compiler_diagnostics(name, logs):
+    """Show bounded compiler errors and rustfmt diff blocks, not whole logs."""
+    blocks = []
+    more = False
+    for text in logs:
+        lines = text.split('\n')
+        for index, line in enumerate(lines):
+            block = None
+            if line.startswith('{'):
+                try:
+                    event = json.loads(line)
+                except (ValueError, TypeError):
+                    event = None
+                if isinstance(event, dict) and event.get('reason') == 'compiler-message':
+                    message = event.get('message')
+                    if isinstance(message, dict) and message.get('level') == 'error':
+                        rendered = message.get('rendered') or message.get('message')
+                        if isinstance(rendered, str):
+                            block = rendered.split('\n')
+            elif re.match(r'^error(?:\[[A-Za-z0-9_-]{1,32}\])?:', line) or line.startswith('Diff in '):
+                block = []
+                for following in lines[index:]:
+                    if block and (not following or following.startswith('warning: ') or
+                                  re.match(r'^error(?:\[[A-Za-z0-9_-]{1,32}\])?:', following)):
+                        break
+                    block.append(following)
+                    if len(block) > DIAGNOSTIC_BODY_LINES:
+                        break
+            if block:
+                if len(blocks) < DIAGNOSTIC_CASES:
+                    blocks.append(block)
+                else:
+                    more = True
+    output = DiagnosticOutput()
+    output.write(name + ': compiler diagnostics')
+    if not blocks:
+        output.write('[compiler error context unavailable in retained logs]')
+    for block in blocks:
+        for line in block[:DIAGNOSTIC_BODY_LINES]:
+            output.write(line)
+        output.truncated |= len(block) > DIAGNOSTIC_BODY_LINES
+    output.truncated |= more
+    output.finish()
+
+
+def console_failures(log):
+    """Project status lines before captured failure bodies, without altering receipts."""
+    marker = re.search(r'^failures:$', log, re.MULTILINE)
+    statuses = log[:marker.start()] if marker else log
+    names, total, clipped = [], 0, False
+    for match in re.finditer(r'^test (.*?) \.\.\. FAILED$', statuses, re.MULTILINE):
+        if total < CONSOLE_SUMMARY_CASES:
+            start, end = match.span(1)
+            names.append(statuses[start:min(end, start + CONSOLE_SUMMARY_ITEM_CHARS)])
+            clipped |= end - start > CONSOLE_SUMMARY_ITEM_CHARS
+        total += 1
+    return names, total, clipped
+
+
+def emit_run_summary(row, log):
+    """Print a bounded, unverified projection; full data remains in the receipt."""
+    names, total, clipped = console_failures(log)
+    markers = re.finditer(r'^failures:$', log, re.MULTILINE)
+    first = next(markers, None)
+    second = next(markers, None) if first else None
+    result = re.search(r'^(test result: (?:ok|FAILED)\. \d{1,10} passed; \d{1,10} failed; '
+                       r'\d{1,10} ignored;[^\n]{0,512})\n*\Z', log, re.MULTILINE)
+    if (row['stop_reason'] or row['exit'] not in (0, 101) or
+            (first and (not second or (result and result.start() < second.end())))):
+        result = None
+    results = [result.group(1)] if result else []
+    name = str(row['name'])
+    summary = {'name': name[:CONSOLE_SUMMARY_ITEM_CHARS], 'exit': row['exit'],
+               'stop_reason': row['stop_reason'], 'elapsed_seconds': row['elapsed_seconds'],
+               'inputs_stable': row['inputs_stable'], 'test_results': [], 'test_failures': [],
+               'test_failures_observed': total, 'projection': 'unverified; full receipt retained',
+               'projection_truncated': len(name) > CONSOLE_SUMMARY_ITEM_CHARS or total > len(names) or clipped}
+
+    def encoded():
+        return json.dumps(summary).replace('::', r'\u003a\u003a')
+
+    for key, items in [('test_results', results[-1:]), ('test_failures', names)]:
+        for item in items:
+            summary[key].append(item[:CONSOLE_SUMMARY_ITEM_CHARS])
+            if len(item) > CONSOLE_SUMMARY_ITEM_CHARS:
+                summary['projection_truncated'] = True
+            if len(encoded()) + 1 > CONSOLE_SUMMARY_BYTES:
+                summary[key].pop()
+                summary['projection_truncated'] = True
+                break
+    rendered = encoded()
+    if len(rendered) + 1 > CONSOLE_SUMMARY_BYTES:
+        rendered = json.dumps({'projection': 'unverified; full receipt retained', 'projection_truncated': True})
+    print(rendered, flush=True)
+    return names
 
 def digest(path):
     with Path(path).open('rb') as stream:
@@ -83,7 +280,7 @@ def ownership_helper():
     return OWNERSHIP
 
 
-def run(name, command, timeout=600, split_stderr=False, disk_floor=RUNTIME_FLOOR):
+def run(name, command, timeout=600, split_stderr=False, disk_floor=RUNTIME_FLOOR, diagnostic_kind=None):
     OUT.mkdir(parents=True, exist_ok=True)
     if (OUT / (name + '.json')).exists() or (OUT / (name + '.log')).exists():
         raise RuntimeError('refusing to overwrite previous run ' + name)
@@ -160,8 +357,14 @@ def run(name, command, timeout=600, split_stderr=False, disk_floor=RUNTIME_FLOOR
     if split_stderr:
         row['stderr_sha256'] = digest(stderr_path)
     save(name + '.json', row)
-    print(json.dumps({key: row[key] for key in ('name', 'exit', 'stop_reason',
-        'elapsed_seconds', 'inputs_stable', 'test_results', 'test_failures')}), flush=True)
+    failures = emit_run_summary(row, data)
+    if diagnostic_kind == 'test' and failures:
+        emit_test_diagnostics(name, data, failures)
+    elif diagnostic_kind == 'compiler' and row['exit'] not in (None, 0):
+        logs = [data]
+        if split_stderr:
+            logs.append(stderr_path.read_text(errors='replace'))
+        emit_compiler_diagnostics(name, logs)
     if (not row['inputs_stable'] or row['stop_reason'] or
         row['runner_sha256'] != row['runner_sha256_after'] or
         row['ownership_helper_sha256'] != row['ownership_helper_sha256_after']):
@@ -203,7 +406,7 @@ def build(name, targets, all_features=False):
         command.extend(['--lib'] if target == 'partitionline' else ['--test', target])
     if all_features:
         command.append('--all-features')
-    row = run(name, command, timeout=1200, split_stderr=True, disk_floor=COMPILE_FLOOR)
+    row = run(name, command, timeout=1200, split_stderr=True, disk_floor=COMPILE_FLOOR, diagnostic_kind='compiler')
     if row['exit']:
         raise RuntimeError('build failed ' + name)
     events = {}
@@ -237,7 +440,8 @@ def execute(name, build_name, target, filters, timeout=600):
         build=build_name, target=target, sha256=artifact['sha256'],
         source_inputs_sha256=digest(build_inputs_path),
         retained_gzip_sha256=artifact['gzip_sha256']))
-    row = run(name, [str(binary), *filters, '--test-threads=1'], timeout=timeout)
+    row = run(name, [str(binary), *filters, '--test-threads=1'], timeout=timeout,
+              diagnostic_kind='test' if not filters else None)
     if digest(binary) != artifact['sha256']:
         raise RuntimeError('compiled artifact was replaced during ' + name)
     log = (OUT / (name + '.log')).read_text()
@@ -432,6 +636,17 @@ def full_target(name, build_name, target, required):
          'required_results': required_results,
          'discovered': len(names), 'ignored_not_executed': sorted(ignored),
          'result_counts': counts, 'verification_errors': errors, 'passed': passed_gate})
+    if not passed_gate:
+        output = DiagnosticOutput()
+        output.write(name + ': qualification gate failed')
+        for error in errors:
+            output.write('verification: ' + error)
+        for test, result in required_results.items():
+            if result != 'ok':
+                output.write('required test: ' + test + ' status=' + str(result))
+        if not errors and all(value == 'ok' for value in required_results.values()):
+            output.write('test command exit=' + str(row['exit']))
+        output.finish()
     return passed_gate
 
 
@@ -516,6 +731,8 @@ def qualify(spec_path, output):
         matches = expected == 'observe' or (expected == 'pass' and row['exit'] == 0 and passed == 1) or (expected == 'fail' and row['exit'] == 101 and failed == 1)
         if case.get('failure_regex') and expected == 'fail':
             matches = matches and re.search(case['failure_regex'], (OUT / (name + '.log')).read_text()) is not None
+        if not matches:
+            report_baseline_case(name, expected, matches, row, (OUT / (name + '.log')).read_text(errors='replace'))
         baseline_ok = baseline_ok and matches
         baseline_results.append({'case': case, 'exit': row['exit'], 'matches_expectation': matches, 'receipt': name + '.json'})
     save('baseline-results.json', {'all_expectations_matched': baseline_ok, 'cases': baseline_results})
@@ -524,7 +741,7 @@ def qualify(spec_path, output):
     gates = []
     for name, command in [('format', ['cargo', '+stable', 'fmt', '--all', '--', '--check']),
                           ('clippy', ['cargo', '+stable', 'clippy', '--locked', '--all-targets', '--all-features', '--', '-D', 'warnings'])]:
-        row = run(name, command, timeout=1200, disk_floor=COMPILE_FLOOR)
+        row = run(name, command, timeout=1200, disk_floor=COMPILE_FLOOR, diagnostic_kind='compiler')
         gates.append({'name': name, 'passed': row['exit'] == 0, 'receipt': name + '.json'})
     required = {'partitionline': {row['test'] for row in controls['library']}}
     for row in controls['integrations']:

@@ -1,0 +1,82 @@
+{
+  "guard_sha256": "b5f624d5d7ca13c479703416683c458fffae62f41ba885df0cc4c15a59c3a462",
+  "guard_bytes": 8759,
+  "full_patch_sha256": "cb24aabef3eb5b0c296251ce10388f16a29b8935ea97f139f58829ac4d279c20",
+  "v4_to_v5_sha256": "fd85a708ac4383c00533adaa73d946cc4d38c5076085ee0c5574c2d741a0e1cd",
+  "cases": {
+    "valid_six_pins": [
+      {
+        "exit": 0,
+        "stderr_last": "OK"
+      },
+      {
+        "exit": 0,
+        "stderr_last": ""
+      }
+    ],
+    "same_size_mutation_tests/ci/test_candidate_command_ownership.py": [
+      {
+        "exit": 1,
+        "stderr_last": "candidate helper pins: helper size or hash mismatch: tests/ci/test_candidate_command_ownership.py"
+      },
+      {
+        "exit": 1,
+        "stderr_last": "candidate helper pins: helper size or hash mismatch: tests/ci/test_candidate_command_ownership.py"
+      }
+    ],
+    "same_size_mutation_scripts/ci-qualify-broker-candidate.py": [
+      {
+        "exit": 1,
+        "stderr_last": "candidate helper pins: helper size or hash mismatch: scripts/ci-qualify-broker-candidate.py"
+      },
+      {
+        "exit": 1,
+        "stderr_last": "candidate helper pins: helper size or hash mismatch: scripts/ci-qualify-broker-candidate.py"
+      }
+    ],
+    "forged_manifest_with_same_size_noop_verifier": [
+      {
+        "exit": 1,
+        "stderr_last": "candidate helper guard hash mismatch"
+      },
+      {
+        "exit": 1,
+        "stderr_last": "candidate helper guard hash mismatch"
+      }
+    ],
+    "duplicate_key_manifest": [
+      {
+        "exit": 1,
+        "stderr_last": "candidate helper pins: invalid helper manifest: duplicate JSON key: required_existing_root_files"
+      },
+      {
+        "exit": 1,
+        "stderr_last": "candidate helper pins: invalid helper manifest: duplicate JSON key: required_existing_root_files"
+      }
+    ],
+    "guard_file_symlink": [
+      {
+        "exit": 1,
+        "stderr_last": "OSError: [Errno 40] Too many levels of symbolic links: 'ci-verify-client-candidate-helpers.py'"
+      },
+      {
+        "exit": 1,
+        "stderr_last": "OSError: [Errno 40] Too many levels of symbolic links: 'ci-verify-client-candidate-helpers.py'"
+      }
+    ],
+    "guard_parent_symlink": [
+      {
+        "exit": 1,
+        "stderr_last": "NotADirectoryError: [Errno 20] Not a directory: 'scripts'"
+      },
+      {
+        "exit": 1,
+        "stderr_last": "NotADirectoryError: [Errno 20] Not a directory: 'scripts'"
+      }
+    ]
+  },
+  "scope": "independent offline workflow and negative controls; no native compilation or hosted run",
+  "workflow_roundtrip_and_delta_equivalence": true,
+  "workflow_after_sha256": "46b1ce0c34db289d7512323f6f6b5824649f8071fbd86a58f362c1188feefc58",
+  "workflow_scope_checks": true
+}

@@ -1,0 +1,225 @@
+{
+  "source_root": "/workspace/work/client-v16-final-20261103",
+  "scope": "V15 plus reviewed release-checker and fixed deadline fixture, with reviewed external diagnostics and six-helper workflow guard.",
+  "files": {
+    "docs/evidence/client/candidate-20261030/v16/README.md": {
+      "sha256": "aaeec6d98a92aa4be62993c4cd7f52de973047d9b0b7a0f337d288809a8da7fb",
+      "bytes": 781
+    },
+    "docs/evidence/client/candidate-20261030/v16/base-inputs.json": {
+      "sha256": "11880cd37f8b1078aa88a1ac5af895efa03d16d076c7564d0e0cf9ed51cee83d",
+      "bytes": 226013
+    },
+    "docs/evidence/client/candidate-20261030/v16/baseline-inputs.json": {
+      "sha256": "66cbda09f9dbb796cc447c2212b616454bee8bdf5d9bba7a61a9b7e96510934f",
+      "bytes": 226713
+    },
+    "docs/evidence/client/candidate-20261030/v16/baseline.patch.gz": {
+      "sha256": "191709351911f47e5fda9fbb52910c645e0570afbb411db802a34bdfb018b86e",
+      "bytes": 71659
+    },
+    "docs/evidence/client/candidate-20261030/v16/controls.json": {
+      "sha256": "a67f4ab8e3ed90381749d7dfbf934746300e800788fb3524de368a88560711ea",
+      "bytes": 60616
+    },
+    "docs/evidence/client/candidate-20261030/v16/deadline-fixture-receipt.json": {
+      "sha256": "a0e1b30f2602eee320ac15599dc7ac40c5f691c3f6fdd043469fc1e981af2e7d",
+      "bytes": 3079
+    },
+    "docs/evidence/client/candidate-20261030/v16/deadline-fixture-review.json": {
+      "sha256": "0a2337944ea3a43ccf5b0896384f9b93381e1b61f849eb6f6f5584f698c4c62b",
+      "bytes": 2225
+    },
+    "docs/evidence/client/candidate-20261030/v16/deadline-fixture.patch": {
+      "sha256": "bff6fc134996b97cfc493fd4657f360c911127213ec88f0ca728548c7d9dfeeb",
+      "bytes": 2076
+    },
+    "docs/evidence/client/candidate-20261030/v16/fixed-delta.patch.gz": {
+      "sha256": "fbbdcd58ad08d59169da3c0914942b8e42388f855ab8ba56b26152d1e5e0b5aa",
+      "bytes": 40193
+    },
+    "docs/evidence/client/candidate-20261030/v16/fixed-inputs.json": {
+      "sha256": "15da704200222b0b3b8de7d74274b9cf1fb3933a9339112c09b3467aa07868ea",
+      "bytes": 226908
+    },
+    "docs/evidence/client/candidate-20261030/v16/fixed.patch.gz": {
+      "sha256": "9b18e71d20a732527b6f13107d13db96bacc84d0a596be788ea454fdd55e46af",
+      "bytes": 108293
+    },
+    "docs/evidence/client/candidate-20261030/v16/helper-guard-independent-review.json": {
+      "sha256": "11e6abb8789d4f9b9babf4257d0212bc082470db6117d259f0a9d76f5f1e8c0b",
+      "bytes": 2753
+    },
+    "docs/evidence/client/candidate-20261030/v16/helper-guard-receipt.json": {
+      "sha256": "1d9a44d04f17ffe24f8f1a7f7cd9e3bf53acadd51cdacb6f38097984484cc406",
+      "bytes": 1009
+    },
+    "docs/evidence/client/candidate-20261030/v16/helper-guard-self-test.log": {
+      "sha256": "a3e787afc49593c99f144ac7f6e5a204f39f350355edf5a2b04a360c4055e65f",
+      "bytes": 1012
+    },
+    "docs/evidence/client/candidate-20261030/v16/helper-guard-v4-to-v5.patch": {
+      "sha256": "fd85a708ac4383c00533adaa73d946cc4d38c5076085ee0c5574c2d741a0e1cd",
+      "bytes": 4400
+    },
+    "docs/evidence/client/candidate-20261030/v16/helper-guard-workflow-full.patch": {
+      "sha256": "cb24aabef3eb5b0c296251ce10388f16a29b8935ea97f139f58829ac4d279c20",
+      "bytes": 4439
+    },
+    "docs/evidence/client/candidate-20261030/v16/helper-guard-workflow-test.log": {
+      "sha256": "144e7efdd68b47e9d12c36f48c4abf002f8a3a91ad5411ea0cfe97665dba5bae",
+      "bytes": 104
+    },
+    "docs/evidence/client/candidate-20261030/v16/helper-guard-workflow-test.py": {
+      "sha256": "6a4acc5cada4459ca217c30d288ffb303423aac52e4a8f114551a1dcf7c7ae8a",
+      "bytes": 4779
+    },
+    "docs/evidence/client/candidate-20261030/v16/preparation.json": {
+      "sha256": "3ee7e7fe72bb0d40b807cc44d81de92c6cb1788b2560e9e15a052e6bf07f8216",
+      "bytes": 9539
+    },
+    "docs/evidence/client/candidate-20261030/v16/prior-driver-README.md": {
+      "sha256": "5b7e97c5c68774e74068bcdd09591e7495a19d8efc2b9ef5050804d468dfaea9",
+      "bytes": 692
+    },
+    "docs/evidence/client/candidate-20261030/v16/prior-driver-import-manifest.json": {
+      "sha256": "c73774b7f1269a7165bba23d3aa7e86a41ee61a25285431772c8f27312b6d67a",
+      "bytes": 6502
+    },
+    "docs/evidence/client/candidate-20261030/v16/prior-driver-preparation.json": {
+      "sha256": "4a5abf71893e7a502a06cb7c853f26d9bb6dbf758d15a621dd8516960eedd939",
+      "bytes": 8271
+    },
+    "docs/evidence/client/candidate-20261030/v16/prior-driver-spec.json": {
+      "sha256": "360e043b019b0f09893b7358c29bcb7777ac82e76593f60bbd561e876c00cdf9",
+      "bytes": 15033
+    },
+    "docs/evidence/client/candidate-20261030/v16/prior-release-only-README.md": {
+      "sha256": "d03a07871d308afc7aa8b16600a8151d4fc242e20fc207063a524345739a4e76",
+      "bytes": 465
+    },
+    "docs/evidence/client/candidate-20261030/v16/prior-release-only-fixed-delta.patch.gz": {
+      "sha256": "7de01de9954e9e6137845eda8119152e09f621f7eb4a9fae23e6bb6e944ecde6",
+      "bytes": 39699
+    },
+    "docs/evidence/client/candidate-20261030/v16/prior-release-only-fixed-inputs.json": {
+      "sha256": "55a4bded3b70b7a7101602f9703ef045027cc0f809de10f9947236a24e6bcda2",
+      "bytes": 226908
+    },
+    "docs/evidence/client/candidate-20261030/v16/prior-release-only-fixed.patch.gz": {
+      "sha256": "bc2e3690fa1ed6ef11a33c0230dcf5e541ae6a80681a3935014c2141a9f06394",
+      "bytes": 108071
+    },
+    "docs/evidence/client/candidate-20261030/v16/prior-release-only-import-manifest.json": {
+      "sha256": "575a66a4fff2db187d952a344eb2536c7175ae4f85e01aa8a5a5cd68ebeaf426",
+      "bytes": 4309
+    },
+    "docs/evidence/client/candidate-20261030/v16/prior-release-only-preparation.json": {
+      "sha256": "86b06fedfc4545d13979e8c0afa896074baee67f9c67b4e9f7e8f40f7028daa0",
+      "bytes": 6925
+    },
+    "docs/evidence/client/candidate-20261030/v16/prior-release-only-spec.json": {
+      "sha256": "c93122bbf0a3e0573c539355f8b54c6eb1eb9151c17f0f3e2c527eb76112eb6e",
+      "bytes": 14089
+    },
+    "docs/evidence/client/candidate-20261030/v16/prior-v15-assets.tar.gz": {
+      "sha256": "5d12d274506fee1e36b20c03ad2cf1a494823ecd8e47731c72acd23496d7a230",
+      "bytes": 7984034
+    },
+    "docs/evidence/client/candidate-20261030/v16/prior-v15-import-manifest.json": {
+      "sha256": "7748e290677e092a6cde0773a8a3c5ac8a9c01c9364cab5101b3bcf5247c147c",
+      "bytes": 4736
+    },
+    "docs/evidence/client/candidate-20261030/v16/qualification-diagnostics-manifest.json": {
+      "sha256": "0986f1654142d8d34f1fc69922be27dfe4dd069d1c39a6063c0697070a719427",
+      "bytes": 1561
+    },
+    "docs/evidence/client/candidate-20261030/v16/qualification-diagnostics-review.json": {
+      "sha256": "5a319e4470cd9d689c0a1a041aac09476caa31cc0ff7b1742849991d4c2fa036",
+      "bytes": 3148
+    },
+    "docs/evidence/client/candidate-20261030/v16/qualification-diagnostics-validation.json": {
+      "sha256": "dfb80cb654e7d8a0249706284256c624425966ad919b8349c5da30c9bdadf863",
+      "bytes": 2113
+    },
+    "docs/evidence/client/candidate-20261030/v16/qualification-diagnostics.patch.gz": {
+      "sha256": "cc02db968fe09b39cb1daeecedfd6584b7c83cba516aa91404f2796c7b3dc434",
+      "bytes": 7042
+    },
+    "docs/evidence/client/candidate-20261030/v16/release-followup-manifest.json": {
+      "sha256": "73563d32fa06af9dc245fbdf73107134a39806ab57e5e940263ff5d3340c60a3",
+      "bytes": 1262
+    },
+    "docs/evidence/client/candidate-20261030/v16/release-followup-review.json": {
+      "sha256": "b110ec7485c6bed3ea88fb9db51cb296737c759337854e94990b73f45745a4e4",
+      "bytes": 2033
+    },
+    "docs/evidence/client/candidate-20261030/v16/release-followup-validation.json": {
+      "sha256": "611b10981c9d6b0570e03876e72418e43c91a74f2c3409a1b985872913f2101f",
+      "bytes": 2131
+    },
+    "docs/evidence/client/candidate-20261030/v16/release-followup.patch.gz": {
+      "sha256": "3141aee232b220790f8ccd436c950e7469b666553a2dfaf4ec83b3f08685bed4",
+      "bytes": 2303
+    },
+    "docs/evidence/client/candidate-20261030/v16/spec.json": {
+      "sha256": "dcca8ef98344e960ced94ef0aa560032950ce96556dab16820cffe007e3a6be2",
+      "bytes": 17020
+    },
+    "scripts/ci-verify-client-candidate-helpers.py": {
+      "sha256": "b5f624d5d7ca13c479703416683c458fffae62f41ba885df0cc4c15a59c3a462",
+      "bytes": 8759
+    }
+  },
+  "required_existing_root_files": {
+    "scripts/candidate-command-ownership.py": {
+      "sha256": "34ddbf04a4bbead974fad4a451d30c7a56818248bd5b58c88c87bdfc41896da9",
+      "bytes": 5725
+    },
+    "scripts/ci-qualify-broker-candidate.py": {
+      "sha256": "c1361fa8cabc00f1702bf2e25c8716cfe247b29e5824aeec90c13cb928f8f7c2",
+      "bytes": 31863
+    },
+    "scripts/ci-qualify-client-candidate.py": {
+      "sha256": "9fe00abe6523c05a23b01b986932491939217ea024768c82751eeec4c1ab2d44",
+      "bytes": 38471
+    },
+    "scripts/ci-verify-client-candidate-helpers.py": {
+      "sha256": "b5f624d5d7ca13c479703416683c458fffae62f41ba885df0cc4c15a59c3a462",
+      "bytes": 8759
+    },
+    "tests/ci/test_candidate_command_ownership.py": {
+      "sha256": "0b786e63d059d9f3a3a3bf290ac4fe84313fe2f140243a292a87995e61877293",
+      "bytes": 7057
+    },
+    "tests/ci/test_client_candidate_qualification.py": {
+      "sha256": "07355b7a71833a87cab618c0dc6a3edba5fe4e043385f66314bbbc46c52b8003",
+      "bytes": 24821
+    }
+  },
+  "required_release_patch_sha256": "fd297a226e4c82a10ea9a5fba7bb2b791de98852f71f1267846f573da0d4fe80",
+  "release_review_status": "reviewed",
+  "release_validation_status": "complete",
+  "provisional": false,
+  "workflow_version_requested": "client source_version:v16; preserve historical lane (root-owned workflow)",
+  "counts": {
+    "base": 1746,
+    "baseline": 1753,
+    "fixed": 1755,
+    "library": 166,
+    "integration": 17,
+    "total": 183,
+    "baseline_cases": 23
+  },
+  "prior_v15_preserved": true,
+  "full_source_forward_reverse_exact": true,
+  "root_production_edits": false,
+  "native_qualification": "not run",
+  "deadline_fixture_review_sha256": "0a2337944ea3a43ccf5b0896384f9b93381e1b61f849eb6f6f5584f698c4c62b",
+  "prior_release_only_preserved": true,
+  "qualification_driver_followup_status": "reviewed and offline validated",
+  "qualification_driver_patch_sha256": "c4e2c9faf72f49796205b2c9ae254d2f65e203191f76f25dfcbdee9175b74717",
+  "helper_guard_workflow_patch_sha256": "cb24aabef3eb5b0c296251ce10388f16a29b8935ea97f139f58829ac4d279c20",
+  "helper_guard_review_sha256": "11e6abb8789d4f9b9babf4257d0212bc082470db6117d259f0a9d76f5f1e8c0b",
+  "prior_driver_stage_preserved": true
+}

@@ -1,0 +1,15 @@
+{
+  "scope": "Independent source-only review of documentation and archive delta in coordinator follow-up v3",
+  "v3_archive_sha256": "6072f65d1121a53dc87f152949daf7f4905170d66c81a8863bbbbb2109b800f8",
+  "v3_manifest_sha256": "5e5d82eeda19a96d56007ccff68481e6de3e83bc05ad92bf2340a9b504d564b2",
+  "v3_readme_sha256": "fd46374eb6730a93e90e97cd33e792873dab08c6b2b59332b22823f7236e7587",
+  "source_patch_sha256": "f7bc4e313e42716b2536f6707994f06d91c6046282232b98e425fb665de37592",
+  "prior_peer_review_sha256": "0b8225a99f1ac3a4ba934811104e2ae91c432e90e0da7c68a8d173157ed69c20",
+  "result": "Pass for documentation/archive delta. Three README paragraphs add the peer-review link and correct the eviction event and diff scope; source patch, eviction diff and verifier are byte-identical to reviewed v2.",
+  "archive_checks": "All seven v3 archive members match frozen v3 evidence; all six pinned assets match; nested v2 archive and each member exactly match the frozen v2 package; embedded v2 peer receipt matches.",
+  "limitations": [
+    "No Cargo, compiler, runtime tests, live Kafka, benchmark or production qualification was performed.",
+    "Eviction event observes mock handler completion, not independently proven EOF or local descriptor retirement.",
+    "The v2 diagnostic controls remain unrun and their timing/contract limitations remain in the prior receipt."
+  ]
+}

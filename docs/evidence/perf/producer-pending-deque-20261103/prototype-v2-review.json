@@ -1,0 +1,46 @@
+{
+  "scope": "Independent source-only review of v2 VecDeque producer prototype",
+  "verdict": "DO NOT ADOPT: typecheck and runtime behavior remain unverified, an existing required v14 control needs its separate fixture repair, and memory, scheduling and full producer ownership remain unqualified.",
+  "prototype_patch_sha256": "d539ab29021a6307b8a4070b982920191c7641b2f9f0ee3cfea01098b12e7c99",
+  "author_receipt_sha256": "d3fa3a5daee7a2bf8b302a9ee2588a8837719bf5e847bb12759e881a48642ade",
+  "author_readme_sha256": "f56d0e8f50c181451782849678a371907fdc37cedbc07232cd225b7a2848fa2b",
+  "verifier_sha256": "4d69be7452151c67406ad81cc4e5187e8af608ca7075136bdb28585602380f91",
+  "prior_v1_patch_sha256": "824abc3e37548f40c9f9ac73cc6ab200783b78ccd32baedc10468c160e9044c3",
+  "v14_input_sha256": {
+    "src/producer.rs": "ecf14e7e89fff1d1c29faa6778061d58545f9df565eb7858561d4de58920b279",
+    "src/producer/split.rs": "03e893bc8b41182cae2d35f8702cb7821a41fafab6306205d017df4bd5593ad0",
+    "src/producer/prepare_tests.rs": "c6696efaa6edbee311d508a391603d5332d52ed58c7ac6a82d0385add1f35712"
+  },
+  "v2_postimage_sha256": {
+    "src/producer.rs": "1a1a28e7bbf745ac290b79d191919d2051465aadf635130111fae225093a8d6f",
+    "src/producer/split.rs": "4e9e251ebe907e6b0ee95886303fead7e777b4941e4e0c8adc817707ce9cd629",
+    "src/producer/prepare_tests.rs": "ffbb20758ed15c2389d9143923eb5968f07d6fcd8eee2ae25747fb3fd56aefca",
+    "src/producer/pending_deque_tests.rs": "430df8e804c05e88b0e10eefc9033c6da4df5c98d054a8d664f6bb080c1dc285"
+  },
+  "v1_finding": "The v1 patch omitted the existing prepare_tests.rs while changing Worker.pending to VecDeque and adding receiving. Its untouched Worker initializer, Vec-only front/back calls and Vec remove return type made that test module incompatible by inspection. V2 adds corresponding mechanical adaptations; no Rust build was performed to establish v2 compiles.",
+  "independent_checks": [
+    "Verified v14 source/catalog preimages, v2 postimages, original producer-test tail and prepare-test normalization, and exact patch forward/reverse with the supplied verifier.",
+    "Rustfmt 1.10.0-stable --check edition 2021 skip_children passed for all four v2 Rust files.",
+    "Inspected PendingView logical two-slice iteration, recv_many/absorb sequencing, split state and inverse restoration, Worker Drop order, and proposed test witnesses.",
+    "A Python model exercised 1012 small logical selection cases and 3123 partial-permutation rollback checkpoints; all restored original order. This does not execute Rust or exercise physical wraparound, allocator, callbacks or task cancellation."
+  ],
+  "model_script_sha256": "719fba4ff0edb60049f5d4532a98322c6a0b950e1a1b685d6ed12ee6eaf8c153",
+  "source_observations": [
+    "A successful recv_many is absorbed into the deque synchronously before account_pending_from awaits; Tokio 1.53.3 documents that a losing select branch receives no messages. V2 only has an unrun closed-worker test after successful receipt and accounting begins.",
+    "Suffix extraction uses synchronous VecDeque drain in forward logical order, not the reversed-pop sketch. Split rollback restores selected items before inverse permutation; selected-all conversion and wrapped capacity need runtime checks.",
+    "Old test assertions and identities were not deliberately removed; v2 still preserves the known v14 ordered-deadline fixture, which normally reaches Ready while that test expects Pending. Hosted panic details were unavailable, so this is a source-level explanation, not an observed panic diagnosis."
+  ],
+  "blocking_limits": [
+    "The original v14 deadline-scan fixture repair is separate and must be reconciled against the eventual deque source; the original assertions and thresholds must remain.",
+    "Scratch Vec plus deque and spare batch retain peak capacity; there is no producer-wide count/byte bound, and synchronous absorb, batch drain, rollback, and Drop can be linear in configurable chunk/queue size.",
+    "Potential unwind window: absorb_received constructs a receiving.drain iterator before deque extension can reserve; a reserve panic can drop remaining accepted scratch items without Worker retirement accounting. Reserving before drain alone does not fix a potentially allocating Drop cleanup. Ordinary allocator OOM often aborts; no such unwind was observed.",
+    "Split::first removes a record before selected.push can allocate; this possible unwind issue also exists in the v14 Vec implementation and is not identified as a new regression.",
+    "Closed/open producer cleanup, callback/byte/sticky/retry sequence accounting, real select cancellation, wrapped all/suffix split cases, partial network writes, live Kafka and TLS/SASL remain untested.",
+    "No optimized queue or end-to-end benchmark was run; complexity analysis does not establish a speedup or the cause of the retained-backing failure."
+  ],
+  "limits": [
+    "No Cargo, Rust compiler, Rust tests, Clippy, native Kafka, benchmark, publication or production qualification was performed.",
+    "The Python model is an independently written logical approximation of mixed split permutations, not a substitute for testing the actual code.",
+    "Source is pinned to v14, before the separate v16 deadline fixture work and release-checker changes."
+  ]
+}

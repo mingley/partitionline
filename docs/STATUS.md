@@ -56,6 +56,7 @@ quorum, without replicated partition data or native Kafka KRaft.
 | Client default library on `main` at `e7660f6e5` | 2,168 passed, 28 failed; later integration targets did not run |
 | Client all-feature library on `main` at that commit | 2,170 passed, 26 failed; later integration targets did not run |
 | Isolated client v10 library, each profile | 2,280 passed initially; repeat 2,279 passed, one failed |
+| Isolated client v14, 10 targets per profile | 2,431 passed, 17 failed and two ignored in each profile |
 | Qualified broker v2 default all targets, `209d0b068` | 720 passed |
 | Qualified broker v2 all-feature all targets at that commit | 868 passed |
 | Broker v2 strict Clippy, docs, inventory and six repeated Fetch checks | Passed |
@@ -113,15 +114,17 @@ The producer's pending queue can repeatedly scan deadlines and shift records
 when small batches drain. A replica epoch change rewrites the broker journal.
 Both are candidates for optimization; neither has a measured end-to-end
 speedup yet. The required matched x86 peer comparison has not run.
-The [queue candidate][queue] needs native tests and a benchmark
-before its effect is known. The [first combined candidate][candidate-build] failed its test build
-because a test module omitted an import; no fixed runtime controls ran. A
-corrected candidate needs native qualification.
+The [queue candidate][queue] needs passing native tests and a benchmark
+before its effect is known. The [first combined candidate][candidate-build]
+failed its test build because a test module omitted an import. The corrected
+v14 candidate compiled and reached its tests, but both profiles failed in
+the same three targets. See [next work][next] for the results and investigation.
 
 The [release scripts][release-gates] check API/index agreement, consumer lockfile
 identity and exact-SHA CI more strictly. The token check reports presence without
 claiming authorization. The CI checker now binds jobs and artifacts to a run
-attempt, and 119 offline release tests passed. Live end-to-end attempt validation
+attempt, and 122 offline release tests passed after a temporary-path fix. Live
+end-to-end attempt validation
 and the complete release gates remain open.
 
 Use [next work][next] for the detailed handoff, [support](support.md) for tested

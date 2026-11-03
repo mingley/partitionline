@@ -1,0 +1,43 @@
+--- a/src/producer.rs
++++ b/src/producer.rs
+@@ -11584,12 +11584,20 @@
+             Arc::new(tokio::spawn(std::future::pending::<()>())),
+         );
+         let mut outcomes = Vec::new();
+-        for _ in 0..COUNT {
++        let deadline = Instant::now() + Duration::from_secs(30);
++        for index in 0..COUNT {
+             let (result, outcome) = oneshot::channel();
+             let mut pending = queued("t", Some(0));
+             pending.rec.value = Some(Bytes::from_static(b"x"));
+             pending.tx = Some(result);
+-            pending.deadline = Instant::now() + Duration::from_secs(30);
++            // A one-record drain removes an earliest deadline. Make its
++            // remaining deadlines unordered so it must yield during the
++            // cooperative suffix scan, even with the ordered fast path.
++            pending.deadline = if drain_count == 1 && index > 0 && index < COUNT - 1 {
++                deadline + Duration::from_millis(1)
++            } else {
++                deadline
++            };
+             pending.sticky_record =
+                 Some(shared.sticky_records.as_ref().unwrap().acquire().unwrap());
+             assert!(handle.try_send(pending).is_ok());
+@@ -11600,6 +11608,17 @@
+             .store(u64::try_from(COUNT).unwrap(), Ordering::SeqCst);
+         worker.pull_ready();
+         assert_eq!(worker.pending.len(), COUNT);
++        assert!(worker.pending_stats_valid);
++        assert_eq!(worker.earliest_deadline, Some(deadline));
++        if drain_count == 1 {
++            assert!(!worker.pending_deadlines_ordered);
++            assert_eq!(worker.pending.first().unwrap().deadline, deadline);
++            assert!(
++                worker.pending.get(1).unwrap().deadline > worker.pending.last().unwrap().deadline
++            );
++        } else {
++            assert!(worker.pending_deadlines_ordered);
++        }
+         let mut drain = Box::pin(worker.drain_pending(drain_count));
+         let yielded = std::future::poll_fn(|cx| {
+             Poll::Ready(matches!(drain.as_mut().poll(cx), Poll::Pending))

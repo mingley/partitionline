@@ -1,0 +1,24 @@
+{
+  "scope": "Independent source and offline fake-service review of colon-TMPDIR release gate fix",
+  "base_commit": "020f3a734a9dccb1b778c5fd60782e604a13e3a9",
+  "patch_sha256": "fd297a226e4c82a10ea9a5fba7bb2b791de98852f71f1267846f573da0d4fe80",
+  "manifest_sha256": "73563d32fa06af9dc245fbdf73107134a39806ab57e5e940263ff5d3340c60a3",
+  "checks": [
+    "Exact two-file preimages match base commit and current root; postimages match frozen source; patch passes whitespace, forward and reverse application.",
+    "The exact preimage independently reproduces live fake-service and self-test failures when TMPDIR contains a colon.",
+    "All three added frozen offline controls pass: live literal TMPDIR, legacy colon-delimited fixture files, and colon-TMPDIR self-test.",
+    "Independent replay verifies literal-colon paths for all three fixture inputs with the explicit single-path flag, failed-job rejection, and live fail-closed behavior even when the fixture flag is inherited.",
+    "For each run/jobs/artifact fixture variable, the identical colon-containing value succeeds as a legacy two-file list by default and fails as a nonexistent literal under single-path mode.",
+    "bash syntax and Python AST parse pass."
+  ],
+  "baseline_replay_sha256": "c0f08684eeed92aa90fdabcb3ebfec2e6d14626ceff26351eacd9336b33ac509",
+  "baseline_log_sha256": "b9f8eee4ae1c3a8a2562d0a8be020d564efdc331773dbafa616735a6177c5f23",
+  "fixed_replay_sha256": "f6005431bce4dd592a61b38c554a7a8f9cd845d40b5066b9a87ddfdae72127b4",
+  "fixed_log_sha256": "798923de6348127b340512c0273ac696c7371421bc61cea9aec93c05480743af",
+  "decision": "No blocker found in the scoped source and offline-fixture review.",
+  "limits": [
+    "No actual GitHub API, publication, Cargo or native build was used.",
+    "Single-path mode intentionally applies to every fixture variable and is an explicit fixture-only opt-in; legacy colon-delimited lists remain the default.",
+    "The fix does not establish full release readiness or resolve non-atomic GitHub API reads."
+  ]
+}

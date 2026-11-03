@@ -1,0 +1,35 @@
+{
+  "scope": "Independent source-only review of v2 pending queue VecDeque design",
+  "verdict": "Suitable to preserve as a proposed design; not an approved or qualified implementation and no measured performance result.",
+  "design_archive_sha256": "f8d159fc5097587bfca02dcc98bdfaada6a429093ab66d17480fb35b079f04d0",
+  "manifest_sha256": "0499127514d45948f80fe0cccbcbed19ab2d464b3aa95e212540425de979bee9",
+  "readme_sha256": "b8aad33077cf9d0d7794ea310460499a2f4b5d9393d9eb72f75dc058a0647729",
+  "retained_v1_archive_sha256": "560ce6db04a6d7ab90fe5e9430f109634cdde7d4f8620fcf304e7acd036702f2",
+  "retained_v14_job_log_sha256": "bf08503de58b290a893768f3ad7c5b12eb43a6f7e636efe6df3efc12037d3fdb",
+  "checks": [
+    "Verified five v14 source files against pinned fixed-input catalog using the supplied verifier.",
+    "Verified v2 archive members, manifest hashes, exact nested v1 archive and retained v14 hosted job log.",
+    "Inspected Worker drain, account, sticky, cleanup and split ownership paths, pinned Tokio recv_many cancellation documentation, retained-backing test and hosted summary.",
+    "Confirmed N*(N-1)/2 is 8,386,560 logical shifted tail positions for 4096 fixed items drained singly; actual work and causal contribution remain unmeasured."
+  ],
+  "resolved_review_findings": [
+    "Client enforces TCP_NODELAY while mock ignores setter errors; effective options unmeasured.",
+    "Back-popped selection reverses record order; success and cancellation require explicitly tracked forward/reverse orientation.",
+    "Receive chunk changes may alter batching, linger, backpressure and scheduling; sticky admission/cohort visibility and lock boundaries need explicit preservation.",
+    "Sticky singleton must stay owned across earliest-deadline refresh and rollback to the front on cancellation.",
+    "Synchronous large batch commit and Drop recovery remain potentially linear and can affect responsiveness.",
+    "Tokio 1.53.3 documents cancellation safety when another select branch wins; after successful receipt, scratch still needs durable worker ownership."
+  ],
+  "implementation_blockers": [
+    "No actual implementation or behavioral proof; exact stage transitions, extraction/reversal and rollback under every cancellation and unwind boundary remain to be designed and tested.",
+    "A producer-wide record/object and framework-owned memory policy is not defined; a deque alone does not supply one.",
+    "The proposed bounded receive scratch must not silently change sticky cohort ordering, batch semantics or timer/expiry accounting.",
+    "Existing retained-backing and other client failures remain unresolved; hosted panic body is unavailable.",
+    "The benchmark must bind the eventual candidate and source, measure optimized code with equivalent workloads and validate real record outcomes; no benchmark has run."
+  ],
+  "limits": [
+    "No Cargo, compiler, Rust tests, Kafka interoperability, benchmark, publication or production qualification was performed.",
+    "The review does not establish the cause of the hosted test failure or any performance gain.",
+    "The design is pinned to v14; later candidate source changes require rebinding and review."
+  ]
+}

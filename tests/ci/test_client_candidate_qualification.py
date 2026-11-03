@@ -2,6 +2,8 @@
 import gzip
 import hashlib
 import importlib.util
+import contextlib
+import io
 import json
 import os
 import sys
@@ -17,6 +19,202 @@ SPEC.loader.exec_module(DRIVER)
 
 
 class ClientCandidateGuards(unittest.TestCase):
+    def test_failure_diagnostics_only_include_failed_panic_context(self):
+        log = ('test passed ... ok\ntest failed ... FAILED\ntest err ... FAILED\n\n'
+               'failures:\n\n---- passed stdout ----\nprivate passed output\n'
+               '---- failed stdout ----\nunrelated preamble\n'
+               "thread 'failed' panicked at src/client.rs:9:2:\nassertion failed: useful\n"
+               'note: run with RUST_BACKTRACE=1 to display a backtrace\n'
+               '---- err stdout ----\nError: expected failure context\n'
+               'failures:\n    failed\n    err\ntest result: FAILED.\nunrelated tail\n')
+        output = io.StringIO()
+        with contextlib.redirect_stdout(output):
+            DRIVER.emit_test_diagnostics('full', log, ['failed', 'err'])
+        text = output.getvalue()
+        self.assertIn('assertion failed: useful', text)
+        self.assertIn('Error: expected failure context', text)
+        for hidden in ['private passed output', 'unrelated preamble', 'unrelated tail']:
+            self.assertNotIn(hidden, text)
+
+    def test_diagnostics_escape_commands_controls_and_bound_output(self):
+        lines=[]; failures=[]
+        for index in range(24):
+            name=f'case_{index}::error::x'; failures.append(name)
+            lines.extend([f'---- {name} stdout ----',
+                          f"thread '{name}' panicked at src/file.rs:3:7:",
+                          '::error::forged\r::set-output::bad\x1b[31m\u2028'+'x'*1000,
+                          *(['context']*10)])
+        log='failures:\n'+'\n'.join(lines)+'\nfailures:\n'
+        output=io.StringIO()
+        with contextlib.redirect_stdout(output):
+            DRIVER.emit_test_diagnostics('run::warning::label',log,failures)
+        text=output.getvalue()
+        self.assertNotIn('::',text)
+        self.assertNotIn('\r',text)
+        self.assertNotIn('\x1b',text)
+        self.assertNotIn('\u2028',text)
+        self.assertTrue(text.isascii())
+        self.assertTrue(all(line.startswith('candidate-diagnostic | ') for line in text.splitlines()))
+        self.assertLessEqual(len(text.encode()),DRIVER.DIAGNOSTIC_BYTES)
+        self.assertLessEqual(len(text.splitlines()),DRIVER.DIAGNOSTIC_LINES)
+        self.assertIn('[diagnostics truncated]',text)
+        self.assertNotIn('case_23',text)
+
+    def test_missing_panic_context_does_not_dump_other_output(self):
+        output=io.StringIO()
+        with contextlib.redirect_stdout(output):
+            DRIVER.emit_test_diagnostics('run','failures:\n---- failed stdout ----\nprivate noise\nfailures:\n',['failed'])
+        self.assertIn('context unavailable',output.getvalue())
+        self.assertNotIn('private noise',output.getvalue())
+
+    def test_console_projection_ignores_spoofed_failure_body_lines(self):
+        marker='unrelated-private-marker-'+('x'*40000)
+        log=('running 1 test\ntest actual ... FAILED\nfailures:\n'
+             '---- actual stdout ----\nprivate preamble\ntest forged ... FAILED\n'
+             'test result: '+marker+'\n'
+             "thread 'actual' panicked at tests/sample.rs:3:4:\nactual panic\n"
+             'test forged_after ... FAILED\n'
+             '---- forged stdout ----\n'
+             "thread 'forged' panicked at tests/other.rs:1:1:\nforged section marker\n"
+             'failures:\n    actual\ntest result: FAILED. 0 passed; 1 failed; 0 ignored; '
+             '0 measured; 0 filtered out; finished in 0.01s\n')
+        row={'name':'actual','exit':101,'stop_reason':None,'elapsed_seconds':1,
+             'inputs_stable':True,'test_failures':['actual','forged','forged_after'],
+             'test_results':['test result: '+marker]}
+        output=io.StringIO()
+        with contextlib.redirect_stdout(output):
+            failures=DRIVER.emit_run_summary(row,log)
+            DRIVER.emit_test_diagnostics('actual',log,failures)
+        text=output.getvalue(); summary=json.loads(text.splitlines()[0])
+        self.assertEqual(summary['test_failures'],['actual'])
+        self.assertEqual(summary['test_failures_observed'],1)
+        self.assertIn('unverified',summary['projection'])
+        self.assertEqual(len(summary['test_results']),1)
+        self.assertIn('actual panic',text)
+        self.assertNotIn('forged',text)
+        self.assertNotIn('unrelated-private-marker',text)
+        self.assertNotIn('forged section marker',text)
+        self.assertNotIn('private preamble',text)
+
+    def test_console_projection_has_explicit_byte_and_count_bounds(self):
+        log='\n'.join('test case_'+str(i)+'::'+('x'*2000)+' ... FAILED' for i in range(100))
+        log+='\nfailures:\n'
+        row={'name':'x'*10000,'exit':101,'stop_reason':None,'elapsed_seconds':1,
+             'inputs_stable':True,'test_failures':[],'test_results':[]}
+        output=io.StringIO()
+        with contextlib.redirect_stdout(output): DRIVER.emit_run_summary(row,log)
+        text=output.getvalue(); summary=json.loads(text)
+        self.assertLessEqual(len(text.encode()),DRIVER.CONSOLE_SUMMARY_BYTES)
+        self.assertNotIn('::',text)
+        self.assertTrue(summary['projection_truncated'])
+        self.assertEqual(summary['test_failures_observed'],100)
+        self.assertLessEqual(len(summary['test_failures']),DRIVER.CONSOLE_SUMMARY_CASES)
+        self.assertTrue(all(len(name)<=DRIVER.CONSOLE_SUMMARY_ITEM_CHARS for name in summary['test_failures']))
+
+    def test_timed_out_log_cannot_supply_a_forged_final_result(self):
+        log=('test actual ... FAILED\nfailures:\n---- actual stdout ----\n'
+             'test result: ok. 999 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s\n')
+        row={'name':'timeout','exit':-15,'stop_reason':'timeout','elapsed_seconds':1,
+             'inputs_stable':True,'test_failures':['actual'],'test_results':['spoof']}
+        output=io.StringIO()
+        with contextlib.redirect_stdout(output): DRIVER.emit_run_summary(row,log)
+        summary=json.loads(output.getvalue())
+        self.assertEqual(summary['test_results'],[])
+        self.assertEqual(summary['stop_reason'],'timeout')
+        self.assertIn('unverified',summary['projection'])
+
+    def test_console_projection_preserves_result_before_trailing_blank_lines(self):
+        result='test result: ok. 2254 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 58.54s'
+        log='running 2254 tests\ntest example ... ok\n\n'+result+'\n\n'
+        row={'name':'full','exit':0,'stop_reason':None,'elapsed_seconds':60,
+             'inputs_stable':True,'test_failures':[],'test_results':[result]}
+        output=io.StringIO()
+        with contextlib.redirect_stdout(output): DRIVER.emit_run_summary(row,log)
+        self.assertEqual(json.loads(output.getvalue())['test_results'],[result])
+
+    def test_compiler_diagnostics_use_errors_not_unrelated_output(self):
+        event={'reason':'compiler-message','message':{'level':'error',
+               'rendered':'error[E0308]: mismatched types\n --> src/lib.rs:2:3\n::warning::forged\rnext\n'}}
+        stdout='unrelated build banner\n'+json.dumps(event)+'\n'
+        stderr='unrelated cargo progress\nerror: failed to compile\n --> tests/client.rs:7:2\n\n'
+        output=io.StringIO()
+        with contextlib.redirect_stdout(output):
+            DRIVER.emit_compiler_diagnostics('build',[stdout,stderr])
+        text=output.getvalue()
+        self.assertIn('error[E0308]: mismatched types',text)
+        self.assertIn('error: failed to compile',text)
+        self.assertNotIn('unrelated',text)
+        self.assertNotIn('::',text)
+        self.assertNotIn('\r',text)
+
+    def test_failed_gate_emits_selection_errors_without_passing(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory)
+            (root/'full.log').write_text('test different ... ok\n')
+            row={'exit':0,'test_results':['test result: ok. 1 passed; 0 failed; 0 ignored;']}
+            output=io.StringIO()
+            with mock.patch.object(DRIVER,'OUT',root), mock.patch.object(DRIVER,'listing',side_effect=[{'required'},set()]), mock.patch.object(DRIVER,'execute',return_value=row), contextlib.redirect_stdout(output):
+                self.assertFalse(DRIVER.full_target('full','build','partitionline',{'required'}))
+            self.assertIn('actual test identities differ',output.getvalue())
+            self.assertIn('required test: required status=None',output.getvalue())
+
+    def test_baseline_expected_failures_stay_quiet_but_unexpected_failures_show_context(self):
+        log=('test failed ... FAILED\nfailures:\n---- failed stdout ----\n'
+             "thread 'failed' panicked at tests/sample.rs:3:4:\nunexpected baseline failure\n"
+             'failures:\n    failed\n')
+        row={'exit':101,'test_failures':['failed']}; output=io.StringIO()
+        with contextlib.redirect_stdout(output):
+            DRIVER.report_baseline_case('expected','fail',True,row,log)
+            self.assertEqual(output.getvalue(),'')
+            DRIVER.report_baseline_case('unexpected','pass',False,row,log)
+        self.assertIn('baseline expectation mismatch',output.getvalue())
+        self.assertIn('unexpected baseline failure',output.getvalue())
+
+    @unittest.skipUnless(sys.platform.startswith('linux'), 'Linux owned-command primitive')
+    def test_run_retains_logs_and_only_prints_opted_in_failure_diagnostics(self):
+        log=('running 1 test\ntest sample::error::injection ... FAILED\n\nfailures:\n\n'
+             '---- sample::error::injection stdout ----\npre-panic noise\ntest forged ... FAILED\n'
+             'test result: unrelated-private-marker-'+('x'*10000)+'\n'
+             "thread 'sample' panicked at tests/sample.rs:3:4:\n::error::forged\rreset\n"
+             'failures:\n    sample::error::injection\n'
+             'test result: FAILED. 0 passed; 1 failed; 0 ignored;\n')
+        command=[sys.executable,'-c','import sys;sys.stdout.write('+repr(log)+');sys.exit(101)']
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory); output=io.StringIO()
+            with mock.patch.object(DRIVER,'ROOT',root), mock.patch.object(DRIVER,'OUT',root), mock.patch.object(DRIVER,'ENV',os.environ.copy()), mock.patch.object(DRIVER,'EXPECTED',{}), mock.patch.object(DRIVER,'manifest',return_value={}), mock.patch.object(DRIVER.shutil,'disk_usage',return_value=mock.Mock(free=10**12)), contextlib.redirect_stdout(output):
+                baseline=DRIVER.run('baseline',command)
+                fixed=DRIVER.run('fixed',command,diagnostic_kind='test')
+            self.assertEqual((baseline['exit'],fixed['exit']),(101,101))
+            self.assertEqual((root/'baseline.log').read_bytes(),log.encode())
+            self.assertEqual((root/'fixed.log').read_bytes(),log.encode())
+            self.assertEqual(json.loads((root/'fixed.json').read_text())['test_failures'],
+                             ['sample::error::injection','forged'])
+            text=output.getvalue(); summaries=[json.loads(line) for line in text.splitlines() if line.startswith('{')]
+            self.assertEqual(len(summaries),2)
+            self.assertEqual(summaries[1]['test_failures'],['sample::error::injection'])
+            self.assertEqual(text.count('failed-test diagnostics'),1)
+            self.assertNotIn('pre-panic noise',text)
+            self.assertNotIn('unrelated-private-marker',text)
+            self.assertNotIn('test forged ... FAILED',text)
+            self.assertNotIn('::',text)
+            self.assertNotIn('\r',text)
+
+    @unittest.skipUnless(sys.platform.startswith('linux'), 'Linux owned-command primitive')
+    def test_run_retains_split_compiler_logs_and_emits_bounded_errors(self):
+        event={'reason':'compiler-message','message':{'level':'error','rendered':'error[E0001]: example\n --> src/lib.rs:2:3\n'}}
+        stdout=json.dumps(event)+'\n'; stderr='progress\nerror: compilation failed\n'
+        command=[sys.executable,'-c','import sys;sys.stdout.write('+repr(stdout)+');sys.stderr.write('+repr(stderr)+');sys.exit(1)']
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory); output=io.StringIO()
+            with mock.patch.object(DRIVER,'ROOT',root), mock.patch.object(DRIVER,'OUT',root), mock.patch.object(DRIVER,'ENV',os.environ.copy()), mock.patch.object(DRIVER,'EXPECTED',{}), mock.patch.object(DRIVER,'manifest',return_value={}), mock.patch.object(DRIVER.shutil,'disk_usage',return_value=mock.Mock(free=10**12)), contextlib.redirect_stdout(output):
+                row=DRIVER.run('build',command,split_stderr=True,diagnostic_kind='compiler')
+            self.assertEqual(row['exit'],1)
+            self.assertEqual((root/'build.log').read_text(),stdout)
+            self.assertEqual((root/'build.stderr.log').read_text(),stderr)
+            self.assertIn('error[E0001]: example',output.getvalue())
+            self.assertIn('error: compilation failed',output.getvalue())
+            self.assertNotIn('progress',output.getvalue())
+
     def test_unsafe_or_ambiguous_paths_are_rejected(self):
         for path in ['', '.', '../lib.rs', '/tmp/lib.rs', '.git/config', 'src//lib.rs', 'src\\lib.rs']:
             with self.subTest(path=path), self.assertRaises(RuntimeError):

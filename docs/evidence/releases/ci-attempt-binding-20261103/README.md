@@ -14,6 +14,9 @@ socket calls denied and Cargo and registry commands guarded. Separate mocked
 job and cleanup controls also passed. [Stored file hashes](stored-files.json)
 identify the compressed patch, test logs and review reproductions.
 
+A [follow-up](../ci-colon-tmpdir-20261103/README.md) fixes literal colons in
+temporary paths and passes the expanded 122-test offline release suite.
+
 One [read-only GitHub response](../local-release-gates-20261103/github-rest-shape.json)
 confirmed the relevant field shapes and job names for a single run. Live
 pagination, a current-attempt artifact and an end-to-end release check have

@@ -1,0 +1,46 @@
+{
+  "base_commit": "020f3a734a9dccb1b778c5fd60782e604a13e3a9",
+  "patch_sha256": "fd297a226e4c82a10ea9a5fba7bb2b791de98852f71f1267846f573da0d4fe80",
+  "manifest_sha256": "73563d32fa06af9dc245fbdf73107134a39806ab57e5e940263ff5d3340c60a3",
+  "frozen_source_hashes_rechecked": 2,
+  "full_suite": {
+    "path": "/workspace/work/release-ci-colon-20261103/v1-full.stderr",
+    "sha256": "b63f5d384bf9228ecc1e0807ca3f116bc53b563fd7c5dba54f3a69cba8a4c9d6",
+    "tests": 122,
+    "result": "pass"
+  },
+  "focused_tests": {
+    "path": "/workspace/work/release-ci-colon-20261103/fixed-colon.log",
+    "sha256": "64c9e5a3d40842962d25bc18b07bd1ed9151ec062027a2926f79d8a32830a12c",
+    "tests": 3,
+    "result": "pass"
+  },
+  "baseline_negative": {
+    "path": "/workspace/work/release-ci-colon-20261103/baseline-colon.log",
+    "sha256": "08d8745f31f2f34809c804242202e19b9ef5e3a47a70d0d0869cf80ce89ec802",
+    "expected_failures": 2
+  },
+  "original_reproduction": {
+    "path": "/workspace/work/release-ci-colon-20261103/result.json",
+    "sha256": "5befbe13f869ad84a27b4e389bf29cb2226cbbd618b72906a43ac5e7e45637c3"
+  },
+  "roundtrip": {
+    "path": "/workspace/work/release-ci-colon-20261103/roundtrip.json",
+    "sha256": "4bd3f2f7c0e6b473228ea197a235903180796ca7cc028669782acd9c28fd24de"
+  },
+  "independent_review": {
+    "path": "/workspace/work/release-ci-colon-independent-review-20261103/independent-review.json",
+    "sha256": "b110ec7485c6bed3ea88fb9db51cb296737c759337854e94990b73f45745a4e4"
+  },
+  "guard": {
+    "script": "/workspace/work/release-ci-colon-20261103/guarded-release-suite.py",
+    "sha256": "999eb1bc7dd86d8a0ed94c6776a485410b3beff1dc593ff7c5d049a15148ae06",
+    "network_socket_syscalls": "seccomp denied; Python socket preflight returned EPERM",
+    "cargo_and_registry_cli": "PATH guards; no guarded tool invoked",
+    "stdout_sha256": "1d61060f686426fd59165a972c3f64c33790dbddef886147d17a6c23f2ceb2b1"
+  },
+  "limits": [
+    "No actual GitHub, Cargo, native builds or publication performed.",
+    "The fix addresses literal-path handling; live CI compatibility and release readiness remain unqualified."
+  ]
+}
