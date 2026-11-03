@@ -1,0 +1,167 @@
+{
+  "default/mock_produce/commit_reuses_a_produce_handshake_for_the_moved_coordinator": {
+    "excerpt": "thread 'commit_reuses_a_produce_handshake_for_the_moved_coordinator' (6331) panicked at tests/mock_produce.rs:1363:5:\nassertion `left == right` failed\n  left: 3\n right: 2\nnote: run with `RUST_BACKTRACE=1` environment variable to display a backtrace",
+    "truncated": false,
+    "source": "default-mock_produce.log"
+  },
+  "default/mock_produce/commit_reuses_bootstrap_when_the_coordinator_returns": {
+    "excerpt": "thread 'commit_reuses_bootstrap_when_the_coordinator_returns' (6332) panicked at tests/mock_produce.rs:1395:5:\nassertion `left == right` failed\n  left: 3\n right: 2",
+    "truncated": false,
+    "source": "default-mock_produce.log"
+  },
+  "default/mock_produce/epoch_bump_reuses_a_produce_handshake": {
+    "excerpt": "thread 'epoch_bump_reuses_a_produce_handshake' (6336) panicked at tests/mock_produce.rs:1533:5:\nassertion `left == right` failed\n  left: 3\n right: 2",
+    "truncated": false,
+    "source": "default-mock_produce.log"
+  },
+  "default/mock_produce/multi_bootstrap_commit_reuses_known_coordinator_handshakes": {
+    "excerpt": "thread 'multi_bootstrap_commit_reuses_known_coordinator_handshakes' (6347) panicked at tests/mock_produce.rs:1498:5:\nassertion `left == right` failed: rediscovery renegotiated a broker that was already learned\n  left: 7\n right: 5",
+    "truncated": false,
+    "source": "default-mock_produce.log"
+  },
+  "default/mock_produce/multi_bootstrap_send_offsets_reuses_known_handshakes": {
+    "excerpt": "thread 'multi_bootstrap_send_offsets_reuses_known_handshakes' (6348) panicked at tests/mock_produce.rs:1626:5:\nassertion `left == right` failed: group coordinator lookup renegotiated a bootstrap\n  left: 6\n right: 4",
+    "truncated": false,
+    "source": "default-mock_produce.log"
+  },
+  "default/mock_produce/multi_bootstrap_transaction_reuses_the_other_bootstrap_handshake": {
+    "excerpt": "thread 'multi_bootstrap_transaction_reuses_the_other_bootstrap_handshake' (6349) panicked at tests/mock_produce.rs:1463:5:\nstartup negotiated a bootstrap that was already open: 4",
+    "truncated": false,
+    "source": "default-mock_produce.log"
+  },
+  "default/mock_produce/produce_reuses_a_finished_bootstrap_handshake": {
+    "excerpt": "thread 'produce_reuses_a_finished_bootstrap_handshake' (6354) panicked at tests/mock_produce.rs:1438:5:\nassertion `left == right` failed: produce renegotiated a bootstrap that finished at startup\n  left: 3\n right: 2",
+    "truncated": false,
+    "source": "default-mock_produce.log"
+  },
+  "default/mock_produce/produce_reuses_bootstrap_api_versions": {
+    "excerpt": "thread 'produce_reuses_bootstrap_api_versions' (6355) panicked at tests/mock_produce.rs:124:5:\nassertion `left == right` failed: the produce socket should reuse the bootstrap broker's versions\n  left: 2\n right: 1",
+    "truncated": false,
+    "source": "default-mock_produce.log"
+  },
+  "default/mock_produce/produce_reuses_the_transaction_coordinator_handshake": {
+    "excerpt": "thread 'produce_reuses_the_transaction_coordinator_handshake' (6356) panicked at tests/mock_produce.rs:1568:5:\nproduce repeated the transaction coordinator handshake: 252.428283ms",
+    "truncated": false,
+    "source": "default-mock_produce.log"
+  },
+  "default/mock_produce/send_all_redials_leaders_while_refreshing_metadata": {
+    "excerpt": "send_all replacement timeline (elapsed,node,socket,event): [(379.505\u00b5s, 1, 1, Close), (454.475\u00b5s, 3, 4, Accept), (661.429\u00b5s, 2, 5, Accept), (852.274\u00b5s, 3, 4, Request { api_key: 18, api_version: 4 }), (869.195\u00b5s, 2, 5, Request { api_key: 18, api_version: 4 }), (1.050482ms, 1, 6, Accept), (1.115813ms, 1, 6, Request { api_key: 18, api_version: 4 }), (252.071963ms, 3, 4, Response { api_key: 18, api_version: 4 }), (252.072414ms, 3, 4, ApiVersionsResponse { error_code: 0, ranges: [ApiVersion { api_key: 0, min_version: 3, max_version: 12 }, ApiVersion { api_key: 1, min_version: 4, max_version: 17 }, ApiVersion { api_key: 2, min_version: 0, max_version: 10 }, ApiVersion { api_key: 3, min_version: 1, max_version: 13 }, ApiVersion { api_key: 8, min_version: 2, max_version: 9 }, ApiVersion { api_key: 9, min_version: 1, max_version: 9 }, ApiVersion { api_key: 10, min_version: 0, max_version: 6 }, ApiVersion { api_key: 11, min_version: 0, max_version: 9 }, ApiVersion { api_key: 12, min_version: 0, max_version: 4 }, ApiVersion { api_key: 14, min_version: 0, max_version: 5 }, ApiVersion { api_key: 13, min_version: 0, max_version: 5 }, ApiVersion { api_key: 68, min_version: 0, max_version: 1 }, ApiVersion { api_key: 69, min_version: 0, max_version: 1 }, ApiVersion { api_key: 15, min_version: 0, max_version: 6 }, ApiVersion { api_key: 16, min_version: 0, max_version: 5 }, ApiVersion { api_key: 42, min_version: 0, max_version: 2 }, ApiVersion { api_key: 77, min_version: 0, max_version: 1 }, ApiVersion { api_key: 90, min_version: 0, max_version: 0 }, ApiVersion { api_key: 91, min_version: 0, ",
+    "truncated": true,
+    "source": "default-mock_produce.log"
+  },
+  "default/mock_produce/send_offsets_negotiates_a_new_group_coordinator": {
+    "excerpt": "thread 'send_offsets_negotiates_a_new_group_coordinator' (6367) panicked at tests/mock_produce.rs:1659:5:\nassertion `left == right` failed\n  left: 4\n right: 3",
+    "truncated": false,
+    "source": "default-mock_produce.log"
+  },
+  "default/mock_produce/send_offsets_repeats_a_remote_coordinator_without_another_handshake": {
+    "excerpt": "thread 'send_offsets_repeats_a_remote_coordinator_without_another_handshake' (6369) panicked at tests/mock_produce.rs:1692:5:\nrepeated group coordinator negotiated again: 504.219532ms",
+    "truncated": false,
+    "source": "default-mock_produce.log"
+  },
+  "default/mock_produce/send_offsets_reuses_bootstrap_api_versions": {
+    "excerpt": "thread 'send_offsets_reuses_bootstrap_api_versions' (6370) panicked at tests/mock_produce.rs:1588:5:\nassertion `left == right` failed\n  left: 2\n right: 1",
+    "truncated": false,
+    "source": "default-mock_produce.log"
+  },
+  "default/mock_produce/transactional_rediscover_skips_a_second_bootstrap_handshake": {
+    "excerpt": "thread 'transactional_rediscover_skips_a_second_bootstrap_handshake' (6373) panicked at tests/mock_produce.rs:1335:5:\nassertion `left == right` failed: reloading the bootstrap coordinator should reuse the versions already learned\n  left: 2\n right: 1",
+    "truncated": false,
+    "source": "default-mock_produce.log"
+  },
+  "default/mock_produce/transactional_startup_skips_a_second_bootstrap_handshake": {
+    "excerpt": "thread 'transactional_startup_skips_a_second_bootstrap_handshake' (6375) panicked at tests/mock_produce.rs:1309:5:\nassertion `left == right` failed: the coordinator socket should reuse the bootstrap broker's versions\n  left: 2\n right: 1",
+    "truncated": false,
+    "source": "default-mock_produce.log"
+  },
+  "default/producer_retained_backing/cancelled_channel_admission_releases_only_the_unenqueued_reservation": {
+    "excerpt": "Error: Timeout",
+    "truncated": false,
+    "source": "default-producer_retained_backing.log"
+  },
+  "all-features/partitionline/producer::tests::encoding_many_produce_topics_does_not_hold_the_caller": {
+    "excerpt": "thread 'producer::tests::encoding_many_produce_topics_does_not_hold_the_caller' (10534) panicked at src/producer.rs:15639:9:\nencoding produce topics held the caller for 80.509933ms\nnote: run with `RUST_BACKTRACE=1` environment variable to display a backtrace",
+    "truncated": false,
+    "source": "all-features-partitionline.log"
+  },
+  "all-features/mock_produce/commit_reuses_a_produce_handshake_for_the_moved_coordinator": {
+    "excerpt": "thread 'commit_reuses_a_produce_handshake_for_the_moved_coordinator' (9716) panicked at tests/mock_produce.rs:1363:5:\nassertion `left == right` failed\n  left: 3\n right: 2\nnote: run with `RUST_BACKTRACE=1` environment variable to display a backtrace",
+    "truncated": false,
+    "source": "all-features-mock_produce.log"
+  },
+  "all-features/mock_produce/commit_reuses_bootstrap_when_the_coordinator_returns": {
+    "excerpt": "thread 'commit_reuses_bootstrap_when_the_coordinator_returns' (9717) panicked at tests/mock_produce.rs:1395:5:\nassertion `left == right` failed\n  left: 3\n right: 2",
+    "truncated": false,
+    "source": "all-features-mock_produce.log"
+  },
+  "all-features/mock_produce/epoch_bump_reuses_a_produce_handshake": {
+    "excerpt": "thread 'epoch_bump_reuses_a_produce_handshake' (9721) panicked at tests/mock_produce.rs:1533:5:\nassertion `left == right` failed\n  left: 3\n right: 2",
+    "truncated": false,
+    "source": "all-features-mock_produce.log"
+  },
+  "all-features/mock_produce/multi_bootstrap_commit_reuses_known_coordinator_handshakes": {
+    "excerpt": "thread 'multi_bootstrap_commit_reuses_known_coordinator_handshakes' (9732) panicked at tests/mock_produce.rs:1498:5:\nassertion `left == right` failed: rediscovery renegotiated a broker that was already learned\n  left: 7\n right: 5",
+    "truncated": false,
+    "source": "all-features-mock_produce.log"
+  },
+  "all-features/mock_produce/multi_bootstrap_send_offsets_reuses_known_handshakes": {
+    "excerpt": "thread 'multi_bootstrap_send_offsets_reuses_known_handshakes' (9733) panicked at tests/mock_produce.rs:1626:5:\nassertion `left == right` failed: group coordinator lookup renegotiated a bootstrap\n  left: 6\n right: 4",
+    "truncated": false,
+    "source": "all-features-mock_produce.log"
+  },
+  "all-features/mock_produce/multi_bootstrap_transaction_reuses_the_other_bootstrap_handshake": {
+    "excerpt": "thread 'multi_bootstrap_transaction_reuses_the_other_bootstrap_handshake' (9734) panicked at tests/mock_produce.rs:1463:5:\nstartup negotiated a bootstrap that was already open: 4",
+    "truncated": false,
+    "source": "all-features-mock_produce.log"
+  },
+  "all-features/mock_produce/produce_reuses_a_finished_bootstrap_handshake": {
+    "excerpt": "thread 'produce_reuses_a_finished_bootstrap_handshake' (9738) panicked at tests/mock_produce.rs:1438:5:\nassertion `left == right` failed: produce renegotiated a bootstrap that finished at startup\n  left: 3\n right: 2",
+    "truncated": false,
+    "source": "all-features-mock_produce.log"
+  },
+  "all-features/mock_produce/produce_reuses_bootstrap_api_versions": {
+    "excerpt": "thread 'produce_reuses_bootstrap_api_versions' (9739) panicked at tests/mock_produce.rs:124:5:\nassertion `left == right` failed: the produce socket should reuse the bootstrap broker's versions\n  left: 2\n right: 1",
+    "truncated": false,
+    "source": "all-features-mock_produce.log"
+  },
+  "all-features/mock_produce/produce_reuses_the_transaction_coordinator_handshake": {
+    "excerpt": "thread 'produce_reuses_the_transaction_coordinator_handshake' (9740) panicked at tests/mock_produce.rs:1568:5:\nproduce repeated the transaction coordinator handshake: 252.497511ms",
+    "truncated": false,
+    "source": "all-features-mock_produce.log"
+  },
+  "all-features/mock_produce/send_all_redials_leaders_while_refreshing_metadata": {
+    "excerpt": "send_all replacement timeline (elapsed,node,socket,event): [(462.77\u00b5s, 1, 1, Close), (542.879\u00b5s, 3, 4, Accept), (707.044\u00b5s, 2, 5, Accept), (890.995\u00b5s, 3, 4, Request { api_key: 18, api_version: 4 }), (904.841\u00b5s, 2, 5, Request { api_key: 18, api_version: 4 }), (1.124449ms, 1, 6, Accept), (1.187146ms, 1, 6, Request { api_key: 18, api_version: 4 }), (252.329125ms, 3, 4, Response { api_key: 18, api_version: 4 }), (252.329576ms, 3, 4, ApiVersionsResponse { error_code: 0, ranges: [ApiVersion { api_key: 0, min_version: 3, max_version: 12 }, ApiVersion { api_key: 1, min_version: 4, max_version: 17 }, ApiVersion { api_key: 2, min_version: 0, max_version: 10 }, ApiVersion { api_key: 3, min_version: 1, max_version: 13 }, ApiVersion { api_key: 8, min_version: 2, max_version: 9 }, ApiVersion { api_key: 9, min_version: 1, max_version: 9 }, ApiVersion { api_key: 10, min_version: 0, max_version: 6 }, ApiVersion { api_key: 11, min_version: 0, max_version: 9 }, ApiVersion { api_key: 12, min_version: 0, max_version: 4 }, ApiVersion { api_key: 14, min_version: 0, max_version: 5 }, ApiVersion { api_key: 13, min_version: 0, max_version: 5 }, ApiVersion { api_key: 68, min_version: 0, max_version: 1 }, ApiVersion { api_key: 69, min_version: 0, max_version: 1 }, ApiVersion { api_key: 15, min_version: 0, max_version: 6 }, ApiVersion { api_key: 16, min_version: 0, max_version: 5 }, ApiVersion { api_key: 42, min_version: 0, max_version: 2 }, ApiVersion { api_key: 77, min_version: 0, max_version: 1 }, ApiVersion { api_key: 90, min_version: 0, max_version: 0 }, ApiVersion { api_key: 91, min_version: 0, m",
+    "truncated": true,
+    "source": "all-features-mock_produce.log"
+  },
+  "all-features/mock_produce/send_offsets_negotiates_a_new_group_coordinator": {
+    "excerpt": "thread 'send_offsets_negotiates_a_new_group_coordinator' (9751) panicked at tests/mock_produce.rs:1659:5:\nassertion `left == right` failed\n  left: 4\n right: 3",
+    "truncated": false,
+    "source": "all-features-mock_produce.log"
+  },
+  "all-features/mock_produce/send_offsets_repeats_a_remote_coordinator_without_another_handshake": {
+    "excerpt": "thread 'send_offsets_repeats_a_remote_coordinator_without_another_handshake' (9753) panicked at tests/mock_produce.rs:1692:5:\nrepeated group coordinator negotiated again: 503.988684ms",
+    "truncated": false,
+    "source": "all-features-mock_produce.log"
+  },
+  "all-features/mock_produce/send_offsets_reuses_bootstrap_api_versions": {
+    "excerpt": "thread 'send_offsets_reuses_bootstrap_api_versions' (9754) panicked at tests/mock_produce.rs:1588:5:\nassertion `left == right` failed\n  left: 2\n right: 1",
+    "truncated": false,
+    "source": "all-features-mock_produce.log"
+  },
+  "all-features/mock_produce/transactional_rediscover_skips_a_second_bootstrap_handshake": {
+    "excerpt": "thread 'transactional_rediscover_skips_a_second_bootstrap_handshake' (9757) panicked at tests/mock_produce.rs:1335:5:\nassertion `left == right` failed: reloading the bootstrap coordinator should reuse the versions already learned\n  left: 2\n right: 1",
+    "truncated": false,
+    "source": "all-features-mock_produce.log"
+  },
+  "all-features/mock_produce/transactional_startup_skips_a_second_bootstrap_handshake": {
+    "excerpt": "thread 'transactional_startup_skips_a_second_bootstrap_handshake' (9759) panicked at tests/mock_produce.rs:1309:5:\nassertion `left == right` failed: the coordinator socket should reuse the bootstrap broker's versions\n  left: 2\n right: 1",
+    "truncated": false,
+    "source": "all-features-mock_produce.log"
+  },
+  "all-features/producer_retained_backing/cancelled_channel_admission_releases_only_the_unenqueued_reservation": {
+    "excerpt": "Error: Timeout",
+    "truncated": false,
+    "source": "all-features-producer_retained_backing.log"
+  }
+}

@@ -1,0 +1,12 @@
+test_expiry_check_before_encoding_and_async_lock (__main__.SourceFacts.test_expiry_check_before_encoding_and_async_lock) ... ok
+test_first_poll_can_yield_before_application_write (__main__.SourceFacts.test_first_poll_can_yield_before_application_write) ... ok
+test_local_pending_has_no_general_cancellation_owner (__main__.SourceFacts.test_local_pending_has_no_general_cancellation_owner) ... ok
+test_raw_produce_write_bypasses_expiry_guard (__main__.SourceFacts.test_raw_produce_write_bypasses_expiry_guard) ... ok
+test_retirement_requeues_prior_inflight_while_open (__main__.SourceFacts.test_retirement_requeues_prior_inflight_while_open) ... ok
+test_retry_sequences_can_be_rewound (__main__.SourceFacts.test_retry_sequences_can_be_rewound) ... ok
+test_sasl_uses_shared_writer (__main__.SourceFacts.test_sasl_uses_shared_writer) ... ok
+
+----------------------------------------------------------------------
+Ran 7 tests in 0.015s
+
+OK

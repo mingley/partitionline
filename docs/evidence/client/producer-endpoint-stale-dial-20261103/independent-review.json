@@ -1,0 +1,34 @@
+{
+  "after_producer_sha256": "f86750174641d0ab985152f9be632a4583ec316316a5e410f1251fbb2e578151",
+  "archive_sha256": "8df13397bc7392dd2c73f3729514514ded4f8d3bd5dfee549050776b13c0f470",
+  "author_verifier_log_sha256": "573d9c1e4efecc5253b6c50473db33b60911177ba79821d748fb30272b6c88a7",
+  "catalog_sha256": "15da704200222b0b3b8de7d74274b9cf1fb3933a9339112c09b3467aa07868ea",
+  "checks": [
+    "all archive members match frozen receipt and source files",
+    "five source inputs match exact v16 fixed catalog",
+    "test insertion preserves all existing producer bytes and applies/reverses exactly",
+    "real socket ApiVersions request is observed before endpoint updates and response",
+    "ABA control now observes B before restoring and verifying A",
+    "unchanged endpoint positive plus changed and ABA proposed rejection assertions preserved",
+    "author source-only verification and illustrative model pass"
+  ],
+  "decision": "pass source-only review of test proposal; no adoption or runtime qualification",
+  "limitations": [
+    "test remains uncompiled and unrun; predicted baseline pass/fail is not observed",
+    "post-return slot inspection cannot exclude transient publication to another task",
+    "worker abort plus task-finished check is not a local descriptor or idle-watcher retirement witness",
+    "test sends no Produce and proves no misrouting, cancellation, retry, SASL or TLS behavior",
+    "ABA rejection is a proposed local-generation policy, not a Kafka endpoint epoch",
+    "metadata clone/publish and already-installed worker route races remain unresolved",
+    "v10 wire trace and v16 diagnostic output are distinct; no causation, speed or production claim"
+  ],
+  "patch_sha256": "93a2ab3da11f474493a751fa440fcfada2e9029576c238eb3107d219c290dc39",
+  "receipt_sha256": "0df446979cb480e70d06ba78a54a02f6990da6e572d8bf75a9020c21fa2cf991",
+  "source_pins": {
+    "src/cluster.rs": "17edc534f7e42075c1e888242e07386c734e7338f35a80618fe83442cb78be5f",
+    "src/net.rs": "f73aa7a04d3e2571f347f6a9245cf6f4df4ab218f653e71ca824e86e7893907c",
+    "src/producer.rs": "38add9415de68efd3ede5a27ce3c182adea92cbd94cd8c77e07b74774d30f6d1",
+    "src/protocol/api.rs": "07474d56731fdb9acf9c1b382ea29253fdf569548721119a60f233745e163ca9",
+    "tests/mock_produce.rs": "d3d85b55e0e9ebf342435a253d289873c3b9f2d854c5ca55fd8d3d27c53d9ab1"
+  }
+}

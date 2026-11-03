@@ -1,0 +1,149 @@
+{
+  "passed": false,
+  "baseline_expectations_matched": true,
+  "required_library_controls": 166,
+  "required_integration_controls": 17,
+  "gates": [
+    {
+      "name": "format",
+      "passed": true,
+      "receipt": "format.json"
+    },
+    {
+      "name": "clippy",
+      "passed": true,
+      "receipt": "clippy.json"
+    },
+    {
+      "name": "default-buffer_ownership",
+      "passed": true,
+      "receipt": "default-buffer_ownership.json"
+    },
+    {
+      "name": "default-group_coordinator_startup",
+      "passed": true,
+      "receipt": "default-group_coordinator_startup.json"
+    },
+    {
+      "name": "default-group_stack",
+      "passed": true,
+      "receipt": "default-group_stack.json"
+    },
+    {
+      "name": "default-init_producer_id_v6",
+      "passed": true,
+      "receipt": "default-init_producer_id_v6.json"
+    },
+    {
+      "name": "default-mock_produce",
+      "passed": false,
+      "receipt": "default-mock_produce.json"
+    },
+    {
+      "name": "default-partitionline",
+      "passed": true,
+      "receipt": "default-partitionline.json"
+    },
+    {
+      "name": "default-produce_cancel",
+      "passed": true,
+      "receipt": "default-produce_cancel.json"
+    },
+    {
+      "name": "default-producer_initialization",
+      "passed": true,
+      "receipt": "default-producer_initialization.json"
+    },
+    {
+      "name": "default-producer_retained_backing",
+      "passed": false,
+      "receipt": "default-producer_retained_backing.json"
+    },
+    {
+      "name": "default-sticky_partitioner",
+      "passed": true,
+      "receipt": "default-sticky_partitioner.json"
+    },
+    {
+      "name": "all-features-buffer_ownership",
+      "passed": true,
+      "receipt": "all-features-buffer_ownership.json"
+    },
+    {
+      "name": "all-features-group_coordinator_startup",
+      "passed": true,
+      "receipt": "all-features-group_coordinator_startup.json"
+    },
+    {
+      "name": "all-features-group_stack",
+      "passed": true,
+      "receipt": "all-features-group_stack.json"
+    },
+    {
+      "name": "all-features-init_producer_id_v6",
+      "passed": true,
+      "receipt": "all-features-init_producer_id_v6.json"
+    },
+    {
+      "name": "all-features-mock_produce",
+      "passed": false,
+      "receipt": "all-features-mock_produce.json"
+    },
+    {
+      "name": "all-features-partitionline",
+      "passed": false,
+      "receipt": "all-features-partitionline.json"
+    },
+    {
+      "name": "all-features-produce_cancel",
+      "passed": true,
+      "receipt": "all-features-produce_cancel.json"
+    },
+    {
+      "name": "all-features-producer_initialization",
+      "passed": true,
+      "receipt": "all-features-producer_initialization.json"
+    },
+    {
+      "name": "all-features-producer_retained_backing",
+      "passed": false,
+      "receipt": "all-features-producer_retained_backing.json"
+    },
+    {
+      "name": "all-features-sticky_partitioner",
+      "passed": true,
+      "receipt": "all-features-sticky_partitioner.json"
+    }
+  ],
+  "limits": [
+    "The checkout qualification driver emits bounded failure diagnostics and summaries. Libtest output is unframed, attribution is best-effort, and no secret redaction is claimed. The six-helper guard verifies pinned bytes, not dependencies or live execution.",
+    "V16 adjusts the deadline-cancellation test fixture to exercise the unordered suffix-scan path while retaining its existing cancellation and cleanup assertions. The baseline case keeps its original fixture; the existing ordered-path control remains required. This fixed-only test change has not run natively.",
+    "The v14 hosted report did not contain panic details. The fixture mismatch is a source-based explanation of a failure mode, not a proven cause of that hosted failure.",
+    "V16 repins the reviewed release-checker follow-up. Production Rust code is unchanged; the fixed test fixture is adjusted separately. Existing controls, baseline cases, targets and timing remain required.",
+    "V14 job 125741909203 reported passing format, strict Clippy and both builds, then 2431 passed, 17 failed and two ignored per ten-target profile: 15 Mock Produce failures, one pending-deadline cancellation failure and one retained-backing failure. The same deadline case passed as isolated baseline case 02. Hosted logs omitted panic details; the failure cause remains unproven. No v16 runtime or performance result is inferred.",
+    "V15 preparation repinned the reviewed release-CI overlay without changing v14 Rust patches or the test matrix. Its runtime result is tracked separately.",
+    "V14 preparation added the reviewed missing PendingWork import. Its runtime result is tracked separately; source patches, assertions, thresholds, 183 controls and 23 baseline records are preserved in v15.",
+    "The v13 attempt at checkout 33744862 failed Clippy and its default build; available job logs did not include compiler diagnostics. No fixed tests ran in that attempt.",
+    "V12 added timeout-only retained-backing diagnostics. Its fdaf native attempt passed formatting but failed Clippy and the default build with a missing PendingWork test import; no fixed test ran.",
+    "The v12 third-request baseline control exited with coordinator error 14 before observing its stated barrier; that expected failure does not prove a third request occurred. Its baseline record retains the original preparation-era prediction.",
+    "In the later e766 v10 rerun, each library had one topic-encoding timing failure (87.141916 ms and 80.254912 ms against an 80 ms limit); the earlier b1 v10 library runs passed. Cause is unresolved.",
+    "V11 staged producer queue v2 and a separate JoinGroup wire-order control. V12 compilation stopped on the missing test import; fixed runtime and performance remain unqualified. The original two-response control remains required.",
+    "Producer optimization only avoids some expiry and deadline scans. Vec prefix shifts, nonmonotonic fallback and sticky scans remain; arbitrary resumption of an interrupted split is unqualified.",
+    "V10 at b1 passed 2280 library tests in each profile and strict format/Clippy but failed 15 mock tests and a retained-backing timeout per profile; the v10 gate failed.",
+    "V10 preparation added a handshake overlap diagnostic; it passed both profiles at b1. The original 450 ms end-to-end test remains unchanged and failed in v7, v8 and v10. No performance fix is claimed.",
+    "V10 preparation added a test-only response gate and zero-delay correction. At b1 the new gate control, format and Clippy passed in both profiles, while the original retained-backing case still timed out. The timeout cause is not proven.",
+    "V9 preparation changed source pins for five release-related files and added the registry probe test to all phases, preserving the v8 Rust patches and test matrix. V9 was not run as a distinct candidate.",
+    "V8 preparation combined v7, two test repairs and worker-owned producer terminal/retry/split/response changes. Its later run at 350b5e534 passed 2,280 library tests per profile and format/Clippy, but failed 15 Mock Produce tests and one retained-backing test per profile.",
+    "V7 native runs reached runtime and failed: each library 2253/1, Mock Produce 31/15, retained backing 7/1/1 ignored; two Clippy test errors and two baseline expectation mismatches. V8 test repairs do not address the 15 handshake failures or retained-backing timeout.",
+    "V8 preparation changed two baseline predictions after v7 passes. The original cancellation case then failed in v8 and v10; v11/v12 retain that unchanged case as an observation and add a separate predicted-negative wire control.",
+    "Full runs of ten chosen binaries in default/all-feature lanes are required; other integration binaries and ordinary whole-main runtime remain separate gates.",
+    "Runtime stack remains 8 MiB except an explicit standard 2 MiB group child; this mock does not establish live Kafka stack safety.",
+    "All 26 added producer ownership controls passed in both v8 library profiles. Broader cancellation, retry, callback, accounting and runtime behavior still needs qualification.",
+    "Issue ordering, sequence wrap, PID/epoch transitions, whole-batch replay and physical socket retirement before ambiguous retry remain unresolved.",
+    "Hashing/map growth, final Drop, callbacks and deque-suffix conversion can perform linear synchronous work; global memory and cancellation latency are not bounded.",
+    "No external broker, multi-node durability, release readiness or fastest-performance ranking is established."
+  ],
+  "production_ready": false,
+  "fastest_claim_qualified": false,
+  "scope": "Full runs of chosen binaries in default/all-feature lanes; this is not the ordinary whole-main all-target runtime matrix, a release, external broker qualification, or performance ranking."
+}

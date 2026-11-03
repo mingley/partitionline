@@ -1,0 +1,133 @@
+--- a/src/producer.rs
++++ b/src/producer.rs
+@@ -12785,6 +12785,130 @@
+         drop(cached);
+     }
+ 
++    // Source-only proposed regression: observe the actual slot publication
++    // after a real ApiVersions exchange was held across endpoint updates.
++    // The ABA expectation is a conservative local-generation policy, not a
++    // claim that Kafka supplies an epoch for broker endpoints.
++    async fn completed_dial_published_after_endpoint_changes(changes: u8) -> bool {
++        use tokio::io::{AsyncReadExt, AsyncWriteExt};
++
++        let meta_listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
++        let meta_addr = meta_listener.local_addr().unwrap().to_string();
++        let meta = BrokerConn::connect(&meta_addr, "endpoint-meta", Duration::from_secs(2))
++            .await
++            .unwrap();
++        let (meta_peer, _) = meta_listener.accept().await.unwrap();
++        let old_listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
++        let old_addr = old_listener.local_addr().unwrap();
++        let new_listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
++        let new_addr = new_listener.local_addr().unwrap();
++        assert_ne!(old_addr, new_addr);
++
++        let shared = test_shared(ProducerConfig::bootstrap([meta_addr]).connections(1), meta);
++        shared.cluster.lock().apply_node_endpoints(&[
++            crate::protocol::api::NodeEndpoint::new(1, "127.0.0.1", i32::from(old_addr.port()), None),
++        ]);
++        let dial_addr = prepare_slot_dial(&shared, 1, 0).expect("old endpoint was not selected");
++        assert_eq!(dial_addr, old_addr.to_string());
++
++        // The real worker cannot finish negotiation until the peer below
++        // observes ApiVersions, applies the selected endpoint updates, and
++        // then sends the matching response. There is no sleep-based gate.
++        let (opened, old_peer) = tokio::time::timeout(Duration::from_secs(3), async {
++            tokio::join!(
++                spawn_slot_worker(&shared, 1, &dial_addr, 8),
++                async {
++                    let (mut peer, _) = old_listener.accept().await.unwrap();
++                    let size = peer.read_i32().await.unwrap();
++                    assert!((8..=4096).contains(&size));
++                    let mut request = vec![0; usize::try_from(size).unwrap()];
++                    peer.read_exact(&mut request).await.unwrap();
++                    assert_eq!(i16::from_be_bytes(request[0..2].try_into().unwrap()), 18);
++                    assert_eq!(i16::from_be_bytes(request[2..4].try_into().unwrap()), 4);
++                    if changes > 0 {
++                        shared.cluster.lock().apply_node_endpoints(&[
++                            crate::protocol::api::NodeEndpoint::new(
++                                1, "127.0.0.1", i32::from(new_addr.port()), None,
++                            ),
++                        ]);
++                        let observed_b = new_addr.to_string();
++                        assert_eq!(
++                            shared.cluster.lock().brokers.get(&1).map(String::as_str),
++                            Some(observed_b.as_str()),
++                        );
++                    }
++                    if changes > 1 {
++                        shared.cluster.lock().apply_node_endpoints(&[
++                            crate::protocol::api::NodeEndpoint::new(
++                                1, "127.0.0.1", i32::from(old_addr.port()), None,
++                            ),
++                        ]);
++                    }
++                    let expected = if changes == 1 { new_addr } else { old_addr };
++                    let expected_addr = expected.to_string();
++                    assert_eq!(
++                        shared.cluster.lock().brokers.get(&1).map(String::as_str),
++                        Some(expected_addr.as_str()),
++                    );
++                    let versions = known_api_versions(&[ApiVersion {
++                        api_key: PRODUCE,
++                        min_version: 3,
++                        max_version: 13,
++                    }]);
++                    let mut body = BytesMut::new();
++                    crate::protocol::api::encode_api_versions_response(&mut body, 4, &versions)
++                        .unwrap();
++                    peer.write_i32(i32::try_from(4 + body.len()).unwrap()).await.unwrap();
++                    peer.write_all(&request[4..8]).await.unwrap();
++                    peer.write_all(&body).await.unwrap();
++                    peer
++                },
++            )
++        })
++        .await
++        .expect("endpoint handshake/update control timed out");
++        let worker = opened.expect("old endpoint handshake did not complete");
++        let old_id = Arc::clone(&worker.id);
++        let task = Arc::clone(&worker.task.handle);
++        let weak = Arc::downgrade(&shared);
++        finish_slot_connect(&shared, &weak, 1, 0, Ok(worker));
++        let slot = shared.nodes.lock().get_mut(&1).and_then(|v| v.get_mut(0)).and_then(Option::take);
++        let published = slot.as_ref().is_some_and(|w| Arc::ptr_eq(&w.id, &old_id));
++        if let Some(worker) = slot {
++            worker.admission.close();
++            worker.task.abort();
++        }
++        task.abort();
++        let finished = tokio::time::timeout(Duration::from_secs(2), async {
++            while !task.is_finished() {
++                tokio::task::yield_now().await;
++            }
++        })
++        .await
++        .is_ok();
++        drop(old_peer);
++        drop(meta_peer);
++        drop(new_listener);
++        drop(shared);
++        assert!(finished, "test worker did not terminate during cleanup");
++        published
++    }
++
++    #[tokio::test(flavor = "current_thread")]
++    async fn unchanged_endpoint_keeps_a_completed_dial_publishable() {
++        assert!(completed_dial_published_after_endpoint_changes(0).await);
++    }
++
++    #[tokio::test(flavor = "current_thread")]
++    async fn changed_endpoint_rejects_the_completed_old_dial() {
++        assert!(!completed_dial_published_after_endpoint_changes(1).await);
++    }
++
++    #[tokio::test(flavor = "current_thread")]
++    async fn endpoint_aba_rejects_a_dial_from_the_old_local_generation() {
++        assert!(!completed_dial_published_after_endpoint_changes(2).await);
++    }
++
+     #[tokio::test(flavor = "current_thread")]
+     async fn retired_fast_route_falls_back_to_the_live_worker() {
+         for asynchronous in [false, true] {

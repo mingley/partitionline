@@ -1,0 +1,32 @@
+{
+  "author_verifier_log_sha256": "97fb5be464e378f8fc7196811d46fa940e399ff440b3dc8438df0e6f12f89bb7",
+  "caveats": [
+    "main and v16/v17 producer/net differ; source observations are not interchangeable",
+    "no actual expiry, broker acceptance, cancellation, sequence reuse or performance event was observed",
+    "no Rust/Cargo/native/network work",
+    "sequence counterexample assumes the documented same producer ID, epoch generation and retained assigned sequence; not a broker execution"
+  ],
+  "checks": [
+    "four main source hashes verified via local Git objects",
+    "v16/v17 four source hashes verified against exact fixed catalog",
+    "raw Worker write and prewrite-pending pump states inspected independently",
+    "SASL shared writer and Worker in-flight Drop/requeue paths inspected",
+    "same-epoch sequence rewind scenario traced through assign and rollback",
+    "local Pending ownership and transferred byte reservation inspected",
+    "author seven Python source checks passed",
+    "v1\u2192v2\u2192v3 changes inspected: temporal wording and same-epoch assumptions clarified; source pins and executable verifier logic unchanged"
+  ],
+  "decision": "pass source-only review; no implementation or runtime qualification",
+  "manifest_sha256": "595b151e70f2b663620db9c4e8483c3c40e6bbb9592fb82adaa815bc59761e8b",
+  "prior_review_sha256": "0425c43c10a4aba12d982d99d62aa1c0ddcb8bff349138c7e7cfe01609437a32",
+  "readme_sha256": "9aee7b56927e2dc5eec984ddc4b85ff7b50d86a3d83ad42f8e0dcf170a96100a",
+  "source_commit": "e45c369f915cab4d4f70b20668973957458e1dd2",
+  "source_sha256": {
+    "src/error.rs": "014c33e7716b004aa22ec46b4b7e0e9e67b54d982b69b8f152ee02eb421d45f2",
+    "src/net.rs": "df239f20fdc4e3240defa78e632faa50c09dc69876478581e061d5c68722bb38",
+    "src/producer.rs": "4f461c00864e3da5e20925796c1f489580a4046202cffd86fefeb64cbd145a32",
+    "src/protocol/sasl.rs": "151bb98bd09123b793dc8a4300a709ab343ef9591d21aafd19ce3837fe386fe5"
+  },
+  "v16_v17_fixed_catalog_sha256": "15da704200222b0b3b8de7d74274b9cf1fb3933a9339112c09b3467aa07868ea",
+  "verifier_sha256": "3c177a477f4f882d67114b6897efa44061477f577e34aeb2b38c16d7b88a69e0"
+}

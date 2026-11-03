@@ -1,0 +1,106 @@
+{
+  "decision": "verified failed v16 repeat evidence; baseline case 23 does not establish intended cancellation phase",
+  "compact_zip_sha256": "83aad5580ac5f1dab2497763b9c4139bdeea74ab0f3eda3dd4c223ea2cbd6e36",
+  "checksums_sha256": "5e168394311700bcf194c0b776aa7a9bcd7577cfc349231aeaeaf10a6eedc971",
+  "members_manifest_sha256": "7553166d4e696bd98205324724ee26e4204cc3be7cb665d66159188beccb29fb",
+  "analysis_sha256": "074d5b8ce7ec7c37360c37f11d8626de9fc6137fa11661fe29dc15adfccf2f54",
+  "job_log_sha256": "2b749d09d6417bbf66519dc91fea08bc656b84ffb9d715fb5b2766108111d3d9",
+  "baseline_case_23_log_sha256": "029a63c8636df7554e227e832d2752c2f27401f76c07661be1e9c092c27da28b",
+  "checkout_commit": "e2a04e229514d3a2662a9f765b57145c467de237",
+  "spec_sha256": "dcca8ef98344e960ced94ef0aa560032950ce96556dab16820cffe007e3a6be2",
+  "driver_sha256": "9fe00abe6523c05a23b01b986932491939217ea024768c82751eeec4c1ab2d44",
+  "case_23_source_sha256": "5df1d1727747bd88ef42c489270a5babe69aff2c2d8bdd9df082e2f51909f26e",
+  "checks": {
+    "all_directory_checksums_match": true,
+    "downloaded_attachment_matches_report_zip": true,
+    "all_623_zip_members_hash_size_crc_verified": true,
+    "four_extracted_report_members_exact": true,
+    "checkout_spec_driver_and_helper_bytes_match": true,
+    "all_23_baseline_records_and_commands_match": true,
+    "case_23_source_reconstructed_from_git_and_pinned_baseline_patch": true,
+    "case_23_failure_site_and_matcher_verified": true,
+    "all_20_target_receipts_selections_and_logs_checked": true,
+    "all_136_command_receipts_and_input_pairs_checked": true
+  },
+  "profile_totals": {
+    "default": [
+      2432,
+      16,
+      2
+    ],
+    "all-features": [
+      2431,
+      17,
+      2
+    ]
+  },
+  "profile_failures": {
+    "default": {
+      "mock_produce": [
+        "commit_reuses_a_produce_handshake_for_the_moved_coordinator",
+        "commit_reuses_bootstrap_when_the_coordinator_returns",
+        "epoch_bump_reuses_a_produce_handshake",
+        "multi_bootstrap_commit_reuses_known_coordinator_handshakes",
+        "multi_bootstrap_send_offsets_reuses_known_handshakes",
+        "multi_bootstrap_transaction_reuses_the_other_bootstrap_handshake",
+        "produce_reuses_a_finished_bootstrap_handshake",
+        "produce_reuses_bootstrap_api_versions",
+        "produce_reuses_the_transaction_coordinator_handshake",
+        "send_all_redials_leaders_while_refreshing_metadata",
+        "send_offsets_negotiates_a_new_group_coordinator",
+        "send_offsets_repeats_a_remote_coordinator_without_another_handshake",
+        "send_offsets_reuses_bootstrap_api_versions",
+        "transactional_rediscover_skips_a_second_bootstrap_handshake",
+        "transactional_startup_skips_a_second_bootstrap_handshake"
+      ],
+      "producer_retained_backing": [
+        "cancelled_channel_admission_releases_only_the_unenqueued_reservation"
+      ]
+    },
+    "all-features": {
+      "partitionline": [
+        "producer::tests::encoding_many_produce_topics_does_not_hold_the_caller"
+      ],
+      "mock_produce": [
+        "commit_reuses_a_produce_handshake_for_the_moved_coordinator",
+        "commit_reuses_bootstrap_when_the_coordinator_returns",
+        "epoch_bump_reuses_a_produce_handshake",
+        "multi_bootstrap_commit_reuses_known_coordinator_handshakes",
+        "multi_bootstrap_send_offsets_reuses_known_handshakes",
+        "multi_bootstrap_transaction_reuses_the_other_bootstrap_handshake",
+        "produce_reuses_a_finished_bootstrap_handshake",
+        "produce_reuses_bootstrap_api_versions",
+        "produce_reuses_the_transaction_coordinator_handshake",
+        "send_all_redials_leaders_while_refreshing_metadata",
+        "send_offsets_negotiates_a_new_group_coordinator",
+        "send_offsets_repeats_a_remote_coordinator_without_another_handshake",
+        "send_offsets_reuses_bootstrap_api_versions",
+        "transactional_rediscover_skips_a_second_bootstrap_handshake",
+        "transactional_startup_skips_a_second_bootstrap_handshake"
+      ],
+      "producer_retained_backing": [
+        "cancelled_channel_admission_releases_only_the_unenqueued_reservation"
+      ]
+    }
+  },
+  "case_23": {
+    "expected": "fail without failure_regex",
+    "observed": "broker error 14 at source line 395 before the test observed the two-response and third-request wire barrier and before drop(join)",
+    "implication": "the matcher accepts this failure but it does not witness cancellation after that barrier; v17 inherits this gap and its benchmark must remain blocked until a suitable witness is required",
+    "precision": "the test did not observe the barrier; this evidence alone does not prove how many wire requests actually occurred or that either response was consumed"
+  },
+  "resource_guard_summary": {
+    "command_receipts": 136,
+    "stable_input_pairs": 136,
+    "all_oom_counters": "unknown",
+    "min_recorded_free_bytes": 83250610176,
+    "all_owned_leaders_waited": true,
+    "remaining_descendants": 0
+  },
+  "limitations": [
+    "Report evidence is retained unframed libtest output; status attribution is best effort. No native tests, Cargo, network, benchmark or root edits were performed in review.",
+    "The original full artifact and compiled test binaries were not downloaded; their bytes and actual code generation cannot be independently checked here. Dependency source bytes are not exhaustively pinned.",
+    "All OOM counters are unknown, so no absence-of-OOM conclusion follows. Causes of retained-backing timeout and 80 ms timing miss remain unproven.",
+    "No whole-main release qualification, external Kafka interoperability, production readiness or global performance ranking follows."
+  ]
+}

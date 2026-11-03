@@ -1,0 +1,70 @@
+{
+  "scope": "v16 source-only endpoint stale-dial control and fix proposal; no implementation or native run",
+  "source_pins": {
+    "src/producer.rs": "38add9415de68efd3ede5a27ce3c182adea92cbd94cd8c77e07b74774d30f6d1",
+    "src/cluster.rs": "17edc534f7e42075c1e888242e07386c734e7338f35a80618fe83442cb78be5f",
+    "src/net.rs": "f73aa7a04d3e2571f347f6a9245cf6f4df4ab218f653e71ca824e86e7893907c",
+    "src/protocol/api.rs": "07474d56731fdb9acf9c1b382ea29253fdf569548721119a60f233745e163ca9",
+    "tests/mock_produce.rs": "d3d85b55e0e9ebf342435a253d289873c3b9f2d854c5ca55fd8d3d27c53d9ab1"
+  },
+  "catalog_sha256": "15da704200222b0b3b8de7d74274b9cf1fb3933a9339112c09b3467aa07868ea",
+  "v16_log_gzip_sha256": "9d1c4c7be7b99a787d5be57df32025efb04136f2452fe0d33c71991ea74acd88",
+  "v10_wire_readme_sha256": "009ce15564b3220859f1903acf275fa2d0b9d9dddc62d7760899e1758a15bc61",
+  "test_patch_sha256": "93a2ab3da11f474493a751fa440fcfada2e9029576c238eb3107d219c290dc39",
+  "after_producer_sha256": "f86750174641d0ab985152f9be632a4583ec316316a5e410f1251fbb2e578151",
+  "checks": [
+    "source pins and patch forward/reverse pass",
+    "source ordering checks pass",
+    "sequential model output matches",
+    "unchanged endpoint, changed endpoint and ABA test cases added only"
+  ],
+  "limitations": [
+    "Rust tests have not been compiled or run; predicted positive/negative outcomes are not observations.",
+    "The test checks the post-return slot and does not prove absence of transient publication, actual misrouted Produce, local descriptor retirement or safe in-flight retry.",
+    "Metadata snapshot clobber and endpoint-authority ordering remain separate prerequisites; the local ABA stamp is not a Kafka broker epoch.",
+    "No production readiness, release readiness or performance result."
+  ],
+  "peer_note": "A scoped source-only collaboration-message sanity check found the intermediate-B witness gap, now corrected; it is not a full independent review or native validation.",
+  "files": {
+    "README.md": {
+      "sha256": "698982f573f37e9874bc4f29ca8d02cb37c88178e45b480312c2ef2bf6edeede",
+      "bytes": 1319
+    },
+    "DESIGN.md": {
+      "sha256": "1245fe9a1285e68c9ddb0b6d292f20a04c914c39aef5e1704f29983773975f3e",
+      "bytes": 7703
+    },
+    "OBSERVATIONS.md": {
+      "sha256": "26e265eef886a595d86aebed03f161617af1b52f85a5a4027cd588b85959b37b",
+      "bytes": 2899
+    },
+    "pins.json": {
+      "sha256": "af84aa2c6545a3e8172917b1d6b0db23add7a30f3b5a4971016c3952087d49cc",
+      "bytes": 628
+    },
+    "insert.rs": {
+      "sha256": "7d45754e7801d5c758abf08ccd705a65eda40f5c83bf89b908bc1a923109f4d9",
+      "bytes": 6166
+    },
+    "endpoint-stale-dial-tests.patch": {
+      "sha256": "93a2ab3da11f474493a751fa440fcfada2e9029576c238eb3107d219c290dc39",
+      "bytes": 6551
+    },
+    "model.py": {
+      "sha256": "da248dd3da3d042cabab54abbda73ac97d35af515ddd058e9b651fedc337ef9f",
+      "bytes": 1415
+    },
+    "model.json": {
+      "sha256": "bef939163ec4aeb7e2e9afdb331302940a2a247cab144715fd62427c4a3060d9",
+      "bytes": 788
+    },
+    "verify.py": {
+      "sha256": "cd55b2e606b3d3487bdb9e49d605b1c9768f8b16cb2fe6e5e199c698de01781e",
+      "bytes": 4406
+    },
+    "verify.out": {
+      "sha256": "573d9c1e4efecc5253b6c50473db33b60911177ba79821d748fb30272b6c88a7",
+      "bytes": 236
+    }
+  }
+}

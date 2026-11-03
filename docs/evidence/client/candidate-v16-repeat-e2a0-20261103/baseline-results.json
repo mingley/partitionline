@@ -1,0 +1,241 @@
+{
+  "all_expectations_matched": true,
+  "cases": [
+    {
+      "case": {
+        "target": "partitionline",
+        "test": "producer::tests::cancelled_pending_drain_retains_accepted_records_until_worker_cleanup",
+        "expect": "pass",
+        "reason": "V5 baseline deliberately includes scoped drain fix733c0f2640ac... before the new actual-fire grouping negative."
+      },
+      "exit": 0,
+      "matches_expectation": true,
+      "receipt": "baseline-case-01.json"
+    },
+    {
+      "case": {
+        "target": "partitionline",
+        "test": "producer::tests::cancelled_pending_deadline_scan_retains_the_detached_prefix_until_worker_cleanup",
+        "expect": "pass",
+        "reason": "V5 baseline deliberately includes scoped drain fix733c0f2640ac... before the new actual-fire grouping negative."
+      },
+      "exit": 0,
+      "matches_expectation": true,
+      "receipt": "baseline-case-02.json"
+    },
+    {
+      "case": {
+        "target": "group_coordinator_startup",
+        "test": "classic_join_recovers_after_repeated_typed_coordinator_responses",
+        "expect": "fail"
+      },
+      "exit": 101,
+      "matches_expectation": true,
+      "receipt": "baseline-case-03.json"
+    },
+    {
+      "case": {
+        "target": "group_coordinator_startup",
+        "test": "classic_join_retains_a_required_member_id_across_coordinator_responses",
+        "expect": "fail"
+      },
+      "exit": 101,
+      "matches_expectation": true,
+      "receipt": "baseline-case-04.json"
+    },
+    {
+      "case": {
+        "target": "group_coordinator_startup",
+        "test": "classic_join_returns_terminal_response_after_transient_coordinator_errors",
+        "expect": "fail"
+      },
+      "exit": 101,
+      "matches_expectation": true,
+      "receipt": "baseline-case-05.json"
+    },
+    {
+      "case": {
+        "target": "group_coordinator_startup",
+        "test": "persistent_join_responses_stop_at_the_original_deadline_with_backoff",
+        "expect": "fail"
+      },
+      "exit": 101,
+      "matches_expectation": true,
+      "receipt": "baseline-case-06.json"
+    },
+    {
+      "case": {
+        "target": "group_coordinator_startup",
+        "test": "cancelling_a_join_after_written_coordinator_responses_stops_new_requests",
+        "expect": "observe",
+        "reason": "Original test body is unchanged. Legacy v7 passed while v8 and v10 failed before two responses were observed; preserve both outcomes as history. The added third-request control separately tests the sequential retry behavior."
+      },
+      "exit": 0,
+      "matches_expectation": true,
+      "receipt": "baseline-case-07.json"
+    },
+    {
+      "case": {
+        "target": "group_coordinator_startup",
+        "test": "classic_join_recovers_when_rediscovery_itself_is_still_loading",
+        "expect": "fail"
+      },
+      "exit": 101,
+      "matches_expectation": true,
+      "receipt": "baseline-case-08.json"
+    },
+    {
+      "case": {
+        "target": "group_coordinator_startup",
+        "test": "classic_join_returns_terminal_rediscovery_errors_without_another_join",
+        "expect": "pass",
+        "reason": "Native v7 baseline case unexpectedly passed in run 41141176310; preserve the identity. Prior prediction and receipt: baseline-case-09.json."
+      },
+      "exit": 0,
+      "matches_expectation": true,
+      "receipt": "baseline-case-09.json"
+    },
+    {
+      "case": {
+        "target": "group_coordinator_startup",
+        "test": "classic_join_does_not_retry_terminal_authorization_or_fencing_responses",
+        "expect": "pass"
+      },
+      "exit": 0,
+      "matches_expectation": true,
+      "receipt": "baseline-case-10.json"
+    },
+    {
+      "case": {
+        "target": "partitionline",
+        "test": "group::tests::delayed_first_poll_does_not_restart_the_coordinator_deadline",
+        "expect": "fail"
+      },
+      "exit": 101,
+      "matches_expectation": true,
+      "receipt": "baseline-case-11.json"
+    },
+    {
+      "case": {
+        "target": "mock_produce",
+        "test": "retry_refreshes_waiting_topics_together",
+        "expect": "fail"
+      },
+      "exit": 101,
+      "matches_expectation": true,
+      "receipt": "baseline-case-12.json"
+    },
+    {
+      "case": {
+        "target": "group_stack",
+        "test": "public_group_lifecycle_fits_the_standard_two_mib_stack",
+        "expect": "observe"
+      },
+      "exit": 0,
+      "matches_expectation": true,
+      "receipt": "baseline-case-13.json"
+    },
+    {
+      "case": {
+        "target": "partitionline",
+        "test": "cluster::tests::declared_topic_count_does_not_allocate_duplicate_tracking",
+        "expect": "fail"
+      },
+      "exit": 101,
+      "matches_expectation": true,
+      "receipt": "baseline-case-14.json"
+    },
+    {
+      "case": {
+        "target": "partitionline",
+        "test": "cluster::tests::topic_duplicate_tracking_keeps_names_across_the_heap_transition",
+        "expect": "fail"
+      },
+      "exit": 101,
+      "matches_expectation": true,
+      "receipt": "baseline-case-15.json"
+    },
+    {
+      "case": {
+        "target": "partitionline",
+        "test": "cluster::tests::unchanged_metadata_partitions_yield_without_discarding_the_cache",
+        "expect": "fail"
+      },
+      "exit": 101,
+      "matches_expectation": true,
+      "receipt": "baseline-case-16.json"
+    },
+    {
+      "case": {
+        "target": "partitionline",
+        "test": "cluster::tests::unchanged_metadata_partition_budget_spans_multiple_topics",
+        "expect": "fail"
+      },
+      "exit": 101,
+      "matches_expectation": true,
+      "receipt": "baseline-case-17.json"
+    },
+    {
+      "case": {
+        "target": "partitionline",
+        "test": "consumer::tests::cancelling_assigned_id_retention_keeps_all_still_assigned_identities",
+        "expect": "fail"
+      },
+      "exit": 101,
+      "matches_expectation": true,
+      "receipt": "baseline-case-18.json"
+    },
+    {
+      "case": {
+        "target": "partitionline",
+        "test": "consumer::tests::retained_assigned_ids_keep_their_existing_storage",
+        "expect": "fail"
+      },
+      "exit": 101,
+      "matches_expectation": true,
+      "receipt": "baseline-case-19.json"
+    },
+    {
+      "case": {
+        "target": "partitionline",
+        "test": "consumer::tests::cancelled_assigned_id_removals_can_resume_without_losing_kept_ids",
+        "expect": "pass"
+      },
+      "exit": 0,
+      "matches_expectation": true,
+      "receipt": "baseline-case-20.json"
+    },
+    {
+      "case": {
+        "target": "partitionline",
+        "test": "consumer::tests::retaining_many_empty_assigned_id_topics_yields",
+        "expect": "fail"
+      },
+      "exit": 101,
+      "matches_expectation": true,
+      "receipt": "baseline-case-21.json"
+    },
+    {
+      "case": {
+        "target": "partitionline",
+        "test": "producer::prepare_tests::cancelled_fire_grouping_retains_actual_accepted_records",
+        "expect": "fail",
+        "reason": "Actual legacy fire grouping with scoped drain ownership already fixed; direct helper controls are not old-code causal evidence."
+      },
+      "exit": 101,
+      "matches_expectation": true,
+      "receipt": "baseline-case-22.json"
+    },
+    {
+      "case": {
+        "target": "group_coordinator_startup",
+        "test": "cancelling_a_join_after_two_errors_and_third_request_stops_new_requests",
+        "expect": "fail",
+        "reason": "Predicted legacy failure under the current sequential no-fault path; requires actual native execution. The unchanged original cancellation control remains required in fixed runs."
+      },
+      "exit": 101,
+      "matches_expectation": true,
+      "receipt": "baseline-case-23.json"
+    }
+  ]
+}

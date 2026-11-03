@@ -1,0 +1,1007 @@
+{
+  "scope": "Hosted v16 candidate repeat, 10 selected test binaries per profile; not a whole-main release or performance qualification.",
+  "repository": "mingley/partitionline",
+  "run_id": 41591455215,
+  "job_id": 125768893922,
+  "checkout_sha": "e2a04e229514d3a2662a9f765b57145c467de237",
+  "source_base_commit": "020f3a734a9dccb1b778c5fd60782e604a13e3a9",
+  "candidate_spec_sha256": "dcca8ef98344e960ced94ef0aa560032950ce96556dab16820cffe007e3a6be2",
+  "driver_sha256": "9fe00abe6523c05a23b01b986932491939217ea024768c82751eeec4c1ab2d44",
+  "ownership_helper_sha256": "34ddbf04a4bbead974fad4a451d30c7a56818248bd5b58c88c87bdfc41896da9",
+  "fixed_source_catalog_sha256": "15da704200222b0b3b8de7d74274b9cf1fb3933a9339112c09b3467aa07868ea",
+  "baseline_source_catalog_sha256": "66cbda09f9dbb796cc447c2212b616454bee8bdf5d9bba7a61a9b7e96510934f",
+  "cargo_lock_sha256": "bdc37c48feb0d7a17a1b08e70c5301ec30b9a90e64c93adaf28aef6b6f9f46bc",
+  "compact_artifact_id": 13211368195,
+  "compact_artifact_sha256": "83aad5580ac5f1dab2497763b9c4139bdeea74ab0f3eda3dd4c223ea2cbd6e36",
+  "compact_artifact_bytes": 15529149,
+  "download_provenance": {
+    "connector": "GitHub connector github_download_workflow_artifact",
+    "downloader": "functions.download_file (Sediment file ID returned by connector)",
+    "local_download_path": "/workspace/attachments/e1549567-70d3-4ad9-ba79-3c47de2bb76a/client-v16-e2a0-reports.zip",
+    "artifact_id": 13211368195
+  },
+  "full_artifact_id": 13211058643,
+  "full_artifact_sha256": "fb6548df58c628c65f22d6c89a5b693398a30e66f432c45ca25705d2381d83d4",
+  "full_artifact_bytes": 203058193,
+  "full_artifact_downloaded": false,
+  "toolchain": "rustc 1.99.1 (58cf8f9c3 2026-10-13)\nbinary: rustc\ncommit-hash: 58cf8f9c35b355199727627d07ae34a4e2846d67\ncommit-date: 2026-10-13\nhost: x86_64-unknown-linux-gnu\nrelease: 1.99.1\nLLVM version: 23.1.1",
+  "format_and_strict_clippy": "passed",
+  "default_build": "passed",
+  "all_features_build": "passed",
+  "baseline_cases": [
+    {
+      "case": 1,
+      "test": "producer::tests::cancelled_pending_drain_retains_accepted_records_until_worker_cleanup",
+      "target": "partitionline",
+      "expect": "pass",
+      "exit": 0,
+      "failures": [],
+      "receipt": "baseline-case-01.json"
+    },
+    {
+      "case": 2,
+      "test": "producer::tests::cancelled_pending_deadline_scan_retains_the_detached_prefix_until_worker_cleanup",
+      "target": "partitionline",
+      "expect": "pass",
+      "exit": 0,
+      "failures": [],
+      "receipt": "baseline-case-02.json"
+    },
+    {
+      "case": 3,
+      "test": "classic_join_recovers_after_repeated_typed_coordinator_responses",
+      "target": "group_coordinator_startup",
+      "expect": "fail",
+      "exit": 101,
+      "failures": [
+        "classic_join_recovers_after_repeated_typed_coordinator_responses"
+      ],
+      "receipt": "baseline-case-03.json"
+    },
+    {
+      "case": 4,
+      "test": "classic_join_retains_a_required_member_id_across_coordinator_responses",
+      "target": "group_coordinator_startup",
+      "expect": "fail",
+      "exit": 101,
+      "failures": [
+        "classic_join_retains_a_required_member_id_across_coordinator_responses"
+      ],
+      "receipt": "baseline-case-04.json"
+    },
+    {
+      "case": 5,
+      "test": "classic_join_returns_terminal_response_after_transient_coordinator_errors",
+      "target": "group_coordinator_startup",
+      "expect": "fail",
+      "exit": 101,
+      "failures": [
+        "classic_join_returns_terminal_response_after_transient_coordinator_errors"
+      ],
+      "receipt": "baseline-case-05.json"
+    },
+    {
+      "case": 6,
+      "test": "persistent_join_responses_stop_at_the_original_deadline_with_backoff",
+      "target": "group_coordinator_startup",
+      "expect": "fail",
+      "exit": 101,
+      "failures": [
+        "persistent_join_responses_stop_at_the_original_deadline_with_backoff"
+      ],
+      "receipt": "baseline-case-06.json"
+    },
+    {
+      "case": 7,
+      "test": "cancelling_a_join_after_written_coordinator_responses_stops_new_requests",
+      "target": "group_coordinator_startup",
+      "expect": "observe",
+      "exit": 0,
+      "failures": [],
+      "receipt": "baseline-case-07.json"
+    },
+    {
+      "case": 8,
+      "test": "classic_join_recovers_when_rediscovery_itself_is_still_loading",
+      "target": "group_coordinator_startup",
+      "expect": "fail",
+      "exit": 101,
+      "failures": [
+        "classic_join_recovers_when_rediscovery_itself_is_still_loading"
+      ],
+      "receipt": "baseline-case-08.json"
+    },
+    {
+      "case": 9,
+      "test": "classic_join_returns_terminal_rediscovery_errors_without_another_join",
+      "target": "group_coordinator_startup",
+      "expect": "pass",
+      "exit": 0,
+      "failures": [],
+      "receipt": "baseline-case-09.json"
+    },
+    {
+      "case": 10,
+      "test": "classic_join_does_not_retry_terminal_authorization_or_fencing_responses",
+      "target": "group_coordinator_startup",
+      "expect": "pass",
+      "exit": 0,
+      "failures": [],
+      "receipt": "baseline-case-10.json"
+    },
+    {
+      "case": 11,
+      "test": "group::tests::delayed_first_poll_does_not_restart_the_coordinator_deadline",
+      "target": "partitionline",
+      "expect": "fail",
+      "exit": 101,
+      "failures": [
+        "group::tests::delayed_first_poll_does_not_restart_the_coordinator_deadline"
+      ],
+      "receipt": "baseline-case-11.json"
+    },
+    {
+      "case": 12,
+      "test": "retry_refreshes_waiting_topics_together",
+      "target": "mock_produce",
+      "expect": "fail",
+      "exit": 101,
+      "failures": [
+        "retry_refreshes_waiting_topics_together"
+      ],
+      "receipt": "baseline-case-12.json"
+    },
+    {
+      "case": 13,
+      "test": "public_group_lifecycle_fits_the_standard_two_mib_stack",
+      "target": "group_stack",
+      "expect": "observe",
+      "exit": 0,
+      "failures": [],
+      "receipt": "baseline-case-13.json"
+    },
+    {
+      "case": 14,
+      "test": "cluster::tests::declared_topic_count_does_not_allocate_duplicate_tracking",
+      "target": "partitionline",
+      "expect": "fail",
+      "exit": 101,
+      "failures": [
+        "cluster::tests::declared_topic_count_does_not_allocate_duplicate_tracking"
+      ],
+      "receipt": "baseline-case-14.json"
+    },
+    {
+      "case": 15,
+      "test": "cluster::tests::topic_duplicate_tracking_keeps_names_across_the_heap_transition",
+      "target": "partitionline",
+      "expect": "fail",
+      "exit": 101,
+      "failures": [
+        "cluster::tests::topic_duplicate_tracking_keeps_names_across_the_heap_transition"
+      ],
+      "receipt": "baseline-case-15.json"
+    },
+    {
+      "case": 16,
+      "test": "cluster::tests::unchanged_metadata_partitions_yield_without_discarding_the_cache",
+      "target": "partitionline",
+      "expect": "fail",
+      "exit": 101,
+      "failures": [
+        "cluster::tests::unchanged_metadata_partitions_yield_without_discarding_the_cache"
+      ],
+      "receipt": "baseline-case-16.json"
+    },
+    {
+      "case": 17,
+      "test": "cluster::tests::unchanged_metadata_partition_budget_spans_multiple_topics",
+      "target": "partitionline",
+      "expect": "fail",
+      "exit": 101,
+      "failures": [
+        "cluster::tests::unchanged_metadata_partition_budget_spans_multiple_topics"
+      ],
+      "receipt": "baseline-case-17.json"
+    },
+    {
+      "case": 18,
+      "test": "consumer::tests::cancelling_assigned_id_retention_keeps_all_still_assigned_identities",
+      "target": "partitionline",
+      "expect": "fail",
+      "exit": 101,
+      "failures": [
+        "consumer::tests::cancelling_assigned_id_retention_keeps_all_still_assigned_identities"
+      ],
+      "receipt": "baseline-case-18.json"
+    },
+    {
+      "case": 19,
+      "test": "consumer::tests::retained_assigned_ids_keep_their_existing_storage",
+      "target": "partitionline",
+      "expect": "fail",
+      "exit": 101,
+      "failures": [
+        "consumer::tests::retained_assigned_ids_keep_their_existing_storage"
+      ],
+      "receipt": "baseline-case-19.json"
+    },
+    {
+      "case": 20,
+      "test": "consumer::tests::cancelled_assigned_id_removals_can_resume_without_losing_kept_ids",
+      "target": "partitionline",
+      "expect": "pass",
+      "exit": 0,
+      "failures": [],
+      "receipt": "baseline-case-20.json"
+    },
+    {
+      "case": 21,
+      "test": "consumer::tests::retaining_many_empty_assigned_id_topics_yields",
+      "target": "partitionline",
+      "expect": "fail",
+      "exit": 101,
+      "failures": [
+        "consumer::tests::retaining_many_empty_assigned_id_topics_yields"
+      ],
+      "receipt": "baseline-case-21.json"
+    },
+    {
+      "case": 22,
+      "test": "producer::prepare_tests::cancelled_fire_grouping_retains_actual_accepted_records",
+      "target": "partitionline",
+      "expect": "fail",
+      "exit": 101,
+      "failures": [
+        "producer::prepare_tests::cancelled_fire_grouping_retains_actual_accepted_records"
+      ],
+      "receipt": "baseline-case-22.json"
+    },
+    {
+      "case": 23,
+      "test": "cancelling_a_join_after_two_errors_and_third_request_stops_new_requests",
+      "target": "group_coordinator_startup",
+      "expect": "fail",
+      "exit": 101,
+      "failures": [
+        "cancelling_a_join_after_two_errors_and_third_request_stops_new_requests"
+      ],
+      "receipt": "baseline-case-23.json"
+    }
+  ],
+  "baseline_asserted_expectations_matched": 21,
+  "baseline_observations_passed": 2,
+  "case_23_limitation": {
+    "source": "baseline-case-23.log in the compact artifact",
+    "log_sha256": "029a63c8636df7554e227e832d2752c2f27401f76c07661be1e9c092c27da28b",
+    "observed": "Join ended with broker error 14 before the third-request barrier.",
+    "gate": "Spec sets expect=fail without failure_regex; the driver accepts exit 101 plus one failed test without checking failure phase. V17 inherits this limitation.",
+    "implication": "The matching baseline failure does not prove cancellation after the third request.",
+    "fail_closed_followup": "Require a test-bound witness emitted only after the written-response and third-request barrier and cancellation, plus attribution to the intended post-barrier assertion; preserve fixed control, identities and timing. Early failures must not count as that phase proof."
+  },
+  "ten_target_totals_pass_fail_ignored": {
+    "default": [
+      2432,
+      16,
+      2
+    ],
+    "all-features": [
+      2431,
+      17,
+      2
+    ]
+  },
+  "targets": {
+    "default": {
+      "partitionline": {
+        "exit": 0,
+        "counts": {
+          "passed": 2293,
+          "failed": 0,
+          "ignored": 0
+        },
+        "failures": [],
+        "required_results": {
+          "admin::cooperative_tests::a_single_member_with_many_partitions_yields_before_completion": "ok",
+          "admin::cooperative_tests::cancellation_while_building_named_slots_borrows_request_names": "ok",
+          "admin::cooperative_tests::cooperative_admin_values_errors_and_consumption_match_sync": "ok",
+          "admin::cooperative_tests::describe_topics_pages_share_one_request_deadline": "ok",
+          "admin::cooperative_tests::one_member_large_metadata_bytes_yields_before_completion": "ok",
+          "admin::cooperative_tests::requested_named_slots_preserve_subset_order_fifo_and_first_error": "ok",
+          "admin::cooperative_tests::share_offsets_lag_and_null_fields_match_sync_at_every_prefix": "ok",
+          "admin::cooperative_tests::streamed_named_results_keep_fifo_and_report_wire_errors_first": "ok",
+          "admin::cooperative_tests::streamed_nested_partition_shapes_and_cursors_match_sync": "ok",
+          "admin::cooperative_tests::streamed_topic_pages_match_first_header_and_append_semantics": "ok",
+          "admin::tests::decoding_many_consumer_group_members_does_not_hold_the_caller": "ok",
+          "admin::tests::decoding_many_created_topics_does_not_hold_the_caller": "ok",
+          "admin::tests::decoding_many_delegation_tokens_does_not_hold_the_caller": "ok",
+          "admin::tests::decoding_many_described_group_members_does_not_hold_the_caller": "ok",
+          "admin::tests::decoding_many_transactions_does_not_hold_the_caller": "ok",
+          "admin::tests::extending_many_described_topics_does_not_hold_the_caller": "ok",
+          "admin::tests::grouping_many_named_results_does_not_hold_the_caller": "ok",
+          "admin::tests::indexing_many_coordinators_does_not_hold_the_caller": "ok",
+          "admin::tests::indexing_many_described_producers_does_not_hold_the_caller": "ok",
+          "cluster::tests::applying_many_topics_does_not_hold_the_caller": "ok",
+          "cluster::tests::declared_topic_count_does_not_allocate_duplicate_tracking": "ok",
+          "cluster::tests::topic_duplicate_tracking_keeps_names_across_the_heap_transition": "ok",
+          "cluster::tests::unchanged_metadata_partition_budget_spans_multiple_topics": "ok",
+          "cluster::tests::unchanged_metadata_partitions_yield_without_discarding_the_cache": "ok",
+          "consumer::tests::cancelled_assigned_id_removals_can_resume_without_losing_kept_ids": "ok",
+          "consumer::tests::cancelling_assigned_id_retention_keeps_all_still_assigned_identities": "ok",
+          "consumer::tests::collecting_many_revoked_commits_does_not_hold_the_caller": "ok",
+          "consumer::tests::indexing_many_metadata_names_does_not_hold_the_caller": "ok",
+          "consumer::tests::prepending_many_pending_runs_does_not_hold_the_caller": "ok",
+          "consumer::tests::requested_metadata_indexes_match_copy_error_and_partition_semantics": "ok",
+          "consumer::tests::requested_metadata_rejected_partition_walk_yields_without_moving_the_image": "ok",
+          "consumer::tests::retained_assigned_ids_keep_their_existing_storage": "ok",
+          "consumer::tests::retaining_many_assigned_topic_ids_does_not_hold_the_caller": "ok",
+          "consumer::tests::retaining_many_empty_assigned_id_topics_yields": "ok",
+          "consumer::tests::wakeup_keeps_a_leader_dial_that_already_finished": "ok",
+          "consumer::tests::wakeup_stops_a_blocked_leader_dial": "ok",
+          "group::rediscover_stop_tests::expired_reconnect_retires_the_old_socket_without_dialing": "ok",
+          "group::rediscover_stop_tests::replacing_an_idle_coordinator_lets_the_broker_leave": "ok",
+          "group::rediscover_stop_tests::replacing_an_idle_legacy_offset_coordinator_lets_the_broker_leave": "ok",
+          "group::rediscover_stop_tests::replacing_an_idle_offset_coordinator_lets_the_broker_leave": "ok",
+          "group::rediscover_stop_tests::replacing_an_idle_typed_offset_coordinator_lets_the_broker_leave": "ok",
+          "group::tests::cancelled_interval_filter_preserves_the_delivered_snapshot": "ok",
+          "group::tests::cancelled_joined_topic_extension_keeps_a_reusable_first_seen_prefix": "ok",
+          "group::tests::cooperative_committed_pairs_match_one_shot": "ok",
+          "group::tests::copying_many_assigned_members_does_not_hold_the_caller": "ok",
+          "group::tests::delayed_first_poll_does_not_restart_the_coordinator_deadline": "ok",
+          "group::tests::direct_range_assignment_sorts_and_deduplicates_across_work_chunks": "ok",
+          "group::tests::direct_subscribed_assignments_match_multi_topic_oracles": "ok",
+          "group::tests::extending_many_joined_topics_does_not_hold_the_caller": "ok",
+          "group::tests::fetched_pairs_preserve_duplicates_metadata_epochs_and_first_error": "ok",
+          "group::tests::joined_topic_hash_collisions_preserve_names_and_first_seen_order": "ok",
+          "group::tests::joined_topics_keep_the_first_name": "ok",
+          "group::tests::pairing_many_committed_offsets_does_not_hold_the_caller": "ok",
+          "group::tests::retaining_many_interval_commits_does_not_hold_the_caller": "ok",
+          "group::tests::revoked_commits_exclude_reset_markers_and_other_partitions": "ok",
+          "group::tests::small_joined_topic_extensions_share_one_work_allowance": "ok",
+          "group::tests::subscribed_assignors_yield_for_rejected_partitions_and_unsubscribed_topics": "ok",
+          "net::tests::write_timeout_shuts_the_broker_down": "ok",
+          "producer::prepare_tests::actual_worker_run_recv_many_cancellation_keeps_all_accepted_records": "ok",
+          "producer::prepare_tests::appended_older_deadline_disables_ordered_fast_path": "ok",
+          "producer::prepare_tests::cancelled_ack_callback_walk_finishes_original_offset_suffix": "ok",
+          "producer::prepare_tests::cancelled_ack_latency_walk_preserves_metadata_and_byte_charge": "ok",
+          "producer::prepare_tests::cancelled_append_accounting_cannot_hide_an_earlier_deadline": "ok",
+          "producer::prepare_tests::cancelled_expiry_after_selection_keeps_failure_disposition": "ok",
+          "producer::prepare_tests::cancelled_expiry_classification_keeps_accepted_records": "ok",
+          "producer::prepare_tests::cancelled_failure_callback_walk_finishes_retained_suffix_once": "ok",
+          "producer::prepare_tests::cancelled_failure_group_walk_keeps_remaining_groups": "ok",
+          "producer::prepare_tests::cancelled_failure_size_walk_keeps_accepted_batch": "ok",
+          "producer::prepare_tests::cancelled_fire_grouping_retains_actual_accepted_records": "ok",
+          "producer::prepare_tests::cancelled_mixed_assembly_keeps_the_current_partition_cursor": "ok",
+          "producer::prepare_tests::cancelled_mixed_distribution_keeps_bucket_prefix_and_source_suffix": "ok",
+          "producer::prepare_tests::cancelled_one_topic_distribution_keeps_group_prefix_and_source_suffix": "ok",
+          "producer::prepare_tests::cancelled_pending_permutation_restores_original_order_before_retry": "ok",
+          "producer::prepare_tests::cancelled_preparation_classification_keeps_payloads_in_worker": "ok",
+          "producer::prepare_tests::cancelled_produce_encoding_keeps_accepted_payloads": "ok",
+          "producer::prepare_tests::cancelled_response_ack_completion_preserves_current_disposition": "ok",
+          "producer::prepare_tests::cancelled_response_endpoint_walk_keeps_decoded_request": "ok",
+          "producer::prepare_tests::cancelled_response_identity_renewal_keeps_current_and_later_groups": "ok",
+          "producer::prepare_tests::cancelled_response_index_walk_keeps_decoded_request": "ok",
+          "producer::prepare_tests::cancelled_retry_closed_admission_releases_each_count_after_callback": "ok",
+          "producer::prepare_tests::cancelled_retry_expiry_finishes_suffix_without_retry_tickets": "ok",
+          "producer::prepare_tests::cancelled_retry_full_queue_keeps_callback_count_until_terminal_release": "ok",
+          "producer::prepare_tests::cancelled_retry_sticky_sealing_keeps_accepted_batch": "ok",
+          "producer::prepare_tests::cancelled_retry_topic_index_keeps_accepted_batch": "ok",
+          "producer::prepare_tests::cancelled_retry_transfer_keeps_original_suffix_and_backoff": "ok",
+          "producer::prepare_tests::cancelled_sequence_stamping_keeps_the_partially_stamped_batch": "ok",
+          "producer::prepare_tests::cancelled_sticky_classification_invalidates_stats_until_cleanup": "ok",
+          "producer::prepare_tests::cancelled_sticky_displacement_keeps_the_retry_batch": "ok",
+          "producer::prepare_tests::cancelled_sticky_group_accounting_keeps_selected_payloads": "ok",
+          "producer::prepare_tests::cancelled_sticky_group_partition_keeps_accepted_payloads": "ok",
+          "producer::prepare_tests::cancelled_sticky_member_is_found_before_its_future_deadline": "ok",
+          "producer::prepare_tests::cancelled_sticky_singleton_accounting_keeps_the_drained_record": "ok",
+          "producer::prepare_tests::cancelled_transaction_partition_walk_keeps_accepted_payloads": "ok",
+          "producer::prepare_tests::cancelled_wait_one_ack_keeps_decoded_accepted_records": "ok",
+          "producer::prepare_tests::cancelled_zero_ack_group_walk_keeps_accepted_records": "ok",
+          "producer::prepare_tests::closed_write_phase_cleanup_times_out_each_first_or_retry_record_once": "ok",
+          "producer::prepare_tests::completed_ack_cursor_preserves_the_reusable_batch_allocation": "ok",
+          "producer::prepare_tests::forward_preparation_cursor_preserves_the_reusable_batch_allocation": "ok",
+          "producer::prepare_tests::future_deadlines_without_sticky_skip_the_expiry_walk": "ok",
+          "producer::prepare_tests::open_worker_cleanup_transfers_prepared_prefix_before_its_partition_suffix": "ok",
+          "producer::prepare_tests::ordered_deadlines_drain_without_rescanning_the_suffix": "ok",
+          "producer::prepare_tests::ordered_queue_repeated_drains_do_not_walk_expiry_or_deadline_suffixes": "ok",
+          "producer::prepare_tests::stable_pending_partition_preserves_order_and_the_kept_allocation": "ok",
+          "producer::prepare_tests::sticky_wait_repairs_invalid_accounting_before_choosing_timer": "ok",
+          "producer::prepare_tests::unchanged_sticky_classification_preserves_valid_stats": "ok",
+          "producer::prepare_tests::unordered_deadlines_keep_the_cooperative_minimum_scan": "ok",
+          "producer::prepare_tests::worker_run_expires_record_hidden_by_interrupted_accounting": "ok",
+          "producer::prepare_tests::worker_run_repairs_invalid_accounting_before_arming_deadline_timer": "ok",
+          "producer::tests::assembling_many_produce_topics_does_not_hold_the_caller": "ok",
+          "producer::tests::cancelled_pending_deadline_scan_retains_the_detached_prefix_until_worker_cleanup": "ok",
+          "producer::tests::cancelled_pending_drain_retains_accepted_records_until_worker_cleanup": "ok",
+          "producer::tests::cancelling_empty_shell_preparation_and_cleanup_preserves_reusable_capacity": "ok",
+          "producer::tests::closed_retry_admission_rejects_after_the_final_drain": "ok",
+          "producer::tests::closed_worker_retries_keep_pending_and_do_not_remove_replacement": "ok",
+          "producer::tests::closing_admission_wakes_capacity_waiters_while_receiver_stays_live": "ok",
+          "producer::tests::concurrent_last_worker_handle_drops_cancel_the_task_with_observers": "ok",
+          "producer::tests::decoding_many_added_partitions_does_not_hold_the_caller": "ok",
+          "producer::tests::dropping_many_ack_topics_does_not_hold_the_caller": "ok",
+          "producer::tests::encoding_many_produce_topics_does_not_hold_the_caller": "ok",
+          "producer::tests::grouping_large_partitions_completes_with_reused_record_lists": "ok",
+          "producer::tests::incremental_reservation_completes_for_empty_and_cleared_vectors": "ok",
+          "producer::tests::incremental_reservation_handles_zero_sized_elements": "ok",
+          "producer::tests::incremental_reservation_preserves_partially_filled_vectors": "ok",
+          "producer::tests::mixed_assembly_preserves_recycled_empty_partition_capacity": "ok",
+          "producer::tests::ready_reservation_does_not_bypass_an_earlier_capacity_waiter": "ok",
+          "producer::tests::replacing_an_idle_metadata_socket_lets_the_broker_leave": "ok",
+          "producer::tests::retired_fast_route_falls_back_to_the_live_worker": "ok",
+          "producer::tests::retired_idle_worker_exits_while_cached_handles_remain": "ok",
+          "producer::tests::retired_worker_handle_keeps_transfer_alive_and_preserves_other_slots": "ok",
+          "producer::tests::retired_worker_live_count_and_shutdown_wait_for_drop_callbacks": "ok",
+          "producer::tests::retiring_worker_drains_every_send_committed_before_close": "ok",
+          "producer::tests::retiring_worker_rejects_a_previously_reserved_permit": "ok",
+          "producer::tests::retiring_worker_returns_an_unaccepted_blocked_send": "ok",
+          "producer::tests::retry_actor_cancellation_during_metadata_releases_the_drained_batch": "ok",
+          "producer::tests::retry_actor_cancellation_during_transfer_releases_current_and_remaining_records": "ok",
+          "producer::tests::retry_actor_cancellation_preserves_records_already_transferred_to_a_worker": "ok",
+          "producer::tests::retry_actor_final_channel_drain_keeps_counts_until_callbacks_finish": "ok",
+          "producer::tests::shelling_many_produce_partitions_does_not_hold_the_caller": "ok",
+          "producer::tests::unpolled_retired_worker_is_counted_until_its_resources_drop": "ok",
+          "producer::tests::unpolled_retry_actor_releases_queued_records_and_closes_admission": "ok",
+          "protocol::acl::tests::duplicate_acl_input_does_not_reserve_proportional_output_capacity": "ok",
+          "protocol::acl::tests::grouped_acls_match_independent_first_seen_pattern_and_entry_walk": "ok",
+          "protocol::acl::tests::grouping_many_acl_resources_does_not_hold_the_caller": "ok",
+          "protocol::cooperative::tests::byte_fields_match_sync_across_fragmentation_and_truncation": "ok",
+          "protocol::cooperative::tests::invalid_large_utf8_yields_while_consuming_the_rest_of_its_field": "ok",
+          "protocol::cooperative::tests::null_strings_and_bytes_preserve_classic_and_compact_consumption": "ok",
+          "protocol::cooperative::tests::one_large_field_yields_during_copy_and_utf8_validation": "ok",
+          "protocol::cooperative::tests::speculative_metadata_reservation_is_bounded_by_bytes": "ok",
+          "protocol::cooperative::tests::strings_match_sync_values_errors_and_consumption_across_chunks": "ok",
+          "protocol::cooperative::tests::tagged_fields_match_sync_errors_and_consumption_across_chunks": "ok",
+          "protocol::group::tests::decoding_a_large_assignment_does_not_hold_the_caller": "ok",
+          "protocol::group::tests::decoding_many_assignments_does_not_hold_the_caller": "ok",
+          "protocol::group::tests::decoding_many_medium_assignment_lists_does_not_hold_the_caller": "ok",
+          "protocol::group::tests::decoding_many_owned_topics_does_not_hold_the_caller": "ok",
+          "protocol::group::tests::grouped_assignment_decode_completes_large_repeated_lists": "ok",
+          "protocol::group::tests::grouped_assignment_decode_matches_flat_decoder_and_errors": "ok",
+          "protocol::group::tests::grouped_topics_keep_the_first_seen_name": "ok",
+          "protocol::group::tests::grouping_many_owned_partitions_does_not_hold_the_caller": "ok",
+          "protocol::share::tests::a_share_fetch_with_several_batches_sizes_the_batch_list_once": "ok",
+          "protocol::share::tests::share_batch_hints_remain_bounded_and_preserve_first_crc_error": "ok",
+          "protocol::share::tests::small_share_record_sets_reserve_once_before_decoding_and_reuse": "ok",
+          "share::dial_tests::wakeup_keeps_a_share_dial_that_already_finished": "ok",
+          "share::dial_tests::wakeup_stops_a_blocked_share_dial": "ok",
+          "share::tests::cancelled_share_id_index_keeps_the_subscribed_name_owners": "ok",
+          "share::tests::duplicate_share_ids_do_not_reserve_one_output_slot_per_name": "ok",
+          "share::tests::naming_many_share_topics_does_not_hold_the_caller": "ok"
+        },
+        "ignored_not_executed": [],
+        "verification_errors": [],
+        "receipt": "default-partitionline.json"
+      },
+      "group_coordinator_startup": {
+        "exit": 0,
+        "counts": {
+          "passed": 14,
+          "failed": 0,
+          "ignored": 0
+        },
+        "failures": [],
+        "required_results": {
+          "cancelling_a_join_after_two_errors_and_third_request_stops_new_requests": "ok",
+          "cancelling_a_join_after_written_coordinator_responses_stops_new_requests": "ok",
+          "classic_join_does_not_retry_terminal_authorization_or_fencing_responses": "ok",
+          "classic_join_recovers_after_repeated_typed_coordinator_responses": "ok",
+          "classic_join_recovers_when_rediscovery_itself_is_still_loading": "ok",
+          "classic_join_retains_a_required_member_id_across_coordinator_responses": "ok",
+          "classic_join_returns_terminal_rediscovery_errors_without_another_join": "ok",
+          "classic_join_returns_terminal_response_after_transient_coordinator_errors": "ok",
+          "persistent_join_responses_stop_at_the_original_deadline_with_backoff": "ok"
+        },
+        "ignored_not_executed": [],
+        "verification_errors": [],
+        "receipt": "default-group_coordinator_startup.json"
+      },
+      "group_stack": {
+        "exit": 0,
+        "counts": {
+          "passed": 1,
+          "failed": 0,
+          "ignored": 0
+        },
+        "failures": [],
+        "required_results": {
+          "public_group_lifecycle_fits_the_standard_two_mib_stack": "ok"
+        },
+        "ignored_not_executed": [],
+        "verification_errors": [],
+        "receipt": "default-group_stack.json"
+      },
+      "produce_cancel": {
+        "exit": 0,
+        "counts": {
+          "passed": 23,
+          "failed": 0,
+          "ignored": 0
+        },
+        "failures": [],
+        "required_results": {},
+        "ignored_not_executed": [],
+        "verification_errors": [],
+        "receipt": "default-produce_cancel.json"
+      },
+      "buffer_ownership": {
+        "exit": 0,
+        "counts": {
+          "passed": 12,
+          "failed": 0,
+          "ignored": 0
+        },
+        "failures": [],
+        "required_results": {},
+        "ignored_not_executed": [],
+        "verification_errors": [],
+        "receipt": "default-buffer_ownership.json"
+      },
+      "mock_produce": {
+        "exit": 101,
+        "counts": {
+          "passed": 32,
+          "failed": 15,
+          "ignored": 0
+        },
+        "failures": [
+          "commit_reuses_a_produce_handshake_for_the_moved_coordinator",
+          "commit_reuses_bootstrap_when_the_coordinator_returns",
+          "epoch_bump_reuses_a_produce_handshake",
+          "multi_bootstrap_commit_reuses_known_coordinator_handshakes",
+          "multi_bootstrap_send_offsets_reuses_known_handshakes",
+          "multi_bootstrap_transaction_reuses_the_other_bootstrap_handshake",
+          "produce_reuses_a_finished_bootstrap_handshake",
+          "produce_reuses_bootstrap_api_versions",
+          "produce_reuses_the_transaction_coordinator_handshake",
+          "send_all_redials_leaders_while_refreshing_metadata",
+          "send_offsets_negotiates_a_new_group_coordinator",
+          "send_offsets_repeats_a_remote_coordinator_without_another_handshake",
+          "send_offsets_reuses_bootstrap_api_versions",
+          "transactional_rediscover_skips_a_second_bootstrap_handshake",
+          "transactional_startup_skips_a_second_bootstrap_handshake"
+        ],
+        "required_results": {
+          "idle_metadata_negotiation_uses_the_original_request_deadline": "ok",
+          "idle_metadata_renegotiates_on_its_replacement_socket": "ok",
+          "idle_produce_leader_renegotiates_on_its_replacement_socket": "ok",
+          "retry_refreshes_waiting_topics_together": "ok",
+          "send_all_redial_handshakes_overlap_before_metadata_response": "ok",
+          "send_all_redials_leaders_while_refreshing_metadata": "FAILED"
+        },
+        "ignored_not_executed": [],
+        "verification_errors": [],
+        "receipt": "default-mock_produce.json"
+      },
+      "producer_initialization": {
+        "exit": 0,
+        "counts": {
+          "passed": 8,
+          "failed": 0,
+          "ignored": 0
+        },
+        "failures": [],
+        "required_results": {},
+        "ignored_not_executed": [],
+        "verification_errors": [],
+        "receipt": "default-producer_initialization.json"
+      },
+      "producer_retained_backing": {
+        "exit": 101,
+        "counts": {
+          "passed": 8,
+          "failed": 1,
+          "ignored": 1
+        },
+        "failures": [
+          "cancelled_channel_admission_releases_only_the_unenqueued_reservation"
+        ],
+        "required_results": {
+          "produce_response_gate_releases_one_reply_and_cleans_up_on_drop": "ok"
+        },
+        "ignored_not_executed": [
+          "native_retained_backing_peer"
+        ],
+        "verification_errors": [],
+        "receipt": "default-producer_retained_backing.json"
+      },
+      "sticky_partitioner": {
+        "exit": 0,
+        "counts": {
+          "passed": 29,
+          "failed": 0,
+          "ignored": 0
+        },
+        "failures": [],
+        "required_results": {},
+        "ignored_not_executed": [],
+        "verification_errors": [],
+        "receipt": "default-sticky_partitioner.json"
+      },
+      "init_producer_id_v6": {
+        "exit": 0,
+        "counts": {
+          "passed": 12,
+          "failed": 0,
+          "ignored": 1
+        },
+        "failures": [],
+        "required_results": {},
+        "ignored_not_executed": [
+          "native_ordinary_transaction_history"
+        ],
+        "verification_errors": [],
+        "receipt": "default-init_producer_id_v6.json"
+      }
+    },
+    "all-features": {
+      "partitionline": {
+        "exit": 101,
+        "counts": {
+          "passed": 2292,
+          "failed": 1,
+          "ignored": 0
+        },
+        "failures": [
+          "producer::tests::encoding_many_produce_topics_does_not_hold_the_caller"
+        ],
+        "required_results": {
+          "admin::cooperative_tests::a_single_member_with_many_partitions_yields_before_completion": "ok",
+          "admin::cooperative_tests::cancellation_while_building_named_slots_borrows_request_names": "ok",
+          "admin::cooperative_tests::cooperative_admin_values_errors_and_consumption_match_sync": "ok",
+          "admin::cooperative_tests::describe_topics_pages_share_one_request_deadline": "ok",
+          "admin::cooperative_tests::one_member_large_metadata_bytes_yields_before_completion": "ok",
+          "admin::cooperative_tests::requested_named_slots_preserve_subset_order_fifo_and_first_error": "ok",
+          "admin::cooperative_tests::share_offsets_lag_and_null_fields_match_sync_at_every_prefix": "ok",
+          "admin::cooperative_tests::streamed_named_results_keep_fifo_and_report_wire_errors_first": "ok",
+          "admin::cooperative_tests::streamed_nested_partition_shapes_and_cursors_match_sync": "ok",
+          "admin::cooperative_tests::streamed_topic_pages_match_first_header_and_append_semantics": "ok",
+          "admin::tests::decoding_many_consumer_group_members_does_not_hold_the_caller": "ok",
+          "admin::tests::decoding_many_created_topics_does_not_hold_the_caller": "ok",
+          "admin::tests::decoding_many_delegation_tokens_does_not_hold_the_caller": "ok",
+          "admin::tests::decoding_many_described_group_members_does_not_hold_the_caller": "ok",
+          "admin::tests::decoding_many_transactions_does_not_hold_the_caller": "ok",
+          "admin::tests::extending_many_described_topics_does_not_hold_the_caller": "ok",
+          "admin::tests::grouping_many_named_results_does_not_hold_the_caller": "ok",
+          "admin::tests::indexing_many_coordinators_does_not_hold_the_caller": "ok",
+          "admin::tests::indexing_many_described_producers_does_not_hold_the_caller": "ok",
+          "cluster::tests::applying_many_topics_does_not_hold_the_caller": "ok",
+          "cluster::tests::declared_topic_count_does_not_allocate_duplicate_tracking": "ok",
+          "cluster::tests::topic_duplicate_tracking_keeps_names_across_the_heap_transition": "ok",
+          "cluster::tests::unchanged_metadata_partition_budget_spans_multiple_topics": "ok",
+          "cluster::tests::unchanged_metadata_partitions_yield_without_discarding_the_cache": "ok",
+          "consumer::tests::cancelled_assigned_id_removals_can_resume_without_losing_kept_ids": "ok",
+          "consumer::tests::cancelling_assigned_id_retention_keeps_all_still_assigned_identities": "ok",
+          "consumer::tests::collecting_many_revoked_commits_does_not_hold_the_caller": "ok",
+          "consumer::tests::indexing_many_metadata_names_does_not_hold_the_caller": "ok",
+          "consumer::tests::prepending_many_pending_runs_does_not_hold_the_caller": "ok",
+          "consumer::tests::requested_metadata_indexes_match_copy_error_and_partition_semantics": "ok",
+          "consumer::tests::requested_metadata_rejected_partition_walk_yields_without_moving_the_image": "ok",
+          "consumer::tests::retained_assigned_ids_keep_their_existing_storage": "ok",
+          "consumer::tests::retaining_many_assigned_topic_ids_does_not_hold_the_caller": "ok",
+          "consumer::tests::retaining_many_empty_assigned_id_topics_yields": "ok",
+          "consumer::tests::wakeup_keeps_a_leader_dial_that_already_finished": "ok",
+          "consumer::tests::wakeup_stops_a_blocked_leader_dial": "ok",
+          "group::rediscover_stop_tests::expired_reconnect_retires_the_old_socket_without_dialing": "ok",
+          "group::rediscover_stop_tests::replacing_an_idle_coordinator_lets_the_broker_leave": "ok",
+          "group::rediscover_stop_tests::replacing_an_idle_legacy_offset_coordinator_lets_the_broker_leave": "ok",
+          "group::rediscover_stop_tests::replacing_an_idle_offset_coordinator_lets_the_broker_leave": "ok",
+          "group::rediscover_stop_tests::replacing_an_idle_typed_offset_coordinator_lets_the_broker_leave": "ok",
+          "group::tests::cancelled_interval_filter_preserves_the_delivered_snapshot": "ok",
+          "group::tests::cancelled_joined_topic_extension_keeps_a_reusable_first_seen_prefix": "ok",
+          "group::tests::cooperative_committed_pairs_match_one_shot": "ok",
+          "group::tests::copying_many_assigned_members_does_not_hold_the_caller": "ok",
+          "group::tests::delayed_first_poll_does_not_restart_the_coordinator_deadline": "ok",
+          "group::tests::direct_range_assignment_sorts_and_deduplicates_across_work_chunks": "ok",
+          "group::tests::direct_subscribed_assignments_match_multi_topic_oracles": "ok",
+          "group::tests::extending_many_joined_topics_does_not_hold_the_caller": "ok",
+          "group::tests::fetched_pairs_preserve_duplicates_metadata_epochs_and_first_error": "ok",
+          "group::tests::joined_topic_hash_collisions_preserve_names_and_first_seen_order": "ok",
+          "group::tests::joined_topics_keep_the_first_name": "ok",
+          "group::tests::pairing_many_committed_offsets_does_not_hold_the_caller": "ok",
+          "group::tests::retaining_many_interval_commits_does_not_hold_the_caller": "ok",
+          "group::tests::revoked_commits_exclude_reset_markers_and_other_partitions": "ok",
+          "group::tests::small_joined_topic_extensions_share_one_work_allowance": "ok",
+          "group::tests::subscribed_assignors_yield_for_rejected_partitions_and_unsubscribed_topics": "ok",
+          "net::tests::write_timeout_shuts_the_broker_down": "ok",
+          "producer::prepare_tests::actual_worker_run_recv_many_cancellation_keeps_all_accepted_records": "ok",
+          "producer::prepare_tests::appended_older_deadline_disables_ordered_fast_path": "ok",
+          "producer::prepare_tests::cancelled_ack_callback_walk_finishes_original_offset_suffix": "ok",
+          "producer::prepare_tests::cancelled_ack_latency_walk_preserves_metadata_and_byte_charge": "ok",
+          "producer::prepare_tests::cancelled_append_accounting_cannot_hide_an_earlier_deadline": "ok",
+          "producer::prepare_tests::cancelled_expiry_after_selection_keeps_failure_disposition": "ok",
+          "producer::prepare_tests::cancelled_expiry_classification_keeps_accepted_records": "ok",
+          "producer::prepare_tests::cancelled_failure_callback_walk_finishes_retained_suffix_once": "ok",
+          "producer::prepare_tests::cancelled_failure_group_walk_keeps_remaining_groups": "ok",
+          "producer::prepare_tests::cancelled_failure_size_walk_keeps_accepted_batch": "ok",
+          "producer::prepare_tests::cancelled_fire_grouping_retains_actual_accepted_records": "ok",
+          "producer::prepare_tests::cancelled_mixed_assembly_keeps_the_current_partition_cursor": "ok",
+          "producer::prepare_tests::cancelled_mixed_distribution_keeps_bucket_prefix_and_source_suffix": "ok",
+          "producer::prepare_tests::cancelled_one_topic_distribution_keeps_group_prefix_and_source_suffix": "ok",
+          "producer::prepare_tests::cancelled_pending_permutation_restores_original_order_before_retry": "ok",
+          "producer::prepare_tests::cancelled_preparation_classification_keeps_payloads_in_worker": "ok",
+          "producer::prepare_tests::cancelled_produce_encoding_keeps_accepted_payloads": "ok",
+          "producer::prepare_tests::cancelled_response_ack_completion_preserves_current_disposition": "ok",
+          "producer::prepare_tests::cancelled_response_endpoint_walk_keeps_decoded_request": "ok",
+          "producer::prepare_tests::cancelled_response_identity_renewal_keeps_current_and_later_groups": "ok",
+          "producer::prepare_tests::cancelled_response_index_walk_keeps_decoded_request": "ok",
+          "producer::prepare_tests::cancelled_retry_closed_admission_releases_each_count_after_callback": "ok",
+          "producer::prepare_tests::cancelled_retry_expiry_finishes_suffix_without_retry_tickets": "ok",
+          "producer::prepare_tests::cancelled_retry_full_queue_keeps_callback_count_until_terminal_release": "ok",
+          "producer::prepare_tests::cancelled_retry_sticky_sealing_keeps_accepted_batch": "ok",
+          "producer::prepare_tests::cancelled_retry_topic_index_keeps_accepted_batch": "ok",
+          "producer::prepare_tests::cancelled_retry_transfer_keeps_original_suffix_and_backoff": "ok",
+          "producer::prepare_tests::cancelled_sequence_stamping_keeps_the_partially_stamped_batch": "ok",
+          "producer::prepare_tests::cancelled_sticky_classification_invalidates_stats_until_cleanup": "ok",
+          "producer::prepare_tests::cancelled_sticky_displacement_keeps_the_retry_batch": "ok",
+          "producer::prepare_tests::cancelled_sticky_group_accounting_keeps_selected_payloads": "ok",
+          "producer::prepare_tests::cancelled_sticky_group_partition_keeps_accepted_payloads": "ok",
+          "producer::prepare_tests::cancelled_sticky_member_is_found_before_its_future_deadline": "ok",
+          "producer::prepare_tests::cancelled_sticky_singleton_accounting_keeps_the_drained_record": "ok",
+          "producer::prepare_tests::cancelled_transaction_partition_walk_keeps_accepted_payloads": "ok",
+          "producer::prepare_tests::cancelled_wait_one_ack_keeps_decoded_accepted_records": "ok",
+          "producer::prepare_tests::cancelled_zero_ack_group_walk_keeps_accepted_records": "ok",
+          "producer::prepare_tests::closed_write_phase_cleanup_times_out_each_first_or_retry_record_once": "ok",
+          "producer::prepare_tests::completed_ack_cursor_preserves_the_reusable_batch_allocation": "ok",
+          "producer::prepare_tests::forward_preparation_cursor_preserves_the_reusable_batch_allocation": "ok",
+          "producer::prepare_tests::future_deadlines_without_sticky_skip_the_expiry_walk": "ok",
+          "producer::prepare_tests::open_worker_cleanup_transfers_prepared_prefix_before_its_partition_suffix": "ok",
+          "producer::prepare_tests::ordered_deadlines_drain_without_rescanning_the_suffix": "ok",
+          "producer::prepare_tests::ordered_queue_repeated_drains_do_not_walk_expiry_or_deadline_suffixes": "ok",
+          "producer::prepare_tests::stable_pending_partition_preserves_order_and_the_kept_allocation": "ok",
+          "producer::prepare_tests::sticky_wait_repairs_invalid_accounting_before_choosing_timer": "ok",
+          "producer::prepare_tests::unchanged_sticky_classification_preserves_valid_stats": "ok",
+          "producer::prepare_tests::unordered_deadlines_keep_the_cooperative_minimum_scan": "ok",
+          "producer::prepare_tests::worker_run_expires_record_hidden_by_interrupted_accounting": "ok",
+          "producer::prepare_tests::worker_run_repairs_invalid_accounting_before_arming_deadline_timer": "ok",
+          "producer::tests::assembling_many_produce_topics_does_not_hold_the_caller": "ok",
+          "producer::tests::cancelled_pending_deadline_scan_retains_the_detached_prefix_until_worker_cleanup": "ok",
+          "producer::tests::cancelled_pending_drain_retains_accepted_records_until_worker_cleanup": "ok",
+          "producer::tests::cancelling_empty_shell_preparation_and_cleanup_preserves_reusable_capacity": "ok",
+          "producer::tests::closed_retry_admission_rejects_after_the_final_drain": "ok",
+          "producer::tests::closed_worker_retries_keep_pending_and_do_not_remove_replacement": "ok",
+          "producer::tests::closing_admission_wakes_capacity_waiters_while_receiver_stays_live": "ok",
+          "producer::tests::concurrent_last_worker_handle_drops_cancel_the_task_with_observers": "ok",
+          "producer::tests::decoding_many_added_partitions_does_not_hold_the_caller": "ok",
+          "producer::tests::dropping_many_ack_topics_does_not_hold_the_caller": "ok",
+          "producer::tests::encoding_many_produce_topics_does_not_hold_the_caller": "FAILED",
+          "producer::tests::grouping_large_partitions_completes_with_reused_record_lists": "ok",
+          "producer::tests::incremental_reservation_completes_for_empty_and_cleared_vectors": "ok",
+          "producer::tests::incremental_reservation_handles_zero_sized_elements": "ok",
+          "producer::tests::incremental_reservation_preserves_partially_filled_vectors": "ok",
+          "producer::tests::mixed_assembly_preserves_recycled_empty_partition_capacity": "ok",
+          "producer::tests::ready_reservation_does_not_bypass_an_earlier_capacity_waiter": "ok",
+          "producer::tests::replacing_an_idle_metadata_socket_lets_the_broker_leave": "ok",
+          "producer::tests::retired_fast_route_falls_back_to_the_live_worker": "ok",
+          "producer::tests::retired_idle_worker_exits_while_cached_handles_remain": "ok",
+          "producer::tests::retired_worker_handle_keeps_transfer_alive_and_preserves_other_slots": "ok",
+          "producer::tests::retired_worker_live_count_and_shutdown_wait_for_drop_callbacks": "ok",
+          "producer::tests::retiring_worker_drains_every_send_committed_before_close": "ok",
+          "producer::tests::retiring_worker_rejects_a_previously_reserved_permit": "ok",
+          "producer::tests::retiring_worker_returns_an_unaccepted_blocked_send": "ok",
+          "producer::tests::retry_actor_cancellation_during_metadata_releases_the_drained_batch": "ok",
+          "producer::tests::retry_actor_cancellation_during_transfer_releases_current_and_remaining_records": "ok",
+          "producer::tests::retry_actor_cancellation_preserves_records_already_transferred_to_a_worker": "ok",
+          "producer::tests::retry_actor_final_channel_drain_keeps_counts_until_callbacks_finish": "ok",
+          "producer::tests::shelling_many_produce_partitions_does_not_hold_the_caller": "ok",
+          "producer::tests::unpolled_retired_worker_is_counted_until_its_resources_drop": "ok",
+          "producer::tests::unpolled_retry_actor_releases_queued_records_and_closes_admission": "ok",
+          "protocol::acl::tests::duplicate_acl_input_does_not_reserve_proportional_output_capacity": "ok",
+          "protocol::acl::tests::grouped_acls_match_independent_first_seen_pattern_and_entry_walk": "ok",
+          "protocol::acl::tests::grouping_many_acl_resources_does_not_hold_the_caller": "ok",
+          "protocol::cooperative::tests::byte_fields_match_sync_across_fragmentation_and_truncation": "ok",
+          "protocol::cooperative::tests::invalid_large_utf8_yields_while_consuming_the_rest_of_its_field": "ok",
+          "protocol::cooperative::tests::null_strings_and_bytes_preserve_classic_and_compact_consumption": "ok",
+          "protocol::cooperative::tests::one_large_field_yields_during_copy_and_utf8_validation": "ok",
+          "protocol::cooperative::tests::speculative_metadata_reservation_is_bounded_by_bytes": "ok",
+          "protocol::cooperative::tests::strings_match_sync_values_errors_and_consumption_across_chunks": "ok",
+          "protocol::cooperative::tests::tagged_fields_match_sync_errors_and_consumption_across_chunks": "ok",
+          "protocol::group::tests::decoding_a_large_assignment_does_not_hold_the_caller": "ok",
+          "protocol::group::tests::decoding_many_assignments_does_not_hold_the_caller": "ok",
+          "protocol::group::tests::decoding_many_medium_assignment_lists_does_not_hold_the_caller": "ok",
+          "protocol::group::tests::decoding_many_owned_topics_does_not_hold_the_caller": "ok",
+          "protocol::group::tests::grouped_assignment_decode_completes_large_repeated_lists": "ok",
+          "protocol::group::tests::grouped_assignment_decode_matches_flat_decoder_and_errors": "ok",
+          "protocol::group::tests::grouped_topics_keep_the_first_seen_name": "ok",
+          "protocol::group::tests::grouping_many_owned_partitions_does_not_hold_the_caller": "ok",
+          "protocol::share::tests::a_share_fetch_with_several_batches_sizes_the_batch_list_once": "ok",
+          "protocol::share::tests::share_batch_hints_remain_bounded_and_preserve_first_crc_error": "ok",
+          "protocol::share::tests::small_share_record_sets_reserve_once_before_decoding_and_reuse": "ok",
+          "share::dial_tests::wakeup_keeps_a_share_dial_that_already_finished": "ok",
+          "share::dial_tests::wakeup_stops_a_blocked_share_dial": "ok",
+          "share::tests::cancelled_share_id_index_keeps_the_subscribed_name_owners": "ok",
+          "share::tests::duplicate_share_ids_do_not_reserve_one_output_slot_per_name": "ok",
+          "share::tests::naming_many_share_topics_does_not_hold_the_caller": "ok"
+        },
+        "ignored_not_executed": [],
+        "verification_errors": [],
+        "receipt": "all-features-partitionline.json"
+      },
+      "group_coordinator_startup": {
+        "exit": 0,
+        "counts": {
+          "passed": 14,
+          "failed": 0,
+          "ignored": 0
+        },
+        "failures": [],
+        "required_results": {
+          "cancelling_a_join_after_two_errors_and_third_request_stops_new_requests": "ok",
+          "cancelling_a_join_after_written_coordinator_responses_stops_new_requests": "ok",
+          "classic_join_does_not_retry_terminal_authorization_or_fencing_responses": "ok",
+          "classic_join_recovers_after_repeated_typed_coordinator_responses": "ok",
+          "classic_join_recovers_when_rediscovery_itself_is_still_loading": "ok",
+          "classic_join_retains_a_required_member_id_across_coordinator_responses": "ok",
+          "classic_join_returns_terminal_rediscovery_errors_without_another_join": "ok",
+          "classic_join_returns_terminal_response_after_transient_coordinator_errors": "ok",
+          "persistent_join_responses_stop_at_the_original_deadline_with_backoff": "ok"
+        },
+        "ignored_not_executed": [],
+        "verification_errors": [],
+        "receipt": "all-features-group_coordinator_startup.json"
+      },
+      "group_stack": {
+        "exit": 0,
+        "counts": {
+          "passed": 1,
+          "failed": 0,
+          "ignored": 0
+        },
+        "failures": [],
+        "required_results": {
+          "public_group_lifecycle_fits_the_standard_two_mib_stack": "ok"
+        },
+        "ignored_not_executed": [],
+        "verification_errors": [],
+        "receipt": "all-features-group_stack.json"
+      },
+      "produce_cancel": {
+        "exit": 0,
+        "counts": {
+          "passed": 23,
+          "failed": 0,
+          "ignored": 0
+        },
+        "failures": [],
+        "required_results": {},
+        "ignored_not_executed": [],
+        "verification_errors": [],
+        "receipt": "all-features-produce_cancel.json"
+      },
+      "buffer_ownership": {
+        "exit": 0,
+        "counts": {
+          "passed": 12,
+          "failed": 0,
+          "ignored": 0
+        },
+        "failures": [],
+        "required_results": {},
+        "ignored_not_executed": [],
+        "verification_errors": [],
+        "receipt": "all-features-buffer_ownership.json"
+      },
+      "mock_produce": {
+        "exit": 101,
+        "counts": {
+          "passed": 32,
+          "failed": 15,
+          "ignored": 0
+        },
+        "failures": [
+          "commit_reuses_a_produce_handshake_for_the_moved_coordinator",
+          "commit_reuses_bootstrap_when_the_coordinator_returns",
+          "epoch_bump_reuses_a_produce_handshake",
+          "multi_bootstrap_commit_reuses_known_coordinator_handshakes",
+          "multi_bootstrap_send_offsets_reuses_known_handshakes",
+          "multi_bootstrap_transaction_reuses_the_other_bootstrap_handshake",
+          "produce_reuses_a_finished_bootstrap_handshake",
+          "produce_reuses_bootstrap_api_versions",
+          "produce_reuses_the_transaction_coordinator_handshake",
+          "send_all_redials_leaders_while_refreshing_metadata",
+          "send_offsets_negotiates_a_new_group_coordinator",
+          "send_offsets_repeats_a_remote_coordinator_without_another_handshake",
+          "send_offsets_reuses_bootstrap_api_versions",
+          "transactional_rediscover_skips_a_second_bootstrap_handshake",
+          "transactional_startup_skips_a_second_bootstrap_handshake"
+        ],
+        "required_results": {
+          "idle_metadata_negotiation_uses_the_original_request_deadline": "ok",
+          "idle_metadata_renegotiates_on_its_replacement_socket": "ok",
+          "idle_produce_leader_renegotiates_on_its_replacement_socket": "ok",
+          "retry_refreshes_waiting_topics_together": "ok",
+          "send_all_redial_handshakes_overlap_before_metadata_response": "ok",
+          "send_all_redials_leaders_while_refreshing_metadata": "FAILED"
+        },
+        "ignored_not_executed": [],
+        "verification_errors": [],
+        "receipt": "all-features-mock_produce.json"
+      },
+      "producer_initialization": {
+        "exit": 0,
+        "counts": {
+          "passed": 8,
+          "failed": 0,
+          "ignored": 0
+        },
+        "failures": [],
+        "required_results": {},
+        "ignored_not_executed": [],
+        "verification_errors": [],
+        "receipt": "all-features-producer_initialization.json"
+      },
+      "producer_retained_backing": {
+        "exit": 101,
+        "counts": {
+          "passed": 8,
+          "failed": 1,
+          "ignored": 1
+        },
+        "failures": [
+          "cancelled_channel_admission_releases_only_the_unenqueued_reservation"
+        ],
+        "required_results": {
+          "produce_response_gate_releases_one_reply_and_cleans_up_on_drop": "ok"
+        },
+        "ignored_not_executed": [
+          "native_retained_backing_peer"
+        ],
+        "verification_errors": [],
+        "receipt": "all-features-producer_retained_backing.json"
+      },
+      "sticky_partitioner": {
+        "exit": 0,
+        "counts": {
+          "passed": 29,
+          "failed": 0,
+          "ignored": 0
+        },
+        "failures": [],
+        "required_results": {},
+        "ignored_not_executed": [],
+        "verification_errors": [],
+        "receipt": "all-features-sticky_partitioner.json"
+      },
+      "init_producer_id_v6": {
+        "exit": 0,
+        "counts": {
+          "passed": 12,
+          "failed": 0,
+          "ignored": 1
+        },
+        "failures": [],
+        "required_results": {},
+        "ignored_not_executed": [
+          "native_ordinary_transaction_history"
+        ],
+        "verification_errors": [],
+        "receipt": "all-features-init_producer_id_v6.json"
+      }
+    }
+  },
+  "all_feature_library_extra_failure": {
+    "test": "producer::tests::encoding_many_produce_topics_does_not_hold_the_caller",
+    "observed_elapsed_ms": 80.509933,
+    "threshold_ms": 80,
+    "source": "all-features-partitionline.log",
+    "scheduler_cause": "not established"
+  },
+  "resource_guards": {
+    "command_receipts": 136,
+    "matched_source_before_after_pairs": 136,
+    "all_inputs_stable": true,
+    "all_leaders_waited_and_no_remaining_descendants": true,
+    "no_runner_stop": true,
+    "minimum_recorded_free_bytes": 83250610176,
+    "oom_counter_status": "unknown for all 136 receipts; OOM deltas unavailable",
+    "oom_inference": "No inference about absence of OOM can be made from those counters."
+  },
+  "diagnostics_scope": "Bounded excerpts are copied from individual libtest logs; output is unframed and attribution is best-effort.",
+  "inherited_status_note": "Some summary/spec limit strings describe preparation-era states such as no v16 native run; this artifact records the later observed run.",
+  "limits": [
+    "No external broker, ordinary whole-main matrix, production readiness, or fastest-performance ranking was established.",
+    "Full 203 MB artifact and compiled binaries not downloaded.",
+    "Dependency source bytes are not exhaustively pinned.",
+    "All 136 OOM counters were unavailable."
+  ]
+}

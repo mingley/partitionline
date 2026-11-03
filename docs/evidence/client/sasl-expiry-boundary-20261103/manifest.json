@@ -1,0 +1,21 @@
+{
+  "source_commit": "e45c369f915cab4d4f70b20668973957458e1dd2",
+  "source_sha256": {
+    "src/producer.rs": "4f461c00864e3da5e20925796c1f489580a4046202cffd86fefeb64cbd145a32",
+    "src/net.rs": "df239f20fdc4e3240defa78e632faa50c09dc69876478581e061d5c68722bb38",
+    "src/error.rs": "014c33e7716b004aa22ec46b4b7e0e9e67b54d982b69b8f152ee02eb421d45f2",
+    "src/protocol/sasl.rs": "151bb98bd09123b793dc8a4300a709ab343ef9591d21aafd19ce3837fe386fe5"
+  },
+  "package_sha256": {
+    "README.md": "9aee7b56927e2dc5eec984ddc4b85ff7b50d86a3d83ad42f8e0dcf170a96100a",
+    "verify.py": "3c177a477f4f882d67114b6897efa44061477f577e34aeb2b38c16d7b88a69e0"
+  },
+  "v16_v17_fixed_catalog_sha256": "15da704200222b0b3b8de7d74274b9cf1fb3933a9339112c09b3467aa07868ea",
+  "v16_v17_fixed_source_hashes": {
+    "src/producer.rs": "38add9415de68efd3ede5a27ce3c182adea92cbd94cd8c77e07b74774d30f6d1",
+    "src/net.rs": "f73aa7a04d3e2571f347f6a9245cf6f4df4ab218f653e71ca824e86e7893907c",
+    "src/error.rs": "014c33e7716b004aa22ec46b4b7e0e9e67b54d982b69b8f152ee02eb421d45f2",
+    "src/protocol/sasl.rs": "151bb98bd09123b793dc8a4300a709ab343ef9591d21aafd19ce3837fe386fe5"
+  },
+  "scope": "Static source review of main; no production patch or native execution. V16/v17 has different producer and network files."
+}

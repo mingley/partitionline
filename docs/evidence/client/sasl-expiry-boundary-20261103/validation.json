@@ -1,0 +1,26 @@
+{
+  "manifest_sha256": "595b151e70f2b663620db9c4e8483c3c40e6bbb9592fb82adaa815bc59761e8b",
+  "source_commit": "e45c369f915cab4d4f70b20668973957458e1dd2",
+  "current_checkout_commit": "664ba30c5991416e026e82add3e2445dab935b1a",
+  "current_source_hashes_still_match": true,
+  "source_inputs": {
+    "src/producer.rs": "4f461c00864e3da5e20925796c1f489580a4046202cffd86fefeb64cbd145a32",
+    "src/net.rs": "df239f20fdc4e3240defa78e632faa50c09dc69876478581e061d5c68722bb38",
+    "src/error.rs": "014c33e7716b004aa22ec46b4b7e0e9e67b54d982b69b8f152ee02eb421d45f2",
+    "src/protocol/sasl.rs": "151bb98bd09123b793dc8a4300a709ab343ef9591d21aafd19ce3837fe386fe5"
+  },
+  "static_source_checks": {
+    "count": 7,
+    "status": "pass",
+    "stdout_sha256": "1d61060f686426fd59165a972c3f64c33790dbddef886147d17a6c23f2ceb2b1",
+    "stderr_sha256": "d2cb65580841801494ea00ee645a9a0623c4fe558c6004dd5c1007a188096e83"
+  },
+  "network_guard": "seccomp blocks socket/connect/send calls; socket preflight denied",
+  "tool_guards": "Cargo, Rust compiler, rustup, curl, wget and gh replaced by stubs; no invocation recorded",
+  "scope": "Source evidence and counterexample only. No Rust patch, native test, broker request, benchmark or publication.",
+  "limits": [
+    "Source patterns and example do not execute the production implementation.",
+    "No observation that an expired frame was accepted by a broker.",
+    "V16/v17 producer and network sources differ from this main snapshot."
+  ]
+}

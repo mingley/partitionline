@@ -230,10 +230,17 @@ passed format, strict Clippy, both builds and all 2,293 library tests in each
 profile. Each profile still failed 15 Mock Produce tests and one retained-
 backing test. The original 450 ms send-all test reported 756.0635 ms and
 756.451082 ms; these mock-test timings are not a peer benchmark. The retained-
-backing projection reported `Timeout` without identifying the phase. The
-[phase-diagnostic follow-up](../evidence/client/retained-phase-followup-20261103/README.md)
+backing projection reported `Timeout` without identifying the phase.
+The [repeat at `e2a04e229`](../evidence/client/candidate-v16-repeat-e2a0-20261103/README.md)
+retained those integration failures and added one
+all-feature library timing failure. Baseline case 23 was counted as an expected
+failure even though it exited on broker error 14 before the intended
+cancellation barrier. That result does not establish the barrier behavior.
+The [phase-diagnostic follow-up](../evidence/client/retained-phase-followup-20261103/README.md)
 is staged in the [v17 candidate](../evidence/client/candidate-20261030/v17/README.md)
-with unchanged Rust tests and timing; it needs a hosted rerun. The
+with unchanged Rust tests and timing; its hosted result is pending. V17 retains
+the broad case 23 matcher, which needs a phase-specific witness and failure
+provenance before the baseline result can qualify that control. The
 [v14 run](../evidence/client/candidate-v14-job-20261103/REPORT.md)
 passed format, strict Clippy and both builds, but each profile failed the same
 15 Mock Produce tests, one pending-deadline cancellation test and one
@@ -246,6 +253,14 @@ it separately. V14's panic bodies were unavailable; v16 reported handshake
 counts and latency assertions. Preserve socket-specific versions and
 authentication when designing reuse. A reviewed [live-socket design](../evidence/client/live-socket-reuse-20261103/README.md)
 sets out ownership and expiry controls; it is unimplemented and unmeasured.
+The separate [main-source SASL expiry review](../evidence/client/sasl-expiry-boundary-20261103/README.md)
+found that raw Produce writes bypass the connection expiry check. A fix must
+preserve ownership and sequence state across earlier unanswered requests and
+retries. No expired request was observed on a broker in that review.
+The [stale-dial review](../evidence/client/producer-endpoint-stale-dial-20261103/README.md)
+also identifies a v16 source path that can publish a dial after the node's
+endpoint changes. Its proposed A→B and A→B→A controls are unrun; metadata
+publication and already active workers need separate treatment.
 The retained-backing fixture sends more than 4,096 single-record batches with
 one request in flight. Repeated vector prefix drains shift the remaining
 records; their contribution to the failure has not been measured. The reviewed
@@ -332,8 +347,9 @@ skips certain deadline scans, but still needs native tests and benchmarking.
 It does not remove vector prefix shifts.
 A [paired queue microbenchmark prototype](../evidence/perf/pending-queue-v16-20261103/README.md)
 has source review. Its [v17 rebind](../evidence/perf/pending-queue-v17-20261103/README.md)
-remains uncompiled and inactive until complete v17 correctness passes in the
-same job. Synthetic completions do not prove Kafka delivery.
+remains uncompiled and inactive until the case 23 baseline witness is repaired
+and complete correctness passes in the same job. Synthetic completions do
+not prove Kafka delivery.
 The [supervised group coordinator draft](../evidence/client/group-coordinator-cache-20261103/README.md)
 needs its eviction, close cancellation, retry ordering and admission limits
 resolved before native qualification.

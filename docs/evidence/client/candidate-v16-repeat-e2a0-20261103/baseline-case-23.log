@@ -1,0 +1,18 @@
+
+running 1 test
+test cancelling_a_join_after_two_errors_and_third_request_stops_new_requests ... FAILED
+
+failures:
+
+---- cancelling_a_join_after_two_errors_and_third_request_stops_new_requests stdout ----
+
+thread 'cancelling_a_join_after_two_errors_and_third_request_stops_new_requests' (5051) panicked at tests/group_coordinator_startup.rs:395:39:
+join ended before two responses were consumed and a third request was sent: broker error 14 (COORDINATOR_LOAD_IN_PROGRESS): JoinGroup
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    cancelling_a_join_after_two_errors_and_third_request_stops_new_requests
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 13 filtered out; finished in 0.00s
+
