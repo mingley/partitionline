@@ -1,0 +1,50 @@
+{
+  "scope": "isolated source-only v16/v17 mixed-fatal v6 evidence; do not adopt without independent review and native qualification",
+  "main_source_commit": "7e91e2bee412857c728ecd5c7a368fdefacf7af7",
+  "main_producer_sha256": "4f461c00864e3da5e20925796c1f489580a4046202cffd86fefeb64cbd145a32",
+  "before": {
+    "src/producer.rs": "38add9415de68efd3ede5a27ce3c182adea92cbd94cd8c77e07b74774d30f6d1",
+    "src/protocol/txn.rs": "4e5a224f22301d2c9fa6b388e94871223e300869facef5b28b63bfc73691d949",
+    "src/producer/prepare_tests.rs": "c6696efaa6edbee311d508a391603d5332d52ed58c7ac6a82d0385add1f35712"
+  },
+  "after": {
+    "src/producer.rs": "f6873b846b581c74593221a7b11dbc5ee41da5a3d1d2770dac7213c3c010ecff",
+    "src/protocol/txn.rs": "4c5ec3ea56860e209b9e931702db353e18c702d2295ef2199dcecad114747834",
+    "src/producer/prepare_tests.rs": "6d5efbf83a92243f254d909e1567a4bfd7177b3917b934e15e3430b0f0f0ab78"
+  },
+  "patch_sha256": "cfdd103c0682819e1d113ff1b4f86aa389e2b36446decb7a09dbe56678bfbc39",
+  "readme_sha256": "e0840c7b946d11322686fa2b2036423763489cb9f3f81d3f9228ee78e8b09568",
+  "verifier_sha256": "645acb11875286f9e95315b17ca43976bb0a3b222a343c3686c42b2b3146457c",
+  "previous_v2_patch_sha256": "a4b26709bc76d487aaf4fc71e45d90dfe1943965e2c7ff645ca1874d406a7361",
+  "previous_v2_archive_sha256": "420cd958d41a3a4c89931ff4fe812c92365f11522f061a41eb74849b98ecc202",
+  "previous_v1_patch_sha256": "66097f857a550d0a5647a057ccbd6c3bc8707f208196d7ea7885673f7ecc96f9",
+  "previous_v1_archive_sha256": "35959ff00753c688736849bc75367bd387d3c5e00906e52b6e993e968c4cac79",
+  "static_checks": [
+    "v16/v17 fixed catalog source pins",
+    "original prepare test prefix",
+    "forward and reverse patch byte reconstruction",
+    "source-derived full-i16 classifier model",
+    "latest stable rustfmt --check"
+  ],
+  "added_tests": [
+    "add_partitions_fatal_precedence_validates_all_spoken_versions",
+    "mixed_coordinator_error_and_fence_fences_worker_without_rediscovery",
+    "add_partitions_retry_then_fence_or_success_uses_existing_retry_path",
+    "cancelled_add_partitions_scan_keeps_observed_fence"
+  ],
+  "not_performed": [
+    "Cargo",
+    "Rust compilation",
+    "native tests",
+    "public API or real broker tests",
+    "independent review",
+    "benchmark"
+  ],
+  "known_limits": "See README.md; includes cancellation during structural decode or before a later fatal is reached in the scan, missing/duplicate/extra/null response identity validation, and outer-loop-only retry control. No qualification claim.",
+  "previous_v3_patch_sha256": "cfdd103c0682819e1d113ff1b4f86aa389e2b36446decb7a09dbe56678bfbc39",
+  "previous_v3_archive_sha256": "2ce03464e51e0647eb0087f1b3b413a49d5ffca20c89e11a3760de46a264d150",
+  "archive_includes_sparse_trees": true,
+  "previous_v4_archive_sha256": "cd75679a69ae8a6ba86f8b7dbfc5af855d7e4d307cc1c415cc63ce71cfaf54fb",
+  "previous_v5_archive_sha256": "5f9dbbcae7b2e08c5891466822acdb870cbbbf23afa050da41bced56905b6f69",
+  "retry_model_src_error_sha256": "014c33e7716b004aa22ec46b4b7e0e9e67b54d982b69b8f152ee02eb421d45f2"
+}

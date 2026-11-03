@@ -1,0 +1,13 @@
+{
+  "archive_sha256": "6b0fa496b341d97b52849da9f0973bffeac9a4974bad6ae51bd5e4e9a9dded8f",
+  "manifest_sha256": "4f7b8938ab07265e02c1c8e081313a7bd87897035eb15e11c597a393e8e83beb",
+  "patch_sha256": "cfdd103c0682819e1d113ff1b4f86aa389e2b36446decb7a09dbe56678bfbc39",
+  "archive_file_members": 10,
+  "catalogs_and_exact_archived_sparse_sources": "pass",
+  "standalone_archive_verifier": "pass within documented workspace dependencies",
+  "source_identical_to_v3": true,
+  "four_appended_tests_source_only": true,
+  "fatal_callback_before_scan_yield": "after the reducer observes fatal; later fatal may remain unobserved at an earlier yield",
+  "error_source_sha256": "014c33e7716b004aa22ec46b4b7e0e9e67b54d982b69b8f152ee02eb421d45f2",
+  "qualification": "not performed"
+}

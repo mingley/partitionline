@@ -1,0 +1,90 @@
+{
+  "decision": "Source-only adoption and workflow review passed for the exact reviewed patches and proposed retirement/pin workflow; hosted qualification summary is successful, with raw artifact limits stated below.",
+  "hosted": {
+    "run_id": 41600679287,
+    "job_id": 125798406078,
+    "trigger_and_checkout": "7e91e2bee412857c728ecd5c7a368fdefacf7af7",
+    "job_conclusion": "success",
+    "projected_wrapper_summary": {
+      "passed": true,
+      "error": null,
+      "gate_errors": []
+    },
+    "decoded_reencoded_log_sha256": "a1171ea7f960072c70d9b5db163b74cb602df5684f77b93df0f42dee540363b5",
+    "connector_metadata_sha256": "d889f4a584e04d3208ef38df1727b7b72d261f2aac5ff513481abf3a08f77427",
+    "artifacts": [
+      {
+        "id": 13214921847,
+        "name": "candidate-broker-controller-join-v2-r2-trigger-7e91e2bee412857c728ecd5c7a368fdefacf7af7-checkout-7e91e2bee412857c728ecd5c7a368fdefacf7af7-41600679287",
+        "size_bytes": 148557257,
+        "github_reported_digest": "sha256:06d6cef2b9e04ca30379c6cfd263220e90f8d9d6f3495b64b2b497eb55dfaaae",
+        "raw_bytes_inspected": false
+      },
+      {
+        "id": 13214552345,
+        "name": "candidate-reports-broker-controller-join-v2-r2-trigger-7e91e2bee412857c728ecd5c7a368fdefacf7af7-checkout-7e91e2bee412857c728ecd5c7a368fdefacf7af7-41600679287",
+        "size_bytes": 464257,
+        "github_reported_digest": "sha256:27ed120e7f86dd4a2575a08371c95b6cc09565da894eaa9ee8758e2020606a45",
+        "raw_bytes_inspected": false
+      }
+    ],
+    "summary_interpretation": "The pinned workflow executed twelve verified-byte static checks, then invoked the pinned wrapper. Under its source control flow, passed=true and no gate errors require the baseline witnesses, two profile fixed controls and all listed full/inventory/documentation gates to have completed successfully; individual commands and evidence have not been independently inspected."
+  },
+  "source_comparison": {
+    "client_base_catalog_entries_match_pre_adoption_commit": 1746,
+    "main_runtime_equals_capacity_fixed": true,
+    "main_join_patch_preimages_and_forward_reverse": "pass",
+    "joined_postimage_protocol_sha256": "86c8971a500208bb93ff015d9d3dd056efd8a34d7204b7de1f0d27c59a4499c3",
+    "joined_postimage_registry_sha256": "e127e3daeca095363f66ed45d7a2ffa1adbef17ff584d3f23dcfde63fb576e0a",
+    "candidate_catalog_files": 5982,
+    "main_post_adoption_diff_count": 1,
+    "main_post_adoption_missing_count": 0,
+    "main_post_adoption_core_diffs": [
+      "partitionline-broker/README.md"
+    ],
+    "main_post_adoption_core_missing": [],
+    "other_diff_examples": [
+      "partitionline-broker/README.md"
+    ],
+    "other_missing_examples": [],
+    "scope": "compares cataloged files only; not extra main files or a native/runtime qualification"
+  },
+  "workflow": {
+    "before_sha256": "97101330984500aa0b0fe6ae0d45fa287def807378c1c92e685d47430974a641",
+    "after_sha256": "770fcff55446f2c325da7e9f46068a8b44e886fbf2137aeb7b6a97c06cf54722",
+    "patch": "/workspace/work/broker-join-adoption-review-20261103/workflow-retire-join-and-pin-v17.patch",
+    "patch_sha256": "7d0b933b30042f32ec84bd55712d5edebc05bcbcbe9360a2882533ca0bd35705",
+    "broker_ci_sha256_unchanged": "12f56c99c2fbae3387ec14ae5a26e93857471c6a4330a7e1aa12ca03fa5c8a42",
+    "policy": "pin historical v17 client checkout to 7e91; retire completed one-off controller-join r2 matrix and loader; preserve capacity lane and main broker workflow",
+    "validation": {
+      "proposed_workflow_sha256": "770fcff55446f2c325da7e9f46068a8b44e886fbf2137aeb7b6a97c06cf54722",
+      "v17_helper_guard": "8 tests and six pinned files passed",
+      "capacity_verified_byte_loader": "6 tests passed",
+      "python_guard_suites": {
+        "test_client_candidate_qualification.py": 36,
+        "test_candidate_command_ownership.py": 6,
+        "test_broker_candidate_qualification.py": 15
+      },
+      "capacity_loader_text_unchanged": true,
+      "artifact_trigger_checkout_labels_unchanged": true,
+      "checkout_clean": true,
+      "only_client_v17_pin_and_retired_join_lane_changed": true,
+      "runtime_or_hosted_execution": false
+    }
+  },
+  "patches": {
+    "join_fixed_sha256": "879595b42050f6ba7a5995d341263e6a163e64ca2e35420fd10cf0eb910beaef",
+    "registry_sha256": "456442c2afa7f5ae49d060945dd1a9c92de6eaa99a29724e19c4986cf18ad5b7",
+    "protocol_post_sha256": "86c8971a500208bb93ff015d9d3dd056efd8a34d7204b7de1f0d27c59a4499c3",
+    "registry_post_sha256": "e127e3daeca095363f66ed45d7a2ffa1adbef17ff584d3f23dcfde63fb576e0a",
+    "sparse_forward_and_reverse": "passed"
+  },
+  "limits": [
+    "The GitHub connector reports compact/full artifact identities and digests, but the bytes and individual command receipts, selected test identities, raw panic text and resource/oom telemetry were not retrieved or independently verified. A missing OOM counter is allowed by the pinned runner; do not infer that no OOM occurred from the projected success alone.",
+    "The five synthetic controller join controls do not individually prove controller wake, WAL, network, crash durability, Kafka completeness or production readiness.",
+    "The 5982-file source comparison covers the candidate catalog and does not compare extra files in main. Its sole difference is broker README prose/link; no cataloged source, tests, fixtures or scripts differ after the two patches.",
+    "The pinned v17 lane becomes a historical 7e91 snapshot and does not test future main client changes. The archived controller-join r2 evidence remains in the repository but its retired matrix lane will no longer rerun automatically.",
+    "A reviewer-run command ownership test initially hit the local 1.5 GiB disk floor under /workspace; a fresh /tmp-backed isolated checkout with actual free space reran the complete 36/6/15 source-only suites successfully.",
+    "No Cargo, Rust/native test, broker runtime, benchmark or root edit was performed in this review."
+  ]
+}

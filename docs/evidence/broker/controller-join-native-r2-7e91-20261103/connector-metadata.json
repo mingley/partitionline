@@ -1,0 +1,169 @@
+{
+  "run": {
+    "id": 41600679287,
+    "head_sha": "7e91e2bee412857c728ecd5c7a368fdefacf7af7",
+    "head_branch": "main",
+    "event": "push",
+    "status": "in_progress",
+    "run_attempt": 1,
+    "created_at": "2026-11-03T08:05:14Z"
+  },
+  "job": {
+    "id": 125798406078,
+    "name": "broker controller-join-v2-r2 (stable, x86_64)",
+    "status": "completed",
+    "conclusion": "success",
+    "run_id": 41600679287,
+    "steps": [
+      {
+        "name": "Set up job",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 1
+      },
+      {
+        "name": "Run actions/checkout@v7",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 2
+      },
+      {
+        "name": "Verify checkout commit",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 3
+      },
+      {
+        "name": "Verify v17 helper pins and controls",
+        "status": "completed",
+        "conclusion": "skipped",
+        "number": 4
+      },
+      {
+        "name": "Run dtolnay/rust-toolchain@stable",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 5
+      },
+      {
+        "name": "Install source inventory prerequisite",
+        "status": "completed",
+        "conclusion": "skipped",
+        "number": 6
+      },
+      {
+        "name": "Check command ownership controls",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 7
+      },
+      {
+        "name": "Check client qualification guards",
+        "status": "completed",
+        "conclusion": "skipped",
+        "number": 8
+      },
+      {
+        "name": "Check broker qualification guards",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 9
+      },
+      {
+        "name": "Check local TLS peer prerequisite",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 10
+      },
+      {
+        "name": "Recheck v17 helper pins",
+        "status": "completed",
+        "conclusion": "skipped",
+        "number": 11
+      },
+      {
+        "name": "Qualify isolated client candidate",
+        "status": "completed",
+        "conclusion": "skipped",
+        "number": 12
+      },
+      {
+        "name": "Qualify isolated broker candidate",
+        "status": "completed",
+        "conclusion": "skipped",
+        "number": 13
+      },
+      {
+        "name": "Check and qualify pinned broker runtime capacity",
+        "status": "completed",
+        "conclusion": "skipped",
+        "number": 14
+      },
+      {
+        "name": "Check and qualify pinned broker controller join",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 15
+      },
+      {
+        "name": "Retain attempts and failures",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 16
+      },
+      {
+        "name": "Retain qualification reports",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 17
+      },
+      {
+        "name": "Post Run actions/checkout@v7",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 34
+      },
+      {
+        "name": "Complete job",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 35
+      }
+    ]
+  },
+  "artifacts": [
+    {
+      "id": 13214921847,
+      "name": "candidate-broker-controller-join-v2-r2-trigger-7e91e2bee412857c728ecd5c7a368fdefacf7af7-checkout-7e91e2bee412857c728ecd5c7a368fdefacf7af7-41600679287",
+      "size_in_bytes": 148557257,
+      "digest": "sha256:06d6cef2b9e04ca30379c6cfd263220e90f8d9d6f3495b64b2b497eb55dfaaae",
+      "expired": false,
+      "created_at": "2026-11-03T08:19:03Z",
+      "expires_at": "2026-12-03T08:18:56Z",
+      "workflow_run": {
+        "id": 41600679287,
+        "repository_id": 1342911983,
+        "head_repository_id": 1342911983,
+        "head_branch": "main",
+        "head_sha": "7e91e2bee412857c728ecd5c7a368fdefacf7af7"
+      }
+    },
+    {
+      "id": 13214552345,
+      "name": "candidate-reports-broker-controller-join-v2-r2-trigger-7e91e2bee412857c728ecd5c7a368fdefacf7af7-checkout-7e91e2bee412857c728ecd5c7a368fdefacf7af7-41600679287",
+      "size_in_bytes": 464257,
+      "digest": "sha256:27ed120e7f86dd4a2575a08371c95b6cc09565da894eaa9ee8758e2020606a45",
+      "expired": false,
+      "created_at": "2026-11-03T08:19:05Z",
+      "expires_at": "2026-12-03T08:19:04Z",
+      "workflow_run": {
+        "id": 41600679287,
+        "repository_id": 1342911983,
+        "head_repository_id": 1342911983,
+        "head_branch": "main",
+        "head_sha": "7e91e2bee412857c728ecd5c7a368fdefacf7af7"
+      }
+    }
+  ],
+  "artifact_bytes_downloaded": false
+}

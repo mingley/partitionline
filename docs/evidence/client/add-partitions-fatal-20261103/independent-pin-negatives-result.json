@@ -1,0 +1,1 @@
+{"valid_fake_checkout_passed": true, "changed_error_source_rejected": true, "changed_v16_catalog_rejected": true, "changed_v17_catalog_rejected": true, "scope": "exact verifier with fake checkout path; no root edits or Rust execution"}

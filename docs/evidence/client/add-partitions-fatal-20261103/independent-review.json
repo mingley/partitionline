@@ -1,0 +1,43 @@
+{
+  "decision": "Source-only review of the v6 evidence package and narrow candidate is complete; retain it as an uncompiled, unqualified draft with the stated correctness blockers.",
+  "archive": "/workspace/work/add-partitions-fatal-v6-20261103/evidence.tar.gz",
+  "archive_sha256": "6b0fa496b341d97b52849da9f0973bffeac9a4974bad6ae51bd5e4e9a9dded8f",
+  "manifest_sha256": "4f7b8938ab07265e02c1c8e081313a7bd87897035eb15e11c597a393e8e83beb",
+  "patch_sha256": "cfdd103c0682819e1d113ff1b4f86aa389e2b36446decb7a09dbe56678bfbc39",
+  "verifier_sha256": "645acb11875286f9e95315b17ca43976bb0a3b222a343c3686c42b2b3146457c",
+  "audit": {
+    "archive_sha256": "6b0fa496b341d97b52849da9f0973bffeac9a4974bad6ae51bd5e4e9a9dded8f",
+    "manifest_sha256": "4f7b8938ab07265e02c1c8e081313a7bd87897035eb15e11c597a393e8e83beb",
+    "patch_sha256": "cfdd103c0682819e1d113ff1b4f86aa389e2b36446decb7a09dbe56678bfbc39",
+    "archive_file_members": 10,
+    "catalogs_and_exact_archived_sparse_sources": "pass",
+    "standalone_archive_verifier": "pass within documented workspace dependencies",
+    "source_identical_to_v3": true,
+    "four_appended_tests_source_only": true,
+    "fatal_callback_before_scan_yield": "after the reducer observes fatal; later fatal may remain unobserved at an earlier yield",
+    "error_source_sha256": "014c33e7716b004aa22ec46b4b7e0e9e67b54d982b69b8f152ee02eb421d45f2",
+    "qualification": "not performed"
+  },
+  "verifier_negative_controls": {
+    "valid_fake_checkout_passed": true,
+    "changed_error_source_rejected": true,
+    "changed_v16_catalog_rejected": true,
+    "changed_v17_catalog_rejected": true,
+    "scope": "exact verifier with fake checkout path; no root edits or Rust execution"
+  },
+  "audit_script_sha256": "18018ab64f7a48282245ceb6764b03dc9c4a976e9c7305f17b77d2a613fc7a0e",
+  "pin_negative_script_sha256": "0477a04ea484173f3d49f152e4a2103b28ac31d032d8add93d6a056a4097e771",
+  "findings": [
+    "The first validated fatal result is selected before a nonfatal coordinator error can trigger rediscovery; the first nonfatal code remains the selection when no fatal is found. The capability-dependent UNKNOWN_PRODUCER_ID predicate and the full-i16 source-derived classifier model preserve the prior classifier categories.",
+    "The callback marks the fatal flag synchronously after structural parse and trailing-byte check when the reducer observes the fatal entry, before its subsequent cooperative yield. The appended manual-poll control is designed to distinguish an earlier parser Pending from this post-observation reducer Pending.",
+    "The original txn_roundtrip implementation and public AddPartitions decoders are byte-identical. The reducer is called from both the first-response validator and the subsequent caller decode; the unchanged absolute deadlines and retry policy remain in source.",
+    "Four appended tests and the pre-existing test prefix were verified as source only. The local TCP retry fixture exercises the outer Worker retry, not txn_roundtrip internal rediscovery or its second response; the version matrix uses the project encoder and decoder and does not establish independent wire compatibility.",
+    "All ten archive file members, six sparse input/output files, v16/v17 catalogs, recorded main source and error.rs model input matched their pins. The verifier was replayed from a separately extracted archive and its error.rs and both catalog negative controls rejected altered inputs."
+  ],
+  "blockers_and_limits": [
+    "The parser accepts some null/negative arrays or strings as empty and the producer does not validate every response topic and partition against the request, reject duplicates or require complete coverage. An empty response can be treated as success and mark requested partitions added without results. The candidate does not remedy this inherited correctness defect.",
+    "Cancellation during cooperative structural decoding remains unqualified. After parsing, cancellation at a scan yield before a later fatal entry is observed can also drop a fully parsed fatal response without recording the fence. The new test covers only cancellation after the reducer has observed the fatal entry.",
+    "A previously cached transaction error may remain the reported root cause even after the fatal flag is set. Public API ordering, no subsequent Produce/EndTxn, concurrency, malformed peers, TLS/SASL and real-broker behavior remain unproven.",
+    "No Rust compilation, native tests, live Kafka execution, performance benchmark or production adoption was performed. The archive verifier has documented dependencies on the checkout catalogs/source, writable /workspace/work and Git."
+  ]
+}

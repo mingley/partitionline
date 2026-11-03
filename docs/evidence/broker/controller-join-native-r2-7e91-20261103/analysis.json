@@ -1,0 +1,60 @@
+{
+  "status": "hosted broker controller-join r2 job passed",
+  "job_id": 125798406078,
+  "run_id": 41600679287,
+  "trigger_sha": "7e91e2bee412857c728ecd5c7a368fdefacf7af7",
+  "decoded_job_log_sha256": "a1171ea7f960072c70d9b5db163b74cb602df5684f77b93df0f42dee540363b5",
+  "connector_metadata_sha256": "0f7036cb38543fa99ef1589afdea946383dc35e28da627afc64b8e3522af5565",
+  "source_catalog_sha256": "c11b1a7e1d2578c49fcac1c87168a54d7fde217cc9738324a2985a32c6afdc8d",
+  "direct_console": {
+    "static_tests_passed": 12,
+    "summary": {
+      "passed": true,
+      "error": null,
+      "gate_errors": [],
+      "output": "/home/runner/work/_temp/candidate-qualification"
+    },
+    "stable_rustc": "1.99.1 (58cf8f9c3 2026-10-13)",
+    "job_conclusion": "success"
+  },
+  "source_bound_control_flow_inference": [
+    "The capacity baseline positive witnesses and required negative assertion matched.",
+    "In both feature profiles the join baseline positive case passed and each of four negative cases matched its pinned panic sites.",
+    "In both profiles the required fixed capacity and five join cases, inherited focused and async filesystem controls, all-target minimum and Fetch repeats passed; the stale-leader check passed.",
+    "Formatting, strict Clippy and Rustdoc, both doctest profiles, the broker inventory, and its 55-control Python suite passed the pinned runner conditions."
+  ],
+  "source_scope": {
+    "base_commit": "6fa8cdb3588d884580d01331e44df657c02f7670",
+    "base_archive_sha256": "d2799c22004030742b3922fd5b30947f66939fc27879617b6617bcd8ee85e00f",
+    "fixed_runtime_sha256": "38c50bcd93e5dea91d10264c984fef1a5bfe9e4e33686a5ec64c03ae7945b66d",
+    "fixed_join_sha256": "86c8971a500208bb93ff015d9d3dd056efd8a34d7204b7de1f0d27c59a4499c3",
+    "fixed_registry_sha256": "e127e3daeca095363f66ed45d7a2ffa1adbef17ff584d3f23dcfde63fb576e0a",
+    "fixed_registry_patch_sha256": "456442c2afa7f5ae49d060945dd1a9c92de6eaa99a29724e19c4986cf18ad5b7",
+    "v17_base_registry_sha256": "511b2e432d609381b7878704aa1036c2db506b2244f6ffc28bcd0be169541dc8"
+  },
+  "compact_report_artifact": {
+    "id": 13214552345,
+    "name": "candidate-reports-broker-controller-join-v2-r2-trigger-7e91e2bee412857c728ecd5c7a368fdefacf7af7-checkout-7e91e2bee412857c728ecd5c7a368fdefacf7af7-41600679287",
+    "size_in_bytes": 464257,
+    "digest": "sha256:27ed120e7f86dd4a2575a08371c95b6cc09565da894eaa9ee8758e2020606a45",
+    "expired": false,
+    "created_at": "2026-11-03T08:19:05Z",
+    "expires_at": "2026-12-03T08:19:04Z",
+    "workflow_run": {
+      "id": 41600679287,
+      "repository_id": 1342911983,
+      "head_repository_id": 1342911983,
+      "head_branch": "main",
+      "head_sha": "7e91e2bee412857c728ecd5c7a368fdefacf7af7"
+    }
+  },
+  "artifact_bytes_downloaded": false,
+  "limits": [
+    "The job log is connector-decoded text re-encoded as UTF-8, not original compressed GitHub log bytes.",
+    "The compact report connector returned a File Service reference without a local path; the enforced network allowlist excludes that host, and the available workspace downloader is Sediment-only. No unsupported download or network bypass was attempted.",
+    "Individual command logs, exact test counts, exit codes and per-command OOM/resource receipts were not read; the detailed gate descriptions are source-bound control-flow inferences from the summary, not separately observed command results.",
+    "The candidate uses the pinned 6fa8 source archive with reviewed capacity, join and registry patches; this is not a whole-current-main qualification. Synthetic actor tests do not independently cover real controller wake, WAL or transport.",
+    "Adopting the registry update on current main would invalidate v17 current-head base reconstruction unless its checkout strategy is separately reviewed.",
+    "The job result does not establish complete production readiness, Kafka compatibility, or a global performance ranking."
+  ]
+}

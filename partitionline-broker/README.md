@@ -53,6 +53,9 @@ caller. `Config::managed_bytes()` is an estimate for configured state and
 admitted buffers, not a process memory limit; caller-owned waiting inputs,
 allocator overhead and socket buffers are outside it. Controller queue
 accounting has a separate unresolved gap.
+`ControllerHandler::shutdown` records actor failure so later calls return
+`Error::Actor`. Cancelling a shutdown while it waits leaves the actor join
+available to a later caller.
 
 The experimental consumer, share and streams group coordinators expose
 `describe` as `Result<Option<_>, Error>`. Callers must handle `Error::Poisoned`

@@ -86,9 +86,13 @@ without recorded gate errors, but their individual logs and the inventory
 failure cause are unavailable. A local reconstruction reproduced a stale
 controller-source hash. The [r2 candidate](../evidence/broker/candidate-20261030/controller-join-v2-r2/README.md)
 updates that candidate-only registry pin; the [local validation](../evidence/broker/controller-join-inventory-r2-validation-20261103/README.md)
-passed the inventory and all 55 unchanged Python controls. Its hosted run is
-pending, and the local reproduction does not establish the unavailable hosted
-error text. Real controller, WAL and transport coverage also remains open.
+passed the inventory and all 55 unchanged Python controls. The [r2 hosted job](../evidence/broker/controller-join-native-r2-7e91-20261103/README.md)
+reported a successful qualification; the individual command reports and
+resource receipts were inaccessible, so gate details follow from the pinned
+runner's control flow. The shutdown and registry patches are applied. The
+one-off r2 lane is retired, and v17 now checks out the historical `7e91e2b`
+source because its catalog pins the earlier registry. Fresh main broker CI and
+real controller failure, WAL and transport coverage remain open.
 
 ## Correctness priorities
 
@@ -108,6 +112,10 @@ error text. Real controller, WAL and transport coverage also remains open.
    2^31. Repair whole-batch issue ownership, unresolved-prefix replay, identity
    transitions, socket completion and cancellation together. See the
    [producer diagnostic](../evidence/client/producer-retry-diagnostic-20261028/README.md).
+   A separate [AddPartitions review](../evidence/client/add-partitions-fatal-20261103/README.md)
+   found that an earlier retriable partition error can hide a later fatal one.
+   Its draft is uncompiled and unrun; missing response identities and
+   cancellation before a fatal result is observed also remain open.
 
 2. **Consumer delivery and isolation.** Topic recreation still fails one
    ownership control. Cancellation and mixed-error recovery must preserve

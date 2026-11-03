@@ -3668,11 +3668,18 @@ enum Command {
     Request(ControllerJob),
     Stop,
 }
+
+enum ControllerJoin {
+    Running(JoinHandle<()>),
+    Succeeded,
+    Failed,
+}
+
 /// Async transport handler with one joined bounded durable election actor.
 pub struct ControllerHandler {
     sender: mpsc::Sender<Command>,
     stopping: Arc<AtomicBool>,
-    join: Mutex<Option<JoinHandle<()>>>,
+    join: Mutex<ControllerJoin>,
     config: Config,
 }
 impl ControllerHandler {
@@ -3718,7 +3725,7 @@ impl ControllerHandler {
         Ok(Self {
             sender,
             stopping,
-            join: Mutex::new(Some(join)),
+            join: Mutex::new(ControllerJoin::Running(join)),
             config,
         })
     }
@@ -3726,15 +3733,28 @@ impl ControllerHandler {
     ///
     /// A synchronization already in progress completes with an ambiguous client
     /// outcome if canceled. No network listener or outbound peer task is owned.
+    /// If the actor fails, this and later shutdown calls return [`Error::Actor`].
+    /// A panic payload that itself panics when dropped propagates to the caller;
+    /// the recorded failure remains available to later shutdown calls.
     pub async fn shutdown(&self) -> Result<(), Error> {
         self.stopping.store(true, Ordering::Release);
         drop(self.sender.try_send(Command::Stop));
         let mut join = self.join.lock().await;
-        if let Some(task) = join.as_mut() {
-            task.await.map_err(|_| Error::Actor)?;
+        match &mut *join {
+            ControllerJoin::Running(task) => {
+                let outcome = task.await;
+                *join = if outcome.is_ok() {
+                    ControllerJoin::Succeeded
+                } else {
+                    ControllerJoin::Failed
+                };
+                // A panic payload can run arbitrary code when JoinError drops.
+                drop(join);
+                outcome.map_err(|_| Error::Actor)
+            }
+            ControllerJoin::Succeeded => Ok(()),
+            ControllerJoin::Failed => Err(Error::Actor),
         }
-        *join = None;
-        Ok(())
     }
 }
 impl ControllerHandler {
@@ -5762,5 +5782,207 @@ mod prevote_tests {
         assert_eq!(last_voter_refusal(1), Some(PreVoteRefusal::LastVoter));
         assert_eq!(last_voter_refusal(0), Some(PreVoteRefusal::LastVoter));
         assert_eq!(last_voter_refusal(2), None);
+    }
+}
+
+#[cfg(test)]
+mod controller_join_tests {
+    use super::{Command, Config, ControllerHandler, ControllerJoin, Error};
+    use std::{
+        future::{poll_fn, Future},
+        sync::{atomic::AtomicBool, mpsc as std_mpsc, Arc, Weak},
+        task::Poll,
+        time::Duration,
+    };
+    use tokio::{
+        sync::{mpsc, oneshot, Mutex},
+        task::JoinHandle,
+        time::timeout,
+    };
+
+    type TestResult = Result<(), Box<dyn std::error::Error + Send + Sync>>;
+    const WAIT: Duration = Duration::from_secs(10);
+
+    // The release sender is owned by the test, so dropping it also unblocks the
+    // synthetic actor if an assertion or timeout exits the test early.
+    #[allow(clippy::panic, reason = "inject an actor task failure")]
+    fn gated_actor(fail: bool) -> (JoinHandle<()>, oneshot::Receiver<()>, std_mpsc::Sender<()>) {
+        let (started_tx, started_rx) = oneshot::channel();
+        let (release_tx, release_rx) = std_mpsc::channel::<()>();
+        let join = tokio::task::spawn_blocking(move || {
+            let _started = started_tx.send(());
+            let _released = release_rx.recv();
+            if fail {
+                panic!("injected controller actor failure");
+            }
+        });
+        (join, started_rx, release_tx)
+    }
+
+    // This fixture isolates join ownership. It does not run a controller or WAL.
+    fn handler(
+        join: JoinHandle<()>,
+    ) -> Result<(ControllerHandler, mpsc::Receiver<Command>), Error> {
+        let config = Config::new(1, vec![1], "join-test".to_owned())?;
+        let (sender, receiver) = mpsc::channel(1);
+        Ok((
+            ControllerHandler {
+                sender,
+                stopping: Arc::new(AtomicBool::new(false)),
+                join: Mutex::new(ControllerJoin::Running(join)),
+                config,
+            },
+            receiver,
+        ))
+    }
+
+    struct LockCheckingPanic {
+        handler: Weak<ControllerHandler>,
+        observed: Option<oneshot::Sender<bool>>,
+    }
+
+    #[allow(clippy::panic, reason = "inject a panicking panic-payload destructor")]
+    impl Drop for LockCheckingPanic {
+        fn drop(&mut self) {
+            let unlocked = if let Some(handler) = self.handler.upgrade() {
+                let available = handler.join.try_lock().is_ok();
+                drop(handler);
+                available
+            } else {
+                false
+            };
+            if let Some(observed) = self.observed.take() {
+                let _observed = observed.send(unlocked);
+            }
+            panic!("injected panic payload destructor failure");
+        }
+    }
+
+    #[tokio::test]
+    async fn panicking_payload_drops_outside_join_lock_after_failure_is_recorded() -> TestResult {
+        let (payload_tx, payload_rx) =
+            std_mpsc::channel::<(Weak<ControllerHandler>, oneshot::Sender<bool>)>();
+        let actor = tokio::task::spawn_blocking(move || {
+            if let Ok((handler, observed)) = payload_rx.recv() {
+                std::panic::panic_any(LockCheckingPanic {
+                    handler,
+                    observed: Some(observed),
+                });
+            }
+        });
+        let (handler, _receiver) = handler(actor)?;
+        let handler = Arc::new(handler);
+        let (observed_tx, observed_rx) = oneshot::channel();
+        payload_tx
+            .send((Arc::downgrade(&handler), observed_tx))
+            .map_err(|_| "payload actor stopped before injection")?;
+        drop(payload_tx);
+
+        let first_handler = handler.clone();
+        let first = tokio::spawn(async move { first_handler.shutdown().await });
+        assert!(matches!(timeout(WAIT, first).await?, Err(error) if error.is_panic()));
+        assert!(timeout(WAIT, observed_rx).await??);
+        assert!(matches!(
+            timeout(WAIT, handler.shutdown()).await?,
+            Err(Error::Actor)
+        ));
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn panicked_actor_is_reported_by_every_later_shutdown() -> TestResult {
+        let (actor, started, release) = gated_actor(true);
+        let (handler, _receiver) = handler(actor)?;
+        timeout(WAIT, started).await??;
+        drop(release);
+
+        assert!(matches!(
+            timeout(WAIT, handler.shutdown()).await?,
+            Err(Error::Actor)
+        ));
+        assert!(matches!(
+            timeout(WAIT, handler.shutdown()).await?,
+            Err(Error::Actor)
+        ));
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn concurrent_shutdowns_share_the_actor_failure() -> TestResult {
+        let (actor, started, release) = gated_actor(true);
+        let (handler, _receiver) = handler(actor)?;
+        timeout(WAIT, started).await??;
+        let mut first = Box::pin(handler.shutdown());
+        let mut second = Box::pin(handler.shutdown());
+        poll_fn(|cx| {
+            assert!(first.as_mut().poll(cx).is_pending());
+            assert!(second.as_mut().poll(cx).is_pending());
+            Poll::Ready(())
+        })
+        .await;
+        assert!(handler.join.try_lock().is_err());
+        drop(release);
+
+        assert!(matches!(
+            timeout(WAIT, &mut first).await?,
+            Err(Error::Actor)
+        ));
+        assert!(matches!(
+            timeout(WAIT, &mut second).await?,
+            Err(Error::Actor)
+        ));
+        assert!(matches!(
+            timeout(WAIT, handler.shutdown()).await?,
+            Err(Error::Actor)
+        ));
+        Ok(())
+    }
+
+    async fn cancel_pending_shutdown_then_join(fail: bool) -> TestResult {
+        let (actor, started, release) = gated_actor(fail);
+        let (handler, _receiver) = handler(actor)?;
+        timeout(WAIT, started).await??;
+        let mut first = Box::pin(handler.shutdown());
+        poll_fn(|cx| {
+            assert!(first.as_mut().poll(cx).is_pending());
+            Poll::Ready(())
+        })
+        .await;
+        assert!(handler.join.try_lock().is_err());
+        drop(first);
+        {
+            let join = handler.join.try_lock()?;
+            assert!(matches!(&*join, ControllerJoin::Running(task) if !task.is_finished()));
+        }
+
+        let mut retried = Box::pin(handler.shutdown());
+        poll_fn(|cx| {
+            assert!(retried.as_mut().poll(cx).is_pending());
+            Poll::Ready(())
+        })
+        .await;
+        drop(release);
+        let result = timeout(WAIT, &mut retried).await?;
+        if fail {
+            assert!(matches!(result, Err(Error::Actor)));
+            assert!(matches!(
+                timeout(WAIT, handler.shutdown()).await?,
+                Err(Error::Actor)
+            ));
+        } else {
+            result?;
+            timeout(WAIT, handler.shutdown()).await??;
+        }
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn cancelled_shutdown_retains_a_successful_actor_until_join() -> TestResult {
+        cancel_pending_shutdown_then_join(false).await
+    }
+
+    #[tokio::test]
+    async fn cancelled_shutdown_retains_a_failing_actor_until_join() -> TestResult {
+        cancel_pending_shutdown_then_join(true).await
     }
 }

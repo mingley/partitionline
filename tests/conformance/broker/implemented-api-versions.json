@@ -1281,7 +1281,7 @@
     "4.3.1/schema-only/metadata-v13-null-zero.response.bin": "52defe47987713fde5bcaadba96f28cfc3257b93396e5202446792a6f0aafada"
   },
   "controller_source": "partitionline-broker/src/raft/protocol.rs",
-  "controller_source_sha256": "47ae96c84080813e4b81cfbfcdbe8bd45e48389c13c8562c0963dfc743137127",
+  "controller_source_sha256": "86c8971a500208bb93ff015d9d3dd056efd8a34d7204b7de1f0d27c59a4499c3",
   "controller_test_source": "partitionline-broker/tests/raft_protocol.rs",
   "controller_test_source_sha256": "2212994acdd0cb6b9115e0f6a6c4f5426b2978bbb988a5d827a4b263476ab515",
   "election_source": "partitionline-broker/src/raft/election.rs",

@@ -1,0 +1,48 @@
+{
+  "commit": "7e91e2bee412857c728ecd5c7a368fdefacf7af7",
+  "files": {
+    "workflow.yml": {
+      "git_path": ".github/workflows/candidates.yml",
+      "bytes": 14867,
+      "sha256": "97101330984500aa0b0fe6ae0d45fa287def807378c1c92e685d47430974a641"
+    },
+    "spec.json": {
+      "git_path": "docs/evidence/broker/candidate-20261030/controller-join-v2-r2/spec.json",
+      "bytes": 8332,
+      "sha256": "ab738fcaa40fc9f565c105513d512553105bfde778a1769bfcaf6c239a80eb0e"
+    },
+    "qualify.py": {
+      "git_path": "docs/evidence/broker/candidate-20261030/controller-join-v2-r2/qualify.py",
+      "bytes": 19945,
+      "sha256": "5921944995f2da7d40772562ea43e3c853703eba6e9c317f0e3c9611124ad50f"
+    },
+    "test_static.py": {
+      "git_path": "docs/evidence/broker/candidate-20261030/controller-join-v2-r2/test_static.py",
+      "bytes": 28335,
+      "sha256": "a594c72fd9b3ed1d7ff3d3e2352542ce119682e4a95ff7066bb27b17c80ad383"
+    },
+    "join-registry.patch": {
+      "git_path": "docs/evidence/broker/candidate-20261030/controller-join-v2-r2/join-registry.patch",
+      "bytes": 793,
+      "sha256": "456442c2afa7f5ae49d060945dd1a9c92de6eaa99a29724e19c4986cf18ad5b7"
+    },
+    "legacy-driver.py": {
+      "git_path": "scripts/ci-qualify-broker-candidate.py",
+      "bytes": 31863,
+      "sha256": "c1361fa8cabc00f1702bf2e25c8716cfe247b29e5824aeec90c13cb928f8f7c2"
+    },
+    "ownership-helper.py": {
+      "git_path": "scripts/candidate-command-ownership.py",
+      "bytes": 5725,
+      "sha256": "34ddbf04a4bbead974fad4a451d30c7a56818248bd5b58c88c87bdfc41896da9"
+    },
+    "v17-base-inputs.json": {
+      "git_path": "docs/evidence/client/candidate-20261030/v17/base-inputs.json",
+      "bytes": 226013,
+      "sha256": "11880cd37f8b1078aa88a1ac5af895efa03d16d076c7564d0e0cf9ed51cee83d"
+    }
+  },
+  "v17_registry_pin": "511b2e432d609381b7878704aa1036c2db506b2244f6ffc28bcd0be169541dc8",
+  "candidate_fixed_registry_sha256": "e127e3daeca095363f66ed45d7a2ffa1adbef17ff584d3f23dcfde63fb576e0a",
+  "limits": "Captured commit blobs are not a per-command hosted report; r2 patch is applied only in isolated candidate."
+}
