@@ -1,0 +1,28 @@
+{
+  "design_sha256": "27093b82b32bc038d7376631c30321c52aa7c3c25e84b282536f33f7819075da",
+  "scope": "Independent source/design review only; no implementation, compilation, runtime or distributed durability qualification.",
+  "conclusion": "No remaining design blocker found in the stated scope after revisions. The guard is not implemented and the required authority does not exist.",
+  "reviewed_against": [
+    "partitionline-broker/src/replication.rs",
+    "partitionline-broker/src/high_watermark.rs",
+    "partitionline-broker/src/recovery.rs",
+    "partitionline-broker/src/journal.rs"
+  ],
+  "checks": {
+    "authority": "Requires authenticated partition/leader/config identity, quorum or equivalent committed-lineage proof, fresh final boundary and serialization; existing models are not substituted as authority.",
+    "fencing": "A separately authorized persisted epoch fences old epochs; the conflict-rejecting reconcile itself performs no additional mutation. Same-epoch leader/config identity remains bound across restart.",
+    "watermarks": "Global exclusive H and locally verified C are separate; H and C do not regress, C is not inferred from min(H,local-end), and H may exceed the local end during catch-up.",
+    "identity": "The A/B_old versus A/B_new example requires exact committed-lineage proof before C or committed visibility advances, and prevents bypass through direct leader append.",
+    "durability": "Unknown legacy state fails closed, events are ordered with journal writes, replay rejects later truncate below C, and errors require poison/reopen.",
+    "rollback": "CRC detects accidental damage, not an older valid backup; a current nonrollback authority is required where rollback is in scope.",
+    "budget": "A bounded journal must account for watermark records and reject insufficient capacity; no implicit budget increase.",
+    "reader_compatibility": "The proposal requires old replica readers to reject the new event kind and treats legacy replay as history, not proof of past commitment."
+  },
+  "unresolved": [
+    "No authority provider, proof format, partition-identity integration, guarded API, or migration has been implemented.",
+    "Restoring a fully valid old image is undetectable by local checksums alone; external authority and stated filesystem sync guarantees are prerequisites.",
+    "A future bounded checkpoint design must preserve identity, epoch, H/C and proof atomically across crash/restart and must undergo separate review.",
+    "Process crash tests alone cannot prove power-loss, filesystem or quorum semantics.",
+    "No code or test result is implied by this design review."
+  ]
+}

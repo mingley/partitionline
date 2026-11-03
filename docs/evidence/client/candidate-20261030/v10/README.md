@@ -7,9 +7,11 @@ integration control checks gate release and cleanup. The prior 167 required
 identities, 22 baseline cases, test targets and budgets are preserved.
 
 Exact full-source reconstruction, forward/reverse patches, Rustfmt and an
-independent static fixture review passed. Cargo compilation, Clippy and Rust
-runtime tests have not run for this combination. The earlier retained-backing
-timeout's full cause is unproven; Mock Produce handshake failures remain.
+independent static fixture review passed. Both native library profiles then
+passed 2,280 tests and strict Clippy passed, but Mock Produce and retained
+backing failed. The new fixture controls passed; the original retained-backing
+test still timed out, so its full cause remains unproven. See the
+[native results](../../candidate-native-b1-20261102/README.md).
 Live Kafka compatibility, producer ordering and replay, production readiness
 and performance qualification remain open.
 The original v9 assets and import manifest are retained in this directory.

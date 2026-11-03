@@ -32,7 +32,7 @@ jobs:
       matrix:
         include:
           - kind: client
-            source_version: v10
+            source_version: v12
           - kind: client
             source_version: main-comparison-b1
           # Broker v2 is adopted. broker.yml validates its main source;

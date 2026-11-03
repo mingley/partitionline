@@ -1,0 +1,23 @@
+{
+  "v12_spec_sha256": "86e2a5ee695a93e01c61d48939960f8c04c7fed30b8ef86afed73092b5f21b1b",
+  "v11_spec_sha256": "7ce69ff3506bbb4cf85617dffc00ddac62bd15b21a4d0b4a60a89c9b2cc35105",
+  "v11_producer_review_sha256": "2421e39e3f043f1917c948a62eb03e484e90935bbb9b9f5e7917a8c9982f44b6",
+  "v11_group_review_sha256": "0c208af6b9ea9e57e99c1e1af6c90428040629a2c7de77c4f0e8a775500cf113",
+  "v12_timeout_review_sha256": "f2734caa07383006addf0ac1f6c6b05b37ce1c5d85e7ab3f5b27673a12208a81",
+  "independent_review_patch_bindings_verified": [
+    "producer-pending-v2",
+    "group-wire-barrier",
+    "wire-phase-v3",
+    "fixture-response-gate",
+    "producer-ownership",
+    "timeout-diagnostic-v2"
+  ],
+  "v11_to_v12_fixed_changed_paths": [
+    "tests/common/mod.rs",
+    "tests/producer_retained_backing.rs"
+  ],
+  "limitations": [
+    "Static hash bindings, not runtime or correctness qualification",
+    "Preimages compared against archived catalogs; executable candidate was not run"
+  ]
+}

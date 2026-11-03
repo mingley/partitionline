@@ -1,5 +1,11 @@
 # Release tooling investigation
 
+The Release-plz run at `350b5e534` passed the semver scan after archived
+manifests were excluded. It identified breaking API changes and selected
+`0.2.0`. The PR-only workflow then failed to create its branch with GitHub
+HTTP 403, `Resource not accessible by integration`; it did not publish.
+See [run 41572635916](https://github.com/mingley/partitionline/actions/runs/41572635916).
+
 The current `0.1.0` rehearsal cannot be reused unchanged for a `0.2.0`
 candidate. Its self-test requires version `0.1.0`; an offline registry probe
 also classified an API 404 plus index 503 as absent. The

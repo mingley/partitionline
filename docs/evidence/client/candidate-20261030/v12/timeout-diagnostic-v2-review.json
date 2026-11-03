@@ -1,0 +1,49 @@
+{
+  "scope": "Independent source-only review of v2 timeout diagnostic; native unrun",
+  "patch_sha256": "037b0064c6444314c762da791d5f132fd092dd9d6172c2c569d8a6630790d674",
+  "gzip_sha256": "326603d960e1485fe4d58c97c849a34f12ea9eabd1754172b139fca6be56079f",
+  "before": {
+    "tests/common/mod.rs": "097e5549fdf3ad5ecd33525a319b89d387a12cd7a2ba6bdd13da46685ddafb93",
+    "tests/producer_retained_backing.rs": "d80e3ed9199bcbd122d01ca8186351f79988675ae116319b91c36a7c7c957fc3"
+  },
+  "after": {
+    "tests/common/mod.rs": "c129003ccb42305c1871a685210884f5db9a5779eb2de5872224d5c8d3001c8f",
+    "tests/producer_retained_backing.rs": "ed6b5fd8646b580e238f7521c68ae82d6d51bb739ddcb87cf7d89231954fa882"
+  },
+  "roundtrip": [
+    {
+      "args": [
+        "--check"
+      ],
+      "exit": 0,
+      "stderr": ""
+    },
+    {
+      "args": [],
+      "exit": 0,
+      "stderr": ""
+    },
+    {
+      "args": [
+        "--reverse",
+        "--check"
+      ],
+      "exit": 0,
+      "stderr": ""
+    },
+    {
+      "args": [
+        "--reverse"
+      ],
+      "exit": 0,
+      "stderr": ""
+    }
+  ],
+  "findings": [
+    "The original 2s admission, 10s flush and 15s delivery thresholds, existing assertions, gate release and abort/join path are unchanged.",
+    "Original pre-release producer.metrics() call is unchanged; the new timeout path uses parking_lot try_lock without waiting for the mock state mutex and retries_in_flight uses an atomic load.",
+    "Mock log count includes warm record and reports None on lock contention. Counters are not an atomic snapshot; no acknowledgement count or root cause is asserted.",
+    "Formatting to standard error may still block on output; no new blocking mutex acquisition in timeout path.",
+    "No native compile, Clippy, or runtime test ran independently."
+  ]
+}

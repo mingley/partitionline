@@ -1,6 +1,6 @@
 # Status
 
-Updated 2 November 2026.
+Updated 3 November 2026.
 
 `partitionline` 0.1.0 is published on crates.io. This repository contains later
 changes and requires the latest stable Rust. The next client release must be
@@ -40,25 +40,25 @@ quorum, without replicated partition data or native Kafka KRaft.
 - Both focused capability profiles pass 93 required tests and 450 Java reverse
   checks. SDK socket and Streams Java coverage remain open. See
   [capability results][capability].
-- The isolated [client v8 candidate][candidate-results] passed both library
+- The isolated [client v10 candidate][candidate-results] passed both library
   profiles and strict Clippy but failed two integration binaries and one
   baseline expectation. Its changes have not been adopted on `main`.
-  V10 adds fixture controls and is running separately.
+  The fixture controls passed, while the original timeout remained.
 
 ## Validation
 
 | Check | Recorded result |
 | --- | --- |
-| Client default library on `main` at `b1b048809` | 2,180 passed, 16 failed; later integration targets did not run |
-| Client all-feature library on `main` at that commit | 2,176 passed, 20 failed; later integration targets did not run |
-| Isolated client v8 library, each profile | 2,280 passed; selected producer tests still failed |
+| Client default library on `main` at `e7660f6e5` | 2,168 passed, 28 failed; later integration targets did not run |
+| Client all-feature library on `main` at that commit | 2,170 passed, 26 failed; later integration targets did not run |
+| Isolated client v10 library, each profile | 2,280 passed; selected producer tests still failed |
 | Qualified broker v2 default all targets, `209d0b068` | 720 passed |
 | Qualified broker v2 all-feature all targets at that commit | 868 passed |
 | Broker v2 strict Clippy, docs, inventory and six repeated Fetch checks | Passed |
 | Client focused capability profiles at that commit | 93 passed and 450 Java reverse checks per profile |
-| Main broker CI and capability profiles | Passed at `b1b048809` |
-| Main strict Clippy, security, documentation and package jobs | Passed at `b1b048809` |
-| Main client and live Kafka compatibility CI | Failed at `b1b048809` |
+| Main broker CI and capability profiles | Passed at `e7660f6e5` |
+| Main strict Clippy, security, documentation and package jobs | Passed at `e7660f6e5` |
+| Main client and live Kafka compatibility CI | Failed at `e7660f6e5` |
 
 The [client failure index][client], [main CI run][main-ci] and
 [candidate results][candidate-results] preserve the results.
@@ -105,7 +105,8 @@ when small batches drain. A replica epoch change rewrites the broker journal.
 Both are candidates for optimization; neither has a measured end-to-end
 speedup yet. The required matched x86 peer comparison has not run.
 An uncompiled [queue candidate][queue] needs native tests and a benchmark
-before its effect is known.
+before its effect is known. A later client candidate combines that work with
+the ownership fixes and a timeout diagnostic; its qualification is pending.
 
 The release registry probe, recovery rehearsal and workflow confirmation have
 offline-tested fixes for unavailable indexes, candidate versions and API/index
@@ -123,8 +124,8 @@ measurements and dated notes.
 [dependencies]: https://github.com/mingley/partitionline/blob/77021f7dc6c0d19aa93c7bf0b7fad125ee632e23/docs/evidence/security/dependency-floors-20261030/README.md
 [package]: https://github.com/mingley/partitionline/blob/77021f7dc6c0d19aa93c7bf0b7fad125ee632e23/docs/evidence/releases/package-navigation-20261030/README.md
 [client]: https://github.com/mingley/partitionline/blob/77021f7dc6c0d19aa93c7bf0b7fad125ee632e23/docs/evidence/client/clean-default-validation-20261028/README.md
-[main-ci]: https://github.com/mingley/partitionline/actions/runs/41574318223
-[candidate-results]: https://github.com/mingley/partitionline/blob/8f960c3e60609703f23f79b3f368355ed8c057d8/docs/evidence/client/candidate-native-350-20261102/README.md
+[main-ci]: https://github.com/mingley/partitionline/actions/runs/41576616173
+[candidate-results]: https://github.com/mingley/partitionline/actions/runs/41574318102
 [java]: https://github.com/mingley/partitionline/blob/9481723c7a144254fdf4f1c415d082aa0233a25f/docs/evidence/client/capability-java-20261030/README.md
 [broker]: https://github.com/mingley/partitionline/blob/ef28c255aecf402cdae2000d8796dcea9a36a8bc/docs/evidence/broker/epoch-journal-20261030/README.md
 [capability]: https://github.com/mingley/partitionline/blob/ef28c255aecf402cdae2000d8796dcea9a36a8bc/docs/evidence/client/capability-native-20261030/README.md

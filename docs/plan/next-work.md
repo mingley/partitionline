@@ -1,6 +1,6 @@
 # Next work
 
-Updated 2 November 2026. Use latest stable Rust and push reviewed changes
+Updated 3 November 2026. Use latest stable Rust and push reviewed changes
 directly to `main`. The [task registry](tasks.json) remains unchanged:
 249 done, 13 in progress and 84 pending.
 
@@ -12,15 +12,15 @@ Client 0.1.0 is already published. The next client version must be at least
 
 | Scope | Recorded result |
 | --- | --- |
-| Client default library on `main`, `b1b048809` | 2,180 passed, 16 failed; later integration targets did not run |
-| Client all-feature library on `main` at that commit | 2,176 passed, 20 failed; later integration targets did not run |
-| Isolated client v8 library in each profile | 2,280 passed; selected producer tests still failed |
+| Client default library on `main`, `e7660f6e5` | 2,168 passed, 28 failed; later integration targets did not run |
+| Client all-feature library on `main` at that commit | 2,170 passed, 26 failed; later integration targets did not run |
+| Isolated client v10 library in each profile | 2,280 passed; selected producer tests still failed |
 | Qualified broker v2 default all targets, `209d0b068` | 720 passed |
 | Qualified broker v2 all-feature all targets at that commit | 868 passed |
 | Broker v2 strict Clippy, docs, inventory and six fresh-process Fetch deadline checks | Passed |
 | Client capability lanes at that commit | 93 passed in each profile; 450 Java reverse checks in each |
-| Main broker CI, capability profiles, strict Clippy, audit, dependency policy, docs and package jobs | Passed at `b1b048809` |
-| Main client and live Kafka compatibility CI | Failed at `b1b048809` |
+| Main broker CI, capability profiles, strict Clippy, audit, dependency policy, docs and package jobs | Passed at `e7660f6e5` |
+| Main client and live Kafka compatibility CI | Failed at `e7660f6e5` |
 | Reconnect candidate | 14 unit controls and six integration targets passed; latest broad Fetch 167 passed, two failed, one ignored |
 | Integrated-source package navigation | 20 documentation tests passed; extracted crate checked 30 documents, 225 local links, 51 pinned repository targets |
 | Package consumers and publication dry run at `fe65ac783` | Passed; actual publication remains gated |
@@ -108,6 +108,11 @@ Current-commit green CI and the complete release gates remain open.
    and [transaction](../evidence/broker/transaction-checkpoint-20261028/README.md)
    records.
 
+   A safe committed-prefix guard needs a current, partition-bound authority
+   and proof that local bytes match the committed leader lineage. The
+   [reviewed design](../evidence/broker/committed-prefix-20261102/DESIGN.md)
+   records those prerequisites; neither the authority nor the guard exists.
+
 ## Validation and performance
 
 Run clean-commit client, broker and schema default/all-feature suites,
@@ -138,16 +143,30 @@ See the [v7 results](../evidence/client/candidate-native-c025-20261030/README.md
 and the [earlier native rounds](../evidence/releases/candidate-native-20261030/README.md).
 The staged [v10 candidate](../evidence/client/candidate-20261030/v10/README.md)
 adds producer ownership changes, a deterministic retained-backing fixture
-and a separate handshake diagnostic. Static review and source reconstruction
-passed; v10 compilation, Clippy and runtime tests have not run. The original
-450 ms Mock Produce assertion remains, and the cause of the retained-backing
-timeout is not fully established. The earlier
+and a separate handshake diagnostic. Both library profiles and strict Clippy
+passed. The original 450 ms Mock Produce assertion still fails, and the
+retained-backing test still times out without the mock timer. See the
+[v10 results](../evidence/client/candidate-native-b1-20261102/README.md).
+The [handshake audit](../evidence/client/producer-handshake-v10-20261103/README.md)
+shows two sequential 250 ms response delays before metadata completes, so the
+old 450 ms end-to-end assertion conflicts with the candidate's required
+replacement-socket negotiation. The trace also shows speculative leader
+connections expiring before metadata returns. The assertion remains unchanged;
+neither connection reuse nor a production speedup has been established.
+The earlier
 [v8 run](../evidence/client/candidate-native-350-20261102/README.md) passed
 2,280 library tests in each profile and strict Clippy, but failed Mock Produce,
 retained backing and one baseline expectation.
 An [unchanged-main comparison](../evidence/client/candidate-20261030/main-comparison-b1/README.md)
-is staged to run those producer binaries with the same stack and thread
-settings; it preserves the original failure conditions.
+is running those producer binaries with the same stack and thread settings;
+it preserves the original failure conditions.
+
+The staged [v12 client candidate](../evidence/client/candidate-20261030/v12/README.md)
+adds producer deadline-scan reductions and timeout diagnostics to that work.
+It retains the old test limits and requires 166 library and 17 integration
+controls in addition to 23 baseline cases. Its source reviews and patch
+reconstruction passed; compilation, runtime and performance results are
+pending. Vec prefix shifts and unordered or sticky deadline scans remain.
 
 Broker v2 observed seven baseline failures and passed twelve fixed controls,
 three asynchronous filesystem controls and full default/all-feature targets,
@@ -156,18 +175,20 @@ checks passed in each profile. OOM counters were unavailable. Those exact
 source bytes are now adopted; ordinary broker CI passed on `b1b048809`.
 This local replica model is not a production replicated cluster.
 
-The main client and live Kafka jobs failed on `b1b048809` in
-[CI run 41574318223](https://github.com/mingley/partitionline/actions/runs/41574318223).
-The [failure index](../evidence/releases/main-ci-b1-20261102/README.md) lists
-the affected library tests. Counts vary between runs with the same Rust source;
-that variation is not a measured fix.
+The main client and live Kafka jobs failed on `e7660f6e5` in
+[CI run 41576616173](https://github.com/mingley/partitionline/actions/runs/41576616173).
+The [failure index](../evidence/releases/main-ci-e766-20261103/README.md) lists
+the affected library tests, with the earlier b1 run retained separately. Counts
+vary between runs with the same Rust source; that variation is not a measured fix.
 The Release-plz PR workflow also failed because its semver checker discovered
 archived evidence manifests as duplicate packages. An ignore rule now hides
-those manifests from that traversal; the actual workflow still needs a rerun.
+those manifests from that traversal. The subsequent workflow identified
+`0.2.0` as the next breaking-change version, then received GitHub HTTP 403
+while creating its PR branch; no publication occurred.
 The earlier release rehearsal self-test was hard-coded to `0.1.0`, and the
 registry probe could treat an unavailable index as an absent version. V4 fixes
-both in source and passes offline review for `0.1.0` and `0.2.0`; hosted CI
-remains open. The workflow's post-upload confirmation now requires a matching
+both in source and passes offline review for `0.1.0` and `0.2.0`; the hosted
+offline rehearsal passed at `e7660f6e5`. The workflow's post-upload confirmation now requires a matching
 API and index result, with offline controls for malformed responses. The local
 owner-cut installability check still permits index-only confirmation; align it
 with the dual-source rule before publishing. The

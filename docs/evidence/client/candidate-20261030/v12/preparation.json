@@ -1,0 +1,57 @@
+{
+  "scope": "V11 plus a reviewed timeout-only test diagnostic; no production source change.",
+  "prepared_utc": "2026-11-03T04:23:48.672807+00:00",
+  "base_checkout_parent": "e7660f6e56195cbdd2ec4523ade021bffe655755",
+  "prior_v11_spec_sha256": "7ce69ff3506bbb4cf85617dffc00ddac62bd15b21a4d0b4a60a89c9b2cc35105",
+  "prior_v11_import_manifest_sha256": "382cfe16c50308a0f65b52923806a242b9a13009948a62a951891025518d355c",
+  "prior_v11_archive_sha256": "3249790e363f141fa37f7638f3ebdd8272daf8df76b0ad48e069e7eee1b5bb0f",
+  "diagnostic_peer_review_sha256": "f2734caa07383006addf0ac1f6c6b05b37ce1c5d85e7ab3f5b27673a12208a81",
+  "diagnostic_changed_paths": [
+    "tests/common/mod.rs",
+    "tests/producer_retained_backing.rs"
+  ],
+  "source_input_counts": {
+    "base": 1743,
+    "baseline": 1750,
+    "fixed": 1752
+  },
+  "baseline_cases_and_controls_byte_identical": true,
+  "unchanged_assertions_and_thresholds": true,
+  "full_source_forward_reverse_exact": true,
+  "root_and_v10_source_stable": true,
+  "verified_base_source_archive": "/workspace/work/client-v12-timeout-final-20261103/verified-base-source.tar.gz",
+  "verified_base_source_archive_sha256": "6bbeafdf58cceed59251b7505182258bc1157e8b3d887a8b4b1229ddf6610078",
+  "observed_free_space_delta_after_view_removal": 7794688,
+  "native_compilation": "not run",
+  "clippy": "not run",
+  "runtime": "not run",
+  "performance": "not measured",
+  "production_ready": false,
+  "fastest_claim_qualified": false,
+  "limits": [
+    "V12 adds timeout-only nonblocking mock-lock observations to one existing retained-backing test. Existing assertions and timing thresholds remain; stderr output may block and snapshots do not establish acknowledgement counts. No V12 native result exists.",
+    "V11 stages producer queue v2 and a separate JoinGroup wire-order control. Both have static peer reviews but have not been compiled, run or benchmarked. The original two-response control remains unchanged and required.",
+    "Producer optimization only avoids some expiry and deadline scans. Vec prefix shifts, nonmonotonic fallback and sticky scans remain; arbitrary resumption of an interrupted split is unqualified.",
+    "V10 at b1 passed 2280 library tests in each profile and strict format/Clippy but failed 15 mock tests and a retained-backing timeout per profile; the v10 gate failed.",
+    "V10 preparation added a handshake overlap diagnostic; it passed both profiles at b1. The original 450 ms end-to-end test remains unchanged and failed in v7, v8 and v10. No performance fix is claimed.",
+    "V10 preparation added a test-only response gate and zero-delay correction. At b1 the new gate control, format and Clippy passed in both profiles, while the original retained-backing case still timed out. The timeout cause is not proven.",
+    "V9 preparation changed source pins for five release-related files and added the registry probe test to all phases, preserving the v8 Rust patches and test matrix. V9 was not run as a distinct candidate.",
+    "V8 preparation combined v7, two test repairs and worker-owned producer terminal/retry/split/response changes. Its later run at 350b5e534 passed 2,280 library tests per profile and format/Clippy, but failed 15 Mock Produce tests and one retained-backing test per profile.",
+    "V7 native runs reached runtime and failed: each library 2253/1, Mock Produce 31/15, retained backing 7/1/1 ignored; two Clippy test errors and two baseline expectation mismatches. V8 test repairs do not address the 15 handshake failures or retained-backing timeout.",
+    "V8 preparation changed two baseline predictions after v7 passes. The original cancellation case then failed in v8 and v10; v11/v12 retain that unchanged case as an observation and add a separate predicted-negative wire control.",
+    "Full runs of ten chosen binaries in default/all-feature lanes are required; other integration binaries and ordinary whole-main runtime remain separate gates.",
+    "Runtime stack remains 8 MiB except an explicit standard 2 MiB group child; this mock does not establish live Kafka stack safety.",
+    "All 26 added producer ownership controls passed in both v8 library profiles. Broader cancellation, retry, callback, accounting and runtime behavior still needs qualification.",
+    "Issue ordering, sequence wrap, PID/epoch transitions, whole-batch replay and physical socket retirement before ambiguous retry remain unresolved.",
+    "Hashing/map growth, final Drop, callbacks and deque-suffix conversion can perform linear synchronous work; global memory and cancellation latency are not bounded.",
+    "No external broker, multi-node durability, release readiness or fastest-performance ranking is established."
+  ],
+  "metadata_refresh": {
+    "prepared_utc": "2026-11-03T04:25:18.109832+00:00",
+    "prior_spec_sha256": "608291c2f0d46ee0f4a55662c08e2041944163048cfa268d9d818a9b02a90a37",
+    "prior_preparation_sha256": "ae992d61a2f859a0ff42c375ed1754a60ff39eef05c9d55f2e2e0ad627c55901",
+    "scope": "Update historical status and producer-control wording only; no source, patch, control, baseline, target or timing changes.",
+    "v8_run": 41572635763,
+    "v10_run": 41574318102
+  }
+}

@@ -1,0 +1,177 @@
+{
+  "source_root": "/workspace/work/client-v11-queue-final-20261103",
+  "scope": "V10 plus producer pending queue v2 and separate JoinGroup wire-order control.",
+  "files": {
+    "docs/evidence/client/candidate-20261030/v11/README.md": {
+      "sha256": "cc785c3cf6eefbc446efef552666fa633a00117d9ee6a9db3be1c5302f9cf2a7",
+      "bytes": 1364
+    },
+    "docs/evidence/client/candidate-20261030/v11/base-inputs.json": {
+      "sha256": "a3acacbe19f439846bd3847966978a9e2055fcc7ed8cb43fe1f97c2ca105751a",
+      "bytes": 225673
+    },
+    "docs/evidence/client/candidate-20261030/v11/baseline-inputs.json": {
+      "sha256": "4a1afbda98a2018cd380dabd9875c0f1b801613186d9852e68117f5f8e931109",
+      "bytes": 226373
+    },
+    "docs/evidence/client/candidate-20261030/v11/baseline.patch.gz": {
+      "sha256": "191709351911f47e5fda9fbb52910c645e0570afbb411db802a34bdfb018b86e",
+      "bytes": 71659
+    },
+    "docs/evidence/client/candidate-20261030/v11/controls.json": {
+      "sha256": "a67f4ab8e3ed90381749d7dfbf934746300e800788fb3524de368a88560711ea",
+      "bytes": 60616
+    },
+    "docs/evidence/client/candidate-20261030/v11/fixed-delta.patch.gz": {
+      "sha256": "afa33323cfe9ff686cc5c6d8cbdfebfdc704ce4fea81e11e65c491cb8551c8b3",
+      "bytes": 38938
+    },
+    "docs/evidence/client/candidate-20261030/v11/fixed-inputs.json": {
+      "sha256": "74da6058c56dcff26a57b460de8e35705bd22799837ca0159548ad5e0776438b",
+      "bytes": 226568
+    },
+    "docs/evidence/client/candidate-20261030/v11/fixed.patch.gz": {
+      "sha256": "418c718a0f52f249fdc68591eac8d59f168b1e6ce22839667707bcdf9a849ab6",
+      "bytes": 106898
+    },
+    "docs/evidence/client/candidate-20261030/v11/fixture-before-wire-preparation.json": {
+      "sha256": "ebae87898dd7226f02a8254627a65d4ce735e665dce40c718f2cba485c8f07ee",
+      "bytes": 9676
+    },
+    "docs/evidence/client/candidate-20261030/v11/fixture-integration-preparation.json": {
+      "sha256": "87237c10ad62b5b06f23d36fff9f9c711440ed48930321fc2ab8702c8bc0f37d",
+      "bytes": 9366
+    },
+    "docs/evidence/client/candidate-20261030/v11/fixture-response-gate-preparation.json": {
+      "sha256": "34af18c8f0e60e374ef8691ba55d10d622738a1563c4ab7a637fbb95bae9c330",
+      "bytes": 1546
+    },
+    "docs/evidence/client/candidate-20261030/v11/fixture-response-gate-review.json": {
+      "sha256": "5e786bb060e246e271c82312cef4b14655d3cf2d3fafe9bf40674fb85b557947",
+      "bytes": 1881
+    },
+    "docs/evidence/client/candidate-20261030/v11/fixture-response-gate.patch.gz": {
+      "sha256": "2f812b7439e0f6a2349620f6f4addfb57a9bb5dee88e77ddfca265f129d8e028",
+      "bytes": 3049
+    },
+    "docs/evidence/client/candidate-20261030/v11/group-wire-barrier-preparation.json": {
+      "sha256": "f075c6a956c48d30f639286021fc79deec8538b12d6de60c9b0c49d858729515",
+      "bytes": 2051
+    },
+    "docs/evidence/client/candidate-20261030/v11/group-wire-barrier-review.json": {
+      "sha256": "0c208af6b9ea9e57e99c1e1af6c90428040629a2c7de77c4f0e8a775500cf113",
+      "bytes": 1819
+    },
+    "docs/evidence/client/candidate-20261030/v11/group-wire-barrier.patch.gz": {
+      "sha256": "6e4dc1776ed097f2e699cc49800c609fa82c870ef852f7c5ebe3c962c52d9564",
+      "bytes": 863
+    },
+    "docs/evidence/client/candidate-20261030/v11/preparation.json": {
+      "sha256": "54ac9d5ba9d5103668d39c3889a42901c3acce5f9398ccae2670a30afe152c13",
+      "bytes": 5393
+    },
+    "docs/evidence/client/candidate-20261030/v11/prior-source-reviews.tar.gz": {
+      "sha256": "66047f048e8e8956538f35383a7f992e22fd8dcfe8d6661221481d32cb89befa",
+      "bytes": 46648
+    },
+    "docs/evidence/client/candidate-20261030/v11/prior-v10-assets.tar.gz": {
+      "sha256": "fb7e2df963883836dab532f4742ad9eea42864638f36599510ed55700e286aaa",
+      "bytes": 932559
+    },
+    "docs/evidence/client/candidate-20261030/v11/prior-v10-import-manifest.json": {
+      "sha256": "cd02e3d2ca5d29a8bd162794b97f257f05254afa534dbe99db810d56747f1afc",
+      "bytes": 7291
+    },
+    "docs/evidence/client/candidate-20261030/v11/prior-v9-assets.tar.gz": {
+      "sha256": "38e63135c15d6d98013c97af7f4af44c15669213bec0dfb4b3895ce1cebba651",
+      "bytes": 455497
+    },
+    "docs/evidence/client/candidate-20261030/v11/prior-v9-import-manifest.json": {
+      "sha256": "0e23f05c491b9bee9374f62f9ef276cab7a0734b562f5762a5de13a86720bcfa",
+      "bytes": 5476
+    },
+    "docs/evidence/client/candidate-20261030/v11/producer-ownership-controls.json": {
+      "sha256": "dffaa120219c58be2df596243dc05c799ac35d72857519f51a19914e3bdce6b6",
+      "bytes": 3654
+    },
+    "docs/evidence/client/candidate-20261030/v11/producer-ownership-review.json": {
+      "sha256": "d2b33f22e4315f924ea238f009abd2e1af8d06bb010f86eec7423c90dfef6c82",
+      "bytes": 8168
+    },
+    "docs/evidence/client/candidate-20261030/v11/producer-ownership.patch.gz": {
+      "sha256": "975c698c891513efc9d3ec6049aada5dae326a5ba599cfe6466ad2807f7db1b8",
+      "bytes": 20678
+    },
+    "docs/evidence/client/candidate-20261030/v11/producer-pending-v2-preparation.json": {
+      "sha256": "96fcbfcac29ad835c5ec63a3355366ef84521c381fea478c1d4e0b8ea4083ec7",
+      "bytes": 2639
+    },
+    "docs/evidence/client/candidate-20261030/v11/producer-pending-v2-review.json": {
+      "sha256": "2421e39e3f043f1917c948a62eb03e484e90935bbb9b9f5e7917a8c9982f44b6",
+      "bytes": 1935
+    },
+    "docs/evidence/client/candidate-20261030/v11/producer-pending-v2.patch.gz": {
+      "sha256": "ead40569dd695873dca6fc8cdf00ca14fd0827f6582c1f55a3a7e0d3e3689086",
+      "bytes": 7543
+    },
+    "docs/evidence/client/candidate-20261030/v11/spec.json": {
+      "sha256": "7ce69ff3506bbb4cf85617dffc00ddac62bd15b21a4d0b4a60a89c9b2cc35105",
+      "bytes": 9250
+    },
+    "docs/evidence/client/candidate-20261030/v11/test-repairs-preparation.json": {
+      "sha256": "24cb6f5bbb47fdff44a0304312a30b4b36814b4b837191e1f59f239429ed074a",
+      "bytes": 4189
+    },
+    "docs/evidence/client/candidate-20261030/v11/test-repairs.patch.gz": {
+      "sha256": "f02823fad72e08712f358f29fb39a9762add96a8a9643709a61bb3bb2d28744b",
+      "bytes": 632
+    },
+    "docs/evidence/client/candidate-20261030/v11/v11-thin-preparation.json": {
+      "sha256": "a7a36d085fb1e925a6818e3210f78921b07b1db640a7e92f33c71a8d3f9bc2b4",
+      "bytes": 10479
+    },
+    "docs/evidence/client/candidate-20261030/v11/wire-phase-author-receipt.json": {
+      "sha256": "3a5aa745422b57aae7b36103e5016de5a9fb85bb3f35de1a3bc7cd0e8fe6325c",
+      "bytes": 2174
+    },
+    "docs/evidence/client/candidate-20261030/v11/wire-phase-peer-review.json": {
+      "sha256": "2a242108f330cd163958588c3fcb3ab0e65d32d89206ac635c5e10f2a1b372f7",
+      "bytes": 2053
+    },
+    "docs/evidence/client/candidate-20261030/v11/wire-phase-v3.patch.gz": {
+      "sha256": "f8238302d22f9245b77763aef45974568aaa623b9eb650adf2ebf91a0d68966c",
+      "bytes": 1788
+    }
+  },
+  "required_existing_root_files": {
+    "scripts/ci-qualify-client-candidate.py": {
+      "sha256": "b25fe0390d4e4c3227e45c2b27ab671f0f6d8dace7ada911be1aa1391085e2c5",
+      "bytes": 29067
+    },
+    "tests/ci/test_client_candidate_qualification.py": {
+      "sha256": "4285e1b9e0cb5bfdd8398554dcd584207753ccf568d72a6264d845e240ade18b",
+      "bytes": 11830
+    },
+    "scripts/candidate-command-ownership.py": {
+      "sha256": "34ddbf04a4bbead974fad4a451d30c7a56818248bd5b58c88c87bdfc41896da9",
+      "bytes": 5725
+    }
+  },
+  "workflow_version_requested": "client source_version:v11 (root-owned workflow)",
+  "counts": {
+    "base": 1743,
+    "baseline": 23,
+    "fixed": 1752,
+    "previous_library": 153,
+    "previous_integrations": 16,
+    "added_library": 13,
+    "added_integrations": 1,
+    "combined_library": 166,
+    "combined_integrations": 17,
+    "combined_total": 183
+  },
+  "frozen_v10_source_and_evidence_preserved": true,
+  "full_source_forward_reverse_exact": true,
+  "root_production_edits": false,
+  "native_qualification": "not run"
+}

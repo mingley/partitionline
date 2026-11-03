@@ -1,0 +1,22 @@
+{
+  "manifest_sha256": "5a065102c2602cffaa9ca29105a17c198d8d90df238baec5355898e413d1cf0b",
+  "assets": 16,
+  "root_pins": 3,
+  "prior_v11_archive_members": 35,
+  "byte_identical_baseline_cases": 23,
+  "byte_identical_controls": 183,
+  "fixed_targets": 10,
+  "catalog_sizes": {
+    "base": 1743,
+    "baseline": 1750,
+    "fixed": 1752
+  },
+  "all_three_patches_forward_reverse_exact": true,
+  "prior_v12_limits_byte_identical": false,
+  "prior_v11_limits_byte_identical": false,
+  "limitations": [
+    "No Cargo, Clippy, runtime or native qualification",
+    "Limits prose differs to correct historical status; unchanged qualification gates require separate review",
+    "This checks asset/catalog integrity, not correctness or performance of code"
+  ]
+}

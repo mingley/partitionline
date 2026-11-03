@@ -1,0 +1,494 @@
+{
+  "checkout": "b1b0488096f886c2fd60a7368bbf2ed57b5da2e3",
+  "run": 41574318102,
+  "job": 125714639741,
+  "artifact_sha256": "1826243e647733370d2976076912de728991a2075e1e16e5f55c1c906149bce6",
+  "source_spec": "3286ffa57a68cef353b2a09728924f6cc3710e634a2f98954246aa44ad94b2a5",
+  "description": "Event projection; full unedited logs retained alongside this file.",
+  "profiles": {
+    "default": {
+      "failure_names": [
+        "commit_reuses_a_produce_handshake_for_the_moved_coordinator",
+        "commit_reuses_bootstrap_when_the_coordinator_returns",
+        "epoch_bump_reuses_a_produce_handshake",
+        "multi_bootstrap_commit_reuses_known_coordinator_handshakes",
+        "multi_bootstrap_send_offsets_reuses_known_handshakes",
+        "multi_bootstrap_transaction_reuses_the_other_bootstrap_handshake",
+        "produce_reuses_a_finished_bootstrap_handshake",
+        "produce_reuses_bootstrap_api_versions",
+        "produce_reuses_the_transaction_coordinator_handshake",
+        "send_all_redials_leaders_while_refreshing_metadata",
+        "send_offsets_negotiates_a_new_group_coordinator",
+        "send_offsets_repeats_a_remote_coordinator_without_another_handshake",
+        "send_offsets_reuses_bootstrap_api_versions",
+        "transactional_rediscover_skips_a_second_bootstrap_handshake",
+        "transactional_startup_skips_a_second_bootstrap_handshake"
+      ],
+      "events": [
+        {
+          "time_us": 157.047,
+          "node": 1,
+          "socket": 1,
+          "kind": "Close"
+        },
+        {
+          "time_us": 192.27,
+          "node": 2,
+          "socket": 4,
+          "kind": "Accept"
+        },
+        {
+          "time_us": 261.304,
+          "node": 3,
+          "socket": 5,
+          "kind": "Accept"
+        },
+        {
+          "time_us": 328.815,
+          "node": 2,
+          "socket": 4,
+          "kind": "request",
+          "api_key": 18,
+          "api_version": 4
+        },
+        {
+          "time_us": 334.734,
+          "node": 3,
+          "socket": 5,
+          "kind": "request",
+          "api_key": 18,
+          "api_version": 4
+        },
+        {
+          "time_us": 421.004,
+          "node": 1,
+          "socket": 6,
+          "kind": "Accept"
+        },
+        {
+          "time_us": 446.823,
+          "node": 1,
+          "socket": 6,
+          "kind": "request",
+          "api_key": 18,
+          "api_version": 4
+        },
+        {
+          "time_us": 251783.993,
+          "node": 2,
+          "socket": 4,
+          "kind": "response",
+          "api_key": 18,
+          "api_version": 4
+        },
+        {
+          "time_us": 251784.754,
+          "node": 2,
+          "socket": 4,
+          "kind": "ApiVersionsResponse"
+        },
+        {
+          "time_us": 251824.524,
+          "node": 3,
+          "socket": 5,
+          "kind": "response",
+          "api_key": 18,
+          "api_version": 4
+        },
+        {
+          "time_us": 251824.714,
+          "node": 3,
+          "socket": 5,
+          "kind": "ApiVersionsResponse"
+        },
+        {
+          "time_us": 251857.404,
+          "node": 1,
+          "socket": 6,
+          "kind": "response",
+          "api_key": 18,
+          "api_version": 4
+        },
+        {
+          "time_us": 251857.484,
+          "node": 1,
+          "socket": 6,
+          "kind": "ApiVersionsResponse"
+        },
+        {
+          "time_us": 252151.216,
+          "node": 1,
+          "socket": 6,
+          "kind": "request",
+          "api_key": 3,
+          "api_version": 13
+        },
+        {
+          "time_us": 252159.498,
+          "node": 2,
+          "socket": 3,
+          "kind": "Close"
+        },
+        {
+          "time_us": 252192.098,
+          "node": 3,
+          "socket": 2,
+          "kind": "Close"
+        },
+        {
+          "time_us": 503608.917,
+          "node": 1,
+          "socket": 6,
+          "kind": "response",
+          "api_key": 3,
+          "api_version": 13
+        },
+        {
+          "time_us": 504142.831,
+          "node": 2,
+          "socket": 7,
+          "kind": "Accept"
+        },
+        {
+          "time_us": 504241.15,
+          "node": 3,
+          "socket": 8,
+          "kind": "Accept"
+        },
+        {
+          "time_us": 504306.228,
+          "node": 2,
+          "socket": 7,
+          "kind": "request",
+          "api_key": 18,
+          "api_version": 4
+        },
+        {
+          "time_us": 504312.837,
+          "node": 3,
+          "socket": 8,
+          "kind": "request",
+          "api_key": 18,
+          "api_version": 4
+        },
+        {
+          "time_us": 755723.658,
+          "node": 2,
+          "socket": 7,
+          "kind": "response",
+          "api_key": 18,
+          "api_version": 4
+        },
+        {
+          "time_us": 755724.559,
+          "node": 2,
+          "socket": 7,
+          "kind": "ApiVersionsResponse"
+        },
+        {
+          "time_us": 755769.627,
+          "node": 3,
+          "socket": 8,
+          "kind": "response",
+          "api_key": 18,
+          "api_version": 4
+        },
+        {
+          "time_us": 755769.827,
+          "node": 3,
+          "socket": 8,
+          "kind": "ApiVersionsResponse"
+        },
+        {
+          "time_us": 755958.301,
+          "node": 2,
+          "socket": 4,
+          "kind": "Close"
+        },
+        {
+          "time_us": 756030.259,
+          "node": 3,
+          "socket": 5,
+          "kind": "Close"
+        },
+        {
+          "time_us": 756271.292,
+          "node": 2,
+          "socket": 7,
+          "kind": "request",
+          "api_key": 0,
+          "api_version": 12
+        },
+        {
+          "time_us": 756372.815,
+          "node": 2,
+          "socket": 7,
+          "kind": "response",
+          "api_key": 0,
+          "api_version": 12
+        },
+        {
+          "time_us": 756383.992,
+          "node": 3,
+          "socket": 8,
+          "kind": "request",
+          "api_key": 0,
+          "api_version": 12
+        },
+        {
+          "time_us": 756404.864,
+          "node": 3,
+          "socket": 8,
+          "kind": "response",
+          "api_key": 0,
+          "api_version": 12
+        }
+      ],
+      "retained_timeout": true,
+      "mock_log_sha256": "79f3d8f482e2a3efcb44723781539652548005ccfbe9ebae129afcf981882f88",
+      "retained_log_sha256": "3b43ed54775f4e748e5bffe51bb239cb7adc0c297872b25bbb19886692f3e0d2"
+    },
+    "all-features": {
+      "failure_names": [
+        "commit_reuses_a_produce_handshake_for_the_moved_coordinator",
+        "commit_reuses_bootstrap_when_the_coordinator_returns",
+        "epoch_bump_reuses_a_produce_handshake",
+        "multi_bootstrap_commit_reuses_known_coordinator_handshakes",
+        "multi_bootstrap_send_offsets_reuses_known_handshakes",
+        "multi_bootstrap_transaction_reuses_the_other_bootstrap_handshake",
+        "produce_reuses_a_finished_bootstrap_handshake",
+        "produce_reuses_bootstrap_api_versions",
+        "produce_reuses_the_transaction_coordinator_handshake",
+        "send_all_redials_leaders_while_refreshing_metadata",
+        "send_offsets_negotiates_a_new_group_coordinator",
+        "send_offsets_repeats_a_remote_coordinator_without_another_handshake",
+        "send_offsets_reuses_bootstrap_api_versions",
+        "transactional_rediscover_skips_a_second_bootstrap_handshake",
+        "transactional_startup_skips_a_second_bootstrap_handshake"
+      ],
+      "events": [
+        {
+          "time_us": 167.272,
+          "node": 1,
+          "socket": 1,
+          "kind": "Close"
+        },
+        {
+          "time_us": 204.639,
+          "node": 2,
+          "socket": 4,
+          "kind": "Accept"
+        },
+        {
+          "time_us": 275.245,
+          "node": 3,
+          "socket": 5,
+          "kind": "Accept"
+        },
+        {
+          "time_us": 343.088,
+          "node": 2,
+          "socket": 4,
+          "kind": "request",
+          "api_key": 18,
+          "api_version": 4
+        },
+        {
+          "time_us": 348.816,
+          "node": 3,
+          "socket": 5,
+          "kind": "request",
+          "api_key": 18,
+          "api_version": 4
+        },
+        {
+          "time_us": 431.741,
+          "node": 1,
+          "socket": 6,
+          "kind": "Accept"
+        },
+        {
+          "time_us": 456.939,
+          "node": 1,
+          "socket": 6,
+          "kind": "request",
+          "api_key": 18,
+          "api_version": 4
+        },
+        {
+          "time_us": 251688.917,
+          "node": 2,
+          "socket": 4,
+          "kind": "response",
+          "api_key": 18,
+          "api_version": 4
+        },
+        {
+          "time_us": 251689.528,
+          "node": 2,
+          "socket": 4,
+          "kind": "ApiVersionsResponse"
+        },
+        {
+          "time_us": 251730.77,
+          "node": 3,
+          "socket": 5,
+          "kind": "response",
+          "api_key": 18,
+          "api_version": 4
+        },
+        {
+          "time_us": 251730.88,
+          "node": 3,
+          "socket": 5,
+          "kind": "ApiVersionsResponse"
+        },
+        {
+          "time_us": 251763.97,
+          "node": 1,
+          "socket": 6,
+          "kind": "response",
+          "api_key": 18,
+          "api_version": 4
+        },
+        {
+          "time_us": 251764.07,
+          "node": 1,
+          "socket": 6,
+          "kind": "ApiVersionsResponse"
+        },
+        {
+          "time_us": 252024.053,
+          "node": 1,
+          "socket": 6,
+          "kind": "request",
+          "api_key": 3,
+          "api_version": 13
+        },
+        {
+          "time_us": 252034.028,
+          "node": 2,
+          "socket": 3,
+          "kind": "Close"
+        },
+        {
+          "time_us": 252064.694,
+          "node": 3,
+          "socket": 2,
+          "kind": "Close"
+        },
+        {
+          "time_us": 504005.73,
+          "node": 1,
+          "socket": 6,
+          "kind": "response",
+          "api_key": 3,
+          "api_version": 13
+        },
+        {
+          "time_us": 504436.099,
+          "node": 2,
+          "socket": 7,
+          "kind": "Accept"
+        },
+        {
+          "time_us": 504523.681,
+          "node": 3,
+          "socket": 8,
+          "kind": "Accept"
+        },
+        {
+          "time_us": 504586.706,
+          "node": 2,
+          "socket": 7,
+          "kind": "request",
+          "api_key": 18,
+          "api_version": 4
+        },
+        {
+          "time_us": 504592.886,
+          "node": 3,
+          "socket": 8,
+          "kind": "request",
+          "api_key": 18,
+          "api_version": 4
+        },
+        {
+          "time_us": 755465.169,
+          "node": 2,
+          "socket": 7,
+          "kind": "response",
+          "api_key": 18,
+          "api_version": 4
+        },
+        {
+          "time_us": 755465.6,
+          "node": 2,
+          "socket": 7,
+          "kind": "ApiVersionsResponse"
+        },
+        {
+          "time_us": 755503.998,
+          "node": 3,
+          "socket": 8,
+          "kind": "response",
+          "api_key": 18,
+          "api_version": 4
+        },
+        {
+          "time_us": 755504.208,
+          "node": 3,
+          "socket": 8,
+          "kind": "ApiVersionsResponse"
+        },
+        {
+          "time_us": 755636.658,
+          "node": 2,
+          "socket": 4,
+          "kind": "Close"
+        },
+        {
+          "time_us": 755674.996,
+          "node": 3,
+          "socket": 5,
+          "kind": "Close"
+        },
+        {
+          "time_us": 755893.386,
+          "node": 2,
+          "socket": 7,
+          "kind": "request",
+          "api_key": 0,
+          "api_version": 12
+        },
+        {
+          "time_us": 755981.348,
+          "node": 2,
+          "socket": 7,
+          "kind": "response",
+          "api_key": 0,
+          "api_version": 12
+        },
+        {
+          "time_us": 755993.206,
+          "node": 3,
+          "socket": 8,
+          "kind": "request",
+          "api_key": 0,
+          "api_version": 12
+        },
+        {
+          "time_us": 756012.515,
+          "node": 3,
+          "socket": 8,
+          "kind": "response",
+          "api_key": 0,
+          "api_version": 12
+        }
+      ],
+      "retained_timeout": true,
+      "mock_log_sha256": "334fd1cddba638dcad87b7d335d2c567b1630901379449126c0e3ba605b8264f",
+      "retained_log_sha256": "8c3abe96b08a36692d9eee38a5a6f628dd99bd7a6a64417dbfe1ff2c5e98d851"
+    }
+  }
+}
