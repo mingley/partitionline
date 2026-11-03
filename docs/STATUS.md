@@ -70,6 +70,7 @@ quorum, without replicated partition data or native Kafka KRaft.
 | Main broker CI | 729 default and 877 all-feature tests passed at `2645e96ce`; Clippy, docs, inventory and fuzz supervision passed |
 | Isolated broker capacity candidate, x86 | 729 default and 877 all-feature tests passed, with format, Clippy, docs and focused controls; OOM counters unavailable and zero doctests found |
 | [Isolated broker shutdown candidate][broker-join-result] | Hosted qualification failed the inventory and inventory-negative-control gates |
+| [Broker shutdown candidate r2][broker-join-r2] | Candidate-only inventory pin repair passed the local inventory and all 55 Python controls; hosted qualification pending |
 | Main capability profiles | Passed at `33744862c` |
 | Main strict Clippy, security, documentation and package jobs | Passed at `e7660f6e5` |
 | Main client CI | Failed at `e7660f6e5` |
@@ -172,6 +173,7 @@ measurements and dated notes.
 [candidate-v17]: https://github.com/mingley/partitionline/blob/c06dfd345315c1fd0847872a1176fde8c5959043/docs/evidence/client/candidate-20261030/v17/README.md
 [candidate-v17-result]: https://github.com/mingley/partitionline/blob/c340c4e7c0804700c42040f23accce5325a42d18/docs/evidence/client/candidate-v17-native-2645-20261103/README.md
 [broker-join-result]: https://github.com/mingley/partitionline/blob/eae6a4538cb40528974ff0440db8be8730ada4ab/docs/evidence/broker/controller-join-native-664b-20261103/README.md
+[broker-join-r2]: https://github.com/mingley/partitionline/blob/5b07a76c7e44814ea9e72186911448fe3afa76f7/docs/evidence/broker/candidate-20261030/controller-join-v2-r2/README.md
 [broker-capacity]: https://github.com/mingley/partitionline/blob/c06dfd345315c1fd0847872a1176fde8c5959043/docs/evidence/broker/runtime-capacity-native-e2a0-20261103/README.md
 [queue-v17]: https://github.com/mingley/partitionline/blob/c06dfd345315c1fd0847872a1176fde8c5959043/docs/evidence/perf/pending-queue-v17-20261103/README.md
 [candidate-build]: https://github.com/mingley/partitionline/blob/f548870380ecc025b4e245c7f94a1c0a13fef2ff/docs/evidence/client/candidate-native-fdaf-20261103/README.md
@@ -186,7 +188,7 @@ measurements and dated notes.
 [native]: https://github.com/mingley/partitionline/blob/dfad6573e46adf8aa91626854e4f816cfff2c2bf/docs/evidence/releases/candidate-native-20261030/README.md
 [producer]: https://github.com/mingley/partitionline/blob/908dbdf2f20c8462a741ce59a4f56be2f310048e/docs/evidence/client/producer-admission-20261030/README.md
 [faults]: https://github.com/mingley/partitionline/blob/77021f7dc6c0d19aa93c7bf0b7fad125ee632e23/docs/evidence/broker/fuzz/20261027-candidate06/README.md
-[next]: https://github.com/mingley/partitionline/blob/eae6a4538cb40528974ff0440db8be8730ada4ab/docs/plan/next-work.md
+[next]: https://github.com/mingley/partitionline/blob/5b07a76c7e44814ea9e72186911448fe3afa76f7/docs/plan/next-work.md
 [queue]: https://github.com/mingley/partitionline/blob/c06dfd345315c1fd0847872a1176fde8c5959043/docs/evidence/perf/producer-pending-20261102/README.md
 [tasks]: https://github.com/mingley/partitionline/blob/77021f7dc6c0d19aa93c7bf0b7fad125ee632e23/docs/plan/tasks.json
 [previous]: https://github.com/mingley/partitionline/blob/77021f7dc6c0d19aa93c7bf0b7fad125ee632e23/docs/STATUS.md
