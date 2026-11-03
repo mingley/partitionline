@@ -94,7 +94,7 @@ overlap, live group retries and a compatibility-test stack overflow also remain
 open. GSSAPI and connection-driven SASL reauthentication
 are incomplete; [protocol support](gaps.md) lists those feature gaps.
 
-The [latest broker run][broker-ci] passed after the bounded-read test fix.
+The [latest recorded main broker CI][broker-ci] passed after the bounded-read test fix.
 Earlier runs reported `NotLeader`
 during leader removal and in a separate observer test, plus two `ParseIntError`
 failures. The broker
@@ -144,6 +144,7 @@ measurements and dated notes.
 [buffers]: https://github.com/mingley/partitionline/blob/77021f7dc6c0d19aa93c7bf0b7fad125ee632e23/docs/evidence/perf/buffer-reservations-20261030/README.md
 [reconnect]: https://github.com/mingley/partitionline/blob/77021f7dc6c0d19aa93c7bf0b7fad125ee632e23/docs/evidence/client/reconnect-versions-20261030/README.md
 [dependencies]: https://github.com/mingley/partitionline/blob/77021f7dc6c0d19aa93c7bf0b7fad125ee632e23/docs/evidence/security/dependency-floors-20261030/README.md
+[ci]: https://github.com/mingley/partitionline/blob/c06dfd345315c1fd0847872a1176fde8c5959043/docs/evidence/releases/main-ci-fe65-20261030/README.md
 [package]: https://github.com/mingley/partitionline/blob/77021f7dc6c0d19aa93c7bf0b7fad125ee632e23/docs/evidence/releases/package-navigation-20261030/README.md
 [client]: https://github.com/mingley/partitionline/blob/77021f7dc6c0d19aa93c7bf0b7fad125ee632e23/docs/evidence/client/clean-default-validation-20261028/README.md
 [main-ci]: https://github.com/mingley/partitionline/actions/runs/41576616173

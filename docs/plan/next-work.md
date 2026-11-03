@@ -43,7 +43,7 @@ are adopted byte-for-byte from v2; see the
 [epoch/journal record](../evidence/broker/epoch-journal-20261030/README.md).
 Earlier Fetch EOF, joined-shutdown QueueFull and Raft observer parse failures
 remain recorded and unexplained beyond the passing specific controls.
-The [latest broker runs](../evidence/broker/main-ci-fdaf-20261103/README.md)
+The [earlier broker runs](../evidence/broker/main-ci-fdaf-20261103/README.md)
 failed both three- and five-node Raft runtime tests with `ParseIntError`;
 an observer test separately reported `NotLeader`. A test-only diagnostic
 passed its three added controls in the default library run and exposed a

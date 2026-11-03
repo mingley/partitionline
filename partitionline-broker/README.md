@@ -44,6 +44,16 @@ backup and restore commands cover that admin journal only; they do not back up
 the listener's catalog or partition journals. See
 [broker operations](../docs/broker-operations.md).
 
+The embedded Raft runtime's `Handle::propose` rejects an empty or oversized
+record and also rejects a `Vec` whose allocation capacity exceeds the largest
+configured frame, fetch, or controller request limit. It returns
+`Error::InvalidConfig` before admission. A valid-length record in an
+over-reserved `Vec` must be copied into a suitably sized allocation by the
+caller. `Config::managed_bytes()` is an estimate for configured state and
+admitted buffers, not a process memory limit; caller-owned waiting inputs,
+allocator overhead and socket buffers are outside it. Controller queue
+accounting has a separate unresolved gap.
+
 The experimental consumer, share and streams group coordinators expose
 `describe` as `Result<Option<_>, Error>`. Callers must handle `Error::Poisoned`
 after an uncertain storage write and reopen the coordinator to recover. The
@@ -103,7 +113,7 @@ cargo check --locked --manifest-path partitionline-broker/Cargo.toml
 cargo test --locked --manifest-path partitionline-broker/Cargo.toml
 ```
 
-The [null broker](../benchmarks/nullbroker) is a benchmark tool with synthetic
+The [null broker](../benchmarks/nullbroker/README.md) is a benchmark tool with synthetic
 responses. Use the storage and replication components in this crate when working
 on broker behavior. Production and comparative performance qualification are
 still pending.
