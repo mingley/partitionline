@@ -1,0 +1,65 @@
+{
+  "schema": 1,
+  "kind": "client",
+  "base_client_Rust_commit": "b1b0488096f886c2fd60a7368bbf2ed57b5da2e3",
+  "base_inputs": {
+    "path": "base-inputs.json",
+    "sha256": "a3acacbe19f439846bd3847966978a9e2055fcc7ed8cb43fe1f97c2ca105751a",
+    "bytes": 225673
+  },
+  "baseline_inputs": {
+    "path": "baseline-inputs.json",
+    "sha256": "178f7122a81d3dbcb05dec6cf38689373c89c14efe48c1307234eed6379a442c",
+    "bytes": 225673
+  },
+  "fixed_inputs": {
+    "path": "fixed-inputs.json",
+    "sha256": "48beb894b7fbecd6155a5bfeb8e6f2dc0609f20ae9746f8dcb27861036e8d518",
+    "bytes": 225673
+  },
+  "controls": {
+    "path": "controls.json",
+    "sha256": "45e969bc0f57785836a132a873f77daa9b8d5817e934360d596b111907391821",
+    "bytes": 2923
+  },
+  "baseline_patch": {
+    "path": "baseline.patch.gz",
+    "sha256": "5d003f28c9ba4d584d5e8cdc1bd52943bc78a2daa00542b4f9015e407b3f9f26",
+    "bytes": 136,
+    "uncompressed_sha256": "e7c365450dd69f9476f5504b384c80d4a72a396ff9c58adc3c9fdad9859d0f93",
+    "uncompressed_bytes": 132
+  },
+  "fixed_delta": {
+    "path": "fixed-delta.patch.gz",
+    "sha256": "47b029d5731206985266dedcd387e476b0f9acd6720857df6c38e02c18471265",
+    "bytes": 134,
+    "uncompressed_sha256": "95ad917bf5093b0f1fd9dafe2adb57e771921be0ea982a402417c715a942e426",
+    "uncompressed_bytes": 162
+  },
+  "baseline_cases": [
+    {
+      "target": "mock_produce",
+      "test": "send_all_redials_leaders_while_refreshing_metadata",
+      "expect": "pass",
+      "reason": "Original main test remains an expected passing behavior; any failure is retained and fails this comparison gate."
+    },
+    {
+      "target": "producer_retained_backing",
+      "test": "cancelled_channel_admission_releases_only_the_unenqueued_reservation",
+      "expect": "pass",
+      "reason": "Original main test remains an expected passing behavior; timeout or another failure fails this comparison gate."
+    }
+  ],
+  "fixed_full_targets": [
+    "partitionline",
+    "mock_produce",
+    "producer_retained_backing"
+  ],
+  "limits": [
+    "Observational comparison on the exact b1 main Rust, test, Cargo and lockfile inputs; only an uncompiled README comment differs between phase copies.",
+    "All tests in the main library, mock_produce and producer_retained_backing binaries run for both profiles on one thread with an 8 MiB stack. Ignored test identities are retained.",
+    "The 15 mock test identities and retained-backing identity correspond to v8 failures, but main fixture and production behavior can differ. No cause is assumed.",
+    "Failures, unexpected passes, timeouts and ignored cases are retained. A failure fails the gate; this comparison does not establish release readiness or fastest performance.",
+    "Other integration binaries, standard-stack live Kafka, sustained campaigns and external record histories remain separate qualifications."
+  ]
+}

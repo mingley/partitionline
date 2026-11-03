@@ -1,0 +1,265 @@
+{
+  "source_spec_sha256": "dfbb6783c20fd5678fde9b6886ecee9932cecbaf580a523ee2f17c6dd043b5c7",
+  "baseline_expectation_mismatches": [
+    {
+      "case": "cancelling_a_join_after_written_coordinator_responses_stops_new_requests",
+      "expected": "pass",
+      "actual_exit": 101,
+      "reason": "JoinGroup returned COORDINATOR_LOAD_IN_PROGRESS before two replies were written",
+      "v7_actual_exit": 0
+    }
+  ],
+  "format_exit": 0,
+  "clippy_exit": 0,
+  "profiles": {
+    "default": {
+      "buffer_ownership": {
+        "counts": {
+          "passed": 12,
+          "failed": 0,
+          "ignored": 0
+        },
+        "passed": true,
+        "required_count": 0,
+        "required_unpassed": {}
+      },
+      "group_coordinator_startup": {
+        "counts": {
+          "passed": 13,
+          "failed": 0,
+          "ignored": 0
+        },
+        "passed": true,
+        "required_count": 8,
+        "required_unpassed": {}
+      },
+      "group_stack": {
+        "counts": {
+          "passed": 1,
+          "failed": 0,
+          "ignored": 0
+        },
+        "passed": true,
+        "required_count": 1,
+        "required_unpassed": {}
+      },
+      "init_producer_id_v6": {
+        "counts": {
+          "passed": 12,
+          "failed": 0,
+          "ignored": 1
+        },
+        "passed": true,
+        "required_count": 0,
+        "required_unpassed": {}
+      },
+      "mock_produce": {
+        "counts": {
+          "passed": 31,
+          "failed": 15,
+          "ignored": 0
+        },
+        "passed": false,
+        "required_count": 5,
+        "required_unpassed": {
+          "send_all_redials_leaders_while_refreshing_metadata": "FAILED"
+        }
+      },
+      "partitionline": {
+        "counts": {
+          "passed": 2280,
+          "failed": 0,
+          "ignored": 0
+        },
+        "passed": true,
+        "required_count": 153,
+        "required_unpassed": {}
+      },
+      "produce_cancel": {
+        "counts": {
+          "passed": 23,
+          "failed": 0,
+          "ignored": 0
+        },
+        "passed": true,
+        "required_count": 0,
+        "required_unpassed": {}
+      },
+      "producer_initialization": {
+        "counts": {
+          "passed": 8,
+          "failed": 0,
+          "ignored": 0
+        },
+        "passed": true,
+        "required_count": 0,
+        "required_unpassed": {}
+      },
+      "producer_retained_backing": {
+        "counts": {
+          "passed": 7,
+          "failed": 1,
+          "ignored": 1
+        },
+        "passed": false,
+        "required_count": 0,
+        "required_unpassed": {}
+      },
+      "sticky_partitioner": {
+        "counts": {
+          "passed": 29,
+          "failed": 0,
+          "ignored": 0
+        },
+        "passed": true,
+        "required_count": 0,
+        "required_unpassed": {}
+      }
+    },
+    "all-features": {
+      "buffer_ownership": {
+        "counts": {
+          "passed": 12,
+          "failed": 0,
+          "ignored": 0
+        },
+        "passed": true,
+        "required_count": 0,
+        "required_unpassed": {}
+      },
+      "group_coordinator_startup": {
+        "counts": {
+          "passed": 13,
+          "failed": 0,
+          "ignored": 0
+        },
+        "passed": true,
+        "required_count": 8,
+        "required_unpassed": {}
+      },
+      "group_stack": {
+        "counts": {
+          "passed": 1,
+          "failed": 0,
+          "ignored": 0
+        },
+        "passed": true,
+        "required_count": 1,
+        "required_unpassed": {}
+      },
+      "init_producer_id_v6": {
+        "counts": {
+          "passed": 12,
+          "failed": 0,
+          "ignored": 1
+        },
+        "passed": true,
+        "required_count": 0,
+        "required_unpassed": {}
+      },
+      "mock_produce": {
+        "counts": {
+          "passed": 31,
+          "failed": 15,
+          "ignored": 0
+        },
+        "passed": false,
+        "required_count": 5,
+        "required_unpassed": {
+          "send_all_redials_leaders_while_refreshing_metadata": "FAILED"
+        }
+      },
+      "partitionline": {
+        "counts": {
+          "passed": 2280,
+          "failed": 0,
+          "ignored": 0
+        },
+        "passed": true,
+        "required_count": 153,
+        "required_unpassed": {}
+      },
+      "produce_cancel": {
+        "counts": {
+          "passed": 23,
+          "failed": 0,
+          "ignored": 0
+        },
+        "passed": true,
+        "required_count": 0,
+        "required_unpassed": {}
+      },
+      "producer_initialization": {
+        "counts": {
+          "passed": 8,
+          "failed": 0,
+          "ignored": 0
+        },
+        "passed": true,
+        "required_count": 0,
+        "required_unpassed": {}
+      },
+      "producer_retained_backing": {
+        "counts": {
+          "passed": 7,
+          "failed": 1,
+          "ignored": 1
+        },
+        "passed": false,
+        "required_count": 0,
+        "required_unpassed": {}
+      },
+      "sticky_partitioner": {
+        "counts": {
+          "passed": 29,
+          "failed": 0,
+          "ignored": 0
+        },
+        "passed": true,
+        "required_count": 0,
+        "required_unpassed": {}
+      }
+    }
+  },
+  "required_producer_ownership_controls_passed_per_profile": 26,
+  "v7_library_counts": {
+    "passed": 2253,
+    "failed": 1,
+    "ignored": 0
+  },
+  "v7_v8_mock_failure_identities_match": true,
+  "mock_failure_names": [
+    "commit_reuses_a_produce_handshake_for_the_moved_coordinator",
+    "commit_reuses_bootstrap_when_the_coordinator_returns",
+    "epoch_bump_reuses_a_produce_handshake",
+    "multi_bootstrap_commit_reuses_known_coordinator_handshakes",
+    "multi_bootstrap_send_offsets_reuses_known_handshakes",
+    "multi_bootstrap_transaction_reuses_the_other_bootstrap_handshake",
+    "produce_reuses_a_finished_bootstrap_handshake",
+    "produce_reuses_bootstrap_api_versions",
+    "produce_reuses_the_transaction_coordinator_handshake",
+    "send_all_redials_leaders_while_refreshing_metadata",
+    "send_offsets_negotiates_a_new_group_coordinator",
+    "send_offsets_repeats_a_remote_coordinator_without_another_handshake",
+    "send_offsets_reuses_bootstrap_api_versions",
+    "transactional_rediscover_skips_a_second_bootstrap_handshake",
+    "transactional_startup_skips_a_second_bootstrap_handshake"
+  ],
+  "command_receipts": 133,
+  "inputs_stable": true,
+  "no_guard_stop": true,
+  "remaining_owned_children": false,
+  "memory_counter_status": "unknown",
+  "minimum_disk_free_bytes": 83182862336,
+  "rustc": "rustc 1.99.1 (58cf8f9c3 2026-10-13)\nbinary: rustc\ncommit-hash: 58cf8f9c35b355199727627d07ae34a4e2846d67\ncommit-date: 2026-10-13\nhost: x86_64-unknown-linux-gnu\nrelease: 1.99.1\nLLVM version: 23.1.1\n",
+  "cargo": "cargo 1.99.1 (5f94df478 2026-08-27)\n",
+  "limitations": [
+    "The v8 candidate is not the main client source; its complete candidate gate failed.",
+    "Both library runs used one test thread and an 8 MiB stack. The two-MiB group mock is not live Kafka qualification.",
+    "Ten selected binaries are not the complete all-target runtime matrix.",
+    "OOM counters were unavailable; zero OOM events are not claimed.",
+    "The full 202 MB executable/source artifact remains external and was not downloaded or rehashed locally."
+  ],
+  "production_ready": false,
+  "fastest_claim_qualified": false
+}

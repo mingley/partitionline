@@ -12,16 +12,15 @@ Client 0.1.0 is already published. The next client version must be at least
 
 | Scope | Recorded result |
 | --- | --- |
-| Client default library on `main`, `350b5e534` | 2,167 passed, 29 failed; later integration targets did not run |
-| Client all-feature library on `main` at that commit | 2,177 passed, 19 failed; later integration targets did not run |
-| Isolated client v7 library in each profile | 2,253 passed, one failed; selected producer tests and Clippy also failed |
+| Client default library on `main`, `b1b048809` | 2,180 passed, 16 failed; later integration targets did not run |
+| Client all-feature library on `main` at that commit | 2,176 passed, 20 failed; later integration targets did not run |
+| Isolated client v8 library in each profile | 2,280 passed; selected producer tests still failed |
 | Qualified broker v2 default all targets, `209d0b068` | 720 passed |
 | Qualified broker v2 all-feature all targets at that commit | 868 passed |
 | Broker v2 strict Clippy, docs, inventory and six fresh-process Fetch deadline checks | Passed |
 | Client capability lanes at that commit | 93 passed in each profile; 450 Java reverse checks in each |
-| Main broker CI | Passed at `350b5e534` |
-| Capability profiles, strict Clippy, audit, dependency policy, docs and package jobs | Passed at `c025be19b` |
-| Main client and live Kafka compatibility CI | Failed at `350b5e534` |
+| Main broker CI, capability profiles, strict Clippy, audit, dependency policy, docs and package jobs | Passed at `b1b048809` |
+| Main client and live Kafka compatibility CI | Failed at `b1b048809` |
 | Reconnect candidate | 14 unit controls and six integration targets passed; latest broad Fetch 167 passed, two failed, one ignored |
 | Integrated-source package navigation | 20 documentation tests passed; extracted crate checked 30 documents, 225 local links, 51 pinned repository targets |
 | Package consumers and publication dry run at `fe65ac783` | Passed; actual publication remains gated |
@@ -142,18 +141,24 @@ adds producer ownership changes, a deterministic retained-backing fixture
 and a separate handshake diagnostic. Static review and source reconstruction
 passed; v10 compilation, Clippy and runtime tests have not run. The original
 450 ms Mock Produce assertion remains, and the cause of the retained-backing
-timeout is not fully established. The v8 run remains in progress.
+timeout is not fully established. The earlier
+[v8 run](../evidence/client/candidate-native-350-20261102/README.md) passed
+2,280 library tests in each profile and strict Clippy, but failed Mock Produce,
+retained backing and one baseline expectation.
+An [unchanged-main comparison](../evidence/client/candidate-20261030/main-comparison-b1/README.md)
+is staged to run those producer binaries with the same stack and thread
+settings; it preserves the original failure conditions.
 
 Broker v2 observed seven baseline failures and passed twelve fixed controls,
 three asynchronous filesystem controls and full default/all-feature targets,
 strict Clippy/docs and all 55 inventory controls. Three fresh-process Fetch
 checks passed in each profile. OOM counters were unavailable. Those exact
-source bytes are now adopted; ordinary broker CI passed on `350b5e534`.
+source bytes are now adopted; ordinary broker CI passed on `b1b048809`.
 This local replica model is not a production replicated cluster.
 
-The main client and live Kafka jobs failed on `350b5e534` in
-[CI run 41572635665](https://github.com/mingley/partitionline/actions/runs/41572635665).
-The [failure index](../evidence/releases/main-ci-350-20261102/README.md) lists
+The main client and live Kafka jobs failed on `b1b048809` in
+[CI run 41574318223](https://github.com/mingley/partitionline/actions/runs/41574318223).
+The [failure index](../evidence/releases/main-ci-b1-20261102/README.md) lists
 the affected library tests. Counts vary between runs with the same Rust source;
 that variation is not a measured fix.
 The Release-plz PR workflow also failed because its semver checker discovered

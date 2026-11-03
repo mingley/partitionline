@@ -1,0 +1,54 @@
+{
+  "scope": "Unchanged main Rust, tests, Cargo and lockfile; isolated README comment markers only.",
+  "prepared_utc": "2026-11-03T04:09:25.133064+00:00",
+  "checkout_commit": "b1b0488096f886c2fd60a7368bbf2ed57b5da2e3",
+  "base_input_count": 1743,
+  "marker_only_changed_paths": [
+    "README.md"
+  ],
+  "phase_roundtrip_exact": true,
+  "all_root_input_hashes_stable": true,
+  "required_library": 0,
+  "required_integration": 16,
+  "baseline_cases": [
+    {
+      "target": "mock_produce",
+      "test": "send_all_redials_leaders_while_refreshing_metadata",
+      "expect": "pass",
+      "reason": "Original main test remains an expected passing behavior; any failure is retained and fails this comparison gate."
+    },
+    {
+      "target": "producer_retained_backing",
+      "test": "cancelled_channel_admission_releases_only_the_unenqueued_reservation",
+      "expect": "pass",
+      "reason": "Original main test remains an expected passing behavior; timeout or another failure fails this comparison gate."
+    }
+  ],
+  "complete_runtime_targets_per_profile": [
+    "partitionline",
+    "mock_produce",
+    "producer_retained_backing"
+  ],
+  "v8_mock_failure_names": [
+    "commit_reuses_a_produce_handshake_for_the_moved_coordinator",
+    "commit_reuses_bootstrap_when_the_coordinator_returns",
+    "epoch_bump_reuses_a_produce_handshake",
+    "multi_bootstrap_commit_reuses_known_coordinator_handshakes",
+    "multi_bootstrap_send_offsets_reuses_known_handshakes",
+    "multi_bootstrap_transaction_reuses_the_other_bootstrap_handshake",
+    "produce_reuses_a_finished_bootstrap_handshake",
+    "produce_reuses_bootstrap_api_versions",
+    "produce_reuses_the_transaction_coordinator_handshake",
+    "send_all_redials_leaders_while_refreshing_metadata",
+    "send_offsets_negotiates_a_new_group_coordinator",
+    "send_offsets_repeats_a_remote_coordinator_without_another_handshake",
+    "send_offsets_reuses_bootstrap_api_versions",
+    "transactional_rediscover_skips_a_second_bootstrap_handshake",
+    "transactional_startup_skips_a_second_bootstrap_handshake"
+  ],
+  "v8_reports_sha256": "2fb84bf198a8723078eaaee75f9fb713e51446c5afb3d6b4a1cbac549de9f01b",
+  "source_change_does_not_modify_rust": true,
+  "runtime": "not run",
+  "production_ready": false,
+  "fastest_claim_qualified": false
+}

@@ -24,7 +24,7 @@ concurrency:
 
 jobs:
   qualify:
-    name: ${{ matrix.kind }} candidate (stable, x86_64)
+    name: ${{ matrix.kind }} ${{ matrix.source_version }} (stable, x86_64)
     runs-on: ubuntu-latest
     timeout-minutes: 90
     strategy:
@@ -33,6 +33,8 @@ jobs:
         include:
           - kind: client
             source_version: v10
+          - kind: client
+            source_version: main-comparison-b1
           # Broker v2 is adopted. broker.yml validates its main source;
           # its frozen candidate spec remains bound to the pre-adoption tree.
     env:
@@ -73,7 +75,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v6
         with:
-          name: candidate-${{ matrix.kind }}-${{ github.sha }}-${{ github.run_id }}
+          name: candidate-${{ matrix.kind }}-${{ matrix.source_version }}-${{ github.sha }}-${{ github.run_id }}
           path: |
             ${{ runner.temp }}/candidate-qualification
             !${{ runner.temp }}/candidate-qualification/source/**
@@ -83,7 +85,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v6
         with:
-          name: candidate-reports-${{ matrix.kind }}-${{ github.sha }}-${{ github.run_id }}
+          name: candidate-reports-${{ matrix.kind }}-${{ matrix.source_version }}-${{ github.sha }}-${{ github.run_id }}
           path: |
             ${{ runner.temp }}/candidate-qualification/*.json
             ${{ runner.temp }}/candidate-qualification/*.log

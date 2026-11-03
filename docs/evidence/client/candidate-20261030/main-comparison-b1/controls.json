@@ -1,0 +1,93 @@
+{
+  "scope": "Main source comparison; runtime failures remain failures. The complete library and the two selected integration binaries execute in each profile.",
+  "library": [],
+  "library_count": 0,
+  "integrations": [
+    {
+      "target": "mock_produce",
+      "test": "commit_reuses_a_produce_handshake_for_the_moved_coordinator",
+      "role": "v8_failure_comparison"
+    },
+    {
+      "target": "mock_produce",
+      "test": "commit_reuses_bootstrap_when_the_coordinator_returns",
+      "role": "v8_failure_comparison"
+    },
+    {
+      "target": "mock_produce",
+      "test": "epoch_bump_reuses_a_produce_handshake",
+      "role": "v8_failure_comparison"
+    },
+    {
+      "target": "mock_produce",
+      "test": "multi_bootstrap_commit_reuses_known_coordinator_handshakes",
+      "role": "v8_failure_comparison"
+    },
+    {
+      "target": "mock_produce",
+      "test": "multi_bootstrap_send_offsets_reuses_known_handshakes",
+      "role": "v8_failure_comparison"
+    },
+    {
+      "target": "mock_produce",
+      "test": "multi_bootstrap_transaction_reuses_the_other_bootstrap_handshake",
+      "role": "v8_failure_comparison"
+    },
+    {
+      "target": "mock_produce",
+      "test": "produce_reuses_a_finished_bootstrap_handshake",
+      "role": "v8_failure_comparison"
+    },
+    {
+      "target": "mock_produce",
+      "test": "produce_reuses_bootstrap_api_versions",
+      "role": "v8_failure_comparison"
+    },
+    {
+      "target": "mock_produce",
+      "test": "produce_reuses_the_transaction_coordinator_handshake",
+      "role": "v8_failure_comparison"
+    },
+    {
+      "target": "mock_produce",
+      "test": "send_all_redials_leaders_while_refreshing_metadata",
+      "role": "v8_failure_comparison"
+    },
+    {
+      "target": "mock_produce",
+      "test": "send_offsets_negotiates_a_new_group_coordinator",
+      "role": "v8_failure_comparison"
+    },
+    {
+      "target": "mock_produce",
+      "test": "send_offsets_repeats_a_remote_coordinator_without_another_handshake",
+      "role": "v8_failure_comparison"
+    },
+    {
+      "target": "mock_produce",
+      "test": "send_offsets_reuses_bootstrap_api_versions",
+      "role": "v8_failure_comparison"
+    },
+    {
+      "target": "mock_produce",
+      "test": "transactional_rediscover_skips_a_second_bootstrap_handshake",
+      "role": "v8_failure_comparison"
+    },
+    {
+      "target": "mock_produce",
+      "test": "transactional_startup_skips_a_second_bootstrap_handshake",
+      "role": "v8_failure_comparison"
+    },
+    {
+      "target": "producer_retained_backing",
+      "test": "cancelled_channel_admission_releases_only_the_unenqueued_reservation",
+      "role": "v8_timeout_comparison"
+    }
+  ],
+  "integration_count": 16,
+  "required_matrix": [
+    "default_features",
+    "all_features"
+  ],
+  "full_library_and_integrations": "All tests in all three selected binaries must run; a failure fails the candidate gate."
+}
