@@ -62,12 +62,14 @@ quorum, without replicated partition data or native Kafka KRaft.
 | Isolated client v14, 10 targets per profile | 2,431 passed, 17 failed and two ignored in each profile |
 | Isolated client v16, 10 targets per profile | 2,432 passed, 16 failed and two ignored in each profile |
 | Isolated client v16 repeat | Default: 2,432 passed, 16 failed, two ignored; all features: 2,431 passed, 17 failed, two ignored |
+| Isolated client v17, each profile | 2,432 passed, 16 failed, two ignored; the retained-buffer timeout phase remains unknown |
 | Qualified broker v2 default all targets, `209d0b068` | 720 passed |
 | Qualified broker v2 all-feature all targets at that commit | 868 passed |
 | Broker v2 strict Clippy, docs, inventory and six repeated Fetch checks | Passed |
 | Client focused capability profiles at that commit | 93 passed and 450 Java reverse checks per profile |
 | Main broker CI | 729 default and 877 all-feature tests passed at `2645e96ce`; Clippy, docs, inventory and fuzz supervision passed |
 | Isolated broker capacity candidate, x86 | 729 default and 877 all-feature tests passed, with format, Clippy, docs and focused controls; OOM counters unavailable and zero doctests found |
+| [Isolated broker shutdown candidate][broker-join-result] | Hosted qualification failed the inventory and inventory-negative-control gates |
 | Main capability profiles | Passed at `33744862c` |
 | Main strict Clippy, security, documentation and package jobs | Passed at `e7660f6e5` |
 | Main client CI | Failed at `e7660f6e5` |
@@ -137,9 +139,12 @@ v16 candidate passed both library profiles and the revised deadline control,
 but both profiles still failed 15 Mock Produce tests and one retained-buffer
 test. A [repeat][candidate-v16-repeat] added one all-feature timing failure
 and showed that baseline case 23 can match a coordinator error before its
-cancellation barrier. The [v17 candidate][candidate-v17] adds a timeout
-diagnostic but retains that matcher; its hosted result is pending. See the
-[v16 results][candidate-v16] and [next work][next] for details.
+cancellation barrier. The [v17 candidate][candidate-v17] retains that matcher;
+its [hosted run][candidate-v17-result] still failed 15 Mock Produce tests and
+one retained-buffer test per profile without locating the timeout. A successor
+draft remains unapplied after its final independent audit was stopped by an
+automatic security review. See the [v16 results][candidate-v16] and
+[next work][next] for details.
 
 The [release scripts][release-gates] check API/index agreement, consumer lockfile
 identity and exact-SHA CI more strictly. The token check reports presence without
@@ -165,6 +170,8 @@ measurements and dated notes.
 [candidate-v16-repeat]: https://github.com/mingley/partitionline/blob/5dfafef402abe292011cb6dac478dd89ab771277/docs/evidence/client/candidate-v16-repeat-e2a0-20261103/README.md
 [sasl-expiry]: https://github.com/mingley/partitionline/blob/5dfafef402abe292011cb6dac478dd89ab771277/docs/evidence/client/sasl-expiry-boundary-20261103/README.md
 [candidate-v17]: https://github.com/mingley/partitionline/blob/c06dfd345315c1fd0847872a1176fde8c5959043/docs/evidence/client/candidate-20261030/v17/README.md
+[candidate-v17-result]: https://github.com/mingley/partitionline/blob/c340c4e7c0804700c42040f23accce5325a42d18/docs/evidence/client/candidate-v17-native-2645-20261103/README.md
+[broker-join-result]: https://github.com/mingley/partitionline/blob/eae6a4538cb40528974ff0440db8be8730ada4ab/docs/evidence/broker/controller-join-native-664b-20261103/README.md
 [broker-capacity]: https://github.com/mingley/partitionline/blob/c06dfd345315c1fd0847872a1176fde8c5959043/docs/evidence/broker/runtime-capacity-native-e2a0-20261103/README.md
 [queue-v17]: https://github.com/mingley/partitionline/blob/c06dfd345315c1fd0847872a1176fde8c5959043/docs/evidence/perf/pending-queue-v17-20261103/README.md
 [candidate-build]: https://github.com/mingley/partitionline/blob/f548870380ecc025b4e245c7f94a1c0a13fef2ff/docs/evidence/client/candidate-native-fdaf-20261103/README.md
@@ -179,7 +186,7 @@ measurements and dated notes.
 [native]: https://github.com/mingley/partitionline/blob/dfad6573e46adf8aa91626854e4f816cfff2c2bf/docs/evidence/releases/candidate-native-20261030/README.md
 [producer]: https://github.com/mingley/partitionline/blob/908dbdf2f20c8462a741ce59a4f56be2f310048e/docs/evidence/client/producer-admission-20261030/README.md
 [faults]: https://github.com/mingley/partitionline/blob/77021f7dc6c0d19aa93c7bf0b7fad125ee632e23/docs/evidence/broker/fuzz/20261027-candidate06/README.md
-[next]: https://github.com/mingley/partitionline/blob/5dfafef402abe292011cb6dac478dd89ab771277/docs/plan/next-work.md
+[next]: https://github.com/mingley/partitionline/blob/eae6a4538cb40528974ff0440db8be8730ada4ab/docs/plan/next-work.md
 [queue]: https://github.com/mingley/partitionline/blob/c06dfd345315c1fd0847872a1176fde8c5959043/docs/evidence/perf/producer-pending-20261102/README.md
 [tasks]: https://github.com/mingley/partitionline/blob/77021f7dc6c0d19aa93c7bf0b7fad125ee632e23/docs/plan/tasks.json
 [previous]: https://github.com/mingley/partitionline/blob/77021f7dc6c0d19aa93c7bf0b7fad125ee632e23/docs/STATUS.md
