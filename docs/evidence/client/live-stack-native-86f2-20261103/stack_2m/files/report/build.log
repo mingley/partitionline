@@ -1,0 +1,138 @@
+    Updating crates.io index
+ Downloading crates ...
+  Downloaded cc v1.4.4
+  Downloaded block-buffer v0.12.1
+  Downloaded cfg-if v1.0.4
+  Downloaded getrandom v0.2.17
+  Downloaded digest v0.11.3
+  Downloaded rustls-pki-types v1.15.1
+  Downloaded ctutils v0.4.7
+  Downloaded simd-adler32 v0.3.10
+  Downloaded zeroize v1.9.0
+  Downloaded rustc_version v0.4.1
+  Downloaded adler2 v2.0.1
+  Downloaded crypto-common v0.2.2
+  Downloaded lock_api v0.4.14
+  Downloaded untrusted v0.9.0
+  Downloaded crc32c v0.6.8
+  Downloaded errno v0.3.14
+  Downloaded snap v1.1.2
+  Downloaded syn v3.0.4
+  Downloaded hmac v0.13.0
+  Downloaded miniz_oxide v0.9.1
+  Downloaded rustls v0.23.46
+  Downloaded quote v1.0.47
+  Downloaded scopeguard v1.2.0
+  Downloaded tokio-rustls v0.26.6
+  Downloaded once_cell v1.21.4
+  Downloaded tokio-macros v2.7.2
+  Downloaded webpki-roots v1.0.11
+  Downloaded smallvec v1.15.2
+  Downloaded crc32fast v1.5.1
+  Downloaded hybrid-array v0.4.14
+  Downloaded parking_lot v0.12.5
+  Downloaded twox-hash v2.1.2
+  Downloaded zlib-rs v0.6.8
+  Downloaded parking_lot_core v0.9.12
+  Downloaded pin-project-lite v0.2.17
+  Downloaded libc v0.2.189
+  Downloaded tokio v1.53.3
+  Downloaded pbkdf2 v0.13.0
+  Downloaded semver v1.0.28
+  Downloaded bytes v1.12.1
+  Downloaded socket2 v0.6.5
+  Downloaded lz4_flex v0.14.0
+  Downloaded rustls-webpki v0.103.16
+  Downloaded typenum v1.20.1
+  Downloaded cmov v0.5.4
+  Downloaded const-oid v0.10.2
+  Downloaded signal-hook-registry v1.4.8
+  Downloaded flate2 v1.1.10
+  Downloaded find-msvc-tools v0.1.11
+  Downloaded ring v0.17.14
+  Downloaded subtle v2.6.1
+  Downloaded base64 v0.23.1
+  Downloaded getrandom v0.4.3
+  Downloaded proc-macro2 v1.0.107
+  Downloaded sha2 v0.11.0
+  Downloaded cpufeatures v0.3.1
+  Downloaded shlex v2.0.1
+  Downloaded unicode-ident v1.0.24
+  Downloaded mio v1.2.2
+   Compiling libc v0.2.189
+   Compiling cfg-if v1.0.4
+   Compiling shlex v2.0.1
+   Compiling find-msvc-tools v0.1.11
+   Compiling cc v1.4.4
+   Compiling typenum v1.20.1
+   Compiling proc-macro2 v1.0.107
+   Compiling hybrid-array v0.4.14
+   Compiling ring v0.17.14
+   Compiling unicode-ident v1.0.24
+   Compiling quote v1.0.47
+   Compiling zeroize v1.9.0
+   Compiling cmov v0.5.4
+   Compiling ctutils v0.4.7
+   Compiling rustls-pki-types v1.15.1
+   Compiling block-buffer v0.12.1
+   Compiling crypto-common v0.2.2
+   Compiling getrandom v0.2.17
+   Compiling untrusted v0.9.0
+   Compiling const-oid v0.10.2
+   Compiling semver v1.0.28
+   Compiling rustc_version v0.4.1
+   Compiling digest v0.11.3
+   Compiling syn v3.0.4
+   Compiling errno v0.3.14
+   Compiling rustls v0.23.46
+   Compiling parking_lot_core v0.9.12
+   Compiling crc32fast v1.5.1
+   Compiling signal-hook-registry v1.4.8
+   Compiling tokio-macros v2.7.2
+   Compiling crc32c v0.6.8
+   Compiling mio v1.2.2
+   Compiling socket2 v0.6.5
+   Compiling once_cell v1.21.4
+   Compiling simd-adler32 v0.3.10
+   Compiling adler2 v2.0.1
+   Compiling getrandom v0.4.3
+   Compiling snap v1.1.2
+   Compiling smallvec v1.15.2
+   Compiling scopeguard v1.2.0
+   Compiling bytes v1.12.1
+   Compiling pin-project-lite v0.2.17
+   Compiling subtle v2.6.1
+   Compiling tokio v1.53.3
+   Compiling rustls-webpki v0.103.16
+   Compiling lock_api v0.4.14
+   Compiling miniz_oxide v0.9.1
+   Compiling hmac v0.13.0
+   Compiling twox-hash v2.1.2
+   Compiling zlib-rs v0.6.8
+error: rustc interrupted by SIGSEGV, printing backtrace
+
+/home/runner/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/librustc_driver-7ed0375ae352bd75.so(+0x3e902ac)[0x7fa5f10902ac]
+/lib/x86_64-linux-gnu/libc.so.6(+0x45330)[0x7fa5ece45330]
+/home/runner/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/librustc_driver-7ed0375ae352bd75.so(+0x588b125)[0x7fa5f2a8b125]
+/home/runner/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/librustc_driver-7ed0375ae352bd75.so(+0x5895b1d)[0x7fa5f2a95b1d]
+
+### cycle encountered after 4 frames with period 5
+/home/runner/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/librustc_driver-7ed0375ae352bd75.so(+0x5897778)[0x7fa5f2a97778]
+/home/runner/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/librustc_driver-7ed0375ae352bd75.so(+0x5897778)[0x7fa5f2a97778]
+/home/runner/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/librustc_driver-7ed0375ae352bd75.so(+0x5897778)[0x7fa5f2a97778]
+/home/runner/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/librustc_driver-7ed0375ae352bd75.so(+0x5897778)[0x7fa5f2a97778]
+/home/runner/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/librustc_driver-7ed0375ae352bd75.so(+0x5897778)[0x7fa5f2a97778]
+### recursed 50 times
+
+/home/runner/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/librustc_driver-7ed0375ae352bd75.so(+0x5897778)[0x7fa5f2a97778]
+/home/runner/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/librustc_driver-7ed0375ae352bd75.so(+0x5897778)[0x7fa5f2a97778]
+
+note: rustc unexpectedly overflowed its stack! this is a bug
+note: maximum backtrace depth reached, frames may have been lost
+note: we would appreciate a report at https://github.com/rust-lang/rust
+help: you can increase rustc's stack size by setting RUST_MIN_STACK=4194304
+error: could not compile `rustls` (lib)
+
+Caused by:
+  process didn't exit successfully: `/home/runner/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin/rustc --crate-name rustls --edition=2021 /home/runner/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/rustls-0.23.46/src/lib.rs --error-format=json --json=diagnostic-rendered-ansi,artifacts,future-incompat --crate-type lib --emit=dep-info,metadata,link -C embed-bitcode=no --cfg 'feature="ring"' --cfg 'feature="std"' --cfg 'feature="tls12"' --check-cfg 'cfg(docsrs,test)' --check-cfg 'cfg(feature, values("aws-lc-rs", "aws_lc_rs", "brotli", "custom-provider", "default", "fips", "hashbrown", "log", "logging", "prefer-post-quantum", "read_buf", "ring", "rustversion", "std", "tls12", "zlib"))' -C metadata=1236627ff4d8ef23 -C extra-filename=-082f605e53ed871f --out-dir /home/runner/work/_temp/pl-stack-target-stack_2m/debug/deps -C strip=debuginfo -L dependency=/home/runner/work/_temp/pl-stack-target-stack_2m/debug/deps --extern once_cell=/home/runner/work/_temp/pl-stack-target-stack_2m/debug/deps/libonce_cell-dd93871ba969b9dd.rmeta --extern ring=/home/runner/work/_temp/pl-stack-target-stack_2m/debug/deps/libring-cb8780b34e8a4fb6.rmeta --extern pki_types=/home/runner/work/_temp/pl-stack-target-stack_2m/debug/deps/librustls_pki_types-a67baf4ec4b9ccda.rmeta --extern webpki=/home/runner/work/_temp/pl-stack-target-stack_2m/debug/deps/libwebpki-1a569dc11c47ef39.rmeta --extern subtle=/home/runner/work/_temp/pl-stack-target-stack_2m/debug/deps/libsubtle-de118c7dc1a9374a.rmeta --extern zeroize=/home/runner/work/_temp/pl-stack-target-stack_2m/debug/deps/libzeroize-d1e1ce662588c030.rmeta --cap-lints allow -L native=/home/runner/work/_temp/pl-stack-target-stack_2m/debug/build/ring-15278fd402a72be5/out` (signal: 11, SIGSEGV: invalid memory reference)
+warning: build failed, waiting for other jobs to finish...

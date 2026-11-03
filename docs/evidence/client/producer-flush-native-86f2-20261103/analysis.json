@@ -1,0 +1,97 @@
+{
+  "archive_sha256": "e51a183af3728e19d39a54e3c3e669b2d684939afb176daf9e65854d52eeb32a",
+  "cargo": "cargo 1.99.1 (5f94df478 2026-08-27)\nrelease: 1.99.1\ncommit-hash: 5f94df4789f005f9a352888e8355ffc645b7ed0e\ncommit-date: 2026-08-27\nhost: x86_64-unknown-linux-gnu\nlibgit2: 1.9.6 (sys:0.21.0 vendored)\nlibcurl: 8.21.0-DEV (sys:0.4.90+curl-8.21.0 vendored ssl:OpenSSL/3.6.3)\nssl: OpenSSL 3.6.3 9 Jun 2026\nos: Ubuntu 24.4.0 (noble) [64-bit]",
+  "cleanup_scope": "10 retained compile/test receipts only; other command cleanup receipts were not retained",
+  "disk_samples": 87,
+  "github_artifact_id": 13249627527,
+  "job_id": 126051745072,
+  "limitations": [
+    "expected failures on patched 45cb only; not a fix",
+    "local socket and injected worker fixtures; no broker interoperability or throughput measurement",
+    "no independent execution in this review"
+  ],
+  "patch_sha256": "dcb7fa244056a3ccad7c81ba38611e5cb2157d4a7bdfbe8245cedad2cdfd0c03",
+  "patched_source_sha256": "226ca81821663a3d67488dc6086607bde0722ae5bf72a163e8524457fb8ffa50",
+  "profiles": {
+    "all-features": {
+      "compile_cleanup_waited_no_remaining_descendants": true,
+      "compile_exit_code": 0,
+      "compile_log": "compile-all-features.log",
+      "compile_log_sha256": "14f20a885e3b9c7783f67bc2f4fd9cd28a81ea067bcf6e56b729177c7068b63c",
+      "tests": {
+        "cancelled_flush_cannot_consume_an_unobserved_record_failure": {
+          "assertion": "cancelled flush discarded the only failure report",
+          "cleanup_waited_no_remaining_descendants": true,
+          "exit_code": 101,
+          "log": "all-features-cancelled_flush_cannot_consume_an_unobserved_record_failure.log",
+          "log_sha256": "b46683bcb8578aa65923423430371101e2bcbb0d7265be0dfe95cea85182f335"
+        },
+        "flush_cannot_succeed_while_a_retired_worker_still_owns_an_accepted_record": {
+          "assertion": "flush reported success before the retired worker processed the record",
+          "cleanup_waited_no_remaining_descendants": true,
+          "exit_code": 101,
+          "log": "all-features-flush_cannot_succeed_while_a_retired_worker_still_owns_an_accepted_record.log",
+          "log_sha256": "a07184a24cda7a4fd2b2efb654a9c865547db5b25e44839023f9d95ce2a69085"
+        },
+        "flush_reports_an_accepted_record_expiring_in_pending": {
+          "assertion": "flush lost the delivery timeout: Ok(())",
+          "cleanup_waited_no_remaining_descendants": true,
+          "exit_code": 101,
+          "log": "all-features-flush_reports_an_accepted_record_expiring_in_pending.log",
+          "log_sha256": "4eb4e96577305fa6841152f8f1400b626c4284d10a76f309de7eb46d3f746897"
+        },
+        "flush_reports_failure_when_retry_guard_drops_an_accepted_record": {
+          "assertion": "flush lost the retry failure: Ok(())",
+          "cleanup_waited_no_remaining_descendants": true,
+          "exit_code": 101,
+          "log": "all-features-flush_reports_failure_when_retry_guard_drops_an_accepted_record.log",
+          "log_sha256": "891fcd45edf70b26f2b0c641b0c8ec264709b161cef790d8a66273a5bf0e0327"
+        }
+      }
+    },
+    "default": {
+      "compile_cleanup_waited_no_remaining_descendants": true,
+      "compile_exit_code": 0,
+      "compile_log": "compile-default.log",
+      "compile_log_sha256": "220ef8e6c1724f16d7ab2bc8a69df1d4001e523c43f29630a4d6473e134e5891",
+      "tests": {
+        "cancelled_flush_cannot_consume_an_unobserved_record_failure": {
+          "assertion": "cancelled flush discarded the only failure report",
+          "cleanup_waited_no_remaining_descendants": true,
+          "exit_code": 101,
+          "log": "default-cancelled_flush_cannot_consume_an_unobserved_record_failure.log",
+          "log_sha256": "a80c04a1851f14a2a146c23a1afb9dc0d5ddb21117030a41ad5bc8e0ff483a51"
+        },
+        "flush_cannot_succeed_while_a_retired_worker_still_owns_an_accepted_record": {
+          "assertion": "flush reported success before the retired worker processed the record",
+          "cleanup_waited_no_remaining_descendants": true,
+          "exit_code": 101,
+          "log": "default-flush_cannot_succeed_while_a_retired_worker_still_owns_an_accepted_record.log",
+          "log_sha256": "8865d92daafedcb3cc695a15c29ecfe23b8b551682d03d32a0d1e288196b32df"
+        },
+        "flush_reports_an_accepted_record_expiring_in_pending": {
+          "assertion": "flush lost the delivery timeout: Ok(())",
+          "cleanup_waited_no_remaining_descendants": true,
+          "exit_code": 101,
+          "log": "default-flush_reports_an_accepted_record_expiring_in_pending.log",
+          "log_sha256": "3f463f0fc9e9f7ee3bedb74e6824a6480b162d08bf0c47e39f290bf1e2316796"
+        },
+        "flush_reports_failure_when_retry_guard_drops_an_accepted_record": {
+          "assertion": "flush lost the retry failure: Ok(())",
+          "cleanup_waited_no_remaining_descendants": true,
+          "exit_code": 101,
+          "log": "default-flush_reports_failure_when_retry_guard_drops_an_accepted_record.log",
+          "log_sha256": "0982b799d762e2c278356b697c3c65df8b4192dfe9bb26cc37faef733d7681b5"
+        }
+      }
+    }
+  },
+  "run_attempt": 1,
+  "run_conclusion": "success",
+  "run_id": 41674604362,
+  "rustc": "rustc 1.99.1 (58cf8f9c3 2026-10-13)\nbinary: rustc\ncommit-hash: 58cf8f9c35b355199727627d07ae34a4e2846d67\ncommit-date: 2026-10-13\nhost: x86_64-unknown-linux-gnu\nrelease: 1.99.1\nLLVM version: 23.1.1",
+  "sampled_disk_minimum_bytes": 91159412736,
+  "tested_source_sha": "45cbff24de76490594970fc962cd04e7be9fafb1",
+  "trigger_sha": "86f285c706645e68146737a243707953c524b89d",
+  "verdict": "expected-assertions-reproduced"
+}

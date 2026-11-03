@@ -13,6 +13,15 @@ logs provide no crashing frame or last completed RPC. They do not establish the
 cause. The pinned group, compatibility-test and harness sources match the
 previously investigated `2645e96ce` versions.
 
+Workflow 41674604055 then ran the shortened classic-only diagnostic once per
+case on separately allocated runners. The `normal` and `caller_box` cases
+reported runtime stack overflow; `stack_8m` and `library_box` returned from
+classic join. The `stack_2m` case failed while rustc compiled rustls, before the
+live test ran. The old collector passed `RUST_MIN_STACK` to the whole
+harness, including rustc. The original run and artifacts remain separate evidence. None of
+these observations establishes the failure's cause, proves library boxing fixes
+the unchanged full test, or measures performance.
+
 ## Scope
 
 `classic-only.patch` adds an unconditional return immediately after the first,
@@ -34,8 +43,10 @@ The matrix runs six cases on hosted Linux x86_64 jobs, at most two at a time:
 
 - `normal`: no `RUST_MIN_STACK` override.
 - `stack_2m`, `stack_8m`: request `RUST_MIN_STACK=2097152` and `8388608`.
-  These values are requests; this diagnostic does not measure the effective
-  thread stack mapping.
+  These values apply only to the test executable through Cargo's target runner;
+  Cargo, rustc and build scripts do not receive `RUST_MIN_STACK`. A runner marker
+  must appear in the test log or the requested stack case is inconclusive. The
+  values are requests; the effective thread stack mapping is not measured.
 - `caller_box`: box the join future in the test caller.
 - `library_box`: box each private rejoin attempt. This adds an allocation per
   attempt and is an unmeasured hypothesis, not a proposed production fix.
@@ -96,5 +107,5 @@ PL_STACK_SOURCE_CHECKOUT=/path/to/partitionline \
 
 The source checkout must contain the pinned commit. The local source-only tests
 check the workflow trigger boundaries, patch application and postimages, the
-early stop, unchanged timeout literals, stack environment, failure classification,
+early stop, unchanged timeout literals, runtime-only stack environment and runner behavior, failure classification,
 disk guard and exact container cleanup ownership. They do not establish that the Rust patches build.

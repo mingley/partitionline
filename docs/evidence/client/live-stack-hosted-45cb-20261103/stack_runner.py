@@ -166,7 +166,8 @@ def child_environment(case, output, token):
                PL_COMPAT_REPORT_DIR=str(output / 'report'),
                PL_COMPAT_RUN_VERIFIABLE='0', PL_STACK_RUN_TOKEN=token)
     if case in STACKS:
-        env['RUST_MIN_STACK'] = STACKS[case]
+        env['PL_STACK_RUNTIME_MIN'] = STACKS[case]
+        env['PL_STACK_RUNTIME_RUNNER'] = str(THIS / 'runtime-stack-runner.sh')
     return env
 
 
@@ -184,12 +185,14 @@ def load_owner(subject):
     return module.owned_command
 
 
-def classify(code, reason, runtime):
+def classify(case, code, reason, runtime):
     if reason != 'completed':
         return 'interrupted_or_inconclusive'
+    if case in STACKS and ('PL_STACK_RUNTIME_RUNNER\t' + STACKS[case]) not in runtime:
+        return 'runtime_stack_not_observed'
     if code == 0 and 'PL_STACK_CLASSIC_JOIN_COMPLETE' in runtime and 'test result: ok. 1 passed; 0 failed' in runtime:
         return 'classic_join_returned'
-    if 'has overflowed its stack' in runtime:
+    if re.search(r"thread 'live_compatibility_required'(?: \(\d+\))? has overflowed its stack", runtime):
         return 'stack_overflow_reported'
     return 'failed_or_inconclusive'
 
@@ -197,7 +200,7 @@ def classify(code, reason, runtime):
 def execute(subject, output, case, pins):
     receipt = {'source_commit': COMMIT, 'case': case, 'diagnostic_only': True,
                'original_live_test_modified_to_stop_after_classic_join': True,
-               'stack_environment': STACKS.get(case), 'outcome': 'not_started'}
+               'stack_environment': STACKS.get(case), 'stack_scope': 'test_executable_only', 'outcome': 'not_started'}
     # Validate before writing anything to a caller-supplied path.
     validate_paths(subject, output)
     receipt_path = output / 'receipt.json'
@@ -211,6 +214,9 @@ def execute(subject, output, case, pins):
         if list_owned(token):
             raise RuntimeError('diagnostic container token already in use')
         receipt['manifest'] = hash_file(THIS / 'subject-pins.json')
+        if hash_file(THIS / 'runtime-stack-runner.sh') != pins['runtime_runner']:
+            raise RuntimeError('runtime runner hash mismatch')
+        receipt['runtime_runner'] = pins['runtime_runner']
         receipt['patches'] = {name: pins['patches'][name] for name in
                               ['harness-classic-only.patch', *CASE_PATCHES[case]]}
         receipt['local_diagnostic_commit'] = prepare(subject, output, case, pins)
@@ -254,7 +260,7 @@ def execute(subject, output, case, pins):
                                               if len(binaries) == 1 else {'matching_count': len(binaries)})
         receipt.update(exit_code=code, stop_reason=reason,
                        wall_seconds=round(time.monotonic() - started, 2),
-                       outcome=classify(code, reason, runtime),
+                       outcome=classify(case, code, reason, runtime),
                        qualifying_full_compatibility=False, performance_measurement=False)
         verify_files(subject, pins, pins['known_postimages'][
             case if case in ('caller_box', 'library_box', 'phase_trace') else 'normal'])

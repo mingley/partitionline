@@ -1,10 +1,11 @@
 5290594a0fa9ddf02d682060061a39c5a6a2afe04771a6bbefa19d8ff4e1abed  .github/workflows/classic-group-stack-diagnostic.yml
-793385ecc3b4d33f3ee746c5964c624c47ecb543d0ff23baebca5b94ba59019e  docs/evidence/client/live-stack-hosted-45cb-20261103/README.md
+7a506f6d12b2d36469581dcfa5218206050aeeb73cfe3c662d2262eaed26041d  docs/evidence/client/live-stack-hosted-45cb-20261103/README.md
 aa5614eaf848b028067b1c0649d2d2eb7f31852e7d59fea1837a326db8069091  docs/evidence/client/live-stack-hosted-45cb-20261103/classic-caller-box.patch
 dabfaa911fc2b6c0c9f4f010c05181ed9b73ef157ae5e0dd49760f2a39a2cde9  docs/evidence/client/live-stack-hosted-45cb-20261103/classic-only.patch
-fb2e6e7e5e36a090777844fcc2be463cd717eb7ef7773243e36e178798ad556c  docs/evidence/client/live-stack-hosted-45cb-20261103/harness-classic-only.patch
+af0dd4c59b7ce1abb3d368a41acdc336f4fcd28af29c0b3a6f8875bbfdcc96d6  docs/evidence/client/live-stack-hosted-45cb-20261103/harness-classic-only.patch
 05e3a3da42b1a93d374fdc96b60740a3e48a30942267a2bbbfe99a6abfac0904  docs/evidence/client/live-stack-hosted-45cb-20261103/library-box-experiment.patch
 be731d5ae65140e96d25b1419a7903f3320dee173d0a07b53ed352a2b3888223  docs/evidence/client/live-stack-hosted-45cb-20261103/phase-trace-diagnostic.patch
-985a036cdb152157151f734d8bdceaa1736a30190fe1236ace4370a258ed3421  docs/evidence/client/live-stack-hosted-45cb-20261103/stack_runner.py
-9d28881cb4bf0b382e72aae4961498069d6ebc225c255db9f52b743d5c6ecac3  docs/evidence/client/live-stack-hosted-45cb-20261103/subject-pins.json
-a47b03bbf0b97d9ab8bf767872fab93692a78d0fda24e471fcf3092c5e7212d5  docs/evidence/client/live-stack-hosted-45cb-20261103/test_stack_runner.py
+d32fc6b9f4458c4b5afd98b9894cc20dbeb42a7ca8030f7c99b14628a907a950  docs/evidence/client/live-stack-hosted-45cb-20261103/runtime-stack-runner.sh
+37930deb686129be3fee460676f3b4deb42e4e3eb023b9065fb2a407e0bcb543  docs/evidence/client/live-stack-hosted-45cb-20261103/stack_runner.py
+829d3d4fd76906e670cb25e1670d366d06de9bf09fd5e6889462f814431ab192  docs/evidence/client/live-stack-hosted-45cb-20261103/subject-pins.json
+bc846ab4e1acf29fe10c894b504444641c72b86fac3487f374ab13931de4e016  docs/evidence/client/live-stack-hosted-45cb-20261103/test_stack_runner.py

@@ -19,7 +19,7 @@ jobs:
   qualify:
     name: Frozen AddPartitions candidate (stable Rust, x86_64)
     runs-on: ubuntu-24.04
-    timeout-minutes: 120
+    timeout-minutes: 300
     env:
       CARGO_BUILD_JOBS: '2'
       CARGO_INCREMENTAL: '0'
@@ -27,11 +27,13 @@ jobs:
       CARGO_PROFILE_TEST_DEBUG: '0'
       CARGO_TERM_COLOR: never
       PYTHONDONTWRITEBYTECODE: '1'
-      EVIDENCE_OUTPUT: ${{ runner.temp }}/add-partitions-qualification
     steps:
       - name: Initialize failure evidence
+        timeout-minutes: 2
         run: |
           set -euo pipefail
+          export EVIDENCE_OUTPUT="$RUNNER_TEMP/add-partitions-qualification"
+          printf 'EVIDENCE_OUTPUT=%s\n' "$EVIDENCE_OUTPUT" >> "$GITHUB_ENV"
           mkdir -p "$EVIDENCE_OUTPUT"
           printf 'trigger_sha=%s\nrun_id=%s\nrun_attempt=%s\nrunner_arch=%s\n' \
             "$GITHUB_SHA" "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT" "$RUNNER_ARCH" \
@@ -60,6 +62,7 @@ jobs:
           PYCODE
           python3 -B "$RUNNER_TEMP/check-add-partitions-capacity.py" initial
       - name: Checkout frozen qualification capsule from the triggering commit
+        timeout-minutes: 10
         uses: actions/checkout@v7
         with:
           ref: ${{ github.sha }}
@@ -68,8 +71,10 @@ jobs:
           sparse-checkout: |
             docs/evidence/client/add-partitions-coverage-20261103
       - name: Check capacity after capsule checkout
+        timeout-minutes: 2
         run: python3 -B "$RUNNER_TEMP/check-add-partitions-capacity.py" after-capsule
       - name: Checkout exact candidate base
+        timeout-minutes: 10
         uses: actions/checkout@v7
         with:
           ref: 45cbff24de76490594970fc962cd04e7be9fafb1
@@ -81,14 +86,18 @@ jobs:
             examples
             .cargo
       - name: Check capacity after base checkout
+        timeout-minutes: 2
         run: python3 -B "$RUNNER_TEMP/check-add-partitions-capacity.py" after-base
       - name: Install latest stable Rust
+        timeout-minutes: 10
         uses: dtolnay/rust-toolchain@stable
         with:
           components: rustfmt, clippy
       - name: Check capacity after toolchain installation
+        timeout-minutes: 2
         run: python3 -B "$RUNNER_TEMP/check-add-partitions-capacity.py" after-toolchain
       - name: Verify and run the pinned qualification runner
+        timeout-minutes: 240
         shell: bash
         run: |
           set -euo pipefail
@@ -102,6 +111,7 @@ jobs:
             --witness "$capsule/witness.rs" \
             --output "$EVIDENCE_OUTPUT"
       - name: Retain all attempts and failures
+        timeout-minutes: 15
         if: always()
         uses: actions/upload-artifact@v7
         with:

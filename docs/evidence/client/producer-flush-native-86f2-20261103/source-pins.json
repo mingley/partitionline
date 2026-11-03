@@ -1,0 +1,54 @@
+{
+  "independently_applied_patched_source_sha256": "226ca81821663a3d67488dc6086607bde0722ae5bf72a163e8524457fb8ffa50",
+  "pins": [
+    {
+      "bytes": 678608,
+      "commit": "45cbff24de76490594970fc962cd04e7be9fafb1",
+      "git_blob_sha1": "45722de4b22e72c56a446b480440bf2775e6188b",
+      "path": "src/producer.rs",
+      "sha256": "4f461c00864e3da5e20925796c1f489580a4046202cffd86fefeb64cbd145a32"
+    },
+    {
+      "bytes": 679438,
+      "commit": "86f285c706645e68146737a243707953c524b89d",
+      "git_blob_sha1": "997768c28b67fd8c0f647450467e29c4f88cbf81",
+      "path": "src/producer.rs",
+      "sha256": "eb7d6067c3c1e9e1ddfc8c3c140cfc16a889da250429a884c1805f41f13e38d1"
+    },
+    {
+      "bytes": 4513,
+      "commit": "86f285c706645e68146737a243707953c524b89d",
+      "git_blob_sha1": "2c95859d0681f89659b7723f2e8cb26e1e4f675a",
+      "path": ".github/workflows/producer-flush-controls.yml",
+      "sha256": "9174af12a867ead5e5e02e3e88ecea8990a8e2af751adcc9f3b34d6153f93c46"
+    },
+    {
+      "bytes": 13360,
+      "commit": "86f285c706645e68146737a243707953c524b89d",
+      "git_blob_sha1": "b1bf9fe3a5071e1a5740b906778b2f073025dec6",
+      "path": "docs/evidence/client/producer-flush-controls-20261103/qualify.py",
+      "sha256": "346fc055e370b345d87de826731c8d3fcdeb6d8da79b776c3641adf5187311c0"
+    },
+    {
+      "bytes": 9845,
+      "commit": "86f285c706645e68146737a243707953c524b89d",
+      "git_blob_sha1": "9cc9b5b8306863097636ac6bc6829191cae431ba",
+      "path": "docs/evidence/client/producer-flush-controls-20261103/regression-controls.patch",
+      "sha256": "dcb7fa244056a3ccad7c81ba38611e5cb2157d4a7bdfbe8245cedad2cdfd0c03"
+    },
+    {
+      "bytes": 5725,
+      "commit": "86f285c706645e68146737a243707953c524b89d",
+      "git_blob_sha1": "46c5600cd99cbfef4800742cc8cd39f49f4abfda",
+      "path": "docs/evidence/client/producer-flush-controls-20261103/candidate-command-ownership.py",
+      "sha256": "34ddbf04a4bbead974fad4a451d30c7a56818248bd5b58c88c87bdfc41896da9"
+    },
+    {
+      "bytes": 8668,
+      "commit": "86f285c706645e68146737a243707953c524b89d",
+      "git_blob_sha1": "91754860f94688db2732d97fcac9f7033c6798fd",
+      "path": "docs/evidence/client/producer-flush-controls-20261103/REPORT.md",
+      "sha256": "d0f0d6d31b4ce52a420b84434a6565f2e095bfa7fc4d430cc5bf2a5350142d5b"
+    }
+  ]
+}

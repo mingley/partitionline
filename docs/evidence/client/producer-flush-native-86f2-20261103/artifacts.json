@@ -1,0 +1,23 @@
+{
+  "artifacts": [
+    {
+      "id": 13249627527,
+      "name": "producer-flush-controls-86f285c706645e68146737a243707953c524b89d-41674604362",
+      "size_in_bytes": 18943,
+      "url": "https://api.github.com/repos/mingley/partitionline/actions/artifacts/13249627527",
+      "archive_download_url": "https://api.github.com/repos/mingley/partitionline/actions/artifacts/13249627527/zip",
+      "expired": false,
+      "created_at": "2026-11-03T16:30:54Z",
+      "expires_at": "2026-12-03T16:30:54Z",
+      "updated_at": "2026-11-03T16:30:54Z",
+      "digest": "sha256:e51a183af3728e19d39a54e3c3e669b2d684939afb176daf9e65854d52eeb32a",
+      "workflow_run": {
+        "id": 41674604362,
+        "repository_id": 1342911983,
+        "head_repository_id": 1342911983,
+        "head_branch": "main",
+        "head_sha": "86f285c706645e68146737a243707953c524b89d"
+      }
+    }
+  ]
+}

@@ -236,8 +236,8 @@
       "bytes": 3018
     },
     "harness-classic-only.patch": {
-      "sha256": "fb2e6e7e5e36a090777844fcc2be463cd717eb7ef7773243e36e178798ad556c",
-      "bytes": 1700
+      "sha256": "af0dd4c59b7ce1abb3d368a41acdc336f4fcd28af29c0b3a6f8875bbfdcc96d6",
+      "bytes": 2870
     }
   },
   "known_postimages": {
@@ -247,8 +247,8 @@
         "bytes": 20216
       },
       "scripts/ci-broker-compatibility.sh": {
-        "sha256": "bfee9660d97b60901e144c77da296bf976786443fe56a176eeb1cf29974d995b",
-        "bytes": 9257
+        "sha256": "a76a0b225fe7adf3051e6d1f3c31fe28780f3176319793659a3ae6fa474d24e3",
+        "bytes": 10120
       }
     },
     "normal": {
@@ -257,8 +257,8 @@
         "bytes": 20206
       },
       "scripts/ci-broker-compatibility.sh": {
-        "sha256": "bfee9660d97b60901e144c77da296bf976786443fe56a176eeb1cf29974d995b",
-        "bytes": 9257
+        "sha256": "a76a0b225fe7adf3051e6d1f3c31fe28780f3176319793659a3ae6fa474d24e3",
+        "bytes": 10120
       }
     },
     "library_box": {
@@ -267,8 +267,8 @@
         "bytes": 20206
       },
       "scripts/ci-broker-compatibility.sh": {
-        "sha256": "bfee9660d97b60901e144c77da296bf976786443fe56a176eeb1cf29974d995b",
-        "bytes": 9257
+        "sha256": "a76a0b225fe7adf3051e6d1f3c31fe28780f3176319793659a3ae6fa474d24e3",
+        "bytes": 10120
       },
       "src/group.rs": {
         "sha256": "5a9fcfe785f771d1565eb4c45c2b01252931bdceab4ada59d08ea037bc2eaab8",
@@ -281,13 +281,17 @@
         "bytes": 20206
       },
       "scripts/ci-broker-compatibility.sh": {
-        "sha256": "bfee9660d97b60901e144c77da296bf976786443fe56a176eeb1cf29974d995b",
-        "bytes": 9257
+        "sha256": "a76a0b225fe7adf3051e6d1f3c31fe28780f3176319793659a3ae6fa474d24e3",
+        "bytes": 10120
       },
       "src/group.rs": {
         "sha256": "a35835cb2f1648f46e9f8700e77836fc64cfe2931684f13e37108cacd7ff5b0b",
         "bytes": 522570
       }
     }
+  },
+  "runtime_runner": {
+    "sha256": "d32fc6b9f4458c4b5afd98b9894cc20dbeb42a7ca8030f7c99b14628a907a950",
+    "bytes": 514
   }
 }

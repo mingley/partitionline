@@ -19,7 +19,7 @@ jobs:
   reproduce:
     name: Reproduce pinned flush failures (stable, x86_64)
     runs-on: ubuntu-24.04
-    timeout-minutes: 65
+    timeout-minutes: 135
     env:
       CARGO_BUILD_JOBS: '2'
       CARGO_INCREMENTAL: '0'
@@ -31,6 +31,7 @@ jobs:
       CARGO_TARGET_DIR: ${{ github.workspace }}/source/target
     steps:
       - name: Prepare evidence directory
+        timeout-minutes: 2
         shell: bash
         run: |
           set -o pipefail
@@ -42,6 +43,7 @@ jobs:
           } > "$RUNNER_TEMP/producer-flush-controls/runner.txt"
           python3 -c 'import json,shutil,sys; v={p:shutil.disk_usage(p).free for p in sys.argv[1:]}; print(json.dumps(v)); sys.exit(any(n < 2 * 1024**3 for n in v.values()))' "$GITHUB_WORKSPACE" "$RUNNER_TEMP" | tee -a "$RUNNER_TEMP/producer-flush-controls/runner.txt"
       - name: Checkout workflow capsule
+        timeout-minutes: 10
         uses: actions/checkout@v7
         with:
           ref: ${{ github.sha }}
@@ -51,11 +53,13 @@ jobs:
             .github/workflows
             docs/evidence/client/producer-flush-controls-20261103
       - name: Check space after capsule checkout
+        timeout-minutes: 2
         shell: bash
         run: |
           set -o pipefail
           python3 -c 'import json,shutil,sys; v={p:shutil.disk_usage(p).free for p in sys.argv[1:]}; print(json.dumps(v)); sys.exit(any(n < 2 * 1024**3 for n in v.values()))' "$GITHUB_WORKSPACE" "$RUNNER_TEMP" | tee -a "$RUNNER_TEMP/producer-flush-controls/runner.txt"
       - name: Checkout pinned source
+        timeout-minutes: 10
         uses: actions/checkout@v7
         with:
           ref: 45cbff24de76490594970fc962cd04e7be9fafb1
@@ -67,12 +71,15 @@ jobs:
             tests
             examples
       - name: Check space after source checkout
+        timeout-minutes: 2
         shell: bash
         run: |
           set -o pipefail
           python3 -c 'import json,shutil,sys; v={p:shutil.disk_usage(p).free for p in sys.argv[1:]}; print(json.dumps(v)); sys.exit(any(n < 2 * 1024**3 for n in v.values()))' "$GITHUB_WORKSPACE" "$RUNNER_TEMP" | tee -a "$RUNNER_TEMP/producer-flush-controls/runner.txt"
       - uses: dtolnay/rust-toolchain@stable
+        timeout-minutes: 10
       - name: Verify capsule, compile, and reproduce individual controls
+        timeout-minutes: 80
         shell: bash
         run: |
           set -euo pipefail
@@ -91,6 +98,7 @@ jobs:
               --output "$evidence"
           } 2>&1 | tee "$evidence/qualification.log"
       - name: Retain logs and results
+        timeout-minutes: 15
         if: always()
         uses: actions/upload-artifact@v6
         with:

@@ -1,0 +1,156 @@
+--- a/src/producer.rs
++++ b/src/producer.rs
+@@ -11518,6 +11518,153 @@
+     use super::*;
+ 
+     #[tokio::test(flavor = "current_thread")]
++    async fn worker_drain_preserves_accounting_and_delivery_ownership() {
++        for full in [false, true] {
++            let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
++            let address = listener.local_addr().unwrap().to_string();
++            let meta = BrokerConn::connect(&address, "drain-control-meta", Duration::from_secs(1))
++                .await
++                .unwrap();
++            let (_meta_peer, _) = listener.accept().await.unwrap();
++            let conn =
++                BrokerConn::connect(&address, "drain-control-worker", Duration::from_secs(1))
++                    .await
++                    .unwrap();
++            let (_worker_peer, _) = listener.accept().await.unwrap();
++            let shared = test_shared(ProducerConfig::default(), meta);
++            let (_data, data_rx) = mpsc::channel(8);
++            let (_ctrl, ctrl_rx) = mpsc::channel(8);
++            let admission = Arc::new(WorkerAdmission::for_producer(Arc::clone(&shared.closed)));
++            // Boxed-slice round trips give both vectors exactly the same actual
++            // capacity without assuming Vec::with_capacity is exact.
++            let mut pending = (0..8)
++                .map(|partition| queued("pending", Some(partition)))
++                .collect::<Vec<_>>()
++                .into_boxed_slice()
++                .into_vec();
++            pending.clear();
++            let mut spare = (0..8)
++                .map(|partition| queued("spare", Some(partition)))
++                .collect::<Vec<_>>()
++                .into_boxed_slice()
++                .into_vec();
++            spare.clear();
++            assert_eq!(pending.capacity(), spare.capacity());
++            let pending_ptr = pending.as_ptr();
++            let spare_ptr = spare.as_ptr();
++            let mut worker = Worker {
++                id: Arc::new(()),
++                admission,
++                node_id: 1,
++                throttle: shared.broker_throttle(1),
++                conn,
++                data: data_rx,
++                ctrl: ctrl_rx,
++                shared: Arc::clone(&shared),
++                write_buf: BytesMut::new(),
++                pending,
++                spare_batch: spare,
++                pending_estimate: 0,
++                earliest_deadline: None,
++                in_flight: VecDeque::new(),
++                fail: None,
++                compress_scratch: CompressScratch::default(),
++                group_scratch: ProduceGroupScratch::default(),
++                ack_index: AckIndex::default(),
++                ack_slots: Vec::new(),
++                spare_acks: Vec::new(),
++                ack_requested: HashMap::new(),
++                ack_seen: HashMap::new(),
++                ack_tracker: None,
++                _live: WorkerLease::register(&shared),
++            };
++            let start = Instant::now() + Duration::from_secs(120);
++            let mut receipts = Vec::new();
++            for (partition, value, offset) in [
++                (0, &b"a"[..], 2),
++                (1, &b"bb"[..], 0),
++                (2, &b"ccc"[..], 3),
++                (3, &b"dddd"[..], 1),
++            ] {
++                let mut record = queued("t", Some(partition));
++                record.rec.value = Some(Bytes::copy_from_slice(value));
++                record.deadline = start + Duration::from_secs(offset);
++                let (sender, receiver) = oneshot::channel();
++                record.tx = Some(sender);
++                assert!(shared.try_reserve_buffer(rec_bytes(&record.rec)));
++                receipts.push(receiver);
++                worker.push_pending(record);
++            }
++            let count = if full { 4 } else { 2 };
++            let expected_remaining_estimate: usize =
++                worker.pending.iter().skip(count).map(estimate).sum();
++            assert_eq!(worker.earliest_deadline, Some(start));
++            assert_eq!(shared.buffered_bytes.load(Ordering::SeqCst), 10);
++
++            let batch = worker.drain_pending(count).await;
++            assert_eq!(
++                batch.iter().map(|p| p.rec.partition).collect::<Vec<_>>(),
++                (0_i32..4).take(count).map(Some).collect::<Vec<_>>()
++            );
++            assert_eq!(
++                worker
++                    .pending
++                    .iter()
++                    .map(|p| p.rec.partition)
++                    .collect::<Vec<_>>(),
++                (0_i32..4).skip(count).map(Some).collect::<Vec<_>>()
++            );
++            assert_eq!(worker.pending_estimate, expected_remaining_estimate);
++            assert_eq!(
++                worker.earliest_deadline,
++                (!full).then_some(start + Duration::from_secs(1))
++            );
++            if full {
++                assert_eq!(batch.as_ptr(), pending_ptr);
++                assert_eq!(worker.pending.as_ptr(), spare_ptr);
++            } else {
++                assert_eq!(worker.pending.as_ptr(), pending_ptr);
++            }
++            assert_eq!(shared.buffered_bytes.load(Ordering::SeqCst), 10);
++            assert!(receipts
++                .iter_mut()
++                .all(|rx| matches!(rx.try_recv(), Err(oneshot::error::TryRecvError::Empty))));
++
++            fail_pendings(&shared, batch, Error::Timeout);
++            assert_eq!(
++                shared.buffered_bytes.load(Ordering::SeqCst),
++                if full { 0 } else { 7 }
++            );
++            for (index, rx) in receipts.iter_mut().enumerate() {
++                if index < count {
++                    assert!(matches!(rx.try_recv(), Ok(Err(Error::Timeout))));
++                } else {
++                    assert!(matches!(
++                        rx.try_recv(),
++                        Err(oneshot::error::TryRecvError::Empty)
++                    ));
++                }
++            }
++            if !full {
++                let rest = worker.drain_pending(2).await;
++                assert_eq!(
++                    rest.iter().map(|p| p.rec.partition).collect::<Vec<_>>(),
++                    vec![Some(2), Some(3)]
++                );
++                assert_eq!(worker.pending_estimate, 0);
++                assert_eq!(worker.earliest_deadline, None);
++                assert_eq!(shared.buffered_bytes.load(Ordering::SeqCst), 7);
++                fail_pendings(&shared, rest, Error::Timeout);
++                for rx in receipts.iter_mut().skip(2) {
++                    assert!(matches!(rx.try_recv(), Ok(Err(Error::Timeout))));
++                }
++            }
++            assert_eq!(shared.buffered_bytes.load(Ordering::SeqCst), 0);
++            assert_eq!(shared.m_errors.load(Ordering::SeqCst), 4);
++        }
++    }
++
++    #[tokio::test(flavor = "current_thread")]
+     async fn unpolled_retired_worker_is_counted_until_its_resources_drop() {
+         use tokio::io::AsyncReadExt;
+ 

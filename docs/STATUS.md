@@ -37,7 +37,8 @@ matrix.
 
 - **Producer delivery and ordering.** `flush` can miss delivery timeouts or
   return before a retiring worker hands off retries. Cancellation can also
-  consume an error without returning it. Repair the barrier and error
+  consume an error without returning it. Focused x86 tests reproduced these
+  failures in both feature profiles. Repair the barrier and error
   ownership together. Partition issue order, sequence wrap, transaction
   fencing and unresolved-batch replay need further work and independent
   histories. Use `send` for an individual delivery result; with `acks=0`, a

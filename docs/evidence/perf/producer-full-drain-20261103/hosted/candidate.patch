@@ -1,0 +1,134 @@
+--- a/src/producer.rs
++++ b/src/producer.rs
+@@ -9395,7 +9395,12 @@
+ fn fill_spare(spare: &mut Vec<Pending>, pending: &mut Vec<Pending>, n: usize) -> Vec<Pending> {
+     let mut batch = std::mem::take(spare);
+     batch.clear();
+-    batch.extend(pending.drain(..n));
++    if n != 0 && n == pending.len() && batch.capacity() == pending.capacity() {
++        // Transfer the whole allocation when both sides retain their capacity.
++        std::mem::swap(&mut batch, pending);
++    } else {
++        batch.extend(pending.drain(..n));
++    }
+     batch
+ }
+ 
+@@ -16101,6 +16106,117 @@
+     }
+ 
+     #[test]
++    fn full_batch_drain_preserves_order_and_delivery_ownership() {
++        let mut pending = (0..8)
++            .map(|partition| queued("orders", Some(partition)))
++            .collect::<Vec<_>>()
++            .into_boxed_slice()
++            .into_vec();
++        pending.truncate(4);
++        let mut spare = (0..8)
++            .map(|partition| queued("unused", Some(partition)))
++            .collect::<Vec<_>>()
++            .into_boxed_slice()
++            .into_vec();
++        spare.clear();
++        let mut receivers = Vec::new();
++        for record in &mut pending {
++            let (result, receiver) = oneshot::channel();
++            record.tx = Some(result);
++            receivers.push(receiver);
++        }
++        let queue_capacity = pending.capacity();
++        let spare_capacity = spare.capacity();
++        let pending_ptr = pending.as_ptr();
++        let spare_ptr = spare.as_ptr();
++
++        let batch = fill_spare(&mut spare, &mut pending, 4);
++
++        assert_eq!(queue_capacity, spare_capacity);
++        assert_eq!(batch.as_ptr(), pending_ptr);
++        assert_eq!(pending.as_ptr(), spare_ptr);
++        assert_eq!(batch.capacity(), spare_capacity);
++        assert_eq!(pending.capacity(), queue_capacity);
++        assert!(pending.is_empty());
++        assert!(spare.is_empty());
++        assert_eq!(spare.capacity(), 0);
++        assert_eq!(
++            batch
++                .iter()
++                .map(|item| item.rec.partition)
++                .collect::<Vec<_>>(),
++            vec![Some(0), Some(1), Some(2), Some(3)]
++        );
++        for receiver in &mut receivers {
++            assert!(matches!(
++                receiver.try_recv(),
++                Err(oneshot::error::TryRecvError::Empty)
++            ));
++        }
++        drop(batch);
++        for mut receiver in receivers {
++            assert!(matches!(
++                receiver.try_recv(),
++                Err(oneshot::error::TryRecvError::Closed)
++            ));
++        }
++    }
++
++    #[test]
++    fn other_batch_drains_preserve_queue_storage_and_order() {
++        for scenario in 0..4 {
++            let (mut pending, mut spare, count) = match scenario {
++                0 => (Vec::with_capacity(8), Vec::with_capacity(8), 0),
++                1 => (Vec::with_capacity(8), Vec::with_capacity(8), 2),
++                2 => {
++                    let spare: Vec<Pending> = Vec::with_capacity(4);
++                    let pending = Vec::with_capacity(spare.capacity().saturating_add(1));
++                    (pending, spare, 4)
++                }
++                _ => {
++                    let pending: Vec<Pending> = Vec::with_capacity(4);
++                    let spare = Vec::with_capacity(pending.capacity().saturating_add(1));
++                    (pending, spare, 4)
++                }
++            };
++            pending.extend((0..4).map(|partition| queued("orders", Some(partition))));
++            let pending_ptr = pending.as_ptr();
++            let capacity = pending.capacity();
++            if count == 4 {
++                assert_ne!(pending.capacity(), spare.capacity());
++            }
++
++            let batch = fill_spare(&mut spare, &mut pending, count);
++
++            assert_eq!(pending.as_ptr(), pending_ptr);
++            assert_eq!(pending.capacity(), capacity);
++            assert!(spare.is_empty());
++            assert_eq!(
++                batch
++                    .iter()
++                    .map(|item| item.rec.partition)
++                    .collect::<Vec<_>>(),
++                (0_i32..4).take(count).map(Some).collect::<Vec<_>>()
++            );
++            assert_eq!(
++                pending
++                    .iter()
++                    .map(|item| item.rec.partition)
++                    .collect::<Vec<_>>(),
++                (0_i32..4).skip(count).map(Some).collect::<Vec<_>>()
++            );
++        }
++    }
++
++    #[test]
++    #[should_panic]
++    fn batch_drain_rejects_a_count_beyond_the_pending_length() {
++        let mut pending = vec![queued("orders", Some(0))];
++        let mut spare = Vec::with_capacity(1);
++        let _ = fill_spare(&mut spare, &mut pending, 2);
++    }
++
++    #[test]
+     fn one_topic_produce_groups_share_its_allocation() {
+         let mut scratch = ProduceGroupScratch::default();
+         let mut batch = vec![

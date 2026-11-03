@@ -19,19 +19,20 @@ jobs:
   qualify:
     name: controller queue (stable, Linux x86_64)
     runs-on: ubuntu-latest
-    timeout-minutes: 150
+    timeout-minutes: 260
     env:
       CARGO_BUILD_JOBS: '1'
       CARGO_INCREMENTAL: '0'
       CARGO_PROFILE_DEV_DEBUG: '0'
       CARGO_PROFILE_TEST_DEBUG: '0'
       CARGO_TERM_COLOR: never
-      CARGO_HOME: ${{ runner.temp }}/controller-queue-cargo-home
-      TMPDIR: ${{ runner.temp }}
       PYTHONDONTWRITEBYTECODE: '1'
     steps:
       - name: Initialize evidence and check disk
+        timeout-minutes: 2
         run: |
+          printf 'CARGO_HOME=%s/controller-queue-cargo-home\n' "$RUNNER_TEMP" >> "$GITHUB_ENV"
+          printf 'TMPDIR=%s\n' "$RUNNER_TEMP" >> "$GITHUB_ENV"
           mkdir -p "$RUNNER_TEMP/controller-queue-bootstrap"
           python3 -B - <<'PY' > "$RUNNER_TEMP/controller-queue-bootstrap/preflight.log" 2>&1
           import os, platform, shutil
@@ -42,12 +43,14 @@ jobs:
               raise SystemExit('host or disk preflight failed')
           PY
       - uses: actions/checkout@v7
+        timeout-minutes: 15
         with:
           fetch-depth: 1
           filter: blob:none
           sparse-checkout: docs/evidence/broker/controller-queue-capacity-candidate-20261103
           sparse-checkout-cone-mode: true
       - name: Check space after sparse checkout
+        timeout-minutes: 2
         run: |
           python3 -B - <<'PY'
           import os, shutil
@@ -57,9 +60,11 @@ jobs:
               raise SystemExit('insufficient disk after checkout')
           PY
       - uses: dtolnay/rust-toolchain@stable
+        timeout-minutes: 15
         with:
           components: rustfmt, clippy
       - name: Verify capsule and source-only controls
+        timeout-minutes: 10
         run: |
           set -euo pipefail
           python3 -B - <<'PY'
@@ -87,9 +92,11 @@ jobs:
           PY
           python3 -B docs/evidence/broker/controller-queue-capacity-candidate-20261103/test-static.py 2>&1 | tee "$RUNNER_TEMP/controller-queue-bootstrap/static.log"
       - name: Qualify pinned broker source
+        timeout-minutes: 180
         run: |
           python3 -B docs/evidence/broker/controller-queue-capacity-candidate-20261103/qualify.py --output "$RUNNER_TEMP/controller-queue-qualification"
       - name: Retain reports, logs and inputs
+        timeout-minutes: 20
         if: always()
         uses: actions/upload-artifact@v6
         with:

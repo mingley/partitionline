@@ -1,0 +1,52 @@
+{
+  "source_commit": "45cbff24de76490594970fc962cd04e7be9fafb1",
+  "case": "normal",
+  "diagnostic_only": true,
+  "original_live_test_modified_to_stop_after_classic_join": true,
+  "stack_environment": null,
+  "outcome": "stack_overflow_reported",
+  "manifest": {
+    "sha256": "9d28881cb4bf0b382e72aae4961498069d6ebc225c255db9f52b743d5c6ecac3",
+    "bytes": 10245
+  },
+  "patches": {
+    "harness-classic-only.patch": {
+      "sha256": "fb2e6e7e5e36a090777844fcc2be463cd717eb7ef7773243e36e178798ad556c",
+      "bytes": 1700
+    },
+    "classic-only.patch": {
+      "sha256": "dabfaa911fc2b6c0c9f4f010c05181ed9b73ef157ae5e0dd49760f2a39a2cde9",
+      "bytes": 631
+    }
+  },
+  "local_diagnostic_commit": "2947a5e36d5d6df8ff313198091e187f6013dbca",
+  "process_cleanup": {
+    "leader_pid": 2912,
+    "leader_waited": true,
+    "reaped_descendants": [],
+    "remaining_descendants": [],
+    "observed_session_members": [
+      {
+        "pid": 2912,
+        "state": "Z",
+        "ppid": 2749,
+        "pgrp": 2912,
+        "session": 2912,
+        "start": 3092
+      }
+    ],
+    "descendants_present_at_close": [],
+    "leader_exit": 101
+  },
+  "containers_removed_by_supervisor": [],
+  "test_binary_after_exit": {
+    "name": "broker_compatibility-544cc59927fc2ad7",
+    "sha256": "0602bcd40eaf4c2f56aed4048dbfa642211efc2be3941c9b3a49426829a3d790",
+    "bytes": 35518536
+  },
+  "exit_code": 101,
+  "stop_reason": "completed",
+  "wall_seconds": 65.65,
+  "qualifying_full_compatibility": false,
+  "performance_measurement": false
+}

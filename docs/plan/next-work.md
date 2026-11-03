@@ -83,6 +83,10 @@ found that its configured queue budget does not cover both retained vectors.
 A [candidate and hosted controls](../evidence/broker/controller-queue-capacity-candidate-20261103/README.md)
 bound queued input capacities but have not run natively. Natural pipelined TCP,
 busy-actor cancellation, total process memory and performance remain open.
+The [first hosted attempt](https://github.com/mingley/partitionline/actions/runs/41674601318)
+failed before starting a job. Its job-level environment used a runner context,
+which GitHub does not allow there. The workflow has been corrected; its retry
+must still be checked.
 The source-reviewed [controller shutdown candidate](../evidence/broker/controller-shutdown-20261103/README.md)
 now has a [hosted qualification capsule](../evidence/broker/candidate-20261030/controller-join-v2-r1/README.md).
 Its [hosted job](../evidence/broker/controller-join-native-664b-20261103/README.md)
@@ -126,12 +130,17 @@ remain open.
    [coverage candidate](../evidence/client/add-partitions-coverage-20261103/README.md)
    checks request identities and error precedence; it is not applied or
    natively tested. Concurrent transaction ordering and request-side
-   cancellation remain open even if its focused controls pass.
+   cancellation remain open even if its focused controls pass. The
+   [first hosted attempt](https://github.com/mingley/partitionline/actions/runs/41674599283)
+   failed before starting a job and used the same unsupported workflow context;
+   the corrected retry still needs review.
    Source review found that `flush` can miss delivery timeouts, lose a worker
    error when its caller is cancelled, or return before a retiring worker has
-   handed retries off. The [source review and controls](../evidence/client/producer-flush-controls-20261103/REPORT.md)
-   describe the ownership transitions. Repair the barrier and error ownership
-   together; these findings have not yet been reproduced natively.
+   handed retries off. Four focused controls [reproduced these failures](../evidence/client/producer-flush-native-86f2-20261103/README.md)
+   in both feature profiles on the pinned base. The
+   [source review](../evidence/client/producer-flush-controls-20261103/REPORT.md)
+   describes the ownership transitions. Repair the barrier and error ownership
+   together; the controls do not cover every lifecycle path.
 
 2. **Consumer delivery and isolation.** Topic recreation still fails one
    ownership control. Cancellation and mixed-error recovery must preserve
@@ -156,9 +165,15 @@ remain open.
    live compatibility test aborts with stack overflow. The [stack investigation](../evidence/client/live-compat-stack-2645-20261103/README.md)
    records the available phase evidence and unrun diagnostic experiments;
    the overflowing frame and a fix are not established. A separate
-   [classic-join diagnostic](../evidence/client/live-stack-hosted-45cb-20261103/README.md)
-   is prepared for x86; its shortened caller cannot qualify the unchanged
-   compatibility test and has not yet run. Classic JoinGroup can
+   [classic-join diagnostic](../evidence/client/live-stack-native-86f2-20261103/REPORT.md)
+   ran once per arm on x86 with a shortened caller. Normal and caller-boxed
+   tests overflowed; the 8 MiB and library-boxed cases returned. The 2 MiB
+   setting affected rustc and failed during compilation, so it provides no
+   runtime result. The trace overflowed after entering the classic connection
+   path but before the next marker. None qualifies the unchanged compatibility
+   test or proves the cause. The [revised diagnostic](../evidence/client/live-stack-hosted-45cb-20261103/README.md)
+   confines stack overrides to the test process and still needs a hosted run.
+   Classic JoinGroup can
    return a transient coordinator error after only one rediscovery retry;
    its bounded retry loop still needs controls.
 
@@ -398,6 +413,10 @@ crash safety and durability. Neither has a measured end-to-end speedup yet.
 The [queue candidate](../evidence/perf/producer-pending-20261102/README.md)
 skips certain deadline scans, but still needs native tests and benchmarking.
 It does not remove vector prefix shifts.
+An isolated [full-drain candidate](../evidence/perf/producer-full-drain-20261103/hosted/README.md)
+transfers matching-capacity vectors instead of copying a complete batch. Its
+correctness-gated x86 null-broker comparison has not run, and it does not
+address partial drains or establish Kafka performance.
 A [paired queue microbenchmark prototype](../evidence/perf/pending-queue-v16-20261103/README.md)
 has source review. Its [v17 rebind](../evidence/perf/pending-queue-v17-20261103/README.md)
 remains uncompiled and inactive until the case 23 baseline witness is repaired

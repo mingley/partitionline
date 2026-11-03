@@ -1,0 +1,90 @@
+name: producer-full-drain-diagnostic
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/producer-full-drain.yml
+      - docs/evidence/perf/producer-full-drain-20261103/**
+
+permissions:
+  contents: read
+
+jobs:
+  paired-x86:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - name: Create evidence directory and check initial space
+        timeout-minutes: 2
+        shell: bash
+        run: |
+          mkdir -p "$RUNNER_TEMP/full-drain-results"
+          date -u > "$RUNNER_TEMP/full-drain-results/started-utc.txt"
+          date +%s > "$RUNNER_TEMP/full-drain-results/started-unix.txt"
+          cat > "$RUNNER_TEMP/full-drain-results/space-check.py" <<'PY'
+          import json, os, shutil, sys
+          from pathlib import Path
+          home = Path(os.environ['HOME'])
+          paths = [Path(os.environ['GITHUB_WORKSPACE']), Path(os.environ['RUNNER_TEMP']), home,
+                   Path(os.environ.get('TMPDIR', '/tmp')), Path(os.environ.get('CARGO_HOME', home / '.cargo')),
+                   Path(os.environ.get('RUSTUP_HOME', home / '.rustup'))]
+          snapshot = {}
+          for path in paths:
+              while not path.exists() and path != path.parent:
+                  path = path.parent
+              snapshot[str(path.resolve())] = shutil.disk_usage(path).free
+          record = {'stage': sys.argv[1], 'free_bytes': snapshot, 'stop_bytes': 2 * 1024**3}
+          out = Path(os.environ['RUNNER_TEMP']) / 'full-drain-results' / 'setup-space.jsonl'
+          with out.open('a') as f:
+              f.write(json.dumps(record, sort_keys=True) + '\n')
+          if min(snapshot.values()) < record['stop_bytes']:
+              raise SystemExit('setup stopped: free space below 2 GiB')
+          PY
+          python3 -B "$RUNNER_TEMP/full-drain-results/space-check.py" before_checkout
+      - uses: actions/checkout@v7
+        timeout-minutes: 20
+        with:
+          fetch-depth: 1
+          sparse-checkout: |
+            docs/evidence/perf/producer-full-drain-20261103/hosted
+      - name: Check space after checkout
+        timeout-minutes: 2
+        run: python3 -B "$RUNNER_TEMP/full-drain-results/space-check.py" after_checkout
+      - uses: actions/setup-python@v6
+        timeout-minutes: 15
+        with:
+          python-version: '3.12'
+      - name: Check space after Python setup
+        timeout-minutes: 2
+        run: python3 -B "$RUNNER_TEMP/full-drain-results/space-check.py" after_python
+      - uses: dtolnay/rust-toolchain@stable
+        timeout-minutes: 20
+        with:
+          components: rustfmt, clippy
+      - name: Check space after Rust setup
+        timeout-minutes: 2
+        run: python3 -B "$RUNNER_TEMP/full-drain-results/space-check.py" after_rust
+      - name: Check orchestration and result controls
+        timeout-minutes: 5
+        run: python3 -B -m unittest discover -s docs/evidence/perf/producer-full-drain-20261103/hosted -p 'test_harness.py' -v
+      - name: Check space after orchestration controls
+        timeout-minutes: 2
+        run: python3 -B "$RUNNER_TEMP/full-drain-results/space-check.py" after_self_tests
+      - name: Run correctness-gated baseline and candidate
+        timeout-minutes: 160
+        run: >-
+          python3 -B docs/evidence/perf/producer-full-drain-20261103/hosted/run.py
+          --repo "$GITHUB_WORKSPACE"
+          --work "$RUNNER_TEMP/full-drain-work"
+          --out "$RUNNER_TEMP/full-drain-results"
+      - name: Retain raw results even on failure
+        if: always()
+        timeout-minutes: 20
+        uses: actions/upload-artifact@v7
+        with:
+          name: producer-full-drain-x86-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/full-drain-results
+          if-no-files-found: error
+          retention-days: 30

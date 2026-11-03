@@ -1,0 +1,38 @@
+{
+  "artifacts_inaccessible": [],
+  "conclusion": "failure",
+  "jobs": {
+    "caller_box": {
+      "conclusion": "failure",
+      "id": 126051743831
+    },
+    "library_box": {
+      "conclusion": "success",
+      "id": 126051744507
+    },
+    "normal": {
+      "conclusion": "failure",
+      "id": 126051744315
+    },
+    "phase_trace": {
+      "conclusion": "failure",
+      "id": 126051744522
+    },
+    "stack_2m": {
+      "conclusion": "failure",
+      "id": 126051744232
+    },
+    "stack_8m": {
+      "conclusion": "success",
+      "id": 126051744476
+    }
+  },
+  "repository": "mingley/partitionline",
+  "run_attempt": 1,
+  "run_id": 41674604055,
+  "status": "completed",
+  "subject_sha": "45cbff24de76490594970fc962cd04e7be9fafb1",
+  "updated_at_utc": "2026-11-03T16:34:02Z",
+  "workflow": "Classic group stack diagnostic",
+  "workflow_sha": "86f285c706645e68146737a243707953c524b89d"
+}
