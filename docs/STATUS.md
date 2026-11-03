@@ -41,7 +41,9 @@ matrix.
   these failures in both feature profiles. Repair the barrier and error
   ownership together. Partition issue order, sequence wrap, transaction
   fencing and unresolved-batch replay need further work and independent
-  histories. Use `send` for an individual delivery result; with `acks=0`, a
+  histories. A [transaction-response candidate][txn] passed focused mock
+  tests; real-broker and concurrency coverage remain open. Use `send` for an
+  individual delivery result; with `acks=0`, a
   successful result only confirms the local write.
 - **Consumer and group correctness.** Resolve the classic-join stack overflow,
   group retry and topic-recreation failures, and cancellation across buffered
@@ -67,6 +69,7 @@ The [support matrix](support.md) describes configured coverage, and the
 [release guide](RELEASE.md) lists publication gates. No new release is ready.
 
 [ci]: https://github.com/mingley/partitionline/blob/399b349504a95fe5c4672f46d7f99c27bc978e6b/docs/evidence/releases/main-ci-45cb-20261103/README.md
-[next]: https://github.com/mingley/partitionline/blob/e980829c439aa43edc01312c91838e58a412221a/docs/plan/next-work.md
+[next]: https://github.com/mingley/partitionline/blob/49ad56c6bce1366e2357c272f11c5c34160d60da/docs/plan/next-work.md
 [previous]: https://github.com/mingley/partitionline/blob/5c2a000639d9a8a7dccd56e8c1d6f3a58dca1601/docs/STATUS.md
 [flush]: https://github.com/mingley/partitionline/blob/e980829c439aa43edc01312c91838e58a412221a/docs/evidence/client/producer-flush-native-86f2-20261103/README.md
+[txn]: https://github.com/mingley/partitionline/blob/49ad56c6bce1366e2357c272f11c5c34160d60da/docs/evidence/client/add-partitions-native-4f0c-20261103/README.md
