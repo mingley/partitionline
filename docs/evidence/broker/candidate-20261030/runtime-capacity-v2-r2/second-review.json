@@ -1,0 +1,26 @@
+{
+  "scope": "Independent source-only review of broker runtime proposal Vec-capacity admission v2",
+  "verdict": "No additional source blocker found in this limited scope; hosted compiler, strict lint and runtime/WAL controls must pass before qualification.",
+  "patch_sha256": "7f36df7c94bfd5265c5586c8a2749d3180f5e7da0534e053848154b3cdbdfbab",
+  "author_manifest_sha256": "a071d729fd51d67498625cdea1198c1669d2b1fdd5fc0bf7f58bfa552f4dacd2",
+  "v1_to_v2_delta_sha256": "a4dfedd26dff847c89d9b1e162e3d929316eba2a8da2717997eac293540c6fb9",
+  "source_preimage_sha256": "a0c136fcc728cfc4580ef30b2ca3fa964f32329f65fce301ef70985dfcd91754",
+  "source_postimage_sha256": "38c50bcd93e5dea91d10264c984fef1a5bfe9e4e33686a5ec64c03ae7945b66d",
+  "source_commit": "6fa8cdb3588d884580d01331e44df657c02f7670",
+  "checks": [
+    "Confirmed the preimage also matches git show at the pinned commit, exact v2 patch forward/reverse reconstruction and byte hashes.",
+    "V1 failed rustfmt; independently formatted v1 and v2 normalize to identical v2 bytes, and v2 rustfmt --check passes.",
+    "The shared helper uses exactly the original max(frame_bytes, fetch_bytes, controller_request_bytes) expression both in the configured command-envelope calculation and proposal capacity validation.",
+    "Source shows the existing nonempty/record-length guard remains and the new capacity guard executes before constructing or admitting the Command. A Vec at or below the existing accounted payload ceiling is moved through the helper and into Command without a clone/shrink/copy at admission.",
+    "The new controls propose saturating all public client permits, assert InvalidConfig with zero newly constructed admission/command owner peaks, and compare last position, durable-operation counters and complete bounded metadata WAL bytes; no runtime test was executed.",
+    "The positive control intentionally supplies a Vec with capacity above record_bytes but within the existing command ceiling, elects a single-voter leader, and asserts a successful append. The direct helper test checks pointer/capacity preservation."
+  ],
+  "compatibility": "Inputs with valid length but capacity above the command payload ceiling newly return Error::InvalidConfig before admission; invalid input retains its pre-admission precedence even when a runtime is stopped or busy. No new error variant is added. Vec capacity within the ceiling is not narrowed to record_bytes.",
+  "limitations": [
+    "No Rust compiler, Cargo, Clippy, native tests, network, benchmark or publication performed; proposed test behavior remains unobserved.",
+    "The WAL control compares metadata.wal bytes and election durable-state counts, not the exact election.wal bytes; admission gauges and a saturated semaphore additionally witness the intended pre-admission boundary if the test runs.",
+    "The negative check is performed before leader election; its permit and owner witnesses are essential to distinguishing early rejection from a follower NotLeader result.",
+    "Caller-owned unpolled or admission-waiting futures can retain an arbitrary aggregate number of individually allowed vectors, and returned outputs are caller-owned; this change does not bound those allocations, allocator overhead, kernel buffers or RSS.",
+    "The separate standalone ControllerHandler request/spare queue capacity gap is not fixed by this patch."
+  ]
+}

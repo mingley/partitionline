@@ -1,0 +1,7 @@
+{
+  "archive_sha256": "35d1718b9ca85274ce4e1f13acee78306dbf0ecbcbc7ace6dbb1e5ffb1d162c5",
+  "members": 21,
+  "manifest_sha256": "8e90cbd3f103a4959fe3995795ec9311e22d583c741e21c19616d9471bb1ad6d",
+  "review_sha256": "0c697edbe2ccbec1890a3c50e5e0fe5a76398bf101652e2d7a9e6d746aaa3475",
+  "scope": "inactive source-only v16 rebind; no native execution"
+}

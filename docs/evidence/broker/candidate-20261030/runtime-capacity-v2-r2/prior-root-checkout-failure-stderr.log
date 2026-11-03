@@ -1,0 +1,18 @@
+test_sparse_roundtrip_and_unchanged_test_bodies (__main__.Controls.test_sparse_roundtrip_and_unchanged_test_bodies) ... FAIL
+
+======================================================================
+FAIL: test_sparse_roundtrip_and_unchanged_test_bodies (__main__.Controls.test_sparse_roundtrip_and_unchanged_test_bodies)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/partitionline/docs/evidence/broker/candidate-20261030/runtime-capacity-v2/test_static.py", line 60, in test_sparse_roundtrip_and_unchanged_test_bodies
+    apply('runtime-capacity-v2.patch');fixed=path.read_text();self.assertEqual(qualify.sha(path),self.spec['fixed_runtime']['sha256'])
+                                                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'a0c136fcc728cfc4580ef30b2ca3fa964f32329f65fce301ef70985dfcd91754' != '38c50bcd93e5dea91d10264c984fef1a5bfe9e4e33686a5ec64c03ae7945b66d'
+- a0c136fcc728cfc4580ef30b2ca3fa964f32329f65fce301ef70985dfcd91754
++ 38c50bcd93e5dea91d10264c984fef1a5bfe9e4e33686a5ec64c03ae7945b66d
+
+
+----------------------------------------------------------------------
+Ran 1 test in 0.279s
+
+FAILED (failures=1)

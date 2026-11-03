@@ -1,0 +1,34 @@
+{
+  "decision": "pass source-only review of hosted qualification candidate; execution remains required",
+  "manifest_sha256": "3f45ddf4a00ae9fd6a547fca5efaadd5d6ca8322a4089a39c773a8dc5c5f0694",
+  "base_commit": "6fa8cdb3588d884580d01331e44df657c02f7670",
+  "spec_sha256": "a467ffefd723efcc32a8b810af41fa7a91f3ce83b4dfdd5485c11b5102df3749",
+  "qualifier_sha256": "9041bbb89a617fa3cee52810157a17bdae0f2e0e33a613fbc8ae52c30e78f7de",
+  "workflow_patch_sha256": "098f294343908f2484f3446ee2bb00d9c1de5a33b2b54c6b88922719a2b5913c",
+  "baseline_patch_sha256": "6afdede75442559066cbce44f5e8668f729c9853c46eb1b30fd73abe41a8ebac",
+  "fixed_patch_sha256": "7f36df7c94bfd5265c5586c8a2749d3180f5e7da0534e053848154b3cdbdfbab",
+  "source_review_sha256": "edba22ee43d3fd516a83df6c6b3964fb5efec377408e3a4cd7d61e70bfdd7dbf",
+  "checks": {
+    "all_manifest_asset_hashes_and_sizes_match": true,
+    "source_archive_all_5982_files_modes_match_git_tree": true,
+    "baseline_overlay_production_unchanged_and_fixed_test_module_exact": true,
+    "baseline_and_fixed_patch_forward_reverse_exact": true,
+    "baseline_expected_panic_source_line": 5174,
+    "workflow_patch_forward_reverse_exact_on_current_base": true,
+    "in_memory_verified_loader_runs_exactly_5_tests_without_skips": true,
+    "loader_checks_zero_skips_failures_expected_failures_and_bad_count": true,
+    "candidate_concurrency_group_distinct_from_broker_workflow_and_no_cancel": true,
+    "previous_broker_gate_contracts_and_thresholds_retained": true,
+    "rejected_fetch_or_readcommitted_validation_not_added": true
+  },
+  "assessment": [
+    "The baseline-only positive witness requires all permits held and Err(Deadline), while the independent fixed admission test must fail on baseline at its exact InvalidConfig assertion and pass after the reviewed patch.",
+    "Qualification requires both full >=700-pass all-target profiles, capacity and prior focused controls, filesystem controls, Fetch repeats, stale-leader exact test, inventory and 55 negatives, format, strict Clippy/docs and both doctest profiles.",
+    "Checked inputs and commands run in an isolated extracted source with pinned source hashes, modes, log/disk bounds and inherited scoped process-group cleanup. This is not a sandbox against processes deliberately changing session."
+  ],
+  "limits": [
+    "No Cargo, Rust compilation, Rust/native tests, benchmark, hosted qualification, publication, network, or root edits were performed. The five Python controls and source reconstruction were executed offline.",
+    "The baseline failure and fixed passes are required outcomes, not observed results; timer scheduling can make the witness fail closed.",
+    "No production readiness, complete memory bound or global performance conclusion; separate ControllerHandler queue-capacity issue remains unresolved."
+  ]
+}

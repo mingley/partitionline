@@ -1,0 +1,33 @@
+{
+  "scope": "source-only preparation; no Cargo, Rust compilation, native test, hosted run or benchmark",
+  "base_commit": "6fa8cdb3588d884580d01331e44df657c02f7670",
+  "base_source_count": 5982,
+  "base_source_git_tree_exact_all_files_and_modes": true,
+  "baseline_and_fixed_patch_sparse_forward_reverse_exact": true,
+  "baseline_production_prefix_byte_identical": true,
+  "reviewed_fixed_test_blocks_byte_identical_in_baseline": true,
+  "expected_negative_requires_exact_test_failure_section_and_assertion_site": true,
+  "positive_old_deadline_witness_is_separate": true,
+  "workflow_patch_forward_reverse_exact": true,
+  "workflow_yaml_parse": true,
+  "workflow_static_loader_actual_suite_count": 5,
+  "static_tests": "5 passed with no skips; see static-validation.log",
+  "tests_of_loader": [
+    "valid suite",
+    "zero tests",
+    "skipped test",
+    "failed test",
+    "expected-failure test"
+  ],
+  "runtime_capacity_patch_sha256": "7f36df7c94bfd5265c5586c8a2749d3180f5e7da0534e053848154b3cdbdfbab",
+  "source_review_sha256": "edba22ee43d3fd516a83df6c6b3964fb5efec377408e3a4cd7d61e70bfdd7dbf",
+  "second_review_sha256": "cf898c845ad4657f75703cd5af52f7e11429647c27e2c158b8af616ac0409ab1",
+  "candidate_validation_sha256": "2f51c60e0fe0cdabb23711b2f289e9f32c4d7efd94f3894e5473244680468e03",
+  "workflow_patch_sha256": "098f294343908f2484f3446ee2bb00d9c1de5a33b2b54c6b88922719a2b5913c",
+  "limits": [
+    "Expected outcomes are predictions until hosted execution.",
+    "The baseline witness requires Err(Deadline); it does not independently prove a process-wide memory bound.",
+    "No claim is made about ControllerHandler queue accounting, production readiness or performance."
+  ],
+  "expected_negative_thread_id_regression": "Retained libtest output includes a numeric thread ID; optional numeric ID accepted, invalid ID rejected."
+}

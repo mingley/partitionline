@@ -14,5 +14,6 @@ The [stored files](stored-files.json) identify the patch and logs.
 
 Libtest output is unframed, so attribution is best effort and printed failure
 text is not secret-redacted. Output bounds apply to each projection, not to the
-runner's in-memory log reads or total workflow output. The change has not yet
-run in hosted qualification.
+runner's in-memory log reads or total workflow output. The v16 hosted run printed
+the mock-test failure context, but its retained-backing projection did not
+identify the timeout phase.

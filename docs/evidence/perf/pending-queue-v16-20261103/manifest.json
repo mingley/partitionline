@@ -1,0 +1,90 @@
+{
+  "schema": 1,
+  "status": "inactive source-only candidate; independent review requested",
+  "spec_sha256": "dcca8ef98344e960ced94ef0aa560032950ce96556dab16820cffe007e3a6be2",
+  "v16_import_manifest_sha256": "327f9f05c1ab9e321951ea86d841006943ec8f93c74a5b5d960c63a68252e58c",
+  "prior_review_sha256": "70895e7fba4d801aef1fa69bf641ec59c9c78ae5aaba82795b98579cd2b3cfae",
+  "qualification_required": "same-job full v16 correctness pass before any benchmark execution or interpretation",
+  "assets": {
+    "README.md": {
+      "sha256": "2e65cfbe9c970f5091cc40f4a63af6a0f5f7f96e8de0f3b498933a7798afea1f",
+      "bytes": 6728
+    },
+    "bind_qualification.py": {
+      "sha256": "266b6983b722337b2dd04ac12004ead91eb0883573eed1437ccb5588aff99f14",
+      "bytes": 6693
+    },
+    "example.rs": {
+      "sha256": "793288a3ef20a0a3d276758f794dda5fd910f77a6af397168af691e897a9b398",
+      "bytes": 682
+    },
+    "pending_queue_bench.rs.in": {
+      "sha256": "6d89938e6c3913d46ea94d9bc1748afdba3f79dbccaa32add4de6c4adf7f2680",
+      "bytes": 7241
+    },
+    "prior-v3-independent-review.json": {
+      "sha256": "70895e7fba4d801aef1fa69bf641ec59c9c78ae5aaba82795b98579cd2b3cfae",
+      "bytes": 2101
+    },
+    "prior-v3-manifest.json": {
+      "sha256": "fe08f8444c5d76b7a7c1f3c2cc58bef922d6562fbdb5dd9196293e59cf650101",
+      "bytes": 5296
+    },
+    "prior-v3-prototype.tar.gz": {
+      "sha256": "94bbf25b0dd5f4a4bd7feb8990c02c22d08c3a98e7958f8089c91d839e15534e",
+      "bytes": 1002401
+    },
+    "queue-v2.patch.gz": {
+      "sha256": "ead40569dd695873dca6fc8cdf00ca14fd0827f6582c1f55a3a7e0d3e3689086",
+      "bytes": 7543
+    },
+    "run.py": {
+      "sha256": "ba9ed52fc9e6d35e881c4c78bf072b98eb6fe9716b52c5d143053765d0656d4e",
+      "bytes": 24311
+    },
+    "static-validation.log": {
+      "sha256": "004f307c65127b9319e8552980cf9a277a2e3f1c88389aeaf501ec1605d234db",
+      "bytes": 840
+    },
+    "test_plan.py": {
+      "sha256": "cf571756b72ced48450b78fcfb38321fa4fd14c3b44da5a79f3363a82bc029e1",
+      "bytes": 12837
+    },
+    "v10-queue-hook-inputs.json": {
+      "sha256": "b2ce51a13309731848b6f158ec17857f52554f0a5d84f10d8e79f7a934701ca3",
+      "bytes": 227122
+    },
+    "v10-queue-inputs.json": {
+      "sha256": "9906ce798409b3f5b6610b421fde1e2127b79bd0bf9e9abad302ca085843f505",
+      "bytes": 226908
+    },
+    "v10-queue-worker-initializer.rs.txt": {
+      "sha256": "c0bd6d2cb07c359be653a49db3b8cd5d9e858e85800af9649fc908a1ae32a82c",
+      "bytes": 1190
+    },
+    "v16-fixed-inputs.json": {
+      "sha256": "15da704200222b0b3b8de7d74274b9cf1fb3933a9339112c09b3467aa07868ea",
+      "bytes": 226908
+    },
+    "v16-hook-inputs.json": {
+      "sha256": "30cc3f0d1ebb6fa7f5f2b9b168a22d146b00e605eeb724d3ad7146a7d3c47d2b",
+      "bytes": 227122
+    },
+    "v16-worker-initializer.rs.txt": {
+      "sha256": "1d6ea8e54c425dfb3a068730449eacdb3920b22a1f9bd0512f0e6a14442f7a25",
+      "bytes": 1343
+    },
+    "v3-to-v16-code.patch": {
+      "sha256": "ef1151b200a75e7b24dd3d127393e64cd318ed725270bad9d1870dc19909608b",
+      "bytes": 38751
+    },
+    "validation.json": {
+      "sha256": "0f0671a327150836b7fcc0db1d59ad9ae13e294bc3b1824aa45ba9e6dcb26db1",
+      "bytes": 4248
+    },
+    "workflow-fragment.yml": {
+      "sha256": "8c84cf500b9d5676ea31d1d660f4e9639afc15132f81e115ed25a39b61991904",
+      "bytes": 2300
+    }
+  }
+}

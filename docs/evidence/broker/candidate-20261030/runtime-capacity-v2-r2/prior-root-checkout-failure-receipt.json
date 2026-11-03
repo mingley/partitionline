@@ -1,0 +1,7 @@
+{
+  "expected_failure": "patch apply skipped within checkout-owned temp tree",
+  "exit": 1,
+  "runtime_before_after_sha256": "a0c136fcc728cfc4580ef30b2ca3fa964f32329f65fce301ef70985dfcd91754",
+  "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "stderr_sha256": "b5e1056229a194e570bf23f18fe80bac06bce27c13cb2100c8a686057895eb19"
+}

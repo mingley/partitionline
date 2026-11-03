@@ -1,0 +1,30 @@
+{
+  "reviewed_receipt": "/workspace/work/controller-handler-capacity-review-20261103/receipt.json",
+  "reviewed_receipt_sha256": "ab0469b297090840dc0e60671d31d40181ae254417fe6b79cbce08cf56c74fb6",
+  "source_commit": "6fa8cdb3588d884580d01331e44df657c02f7670",
+  "source_pins_independently_verified": {
+    "partitionline-broker/src/raft/protocol.rs": "47ae96c84080813e4b81cfbfcdbe8bd45e48389c13c8562c0963dfc743137127",
+    "partitionline-broker/src/protocol.rs": "c0c81bcaba200dc27e670146fc6bf37342aadc506547ef606b597d708df5207a",
+    "partitionline-broker/src/transport.rs": "802f9923b825bdac96ea0d31663f6f3a1c1d84903c46bb16130b2eb8419a8aa2",
+    "partitionline-broker/Cargo.lock": "42eaddf993ab4dfbe99e5af9d7c1a7cd858776a214eedbd6112de6a146933a2c"
+  },
+  "findings_agree": {
+    "queue": "Q*L is the current numerical configuration check, not a cap on the two retained Vec capacities in each queued ControllerJob.",
+    "arithmetic": "Q=2/L=1024 allows budget 2048 bytes; Q jobs with both Vec capacities at least L occupy at least 4096 bytes. Defaults Q=64/L=8 MiB give 512 MiB versus at least 1 GiB.",
+    "lifetimes": "One active owner is additional to Q queued jobs; successful oneshot replies can retain response/request allocations in caller futures after the queue drains. Caller-owned unpolled futures and transport buffers are separately scoped.",
+    "network": "The source allows direct callers to provide large capacities; no remotely triggerable allocation size or exploit has been demonstrated."
+  },
+  "test_design_review": {
+    "status": "plausible source-only design, not executed",
+    "details": [
+      "A unit test within protocol.rs can create a handler around a test-owned bounded receiver and poll submit once, leaving its oneshot pending while inspecting queued ControllerJob buffers.",
+      "For the two-buffer Q*L check, enqueue Q jobs first, then drain and retain them together while inspecting their actual Vec capacities and pointers.",
+      "Add both-sum and individual-overcapacity controls, queue-full/stopped/error precedence, checked arithmetic, response/reuse behavior, and a separately gated real-actor journal comparison.",
+      "No approach that only caps each vector independently at L establishes a Q*L queue-capacity bound."
+    ]
+  },
+  "limits": [
+    "No Rust compilation, native test, actor/WAL execution, real network, benchmark or publication.",
+    "This validates a source finding and a test design; no fix or production-readiness claim is established."
+  ]
+}

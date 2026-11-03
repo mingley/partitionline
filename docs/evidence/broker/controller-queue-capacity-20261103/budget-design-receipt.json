@@ -1,0 +1,33 @@
+{
+  "scope": "Source-only ControllerHandler combined queued input capacity policy design; no implementation",
+  "source_commit": "6fa8cdb3588d884580d01331e44df657c02f7670",
+  "source_pins": {
+    "partitionline-broker/src/raft/protocol.rs": "47ae96c84080813e4b81cfbfcdbe8bd45e48389c13c8562c0963dfc743137127",
+    "partitionline-broker/src/protocol.rs": "c0c81bcaba200dc27e670146fc6bf37342aadc506547ef606b597d708df5207a",
+    "partitionline-broker/src/transport.rs": "802f9923b825bdac96ea0d31663f6f3a1c1d84903c46bb16130b2eb8419a8aa2",
+    "partitionline-broker/Cargo.lock": "42eaddf993ab4dfbe99e5af9d7c1a7cd858776a214eedbd6112de6a146933a2c"
+  },
+  "tokio_bounded_mpsc_sha256": "f229ccaa6711bffb17d8021dade6405d17595d5f64dac2f03107c05a4cc381f2",
+  "prior_source_finding_sha256": "ab0469b297090840dc0e60671d31d40181ae254417fe6b79cbce08cf56c74fb6",
+  "prior_independent_review_sha256": "8c8f624c4d61d4d750084b0b42fa9bf4da0fa5f308f7bde4354080eca5783f9b",
+  "proposed_policy": "After existing stopped, request-length and queue-slot checks, checked request.capacity + spare.capacity > Q*L or overflow returns existing InvalidConfig; temporary aggregate byte pressure returns Busy. Accepted buffers move without copying or forced shrink. A per-job RAII charge releases when actor removes the job or queue owner drops.",
+  "compatibility": "No new public enum variant, but some valid-length inputs previously accepted return InvalidConfig, and some jobs with free queue slots return Busy under byte pressure. Existing Error::InvalidConfig docs and method docs must state the input-capacity condition; race behavior is not established equivalent.",
+  "scope_boundary": "The proposed Q*L limit covers queued request and spare Vec capacities and transient byte charges only. Caller-owned unpolled/admission-waiting futures, pre-byte-reservation callers, the single active job, generated responses, completed reply futures, allocator/queue metadata, kernel buffers and RSS remain outside it.",
+  "checks": [
+    "Re-ran static source verifier against exact pinned repo files and Python sequential model covering error ordering, full-vs-byte pressure, exact budget, zero buffers and checked-overflow cases.",
+    "Inspected Tokio 1.53.3 try_send and try_reserve/Permit::send source, existing Controller Handler return path, tests and transport mapping of all Handler errors."
+  ],
+  "test_plan": "README lists deterministic small mailbox, concurrent accounting, cancellation/shutdown, response reuse, test-gated real election WAL and positive durable vote controls; none has been implemented or executed.",
+  "limitations": [
+    "Design only: no Rust patch, compiler, Cargo, native test, actor/WAL execution, network or benchmark.",
+    "New failure outcomes are unavoidable under the chosen bound and reuse/no-copy constraints; this is not a drop-in behavioral compatibility guarantee.",
+    "The Python model is sequential and does not establish the atomic counter, mpsc race, shutdown/cancellation or allocator behavior.",
+    "No total process bound, production-readiness or fastest-performance claim."
+  ],
+  "files": {
+    "README.md": "1ce3c6d62bc76c9270fcdce1f04266ba16ffaf4d8715a6f5ab40455732b391b8",
+    "model.py": "b0176f412c81bc6b95ad08e58b916f260d8677d0393e28ecf533cffc22ce1676",
+    "model.out": "319ff50581d80c2f3b2333a7fa290c987241ef8c53e82ae07bbd24ae1e6e2d93",
+    "verify-source.py": "5dfbb4903adee662e4570ef6118b3f3784ef81dc65580f8501ba3e6fd5658b2e"
+  }
+}

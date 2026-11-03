@@ -1,0 +1,29 @@
+{
+  "decision": "pass formatting-only static review; retains v1 review limitations",
+  "base_commit": "6fa8cdb3588d884580d01331e44df657c02f7670",
+  "v1_patch_sha256": "694ca1a8c6c748d419795553d537e58b6009878fdc505630118dee108a3351bf",
+  "v1_review_sha256": "2b5377f42194697cae9996dc23fee99a720170ee63fb8ef5d8e564ed8b50b374",
+  "v2_patch_sha256": "7f36df7c94bfd5265c5586c8a2749d3180f5e7da0534e053848154b3cdbdfbab",
+  "v2_manifest_sha256": "a071d729fd51d67498625cdea1198c1669d2b1fdd5fc0bf7f58bfa552f4dacd2",
+  "v2_from_v1_sha256": "a4dfedd26dff847c89d9b1e162e3d929316eba2a8da2717997eac293540c6fb9",
+  "before_sha256": "a0c136fcc728cfc4580ef30b2ca3fa964f32329f65fce301ef70985dfcd91754",
+  "v1_source_sha256": "ecec54a2f5ddd1dbca23fd9887d96f7f96d2aed6bf52fb75ef643a8db37c981b",
+  "v2_source_sha256": "38c50bcd93e5dea91d10264c984fef1a5bfe9e4e33686a5ec64c03ae7945b66d",
+  "checks": {
+    "base_matches_git_and_current_file": true,
+    "full_v2_patch_forward_reverse_exact": true,
+    "v1_to_v2_delta_forward_reverse_exact": true,
+    "delta_only_changes_whitespace_in_new_admission_test": true,
+    "original_and_new_test_assertions_and_deadlines_retained": true,
+    "scope_compatibility_and_bound_manifest_statements_unchanged": true
+  },
+  "observations": [
+    "Manually inspected all three diff hunks. Four atomic gauge accesses and the single-voter fixture call are line-wrapped; tokens and string literals remain unchanged.",
+    "Author reports source-only rustfmt 1.10.0-stable --check passed; this review did not independently rerun it.",
+    "The v1 capacity review remains applicable, including its explicit compatibility change, pre-admission future exclusion, and separate unresolved ControllerHandler issue."
+  ],
+  "limitations": [
+    "No Cargo, Rust compilation, Clippy, native test, benchmark, network, publication, or root modifications.",
+    "Test behavior, complete memory bounds, production readiness, and performance remain unqualified."
+  ]
+}

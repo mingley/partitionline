@@ -1,0 +1,32 @@
+{
+  "patch_sha256": "96332c4ce40f67edbefaee8fca708c3ef04d9f739002172b9316b450895a49bc",
+  "manifest_sha256": "8192e11766f55e1f9eaca86e343509e81ae44e64f52a4d7a627271fb4e6154c9",
+  "v3_to_v4_sha256": "80ddcd2f60ec6a3a3af13482828a95e76a4152552b5e58a119b436580396ffe3",
+  "patch_and_delta_roundtrip": "pass",
+  "unchanged_python_functions": 27,
+  "changed_existing_functions": [
+    "emit_test_diagnostics"
+  ],
+  "unchanged_classes": true,
+  "gating_and_raw_log_functions_unchanged": true,
+  "synthetic_before_after": {
+    "base": {
+      "source_sha256": "9fe00abe6523c05a23b01b986932491939217ea024768c82751eeec4c1ab2d44",
+      "phase_visible": false,
+      "timeout_visible": true,
+      "output_sha256": "b3ed191e7d422196411e3b3a8f07ddbf149fc39754a35d97874c625e0fe48dea"
+    },
+    "v4-frozen": {
+      "source_sha256": "f567f7456c92ce1f39e6d7b4476f3cc3300bfef9c92dd036f8cc3ef0a5514608",
+      "phase_visible": true,
+      "timeout_visible": true,
+      "output_sha256": "f380a8059482b55ef8bc1a3a79b9deb559a96756caad622ec1e0e7d3765c2ca6"
+    }
+  },
+  "limits": [
+    "The raw hosted test artifact was unavailable: Error: Timeout does not prove that the 10-second flush phase was reached or that a phase line existed.",
+    "Libtest text is unframed and may be forged; attribution is best effort and no secret redaction is claimed.",
+    "Changing the driver/test requires repinning v16 helper checks before a new qualification.",
+    "No Cargo, Rust compilation, native test, network or publication."
+  ]
+}

@@ -57,6 +57,7 @@ quorum, without replicated partition data or native Kafka KRaft.
 | Client all-feature library on `main` at that commit | 2,170 passed, 26 failed; later integration targets did not run |
 | Isolated client v10 library, each profile | 2,280 passed initially; repeat 2,279 passed, one failed |
 | Isolated client v14, 10 targets per profile | 2,431 passed, 17 failed and two ignored in each profile |
+| Isolated client v16, 10 targets per profile | 2,432 passed, 16 failed and two ignored in each profile |
 | Qualified broker v2 default all targets, `209d0b068` | 720 passed |
 | Qualified broker v2 all-feature all targets at that commit | 868 passed |
 | Broker v2 strict Clippy, docs, inventory and six repeated Fetch checks | Passed |
@@ -95,7 +96,8 @@ during leader removal and in a separate observer test, plus two `ParseIntError`
 failures. The broker
 still needs replicated partition data, authenticated network
 leadership, committed-watermark protection and transaction participant/marker
-propagation. The adopted local epoch and journal fixes have passing x86
+propagation. Runtime and controller queue memory accounting also need
+qualification. The adopted local epoch and journal fixes have passing x86
 qualification and ordinary broker CI on `b1b048809`.
 Epoch publication rewrites the file and needs another complete image on disk.
 A local log test does not establish a production cluster.
@@ -117,15 +119,15 @@ speedup yet. The required matched x86 peer comparison has not run.
 The [queue candidate][queue] needs passing native tests and a benchmark
 before its effect is known. The [first combined candidate][candidate-build]
 failed its test build because a test module omitted an import. The corrected
-v14 candidate compiled and reached its tests, but both profiles failed in
-the same three targets. See [next work][next] for the results and investigation.
+v16 candidate passed both library profiles and the revised deadline control,
+but both profiles still failed 15 Mock Produce tests and one retained-buffer
+test. See [next work][next] for the results and investigation.
 
 The [release scripts][release-gates] check API/index agreement, consumer lockfile
 identity and exact-SHA CI more strictly. The token check reports presence without
 claiming authorization. The CI checker now binds jobs and artifacts to a run
 attempt, and 122 offline release tests passed after a temporary-path fix. Live
-end-to-end attempt validation
-and the complete release gates remain open.
+end-to-end attempt validation and the complete release gates remain open.
 
 Use [next work][next] for the detailed handoff, [support](support.md) for tested
 combinations, and the [release guide](RELEASE.md) for publication gates.

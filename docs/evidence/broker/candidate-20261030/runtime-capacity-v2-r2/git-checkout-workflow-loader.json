@@ -1,0 +1,13 @@
+{
+  "scope": "Exact workflow preflight and six static controls in a clean, committed, isolated Git checkout. No Cargo or Rust execution.",
+  "git_checkout_commit": "092e8e9db7223b6d6924ff7a0f5892b7dec219d1",
+  "is_inside_work_tree": true,
+  "checkout_clean_before_after": true,
+  "scratch_base": "/tmp",
+  "static_tests": 6,
+  "tests_skipped": 0,
+  "workflow_sha256": "74796bb59fc7fb988ab2397082772cd3d6f74b723ffec0996adcaa462ca3134a",
+  "stderr_sha256": "4f80274645c25d00daca0601867b4b59607ffec899a0dad85d2ece365ba09450",
+  "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "exit": 0
+}

@@ -16,6 +16,7 @@ Client 0.1.0 is already published. The next client version must be at least
 | Client all-feature library on `main` at that commit | 2,170 passed, 26 failed; later integration targets did not run |
 | Isolated client v10 library in each profile | 2,280 passed; selected producer tests still failed |
 | Isolated client v14, 10 targets per profile | 2,431 passed, 17 failed and two ignored in each profile |
+| Isolated client v16, 10 targets per profile | 2,432 passed, 16 failed and two ignored in each profile |
 | Qualified broker v2 default all targets, `209d0b068` | 720 passed |
 | Qualified broker v2 all-feature all targets at that commit | 868 passed |
 | Broker v2 strict Clippy, docs, inventory and six fresh-process Fetch deadline checks | Passed |
@@ -55,6 +56,19 @@ the [hosted broker gate](../evidence/broker/main-ci-b1cf-20261103/REPORT.md)
 at `b1cfbfd96`.
 No long campaign is credited.
 Current-commit green CI and the complete release gates remain open.
+
+The [typed Raft attempt draft](../evidence/broker/raft-attempt-outcomes-20261103/README.md)
+needs a current-source rebase, API compatibility decision, bounded test reads
+and public Handle timeout and cancellation controls before adoption. Its review
+also identified an existing runtime proposal-buffer capacity accounting gap.
+An isolated [capacity fix candidate](../evidence/broker/candidate-20261030/runtime-capacity-v2-r2/README.md)
+has source review and a hosted qualification workflow, but its Rust tests and
+baseline outcome have not run yet. Its first harness failed inside a Git
+checkout; the corrected harness passed there. Caller-owned waiting futures
+remain outside the configured estimate.
+The separate [controller queue capacity review](../evidence/broker/controller-queue-capacity-20261103/README.md)
+found that its configured queue budget does not cover both retained vectors.
+Define and test their combined capacity and reply-lifetime accounting.
 
 ## Correctness priorities
 
@@ -195,11 +209,18 @@ failed Clippy and the default test build because a test module did not import
 same client source with reviewed release-tooling inputs, so that compilation
 error is corrected in the staged
 [v16 candidate](../evidence/client/candidate-20261030/v16/README.md), which
-retains v14's production Rust changes and needs native compilation and tests.
-It keeps 166 library and 17 integration controls, 23 baseline cases and the
-original timing limits. Its fixed-only deadline fixture now forces the
-unordered scan that its existing cancellation assertion intends to exercise;
-the unavailable v14 panic text leaves that failure's cause unconfirmed. The
+retains v14's production Rust changes, 166 library and 17 integration controls,
+23 baseline cases and the original timing limits. Its fixed-only deadline
+fixture forces the unordered scan that its cancellation assertion exercises;
+the unavailable v14 panic text leaves that earlier failure's cause unconfirmed.
+The [v16 hosted run](../evidence/client/candidate-v16-job-20261103/REPORT.md)
+passed format, strict Clippy, both builds and all 2,293 library tests in each
+profile. Each profile still failed 15 Mock Produce tests and one retained-
+backing test. The original 450 ms send-all test reported 756.0635 ms and
+756.451082 ms; these mock-test timings are not a peer benchmark. The retained-
+backing projection reported `Timeout` without identifying the phase. The
+[phase-diagnostic follow-up](../evidence/client/retained-phase-followup-20261103/README.md)
+has source review but needs updated candidate pins and a hosted rerun. The
 [v14 run](../evidence/client/candidate-v14-job-20261103/REPORT.md)
 passed format, strict Clippy and both builds, but each profile failed the same
 15 Mock Produce tests, one pending-deadline cancellation test and one
@@ -208,8 +229,9 @@ These profile counts overlap and must not be added as independent tests.
 The [mock-produce source review](../evidence/client/v14-mock-investigation-20261103/REPORT.md)
 maps the failing identities to their distinct assertions. Several expect
 reuse of a live negotiated socket, while v14 opens a new socket and negotiates
-it separately. Preserve socket-specific versions and authentication when
-designing reuse; the missing panic bodies leave individual causes unconfirmed.
+it separately. V14's panic bodies were unavailable; v16 reported handshake
+counts and latency assertions. Preserve socket-specific versions and
+authentication when designing reuse.
 The retained-backing fixture sends more than 4,096 single-record batches with
 one request in flight. Repeated vector prefix drains shift the remaining
 records; their contribution to the failure has not been measured. The reviewed
@@ -221,9 +243,9 @@ The [v13 job log](../evidence/client/candidate-job-337-20261103/REPORT.md)
 also reports failed Clippy and default builds; its compiler diagnostics and
 report archive could not be retrieved through the available transfer path.
 The [qualification runner](../evidence/client/candidate-diagnostics-20261103/README.md)
-now prints bounded failure context in the job log while retaining full reports.
-It needs a hosted run; its console projection is not an independent proof and
-is not secret-redacted.
+prints bounded failure context in the job log while retaining full reports. It
+ran on v16; its console projection is not an independent proof and is not
+secret-redacted.
 The new baseline group control failed before demonstrating its intended
 third-request barrier. Vec prefix shifts and unordered or sticky deadline
 scans remain, and no performance change is measured.
@@ -294,9 +316,9 @@ crash safety and durability. Neither has a measured end-to-end speedup yet.
 The [queue candidate](../evidence/perf/producer-pending-20261102/README.md)
 skips certain deadline scans, but still needs native tests and benchmarking.
 It does not remove vector prefix shifts.
-A [paired queue microbenchmark prototype](../evidence/perf/pending-queue-microbench-20261103/README.md)
-has source review but remains uncompiled and inactive until candidate
-correctness passes. Synthetic completions do not prove Kafka delivery.
+A [paired queue microbenchmark prototype](../evidence/perf/pending-queue-v16-20261103/README.md)
+has source review but remains uncompiled and inactive until v16 correctness
+passes in the same job. Synthetic completions do not prove Kafka delivery.
 The [supervised group coordinator draft](../evidence/client/group-coordinator-cache-20261103/README.md)
 needs its eviction, close cancellation, retry ordering and admission limits
 resolved before native qualification.

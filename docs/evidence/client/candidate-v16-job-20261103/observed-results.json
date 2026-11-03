@@ -1,0 +1,551 @@
+{
+  "baseline_expectations": {
+    "pass": 5,
+    "fail": 16,
+    "observe": 2
+  },
+  "baseline_actual_exit_codes": {
+    "0": 7,
+    "101": 16
+  },
+  "baseline": [
+    {
+      "name": "baseline-case-01",
+      "test": "producer::tests::cancelled_pending_drain_retains_accepted_records_until_worker_cleanup",
+      "target": "partitionline",
+      "expected": "pass",
+      "exit": 0,
+      "passed": 1,
+      "failed": 0,
+      "matched": true,
+      "failure_names_projection": []
+    },
+    {
+      "name": "baseline-case-02",
+      "test": "producer::tests::cancelled_pending_deadline_scan_retains_the_detached_prefix_until_worker_cleanup",
+      "target": "partitionline",
+      "expected": "pass",
+      "exit": 0,
+      "passed": 1,
+      "failed": 0,
+      "matched": true,
+      "failure_names_projection": []
+    },
+    {
+      "name": "baseline-case-03",
+      "test": "classic_join_recovers_after_repeated_typed_coordinator_responses",
+      "target": "group_coordinator_startup",
+      "expected": "fail",
+      "exit": 101,
+      "passed": 0,
+      "failed": 1,
+      "matched": true,
+      "failure_names_projection": [
+        "classic_join_recovers_after_repeated_typed_coordinator_responses"
+      ]
+    },
+    {
+      "name": "baseline-case-04",
+      "test": "classic_join_retains_a_required_member_id_across_coordinator_responses",
+      "target": "group_coordinator_startup",
+      "expected": "fail",
+      "exit": 101,
+      "passed": 0,
+      "failed": 1,
+      "matched": true,
+      "failure_names_projection": [
+        "classic_join_retains_a_required_member_id_across_coordinator_responses"
+      ]
+    },
+    {
+      "name": "baseline-case-05",
+      "test": "classic_join_returns_terminal_response_after_transient_coordinator_errors",
+      "target": "group_coordinator_startup",
+      "expected": "fail",
+      "exit": 101,
+      "passed": 0,
+      "failed": 1,
+      "matched": true,
+      "failure_names_projection": [
+        "classic_join_returns_terminal_response_after_transient_coordinator_errors"
+      ]
+    },
+    {
+      "name": "baseline-case-06",
+      "test": "persistent_join_responses_stop_at_the_original_deadline_with_backoff",
+      "target": "group_coordinator_startup",
+      "expected": "fail",
+      "exit": 101,
+      "passed": 0,
+      "failed": 1,
+      "matched": true,
+      "failure_names_projection": [
+        "persistent_join_responses_stop_at_the_original_deadline_with_backoff"
+      ]
+    },
+    {
+      "name": "baseline-case-07",
+      "test": "cancelling_a_join_after_written_coordinator_responses_stops_new_requests",
+      "target": "group_coordinator_startup",
+      "expected": "observe",
+      "exit": 0,
+      "passed": 1,
+      "failed": 0,
+      "matched": true,
+      "failure_names_projection": []
+    },
+    {
+      "name": "baseline-case-08",
+      "test": "classic_join_recovers_when_rediscovery_itself_is_still_loading",
+      "target": "group_coordinator_startup",
+      "expected": "fail",
+      "exit": 101,
+      "passed": 0,
+      "failed": 1,
+      "matched": true,
+      "failure_names_projection": [
+        "classic_join_recovers_when_rediscovery_itself_is_still_loading"
+      ]
+    },
+    {
+      "name": "baseline-case-09",
+      "test": "classic_join_returns_terminal_rediscovery_errors_without_another_join",
+      "target": "group_coordinator_startup",
+      "expected": "pass",
+      "exit": 0,
+      "passed": 1,
+      "failed": 0,
+      "matched": true,
+      "failure_names_projection": []
+    },
+    {
+      "name": "baseline-case-10",
+      "test": "classic_join_does_not_retry_terminal_authorization_or_fencing_responses",
+      "target": "group_coordinator_startup",
+      "expected": "pass",
+      "exit": 0,
+      "passed": 1,
+      "failed": 0,
+      "matched": true,
+      "failure_names_projection": []
+    },
+    {
+      "name": "baseline-case-11",
+      "test": "group::tests::delayed_first_poll_does_not_restart_the_coordinator_deadline",
+      "target": "partitionline",
+      "expected": "fail",
+      "exit": 101,
+      "passed": 0,
+      "failed": 1,
+      "matched": true,
+      "failure_names_projection": [
+        "group::tests::delayed_first_poll_does_not_restart_the_coordinator_deadline"
+      ]
+    },
+    {
+      "name": "baseline-case-12",
+      "test": "retry_refreshes_waiting_topics_together",
+      "target": "mock_produce",
+      "expected": "fail",
+      "exit": 101,
+      "passed": 0,
+      "failed": 1,
+      "matched": true,
+      "failure_names_projection": [
+        "retry_refreshes_waiting_topics_together"
+      ]
+    },
+    {
+      "name": "baseline-case-13",
+      "test": "public_group_lifecycle_fits_the_standard_two_mib_stack",
+      "target": "group_stack",
+      "expected": "observe",
+      "exit": 0,
+      "passed": 1,
+      "failed": 0,
+      "matched": true,
+      "failure_names_projection": []
+    },
+    {
+      "name": "baseline-case-14",
+      "test": "cluster::tests::declared_topic_count_does_not_allocate_duplicate_tracking",
+      "target": "partitionline",
+      "expected": "fail",
+      "exit": 101,
+      "passed": 0,
+      "failed": 1,
+      "matched": true,
+      "failure_names_projection": [
+        "cluster::tests::declared_topic_count_does_not_allocate_duplicate_tracking"
+      ]
+    },
+    {
+      "name": "baseline-case-15",
+      "test": "cluster::tests::topic_duplicate_tracking_keeps_names_across_the_heap_transition",
+      "target": "partitionline",
+      "expected": "fail",
+      "exit": 101,
+      "passed": 0,
+      "failed": 1,
+      "matched": true,
+      "failure_names_projection": [
+        "cluster::tests::topic_duplicate_tracking_keeps_names_across_the_heap_transition"
+      ]
+    },
+    {
+      "name": "baseline-case-16",
+      "test": "cluster::tests::unchanged_metadata_partitions_yield_without_discarding_the_cache",
+      "target": "partitionline",
+      "expected": "fail",
+      "exit": 101,
+      "passed": 0,
+      "failed": 1,
+      "matched": true,
+      "failure_names_projection": [
+        "cluster::tests::unchanged_metadata_partitions_yield_without_discarding_the_cache"
+      ]
+    },
+    {
+      "name": "baseline-case-17",
+      "test": "cluster::tests::unchanged_metadata_partition_budget_spans_multiple_topics",
+      "target": "partitionline",
+      "expected": "fail",
+      "exit": 101,
+      "passed": 0,
+      "failed": 1,
+      "matched": true,
+      "failure_names_projection": [
+        "cluster::tests::unchanged_metadata_partition_budget_spans_multiple_topics"
+      ]
+    },
+    {
+      "name": "baseline-case-18",
+      "test": "consumer::tests::cancelling_assigned_id_retention_keeps_all_still_assigned_identities",
+      "target": "partitionline",
+      "expected": "fail",
+      "exit": 101,
+      "passed": 0,
+      "failed": 1,
+      "matched": true,
+      "failure_names_projection": [
+        "consumer::tests::cancelling_assigned_id_retention_keeps_all_still_assigned_identities"
+      ]
+    },
+    {
+      "name": "baseline-case-19",
+      "test": "consumer::tests::retained_assigned_ids_keep_their_existing_storage",
+      "target": "partitionline",
+      "expected": "fail",
+      "exit": 101,
+      "passed": 0,
+      "failed": 1,
+      "matched": true,
+      "failure_names_projection": [
+        "consumer::tests::retained_assigned_ids_keep_their_existing_storage"
+      ]
+    },
+    {
+      "name": "baseline-case-20",
+      "test": "consumer::tests::cancelled_assigned_id_removals_can_resume_without_losing_kept_ids",
+      "target": "partitionline",
+      "expected": "pass",
+      "exit": 0,
+      "passed": 1,
+      "failed": 0,
+      "matched": true,
+      "failure_names_projection": []
+    },
+    {
+      "name": "baseline-case-21",
+      "test": "consumer::tests::retaining_many_empty_assigned_id_topics_yields",
+      "target": "partitionline",
+      "expected": "fail",
+      "exit": 101,
+      "passed": 0,
+      "failed": 1,
+      "matched": true,
+      "failure_names_projection": [
+        "consumer::tests::retaining_many_empty_assigned_id_topics_yields"
+      ]
+    },
+    {
+      "name": "baseline-case-22",
+      "test": "producer::prepare_tests::cancelled_fire_grouping_retains_actual_accepted_records",
+      "target": "partitionline",
+      "expected": "fail",
+      "exit": 101,
+      "passed": 0,
+      "failed": 1,
+      "matched": true,
+      "failure_names_projection": [
+        "producer::prepare_tests::cancelled_fire_grouping_retains_actual_accepted_records"
+      ]
+    },
+    {
+      "name": "baseline-case-23",
+      "test": "cancelling_a_join_after_two_errors_and_third_request_stops_new_requests",
+      "target": "group_coordinator_startup",
+      "expected": "fail",
+      "exit": 101,
+      "passed": 0,
+      "failed": 1,
+      "matched": true,
+      "failure_names_projection": [
+        "cancelling_a_join_after_two_errors_and_third_request_stops_new_requests"
+      ]
+    }
+  ],
+  "build_format_clippy_exit_codes": {
+    "baseline-build": 0,
+    "format": 0,
+    "clippy": 0,
+    "default-build": 0,
+    "all-features-build": 0
+  },
+  "profiles": {
+    "default": {
+      "totals": {
+        "passed": 2432,
+        "failed": 16,
+        "ignored": 2
+      },
+      "targets": {
+        "partitionline": {
+          "exit": 0,
+          "passed": 2293,
+          "failed": 0,
+          "ignored": 0,
+          "result_line_projection": "test result: ok. 2293 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 243.18s",
+          "failure_names_projection": [],
+          "failure_names_observed": 0
+        },
+        "group_coordinator_startup": {
+          "exit": 0,
+          "passed": 14,
+          "failed": 0,
+          "ignored": 0,
+          "result_line_projection": "test result: ok. 14 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.94s",
+          "failure_names_projection": [],
+          "failure_names_observed": 0
+        },
+        "group_stack": {
+          "exit": 0,
+          "passed": 1,
+          "failed": 0,
+          "ignored": 0,
+          "result_line_projection": "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s",
+          "failure_names_projection": [],
+          "failure_names_observed": 0
+        },
+        "produce_cancel": {
+          "exit": 0,
+          "passed": 23,
+          "failed": 0,
+          "ignored": 0,
+          "result_line_projection": "test result: ok. 23 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.24s",
+          "failure_names_projection": [],
+          "failure_names_observed": 0
+        },
+        "buffer_ownership": {
+          "exit": 0,
+          "passed": 12,
+          "failed": 0,
+          "ignored": 0,
+          "result_line_projection": "test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.20s",
+          "failure_names_projection": [],
+          "failure_names_observed": 0
+        },
+        "mock_produce": {
+          "exit": 101,
+          "passed": 32,
+          "failed": 15,
+          "ignored": 0,
+          "result_line_projection": "test result: FAILED. 32 passed; 15 failed; 0 ignored; 0 measured; 0 filtered out; finished in 13.27s",
+          "failure_names_projection": [
+            "commit_reuses_a_produce_handshake_for_the_moved_coordinator",
+            "commit_reuses_bootstrap_when_the_coordinator_returns",
+            "epoch_bump_reuses_a_produce_handshake",
+            "multi_bootstrap_commit_reuses_known_coordinator_handshakes",
+            "multi_bootstrap_send_offsets_reuses_known_handshakes",
+            "multi_bootstrap_transaction_reuses_the_other_bootstrap_handshake",
+            "produce_reuses_a_finished_bootstrap_handshake",
+            "produce_reuses_bootstrap_api_versions",
+            "produce_reuses_the_transaction_coordinator_handshake",
+            "send_all_redials_leaders_while_refreshing_metadata",
+            "send_offsets_negotiates_a_new_group_coordinator",
+            "send_offsets_repeats_a_remote_coordinator_without_another_handshake",
+            "send_offsets_reuses_bootstrap_api_versions",
+            "transactional_rediscover_skips_a_second_bootstrap_handshake",
+            "transactional_startup_skips_a_second_bootstrap_handshake"
+          ],
+          "failure_names_observed": 15
+        },
+        "producer_initialization": {
+          "exit": 0,
+          "passed": 8,
+          "failed": 0,
+          "ignored": 0,
+          "result_line_projection": "test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.70s",
+          "failure_names_projection": [],
+          "failure_names_observed": 0
+        },
+        "producer_retained_backing": {
+          "exit": 101,
+          "passed": 8,
+          "failed": 1,
+          "ignored": 1,
+          "result_line_projection": "test result: FAILED. 8 passed; 1 failed; 1 ignored; 0 measured; 0 filtered out; finished in 11.14s",
+          "failure_names_projection": [
+            "cancelled_channel_admission_releases_only_the_unenqueued_reservation"
+          ],
+          "failure_names_observed": 1
+        },
+        "sticky_partitioner": {
+          "exit": 0,
+          "passed": 29,
+          "failed": 0,
+          "ignored": 0,
+          "result_line_projection": "test result: ok. 29 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.32s",
+          "failure_names_projection": [],
+          "failure_names_observed": 0
+        },
+        "init_producer_id_v6": {
+          "exit": 0,
+          "passed": 12,
+          "failed": 0,
+          "ignored": 1,
+          "result_line_projection": "test result: ok. 12 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.16s",
+          "failure_names_projection": [],
+          "failure_names_observed": 0
+        }
+      }
+    },
+    "all-features": {
+      "totals": {
+        "passed": 2432,
+        "failed": 16,
+        "ignored": 2
+      },
+      "targets": {
+        "partitionline": {
+          "exit": 0,
+          "passed": 2293,
+          "failed": 0,
+          "ignored": 0,
+          "result_line_projection": "test result: ok. 2293 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 235.50s",
+          "failure_names_projection": [],
+          "failure_names_observed": 0
+        },
+        "group_coordinator_startup": {
+          "exit": 0,
+          "passed": 14,
+          "failed": 0,
+          "ignored": 0,
+          "result_line_projection": "test result: ok. 14 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.94s",
+          "failure_names_projection": [],
+          "failure_names_observed": 0
+        },
+        "group_stack": {
+          "exit": 0,
+          "passed": 1,
+          "failed": 0,
+          "ignored": 0,
+          "result_line_projection": "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s",
+          "failure_names_projection": [],
+          "failure_names_observed": 0
+        },
+        "produce_cancel": {
+          "exit": 0,
+          "passed": 23,
+          "failed": 0,
+          "ignored": 0,
+          "result_line_projection": "test result: ok. 23 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.24s",
+          "failure_names_projection": [],
+          "failure_names_observed": 0
+        },
+        "buffer_ownership": {
+          "exit": 0,
+          "passed": 12,
+          "failed": 0,
+          "ignored": 0,
+          "result_line_projection": "test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.20s",
+          "failure_names_projection": [],
+          "failure_names_observed": 0
+        },
+        "mock_produce": {
+          "exit": 101,
+          "passed": 32,
+          "failed": 15,
+          "ignored": 0,
+          "result_line_projection": "test result: FAILED. 32 passed; 15 failed; 0 ignored; 0 measured; 0 filtered out; finished in 13.25s",
+          "failure_names_projection": [
+            "commit_reuses_a_produce_handshake_for_the_moved_coordinator",
+            "commit_reuses_bootstrap_when_the_coordinator_returns",
+            "epoch_bump_reuses_a_produce_handshake",
+            "multi_bootstrap_commit_reuses_known_coordinator_handshakes",
+            "multi_bootstrap_send_offsets_reuses_known_handshakes",
+            "multi_bootstrap_transaction_reuses_the_other_bootstrap_handshake",
+            "produce_reuses_a_finished_bootstrap_handshake",
+            "produce_reuses_bootstrap_api_versions",
+            "produce_reuses_the_transaction_coordinator_handshake",
+            "send_all_redials_leaders_while_refreshing_metadata",
+            "send_offsets_negotiates_a_new_group_coordinator",
+            "send_offsets_repeats_a_remote_coordinator_without_another_handshake",
+            "send_offsets_reuses_bootstrap_api_versions",
+            "transactional_rediscover_skips_a_second_bootstrap_handshake",
+            "transactional_startup_skips_a_second_bootstrap_handshake"
+          ],
+          "failure_names_observed": 15
+        },
+        "producer_initialization": {
+          "exit": 0,
+          "passed": 8,
+          "failed": 0,
+          "ignored": 0,
+          "result_line_projection": "test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.70s",
+          "failure_names_projection": [],
+          "failure_names_observed": 0
+        },
+        "producer_retained_backing": {
+          "exit": 101,
+          "passed": 8,
+          "failed": 1,
+          "ignored": 1,
+          "result_line_projection": "test result: FAILED. 8 passed; 1 failed; 1 ignored; 0 measured; 0 filtered out; finished in 10.71s",
+          "failure_names_projection": [
+            "cancelled_channel_admission_releases_only_the_unenqueued_reservation"
+          ],
+          "failure_names_observed": 1
+        },
+        "sticky_partitioner": {
+          "exit": 0,
+          "passed": 29,
+          "failed": 0,
+          "ignored": 0,
+          "result_line_projection": "test result: ok. 29 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.31s",
+          "failure_names_projection": [],
+          "failure_names_observed": 0
+        },
+        "init_producer_id_v6": {
+          "exit": 0,
+          "passed": 12,
+          "failed": 0,
+          "ignored": 1,
+          "result_line_projection": "test result: ok. 12 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.16s",
+          "failure_names_projection": [],
+          "failure_names_observed": 0
+        }
+      }
+    }
+  },
+  "notable_projections": {
+    "end_to_end_450ms": {
+      "default_ms": 756.0635,
+      "all_features_ms": 756.451082
+    },
+    "retained_backing_default": "Error: Timeout",
+    "retained_backing_all_features": "Error: Timeout"
+  },
+  "all_21_required_baseline_expectations_matched": true,
+  "both_observation_only_cases_passed": true
+}

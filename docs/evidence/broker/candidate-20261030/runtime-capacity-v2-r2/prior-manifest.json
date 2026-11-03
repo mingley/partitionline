@@ -1,0 +1,73 @@
+{
+  "schema": 1,
+  "status": "isolated source-only candidate; independent review requested",
+  "assets": {
+    "README.md": {
+      "sha256": "eacd3a15aeb041c2f3cb8bfaa8073c761fec8eba0781bc56541e5c1c963c9ee1",
+      "bytes": 3553
+    },
+    "base-files.json": {
+      "sha256": "6e620da92aa89604b412707d5d9befe12ab4d4dd28ab15b1e145b2ca4a072255",
+      "bytes": 1295669
+    },
+    "base-source.tar.gz": {
+      "sha256": "d2799c22004030742b3922fd5b30947f66939fc27879617b6617bcd8ee85e00f",
+      "bytes": 1841044
+    },
+    "baseline-tests-only.patch": {
+      "sha256": "6afdede75442559066cbce44f5e8668f729c9853c46eb1b30fd73abe41a8ebac",
+      "bytes": 9081
+    },
+    "candidates-workflow-result.yml": {
+      "sha256": "7af88cf8c7874c3da8aefe3fdedf47c8b0c33f4641ad21951350b37c84572258",
+      "bytes": 11207
+    },
+    "candidates-workflow.patch": {
+      "sha256": "098f294343908f2484f3446ee2bb00d9c1de5a33b2b54c6b88922719a2b5913c",
+      "bytes": 4677
+    },
+    "qualify.py": {
+      "sha256": "9041bbb89a617fa3cee52810157a17bdae0f2e0e33a613fbc8ae52c30e78f7de",
+      "bytes": 12496
+    },
+    "runtime-capacity-v2-manifest.json": {
+      "sha256": "a071d729fd51d67498625cdea1198c1669d2b1fdd5fc0bf7f58bfa552f4dacd2",
+      "bytes": 1685
+    },
+    "runtime-capacity-v2.patch": {
+      "sha256": "7f36df7c94bfd5265c5586c8a2749d3180f5e7da0534e053848154b3cdbdfbab",
+      "bytes": 10469
+    },
+    "second-review.json": {
+      "sha256": "cf898c845ad4657f75703cd5af52f7e11429647c27e2c158b8af616ac0409ab1",
+      "bytes": 3385
+    },
+    "source-review.json": {
+      "sha256": "edba22ee43d3fd516a83df6c6b3964fb5efec377408e3a4cd7d61e70bfdd7dbf",
+      "bytes": 1963
+    },
+    "spec.json": {
+      "sha256": "a467ffefd723efcc32a8b810af41fa7a91f3ce83b4dfdd5485c11b5102df3749",
+      "bytes": 4162
+    },
+    "static-validation.log": {
+      "sha256": "4e5a31a9dc8e2cd6a417ca5ff04669e1c252404dbbd16ccdda1bec48857cc2d0",
+      "bytes": 757
+    },
+    "test_static.py": {
+      "sha256": "2c2c6aa6c69892920a591a5b9f1fb9a09b57caef4b9d78c97f8494a3d3a8db0a",
+      "bytes": 9006
+    },
+    "v2-validation.json": {
+      "sha256": "2f51c60e0fe0cdabb23711b2f289e9f32c4d7efd94f3894e5473244680468e03",
+      "bytes": 1321
+    },
+    "validation.json": {
+      "sha256": "13d7267f328135266646bd80d631d91116146673814429a37bd0c1212cdae773",
+      "bytes": 1845
+    }
+  },
+  "base_commit": "6fa8cdb3588d884580d01331e44df657c02f7670",
+  "root_production_changes": false,
+  "hosted_run": false
+}

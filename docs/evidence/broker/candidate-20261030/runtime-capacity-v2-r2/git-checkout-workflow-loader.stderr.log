@@ -1,0 +1,11 @@
+test_assets_and_exact_base_archive (verified_capacity_static_controls.Controls.test_assets_and_exact_base_archive) ... ok
+test_existing_broker_runner_controls_are_pinned (verified_capacity_static_controls.Controls.test_existing_broker_runner_controls_are_pinned) ... ok
+test_expected_negative_is_confined_to_one_failure_section (verified_capacity_static_controls.Controls.test_expected_negative_is_confined_to_one_failure_section) ... ok
+test_scratch_rejects_checkout_and_other_git_trees (verified_capacity_static_controls.Controls.test_scratch_rejects_checkout_and_other_git_trees) ... ok
+test_sparse_roundtrip_and_unchanged_test_bodies (verified_capacity_static_controls.Controls.test_sparse_roundtrip_and_unchanged_test_bodies) ... ok
+test_workflow_runs_the_verified_suite_and_rejects_zero_skips_or_failures (verified_capacity_static_controls.Controls.test_workflow_runs_the_verified_suite_and_rejects_zero_skips_or_failures) ... ok
+
+----------------------------------------------------------------------
+Ran 6 tests in 0.557s
+
+OK

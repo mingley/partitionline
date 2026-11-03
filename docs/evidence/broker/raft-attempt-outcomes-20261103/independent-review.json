@@ -1,0 +1,98 @@
+{
+  "patch_sha256": "5f32bfa267de968e3b141855f4c6f87273981e0e12684ca37368b1ab1229b3ab",
+  "manifest_sha256": "69b269259308339d3276978ecdcbd83ebcd47a5d0218668e3319f98a9c8d7408",
+  "design_sha256": "bfa0dd1e241fb8ba4838814ebb44f2c9d74f23261e49059fb6627ff7bd0bc125",
+  "base_commit": "32ec4ab8040721339181918dafaa8edda0a8cce8",
+  "head_at_review": "6fa8cdb3588d884580d01331e44df657c02f7670",
+  "files": {
+    "partitionline-broker/src/raft/replication.rs": {
+      "base_sha256": "f74747a0e7c9c4e211388a9428b0eaf1c5773f9c41c942b9ab72c2d4132c573e",
+      "post_sha256": "0cf51c38f50ea71632acd7cd83460ac074c607e92ea6852cbb60aa13306ddcec",
+      "head_worktree_sha256": "f74747a0e7c9c4e211388a9428b0eaf1c5773f9c41c942b9ab72c2d4132c573e",
+      "head_worktree_matches_base": true
+    },
+    "partitionline-broker/src/raft/runtime.rs": {
+      "base_sha256": "a0c136fcc728cfc4580ef30b2ca3fa964f32329f65fce301ef70985dfcd91754",
+      "post_sha256": "4ac9a13eaca5244f3025672e272c66fe0b04c1d37827ec40511abb9258a4092d",
+      "head_worktree_sha256": "a0c136fcc728cfc4580ef30b2ca3fa964f32329f65fce301ef70985dfcd91754",
+      "head_worktree_matches_base": true
+    },
+    "partitionline-broker/tests/raft_membership.rs": {
+      "base_sha256": "91a57c87a92410e134949d8c02868d931ba064a1ccb52704ae14edf70f442e89",
+      "post_sha256": "df49e4c6c3e202254306b3851eaf4763c140d936110df94b198e0dc019340414",
+      "head_worktree_sha256": "3937891be004bf90453371a547cd288f24088de93348fe7e9f44ac0ddaebf1f0",
+      "head_worktree_matches_base": false
+    }
+  },
+  "source_checks": {
+    "legacy_propose_body_preserved_after_leadership": true,
+    "legacy_remove_body_preserved_after_preconditions": true,
+    "legacy_change_preconditions_preserved": true,
+    "poll_body_unchanged": true,
+    "runtime_transport_call_body_unchanged": true,
+    "runtime_owner_loop_body_unchanged": true,
+    "new_legacy_runtime_both_check_len_not_capacity": true,
+    "new_runtime_moves_original_vec": true,
+    "older_actor_rejects_capacity": true,
+    "five_new_disallowed_fs_read_calls": true,
+    "clippy_disallows_fs_read": true
+  },
+  "roundtrip": "independent exact forward and reverse apply passed for all three before/after files",
+  "root_git_apply_check": "passed as a textual check only; membership preimage drift remains",
+  "outcome_review": {
+    "rejection": "Only successful poll then owner role/active-term failure returns NotLeaderBeforeAppend; request append is not called on that branch.",
+    "indeterminate": "Poll errors and all errors from validation, local append, fsync, reconciliation, commit and post-append position lookup map to indeterminate.",
+    "runtime_loss": "Each call uses one oneshot; closed response, dropped future, timeout after delivery, deadline and unexpected reply never become a typed pre-append rejection. Owner skips a closed queued request, but may complete an already started write.",
+    "other_effects": "Poll may mutate authority, election state, negotiated state or abort snapshot staging; the certificate is only for this request and does not mean no durable or unrelated effects.",
+    "legacy": "Source bodies for the existing proposal/removal and their preconditions were preserved by extraction; no behavioral or native equivalence was tested."
+  },
+  "blockers": [
+    {
+      "name": "source drift",
+      "detail": "The current membership test file differs from the pinned base even though git apply --check succeeds; rebase and pin/review all exact inputs."
+    },
+    {
+      "name": "public method shadowing",
+      "detail": "New inherent propose_attempt and remove_voter_attempt methods on public Node/Handle can preempt same-named downstream extension-trait methods, including calls with incompatible parameter types. No local conflicting trait was found; downstream compatibility is unknown. Resolve API policy and add a compile-time downstream extension-trait control before adoption."
+    },
+    {
+      "name": "predicted clippy failure",
+      "detail": "Five added fs::read calls are forbidden by clippy.toml; the prior hosted job failed on two same-file calls. Factor the main-source bounded WAL read helper so it reads at most 1 MiB + 1 and errors on oversize, preserving full comparisons. The frozen candidate itself has not been linted."
+    },
+    {
+      "name": "missing public after-start loss tests",
+      "detail": "Existing runtime test gates a manually submitted private envelope after owner execution and separately tests a public call that expires in the queue. It does not exercise public Handle timeout or cancellation after the real command starts or confirm durable recovery via those public paths; add deterministic gated controls for both operations before retry policy is considered."
+    }
+  ],
+  "separate_inherited_resource_issue": {
+    "detail": "The added public runtime propose_attempt checks Vec length but transfers the entire Vec allocation into the queued envelope; a one-byte vector with arbitrarily large capacity can exceed per-envelope Rust-managed accounting. The pre-existing runtime propose method has the same length-only behavior; the older replication actor checks capacity. Config::managed_bytes accounts bounded command slots and envelope size, and its stated exclusions for allocator overhead/RSS do not exclude live Vec capacity. This is not a newly introduced legacy regression.",
+    "suggested_control": "Using a running LocalOwner, pass a one-byte Vec whose capacity exceeds the declared record limit or computed command envelope, then assert both APIs reject before admission, no command/WAL entry is created, and ordinary bounded-capacity input still works. Keep allocations modest (for example a few MiB); no test was run here."
+  },
+  "limits": [
+    "No native build, compilation, clippy, Cargo, real network, cancellation stress, benchmark or publication.",
+    "The direct source review does not establish that the test hooks compile or that durable recovery behaves as asserted.",
+    "The historical NotLeader and InvalidDigit failures remain unexplained; this candidate adds no retry and does not fix or qualify them."
+  ],
+  "supporting_files": {
+    "partitionline-broker/tests/raft_membership.rs": {
+      "worktree_sha256": "3937891be004bf90453371a547cd288f24088de93348fe7e9f44ac0ddaebf1f0",
+      "head_sha256": "3937891be004bf90453371a547cd288f24088de93348fe7e9f44ac0ddaebf1f0",
+      "worktree_matches_head": true
+    },
+    "clippy.toml": {
+      "worktree_sha256": "7ad5c55d408b8e15adb48a7054705ef3828ce59ff464a4a62a9842c88788fba6",
+      "head_sha256": "7ad5c55d408b8e15adb48a7054705ef3828ce59ff464a4a62a9842c88788fba6",
+      "worktree_matches_head": true
+    },
+    "partitionline-broker/src/journal.rs": {
+      "worktree_sha256": "87269cb14a1d623cd352ba6ac1dfd0997aec3e99ae17a1c88131bd660d97315a",
+      "head_sha256": "87269cb14a1d623cd352ba6ac1dfd0997aec3e99ae17a1c88131bd660d97315a",
+      "worktree_matches_head": true
+    },
+    "docs/evidence/broker/raft-stale-selection-20261103/clippy-failure-manifest.json": {
+      "worktree_sha256": "47339213790d18b959d2dc4d6ada955d5ccc1630946369e025820ff1ffd46fe0",
+      "head_sha256": "47339213790d18b959d2dc4d6ada955d5ccc1630946369e025820ff1ffd46fe0",
+      "worktree_matches_head": true
+    }
+  }
+}

@@ -1,0 +1,32 @@
+{
+  "base_commit": "6fa8cdb3588d884580d01331e44df657c02f7670",
+  "patch_sha256": "96332c4ce40f67edbefaee8fca708c3ef04d9f739002172b9316b450895a49bc",
+  "v3_patch_sha256": "cde518f49b704fd07e8e147129f8e5f7b9087b7ba91c0940cc768e4c83554dcf",
+  "v4_from_v3_sha256": "80ddcd2f60ec6a3a3af13482828a95e76a4152552b5e58a119b436580396ffe3",
+  "snapshot": "/workspace/work/retained-backing-phase-projection-20261103/v4-frozen",
+  "changes": [
+    {
+      "path": "scripts/ci-qualify-client-candidate.py",
+      "before_sha256": "9fe00abe6523c05a23b01b986932491939217ea024768c82751eeec4c1ab2d44",
+      "after_sha256": "f567f7456c92ce1f39e6d7b4476f3cc3300bfef9c92dd036f8cc3ef0a5514608"
+    },
+    {
+      "path": "tests/ci/test_client_candidate_qualification.py",
+      "before_sha256": "07355b7a71833a87cab618c0dc6a3edba5fe4e043385f66314bbbc46c52b8003",
+      "after_sha256": "2d84bbb8884f059b1974659dc6d1c0c4b6785a5b01702d855e8302a73ab4ce1f"
+    }
+  ],
+  "unchanged_helper": {
+    "path": "scripts/candidate-command-ownership.py",
+    "sha256": "34ddbf04a4bbead974fad4a451d30c7a56818248bd5b58c88c87bdfc41896da9"
+  },
+  "test_source_sha256": "ed6b5fd8646b580e238f7521c68ae82d6d51bb739ddcb87cf7d89231954fa882",
+  "hosted_job_log_sha256": "9d1c4c7be7b99a787d5be57df32025efb04136f2452fe0d33c71991ea74acd88",
+  "scope": "Only exact default/all-features producer_retained_backing runs and the exact cancelled-channel test; exactly one matching test header and one canonical fixed-format numeric phase line in the whole log, immediately before Error: Timeout, are required. Generic error context cannot echo unvalidated phase-like text, including the initial error line. Projection uses existing bounded escaped output.",
+  "limits": [
+    "The raw hosted test artifact was unavailable: Error: Timeout does not prove that the 10-second flush phase was reached or that a phase line existed.",
+    "Libtest text is unframed and may be forged; attribution is best effort and no secret redaction is claimed.",
+    "Changing the driver/test requires repinning v16 helper checks before a new qualification.",
+    "No Cargo, Rust compilation, native test, network or publication."
+  ]
+}

@@ -1,0 +1,44 @@
+{
+  "scope": "source-only preparation and exact workflow preflight in an isolated Git checkout; no Cargo, Rust compilation, native test or hosted run",
+  "base_commit": "6fa8cdb3588d884580d01331e44df657c02f7670",
+  "base_source_count": 5982,
+  "base_source_git_tree_exact_all_files_and_modes": true,
+  "baseline_and_fixed_patch_sparse_forward_reverse_exact": true,
+  "baseline_production_prefix_byte_identical": true,
+  "reviewed_fixed_test_blocks_byte_identical_in_baseline": true,
+  "expected_negative_requires_exact_test_failure_section_and_assertion_site": true,
+  "positive_old_deadline_witness_is_separate": true,
+  "workflow_patch_forward_reverse_exact": true,
+  "workflow_yaml_parse": true,
+  "workflow_static_loader_actual_suite_count": 6,
+  "static_tests": "6 passed with no skips; see static-validation.log",
+  "tests_of_loader": [
+    "valid suite",
+    "zero tests",
+    "skipped test",
+    "failed test",
+    "expected-failure test"
+  ],
+  "runtime_capacity_patch_sha256": "7f36df7c94bfd5265c5586c8a2749d3180f5e7da0534e053848154b3cdbdfbab",
+  "source_review_sha256": "edba22ee43d3fd516a83df6c6b3964fb5efec377408e3a4cd7d61e70bfdd7dbf",
+  "second_review_sha256": "cf898c845ad4657f75703cd5af52f7e11429647c27e2c158b8af616ac0409ab1",
+  "candidate_validation_sha256": "2f51c60e0fe0cdabb23711b2f289e9f32c4d7efd94f3894e5473244680468e03",
+  "workflow_patch_sha256": "c928eba1cd2d4bb922bfa8d6cce981a9644edfdc7f0401a53b833262bfcca03e",
+  "limits": [
+    "Expected outcomes are predictions until hosted execution.",
+    "The baseline witness requires Err(Deadline); it does not independently prove a process-wide memory bound.",
+    "No claim is made about ControllerHandler queue accounting, production readiness or performance."
+  ],
+  "expected_negative_thread_id_regression": "Retained libtest output includes a numeric thread ID; optional numeric ID accepted, invalid ID rejected.",
+  "workflow_from_6fa_sha256": "2f594cc55b34ab367991a4f689e47e36eeeff1daec4dd63d0c7799f5d07c1d46",
+  "rejected_scratch_placements": [
+    "current checkout",
+    "other Git worktree",
+    "nested non-Git checkout"
+  ],
+  "prior_checkout_failure_receipt_sha256": "62a58d232d3aa261f259e39a420b8a7e23bf8d10b98dc9fc7b3364b1aae457ca",
+  "prior_checkout_failure_stderr_sha256": "b5e1056229a194e570bf23f18fe80bac06bce27c13cb2100c8a686057895eb19",
+  "prior_independent_review_sha256": "52bac5c8da2c632a7651191300950b8b8c6d6006ce9b6a8d57882ecfa8decbc1",
+  "isolated_git_checkout_loader_receipt_sha256": "1f97597b425d99e0c8fdd6c7fb996b758912c7a0f5c386483cddef945b9591e3",
+  "root_production_runtime_sha256": "a0c136fcc728cfc4580ef30b2ca3fa964f32329f65fce301ef70985dfcd91754"
+}

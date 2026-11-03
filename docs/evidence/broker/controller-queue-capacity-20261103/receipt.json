@@ -1,0 +1,43 @@
+{
+  "scope": "Source-only review and deterministic negative-control design for standalone ControllerHandler queue capacity",
+  "source_commit": "6fa8cdb3588d884580d01331e44df657c02f7670",
+  "source_pins": {
+    "partitionline-broker/src/raft/protocol.rs": "47ae96c84080813e4b81cfbfcdbe8bd45e48389c13c8562c0963dfc743137127",
+    "partitionline-broker/src/protocol.rs": "c0c81bcaba200dc27e670146fc6bf37342aadc506547ef606b597d708df5207a",
+    "partitionline-broker/src/transport.rs": "802f9923b825bdac96ea0d31663f6f3a1c1d84903c46bb16130b2eb8419a8aa2",
+    "partitionline-broker/Cargo.lock": "42eaddf993ab4dfbe99e5af9d7c1a7cd858776a214eedbd6112de6a146933a2c"
+  },
+  "finding": "Config validates queue_slots * request_length_limit <= 512 MiB, but each ControllerJob owns both request and spare Vecs. submit checks request length, not either retained capacity or their sum. The numeric product is not a bound on queued Vec capacity.",
+  "default_capacity_arithmetic": {
+    "queue_slots": 64,
+    "request_limit": 8388608,
+    "validated_product_bytes": 536870912,
+    "two_buffers_each_at_limit_bytes": 1073741824,
+    "scope": "logical Vec capacities of Q queued jobs; not RSS or a measured allocation"
+  },
+  "lifetime_boundaries": [
+    "The actor can own one executing job in addition to the bounded channel queue.",
+    "A successful oneshot result contains response and request until the caller future is polled or dropped; direct callers can retain an unbounded number of completed futures over time.",
+    "A caller can retain an unpolled request future and its input before submit begins. Allocator overhead, transport buffers and unrelated caller memory are separate."
+  ],
+  "deterministic_negative_control_design": [
+    "Use Config Q=2/L=1024 and a test-owned unconsumed bounded mpsc receiver; construct a ControllerHandler with no actor or WAL. Poll private submit once with request len 1 and capacity >=1025 and inspect the queued job and original allocation pointer.",
+    "Repeat with small request and empty spare capacity >=1025, then with both capacities >=1024; assert Q jobs retain more than Q*L. These are designs, not run Rust tests.",
+    "After a fix, retain positive buffer reuse and original stopped/Busy/error ordering; exercise public transport and separately use a real gated actor to compare election WAL/state without unrelated timer activity."
+  ],
+  "source_checks": [
+    "Ran verify.py against exact pinned files; it checked config multiplication, both owned Vec fields, submit validation and queue ordering, reply ownership and public handler shape.",
+    "Ran a small independent Python arithmetic model with Q=2/L=1024; it is not an actor or allocator test."
+  ],
+  "limitations": [
+    "No Rust compiler, Cargo, native tests, actual actor/WAL mutation, Kafka or network execution.",
+    "No network exploit, full process memory bound, fix, release readiness or performance conclusion is established.",
+    "Any fix must define a combined capacity/response policy, compatibility and no-copy/reuse behavior; limiting request alone or each Vec independently to L is insufficient for Q*L."
+  ],
+  "files": {
+    "README.md": "dbec87984e1687d55204bdf2f2ec0d1dec142da05265b6a29165ca600ea2abe2",
+    "model.py": "695add3d6f06567041496e10a01bf83c28f5ebbe552c7b136301cbe2fa653a3e",
+    "model.out": "60a79f6a7ff4dd6251538594cb45f26daf7b00f1ee59d24a89595033b396af0b",
+    "verify.py": "5dfbb4903adee662e4570ef6118b3f3784ef81dc65580f8501ba3e6fd5658b2e"
+  }
+}

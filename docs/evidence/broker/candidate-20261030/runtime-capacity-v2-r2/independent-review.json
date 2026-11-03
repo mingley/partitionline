@@ -1,0 +1,36 @@
+{
+  "decision": "pass source-only review of r2; real hosted execution remains necessary",
+  "manifest_sha256": "bcb126775856e747e0293351a0f70fa5de65957c7a7c68385b891b03f1174d70",
+  "retracted_prior_review_sha256": "52bac5c8da2c632a7651191300950b8b8c6d6006ce9b6a8d57882ecfa8decbc1",
+  "spec_sha256": "a467ffefd723efcc32a8b810af41fa7a91f3ce83b4dfdd5485c11b5102df3749",
+  "qualifier_sha256": "9041bbb89a617fa3cee52810157a17bdae0f2e0e33a613fbc8ae52c30e78f7de",
+  "static_test_sha256": "01f8b3e3231235afc56e0eccdeae9bf1cd9c8e4548b94bb85182998170ccf3ce",
+  "workflow_v1_to_v2_patch_sha256": "c928eba1cd2d4bb922bfa8d6cce981a9644edfdc7f0401a53b833262bfcca03e",
+  "fixed_patch_sha256": "7f36df7c94bfd5265c5586c8a2749d3180f5e7da0534e053848154b3cdbdfbab",
+  "base_commit": "6fa8cdb3588d884580d01331e44df657c02f7670",
+  "checks": {
+    "all_frozen_assets_match_manifest": true,
+    "source_archive_5982_files_bytes_and_modes_match_git": true,
+    "baseline_and_fixed_source_roundtrips": true,
+    "production_baseline_unchanged": true,
+    "workflow_patches_from_base_and_prior_current_forward_reverse_exact": true,
+    "verified_byte_workflow_preflight_in_committed_git_checkout": true,
+    "six_static_controls_pass_no_skips_in_checkout": true,
+    "git_environment_poisoned_but_sanitized_by_scratch_controls": true,
+    "checkout_clean_before_and_after": true,
+    "scratch_rejects_checkout_and_other_git_worktrees": true,
+    "all_prior_broker_gates_and_700_thresholds_preserved": true,
+    "candidate_concurrency_group_distinct_and_noncancelling": true,
+    "no_rejected_fetch_readcommitted_validation_added": true
+  },
+  "assessment": [
+    "This replaces the withdrawn prior review, which was performed outside a Git checkout and missed Git apply silently skipping fixed patch paths.",
+    "The r2 Python controls use an absolute real scratch directory outside all Git worktrees and clear inherited GIT_* variables for Git operations. The exact workflow preflight ran inside an independent committed checkout with deliberately set GIT_DIR/GIT_WORK_TREE; all six controls passed and the checkout remained clean.",
+    "The baseline requires a positive old Err(Deadline) witness and a separate expected failure at the exact over-capacity assertion; fixed/default/all-feature and inherited broker gates remain unchanged."
+  ],
+  "limits": [
+    "No Cargo, Rust compilation, Rust/native tests, hosted execution, network, benchmark, publication or root modifications were performed. Six Python controls, Git patch reconstruction and workflow preflight were run offline.",
+    "Baseline and fixed Rust results are unobserved; timer scheduling may fail the phase witness closed. The retained prior review is explicitly retracted for checkout placement.",
+    "The workflow\u2019s scoped process cleanup is not a sandbox against descendants deliberately changing session. No production-readiness, complete memory-bound or performance claim is established."
+  ]
+}

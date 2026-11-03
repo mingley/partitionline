@@ -18,3 +18,9 @@ to adopt it: the code is uncompiled, and conditional allocation-unwind paths,
 memory limits, scheduling and cancellation still need work. The
 [addendum](prototype-v2-unwind-addendum.json) records those source findings;
 no failure or speedup has been observed for this prototype.
+
+A later [source analysis](segmented-obstruction-evidence.tar.gz) and its
+[review](segmented-obstruction-review.json) show why retiring queue segments
+separately can change retry backoff, metadata refresh and callback observations.
+Preserving those semantics without allocating during cleanup needs a broader
+retry or queue design; no v3 implementation was produced.

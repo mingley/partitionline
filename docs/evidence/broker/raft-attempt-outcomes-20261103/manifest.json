@@ -1,0 +1,56 @@
+{
+  "base_commit": "32ec4ab8040721339181918dafaa8edda0a8cce8",
+  "patch_sha256": "5f32bfa267de968e3b141855f4c6f87273981e0e12684ca37368b1ab1229b3ab",
+  "design_sha256": "bfa0dd1e241fb8ba4838814ebb44f2c9d74f23261e49059fb6627ff7bd0bc125",
+  "files": {
+    "partitionline-broker/src/raft/replication.rs": {
+      "before_sha256": "f74747a0e7c9c4e211388a9428b0eaf1c5773f9c41c942b9ab72c2d4132c573e",
+      "after_sha256": "0cf51c38f50ea71632acd7cd83460ac074c607e92ea6852cbb60aa13306ddcec"
+    },
+    "partitionline-broker/src/raft/runtime.rs": {
+      "before_sha256": "a0c136fcc728cfc4580ef30b2ca3fa964f32329f65fce301ef70985dfcd91754",
+      "after_sha256": "4ac9a13eaca5244f3025672e272c66fe0b04c1d37827ec40511abb9258a4092d"
+    },
+    "partitionline-broker/tests/raft_membership.rs": {
+      "before_sha256": "91a57c87a92410e134949d8c02868d931ba064a1ccb52704ae14edf70f442e89",
+      "after_sha256": "df49e4c6c3e202254306b3851eaf4763c140d936110df94b198e0dc019340414"
+    }
+  },
+  "roundtrip": [
+    {
+      "args": [
+        "--check"
+      ],
+      "exit": 0,
+      "stderr": ""
+    },
+    {
+      "args": [],
+      "exit": 0,
+      "stderr": ""
+    },
+    {
+      "args": [
+        "--reverse",
+        "--check"
+      ],
+      "exit": 0,
+      "stderr": ""
+    },
+    {
+      "args": [
+        "--reverse"
+      ],
+      "exit": 0,
+      "stderr": ""
+    }
+  ],
+  "root_apply_check": 0,
+  "rustfmt_check": 0,
+  "native_or_cargo_run": false,
+  "limitations": [
+    "Source-only candidate; no compilation, lint, tests, benchmark or publication.",
+    "No retries; original failure histories remain unexplained.",
+    "Independent review is pending."
+  ]
+}

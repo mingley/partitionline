@@ -1,0 +1,57 @@
+{
+  "decision": "block the proposed reserve-first policy pending a wake/close design and deterministic native validation",
+  "reviewed_receipt_sha256": "947948212887ccb0cd84f9792a0b41769c71a5b6760db7b8983d2ddb3aa722e7",
+  "reviewed_archive_sha256": "33a9d715c2d66895c4cf28bdae7a24963d2332ce505116931c9c1e620f1b79e4",
+  "source_commit": "6fa8cdb3588d884580d01331e44df657c02f7670",
+  "source_pins": {
+    "partitionline-broker/src/raft/protocol.rs": "47ae96c84080813e4b81cfbfcdbe8bd45e48389c13c8562c0963dfc743137127",
+    "partitionline-broker/src/protocol.rs": "c0c81bcaba200dc27e670146fc6bf37342aadc506547ef606b597d708df5207a",
+    "partitionline-broker/src/transport.rs": "802f9923b825bdac96ea0d31663f6f3a1c1d84903c46bb16130b2eb8419a8aa2",
+    "partitionline-broker/Cargo.lock": "42eaddf993ab4dfbe99e5af9d7c1a7cd858776a214eedbd6112de6a146933a2c"
+  },
+  "tokio_bounded_sha256": "f229ccaa6711bffb17d8021dade6405d17595d5f64dac2f03107c05a4cc381f2",
+  "tokio_chan_sha256": "cbc283b9f4a824e33ec3b137b155dd7044ce296596685070c1acb306a1660542",
+  "archive_matches_reviewed_files": true,
+  "pinned_source_verifier_and_sequential_model_reproduced": true,
+  "findings": [
+    {
+      "severity": "blocker",
+      "name": "normal rejected reservation can strand shutdown",
+      "interleaving": [
+        "Q=1 and the actor is waiting in blocking_recv with an empty channel",
+        "producer passes stopped/length checks and obtains the sole try_reserve permit",
+        "shutdown sets stopping, try_send(Stop) returns Full, and shutdown awaits actor join",
+        "producer discovers over-budget capacity or aggregate byte pressure, returns and drops its unsent permit",
+        "the permit is returned but its Drop does not wake the receiver while the semaphore is open; no command reaches blocking_recv and the stop flag is checked only after a receive"
+      ],
+      "consequence": "The actor and shutdown can remain blocked indefinitely even after producer returns. Other new requests see stopping and cannot supply a wake. This is a source-derived interleaving, not a native execution."
+    },
+    {
+      "severity": "additional high-risk race",
+      "name": "post-close reserved send may retain a job and oneshot",
+      "interleaving": [
+        "Q>=2 and producer holds a reserved slot",
+        "shutdown sends Stop through another slot; actor exits and drops the receiver",
+        "producer uses the previously reserved Tokio permit to send its request after receiver drop"
+      ],
+      "consequence": "Tokio documents Permit::send succeeds after close; inspected Rx::drop drains before this later send and Chan::drop performs final drain only when channel owners disappear. The job may retain its response sender and byte charge while ControllerHandler still owns a sender, leaving direct submit awaiting without a local deadline. This static conclusion needs a deterministic native control."
+    },
+    {
+      "severity": "compatibility and availability",
+      "name": "byte pressure closes transport and has no fair admission",
+      "detail": "Transport maps Handler errors to HandlerError and closes the connection; remote callers do not receive a retryable Busy body. Immediate slot/byte checks permit starvation of larger individually valid jobs by smaller repeated admissions. The proposed policy changes valid-success behavior and can introduce these failures even with a free queue slot."
+    }
+  ],
+  "required_followup": [
+    "Choose and specify a reliable actor wake/close mechanism that handles rejected/panicking reservations, shutdown cancellation and receiver-drop races; a simple stopping-flag recheck is insufficient.",
+    "Consider an atomic byte reservation before the existing try_send, with explicitly documented non-racing error precedence and race semantics, or a separately owned shutdown signal; do not claim either safe without review.",
+    "Add deterministic Q=1 reserve/stop/reject and Q>=2 reserve/receiver-drop/send tests, bound their waits and ensure failed tests explicitly wake/join the actor rather than leaking a blocking task.",
+    "Prove exactly-once byte-charge release on failed admission, canceled receiver, actor dequeue/stop and channel destruction, without charging active/replied allocations to the queue bound.",
+    "Test direct Handler and transport behavior, original buffers, no-copy pointer identities, full/closed/oversized error precedence, contention and starvation properties; preserve existing assertions and deadlines."
+  ],
+  "limits": [
+    "Static source and sequential model review only; no Rust compilation, Cargo, Tokio execution, actor/WAL or network test.",
+    "The existing B=Q*L counter proposal is explicitly a queued logical-capacity estimate, not a total-process or active/reply bound.",
+    "No throughput, production-readiness or release-readiness conclusion."
+  ]
+}

@@ -38,6 +38,9 @@ jobs:
           - kind: client
             source_version: main-comparison-b1
             checkout_sha: 8f960c3e60609703f23f79b3f368355ed8c057d8
+          - kind: broker
+            source_version: runtime-capacity-v2-r2
+            checkout_sha: ${{ github.sha }}
           # Broker v2 is adopted. broker.yml validates its main source;
           # its frozen candidate spec remains bound to the pre-adoption tree.
     env:
@@ -138,8 +141,69 @@ jobs:
         if: matrix.kind == 'client'
         run: python3 -B scripts/ci-qualify-client-candidate.py --spec "$QUALIFICATION_SPEC" --output "$RUNNER_TEMP/candidate-qualification"
       - name: Qualify isolated broker candidate
-        if: matrix.kind == 'broker'
+        if: matrix.kind == 'broker' && matrix.source_version != 'runtime-capacity-v2-r2'
         run: python3 -B scripts/ci-qualify-broker-candidate.py --spec "$QUALIFICATION_SPEC" --output "$RUNNER_TEMP/candidate-qualification"
+      - name: Check and qualify pinned broker runtime capacity
+        if: matrix.kind == 'broker' && matrix.source_version == 'runtime-capacity-v2-r2'
+        run: |
+          python3 -B - <<'PYCODE'
+          import hashlib, os, stat, sys, types, unittest
+          from pathlib import Path
+          root = Path(os.environ['GITHUB_WORKSPACE']).resolve()
+          base = 'docs/evidence/broker/candidate-20261030/runtime-capacity-v2-r2'
+          pins = {
+              'qualify.py': ('9041bbb89a617fa3cee52810157a17bdae0f2e0e33a613fbc8ae52c30e78f7de', 12496),
+              'test_static.py': ('01f8b3e3231235afc56e0eccdeae9bf1cd9c8e4548b94bb85182998170ccf3ce', 11496),
+              'spec.json': ('a467ffefd723efcc32a8b810af41fa7a91f3ce83b4dfdd5485c11b5102df3749', 4162),
+          }
+          directory = os.open(root, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
+          try:
+              for part in base.split('/'):
+                  child = os.open(part, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW, dir_fd=directory)
+                  os.close(directory)
+                  directory = child
+              verified = {}
+              for name, (expected, size) in pins.items():
+                  fd = os.open(name, os.O_RDONLY | os.O_NOFOLLOW, dir_fd=directory)
+                  with os.fdopen(fd, 'rb') as stream:
+                      info = os.fstat(stream.fileno())
+                      if not stat.S_ISREG(info.st_mode) or info.st_size != size:
+                          raise SystemExit('candidate file size or type mismatch: '+name)
+                      data = stream.read(size+1)
+                  if len(data) != size or hashlib.sha256(data).hexdigest() != expected:
+                      raise SystemExit('candidate file hash mismatch: '+name)
+                  verified[name] = data
+          finally:
+              os.close(directory)
+          def run_static(data, path, expected, stream=None):
+              name = 'verified_capacity_static_controls'
+              sentinel = object()
+              previous = sys.modules.get(name, sentinel)
+              module = types.ModuleType(name)
+              module.__file__ = path
+              sys.modules[name] = module
+              try:
+                  exec(compile(data, path, 'exec'), module.__dict__)
+                  suite = unittest.defaultTestLoader.loadTestsFromModule(module)
+                  if suite.countTestCases() != expected:
+                      raise SystemExit('unexpected static test count')
+                  result = unittest.TextTestRunner(verbosity=2, stream=stream).run(suite)
+                  if not result.wasSuccessful() or result.testsRun != expected or result.skipped or result.expectedFailures:
+                      raise SystemExit('static qualification controls failed or skipped')
+              finally:
+                  if previous is sentinel:
+                      del sys.modules[name]
+                  else:
+                      sys.modules[name] = previous
+          run_static(verified['test_static.py'], str(root/base/'test_static.py'), 6)
+          path = str(root/base/'qualify.py')
+          sys.argv = [path, '--checkout', str(root), '--output', os.environ['RUNNER_TEMP']+'/candidate-qualification']
+          try:
+              exec(compile(verified['qualify.py'], path, 'exec'), {'__name__':'__main__', '__file__':path})
+          except SystemExit as result:
+              if result.code not in (None, 0):
+                  raise
+          PYCODE
       - name: Retain attempts and failures
         if: always()
         uses: actions/upload-artifact@v6

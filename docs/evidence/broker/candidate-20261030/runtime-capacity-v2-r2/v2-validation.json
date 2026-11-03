@@ -1,0 +1,28 @@
+{
+  "base_commit": "6fa8cdb3588d884580d01331e44df657c02f7670",
+  "patch_sha256": "7f36df7c94bfd5265c5586c8a2749d3180f5e7da0534e053848154b3cdbdfbab",
+  "manifest_sha256": "a071d729fd51d67498625cdea1198c1669d2b1fdd5fc0bf7f58bfa552f4dacd2",
+  "after_sha256": "38c50bcd93e5dea91d10264c984fef1a5bfe9e4e33686a5ec64c03ae7945b66d",
+  "v1_to_v2_sha256": "a4dfedd26dff847c89d9b1e162e3d929316eba2a8da2717997eac293540c6fb9",
+  "v1_to_v2_only_whitespace": true,
+  "patch_and_delta_forward_reverse": "pass",
+  "rustfmt": {
+    "version": "rustfmt 1.10.0-stable (58cf8f9c35 2026-10-13)",
+    "edition": "2021",
+    "skip_children": true,
+    "result": "pass"
+  },
+  "v1_source_controls": {
+    "path": "/workspace/work/broker-runtime-capacity-20261103/source-controls.json",
+    "sha256": "4b9b52663105d991cf3b4a9ef57f48c96e01b987d868a0ce3b2a6ff20f78b88a"
+  },
+  "independent_review": {
+    "path": "/workspace/work/broker-runtime-capacity-independent-review-20261103/independent-review-v2.json",
+    "sha256": "edba22ee43d3fd516a83df6c6b3964fb5efec377408e3a4cd7d61e70bfdd7dbf"
+  },
+  "limits": [
+    "Source-only candidate; Rust compilation, Clippy and native tests were not run.",
+    "No network, Cargo, benchmark or publication.",
+    "The related ControllerHandler request/spare accounting issue is separate and unresolved."
+  ]
+}

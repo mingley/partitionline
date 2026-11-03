@@ -1,0 +1,25 @@
+{
+  "scope": "Independent source-only audit of inactive pending-queue microbenchmark rebound to v16",
+  "manifest_sha256": "8e90cbd3f103a4959fe3995795ec9311e22d583c741e21c19616d9471bb1ad6d",
+  "v3_to_v16_patch_sha256": "ef1151b200a75e7b24dd3d127393e64cd318ed725270bad9d1870dc19909608b",
+  "validation_sha256": "0f0671a327150836b7fcc0db1d59ad9ae13e294bc3b1824aa45ba9e6dcb26db1",
+  "v16_spec_sha256": "dcca8ef98344e960ced94ef0aa560032950ce96556dab16820cffe007e3a6be2",
+  "v16_import_manifest_sha256": "327f9f05c1ab9e321951ea86d841006943ec8f93c74a5b5d960c63a68252e58c",
+  "checks": [
+    "All 20 frozen assets, all 21 archived v3 members and the prior review match their pins. The five-file v3-to-v16 code patch applies and reverses byte-exactly; workload template, example and queue patch are unchanged.",
+    "Independently reconstructed all 1,746 base, 1,753 baseline and 1,755 fixed source hashes from the retained sparse archive. Reversing deadline fixture, pending-work import and queue patch yields the exact 1,755-file control catalog; applying them in the opposite order restores the exact fixed catalog.",
+    "Both 1,757-file injected-hook inventories match. The two Worker initializers differ only by the intended queue fields, both borrow the shared owner, and their common release harness matches byte-for-byte.",
+    "Nine core runner function ASTs, including workload cases, identity/sample acceptance and cleanup logic, match the reviewed v3. All 19 case schedules retain ten measured pairs balanced five per ordering, the same seeds and one warmup pair.",
+    "The exact v16 specification preserves 23 baseline cases, 166 library and 17 integration controls and 10 full targets. Same-job witness and illustrative workflow require a successful v16 qualification before measuring; six helper pins are checked. The witness relies on trusted workflow ordering rather than being an independent signature.",
+    "All six static Python controls pass independently with exact reviewed source inputs and checkout helper paths."
+  ],
+  "independent_static_test_log_sha256": "6d14d35feaed46d2c04d6f716b889ec09f1f61dd5a8ea37795c54214552023d1",
+  "full_source_reconstruction_script_sha256": "8cfea8dbdba055b5093285c0e79c8f2b4afc698c6a737698232aa93a52b69953",
+  "decision": "No blocker found within source and static-test scope. Keep the prototype inactive until the full v16 correctness qualification has passed in the same job.",
+  "limits": [
+    "No Cargo, Rust compilation, Clippy, native test, actual benchmark, hosted run or performance ranking was performed.",
+    "The witness and illustrative workflow were not exercised end-to-end; helper checks cover pinned files, not dependency bytes or live execution.",
+    "Synthetic completion does not establish Kafka delivery, durability, production readiness or aggregate memory bounds.",
+    "A shared x86 runner and focused queue microbenchmark cannot establish a fastest-worldwide claim."
+  ]
+}

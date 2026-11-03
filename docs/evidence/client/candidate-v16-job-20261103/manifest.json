@@ -1,0 +1,41 @@
+{
+  "repository": "mingley/partitionline",
+  "workflow_run_id": 41587661156,
+  "job_id": 125756817431,
+  "job": "client v16 (stable, x86_64)",
+  "head_sha": "6fa8cdb3588d884580d01331e44df657c02f7670",
+  "run_attempt": 1,
+  "job_conclusion": "failure",
+  "native_qualification_step": "failure",
+  "retained_attempts_upload": "success",
+  "retained_reports_upload": "success",
+  "artifact": {
+    "id": 13210125242,
+    "bytes": 15523523,
+    "github_sha256": "dc12805972973f5b97f132cf44ce5a706d7ec47389399b1dfa667f4ae0c73a32",
+    "download_status": "connector returned File Service reference; workspace has no supported reader; artifact contents were not independently inspected"
+  },
+  "complete_decoded_log": {
+    "gzip_path": "/workspace/work/client-v16-job-evidence-20261103/v2/job-125756817431.log.gz",
+    "gzip_bytes": 22232,
+    "gzip_sha256": "9d1c4c7be7b99a787d5be57df32025efb04136f2452fe0d33c71991ea74acd88",
+    "decoded_bytes": 143066,
+    "decoded_sha256": "abf97da8c76a333f60256ba999c7cbb908f11ff3648c5ec5b7b47b365c1813ff"
+  },
+  "spec_sha256": "dcca8ef98344e960ced94ef0aa560032950ce96556dab16820cffe007e3a6be2",
+  "diagnostic_lines": {
+    "path": "/workspace/work/client-v16-job-evidence-20261103/v2/diagnostic-lines.log",
+    "count": 196,
+    "sha256": "7b2071a56bcd122169db4353c5c0f2c671a35ad4dfc679cab49925261f4899d3"
+  },
+  "scope": [
+    "The per-test names, counts and diagnostic bodies below are bounded, unverified projections printed by the CI driver; the full diagnostic artifacts were not downloaded.",
+    "A projected Error: Timeout does not locate the phase; additional phase diagnostics could have been omitted by the projection.",
+    "No live Kafka, production readiness, release readiness or global performance ranking is qualified."
+  ],
+  "fixed_inputs_sha256": "15da704200222b0b3b8de7d74274b9cf1fb3933a9339112c09b3467aa07868ea",
+  "prior_report_sha256": "0fcd00828451e32b9113fd03cbce1bcc2d72e3ab0ef839247ec6e8a580916bfe",
+  "prior_manifest_sha256": "fc0fbb886c3605638e7df6ac6f6af0a8d725f2069a620a035c059e2e8e4ee91c",
+  "prior_results_sha256": "99fe18e791985e120c3744f396186a999a02c2f3d22160505899c17747a6ecea",
+  "clarification": "21 pass/fail expectations matched; two observation-only cases both passed."
+}

@@ -10,6 +10,7 @@ The [manifest](manifest.json), [bundle receipt](bundle-receipt.json) and
 [source review](independent-review.json) record the exact inputs. Static
 controls passed, but the Rust harness and workflow have not been compiled or
 run. The benchmark stays disabled until the client candidate passes its full
-correctness gates. Its witness is bound to v14 and needs updating for v16.
+correctness gates. A source-reviewed [v16 rebind](../pending-queue-v16-20261103/README.md)
+remains inactive and unmeasured.
 Synthetic completion does not prove Kafka delivery, and no speedup or ranking
 has been measured.

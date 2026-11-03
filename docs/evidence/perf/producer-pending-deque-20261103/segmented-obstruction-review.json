@@ -1,0 +1,31 @@
+{
+  "scope": "Independent source-only review of v16-pinned segmented retry/unwind obstruction; no v3 implementation",
+  "verdict": "Suitable to preserve as an obstruction and model. Do not adopt the uncompiled v2 deque prototype or claim unwind safety, production readiness or a speedup.",
+  "obstruction_archive_sha256": "adfcab3c61846bfe567e07680e64c1a324ff522168725522be3e06cf419bc4ee",
+  "author_receipt_sha256": "c65aac9a408ebf2f9cc33d34b0c0a48618e5fdd88833569986261a3f65d585f6",
+  "author_readme_sha256": "47079e5705c9b7b5ce9370e57fec2a3c35c28443ab47ac204c689cf9a0d59bf5",
+  "author_model_sha256": "a8314bea43adc9d7d3caa94b7e34a436829ee33448c55d9f8680386eae1c96fb",
+  "v2_patch_sha256": "d539ab29021a6307b8a4070b982920191c7641b2f9f0ee3cfea01098b12e7c99",
+  "v2_review_sha256": "1c988da27ad6e6e72061fdf2f0e236c85971854236ee75283484b353bbfdc51a",
+  "v16_catalog_sha256": "15da704200222b0b3b8de7d74274b9cf1fb3933a9339112c09b3467aa07868ea",
+  "independent_model_sha256": "e82ba0e6a6643c6929314e66e2a33e0d9600554f5899d72586e90b69442fd72e",
+  "independent_model_output_sha256": "4bf48dd9fde483df43704b098ef299e5a2c26dc85600644c1f6198de7f255f0d",
+  "checks": [
+    "Rechecked all six archive member hashes and exact author receipt; verified six v16 source inputs, immutable catalog and v2 patch git apply --check without applying the patch.",
+    "Independently modeled the three unexpired same-topic records with retries 0,4,2. Combined retry maxima are 5,5,5 and skip-refresh flags false,true,true; three separate batches yield maxima 1,5,3 and flags false,false,false.",
+    "Checked author model\u2019s expired-first and 4096-capacity examples against source-derived expectations; reviewed source retry grouping, increment, expiry, first-index and backoff code.",
+    "Verified Tokio 1.53.3 pinned recv_many source hashes and cancel-safety documentation."
+  ],
+  "admission_fence": "WorkerAdmission::close serializes on the commit mutex and flips accepting false before releasing it; production WorkerHandle try_send and previously reserved WorkerPermit::send check acceptance under that same mutex. Thus these handle paths cannot commit a new record after close returns. Raw senders used by tests can bypass the fence; no concurrent execution was performed.",
+  "other_source_findings": [
+    "V16 closed-worker cleanup retires sticky state and releases the entire combined queued batch byte budget before its per-record callbacks; segmented cleanup can change callback-time observations.",
+    "Reserve before creating receiving.drain can preserve the scratch on a reservation panic, but reattachment during Drop and existing retry_sync topic-group allocation remain separate hazards. Split singleton reserve-before-pop addresses another conditional unwind window also present in v16.",
+    "A source-only repeated-scan fallback still needs access to all records; Tokio mpsc cannot be assumed to offer repeatable in-place channel iteration, so the post-close channel must first be retained in bounded storage or its representation redesigned.",
+    "Channel refills between a successful receive and admission closure can make scratch and the channel each contain up to the channel capacity; per-worker preallocation impacts memory and does not supply a global bound."
+  ],
+  "limitations": [
+    "The Python models approximate selected source operations; no Rust, Tokio scheduling, allocation panic, callbacks, Kafka or benchmark was executed.",
+    "v2 patch was checked for applicability only, not integrated or compiled; its normal and error paths remain unqualified.",
+    "No root-cause conclusion for the hosted retained-backing failure and no production or performance claim."
+  ]
+}
