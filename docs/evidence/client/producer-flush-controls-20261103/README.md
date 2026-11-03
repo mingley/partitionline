@@ -1,0 +1,9 @@
+# Producer flush regression controls
+
+This capsule checks four desired producer flush properties against source commit `45cbff24de76490594970fc962cd04e7be9fafb1` on an x86_64 hosted runner using stable Rust. A green workflow means the expected assertions were reproduced on that pinned source; it is not evidence of a fix or production readiness.
+
+The workflow sparsely checks out the trigger revision for this capsule and a separate copy of the pinned source, verifies the checkout, source and patch hashes, and compiles the library tests before running each named control separately under default and all features. It uses the pinned command-ownership helper and retains command logs, process cleanup receipts, exit codes, runner and toolchain details, the exact patch, disk samples, and `result.json` as an Actions artifact. The classifier accepts an assertion only when the exact failure message, one selected failed test, and the test harness exit status are present. A compile/setup error, timeout, empty selection, unexpected failure, or unexpected pass makes the workflow fail. No other test suite is invoked.
+
+The controls cover pending expiry, a canceled flush, retirement before the worker runs, and a retry guard dropping an accepted record. They express a stronger desired contract; a green result does not establish a violation of current documented guarantees or Java behavior. See the [source-bound investigation report](REPORT.md) for ownership and cancellation limitations. Applying these controls does not modify production behavior.
+
+Both checkouts use sparse paths. The runner records available space before checkout and during compilation and tests; it stops work when free space falls below 2 GiB, providing headroom above the 1.5 GiB floor. Sampling cannot prevent a single write from crossing the floor between checks.

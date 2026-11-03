@@ -1,0 +1,100 @@
+name: producer flush regression controls
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/producer-flush-controls.yml
+      - docs/evidence/client/producer-flush-controls-20261103/**
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: producer-flush-controls-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  reproduce:
+    name: Reproduce pinned flush failures (stable, x86_64)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 65
+    env:
+      CARGO_BUILD_JOBS: '2'
+      CARGO_INCREMENTAL: '0'
+      CARGO_PROFILE_DEV_DEBUG: '0'
+      CARGO_PROFILE_TEST_DEBUG: '0'
+      CARGO_TERM_COLOR: never
+      RUST_BACKTRACE: '0'
+      PYTHONDONTWRITEBYTECODE: '1'
+      CARGO_TARGET_DIR: ${{ github.workspace }}/source/target
+    steps:
+      - name: Prepare evidence directory
+        shell: bash
+        run: |
+          set -o pipefail
+          mkdir -p "$RUNNER_TEMP/producer-flush-controls"
+          {
+            printf 'trigger_sha=%s\n' "$GITHUB_SHA"
+            printf 'run_id=%s\n' "$GITHUB_RUN_ID"
+            uname -a
+          } > "$RUNNER_TEMP/producer-flush-controls/runner.txt"
+          python3 -c 'import json,shutil,sys; v={p:shutil.disk_usage(p).free for p in sys.argv[1:]}; print(json.dumps(v)); sys.exit(any(n < 2 * 1024**3 for n in v.values()))' "$GITHUB_WORKSPACE" "$RUNNER_TEMP" | tee -a "$RUNNER_TEMP/producer-flush-controls/runner.txt"
+      - name: Checkout workflow capsule
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.sha }}
+          path: capsule
+          persist-credentials: false
+          sparse-checkout: |
+            .github/workflows
+            docs/evidence/client/producer-flush-controls-20261103
+      - name: Check space after capsule checkout
+        shell: bash
+        run: |
+          set -o pipefail
+          python3 -c 'import json,shutil,sys; v={p:shutil.disk_usage(p).free for p in sys.argv[1:]}; print(json.dumps(v)); sys.exit(any(n < 2 * 1024**3 for n in v.values()))' "$GITHUB_WORKSPACE" "$RUNNER_TEMP" | tee -a "$RUNNER_TEMP/producer-flush-controls/runner.txt"
+      - name: Checkout pinned source
+        uses: actions/checkout@v7
+        with:
+          ref: 45cbff24de76490594970fc962cd04e7be9fafb1
+          path: source
+          persist-credentials: false
+          sparse-checkout: |
+            .cargo
+            src
+            tests
+            examples
+      - name: Check space after source checkout
+        shell: bash
+        run: |
+          set -o pipefail
+          python3 -c 'import json,shutil,sys; v={p:shutil.disk_usage(p).free for p in sys.argv[1:]}; print(json.dumps(v)); sys.exit(any(n < 2 * 1024**3 for n in v.values()))' "$GITHUB_WORKSPACE" "$RUNNER_TEMP" | tee -a "$RUNNER_TEMP/producer-flush-controls/runner.txt"
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Verify capsule, compile, and reproduce individual controls
+        shell: bash
+        run: |
+          set -euo pipefail
+          evidence="$RUNNER_TEMP/producer-flush-controls"
+          capsule="capsule/docs/evidence/client/producer-flush-controls-20261103"
+          {
+            python3 -c 'import json,shutil,sys; v={p:shutil.disk_usage(p).free for p in sys.argv[1:]}; print(json.dumps(v)); sys.exit(any(n < 2 * 1024**3 for n in v.values()))' "$GITHUB_WORKSPACE" "$RUNNER_TEMP"
+            printf '%s  %s\n' '346fc055e370b345d87de826731c8d3fcdeb6d8da79b776c3641adf5187311c0' "$capsule/qualify.py" | sha256sum --check
+            printf '%s  %s\n' 'dcb7fa244056a3ccad7c81ba38611e5cb2157d4a7bdfbe8245cedad2cdfd0c03' "$capsule/regression-controls.patch" | sha256sum --check
+            printf '%s  %s\n' '34ddbf04a4bbead974fad4a451d30c7a56818248bd5b58c88c87bdfc41896da9' "$capsule/candidate-command-ownership.py" | sha256sum --check
+            printf '%s  %s\n' 'd0f0d6d31b4ce52a420b84434a6565f2e095bfa7fc4d430cc5bf2a5350142d5b' "$capsule/REPORT.md" | sha256sum --check
+            python3 -B "$capsule/qualify.py" --self-test
+            python3 -B "$capsule/qualify.py" \
+              --checkout source \
+              --patch "$capsule/regression-controls.patch" \
+              --output "$evidence"
+          } 2>&1 | tee "$evidence/qualification.log"
+      - name: Retain logs and results
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: producer-flush-controls-${{ github.sha }}-${{ github.run_id }}
+          path: ${{ runner.temp }}/producer-flush-controls
+          if-no-files-found: error
+          retention-days: 30

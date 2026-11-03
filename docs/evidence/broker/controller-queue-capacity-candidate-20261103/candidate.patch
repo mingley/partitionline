@@ -1,0 +1,391 @@
+diff --git a/partitionline-broker/src/raft/protocol.rs b/partitionline-broker/src/raft/protocol.rs
+--- a/partitionline-broker/src/raft/protocol.rs
++++ b/partitionline-broker/src/raft/protocol.rs
+@@ -17,7 +17,7 @@
+ //! supplies a bounded blocking actor for asynchronous transport. Cancellation
+ //! skips queued work; cancellation during synchronization is ambiguous. Shutdown
+ //! stops admission and joins the actor; a canceled shutdown can be retried.
+-//! Work/queues/bytes are bounded, without allocations from peer array counts.
++//! Queued input buffer capacities are bounded; this is not an RSS bound.
+ 
+ use super::election::{
+     self, Election, LogPosition, Membership, Role, State, Tally, Tick, Timeouts,
+@@ -109,7 +109,8 @@
+     pub partition: i32,
+     /// Transport-aligned request-byte and per-block tag bounds.
+     pub protocol_limits: protocol::Limits,
+-    /// Pending actor requests,1..=1024; queue bytes must not exceed512MiB.
++    /// Pending actor requests, 1..=1024; queued input capacities are at
++    /// most this count times the request-byte limit, up to 512 MiB.
+     pub max_queued_requests: usize,
+     /// Maximum ranked End election backoff,1..=600000 milliseconds.
+     pub election_backoff_max_ms: u32,
+@@ -178,7 +179,7 @@
+     UnexpectedResponse,
+     /// A peer returned a semantic error that cannot count as a vote.
+     PeerError(i16),
+-    /// Fixed small request/response allocation failed.
++    /// A request/response allocation failed.
+     Allocation,
+     /// Bounded actor admission was full.
+     Busy,
+@@ -3676,6 +3677,12 @@
+ }
+ 
+ /// Async transport handler with one joined bounded durable election actor.
++///
++/// Over-reserved request buffers are copied before admission; an optional
++/// response spare is discarded when retaining both buffers would exceed
++/// the request-byte limit. Allocation failure closes the affected
++/// transport connection. Queued input capacity excludes active work,
++/// caller futures, completed replies, allocator overhead and sockets.
+ pub struct ControllerHandler {
+     sender: mpsc::Sender<Command>,
+     stopping: Arc<AtomicBool>,
+@@ -3758,12 +3765,39 @@
+     }
+ }
+ impl ControllerHandler {
+-    async fn submit(&self, request: Vec<u8>, spare: Vec<u8>) -> ControllerReply {
++    async fn submit(&self, mut request: Vec<u8>, mut spare: Vec<u8>) -> ControllerReply {
+         if self.stopping.load(Ordering::Acquire) {
+             return Err(Error::Stopped);
+         }
+-        if request.len() > self.config.protocol_limits.max_request_bytes() {
++        let limit = self.config.protocol_limits.max_request_bytes();
++        if request.len() > limit {
+             return Err(protocol::Error::RequestTooLarge.into());
++        }
++        if request.capacity() > limit {
++            // Read-ahead may retain the frame prefix, even for a valid
++            // maximum-sized body. Preserve its bytes without reserving
++            // a channel slot, which can interfere with shutdown.
++            let mut bounded = Vec::new();
++            bounded
++                .try_reserve_exact(request.len())
++                .map_err(|_| Error::Allocation)?;
++            // Allocators may provide more than the requested capacity.
++            if bounded.capacity() > limit {
++                return Err(Error::Allocation);
++            }
++            for chunk in request.chunks(64 * 1024) {
++                bounded.extend_from_slice(chunk);
++                if bounded.len() < request.len() {
++                    tokio::task::yield_now().await;
++                    if self.stopping.load(Ordering::Acquire) {
++                        return Err(Error::Stopped);
++                    }
++                }
++            }
++            request = bounded;
++        }
++        if spare.capacity() > limit - request.capacity() {
++            spare = Vec::new();
+         }
+         let (sender, receiver) = oneshot::channel();
+         self.sender
+@@ -5986,3 +6020,186 @@
+         cancel_pending_shutdown_then_join(true).await
+     }
+ }
++
++#[cfg(test)]
++mod controller_queue_capacity_tests {
++    use super::{Command, Config, ControllerHandler, ControllerJoin, Error};
++    use crate::protocol;
++    use std::{
++        future::{poll_fn, Future},
++        sync::{atomic::AtomicBool, Arc},
++        task::Poll,
++        time::Duration,
++    };
++    use tokio::sync::{mpsc, Mutex};
++
++    type TestResult = Result<(), Box<dyn std::error::Error + Send + Sync>>;
++    const WAIT: Duration = Duration::from_secs(5);
++
++    // The receiver is controlled by the test; this fixture does not run a WAL.
++    fn fixture(limit: usize) -> Result<(ControllerHandler, mpsc::Receiver<Command>), Error> {
++        let mut config = Config::new(1, vec![1], "queue-test".to_owned())?;
++        config.protocol_limits = protocol::Limits::new(limit, 0)?;
++        config.max_queued_requests = 1;
++        let (sender, receiver) = mpsc::channel(1);
++        let task = tokio::spawn(async {});
++        Ok((
++            ControllerHandler {
++                sender,
++                stopping: Arc::new(AtomicBool::new(false)),
++                join: Mutex::new(ControllerJoin::Running(task)),
++                config,
++            },
++            receiver,
++        ))
++    }
++
++    #[tokio::test]
++    async fn queued_capacity_preserves_bytes_and_reuses_fitting_buffers() -> TestResult {
++        for oversized_request in [false, true] {
++            for oversized_spare in [false, true] {
++                let (handler, mut receiver) = fixture(64)?;
++                let request = if oversized_request {
++                    let mut request = Vec::with_capacity(128);
++                    request.extend_from_slice(b"request");
++                    request
++                } else {
++                    b"request".to_vec().into_boxed_slice().into_vec()
++                };
++                let request_ptr = request.as_ptr();
++                let spare = if oversized_spare {
++                    Vec::with_capacity(128)
++                } else {
++                    let mut spare = vec![0_u8; 16].into_boxed_slice().into_vec();
++                    spare.clear();
++                    spare
++                };
++                let spare_ptr = spare.as_ptr();
++                let spare_capacity = spare.capacity();
++                let mut pending = Box::pin(handler.submit(request, spare));
++                poll_fn(|cx| {
++                    assert!(pending.as_mut().poll(cx).is_pending());
++                    Poll::Ready(())
++                })
++                .await;
++                let job = match receiver.try_recv()? {
++                    Command::Request(job) => job,
++                    Command::Stop => return Err("unexpected stop".into()),
++                };
++                assert_eq!(job.request.as_slice(), b"request");
++                assert!(job.request.capacity() + job.spare.capacity() <= 64);
++                if !oversized_request {
++                    assert_eq!(job.request.as_ptr(), request_ptr);
++                }
++                if spare_capacity > 64 - job.request.capacity() {
++                    assert_eq!(job.spare.capacity(), 0);
++                } else {
++                    assert_eq!(job.spare.as_ptr(), spare_ptr);
++                }
++                let sent = job.reply.send(Ok((vec![9], job.request)));
++                assert!(sent.is_ok());
++                let (response, returned) = tokio::time::timeout(WAIT, pending).await??;
++                assert_eq!(response, [9]);
++                assert_eq!(returned.as_slice(), b"request");
++                if !oversized_request {
++                    assert_eq!(returned.as_ptr(), request_ptr);
++                }
++                drop(receiver);
++                tokio::time::timeout(WAIT, handler.shutdown()).await??;
++            }
++        }
++        Ok(())
++    }
++
++    #[tokio::test]
++    async fn full_queue_length_and_stop_results_are_preserved() -> TestResult {
++        let (handler, mut receiver) = fixture(64)?;
++        let mut first = Box::pin(handler.submit(vec![1], Vec::new()));
++        poll_fn(|cx| {
++            assert!(first.as_mut().poll(cx).is_pending());
++            Poll::Ready(())
++        })
++        .await;
++        assert!(matches!(
++            handler.submit(vec![2], Vec::new()).await,
++            Err(Error::Busy)
++        ));
++        let mut over_capacity = Vec::with_capacity(65);
++        over_capacity.push(3);
++        assert!(matches!(
++            handler.submit(over_capacity, Vec::new()).await,
++            Err(Error::Busy)
++        ));
++        assert!(matches!(
++            handler.submit(vec![0; 65], Vec::new()).await,
++            Err(Error::Protocol(protocol::Error::RequestTooLarge))
++        ));
++        let job = match receiver.try_recv()? {
++            Command::Request(job) => job,
++            Command::Stop => return Err("unexpected stop".into()),
++        };
++        assert!(job.reply.send(Ok((Vec::new(), job.request))).is_ok());
++        let _reply = tokio::time::timeout(WAIT, first).await??;
++        drop(receiver);
++        tokio::time::timeout(WAIT, handler.shutdown()).await??;
++        assert!(matches!(
++            handler.submit(vec![4], Vec::new()).await,
++            Err(Error::Stopped)
++        ));
++        Ok(())
++    }
++
++    #[tokio::test]
++    async fn canceling_copy_leaves_no_reserved_slot_or_queued_request() -> TestResult {
++        const LIMIT: usize = 128 * 1024;
++        let (handler, mut receiver) = fixture(LIMIT)?;
++        let mut request = Vec::with_capacity(LIMIT + 1);
++        request.resize(LIMIT, 7);
++        let mut pending = Box::pin(handler.submit(request, Vec::new()));
++        poll_fn(|cx| {
++            assert!(pending.as_mut().poll(cx).is_pending());
++            Poll::Ready(())
++        })
++        .await;
++        assert!(matches!(
++            receiver.try_recv(),
++            Err(mpsc::error::TryRecvError::Empty)
++        ));
++        drop(pending);
++        assert!(matches!(
++            receiver.try_recv(),
++            Err(mpsc::error::TryRecvError::Empty)
++        ));
++        drop(receiver);
++        tokio::time::timeout(WAIT, handler.shutdown()).await??;
++        Ok(())
++    }
++
++    #[tokio::test]
++    async fn stop_during_copy_prevents_late_admission() -> TestResult {
++        const LIMIT: usize = 128 * 1024;
++        let (handler, mut receiver) = fixture(LIMIT)?;
++        let mut request = Vec::with_capacity(LIMIT + 1);
++        request.resize(LIMIT, 7);
++        let mut pending = Box::pin(handler.submit(request, Vec::new()));
++        poll_fn(|cx| {
++            assert!(pending.as_mut().poll(cx).is_pending());
++            Poll::Ready(())
++        })
++        .await;
++        handler
++            .stopping
++            .store(true, std::sync::atomic::Ordering::Release);
++        assert!(matches!(
++            tokio::time::timeout(WAIT, pending).await?,
++            Err(Error::Stopped)
++        ));
++        assert!(matches!(
++            receiver.try_recv(),
++            Err(mpsc::error::TryRecvError::Empty)
++        ));
++        drop(receiver);
++        tokio::time::timeout(WAIT, handler.shutdown()).await??;
++        Ok(())
++    }
++}
+diff --git a/partitionline-broker/src/transport.rs b/partitionline-broker/src/transport.rs
+--- a/partitionline-broker/src/transport.rs
++++ b/partitionline-broker/src/transport.rs
+@@ -1652,6 +1652,23 @@
+     }
+ 
+     #[test]
++    fn a_maximum_buffered_frame_keeps_more_than_the_body_limit() -> Result<(), &'static str> {
++        const LIMIT: usize = 32;
++        let mut ahead = ReadAhead::new();
++        let payload = [0x5a; LIMIT];
++        extend_frame(&mut ahead, &payload);
++        let original = ahead.bytes.as_ptr();
++        assert!(ahead.bytes.capacity() >= LIMIT + 4);
++        let body = take_complete_frame(&mut ahead, LIMIT)
++            .map_err(|_| "buffered frame rejected")?
++            .ok_or("maximum buffered frame missing")?;
++        assert_eq!(body.as_slice(), &payload);
++        assert_eq!(body.as_ptr(), original);
++        assert!(body.capacity() > LIMIT);
++        Ok(())
++    }
++
++    #[test]
+     fn an_empty_body_is_a_frame() {
+         let mut ahead = ReadAhead::new();
+         extend_frame(&mut ahead, b"");
+diff --git a/partitionline-broker/tests/raft_protocol.rs b/partitionline-broker/tests/raft_protocol.rs
+--- a/partitionline-broker/tests/raft_protocol.rs
++++ b/partitionline-broker/tests/raft_protocol.rs
+@@ -1199,3 +1199,87 @@
+     assert_eq!(dynamic.voters()?, &voters_before);
+     Ok(())
+ }
++
++// Add retained request capacity as read-ahead may do, then delegate through
++// the actual controller and socket transport. Samples precede submission.
++struct QueueCapacityTrace {
++    inner: Arc<ControllerHandler>,
++    capacities: tokio::sync::mpsc::UnboundedSender<(usize, usize)>,
++}
++
++impl Handler for QueueCapacityTrace {
++    type Error = Error;
++
++    async fn handle(&self, request: Vec<u8>) -> std::result::Result<Option<Vec<u8>>, Error> {
++        self.inner.handle(request).await
++    }
++
++    async fn exchange_request(
++        &self,
++        peer: &transport::Peer,
++        mut request: Vec<u8>,
++        spare: Vec<u8>,
++    ) -> std::result::Result<transport::ExchangeOutcome, Error> {
++        request.reserve(33);
++        let _sent = self.capacities.send((request.capacity(), spare.capacity()));
++        self.inner.exchange_request(peer, request, spare).await
++    }
++}
++
++#[tokio::test]
++async fn controller_reuses_connection_with_over_reserved_requests_and_response_spare() -> Result {
++    const LIMIT: usize = 32;
++    const WAIT: Duration = Duration::from_secs(5);
++    let temp = Temp::new()?;
++    let mut cfg = config(1)?;
++    cfg.protocol_limits = Limits::new(LIMIT, 0)?;
++    cfg.max_queued_requests = 1;
++    let handler = Arc::new(ControllerHandler::open(temp.path("capacity-actor"), cfg).await?);
++    let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel();
++    let traced = Arc::new(QueueCapacityTrace {
++        inner: handler.clone(),
++        capacities: tx,
++    });
++    let limits = transport::Config::new(2, 1, LIMIT, 1024, WAIT, WAIT, WAIT)?;
++    let mut server = match Transport::bind("127.0.0.1:0".parse()?, limits, traced).await {
++        Ok(server) => server,
++        Err(error) => {
++            let _stopped = tokio::time::timeout(WAIT, handler.shutdown()).await;
++            return Err(error.into());
++        }
++    };
++    let observed: Result = match tokio::time::timeout(WAIT, async {
++        let mut stream = TcpStream::connect(server.local_addr()).await?;
++        for correlation in [71, 72] {
++            let request = header(18, 0, correlation);
++            stream.write_i32(i32::try_from(request.len())?).await?;
++            stream.write_all(&request).await?;
++            let size = usize::try_from(stream.read_i32().await?)?;
++            if size > 1024 {
++                return Err("unexpected response size".into());
++            }
++            let mut response = vec![0; size];
++            let _read = stream.read_exact(&mut response).await?;
++            if response.get(..4) != Some(correlation.to_be_bytes().as_slice()) {
++                return Err("wrong response correlation".into());
++            }
++            let (request_capacity, spare_capacity) =
++                rx.recv().await.ok_or("missing capacity sample")?;
++            if request_capacity <= LIMIT || (correlation == 72 && spare_capacity <= LIMIT) {
++                return Err("exchange did not exercise excess capacity".into());
++            }
++        }
++        Ok(())
++    })
++    .await
++    {
++        Ok(result) => result,
++        Err(error) => Err(Box::new(error)),
++    };
++    let server_result = tokio::time::timeout(WAIT, server.shutdown()).await;
++    let handler_result = tokio::time::timeout(WAIT, handler.shutdown()).await;
++    observed?;
++    server_result??;
++    handler_result??;
++    Ok(())
++}

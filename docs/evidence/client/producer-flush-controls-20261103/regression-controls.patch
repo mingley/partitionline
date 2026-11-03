@@ -1,0 +1,246 @@
+--- a/src/producer.rs
++++ b/src/producer.rs
+@@ -11512,6 +11512,243 @@
+ mod tests {
+     use super::*;
+ 
++    // These controls exercise the public flush contract at known ownership
++    // transitions. They are intentionally separate from any proposed fix.
++    async fn flush_regression_shared(
++        cfg: ProducerConfig,
++    ) -> (Arc<Shared>, tokio::net::TcpListener, tokio::net::TcpStream) {
++        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
++        let addr = listener.local_addr().unwrap();
++        let meta = BrokerConn::connect(
++            &addr.to_string(),
++            "flush-regression-meta",
++            Duration::from_secs(1),
++        )
++        .await
++        .unwrap();
++        let (meta_peer, _) = listener.accept().await.unwrap();
++        let shared = test_shared(cfg, meta);
++        let mut image = MetadataResponse::blank();
++        image.brokers = vec![crate::protocol::api::Broker::new(
++            1,
++            "127.0.0.1",
++            i32::from(addr.port()),
++            None,
++        )];
++        image.topics = vec![crate::protocol::api::TopicMetadata::new(
++            0,
++            "t",
++            false,
++            vec![crate::protocol::api::PartitionMetadata {
++                error_code: 0,
++                partition_index: 0,
++                leader_id: 1,
++                leader_epoch: 1,
++                replica_nodes: Vec::new(),
++                isr_nodes: Vec::new(),
++                offline_replicas: Vec::new(),
++            }],
++        )];
++        let mut cluster = Cluster::default();
++        cluster.apply_image(&image, 7).await;
++        *shared.cluster.lock() = cluster;
++        (shared, listener, meta_peer)
++    }
++
++    // The worker task is spawned after all socket/metadata awaits. With the
++    // current-thread runtime it cannot poll until the caller yields.
++    async fn flush_regression_worker(
++        cfg: ProducerConfig,
++    ) -> (
++        Producer,
++        Arc<Shared>,
++        WorkerHandle,
++        tokio::net::TcpStream,
++        tokio::net::TcpStream,
++    ) {
++        let (shared, listener, meta_peer) = flush_regression_shared(cfg).await;
++        let addr = listener.local_addr().unwrap().to_string();
++        let mut conn =
++            BrokerConn::connect(&addr, "flush-regression-worker", Duration::from_secs(1))
++                .await
++                .unwrap();
++        let (worker_peer, _) = listener.accept().await.unwrap();
++        conn.set_produce_version(9);
++        let (data, data_rx) = mpsc::channel(8);
++        let (ctrl, ctrl_rx) = mpsc::channel(8);
++        let id = Arc::new(());
++        let admission = Arc::new(WorkerAdmission::for_producer(Arc::clone(&shared.closed)));
++        let worker = Worker {
++            id: Arc::clone(&id),
++            admission: Arc::clone(&admission),
++            node_id: 1,
++            throttle: shared.broker_throttle(1),
++            conn,
++            data: data_rx,
++            ctrl: ctrl_rx,
++            shared: Arc::clone(&shared),
++            write_buf: BytesMut::new(),
++            pending: Vec::new(),
++            spare_batch: Vec::new(),
++            pending_estimate: 0,
++            earliest_deadline: None,
++            in_flight: VecDeque::new(),
++            fail: None,
++            compress_scratch: CompressScratch::default(),
++            group_scratch: ProduceGroupScratch::default(),
++            ack_index: AckIndex::default(),
++            ack_slots: Vec::new(),
++            spare_acks: Vec::new(),
++            ack_requested: HashMap::new(),
++            ack_seen: HashMap::new(),
++            ack_tracker: None,
++            _live: WorkerLease::register(&shared),
++        };
++        let handle = WorkerHandle::new(
++            id,
++            admission,
++            data,
++            ctrl,
++            Arc::new(tokio::spawn(worker.run())),
++        );
++        let _previous = shared.nodes.lock().insert(1, vec![Some(handle.clone())]);
++        let producer = Producer {
++            inner: Arc::new(Inner {
++                shared: Arc::clone(&shared),
++            }),
++        };
++        (producer, shared, handle, meta_peer, worker_peer)
++    }
++
++    #[tokio::test(flavor = "current_thread")]
++    async fn flush_reports_an_accepted_record_expiring_in_pending() {
++        let cfg = ProducerConfig::default().delivery_timeout(Duration::ZERO);
++        let (producer, shared, _worker, _meta_peer, _worker_peer) =
++            flush_regression_worker(cfg).await;
++        producer
++            .try_send(ProduceRecord::to("t").partition(0).value("value"))
++            .unwrap();
++
++        let result = tokio::time::timeout(
++            Duration::from_secs(1),
++            producer.flush_timeout(Duration::from_secs(5)),
++        )
++        .await
++        .expect("flush did not finish after the record expired");
++        assert_eq!(shared.m_errors.load(Ordering::SeqCst), 1);
++        assert_eq!(shared.buffered_bytes.load(Ordering::SeqCst), 0);
++        assert!(
++            matches!(result, Err(Error::Timeout)),
++            "flush lost the delivery timeout: {result:?}"
++        );
++    }
++
++    #[tokio::test(flavor = "current_thread")]
++    async fn cancelled_flush_cannot_consume_an_unobserved_record_failure() {
++        let cfg = ProducerConfig::default().linger(Duration::from_secs(60));
++        let (producer, shared, _worker, _meta_peer, _worker_peer) =
++            flush_regression_worker(cfg).await;
++        producer.inject_pre_send_fault(PreSendFault::TxnPartition);
++        producer
++            .try_send(ProduceRecord::to("t").partition(0).value("value"))
++            .unwrap();
++
++        // Poll to enqueue the first worker control, then cancel before the
++        // current-thread worker can run and report its injected failure.
++        let mut cancelled = Box::pin(producer.flush_timeout(Duration::from_secs(5)));
++        let first_poll = std::future::poll_fn(|cx| {
++            std::task::Poll::Ready(std::future::Future::poll(cancelled.as_mut(), cx))
++        })
++        .await;
++        assert!(
++            first_poll.is_pending(),
++            "first flush should be waiting for its worker"
++        );
++        drop(cancelled);
++
++        let result = tokio::time::timeout(
++            Duration::from_secs(1),
++            producer.flush_timeout(Duration::from_secs(5)),
++        )
++        .await
++        .expect("second flush did not finish");
++        assert_eq!(shared.m_errors.load(Ordering::SeqCst), 1);
++        assert_eq!(shared.buffered_bytes.load(Ordering::SeqCst), 0);
++        assert!(
++            result.is_err(),
++            "cancelled flush discarded the only failure report"
++        );
++    }
++
++    #[tokio::test(flavor = "current_thread")]
++    async fn flush_cannot_succeed_while_a_retired_worker_still_owns_an_accepted_record() {
++        let cfg = ProducerConfig::default().linger(Duration::from_secs(60));
++        let (producer, shared, worker, _meta_peer, _worker_peer) =
++            flush_regression_worker(cfg).await;
++        producer
++            .try_send(ProduceRecord::to("t").partition(0).value("value"))
++            .unwrap();
++        let retired = retire_worker_nudge(&shared, 1, &worker.id).unwrap();
++        assert!(!worker.task.is_finished());
++        assert_eq!(shared.retries_out.load(Ordering::SeqCst), 0);
++        assert_eq!(shared.m_acked.load(Ordering::SeqCst), 0);
++        assert_eq!(shared.m_errors.load(Ordering::SeqCst), 0);
++        assert_eq!(shared.buffered_bytes.load(Ordering::SeqCst), 5);
++
++        let mut flush = Box::pin(producer.flush_timeout(Duration::from_secs(5)));
++        let first_poll = std::future::poll_fn(|cx| {
++            std::task::Poll::Ready(std::future::Future::poll(flush.as_mut(), cx))
++        })
++        .await;
++        drop(flush);
++        drop(retired);
++        assert!(
++            !matches!(first_poll, std::task::Poll::Ready(Ok(()))),
++            "flush reported success before the retired worker processed the record"
++        );
++    }
++
++    #[tokio::test(flavor = "current_thread")]
++    async fn flush_reports_failure_when_retry_guard_drops_an_accepted_record() {
++        let (shared, _listener, _meta_peer) =
++            flush_regression_shared(ProducerConfig::default()).await;
++        let (worker, mut rx) = admission_worker(1);
++        let id = Arc::clone(&worker.id);
++        let _previous = shared.nodes.lock().insert(1, vec![Some(worker)]);
++        let producer = Producer {
++            inner: Arc::new(Inner {
++                shared: Arc::clone(&shared),
++            }),
++        };
++        producer
++            .try_send(ProduceRecord::to("t").partition(0).value("value"))
++            .unwrap();
++        let accepted = rx
++            .try_recv()
++            .expect("worker did not receive the accepted record");
++        let retired = retire_worker_nudge(&shared, 1, &id).unwrap();
++        shared.retries_out.store(1, Ordering::SeqCst);
++        {
++            let _count = RetryCountGuard {
++                shared: &shared,
++                count: 1,
++            };
++            let _guard = RetryGuard {
++                shared: &shared,
++                p: Some(accepted),
++            };
++        }
++        assert_eq!(shared.retries_out.load(Ordering::SeqCst), 0);
++        assert_eq!(shared.m_errors.load(Ordering::SeqCst), 1);
++        assert_eq!(shared.buffered_bytes.load(Ordering::SeqCst), 0);
++        let result = producer.flush_timeout(Duration::from_secs(5)).await;
++        drop(retired);
++        assert!(
++            matches!(result, Err(Error::Timeout)),
++            "flush lost the retry failure: {result:?}"
++        );
++    }
++
+     #[tokio::test(flavor = "current_thread")]
+     async fn unpolled_retired_worker_is_counted_until_its_resources_drop() {
+         use tokio::io::AsyncReadExt;

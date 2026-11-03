@@ -1,0 +1,114 @@
+diff --git a/partitionline-broker/src/transport.rs b/partitionline-broker/src/transport.rs
+--- a/partitionline-broker/src/transport.rs
++++ b/partitionline-broker/src/transport.rs
+@@ -3566,3 +3566,110 @@
+         );
+     }
+ }
++
++#[cfg(test)]
++mod controller_prefetch_queue_tests {
++    use super::{
++        dispatch_frame, fill_complete_frame, new_frame, write_and_prefetch, Handler, ReadAhead,
++    };
++    use crate::{
++        protocol::Limits,
++        raft::protocol::{Config, ControllerHandler},
++    };
++    use std::{
++        path::PathBuf,
++        sync::atomic::{AtomicU64, Ordering},
++        time::Duration,
++    };
++    use tokio::io::{AsyncReadExt, AsyncWriteExt};
++    use tokio::time::{timeout, Instant};
++
++    struct Temp(PathBuf);
++    impl Drop for Temp {
++        fn drop(&mut self) {
++            drop(std::fs::remove_dir_all(&self.0));
++        }
++    }
++
++    // Force an actual write/prefetch/read-ahead path with a bounded in-memory
++    // socket, then deliver its moved allocation to the actual controller.
++    #[tokio::test]
++    async fn prefetched_limit_frame_reaches_real_controller(
++    ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
++        const LIMIT: usize = 32;
++        const WAIT: Duration = Duration::from_secs(10);
++        static NEXT: AtomicU64 = AtomicU64::new(0);
++        let path = std::env::temp_dir().join(format!(
++            "queue-prefetch-{}-{}",
++            std::process::id(),
++            NEXT.fetch_add(1, Ordering::Relaxed)
++        ));
++        std::fs::create_dir(&path)?;
++        let temp = Temp(path);
++        let mut config = Config::new(1, vec![1], "prefetch-test".into())?;
++        config.protocol_limits = Limits::new(LIMIT, 0)?;
++        config.max_queued_requests = 1;
++        let handler = ControllerHandler::open(temp.0.join("actor"), config).await?;
++
++        let mut payload = Vec::new();
++        payload.extend_from_slice(&18_i16.to_be_bytes());
++        payload.extend_from_slice(&0_i16.to_be_bytes());
++        payload.extend_from_slice(&91_i32.to_be_bytes());
++        payload.extend_from_slice(&22_i16.to_be_bytes());
++        payload.extend_from_slice(&[b'x'; 22]);
++        assert_eq!(payload.len(), LIMIT);
++        let (mut server, mut peer) = tokio::io::duplex(1);
++        let mut client = tokio::spawn(async move {
++            peer.write_all(&32_i32.to_be_bytes()).await?;
++            peer.write_all(&payload).await?;
++            let mut previous_response = [0_u8; 5];
++            peer.read_exact(&mut previous_response).await?;
++            if previous_response != [0, 0, 0, 1, b'r'] {
++                return Err(std::io::Error::other("wrong previous response"));
++            }
++            Ok::<(), std::io::Error>(())
++        });
++        let observed: Result<(), Box<dyn std::error::Error + Send + Sync>> =
++            match timeout(WAIT, async {
++                let mut ahead = ReadAhead::new();
++                write_and_prefetch(
++                    &mut server,
++                    b"r",
++                    Instant::now() + WAIT,
++                    &mut ahead,
++                    LIMIT,
++                    true,
++                )
++                .await
++                .map_err(|_| "prefetch response failed")?;
++                (&mut client).await??;
++                let mut body = new_frame();
++                if !fill_complete_frame(&mut ahead, LIMIT, &mut body)
++                    .map_err(|_| "prefetched frame rejected")?
++                {
++                    return Err("no prefetched complete frame".into());
++                }
++                let body = dispatch_frame(body);
++                assert_eq!(body.len(), LIMIT);
++                assert!(body.capacity() > LIMIT);
++                let response = handler
++                    .handle(body)
++                    .await?
++                    .ok_or("missing controller response")?;
++                if response.get(..4) != Some(91_i32.to_be_bytes().as_slice()) {
++                    return Err("wrong controller correlation".into());
++                }
++                Ok(())
++            })
++            .await
++            {
++                Ok(result) => result,
++                Err(error) => Err(Box::new(error)),
++            };
++        client.abort();
++        let stopped = timeout(WAIT, handler.shutdown()).await;
++        observed?;
++        stopped??;
++        Ok(())
++    }
++}

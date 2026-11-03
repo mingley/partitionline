@@ -1,0 +1,11 @@
+--- a/src/group.rs
++++ b/src/group.rs
+@@ -3417,7 +3417,7 @@
+     async fn rejoin_within(&mut self, deadline: Instant) -> Result<()> {
+         let rejoining = !self.member_id.is_empty();
+         for _ in 0..8 {
+-            let revoked = self.rejoin_once(deadline).await?;
++            let revoked = Box::pin(self.rejoin_once(deadline)).await?;
+             if self.protocol != "cooperative-sticky" || revoked.is_empty() {
+                 if rejoining {
+                     let _ = self.m_rebalances.fetch_add(1, Ordering::Relaxed);

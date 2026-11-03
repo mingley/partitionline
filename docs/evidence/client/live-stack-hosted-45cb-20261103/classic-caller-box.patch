@@ -1,0 +1,16 @@
+--- a/tests/broker_compatibility.rs
++++ b/tests/broker_compatibility.rs
+@@ -362,7 +362,12 @@
+     for kind in ["classic", "cooperative", "kip848"] {
+         let id = format!("{prefix}-{kind}");
+         eprintln!("compatibility group phase: {kind} join");
+-        let mut group = join_group(&bootstrap, &id, &input, kind, &mut attempts).await?;
++        let mut group = Box::pin(join_group(&bootstrap, &id, &input, kind, &mut attempts)).await?;
++        // Diagnostic only: stop before later compatibility scenarios.
++        if kind == "classic" {
++            eprintln!("PL_STACK_CLASSIC_JOIN_COMPLETE");
++            return Ok(());
++        }
+         eprintln!("compatibility group phase: {kind} poll");
+         let mut seen = BTreeSet::new();
+         while seen.len() < TOTAL {

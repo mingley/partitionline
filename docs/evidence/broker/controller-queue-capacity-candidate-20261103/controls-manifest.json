@@ -1,0 +1,18 @@
+{
+  "base_commit": "45cbff24de76490594970fc962cd04e7be9fafb1",
+  "patch_sha256": "f4b5bdd2afc77400b00221f722098b51abee2d815a671ffbdbf44c5932532dfa",
+  "files": {
+    "partitionline-broker/src/raft/protocol.rs": {
+      "before_sha256": "86c8971a500208bb93ff015d9d3dd056efd8a34d7204b7de1f0d27c59a4499c3",
+      "after_sha256": "adaa3f1d94a60ecf60c1436b97536302dbcd51718e4e5160c2847a72b7c910fb"
+    },
+    "partitionline-broker/src/transport.rs": {
+      "before_sha256": "802f9923b825bdac96ea0d31663f6f3a1c1d84903c46bb16130b2eb8419a8aa2",
+      "after_sha256": "605e388382d0a09231ac9a9b2632e6ad392ca7cf1619379c77aa251e1e008186"
+    },
+    "partitionline-broker/tests/raft_protocol.rs": {
+      "before_sha256": "2212994acdd0cb6b9115e0f6a6c4f5426b2978bbb988a5d827a4b263476ab515",
+      "after_sha256": "90aa551c4266e65881515920dacd84fce2870118837849b0abae77d85996bd1e"
+    }
+  }
+}

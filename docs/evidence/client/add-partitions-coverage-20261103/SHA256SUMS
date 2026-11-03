@@ -1,0 +1,6 @@
+40a23e43a96ff53f418f797b937cfb72dd6dd94a8051a92cc1e6bfd80b7f0ae2  .github/workflows/add-partitions-qualification.yml
+5e356bd2d7616354de4a3e60ebd23bd12104bc4a9d8a29cc65cbd258f38d8cfe  docs/evidence/client/add-partitions-coverage-20261103/candidate-v3.patch
+4d4b5bf25e41a880b3ba47bc00bd69bebf034162b697768d6b24c7bee14e8747  docs/evidence/client/add-partitions-coverage-20261103/qualify.py
+539c1df76bc8114792699c09d65ff0986b1afddfbcc2803ec3cf115e783f4a6c  docs/evidence/client/add-partitions-coverage-20261103/witness.rs
+34ddbf04a4bbead974fad4a451d30c7a56818248bd5b58c88c87bdfc41896da9  docs/evidence/client/add-partitions-coverage-20261103/candidate-command-ownership.py
+449e2fb89324d44b91a74700050e4461f0c0c9055e20c007188141ed6785ef1f  docs/evidence/client/add-partitions-coverage-20261103/README.md

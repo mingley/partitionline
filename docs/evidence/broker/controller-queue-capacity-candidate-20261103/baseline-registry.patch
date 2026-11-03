@@ -1,0 +1,15 @@
+diff --git a/tests/conformance/broker/implemented-api-versions.json b/tests/conformance/broker/implemented-api-versions.json
+--- a/tests/conformance/broker/implemented-api-versions.json
++++ b/tests/conformance/broker/implemented-api-versions.json
+@@ -1281,9 +1281,9 @@
+     "4.3.1/schema-only/metadata-v13-null-zero.response.bin": "52defe47987713fde5bcaadba96f28cfc3257b93396e5202446792a6f0aafada"
+   },
+   "controller_source": "partitionline-broker/src/raft/protocol.rs",
+-  "controller_source_sha256": "86c8971a500208bb93ff015d9d3dd056efd8a34d7204b7de1f0d27c59a4499c3",
++  "controller_source_sha256": "adaa3f1d94a60ecf60c1436b97536302dbcd51718e4e5160c2847a72b7c910fb",
+   "controller_test_source": "partitionline-broker/tests/raft_protocol.rs",
+-  "controller_test_source_sha256": "2212994acdd0cb6b9115e0f6a6c4f5426b2978bbb988a5d827a4b263476ab515",
++  "controller_test_source_sha256": "90aa551c4266e65881515920dacd84fce2870118837849b0abae77d85996bd1e",
+   "election_source": "partitionline-broker/src/raft/election.rs",
+   "election_source_sha256": "0ee1a9a0d293772f37e8328b07225f0cb6e9df78dc153052294f8f31ad94ab96",
+   "raft_module_source": "partitionline-broker/src/raft/mod.rs",

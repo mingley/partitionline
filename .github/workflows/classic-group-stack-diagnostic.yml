@@ -1,0 +1,71 @@
+name: Classic group stack diagnostic
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/classic-group-stack-diagnostic.yml
+      - docs/evidence/client/live-stack-hosted-45cb-20261103/**
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: classic-stack-diagnostic-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  classic-stack:
+    name: Classic stack ${{ matrix.case }} (diagnostic only)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      max-parallel: 2
+      matrix:
+        case: [normal, stack_2m, stack_8m, caller_box, library_box, phase_trace]
+    env:
+      STACK_CASE: ${{ matrix.case }}
+      PL_STACK_SOURCE_CHECKOUT: ${{ github.workspace }}/subject
+    steps:
+      - name: Check out diagnostic driver
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          path: driver
+          sparse-checkout: |
+            .github/workflows
+            docs/evidence/client/live-stack-hosted-45cb-20261103
+      - name: Check out the exact subject
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          path: subject
+          ref: 45cbff24de76490594970fc962cd04e7be9fafb1
+          sparse-checkout: |
+            .cargo
+            examples
+            scripts
+            src
+            tests
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Test diagnostic controls
+        working-directory: driver/docs/evidence/client/live-stack-hosted-45cb-20261103
+        run: python3 -B -m unittest -v test_stack_runner.py
+      - name: Run the classic-join diagnostic
+        working-directory: driver/docs/evidence/client/live-stack-hosted-45cb-20261103
+        run: |
+          mkdir -p "$RUNNER_TEMP/pl-stack-$STACK_CASE"
+          python3 -B stack_runner.py \
+            --subject "$GITHUB_WORKSPACE/subject" \
+            --output "$RUNNER_TEMP/pl-stack-$STACK_CASE" \
+            --case "$STACK_CASE"
+      - name: Retain receipt and logs
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: classic-stack-${{ matrix.case }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/pl-stack-${{ matrix.case }}
+          if-no-files-found: warn
+          retention-days: 30

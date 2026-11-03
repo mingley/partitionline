@@ -1,0 +1,111 @@
+name: AddPartitions response qualification
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/add-partitions-qualification.yml
+      - docs/evidence/client/add-partitions-coverage-20261103/**
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: add-partitions-qualification-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  qualify:
+    name: Frozen AddPartitions candidate (stable Rust, x86_64)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    env:
+      CARGO_BUILD_JOBS: '2'
+      CARGO_INCREMENTAL: '0'
+      CARGO_PROFILE_DEV_DEBUG: '0'
+      CARGO_PROFILE_TEST_DEBUG: '0'
+      CARGO_TERM_COLOR: never
+      PYTHONDONTWRITEBYTECODE: '1'
+      EVIDENCE_OUTPUT: ${{ runner.temp }}/add-partitions-qualification
+    steps:
+      - name: Initialize failure evidence
+        run: |
+          set -euo pipefail
+          mkdir -p "$EVIDENCE_OUTPUT"
+          printf 'trigger_sha=%s\nrun_id=%s\nrun_attempt=%s\nrunner_arch=%s\n' \
+            "$GITHUB_SHA" "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT" "$RUNNER_ARCH" \
+            > "$EVIDENCE_OUTPUT/trigger.txt"
+          cat > "$RUNNER_TEMP/check-add-partitions-capacity.py" <<'PYCODE'
+          import json, os, shutil, sys, time
+          from pathlib import Path
+          floor = 1536 * 1024 * 1024
+          roots = [Path(os.environ['GITHUB_WORKSPACE']), Path(os.environ['RUNNER_TEMP']),
+                   Path(os.environ.get('CARGO_HOME', str(Path.home() / '.cargo'))),
+                   Path(os.environ.get('RUSTUP_HOME', str(Path.home() / '.rustup')))]
+          mounts = {}
+          for root in roots:
+              path = root.resolve()
+              while not path.exists():
+                  path = path.parent
+              mounts.setdefault(path.stat().st_dev, path)
+          free = {str(path): shutil.disk_usage(path).free for path in mounts.values()}
+          sample = {'context': sys.argv[1], 'unix_seconds': time.time(), 'free_bytes': free,
+                    'minimum_bytes': floor}
+          with (Path(os.environ['EVIDENCE_OUTPUT']) / 'preflight-capacity.jsonl').open('a') as out:
+              out.write(json.dumps(sample, sort_keys=True) + '\n')
+          print(json.dumps(sample, sort_keys=True))
+          if min(free.values()) < floor:
+              raise SystemExit('free space below 1.5 GiB floor')
+          PYCODE
+          python3 -B "$RUNNER_TEMP/check-add-partitions-capacity.py" initial
+      - name: Checkout frozen qualification capsule from the triggering commit
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.sha }}
+          path: capsule
+          persist-credentials: false
+          sparse-checkout: |
+            docs/evidence/client/add-partitions-coverage-20261103
+      - name: Check capacity after capsule checkout
+        run: python3 -B "$RUNNER_TEMP/check-add-partitions-capacity.py" after-capsule
+      - name: Checkout exact candidate base
+        uses: actions/checkout@v7
+        with:
+          ref: 45cbff24de76490594970fc962cd04e7be9fafb1
+          path: base
+          persist-credentials: false
+          sparse-checkout: |
+            src
+            tests
+            examples
+            .cargo
+      - name: Check capacity after base checkout
+        run: python3 -B "$RUNNER_TEMP/check-add-partitions-capacity.py" after-base
+      - name: Install latest stable Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - name: Check capacity after toolchain installation
+        run: python3 -B "$RUNNER_TEMP/check-add-partitions-capacity.py" after-toolchain
+      - name: Verify and run the pinned qualification runner
+        shell: bash
+        run: |
+          set -euo pipefail
+          capsule="$GITHUB_WORKSPACE/capsule/docs/evidence/client/add-partitions-coverage-20261103"
+          printf '%s  %s\n' \
+            4d4b5bf25e41a880b3ba47bc00bd69bebf034162b697768d6b24c7bee14e8747 \
+            "$capsule/qualify.py" | sha256sum --check - 2>&1 | tee "$EVIDENCE_OUTPUT/runner-pin.log"
+          python3 -B "$capsule/qualify.py" \
+            --checkout "$GITHUB_WORKSPACE/base" \
+            --patch "$capsule/candidate-v3.patch" \
+            --witness "$capsule/witness.rs" \
+            --output "$EVIDENCE_OUTPUT"
+      - name: Retain all attempts and failures
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: add-partitions-v3-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ env.EVIDENCE_OUTPUT }}
+          if-no-files-found: error
+          retention-days: 30

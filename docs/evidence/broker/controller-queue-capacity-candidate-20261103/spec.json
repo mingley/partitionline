@@ -1,0 +1,65 @@
+{
+  "base_commit": "45cbff24de76490594970fc962cd04e7be9fafb1",
+  "assets": {
+    "base-files.json": {
+      "sha256": "fae10284755e593b5ac01133d053e01ce1a1ad59ed20648fe74b399a69ccf6cd",
+      "bytes": 1295669
+    },
+    "base-source.tar.gz": {
+      "sha256": "4ce0f812c4dde68de316c5c33981bc8da7d8e69aaadc6f4f7a5dafdf4623de2d",
+      "bytes": 1844257
+    },
+    "baseline-registry.patch": {
+      "sha256": "8025550a10d73067f541ef1bb9b713bb6e78d087480125d5a14f7ed3acab7e57",
+      "bytes": 1184
+    },
+    "baseline-registry.sha256": {
+      "sha256": "0e9ee3daa2390405c03e8aad058f4a9b754d7ffd05faccec0d76fbdb16103fcd",
+      "bytes": 65
+    },
+    "candidate-command-ownership.py": {
+      "sha256": "34ddbf04a4bbead974fad4a451d30c7a56818248bd5b58c88c87bdfc41896da9",
+      "bytes": 5725
+    },
+    "candidate-registry.patch": {
+      "sha256": "7421c27932fda4cc337aa8ed4501afebe061b7b8b224b01d7e48e57608fd6c86",
+      "bytes": 1184
+    },
+    "candidate-registry.sha256": {
+      "sha256": "f7e252e1719e9db66a79d7d1cb8eb0452834af08eb075ad9f61fda666d0272ef",
+      "bytes": 65
+    },
+    "candidate.patch": {
+      "sha256": "1877bab4d7b1a27b532ba639342dba3b6913dd1d5d9fb54caba14cbc2c7e4c43",
+      "bytes": 15874
+    },
+    "controls-manifest.json": {
+      "sha256": "793a690ee3a9040401ec45812ebc4ceeb3b1d55e4854364467b39edf397978f5",
+      "bytes": 879
+    },
+    "controls-only.patch": {
+      "sha256": "f4b5bdd2afc77400b00221f722098b51abee2d815a671ffbdbf44c5932532dfa",
+      "bytes": 12141
+    },
+    "legacy-driver.py": {
+      "sha256": "c1361fa8cabc00f1702bf2e25c8716cfe247b29e5824aeec90c13cb928f8f7c2",
+      "bytes": 31863
+    },
+    "manifest.json": {
+      "sha256": "5293f759e5adbb6c757800f6318887cf70945f77de29155875d18d6e1d2b4751",
+      "bytes": 879
+    },
+    "prefetch-control.patch": {
+      "sha256": "232ea5ad78315ea6364e2a74f531b193c9486167a7933dcec8bcdb046cebbc4b",
+      "bytes": 4407
+    },
+    "prefetch-manifest.json": {
+      "sha256": "47b97ef7f269b7b95ac91a7d1153be8fae072c9c189a036cdb61ed3f928e1096",
+      "bytes": 313
+    },
+    "verify-git-tree.py": {
+      "sha256": "1e3ef4d450b982e354fd438e424a5b8cb960931cf8169ef78631c2124a4023b9",
+      "bytes": 3580
+    }
+  }
+}

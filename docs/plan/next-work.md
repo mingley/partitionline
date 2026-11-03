@@ -80,7 +80,9 @@ admission. Caller-owned waiting futures remain outside the configured estimate.
 The first harness failed inside a Git checkout; its corrected version passed.
 The separate [controller queue capacity review](../evidence/broker/controller-queue-capacity-20261103/README.md)
 found that its configured queue budget does not cover both retained vectors.
-Define and test their combined capacity and reply-lifetime accounting.
+A [candidate and hosted controls](../evidence/broker/controller-queue-capacity-candidate-20261103/README.md)
+bound queued input capacities but have not run natively. Natural pipelined TCP,
+busy-actor cancellation, total process memory and performance remain open.
 The source-reviewed [controller shutdown candidate](../evidence/broker/controller-shutdown-20261103/README.md)
 now has a [hosted qualification capsule](../evidence/broker/candidate-20261030/controller-join-v2-r1/README.md).
 Its [hosted job](../evidence/broker/controller-join-native-664b-20261103/README.md)
@@ -120,11 +122,16 @@ remain open.
    A separate [AddPartitions review](../evidence/client/add-partitions-fatal-20261103/README.md)
    found that an earlier retriable partition error can hide a later fatal one.
    Its draft is uncompiled and unrun; missing response identities and
-   cancellation before a fatal result is observed also remain open.
+   cancellation before a fatal result is observed also remain open. A later
+   [coverage candidate](../evidence/client/add-partitions-coverage-20261103/README.md)
+   checks request identities and error precedence; it is not applied or
+   natively tested. Concurrent transaction ordering and request-side
+   cancellation remain open even if its focused controls pass.
    Source review found that `flush` can miss delivery timeouts, lose a worker
    error when its caller is cancelled, or return before a retiring worker has
-   handed retries off. Repair the barrier and error ownership together and
-   add native controls; these findings have not yet been reproduced natively.
+   handed retries off. The [source review and controls](../evidence/client/producer-flush-controls-20261103/REPORT.md)
+   describe the ownership transitions. Repair the barrier and error ownership
+   together; these findings have not yet been reproduced natively.
 
 2. **Consumer delivery and isolation.** Topic recreation still fails one
    ownership control. Cancellation and mixed-error recovery must preserve
@@ -148,7 +155,10 @@ remain open.
    completed-dial tests wait for real ApiVersions and authentication. A separate
    live compatibility test aborts with stack overflow. The [stack investigation](../evidence/client/live-compat-stack-2645-20261103/README.md)
    records the available phase evidence and unrun diagnostic experiments;
-   the overflowing frame and a fix are not established. Classic JoinGroup can
+   the overflowing frame and a fix are not established. A separate
+   [classic-join diagnostic](../evidence/client/live-stack-hosted-45cb-20261103/README.md)
+   is prepared for x86; its shortened caller cannot qualify the unchanged
+   compatibility test and has not yet run. Classic JoinGroup can
    return a transient coordinator error after only one rediscovery retry;
    its bounded retry loop still needs controls.
 

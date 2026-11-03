@@ -50,7 +50,7 @@ This is one producer and consumer scenario. It is not the full ducktape suite
 or the full SDK case registry. The earlier mock-only case is historical.
 
 The recorded profiles used their named source revisions and default features.
-The three live Kafka profiles failed on `c025be19b`; see the
+The three live Kafka profiles failed on `45cbff24d`; see the
 [current results](STATUS.md#validation). These profiles do not cover:
 
 - Multi-broker HA, rebalance churn, or share lock expiry

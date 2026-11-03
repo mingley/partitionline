@@ -1,0 +1,34 @@
+--- a/scripts/ci-broker-compatibility.sh
++++ b/scripts/ci-broker-compatibility.sh
+@@ -18,6 +18,12 @@
+ report="${PL_COMPAT_REPORT_DIR:-$ROOT/target/broker-compatibility/$version}"
+ mkdir -p "$report"
+ name="pl-compat-${version//./-}-$$"
++labels=()
++if [[ -n "${PL_STACK_RUN_TOKEN:-}" ]]; then
++  [[ "${PL_STACK_RUN_TOKEN}" =~ ^[0-9a-f]{32}$ ]] || { echo 'invalid stack diagnostic token' >&2; exit 1; }
++  name="pl-stack-${PL_STACK_RUN_TOKEN}"
++  labels=(--label "partitionline.stack.run=${PL_STACK_RUN_TOKEN}")
++fi
+ port="${PL_COMPAT_PORT:-19092}"
+ owned=0
+ phase=prerequisites
+@@ -58,7 +64,7 @@
+ fi
+ phase=broker-start
+ # Only the successfully created container is owned by this invocation.
+-docker create "${cpu_args[@]}" --name "$name" -p "127.0.0.1:$port:9092" \
++docker create "${cpu_args[@]}" "${labels[@]}" --name "$name" -p "127.0.0.1:$port:9092" \
+   -e KAFKA_NODE_ID=1 -e KAFKA_PROCESS_ROLES=broker,controller \
+   -e KAFKA_LISTENERS=PLAINTEXT://:9092,INTERNAL://:9094,CONTROLLER://:9093 \
+   -e "KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://127.0.0.1:$port,INTERNAL://localhost:9094" \
+@@ -126,6 +132,9 @@
+ export KAFKA_BOOTSTRAP="127.0.0.1:$port"
+ export PL_COMPAT_REFERENCE="$reference" PL_COMPAT_SOURCE_SHA="$source_sha" PL_COMPAT_PREFIX="plcompat-${version//./-}"
+ cargo test --locked --test broker_compatibility -- --ignored --exact live_compatibility_required --nocapture >"$report/runtime.log" 2>&1
++# The stack investigation stops at classic join. Do not enter later scenarios.
++echo 'PL_STACK_CLASSIC_TEST_PROCESS_RETURNED'
++exit 0
+ phase=independent-java-history-and-offsets
+ prefix="plcompat-${version//./-}"
+ # Kafka 4.2 deprecated --property and writes its warning to record stdout.
