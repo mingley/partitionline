@@ -1,0 +1,89 @@
+--- a/.github/workflows/candidates.yml
++++ b/.github/workflows/candidates.yml
+@@ -41,6 +41,9 @@
+           - kind: broker
+             source_version: runtime-capacity-v2-r2
+             checkout_sha: ${{ github.sha }}
++          - kind: broker
++            source_version: controller-join-v2-r1
++            checkout_sha: ${{ github.sha }}
+           # Broker v2 is adopted. broker.yml validates its main source;
+           # its frozen candidate spec remains bound to the pre-adoption tree.
+     env:
+@@ -141,7 +144,7 @@
+         if: matrix.kind == 'client'
+         run: python3 -B scripts/ci-qualify-client-candidate.py --spec "$QUALIFICATION_SPEC" --output "$RUNNER_TEMP/candidate-qualification"
+       - name: Qualify isolated broker candidate
+-        if: matrix.kind == 'broker' && matrix.source_version != 'runtime-capacity-v2-r2'
++        if: matrix.kind == 'broker' && matrix.source_version != 'runtime-capacity-v2-r2' && matrix.source_version != 'controller-join-v2-r1'
+         run: python3 -B scripts/ci-qualify-broker-candidate.py --spec "$QUALIFICATION_SPEC" --output "$RUNNER_TEMP/candidate-qualification"
+       - name: Check and qualify pinned broker runtime capacity
+         if: matrix.kind == 'broker' && matrix.source_version == 'runtime-capacity-v2-r2'
+@@ -204,6 +207,67 @@
+               if result.code not in (None, 0):
+                   raise
+           PYCODE
++      - name: Check and qualify pinned broker controller join
++        if: matrix.kind == 'broker' && matrix.source_version == 'controller-join-v2-r1'
++        run: |
++          python3 -B - <<'PYJOIN'
++          import hashlib, os, stat, sys, types, unittest
++          from pathlib import Path
++          root = Path(os.environ['GITHUB_WORKSPACE']).resolve()
++          base = 'docs/evidence/broker/candidate-20261030/controller-join-v2-r1'
++          pins = {
++              'qualify.py': ('32cf64d1a3d718714ee23d6d1e501aa0d20240fc8817d37c160897f4e69deef2', 19066),
++              'test_static.py': ('487ac493339cd3b4d35c6d0081d8a9873df5792bb5282b6bc20edbb2cf1a27fc', 26347),
++              'spec.json': ('232f4cae75d7ba6efe0f69058ac787df089bdbc44b4daee605ef4bd5a9f6df4b', 7613),
++          }
++          directory = os.open(root, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
++          try:
++              for part in base.split('/'):
++                  child = os.open(part, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW, dir_fd=directory)
++                  os.close(directory)
++                  directory = child
++              verified = {}
++              for name, (expected, size) in pins.items():
++                  fd = os.open(name, os.O_RDONLY | os.O_NOFOLLOW, dir_fd=directory)
++                  with os.fdopen(fd, 'rb') as stream:
++                      info = os.fstat(stream.fileno())
++                      if not stat.S_ISREG(info.st_mode) or info.st_size != size:
++                          raise SystemExit('candidate file size or type mismatch: '+name)
++                      data = stream.read(size+1)
++                  if len(data) != size or hashlib.sha256(data).hexdigest() != expected:
++                      raise SystemExit('candidate file hash mismatch: '+name)
++                  verified[name] = data
++          finally:
++              os.close(directory)
++          def run_static(data, path, expected, stream=None):
++              name = 'verified_join_static_controls'
++              sentinel = object()
++              previous = sys.modules.get(name, sentinel)
++              module = types.ModuleType(name)
++              module.__file__ = path
++              sys.modules[name] = module
++              try:
++                  exec(compile(data, path, 'exec'), module.__dict__)
++                  suite = unittest.defaultTestLoader.loadTestsFromModule(module)
++                  if suite.countTestCases() != expected:
++                      raise SystemExit('unexpected static test count')
++                  result = unittest.TextTestRunner(verbosity=2, stream=stream).run(suite)
++                  if not result.wasSuccessful() or result.testsRun != expected or result.skipped or result.expectedFailures:
++                      raise SystemExit('static qualification controls failed or skipped')
++              finally:
++                  if previous is sentinel:
++                      del sys.modules[name]
++                  else:
++                      sys.modules[name] = previous
++          run_static(verified['test_static.py'], str(root/base/'test_static.py'), 11)
++          path = str(root/base/'qualify.py')
++          sys.argv = [path, '--checkout', str(root), '--output', os.environ['RUNNER_TEMP']+'/candidate-qualification']
++          try:
++              exec(compile(verified['qualify.py'], path, 'exec'), {'__name__':'__main__', '__file__':path})
++          except SystemExit as result:
++              if result.code not in (None, 0):
++                  raise
++          PYJOIN
+       - name: Retain attempts and failures
+         if: always()
+         uses: actions/upload-artifact@v6

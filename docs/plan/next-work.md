@@ -21,10 +21,12 @@ Client 0.1.0 is already published. The next client version must be at least
 | Qualified broker v2 all-feature all targets at that commit | 868 passed |
 | Broker v2 strict Clippy, docs, inventory and six fresh-process Fetch deadline checks | Passed |
 | Client capability lanes at that commit | 93 passed in each profile; 450 Java reverse checks in each |
-| Main broker CI at `b1cfbfd96` | 727 default and 875 all-feature tests, strict Clippy, docs, inventory and fuzz supervision passed |
+| Main broker CI at `2645e96ce` | 729 default and 877 all-feature tests, strict Clippy, docs, inventory and fuzz supervision passed |
 | Main capability profiles | Passed at `33744862c` |
 | Main strict Clippy, audit, dependency policy, docs and package jobs | Passed at `e7660f6e5` |
-| Main client and live Kafka compatibility CI | Failed at `e7660f6e5` |
+| Main client CI | Failed at `e7660f6e5` |
+| [Main live Kafka compatibility CI](../evidence/client/main-ci-2645-20261103/REPORT.md) | Kafka 4.1.2, 4.2.1 and 4.3.1 runs at `2645e96ce` aborted with a stack overflow during classic group join |
+| Windows default library at `2645e96ce` | 2,181 passed and 15 failed |
 | Reconnect candidate | 14 unit controls and six integration targets passed; latest broad Fetch 167 passed, two failed, one ignored |
 | Integrated-source package navigation | 20 documentation tests passed; extracted crate checked 30 documents, 225 local links, 51 pinned repository targets |
 | Package consumers and publication dry run at `fe65ac783` | Passed; actual publication remains gated |
@@ -53,7 +55,8 @@ cause and all-feature qualification remain open. A
 tests one pre-append rejection path and passed natively; it does not justify
 retrying every `NotLeader` response. Its bounded-read Clippy correction passed
 the [hosted broker gate](../evidence/broker/main-ci-b1cf-20261103/REPORT.md)
-at `b1cfbfd96`.
+at `b1cfbfd96`. The later [main broker run](../evidence/broker/main-ci-2645-20261103/REPORT.md)
+also passed both profiles with the capacity fix.
 No long campaign is credited.
 Current-commit green CI and the complete release gates remain open.
 
@@ -75,8 +78,9 @@ The separate [controller queue capacity review](../evidence/broker/controller-qu
 found that its configured queue budget does not cover both retained vectors.
 Define and test their combined capacity and reply-lifetime accounting.
 The source-reviewed [controller shutdown candidate](../evidence/broker/controller-shutdown-20261103/README.md)
-also needs hosted baseline and fixed tests, including real controller, WAL and
-transport coverage, before adoption.
+now has a [hosted qualification capsule](../evidence/broker/candidate-20261030/controller-join-v2-r1/README.md).
+Its synthetic baseline and fixed controls have not run; real controller, WAL
+and transport coverage is also needed before adoption.
 
 ## Correctness priorities
 

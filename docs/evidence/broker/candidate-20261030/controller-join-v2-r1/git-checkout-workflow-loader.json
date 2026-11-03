@@ -1,0 +1,13 @@
+{
+  "scope": "Exact join workflow loader prefix and eleven static controls in a clean isolated Git checkout. No Cargo or Rust execution.",
+  "git_checkout_commit": "211a6a184ae72c1494a8485fe40dbe7d59009ef5",
+  "is_inside_work_tree": true,
+  "checkout_clean_before_after": true,
+  "exit_code": 0,
+  "scratch_base": "/workspace/work",
+  "static_tests": 11,
+  "tests_skipped": 0,
+  "workflow_sha256": "09fc1b57f3e2dc21562fecb35354d0e14c5b2ae63e1567c904e6d82fd9671b00",
+  "stderr_sha256": "bf99b3996fbf75176fafd7f3597fd3b010fc6676fa72fa40b21359aff71ddb15",
+  "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+}

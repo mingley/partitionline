@@ -1,0 +1,39 @@
+{
+  "decision": "pass source-only hosted join qualification review; require actual hosted execution",
+  "manifest_sha256": "30860efce842514ffdd1a7d9c04d70515f95a0de23a583ebc9be47855c69b9e5",
+  "checksums_sha256": "c2f9b3c9b13bf279fc5e64a30db4d5ba3661bf258d44e7baecd4f19855d2ec24",
+  "base_commit": "6fa8cdb3588d884580d01331e44df657c02f7670",
+  "wrapper_sha256": "32cf64d1a3d718714ee23d6d1e501aa0d20240fc8817d37c160897f4e69deef2",
+  "static_tests_sha256": "487ac493339cd3b4d35c6d0081d8a9873df5792bb5282b6bc20edbb2cf1a27fc",
+  "spec_sha256": "232f4cae75d7ba6efe0f69058ac787df089bdbc44b4daee605ef4bd5a9f6df4b",
+  "workflow_patch_sha256": "f17b2f0d934cdbb8a53ab1d4782a5dc52827c63df4c0dbd941d93090526b9c5d",
+  "capacity_patch_sha256": "7f36df7c94bfd5265c5586c8a2749d3180f5e7da0534e053848154b3cdbdfbab",
+  "join_patch_sha256": "879595b42050f6ba7a5995d341263e6a163e64ca2e35420fd10cf0eb910beaef",
+  "checks": {
+    "all_manifest_and_checksum_assets_match": true,
+    "all_5982_archive_members_match_catalog": true,
+    "archive_hash_matches_independently_git_audited_prior_r2_source": true,
+    "sparse_capacity_and_join_source_roundtrips": true,
+    "baseline_production_unchanged_tests_only_three_type_adaptations": true,
+    "pinned_panic_provenance_source_lines_verified": true,
+    "unrelated_same_section_panic_rejected_in_synthetic_replay": true,
+    "inherited_r2_fixed_gates_byte_identical_except_added_join_cases": true,
+    "workflow_preimage_current_and_patch_forward_reverse_exact": true,
+    "v17_r2_workflow_entries_preserved": true,
+    "exact_workflow_preflight_in_committed_git_checkout": true,
+    "eleven_static_controls_pass_no_skips": true,
+    "poisoned_git_environment_cleaned_for_scratch": true,
+    "checkout_clean_before_and_after": true
+  },
+  "assessment": [
+    "Capacity baseline is reversed to the exact base, the reviewed capacity patch is applied, then the join baseline is tested and reversed before the join fixed patch is applied. Both join phases therefore retain the capacity fix and preserve the remaining 5,980 source files.",
+    "The old-join evidence requires one positive control and four negative controls per profile, with expected source-pinned panic sites; the fixed five controls and the inherited full gates remain required in both profiles.",
+    "The actual verified-byte workflow preflight ran in an independent committed Git checkout with GIT_DIR and GIT_WORK_TREE deliberately set; all 11 controls passed and the checkout remained clean."
+  ],
+  "limitations": [
+    "No Cargo, Rust compilation, Clippy, rustdoc, native tests, real controller/WAL/network, hosted run, benchmark, publication or root edits. Python and Git source-only checks ran offline.",
+    "Expected baseline failures and fixed successes are unobserved predictions. Whether spawn_blocking panic-hook output appears inside the expected libtest failure section remains unverified; any mismatch fails closed.",
+    "The source archive is base commit 6fa8 plus the reviewed capacity and join patches, not a claim of whole-current-main equivalence. Scoped process-group cleanup is not a sandbox for deliberate session changes.",
+    "No production readiness, global performance or release readiness conclusion."
+  ]
+}

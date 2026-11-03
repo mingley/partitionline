@@ -1,0 +1,15 @@
+# Broker controller shutdown qualification candidate
+
+This capsule prepares a hosted Linux x86_64 qualification for the reviewed controller join fix. It reconstructs broker sources from the pinned 6fa8 archive, then applies the exact reviewed runtime-capacity patch before testing the shutdown change. The reconstructed tree is not a claim that all current-main files match 6fa8.
+
+The first phase retains the existing capacity baseline's positive and negative witnesses. The join baseline then requires the successful-cancellation control to pass and four separately selected failure controls to fail at their specified source sites in both feature profiles. The failure parser requires the expected named test section and rejects unaccounted panics. The spawned actor's panic output has not yet been observed under the hosted test harness; if its format or capture differs, the qualification fails closed and the logs must be reviewed.
+
+After reversing the test-only join baseline to the exact capacity-fixed tree, the runner applies the reviewed join patch. The five join controls and the existing capacity controls must pass in default and all-feature profiles. The complete r2 fixed gate block is preserved, including the legacy focused controls, async filesystem cases, all-target minimum, Fetch repeats, stale-leader control, formatting, strict Clippy and docs, both doctest profiles, broker inventory and 55 inventory negative controls. The legacy runner keeps its source hash/mode checks, disk floor, process ownership, time limits and result inventory. Git patch commands run outside Git worktrees with inherited `GIT_*` variables removed.
+
+The workflow adds a separate broker matrix entry. It preserves the existing v17 client steps, r2 broker entry and non-cancelling concurrency. Its verified loader requires exactly eleven static controls with no skipped or expected-failure results. Those controls passed in an isolated clean Git checkout with the exact workflow loader. Source and patch roundtrips, adversarial failure-parser inputs, conflicting Git environment and workflow preservation were also checked. These are source-only checks.
+
+No Cargo build, Rust test, actor/WAL/network execution, or hosted qualification has been performed for this capsule. The baseline failures and fixed passes are required outcomes, not observed results. The join controls use synthetic actors; they do not independently establish real controller wake, WAL or transport correctness. A successful qualification would cover the pinned controls and would not establish production readiness or performance leadership.
+
+## Import
+
+Copy this directory to `docs/evidence/broker/candidate-20261030/controller-join-v2-r1` in a checkout whose workflow matches `workflow-preimage.yml`, then check and apply `candidates-workflow.patch` from that directory. The expected preimage is SHA-256 `c738e750218f4d0b64e3b8b8ef20b6f557d2cf09a337c35b5c10a9a67841c55e`; the patch produces workflow SHA-256 `09fc1b57f3e2dc21562fecb35354d0e14c5b2ae63e1567c904e6d82fd9671b00`. The join production patch is evaluated inside the capsule and is not applied to the checkout by this import.

@@ -1,0 +1,181 @@
+{
+  "schema": 1,
+  "kind": "broker-runtime-capacity-controller-join",
+  "base_commit": "6fa8cdb3588d884580d01331e44df657c02f7670",
+  "base_source": {
+    "path": "base-source.tar.gz",
+    "sha256": "d2799c22004030742b3922fd5b30947f66939fc27879617b6617bcd8ee85e00f",
+    "bytes": 1841044
+  },
+  "base_files": {
+    "path": "base-files.json",
+    "sha256": "6e620da92aa89604b412707d5d9befe12ab4d4dd28ab15b1e145b2ca4a072255",
+    "bytes": 1295669
+  },
+  "baseline_patch": {
+    "path": "baseline-tests-only.patch",
+    "sha256": "6afdede75442559066cbce44f5e8668f729c9853c46eb1b30fd73abe41a8ebac",
+    "bytes": 9081
+  },
+  "fixed_patch": {
+    "path": "runtime-capacity-v2.patch",
+    "sha256": "7f36df7c94bfd5265c5586c8a2749d3180f5e7da0534e053848154b3cdbdfbab",
+    "bytes": 10469
+  },
+  "candidate_manifest": {
+    "path": "runtime-capacity-v2-manifest.json",
+    "sha256": "a071d729fd51d67498625cdea1198c1669d2b1fdd5fc0bf7f58bfa552f4dacd2",
+    "bytes": 1685
+  },
+  "source_review": {
+    "path": "source-review.json",
+    "sha256": "edba22ee43d3fd516a83df6c6b3964fb5efec377408e3a4cd7d61e70bfdd7dbf",
+    "bytes": 1963
+  },
+  "second_review": {
+    "path": "second-review.json",
+    "sha256": "cf898c845ad4657f75703cd5af52f7e11429647c27e2c158b8af616ac0409ab1",
+    "bytes": 3385
+  },
+  "candidate_validation": {
+    "path": "v2-validation.json",
+    "sha256": "2f51c60e0fe0cdabb23711b2f289e9f32c4d7efd94f3894e5473244680468e03",
+    "bytes": 1321
+  },
+  "runtime_path": "partitionline-broker/src/raft/runtime.rs",
+  "base_runtime": {
+    "bytes": 207609,
+    "mode": 436,
+    "sha256": "a0c136fcc728cfc4580ef30b2ca3fa964f32329f65fce301ef70985dfcd91754"
+  },
+  "baseline_runtime": {
+    "sha256": "46dbe7a22f3f3d47b2276a46a9fcdcea1a708c5c0993f48b3ce29d96a6d1fea5",
+    "bytes": 215368,
+    "mode": 436
+  },
+  "fixed_runtime": {
+    "sha256": "38c50bcd93e5dea91d10264c984fef1a5bfe9e4e33686a5ec64c03ae7945b66d",
+    "bytes": 214409,
+    "mode": 436
+  },
+  "broker_lock_sha256": "42eaddf993ab4dfbe99e5af9d7c1a7cd858776a214eedbd6112de6a146933a2c",
+  "legacy_driver": {
+    "path": "scripts/ci-qualify-broker-candidate.py",
+    "sha256": "c1361fa8cabc00f1702bf2e25c8716cfe247b29e5824aeec90c13cb928f8f7c2"
+  },
+  "ownership_helper": {
+    "path": "scripts/candidate-command-ownership.py",
+    "sha256": "34ddbf04a4bbead974fad4a451d30c7a56818248bd5b58c88c87bdfc41896da9"
+  },
+  "baseline_positive": [
+    "raft::runtime::ownership_tests::baseline_over_capacity_hits_admission_deadline_with_permits_held",
+    "raft::runtime::ownership_tests::proposal_capacity_check_keeps_the_original_allocation"
+  ],
+  "baseline_negative": [
+    "raft::runtime::ownership_tests::proposal_capacity_is_checked_before_admission_and_wal_work"
+  ],
+  "fixed_cases": [
+    "raft::runtime::ownership_tests::proposal_capacity_check_keeps_the_original_allocation",
+    "raft::runtime::ownership_tests::proposal_capacity_is_checked_before_admission_and_wal_work"
+  ],
+  "fixed_profiles": [
+    "default",
+    "all-features"
+  ],
+  "fixed_full_tests": "all-targets --no-fail-fast",
+  "other_gates": [
+    "legacy 12 focused fixed controls per profile",
+    "legacy 3 async filesystem focused controls per profile",
+    "legacy Fetch deadline exact control, 3 repeats per profile",
+    "stable format",
+    "strict all-targets all-features Clippy",
+    "strict all-feature Rustdoc",
+    "strict default and all-feature doctests",
+    "broker inventory and 55 negative controls",
+    "stale-leader fencing in default full-suite artifact"
+  ],
+  "limits": [
+    "No native execution has occurred. Baseline fail and fixed pass are required outcomes, not observations.",
+    "The baseline-only phase witness must establish Err(Deadline) while all admission permits are held; the exact unchanged fixed test must separately fail baseline and pass fixed.",
+    "The baseline overlay is test-only; it is reversed to exact 6fa8 before applying the reviewed fixed patch.",
+    "This does not establish a process-wide memory bound, production readiness, Kafka completeness, fault tolerance or performance. The ControllerHandler queue accounting issue is separate and unresolved.",
+    "All capacity baseline witnesses and fixed broker gates are retained; the capacity fixed patch is applied exactly before both join phases.",
+    "Join baseline failures and fixed passes are required, not observed. The synthetic controls do not exercise real controller WAL, transport or actor wake.",
+    "The join phase uses the 6fa8 source archive plus the exact reviewed capacity patch, not the current checkout source; no whole-tree equivalence with current main is claimed."
+  ],
+  "baseline_negative_panic_line": 5174,
+  "join_baseline_patch": {
+    "path": "join-baseline.patch",
+    "sha256": "4865489843dae983459bfd182a286fe935d6f76212277589fafb080154d62a81",
+    "bytes": 7372
+  },
+  "join_fixed_patch": {
+    "path": "join-fixed.patch",
+    "sha256": "879595b42050f6ba7a5995d341263e6a163e64ca2e35420fd10cf0eb910beaef",
+    "bytes": 9533
+  },
+  "join_receipt": {
+    "path": "join-receipt.json",
+    "sha256": "18b25e36e95a7efd22c72832ada4638f578e1988a459e8beb57f012ffde6ef2a",
+    "bytes": 3409
+  },
+  "join_independent_review": {
+    "path": "join-independent-review.json",
+    "sha256": "c471b0ed5ed29e8b5b52f8ffcea4e4fd012187bd1e5ff45c4f6d9411183fcbaa",
+    "bytes": 2580
+  },
+  "workflow_preimage": {
+    "path": "workflow-preimage.yml",
+    "sha256": "c738e750218f4d0b64e3b8b8ef20b6f557d2cf09a337c35b5c10a9a67841c55e",
+    "bytes": 11220
+  },
+  "capacity_wrapper_preimage": {
+    "path": "capacity-wrapper-preimage.py",
+    "sha256": "9041bbb89a617fa3cee52810157a17bdae0f2e0e33a613fbc8ae52c30e78f7de",
+    "bytes": 12496
+  },
+  "join_source_path": "partitionline-broker/src/raft/protocol.rs",
+  "join_base_source": {
+    "sha256": "47ae96c84080813e4b81cfbfcdbe8bd45e48389c13c8562c0963dfc743137127",
+    "bytes": 194323,
+    "mode": 436
+  },
+  "join_baseline_source": {
+    "sha256": "d8930b26edd533ac4534570eeb41a7cc9a3b129435c3d7b2502b69d50853a8b0",
+    "bytes": 201313,
+    "mode": 436
+  },
+  "join_fixed_source": {
+    "sha256": "86c8971a500208bb93ff015d9d3dd056efd8a34d7204b7de1f0d27c59a4499c3",
+    "bytes": 202137,
+    "mode": 436
+  },
+  "join_positive": [
+    "raft::protocol::controller_join_tests::cancelled_shutdown_retains_a_successful_actor_until_join"
+  ],
+  "join_negative": [
+    "raft::protocol::controller_join_tests::panicked_actor_is_reported_by_every_later_shutdown",
+    "raft::protocol::controller_join_tests::concurrent_shutdowns_share_the_actor_failure",
+    "raft::protocol::controller_join_tests::cancelled_shutdown_retains_a_failing_actor_until_join",
+    "raft::protocol::controller_join_tests::panicking_payload_drops_outside_join_lock_after_failure_is_recorded"
+  ],
+  "join_fixed_cases": [
+    "raft::protocol::controller_join_tests::cancelled_shutdown_retains_a_successful_actor_until_join",
+    "raft::protocol::controller_join_tests::panicked_actor_is_reported_by_every_later_shutdown",
+    "raft::protocol::controller_join_tests::concurrent_shutdowns_share_the_actor_failure",
+    "raft::protocol::controller_join_tests::cancelled_shutdown_retains_a_failing_actor_until_join",
+    "raft::protocol::controller_join_tests::panicking_payload_drops_outside_join_lock_after_failure_is_recorded"
+  ],
+  "join_baseline_provenance": {
+    "injected_actor_panic_line": 5796,
+    "payload_injection_line": 5847,
+    "payload_destructor_panic_line": 5837,
+    "payload_observation_assertion_line": 5864,
+    "tokio_version": "1.53.3",
+    "tokio_repoll_panic_line": 427
+  },
+  "join_profiles": [
+    "default",
+    "all-features"
+  ]
+}

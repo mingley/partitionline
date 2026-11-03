@@ -1,0 +1,227 @@
+--- a/partitionline-broker/src/raft/runtime.rs
++++ b/partitionline-broker/src/raft/runtime.rs
+@@ -3379,6 +3379,25 @@
+ mod ownership_tests {
+     use super::super::membership::{Endpoint, Voters};
+     use super::*;
++    // Baseline-only shims for compiling the identical fixed-source tests.
++    // The production Handle::propose remains the original 6fa8 implementation.
++    fn command_payload_limit(
++        controller: &protocol::Config,
++        storage: StorageLimits,
++        limits: Limits,
++    ) -> usize {
++        limits.frame_bytes.max(storage.fetch_bytes).max(controller.protocol_limits.max_request_bytes())
++    }
++    fn bounded_proposal(
++        bytes: Vec<u8>,
++        record_limit: usize,
++        _allocation_limit: usize,
++    ) -> Result<Vec<u8>> {
++        if bytes.is_empty() || bytes.len() > record_limit {
++            return Err(Error::InvalidConfig);
++        }
++        Ok(bytes)
++    }
+ 
+     type TestResult<T = ()> = std::result::Result<T, Box<dyn std::error::Error + Send + Sync>>;
+ 
+@@ -4553,6 +4572,26 @@
+             storage: StorageLimits,
+             heartbeat_ms: u64,
+         ) -> TestResult<Self> {
++            Self::open_profile_with_command_ms(
++                local,
++                count,
++                genesis_count,
++                capacity,
++                storage,
++                heartbeat_ms,
++                20,
++            )
++            .await
++        }
++        async fn open_profile_with_command_ms(
++            local: u32,
++            count: u32,
++            genesis_count: u32,
++            capacity: usize,
++            storage: StorageLimits,
++            heartbeat_ms: u64,
++            command_ms: u64,
++        ) -> TestResult<Self> {
+             if genesis_count == 0 || genesis_count > count {
+                 return Err("owner genesis bounds".into());
+             }
+@@ -4604,7 +4643,7 @@
+                 Limits {
+                     election_min_ms: 1,
+                     election_max_ms: 1,
+-                    command_ms: 20,
++                    command_ms,
+                     heartbeat_ms,
+                     ..Limits::default()
+                 },
+@@ -5032,6 +5071,162 @@
+         }
+         source.finish().await
+     }
++    // Baseline-only phase witness: with all admission permits held, the old
++    // code reports its existing inner deadline before the outer test timeout.
++    #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
++    async fn baseline_over_capacity_hits_admission_deadline_with_permits_held() -> TestResult {
++        let storage = StorageLimits::standard()?;
++        let source = LocalOwner::open_profile_with_command_ms(0, 1, 1, 16, storage, 100, 1000).await?;
++        let handle = Handle { control: source.control.clone() };
++        let permits = source.control.clients.clone()
++            .acquire_many_owned(u32::try_from(source.control.config.limits.client_slots)?)
++            .await?;
++        assert_eq!(source.control.clients.available_permits(), 0);
++        let limit = command_payload_limit(&source.control.config.controller, storage, source.control.config.limits);
++        let mut input = Vec::with_capacity(limit + 1);
++        input.push(b'x');
++        assert!(input.capacity() > limit);
++        let result = tokio::time::timeout(Duration::from_secs(2), handle.propose(input)).await?;
++        assert!(matches!(result, Err(Error::Deadline)), "baseline admission result: {result:?}");
++        assert_eq!(source.control.clients.available_permits(), 0);
++        drop(permits);
++        source.finish().await
++    }
++
++    #[test]
++    fn proposal_capacity_check_keeps_the_original_allocation() -> TestResult {
++        let mut input = Vec::with_capacity(32);
++        input.push(b'x');
++        let pointer = input.as_ptr();
++        let capacity = input.capacity();
++        let accepted = bounded_proposal(input, 1, capacity)?;
++        assert_eq!(accepted.as_ptr(), pointer);
++        assert_eq!(accepted.capacity(), capacity);
++        assert_eq!(accepted.as_slice(), b"x");
++        Ok(())
++    }
++
++    #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
++    async fn proposal_capacity_is_checked_before_admission_and_wal_work() -> TestResult {
++        fn read_bounded_wal(path: &Path) -> std::io::Result<Vec<u8>> {
++            use std::io::Read;
++            let mut bytes = Vec::new();
++            std::fs::File::open(path)?
++                .take(1024 * 1024 + 1)
++                .read_to_end(&mut bytes)?;
++            if bytes.len() > 1024 * 1024 {
++                return Err(std::io::Error::other("test WAL exceeds snapshot limit"));
++            }
++            Ok(bytes)
++        }
++
++        let storage = StorageLimits::standard()?;
++        let source =
++            LocalOwner::open_profile_with_command_ms(0, 1, 1, 16, storage, 100, 1000).await?;
++        let handle = Handle {
++            control: source.control.clone(),
++        };
++        let before = source.state().await?;
++        let wal_path = source.root.join("metadata.wal");
++        let wal_before = read_bounded_wal(&wal_path)?;
++        let deadline = Instant::now() + Duration::from_secs(2);
++        while source.control.metrics.gauges[4]
++            .current
++            .load(Ordering::Acquire)
++            != 0
++        {
++            if Instant::now() >= deadline {
++                return Err("initial observation envelope did not release".into());
++            }
++            tokio::task::yield_now().await;
++        }
++        assert_eq!(
++            source.control.metrics.gauges[0]
++                .current
++                .load(Ordering::Acquire),
++            0
++        );
++        source.control.metrics.gauges[0]
++            .peak
++            .store(0, Ordering::Release);
++        source.control.metrics.gauges[4]
++            .peak
++            .store(0, Ordering::Release);
++        let held_permits = source
++            .control
++            .clients
++            .clone()
++            .acquire_many_owned(u32::try_from(source.control.config.limits.client_slots)?)
++            .await?;
++        let permits_before = source.control.clients.available_permits();
++        assert_eq!(permits_before, 0);
++
++        let capacity_limit = command_payload_limit(
++            &source.control.config.controller,
++            storage,
++            source.control.config.limits,
++        );
++        assert!(capacity_limit > storage.record_bytes);
++        let mut over_capacity = Vec::with_capacity(capacity_limit + 1);
++        over_capacity.push(b'x');
++        assert_eq!(over_capacity.len(), 1);
++        assert!(over_capacity.capacity() > capacity_limit);
++        assert!(matches!(
++            tokio::time::timeout(Duration::from_secs(2), handle.propose(over_capacity)).await?,
++            Err(Error::InvalidConfig)
++        ));
++        assert!(matches!(
++            handle.propose(Vec::new()).await,
++            Err(Error::InvalidConfig)
++        ));
++        let mut over_length = vec![0; storage.record_bytes + 1];
++        over_length[0] = 1;
++        assert!(over_length.capacity() <= capacity_limit);
++        assert!(matches!(
++            handle.propose(over_length).await,
++            Err(Error::InvalidConfig)
++        ));
++        assert_eq!(
++            source.control.metrics.gauges[0]
++                .peak
++                .load(Ordering::Acquire),
++            0
++        );
++        assert_eq!(
++            source.control.metrics.gauges[4]
++                .peak
++                .load(Ordering::Acquire),
++            0
++        );
++        assert_eq!(source.control.clients.available_permits(), permits_before);
++        drop(held_permits);
++        let after = source.state().await?;
++        assert_eq!(after.last_position, before.last_position);
++        assert_eq!(after.wal_durable_ops, before.wal_durable_ops);
++        assert_eq!(
++            after.election_durable_states,
++            before.election_durable_states
++        );
++        assert_eq!(read_bounded_wal(&wal_path)?, wal_before);
++
++        // A bounded input reaches the actual leader and appends normally.
++        tokio::time::sleep(Duration::from_millis(3)).await;
++        source
++            .fixture("single-voter-campaign", Command::Tick)
++            .await??;
++        let leader = source.state().await?;
++        assert_eq!(leader.election.role, Role::Leader);
++        let mut over_reserved = Vec::with_capacity(storage.record_bytes + 1);
++        over_reserved.extend_from_slice(b"ordinary bounded proposal");
++        assert!(over_reserved.capacity() > storage.record_bytes);
++        assert!(over_reserved.capacity() <= capacity_limit);
++        let accepted = handle.propose(over_reserved).await?;
++        let written = source.state().await?;
++        assert_eq!(written.last_position, accepted);
++        assert!(written.wal_durable_ops > leader.wal_durable_ops);
++        source.finish().await
++    }
++
+     #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+     async fn configured_route_does_not_authorize_unknown_configuration_leader_over_tcp(
+     ) -> TestResult {
