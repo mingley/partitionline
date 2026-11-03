@@ -56,7 +56,7 @@ set is an earlier baseline.
 | `AdminClient` | `Admin` | `Admin` (`Admin::new(cfg)`, `src/admin.rs`) |
 | String property bag (`ClientConfig::set`) | `Properties` | Typed builders: `ProducerConfig`, `ConsumerConfig`, `AdminConfig` |
 | `Message` / `BorrowedMessage` | `ConsumerRecord` / `ProducerRecord` | `FetchedRecord` / `ShareRecord` / `ProduceRecord` (owned; no borrow lifetimes) |
-| Delivery callbacks / `DrQueue` polling | `Callback` / `Future<RecordMetadata>` | `send` future, or `try_send` + `flush` (see Callbacks) |
+| Delivery callbacks / `DrQueue` polling | `Callback` / `Future<RecordMetadata>` | `send` future or producer interceptors (see Callbacks) |
 | `commit` / committed offsets | `commitSync` / `committed` | `commit_with_metadata`, `committed`, `OffsetAndMetadata` |
 | `ClientContext` stats | `Metrics` | `Producer::metrics` / `Consumer::metrics` / `ShareGroup::metrics` / `Admin::metrics` |
 
@@ -273,7 +273,7 @@ completion surfaces through futures plus Java-shaped interceptors:
 | rust-rdkafka | partitionline |
 |---|---|
 | Delivery callback / `FutureRecord` | `Producer::send` future → `RecordMetadata` or terminal `Error` |
-| `DrQueue` polling | `try_send` (non-blocking, `Error::QueueFull`) + `flush` / `flush_timeout` |
+| `DrQueue` polling | No equivalent queue. `try_send` enqueues; `flush` can return before some retries finish or miss delivery timeouts. |
 | `ClientContext::stats` | `Producer::metrics` / `Consumer::metrics` / `ShareGroup::metrics` / `Admin::metrics` |
 | Rebalance callback | `ConsumerConfig::on_rebalance(f)` (`src/consumer.rs`) + `ConsumerInterceptor::on_commit` |
 | — | `ProducerInterceptor::{on_send, on_ack, on_error, close}` (`src/interceptor.rs`) |
@@ -299,8 +299,8 @@ ambiguous commit from abort-required or terminal fencing outcomes.
 
 Cancellation differs from Java futures: dropping a `send` future does **not**
 dequeue the record — once accepted into `buffer_memory`, delivery may
-continue and the caller outcome stays ambiguous until `flush`/`close`
-(`src/producer.rs`).
+continue and the caller outcome stays ambiguous. `flush` and `close` do not
+return an individual result for a cancelled `send` (`src/producer.rs`).
 
 ## Error classification
 

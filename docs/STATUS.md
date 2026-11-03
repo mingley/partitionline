@@ -12,6 +12,11 @@ The client implements produce, fetch, groups, transactions and Admin. The broker
 is experimental: its operator has an RF1 data path and a separate metadata
 quorum, without replicated partition data or native Kafka KRaft.
 
+At `45cbff24d`, both client library profiles failed 19 tests and all three
+current Kafka compatibility jobs aborted with a stack overflow during classic
+group join. Broker and capability workflows passed at that commit. The
+[CI record][current-ci] gives the scope; it does not cover later changes.
+
 ## Recent changes
 
 - Buffer growth fixes restored the codec allocation gate without raising its
@@ -59,8 +64,8 @@ quorum, without replicated partition data or native Kafka KRaft.
 
 | Check | Recorded result |
 | --- | --- |
-| Client default library on `main` at `e7660f6e5` | 2,168 passed, 28 failed; later integration targets did not run |
-| Client all-feature library on `main` at that commit | 2,170 passed, 26 failed; later integration targets did not run |
+| Client default library on `main` at `45cbff24d` | 2,177 passed, 19 failed; later integration targets did not run |
+| Client all-feature library on `main` at that commit | 2,177 passed, 19 failed; later integration targets did not run. The failure set differs from default. |
 | Isolated client v10 library, each profile | 2,280 passed initially; repeat 2,279 passed, one failed |
 | Isolated client v14, 10 targets per profile | 2,431 passed, 17 failed and two ignored in each profile |
 | Isolated client v16, 10 targets per profile | 2,432 passed, 16 failed and two ignored in each profile |
@@ -70,15 +75,16 @@ quorum, without replicated partition data or native Kafka KRaft.
 | Qualified broker v2 all-feature all targets at that commit | 868 passed |
 | Broker v2 strict Clippy, docs, inventory and six repeated Fetch checks | Passed |
 | Client focused capability profiles at that commit | 93 passed and 450 Java reverse checks per profile |
-| Main broker CI | 734 default and 882 all-feature tests passed at `0ef1cf858`; Clippy, docs, inventory and fuzz supervision passed |
+| Main broker CI | 734 default and 882 all-feature tests passed at `45cbff24d`; Clippy, docs, inventory and fuzz supervision passed |
 | Isolated broker capacity candidate, x86 | 729 default and 877 all-feature tests passed, with format, Clippy, docs and focused controls; OOM counters unavailable and zero doctests found |
 | [Isolated broker shutdown candidate][broker-join-result] | Hosted qualification failed the inventory and inventory-negative-control gates |
 | [Broker shutdown candidate r2][broker-join-r2-result] | Hosted qualification reported success; individual command reports and resource receipts were unavailable |
-| Main capability profiles | Passed at `33744862c` |
-| Main strict Clippy, security, documentation and package jobs | Passed at `e7660f6e5` |
-| Main client CI | Failed at `e7660f6e5` |
-| Live Kafka compatibility at `0ef1cf858` | Kafka 4.1.2, 4.2.1 and 4.3.1 runs aborted with a stack overflow during classic group join |
-| Windows default library at `2645e96ce` | 2,181 passed, 15 failed |
+| Main capability profiles | Both passed 93 required cases at `45cbff24d`; SDK public-runtime qualification remains false |
+| Main strict Clippy, security, documentation and package jobs | Passed at `45cbff24d` |
+| Main client CI | Failed at `45cbff24d` |
+| Live Kafka compatibility at `45cbff24d` | Kafka 4.1.2, 4.2.1 and 4.3.1 runs aborted with a stack overflow during classic group join |
+| Windows default library at `45cbff24d` | 2,161 passed, 35 failed |
+| macOS arm64 default library at `45cbff24d` | 2,179 passed, 17 failed |
 
 The [client failure index][client], [main CI run][main-ci] and
 [candidate results][candidate-results] preserve earlier results. The
@@ -98,6 +104,11 @@ failures; seven producer integration targets have 118 passes, 19 failures and
 two ignored tests. These local runs used one test thread and an 8 MiB stack;
 see [producer results][producer]. Partition issue ordering, modular sequence wrap, producer-identity
 transitions and unresolved-batch replay still need repair and peer histories.
+Source review also found that `flush` can miss delivery timeouts and can return
+before a retiring worker has handed its retries off. A cancelled `flush` can
+consume an error without returning it. Repair the barrier, error ownership and
+cancellation together; these findings have not yet been reproduced by native
+tests.
 
 Consumer delivery, buffered offsets and aborted-transaction state must remain
 consistent across errors, cancellation and topic recreation. Join/reset-leader
@@ -108,7 +119,7 @@ The [producer expiry review][sasl-expiry] also found a raw-write path without
 an expiry check. It is source evidence; an expired request has not been
 observed on a broker.
 
-The [latest recorded main broker CI][broker-ci] passed with the shutdown fix.
+The [main broker CI at 45cbff24d][broker-ci] passed with the shutdown fix.
 Earlier runs reported `NotLeader`
 during leader removal and in a separate observer test, plus two `ParseIntError`
 failures. The broker
@@ -170,6 +181,7 @@ measurements and dated notes.
 [package]: https://github.com/mingley/partitionline/blob/77021f7dc6c0d19aa93c7bf0b7fad125ee632e23/docs/evidence/releases/package-navigation-20261030/README.md
 [client]: https://github.com/mingley/partitionline/blob/77021f7dc6c0d19aa93c7bf0b7fad125ee632e23/docs/evidence/client/clean-default-validation-20261028/README.md
 [main-ci]: https://github.com/mingley/partitionline/actions/runs/41576616173
+[current-ci]: https://github.com/mingley/partitionline/actions/runs/41604650418
 [comparison]: https://github.com/mingley/partitionline/blob/f655b99c449b76ff09b30867ef58c42e51a38b65/docs/evidence/client/main-comparison-b1-20261103/README.md
 [candidate-v16]: https://github.com/mingley/partitionline/blob/60212c74a31790a6c42052715b1d6e579d3cd961/docs/evidence/client/candidate-v16-job-20261103/REPORT.md
 [candidate-v16-repeat]: https://github.com/mingley/partitionline/blob/5dfafef402abe292011cb6dac478dd89ab771277/docs/evidence/client/candidate-v16-repeat-e2a0-20261103/README.md
@@ -182,7 +194,7 @@ measurements and dated notes.
 [queue-v17]: https://github.com/mingley/partitionline/blob/c06dfd345315c1fd0847872a1176fde8c5959043/docs/evidence/perf/pending-queue-v17-20261103/README.md
 [candidate-build]: https://github.com/mingley/partitionline/blob/f548870380ecc025b4e245c7f94a1c0a13fef2ff/docs/evidence/client/candidate-native-fdaf-20261103/README.md
 [candidate-rerun]: https://github.com/mingley/partitionline/blob/2857611b35e25c9ad46206edae89c35e0bc0ffe9/docs/evidence/client/candidate-native-e766-20261103/README.md
-[broker-ci]: https://github.com/mingley/partitionline/blob/76146afe13c07936becb094c29e141a1f5a57f49/docs/evidence/broker/main-ci-0ef1-20261103/README.md
+[broker-ci]: https://github.com/mingley/partitionline/actions/runs/41604650426
 [client-ci-2645]: https://github.com/mingley/partitionline/blob/466a87f242e8b043ae25d8f3a7ce2af7d1157559/docs/evidence/client/main-ci-2645-20261103/REPORT.md
 [release-gates]: https://github.com/mingley/partitionline/blob/929dd6bd20496f88a513a94baa644bc90f3d8eef/docs/evidence/releases/ci-attempt-binding-20261103/README.md
 [candidate-results]: https://github.com/mingley/partitionline/blob/b2d18730494b6d55df7b81f9d4ce88a81e10b3d9/docs/evidence/client/candidate-native-b1-20261102/README.md

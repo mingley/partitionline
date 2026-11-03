@@ -345,8 +345,9 @@ each run. After every run, `kafka-get-offsets` high watermark summed to
 **8,000,000** (equals records sent). Broker log had no
 `OutOfOrderSequenceException` on these runs.
 
-`try_send` is enqueue, not an ack. The bench only prints if `flush` returns
-Ok, and flush fails on a broker produce error.
+`try_send` is enqueue, not an ack. This historical bench printed only if
+`flush` returned Ok. Some delivery timeouts can be missed by `flush`, so it
+does not by itself verify every delivery; the watermark is a separate count.
 
 | Run | partitionline rec/s | partitionline HW | C 2.15.0 rec/s | C HW |
 |---|---|---|---|---|

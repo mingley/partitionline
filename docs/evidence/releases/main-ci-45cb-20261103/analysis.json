@@ -1,0 +1,339 @@
+{
+  "broker_tests": {
+    "all-features": {
+      "failed": 0,
+      "ignored": 0,
+      "passed": 882,
+      "result_sections": 36
+    },
+    "default": {
+      "failed": 0,
+      "ignored": 0,
+      "passed": 734,
+      "result_sections": 36
+    }
+  },
+  "capability_compact_reports": {
+    "all-features": {
+      "actual_command_count": 38,
+      "executed": 93,
+      "java_fixture_reverse_qualified": true,
+      "passed": 93,
+      "sdk_public_runtime_qualification": false,
+      "unique": 93,
+      "validation_sha256": "def2a00973a089ee02c85b01bcef459c9e3eb8312a01fbd2a405e61982dcefa6",
+      "zip_sha256": "75c7abb45ad1c20892de0fe62a8b44ce3efe2a61f3e1bd0f731f6243452159f5"
+    },
+    "default": {
+      "actual_command_count": 38,
+      "executed": 93,
+      "java_fixture_reverse_qualified": true,
+      "passed": 93,
+      "sdk_public_runtime_qualification": false,
+      "unique": 93,
+      "validation_sha256": "cc0d5b0e1578b191dcb7cd63cdac5a323b1e9ad7c6f4ba5c42b26de88314429e",
+      "zip_sha256": "1f704d1a947e9e1dbf257a9c9409f7d9074c39ef7804b844aaef8435b4c4c8d6"
+    }
+  },
+  "client_all_features": {
+    "failed": 19,
+    "failure_identities": [
+      "admin::tests::extending_many_described_topics_does_not_hold_the_caller",
+      "admin::tests::indexing_many_coordinators_does_not_hold_the_caller",
+      "admin::tests::indexing_many_described_producers_does_not_hold_the_caller",
+      "cluster::tests::applying_many_topics_does_not_hold_the_caller",
+      "consumer::tests::applying_many_one_record_fetch_batches_does_not_hold_the_caller",
+      "consumer::tests::wakeup_keeps_a_leader_dial_that_already_finished",
+      "group::rediscover_stop_tests::replacing_an_idle_coordinator_lets_the_broker_leave",
+      "group::rediscover_stop_tests::replacing_an_idle_legacy_offset_coordinator_lets_the_broker_leave",
+      "group::rediscover_stop_tests::replacing_an_idle_offset_coordinator_lets_the_broker_leave",
+      "group::tests::collecting_many_revoked_commits_does_not_hold_the_caller",
+      "group::tests::copying_many_assigned_members_does_not_hold_the_caller",
+      "group::tests::pairing_many_committed_offsets_does_not_hold_the_caller",
+      "group::tests::retaining_many_interval_commits_does_not_hold_the_caller",
+      "net::tests::write_timeout_shuts_the_broker_down",
+      "producer::tests::assembling_many_produce_topics_does_not_hold_the_caller",
+      "producer::tests::replacing_an_idle_metadata_socket_lets_the_broker_leave",
+      "producer::tests::shelling_many_produce_partitions_does_not_hold_the_caller",
+      "protocol::acl::tests::grouping_many_acl_resources_does_not_hold_the_caller",
+      "share::dial_tests::wakeup_keeps_a_share_dial_that_already_finished"
+    ],
+    "ignored": 0,
+    "job_id": 125811643576,
+    "passed": 2177
+  },
+  "client_default": {
+    "failed": 19,
+    "failure_identities": [
+      "admin::tests::decoding_many_delegation_tokens_does_not_hold_the_caller",
+      "admin::tests::extending_many_described_topics_does_not_hold_the_caller",
+      "admin::tests::flattening_many_reassignment_results_does_not_hold_the_caller",
+      "admin::tests::indexing_many_coordinators_does_not_hold_the_caller",
+      "admin::tests::indexing_many_described_producers_does_not_hold_the_caller",
+      "consumer::tests::wakeup_keeps_a_leader_dial_that_already_finished",
+      "group::rediscover_stop_tests::replacing_an_idle_coordinator_lets_the_broker_leave",
+      "group::rediscover_stop_tests::replacing_an_idle_legacy_offset_coordinator_lets_the_broker_leave",
+      "group::rediscover_stop_tests::replacing_an_idle_offset_coordinator_lets_the_broker_leave",
+      "group::tests::collecting_many_revoked_commits_does_not_hold_the_caller",
+      "group::tests::copying_many_assigned_members_does_not_hold_the_caller",
+      "group::tests::pairing_many_committed_offsets_does_not_hold_the_caller",
+      "group::tests::resolving_many_owned_partitions_does_not_hold_the_caller",
+      "net::tests::write_timeout_shuts_the_broker_down",
+      "producer::tests::assembling_many_produce_topics_does_not_hold_the_caller",
+      "producer::tests::replacing_an_idle_metadata_socket_lets_the_broker_leave",
+      "protocol::acl::tests::grouping_many_acl_resources_does_not_hold_the_caller",
+      "protocol::fetch::tests::decoding_many_fetch_topics_does_not_hold_the_caller",
+      "share::dial_tests::wakeup_keeps_a_share_dial_that_already_finished"
+    ],
+    "ignored": 0,
+    "job_id": 125811643487,
+    "passed": 2177
+  },
+  "head_sha": "45cbff24de76490594970fc962cd04e7be9fafb1",
+  "live_kafka": {
+    "4.1.2": {
+      "classic_join_marker": true,
+      "job_id": 125811643708,
+      "stack_overflow": true
+    },
+    "4.2.1": {
+      "classic_join_marker": true,
+      "job_id": 125811643587,
+      "stack_overflow": true
+    },
+    "4.3.1": {
+      "classic_join_marker": true,
+      "job_id": 125811643614,
+      "stack_overflow": true
+    }
+  },
+  "platform_libraries": {
+    "macos_arm64": {
+      "failed": 17,
+      "failure_identities": [
+        "admin::tests::decoding_many_consumer_group_members_does_not_hold_the_caller",
+        "admin::tests::decoding_many_described_group_members_does_not_hold_the_caller",
+        "admin::tests::extending_many_described_topics_does_not_hold_the_caller",
+        "admin::tests::grouping_many_named_results_does_not_hold_the_caller",
+        "consumer::tests::wakeup_keeps_a_leader_dial_that_already_finished",
+        "group::rediscover_stop_tests::replacing_an_idle_coordinator_lets_the_broker_leave",
+        "group::rediscover_stop_tests::replacing_an_idle_legacy_offset_coordinator_lets_the_broker_leave",
+        "group::rediscover_stop_tests::replacing_an_idle_offset_coordinator_lets_the_broker_leave",
+        "net::tests::a_ready_idle_flood_does_not_hold_the_caller",
+        "net::tests::a_ready_response_stops_for_a_deadline",
+        "net::tests::a_ready_write_stops_for_a_deadline",
+        "net::tests::write_deadline_stops_a_greedy_stalled_read",
+        "producer::tests::assembling_many_produce_topics_does_not_hold_the_caller",
+        "producer::tests::encoding_many_produce_partitions_does_not_hold_the_caller",
+        "producer::tests::replacing_an_idle_metadata_socket_lets_the_broker_leave",
+        "protocol::acl::tests::grouping_many_acl_resources_does_not_hold_the_caller",
+        "share::dial_tests::wakeup_keeps_a_share_dial_that_already_finished"
+      ],
+      "ignored": 0,
+      "job_id": 125811643267,
+      "passed": 2179
+    },
+    "windows": {
+      "failed": 35,
+      "failure_identities": [
+        "admin::tests::collecting_many_unique_topic_names_does_not_hold_the_caller",
+        "admin::tests::decoding_many_consumer_group_members_does_not_hold_the_caller",
+        "admin::tests::decoding_many_delegation_tokens_does_not_hold_the_caller",
+        "admin::tests::decoding_many_deleted_acls_does_not_hold_the_caller",
+        "admin::tests::decoding_many_described_group_members_does_not_hold_the_caller",
+        "admin::tests::decoding_many_fetched_offsets_does_not_hold_the_caller",
+        "admin::tests::decoding_many_listed_groups_does_not_hold_the_caller",
+        "admin::tests::decoding_many_share_group_members_does_not_hold_the_caller",
+        "admin::tests::extending_many_described_topics_does_not_hold_the_caller",
+        "admin::tests::grouping_many_named_results_does_not_hold_the_caller",
+        "admin::tests::grouping_many_replica_dirs_does_not_hold_the_caller",
+        "admin::tests::indexing_many_coordinators_does_not_hold_the_caller",
+        "admin::tests::indexing_many_described_producers_does_not_hold_the_caller",
+        "admin::tests::indexing_many_listed_offsets_does_not_hold_the_caller",
+        "admin::tests::recording_many_election_topics_does_not_hold_the_caller",
+        "cluster::tests::applying_many_brokers_does_not_hold_the_caller",
+        "consumer::tests::applying_many_one_record_fetch_batches_does_not_hold_the_caller",
+        "consumer::tests::checking_many_fresh_assignments_does_not_hold_the_caller",
+        "consumer::tests::indexing_many_metadata_names_does_not_hold_the_caller",
+        "consumer::tests::wakeup_keeps_a_leader_dial_that_already_finished",
+        "group::rediscover_stop_tests::replacing_an_idle_coordinator_lets_the_broker_leave",
+        "group::rediscover_stop_tests::replacing_an_idle_legacy_offset_coordinator_lets_the_broker_leave",
+        "group::rediscover_stop_tests::replacing_an_idle_offset_coordinator_lets_the_broker_leave",
+        "group::tests::collecting_many_revoked_commits_does_not_hold_the_caller",
+        "group::tests::copying_many_assigned_members_does_not_hold_the_caller",
+        "group::tests::indexing_many_previous_members_does_not_hold_the_caller",
+        "group::tests::pairing_many_committed_offsets_does_not_hold_the_caller",
+        "group::tests::rebalancing_many_sticky_members_does_not_hold_the_caller",
+        "producer::tests::assembling_many_produce_topics_does_not_hold_the_caller",
+        "producer::tests::encoding_many_produce_partitions_does_not_hold_the_caller",
+        "producer::tests::encoding_many_produce_topics_does_not_hold_the_caller",
+        "producer::tests::replacing_an_idle_metadata_socket_lets_the_broker_leave",
+        "protocol::acl::tests::grouping_many_acl_resources_does_not_hold_the_caller",
+        "protocol::api::tests::decoding_many_produce_ack_topics_does_not_hold_the_caller",
+        "share::dial_tests::wakeup_keeps_a_share_dial_that_already_finished"
+      ],
+      "ignored": 0,
+      "job_id": 125811643362,
+      "passed": 2161
+    }
+  },
+  "run_attempt": 1,
+  "runs": {
+    "41604650337": {
+      "conclusion": "success",
+      "jobs": {
+        "client-capabilities (stable, all-features)": {
+          "conclusion": "success",
+          "id": 125811361306
+        },
+        "client-capabilities (stable, default)": {
+          "conclusion": "success",
+          "id": 125811361475
+        }
+      }
+    },
+    "41604650398": {
+      "conclusion": "success",
+      "jobs": {
+        "Release-plz": {
+          "conclusion": "success",
+          "id": 125811373832
+        }
+      }
+    },
+    "41604650418": {
+      "conclusion": "failure",
+      "jobs": {
+        "alloc-budget": {
+          "conclusion": "success",
+          "id": 125811643707
+        },
+        "audit": {
+          "conclusion": "success",
+          "id": 125811643571
+        },
+        "auth-smoke": {
+          "conclusion": "success",
+          "id": 125811643496
+        },
+        "broker-current (4.1.2)": {
+          "conclusion": "failure",
+          "id": 125811643708
+        },
+        "broker-current (4.2.1)": {
+          "conclusion": "failure",
+          "id": 125811643587
+        },
+        "broker-current (4.3.1)": {
+          "conclusion": "failure",
+          "id": 125811643614
+        },
+        "broker-smoke (apache/kafka:3.9.1)": {
+          "conclusion": "failure",
+          "id": 125811643967
+        },
+        "broker-smoke (apache/kafka:4.1.0)": {
+          "conclusion": "failure",
+          "id": 125811643657
+        },
+        "clippy": {
+          "conclusion": "success",
+          "id": 125811643817
+        },
+        "conformance-fixtures": {
+          "conclusion": "success",
+          "id": 125811643810
+        },
+        "conformance-live": {
+          "conclusion": "skipped",
+          "id": 125811644792
+        },
+        "deny": {
+          "conclusion": "success",
+          "id": 125811643454
+        },
+        "docs": {
+          "conclusion": "success",
+          "id": 125811643723
+        },
+        "features": {
+          "conclusion": "failure",
+          "id": 125811643576
+        },
+        "fmt": {
+          "conclusion": "success",
+          "id": 125811643405
+        },
+        "fuzz-smoke": {
+          "conclusion": "success",
+          "id": 125811643546
+        },
+        "init-producer-id": {
+          "conclusion": "success",
+          "id": 125811643869
+        },
+        "integrity-smoke": {
+          "conclusion": "success",
+          "id": 125811643610
+        },
+        "latency-gate": {
+          "conclusion": "success",
+          "id": 125811643639
+        },
+        "macos-arm64 (stable)": {
+          "conclusion": "failure",
+          "id": 125811643267
+        },
+        "package": {
+          "conclusion": "success",
+          "id": 125811643597
+        },
+        "perf-gate": {
+          "conclusion": "success",
+          "id": 125811643770
+        },
+        "release-rehearsal": {
+          "conclusion": "success",
+          "id": 125811643535
+        },
+        "resource-soak": {
+          "conclusion": "success",
+          "id": 125811643528
+        },
+        "schema": {
+          "conclusion": "success",
+          "id": 125811643464
+        },
+        "test (stable)": {
+          "conclusion": "failure",
+          "id": 125811643487
+        },
+        "windows (stable)": {
+          "conclusion": "failure",
+          "id": 125811643362
+        },
+        "zstd-decode": {
+          "conclusion": "success",
+          "id": 125811643047
+        }
+      }
+    },
+    "41604650426": {
+      "conclusion": "success",
+      "jobs": {
+        "broker (stable)": {
+          "conclusion": "success",
+          "id": 125811361276
+        },
+        "instrumented broker fuzz supervision (stable)": {
+          "conclusion": "success",
+          "id": 125811361638
+        },
+        "pinned Apache API inventory and negative controls": {
+          "conclusion": "success",
+          "id": 125811361773
+        }
+      }
+    }
+  }
+}

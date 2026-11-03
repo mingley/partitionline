@@ -12,8 +12,8 @@ Client 0.1.0 is already published. The next client version must be at least
 
 | Scope | Recorded result |
 | --- | --- |
-| Client default library on `main`, `e7660f6e5` | 2,168 passed, 28 failed; later integration targets did not run |
-| Client all-feature library on `main` at that commit | 2,170 passed, 26 failed; later integration targets did not run |
+| Client default library on `main`, `45cbff24d` | 2,177 passed, 19 failed; later integration targets did not run |
+| Client all-feature library on `main` at that commit | 2,177 passed, 19 failed; later integration targets did not run. Failure identities differ from default. |
 | Isolated client v10 library in each profile | 2,280 passed; selected producer tests still failed |
 | Isolated client v14, 10 targets per profile | 2,431 passed, 17 failed and two ignored in each profile |
 | Isolated client v16, 10 targets per profile | 2,432 passed, 16 failed and two ignored in each profile |
@@ -21,12 +21,13 @@ Client 0.1.0 is already published. The next client version must be at least
 | Qualified broker v2 all-feature all targets at that commit | 868 passed |
 | Broker v2 strict Clippy, docs, inventory and six fresh-process Fetch deadline checks | Passed |
 | Client capability lanes at that commit | 93 passed in each profile; 450 Java reverse checks in each |
-| Main broker CI at `0ef1cf858` | 734 default and 882 all-feature tests, strict Clippy, docs, inventory and fuzz supervision passed |
-| Main capability profiles | Passed at `33744862c` |
-| Main strict Clippy, audit, dependency policy, docs and package jobs | Passed at `e7660f6e5` |
-| Main client CI | Failed at `e7660f6e5` |
-| [Main live Kafka compatibility CI](../evidence/client/main-ci-2645-20261103/REPORT.md) | Kafka 4.1.2, 4.2.1 and 4.3.1 runs at `2645e96ce` and [`0ef1cf858`](https://github.com/mingley/partitionline/actions/runs/41603566048) aborted with a stack overflow during classic group join |
-| Windows default library at `2645e96ce` | 2,181 passed and 15 failed |
+| Main broker CI at `45cbff24d` | 734 default and 882 all-feature tests, strict Clippy, docs, inventory and fuzz supervision passed |
+| Main capability profiles at `45cbff24d` | Both passed 93 cases; SDK public-runtime qualification remains false |
+| Main strict Clippy, audit, dependency policy, docs and package jobs | Passed at `45cbff24d` |
+| Main client CI | Failed at `45cbff24d` |
+| [Main live Kafka compatibility CI](../evidence/releases/main-ci-45cb-20261103/README.md) | Kafka 4.1.2, 4.2.1 and 4.3.1 runs at `45cbff24d` aborted with a stack overflow during classic group join |
+| Windows default library at `45cbff24d` | 2,161 passed and 35 failed |
+| macOS arm64 default library at `45cbff24d` | 2,179 passed and 17 failed |
 | Reconnect candidate | 14 unit controls and six integration targets passed; latest broad Fetch 167 passed, two failed, one ignored |
 | Integrated-source package navigation | 20 documentation tests passed; extracted crate checked 30 documents, 225 local links, 51 pinned repository targets |
 | Package consumers and publication dry run at `fe65ac783` | Passed; actual publication remains gated |
@@ -58,7 +59,10 @@ the [hosted broker gate](../evidence/broker/main-ci-b1cf-20261103/REPORT.md)
 at `b1cfbfd96`. The later [main broker run](../evidence/broker/main-ci-2645-20261103/REPORT.md)
 also passed both profiles with the capacity fix.
 No long campaign is credited.
-Current-commit green CI and the complete release gates remain open.
+The [45cb CI record](../evidence/releases/main-ci-45cb-20261103/README.md)
+retains the exact failing identities and qualifications. It is a snapshot, not
+evidence for later commits. Current-commit green CI and the complete release
+gates remain open.
 
 The [typed Raft attempt draft](../evidence/broker/raft-attempt-outcomes-20261103/README.md)
 needs a current-source rebase, API compatibility decision, bounded test reads
@@ -117,6 +121,10 @@ remain open.
    found that an earlier retriable partition error can hide a later fatal one.
    Its draft is uncompiled and unrun; missing response identities and
    cancellation before a fatal result is observed also remain open.
+   Source review found that `flush` can miss delivery timeouts, lose a worker
+   error when its caller is cancelled, or return before a retiring worker has
+   handed retries off. Repair the barrier and error ownership together and
+   add native controls; these findings have not yet been reproduced natively.
 
 2. **Consumer delivery and isolation.** Topic recreation still fails one
    ownership control. Cancellation and mixed-error recovery must preserve

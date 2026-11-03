@@ -14,7 +14,7 @@ cross-link, not a second specification.
 3. The record is queued on one connection: `partition % connections`. Idempotent sequences for a partition never share a socket with another worker.
 4. That connection's worker waits for `linger` or until the batch is large enough, then writes a Produce request.
 5. Several Produce requests can be in flight on the same socket.
-6. `flush` waits for those responses and returns the first broker error. `try_send` returning `Ok` only means the record was queued.
+6. `flush` attempts to drain queued work, but can return before some retries finish or miss delivery timeouts. `try_send` returning `Ok` only means the record was queued; use `send` for an individual delivery result.
 
 Uncompressed Produce writes each record into the request buffer and
 checksums the batch with CRC32-C. The key and the value are copied on

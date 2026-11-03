@@ -207,8 +207,8 @@ closed producer and left group
 
 | Step | What it does |
 |---|---|
-| `send` | Waits for the broker acknowledgement. `try_send` only admits the record and can return `QueueFull`. Wait for completion, or use bounded `send` admission. |
-| `flush` | Waits for queued work and reports delivery errors. `acks=0` has no acknowledged offset. A timeout after sending can leave delivery ambiguous. |
+| `send` | Waits for the delivery result. With `acks=1` or `all`, this includes the broker response; with `acks=0`, it ends after the local write. `try_send` only admits the record and can return `QueueFull`. |
+| `flush` | Attempts to drain queued work, but can return before some retries finish or miss delivery timeouts. Use `send` for an individual result. `acks=0` has no acknowledged offset. |
 | Commit | `poll` advances the delivered position. Auto-commit is off. The program commits offset + 1, with the leader epoch from `next_offsets()`, only after every record in the batch was processed. A processing failure leaves the group without that commit, so a later member can see the record again. Keep processing idempotent when it changes external state. |
 | Join retry | Transient coordinator errors retry inside the deadline. The produce that already received an acknowledgement is not sent again. |
 | Coordinator codes | Discovery retries 14 `COORDINATOR_LOAD_IN_PROGRESS`, 15 `COORDINATOR_NOT_AVAILABLE`, and 16 `NOT_COORDINATOR`, using `retry_backoff` and `retry_backoff_max`. Setup, authentication, requests, and those waits share one `request_timeout`. Authorization fails immediately. Classic and KIP-848 discovery both do this. |
@@ -242,9 +242,13 @@ producer.close().await?;
 # }
 ```
 
-- `send` returns one offset future per record.
-- `send_all` queues many records and waits for all of them. Records that still need topic metadata are split out and sent after that metadata arrives.
-- `try_send` plus `flush` is the throughput path. See `examples/bench_produce.rs`.
+- `send` waits for one record's result; `acks=0` has no broker offset.
+- `send_all` queues many records. A successful return contains all results;
+  on error, other accepted records may still be delivered. Records that need
+  topic metadata are split out and sent after that metadata arrives.
+- `try_send` plus `flush` queues work without a per-record future. `flush` can
+  return before some retries finish or miss delivery timeouts; use `send` for
+  individual delivery results.
 
 A large produce pauses every 8,192 records or partitions so the caller's
 timeout can run. Work already finished is kept. That includes queueing,
@@ -734,18 +738,19 @@ records again.
 
 ### Produce cancellation and shutdown
 
-After `send` or `try_send` has accepted a record into `buffer_memory`,
-dropping that future leaves delivery ambiguous. The worker may still write
-the record. Keep the delivery result, or settle the queue with `flush`,
-before treating the outcome as final. `close` stops workers. A successful
-`close` does not replace the send or flush error you still need to keep.
+After `send` has accepted a record into `buffer_memory`, dropping its future
+leaves delivery ambiguous. The worker may still write the record. `try_send`
+returns after admission and does not provide an individual delivery future.
+Keep the delivery result before treating the outcome as final.
+`flush` can return before some retries finish or miss delivery timeouts. `close`
+stops workers; a successful `close` does not replace a delivery result.
 
 | Stage | Typical signals | Caller outcome |
 |---|---|---|
 | Before enqueue | unpolled `send`; rejected `try_send` (`QueueFull`, `RecordTooLarge`); known admission failure | **Not accepted** |
 | Buffered (queued, not yet on the wire) | `metrics().bytes_buffered > 0`; drop `send` future | **Ambiguous.** The worker may still deliver. |
 | After send / before ack | in flight to the broker; drop `send` future | **Ambiguous** |
-| After broker ack | `Ok(RecordMetadata)`, or accepted `try_send` plus a successful `flush`, with `acks=1` or `all` | **Acknowledged.** `acks=0` cannot prove an offset. |
+| After broker ack | `Ok(RecordMetadata)` from `send`, with `acks=1` or `all` | **Acknowledged.** `acks=0` cannot prove an offset. |
 | After `close` / `close_timeout` | further `send` or `try_send` on any clone | **Failed** with `Error::Closed` |
 | `close_timeout` while a batch is in flight | The deadline hits a stalled broker or the retry queue | In-flight batches return `Error::Timeout`. A record already transmitted stays ambiguous. |
 | A later send after an ambiguous result | The earlier per-record receipt is missing | Can duplicate the record, including when idempotence was on. |

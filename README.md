@@ -38,9 +38,12 @@ producer.close().await?;
 # }
 ```
 
-`send` waits for that record's offset. `send_all` queues multiple records and
-waits for their results. `try_send` queues without waiting for acknowledgements;
-use `flush` to observe delivery.
+`send` waits for that record's delivery result. A successful `send_all` returns
+the results for multiple records; on error, other accepted records may still be
+delivered. `try_send` queues without waiting; `flush` can return before some
+retries finish or miss delivery timeouts. Use `send` for
+an individual delivery result. With `acks=0`, completion means the request was
+written locally; the broker provides no acknowledgement or offset.
 
 ## Fetch
 

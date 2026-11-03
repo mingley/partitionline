@@ -416,7 +416,8 @@ impl ThrottleTracker {
 pub struct ProducerMetrics {
     /// Records successfully queued (`send` / `send_all` / `try_send`).
     pub records_queued: u64,
-    /// Records the broker acknowledged (including `acks=0` local complete).
+    /// Completed records: broker-acknowledged for `acks=1` or `all`, or
+    /// locally written for `acks=0`.
     pub records_acked: u64,
     /// Records that failed (broker error, timeout, closed).
     pub produce_errors: u64,
@@ -424,7 +425,7 @@ pub struct ProducerMetrics {
     pub bytes_queued: u64,
     /// Visible key, value and header bytes reserved until acknowledgment or failure.
     pub bytes_buffered: u64,
-    /// Queue-to-ack latency per acknowledged record (including `acks=0`).
+    /// Queue-to-completion latency; `acks=0` measures local write completion.
     pub ack_latency: LatencyStats,
     /// Produce v6+ client quota observations, aggregated across brokers.
     pub throttle: ThrottleStats,
@@ -439,13 +440,13 @@ pub struct TopicProduceMetrics {
     pub topic: String,
     /// Records queued for this topic.
     pub records_queued: u64,
-    /// Records the broker acknowledged for this topic.
+    /// Completed records for this topic, including local writes with `acks=0`.
     pub records_acked: u64,
     /// Records that failed for this topic.
     pub produce_errors: u64,
     /// Visible key, value and header bytes queued for this topic.
     pub bytes_queued: u64,
-    /// Queue-to-ack latency for this topic.
+    /// Queue-to-completion latency for this topic, including `acks=0` writes.
     pub ack_latency: LatencyStats,
 }
 

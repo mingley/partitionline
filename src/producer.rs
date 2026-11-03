@@ -2453,22 +2453,25 @@ impl Producer {
         }
     }
 
-    /// Queue one record and wait for its offset.
+    /// Queue one record and wait for its delivery result.
     ///
-    /// This waits for the Produce response of *this* record before returning.
-    /// A loop of `send().await` therefore cannot pipeline. For many records
-    /// use [`Self::send_all`] (offsets) or [`Self::try_send`] plus
+    /// With `acks=1` or `all`, this waits for the Produce response of *this*
+    /// record or a terminal error. With `acks=0`, it completes after the local
+    /// write and returns an offset of `-1`; no broker acknowledgement is
+    /// available. A loop of `send().await` therefore cannot pipeline. For many
+    /// records use [`Self::send_all`] (offsets) or [`Self::try_send`] plus
     /// [`Self::flush`] (throughput).
     #[cfg_attr(
         feature = "tracing",
         tracing::instrument(skip(self, rec), fields(topic = %rec.topic))
     )]
-    /// Wait for one record's broker ack (`RecordMetadata`) or a terminal error.
+    /// Return one record's [`RecordMetadata`] or a terminal error.
     ///
     /// **Cancellation:** dropping this future does **not** dequeue or guarantee the
     /// record was never written. Once accepted into `buffer_memory`, delivery may
-    /// continue; the caller outcome is **ambiguous** until `flush`/`close` (or
-    /// another observe path) settles it. See `docs/guide.md` (Produce cancellation).
+    /// continue, and its outcome is **ambiguous** to the caller. `flush` and
+    /// `close` do not return a per-record result. See `docs/guide.md` (Produce
+    /// cancellation).
     pub async fn send(&self, rec: ProduceRecord) -> Result<RecordMetadata> {
         self.ensure_send_open()?;
         let rx = self.enqueue_one(rec).await?;
@@ -2527,12 +2530,15 @@ impl Producer {
         ready
     }
 
-    /// Queue every record, then wait for every offset.
+    /// Queue records and wait for their delivery results.
     ///
     /// Records that already have metadata are handed to workers while a
     /// stale topic is resolved, so those batches fill during the lookup.
     /// Topics that still need metadata share one request. Empty input
-    /// returns an empty vec. Queuing the records pauses every 8,192.
+    /// returns an empty vec. A successful result contains every record's
+    /// metadata. On error, other accepted records may still be delivered.
+    /// With `acks=0`, returned offsets are `-1` because the broker sends no
+    /// acknowledgement. Queuing the records pauses every 8,192.
     pub async fn send_all(
         &self,
         recs: impl IntoIterator<Item = ProduceRecord>,
@@ -3192,7 +3198,10 @@ impl Producer {
         let _ = fast.routes.insert(Arc::clone(&rec.topic), route);
     }
 
-    /// Enqueue without a per-record future. Delivery is observed on [`Self::flush`].
+    /// Enqueue without a per-record future.
+    ///
+    /// [`Self::flush`] can return before some retries finish or miss delivery
+    /// timeouts. Use [`Self::send`] for an individual delivery result.
     ///
     /// Returns [`Error::QueueFull`] until metadata and a connection to the
     /// partition leader are ready, or when [`ProducerConfig::buffer_memory`]
@@ -4012,7 +4021,12 @@ impl Producer {
         Ok(())
     }
 
-    /// Wait until queued records are acked (or a broker error). `try_send` Ok
+    /// Attempt to drain queued work and report recorded worker errors.
+    ///
+    /// A retiring worker can leave a retry outside the flush barrier, and some
+    /// delivery timeouts are not recorded for `flush`. Use [`Self::send`] for
+    /// an individual delivery result. With `acks=0`, completion is a local
+    /// write, not a broker acknowledgement. A successful [`Self::try_send`]
     /// only means queued.
     pub async fn flush(&self) -> Result<()> {
         self.flush_until(Instant::now() + self.inner.shared.cfg.request_timeout)

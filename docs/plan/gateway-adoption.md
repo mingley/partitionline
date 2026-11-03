@@ -41,7 +41,7 @@ and register them in
 
 | Cell | Built by | Workload | Metrics |
 |---|---|---|---|
-| `lb-gateway-produce-gzip` | KL10-02 | The profile above at an open-loop 25k records/s, and unpaced; fire-and-forget, with every record confirmed by a timed `flush` | Acknowledged rec/s, CPU per record, peak RSS |
+| `lb-gateway-produce-gzip` | KL10-02 | The profile above at an open-loop 25k records/s, and unpaced; fire-and-forget, with a timed `flush` | Offered rate, CPU per record, peak RSS |
 | `lb-gateway-produce-lz4` | KL10-02 | As gzip, with lz4 | As gzip |
 | `lb-gateway-produce-ack` | KL10-02 | As gzip, with one completion per record; each client's acknowledgment API is named | As gzip, plus p50/p99/p99.9 acknowledgment latency |
 | `lb-gateway-fetch-gzip` | KL10-14 | 8 partitions, manual assignment, over a seeded gzip backlog written once by a pinned peer | Verified rec/s, CPU per record, peak RSS |
@@ -73,9 +73,10 @@ Each row is a single run, so expect ±10% noise. Outcomes were counted as
 follows:
 
 - **librdkafka and `send()`:** per-record completions.
-- **`try_send`:** a successful `flush()` at the end of the run, inside the
-  timed window, confirmed every record. Per-record errors were not
-  observable.
+- **`try_send`:** `flush()` returned successfully at the end of the run,
+  inside the timed window. `flush` can return before some retries finish or
+  miss delivery timeouts, and per-record errors were not observed; the run
+  does not confirm delivery of every record.
 
 High watermarks were not checked.
 

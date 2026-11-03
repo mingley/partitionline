@@ -1,0 +1,95 @@
+{
+  "files": {
+    ".github/workflows/broker.yml": {
+      "git_blob_sha1": "686b5b2447801ea702049763c8777ed4b994516e",
+      "sha256": "12f56c99c2fbae3387ec14ae5a26e93857471c6a4330a7e1aa12ca03fa5c8a42",
+      "size_bytes": 5583
+    },
+    ".github/workflows/capabilities.yml": {
+      "git_blob_sha1": "1859e1f251b8abefc309aef811225e17c186b54b",
+      "sha256": "2b0016d0ec42791fbf19bdebc5af6822b698c0eb5443c7c974d0b45e118008ca",
+      "size_bytes": 3680
+    },
+    ".github/workflows/ci.yml": {
+      "git_blob_sha1": "3946c086bc409721b5728878cbc868f3fbe0a6ce",
+      "sha256": "14219562802595e261e5e5f91e7802f59ce9b0ad76f3fbea66f3aaee56ecf5d5",
+      "size_bytes": 33180
+    },
+    "Cargo.lock": {
+      "git_blob_sha1": "d1cb698aaaf7554fe904ba02d671c4a8ab4975b3",
+      "sha256": "bdc37c48feb0d7a17a1b08e70c5301ec30b9a90e64c93adaf28aef6b6f9f46bc",
+      "size_bytes": 18399
+    },
+    "Cargo.toml": {
+      "git_blob_sha1": "585bbf9a31465d6bba3f66f593fddd1add516f36",
+      "sha256": "98b437d0dab4d8289a9fd097f9f7a8c4b6e227c505584eb1ea22e0c8bc28f389",
+      "size_bytes": 4488
+    },
+    "docs/RELEASE.md": {
+      "git_blob_sha1": "732a832d371de01e988b2ec6bb294a905baaa576",
+      "sha256": "7ae8f69b9571c99eb758982487ebdffadb140251837274ab1a7470a120282feb",
+      "size_bytes": 4841
+    },
+    "docs/STATUS.md": {
+      "git_blob_sha1": "6b3f31ab2fe1f9d1e11c33318a1f22bc37ca2cd2",
+      "sha256": "da8646b15e9e250fa78f2915fe4c2e3953fbd9b5fa0c4f1e5905c03efe111504",
+      "size_bytes": 15913
+    },
+    "docs/plan/goal-qualification.json": {
+      "git_blob_sha1": "fe2f0e6df29f6b24612c9d4afbea21e57ecfc0c1",
+      "sha256": "423d6e80018327db1ce7bd69e34b39319d2d53ecd21015239e7f7c3ba1eac205",
+      "size_bytes": 11129
+    },
+    "docs/plan/next-work.md": {
+      "git_blob_sha1": "8faf36176e2e36ccc49372a41c6bdb49db644890",
+      "sha256": "403fc0bd99208521ded1056b14d20d1acbe95218c2811e3b5f32e71d5fd70ded",
+      "size_bytes": 28150
+    },
+    "partitionline-broker/Cargo.toml": {
+      "git_blob_sha1": "ec6a607cc60e350e9563c5178cc08434b197ffac",
+      "sha256": "88c9f2efaec47615dba40c4d1feb5e481b38bd51796e76ca6fc87cf064495bf5",
+      "size_bytes": 2686
+    },
+    "partitionline-broker/src/raft/protocol.rs": {
+      "git_blob_sha1": "e7a2cb31ff8874cf963e6ce8220b7ed13b28f726",
+      "sha256": "86c8971a500208bb93ff015d9d3dd056efd8a34d7204b7de1f0d27c59a4499c3",
+      "size_bytes": 202137
+    },
+    "partitionline-broker/src/raft/runtime.rs": {
+      "git_blob_sha1": "5564ae9829ee60433ae81b8db43ea9618330a161",
+      "sha256": "38c50bcd93e5dea91d10264c984fef1a5bfe9e4e33686a5ec64c03ae7945b66d",
+      "size_bytes": 214409
+    },
+    "partitionline-schema/Cargo.toml": {
+      "git_blob_sha1": "077a5f729d4e2c2accc2a138f872dd87e8f20a0b",
+      "sha256": "c542d871599d3e157320e7bf36321c4f4061f6cd89d6071e6d739d426043a4f0",
+      "size_bytes": 2571
+    },
+    "src/group.rs": {
+      "git_blob_sha1": "fe548f2ec79605da4b5c27893ea2a31d0f7e6a38",
+      "sha256": "ce00d2e7b049298b6c8111b7123f39859c9f2f6f3d89cbc51dc6939962d868ab",
+      "size_bytes": 521871
+    },
+    "src/net.rs": {
+      "git_blob_sha1": "2375ee804466df154d38dc8ae8162912d9a2ec40",
+      "sha256": "df239f20fdc4e3240defa78e632faa50c09dc69876478581e061d5c68722bb38",
+      "size_bytes": 195180
+    },
+    "src/producer.rs": {
+      "git_blob_sha1": "45722de4b22e72c56a446b480440bf2775e6188b",
+      "sha256": "4f461c00864e3da5e20925796c1f489580a4046202cffd86fefeb64cbd145a32",
+      "size_bytes": 678608
+    },
+    "tests/broker_compatibility.rs": {
+      "git_blob_sha1": "70d611832ac742589db5fb3c018177e840e8a890",
+      "sha256": "5e289d3af378a44c162e3142468cbf58afe03955f6204a67825b0776f424cad0",
+      "size_bytes": 20010
+    },
+    "tests/conformance/broker/implemented-api-versions.json": {
+      "git_blob_sha1": "af3ebb7c0866a7e313710584f916abe6ba4a2ef7",
+      "sha256": "e127e3daeca095363f66ed45d7a2ffa1adbef17ff584d3f23dcfde63fb576e0a",
+      "size_bytes": 592268
+    }
+  },
+  "source_commit": "45cbff24de76490594970fc962cd04e7be9fafb1"
+}

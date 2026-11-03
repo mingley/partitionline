@@ -40,9 +40,16 @@ page cache.
 
 The same trap exists in every client:
 
-- Partitionline `send` and `try_send` queue a record. Count it only after flush or the per-record future.
-- librdkafka `rd_kafka_produce` queues a record. Count it from the delivery callback or after `rd_kafka_flush`.
-- Java `producer.send` returns a future. Count it when that future completes.
+- Partitionline `send` waits for a per-record result; `try_send` only queues.
+  Count successful `send` results with `acks=1` or `all`. `flush` can return
+  before some retries finish or miss delivery timeouts, so its success alone
+  does not establish that every queued record succeeded.
+- librdkafka `rd_kafka_produce` queues a record. Count successful delivery
+  callbacks; `rd_kafka_flush` alone does not establish that each succeeded.
+- Java `producer.send` returns a future. Count successful futures.
+
+With `acks=0`, completion is not a broker acknowledgement for any of these
+clients. Check records with an independent reader as well.
 
 There is no industry certificate for “fastest Kafka client.” Numbers in
 this repository are engineering measurements.
