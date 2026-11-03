@@ -1,0 +1,49 @@
+{
+  "decision": "independent compact-artifact and source-pin review passed within stated scope",
+  "corrected_analysis_sha256": "dc727fbcd9e28e6d769ad7d6614cb4ee5a496f9941417fee47b855bed3169839",
+  "corrected_readme_sha256": "f973e360fe4c34a41efeaa70e381f610efe47ec1f8dd617e9da7862a10fe4f68",
+  "original_analysis_sha256": "c6e16ccc74000a5d4aab992bfeec575ed587e899a0e21052eaa16330395266c3",
+  "job_log_sha256": "d5b846d981f7331766daaedbcdd2edf399b168c427aeabc9f5329ae5b058ef21",
+  "members_manifest_sha256": "a956fdf5627cd626b9dafb6fa153e186b789a25e8352eedb23f3c1efea3e73be",
+  "compact_report_sha256": "cbab27f7087678bcfdf90d902e86b046dcca5d9312097acaba70475ecd2527c1",
+  "qualification_json_sha256": "686a25d330117bc75fcf2940f244fd0802722161567642e273810d3f08bcd308",
+  "checkout_sha": "e2a04e229514d3a2662a9f765b57145c467de237",
+  "source_base_commit": "6fa8cdb3588d884580d01331e44df657c02f7670",
+  "candidate_spec_sha256": "a467ffefd723efcc32a8b810af41fa7a91f3ce83b4dfdd5485c11b5102df3749",
+  "fixed_patch_sha256": "7f36df7c94bfd5265c5586c8a2749d3180f5e7da0534e053848154b3cdbdfbab",
+  "runtime_preimage_sha256": "a0c136fcc728cfc4580ef30b2ca3fa964f32329f65fce301ef70985dfcd91754",
+  "runtime_postimage_sha256": "38c50bcd93e5dea91d10264c984fef1a5bfe9e4e33686a5ec64c03ae7945b66d",
+  "broker_lock_sha256": "42eaddf993ab4dfbe99e5af9d7c1a7cd858776a214eedbd6112de6a146933a2c",
+  "checks": {
+    "source_archive_and_all_5982_files_match_catalog_and_base_git_objects": true,
+    "test_only_baseline_and_fixed_patch_forward_reverse_verified": true,
+    "all_117_zip_member_hashes_sizes_and_crc_verified": true,
+    "all_47_command_receipts_match_embedded_json_logs_and_expected_exits": true,
+    "all_command_source_inventory_and_owned_cleanup_receipts_pass": true,
+    "source_mode_restoration_receipts_pass": true,
+    "baseline_positive_2_pass_negative_1_expected_assertion_fail": true,
+    "fixed_capacity_controls_2_pass_each_profile": true,
+    "default_all_targets": [
+      729,
+      0,
+      0
+    ],
+    "all_features_all_targets": [
+      877,
+      0,
+      0
+    ],
+    "legacy_and_async_controls_and_three_fetch_repeats_each_profile_pass": true,
+    "stale_leader_exact_pass": true,
+    "format_strict_clippy_docs_inventory_and_55_inventory_negative_controls_pass": true,
+    "copied_readme_analysis_and_SHA256SUMS_checked": true
+  },
+  "limits": [
+    "The full 133,925,152-byte artifact and retained binaries were not downloaded; validation covers the compact report and source pins.",
+    "OOM counter status is unavailable in all 47 command receipts; this run provides no OOM-counter observation.",
+    "Both successful doctest commands discovered zero doctests.",
+    "The baseline expected failure and Deadline phase witness were separate tests; the negative panic itself does not print the Deadline value.",
+    "The fixed candidate intentionally rejects some previously accepted valid-length vectors when capacity exceeds the existing payload envelope.",
+    "No process-wide memory bound, ControllerHandler accounting correctness, full main-branch production readiness, release readiness or performance ranking is established."
+  ]
+}

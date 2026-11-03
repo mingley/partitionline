@@ -37,6 +37,9 @@ quorum, without replicated partition data or native Kafka KRaft.
 - Broker epoch and journal changes now match the qualified x86 candidate: 720
   default and 868 all-feature tests passed with strict Clippy, docs and inventory
   checks. Earlier failures remain recorded. See [broker results][broker].
+- Broker proposal admission now rejects an allocation whose capacity exceeds
+  its configured command envelope. The [hosted capacity run][broker-capacity]
+  reproduced the old failure and passed the fix in both feature profiles.
 - Both focused capability profiles pass 93 required tests and 450 Java reverse
   checks. SDK socket and Streams Java coverage remain open. See
   [capability results][capability].
@@ -63,6 +66,7 @@ quorum, without replicated partition data or native Kafka KRaft.
 | Broker v2 strict Clippy, docs, inventory and six repeated Fetch checks | Passed |
 | Client focused capability profiles at that commit | 93 passed and 450 Java reverse checks per profile |
 | Main broker CI | 727 default and 875 all-feature tests passed at `b1cfbfd96`; Clippy and docs passed |
+| Isolated broker capacity candidate, x86 | 729 default and 877 all-feature tests passed, with format, Clippy, docs and focused controls; OOM counters unavailable and zero doctests found |
 | Main capability profiles | Passed at `33744862c` |
 | Main strict Clippy, security, documentation and package jobs | Passed at `e7660f6e5` |
 | Main client and live Kafka compatibility CI | Failed at `e7660f6e5` |
@@ -96,8 +100,8 @@ during leader removal and in a separate observer test, plus two `ParseIntError`
 failures. The broker
 still needs replicated partition data, authenticated network
 leadership, committed-watermark protection and transaction participant/marker
-propagation. Runtime and controller queue memory accounting also need
-qualification. The adopted local epoch and journal fixes have passing x86
+propagation. Controller queue memory accounting and a process-wide memory
+bound remain open. The adopted local epoch and journal fixes have passing x86
 qualification and ordinary broker CI on `b1b048809`.
 Epoch publication rewrites the file and needs another complete image on disk.
 A local log test does not establish a production cluster.
@@ -117,11 +121,13 @@ when small batches drain. A replica epoch change rewrites the broker journal.
 Both are candidates for optimization; neither has a measured end-to-end
 speedup yet. The required matched x86 peer comparison has not run.
 The [queue candidate][queue] needs passing native tests and a benchmark
-before its effect is known. The [first combined candidate][candidate-build]
+before its effect is known; the [v17 benchmark prototype][queue-v17] remains
+inactive until its same-job correctness gates pass. The [first combined candidate][candidate-build]
 failed its test build because a test module omitted an import. The corrected
 v16 candidate passed both library profiles and the revised deadline control,
 but both profiles still failed 15 Mock Produce tests and one retained-buffer
-test. See the [v16 results][candidate-v16] and [next work][next] for details.
+test. The [v17 candidate][candidate-v17] adds a timeout diagnostic and awaits
+hosted execution. See the [v16 results][candidate-v16] and [next work][next] for details.
 
 The [release scripts][release-gates] check API/index agreement, consumer lockfile
 identity and exact-SHA CI more strictly. The token check reports presence without
@@ -143,6 +149,9 @@ measurements and dated notes.
 [main-ci]: https://github.com/mingley/partitionline/actions/runs/41576616173
 [comparison]: https://github.com/mingley/partitionline/blob/f655b99c449b76ff09b30867ef58c42e51a38b65/docs/evidence/client/main-comparison-b1-20261103/README.md
 [candidate-v16]: https://github.com/mingley/partitionline/blob/60212c74a31790a6c42052715b1d6e579d3cd961/docs/evidence/client/candidate-v16-job-20261103/REPORT.md
+[candidate-v17]: https://github.com/mingley/partitionline/blob/c06dfd345315c1fd0847872a1176fde8c5959043/docs/evidence/client/candidate-20261030/v17/README.md
+[broker-capacity]: https://github.com/mingley/partitionline/blob/c06dfd345315c1fd0847872a1176fde8c5959043/docs/evidence/broker/runtime-capacity-native-e2a0-20261103/README.md
+[queue-v17]: https://github.com/mingley/partitionline/blob/c06dfd345315c1fd0847872a1176fde8c5959043/docs/evidence/perf/pending-queue-v17-20261103/README.md
 [candidate-build]: https://github.com/mingley/partitionline/blob/f548870380ecc025b4e245c7f94a1c0a13fef2ff/docs/evidence/client/candidate-native-fdaf-20261103/README.md
 [candidate-rerun]: https://github.com/mingley/partitionline/blob/2857611b35e25c9ad46206edae89c35e0bc0ffe9/docs/evidence/client/candidate-native-e766-20261103/README.md
 [broker-ci]: https://github.com/mingley/partitionline/blob/929dd6bd20496f88a513a94baa644bc90f3d8eef/docs/evidence/broker/main-ci-b1cf-20261103/REPORT.md
@@ -154,7 +163,7 @@ measurements and dated notes.
 [native]: https://github.com/mingley/partitionline/blob/dfad6573e46adf8aa91626854e4f816cfff2c2bf/docs/evidence/releases/candidate-native-20261030/README.md
 [producer]: https://github.com/mingley/partitionline/blob/908dbdf2f20c8462a741ce59a4f56be2f310048e/docs/evidence/client/producer-admission-20261030/README.md
 [faults]: https://github.com/mingley/partitionline/blob/77021f7dc6c0d19aa93c7bf0b7fad125ee632e23/docs/evidence/broker/fuzz/20261027-candidate06/README.md
-[next]: https://github.com/mingley/partitionline/blob/60212c74a31790a6c42052715b1d6e579d3cd961/docs/plan/next-work.md
-[queue]: https://github.com/mingley/partitionline/blob/929dd6bd20496f88a513a94baa644bc90f3d8eef/docs/evidence/client/candidate-20261030/v16/README.md
+[next]: https://github.com/mingley/partitionline/blob/c06dfd345315c1fd0847872a1176fde8c5959043/docs/plan/next-work.md
+[queue]: https://github.com/mingley/partitionline/blob/c06dfd345315c1fd0847872a1176fde8c5959043/docs/evidence/perf/producer-pending-20261102/README.md
 [tasks]: https://github.com/mingley/partitionline/blob/77021f7dc6c0d19aa93c7bf0b7fad125ee632e23/docs/plan/tasks.json
 [previous]: https://github.com/mingley/partitionline/blob/77021f7dc6c0d19aa93c7bf0b7fad125ee632e23/docs/STATUS.md
