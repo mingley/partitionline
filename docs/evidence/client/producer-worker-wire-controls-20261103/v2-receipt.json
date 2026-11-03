@@ -1,0 +1,65 @@
+{
+  "archive_sha256": "3dd6c4bf171b155a51a731ed511d5deb800ddb8c49dbdf4480190e9e8d8c897e",
+  "expected_witnesses": [
+    "actual Worker partial TCP prefix then cancellation, with post-cancel owner/counter/accounting checks",
+    "actual Worker complete Produce write and outstanding correlation while connection counter is zero, followed by matching response"
+  ],
+  "files": {
+    "README.md": {
+      "bytes": 3041,
+      "sha256": "c51762270853fc851c9fe391a5a86e3df283ebb0a77ad76882b9b5e87ee49223"
+    },
+    "pins.json": {
+      "bytes": 1280,
+      "sha256": "8edb904353f788cdc39016c60fa3526767953b600227fa14dad59141b1885b78"
+    },
+    "static-validation.log": {
+      "bytes": 264,
+      "sha256": "47dc4b1d39febb28649d01eb9a0dce60c63b62d34258e60c14406eb8912fe77d"
+    },
+    "v1-to-v2-tests.diff": {
+      "bytes": 3467,
+      "sha256": "501e20304f23a2ece1a6523ca668a31ac9694593c17492972323a5fb17875a41"
+    },
+    "verify.py": {
+      "bytes": 4722,
+      "sha256": "8b595491c846c87842f6efb384fda50bd140c9da85d1cccf85a5f86f69be7d3e"
+    },
+    "wire-controls.patch": {
+      "bytes": 15297,
+      "sha256": "f6191e975905f62ba609e4ece17cdf2de604c52112c491cb9a41ffd26363171a"
+    }
+  },
+  "limits": [
+    "plaintext loopback fixture with ApiVersions; no real Kafka or Producer::send/Worker::run",
+    "partial-write state examined after cancellation, not during mutable Worker borrow",
+    "no owner lease, fd retirement, session expiry or routing proof",
+    "v17 benchmark remains blocked by baseline case-23 phase witness"
+  ],
+  "not_run": [
+    "Cargo",
+    "Rust compile/typecheck",
+    "native tests",
+    "TLS/SASL",
+    "actual socket transfer",
+    "performance"
+  ],
+  "patch_sha256": "f6191e975905f62ba609e4ece17cdf2de604c52112c491cb9a41ffd26363171a",
+  "pins_sha256": "8edb904353f788cdc39016c60fa3526767953b600227fa14dad59141b1885b78",
+  "readme_sha256": "c51762270853fc851c9fe391a5a86e3df283ebb0a77ad76882b9b5e87ee49223",
+  "scope": "v2 v16/v17 test-only source controls; uncompiled/unrun; no runtime or performance claim",
+  "v1_archive_sha256": "261642d8f31a534edfc6a392a0a363c727b9682acbca78c21629ce9905fcecc6",
+  "v1_patch_sha256": "dae4713352a19292bd7f2d4fbaad9fb6c37cf97401ec69b4e75076e20aaa3a83",
+  "v1_receipt_sha256": "6b30552578f801767f2357b7ef2dc83caf8861492442ee9e9c8e55c43a2e10aa",
+  "v1_to_v2_test_diff_sha256": "501e20304f23a2ece1a6523ca668a31ac9694593c17492972323a5fb17875a41",
+  "validation": [
+    "five source pins match v16 fixed catalog",
+    "all existing prepare tests are exact byte prefix",
+    "all non-test network source bytes unchanged",
+    "patch forward and reverse exact",
+    "stable rustfmt parses and checks all three changed files",
+    "v1-to-v2 only adds five-second timeout wrappers; gate bytes identical"
+  ],
+  "validation_log_sha256": "47dc4b1d39febb28649d01eb9a0dce60c63b62d34258e60c14406eb8912fe77d",
+  "verify_sha256": "8b595491c846c87842f6efb384fda50bd140c9da85d1cccf85a5f86f69be7d3e"
+}

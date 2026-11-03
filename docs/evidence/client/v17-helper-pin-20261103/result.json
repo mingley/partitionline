@@ -1,0 +1,25 @@
+{
+  "source_commit": "9b796378395982405baa84188dba463d218506f9",
+  "scope": "real v17 helper guard in a private local fixture; not a complete GitHub workflow run",
+  "guard_sha256": "b5f624d5d7ca13c479703416683c458fffae62f41ba885df0cc4c15a59c3a462",
+  "manifest_sha256": "581019e43493fe64af627960f782c2a2ca60c9feaac349500451ddd80bfa7a26",
+  "mutated_helper": "scripts/ci-qualify-client-candidate.py",
+  "mutation": "same-size inert docstring byte change; modified helper was never executed",
+  "original": {
+    "exit": 0,
+    "stdout": "candidate helper pins: 6 exact files verified",
+    "stderr": ""
+  },
+  "helper_only": {
+    "exit": 1,
+    "stdout": "",
+    "stderr": "candidate helper pins: helper size or hash mismatch: scripts/ci-qualify-client-candidate.py"
+  },
+  "helper_and_manifest": {
+    "exit": 0,
+    "stdout": "candidate helper pins: 6 exact files verified",
+    "stderr": ""
+  },
+  "boundary": "a separately trusted immutable checkout commit can bind both files; this guard alone cannot distinguish the paired edit",
+  "no_cargo_network_or_rust_execution": true
+}

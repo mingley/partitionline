@@ -1,0 +1,53 @@
+{
+  "decision": "Source-only review passed for retaining an inactive diagnostic and experiment bundle; no production fix or qualification is established.",
+  "bundle": "/workspace/work/live-compat-stack-v3-2645-20261103",
+  "bundle_archive_sha256": "755511a98dfebbde61aa92889233f09f481f2dbf1198333ad622ffb5e0ec48ed",
+  "bundle_receipt_sha256": "f367ee8e7e0df6caaaa4bd45b26904cde1b15da96da0ac9f1bf98d29d8ccca7b",
+  "source_commit": "2645e96ce693fcdaa9d8c56f6f0c910934fd19a2",
+  "elf_helper_sha256": "e13d99b3a9ea73d16c5cd05bc2cb7015cc16a43d7f3c0d189d9de4b9672ad42a",
+  "independent_checks": {
+    "nine_git_source_pins_and_all_26_archive_file_bytes_and_modes": "passed",
+    "three_decoded_log_hashes_and_phase_order": [
+      {
+        "job": 125774457011,
+        "kafka": "4.3.1",
+        "phase_order": true
+      },
+      {
+        "job": 125774457154,
+        "kafka": "4.2.1",
+        "phase_order": true
+      },
+      {
+        "job": 125774457229,
+        "kafka": "4.1.2",
+        "phase_order": true
+      }
+    ],
+    "five_individual_patch_roundtrips_and_caller_library_diagnostic_composition": "passed",
+    "production_experiment_diff_scope_and_original_timeout_text": "passed",
+    "trace_only_adds_instrumentation_and_size_diagnostic_is_ignored_and_unpolled": "passed",
+    "prior_mock_profile_results_and_different_prior_group_source_hashes": [
+      "f1df85ff755a511ff40ca87a154a24d4398745bb3c95f618f62d4d1b0f26c09d",
+      "8bcca7ca5b6a59d61066f7892613ea0770d530d833615e66a1cebbb2ab5af97d"
+    ],
+    "v3_vs_v2": "identical source variants, source pins, job pins and patches; changes limited to ELF helper, documentation and corresponding verifier/receipt generation",
+    "elf_synthetic_header_and_fake_binutils_controls": "passed without native binutils or real ELF",
+    "v2_different_architecture_header_swap_counterexample": "reproduced against v2; rejected by v3",
+    "same_architecture_file_swap_after_initial_hash": "v3 rejects during header validation",
+    "file_change_during_fake_inspection": "v3 rejects before producing a report",
+    "scripts": {
+      "audit.py": "abd609fab3b0aad84a0a26586e511ad72d02d2956c55edc263a0a1d3c31186de",
+      "header_race_control.py": "5e76647a1df2fe35718798d467c16b76cacf75242a05869220ada90939ceb0a0",
+      "probe_controls.py": "37190cb1b8e062e8ec40447f42f9324f05f4162a2eb6bdbee519a1c490548865"
+    }
+  },
+  "observational_and_use_limits": [
+    "Connector-decoded/re-encoded job logs report classic-join phase followed by stack overflow and SIGABRT; no completed RPC, cause, crashing frame or precise thread stack mapping is established.",
+    "Future-state size and disassembly prologues do not measure required or maximum live stack. Trace logging and boxing alter the binary, allocation, timing and execution; outcomes of interventions cannot alone prove which frame caused failure.",
+    "The prior 2 MiB mock results are from other group source hashes and omit the complete live caller; they do not establish safety of the current live test.",
+    "The diagnostic 8 MiB test must be explicitly selected and requires its completion marker and successful exit. It is not a normal-stack gate.",
+    "The ELF parser checks selected x86_64 header fields, not comprehensive ELF validation; final binutils execution remains untested. Hash checks and separate opens do not prevent replace-and-restore, so the documented private quiescent snapshot is required.",
+    "No Cargo, compiler, native Rust tests, actual ELF/binutils inspection, live Kafka run or benchmark was performed in this review. No root file was modified."
+  ]
+}

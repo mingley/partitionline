@@ -1,0 +1,139 @@
+{
+  "artifact": {
+    "id": 13211954727,
+    "name": "candidate-reports-client-v17-trigger-2645e96ce693fcdaa9d8c56f6f0c910934fd19a2-checkout-2645e96ce693fcdaa9d8c56f6f0c910934fd19a2-41593203672",
+    "size_in_bytes": 15531327,
+    "url": "https://api.github.com/repos/mingley/partitionline/actions/artifacts/13211954727",
+    "archive_download_url": "https://api.github.com/repos/mingley/partitionline/actions/artifacts/13211954727/zip",
+    "expired": false,
+    "created_at": "2026-11-03T07:36:48Z",
+    "expires_at": "2026-12-03T07:36:46Z",
+    "updated_at": "2026-11-03T07:36:48Z",
+    "digest": "sha256:1464d715f3237a674f9e0986a17ab4fd7305cb4df9df3c496ecb39b3ae23a953",
+    "workflow_run": {
+      "id": 41593203672,
+      "repository_id": 1342911983,
+      "head_repository_id": 1342911983,
+      "head_branch": "main",
+      "head_sha": "2645e96ce693fcdaa9d8c56f6f0c910934fd19a2"
+    }
+  },
+  "job": {
+    "id": 125777847165,
+    "name": "client v17 (stable, x86_64)",
+    "status": "completed",
+    "conclusion": "failure",
+    "run_id": 41593203672,
+    "logs_url": null,
+    "steps": [
+      {
+        "name": "Set up job",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 1
+      },
+      {
+        "name": "Run actions/checkout@v7",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 2
+      },
+      {
+        "name": "Verify checkout commit",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 3
+      },
+      {
+        "name": "Verify v17 helper pins and controls",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 4
+      },
+      {
+        "name": "Run dtolnay/rust-toolchain@stable",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 5
+      },
+      {
+        "name": "Install source inventory prerequisite",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 6
+      },
+      {
+        "name": "Check command ownership controls",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 7
+      },
+      {
+        "name": "Check client qualification guards",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 8
+      },
+      {
+        "name": "Check broker qualification guards",
+        "status": "completed",
+        "conclusion": "skipped",
+        "number": 9
+      },
+      {
+        "name": "Check local TLS peer prerequisite",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 10
+      },
+      {
+        "name": "Recheck v17 helper pins",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 11
+      },
+      {
+        "name": "Qualify isolated client candidate",
+        "status": "completed",
+        "conclusion": "failure",
+        "number": 12
+      },
+      {
+        "name": "Qualify isolated broker candidate",
+        "status": "completed",
+        "conclusion": "skipped",
+        "number": 13
+      },
+      {
+        "name": "Check and qualify pinned broker runtime capacity",
+        "status": "completed",
+        "conclusion": "skipped",
+        "number": 14
+      },
+      {
+        "name": "Retain attempts and failures",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 15
+      },
+      {
+        "name": "Retain qualification reports",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 16
+      },
+      {
+        "name": "Post Run actions/checkout@v7",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 32
+      },
+      {
+        "name": "Complete job",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 33
+      }
+    ]
+  }
+}

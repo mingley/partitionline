@@ -1,0 +1,40 @@
+{
+  "scope": "Independent source-only review of Worker wire-control v3; no root edits, Cargo, Rust compilation, native tests, network, or performance execution.",
+  "result": "No further blocker found by static review. Both controls require compilation and native qualification before their behavior can be claimed.",
+  "candidate": {
+    "archive": "/workspace/work/producer-live-reuse-wire-controls-v3-20261103/evidence.tar.gz",
+    "archive_sha256": "1bfa871b70e5165acbc4d85bf6ba31fbf635247af530577bd6472169173c9aee",
+    "patch_sha256": "edd7debcc4384c2da241489d9da12c0f057454d99734180f15ecc6a4e4d4b7e4",
+    "receipt_sha256": "197accbc8b0fb24a6fbbbbd4ec026c8748ee150d2d846b1743c88f9f0dcc6185",
+    "pins_sha256": "5f356e695628832c51278cb55956055de56a3476e190e3d387188f84652a5014",
+    "v2_to_v3_delta_sha256": "d98a8787393f1ff818320a1b7b6d3706af40830d4dde1c829d9000c4aff22751",
+    "fixed_catalog_sha256": "15da704200222b0b3b8de7d74274b9cf1fb3933a9339112c09b3467aa07868ea"
+  },
+  "independent_reconstruction": {
+    "script": "/workspace/work/producer-live-reuse-wire-independent-20261103/verify_v3.py",
+    "script_sha256": "288f7946adc4545bbb185dfbe3c61142d31d6780fb12e33ad1088574bf4a6439",
+    "results": "/workspace/work/producer-live-reuse-wire-independent-20261103/v3-roundtrip.json",
+    "results_sha256": "85e445a2adfb75efbad0df9d68810ddafc13426f37bca45682a190bd99dfa8b8",
+    "checks": [
+      "All seven archive members have the recorded external bytes, with no duplicate names or links.",
+      "All five candidate source preimages match the v16 fixed source catalog. The v16 and v17 fixed catalogs have identical SHA-256.",
+      "Patch application and reverse reconstruct all three postimages and both preimages byte for byte, including removal of the added helper.",
+      "Existing preparation test bytes are an exact prefix, and removing the test-gated additions reproduces the previous network source exactly."
+    ]
+  },
+  "source_review": [
+    "The fixture admits the record via the existing Worker test channel, negotiates ApiVersions v4 over its actual loopback TCP peer, echoes the correlation with the correct classic ApiVersions response header, then configures Produce v3 on that Worker connection. The Produce v3 response layout matches the pinned decoder.",
+    "The gated wrapper delegates reads and shutdown to the actual TcpStream, restricts each offered write to the remaining prefix, counts successful short writes, registers a blocked writer waker, and wakes it when released. The stalled write pump continues to poll reads. Its reached notification and count are plausible for the single-writer, release-after-reached sequence used by these fixtures.",
+    "The first proposed test waits for eight bytes accepted by the stream and read by the peer, checks the declared frame has a remaining suffix, and polls the real Worker::fire again while the gate is held. It then drops that future and observes connection closure, the preparing record, write_started, and empty Worker/connection counters after cancellation. Explicitly closing the shared producer state before dropping the Worker causes this test's terminal Timeout outcome; it is not proof of all producer cancellation paths.",
+    "The second proposed test waits for both Worker::fire and receipt of the entire peer frame before checking one Worker-owned correlation alongside a zero BrokerConn counter and empty buffered response. It sends a matching response only afterward and checks Worker::wait_one and the acknowledged record.",
+    "Per-phase five-second timeouts now cover gate installation, negotiation, gated prefix, full-frame transfer, peer response, response consumption and complete outcome loops; the outcome assertions are unchanged. Initial connection and accept use the inherited fixture, whose accept waits do not have their own explicit test deadline. The fixture's dummy WorkerTask and connection idle watcher are aborted on owner drop but are not joined by these new tests.",
+    "V2 discarded three Tokio read_exact results despite the pinned manifest's deny(unused_results); v3 binds all three counts and uses a checked gate slice. This is a source-level lint correction; no compiler or Clippy run was performed. V2's five-second timeout additions are retained without changing the earlier assertions."
+  ],
+  "limitations": [
+    "The gate is qualified only by source inspection for these sequential single-writer fixtures. Releasing concurrently during poll_write is not a general transport-gate contract: if release wins before the write updates the count, reaching the threshold need not be reported.",
+    "The archive contains the patch and metadata, not complete input source snapshots; the pinned v16/v17 source files are required to reconstruct it.",
+    "No actual owner-decision or transfer, same-socket generation validation, descriptor/watcher retirement, authentication expiry, SASL, TLS, routing change, real Kafka, Producer::send or Worker::run is exercised by these proposed tests.",
+    "The controls do not repair the observed v16/v17 client failures and provide no throughput, latency, production-readiness, or fastest-in-the-world evidence.",
+    "The old v1 and v2 candidates are historical; the timeout and unused-results findings apply to those earlier revisions. No Rust typecheck or native behavior has been established for v3."
+  ]
+}

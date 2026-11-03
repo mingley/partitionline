@@ -1,0 +1,433 @@
+--- a/src/net.rs
++++ b/src/net.rs
+@@ -1,5 +1,7 @@
+ //! TCP and TLS broker connections.
+ 
++#[cfg(test)]
++pub(crate) mod test_gated_tcp;
+ #[cfg(test)]
+ pub(crate) mod test_peer;
+ 
+@@ -847,6 +849,8 @@
+     /// Socket already dropped after a terminal TLS shutdown.
+     Closed,
+     Tcp(TcpStream),
++    #[cfg(test)]
++    GatedTcp(test_gated_tcp::GatedTcp),
+     Tls(Box<TlsStream<TcpStream>>),
+     /// Test double that returns a fixed body in small ready chunks.
+     #[cfg(test)]
+@@ -934,6 +938,8 @@
+         match self.get_mut() {
+             ConnIo::Closed => Poll::Ready(Ok(())),
+             ConnIo::Tcp(s) => Pin::new(s).poll_read(cx, buf),
++            #[cfg(test)]
++            ConnIo::GatedTcp(s) => Pin::new(s).poll_read(cx, buf),
+             ConnIo::Tls(s) => Pin::new(s.as_mut()).poll_read(cx, buf),
+             #[cfg(test)]
+             ConnIo::Script(s) => Pin::new(s).poll_read(cx, buf),
+@@ -953,6 +959,8 @@
+                 "connection closed",
+             ))),
+             ConnIo::Tcp(s) => Pin::new(s).poll_write(cx, buf),
++            #[cfg(test)]
++            ConnIo::GatedTcp(s) => Pin::new(s).poll_write(cx, buf),
+             ConnIo::Tls(s) => Pin::new(s.as_mut()).poll_write(cx, buf),
+             #[cfg(test)]
+             ConnIo::Script(s) => Pin::new(s).poll_write(cx, buf),
+@@ -963,6 +971,8 @@
+         match self.get_mut() {
+             ConnIo::Closed => Poll::Ready(Ok(())),
+             ConnIo::Tcp(s) => Pin::new(s).poll_flush(cx),
++            #[cfg(test)]
++            ConnIo::GatedTcp(s) => Pin::new(s).poll_flush(cx),
+             ConnIo::Tls(s) => Pin::new(s.as_mut()).poll_flush(cx),
+             #[cfg(test)]
+             ConnIo::Script(s) => Pin::new(s).poll_flush(cx),
+@@ -973,6 +983,8 @@
+         match self.get_mut() {
+             ConnIo::Closed => Poll::Ready(Ok(())),
+             ConnIo::Tcp(s) => Pin::new(s).poll_shutdown(cx),
++            #[cfg(test)]
++            ConnIo::GatedTcp(s) => Pin::new(s).poll_shutdown(cx),
+             ConnIo::Tls(s) => Pin::new(s.as_mut()).poll_shutdown(cx),
+             #[cfg(test)]
+             ConnIo::Script(s) => Pin::new(s).poll_shutdown(cx),
+@@ -1528,6 +1540,26 @@
+             reauth_at: None,
+             in_flight: 0,
+         }
++    }
++
++    /// Pause writes to this real TCP stream after `limit` accepted bytes.
++    #[cfg(test)]
++    pub(crate) async fn test_gate_tcp_writes(&mut self, limit: usize) -> test_gated_tcp::Gate {
++        let gate = test_gated_tcp::Gate::new(limit);
++        let mut stream = self.stream.lock().await;
++        let original = std::mem::replace(&mut *stream, ConnIo::Closed);
++        match original {
++            ConnIo::Tcp(tcp) => {
++                *stream = ConnIo::GatedTcp(test_gated_tcp::GatedTcp::new(tcp, gate.clone()));
++            }
++            other => {
++                *stream = other;
++                panic!("test gate requires a plaintext TCP connection");
++            }
++        }
++        drop(stream);
++        self.idle_arm.notify_one();
++        gate
+     }
+ 
+     /// Kafka `client.id` on this connection.
+--- /dev/null
++++ b/src/net/test_gated_tcp.rs
+@@ -0,0 +1,138 @@
++//! A real TCP stream that pauses after a counted prefix in unit tests.
++
++use std::io;
++use std::pin::Pin;
++use std::sync::Arc;
++use std::task::{Context, Poll, Waker};
++
++use parking_lot::Mutex;
++use tokio::io::{AsyncRead, AsyncWrite, ReadBuf};
++use tokio::net::TcpStream;
++use tokio::sync::Notify;
++
++struct State {
++    written: usize,
++    released: bool,
++    writer: Option<Waker>,
++}
++
++struct Shared {
++    limit: usize,
++    state: Mutex<State>,
++    reached: Notify,
++}
++
++/// Cloneable control for a gate attached to one physical TCP stream.
++#[derive(Clone)]
++pub(crate) struct Gate(Arc<Shared>);
++
++impl Gate {
++    pub(super) fn new(limit: usize) -> Self {
++        assert!(limit > 0);
++        Self(Arc::new(Shared {
++            limit,
++            state: Mutex::new(State {
++                written: 0,
++                released: false,
++                writer: None,
++            }),
++            reached: Notify::new(),
++        }))
++    }
++
++    pub(crate) async fn reached(&self) {
++        loop {
++            let notified = self.0.reached.notified();
++            if self.0.state.lock().written >= self.0.limit {
++                return;
++            }
++            notified.await;
++        }
++    }
++
++    pub(crate) fn written(&self) -> usize {
++        self.0.state.lock().written
++    }
++
++    pub(crate) fn release(&self) {
++        let writer = {
++            let mut state = self.0.state.lock();
++            state.released = true;
++            state.writer.take()
++        };
++        if let Some(writer) = writer {
++            writer.wake();
++        }
++    }
++}
++
++pub(super) struct GatedTcp {
++    stream: TcpStream,
++    gate: Gate,
++}
++
++impl GatedTcp {
++    pub(super) fn new(stream: TcpStream, gate: Gate) -> Self {
++        Self { stream, gate }
++    }
++}
++
++impl AsyncRead for GatedTcp {
++    fn poll_read(
++        self: Pin<&mut Self>,
++        cx: &mut Context<'_>,
++        buf: &mut ReadBuf<'_>,
++    ) -> Poll<io::Result<()>> {
++        Pin::new(&mut self.get_mut().stream).poll_read(cx, buf)
++    }
++}
++
++impl AsyncWrite for GatedTcp {
++    fn poll_write(
++        self: Pin<&mut Self>,
++        cx: &mut Context<'_>,
++        buf: &[u8],
++    ) -> Poll<io::Result<usize>> {
++        let this = self.get_mut();
++        if buf.is_empty() {
++            return Pin::new(&mut this.stream).poll_write(cx, buf);
++        }
++        let offered = {
++            let mut state = this.gate.0.state.lock();
++            if !state.released && state.written >= this.gate.0.limit {
++                state.writer = Some(cx.waker().clone());
++                return Poll::Pending;
++            }
++            if state.released {
++                buf.len()
++            } else {
++                buf.len().min(this.gate.0.limit - state.written)
++            }
++        };
++        let Some(chunk) = buf.get(..offered) else {
++            return Poll::Ready(Err(io::Error::new(
++                io::ErrorKind::InvalidInput,
++                "test gate prefix exceeds buffer",
++            )));
++        };
++        let result = Pin::new(&mut this.stream).poll_write(cx, chunk);
++        if let Poll::Ready(Ok(n)) = &result {
++            let mut state = this.gate.0.state.lock();
++            if !state.released {
++                state.written += *n;
++                if state.written >= this.gate.0.limit {
++                    this.gate.0.reached.notify_one();
++                }
++            }
++        }
++        result
++    }
++
++    fn poll_flush(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<io::Result<()>> {
++        Pin::new(&mut self.get_mut().stream).poll_flush(cx)
++    }
++
++    fn poll_shutdown(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<io::Result<()>> {
++        Pin::new(&mut self.get_mut().stream).poll_shutdown(cx)
++    }
++}
+--- a/src/producer/prepare_tests.rs
++++ b/src/producer/prepare_tests.rs
+@@ -2186,3 +2186,207 @@
+         })
+         .await;
+ }
++
++// Keep this control on a real plaintext socket and negotiate that same socket
++// before arming the write gate. The fixture admits one real Pending to Worker;
++// it does not exercise Producer::send or SASL/TLS.
++async fn negotiated_single_wire_record() -> PreparationFixture {
++    use tokio::io::AsyncWriteExt;
++
++    let mut fixture = preparation_fixture_with_settings(Topology::One, false, false, 1, None).await;
++    let mut pending = fixture.worker.take_all_pending();
++    let first = pending.remove(0);
++    fail_pendings(&fixture.shared, pending, Error::Closed);
++    fixture.worker.push_pending(first);
++    assert_eq!(fixture.shared.buffered_bytes.load(Ordering::SeqCst), 1);
++
++    let worker = &mut fixture.worker;
++    let peer = &mut fixture.peer;
++    let (versions, ()) = tokio::time::timeout(Duration::from_secs(5), async {
++        tokio::join!(
++            crate::protocol::api::negotiate_api_versions(&mut worker.conn, Duration::from_secs(5)),
++            async {
++                let size = peer.read_i32().await.unwrap();
++                assert!((8..=4096).contains(&size));
++                let mut request = vec![0; usize::try_from(size).unwrap()];
++                let _read = peer.read_exact(&mut request).await.unwrap();
++                assert_eq!(
++                    i16::from_be_bytes(request[0..2].try_into().unwrap()),
++                    crate::protocol::api_keys::API_VERSIONS
++                );
++                assert_eq!(i16::from_be_bytes(request[2..4].try_into().unwrap()), 4);
++                let keys = [
++                    ApiVersion {
++                        api_key: crate::protocol::api_keys::API_VERSIONS,
++                        min_version: 0,
++                        max_version: 4,
++                    },
++                    ApiVersion {
++                        api_key: PRODUCE,
++                        min_version: 3,
++                        max_version: 3,
++                    },
++                ];
++                let mut body = BytesMut::new();
++                crate::protocol::api::encode_api_versions_response(
++                    &mut body,
++                    4,
++                    &known_api_versions(&keys),
++                )
++                .unwrap();
++                peer.write_i32(i32::try_from(4 + body.len()).unwrap())
++                    .await
++                    .unwrap();
++                peer.write_all(&request[4..8]).await.unwrap();
++                peer.write_all(&body).await.unwrap();
++            },
++        )
++    })
++    .await
++    .expect("negotiation fixture timed out");
++    let versions = versions.expect("ApiVersions failed");
++    configure_produce_conn(&mut worker.conn, &versions, &fixture.shared.cfg, false);
++    assert_eq!(worker.conn.produce_version(), 3);
++    assert_eq!(worker.conn.in_flight(), 0);
++    assert!(worker.in_flight.is_empty());
++    fixture
++}
++
++#[tokio::test(flavor = "current_thread")]
++async fn actual_worker_cancelled_after_real_tcp_prefix_keeps_its_preparing_record() {
++    let mut fixture = negotiated_single_wire_record().await;
++    let gate = tokio::time::timeout(
++        Duration::from_secs(5),
++        fixture.worker.conn.test_gate_tcp_writes(8),
++    )
++    .await
++    .expect("TCP write gate could not be installed");
++    let mut fire = Box::pin(fixture.worker.fire());
++    tokio::time::timeout(Duration::from_secs(5), async {
++        tokio::select! {
++            _ = gate.reached() => {}
++            result = &mut fire => panic!("Produce finished before the prefix gate: {result:?}"),
++        }
++    })
++    .await
++    .expect("real TCP prefix was not written");
++    let mut prefix = [0u8; 8];
++    let _read = tokio::time::timeout(Duration::from_secs(5), fixture.peer.read_exact(&mut prefix))
++        .await
++        .expect("peer did not read the prefix")
++        .unwrap();
++    let size = i32::from_be_bytes(prefix[..4].try_into().unwrap());
++    assert!(size > 4, "the frame was not partial");
++    assert_eq!(
++        i16::from_be_bytes(prefix[4..6].try_into().unwrap()),
++        PRODUCE
++    );
++    assert_eq!(i16::from_be_bytes(prefix[6..8].try_into().unwrap()), 3);
++    assert_eq!(gate.written(), prefix.len());
++    assert!(poll_preparation(fire.as_mut()).await.is_pending());
++    let mut extra = [0u8; 1];
++    assert!(matches!(
++        fixture.peer.try_read(&mut extra),
++        Err(error) if error.kind() == std::io::ErrorKind::WouldBlock
++    ));
++    drop(fire);
++    assert!(fixture.worker.conn.is_closed());
++    assert_eq!(fixture.worker.conn.in_flight(), 0);
++    assert!(fixture.worker.in_flight.is_empty());
++    assert!(fixture.worker.preparing.write_started);
++    assert_eq!(
++        fixture
++            .worker
++            .preparing
++            .retained_records(&fixture.worker.group_scratch),
++        1
++    );
++    gate.release();
++    fixture.shared.closed.store(true, Ordering::SeqCst);
++    drop(fixture.worker);
++    tokio::time::timeout(Duration::from_secs(5), async {
++        let mut outcomes = fixture.outcomes.into_iter();
++        assert!(matches!(
++            outcomes.next().unwrap().await,
++            Ok(Err(Error::Timeout))
++        ));
++        for outcome in outcomes {
++            assert!(matches!(outcome.await, Ok(Err(Error::Closed))));
++        }
++    })
++    .await
++    .expect("cancelled record outcomes did not finish");
++    assert_eq!(fixture.shared.buffered_bytes.load(Ordering::SeqCst), 0);
++    assert_eq!(fixture.shared.live_workers.load(Ordering::SeqCst), 0);
++    drop(fixture.handle);
++    drop(fixture.peer);
++}
++
++#[tokio::test(flavor = "current_thread")]
++async fn actual_worker_full_write_tracks_response_outside_connection_counter() {
++    use tokio::io::AsyncWriteExt;
++
++    let mut fixture = negotiated_single_wire_record().await;
++    let worker = &mut fixture.worker;
++    let peer = &mut fixture.peer;
++    let (result, frame) = tokio::time::timeout(Duration::from_secs(5), async {
++        tokio::join!(worker.fire(), async {
++            let size = peer.read_i32().await.unwrap();
++            assert!((8..=1024 * 1024).contains(&size));
++            let mut request = vec![0; usize::try_from(size).unwrap()];
++            let _read = peer.read_exact(&mut request).await.unwrap();
++            request
++        })
++    })
++    .await
++    .expect("Produce frame was not fully written");
++    result.expect("Worker::fire failed");
++    assert_eq!(i16::from_be_bytes(frame[0..2].try_into().unwrap()), PRODUCE);
++    assert_eq!(i16::from_be_bytes(frame[2..4].try_into().unwrap()), 3);
++    let correlation = i32::from_be_bytes(frame[4..8].try_into().unwrap());
++    assert_eq!(worker.in_flight.len(), 1);
++    assert_eq!(worker.in_flight.front().unwrap().correlation, correlation);
++    assert_eq!(worker.conn.in_flight(), 0);
++    assert!(!worker.conn.has_queued_response());
++    assert!(worker.preparing.write_started);
++
++    let mut body = BytesMut::new();
++    body.put_i32(1);
++    crate::protocol::buf::put_string(&mut body, false, Some("orders")).unwrap();
++    body.put_i32(1);
++    body.put_i32(0);
++    body.put_i16(0);
++    body.put_i64(100);
++    body.put_i64(RecordBatch::NO_TIMESTAMP);
++    body.put_i32(0);
++    tokio::time::timeout(Duration::from_secs(5), async {
++        peer.write_i32(i32::try_from(4 + body.len()).unwrap())
++            .await
++            .unwrap();
++        peer.write_i32(correlation).await.unwrap();
++        peer.write_all(&body).await.unwrap();
++    })
++    .await
++    .expect("peer could not send the Produce response");
++    tokio::time::timeout(Duration::from_secs(5), worker.wait_one())
++        .await
++        .expect("matching Produce response was not consumed")
++        .expect("matching Produce response failed");
++    assert!(worker.in_flight.is_empty());
++    assert_eq!(worker.conn.in_flight(), 0);
++    assert_eq!(fixture.shared.buffered_bytes.load(Ordering::SeqCst), 0);
++    tokio::time::timeout(Duration::from_secs(5), async {
++        let mut outcomes = fixture.outcomes.into_iter();
++        assert_eq!(outcomes.next().unwrap().await.unwrap().unwrap().offset, 100);
++        for outcome in outcomes {
++            assert!(matches!(outcome.await, Ok(Err(Error::Closed))));
++        }
++    })
++    .await
++    .expect("acknowledged record outcomes did not finish");
++    fixture.shared.closed.store(true, Ordering::SeqCst);
++    drop(fixture.worker);
++    assert_eq!(fixture.shared.live_workers.load(Ordering::SeqCst), 0);
++    drop(fixture.handle);
++    drop(fixture.peer);
++}

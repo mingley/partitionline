@@ -1,0 +1,39 @@
+{
+  "decision": "Independent static review passed for the historical guard trust-boundary evidence.",
+  "evidence_directory": "/workspace/work/v17-helper-pin-evidence-20261103",
+  "evidence_sha256sums_sha256": "edec1cbf51c91de0438f10ad140d1eacc73b0611d2aed03b1a45c05af7dadd54",
+  "evidence_source_pins_sha256": "8f16390befe972f74516b2730a21293b73ff22b3cb9e0cf5e6cda958a593267e",
+  "evidence_reproducer_sha256": "8c5d3aecdd9252724a2d28e445ed5c099bacbe70944b35d2b05e111f65d11c66",
+  "evidence_result_sha256": "0a5351f433cc5e5f065a276ac17e6edfadbc2833b088a50013599c55053cfa40",
+  "independent_audit_sha256": "fecdc2ebfe51d93035668750e2b01b7a7444993fbcb4ea16c23cd126b0365657",
+  "independent_checks": {
+    "source_commit": "9b796378395982405baa84188dba463d218506f9",
+    "all_eight_source_pins_match_commit": true,
+    "all_six_manifest_pins_match_source": true,
+    "manifest_sha256": "581019e43493fe64af627960f782c2a2ca60c9feaac349500451ddd80bfa7a26",
+    "workflow_sha256": "09fc1b57f3e2dc21562fecb35354d0e14c5b2ae63e1567c904e6d82fd9671b00",
+    "checksums_sha256": "edec1cbf51c91de0438f10ad140d1eacc73b0611d2aed03b1a45c05af7dadd54",
+    "checksum_file_count": 13,
+    "in_workflow_guard_size_and_hash_checks": 2,
+    "manifest_passed_by_unpinned_path": true,
+    "relocated_copy_with_spaces_and_colon_and_no_git_in_PATH": "passed",
+    "guard_eight_python_self_tests": "passed",
+    "independent_exact_byte_mutation": {
+      "original_exit": 0,
+      "helper_only_exit": 1,
+      "helper_and_only_its_manifest_sha_exit": 0,
+      "helper_byte_changes": 1,
+      "other_manifest_values_unchanged": true
+    },
+    "reproduction_did_not_run_changed_driver": true,
+    "network_cargo_compiler_or_native_tests": false
+  },
+  "interpretation": [
+    "The workflow independently pins the guard bytes in both invocations; the demonstrated paired change targets the client driver and its corresponding manifest hash, not the independently pinned guard.",
+    "The workflow passes the manifest by path without independently pinning its content in the reviewed two guard steps. The real guard therefore rejects the same-size helper-only mutation and accepts the matching helper-plus-manifest mutation.",
+    "A trusted commit identity coupled with a trusted, unchanged checkout separately binds both files. HEAD identity alone does not establish that working-tree bytes remained unchanged after checkout. The evidence demonstrates the guard boundary, not a compromise, malformed commit or observed hosted failure.",
+    "The reproducer was successfully relocated to a path containing spaces and a colon, executed from / with Git absent from PATH, and compared with the frozen output. Its separate provenance-builder records fixed /workspace paths and requires the referenced Git object; that builder is not location-independent.",
+    "The six manifest helper entries and the retained eight files match commit 9b796378395982405baa84188dba463d218506f9; this is historical v17 evidence and does not qualify later workflows.",
+    "Only Python and Git controls were run, locally on Linux with Python 3.12; no hosted workflow, Cargo, Rust compiler, native tests or network were run."
+  ]
+}

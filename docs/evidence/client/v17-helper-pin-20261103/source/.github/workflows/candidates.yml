@@ -1,0 +1,291 @@
+name: candidate qualification
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/candidates.yml
+      - scripts/ci-qualify-client-candidate.py
+      - scripts/ci-qualify-broker-candidate.py
+      - scripts/candidate-command-ownership.py
+      - scripts/ci-verify-client-candidate-helpers.py
+      - tests/ci/test_client_candidate_qualification.py
+      - tests/ci/test_broker_candidate_qualification.py
+      - tests/ci/test_candidate_command_ownership.py
+      - docs/evidence/client/candidate-20261030/**
+      - docs/evidence/broker/candidate-20261030/**
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: candidate-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  qualify:
+    name: ${{ matrix.kind }} ${{ matrix.source_version }} (stable, x86_64)
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - kind: client
+            source_version: v17
+            checkout_sha: ${{ github.sha }}
+          - kind: client
+            source_version: main-comparison-b1
+            checkout_sha: 8f960c3e60609703f23f79b3f368355ed8c057d8
+          - kind: broker
+            source_version: runtime-capacity-v2-r2
+            checkout_sha: ${{ github.sha }}
+          - kind: broker
+            source_version: controller-join-v2-r1
+            checkout_sha: ${{ github.sha }}
+          # Broker v2 is adopted. broker.yml validates its main source;
+          # its frozen candidate spec remains bound to the pre-adoption tree.
+    env:
+      CARGO_BUILD_JOBS: '1'
+      CARGO_INCREMENTAL: '0'
+      CARGO_PROFILE_DEV_DEBUG: '0'
+      CARGO_PROFILE_TEST_DEBUG: '0'
+      CARGO_TERM_COLOR: never
+      PYTHONDONTWRITEBYTECODE: '1'
+      QUALIFICATION_SPEC: docs/evidence/${{ matrix.kind }}/candidate-20261030/${{ matrix.source_version }}/spec.json
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ matrix.checkout_sha }}
+      - name: Verify checkout commit
+        env:
+          EXPECTED_CHECKOUT_SHA: ${{ matrix.checkout_sha }}
+        run: |
+          actual="$(git rev-parse HEAD)"
+          if [[ "$actual" != "$EXPECTED_CHECKOUT_SHA" ]]; then
+            printf '::error::Candidate checkout %s differs from expected %s\n' "$actual" "$EXPECTED_CHECKOUT_SHA"
+            exit 1
+          fi
+          printf 'Trigger SHA: %s\nCheckout SHA: %s\n' "$GITHUB_SHA" "$actual"
+      - name: Verify v17 helper pins and controls
+        if: matrix.kind == 'client' && matrix.source_version == 'v17'
+        run: |
+          python3 -B - <<'PY'
+          import hashlib, os, stat, sys
+          name = 'scripts/ci-verify-client-candidate-helpers.py'
+          directory = os.open('scripts', os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
+          try:
+              fd = os.open('ci-verify-client-candidate-helpers.py', os.O_RDONLY | os.O_NOFOLLOW, dir_fd=directory)
+              with os.fdopen(fd, 'rb') as stream:
+                  info = os.fstat(stream.fileno())
+                  if not stat.S_ISREG(info.st_mode) or info.st_size != 8759:
+                      raise SystemExit('candidate helper guard size or type mismatch')
+                  data = stream.read()
+          finally:
+              os.close(directory)
+          if len(data) != 8759 or hashlib.sha256(data).hexdigest() != 'b5f624d5d7ca13c479703416683c458fffae62f41ba885df0cc4c15a59c3a462':
+              raise SystemExit('candidate helper guard hash mismatch')
+          code = compile(data, name, 'exec')
+          for command in [['--self-test'], ['--checkout', '.', '--manifest', 'docs/evidence/client/candidate-20261030/v17/import-manifest.json']]:
+              sys.argv = [name] + command
+              try:
+                  exec(code, {'__name__': '__main__', '__file__': name})
+              except SystemExit as result:
+                  if result.code not in (None, 0):
+                      raise
+          PY
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - name: Install source inventory prerequisite
+        if: matrix.kind == 'client'
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes ripgrep
+      - name: Check command ownership controls
+        run: python3 -B -m unittest discover -s tests/ci -p 'test_candidate_command_ownership.py' -v
+      - name: Check client qualification guards
+        if: matrix.kind == 'client'
+        run: python3 -B -m unittest discover -s tests/ci -p 'test_client_candidate_qualification.py' -v
+      - name: Check broker qualification guards
+        if: matrix.kind == 'broker'
+        run: python3 -B -m unittest discover -s tests/ci -p 'test_broker_candidate_qualification.py' -v
+      - name: Check local TLS peer prerequisite
+        run: openssl version
+      - name: Recheck v17 helper pins
+        if: matrix.kind == 'client' && matrix.source_version == 'v17'
+        run: |
+          python3 -B - <<'PY'
+          import hashlib, os, stat, sys
+          name = 'scripts/ci-verify-client-candidate-helpers.py'
+          directory = os.open('scripts', os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
+          try:
+              fd = os.open('ci-verify-client-candidate-helpers.py', os.O_RDONLY | os.O_NOFOLLOW, dir_fd=directory)
+              with os.fdopen(fd, 'rb') as stream:
+                  info = os.fstat(stream.fileno())
+                  if not stat.S_ISREG(info.st_mode) or info.st_size != 8759:
+                      raise SystemExit('candidate helper guard size or type mismatch')
+                  data = stream.read()
+          finally:
+              os.close(directory)
+          if len(data) != 8759 or hashlib.sha256(data).hexdigest() != 'b5f624d5d7ca13c479703416683c458fffae62f41ba885df0cc4c15a59c3a462':
+              raise SystemExit('candidate helper guard hash mismatch')
+          code = compile(data, name, 'exec')
+          for command in [['--checkout', '.', '--manifest', 'docs/evidence/client/candidate-20261030/v17/import-manifest.json']]:
+              sys.argv = [name] + command
+              try:
+                  exec(code, {'__name__': '__main__', '__file__': name})
+              except SystemExit as result:
+                  if result.code not in (None, 0):
+                      raise
+          PY
+      - name: Qualify isolated client candidate
+        if: matrix.kind == 'client'
+        run: python3 -B scripts/ci-qualify-client-candidate.py --spec "$QUALIFICATION_SPEC" --output "$RUNNER_TEMP/candidate-qualification"
+      - name: Qualify isolated broker candidate
+        if: matrix.kind == 'broker' && matrix.source_version != 'runtime-capacity-v2-r2' && matrix.source_version != 'controller-join-v2-r1'
+        run: python3 -B scripts/ci-qualify-broker-candidate.py --spec "$QUALIFICATION_SPEC" --output "$RUNNER_TEMP/candidate-qualification"
+      - name: Check and qualify pinned broker runtime capacity
+        if: matrix.kind == 'broker' && matrix.source_version == 'runtime-capacity-v2-r2'
+        run: |
+          python3 -B - <<'PYCODE'
+          import hashlib, os, stat, sys, types, unittest
+          from pathlib import Path
+          root = Path(os.environ['GITHUB_WORKSPACE']).resolve()
+          base = 'docs/evidence/broker/candidate-20261030/runtime-capacity-v2-r2'
+          pins = {
+              'qualify.py': ('9041bbb89a617fa3cee52810157a17bdae0f2e0e33a613fbc8ae52c30e78f7de', 12496),
+              'test_static.py': ('01f8b3e3231235afc56e0eccdeae9bf1cd9c8e4548b94bb85182998170ccf3ce', 11496),
+              'spec.json': ('a467ffefd723efcc32a8b810af41fa7a91f3ce83b4dfdd5485c11b5102df3749', 4162),
+          }
+          directory = os.open(root, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
+          try:
+              for part in base.split('/'):
+                  child = os.open(part, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW, dir_fd=directory)
+                  os.close(directory)
+                  directory = child
+              verified = {}
+              for name, (expected, size) in pins.items():
+                  fd = os.open(name, os.O_RDONLY | os.O_NOFOLLOW, dir_fd=directory)
+                  with os.fdopen(fd, 'rb') as stream:
+                      info = os.fstat(stream.fileno())
+                      if not stat.S_ISREG(info.st_mode) or info.st_size != size:
+                          raise SystemExit('candidate file size or type mismatch: '+name)
+                      data = stream.read(size+1)
+                  if len(data) != size or hashlib.sha256(data).hexdigest() != expected:
+                      raise SystemExit('candidate file hash mismatch: '+name)
+                  verified[name] = data
+          finally:
+              os.close(directory)
+          def run_static(data, path, expected, stream=None):
+              name = 'verified_capacity_static_controls'
+              sentinel = object()
+              previous = sys.modules.get(name, sentinel)
+              module = types.ModuleType(name)
+              module.__file__ = path
+              sys.modules[name] = module
+              try:
+                  exec(compile(data, path, 'exec'), module.__dict__)
+                  suite = unittest.defaultTestLoader.loadTestsFromModule(module)
+                  if suite.countTestCases() != expected:
+                      raise SystemExit('unexpected static test count')
+                  result = unittest.TextTestRunner(verbosity=2, stream=stream).run(suite)
+                  if not result.wasSuccessful() or result.testsRun != expected or result.skipped or result.expectedFailures:
+                      raise SystemExit('static qualification controls failed or skipped')
+              finally:
+                  if previous is sentinel:
+                      del sys.modules[name]
+                  else:
+                      sys.modules[name] = previous
+          run_static(verified['test_static.py'], str(root/base/'test_static.py'), 6)
+          path = str(root/base/'qualify.py')
+          sys.argv = [path, '--checkout', str(root), '--output', os.environ['RUNNER_TEMP']+'/candidate-qualification']
+          try:
+              exec(compile(verified['qualify.py'], path, 'exec'), {'__name__':'__main__', '__file__':path})
+          except SystemExit as result:
+              if result.code not in (None, 0):
+                  raise
+          PYCODE
+      - name: Check and qualify pinned broker controller join
+        if: matrix.kind == 'broker' && matrix.source_version == 'controller-join-v2-r1'
+        run: |
+          python3 -B - <<'PYJOIN'
+          import hashlib, os, stat, sys, types, unittest
+          from pathlib import Path
+          root = Path(os.environ['GITHUB_WORKSPACE']).resolve()
+          base = 'docs/evidence/broker/candidate-20261030/controller-join-v2-r1'
+          pins = {
+              'qualify.py': ('32cf64d1a3d718714ee23d6d1e501aa0d20240fc8817d37c160897f4e69deef2', 19066),
+              'test_static.py': ('487ac493339cd3b4d35c6d0081d8a9873df5792bb5282b6bc20edbb2cf1a27fc', 26347),
+              'spec.json': ('232f4cae75d7ba6efe0f69058ac787df089bdbc44b4daee605ef4bd5a9f6df4b', 7613),
+          }
+          directory = os.open(root, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
+          try:
+              for part in base.split('/'):
+                  child = os.open(part, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW, dir_fd=directory)
+                  os.close(directory)
+                  directory = child
+              verified = {}
+              for name, (expected, size) in pins.items():
+                  fd = os.open(name, os.O_RDONLY | os.O_NOFOLLOW, dir_fd=directory)
+                  with os.fdopen(fd, 'rb') as stream:
+                      info = os.fstat(stream.fileno())
+                      if not stat.S_ISREG(info.st_mode) or info.st_size != size:
+                          raise SystemExit('candidate file size or type mismatch: '+name)
+                      data = stream.read(size+1)
+                  if len(data) != size or hashlib.sha256(data).hexdigest() != expected:
+                      raise SystemExit('candidate file hash mismatch: '+name)
+                  verified[name] = data
+          finally:
+              os.close(directory)
+          def run_static(data, path, expected, stream=None):
+              name = 'verified_join_static_controls'
+              sentinel = object()
+              previous = sys.modules.get(name, sentinel)
+              module = types.ModuleType(name)
+              module.__file__ = path
+              sys.modules[name] = module
+              try:
+                  exec(compile(data, path, 'exec'), module.__dict__)
+                  suite = unittest.defaultTestLoader.loadTestsFromModule(module)
+                  if suite.countTestCases() != expected:
+                      raise SystemExit('unexpected static test count')
+                  result = unittest.TextTestRunner(verbosity=2, stream=stream).run(suite)
+                  if not result.wasSuccessful() or result.testsRun != expected or result.skipped or result.expectedFailures:
+                      raise SystemExit('static qualification controls failed or skipped')
+              finally:
+                  if previous is sentinel:
+                      del sys.modules[name]
+                  else:
+                      sys.modules[name] = previous
+          run_static(verified['test_static.py'], str(root/base/'test_static.py'), 11)
+          path = str(root/base/'qualify.py')
+          sys.argv = [path, '--checkout', str(root), '--output', os.environ['RUNNER_TEMP']+'/candidate-qualification']
+          try:
+              exec(compile(verified['qualify.py'], path, 'exec'), {'__name__':'__main__', '__file__':path})
+          except SystemExit as result:
+              if result.code not in (None, 0):
+                  raise
+          PYJOIN
+      - name: Retain attempts and failures
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: candidate-${{ matrix.kind }}-${{ matrix.source_version }}-trigger-${{ github.sha }}-checkout-${{ matrix.checkout_sha }}-${{ github.run_id }}
+          path: |
+            ${{ runner.temp }}/candidate-qualification
+            !${{ runner.temp }}/candidate-qualification/source/**
+          if-no-files-found: error
+          retention-days: 30
+      - name: Retain qualification reports
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: candidate-reports-${{ matrix.kind }}-${{ matrix.source_version }}-trigger-${{ github.sha }}-checkout-${{ matrix.checkout_sha }}-${{ github.run_id }}
+          path: |
+            ${{ runner.temp }}/candidate-qualification/*.json
+            ${{ runner.temp }}/candidate-qualification/*.log
+            ${{ runner.temp }}/candidate-qualification/assets/*.py
+          if-no-files-found: error
+          retention-days: 30

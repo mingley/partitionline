@@ -1,0 +1,21 @@
+{
+  "after_sha256": {
+    "src/net.rs": "cd9a4a24a9ae80c77372a30d9dc9711aa8a87e0f06410ce6c3213f9d30cd7cf1",
+    "src/net/test_gated_tcp.rs": "874eaa9cad6904291dcfc169624df8354a3201ef716c54e5772b10d88656b46c",
+    "src/producer/prepare_tests.rs": "ee6f3e915b37b034eede00a5d6468a33d296e22e765bca458318fb71e92d058c"
+  },
+  "fixed_catalog_sha256": "15da704200222b0b3b8de7d74274b9cf1fb3933a9339112c09b3467aa07868ea",
+  "patch_sha256": "edd7debcc4384c2da241489d9da12c0f057454d99734180f15ecc6a4e4d4b7e4",
+  "prior_v1_archive_sha256": "261642d8f31a534edfc6a392a0a363c727b9682acbca78c21629ce9905fcecc6",
+  "prior_v1_patch_sha256": "dae4713352a19292bd7f2d4fbaad9fb6c37cf97401ec69b4e75076e20aaa3a83",
+  "prior_v2_archive_sha256": "3dd6c4bf171b155a51a731ed511d5deb800ddb8c49dbdf4480190e9e8d8c897e",
+  "prior_v2_patch_sha256": "f6191e975905f62ba609e4ece17cdf2de604c52112c491cb9a41ffd26363171a",
+  "scope": "test-only source patch; no compiled/native execution or performance claim",
+  "source_sha256": {
+    "src/net.rs": "f73aa7a04d3e2571f347f6a9245cf6f4df4ab218f653e71ca824e86e7893907c",
+    "src/producer.rs": "38add9415de68efd3ede5a27ce3c182adea92cbd94cd8c77e07b74774d30f6d1",
+    "src/producer/prepare.rs": "51bf8d6839d1531217c6a79c8986bb4fe547ac35c11d9bd4b0315892f1b5f08a",
+    "src/producer/prepare_tests.rs": "c6696efaa6edbee311d508a391603d5332d52ed58c7ac6a82d0385add1f35712",
+    "src/protocol/api.rs": "07474d56731fdb9acf9c1b382ea29253fdf569548721119a60f233745e163ca9"
+  }
+}

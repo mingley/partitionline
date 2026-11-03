@@ -1,0 +1,455 @@
+{
+  "scope": "Decoded GitHub job console projection and connector metadata only; compact artifact raw contents were not accessible.",
+  "commit": "2645e96ce693fcdaa9d8c56f6f0c910934fd19a2",
+  "run_id": 41593203672,
+  "job_id": 125777847165,
+  "job_conclusion": "failure",
+  "spec_sha256": "2db3a3722c46ad9fada081841d26f14d43bf76f538766af93fc6a315ad83305c",
+  "driver_sha256": "f567f7456c92ce1f39e6d7b4476f3cc3300bfef9c92dd036f8cc3ef0a5514608",
+  "workflow_sha256": "c738e750218f4d0b64e3b8b8ef20b6f557d2cf09a337c35b5c10a9a67841c55e",
+  "decoded_reencoded_job_log": {
+    "file": "connector-decoded-job.log",
+    "bytes": 144349,
+    "sha256": "f537451648a540c263d7310705bd23ee6da6152a510f54e44c245fe80af0f480",
+    "note": "UTF-8 re-encoding of connector-decoded text, not original GitHub raw compressed log bytes"
+  },
+  "connector_metadata_sha256": "729b53dd6b13e79f94534dbbe391b8a4008297daa45234a74f6412ed7dad5b6a",
+  "artifact": {
+    "id": 13211954727,
+    "name": "candidate-reports-client-v17-trigger-2645e96ce693fcdaa9d8c56f6f0c910934fd19a2-checkout-2645e96ce693fcdaa9d8c56f6f0c910934fd19a2-41593203672",
+    "size_bytes": 15531327,
+    "github_reported_digest": "sha256:1464d715f3237a674f9e0986a17ab4fd7305cb4df9df3c496ecb39b3ae23a953",
+    "downloaded_bytes_verified": false,
+    "status": "Connector returned a File Service reference; host download was unavailable. No raw artifact content was inspected."
+  },
+  "format_clippy_and_build_exit_codes": {
+    "format": 0,
+    "clippy": 0,
+    "default-build": 0,
+    "all-features-build": 0
+  },
+  "profiles": {
+    "default": {
+      "totals": {
+        "passed": 2432,
+        "failed": 16,
+        "ignored": 2
+      },
+      "targets": {
+        "partitionline": {
+          "exit": 0,
+          "passed": 2293,
+          "failed": 0,
+          "ignored": 0,
+          "failure_names": [],
+          "stop_reason": null
+        },
+        "group_coordinator_startup": {
+          "exit": 0,
+          "passed": 14,
+          "failed": 0,
+          "ignored": 0,
+          "failure_names": [],
+          "stop_reason": null
+        },
+        "group_stack": {
+          "exit": 0,
+          "passed": 1,
+          "failed": 0,
+          "ignored": 0,
+          "failure_names": [],
+          "stop_reason": null
+        },
+        "produce_cancel": {
+          "exit": 0,
+          "passed": 23,
+          "failed": 0,
+          "ignored": 0,
+          "failure_names": [],
+          "stop_reason": null
+        },
+        "buffer_ownership": {
+          "exit": 0,
+          "passed": 12,
+          "failed": 0,
+          "ignored": 0,
+          "failure_names": [],
+          "stop_reason": null
+        },
+        "mock_produce": {
+          "exit": 101,
+          "passed": 32,
+          "failed": 15,
+          "ignored": 0,
+          "failure_names": [
+            "commit_reuses_a_produce_handshake_for_the_moved_coordinator",
+            "commit_reuses_bootstrap_when_the_coordinator_returns",
+            "epoch_bump_reuses_a_produce_handshake",
+            "multi_bootstrap_commit_reuses_known_coordinator_handshakes",
+            "multi_bootstrap_send_offsets_reuses_known_handshakes",
+            "multi_bootstrap_transaction_reuses_the_other_bootstrap_handshake",
+            "produce_reuses_a_finished_bootstrap_handshake",
+            "produce_reuses_bootstrap_api_versions",
+            "produce_reuses_the_transaction_coordinator_handshake",
+            "send_all_redials_leaders_while_refreshing_metadata",
+            "send_offsets_negotiates_a_new_group_coordinator",
+            "send_offsets_repeats_a_remote_coordinator_without_another_handshake",
+            "send_offsets_reuses_bootstrap_api_versions",
+            "transactional_rediscover_skips_a_second_bootstrap_handshake",
+            "transactional_startup_skips_a_second_bootstrap_handshake"
+          ],
+          "stop_reason": null
+        },
+        "producer_initialization": {
+          "exit": 0,
+          "passed": 8,
+          "failed": 0,
+          "ignored": 0,
+          "failure_names": [],
+          "stop_reason": null
+        },
+        "producer_retained_backing": {
+          "exit": 101,
+          "passed": 8,
+          "failed": 1,
+          "ignored": 1,
+          "failure_names": [
+            "cancelled_channel_admission_releases_only_the_unenqueued_reservation"
+          ],
+          "stop_reason": null
+        },
+        "sticky_partitioner": {
+          "exit": 0,
+          "passed": 29,
+          "failed": 0,
+          "ignored": 0,
+          "failure_names": [],
+          "stop_reason": null
+        },
+        "init_producer_id_v6": {
+          "exit": 0,
+          "passed": 12,
+          "failed": 0,
+          "ignored": 1,
+          "failure_names": [],
+          "stop_reason": null
+        }
+      }
+    },
+    "all-features": {
+      "totals": {
+        "passed": 2432,
+        "failed": 16,
+        "ignored": 2
+      },
+      "targets": {
+        "partitionline": {
+          "exit": 0,
+          "passed": 2293,
+          "failed": 0,
+          "ignored": 0,
+          "failure_names": [],
+          "stop_reason": null
+        },
+        "group_coordinator_startup": {
+          "exit": 0,
+          "passed": 14,
+          "failed": 0,
+          "ignored": 0,
+          "failure_names": [],
+          "stop_reason": null
+        },
+        "group_stack": {
+          "exit": 0,
+          "passed": 1,
+          "failed": 0,
+          "ignored": 0,
+          "failure_names": [],
+          "stop_reason": null
+        },
+        "produce_cancel": {
+          "exit": 0,
+          "passed": 23,
+          "failed": 0,
+          "ignored": 0,
+          "failure_names": [],
+          "stop_reason": null
+        },
+        "buffer_ownership": {
+          "exit": 0,
+          "passed": 12,
+          "failed": 0,
+          "ignored": 0,
+          "failure_names": [],
+          "stop_reason": null
+        },
+        "mock_produce": {
+          "exit": 101,
+          "passed": 32,
+          "failed": 15,
+          "ignored": 0,
+          "failure_names": [
+            "commit_reuses_a_produce_handshake_for_the_moved_coordinator",
+            "commit_reuses_bootstrap_when_the_coordinator_returns",
+            "epoch_bump_reuses_a_produce_handshake",
+            "multi_bootstrap_commit_reuses_known_coordinator_handshakes",
+            "multi_bootstrap_send_offsets_reuses_known_handshakes",
+            "multi_bootstrap_transaction_reuses_the_other_bootstrap_handshake",
+            "produce_reuses_a_finished_bootstrap_handshake",
+            "produce_reuses_bootstrap_api_versions",
+            "produce_reuses_the_transaction_coordinator_handshake",
+            "send_all_redials_leaders_while_refreshing_metadata",
+            "send_offsets_negotiates_a_new_group_coordinator",
+            "send_offsets_repeats_a_remote_coordinator_without_another_handshake",
+            "send_offsets_reuses_bootstrap_api_versions",
+            "transactional_rediscover_skips_a_second_bootstrap_handshake",
+            "transactional_startup_skips_a_second_bootstrap_handshake"
+          ],
+          "stop_reason": null
+        },
+        "producer_initialization": {
+          "exit": 0,
+          "passed": 8,
+          "failed": 0,
+          "ignored": 0,
+          "failure_names": [],
+          "stop_reason": null
+        },
+        "producer_retained_backing": {
+          "exit": 101,
+          "passed": 8,
+          "failed": 1,
+          "ignored": 1,
+          "failure_names": [
+            "cancelled_channel_admission_releases_only_the_unenqueued_reservation"
+          ],
+          "stop_reason": null
+        },
+        "sticky_partitioner": {
+          "exit": 0,
+          "passed": 29,
+          "failed": 0,
+          "ignored": 0,
+          "failure_names": [],
+          "stop_reason": null
+        },
+        "init_producer_id_v6": {
+          "exit": 0,
+          "passed": 12,
+          "failed": 0,
+          "ignored": 1,
+          "failure_names": [],
+          "stop_reason": null
+        }
+      }
+    }
+  },
+  "retained_backing": {
+    "console_projection": "Error: Timeout in both profiles; no optional numeric phase line projected",
+    "raw_timeout_logs_inspected": false,
+    "timeout_phase": "unknown",
+    "note": "Absence from a bounded projection does not establish absence from raw logs or identify which timeout fired."
+  },
+  "baseline": {
+    "expectation_counts": {
+      "pass": 5,
+      "fail": 16,
+      "observe": 2
+    },
+    "projected_all_expectations_matched": true,
+    "cases": [
+      {
+        "case": 1,
+        "test": "producer::tests::cancelled_pending_drain_retains_accepted_records_until_worker_cleanup",
+        "expected": "pass",
+        "exit": 0,
+        "result": "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 2253 filtered out; finished in 0.03s",
+        "failure_regex_present": false
+      },
+      {
+        "case": 2,
+        "test": "producer::tests::cancelled_pending_deadline_scan_retains_the_detached_prefix_until_worker_cleanup",
+        "expected": "pass",
+        "exit": 0,
+        "result": "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 2253 filtered out; finished in 0.03s",
+        "failure_regex_present": false
+      },
+      {
+        "case": 3,
+        "test": "classic_join_recovers_after_repeated_typed_coordinator_responses",
+        "expected": "fail",
+        "exit": 101,
+        "result": "test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 13 filtered out; finished in 0.00s",
+        "failure_regex_present": false
+      },
+      {
+        "case": 4,
+        "test": "classic_join_retains_a_required_member_id_across_coordinator_responses",
+        "expected": "fail",
+        "exit": 101,
+        "result": "test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 13 filtered out; finished in 0.00s",
+        "failure_regex_present": false
+      },
+      {
+        "case": 5,
+        "test": "classic_join_returns_terminal_response_after_transient_coordinator_errors",
+        "expected": "fail",
+        "exit": 101,
+        "result": "test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 13 filtered out; finished in 0.00s",
+        "failure_regex_present": false
+      },
+      {
+        "case": 6,
+        "test": "persistent_join_responses_stop_at_the_original_deadline_with_backoff",
+        "expected": "fail",
+        "exit": 101,
+        "result": "test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 13 filtered out; finished in 0.00s",
+        "failure_regex_present": false
+      },
+      {
+        "case": 7,
+        "test": "cancelling_a_join_after_written_coordinator_responses_stops_new_requests",
+        "expected": "observe",
+        "exit": 101,
+        "result": "test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 13 filtered out; finished in 0.00s",
+        "failure_regex_present": false
+      },
+      {
+        "case": 8,
+        "test": "classic_join_recovers_when_rediscovery_itself_is_still_loading",
+        "expected": "fail",
+        "exit": 101,
+        "result": "test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 13 filtered out; finished in 0.03s",
+        "failure_regex_present": false
+      },
+      {
+        "case": 9,
+        "test": "classic_join_returns_terminal_rediscovery_errors_without_another_join",
+        "expected": "pass",
+        "exit": 0,
+        "result": "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 13 filtered out; finished in 0.05s",
+        "failure_regex_present": false
+      },
+      {
+        "case": 10,
+        "test": "classic_join_does_not_retry_terminal_authorization_or_fencing_responses",
+        "expected": "pass",
+        "exit": 0,
+        "result": "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 13 filtered out; finished in 0.01s",
+        "failure_regex_present": false
+      },
+      {
+        "case": 11,
+        "test": "group::tests::delayed_first_poll_does_not_restart_the_coordinator_deadline",
+        "expected": "fail",
+        "exit": 101,
+        "result": "test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 2253 filtered out; finished in 0.06s",
+        "failure_regex_present": false
+      },
+      {
+        "case": 12,
+        "test": "retry_refreshes_waiting_topics_together",
+        "expected": "fail",
+        "exit": 101,
+        "result": "test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 45 filtered out; finished in 0.11s",
+        "failure_regex_present": false
+      },
+      {
+        "case": 13,
+        "test": "public_group_lifecycle_fits_the_standard_two_mib_stack",
+        "expected": "observe",
+        "exit": 0,
+        "result": "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s",
+        "failure_regex_present": false
+      },
+      {
+        "case": 14,
+        "test": "cluster::tests::declared_topic_count_does_not_allocate_duplicate_tracking",
+        "expected": "fail",
+        "exit": 101,
+        "result": "test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 2253 filtered out; finished in 0.00s",
+        "failure_regex_present": false
+      },
+      {
+        "case": 15,
+        "test": "cluster::tests::topic_duplicate_tracking_keeps_names_across_the_heap_transition",
+        "expected": "fail",
+        "exit": 101,
+        "result": "test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 2253 filtered out; finished in 0.00s",
+        "failure_regex_present": false
+      },
+      {
+        "case": 16,
+        "test": "cluster::tests::unchanged_metadata_partitions_yield_without_discarding_the_cache",
+        "expected": "fail",
+        "exit": 101,
+        "result": "test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 2253 filtered out; finished in 0.00s",
+        "failure_regex_present": false
+      },
+      {
+        "case": 17,
+        "test": "cluster::tests::unchanged_metadata_partition_budget_spans_multiple_topics",
+        "expected": "fail",
+        "exit": 101,
+        "result": "test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 2253 filtered out; finished in 0.00s",
+        "failure_regex_present": false
+      },
+      {
+        "case": 18,
+        "test": "consumer::tests::cancelling_assigned_id_retention_keeps_all_still_assigned_identities",
+        "expected": "fail",
+        "exit": 101,
+        "result": "test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 2253 filtered out; finished in 0.02s",
+        "failure_regex_present": false
+      },
+      {
+        "case": 19,
+        "test": "consumer::tests::retained_assigned_ids_keep_their_existing_storage",
+        "expected": "fail",
+        "exit": 101,
+        "result": "test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 2253 filtered out; finished in 0.00s",
+        "failure_regex_present": false
+      },
+      {
+        "case": 20,
+        "test": "consumer::tests::cancelled_assigned_id_removals_can_resume_without_losing_kept_ids",
+        "expected": "pass",
+        "exit": 0,
+        "result": "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 2253 filtered out; finished in 0.03s",
+        "failure_regex_present": false
+      },
+      {
+        "case": 21,
+        "test": "consumer::tests::retaining_many_empty_assigned_id_topics_yields",
+        "expected": "fail",
+        "exit": 101,
+        "result": "test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 2253 filtered out; finished in 0.02s",
+        "failure_regex_present": false
+      },
+      {
+        "case": 22,
+        "test": "producer::prepare_tests::cancelled_fire_grouping_retains_actual_accepted_records",
+        "expected": "fail",
+        "exit": 101,
+        "result": "test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 2253 filtered out; finished in 0.02s",
+        "failure_regex_present": false
+      },
+      {
+        "case": 23,
+        "test": "cancelling_a_join_after_two_errors_and_third_request_stops_new_requests",
+        "expected": "fail",
+        "exit": 101,
+        "result": "test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 13 filtered out; finished in 0.00s",
+        "failure_regex_present": false
+      }
+    ],
+    "case23_caveat": "The expected-failure matcher only checks one failed test and exit 101 because no failure regex is configured. Raw case-23 log is unavailable, so whether the third-request barrier was reached is unknown. A prior v16 raw case failed earlier with broker error 14; do not infer the same cause in this run."
+  },
+  "resource_scope": {
+    "source_driver_settings": "RUST_MIN_STACK=8 MiB; cargo jobs 1; incremental off; test threads 1; core dumps disabled; 1.5 GiB disk stop floor; full-target and compile timeouts 1200 seconds; baseline test timeout 120 seconds.",
+    "observed_full_target_stop_reasons": "all null in console projections",
+    "oom_and_disk_samples": "raw command receipts unavailable; absence of a projected stop is not proof of no resource influence",
+    "inference": "These settings and shared hosted conditions do not qualify default-stack safety, production behavior or benchmark rankings."
+  },
+  "no_new_native_tests_or_root_edits": true
+}

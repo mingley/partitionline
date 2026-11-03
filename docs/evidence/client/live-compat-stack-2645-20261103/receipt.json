@@ -1,0 +1,136 @@
+{
+  "scope": "Source-only live compatibility stack investigation revision 3 at exact 2645 commit; no qualified fix",
+  "prior_v1_archive_sha256": "026dfbc60f86e72eec4bba92fb7101c2f0e4f34de0a0048eaa60cd032947c4c8",
+  "prior_v2_archive_sha256": "c398b06339b746acd387862ff883306c39f2e106869ea6cc18d7da0009470955",
+  "source_commit": "2645e96ce693fcdaa9d8c56f6f0c910934fd19a2",
+  "source_pins": {
+    "src/group.rs": "ce00d2e7b049298b6c8111b7123f39859c9f2f6f3d89cbc51dc6939962d868ab",
+    "tests/broker_compatibility.rs": "5e289d3af378a44c162e3142468cbf58afe03955f6204a67825b0776f424cad0",
+    "tests/common/mod.rs": "23188e64380ead0d29b99eecff346c297dcdc43be9acd65987711d5c2962c497",
+    "src/consumer.rs": "3dc409b86be0aeafed632d7d3e4a5c02b32aca07171877613f7da096f9858563",
+    "src/net.rs": "df239f20fdc4e3240defa78e632faa50c09dc69876478581e061d5c68722bb38",
+    "Cargo.toml": "98b437d0dab4d8289a9fd097f9f7a8c4b6e227c505584eb1ea22e0c8bc28f389",
+    "Cargo.lock": "bdc37c48feb0d7a17a1b08e70c5301ec30b9a90e64c93adaf28aef6b6f9f46bc",
+    "scripts/ci-broker-compatibility.sh": "5802854a8c31993bd69679d0cdd33dc4ef921a60c5a7e7c4be699744d9c2f2ac",
+    "scripts/ci-broker-smoke.sh": "344c083e94c7dffc46d48a12e32c729c5685f93af22fd4f1cab6bd2179cd0f76"
+  },
+  "observed_jobs": [
+    {
+      "job_id": 125774457011,
+      "kafka": "4.3.1",
+      "decoded_reencoded_log_sha256": "ad5e8ddaaa8f37bcc98d01b5cf6c9f8e7d1d6e210db22c43bf6c4e4bfc9568fe"
+    },
+    {
+      "job_id": 125774457154,
+      "kafka": "4.2.1",
+      "decoded_reencoded_log_sha256": "6b538cca30d661b7e9c8dcc80a70cc95ca023c150e4e29033e959306ec5eb2d4"
+    },
+    {
+      "job_id": 125774457229,
+      "kafka": "4.1.2",
+      "decoded_reencoded_log_sha256": "521f7f6bb9a6280d6fc09c65c6f7c254097d1a24b340e886511693edd43350f9"
+    }
+  ],
+  "observed": "All three logs print classic join before live_compatibility_required stack overflow and SIGABRT; no stack trace or last RPC is reported.",
+  "experiments": {
+    "caller_box": "test-only group-loop future box; not a production fix",
+    "library_box": "private rejoin_once future box; one added allocation per rejoin attempt; unmeasured",
+    "future_sizes": "ignored unpolled future state-size diagnostic in an explicitly 8 MiB diagnostic thread; exact invocation documented",
+    "phase_trace": "instrumented library stderr checkpoints; not the original binary",
+    "prior_mock": "previous two-MiB mock lifecycle test, which passed on other v16 source, not current live reproduction",
+    "elf_probe": "raw selected prologues and symbol evidence only; not run here"
+  },
+  "validation": [
+    "Commit source pins and connector-decoded log markers verified.",
+    "Experiment/diagnostic sparse patches roundtrip and compose in an isolated directory.",
+    "Source-only rustfmt checks pass, including skip_children for isolated group.rs.",
+    "Pure-Python ELF header controls accept little-endian x86_64 executables and reject invalid, truncated, non-executable and other-architecture headers.",
+    "Pure-Python synthetic changed-hash controls reject mutation across header validation and inspection; fake binutils only.",
+    "The original 150-second, 20-second and three-second timeout text is unchanged in both experiments."
+  ],
+  "limitations": [
+    "No Cargo, compiler, native tests, new stack measurements, Kafka runs or benchmarks.",
+    "No exact current compiled call frame, live stack allocation size, or proof of which operation overflowed.",
+    "All expected experiment results remain unobserved; phase tracing and future-size probes perturb codegen.",
+    "The 8 MiB test thread is diagnostic only and is not an accepted replacement for a normal-stack gate.",
+    "ELF header and inspections use separate opens; matching hashes cannot exclude replace-and-restore races. Use a private quiescent snapshot.",
+    "No production fix, release readiness or fastest-performance qualification is claimed."
+  ],
+  "files": {
+    "README.md": {
+      "sha256": "b9630f30b85b88c4c10e9df13860e8b5276e7497f9987d9439f881aa4ed3ed53",
+      "bytes": 7598
+    },
+    "caller-box-experiment.patch": {
+      "sha256": "3f2789b159f8927e6d1bd30881bb3f2d94c771483e4f59dcf0e9addbfd0ef2c5",
+      "bytes": 585
+    },
+    "connector-decoded-job-125774457011.log": {
+      "sha256": "ad5e8ddaaa8f37bcc98d01b5cf6c9f8e7d1d6e210db22c43bf6c4e4bfc9568fe",
+      "bytes": 55398
+    },
+    "connector-decoded-job-125774457154.log": {
+      "sha256": "6b538cca30d661b7e9c8dcc80a70cc95ca023c150e4e29033e959306ec5eb2d4",
+      "bytes": 55324
+    },
+    "connector-decoded-job-125774457229.log": {
+      "sha256": "521f7f6bb9a6280d6fc09c65c6f7c254097d1a24b340e886511693edd43350f9",
+      "bytes": 55461
+    },
+    "future-size-diagnostic.patch": {
+      "sha256": "0157eb425faf4e889cfc77945d44c7044f652948d068ee5fe498739f3733aa7a",
+      "bytes": 2538
+    },
+    "inspect-elf.py": {
+      "sha256": "e13d99b3a9ea73d16c5cd05bc2cb7015cc16a43d7f3c0d189d9de4b9672ad42a",
+      "bytes": 4078
+    },
+    "library-box-experiment.patch": {
+      "sha256": "05e3a3da42b1a93d374fdc96b60740a3e48a30942267a2bbbfe99a6abfac0904",
+      "bytes": 536
+    },
+    "make-receipt.py": {
+      "sha256": "7780abbaac9e05bccab74614dcc7a1746fca833db0dfe9877620c79139bb7312",
+      "bytes": 4201
+    },
+    "phase-trace-diagnostic.patch": {
+      "sha256": "be731d5ae65140e96d25b1419a7903f3320dee173d0a07b53ed352a2b3888223",
+      "bytes": 3018
+    },
+    "prior-elf-frame-receipt.json": {
+      "sha256": "d64a30c78bf482617ffd2a9711fbdc1d12334864823fda1579069902e94904be",
+      "bytes": 2113
+    },
+    "prior-two-mib-mock-control.patch": {
+      "sha256": "40e71f2acd99baf3c91e384d4ea4b49147d4cd9739942c6b5a94935da2fb624a",
+      "bytes": 3562
+    },
+    "prior-v16-baseline-inputs.json": {
+      "sha256": "66cbda09f9dbb796cc447c2212b616454bee8bdf5d9bba7a61a9b7e96510934f",
+      "bytes": 226713
+    },
+    "prior-v16-fixed-inputs.json": {
+      "sha256": "15da704200222b0b3b8de7d74274b9cf1fb3933a9339112c09b3467aa07868ea",
+      "bytes": 226908
+    },
+    "prior-v16-observed-results.json": {
+      "sha256": "9a33dc7b76df087e98910b30972ba0d0184036dce932fd0f68fc3b363af0303b",
+      "bytes": 18922
+    },
+    "verify-source.py": {
+      "sha256": "2321f0bd49b38f8813f7a0ec8fe5879c06835197494a2f01bb61200e3dc85918",
+      "bytes": 8582
+    }
+  },
+  "variant_sources": {
+    "base/src/group.rs": "ce00d2e7b049298b6c8111b7123f39859c9f2f6f3d89cbc51dc6939962d868ab",
+    "base/tests/broker_compatibility.rs": "5e289d3af378a44c162e3142468cbf58afe03955f6204a67825b0776f424cad0",
+    "caller-box/src/group.rs": "ce00d2e7b049298b6c8111b7123f39859c9f2f6f3d89cbc51dc6939962d868ab",
+    "caller-box/tests/broker_compatibility.rs": "26c75e01453ee97da03698861c77ab73e98576af2c4a92cf7f2af5dc9d803cd7",
+    "diagnostic/src/group.rs": "ce00d2e7b049298b6c8111b7123f39859c9f2f6f3d89cbc51dc6939962d868ab",
+    "diagnostic/tests/broker_compatibility.rs": "a1b015edc0b388edfffafd34de565b6d4809fb6fabde5c1804d64e29932ed050",
+    "library-box/src/group.rs": "5a9fcfe785f771d1565eb4c45c2b01252931bdceab4ada59d08ea037bc2eaab8",
+    "library-box/tests/broker_compatibility.rs": "5e289d3af378a44c162e3142468cbf58afe03955f6204a67825b0776f424cad0",
+    "trace/src/group.rs": "a35835cb2f1648f46e9f8700e77836fc64cfe2931684f13e37108cacd7ff5b0b"
+  }
+}

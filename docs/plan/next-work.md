@@ -79,8 +79,10 @@ found that its configured queue budget does not cover both retained vectors.
 Define and test their combined capacity and reply-lifetime accounting.
 The source-reviewed [controller shutdown candidate](../evidence/broker/controller-shutdown-20261103/README.md)
 now has a [hosted qualification capsule](../evidence/broker/candidate-20261030/controller-join-v2-r1/README.md).
-Its synthetic baseline and fixed controls have not run; real controller, WAL
-and transport coverage is also needed before adoption.
+Its [hosted job](https://github.com/mingley/partitionline/actions/runs/41594361732/job/125788111325)
+failed the broker inventory and inventory-negative-control gates. The retained
+results need inspection before drawing conclusions about its synthetic controls;
+real controller, WAL and transport coverage also remains open.
 
 ## Correctness priorities
 
@@ -121,7 +123,9 @@ and transport coverage is also needed before adoption.
    The current CI also exposes seven socket lifecycle failures. The pending
    repair retires idle sockets before attempting replacement and makes the
    completed-dial tests wait for real ApiVersions and authentication. A separate
-   live compatibility test aborts with stack overflow. Classic JoinGroup can
+   live compatibility test aborts with stack overflow. The [stack investigation](../evidence/client/live-compat-stack-2645-20261103/README.md)
+   records the available phase evidence and unrun diagnostic experiments;
+   the overflowing frame and a fix are not established. Classic JoinGroup can
    return a transient coordinator error after only one rediscovery retry;
    its bounded retry loop still needs controls.
 
@@ -238,10 +242,22 @@ failure even though it exited on broker error 14 before the intended
 cancellation barrier. That result does not establish the barrier behavior.
 The [phase-diagnostic follow-up](../evidence/client/retained-phase-followup-20261103/README.md)
 is staged in the [v17 candidate](../evidence/client/candidate-20261030/v17/README.md)
-with unchanged Rust tests and timing; its hosted result is pending. V17 retains
+with unchanged Rust tests and timing. Its [hosted run](../evidence/client/candidate-v17-native-2645-20261103/README.md)
+failed the same 15 Mock Produce tests and retained-backing timeout in each
+profile; both libraries passed. The console still did not identify the
+timeout phase, and the raw compact artifact could not be inspected. V17 retains
 the broad case 23 matcher, which needs a phase-specific witness and failure
-provenance before the baseline result can qualify that control. The
-[v14 run](../evidence/client/candidate-v14-job-20261103/REPORT.md)
+provenance before the baseline result can qualify that control.
+The [v17 helper guard](../evidence/client/v17-helper-pin-20261103/README.md)
+checks helper hashes against its import manifest, but does not independently
+pin that manifest: a paired helper and manifest edit passes the guard. The
+triggering Git commit remains the provenance boundary. A successor must pin
+the manifest and specification in the workflow and test paired changes.
+A source-only successor draft adds those pins and a case 23 witness, but its
+final independent integration audit was stopped by an automatic security
+review that flagged the content as a possible cybersecurity risk. The draft
+has not been applied or run.
+The [v14 run](../evidence/client/candidate-v14-job-20261103/REPORT.md)
 passed format, strict Clippy and both builds, but each profile failed the same
 15 Mock Produce tests, one pending-deadline cancellation test and one
 retained-backing test. The job log does not contain their panic diagnostics.
@@ -253,6 +269,10 @@ it separately. V14's panic bodies were unavailable; v16 reported handshake
 counts and latency assertions. Preserve socket-specific versions and
 authentication when designing reuse. A reviewed [live-socket design](../evidence/client/live-socket-reuse-20261103/README.md)
 sets out ownership and expiry controls; it is unimplemented and unmeasured.
+Proposed [Worker write controls](../evidence/client/producer-worker-wire-controls-20261103/README.md)
+would exercise partial and fully written frames on a gated TCP connection. They are
+source-reviewed but uncompiled and unrun, and do not prove socket transfer or
+retirement is safe.
 The separate [main-source SASL expiry review](../evidence/client/sasl-expiry-boundary-20261103/README.md)
 found that raw Produce writes bypass the connection expiry check. A fix must
 preserve ownership and sequence state across earlier unanswered requests and

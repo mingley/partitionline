@@ -1,0 +1,140 @@
+{
+  "source_root": "/workspace/work/client-v17-phase-v2-20261103",
+  "scope": "V16 source and controls with a reviewed external timeout-diagnostic projection and v17 helper binding.",
+  "files": {
+    "docs/evidence/client/candidate-20261030/v17/README.md": {
+      "sha256": "fe60286a4ccd2c111301eb91734c23734b20922236aecda9d8f89a1543a40889",
+      "bytes": 723
+    },
+    "docs/evidence/client/candidate-20261030/v17/base-inputs.json": {
+      "sha256": "11880cd37f8b1078aa88a1ac5af895efa03d16d076c7564d0e0cf9ed51cee83d",
+      "bytes": 226013
+    },
+    "docs/evidence/client/candidate-20261030/v17/baseline-inputs.json": {
+      "sha256": "66cbda09f9dbb796cc447c2212b616454bee8bdf5d9bba7a61a9b7e96510934f",
+      "bytes": 226713
+    },
+    "docs/evidence/client/candidate-20261030/v17/baseline.patch.gz": {
+      "sha256": "191709351911f47e5fda9fbb52910c645e0570afbb411db802a34bdfb018b86e",
+      "bytes": 71659
+    },
+    "docs/evidence/client/candidate-20261030/v17/controls.json": {
+      "sha256": "a67f4ab8e3ed90381749d7dfbf934746300e800788fb3524de368a88560711ea",
+      "bytes": 60616
+    },
+    "docs/evidence/client/candidate-20261030/v17/deadline-fixture-receipt.json": {
+      "sha256": "a0e1b30f2602eee320ac15599dc7ac40c5f691c3f6fdd043469fc1e981af2e7d",
+      "bytes": 3079
+    },
+    "docs/evidence/client/candidate-20261030/v17/deadline-fixture-review.json": {
+      "sha256": "0a2337944ea3a43ccf5b0896384f9b93381e1b61f849eb6f6f5584f698c4c62b",
+      "bytes": 2225
+    },
+    "docs/evidence/client/candidate-20261030/v17/deadline-fixture.patch": {
+      "sha256": "bff6fc134996b97cfc493fd4657f360c911127213ec88f0ca728548c7d9dfeeb",
+      "bytes": 2076
+    },
+    "docs/evidence/client/candidate-20261030/v17/fixed-delta.patch.gz": {
+      "sha256": "fbbdcd58ad08d59169da3c0914942b8e42388f855ab8ba56b26152d1e5e0b5aa",
+      "bytes": 40193
+    },
+    "docs/evidence/client/candidate-20261030/v17/fixed-inputs.json": {
+      "sha256": "15da704200222b0b3b8de7d74274b9cf1fb3933a9339112c09b3467aa07868ea",
+      "bytes": 226908
+    },
+    "docs/evidence/client/candidate-20261030/v17/fixed.patch.gz": {
+      "sha256": "9b18e71d20a732527b6f13107d13db96bacc84d0a596be788ea454fdd55e46af",
+      "bytes": 108293
+    },
+    "docs/evidence/client/candidate-20261030/v17/phase-projection-guarded-tests.log": {
+      "sha256": "29cf1e53f190dd90dbab285fb04bf2255d3f572c30948a7978bf1d2de0e336e7",
+      "bytes": 6621
+    },
+    "docs/evidence/client/candidate-20261030/v17/phase-projection-manifest.json": {
+      "sha256": "8192e11766f55e1f9eaca86e343509e81ae44e64f52a4d7a627271fb4e6154c9",
+      "bytes": 2161
+    },
+    "docs/evidence/client/candidate-20261030/v17/phase-projection-review.json": {
+      "sha256": "86c40e0d30acdd12fa51c4fea9263b7f4c6a60582836003847ce972d4d31313f",
+      "bytes": 1753
+    },
+    "docs/evidence/client/candidate-20261030/v17/phase-projection-second-review.json": {
+      "sha256": "2cf2b847452de33d384143fc5f9d91772b492de89517549a94151612a833a8e4",
+      "bytes": 2575
+    },
+    "docs/evidence/client/candidate-20261030/v17/phase-projection-source-controls.json": {
+      "sha256": "5ae963dff325a2d67af5826aff3b15d560870af67d17f8901e3e6eba87aa4ecd",
+      "bytes": 1509
+    },
+    "docs/evidence/client/candidate-20261030/v17/phase-projection-validation.json": {
+      "sha256": "d56d48abe416a2f63b75ce0fb29c5b82144c81bb538c24e1699a63ecfd8a112b",
+      "bytes": 2850
+    },
+    "docs/evidence/client/candidate-20261030/v17/phase-projection.patch.gz": {
+      "sha256": "458a3c011e070ca8a86d48590e5b7ea450836fbafcd9db07685a9fde885f7396",
+      "bytes": 3455
+    },
+    "docs/evidence/client/candidate-20261030/v17/preparation.json": {
+      "sha256": "f9e0356877db8b11acc6189bdd0fc64d13182aa3b6f8f895bf48601b4c9f64ca",
+      "bytes": 3892
+    },
+    "docs/evidence/client/candidate-20261030/v17/prior-v16-import-manifest.json": {
+      "sha256": "327f9f05c1ab9e321951ea86d841006943ec8f93c74a5b5d960c63a68252e58c",
+      "bytes": 10494
+    },
+    "docs/evidence/client/candidate-20261030/v17/prior-v16-spec.json": {
+      "sha256": "dcca8ef98344e960ced94ef0aa560032950ce96556dab16820cffe007e3a6be2",
+      "bytes": 17020
+    },
+    "docs/evidence/client/candidate-20261030/v17/spec.json": {
+      "sha256": "2db3a3722c46ad9fada081841d26f14d43bf76f538766af93fc6a315ad83305c",
+      "bytes": 19251
+    },
+    "docs/evidence/client/candidate-20261030/v17/workflow-v17.patch": {
+      "sha256": "2881a365d91f09ae5107ba8bc56f52859fdb2965370c2a7b594ef9139ece4488",
+      "bytes": 2700
+    }
+  },
+  "required_existing_root_files": {
+    "scripts/candidate-command-ownership.py": {
+      "sha256": "34ddbf04a4bbead974fad4a451d30c7a56818248bd5b58c88c87bdfc41896da9",
+      "bytes": 5725
+    },
+    "scripts/ci-qualify-broker-candidate.py": {
+      "sha256": "c1361fa8cabc00f1702bf2e25c8716cfe247b29e5824aeec90c13cb928f8f7c2",
+      "bytes": 31863
+    },
+    "scripts/ci-qualify-client-candidate.py": {
+      "sha256": "f567f7456c92ce1f39e6d7b4476f3cc3300bfef9c92dd036f8cc3ef0a5514608",
+      "bytes": 41603
+    },
+    "scripts/ci-verify-client-candidate-helpers.py": {
+      "sha256": "b5f624d5d7ca13c479703416683c458fffae62f41ba885df0cc4c15a59c3a462",
+      "bytes": 8759
+    },
+    "tests/ci/test_candidate_command_ownership.py": {
+      "sha256": "0b786e63d059d9f3a3a3bf290ac4fe84313fe2f140243a292a87995e61877293",
+      "bytes": 7057
+    },
+    "tests/ci/test_client_candidate_qualification.py": {
+      "sha256": "2d84bbb8884f059b1974659dc6d1c0c4b6785a5b01702d855e8302a73ab4ce1f",
+      "bytes": 33742
+    }
+  },
+  "workflow_version_requested": "client source_version:v17; preserve historical and broker r2 lanes",
+  "counts": {
+    "base": 1746,
+    "baseline": 1753,
+    "fixed": 1755,
+    "library": 166,
+    "integration": 17,
+    "total": 183,
+    "baseline_cases": 23
+  },
+  "prior_v16_preserved": true,
+  "root_production_edits": false,
+  "native_qualification": "not run",
+  "phase_projection_patch_sha256": "96332c4ce40f67edbefaee8fca708c3ef04d9f739002172b9316b450895a49bc",
+  "phase_projection_review_sha256": "86c40e0d30acdd12fa51c4fea9263b7f4c6a60582836003847ce972d4d31313f",
+  "workflow_patch_sha256": "2881a365d91f09ae5107ba8bc56f52859fdb2965370c2a7b594ef9139ece4488"
+}

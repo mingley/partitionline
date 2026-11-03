@@ -1,0 +1,56 @@
+{
+  "archive_sha256": "261642d8f31a534edfc6a392a0a363c727b9682acbca78c21629ce9905fcecc6",
+  "expected_witnesses": [
+    "actual Worker partial TCP prefix then cancellation, with post-cancel owner/counter/accounting checks",
+    "actual Worker complete Produce write and outstanding correlation while connection counter is zero, followed by matching response"
+  ],
+  "files": {
+    "README.md": {
+      "bytes": 2906,
+      "sha256": "1a0a25ede2259417c22fa029eb47ad8aa14cb2df1cb68cdb9072f7de3762c3ae"
+    },
+    "pins.json": {
+      "bytes": 1088,
+      "sha256": "5e76f88ecbdd07647a54cf055abe2effbb3cf8c69d5721e5a9377b75006fd6d6"
+    },
+    "static-validation.log": {
+      "bytes": 264,
+      "sha256": "47dc4b1d39febb28649d01eb9a0dce60c63b62d34258e60c14406eb8912fe77d"
+    },
+    "verify.py": {
+      "bytes": 4722,
+      "sha256": "8b595491c846c87842f6efb384fda50bd140c9da85d1cccf85a5f86f69be7d3e"
+    },
+    "wire-controls.patch": {
+      "bytes": 14682,
+      "sha256": "dae4713352a19292bd7f2d4fbaad9fb6c37cf97401ec69b4e75076e20aaa3a83"
+    }
+  },
+  "limits": [
+    "plaintext loopback fixture with ApiVersions; no real Kafka or Producer::send/Worker::run",
+    "partial-write state examined after cancellation, not during mutable Worker borrow",
+    "no owner lease, fd retirement, session expiry or routing proof",
+    "v17 benchmark remains blocked by baseline case-23 phase witness"
+  ],
+  "not_run": [
+    "Cargo",
+    "Rust compile/typecheck",
+    "native tests",
+    "TLS/SASL",
+    "actual socket transfer",
+    "performance"
+  ],
+  "patch_sha256": "dae4713352a19292bd7f2d4fbaad9fb6c37cf97401ec69b4e75076e20aaa3a83",
+  "pins_sha256": "5e76f88ecbdd07647a54cf055abe2effbb3cf8c69d5721e5a9377b75006fd6d6",
+  "readme_sha256": "1a0a25ede2259417c22fa029eb47ad8aa14cb2df1cb68cdb9072f7de3762c3ae",
+  "scope": "v16/v17 test-only source controls; uncompiled/unrun; no runtime or performance claim",
+  "validation": [
+    "five source pins match v16 fixed catalog",
+    "all existing prepare tests are exact byte prefix",
+    "all non-test network source bytes unchanged",
+    "patch forward and reverse exact",
+    "stable rustfmt parses and checks all three changed files"
+  ],
+  "validation_log_sha256": "47dc4b1d39febb28649d01eb9a0dce60c63b62d34258e60c14406eb8912fe77d",
+  "verify_sha256": "8b595491c846c87842f6efb384fda50bd140c9da85d1cccf85a5f86f69be7d3e"
+}
