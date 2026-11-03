@@ -1,0 +1,10 @@
+{
+  "seed": "0x6b61666b61",
+  "operations": 30000,
+  "simulated_cancelled_appends": 4326,
+  "expiry_fast_returns": 1433,
+  "expiry_scans": 28567,
+  "ordered_drains": 958,
+  "unordered_fallback_drains": 3637,
+  "scope": "Model only; no Rust compilation or runtime test."
+}

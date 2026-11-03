@@ -1,0 +1,23 @@
+{
+  "base": "client candidate v8 fixed-inputs.json",
+  "patch_sha256": "e55acdad0d65c3edf253138703c2e2240461e074b33365ca54ac56fae50358f0",
+  "patch_gzip_sha256": "2f812b7439e0f6a2349620f6f4addfb57a9bb5dee88e77ddfca265f129d8e028",
+  "review_scope": "Static inspection of the test-only mock response gate and retained-backing tests; independent exact-byte forward/reverse reconstruction.",
+  "result": "no static blocker found in reviewed scope",
+  "checks": [
+    "Both input files match v8 fixed-inputs hashes; the patch and gzip expand to the pinned bytes.",
+    "Fresh forward and reverse git apply operations reproduce both files byte for byte.",
+    "The mock takes the gate while holding the state mutex and drops the guard before sending the entered signal or awaiting release.",
+    "Dropping an unconsumed handle clears only its own token; dropping a consumed handle releases its waiting reply without clearing a newer armed token.",
+    "The new gate test arms a second gate before dropping the consumed first handle and checks that the second response stays held.",
+    "The existing 2 s admission and 10 s flush bounds and reservation assertions remain in force.",
+    "Ordinary timeout/error paths retain the JoinHandle, drop/release the gate, then abort and await the sender; panic/test-future cancellation can only request abort in Drop.",
+    "The zero-duration setter disables the reply timer; the test resets an earlier 15 s delay and requires prompt responses."
+  ],
+  "limitations": [
+    "No Cargo build, native Rust execution, Clippy, or performance test was run.",
+    "The cause of the previously observed timeout is not proven, and queue algorithmic costs remain open.",
+    "Async task abort on panic or parent-future cancellation is not itself a joined cleanup.",
+    "This review does not qualify the wider client candidate or production release."
+  ]
+}

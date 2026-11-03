@@ -1,0 +1,119 @@
+{
+  "scope": "Offline substituted-service validation with two actual manifest versions; no publish or actual network calls",
+  "patch_sha256": "2bfdef9cbddbad38ed27c11c201f4f7bbb8503b8746c5c12d4558c4423d3b929",
+  "source_hashes_before_sha256": "a3816a7b9e5bbce82bb3792fb8d4fe5228ff8c80add05a8e4d6f6cd319191180",
+  "source_hashes_after_sha256": "a3816a7b9e5bbce82bb3792fb8d4fe5228ff8c80add05a8e4d6f6cd319191180",
+  "source_stable": true,
+  "source_020_hashes_before_sha256": "03f23e98f6e08b344d0bcf4b732220eca4a54638f377ac7ed4f5f435ef79cfb8",
+  "source_020_hashes_after_sha256": "03f23e98f6e08b344d0bcf4b732220eca4a54638f377ac7ed4f5f435ef79cfb8",
+  "source_020_stable": true,
+  "checks": [
+    {
+      "name": "all-release-tests-0.1.0",
+      "command": [
+        "/usr/bin/python3",
+        "-B",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests/release",
+        "-p",
+        "test_*.py",
+        "-v"
+      ],
+      "cwd": "/workspace/work/release-rehearsal-candidate-20261103/v4",
+      "started_utc": "2026-11-03T03:33:42.240650+00:00",
+      "elapsed_seconds": 29.382,
+      "exit": 0,
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_sha256": "3f2943d66282d9ea697e709f03e4658612be9336fa19b7eedce4999b11aee667"
+    },
+    {
+      "name": "all-release-tests-0.2.0",
+      "command": [
+        "/usr/bin/python3",
+        "-B",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests/release",
+        "-p",
+        "test_*.py",
+        "-v"
+      ],
+      "cwd": "/workspace/work/release-rehearsal-v4-author-validation-20261103/source-0.2.0",
+      "started_utc": "2026-11-03T03:34:11.623188+00:00",
+      "elapsed_seconds": 28.034,
+      "exit": 0,
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_sha256": "f7c84025150c76878fa926c8595f64cc9d058d0f0ef2dd2aaefc026b1c160408"
+    },
+    {
+      "name": "syntax",
+      "command": [
+        "bash",
+        "-n",
+        "scripts/rehearse-partial-release.sh",
+        "scripts/ci-publish-ready.sh",
+        "scripts/lib/crates-io.sh"
+      ],
+      "cwd": "/workspace/work/release-rehearsal-candidate-20261103/v4",
+      "started_utc": "2026-11-03T03:34:39.657320+00:00",
+      "elapsed_seconds": 0.003,
+      "exit": 0,
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "self-test-0.1.0",
+      "command": [
+        "bash",
+        "scripts/rehearse-partial-release.sh",
+        "--self-test"
+      ],
+      "cwd": "/workspace/work/release-rehearsal-candidate-20261103/v4",
+      "started_utc": "2026-11-03T03:34:39.660488+00:00",
+      "elapsed_seconds": 3.969,
+      "exit": 0,
+      "stdout_sha256": "de1c1986b51503390d7a1eda2624f14e86b4f7fc31ac8518e4ab072ffdb7e588",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "self-test-0.2.0",
+      "command": [
+        "bash",
+        "scripts/rehearse-partial-release.sh",
+        "--self-test"
+      ],
+      "cwd": "/workspace/work/release-rehearsal-v4-author-validation-20261103/source-0.2.0",
+      "started_utc": "2026-11-03T03:34:43.629196+00:00",
+      "elapsed_seconds": 5.16,
+      "exit": 0,
+      "stdout_sha256": "7ef20114f7ad7f1fd9df2101d9fa66687312fdf3cfde9ef6e82be46522a1cc32",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "independent-33-probe-replay",
+      "command": [
+        "/usr/bin/python3",
+        "-B",
+        "/workspace/work/release-rehearsal-review-20261103-v2/probe_review.py"
+      ],
+      "cwd": "/workspace/work/release-rehearsal-candidate-20261103/v4",
+      "started_utc": "2026-11-03T03:34:48.789576+00:00",
+      "elapsed_seconds": 4.27,
+      "exit": 0,
+      "stdout_sha256": "4bf29da8844bdba4052fdba6ac2a69d5c7fbc9d540635af83a8fe0146d451880",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "peer_probe_replay_passed": 33,
+  "python_version": "3.13.5 (main, Jul 15 2026, 20:25:40) [GCC 14.2.0]",
+  "completed_utc": "2026-11-03T03:34:53.077868+00:00",
+  "all_passed": true,
+  "native_cargo_or_live_network": "not run",
+  "release_ready": false,
+  "separate_open_issue": "release.yml post-upload confirmation currently checks API only and accepts redirects"
+}

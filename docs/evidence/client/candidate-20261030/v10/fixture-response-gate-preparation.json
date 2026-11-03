@@ -1,0 +1,32 @@
+{
+  "base": "client candidate v8 fixed-inputs.json",
+  "files": {
+    "tests/common/mod.rs": {
+      "before_sha256": "25c9ed06d569c4f61937d914f1f4e8f9b6399e4c1600eff09770bba4460804f3",
+      "before_bytes": 423790,
+      "after_sha256": "097e5549fdf3ad5ecd33525a319b89d387a12cd7a2ba6bdd13da46685ddafb93",
+      "after_bytes": 426205
+    },
+    "tests/producer_retained_backing.rs": {
+      "before_sha256": "ecc74d9d33d1ff5544002b027fe907fa8542f11052224ee1aa45a74c7475e110",
+      "before_bytes": 13944,
+      "after_sha256": "d80e3ed9199bcbd122d01ca8186351f79988675ae116319b91c36a7c7c957fc3",
+      "after_bytes": 18668
+    }
+  },
+  "patch_sha256": "e55acdad0d65c3edf253138703c2e2240461e074b33365ca54ac56fae50358f0",
+  "patch_bytes": 11735,
+  "patch_gzip_sha256": "2f812b7439e0f6a2349620f6f4addfb57a9bb5dee88e77ddfca265f129d8e028",
+  "patch_gzip_bytes": 3049,
+  "forward_reverse_exact": true,
+  "rustfmt": "stable rustfmt 2021, skip_children=true, --check passed",
+  "required_new_integration_control": "producer_retained_backing::produce_response_gate_releases_one_reply_and_cleans_up_on_drop",
+  "cargo_clippy_runtime": "not run",
+  "scope": "Mock response synchronization and no-delay setter only; no production source changes.",
+  "limitations": [
+    "Full cause of v7 timeout is unproven.",
+    "No throughput/latency measurement; queue algorithmic costs remain open.",
+    "Explicit error paths abort and join spawned senders; Rust cancellation/panic Drop can request abort but cannot asynchronously join.",
+    "No root changes."
+  ]
+}

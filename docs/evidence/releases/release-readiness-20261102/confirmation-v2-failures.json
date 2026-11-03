@@ -1,0 +1,292 @@
+{
+  "source_patch_sha256": "c39a3ec10d38867946c142e2143388125114c4fb29f39ffa4f571c2e070e1aae",
+  "source_file_sha256": {
+    ".github/workflows/release.yml": "105a2474922cda874f680d3edec3487906d4b5313e632f80187eeb39004a7cf0",
+    "scripts/lib/crates-io.sh": "c361452c81fe80acb7c4e72617e3f2ff5f670b5f95fae8b3bd7ab31cde18f43c",
+    "scripts/report-release-rehearsal.py": "132e2d8aa4905ba469d001b1b508d5d09cef90480bf1e29b8eaf9ea4b1c36524",
+    "tests/release/test_release_confirmation.py": "16d835357c9528e44e52a00416bb88b6152e548dd83f16538339bfc17ff102fc",
+    "Cargo.toml": "98b437d0dab4d8289a9fd097f9f7a8c4b6e227c505584eb1ea22e0c8bc28f389"
+  },
+  "requested_crate": "partitionline",
+  "requested_version": "0.1.0",
+  "source_stable": true,
+  "cases": [
+    {
+      "invalid_endpoint": "api",
+      "invalid_constant": "NaN",
+      "skip": "0",
+      "api_body": "{\"version\": {\"crate\": \"partitionline\", \"num\": \"0.1.0\", \"yanked\": false},\"illegal\":NaN}",
+      "index_body": "{\"name\": \"partitionline\", \"vers\": \"0.1.0\", \"yanked\": false}\n",
+      "exit": 0,
+      "stdout": "crates.io has partitionline 0.1.0\nOwner follow-up: bash scripts/day1-after-publish.sh && commit README on main.\nThen configure Trusted Publishing (see docs/RELEASE.md) so later tags need no long-lived secret.\n",
+      "stderr": "",
+      "calls": [
+        {
+          "tool": "curl",
+          "endpoint": "api",
+          "response": "200"
+        },
+        {
+          "tool": "curl",
+          "endpoint": "index",
+          "response": "200"
+        }
+      ],
+      "incorrectly_confirmed": true
+    },
+    {
+      "invalid_endpoint": "api",
+      "invalid_constant": "NaN",
+      "skip": "1",
+      "api_body": "{\"version\": {\"crate\": \"partitionline\", \"num\": \"0.1.0\", \"yanked\": false},\"illegal\":NaN}",
+      "index_body": "{\"name\": \"partitionline\", \"vers\": \"0.1.0\", \"yanked\": false}\n",
+      "exit": 0,
+      "stdout": "release: skipped publish; checking that partitionline 0.1.0 remains in the index\ncrates.io has partitionline 0.1.0\nOwner follow-up: bash scripts/day1-after-publish.sh && commit README on main.\nThen configure Trusted Publishing (see docs/RELEASE.md) so later tags need no long-lived secret.\n",
+      "stderr": "",
+      "calls": [
+        {
+          "tool": "curl",
+          "endpoint": "api",
+          "response": "200"
+        },
+        {
+          "tool": "curl",
+          "endpoint": "index",
+          "response": "200"
+        }
+      ],
+      "incorrectly_confirmed": true
+    },
+    {
+      "invalid_endpoint": "index",
+      "invalid_constant": "NaN",
+      "skip": "0",
+      "api_body": "{\"version\": {\"crate\": \"partitionline\", \"num\": \"0.1.0\", \"yanked\": false}}",
+      "index_body": "{\"name\": \"partitionline\", \"vers\": \"0.1.0\", \"yanked\": false,\"illegal\":NaN}\n",
+      "exit": 0,
+      "stdout": "crates.io has partitionline 0.1.0\nOwner follow-up: bash scripts/day1-after-publish.sh && commit README on main.\nThen configure Trusted Publishing (see docs/RELEASE.md) so later tags need no long-lived secret.\n",
+      "stderr": "",
+      "calls": [
+        {
+          "tool": "curl",
+          "endpoint": "api",
+          "response": "200"
+        },
+        {
+          "tool": "curl",
+          "endpoint": "index",
+          "response": "200"
+        }
+      ],
+      "incorrectly_confirmed": true
+    },
+    {
+      "invalid_endpoint": "index",
+      "invalid_constant": "NaN",
+      "skip": "1",
+      "api_body": "{\"version\": {\"crate\": \"partitionline\", \"num\": \"0.1.0\", \"yanked\": false}}",
+      "index_body": "{\"name\": \"partitionline\", \"vers\": \"0.1.0\", \"yanked\": false,\"illegal\":NaN}\n",
+      "exit": 0,
+      "stdout": "release: skipped publish; checking that partitionline 0.1.0 remains in the index\ncrates.io has partitionline 0.1.0\nOwner follow-up: bash scripts/day1-after-publish.sh && commit README on main.\nThen configure Trusted Publishing (see docs/RELEASE.md) so later tags need no long-lived secret.\n",
+      "stderr": "",
+      "calls": [
+        {
+          "tool": "curl",
+          "endpoint": "api",
+          "response": "200"
+        },
+        {
+          "tool": "curl",
+          "endpoint": "index",
+          "response": "200"
+        }
+      ],
+      "incorrectly_confirmed": true
+    },
+    {
+      "invalid_endpoint": "api",
+      "invalid_constant": "Infinity",
+      "skip": "0",
+      "api_body": "{\"version\": {\"crate\": \"partitionline\", \"num\": \"0.1.0\", \"yanked\": false},\"illegal\":Infinity}",
+      "index_body": "{\"name\": \"partitionline\", \"vers\": \"0.1.0\", \"yanked\": false}\n",
+      "exit": 0,
+      "stdout": "crates.io has partitionline 0.1.0\nOwner follow-up: bash scripts/day1-after-publish.sh && commit README on main.\nThen configure Trusted Publishing (see docs/RELEASE.md) so later tags need no long-lived secret.\n",
+      "stderr": "",
+      "calls": [
+        {
+          "tool": "curl",
+          "endpoint": "api",
+          "response": "200"
+        },
+        {
+          "tool": "curl",
+          "endpoint": "index",
+          "response": "200"
+        }
+      ],
+      "incorrectly_confirmed": true
+    },
+    {
+      "invalid_endpoint": "api",
+      "invalid_constant": "Infinity",
+      "skip": "1",
+      "api_body": "{\"version\": {\"crate\": \"partitionline\", \"num\": \"0.1.0\", \"yanked\": false},\"illegal\":Infinity}",
+      "index_body": "{\"name\": \"partitionline\", \"vers\": \"0.1.0\", \"yanked\": false}\n",
+      "exit": 0,
+      "stdout": "release: skipped publish; checking that partitionline 0.1.0 remains in the index\ncrates.io has partitionline 0.1.0\nOwner follow-up: bash scripts/day1-after-publish.sh && commit README on main.\nThen configure Trusted Publishing (see docs/RELEASE.md) so later tags need no long-lived secret.\n",
+      "stderr": "",
+      "calls": [
+        {
+          "tool": "curl",
+          "endpoint": "api",
+          "response": "200"
+        },
+        {
+          "tool": "curl",
+          "endpoint": "index",
+          "response": "200"
+        }
+      ],
+      "incorrectly_confirmed": true
+    },
+    {
+      "invalid_endpoint": "index",
+      "invalid_constant": "Infinity",
+      "skip": "0",
+      "api_body": "{\"version\": {\"crate\": \"partitionline\", \"num\": \"0.1.0\", \"yanked\": false}}",
+      "index_body": "{\"name\": \"partitionline\", \"vers\": \"0.1.0\", \"yanked\": false,\"illegal\":Infinity}\n",
+      "exit": 0,
+      "stdout": "crates.io has partitionline 0.1.0\nOwner follow-up: bash scripts/day1-after-publish.sh && commit README on main.\nThen configure Trusted Publishing (see docs/RELEASE.md) so later tags need no long-lived secret.\n",
+      "stderr": "",
+      "calls": [
+        {
+          "tool": "curl",
+          "endpoint": "api",
+          "response": "200"
+        },
+        {
+          "tool": "curl",
+          "endpoint": "index",
+          "response": "200"
+        }
+      ],
+      "incorrectly_confirmed": true
+    },
+    {
+      "invalid_endpoint": "index",
+      "invalid_constant": "Infinity",
+      "skip": "1",
+      "api_body": "{\"version\": {\"crate\": \"partitionline\", \"num\": \"0.1.0\", \"yanked\": false}}",
+      "index_body": "{\"name\": \"partitionline\", \"vers\": \"0.1.0\", \"yanked\": false,\"illegal\":Infinity}\n",
+      "exit": 0,
+      "stdout": "release: skipped publish; checking that partitionline 0.1.0 remains in the index\ncrates.io has partitionline 0.1.0\nOwner follow-up: bash scripts/day1-after-publish.sh && commit README on main.\nThen configure Trusted Publishing (see docs/RELEASE.md) so later tags need no long-lived secret.\n",
+      "stderr": "",
+      "calls": [
+        {
+          "tool": "curl",
+          "endpoint": "api",
+          "response": "200"
+        },
+        {
+          "tool": "curl",
+          "endpoint": "index",
+          "response": "200"
+        }
+      ],
+      "incorrectly_confirmed": true
+    },
+    {
+      "invalid_endpoint": "api",
+      "invalid_constant": "-Infinity",
+      "skip": "0",
+      "api_body": "{\"version\": {\"crate\": \"partitionline\", \"num\": \"0.1.0\", \"yanked\": false},\"illegal\":-Infinity}",
+      "index_body": "{\"name\": \"partitionline\", \"vers\": \"0.1.0\", \"yanked\": false}\n",
+      "exit": 0,
+      "stdout": "crates.io has partitionline 0.1.0\nOwner follow-up: bash scripts/day1-after-publish.sh && commit README on main.\nThen configure Trusted Publishing (see docs/RELEASE.md) so later tags need no long-lived secret.\n",
+      "stderr": "",
+      "calls": [
+        {
+          "tool": "curl",
+          "endpoint": "api",
+          "response": "200"
+        },
+        {
+          "tool": "curl",
+          "endpoint": "index",
+          "response": "200"
+        }
+      ],
+      "incorrectly_confirmed": true
+    },
+    {
+      "invalid_endpoint": "api",
+      "invalid_constant": "-Infinity",
+      "skip": "1",
+      "api_body": "{\"version\": {\"crate\": \"partitionline\", \"num\": \"0.1.0\", \"yanked\": false},\"illegal\":-Infinity}",
+      "index_body": "{\"name\": \"partitionline\", \"vers\": \"0.1.0\", \"yanked\": false}\n",
+      "exit": 0,
+      "stdout": "release: skipped publish; checking that partitionline 0.1.0 remains in the index\ncrates.io has partitionline 0.1.0\nOwner follow-up: bash scripts/day1-after-publish.sh && commit README on main.\nThen configure Trusted Publishing (see docs/RELEASE.md) so later tags need no long-lived secret.\n",
+      "stderr": "",
+      "calls": [
+        {
+          "tool": "curl",
+          "endpoint": "api",
+          "response": "200"
+        },
+        {
+          "tool": "curl",
+          "endpoint": "index",
+          "response": "200"
+        }
+      ],
+      "incorrectly_confirmed": true
+    },
+    {
+      "invalid_endpoint": "index",
+      "invalid_constant": "-Infinity",
+      "skip": "0",
+      "api_body": "{\"version\": {\"crate\": \"partitionline\", \"num\": \"0.1.0\", \"yanked\": false}}",
+      "index_body": "{\"name\": \"partitionline\", \"vers\": \"0.1.0\", \"yanked\": false,\"illegal\":-Infinity}\n",
+      "exit": 0,
+      "stdout": "crates.io has partitionline 0.1.0\nOwner follow-up: bash scripts/day1-after-publish.sh && commit README on main.\nThen configure Trusted Publishing (see docs/RELEASE.md) so later tags need no long-lived secret.\n",
+      "stderr": "",
+      "calls": [
+        {
+          "tool": "curl",
+          "endpoint": "api",
+          "response": "200"
+        },
+        {
+          "tool": "curl",
+          "endpoint": "index",
+          "response": "200"
+        }
+      ],
+      "incorrectly_confirmed": true
+    },
+    {
+      "invalid_endpoint": "index",
+      "invalid_constant": "-Infinity",
+      "skip": "1",
+      "api_body": "{\"version\": {\"crate\": \"partitionline\", \"num\": \"0.1.0\", \"yanked\": false}}",
+      "index_body": "{\"name\": \"partitionline\", \"vers\": \"0.1.0\", \"yanked\": false,\"illegal\":-Infinity}\n",
+      "exit": 0,
+      "stdout": "release: skipped publish; checking that partitionline 0.1.0 remains in the index\ncrates.io has partitionline 0.1.0\nOwner follow-up: bash scripts/day1-after-publish.sh && commit README on main.\nThen configure Trusted Publishing (see docs/RELEASE.md) so later tags need no long-lived secret.\n",
+      "stderr": "",
+      "calls": [
+        {
+          "tool": "curl",
+          "endpoint": "api",
+          "response": "200"
+        },
+        {
+          "tool": "curl",
+          "endpoint": "index",
+          "response": "200"
+        }
+      ],
+      "incorrectly_confirmed": true
+    }
+  ],
+  "scope": "Offline HTTP stubs and the extracted workflow shell only; no Cargo, network or publication."
+}

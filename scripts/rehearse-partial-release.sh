@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Rehearse idempotent partial-release recovery. Does not publish and does not
-# re-cut 0.1.0.
+# Rehearse idempotent partial-release recovery for the manifest version.
+# This script never publishes or creates a release tag.
 #
 # --self-test proves the shipped skip gates, not just skip=1 string presence:
 # release.yml Authenticate + Publish steps must be gated on
@@ -35,9 +35,11 @@ fail() {
   exit 1
 }
 
-# 1. Cargo.toml is 0.1.0 — recovery must not bump/re-cut it.
-ver="$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -1)"
-[[ "$ver" == "0.1.0" ]] || fail "Cargo.toml version is ${ver}; recovery must not bump/re-cut 0.1.0"
+# 1. Read the candidate version from Cargo.toml and require a final version.
+# The shared check also verifies that the release scripts' version lookup will
+# see the same value; an ambiguous manifest must not rehearse a different cut.
+ver="$(python3 -B scripts/report-release-rehearsal.py --candidate-version)" \
+  || fail "cannot read a final candidate version from Cargo.toml"
 
 # 2. release-plz is PR-only: command: release-pr, no token-gated publish / command: release.
 plz=".github/workflows/release-plz.yml"
@@ -318,8 +320,8 @@ fi
 echo "rehearse-partial-release: simulate publish-succeeded, day1 pending"
 echo "  would: DRY_RUN=1 bash scripts/day1-after-publish.sh"
 echo "  would: DRY_RUN=1 bash scripts/owner-post-installable-handoff.sh"
-echo "  would not: cargo publish / version bump / re-cut 0.1.0"
+echo "  would not: cargo publish / version bump / re-cut ${ver}"
 
-echo "rehearse-partial-release: --self-test OK — 0.1.0 stays; release-plz PR-only; canonical release.yml + owner-cut-release; actions: read; skip-gated Authenticate/Publish; owner-publish skips existing version; day1/handoff DRY_RUN not another publish"
+echo "rehearse-partial-release: --self-test OK — ${ver} stays; release-plz PR-only; canonical release.yml + owner-cut-release; actions: read; skip-gated Authenticate/Publish; owner-publish skips existing version; day1/handoff DRY_RUN not another publish"
 python3 -B scripts/report-release-rehearsal.py --self-test
 exit 0

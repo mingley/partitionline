@@ -1,0 +1,89 @@
+{
+  "scope": "V9 plus a test-only response gate and handshake diagnostic; ancillary release inputs repinned.",
+  "prepared_utc": "2026-11-03T03:43:59.968753+00:00",
+  "base_checkout_parent": "350b5e534215723be65680e6116b1ec3d495506c",
+  "prior_v9_spec_sha256": "df8e1329f1dee2e3319b18f989200926b28922c22d43f2a2853ecd343c03134f",
+  "prior_v9_import_manifest_sha256": "0e23f05c491b9bee9374f62f9ef276cab7a0734b562f5762a5de13a86720bcfa",
+  "prior_v9_archive_sha256": "38e63135c15d6d98013c97af7f4af44c15669213bec0dfb4b3895ce1cebba651",
+  "fixture_integration_preparation_sha256": "87237c10ad62b5b06f23d36fff9f9c711440ed48930321fc2ab8702c8bc0f37d",
+  "fixture_independent_review_sha256": "5e786bb060e246e271c82312cef4b14655d3cf2d3fafe9bf40674fb85b557947",
+  "wire_independent_review_sha256": "2a242108f330cd163958588c3fcb3ab0e65d32d89206ac635c5e10f2a1b372f7",
+  "ancillary_root_drift": {
+    "scripts/lib/crates-io.sh": {
+      "before_sha256": "00f3315ad2d61c4db099a2be2a3d7afa6c25699e665af6da0c2c40189446ec28",
+      "after_sha256": "8f5e7f1e2b146647253e2facf4850049d63575c7f7989652e07ef6db4198543d"
+    },
+    "scripts/report-release-rehearsal.py": {
+      "before_sha256": "24aee15fbeb0d27aa61bd37e12d93bac8a50ea0fa83216c3640b51f92d90717d",
+      "after_sha256": "132e2d8aa4905ba469d001b1b508d5d09cef90480bf1e29b8eaf9ea4b1c36524"
+    },
+    "tests/release/test_publish_serialization.py": {
+      "before_sha256": "98648883879a640face6847d5d005c1e7be0e20dcbddc3fec4db02d10fca7425",
+      "after_sha256": "fae6cdc657e40c216012628a9297d74f7efdb67611590d28ad46bab3d7b70232"
+    },
+    "tests/release/test_registry_probe.py": {
+      "before_sha256": "5a15fbfdafce21a5bedeb6827f1d85ad54ff32a39376458bec6a1c2216d926b3",
+      "after_sha256": "af5052175d1eff6fbc0f1e497b8c12f6e22ea918e4dc675dd47f04e0a6a91632"
+    },
+    "tests/release/test_release_confirmation.py": {
+      "before_sha256": null,
+      "after_sha256": "1bb26a56ea55f64d5fbc6c25c0f89e0eaed53d1741364f8a110b6288e6922531"
+    }
+  },
+  "new_root_inputs_in_all_phases": [
+    "tests/release/test_release_confirmation.py"
+  ],
+  "source_input_counts": {
+    "base": 1743,
+    "baseline": 1750,
+    "fixed": 1752
+  },
+  "required_controls": {
+    "previous_library": 153,
+    "previous_integrations": 15,
+    "added_integrations": 1,
+    "combined_library": 153,
+    "combined_integrations": 16,
+    "combined_total": 169,
+    "baseline": 22
+  },
+  "baseline_cases_and_patch_identical": true,
+  "rustfmt": {
+    "argv": [
+      "/workspace/work/cargo/bin/rustup",
+      "run",
+      "stable",
+      "rustfmt",
+      "--edition",
+      "2021",
+      "--config",
+      "skip_children=true",
+      "--check",
+      "/workspace/work/client-v10-wire-v3-thin-20261103/fixed/tests/mock_produce.rs"
+    ],
+    "exit_code": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  "full_source_forward_reverse_exact": true,
+  "all_root_input_hashes_stable_through_freeze": true,
+  "native_compilation": "not run",
+  "clippy": "not run",
+  "runtime": "not run",
+  "production_ready": false,
+  "fastest_claim_qualified": false,
+  "limits": [
+    "V10 also adds a separate socket handshake overlap diagnostic. The original 450 ms end-to-end test is byte-for-byte unchanged, still has a recorded v7 failure, and no performance fix is claimed.",
+    "V10 adds a test-only response gate and zero-delay correction to the fixed phase, with one required integration control. Rustfmt and source reconstruction pass; no V10 Cargo, Clippy or runtime result exists. The v7 retained-backing timeout cause is not proven.",
+    "V9 changes only source pins for five release-related files and adds the registry probe test to all phases. V8 Rust patches, controls, baseline cases and feature/test matrix are byte-for-byte unchanged; V9 has not run natively.",
+    "Prepared v8 source combines v7, two test repairs and worker-owned producer terminal/retry/split/response changes; no v8 Cargo build, Clippy or Rust runtime has run.",
+    "V7 native runs reached runtime and failed: each library 2253/1, Mock Produce 31/15, retained backing 7/1/1 ignored; two Clippy test errors and two baseline expectation mismatches. V8 test repairs do not address the 15 handshake failures or retained-backing timeout.",
+    "The two corrected baseline predictions keep the same identities and are based on actual v7 baseline cases that passed; prior failed predictions remain retained.",
+    "Full runs of ten chosen binaries in default/all-feature lanes are required; other integration binaries and ordinary whole-main runtime remain separate gates.",
+    "Runtime stack remains 8 MiB except an explicit standard 2 MiB group child; this mock does not establish live Kafka stack safety.",
+    "The producer ownership fix is statically reviewed but native cancellation, retry, callback and accounting behavior remains unqualified until these controls run.",
+    "Issue ordering, sequence wrap, PID/epoch transitions, whole-batch replay and physical socket retirement before ambiguous retry remain unresolved.",
+    "Hashing/map growth, final Drop, callbacks and deque-suffix conversion can perform linear synchronous work; global memory and cancellation latency are not bounded.",
+    "No external broker, multi-node durability, release readiness or fastest-performance ranking is established."
+  ]
+}

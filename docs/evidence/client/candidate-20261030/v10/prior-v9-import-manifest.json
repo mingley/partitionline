@@ -1,0 +1,125 @@
+{
+  "source_root": "/workspace/work/client-v9-release-rebase-20261103",
+  "scope": "Source metadata rebase only; Rust patches, tests and controls are unchanged from v8.",
+  "files": {
+    "docs/evidence/client/candidate-20261030/v9/README.md": {
+      "sha256": "8315e158d72f48a76bb3b3adc4a525028485b9c4ac31f0bb84307079317d187a",
+      "bytes": 763
+    },
+    "docs/evidence/client/candidate-20261030/v9/base-inputs.json": {
+      "sha256": "51ec4089088e8d574f580ff53a6d5226f7bb063b24bc13869a90dacefd77da62",
+      "bytes": 225557
+    },
+    "docs/evidence/client/candidate-20261030/v9/baseline-inputs.json": {
+      "sha256": "3458fd95ee35c6fe08cb818e2e797ad08dc4d99eece1f4308be9fd02b360e27a",
+      "bytes": 226257
+    },
+    "docs/evidence/client/candidate-20261030/v9/baseline.patch.gz": {
+      "sha256": "1d365508e520f8a4530eb58b3e26741ee95dfcddbb6b0f4a83fa7a469af5a6c9",
+      "bytes": 71450
+    },
+    "docs/evidence/client/candidate-20261030/v9/controls.json": {
+      "sha256": "115d0dd8d9baa4d71e29958d53a4e622d380ee01d0bbb2610647dce82c59c1ad",
+      "bytes": 55792
+    },
+    "docs/evidence/client/candidate-20261030/v9/fixed-delta.patch.gz": {
+      "sha256": "81908dea62d316e2e53c3c4bcd0f74ffd2de1056797bb36b5b5f1adb91e876f8",
+      "bytes": 28709
+    },
+    "docs/evidence/client/candidate-20261030/v9/fixed-inputs.json": {
+      "sha256": "78444cefcc4a4a3b7ce98ba1df5913425b7b37db316f0699661194116cc04718",
+      "bytes": 226452
+    },
+    "docs/evidence/client/candidate-20261030/v9/fixed.patch.gz": {
+      "sha256": "437deb9e54859df8df2cc20d0d571a086d22fbdbda27716868575d1b4847cfd9",
+      "bytes": 97717
+    },
+    "docs/evidence/client/candidate-20261030/v9/preparation.json": {
+      "sha256": "7a605f8fd15b5b2ae3e82b2fe7f1d6a095b63b0097ece84cdb74a3ddf466e20b",
+      "bytes": 4233
+    },
+    "docs/evidence/client/candidate-20261030/v9/prior-source-reviews.tar.gz": {
+      "sha256": "66047f048e8e8956538f35383a7f992e22fd8dcfe8d6661221481d32cb89befa",
+      "bytes": 46648
+    },
+    "docs/evidence/client/candidate-20261030/v9/producer-ownership-controls.json": {
+      "sha256": "dffaa120219c58be2df596243dc05c799ac35d72857519f51a19914e3bdce6b6",
+      "bytes": 3654
+    },
+    "docs/evidence/client/candidate-20261030/v9/producer-ownership-review.json": {
+      "sha256": "d2b33f22e4315f924ea238f009abd2e1af8d06bb010f86eec7423c90dfef6c82",
+      "bytes": 8168
+    },
+    "docs/evidence/client/candidate-20261030/v9/producer-ownership.patch.gz": {
+      "sha256": "975c698c891513efc9d3ec6049aada5dae326a5ba599cfe6466ad2807f7db1b8",
+      "bytes": 20678
+    },
+    "docs/evidence/client/candidate-20261030/v9/spec.json": {
+      "sha256": "df8e1329f1dee2e3319b18f989200926b28922c22d43f2a2853ecd343c03134f",
+      "bytes": 7727
+    },
+    "docs/evidence/client/candidate-20261030/v9/test-repairs-preparation.json": {
+      "sha256": "24cb6f5bbb47fdff44a0304312a30b4b36814b4b837191e1f59f239429ed074a",
+      "bytes": 4189
+    },
+    "docs/evidence/client/candidate-20261030/v9/test-repairs.patch.gz": {
+      "sha256": "f02823fad72e08712f358f29fb39a9762add96a8a9643709a61bb3bb2d28744b",
+      "bytes": 632
+    }
+  },
+  "required_existing_root_files": {
+    "scripts/ci-qualify-client-candidate.py": {
+      "sha256": "b25fe0390d4e4c3227e45c2b27ab671f0f6d8dace7ada911be1aa1391085e2c5",
+      "bytes": 29067
+    },
+    "tests/ci/test_client_candidate_qualification.py": {
+      "sha256": "4285e1b9e0cb5bfdd8398554dcd584207753ccf568d72a6264d845e240ade18b",
+      "bytes": 11830
+    },
+    "scripts/candidate-command-ownership.py": {
+      "sha256": "34ddbf04a4bbead974fad4a451d30c7a56818248bd5b58c88c87bdfc41896da9",
+      "bytes": 5725
+    }
+  },
+  "workflow_version_requested": "client source_version:v9 (root-owned workflow)",
+  "counts": {
+    "base": 1742,
+    "baseline": 22,
+    "fixed": 1751,
+    "v7_library": 127,
+    "v7_integration": 14,
+    "added_producer_library": 26,
+    "combined_library": 153,
+    "combined_integration": 14
+  },
+  "ancillary_root_drift": {
+    "scripts/ci-publish-ready.sh": {
+      "before_sha256": "845a02b8ff9fab8d99821d2a1b10514f7cd6721b97471df1ffde34e380342e43",
+      "after_sha256": "dc571b507c4896afcec47dc92ccf3ccfac26b0b2f1f3bb4c62d35495e43d062f"
+    },
+    "scripts/lib/crates-io.sh": {
+      "before_sha256": "afb7ca0ab8483b27138200005dd4b38cc32050db93eef02fa1603d87e124fe6b",
+      "after_sha256": "00f3315ad2d61c4db099a2be2a3d7afa6c25699e665af6da0c2c40189446ec28"
+    },
+    "scripts/rehearse-partial-release.sh": {
+      "before_sha256": "76254ca0564251f8ec394c05f8b9432896234bfae4a14bcd109430b2e8669cfd",
+      "after_sha256": "2e3fe315ca7650c98e7513d38a729082a28abcc0922bca0c9d2747ba301f23e3"
+    },
+    "scripts/report-release-rehearsal.py": {
+      "before_sha256": "79a5ba7a139e4f277251f9d40f7f0f5990f513ce76d61e60d32124f4fa989513",
+      "after_sha256": "24aee15fbeb0d27aa61bd37e12d93bac8a50ea0fa83216c3640b51f92d90717d"
+    },
+    "tests/release/test_rehearsal.py": {
+      "before_sha256": "46b23369b793eecdaa77858402184722939d9fd9dfbfe50a51233a6280616814",
+      "after_sha256": "bf37349ebbe9a327f49a139cbb739072991eb98053395f60ef03b447573efcbc"
+    },
+    "tests/release/test_registry_probe.py": {
+      "before_sha256": null,
+      "after_sha256": "5a15fbfdafce21a5bedeb6827f1d85ad54ff32a39376458bec6a1c2216d926b3"
+    }
+  },
+  "frozen_v8_source_and_evidence_preserved": true,
+  "full_source_forward_reverse_exact": true,
+  "root_production_edits": false,
+  "native_qualification": "not run"
+}

@@ -1,0 +1,48 @@
+{
+  "scope": "Offline local 0.2.0 fixture and shimmed services; no Cargo, credentials, publication or network.",
+  "candidate_patch_sha256": "2bfdef9cbddbad38ed27c11c201f4f7bbb8503b8746c5c12d4558c4423d3b929",
+  "fixture_version": "0.2.0",
+  "fixture_cargo_toml_sha256": "d7fa3f939c3a3601625ed3c4c7f804960c2baa83f0f2f2caaf15161b72d4b143",
+  "source_files_before": {
+    ".github/workflows/release-plz.yml": "7c1c20b0194d8e7593ec1d66dc99ecfbe0b363921e696caeabd82410122822e0",
+    ".github/workflows/release.yml": "672d1ac2eb88ad4e2ce15f56189c35798657357b69c9264ecb66d8c1f7f92e04",
+    "Cargo.toml": "d7fa3f939c3a3601625ed3c4c7f804960c2baa83f0f2f2caaf15161b72d4b143",
+    "scripts/check-main-ci.sh": "a89e7ad688293c448066f343ddcd8990945434fb64bbbd6522c09e1f526f87a8",
+    "scripts/ci-publish-ready.sh": "dc571b507c4896afcec47dc92ccf3ccfac26b0b2f1f3bb4c62d35495e43d062f",
+    "scripts/day1-after-publish.sh": "89b28cb40d7df48f6e9f41ecedeaa161d88ef31b3b3355674912843c128077a4",
+    "scripts/lib/cargo-registry-token.sh": "10b9afbcabf9c87461e26eb9602b90efe0c63218e1a1503d88ccc14ddd326125",
+    "scripts/lib/crates-io.sh": "00f3315ad2d61c4db099a2be2a3d7afa6c25699e665af6da0c2c40189446ec28",
+    "scripts/owner-cut-release.sh": "11c186cd443873580fa1f543d7bceeabf92a37eb489468a4a7e767678ff871d7",
+    "scripts/owner-post-installable-handoff.sh": "05be3150f94119da29e9f1115367290082915882b8e7d13d3bcb129e985c72d1",
+    "scripts/owner-publish.sh": "c5d4617f5f161f35ccd7f6ab8231bc904a3abb3bdf753c77def7cc2abe519ce8",
+    "scripts/rehearse-partial-release.sh": "2e3fe315ca7650c98e7513d38a729082a28abcc0922bca0c9d2747ba301f23e3",
+    "scripts/report-release-rehearsal.py": "24aee15fbeb0d27aa61bd37e12d93bac8a50ea0fa83216c3640b51f92d90717d",
+    "tests/release/test_rehearsal.py": "bf37349ebbe9a327f49a139cbb739072991eb98053395f60ef03b447573efcbc"
+  },
+  "source_files_after": {
+    ".github/workflows/release-plz.yml": "7c1c20b0194d8e7593ec1d66dc99ecfbe0b363921e696caeabd82410122822e0",
+    ".github/workflows/release.yml": "672d1ac2eb88ad4e2ce15f56189c35798657357b69c9264ecb66d8c1f7f92e04",
+    "Cargo.toml": "d7fa3f939c3a3601625ed3c4c7f804960c2baa83f0f2f2caaf15161b72d4b143",
+    "scripts/check-main-ci.sh": "a89e7ad688293c448066f343ddcd8990945434fb64bbbd6522c09e1f526f87a8",
+    "scripts/ci-publish-ready.sh": "dc571b507c4896afcec47dc92ccf3ccfac26b0b2f1f3bb4c62d35495e43d062f",
+    "scripts/day1-after-publish.sh": "89b28cb40d7df48f6e9f41ecedeaa161d88ef31b3b3355674912843c128077a4",
+    "scripts/lib/cargo-registry-token.sh": "10b9afbcabf9c87461e26eb9602b90efe0c63218e1a1503d88ccc14ddd326125",
+    "scripts/lib/crates-io.sh": "00f3315ad2d61c4db099a2be2a3d7afa6c25699e665af6da0c2c40189446ec28",
+    "scripts/owner-cut-release.sh": "11c186cd443873580fa1f543d7bceeabf92a37eb489468a4a7e767678ff871d7",
+    "scripts/owner-post-installable-handoff.sh": "05be3150f94119da29e9f1115367290082915882b8e7d13d3bcb129e985c72d1",
+    "scripts/owner-publish.sh": "c5d4617f5f161f35ccd7f6ab8231bc904a3abb3bdf753c77def7cc2abe519ce8",
+    "scripts/rehearse-partial-release.sh": "2e3fe315ca7650c98e7513d38a729082a28abcc0922bca0c9d2747ba301f23e3",
+    "scripts/report-release-rehearsal.py": "24aee15fbeb0d27aa61bd37e12d93bac8a50ea0fa83216c3640b51f92d90717d",
+    "tests/release/test_rehearsal.py": "bf37349ebbe9a327f49a139cbb739072991eb98053395f60ef03b447573efcbc"
+  },
+  "source_files_stable": true,
+  "cwd": "/workspace/work/release-rehearsal-v4-cross-version-review-20261103/fixture",
+  "command": [
+    "python3",
+    "-B",
+    "tests/release/test_rehearsal.py"
+  ],
+  "exit_code": 0,
+  "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "stderr_sha256": "380736ff855a345f4b71ca63b49e04971aa2a9bc9e554226b1e10bdb650434d4"
+}

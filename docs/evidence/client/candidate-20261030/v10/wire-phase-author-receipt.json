@@ -1,0 +1,30 @@
+{
+  "base": "/workspace/work/client-v8-thin-assembly-20261103/fixed",
+  "scope": "Additional diagnostic only. Original 450ms end-to-end test is byte-for-byte unchanged and still fails in v7; no performance improvement claimed.",
+  "prepared_utc": "2026-11-03T03:42:41.809710+00:00",
+  "source_before_sha256": "3f5c085323ab83862228a00ed84e147ca471c9f7a94d4d300b99da1c5587ef9e",
+  "source_after_sha256": "d3d85b55e0e9ebf342435a253d289873c3b9f2d854c5ca55fd8d3d27c53d9ab1",
+  "prior_tokio_test_count": 46,
+  "fixed_tokio_test_count": 47,
+  "prior_test_identities_preserved": true,
+  "original_test_unchanged": true,
+  "patch_sha256": "d2000ea594e2ddfdb10a58a914212d739258312deb835054e6324f3a269bdceb",
+  "patch_gzip_sha256": "f8238302d22f9245b77763aef45974568aaa623b9eb650adf2ebf91a0d68966c",
+  "native_log_sha256": "77f25da192f9178c97c24eb6d8814d026f827735b4334e69fc223de3b09b603d",
+  "legacy_result": "v7 native end-to-end 756.312886ms, failed original <450ms bound; original test and log preserved",
+  "causality": "First three socket negotiations overlap (~252ms); metadata reply is ~504ms; speculative leaders are expired by 40ms idle setting and re-negotiate, with produce ~756ms.",
+  "added_assertions": [
+    "All three first ApiVersions handshakes complete within 450ms of action start.",
+    "Both leader negotiations start before metadata response.",
+    "Metadata socket and every observed Produce request on both nodes use their own valid negotiated API range.",
+    "At least one Produce request on each leader and two acknowledgements remain required."
+  ],
+  "unchanged_parameters": "metadata max age 30ms, connection idle 40ms, injected delays 250ms, both overlap and original end-to-end limits 450ms",
+  "limitations": [
+    "Original 450ms end-to-end performance assertion remains open and unchanged.",
+    "The other fourteen v7 mock failures remain unchanged, including real socket-reuse opportunities.",
+    "No Rust compilation, Clippy or execution performed.",
+    "Physical retirement before redial and SASL are not established by this fixture."
+  ],
+  "history": "Rejected v1, and v2 with incomplete all-request coverage, preserved under revisions."
+}

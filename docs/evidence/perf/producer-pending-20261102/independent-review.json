@@ -1,0 +1,22 @@
+{
+  "reviewed_patch_sha256": "52d8b994f39a68a74f7252af63602e5482ab8c22f08e91dc671b546d1a7444b2",
+  "base": "v8 fixed Worker (unqualified candidate)",
+  "forward_reverse_exact": true,
+  "findings": "No new static correctness blocker found in the inspected paths.",
+  "scope_checks": {
+    "admission": "Both recv_many arms invalidate before cooperative accounting; push_pending never restores validity after an interrupted accounting operation.",
+    "deadline": "The ordered fast path uses the first surviving deadline, including equal deadlines; appended out-of-order/retry records disable it and use the full cooperative minimum scan.",
+    "expiration": "Only non-sticky queues skip expiration scans before cached earliest; sticky cancellation still checks every record.",
+    "split": "Stats are invalidated before awaiting partition/first removal and recomputed or restored before ordinary continuation; Worker Drop restores an interrupted split.",
+    "drain": "Accounting scans before moving accepted records and commits queue/stat changes without an intervening await.",
+    "tests": "All previous test function names remain; nine new controls use Worker methods and count completed expiration checks/suffix rescans. The single-record Vec prefix shift still occurs and is not counted.",
+    "compile": "All observed Worker initializers have new fields; Rust compilation and Clippy are not established by static inspection."
+  },
+  "limits": [
+    "This is source-only review; no Rust build, runtime, benchmark or release claim.",
+    "Interrupted Split supports Worker Drop, not arbitrary resumption on the same Worker; this predates the patch.",
+    "When invalid, earliest_pending_deadline returns now, which worker_wake_delay can convert to no timer; current run/take-sticky paths repair stats with purge before selecting, so this invariant deserves a real cancellation test.",
+    "The cancellation test manually appends to pending then invokes accounting; it does not drive recv_many through actual Worker::run.",
+    "Rescan counters are credited only after a complete scan; they do not measure partial scans canceled at an await or Vec shifts."
+  ]
+}

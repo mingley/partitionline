@@ -1,0 +1,364 @@
+{
+  "source_patch_sha256": "4795c5416c476ae3e0edd2858b6ef88cc9e3ccbb5cc165e544d2e257c9cc2710",
+  "source_file_sha256": {
+    ".github/workflows/release.yml": "105a2474922cda874f680d3edec3487906d4b5313e632f80187eeb39004a7cf0",
+    "scripts/lib/crates-io.sh": "8f5e7f1e2b146647253e2facf4850049d63575c7f7989652e07ef6db4198543d",
+    "scripts/report-release-rehearsal.py": "132e2d8aa4905ba469d001b1b508d5d09cef90480bf1e29b8eaf9ea4b1c36524",
+    "tests/release/test_release_confirmation.py": "1bb26a56ea55f64d5fbc6c25c0f89e0eaed53d1741364f8a110b6288e6922531",
+    "Cargo.toml": "98b437d0dab4d8289a9fd097f9f7a8c4b6e227c505584eb1ea22e0c8bc28f389"
+  },
+  "requested_crate": "partitionline",
+  "requested_version": "0.1.0",
+  "source_stable": true,
+  "cases": [
+    {
+      "invalid_endpoint": "api",
+      "invalid_constant": "NaN",
+      "skip": "0",
+      "api_body": "{\"version\": {\"crate\": \"partitionline\", \"num\": \"0.1.0\", \"yanked\": false},\"illegal\":NaN}",
+      "index_body": "{\"name\": \"partitionline\", \"vers\": \"0.1.0\", \"yanked\": false}\n",
+      "exit": 130,
+      "stdout": "waiting for crates.io index (1/30; api_http=200,index=present,index_http=200,api=unknown)...\n",
+      "stderr": "",
+      "calls": [
+        {
+          "tool": "curl",
+          "endpoint": "api",
+          "response": "200"
+        },
+        {
+          "tool": "curl",
+          "endpoint": "index",
+          "response": "200"
+        },
+        {
+          "tool": "sleep",
+          "args": [
+            "10"
+          ]
+        }
+      ],
+      "failed_closed": true
+    },
+    {
+      "invalid_endpoint": "api",
+      "invalid_constant": "NaN",
+      "skip": "1",
+      "api_body": "{\"version\": {\"crate\": \"partitionline\", \"num\": \"0.1.0\", \"yanked\": false},\"illegal\":NaN}",
+      "index_body": "{\"name\": \"partitionline\", \"vers\": \"0.1.0\", \"yanked\": false}\n",
+      "exit": 130,
+      "stdout": "release: skipped publish; checking that partitionline 0.1.0 remains in the index\nwaiting for crates.io index (1/30; api_http=200,index=present,index_http=200,api=unknown)...\n",
+      "stderr": "",
+      "calls": [
+        {
+          "tool": "curl",
+          "endpoint": "api",
+          "response": "200"
+        },
+        {
+          "tool": "curl",
+          "endpoint": "index",
+          "response": "200"
+        },
+        {
+          "tool": "sleep",
+          "args": [
+            "10"
+          ]
+        }
+      ],
+      "failed_closed": true
+    },
+    {
+      "invalid_endpoint": "index",
+      "invalid_constant": "NaN",
+      "skip": "0",
+      "api_body": "{\"version\": {\"crate\": \"partitionline\", \"num\": \"0.1.0\", \"yanked\": false}}",
+      "index_body": "{\"name\": \"partitionline\", \"vers\": \"0.1.0\", \"yanked\": false,\"illegal\":NaN}\n",
+      "exit": 130,
+      "stdout": "waiting for crates.io index (1/30; api_http=200,index=unknown,index_http=200,api=present)...\n",
+      "stderr": "",
+      "calls": [
+        {
+          "tool": "curl",
+          "endpoint": "api",
+          "response": "200"
+        },
+        {
+          "tool": "curl",
+          "endpoint": "index",
+          "response": "200"
+        },
+        {
+          "tool": "sleep",
+          "args": [
+            "10"
+          ]
+        }
+      ],
+      "failed_closed": true
+    },
+    {
+      "invalid_endpoint": "index",
+      "invalid_constant": "NaN",
+      "skip": "1",
+      "api_body": "{\"version\": {\"crate\": \"partitionline\", \"num\": \"0.1.0\", \"yanked\": false}}",
+      "index_body": "{\"name\": \"partitionline\", \"vers\": \"0.1.0\", \"yanked\": false,\"illegal\":NaN}\n",
+      "exit": 130,
+      "stdout": "release: skipped publish; checking that partitionline 0.1.0 remains in the index\nwaiting for crates.io index (1/30; api_http=200,index=unknown,index_http=200,api=present)...\n",
+      "stderr": "",
+      "calls": [
+        {
+          "tool": "curl",
+          "endpoint": "api",
+          "response": "200"
+        },
+        {
+          "tool": "curl",
+          "endpoint": "index",
+          "response": "200"
+        },
+        {
+          "tool": "sleep",
+          "args": [
+            "10"
+          ]
+        }
+      ],
+      "failed_closed": true
+    },
+    {
+      "invalid_endpoint": "api",
+      "invalid_constant": "Infinity",
+      "skip": "0",
+      "api_body": "{\"version\": {\"crate\": \"partitionline\", \"num\": \"0.1.0\", \"yanked\": false},\"illegal\":Infinity}",
+      "index_body": "{\"name\": \"partitionline\", \"vers\": \"0.1.0\", \"yanked\": false}\n",
+      "exit": 130,
+      "stdout": "waiting for crates.io index (1/30; api_http=200,index=present,index_http=200,api=unknown)...\n",
+      "stderr": "",
+      "calls": [
+        {
+          "tool": "curl",
+          "endpoint": "api",
+          "response": "200"
+        },
+        {
+          "tool": "curl",
+          "endpoint": "index",
+          "response": "200"
+        },
+        {
+          "tool": "sleep",
+          "args": [
+            "10"
+          ]
+        }
+      ],
+      "failed_closed": true
+    },
+    {
+      "invalid_endpoint": "api",
+      "invalid_constant": "Infinity",
+      "skip": "1",
+      "api_body": "{\"version\": {\"crate\": \"partitionline\", \"num\": \"0.1.0\", \"yanked\": false},\"illegal\":Infinity}",
+      "index_body": "{\"name\": \"partitionline\", \"vers\": \"0.1.0\", \"yanked\": false}\n",
+      "exit": 130,
+      "stdout": "release: skipped publish; checking that partitionline 0.1.0 remains in the index\nwaiting for crates.io index (1/30; api_http=200,index=present,index_http=200,api=unknown)...\n",
+      "stderr": "",
+      "calls": [
+        {
+          "tool": "curl",
+          "endpoint": "api",
+          "response": "200"
+        },
+        {
+          "tool": "curl",
+          "endpoint": "index",
+          "response": "200"
+        },
+        {
+          "tool": "sleep",
+          "args": [
+            "10"
+          ]
+        }
+      ],
+      "failed_closed": true
+    },
+    {
+      "invalid_endpoint": "index",
+      "invalid_constant": "Infinity",
+      "skip": "0",
+      "api_body": "{\"version\": {\"crate\": \"partitionline\", \"num\": \"0.1.0\", \"yanked\": false}}",
+      "index_body": "{\"name\": \"partitionline\", \"vers\": \"0.1.0\", \"yanked\": false,\"illegal\":Infinity}\n",
+      "exit": 130,
+      "stdout": "waiting for crates.io index (1/30; api_http=200,index=unknown,index_http=200,api=present)...\n",
+      "stderr": "",
+      "calls": [
+        {
+          "tool": "curl",
+          "endpoint": "api",
+          "response": "200"
+        },
+        {
+          "tool": "curl",
+          "endpoint": "index",
+          "response": "200"
+        },
+        {
+          "tool": "sleep",
+          "args": [
+            "10"
+          ]
+        }
+      ],
+      "failed_closed": true
+    },
+    {
+      "invalid_endpoint": "index",
+      "invalid_constant": "Infinity",
+      "skip": "1",
+      "api_body": "{\"version\": {\"crate\": \"partitionline\", \"num\": \"0.1.0\", \"yanked\": false}}",
+      "index_body": "{\"name\": \"partitionline\", \"vers\": \"0.1.0\", \"yanked\": false,\"illegal\":Infinity}\n",
+      "exit": 130,
+      "stdout": "release: skipped publish; checking that partitionline 0.1.0 remains in the index\nwaiting for crates.io index (1/30; api_http=200,index=unknown,index_http=200,api=present)...\n",
+      "stderr": "",
+      "calls": [
+        {
+          "tool": "curl",
+          "endpoint": "api",
+          "response": "200"
+        },
+        {
+          "tool": "curl",
+          "endpoint": "index",
+          "response": "200"
+        },
+        {
+          "tool": "sleep",
+          "args": [
+            "10"
+          ]
+        }
+      ],
+      "failed_closed": true
+    },
+    {
+      "invalid_endpoint": "api",
+      "invalid_constant": "-Infinity",
+      "skip": "0",
+      "api_body": "{\"version\": {\"crate\": \"partitionline\", \"num\": \"0.1.0\", \"yanked\": false},\"illegal\":-Infinity}",
+      "index_body": "{\"name\": \"partitionline\", \"vers\": \"0.1.0\", \"yanked\": false}\n",
+      "exit": 130,
+      "stdout": "waiting for crates.io index (1/30; api_http=200,index=present,index_http=200,api=unknown)...\n",
+      "stderr": "",
+      "calls": [
+        {
+          "tool": "curl",
+          "endpoint": "api",
+          "response": "200"
+        },
+        {
+          "tool": "curl",
+          "endpoint": "index",
+          "response": "200"
+        },
+        {
+          "tool": "sleep",
+          "args": [
+            "10"
+          ]
+        }
+      ],
+      "failed_closed": true
+    },
+    {
+      "invalid_endpoint": "api",
+      "invalid_constant": "-Infinity",
+      "skip": "1",
+      "api_body": "{\"version\": {\"crate\": \"partitionline\", \"num\": \"0.1.0\", \"yanked\": false},\"illegal\":-Infinity}",
+      "index_body": "{\"name\": \"partitionline\", \"vers\": \"0.1.0\", \"yanked\": false}\n",
+      "exit": 130,
+      "stdout": "release: skipped publish; checking that partitionline 0.1.0 remains in the index\nwaiting for crates.io index (1/30; api_http=200,index=present,index_http=200,api=unknown)...\n",
+      "stderr": "",
+      "calls": [
+        {
+          "tool": "curl",
+          "endpoint": "api",
+          "response": "200"
+        },
+        {
+          "tool": "curl",
+          "endpoint": "index",
+          "response": "200"
+        },
+        {
+          "tool": "sleep",
+          "args": [
+            "10"
+          ]
+        }
+      ],
+      "failed_closed": true
+    },
+    {
+      "invalid_endpoint": "index",
+      "invalid_constant": "-Infinity",
+      "skip": "0",
+      "api_body": "{\"version\": {\"crate\": \"partitionline\", \"num\": \"0.1.0\", \"yanked\": false}}",
+      "index_body": "{\"name\": \"partitionline\", \"vers\": \"0.1.0\", \"yanked\": false,\"illegal\":-Infinity}\n",
+      "exit": 130,
+      "stdout": "waiting for crates.io index (1/30; api_http=200,index=unknown,index_http=200,api=present)...\n",
+      "stderr": "",
+      "calls": [
+        {
+          "tool": "curl",
+          "endpoint": "api",
+          "response": "200"
+        },
+        {
+          "tool": "curl",
+          "endpoint": "index",
+          "response": "200"
+        },
+        {
+          "tool": "sleep",
+          "args": [
+            "10"
+          ]
+        }
+      ],
+      "failed_closed": true
+    },
+    {
+      "invalid_endpoint": "index",
+      "invalid_constant": "-Infinity",
+      "skip": "1",
+      "api_body": "{\"version\": {\"crate\": \"partitionline\", \"num\": \"0.1.0\", \"yanked\": false}}",
+      "index_body": "{\"name\": \"partitionline\", \"vers\": \"0.1.0\", \"yanked\": false,\"illegal\":-Infinity}\n",
+      "exit": 130,
+      "stdout": "release: skipped publish; checking that partitionline 0.1.0 remains in the index\nwaiting for crates.io index (1/30; api_http=200,index=unknown,index_http=200,api=present)...\n",
+      "stderr": "",
+      "calls": [
+        {
+          "tool": "curl",
+          "endpoint": "api",
+          "response": "200"
+        },
+        {
+          "tool": "curl",
+          "endpoint": "index",
+          "response": "200"
+        },
+        {
+          "tool": "sleep",
+          "args": [
+            "10"
+          ]
+        }
+      ],
+      "failed_closed": true
+    }
+  ],
+  "scope": "Offline HTTP stubs and extracted workflow shell only; no Cargo, network or publication."
+}

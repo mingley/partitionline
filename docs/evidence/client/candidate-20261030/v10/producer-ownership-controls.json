@@ -1,0 +1,56 @@
+{
+  "schema_version": 1,
+  "runtime_status": "UNRUN",
+  "additional_fixed_required_cases": [
+    "producer::prepare_tests::cancelled_ack_callback_walk_finishes_original_offset_suffix",
+    "producer::prepare_tests::cancelled_ack_latency_walk_preserves_metadata_and_byte_charge",
+    "producer::prepare_tests::cancelled_expiry_after_selection_keeps_failure_disposition",
+    "producer::prepare_tests::cancelled_expiry_classification_keeps_accepted_records",
+    "producer::prepare_tests::cancelled_failure_callback_walk_finishes_retained_suffix_once",
+    "producer::prepare_tests::cancelled_failure_group_walk_keeps_remaining_groups",
+    "producer::prepare_tests::cancelled_failure_size_walk_keeps_accepted_batch",
+    "producer::prepare_tests::cancelled_pending_permutation_restores_original_order_before_retry",
+    "producer::prepare_tests::cancelled_response_ack_completion_preserves_current_disposition",
+    "producer::prepare_tests::cancelled_response_endpoint_walk_keeps_decoded_request",
+    "producer::prepare_tests::cancelled_response_identity_renewal_keeps_current_and_later_groups",
+    "producer::prepare_tests::cancelled_response_index_walk_keeps_decoded_request",
+    "producer::prepare_tests::cancelled_retry_closed_admission_releases_each_count_after_callback",
+    "producer::prepare_tests::cancelled_retry_expiry_finishes_suffix_without_retry_tickets",
+    "producer::prepare_tests::cancelled_retry_full_queue_keeps_callback_count_until_terminal_release",
+    "producer::prepare_tests::cancelled_retry_sticky_sealing_keeps_accepted_batch",
+    "producer::prepare_tests::cancelled_retry_topic_index_keeps_accepted_batch",
+    "producer::prepare_tests::cancelled_retry_transfer_keeps_original_suffix_and_backoff",
+    "producer::prepare_tests::cancelled_sticky_displacement_keeps_the_retry_batch",
+    "producer::prepare_tests::cancelled_sticky_group_accounting_keeps_selected_payloads",
+    "producer::prepare_tests::cancelled_sticky_group_partition_keeps_accepted_payloads",
+    "producer::prepare_tests::cancelled_sticky_singleton_accounting_keeps_the_drained_record",
+    "producer::prepare_tests::cancelled_wait_one_ack_keeps_decoded_accepted_records",
+    "producer::prepare_tests::cancelled_zero_ack_group_walk_keeps_accepted_records",
+    "producer::prepare_tests::completed_ack_cursor_preserves_the_reusable_batch_allocation",
+    "producer::prepare_tests::stable_pending_partition_preserves_order_and_the_kept_allocation"
+  ],
+  "previous_preparation_control_names_preserved": true,
+  "frozen_v7_required_case_count": 141,
+  "frozen_v7_baseline_case_count": 22,
+  "predicted_combined_required_case_count": 167,
+  "patches": {
+    "v2-delta.patch": {
+      "sha256": "b15402a86c71ba73156a6c67d506f59ec275322a2329e32680c6b94468fb671a",
+      "bytes": 120227,
+      "gzip_sha256": "46039d1ee3c712a84f1f8621e400b54a2ab944a15901316e8abfa734c5b4151b",
+      "gzip_bytes": 20673
+    },
+    "v7-delta.patch": {
+      "sha256": "1750b53d85451f2da293f44b89ebd3ae5cd5dc2476288f237685e0cab1f38e71",
+      "bytes": 120234,
+      "gzip_sha256": "975c698c891513efc9d3ec6049aada5dae326a5ba599cfe6466ad2807f7db1b8",
+      "gzip_bytes": 20678
+    }
+  },
+  "limitations": [
+    "Rustfmt parses syntax only; no Cargo, rustc, Clippy, native test, or timed workload ran.",
+    "The Python split model proves only its logical permutation/restoration model, not compiled Rust.",
+    "Source changes do not qualify physical socket retirement before replay, issue ordering, sequence wrap, PID/epoch reconciliation or replay semantics.",
+    "All frozen v7 controls and baseline cases must remain required on x86_64 latest-stable qualification."
+  ]
+}

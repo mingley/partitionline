@@ -1,0 +1,54 @@
+{
+  "source_base": "client v8 candidate, not main product source",
+  "source_files": {
+    "src/producer.rs": {
+      "base_sha256": "bf165ca682b17f3812d3a3895854cdbf9f73ce862a9330bbc8a6dd2f4675be34",
+      "candidate_sha256": "6702ac0fc32774308d070e711dd6f80fa948f4f1f8789e883510ea8979882185"
+    },
+    "src/producer/prepare_tests.rs": {
+      "base_sha256": "4cd33e8febe735177c7ab5c1124a4a42a9f05af1eb7c6275e614fdeec673c0d5",
+      "candidate_sha256": "7bfae92cbbd6165883148ff522a994349c56b81688e95f76395fa0c9635da12a"
+    }
+  },
+  "patch_sha256": "52d8b994f39a68a74f7252af63602e5482ab8c22f08e91dc671b546d1a7444b2",
+  "patch_bytes": 26582,
+  "patch_gzip_sha256": "0e442579016dd16815d6e8ac65d52123afe72f0a3ebfeea9c9ad76c3c20db829",
+  "patch_gzip_bytes": 5138,
+  "forward_reverse_exact": true,
+  "rustfmt": "latest stable --check passed on both changed files",
+  "model_sha256": "e1d67eeb60b2106981aa9677f4eda5e4a64b67c17f7e084665a6571f3f8fa7ce",
+  "model_result": {
+    "seed": "0x6b61666b61",
+    "operations": 30000,
+    "simulated_cancelled_appends": 4326,
+    "expiry_fast_returns": 1433,
+    "expiry_scans": 28567,
+    "ordered_drains": 958,
+    "unordered_fallback_drains": 3637,
+    "scope": "Model only; no Rust compilation or runtime test."
+  },
+  "added_unrun_controls": [
+    "future_deadlines_without_sticky_skip_the_expiry_walk",
+    "ordered_deadlines_drain_without_rescanning_the_suffix",
+    "ordered_queue_repeated_drains_do_not_walk_expiry_or_deadline_suffixes",
+    "unordered_deadlines_keep_the_cooperative_minimum_scan",
+    "appended_older_deadline_disables_ordered_fast_path",
+    "cancelled_append_accounting_cannot_hide_an_earlier_deadline",
+    "cancelled_sticky_classification_invalidates_stats_until_cleanup",
+    "unchanged_sticky_classification_preserves_valid_stats",
+    "cancelled_sticky_member_is_found_before_its_future_deadline"
+  ],
+  "changed_existing_control": "cancelled_fire_grouping_retains_actual_accepted_records: three polls now reach the same grouping yield after two expiry walks are skipped",
+  "native_compilation": "not run",
+  "clippy": "not run",
+  "native_tests": "not run",
+  "performance_benchmark": "not run",
+  "independent_review": "pending",
+  "limitations": [
+    "The nonsticky/no-expiry and ordered-deadline cases skip two queue-wide scans; these are conditional paths.",
+    "Vector prefix drains still shift the remaining records and can be quadratic.",
+    "Nonmonotonic deadlines can still cause repeated suffix scans; sticky queues still scan expiry.",
+    "A Python model checks its own abstraction and does not verify Rust lifetimes, execution, or timings.",
+    "The preexisting Worker contract restores an interrupted split during Drop; arbitrary resumption of that split is not qualified."
+  ]
+}

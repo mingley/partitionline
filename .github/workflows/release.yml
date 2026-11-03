@@ -190,22 +190,25 @@ jobs:
           set -euo pipefail
           ver="$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -1)"
           name="$(sed -n 's/^name = "\(.*\)"/\1/p' Cargo.toml | head -1)"
+          source scripts/lib/crates-io.sh
           if [ "${{ steps.already.outputs.skip }}" = "1" ]; then
-            echo "release: ${name} ${ver} already confirmed on crates.io (skipped publish)"
-            exit 0
+            echo "release: skipped publish; checking that ${name} ${ver} remains in the index"
           fi
           ok=0
           for i in $(seq 1 30); do
-            if curl -fsSA 'partitionline-ci/1' \
-              "https://crates.io/api/v1/crates/${name}/${ver}" >/tmp/pl-crate.json; then
+            pl_crates_probe_version "$name" "$ver" 'partitionline-ci/1'
+            if [[ "$PL_CRATES_API_STATUS" == present && "$PL_CRATES_INDEX_STATUS" == present ]]; then
               echo "crates.io has ${name} ${ver}"
               ok=1
               break
             fi
-            echo "waiting for crates.io index (${i}/30)..."
+            echo "waiting for crates.io index (${i}/30; ${PL_CRATES_PROBE_DETAIL})..."
             sleep 10
           done
-          test "$ok" = "1"
+          if [ "$ok" != "1" ]; then
+            echo "release: ${name} ${ver} not confirmed by the API and sparse index" >&2
+            exit 1
+          fi
           echo "Owner follow-up: bash scripts/day1-after-publish.sh && commit README on main."
           echo "Then configure Trusted Publishing (see docs/RELEASE.md) so later tags need no long-lived secret."
       - name: GitHub Release notes

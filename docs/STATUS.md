@@ -43,22 +43,23 @@ quorum, without replicated partition data or native Kafka KRaft.
 - The isolated [client candidate][candidate-results] ran in both feature
   profiles but did not pass. Its 141 required identities and 22 baseline cases
   remain in the candidate; its changes have not been adopted on `main`.
-  A follow-up candidate adds 26 producer ownership controls; it still needs
-  native compilation and runtime tests.
+  A follow-up candidate adds producer ownership and fixture controls; it
+  still needs native compilation and runtime tests.
 
 ## Validation
 
 | Check | Recorded result |
 | --- | --- |
-| Client default library on `main` at `c025be19b` | 2,171 passed, 25 failed; later integration targets did not run |
-| Client all-feature library on `main` at that commit | 2,174 passed, 22 failed; later integration targets did not run |
+| Client default library on `main` at `350b5e534` | 2,167 passed, 29 failed; later integration targets did not run |
+| Client all-feature library on `main` at that commit | 2,177 passed, 19 failed; later integration targets did not run |
 | Isolated client v7 library, each profile | 2,253 passed, one failed; selected producer tests and Clippy also failed |
 | Qualified broker v2 default all targets, `209d0b068` | 720 passed |
 | Qualified broker v2 all-feature all targets at that commit | 868 passed |
 | Broker v2 strict Clippy, docs, inventory and six repeated Fetch checks | Passed |
 | Client focused capability profiles at that commit | 93 passed and 450 Java reverse checks per profile |
-| Main broker CI, capability profiles, strict Clippy, security, documentation and package jobs | Passed at `c025be19b` |
-| Main client and live Kafka compatibility CI | Failed at `c025be19b` |
+| Main broker CI | Passed at `350b5e534` |
+| Capability profiles, strict Clippy, security, documentation and package jobs | Passed at `c025be19b` |
+| Main client and live Kafka compatibility CI | Failed at `350b5e534` |
 
 The [client failure index][client], [main CI run][main-ci] and
 [candidate results][candidate-results] preserve the results.
@@ -86,7 +87,7 @@ are incomplete; [protocol support](gaps.md) lists those feature gaps.
 The broker still needs replicated partition data, authenticated network
 leadership, committed-watermark protection and transaction participant/marker
 propagation. The adopted local epoch and journal fixes have passing x86
-qualification and ordinary broker CI on `c025be19b`.
+qualification and ordinary broker CI on `350b5e534`.
 Epoch publication rewrites the file and needs another complete image on disk.
 A local log test does not establish a production cluster.
 
@@ -104,10 +105,13 @@ The producer's pending queue can repeatedly scan deadlines and shift records
 when small batches drain. A replica epoch change rewrites the broker journal.
 Both are candidates for optimization; neither has a measured end-to-end
 speedup yet. The required matched x86 peer comparison has not run.
+An uncompiled queue candidate needs native tests and a benchmark before its
+effect is known.
 
-The release workflow also needs repair: its registry probe can mistake an
-unavailable index for an absent version, its recovery rehearsal assumes version
-0.1.0, and its post-upload check does not verify Cargo index availability.
+The release registry probe, recovery rehearsal and workflow confirmation have
+offline-tested fixes for unavailable indexes, candidate versions and API/index
+agreement. Hosted CI remains open. The local owner-cut confirmation path still
+needs the same dual-source check.
 
 Use [next work][next] for the detailed handoff, [support](support.md) for tested
 combinations, and the [release guide](RELEASE.md) for publication gates.
@@ -120,7 +124,7 @@ measurements and dated notes.
 [dependencies]: https://github.com/mingley/partitionline/blob/77021f7dc6c0d19aa93c7bf0b7fad125ee632e23/docs/evidence/security/dependency-floors-20261030/README.md
 [package]: https://github.com/mingley/partitionline/blob/77021f7dc6c0d19aa93c7bf0b7fad125ee632e23/docs/evidence/releases/package-navigation-20261030/README.md
 [client]: https://github.com/mingley/partitionline/blob/77021f7dc6c0d19aa93c7bf0b7fad125ee632e23/docs/evidence/client/clean-default-validation-20261028/README.md
-[main-ci]: https://github.com/mingley/partitionline/actions/runs/41141176275
+[main-ci]: https://github.com/mingley/partitionline/actions/runs/41572635665
 [candidate-results]: https://github.com/mingley/partitionline/blob/dfad6573e46adf8aa91626854e4f816cfff2c2bf/docs/evidence/client/candidate-native-c025-20261030/README.md
 [java]: https://github.com/mingley/partitionline/blob/9481723c7a144254fdf4f1c415d082aa0233a25f/docs/evidence/client/capability-java-20261030/README.md
 [broker]: https://github.com/mingley/partitionline/blob/ef28c255aecf402cdae2000d8796dcea9a36a8bc/docs/evidence/broker/epoch-journal-20261030/README.md

@@ -11,6 +11,7 @@ import subprocess
 import sys
 import tempfile
 import time
+import tomllib
 import uuid
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -20,6 +21,11 @@ EXPECTED = {
     'workflow-registry-unavailable': 1,
     'local-existing-version': 0, 'local-registry-unavailable': 1,
     'workflow-index-pending': 1, 'local-index-pending': 1,
+    'workflow-index-only': 0, 'local-index-only': 0,
+    'workflow-yanked-version': 1, 'local-yanked-version': 1,
+    'workflow-index-unavailable': 1, 'local-index-unavailable': 1,
+    'workflow-api-unavailable': 1, 'local-api-unavailable': 1,
+    'workflow-malformed-index': 1, 'local-malformed-index': 1,
     'missing-exact-ci': 1,
     'confirmation-interrupted': 130, 'confirmation-resumed': 0,
     'release-notes-first': 0, 'release-notes-repeated': 0,
@@ -51,11 +57,29 @@ if name == 'git':
 elif name == 'curl':
     if any(a in args for a in ['-X','--request','-T','--upload-file','--data','-d','--form','-F']): deny()
     url = args[-1]
-    if not url.startswith(('https://crates.io/api/v1/crates/partitionline/','https://index.crates.io/pa/rt/partitionline')): deny()
+    version = os.environ['PL_REHEARSAL_VERSION']
+    api = 'https://crates.io/api/v1/crates/partitionline/'+version
+    index = 'https://index.crates.io/pa/rt/partitionline'
+    if url not in (api, index): deny()
     mode = os.environ['PL_REHEARSAL_REGISTRY']
-    code = {'present':'200','absent':'404','unavailable':'503','api-only':'200'}[mode]
-    if mode == 'api-only' and url.startswith('https://index.crates.io/'): code = '404'
-    body = json.dumps({'vers':'0.1.0','yanked':False})+'\n' if mode=='present' else '{}\n'
+    history = '0.1.0' if version != '0.1.0' else '0.0.1'
+    if url == api:
+        code = {'present':'200','absent':'404','unavailable':'503',
+                'api-only':'200','index-only':'404','yanked':'200',
+                'index-unavailable':'404','api-unavailable':'503',
+                'malformed-index':'404'}[mode]
+        body = json.dumps({'version':{'crate':'partitionline','num':version,
+                                     'yanked':mode == 'yanked'}})+'\n' if code == '200' else '{}\n'
+    else:
+        code = {'present':'200','absent':'200','unavailable':'503',
+                'api-only':'200','index-only':'200','yanked':'200',
+                'index-unavailable':'503','api-unavailable':'404',
+                'malformed-index':'200'}[mode]
+        rows = [{'name':'partitionline', 'vers':history, 'yanked':False}]
+        if mode in ('present','index-only','yanked'):
+            rows.append({'name':'partitionline', 'vers':version, 'yanked':mode == 'yanked'})
+        body = '\n'.join(map(json.dumps, rows))+'\n' if code == '200' else '{}\n'
+        if mode == 'malformed-index': body = '{invalid json\n'
     if '-o' in args: Path(args[args.index('-o')+1]).write_text(body)
     elif '--output' in args: Path(args[args.index('--output')+1]).write_text(body)
     else: print(body, end='')
@@ -81,6 +105,29 @@ def require(condition, message):
         raise ValueError(message)
 
 
+FINAL_VERSION = re.compile(r'(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)')
+
+
+def candidate_version_from_text(text):
+    """Read the manifest and verify the existing release shell sees the same values."""
+    package = tomllib.loads(text).get('package', {})
+    require(isinstance(package, dict), 'candidate manifest needs a package table')
+    name, version = package.get('name'), package.get('version')
+    require(name == 'partitionline', 'unexpected candidate crate name')
+    require(isinstance(version, str) and FINAL_VERSION.fullmatch(version) is not None,
+            'candidate version must be a final X.Y.Z version')
+    shell_name = re.search(r'(?m)^name = "(.*)"', text)
+    shell_version = re.search(r'(?m)^version = "(.*)"', text)
+    require(shell_name is not None and shell_name.group(1) == name
+            and shell_version is not None and shell_version.group(1) == version,
+            'release shell cannot read the candidate name/version unambiguously')
+    return version
+
+
+def candidate_version(source_root):
+    return candidate_version_from_text((source_root/'Cargo.toml').read_bytes().decode('utf-8'))
+
+
 def workflow_steps(text):
     """Extract literal Bash run blocks; reject expressions not explicitly modeled."""
     result = {}
@@ -95,6 +142,9 @@ def workflow_steps(text):
 
 def isolated_cases(report, source_root=ROOT, source_sha='1'*40):
     report.mkdir(parents=True, exist_ok=True)
+    version = candidate_version(source_root)
+    major, minor, patch = version.split('.')
+    wrong_version = f'{major}.{minor}.{int(patch)+1}'
     source_hashes = {name: hashlib.sha256((source_root/name).read_bytes()).hexdigest() for name in SOURCE_FILES}
     steps = workflow_steps((source_root/'.github/workflows/release.yml').read_text())
     results = []
@@ -119,8 +169,9 @@ def isolated_cases(report, source_root=ROOT, source_sha='1'*40):
         env = {'PATH':str(folder/'bin')+':/usr/bin:/bin', 'LANG':'C.UTF-8',
                'TMPDIR':str(folder/'tmp'), 'PYTHONDONTWRITEBYTECODE':'1',
                'PL_REHEARSAL_CASE':str(folder), 'PL_REHEARSAL_SOURCE':source_sha,
-               'PL_REHEARSAL_REGISTRY':registry, 'GITHUB_OUTPUT':str(folder/(name+'-outputs')),
-               'EVENT_NAME':'push', 'REF_NAME':'v0.1.0', 'DISPATCH_TAG':'',
+               'PL_REHEARSAL_REGISTRY':registry, 'PL_REHEARSAL_VERSION':version,
+               'GITHUB_OUTPUT':str(folder/(name+'-outputs')),
+               'EVENT_NAME':'push', 'REF_NAME':'v'+version, 'DISPATCH_TAG':'',
                'GH_RUNS_JSON':str(folder/'ci-runs.json'), 'REQUIRE_MAIN_CI':'1', 'REQUIRE_PROFILE_EVIDENCE':'1'}
         env.update(env_values or {})
         if step is None:
@@ -150,8 +201,8 @@ def isolated_cases(report, source_root=ROOT, source_sha='1'*40):
 
     tag_step = 'Verify tag matches Cargo.toml (final versions only)'
     case('final-tag', tag_step)
-    case('wrong-tag', tag_step, env_values={'REF_NAME':'v0.1.1'})
-    case('prerelease-tag', tag_step, env_values={'REF_NAME':'v0.1.0-rc.1'})
+    case('wrong-tag', tag_step, env_values={'REF_NAME':'v'+wrong_version})
+    case('prerelease-tag', tag_step, env_values={'REF_NAME':'v'+version+'-rc.1'})
     skip_step = 'Soft-skip if version already on crates.io'
     case('workflow-existing-version', skip_step, assertion=lambda f,o,e:
          (f/'workflow-existing-version-outputs').read_text()=='skip=1\n')
@@ -161,6 +212,14 @@ def isolated_cases(report, source_root=ROOT, source_sha='1'*40):
          not (f/'workflow-registry-unavailable-outputs').exists() and 'registry unavailable' in e.lower())
     case('workflow-index-pending', skip_step, registry='api-only', assertion=lambda f,o,e:
          not (f/'workflow-index-pending-outputs').exists() and 'index=absent' in e)
+    case('workflow-index-only', skip_step, registry='index-only', assertion=lambda f,o,e:
+         (f/'workflow-index-only-outputs').read_text()=='skip=1\n')
+    for name, mode in [('workflow-yanked-version','yanked'),
+                       ('workflow-index-unavailable','index-unavailable'),
+                       ('workflow-api-unavailable','api-unavailable'),
+                       ('workflow-malformed-index','malformed-index')]:
+        case(name, skip_step, registry=mode, assertion=lambda f,o,e,n=name:
+             not (f/(n+'-outputs')).exists() and 'registry unavailable' in e.lower())
     owner_env = {'CARGO_REGISTRY_TOKEN':'rehearsal-placeholder-not-a-credential','RUN_DAY1_AFTER_PUBLISH':'0'}
     case('local-existing-version', env_values=owner_env,
          assertion=lambda f,o,e:'skipping cargo publish' in o)
@@ -168,25 +227,35 @@ def isolated_cases(report, source_root=ROOT, source_sha='1'*40):
          assertion=lambda f,o,e:'registry unavailable' in e.lower())
     case('local-index-pending', registry='api-only', env_values=owner_env,
          assertion=lambda f,o,e:'index=absent' in e)
+    case('local-index-only', registry='index-only', env_values=owner_env,
+         assertion=lambda f,o,e:'skipping cargo publish' in o)
+    for name, mode in [('local-yanked-version','yanked'),
+                       ('local-index-unavailable','index-unavailable'),
+                       ('local-api-unavailable','api-unavailable'),
+                       ('local-malformed-index','malformed-index')]:
+        case(name, registry=mode, env_values=owner_env,
+             assertion=lambda f,o,e:'registry unavailable' in e.lower())
     case('missing-exact-ci', 'Exact-SHA CI green (KL-08)',
          assertion=lambda f,o,e:'[outcome=missing]' in e)
     case('confirmation-interrupted', 'Confirm crates.io', registry='absent',
          assertion=lambda f,o,e:'waiting for crates.io index' in o)
     case('confirmation-resumed', 'Confirm crates.io', reuse='confirmation-interrupted',
-         assertion=lambda f,o,e:'crates.io has partitionline 0.1.0' in o)
+         assertion=lambda f,o,e:'crates.io has partitionline '+version in o)
     case('release-notes-first', 'GitHub Release notes',
-         assertion=lambda f,o,e:'created GitHub release v0.1.0' in o)
+         assertion=lambda f,o,e:'created GitHub release v'+version in o)
     case('release-notes-repeated', 'GitHub Release notes', reuse='release-notes-first',
          assertion=lambda f,o,e:'already exists' in o)
     commands = []
     for path in sorted((report/'cases').glob('*/commands.jsonl')):
         commands += [json.loads(line) for line in path.read_text().splitlines()]
     result = {'schema_version':1,'scope':'No-publish release recovery rehearsal; substituted services are not release or hosted CI evidence.',
-              'candidate_source_sha':source_sha,'source_file_sha256':source_hashes,
+              'candidate_source_sha':source_sha,'candidate_version':version,
+              'candidate_manifest':(source_root/'Cargo.toml').read_bytes().decode('utf-8'),
+              'source_file_sha256':source_hashes,
               'scenarios':results,'commands':commands,'release_complete':False,
               'owner_actions':[{'stage':name,'status':'not_run','reason':reason} for name,reason in [
                   ('candidate-CI-and-package','Exact candidate hosted profile and full packed-crate checks remain required on an actual release.'),
-                  ('release-authorization','Owner must select the next version and authorize the release.'),
+                  ('release-authorization','The final version and passing release gates remain required.'),
                   ('authenticate-and-publish','No credential lookup, OIDC request or package upload occurs in rehearsal.'),
                   ('tag-and-push','No actual tag is created, moved or pushed.'),
                   ('registry-confirmation','Only local service responses were exercised; real registry confirmation follows actual publication.'),
@@ -201,6 +270,9 @@ def validate(result):
     require(result['schema_version']==1 and result['release_complete'] is False,
             'rehearsal cannot claim a completed release')
     require(re.fullmatch(r'[0-9a-f]{40}',result['candidate_source_sha']) is not None,'invalid exact source')
+    require(isinstance(result['candidate_version'], str)
+            and FINAL_VERSION.fullmatch(result['candidate_version']) is not None,
+            'invalid candidate version')
     rows=result['scenarios']
     require(len(rows)==len(EXPECTED) and {row['name'] for row in rows}==set(EXPECTED),
             'missing/duplicate/unknown rehearsal scenario')
@@ -212,6 +284,11 @@ def validate(result):
     require(set(result['source_file_sha256'])==set(SOURCE_FILES)
             and all(re.fullmatch(r'[0-9a-f]{64}',value) for value in result['source_file_sha256'].values()),
             'missing source identity')
+    manifest = result['candidate_manifest']
+    require(isinstance(manifest, str)
+            and hashlib.sha256(manifest.encode('utf-8')).hexdigest() == result['source_file_sha256']['Cargo.toml']
+            and candidate_version_from_text(manifest) == result['candidate_version'],
+            'candidate version does not match the source manifest')
     forbidden=[]
     for command in result['commands']:
         name,args=command['command'],command['args']
@@ -234,9 +311,13 @@ def main():
     parser=argparse.ArgumentParser(description=__doc__)
     group=parser.add_mutually_exclusive_group(required=True)
     group.add_argument('--self-test',action='store_true')
+    group.add_argument('--candidate-version',action='store_true')
     group.add_argument('--run',type=Path,metavar='ARTIFACT_BASE')
     args=parser.parse_args()
     try:
+        if args.candidate_version:
+            print(candidate_version(ROOT))
+            return 0
         if args.self_test:
             with tempfile.TemporaryDirectory(prefix='pl-release-rehearsal-') as temporary:
                 isolated_cases(Path(temporary))
@@ -261,8 +342,8 @@ def main():
             result['python_version']=sys.version
             (report/'report.json').write_text(json.dumps(result,indent=2)+'\n')
             print('Exact-source artifact: '+str(report))
-        print('Release rehearsal: all 15 executed recovery scenarios passed; release remains an owner action')
-    except (ValueError,KeyError,OSError) as error:
+        print(f'Release rehearsal: all {len(EXPECTED)} executed recovery scenarios passed; release remains an owner action')
+    except (ValueError,KeyError,OSError,tomllib.TOMLDecodeError) as error:
         print('Release rehearsal rejected: '+str(error),file=sys.stderr)
         return 1
     return 0

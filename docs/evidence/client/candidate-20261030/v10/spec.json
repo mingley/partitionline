@@ -1,0 +1,182 @@
+{
+  "schema": 1,
+  "kind": "client",
+  "base_client_Rust_commit": "350b5e534215723be65680e6116b1ec3d495506c",
+  "base_inputs": {
+    "path": "base-inputs.json",
+    "sha256": "a3acacbe19f439846bd3847966978a9e2055fcc7ed8cb43fe1f97c2ca105751a",
+    "bytes": 225673
+  },
+  "baseline_inputs": {
+    "path": "baseline-inputs.json",
+    "sha256": "badc93a8cd8c321f47f39a930e7e2fdd64a344d76245e00d26c1a31f26d95f95",
+    "bytes": 226373
+  },
+  "fixed_inputs": {
+    "path": "fixed-inputs.json",
+    "sha256": "7f93a12da4246aa6e1d5aa8892435028e08de622b632a2e27b4f8baefe1682a1",
+    "bytes": 226568
+  },
+  "controls": {
+    "path": "controls.json",
+    "sha256": "47d2c5891776daca644ad6f6cc8b46a39da3890eba35c7af15345b23bafa642f",
+    "bytes": 56229
+  },
+  "baseline_patch": {
+    "path": "baseline.patch.gz",
+    "sha256": "1d365508e520f8a4530eb58b3e26741ee95dfcddbb6b0f4a83fa7a469af5a6c9",
+    "bytes": 71450,
+    "uncompressed_sha256": "608116516e07b8af568fa5ae824ca8959748ba97a23e0f557a09e1c98b644625",
+    "uncompressed_bytes": 397874
+  },
+  "fixed_delta": {
+    "path": "fixed-delta.patch.gz",
+    "sha256": "376f3f0fca251fdf5c85dbb8ad5435cb104ed7eb40398356e43fc4531aef60e7",
+    "bytes": 32858,
+    "uncompressed_sha256": "c7e03b0a8a89f7cc43b7d830608af3cb0cdd51381b297ff6fe8a017afddaf665",
+    "uncompressed_bytes": 176620
+  },
+  "baseline_cases": [
+    {
+      "target": "partitionline",
+      "test": "producer::tests::cancelled_pending_drain_retains_accepted_records_until_worker_cleanup",
+      "expect": "pass",
+      "reason": "V5 baseline deliberately includes scoped drain fix733c0f2640ac... before the new actual-fire grouping negative."
+    },
+    {
+      "target": "partitionline",
+      "test": "producer::tests::cancelled_pending_deadline_scan_retains_the_detached_prefix_until_worker_cleanup",
+      "expect": "pass",
+      "reason": "V5 baseline deliberately includes scoped drain fix733c0f2640ac... before the new actual-fire grouping negative."
+    },
+    {
+      "target": "group_coordinator_startup",
+      "test": "classic_join_recovers_after_repeated_typed_coordinator_responses",
+      "expect": "fail"
+    },
+    {
+      "target": "group_coordinator_startup",
+      "test": "classic_join_retains_a_required_member_id_across_coordinator_responses",
+      "expect": "fail"
+    },
+    {
+      "target": "group_coordinator_startup",
+      "test": "classic_join_returns_terminal_response_after_transient_coordinator_errors",
+      "expect": "fail"
+    },
+    {
+      "target": "group_coordinator_startup",
+      "test": "persistent_join_responses_stop_at_the_original_deadline_with_backoff",
+      "expect": "fail"
+    },
+    {
+      "target": "group_coordinator_startup",
+      "test": "cancelling_a_join_after_written_coordinator_responses_stops_new_requests",
+      "expect": "pass",
+      "reason": "Native v7 baseline case unexpectedly passed in run 41141176310; preserve the identity. Prior prediction and receipt: baseline-case-07.json."
+    },
+    {
+      "target": "group_coordinator_startup",
+      "test": "classic_join_recovers_when_rediscovery_itself_is_still_loading",
+      "expect": "fail"
+    },
+    {
+      "target": "group_coordinator_startup",
+      "test": "classic_join_returns_terminal_rediscovery_errors_without_another_join",
+      "expect": "pass",
+      "reason": "Native v7 baseline case unexpectedly passed in run 41141176310; preserve the identity. Prior prediction and receipt: baseline-case-09.json."
+    },
+    {
+      "target": "group_coordinator_startup",
+      "test": "classic_join_does_not_retry_terminal_authorization_or_fencing_responses",
+      "expect": "pass"
+    },
+    {
+      "target": "partitionline",
+      "test": "group::tests::delayed_first_poll_does_not_restart_the_coordinator_deadline",
+      "expect": "fail"
+    },
+    {
+      "target": "mock_produce",
+      "test": "retry_refreshes_waiting_topics_together",
+      "expect": "fail"
+    },
+    {
+      "target": "group_stack",
+      "test": "public_group_lifecycle_fits_the_standard_two_mib_stack",
+      "expect": "observe"
+    },
+    {
+      "target": "partitionline",
+      "test": "cluster::tests::declared_topic_count_does_not_allocate_duplicate_tracking",
+      "expect": "fail"
+    },
+    {
+      "target": "partitionline",
+      "test": "cluster::tests::topic_duplicate_tracking_keeps_names_across_the_heap_transition",
+      "expect": "fail"
+    },
+    {
+      "target": "partitionline",
+      "test": "cluster::tests::unchanged_metadata_partitions_yield_without_discarding_the_cache",
+      "expect": "fail"
+    },
+    {
+      "target": "partitionline",
+      "test": "cluster::tests::unchanged_metadata_partition_budget_spans_multiple_topics",
+      "expect": "fail"
+    },
+    {
+      "target": "partitionline",
+      "test": "consumer::tests::cancelling_assigned_id_retention_keeps_all_still_assigned_identities",
+      "expect": "fail"
+    },
+    {
+      "target": "partitionline",
+      "test": "consumer::tests::retained_assigned_ids_keep_their_existing_storage",
+      "expect": "fail"
+    },
+    {
+      "target": "partitionline",
+      "test": "consumer::tests::cancelled_assigned_id_removals_can_resume_without_losing_kept_ids",
+      "expect": "pass"
+    },
+    {
+      "target": "partitionline",
+      "test": "consumer::tests::retaining_many_empty_assigned_id_topics_yields",
+      "expect": "fail"
+    },
+    {
+      "target": "partitionline",
+      "test": "producer::prepare_tests::cancelled_fire_grouping_retains_actual_accepted_records",
+      "expect": "fail",
+      "reason": "Actual legacy fire grouping with scoped drain ownership already fixed; direct helper controls are not old-code causal evidence."
+    }
+  ],
+  "fixed_full_targets": [
+    "partitionline",
+    "group_coordinator_startup",
+    "group_stack",
+    "produce_cancel",
+    "buffer_ownership",
+    "mock_produce",
+    "producer_initialization",
+    "producer_retained_backing",
+    "sticky_partitioner",
+    "init_producer_id_v6"
+  ],
+  "limits": [
+    "V10 also adds a separate socket handshake overlap diagnostic. The original 450 ms end-to-end test is byte-for-byte unchanged, still has a recorded v7 failure, and no performance fix is claimed.",
+    "V10 adds a test-only response gate and zero-delay correction to the fixed phase, with one required integration control. Rustfmt and source reconstruction pass; no V10 Cargo, Clippy or runtime result exists. The v7 retained-backing timeout cause is not proven.",
+    "V9 changes only source pins for five release-related files and adds the registry probe test to all phases. V8 Rust patches, controls, baseline cases and feature/test matrix are byte-for-byte unchanged; V9 has not run natively.",
+    "Prepared v8 source combines v7, two test repairs and worker-owned producer terminal/retry/split/response changes; no v8 Cargo build, Clippy or Rust runtime has run.",
+    "V7 native runs reached runtime and failed: each library 2253/1, Mock Produce 31/15, retained backing 7/1/1 ignored; two Clippy test errors and two baseline expectation mismatches. V8 test repairs do not address the 15 handshake failures or retained-backing timeout.",
+    "The two corrected baseline predictions keep the same identities and are based on actual v7 baseline cases that passed; prior failed predictions remain retained.",
+    "Full runs of ten chosen binaries in default/all-feature lanes are required; other integration binaries and ordinary whole-main runtime remain separate gates.",
+    "Runtime stack remains 8 MiB except an explicit standard 2 MiB group child; this mock does not establish live Kafka stack safety.",
+    "The producer ownership fix is statically reviewed but native cancellation, retry, callback and accounting behavior remains unqualified until these controls run.",
+    "Issue ordering, sequence wrap, PID/epoch transitions, whole-batch replay and physical socket retirement before ambiguous retry remain unresolved.",
+    "Hashing/map growth, final Drop, callbacks and deque-suffix conversion can perform linear synchronous work; global memory and cancellation latency are not bounded.",
+    "No external broker, multi-node durability, release readiness or fastest-performance ranking is established."
+  ]
+}

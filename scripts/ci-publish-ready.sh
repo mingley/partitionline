@@ -6,7 +6,7 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
 echo "== partial-release recovery rehearsal (KL-08; no publish) =="
-# Cheap grep gate; --self-test must stay 0 (never publishes or re-cuts 0.1.0).
+# The self-test exercises recovery for the candidate version without publishing.
 bash scripts/rehearse-partial-release.sh --self-test
 
 echo "== fmt =="

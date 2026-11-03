@@ -2,8 +2,11 @@
 import copy
 import importlib.util
 import json
+import os
 from pathlib import Path
 import shutil
+import subprocess
+import sys
 import tempfile
 import unittest
 
@@ -23,8 +26,9 @@ class ReleaseRehearsal(unittest.TestCase):
     def tearDownClass(cls):
         cls.temporary.cleanup()
 
-    def test_complete_recovery_has_fifteen_cases_and_no_release_claim(self):
-        self.assertEqual(len(self.result['scenarios']), 15)
+    def test_complete_recovery_has_all_cases_and_no_release_claim(self):
+        self.assertEqual(len(self.result['scenarios']), 25)
+        self.assertEqual(self.result['candidate_version'], rehearsal.candidate_version(ROOT))
         self.assertFalse(self.result['release_complete'])
         self.assertTrue(self.result['validation_success'])
         self.assertEqual(len(self.result['owner_actions']), 6)
@@ -33,7 +37,11 @@ class ReleaseRehearsal(unittest.TestCase):
     def test_unknown_registry_and_pending_sparse_index_both_stop(self):
         rows={row['name']:row for row in self.result['scenarios']}
         for name in ['workflow-registry-unavailable','local-registry-unavailable',
-                     'workflow-index-pending','local-index-pending']:
+                     'workflow-index-pending','local-index-pending',
+                     'workflow-index-unavailable','local-index-unavailable',
+                     'workflow-api-unavailable','local-api-unavailable',
+                     'workflow-malformed-index','local-malformed-index',
+                     'workflow-yanked-version','local-yanked-version']:
             with self.subTest(name=name):
                 self.assertEqual(rows[name]['exit_code'], 1)
                 self.assertIn('registry unavailable',rows[name]['stderr'])
@@ -50,6 +58,8 @@ class ReleaseRehearsal(unittest.TestCase):
         self.assertEqual(len(creates),1)
 
     def test_incomplete_or_invented_report_cannot_pass(self):
+        major,minor,patch=self.result['candidate_version'].split('.')
+        other_version=f'{major}.{minor}.{int(patch)+1}'
         edits=[lambda r:r['scenarios'].pop(),
                lambda r:r['scenarios'].append(copy.deepcopy(r['scenarios'][0])),
                lambda r:r['scenarios'][0].update(exit_code=False),
@@ -57,6 +67,9 @@ class ReleaseRehearsal(unittest.TestCase):
                lambda r:r.update(release_complete=True),
                lambda r:r.update(validation_success=False),
                lambda r:r.update(candidate_source_sha='main'),
+               lambda r:r.update(candidate_version='0.2.0-rc.1'),
+               lambda r:r.update(candidate_version=other_version),
+               lambda r:r.update(candidate_manifest=r['candidate_manifest']+'\n# mutated\n'),
                lambda r:r['source_file_sha256'].pop('Cargo.toml'),
                lambda r:r['owner_actions'][0].update(status='passed'),
                lambda r:r['commands'].append({'command':'cargo','args':['publish']}),
@@ -67,6 +80,86 @@ class ReleaseRehearsal(unittest.TestCase):
                 result=copy.deepcopy(self.result)
                 edit(result)
                 with self.assertRaises(ValueError): rehearsal.validate(result)
+
+    def test_report_mutation_is_rejected_when_manifest_is_0_2_0(self):
+        # Run the real test under a changed outer manifest, not only an inner
+        # simulated release. Select one method so the child does not recurse.
+        with tempfile.TemporaryDirectory(prefix='pl-rehearsal-outer-version-') as temporary:
+            root=Path(temporary)/'source'
+            for name in set(rehearsal.SOURCE_FILES) | {'tests/release/test_rehearsal.py'}:
+                path=root/name
+                path.parent.mkdir(parents=True,exist_ok=True)
+                shutil.copyfile(ROOT/name,path)
+            manifest=root/'Cargo.toml'
+            text=manifest.read_text()
+            old='version = "'+rehearsal.candidate_version(ROOT)+'"'
+            self.assertEqual(text.count(old),1)
+            manifest.write_text(text.replace(old,'version = "0.2.0"',1))
+            env={'PATH':os.environ.get('PATH','/usr/bin:/bin'), 'LANG':'C.UTF-8',
+                 'PYTHONDONTWRITEBYTECODE':'1'}
+            result=subprocess.run([sys.executable,'-B',str(root/'tests/release/test_rehearsal.py'),
+                                   'ReleaseRehearsal.test_incomplete_or_invented_report_cannot_pass'],
+                                  cwd=root,env=env,capture_output=True,text=True,timeout=60)
+            self.assertEqual(result.returncode,0,result.stdout+'\n'+result.stderr)
+
+    def test_next_version_runs_actual_shell_and_offline_recovery(self):
+        with tempfile.TemporaryDirectory(prefix='pl-next-release-') as temporary:
+            root=Path(temporary)/'source'
+            required=set(rehearsal.SOURCE_FILES) | {
+                'scripts/owner-cut-release.sh', 'scripts/ci-publish-ready.sh',
+                'scripts/day1-after-publish.sh', 'scripts/owner-post-installable-handoff.sh',
+            }
+            for name in required:
+                path=root/name
+                path.parent.mkdir(parents=True,exist_ok=True)
+                shutil.copyfile(ROOT/name,path)
+            manifest=root/'Cargo.toml'
+            text=manifest.read_text()
+            old='version = "'+rehearsal.candidate_version(ROOT)+'"'
+            self.assertEqual(text.count(old), 1)
+            manifest.write_text(text.replace(old, 'version = "0.2.0"', 1))
+
+            # The actual --run path insists on a clean commit and unchanged tags.
+            env={'PATH':os.environ.get('PATH', '/usr/bin:/bin'), 'LANG':'C.UTF-8',
+                 'GIT_CONFIG_NOSYSTEM':'1', 'GIT_CONFIG_GLOBAL':'/dev/null',
+                 'GIT_AUTHOR_NAME':'Rehearsal', 'GIT_AUTHOR_EMAIL':'rehearsal@example.invalid',
+                 'GIT_COMMITTER_NAME':'Rehearsal', 'GIT_COMMITTER_EMAIL':'rehearsal@example.invalid',
+                 'PYTHONDONTWRITEBYTECODE':'1'}
+            for command in [['git','init','-q'],['git','add','.'],['git','commit','-qm','fixture']]:
+                subprocess.run(command,cwd=root,env=env,check=True,capture_output=True,text=True)
+            sha=subprocess.check_output(['git','rev-parse','HEAD'],cwd=root,env=env,text=True).strip()
+            artifact=Path(temporary)/'artifacts'
+            completed=subprocess.run(['bash','scripts/rehearse-partial-release.sh','--run',str(artifact)],
+                                     cwd=root,env=env,capture_output=True,text=True,timeout=60)
+            self.assertEqual(completed.returncode,0,completed.stdout+'\n'+completed.stderr)
+            reports=list(artifact.glob('*/report.json'))
+            self.assertEqual(len(reports),1)
+            result=json.loads(reports[0].read_text())
+            self.assertEqual(result['candidate_version'],'0.2.0')
+            self.assertEqual(result['candidate_source_sha'],sha)
+            self.assertTrue(result['actual_tag_refs_unchanged'])
+            rows={row['name']:row for row in result['scenarios']}
+            self.assertEqual(rows['workflow-existing-version']['exit_code'],0)
+            self.assertEqual(rows['workflow-absent-version']['exit_code'],0)
+            self.assertEqual(rows['workflow-index-only']['exit_code'],0)
+            self.assertEqual(rows['local-index-only']['exit_code'],0)
+            self.assertEqual(rows['workflow-yanked-version']['exit_code'],1)
+            self.assertEqual(rows['local-yanked-version']['exit_code'],1)
+            self.assertIn('crates.io has partitionline 0.2.0',rows['confirmation-resumed']['stdout'])
+            self.assertIn('created GitHub release v0.2.0',rows['release-notes-first']['stdout'])
+            self.assertIn('already exists',rows['release-notes-repeated']['stdout'])
+            self.assertFalse(any(c['command']=='cargo' for c in result['commands']))
+
+    def test_candidate_version_rejects_nonfinal_and_ambiguous_manifests(self):
+        with tempfile.TemporaryDirectory(prefix='pl-invalid-version-') as temporary:
+            root=Path(temporary)
+            manifest=root/'Cargo.toml'
+            for version in ['0.2.0-rc.1', '1.02.0', '1.2', '', '0.2.0+build']:
+                with self.subTest(version=version):
+                    manifest.write_text('[package]\nname = "partitionline"\nversion = "'+version+'"\n')
+                    with self.assertRaises(ValueError): rehearsal.candidate_version(root)
+            manifest.write_text('[package]\nname = "partitionline"\nversion="0.2.0"\n')
+            with self.assertRaisesRegex(ValueError, 'release shell'): rehearsal.candidate_version(root)
 
     def test_removing_registry_unknown_guard_fails_executable_rehearsal(self):
         with tempfile.TemporaryDirectory(prefix='pl-mutated-release-') as temporary:

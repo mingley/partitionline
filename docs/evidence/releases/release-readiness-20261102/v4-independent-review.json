@@ -1,0 +1,29 @@
+{
+  "review_utc": "2026-11-03T03:35:36.918766+00:00",
+  "patch_sha256": "2bfdef9cbddbad38ed27c11c201f4f7bbb8503b8746c5c12d4558c4423d3b929",
+  "v3_to_v4_patch_sha256": "d42cfffc147b0951decfacddbe5858f362e253b94740b927be6f03178975481f",
+  "v3_and_v4_identical_paths": {
+    "scripts/ci-publish-ready.sh": true,
+    "scripts/lib/crates-io.sh": true,
+    "scripts/rehearse-partial-release.sh": true,
+    "scripts/report-release-rehearsal.py": true,
+    "tests/release/test_registry_probe.py": true
+  },
+  "independent_v4_tests": {
+    "outer_manifest_0_1_0": "9 tests passed in 21.595s",
+    "outer_manifest_0_2_0": "9 tests passed; see cross_version_receipt",
+    "registry_probe_test_groups": "3 passed",
+    "publish_serialization_tests": "15 passed",
+    "publish_ready_tests": "3 passed"
+  },
+  "cross_version_receipt_sha256": "c9bea47256ef9c6259c7b4c574ef3f7465e6187224f6f30c5d9feda8c859c427",
+  "patch_roundtrip_receipt_sha256": "0aa07175f3a72288c2cc48bfa08dbe2444b502fe9bf9e0a82e0b5d0b33074159",
+  "peer_33_case_probe_sha256": "4bf29da8844bdba4052fdba6ac2a69d5c7fbc9d540635af83a8fe0146d451880",
+  "result": "No remaining blocker found for the scoped offline registry probe and rehearsal candidate. No broader release qualification.",
+  "limitations": [
+    "Release workflow post-upload confirmation remains separate and API-only in this patch.",
+    "No hosted CI, Cargo builds, real registry/network, credentials, publication, or long-run qualification.",
+    "Python 3.11+ needed for tomllib.",
+    "Only simulated services and selected source identity are validated; no claims of a production-ready release."
+  ]
+}

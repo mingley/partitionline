@@ -1,0 +1,24 @@
+{
+  "patch_sha256": "d2000ea594e2ddfdb10a58a914212d739258312deb835054e6324f3a269bdceb",
+  "patch_gzip_sha256": "f8238302d22f9245b77763aef45974568aaa623b9eb650adf2ebf91a0d68966c",
+  "v8_fixed_preimage_sha256": "3f5c085323ab83862228a00ed84e147ca471c9f7a94d4d300b99da1c5587ef9e",
+  "after_sha256": "d3d85b55e0e9ebf342435a253d289873c3b9f2d854c5ca55fd8d3d27c53d9ab1",
+  "scope": "Static test-only wire-phase review and fresh exact-byte patch reconstruction.",
+  "result": "no static blocker found in reviewed scope",
+  "checks": [
+    "Patch and gzip hashes match; fresh forward and reverse git apply reproduces both snapshots.",
+    "The preimage matches the client v8 fixed-input catalog.",
+    "The original send_all_redials_leaders_while_refreshing_metadata test is byte-identical, including its full-send 450 ms bound.",
+    "All 46 prior Tokio test identities remain; one separate diagnostic is added.",
+    "The diagnostic retains 30 ms metadata age, 40 ms idle timeout, 250 ms injected metadata and handshake delays, and two successful acknowledgements.",
+    "All three initial successful handshake replies are required within 450 ms of the action start; configured 250 ms delays make that a parallel-handshake diagnostic.",
+    "Both leader handshakes start before the observed Metadata response; the actual Metadata socket has its own successful negotiation.",
+    "Every observed Produce request after the anchor is checked on its exact socket against a prior successful negotiated API range; requests to unexpected nodes fail, and both leader nodes are required.",
+    "The shared mock assigns sequence numbers and socket IDs under a mutex and rejects wire-trace overflow."
+  ],
+  "limitations": [
+    "No Cargo build, Rust compilation, Clippy or runtime execution was run.",
+    "The added phase control does not replace the original full-send 450 ms bound; v7's approximately 756 ms result remains a failure.",
+    "No claim is made about physical retirement of prior sockets, SASL, complete live Kafka behavior or fastest performance."
+  ]
+}

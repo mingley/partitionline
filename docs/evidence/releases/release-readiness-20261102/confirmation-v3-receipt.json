@@ -1,0 +1,150 @@
+{
+  "baseline": "Frozen release-rehearsal v4 atop c025be19b7d19dfd17d85eea66b43de93288dffb",
+  "baseline_v4_patch_sha256": "2bfdef9cbddbad38ed27c11c201f4f7bbb8503b8746c5c12d4558c4423d3b929",
+  "patch": {
+    "path": "confirmation-v3.patch",
+    "sha256": "4795c5416c476ae3e0edd2858b6ef88cc9e3ccbb5cc165e544d2e257c9cc2710",
+    "bytes": 16228,
+    "gzip_sha256": "d85d6f0bedc904677c561a1793907152811300d3f4e3b48edf76d1641c1ed966"
+  },
+  "source_files": {
+    ".github/workflows/release.yml": {
+      "before": {
+        "sha256": "672d1ac2eb88ad4e2ce15f56189c35798657357b69c9264ecb66d8c1f7f92e04",
+        "mode": 384,
+        "bytes": 10801
+      },
+      "after": {
+        "sha256": "105a2474922cda874f680d3edec3487906d4b5313e632f80187eeb39004a7cf0",
+        "mode": 384,
+        "bytes": 11020
+      }
+    },
+    "scripts/lib/crates-io.sh": {
+      "before": {
+        "sha256": "00f3315ad2d61c4db099a2be2a3d7afa6c25699e665af6da0c2c40189446ec28",
+        "mode": 448,
+        "bytes": 5383
+      },
+      "after": {
+        "sha256": "8f5e7f1e2b146647253e2facf4850049d63575c7f7989652e07ef6db4198543d",
+        "mode": 448,
+        "bytes": 7049
+      }
+    },
+    "scripts/report-release-rehearsal.py": {
+      "before": {
+        "sha256": "24aee15fbeb0d27aa61bd37e12d93bac8a50ea0fa83216c3640b51f92d90717d",
+        "mode": 448,
+        "bytes": 20061
+      },
+      "after": {
+        "sha256": "132e2d8aa4905ba469d001b1b508d5d09cef90480bf1e29b8eaf9ea4b1c36524",
+        "mode": 448,
+        "bytes": 20149
+      }
+    },
+    "tests/release/test_publish_serialization.py": {
+      "before": {
+        "sha256": "98648883879a640face6847d5d005c1e7be0e20dcbddc3fec4db02d10fca7425",
+        "mode": 384,
+        "bytes": 10308
+      },
+      "after": {
+        "sha256": "fae6cdc657e40c216012628a9297d74f7efdb67611590d28ad46bab3d7b70232",
+        "mode": 384,
+        "bytes": 10301
+      }
+    },
+    "tests/release/test_registry_probe.py": {
+      "before": {
+        "sha256": "5a15fbfdafce21a5bedeb6827f1d85ad54ff32a39376458bec6a1c2216d926b3",
+        "mode": 384,
+        "bytes": 4074
+      },
+      "after": {
+        "sha256": "af5052175d1eff6fbc0f1e497b8c12f6e22ea918e4dc675dd47f04e0a6a91632",
+        "mode": 384,
+        "bytes": 4477
+      }
+    },
+    "tests/release/test_release_confirmation.py": {
+      "before": null,
+      "after": {
+        "sha256": "1bb26a56ea55f64d5fbc6c25c0f89e0eaed53d1741364f8a110b6288e6922531",
+        "mode": 384,
+        "bytes": 8558
+      }
+    }
+  },
+  "source_inventory": {
+    "files": 135,
+    "manifest": "v3-source-inputs.json",
+    "sha256": "584e9977812f9262772aad2aa89c3c874b3ae61ed10d88f594b8e469e05461a8",
+    "postrun_reconstructed_and_reversed": true,
+    "next_fixture_differences": [
+      "Cargo.toml"
+    ]
+  },
+  "checks": {
+    "full_release_python_0.1.0": "70 passed",
+    "confirmation_python_0.2.0": "5 passed",
+    "registry_python_0.2.0": "4 passed",
+    "guard_removal_mutations": "4 rejected",
+    "workflow_yaml": "passed",
+    "bash_syntax": "passed",
+    "peer_actual_step": "10 controls, 6 non-JSON controls passed; full record in peer receipt",
+    "peer_old_failure_replay": "12 formerly failing controls rejected"
+  },
+  "logs": {
+    "v3-full-01.stdout": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    "v3-full-01.stderr": {
+      "sha256": "1b2b9ace0d249fa7900de59f028a12f88164028885d4a48f7b5f22a4c8ead469",
+      "bytes": 11752
+    },
+    "v3-confirm-02.stdout": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    "v3-confirm-02.stderr": {
+      "sha256": "a2348a25b576fc3ab20ca77a5f20a6bb5896bd5e81fff650061fe3e1efb7efa5",
+      "bytes": 904
+    },
+    "v3-probe-02.stdout": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    "v3-probe-02.stderr": {
+      "sha256": "e8ba6654784e6ad943fdac91f198a11d1b4f34a49da7756fe99b4ca952a1265a",
+      "bytes": 691
+    },
+    "v3-workflows.log": {
+      "sha256": "bf3182fc04ba5db83447853ad8cabaf59e341637ca24772c424f517a56d365ff",
+      "bytes": 362
+    },
+    "mutation-controls.py": {
+      "sha256": "18406b4a7617316fedae94ab463484f3745873147bcdc2debff910932096b5f5",
+      "bytes": 2669
+    },
+    "mutation-results.json": {
+      "sha256": "8e9cefd6effb2fe41f69e5fabad62753215734dd8dc4a54d5d79eb3db40899eb",
+      "bytes": 17680
+    }
+  },
+  "independent_receipts": {
+    "/workspace/work/release-confirmation-independent-20261103-v3/independent-receipt.json": "63309457dfac515fda310c969a353b0540c231c6fd74974823dd9cd43e73304f",
+    "/workspace/work/release-confirmation-independent-20261103/v3-malformed-replay.json": "c059d3e22214039c029f3773f50c9a3a3f98cd33395cb67fd8adac1b7891162d",
+    "/workspace/work/release-confirmation-independent-20261103/v2-false-confirmations.json": "8cc2279bcf182ba2ccac7881b4f90419443b1529c7c298aa03a635555aae15e8"
+  },
+  "network_note": "Qualification tests used offline stubs. One earlier read-only public API request inspected JSON shape; no credentials or publication.",
+  "limits": [
+    "No Cargo tests, live release, hosted CI, benchmark, or production-readiness claim.",
+    "Local owner-cut installability check still permits index-only evidence and requires separate alignment.",
+    "Post-upload polling sleeps once after its final failed attempt."
+  ],
+  "python": "3.12.14 (main, Aug 25 2026, 14:00:49) [Clang 22.1.3 ]",
+  "architecture": "x86_64"
+}

@@ -1,0 +1,14 @@
+F
+======================================================================
+FAIL: test_incomplete_or_invented_report_cannot_pass (__main__.ReleaseRehearsal.test_incomplete_or_invented_report_cannot_pass) (edit=<function ReleaseRehearsal.test_incomplete_or_invented_report_cannot_pass.<locals>.<lambda> at 0x7f6f2fb02c00>)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/work/release-rehearsal-v3-cross-version-review-20261103/fixture/tests/release/test_rehearsal.py", line 79, in test_incomplete_or_invented_report_cannot_pass
+    with self.assertRaises(ValueError): rehearsal.validate(result)
+         ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^
+AssertionError: ValueError not raised
+
+----------------------------------------------------------------------
+Ran 1 test in 3.850s
+
+FAILED (failures=1)

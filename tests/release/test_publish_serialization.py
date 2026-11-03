@@ -152,7 +152,7 @@ class TestReleaseWorkflowIdempotence(unittest.TestCase):
         self.assertIsNotNone(pub_gated, "Publish step must be gated on skip != '1'")
 
     def test_confirm_step_idempotent_on_retry(self):
-        """Confirm step must handle skip=1 without redundant polling or failure."""
+        """Confirm an already-published version before reporting success."""
         confirm_step = re.search(
             r"- name: Confirm crates\.io\n\s+run:\s*\|\n(.*?)(?=\n\s+- name:|\Z)",
             self.text,

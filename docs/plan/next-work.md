@@ -12,15 +12,16 @@ Client 0.1.0 is already published. The next client version must be at least
 
 | Scope | Recorded result |
 | --- | --- |
-| Client default library on `main`, `c025be19b` | 2,171 passed, 25 failed; later integration targets did not run |
-| Client all-feature library on `main` at that commit | 2,174 passed, 22 failed; later integration targets did not run |
+| Client default library on `main`, `350b5e534` | 2,167 passed, 29 failed; later integration targets did not run |
+| Client all-feature library on `main` at that commit | 2,177 passed, 19 failed; later integration targets did not run |
 | Isolated client v7 library in each profile | 2,253 passed, one failed; selected producer tests and Clippy also failed |
 | Qualified broker v2 default all targets, `209d0b068` | 720 passed |
 | Qualified broker v2 all-feature all targets at that commit | 868 passed |
 | Broker v2 strict Clippy, docs, inventory and six fresh-process Fetch deadline checks | Passed |
 | Client capability lanes at that commit | 93 passed in each profile; 450 Java reverse checks in each |
-| Main broker CI, capability profiles, strict Clippy, audit, dependency policy, docs and package jobs | Passed at `c025be19b` |
-| Main client and live Kafka compatibility CI | Failed at `c025be19b` |
+| Main broker CI | Passed at `350b5e534` |
+| Capability profiles, strict Clippy, audit, dependency policy, docs and package jobs | Passed at `c025be19b` |
+| Main client and live Kafka compatibility CI | Failed at `350b5e534` |
 | Reconnect candidate | 14 unit controls and six integration targets passed; latest broad Fetch 167 passed, two failed, one ignored |
 | Integrated-source package navigation | 20 documentation tests passed; extracted crate checked 30 documents, 225 local links, 51 pinned repository targets |
 | Package consumers and publication dry run at `fe65ac783` | Passed; actual publication remains gated |
@@ -136,30 +137,37 @@ Strict Clippy found two test-only errors. Two of 22 expected baseline outcomes
 did not reproduce. This isolated candidate has not been adopted on `main`.
 See the [v7 results](../evidence/client/candidate-native-c025-20261030/README.md)
 and the [earlier native rounds](../evidence/releases/candidate-native-20261030/README.md).
-The staged [v8 candidate](../evidence/client/candidate-20261030/v8/README.md)
-adds test setup repairs and 26 producer ownership controls. Static review and
-source reconstruction passed; compilation, Clippy and runtime tests have not
-run. V8 does not repair the Mock Produce or retained-backing failures.
+The staged [v10 candidate](../evidence/client/candidate-20261030/v10/README.md)
+adds producer ownership changes, a deterministic retained-backing fixture
+and a separate handshake diagnostic. Static review and source reconstruction
+passed; v10 compilation, Clippy and runtime tests have not run. The original
+450 ms Mock Produce assertion remains, and the cause of the retained-backing
+timeout is not fully established. The v8 run remains in progress.
 
 Broker v2 observed seven baseline failures and passed twelve fixed controls,
 three asynchronous filesystem controls and full default/all-feature targets,
 strict Clippy/docs and all 55 inventory controls. Three fresh-process Fetch
 checks passed in each profile. OOM counters were unavailable. Those exact
-source bytes are now adopted; ordinary broker CI passed on `c025be19b`.
+source bytes are now adopted; ordinary broker CI passed on `350b5e534`.
 This local replica model is not a production replicated cluster.
 
-The main client and live Kafka jobs failed on `c025be19b` in
-[CI run 41141176275](https://github.com/mingley/partitionline/actions/runs/41141176275).
+The main client and live Kafka jobs failed on `350b5e534` in
+[CI run 41572635665](https://github.com/mingley/partitionline/actions/runs/41572635665).
+The [failure index](../evidence/releases/main-ci-350-20261102/README.md) lists
+the affected library tests. Counts vary between runs with the same Rust source;
+that variation is not a measured fix.
 The Release-plz PR workflow also failed because its semver checker discovered
 archived evidence manifests as duplicate packages. An ignore rule now hides
 those manifests from that traversal; the actual workflow still needs a rerun.
-The release rehearsal self-test is hard-coded to `0.1.0` and needs to accept
-the next candidate version. The registry probe can treat an unavailable index
-as an absent version, and post-upload confirmation checks the API without
-proving Cargo index availability. Fix and test these paths before publishing.
-An isolated, unadopted patch and its offline probe results are in the
-[release tooling record](../evidence/releases/release-readiness-20261102/README.md).
-None of these failures is a publication.
+The earlier release rehearsal self-test was hard-coded to `0.1.0`, and the
+registry probe could treat an unavailable index as an absent version. V4 fixes
+both in source and passes offline review for `0.1.0` and `0.2.0`; hosted CI
+remains open. The workflow's post-upload confirmation now requires a matching
+API and index result, with offline controls for malformed responses. The local
+owner-cut installability check still permits index-only confirmation; align it
+with the dual-source rule before publishing. The
+[release tooling record](../evidence/releases/release-readiness-20261102/README.md)
+retains the failures, earlier candidate and v4 results. None is a publication.
 
 The workspace has a four-CPU quota and limited disk. Serialize builds and
 timing runs, retain source/executable hashes, and monitor a 1.5 GiB free-space
@@ -188,6 +196,13 @@ small batch, creating quadratic work when a long queue drains one record at a
 time. Replica epoch publication rewrites the journal on epoch changes. Measure
 both under representative workloads after preserving ordering, cancellation,
 crash safety and durability. Neither has a measured end-to-end speedup yet.
+The [queue candidate](../evidence/perf/producer-pending-20261102/README.md)
+skips certain deadline scans, but still needs native tests and benchmarking.
+It does not remove vector prefix shifts.
+The [broker epoch design](../evidence/perf/broker-epoch-20261102/DESIGN.md)
+is unimplemented: a smaller durable sidecar changes migration and backup
+semantics, and cannot preserve the current full-file mutation check without
+additional validation.
 
 The TLS graph still includes Ring C/assembly. The dependency update keeps that
 provider. The passing audit applies to its checked lockfile and advisory
