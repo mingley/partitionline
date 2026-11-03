@@ -1,0 +1,13 @@
+--- a/src/producer.rs
++++ b/src/producer.rs
+@@ -17004,8 +17004,8 @@
+ #[cfg(test)]
+ mod rediscover_stop_tests {
+     use super::{
+-        discover_typed_coord, rediscover_producer_coordinator, RediscoverProducer, WorkerAdmission,
+-        WorkerLease,
++        discover_typed_coord, rediscover_producer_coordinator, PendingWork, RediscoverProducer,
++        WorkerAdmission, WorkerLease,
+     };
+     use crate::protocol::group::COORDINATOR_TRANSACTION;
+     use crate::ProducerConfig;

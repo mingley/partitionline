@@ -1,0 +1,23 @@
+{
+  "patch_sha256": "bc2ee449621d3671c8ae6ee18b28eeeb1c2c64abe751f70e45e882ba86afb3b7",
+  "manifest_sha256": "532f9b31a23c45504db2b0c2100ebac5d9f3e405f13fb6b8000d19417ff03c5a",
+  "design_sha256": "1b9c6b087124873cade4c8c76c2d6a5d4c0f4625005bad20e2e8442daea9d816",
+  "roundtrip_receipt_sha256": "5d0cc1df5f99d485e3e69f9ec078948a885f1a6b37785f0d1f78ca940d288856",
+  "candidate_sha256": "91a57c87a92410e134949d8c02868d931ba064a1ccb52704ae14edf70f442e89",
+  "base_commit": "33744862cd9e3263de502d57525619bd41704fec",
+  "verdict": "No blocker found for this narrowly scoped source-only control; typechecking and execution remain necessary.",
+  "verified": [
+    "The preimage and four dependent source pins match both base commit and current workspace. Forward/reverse patch checks and apply reproduce the exact candidate/preimage; removing the one added test reproduces all original source bytes.",
+    "Virtual clock trace from pinned code: leader activation at 10 sets grace deadline 1010; follower ACK contacts at 11 and 12 and strict-majority match commit the term barrier at index 1; the 13 ms positive proposal appends beyond committed index 1 without new contacts; at 1013 ms the last contacts are 1002 and 1001 ms old, so the 1000 ms quorum window and activation grace both expire.",
+    "The added control checks a nonempty index-1 committed barrier, prior positive proposal position, rejected stale proposal, follower transition, unchanged WAL bytes, tail, committed index, and committed record sequence. The WAL path uses the same id/directory derivation as DynamicGroup::open.",
+    "Node::propose calls leader(now) before the log append; the checked expiry path steps down there before returning NotLeader. The owner clock and volatile role can still change; equal WAL bytes are not a claim that no state changed.",
+    "The existing catch_up helper can perform up to four bounded in-process exchanges per follower during setup. The patch does not retry either proposal or alter the original observer test.",
+    "The retry design requires a separately proven typed preappend outcome, one absolute deadline, bounded attempts/in-flight work, stopping on cancellation or ambiguous errors, and retains the unchanged observer control. It explicitly does not infer retry safety from a formatted NotLeader message."
+  ],
+  "compile_plausibility": "The test uses existing helper methods, u64 timestamps, Copy RecordKind, comparable Record/LogPosition types, fs import and Result conversions; reviewed statically only, no claim it compiles.",
+  "limitations": [
+    "No Cargo/native build, typecheck, runtime tests, live Kafka, Fetch, network, registry, or publication. The added test is unexecuted.",
+    "A single genesis/lease-expiry path cannot prove all NotLeader responses are preappend or determine either CI failure cause; a different failure can occur after an append at advance_commit.",
+    "The c034 observer failure and 337 removal failure have distinct observed operations; later state snapshots do not establish a complete event ordering or show whether a removal mutated state."
+  ]
+}

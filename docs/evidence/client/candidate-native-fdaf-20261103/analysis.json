@@ -1,0 +1,180 @@
+{
+  "source_spec_sha256": "86e2a5ee695a93e01c61d48939960f8c04c7fed30b8ef86afed73092b5f21b1b",
+  "format_exit": 0,
+  "clippy_exit": 101,
+  "default_build_exit": 101,
+  "fatal_message": "build failed default-build",
+  "summary_exists": false,
+  "compiler_diagnostic": {
+    "code": "E0433",
+    "location": "src/producer.rs:17501:36",
+    "message": "cannot find type `PendingWork` in this scope",
+    "expression": "pending_work: Arc::new(PendingWork::default())",
+    "module": "rediscover_stop_tests",
+    "type_definition": "src/producer.rs:7158",
+    "fixed_producer_sha256": "7ce5770e90e850148845eec2958d83705875934a23e889fb492d642219a57a6b",
+    "cause": "The test-only constructor references the new private type, but the module uses an explicit parent import list that omits it.",
+    "compiler_suggestion": "use crate::producer::PendingWork;"
+  },
+  "baseline_cases_executed_once_before_fixed_build": [
+    {
+      "test": "producer::tests::cancelled_pending_drain_retains_accepted_records_until_worker_cleanup",
+      "expect": "pass",
+      "exit": 0,
+      "matches_expectation": true
+    },
+    {
+      "test": "producer::tests::cancelled_pending_deadline_scan_retains_the_detached_prefix_until_worker_cleanup",
+      "expect": "pass",
+      "exit": 0,
+      "matches_expectation": true
+    },
+    {
+      "test": "classic_join_recovers_after_repeated_typed_coordinator_responses",
+      "expect": "fail",
+      "exit": 101,
+      "matches_expectation": true
+    },
+    {
+      "test": "classic_join_retains_a_required_member_id_across_coordinator_responses",
+      "expect": "fail",
+      "exit": 101,
+      "matches_expectation": true
+    },
+    {
+      "test": "classic_join_returns_terminal_response_after_transient_coordinator_errors",
+      "expect": "fail",
+      "exit": 101,
+      "matches_expectation": true
+    },
+    {
+      "test": "persistent_join_responses_stop_at_the_original_deadline_with_backoff",
+      "expect": "fail",
+      "exit": 101,
+      "matches_expectation": true
+    },
+    {
+      "test": "cancelling_a_join_after_written_coordinator_responses_stops_new_requests",
+      "expect": "observe",
+      "exit": 101,
+      "matches_expectation": true
+    },
+    {
+      "test": "classic_join_recovers_when_rediscovery_itself_is_still_loading",
+      "expect": "fail",
+      "exit": 101,
+      "matches_expectation": true
+    },
+    {
+      "test": "classic_join_returns_terminal_rediscovery_errors_without_another_join",
+      "expect": "pass",
+      "exit": 0,
+      "matches_expectation": true
+    },
+    {
+      "test": "classic_join_does_not_retry_terminal_authorization_or_fencing_responses",
+      "expect": "pass",
+      "exit": 0,
+      "matches_expectation": true
+    },
+    {
+      "test": "group::tests::delayed_first_poll_does_not_restart_the_coordinator_deadline",
+      "expect": "fail",
+      "exit": 101,
+      "matches_expectation": true
+    },
+    {
+      "test": "retry_refreshes_waiting_topics_together",
+      "expect": "fail",
+      "exit": 101,
+      "matches_expectation": true
+    },
+    {
+      "test": "public_group_lifecycle_fits_the_standard_two_mib_stack",
+      "expect": "observe",
+      "exit": 0,
+      "matches_expectation": true
+    },
+    {
+      "test": "cluster::tests::declared_topic_count_does_not_allocate_duplicate_tracking",
+      "expect": "fail",
+      "exit": 101,
+      "matches_expectation": true
+    },
+    {
+      "test": "cluster::tests::topic_duplicate_tracking_keeps_names_across_the_heap_transition",
+      "expect": "fail",
+      "exit": 101,
+      "matches_expectation": true
+    },
+    {
+      "test": "cluster::tests::unchanged_metadata_partitions_yield_without_discarding_the_cache",
+      "expect": "fail",
+      "exit": 101,
+      "matches_expectation": true
+    },
+    {
+      "test": "cluster::tests::unchanged_metadata_partition_budget_spans_multiple_topics",
+      "expect": "fail",
+      "exit": 101,
+      "matches_expectation": true
+    },
+    {
+      "test": "consumer::tests::cancelling_assigned_id_retention_keeps_all_still_assigned_identities",
+      "expect": "fail",
+      "exit": 101,
+      "matches_expectation": true
+    },
+    {
+      "test": "consumer::tests::retained_assigned_ids_keep_their_existing_storage",
+      "expect": "fail",
+      "exit": 101,
+      "matches_expectation": true
+    },
+    {
+      "test": "consumer::tests::cancelled_assigned_id_removals_can_resume_without_losing_kept_ids",
+      "expect": "pass",
+      "exit": 0,
+      "matches_expectation": true
+    },
+    {
+      "test": "consumer::tests::retaining_many_empty_assigned_id_topics_yields",
+      "expect": "fail",
+      "exit": 101,
+      "matches_expectation": true
+    },
+    {
+      "test": "producer::prepare_tests::cancelled_fire_grouping_retains_actual_accepted_records",
+      "expect": "fail",
+      "exit": 101,
+      "matches_expectation": true
+    },
+    {
+      "test": "cancelling_a_join_after_two_errors_and_third_request_stops_new_requests",
+      "expect": "fail",
+      "exit": 101,
+      "matches_expectation": true
+    }
+  ],
+  "baseline_case_23_interpretation": "Expected-fail case exited after JoinGroup returned error 14 before the test observed its stated barrier; the report does not establish that the third request occurred.",
+  "fixed_runtime_results": null,
+  "all_features_build_attempted": false,
+  "command_receipts": 75,
+  "all_receipt_log_hashes_match": true,
+  "inputs_stable_and_match_phase_catalog": true,
+  "no_guard_stop": true,
+  "remaining_owned_children": false,
+  "memory_counter_status": "unknown",
+  "minimum_disk_free_bytes": 84011663360,
+  "rustc": "rustc 1.99.1 (58cf8f9c3 2026-10-13)\nbinary: rustc\ncommit-hash: 58cf8f9c35b355199727627d07ae34a4e2846d67\ncommit-date: 2026-10-13\nhost: x86_64-unknown-linux-gnu\nrelease: 1.99.1\nLLVM version: 23.1.1\n",
+  "cargo": "cargo 1.99.1 (5f94df478 2026-08-27)\n",
+  "limitations": [
+    "Fixed candidate runtime, strict Clippy and all-features build did not pass; no performance, production readiness, or release qualification follows.",
+    "Observed baseline cases are recorded as observations; case 23 did not prove that the requested third wire request occurred.",
+    "OOM counters were unavailable; zero OOM events are not claimed.",
+    "The separate 59,444,348-byte full source/build artifact 13205485514 remains external and was not downloaded or independently hashed.",
+    "The 183 fixed required identities are specified by the candidate, not counted as passing because no fixed test binary ran."
+  ],
+  "production_ready": false,
+  "fastest_claim_qualified": false
+}

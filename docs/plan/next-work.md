@@ -19,7 +19,7 @@ Client 0.1.0 is already published. The next client version must be at least
 | Qualified broker v2 all-feature all targets at that commit | 868 passed |
 | Broker v2 strict Clippy, docs, inventory and six fresh-process Fetch deadline checks | Passed |
 | Client capability lanes at that commit | 93 passed in each profile; 450 Java reverse checks in each |
-| Main broker CI at `c03416372` | Default passed; three all-feature Raft runtime tests failed |
+| Main broker CI at `33744862c` | Default library had 439 passes and one Raft failure; later targets did not run |
 | Main capability profiles | Passed at `c03416372` |
 | Main strict Clippy, audit, dependency policy, docs and package jobs | Passed at `e7660f6e5` |
 | Main client and live Kafka compatibility CI | Failed at `e7660f6e5` |
@@ -42,10 +42,14 @@ are adopted byte-for-byte from v2; see the
 Earlier Fetch EOF, joined-shutdown QueueFull and Raft observer parse failures
 remain recorded and unexplained beyond the passing specific controls.
 The [latest broker runs](../evidence/broker/main-ci-fdaf-20261103/README.md)
-again failed both three- and five-node Raft runtime tests with `ParseIntError`;
-an observer test separately reported `NotLeader`.
-A test-only diagnostic now preserves the response and phase on parse failure;
-its native run and the actual cause remain open.
+failed both three- and five-node Raft runtime tests with `ParseIntError`;
+an observer test separately reported `NotLeader`. A test-only diagnostic
+passed its three added controls in the default library run and exposed a
+`NotLeader` response during a five-node leader-removal test. The underlying
+cause and all-feature qualification remain open. A
+[stale-leader control](../evidence/broker/raft-stale-selection-20261103/README.md)
+tests one pre-append rejection path; it does not justify retrying every
+`NotLeader` response and awaits its native run.
 No long campaign is credited.
 Current-commit green CI and the complete release gates remain open.
 
@@ -182,13 +186,17 @@ failed all 15 Mock Produce identities that fail in v10, plus three others,
 and the retained-backing test timed out. Fixture differences mean the shared
 identities do not by themselves prove the same cause.
 
-The staged [v13 client candidate](../evidence/client/candidate-20261030/v13/README.md)
-retains v12's producer deadline-scan reductions and timeout diagnostics.
-Its input catalogs also include the reviewed release-tooling changes.
-It retains the old test limits and requires 166 library and 17 integration
-controls in addition to 23 baseline cases. Its source reviews and patch
-reconstruction passed; compilation, runtime and performance results are
-pending. Vec prefix shifts and unordered or sticky deadline scans remain.
+The [v12 client attempt](../evidence/client/candidate-native-fdaf-20261103/README.md)
+failed Clippy and the default test build because a test module did not import
+`PendingWork`; no fixed runtime controls ran. Its successor v13 retains the
+same client source with reviewed release-tooling inputs, so that compilation
+error is corrected in the staged
+[v14 candidate](../evidence/client/candidate-20261030/v14/README.md), which
+still needs native compilation and tests. It keeps 166 library and 17
+integration controls, 23 baseline cases and the original timing limits.
+The new baseline group control failed before demonstrating its intended
+third-request barrier. Vec prefix shifts and unordered or sticky deadline
+scans remain, and no performance change is measured.
 
 Broker v2 observed seven baseline failures and passed twelve fixed controls,
 three asynchronous filesystem controls and full default/all-feature targets,
@@ -215,7 +223,8 @@ require matching API and index identity before reporting confirmation. Consumer
 checks bind the selected version and source to the target package, and release
 paths fail closed on unconfirmed exact-SHA CI. The token check reports presence
 without claiming authorization. One hundred offline tests passed on the final
-patch, but live GitHub job-response shape and attempt binding remain unverified.
+patch, and the hosted offline rehearsal passed at `33744862c`. Live GitHub
+job-response shape and attempt binding remain unverified.
 The [local release record](../evidence/releases/local-release-gates-20261103/README.md)
 retains the new controls and original failures. The
 [release tooling record](../evidence/releases/release-readiness-20261102/README.md)

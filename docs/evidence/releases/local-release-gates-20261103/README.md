@@ -19,6 +19,9 @@ show the earlier CI exit-code bypass, simulated green fixture, adjacent
 lockfile source, stale version, misleading token response and retired
 dispatcher override. No real publish or live credential check occurred.
 
+The hosted [release rehearsal](https://github.com/mingley/partitionline/actions/runs/41580681922)
+also passed at `33744862c`, using substituted commands and offline scenarios.
+
 The [manifest](manifest.json), [validation](validation.json) and
 [independent review](independent-review.json) bind the exact source patch and
 offline results. Live GitHub job-response shape and attempt binding remain

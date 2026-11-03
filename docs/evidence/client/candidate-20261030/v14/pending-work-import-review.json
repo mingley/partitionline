@@ -1,0 +1,21 @@
+{
+  "scope": "Independent source-only review of v12 missing PendingWork test import correction",
+  "patch_sha256": "560658682de8033e09ba973f2d4be5e493c140665f57c491cae0a1fa5f3e0d72",
+  "before_sha256": "7ce5770e90e850148845eec2958d83705875934a23e889fb492d642219a57a6b",
+  "after_sha256": "ecf14e7e89fff1d1c29faa6778061d58545f9df565eb7858561d4de58920b279",
+  "v12_failed_report_zip_sha256": "778f92c709438ee458ceb4457b6b7437b7c89f89f9fd566d8b27160a3f4fcb34",
+  "v12_checkout": "fdafca79404dbdca570f605334f26205d84e91df",
+  "diagnostics": [
+    "clippy exit 101 and default-build exit 101 both report E0433 at src/producer.rs:17501:36 and suggest importing PendingWork",
+    "Both logs match their recorded SHA-256; build before/after source inventories match the exact v12 producer preimage"
+  ],
+  "checks": [
+    "Only change is adding the parent PendingWork symbol to a cfg(test) child module import (with rustfmt reflow); all other bytes, including all test bodies, unchanged",
+    "PendingWork exists in parent module under cfg(test); the child is also cfg(test)",
+    "Exact forward/reverse apply and latest stable rustfmt check passed"
+  ],
+  "limitations": [
+    "No Cargo compile, Clippy rerun, runtime tests or performance measurement; this fixes the observed missing name but does not prove no further diagnostics",
+    "The failed v12 run did not reach fixed runtime or establish production readiness"
+  ]
+}

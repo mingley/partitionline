@@ -85,6 +85,12 @@ jobs:
         run: openssl version
       - name: Broker format
         run: cargo fmt --manifest-path partitionline-broker/Cargo.toml -- --check
+      - name: Check stale-leader proposal fencing
+        run: |
+          set -o pipefail
+          cargo test --locked --manifest-path partitionline-broker/Cargo.toml --test raft_membership stale_genesis_leader_observation_is_fenced_before_proposal_append -- --exact | tee "$RUNNER_TEMP/stale-leader-test.log"
+          grep -qFx 'test stale_genesis_leader_observation_is_fenced_before_proposal_append ... ok' "$RUNNER_TEMP/stale-leader-test.log"
+          grep -qE '^test result: ok\. 1 passed; 0 failed; 0 ignored;' "$RUNNER_TEMP/stale-leader-test.log"
       - name: Locked default-feature behavioral tests
         run: cargo test --locked --manifest-path partitionline-broker/Cargo.toml --all-targets
       - name: Locked all-feature behavioral tests

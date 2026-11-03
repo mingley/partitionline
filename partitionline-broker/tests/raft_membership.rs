@@ -477,6 +477,47 @@ fn durable_addition_activates_new_set_old_majority_cannot_commit_and_restart_pre
 }
 
 #[test]
+fn stale_genesis_leader_observation_is_fenced_before_proposal_append() -> Result {
+    let mut group = DynamicGroup::new(3, voter(4)?)?;
+    group.elect(10)?;
+    group.catch_up(1, 11)?;
+    group.catch_up(2, 12)?;
+    let accepted = group.node(0)?.propose(b"positive before expiry", 13)?;
+
+    // A reader can select this valid snapshot and submit only after the lease
+    // expires. Advance the owner's clock deterministically between the two.
+    let selected = group.node(0)?.state();
+    assert_eq!(selected.election.role, Role::Leader);
+    assert_eq!(selected.committed_end, 1);
+    assert_eq!(selected.last_position.index, accepted);
+    assert!(accepted > selected.committed_end);
+    let key = group.key(0);
+    let name = format!("{}-{}", key.id, hex_bytes(&key.directory)?);
+    let wal_path = group.root.join(format!("{name}.wal"));
+    let before_wal = fs::read(&wal_path)?;
+    let before_records = group.node(0)?.fetch_committed(1, 8, 1024 * 1024)?;
+    assert_eq!(before_records.len(), 1);
+    assert_eq!(before_records[0].index, 1);
+    assert_eq!(before_records[0].kind, replication::RecordKind::Barrier);
+
+    let expired = 12 + DYNAMIC_QUORUM_TIMEOUT_MS + 1;
+    assert!(matches!(
+        group.node(0)?.propose(b"stale observer prefix", expired),
+        Err(replication::Error::NotLeader)
+    ));
+    let after = group.node(0)?.state();
+    assert_ne!(after.election.role, Role::Leader);
+    assert_eq!(after.last_position, selected.last_position);
+    assert_eq!(after.committed_end, selected.committed_end);
+    assert_eq!(fs::read(&wal_path)?, before_wal);
+    assert_eq!(
+        group.node(0)?.fetch_committed(1, 8, 1024 * 1024)?,
+        before_records
+    );
+    Ok(())
+}
+
+#[test]
 fn removed_leader_counts_no_self_vote_and_fences_after_commit_even_without_caller() -> Result {
     let mut group = DynamicGroup::new(3, voter(4)?)?;
     group.elect(10)?;

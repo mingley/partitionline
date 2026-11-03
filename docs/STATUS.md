@@ -60,7 +60,7 @@ quorum, without replicated partition data or native Kafka KRaft.
 | Qualified broker v2 all-feature all targets at that commit | 868 passed |
 | Broker v2 strict Clippy, docs, inventory and six repeated Fetch checks | Passed |
 | Client focused capability profiles at that commit | 93 passed and 450 Java reverse checks per profile |
-| Main broker CI | Default passed at `c03416372`; three all-feature Raft tests failed |
+| Main broker CI | Default library had 439 passes and one Raft failure at `33744862c` |
 | Main capability profiles | Passed at `c03416372` |
 | Main strict Clippy, security, documentation and package jobs | Passed at `e7660f6e5` |
 | Main client and live Kafka compatibility CI | Failed at `e7660f6e5` |
@@ -88,9 +88,9 @@ overlap, live group retries and a compatibility-test stack overflow also remain
 open. GSSAPI and connection-driven SASL reauthentication
 are incomplete; [protocol support](gaps.md) lists those feature gaps.
 
-Two Raft runtime tests failed with `ParseIntError` in the [latest broker run][broker-ci];
-a third reported a `NotLeader` response. An earlier passing run does not
-resolve those failures. The broker
+The [latest broker run][broker-ci] reported `NotLeader` during a Raft
+leader-removal test. Earlier runs also had two `ParseIntError` failures and a
+separate observer `NotLeader`. The broker
 still needs replicated partition data, authenticated network
 leadership, committed-watermark protection and transaction participant/marker
 propagation. The adopted local epoch and journal fixes have passing x86
@@ -112,9 +112,10 @@ The producer's pending queue can repeatedly scan deadlines and shift records
 when small batches drain. A replica epoch change rewrites the broker journal.
 Both are candidates for optimization; neither has a measured end-to-end
 speedup yet. The required matched x86 peer comparison has not run.
-An uncompiled [queue candidate][queue] needs native tests and a benchmark
-before its effect is known. A later client candidate combines that work with
-the ownership fixes and a timeout diagnostic; its qualification is pending.
+The [queue candidate][queue] needs native tests and a benchmark
+before its effect is known. The first combined candidate failed its test build
+because a test module omitted an import; no fixed runtime controls ran. A
+corrected candidate needs native qualification.
 
 The [release scripts][release-gates] now check API/index agreement, consumer lockfile identity
 and exact-SHA CI more strictly. The token check reports presence without

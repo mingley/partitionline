@@ -21,8 +21,8 @@ test-only [diagnostic patch](raft-diagnostics.patch.gz) adds bounded response
 and phase context to the shared Raft histories without changing their retry
 or deadline settings. Its [manifest](diagnostic-manifest.json) and
 [independent review](diagnostic-review.json) record the source checks. The
-patch and its added controls still need a native run. The excerpts are bounded
-but not redacted; these histories use synthetic test inputs.
+excerpts are bounded but not redacted; these histories use synthetic test
+inputs.
 
 At checkout `c03416372`, the [next broker run](https://github.com/mingley/partitionline/actions/runs/41579081441)
 passed default-feature tests, then reported five passes and three failures in
@@ -31,3 +31,12 @@ reported bare `ParseIntError`. The five-peer observer test separately reported
 `Node(NotLeader)` during its first prefix proposal. That response does not
 establish the cause of the two parse failures. Later broker lint and docs
 steps did not run. The [complete job log](job-125729388284.log.gz) is retained.
+
+At checkout `33744862c`, [broker run 41580681915](https://github.com/mingley/partitionline/actions/runs/41580681915)
+ran the diagnostic in the default library. Its three added controls passed,
+while the library reported 439 passes and one failure. The five-node
+minority-partition history received `Node(NotLeader)` during
+`fault-current-leader-removal`; subsequent node snapshots showed a different
+leader. This establishes that response for this run, not the cause of the
+earlier bare parse errors. Later targets and all-feature tests did not run.
+The [complete job log](job-125734535528.log.gz) is retained.

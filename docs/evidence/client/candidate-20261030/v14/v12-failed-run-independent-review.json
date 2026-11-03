@@ -1,0 +1,34 @@
+{
+  "scope": "Independent verification of failed v12 fdaf compact report archive and observed build results",
+  "github_run": 41578299697,
+  "checkout_commit": "fdafca79404dbdca570f605334f26205d84e91df",
+  "original_zip_sha256": "778f92c709438ee458ceb4457b6b7437b7c89f89f9fd566d8b27160a3f4fcb34",
+  "manifest_sha256": "b9577c5ebda903c9a058e0cd5372683eb7939571fedc5c60c9450d5126ef92a5",
+  "object_archive_sha256": "ec90bef03ecb51b4ea055b4a0df3e99c340675ed37ae1108bccef478f2dbcccb",
+  "analysis_sha256": "cf146f8354213619e80aad23a3ccfe3caff3b42cd774d36643850ddef1ecad70",
+  "zip_members_verified": 336,
+  "unique_archive_objects_verified": 128,
+  "guard_pairs_and_command_receipts_verified": 75,
+  "baseline_cases_verified": 23,
+  "baseline_expectation_categories": {
+    "pass": 5,
+    "fail": 16,
+    "observe": 2
+  },
+  "baseline_case_23": "Expected failure occurred before its third-request barrier was observed, on COORDINATOR_LOAD_IN_PROGRESS; it does not prove barrier behavior.",
+  "format_exit": 0,
+  "clippy_exit": 101,
+  "default_build_exit": 101,
+  "compiler_error": "E0433: PendingWork not in scope at src/producer.rs:17501:36",
+  "fixed_runtime_results": null,
+  "all_features_build_attempted": false,
+  "memory_counter_status": "unknown",
+  "minimum_disk_free_bytes": 84011663360,
+  "limitations": [
+    "These checks validate preserved reports; no Cargo/native re-execution, network or benchmark.",
+    "The 183 fixed required identities are specified, not observed passing.",
+    "Observed baseline outcomes and expected failures do not establish fixed-runtime behavior.",
+    "The separate 59,444,348-byte full source/build artifact remains external and was not independently downloaded or hashed.",
+    "No production-readiness, fastest-ranking, live Kafka or release qualification follows."
+  ]
+}

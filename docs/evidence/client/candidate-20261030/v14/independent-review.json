@@ -1,0 +1,28 @@
+{
+  "scope": "Independent read-only static audit of v14 import-fix candidate",
+  "manifest_sha256": "691f728efb658609bbb8f896ab89549a2821a5968d6381084c4be696bf7a538c",
+  "spec_sha256": "d51f80f274fe28802c7f9c44bf11008605cea6a297bde209e9a47e24ad21ba3a",
+  "base_checkout": "33744862cd9e3263de502d57525619bd41704fec",
+  "assets_verified": 18,
+  "v13_archived_git_files_verified": 27,
+  "base_root_and_git_files_verified": 1745,
+  "archive_root_and_git_executable_bit_parity": 1745,
+  "baseline_cases_byte_identical": 23,
+  "controls_byte_identical": 183,
+  "targets_unchanged": 10,
+  "fixed_catalog_changed_paths": [
+    "src/producer.rs"
+  ],
+  "import_patch_sha256": "560658682de8033e09ba973f2d4be5e493c140665f57c491cae0a1fa5f3e0d72",
+  "import_peer_review_sha256": "5a1e2f46e3ffbdb4fb57504bca74c7436b9c81b3f7fba7582a5a0d025354db19",
+  "v12_failed_run_review_sha256": "6459aea1da5110054e4d1a411d2fd697ceb2d19ecd651f947435cf1f780486ff",
+  "full_source_forward_reverse_exact": true,
+  "v13_fixed_plus_import_reconstructs_v14": true,
+  "readme_exactly_one_final_newline": true,
+  "limits": [
+    "Source inventory and patch reconstruction only; no Cargo, Clippy, native run or benchmark.",
+    "V12 case 23 failed before its intended third-request barrier and v12 fixed runtime was never reached.",
+    "V14 may expose additional compiler or runtime failures; no live Kafka, release readiness or performance ranking is established.",
+    "Executable-bit parity is checked, not ownership, ACL or full permission equivalence."
+  ]
+}

@@ -1,0 +1,56 @@
+{
+  "base_commit": "33744862cd9e3263de502d57525619bd41704fec",
+  "manifest_sha256": "532f9b31a23c45504db2b0c2100ebac5d9f3e405f13fb6b8000d19417ff03c5a",
+  "patch_sha256": "bc2ee449621d3671c8ae6ee18b28eeeb1c2c64abe751f70e45e882ba86afb3b7",
+  "design_sha256": "1b9c6b087124873cade4c8c76c2d6a5d4c0f4625005bad20e2e8442daea9d816",
+  "before_sha256": "a6ba2301e9e4ad42abc9ac8d407d59f3619cc346b1fac353edae9778dd1a03b9",
+  "candidate_sha256": "91a57c87a92410e134949d8c02868d931ba064a1ccb52704ae14edf70f442e89",
+  "source_pins_commit_and_worktree": {
+    "partitionline-broker/src/raft/runtime.rs": "a0c136fcc728cfc4580ef30b2ca3fa964f32329f65fce301ef70985dfcd91754",
+    "partitionline-broker/src/raft/replication.rs": "f74747a0e7c9c4e211388a9428b0eaf1c5773f9c41c942b9ab72c2d4132c573e",
+    "partitionline-broker/src/raft/election.rs": "0ee1a9a0d293772f37e8328b07225f0cb6e9df78dc153052294f8f31ad94ab96",
+    "partitionline-broker/tests/common/raft_runtime.rs": "1f2ae553431bbea3b78123bf4229053588de187c2e0edc9925a15ae829702e4e",
+    "partitionline-broker/tests/raft_membership.rs": "a6ba2301e9e4ad42abc9ac8d407d59f3619cc346b1fac353edae9778dd1a03b9"
+  },
+  "unchanged_existing_source_after_removing_one_added_test": true,
+  "roundtrip": [
+    {
+      "flags": [
+        "--check"
+      ],
+      "exit": 0,
+      "stderr": ""
+    },
+    {
+      "flags": [],
+      "exit": 0,
+      "stderr": ""
+    },
+    {
+      "flags": [
+        "--reverse",
+        "--check"
+      ],
+      "exit": 0,
+      "stderr": ""
+    },
+    {
+      "flags": [
+        "--reverse"
+      ],
+      "exit": 0,
+      "stderr": ""
+    }
+  ],
+  "failed_logs": {
+    "125729388284": {
+      "gzip_sha256": "69aa06c4039151c80bc682ad593ee0b4540a1794fef506188f6d9a646aaef8c7",
+      "decoded_sha256": "43bf59f50e153d70ff15a04b5dd8e15caa7072748e807f564b5cda2acb45e10f"
+    },
+    "125734535528": {
+      "gzip_sha256": "7ed2f7485ce6762c686a93283bb35f5d4a3783d54dbd89262ddc9312a21057e6",
+      "decoded_sha256": "8f943f3c2c7db043c47f688930e0f98857cfd913b6f1ca93f9d3082d7ef8a796"
+    }
+  },
+  "limits": "Offline source and patch review only; no Cargo, native builds, execution, network or publication."
+}
