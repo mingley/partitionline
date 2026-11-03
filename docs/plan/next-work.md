@@ -79,10 +79,12 @@ found that its configured queue budget does not cover both retained vectors.
 Define and test their combined capacity and reply-lifetime accounting.
 The source-reviewed [controller shutdown candidate](../evidence/broker/controller-shutdown-20261103/README.md)
 now has a [hosted qualification capsule](../evidence/broker/candidate-20261030/controller-join-v2-r1/README.md).
-Its [hosted job](https://github.com/mingley/partitionline/actions/runs/41594361732/job/125788111325)
-failed the broker inventory and inventory-negative-control gates. The retained
-results need inspection before drawing conclusions about its synthetic controls;
-real controller, WAL and transport coverage also remains open.
+Its [hosted job](../evidence/broker/controller-join-native-664b-20261103/README.md)
+failed the broker inventory and inventory-negative-control gates. The pinned
+runner's control flow indicates the earlier synthetic controls completed
+without recorded gate errors, but their individual logs and the inventory
+failure cause are unavailable. Real controller, WAL and transport coverage
+also remains open.
 
 ## Correctness priorities
 
