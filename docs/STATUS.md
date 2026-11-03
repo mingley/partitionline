@@ -65,14 +65,18 @@ quorum, without replicated partition data or native Kafka KRaft.
 | Qualified broker v2 all-feature all targets at that commit | 868 passed |
 | Broker v2 strict Clippy, docs, inventory and six repeated Fetch checks | Passed |
 | Client focused capability profiles at that commit | 93 passed and 450 Java reverse checks per profile |
-| Main broker CI | 727 default and 875 all-feature tests passed at `b1cfbfd96`; Clippy and docs passed |
+| Main broker CI | 729 default and 877 all-feature tests passed at `2645e96ce`; Clippy, docs, inventory and fuzz supervision passed |
 | Isolated broker capacity candidate, x86 | 729 default and 877 all-feature tests passed, with format, Clippy, docs and focused controls; OOM counters unavailable and zero doctests found |
 | Main capability profiles | Passed at `33744862c` |
 | Main strict Clippy, security, documentation and package jobs | Passed at `e7660f6e5` |
-| Main client and live Kafka compatibility CI | Failed at `e7660f6e5` |
+| Main client CI | Failed at `e7660f6e5` |
+| Live Kafka compatibility at `2645e96ce` | Kafka 4.1.2, 4.2.1 and 4.3.1 runs aborted with a stack overflow during classic group join |
+| Windows default library at `2645e96ce` | 2,181 passed, 15 failed |
 
 The [client failure index][client], [main CI run][main-ci] and
-[candidate results][candidate-results] preserve the results.
+[candidate results][candidate-results] preserve earlier results. The
+[latest client CI record][client-ci-2645] identifies the live compatibility
+and Windows failures.
 Earlier broker EOF, joined-shutdown QueueFull and Raft observer failures remain
 in the [native-round record][native]. The source-bound inventory now passes all
 55 controls. The [fixture gate repair][java] now has passing native results in
@@ -155,7 +159,8 @@ measurements and dated notes.
 [queue-v17]: https://github.com/mingley/partitionline/blob/c06dfd345315c1fd0847872a1176fde8c5959043/docs/evidence/perf/pending-queue-v17-20261103/README.md
 [candidate-build]: https://github.com/mingley/partitionline/blob/f548870380ecc025b4e245c7f94a1c0a13fef2ff/docs/evidence/client/candidate-native-fdaf-20261103/README.md
 [candidate-rerun]: https://github.com/mingley/partitionline/blob/2857611b35e25c9ad46206edae89c35e0bc0ffe9/docs/evidence/client/candidate-native-e766-20261103/README.md
-[broker-ci]: https://github.com/mingley/partitionline/blob/929dd6bd20496f88a513a94baa644bc90f3d8eef/docs/evidence/broker/main-ci-b1cf-20261103/REPORT.md
+[broker-ci]: https://github.com/mingley/partitionline/blob/466a87f242e8b043ae25d8f3a7ce2af7d1157559/docs/evidence/broker/main-ci-2645-20261103/REPORT.md
+[client-ci-2645]: https://github.com/mingley/partitionline/blob/466a87f242e8b043ae25d8f3a7ce2af7d1157559/docs/evidence/client/main-ci-2645-20261103/REPORT.md
 [release-gates]: https://github.com/mingley/partitionline/blob/929dd6bd20496f88a513a94baa644bc90f3d8eef/docs/evidence/releases/ci-attempt-binding-20261103/README.md
 [candidate-results]: https://github.com/mingley/partitionline/blob/b2d18730494b6d55df7b81f9d4ce88a81e10b3d9/docs/evidence/client/candidate-native-b1-20261102/README.md
 [java]: https://github.com/mingley/partitionline/blob/9481723c7a144254fdf4f1c415d082aa0233a25f/docs/evidence/client/capability-java-20261030/README.md
@@ -164,7 +169,7 @@ measurements and dated notes.
 [native]: https://github.com/mingley/partitionline/blob/dfad6573e46adf8aa91626854e4f816cfff2c2bf/docs/evidence/releases/candidate-native-20261030/README.md
 [producer]: https://github.com/mingley/partitionline/blob/908dbdf2f20c8462a741ce59a4f56be2f310048e/docs/evidence/client/producer-admission-20261030/README.md
 [faults]: https://github.com/mingley/partitionline/blob/77021f7dc6c0d19aa93c7bf0b7fad125ee632e23/docs/evidence/broker/fuzz/20261027-candidate06/README.md
-[next]: https://github.com/mingley/partitionline/blob/c06dfd345315c1fd0847872a1176fde8c5959043/docs/plan/next-work.md
+[next]: https://github.com/mingley/partitionline/blob/466a87f242e8b043ae25d8f3a7ce2af7d1157559/docs/plan/next-work.md
 [queue]: https://github.com/mingley/partitionline/blob/c06dfd345315c1fd0847872a1176fde8c5959043/docs/evidence/perf/producer-pending-20261102/README.md
 [tasks]: https://github.com/mingley/partitionline/blob/77021f7dc6c0d19aa93c7bf0b7fad125ee632e23/docs/plan/tasks.json
 [previous]: https://github.com/mingley/partitionline/blob/77021f7dc6c0d19aa93c7bf0b7fad125ee632e23/docs/STATUS.md
