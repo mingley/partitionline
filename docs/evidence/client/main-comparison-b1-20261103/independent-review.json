@@ -1,0 +1,26 @@
+{
+  "scope": "Independent byte-for-byte report ZIP and object archive verification; offline analysis review.",
+  "original_zip_sha256": "376099ae1833638ffdc9e22c35eb3be8a10c9b2d84f59900289c4884ffb74fec",
+  "manifest_sha256": "53e3aae3fd31309b3021183e04c4e254c153d1151393097ddaae2c7168a91ed9",
+  "analysis_sha256": "d1f53859e740dae60b92807f8978287efb9a2e1621975e1837e50e2233329f1d",
+  "object_archive_sha256": "6dbd5527919aa0857721bcfee475834418e0f952498e673ef9c859e9e2fa3701",
+  "zip_members_verified": 154,
+  "unique_objects_verified": 80,
+  "source_guard_pairs_equal": 31,
+  "command_receipts_reviewed": 31,
+  "baseline_executions": "Two once before profile loops, no --all-features; not two per profile.",
+  "each_profile": {
+    "library": "2185 passed / 11 failed / 0 ignored",
+    "mock_produce": "27 passed / 18 failed / 0 ignored",
+    "producer_retained_backing": "7 passed / 1 failed / 1 ignored",
+    "mock_failures_shared_with_v10": 15,
+    "additional_main_mock_failures": 3
+  },
+  "format_and_clippy": "passed",
+  "oom_status": "unknown",
+  "limits": [
+    "No full executable/source artifact download or rehash.",
+    "Fixture and source differences mean matching identities do not prove identical causes.",
+    "No all-target release, live Kafka or performance qualification."
+  ]
+}

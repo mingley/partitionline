@@ -157,9 +157,11 @@ The earlier
 [v8 run](../evidence/client/candidate-native-350-20261102/README.md) passed
 2,280 library tests in each profile and strict Clippy, but failed Mock Produce,
 retained backing and one baseline expectation.
-An [unchanged-main comparison](../evidence/client/candidate-20261030/main-comparison-b1/README.md)
-is running those producer binaries with the same stack and thread settings;
-it preserves the original failure conditions.
+The [unchanged-main comparison](../evidence/client/main-comparison-b1-20261103/README.md)
+ran those producer binaries with the same stack and thread settings. Main
+failed all 15 Mock Produce identities that fail in v10, plus three others,
+and the retained-backing test timed out. Fixture differences mean the shared
+identities do not by themselves prove the same cause.
 
 The staged [v12 client candidate](../evidence/client/candidate-20261030/v12/README.md)
 adds producer deadline-scan reductions and timeout diagnostics to that work.

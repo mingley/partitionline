@@ -44,6 +44,9 @@ quorum, without replicated partition data or native Kafka KRaft.
   profiles and strict Clippy but failed two integration binaries and one
   baseline expectation. Its changes have not been adopted on `main`.
   The fixture controls passed, while the original timeout remained.
+- The original main client failed the same 15 Mock Produce identities and the
+  retained-backing test in a matching thread/stack comparison. Fixture
+  differences leave the shared causes unproven.
 
 ## Validation
 

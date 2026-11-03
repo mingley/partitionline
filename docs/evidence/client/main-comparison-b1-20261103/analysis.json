@@ -1,0 +1,216 @@
+{
+  "checkout": "e7660f6e56195cbdd2ec4523ade021bffe655755",
+  "rust_base": "b1b0488096f886c2fd60a7368bbf2ed57b5da2e3",
+  "run": 41576616151,
+  "job": 125721482298,
+  "architecture": "x86_64",
+  "stack_bytes": 8388608,
+  "test_threads": 1,
+  "format_and_clippy_passed": true,
+  "summary_passed": false,
+  "baseline_expectations_matched": false,
+  "profiles": {
+    "default": {
+      "partitionline": {
+        "exit": 101,
+        "test_results": [
+          "test result: FAILED. 2185 passed; 11 failed; 0 ignored; 0 measured; 0 filtered out; finished in 299.31s"
+        ],
+        "test_failures": [
+          "admin::tests::indexing_many_coordinators_does_not_hold_the_caller",
+          "consumer::tests::wakeup_keeps_a_leader_dial_that_already_finished",
+          "group::rediscover_stop_tests::replacing_an_idle_coordinator_lets_the_broker_leave",
+          "group::rediscover_stop_tests::replacing_an_idle_legacy_offset_coordinator_lets_the_broker_leave",
+          "group::rediscover_stop_tests::replacing_an_idle_offset_coordinator_lets_the_broker_leave",
+          "group::tests::collecting_many_revoked_commits_does_not_hold_the_caller",
+          "group::tests::copying_many_assigned_members_does_not_hold_the_caller",
+          "net::tests::write_timeout_shuts_the_broker_down",
+          "producer::tests::assembling_many_produce_topics_does_not_hold_the_caller",
+          "producer::tests::replacing_an_idle_metadata_socket_lets_the_broker_leave",
+          "share::dial_tests::wakeup_keeps_a_share_dial_that_already_finished"
+        ],
+        "inputs_stable": true,
+        "stop_reason": null,
+        "memory_counter_status": "unknown"
+      },
+      "mock_produce": {
+        "exit": 101,
+        "test_results": [
+          "test result: FAILED. 27 passed; 18 failed; 0 ignored; 0 measured; 0 filtered out; finished in 12.06s"
+        ],
+        "test_failures": [
+          "commit_reuses_a_produce_handshake_for_the_moved_coordinator",
+          "commit_reuses_bootstrap_when_the_coordinator_returns",
+          "epoch_bump_reuses_a_produce_handshake",
+          "idle_metadata_reuses_learned_api_versions",
+          "idle_produce_leader_reuses_learned_api_versions",
+          "multi_bootstrap_commit_reuses_known_coordinator_handshakes",
+          "multi_bootstrap_send_offsets_reuses_known_handshakes",
+          "multi_bootstrap_transaction_reuses_the_other_bootstrap_handshake",
+          "produce_reuses_a_finished_bootstrap_handshake",
+          "produce_reuses_bootstrap_api_versions",
+          "produce_reuses_the_transaction_coordinator_handshake",
+          "retry_refreshes_waiting_topics_together",
+          "send_all_redials_leaders_while_refreshing_metadata",
+          "send_offsets_negotiates_a_new_group_coordinator",
+          "send_offsets_repeats_a_remote_coordinator_without_another_handshake",
+          "send_offsets_reuses_bootstrap_api_versions",
+          "transactional_rediscover_skips_a_second_bootstrap_handshake",
+          "transactional_startup_skips_a_second_bootstrap_handshake"
+        ],
+        "inputs_stable": true,
+        "stop_reason": null,
+        "memory_counter_status": "unknown"
+      },
+      "producer_retained_backing": {
+        "exit": 101,
+        "test_results": [
+          "test result: FAILED. 7 passed; 1 failed; 1 ignored; 0 measured; 0 filtered out; finished in 15.59s"
+        ],
+        "test_failures": [
+          "cancelled_channel_admission_releases_only_the_unenqueued_reservation"
+        ],
+        "inputs_stable": true,
+        "stop_reason": null,
+        "memory_counter_status": "unknown"
+      },
+      "v10_matching_failures": [
+        "commit_reuses_a_produce_handshake_for_the_moved_coordinator",
+        "commit_reuses_bootstrap_when_the_coordinator_returns",
+        "epoch_bump_reuses_a_produce_handshake",
+        "multi_bootstrap_commit_reuses_known_coordinator_handshakes",
+        "multi_bootstrap_send_offsets_reuses_known_handshakes",
+        "multi_bootstrap_transaction_reuses_the_other_bootstrap_handshake",
+        "produce_reuses_a_finished_bootstrap_handshake",
+        "produce_reuses_bootstrap_api_versions",
+        "produce_reuses_the_transaction_coordinator_handshake",
+        "send_all_redials_leaders_while_refreshing_metadata",
+        "send_offsets_negotiates_a_new_group_coordinator",
+        "send_offsets_repeats_a_remote_coordinator_without_another_handshake",
+        "send_offsets_reuses_bootstrap_api_versions",
+        "transactional_rediscover_skips_a_second_bootstrap_handshake",
+        "transactional_startup_skips_a_second_bootstrap_handshake"
+      ],
+      "main_additional_failures": [
+        "idle_metadata_reuses_learned_api_versions",
+        "idle_produce_leader_reuses_learned_api_versions",
+        "retry_refreshes_waiting_topics_together"
+      ]
+    },
+    "all-features": {
+      "partitionline": {
+        "exit": 101,
+        "test_results": [
+          "test result: FAILED. 2185 passed; 11 failed; 0 ignored; 0 measured; 0 filtered out; finished in 300.18s"
+        ],
+        "test_failures": [
+          "admin::tests::indexing_many_coordinators_does_not_hold_the_caller",
+          "consumer::tests::wakeup_keeps_a_leader_dial_that_already_finished",
+          "group::rediscover_stop_tests::replacing_an_idle_coordinator_lets_the_broker_leave",
+          "group::rediscover_stop_tests::replacing_an_idle_legacy_offset_coordinator_lets_the_broker_leave",
+          "group::rediscover_stop_tests::replacing_an_idle_offset_coordinator_lets_the_broker_leave",
+          "group::tests::collecting_many_revoked_commits_does_not_hold_the_caller",
+          "group::tests::copying_many_assigned_members_does_not_hold_the_caller",
+          "net::tests::write_timeout_shuts_the_broker_down",
+          "producer::tests::assembling_many_produce_topics_does_not_hold_the_caller",
+          "producer::tests::replacing_an_idle_metadata_socket_lets_the_broker_leave",
+          "share::dial_tests::wakeup_keeps_a_share_dial_that_already_finished"
+        ],
+        "inputs_stable": true,
+        "stop_reason": null,
+        "memory_counter_status": "unknown"
+      },
+      "mock_produce": {
+        "exit": 101,
+        "test_results": [
+          "test result: FAILED. 27 passed; 18 failed; 0 ignored; 0 measured; 0 filtered out; finished in 12.05s"
+        ],
+        "test_failures": [
+          "commit_reuses_a_produce_handshake_for_the_moved_coordinator",
+          "commit_reuses_bootstrap_when_the_coordinator_returns",
+          "epoch_bump_reuses_a_produce_handshake",
+          "idle_metadata_reuses_learned_api_versions",
+          "idle_produce_leader_reuses_learned_api_versions",
+          "multi_bootstrap_commit_reuses_known_coordinator_handshakes",
+          "multi_bootstrap_send_offsets_reuses_known_handshakes",
+          "multi_bootstrap_transaction_reuses_the_other_bootstrap_handshake",
+          "produce_reuses_a_finished_bootstrap_handshake",
+          "produce_reuses_bootstrap_api_versions",
+          "produce_reuses_the_transaction_coordinator_handshake",
+          "retry_refreshes_waiting_topics_together",
+          "send_all_redials_leaders_while_refreshing_metadata",
+          "send_offsets_negotiates_a_new_group_coordinator",
+          "send_offsets_repeats_a_remote_coordinator_without_another_handshake",
+          "send_offsets_reuses_bootstrap_api_versions",
+          "transactional_rediscover_skips_a_second_bootstrap_handshake",
+          "transactional_startup_skips_a_second_bootstrap_handshake"
+        ],
+        "inputs_stable": true,
+        "stop_reason": null,
+        "memory_counter_status": "unknown"
+      },
+      "producer_retained_backing": {
+        "exit": 101,
+        "test_results": [
+          "test result: FAILED. 7 passed; 1 failed; 1 ignored; 0 measured; 0 filtered out; finished in 15.34s"
+        ],
+        "test_failures": [
+          "cancelled_channel_admission_releases_only_the_unenqueued_reservation"
+        ],
+        "inputs_stable": true,
+        "stop_reason": null,
+        "memory_counter_status": "unknown"
+      },
+      "v10_matching_failures": [
+        "commit_reuses_a_produce_handshake_for_the_moved_coordinator",
+        "commit_reuses_bootstrap_when_the_coordinator_returns",
+        "epoch_bump_reuses_a_produce_handshake",
+        "multi_bootstrap_commit_reuses_known_coordinator_handshakes",
+        "multi_bootstrap_send_offsets_reuses_known_handshakes",
+        "multi_bootstrap_transaction_reuses_the_other_bootstrap_handshake",
+        "produce_reuses_a_finished_bootstrap_handshake",
+        "produce_reuses_bootstrap_api_versions",
+        "produce_reuses_the_transaction_coordinator_handshake",
+        "send_all_redials_leaders_while_refreshing_metadata",
+        "send_offsets_negotiates_a_new_group_coordinator",
+        "send_offsets_repeats_a_remote_coordinator_without_another_handshake",
+        "send_offsets_reuses_bootstrap_api_versions",
+        "transactional_rediscover_skips_a_second_bootstrap_handshake",
+        "transactional_startup_skips_a_second_bootstrap_handshake"
+      ],
+      "main_additional_failures": [
+        "idle_metadata_reuses_learned_api_versions",
+        "idle_produce_leader_reuses_learned_api_versions",
+        "retry_refreshes_waiting_topics_together"
+      ]
+    }
+  },
+  "limits": [
+    "Selected binaries and matched thread/stack settings, not an all-target release matrix or performance benchmark.",
+    "The v10 candidate has extra test identities and fixture changes, so test counts alone do not establish an isolated causal effect.",
+    "OOM counters unavailable; full executable/source artifact was not downloaded."
+  ],
+  "baseline_cases": {
+    "scope": "Each baseline case ran once before the feature-profile loops.",
+    "cases": [
+      {
+        "exit": 101,
+        "test_results": [
+          "test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 44 filtered out; finished in 0.82s"
+        ],
+        "test_failures": [
+          "send_all_redials_leaders_while_refreshing_metadata"
+        ]
+      },
+      {
+        "exit": 101,
+        "test_results": [
+          "test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 8 filtered out; finished in 13.40s"
+        ],
+        "test_failures": [
+          "cancelled_channel_admission_releases_only_the_unenqueued_reservation"
+        ]
+      }
+    ]
+  }
+}
