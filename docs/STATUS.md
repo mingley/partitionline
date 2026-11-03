@@ -181,7 +181,7 @@ measurements and dated notes.
 [package]: https://github.com/mingley/partitionline/blob/77021f7dc6c0d19aa93c7bf0b7fad125ee632e23/docs/evidence/releases/package-navigation-20261030/README.md
 [client]: https://github.com/mingley/partitionline/blob/77021f7dc6c0d19aa93c7bf0b7fad125ee632e23/docs/evidence/client/clean-default-validation-20261028/README.md
 [main-ci]: https://github.com/mingley/partitionline/actions/runs/41576616173
-[current-ci]: https://github.com/mingley/partitionline/actions/runs/41604650418
+[current-ci]: https://github.com/mingley/partitionline/blob/399b349504a95fe5c4672f46d7f99c27bc978e6b/docs/evidence/releases/main-ci-45cb-20261103/README.md
 [comparison]: https://github.com/mingley/partitionline/blob/f655b99c449b76ff09b30867ef58c42e51a38b65/docs/evidence/client/main-comparison-b1-20261103/README.md
 [candidate-v16]: https://github.com/mingley/partitionline/blob/60212c74a31790a6c42052715b1d6e579d3cd961/docs/evidence/client/candidate-v16-job-20261103/REPORT.md
 [candidate-v16-repeat]: https://github.com/mingley/partitionline/blob/5dfafef402abe292011cb6dac478dd89ab771277/docs/evidence/client/candidate-v16-repeat-e2a0-20261103/README.md
@@ -204,7 +204,7 @@ measurements and dated notes.
 [native]: https://github.com/mingley/partitionline/blob/dfad6573e46adf8aa91626854e4f816cfff2c2bf/docs/evidence/releases/candidate-native-20261030/README.md
 [producer]: https://github.com/mingley/partitionline/blob/908dbdf2f20c8462a741ce59a4f56be2f310048e/docs/evidence/client/producer-admission-20261030/README.md
 [faults]: https://github.com/mingley/partitionline/blob/77021f7dc6c0d19aa93c7bf0b7fad125ee632e23/docs/evidence/broker/fuzz/20261027-candidate06/README.md
-[next]: https://github.com/mingley/partitionline/blob/76146afe13c07936becb094c29e141a1f5a57f49/docs/plan/next-work.md
+[next]: https://github.com/mingley/partitionline/blob/399b349504a95fe5c4672f46d7f99c27bc978e6b/docs/plan/next-work.md
 [queue]: https://github.com/mingley/partitionline/blob/c06dfd345315c1fd0847872a1176fde8c5959043/docs/evidence/perf/producer-pending-20261102/README.md
 [tasks]: https://github.com/mingley/partitionline/blob/77021f7dc6c0d19aa93c7bf0b7fad125ee632e23/docs/plan/tasks.json
 [previous]: https://github.com/mingley/partitionline/blob/77021f7dc6c0d19aa93c7bf0b7fad125ee632e23/docs/STATUS.md
