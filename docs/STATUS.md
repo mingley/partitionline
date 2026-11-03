@@ -1,6 +1,6 @@
 # Status
 
-Updated 30 October 2026.
+Updated 2 November 2026.
 
 `partitionline` 0.1.0 is published on crates.io. This repository contains later
 changes and requires the latest stable Rust. The next client release must be
@@ -40,23 +40,26 @@ quorum, without replicated partition data or native Kafka KRaft.
 - Both focused capability profiles pass 93 required tests and 450 Java reverse
   checks. SDK socket and Streams Java coverage remain open. See
   [capability results][capability].
-- The broader [client candidate][candidates] still needs native runtime proof.
-  Its 141 required identities and 22 baseline cases remain enforced.
+- The isolated [client candidate][candidate-results] ran in both feature
+  profiles but did not pass. Its 141 required identities and 22 baseline cases
+  remain in the candidate; its changes have not been adopted on `main`.
 
 ## Validation
 
 | Check | Recorded result |
 | --- | --- |
-| Client default library at `fe65ac783` | 2,174 passed, 22 failed; later integration targets did not run |
-| Client all-feature library at that commit | 2,180 passed, 16 failed; later integration targets did not run |
+| Client default library on `main` at `c025be19b` | 2,171 passed, 25 failed; later integration targets did not run |
+| Client all-feature library on `main` at that commit | 2,174 passed, 22 failed; later integration targets did not run |
+| Isolated client v7 library, each profile | 2,253 passed, one failed; selected producer tests and Clippy also failed |
 | Qualified broker v2 default all targets, `209d0b068` | 720 passed |
 | Qualified broker v2 all-feature all targets at that commit | 868 passed |
 | Broker v2 strict Clippy, docs, inventory and six repeated Fetch checks | Passed |
 | Client focused capability profiles at that commit | 93 passed and 450 Java reverse checks per profile |
-| Client strict all-target Clippy, security, documentation and package jobs | Passed at that commit |
-| Exact current-commit CI and release gates | Not passed |
+| Main broker CI, capability profiles, strict Clippy, security, documentation and package jobs | Passed at `c025be19b` |
+| Main client and live Kafka compatibility CI | Failed at `c025be19b` |
 
-The [client failure index][client] and [CI snapshot][ci] preserve the results.
+The [client failure index][client], [main CI run][main-ci] and
+[candidate results][candidate-results] preserve the results.
 Earlier broker EOF, joined-shutdown QueueFull and Raft observer failures remain
 in the [native-round record][native]. The source-bound inventory now passes all
 55 controls. The [fixture gate repair][java] now has passing native results in
@@ -66,7 +69,7 @@ not replace the complete current-commit release matrix.
 ## Open work
 
 Producer worker retirement, shutdown and retry cancellation have 33 passing
-focused controls. The broader candidate library run has 2,176 passes and 20
+focused controls. An earlier producer candidate library run had 2,176 passes and 20
 failures; seven producer integration targets have 118 passes, 19 failures and
 two ignored tests. These local runs used one test thread and an 8 MiB stack;
 see [producer results][producer]. Partition issue ordering, modular sequence wrap, producer-identity
@@ -81,7 +84,7 @@ are incomplete; [protocol support](gaps.md) lists those feature gaps.
 The broker still needs replicated partition data, authenticated network
 leadership, committed-watermark protection and transaction participant/marker
 propagation. The adopted local epoch and journal fixes have passing x86
-qualification; ordinary CI must still check the resulting main commit.
+qualification and ordinary broker CI on `c025be19b`.
 Epoch publication rewrites the file and needs another complete image on disk.
 A local log test does not establish a production cluster.
 
@@ -95,6 +98,11 @@ comparisons and independent record verification remain open. The
 Ring, whose dependency includes C and assembly; an all-dependency Rust-only
 claim is not established.
 
+The producer's pending queue can repeatedly scan deadlines and shift records
+when small batches drain. A replica epoch change rewrites the broker journal.
+Both are candidates for optimization; neither has a measured end-to-end
+speedup yet. The required matched x86 peer comparison has not run.
+
 Use [next work][next] for the detailed handoff, [support](support.md) for tested
 combinations, and the [release guide](RELEASE.md) for publication gates.
 The [task registry][tasks] remains at 249 done, 13 in progress and 84 pending;
@@ -106,9 +114,9 @@ measurements and dated notes.
 [dependencies]: https://github.com/mingley/partitionline/blob/77021f7dc6c0d19aa93c7bf0b7fad125ee632e23/docs/evidence/security/dependency-floors-20261030/README.md
 [package]: https://github.com/mingley/partitionline/blob/77021f7dc6c0d19aa93c7bf0b7fad125ee632e23/docs/evidence/releases/package-navigation-20261030/README.md
 [client]: https://github.com/mingley/partitionline/blob/77021f7dc6c0d19aa93c7bf0b7fad125ee632e23/docs/evidence/client/clean-default-validation-20261028/README.md
-[ci]: https://github.com/mingley/partitionline/blob/9481723c7a144254fdf4f1c415d082aa0233a25f/docs/evidence/releases/main-ci-fe65-20261030/README.md
+[main-ci]: https://github.com/mingley/partitionline/actions/runs/41141176275
+[candidate-results]: https://github.com/mingley/partitionline/actions/runs/41141176310
 [java]: https://github.com/mingley/partitionline/blob/9481723c7a144254fdf4f1c415d082aa0233a25f/docs/evidence/client/capability-java-20261030/README.md
-[candidates]: https://github.com/mingley/partitionline/blob/ef28c255aecf402cdae2000d8796dcea9a36a8bc/docs/evidence/client/candidate-20261030/v7/README.md
 [broker]: https://github.com/mingley/partitionline/blob/ef28c255aecf402cdae2000d8796dcea9a36a8bc/docs/evidence/broker/epoch-journal-20261030/README.md
 [capability]: https://github.com/mingley/partitionline/blob/ef28c255aecf402cdae2000d8796dcea9a36a8bc/docs/evidence/client/capability-native-20261030/README.md
 [native]: https://github.com/mingley/partitionline/blob/ef28c255aecf402cdae2000d8796dcea9a36a8bc/docs/evidence/releases/candidate-native-20261030/README.md

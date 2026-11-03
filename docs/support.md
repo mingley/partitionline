@@ -49,7 +49,9 @@ Each attempt keeps its source SHA, compiler, image, streams, and failures.
 This is one producer and consumer scenario. It is not the full ducktape suite
 or the full SDK case registry. The earlier mock-only case is historical.
 
-These profiles use current source and default features. They do not cover:
+The recorded profiles used their named source revisions and default features.
+The three live Kafka profiles failed on `c025be19b`; see the
+[current results](STATUS.md#validation). These profiles do not cover:
 
 - Multi-broker HA, rebalance churn, or share lock expiry
 - Crash and fencing

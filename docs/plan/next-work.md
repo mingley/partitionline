@@ -1,6 +1,6 @@
 # Next work
 
-Updated 30 October 2026. Use latest stable Rust and push reviewed changes
+Updated 2 November 2026. Use latest stable Rust and push reviewed changes
 directly to `main`. The [task registry](tasks.json) remains unchanged:
 249 done, 13 in progress and 84 pending.
 
@@ -12,13 +12,15 @@ Client 0.1.0 is already published. The next client version must be at least
 
 | Scope | Recorded result |
 | --- | --- |
-| Client default library, `fe65ac783` | 2,174 passed, 22 failed; later integration targets did not run |
-| Client all-feature library at that commit | 2,180 passed, 16 failed; later integration targets did not run |
+| Client default library on `main`, `c025be19b` | 2,171 passed, 25 failed; later integration targets did not run |
+| Client all-feature library on `main` at that commit | 2,174 passed, 22 failed; later integration targets did not run |
+| Isolated client v7 library in each profile | 2,253 passed, one failed; selected producer tests and Clippy also failed |
 | Qualified broker v2 default all targets, `209d0b068` | 720 passed |
 | Qualified broker v2 all-feature all targets at that commit | 868 passed |
 | Broker v2 strict Clippy, docs, inventory and six fresh-process Fetch deadline checks | Passed |
 | Client capability lanes at that commit | 93 passed in each profile; 450 Java reverse checks in each |
-| Client strict all-target Clippy, audit and dependency policy at that commit | Passed |
+| Main broker CI, capability profiles, strict Clippy, audit, dependency policy, docs and package jobs | Passed at `c025be19b` |
+| Main client and live Kafka compatibility CI | Failed at `c025be19b` |
 | Reconnect candidate | 14 unit controls and six integration targets passed; latest broad Fetch 167 passed, two failed, one ignored |
 | Integrated-source package navigation | 20 documentation tests passed; extracted crate checked 30 documents, 225 local links, 51 pinned repository targets |
 | Package consumers and publication dry run at `fe65ac783` | Passed; actual publication remains gated |
@@ -97,9 +99,9 @@ Current-commit green CI and the complete release gates remain open.
 5. **Broker replication and transactions.** The operator has an RF1 data path
    and a separate metadata-only quorum. Replicated partition data and native
    Kafka KRaft are absent. Durable accepted leader epochs, journal permissions
-   and five buffer-reservation fixes are prepared for default/all-feature
-   qualification. A committed-watermark truncation guard and authenticated
-   network integration remain open. Transaction checkpoints do not implement
+   and five buffer-reservation fixes passed focused qualification and are on
+   `main`. A committed-watermark truncation guard and authenticated network
+   integration remain open. Transaction checkpoints do not implement
    participant/marker propagation; marker and transactional-offset histories
    retain finite limits. See the
    [replication](../evidence/broker/replication-limits-20261028/README.md)
@@ -124,24 +126,32 @@ review are in the
 The earlier ignored-fixture failure remains in the
 [fixture gate record](../evidence/client/capability-java-20261030/README.md).
 
-The client v7 candidate has 127 library controls, 14 integration controls and
-full runs of ten chosen binaries in both feature configurations. Its stack is
-8 MiB except a separate 2 MiB mock group-lifecycle probe; live stack safety
-remains open. Earlier candidate builds failed on return-value and test-scope
-lint errors before runtime tests. The failures are retained in the
-[native-round record](../evidence/releases/candidate-native-20261030/README.md).
-V7 repairs those test errors without changing the 141 required identities or
-22 baseline cases. Worker-owned preparation, in-place identity filtering,
-bounded Admin projection, socket lifecycle and group retry changes still need
-native runtime proof. See the
-[client candidate](../evidence/client/candidate-20261030/v7/README.md).
+The client v7 candidate ran 127 required library controls and 14 integration
+controls within ten selected binaries in each feature configuration. Its
+stack was 8 MiB except a separate 2 MiB mock group-lifecycle probe; live stack
+safety remains open. Each library run had 2,253 passes and one failure from a
+test setup panic. Each Mock Produce run had 31 passes and 15 failures; each
+retained-backing run had seven passes, one timeout and one ignored test.
+Strict Clippy found two test-only errors. Two of 22 expected baseline outcomes
+did not reproduce. This isolated candidate has not been adopted on `main`.
+See the [v7 results](../evidence/client/candidate-native-c025-20261030/README.md)
+and the [earlier native rounds](../evidence/releases/candidate-native-20261030/README.md).
 
 Broker v2 observed seven baseline failures and passed twelve fixed controls,
 three asynchronous filesystem controls and full default/all-feature targets,
 strict Clippy/docs and all 55 inventory controls. Three fresh-process Fetch
 checks passed in each profile. OOM counters were unavailable. Those exact
-source bytes are now adopted; ordinary CI must still run on the resulting main
-commit. This local replica model is not a production replicated cluster.
+source bytes are now adopted; ordinary broker CI passed on `c025be19b`.
+This local replica model is not a production replicated cluster.
+
+The main client and live Kafka jobs failed on `c025be19b` in
+[CI run 41141176275](https://github.com/mingley/partitionline/actions/runs/41141176275).
+The Release-plz PR workflow also failed because its semver checker discovered
+archived evidence manifests as duplicate packages. An ignore rule now hides
+those manifests from that traversal; the actual workflow still needs a rerun.
+The release rehearsal
+self-test is hard-coded to `0.1.0` and needs to accept the next candidate
+version. Neither failure is a publication.
 
 The workspace has a four-CPU quota and limited disk. Serialize builds and
 timing runs, retain source/executable hashes, and monitor a 1.5 GiB free-space
@@ -165,6 +175,11 @@ prepared but unbuilt and unrun. Its supervisor has passing synthetic controls;
 that is process-cleanup evidence, not a performance result. Keep any eventual
 numbers limited to their settings, peers and architecture. The
 [benchmark contract](../benchmark-contract.md) governs broader claims.
+The producer's pending queue can rescan deadlines and shift a vector on each
+small batch, creating quadratic work when a long queue drains one record at a
+time. Replica epoch publication rewrites the journal on epoch changes. Measure
+both under representative workloads after preserving ordering, cancellation,
+crash safety and durability. Neither has a measured end-to-end speedup yet.
 
 The TLS graph still includes Ring C/assembly. The dependency update keeps that
 provider. The passing audit applies to its checked lockfile and advisory

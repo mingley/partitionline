@@ -2,8 +2,8 @@
 
 `partitionline` 0.1.0 is already published on crates.io. Never recut that
 version. Current source contains API changes and unresolved correctness
-failures; it is not ready for the next release. The [status](STATUS.md) and
-[next-work handoff](https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/docs/plan/next-work.md) link to the recorded results.
+failures; it is not ready for the next release. The [status](STATUS.md) links
+to the recorded results and current work.
 
 ## Crates and versions
 

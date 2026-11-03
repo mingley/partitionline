@@ -22,10 +22,10 @@ report no resource stop and joined child processes. OOM counters are unavailable
 zero OOM events are not claimed. Native builds run on existing x86 GitHub
 runners, with the local workspace's compilation guard unchanged.
 
-The next broker revision converts the new filesystem tests to asynchronous
-access and adds queue synchronization, phase diagnostics and repeated Fetch
-checks. The next client revision fixes the nested test type name. Their
-results must be checked separately.
+The later [broker v2 results](../../broker/epoch-journal-20261030/README.md)
+passed those targeted checks and were adopted on `main`. The later
+[client v7 run](../../client/candidate-native-c025-20261030/README.md)
+reached runtime tests and failed; neither result erases the earlier failures.
 
 `files.json` pins four complete report ZIPs and `summary.json`. Each ZIP retains
 its original command logs and receipts. Executable archives and source capsules

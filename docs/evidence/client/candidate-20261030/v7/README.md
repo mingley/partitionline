@@ -15,6 +15,10 @@ input catalogs. The broker source tree remains outside the client catalog.
 
 All 141 required identities, 22 baseline cases, ten full test binaries and
 existing budgets remain required. Source reconstruction and Rustfmt checks
-pass. V7 has not been compiled or runtime-qualified. Ordinary full-main CI,
-live Kafka stack safety, remaining producer ownership/replay work, production
-readiness and performance rank remain open. V6 source and evidence are kept.
+pass. The subsequent native run failed: in each profile the library reported
+2,253 passes and one failure, with additional Mock Produce, retained-backing
+and Clippy failures. See the
+[native results](../../candidate-native-c025-20261030/README.md).
+Ordinary full-main CI, live Kafka stack safety, producer ownership and replay,
+production readiness and performance qualification remain open. V6 source
+and evidence are kept.

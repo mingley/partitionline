@@ -1,0 +1,4 @@
+# Archived Cargo manifests are evidence, not packages for release-plz's
+# cargo-semver-checks traversal. Git still tracks them; use `rg --no-ignore`
+# when searching the archived manifests themselves.
+**/Cargo.toml
