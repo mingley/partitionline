@@ -121,7 +121,7 @@ before its effect is known. The [first combined candidate][candidate-build]
 failed its test build because a test module omitted an import. The corrected
 v16 candidate passed both library profiles and the revised deadline control,
 but both profiles still failed 15 Mock Produce tests and one retained-buffer
-test. See [next work][next] for the results and investigation.
+test. See the [v16 results][candidate-v16] and [next work][next] for details.
 
 The [release scripts][release-gates] check API/index agreement, consumer lockfile
 identity and exact-SHA CI more strictly. The token check reports presence without
@@ -142,6 +142,7 @@ measurements and dated notes.
 [client]: https://github.com/mingley/partitionline/blob/77021f7dc6c0d19aa93c7bf0b7fad125ee632e23/docs/evidence/client/clean-default-validation-20261028/README.md
 [main-ci]: https://github.com/mingley/partitionline/actions/runs/41576616173
 [comparison]: https://github.com/mingley/partitionline/blob/f655b99c449b76ff09b30867ef58c42e51a38b65/docs/evidence/client/main-comparison-b1-20261103/README.md
+[candidate-v16]: https://github.com/mingley/partitionline/blob/60212c74a31790a6c42052715b1d6e579d3cd961/docs/evidence/client/candidate-v16-job-20261103/REPORT.md
 [candidate-build]: https://github.com/mingley/partitionline/blob/f548870380ecc025b4e245c7f94a1c0a13fef2ff/docs/evidence/client/candidate-native-fdaf-20261103/README.md
 [candidate-rerun]: https://github.com/mingley/partitionline/blob/2857611b35e25c9ad46206edae89c35e0bc0ffe9/docs/evidence/client/candidate-native-e766-20261103/README.md
 [broker-ci]: https://github.com/mingley/partitionline/blob/929dd6bd20496f88a513a94baa644bc90f3d8eef/docs/evidence/broker/main-ci-b1cf-20261103/REPORT.md
@@ -153,7 +154,7 @@ measurements and dated notes.
 [native]: https://github.com/mingley/partitionline/blob/dfad6573e46adf8aa91626854e4f816cfff2c2bf/docs/evidence/releases/candidate-native-20261030/README.md
 [producer]: https://github.com/mingley/partitionline/blob/908dbdf2f20c8462a741ce59a4f56be2f310048e/docs/evidence/client/producer-admission-20261030/README.md
 [faults]: https://github.com/mingley/partitionline/blob/77021f7dc6c0d19aa93c7bf0b7fad125ee632e23/docs/evidence/broker/fuzz/20261027-candidate06/README.md
-[next]: https://github.com/mingley/partitionline/blob/929dd6bd20496f88a513a94baa644bc90f3d8eef/docs/plan/next-work.md
+[next]: https://github.com/mingley/partitionline/blob/60212c74a31790a6c42052715b1d6e579d3cd961/docs/plan/next-work.md
 [queue]: https://github.com/mingley/partitionline/blob/929dd6bd20496f88a513a94baa644bc90f3d8eef/docs/evidence/client/candidate-20261030/v16/README.md
 [tasks]: https://github.com/mingley/partitionline/blob/77021f7dc6c0d19aa93c7bf0b7fad125ee632e23/docs/plan/tasks.json
 [previous]: https://github.com/mingley/partitionline/blob/77021f7dc6c0d19aa93c7bf0b7fad125ee632e23/docs/STATUS.md
