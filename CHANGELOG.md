@@ -7,6 +7,2384 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
 
 ## [Unreleased]
 
+## [0.2.0](https://github.com/mingley/partitionline/compare/v0.1.0...v0.2.0) - 2026-11-03
+
+### Added
+
+- integrate durable Raft snapshot selection and unblock source qualification
+- *(kl-06)* bounded OIDC retry for transient IdP failures
+
+### Fixed
+
+- *(client)* preserve Share semantics under strict MSRV lint checks
+- bound Share coordinator startup retries and correct snapshot proof writes
+- fix packaged zstd decision links to excluded evidence and plans
+- *(kl-06)* omit IdP/broker bodies from OIDC and OAUTHBEARER errors
+
+### Other
+
+- Refresh qualification status
+- Update client status and qualification blockers
+- Refresh status with latest broker and client CI
+- Clarify broker limits and repair status links
+- Record broker qualification and current release status
+- Bound broker proposal capacity and stage client diagnostics
+- Link v16 results and current next work
+- Qualify broker capacity bounds and record client results
+- Link current qualification evidence
+- Prepare client v16 and retain qualification findings
+- Bind release checks to CI attempts and stage client v15
+- Link updated broker and release findings
+- Fix Raft test lint and record release-check blocker
+- Link latest client and broker qualification
+- Correct client candidate build and retain Raft results
+- Link updated qualification and release results
+- Harden release gates and retain qualification diagnostics
+- Link main client comparison
+- Retain original-main client comparison
+- Pin current qualification handoff links
+- Record client qualification and stage producer queue candidate
+- Link latest client qualification record
+- Record client qualification and compare main failures
+- Link latest performance and work records
+- Harden release recovery and stage client qualification
+- Link current qualification handoff
+- Stage client ownership candidate and record release gaps
+- Record current qualification and release blockers
+- Document qualified broker and capability results
+- Stage producer ownership and consumer filtering fixes for CI
+- Make candidate qualification inputs portable across x86 CI hosts
+- Link current qualification results from status docs
+- Qualify pinned client and broker fixes on x86 CI
+- Update qualification status and link retained results
+- Fix producer admission and cancellation cleanup
+- Fix capability negotiation across replacement sockets
+- Fix buffer growth and restore codec allocation budgets
+- Preserve Java malformed-record error order within decode budgets
+- Require all-feature tests and rehearsal before release
+- Update qualification status and next work
+- Correct full-surface broker capability fixtures
+- Reconnect closed bootstrap during fetch quota waits
+- Bound consumer group heartbeat metadata
+- Bound client decoding and repair transport deadlines
+- Keep rolling upgrade qualification open
+- Track incomplete group gates and checkpoint findings
+- Reopen unwired replication and recovery goals
+- Track serving gap and verify benchmark input vectors
+- Retain live fetch check and reopen quota gaps
+- Clarify support and retain seeded fault evidence
+- Preserve broker qualification and recovery evidence
+- Record x86 qualification scope and green broker gates
+- Retain the rebuilt candidate timeout and current qualification status
+- Qualify Fetch poison notifications and retain failing broker readiness checks
+- Claim Fetch poison notification repair before the next qualification candidate
+- Retain failed fuzz campaign and qualify partial journal offset repair
+- Publish corrected fault histories, readiness blockers and detached qualification launch
+- Retain deliberately failing recovery controls inside private artifact directories
+- Fail broker recovery fuzzing when fixture I/O cannot exercise the parser
+- Record the active broker fuzz qualification jobs and wire supervision checks into CI
+- Supervise source-bound stable-Rust broker fuzz campaigns
+- Pause while a TxnOffsetCommit error response writes topics.
+- Pause while an AddPartitionsToTxn error response writes topics.
+- Pause while an OffsetDelete response groups results.
+- Pause while an OffsetCommit error response writes topics.
+- Pause while an OffsetFetch response writes topics.
+- Pause while an OffsetCommit response writes topics.
+- Pause while an AddPartitionsToTxn response writes topics.
+- Pause while a TxnOffsetCommit response writes topics.
+- Pause while a WriteTxnMarkers error response groups partitions.
+- Pause while a WriteTxnMarkers response writes topics.
+- Pause while a WriteTxnMarkers request writes topics.
+- Pause while a ShareAcknowledge response writes partitions.
+- Pause while a ShareFetch response writes partitions.
+- Pause while a Produce request writes partition batches.
+- Pause while a Fetch response writes partitions.
+- Pause while a Produce response writes partitions.
+- Pause while a Metadata response writes brokers.
+- Pause while a Metadata response writes topics.
+- Pause while node endpoints are measured and written.
+- Pause while a Fetch response writes aborted transactions.
+- Put the quickstart's produce and commit rules in one table.
+- Say what the Lab A fetch table is.
+- Turn the 2026-08-28 fetch and latency source rows into tables.
+- Name the broker lane in the session guide.
+- Lead the performance plan with what changed after the 2026-09-26 snapshot.
+- Show which gateway findings have already landed.
+- Separate published 0.1.0 from later source on the support page.
+- Put recent wire behavior in one support-page table.
+- Put quota and Fetch session limits in tables on the support page.
+- Put quorum admin behavior in a table on the support page.
+- Split the roadmap operations gap into done and open work.
+- Update the roadmap gap table for rustdoc and codecs.
+- Note that roadmap work-surface links follow the current tree.
+- Point roadmap work-surface links at the current tree.
+- Point the roadmap at the current performance page.
+- Record which memory and measurement cards are still open.
+- Stop the roadmap from restarting the consumer repairs.
+- Record which authentication cards have landed.
+- Record which codec-lane cards have landed.
+- Record the zstd backend that was selected.
+- Correct the foundation plan's zstd progress note.
+- Record that optional zstd has shipped in the foundation rules.
+- Label the gateway codec table with the backend that is current.
+- Date the gateway produce numbers to the miniz_oxide run.
+- Date the gateway fetch loss and leave it unre-measured.
+- Record which cross-lane performance cards have landed.
+- Stop listing zstd as policy-blocked.
+- Name which hot-path cards are still pending.
+- Mark the transport and share hot-path rows that have landed.
+- Mark the consumer hot-path rows that have since landed.
+- Label the hot-path costs as the 2026-09-26 hypothesis.
+- Name the coordinator errors that discovery retries.
+- Add close and duplicate rows to the cancellation table.
+- List exactly-once outcomes in the operator guide.
+- List what the one-batch consumer should do after a failed commit.
+- Record the Fetch session size note in the changelog.
+- Separate the Fetch session size note from a speed claim.
+- Put Fetch v18 and incremental sessions in tables.
+- Put Produce versions and broker throttle in tables.
+- Show the older discovery rules and the short group timers.
+- Explain the admin replica-move option in the operator guide.
+- Shorten the group section to the results operators need.
+- List the security checks in one table.
+- Open the operator guide on the calls people make.
+- Label the README produce example as a local sample.
+- Say which broker work is done on the crate page.
+- Stop listing built-in schema serializers as planned work.
+- List schema framing bounds in one table.
+- Put the schema cache defaults in one table.
+- Open the zstd page with the limits a caller has to keep.
+- Say what to do when a SASL session expires.
+- Lead the release page with the next cut.
+- Record which gateway cards have already landed.
+- List the broker cards that are still open.
+- Retire the launch list of cards that are already done.
+- Stop the roadmap from restarting finished release cards.
+- Name the client and broker gaps that are actually open.
+- Describe the Produce encoder that is in the tree.
+- Spell out why the matched benchmark cell is still not run.
+- Give the historical produce samples one map.
+- Stop the performance lane from restarting finished cards.
+- Separate missing migration features from limited ones.
+- Note which 2026-09-26 performance gaps have since landed.
+- Record that the five baseline consumer defects are fixed.
+- Point the task workflow at the ready query.
+- Separate open-loop latency from a qualified result.
+- Separate the resource-soak rehearsal from a 24-hour run.
+- Spell out auto-commit and Metadata v0 in the guide.
+- Separate name-based offset calls from UUID calls.
+- Describe the schema companion that is in the tree.
+- Put schema-registry bounds and cache defaults in tables.
+- Explain which gzip backend a build actually uses.
+- Say what the one-batch consumer commit covers.
+- State when a dropped produce is still in flight.
+- Lead the group guide with the kinds of groups.
+- Note the guide metrics split in the changelog.
+- Split metrics, Produce versions, and throttle in the guide.
+- Explain the fetch buffer as one shared cap.
+- Explain the produce buffer budget in the operator guide.
+- Correct the adoption page gaps and bump rule.
+- Drop stale line numbers from the migration guide.
+- Label the civilization plan as history.
+- Note the roadmap opening in the changelog.
+- Open the roadmap on the current task queue.
+- Lead the support matrix with what CI actually runs.
+- Finish the remaining wire-version sections as tables.
+- Finish the wire-version tables through ApiVersions.
+- Turn the quota, log-dir, and group-admin wire notes into tables.
+- Turn the topic and config wire notes into version tables.
+- Turn the share-fetch and SASL wire notes into version tables.
+- Turn the group wire notes into version tables.
+- Turn the transaction and offset wire notes into version tables.
+- Make the wire-version notes readable at the hot APIs.
+- Describe broker SASL renewal as the listener implements it.
+- Describe the token lifecycle the client actually runs.
+- Open the crate docs with the calls people actually make.
+- Name the record-batch compression attribute mask.
+- Expect leftover bytes when a batch declares no records.
+- Stamp record-batch test mutations at named header fields.
+- Build the long-batch fixture from the named v2 header.
+- List the Streams group v0 protocols.
+- List the quorum and transaction-marker versions.
+- Record InitProducerId v6 as spoken.
+- Record ListTransactions v2 as spoken.
+- Record Metadata v0 and FindCoordinator v0 as spoken.
+- Record DescribeLogDirs v5 as spoken.
+- Record ShareFetch and ShareAcknowledge v2 as spoken.
+- Keep OffsetCommit and OffsetFetch v10 across reconnect.
+- Match the spoken version tables to the client.
+- Rewrite the wire catalog and status notes for readers.
+- Name the Kafka v2 record-batch header once.
+- Group the caller-deadline walks by API.
+- Rewrite the client design notes for readers.
+- Rewrite the operator guide's deadline notes.
+- Rewrite the benchmark docs in plain language.
+- Pause while many offset-fetch topics are checked.
+- Pause while many offset-commit topics are read.
+- Pause while many one-record fetch batches are applied.
+- Pause while many members' previous partitions are indexed.
+- Pause while an assignment is copied onto many members.
+- Pause while previous acknowledgement slots are dropped.
+- Pause while many produce topics are encoded.
+- Pause while mixed produce topics are assembled.
+- Pause while one produce topic is indexed.
+- Pause while list-offset seeks are applied.
+- Pause while an assignment is validated.
+- Pause while fetch partitions are copied into a session request.
+- Pause while fetch-session prepare generations are cleared.
+- Pause while the fetch-session topic-id index is rebuilt.
+- Pause while unprepared fetch-session partitions are dropped.
+- Pause while stored topic ids are kept.
+- Pause while delivered positions are filled.
+- Pause while a queued commit reads delivered offsets.
+- Pause while paused partitions are listed.
+- Pause while partitions are paused or resumed.
+- Pause while delivered positions are copied.
+- Pause while an assignment is copied.
+- Pause while produce topic metrics are copied.
+- Pause while fetch topic metrics are copied.
+- Pause while unready sends are split.
+- Pause while many sends are queued.
+- Pause while next offsets are read.
+- Pause while framed batches are dropped.
+- Pause while queued records are cleared.
+- Return a fetched batch without copying each record.
+- Pause while saved fetch totals are applied.
+- Pause while returned fetch records are counted.
+- Pause while returned share records are counted.
+- Pause while restored records are counted.
+- Pause while unassigned records are released.
+- Pause while dropped records are counted.
+- Pause while framed fetches are kept.
+- Pause while returned records are put back.
+- Pause while runnable records are counted.
+- Pause while queued fetch runs are dropped.
+- Pause while covered runs and pending runs are kept.
+- Pause while share acquisitions are kept.
+- Pause while overlapped acquisitions are recorded.
+- Pause while share topic ids are indexed.
+- Pause while interval commits are prepared.
+- Pause while delivered topic ids are refreshed.
+- Pause while rebalance partitions are copied.
+- Pause while list-offset resets are applied.
+- Pause while revoked commits are collected.
+- Pause while assigned topic ids are compared.
+- Pause while topic ids are copied.
+- Pause while assignment topic ids are checked.
+- Pause while a group assignment is opened.
+- Pause while share leader addresses are resolved.
+- Pause while the share leader plan is cleared.
+- Pause while share acquisition bytes are summed.
+- Pause while stale share topics are refilled.
+- Pause while share topic ids are rewritten.
+- Pause while share topic ids are checked.
+- Pause while share acknowledgements are sorted.
+- Pause while recreated share records are dropped.
+- Pause while pending share records are filtered.
+- Pause while share acquisitions are indexed.
+- Pause while share acknowledgement ranges are merged.
+- Pause while share acknowledgements are covered.
+- Pause while fetched records are dropped.
+- Pause while a fetch plan is cleared.
+- Pause while preferred replicas are grouped.
+- Pause while recreated topics are found.
+- Pause while topic identities are resolved.
+- Pause while metadata topic names are indexed.
+- Pause while subscribed topic metadata is checked.
+- Pause while a changed share subscription is copied.
+- Pause while a changed heartbeat assignment is copied.
+- Pause while a changed heartbeat subscription is copied.
+- Pause while cached coordinators are collected.
+- Pause while assigned topic freshness is checked.
+- Pause while transactional ids are copied.
+- Pause while admin result slots are opened.
+- Explain long-list pauses in plain language.
+- Pause while topic partitions are collected.
+- Pause while coordinators are grouped.
+- Pause while missing coordinators are listed.
+- Pause while pending leaders are grouped.
+- Pause while missing leaders are listed.
+- Pause while retried topics are invalidated.
+- Pause while cached leaders are found.
+- Pause while unique topic names are collected.
+- Pause while cached topics are invalidated.
+- Pause while assigned fetches are placed.
+- Pause while reused topic names are filled.
+- Pause while range members are ordered.
+- Pause while sticky members are prepared.
+- Pause while assignment members are opened.
+- Pause while previous partitions are indexed.
+- Pause while subscribed members are indexed.
+- Pause while subscribed topic names are copied.
+- Pause while pattern subscriptions filter topic names.
+- Pause while a topic's partitions are copied out of metadata.
+- Pause while partition infos are copied.
+- Pause while assignment leaders are remembered.
+- Pause while offset leaders are grouped.
+- Pause while missing produce leaders are looked up.
+- Pause while produced transaction partitions are recorded.
+- Pause while rejected transaction partitions are dropped.
+- Pause while accepted transaction partitions are stored.
+- Pause while unsent transaction partitions are listed.
+- Pause while one-topic produce partitions are shelled.
+- Pause while metadata topic results are noted.
+- Pause while stale metadata topics are collected.
+- Pause while metadata topics are indexed.
+- Pause while mixed produce topics are reserved.
+- Pause while repeated fetch topics are noted.
+- Pause while broker endpoints are stored.
+- Pause while fetch and produce endpoint lists are decoded.
+- Pause while empty share-fetch endpoint lists are decoded.
+- Pause while committed offset topics are collected.
+- Pause while metadata topics are applied.
+- Pause while metadata brokers are applied.
+- Pause while share acknowledgements are encoded.
+- Pause while metadata brokers are decoded.
+- Pause while metadata topics are decoded.
+- Pause while produce ack topics are decoded.
+- Pause while list offset topics are decoded.
+- Pause while subscriptions and assignments are decoded.
+- Pause while assignment topics are encoded.
+- Pause while owned partitions are grouped.
+- Pause while consumer subscriptions are encoded.
+- Pause while group offset fetches are encoded.
+- Pause while sync group assignments are encoded.
+- Pause while added partitions, transactional offsets, and share fetches are encoded.
+- Pause while described quotas, delegation tokens, and replica log directories are encoded.
+- Pause while elected leaders, features, producers, reassignments, groups, and deleted offsets are encoded.
+- Pause while described configs, partitions, and deleted topics are encoded.
+- Pause while created topics are encoded.
+- Pause while altered configs are encoded.
+- Pause while incremental configs are encoded.
+- Pause while offset commits are encoded.
+- Pause while offset fetch topics are encoded.
+- Pause while altered SCRAM users are encoded.
+- Pause while altered replica log directories are encoded.
+- Pause while offset fetch groups are encoded.
+- Pause while left members are encoded.
+- Pause while altered quotas are encoded.
+- Pause while deleted ACLs are encoded.
+- Pause while created ACLs are encoded.
+- Pause while described log directories are encoded.
+- Pause while altered share offsets are encoded.
+- Pause while described SCRAM users are encoded.
+- Pause while described topic partitions are encoded.
+- Pause while coordinator keys are encoded.
+- Pause while deleted share offsets are encoded.
+- Pause while share offset groups are encoded.
+- Pause while share groups are described.
+- Pause while consumer groups are described.
+- Pause while described groups are encoded.
+- Pause while described transactions are encoded.
+- Pause while deleted groups are encoded.
+- Pause while fetch topics are validated.
+- Pause while share heartbeat topics are encoded.
+- Pause while heartbeat topics are encoded.
+- Pause while metadata topic rows are encoded.
+- Pause while metadata topic names are encoded.
+- Pause while fetch requests are encoded.
+- Pause while a fetch session is prepared.
+- Pause while aborted transactions are decoded.
+- Pause while fetch topics are decoded.
+- Pause while transactional offsets are decoded.
+- Pause while added partitions are decoded.
+- Pause while share fetches are decoded.
+- Pause while share acknowledgements are decoded.
+- Pause while share heartbeat assignments are decoded.
+- Pause while heartbeat assignments are decoded.
+- Pause while join members are decoded.
+- Pause while telemetry metrics are decoded.
+- Pause while described SCRAM users are decoded.
+- Pause while altered SCRAM users are decoded.
+- Pause while feature results are decoded.
+- Pause while left members are decoded.
+- Pause while cluster brokers are decoded.
+- Pause while altered quotas are decoded.
+- Pause while replaced configs are decoded.
+- Pause while altered configs are decoded.
+- Pause while deleted records are decoded.
+- Pause while transaction markers are decoded.
+- Pause while altered log directories are decoded.
+- Pause while client quotas are decoded.
+- Pause while config resources are decoded.
+- Pause while listed reassignments are decoded.
+- Pause while created ACL results are decoded.
+- Pause while created partitions are decoded.
+- Pause while deleted share offsets are decoded.
+- Pause while altered share offsets are decoded.
+- Pause while delegation tokens are decoded.
+- Pause while deleted ACL matches are decoded.
+- Pause while deleted topics are decoded.
+- Pause while created topics are decoded.
+- Pause while election results are decoded.
+- Pause while share offsets are decoded.
+- Pause while deleted groups are decoded.
+- Pause while ACL entries are decoded.
+- Pause while described producers are decoded.
+- Pause while log directory partitions are decoded.
+- Pause while fetched offsets are decoded.
+- Pause while config entries are decoded.
+- Pause while topic partitions are decoded.
+- Pause while transactions are decoded.
+- Pause while share group members are decoded.
+- Pause while consumer group members are decoded.
+- Pause while described group members are decoded.
+- Pause while listed groups are decoded.
+- Pause while coordinator responses are decoded.
+- Pause while coordinator results are matched to the request.
+- Pause while coordinator results are indexed.
+- Pause while named results are grouped.
+- Pause while produce topic ids are recorded by UUID.
+- Pause while produce topic ids are recorded.
+- Pause while produce partitions are encoded.
+- Pause while produce topics are indexed.
+- Pause while solicited produce acknowledgements are checked.
+- Pause while requested produce acknowledgements are recorded.
+- Pause while produce acknowledgements are matched.
+- Pause while produce acknowledgements are indexed.
+- Pause while described producers are matched to the request.
+- Pause while deleted-record results are matched to the request.
+- Pause while listed offsets are matched to the request.
+- Share the paused ListOffsets index with the consumer.
+- Pause while listed offsets are indexed.
+- Pause while deleted-record results are indexed.
+- Pause while described producers are indexed.
+- Pause while a partition page is copied into topic descriptions.
+- Pause while a topic description copies its partitions.
+- Pause while reassignment results are flattened.
+- Pause while listed reassignments are flattened.
+- Pause while offset-delete results are decoded.
+- Pause while topic names are indexed.
+- Pause while broker ids are collected.
+- Pause while list-reassignment partitions are grouped.
+- Pause while offset-delete partitions are grouped.
+- Pause while describe-producer partitions are grouped.
+- Pause while delete-record partitions are grouped.
+- Pause while a large DeleteRecords request is encoded.
+- Match fetched offset topics from one index.
+- Pause while share leaders are collected from the assignment.
+- Remember share leader patches by partition.
+- Pause while cached fetch leaders are collected.
+- Reuse indexed share leader addresses for each node in a batch.
+- Remember share leader addresses while dials are chosen.
+- Index epoch requests so a fenced partition is matched once.
+- Drop pending runs once for recreated topics and truncated epochs.
+- Drop out-of-range fetch partitions once per topic.
+- Drop pending runs once after a fetch offset reset.
+- Drop pending fetch runs for many partitions in one pass.
+- Drop recreated share records in one pass over the buffer.
+- Rebalance sticky members from a sorted load.
+- Balance sticky members from a sorted load instead of scanning them.
+- Revoke an owned sticky partition by its index.
+- Drop fenced fetch records in one pass over the buffer.
+- Remember offset topic slots while grouping partitions.
+- Index metadata topic copies once while resolving partition lists.
+- Format the metadata topic index signature.
+- Index described topic names once while keeping the first copy.
+- Index metadata topic names once while keeping the first copy.
+- Remember failed produce topics in a map while keeping the first error.
+- Remember unready produce topics in a set while keeping first-seen order.
+- Remember committed topic names in a set while checking duplicates.
+- Remember described ACL entries in a set while keeping first-seen order.
+- Remember parallel fetch dials in a set while leaders are scheduled.
+- Remember fetch leaders in a set while they are queued.
+- Remember leader nodes in a set while keeping first-seen order.
+- Remember coordinator ids in a set while keeping first-seen order.
+- Remember replica brokers in a set while keeping first-seen order.
+- Group share acknowledgements by walking acquisition runs in order.
+- Walk share acquisition ranges in order when resolving one broker.
+- Merge share acknowledgement coverage once before splitting partial ranges.
+- Cover share acquisitions in one sweep instead of rescanning every batch.
+- Split partial share acknowledgements into ranges and match sent batches by key.
+- Index share acquisitions so a gapped partition does not rescan every range.
+- Let share delivery accounting yield while retained bytes are still being summed.
+- Let share acknowledgement encode yield while batches are still being written.
+- Let share acknowledgement collapse yield while offsets are still being merged.
+- Let sticky sealing yield while queued records are still being marked.
+- Let produce deadline scans yield while queued records are still being checked.
+- Let produce readiness counts yield while queued records are still being scanned.
+- Let produce batch sizing yield while record sizes are still being added.
+- Let produce acknowledgements yield while latencies are still being folded.
+- Let produce retries yield while topics are still being grouped.
+- Let produce failure release yield while records are still being dropped.
+- Let produce queue splits yield while records are still being moved.
+- Let produce queue accounting yield while record sizes are still being summed.
+- Let produce epoch refresh yield while sequences are still being checked.
+- Let produce sequence assignment yield while records are still being stamped.
+- Let share acknowledgement checks yield while acquisitions are still being read.
+- Let share acknowledgement grouping yield while records are still being scanned.
+- Let fetch queueing yield while a large batch is still being buffered.
+- Let fetch delivery yield while a large batch is still being copied.
+- Let assignment replacement yield while previous offsets are still being checked.
+- Let assignment replacement yield while previous offsets are still being copied.
+- Let assignment retention yield while partitions are still being remembered.
+- Let assignment capture yield while live partitions are still being indexed.
+- Let assignment copies yield while topic names are still being recorded.
+- Let position snapshots yield while topic names are still being copied.
+- Let revoked partition indexing yield while partitions are still being recorded.
+- Let compressed produce batches yield while record sizes are still being measured.
+- Let produce batch grouping yield while records are still being placed.
+- Let transactional partition lists yield while partitions and topic names are still being recorded.
+- Let transactional offset grouping yield while partitions are still being placed.
+- Let transactional offset refresh find requested topics by name while names are still being checked.
+- Let share metadata names find earlier topics by name while names are still being recorded.
+- Let metadata refresh find requested topics by name while names are still being recorded.
+- Let partition listing find earlier runs by key while partitions are still being recorded.
+- Let describe-acls grouping find resources by pattern while bindings are still being placed.
+- Let share response grouping find topics by id while partitions are still being placed.
+- Let produce response grouping find topics by name while partitions are still being placed.
+- Let parallel admin list-offset encodes yield while partitions are still being written.
+- Let admin list-offset grouping yield while partitions are still being placed.
+- Let list-offset requests yield while partitions are still being grouped and written.
+- Let fetched-epoch lookup yield while the assignment is still being indexed.
+- Let leader-epoch grouping yield while partitions are still being placed.
+- Let leader-epoch requests yield while partitions are still being written.
+- Let leader-epoch results yield while partitions are still being recorded.
+- Let leader-epoch decode yield while partition offsets are still being read.
+- Let offset-fetch request checks yield while partitions are still being recorded.
+- Let metadata apply yield while partition leaders are still being merged.
+- Let joined topics and missing offset names yield while they are still being indexed.
+- Let offset-commit validation yield while partitions are still being checked.
+- Let topic describe and coordinator dedupe yield while names are still being indexed.
+- Let topic grouping yield while distinct names are still being indexed.
+- Let share acquisition recording yield while partitions are still being indexed.
+- Let share-ack batch lookups yield while partitions are still being indexed.
+- Let share-ack expected-set indexing yield while partitions are still being recorded.
+- Let share-fetch partition checks yield while the request is indexed.
+- Let leader election record topics while names are still being indexed.
+- Let fetched-offset indexing yield while partitions are still being recorded.
+- Let offset-fetch validation yield while partitions are still being checked.
+- Let borrowed offset-fetch grouping yield while partitions are still being placed.
+- Let replica log-dir lookups yield while directories are still being indexed.
+- Let describable replica grouping yield while partitions are still being placed.
+- Let replica directory grouping yield while partitions are still being placed.
+- Let shared offset refill yield while partitions are still being placed.
+- Let offset-commit topic refill yield while partitions are still being placed.
+- Let offset-fetch topic refill yield while partitions are still being placed.
+- Let offset maps and assignment indexes yield while partitions are inserted.
+- Let assigned partitions and committed offsets yield while names are copied.
+- Let assignment encode and offset-commit decode yield while partitions remain.
+- Let a compressed batch decode yield while the section is still expanding.
+- Let a large snappy encode leave the caller while the section is packed.
+- Let an LZ4 encode yield while its section is still being packed.
+- Let a gzip encode yield while its section is still being packed.
+- Let a record-batch encode yield while records are still being written.
+- Let a cooperative-sticky assignment yield while partitions are still being placed.
+- Let a range assignment yield while partitions are still being placed.
+- Let a sticky assignment yield while partitions are still being placed.
+- Let sticky ownership resolution yield while claims are still being read.
+- Let a subscription decode yield while owned partitions are still being read.
+- Let an assignment decode yield while partitions are still being read.
+- Let a list-offsets decode yield while partitions are still being read.
+- Let an offset fetch yield while partitions are still being read.
+- Let a produce ack decode yield while partitions are still being read.
+- Let a fetch decode yield while partitions are still being read.
+- Let a metadata decode yield while partitions are still being read.
+- Let a long record batch yield while its records are still being read.
+- Let a share fetch yield while its record batches are decoded.
+- Let a record-batch decode start without a full batch count.
+- Let a share fetch decode run without a full batch count.
+- Let a caller run while record batches are counted.
+- Let a read wait run while empty frames are scanned.
+- Let a write deadline run while empty frames are scanned.
+- Let a caller run while empty frames are scanned.
+- Let a peer finish writing when an idle socket is closed.
+- Let a peer finish writing when an idle flood is closed.
+- Let a caller run while an idle socket is still reading.
+- Let a broker leave when a metadata refresh is stopped.
+- Let a write deadline run during a greedy stalled read.
+- Let a deadline run while a greedy ready frame is read.
+- Let a token deadline run during a ready request.
+- Let a write deadline run during a ready request.
+- Let a deadline run while a ready response is read.
+- Let a deadline run while a ready frame is read.
+- Let a broker leave when a leader exchange is stopped.
+- Let a broker leave when an offset dial is retired.
+- Let a broker leave when an in-flight fetch is finished.
+- Let a broker leave when a cancelled fetch is dropped.
+- Let a broker leave when an in-flight fetch is abandoned.
+- Let a broker leave when an aborted indexed admin handshake is dropped.
+- Let a broker leave when an aborted streams handshake is dropped.
+- Let a broker leave when an aborted admin handshake is dropped.
+- Let a broker leave when an aborted offset dial is dropped.
+- Let a broker leave when an aborted offset handshake is dropped.
+- Let a broker leave when an aborted group handshake is dropped.
+- Let a broker leave when an aborted coordinator handshake is dropped.
+- Let a broker leave when an aborted produce handshake is dropped.
+- Let a broker leave when a stopped produce worker is dropped.
+- Let a broker leave when a heartbeat task is stopped.
+- Let a broker leave when a finished produce worker is stopped.
+- Let a broker leave when a wakeup drops a finished fetch.
+- Let a broker leave when a finished admin handshake is stopped.
+- Let a broker leave when a finished streams handshake is stopped.
+- Let a broker leave when a finished offset handshake is stopped.
+- Let a broker leave when a finished group handshake is stopped.
+- Let a broker leave when a finished produce handshake is stopped.
+- Let a broker leave when a finished admin RPC is stopped.
+- Let a broker leave when a finished fetch is abandoned.
+- Let a broker leave when a produce replacement is unusable.
+- Let a broker leave when a produce dial outlives the producer.
+- Let a broker leave when a v10 offset encode fails.
+- Let a broker leave when a coordinator encode fails.
+- Let a broker leave when a v10 offset error is retriable.
+- Let a broker leave when an offset error is retriable.
+- Let a broker leave when a coordinator error is retriable.
+- Let a broker leave when an idle metadata socket is replaced.
+- Let a broker leave when an idle offset coordinator is replaced.
+- Let a broker leave when an idle coordinator is replaced.
+- Let the other coordinator leave when an offset fetch fails.
+- Let the bootstrap leave when a later offset dial fails.
+- Let a broker leave when a producer lookup reply cannot be read.
+- Let a broker leave when an offset fetch reply cannot be read.
+- Let a broker leave when an offset lookup reply cannot be read.
+- Let a broker leave when a streams coordinator reply cannot be read.
+- Let a broker leave when a coordinator reply cannot be read.
+- Let unused brokers leave when a producer bootstrap race finishes.
+- Let unused brokers leave when a consumer bootstrap race finishes.
+- Let unused brokers leave when a streams describe race finishes.
+- Let unused brokers leave when an admin bootstrap race finishes.
+- Let unused brokers leave when an offset bootstrap race finishes.
+- Let unused brokers leave when a raced group lookup finishes.
+- Let unused brokers leave when a raced coordinator lookup finishes.
+- Let a broker leave when an offset commit finishes.
+- Let a broker leave when a share acknowledgement finishes.
+- Let a broker leave when a producer coordinator lookup finishes.
+- Let a broker leave when a group lookup socket is replaced.
+- Let a broker leave when a coordinator socket is replaced.
+- Let a broker leave when a fetch session is retired.
+- Let a broker leave when a streams socket is replaced.
+- Let a broker leave when an admin retry drops its socket.
+- Let a broker leave when an offset fetch finishes.
+- Let a broker leave when an admin socket is replaced.
+- Let a leader leave when a share group drops its sockets.
+- Let a leader leave when a consumer wakeup drops its socket.
+- Let a broker leave when a consumer bootstrap socket is replaced.
+- Let a broker leave when a produce socket is replaced.
+- Let a broker leave when a share coordinator is retired.
+- Let a broker leave when a group coordinator is retired.
+- Let a broker leave when its coordinator address changes.
+- Let a broker leave when a fetch leader moves.
+- Let a broker leave when its coordinator socket is dropped.
+- Let a broker leave when an idle leader socket is replaced.
+- Let a broker leave when a consumer drops its leader socket.
+- Let a broker leave when a share session is reset.
+- Let a broker leave when its admin socket is dropped.
+- Let a broker leave when its consumer socket is dropped.
+- Let a broker leave when a pipeline session expires.
+- Let a broker leave when a write times out.
+- Let a broker leave when SASL reauthentication is rejected.
+- Let a broker observe a read timeout before the caller returns.
+- Stop a stalled write when an illegal length is already buffered.
+- Reject an illegal length that follows a complete frame.
+- Shut a socket down when a read takes an illegal frame length.
+- Shut an idle socket down when the broker sends an illegal frame length.
+- Let a client write deadline run while the broker keeps accepting bytes.
+- Yield a stalled write so its deadline can stop a ready flood.
+- Stop a stalled write that buffers more than one max frame.
+- Stop an idle connection that receives more than one max frame.
+- Keep a share leader socket when a retry watch ends.
+- Keep a leader socket when a fetch quota watch ends.
+- Notice a share leader closing after a response is already queued.
+- Leave a produce socket up during linger when a response is already queued.
+- Leave an idle pipeline up when a response is already queued.
+- Keep a fetch quota watch parked when a response is already queued.
+- Leave an idle metadata socket up when a response is already queued.
+- Keep an InitProducerId retry connected when a response is already queued.
+- Keep the fetch-session close behind the broker quota when a response is already queued.
+- Do not arm an immediate timer after linger has already elapsed.
+- Stop a quota wait from spinning when a response is already queued.
+- Re-arm the idle watch when a read is cancelled.
+- Shut a coordinator socket down when the broker closes after a response is queued.
+- Let a heartbeat interval fire when bytes are already queued.
+- Shut the socket when a connection is marked closed.
+- Keep a response the idle watch read before the broker closed.
+- Re-arm the idle connection watch after a request finishes.
+- Wake an idle connection watch from the socket.
+- Close idle broker sockets when the peer stops writing.
+- Shut down an idle pipelined connection when the broker stops writing.
+- Drop an idle transaction coordinator socket when the broker stops writing.
+- Drop an idle metadata socket when the broker stops writing.
+- Drop a transaction coordinator socket when the broker leaves during backoff.
+- Retry FindCoordinator on the bootstrap socket within one deadline.
+- Drop an InitProducerId socket when the broker leaves during backoff.
+- Shut down the socket when a read sees the peer stop writing.
+- Drop a retired admin socket before the retry backoff.
+- Replace a fetch socket when the broker closes during a session retry.
+- Drop a share leader socket when it closes during retry backoff.
+- Drop every muted fetch socket when its broker closes during a quota wait.
+- Drop a fetch session socket when the broker closes during a quota wait.
+- Replace a fetch socket when the broker closes during a quota wait.
+- Replace a produce socket when the broker closes during a quota wait.
+- Replace a produce socket when the broker closes during linger.
+- Reconnect a consumer-protocol heartbeat when the coordinator closes.
+- Reconnect a heartbeat when the coordinator closes.
+- Stop the socket when an OIDC token response finishes.
+- Stop the socket when a Streams client closes.
+- Stop the sockets when a share group closes.
+- Stop the sockets when a consumer group closes.
+- Stop the socket when a producer closes.
+- Stop the socket when a consumer closes.
+- Stop the socket when an admin client closes.
+- Stop the socket when an OIDC token request times out.
+- Stop the socket when a known admin peer SASL handshake times out.
+- Stop the socket when a remembered coordinator SASL handshake times out.
+- Stop the socket when an idle metadata replacement times out.
+- Stop the socket when a remembered SASL handshake times out.
+- Stop the socket when a remembered SASL handshake times out.
+- Stop the socket when offset and Streams handshakes time out.
+- Stop the socket when a startup handshake times out.
+- Stop the socket when an admin handshake times out.
+- Stop the socket when a fetch handshake times out.
+- Stop the socket when a coordinator handshake times out.
+- Stop the coordinator socket when a group lookup times out.
+- Stop a leader socket when list offsets reloads metadata.
+- Stop a leader socket when a fetch reloads metadata.
+- Stop a leader socket when a share metadata refresh times out.
+- Stop a leader socket when a share poll times out.
+- Stop the socket when a TLS handshake times out.
+- Stop a leader socket when a consumer fetch times out.
+- Stop a leader socket when list offsets times out.
+- Stop the Streams describe socket when the call times out.
+- Stop the offset socket when a fetch or commit times out.
+- Stop the Streams socket when a heartbeat times out.
+- Stop the transaction socket when discovery times out.
+- Stop the coordinator socket when discovery times out.
+- Stop startup dials when the caller deadline expires.
+- Stop the coordinator dial when member setup fails.
+- Stop a speculative transaction dial when lookup fails.
+- Stop a speculative coordinator dial when lookup fails.
+- Stop share fetches when wakeup cancels the poll.
+- Stop leader fetches when wakeup cancels the round.
+- Stop an earlier fetch when a later leader cannot fetch.
+- Stop a metadata refresh when the producer closes.
+- Stop the next coordinator dial when an offset handshake fails.
+- Stop a coordinator dial when an offset fetch times out.
+- Stop a blocked slot dial when the producer connect loop closes.
+- Stop a blocked leader dial before an admin exchange returns.
+- Stop a losing connect before connect_tls_any returns.
+- Stop a losing handshake before streams heartbeat startup returns.
+- Stop a losing handshake before producer coordinator discovery returns.
+- Stop a losing handshake before coordinator discovery returns.
+- Stop a losing Streams handshake before describe startup returns.
+- Stop a losing bootstrap handshake before offset startup returns.
+- Stop a losing bootstrap handshake before admin startup returns.
+- Stop a losing bootstrap handshake before consumer startup returns.
+- Stop a losing bootstrap handshake before producer startup returns.
+- Stop a blocked share dial when the consumer is woken.
+- Stop a blocked leader dial when fetch is woken.
+- Stop an in-flight fetch before seek-to-end returns.
+- Reuse startup handshakes when SyncGroup rediscovers its coordinator.
+- Reuse startup handshakes when an assignment reload rediscovers its coordinator.
+- Reuse startup handshakes when a share rejoin rediscovers its coordinator.
+- Reuse startup handshakes when a KIP-848 rejoin rediscovers its coordinator.
+- Reuse startup handshakes when a poll commit rediscovers its coordinator.
+- Reuse startup handshakes when a rejoin rediscovers its coordinator.
+- Reuse startup handshakes when a rebalance commit rediscovers its coordinator.
+- Reuse startup handshakes when share leave rediscovers its coordinator.
+- Reuse startup handshakes when leave rediscovers its coordinator.
+- Reuse startup handshakes when an offset commit rediscovers its coordinator.
+- Reuse startup handshakes when an idle coordinator moves to another bootstrap.
+- Reuse a sibling bootstrap handshake when the group coordinator moves there.
+- Abort a broker pipeline when its last handle is dropped.
+- Abort a send_all metadata refresh when the caller is dropped.
+- Abort a group heartbeat when the group is dropped.
+- Abort a produce worker when its last handle is dropped.
+- Stop an in-flight fetch before assign returns.
+- Stop an in-flight share fetch before leave returns.
+- Stop a leader dial before offset fetch returns without it.
+- Cancel an in-flight fetch before close returns.
+- Cancel a sleeping produce reconnect timer before close returns.
+- Stop the share heartbeat task before leave returns.
+- Stop the group heartbeat task before leave returns.
+- Finish a stalled produce worker before close returns.
+- Bound a produce retry's metadata refresh by the record's delivery deadline.
+- Wait for producer control tasks to finish before close returns.
+- Reuse the startup handshake when a multi-bootstrap producer finds its transaction coordinator.
+- Keep finished admin leader dials and RPCs when the deadline aborts the rest.
+- Keep finished share-leader dials when wakeup or the deadline aborts the rest.
+- Reuse learned broker versions when share fetches dial several leaders together.
+- Reuse startup handshakes when a multi-bootstrap producer finds its group coordinator.
+- Reuse learned coordinator versions when a multi-bootstrap group rediscovers that broker.
+- Reuse learned ApiVersions when a multi-bootstrap producer rediscovers its coordinator.
+- Keep finished fetch and leader dials when the rest of the wave is aborted.
+- Reuse a learned coordinator when an idle heartbeat reconnect fails.
+- Reuse a finished bootstrap handshake for a share fetch to that broker.
+- Reuse a Streams describe bootstrap handshake for its coordinator.
+- Reuse a Streams bootstrap handshake when that broker is the coordinator.
+- Reuse ApiVersions from producer and consumer bootstraps that finish together.
+- Reuse ApiVersions from admin bootstraps that finish with the first.
+- Reuse ApiVersions from a bootstrap handshake that finished beside the first.
+- Reuse a finished bootstrap handshake for a transaction coordinator.
+- Reuse a finished bootstrap handshake when that broker is the coordinator.
+- Reuse the group coordinator handshake for a fetch from that broker.
+- Reuse the group coordinator handshake for a share fetch to that broker.
+- Look up a moved coordinator with the startup ApiVersions.
+- Reuse a previous coordinator handshake on a later offset fetch.
+- Reuse a produce handshake when InitProducerId rediscovers that broker.
+- Reuse a previous coordinator handshake on a later offset commit.
+- Reuse a group coordinator handshake when that broker is contacted again.
+- Leave after max poll with the coordinator versions already learned.
+- Reuse a Streams coordinator handshake when that broker is contacted again.
+- Reuse the bootstrap handshake when a coordinator returns there.
+- Reconnect an idle producer metadata socket without repeating ApiVersions.
+- Lock KIP-848 max-poll leave to the heartbeat socket.
+- Leave after max poll on the heartbeat socket.
+- Retry a share-group heartbeat without repeating ApiVersions.
+- Retry a KIP-848 heartbeat without repeating ApiVersions.
+- Retry a group heartbeat without repeating ApiVersions.
+- Retry a remote group coordinator without repeating the bootstrap handshake.
+- Move a transaction coordinator onto a broker whose versions are already known.
+- Produce to a transaction coordinator without repeating ApiVersions.
+- Describe a Streams group again without renegotiating its coordinator.
+- Retry a Streams heartbeat without repeating ApiVersions.
+- Repeat a transactional offset commit without negotiating the group coordinator again.
+- Reload a remote transaction coordinator without repeating bootstrap ApiVersions.
+- Send transactional offsets without repeating bootstrap ApiVersions.
+- Retry a group coordinator without repeating ApiVersions.
+- Redial an admin leader without repeating ApiVersions.
+- Redial an offset coordinator without repeating ApiVersions.
+- Reconnect an idle share leader without repeating ApiVersions.
+- Reconnect an idle produce leader without repeating ApiVersions.
+- Reconnect an idle fetch leader without repeating ApiVersions.
+- Retry a bootstrap fetch leader without repeating ApiVersions.
+- Read a bootstrap preferred replica without repeating ApiVersions.
+- Skip ApiVersions when a parallel fetch leader is the bootstrap broker.
+- Reload a transaction coordinator without repeating ApiVersions.
+- Reconnect an idle Streams heartbeat without repeating ApiVersions.
+- Request a client instance id on an idle socket without repeating ApiVersions.
+- Reconnect an idle share coordinator without repeating ApiVersions.
+- Reconnect an idle group heartbeat without repeating ApiVersions.
+- Reconnect an idle group coordinator without repeating ApiVersions.
+- Refresh metadata on an idle bootstrap socket without repeating ApiVersions.
+- Reconnect an idle bootstrap socket without repeating ApiVersions.
+- Send negotiated admin RPCs on the bootstrap socket.
+- Send group and directory admin RPCs on the bootstrap socket.
+- Send InitProducerId and WriteTxnMarkers on the bootstrap socket.
+- Send controller credential, quota, and producer-id RPCs on the bootstrap socket.
+- Send UpdateFeatures on the bootstrap controller socket.
+- Send ListPartitionReassignments on the bootstrap controller socket.
+- Send CreateAcls on the bootstrap controller socket.
+- Send DescribeProducers on the bootstrap leader socket.
+- Send DeleteRecords on the bootstrap leader socket.
+- Send IncrementalAlterConfigs on the bootstrap controller socket.
+- Send DeleteTopics and CreatePartitions on the bootstrap controller socket.
+- Describe groups on the bootstrap socket when it is the coordinator.
+- Describe a Streams group on the bootstrap socket when it is the coordinator.
+- Keep the bootstrap socket when it is the offset coordinator.
+- Skip ApiVersions when the transaction coordinator is the bootstrap broker.
+- Skip ApiVersions when a share leader is the member broker.
+- Skip ApiVersions when a produce socket reconnects to the metadata broker.
+- Skip a second ApiVersions handshake when dialing the bootstrap broker again.
+- Send CreateTopics on the bootstrap socket when it is the controller.
+- Produce to known leaders while an unknown topic loads.
+- Dial a coordinator from the FindCoordinator host.
+- Commit delivered offsets while a resubscribe loads metadata.
+- Dial an idle share leader while a resubscribe loads metadata.
+- Dial assigned leaders while SyncGroup is in flight.
+- Dial bootstrap servers together in connect_tls_any.
+- Find the transaction coordinator on the open bootstrap socket.
+- Dial an idle group coordinator while its address is checked again.
+- Dial the transaction coordinator while a retry looks it up again.
+- Dial the current coordinator while a retry looks it up again.
+- Redial a coordinator while a not-coordinator retry resolves it.
+- Redial the controller while a not-controller retry reloads metadata.
+- Dial known ListOffsets leaders while unknown topics load.
+- Fetch assignment offsets while stale topic metadata reloads.
+- Load share topic metadata while an empty assignment heartbeats.
+- Redial the share leader while a not-leader retry reloads metadata.
+- Redial the fetch leader while a not-leader retry reloads metadata.
+- Redial the consumer leader while a not-leader retry reloads metadata.
+- Redial the previous leader while a not-leader retry reloads metadata.
+- Dial known coordinators while FindCoordinator resolves the rest.
+- Dial known leaders while DeleteRecords and DescribeProducers load metadata.
+- Dial known list-offsets leaders while unknown topics load.
+- Redial idle produce leaders while stale metadata reloads.
+- Dial idle fetch leaders while stale metadata reloads.
+- Dial idle share leaders while stale metadata reloads.
+- Dial reset leaders while the group offset fetch is in flight.
+- Close fetch sessions while the group unsubscribe is in flight.
+- Fetch the next poll while the interval offset commit is in flight.
+- Load offset topic metadata while AddOffsetsToTxn is in flight.
+- Load share-group metadata while the join heartbeat is in flight.
+- Load KIP-848 resubscribe metadata while the join heartbeat is in flight.
+- Load resubscribe metadata while JoinGroup is in flight.
+- Load resubscribe metadata while share sessions close.
+- Close share sessions while the coordinator leave is in flight.
+- Close fetch sessions while the group leave is in flight.
+- Commit group offsets while fetch leaders reconnect.
+- Redial idle share-ack leaders together before acknowledging.
+- List pattern-join topics while the coordinator is still being found.
+- Load group topic metadata while the coordinator is still being found.
+- Dial every retried leader before the first retry is queued.
+- Fence producers on different coordinators at the same time.
+- Start every send_all leader handshake before the first record waits.
+- Dial ListOffsets leaders together before asking them for offsets.
+- Dial preferred replicas together with the other fetch leaders.
+- Skip a classic rejoin metadata refresh when every topic is already loaded.
+- Skip a topic metadata refresh that is already fresh.
+- Assign a fresh topic without fetching its metadata again.
+- Return fresh partition metadata without asking the broker again.
+- Dial the group member and its coordinator at the same time.
+- Move replica log directories on every broker at the same time.
+- Ask every replica broker for log directories at the same time.
+- Ask every broker for log directories at the same time.
+- Find the controller without downloading every topic.
+- Look up offsets from the caller's topic names.
+- Read a group's partition counts from the metadata it already loaded.
+- Refresh every offset topic in one metadata request.
+- Refresh every topic in one send_all with a single metadata request.
+- Refresh every topic already waiting on produce retry in one metadata request.
+- Refresh producer topics that are already waiting in one metadata request.
+- Resolve out-of-range fetch resets with one ListOffsets per leader.
+- Reset a group's new partitions with one ListOffsets per leader.
+- Refresh stale share topics in one metadata request.
+- Prove an in-flight produce ack finishes while the next batch lingers.
+- Commit queued offsets without copying them when no callback is waiting.
+- Acknowledge share records on every leader at the same time.
+- Close share sessions on every leader at the same time.
+- Retire fetch sessions on every leader at the same time.
+- Ask every OffsetForLeaderEpoch leader at the same time.
+- Ask every ListOffsets leader at the same time.
+- List offsets for one leader in a single request.
+- Encode DescribeQuorum from the caller's topic name.
+- Encode a one-partition OffsetForLeaderEpoch response from the caller's topic name.
+- Encode a one-partition ListOffsets response from the caller's topic name.
+- Encode one-topic OffsetForLeaderEpoch from the caller's topic name.
+- Encode one-topic ListOffsets from the caller's topic name.
+- Encode TxnOffsetCommit from the caller's topic names and metadata.
+- Encode AddPartitionsToTxn from the caller's topic names.
+- Store a group id only when the coordinator cache changes.
+- Refresh ListOffsets metadata from the caller's topic name.
+- Refresh consumer metadata from the caller's topic names.
+- Delete share and consumer groups from the caller's group ids.
+- Describe topics from the caller's topic names.
+- Encode DeleteTopics from the caller's topic names.
+- Encode list and describe filters from the caller's names.
+- Encode coordinator requests from the caller's group and transaction ids.
+- Encode DescribeShareGroupOffsets from the caller's groups.
+- Encode batched OffsetFetch from the caller's group ids.
+- Look up coordinators from the caller's group and transaction ids.
+- Encode abort-transaction markers from the caller's topic name.
+- Refresh metadata from the caller's topic names.
+- Encode OffsetFetch v1-v9 from the caller's topic names.
+- Encode OffsetCommit v2-v9 from the caller's topic names.
+- Encode delegation-token renew and expire from the caller's HMAC.
+- Encode CreateAcls, client quotas, and PushTelemetry from the caller's buffers.
+- Encode AlterReplicaLogDirs requests from the caller's directory paths.
+- Encode DescribeLogDirs replica requests from the caller's topic names.
+- Encode AlterUserScramCredentials requests from the caller's credential bytes.
+- Encode UpdateFeatures requests from the caller's feature names.
+- Encode DescribeConfigs requests from the caller's resource names.
+- Encode AlterConfigs requests from the caller's resource names.
+- Encode IncrementalAlterConfigs requests from the caller's resource names.
+- Encode CreateTopics requests from the caller's topic names.
+- Encode CreatePartitions requests from the caller's topic names.
+- Encode ElectLeaders requests from the caller's topic names.
+- Encode AlterPartitionReassignments requests from the caller's assignments.
+- Encode ListPartitionReassignments requests from the caller's topic names.
+- Encode OffsetDelete requests from the caller's topic names.
+- Encode DescribeProducers requests from the caller's topic names.
+- Encode DeleteRecords requests from the caller's topic names.
+- Encode ListOffsets requests from the caller's topic names.
+- Encode an OffsetFetch error response without copying topic names.
+- Group an OffsetDelete response from the caller's topic names.
+- Encode AddPartitionsToTxn grouped errors without copying topic names.
+- Encode a WriteTxnMarkers error response without copying topic names.
+- Encode OffsetFetch group results without copying group or topic names.
+- Encode OffsetFetch partition data without copying topic names.
+- Encode IncrementalAlterConfigs reported errors without copying resource names.
+- Encode OffsetCommit grouped errors without copying topic names.
+- Encode TxnOffsetCommit grouped errors without copying topic names.
+- Encode a DescribeQuorum top-level error without copying its message.
+- Encode a DescribeQuorum partition error without copying topic names.
+- Encode an ElectLeaders error response without copying topic names.
+- Encode a DeleteAcls error response without copying filter results.
+- Encode a CreateAcls error response without copying result entries.
+- Encode an AlterClientQuotas error response without copying quota entities.
+- Encode a Fetch error response without copying topic names.
+- Encode a ListOffsets error response without copying topic names.
+- Encode an AddPartitionsToTxn error response without copying topic names.
+- Encode a TxnOffsetCommit error response without copying topic names.
+- Encode an OffsetCommit error response without copying topic names.
+- Encode a DeleteRecords error response without copying topic names.
+- Encode an AlterConfigs error response without copying resource names.
+- Encode an IncrementalAlterConfigs error response without copying resource names.
+- Encode a CreatePartitions error response without copying topic names.
+- Encode a DescribeConfigs error response without copying resource names.
+- Encode a DeleteTopics error response without copying topic names.
+- Encode a CreateTopics error response without copying topic names.
+- Encode a one-member leave-group request without copying the member id.
+- Encode a find-coordinator response without copying its key and host.
+- Encode one-result alter-configs and delete-records responses without copying their names.
+- Encode one-resource alter-configs requests without copying their configs.
+- Encode one-topic delete-records and describe-producers requests without copying them.
+- Encode a name-based delete-topics request without copying each name.
+- Encode a one-topic share acknowledgement without copying its batches.
+- Encode a one-group offset fetch response without copying its topics.
+- Size request and response headers before their fields are written.
+- Size a metadata response before its brokers, topics, and replicas are written.
+- Size AllocateProducerIds and UnregisterBroker bodies before their fields are written.
+- Size heartbeat and share-fetch error bodies before their fields are written.
+- Keep an unchanged consumer heartbeat assignment across ticks.
+- Group owned subscription partitions by borrowing their topic names.
+- Group a consumer assignment by borrowing its topic names.
+- Size a consumer subscription and assignment before their fields are written.
+- Size AddOffsetsToTxn and EndTxn bodies before their fields are written.
+- Write Produce and Fetch tagged payloads into the reserved body.
+- Size ApiVersions request and response bodies before their fields are written.
+- Size SASL handshake and authenticate bodies before their fields are written.
+- Size init-producer-id request and response bodies before their fields are written.
+- Size delete-ACLs request and response bodies before their fields are written.
+- Size create and describe ACL bodies before their fields are written.
+- Size consumer-group heartbeat bodies before their fields are written.
+- Size add and remove raft-voter bodies before their fields are written.
+- Size describe-quorum request and response bodies before their fields are written.
+- Size elect-leaders request and response bodies before their fields are written.
+- Size renew and expire delegation-token bodies before their fields are written.
+- Size create and describe delegation-token bodies before their fields are written.
+- Size describe-log-dirs request and response bodies before their fields are written.
+- Size alter-replica-log-dirs request and response bodies before their fields are written.
+- Size assign-replicas-to-dirs request and response bodies before their fields are written.
+- Size telemetry subscription and push bodies before their fields are written.
+- Size list-config-resources request and response bodies before their fields are written.
+- Size describe-topic-partitions request and response bodies before their fields are written.
+- Size alter and delete share-group-offsets bodies before their fields are written.
+- Size describe-share-group-offsets request and response bodies before their fields are written.
+- Size consumer-group and share-group describe requests before their fields are written.
+- Size describe-transactions and list-transactions bodies before their fields are written.
+- Size describe-producers request and response bodies before their fields are written.
+- Size client-quota request and response bodies before their fields are written.
+- Size describe-user-scram-credentials request and response bodies before their fields are written.
+- Size alter-user-scram-credentials request and response bodies before their fields are written.
+- Size update-features request and response bodies before their fields are written.
+- Size list-partition-reassignments request and response bodies before their fields are written.
+- Size alter-partition-reassignments request and response bodies before their fields are written.
+- Size describe-cluster request and response bodies before their fields are written.
+- Size delete-records request and response bodies before their fields are written.
+- Size alter-configs request and response bodies before their fields are written.
+- Size incremental alter-configs request and response bodies before their fields are written.
+- Size create-partitions request and response bodies before their fields are written.
+- Size describe-configs request and response bodies before their fields are written.
+- Size delete-topics request and response bodies before their fields are written.
+- Size a create-topics response before its fields are written.
+- Size a create-topics request before its fields are written.
+- Size a list-groups request before its fields are written.
+- Size a delete-groups request before its fields are written.
+- Size a delete-groups response before its fields are written.
+- Size a describe-groups request before its fields are written.
+- Size a list-groups response before its fields are written.
+- Size a share-group describe response before its fields are written.
+- Size a consumer-group describe response before its fields are written.
+- Size a describe-groups response before its fields are written.
+- Size a classic produce batch before its records are written.
+- Size a share-acknowledge response before its fields are written.
+- Size a share-fetch response before its fields are written.
+- Size a produce batch before its records are written.
+- Size a fetch response before its fields are written.
+- Size a produce request before its fields are written.
+- Size a produce response before its fields are written.
+- Size an offset-commit request before its fields are written.
+- Size a sync-group response before its fields are written.
+- Size a join-group response before its fields are written.
+- Size a leave-group response before its fields are written.
+- Size a leave-group request before its fields are written.
+- Size a heartbeat request before its fields are written.
+- Size a find-coordinator response before its fields are written.
+- Size a find-coordinator request before its fields are written.
+- Size an offset-delete response before its fields are written.
+- Size an offset-delete request before its fields are written.
+- Size an offset-fetch request before its fields are written.
+- Size an offset-fetch response before its fields are written.
+- Size an offset-commit response before its fields are written.
+- Size a list-offsets response before its fields are written.
+- Size an offset-for-leader-epoch response before its fields are written.
+- Size a write-txn-markers response before its fields are written.
+- Size a write-txn-markers request before its fields are written.
+- Size a share-group heartbeat response before its fields are written.
+- Size a share-group heartbeat request before its fields are written.
+- Size a txn offset commit response before its fields are written.
+- Size a txn offset commit request before its fields are written.
+- Size an add-partitions response before its fields are written.
+- Size an add-partitions request before its fields are written.
+- Size an offset-for-leader-epoch request before its fields are written.
+- Size join and sync group requests before their fields are written.
+- Size a metadata request body before its fields are written.
+- Size a list-offsets request body before its fields are written.
+- Size an offset request body before it is written into the connection buffer.
+- Size a share acknowledgement request before its fields are written.
+- Size a share fetch request body before its fields are written.
+- Size a fetch request body before its fields are written.
+- Size a compressed produce section before its records are written.
+- Size the fetch delivery order for every record run.
+- Size each mixed-topic produce partition list for its records.
+- Size each one-topic produce partition list for its records.
+- Size each fetch partition queue for its next record run.
+- Size a share fetch for every topic and partition in the assignment.
+- Size a metadata response for every broker, topic, and partition.
+- Size a produce acknowledgement for every partition in the topic.
+- Size a produce group index for every partition in the batch.
+- Size a fetch response topic and partition list once.
+- Reserve produce header wires for every header at once.
+- Size a ShareFetch batch list in one allocation.
+- Size a full record-batch decode in one allocation.
+- Reserve gzip output from the trailer size.
+- Reserve LZ4 output from the frame content size.
+- Decompress snappy-java chunks into the output buffer.
+- Reserve share records for the batches already decoded.
+- Size fetch partition lists in one allocation.
+- Size a multi-batch fetch list in one allocation.
+- Reuse the fetch record buffer after a capped poll.
+- Reserve the share delivery buffer before moving records into it.
+- Keep fetched partition queues after a poll drains them.
+- Reuse ShareFetch record lists across polls.
+- Reuse ShareFetch response shells across polls.
+- Keep fetch total keys when a poll returns no records.
+- Keep fetch total keys across polls.
+- Reuse topic metrics across produce acknowledgements.
+- Match a one-partition produce ack without a topic index.
+- Skip the cluster lock when a produce ack has no endpoints.
+- Read produce and fetch tagged fields without a field list.
+- Read a committed offset from the fetch response.
+- Reuse classic offset topic lists across commits and fetches.
+- Refill the previous classic offset commit topics.
+- Refill the previous v10 offset fetch instead of building a new one.
+- Refill the previous v10 offset commit instead of building a new one.
+- Write offset client requests into the connection buffer.
+- Write a v10 offset request into the coordinator buffer.
+- Send a v10 offset fetch on the group coordinator.
+- Send a v10 offset commit on the group coordinator.
+- Leave the fetch record buffer unallocated when a poll has no batches.
+- Encode metadata refreshes from the topic names already held.
+- Keep a short topic set on the stack.
+- Remember a short metadata topic list without a set.
+- Refill topic identity maps when metadata is refreshed.
+- Expand a partial share acknowledgement in its existing buffer.
+- Keep the acknowledgement list when a sent batch is dropped.
+- Refill share acknowledgement lists from the previous call.
+- Share the assignment topic when a share acknowledgement is applied.
+- Encode epoch recovery from the assignment topic names.
+- Acknowledge a one-partition produce group without a shell.
+- Refill epoch-recovery topic names in one buffer.
+- Refill delivered positions in the previous snapshot.
+- Share a cached topic name when an assignment is stored.
+- Keep a share assignment on the cached topic name.
+- Keep a delivered topic id on the assignment name.
+- Remember delivered positions on the assignment topic.
+- Reuse mixed-produce topic slot maps and orders.
+- Reuse the group list when a produce batch is split.
+- Reuse partition lists when a produce batch is split.
+- Keep the produce batch list when records are grouped.
+- Keep the largest list when a produce group fails.
+- Keep a failed produce batch allocation for the next send.
+- Share cached topic names with the consumer identity maps.
+- Share one topic allocation across the metadata cache.
+- Reuse the assignment topic while share leaders are routed.
+- Keep a share leader plan on the assignment topic.
+- Share one topic name across a share assignment.
+- Share a long share-fetch topic with the assignment.
+- Share the fetch topic when a partition is recorded.
+- Keep retained fetch batches on the topic they already use.
+- Seek an assignment without copying every topic name first.
+- Reuse topic names when a fetch refreshes metadata.
+- Keep one topic name while a leader builds the assignment.
+- Encode a subscription from the caller's topic list.
+- Group an assignment without copying every owned topic name.
+- Keep an owned topic on the last expanded partition.
+- Keep the parsed topic bytes on the last partition acknowledgement.
+- Keep the parsed topic on the last partition of a response.
+- Write a grouped assignment without copying each partition name.
+- Keep one topic name for a leader election.
+- Share preferred topic names when metadata is refreshed.
+- Borrow stored topic names while rejecting duplicate offset commits.
+- Keep the fetch topic when an offset reset is deferred.
+- Keep the fetch topic when a leader epoch is fenced.
+- Borrow topic names while recovering leader epochs.
+- Retry topic deletion by request index.
+- Retry topic creation by request index.
+- Store delete results in request order without copying names.
+- Store create results without copying their topic names.
+- Take the election topic already returned by the broker.
+- Share one topic name across a failed election.
+- Group election results without copying topic names again.
+- Move fetched offset partitions into the result.
+- Check auto-commit membership without copying the assignment.
+- Borrow topic names while grouping an offset fetch.
+- Borrow member ids while grouping subscribers by topic.
+- Read previous sticky owners without copying them.
+- Borrow previous owners while filtering a cooperative assignment.
+- Borrow sticky owners while resolving overlapping claims.
+- Assign every member without copying the topic list for each one.
+- Copy each assignor member name once.
+- Borrow KIP-848 assignment names while dropping duplicate partitions.
+- Borrow topic names while collecting a subscription.
+- Share assigned topic names when indexing partition state.
+- Keep a fetched topic allocation when its first record is queued.
+- Borrow topic names while building transaction marker errors.
+- Borrow quota entity types while keeping the last name.
+- Borrow config names while building alter-config requests.
+- Borrow names while folding feature keys and transaction errors.
+- Borrow share-assignment names while dropping duplicate partitions.
+- Move response topic names and copy log-dir names once.
+- Borrow metadata topic names while listing partitions.
+- Copy each grouped topic name once.
+- Group leader elections by topic without a per-partition scan.
+- Borrow topic names while indexing fetch responses.
+- Borrow topic names while indexing share-fetch responses.
+- Borrow topic names while indexing fetch and log-dir rows.
+- Borrow topic names while indexing fetched offsets.
+- Borrow topic names while indexing log directories and producers.
+- Borrow topic names while folding transaction partition maps.
+- Borrow topic names while building transaction marker errors.
+- Borrow topic names while summing produce and offset maps.
+- Borrow topic names while detecting duplicate partitions.
+- Remember one topic name when checking offset partitions.
+- Keep one topic name while building a KIP-848 assignment.
+- Skip share topic-id refresh when the ids are unchanged.
+- Reuse the finished share-fetch list across polls.
+- Append finished fetch replies into the reused list.
+- Reuse the prepared share-fetch list across polls.
+- Skip the duplicate-topic set for a one-topic metadata image.
+- Reuse the admin metadata image across refreshes.
+- Reuse the producer metadata image across refreshes.
+- Reuse metadata response buffers across refreshes.
+- Send a one-leader share acknowledgement without copying its batches.
+- Reuse share acknowledgement type lists after a successful send.
+- Reuse the incremental fetch topic list across polls.
+- Reuse incremental fetch partition lists across polls.
+- Write an uncompressed Produce batch from the header used to size it.
+- Reuse the Produce acknowledgement list across responses.
+- Reuse the share acknowledgement topic name.
+- Reuse share fetch identity across multi-leader polls.
+- Match the bootstrap fetch socket without copying its address.
+- Read fetch topic names into the buffer from the previous response.
+- Check Metadata v0 names without building a discarded body.
+- Reuse multi-broker fetch node lists across polls.
+- Return share delivery records without copying the queue.
+- Send a one-partition share ack without grouping maps.
+- Reuse the share fetch record list across polls.
+- Build share fetch topic names without an intermediate string.
+- Check in-order share fetch offsets without a set.
+- Store share acquisitions as contiguous runs.
+- Reuse one-topic share ack partition pairs.
+- Reuse one-partition share ack offsets.
+- Skip the share ack retry copy for one leader.
+- Move share acknowledgement batches into the request.
+- Skip per-offset ack type lists for one acknowledgement type.
+- Reuse share fetch partition lists across polls.
+- Reuse the share leader plan across polls.
+- Reuse the consumer join subscription across heartbeats.
+- Reuse share member ids and join subscriptions.
+- Reuse the share join subscription across retries.
+- Reuse share heartbeat strings across intervals.
+- Reuse classic heartbeat ids across intervals.
+- Reuse group heartbeat strings across intervals.
+- Encode share acknowledgements directly into the connection buffer.
+- Encode share fetch directly into the connection buffer.
+- Share one rack id across fetch requests.
+- Reuse fetch topic partition vectors across responses.
+- Keep a one-partition fetch topic inline with the response.
+- Keep a one-batch fetch inline with the partition.
+- Reuse fetch leader-id lists across polls.
+- Reuse the decoded fetch reply list across polls.
+- Reuse the fetch reply list across polls.
+- Reuse the produce batch vector after acknowledgements.
+- Keep a one-partition Produce group inline with the batch.
+- Keep a one-topic Produce id inline with the in-flight batch.
+- Return one fetched partition without a scratch list.
+- Keep a one-topic fetch plan on the stack.
+- Match one-partition Produce acks without a partition set.
+- Reuse produce topic-id indexes across requests and acknowledgements.
+- Record finished fetch partitions directly in the reused map.
+- Reserve a pending fetch drain for the records it will return.
+- Reserve the next read after a frame fills the buffer.
+- Keep header wire widths on the produce scratch buffer.
+- Reuse header wire widths across records in a batch.
+- Reserve the next fetch buffer from the previous record count.
+- Keep a fetch session topic-id index across steady polls.
+- Keep the retained-fetch topic table when batches are detached.
+- Reuse the fetch completion map across polls.
+- Reuse fetch topic totals on the next poll.
+- Create a sticky member slot only on the first claim.
+- Move a cooperative assignment member into its result.
+- Queue a repeated group result under its existing id.
+- Reuse a committed-offset topic that arrives twice.
+- Reuse record header widths while encoding a batch.
+- Index sticky and range subscribers by topic once.
+- Match topic admin results by the first pending name.
+- Store share acquisitions under the topic already in the map.
+- Remember a pending aborted transaction without scanning the heap.
+- Look up a consumer position through the assignment index.
+- Merge offset topics by the first stored name.
+- Group offset-delete results by the first copy of each topic.
+- Refresh admin metadata once per topic name.
+- Group a produce response by the first copy of each topic.
+- Claim assigned partitions by the name already in the list.
+- Share a fetch session topic name with the request.
+- Group a produce retry by topic without scanning earlier records.
+- Group transactional offsets by the first copy of each topic.
+- Index Produce topic ids by name and uuid.
+- Remember transactional partitions under one topic entry.
+- Match revoked partitions by the names the list already owns.
+- Refresh fetch metadata once per topic after backoff.
+- Reuse the fetch rollback buffer across polls.
+- Snapshot fetch offsets and epochs in one buffer.
+- Fill a one-topic produce index while checking the name.
+- Size a one-partition produce batch in one walk.
+- Classify a produce batch in one pass.
+- Remember a short fetch's topic names without a set.
+- Scan a short fetch session for a repeated topic.
+- Skip the metadata-error lock when produce has no error.
+- Let produce fast-route reads share one lock.
+- Share a produce fast-route handle across records.
+- Reuse produce batch indexes across requests.
+- Count a unique fetch session response without a duplicate set.
+- Check a fetch session against the stored partitions.
+- Skip fetch duplicate tracking when partition indexes increase.
+- Look up Produce topic ids from one index.
+- Index produce partitions instead of scanning each topic.
+- Group epoch recovery by topic without copying each partition name.
+- Look up delivered topic ids without copying the name.
+- Advance a fetch cursor through the assignment index.
+- Index topic names instead of scanning the list.
+- Index an assignment instead of scanning it per partition.
+- Reuse loaded topic lists when the name matches.
+- Look up a topic's assigned ids once per fetch.
+- Stamp one acknowledgement time for a produce batch.
+- Build a produce fast route from one leader list.
+- Keep a share fetch's leader list for the next poll.
+- Read a fetch cursor once per returned partition.
+- Route share fetches without copying the assignment.
+- Refresh unchanged metadata without rewriting leader slots.
+- Group an assignment's current offsets by topic.
+- Store committed offsets under one topic name.
+- Group leader-epoch lookups under one topic name.
+- Remember a preferred topic once while metadata refreshes.
+- Look up offsets from the topic name already in hand.
+- Skip a topic clone when the produce route is cached.
+- Check metadata age once for each topic name.
+- Compare a sticky produce topic by its text.
+- Drop produce ack slots that are not in the latest response.
+- Commit assigned offsets without copying their topic names again.
+- Keep the leader found while a produce retry is prepared.
+- Look up a partition leader once.
+- Reuse a topic's leader list when a fetch is out of range.
+- Share a topic's fetch cursor map.
+- Reuse a topic's leader list while recovering epochs.
+- Load leader epochs once per topic.
+- Refresh metadata once for each topic missing a leader.
+- Rewind one topic's produce sequences under one lookup.
+- Share one topic name across acknowledgement partitions.
+- Record every ListOffsets request on the mock.
+- Reuse a topic's leader list when fanning admin requests out.
+- Reuse a topic's leader list for a share fetch.
+- Group share fetch partitions under one topic name.
+- Detect a repeated share offset without copying the topic.
+- Look up a share acquisition without copying the topic.
+- Remember a share record's topic once per offset.
+- Keep share acquisitions that are still assigned in one lookup.
+- Group added transaction partitions without scanning each topic.
+- Group commit partitions without scanning the topic again.
+- Build commit offsets from the assignment slots.
+- Count a failed produce batch's errors once per topic.
+- Reuse a topic's produce metrics across acknowledged partitions.
+- Count a fetch topic's records once per response.
+- Record finished fetch partitions once per topic.
+- Apply one fetch topic without hashing its name per partition.
+- Prepare a fetch session without hashing each partition's topic.
+- Match a one-topic produce response without scanning every partition.
+- Assign produce sequences under one lock.
+- Resolve one produce topic id without scanning each partition.
+- Store fetch epochs beside the assignment.
+- Remember fetch cursor slots for the topic being read.
+- Reuse a topic's leader list while planning a fetch.
+- Check one topic's metadata age once per fetch.
+- Group one produce topic by partition without hashing its name.
+- Route a fresh produce record without locking the cluster.
+- Use the assigned topic name when a fetch response is applied.
+- Reuse topic identity strings when metadata is refreshed.
+- Keep a broker address that metadata repeats.
+- Reuse the consumer fetch plan across polls.
+- Group poll offsets by record runs instead of hashing every record.
+- Look up a known fetch topic id without copying it.
+- Prepare a fetch session without copying an unchanged topic.
+- Group one produce topic without a name map.
+- Remember fetch positions as offsets instead of cloning the assignment.
+- Skip copying leader epochs when no preferred replica is stored.
+- Group replica log directories without copying every path.
+- Look up partition results without copying the topic name.
+- Group admin topics without copying a name that is already stored.
+- Group offset and metadata topics without copying a stored name.
+- Group transaction topics without copying a name that is already stored.
+- Reuse a topic name when another partition is grouped with it.
+- Group leader-epoch and rerouted partitions without copying every name.
+- Reuse the partition marks while applying metadata.
+- Update cached topic leaders without copying them.
+- Keep topic identities with the metadata response.
+- Update a fetch session in place.
+- Group mixed produce records under the first topic name.
+- Share one topic name across a fetch plan's partitions.
+- Reuse the fetch cursor index across responses.
+- Reuse the produce acknowledgement slot list.
+- Skip copying topic names when fetch metadata is fresh.
+- Reuse the produce acknowledgement index.
+- Count fetched records under the response topic name.
+- Index fetch cursors once per response.
+- Share one topic name while deduplicating a fetch response.
+- Keep produce routes for several topics.
+- Index a produce batch's topics in one pass.
+- Reuse a warm produce route and its topic metrics.
+- Advance produce sequences without copying the topic.
+- Look up a partition leader without copying its address.
+- Reuse a fetch session's topic name on the next poll.
+- Share produce topic names with the v13 identity snapshot.
+- Share the produced topic with each acknowledgement.
+- Share one long topic name across the records of a fetch.
+- Share one topic name across an assignment's partitions.
+- Share one topic name across a fetch session's partitions.
+- Remember the soonest queued produce deadline.
+- Track queued produce bytes instead of scanning them.
+- Reuse each connection's write buffer across requests.
+- Drop expired produce records in one pass.
+- Fire a zero-linger produce batch without scanning queued bytes.
+- Pack a single-partition produce batch without a group map.
+- Reset one produce linger timer instead of building a new sleep.
+- Reuse the produce grouping map across batches.
+- Copy protocol strings and tagged fields without zero-filling them first.
+- Match produce acknowledgements without copying topic names.
+- Take a queued ack into the frame buffer before the worker reads it.
+- Read stalled writes directly into the response buffer.
+- Use the first Streams bootstrap that finishes its handshake.
+- Look up offset coordinators in one FindCoordinator.
+- Use the first offset bootstrap that finishes its handshake.
+- Overlap offset-fetch coordinator handshakes.
+- Fetch group offsets from every coordinator together.
+- Describe transactions on every coordinator together.
+- Query share-group coordinators together.
+- Query consumer-group describe and delete coordinators together.
+- Describe groups on every coordinator together.
+- Fan leader admin calls out together.
+- List offsets on distinct leaders together.
+- Reuse each admin socket's ApiVersions handshake.
+- Dial every configured bootstrap during startup.
+- Race transactional coordinator handshakes.
+- Race admin and producer startup handshakes.
+- Use the first bootstrap that finishes its handshake.
+- Dial produce leaders together.
+- Dial share leaders together before the fetch.
+- Dial multi-leader fetch handshakes together.
+- Queue a single produce record without a one-element batch.
+- Deliver a produce ack while the next batch lingers.
+- Write a compressed Produce batch at its final offset.
+- Place an uncompressed Produce batch at its final offset.
+- Encode flexible Produce batches directly into the request.
+- Keep a cancelled share poll on the configured fetch wait.
+- Return a broker response that arrives as the deadline expires.
+- Keep a classic offset call inside its deadline.
+- Return a group join that finishes as its deadline expires.
+- Do not describe an empty offset-peer fetch as a log that ends at zero.
+- Keep a delivered offset when metadata shows a recreated topic.
+- Return offset and metadata results that finish as the deadline expires.
+- Stop cancelling a sticky metadata lookup that already has a deadline.
+- Return quorum changes that finish as the deadline expires.
+- Keep producer shutdown inside the close deadline.
+- Keep a producer flush inside its deadline.
+- Spend one request timeout sending offsets into a transaction.
+- Keep each broker call inside the admin operation deadline.
+- Match list-offset tests to negotiated sockets and topic checks.
+- Return offset listings that finish as the deadline expires.
+- Return admin results that finish as the deadline expires.
+- Keep group coordinator discovery inside its deadline.
+- Keep producer coordinator discovery inside its deadline.
+- Spend one operation timeout finding a coordinator.
+- Keep a log-directory lookup inside its deadline.
+- Keep a leader dial inside the caller deadline.
+- Keep InitProducerId inside the caller deadline.
+- Keep a share join inside one request timeout.
+- Keep a group subscription inside one request timeout.
+- Spend one request timeout joining a group.
+- Spend one discovery timeout across every bootstrap address.
+- Spend one request timeout opening a broker connection.
+- Keep an admin bootstrap reconnect inside the call deadline.
+- Keep a metadata reconnect inside the refresh deadline.
+- Keep a leader reconnect inside its deadline.
+- Keep consumer and admin startup inside the original request timeout.
+- Keep producer startup inside the original request timeout.
+- Spend one request timeout on a heartbeat rediscovery.
+- Spend one request timeout across a group join.
+- Bound consumer-group close by one deadline.
+- Bound share-group close by one deadline.
+- Bound admin metadata refreshes by the operation deadline.
+- Bound admin dials and RPCs by the operation deadline.
+- Keep an admin broker dial inside its deadline.
+- Spend one request timeout across a coordinator retry.
+- Spend one request timeout across a retried transaction RPC.
+- Give each share acknowledgement only the time still left.
+- Stop a multi-leader share fetch at the poll deadline.
+- Return fetched records when dialing or metadata runs out of time.
+- Stop waiting for the first parallel fetch after the deadline.
+- Stop the multi-leader fetch window at the fetch deadline.
+- Give each sequential fetch only the time still left.
+- Measure the fetch RPC timeout after the brokers are dialed.
+- Shrink the fetch byte budget when truncation removes records.
+- Return fetched records when leader-epoch recovery runs out of time.
+- Return fetched records when an offset reset runs out of time.
+- Stop leader-epoch recovery from dialing past its deadline.
+- Keep fetch metadata refreshes inside the fetch deadline.
+- Keep leader-epoch recovery inside the call that needed it.
+- Keep fetch reset and share metadata inside one request timeout.
+- Bound seek and group reset lookups by one request timeout.
+- Spend one ListOffsets timeout across every partition in the call.
+- Advance the fetch cursor to a compacted batch's preserved end.
+- Reject bytes left over in a zero-count record batch.
+- Reject record attributes other than zero.
+- Reject a fetch topic id that disagrees with its name.
+- Refuse a share topic id that does not name exactly one subscription.
+- Try a preferred replica once before fetching from the leader.
+- Fetch from the leader when a preferred replica cannot be dialed.
+- Drop cached leaders when metadata lists no usable partitions.
+- Acknowledge share records to the broker that acquired them.
+- Fetch from the leader when a preferred replica has no address.
+- Keep a share consumer on the leader named in the response.
+- Refuse a broker address that still contains brackets.
+- Commit revoked positions before a subscription change.
+- Do not attach a zero topic id to the first subscribed name.
+- Keep a leader when a later topic copy is unknown.
+- Keep a KIP-848 assignment that could not be applied.
+- Keep the share assignment when its topic id cannot be named.
+- Keep fetched records when a zero-interval auto-commit fails.
+- Fail commit_with_metadata once when a wakeup is pending.
+- Keep the previous assignment when metadata refresh fails.
+- Use the last short-key record when the batch count overflows.
+- Keep the fetch cursor at the last record when the batch count overflows.
+- Refuse a broker host that contains whitespace or a control character.
+- Reject a repeated partition before seekToBeginning or seekToEnd.
+- Reject a repeated partition in one offset lookup.
+- Place a new group assignment at the log start.
+- Skip illegal topic names in a pattern subscription.
+- Reject an invalid topic before partitionsFor metadata.
+- Reject an invalid topic before ListOffsets is sent.
+- Reject an offset commit or fetch for an invalid topic name.
+- Reject a batch whose record count does not match its header.
+- Roll back a record batch when encoding fails.
+- Reject a batch whose record offsets do not fit in i64.
+- Reject a record timestamp delta that does not fit in i64.
+- Ignore a fetch partition that is not assigned.
+- Keep fetch deadline tests inside the request timeout bound.
+- Omit a next offset that does not fit in i64.
+- Reject a record whose offset or timestamp overflows.
+- Hide a fetch cursor that is waiting to be placed in the log.
+- Omit a partition from positions while it waits to be reset.
+- Refuse a position that is not in the log.
+- Skip a reset position when a rebalance commits revoked partitions.
+- Skip a reset position when committing group offsets.
+- Dial a Streams coordinator whose IPv6 host is already bracketed.
+- Dial an offset coordinator whose IPv6 host is already bracketed.
+- Dial a coordinator whose IPv6 host is already bracketed.
+- Dial an IPv6 broker whose host is already bracketed.
+- Send one offset entry when a partition is listed twice.
+- Report no lag when the fetch position is not in the log.
+- Reject a duplicate partition in one offset commit or fetch.
+- List partitions from a later successful metadata copy.
+- Assign every partition when metadata repeats a topic.
+- Read partition indexes from every metadata copy of a topic.
+- Apply a repeated fetch partition once.
+- Fetch a recreated share topic with its new id.
+- Keep the cached topic id when a later metadata copy clears it.
+- Keep a reachable broker when metadata has a bad address.
+- Keep partitions when metadata repeats a topic.
+- Give each partition to one group member.
+- Reset a fetch when its topic is recreated.
+- Replace the cached leader when a topic is recreated.
+- Keep a leader that this metadata response already chose.
+- Keep the newer leader when metadata repeats a partition.
+- Reject a duplicate partition in one assignment.
+- Reject a fetch whose log start is past the high watermark.
+- Reject a negative partition or offset on commit.
+- Reject a negative partition index on assign and seek.
+- Reset a fetch whose offset is below the log start.
+- Skip fetch records that have already been deleted.
+- Hide fetch records that sit at the high watermark.
+- Refuse a current-leader update for an uncached partition index.
+- Keep a huge partition index out of the leader cache.
+- Reset a fetch whose offset is past the high watermark.
+- Reject a fetch wait that outlasts the request timeout.
+- Reject a group session that expires before the next heartbeat.
+- Reject a consumer that asks for zero records per poll.
+- Reject a negative offset when a partition is assigned.
+- Report consumer lag from the delivered position.
+- Refuse a ListOffsets reset that has no offset.
+- Drop buffered records that sit past a truncated epoch end.
+- Commit the fetched epoch when a rebalance revokes a partition.
+- Commit the leader epoch of the records already delivered.
+- Keep an undefined epoch end from rewinding the fetch position.
+- Resolve OffsetForLeaderEpoch against the epoch already fetched.
+- Step a consumer-group member back to the coordinator epoch when its epoch is stale.
+- Step a share member back to the coordinator epoch when its epoch is stale.
+- Ignore a negative preferred fetch replica.
+- Keep a fetch cursor from wrapping past the last offset.
+- Commit the epoch of the next undelivered record.
+- Commit the leader epoch of the fetched records.
+- Clear a preferred replica when a fetch error moves the leader.
+- Drop a preferred fetch replica when its leader epoch changes.
+- Keep the cached leader epoch when an older epoch is stored.
+- Keep a cached partition leader across a transient metadata error.
+- Drop a cached leader when metadata says the topic is unknown.
+- Keep a newer cached leader when metadata is older.
+- Ignore a current leader whose epoch is older than the cached one.
+- Share a rotated share-group member id with the heartbeat task.
+- Send share topics when a fenced member rejoins.
+- Send a real KIP-848 join after a fenced heartbeat.
+- Restart a fenced KIP-848 member at the join epoch.
+- Rejoin a share group after its member epoch is fenced.
+- Rejoin a classic group after a lost generation.
+- Honor a pending wakeup on group offset fetch and unsubscribe.
+- Surface a coordinator that cannot speak Heartbeat.
+- Honor a pending wakeup on group resubscribe.
+- Honor a pending wakeup on share acknowledge and subscribe.
+- Honor a pending wakeup on group poll and commit.
+- Honor a pending wakeup on assign and metadata lookups.
+- Honor a pending wakeup once in ListOffsets.
+- Do not negotiate ListOffsets again after the leader handshake.
+- Reuse the coordinator handshake for offset version checks.
+- Speak the coordinator version from the socket that sends it.
+- Drop a leader ListOffsets range the new handshake omits.
+- Speak each leader's OffsetForLeaderEpoch version.
+- Keep the ListOffsets range from the leader handshake.
+- Reuse negotiated ApiVersions for bootstrap ListOffsets.
+- Report the batch max timestamp for log-append-time share fetches.
+- Report the batch max timestamp for log-append-time fetches.
+- Reset the fetch session when clientInstanceId replaces the bootstrap socket.
+- Reuse the bootstrap socket after an idle metadata reconnect.
+- Reuse fetch topic totals without cloning the name per batch.
+- Keep the fetch session when ListOffsets uses the bootstrap socket.
+- Retire one-node fetch sessions on the bootstrap socket.
+- Keep incremental fetch sessions on the reused bootstrap socket.
+- Keep the fetch epoch when a gapped batch is skipped.
+- Copy short fetch keys into the record.
+- Store short share-fetch topic names inline.
+- Store short fetch topic names inside the record.
+- Reuse the bootstrap connection for a one-node fetch.
+- Tally fetch topic metrics while records are delivered.
+- Decode plain records without the generic buffer reader.
+- Reserve fetch output from the batch record count.
+- Match Apache KRaft responses and DescribeQuorum request tags.
+- Lock KRaft bodies to Apache kafka-clients 4.3.1 bytes.
+- Add a local operator workflow for setup, backup, and restore.
+- Keep every pinned broker compatibility cell in the denominator.
+- Speak AddRaftVoter v1 AckWhenCommitted.
+- Publish a host-specific performance build recipe.
+- Add bounded fetch and group diagnostics.
+- Return fast-leader fetches without waiting out a slow leader.
+- Compute next offsets without cloning a topic per record.
+- Overlap ShareFetch requests when a poll has several leaders.
+- Send configured ShareFetch record and byte limits.
+- Keep a full fetched response when the decode budget is full.
+- Keep fetch batches that do not fit the consumer budget.
+- Encode record batches with one varint-width pass.
+- Merge pull request #108 from mingley/dependabot/cargo/tokio-1.53.2
+- Merge pull request #107 from mingley/dependabot/cargo/tokio-rustls-0.26.6
+- Record the qualified Go peer compression correction and retained failures
+- Publish remaining schema fixtures and retained workspace evidence
+- Bump tokio from 1.53.1 to 1.53.2
+- Bump tokio-rustls from 0.26.5 to 0.26.6
+- Retain benchmark tier refusal checks and the pinned Go config gap
+- Qualify null-broker compatibility with all three pinned SDK peers
+- Qualify UpdateFeatures public controller, deadline and source-case behavior
+- Use Tokio file reads in the UpdateFeatures source-case harness
+- Preserve UpdateFeatures feature errors and synthesize empty success responses
+- Expand genuine SDK peer with empty success and per-feature controller errors
+- Check two-feature UpdateFeatures success and controller migration histories
+- Fix UpdateFeatures operation budget, Java name validation and nonnullable wire fields
+- Correct canonical SDK response preparation for malformed UpdateFeatures probes
+- Prepare actual SDK name and malformed-field compatibility probes
+- Isolate TCP buffering and startup from UpdateFeatures deadline probes
+- Prepare independent UpdateFeatures controller and deadline probes
+- Close KL09-73 with actual null output, full schema and rejection evidence
+- Retain UpdateFeatures safety proof and enforce complete result schemas
+- Keep UpdateFeatures public test independent of extra dev dependencies
+- Add bounded SDK wire and native public UpdateFeatures qualification
+- Reject validation-only UpdateFeatures v0 before encoding or dispatch
+- Document safety test crate and check actual SDK duplicate lookup
+- Fix UpdateFeatures qualification helper compilation
+- Add the public v0 validation-only safety regression and bounded SDK live checks
+- Complete the local build-profile comparison with retained validation
+- Prepare bounded UpdateFeatures qualification and track the null-result schema failure
+- Qualify current AssignReplicasToDirs raw controller cohort
+- Respect Kafka metadata segment minimum in raw controller fixture
+- Return fixture UUID parsing errors from the conformance helper
+- Explain missing fixture UUID failures in raw conformance helpers
+- Prepare bounded AssignReplicasToDirs raw conformance cohort
+- Qualify local Tokio runtime matrix and guide runtime selection
+- Propose an owned optional Kerberos provider and retain source review
+- Measure explicit benchmark runtimes and retain shutdown observations
+- Qualify the ShareFetch range cursor and retain partial profiles
+- Make the share lookup qualification pass in a clean checkout
+- Use a bounded cursor for ShareFetch acquisition lookup
+- Add a benchmark for ShareFetch acquisition lookup
+- Document which baseline artifacts are published
+- Record the repeated local client baseline
+- Record current DescribeQuorum qualification
+- Bound DescribeQuorum bodies and Admin retries
+- Bound DescribeQuorum bodies and Admin retries
+- Close fixed-peer runtime with retained finite TCP and ownership qualification
+- Record completed cards and current conformance evidence
+- Qualify AllocateProducerIds raw controller calls
+- Qualify legacy discovery coordinator faults
+- Support legacy metadata and GROUP discovery
+- Support UUID offsets through group and Admin callers
+- Add typed Admin Streams group descriptions
+- Implement bounded Streams heartbeats and retain current client source
+- Apply committed quorum metadata and enforce bounded SASL renewal
+- Fix unlimited producer buffer accounting and isolate 89 capability tests
+- Fix ApiVersions fallback peer, synchronous fixture lints and broker proxy capture
+- Fix test strict-lint failures and validate current Fetch session histories
+- Fix observed CI failures and expand Producer reauthentication scope
+- Enforce actual gap bindings and fail-closed protocol completion checks
+- Query every broker for transaction listings with bounded partial results
+- Add three-SDK Streams wire fixtures and bounded Rust replay coverage
+- Use genuine Kafka message accessor when generating Streams wire fixtures
+- Add bounded Streams codecs and freeze genuine client reference sources
+- Audit all current Kafka APIs and claim bounded Streams work
+- Handle sticky state insertion results under strict linting
+- Use public Record accounting in sticky integration tests
+- Add bounded opt-in sticky partitioning and retain OIDC negative results
+- Fix native seek lifecycle and client test helper; retain first OIDC pass
+- add transaction-marker v2 and share-offset lag support for qualification
+- Qualify Share v2 runtime and close three client compatibility tasks
+- Implement bounded ordinary log compaction and qualify JWKS media handling
+- *(client)* synchronize heartbeat schedule assertions with applied responses
+- verify the bounded retention profile against independent Kafka fixtures
+- preserve historical Share records during lock lifecycle proof
+- Complete rolling storage qualification; fix Share error epochs and cancelled sessions; claim safe retention
+- Implement per-broker Share v2 acquisition and acknowledgements; freeze independent storage checker
+- Implement current Share v2 wire fields with independent Apache fixtures
+- Negotiate ordinary client capabilities per operation and retain immutable Apache replication proof
+- Qualify read/write advertisements and support the exact native SCRAM admin tag dialect
+- Qualify Fetch v18, bound authenticated controls, and start durable replication
+- Verify ordinary data and fixed controller profiles against captured wire responses
+- Implement Fetch 18 HighWatermark codecs and consumer negotiation
+- Serve persisted single-node metadata and topic administration with bounded actors
+- Implement Produce v13 topic identities with bounded retries and transaction feature gating
+- Qualify Raft election safety and add optional SASL crypto dependency boundary
+- Keep benchmark history hex conversion free of unchecked indexing
+- Avoid per-byte formatting allocation in benchmark history hex output
+- Clear Rust 1.85 lint debt and default credential test warnings
+- Keep aborted-state predicate inside committed-isolation branch
+- Reuse partition-local aborted state and advance ordered interval cursor
+- Implement bounded Kafka headers and verified ApiVersions advertisement
+- Exclude broker conformance assets from client package and link immutable benchmark tools
+- pin complete Apache broker API schemas with independent header and metadata checks
+- gate benchmark attempts on independent record ID and payload histories
+- execute pinned librdkafka flush regression with independent receipt audits
+- drain capped consumer polls through ordered per-partition queues
+- extend goal to full Rust Kafka broker and claim next client tasks
+- Revert "race bootstrap dials with bounded concurrency and clean cancellation"
+- race bootstrap dials with bounded concurrency and clean cancellation
+- share stalled dial fixture with packaged bootstrap tests
+- close C peer card and pin packaged benchmark references
+- add scheduled open-loop latency with stalled-peer regressions
+- choose optional pure Rust zstd backend with independent frame evidence
+- borrow topic keys in consumer partition-state lookups
+- record lazy fetch decode evidence and file KL10-17
+- decompress fetch batches only when they are applied
+- freeze six independent Apache v13 request and response fixture cells
+- freeze the Apache 4.1.0 v13 topic-ID schema and runtime delta
+- keep terminal Fetch requests within broker quotas and caller budgets
+- pin live evidence outside the extracted package
+- pin rehearsal evidence outside the extracted package
+- normalize Docker repository digests and isolate the deliberate idle reset
+- recover Fetch sessions before delivery and bound terminal cleanup
+- correct the unsafe scope of the miniz_oxide fallback
+- use broker-local incremental Fetch maps and epochs with legacy fallback
+- record all exact-source recovery outcomes and remaining owner stages
+- execute offline recovery stages and refuse unknown registry state
+- attach the complete artifact to the promoted live registry case
+- qualify the live adapter scenario and retain full event histories
+- accept the pinned broker bare CLI version and retain scenario failures
+- require a frozen live verifiable history and independent Java offsets
+- honor Fetch broker quotas with bounded and interruptible waits
+- expose allocation failure tail within hosted annotation limit
+- qualify in-flight quota handling and MSRV-compatible saturating metrics
+- schedule Produce v6+ broker quotas across connection slots
+- KL10-05, KL10-06, KL10-15: record gzip backend decision and evidence
+- make zlib-rs the default gzip backend
+- qualify all current broker cells and repair Rust 1.99 rustdoc
+- keep compiler failure tails within hosted annotation limits
+- retain bounded stable transaction offset observations
+- configure share state for RF1 and retain strict docs diagnostics
+- fix nullable KIP-848 heartbeat assignments with Apache fixtures
+- distinguish group join, poll, commit and close failures
+- identify malformed coordinator replies by API and version
+- identify the RPC phase in failed current broker profiles
+- add pinned broker cells with exact Rust and Java histories
+- expose pending-upload offsets and bound per-leader negotiation
+- retain allocation failures and require both census tests
+- negotiate DescribeLogDirs v5 and typed cordoned state
+- qualify native Windows MSRV and stable cells
+- require native Python UTF-8 for packed documentation
+- probe the driver-selected native Git Bash executable
+- qualify native Windows MSVC runtime and packed consumers
+- close native macOS and protobuf qualification; claim Windows
+- add bounded protobuf indexes and explicit codec adapter
+- select supported Bash for native package checks; claim protobuf framing
+- select required Python and expose native qualification diagnostics
+- qualify native macOS arm64 runtime and packed consumers
+- remove quorum voters with explicit identity and deadline outcomes
+- add typed broker-forwarded quorum voter addition
+- bound schema cache storage and coalesce caller-owned lookups
+- verify actual packed docs and approved feature matrix
+- retain JSON codec baselines and claim packed-crate checks
+- close KL01-16 and claim JSON payload microbenchmarks
+- exercise producer options and consumer reset modes
+- close KL01-15 and claim verifiable option scenarios
+- prove rebalance and failed-commit event contracts
+- add bounded delivery and transactional restart recipes
+- compile actual Markdown snippets against packed crate in CI
+- add broker-forwarded metadata quorum inspection
+- expose typed controller-routed leader elections
+- add verified packed-crate process and commit tutorial
+- pin snap 1.1.2
+- prove transaction error latches on the public API
+- pin tokio-rustls 0.26.5
+- migrate four RNG calls to getrandom 0.4.3
+- reject negative fetch bounds before connecting
+- reject invalid raw acks before connecting
+- propose eager admission with owned record completion
+- build verifiable CLI examples before CI tests
+- add KL10 gateway adoption program
+- accepted - reuse compression scratch, drop Snappy framing copy
+- accepted - on-demand connection slots (-69% nb-connect first-ack, 25->18 fds)
+- amortize ack-latency sampling to one clock read per batch
+- rejected-no-gain (tracker cache under bar on mixed-topics)
+- skip ack metadata when nobody consumes it
+- coalesce retry backoff and metadata refresh per batch
+- null-broker producer cells runtime harness
+- rewrap header-heavy bound cases for current rustfmt
+- wire-codec and allocation microbenchmarks
+- share one OIDC token manager across connection opens
+- pinned franz-go benchmark peer
+- reproducible profile-capture script for named cells
+- seeded synthetic Fetch responses from the null broker
+- validating null-broker Produce server
+- pack produce batches by exact encoded size including headers
+- adapt Apache verifiable producer and consumer event contracts
+- normalize expect-attribute wrapping in credential_redact
+- extend redaction checks to the new lifecycle paths
+- add KL09 performance leadership program
+- qualify TLS verification and credential rotation
+- negotiate Fetch versions per partition leader
+- prove KIP-848 epoch and assignment reconciliation
+- prove cooperative revocation and offset ownership
+- prove transactional fencing and abort recovery states
+- repair clippy/fmt/features drift blocking green main
+- disambiguate Error::Closed display text
+- land base64 0.23.1 dependency update
+- qualify nontransactional producer epoch recovery
+- land rustls 0.23.45 security fix (RUSTSEC-2026-0285)
+- implement companion Schema Registry lookups
+- freeze public error and configuration contract (+KL07-12..15)
+- add DescribeQuorum request/response codecs
+- make migration defaults and unsupported behavior explicit
+- repair consumer.rs private intra-doc link
+- separate docs tutorial/recipe/reference/architecture navigation
+- implement share Fetch/Acknowledge v2 wire deltas
+- add ElectLeaders request/response codecs
+- require complete release profile CI evidence
+- do not let a v12 skip suppress AddPartitions
+- negotiate Produce versions per partition leader
+- record fetch buffer budget evidence
+- bound prefetched consumer bytes across brokers
+- fail closed when conformance fixtures or peers are missing
+- do not auto-commit the batch about to be returned
+- retry a lost produce ack without duplicating the append
+- add independent ListOffsets v10 timeout wire fixtures
+- add independent ListOffsets wire fixtures
+- honor broker SASL session lifetimes
+- share one delivery deadline across producer retries
+- add independent Metadata wire fixtures
+- commit the delivered position, not the fetch cursor
+- drop an unused lint expectation
+- bound producer shutdown and clone races
+- add independent Fetch wire fixtures
+- refresh expiring OIDC credentials without stampedes
+- honor auto.offset.reset after out-of-range fetches
+- release producer reservations on pre-send failure
+- parse bounded OIDC token responses
+- add independent Produce wire fixtures
+- drop records below the requested fetch offset
+- end aborted-transaction filtering at the ABORT marker
+- decode the committed Apache Produce smoke fixture
+- make fuzz campaigns reproducible and resumable
+- detect protocol coverage drift
+- build pinned Apache Java wire-fixture generator
+- count header bytes in the producer buffer budget
+- add a fail-closed record-history checker
+- add an isolated three-broker fault fixture
+- specify credential refresh and reauthentication ownership
+- keep successful fetch records across partial retries
+- bound decoded record-batch expansion
+- share one deadline across a network round trip
+- fail closed on incomplete conformance reports
+- schedule share heartbeats from the broker interval
+- retire the obsolete publisher and serialize releases
+- avoid a reentrant heartbeat lock and keep test heartbeats observable
+- schedule KIP-848 heartbeats from the broker interval
+- define major-feature completion matrix
+- promote bounded consumer fetch fixture
+- fail closed when release eligibility lacks a ci run
+- add versioned conformance case registry
+- document OIDC retry count without a private rustdoc link
+- add audited small-session Kafka leadership plan
+- stamp tip SHA for KL-06 OIDC bounded transient retry.
+- stamp tip SHA for KL-06 OIDC outage fail-closed honesty.
+- *(kl-06)* OIDC IdP outage fail-closed honesty (503/timeout)
+- stamp tip SHA for KL-08 adopter exercise template.
+- *(kl-08)* add UNFILLED adopter 24h/7d exercise template
+- stamp tip SHA for KL-06 metrics/span redaction honesty.
+- *(kl-06)* metrics snapshot and tracing skip(self) redaction honesty
+- stamp tip SHA for KL-06 auth Error body hygiene.
+- rustfmt buffer_ownership and avoid u64-to-usize casts.
+- merge main into tip: KL-08 skip-gate + support matrix
+- stamp tip SHA for KL-08 support matrix honesty.
+- document CI-backed support matrix
+- stamp tip SHA for KL-08 skip-gate honesty.
+- skip republish of existing crates.io versions; grant actions: read.
+- keep linger buffer occupied for max_block Timeout case
+- stamp tip SHA for KL-02 buffer ownership mock soak.
+- mock buffer ownership under saturating try_send
+- stamp tip SHA for KL-06 credential Debug redaction.
+- redact credentials in Sasl/Oidc/Tls Debug
+- stamp tip SHA for KL-02 consumer close-commit honesty.
+- leave/close/unsubscribe must not auto-commit positions
+- rustfmt producer close flag and produce_cancel tests.
+- stamp tip SHA for KL-08 partial-release rehearsal.
+- rehearse partial-release recovery without publishing
+- stamp tip SHA for KL-01 protocol oracles.
+- Produce/Fetch/Metadata/ListOffsets semantic oracles vs 3.9.1 and 4.1.0
+- stamp tip SHA for KL-01 fuzz campaign metadata.
+- distinguish fuzz campaign metadata from 15s CI smoke
+- stamp tip SHA for KL-01/KL-04 latency CI policy.
+- record shared-runner vs controlled latency budgets; keep Suite HOLD
+- stamp tip SHA for KL-02 produce cancel contract.
+- produce cancel outcomes + durable close
+- stamp tip SHA for KL-08 release serialize.
+- serialize crates.io publish behind exact-SHA CI
+- stamp tip SHA for KL-01 broker identity.
+- stamp actual broker identity + portable timeout
+- stamp tip SHA for schema companion scaffold.
+- Harden schema companion scaffold unit-test gate
+- Add partitionline-schema wire scaffold + finish registry proof
+- stamp tip SHA for registry adopter consumer gate.
+- Require registry adopter consumer once Installable is met.
+- stamp tip SHA for maintain timer recheck.
+- post-Installable maintain timer recheck.
+- stamp tip SHA for handoff tip-ahead-of-parks honesty.
+- tip ahead of parks is PARTIAL, not hard FAIL.
+- stamp tip SHA for main CI green evidence.
+- main CI green after #86 / unblock honesty.
+- stamp tip SHA after main merge + #86 honesty.
+- close #86 path; unblock/plan honesty.
+- tighten Kafka plan evidence and delivery guarantees
+- establish kafka leadership and production hardening roadmap
+- stamp tip SHA for crates.io description drift honesty.
+- Warn when crates.io description lags Cargo.toml identity.
+- stamp tip SHA for owner-status token honesty.
+- Post-Installable owner-status: missing token is OK, not BLOCKED.
+- stamp tip SHA for tip↔main unify.
+- tip↔main unify after CI green land.
+- Merge main CI green onto civilization tip.
+- stamp tip SHA for post-Installable token MISSING honesty.
+- stamp tip SHA for post-Installable token MISSING honesty.
+- Post-Installable honesty: token MISSING means future cuts, not Installable block.
+- Post-Installable honesty: token MISSING means future cuts, not Installable block.
+- stamp tip SHA for main CI fmt/integrity fix.
+- Fix main CI: rustfmt cgheartbeat import; integrity skips nested latency.
+- stamp tip SHA for main CI fmt/integrity fix.
+- Fix main CI: rustfmt cgheartbeat import; integrity skips nested latency.
+- stamp tip SHA for main roadmap absorb.
+- Honesty-label main roadmap/TODO: Installable met, Suite HOLD still unsigned.
+- add production readiness roadmap and task tracker
+- stamp tip SHA for post-Installable plan honesty.
+- Restore crates.io description pure-Rust / no-C / no-librdkafka identity.
+- stamp tip SHA for post-Installable plan honesty.
+- Post-Installable tip honesty: absorb main parks and stop token-blocked lies.
+- Sync tip STATUS and bars honesty onto main.
+- handoff DRY_RUN OK when parks already on main.
+- Installable 0.1.0 on crates.io; post-cut parks on main.
+- Merge dev/lz4-flex-bump-b686: post-cut parked civilization land
+- Merge dev/scram-crypto-bumps-b686: post-cut parked civilization land
+- Merge dev/verifiable-auth-integrity-fuzz-b686: post-cut parked civilization land
+- Stamp STATUS tip SHA for post-Installable bars honesty.
+- Post-Installable bars: four-file pin + token honesty.
+- flip adopter docs to crates.io 0.1 after publish.
+- Stamp STATUS tip SHA for cut DRY_RUN / ALREADY_INSTALLABLE honesty.
+- Fail-close cut DRY_RUN and ALREADY_INSTALLABLE four-file honesty.
+- Stamp STATUS tip SHA for post-Installable PARTIAL exit 2.
+- Fail-close post-Installable PARTIAL instead of soft-green exit 0.
+- Stamp STATUS tip SHA for day1 four-file honesty.
+- Align day1 commit/copy honesty to four-file crates.io surface.
+- Require crates.io-shaped guide+migrate in handoff day1 gate.
+- Flip guide and migrate to crates.io on day1, not only README.
+- Stamp STATUS tip SHA for adopter-pin docs honesty.
+- Keep adopter docs on the interim git pin until Installable.
+- Fail-close handoff DRY_RUN when Installable but docs stay git-shaped.
+- Stop greenwashing tip PARTIAL as ok; split pre/post-Installable copy.
+- Fail-close handoff DRY_RUN parks/day1 PARTIAL with exit 2.
+- Stamp STATUS with docs parks-off-main alignment on tip.
+- Document expected parks-off-main in CIVILIZATION/RELEASE; gate in bars.
+- Stamp STATUS tip SHA for READY_EXCEPT_TOKEN parks note.
+- Note expected parks-off-main on READY_EXCEPT_TOKEN; stamp tip Verifiable.
+- Frame parks-off-main as expected before Installable.
+- Share parks-on-main probe; fast owner-status without token.
+- Rehearse handoff DRY_RUN in tip Verifiable proxies.
+- Capture handoff DRY_RUN rc in cut-path (no set -e abort).
+- Probe parks-on-main in handoff DRY_RUN; surface re-entry.
+- Fail-close handoff OK while post-cut parks remain off main.
+- Refuse first-publish re-dispatch when already Installable.
+- Chain day1 into post-Installable handoff for Actions-alternate honesty.
+- Fail-close bare cut when Actions secret sync fails after Installable.
+- Fail-close finish when Actions secret sync fails after Installable.
+- Capture day1 PARTIAL in tip proxies; fail-close stale parks.
+- Fail-close not-yet-Installable DRY_RUN and gate token asks on preflight.
+- Prepare registry token before READY_EXCEPT_TOKEN; surface PARTIAL re-entry.
+- Fail-close cut-path handoff: single chain, DRY_RUN rehearses, PARTIAL exits.
+- Refuse integrity ok and handoff OK after soft/partial failures.
+- Stamp quiet soft-latency STATUS live recheck at tip 436cb4c.
+- Merge remote-tracking branch 'origin/dev/lz4-flex-bump-b686' into dev/actions-checkout-bump-b686
+- Merge remote-tracking branch 'origin/dev/scram-crypto-bumps-b686' into dev/lz4-flex-bump-b686
+- Merge remote-tracking branch 'origin/dev/verifiable-auth-integrity-fuzz-b686' into dev/scram-crypto-bumps-b686
+- Merge remote-tracking branch 'origin/dev/civilization-plan-b686' into dev/verifiable-auth-integrity-fuzz-b686
+- Recover tip Verifiable quietly after soft latency misses.
+- Refuse tip Verifiable ok after soft latency misses.
+- Align owner checklists with cut-release PUBLISH_LOCAL auto-default.
+- Default cut-release to local publish when token is in-env.
+- Rehearse finish DRY_RUN through post-Installable handoff.
+- Chain finish live cut through post-Installable handoff.
+- Route finish already-Installable re-entry through handoff.
+- Point Actions-alternate and day1 paths at post-Installable handoff.
+- Add post-Installable handoff for TP and parks re-entry.
+- Preserve day1 README/ADOPTION across parks land.
+- Note git-tag adopter honesty wiring in STATUS.
+- Prove the documented git-tag install pin still compiles.
+- Gate open Dependabot bumps to post-cut parks coverage.
+- Wire parks-refresh cut guards into Installable preflight.
+- Merge remote-tracking branch 'origin/dev/lz4-flex-bump-b686' into dev/actions-checkout-bump-b686
+- Merge remote-tracking branch 'origin/dev/scram-crypto-bumps-b686' into dev/lz4-flex-bump-b686
+- Merge remote-tracking branch 'origin/dev/verifiable-auth-integrity-fuzz-b686' into dev/scram-crypto-bumps-b686
+- Merge remote-tracking branch 'origin/dev/civilization-plan-b686' into dev/verifiable-auth-integrity-fuzz-b686
+- Stamp preflight honesty self-tests recheck at f9f3e00
+- Run honesty self-tests from Installable preflight
+- Merge remote-tracking branch 'origin/dev/lz4-flex-bump-b686' into dev/actions-checkout-bump-b686
+- Merge remote-tracking branch 'origin/dev/scram-crypto-bumps-b686' into dev/lz4-flex-bump-b686
+- Merge remote-tracking branch 'origin/dev/verifiable-auth-integrity-fuzz-b686' into dev/scram-crypto-bumps-b686
+- Merge remote-tracking branch 'origin/dev/civilization-plan-b686' into dev/verifiable-auth-integrity-fuzz-b686
+- Stamp finish-path honesty self-tests recheck at 54b5bc6
+- Run honesty self-tests from owner-finish-installable
+- Merge remote-tracking branch 'origin/dev/lz4-flex-bump-b686' into dev/actions-checkout-bump-b686
+- Merge remote-tracking branch 'origin/dev/scram-crypto-bumps-b686' into dev/lz4-flex-bump-b686
+- Merge remote-tracking branch 'origin/dev/verifiable-auth-integrity-fuzz-b686' into dev/scram-crypto-bumps-b686
+- Merge remote-tracking branch 'origin/dev/civilization-plan-b686' into dev/verifiable-auth-integrity-fuzz-b686
+- Stamp tip Verifiable PARTIAL --self-test recheck at 25d4456
+- Make tip Verifiable PARTIAL honesty executable
+- Merge remote-tracking branch 'origin/dev/lz4-flex-bump-b686' into dev/actions-checkout-bump-b686
+- Merge remote-tracking branch 'origin/dev/scram-crypto-bumps-b686' into dev/lz4-flex-bump-b686
+- Merge remote-tracking branch 'origin/dev/verifiable-auth-integrity-fuzz-b686' into dev/scram-crypto-bumps-b686
+- Merge remote-tracking branch 'origin/dev/civilization-plan-b686' into dev/verifiable-auth-integrity-fuzz-b686
+- Stamp tip Verifiable PARTIAL fail-closed recheck at e1fecbe
+- Fail tip Verifiable PARTIAL closed (exit 2)
+- Merge remote-tracking branch 'origin/dev/lz4-flex-bump-b686' into dev/actions-checkout-bump-b686
+- Merge remote-tracking branch 'origin/dev/scram-crypto-bumps-b686' into dev/lz4-flex-bump-b686
+- Merge remote-tracking branch 'origin/dev/verifiable-auth-integrity-fuzz-b686' into dev/scram-crypto-bumps-b686
+- Merge remote-tracking branch 'origin/dev/civilization-plan-b686' into dev/verifiable-auth-integrity-fuzz-b686
+- Stamp tip Verifiable soft-skip honesty recheck at f581359
+- Harden tip Verifiable soft-skip honesty
+- Merge remote-tracking branch 'origin/dev/lz4-flex-bump-b686' into dev/actions-checkout-bump-b686
+- Merge remote-tracking branch 'origin/dev/scram-crypto-bumps-b686' into dev/lz4-flex-bump-b686
+- Merge remote-tracking branch 'origin/dev/verifiable-auth-integrity-fuzz-b686' into dev/scram-crypto-bumps-b686
+- Merge remote-tracking branch 'origin/dev/civilization-plan-b686' into dev/verifiable-auth-integrity-fuzz-b686
+- Harden Verifiable bar for tip live-broker chain
+- Merge remote-tracking branch 'origin/dev/lz4-flex-bump-b686' into dev/actions-checkout-bump-b686
+- Merge remote-tracking branch 'origin/dev/scram-crypto-bumps-b686' into dev/lz4-flex-bump-b686
+- Merge remote-tracking branch 'origin/dev/verifiable-auth-integrity-fuzz-b686' into dev/scram-crypto-bumps-b686
+- Merge remote-tracking branch 'origin/dev/civilization-plan-b686' into dev/verifiable-auth-integrity-fuzz-b686
+- Add tip live-broker Verifiable chain for branch-lite/cut-path
+- Merge remote-tracking branch 'origin/dev/lz4-flex-bump-b686' into dev/actions-checkout-bump-b686
+- Merge remote-tracking branch 'origin/dev/scram-crypto-bumps-b686' into dev/lz4-flex-bump-b686
+- Merge remote-tracking branch 'origin/dev/verifiable-auth-integrity-fuzz-b686' into dev/scram-crypto-bumps-b686
+- Merge remote-tracking branch 'origin/dev/civilization-plan-b686' into dev/verifiable-auth-integrity-fuzz-b686
+- Print owner-request-registry-token when finish lacks token
+- Merge remote-tracking branch 'origin/dev/lz4-flex-bump-b686' into dev/actions-checkout-bump-b686
+- Merge remote-tracking branch 'origin/dev/scram-crypto-bumps-b686' into dev/lz4-flex-bump-b686
+- Merge remote-tracking branch 'origin/dev/verifiable-auth-integrity-fuzz-b686' into dev/scram-crypto-bumps-b686
+- Merge remote-tracking branch 'origin/dev/civilization-plan-b686' into dev/verifiable-auth-integrity-fuzz-b686
+- Surface owner-request-registry-token from Installable preflight
+- Merge remote-tracking branch 'origin/dev/lz4-flex-bump-b686' into dev/actions-checkout-bump-b686
+- Merge remote-tracking branch 'origin/dev/scram-crypto-bumps-b686' into dev/lz4-flex-bump-b686
+- Merge remote-tracking branch 'origin/dev/verifiable-auth-integrity-fuzz-b686' into dev/scram-crypto-bumps-b686
+- Merge remote-tracking branch 'origin/dev/civilization-plan-b686' into dev/verifiable-auth-integrity-fuzz-b686
+- Add one-screen owner registry-token request helper
+- Merge remote-tracking branch 'origin/dev/lz4-flex-bump-b686' into dev/actions-checkout-bump-b686
+- Merge remote-tracking branch 'origin/dev/scram-crypto-bumps-b686' into dev/lz4-flex-bump-b686
+- Merge remote-tracking branch 'origin/dev/verifiable-auth-integrity-fuzz-b686' into dev/scram-crypto-bumps-b686
+- Merge remote-tracking branch 'origin/dev/civilization-plan-b686' into dev/verifiable-auth-integrity-fuzz-b686
+- Record unsigned native Verifiable recheck on tip 67072a5
+- Merge remote-tracking branch 'origin/dev/lz4-flex-bump-b686' into dev/actions-checkout-bump-b686
+- Merge remote-tracking branch 'origin/dev/scram-crypto-bumps-b686' into dev/lz4-flex-bump-b686
+- Merge remote-tracking branch 'origin/dev/verifiable-auth-integrity-fuzz-b686' into dev/scram-crypto-bumps-b686
+- Merge remote-tracking branch 'origin/dev/civilization-plan-b686' into dev/verifiable-auth-integrity-fuzz-b686
+- Gate whitespace TOKEN normalize in registry self-test
+- Merge remote-tracking branch 'origin/dev/lz4-flex-bump-b686' into dev/actions-checkout-bump-b686
+- Merge remote-tracking branch 'origin/dev/scram-crypto-bumps-b686' into dev/lz4-flex-bump-b686
+- Merge remote-tracking branch 'origin/dev/verifiable-auth-integrity-fuzz-b686' into dev/scram-crypto-bumps-b686
+- Merge remote-tracking branch 'origin/dev/civilization-plan-b686' into dev/verifiable-auth-integrity-fuzz-b686
+- Treat whitespace-only CARGO_REGISTRY_TOKEN as unset
+- Merge remote-tracking branch 'origin/dev/lz4-flex-bump-b686' into dev/actions-checkout-bump-b686
+- Merge remote-tracking branch 'origin/dev/scram-crypto-bumps-b686' into dev/lz4-flex-bump-b686
+- Merge remote-tracking branch 'origin/dev/verifiable-auth-integrity-fuzz-b686' into dev/scram-crypto-bumps-b686
+- Merge remote-tracking branch 'origin/dev/civilization-plan-b686' into dev/verifiable-auth-integrity-fuzz-b686
+- Fall back to native Kafka in Lab A prepare_broker
+- Merge remote-tracking branch 'origin/dev/lz4-flex-bump-b686' into dev/actions-checkout-bump-b686
+- Merge remote-tracking branch 'origin/dev/scram-crypto-bumps-b686' into dev/lz4-flex-bump-b686
+- Merge remote-tracking branch 'origin/dev/verifiable-auth-integrity-fuzz-b686' into dev/scram-crypto-bumps-b686
+- Merge remote-tracking branch 'origin/dev/civilization-plan-b686' into dev/verifiable-auth-integrity-fuzz-b686
+- Document SKIP_DOCKER ensure-broker in CHANGELOG
+- Merge remote-tracking branch 'origin/dev/lz4-flex-bump-b686' into dev/actions-checkout-bump-b686
+- Merge remote-tracking branch 'origin/dev/scram-crypto-bumps-b686' into dev/lz4-flex-bump-b686
+- Merge remote-tracking branch 'origin/dev/verifiable-auth-integrity-fuzz-b686' into dev/scram-crypto-bumps-b686
+- Merge remote-tracking branch 'origin/dev/civilization-plan-b686' into dev/verifiable-auth-integrity-fuzz-b686
+- Ensure broker across Verifiable gate chains
+- Merge remote-tracking branch 'origin/dev/lz4-flex-bump-b686' into dev/actions-checkout-bump-b686
+- Merge remote-tracking branch 'origin/dev/scram-crypto-bumps-b686' into dev/lz4-flex-bump-b686
+- Merge remote-tracking branch 'origin/dev/verifiable-auth-integrity-fuzz-b686' into dev/scram-crypto-bumps-b686
+- Merge remote-tracking branch 'origin/dev/civilization-plan-b686' into dev/verifiable-auth-integrity-fuzz-b686
+- Auto-start native Kafka when Docker overlay fails
+- Merge remote-tracking branch 'origin/dev/lz4-flex-bump-b686' into dev/actions-checkout-bump-b686
+- Merge remote-tracking branch 'origin/dev/scram-crypto-bumps-b686' into dev/lz4-flex-bump-b686
+- Merge remote-tracking branch 'origin/dev/verifiable-auth-integrity-fuzz-b686' into dev/scram-crypto-bumps-b686
+- Merge remote-tracking branch 'origin/dev/civilization-plan-b686' into dev/verifiable-auth-integrity-fuzz-b686
+- Detect misnamed registry token env and load TOKEN_FILE
+- Merge remote-tracking branch 'origin/dev/lz4-flex-bump-b686' into dev/actions-checkout-bump-b686
+- Merge remote-tracking branch 'origin/dev/scram-crypto-bumps-b686' into dev/lz4-flex-bump-b686
+- Merge remote-tracking branch 'origin/dev/verifiable-auth-integrity-fuzz-b686' into dev/scram-crypto-bumps-b686
+- Merge remote-tracking branch 'origin/dev/civilization-plan-b686' into dev/verifiable-auth-integrity-fuzz-b686
+- Stamp CIVILIZATION live tip after Secrets deep-link.
+- Deep-link Cursor env Secrets URL to the Secrets tab.
+- Merge remote-tracking branch 'origin/dev/lz4-flex-bump-b686' into dev/actions-checkout-bump-b686
+- Merge remote-tracking branch 'origin/dev/scram-crypto-bumps-b686' into dev/lz4-flex-bump-b686
+- Merge remote-tracking branch 'origin/dev/verifiable-auth-integrity-fuzz-b686' into dev/scram-crypto-bumps-b686
+- Merge remote-tracking branch 'origin/dev/civilization-plan-b686' into dev/verifiable-auth-integrity-fuzz-b686
+- Stamp CIVILIZATION live tip after Dependabot label hygiene.
+- Probe missing Dependabot dependencies label in Actions hygiene.
+- Merge remote-tracking branch 'origin/dev/civilization-plan-b686' into dev/verifiable-auth-integrity-fuzz-b686
+- Stamp CIVILIZATION live tip to absorb tip b4deece.
+- Merge remote-tracking branch 'origin/dev/lz4-flex-bump-b686' into dev/actions-checkout-bump-b686
+- Merge remote-tracking branch 'origin/dev/scram-crypto-bumps-b686' into dev/lz4-flex-bump-b686
+- Merge remote-tracking branch 'origin/dev/verifiable-auth-integrity-fuzz-b686' into dev/scram-crypto-bumps-b686
+- Merge remote-tracking branch 'origin/dev/civilization-plan-b686' into dev/verifiable-auth-integrity-fuzz-b686
+- Stamp CIVILIZATION live tip after absorbing main publish-new.
+- Require tip first-publish.yml to match main for tip-delta.
+- Merge remote-tracking branch 'origin/dev/lz4-flex-bump-b686' into dev/actions-checkout-bump-b686
+- Merge remote-tracking branch 'origin/dev/scram-crypto-bumps-b686' into dev/lz4-flex-bump-b686
+- Merge remote-tracking branch 'origin/dev/verifiable-auth-integrity-fuzz-b686' into dev/scram-crypto-bumps-b686
+- Merge remote-tracking branch 'origin/dev/civilization-plan-b686' into dev/verifiable-auth-integrity-fuzz-b686
+- Stamp CIVILIZATION live tip after Cursor Secrets URL wiring.
+- Surface Cursor env Secrets deep link for Installable token injection.
+- Merge remote-tracking branch 'origin/dev/lz4-flex-bump-b686' into dev/actions-checkout-bump-b686
+- Merge remote-tracking branch 'origin/dev/scram-crypto-bumps-b686' into dev/lz4-flex-bump-b686
+- Merge remote-tracking branch 'origin/dev/verifiable-auth-integrity-fuzz-b686' into dev/scram-crypto-bumps-b686
+- Merge remote-tracking branch 'origin/dev/civilization-plan-b686' into dev/verifiable-auth-integrity-fuzz-b686
+- Stamp CIVILIZATION live tip after Trusted Publishing DRY_RUN gate.
+- Gate Trusted Publishing DRY_RUN enable on tip Verifiable and cut-path.
+- Merge remote-tracking branch 'origin/dev/lz4-flex-bump-b686' into dev/actions-checkout-bump-b686
+- Merge remote-tracking branch 'origin/dev/scram-crypto-bumps-b686' into dev/lz4-flex-bump-b686
+- Merge remote-tracking branch 'origin/dev/verifiable-auth-integrity-fuzz-b686' into dev/scram-crypto-bumps-b686
+- Merge remote-tracking branch 'origin/dev/civilization-plan-b686' into dev/verifiable-auth-integrity-fuzz-b686
+- Stamp CIVILIZATION live tip after day1/hygiene cut-path gates.
+- Document cut-path day1 DRY_RUN and Actions hygiene in RELEASE.
+- Gate day1 DRY_RUN and Actions hygiene on cut-path.
+- Merge remote-tracking branch 'origin/dev/civilization-plan-b686' into dev/verifiable-auth-integrity-fuzz-b686
+- Stamp CIVILIZATION live tip after first-publish visibility gate.
+- Merge remote-tracking branch 'origin/dev/lz4-flex-bump-b686' into dev/actions-checkout-bump-b686
+- Merge remote-tracking branch 'origin/dev/scram-crypto-bumps-b686' into dev/lz4-flex-bump-b686
+- Merge remote-tracking branch 'origin/dev/verifiable-auth-integrity-fuzz-b686' into dev/scram-crypto-bumps-b686
+- Merge remote-tracking branch 'origin/dev/civilization-plan-b686' into dev/verifiable-auth-integrity-fuzz-b686
+- Gate first-publish Actions visibility on tip Verifiable and cut-path.
+- Merge remote-tracking branch 'origin/dev/lz4-flex-bump-b686' into dev/actions-checkout-bump-b686
+- Merge remote-tracking branch 'origin/dev/scram-crypto-bumps-b686' into dev/lz4-flex-bump-b686
+- Merge remote-tracking branch 'origin/dev/verifiable-auth-integrity-fuzz-b686' into dev/scram-crypto-bumps-b686
+- Merge remote-tracking branch 'origin/dev/civilization-plan-b686' into dev/verifiable-auth-integrity-fuzz-b686
+- Stamp CIVILIZATION live tip after Verifiable recheck fix.
+- Fix Verifiable recheck tip SHA and CIVILIZATION table row.
+- Record unsigned native Verifiable recheck on tip.
+- Merge remote-tracking branch 'origin/dev/civilization-plan-b686' into dev/verifiable-auth-integrity-fuzz-b686
+- Stamp CIVILIZATION live tip after token-path/merge-ready gates.
+- Merge remote-tracking branch 'origin/dev/lz4-flex-bump-b686' into dev/actions-checkout-bump-b686
+- Merge remote-tracking branch 'origin/dev/scram-crypto-bumps-b686' into dev/lz4-flex-bump-b686
+- Merge remote-tracking branch 'origin/dev/verifiable-auth-integrity-fuzz-b686' into dev/scram-crypto-bumps-b686
+- Merge remote-tracking branch 'origin/dev/civilization-plan-b686' into dev/verifiable-auth-integrity-fuzz-b686
+- Document Cursor env secret path; gate merge-ready on tip Verifiable.
+- Merge remote-tracking branch 'origin/dev/civilization-plan-b686' into dev/verifiable-auth-integrity-fuzz-b686
+- Stamp CIVILIZATION live tip after metadata/preflight tip gates.
+- Merge remote-tracking branch 'origin/dev/lz4-flex-bump-b686' into dev/actions-checkout-bump-b686
+- Merge remote-tracking branch 'origin/dev/scram-crypto-bumps-b686' into dev/lz4-flex-bump-b686
+- Merge remote-tracking branch 'origin/dev/verifiable-auth-integrity-fuzz-b686' into dev/scram-crypto-bumps-b686
+- Merge remote-tracking branch 'origin/dev/civilization-plan-b686' into dev/verifiable-auth-integrity-fuzz-b686
+- Gate crate metadata and Installable preflight on tip Verifiable.
+- Merge remote-tracking branch 'origin/dev/civilization-plan-b686' into dev/verifiable-auth-integrity-fuzz-b686
+- Stamp CIVILIZATION live tip after dry-run/Trusted tip gates.
+- Merge remote-tracking branch 'origin/dev/lz4-flex-bump-b686' into dev/actions-checkout-bump-b686
+- Merge remote-tracking branch 'origin/dev/scram-crypto-bumps-b686' into dev/lz4-flex-bump-b686
+- Merge remote-tracking branch 'origin/dev/verifiable-auth-integrity-fuzz-b686' into dev/scram-crypto-bumps-b686
+- Merge remote-tracking branch 'origin/dev/civilization-plan-b686' into dev/verifiable-auth-integrity-fuzz-b686
+- Gate publish dry-run and Trusted Publishing shape on tip Verifiable.
+- Merge remote-tracking branch 'origin/dev/civilization-plan-b686' into dev/verifiable-auth-integrity-fuzz-b686
+- Stamp CIVILIZATION live tip after PRE_PUBLISH tip gates.
+- Merge remote-tracking branch 'origin/dev/lz4-flex-bump-b686' into dev/actions-checkout-bump-b686
+- Merge remote-tracking branch 'origin/dev/scram-crypto-bumps-b686' into dev/lz4-flex-bump-b686
+- Merge remote-tracking branch 'origin/dev/verifiable-auth-integrity-fuzz-b686' into dev/scram-crypto-bumps-b686
+- Merge remote-tracking branch 'origin/dev/civilization-plan-b686' into dev/verifiable-auth-integrity-fuzz-b686
+- Gate PRE_PUBLISH civilization bars on tip Verifiable and cut-path.
+- Merge remote-tracking branch 'origin/dev/civilization-plan-b686' into dev/verifiable-auth-integrity-fuzz-b686
+- Stamp CIVILIZATION live tip after hourly Installable recheck.
+- Merge remote-tracking branch 'origin/dev/lz4-flex-bump-b686' into dev/actions-checkout-bump-b686
+- Merge remote-tracking branch 'origin/dev/scram-crypto-bumps-b686' into dev/lz4-flex-bump-b686
+- Merge remote-tracking branch 'origin/dev/verifiable-auth-integrity-fuzz-b686' into dev/scram-crypto-bumps-b686
+- Merge remote-tracking branch 'origin/dev/civilization-plan-b686' into dev/verifiable-auth-integrity-fuzz-b686
+- Gate packed-crate consumer on tip Verifiable and cut-path.
+- Merge remote-tracking branch 'origin/dev/lz4-flex-bump-b686' into dev/actions-checkout-bump-b686
+- Merge remote-tracking branch 'origin/dev/scram-crypto-bumps-b686' into dev/lz4-flex-bump-b686
+- Merge remote-tracking branch 'origin/dev/verifiable-auth-integrity-fuzz-b686' into dev/scram-crypto-bumps-b686
+- Merge remote-tracking branch 'origin/dev/civilization-plan-b686' into dev/verifiable-auth-integrity-fuzz-b686
+- Gate Independent cargo-deny on tip Verifiable and cut-path.
+- Merge remote-tracking branch 'origin/dev/lz4-flex-bump-b686' into dev/actions-checkout-bump-b686
+- Merge remote-tracking branch 'origin/dev/scram-crypto-bumps-b686' into dev/lz4-flex-bump-b686
+- Merge remote-tracking branch 'origin/dev/verifiable-auth-integrity-fuzz-b686' into dev/scram-crypto-bumps-b686
+- Merge remote-tracking branch 'origin/dev/civilization-plan-b686' into dev/verifiable-auth-integrity-fuzz-b686
+- Exercise MSRV in tip Verifiable proxy and cut-path.
+- Merge remote-tracking branch 'origin/dev/lz4-flex-bump-b686' into dev/actions-checkout-bump-b686
+- Merge remote-tracking branch 'origin/dev/scram-crypto-bumps-b686' into dev/lz4-flex-bump-b686
+- Merge remote-tracking branch 'origin/dev/verifiable-auth-integrity-fuzz-b686' into dev/scram-crypto-bumps-b686
+- Merge remote-tracking branch 'origin/dev/civilization-plan-b686' into dev/verifiable-auth-integrity-fuzz-b686
+- Gate tip first-publish soft wording until Installable.
+- Merge remote-tracking branch 'origin/dev/lz4-flex-bump-b686' into dev/actions-checkout-bump-b686
+- Merge remote-tracking branch 'origin/dev/scram-crypto-bumps-b686' into dev/lz4-flex-bump-b686
+- Merge remote-tracking branch 'origin/dev/verifiable-auth-integrity-fuzz-b686' into dev/scram-crypto-bumps-b686
+- Merge remote-tracking branch 'origin/dev/civilization-plan-b686' into dev/verifiable-auth-integrity-fuzz-b686
+- Rehearse path adopter consumer in tip Verifiable and cut-path.
+- Merge remote-tracking branch 'origin/dev/lz4-flex-bump-b686' into dev/actions-checkout-bump-b686
+- Merge remote-tracking branch 'origin/dev/scram-crypto-bumps-b686' into dev/lz4-flex-bump-b686
+- Merge remote-tracking branch 'origin/dev/verifiable-auth-integrity-fuzz-b686' into dev/scram-crypto-bumps-b686
+- Merge remote-tracking branch 'origin/dev/civilization-plan-b686' into dev/verifiable-auth-integrity-fuzz-b686
+- Rehearse chain-safe parks refresh in tip Verifiable proxy.
+- Merge remote-tracking branch 'origin/dev/lz4-flex-bump-b686' into dev/actions-checkout-bump-b686
+- Merge remote-tracking branch 'origin/dev/scram-crypto-bumps-b686' into dev/lz4-flex-bump-b686
+- Merge remote-tracking branch 'origin/dev/verifiable-auth-integrity-fuzz-b686' into dev/scram-crypto-bumps-b686
+- Merge remote-tracking branch 'origin/dev/civilization-plan-b686' into dev/verifiable-auth-integrity-fuzz-b686
+- Rehearse chain-safe parks refresh in cut-path; record Verifiable recheck.
+- Merge remote-tracking branch 'origin/dev/lz4-flex-bump-b686' into dev/actions-checkout-bump-b686
+- Merge remote-tracking branch 'origin/dev/scram-crypto-bumps-b686' into dev/lz4-flex-bump-b686
+- Merge remote-tracking branch 'origin/dev/verifiable-auth-integrity-fuzz-b686' into dev/scram-crypto-bumps-b686
+- Merge remote-tracking branch 'origin/dev/civilization-plan-b686' into dev/verifiable-auth-integrity-fuzz-b686
+- Add chain-safe post-cut parks refresh helper.
+- Merge remote-tracking branch 'origin/dev/lz4-flex-bump-b686' into dev/actions-checkout-bump-b686
+- Merge remote-tracking branch 'origin/dev/scram-crypto-bumps-b686' into dev/lz4-flex-bump-b686
+- Merge remote-tracking branch 'origin/dev/verifiable-auth-integrity-fuzz-b686' into dev/scram-crypto-bumps-b686
+- Merge remote-tracking branch 'origin/dev/civilization-plan-b686' into dev/verifiable-auth-integrity-fuzz-b686
+- Gate post-cut parks as a tip⊆… land-order chain.
+- Merge remote-tracking branch 'origin/dev/civilization-plan-b686' into dev/actions-checkout-bump-b686
+- Merge remote-tracking branch 'origin/dev/civilization-plan-b686' into dev/lz4-flex-bump-b686
+- Merge remote-tracking branch 'origin/dev/civilization-plan-b686' into dev/scram-crypto-bumps-b686
+- Merge remote-tracking branch 'origin/dev/civilization-plan-b686' into dev/verifiable-auth-integrity-fuzz-b686
+- Stamp tip after stacked park rebuild and ancestor gate.
+- Rebuild checkout park stacked on lz4 for clean post-cut land.
+- Rebuild lz4 park stacked on SCRAM for clean post-cut land.
+- Merge civilization tip into SCRAM park (CHANGELOG).
+- Merge remote-tracking branch 'origin/dev/civilization-plan-b686' into dev/verifiable-auth-integrity-fuzz-b686
+- Note tip-is-ancestor parks gate in CHANGELOG.
+- Gate post-cut parks tip-is-ancestor before stack merge.
+- Merge remote-tracking branch 'origin/dev/civilization-plan-b686' into dev/scram-crypto-bumps-b686
+- Merge remote-tracking branch 'origin/dev/civilization-plan-b686' into dev/verifiable-auth-integrity-fuzz-b686
+- Stamp CIVILIZATION tip SHA after post-land test gate.
+- Run cargo test --lib after real post-cut parks land.
+- Stamp CIVILIZATION tip SHA after parks stack test gate.
+- Gate post-cut parks stack with cargo test --lib.
+- Merge remote-tracking branch 'origin/dev/civilization-plan-b686' into dev/scram-crypto-bumps-b686
+- Merge remote-tracking branch 'origin/dev/civilization-plan-b686' into dev/verifiable-auth-integrity-fuzz-b686
+- Stamp CIVILIZATION tip SHA after parks-refresh note.
+- Note post-cut parks refreshed onto civilization tip.
+- Merge remote-tracking branch 'origin/dev/verifiable-auth-integrity-fuzz-b686' into dev/scram-crypto-bumps-b686
+- Merge remote-tracking branch 'origin/dev/civilization-plan-b686' into dev/verifiable-auth-integrity-fuzz-b686
+- Stamp tip SHA after auth recheck and park publish-new gate.
+- Gate parked first-publish publish-new; record auth recheck.
+- Stamp CIVILIZATION/STATUS tip SHA after Verifiable recheck.
+- Record native Verifiable recheck; harden publish-new cut honesty.
+- Stamp CIVILIZATION live tip to da8a532.
+- Stamp CIVILIZATION live tip SHA after TP-chain finish.
+- Chain Trusted Publishing helper into Installable finish.
+- Merge tip into SCRAM park (Trusted Publishing owner helper).
+- Merge remote-tracking branch 'origin/dev/civilization-plan-b686' into dev/verifiable-auth-integrity-fuzz-b686
+- Add post-cut Trusted Publishing owner helper.
+- Merge tip into SCRAM park (cut-path publish dry-run).
+- Merge remote-tracking branch 'origin/dev/civilization-plan-b686' into dev/verifiable-auth-integrity-fuzz-b686
+- Prove cargo publish --dry-run in Installable cut-path rehearsal.
+- Merge tip into SCRAM park (checkout v7 land-order wiring).
+- Merge remote-tracking branch 'origin/dev/civilization-plan-b686' into dev/verifiable-auth-integrity-fuzz-b686
+- Wire actions/checkout v7 post-cut park into Installable land order.
+- Merge remote-tracking branch 'origin/dev/civilization-plan-b686' into dev/scram-crypto-bumps-b686
+- Merge remote-tracking branch 'origin/dev/civilization-plan-b686' into dev/verifiable-auth-integrity-fuzz-b686
+- Fix post-cut parks DRY_RUN cleanup under set -u.
+- Merge tip into SCRAM park (docs/scripts only from tip).
+- Merge remote-tracking branch 'origin/dev/civilization-plan-b686' into dev/verifiable-auth-integrity-fuzz-b686
+- Wire lz4_flex 0.14 post-cut park into Installable land order.
+- Merge remote-tracking branch 'origin/dev/civilization-plan-b686' into dev/scram-crypto-bumps-b686
+- Merge remote-tracking branch 'origin/dev/civilization-plan-b686' into dev/verifiable-auth-integrity-fuzz-b686
+- Align CIVILIZATION tip and #86 to publish-new cut path.
+- Merge remote-tracking branch 'origin/dev/civilization-plan-b686' into dev/scram-crypto-bumps-b686
+- Merge remote-tracking branch 'origin/dev/civilization-plan-b686' into dev/verifiable-auth-integrity-fuzz-b686
+- Probe crates.io publish-new auth in owner status and bars.
+- Merge remote-tracking branch 'origin/dev/civilization-plan-b686' into dev/scram-crypto-bumps-b686
+- Merge remote-tracking branch 'origin/dev/civilization-plan-b686' into dev/verifiable-auth-integrity-fuzz-b686
+- Wire crates.io token probe self-test into ci-branch-lite.
+- Merge remote-tracking branch 'origin/dev/civilization-plan-b686' into dev/scram-crypto-bumps-b686
+- Merge remote-tracking branch 'origin/dev/civilization-plan-b686' into dev/verifiable-auth-integrity-fuzz-b686
+- Document structured crates.io token probe in RELEASE.
+- Fix crates.io token probe false-accept on empty PUT body.
+- Merge tip 64d8c70 into scram-crypto-bumps-b686 after registry-token probe
+- Merge tip 64d8c70 into verifiable-auth-integrity-fuzz-b686 after registry-token probe
+- Add crates.io token probe before Installable cut.
+- Merge tip a0872ab into scram-crypto-bumps-b686 after publish-new token scope fix
+- Merge tip a0872ab into verifiable-auth-integrity-fuzz-b686 after publish-new token scope fix
+- Fix first-cut crates.io token scope: require publish-new.
+- Merge tip into SCRAM park after Verifiable recheck docs
+- Merge tip 8a23e30 into verifiable-auth-integrity-fuzz-b686 after Verifiable recheck docs
+- Record unsigned native Verifiable recheck; surface parks/TP in owner-status.
+- Merge tip into Verifiable park after Trusted Publishing readiness check
+- Merge tip into SCRAM park after Trusted Publishing readiness check
+- Add Trusted Publishing readiness check; steer Dependabot off tip.
+- Merge tip into Verifiable park for clean post-cut land
+- Document check-cut-path in ADOPTION owner unblock probes.
+- Merge tip into SCRAM park after finish DRY_RUN parks hard-fail
+- Make finish DRY_RUN hard-fail dirty post-cut parks stacks.
+- Merge tip b7f9fbd into SCRAM park after post-cut worktree DRY_RUN fix
+- Stop post-cut DRY_RUN from wiping tip WIP; wire stack gate.
+- Merge tip into SCRAM park after post-cut stack gate
+- Gate tip Verifiable proxy on post-cut parks stack cleanliness.
+- Merge tip ffe148f into SCRAM park (lander DRY_RUN stack fix)
+- Make post-cut parks DRY_RUN stack for real tip conflicts.
+- Merge civilization tip into SCRAM/flate2 park for clean post-cut land.
+- Add owner-land-post-cut-parks and chain it from owner-finish.
+- Bump SCRAM crypto stack to hmac/pbkdf2 0.13 and sha2 0.11.
+- Bump flate2 to 1.1.10 for gzip write infinite-loop fix.
+- Clarify READY_EXCEPT_TOKEN cut handoff chains parked Verifiable.
+- Chain parked Verifiable merge into owner-finish after Installable.
+- Add owner-merge-parked-verifiable for post-Installable Verifiable land.
+- Gate auth and Lab A integrity in Actions; fuzz ConsumerGroupHeartbeat.
+- Document post-cut handoff for parked Verifiable auth/integrity work.
+- Refuse soft-skip greenwash on unexpected kip848/share/auth failures.
+- Record auth/broker recheck and noisier latency samples honestly.
+- Document READY_EXCEPT_TOKEN cut path and live tip/main gap.
+- Document ALLOW_DOCS_THRASH for tip→main sync guard.
+
 Source changes after the published 0.1.0 release. The next release is still
 being qualified; see [status](docs/STATUS.md) and the [release guide](docs/RELEASE.md).
 Earlier working notes and dated measurements are in the
