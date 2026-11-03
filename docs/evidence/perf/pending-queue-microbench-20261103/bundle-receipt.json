@@ -1,0 +1,8 @@
+{
+  "scope": "Exact retention of inactive, uncompiled benchmark prototype; no benchmark run.",
+  "prototype_sha256": "94bbf25b0dd5f4a4bd7feb8990c02c22d08c3a98e7958f8089c91d839e15534e",
+  "prototype_bytes": 1002401,
+  "members": 21,
+  "manifest_sha256": "fe08f8444c5d76b7a7c1f3c2cc58bef922d6562fbdb5dd9196293e59cf650101",
+  "independent_review_sha256": "70895e7fba4d801aef1fa69bf641ec59c9c78ae5aaba82795b98579cd2b3cfae"
+}

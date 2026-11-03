@@ -1,0 +1,52 @@
+{
+  "base_commit": "b1cfbfd968c9d53a8416d1dfd93410a4fb5fd630",
+  "all_preimages_match_base_commit_and_current_worktree": true,
+  "patch": "/workspace/work/release-ci-attempt-20261103/candidate-v6.patch",
+  "patch_sha256": "132974792fb5898b87503a14c40ddde36ba061434fe65d74b638191e2e9f6135",
+  "snapshot": "/workspace/work/release-ci-attempt-20261103/v6-frozen",
+  "changes": [
+    {
+      "path": ".github/workflows/ci.yml",
+      "before_sha256": "fc67488aadadc5a962daac048b6eed97e3125dba6c76a430b7cb81eebc9e4957",
+      "after_sha256": "14219562802595e261e5e5f91e7802f59ce9b0ad76f3fbea66f3aaee56ecf5d5"
+    },
+    {
+      "path": "docs/RELEASE.md",
+      "before_sha256": "d41a75a152cb605299fdd72a26c7403a537e12e59f321db4621d4e38a88a3c54",
+      "after_sha256": "7ae8f69b9571c99eb758982487ebdffadb140251837274ab1a7470a120282feb"
+    },
+    {
+      "path": "scripts/check-main-ci.sh",
+      "before_sha256": "a89e7ad688293c448066f343ddcd8990945434fb64bbbd6522c09e1f526f87a8",
+      "after_sha256": "6a511e841593998f3b3cca49792f515378876a964b0d8c11a88258ea4499416e"
+    },
+    {
+      "path": "scripts/report-release-rehearsal.py",
+      "before_sha256": "8311bffce48bd08e4fd661cf3c792d3ae8daa3fcf66c5c4cadcf5531ef4939c9",
+      "after_sha256": "0e66e45e00a5c527ea4dd7afa9354775a569da18a53d2a77302a7e88e46daf5e"
+    },
+    {
+      "path": "tests/release/test_ci_gate.py",
+      "before_sha256": "9486dedc31694f232d3ca18e1bbbe852bc343c7f199aa89dd016cc32fae00328",
+      "after_sha256": "564757a273fdcd30efd6c2c2c27c5060b15471dee82f648e543a96aac736b587"
+    },
+    {
+      "path": "tests/release/test_live_ci_evidence.py",
+      "before_sha256": null,
+      "after_sha256": "41cf1e213c021d78d74f6b52ed3d3d7deaac64e5c7a14b868e4b343b2d2500bc"
+    },
+    {
+      "path": "tests/release/test_local_confirmation.py",
+      "before_sha256": "1cc74eb646b2aa6b751c38243428ffcce0d88492d4bfc21cb587457f44d8d0d1",
+      "after_sha256": "3877e38d0d50504b86e7534df638c357f71e5e361c262f12961e7d85b70f61fa"
+    }
+  ],
+  "v5_patch_sha256": "25938523d5667123a701ffe10aa3a843f2e77ecb30fde57b1d3f333f698fac8e",
+  "v6_from_v5_sha256": "8768d712260836c4812b467144b1776de5611ad522dbb7fbead83df3f70ca433",
+  "limits": [
+    "No actual GitHub API, publication, Cargo or native builds by author.",
+    "Installed gh 2.46.0 validation and simulated GitHub REST fixtures; actual API field shapes and 27 job names independently observed by parent for one run.",
+    "Run metadata and same-SHA run list are separate, non-atomic reads; reruns or new runs can occur between reads or be subject to API propagation delay.",
+    "Historical artifacts do not qualify; start a new main CI workflow when required current-run evidence is incomplete."
+  ]
+}

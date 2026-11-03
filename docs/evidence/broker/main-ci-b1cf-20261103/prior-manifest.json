@@ -1,0 +1,125 @@
+{
+  "schema": 1,
+  "run_id": 41582894338,
+  "job_id": 125741552184,
+  "checkout_sha": "b1cfbfd968c9d53a8416d1dfd93410a4fb5fd630",
+  "toolchain": "stable rustc 1.99.1 (58cf8f9c3 2026-10-13) x86_64-unknown-linux-gnu",
+  "workflow_conclusion": "success",
+  "source_sha256": {
+    ".github/workflows/broker.yml": "12f56c99c2fbae3387ec14ae5a26e93857471c6a4330a7e1aa12ca03fa5c8a42",
+    "partitionline-broker/Cargo.toml": "88c9f2efaec47615dba40c4d1feb5e481b38bd51796e76ca6fc87cf064495bf5",
+    "Cargo.lock": "bdc37c48feb0d7a17a1b08e70c5301ec30b9a90e64c93adaf28aef6b6f9f46bc",
+    "partitionline-broker/tests/raft_membership.rs": "3937891be004bf90453371a547cd288f24088de93348fe7e9f44ac0ddaebf1f0",
+    "partitionline-broker/tests/common/raft_runtime.rs": "1f2ae553431bbea3b78123bf4229053588de187c2e0edc9925a15ae829702e4e"
+  },
+  "outcomes": {
+    "focused": {
+      "binaries": 1,
+      "passed": 1,
+      "failed": 0,
+      "ignored": 0
+    },
+    "default_all_targets": {
+      "binaries": 36,
+      "passed": 727,
+      "failed": 0,
+      "ignored": 0
+    },
+    "all_features_all_targets": {
+      "binaries": 36,
+      "passed": 875,
+      "failed": 0,
+      "ignored": 0
+    },
+    "clippy_all_targets_all_features_warnings_denied": "success",
+    "rustdoc_all_features_warnings_denied": "success",
+    "doctest_default": {
+      "command": "success",
+      "passed": 0,
+      "failed": 0,
+      "ignored": 0
+    },
+    "doctest_all_features": {
+      "command": "success",
+      "passed": 0,
+      "failed": 0,
+      "ignored": 0
+    },
+    "run_jobs": [
+      {
+        "id": 125741551899,
+        "name": "pinned Apache API inventory and negative controls",
+        "status": "completed",
+        "conclusion": "success",
+        "run_id": 41582894338
+      },
+      {
+        "id": 125741552184,
+        "name": "broker (stable)",
+        "status": "completed",
+        "conclusion": "success",
+        "run_id": 41582894338
+      },
+      {
+        "id": 125741552230,
+        "name": "instrumented broker fuzz supervision (stable)",
+        "status": "completed",
+        "conclusion": "success",
+        "run_id": 41582894338
+      }
+    ]
+  },
+  "files": {
+    "job-125741552184.log": {
+      "sha256": "4f706908c188e331bdcede3cbd06169eb86b3a672f975500888e303c5b2154f0",
+      "bytes": 276176
+    },
+    "job-125741552184.log.gz": {
+      "sha256": "7aac8780c1faf080cd5997baff0f5f1f0b7beffa69c67a2120cc347bd4af537b",
+      "bytes": 63594
+    },
+    "github-metadata.json": {
+      "sha256": "c78cc133139f7610c1f2bdf308494699acfaceef49f16fcd9df5b2105f8bf47c",
+      "bytes": 2646
+    },
+    "run-metadata.json": {
+      "sha256": "15e8c422093ae7fdf41374b3c681f7fb76fc992b5861bf5fcae20b1df992c8d8",
+      "bytes": 298
+    },
+    "test-counts.json": {
+      "sha256": "6e353273647c70b2aa49b274cf8c63958e658fbc043262d69b49d70225ee1e77",
+      "bytes": 18905
+    },
+    "REPORT.md": {
+      "sha256": "472b9c66d6b557d221b04f38084860bbe3023cbd670b0178dd067afcb1e98b2d",
+      "bytes": 1968
+    }
+  },
+  "previous_failures_retained": [
+    {
+      "path": "/workspace/work/broker-raft-fdaf-investigation-20261103/job-125726869343.log.gz",
+      "sha256": "10a681a835802543b63a4c8178c9cc0d831aa53c4f8e53b8c13ffe6a15db2902",
+      "finding": "fdaf default fault histories: bare InvalidDigit"
+    },
+    {
+      "path": "/workspace/work/broker-raft-fdaf-investigation-20261103/job-125729388284.log.gz",
+      "sha256": "69aa06c4039151c80bc682ad593ee0b4540a1794fef506188f6d9a646aaef8c7",
+      "finding": "c034 all-feature fault histories InvalidDigit and observer NotLeader"
+    },
+    {
+      "path": "/workspace/work/broker-raft-fdaf-investigation-20261103/job-125734535528.log.gz",
+      "sha256": "7ed2f7485ce6762c686a93283bb35f5d4a3783d54dbd89262ddc9312a21057e6",
+      "finding": "337 default five-node removal NotLeader"
+    },
+    {
+      "path": "/workspace/work/broker-stale-wal-clippy-20261103/job-125736974518.log.gz",
+      "sha256": "d759312d9167e17d454d6488e7b76a77f3549d1d69bd6f6bfe1082753c9d4069",
+      "finding": "32ec focused/default/all-feature tests passed; clippy rejected two fs::read calls"
+    }
+  ],
+  "limits": [
+    "Other jobs reported success in metadata; their logs were not reviewed.",
+    "One successful run does not establish the causes of prior failures or production readiness.",
+    "No local Cargo, tests, benchmark, or publication."
+  ]
+}

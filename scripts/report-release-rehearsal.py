@@ -30,7 +30,7 @@ EXPECTED = {
     'confirmation-interrupted': 130, 'confirmation-resumed': 0,
     'release-notes-first': 0, 'release-notes-repeated': 0,
 }
-SOURCE_FILES = ['Cargo.toml', '.github/workflows/release.yml', '.github/workflows/release-plz.yml',
+SOURCE_FILES = ['Cargo.toml', '.github/workflows/ci.yml', '.github/workflows/release.yml', '.github/workflows/release-plz.yml',
                 'scripts/owner-publish.sh', 'scripts/lib/crates-io.sh',
                 'scripts/lib/cargo-registry-token.sh', 'scripts/check-main-ci.sh']
 SOURCE_FILES += ['scripts/report-release-rehearsal.py', 'scripts/rehearse-partial-release.sh']
@@ -52,6 +52,7 @@ if name == 'git':
     if args == ['rev-parse','--abbrev-ref','HEAD']: print('main')
     elif args[:1] == ['status']: pass
     elif args[:1] == ['rev-parse']: print(os.environ['PL_REHEARSAL_SOURCE'])
+    elif args == ['remote','get-url','origin']: print('https://github.com/example/partitionline.git')
     elif args == ['fetch','origin','main','--quiet']: pass
     elif args[:2] == ['tag','-l']: print('fixture release note body')
     else: deny()
@@ -296,7 +297,7 @@ def validate(result):
     forbidden=[]
     for command in result['commands']:
         name,args=command['command'],command['args']
-        if name=='git' and args[:2] not in [['rev-parse','HEAD'],['rev-parse','--abbrev-ref'],['rev-parse','-q'],['tag','-l']] and args[:1]!=['status'] and args != ['fetch','origin','main','--quiet']:
+        if name=='git' and args[:2] not in [['rev-parse','HEAD'],['rev-parse','--abbrev-ref'],['rev-parse','-q'],['tag','-l']] and args[:1]!=['status'] and args not in (['fetch','origin','main','--quiet'],['remote','get-url','origin']):
             forbidden.append(command)
         if name in ['cargo','rustup','wget','docker','ssh'] or (name=='gh' and args[:2] not in [['release','view'],['release','create'],['run','list']]):
             forbidden.append(command)

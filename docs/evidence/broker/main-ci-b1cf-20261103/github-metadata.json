@@ -1,0 +1,114 @@
+{
+  "repo": "mingley/partitionline",
+  "run_id": 41582894338,
+  "jobs": [
+    {
+      "id": 125741551899,
+      "name": "pinned Apache API inventory and negative controls",
+      "status": "completed",
+      "conclusion": "success",
+      "run_id": 41582894338
+    },
+    {
+      "id": 125741552184,
+      "name": "broker (stable)",
+      "status": "completed",
+      "conclusion": "success",
+      "run_id": 41582894338
+    },
+    {
+      "id": 125741552230,
+      "name": "instrumented broker fuzz supervision (stable)",
+      "status": "completed",
+      "conclusion": "success",
+      "run_id": 41582894338
+    }
+  ],
+  "steps": [
+    {
+      "name": "Set up job",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 1
+    },
+    {
+      "name": "Run actions/checkout@v7",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 2
+    },
+    {
+      "name": "Run dtolnay/rust-toolchain@master",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 3
+    },
+    {
+      "name": "Independent TLS peer prerequisite",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 4
+    },
+    {
+      "name": "Broker format",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 5
+    },
+    {
+      "name": "Check stale-leader proposal fencing",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 6
+    },
+    {
+      "name": "Locked default-feature behavioral tests",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 7
+    },
+    {
+      "name": "Locked all-feature behavioral tests",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 8
+    },
+    {
+      "name": "Strict all-feature broker Clippy",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 9
+    },
+    {
+      "name": "Strict all-feature broker Rustdoc",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 10
+    },
+    {
+      "name": "Strict default-feature broker doctests",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 11
+    },
+    {
+      "name": "Strict all-feature broker doctests",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 12
+    },
+    {
+      "name": "Post Run actions/checkout@v7",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 24
+    },
+    {
+      "name": "Complete job",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 25
+    }
+  ],
+  "note": "Connector run-jobs response is first page, latest attempt only."
+}

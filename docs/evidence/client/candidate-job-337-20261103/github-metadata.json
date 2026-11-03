@@ -1,0 +1,116 @@
+{
+  "repo": "mingley/partitionline",
+  "run_id": 41580681913,
+  "job": {
+    "id": 125736829577,
+    "name": "client v13 (stable, x86_64)",
+    "status": "completed",
+    "conclusion": "failure"
+  },
+  "artifact": {
+    "id": 13205548496,
+    "name": "candidate-reports-client-v13-trigger-33744862cd9e3263de502d57525619bd41704fec-checkout-33744862cd9e3263de502d57525619bd41704fec-41580681913",
+    "size_in_bytes": 8607279,
+    "digest": "sha256:0e019a7ab8654c6da0bbc2acd63923c742b0a3b66db48701de6a5dcf2656924d",
+    "expired": false,
+    "created_at": "2026-11-03T05:11:11Z",
+    "updated_at": "2026-11-03T05:11:11Z",
+    "workflow_run": {
+      "id": 41580681913,
+      "head_sha": "33744862cd9e3263de502d57525619bd41704fec"
+    }
+  },
+  "steps": [
+    {
+      "name": "Set up job",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 1
+    },
+    {
+      "name": "Run actions/checkout@v7",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 2
+    },
+    {
+      "name": "Verify checkout commit",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 3
+    },
+    {
+      "name": "Run dtolnay/rust-toolchain@stable",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 4
+    },
+    {
+      "name": "Install source inventory prerequisite",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 5
+    },
+    {
+      "name": "Check command ownership controls",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 6
+    },
+    {
+      "name": "Check client qualification guards",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 7
+    },
+    {
+      "name": "Check broker qualification guards",
+      "status": "completed",
+      "conclusion": "skipped",
+      "number": 8
+    },
+    {
+      "name": "Check local TLS peer prerequisite",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 9
+    },
+    {
+      "name": "Qualify isolated client candidate",
+      "status": "completed",
+      "conclusion": "failure",
+      "number": 10
+    },
+    {
+      "name": "Qualify isolated broker candidate",
+      "status": "completed",
+      "conclusion": "skipped",
+      "number": 11
+    },
+    {
+      "name": "Retain attempts and failures",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 12
+    },
+    {
+      "name": "Retain qualification reports",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 13
+    },
+    {
+      "name": "Post Run actions/checkout@v7",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 26
+    },
+    {
+      "name": "Complete job",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 27
+    }
+  ],
+  "archive_content": "unavailable: connector returned a File Service reference, and the supported Sediment downloader does not accept File Service IDs; no archive bytes or members were independently checked."
+}

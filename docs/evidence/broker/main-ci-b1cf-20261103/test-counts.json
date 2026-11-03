@@ -1,0 +1,981 @@
+{
+  "focused": {
+    "binaries": 1,
+    "passed": 1,
+    "failed": 0,
+    "ignored": 0,
+    "rows": [
+      {
+        "line": 547,
+        "status": "ok",
+        "passed": 1,
+        "failed": 0,
+        "ignored": 0,
+        "measured": 0,
+        "filtered": 32
+      }
+    ],
+    "announced_targets": [
+      {
+        "target": "tests/raft_membership.rs",
+        "line": 542
+      }
+    ]
+  },
+  "default_all_targets": {
+    "binaries": 36,
+    "passed": 727,
+    "failed": 0,
+    "ignored": 0,
+    "rows": [
+      {
+        "line": 1070,
+        "status": "ok",
+        "passed": 440,
+        "failed": 0,
+        "ignored": 0,
+        "measured": 0,
+        "filtered": 0
+      },
+      {
+        "line": 1076,
+        "status": "ok",
+        "passed": 0,
+        "failed": 0,
+        "ignored": 0,
+        "measured": 0,
+        "filtered": 0
+      },
+      {
+        "line": 1096,
+        "status": "ok",
+        "passed": 14,
+        "failed": 0,
+        "ignored": 0,
+        "measured": 0,
+        "filtered": 0
+      },
+      {
+        "line": 1102,
+        "status": "ok",
+        "passed": 0,
+        "failed": 0,
+        "ignored": 0,
+        "measured": 0,
+        "filtered": 0
+      },
+      {
+        "line": 1117,
+        "status": "ok",
+        "passed": 9,
+        "failed": 0,
+        "ignored": 0,
+        "measured": 0,
+        "filtered": 0
+      },
+      {
+        "line": 1124,
+        "status": "ok",
+        "passed": 1,
+        "failed": 0,
+        "ignored": 0,
+        "measured": 0,
+        "filtered": 0
+      },
+      {
+        "line": 1156,
+        "status": "ok",
+        "passed": 26,
+        "failed": 0,
+        "ignored": 0,
+        "measured": 0,
+        "filtered": 0
+      },
+      {
+        "line": 1163,
+        "status": "ok",
+        "passed": 1,
+        "failed": 0,
+        "ignored": 0,
+        "measured": 0,
+        "filtered": 0
+      },
+      {
+        "line": 1187,
+        "status": "ok",
+        "passed": 18,
+        "failed": 0,
+        "ignored": 0,
+        "measured": 0,
+        "filtered": 0
+      },
+      {
+        "line": 1199,
+        "status": "ok",
+        "passed": 6,
+        "failed": 0,
+        "ignored": 0,
+        "measured": 0,
+        "filtered": 0
+      },
+      {
+        "line": 1213,
+        "status": "ok",
+        "passed": 8,
+        "failed": 0,
+        "ignored": 0,
+        "measured": 0,
+        "filtered": 0
+      },
+      {
+        "line": 1221,
+        "status": "ok",
+        "passed": 2,
+        "failed": 0,
+        "ignored": 0,
+        "measured": 0,
+        "filtered": 0
+      },
+      {
+        "line": 1227,
+        "status": "ok",
+        "passed": 0,
+        "failed": 0,
+        "ignored": 0,
+        "measured": 0,
+        "filtered": 0
+      },
+      {
+        "line": 1233,
+        "status": "ok",
+        "passed": 0,
+        "failed": 0,
+        "ignored": 0,
+        "measured": 0,
+        "filtered": 0
+      },
+      {
+        "line": 1239,
+        "status": "ok",
+        "passed": 0,
+        "failed": 0,
+        "ignored": 0,
+        "measured": 0,
+        "filtered": 0
+      },
+      {
+        "line": 1246,
+        "status": "ok",
+        "passed": 1,
+        "failed": 0,
+        "ignored": 0,
+        "measured": 0,
+        "filtered": 0
+      },
+      {
+        "line": 1253,
+        "status": "ok",
+        "passed": 1,
+        "failed": 0,
+        "ignored": 0,
+        "measured": 0,
+        "filtered": 0
+      },
+      {
+        "line": 1269,
+        "status": "ok",
+        "passed": 10,
+        "failed": 0,
+        "ignored": 0,
+        "measured": 0,
+        "filtered": 0
+      },
+      {
+        "line": 1284,
+        "status": "ok",
+        "passed": 9,
+        "failed": 0,
+        "ignored": 0,
+        "measured": 0,
+        "filtered": 0
+      },
+      {
+        "line": 1299,
+        "status": "ok",
+        "passed": 9,
+        "failed": 0,
+        "ignored": 0,
+        "measured": 0,
+        "filtered": 0
+      },
+      {
+        "line": 1315,
+        "status": "ok",
+        "passed": 10,
+        "failed": 0,
+        "ignored": 0,
+        "measured": 0,
+        "filtered": 0
+      },
+      {
+        "line": 1358,
+        "status": "ok",
+        "passed": 33,
+        "failed": 0,
+        "ignored": 0,
+        "measured": 0,
+        "filtered": 0
+      },
+      {
+        "line": 1377,
+        "status": "ok",
+        "passed": 13,
+        "failed": 0,
+        "ignored": 0,
+        "measured": 0,
+        "filtered": 0
+      },
+      {
+        "line": 1412,
+        "status": "ok",
+        "passed": 29,
+        "failed": 0,
+        "ignored": 0,
+        "measured": 0,
+        "filtered": 0
+      },
+      {
+        "line": 1429,
+        "status": "ok",
+        "passed": 11,
+        "failed": 0,
+        "ignored": 0,
+        "measured": 0,
+        "filtered": 0
+      },
+      {
+        "line": 1447,
+        "status": "ok",
+        "passed": 10,
+        "failed": 0,
+        "ignored": 0,
+        "measured": 0,
+        "filtered": 0
+      },
+      {
+        "line": 1467,
+        "status": "ok",
+        "passed": 14,
+        "failed": 0,
+        "ignored": 0,
+        "measured": 0,
+        "filtered": 0
+      },
+      {
+        "line": 1485,
+        "status": "ok",
+        "passed": 12,
+        "failed": 0,
+        "ignored": 0,
+        "measured": 0,
+        "filtered": 0
+      },
+      {
+        "line": 1491,
+        "status": "ok",
+        "passed": 0,
+        "failed": 0,
+        "ignored": 0,
+        "measured": 0,
+        "filtered": 0
+      },
+      {
+        "line": 1497,
+        "status": "ok",
+        "passed": 0,
+        "failed": 0,
+        "ignored": 0,
+        "measured": 0,
+        "filtered": 0
+      },
+      {
+        "line": 1503,
+        "status": "ok",
+        "passed": 0,
+        "failed": 0,
+        "ignored": 0,
+        "measured": 0,
+        "filtered": 0
+      },
+      {
+        "line": 1532,
+        "status": "ok",
+        "passed": 23,
+        "failed": 0,
+        "ignored": 0,
+        "measured": 0,
+        "filtered": 0
+      },
+      {
+        "line": 1538,
+        "status": "ok",
+        "passed": 0,
+        "failed": 0,
+        "ignored": 0,
+        "measured": 0,
+        "filtered": 0
+      },
+      {
+        "line": 1560,
+        "status": "ok",
+        "passed": 16,
+        "failed": 0,
+        "ignored": 0,
+        "measured": 0,
+        "filtered": 0
+      },
+      {
+        "line": 1567,
+        "status": "ok",
+        "passed": 1,
+        "failed": 0,
+        "ignored": 0,
+        "measured": 0,
+        "filtered": 0
+      },
+      {
+        "line": 1573,
+        "status": "ok",
+        "passed": 0,
+        "failed": 0,
+        "ignored": 0,
+        "measured": 0,
+        "filtered": 0
+      }
+    ],
+    "announced_targets": [
+      {
+        "target": "src/lib.rs",
+        "line": 562
+      },
+      {
+        "target": "src/bin/operator.rs",
+        "line": 1072
+      },
+      {
+        "target": "tests/catalog.rs",
+        "line": 1078
+      },
+      {
+        "target": "tests/codecs.rs",
+        "line": 1098
+      },
+      {
+        "target": "tests/compaction.rs",
+        "line": 1104
+      },
+      {
+        "target": "tests/fault_campaign.rs",
+        "line": 1119
+      },
+      {
+        "target": "tests/fetch.rs",
+        "line": 1126
+      },
+      {
+        "target": "tests/group_transition_histories.rs",
+        "line": 1158
+      },
+      {
+        "target": "tests/journal.rs",
+        "line": 1165
+      },
+      {
+        "target": "tests/kraft_layout.rs",
+        "line": 1189
+      },
+      {
+        "target": "tests/metadata.rs",
+        "line": 1201
+      },
+      {
+        "target": "tests/metadata_quorum.rs",
+        "line": 1215
+      },
+      {
+        "target": "tests/oidc_http.rs",
+        "line": 1223
+      },
+      {
+        "target": "tests/oidc_sessions.rs",
+        "line": 1229
+      },
+      {
+        "target": "tests/oidc_validation.rs",
+        "line": 1235
+      },
+      {
+        "target": "tests/operator_quorum.rs",
+        "line": 1241
+      },
+      {
+        "target": "tests/operator_server.rs",
+        "line": 1248
+      },
+      {
+        "target": "tests/partition.rs",
+        "line": 1255
+      },
+      {
+        "target": "tests/produce.rs",
+        "line": 1271
+      },
+      {
+        "target": "tests/protocol.rs",
+        "line": 1286
+      },
+      {
+        "target": "tests/raft_election.rs",
+        "line": 1301
+      },
+      {
+        "target": "tests/raft_membership.rs",
+        "line": 1317
+      },
+      {
+        "target": "tests/raft_protocol.rs",
+        "line": 1360
+      },
+      {
+        "target": "tests/raft_replication.rs",
+        "line": 1379
+      },
+      {
+        "target": "tests/raft_runtime.rs",
+        "line": 1414
+      },
+      {
+        "target": "tests/raft_snapshot.rs",
+        "line": 1431
+      },
+      {
+        "target": "tests/records.rs",
+        "line": 1449
+      },
+      {
+        "target": "tests/retention.rs",
+        "line": 1469
+      },
+      {
+        "target": "tests/sasl.rs",
+        "line": 1487
+      },
+      {
+        "target": "tests/sasl_credentials.rs",
+        "line": 1493
+      },
+      {
+        "target": "tests/sasl_sessions.rs",
+        "line": 1499
+      },
+      {
+        "target": "tests/segments.rs",
+        "line": 1505
+      },
+      {
+        "target": "tests/tls.rs",
+        "line": 1534
+      },
+      {
+        "target": "tests/transport.rs",
+        "line": 1540
+      },
+      {
+        "target": "tests/upgrade_campaign.rs",
+        "line": 1562
+      },
+      {
+        "target": "examples/oidc_live_probe.rs",
+        "line": 1569
+      }
+    ]
+  },
+  "all_features_all_targets": {
+    "binaries": 36,
+    "passed": 875,
+    "failed": 0,
+    "ignored": 0,
+    "rows": [
+      {
+        "line": 2248,
+        "status": "ok",
+        "passed": 484,
+        "failed": 0,
+        "ignored": 0,
+        "measured": 0,
+        "filtered": 0
+      },
+      {
+        "line": 2254,
+        "status": "ok",
+        "passed": 0,
+        "failed": 0,
+        "ignored": 0,
+        "measured": 0,
+        "filtered": 0
+      },
+      {
+        "line": 2274,
+        "status": "ok",
+        "passed": 14,
+        "failed": 0,
+        "ignored": 0,
+        "measured": 0,
+        "filtered": 0
+      },
+      {
+        "line": 2292,
+        "status": "ok",
+        "passed": 12,
+        "failed": 0,
+        "ignored": 0,
+        "measured": 0,
+        "filtered": 0
+      },
+      {
+        "line": 2307,
+        "status": "ok",
+        "passed": 9,
+        "failed": 0,
+        "ignored": 0,
+        "measured": 0,
+        "filtered": 0
+      },
+      {
+        "line": 2314,
+        "status": "ok",
+        "passed": 1,
+        "failed": 0,
+        "ignored": 0,
+        "measured": 0,
+        "filtered": 0
+      },
+      {
+        "line": 2346,
+        "status": "ok",
+        "passed": 26,
+        "failed": 0,
+        "ignored": 0,
+        "measured": 0,
+        "filtered": 0
+      },
+      {
+        "line": 2353,
+        "status": "ok",
+        "passed": 1,
+        "failed": 0,
+        "ignored": 0,
+        "measured": 0,
+        "filtered": 0
+      },
+      {
+        "line": 2377,
+        "status": "ok",
+        "passed": 18,
+        "failed": 0,
+        "ignored": 0,
+        "measured": 0,
+        "filtered": 0
+      },
+      {
+        "line": 2390,
+        "status": "ok",
+        "passed": 6,
+        "failed": 0,
+        "ignored": 0,
+        "measured": 0,
+        "filtered": 0
+      },
+      {
+        "line": 2403,
+        "status": "ok",
+        "passed": 8,
+        "failed": 0,
+        "ignored": 0,
+        "measured": 0,
+        "filtered": 0
+      },
+      {
+        "line": 2411,
+        "status": "ok",
+        "passed": 2,
+        "failed": 0,
+        "ignored": 0,
+        "measured": 0,
+        "filtered": 0
+      },
+      {
+        "line": 2427,
+        "status": "ok",
+        "passed": 10,
+        "failed": 0,
+        "ignored": 0,
+        "measured": 0,
+        "filtered": 0
+      },
+      {
+        "line": 2448,
+        "status": "ok",
+        "passed": 15,
+        "failed": 0,
+        "ignored": 0,
+        "measured": 0,
+        "filtered": 0
+      },
+      {
+        "line": 2460,
+        "status": "ok",
+        "passed": 6,
+        "failed": 0,
+        "ignored": 0,
+        "measured": 0,
+        "filtered": 0
+      },
+      {
+        "line": 2467,
+        "status": "ok",
+        "passed": 1,
+        "failed": 0,
+        "ignored": 0,
+        "measured": 0,
+        "filtered": 0
+      },
+      {
+        "line": 2474,
+        "status": "ok",
+        "passed": 1,
+        "failed": 0,
+        "ignored": 0,
+        "measured": 0,
+        "filtered": 0
+      },
+      {
+        "line": 2490,
+        "status": "ok",
+        "passed": 10,
+        "failed": 0,
+        "ignored": 0,
+        "measured": 0,
+        "filtered": 0
+      },
+      {
+        "line": 2505,
+        "status": "ok",
+        "passed": 9,
+        "failed": 0,
+        "ignored": 0,
+        "measured": 0,
+        "filtered": 0
+      },
+      {
+        "line": 2520,
+        "status": "ok",
+        "passed": 9,
+        "failed": 0,
+        "ignored": 0,
+        "measured": 0,
+        "filtered": 0
+      },
+      {
+        "line": 2536,
+        "status": "ok",
+        "passed": 10,
+        "failed": 0,
+        "ignored": 0,
+        "measured": 0,
+        "filtered": 0
+      },
+      {
+        "line": 2579,
+        "status": "ok",
+        "passed": 33,
+        "failed": 0,
+        "ignored": 0,
+        "measured": 0,
+        "filtered": 0
+      },
+      {
+        "line": 2598,
+        "status": "ok",
+        "passed": 13,
+        "failed": 0,
+        "ignored": 0,
+        "measured": 0,
+        "filtered": 0
+      },
+      {
+        "line": 2633,
+        "status": "ok",
+        "passed": 29,
+        "failed": 0,
+        "ignored": 0,
+        "measured": 0,
+        "filtered": 0
+      },
+      {
+        "line": 2650,
+        "status": "ok",
+        "passed": 11,
+        "failed": 0,
+        "ignored": 0,
+        "measured": 0,
+        "filtered": 0
+      },
+      {
+        "line": 2668,
+        "status": "ok",
+        "passed": 10,
+        "failed": 0,
+        "ignored": 0,
+        "measured": 0,
+        "filtered": 0
+      },
+      {
+        "line": 2688,
+        "status": "ok",
+        "passed": 14,
+        "failed": 0,
+        "ignored": 0,
+        "measured": 0,
+        "filtered": 0
+      },
+      {
+        "line": 2706,
+        "status": "ok",
+        "passed": 12,
+        "failed": 0,
+        "ignored": 0,
+        "measured": 0,
+        "filtered": 0
+      },
+      {
+        "line": 2722,
+        "status": "ok",
+        "passed": 10,
+        "failed": 0,
+        "ignored": 0,
+        "measured": 0,
+        "filtered": 0
+      },
+      {
+        "line": 2737,
+        "status": "ok",
+        "passed": 9,
+        "failed": 0,
+        "ignored": 0,
+        "measured": 0,
+        "filtered": 0
+      },
+      {
+        "line": 2770,
+        "status": "ok",
+        "passed": 27,
+        "failed": 0,
+        "ignored": 0,
+        "measured": 0,
+        "filtered": 0
+      },
+      {
+        "line": 2799,
+        "status": "ok",
+        "passed": 23,
+        "failed": 0,
+        "ignored": 0,
+        "measured": 0,
+        "filtered": 0
+      },
+      {
+        "line": 2820,
+        "status": "ok",
+        "passed": 15,
+        "failed": 0,
+        "ignored": 0,
+        "measured": 0,
+        "filtered": 0
+      },
+      {
+        "line": 2842,
+        "status": "ok",
+        "passed": 16,
+        "failed": 0,
+        "ignored": 0,
+        "measured": 0,
+        "filtered": 0
+      },
+      {
+        "line": 2849,
+        "status": "ok",
+        "passed": 1,
+        "failed": 0,
+        "ignored": 0,
+        "measured": 0,
+        "filtered": 0
+      },
+      {
+        "line": 2855,
+        "status": "ok",
+        "passed": 0,
+        "failed": 0,
+        "ignored": 0,
+        "measured": 0,
+        "filtered": 0
+      }
+    ],
+    "announced_targets": [
+      {
+        "target": "src/lib.rs",
+        "line": 1696
+      },
+      {
+        "target": "src/bin/operator.rs",
+        "line": 2250
+      },
+      {
+        "target": "tests/catalog.rs",
+        "line": 2256
+      },
+      {
+        "target": "tests/codecs.rs",
+        "line": 2276
+      },
+      {
+        "target": "tests/compaction.rs",
+        "line": 2294
+      },
+      {
+        "target": "tests/fault_campaign.rs",
+        "line": 2309
+      },
+      {
+        "target": "tests/fetch.rs",
+        "line": 2316
+      },
+      {
+        "target": "tests/group_transition_histories.rs",
+        "line": 2348
+      },
+      {
+        "target": "tests/journal.rs",
+        "line": 2355
+      },
+      {
+        "target": "tests/kraft_layout.rs",
+        "line": 2379
+      },
+      {
+        "target": "tests/metadata.rs",
+        "line": 2389
+      },
+      {
+        "target": "tests/metadata_quorum.rs",
+        "line": 2405
+      },
+      {
+        "target": "tests/oidc_http.rs",
+        "line": 2413
+      },
+      {
+        "target": "tests/oidc_sessions.rs",
+        "line": 2429
+      },
+      {
+        "target": "tests/oidc_validation.rs",
+        "line": 2450
+      },
+      {
+        "target": "tests/operator_quorum.rs",
+        "line": 2462
+      },
+      {
+        "target": "tests/operator_server.rs",
+        "line": 2469
+      },
+      {
+        "target": "tests/partition.rs",
+        "line": 2476
+      },
+      {
+        "target": "tests/produce.rs",
+        "line": 2492
+      },
+      {
+        "target": "tests/protocol.rs",
+        "line": 2507
+      },
+      {
+        "target": "tests/raft_election.rs",
+        "line": 2522
+      },
+      {
+        "target": "tests/raft_membership.rs",
+        "line": 2538
+      },
+      {
+        "target": "tests/raft_protocol.rs",
+        "line": 2581
+      },
+      {
+        "target": "tests/raft_replication.rs",
+        "line": 2600
+      },
+      {
+        "target": "tests/raft_runtime.rs",
+        "line": 2635
+      },
+      {
+        "target": "tests/raft_snapshot.rs",
+        "line": 2652
+      },
+      {
+        "target": "tests/records.rs",
+        "line": 2670
+      },
+      {
+        "target": "tests/retention.rs",
+        "line": 2690
+      },
+      {
+        "target": "tests/sasl.rs",
+        "line": 2708
+      },
+      {
+        "target": "tests/sasl_credentials.rs",
+        "line": 2724
+      },
+      {
+        "target": "tests/sasl_sessions.rs",
+        "line": 2739
+      },
+      {
+        "target": "tests/segments.rs",
+        "line": 2772
+      },
+      {
+        "target": "tests/tls.rs",
+        "line": 2801
+      },
+      {
+        "target": "tests/transport.rs",
+        "line": 2822
+      },
+      {
+        "target": "tests/upgrade_campaign.rs",
+        "line": 2844
+      },
+      {
+        "target": "examples/oidc_live_probe.rs",
+        "line": 2851
+      }
+    ]
+  }
+}

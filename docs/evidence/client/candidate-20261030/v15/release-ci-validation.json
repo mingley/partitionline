@@ -1,0 +1,78 @@
+{
+  "base_commit": "b1cfbfd968c9d53a8416d1dfd93410a4fb5fd630",
+  "patch_sha256": "132974792fb5898b87503a14c40ddde36ba061434fe65d74b638191e2e9f6135",
+  "manifest_sha256": "a9cf8cd3840a95335d7f07e9d71526a8e7cb82661e7431d82d77efb2503cd872",
+  "source_after_hashes_rechecked": 7,
+  "offline_tests": {
+    "full_release_suite": {
+      "path": "/workspace/work/release-ci-attempt-20261103/v6-full.stderr",
+      "sha256": "ca3822d413b29e01906932a59d4bcbaf9cd70ad457d812997c10ffe9430d36a8",
+      "test_count": 119,
+      "result": "pass"
+    },
+    "live_evidence": {
+      "path": "/workspace/work/release-ci-attempt-20261103/v6-live.stderr",
+      "sha256": "c3c86f4a638362ec6174a814e1225ae2c4b2412c8d6583e8070aed6765cfa416",
+      "test_count": 15,
+      "result": "pass"
+    },
+    "ci_profile": {
+      "path": "/workspace/work/release-ci-attempt-20261103/v6-profile.stderr",
+      "sha256": "0911de895c773e81b57b9b6ccbdfbc2dda3f3ef68f9bd91f02d2951c68ffb6ef",
+      "test_count": 38,
+      "result": "pass"
+    },
+    "rehearsal": {
+      "path": "/workspace/work/release-ci-attempt-20261103/v6-rehearsal.stderr",
+      "sha256": "db33d717781346a08161fd2119acfc5cb747396e36b6744bf1168a1858a614cf",
+      "test_count": 9,
+      "result": "pass"
+    },
+    "gate_self_test": {
+      "path": "/workspace/work/release-ci-attempt-20261103/v6-selftest.stdout",
+      "sha256": "48f73e8e9070d0305b0703a3547533216b84feab3c0676cb0a5c7547a792d666",
+      "cases": 9,
+      "result": "pass"
+    },
+    "shell_syntax": "pass"
+  },
+  "negative_controls": [
+    {
+      "path": "/workspace/work/release-ci-attempt-20261103/v5-baseline-cleanup.log",
+      "sha256": "44b595783c492c9b4d256453d295ebb31da66a1b7416934ff4ba962136f5c902",
+      "expected": "fail on frozen v4"
+    },
+    {
+      "path": "/workspace/work/release-ci-attempt-20261103/v5-baseline-self-test.log",
+      "sha256": "7e76151c872f63958ded51578f9af047fc39ba53393b390a590c7c90a3012c57",
+      "expected": "fail on frozen v4"
+    },
+    {
+      "path": "/workspace/work/release-ci-attempt-20261103/v6-baseline-early.log",
+      "sha256": "445877e39120acd93a8f75ddd32065e524d7b6a38cb8405af3c900ffeb40b069",
+      "expected": "fail on frozen v4"
+    }
+  ],
+  "guard": {
+    "script": "/workspace/work/release-ci-attempt-20261103/guarded-release-suite.py",
+    "sha256": "ffd4560a4e703b61b42b1bd7bf960e58965d6b8657025d3244c705108f37f5f2",
+    "network_socket_syscalls": "seccomp denied; Python socket preflight returned EPERM",
+    "cargo_and_registry_cli": "PATH guards; no guarded tool was invoked",
+    "fallback_cargo_rustc": "not present in /usr/bin or /bin",
+    "stdout_sha256": "1d61060f686426fd59165a972c3f64c33790dbddef886147d17a6c23f2ceb2b1"
+  },
+  "roundtrip": {
+    "path": "/workspace/work/release-ci-attempt-20261103/v6-roundtrip.json",
+    "sha256": "b583a340c13fb944ca6a3a91d8fd3777d461d15a29c5d34d9f34dbc28c484782"
+  },
+  "independent_review": {
+    "path": "/workspace/work/release-ci-attempt-independent-review-20261103/independent-review-v6.json",
+    "sha256": "ee972285c9f7a92349f5ca86cece8643000cc54c29a39302c879657812728a80"
+  },
+  "limitations": [
+    "No actual GitHub API, registry upload, Cargo or native compilation was performed in this qualification.",
+    "Parent observed API shapes and actual job names for one run; pagination and rerun behavior remain simulated here.",
+    "Run metadata and run-list checks are separate non-atomic reads and can race with API propagation or later runs.",
+    "Historical artifacts without the run-attempt suffix cannot qualify; an entire new main CI run may be needed."
+  ]
+}

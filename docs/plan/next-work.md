@@ -19,7 +19,7 @@ Client 0.1.0 is already published. The next client version must be at least
 | Qualified broker v2 all-feature all targets at that commit | 868 passed |
 | Broker v2 strict Clippy, docs, inventory and six fresh-process Fetch deadline checks | Passed |
 | Client capability lanes at that commit | 93 passed in each profile; 450 Java reverse checks in each |
-| Main broker CI at `32ec4ab80` | Default and all-feature tests passed; strict Clippy failed on two new test reads |
+| Main broker CI at `b1cfbfd96` | 727 default and 875 all-feature tests, strict Clippy, docs, inventory and fuzz supervision passed |
 | Main capability profiles | Passed at `33744862c` |
 | Main strict Clippy, audit, dependency policy, docs and package jobs | Passed at `e7660f6e5` |
 | Main client and live Kafka compatibility CI | Failed at `e7660f6e5` |
@@ -49,8 +49,9 @@ passed its three added controls in the default library run and exposed a
 cause and all-feature qualification remain open. A
 [stale-leader control](../evidence/broker/raft-stale-selection-20261103/README.md)
 tests one pre-append rejection path and passed natively; it does not justify
-retrying every `NotLeader` response. A correction for its two Clippy failures
-still needs a hosted rerun.
+retrying every `NotLeader` response. Its bounded-read Clippy correction passed
+the [hosted broker gate](../evidence/broker/main-ci-b1cf-20261103/REPORT.md)
+at `b1cfbfd96`.
 No long campaign is credited.
 Current-commit green CI and the complete release gates remain open.
 
@@ -192,9 +193,13 @@ failed Clippy and the default test build because a test module did not import
 `PendingWork`; no fixed runtime controls ran. Its successor v13 retains the
 same client source with reviewed release-tooling inputs, so that compilation
 error is corrected in the staged
-[v14 candidate](../evidence/client/candidate-20261030/v14/README.md), which
-still needs native compilation and tests. It keeps 166 library and 17
-integration controls, 23 baseline cases and the original timing limits.
+[v15 candidate](../evidence/client/candidate-20261030/v15/README.md), which
+retains v14's Rust patches and needs native compilation and tests. It keeps
+166 library and 17 integration controls, 23 baseline cases and the original
+timing limits. The v14 hosted run was still in progress when this was recorded.
+The [v13 job log](../evidence/client/candidate-job-337-20261103/REPORT.md)
+also reports failed Clippy and default builds; its compiler diagnostics and
+report archive could not be retrieved through the available transfer path.
 The new baseline group control failed before demonstrating its intended
 third-request barrier. Vec prefix shifts and unordered or sticky deadline
 scans remain, and no performance change is measured.
@@ -225,8 +230,10 @@ checks bind the selected version and source to the target package, and release
 paths fail closed on unconfirmed exact-SHA CI. The token check reports presence
 without claiming authorization. One hundred offline tests passed on the final
 patch, and the hosted offline rehearsal passed at `33744862c`. The installed
-GitHub CLI 2.46.0 rejects the live checker's requested `attempt` JSON field;
-job-response shape and attempt binding also remain unverified.
+GitHub CLI 2.46.0 rejects the earlier checker's requested `attempt` JSON field.
+Its [replacement](../evidence/releases/ci-attempt-binding-20261103/README.md)
+binds jobs and artifacts to the run attempt and passed 119 offline tests.
+Live pagination and end-to-end current-attempt verification remain open.
 The [local release record](../evidence/releases/local-release-gates-20261103/README.md)
 retains the new controls and original failures. The
 [release tooling record](../evidence/releases/release-readiness-20261102/README.md)
@@ -262,6 +269,12 @@ crash safety and durability. Neither has a measured end-to-end speedup yet.
 The [queue candidate](../evidence/perf/producer-pending-20261102/README.md)
 skips certain deadline scans, but still needs native tests and benchmarking.
 It does not remove vector prefix shifts.
+A [paired queue microbenchmark prototype](../evidence/perf/pending-queue-microbench-20261103/README.md)
+has source review but remains uncompiled and inactive until candidate
+correctness passes. Synthetic completions do not prove Kafka delivery.
+The [supervised group coordinator draft](../evidence/client/group-coordinator-cache-20261103/README.md)
+needs its eviction, close cancellation, retry ordering and admission limits
+resolved before native qualification.
 The [broker epoch design](../evidence/perf/broker-epoch-20261102/DESIGN.md)
 is unimplemented: a smaller durable sidecar changes migration and backup
 semantics, and cannot preserve the current full-file mutation check without

@@ -690,7 +690,7 @@ jobs:
         uses: actions/upload-artifact@v6
         if: always()
         with:
-          name: conformance-fixture-artifacts
+          name: conformance-fixture-artifacts-${{ github.run_id }}-${{ github.run_attempt }}
           path: target/conformance/*
 
   # KL01-08: Explicit opt-in live broker conformance lane with durable result artifacts.

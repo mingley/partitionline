@@ -67,6 +67,14 @@ is available, or pushes the matching final tag for
 the workflow explicitly. The workflow supports crates.io Trusted Publishing
 and a `CARGO_REGISTRY_TOKEN` fallback.
 
+The CI gate checks every required main-push job and the conformance artifact for
+the same run and attempt. A rerun of only failed jobs may omit previously
+successful jobs or the current-attempt artifact. When that evidence is
+incomplete, start a new CI workflow dispatch on main so the full workflow gets
+a new run ID. Artifacts from older runs or attempts do not qualify.
+GitHub run and artifact checks are separate API reads; a new run or rerun can
+start while a release is being checked.
+
 The workflow serializes publication with the `release-publish-lock`
 concurrency group and does not cancel an upload in progress. Already-published
 versions are skipped on re-entry. The obsolete `first-publish.yml` workflow is

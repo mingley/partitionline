@@ -26,8 +26,10 @@ Contract & Gate Guarantees:
   - Non-CI workflows never satisfy the gate, even if completed with success.
 """
 
+import ast
 import json
 import os
+import re
 import subprocess
 import tempfile
 import unittest
@@ -477,6 +479,7 @@ class TestReleaseCIGate(unittest.TestCase):
                         "conclusion": "success",
                         "headSha": TARGET_SHA,
                         "createdAt": "2026-09-21T11:00:00Z",
+                        "attempt": 1,
                     }
                 ],
                 tf2,
@@ -601,19 +604,29 @@ PROFILE_RUN_ID = 424242
 PROFILE_SHA = TARGET_SHA
 
 REQUIRED_JOB_NAMES = [
+    "resource-soak",
     "fmt",
     "clippy",
     "docs",
     "schema",
+    "init-producer-id",
+    "zstd-decode",
     "release-rehearsal",
     "test (stable)",
+    "macos-arm64 (stable)",
+    "windows (stable)",
     "audit",
     "deny",
+    "alloc-budget",
+    "perf-gate",
     "package",
     "features",
     "fuzz-smoke",
     "broker-smoke (apache/kafka:3.9.1)",
     "broker-smoke (apache/kafka:4.1.0)",
+    "broker-current (4.1.2)",
+    "broker-current (4.2.1)",
+    "broker-current (4.3.1)",
     "latency-gate",
     "auth-smoke",
     "integrity-smoke",
@@ -655,8 +668,10 @@ def make_profile_jobs(run_id=PROFILE_RUN_ID, sha=PROFILE_SHA, attempt=1, overrid
 
 
 def make_profile_artifacts(
-    run_id=PROFILE_RUN_ID, sha=PROFILE_SHA, name="conformance-fixture-artifacts", expired=False
+    run_id=PROFILE_RUN_ID, sha=PROFILE_SHA, name=None, expired=False, attempt=1
 ):
+    if name is None:
+        name = f"conformance-fixture-artifacts-{PROFILE_RUN_ID}-{attempt}"
     return {
         "artifacts": [
             {
@@ -725,6 +740,36 @@ def run_profile_gate(
 class TestReleaseProfileGate(unittest.TestCase):
     """KL08-02: the release gate requires the complete profile's evidence."""
 
+    def test_profile_tracks_ci_jobs_and_current_matrix_cells(self):
+        gate = SCRIPT_PATH.read_text()
+        default = re.search(r'(?m)^DEFAULT_REQUIRED_JOBS="([^"]+)"$', gate)
+        self.assertIsNotNone(default)
+        self.assertEqual(default.group(1).split(","), REQUIRED_JOB_NAMES)
+        workflow = (REPO_ROOT / ".github/workflows/ci.yml").read_text()
+        self.assertIn('name: conformance-fixture-artifacts-${{ github.run_id }}-${{ github.run_attempt }}', workflow)
+        jobs = workflow.split("\njobs:\n", 1)[1]
+        job_ids = set(re.findall(r"(?m)^  ([a-z][a-z0-9_-]+):\s*$", jobs))
+        required_ids = {name.split(" (", 1)[0] for name in REQUIRED_JOB_NAMES}
+        self.assertEqual(job_ids - {"conformance-live"}, required_ids)
+        for job_id, matrix_key in [("test", "rust"), ("macos-arm64", "rust"),
+                                   ("windows", "rust"), ("broker-smoke", "kafka_image"),
+                                   ("broker-current", "version")]:
+            block = re.search(r"(?ms)^  " + re.escape(job_id) + r":\s*\n(.*?)(?=^  [a-z][a-z0-9_-]+:\s*$|\Z)", jobs)
+            self.assertIsNotNone(block, job_id)
+            values = re.search(r"(?m)^\s+" + matrix_key + r":\s*(\[[^\n]+\])", block.group(1))
+            self.assertIsNotNone(values, job_id)
+            values = values.group(1)[1:-1].split(",")
+            decoded = []
+            for value in values:
+                value = value.strip()
+                if value.startswith(("'", '"')):
+                    value = ast.literal_eval(value)
+                else:
+                    self.assertRegex(value, r"^[A-Za-z0-9_.:-]+$")
+                decoded.append(value)
+            cells = {job_id + " (" + str(value) + ")" for value in decoded}
+            self.assertEqual(cells, {name for name in REQUIRED_JOB_NAMES if name.startswith(job_id + " (")})
+
     def test_complete_positive_profile_passes(self):
         res = run_profile_gate(
             jobs_data=make_profile_jobs(),
@@ -766,6 +811,23 @@ class TestReleaseProfileGate(unittest.TestCase):
                 self.assertEqual(res.returncode, 1)
                 self.assertIn("[outcome=missing_jobs]", res.stderr)
                 self.assertIn(required, res.stderr)
+
+    def test_all_other_main_push_cells_must_run_and_pass(self):
+        added = ["resource-soak", "init-producer-id", "zstd-decode", "macos-arm64 (stable)",
+                 "windows (stable)", "alloc-budget", "perf-gate", "broker-current (4.1.2)",
+                 "broker-current (4.2.1)", "broker-current (4.3.1)"]
+        for required in added:
+            for mode in ["missing", "skipped"]:
+                with self.subTest(job=required, mode=mode):
+                    jobs = make_profile_jobs()
+                    if mode == "missing":
+                        jobs["jobs"] = [j for j in jobs["jobs"] if j["name"] != required]
+                    else:
+                        next(j for j in jobs["jobs"] if j["name"] == required)["conclusion"] = "skipped"
+                    res = run_profile_gate(jobs_data=jobs, artifacts_data=make_profile_artifacts())
+                    self.assertEqual(res.returncode, 1, res.stdout + res.stderr)
+                    self.assertIn("[outcome=" + ("missing_jobs" if mode == "missing" else "skipped") + "]", res.stderr)
+                    self.assertIn(required, res.stderr)
 
     def test_skipped_matrix_cell_fails(self):
         jobs = make_profile_jobs(overrides={"test (stable)": {"conclusion": "skipped"}})
@@ -880,6 +942,44 @@ class TestReleaseProfileGate(unittest.TestCase):
         )
         self.assertEqual(res.returncode, 1)
         self.assertIn("[outcome=stale]", res.stderr)
+
+    def test_incomplete_or_conflicting_job_envelopes_fail_closed(self):
+        for key in ["run_id", "head_sha", "attempt"]:
+            with self.subTest(missing=key):
+                jobs = make_profile_jobs()
+                jobs.pop(key)
+                res = run_profile_gate(jobs_data=jobs, artifacts_data=make_profile_artifacts())
+                self.assertEqual(res.returncode, 1, res.stdout + res.stderr)
+                self.assertIn("[outcome=stale]", res.stderr)
+        for location in ["envelope", "item"]:
+            with self.subTest(short_sha=location):
+                jobs = make_profile_jobs()
+                if location == "envelope": jobs["head_sha"] = PROFILE_SHA[:7]
+                else: jobs["jobs"][0]["headSha"] = PROFILE_SHA[:7]
+                res = run_profile_gate(jobs_data=jobs, artifacts_data=make_profile_artifacts())
+                self.assertEqual(res.returncode, 1, res.stdout + res.stderr)
+                self.assertIn("[outcome=stale]", res.stderr)
+        jobs = make_profile_jobs()
+        jobs["jobs"][0]["run_attempt"] = 2
+        res = run_profile_gate(jobs_data=jobs, artifacts_data=make_profile_artifacts())
+        self.assertEqual(res.returncode, 1, res.stdout + res.stderr)
+        self.assertIn("[outcome=stale]", res.stderr)
+
+    def test_missing_attempt_and_truncated_run_sha_never_qualify(self):
+        for value in [None, 0, True, "1"]:
+            with self.subTest(attempt=value):
+                runs = make_profile_run()
+                runs[0]["attempt"] = value
+                res = run_profile_gate(runs_data=runs, jobs_data=make_profile_jobs(),
+                                       artifacts_data=make_profile_artifacts())
+                self.assertEqual(res.returncode, 1, res.stdout + res.stderr)
+                self.assertIn("[outcome=stale]", res.stderr)
+        runs = make_profile_run()
+        runs[0]["headSha"] = PROFILE_SHA[:7]
+        res = run_profile_gate(runs_data=runs, jobs_data=make_profile_jobs(),
+                               artifacts_data=make_profile_artifacts())
+        self.assertEqual(res.returncode, 1, res.stdout + res.stderr)
+        self.assertIn("[outcome=wrong_sha]", res.stderr)
 
     def test_unrelated_green_workflow_ignored_when_ci_profile_complete(self):
         runs = make_profile_run() + [

@@ -1,0 +1,22 @@
+{
+  "scope": "Independent source-only review of inactive pending-queue benchmark prototype v3",
+  "manifest_sha256": "fe08f8444c5d76b7a7c1f3c2cc58bef922d6562fbdb5dd9196293e59cf650101",
+  "assets_checked": 20,
+  "prior_bundles": "All members and embedded manifests in v1 and v2 bundles match their declared hashes",
+  "source_catalogs": "1,754 fixed/control inputs differ only in src/producer.rs and src/producer/prepare_tests.rs; 1,756 hooked inputs differ only in these plus the generated harness",
+  "previous_findings": {
+    "worker_lease_borrow": "Both arm constructors use WorkerLease::register(&shared), matching its &Arc<Shared> argument; independent static reconstruction succeeded",
+    "qualification_provenance": "Same-job writer and runner bind workflow, job, run, attempt, checkout, spec, driver, binder and report hashes. This relies on trusted workflow ordering and is not independent origin proof.",
+    "process_scope": "Readme correctly limits group ownership and monitoring to release builds and samples; git, rg and tool-version calls have bounded ordinary subprocesses.",
+    "measurement_scope": "Readme and runner label admission as direct per-record push_pending; recv_many, account_pending_from and sticky scheduling are outside scope."
+  },
+  "independent_static_controls": "4 passed on isolated v3 bytes with all four exact source paths supplied",
+  "static_control_log_sha256": "e1c9a1a89b7a31b72973c1e373ade217ef00f302ff9fb34f7ff1e2eedbf536f2",
+  "outcome": "No remaining blocker found in the previously identified review scope. Keep inactive until full v14 qualification passes.",
+  "limitations": [
+    "No Rust compilation, Clippy, native test, benchmark, network, or full workflow execution was performed.",
+    "Witness controls check the binding functions and stale context; they do not prove that the illustrative workflow or runner executes end-to-end.",
+    "Synthetic in-memory completion does not prove Kafka delivery, durability or production readiness.",
+    "A shared x86 runner and focused queue comparison do not establish a fastest-ranking claim."
+  ]
+}

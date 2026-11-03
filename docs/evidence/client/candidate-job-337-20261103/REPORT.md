@@ -1,0 +1,11 @@
+# Client v13 qualification: failed build, diagnostics unavailable
+
+Run 41580681913, job 125736829577, qualified the isolated client v13 candidate on stable x86_64. The workflow reported trigger and checkout SHA `33744862cd9e3263de502d57525619bd41704fec` and Rust `1.99.1`. The pinned v13 spec identifies client base `c0341637288b60ea2069a9fac58c0e427effc9de`; its exact saved bytes are `spec.json`.
+
+The runner reported baseline build exit 0 and 23 baseline controls. All 21 controls with declared pass/fail expectations had the corresponding reported exit; the two observation-only controls produced one failure (case 07, historical cancellation) and one pass (case 13, stack lifecycle). These are observations of the legacy baseline, including intentionally failing negative controls. They are not results for the fixed candidate, nor proof of causal fixes. The full structured results and expectations are in `baseline-observed.json`.
+
+The runner reported `format` exit 0, `clippy` exit 101, and `default-build` exit 101. It then reported `build failed default-build` and the qualification step exited 1. The job log does not include the compiler or Clippy diagnostic text, so their exact failures and causes are unknown. The log contains no subsequent fixed-candidate full-test results; this report does not infer that those tests passed or failed.
+
+The completed artifact upload and the GitHub artifact metadata each report artifact 13205548496, size 8,607,279 bytes, SHA-256 `0e019a7ab8654c6da0bbc2acd63923c742b0a3b66db48701de6a5dcf2656924d`. This is the reported digest, not a locally calculated archive hash. The connector returned a File Service reference and the available downloader accepts Sediment uploads only. Archive bytes could not be obtained through the supported downloader, so no archive members, member hashes, or compiler diagnostics were independently verified. Do not treat this report as a substitute for the retained artifact.
+
+`job-125736829577.log.gz` contains the complete connector-provided decoded job log. `github-metadata.json` records the job, steps and artifact metadata without download URLs. `manifest.json` hashes the saved files. The scope is evidence retention and analysis; no Cargo, compiler, Clippy, native test, benchmark, or publication was run locally.

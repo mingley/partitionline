@@ -1,0 +1,93 @@
+{
+  "review": "independent source review, not approved",
+  "patch_path": "/workspace/work/group-supervised-integration-20261103/supervised-group-v1.patch",
+  "patch_sha256": "865b1973f54e706674800484f45f965645e9750d1fc728b9f0c538133b486a07",
+  "preimages": {
+    "src/net.rs": "f73aa7a04d3e2571f347f6a9245cf6f4df4ab218f653e71ca824e86e7893907c",
+    "src/producer.rs": "ecf14e7e89fff1d1c29faa6778061d58545f9df565eb7858561d4de58920b279",
+    "tests/mock_produce.rs": "d3d85b55e0e9ebf342435a253d289873c3b9f2d854c5ca55fd8d3d27c53d9ab1"
+  },
+  "reconstructed_after": {
+    "src/net.rs": "2b6747c96b13399a246c925d2f16ae3361343a72ee9d87eaef6cb6e828cc991e",
+    "src/net/physical_retirement_tests.rs": "c2d77c23686dcf3dbc0bf621ce3f0b8f92a90a4dbbf518cec833febf8ac239fc",
+    "src/producer.rs": "1888f850f0adcbfd3fdf09b717dfacc804173dbe3ae118dccdbc9662959aaa62",
+    "src/producer/group_coordinator.rs": "68fdae0830e07957df13177a3c07cb459738f472ce53b6aa59cd2d90f3a5b0b9",
+    "src/producer/group_coordinator_tests.rs": "628505d950c98c7f0a7736c85858bdbc9e1813821b25c02518945cfc74421c51",
+    "src/producer/group_discovery.rs": "9aaa9845f575c05ac779aa568ee6c2dc12708f8bb7023553a0accc35b7189cb6",
+    "src/producer/group_runtime.rs": "bc882f128c23e1f490527761f0f576c51cb2cb773c4c3e842aebbe8b612508cd",
+    "src/producer/group_runtime_tests.rs": "797d1be3d7b7363b25bd58e1424ac7814761008c0806557868b9d6f946fc0537",
+    "tests/mock_produce.rs": "cf7d40114fcda892f6c1e0736ec364da229afad43a195d7f76e607b4cd1687b7"
+  },
+  "checks": {
+    "apply_check": "pass to supplied v14 preimages",
+    "apply_reconstruction": "nine Rust files match candidate bytes",
+    "reverse_check": "pass",
+    "old_producer_and_net_test_module_tails_identical_sha256": {
+      "src/producer.rs": "494995af7d07bd3ac9b7b73e973ebb1dd5c5637592adf3856389bee1059ea734",
+      "src/net.rs": "f0dcfb891c38a67e1e409574c77eecafae4f3673c253dea23e1ab75a00756ee5"
+    },
+    "old_mock_produce_bytes_unchanged_prefix_sha256": "d3d85b55e0e9ebf342435a253d289873c3b9f2d854c5ca55fd8d3d27c53d9ab1",
+    "rustfmt": "stable 1.99.1 --check with skip_children=true passed for nine reconstructed files; initial default module resolution lacked unrelated files",
+    "cargo_typecheck_clippy_tests": "not run; candidate remains uncompiled"
+  },
+  "findings": [
+    {
+      "id": "cache-eviction-test-conflict",
+      "severity": "blocking: new test cannot follow lane policy under normal successful sequential execution",
+      "source": [
+        "src/producer/group_runtime.rs:283-292,347-367",
+        "src/producer/group_coordinator.rs:7-10,142-175",
+        "tests/mock_produce.rs:1934-1958"
+      ],
+      "analysis": "With eight free lanes [0..7], ga takes lane 0 and on success returns it with cache at tail. Sequential gb has no matching cache, takes lane 1, and leaves ga socket retained on lane 0. The added test waits for the ga socket to close and then requires a new ga socket, contrary to this policy. It times out on a normal persistent mock socket; this is a source deduction, not a native observation. Resolve cache policy and its control explicitly; do not silently weaken the assertion."
+    },
+    {
+      "id": "close-cancel-before-flush",
+      "severity": "qualification blocker for unconditional cancellation-safe close; inherited from v14",
+      "source": [
+        "src/producer.rs:4059-4082,4089-4099,4117-4121",
+        "src/producer/group_coordinator_tests.rs:735-785"
+      ],
+      "analysis": "Cancelling close while flush is pending happens before closed is set and before the group supervisor is stopped. If another Producer clone remains, Inner::drop does not run and group work/socket can remain active until its own deadline or later explicit close. The new test waits for shared.closed before cancellation and misses this window. No claim that v1 introduced the old ordering."
+    },
+    {
+      "id": "public-fifo-boundary",
+      "severity": "ordering scope limitation",
+      "source": [
+        "src/producer/group_runtime.rs:241-260,269-305,318-333",
+        "src/producer.rs:3930-3978"
+      ],
+      "analysis": "FIFO is for supervisor registrations, not entire public send-offset invocations. Metadata and encoding precede registration, and outer retriable broker responses release that FIFO before retry backoff and resubmission, allowing A1,B1,A2. This is not established as a regression against v14, which lacked such a FIFO."
+    },
+    {
+      "id": "group-saturation",
+      "severity": "liveness/performance risk requiring explicit policy",
+      "source": [
+        "src/producer/group_coordinator.rs:7-10",
+        "src/producer/group_runtime.rs:126-153,269-305,318-333",
+        "src/producer/group_runtime_tests.rs:155-215"
+      ],
+      "analysis": "One stuck group plus seven queued same-group requests occupy all eight lane permits, so another group can time out at admission with seven lanes not doing network I/O. Existing mixed-group control leaves capacity and does not exercise saturation."
+    },
+    {
+      "id": "admission-byte-bound",
+      "severity": "resource-bound scope limitation",
+      "source": [
+        "src/producer.rs:3930-3953",
+        "src/producer/group_coordinator.rs:304-320"
+      ],
+      "analysis": "The encoded request payload exists before supervisor admission; arbitrary caller-owned waiting futures can retain separately encoded payload buffers. Eight lanes bound admitted actors/arenas, not aggregate pre-admission pending request bytes; the earlier implementation also allocates before this admission."
+    }
+  ],
+  "positive_source_observations": [
+    "Node negotiation versions stay in the same durable slot as the corresponding connection; request checks the selected slot version.",
+    "Slot ownership is published before ApiVersions and SASL awaits. Cancellation signals handshake children; cleanup can retire unlocked slots while children are still joining, but lane completion requires the remaining children and required sockets to finish.",
+    "On successful normal operations runtime retains FIFO and lane permit through required cleanup; cancellation, deadline and close select branches discard work before cleanup.",
+    "These are source observations only, not proofs of runtime behavior or complete auth/version qualification."
+  ],
+  "limits": [
+    "No native tests, Cargo, Clippy, benchmark, or production claim.",
+    "Rustfmt parsing is not typechecking; temporal/runtime conclusions remain unexecuted.",
+    "No repository or original candidate files were changed."
+  ]
+}

@@ -19,3 +19,10 @@ finds unresolved provisional and fallback ownership, and one control does
 not prove retirement before a replacement is accepted. It is unrun and remains
 unsuitable for adoption. The proposed [ownership design](ownership-design.md)
 sets out the remaining work.
+
+A later [supervised draft](supervised-v1-evidence.tar.gz) adds bounded
+connection lanes and explicit socket ownership. Its [independent review](supervised-v1-review.json)
+found a conflicting eviction test, an existing close-cancellation gap,
+ordering limited to individual retry attempts, possible lane saturation by
+one group, and no bound on request bytes waiting before admission. It has not
+been compiled or run and must not be adopted in its current form.

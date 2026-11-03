@@ -1,0 +1,10 @@
+{
+  "patch_sha256": "132974792fb5898b87503a14c40ddde36ba061434fe65d74b638191e2e9f6135",
+  "manifest_sha256": "a9cf8cd3840a95335d7f07e9d71526a8e7cb82661e7431d82d77efb2503cd872",
+  "delta_sha256": "8768d712260836c4812b467144b1776de5611ad522dbb7fbead83df3f70ca433",
+  "base_commit": "b1cfbfd968c9d53a8416d1dfd93410a4fb5fd630",
+  "root_git_apply_check": "pass",
+  "seven_file_forward_reverse": "pass",
+  "v5_to_v6_forward_reverse": "pass",
+  "network_or_cargo": false
+}

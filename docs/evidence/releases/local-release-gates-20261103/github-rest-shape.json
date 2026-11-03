@@ -1,0 +1,44 @@
+{
+  "scope": "Read-only GitHub connector observation; this is not a release or a successful CI run.",
+  "run_id": 41580681922,
+  "attempt": 1,
+  "repository": "mingley/partitionline",
+  "run_metadata": {
+    "path": ".github/workflows/ci.yml",
+    "head_branch": "main",
+    "event": "push",
+    "name": "ci",
+    "conclusion": "cancelled"
+  },
+  "attempt_jobs": {
+    "total_count": 28,
+    "required_main_push_names_matched": 27,
+    "optional_conformance_live": "skipped",
+    "fields_observed": [
+      "id",
+      "run_id",
+      "run_attempt",
+      "head_sha",
+      "status",
+      "conclusion",
+      "name"
+    ]
+  },
+  "artifact_list": {
+    "total_count": 13,
+    "fields_observed": [
+      "id",
+      "name",
+      "expired",
+      "digest",
+      "workflow_run"
+    ],
+    "sample_workflow_run_id": 41580681922,
+    "sample_workflow_run_id_type": "integer",
+    "sample_head_sha": "33744862cd9e3263de502d57525619bd41704fec",
+    "sample_expired": false
+  },
+  "limitations": [
+    "One actual REST response establishes field presence only. CLI pagination, successful current-attempt artifact provenance and live publication remain unverified."
+  ]
+}

@@ -1,0 +1,27 @@
+{
+  "scope": "Independent offline review of release-CI attempt binding and cleanup candidate v6",
+  "base_commit": "b1cfbfd968c9d53a8416d1dfd93410a4fb5fd630",
+  "patch_sha256": "132974792fb5898b87503a14c40ddde36ba061434fe65d74b638191e2e9f6135",
+  "manifest_sha256": "a9cf8cd3840a95335d7f07e9d71526a8e7cb82661e7431d82d77efb2503cd872",
+  "v5_to_v6_delta_sha256": "8768d712260836c4812b467144b1776de5611ad522dbb7fbead83df3f70ca433",
+  "preimage_and_forward_reverse": "All seven base/current preimages and frozen postimages match; full patch and v5-to-v6 delta reconstructed and reversed exactly. v6 changes only one additional fake-service test.",
+  "required_profile": "27 unique required main-workflow cells independently compared to YAML; the opt-in live-conformance matrix is separate. Release entry points checked clear fixture/profile overrides.",
+  "provenance_review": "Selected exact repo, full commit SHA and run attempt are checked against run metadata before/after jobs and attempt-suffixed artifact; final same-SHA run-list rejects changed or ambiguous latest runs and duplicate IDs. Live job/artifact run IDs require JSON integers. Artifact naming binds its attempt; no independent signature is claimed.",
+  "independent_tests": {
+    "v5_fake_service_suite": "14/14 pass; all v6 production code and prior 14 tests byte-identical to v5",
+    "v5_suite_log_sha256": "079bb510a826f6ac5c9741375ccf42160170218bec451b66b832bf1de54f1f6d",
+    "v6_added_test": "test_cleanup_on_early_run_selection_failure passes against frozen v6; an initial unittest invocation used an incorrect selector and failed discovery, then the correct test passed",
+    "separate_cleanup_replay": "spaced-TMPDIR successful run preserves sibling sentinel; early failure removes temporary files; self-test handles spaces and shell metacharacters without executing injected commands",
+    "cleanup_replay_script_sha256": "951231d3a3061f44a38a41d632bd3b7d89817735ecaf472a7b6e17e46dfe608e",
+    "v4_success_cleanup_reproduction_sha256": "1c9136b6bbe141c5f008901fbbdbc208480ee995c2f95f84aef1d6edc462101d",
+    "v4_self_test_injection_reproduction_sha256": "93a77e9a3ca120a19988479caeda6af85c84154b97d3cb0d3b0ac0f78bde1816",
+    "syntax": "bash -n, Python AST and workflow YAML parse passed against identical v5 production sources"
+  },
+  "result": "No remaining blocker found in reviewed source and offline fixture scope. Full final release-readiness remains unqualified.",
+  "limitations": [
+    "No real GitHub API request, publication, Cargo, native build or benchmark performed by this reviewer. Parent observed field shapes and 27 job names for one real run; pagination remains simulated.",
+    "Metadata and run-list checks are non-atomic and subject to API propagation delays; new runs or reruns can start during checks.",
+    "Historical artifacts without the run-attempt suffix fail closed; documentation now recommends a new main workflow dispatch when evidence is incomplete.",
+    "A fully passing current-SHA release workflow, client correctness and real registry publication were not established."
+  ]
+}

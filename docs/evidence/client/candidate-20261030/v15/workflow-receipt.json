@@ -1,0 +1,11 @@
+{
+  "scope": "Change only active client candidate source_version v14 to v15; historical comparison lane remains byte-identical.",
+  "workflow_before_sha256": "870d8d8bba22d90dfae7e38dc82066ccee83b11092ca618fb8fea289355e5ae4",
+  "workflow_after_sha256": "82d317a7e507f71ce9cedb9d97643f15338a0301205d2486ddb50002dba2f814",
+  "patch_sha256": "49aead578b9df61e8ac0803c2ff55a8d72b3c9f8d7e78cdc9f932618098e8cb8",
+  "historical_checkout": "8f960c3e60609703f23f79b3f368355ed8c057d8",
+  "forward_reverse_exact": true,
+  "limitations": [
+    "Static patch check only; no hosted workflow execution."
+  ]
+}

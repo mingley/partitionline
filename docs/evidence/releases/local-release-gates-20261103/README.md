@@ -26,9 +26,12 @@ artifact digest; the artifact contents were not downloaded or verified.
 
 The [manifest](manifest.json), [validation](validation.json) and
 [independent review](independent-review.json) bind the exact source patch and
-offline results. Live GitHub job-response shape and attempt binding remain
-unverified. The installed GitHub CLI 2.46.0 [rejects the `attempt` JSON field](local-gh-field-check.json)
-requested by the live checker, so that path also needs repair. API/index
+offline results. One [read-only GitHub REST response](github-rest-shape.json)
+contains the expected run, attempt, job and matrix fields. The installed GitHub
+CLI 2.46.0 [rejects the `attempt` JSON field](local-gh-field-check.json) used
+by the earlier checker. Its [replacement](../ci-attempt-binding-20261103/README.md)
+passed 119 offline tests and binds job and artifact evidence to the run attempt;
+live pagination and end-to-end current-attempt validation remain open. API/index
 identity alone does not prove a crate can be downloaded
 and compiled. Current client and broker failures and the remaining release
 gates still block a release.

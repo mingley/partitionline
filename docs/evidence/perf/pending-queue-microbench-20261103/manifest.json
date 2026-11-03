@@ -1,0 +1,119 @@
+{
+  "schema": 1,
+  "scope": "Isolated release-mode pending-queue microbenchmark prototype; disabled until v14 correctness qualifies.",
+  "revision": "V3 preserves v2 borrowed fixture constructors and adds a same-job qualification witness with stale run/attempt negative controls; narrows measurement and process-ownership descriptions.",
+  "prior_v1_manifest_sha256": "4c9d0ec07e672376e49d02d41e6a08e1f40e6dad71abbeff270944925a64bab1",
+  "prior_v2_manifest_sha256": "83d8f96225433072739a05de41a670cdbee9be3b19f8ea906a925114d16ec29d",
+  "v1_independent_review_sha256": "2c0dfbfba1d196dd46651e5376b0e9b742ce5479f7fb5f7f223f03a1874f2bfe",
+  "required_v14_spec_sha256": "d51f80f274fe28802c7f9c44bf11008605cea6a297bde209e9a47e24ad21ba3a",
+  "candidate_checkout_at_preparation": "33744862cd9e3263de502d57525619bd41704fec",
+  "candidate_fixed_producer_sha256": "ecf14e7e89fff1d1c29faa6778061d58545f9df565eb7858561d4de58920b279",
+  "control_producer_sha256": "bf165ca682b17f3812d3a3895854cdbf9f73ce862a9330bbc8a6dd2f4675be34",
+  "candidate_and_control_source_files": 1754,
+  "candidate_and_control_hook_files": 1756,
+  "case_count": 19,
+  "warmup_pairs_per_case": 1,
+  "measurement_pairs_per_case": 10,
+  "pair_order": "five of each order per case; deterministic shuffle",
+  "static_checks": [
+    "Four Python controls passed, including exact patch roundtrip, borrowed lease in both arms, frozen inventories, balanced ordering, invalid samples and stale run/attempt witness rejections.",
+    "V1 and V2 bundles are archived losslessly.",
+    "Illustrative workflow fragment parses as three YAML steps."
+  ],
+  "native_compilation": "not run",
+  "clippy": "not run",
+  "runtime": "not run",
+  "benchmark": "not run",
+  "performance_claim_qualified": false,
+  "production_ready": false,
+  "limitations": [
+    "V3 is source-only; the Rust harness, witness integration and runner are uncompiled and await independent v3 review.",
+    "The witness binds workflow context and report hashes but depends on trusted same-job step ordering; it is not an independent signature.",
+    "Synthetic acknowledgements validate in-memory ownership and completion, not Kafka delivery.",
+    "Per-record push_pending cases do not cover recv_many/account_pending_from or sticky policy.",
+    "A shared x86 runner does not support a fastest-performance claim.",
+    "All 23 baseline cases and 183 fixed controls must qualify before the proposed benchmark step."
+  ],
+  "files": {
+    "README.md": {
+      "sha256": "7fc2233be1b3fb31a89a83764609e89e40b4ced5c6e1bd075ed8c3afcd02c64e",
+      "bytes": 6172
+    },
+    "example.rs": {
+      "sha256": "793288a3ef20a0a3d276758f794dda5fd910f77a6af397168af691e897a9b398",
+      "bytes": 682
+    },
+    "pending_queue_bench.rs.in": {
+      "sha256": "6d89938e6c3913d46ea94d9bc1748afdba3f79dbccaa32add4de6c4adf7f2680",
+      "bytes": 7241
+    },
+    "queue-v2.patch.gz": {
+      "sha256": "ead40569dd695873dca6fc8cdf00ca14fd0827f6582c1f55a3a7e0d3e3689086",
+      "bytes": 7543
+    },
+    "run.py": {
+      "sha256": "53ae526a2a8f588108d8f06526faa0f933f8c86149f85a19111d4f0b9f67b937",
+      "bytes": 22932
+    },
+    "bind_qualification.py": {
+      "sha256": "2891346d701a658539c46bb51694fe0b84c793a70d109ed8f2b0bb579dd73e7b",
+      "bytes": 4505
+    },
+    "static-validation.log": {
+      "sha256": "42d7c170baf412c0a64b91405f0bca0d5cf3c27303acf62deadb60967b867ca7",
+      "bytes": 102
+    },
+    "test_plan.py": {
+      "sha256": "8798890522ab3d808aa7e7b2d06346a11a93deb5b93c6173e8b517cd9b1f451e",
+      "bytes": 8235
+    },
+    "v10-queue-hook-inputs.json": {
+      "sha256": "33c80b6d61d51547973c46c49a4decd41d6c39553c5120fb3eafeee45896ed58",
+      "bytes": 227010
+    },
+    "v10-queue-inputs.json": {
+      "sha256": "4e814d3e2f29ca75344228df637502cc4deca453c4199da77f1e6797a11aa726",
+      "bytes": 226796
+    },
+    "v10-queue-worker-initializer.rs.txt": {
+      "sha256": "c0bd6d2cb07c359be653a49db3b8cd5d9e858e85800af9649fc908a1ae32a82c",
+      "bytes": 1190
+    },
+    "v14-fixed-inputs.json": {
+      "sha256": "96741778c14d8ea03358b8ece94850cbf7f89f156c4b50bacf818fe4a2530e9a",
+      "bytes": 226796
+    },
+    "v14-hook-inputs.json": {
+      "sha256": "4c6e0f38eefb84e87692d04116acbadcadb2e325bcc732836455daee67f7aea6",
+      "bytes": 227010
+    },
+    "v14-worker-initializer.rs.txt": {
+      "sha256": "1d6ea8e54c425dfb3a068730449eacdb3920b22a1f9bd0512f0e6a14442f7a25",
+      "bytes": 1343
+    },
+    "workflow-fragment.yml": {
+      "sha256": "16239bc22acbe03628f68659eb2428948dadfef8ece32d69d769cfe6c4ce1543",
+      "bytes": 2120
+    },
+    "prior-v1-manifest.json": {
+      "sha256": "4c9d0ec07e672376e49d02d41e6a08e1f40e6dad71abbeff270944925a64bab1",
+      "bytes": 3594
+    },
+    "prior-v1-assets.tar.gz": {
+      "sha256": "760d309e1855371fe09d10c90b244dc790acc56434ff23c325141f1b64c54585",
+      "bytes": 249610
+    },
+    "prior-v2-manifest.json": {
+      "sha256": "83d8f96225433072739a05de41a670cdbee9be3b19f8ea906a925114d16ec29d",
+      "bytes": 4207
+    },
+    "prior-v2-assets.tar.gz": {
+      "sha256": "f040052a6122735354b1d9ee39dc6254491992edbe503a59a60755907b28104e",
+      "bytes": 499360
+    },
+    "independent-review-v1.json": {
+      "sha256": "2c0dfbfba1d196dd46651e5376b0e9b742ce5479f7fb5f7f223f03a1874f2bfe",
+      "bytes": 2777
+    }
+  }
+}

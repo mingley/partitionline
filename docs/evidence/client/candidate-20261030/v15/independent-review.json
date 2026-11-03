@@ -1,0 +1,33 @@
+{
+  "scope": "Independent static audit of frozen v15 release-overlay import",
+  "manifest_sha256": "7748e290677e092a6cde0773a8a3c5ac8a9c01c9364cab5101b3bcf5247c147c",
+  "release_patch_sha256": "132974792fb5898b87503a14c40ddde36ba061434fe65d74b638191e2e9f6135",
+  "assets_verified": 18,
+  "archived_v14_files_verified": 20,
+  "base_files_verified": 1746,
+  "catalog_release_paths": [
+    "scripts/check-main-ci.sh",
+    "scripts/report-release-rehearsal.py",
+    "tests/release/test_ci_gate.py",
+    "tests/release/test_live_ci_evidence.py",
+    "tests/release/test_local_confirmation.py"
+  ],
+  "source_phase_patch_forward_reverse_exact": true,
+  "baseline_cases_preserved": 23,
+  "controls_preserved": 183,
+  "target_count_preserved": 10,
+  "historical_lane_checkout": "8f960c3e60609703f23f79b3f368355ed8c057d8",
+  "workflow_patch_sha256": "49aead578b9df61e8ac0803c2ff55a8d72b3c9f8d7e78cdc9f932618098e8cb8",
+  "limits": [
+    "Source-only comparison; no Cargo, native runtime, live Kafka, publication or benchmark.",
+    "Release CI checks are separate non-atomic API reads; provenance review is limited to the supplied frozen patch.",
+    "V14 correctness, complete release readiness and fastest-performance claims remain unqualified.",
+    "Prior full-source archive bytes remain at the external paths in history metadata; the final package stores their hashes and reconstructable source inputs, not those six archive files."
+  ],
+  "release_review_sha256": "ee972285c9f7a92349f5ca86cece8643000cc54c29a39302c879657812728a80",
+  "release_validation_sha256": "d5d3100f6c3efb5127afa81890d21a45b1a267d17751a0f3c03c2f6f1d32abea",
+  "release_validation_evidence": "Receipt and five logged summaries match; author-reported full offline suite 119/119 passed under socket denial.",
+  "root_release_postimages_and_modes": "All seven match frozen v6 overlay",
+  "history": "58 unique objects cover every listed asset and manifest from six provisional packages; all bytes match their stage originals and six external source-archive hashes and lengths match.",
+  "baseline_cases_byte_identical": true
+}

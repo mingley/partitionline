@@ -1,0 +1,361 @@
+{
+  "source": "structured job-log summaries; expected failures are baseline negative controls, not candidate test outcomes",
+  "cases": [
+    {
+      "case": "baseline-case-01",
+      "test": "producer::tests::cancelled_pending_drain_retains_accepted_records_until_worker_cleanup",
+      "target": "partitionline",
+      "declared_expectation": "pass",
+      "observed": "pass",
+      "exit": 0,
+      "runner_reported_inputs_stable": true,
+      "log_line": 706,
+      "test_results": [
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 2253 filtered out; finished in 0.03s"
+      ],
+      "test_failures": []
+    },
+    {
+      "case": "baseline-case-02",
+      "test": "producer::tests::cancelled_pending_deadline_scan_retains_the_detached_prefix_until_worker_cleanup",
+      "target": "partitionline",
+      "declared_expectation": "pass",
+      "observed": "pass",
+      "exit": 0,
+      "runner_reported_inputs_stable": true,
+      "log_line": 709,
+      "test_results": [
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 2253 filtered out; finished in 0.03s"
+      ],
+      "test_failures": []
+    },
+    {
+      "case": "baseline-case-03",
+      "test": "classic_join_recovers_after_repeated_typed_coordinator_responses",
+      "target": "group_coordinator_startup",
+      "declared_expectation": "fail",
+      "observed": "fail",
+      "exit": 101,
+      "runner_reported_inputs_stable": true,
+      "log_line": 712,
+      "test_results": [
+        "test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 13 filtered out; finished in 0.00s"
+      ],
+      "test_failures": [
+        "classic_join_recovers_after_repeated_typed_coordinator_responses"
+      ]
+    },
+    {
+      "case": "baseline-case-04",
+      "test": "classic_join_retains_a_required_member_id_across_coordinator_responses",
+      "target": "group_coordinator_startup",
+      "declared_expectation": "fail",
+      "observed": "fail",
+      "exit": 101,
+      "runner_reported_inputs_stable": true,
+      "log_line": 715,
+      "test_results": [
+        "test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 13 filtered out; finished in 0.00s"
+      ],
+      "test_failures": [
+        "classic_join_retains_a_required_member_id_across_coordinator_responses"
+      ]
+    },
+    {
+      "case": "baseline-case-05",
+      "test": "classic_join_returns_terminal_response_after_transient_coordinator_errors",
+      "target": "group_coordinator_startup",
+      "declared_expectation": "fail",
+      "observed": "fail",
+      "exit": 101,
+      "runner_reported_inputs_stable": true,
+      "log_line": 718,
+      "test_results": [
+        "test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 13 filtered out; finished in 0.00s"
+      ],
+      "test_failures": [
+        "classic_join_returns_terminal_response_after_transient_coordinator_errors"
+      ]
+    },
+    {
+      "case": "baseline-case-06",
+      "test": "persistent_join_responses_stop_at_the_original_deadline_with_backoff",
+      "target": "group_coordinator_startup",
+      "declared_expectation": "fail",
+      "observed": "fail",
+      "exit": 101,
+      "runner_reported_inputs_stable": true,
+      "log_line": 721,
+      "test_results": [
+        "test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 13 filtered out; finished in 0.00s"
+      ],
+      "test_failures": [
+        "persistent_join_responses_stop_at_the_original_deadline_with_backoff"
+      ]
+    },
+    {
+      "case": "baseline-case-07",
+      "test": "cancelling_a_join_after_written_coordinator_responses_stops_new_requests",
+      "target": "group_coordinator_startup",
+      "declared_expectation": "observe",
+      "observed": "fail",
+      "exit": 101,
+      "runner_reported_inputs_stable": true,
+      "log_line": 724,
+      "test_results": [
+        "test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 13 filtered out; finished in 0.00s"
+      ],
+      "test_failures": [
+        "cancelling_a_join_after_written_coordinator_responses_stops_new_requests"
+      ]
+    },
+    {
+      "case": "baseline-case-08",
+      "test": "classic_join_recovers_when_rediscovery_itself_is_still_loading",
+      "target": "group_coordinator_startup",
+      "declared_expectation": "fail",
+      "observed": "fail",
+      "exit": 101,
+      "runner_reported_inputs_stable": true,
+      "log_line": 727,
+      "test_results": [
+        "test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 13 filtered out; finished in 0.03s"
+      ],
+      "test_failures": [
+        "classic_join_recovers_when_rediscovery_itself_is_still_loading"
+      ]
+    },
+    {
+      "case": "baseline-case-09",
+      "test": "classic_join_returns_terminal_rediscovery_errors_without_another_join",
+      "target": "group_coordinator_startup",
+      "declared_expectation": "pass",
+      "observed": "pass",
+      "exit": 0,
+      "runner_reported_inputs_stable": true,
+      "log_line": 730,
+      "test_results": [
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 13 filtered out; finished in 0.05s"
+      ],
+      "test_failures": []
+    },
+    {
+      "case": "baseline-case-10",
+      "test": "classic_join_does_not_retry_terminal_authorization_or_fencing_responses",
+      "target": "group_coordinator_startup",
+      "declared_expectation": "pass",
+      "observed": "pass",
+      "exit": 0,
+      "runner_reported_inputs_stable": true,
+      "log_line": 733,
+      "test_results": [
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 13 filtered out; finished in 0.01s"
+      ],
+      "test_failures": []
+    },
+    {
+      "case": "baseline-case-11",
+      "test": "group::tests::delayed_first_poll_does_not_restart_the_coordinator_deadline",
+      "target": "partitionline",
+      "declared_expectation": "fail",
+      "observed": "fail",
+      "exit": 101,
+      "runner_reported_inputs_stable": true,
+      "log_line": 736,
+      "test_results": [
+        "test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 2253 filtered out; finished in 0.06s"
+      ],
+      "test_failures": [
+        "group::tests::delayed_first_poll_does_not_restart_the_coordinator_deadline"
+      ]
+    },
+    {
+      "case": "baseline-case-12",
+      "test": "retry_refreshes_waiting_topics_together",
+      "target": "mock_produce",
+      "declared_expectation": "fail",
+      "observed": "fail",
+      "exit": 101,
+      "runner_reported_inputs_stable": true,
+      "log_line": 739,
+      "test_results": [
+        "test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 45 filtered out; finished in 0.11s"
+      ],
+      "test_failures": [
+        "retry_refreshes_waiting_topics_together"
+      ]
+    },
+    {
+      "case": "baseline-case-13",
+      "test": "public_group_lifecycle_fits_the_standard_two_mib_stack",
+      "target": "group_stack",
+      "declared_expectation": "observe",
+      "observed": "pass",
+      "exit": 0,
+      "runner_reported_inputs_stable": true,
+      "log_line": 742,
+      "test_results": [
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s"
+      ],
+      "test_failures": []
+    },
+    {
+      "case": "baseline-case-14",
+      "test": "cluster::tests::declared_topic_count_does_not_allocate_duplicate_tracking",
+      "target": "partitionline",
+      "declared_expectation": "fail",
+      "observed": "fail",
+      "exit": 101,
+      "runner_reported_inputs_stable": true,
+      "log_line": 745,
+      "test_results": [
+        "test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 2253 filtered out; finished in 0.00s"
+      ],
+      "test_failures": [
+        "cluster::tests::declared_topic_count_does_not_allocate_duplicate_tracking"
+      ]
+    },
+    {
+      "case": "baseline-case-15",
+      "test": "cluster::tests::topic_duplicate_tracking_keeps_names_across_the_heap_transition",
+      "target": "partitionline",
+      "declared_expectation": "fail",
+      "observed": "fail",
+      "exit": 101,
+      "runner_reported_inputs_stable": true,
+      "log_line": 748,
+      "test_results": [
+        "test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 2253 filtered out; finished in 0.00s"
+      ],
+      "test_failures": [
+        "cluster::tests::topic_duplicate_tracking_keeps_names_across_the_heap_transition"
+      ]
+    },
+    {
+      "case": "baseline-case-16",
+      "test": "cluster::tests::unchanged_metadata_partitions_yield_without_discarding_the_cache",
+      "target": "partitionline",
+      "declared_expectation": "fail",
+      "observed": "fail",
+      "exit": 101,
+      "runner_reported_inputs_stable": true,
+      "log_line": 751,
+      "test_results": [
+        "test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 2253 filtered out; finished in 0.00s"
+      ],
+      "test_failures": [
+        "cluster::tests::unchanged_metadata_partitions_yield_without_discarding_the_cache"
+      ]
+    },
+    {
+      "case": "baseline-case-17",
+      "test": "cluster::tests::unchanged_metadata_partition_budget_spans_multiple_topics",
+      "target": "partitionline",
+      "declared_expectation": "fail",
+      "observed": "fail",
+      "exit": 101,
+      "runner_reported_inputs_stable": true,
+      "log_line": 754,
+      "test_results": [
+        "test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 2253 filtered out; finished in 0.00s"
+      ],
+      "test_failures": [
+        "cluster::tests::unchanged_metadata_partition_budget_spans_multiple_topics"
+      ]
+    },
+    {
+      "case": "baseline-case-18",
+      "test": "consumer::tests::cancelling_assigned_id_retention_keeps_all_still_assigned_identities",
+      "target": "partitionline",
+      "declared_expectation": "fail",
+      "observed": "fail",
+      "exit": 101,
+      "runner_reported_inputs_stable": true,
+      "log_line": 757,
+      "test_results": [
+        "test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 2253 filtered out; finished in 0.02s"
+      ],
+      "test_failures": [
+        "consumer::tests::cancelling_assigned_id_retention_keeps_all_still_assigned_identities"
+      ]
+    },
+    {
+      "case": "baseline-case-19",
+      "test": "consumer::tests::retained_assigned_ids_keep_their_existing_storage",
+      "target": "partitionline",
+      "declared_expectation": "fail",
+      "observed": "fail",
+      "exit": 101,
+      "runner_reported_inputs_stable": true,
+      "log_line": 760,
+      "test_results": [
+        "test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 2253 filtered out; finished in 0.00s"
+      ],
+      "test_failures": [
+        "consumer::tests::retained_assigned_ids_keep_their_existing_storage"
+      ]
+    },
+    {
+      "case": "baseline-case-20",
+      "test": "consumer::tests::cancelled_assigned_id_removals_can_resume_without_losing_kept_ids",
+      "target": "partitionline",
+      "declared_expectation": "pass",
+      "observed": "pass",
+      "exit": 0,
+      "runner_reported_inputs_stable": true,
+      "log_line": 763,
+      "test_results": [
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 2253 filtered out; finished in 0.03s"
+      ],
+      "test_failures": []
+    },
+    {
+      "case": "baseline-case-21",
+      "test": "consumer::tests::retaining_many_empty_assigned_id_topics_yields",
+      "target": "partitionline",
+      "declared_expectation": "fail",
+      "observed": "fail",
+      "exit": 101,
+      "runner_reported_inputs_stable": true,
+      "log_line": 766,
+      "test_results": [
+        "test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 2253 filtered out; finished in 0.02s"
+      ],
+      "test_failures": [
+        "consumer::tests::retaining_many_empty_assigned_id_topics_yields"
+      ]
+    },
+    {
+      "case": "baseline-case-22",
+      "test": "producer::prepare_tests::cancelled_fire_grouping_retains_actual_accepted_records",
+      "target": "partitionline",
+      "declared_expectation": "fail",
+      "observed": "fail",
+      "exit": 101,
+      "runner_reported_inputs_stable": true,
+      "log_line": 769,
+      "test_results": [
+        "test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 2253 filtered out; finished in 0.02s"
+      ],
+      "test_failures": [
+        "producer::prepare_tests::cancelled_fire_grouping_retains_actual_accepted_records"
+      ]
+    },
+    {
+      "case": "baseline-case-23",
+      "test": "cancelling_a_join_after_two_errors_and_third_request_stops_new_requests",
+      "target": "group_coordinator_startup",
+      "declared_expectation": "fail",
+      "observed": "fail",
+      "exit": 101,
+      "runner_reported_inputs_stable": true,
+      "log_line": 772,
+      "test_results": [
+        "test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 13 filtered out; finished in 0.00s"
+      ],
+      "test_failures": [
+        "cancelling_a_join_after_two_errors_and_third_request_stops_new_requests"
+      ]
+    }
+  ]
+}

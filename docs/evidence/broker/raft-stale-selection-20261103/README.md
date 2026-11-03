@@ -15,7 +15,10 @@ file reads in this new synchronous test. The [job log](job-125736974518.log.gz)
 and [result manifest](clippy-failure-manifest.json) retain that run.
 The [correction](clippy-correction.patch.gz) uses a bounded synchronous read
 and preserves the complete-byte comparison; its
-[review](clippy-correction-review.json) passed, and native Clippy must rerun.
+[review](clippy-correction-review.json) passed. The focused control, 727
+default and 875 all-feature tests, and strict Clippy passed in the hosted
+[rerun](https://github.com/mingley/partitionline/actions/runs/41582894338)
+at `b1cfbfd96`.
 
 This case does not prove every `NotLeader` response precedes an append. The
 current proposal and voter-change paths can also return that error after

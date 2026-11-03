@@ -87,6 +87,7 @@ if name == 'git':
     if args == ['rev-parse','--abbrev-ref','HEAD']: print('main')
     elif args[:1] == ['status']: pass
     elif args[:2] == ['rev-parse','HEAD']: print('1'*40)
+    elif args == ['remote','get-url','origin']: print('https://github.com/example/partitionline.git')
     elif args[:3] == ['rev-parse','-q','--verify'] and args[-1].startswith('refs/tags/'): pass
     elif args[:2] == ['rev-parse','--verify'] and args[-1].startswith('refs/tags/'): print('a'*40)
     elif args[:1] == ['show'] and args[-1] == 'a'*40+':Cargo.toml': print('[package]\nname = "partitionline"\nversion = "0.1.0"')

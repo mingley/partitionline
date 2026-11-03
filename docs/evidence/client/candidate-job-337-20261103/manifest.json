@@ -1,0 +1,62 @@
+{
+  "schema": 1,
+  "scope": "decoded GitHub job log and GitHub-reported metadata; unavailable artifact content unverified",
+  "workflow_run": 41580681913,
+  "job_id": 125736829577,
+  "trigger_and_checkout_sha": "33744862cd9e3263de502d57525619bd41704fec",
+  "client_base_sha": "c0341637288b60ea2069a9fac58c0e427effc9de",
+  "reported_artifact": {
+    "id": 13205548496,
+    "size_in_bytes": 8607279,
+    "reported_sha256": "0e019a7ab8654c6da0bbc2acd63923c742b0a3b66db48701de6a5dcf2656924d",
+    "archive_obtained": false,
+    "archive_digest_independently_verified": false,
+    "members_verified": false
+  },
+  "observed": {
+    "baseline_controls": 23,
+    "declared_pass_or_fail_matched": 21,
+    "observation_only": [
+      {
+        "case": "baseline-case-07",
+        "observed": "fail"
+      },
+      {
+        "case": "baseline-case-13",
+        "observed": "pass"
+      }
+    ],
+    "format_exit": 0,
+    "clippy_exit": 101,
+    "default_build_exit": 101,
+    "compiler_diagnostics_visible": false,
+    "fixed_full_test_results_visible": false
+  },
+  "files": {
+    "job-125736829577.log": {
+      "sha256": "ab1939b11f770c1b4917cc074d465ba5f7812da863b7ba401fcba69ed71ab2e5",
+      "bytes": 82305
+    },
+    "job-125736829577.log.gz": {
+      "sha256": "25b286a59efacfc0ca40a3bacb1f3abb412bef3fd7dcec7e4e084f3bd83f8592",
+      "bytes": 15838
+    },
+    "github-metadata.json": {
+      "sha256": "f9e039459918d28e38c301675de5c984b14b127eaaeaa7538372be35659ffd21",
+      "bytes": 3025
+    },
+    "spec.json": {
+      "sha256": "0bbf4365d935dd6062e2ff0619c21bfdfc4884f29e1111f1a7b6c22313dd6d80",
+      "bytes": 11447
+    },
+    "baseline-observed.json": {
+      "sha256": "cb4d1b4c5adbbfa3e9bad4c35f71dcd192aaae057726305cffb6f6454049b72e",
+      "bytes": 12981
+    },
+    "REPORT.md": {
+      "sha256": "d8b98c37c7d0b3d80d82cd7259914d5410be776f35dd0ecc33a08d60819c3dd9",
+      "bytes": 2300
+    }
+  },
+  "local_native_execution": false
+}

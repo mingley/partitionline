@@ -32,7 +32,7 @@ jobs:
       matrix:
         include:
           - kind: client
-            source_version: v14
+            source_version: v15
             checkout_sha: ${{ github.sha }}
           - kind: client
             source_version: main-comparison-b1

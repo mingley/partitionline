@@ -1,0 +1,433 @@
+{
+  "scope": "All provisional package assets and import manifests by content hash. Original full-source archive bytes remain in the recorded work paths; their hashes are retained and sources can be reconstructed from the catalog and release patch.",
+  "stages": {
+    "v2": {
+      "files": {
+        "import-manifest-v15.json": {
+          "sha256": "ddd01884322465bfcc4332c36f0cce77c1822e79b8b38b39752e4569ef411702",
+          "bytes": 4019
+        },
+        "README.md": {
+          "sha256": "48a7cbe651c409c74c27d035a12b3302e3254e22b4368717f6d02b714d61e776",
+          "bytes": 485
+        },
+        "base-inputs.json": {
+          "sha256": "fb42de5c23e9dd7a321afee5066c2b2c362efb0a06ae7103dce1b5f1297b0fdf",
+          "bytes": 226013
+        },
+        "baseline-inputs.json": {
+          "sha256": "0f3ab7a38efd7234eb94c1f6bcdd43b6673b7ca33037bcbb647c94fa6b426464",
+          "bytes": 226713
+        },
+        "baseline.patch.gz": {
+          "sha256": "191709351911f47e5fda9fbb52910c645e0570afbb411db802a34bdfb018b86e",
+          "bytes": 71659
+        },
+        "controls.json": {
+          "sha256": "a67f4ab8e3ed90381749d7dfbf934746300e800788fb3524de368a88560711ea",
+          "bytes": 60616
+        },
+        "fixed-delta.patch.gz": {
+          "sha256": "7de01de9954e9e6137845eda8119152e09f621f7eb4a9fae23e6bb6e944ecde6",
+          "bytes": 39699
+        },
+        "fixed-inputs.json": {
+          "sha256": "52d3afe316ca7a477cf64fe5b042db069664fa0e046de4e7bbf9d214ea06ce30",
+          "bytes": 226908
+        },
+        "fixed.patch.gz": {
+          "sha256": "bc2e3690fa1ed6ef11a33c0230dcf5e541ae6a80681a3935014c2141a9f06394",
+          "bytes": 108071
+        },
+        "preparation.json": {
+          "sha256": "ab296c390cae4822fb166614d7f4ad0a6cafb95d1947a90dcaabf0d124643fe0",
+          "bytes": 6141
+        },
+        "prior-v14-assets.tar.gz": {
+          "sha256": "9eae1d2aa6c12221ad01ffbfdc5e8c832e7ba2d38225a8d1ed0acd40bc0ae0f7",
+          "bytes": 3175390
+        },
+        "prior-v14-import-manifest.json": {
+          "sha256": "691f728efb658609bbb8f896ab89549a2821a5968d6381084c4be696bf7a538c",
+          "bytes": 4554
+        },
+        "release-ci-manifest.json": {
+          "sha256": "f8aef3715d51df5a4341eb012ded5cfa5c9554203ddc8ff8d299b62759d8bfb6",
+          "bytes": 2649
+        },
+        "release-ci-review.json": {
+          "sha256": "5cc40bc71753faf90e7621f45a90748fa58565f732f93cd2d4ab077c8c561283",
+          "bytes": 187
+        },
+        "release-ci.patch.gz": {
+          "sha256": "983d26c4590ab3429e2be5bad2af8c2a5fdd9dd8da48ff86bac08ec30db680f6",
+          "bytes": 14536
+        },
+        "spec.json": {
+          "sha256": "7391688f50304c614a88fc67fdca98db4cac5488cbbd8297e307217e1fa26ea4",
+          "bytes": 12818
+        }
+      },
+      "original_base_archive_sha256": "a6527bd67070f9ca69068575d0c798c1b378b2ad228b82cb587a279896f5fe3b",
+      "original_base_archive_bytes": 7240018,
+      "original_base_archive_external_path": "/workspace/work/client-v15-release-ci-v2-provisional-20261103/verified-post-overlay-base.tar.gz"
+    },
+    "v3": {
+      "files": {
+        "import-manifest-v15.json": {
+          "sha256": "da2ef16816b008c6ae4d63176759914829d4b46a7e15de971103fa57c9608a9d",
+          "bytes": 4019
+        },
+        "README.md": {
+          "sha256": "48a7cbe651c409c74c27d035a12b3302e3254e22b4368717f6d02b714d61e776",
+          "bytes": 485
+        },
+        "base-inputs.json": {
+          "sha256": "4e22ec18732a4e255103470c1cc0c928dcfe297ce478c28e3cc558803070a474",
+          "bytes": 226013
+        },
+        "baseline-inputs.json": {
+          "sha256": "99bc95f1ab91829b69d3a266bcefceaa35d2c2f41efab52a70169732d7974d72",
+          "bytes": 226713
+        },
+        "baseline.patch.gz": {
+          "sha256": "191709351911f47e5fda9fbb52910c645e0570afbb411db802a34bdfb018b86e",
+          "bytes": 71659
+        },
+        "controls.json": {
+          "sha256": "a67f4ab8e3ed90381749d7dfbf934746300e800788fb3524de368a88560711ea",
+          "bytes": 60616
+        },
+        "fixed-delta.patch.gz": {
+          "sha256": "7de01de9954e9e6137845eda8119152e09f621f7eb4a9fae23e6bb6e944ecde6",
+          "bytes": 39699
+        },
+        "fixed-inputs.json": {
+          "sha256": "9e691c38fe7bee367b7bf619c359cd05479fb1ff16cc9719e1d5c20b2962bde9",
+          "bytes": 226908
+        },
+        "fixed.patch.gz": {
+          "sha256": "bc2e3690fa1ed6ef11a33c0230dcf5e541ae6a80681a3935014c2141a9f06394",
+          "bytes": 108071
+        },
+        "preparation.json": {
+          "sha256": "98618ebf21c501afc9ca14c753e6fbc4c692c4db295876614de9e8b07a81f758",
+          "bytes": 6141
+        },
+        "prior-v14-assets.tar.gz": {
+          "sha256": "9eae1d2aa6c12221ad01ffbfdc5e8c832e7ba2d38225a8d1ed0acd40bc0ae0f7",
+          "bytes": 3175390
+        },
+        "prior-v14-import-manifest.json": {
+          "sha256": "691f728efb658609bbb8f896ab89549a2821a5968d6381084c4be696bf7a538c",
+          "bytes": 4554
+        },
+        "release-ci-manifest.json": {
+          "sha256": "8a34adc0bf35e72cd9edc6b3784b2b9bd0914ef523cc6971194677aa16f183fe",
+          "bytes": 2677
+        },
+        "release-ci-review.json": {
+          "sha256": "4f4b31b3fad7c07198ecc4df42fdc1406c57126c23b8704bbc774591eb1ebc22",
+          "bytes": 187
+        },
+        "release-ci.patch.gz": {
+          "sha256": "7e4e1bfd6ca05c80f1de1c2aea5dd6248393e9ca27f66477761950bd6214baf4",
+          "bytes": 15227
+        },
+        "spec.json": {
+          "sha256": "83063b764c15282c959b70d0a764229e1c5ade644e1bb0198d4a8d1646821007",
+          "bytes": 12818
+        }
+      },
+      "original_base_archive_sha256": "c1b63bc215213f8b0d3f252901e36fcf545c8b3624f814476e94f8b1db6dd573",
+      "original_base_archive_bytes": 7240682,
+      "original_base_archive_external_path": "/workspace/work/client-v15-release-ci-v3-provisional-20261103/verified-post-overlay-base.tar.gz"
+    },
+    "v4": {
+      "files": {
+        "import-manifest-v15.json": {
+          "sha256": "a647f9712a63ae7e940583122fbb49acc62e686304f3b37f864ae30a651b7c10",
+          "bytes": 4019
+        },
+        "README.md": {
+          "sha256": "48a7cbe651c409c74c27d035a12b3302e3254e22b4368717f6d02b714d61e776",
+          "bytes": 485
+        },
+        "base-inputs.json": {
+          "sha256": "15b345c92200069b97bbddd0690d6e899ddaff02e645c9d492bfcfab475ff77b",
+          "bytes": 226013
+        },
+        "baseline-inputs.json": {
+          "sha256": "5f369682631e390be63d356803c7428dad0caafbb1bcf189fa70d61b0a267a99",
+          "bytes": 226713
+        },
+        "baseline.patch.gz": {
+          "sha256": "191709351911f47e5fda9fbb52910c645e0570afbb411db802a34bdfb018b86e",
+          "bytes": 71659
+        },
+        "controls.json": {
+          "sha256": "a67f4ab8e3ed90381749d7dfbf934746300e800788fb3524de368a88560711ea",
+          "bytes": 60616
+        },
+        "fixed-delta.patch.gz": {
+          "sha256": "7de01de9954e9e6137845eda8119152e09f621f7eb4a9fae23e6bb6e944ecde6",
+          "bytes": 39699
+        },
+        "fixed-inputs.json": {
+          "sha256": "1008109190570fe4a2ba01c29927df49630fb272f975c3f687acbc28704ad1f8",
+          "bytes": 226908
+        },
+        "fixed.patch.gz": {
+          "sha256": "bc2e3690fa1ed6ef11a33c0230dcf5e541ae6a80681a3935014c2141a9f06394",
+          "bytes": 108071
+        },
+        "preparation.json": {
+          "sha256": "148946d31bc0b1246bada823b55c957bde92b39ccd78f776ef419b7f2f0c75b2",
+          "bytes": 6141
+        },
+        "prior-v14-assets.tar.gz": {
+          "sha256": "9eae1d2aa6c12221ad01ffbfdc5e8c832e7ba2d38225a8d1ed0acd40bc0ae0f7",
+          "bytes": 3175390
+        },
+        "prior-v14-import-manifest.json": {
+          "sha256": "691f728efb658609bbb8f896ab89549a2821a5968d6381084c4be696bf7a538c",
+          "bytes": 4554
+        },
+        "release-ci-manifest.json": {
+          "sha256": "ace70ba9e988ef1e8917c16a309f0e52b8e0bd63910e5497fdf537950601e626",
+          "bytes": 2694
+        },
+        "release-ci-review.json": {
+          "sha256": "c0a7589c895410b86d76d103e6e15a3498cdd0e72657b145e4a84dfbc54c5b63",
+          "bytes": 187
+        },
+        "release-ci.patch.gz": {
+          "sha256": "b4721c8de2f1798be3cc694f8b5f98e705d807955ee4e387595e502cac8bf6f8",
+          "bytes": 15408
+        },
+        "spec.json": {
+          "sha256": "fb1905a28b86ecae277eb4c85cff8847164c8ec90045a1fa2616a382bc10aa8e",
+          "bytes": 12818
+        }
+      },
+      "original_base_archive_sha256": "13156d0a914db6ab0041f86cdc9957c204e1b56de0aadec3175a0a5c2c3e8fbc",
+      "original_base_archive_bytes": 7240813,
+      "original_base_archive_external_path": "/workspace/work/client-v15-release-ci-v4-provisional-20261103/verified-post-overlay-base.tar.gz"
+    },
+    "v5": {
+      "files": {
+        "import-manifest-v15.json": {
+          "sha256": "7079b9a4d20e6deb586cf40ac01f42fffba69c234c956c5e057418f9879ed7f0",
+          "bytes": 4019
+        },
+        "README.md": {
+          "sha256": "2f07662db4fa0df5cd9c80c16e558635c43187bde1fa7b0e8d6dc791ec3b5ecb",
+          "bytes": 485
+        },
+        "base-inputs.json": {
+          "sha256": "722fb27972542c432208c1776217849d17ed928d392186ebcad9229476d88ad3",
+          "bytes": 226013
+        },
+        "baseline-inputs.json": {
+          "sha256": "b93c205159b05750bc51f74106ab2fdde60261a8c69cb280c4b68d0ec10b5f4a",
+          "bytes": 226713
+        },
+        "baseline.patch.gz": {
+          "sha256": "191709351911f47e5fda9fbb52910c645e0570afbb411db802a34bdfb018b86e",
+          "bytes": 71659
+        },
+        "controls.json": {
+          "sha256": "a67f4ab8e3ed90381749d7dfbf934746300e800788fb3524de368a88560711ea",
+          "bytes": 60616
+        },
+        "fixed-delta.patch.gz": {
+          "sha256": "7de01de9954e9e6137845eda8119152e09f621f7eb4a9fae23e6bb6e944ecde6",
+          "bytes": 39699
+        },
+        "fixed-inputs.json": {
+          "sha256": "8807c52faefe54454a5b5046d432ea932c2c8d8c6c3a0ba235c8292f8aedbeb6",
+          "bytes": 226908
+        },
+        "fixed.patch.gz": {
+          "sha256": "bc2e3690fa1ed6ef11a33c0230dcf5e541ae6a80681a3935014c2141a9f06394",
+          "bytes": 108071
+        },
+        "preparation.json": {
+          "sha256": "127dbe114ecc5b45961d37b6c81c8e944bda406c6d66096e5fcdc9601c8fac26",
+          "bytes": 6141
+        },
+        "prior-v14-assets.tar.gz": {
+          "sha256": "9eae1d2aa6c12221ad01ffbfdc5e8c832e7ba2d38225a8d1ed0acd40bc0ae0f7",
+          "bytes": 3175390
+        },
+        "prior-v14-import-manifest.json": {
+          "sha256": "691f728efb658609bbb8f896ab89549a2821a5968d6381084c4be696bf7a538c",
+          "bytes": 4554
+        },
+        "release-ci-manifest.json": {
+          "sha256": "f411db8cf23ca00cdcb925ec59ce5feaf9df9429f7f6afd141ae1ade7315d75d",
+          "bytes": 2716
+        },
+        "release-ci-review.json": {
+          "sha256": "1813cc6d3c05cf96ff889fead1283b5c16a27189cfa20cc98edea4a3e92380c9",
+          "bytes": 187
+        },
+        "release-ci.patch.gz": {
+          "sha256": "86bc2b14bd771c11ed51269bcd3ac7175cccb3cb0030374b48098c88d515764f",
+          "bytes": 16807
+        },
+        "spec.json": {
+          "sha256": "171fd7ebeef095910bff864a8a9dcdad21695dd08b79e6a0036c61bfc28de05d",
+          "bytes": 12818
+        }
+      },
+      "original_base_archive_sha256": "22574f27b54b3c5bb1d994b93502921f68d8b67d9697a592e1f4bc075e4fe587",
+      "original_base_archive_bytes": 7241367,
+      "original_base_archive_external_path": "/workspace/work/client-v15-release-ci-v5-provisional-20261103/verified-post-overlay-base.tar.gz"
+    },
+    "v6": {
+      "files": {
+        "import-manifest-v15.json": {
+          "sha256": "8d728e5c454e0a765c5b6f61d23d13f81f32e285eafaa6fd8d1d051a2116bbce",
+          "bytes": 4019
+        },
+        "README.md": {
+          "sha256": "2f07662db4fa0df5cd9c80c16e558635c43187bde1fa7b0e8d6dc791ec3b5ecb",
+          "bytes": 485
+        },
+        "base-inputs.json": {
+          "sha256": "5e746cec95ab8d50e1aae0e8a4415bb812d8ed89effa4b81087567e9f4f5f8e9",
+          "bytes": 226013
+        },
+        "baseline-inputs.json": {
+          "sha256": "d0646c6a0680bd19c31b0025871aaff6e0d3e976f2ee6e77fc164f8359e39925",
+          "bytes": 226713
+        },
+        "baseline.patch.gz": {
+          "sha256": "191709351911f47e5fda9fbb52910c645e0570afbb411db802a34bdfb018b86e",
+          "bytes": 71659
+        },
+        "controls.json": {
+          "sha256": "a67f4ab8e3ed90381749d7dfbf934746300e800788fb3524de368a88560711ea",
+          "bytes": 60616
+        },
+        "fixed-delta.patch.gz": {
+          "sha256": "7de01de9954e9e6137845eda8119152e09f621f7eb4a9fae23e6bb6e944ecde6",
+          "bytes": 39699
+        },
+        "fixed-inputs.json": {
+          "sha256": "04e49f1c2b9096e7c0926448b20ae53180ce7e86a98a638e20dbf48d391c299b",
+          "bytes": 226908
+        },
+        "fixed.patch.gz": {
+          "sha256": "bc2e3690fa1ed6ef11a33c0230dcf5e541ae6a80681a3935014c2141a9f06394",
+          "bytes": 108071
+        },
+        "preparation.json": {
+          "sha256": "47919c5fbefc5cfe04b444a6d1ff562db257d022ea05de9e8ecff15f829b6749",
+          "bytes": 6141
+        },
+        "prior-v14-assets.tar.gz": {
+          "sha256": "9eae1d2aa6c12221ad01ffbfdc5e8c832e7ba2d38225a8d1ed0acd40bc0ae0f7",
+          "bytes": 3175390
+        },
+        "prior-v14-import-manifest.json": {
+          "sha256": "691f728efb658609bbb8f896ab89549a2821a5968d6381084c4be696bf7a538c",
+          "bytes": 4554
+        },
+        "release-ci-manifest.json": {
+          "sha256": "a9cf8cd3840a95335d7f07e9d71526a8e7cb82661e7431d82d77efb2503cd872",
+          "bytes": 2716
+        },
+        "release-ci-review.json": {
+          "sha256": "56ffbc46913ded0078faebaa7cdbb91cba7706c5780bffcce077b145d8ebe9d6",
+          "bytes": 187
+        },
+        "release-ci.patch.gz": {
+          "sha256": "f8e8ecb9293492d5eb9324619f0f965030a60b49a29924bde5ecb50bfb9f5686",
+          "bytes": 16845
+        },
+        "spec.json": {
+          "sha256": "da171c2d41a3c109a1a11c24775cc0fb43013fbb9f8d15c6b7a8e0adfae0398c",
+          "bytes": 12818
+        }
+      },
+      "original_base_archive_sha256": "077c29bfb21aa500d1f1efa2cb84b252a73e9050702110ec8bb0ddedfe338fdb",
+      "original_base_archive_bytes": 7241410,
+      "original_base_archive_external_path": "/workspace/work/client-v15-release-ci-v6-provisional-20261103/verified-post-overlay-base.tar.gz"
+    },
+    "v6-reviewed-prevalidation": {
+      "files": {
+        "import-manifest-v15.json": {
+          "sha256": "02035bc5f9944548899f2b2c0a83a2840f87de7285caf5c494e1192fa56d9066",
+          "bytes": 4097
+        },
+        "README.md": {
+          "sha256": "d5353e3d9b6ee5bdeb753d71e890d95077221cb843e19aa4fbafd93e7a9967e8",
+          "bytes": 481
+        },
+        "base-inputs.json": {
+          "sha256": "5e746cec95ab8d50e1aae0e8a4415bb812d8ed89effa4b81087567e9f4f5f8e9",
+          "bytes": 226013
+        },
+        "baseline-inputs.json": {
+          "sha256": "d0646c6a0680bd19c31b0025871aaff6e0d3e976f2ee6e77fc164f8359e39925",
+          "bytes": 226713
+        },
+        "baseline.patch.gz": {
+          "sha256": "191709351911f47e5fda9fbb52910c645e0570afbb411db802a34bdfb018b86e",
+          "bytes": 71659
+        },
+        "controls.json": {
+          "sha256": "a67f4ab8e3ed90381749d7dfbf934746300e800788fb3524de368a88560711ea",
+          "bytes": 60616
+        },
+        "fixed-delta.patch.gz": {
+          "sha256": "7de01de9954e9e6137845eda8119152e09f621f7eb4a9fae23e6bb6e944ecde6",
+          "bytes": 39699
+        },
+        "fixed-inputs.json": {
+          "sha256": "04e49f1c2b9096e7c0926448b20ae53180ce7e86a98a638e20dbf48d391c299b",
+          "bytes": 226908
+        },
+        "fixed.patch.gz": {
+          "sha256": "bc2e3690fa1ed6ef11a33c0230dcf5e541ae6a80681a3935014c2141a9f06394",
+          "bytes": 108071
+        },
+        "preparation.json": {
+          "sha256": "299342efeeeac15878432539bd3f2bd9b1ec5e0661c4b1980fd80036605ead98",
+          "bytes": 6296
+        },
+        "prior-v14-assets.tar.gz": {
+          "sha256": "9eae1d2aa6c12221ad01ffbfdc5e8c832e7ba2d38225a8d1ed0acd40bc0ae0f7",
+          "bytes": 3175390
+        },
+        "prior-v14-import-manifest.json": {
+          "sha256": "691f728efb658609bbb8f896ab89549a2821a5968d6381084c4be696bf7a538c",
+          "bytes": 4554
+        },
+        "release-ci-manifest.json": {
+          "sha256": "a9cf8cd3840a95335d7f07e9d71526a8e7cb82661e7431d82d77efb2503cd872",
+          "bytes": 2716
+        },
+        "release-ci-review.json": {
+          "sha256": "ee972285c9f7a92349f5ca86cece8643000cc54c29a39302c879657812728a80",
+          "bytes": 3092
+        },
+        "release-ci.patch.gz": {
+          "sha256": "f8e8ecb9293492d5eb9324619f0f965030a60b49a29924bde5ecb50bfb9f5686",
+          "bytes": 16845
+        },
+        "spec.json": {
+          "sha256": "480c7ec28002e9154cb4f08d33857d4ceafd9bec985da92e36522523d04bde02",
+          "bytes": 12851
+        }
+      },
+      "original_base_archive_sha256": "077c29bfb21aa500d1f1efa2cb84b252a73e9050702110ec8bb0ddedfe338fdb",
+      "original_base_archive_bytes": 7241410,
+      "original_base_archive_external_path": "/workspace/work/client-v15-release-ci-v6-reviewed-prevalidation-20261103/verified-post-overlay-base.tar.gz"
+    }
+  },
+  "object_count": 58,
+  "object_archive_sha256": "63367c1a4b12032c72c5db08f81649830f88d95ff5ca804133084e4d3ebca85b"
+}
