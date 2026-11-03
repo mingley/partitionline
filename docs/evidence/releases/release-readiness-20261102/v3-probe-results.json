@@ -1,0 +1,236 @@
+{
+  "probe_controls": [
+    {
+      "case": "both-404",
+      "expected": "absent",
+      "actual": "absent",
+      "passed": true,
+      "detail": "api_http=404,index=absent,index_http=404"
+    },
+    {
+      "case": "index-503",
+      "expected": "unknown",
+      "actual": "unknown",
+      "passed": true,
+      "detail": "api_http=404,index=unknown,index_http=503"
+    },
+    {
+      "case": "api-503-index-404",
+      "expected": "unknown",
+      "actual": "unknown",
+      "passed": true,
+      "detail": "api_http=503,index=absent,index_http=404"
+    },
+    {
+      "case": "api-present-index-missing",
+      "expected": "unknown",
+      "actual": "unknown",
+      "passed": true,
+      "detail": "api_http=200,index=absent,index_http=200"
+    },
+    {
+      "case": "valid-version-absent",
+      "expected": "absent",
+      "actual": "absent",
+      "passed": true,
+      "detail": "api_http=404,index=absent,index_http=200"
+    },
+    {
+      "case": "index-present-api-unavailable",
+      "expected": "present",
+      "actual": "present",
+      "passed": true,
+      "detail": "api_http=503,index=present,index_http=200"
+    },
+    {
+      "case": "yanked-target",
+      "expected": "unknown",
+      "actual": "unknown",
+      "passed": true,
+      "detail": "api_http=200,index=yanked,index_http=200"
+    },
+    {
+      "case": "empty-200-index",
+      "expected": "unknown",
+      "actual": "unknown",
+      "passed": true,
+      "detail": "api_http=404,index=unknown,index_http=200"
+    },
+    {
+      "case": "malformed-index",
+      "expected": "unknown",
+      "actual": "unknown",
+      "passed": true,
+      "detail": "api_http=404,index=unknown,index_http=200"
+    },
+    {
+      "case": "missing-name",
+      "expected": "unknown",
+      "actual": "unknown",
+      "passed": true,
+      "detail": "api_http=404,index=unknown,index_http=200"
+    },
+    {
+      "case": "missing-yanked",
+      "expected": "unknown",
+      "actual": "unknown",
+      "passed": true,
+      "detail": "api_http=404,index=unknown,index_http=200"
+    },
+    {
+      "case": "nonboolean-yanked",
+      "expected": "unknown",
+      "actual": "unknown",
+      "passed": true,
+      "detail": "api_http=404,index=unknown,index_http=200"
+    },
+    {
+      "case": "invalid-other-version",
+      "expected": "unknown",
+      "actual": "unknown",
+      "passed": true,
+      "detail": "api_http=404,index=unknown,index_http=200"
+    },
+    {
+      "case": "empty-other-version",
+      "expected": "unknown",
+      "actual": "unknown",
+      "passed": true,
+      "detail": "api_http=404,index=unknown,index_http=200"
+    },
+    {
+      "case": "duplicate-json-keys",
+      "expected": "unknown",
+      "actual": "unknown",
+      "passed": true,
+      "detail": "api_http=404,index=unknown,index_http=200"
+    },
+    {
+      "case": "target-with-malformed-other",
+      "expected": "unknown",
+      "actual": "unknown",
+      "passed": true,
+      "detail": "api_http=404,index=unknown,index_http=200"
+    },
+    {
+      "case": "wrong-crate-absent",
+      "expected": "unknown",
+      "actual": "unknown",
+      "passed": true,
+      "detail": "api_http=404,index=unknown,index_http=200"
+    },
+    {
+      "case": "wrong-crate-present",
+      "expected": "unknown",
+      "actual": "unknown",
+      "passed": true,
+      "detail": "api_http=404,index=unknown,index_http=200"
+    },
+    {
+      "case": "incomplete-index-body",
+      "expected": "unknown",
+      "actual": "unknown",
+      "passed": true,
+      "detail": "api_http=404,index=unknown,index_http=000"
+    },
+    {
+      "case": "incomplete-api-response",
+      "expected": "unknown",
+      "actual": "unknown",
+      "passed": true,
+      "detail": "api_http=000,index=absent,index_http=404"
+    },
+    {
+      "case": "index-dns-failure",
+      "expected": "unknown",
+      "actual": "unknown",
+      "passed": true,
+      "detail": "api_http=404,index=unknown,index_http=000"
+    },
+    {
+      "case": "index-timeout",
+      "expected": "unknown",
+      "actual": "unknown",
+      "passed": true,
+      "detail": "api_http=404,index=unknown,index_http=000"
+    },
+    {
+      "case": "api-dns-failure",
+      "expected": "unknown",
+      "actual": "unknown",
+      "passed": true,
+      "detail": "api_http=000,index=absent,index_http=404"
+    },
+    {
+      "case": "duplicate-other-version",
+      "expected": "unknown",
+      "actual": "unknown",
+      "passed": true,
+      "detail": "api_http=404,index=unknown,index_http=200"
+    },
+    {
+      "case": "duplicate-target-version",
+      "expected": "unknown",
+      "actual": "unknown",
+      "passed": true,
+      "detail": "api_http=404,index=unknown,index_http=200"
+    },
+    {
+      "case": "api-redirect",
+      "expected": "unknown",
+      "actual": "unknown",
+      "passed": true,
+      "detail": "api_http=302,index=absent,index_http=404"
+    },
+    {
+      "case": "index-redirect",
+      "expected": "unknown",
+      "actual": "unknown",
+      "passed": true,
+      "detail": "api_http=404,index=unknown,index_http=302"
+    },
+    {
+      "case": "api-forbidden",
+      "expected": "unknown",
+      "actual": "unknown",
+      "passed": true,
+      "detail": "api_http=403,index=absent,index_http=404"
+    },
+    {
+      "case": "api-unauthorized",
+      "expected": "unknown",
+      "actual": "unknown",
+      "passed": true,
+      "detail": "api_http=401,index=absent,index_http=404"
+    },
+    {
+      "case": "index-unauthorized",
+      "expected": "unknown",
+      "actual": "unknown",
+      "passed": true,
+      "detail": "api_http=404,index=unknown,index_http=401"
+    },
+    {
+      "case": "index-forbidden",
+      "expected": "unknown",
+      "actual": "unknown",
+      "passed": true,
+      "detail": "api_http=404,index=unknown,index_http=403"
+    },
+    {
+      "case": "index-rate-limited",
+      "expected": "unknown",
+      "actual": "unknown",
+      "passed": true,
+      "detail": "api_http=404,index=unknown,index_http=429"
+    },
+    {
+      "case": "index-error",
+      "expected": "unknown",
+      "actual": "unknown",
+      "passed": true,
+      "detail": "api_http=404,index=unknown,index_http=500"
+    }
+  ],
+  "scope": "Offline fake HTTP only; no Cargo, credentials, GitHub or publication."
+}

@@ -11,7 +11,7 @@
     "Equal-settings client/server x86_64 benchmark matrices, repeated runs, independent record verification and scoped claim audit satisfy the frozen workload and integrity thresholds.",
     "All required cards and failures are closed with evidence; every result names its measured scope."
   ],
-  "current_phase": "Repair failed client v7 controls and qualify the candidate, then rerun whole-main release gates. Continue terminal/retry payload ownership, issue ordering, independent histories, sustained runs and matched x86 comparisons.",
+  "current_phase": "Qualify the staged client v8 ownership and test repairs, repair remaining v7 failures, then rerun whole-main release gates. Continue issue ordering, independent histories, sustained runs and matched x86 comparisons.",
   "baseline": {
     "source_sha": "981ed100a0dc2ad910aa40163be9c4ae766eb4c6",
     "broker_default": {
@@ -66,7 +66,7 @@
     "producer_ownership": "33 focused producer/protocol controls pass; baseline failures retained and strict all-target/all-feature Clippy passed. Candidate default library: 2176 passed/20 failed. Seven producer integration targets: 118 passed/19 failed/2 ignored. Partition issue ownership and accepted-payload cancellation across awaits remain open.",
     "capability_case_selection": "At209d0b068, both profiles passed93required cases with0failed/0ignored,450actualJava reversechecks over225Rustpairs,85nullcontrols,663generatedfixtureFILES plus6RustTSVs,234Streams exports.38commandsperprofile exited0/joined/sourceguardstable; compactreport/sourcepins independentlyreviewed. SDKsockets andStreamsJava unqualified;OOMunknown; full37MBarchives not rehashed locally.",
     "client_strict_clippy": "fe65ac783 remote all-target/all-feature Clippy passed.",
-    "candidate_qualification": "Client v7 ran 10 chosen binaries per profile with 127 library and 14 integration identities, 22 baseline cases and an 8 MiB stack except a 2 MiB mock probe. Each library run had 2253 passes and 1 failure; Mock Produce had 31 passes/15 failures and retained backing had 7 passes/1 timeout/1 ignored. Clippy had 2 test errors and 2 baseline predictions did not reproduce. See docs/evidence/client/candidate-native-c025-20261030/README.md. Whole-main and release gates remain open."
+    "candidate_qualification": "Client v7 ran 10 chosen binaries per profile with 127 library and 14 integration identities, 22 baseline cases and an 8 MiB stack except a 2 MiB mock probe. Each library run had 2253 passes and 1 failure; Mock Produce had 31 passes/15 failures and retained backing had 7 passes/1 timeout/1 ignored. Clippy had 2 test errors and 2 baseline predictions did not reproduce. V8 adds test repairs and 26 producer ownership controls; native compilation and tests are pending. See docs/evidence/client/candidate-native-c025-20261030/README.md. Whole-main and release gates remain open."
   },
   "platform_scope": {
     "architecture": "x86_64",

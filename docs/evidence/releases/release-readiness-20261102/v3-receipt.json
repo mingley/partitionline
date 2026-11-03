@@ -1,0 +1,55 @@
+{
+  "base_commit": "c025be19b7d19dfd17d85eea66b43de93288dffb",
+  "prepared_utc": "2026-11-03T03:28:40.045867+00:00",
+  "sources": {
+    "scripts/ci-publish-ready.sh": {
+      "before_sha256": "845a02b8ff9fab8d99821d2a1b10514f7cd6721b97471df1ffde34e380342e43",
+      "after_sha256": "dc571b507c4896afcec47dc92ccf3ccfac26b0b2f1f3bb4c62d35495e43d062f",
+      "bytes_after": 6991
+    },
+    "scripts/lib/crates-io.sh": {
+      "before_sha256": "afb7ca0ab8483b27138200005dd4b38cc32050db93eef02fa1603d87e124fe6b",
+      "after_sha256": "00f3315ad2d61c4db099a2be2a3d7afa6c25699e665af6da0c2c40189446ec28",
+      "bytes_after": 5383
+    },
+    "scripts/rehearse-partial-release.sh": {
+      "before_sha256": "76254ca0564251f8ec394c05f8b9432896234bfae4a14bcd109430b2e8669cfd",
+      "after_sha256": "2e3fe315ca7650c98e7513d38a729082a28abcc0922bca0c9d2747ba301f23e3",
+      "bytes_after": 12158
+    },
+    "scripts/report-release-rehearsal.py": {
+      "before_sha256": "79a5ba7a139e4f277251f9d40f7f0f5990f513ce76d61e60d32124f4fa989513",
+      "after_sha256": "24aee15fbeb0d27aa61bd37e12d93bac8a50ea0fa83216c3640b51f92d90717d",
+      "bytes_after": 20061
+    },
+    "tests/release/test_rehearsal.py": {
+      "before_sha256": "46b23369b793eecdaa77858402184722939d9fd9dfbfe50a51233a6280616814",
+      "after_sha256": "352b029b8a43bb5656cdea558d8742552b199fd6fd60ff1d03eb6bcf6e66ee4e",
+      "bytes_after": 10104
+    },
+    "tests/release/test_registry_probe.py": {
+      "before_sha256": null,
+      "after_sha256": "5a15fbfdafce21a5bedeb6827f1d85ad54ff32a39376458bec6a1c2216d926b3",
+      "bytes_after": 4074
+    }
+  },
+  "patch": {
+    "sha256": "3a5472275f305d714f5146196f34f6dcbf91b029b4442e23a950790ac883f28f",
+    "bytes": 33863,
+    "gzip_sha256": "b138e17bd22342422072c330db19c10606d57d726651cf3be50b775c6e515345",
+    "gzip_bytes": 9568
+  },
+  "previous_defects": "baseline-negative.json",
+  "prior_candidates": [
+    "candidate.patch",
+    "v2.patch"
+  ],
+  "tests": "final rerun pending",
+  "independent_review": "pending",
+  "limits": [
+    "Python 3.11+ required for tomllib; release CI uses Python 3.13.",
+    "No credentials, publishing, live registry calls, or real GitHub calls.",
+    "Post-upload release.yml confirmation still checks API only; separate unresolved blocker.",
+    "This does not complete other release gates or establish production readiness."
+  ]
+}

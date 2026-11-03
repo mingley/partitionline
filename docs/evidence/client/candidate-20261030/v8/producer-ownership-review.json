@@ -1,0 +1,172 @@
+{
+  "schema_version": 1,
+  "reviewer": "/root/producer_terminal_peer",
+  "reviewed_at_utc": "2026-10-30T23:18:07.041295+00:00",
+  "review_type": "Independent deep static source review; no Rust type/runtime qualification",
+  "conclusion": "No remaining current-code blocker found in the reviewed retained ownership/accounting delta after the definite-prewrite Closed correction.",
+  "sources": {
+    "src/producer.rs": {
+      "bytes": 674608,
+      "sha256": "bf165ca682b17f3812d3a3895854cdbf9f73ce862a9330bbc8a6dd2f4675be34"
+    },
+    "src/producer/completion.rs": {
+      "bytes": 17355,
+      "sha256": "b90efa97f5176f5dcc44fe4ffa86b5a88e03a645c74ad32191047e2eaded779f"
+    },
+    "src/producer/prepare.rs": {
+      "bytes": 12785,
+      "sha256": "51bf8d6839d1531217c6a79c8986bb4fe547ac35c11d9bd4b0315892f1b5f08a"
+    },
+    "src/producer/prepare_tests.rs": {
+      "bytes": 56656,
+      "sha256": "4cd33e8febe735177c7ab5c1124a4a42a9f05af1eb7c6275e614fdeec673c0d5"
+    },
+    "src/producer/split.rs": {
+      "bytes": 6848,
+      "sha256": "03e893bc8b41182cae2d35f8702cb7821a41fafab6306205d017df4bd5593ad0"
+    }
+  },
+  "patches": {
+    "v2-delta.patch": {
+      "bytes": 120227,
+      "sha256": "b15402a86c71ba73156a6c67d506f59ec275322a2329e32680c6b94468fb671a"
+    },
+    "v7-delta.patch": {
+      "bytes": 120234,
+      "sha256": "1750b53d85451f2da293f44b89ebd3ae5cd5dc2476288f237685e0cab1f38e71"
+    },
+    "v2-delta.patch.gz": {
+      "bytes": 20673,
+      "sha256": "46039d1ee3c712a84f1f8621e400b54a2ab944a15901316e8abfa734c5b4151b"
+    },
+    "v7-delta.patch.gz": {
+      "bytes": 20678,
+      "sha256": "975c698c891513efc9d3ec6049aada5dae326a5ba599cfe6466ad2807f7db1b8"
+    }
+  },
+  "static_invariants_reviewed": [
+    {
+      "invariant": "Accepted payloads are published to a Worker owner before each newly introduced suspension. Completion removes only one Pending for a synchronous callback or retry-channel handoff.",
+      "locations": [
+        "src/producer/completion.rs:148",
+        "src/producer/completion.rs:264",
+        "src/producer/completion.rs:373",
+        "src/producer/completion.rs:510",
+        "src/producer.rs:8855"
+      ]
+    },
+    {
+      "invariant": "Sticky retirement, whole-batch byte release, batch metrics and ack latency have durable progress flags. Cancellation before byte release recomputes the charge; cancellation after callback prefix does not subtract it again. Metadata indices, stamps and latency state persist.",
+      "locations": [
+        "src/producer/completion.rs:112",
+        "src/producer/completion.rs:248",
+        "src/producer/completion.rs:305",
+        "src/producer/completion.rs:414"
+      ]
+    },
+    {
+      "invariant": "Sticky record permits stay in Pending through callback dispatch, and WorkerLease remains the final Worker field, so callback cleanup retains worker liveness.",
+      "locations": [
+        "src/producer.rs:854",
+        "src/producer.rs:865",
+        "src/producer.rs:7140",
+        "src/producer/completion.rs:344",
+        "src/producer.rs:11152"
+      ]
+    },
+    {
+      "invariant": "Retry grouping, maximum backoff, first-refresh index, original record index and transfer cursor persist across cancellation. Rejected retry tickets remain counted through callbacks and are removed afterwards; expired records create no ticket.",
+      "locations": [
+        "src/producer/completion.rs:99",
+        "src/producer/completion.rs:443",
+        "src/producer/completion.rs:467",
+        "src/producer/completion.rs:543"
+      ]
+    },
+    {
+      "invariant": "Stable splitting retains records in Worker pending/selected fields; tracked permutation restoration precedes appending newer channel records on Drop. Both normal partition sides preserve order.",
+      "locations": [
+        "src/producer/split.rs:33",
+        "src/producer/split.rs:138",
+        "src/producer.rs:7382"
+      ]
+    },
+    {
+      "invariant": "The read/decode guard hands accepted groups to Worker.responding before endpoint/index awaits; Worker.response_current and response_groups retain current and later groups across identity-renewal awaits.",
+      "locations": [
+        "src/producer.rs:8474",
+        "src/producer.rs:8612",
+        "src/producer.rs:8641",
+        "src/producer.rs:8704",
+        "src/producer.rs:8755"
+      ]
+    },
+    {
+      "invariant": "Vec-to-VecDeque conversions and empty-shell return preserve reusable allocations; front pops are constant-time. New split metadata uses operation-level index vectors, without per-record payload copies, Arc wrappers, ownership cycles or quadratic permutation walks.",
+      "locations": [
+        "src/producer/completion.rs:14",
+        "src/producer/completion.rs:127",
+        "src/producer/completion.rs:207",
+        "src/producer/split.rs:21"
+      ]
+    }
+  ],
+  "resolved_findings": [
+    {
+      "id": "R1",
+      "severity": "blocker-before-correction",
+      "issue": "Blanket removal of post-write-call rollback also removed rollback for Error::Closed, which current BrokerConn returns at its entry check before entering the write pump. Permanently failing that unwritten batch could leave an unfilled same-identity sequence reservation.",
+      "correction": "producer.rs:8447-8453 now rolls back only Error::Closed and clears preparing.write_started for that known-unwritten result. Io/Timeout keep their sequence and take the existing retry path.",
+      "basis": [
+        "/workspace/partitionline/src/net.rs:1801",
+        "/workspace/partitionline/src/net.rs:1841",
+        "/workspace/partitionline/src/error.rs:131"
+      ]
+    },
+    {
+      "id": "R2",
+      "severity": "coverage-gap-closed",
+      "issue": "Initial added controls did not exercise retry expiry or Full/Closed rejection through the new terminal path.",
+      "correction": "Three real-path controls now hold mpsc capacity with reservations, close admission, or expire records; they assert callback-visible ticket scope and suffix cleanup balance."
+    }
+  ],
+  "remaining_nonblocking_coverage_gaps": [
+    "The narrow real transport prewrite Error::Closed correction is justified by static transport inspection; no new deterministic native regression control for that exact race was run.",
+    "New failure cancellation controls use one topic; mixed-topic failure accounting and multi-topic retry index continuation were reviewed in source but are not separately added controls."
+  ],
+  "required_controls": {
+    "new_real_path_controls": 26,
+    "frozen_v7_required_cases": 141,
+    "frozen_v7_baseline_cases": 22,
+    "predicted_combined_fixed_required_cases": 167,
+    "listed_new_controls_match_added_test_functions": true,
+    "no_new_ignored_tests_or_blanket_lint_allows_observed": true
+  },
+  "independent_checks": {
+    "all_five_candidate_hashes_match_source_manifest": true,
+    "all_four_delta_artifact_hashes_match_required_controls": true,
+    "latest_stable_rustfmt_check": {
+      "exit_code": 0,
+      "edition": "2021",
+      "skip_children": true,
+      "scope": "five candidate source files; syntax and formatting only"
+    },
+    "shared_repository_worktree_status": "clean at inspection",
+    "shared_repository_head": "c025be19b7d19dfd17d85eea66b43de93288dffb"
+  },
+  "qualification": {
+    "cargo": "UNRUN",
+    "rustc_type_check": "UNRUN",
+    "clippy": "UNRUN",
+    "native_tests": "UNRUN",
+    "timed_workloads": "UNRUN",
+    "x86_64_latest_stable_runtime": "UNRUN"
+  },
+  "limits": [
+    "No candidate Rust build, native execution, Cargo invocation, test execution, repository source mutation or push performed by this review.",
+    "Static approval does not establish compilation, test passing, timing or end-to-end producer correctness.",
+    "Physical socket retirement before replay, global cross-request issue ordering, sequence wrap, and PID/epoch reconciliation/replay policy remain deferred.",
+    "Any future ambiguous non-retriable terminal-write result needs an explicit continuation/fencing decision; retaining a sequence alone does not solve that policy.",
+    "The author-provided Python split proof models logical permutation/restoration; it is not compiled Rust execution."
+  ]
+}

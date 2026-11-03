@@ -1,0 +1,93 @@
+{
+  "scope": "Two test-only source repairs and two transparent baseline expectation corrections. No production source changes, removed controls, changed timer budgets, Cargo builds or native tests.",
+  "prepared_utc": "2026-10-30T23:30:36.023443+00:00",
+  "native_source_commit": "c025be19b7d19dfd17d85eea66b43de93288dffb",
+  "native_run_id": 41141176310,
+  "native_job_id": 124355520719,
+  "source_files": {
+    "src/consumer.rs": {
+      "before": "a3e02294e93e93aa59938f6700fe3f1e8d8ee9ffb0d34d6b10d071649cceac37",
+      "after": "708116e939d8a2bc750c23781f5822f8f5f745c52819bac1ed0b5a9933934d4a"
+    },
+    "src/protocol/cooperative/tests.rs": {
+      "before": "6f82a36783996e3123476d064d2e0f3772b2e2b9f69a845eb8dae0c48dc88c46",
+      "after": "7d7ad61c07823b915f18c6bd28d8220dfaa65621b0563cc68d6dc5fd3fa08080"
+    }
+  },
+  "patch": {
+    "path": "test-repairs.patch.gz",
+    "bytes": 632,
+    "sha256": "f02823fad72e08712f358f29fb39a9762add96a8a9643709a61bb3bb2d28744b",
+    "expanded_bytes": 2151,
+    "expanded_sha256": "3e30220ce530faa8b2ab642062fadd3b4c216d57048ee6cfe81b58d5f63d0a5c"
+  },
+  "consumer_change": "Await PendingRecords::extend_reusing directly; it is the same async operation called by the synchronous test wrapper that started a nested runtime.",
+  "reader_change": "End decoding future and Reader borrows together in lexical scopes before examining the input; no explicit drop of a non-Drop Reader.",
+  "all_original_timing_and_control_assertions_preserved": true,
+  "roundtrips": [
+    {
+      "phase": "baseline",
+      "before": {
+        "src/consumer.rs": "59abadbad6a751e0af9ec2b2b79286394b65c816dc866c2f4c4bc6d967302c9f",
+        "src/protocol/cooperative/tests.rs": "6f82a36783996e3123476d064d2e0f3772b2e2b9f69a845eb8dae0c48dc88c46"
+      },
+      "after": {
+        "src/consumer.rs": "7b991df4a4917e2b936d1462628b6dd1b3ee09644882648da570d3880d39e4fb",
+        "src/protocol/cooperative/tests.rs": "7d7ad61c07823b915f18c6bd28d8220dfaa65621b0563cc68d6dc5fd3fa08080"
+      },
+      "forward_reverse_exact": true
+    },
+    {
+      "phase": "fixed",
+      "before": {
+        "src/consumer.rs": "a3e02294e93e93aa59938f6700fe3f1e8d8ee9ffb0d34d6b10d071649cceac37",
+        "src/protocol/cooperative/tests.rs": "6f82a36783996e3123476d064d2e0f3772b2e2b9f69a845eb8dae0c48dc88c46"
+      },
+      "after": {
+        "src/consumer.rs": "708116e939d8a2bc750c23781f5822f8f5f745c52819bac1ed0b5a9933934d4a",
+        "src/protocol/cooperative/tests.rs": "7d7ad61c07823b915f18c6bd28d8220dfaa65621b0563cc68d6dc5fd3fa08080"
+      },
+      "forward_reverse_exact": true
+    }
+  ],
+  "rustfmt": {
+    "command": [
+      "/workspace/work/cargo/bin/rustup",
+      "run",
+      "stable",
+      "rustfmt",
+      "--edition",
+      "2021",
+      "--config",
+      "skip_children=true",
+      "--check",
+      "/workspace/work/client-v8-integration-20261030/test-repairs/fixed/src/consumer.rs",
+      "/workspace/work/client-v8-integration-20261030/test-repairs/fixed/src/protocol/cooperative/tests.rs"
+    ],
+    "exit": 0,
+    "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "source_stable": true
+  },
+  "baseline_expectation_changes": [
+    {
+      "test": "cancelling_a_join_after_written_coordinator_responses_stops_new_requests",
+      "prior_expected": "fail",
+      "actual_exit": 0,
+      "next_expected": "pass",
+      "native_receipt": "baseline-case-07.json",
+      "reason": "Observed passing legacy baseline case; keep this identity required, retain the original failed prediction as history."
+    },
+    {
+      "test": "classic_join_returns_terminal_rediscovery_errors_without_another_join",
+      "prior_expected": "fail",
+      "actual_exit": 0,
+      "next_expected": "pass",
+      "native_receipt": "baseline-case-09.json",
+      "reason": "Observed passing legacy baseline case; keep this identity required, retain the original failed prediction as history."
+    }
+  ],
+  "integration_status": "Prepared only. Wait for coherent producer handshake, retained-backing and frozen v3 ownership inputs before composing v8.",
+  "native_qualification": "not run",
+  "production_ready": false,
+  "fastest_claim_qualified": false
+}

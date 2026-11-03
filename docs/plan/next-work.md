@@ -136,6 +136,10 @@ Strict Clippy found two test-only errors. Two of 22 expected baseline outcomes
 did not reproduce. This isolated candidate has not been adopted on `main`.
 See the [v7 results](../evidence/client/candidate-native-c025-20261030/README.md)
 and the [earlier native rounds](../evidence/releases/candidate-native-20261030/README.md).
+The staged [v8 candidate](../evidence/client/candidate-20261030/v8/README.md)
+adds test setup repairs and 26 producer ownership controls. Static review and
+source reconstruction passed; compilation, Clippy and runtime tests have not
+run. V8 does not repair the Mock Produce or retained-backing failures.
 
 Broker v2 observed seven baseline failures and passed twelve fixed controls,
 three asynchronous filesystem controls and full default/all-feature targets,
@@ -149,9 +153,13 @@ The main client and live Kafka jobs failed on `c025be19b` in
 The Release-plz PR workflow also failed because its semver checker discovered
 archived evidence manifests as duplicate packages. An ignore rule now hides
 those manifests from that traversal; the actual workflow still needs a rerun.
-The release rehearsal
-self-test is hard-coded to `0.1.0` and needs to accept the next candidate
-version. Neither failure is a publication.
+The release rehearsal self-test is hard-coded to `0.1.0` and needs to accept
+the next candidate version. The registry probe can treat an unavailable index
+as an absent version, and post-upload confirmation checks the API without
+proving Cargo index availability. Fix and test these paths before publishing.
+An isolated, unadopted patch and its offline probe results are in the
+[release tooling record](../evidence/releases/release-readiness-20261102/README.md).
+None of these failures is a publication.
 
 The workspace has a four-CPU quota and limited disk. Serialize builds and
 timing runs, retain source/executable hashes, and monitor a 1.5 GiB free-space

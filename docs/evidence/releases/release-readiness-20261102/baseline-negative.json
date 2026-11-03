@@ -1,0 +1,29 @@
+[
+  {
+    "command": [
+      "bash",
+      "scripts/rehearse-partial-release.sh",
+      "--self-test"
+    ],
+    "exit": 1,
+    "stdout_tail": "",
+    "stderr_tail": "rehearse-partial-release --self-test: FAIL \u2014 Cargo.toml version is 0.2.0; recovery must not bump/re-cut 0.1.0\n"
+  },
+  {
+    "command": [
+      "python3",
+      "-B",
+      "scripts/report-release-rehearsal.py",
+      "--self-test"
+    ],
+    "exit": 1,
+    "stdout_tail": "",
+    "stderr_tail": "Release rehearsal rejected: failed rehearsal scenario: final-tag\n"
+  },
+  {
+    "command": "offline API 404/index 503 probe",
+    "exit": 0,
+    "stdout": "status=absent detail=api_http=404,index=absent\n",
+    "stderr": ""
+  }
+]

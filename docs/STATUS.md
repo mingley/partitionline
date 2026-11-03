@@ -43,6 +43,8 @@ quorum, without replicated partition data or native Kafka KRaft.
 - The isolated [client candidate][candidate-results] ran in both feature
   profiles but did not pass. Its 141 required identities and 22 baseline cases
   remain in the candidate; its changes have not been adopted on `main`.
+  A follow-up candidate adds 26 producer ownership controls; it still needs
+  native compilation and runtime tests.
 
 ## Validation
 
@@ -103,6 +105,10 @@ when small batches drain. A replica epoch change rewrites the broker journal.
 Both are candidates for optimization; neither has a measured end-to-end
 speedup yet. The required matched x86 peer comparison has not run.
 
+The release workflow also needs repair: its registry probe can mistake an
+unavailable index for an absent version, its recovery rehearsal assumes version
+0.1.0, and its post-upload check does not verify Cargo index availability.
+
 Use [next work][next] for the detailed handoff, [support](support.md) for tested
 combinations, and the [release guide](RELEASE.md) for publication gates.
 The [task registry][tasks] remains at 249 done, 13 in progress and 84 pending;
@@ -115,13 +121,13 @@ measurements and dated notes.
 [package]: https://github.com/mingley/partitionline/blob/77021f7dc6c0d19aa93c7bf0b7fad125ee632e23/docs/evidence/releases/package-navigation-20261030/README.md
 [client]: https://github.com/mingley/partitionline/blob/77021f7dc6c0d19aa93c7bf0b7fad125ee632e23/docs/evidence/client/clean-default-validation-20261028/README.md
 [main-ci]: https://github.com/mingley/partitionline/actions/runs/41141176275
-[candidate-results]: https://github.com/mingley/partitionline/actions/runs/41141176310
+[candidate-results]: https://github.com/mingley/partitionline/blob/dfad6573e46adf8aa91626854e4f816cfff2c2bf/docs/evidence/client/candidate-native-c025-20261030/README.md
 [java]: https://github.com/mingley/partitionline/blob/9481723c7a144254fdf4f1c415d082aa0233a25f/docs/evidence/client/capability-java-20261030/README.md
 [broker]: https://github.com/mingley/partitionline/blob/ef28c255aecf402cdae2000d8796dcea9a36a8bc/docs/evidence/broker/epoch-journal-20261030/README.md
 [capability]: https://github.com/mingley/partitionline/blob/ef28c255aecf402cdae2000d8796dcea9a36a8bc/docs/evidence/client/capability-native-20261030/README.md
-[native]: https://github.com/mingley/partitionline/blob/ef28c255aecf402cdae2000d8796dcea9a36a8bc/docs/evidence/releases/candidate-native-20261030/README.md
+[native]: https://github.com/mingley/partitionline/blob/dfad6573e46adf8aa91626854e4f816cfff2c2bf/docs/evidence/releases/candidate-native-20261030/README.md
 [producer]: https://github.com/mingley/partitionline/blob/908dbdf2f20c8462a741ce59a4f56be2f310048e/docs/evidence/client/producer-admission-20261030/README.md
 [faults]: https://github.com/mingley/partitionline/blob/77021f7dc6c0d19aa93c7bf0b7fad125ee632e23/docs/evidence/broker/fuzz/20261027-candidate06/README.md
-[next]: https://github.com/mingley/partitionline/blob/ef28c255aecf402cdae2000d8796dcea9a36a8bc/docs/plan/next-work.md
+[next]: https://github.com/mingley/partitionline/blob/dfad6573e46adf8aa91626854e4f816cfff2c2bf/docs/plan/next-work.md
 [tasks]: https://github.com/mingley/partitionline/blob/77021f7dc6c0d19aa93c7bf0b7fad125ee632e23/docs/plan/tasks.json
 [previous]: https://github.com/mingley/partitionline/blob/77021f7dc6c0d19aa93c7bf0b7fad125ee632e23/docs/STATUS.md

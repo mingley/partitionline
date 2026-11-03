@@ -1,0 +1,87 @@
+{
+  "scope": "Frozen source-only v8 candidate. No production code or workflow changed in the root checkout.",
+  "prepared_utc": "2026-11-03T03:28:41.475620+00:00",
+  "prior_v7_spec_sha256": "48927f5690623df44daee097e9f132fcc309b62cb6fa744467d339a78b7f81bf",
+  "base_checkout_parent": "dfad6573e46adf8aa91626854e4f816cfff2c2bf",
+  "thin_preparation_sha256": "924f5d75daf2116630bef59836f78efb3b01b5c5098ab253f607c163b5f62c22",
+  "test_repair_preparation_sha256": "24cb6f5bbb47fdff44a0304312a30b4b36814b4b837191e1f59f239429ed074a",
+  "producer_ownership_review_sha256": "d2b33f22e4315f924ea238f009abd2e1af8d06bb010f86eec7423c90dfef6c82",
+  "ancillary_root_drift": {
+    "README.md": {
+      "v7_sha256": "4a6c89acd3c73b33ac5c4530f7ee6b2fe9c6b08334bf3abb33b498c246187ff0",
+      "new_sha256": "cc2da1f15bb90196d89ba370747baa48de7ad64b3fb1274eb0b1cfeef2772f8a"
+    }
+  },
+  "source_input_counts": {
+    "base": 1741,
+    "baseline": 1748,
+    "fixed": 1750
+  },
+  "required_controls": {
+    "v7_library": 127,
+    "v7_integration": 14,
+    "added_producer_library": 26,
+    "combined_library": 153,
+    "combined_integration": 14,
+    "baseline": 22
+  },
+  "baseline_expected_outcomes_changed": [
+    {
+      "test": "cancelling_a_join_after_written_coordinator_responses_stops_new_requests",
+      "prior_expected": "fail",
+      "actual_exit": 0,
+      "next_expected": "pass",
+      "native_receipt": "baseline-case-07.json",
+      "reason": "Observed passing legacy baseline case; keep this identity required, retain the original failed prediction as history."
+    },
+    {
+      "test": "classic_join_returns_terminal_rediscovery_errors_without_another_join",
+      "prior_expected": "fail",
+      "actual_exit": 0,
+      "next_expected": "pass",
+      "native_receipt": "baseline-case-09.json",
+      "reason": "Observed passing legacy baseline case; keep this identity required, retain the original failed prediction as history."
+    }
+  ],
+  "rustfmt": {
+    "argv": [
+      "/workspace/work/cargo/bin/rustup",
+      "run",
+      "stable",
+      "rustfmt",
+      "--edition",
+      "2021",
+      "--config",
+      "skip_children=true",
+      "--check",
+      "/workspace/work/client-v8-thin-assembly-20261103/fixed/src/consumer.rs",
+      "/workspace/work/client-v8-thin-assembly-20261103/fixed/src/protocol/cooperative/tests.rs",
+      "/workspace/work/client-v8-thin-assembly-20261103/fixed/src/producer.rs",
+      "/workspace/work/client-v8-thin-assembly-20261103/fixed/src/producer/completion.rs",
+      "/workspace/work/client-v8-thin-assembly-20261103/fixed/src/producer/prepare.rs",
+      "/workspace/work/client-v8-thin-assembly-20261103/fixed/src/producer/prepare_tests.rs",
+      "/workspace/work/client-v8-thin-assembly-20261103/fixed/src/producer/split.rs"
+    ],
+    "exit_code": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  "full_source_forward_reverse_exact": true,
+  "all_root_input_hashes_stable_through_freeze": true,
+  "native_compilation": "not run",
+  "clippy": "not run",
+  "runtime": "not run",
+  "production_ready": false,
+  "fastest_claim_qualified": false,
+  "limits": [
+    "Prepared v8 source combines v7, two test repairs and worker-owned producer terminal/retry/split/response changes; no v8 Cargo build, Clippy or Rust runtime has run.",
+    "V7 native runs reached runtime and failed: each library 2253/1, Mock Produce 31/15, retained backing 7/1/1 ignored; two Clippy test errors and two baseline expectation mismatches. V8 test repairs do not address the 15 handshake failures or retained-backing timeout.",
+    "The two corrected baseline predictions keep the same identities and are based on actual v7 baseline cases that passed; prior failed predictions remain retained.",
+    "Full runs of ten chosen binaries in default/all-feature lanes are required; other integration binaries and ordinary whole-main runtime remain separate gates.",
+    "Runtime stack remains 8 MiB except an explicit standard 2 MiB group child; this mock does not establish live Kafka stack safety.",
+    "The producer ownership fix is statically reviewed but native cancellation, retry, callback and accounting behavior remains unqualified until these controls run.",
+    "Issue ordering, sequence wrap, PID/epoch transitions, whole-batch replay and physical socket retirement before ambiguous retry remain unresolved.",
+    "Hashing/map growth, final Drop, callbacks and deque-suffix conversion can perform linear synchronous work; global memory and cancellation latency are not bounded.",
+    "No external broker, multi-node durability, release readiness or fastest-performance ranking is established."
+  ]
+}
