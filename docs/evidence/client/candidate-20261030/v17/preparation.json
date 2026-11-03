@@ -1,0 +1,111 @@
+{
+  "base_commit": "e2a04e229514d3a2662a9f765b57145c467de237",
+  "prior_candidate": "docs/evidence/client/candidate-20261030/v16",
+  "prior_spec": {
+    "sha256": "dcca8ef98344e960ced94ef0aa560032950ce96556dab16820cffe007e3a6be2",
+    "bytes": 17020
+  },
+  "phase_patch": {
+    "sha256": "96332c4ce40f67edbefaee8fca708c3ef04d9f739002172b9316b450895a49bc",
+    "bytes": 15029
+  },
+  "phase_manifest": {
+    "sha256": "8192e11766f55e1f9eaca86e343509e81ae44e64f52a4d7a627271fb4e6154c9",
+    "bytes": 2161
+  },
+  "phase_review": {
+    "sha256": "86c40e0d30acdd12fa51c4fea9263b7f4c6a60582836003847ce972d4d31313f",
+    "bytes": 1753
+  },
+  "phase_validation": {
+    "sha256": "d56d48abe416a2f63b75ce0fb29c5b82144c81bb538c24e1699a63ecfd8a112b",
+    "bytes": 2850
+  },
+  "workflow_patch": {
+    "sha256": "2881a365d91f09ae5107ba8bc56f52859fdb2965370c2a7b594ef9139ece4488",
+    "bytes": 2700
+  },
+  "v16_identical_assets": {
+    "base-inputs.json": {
+      "sha256": "11880cd37f8b1078aa88a1ac5af895efa03d16d076c7564d0e0cf9ed51cee83d",
+      "bytes": 226013
+    },
+    "baseline-inputs.json": {
+      "sha256": "66cbda09f9dbb796cc447c2212b616454bee8bdf5d9bba7a61a9b7e96510934f",
+      "bytes": 226713
+    },
+    "fixed-inputs.json": {
+      "sha256": "15da704200222b0b3b8de7d74274b9cf1fb3933a9339112c09b3467aa07868ea",
+      "bytes": 226908
+    },
+    "controls.json": {
+      "sha256": "a67f4ab8e3ed90381749d7dfbf934746300e800788fb3524de368a88560711ea",
+      "bytes": 60616
+    },
+    "baseline.patch.gz": {
+      "sha256": "191709351911f47e5fda9fbb52910c645e0570afbb411db802a34bdfb018b86e",
+      "bytes": 71659
+    },
+    "fixed-delta.patch.gz": {
+      "sha256": "fbbdcd58ad08d59169da3c0914942b8e42388f855ab8ba56b26152d1e5e0b5aa",
+      "bytes": 40193
+    },
+    "fixed.patch.gz": {
+      "sha256": "9b18e71d20a732527b6f13107d13db96bacc84d0a596be788ea454fdd55e46af",
+      "bytes": 108293
+    },
+    "deadline-fixture.patch": {
+      "sha256": "bff6fc134996b97cfc493fd4657f360c911127213ec88f0ca728548c7d9dfeeb",
+      "bytes": 2076
+    },
+    "deadline-fixture-review.json": {
+      "sha256": "0a2337944ea3a43ccf5b0896384f9b93381e1b61f849eb6f6f5584f698c4c62b",
+      "bytes": 2225
+    },
+    "deadline-fixture-receipt.json": {
+      "sha256": "a0e1b30f2602eee320ac15599dc7ac40c5f691c3f6fdd043469fc1e981af2e7d",
+      "bytes": 3079
+    }
+  },
+  "helper_pins": {
+    "scripts/candidate-command-ownership.py": {
+      "sha256": "34ddbf04a4bbead974fad4a451d30c7a56818248bd5b58c88c87bdfc41896da9",
+      "bytes": 5725
+    },
+    "scripts/ci-qualify-broker-candidate.py": {
+      "sha256": "c1361fa8cabc00f1702bf2e25c8716cfe247b29e5824aeec90c13cb928f8f7c2",
+      "bytes": 31863
+    },
+    "scripts/ci-qualify-client-candidate.py": {
+      "sha256": "f567f7456c92ce1f39e6d7b4476f3cc3300bfef9c92dd036f8cc3ef0a5514608",
+      "bytes": 41603
+    },
+    "scripts/ci-verify-client-candidate-helpers.py": {
+      "sha256": "b5f624d5d7ca13c479703416683c458fffae62f41ba885df0cc4c15a59c3a462",
+      "bytes": 8759
+    },
+    "tests/ci/test_candidate_command_ownership.py": {
+      "sha256": "0b786e63d059d9f3a3a3bf290ac4fe84313fe2f140243a292a87995e61877293",
+      "bytes": 7057
+    },
+    "tests/ci/test_client_candidate_qualification.py": {
+      "sha256": "2d84bbb8884f059b1974659dc6d1c0c4b6785a5b01702d855e8302a73ab4ce1f",
+      "bytes": 33742
+    }
+  },
+  "counts": {
+    "base": 1746,
+    "baseline": 1753,
+    "fixed": 1755,
+    "library": 166,
+    "integration": 17,
+    "total": 183,
+    "baseline_cases": 23
+  },
+  "limits": [
+    "Source preparation only; native qualification and performance measurement have not run.",
+    "The v16 raw failure artifact was unavailable; timeout phase remains unknown.",
+    "Libtest output is unframed; phase attribution is best effort and no secret redaction is claimed.",
+    "The v17 benchmark witness remains inactive pending separate binding and review."
+  ]
+}

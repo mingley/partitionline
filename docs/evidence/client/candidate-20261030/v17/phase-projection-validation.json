@@ -1,0 +1,56 @@
+{
+  "base_commit": "6fa8cdb3588d884580d01331e44df657c02f7670",
+  "patch_sha256": "96332c4ce40f67edbefaee8fca708c3ef04d9f739002172b9316b450895a49bc",
+  "manifest_sha256": "8192e11766f55e1f9eaca86e343509e81ae44e64f52a4d7a627271fb4e6154c9",
+  "source_after_hashes_rechecked": 2,
+  "unchanged_helper_sha256": "34ddbf04a4bbead974fad4a451d30c7a56818248bd5b58c88c87bdfc41896da9",
+  "guarded_tests": {
+    "path": "/workspace/work/retained-backing-phase-projection-20261103/v4-guarded.stderr",
+    "sha256": "29cf1e53f190dd90dbab285fb04bf2255d3f572c30948a7978bf1d2de0e336e7",
+    "tests": 36,
+    "result": "pass"
+  },
+  "guard": {
+    "path": "/workspace/work/retained-backing-phase-projection-20261103/guarded-tests.py",
+    "sha256": "3aff7b4fbf0f6c5ce259b24ceb135e9082fb9f4b882b27549a1097c721a128cd",
+    "network_socket_syscalls": "seccomp denied; socket preflight returned EPERM",
+    "cargo_and_registry_cli": "PATH guards; no guarded tool invoked",
+    "stdout_sha256": "45ac23c8aeebcf140a9e1497f8b754ac2d66fa48d2bb668bde6bbb5b8479cf95"
+  },
+  "source_controls": {
+    "path": "/workspace/work/retained-backing-phase-projection-20261103/v4-source-controls.json",
+    "sha256": "5ae963dff325a2d67af5826aff3b15d560870af67d17f8901e3e6eba87aa4ecd"
+  },
+  "negative_controls": [
+    {
+      "path": "/workspace/work/retained-backing-phase-projection-20261103/v2-old-duplicate.log",
+      "sha256": "a2d0b06a3d83dca10388c43e4efa7736eed7106b59cf1a6bd8ab3d28cd24657b",
+      "expected_failures": 2
+    },
+    {
+      "path": "/workspace/work/retained-backing-phase-projection-20261103/v2-old-position.log",
+      "sha256": "0bb75e2c1cc5aafdf70e2e7a6b26fdcbf3269718747c2b9b69d5913420c51b3f",
+      "expected_failures": 2
+    },
+    {
+      "path": "/workspace/work/retained-backing-phase-projection-20261103/v3-old-position.log",
+      "sha256": "9fe3f65db52491fb16afde03ce740fa2cb2972fbb22a6a0959dbd14b377ed66c",
+      "expected_failures": 2
+    },
+    {
+      "path": "/workspace/work/retained-backing-phase-projection-20261103/v4-old-position.log",
+      "sha256": "68a25d975040a0d23a54a85ce504f017c3238fd1de156b01b37f1c90dbeedcb8",
+      "expected_failures": 3
+    }
+  ],
+  "independent_review": {
+    "path": "/workspace/work/retained-backing-phase-projection-independent-20261103/independent-review-v4.json",
+    "sha256": "86c40e0d30acdd12fa51c4fea9263b7f4c6a60582836003847ce972d4d31313f"
+  },
+  "limits": [
+    "The raw hosted test artifact was unavailable: Error: Timeout does not prove that the 10-second flush phase was reached or that a phase line existed.",
+    "Libtest text is unframed and may be forged; attribution is best effort and no secret redaction is claimed.",
+    "Changing the driver/test requires repinning v16 helper checks before a new qualification.",
+    "No Cargo, Rust compilation, native test, network or publication."
+  ]
+}

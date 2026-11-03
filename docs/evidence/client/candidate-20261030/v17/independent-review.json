@@ -1,0 +1,43 @@
+{
+  "decision": "no source or workflow rebind blocker found; hosted qualification and performance claims remain open",
+  "bundle_manifest_sha256": "59df730e5b8d65e2b7e09ea51b4919e4f789af04f1e18bcace673db87f7096ca",
+  "spec_sha256": "2db3a3722c46ad9fada081841d26f14d43bf76f538766af93fc6a315ad83305c",
+  "import_manifest_sha256": "581019e43493fe64af627960f782c2a2ca60c9feaac349500451ddd80bfa7a26",
+  "base_commit": "e2a04e229514d3a2662a9f765b57145c467de237",
+  "asset_files_verified": 24,
+  "import_files_verified": 23,
+  "helper_pins_verified": 6,
+  "catalog_counts": {
+    "base": 1746,
+    "baseline": 1753,
+    "fixed": 1755
+  },
+  "full_source_roundtrip_inherited_from_byte_identical_assets": {
+    "receipt": "/workspace/work/client-v17-independent-review-20261103/pre-freeze-roundtrip.json",
+    "sha256": "3b36982e77d14601d9634230aa052788f777f4636836dba092cfe773bca4f211",
+    "passed": true
+  },
+  "phase_patch_sha256": "96332c4ce40f67edbefaee8fca708c3ef04d9f739002172b9316b450895a49bc",
+  "phase_independent_review_sha256": "2cf2b847452de33d384143fc5f9d91772b492de89517549a94151612a833a8e4",
+  "phase_and_workflow_import_order_forward_reverse_verified": true,
+  "workflow_patch_sha256": "2881a365d91f09ae5107ba8bc56f52859fdb2965370c2a7b594ef9139ece4488",
+  "workflow_change": "exact textual v16 to v17 substitution; broker r2 and historical comparison lanes unchanged",
+  "controls": {
+    "library": 166,
+    "integration": 17,
+    "baseline_cases": 23,
+    "expectations": {
+      "pass": 5,
+      "fail": 16,
+      "observe": 2
+    },
+    "all_v16_cases_targets_thresholds_and_rust_assets_identical": true
+  },
+  "stale_v16_result_note_corrected": true,
+  "self_referential_import_manifest_absent": true,
+  "limitations": [
+    "No Cargo, Rust compilation, native or hosted v17 run.",
+    "The v16 timeout phase remains unknown; diagnostic output is best-effort and not redacted.",
+    "Benchmark remains inactive; no production, publish, or fastest-performance claim is established."
+  ]
+}

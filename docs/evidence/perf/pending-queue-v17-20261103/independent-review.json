@@ -1,0 +1,32 @@
+{
+  "decision": "pass source-only review; keep inactive until complete same-job v17 qualification succeeds",
+  "archive_sha256": "277530ce350c6e879d58c3702631266a60558de5a22beaf230166cf6b6aa05b6",
+  "manifest_sha256": "29c249aab6466eeaed34afaf06ce0f60ad51d492dd3df8c3134335a17e524798",
+  "author_receipt_sha256": "a81580100fd4f2458d79b93974253599f9db3a328521d8a772c5f83c7d32611c",
+  "v17_spec_sha256": "2db3a3722c46ad9fada081841d26f14d43bf76f538766af93fc6a315ad83305c",
+  "v17_import_manifest_sha256": "581019e43493fe64af627960f782c2a2ca60c9feaac349500451ddd80bfa7a26",
+  "v16_prior_review_sha256": "0c697edbe2ccbec1890a3c50e5e0fe5a76398bf101652e2d7a9e6d746aaa3475",
+  "checks": {
+    "all_bundle_archive_assets_match": true,
+    "all_prior_v16_archive_assets_match": true,
+    "nine_harness_catalog_patch_and_fixture_assets_byte_identical": true,
+    "ten_core_functions_and_sampling_loop_identical": true,
+    "v16_to_v17_delta_exact": true,
+    "v17_and_v16_fixed_catalog_byte_identical": true,
+    "baseline_cases_23_library_controls_166_integration_controls_17_targets_10": true,
+    "all_six_v17_helpers_and_v4_phase_overlay_hashes_match": true,
+    "all_22_format_clippy_and_full_target_gates_required_and_unique": true,
+    "same_job_run_attempt_sha_report_and_helper_witness_preserved": true,
+    "nine_python_controls_pass_from_committed_git_checkout_without_skips": true
+  },
+  "assessment": [
+    "The gate requires the exact 22 passed and uniquely named entries for format, Clippy and every target in both profiles, plus the baseline and required-control counts. It binds the qualification report and helper files to the same workflow job/run/attempt/SHA; this is trusted workflow ordering, not an independent signature.",
+    "The Rust harness, fixtures, source inventories, ten core runner functions and sampling/timing loop match the previously reviewed v16 bundle. The fixed arm retains the v16 label because its source catalog is byte-identical to v17.",
+    "The illustrative workflow remains inactive; the runner rejects missing/failed qualification before copying or measuring source."
+  ],
+  "limits": [
+    "Nine offline Python controls and helper verification only; no Cargo, Rust build/test, native benchmark, hosted run, network or root edits.",
+    "The observed retained-backing timeout means v17 correctness has not passed. The benchmark provides no performance result, global ranking, production readiness or publication qualification.",
+    "Loopback fixture measures the chosen queue operations and does not prove Kafka delivery; scope and scheduling limitations from the prior v16 review remain."
+  ]
+}

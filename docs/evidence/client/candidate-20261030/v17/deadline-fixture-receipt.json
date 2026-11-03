@@ -1,0 +1,36 @@
+{
+  "scope": "Isolated fixed-v14 cancellation test fixture change; no production code changes",
+  "source_preimage_sha256": "ecf14e7e89fff1d1c29faa6778061d58545f9df565eb7858561d4de58920b279",
+  "source_postimage_sha256": "38add9415de68efd3ede5a27ce3c182adea92cbd94cd8c77e07b74774d30f6d1",
+  "patch_sha256": "bff6fc134996b97cfc493fd4657f360c911127213ec88f0ca728548c7d9dfeeb",
+  "verification_script_sha256": "89e251f9e7375a8d2f27103ea9cb2247fa40e31c8f5a4bd3eb347d4787c67989",
+  "verified_exact_fixed_v14_source_sha256": "ecf14e7e89fff1d1c29faa6778061d58545f9df565eb7858561d4de58920b279",
+  "test_control_preservation": {
+    "baseline_case_02": "not changed; patch applies only to fixed candidate",
+    "retained_cancellation_identities": [
+      "producer::tests::cancelled_pending_drain_retains_accepted_records_until_worker_cleanup",
+      "producer::tests::cancelled_pending_deadline_scan_retains_the_detached_prefix_until_worker_cleanup"
+    ],
+    "existing_unchanged_required_controls": [
+      "producer::prepare_tests::ordered_deadlines_drain_without_rescanning_the_suffix",
+      "producer::prepare_tests::unordered_deadlines_keep_the_cooperative_minimum_scan"
+    ],
+    "unchanged_ordered_unordered_tests_file_sha256": "c6696efaa6edbee311d508a391603d5332d52ed58c7ac6a82d0385add1f35712",
+    "original_assertions_and_timeouts": "all original code from polling drain through worker cleanup is byte-identical; admission, buffer, channel and socket controls remain present"
+  },
+  "fixture_modes": {
+    "one_record": "base deadline for first and last; all middle records are one millisecond later. Earliest is in removed prefix, deadlines are unordered, suffix has 8192 records so the cooperative suffix fold yields before moving any record. New assertions witness the preconditions.",
+    "full_drain": "all 8193 deadlines equal; valid ordered accounting remains true; scanning the first 8192 records yields before moving any record, as in the original prefix control."
+  },
+  "checks": [
+    "Static source preservation and modeled fixture shapes via verify.py passed.",
+    "Exact patch forward and reverse reconstruction passed.",
+    "rustfmt 1.10.0-stable (58cf8f9c35 2026-10-13), edition 2021, skip_children=true, --check passed."
+  ],
+  "observed_hosted_failure": "v14 run 41581442964 reported this identity failed in each full library profile; baseline case 02 passed. Panic text was absent from the available job log; ~301 seconds was the whole library target, not an individual test time.",
+  "source_explanation": "Before this patch, monotonically generated deadlines normally make the ordered fast path return Ready for a single-record drain, while the test expects Pending. This is a source-level explanation, not a diagnosis from the missing hosted panic.",
+  "limitations": [
+    "No Cargo, native Rust tests, Clippy, live Kafka, benchmark or production qualification was performed.",
+    "The proposed change is limited to the fixed test fixture. Existing unrelated client failures, ignored peer control and overall release readiness remain open."
+  ]
+}

@@ -1,0 +1,73 @@
+{
+  "base_commit": "e2a04e229514d3a2662a9f765b57145c467de237",
+  "bundle_manifest": {
+    "sha256": "59df730e5b8d65e2b7e09ea51b4919e4f789af04f1e18bcace673db87f7096ca",
+    "bytes": 7078
+  },
+  "spec": {
+    "sha256": "2db3a3722c46ad9fada081841d26f14d43bf76f538766af93fc6a315ad83305c",
+    "bytes": 19251
+  },
+  "import_manifest": {
+    "sha256": "581019e43493fe64af627960f782c2a2ca60c9feaac349500451ddd80bfa7a26",
+    "bytes": 6217
+  },
+  "workflow_patch": {
+    "sha256": "2881a365d91f09ae5107ba8bc56f52859fdb2965370c2a7b594ef9139ece4488",
+    "bytes": 2700
+  },
+  "phase_patch": {
+    "sha256": "96332c4ce40f67edbefaee8fca708c3ef04d9f739002172b9316b450895a49bc",
+    "bytes": 15029
+  },
+  "phase_peer_review": {
+    "sha256": "bec3f6d8c1f9934421ea1d7d4d0b77a8dc3100642f9ba995d23333b0262773fb",
+    "bytes": 2002
+  },
+  "source_replay": {
+    "base": 1746,
+    "baseline": 1753,
+    "fixed": 1755,
+    "baseline_delta_and_combined_forward_reverse": true
+  },
+  "helper_tests": {
+    "count": 36,
+    "result": "pass",
+    "stderr": {
+      "sha256": "4d27439c830ecf8725d332a67e1173e1019c85176070c5ea9a327d7303aa31ae",
+      "bytes": 6621
+    },
+    "stdout": {
+      "sha256": "b4a17579aceff2b4caab58c6d616328cd13f7f68418fdc880f8749de820abda8",
+      "bytes": 1085
+    }
+  },
+  "workflow_controls": {
+    "count": 20,
+    "result": "pass",
+    "harness": {
+      "sha256": "21662dbf892ae99ead624dce11df5b94f10a4133f08be20b817f2fbf9c3ec242",
+      "bytes": 3793
+    },
+    "result_file": {
+      "sha256": "57de6edbadd5e78816617ef9e93c23d0adbc6f86d8f55867d315092dbe347051",
+      "bytes": 2320
+    },
+    "stdout": {
+      "sha256": "68ae2e6b29ebfdfb8d32b427ace49e687517d412721f0d3b61b87813770bbe8d",
+      "bytes": 99
+    }
+  },
+  "network_guard": "socket/connect/send calls blocked by seccomp in both test runs; socket preflight denied",
+  "cargo_native_network_calls": "no guarded tool invoked; no Cargo or native tests run",
+  "exact_root_workflow_and_phase_preimages_checked": true,
+  "root_patch_apply_check": true,
+  "all_24_package_hashes_rechecked": true,
+  "all_6_helper_hashes_rechecked": true,
+  "benchmark": "inactive; separately rebind and require complete same-job correctness",
+  "limitations": [
+    "Source-only qualification; no new hosted or native client run.",
+    "Previous v16 retained-backing failure phase is unknown because the full artifact was unavailable.",
+    "Libtest output is unframed and the projected diagnostic is not secret-redacted."
+  ]
+}

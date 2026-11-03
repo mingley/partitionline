@@ -1,0 +1,57 @@
+{
+  "bundle_manifest_sha256": "59df730e5b8d65e2b7e09ea51b4919e4f789af04f1e18bcace673db87f7096ca",
+  "workflow_sha256": "c738e750218f4d0b64e3b8b8ef20b6f557d2cf09a337c35b5c10a9a67841c55e",
+  "cases": {
+    "valid_v17_manifest_and_helpers": [
+      {
+        "exit": 0,
+        "stderr_last": "OK"
+      },
+      {
+        "exit": 0,
+        "stderr_last": ""
+      }
+    ],
+    "same_size_mutation_scripts/ci-qualify-client-candidate.py": [
+      {
+        "exit": 1,
+        "stderr_last": "candidate helper pins: helper size or hash mismatch: scripts/ci-qualify-client-candidate.py"
+      },
+      {
+        "exit": 1,
+        "stderr_last": "candidate helper pins: helper size or hash mismatch: scripts/ci-qualify-client-candidate.py"
+      }
+    ],
+    "same_size_mutation_tests/ci/test_client_candidate_qualification.py": [
+      {
+        "exit": 1,
+        "stderr_last": "candidate helper pins: helper size or hash mismatch: tests/ci/test_client_candidate_qualification.py"
+      },
+      {
+        "exit": 1,
+        "stderr_last": "candidate helper pins: helper size or hash mismatch: tests/ci/test_client_candidate_qualification.py"
+      }
+    ],
+    "duplicate_manifest_key": [
+      {
+        "exit": 1,
+        "stderr_last": "candidate helper pins: invalid helper manifest: duplicate JSON key: required_existing_root_files"
+      },
+      {
+        "exit": 1,
+        "stderr_last": "candidate helper pins: invalid helper manifest: duplicate JSON key: required_existing_root_files"
+      }
+    ],
+    "same_size_noop_guard_with_forged_manifest": [
+      {
+        "exit": 1,
+        "stderr_last": "candidate helper guard hash mismatch"
+      },
+      {
+        "exit": 1,
+        "stderr_last": "candidate helper guard hash mismatch"
+      }
+    ]
+  },
+  "scope": "offline private synthetic checkout; no Cargo, native compile, network or root edits"
+}

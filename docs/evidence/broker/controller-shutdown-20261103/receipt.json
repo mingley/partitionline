@@ -1,0 +1,45 @@
+{
+  "scope": "Isolated source-only ControllerHandler join outcome fix revision 2, no production adoption",
+  "source_commit": "6fa8cdb3588d884580d01331e44df657c02f7670",
+  "source_preimage_sha256": "47ae96c84080813e4b81cfbfcdbe8bd45e48389c13c8562c0963dfc743137127",
+  "fixed_source_sha256": "86c8971a500208bb93ff015d9d3dd056efd8a34d7204b7de1f0d27c59a4499c3",
+  "baseline_test_source_sha256": "d8930b26edd533ac4534570eeb41a7cc9a3b129435c3d7b2502b69d50853a8b0",
+  "previous_revision_archive_sha256": "b44c16113b21d13412353775b339a4734a079abf5aa74f744f2bb9ecfd02bf58",
+  "source_cargo_toml_sha256": "88c9f2efaec47615dba40c4d1feb5e481b38bd51796e76ca6fc87cf064495bf5",
+  "source_cargo_lock_sha256": "42eaddf993ab4dfbe99e5af9d7c1a7cd858776a214eedbd6112de6a146933a2c",
+  "existing_integration_test_sha256": "2212994acdd0cb6b9115e0f6a6c4f5426b2978bbb988a5d827a4b263476ab515",
+  "tokio_task_sources_sha256": {
+    "core.rs": "7c896dec6ef10054ed2b8049a2b35667eae348615c162a46d1ceb9181fc71b5c",
+    "harness.rs": "008c697f432197c6537472e2cea55fa973aec45df946b85abfbea966f2db8d51",
+    "join.rs": "e1c5c5730743d901ce375f0c46eb3050a9d69b5c28ebe275fb2a585a3e22debb",
+    "error.rs": "0c84e9189f351c6e1eb0c5865b9df84a928ed4602b06fd5c2e71fb7c43eb1e27"
+  },
+  "fix": "Borrow Running(JoinHandle) across Pending. After Ready record Succeeded/Failed, release the mutex, then drop/map the result. Later callers replay success or Error::Actor.",
+  "payload_policy": "A panic payload destructor may reenter or panic. It runs after terminal state is stored and the mutex released; a panicking destructor propagates to the first caller but later shutdowns report Actor. Panic=abort terminates the process.",
+  "controls": [
+    "panicking_payload_drops_outside_join_lock_after_failure_is_recorded",
+    "panicked_actor_is_reported_by_every_later_shutdown",
+    "concurrent_shutdowns_share_the_actor_failure",
+    "cancelled_shutdown_retains_a_successful_actor_until_join",
+    "cancelled_shutdown_retains_a_failing_actor_until_join"
+  ],
+  "baseline_predictions_not_executed": "The four actor-failure controls should fail on original source; the canceled-success control should pass. This is source reasoning, not observed behavior.",
+  "checks": [
+    "Source hashes, fixed and baseline-test patch forward/reverse applicability.",
+    "Controls identical across fixed and baseline witnesses after three strictly mechanical type adaptations.",
+    "Rustfmt 1.10.0-stable source-only check for fixed and baseline witnesses."
+  ],
+  "limitations": [
+    "No compilation, Cargo, Clippy, rustdoc, native test, actual actor/WAL/network, or benchmark.",
+    "The actor is a synthetic gated blocking task; real controller wake and the separate queue-budget issue are not tested or changed.",
+    "Injected task and destructor panics require unwind; panic-abort terminates the process.",
+    "No production, release or performance qualification is established."
+  ],
+  "files": {
+    "README.md": "bde994e89eadf9705138a8e04dba9862897266a09e3e60938c5e121cb876a8c4",
+    "controller-join.patch": "879595b42050f6ba7a5995d341263e6a163e64ca2e35420fd10cf0eb910beaef",
+    "baseline-controls.patch": "4865489843dae983459bfd182a286fe935d6f76212277589fafb080154d62a81",
+    "verify.py": "e99ab844740dbada02a6b3fc6ab43bc617c29342e9db328c8a721b8f09dc923f",
+    "make-receipt.py": "55815a67aac8a13016ccfcf9a700a296a5413d90283a44244442305009b869cd"
+  }
+}

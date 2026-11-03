@@ -1,0 +1,13 @@
+{
+  "files": {
+    "CONTROLS.md": "9df8134e43703d357ced07af0326cd08d5a4ef3810570708876d8ce886f6952b",
+    "README.md": "d506be81c8f5d6fd62b4cd6348fc0614312615dd943bbe8041407e47491a5bfe",
+    "extract_projection.py": "c7975b5a4f1908cfcd3a32c9a34a3631503bb985c799c70d76904f3e4b716201",
+    "model.py": "5807647c8c20937ff8e1b4b9a081f8257fe40e1c23420ca800003d0b47d0c8d8",
+    "source-pins.json": "be551b92dc601a13d39fbd990e21607de9098ae56c45a156130962057b615fe8",
+    "v16-mock-projection.json": "32a3873f96c1cb5585e939c573720d669d9df77dc5452732a408a9c184e149f3",
+    "verify.py": "239c31e0bd469d57060f40b6d2db3ddd9c85e376ef7ac9b8938a69922efda4ad"
+  },
+  "scope": "v2 frozen source-only design and control specifications",
+  "v1_archive_sha256": "80eedd06de5804b9736ed4c0954a70c431652e51b027bc74614b54ad3ddaa669"
+}

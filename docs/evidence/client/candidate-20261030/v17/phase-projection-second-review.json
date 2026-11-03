@@ -1,0 +1,43 @@
+{
+  "patch_sha256": "96332c4ce40f67edbefaee8fca708c3ef04d9f739002172b9316b450895a49bc",
+  "manifest_sha256": "8192e11766f55e1f9eaca86e343509e81ae44e64f52a4d7a627271fb4e6154c9",
+  "full_and_v3_delta_roundtrip": true,
+  "only_existing_function_changed": "emit_test_diagnostics",
+  "original_guard_tests_ast_unchanged": 30,
+  "source_only_adversarial_cases": {
+    "valid_default": "pass",
+    "valid_all": "pass",
+    "first_error_other": "pass",
+    "first_error_timeout": "pass",
+    "first_panic": "pass",
+    "late_error": "pass",
+    "malformed_after_error": "pass",
+    "intervening_blank": "pass",
+    "two_candidates": "pass",
+    "bad_u64": "pass",
+    "leading_zero": "pass",
+    "terminal_before_phase": "pass",
+    "wrong_lane": "pass",
+    "wrong_test": "pass",
+    "duplicate_header_elsewhere": "pass",
+    "duplicate_phase_elsewhere": "pass"
+  },
+  "suite": "36 guarded Python tests passed on rerun with network blocked; first isolated attempt lacked rg and is retained",
+  "limitations": [
+    "The raw hosted test artifact was unavailable: Error: Timeout does not prove that the 10-second flush phase was reached or that a phase line existed.",
+    "Libtest text is unframed and may be forged; attribution is best effort and no secret redaction is claimed.",
+    "Changing the driver/test requires repinning v16 helper checks before a new qualification.",
+    "No Cargo, Rust compilation, native test, network or publication."
+  ],
+  "decision": "no source-only blocker found; keep inactive until helper pins and hosted qualification are updated",
+  "base_commit": "6fa8cdb3588d884580d01331e44df657c02f7670",
+  "test_source_sha256": "ed6b5fd8646b580e238f7521c68ae82d6d51bb739ddcb87cf7d89231954fa882",
+  "hosted_log_sha256": "9d1c4c7be7b99a787d5be57df32025efb04136f2452fe0d33c71991ea74acd88",
+  "raw_log_and_gate_functions_ast_unchanged": true,
+  "prior_v3_bypass_receipt_sha256": "66df042d47f33c564432b5641c7089f9eee93228178f33fe3832e9187a7d6804",
+  "guarded_python_stdout_sha256": "b4a17579aceff2b4caab58c6d616328cd13f7f68418fdc880f8749de820abda8",
+  "guarded_python_stderr_sha256": "a4ce5db015ebb17e2a71a8ef5f42e913b333c451adf1ea9d00f5d50bc1f0bc59",
+  "guarded_runner_sha256": "ddb190cefea1134665b7ef51f4ffc00b46f73bb5d90bd1fcd578fc04eebc68a1",
+  "historical_initial_attempt": "failed only because peer isolated PATH lacked rg; original output retained and rerun passed",
+  "security_scope": "Validated numeric phase projection is bounded and escaped. Other generic test diagnostics are not secret redaction; unframed log attribution remains best effort."
+}

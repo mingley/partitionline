@@ -1,0 +1,30 @@
+{
+  "decision": "no blocker to retaining this source-only design; it is not an implementation or qualification",
+  "reviewed_archive_sha256": "e8f98768c4fe4b8311f68164753f8b0840f99af9a0ccc9450658fa19ab243a53",
+  "reviewed_receipt_sha256": "dc9aa5f1c98146d3fb2c18788b13be1e377eddbb769cdcac2e78adce99addad5",
+  "reviewed_manifest_sha256": "eb0c732574023b13827abda2a756e4e191c2c1f5985e55ffde09d74812202fe5",
+  "v16_fixed_catalog_sha256": "15da704200222b0b3b8de7d74274b9cf1fb3933a9339112c09b3467aa07868ea",
+  "v16_log_sha256": "9d1c4c7be7b99a787d5be57df32025efb04136f2452fe0d33c71991ea74acd88",
+  "archive_members_and_source_pins_verified": true,
+  "source_verifier_and_illustrative_model_passed": true,
+  "peer_verifier_stdout_sha256": "c4c71711c044347337df4d1c1e1d2950e181d3318cba4fbcf6c1728a8b1230c5",
+  "source_findings": [
+    "Actual Worker sets write_started before raw socket write and adds Worker in-flight state only after successful write; neither step increments BrokerConn in-flight via send_deadline. Zero counters/read buffers alone are insufficient to establish safe transfer.",
+    "Preparing.take_groups does not reset write_started; it records write history until begin resets it, not the exact active-write phase.",
+    "The raw Worker fire source does not itself invoke send_deadline or the expiry/reauth checks; this is a source qualification gap, not proof that expired traffic was accepted.",
+    "Close marks a flag; TCP release can keep its transport object and descriptor alive; BrokerConn Drop aborts its watcher without joining it. Physical retirement must be witnessed.",
+    "V2 requires same physical socket and slot generation for the transfer decision, distinguishes independent sessions, and defines pre-write/partial/in-flight expiry controls.",
+    "The two v16 projected mock summaries each have 15 failures; v10 physical-wire evidence remains separate and does not establish the v16 socket timeline. Original end-to-end 450ms test source remains pinned."
+  ],
+  "control_review_caveats": [
+    "For control 2, first witness actual admission and the gated Worker write, then stop polling or cancel that admitted caller. A never-polled admission future cannot initiate work and should be a separate no-registration negative.",
+    "When implementing, test heterogeneous simultaneously live broker API versions, preencoded request bodies and correlation wrap/late responses, as well as same-address broker replacement and authentication credential rotation.",
+    "Keep retained-backing byte-accounting scope explicit; shared or opaque user-owned allocation size and allocator/RSS overhead cannot be inferred from a slice length.",
+    "The physical descriptor and SASL controls are specifications; none was executed, and a deterministic first-write clock check is not a proof of remote broker timing."
+  ],
+  "limitations": [
+    "No Rust patch, Cargo or native test, real Kafka/TLS/SASL run, performance benchmark or production-readiness claim.",
+    "V16 job output is an explicitly unverified bounded projection; the full report artifact was not independently read.",
+    "The original 450ms end-to-end performance failure remains unresolved."
+  ]
+}

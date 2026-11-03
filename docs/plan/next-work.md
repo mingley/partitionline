@@ -62,13 +62,21 @@ needs a current-source rebase, API compatibility decision, bounded test reads
 and public Handle timeout and cancellation controls before adoption. Its review
 also identified an existing runtime proposal-buffer capacity accounting gap.
 An isolated [capacity fix candidate](../evidence/broker/candidate-20261030/runtime-capacity-v2-r2/README.md)
-has source review and a hosted qualification workflow, but its Rust tests and
-baseline outcome have not run yet. Its first harness failed inside a Git
-checkout; the corrected harness passed there. Caller-owned waiting futures
-remain outside the configured estimate.
+reproduced the old deadline outcome and passed its fixed tests on hosted x86.
+The [hosted run](../evidence/broker/runtime-capacity-native-e2a0-20261103/README.md)
+passed 729 default and 877 all-feature tests, along with formatting, strict
+Clippy, documentation and the existing focused controls. Both doctest commands
+found zero tests, and OOM counters were unavailable.
+The qualified patch is applied. Inputs whose length is valid but whose capacity
+exceeds the configured command payload envelope are now rejected before
+admission. Caller-owned waiting futures remain outside the configured estimate.
+The first harness failed inside a Git checkout; its corrected version passed.
 The separate [controller queue capacity review](../evidence/broker/controller-queue-capacity-20261103/README.md)
 found that its configured queue budget does not cover both retained vectors.
 Define and test their combined capacity and reply-lifetime accounting.
+The source-reviewed [controller shutdown candidate](../evidence/broker/controller-shutdown-20261103/README.md)
+also needs hosted baseline and fixed tests, including real controller, WAL and
+transport coverage, before adoption.
 
 ## Correctness priorities
 
@@ -220,7 +228,8 @@ backing test. The original 450 ms send-all test reported 756.0635 ms and
 756.451082 ms; these mock-test timings are not a peer benchmark. The retained-
 backing projection reported `Timeout` without identifying the phase. The
 [phase-diagnostic follow-up](../evidence/client/retained-phase-followup-20261103/README.md)
-has source review but needs updated candidate pins and a hosted rerun. The
+is staged in the [v17 candidate](../evidence/client/candidate-20261030/v17/README.md)
+with unchanged Rust tests and timing; it needs a hosted rerun. The
 [v14 run](../evidence/client/candidate-v14-job-20261103/REPORT.md)
 passed format, strict Clippy and both builds, but each profile failed the same
 15 Mock Produce tests, one pending-deadline cancellation test and one
@@ -231,7 +240,8 @@ maps the failing identities to their distinct assertions. Several expect
 reuse of a live negotiated socket, while v14 opens a new socket and negotiates
 it separately. V14's panic bodies were unavailable; v16 reported handshake
 counts and latency assertions. Preserve socket-specific versions and
-authentication when designing reuse.
+authentication when designing reuse. A reviewed [live-socket design](../evidence/client/live-socket-reuse-20261103/README.md)
+sets out ownership and expiry controls; it is unimplemented and unmeasured.
 The retained-backing fixture sends more than 4,096 single-record batches with
 one request in flight. Repeated vector prefix drains shift the remaining
 records; their contribution to the failure has not been measured. The reviewed
@@ -317,8 +327,9 @@ The [queue candidate](../evidence/perf/producer-pending-20261102/README.md)
 skips certain deadline scans, but still needs native tests and benchmarking.
 It does not remove vector prefix shifts.
 A [paired queue microbenchmark prototype](../evidence/perf/pending-queue-v16-20261103/README.md)
-has source review but remains uncompiled and inactive until v16 correctness
-passes in the same job. Synthetic completions do not prove Kafka delivery.
+has source review. Its [v17 rebind](../evidence/perf/pending-queue-v17-20261103/README.md)
+remains uncompiled and inactive until complete v17 correctness passes in the
+same job. Synthetic completions do not prove Kafka delivery.
 The [supervised group coordinator draft](../evidence/client/group-coordinator-cache-20261103/README.md)
 needs its eviction, close cancellation, retry ordering and admission limits
 resolved before native qualification.

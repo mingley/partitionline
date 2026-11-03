@@ -1,0 +1,40 @@
+{
+  "scope": "Blocked source-only revision of ControllerHandler queue-byte-budget design; no Rust patch",
+  "decision": "Do not adopt until wake, receiver lifecycle, unwind, poison, reentrancy and native concurrency controls are independently reviewed and qualified.",
+  "source_commit": "6fa8cdb3588d884580d01331e44df657c02f7670",
+  "source_pins": {
+    "partitionline-broker/src/raft/protocol.rs": "47ae96c84080813e4b81cfbfcdbe8bd45e48389c13c8562c0963dfc743137127",
+    "partitionline-broker/src/protocol.rs": "c0c81bcaba200dc27e670146fc6bf37342aadc506547ef606b597d708df5207a",
+    "partitionline-broker/src/transport.rs": "802f9923b825bdac96ea0d31663f6f3a1c1d84903c46bb16130b2eb8419a8aa2",
+    "partitionline-broker/Cargo.lock": "42eaddf993ab4dfbe99e5af9d7c1a7cd858776a214eedbd6112de6a146933a2c",
+    "tokio-1.53.3/src/sync/mpsc/bounded.rs": "f229ccaa6711bffb17d8021dade6405d17595d5f64dac2f03107c05a4cc381f2",
+    "tokio-1.53.3/src/sync/mpsc/chan.rs": "cbc283b9f4a824e33ec3b137b155dd7044ce296596685070c1acb306a1660542"
+  },
+  "prior_proposal_receipt_sha256": "947948212887ccb0cd84f9792a0b41769c71a5b6760db7b8983d2ddb3aa722e7",
+  "independent_blocker_review_sha256": "a3f75ea849398e10f2425e784812680cebce1047bac95f388f307167e9d5fc98",
+  "review_findings": [
+    "A sole reserved permit can make shutdown Stop fail Full, then rejection can return the permit without waking the actor.",
+    "A reserved permit may send after receiver closure; a direct response future may then hang while the sender remains alive.",
+    "Both Busy and InvalidConfig map to transport HandlerError and connection closure; repeated small admissions can starve a large one."
+  ],
+  "revision": "A synchronous gate sketch fences all producers, stop signaling, actor post-receive stop checks and receiver lifetime; potentially reentrant drops and replies happen outside. The protocol remains conditional, unimplemented, and blocked.",
+  "validation": [
+    "Verified source and peer hashes plus bounded source observations with verify-source.py.",
+    "Reproduced the bounded idealized state model output: Q=1 and Q=2, valid/invalid producer, empty/seeded queue, normal actor work or modeled actor failure.",
+    "A peer examined the draft sketch and reproduced the model output; a bound independent receipt is pending."
+  ],
+  "limitations": [
+    "No Cargo, compiler, Rust/native test, actual Tokio execution, actor/WAL/network test or benchmark.",
+    "The toy model excludes multiple producers, bytes, actual allocation, wake failure, panic/poison within send or gate, reentrant destructors, memory ordering and scheduler fairness.",
+    "All old successful behavior cannot be preserved under the desired byte bound without changing allocation/reuse semantics. The planned errors and transport connection impact are observable.",
+    "The Q*L estimate covers queued input Vec capacities only; active work, replies, callers, allocation overhead, buffers and RSS are outside.",
+    "No production-readiness, fastest-performance or release-readiness claim."
+  ],
+  "files": {
+    "README.md": "55b2a9c004ea25e05fecbff5dae476ff9573c63483565ca85209977d023702a5",
+    "model.py": "6327f32b045fed34447f4a21dc9a75b525752257430dfe23d2f51c59ea8a738e",
+    "model.out": "2c0e5d3d442e1e6370140f8510b385d469075de4dd10740579f652baa798661e",
+    "verify-source.py": "3b540afe40ab9d2bcc6f2fd2594cb6a362e2c2010b575b9ddaad3005596e2ff7",
+    "make-receipt.py": "99ebd13c20f5566f303e15d5f47e55f2655ac2f39a2393f3eff22cb4a0261c1b"
+  }
+}

@@ -33,7 +33,7 @@ jobs:
       matrix:
         include:
           - kind: client
-            source_version: v16
+            source_version: v17
             checkout_sha: ${{ github.sha }}
           - kind: client
             source_version: main-comparison-b1
@@ -65,8 +65,8 @@ jobs:
             exit 1
           fi
           printf 'Trigger SHA: %s\nCheckout SHA: %s\n' "$GITHUB_SHA" "$actual"
-      - name: Verify v16 helper pins and controls
-        if: matrix.kind == 'client' && matrix.source_version == 'v16'
+      - name: Verify v17 helper pins and controls
+        if: matrix.kind == 'client' && matrix.source_version == 'v17'
         run: |
           python3 -B - <<'PY'
           import hashlib, os, stat, sys
@@ -84,7 +84,7 @@ jobs:
           if len(data) != 8759 or hashlib.sha256(data).hexdigest() != 'b5f624d5d7ca13c479703416683c458fffae62f41ba885df0cc4c15a59c3a462':
               raise SystemExit('candidate helper guard hash mismatch')
           code = compile(data, name, 'exec')
-          for command in [['--self-test'], ['--checkout', '.', '--manifest', 'docs/evidence/client/candidate-20261030/v16/import-manifest.json']]:
+          for command in [['--self-test'], ['--checkout', '.', '--manifest', 'docs/evidence/client/candidate-20261030/v17/import-manifest.json']]:
               sys.argv = [name] + command
               try:
                   exec(code, {'__name__': '__main__', '__file__': name})
@@ -110,8 +110,8 @@ jobs:
         run: python3 -B -m unittest discover -s tests/ci -p 'test_broker_candidate_qualification.py' -v
       - name: Check local TLS peer prerequisite
         run: openssl version
-      - name: Recheck v16 helper pins
-        if: matrix.kind == 'client' && matrix.source_version == 'v16'
+      - name: Recheck v17 helper pins
+        if: matrix.kind == 'client' && matrix.source_version == 'v17'
         run: |
           python3 -B - <<'PY'
           import hashlib, os, stat, sys
@@ -129,7 +129,7 @@ jobs:
           if len(data) != 8759 or hashlib.sha256(data).hexdigest() != 'b5f624d5d7ca13c479703416683c458fffae62f41ba885df0cc4c15a59c3a462':
               raise SystemExit('candidate helper guard hash mismatch')
           code = compile(data, name, 'exec')
-          for command in [['--checkout', '.', '--manifest', 'docs/evidence/client/candidate-20261030/v16/import-manifest.json']]:
+          for command in [['--checkout', '.', '--manifest', 'docs/evidence/client/candidate-20261030/v17/import-manifest.json']]:
               sys.argv = [name] + command
               try:
                   exec(code, {'__name__': '__main__', '__file__': name})

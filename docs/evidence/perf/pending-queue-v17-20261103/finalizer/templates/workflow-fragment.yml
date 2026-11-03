@@ -1,0 +1,38 @@
+# Illustrative steps for the existing candidates.yml matrix job; not an active workflow.
+# Place after the v17 qualification step. The default success() requirement is explicit.
+- name: Check pending queue benchmark source plan
+  if: ${{ success() && matrix.kind == 'client' && matrix.source_version == 'v17' }}
+  env:
+    PL_BENCH_CHECKOUT_PATH: ${{ github.workspace }}
+    PL_BENCH_PRODUCER_PATH: ${{ runner.temp }}/candidate-qualification/source/src/producer.rs
+    PL_BENCH_PREPARE_TESTS_PATH: ${{ runner.temp }}/candidate-qualification/source/src/producer/prepare_tests.rs
+    PL_BENCH_CARGO_PATH: ${{ runner.temp }}/candidate-qualification/source/Cargo.toml
+    PL_BENCH_DEADLINE_PATH: ${{ github.workspace }}/docs/evidence/client/candidate-20261030/v17/deadline-fixture.patch
+    PL_BENCH_IMPORT_PATH: ${{ github.workspace }}/docs/evidence/client/candidate-20261030/v14/pending-work-import.patch
+  run: python3 -B docs/evidence/perf/pending-queue-v17-rebind-20261103/test_plan.py
+- name: Measure pending queue pairs
+  if: ${{ success() && matrix.kind == 'client' && matrix.source_version == 'v17' }}
+  run: |
+    python3 -B docs/evidence/perf/pending-queue-v17-rebind-20261103/bind_qualification.py \
+      --qualification "$RUNNER_TEMP/candidate-qualification" \
+      --checkout "$GITHUB_WORKSPACE" \
+      --output "$RUNNER_TEMP/pending-queue-qualification.json"
+    python3 -B docs/evidence/perf/pending-queue-v17-rebind-20261103/run.py \
+      --qualification "$RUNNER_TEMP/candidate-qualification" \
+      --checkout "$GITHUB_WORKSPACE" \
+      --witness "$RUNNER_TEMP/pending-queue-qualification.json" \
+      --output "$RUNNER_TEMP/pending-queue-bench"
+- name: Retain pending queue attempts
+  if: ${{ always() && matrix.kind == 'client' && matrix.source_version == 'v17' }}
+  uses: actions/upload-artifact@v6
+  with:
+    name: pending-queue-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+    path: |
+      ${{ runner.temp }}/pending-queue-bench/*.json
+      ${{ runner.temp }}/pending-queue-bench/*.jsonl
+      ${{ runner.temp }}/pending-queue-bench/*.log
+      ${{ runner.temp }}/pending-queue-bench/*.txt
+      ${{ runner.temp }}/pending-queue-bench/*.patch
+      ${{ runner.temp }}/pending-queue-bench/samples/**
+    if-no-files-found: warn
+    retention-days: 30

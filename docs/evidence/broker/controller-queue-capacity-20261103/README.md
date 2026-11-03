@@ -18,3 +18,8 @@ where a reserved slot can prevent the actor from being woken, plus a separate
 post-close send risk. These are source findings that need deterministic native
 controls. The design also needs to document connection-close and fairness
 effects before it can be implemented.
+
+A [revised design](budget-design-v2.tar.gz) proposes a shared admission and
+shutdown fence. Its [review](budget-design-v2-review.json) keeps it blocked:
+panic, reentrancy, lifecycle and real concurrent behavior still need tests, and
+the proposed queue bound excludes active jobs, replies and caller-owned memory.

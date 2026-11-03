@@ -1,0 +1,28 @@
+{
+  "archive_sha256": "e8f98768c4fe4b8311f68164753f8b0840f99af9a0ccc9450658fa19ab243a53",
+  "controls_sha256": "9df8134e43703d357ced07af0326cd08d5a4ef3810570708876d8ce886f6952b",
+  "limitations": [
+    "projection labelled unverified by hosted job",
+    "no full hosted artifact independently verified here",
+    "no Rust build, runtime control, real Kafka, TLS/SASL validation, benchmark or candidate adoption"
+  ],
+  "manifest_sha256": "eb0c732574023b13827abda2a756e4e191c2c1f5985e55ffde09d74812202fe5",
+  "projection_sha256": "32a3873f96c1cb5585e939c573720d669d9df77dc5452732a408a9c184e149f3",
+  "readme_sha256": "d506be81c8f5d6fd62b4cd6348fc0614312615dd943bbe8041407e47491a5bfe",
+  "references_note": "v10 wire trace and v16 projected diagnostics are distinct; v10 trace does not establish the v16 socket timeline",
+  "scope": "v2 source-only frozen design; not a Rust candidate, test result, proof of safety, performance measurement or production qualification",
+  "source_pins_sha256": "be551b92dc601a13d39fbd990e21607de9098ae56c45a156130962057b615fe8",
+  "v1_archive_sha256": "80eedd06de5804b9736ed4c0954a70c431652e51b027bc74614b54ad3ddaa669",
+  "v1_receipt_sha256": "4ac36525bf8de56720d6c0721ddb650035528c2997eef286decf4e2155b99ad2",
+  "v2_review_refinements": [
+    "target exact physical socket and slot generation, distinguish independent sessions",
+    "test session expiry before first byte, during partial write and while response is outstanding",
+    "scope byte budgets to retained backing allocations and lifetime"
+  ],
+  "validation": [
+    "source and catalog SHA-256 pins verified",
+    "static source-pattern ordering checks passed",
+    "hosted log visible projection extracted and reproduced",
+    "illustrative Python negative-control model passed"
+  ]
+}

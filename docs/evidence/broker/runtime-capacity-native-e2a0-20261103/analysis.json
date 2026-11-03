@@ -1,0 +1,102 @@
+{
+  "scope": "One hosted x86 run of reviewed broker runtime capacity candidate; no global readiness or performance claim.",
+  "repository": "mingley/partitionline",
+  "run_id": 41591455215,
+  "job_id": 125768893688,
+  "checkout_sha": "e2a04e229514d3a2662a9f765b57145c467de237",
+  "source_base_commit": "6fa8cdb3588d884580d01331e44df657c02f7670",
+  "compact_report_artifact_id": 13211115523,
+  "compact_report_sha256": "cbab27f7087678bcfdf90d902e86b046dcca5d9312097acaba70475ecd2527c1",
+  "compact_report_bytes": 271380,
+  "full_artifact_id": 13211385025,
+  "full_artifact_bytes": 133925152,
+  "full_artifact_sha256": "5d24976f755522b5dc57bde1a44deffba364115acce9dd20343d7567273b6884",
+  "full_artifact_downloaded": false,
+  "job_log_sha256": "d5b846d981f7331766daaedbcdd2edf399b168c427aeabc9f5329ae5b058ef21",
+  "qualification_json_sha256": "686a25d330117bc75fcf2940f244fd0802722161567642e273810d3f08bcd308",
+  "candidate_manifest_sha256": "bcb126775856e747e0293351a0f70fa5de65957c7a7c68385b891b03f1174d70",
+  "candidate_spec_sha256": "a467ffefd723efcc32a8b810af41fa7a91f3ce83b4dfdd5485c11b5102df3749",
+  "patch_sha256": "7f36df7c94bfd5265c5586c8a2749d3180f5e7da0534e053848154b3cdbdfbab",
+  "runtime_preimage_sha256": "a0c136fcc728cfc4580ef30b2ca3fa964f32329f65fce301ef70985dfcd91754",
+  "runtime_postimage_sha256": "38c50bcd93e5dea91d10264c984fef1a5bfe9e4e33686a5ec64c03ae7945b66d",
+  "broker_lock_sha256": "42eaddf993ab4dfbe99e5af9d7c1a7cd858776a214eedbd6112de6a146933a2c",
+  "base_catalog_sha256": "6e620da92aa89604b412707d5d9befe12ab4d4dd28ab15b1e145b2ca4a072255",
+  "base_source_sha256": "d2799c22004030742b3922fd5b30947f66939fc27879617b6617bcd8ee85e00f",
+  "rustc": "rustc 1.99.1 (58cf8f9c3 2026-10-13)\nbinary: rustc\ncommit-hash: 58cf8f9c35b355199727627d07ae34a4e2846d67\ncommit-date: 2026-10-13\nhost: x86_64-unknown-linux-gnu\nrelease: 1.99.1\nLLVM version: 23.1.1",
+  "baseline_positive": [
+    2,
+    0,
+    0
+  ],
+  "baseline_expected_failure": [
+    0,
+    1,
+    0
+  ],
+  "baseline_expected_assertion_verified": true,
+  "fixed_capacity_by_profile": {
+    "default": [
+      2,
+      0,
+      0
+    ],
+    "all-features": [
+      2,
+      0,
+      0
+    ]
+  },
+  "fixed_full_suites_pass_fail_ignored": {
+    "default": [
+      729,
+      0,
+      0
+    ],
+    "all-features": [
+      877,
+      0,
+      0
+    ]
+  },
+  "other_passes": [
+    "12 legacy focused per profile",
+    "3 async filesystem controls per profile",
+    "3 Fetch deadline repeats per profile",
+    "stale-leader exact control",
+    "format",
+    "strict all-features Clippy",
+    "strict docs",
+    "default and all-features doctest commands succeeded; zero doctests discovered in each",
+    "broker inventory",
+    "55 inventory negative controls"
+  ],
+  "commands": 47,
+  "all_command_source_checks_and_owned_cleanup_passed": true,
+  "mode_receipts_passed": true,
+  "historical_status_note": "qualification.json contains a preparation-era baseline_expectations string; the retained command results and expected-assertion field show the actual baseline execution.",
+  "limits": [
+    "The 133.9 MB full artifact and binaries were not downloaded; this compact artifact contains reports and logs.",
+    "This run does not establish a process-wide memory bound, ControllerHandler accounting correctness, production readiness, or performance.",
+    "OOM counters were unavailable for all 47 commands.",
+    "Both successful doctest commands discovered zero doctests."
+  ],
+  "oom_counters": {
+    "status": "unavailable for all 47 commands",
+    "oom_event_deltas": null,
+    "interpretation": "No OOM-counter observation is available for this run."
+  },
+  "doctests": {
+    "default": {
+      "exit": 0,
+      "passed": 0,
+      "failed": 0,
+      "ignored": 0
+    },
+    "all-features": {
+      "exit": 0,
+      "passed": 0,
+      "failed": 0,
+      "ignored": 0
+    }
+  }
+}

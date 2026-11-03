@@ -34,6 +34,30 @@ DIAGNOSTIC_BODY_LINES = 6
 CONSOLE_SUMMARY_BYTES = 8192
 CONSOLE_SUMMARY_CASES = 32
 CONSOLE_SUMMARY_ITEM_CHARS = 256
+RETAINED_BACKING_TEST = 'cancelled_channel_admission_releases_only_the_unenqueued_reservation'
+RETAINED_BACKING_RUNS = {'default-producer_retained_backing', 'all-features-producer_retained_backing'}
+RETAINED_BACKING_PHASE = re.compile(
+    r'retained-backing flush timed out: accepted=(?P<accepted>0|[1-9][0-9]{0,19}) '
+    r'buffered_at_release=(?P<buffered>0|[1-9][0-9]{0,19}) '
+    r'retries_in_flight=(?P<retries>0|[1-9][0-9]{0,19}) '
+    r'mock_records_appended_including_warm=(?P<appended>None|Some\((?P<count>0|[1-9][0-9]{0,19})\)) '
+    r'\(None means mock state lock contended\); acknowledgment counts unavailable'
+)
+
+
+def retained_backing_phase(line):
+    """Accept only the fixed numeric timeout line emitted by the pinned test."""
+    match = RETAINED_BACKING_PHASE.fullmatch(line)
+    if not match:
+        return None
+    for key in ('accepted', 'buffered', 'retries', 'count'):
+        value = match.group(key)
+        if value is not None and int(value) > (1 << 64) - 1:
+            return None
+    return (f"retained-backing flush timed out: accepted={match['accepted']} "
+            f"buffered_at_release={match['buffered']} retries_in_flight={match['retries']} "
+            f"mock_records_appended_including_warm={match['appended']} "
+            '(None means mock state lock contended); acknowledgment counts unavailable')
 
 
 class DiagnosticOutput:
@@ -67,10 +91,20 @@ def emit_test_diagnostics(name, log, failures):
     """Show only panic/error context from libtest's failed-test sections."""
     ordered = list(dict.fromkeys(failures))
     selected = set(ordered[:DIAGNOSTIC_CASES])
+    lines = log.split('\n')
+    retained_scope = name in RETAINED_BACKING_RUNS and RETAINED_BACKING_TEST in selected
+    retained_headers = 0
+    retained_phases = 0
+    if retained_scope:
+        header = '---- ' + RETAINED_BACKING_TEST + ' stdout ----'
+        for line in lines:
+            retained_headers += line == header
+            if line.startswith('retained-backing flush timed out:') and retained_backing_phase(line) is not None:
+                retained_phases += 1
     sections = {}
     in_failures = False
     current = None
-    for line in log.split('\n'):
+    for line in lines:
         if line == 'failures:':
             if in_failures:
                 break
@@ -82,12 +116,30 @@ def emit_test_diagnostics(name, log, failures):
             case = line[5:-12]
             current = case if case in selected and case not in sections else None
             if current is not None:
-                sections[current] = {'lines': [], 'started': False, 'truncated': False}
+                sections[current] = {'lines': [], 'started': False, 'truncated': False,
+                                     'phase': None, 'phase_candidate': None, 'phase_count': 0,
+                                     'terminal_timeout': False}
             continue
         if current is None:
             continue
         section = sections[current]
+        if section['terminal_timeout']:
+            continue
+        if (retained_scope and current == RETAINED_BACKING_TEST
+                and 'retained-backing flush timed out:' in line):
+            if section['started'] or retained_backing_phase(line) is None:
+                section['phase_candidate'] = None
+                continue
         if not section['started']:
+            if name in RETAINED_BACKING_RUNS and current == RETAINED_BACKING_TEST:
+                candidate = retained_backing_phase(line)
+                if candidate is not None:
+                    section['phase_count'] += 1
+                    section['phase_candidate'] = candidate
+                    continue
+                if line == 'Error: Timeout' and section['phase_count'] == 1:
+                    section['phase'] = section['phase_candidate']
+                section['phase_candidate'] = None
             section['started'] = ((line.startswith('thread ') and ' panicked at ' in line)
                                   or line.startswith('Error: '))
             if not section['started']:
@@ -100,6 +152,8 @@ def emit_test_diagnostics(name, log, failures):
             continue
         if len(section['lines']) < DIAGNOSTIC_BODY_LINES:
             section['lines'].append(line)
+            if retained_scope and current == RETAINED_BACKING_TEST and line == 'Error: Timeout':
+                section['terminal_timeout'] = True
         elif line:
             section['truncated'] = True
     output = DiagnosticOutput()
@@ -110,6 +164,8 @@ def emit_test_diagnostics(name, log, failures):
         if not section or not section['lines']:
             output.write('[panic/error context unavailable in retained log]')
             continue
+        if section['phase'] is not None and retained_headers == 1 and retained_phases == 1:
+            output.write('unverified phase: ' + section['phase'])
         for line in section['lines']:
             output.write(line)
         output.truncated |= section['truncated']

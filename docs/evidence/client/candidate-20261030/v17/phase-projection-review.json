@@ -1,0 +1,30 @@
+{
+  "decision": "pass source-only review of phase projection v4; integration requires refreshed helper pins",
+  "base_commit": "6fa8cdb3588d884580d01331e44df657c02f7670",
+  "patch_sha256": "96332c4ce40f67edbefaee8fca708c3ef04d9f739002172b9316b450895a49bc",
+  "manifest_sha256": "8192e11766f55e1f9eaca86e343509e81ae44e64f52a4d7a627271fb4e6154c9",
+  "v4_from_v3_sha256": "80ddcd2f60ec6a3a3af13482828a95e76a4152552b5e58a119b436580396ffe3",
+  "changed_functions": [
+    "emit_test_diagnostics"
+  ],
+  "added_functions": [
+    "retained_backing_phase"
+  ],
+  "checks": {
+    "both_patch_paths_exact_base_and_current_hashes": true,
+    "full_and_delta_forward_reverse_exact": true,
+    "only_console_diagnostics_function_changed": true,
+    "v16_fixed_test_source_format_matches": true,
+    "both_qualified_lanes_unique_phase_and_timeout": true,
+    "duplicate_lines_or_sections_do_not_project": true,
+    "malformed_scope_position_and_generic_error_bypasses_do_not_project": true,
+    "uint64_boundary_and_overflow": true,
+    "bounded_escaped_console_output": true,
+    "hosted_log_hash_matches_and_no_phase_claim_inferred": true
+  },
+  "limits": [
+    "No Cargo, Rust compilation, Rust/native test, benchmark, hosted run, network, publication or root edits. Python synthetic controls and Git patch roundtrips were run offline.",
+    "Libtest output is unframed and spoofable; context is explicitly unverified and no secret-redaction guarantee is made. Existing Error: Timeout cannot establish that the 10-second flush phase was reached.",
+    "Applying driver/test changes requires a separately reviewed update of pinned v16 helper/spec hashes and associated benchmark helper bindings; this patch alone breaks the existing fail-closed helper check."
+  ]
+}

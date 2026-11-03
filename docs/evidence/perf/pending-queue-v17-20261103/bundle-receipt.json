@@ -1,0 +1,17 @@
+{
+  "archive_sha256": "277530ce350c6e879d58c3702631266a60558de5a22beaf230166cf6b6aa05b6",
+  "finalizer_sha256": "2f6d5fdbdaaa82a363300feb39731b04eb7a2335fc6225378a11502d155a54de",
+  "manifest_sha256": "29c249aab6466eeaed34afaf06ce0f60ad51d492dd3df8c3134335a17e524798",
+  "prior_v16_archive_sha256": "35d1718b9ca85274ce4e1f13acee78306dbf0ecbcbc7ace6dbb1e5ffb1d162c5",
+  "prior_v16_review_sha256": "0c697edbe2ccbec1890a3c50e5e0fe5a76398bf101652e2d7a9e6d746aaa3475",
+  "scope": "inactive v17 source-only benchmark witness; no native execution",
+  "template_sha256": {
+    "README.md": "44c2010ea9c6399192f054ce6ab74cbef117da053095f5b89be7d545f89c604d",
+    "bind_qualification.py": "294daabc9e99a15538d075ba84fd61a764ad39a5224239d2a486f81473852dd0",
+    "run.py": "d13781e7b4c2ed722c03420f5edb8936ccd7e979a91af064d51cd84201a5ad17",
+    "test_plan.py": "1e0d828d7dfb52dd9ad651c2bd026d6859094e03ea19781156df62dd5787f62b",
+    "workflow-fragment.yml": "9bfe566a17b0f5372863c268d05023bc2fe8fb6d665f1e738c152577cb467f8b"
+  },
+  "v17_import_manifest_sha256": "581019e43493fe64af627960f782c2a2ca60c9feaac349500451ddd80bfa7a26",
+  "v17_spec_sha256": "2db3a3722c46ad9fada081841d26f14d43bf76f538766af93fc6a315ad83305c"
+}

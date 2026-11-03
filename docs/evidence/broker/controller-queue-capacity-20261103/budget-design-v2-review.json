@@ -1,0 +1,28 @@
+{
+  "decision": "blocked design: do not implement or adopt based on this source-only review",
+  "archive_sha256": "94478a6726994aa6f5a665a2d386cebb6e448d99e55a52fb0b16d12d5cf7c10e",
+  "receipt_sha256": "9b0a52c3c77e5b9d9f55fa5fb7e3beab8d387d67dc36ce08d84283494c916dc9",
+  "readme_sha256": "55b2a9c004ea25e05fecbff5dae476ff9573c63483565ca85209977d023702a5",
+  "source_commit": "6fa8cdb3588d884580d01331e44df657c02f7670",
+  "checks": {
+    "archive_members_identical_to_frozen_files": true,
+    "source_git_and_tokio_pins_verified": true,
+    "prior_proposal_and_independent_blocker_receipts_bound": true,
+    "abstract_model_output_reproduced": true,
+    "ordinary_slot_and_post_receive_fence_reasoning_is_explicitly_conditional": true,
+    "rejected_command_and_receiver_drops_outside_gate": true,
+    "observable_error_precedence_and_transport_connection_consequences_documented": true
+  },
+  "findings": [
+    "The sketched shared gate excludes the reviewed outstanding-reservation shutdown interleavings under stated ordinary send/wake and lifecycle assumptions. It is not an implementation or proof.",
+    "Permanent combined-capacity violations use InvalidConfig, temporary aggregate byte pressure uses Busy, and full/stopped/oversized precedence is documented as intended non-racing behavior. Both errors close real transport connections through HandlerError; buffer reuse and starvation effects remain to be tested.",
+    "Channel send/wake unwind, gate poisoning, reentrant destructors/wakers, receiver ownership and cancellation before startup remain blockers. Any rejected command, oneshot sender, reply, receiver drain or buffer destructor must be moved out of the synchronous gate before dropping.",
+    "The bound covers queued input capacities and transient charges; active jobs, outputs, unpolled/waiting callers, allocator overhead, buffers and RSS require separate accounting."
+  ],
+  "limitations": [
+    "Python toy model and source checks only; no Cargo, compiler, native Rust/Tokio execution, actor/WAL/network test or benchmark.",
+    "The abstract state machine excludes multiple producers, byte-counter implementation, panic/poison, reentrancy, memory ordering, wake failure and scheduler fairness.",
+    "The post-close permit/oneshot hang remains a source-derived risk requiring deterministic Tokio reproduction, not an observed failure.",
+    "No production-readiness, release-readiness or performance conclusion."
+  ]
+}

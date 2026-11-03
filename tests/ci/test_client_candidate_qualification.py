@@ -19,6 +19,128 @@ SPEC.loader.exec_module(DRIVER)
 
 
 class ClientCandidateGuards(unittest.TestCase):
+    def test_retained_backing_phase_projects_only_numeric_timeout_context(self):
+        case=DRIVER.RETAINED_BACKING_TEST
+        for lane in ['default-producer_retained_backing','all-features-producer_retained_backing']:
+            for appended in ['None','Some(123)']:
+                with self.subTest(lane=lane,appended=appended):
+                    phase=('retained-backing flush timed out: accepted=4096 buffered_at_release=4096 '
+                           'retries_in_flight=3 mock_records_appended_including_warm='+appended+
+                           ' (None means mock state lock contended); acknowledgment counts unavailable')
+                    log=(f'test {case} ... FAILED\nfailures:\n---- {case} stdout ----\n'
+                         'unrelated preamble\n'+phase+'\nError: Timeout\nfailures:\n')
+                    output=io.StringIO()
+                    with contextlib.redirect_stdout(output):
+                        failures,_,_=DRIVER.console_failures(log)
+                        DRIVER.emit_test_diagnostics(lane,log,failures)
+                    text=output.getvalue()
+                    self.assertIn('unverified phase: '+phase,text)
+                    self.assertIn('Error: Timeout',text)
+                    self.assertNotIn('unrelated preamble',text)
+                    self.assertNotIn('::',text)
+                    self.assertLessEqual(len(text.encode()),DRIVER.DIAGNOSTIC_BYTES)
+
+    def test_retained_backing_phase_rejects_other_scope_or_ambiguous_position(self):
+        case=DRIVER.RETAINED_BACKING_TEST
+        phase=('retained-backing flush timed out: accepted=4096 buffered_at_release=4096 '
+               'retries_in_flight=3 mock_records_appended_including_warm=None '
+               '(None means mock state lock contended); acknowledgment counts unavailable')
+        variants=[('other-lane',case,phase+'\nError: Timeout'),
+                  ('default-producer_retained_backing','other_test',phase+'\nError: Timeout'),
+                  ('default-producer_retained_backing',case,phase+'\nintervening data\nError: Timeout'),
+                  ('default-producer_retained_backing',case,phase+'\n'+phase+'\nError: Timeout'),
+                  ('default-producer_retained_backing',case,phase+'\nError: Timeout\n'+phase),
+                  ('default-producer_retained_backing',case,phase+'\nError: Other'),
+                  ('default-producer_retained_backing',case,'Error: Other\n'+phase),
+                  ('default-producer_retained_backing',case,'Error: Other\n'+phase+' extra-secret'),
+                  ('default-producer_retained_backing',case,'Error: Other '+phase+' extra-secret'),
+                  ('default-producer_retained_backing',case,'Error: Timeout '+phase),
+                  ('default-producer_retained_backing',case,"thread 'test' panicked at test.rs:1: "+phase),
+                  ('default-producer_retained_backing',case,'Error: Timeout\n'+phase)]
+        for lane,identity,body in variants:
+            with self.subTest(lane=lane,identity=identity,body=body):
+                log=f'test {identity} ... FAILED\nfailures:\n---- {identity} stdout ----\n{body}\nfailures:\n'
+                output=io.StringIO()
+                with contextlib.redirect_stdout(output):
+                    failures,_,_=DRIVER.console_failures(log)
+                    DRIVER.emit_test_diagnostics(lane,log,failures)
+                self.assertNotIn('unverified phase:',output.getvalue())
+                self.assertNotIn(phase,output.getvalue())
+                self.assertNotIn('retained-backing flush timed out:',output.getvalue())
+
+    def test_retained_backing_phase_rejects_duplicate_test_sections_anywhere(self):
+        case=DRIVER.RETAINED_BACKING_TEST
+        phase=('retained-backing flush timed out: accepted=4096 buffered_at_release=4096 '
+               'retries_in_flight=3 mock_records_appended_including_warm=None '
+               '(None means mock state lock contended); acknowledgment counts unavailable')
+        header=f'---- {case} stdout ----'
+        for separator in ['', 'failures:\n']:
+            with self.subTest(separator=separator):
+                log=(f'test {case} ... FAILED\nfailures:\n{header}\n{phase}\nError: Timeout\n'
+                     f'{separator}{header}\n{phase}\nError: Timeout\nfailures:\n')
+                output=io.StringIO()
+                with contextlib.redirect_stdout(output):
+                    failures,_,_=DRIVER.console_failures(log)
+                    DRIVER.emit_test_diagnostics('default-producer_retained_backing',log,failures)
+                self.assertNotIn('unverified phase:',output.getvalue())
+                self.assertNotIn(phase,output.getvalue())
+
+    def test_retained_backing_phase_rejects_forged_or_unbounded_fields(self):
+        phase=('retained-backing flush timed out: accepted=1 buffered_at_release=2 '
+               'retries_in_flight=3 mock_records_appended_including_warm=Some(4) '
+               '(None means mock state lock contended); acknowledgment counts unavailable')
+        forged=[phase+' extra-secret',phase.replace('accepted=1','accepted=-1'),
+                phase.replace('accepted=1','accepted=01'),phase.replace('accepted=1','accepted=١'),
+                phase.replace('accepted=1','accepted=18446744073709551616'),
+                phase.replace('accepted=1','accepted='+('1'*21)),
+                phase.replace('accepted=1','accepted=1\r::error::forged'),
+                phase.replace('Some(4)','Some(4)::warning::forged'),
+                phase.replace('retries_in_flight=3','retries_in_flight=3\x1b[31m'),
+                phase.replace('acknowledgment counts unavailable','secret')]
+        case=DRIVER.RETAINED_BACKING_TEST
+        for value in forged:
+            with self.subTest(value=value):
+                log=f'test {case} ... FAILED\nfailures:\n---- {case} stdout ----\n{value}\nError: Timeout\nfailures:\n'
+                output=io.StringIO()
+                with contextlib.redirect_stdout(output):
+                    failures,_,_=DRIVER.console_failures(log)
+                    DRIVER.emit_test_diagnostics('default-producer_retained_backing',log,failures)
+                text=output.getvalue()
+                self.assertNotIn('unverified phase:',text)
+                self.assertNotIn('::',text)
+                self.assertNotIn('\r',text)
+                self.assertNotIn('\x1b',text)
+
+    def test_retained_backing_phase_accepts_uint64_boundary(self):
+        maximum='18446744073709551615'
+        phase=(f'retained-backing flush timed out: accepted={maximum} buffered_at_release={maximum} '
+               f'retries_in_flight={maximum} mock_records_appended_including_warm=Some({maximum}) '
+               '(None means mock state lock contended); acknowledgment counts unavailable')
+        self.assertEqual(DRIVER.retained_backing_phase(phase),phase)
+        self.assertLess(len(phase),DRIVER.DIAGNOSTIC_LINE_BYTES)
+
+    @unittest.skipUnless(sys.platform.startswith('linux'), 'Linux owned-command primitive')
+    def test_retained_phase_keeps_raw_log_and_failed_qualification(self):
+        case=DRIVER.RETAINED_BACKING_TEST
+        phase=('retained-backing flush timed out: accepted=4096 buffered_at_release=4096 '
+               'retries_in_flight=3 mock_records_appended_including_warm=None '
+               '(None means mock state lock contended); acknowledgment counts unavailable')
+        log=(f'running 1 test\ntest {case} ... FAILED\nfailures:\n---- {case} stdout ----\n'
+             f'{phase}\nError: Timeout\nfailures:\n    {case}\n'
+             'test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 10.00s\n\n')
+        command=[sys.executable,'-c','import sys;sys.stdout.write('+repr(log)+');sys.exit(101)']
+        name='default-producer_retained_backing'
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory); output=io.StringIO()
+            with mock.patch.object(DRIVER,'ROOT',root), mock.patch.object(DRIVER,'OUT',root), mock.patch.object(DRIVER,'ENV',os.environ.copy()), mock.patch.object(DRIVER,'EXPECTED',{}), mock.patch.object(DRIVER,'manifest',return_value={}), mock.patch.object(DRIVER.shutil,'disk_usage',return_value=mock.Mock(free=10**12)), contextlib.redirect_stdout(output):
+                row=DRIVER.run(name,command,diagnostic_kind='test')
+                with mock.patch.object(DRIVER,'listing',side_effect=[{case},set()]), mock.patch.object(DRIVER,'execute',return_value=row):
+                    self.assertFalse(DRIVER.full_target(name,'build','producer_retained_backing',{case}))
+            self.assertEqual((root/(name+'.log')).read_bytes(),log.encode())
+            self.assertEqual(json.loads((root/(name+'.json')).read_text())['exit'],101)
+            self.assertIn('unverified phase: '+phase,output.getvalue())
+            self.assertFalse(json.loads((root/(name+'-selection.json')).read_text())['passed'])
+
     def test_failure_diagnostics_only_include_failed_panic_context(self):
         log = ('test passed ... ok\ntest failed ... FAILED\ntest err ... FAILED\n\n'
                'failures:\n\n---- passed stdout ----\nprivate passed output\n'
