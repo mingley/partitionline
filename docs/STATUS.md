@@ -41,8 +41,8 @@ quorum, without replicated partition data or native Kafka KRaft.
   checks. SDK socket and Streams Java coverage remain open. See
   [capability results][capability].
 - The isolated [client v10 candidate][candidate-results] passed both library
-  profiles and strict Clippy on its first recorded run. A repeat had one
-  library failure in each profile. Both runs failed two integration binaries
+  profiles and strict Clippy on its first recorded run. A [repeat][candidate-rerun]
+  had one library failure in each profile. Both runs failed two integration binaries
   and one baseline expectation. Its changes have not been adopted on `main`;
   the fixture controls passed while the original timeout remained.
 - The original main client failed the same 15 Mock Produce identities and the
@@ -88,7 +88,7 @@ overlap, live group retries and a compatibility-test stack overflow also remain
 open. GSSAPI and connection-driven SASL reauthentication
 are incomplete; [protocol support](gaps.md) lists those feature gaps.
 
-Two Raft runtime tests failed with `ParseIntError` in the latest broker run;
+Two Raft runtime tests failed with `ParseIntError` in the [latest broker run][broker-ci];
 a third reported a `NotLeader` response. An earlier passing run does not
 resolve those failures. The broker
 still needs replicated partition data, authenticated network
@@ -116,7 +116,7 @@ An uncompiled [queue candidate][queue] needs native tests and a benchmark
 before its effect is known. A later client candidate combines that work with
 the ownership fixes and a timeout diagnostic; its qualification is pending.
 
-The release scripts now check API/index agreement, consumer lockfile identity
+The [release scripts][release-gates] now check API/index agreement, consumer lockfile identity
 and exact-SHA CI more strictly. The token check reports presence without
 claiming authorization. Offline controls passed; live GitHub job evidence
 and the complete release gates remain open.
@@ -134,6 +134,9 @@ measurements and dated notes.
 [client]: https://github.com/mingley/partitionline/blob/77021f7dc6c0d19aa93c7bf0b7fad125ee632e23/docs/evidence/client/clean-default-validation-20261028/README.md
 [main-ci]: https://github.com/mingley/partitionline/actions/runs/41576616173
 [comparison]: https://github.com/mingley/partitionline/blob/f655b99c449b76ff09b30867ef58c42e51a38b65/docs/evidence/client/main-comparison-b1-20261103/README.md
+[candidate-rerun]: https://github.com/mingley/partitionline/blob/2857611b35e25c9ad46206edae89c35e0bc0ffe9/docs/evidence/client/candidate-native-e766-20261103/README.md
+[broker-ci]: https://github.com/mingley/partitionline/blob/2857611b35e25c9ad46206edae89c35e0bc0ffe9/docs/evidence/broker/main-ci-fdaf-20261103/README.md
+[release-gates]: https://github.com/mingley/partitionline/blob/2857611b35e25c9ad46206edae89c35e0bc0ffe9/docs/evidence/releases/local-release-gates-20261103/README.md
 [candidate-results]: https://github.com/mingley/partitionline/blob/b2d18730494b6d55df7b81f9d4ce88a81e10b3d9/docs/evidence/client/candidate-native-b1-20261102/README.md
 [java]: https://github.com/mingley/partitionline/blob/9481723c7a144254fdf4f1c415d082aa0233a25f/docs/evidence/client/capability-java-20261030/README.md
 [broker]: https://github.com/mingley/partitionline/blob/ef28c255aecf402cdae2000d8796dcea9a36a8bc/docs/evidence/broker/epoch-journal-20261030/README.md
@@ -141,7 +144,7 @@ measurements and dated notes.
 [native]: https://github.com/mingley/partitionline/blob/dfad6573e46adf8aa91626854e4f816cfff2c2bf/docs/evidence/releases/candidate-native-20261030/README.md
 [producer]: https://github.com/mingley/partitionline/blob/908dbdf2f20c8462a741ce59a4f56be2f310048e/docs/evidence/client/producer-admission-20261030/README.md
 [faults]: https://github.com/mingley/partitionline/blob/77021f7dc6c0d19aa93c7bf0b7fad125ee632e23/docs/evidence/broker/fuzz/20261027-candidate06/README.md
-[next]: https://github.com/mingley/partitionline/blob/f655b99c449b76ff09b30867ef58c42e51a38b65/docs/plan/next-work.md
-[queue]: https://github.com/mingley/partitionline/blob/b2d18730494b6d55df7b81f9d4ce88a81e10b3d9/docs/evidence/client/candidate-20261030/v12/README.md
+[next]: https://github.com/mingley/partitionline/blob/2857611b35e25c9ad46206edae89c35e0bc0ffe9/docs/plan/next-work.md
+[queue]: https://github.com/mingley/partitionline/blob/2857611b35e25c9ad46206edae89c35e0bc0ffe9/docs/evidence/client/candidate-20261030/v13/README.md
 [tasks]: https://github.com/mingley/partitionline/blob/77021f7dc6c0d19aa93c7bf0b7fad125ee632e23/docs/plan/tasks.json
 [previous]: https://github.com/mingley/partitionline/blob/77021f7dc6c0d19aa93c7bf0b7fad125ee632e23/docs/STATUS.md
