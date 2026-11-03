@@ -1,0 +1,29 @@
+{
+  "base_commit": "45cbff24de76490594970fc962cd04e7be9fafb1",
+  "caller_and_live_test_suffix": {
+    "sha256": "986800dd576ce9b132c67e4a7c8896b932a13c7a07946750ba7534aa26e820db",
+    "bytes": 12425
+  },
+  "test_source_before": {
+    "sha256": "5e289d3af378a44c162e3142468cbf58afe03955f6204a67825b0776f424cad0",
+    "bytes": 20010
+  },
+  "test_source_after_stop": {
+    "sha256": "770565acdc1dd5edf24079da1acb356f6115c8d44134754c66f77059c892a138",
+    "bytes": 20312
+  },
+  "patches": {
+    "classic-helper-stop.patch": {
+      "sha256": "da9a592b5479a5a274e8710319f02ff7b6aaddf577fd2f46c7830161b7d7b74d",
+      "bytes": 804
+    },
+    "future-state-diagnostic.patch": {
+      "sha256": "56dfe8bc306812e05e80025f42d9a34c25beeee05c9981c8e542fd8d4ee7e6ed",
+      "bytes": 1450
+    },
+    "library-box-experiment.patch": {
+      "sha256": "05e3a3da42b1a93d374fdc96b60740a3e48a30942267a2bbbfe99a6abfac0904",
+      "bytes": 536
+    }
+  }
+}

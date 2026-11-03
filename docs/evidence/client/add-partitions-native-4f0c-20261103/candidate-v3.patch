@@ -1,0 +1,995 @@
+diff --git a/src/producer.rs b/src/producer.rs
+index 45722de..bc497eb 100644
+--- a/src/producer.rs
++++ b/src/producer.rs
+@@ -38,8 +38,7 @@ use crate::protocol::records::{
+ use crate::protocol::txn::{
+     can_handle_abortable_error, classify_add_offsets_error, classify_add_partitions_error,
+     classify_end_txn_error, classify_produce_error, classify_txn_offset_commit_error,
+-    client_epoch_bump_capable, decode_add_offsets_to_txn_response,
+-    decode_add_partitions_to_txn_response_cooperative, decode_end_txn_response,
++    client_epoch_bump_capable, decode_add_offsets_to_txn_response, decode_end_txn_response,
+     decode_txn_offset_commit_response_cooperative, encode_add_offsets_to_txn_request,
+     encode_add_partitions_to_txn_borrowed_cooperative, encode_end_txn_request,
+     encode_txn_offset_commit_borrowed_cooperative, BorrowedTxnOffsetPartition,
+@@ -5593,6 +5592,338 @@ async fn discover_within(
+     discover_typed_coord(cfg, key, key_type, version, deadline, None).await
+ }
+ 
++// A broker response must account for exactly the partitions in the request.
++// Index only request identities, so broker-provided counts cannot determine
++// allocation sizes. Each partition has a slot in the response seen bitmap.
++struct AddPartitionsExpectedTopic {
++    slot: usize,
++    partitions: HashMap<i32, usize>,
++}
++
++struct AddPartitionsExpected {
++    topics: HashMap<Arc<str>, AddPartitionsExpectedTopic>,
++    partition_count: usize,
++    max_topic_len: usize,
++}
++
++async fn index_add_partitions_request(added: &[(Arc<str>, i32)]) -> Result<AddPartitionsExpected> {
++    let mut expected = AddPartitionsExpected {
++        topics: HashMap::new(),
++        partition_count: 0,
++        max_topic_len: 0,
++    };
++    let mut walked = 0usize;
++    for (topic, partition) in added {
++        expected.max_topic_len = expected.max_topic_len.max(topic.len());
++        if *partition < 0 {
++            return Err(Error::protocol(
++                "negative AddPartitionsToTxn request partition",
++            ));
++        }
++        if !expected.topics.contains_key(topic.as_ref()) {
++            expected.topics.try_reserve(1).map_err(|_| {
++                Error::protocol("AddPartitionsToTxn request index allocation failed")
++            })?;
++            let slot = expected.topics.len();
++            let _previous = expected.topics.insert(
++                Arc::clone(topic),
++                AddPartitionsExpectedTopic {
++                    slot,
++                    partitions: HashMap::new(),
++                },
++            );
++        }
++        let topic = expected
++            .topics
++            .get_mut(topic.as_ref())
++            .ok_or_else(|| Error::protocol("AddPartitionsToTxn request index is inconsistent"))?;
++        topic
++            .partitions
++            .try_reserve(1)
++            .map_err(|_| Error::protocol("AddPartitionsToTxn request index allocation failed"))?;
++        if topic
++            .partitions
++            .insert(*partition, expected.partition_count)
++            .is_some()
++        {
++            return Err(Error::protocol(
++                "duplicate AddPartitionsToTxn request partition",
++            ));
++        }
++        expected.partition_count = expected
++            .partition_count
++            .checked_add(1)
++            .ok_or_else(|| Error::protocol("too many AddPartitionsToTxn request partitions"))?;
++        walked += 1;
++        if walked == 8 * 1024 {
++            walked = 0;
++            tokio::task::yield_now().await;
++        }
++    }
++    Ok(expected)
++}
++
++fn get_add_partitions_topic<'a>(
++    input: &mut &'a [u8],
++    flexible: bool,
++    max_topic_len: usize,
++) -> Result<&'a str> {
++    let length = if flexible {
++        let encoded = crate::protocol::buf::get_unsigned_varint(input)?;
++        if encoded == 0 {
++            return Err(Error::protocol("null AddPartitionsToTxn response topic"));
++        }
++        usize::try_from(encoded - 1)
++            .map_err(|_| Error::protocol("AddPartitionsToTxn topic length overflow"))?
++    } else {
++        let length = crate::protocol::buf::get_i16(input)?;
++        usize::try_from(length)
++            .map_err(|_| Error::protocol("null AddPartitionsToTxn response topic"))?
++    };
++    if length > max_topic_len {
++        return Err(Error::protocol(
++            "unrequested AddPartitionsToTxn response topic length",
++        ));
++    }
++    let (name, rest) = (*input)
++        .split_at_checked(length)
++        .ok_or_else(|| Error::protocol("truncated AddPartitionsToTxn response topic"))?;
++    *input = rest;
++    std::str::from_utf8(name)
++        .map_err(|_| Error::protocol("invalid UTF-8 AddPartitionsToTxn response topic"))
++}
++
++// Unknown flexible tags are skipped without allocation. Bound work to bytes
++// present and yield even if the peer sends many small tagged fields.
++async fn skip_add_partitions_tags(input: &mut &[u8], walked: &mut usize) -> Result<()> {
++    let count = usize::try_from(crate::protocol::buf::get_unsigned_varint(input)?)
++        .map_err(|_| Error::protocol("AddPartitionsToTxn tag count overflow"))?;
++    if count > input.len() / 2 {
++        return Err(Error::protocol(
++            "AddPartitionsToTxn tag count exceeds response",
++        ));
++    }
++    let mut previous = None;
++    for _ in 0..count {
++        let tag = crate::protocol::buf::get_unsigned_varint(input)?;
++        if previous.is_some_and(|value| tag <= value) {
++            return Err(Error::protocol("AddPartitionsToTxn tags are not ordered"));
++        }
++        previous = Some(tag);
++        let size = usize::try_from(crate::protocol::buf::get_unsigned_varint(input)?)
++            .map_err(|_| Error::protocol("AddPartitionsToTxn tag size overflow"))?;
++        let (_, rest) = (*input)
++            .split_at_checked(size)
++            .ok_or_else(|| Error::protocol("truncated AddPartitionsToTxn tag"))?;
++        *input = rest;
++        *walked += 1;
++        if *walked == 8 * 1024 {
++            *walked = 0;
++            tokio::task::yield_now().await;
++        }
++    }
++    Ok(())
++}
++
++// Prefer a moved/unavailable coordinator over same-session retry causes.
++// Main's txn_roundtrip also rediscovers for LOAD; the relative order here
++// preserves a stronger moved-coordinator signal for a future LOAD-only retry.
++fn add_partitions_retry_priority(code: i16) -> u8 {
++    match code {
++        error::NOT_COORDINATOR => 3,
++        error::COORDINATOR_NOT_AVAILABLE => 2,
++        error::COORDINATOR_LOAD_IN_PROGRESS => 1,
++        _ => 0,
++    }
++}
++
++async fn validate_add_partitions_response<F: FnMut(i16)>(
++    mut input: &[u8],
++    version: i16,
++    expected: &AddPartitionsExpected,
++    can_handle_abortable: bool,
++    mut on_fatal: F,
++) -> Result<i16> {
++    let flexible = match version {
++        0..=2 => false,
++        3 => true,
++        _ => {
++            return Err(Error::protocol(
++                "unsupported AddPartitionsToTxn response version",
++            ))
++        }
++    };
++    let _throttle = crate::protocol::buf::get_i32(&mut input)?;
++    let topic_count = crate::protocol::buf::get_array_len(&mut input, flexible)?
++        .ok_or_else(|| Error::protocol("null AddPartitionsToTxn response topics"))?;
++    if topic_count != expected.topics.len() {
++        return Err(Error::protocol(
++            "AddPartitionsToTxn response topic count mismatch",
++        ));
++    }
++    let mut seen_topics = Vec::new();
++    seen_topics
++        .try_reserve_exact(expected.topics.len())
++        .map_err(|_| Error::protocol("AddPartitionsToTxn response index allocation failed"))?;
++    seen_topics.resize(expected.topics.len(), false);
++    let mut seen_parts = Vec::new();
++    seen_parts
++        .try_reserve_exact(expected.partition_count)
++        .map_err(|_| Error::protocol("AddPartitionsToTxn response index allocation failed"))?;
++    seen_parts.resize(expected.partition_count, false);
++    let mut first_fatal = 0i16;
++    let mut first_abortable = 0i16;
++    let mut first_retriable = 0i16;
++    let mut first_placeholder = 0i16;
++    let mut walked = 0usize;
++    for _ in 0..topic_count {
++        let name = get_add_partitions_topic(&mut input, flexible, expected.max_topic_len)?;
++        let topic = expected
++            .topics
++            .get(name)
++            .ok_or_else(|| Error::protocol("unrequested AddPartitionsToTxn response topic"))?;
++        let seen = seen_topics
++            .get_mut(topic.slot)
++            .ok_or_else(|| Error::protocol("AddPartitionsToTxn topic index is inconsistent"))?;
++        if *seen {
++            return Err(Error::protocol(
++                "duplicate AddPartitionsToTxn response topic",
++            ));
++        }
++        *seen = true;
++        let count = crate::protocol::buf::get_array_len(&mut input, flexible)?
++            .ok_or_else(|| Error::protocol("null AddPartitionsToTxn response partitions"))?;
++        if count != topic.partitions.len() {
++            return Err(Error::protocol(
++                "AddPartitionsToTxn response partition count mismatch",
++            ));
++        }
++        for _ in 0..count {
++            let partition = crate::protocol::buf::get_i32(&mut input)?;
++            let code = crate::protocol::buf::get_i16(&mut input)?;
++            let slot = topic.partitions.get(&partition).ok_or_else(|| {
++                Error::protocol("unrequested AddPartitionsToTxn response partition")
++            })?;
++            let seen = seen_parts.get_mut(*slot).ok_or_else(|| {
++                Error::protocol("AddPartitionsToTxn partition index is inconsistent")
++            })?;
++            if *seen {
++                return Err(Error::protocol(
++                    "duplicate AddPartitionsToTxn response partition",
++                ));
++            }
++            *seen = true;
++            if code != 0 {
++                if code == error::OPERATION_NOT_ATTEMPTED {
++                    first_placeholder = code;
++                } else {
++                    match classify_add_partitions_error(code, can_handle_abortable) {
++                        TxnErrorDisposition::Fatal if first_fatal == 0 => {
++                            // Record a matched fatal result before any subsequent yield.
++                            first_fatal = code;
++                            on_fatal(code);
++                        }
++                        TxnErrorDisposition::Abortable if first_abortable == 0 => {
++                            first_abortable = code;
++                        }
++                        TxnErrorDisposition::Retriable => {
++                            let priority = add_partitions_retry_priority(code);
++                            let old_priority = add_partitions_retry_priority(first_retriable);
++                            if first_retriable == 0
++                                || priority > old_priority
++                                || (priority == old_priority && code < first_retriable)
++                            {
++                                first_retriable = code;
++                            }
++                        }
++                        _ => {}
++                    }
++                }
++            }
++            if flexible {
++                skip_add_partitions_tags(&mut input, &mut walked).await?;
++            }
++            walked += 1;
++            if walked == 8 * 1024 {
++                walked = 0;
++                tokio::task::yield_now().await;
++            }
++        }
++        if flexible {
++            skip_add_partitions_tags(&mut input, &mut walked).await?;
++        }
++        walked += 1;
++        if walked == 8 * 1024 {
++            walked = 0;
++            tokio::task::yield_now().await;
++        }
++    }
++    if flexible {
++        skip_add_partitions_tags(&mut input, &mut walked).await?;
++    }
++    if !input.is_empty() {
++        return Err(Error::protocol(
++            "trailing AddPartitionsToTxn response bytes",
++        ));
++    }
++    // OPERATION_NOT_ATTEMPTED is a consequence of another partition's error.
++    // Prefer the decisive error, and require abort rather than retry when a
++    // substantive abortable and a retriable error occur together.
++    Ok(if first_fatal != 0 {
++        first_fatal
++    } else if first_abortable != 0 {
++        first_abortable
++    } else if first_retriable != 0 {
++        first_retriable
++    } else {
++        first_placeholder
++    })
++}
++
++// Once a response has been received, abandoning its validation could hide a
++// fence later in the response. Treat cancellation or malformed coverage as a
++// terminal, ambiguous transaction outcome rather than permitting further use.
++struct AddPartitionsResponseGuard<'a> {
++    shared: &'a Shared,
++    complete: bool,
++}
++
++impl Drop for AddPartitionsResponseGuard<'_> {
++    fn drop(&mut self) {
++        if !self.complete {
++            self.shared.set_txn_fatal(Error::protocol(
++                "AddPartitionsToTxn response invalid or validation cancelled",
++            ));
++        }
++    }
++}
++
++async fn decode_add_partitions_and_record(
++    shared: &Shared,
++    body: &[u8],
++    version: i16,
++    expected: &AddPartitionsExpected,
++) -> Result<i16> {
++    let mut guard = AddPartitionsResponseGuard {
++        shared,
++        complete: false,
++    };
++    let can_handle_abortable = shared.txn_can_handle_abortable();
++    let code =
++        validate_add_partitions_response(body, version, expected, can_handle_abortable, |fatal| {
++            shared.set_txn_fatal(Error::broker(fatal, "AddPartitionsToTxn"))
++        })
++        .await?;
++    if code != 0
++        && classify_add_partitions_error(code, can_handle_abortable)
++            == TxnErrorDisposition::Abortable
++    {
++        shared.set_txn_abortable(Error::broker(code, "AddPartitionsToTxn"));
++    }
++    guard.complete = true;
++    Ok(code)
++}
++
+ async fn txn_roundtrip(
+     shared: &Shared,
+     api_key: i16,
+@@ -8764,6 +9095,13 @@ impl Worker {
+             return Ok(());
+         }
+         let topics = group_txn_partitions(&added).await;
++        let expected = match index_add_partitions_request(&added).await {
++            Ok(expected) => Arc::new(expected),
++            Err(error) => {
++                forget_added_txn_parts(&self.shared.txn_partitions, &added).await;
++                return Err(error);
++            }
++        };
+         let deadline = Instant::now() + timeout;
+         let mut attempt = 0u32;
+         loop {
+@@ -8797,9 +9135,10 @@ impl Worker {
+                 },
+                 remaining,
+                 |body| {
++                    let shared = Arc::clone(&self.shared);
++                    let expected = Arc::clone(&expected);
+                     Box::pin(async move {
+-                        decode_add_partitions_to_txn_response_cooperative(&mut { body }, version)
+-                            .await
++                        decode_add_partitions_and_record(&shared, body, version, &expected).await
+                     })
+                 },
+             )
+@@ -8812,7 +9151,7 @@ impl Worker {
+                 }
+             };
+             let err =
+-                match decode_add_partitions_to_txn_response_cooperative(&mut body.clone(), version)
++                match decode_add_partitions_and_record(&self.shared, &body, version, &expected)
+                     .await
+                 {
+                     Ok(e) => e,
+@@ -8837,12 +9176,12 @@ impl Worker {
+                     continue;
+                 }
+             }
+-            forget_added_txn_parts(&self.shared.txn_partitions, &added).await;
+             let e = Error::broker(err, "AddPartitionsToTxn");
+             self.shared.apply_txn_disposition(
+                 classify_add_partitions_error(err, can_handle),
+                 clone_err(&e),
+             );
++            forget_added_txn_parts(&self.shared.txn_partitions, &added).await;
+             return Err(e);
+         }
+         remember_added_txn_parts(&self.shared.txn_added, &added).await;
+@@ -12994,6 +13333,8 @@ mod tests {
+ 
+     #[tokio::test(flavor = "current_thread")]
+     async fn decoding_many_added_partitions_does_not_hold_the_caller() {
++        use crate::protocol::txn::decode_add_partitions_to_txn_response_cooperative;
++
+         let topics: Vec<crate::protocol::txn::TxnPartitionsTopic> = (0..200_000)
+             .map(|index| crate::protocol::txn::TxnPartitionsTopic {
+                 topic: format!("topic-{index}"),
+@@ -17639,3 +17980,582 @@ mod rediscover_stop_tests {
+         peer.abort();
+     }
+ }
++
++#[cfg(test)]
++mod add_partitions_validation_tests {
++    use super::*;
++    use crate::protocol::txn::{
++        decode_add_partitions_to_txn_response, encode_add_partitions_to_txn_topics_response,
++        AddPartitionsToTxnPartitionResult, AddPartitionsToTxnTopicResult,
++    };
++    use std::task::{Context, Poll, Waker};
++    use tokio::io::{AsyncReadExt, AsyncWriteExt};
++
++    fn topic(name: &str, parts: &[(i32, i16)]) -> AddPartitionsToTxnTopicResult {
++        AddPartitionsToTxnTopicResult {
++            topic: name.to_owned(),
++            partitions: parts
++                .iter()
++                .map(|(partition, error)| {
++                    AddPartitionsToTxnPartitionResult::error(*partition, *error)
++                })
++                .collect(),
++        }
++    }
++
++    fn encoded(version: i16, topics: &[AddPartitionsToTxnTopicResult]) -> BytesMut {
++        let mut body = BytesMut::new();
++        encode_add_partitions_to_txn_topics_response(&mut body, version, topics).unwrap();
++        body
++    }
++
++    async fn expected() -> AddPartitionsExpected {
++        index_add_partitions_request(&[
++            (Arc::from("a"), 0),
++            (Arc::from("a"), 1),
++            (Arc::from("b"), 7),
++        ])
++        .await
++        .unwrap()
++    }
++
++    #[tokio::test(flavor = "current_thread")]
++    async fn coverage_and_fatal_precedence_for_all_spoken_versions() {
++        let expected = expected().await;
++        let cases = [
++            (
++                error::COORDINATOR_LOAD_IN_PROGRESS,
++                error::PRODUCER_FENCED,
++                true,
++                error::PRODUCER_FENCED,
++            ),
++            (
++                error::PRODUCER_FENCED,
++                error::COORDINATOR_LOAD_IN_PROGRESS,
++                true,
++                error::PRODUCER_FENCED,
++            ),
++            (
++                error::TOPIC_AUTHORIZATION_FAILED,
++                error::INVALID_PRODUCER_EPOCH,
++                true,
++                error::INVALID_PRODUCER_EPOCH,
++            ),
++            (
++                error::COORDINATOR_LOAD_IN_PROGRESS,
++                error::UNKNOWN_PRODUCER_ID,
++                false,
++                error::UNKNOWN_PRODUCER_ID,
++            ),
++            (
++                error::COORDINATOR_LOAD_IN_PROGRESS,
++                error::UNKNOWN_PRODUCER_ID,
++                true,
++                error::UNKNOWN_PRODUCER_ID,
++            ),
++            (
++                error::CONCURRENT_TRANSACTIONS,
++                error::OPERATION_NOT_ATTEMPTED,
++                true,
++                error::CONCURRENT_TRANSACTIONS,
++            ),
++            (
++                error::OPERATION_NOT_ATTEMPTED,
++                error::CONCURRENT_TRANSACTIONS,
++                true,
++                error::CONCURRENT_TRANSACTIONS,
++            ),
++            (
++                error::CONCURRENT_TRANSACTIONS,
++                error::NOT_COORDINATOR,
++                true,
++                error::NOT_COORDINATOR,
++            ),
++            (
++                error::NOT_COORDINATOR,
++                error::CONCURRENT_TRANSACTIONS,
++                true,
++                error::NOT_COORDINATOR,
++            ),
++            (
++                error::COORDINATOR_LOAD_IN_PROGRESS,
++                error::NOT_COORDINATOR,
++                true,
++                error::NOT_COORDINATOR,
++            ),
++            (
++                error::NOT_COORDINATOR,
++                error::COORDINATOR_LOAD_IN_PROGRESS,
++                true,
++                error::NOT_COORDINATOR,
++            ),
++            (
++                error::OPERATION_NOT_ATTEMPTED,
++                error::TOPIC_AUTHORIZATION_FAILED,
++                true,
++                error::TOPIC_AUTHORIZATION_FAILED,
++            ),
++            (
++                error::COORDINATOR_LOAD_IN_PROGRESS,
++                error::TOPIC_AUTHORIZATION_FAILED,
++                true,
++                error::TOPIC_AUTHORIZATION_FAILED,
++            ),
++            (
++                error::OPERATION_NOT_ATTEMPTED,
++                0,
++                true,
++                error::OPERATION_NOT_ATTEMPTED,
++            ),
++            (0, 0, true, 0),
++        ];
++        for version in 0..=3 {
++            for (first, second, can_handle, selected) in cases {
++                // Both topic order and the order within a are different from the request.
++                let body = encoded(
++                    version,
++                    &[
++                        topic("b", &[(7, first)]),
++                        topic("a", &[(1, second), (0, 0)]),
++                    ],
++                );
++                let mut observed = Vec::new();
++                let result = validate_add_partitions_response(
++                    &body,
++                    version,
++                    &expected,
++                    can_handle,
++                    |code| observed.push(code),
++                )
++                .await
++                .unwrap();
++                assert_eq!(result, selected);
++                let public_first =
++                    decode_add_partitions_to_txn_response(&mut body.as_ref(), version).unwrap();
++                assert_eq!(public_first, if first != 0 { first } else { second });
++                if selected != 0
++                    && classify_add_partitions_error(selected, can_handle)
++                        == TxnErrorDisposition::Fatal
++                {
++                    assert_eq!(observed, vec![selected]);
++                } else {
++                    assert!(observed.is_empty());
++                }
++            }
++        }
++    }
++
++    #[tokio::test(flavor = "current_thread")]
++    async fn rejects_incomplete_duplicate_unrequested_and_malformed_results() {
++        let expected = expected().await;
++        for version in 0..=3 {
++            let invalid = [
++                vec![],
++                vec![topic("a", &[(0, 0), (1, 0)])],
++                vec![topic("a", &[(0, 0), (1, 0)]), topic("a", &[(0, 0), (1, 0)])],
++                vec![topic("a", &[(0, 0), (1, 0)]), topic("c", &[(7, 0)])],
++                vec![topic("a", &[(0, 0)]), topic("b", &[(7, 0)])],
++                vec![topic("a", &[(0, 0), (0, 0)]), topic("b", &[(7, 0)])],
++                vec![topic("a", &[(0, 0), (2, 0)]), topic("b", &[(7, 0)])],
++                vec![topic("a", &[(0, 0), (-1, 0)]), topic("b", &[(7, 0)])],
++            ];
++            for topics in invalid {
++                let body = encoded(version, &topics);
++                assert!(
++                    validate_add_partitions_response(&body, version, &expected, true, |_| {})
++                        .await
++                        .is_err()
++                );
++            }
++            let valid = encoded(
++                version,
++                &[topic("a", &[(0, 0), (1, 0)]), topic("b", &[(7, 0)])],
++            );
++            for length in 0..valid.len() {
++                let truncated = valid.get(..length).unwrap();
++                assert!(
++                    validate_add_partitions_response(truncated, version, &expected, true, |_| {})
++                        .await
++                        .is_err(),
++                    "version {version} length {length}"
++                );
++            }
++            let mut trailing = valid.clone();
++            trailing.put_u8(0);
++            assert!(
++                validate_add_partitions_response(&trailing, version, &expected, true, |_| {})
++                    .await
++                    .is_err()
++            );
++            let mut null_topics = BytesMut::new();
++            null_topics.put_i32(0);
++            if version == 3 {
++                null_topics.put_u8(0);
++            } else {
++                null_topics.put_i32(-1);
++            }
++            assert!(validate_add_partitions_response(
++                &null_topics,
++                version,
++                &expected,
++                true,
++                |_| {}
++            )
++            .await
++            .is_err());
++            let flexible = version == 3;
++            for null_name in [false, true] {
++                let mut null_nested = BytesMut::new();
++                null_nested.put_i32(0);
++                crate::protocol::buf::put_array_len(&mut null_nested, flexible, Some(2)).unwrap();
++                crate::protocol::buf::put_string(
++                    &mut null_nested,
++                    flexible,
++                    if null_name { None } else { Some("a") },
++                )
++                .unwrap();
++                crate::protocol::buf::put_array_len(&mut null_nested, flexible, None).unwrap();
++                assert!(validate_add_partitions_response(
++                    &null_nested,
++                    version,
++                    &expected,
++                    true,
++                    |_| {}
++                )
++                .await
++                .is_err());
++            }
++            // The wire count is smaller than the remaining bytes, but far larger
++            // than the request. Reject it without allocating from this count.
++            let mut huge_count = BytesMut::new();
++            huge_count.put_i32(0);
++            if version == 3 {
++                crate::protocol::buf::put_unsigned_varint(&mut huge_count, 500_001);
++            } else {
++                huge_count.put_i32(500_000);
++            }
++            huge_count.resize(500_020, 0);
++            assert!(validate_add_partitions_response(
++                &huge_count,
++                version,
++                &expected,
++                true,
++                |_| {}
++            )
++            .await
++            .is_err());
++        }
++    }
++
++    #[tokio::test(flavor = "current_thread")]
++    async fn flexible_tags_must_be_complete_and_strictly_ordered() {
++        let expected = expected().await;
++        let make = |tags: &[u8]| {
++            let mut body = BytesMut::new();
++            body.put_i32(0);
++            crate::protocol::buf::put_array_len(&mut body, true, Some(2)).unwrap();
++            crate::protocol::buf::put_string(&mut body, true, Some("a")).unwrap();
++            crate::protocol::buf::put_array_len(&mut body, true, Some(2)).unwrap();
++            body.put_i32(0);
++            body.put_i16(0);
++            body.extend_from_slice(tags);
++            body.put_i32(1);
++            body.put_i16(0);
++            body.put_u8(0); // second partition tags
++            body.put_u8(0); // topic tags
++            crate::protocol::buf::put_string(&mut body, true, Some("b")).unwrap();
++            crate::protocol::buf::put_array_len(&mut body, true, Some(1)).unwrap();
++            body.put_i32(7);
++            body.put_i16(0);
++            body.put_u8(0); // partition tags
++            body.put_u8(0); // topic tags
++            body.put_u8(0); // response tags
++            body
++        };
++        let accepted = make(&[2, 1, 0, 3, 1, 8]);
++        assert_eq!(
++            validate_add_partitions_response(&accepted, 3, &expected, true, |_| {})
++                .await
++                .unwrap(),
++            0
++        );
++        // Duplicate or descending tags are invalid even when their payloads fit.
++        for tags in [&[2, 3, 0, 3, 0][..], &[2, 3, 0, 1, 0][..]] {
++            let body = make(tags);
++            assert!(
++                validate_add_partitions_response(&body, 3, &expected, true, |_| {})
++                    .await
++                    .is_err()
++            );
++        }
++        let mut truncated = accepted.clone();
++        truncated.truncate(truncated.len() - 1);
++        assert!(
++            validate_add_partitions_response(&truncated, 3, &expected, true, |_| {})
++                .await
++                .is_err()
++        );
++    }
++
++    async fn shared_fixture() -> (Arc<Shared>, tokio::net::TcpListener, tokio::net::TcpStream) {
++        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
++        let addr = listener.local_addr().unwrap().to_string();
++        let meta = BrokerConn::connect(&addr, "add-coverage-meta", Duration::from_secs(2))
++            .await
++            .unwrap();
++        let (meta_peer, _) = listener.accept().await.unwrap();
++        let shared = test_shared(ProducerConfig::default().transactional_id("test-txn"), meta);
++        (shared, listener, meta_peer)
++    }
++
++    fn poll_once<F: Future>(future: Pin<&mut F>) -> Poll<F::Output> {
++        let mut context = Context::from_waker(Waker::noop());
++        future.poll(&mut context)
++    }
++
++    #[tokio::test(flavor = "current_thread")]
++    async fn dropping_validation_before_later_fence_fails_closed() {
++        for early_fence in [false, true] {
++            let (shared, _listener, _meta_peer) = shared_fixture().await;
++            let request: Vec<_> = (0..8_193)
++                .map(|part| (Arc::<str>::from("a"), part))
++                .collect();
++            let expected = index_add_partitions_request(&request).await.unwrap();
++            let parts: Vec<_> = (0..8_193)
++                .map(|part| {
++                    let is_fence = if early_fence {
++                        part == 0
++                    } else {
++                        part == 8_192
++                    };
++                    (part, if is_fence { error::PRODUCER_FENCED } else { 0 })
++                })
++                .collect();
++            let body = encoded(0, &[topic("a", &parts)]);
++            let mut future = Box::pin(decode_add_partitions_and_record(
++                &shared, &body, 0, &expected,
++            ));
++            assert!(matches!(poll_once(future.as_mut()), Poll::Pending));
++            assert_eq!(shared.txn_fatal.load(Ordering::SeqCst), early_fence);
++            drop(future);
++            assert!(shared.txn_fatal.load(Ordering::SeqCst));
++            let cause = shared.fail_on_txn_fatal().unwrap_err();
++            if early_fence {
++                assert_eq!(cause.broker_code(), Some(error::PRODUCER_FENCED));
++            } else {
++                assert!(matches!(cause, Error::Protocol(_)));
++            }
++        }
++    }
++
++    async fn test_worker() -> (Worker, tokio::net::TcpStream, tokio::net::TcpStream) {
++        let (shared, listener, meta_peer) = shared_fixture().await;
++        let addr = listener.local_addr().unwrap().to_string();
++        let mut conn = BrokerConn::connect(&addr, "add-coverage-worker", Duration::from_secs(2))
++            .await
++            .unwrap();
++        let (worker_peer, _) = listener.accept().await.unwrap();
++        conn.set_produce_version(3);
++        let coordinator =
++            BrokerConn::connect(&addr, "add-coverage-coordinator", Duration::from_secs(2))
++                .await
++                .unwrap();
++        let (coord_peer, _) = listener.accept().await.unwrap();
++        let versions = ApiVersionsResponse {
++            api_keys: vec![ApiVersion {
++                api_key: ADD_PARTITIONS_TO_TXN,
++                min_version: 0,
++                max_version: 0,
++            }],
++            ..Default::default()
++        };
++        *shared.txn.lock().await = Some(coordinator_connection(coordinator, &versions));
++        shared.in_txn.store(true, Ordering::SeqCst);
++        shared.producer_id.store(9, Ordering::SeqCst);
++        shared.producer_epoch.store(2, Ordering::SeqCst);
++        let (_data, data) = mpsc::channel(1);
++        let (_ctrl, ctrl) = mpsc::channel(1);
++        let admission = Arc::new(WorkerAdmission::for_producer(Arc::clone(&shared.closed)));
++        let worker = Worker {
++            id: Arc::new(()),
++            admission,
++            node_id: 1,
++            throttle: shared.broker_throttle(1),
++            conn,
++            data,
++            ctrl,
++            shared: Arc::clone(&shared),
++            write_buf: BytesMut::new(),
++            pending: Vec::new(),
++            spare_batch: Vec::new(),
++            pending_estimate: 0,
++            earliest_deadline: None,
++            in_flight: VecDeque::new(),
++            fail: None,
++            compress_scratch: CompressScratch::default(),
++            group_scratch: ProduceGroupScratch::default(),
++            ack_index: AckIndex::default(),
++            ack_slots: Vec::new(),
++            spare_acks: Vec::new(),
++            ack_requested: HashMap::new(),
++            ack_seen: HashMap::new(),
++            ack_tracker: None,
++            _live: WorkerLease::register(&shared),
++        };
++        drop(worker_peer);
++        (worker, coord_peer, meta_peer)
++    }
++
++    async fn respond(peer: &mut tokio::net::TcpStream, results: &[(i32, i16)]) {
++        let mut size = [0u8; 4];
++        let _read = peer.read_exact(&mut size).await.unwrap();
++        let length = usize::try_from(i32::from_be_bytes(size)).unwrap();
++        assert!((8..=4096).contains(&length));
++        let mut request = vec![0u8; length];
++        let _read = peer.read_exact(&mut request).await.unwrap();
++        let mut input = request.as_slice();
++        let header = crate::protocol::header::decode_request_header(&mut input).unwrap();
++        assert_eq!(
++            (header.api_key, header.api_version),
++            (ADD_PARTITIONS_TO_TXN, 0)
++        );
++        let (id, pid, epoch, request_topics) =
++            crate::protocol::txn::decode_add_partitions_to_txn_request(&mut input, 0).unwrap();
++        assert_eq!((id.as_str(), pid, epoch), ("test-txn", 9, 2));
++        assert!(input.is_empty());
++        assert_eq!(request_topics.len(), 1);
++        let requested = request_topics.first().unwrap();
++        assert_eq!(requested.topic, "a");
++        assert_eq!(requested.partitions.len(), 2);
++        assert!(requested.partitions.contains(&0) && requested.partitions.contains(&1));
++        let body = encoded(0, &[topic("a", results)]);
++        let size = i32::try_from(body.len() + 4).unwrap();
++        peer.write_all(&size.to_be_bytes()).await.unwrap();
++        peer.write_all(&header.correlation_id.to_be_bytes())
++            .await
++            .unwrap();
++        peer.write_all(&body).await.unwrap();
++    }
++
++    #[tokio::test(flavor = "current_thread")]
++    async fn worker_handles_mixed_fence_missing_and_success() {
++        for kind in 0..5 {
++            tokio::time::timeout(Duration::from_secs(5), async {
++                let (worker, mut peer, _meta_peer) = test_worker().await;
++                let groups = vec![
++                    (Arc::from("a"), 0, Vec::new()),
++                    (Arc::from("a"), 1, Vec::new()),
++                ];
++                let server = async {
++                    match kind {
++                        0 => {
++                            respond(
++                                &mut peer,
++                                &[
++                                    (0, error::COORDINATOR_LOAD_IN_PROGRESS),
++                                    (1, error::PRODUCER_FENCED),
++                                ],
++                            )
++                            .await
++                        }
++                        1 => respond(&mut peer, &[(0, 0)]).await,
++                        2 => respond(&mut peer, &[(1, 0), (0, 0)]).await,
++                        3 => {
++                            respond(
++                                &mut peer,
++                                &[
++                                    (0, error::CONCURRENT_TRANSACTIONS),
++                                    (1, error::NOT_COORDINATOR),
++                                ],
++                            )
++                            .await
++                        }
++                        _ => {
++                            respond(
++                                &mut peer,
++                                &[
++                                    (0, error::NOT_COORDINATOR),
++                                    (1, error::CONCURRENT_TRANSACTIONS),
++                                ],
++                            )
++                            .await
++                        }
++                    }
++                };
++                let (result, ()) = tokio::join!(worker.add_txn_partitions(&groups), server);
++                match kind {
++                    0 => assert_eq!(
++                        result.unwrap_err().broker_code(),
++                        Some(error::PRODUCER_FENCED)
++                    ),
++                    1 => assert!(matches!(result, Err(Error::Protocol(_)))),
++                    2 => assert!(result.is_ok()),
++                    // The fixture intentionally has no FindCoordinator range.
++                    // Unsupported proves txn_roundtrip requested rediscovery.
++                    _ => assert!(matches!(result, Err(Error::Unsupported(_)))),
++                }
++                assert_eq!(worker.shared.txn_fatal.load(Ordering::SeqCst), kind <= 1);
++                let added = worker.shared.txn_added.lock();
++                if kind == 2 {
++                    let parts = added.get("a").unwrap();
++                    assert_eq!(parts.len(), 2);
++                    assert!(parts.contains(&0) && parts.contains(&1));
++                } else {
++                    assert!(added.is_empty());
++                }
++            })
++            .await
++            .expect("worker exchange timed out");
++        }
++    }
++
++    #[tokio::test(flavor = "current_thread")]
++    async fn worker_retries_noncoordinator_response_then_sees_fence_or_success() {
++        for fence in [false, true] {
++            tokio::time::timeout(Duration::from_secs(5), async {
++                let (worker, mut peer, _meta_peer) = test_worker().await;
++                let groups = vec![
++                    (Arc::from("a"), 0, Vec::new()),
++                    (Arc::from("a"), 1, Vec::new()),
++                ];
++                let server = async {
++                    respond(
++                        &mut peer,
++                        &[
++                            (0, error::CONCURRENT_TRANSACTIONS),
++                            (1, error::OPERATION_NOT_ATTEMPTED),
++                        ],
++                    )
++                    .await;
++                    if fence {
++                        respond(
++                            &mut peer,
++                            &[
++                                (0, error::COORDINATOR_LOAD_IN_PROGRESS),
++                                (1, error::PRODUCER_FENCED),
++                            ],
++                        )
++                        .await;
++                    } else {
++                        respond(&mut peer, &[(1, 0), (0, 0)]).await;
++                    }
++                };
++                let (result, ()) = tokio::join!(worker.add_txn_partitions(&groups), server);
++                if fence {
++                    assert_eq!(
++                        result.unwrap_err().broker_code(),
++                        Some(error::PRODUCER_FENCED)
++                    );
++                    assert!(worker.shared.txn_fatal.load(Ordering::SeqCst));
++                    assert!(worker.shared.txn_added.lock().is_empty());
++                } else {
++                    result.unwrap();
++                    assert!(!worker.shared.txn_fatal.load(Ordering::SeqCst));
++                    assert_eq!(worker.shared.txn_added.lock().get("a").unwrap().len(), 2);
++                }
++            })
++            .await
++            .expect("worker retry exchange timed out");
++        }
++    }
++}

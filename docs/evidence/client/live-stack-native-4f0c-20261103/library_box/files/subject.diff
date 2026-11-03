@@ -1,0 +1,82 @@
+diff --git a/scripts/ci-broker-compatibility.sh b/scripts/ci-broker-compatibility.sh
+index 4f0bd80..2f5a254 100644
+--- a/scripts/ci-broker-compatibility.sh
++++ b/scripts/ci-broker-compatibility.sh
+@@ -1,6 +1,7 @@
+ #!/usr/bin/env bash
+ # KL01-10: fresh digest-pinned Linux broker; every required history must finish.
+ set -euo pipefail
++[[ -z "${RUST_MIN_STACK+x}" ]] || { echo 'RUST_MIN_STACK must be absent from the harness' >&2; exit 1; }
+ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+ cd "$ROOT"
+ version="${1:?explicit current broker version required}"
+@@ -18,6 +19,12 @@ source_sha="$(git rev-parse HEAD)"
+ report="${PL_COMPAT_REPORT_DIR:-$ROOT/target/broker-compatibility/$version}"
+ mkdir -p "$report"
+ name="pl-compat-${version//./-}-$$"
++labels=()
++if [[ -n "${PL_STACK_RUN_TOKEN:-}" ]]; then
++  [[ "${PL_STACK_RUN_TOKEN}" =~ ^[0-9a-f]{32}$ ]] || { echo 'invalid stack diagnostic token' >&2; exit 1; }
++  name="pl-stack-${PL_STACK_RUN_TOKEN}"
++  labels=(--label "partitionline.stack.run=${PL_STACK_RUN_TOKEN}")
++fi
+ port="${PL_COMPAT_PORT:-19092}"
+ owned=0
+ phase=prerequisites
+@@ -58,7 +65,7 @@ if ! docker image inspect "$reference" >/dev/null 2>&1; then
+ fi
+ phase=broker-start
+ # Only the successfully created container is owned by this invocation.
+-docker create "${cpu_args[@]}" --name "$name" -p "127.0.0.1:$port:9092" \
++docker create "${cpu_args[@]}" "${labels[@]}" --name "$name" -p "127.0.0.1:$port:9092" \
+   -e KAFKA_NODE_ID=1 -e KAFKA_PROCESS_ROLES=broker,controller \
+   -e KAFKA_LISTENERS=PLAINTEXT://:9092,INTERNAL://:9094,CONTROLLER://:9093 \
+   -e "KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://127.0.0.1:$port,INTERNAL://localhost:9094" \
+@@ -125,7 +132,18 @@ cargo test --locked --test broker_compatibility --no-run >"$report/build.log" 2>
+ phase=runtime-required-profile
+ export KAFKA_BOOTSTRAP="127.0.0.1:$port"
+ export PL_COMPAT_REFERENCE="$reference" PL_COMPAT_SOURCE_SHA="$source_sha" PL_COMPAT_PREFIX="plcompat-${version//./-}"
++# Configure only Cargo's test runner; Cargo, rustc and build scripts retain
++# their default stack environment. The outer collector supplies a pinned script.
++if [[ -n "${PL_STACK_RUNTIME_MIN:-}" ]]; then
++  [[ "${PL_STACK_RUNTIME_MIN}" == 2097152 || "${PL_STACK_RUNTIME_MIN}" == 8388608 ]] || { echo 'invalid runtime stack value' >&2; exit 1; }
++  [[ "$(awk '$1 == "host:" {print $2}' "$report/rustc.log")" == x86_64-unknown-linux-gnu ]] || { echo 'unexpected Rust host' >&2; exit 1; }
++  [[ "${PL_STACK_RUNTIME_RUNNER:-}" == /* && -f "$PL_STACK_RUNTIME_RUNNER" && "$PL_STACK_RUNTIME_RUNNER" != *[[:space:]]* ]] || { echo 'invalid runtime stack runner path' >&2; exit 1; }
++  export CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_RUNNER="bash $PL_STACK_RUNTIME_RUNNER"
++fi
+ cargo test --locked --test broker_compatibility -- --ignored --exact live_compatibility_required --nocapture >"$report/runtime.log" 2>&1
++# The stack investigation stops at classic join. Do not enter later scenarios.
++echo 'PL_STACK_CLASSIC_TEST_PROCESS_RETURNED'
++exit 0
+ phase=independent-java-history-and-offsets
+ prefix="plcompat-${version//./-}"
+ # Kafka 4.2 deprecated --property and writes its warning to record stdout.
+diff --git a/src/group.rs b/src/group.rs
+index fe548f2..ea81e2a 100644
+--- a/src/group.rs
++++ b/src/group.rs
+@@ -3417,7 +3417,7 @@ impl ConsumerGroup {
+     async fn rejoin_within(&mut self, deadline: Instant) -> Result<()> {
+         let rejoining = !self.member_id.is_empty();
+         for _ in 0..8 {
+-            let revoked = self.rejoin_once(deadline).await?;
++            let revoked = Box::pin(self.rejoin_once(deadline)).await?;
+             if self.protocol != "cooperative-sticky" || revoked.is_empty() {
+                 if rejoining {
+                     let _ = self.m_rebalances.fetch_add(1, Ordering::Relaxed);
+diff --git a/tests/broker_compatibility.rs b/tests/broker_compatibility.rs
+index 70d6118..e01d9b6 100644
+--- a/tests/broker_compatibility.rs
++++ b/tests/broker_compatibility.rs
+@@ -363,6 +363,11 @@ async fn run() -> partitionline::Result<()> {
+         let id = format!("{prefix}-{kind}");
+         eprintln!("compatibility group phase: {kind} join");
+         let mut group = join_group(&bootstrap, &id, &input, kind, &mut attempts).await?;
++        // Diagnostic only: stop before later compatibility scenarios.
++        if kind == "classic" {
++            eprintln!("PL_STACK_CLASSIC_JOIN_COMPLETE");
++            return Ok(());
++        }
+         eprintln!("compatibility group phase: {kind} poll");
+         let mut seen = BTreeSet::new();
+         while seen.len() < TOTAL {

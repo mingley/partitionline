@@ -1,0 +1,104 @@
+{
+  "independently_applied_candidate_source_sha256": "9154ec1b502bc4c639b6a1f6cb30568f72a91f442123a7f6d1378e46ea2e93ff",
+  "independently_reconstructed_run_inputs": {
+    "baseline_source_with_witness_sha256": "c86eab9852b995c9e7dae4fb1d7fac5149436b2dff9dd4f37a2cd735f87a275c",
+    "candidate_source_with_witness_sha256": "c20caee389ac47bdf941558796438b069367093a43256d3a587eee1bb5b0e4c2",
+    "cargo_lock_sha256": "bdc37c48feb0d7a17a1b08e70c5301ec30b9a90e64c93adaf28aef6b6f9f46bc",
+    "witness_injection_sha256": "683445d7424b106f9119e54d4d6d42c8c019902f7c2dd4af39ca44a65b4229f9"
+  },
+  "pins": [
+    {
+      "bytes": 678608,
+      "commit": "45cbff24de76490594970fc962cd04e7be9fafb1",
+      "git_blob_sha1": "45722de4b22e72c56a446b480440bf2775e6188b",
+      "path": "src/producer.rs",
+      "sha256": "4f461c00864e3da5e20925796c1f489580a4046202cffd86fefeb64cbd145a32"
+    },
+    {
+      "bytes": 388359,
+      "commit": "45cbff24de76490594970fc962cd04e7be9fafb1",
+      "git_blob_sha1": "28a42504a130d3797f3a1bc7c30548a3eac5897f",
+      "path": "src/protocol/txn.rs",
+      "sha256": "4e5a224f22301d2c9fa6b388e94871223e300869facef5b28b63bfc73691d949"
+    },
+    {
+      "bytes": 35672,
+      "commit": "45cbff24de76490594970fc962cd04e7be9fafb1",
+      "git_blob_sha1": "9a04f94d94de23b1f24f93c5307f3f0f2218332e",
+      "path": "src/error.rs",
+      "sha256": "014c33e7716b004aa22ec46b4b7e0e9e67b54d982b69b8f152ee02eb421d45f2"
+    },
+    {
+      "bytes": 4488,
+      "commit": "45cbff24de76490594970fc962cd04e7be9fafb1",
+      "git_blob_sha1": "585bbf9a31465d6bba3f66f593fddd1add516f36",
+      "path": "Cargo.toml",
+      "sha256": "98b437d0dab4d8289a9fd097f9f7a8c4b6e227c505584eb1ea22e0c8bc28f389"
+    },
+    {
+      "bytes": 18399,
+      "commit": "45cbff24de76490594970fc962cd04e7be9fafb1",
+      "git_blob_sha1": "d1cb698aaaf7554fe904ba02d671c4a8ab4975b3",
+      "path": "Cargo.lock",
+      "sha256": "bdc37c48feb0d7a17a1b08e70c5301ec30b9a90e64c93adaf28aef6b6f9f46bc"
+    },
+    {
+      "bytes": 86,
+      "commit": "45cbff24de76490594970fc962cd04e7be9fafb1",
+      "git_blob_sha1": "05e6ca1bf94c42a23333262558d22b866615466e",
+      "path": "rust-toolchain.toml",
+      "sha256": "7458b2d74495e6fb1c1edeea4d5a793705476431dadb60627187111f91441e13"
+    },
+    {
+      "bytes": 5725,
+      "commit": "45cbff24de76490594970fc962cd04e7be9fafb1",
+      "git_blob_sha1": "46c5600cd99cbfef4800742cc8cd39f49f4abfda",
+      "path": "scripts/candidate-command-ownership.py",
+      "sha256": "34ddbf04a4bbead974fad4a451d30c7a56818248bd5b58c88c87bdfc41896da9"
+    },
+    {
+      "bytes": 4930,
+      "commit": "4f0c13d8c6600b0c7a5048f7a0499b550cf5e000",
+      "git_blob_sha1": "f80f7e6ad38221b32a774f74f0d151750ed6dc21",
+      "path": ".github/workflows/add-partitions-qualification.yml",
+      "sha256": "7b0e00d066639488bac1231f0a7fd5cd6763e79ad0f2e1b74f845631a88948bd"
+    },
+    {
+      "bytes": 19413,
+      "commit": "4f0c13d8c6600b0c7a5048f7a0499b550cf5e000",
+      "git_blob_sha1": "d3d5ad909e3011a200c9ca516c4937d59e16b1c0",
+      "path": "docs/evidence/client/add-partitions-coverage-20261103/qualify.py",
+      "sha256": "4d4b5bf25e41a880b3ba47bc00bd69bebf034162b697768d6b24c7bee14e8747"
+    },
+    {
+      "bytes": 40025,
+      "commit": "4f0c13d8c6600b0c7a5048f7a0499b550cf5e000",
+      "git_blob_sha1": "f6751fe6029351c45c3c32399f73963c2c2a6732",
+      "path": "docs/evidence/client/add-partitions-coverage-20261103/candidate-v3.patch",
+      "sha256": "5e356bd2d7616354de4a3e60ebd23bd12104bc4a9d8a29cc65cbd258f38d8cfe"
+    },
+    {
+      "bytes": 6783,
+      "commit": "4f0c13d8c6600b0c7a5048f7a0499b550cf5e000",
+      "git_blob_sha1": "cf8639a3730838b56e1f39dbc9806af34488861b",
+      "path": "docs/evidence/client/add-partitions-coverage-20261103/witness.rs",
+      "sha256": "539c1df76bc8114792699c09d65ff0986b1afddfbcc2803ec3cf115e783f4a6c"
+    },
+    {
+      "bytes": 5725,
+      "commit": "4f0c13d8c6600b0c7a5048f7a0499b550cf5e000",
+      "git_blob_sha1": "46c5600cd99cbfef4800742cc8cd39f49f4abfda",
+      "path": "docs/evidence/client/add-partitions-coverage-20261103/candidate-command-ownership.py",
+      "sha256": "34ddbf04a4bbead974fad4a451d30c7a56818248bd5b58c88c87bdfc41896da9"
+    },
+    {
+      "bytes": 3684,
+      "commit": "4f0c13d8c6600b0c7a5048f7a0499b550cf5e000",
+      "git_blob_sha1": "9eb938642921363a578531c2f29f18fea7467bd4",
+      "path": "docs/evidence/client/add-partitions-coverage-20261103/README.md",
+      "sha256": "449e2fb89324d44b91a74700050e4461f0c0c9055e20c007188141ed6785ef1f"
+    }
+  ],
+  "source_commit": "45cbff24de76490594970fc962cd04e7be9fafb1",
+  "trigger_commit": "4f0c13d8c6600b0c7a5048f7a0499b550cf5e000"
+}

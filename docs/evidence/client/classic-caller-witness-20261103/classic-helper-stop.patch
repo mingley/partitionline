@@ -1,0 +1,18 @@
+--- a/tests/broker_compatibility.rs
++++ b/tests/broker_compatibility.rs
+@@ -108,7 +108,14 @@
+                 _ => ConsumerGroup::join(cfg, id, topic).await,
+             };
+             match result {
+-                Ok(group) => return Ok(group),
++                Ok(group) => {
++                    // Diagnostic only: prevent any phase after classic join.
++                    if kind == "classic" {
++                        eprintln!("PL_CLASSIC_WITNESS_JOIN_SUCCEEDED");
++                        std::process::exit(0);
++                    }
++                    return Ok(group);
++                }
+                 Err(error) if startup(&error) => {
+                     eprintln!("coordinator startup {kind}: {error}");
+                     attempts.push((kind.to_owned(), error.to_string()));

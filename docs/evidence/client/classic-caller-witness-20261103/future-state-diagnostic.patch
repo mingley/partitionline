@@ -1,0 +1,36 @@
+--- a/tests/broker_compatibility.rs
++++ b/tests/broker_compatibility.rs
+@@ -546,3 +546,33 @@
+         .expect("complete compatibility profile exceeded deadline")
+         .expect("required broker scenario failed");
+ }
++
++// Diagnostic only: future state size/alignment do not bound poll stack usage.
++// Futures are constructed and dropped without being polled or using a broker.
++#[test]
++#[ignore = "explicit non-polling future state diagnostic"]
++fn report_classic_witness_future_states() {
++    let worker = std::thread::Builder::new()
++        .name("classic-future-state".into())
++        .stack_size(8 * 1024 * 1024)
++        .spawn(|| {
++            let caller = run();
++            println!(
++                "PL_CLASSIC_FUTURE_STATE\tcaller\t{}\t{}",
++                std::mem::size_of_val(&caller),
++                std::mem::align_of_val(&caller)
++            );
++            drop(caller);
++            let mut attempts = Vec::new();
++            let join = join_group("127.0.0.1:1", "diag", "topic", "classic", &mut attempts);
++            println!(
++                "PL_CLASSIC_FUTURE_STATE\tjoin_helper\t{}\t{}",
++                std::mem::size_of_val(&join),
++                std::mem::align_of_val(&join)
++            );
++            drop(join);
++            println!("PL_CLASSIC_FUTURE_STATES_COMPLETE");
++        })
++        .expect("start future state diagnostic");
++    worker.join().expect("future state diagnostic failed");
++}

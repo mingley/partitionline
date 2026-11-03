@@ -1,0 +1,554 @@
+{
+  "archive_sha256": "411db0c65ab7071018761b61fe50e27d74df176b9786d28764720ba21650ce39",
+  "artifact_id": 13251161389,
+  "capacity_sample_count": 314,
+  "checks": {
+    "all-features": {
+      "baseline": {
+        "missing_response_must_not_mark_partitions_added": {
+          "duration_seconds": 54.822,
+          "exit_code": 101,
+          "issues": [],
+          "log": "baseline-all-features-missing_response_must_not_mark_partitions_added.log",
+          "log_sha256": "7faaf0539cff15402ca84b2bfcc1993b856a102841549ba33c891cb3a45f1b4c",
+          "recorded_cleanup": {
+            "descendants_present_at_close": [],
+            "leader_exit": 101,
+            "leader_pid": 3512,
+            "leader_waited": true,
+            "observed_session_members": [
+              {
+                "pgrp": 3512,
+                "pid": 3512,
+                "ppid": 2567,
+                "session": 3512,
+                "start": 19945,
+                "state": "Z"
+              }
+            ],
+            "reaped_descendants": [],
+            "remaining_descendants": []
+          },
+          "status": "verified"
+        },
+        "mixed_load_and_fence_must_record_fence": {
+          "duration_seconds": 0.074,
+          "exit_code": 101,
+          "issues": [],
+          "log": "baseline-all-features-mixed_load_and_fence_must_record_fence.log",
+          "log_sha256": "5fe649cf751c007a29d8e897981521426ca3e957e1a87bd6504b3321e1506495",
+          "recorded_cleanup": {
+            "descendants_present_at_close": [],
+            "leader_exit": 101,
+            "leader_pid": 3673,
+            "leader_waited": true,
+            "observed_session_members": [
+              {
+                "pgrp": 3673,
+                "pid": 3673,
+                "ppid": 2567,
+                "session": 3673,
+                "start": 25428,
+                "state": "Z"
+              }
+            ],
+            "reaped_descendants": [],
+            "remaining_descendants": []
+          },
+          "status": "verified"
+        }
+      },
+      "candidate_focused": {
+        "duration_seconds": 50.756,
+        "exit_code": 0,
+        "issues": [],
+        "log": "candidate-all-features-focused.log",
+        "log_sha256": "f53d7a2a230503fb3588ba95729d51fe148a8a24b494a38ba77689b1dc1c7b73",
+        "recorded_cleanup": {
+          "descendants_present_at_close": [],
+          "leader_exit": 0,
+          "leader_pid": 3998,
+          "leader_waited": true,
+          "observed_session_members": [
+            {
+              "pgrp": 3998,
+              "pid": 3998,
+              "ppid": 2567,
+              "session": 3998,
+              "start": 32626,
+              "state": "Z"
+            }
+          ],
+          "reaped_descendants": [],
+          "remaining_descendants": []
+        },
+        "status": "verified"
+      },
+      "candidate_witnesses": {
+        "missing_response_must_not_mark_partitions_added": {
+          "duration_seconds": 0.072,
+          "exit_code": 0,
+          "issues": [],
+          "log": "candidate-all-features-missing_response_must_not_mark_partitions_added.log",
+          "log_sha256": "9feef5d840edad503097bb8ac2598e8750ca2f19a3be1f3fa1124d948a28141f",
+          "recorded_cleanup": {
+            "descendants_present_at_close": [],
+            "leader_exit": 0,
+            "leader_pid": 4057,
+            "leader_waited": true,
+            "observed_session_members": [
+              {
+                "pgrp": 4057,
+                "pid": 4057,
+                "ppid": 2567,
+                "session": 4057,
+                "start": 37702,
+                "state": "Z"
+              }
+            ],
+            "reaped_descendants": [],
+            "remaining_descendants": []
+          },
+          "status": "verified"
+        },
+        "mixed_load_and_fence_must_record_fence": {
+          "duration_seconds": 0.073,
+          "exit_code": 0,
+          "issues": [],
+          "log": "candidate-all-features-mixed_load_and_fence_must_record_fence.log",
+          "log_sha256": "e5e2f09dc1f3938f0a2210d15183b52dc803aaa933a4536507cf72cf30338742",
+          "recorded_cleanup": {
+            "descendants_present_at_close": [],
+            "leader_exit": 0,
+            "leader_pid": 4066,
+            "leader_waited": true,
+            "observed_session_members": [
+              {
+                "pgrp": 4066,
+                "pid": 4066,
+                "ppid": 2567,
+                "session": 4066,
+                "start": 37709,
+                "state": "Z"
+              }
+            ],
+            "reaped_descendants": [],
+            "remaining_descendants": []
+          },
+          "status": "verified"
+        }
+      }
+    },
+    "default": {
+      "baseline": {
+        "missing_response_must_not_mark_partitions_added": {
+          "duration_seconds": 79.431,
+          "exit_code": 101,
+          "issues": [],
+          "log": "baseline-default-missing_response_must_not_mark_partitions_added.log",
+          "log_sha256": "b04be87737e218c415e706d2b2e5371a8fbd1262bd03ec8cc8352fb878592cd8",
+          "recorded_cleanup": {
+            "descendants_present_at_close": [],
+            "leader_exit": 101,
+            "leader_pid": 2616,
+            "leader_waited": true,
+            "observed_session_members": [
+              {
+                "pgrp": 2616,
+                "pid": 2616,
+                "ppid": 2567,
+                "session": 2616,
+                "start": 11994,
+                "state": "Z"
+              }
+            ],
+            "reaped_descendants": [],
+            "remaining_descendants": []
+          },
+          "status": "verified"
+        },
+        "mixed_load_and_fence_must_record_fence": {
+          "duration_seconds": 0.077,
+          "exit_code": 101,
+          "issues": [],
+          "log": "baseline-default-mixed_load_and_fence_must_record_fence.log",
+          "log_sha256": "fb43287616649143440c6baf11409190d8678a12309d956d223c7e7d51fe7339",
+          "recorded_cleanup": {
+            "descendants_present_at_close": [],
+            "leader_exit": 101,
+            "leader_pid": 3503,
+            "leader_waited": true,
+            "observed_session_members": [
+              {
+                "pgrp": 3503,
+                "pid": 3503,
+                "ppid": 2567,
+                "session": 3503,
+                "start": 19937,
+                "state": "Z"
+              }
+            ],
+            "reaped_descendants": [],
+            "remaining_descendants": []
+          },
+          "status": "verified"
+        }
+      },
+      "candidate_focused": {
+        "duration_seconds": 51.701,
+        "exit_code": 0,
+        "issues": [],
+        "log": "candidate-default-focused.log",
+        "log_sha256": "24eb7b74deca87ad0de0647b78213040de699f978d70cca2f74441097068e1e5",
+        "recorded_cleanup": {
+          "descendants_present_at_close": [],
+          "leader_exit": 0,
+          "leader_pid": 3919,
+          "leader_waited": true,
+          "observed_session_members": [
+            {
+              "pgrp": 3919,
+              "pid": 3919,
+              "ppid": 2567,
+              "session": 3919,
+              "start": 27441,
+              "state": "Z"
+            }
+          ],
+          "reaped_descendants": [],
+          "remaining_descendants": []
+        },
+        "status": "verified"
+      },
+      "candidate_witnesses": {
+        "missing_response_must_not_mark_partitions_added": {
+          "duration_seconds": 0.073,
+          "exit_code": 0,
+          "issues": [],
+          "log": "candidate-default-missing_response_must_not_mark_partitions_added.log",
+          "log_sha256": "a924b5d73af90e95715b56923efedd5409b47f0dc602d412fedccbf2dd42f274",
+          "recorded_cleanup": {
+            "descendants_present_at_close": [],
+            "leader_exit": 0,
+            "leader_pid": 3980,
+            "leader_waited": true,
+            "observed_session_members": [
+              {
+                "pgrp": 3980,
+                "pid": 3980,
+                "ppid": 2567,
+                "session": 3980,
+                "start": 32611,
+                "state": "Z"
+              }
+            ],
+            "reaped_descendants": [],
+            "remaining_descendants": []
+          },
+          "status": "verified"
+        },
+        "mixed_load_and_fence_must_record_fence": {
+          "duration_seconds": 0.073,
+          "exit_code": 0,
+          "issues": [],
+          "log": "candidate-default-mixed_load_and_fence_must_record_fence.log",
+          "log_sha256": "ef6dcba14d9acb7714d755c55be34ebaa77a3922e9d302d191e93f6164a4512d",
+          "recorded_cleanup": {
+            "descendants_present_at_close": [],
+            "leader_exit": 0,
+            "leader_pid": 3989,
+            "leader_waited": true,
+            "observed_session_members": [
+              {
+                "pgrp": 3989,
+                "pid": 3989,
+                "ppid": 2567,
+                "session": 3989,
+                "start": 32618,
+                "state": "Z"
+              }
+            ],
+            "reaped_descendants": [],
+            "remaining_descendants": []
+          },
+          "status": "verified"
+        }
+      }
+    }
+  },
+  "expected_candidate_source_sha256": "9154ec1b502bc4c639b6a1f6cb30568f72a91f442123a7f6d1378e46ea2e93ff",
+  "job_conclusion": "success",
+  "job_id": 126057918582,
+  "minimum_sampled_free_bytes": 13160808448,
+  "prerequisites": {
+    "candidate-clippy-all-features": {
+      "duration_seconds": 19.627,
+      "exit_code": 0,
+      "issues": [],
+      "log": "candidate-clippy-all-features.log",
+      "log_sha256": "5901c83d2262a75a23c8d1d2875a00997afaf826cd66b413f758db80dfdf678d",
+      "recorded_cleanup": {
+        "descendants_present_at_close": [],
+        "leader_exit": 0,
+        "leader_pid": 3689,
+        "leader_waited": true,
+        "observed_session_members": [
+          {
+            "pgrp": 3689,
+            "pid": 3689,
+            "ppid": 2567,
+            "session": 3689,
+            "start": 25478,
+            "state": "Z"
+          }
+        ],
+        "reaped_descendants": [],
+        "remaining_descendants": []
+      },
+      "status": "verified"
+    },
+    "candidate-rustfmt": {
+      "duration_seconds": 0.277,
+      "exit_code": 0,
+      "issues": [],
+      "log": "candidate-rustfmt.log",
+      "log_sha256": "fa42bcd4452098ec94b929f72e67411d1e219c8d57f5c4090470959e83385259",
+      "recorded_cleanup": {
+        "descendants_present_at_close": [],
+        "leader_exit": 0,
+        "leader_pid": 3684,
+        "leader_waited": true,
+        "observed_session_members": [
+          {
+            "pgrp": 3684,
+            "pid": 3684,
+            "ppid": 2567,
+            "session": 3684,
+            "start": 25450,
+            "state": "Z"
+          }
+        ],
+        "reaped_descendants": [],
+        "remaining_descendants": []
+      },
+      "status": "verified"
+    },
+    "cargo-version": {
+      "duration_seconds": 1.433,
+      "exit_code": 0,
+      "issues": [],
+      "log": "cargo-version.log",
+      "log_sha256": "8de1622765200e316c5b42f3a9f562db8065c2483b9e90e0bb7474fe6135da18",
+      "recorded_cleanup": {
+        "descendants_present_at_close": [],
+        "leader_exit": 0,
+        "leader_pid": 2597,
+        "leader_waited": true,
+        "observed_session_members": [
+          {
+            "pgrp": 2597,
+            "pid": 2597,
+            "ppid": 2567,
+            "session": 2597,
+            "start": 11790,
+            "state": "Z"
+          }
+        ],
+        "reaped_descendants": [],
+        "remaining_descendants": []
+      },
+      "status": "verified"
+    },
+    "checkout-head": {
+      "duration_seconds": 0.082,
+      "exit_code": 0,
+      "issues": [],
+      "log": "checkout-head.log",
+      "log_sha256": "483bf39e9e556eee15ac1392868c531f044fd5dcf88764b9cb73193cd4d34884",
+      "recorded_cleanup": {
+        "descendants_present_at_close": [],
+        "leader_exit": 0,
+        "leader_pid": 2569,
+        "leader_waited": true,
+        "observed_session_members": [
+          {
+            "pgrp": 2569,
+            "pid": 2569,
+            "ppid": 2567,
+            "session": 2569,
+            "start": 11761,
+            "state": "Z"
+          }
+        ],
+        "reaped_descendants": [],
+        "remaining_descendants": []
+      },
+      "status": "verified"
+    },
+    "checkout-status": {
+      "duration_seconds": 0.127,
+      "exit_code": 0,
+      "issues": [],
+      "log": "checkout-status.log",
+      "log_sha256": "c459b1104a059e2017042c595d08622827737fcde8d300f124c4cf78cf28adc8",
+      "recorded_cleanup": {
+        "descendants_present_at_close": [],
+        "leader_exit": 0,
+        "leader_pid": 2570,
+        "leader_waited": true,
+        "observed_session_members": [
+          {
+            "pgrp": 2570,
+            "pid": 2570,
+            "ppid": 2567,
+            "session": 2570,
+            "start": 11769,
+            "state": "Z"
+          }
+        ],
+        "reaped_descendants": [],
+        "remaining_descendants": []
+      },
+      "status": "verified"
+    },
+    "clippy-version": {
+      "duration_seconds": 0.229,
+      "exit_code": 0,
+      "issues": [],
+      "log": "clippy-version.log",
+      "log_sha256": "2670111397b39cb3fa41995ca617f7ad3165a687f520542e4adec55725b6e520",
+      "recorded_cleanup": {
+        "descendants_present_at_close": [],
+        "leader_exit": 0,
+        "leader_pid": 2607,
+        "leader_waited": true,
+        "observed_session_members": [
+          {
+            "pgrp": 2607,
+            "pid": 2607,
+            "ppid": 2567,
+            "session": 2607,
+            "start": 11971,
+            "state": "Z"
+          }
+        ],
+        "reaped_descendants": [],
+        "remaining_descendants": []
+      },
+      "status": "verified"
+    },
+    "patch-apply": {
+      "duration_seconds": 0.076,
+      "exit_code": 0,
+      "issues": [],
+      "log": "patch-apply.log",
+      "log_sha256": "071343276718934149e0754634ca853dbf4d9c284e7103db29499177686369e1",
+      "recorded_cleanup": {
+        "descendants_present_at_close": [],
+        "leader_exit": 0,
+        "leader_pid": 3683,
+        "leader_waited": true,
+        "observed_session_members": [
+          {
+            "pgrp": 3683,
+            "pid": 3683,
+            "ppid": 2567,
+            "session": 3683,
+            "start": 25442,
+            "state": "Z"
+          }
+        ],
+        "reaped_descendants": [],
+        "remaining_descendants": []
+      },
+      "status": "verified"
+    },
+    "patch-check": {
+      "duration_seconds": 0.073,
+      "exit_code": 0,
+      "issues": [],
+      "log": "patch-check.log",
+      "log_sha256": "7d2f690f2c9fb237f5ee94b28d88adeb6e16a9d6381b51a445c1e43b0e4a952b",
+      "recorded_cleanup": {
+        "descendants_present_at_close": [],
+        "leader_exit": 0,
+        "leader_pid": 3682,
+        "leader_waited": true,
+        "observed_session_members": [
+          {
+            "pgrp": 3682,
+            "pid": 3682,
+            "ppid": 2567,
+            "session": 3682,
+            "start": 25435,
+            "state": "Z"
+          }
+        ],
+        "reaped_descendants": [],
+        "remaining_descendants": []
+      },
+      "status": "verified"
+    },
+    "rustc-version": {
+      "duration_seconds": 0.075,
+      "exit_code": 0,
+      "issues": [],
+      "log": "rustc-version.log",
+      "log_sha256": "41915b34d0df5e54cd18f3186259ba217a34169e3ea256e49d367ab64a2be7f1",
+      "recorded_cleanup": {
+        "descendants_present_at_close": [],
+        "leader_exit": 0,
+        "leader_pid": 2591,
+        "leader_waited": true,
+        "observed_session_members": [
+          {
+            "pgrp": 2591,
+            "pid": 2591,
+            "ppid": 2567,
+            "session": 2591,
+            "start": 11782,
+            "state": "Z"
+          }
+        ],
+        "reaped_descendants": [],
+        "remaining_descendants": []
+      },
+      "status": "verified"
+    },
+    "rustfmt-version": {
+      "duration_seconds": 0.378,
+      "exit_code": 0,
+      "issues": [],
+      "log": "rustfmt-version.log",
+      "log_sha256": "994073f459565f4afe6154ebf7c85c3f2e4eb4eb37d46c9b98e4f605caa4c42c",
+      "recorded_cleanup": {
+        "descendants_present_at_close": [],
+        "leader_exit": 0,
+        "leader_pid": 2602,
+        "leader_waited": true,
+        "observed_session_members": [
+          {
+            "pgrp": 2602,
+            "pid": 2602,
+            "ppid": 2567,
+            "session": 2602,
+            "start": 11933,
+            "state": "Z"
+          }
+        ],
+        "reaped_descendants": [],
+        "remaining_descendants": []
+      },
+      "status": "verified"
+    }
+  },
+  "recorded_candidate_with_witness_sha256": "c20caee389ac47bdf941558796438b069367093a43256d3a587eee1bb5b0e4c2",
+  "recorded_step_count": 20,
+  "run_conclusion": "success",
+  "run_id": 41676355784,
+  "scope": "Focused unit and local mock-socket tests; no real broker, full client suite, performance or production qualification.",
+  "summary_error": null,
+  "summary_success": true,
+  "tested_base_commit": "45cbff24de76490594970fc962cd04e7be9fafb1",
+  "trigger_commit": "4f0c13d8c6600b0c7a5048f7a0499b550cf5e000"
+}

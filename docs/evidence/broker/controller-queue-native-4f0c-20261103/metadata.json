@@ -1,0 +1,92 @@
+{
+  "repository": "mingley/partitionline",
+  "run_id": 41676355750,
+  "job": {
+    "id": 126057918425,
+    "name": "controller queue (stable, Linux x86_64)",
+    "status": "completed",
+    "conclusion": "failure",
+    "run_id": 41676355750,
+    "logs_url": null,
+    "steps": [
+      {
+        "name": "Set up job",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 1
+      },
+      {
+        "name": "Initialize evidence and check disk",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 2
+      },
+      {
+        "name": "Run actions/checkout@v7",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 3
+      },
+      {
+        "name": "Check space after sparse checkout",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 4
+      },
+      {
+        "name": "Run dtolnay/rust-toolchain@stable",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 5
+      },
+      {
+        "name": "Verify capsule and source-only controls",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 6
+      },
+      {
+        "name": "Qualify pinned broker source",
+        "status": "completed",
+        "conclusion": "failure",
+        "number": 7
+      },
+      {
+        "name": "Retain reports, logs and inputs",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 8
+      },
+      {
+        "name": "Post Run actions/checkout@v7",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 16
+      },
+      {
+        "name": "Complete job",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 17
+      }
+    ]
+  },
+  "artifact": {
+    "id": 13250487880,
+    "name": "controller-queue-4f0c13d8c6600b0c7a5048f7a0499b550cf5e000-41676355750-1",
+    "size_in_bytes": 2042934,
+    "expired": false,
+    "created_at": "2026-11-03T16:40:36Z",
+    "expires_at": "2026-12-03T16:40:34Z",
+    "updated_at": "2026-11-03T16:40:36Z",
+    "digest": "sha256:349990ae050a14a23b94c9e12da04d0f4087c608cdbaf4f666cf2013eefe91d7",
+    "workflow_run": {
+      "id": 41676355750,
+      "repository_id": 1342911983,
+      "head_repository_id": 1342911983,
+      "head_branch": "main",
+      "head_sha": "4f0c13d8c6600b0c7a5048f7a0499b550cf5e000"
+    }
+  },
+  "artifact_access": "File Service reference; no local path; workspace proxy denied its host. Contents and local archive digest unavailable."
+}

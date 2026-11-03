@@ -1,0 +1,21 @@
+    Finished `test` profile [unoptimized] target(s) in 0.03s
+     Running tests/broker_compatibility.rs (/home/runner/work/_temp/pl-stack-target-phase_trace/debug/deps/broker_compatibility-544cc59927fc2ad7)
+
+running 1 test
+compatibility phase: admin-connect
+compatibility phase: admin-features
+compatibility phase: admin-create-topics
+compatibility phase: admin-offsets
+compatibility phase: produce
+compatibility phase: manual
+compatibility phase: groups
+compatibility group phase: classic join
+PL_GROUP_STACK_TRACE classic_join_body_enter
+PL_GROUP_STACK_TRACE classic_connect_enter
+
+thread 'live_compatibility_required' (7314) has overflowed its stack
+fatal runtime error: stack overflow, aborting
+error: test failed, to rerun pass `--test broker_compatibility`
+
+Caused by:
+  process didn't exit successfully: `/home/runner/work/_temp/pl-stack-target-phase_trace/debug/deps/broker_compatibility-544cc59927fc2ad7 --ignored --exact live_compatibility_required --nocapture` (signal: 6, SIGABRT: process abort signal)

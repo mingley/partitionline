@@ -1,0 +1,123 @@
+name: Classic group original caller witness
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/classic-original-caller-witness.yml
+      - docs/evidence/client/classic-caller-witness-20261103/**
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: classic-original-caller-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  witness:
+    name: classic caller ${{ matrix.case }} (diagnostic only)
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      max-parallel: 1
+      matrix:
+        case: [baseline, library_box]
+    env:
+      STACK_CASE: ${{ matrix.case }}
+      PL_STACK_SOURCE_CHECKOUT: ${{ github.workspace }}/subject
+    steps:
+      - name: Check runner space
+        timeout-minutes: 2
+        run: |
+          python3 -B - <<'PYCODE'
+          import os, platform, shutil
+          if platform.machine() != 'x86_64' or shutil.disk_usage(os.environ['RUNNER_TEMP']).free < 1536 * 1024**2 + 128 * 1024**2:
+              raise SystemExit('x86_64 host and free-space headroom required')
+          PYCODE
+      - name: Check out reviewed diagnostic driver
+        timeout-minutes: 5
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          path: driver
+          sparse-checkout: |
+            .github/workflows
+            docs/evidence/client/classic-caller-witness-20261103
+      - name: Verify reviewed capsule pins
+        timeout-minutes: 2
+        run: |
+          python3 -B - <<'PYCODE'
+          import hashlib, os
+          from pathlib import Path
+          root = Path(os.environ['GITHUB_WORKSPACE']) / 'driver'
+          relative = Path('docs/evidence/client/classic-caller-witness-20261103')
+          current = root
+          for part in relative.parts:
+              current = current / part
+              if current.is_symlink() or not current.is_dir():
+                  raise SystemExit('unsafe capsule path')
+          active = root / '.github/workflows/classic-original-caller-witness.yml'
+          mirror = current / 'workflow.yml'
+          if active.is_symlink() or mirror.is_symlink() or active.read_bytes() != mirror.read_bytes():
+              raise SystemExit('active workflow differs from the reviewed capsule copy')
+          pins = {
+              'stack_runner.py': '24d7bcbfcac2b00629fcc0edd9fe08851c58323fdce9bec495dbfd41e08388d0',
+              'test_stack_runner.py': '3ab0e9b5df7a35bc515d58289e6982f0b92d273a6eaca986c783207349a9e7d3',
+              'subject-pins.json': '870f3ba76aa69d21b737dfabbbe207234adfc0ef3da6eae74b8c7f49f3a483c7',
+              'source-pins.json': 'c905496b985c58eea453c63114e98f3bcc61a8742e275086d88112799f470c85',
+              'classic-helper-stop.patch': 'da9a592b5479a5a274e8710319f02ff7b6aaddf577fd2f46c7830161b7d7b74d',
+              'future-state-diagnostic.patch': '56dfe8bc306812e05e80025f42d9a34c25beeee05c9981c8e542fd8d4ee7e6ed',
+              'harness-classic-only.patch': 'af0dd4c59b7ce1abb3d368a41acdc336f4fcd28af29c0b3a6f8875bbfdcc96d6',
+              'library-box-experiment.patch': '05e3a3da42b1a93d374fdc96b60740a3e48a30942267a2bbbfe99a6abfac0904',
+          }
+          for name, expected in pins.items():
+              path = current / name
+              if path.is_symlink() or not path.is_file() or hashlib.sha256(path.read_bytes()).hexdigest() != expected:
+                  raise SystemExit('reviewed capsule pin mismatch: ' + name)
+          print('reviewed workflow and capsule inputs verified')
+          PYCODE
+      - name: Check out the pinned subject
+        timeout-minutes: 10
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          path: subject
+          ref: 45cbff24de76490594970fc962cd04e7be9fafb1
+          sparse-checkout: |
+            .cargo
+            examples
+            scripts
+            src
+            tests
+      - name: Check space after checkout
+        timeout-minutes: 2
+        run: python3 -B -c "import os,shutil; assert shutil.disk_usage(os.environ['RUNNER_TEMP']).free >= 1536 * 1024**2 + 128 * 1024**2"
+      - uses: dtolnay/rust-toolchain@stable
+        timeout-minutes: 15
+      - name: Check space after toolchain setup
+        timeout-minutes: 2
+        run: python3 -B -c "import os,shutil; assert shutil.disk_usage(os.environ['RUNNER_TEMP']).free >= 1536 * 1024**2 + 128 * 1024**2"
+      - name: Test diagnostic controls
+        timeout-minutes: 5
+        working-directory: driver/docs/evidence/client/classic-caller-witness-20261103
+        run: python3 -B -m unittest -v test_stack_runner.py
+      - name: Compare non-polling states and run classic witness
+        timeout-minutes: 55
+        working-directory: driver/docs/evidence/client/classic-caller-witness-20261103
+        run: |
+          python3 -B stack_runner.py \
+            --subject "$GITHUB_WORKSPACE/subject" \
+            --output "$RUNNER_TEMP/pl-caller-$STACK_CASE" \
+            --case "$STACK_CASE"
+      - name: Retain receipt and logs
+        timeout-minutes: 10
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: classic-original-caller-${{ matrix.case }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/pl-caller-${{ matrix.case }}
+          if-no-files-found: warn
+          retention-days: 30

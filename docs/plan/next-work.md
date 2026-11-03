@@ -86,7 +86,9 @@ busy-actor cancellation, total process memory and performance remain open.
 The [first hosted attempt](https://github.com/mingley/partitionline/actions/runs/41674601318)
 failed before starting a job. Its job-level environment used a runner context,
 which GitHub does not allow there. The workflow has been corrected; its retry
-must still be checked.
+started but [failed during qualification](../evidence/broker/controller-queue-native-4f0c-20261103/REPORT.md).
+Its retained artifact could not be accessed from this workspace, so the failure
+cause and individual test outcomes remain unknown.
 The source-reviewed [controller shutdown candidate](../evidence/broker/controller-shutdown-20261103/README.md)
 now has a [hosted qualification capsule](../evidence/broker/candidate-20261030/controller-join-v2-r1/README.md).
 Its [hosted job](../evidence/broker/controller-join-native-664b-20261103/README.md)
@@ -128,19 +130,24 @@ remain open.
    Its draft is uncompiled and unrun; missing response identities and
    cancellation before a fatal result is observed also remain open. A later
    [coverage candidate](../evidence/client/add-partitions-coverage-20261103/README.md)
-   checks request identities and error precedence; it is not applied or
-   natively tested. Concurrent transaction ordering and request-side
-   cancellation remain open even if its focused controls pass. The
+   checks request identities and error precedence. Its [hosted focused run](../evidence/client/add-partitions-native-4f0c-20261103/README.md)
+   reproduced both baseline witnesses and passed the candidate controls in
+   both feature profiles, plus formatting and library Clippy. It is not
+   applied; real Kafka, concurrent transaction ordering, request-side
+   cancellation and performance remain open. The
    [first hosted attempt](https://github.com/mingley/partitionline/actions/runs/41674599283)
    failed before starting a job and used the same unsupported workflow context;
-   the corrected retry still needs review.
+   the corrected retry produced the focused result above.
    Source review found that `flush` can miss delivery timeouts, lose a worker
    error when its caller is cancelled, or return before a retiring worker has
    handed retries off. Four focused controls [reproduced these failures](../evidence/client/producer-flush-native-86f2-20261103/README.md)
    in both feature profiles on the pinned base. The
    [source review](../evidence/client/producer-flush-controls-20261103/REPORT.md)
    describes the ownership transitions. Repair the barrier and error ownership
-   together; the controls do not cover every lifecycle path.
+   together; the controls do not cover every lifecycle path. A
+   [design and independent review](../evidence/client/producer-flush-design-20261103/README.md)
+   record unresolved cleanup, cancellation, transaction and liveness choices;
+   the sketch and small abstract model are not an implementation.
 
 2. **Consumer delivery and isolation.** Topic recreation still fails one
    ownership control. Cancellation and mixed-error recovery must preserve
@@ -171,8 +178,13 @@ remain open.
    setting affected rustc and failed during compilation, so it provides no
    runtime result. The trace overflowed after entering the classic connection
    path but before the next marker. None qualifies the unchanged compatibility
-   test or proves the cause. The [revised diagnostic](../evidence/client/live-stack-hosted-45cb-20261103/README.md)
-   confines stack overrides to the test process and still needs a hosted run.
+   test or proves the cause. The [revised diagnostic](../evidence/client/live-stack-native-4f0c-20261103/REPORT.md)
+   confined stack overrides to the test process: the requested 2 MiB case
+   overflowed at runtime and the 8 MiB shortened join returned. These remain
+   single diagnostic observations, not a full compatibility test. An
+   [original-caller witness](../evidence/client/classic-caller-witness-20261103/README.md)
+   is prepared but unrun; it stops inside the join helper before later
+   scenarios and cannot establish the unmodified test's full behavior.
    Classic JoinGroup can
    return a transient coordinator error after only one rediscovery retry;
    its bounded retry loop still needs controls.

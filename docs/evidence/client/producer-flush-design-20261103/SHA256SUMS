@@ -1,0 +1,6 @@
+101c04d138e2d18a1f336b6f1d1fa5bff33dd5622897ccb84ca4f86fa82f2ebc  docs/evidence/client/producer-flush-design-20261103/README.md
+1541ad0e5d8bf93fbd60e008c9d72bab09c86c4bb702ca2791ec2c9bab7b6524  docs/evidence/client/producer-flush-design-20261103/DESIGN.md
+b9f3d219330689674861b781352e05ca6dc80106ec1026632d4dad0df49fa032  docs/evidence/client/producer-flush-design-20261103/REVIEW.md
+ee557a3418de68b63db44254e39e0f9b4a10dc277577cc1d715508a7d5c2911d  docs/evidence/client/producer-flush-design-20261103/reviewed-DESIGN.md
+c43af2f82bf920b532ee029cb56dda22489f265ba31e38d20e601674b9df52cc  docs/evidence/client/producer-flush-design-20261103/epoch-prototype.rs
+889c097a140d4162e602e4beca47d9b40a46107dffd0f9bc43ff58c6ae06e003  docs/evidence/client/producer-flush-design-20261103/check_model.py

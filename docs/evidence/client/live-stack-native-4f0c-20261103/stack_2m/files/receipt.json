@@ -1,0 +1,57 @@
+{
+  "source_commit": "45cbff24de76490594970fc962cd04e7be9fafb1",
+  "case": "stack_2m",
+  "diagnostic_only": true,
+  "original_live_test_modified_to_stop_after_classic_join": true,
+  "stack_environment": "2097152",
+  "stack_scope": "test_executable_only",
+  "outcome": "stack_overflow_reported",
+  "manifest": {
+    "sha256": "829d3d4fd76906e670cb25e1670d366d06de9bf09fd5e6889462f814431ab192",
+    "bytes": 10375
+  },
+  "runtime_runner": {
+    "sha256": "d32fc6b9f4458c4b5afd98b9894cc20dbeb42a7ca8030f7c99b14628a907a950",
+    "bytes": 514
+  },
+  "patches": {
+    "harness-classic-only.patch": {
+      "sha256": "af0dd4c59b7ce1abb3d368a41acdc336f4fcd28af29c0b3a6f8875bbfdcc96d6",
+      "bytes": 2870
+    },
+    "classic-only.patch": {
+      "sha256": "dabfaa911fc2b6c0c9f4f010c05181ed9b73ef157ae5e0dd49760f2a39a2cde9",
+      "bytes": 631
+    }
+  },
+  "local_diagnostic_commit": "68e0658ef477da5f1f4fc7ff6191028f212e3e62",
+  "process_cleanup": {
+    "leader_pid": 2932,
+    "leader_waited": true,
+    "reaped_descendants": [],
+    "remaining_descendants": [],
+    "observed_session_members": [
+      {
+        "pid": 2932,
+        "state": "Z",
+        "ppid": 2769,
+        "pgrp": 2932,
+        "session": 2932,
+        "start": 3783
+      }
+    ],
+    "descendants_present_at_close": [],
+    "leader_exit": 101
+  },
+  "containers_removed_by_supervisor": [],
+  "test_binary_after_exit": {
+    "name": "broker_compatibility-544cc59927fc2ad7",
+    "sha256": "0602bcd40eaf4c2f56aed4048dbfa642211efc2be3941c9b3a49426829a3d790",
+    "bytes": 35518536
+  },
+  "exit_code": 101,
+  "stop_reason": "completed",
+  "wall_seconds": 62.12,
+  "qualifying_full_compatibility": false,
+  "performance_measurement": false
+}
