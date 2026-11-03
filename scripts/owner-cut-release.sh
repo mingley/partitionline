@@ -77,7 +77,7 @@ if [[ "${1:-}" == "--self-test" ]]; then
   grep -qF 'PARTIAL — Installable OK but Actions secret not synced' "$ROOT/scripts/owner-cut-release.sh" \
     || { echo "owner-cut-release --self-test: FAIL — Actions secret PARTIAL string missing" >&2; exit 1; }
   # DRY_RUN must rehearse handoff (or honor SKIP_HANDOFF) — never exit 0 before that.
-    grep -qF 'PARTIAL — handoff soft-failed (not yet Installable' "$ROOT/scripts/owner-cut-release.sh" \
+    grep -qF 'PARTIAL — handoff soft-failed (registry' "$ROOT/scripts/owner-cut-release.sh" \
     || { echo "owner-cut-release --self-test: FAIL — pre-Installable handoff PARTIAL must not claim crates.io" >&2; exit 1; }
   grep -qF 'dry_handoff_rc' "$ROOT/scripts/owner-cut-release.sh" \
     || { echo "owner-cut-release --self-test: FAIL — DRY_RUN must capture dry_handoff_rc (no soft-green over PARTIAL)" >&2; exit 1; }
@@ -126,7 +126,7 @@ WAIT_CRATES_ATTEMPTS="${WAIT_CRATES_ATTEMPTS:-36}" # ~6 minutes at 10s
 source "$ROOT/scripts/lib/cargo-registry-token.sh"
 pl_prepare_cargo_registry_token "owner-cut-release"
 
-# Token-day footgun: stepwise docs call cut-release bare. If a publish-new token
+# If a token
 # is already in-env and the caller did not force PUBLISH_LOCAL=0, prefer local
 # publish (same default as owner-finish-installable) instead of tag→starved Actions.
 if [[ "$PUBLISH_LOCAL_EXPLICIT" != "1" && -n "${CARGO_REGISTRY_TOKEN:-}" ]]; then
@@ -189,26 +189,34 @@ if [[ "$PUBLISH_LOCAL" != "1" ]]; then
   fi
 fi
 
-# KL-08: refuse to cut over a red/missing exact-SHA CI on this tip.
+# A real cut requires live, full-profile CI for this exact SHA.
 echo
 echo "== exact-SHA main CI (KL-08) =="
+release_ci_required=1
+if [[ "$DRY_RUN" == "1" ]]; then release_ci_required="$REQUIRE_MAIN_CI"; fi
 ci_rc=0
-CHECK_SHA="$(git rev-parse HEAD)" bash scripts/check-main-ci.sh || ci_rc=$?
+env -u GH_RUNS_JSON -u GH_JOBS_JSON -u GH_ARTIFACTS_JSON \
+  -u REQUIRED_JOBS -u REQUIRED_ARTIFACTS -u GH_RUN_LIMIT \
+  MAIN_BRANCH=main REQUIRE_MAIN_CI="$release_ci_required" REQUIRE_PROFILE_EVIDENCE=1 \
+  CHECK_SHA="$(git rev-parse HEAD)" bash scripts/check-main-ci.sh || ci_rc=$?
 if [[ "$ci_rc" -eq 1 ]]; then
   echo "owner-cut-release: main CI is red for this SHA — refusing cut." >&2
   echo "  Probe: CHECK_SHA=$(git rev-parse HEAD) bash scripts/check-main-ci.sh" >&2
-  if [[ "${ALLOW_RED_MAIN:-0}" == "1" ]]; then
-    echo "owner-cut-release: ALLOW_RED_MAIN=1 — continuing despite red CI" >&2
+  if [[ "$DRY_RUN" == "1" && "${ALLOW_RED_MAIN:-0}" == "1" ]]; then
+    echo "owner-cut-release: DRY_RUN=1 — rehearsing despite red CI" >&2
   else
     exit 1
   fi
 elif [[ "$ci_rc" -eq 2 ]]; then
-  if [[ "${REQUIRE_MAIN_CI}" == "1" ]]; then
-    echo "owner-cut-release: REQUIRE_MAIN_CI=1 and main CI inconclusive — refusing" >&2
-    echo "  Wait for green CI on this SHA, or REQUIRE_MAIN_CI=0 / DRY_RUN=1 to rehearse." >&2
+  if [[ "$release_ci_required" == "1" ]]; then
+    echo "owner-cut-release: main CI inconclusive — refusing" >&2
+    echo "  Wait for green CI on this SHA, or use DRY_RUN=1 to rehearse." >&2
     exit 1
   fi
-  echo "owner-cut-release: main CI inconclusive — continuing (REQUIRE_MAIN_CI=0)"
+  echo "owner-cut-release: main CI inconclusive — continuing rehearsal only"
+elif [[ "$ci_rc" -ne 0 ]]; then
+  echo "owner-cut-release: CI check failed unexpectedly (rc=${ci_rc}) — refusing cut" >&2
+  exit 1
 fi
 
 if [[ "$SKIP_PUBLISH_READY" != "1" ]]; then
@@ -235,9 +243,15 @@ else
 fi
 
 if [[ "$PUBLISH_LOCAL" == "1" ]]; then
-  # Probe publish-new auth before cargo publish (structured empty-tarball; not /me).
+  # Check availability only; cargo publish validates the token and scope.
   if [[ -n "${CARGO_REGISTRY_TOKEN:-}" ]]; then
-    bash scripts/check-registry-token.sh
+    tok_rc=0
+    bash scripts/check-registry-token.sh || tok_rc=$?
+    if [[ "$tok_rc" -ne 3 ]]; then
+      echo "owner-cut-release: token availability check failed (rc=${tok_rc})" >&2
+      exit 1
+    fi
+    echo "owner-cut-release: token present; authorization and scope unverified"
   fi
   if [[ -z "${CARGO_REGISTRY_TOKEN:-}" ]]; then
     if [[ "$DRY_RUN" == "1" ]]; then
@@ -322,15 +336,18 @@ pl_cut_run_handoff() {
     SKIP_DAY1="${SKIP_DAY1:-0}" LAND_PARKS="$land_parks" bash scripts/owner-post-installable-handoff.sh || handoff_rc=$?
   fi
   if [[ "$handoff_rc" -eq 2 ]]; then
-    if bash scripts/check-installable.sh >/dev/null 2>&1; then
-      echo "owner-cut-release: PARTIAL — ${name} ${ver} is Installable on crates.io but handoff soft-failed"
+    local registry_rc=0
+    bash scripts/check-installable.sh >/dev/null 2>&1 || registry_rc=$?
+    if [[ "$registry_rc" -eq 0 ]]; then
+      echo "owner-cut-release: PARTIAL — registry confirms ${name} ${ver}, but handoff or consumer verification is incomplete"
       echo "owner-cut-release: commit README + ADOPTION + guide + migrate crates.io lines if day1 changed them."
       echo "  Re-enter: LAND_PARKS=1 bash scripts/owner-post-installable-handoff.sh"
+    elif [[ "$registry_rc" -eq 3 ]]; then
+      echo "owner-cut-release: PARTIAL — handoff soft-failed (registry reports this version absent)"
+      echo "  Re-enter: LAND_PARKS=1 bash scripts/owner-post-installable-handoff.sh"
     else
-      # Pre-token / absent-crate DRY_RUN handoff PARTIAL must not claim Installable.
-      echo "owner-cut-release: PARTIAL — handoff soft-failed (not yet Installable; parks/day1 pending)"
-      echo "  Pre-token rehearsal held; do not treat this as crates.io ${ver} existing."
-      echo "  After Installable: LAND_PARKS=1 bash scripts/owner-post-installable-handoff.sh"
+      echo "owner-cut-release: PARTIAL — handoff soft-failed (registry confirmation inconclusive; this version may already exist)"
+      echo "  Retry confirmation before any publication."
     fi
     return 2
   elif [[ "$handoff_rc" -ne 0 ]]; then

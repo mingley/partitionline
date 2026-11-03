@@ -1,0 +1,66 @@
+{
+  "prepared_utc": "2026-11-03T04:30:17.356081+00:00",
+  "scope": "Source-only; no Cargo, type-check, Clippy, runtime, native performance or publication.",
+  "base": "/workspace/work/client-v10-fixture-thin-20261103/fixed plus root tests/tls_shutdown_deadline.rs; tests/common/mod.rs from v10",
+  "patch_sha256": "2cf749a507e4f5c74abbcf30e81bd12cbf521cc5f71c0afe69d137dcd44d7546",
+  "gzip_sha256": "4fecc7b6ec2046e0e4b4574a55fea74478dc890d29e91615dfd71b5f908c0457",
+  "forward_hashes_match": {
+    "src/net.rs": true,
+    "src/net/test_peer.rs": true,
+    "src/producer.rs": true,
+    "tests/common/mod.rs": true,
+    "tests/tls_shutdown_deadline.rs": true
+  },
+  "reverse_hashes_match": {
+    "src/net.rs": true,
+    "src/net/test_peer.rs": true,
+    "src/producer.rs": true,
+    "tests/common/mod.rs": true,
+    "tests/tls_shutdown_deadline.rs": true
+  },
+  "sources": {
+    "src/net.rs": {
+      "before_sha256": "f73aa7a04d3e2571f347f6a9245cf6f4df4ab218f653e71ca824e86e7893907c",
+      "after_sha256": "9b5af4a1c971a656a9c557e730560de97ea43ca23e1b9a9f9cb426eb872c93cb",
+      "added_tokio_tests": [
+        "physical_retirement_waits_for_lock_after_cancelled_partial_write",
+        "expired_retirement_reports_timeout_even_when_socket_is_free",
+        "deferred_retirement_waits_for_the_owned_stream"
+      ]
+    },
+    "src/net/test_peer.rs": {
+      "before_sha256": "e45283c9f1852be0ae63689dbb910a183d5db38fed5eb4974d7f9be33d6c993c",
+      "after_sha256": "e261b71beae7a1e48c8de96d23c64f23d91723668ed3fbc5544c026da28b11fb",
+      "added_tokio_tests": []
+    },
+    "src/producer.rs": {
+      "before_sha256": "bf165ca682b17f3812d3a3895854cdbf9f73ce862a9330bbc8a6dd2f4675be34",
+      "after_sha256": "999b43138c77341732e9c5030f64009a9f59607ca32fcde6ac9f5b7057907178",
+      "added_tokio_tests": [
+        "cancelled_metadata_negotiation_keeps_a_retired_slot_until_retry",
+        "metadata_close_timeout_keeps_the_owner_and_prevents_redial",
+        "close_timeout_or_cancellation_retires_an_established_metadata_rpc",
+        "expired_shutdown_budget_after_flush_reports_timeout_and_retires",
+        "shutdown_during_metadata_auth_retires_before_any_metadata_request"
+      ]
+    },
+    "tests/common/mod.rs": {
+      "before_sha256": "097e5549fdf3ad5ecd33525a319b89d387a12cd7a2ba6bdd13da46685ddafb93",
+      "after_sha256": "0163d6d73f2eda1525d984c05921b62287ddbbbf45176f7a3fca9a845e5742d9",
+      "added_tokio_tests": []
+    },
+    "tests/tls_shutdown_deadline.rs": {
+      "before_sha256": "65cd8ba1583acaed05361c0ea7114d96ef7df37dbe1fab5d33a8f4df5d067ea3",
+      "after_sha256": "975708c47064122f7b382d784e73a446c2b59da0e1a4244d8f7188d0c4716fff",
+      "added_tokio_tests": [
+        "cancelled_tls_metadata_replacement_is_retired_before_retry"
+      ]
+    }
+  },
+  "limitations": [
+    "Single producer-scoped deferred task needs originating Tokio runtime progress; timeout/cancel does not itself witness physical retirement.",
+    "Local socket retirement does not prove remote request outcome or that a peer has observed EOF before a new dial.",
+    "TLS mock Close reports handler termination, not an explicit peer TCP EOF; this control uses a held response gate.",
+    "No group coordinator reuse, worker reconnect retirement, Cargo compilation, Clippy, actual TCP/TLS/SASL execution, benchmark, or production qualification has occurred."
+  ]
+}

@@ -1,0 +1,192 @@
+{
+  "patch_sha256": "4b32aab50b8fcbe64636c6927b55f768d4e5d3eab4652bcd064d6b8abb1f5bb6",
+  "base_git_sha": "c0341637288b60ea2069a9fac58c0e427effc9de",
+  "manifest_sha256": "2e527b93fff736c62ab98a1808c25d9cd06cbf261d39e5a704e1e1bc2c7483fb",
+  "source_hashes": [
+    {
+      "path": ".github/workflows/release.yml",
+      "before": "105a2474922cda874f680d3edec3487906d4b5313e632f80187eeb39004a7cf0",
+      "after": "fa07ba9d54d3c402498d8a3ab88132639a18e68d694dfed050ddcafe0e4b675c"
+    },
+    {
+      "path": "scripts/audit-civilization-bars.sh",
+      "before": "8b8c425bfcbd9f75c19579e40003e73eb56513aacefb05e12fd4953c8c3c8a89",
+      "after": "be2bbec91504484a5596a510b47d455d1239ee256258200ba0ec83cfc7073578"
+    },
+    {
+      "path": "scripts/check-cut-path.sh",
+      "before": "a8ed386dda1061d2138f9f9d6a6f2f61e09d665eb79547099816696ee5bfee2b",
+      "after": "9548f17092b08f6007058e4ee7dc67d4731ef70db97ae285920c05c55129c91d"
+    },
+    {
+      "path": "scripts/check-installable-preflight.sh",
+      "before": "3caad26438e16eec2222f856b30899e01ae9dc00eadf9583f8182eb52bae011f",
+      "after": "7d4bfd233c670d4acd1749f04443a14bd919fab20238edd45a65d5867576e095"
+    },
+    {
+      "path": "scripts/check-installable.sh",
+      "before": "33e0a022be0382bc9812533a5a49d5d4e7280d3da3c24fddc6a9c9ec01ed52c2",
+      "after": "70a6c7905cfeb894a63403c4dfb9a62e065fa46f3b9209aa4e1c04300b7ee60f"
+    },
+    {
+      "path": "scripts/check-merge-ready.sh",
+      "before": "1524ef9dcf17e49ffddc780d39778f1593ff271c280577452ac46c13eb2fb02a",
+      "after": "fa89d197f882b61d778adbf452b6c4a1657238ec40b6014c8ad00af18b385cc8"
+    },
+    {
+      "path": "scripts/check-registry-token.sh",
+      "before": "77b45f539588c2cecb3a3ce31fc0db413de78969d90ec508305834b59f51308e",
+      "after": "e65fb11d0b03daf3ca776a26e20f50fa43564c7fb56724280b167b9dbe8edcd8"
+    },
+    {
+      "path": "scripts/ci-branch-lite.sh",
+      "before": "b72370d8859404c150e2038c55dcdf5ad2ab0d9fe84ef33a4fb7ff17bf515905",
+      "after": "1fc290114c331b1876136d8e412a743964e5576fec9f2e731f3583efac9faa24"
+    },
+    {
+      "path": "scripts/ci-civilization-check.sh",
+      "before": "abc30011ddd09b2fc8f64949b050872dac8c1347d9c1eaae890edbbaef7446a4",
+      "after": "13889d363da6c4a9c5c9449aacd3bc7d45033cd5b07b16bb0e61d7b26adbd742"
+    },
+    {
+      "path": "scripts/ci-publish-ready.sh",
+      "before": "dc571b507c4896afcec47dc92ccf3ccfac26b0b2f1f3bb4c62d35495e43d062f",
+      "after": "3cbb3c2525e6df36818087a3e88219b7d55cb9d1231cb2df86e0a2c1eb1f31be"
+    },
+    {
+      "path": "scripts/day1-after-publish.sh",
+      "before": "89b28cb40d7df48f6e9f41ecedeaa161d88ef31b3b3355674912843c128077a4",
+      "after": "016ed03c2cc9e21f7f1ef8e9778bb6fb3a5fdef8db8db57ed7e69665a8834b65"
+    },
+    {
+      "path": "scripts/lib/adopter-docs-shaped.sh",
+      "before": "7ff1927dfdd266184df4f9c6c6a697d784e413deca7422976a63b1b7e8a55f84",
+      "after": "c475d3d705cdf70251161e2b152b46f5979755c9b5ffc907b59ac6a8529ed7c1"
+    },
+    {
+      "path": "scripts/lib/cargo-registry-token.sh",
+      "before": "10b9afbcabf9c87461e26eb9602b90efe0c63218e1a1503d88ccc14ddd326125",
+      "after": "08505b1523d237af43da7671942133a4ff78b7ddb5b6d190076a61b41f6f1a41"
+    },
+    {
+      "path": "scripts/lib/crates-io.sh",
+      "before": "8f5e7f1e2b146647253e2facf4850049d63575c7f7989652e07ef6db4198543d",
+      "after": "7fc60ba6951ea4618bfc7f3ff29020db730581eee5a2d2f7c86b0afe12419181"
+    },
+    {
+      "path": "scripts/owner-cut-release.sh",
+      "before": "11c186cd443873580fa1f543d7bceeabf92a37eb489468a4a7e767678ff871d7",
+      "after": "970d387e997e844e876f96a5bb6cb6dbb63719a6dc8ec0578bcff37b057807a3"
+    },
+    {
+      "path": "scripts/owner-dispatch-first-publish.sh",
+      "before": "f50ce1fa8e14aa3d6aaa07fffa422f95cbf89d137b1c735b12f16e6e709df844",
+      "after": "dd99e943e6b59271c86059f1a420a9b3165db8ec90facfb4a174aed05703efef"
+    },
+    {
+      "path": "scripts/owner-finish-installable.sh",
+      "before": "b4bff43f40581378b8184bcca4b985bd47cde4647cae707e4e04d3664b9c40ee",
+      "after": "422d714c324067e20dbe558f13e78c3155b73ee8eac32a0e3ee791ad7bf53abc"
+    },
+    {
+      "path": "scripts/owner-land-post-cut-parks.sh",
+      "before": "35a55399eee6bc9445650170aa1a93c0b9f7b1ddcaeb5035e77570bd2c0d5609",
+      "after": "59638d795d574cacd57e34c90e1e959ac1a9b4a9f5eb178c1ad05659f9de7112"
+    },
+    {
+      "path": "scripts/owner-merge-parked-verifiable.sh",
+      "before": "b9d9ee43eb4a784e5d3c7462fdfaa0f62788f11fed0da01083f79786b52cc945",
+      "after": "140f3f994e0b17c0c38e51b003fafc25ff923a38dab7ffa62e6f461f865b2cf0"
+    },
+    {
+      "path": "scripts/owner-post-installable-handoff.sh",
+      "before": "05be3150f94119da29e9f1115367290082915882b8e7d13d3bcb129e985c72d1",
+      "after": "9f7d09acccf96581443a268383a792216d34ba29aa8c126246eddbd76f072b8d"
+    },
+    {
+      "path": "scripts/owner-publish.sh",
+      "before": "c5d4617f5f161f35ccd7f6ab8231bc904a3abb3bdf753c77def7cc2abe519ce8",
+      "after": "763b2f24e65875d45bc329b50872f14b22b8cd7c7f0c0511e26a6dff8114d4c7"
+    },
+    {
+      "path": "scripts/owner-request-registry-token.sh",
+      "before": "34aa86db553fff6a299ad57f565131ab2ccfeaaf8efa4d6316a06350c1e80ba5",
+      "after": "94349c0bb2319cf3eb32ab90e3bb504ed7ebcaab30758748140885e75cca48bd"
+    },
+    {
+      "path": "scripts/owner-status.sh",
+      "before": "736fdd0b48f6b73be31f06cfef467b933d31a8410327655cdda4dc796276a3f1",
+      "after": "3d8caeac33b81f56b8b9dcc9454c1f0c6339246418be78e4b7cf8f81d10497b0"
+    },
+    {
+      "path": "scripts/owner-sync-main.sh",
+      "before": "f200b8dcaf43318cdc7b5a8ac01c3341aaf1f38777cd691e5b1b607136a822cc",
+      "after": "4d9b8d1230a8de73b691f59ab7722e802aeb199b8883cd214e02bf406f65466a"
+    },
+    {
+      "path": "scripts/owner-unblock.sh",
+      "before": "dda1f8034bf0ddb04458b13ea5a77405a6a7210586d53173512b7daf1abdbfe8",
+      "after": "0add7f431d18b8562a1f440e5cfe58e5bbd154541f7482e860459d9d1e9332c2"
+    },
+    {
+      "path": "scripts/rehearse-partial-release.sh",
+      "before": "2e3fe315ca7650c98e7513d38a729082a28abcc0922bca0c9d2747ba301f23e3",
+      "after": "31892184defbf6a033efa2757283b3fa34b4d358c6ff54a76e3ae88777bc103f"
+    },
+    {
+      "path": "scripts/report-release-rehearsal.py",
+      "before": "132e2d8aa4905ba469d001b1b508d5d09cef90480bf1e29b8eaf9ea4b1c36524",
+      "after": "8311bffce48bd08e4fd661cf3c792d3ae8daa3fcf66c5c4cadcf5531ef4939c9"
+    },
+    {
+      "path": "scripts/verify-crates-io-consumer.sh",
+      "before": "39d7fb8dac9a21510535471a57f41d6304e64224a35e2133a72d76d7e6881ed0",
+      "after": "87208cf62cbe8a0d4b7c55491cad260c7020aba581730293c2d6b7187c78cc12"
+    },
+    {
+      "path": "tests/release/test_local_confirmation.py",
+      "before": null,
+      "after": "1cc74eb646b2aa6b751c38243428ffcce0d88492d4bfc21cb587457f44d8d0d1"
+    },
+    {
+      "path": "tests/release/test_rehearsal.py",
+      "before": "bf37349ebbe9a327f49a139cbb739072991eb98053395f60ef03b447573efcbc",
+      "after": "957071d367301f6f5ecddf82dc68af1d13a98bbf33c80c91be5dfa2e2faf3ba7"
+    },
+    {
+      "path": "tests/release/test_token_availability.py",
+      "before": null,
+      "after": "7743b1077a09f1b304c934e3a95502c9798a5ac7776e6f7c965916b6407b72b2"
+    }
+  ],
+  "apply_reverse": [
+    {
+      "args": [
+        "--check"
+      ],
+      "exit": 0,
+      "stderr": "warning: scripts/audit-civilization-bars.sh has type 100644, expected 100755\nwarning: scripts/check-cut-path.sh has type 100644, expected 100755\nwarning: scripts/check-installable-preflight.sh has type 100644, expected 100755\nwarning: scripts/check-installable.sh has type 100644, expected 100755\nwarning: scripts/check-merge-ready.sh has type 100644, expected 100755\nwarning: scripts/check-registry-token.sh has type 100644, expected 100755\nwarning: scripts/ci-branch-lite.sh has type 100644, expected 100755\nwarning: scripts/ci-civilization-check.sh has type 100644, expected 100755\nwarning: scripts/ci-publish-ready.sh has type 100644, expected 100755\nwarning: scripts/day1-after-publish.sh has type 100644, expected 100755\nwarning: scripts/lib/adopter-docs-shaped.sh has type 100644, expected 100755\nwarning: scripts/lib/cargo-registry-token.sh has type 100644, expected 100755\nwarning: scripts/lib/crates-io.sh has type 100644, expected 100755\nwarning: scripts/owner-cut-release.sh has type 100644, expected 100755\nwarning: scripts/owner-dispatch-first-publish.sh has type 100644, expected 100755\nwarning: scripts/owner-finish-installable.sh has type 100644, expected 100755\nwarning: scripts/owner-land-post-cut-parks.sh has type 100644, expected 100755\nwarning: scripts/owner-merge-parked-verifiable.sh has type 100644, expected 100755\nwarning: scripts/owner-post-installable-handoff.sh has type 100644, expected 100755\nwarning: scripts/owner-publish.sh has type 100644, expected 100755\nwarning: scripts/owner-request-registry-token.sh has type 100644, expected 100755\nwarning: scripts/owner-status.sh has type 100644, expected 100755\nwarning: scripts/owner-sync-main.sh has type 100644, expected 100755\nwarning: scripts/owner-unblock.sh has type 100644, expected 100755\nwarning: scripts/rehearse-partial-release.sh has type 100644, expected 100755\nwarning: scripts/report-release-rehearsal.py has type 100644, expected 100755\nwarning: scripts/verify-crates-io-consumer.sh has type 100644, expected 100755\n"
+    },
+    {
+      "args": [],
+      "exit": 0,
+      "stderr": "warning: scripts/audit-civilization-bars.sh has type 100644, expected 100755\nwarning: scripts/check-cut-path.sh has type 100644, expected 100755\nwarning: scripts/check-installable-preflight.sh has type 100644, expected 100755\nwarning: scripts/check-installable.sh has type 100644, expected 100755\nwarning: scripts/check-merge-ready.sh has type 100644, expected 100755\nwarning: scripts/check-registry-token.sh has type 100644, expected 100755\nwarning: scripts/ci-branch-lite.sh has type 100644, expected 100755\nwarning: scripts/ci-civilization-check.sh has type 100644, expected 100755\nwarning: scripts/ci-publish-ready.sh has type 100644, expected 100755\nwarning: scripts/day1-after-publish.sh has type 100644, expected 100755\nwarning: scripts/lib/adopter-docs-shaped.sh has type 100644, expected 100755\nwarning: scripts/lib/cargo-registry-token.sh has type 100644, expected 100755\nwarning: scripts/lib/crates-io.sh has type 100644, expected 100755\nwarning: scripts/owner-cut-release.sh has type 100644, expected 100755\nwarning: scripts/owner-dispatch-first-publish.sh has type 100644, expected 100755\nwarning: scripts/owner-finish-installable.sh has type 100644, expected 100755\nwarning: scripts/owner-land-post-cut-parks.sh has type 100644, expected 100755\nwarning: scripts/owner-merge-parked-verifiable.sh has type 100644, expected 100755\nwarning: scripts/owner-post-installable-handoff.sh has type 100644, expected 100755\nwarning: scripts/owner-publish.sh has type 100644, expected 100755\nwarning: scripts/owner-request-registry-token.sh has type 100644, expected 100755\nwarning: scripts/owner-status.sh has type 100644, expected 100755\nwarning: scripts/owner-sync-main.sh has type 100644, expected 100755\nwarning: scripts/owner-unblock.sh has type 100644, expected 100755\nwarning: scripts/rehearse-partial-release.sh has type 100644, expected 100755\nwarning: scripts/report-release-rehearsal.py has type 100644, expected 100755\nwarning: scripts/verify-crates-io-consumer.sh has type 100644, expected 100755\n"
+    },
+    {
+      "args": [
+        "--reverse",
+        "--check"
+      ],
+      "exit": 0,
+      "stderr": "warning: scripts/verify-crates-io-consumer.sh has type 100644, expected 100755\nwarning: scripts/report-release-rehearsal.py has type 100644, expected 100755\nwarning: scripts/rehearse-partial-release.sh has type 100644, expected 100755\nwarning: scripts/owner-unblock.sh has type 100644, expected 100755\nwarning: scripts/owner-sync-main.sh has type 100644, expected 100755\nwarning: scripts/owner-status.sh has type 100644, expected 100755\nwarning: scripts/owner-request-registry-token.sh has type 100644, expected 100755\nwarning: scripts/owner-publish.sh has type 100644, expected 100755\nwarning: scripts/owner-post-installable-handoff.sh has type 100644, expected 100755\nwarning: scripts/owner-merge-parked-verifiable.sh has type 100644, expected 100755\nwarning: scripts/owner-land-post-cut-parks.sh has type 100644, expected 100755\nwarning: scripts/owner-finish-installable.sh has type 100644, expected 100755\nwarning: scripts/owner-dispatch-first-publish.sh has type 100644, expected 100755\nwarning: scripts/owner-cut-release.sh has type 100644, expected 100755\nwarning: scripts/lib/crates-io.sh has type 100644, expected 100755\nwarning: scripts/lib/cargo-registry-token.sh has type 100644, expected 100755\nwarning: scripts/lib/adopter-docs-shaped.sh has type 100644, expected 100755\nwarning: scripts/day1-after-publish.sh has type 100644, expected 100755\nwarning: scripts/ci-publish-ready.sh has type 100644, expected 100755\nwarning: scripts/ci-civilization-check.sh has type 100644, expected 100755\nwarning: scripts/ci-branch-lite.sh has type 100644, expected 100755\nwarning: scripts/check-registry-token.sh has type 100644, expected 100755\nwarning: scripts/check-merge-ready.sh has type 100644, expected 100755\nwarning: scripts/check-installable.sh has type 100644, expected 100755\nwarning: scripts/check-installable-preflight.sh has type 100644, expected 100755\nwarning: scripts/check-cut-path.sh has type 100644, expected 100755\nwarning: scripts/audit-civilization-bars.sh has type 100644, expected 100755\n"
+    },
+    {
+      "args": [
+        "--reverse"
+      ],
+      "exit": 0,
+      "stderr": "warning: scripts/verify-crates-io-consumer.sh has type 100644, expected 100755\nwarning: scripts/report-release-rehearsal.py has type 100644, expected 100755\nwarning: scripts/rehearse-partial-release.sh has type 100644, expected 100755\nwarning: scripts/owner-unblock.sh has type 100644, expected 100755\nwarning: scripts/owner-sync-main.sh has type 100644, expected 100755\nwarning: scripts/owner-status.sh has type 100644, expected 100755\nwarning: scripts/owner-request-registry-token.sh has type 100644, expected 100755\nwarning: scripts/owner-publish.sh has type 100644, expected 100755\nwarning: scripts/owner-post-installable-handoff.sh has type 100644, expected 100755\nwarning: scripts/owner-merge-parked-verifiable.sh has type 100644, expected 100755\nwarning: scripts/owner-land-post-cut-parks.sh has type 100644, expected 100755\nwarning: scripts/owner-finish-installable.sh has type 100644, expected 100755\nwarning: scripts/owner-dispatch-first-publish.sh has type 100644, expected 100755\nwarning: scripts/owner-cut-release.sh has type 100644, expected 100755\nwarning: scripts/lib/crates-io.sh has type 100644, expected 100755\nwarning: scripts/lib/cargo-registry-token.sh has type 100644, expected 100755\nwarning: scripts/lib/adopter-docs-shaped.sh has type 100644, expected 100755\nwarning: scripts/day1-after-publish.sh has type 100644, expected 100755\nwarning: scripts/ci-publish-ready.sh has type 100644, expected 100755\nwarning: scripts/ci-civilization-check.sh has type 100644, expected 100755\nwarning: scripts/ci-branch-lite.sh has type 100644, expected 100755\nwarning: scripts/check-registry-token.sh has type 100644, expected 100755\nwarning: scripts/check-merge-ready.sh has type 100644, expected 100755\nwarning: scripts/check-installable.sh has type 100644, expected 100755\nwarning: scripts/check-installable-preflight.sh has type 100644, expected 100755\nwarning: scripts/check-cut-path.sh has type 100644, expected 100755\nwarning: scripts/audit-civilization-bars.sh has type 100644, expected 100755\n"
+    }
+  ],
+  "limits": "No Cargo, live registry, network, or publication."
+}

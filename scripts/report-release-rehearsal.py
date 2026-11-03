@@ -21,7 +21,7 @@ EXPECTED = {
     'workflow-registry-unavailable': 1,
     'local-existing-version': 0, 'local-registry-unavailable': 1,
     'workflow-index-pending': 1, 'local-index-pending': 1,
-    'workflow-index-only': 0, 'local-index-only': 0,
+    'workflow-index-only': 0, 'local-index-only': 2,
     'workflow-yanked-version': 1, 'local-yanked-version': 1,
     'workflow-index-unavailable': 1, 'local-index-unavailable': 1,
     'workflow-api-unavailable': 1, 'local-api-unavailable': 1,
@@ -52,6 +52,7 @@ if name == 'git':
     if args == ['rev-parse','--abbrev-ref','HEAD']: print('main')
     elif args[:1] == ['status']: pass
     elif args[:1] == ['rev-parse']: print(os.environ['PL_REHEARSAL_SOURCE'])
+    elif args == ['fetch','origin','main','--quiet']: pass
     elif args[:2] == ['tag','-l']: print('fixture release note body')
     else: deny()
 elif name == 'curl':
@@ -89,7 +90,9 @@ elif name == 'sleep':
     # Model a SIGINT-equivalent stop at the first retry boundary; never wait.
     raise SystemExit(130)
 elif name == 'gh':
-    if args[:2] == ['release','view']:
+    if args[:2] == ['run','list']:
+        print('[]')
+    elif args[:2] == ['release','view']:
         raise SystemExit(0 if (folder/'release-created.json').is_file() else 1)
     if args[:2] == ['release','create']:
         marker = folder/'release-created.json'
@@ -220,7 +223,8 @@ def isolated_cases(report, source_root=ROOT, source_sha='1'*40):
                        ('workflow-malformed-index','malformed-index')]:
         case(name, skip_step, registry=mode, assertion=lambda f,o,e,n=name:
              not (f/(n+'-outputs')).exists() and 'registry unavailable' in e.lower())
-    owner_env = {'CARGO_REGISTRY_TOKEN':'rehearsal-placeholder-not-a-credential','RUN_DAY1_AFTER_PUBLISH':'0'}
+    owner_env = {'CARGO_REGISTRY_TOKEN':'rehearsal-placeholder-not-a-credential',
+                 'RUN_DAY1_AFTER_PUBLISH':'0', 'WAIT_CRATES_ATTEMPTS':'1'}
     case('local-existing-version', env_values=owner_env,
          assertion=lambda f,o,e:'skipping cargo publish' in o)
     case('local-registry-unavailable', registry='unavailable', env_values=owner_env,
@@ -292,9 +296,9 @@ def validate(result):
     forbidden=[]
     for command in result['commands']:
         name,args=command['command'],command['args']
-        if name=='git' and args[:2] not in [['rev-parse','HEAD'],['rev-parse','--abbrev-ref'],['rev-parse','-q'],['tag','-l']] and args[:1]!=['status']:
+        if name=='git' and args[:2] not in [['rev-parse','HEAD'],['rev-parse','--abbrev-ref'],['rev-parse','-q'],['tag','-l']] and args[:1]!=['status'] and args != ['fetch','origin','main','--quiet']:
             forbidden.append(command)
-        if name in ['cargo','rustup','wget','docker','ssh'] or (name=='gh' and args[:2] not in [['release','view'],['release','create']]):
+        if name in ['cargo','rustup','wget','docker','ssh'] or (name=='gh' and args[:2] not in [['release','view'],['release','create'],['run','list']]):
             forbidden.append(command)
     require(not forbidden,'forbidden command reached during rehearsal')
     creates=[c for c in result['commands'] if c['command']=='gh' and c['args'][:2]==['release','create']]

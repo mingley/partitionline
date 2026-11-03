@@ -1,0 +1,47 @@
+{
+  "scope": "Independent static review of frozen group coordinator cache candidate, before any integration",
+  "patch_sha256": "3ab3387e7c8abe880ce65d415daab6e316b11334758455e7210b683390e57273",
+  "preimages_verified_against_v10_native": {
+    "src/producer.rs": "bf165ca682b17f3812d3a3895854cdbf9f73ce862a9330bbc8a6dd2f4675be34",
+    "tests/mock_produce.rs": "d3d85b55e0e9ebf342435a253d289873c3b9f2d854c5ca55fd8d3d27c53d9ab1"
+  },
+  "fixed_sha256": {
+    "src/producer.rs": "9468b1e885cda0bf4b01be98516cfc3297872c9b828d6e23c3349fea2bc02e95",
+    "src/producer/group_cache_tests.rs": "c94f144bf845a7f59ed918f834bc163a189caeaf05e157b826a3c9c14c2b0d6f",
+    "tests/mock_produce.rs": "cf7d40114fcda892f6c1e0736ec364da229afad43a195d7f76e607b4cd1687b7"
+  },
+  "reconstruction": [
+    "Fresh forward and reverse git apply reproduce all three candidate paths and both original files exactly",
+    "Original mock_produce file is an exact prefix of the candidate, preserving every old test byte",
+    "Producer retains the same counts of pre-existing Tokio and synchronous test identities; one original test Shared initializer adds the new cache fields"
+  ],
+  "blockers": [
+    {
+      "title": "Cached TCP descriptor remains owned after shutdown",
+      "detail": "shutdown_group_coordinator keeps Some(entry) in Shared and uses close plus release_if_closed. For TCP release_if_closed shuts down the write half but retains ConnIo::Tcp; a live Producer clone keeps the descriptor in the slot even after the peer observes EOF or the watcher finishes. The mock Close event is handler termination, not a local fd-destruction witness."
+    },
+    {
+      "title": "Physical retirement not witnessed before cached redial",
+      "detail": "Eviction and retriable responses use retire_produce_conn, then remove/replace the owner and dial. BrokerConn Drop only requests idle watcher abort; the watcher may still hold the stream Arc. The eight yields after half shutdown do not guarantee physical fd release before a later dial."
+    },
+    {
+      "title": "Provisional discovery and fallback owners are outside the durable slot",
+      "detail": "Initial discovery holds bootstrap and target connections in local futures during TCP/ApiVersions/SASL, FindCoordinator and result-yield stages. Rediscovery can concurrently hold speculative, lookup and target connections; multi-bootstrap also uses task/ready sets. Cancellation can drop these owners before publication to the cache, while watcher abort is not a termination witness. Uncached fallback has the same limitation and redials on retriable response before retiring its old coordinator."
+    },
+    {
+      "title": "Close can return success without acquiring or retiring the cache",
+      "detail": "shutdown_group_coordinator returns unit after its deadline and close_timeout only propagates a prior flush timeout. A manually polled, then parked group future can retain the slot and socket across shutdown; Notify cannot run an unpolled future, yet close can return Ok. Lease Drop also has a closed-load-before-unlock race with close timeout."
+    }
+  ],
+  "observations": [
+    "The close Notify is enabled before checking the closed flag, preventing the ordinary missed-notification window for a future that is actually polled.",
+    "The cache key includes group id and checks idle, reauthentication and expiration before reuse; uncertain responses mark the cached entry non-reusable.",
+    "Busy callers fall back to the original per-call path; this allows concurrent groups but does not qualify same-group ordering or ownership in the fallback.",
+    "The close-time try_lock/yield loop can use substantial CPU until the deadline."
+  ],
+  "limitations": [
+    "No Cargo build, Rust type-check, Clippy, runtime, live Kafka, TLS/SASL, or performance benchmark.",
+    "The patch was checked against v10 alone; no composite metadata-v3 or group-cache fix was tested.",
+    "Server EOF and mock handler termination do not prove local fd destruction or remote application outcome."
+  ]
+}

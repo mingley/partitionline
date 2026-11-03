@@ -19,8 +19,7 @@
 #   DRY_RUN=1 bash scripts/owner-finish-installable.sh
 #   PUBLISH_LOCAL=0 bash scripts/owner-finish-installable.sh   # tag → Actions instead
 #   MERGE_CIVILIZATION=0 bash scripts/owner-finish-installable.sh  # require already-on-main
-#   ALLOW_RED_MAIN=1 …        # override red main CI refuse (not recommended)
-#   REQUIRE_MAIN_CI=0 …       # allow inconclusive main CI (default: require green when not DRY_RUN)
+#   DRY_RUN=1 ALLOW_RED_MAIN=1 …  # rehearse even with red CI; never permits a real cut
 #   ALLOW_UNVERIFIED_TIP=1 …  # allow PUBLISH_LOCAL of tip code not yet on green main (not recommended)
 #   MERGE_PARKED_VERIFIABLE=0 …  # skip post-cut merge of parked Verifiable branch
 set -euo pipefail
@@ -29,9 +28,8 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
 DRY_RUN="${DRY_RUN:-0}"
-# Real Installable cuts require terminal green main CI by default. DRY_RUN keeps
-# the soft warn so rehearsal works while CI is still queued. Set REQUIRE_MAIN_CI=0
-# to override (not recommended for the first crates.io cut).
+# Real cuts require full-profile green main CI. DRY_RUN may rehearse an
+# inconclusive result while CI is still queued.
 if [[ -z "${REQUIRE_MAIN_CI:-}" ]]; then
   if [[ "$DRY_RUN" == "1" ]]; then
     REQUIRE_MAIN_CI=0
@@ -68,15 +66,14 @@ bash scripts/check-registry-token.sh --self-test
 bash scripts/ci-tip-verifiable-broker.sh --self-test
 bash scripts/check-parks-refresh-cut-guards.sh
 MODE=git bash scripts/verify-crates-io-consumer.sh
-# After Installable, git MODE SKIPs — prove the live crates.io pin on the finish path too.
-if bash scripts/check-installable.sh >/dev/null 2>&1; then
-  MODE=registry bash scripts/verify-crates-io-consumer.sh
-fi
 bash scripts/lib/preserve-day1-docs.sh --self-test
 
 echo
 echo "== 0) Already Installable? =="
-if bash scripts/check-installable.sh; then
+registry_rc=0
+bash scripts/check-installable.sh || registry_rc=$?
+if [[ "$registry_rc" -eq 0 ]]; then
+  MODE=registry VER="$ver" bash scripts/verify-crates-io-consumer.sh
   echo "owner-finish-installable: crates.io already has ${name} ${ver}"
   echo "owner-finish-installable: Actions-alternate / re-entry — day1 then post-Installable handoff"
   # day1 flips README/ADOPTION/guide/migrate; handoff covers adopter pin, registry consumer, bars, TP, parks.
@@ -122,6 +119,9 @@ if bash scripts/check-installable.sh; then
   fi
   echo "owner-finish-installable: OK — ${name} ${ver} already Installable; handoff complete"
   exit 0
+elif [[ "$registry_rc" -ne 3 ]]; then
+  echo "owner-finish-installable: PARTIAL — registry confirmation inconclusive; this version may already exist" >&2
+  exit 2
 fi
 
 echo
@@ -134,9 +134,9 @@ pl_prepare_cargo_registry_token "owner-finish-installable"
 
 tok_rc=0
 bash scripts/check-registry-token.sh || tok_rc=$?
-if [[ "$tok_rc" -eq 0 ]]; then
-  echo "owner-finish-installable: CARGO_REGISTRY_TOKEN accepted for publish-new auth"
-elif [[ "$tok_rc" -eq 2 || -z "${CARGO_REGISTRY_TOKEN:-}" ]]; then
+if [[ "$tok_rc" -eq 3 && -n "${CARGO_REGISTRY_TOKEN:-}" ]]; then
+  echo "owner-finish-installable: token present; authorization and scope are unverified"
+elif [[ "$tok_rc" -eq 2 ]]; then
   if [[ "$DRY_RUN" == "1" ]]; then
     echo "owner-finish-installable: CARGO_REGISTRY_TOKEN unset — DRY_RUN=1 continues (rehearsal only)"
   else
@@ -150,9 +150,7 @@ elif [[ "$tok_rc" -eq 2 || -z "${CARGO_REGISTRY_TOKEN:-}" ]]; then
     bash scripts/owner-request-registry-token.sh >&2 || true
     echo >&2
     echo "If the token is only an Actions secret (not in this shell):" >&2
-    echo "  After canceling stuck runs → Actions → First publish → confirm=publish" >&2
-    echo "  (workflow: .github/workflows/first-publish.yml; prefer this script when in-env)" >&2
-    echo "  or: bash scripts/owner-dispatch-first-publish.sh" >&2
+    echo "  Use PUBLISH_LOCAL=0 bash scripts/owner-cut-release.sh after the release gates pass." >&2
     echo >&2
     echo "Meanwhile (no token required):" >&2
     echo "  bash scripts/owner-unblock.sh" >&2
@@ -161,8 +159,7 @@ elif [[ "$tok_rc" -eq 2 || -z "${CARGO_REGISTRY_TOKEN:-}" ]]; then
     exit 1
   fi
 else
-  echo "owner-finish-installable: CARGO_REGISTRY_TOKEN set but crates.io rejected it" >&2
-  echo "  Recreate with publish-new (+ publish-update); see check-registry-token output." >&2
+  echo "owner-finish-installable: token availability check failed (rc=${tok_rc})" >&2
   exit 1
 fi
 
@@ -172,26 +169,33 @@ bash scripts/check-merge-ready.sh
 
 echo
 echo "== 2b) Main CI (Verifiable) =="
-# Red main CI refuses the cut (ALLOW_RED_MAIN=1 to override).
-# Inconclusive warns by default; REQUIRE_MAIN_CI=1 hard-gates that too.
+# A real cut requires live, full-profile main CI. Soft outcomes are rehearsal only.
+release_ci_required=1
+if [[ "$DRY_RUN" == "1" ]]; then release_ci_required="$REQUIRE_MAIN_CI"; fi
 ci_rc=0
-bash scripts/check-main-ci.sh || ci_rc=$?
+env -u GH_RUNS_JSON -u GH_JOBS_JSON -u GH_ARTIFACTS_JSON -u CHECK_SHA \
+  -u REQUIRED_JOBS -u REQUIRED_ARTIFACTS -u GH_RUN_LIMIT \
+  MAIN_BRANCH=main REQUIRE_MAIN_CI="$release_ci_required" REQUIRE_PROFILE_EVIDENCE=1 \
+  bash scripts/check-main-ci.sh || ci_rc=$?
 if [[ "$ci_rc" -eq 1 ]]; then
-  if [[ "${ALLOW_RED_MAIN:-0}" == "1" ]]; then
-    echo "owner-finish-installable: ALLOW_RED_MAIN=1 — continuing despite red main CI" >&2
+  if [[ "$DRY_RUN" == "1" && "${ALLOW_RED_MAIN:-0}" == "1" ]]; then
+    echo "owner-finish-installable: DRY_RUN=1 — rehearsing despite red main CI" >&2
   else
     echo "owner-finish-installable: main HEAD CI is red — refusing Installable cut" >&2
-    echo "  Wait for green CI, or set ALLOW_RED_MAIN=1 to override (not recommended)." >&2
+    echo "  Wait for green CI; DRY_RUN=1 is available for rehearsal." >&2
     echo "  Probe: bash scripts/check-main-ci.sh" >&2
     exit 1
   fi
 elif [[ "$ci_rc" -eq 2 ]]; then
-  if [[ "${REQUIRE_MAIN_CI}" == "1" ]]; then
-    echo "owner-finish-installable: REQUIRE_MAIN_CI=1 and main CI inconclusive — refusing" >&2
-    echo "  Wait for green main CI (bash scripts/check-main-ci.sh), or REQUIRE_MAIN_CI=0 to override." >&2
+  if [[ "$release_ci_required" == "1" ]]; then
+    echo "owner-finish-installable: main CI inconclusive — refusing" >&2
+    echo "  Wait for green main CI (bash scripts/check-main-ci.sh), or rehearse with DRY_RUN=1." >&2
     exit 1
   fi
-  echo "owner-finish-installable: main CI inconclusive — continuing (REQUIRE_MAIN_CI=0)"
+  echo "owner-finish-installable: main CI inconclusive — continuing rehearsal only"
+elif [[ "$ci_rc" -ne 0 ]]; then
+  echo "owner-finish-installable: CI check failed unexpectedly (rc=${ci_rc}) — refusing cut" >&2
+  exit 1
 fi
 
 if [[ "$CANCEL_STUCK" == "1" ]]; then

@@ -1,0 +1,96 @@
+{
+  "schema": 1,
+  "base_commit": "c0341637288b60ea2069a9fac58c0e427effc9de",
+  "ci_run": 41578299671,
+  "ci_job": 125726869343,
+  "ci_commit": "fdafca79404dbdca570f605334f26205d84e91df",
+  "source_path": "partitionline-broker/tests/common/raft_runtime.rs",
+  "before_sha256": "89248cb18cfa690986b92272c73054f5219911ef7b5159f256555e521df8b0ab",
+  "candidate_sha256": "1f2ae553431bbea3b78123bf4229053588de187c2e0edc9925a15ae829702e4e",
+  "patch_sha256": "eedff296ade087475dfdeead13256b98ac0fd4becc775aa444b16d5508c099a4",
+  "patch_gzip_sha256": "a5e55b88a8fa2a99366d20cc8764976622dca5aa5808e12479d386824ce94cb6",
+  "original_job_log_sha256": "5070b59fb2b30257ca97d028a80f37b3e77336ab631423a66cbc888e4f56e587",
+  "original_job_log_gzip_sha256": "10a681a835802543b63a4c8178c9cc0d831aa53c4f8e53b8c13ffe6a15db2902",
+  "roundtrip": [
+    {
+      "flags": [
+        "--check"
+      ],
+      "exit": 0,
+      "stderr": ""
+    },
+    {
+      "flags": [],
+      "exit": 0,
+      "stderr": ""
+    },
+    {
+      "flags": [
+        "--reverse",
+        "--check"
+      ],
+      "exit": 0,
+      "stderr": ""
+    },
+    {
+      "flags": [
+        "--reverse"
+      ],
+      "exit": 0,
+      "stderr": ""
+    }
+  ],
+  "static_operation_and_timeout_counts": {
+    "Duration::from_(?:secs|millis|nanos)\\([^)]*\\)": {
+      "before_count": 20,
+      "after_count": 20,
+      "equal": true
+    },
+    "tokio::time::sleep\\(": {
+      "before_count": 10,
+      "after_count": 10,
+      "equal": true
+    },
+    "cluster\\s*\\.command\\s*\\(": {
+      "before_count": 12,
+      "after_count": 12,
+      "equal": true
+    },
+    "\\.commit\\(": {
+      "before_count": 11,
+      "after_count": 11,
+      "equal": true
+    },
+    "\\.spawn\\(": {
+      "before_count": 5,
+      "after_count": 5,
+      "equal": true
+    },
+    "\\.crash\\(": {
+      "before_count": 2,
+      "after_count": 2,
+      "equal": true
+    },
+    "cluster\\.gate\\.set\\(": {
+      "before_count": 4,
+      "after_count": 4,
+      "equal": true
+    }
+  },
+  "rustfmt": "stable 1.99.1 edition 2021 skip_children; check exit 0; no typecheck",
+  "reasoning": "The two failing tests share fault_history. Several proposal replies parse a third token without checking response kind, so a legitimate error reply such as error private peer runtime: Node(NotLeader) would yield bare InvalidDigit. The actual reply and phase were not logged; other numeric parsing also exists. This is a hypothesis, not an established root cause.",
+  "change_scope": "Test-only diagnostics. Adds strict response parsing and phase/node/context, bounds raw snippets to 256 UTF-8 bytes with explicit truncation, and constructs parse-error context lazily. Existing TCP scenarios, operations and timeout budgets retained; response checks preserved or strengthened. No retries.",
+  "new_controls": [
+    "checkpoint_and_voter_responses_retain_the_actual_failure",
+    "numeric_response_context_is_built_only_for_errors",
+    "response_diagnostics_bound_multibyte_and_control_text"
+  ],
+  "limits": [
+    "No local Cargo build, typecheck, runtime, Clippy, live Kafka, root edit, or adoption.",
+    "New controls are source only and have not run.",
+    "Bounded diagnostic snippets may omit the end of unusually long responses, explicitly reporting truncation.",
+    "No production fix or performance claim follows."
+  ],
+  "v2_to_v3_diff_sha256": "eac785dfc069dd344f02a7a9da935301f776926210a698b7a89eb7d14ac852a3",
+  "v2_to_v3_change": "Observer target context is formatted only on error; leader, phase and target remain in diagnostics."
+}

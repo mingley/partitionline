@@ -1,0 +1,8 @@
+{
+  "scenario": "Fake curl returns generic HTTP 400 with non-auth proxy error; no HTTP request is made.",
+  "script_sha256": "77b45f539588c2cecb3a3ce31fc0db413de78969d90ec508305834b59f51308e",
+  "exit": 0,
+  "stdout": "check-registry-token: probing crates.io PUT /api/v1/crates/new (token len=24; structured empty-tarball body for zz-partitionline-auth-probe-do-not-publish@0.0.0-authprobe)\ncheck-registry-token: OK \u2014 crates.io accepted token for publish-new auth (http=400)\n  Reminder: first cut of a new crate still needs publish-new on this token.\n",
+  "stderr": "",
+  "limits": "No token validity or live crates.io behavior inferred; demonstrates generic response is classified as accepted without parsing authentication evidence."
+}

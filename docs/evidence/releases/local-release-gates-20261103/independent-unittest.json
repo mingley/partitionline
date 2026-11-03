@@ -1,0 +1,10 @@
+{
+  "scope": "Separate offline full-suite run against exact v4 source with Cargo, rustc, rustup, gh and curl guarded unless tests substitute fakes.",
+  "exit": 0,
+  "summary": "100 tests passed",
+  "stderr_sha256": "6615d232b2dc869ad0e5b69f93f3869b51213690e864367b5956fa04db03f5f1",
+  "patch_sha256": "4b32aab50b8fcbe64636c6927b55f768d4e5d3eab4652bcd064d6b8abb1f5bb6",
+  "limits": [
+    "No native Rust build, live registry, real GitHub, token authorization or publication."
+  ]
+}

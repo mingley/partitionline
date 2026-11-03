@@ -24,6 +24,7 @@ fail=0
 blocked=0
 partial=0
 installable_blocked=0
+registry_consumer_passed=0
 
 ok() { echo "PASS  $*"; pass=$((pass + 1)); }
 bad() { echo "FAIL  $*"; fail=$((fail + 1)); }
@@ -51,38 +52,38 @@ fi
 # shellcheck source=scripts/lib/crates-io.sh
 source "$ROOT/scripts/lib/crates-io.sh"
 pl_crates_probe_version "$name" "$ver" "partitionline-audit-bars/1"
-case "${PL_CRATES_PROBE_STATUS}" in
+case "${PL_CRATES_IDENTITY_STATUS}" in
   present)
-    ok "crates.io has ${name} ${ver} (${PL_CRATES_PROBE_DETAIL})"
+    ok "API and index identify ${name} ${ver}; consumer is checked separately (${PL_CRATES_PROBE_DETAIL})"
     ;;
   absent)
-    iblk "crates.io missing ${name} ${ver} (${PL_CRATES_PROBE_DETAIL}) — need CARGO_REGISTRY_TOKEN + owner-finish-installable (or first-publish.yml / owner-cut-release)"
+    iblk "crates.io missing ${name} ${ver} (${PL_CRATES_PROBE_DETAIL}); release gates remain"
     ;;
   *)
-    bad "crates.io probe inconclusive (${PL_CRATES_PROBE_DETAIL})"
+    bad "registry confirmation inconclusive; this version may already exist (${PL_CRATES_PROBE_DETAIL})"
     ;;
 esac
-# Probe auth — do not PASS on presence alone (publish-update-only / garbage tokens).
+# Probe auth availability only. The actual publication validates authorization.
 tok_rc=0
 bash scripts/check-registry-token.sh >/tmp/pl-audit-token.log 2>&1 || tok_rc=$?
 case "$tok_rc" in
-  0)
-    ok "CARGO_REGISTRY_TOKEN accepted by crates.io for publish-new auth"
+  3)
+    if [[ "${PL_CRATES_IDENTITY_STATUS}" == "present" ]]; then
+      ok "CARGO_REGISTRY_TOKEN present; scope unverified and not needed to confirm the existing version"
+    else
+      part "CARGO_REGISTRY_TOKEN present; authorization and scope unverified"
+    fi
     ;;
   2)
-    # After crates.io has this version, Installable is proven; token is for future cuts only.
+    # An index entry is enough to avoid another upload, even if the API is unavailable.
     if [[ "${PL_CRATES_PROBE_STATUS}" == "present" ]]; then
-      ok "CARGO_REGISTRY_TOKEN unset (Installable already proven on crates.io; token only for future cuts)"
+      ok "CARGO_REGISTRY_TOKEN unset (index lists this version; token only for future cuts)"
     else
-      iblk "CARGO_REGISTRY_TOKEN unset (first publish / Actions secret; needs publish-new)"
+      iblk "CARGO_REGISTRY_TOKEN unset; local publication requires credentials"
     fi
     ;;
   *)
-    if [[ "${PL_CRATES_PROBE_STATUS}" == "present" ]]; then
-      part "CARGO_REGISTRY_TOKEN rejected (Installable already proven; recreate before next cut)"
-    else
-      iblk "CARGO_REGISTRY_TOKEN rejected by crates.io (recreate with publish-new; see check-registry-token)"
-    fi
+    bad "CARGO_REGISTRY_TOKEN availability check failed (rc=${tok_rc})"
     ;;
 esac
 
@@ -349,32 +350,32 @@ else
   bad "KL-01/KL-04 latency policy self-test failed or docs/latency-ci-policy.json missing; see /tmp/pl-latency-gate-self-test.log"
 fi
 
-# Post-Installable: MISSING token copy must not pretend Installable is still blocked.
-if grep -qF 'crates.io already has this crate/version (Installable met)' scripts/check-registry-token.sh \
-  && grep -qF 'token only needed for future cuts' scripts/check-registry-token.sh; then
-  ok "registry-token MISSING copy is post-Installable honest (future cuts, not Installable blocker)"
+# Token availability alone must not be reported as validated authorization.
+if grep -qF 'authorization and scope are unverified' scripts/check-registry-token.sh \
+  && grep -qF 'CARGO_REGISTRY_TOKEN is not set' scripts/check-registry-token.sh; then
+  ok "registry-token check reports local availability and unverified scope"
 else
-  bad "registry-token MISSING copy must note Installable-met → token only for future cuts"
+  bad "registry-token check must report availability and unverified scope"
 fi
 
-# owner-status must not label MISSING token as Installable-BLOCKED after crates.io has the version.
-if grep -qF 'OK  CARGO_REGISTRY_TOKEN unset (Installable met; token only for future cuts / Actions)' scripts/owner-status.sh \
-  && grep -qF 'token only needed for future cuts' scripts/owner-status.sh \
+# owner-status must distinguish availability from registry confirmation.
+if grep -qF 'CARGO_REGISTRY_TOKEN unset; registry status is checked separately' scripts/owner-status.sh \
+  && grep -qF 'authorization and scope unverified' scripts/owner-status.sh \
   && grep -qF 'bars: skipped (fast path; Installable met' scripts/owner-status.sh \
   && grep -qF 'TOKEN unset while Installable waits' scripts/owner-status.sh; then
-  ok "owner-status post-Installable token honesty (OK not BLOCKED; bars skip copy distinguishes Installable-met)"
+  ok "owner-status reports token availability separately from registry status"
 else
-  bad "owner-status must OK missing token when Installable met; bars skip must not blame token post-Installable"
+  bad "owner-status must distinguish token availability from registry status"
 fi
 
 # owner-unblock must not steer first-cut token ask when Installable is already met.
-if grep -qF 'Tracking #86 is closed' scripts/owner-unblock.sh \
-  && grep -qF 'expect ALREADY_INSTALLABLE' scripts/owner-unblock.sh \
+if grep -qF 'Tracking issue (historical first-cut)' scripts/owner-unblock.sh \
+  && grep -qF 'expect REGISTRY_CONFIRMED' scripts/owner-unblock.sh \
   && grep -qF 'Trusted Publishing UI' scripts/owner-unblock.sh \
   && grep -qF 'expect READY_EXCEPT_TOKEN' scripts/owner-unblock.sh; then
-  ok "owner-unblock post-Installable path (ALREADY_INSTALLABLE vs READY_EXCEPT_TOKEN; #86 closed)"
+  ok "owner-unblock separates registry confirmation from a pending first cut"
 else
-  bad "owner-unblock must branch ALREADY_INSTALLABLE (do not re-cut) vs READY_EXCEPT_TOKEN first-cut"
+  bad "owner-unblock must separate registry confirmation from a pending first cut"
 fi
 
 # Post-Installable: crates.io description can lag Cargo.toml until the next cut — surface WARN, do not re-cut 0.1.0.
@@ -436,7 +437,11 @@ if grep -qF 'MODE=git' scripts/check-cut-path.sh \
   && grep -qF 'MODE=git' scripts/owner-finish-installable.sh \
   && grep -qE 'MODE=git|mode.*git' scripts/verify-crates-io-consumer.sh; then
   if MODE=git bash scripts/verify-crates-io-consumer.sh >/tmp/pl-git-adopter.log 2>&1; then
-    ok "git-tag adopter consumer (documented pin cargo-checks; wired into cut-path + preflight + finish)"
+    if grep -qF 'MODE=git SKIP' /tmp/pl-git-adopter.log; then
+      ok "git-tag adopter consumer skipped (README uses registry; no git compile claimed)"
+    else
+      ok "git-tag adopter consumer (documented pin cargo-checks; wired into cut-path + preflight + finish)"
+    fi
   else
     bad "git-tag adopter consumer failed; see /tmp/pl-git-adopter.log"
   fi
@@ -449,7 +454,8 @@ if bash scripts/check-installable.sh >/dev/null 2>&1; then
     && grep -qF 'MODE=registry' scripts/owner-finish-installable.sh \
     && grep -qF 'MODE=registry' scripts/verify-crates-io-consumer.sh \
     && grep -qF 'ci-crate-consumer.sh' .github/workflows/ci.yml; then
-    if MODE=registry bash scripts/verify-crates-io-consumer.sh >/tmp/pl-registry-adopter.log 2>&1; then
+    if MODE=registry VER="$ver" bash scripts/verify-crates-io-consumer.sh >/tmp/pl-registry-adopter.log 2>&1; then
+      registry_consumer_passed=1
       ok "registry adopter consumer (crates.io pin cargo-checks; wired into cut-path + branch-lite + finish + package CI)"
     else
       bad "registry adopter consumer failed; see /tmp/pl-registry-adopter.log"
@@ -560,7 +566,7 @@ if [[ -x scripts/owner-post-installable-handoff.sh ]] \
   && grep -qF 'PARTIAL — Installable OK but Actions secret not synced' scripts/owner-cut-release.sh \
   && grep -qF 'secret_rc' scripts/owner-cut-release.sh \
   && grep -qF 'parks_rc' scripts/owner-finish-installable.sh \
-  && grep -qF 'PARTIAL — not yet Installable' scripts/day1-after-publish.sh \
+  && grep -qF 'PARTIAL — registry identity not confirmed' scripts/day1-after-publish.sh \
   && grep -qF 'day1_rc' scripts/check-cut-path.sh \
   && grep -qF 'day1_rc' scripts/ci-branch-lite.sh \
   && grep -qF 'day1_rc' scripts/ci-publish-ready.sh \
@@ -574,7 +580,7 @@ if [[ -x scripts/owner-post-installable-handoff.sh ]] \
   && grep -qF 'PARTIAL — handoff DRY_RUN soft-failed' scripts/check-cut-path.sh \
   && grep -qF 'PARTIAL — handoff DRY_RUN soft-failed' scripts/ci-branch-lite.sh \
   && grep -qF 'PARTIAL — handoff DRY_RUN soft-failed' scripts/ci-publish-ready.sh \
-  && grep -qF 'PARTIAL — already Installable' scripts/owner-dispatch-first-publish.sh \
+  && grep -qF 'first-publish dispatch is retired' scripts/owner-dispatch-first-publish.sh \
   && bash scripts/owner-dispatch-first-publish.sh --self-test >/tmp/pl-dispatch-self-test.log 2>&1 \
   && grep -q 'self-test OK' /tmp/pl-dispatch-self-test.log \
   && grep -qF 'check-installable-preflight.sh' scripts/owner-request-registry-token.sh \
@@ -587,13 +593,13 @@ if [[ -x scripts/owner-post-installable-handoff.sh ]] \
   && grep -qF -- '--self-test' scripts/owner-post-installable-handoff.sh \
   && grep -qF 'PARTIAL — Installable OK but parks land failed' scripts/owner-post-installable-handoff.sh \
   && grep -qF 'day1-after-publish.sh' scripts/owner-post-installable-handoff.sh \
-  && grep -qF 'PARTIAL — Installable OK but adopter docs still git-shaped' scripts/owner-post-installable-handoff.sh \
+  && grep -qF 'PARTIAL — registry confirmed but adopter docs still git-shaped' scripts/owner-post-installable-handoff.sh \
   && grep -qF 'SKIP_DAY1=1' scripts/owner-finish-installable.sh \
   && grep -qF 'PARTIAL — Installable OK but parks not on main' scripts/owner-post-installable-handoff.sh \
   && grep -qF 'REQUIRE_PARKS=1' scripts/owner-post-installable-handoff.sh \
   && grep -qF 'DRY_RUN: parks on main' scripts/owner-post-installable-handoff.sh \
   && grep -qF 'PARTIAL — parks not on main (DRY_RUN' scripts/owner-post-installable-handoff.sh \
-  && grep -qF 'PARTIAL — Installable OK but adopter docs still git-shaped (DRY_RUN' scripts/owner-post-installable-handoff.sh \
+  && grep -qF 'PARTIAL — registry confirmed but adopter docs still git-shaped (DRY_RUN' scripts/owner-post-installable-handoff.sh \
   && grep -qF 'adopter-docs-shaped.sh' scripts/owner-post-installable-handoff.sh \
   && grep -qF 'pl_adopter_docs_crates_io_shaped' scripts/lib/adopter-docs-shaped.sh \
   && grep -qF 'docs/guide.md' scripts/lib/adopter-docs-shaped.sh \
@@ -608,16 +614,16 @@ if [[ -x scripts/owner-post-installable-handoff.sh ]] \
   && grep -qF 'post-publish-migrate.sh' scripts/ci-civilization-check.sh \
   && grep -qF 'pl_day1_docs_paths' scripts/lib/preserve-day1-docs.sh \
   && grep -qF '_pl_day1_reset' scripts/lib/preserve-day1-docs.sh \
-  && grep -qF 'Installable already met; post-cut re-entry' scripts/ci-publish-ready.sh \
+  && grep -qF 'registry confirmed; post-cut re-entry' scripts/ci-publish-ready.sh \
   && grep -qF 'ci-publish-ready: PARTIAL for partitionline' scripts/ci-publish-ready.sh \
   && grep -qF 'exit 2' scripts/ci-publish-ready.sh \
-  && grep -qF 'pre-token rehearsal; Installable still blocked' scripts/ci-publish-ready.sh \
+  && grep -qF 'registry reports this version absent; external consumer remains pending' scripts/ci-publish-ready.sh \
   && grep -qF 'check-parks-on-main.sh' scripts/owner-post-installable-handoff.sh \
   && grep -qF 'check-parks-on-main.sh' scripts/check-installable-preflight.sh \
   && grep -qF 'check-parks-on-main.sh' scripts/owner-status.sh \
-  && grep -qF 'PARTIAL — Installable OK but parks not on main' scripts/check-installable-preflight.sh \
+  && grep -qF 'PARTIAL — registry confirmed but parks not on main' scripts/check-installable-preflight.sh \
   && grep -qF 'OWNER_STATUS_FULL' scripts/owner-status.sh \
-  && grep -qF 'expected pre-Installable' scripts/owner-status.sh \
+  && grep -qF 'registry confirmation inconclusive' scripts/owner-status.sh \
   && grep -qF 'expected pre-Installable' scripts/check-installable-preflight.sh \
   && grep -qF 'expected pre-Installable' docs/CIVILIZATION.md \
   && grep -qF '0.1.0 is already published' docs/RELEASE.md \
@@ -627,13 +633,13 @@ if [[ -x scripts/owner-post-installable-handoff.sh ]] \
   && ! grep -qF 'not published yet' docs/CIVILIZATION.md \
   && ! grep -qF 'blocked only on credentials' docs/ADOPTION.md \
   && grep -qF 'branch-lite (local Actions mirror): PARTIAL' scripts/owner-status.sh \
-  && grep -qF 'Installable already met — post-cut re-entry' scripts/ci-branch-lite.sh \
-  && grep -qF 'ci-branch-lite: PARTIAL — tip Verifiable proxy held; Installable already met' scripts/ci-branch-lite.sh \
+  && grep -qF 'registry confirmed — post-cut re-entry' scripts/ci-branch-lite.sh \
+  && grep -qF 'ci-branch-lite: PARTIAL — tip Verifiable proxy held; registry confirmed' scripts/ci-branch-lite.sh \
   && grep -qF 'PARTIAL (exit 2; Installable met, post-cut re-entry' scripts/owner-status.sh \
-  && grep -qF 'Installable already met — post-cut re-entry' scripts/check-cut-path.sh \
-  && grep -qF 'check-cut-path: PARTIAL — cut path rehearsed; Installable already met' scripts/check-cut-path.sh \
-  && grep -qF 'pre-token rehearsal' scripts/ci-branch-lite.sh \
-  && grep -qF 'pre-token rehearsal' scripts/check-cut-path.sh \
+  && grep -qF 'registry confirmed — post-cut re-entry' scripts/check-cut-path.sh \
+  && grep -qF 'check-cut-path: PARTIAL — cut path rehearsed; registry confirmed' scripts/check-cut-path.sh \
+  && grep -qF 'registry reports this version absent; external consumer remains pending' scripts/ci-branch-lite.sh \
+  && grep -qF 'registry reports this version absent; external consumer remains pending' scripts/check-cut-path.sh \
   && ! grep -qF 'pre-token holds exit 0 with a PARTIAL note' scripts/owner-finish-installable.sh \
   && ! grep -qF 'pre-token holds exit 0 with a PARTIAL note' scripts/check-cut-path.sh \
   && ! grep -qF 'pre-token holds exit 0 with a PARTIAL note' docs/STATUS.md \
@@ -653,8 +659,8 @@ if [[ -x scripts/owner-post-installable-handoff.sh ]] \
   && { \
        # Pre/post-Installable parks pending → PARTIAL/2 (fail-closed). \
        { [[ "$handoff_dry_rc" -eq 2 ]] \
-         && { grep -q 'PARTIAL — parks not on main (DRY_RUN; expected pre-token' /tmp/pl-handoff-dry.log \
-              || grep -q 'PARTIAL — parks not on main (DRY_RUN; already Installable' /tmp/pl-handoff-dry.log; }; } \
+         && { grep -q 'PARTIAL — parks not on main (DRY_RUN; registry unconfirmed' /tmp/pl-handoff-dry.log \
+              || grep -q 'PARTIAL — parks not on main (DRY_RUN; registry confirmed' /tmp/pl-handoff-dry.log; }; } \
        || \
        # Parks already on main after land → DRY_RUN complete exit 0. \
        { [[ "$handoff_dry_rc" -eq 0 ]] \
@@ -686,15 +692,15 @@ else
 fi
 
 # Cut DRY_RUN must not claim Installable when crate absent; capture dry_handoff_rc.
-if grep -qF 'PARTIAL — handoff soft-failed (not yet Installable' scripts/owner-cut-release.sh \
+if grep -qF 'PARTIAL — handoff soft-failed (registry' scripts/owner-cut-release.sh \
   && grep -qF 'dry_handoff_rc' scripts/owner-cut-release.sh \
-  && grep -qF 'is Installable on crates.io but handoff soft-failed' scripts/owner-cut-release.sh; then
+  && grep -qF 'registry confirms ${name} ${ver}, but handoff or consumer verification is incomplete' scripts/owner-cut-release.sh; then
   ok "cut-release handoff PARTIAL honesty (Installable-gated copy + dry_handoff_rc; no pre-token Installable lie)"
 else
   bad "cut-release handoff PARTIAL honesty missing (must not claim Installable when crate absent)"
 fi
 
-# ALREADY_INSTALLABLE surfaces must probe four-file day1 shape (shared lib).
+# Registry-confirmed surfaces must probe four-file day1 shape (shared lib).
 if grep -qF 'adopter-docs-shaped.sh' scripts/check-installable-preflight.sh \
   && grep -qF 'adopter docs still git-shaped' scripts/check-installable-preflight.sh \
   && grep -qF 'adopter-docs-shaped.sh' scripts/owner-request-registry-token.sh \
@@ -702,9 +708,9 @@ if grep -qF 'adopter-docs-shaped.sh' scripts/check-installable-preflight.sh \
   && grep -qF 'Commit day1 crates.io lines if still dirty: README + docs/ADOPTION.md + docs/guide.md + docs/migrate-from-rdkafka.md' scripts/owner-status.sh \
   && bash scripts/lib/adopter-docs-shaped.sh --self-test >/tmp/pl-adopter-docs-shaped-self-test.log 2>&1 \
   && grep -q 'self-test OK' /tmp/pl-adopter-docs-shaped-self-test.log; then
-  ok "ALREADY_INSTALLABLE day1 four-file honesty (preflight + token-ask + status; shared adopter-docs-shaped lib)"
+  ok "registry-confirmed day1 four-file check (preflight + token-ask + status)"
 else
-  bad "ALREADY_INSTALLABLE day1 four-file honesty missing; see /tmp/pl-adopter-docs-shaped-self-test.log"
+  bad "registry-confirmed day1 four-file check missing; see /tmp/pl-adopter-docs-shaped-self-test.log"
 fi
 
 
@@ -791,8 +797,14 @@ fi
 echo
 echo "audit-civilization-bars: pass=${pass} partial=${partial} blocked=${blocked} fail=${fail} installable_blocked=${installable_blocked}"
 if [[ "$JSON" == "1" ]]; then
+  installable_status="unknown"
+  if [[ "$PL_CRATES_IDENTITY_STATUS" == "absent" ]]; then
+    installable_status="absent"
+  elif [[ "$PL_CRATES_IDENTITY_STATUS" == "present" && "$registry_consumer_passed" == "1" ]]; then
+    installable_status="present"
+  fi
   printf '{"pass":%s,"partial":%s,"blocked":%s,"fail":%s,"installable_blocked":%s,"installable":"%s","version":"%s"}\n' \
-    "$pass" "$partial" "$blocked" "$fail" "$installable_blocked" "${PL_CRATES_PROBE_STATUS:-unknown}" "$ver"
+    "$pass" "$partial" "$blocked" "$fail" "$installable_blocked" "$installable_status" "$ver"
 fi
 
 if [[ "$fail" -gt 0 ]]; then

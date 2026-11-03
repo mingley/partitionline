@@ -1,0 +1,72 @@
+{
+  "scenario": "The real check-main-ci.sh consumes GH_RUNS_JSON fixture supplied to owner-publish, with no job/artifact evidence, and fake Cargo records publish. Fake git resolves HEAD to 40 ones; fake registry reports absence; fake readiness succeeds.",
+  "owner_publish_sha256": "0a88b2824ae98bc60a317dd06e466d3caf9b700ca3b2829c7c7479f5886a2a16",
+  "checker_sha256": "a89e7ad688293c448066f343ddcd8990945434fb64bbbd6522c09e1f526f87a8",
+  "fabricated_runs": [
+    {
+      "databaseId": 123,
+      "headSha": "1111111111111111111111111111111111111111",
+      "name": "CI",
+      "status": "completed",
+      "conclusion": "success"
+    }
+  ],
+  "exit": 0,
+  "stdout": "owner-publish: publishing partitionline 0.2.0\ncheck-main-ci: sha=1111111 (branch=main check_sha=1111111)\ncheck-main-ci: run 123 (attempt 1) status=completed conclusion=success \u2014 CI\ncheck-main-ci: OK \u2014 [outcome=success] main HEAD CI is green (run 123)\ncheck-main-ci: note: skipping required-job phase (no GH_JOBS_JSON; set REQUIRE_PROFILE_EVIDENCE=1 to require it)\ncheck-main-ci: note: skipping required-artifact phase (no GH_ARTIFACTS_JSON; set REQUIRE_PROFILE_EVIDENCE=1 to require it)\nfake-readiness-passed\nowner-publish: published partitionline 0.2.0\nowner-publish: confirm https://crates.io/crates/partitionline\nowner-publish: next \u2014 tag v0.2.0, push tag (or rely on release.yml),\n  bash scripts/day1-after-publish.sh, commit README + ADOPTION + guide + migrate\n",
+  "stderr": "",
+  "calls": [
+    {
+      "tool": "git",
+      "args": [
+        "rev-parse",
+        "--abbrev-ref",
+        "HEAD"
+      ]
+    },
+    {
+      "tool": "git",
+      "args": [
+        "status",
+        "--porcelain"
+      ]
+    },
+    {
+      "tool": "curl",
+      "endpoint": "api",
+      "url": "https://crates.io/api/v1/crates/partitionline/0.2.0",
+      "code": "404"
+    },
+    {
+      "tool": "curl",
+      "endpoint": "index",
+      "url": "https://index.crates.io/pa/rt/partitionline",
+      "code": "404"
+    },
+    {
+      "tool": "git",
+      "args": [
+        "rev-parse",
+        "HEAD"
+      ]
+    },
+    {
+      "tool": "git",
+      "args": [
+        "rev-parse",
+        "-q",
+        "--verify",
+        "1111111111111111111111111111111111111111^{commit}"
+      ]
+    },
+    {
+      "tool": "cargo",
+      "args": [
+        "publish"
+      ],
+      "mode": null,
+      "ver": null,
+      "registry_version": null
+    }
+  ],
+  "limits": "No actual GitHub, network, Cargo, credential or publication. Demonstrates inherited fixture mode reaching the mutation boundary, not actual CI."
+}

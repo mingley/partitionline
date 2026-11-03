@@ -60,37 +60,59 @@ fi
 # shellcheck source=scripts/lib/crates-io.sh
 source "$ROOT/scripts/lib/crates-io.sh"
 pl_crates_probe_version "$name" "$ver" "partitionline-owner-publish/1"
-if [[ "${PL_CRATES_PROBE_STATUS}" == "unknown" ]]; then
+if [[ "${PL_CRATES_PROBE_STATUS}" != "present" && "${PL_CRATES_PROBE_STATUS}" != "absent" ]]; then
   echo "owner-publish: registry unavailable or version status unknown (${PL_CRATES_PROBE_DETAIL}) — refusing publish" >&2
   exit 1
 fi
 if [[ "${PL_CRATES_PROBE_STATUS}" == "present" ]]; then
-  echo "owner-publish: ${name} ${ver} already on crates.io — skipping cargo publish (idempotent; not a re-cut)"
+  echo "owner-publish: index lists ${name} ${ver} — skipping cargo publish (idempotent; not a re-cut)"
 else
   echo "owner-publish: publishing partitionline ${ver}"
 
-  # KL-08: exact-SHA CI before local publish (soft when REQUIRE_MAIN_CI=0).
-  if [[ -z "${REQUIRE_MAIN_CI:-}" ]]; then
-    REQUIRE_MAIN_CI=1
-  fi
-  export REQUIRE_MAIN_CI
+  # A real upload must use live, full-profile evidence for this exact SHA.
+  # Fixture inputs and profile overrides are useful in isolated tests only.
   ci_rc=0
-  CHECK_SHA="$(git rev-parse HEAD)" bash scripts/check-main-ci.sh || ci_rc=$?
-  if [[ "$ci_rc" -eq 1 && "${ALLOW_RED_MAIN:-0}" != "1" ]]; then
-    echo "owner-publish: main CI red for this SHA — refusing publish" >&2
-    exit 1
-  fi
-  if [[ "$ci_rc" -eq 2 && "${REQUIRE_MAIN_CI}" == "1" ]]; then
-    echo "owner-publish: REQUIRE_MAIN_CI=1 and CI inconclusive — refusing" >&2
+  env -u GH_RUNS_JSON -u GH_JOBS_JSON -u GH_ARTIFACTS_JSON \
+    -u REQUIRED_JOBS -u REQUIRED_ARTIFACTS -u GH_RUN_LIMIT \
+    MAIN_BRANCH=main REQUIRE_MAIN_CI=1 REQUIRE_PROFILE_EVIDENCE=1 \
+    CHECK_SHA="$(git rev-parse HEAD)" bash scripts/check-main-ci.sh || ci_rc=$?
+  if [[ "$ci_rc" -ne 0 ]]; then
+    echo "owner-publish: exact-SHA full-profile CI not confirmed (rc=${ci_rc}) — refusing publish" >&2
     exit 1
   fi
 
   bash scripts/ci-publish-ready.sh
   cargo publish
 
-  echo "owner-publish: published partitionline ${ver}"
-  echo "owner-publish: confirm https://crates.io/crates/partitionline"
+  echo "owner-publish: upload accepted for partitionline ${ver}; waiting for registry confirmation"
 fi
+
+# An index entry prevents a duplicate upload, but does not establish that the
+# API also identifies this unyanked version. Recheck both after an upload or
+# skipped upload. A successful external consumer remains a separate gate.
+confirmed=0
+if [[ "${PL_CRATES_IDENTITY_STATUS}" == "present" ]]; then
+  confirmed=1
+else
+  attempts="${WAIT_CRATES_ATTEMPTS:-36}"
+  if ! [[ "$attempts" =~ ^[1-9][0-9]*$ ]]; then
+    echo "owner-publish: WAIT_CRATES_ATTEMPTS must be a positive integer" >&2
+    exit 1
+  fi
+  for ((i=1; i<=attempts; i++)); do
+    pl_crates_probe_version "$name" "$ver" "partitionline-owner-publish/1"
+    if [[ "${PL_CRATES_IDENTITY_STATUS}" == "present" ]]; then
+      confirmed=1
+      break
+    fi
+    if (( i < attempts )); then sleep 10; fi
+  done
+fi
+if [[ "$confirmed" != "1" ]]; then
+  echo "owner-publish: PARTIAL — upload skipped or accepted, but API and index do not both confirm ${name} ${ver} (${PL_CRATES_PROBE_DETAIL}); do not retry upload without rechecking" >&2
+  exit 2
+fi
+echo "owner-publish: API and index confirm ${name} ${ver}; external registry consumer is a separate gate"
 
 # Manual publish path: flip day1 adopter docs once the index sees the crate.
 # Tag → Actions remains preferred (docs/RELEASE.md); set RUN_DAY1_AFTER_PUBLISH=0 to skip.
@@ -101,6 +123,6 @@ if [[ "${RUN_DAY1_AFTER_PUBLISH:-1}" == "1" ]]; then
   echo "  git add README.md docs/ADOPTION.md docs/guide.md docs/migrate-from-rdkafka.md && git commit -m \"docs: crates.io ${ver} install pins\""
   echo "  git tag -a v${ver} -m \"partitionline ${ver}\" && git push origin main v${ver}"
 else
-  echo "owner-publish: next — tag v${ver}, push tag (or rely on release.yml),"
+  echo "owner-publish: external consumer and day1 handoff are outstanding; next — tag v${ver}, push tag (or rely on release.yml),"
   echo "  bash scripts/day1-after-publish.sh, commit README + ADOPTION + guide + migrate"
 fi

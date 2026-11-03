@@ -28,14 +28,20 @@ echo "owner-merge-parked-verifiable: parked=${PARKED_BRANCH} → ${TARGET_BRANCH
 
 echo
 echo "== 0) Installable gate =="
-if bash scripts/check-installable.sh; then
-  echo "owner-merge-parked-verifiable: crates.io Installable OK"
+registry_rc=0
+bash scripts/check-installable.sh || registry_rc=$?
+if [[ "$registry_rc" -eq 0 ]]; then
+  echo "owner-merge-parked-verifiable: registry identity confirmed; consumer checked separately"
 else
   if [[ "$ALLOW_BEFORE_INSTALLABLE" == "1" ]]; then
     echo "owner-merge-parked-verifiable: ALLOW_BEFORE_INSTALLABLE=1 — continuing without crates.io" >&2
   else
     echo "owner-merge-parked-verifiable: refusing — Installable not proven yet" >&2
-    echo "  Publish first: bash scripts/owner-finish-installable.sh" >&2
+    if [[ "$registry_rc" -eq 3 ]]; then
+      echo "  Publish first: bash scripts/owner-finish-installable.sh" >&2
+    else
+      echo "  Registry confirmation is inconclusive; this version may already exist." >&2
+    fi
     echo "  Or override: ALLOW_BEFORE_INSTALLABLE=1 (not recommended while tip is cut-critical)" >&2
     exit 1
   fi

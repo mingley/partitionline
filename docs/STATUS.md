@@ -41,9 +41,10 @@ quorum, without replicated partition data or native Kafka KRaft.
   checks. SDK socket and Streams Java coverage remain open. See
   [capability results][capability].
 - The isolated [client v10 candidate][candidate-results] passed both library
-  profiles and strict Clippy but failed two integration binaries and one
-  baseline expectation. Its changes have not been adopted on `main`.
-  The fixture controls passed, while the original timeout remained.
+  profiles and strict Clippy on its first recorded run. A repeat had one
+  library failure in each profile. Both runs failed two integration binaries
+  and one baseline expectation. Its changes have not been adopted on `main`;
+  the fixture controls passed while the original timeout remained.
 - The original main client failed the same 15 Mock Produce identities and the
   retained-backing test in a matching [thread and stack comparison][comparison].
   Fixture differences leave the shared causes unproven.
@@ -54,12 +55,13 @@ quorum, without replicated partition data or native Kafka KRaft.
 | --- | --- |
 | Client default library on `main` at `e7660f6e5` | 2,168 passed, 28 failed; later integration targets did not run |
 | Client all-feature library on `main` at that commit | 2,170 passed, 26 failed; later integration targets did not run |
-| Isolated client v10 library, each profile | 2,280 passed; selected producer tests still failed |
+| Isolated client v10 library, each profile | 2,280 passed initially; repeat 2,279 passed, one failed |
 | Qualified broker v2 default all targets, `209d0b068` | 720 passed |
 | Qualified broker v2 all-feature all targets at that commit | 868 passed |
 | Broker v2 strict Clippy, docs, inventory and six repeated Fetch checks | Passed |
 | Client focused capability profiles at that commit | 93 passed and 450 Java reverse checks per profile |
-| Main broker CI and capability profiles | Passed at `e7660f6e5` |
+| Main broker CI | Default passed at `c03416372`; three all-feature Raft tests failed |
+| Main capability profiles | Passed at `c03416372` |
 | Main strict Clippy, security, documentation and package jobs | Passed at `e7660f6e5` |
 | Main client and live Kafka compatibility CI | Failed at `e7660f6e5` |
 
@@ -86,7 +88,10 @@ overlap, live group retries and a compatibility-test stack overflow also remain
 open. GSSAPI and connection-driven SASL reauthentication
 are incomplete; [protocol support](gaps.md) lists those feature gaps.
 
-The broker still needs replicated partition data, authenticated network
+Two Raft runtime tests failed with `ParseIntError` in the latest broker run;
+a third reported a `NotLeader` response. An earlier passing run does not
+resolve those failures. The broker
+still needs replicated partition data, authenticated network
 leadership, committed-watermark protection and transaction participant/marker
 propagation. The adopted local epoch and journal fixes have passing x86
 qualification and ordinary broker CI on `b1b048809`.
@@ -111,10 +116,10 @@ An uncompiled [queue candidate][queue] needs native tests and a benchmark
 before its effect is known. A later client candidate combines that work with
 the ownership fixes and a timeout diagnostic; its qualification is pending.
 
-The release registry probe, recovery rehearsal and workflow confirmation have
-offline-tested fixes for unavailable indexes, candidate versions and API/index
-agreement. Hosted CI remains open. The local owner-cut confirmation path still
-needs the same dual-source check.
+The release scripts now check API/index agreement, consumer lockfile identity
+and exact-SHA CI more strictly. The token check reports presence without
+claiming authorization. Offline controls passed; live GitHub job evidence
+and the complete release gates remain open.
 
 Use [next work][next] for the detailed handoff, [support](support.md) for tested
 combinations, and the [release guide](RELEASE.md) for publication gates.

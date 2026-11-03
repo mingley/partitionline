@@ -142,7 +142,7 @@ class ReleaseRehearsal(unittest.TestCase):
             self.assertEqual(rows['workflow-existing-version']['exit_code'],0)
             self.assertEqual(rows['workflow-absent-version']['exit_code'],0)
             self.assertEqual(rows['workflow-index-only']['exit_code'],0)
-            self.assertEqual(rows['local-index-only']['exit_code'],0)
+            self.assertEqual(rows['local-index-only']['exit_code'],2)
             self.assertEqual(rows['workflow-yanked-version']['exit_code'],1)
             self.assertEqual(rows['local-yanked-version']['exit_code'],1)
             self.assertIn('crates.io has partitionline 0.2.0',rows['confirmation-resumed']['stdout'])
@@ -170,7 +170,7 @@ class ReleaseRehearsal(unittest.TestCase):
                 shutil.copyfile(ROOT/name,path)
             path=root/'scripts/owner-publish.sh'
             text=path.read_text()
-            start=text.index('if [[ "${PL_CRATES_PROBE_STATUS}" == "unknown" ]]; then')
+            start=text.index('if [[ "${PL_CRATES_PROBE_STATUS}" != "present" && "${PL_CRATES_PROBE_STATUS}" != "absent" ]]; then')
             end=text.index('\nfi\n',start)+4
             path.write_text(text[:start]+text[end:])
             artifact=Path(temporary)/'report'

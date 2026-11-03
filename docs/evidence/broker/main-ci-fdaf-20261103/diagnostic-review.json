@@ -1,0 +1,79 @@
+{
+  "v3_patch_sha256": "eedff296ade087475dfdeead13256b98ac0fd4becc775aa444b16d5508c099a4",
+  "v3_manifest_sha256": "58dbc3d89273a2016fb062a4a662de45191735c068da734816b4a29623627b78",
+  "v3_source_sha256": "1f2ae553431bbea3b78123bf4229053588de187c2e0edc9925a15ae829702e4e",
+  "v2_source_sha256": "00aaca115da0ace2a50d13d8925c8854274ad102f319875ec5d330d4d55ad8b9",
+  "base_preimages": {
+    "fdafca79404dbdca570f605334f26205d84e91df": "89248cb18cfa690986b92272c73054f5219911ef7b5159f256555e521df8b0ab",
+    "c0341637288b60ea2069a9fac58c0e427effc9de": "89248cb18cfa690986b92272c73054f5219911ef7b5159f256555e521df8b0ab",
+    "current_worktree": "89248cb18cfa690986b92272c73054f5219911ef7b5159f256555e521df8b0ab"
+  },
+  "v2_to_v3_exact_source_replacement": true,
+  "roundtrip": [
+    {
+      "flags": [
+        "--check"
+      ],
+      "exit": 0,
+      "stderr": ""
+    },
+    {
+      "flags": [],
+      "exit": 0,
+      "stderr": ""
+    },
+    {
+      "flags": [
+        "--reverse",
+        "--check"
+      ],
+      "exit": 0,
+      "stderr": ""
+    },
+    {
+      "flags": [
+        "--reverse"
+      ],
+      "exit": 0,
+      "stderr": ""
+    }
+  ],
+  "duration_literals_order_equal": true,
+  "operation_counts": {
+    "sleep_calls": {
+      "before": 10,
+      "after": 10
+    },
+    "commands": {
+      "before": 13,
+      "after": 13
+    },
+    "commits": {
+      "before": 11,
+      "after": 11
+    },
+    "spawns": {
+      "before": 5,
+      "after": 5
+    },
+    "crashes": {
+      "before": 2,
+      "after": 2
+    },
+    "gate_mutations": {
+      "before": 4,
+      "after": 4
+    },
+    "tokio_tests": {
+      "before": 6,
+      "after": 6
+    }
+  },
+  "prior_v2_review_sha256": "0fb546b55b9f2a91ed906bac04e153b155a75cf88faf3cc633d5d43b09111e62",
+  "scope": "Independent source/diff review only; no Cargo, native builds, runtime, network, or publication.",
+  "limits": [
+    "Error excerpt inputs are bounded but not redacted; existing state-header diagnostics and paths remain.",
+    "New Rust tests and typecheck remain unrun.",
+    "Fixed delays and operation counts match; exact runtime timing and root cause remain unverified."
+  ]
+}

@@ -1,0 +1,87 @@
+{
+  "script": "/workspace/work/local-release-confirmation-20261103/v3-frozen/scripts/verify-crates-io-consumer.sh",
+  "sha256": "87208cf62cbe8a0d4b7c55491cad260c7020aba581730293c2d6b7187c78cc12",
+  "outcomes": [
+    {
+      "case": "good",
+      "expect_success": true,
+      "exit": 0,
+      "stdout": "verify-crates-io-consumer: expecting crates.io partitionline 0.2.0\nverify-crates-io-consumer: cargo check (registry) for partitionline 0.2.0\nverify-crates-io-consumer: registry source confirmed\nverify-crates-io-consumer: ok (adopter can cargo-depend on crates.io partitionline 0.2.0)\n",
+      "stderr": "",
+      "requests": 2
+    },
+    {
+      "case": "cross_boundary",
+      "expect_success": false,
+      "exit": 1,
+      "stdout": "verify-crates-io-consumer: expecting crates.io partitionline 0.2.0\nverify-crates-io-consumer: cargo check (registry) for partitionline 0.2.0\n",
+      "stderr": "verify-crates-io-consumer: FAIL \u2014 invalid registry consumer lock: target version does not have a unique crates.io source\n",
+      "requests": 2
+    },
+    {
+      "case": "different_registry",
+      "expect_success": false,
+      "exit": 1,
+      "stdout": "verify-crates-io-consumer: expecting crates.io partitionline 0.2.0\nverify-crates-io-consumer: cargo check (registry) for partitionline 0.2.0\n",
+      "stderr": "verify-crates-io-consumer: FAIL \u2014 invalid registry consumer lock: target version does not have a unique crates.io source\n",
+      "requests": 2
+    },
+    {
+      "case": "wrong_version",
+      "expect_success": false,
+      "exit": 1,
+      "stdout": "verify-crates-io-consumer: expecting crates.io partitionline 0.2.0\nverify-crates-io-consumer: cargo check (registry) for partitionline 0.2.0\n",
+      "stderr": "verify-crates-io-consumer: FAIL \u2014 invalid registry consumer lock: target version does not have a unique crates.io source\n",
+      "requests": 2
+    },
+    {
+      "case": "not_direct",
+      "expect_success": false,
+      "exit": 1,
+      "stdout": "verify-crates-io-consumer: expecting crates.io partitionline 0.2.0\nverify-crates-io-consumer: cargo check (registry) for partitionline 0.2.0\n",
+      "stderr": "verify-crates-io-consumer: FAIL \u2014 invalid registry consumer lock: target is not the unique direct consumer dependency\n",
+      "requests": 2
+    },
+    {
+      "case": "duplicate_target",
+      "expect_success": false,
+      "exit": 1,
+      "stdout": "verify-crates-io-consumer: expecting crates.io partitionline 0.2.0\nverify-crates-io-consumer: cargo check (registry) for partitionline 0.2.0\n",
+      "stderr": "verify-crates-io-consumer: FAIL \u2014 invalid registry consumer lock: target version does not have a unique crates.io source\n",
+      "requests": 2
+    },
+    {
+      "case": "ambiguous_name",
+      "expect_success": false,
+      "exit": 1,
+      "stdout": "verify-crates-io-consumer: expecting crates.io partitionline 0.2.0\nverify-crates-io-consumer: cargo check (registry) for partitionline 0.2.0\n",
+      "stderr": "verify-crates-io-consumer: FAIL \u2014 invalid registry consumer lock: target is not the unique direct consumer dependency\n",
+      "requests": 2
+    },
+    {
+      "case": "explicit_version",
+      "expect_success": true,
+      "exit": 0,
+      "stdout": "verify-crates-io-consumer: expecting crates.io partitionline 0.2.0\nverify-crates-io-consumer: cargo check (registry) for partitionline 0.2.0\nverify-crates-io-consumer: registry source confirmed\nverify-crates-io-consumer: ok (adopter can cargo-depend on crates.io partitionline 0.2.0)\n",
+      "stderr": "",
+      "requests": 2
+    },
+    {
+      "case": "explicit_source",
+      "expect_success": true,
+      "exit": 0,
+      "stdout": "verify-crates-io-consumer: expecting crates.io partitionline 0.2.0\nverify-crates-io-consumer: cargo check (registry) for partitionline 0.2.0\nverify-crates-io-consumer: registry source confirmed\nverify-crates-io-consumer: ok (adopter can cargo-depend on crates.io partitionline 0.2.0)\n",
+      "stderr": "",
+      "requests": 2
+    },
+    {
+      "case": "wrong_direct",
+      "expect_success": false,
+      "exit": 1,
+      "stdout": "verify-crates-io-consumer: expecting crates.io partitionline 0.2.0\nverify-crates-io-consumer: cargo check (registry) for partitionline 0.2.0\n",
+      "stderr": "verify-crates-io-consumer: FAIL \u2014 invalid registry consumer lock: target is not the unique direct consumer dependency\n",
+      "requests": 2
+    }
+  ],
+  "limits": "Simulated Cargo.lock fixtures, fake HTTP and Cargo; no network, Rust, actual consumer or publication."
+}

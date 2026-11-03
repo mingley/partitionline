@@ -1,0 +1,23 @@
+{
+  "scenario": "Simulated Cargo.lock: partitionline 0.2.0 is a path package (no source), followed by a crates.io tokio package; fake curl confirms requested API/index identity, fake cargo succeeds without compiling.",
+  "test_source_sha256": "60a5871f421db762554b23d1e672e1e8ad586d0bd89cd0db64e803b0fd5db8a5",
+  "consumer_script_sha256": "972a39ad79f9628b21450527e0b801dd7cd71a34f50c725db1c84f66374a8c80",
+  "status": 0,
+  "stdout": "verify-crates-io-consumer: expecting crates.io partitionline 0.2.0\nverify-crates-io-consumer: cargo check (registry) for partitionline 0.2.0\nverify-crates-io-consumer: registry source confirmed\nverify-crates-io-consumer: ok (adopter can cargo-depend on crates.io partitionline 0.2.0)\n",
+  "stderr": "",
+  "calls": [
+    {
+      "tool": "curl",
+      "endpoint": "api",
+      "url": "https://crates.io/api/v1/crates/partitionline/0.2.0",
+      "code": "200"
+    },
+    {
+      "tool": "curl",
+      "endpoint": "index",
+      "url": "https://index.crates.io/pa/rt/partitionline",
+      "code": "200"
+    }
+  ],
+  "interpretation": "A zero exit and claimed registry confirmation are false for this simulated lock; no actual network, Cargo invocation, publication, or compiled consumer."
+}

@@ -141,7 +141,10 @@ jobs:
             echo "release: gh CLI missing on runner — unexpected" >&2
             exit 1
           fi
-          REQUIRE_MAIN_CI=1 REQUIRE_PROFILE_EVIDENCE=1 CHECK_SHA="$sha" bash scripts/check-main-ci.sh
+          env -u GH_RUNS_JSON -u GH_JOBS_JSON -u GH_ARTIFACTS_JSON \
+            -u REQUIRED_JOBS -u REQUIRED_ARTIFACTS -u GH_RUN_LIMIT \
+            MAIN_BRANCH=main REQUIRE_MAIN_CI=1 REQUIRE_PROFILE_EVIDENCE=1 \
+            CHECK_SHA="$sha" bash scripts/check-main-ci.sh
 
       - name: Soft-skip if version already on crates.io
         id: already
@@ -197,7 +200,7 @@ jobs:
           ok=0
           for i in $(seq 1 30); do
             pl_crates_probe_version "$name" "$ver" 'partitionline-ci/1'
-            if [[ "$PL_CRATES_API_STATUS" == present && "$PL_CRATES_INDEX_STATUS" == present ]]; then
+            if [[ "$PL_CRATES_IDENTITY_STATUS" == present ]]; then
               echo "crates.io has ${name} ${ver}"
               ok=1
               break

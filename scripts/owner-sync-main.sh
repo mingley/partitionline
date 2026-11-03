@@ -76,7 +76,10 @@ echo "owner-sync-main: prefer syncing once before owner-finish-installable, not 
 # Refuse to cancel an in-flight Verifiable run on the current main HEAD unless
 # explicitly overridden. Red main CI is allowed (that is how fixes land).
 ci_rc=0
-bash scripts/check-main-ci.sh || ci_rc=$?
+env -u GH_RUNS_JSON -u GH_JOBS_JSON -u GH_ARTIFACTS_JSON -u CHECK_SHA \
+  -u REQUIRED_JOBS -u REQUIRED_ARTIFACTS -u GH_RUN_LIMIT \
+  MAIN_BRANCH=main REQUIRE_MAIN_CI=0 REQUIRE_PROFILE_EVIDENCE=1 \
+  bash scripts/check-main-ci.sh || ci_rc=$?
 if [[ "$ci_rc" -eq 2 ]]; then
   if [[ "$ALLOW_BUSY_MAIN" == "1" ]]; then
     echo "owner-sync-main: ALLOW_BUSY_MAIN=1 — continuing despite in-flight main CI" >&2
@@ -86,6 +89,9 @@ if [[ "$ci_rc" -eq 2 ]]; then
     echo "  Or set ALLOW_BUSY_MAIN=1 to cancel in-flight CI intentionally." >&2
     exit 1
   fi
+elif [[ "$ci_rc" -ne 0 && "$ci_rc" -ne 1 ]]; then
+  echo "owner-sync-main: CI check failed unexpectedly (rc=${ci_rc}) — refusing sync" >&2
+  exit 1
 fi
 
 if [[ "$DRY_RUN" == "1" ]]; then

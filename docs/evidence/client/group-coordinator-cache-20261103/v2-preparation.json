@@ -1,0 +1,74 @@
+{
+  "status": "source-only, incomplete, unqualified, do not adopt",
+  "v10_checkout": "b1b0488096f886c2fd60a7368bbf2ed57b5da2e3",
+  "v10_source_spec": "3286ffa57a68cef353b2a09728924f6cc3710e634a2f98954246aa44ad94b2a5",
+  "files": {
+    "src/net.rs": {
+      "v10_sha256": "f73aa7a04d3e2571f347f6a9245cf6f4df4ab218f653e71ca824e86e7893907c",
+      "v2_sha256": "7e59d4e8a2c696ef2e1b341a05d7560a2dcf220011a90d0c6e2159c244f0b358"
+    },
+    "src/producer.rs": {
+      "v10_sha256": "bf165ca682b17f3812d3a3895854cdbf9f73ce862a9330bbc8a6dd2f4675be34",
+      "v2_sha256": "5f5f6a4878fc911ec7c34efc93f7e720ac830ecb4c20423327e1ac15eea1f7ef"
+    },
+    "src/producer/group_cache_tests.rs": {
+      "v10_sha256": null,
+      "v2_sha256": "b387a017b49c2842f2cbb2dfbee2f3c58f89cb32a1404f3f67f93da986e69fbb"
+    },
+    "tests/mock_produce.rs": {
+      "v10_sha256": "d3d85b55e0e9ebf342435a253d289873c3b9f2d854c5ca55fd8d3d27c53d9ab1",
+      "v2_sha256": "cf7d40114fcda892f6c1e0736ec364da229afad43a195d7f76e607b4cd1687b7"
+    }
+  },
+  "patches": {
+    "candidate-v1.patch.gz": "67f1545c1b6a4ffb04ff46c7ffe143fbb20d97d8ddf564da56388a1a5fb28259",
+    "candidate-v2.patch": "e5e4e8a5503c8449117c4464b42f97a65e5f95c9bb14a10be7520a4b15669cd6",
+    "candidate-v2.patch.gz": "ba5a490977d88e85388c07be25a4d31f35461f6e878d1fd385a2210ec033d126",
+    "v1-to-v2.patch": "8e9b99d63915b61067ea474103e201aa8db65fa3dc76d0c75515656b024ff9bf",
+    "descriptor-controls-v1.patch": "677d265f8f83be0cd73ac316f44be31a6c13bc3fb4c18db8fe4179198cb42910"
+  },
+  "prior_review_sha256": "c0d30ca096814fb0049d47a8ebf9942fa0521d1cc2cc9049ff6cb472f74d3aaa",
+  "group_unit_test_identities": [
+    "cancellation_during_group_response_retires_the_owned_socket",
+    "cancellation_during_group_decode_retires_the_owned_socket",
+    "shutdown_cancels_a_group_request_and_retires_its_socket",
+    "invalid_group_response_retires_the_owned_socket",
+    "expired_group_session_is_retired_before_any_request",
+    "busy_group_slot_does_not_serialize_another_discovery",
+    "successful_close_destroys_the_cached_group_fd_with_a_clone_alive",
+    "parked_group_future_does_not_allow_false_successful_close",
+    "cancelled_cached_request_drops_its_idle_local_fd",
+    "expired_cached_fd_is_gone_before_a_replacement_is_accepted",
+    "cancelled_close_schedules_cleanup_after_a_parked_group_request",
+    "cache_retirement_timeout_keeps_the_owner_until_the_stream_unlocks"
+  ],
+  "old_group_unit_tests_exact_prefix": 6,
+  "old_mock_tests_exact_prefix": 47,
+  "new_linux_group_unit_tests": 6,
+  "new_v1_mock_controls": 4,
+  "static_checks": [
+    "latest-stable rustfmt --check",
+    "v10 forward/reverse exact",
+    "v2 pending + group forward/reverse exact",
+    "v1 plus v1-to-v2 forward/reverse exact"
+  ],
+  "not_run": [
+    "Cargo",
+    "Rust compilation",
+    "Clippy",
+    "native tests",
+    "live Kafka",
+    "TLS and SASL qualification",
+    "performance benchmarks"
+  ],
+  "review": "independent v1 review copied; exact v2 review pending",
+  "blockers": [
+    "provisional bootstrap and target connections are not durably owned during negotiation",
+    "speculative retry and uncached busy fallback retain the same gap",
+    "close may succeed while an uncached fallback remains active",
+    "a normal cancellation whose stream lock is busy leaves its marked cached owner pending until later access or close",
+    "deferred cleanup waits for a parked slot holder and a running originating runtime",
+    "metadata-v3 overlaps the primitive and producer changes; patches cannot both be applied unchanged",
+    "new tests only cover Linux procfs and are unrun"
+  ]
+}

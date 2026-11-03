@@ -32,9 +32,11 @@ jobs:
       matrix:
         include:
           - kind: client
-            source_version: v12
+            source_version: v13
+            checkout_sha: ${{ github.sha }}
           - kind: client
             source_version: main-comparison-b1
+            checkout_sha: 8f960c3e60609703f23f79b3f368355ed8c057d8
           # Broker v2 is adopted. broker.yml validates its main source;
           # its frozen candidate spec remains bound to the pre-adoption tree.
     env:
@@ -47,6 +49,18 @@ jobs:
       QUALIFICATION_SPEC: docs/evidence/${{ matrix.kind }}/candidate-20261030/${{ matrix.source_version }}/spec.json
     steps:
       - uses: actions/checkout@v7
+        with:
+          ref: ${{ matrix.checkout_sha }}
+      - name: Verify checkout commit
+        env:
+          EXPECTED_CHECKOUT_SHA: ${{ matrix.checkout_sha }}
+        run: |
+          actual="$(git rev-parse HEAD)"
+          if [[ "$actual" != "$EXPECTED_CHECKOUT_SHA" ]]; then
+            printf '::error::Candidate checkout %s differs from expected %s\n' "$actual" "$EXPECTED_CHECKOUT_SHA"
+            exit 1
+          fi
+          printf 'Trigger SHA: %s\nCheckout SHA: %s\n' "$GITHUB_SHA" "$actual"
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: rustfmt, clippy
@@ -75,7 +89,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v6
         with:
-          name: candidate-${{ matrix.kind }}-${{ matrix.source_version }}-${{ github.sha }}-${{ github.run_id }}
+          name: candidate-${{ matrix.kind }}-${{ matrix.source_version }}-trigger-${{ github.sha }}-checkout-${{ matrix.checkout_sha }}-${{ github.run_id }}
           path: |
             ${{ runner.temp }}/candidate-qualification
             !${{ runner.temp }}/candidate-qualification/source/**
@@ -85,7 +99,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v6
         with:
-          name: candidate-reports-${{ matrix.kind }}-${{ matrix.source_version }}-${{ github.sha }}-${{ github.run_id }}
+          name: candidate-reports-${{ matrix.kind }}-${{ matrix.source_version }}-trigger-${{ github.sha }}-checkout-${{ matrix.checkout_sha }}-${{ github.run_id }}
           path: |
             ${{ runner.temp }}/candidate-qualification/*.json
             ${{ runner.temp }}/candidate-qualification/*.log

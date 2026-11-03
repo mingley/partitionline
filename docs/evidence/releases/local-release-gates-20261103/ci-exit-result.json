@@ -1,0 +1,53 @@
+{
+  "scenario": "Fake checker returns 42 with REQUIRE_MAIN_CI=1; fake readiness succeeds; fake registry reports absence; fake Cargo records calls only.",
+  "owner_publish_sha256": "0a88b2824ae98bc60a317dd06e466d3caf9b700ca3b2829c7c7479f5886a2a16",
+  "exit": 0,
+  "stdout": "owner-publish: publishing partitionline 0.2.0\nfake-readiness-passed\nowner-publish: published partitionline 0.2.0\nowner-publish: confirm https://crates.io/crates/partitionline\nowner-publish: next \u2014 tag v0.2.0, push tag (or rely on release.yml),\n  bash scripts/day1-after-publish.sh, commit README + ADOPTION + guide + migrate\n",
+  "stderr": "fake-ci-abnormal-42\n",
+  "calls": [
+    {
+      "tool": "git",
+      "args": [
+        "rev-parse",
+        "--abbrev-ref",
+        "HEAD"
+      ]
+    },
+    {
+      "tool": "git",
+      "args": [
+        "status",
+        "--porcelain"
+      ]
+    },
+    {
+      "tool": "curl",
+      "endpoint": "api",
+      "url": "https://crates.io/api/v1/crates/partitionline/0.2.0",
+      "code": "404"
+    },
+    {
+      "tool": "curl",
+      "endpoint": "index",
+      "url": "https://index.crates.io/pa/rt/partitionline",
+      "code": "404"
+    },
+    {
+      "tool": "git",
+      "args": [
+        "rev-parse",
+        "HEAD"
+      ]
+    },
+    {
+      "tool": "cargo",
+      "args": [
+        "publish"
+      ],
+      "mode": null,
+      "ver": null,
+      "registry_version": null
+    }
+  ],
+  "limits": "Offline subprocess; no GitHub, network, native Cargo, credential or publication. This concretely exercises owner-publish; the same 1/2-only branch is present in ci-publish-ready and owner-cut."
+}

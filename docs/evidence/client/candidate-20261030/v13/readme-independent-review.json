@@ -1,0 +1,18 @@
+{
+  "scope": "Independent byte comparison of v13 README-only superseding manifest",
+  "new_manifest_sha256": "868605db97da8e1506f8043d3463ef50abf9414b3b3aae41d5bc461d9dd7981a",
+  "prior_manifest_sha256": "d9f5d1781489f6ec1423164c6e9a93100419a27c693d13cb9481759a2f56c52e",
+  "prior_full_review_sha256": "2870f013c44a734bb92c58249b80c232248106192bde2af62ab728659b985290",
+  "readme_before_sha256": "155acf77e145bc431af7b1ac0ad180c512143cde6e4dac96934ba32a58b62a30",
+  "readme_after_sha256": "86049d34c7e1b842bbf3ac3d3967166c1d2de6ecf9f48cb3dceb41883e74efd5",
+  "exact_change": "Remove duplicated word release across line break: reviewed release / release-tooling -> reviewed / release-tooling",
+  "other_asset_hashes_and_sizes_unchanged": 18,
+  "all_current_asset_hashes_verified": 19,
+  "all_other_manifest_metadata_byte_values_unchanged": true,
+  "required_root_helper_pins": 3,
+  "historical_workflow_patch_sha256": "18f5b5429d78c27b32bc4f382a3b4d763d04d4991ea878b9fac766e9816316b5",
+  "limitations": [
+    "Documentation-only comparison; prior full reconstruction is not repeated",
+    "No Cargo, native/runtime, hosted workflow, production-readiness or publication claim"
+  ]
+}

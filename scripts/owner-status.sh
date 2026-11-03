@@ -10,30 +10,22 @@ echo "owner-status: partitionline ${ver}"
 echo
 
 echo "== Installable =="
-# Presence alone is not enough: publish-update-only / garbage tokens must not look OK.
+# Availability does not establish token authorization or scope.
 tok_rc=0
 bash scripts/check-registry-token.sh >/tmp/pl-owner-token.log 2>&1 || tok_rc=$?
 case "$tok_rc" in
-  0)
-    echo "OK  CARGO_REGISTRY_TOKEN accepted by crates.io for publish-new auth (len=${#CARGO_REGISTRY_TOKEN})"
+  3)
+    echo "INFO  CARGO_REGISTRY_TOKEN present; authorization and scope unverified"
     ;;
   2)
-    # Post-Installable: missing token is not an Installable blocker (check-registry-token
-    # already prints the honest future-cuts copy when crates.io has this version).
-    if grep -qF 'token only needed for future cuts' /tmp/pl-owner-token.log 2>/dev/null; then
-      echo "OK  CARGO_REGISTRY_TOKEN unset (Installable met; token only for future cuts / Actions)"
-      echo "         Recreate at https://crates.io/settings/tokens when cutting a later version."
-    else
-      echo "BLOCKED  CARGO_REGISTRY_TOKEN unset (export for Cloud Agent + Actions secret)"
-      echo "         First cut needs publish-new (+ publish-update); publish-update alone cannot create the crate."
-    fi
+    echo "INFO  CARGO_REGISTRY_TOKEN unset; registry status is checked separately"
     # Surface Secrets typos that leave Installable stuck (length-only; never print values).
     if grep -q 'misnamed token' /tmp/pl-owner-token.log 2>/dev/null; then
       grep 'misnamed token\|Rename to exactly' /tmp/pl-owner-token.log | sed 's/^/         /' || true
     fi
     ;;
   *)
-    echo "BLOCKED  CARGO_REGISTRY_TOKEN rejected by crates.io (see scripts/check-registry-token.sh)"
+    echo "BLOCKED  CARGO_REGISTRY_TOKEN availability check failed (rc=${tok_rc})"
     tail -5 /tmp/pl-owner-token.log 2>/dev/null | sed 's/^/         /' || true
     ;;
 esac
@@ -45,23 +37,23 @@ if [[ "$pf" -eq 0 ]]; then
   echo "  preflight: $(grep -E 'READY_EXCEPT_TOKEN|READY —' /tmp/pl-owner-preflight.log | tail -1)"
 elif [[ "$pf" -eq 2 ]]; then
   preflight_already=1
-  echo "  preflight: ALREADY_INSTALLABLE"
+  echo "  preflight: registry confirmed; external consumer still required"
 elif [[ "$pf" -eq 3 ]]; then
-  echo "  preflight: READY_EXCEPT_TOKEN (main CI still running — see check-main-ci)"
+  echo "  preflight: main CI inconclusive; readiness not established"
 else
   echo "  preflight: not ready (exit ${pf}); bash scripts/check-installable-preflight.sh"
 fi
 # shellcheck source=scripts/lib/crates-io.sh
 source "$ROOT/scripts/lib/crates-io.sh"
 pl_crates_probe_version "partitionline" "$ver" "partitionline-owner-status/1"
-if [[ "$PL_CRATES_PROBE_STATUS" == "present" ]]; then
-  echo "OK  crates.io has partitionline ${ver} (${PL_CRATES_PROBE_DETAIL})"
+if [[ "$PL_CRATES_IDENTITY_STATUS" == "present" ]]; then
+  echo "OK  API and index identify partitionline ${ver}; external consumer checked separately (${PL_CRATES_PROBE_DETAIL})"
   # Published crate page can lag Cargo.toml identity until the next cut.
   bash scripts/check-crates-io-description.sh | sed 's/^/  /' || true
-elif [[ "$PL_CRATES_PROBE_STATUS" == "absent" ]]; then
+elif [[ "$PL_CRATES_IDENTITY_STATUS" == "absent" ]]; then
   echo "BLOCKED  crates.io: partitionline ${ver} does not exist yet (need publish; ${PL_CRATES_PROBE_DETAIL})"
 else
-  echo "WARN  crates.io probe inconclusive (${PL_CRATES_PROBE_DETAIL})"
+  echo "WARN  registry confirmation inconclusive; this version may already exist (${PL_CRATES_PROBE_DETAIL})"
 fi
 
 echo
@@ -78,7 +70,10 @@ else
   echo "-- main (latest 2) --"
   gh run list --branch main --limit 2 2>/dev/null || echo "WARN  gh run list main failed"
   echo "-- main HEAD CI probe --"
-  bash scripts/check-main-ci.sh || true
+  env -u GH_RUNS_JSON -u GH_JOBS_JSON -u GH_ARTIFACTS_JSON -u CHECK_SHA \
+    -u REQUIRED_JOBS -u REQUIRED_ARTIFACTS -u GH_RUN_LIMIT \
+    MAIN_BRANCH=main REQUIRE_MAIN_CI=0 REQUIRE_PROFILE_EVIDENCE=1 \
+    bash scripts/check-main-ci.sh || true
   echo "-- tip branch (HEAD-aware) --"
   branch="$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo unknown)"
   head_sha="$(git rev-parse HEAD 2>/dev/null || echo unknown)"
@@ -192,14 +187,18 @@ bash scripts/check-parks-on-main.sh >/tmp/pl-owner-parks-main.log 2>&1 || parks_
 if [[ "$parks_main_rc" -eq 0 ]]; then
   echo "  parks on main: ok"
 elif [[ "$parks_main_rc" -eq 2 ]]; then
-  if bash scripts/check-installable.sh >/dev/null 2>&1; then
-    echo "  parks on main: PARTIAL — Installable OK but parks not on main"
+  registry_rc=0
+  bash scripts/check-installable.sh >/dev/null 2>&1 || registry_rc=$?
+  if [[ "$registry_rc" -eq 0 ]]; then
+    echo "  parks on main: PARTIAL — registry confirmed but parks not on main"
     grep -E '^  - |Re-enter:' /tmp/pl-owner-parks-main.log | sed 's/^/    /' || true
     echo "    LAND_PARKS=1 bash scripts/owner-post-installable-handoff.sh"
-  else
-    echo "  parks on main: pending (expected pre-Installable; land after crates.io cut)"
+  elif [[ "$registry_rc" -eq 3 ]]; then
+    echo "  parks on main: pending (registry reports this version absent)"
     echo "    tip⊆parks stack is the pre-cut gate; do not FF parks onto main before 0.1.0"
     echo "    After Installable: LAND_PARKS=1 bash scripts/owner-post-installable-handoff.sh"
+  else
+    echo "  parks on main: PARTIAL — registry confirmation inconclusive; this version may already exist"
   fi
 else
   echo "  parks on main: FAIL rc=${parks_main_rc} (see /tmp/pl-owner-parks-main.log)"
@@ -259,7 +258,7 @@ echo "    gh secret set CARGO_REGISTRY_TOKEN <<< \"\$CARGO_REGISTRY_TOKEN\""
 else
   echo "  0. Token missing? one screen: bash scripts/owner-request-registry-token.sh"
   echo "  0b. Full checklist: bash scripts/owner-unblock.sh"
-  echo "  1. Set CARGO_REGISTRY_TOKEN (Cloud Agent env + Actions secret; scope publish-new)"
+  echo "  1. Set CARGO_REGISTRY_TOKEN if publishing locally; scope remains unverified"
   # shellcheck source=scripts/lib/cursor-env-secrets-url.sh
   source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib/cursor-env-secrets-url.sh"
   echo "     Direct: $PARTITIONLINE_CURSOR_ENV_SECRETS_URL"
@@ -277,11 +276,8 @@ else
     echo "       DRY_RUN=1 bash scripts/owner-sync-main.sh   # show FF; CONFIRM=1 to push"
     echo "       # refuses while main HEAD CI is running unless ALLOW_BUSY_MAIN=1"
   fi
-  echo "  3. Actions-only alternate (first-publish.yml must be on main):"
-  echo "       bash scripts/owner-cancel-stuck-runs.sh   # owner machine; agents 403"
-  echo "       CONFIRM=1 bash scripts/owner-sync-main.sh # if tip ahead; wait for idle main CI"
-  echo "       bash scripts/owner-dispatch-first-publish.sh"
-  echo "       # or: Actions → First publish → confirm=publish"
+  echo "  3. Actions-only alternate after release gates pass:"
+  echo "       PUBLISH_LOCAL=0 bash scripts/owner-cut-release.sh"
   echo "  4. Or stepwise tag path after cancel + tip on main:"
   echo "       bash scripts/owner-cut-release.sh         # token in-env → local publish (auto)"
   echo "       PUBLISH_LOCAL=0 bash scripts/owner-cut-release.sh  # force tag → Actions"

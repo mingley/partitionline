@@ -65,10 +65,10 @@ fi
 
 pf_rc=0
 bash scripts/check-installable-preflight.sh >/tmp/pl-unblock-preflight.log 2>&1 || pf_rc=$?
-if [[ "$pf_rc" -eq 2 ]] || grep -qF 'ALREADY_INSTALLABLE' /tmp/pl-unblock-preflight.log 2>/dev/null; then
-  echo "Installable is met (crates.io partitionline 0.1.0 live). Tracking #86 is closed — do not re-cut 0.1.0."
+if [[ "$pf_rc" -eq 2 ]]; then
+  echo "Registry identity is confirmed; verify the external consumer before declaring completion."
   echo "${tip_main_note}"
-  echo "Probe: bash scripts/check-installable-preflight.sh   # expect ALREADY_INSTALLABLE"
+  echo "Probe: bash scripts/check-installable-preflight.sh   # expect REGISTRY_CONFIRMED"
   echo "Token (optional): only for future cuts / Actions secret / Trusted Publishing rehearsals."
   echo "  bash scripts/owner-request-registry-token.sh   # future-cut ask; not an Installable blocker"
   echo "Owner next:"
@@ -78,15 +78,21 @@ if [[ "$pf_rc" -eq 2 ]] || grep -qF 'ALREADY_INSTALLABLE' /tmp/pl-unblock-prefli
   echo "  4. If parks stack drifted after a tip move: bash scripts/refresh-post-cut-parks.sh"
   echo "Adopters: prefer crates.io partitionline = \"0.1\" (git rc pins are historical)."
   echo
+elif [[ "$pf_rc" -eq 0 ]] && grep -qF 'READY — token present' /tmp/pl-unblock-preflight.log; then
+  echo "Preflight reports a token is present; authorization and scope remain unverified."
+  echo "Complete the release gates before publication."
+elif [[ "$pf_rc" -ne 0 ]] || ! grep -qF 'READY_EXCEPT_TOKEN' /tmp/pl-unblock-preflight.log; then
+  echo "owner-unblock: PARTIAL — preflight is inconclusive or failed; resolve its blockers before publication" >&2
+  tail -12 /tmp/pl-unblock-preflight.log >&2 || true
+  exit 1
 else
   echo "Tracking issue (historical first-cut): https://github.com/mingley/partitionline/issues/86"
   echo
   echo "Token missing? Start here (one screen):"
   echo "  bash scripts/owner-request-registry-token.sh"
   echo
-  echo "As of 2026-09-04: main CI is green through Kafka 3.9.1 + 4.1.0 broker-smoke"
-  echo "and latency-gate (soft-skip kip848 on 3.9). PRE_PUBLISH bars: only Installable"
-  echo "blocked. ${tip_main_note} Remaining owner action is CARGO_REGISTRY_TOKEN."
+  echo "Preflight reports the token is outstanding. ${tip_main_note}"
+  echo "Check exact-commit CI and the release guide before publication."
   echo "Probe: bash scripts/check-installable-preflight.sh   # expect READY_EXCEPT_TOKEN"
   echo
   echo "Inject token into this Cloud Agent (preferred for owner-finish-installable):"
@@ -94,12 +100,12 @@ else
   # shellcheck source=scripts/lib/cursor-env-secrets-url.sh
   source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib/cursor-env-secrets-url.sh"
   echo "  Direct: $PARTITIONLINE_CURSOR_ENV_SECRETS_URL"
-  echo "  Add CARGO_REGISTRY_TOKEN = crates.io token with publish-new (+ publish-update)"
+  echo "  Add CARGO_REGISTRY_TOKEN for this existing crate; its scope remains unverified."
   echo "  Save, then restart/re-run the agent so the shell receives the secret."
   echo "  Also set the same name as a GitHub Actions repository secret."
   echo
   echo "Fastest once CARGO_REGISTRY_TOKEN is in this environment (bypasses starved Actions):"
-  echo "  bash scripts/check-registry-token.sh   # must exit 0 (publish-new auth; not presence-only)"
+  echo "  bash scripts/check-registry-token.sh   # exit 3 means present; scope is unverified"
   echo "  bash scripts/check-cut-path.sh         # full cut rehearsal"
   echo "  bash scripts/owner-finish-installable.sh"
   echo "  # After Installable, finish chains owner-land-post-cut-parks by default:"
@@ -120,14 +126,8 @@ else
   echo "  PUBLISH_LOCAL=0 bash scripts/owner-cut-release.sh  # force tag → Actions"
   echo "  DRY_RUN=1 bash scripts/owner-cut-release.sh"
   echo
-  echo "If the token is Actions-only (not in this shell):"
-  echo "  1. Merge/FF civilization → main (first-publish.yml must exist on default branch)"
-  echo "     # or dispatch with REF=<tip-sha> without FF when tip is docs/scripts-only"
-  echo "  2. bash scripts/owner-cancel-stuck-runs.sh"
-  echo "  3. From an owner machine (Cloud Agents get HTTP 403 on workflow_dispatch):"
-  echo "       bash scripts/owner-dispatch-first-publish.sh"
-  echo "     # or: Actions → First publish → confirm=publish"
-  echo "  Prefer owner-finish-installable.sh when the token is already in-env."
+  echo "If credentials are Actions-only, use the tag workflow after release gates pass:"
+  echo "  PUBLISH_LOCAL=0 bash scripts/owner-cut-release.sh"
   echo
   echo "Until crates.io lands, adopters pin git tag v0.1.0-rc.6 (not floating main)."
   echo

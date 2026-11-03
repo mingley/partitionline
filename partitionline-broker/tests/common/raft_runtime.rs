@@ -53,22 +53,138 @@ fn read_text(path: &Path, limit: u64) -> TestResult<String> {
     }
     Ok(out)
 }
-fn proposal_position_response(answer: &str) -> TestResult<(u64, u64)> {
-    let mut fields = answer.split_whitespace();
-    if fields.next() != Some("position") {
-        return Err(format!("proposal did not return a position: {answer:?}").into());
+// Build bounded raw-text context only when a response fails validation.
+fn diagnostic_snippet(text: &str) -> String {
+    const MAX_BYTES: usize = 256;
+    let mut end = text.len().min(MAX_BYTES);
+    while !text.is_char_boundary(end) {
+        end -= 1;
     }
-    let parsed = (|| {
-        let term: u64 = fields.next().ok_or("missing term")?.parse()?;
-        let index: u64 = fields.next().ok_or("missing index")?.parse()?;
-        if term == 0 || index == 0 || fields.next().is_some() {
-            return Err("invalid position fields".into());
-        }
-        Ok((term, index))
-    })();
-    parsed.map_err(|error: Box<dyn std::error::Error + Send + Sync>| {
-        format!("invalid proposal position response {answer:?}: {error}").into()
+    if end == text.len() {
+        format!("{text:?}")
+    } else {
+        format!(
+            "{:?} [truncated; original_bytes={}]",
+            &text[..end],
+            text.len()
+        )
+    }
+}
+fn response_fields<'a, const N: usize>(answer: &'a str, kind: &str) -> TestResult<[&'a str; N]> {
+    let mut fields = answer.split_whitespace();
+    if fields.next() != Some(kind) {
+        return Err(format!(
+            "expected {kind} response, got {}",
+            diagnostic_snippet(answer)
+        )
+        .into());
+    }
+    let mut result = [""; N];
+    for field in &mut result {
+        *field = fields
+            .next()
+            .ok_or_else(|| format!("missing {kind} field in {}", diagnostic_snippet(answer)))?;
+    }
+    if fields.next().is_some() {
+        return Err(format!("extra {kind} fields in {}", diagnostic_snippet(answer)).into());
+    }
+    Ok(result)
+}
+fn response_value<T: std::str::FromStr>(
+    value: &str,
+    context: impl FnOnce() -> String,
+) -> TestResult<T>
+where
+    T::Err: std::fmt::Display,
+{
+    value.parse().map_err(|error| {
+        format!(
+            "invalid {} value {}: {error}",
+            context(),
+            diagnostic_snippet(value)
+        )
+        .into()
     })
+}
+fn proposal_position_response(answer: &str) -> TestResult<(u64, u64)> {
+    let [term, index] = response_fields(answer, "position")?;
+    let term = response_value(term, || {
+        format!("proposal position response {}", diagnostic_snippet(answer))
+    })?;
+    let index = response_value(index, || {
+        format!("proposal position response {}", diagnostic_snippet(answer))
+    })?;
+    if term == 0 || index == 0 {
+        return Err(format!(
+            "invalid proposal position response {}",
+            diagnostic_snippet(answer)
+        )
+        .into());
+    }
+    Ok((term, index))
+}
+fn image_response(answer: &str) -> TestResult<(u64, u64, u64)> {
+    let [term, index, bytes] = response_fields(answer, "image")?;
+    Ok((
+        response_value(term, || {
+            format!("checkpoint response {}", diagnostic_snippet(answer))
+        })?,
+        response_value(index, || {
+            format!("checkpoint response {}", diagnostic_snippet(answer))
+        })?,
+        response_value(bytes, || {
+            format!("checkpoint response {}", diagnostic_snippet(answer))
+        })?,
+    ))
+}
+fn change_response(answer: &str) -> TestResult<(u64, u64, bool)> {
+    let [epoch, index, committed] = response_fields(answer, "change")?;
+    Ok((
+        response_value(epoch, || {
+            format!("voter change response {}", diagnostic_snippet(answer))
+        })?,
+        response_value(index, || {
+            format!("voter change response {}", diagnostic_snippet(answer))
+        })?,
+        response_value(committed, || {
+            format!("voter change response {}", diagnostic_snippet(answer))
+        })?,
+    ))
+}
+
+#[test]
+fn response_diagnostics_bound_multibyte_and_control_text() {
+    for suffix in ["🦀".repeat(512), "\u{1b}".repeat(1024)] {
+        for answer in [format!("error {suffix}"), format!("position 1 {suffix}")] {
+            let error = proposal_position_response(&answer).unwrap_err().to_string();
+            assert!(error.contains("truncated; original_bytes="));
+            assert!(
+                error.len() < 4096,
+                "diagnostic grew unexpectedly: {}",
+                error.len()
+            );
+        }
+    }
+}
+
+#[test]
+fn numeric_response_context_is_built_only_for_errors() {
+    let called = std::cell::Cell::new(false);
+    let value: u64 = response_value("17", || {
+        called.set(true);
+        "unneeded context".to_owned()
+    })
+    .unwrap();
+    assert_eq!(value, 17);
+    assert!(!called.get());
+    let error = response_value::<u64>("x", || {
+        called.set(true);
+        "sample context".to_owned()
+    })
+    .unwrap_err()
+    .to_string();
+    assert!(called.get());
+    assert!(error.contains("sample context"));
 }
 
 #[test]
@@ -88,6 +204,34 @@ fn proposal_responses_require_a_complete_position_and_retain_failures() {
         "position 1",
     ] {
         let error = proposal_position_response(answer).unwrap_err().to_string();
+        assert!(error.contains(answer), "the actual reply was lost: {error}");
+    }
+}
+
+#[test]
+fn checkpoint_and_voter_responses_retain_the_actual_failure() {
+    assert_eq!(image_response("image 2 17 8192").unwrap(), (2, 17, 8192));
+    assert_eq!(change_response("change 3 18 true").unwrap(), (3, 18, true));
+    for answer in [
+        "error private peer runtime: Node(NotLeader)",
+        "image 2 17 x",
+        "image 2 x 8192",
+        "image x 17 8192",
+        "image 2 17",
+        "image 2 17 8192 extra",
+    ] {
+        let error = image_response(answer).unwrap_err().to_string();
+        assert!(error.contains(answer), "the actual reply was lost: {error}");
+    }
+    for answer in [
+        "error private peer runtime: Deadline",
+        "change x 18 true",
+        "change 3 x true",
+        "change 3 18 x",
+        "change 3 18",
+        "change 3 18 true extra",
+    ] {
+        let error = change_response(answer).unwrap_err().to_string();
         assert!(error.contains(answer), "the actual reply was lost: {error}");
     }
 }
@@ -701,13 +845,36 @@ impl Cluster {
         let first = lines.next().ok_or("state header")?;
         let fields = first.split_whitespace().collect::<Vec<_>>();
         if fields.len() != 5 {
-            return Err("state fields".into());
+            return Err(format!(
+                "node{id} state fields at {}: {}",
+                p.root.display(),
+                diagnostic_snippet(first)
+            )
+            .into());
         }
         Ok((
-            fields[0].parse()?,
+            response_value(fields[0], || {
+                format!(
+                    "node{id} state at {}: {}",
+                    p.root.display(),
+                    diagnostic_snippet(first)
+                )
+            })?,
             fields[1].into(),
-            fields[2].parse()?,
-            fields[3].parse()?,
+            response_value(fields[2], || {
+                format!(
+                    "node{id} state at {}: {}",
+                    p.root.display(),
+                    diagnostic_snippet(first)
+                )
+            })?,
+            response_value(fields[3], || {
+                format!(
+                    "node{id} state at {}: {}",
+                    p.root.display(),
+                    diagnostic_snippet(first)
+                )
+            })?,
             lines.next().unwrap_or("").into(),
         ))
     }
@@ -717,21 +884,44 @@ impl Cluster {
         let line = text.lines().nth(2).ok_or("public base-position line")?;
         let fields = line.split_whitespace().collect::<Vec<_>>();
         if fields.len() != 3 || fields[0] != "image" {
-            return Err("base-position fields".into());
+            return Err(format!(
+                "node{id} base-position fields at {}: {}",
+                p.root.display(),
+                diagnostic_snippet(line)
+            )
+            .into());
         }
-        Ok((fields[1].parse()?, fields[2].parse()?))
+        Ok((
+            response_value(fields[1], || {
+                format!(
+                    "node{id} base position at {}: {}",
+                    p.root.display(),
+                    diagnostic_snippet(line)
+                )
+            })?,
+            response_value(fields[2], || {
+                format!(
+                    "node{id} base position at {}: {}",
+                    p.root.display(),
+                    diagnostic_snippet(line)
+                )
+            })?,
+        ))
     }
     fn ready_to_write(&self, id: usize) -> TestResult<bool> {
         let process = self.processes[id].as_ref().ok_or("node closed")?;
         let text = read_text(&process.root.join("state"), 1024 * 1024)?;
-        Ok(text
-            .lines()
-            .next()
-            .ok_or("state header")?
-            .split_whitespace()
-            .nth(4)
-            .ok_or("state readiness")?
-            .parse()?)
+        let header = text.lines().next().ok_or("state header")?;
+        response_value(
+            header.split_whitespace().nth(4).ok_or("state readiness")?,
+            || {
+                format!(
+                    "node{id} readiness at {}: {}",
+                    process.root.display(),
+                    diagnostic_snippet(header)
+                )
+            },
+        )
     }
     fn require_completed_image_frames(&self, source: usize, target: usize) -> TestResult {
         let Some(root) = &self.gate.capture else {
@@ -768,7 +958,7 @@ impl Cluster {
         );
         Ok(())
     }
-    async fn leader(&self, excluded: &[usize]) -> TestResult<usize> {
+    async fn leader(&mut self, excluded: &[usize]) -> TestResult<usize> {
         let deadline = Instant::now() + Duration::from_secs(15);
         loop {
             let candidates = (0..self.processes.len())
@@ -790,7 +980,14 @@ impl Cluster {
                 return Ok(candidates[0]);
             }
             if Instant::now() >= deadline {
-                return Err("no unique committed leader".into());
+                let ids = (0..self.processes.len())
+                    .filter(|id| !excluded.contains(id))
+                    .collect::<Vec<_>>();
+                return Err(format!(
+                    "no unique committed leader; {}",
+                    self.diagnostics("unique-committed-leader", 0, &ids)
+                )
+                .into());
             }
             tokio::time::sleep(Duration::from_millis(20)).await;
         }
@@ -816,20 +1013,21 @@ impl Cluster {
         }
     }
     fn proposal_position(&mut self, id: usize, phase: &str, answer: &str) -> TestResult<u64> {
-        proposal_position_response(answer)
+        self.response(id, phase, proposal_position_response(answer))
             .map(|(_, index)| index)
-            .map_err(|error| {
-                let ids = (0..self.processes.len()).collect::<Vec<_>>();
-                format!(
-                    "{phase} on node{id}: {error}; {}",
-                    self.commit_diagnostics(phase, 0, &ids)
-                )
-                .into()
-            })
     }
-    fn commit_diagnostics(&mut self, phase: &str, index: u64, ids: &[usize]) -> String {
-        let mut text =
-            format!("commit deadline phase={phase} index={index} ids={ids:?} budget_ms=15000;");
+    fn response<T>(&mut self, id: usize, phase: &str, result: TestResult<T>) -> TestResult<T> {
+        result.map_err(|error| {
+            let ids = (0..self.processes.len()).collect::<Vec<_>>();
+            format!(
+                "{phase} on node{id}: {error}; {}",
+                self.diagnostics(phase, 0, &ids)
+            )
+            .into()
+        })
+    }
+    fn diagnostics(&mut self, phase: &str, index: u64, ids: &[usize]) -> String {
+        let mut text = format!("runtime diagnostics phase={phase} index={index} ids={ids:?};");
         for (id, process) in self.processes.iter_mut().enumerate() {
             let Some(process) = process else {
                 text.push_str(&format!(" node{id}=closed;"));
@@ -892,7 +1090,11 @@ impl Cluster {
                 return Ok(());
             }
             if Instant::now() >= deadline {
-                return Err(self.commit_diagnostics(phase, index, ids).into());
+                return Err(format!(
+                    "commit deadline budget_ms=15000; {}",
+                    self.diagnostics(phase, index, ids)
+                )
+                .into());
             }
             tokio::time::sleep(Duration::from_millis(20)).await;
         }
@@ -988,30 +1190,18 @@ async fn observer_image_history(total: usize) -> TestResult {
             .await?;
     }
     let checkpoint = cluster.command(leader, "checkpoint 62").await?;
-    assert!(checkpoint.starts_with("image "));
-    let image_bytes: u64 = checkpoint
-        .split_whitespace()
-        .nth(3)
-        .ok_or("image byte count")?
-        .parse()?;
+    let (_, base, image_bytes) = cluster.response(
+        leader,
+        "observer-prefix-checkpoint",
+        image_response(&checkpoint),
+    )?;
     assert!(image_bytes > 64 * 1024, "real transfer must exceed 64KiB");
-    let base: u64 = checkpoint
-        .split_whitespace()
-        .nth(2)
-        .ok_or("image base")?
-        .parse()?;
     assert_eq!(base, committed);
     assert_eq!(cluster.image_base(observer)?.1, 0);
     let added = cluster.command(leader, &format!("add {observer}")).await?;
-    assert!(
-        added.starts_with("change "),
-        "actual public observer addition: {added}"
-    );
-    let addition: u64 = added
-        .split_whitespace()
-        .nth(2)
-        .ok_or("addition position")?
-        .parse()?;
+    let (_, addition, _) = cluster
+        .response(leader, "observer-addition", change_response(&added))
+        .map_err(|error| format!("observer target {observer}: {error}"))?;
     let all = (0..total).collect::<Vec<_>>();
     cluster
         .commit("observer-addition-all", addition, &all)
@@ -1080,11 +1270,7 @@ async fn fault_history(count: usize) -> TestResult {
             &format!("propose {}", hex(b"durable-before-minority")?),
         )
         .await?;
-    let index: u64 = answer
-        .split_whitespace()
-        .nth(2)
-        .ok_or("proposal response")?
-        .parse()?;
+    let index = cluster.proposal_position(leader, "fault-initial-proposal", &answer)?;
     let all = (0..count).collect::<Vec<_>>();
     cluster.commit("fault-initial-all", index, &all).await?;
     let follower = (leader + 1) % count;
@@ -1095,11 +1281,7 @@ async fn fault_history(count: usize) -> TestResult {
             &format!("propose {}", hex(b"survives-minority-process-exit")?),
         )
         .await?;
-    let after: u64 = answer
-        .split_whitespace()
-        .nth(2)
-        .ok_or("proposal response")?
-        .parse()?;
+    let after = cluster.proposal_position(leader, "fault-after-process-exit-proposal", &answer)?;
     let majority = all
         .iter()
         .copied()
@@ -1108,10 +1290,12 @@ async fn fault_history(count: usize) -> TestResult {
     cluster
         .commit("fault-after-process-exit-majority", after, &majority)
         .await?;
-    assert!(cluster
-        .command(leader, "checkpoint 21")
-        .await?
-        .starts_with("image "));
+    let checkpoint = cluster.command(leader, "checkpoint 21").await?;
+    cluster.response(
+        leader,
+        "fault-prefix-checkpoint",
+        image_response(&checkpoint),
+    )?;
     cluster.spawn(follower)?;
     cluster.ready().await?;
     cluster
@@ -1123,11 +1307,8 @@ async fn fault_history(count: usize) -> TestResult {
     let answer = cluster
         .command(leader, &format!("propose {}", hex(b"reordered-late-ack")?))
         .await?;
-    let reordered: u64 = answer
-        .split_whitespace()
-        .nth(2)
-        .ok_or("proposal response")?
-        .parse()?;
+    let reordered =
+        cluster.proposal_position(leader, "fault-delayed-old-reply-proposal", &answer)?;
     cluster
         .commit("fault-delayed-old-reply-all", reordered, &all)
         .await?;
@@ -1149,11 +1330,7 @@ async fn fault_history(count: usize) -> TestResult {
         )
         .await?;
     if isolated.starts_with("position ") {
-        let diverged: u64 = isolated
-            .split_whitespace()
-            .nth(2)
-            .ok_or("isolated position")?
-            .parse()?;
+        let diverged = cluster.proposal_position(leader, "fault-isolated-proposal", &isolated)?;
         assert!(
             cluster.state(leader)?.3 < diverged,
             "isolated local synchronization is never a majority receipt"
@@ -1168,11 +1345,8 @@ async fn fault_history(count: usize) -> TestResult {
             &format!("propose {}", hex(b"majority-after-partition")?),
         )
         .await?;
-    let committed: u64 = answer
-        .split_whitespace()
-        .nth(2)
-        .ok_or("proposal response")?
-        .parse()?;
+    let committed =
+        cluster.proposal_position(survivor, "fault-partition-majority-proposal", &answer)?;
     let surviving = all
         .iter()
         .copied()
@@ -1207,16 +1381,11 @@ async fn fault_history(count: usize) -> TestResult {
     let removed = cluster
         .command(current, &format!("remove {current}"))
         .await?;
-    assert!(
-        removed.starts_with("change "),
-        "remove returned {removed}; {}",
-        cluster.commit_diagnostics("before-removal", committed, &all)
-    );
-    let removal: u64 = removed
-        .split_whitespace()
-        .nth(2)
-        .ok_or("removal response")?
-        .parse()?;
+    let (_, removal, _) = cluster.response(
+        current,
+        "fault-current-leader-removal",
+        change_response(&removed),
+    )?;
     let remaining = all
         .iter()
         .copied()

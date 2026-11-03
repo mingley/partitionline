@@ -150,14 +150,14 @@ fi
 tok_rc=0
 bash scripts/check-registry-token.sh >/tmp/pl-merge-token.log 2>&1 || tok_rc=$?
 case "$tok_rc" in
-  0)
-    ok "CARGO_REGISTRY_TOKEN accepted by crates.io for publish-new auth"
+  3)
+    warn "CARGO_REGISTRY_TOKEN present; authorization and scope unverified"
     ;;
   2)
-    warn "CARGO_REGISTRY_TOKEN unset (needed for crates.io publish / Actions secret; publish-new for first cut of a new crate, publish-update for later)"
+    warn "CARGO_REGISTRY_TOKEN unset (needed for local publication unless using Trusted Publishing)"
     ;;
   *)
-    bad "CARGO_REGISTRY_TOKEN rejected by crates.io (recreate with publish-new; see check-registry-token)"
+    bad "CARGO_REGISTRY_TOKEN availability check failed (rc=${tok_rc})"
     ;;
 esac
 
@@ -198,9 +198,7 @@ main_sha="$(git rev-parse origin/main 2>/dev/null || true)"
 head_sha="$(git rev-parse HEAD 2>/dev/null || true)"
 if [[ -n "$main_sha" && -n "$head_sha" && "$main_sha" == "$head_sha" ]]; then
   echo "  (HEAD already matches origin/main — finish-installable will skip FF-merge)"
-  echo "  Actions-only alternate (token as Actions secret only):"
-  echo "    bash scripts/owner-dispatch-first-publish.sh"
-  echo "    # or: Actions → First publish → confirm=publish"
+  echo "  Actions-only alternate: PUBLISH_LOCAL=0 bash scripts/owner-cut-release.sh"
   echo "  Or tag path (token in-env → local publish; PUBLISH_LOCAL=0 → Actions):"
   echo "    bash scripts/owner-cut-release.sh"
 else

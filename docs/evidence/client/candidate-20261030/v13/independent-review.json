@@ -1,0 +1,35 @@
+{
+  "scope": "Independent read-only static audit of v13 overlay, catalogs, review bindings and historical workflow",
+  "import_manifest_sha256": "d9f5d1781489f6ec1423164c6e9a93100419a27c693d13cb9481759a2f56c52e",
+  "release_patch_sha256": "4b32aab50b8fcbe64636c6927b55f768d4e5d3eab4652bcd064d6b8abb1f5bb6",
+  "release_peer_review_sha256": "cf11cbce0c326f6d63cb01930e3ee30c2561633632accac214783321167f0289",
+  "workflow_patch_sha256": "18f5b5429d78c27b32bc4f382a3b4d763d04d4991ea878b9fac766e9816316b5",
+  "catalog_sizes": {
+    "base": 1745,
+    "baseline": 1752,
+    "fixed": 1754
+  },
+  "release_catalog_changes": 30,
+  "release_outside_catalog": [
+    ".github/workflows/release.yml"
+  ],
+  "assets": 19,
+  "prior_v12_assets": 16,
+  "unchanged_baseline_case_bytes": 23,
+  "unchanged_control_identities": 183,
+  "unchanged_targets": 10,
+  "release_roundtrip": true,
+  "all_candidate_patches_roundtrip_exact": true,
+  "historical_checkout": "8f960c3e60609703f23f79b3f368355ed8c057d8",
+  "historical_rust_baseline": "b1b0488096f886c2fd60a7368bbf2ed57b5da2e3",
+  "historical_catalog_paths_verified_on_both": 1743,
+  "limitations": [
+    "Read-only static asset and source reconstruction only; no Cargo, Clippy, native runtime, network or benchmarks",
+    "The v13 source is based on the proposed post-release overlay, not proof that overlay was merged or the workflow was dispatched",
+    "Historical workflow ref contents were checked locally; no hosted GitHub run was performed",
+    "No production readiness, fastest ranking, registry publication or external Kafka qualification follows"
+  ],
+  "post_overlay_root_catalog_matches": 1745,
+  "executable_bit_parity_on_archive_parent_and_root": 1745,
+  "mode_limit": "Git executable-bit parity checked; owner/group permission bits and ACLs are not qualified."
+}

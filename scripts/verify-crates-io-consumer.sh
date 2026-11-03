@@ -56,7 +56,7 @@ PY
 
 if [[ "$mode" == "registry" ]]; then
   echo "verify-crates-io-consumer: expecting crates.io ${name} ${ver}"
-  if ! bash scripts/check-installable.sh >/tmp/pl-verify-installable.log 2>&1; then
+  if ! bash scripts/check-installable.sh "$ver" >/tmp/pl-verify-installable.log 2>&1; then
     cat /tmp/pl-verify-installable.log >&2 || true
     echo "verify-crates-io-consumer: FAIL — ${name} ${ver} not Installable yet" >&2
     exit 1
@@ -141,36 +141,93 @@ if [[ "$mode" == "path" ]]; then
 fi
 
 if [[ "$mode" == "git" ]]; then
-  if ! grep -q "^name = \"${name}\"$" "$cons/Cargo.lock"; then
-    echo "verify-crates-io-consumer: FAIL — ${name} missing from consumer Cargo.lock" >&2
+  # Bind the lock entry to the exact tagged commit and the package version in
+  # that commit; the current manifest may have advanced since this docs pin.
+  pin_sha="$(git rev-parse --verify "refs/tags/${pin_tag}^{commit}")"
+  pin_version="$(git show "${pin_sha}:Cargo.toml" | python3 -c \
+    'import sys,tomllib; v=tomllib.loads(sys.stdin.read())["package"]["version"]; assert isinstance(v,str); print(v)')"
+  if ! python3 - "$cons/Cargo.lock" "$name" "$pin_version" "$repo_url" "$pin_tag" "$pin_sha" <<'PY'
+import sys, tomllib
+from urllib.parse import parse_qsl, urlsplit
+
+path, name, version, repo_url, tag, commit = sys.argv[1:]
+try:
+    with open(path, 'rb') as stream:
+        lock = tomllib.load(stream)
+    packages = lock.get('package')
+    if not isinstance(packages, list) or not all(isinstance(p, dict) for p in packages):
+        raise ValueError('invalid package list')
+    named = [p for p in packages if p.get('name') == name]
+    selected = [p for p in named if p.get('version') == version]
+    if len(selected) != 1 or not isinstance(selected[0].get('source'), str):
+        raise ValueError('tagged package version is not unique')
+    source = selected[0]['source']
+    if not source.startswith('git+'):
+        raise ValueError('target package is not a git dependency')
+    actual, expected = urlsplit(source[4:]), urlsplit(repo_url)
+    if ((actual.scheme, actual.netloc, actual.path.rstrip('/')) !=
+        (expected.scheme, expected.netloc, expected.path.rstrip('/')) or
+        expected.query or expected.fragment or parse_qsl(actual.query, strict_parsing=True) != [('tag', tag)] or
+        actual.fragment != commit):
+        raise ValueError('git URL, tag or commit does not match the pin')
+    root_name = name + '-crates-io-consumer'
+    roots = [p for p in packages if p.get('name') == root_name and p.get('version') == '0.0.0'
+             and 'source' not in p]
+    if len(roots) != 1 or not isinstance(roots[0].get('dependencies'), list):
+        raise ValueError('consumer package or dependencies missing')
+    dependencies = roots[0]['dependencies']
+    if not all(isinstance(dep, str) for dep in dependencies):
+        raise ValueError('invalid consumer dependency')
+    explicit = {name + ' ' + version, name + ' ' + version + ' (' + source + ')'}
+    direct = [dep for dep in dependencies if dep in explicit or (dep == name and len(named) == 1)]
+    if len(direct) != 1:
+        raise ValueError('tagged package is not the unique direct consumer dependency')
+except (OSError, tomllib.TOMLDecodeError, ValueError) as error:
+    print('verify-crates-io-consumer: FAIL — invalid git consumer lock: '+str(error), file=sys.stderr)
+    raise SystemExit(1)
+PY
+  then
     exit 1
   fi
-  if grep -A8 "^name = \"${name}\"$" "$cons/Cargo.lock" | grep -q '^source = "git+'; then
-    echo "verify-crates-io-consumer: git source confirmed for pin ${pin_tag}"
-  else
-    echo "verify-crates-io-consumer: FAIL — ${name} was not resolved from git tag ${pin_tag}" >&2
-    grep -A8 "^name = \"${name}\"$" "$cons/Cargo.lock" >&2 || true
-    exit 1
-  fi
+  echo "verify-crates-io-consumer: git source confirmed for pin ${pin_tag} at ${pin_sha}"
   echo "verify-crates-io-consumer: ok (adopter can cargo-depend on git tag ${pin_tag})"
   exit 0
 fi
 
-if ! grep -q "^name = \"${name}\"$" "$cons/Cargo.lock"; then
-  echo "verify-crates-io-consumer: FAIL — ${name} missing from consumer Cargo.lock" >&2
+if ! python3 - "$cons/Cargo.lock" "$name" "$ver" <<'PY'
+import sys, tomllib
+
+path, name, version = sys.argv[1:]
+source = 'registry+https://github.com/rust-lang/crates.io-index'
+try:
+    with open(path, 'rb') as stream:
+        lock = tomllib.load(stream)
+    packages = lock.get('package')
+    if not isinstance(packages, list) or not all(isinstance(p, dict) for p in packages):
+        raise ValueError('invalid package list')
+    named = [p for p in packages if p.get('name') == name]
+    selected = [p for p in named if p.get('version') == version]
+    if len(selected) != 1 or selected[0].get('source') != source:
+        raise ValueError('target version does not have a unique crates.io source')
+    root_name = name + '-crates-io-consumer'
+    roots = [p for p in packages if p.get('name') == root_name and p.get('version') == '0.0.0'
+             and 'source' not in p]
+    if len(roots) != 1 or not isinstance(roots[0].get('dependencies'), list):
+        raise ValueError('consumer package or dependencies missing')
+    dependencies = roots[0]['dependencies']
+    if not all(isinstance(dep, str) for dep in dependencies):
+        raise ValueError('invalid consumer dependency')
+    explicit = {name + ' ' + version, name + ' ' + version + ' (' + source + ')'}
+    direct = [dep for dep in dependencies if dep in explicit or (dep == name and len(named) == 1)]
+    if len(direct) != 1:
+        raise ValueError('target is not the unique direct consumer dependency')
+except (OSError, tomllib.TOMLDecodeError, ValueError) as error:
+    print('verify-crates-io-consumer: FAIL — invalid registry consumer lock: '+str(error), file=sys.stderr)
+    raise SystemExit(1)
+PY
+then
   exit 1
 fi
-if ! grep -A2 "^name = \"${name}\"$" "$cons/Cargo.lock" | grep -q "version = \"${ver}\""; then
-  echo "verify-crates-io-consumer: FAIL — lock did not select ${name} ${ver}" >&2
-  grep -A5 "^name = \"${name}\"$" "$cons/Cargo.lock" >&2 || true
-  exit 1
-fi
-if grep -A6 "^name = \"${name}\"$" "$cons/Cargo.lock" | grep -q '^source = "registry+'; then
-  echo "verify-crates-io-consumer: registry source confirmed"
-else
-  echo "verify-crates-io-consumer: FAIL — ${name} was not resolved from crates.io registry" >&2
-  grep -A8 "^name = \"${name}\"$" "$cons/Cargo.lock" >&2 || true
-  exit 1
-fi
+echo "verify-crates-io-consumer: registry source confirmed"
 
 echo "verify-crates-io-consumer: ok (adopter can cargo-depend on crates.io ${name} ${ver})"

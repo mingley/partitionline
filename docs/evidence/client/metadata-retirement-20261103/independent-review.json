@@ -1,0 +1,27 @@
+{
+  "scope": "Independent static review of frozen metadata retirement v3; no compilation, native tests or benchmarks",
+  "reviewed_patch_sha256": "2cf749a507e4f5c74abbcf30e81bd12cbf521cc5f71c0afe69d137dcd44d7546",
+  "author_receipt_sha256": "92119712ba001f298adda14cf7653c4a493c58ec73bae01b1e50514ffa2c55e2",
+  "source_and_patch_checks": [
+    "Five preimage source hashes match v10 native input manifest and author receipt",
+    "Gzip expands to exact patch",
+    "Fresh exact forward and reverse application matches all five fixed and preimage bytes"
+  ],
+  "result": "No additional definite blocker found in the inspected metadata retirement paths; this is not a release or production qualification.",
+  "reviewed_invariants": [
+    "Closed is published before the close-cancellation guard or final Inner drop schedules cleanup.",
+    "A busy metadata slot triggers at most one live registered task per producer; it retains Shared, acquires the metadata slot without another held lock, and retires that slot's actual stream under the stream mutex.",
+    "An already-expired retirement deadline now physically drops the socket if immediately possible but returns Timeout; after an awaited lock the deadline is checked again.",
+    "New provisional connections enter the held slot before ApiVersions/SASL and remain protected by a cancellation/error guard; closed is rechecked at connect and handshake phase boundaries.",
+    "The new established-Metadata control gates a response, exercises both close timeout and cancellation, releases the RPC, and waits for a real TCP EOF.",
+    "TLS replacement test uses a held ApiVersions gate; its mock Close event is interpreted as handler termination rather than explicit TCP EOF."
+  ],
+  "known_limitations": [
+    "Broader preexisting producer close-cancellation gap: if close is canceled after publishing closed but before shutdown_workers sends Ctrl::Close/aborts worker tasks, an idle non-sticky worker can remain parked while other Producer clones retain Inner. The new control creates no worker and proves only metadata cleanup.",
+    "Deferred retirement requires the captured Tokio runtime to keep progressing and the current metadata and stream lock owners eventually to release their locks. A timed-out/canceled close does not itself witness retirement; runtime shutdown can prevent completion.",
+    "An already-started handshake or RPC can continue until its phase returns; checks at await boundaries do not synchronously cancel an in-flight operation. Local retirement does not establish whether the broker applied any previous request.",
+    "TLS mock Close is a handler exit event, not a peer TCP EOF measurement. The held ApiVersions gate has source-only review and no dedicated drop/rearm runtime control.",
+    "No Rust type-check, Clippy, Cargo build, test execution, live Kafka/TLS/SASL qualification, performance benchmark, or production claim is implied.",
+    "The patch was reconstructed against v10 inputs alone; compatibility with newer composite changes was not tested by this review."
+  ]
+}

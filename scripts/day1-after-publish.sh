@@ -23,20 +23,27 @@ if [[ "$DRY_RUN" == "1" ]]; then
 fi
 
 ok=0
+registry_rc=1
 for i in $(seq 1 "$ATTEMPTS"); do
-  if bash scripts/check-installable.sh >/tmp/pl-day1-installable.log 2>&1; then
+  registry_rc=0
+  bash scripts/check-installable.sh >/tmp/pl-day1-installable.log 2>&1 || registry_rc=$?
+  if [[ "$registry_rc" -eq 0 ]]; then
     ok=1
     break
   fi
   if [[ "$i" -lt "$ATTEMPTS" ]]; then
-    echo "day1-after-publish: waiting for crates.io index (${i}/${ATTEMPTS})..."
+    echo "day1-after-publish: waiting for registry confirmation (${i}/${ATTEMPTS})..."
     sleep "$SLEEP_SECS"
   fi
 done
 
 if [[ "$ok" != "1" ]]; then
   cat /tmp/pl-day1-installable.log >&2 || true
-  echo "day1-after-publish: crates.io does not yet have partitionline ${ver}" >&2
+  if [[ "$registry_rc" -eq 3 ]]; then
+    echo "day1-after-publish: partitionline ${ver} is absent from the registry" >&2
+  else
+    echo "day1-after-publish: registry confirmation inconclusive; this version may already exist" >&2
+  fi
   if [[ "$DRY_RUN" == "1" ]]; then
     echo "day1-after-publish: DRY_RUN=1 — would verify crates.io consumer + flip README/ADOPTION/guide/migrate after publish" >&2
     echo "day1-after-publish: rehearsing README + ADOPTION + guide + migrate flips (DRY_RUN=1)" >&2
@@ -47,11 +54,15 @@ if [[ "$ok" != "1" ]]; then
     echo
     # Absent crate + DRY_RUN is rehearsal evidence, not Installable success.
     # Exit PARTIAL/2 so cut-path / set -e proxies cannot print final OK as if published.
-    echo "day1-after-publish: PARTIAL — not yet Installable (crates.io missing ${ver}; DRY_RUN rehearsal only)" >&2
+    echo "day1-after-publish: PARTIAL — registry identity not confirmed (DRY_RUN rehearsal only)" >&2
     echo "  Preferred cut: bash scripts/owner-finish-installable.sh" >&2
     exit 2
   fi
-  echo "day1-after-publish: publish first (docs/RELEASE.md / scripts/owner-publish.sh)." >&2
+  if [[ "$registry_rc" -eq 3 ]]; then
+    echo "day1-after-publish: publish first (docs/RELEASE.md / scripts/owner-publish.sh)." >&2
+  else
+    echo "day1-after-publish: retry confirmation before any publication." >&2
+  fi
   exit 1
 fi
 echo "day1-after-publish: crates.io has partitionline ${ver}"
@@ -60,7 +71,7 @@ echo "day1-after-publish: verify adopter crates.io consumer compiles"
 if [[ "$DRY_RUN" == "1" ]]; then
   echo "day1-after-publish: DRY_RUN=1 — would run verify-crates-io-consumer.sh"
 else
-  bash scripts/verify-crates-io-consumer.sh
+  MODE=registry VER="$ver" bash scripts/verify-crates-io-consumer.sh
 fi
 
 if [[ "$DRY_RUN" == "1" ]]; then

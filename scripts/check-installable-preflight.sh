@@ -4,7 +4,7 @@
 # Exit codes:
 #   0  — READY_EXCEPT_TOKEN: structurally ready; only CARGO_REGISTRY_TOKEN / crates.io cut remains
 #   1  — other blockers (merge-ready fail, red main CI, metadata, stale parks without token, etc.)
-#   2  — already Installable (crates.io has this version)
+#   2  — registry confirms this version; consumer verification remains separate
 #   3  — inconclusive main CI (still running); structural gates otherwise OK
 #
 # Env:
@@ -23,6 +23,8 @@ cd "$ROOT"
 source "$ROOT/scripts/lib/cargo-registry-token.sh"
 
 if [[ "${1:-}" == "--self-test" ]]; then
+  # The local fixture must never read an inherited credential file.
+  unset CARGO_REGISTRY_TOKEN_FILE || true
   echo "check-installable-preflight: self-test — must prepare TOKEN (file/whitespace/misname) before READY_EXCEPT_TOKEN"
   if ! grep -qF 'pl_prepare_cargo_registry_token' "$ROOT/scripts/check-installable-preflight.sh"; then
     echo "check-installable-preflight: self-test FAIL — missing pl_prepare_cargo_registry_token" >&2
@@ -94,19 +96,20 @@ MODE=git bash scripts/verify-crates-io-consumer.sh
 # day1 README/ADOPTION/guide/migrate must survive parks land even if stash pop fails.
 bash scripts/lib/preserve-day1-docs.sh --self-test
 
-# Already published?
-if bash scripts/check-installable.sh >/tmp/pl-preflight-installable.log 2>&1; then
-  echo "check-installable-preflight: ALREADY_INSTALLABLE — crates.io has ${name} ${ver}"
+# Already published? Inconclusive probes must not be treated as absence.
+registry_rc=0
+bash scripts/check-installable.sh >/tmp/pl-preflight-installable.log 2>&1 || registry_rc=$?
+if [[ "$registry_rc" -eq 0 ]]; then
+  echo "check-installable-preflight: REGISTRY_CONFIRMED — API and index identify ${name} ${ver}; external consumer not checked"
   tail -5 /tmp/pl-preflight-installable.log | sed 's/^/  /'
-  # Installable ≠ post-cut complete. Surface parks-on-main + day1 four-file shape so
-  # ALREADY_INSTALLABLE cannot soft-OK unfinished park land or git-shaped adopter docs.
+  # Registry identity does not establish consumer or post-cut completion.
   # shellcheck source=scripts/lib/adopter-docs-shaped.sh
   source "$ROOT/scripts/lib/adopter-docs-shaped.sh"
   echo "== parks on main (post-Installable honesty) =="
   parks_main_rc=0
   bash scripts/check-parks-on-main.sh || parks_main_rc=$?
   if [[ "$parks_main_rc" -eq 2 ]]; then
-    echo "check-installable-preflight: PARTIAL — Installable OK but parks not on main"
+    echo "check-installable-preflight: PARTIAL — registry confirmed but parks not on main"
     echo "  Re-enter: LAND_PARKS=1 bash scripts/owner-post-installable-handoff.sh"
     echo "  Or: bash scripts/owner-finish-installable.sh  # already-Installable short-circuit"
   elif [[ "$parks_main_rc" -ne 0 ]]; then
@@ -114,16 +117,15 @@ if bash scripts/check-installable.sh >/tmp/pl-preflight-installable.log 2>&1; th
   fi
   echo "== day1 adopter docs crates.io shape =="
   if ! pl_adopter_docs_crates_io_shaped; then
-    echo "check-installable-preflight: PARTIAL — Installable OK but adopter docs still git-shaped"
+    echo "check-installable-preflight: PARTIAL — registry confirmed but adopter docs still git-shaped"
     echo "  Day1 must flip README + ADOPTION + guide + migrate to crates.io."
     echo "  Re-enter: bash scripts/day1-after-publish.sh"
     echo "  Then: bash scripts/owner-post-installable-handoff.sh"
   fi
   exit 2
 fi
-# check-installable fails when absent — that is expected pre-cut.
-if ! grep -q 'not on crates.io\|status=absent\|FAIL' /tmp/pl-preflight-installable.log; then
-  echo "check-installable-preflight: unexpected installable probe output:" >&2
+if [[ "$registry_rc" -ne 3 ]]; then
+  echo "check-installable-preflight: PARTIAL — registry confirmation inconclusive; this version may already exist" >&2
   cat /tmp/pl-preflight-installable.log >&2
   exit 1
 fi
@@ -144,9 +146,16 @@ echo
 echo "== main CI (Verifiable) =="
 ci_rc=0
 if [[ "$SKIP_MAIN_CI" == "1" ]]; then
-  echo "check-installable-preflight: SKIP_MAIN_CI=1 — not probing"
+  echo "check-installable-preflight: main CI was skipped; readiness is inconclusive" >&2
+  if [[ "$REQUIRE_MAIN_CI" == "1" ]]; then
+    exit 1
+  fi
+  exit 3
 else
-  bash scripts/check-main-ci.sh || ci_rc=$?
+  env -u CHECK_SHA -u GH_RUNS_JSON -u GH_JOBS_JSON -u GH_ARTIFACTS_JSON \
+    -u REQUIRED_JOBS -u REQUIRED_ARTIFACTS -u GH_RUN_LIMIT \
+    MAIN_BRANCH=main REQUIRE_MAIN_CI="$REQUIRE_MAIN_CI" REQUIRE_PROFILE_EVIDENCE=1 \
+    bash scripts/check-main-ci.sh || ci_rc=$?
   if [[ "$ci_rc" -eq 1 ]]; then
     echo "check-installable-preflight: FAIL — main HEAD CI is red" >&2
     exit 1
@@ -155,17 +164,12 @@ else
       echo "check-installable-preflight: FAIL — REQUIRE_MAIN_CI=1 and main CI inconclusive" >&2
       exit 1
     fi
-    echo
-    if [[ -z "${CARGO_REGISTRY_TOKEN:-}" ]]; then
-      echo "check-installable-preflight: READY_EXCEPT_TOKEN (main CI still running — wait or REQUIRE_MAIN_CI=0)"
-      echo "  Parks stay off main until after crates.io 0.1.0 (expected pre-Installable; tip⊆parks stack is the pre-cut gate)."
-      echo "  Next: bash scripts/owner-request-registry-token.sh"
-      echo "        then export CARGO_REGISTRY_TOKEN, wait for green main CI, then:"
-      echo "        bash scripts/owner-finish-installable.sh"
-      exit 3
-    fi
-    echo "check-installable-preflight: token set but main CI inconclusive — wait for green before cut"
+    echo "check-installable-preflight: PARTIAL — main CI inconclusive; readiness is not established"
+    echo "  Wait for the required main CI evidence before cutting a release."
     exit 3
+  elif [[ "$ci_rc" -ne 0 ]]; then
+    echo "check-installable-preflight: FAIL — unexpected main CI check status (rc=${ci_rc})" >&2
+    exit 1
   fi
 fi
 
@@ -185,8 +189,7 @@ if [[ -z "${CARGO_REGISTRY_TOKEN:-}" ]]; then
   echo "check-installable-preflight: READY_EXCEPT_TOKEN"
   echo "  Structural + Verifiable + parks stack OK; crates.io cut blocked only on CARGO_REGISTRY_TOKEN."
   echo "  Parks stay off main until after crates.io 0.1.0 (expected pre-Installable; tip⊆parks stack is the pre-cut gate)."
-  echo "  Token scope: first cut of a NEW crate needs crates.io publish-new (+ usually publish-update)."
-  echo "  publish-update alone cannot create the crate. Trusted Publishing is configured after 0.1.0."
+  echo "  Token authorization and scope are checked only by the actual publication."
   echo "  One-screen owner ask: bash scripts/owner-request-registry-token.sh"
   echo "  Next: set Cloud Agent secret CARGO_REGISTRY_TOKEN (Cursor → Environments → Secrets),"
   # shellcheck source=scripts/lib/cursor-env-secrets-url.sh
@@ -194,9 +197,9 @@ if [[ -z "${CARGO_REGISTRY_TOKEN:-}" ]]; then
   echo "        Direct: $PARTITIONLINE_CURSOR_ENV_SECRETS_URL"
   echo "        also add Actions secret CARGO_REGISTRY_TOKEN, restart agent, then:"
   echo "        bash scripts/owner-finish-installable.sh"
-  echo "        # publishes 0.1.0 then chains post-cut parks land by default"
+  echo "        # publishes the candidate version after release gates pass"
   echo "        # (MERGE_PARKED_VERIFIABLE=0 to skip Verifiable+flate2+SCRAM+lz4+checkout parks land)"
-  echo "  Actions-only alternate: bash scripts/owner-dispatch-first-publish.sh (owner machine; agents 403)."
+  echo "  Actions-only alternate: PUBLISH_LOCAL=0 bash scripts/owner-cut-release.sh"
   exit 0
 fi
 
@@ -208,8 +211,8 @@ if [[ "$tok_rc" -eq 2 ]]; then
   echo "check-installable-preflight: READY_EXCEPT_TOKEN (token unset after prepare)"
   echo "  Parks stay off main until after crates.io 0.1.0 (expected pre-Installable; tip⊆parks stack is the pre-cut gate)."
   exit 0
-elif [[ "$tok_rc" -ne 0 ]]; then
-  echo "check-installable-preflight: FAIL — CARGO_REGISTRY_TOKEN set but crates.io rejected it (rc=${tok_rc})" >&2
+elif [[ "$tok_rc" -ne 3 || -z "${CARGO_REGISTRY_TOKEN:-}" ]]; then
+  echo "check-installable-preflight: FAIL — token availability check failed (rc=${tok_rc})" >&2
   exit 1
 fi
 
@@ -222,5 +225,5 @@ if ! bash scripts/check-post-cut-parks-stack.sh; then
   exit 1
 fi
 
-echo "check-installable-preflight: READY — token present; run bash scripts/owner-finish-installable.sh"
+echo "check-installable-preflight: READY — token present, scope unverified; run bash scripts/owner-finish-installable.sh"
 exit 0

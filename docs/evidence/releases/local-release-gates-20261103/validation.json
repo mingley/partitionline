@@ -1,0 +1,32 @@
+{
+  "patch_sha256": "4b32aab50b8fcbe64636c6927b55f768d4e5d3eab4652bcd064d6b8abb1f5bb6",
+  "manifest_sha256": "2e527b93fff736c62ab98a1808c25d9cd06cbf261d39e5a704e1e1bc2c7483fb",
+  "source_after_hashes_rechecked": 31,
+  "offline_logs": {
+    "v4-full.stderr": {
+      "sha256": "a1b73746bd0c4a9786b33f16f38bdd5df54ba057d6521932090915cc37600ed9",
+      "summary": "Ran 100 tests in 93.375s"
+    },
+    "v4-next-target.stderr": {
+      "sha256": "74a35d4a01134e3be62d3ace8c41b215e27edfc5e8f6acd005d8a7dfe1d72c73",
+      "summary": "Ran 1 test in 1.917s"
+    },
+    "v3-full.stderr": {
+      "sha256": "1f5d3a322a37839557837c2762f933b5ab5a9a58b5275fb14a7f629b9fa982c3",
+      "summary": "Ran 100 tests in 90.186s"
+    },
+    "v3-next-full.stderr": {
+      "sha256": "ed21e73955a3c8e72b1102c12a4c6bc968ff706fdd67d0fbd8c1dd78ba3b73be",
+      "summary": "Ran 100 tests in 90.901s"
+    }
+  },
+  "peer_review": {
+    "path": "/workspace/work/local-release-confirmation-peer-20261103/v4-review.json",
+    "sha256": "cf11cbce0c326f6d63cb01930e3ee30c2561633632accac214783321167f0289"
+  },
+  "limits": [
+    "No actual Cargo, live registry, GitHub API, token authorization, or publication.",
+    "Simulated standard gh jobs response was rejected; live shape and attempt binding remain unverified.",
+    "Index identity check does not establish full Cargo metadata or external-consumer installability."
+  ]
+}

@@ -1,0 +1,34 @@
+{
+  "scenario": "Manifest is 0.2.0, inherited VER=0.1.0; fake API/index serve both and fake Cargo accepts exact selected version.",
+  "outcomes": [
+    {
+      "script": "/workspace/work/local-release-confirmation-20261103/fixed/scripts/check-cut-path.sh",
+      "sha256": "a8ed386dda1061d2138f9f9d6a6f2f61e09d665eb79547099816696ee5bfee2b",
+      "exit": 0,
+      "stdout": "verify-crates-io-consumer: expecting crates.io partitionline 0.1.0\nverify-crates-io-consumer: cargo check (registry) for partitionline 0.1.0\nverify-crates-io-consumer: registry source confirmed\nverify-crates-io-consumer: ok (adopter can cargo-depend on crates.io partitionline 0.1.0)\n",
+      "stderr": "",
+      "api_urls": [
+        "https://crates.io/api/v1/crates/partitionline/0.2.0",
+        "https://crates.io/api/v1/crates/partitionline/0.1.0"
+      ],
+      "cargo_selected_versions": [
+        "0.1.0"
+      ]
+    },
+    {
+      "script": "/workspace/work/local-release-confirmation-20261103/fixed/scripts/ci-branch-lite.sh",
+      "sha256": "b72370d8859404c150e2038c55dcdf5ad2ab0d9fe84ef33a4fb7ff17bf515905",
+      "exit": 0,
+      "stdout": "verify-crates-io-consumer: expecting crates.io partitionline 0.1.0\nverify-crates-io-consumer: cargo check (registry) for partitionline 0.1.0\nverify-crates-io-consumer: registry source confirmed\nverify-crates-io-consumer: ok (adopter can cargo-depend on crates.io partitionline 0.1.0)\n",
+      "stderr": "",
+      "api_urls": [
+        "https://crates.io/api/v1/crates/partitionline/0.2.0",
+        "https://crates.io/api/v1/crates/partitionline/0.1.0"
+      ],
+      "cargo_selected_versions": [
+        "0.1.0"
+      ]
+    }
+  ],
+  "limitations": "Offline substituted HTTP and Cargo; does not compile or publish."
+}

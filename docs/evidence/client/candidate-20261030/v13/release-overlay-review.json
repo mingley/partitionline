@@ -1,0 +1,22 @@
+{
+  "scope": "Independent offline review of release candidate v4; no end-to-end publishing qualification",
+  "patch_sha256": "4b32aab50b8fcbe64636c6927b55f768d4e5d3eab4652bcd064d6b8abb1f5bb6",
+  "manifest_sha256": "2e527b93fff736c62ab98a1808c25d9cd06cbf261d39e5a704e1e1bc2c7483fb",
+  "base_sha": "c0341637288b60ea2069a9fac58c0e427effc9de",
+  "roundtrip_receipt_sha256": "dbf6669062a36b9ab217d9bb7ba42870d0371e17892e2395fc7b4aba0b94c964",
+  "v3_to_v4": "Independently checked all paths; exactly five changed, consisting of three status-line corrections, matching audit literals, and an offline status test. No publisher, token probe, lock parser or CI gate source changed.",
+  "independent_checks": [
+    "31 source pre/post hashes matched base commit and frozen source; patch applied and reversed exactly.",
+    "Ten fake registry-lock fixtures checked exact direct package/version/canonical source; adjacent package, other registry, duplicate, wrong version and wrong dependency cases failed as intended. Receipt SHA256 ba2b44a190685697cc9d5f42a991d10171db67470a847986946958181d719237.",
+    "Owner publisher rejected checker exits 42/126/127 and an inherited fake green CI run that the old checker accepted; receipt SHA256 4f382afa32a32afbcb0f32b8ec21524e1b3359d4a20c454b59f0620c520a9b9d.",
+    "Ran 10 token-availability tests, two git-lock/audit tests and two retired-dispatch/CI-sync tests against v3 with fake external commands; all passed. Unchanged source pins carry those results to v4.",
+    "Ran the changed v4 offline status test, including absent with and without a token and unknown/confirmed cases; passed."
+  ],
+  "remaining_limits": [
+    "The synthetic registry PUT was removed; local token availability does not establish token authorization or scope.",
+    "The retired first-publish dispatcher refuses all overrides. Registry API/index identity is required before reporting publisher success; an external consumer and exact archive/checksum proof are separate.",
+    "Full v3 offline suites were reported passed by the author at 0.1.0 and 0.2.0; a full v4 suite has not been independently run.",
+    "Actual gh job output shape and attempt binding remain unverified. A standard-looking simulated response was rejected as unbound; no bypass should be inferred.",
+    "No real Cargo, native build, Clippy, live GitHub/registry request, workflow dispatch, credential use or publication occurred. No production-readiness or fastest-performance claim follows."
+  ]
+}

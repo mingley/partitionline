@@ -1,0 +1,8 @@
+{
+  "scope": "Remove one extra blank line at the end of the v13 README; the other 18 assets and manifest fields are unchanged.",
+  "prior_manifest_sha256": "868605db97da8e1506f8043d3463ef50abf9414b3b3aae41d5bc461d9dd7981a",
+  "corrected_manifest_sha256": "ef6af61dc5f2376debbcec0d018f11e22dee57929e578ad4992a0d09cf0c14d7",
+  "prior_readme_sha256": "86049d34c7e1b842bbf3ac3d3967166c1d2de6ecf9f48cb3dceb41883e74efd5",
+  "corrected_readme_sha256": "29b059d91ceceb62a9b141d6a655e9dee0bf2bf3ee40b520eb14257050323dc4",
+  "limits": "Documentation and manifest digest correction only; no source or runtime qualification."
+}

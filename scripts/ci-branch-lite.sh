@@ -11,6 +11,7 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
+ver="$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -1)"
 
 echo "== ci-branch-lite: fmt =="
 cargo fmt --all -- --check
@@ -48,7 +49,7 @@ MODE=path bash scripts/verify-crates-io-consumer.sh
 echo "== ci-branch-lite: registry adopter consumer (post-Installable) =="
 # After crates.io has this version, git MODE SKIPs — prove the live registry pin.
 if bash scripts/check-installable.sh >/dev/null 2>&1; then
-  MODE=registry bash scripts/verify-crates-io-consumer.sh
+  MODE=registry VER="$ver" bash scripts/verify-crates-io-consumer.sh
 else
   echo "ci-branch-lite: registry adopter deferred (Installable not met)"
 fi
@@ -115,18 +116,9 @@ echo "== ci-branch-lite: merge/tag readiness =="
 # Structural merge+tag readiness (version, CHANGELOG, release.yml, tip/main tree).
 bash scripts/check-merge-ready.sh
 
-echo "== ci-branch-lite: first-publish Actions alternate (DRY_RUN visibility) =="
-# Prove first-publish.yml remains workflow_dispatch-visible on main (Actions
-# alternate when token is Actions-secret-only). DRY_RUN=1 does not dispatch.
-# Already-Installable → PARTIAL/2 (refuse re-dispatch soft-OK); capture like day1.
+echo "== ci-branch-lite: retired first-publish dispatch guard =="
+bash scripts/owner-dispatch-first-publish.sh --self-test
 dispatch_rc=0
-DRY_RUN=1 bash scripts/owner-dispatch-first-publish.sh || dispatch_rc=$?
-if [[ "$dispatch_rc" -eq 2 ]]; then
-  echo "ci-branch-lite: PARTIAL — first-publish DRY_RUN already Installable (re-dispatch refused; handoff re-entry)"
-elif [[ "$dispatch_rc" -ne 0 ]]; then
-  echo "ci-branch-lite: FAIL — first-publish DRY_RUN rc=${dispatch_rc}" >&2
-  exit "$dispatch_rc"
-fi
 
 echo "== ci-branch-lite: post-Installable handoff rehearsal (DRY_RUN) =="
 # Same parks-on-main / day1 honesty as cut-path. HANDOFF_FROM_BARS=1 skips nested
@@ -161,12 +153,17 @@ echo "== ci-branch-lite: docs =="
 bash scripts/ci-docs.sh
 
 if [[ "${day1_rc:-0}" -eq 2 || "${dispatch_rc:-0}" -eq 2 || "${handoff_rc:-0}" -eq 2 ]]; then
-  if bash scripts/check-installable.sh >/dev/null 2>&1; then
+  registry_rc=0
+  bash scripts/check-installable.sh >/dev/null 2>&1 || registry_rc=$?
+  if [[ "$registry_rc" -eq 0 ]]; then
     # Installable proven — post-cut PARTIAL must not soft-green tip Verifiable proxy.
-    echo "ci-branch-lite: PARTIAL — tip Verifiable proxy held; Installable already met — post-cut re-entry (parks/day1/dispatch)" >&2
+    echo "ci-branch-lite: PARTIAL — tip Verifiable proxy held; registry confirmed — post-cut re-entry requires consumer verification" >&2
+    exit 2
+  elif [[ "$registry_rc" -ne 3 ]]; then
+    echo "ci-branch-lite: PARTIAL — registry confirmation inconclusive; this version may already exist" >&2
     exit 2
   fi
-  echo "ci-branch-lite: ok with PARTIAL — tip Verifiable proxy held; Installable still blocked on CARGO_REGISTRY_TOKEN (pre-token rehearsal)"
+  echo "ci-branch-lite: ok with PARTIAL — registry reports this version absent; external consumer remains pending"
   exit 0
 fi
 echo "ci-branch-lite: ok (tip Verifiable proxy; full matrix via PR/main/dispatch)"

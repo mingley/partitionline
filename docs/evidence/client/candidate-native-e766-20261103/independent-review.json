@@ -1,0 +1,65 @@
+{
+  "scope": "Independent verification of v10 e766 compact native-report archive and recorded outcomes",
+  "github_run": 41576616151,
+  "checkout_commit": "e7660f6e56195cbdd2ec4523ade021bffe655755",
+  "original_zip_sha256": "c7cd6c46c91891ae9c66eecf23284a89a78c97ac75991bfb9a537327f789c8b9",
+  "manifest_sha256": "50cce9ff340e4fec5a3f97b6f4aedfad0e937fa8d6535aa34e2baaefb28892a3",
+  "object_archive_sha256": "ea71b04d77fb7ca3f1d824f382c3f162f7c2463fdfd1f62128584388446c4503",
+  "analysis_sha256": "1e7dc73c5c8cb0233f31b1454e95ab15b34a48cb31a8507fa6db8c405c2bf1a7",
+  "zip_members_verified": 610,
+  "unique_archive_objects_verified": 243,
+  "guard_pairs_and_command_receipts_verified": 133,
+  "baseline_cases_verified": 22,
+  "unmatched_baseline_case": "cancelling_a_join_after_written_coordinator_responses_stops_new_requests",
+  "profiles": {
+    "default": {
+      "library": {
+        "passed": 2279,
+        "failed": 1,
+        "ignored": 0
+      },
+      "mock_produce": {
+        "passed": 32,
+        "failed": 15,
+        "ignored": 0
+      },
+      "retained_backing": {
+        "passed": 8,
+        "failed": 1,
+        "ignored": 1
+      },
+      "encoding_elapsed": "87.141916ms"
+    },
+    "all-features": {
+      "library": {
+        "passed": 2279,
+        "failed": 1,
+        "ignored": 0
+      },
+      "mock_produce": {
+        "passed": 32,
+        "failed": 15,
+        "ignored": 0
+      },
+      "retained_backing": {
+        "passed": 8,
+        "failed": 1,
+        "ignored": 1
+      },
+      "encoding_elapsed": "80.254912ms"
+    }
+  },
+  "mock_failure_identities_match_b1": true,
+  "producer_ownership_controls_passed_per_profile": 26,
+  "format_and_clippy_exit": 0,
+  "minimum_disk_free_bytes": 83178455040,
+  "memory_counter_status": "unknown",
+  "limitations": [
+    "All checks validate preserved reports; no re-execution, Cargo, native build, network or benchmark.",
+    "The 80ms elapsed failures occurred on a shared hosted runner; root cause is not established.",
+    "The retained-backing logs report only Error: Timeout and show no acknowledgment progress.",
+    "Ten selected binaries and mock broker tests are not complete all-target or live Kafka qualification; both library lanes used one test thread and 8 MiB stack.",
+    "The separate 202,479,140-byte executable/source artifact remains external and was not independently downloaded or hashed.",
+    "Production readiness and fastest ranking remain unqualified."
+  ]
+}

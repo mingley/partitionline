@@ -276,12 +276,9 @@ from pathlib import Path
 import sys
 p = Path(sys.argv[1])
 text = p.read_text(encoding="utf-8")
-text = text.replace(
-    'if [[ "${PL_CRATES_PROBE_STATUS}" == "present" ]]; then\n'
-    '  echo "owner-publish: ${name} ${ver} already on crates.io — skipping cargo publish (idempotent; not a re-cut)"\n'
-    'else\n',
-    "if false; then\n  echo unused\nelse\n",
-)
+old = 'if [[ "${PL_CRATES_PROBE_STATUS}" == "present" ]]; then\n'
+assert text.count(old) == 1, 'present-status mutation must change exactly one branch'
+text = text.replace(old, 'if false; then\n', 1)
 p.write_text(text, encoding="utf-8")
 PY
 if pl_kl08_validate_owner_publish "$mut/owner-publish.sh" >/dev/null 2>"$mut/pub-neg.err"; then

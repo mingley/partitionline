@@ -43,11 +43,11 @@ if [[ "${1:-}" == "--self-test" ]]; then
     echo "owner-post-installable-handoff: self-test FAIL — must chain day1-after-publish after Installable" >&2
     exit 1
   fi
-  if ! grep -qF 'PARTIAL — Installable OK but adopter docs still git-shaped' "$ROOT/scripts/owner-post-installable-handoff.sh"; then
+  if ! grep -qF 'PARTIAL — registry confirmed but adopter docs still git-shaped' "$ROOT/scripts/owner-post-installable-handoff.sh"; then
     echo "owner-post-installable-handoff: self-test FAIL — git-shaped docs after day1 must PARTIAL (not final OK)" >&2
     exit 1
   fi
-  if ! grep -qF 'PARTIAL — Installable OK but adopter docs still git-shaped (DRY_RUN' "$ROOT/scripts/owner-post-installable-handoff.sh"; then
+  if ! grep -qF 'PARTIAL — registry confirmed but adopter docs still git-shaped (DRY_RUN' "$ROOT/scripts/owner-post-installable-handoff.sh"; then
     echo "owner-post-installable-handoff: self-test FAIL — DRY_RUN must PARTIAL on git-shaped docs when already Installable" >&2
     exit 1
   fi
@@ -115,7 +115,7 @@ if [[ "$DRY_RUN" == "1" ]]; then
   day1_rc=0
   DRY_RUN=1 bash scripts/day1-after-publish.sh || day1_rc=$?
   if [[ "$day1_rc" -eq 2 ]]; then
-    echo "owner-post-installable-handoff: PARTIAL — day1 DRY_RUN not yet Installable (expected pre-token; rehearsal held)"
+    echo "owner-post-installable-handoff: PARTIAL — day1 DRY_RUN registry or consumer confirmation is incomplete"
     dry_partial=1
   elif [[ "$day1_rc" -ne 0 ]]; then
     echo "owner-post-installable-handoff: FAIL — day1 DRY_RUN rc=${day1_rc}" >&2
@@ -152,7 +152,7 @@ if [[ "$DRY_RUN" == "1" ]]; then
     dry_parks_probe=0
     bash scripts/check-parks-on-main.sh >/tmp/pl-handoff-parks-main.log 2>&1 || dry_parks_probe=$?
     if [[ "$dry_parks_probe" -eq 0 ]] && bash scripts/check-installable.sh >/dev/null 2>&1; then
-      echo "owner-post-installable-handoff: PARTIAL — Installable OK; parks on main but tip not ancestor of park heads (DRY_RUN)" >&2
+      echo "owner-post-installable-handoff: PARTIAL — registry confirmed; parks on main but tip not ancestor of park heads (DRY_RUN)" >&2
       echo "  Refresh: PUSH=1 VERIFY=1 bash scripts/refresh-post-cut-parks.sh" >&2
       echo "  Then re-enter: bash scripts/owner-post-installable-handoff.sh" >&2
       exit 2
@@ -180,11 +180,11 @@ if [[ "$DRY_RUN" == "1" ]]; then
       dry_installable=1
     fi
     if [[ "$dry_installable" -eq 1 ]]; then
-      echo "owner-post-installable-handoff: PARTIAL — parks not on main (DRY_RUN; already Installable)" >&2
+      echo "owner-post-installable-handoff: PARTIAL — parks not on main (DRY_RUN; registry confirmed)" >&2
       echo "  Re-enter: LAND_PARKS=1 bash scripts/owner-post-installable-handoff.sh" >&2
       exit 2
     fi
-    echo "owner-post-installable-handoff: PARTIAL — parks not on main (DRY_RUN; expected pre-token; rehearsal held)"
+    echo "owner-post-installable-handoff: PARTIAL — parks not on main (DRY_RUN; registry unconfirmed)"
     echo "  After Installable: LAND_PARKS=1 bash scripts/owner-post-installable-handoff.sh"
     dry_partial=1
   fi
@@ -194,7 +194,7 @@ if [[ "$DRY_RUN" == "1" ]]; then
   # trees are expected git-shaped; day1 PARTIAL already covers that path.
   if bash scripts/check-installable.sh >/dev/null 2>&1; then
     if ! pl_adopter_docs_crates_io_shaped; then
-      echo "owner-post-installable-handoff: PARTIAL — Installable OK but adopter docs still git-shaped (DRY_RUN)" >&2
+      echo "owner-post-installable-handoff: PARTIAL — registry confirmed but adopter docs still git-shaped (DRY_RUN)" >&2
       echo "  Day1 must flip README + ADOPTION + guide + migrate to crates.io." >&2
       echo "  Re-enter: bash scripts/day1-after-publish.sh" >&2
       echo "  Then: bash scripts/owner-post-installable-handoff.sh" >&2
@@ -228,7 +228,7 @@ else
   bash scripts/day1-after-publish.sh
 fi
 if ! pl_adopter_docs_crates_io_shaped; then
-  echo "owner-post-installable-handoff: PARTIAL — Installable OK but adopter docs still git-shaped" >&2
+  echo "owner-post-installable-handoff: PARTIAL — registry confirmed but adopter docs still git-shaped" >&2
   echo "  Day1 must flip README + ADOPTION + guide + migrate to crates.io before handoff can OK." >&2
   echo "  Re-enter: bash scripts/day1-after-publish.sh" >&2
   echo "  Then: bash scripts/owner-post-installable-handoff.sh" >&2
@@ -241,7 +241,7 @@ bash scripts/check-adopter-pin.sh
 
 echo
 echo "== 3) Registry adopter consumer =="
-MODE=registry bash scripts/verify-crates-io-consumer.sh
+MODE=registry VER="$ver" bash scripts/verify-crates-io-consumer.sh
 
 echo
 echo "== 4) Civilization bars (full — no PRE_PUBLISH) =="

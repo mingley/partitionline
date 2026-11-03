@@ -1,0 +1,412 @@
+{
+  "source_spec_sha256": "3286ffa57a68cef353b2a09728924f6cc3710e634a2f98954246aa44ad94b2a5",
+  "baseline_cases_executed_once_before_profile_runs": [
+    {
+      "test": "producer::tests::cancelled_pending_drain_retains_accepted_records_until_worker_cleanup",
+      "expected": "pass",
+      "exit": 0,
+      "matches_expectation": true
+    },
+    {
+      "test": "producer::tests::cancelled_pending_deadline_scan_retains_the_detached_prefix_until_worker_cleanup",
+      "expected": "pass",
+      "exit": 0,
+      "matches_expectation": true
+    },
+    {
+      "test": "classic_join_recovers_after_repeated_typed_coordinator_responses",
+      "expected": "fail",
+      "exit": 101,
+      "matches_expectation": true
+    },
+    {
+      "test": "classic_join_retains_a_required_member_id_across_coordinator_responses",
+      "expected": "fail",
+      "exit": 101,
+      "matches_expectation": true
+    },
+    {
+      "test": "classic_join_returns_terminal_response_after_transient_coordinator_errors",
+      "expected": "fail",
+      "exit": 101,
+      "matches_expectation": true
+    },
+    {
+      "test": "persistent_join_responses_stop_at_the_original_deadline_with_backoff",
+      "expected": "fail",
+      "exit": 101,
+      "matches_expectation": true
+    },
+    {
+      "test": "cancelling_a_join_after_written_coordinator_responses_stops_new_requests",
+      "expected": "pass",
+      "exit": 101,
+      "matches_expectation": false
+    },
+    {
+      "test": "classic_join_recovers_when_rediscovery_itself_is_still_loading",
+      "expected": "fail",
+      "exit": 101,
+      "matches_expectation": true
+    },
+    {
+      "test": "classic_join_returns_terminal_rediscovery_errors_without_another_join",
+      "expected": "pass",
+      "exit": 0,
+      "matches_expectation": true
+    },
+    {
+      "test": "classic_join_does_not_retry_terminal_authorization_or_fencing_responses",
+      "expected": "pass",
+      "exit": 0,
+      "matches_expectation": true
+    },
+    {
+      "test": "group::tests::delayed_first_poll_does_not_restart_the_coordinator_deadline",
+      "expected": "fail",
+      "exit": 101,
+      "matches_expectation": true
+    },
+    {
+      "test": "retry_refreshes_waiting_topics_together",
+      "expected": "fail",
+      "exit": 101,
+      "matches_expectation": true
+    },
+    {
+      "test": "public_group_lifecycle_fits_the_standard_two_mib_stack",
+      "expected": "observe",
+      "exit": 0,
+      "matches_expectation": true
+    },
+    {
+      "test": "cluster::tests::declared_topic_count_does_not_allocate_duplicate_tracking",
+      "expected": "fail",
+      "exit": 101,
+      "matches_expectation": true
+    },
+    {
+      "test": "cluster::tests::topic_duplicate_tracking_keeps_names_across_the_heap_transition",
+      "expected": "fail",
+      "exit": 101,
+      "matches_expectation": true
+    },
+    {
+      "test": "cluster::tests::unchanged_metadata_partitions_yield_without_discarding_the_cache",
+      "expected": "fail",
+      "exit": 101,
+      "matches_expectation": true
+    },
+    {
+      "test": "cluster::tests::unchanged_metadata_partition_budget_spans_multiple_topics",
+      "expected": "fail",
+      "exit": 101,
+      "matches_expectation": true
+    },
+    {
+      "test": "consumer::tests::cancelling_assigned_id_retention_keeps_all_still_assigned_identities",
+      "expected": "fail",
+      "exit": 101,
+      "matches_expectation": true
+    },
+    {
+      "test": "consumer::tests::retained_assigned_ids_keep_their_existing_storage",
+      "expected": "fail",
+      "exit": 101,
+      "matches_expectation": true
+    },
+    {
+      "test": "consumer::tests::cancelled_assigned_id_removals_can_resume_without_losing_kept_ids",
+      "expected": "pass",
+      "exit": 0,
+      "matches_expectation": true
+    },
+    {
+      "test": "consumer::tests::retaining_many_empty_assigned_id_topics_yields",
+      "expected": "fail",
+      "exit": 101,
+      "matches_expectation": true
+    },
+    {
+      "test": "producer::prepare_tests::cancelled_fire_grouping_retains_actual_accepted_records",
+      "expected": "fail",
+      "exit": 101,
+      "matches_expectation": true
+    }
+  ],
+  "format_exit": 0,
+  "clippy_exit": 0,
+  "profiles": {
+    "default": {
+      "buffer_ownership": {
+        "counts": {
+          "passed": 12,
+          "failed": 0,
+          "ignored": 0
+        },
+        "passed": true,
+        "required_count": 0,
+        "required_unpassed": {}
+      },
+      "group_coordinator_startup": {
+        "counts": {
+          "passed": 13,
+          "failed": 0,
+          "ignored": 0
+        },
+        "passed": true,
+        "required_count": 8,
+        "required_unpassed": {}
+      },
+      "group_stack": {
+        "counts": {
+          "passed": 1,
+          "failed": 0,
+          "ignored": 0
+        },
+        "passed": true,
+        "required_count": 1,
+        "required_unpassed": {}
+      },
+      "init_producer_id_v6": {
+        "counts": {
+          "passed": 12,
+          "failed": 0,
+          "ignored": 1
+        },
+        "passed": true,
+        "required_count": 0,
+        "required_unpassed": {}
+      },
+      "mock_produce": {
+        "counts": {
+          "passed": 32,
+          "failed": 15,
+          "ignored": 0
+        },
+        "passed": false,
+        "required_count": 6,
+        "required_unpassed": {
+          "send_all_redials_leaders_while_refreshing_metadata": "FAILED"
+        }
+      },
+      "partitionline": {
+        "counts": {
+          "passed": 2279,
+          "failed": 1,
+          "ignored": 0
+        },
+        "passed": false,
+        "required_count": 153,
+        "required_unpassed": {
+          "producer::tests::encoding_many_produce_topics_does_not_hold_the_caller": "FAILED"
+        }
+      },
+      "produce_cancel": {
+        "counts": {
+          "passed": 23,
+          "failed": 0,
+          "ignored": 0
+        },
+        "passed": true,
+        "required_count": 0,
+        "required_unpassed": {}
+      },
+      "producer_initialization": {
+        "counts": {
+          "passed": 8,
+          "failed": 0,
+          "ignored": 0
+        },
+        "passed": true,
+        "required_count": 0,
+        "required_unpassed": {}
+      },
+      "producer_retained_backing": {
+        "counts": {
+          "passed": 8,
+          "failed": 1,
+          "ignored": 1
+        },
+        "passed": false,
+        "required_count": 1,
+        "required_unpassed": {}
+      },
+      "sticky_partitioner": {
+        "counts": {
+          "passed": 29,
+          "failed": 0,
+          "ignored": 0
+        },
+        "passed": true,
+        "required_count": 0,
+        "required_unpassed": {}
+      }
+    },
+    "all-features": {
+      "buffer_ownership": {
+        "counts": {
+          "passed": 12,
+          "failed": 0,
+          "ignored": 0
+        },
+        "passed": true,
+        "required_count": 0,
+        "required_unpassed": {}
+      },
+      "group_coordinator_startup": {
+        "counts": {
+          "passed": 13,
+          "failed": 0,
+          "ignored": 0
+        },
+        "passed": true,
+        "required_count": 8,
+        "required_unpassed": {}
+      },
+      "group_stack": {
+        "counts": {
+          "passed": 1,
+          "failed": 0,
+          "ignored": 0
+        },
+        "passed": true,
+        "required_count": 1,
+        "required_unpassed": {}
+      },
+      "init_producer_id_v6": {
+        "counts": {
+          "passed": 12,
+          "failed": 0,
+          "ignored": 1
+        },
+        "passed": true,
+        "required_count": 0,
+        "required_unpassed": {}
+      },
+      "mock_produce": {
+        "counts": {
+          "passed": 32,
+          "failed": 15,
+          "ignored": 0
+        },
+        "passed": false,
+        "required_count": 6,
+        "required_unpassed": {
+          "send_all_redials_leaders_while_refreshing_metadata": "FAILED"
+        }
+      },
+      "partitionline": {
+        "counts": {
+          "passed": 2279,
+          "failed": 1,
+          "ignored": 0
+        },
+        "passed": false,
+        "required_count": 153,
+        "required_unpassed": {
+          "producer::tests::encoding_many_produce_topics_does_not_hold_the_caller": "FAILED"
+        }
+      },
+      "produce_cancel": {
+        "counts": {
+          "passed": 23,
+          "failed": 0,
+          "ignored": 0
+        },
+        "passed": true,
+        "required_count": 0,
+        "required_unpassed": {}
+      },
+      "producer_initialization": {
+        "counts": {
+          "passed": 8,
+          "failed": 0,
+          "ignored": 0
+        },
+        "passed": true,
+        "required_count": 0,
+        "required_unpassed": {}
+      },
+      "producer_retained_backing": {
+        "counts": {
+          "passed": 8,
+          "failed": 1,
+          "ignored": 1
+        },
+        "passed": false,
+        "required_count": 1,
+        "required_unpassed": {}
+      },
+      "sticky_partitioner": {
+        "counts": {
+          "passed": 29,
+          "failed": 0,
+          "ignored": 0
+        },
+        "passed": true,
+        "required_count": 0,
+        "required_unpassed": {}
+      }
+    }
+  },
+  "library_encoding_control": {
+    "identity": "producer::tests::encoding_many_produce_topics_does_not_hold_the_caller",
+    "reported_elapsed": {
+      "default": "87.141916ms",
+      "all-features": "80.254912ms"
+    },
+    "b1_previous_run_results": {
+      "default": {
+        "passed": 2280,
+        "failed": 0,
+        "ignored": 0
+      },
+      "all-features": {
+        "passed": 2280,
+        "failed": 0,
+        "ignored": 0
+      }
+    },
+    "interpretation": "Both elapsed checks exceeded the unchanged 80 ms limit; the prior run passed. This does not establish why they failed."
+  },
+  "required_producer_ownership_controls_passed_per_profile": 26,
+  "b1_e766_mock_failure_identities_match_per_profile": true,
+  "mock_failure_names": [
+    "commit_reuses_a_produce_handshake_for_the_moved_coordinator",
+    "commit_reuses_bootstrap_when_the_coordinator_returns",
+    "epoch_bump_reuses_a_produce_handshake",
+    "multi_bootstrap_commit_reuses_known_coordinator_handshakes",
+    "multi_bootstrap_send_offsets_reuses_known_handshakes",
+    "multi_bootstrap_transaction_reuses_the_other_bootstrap_handshake",
+    "produce_reuses_a_finished_bootstrap_handshake",
+    "produce_reuses_bootstrap_api_versions",
+    "produce_reuses_the_transaction_coordinator_handshake",
+    "send_all_redials_leaders_while_refreshing_metadata",
+    "send_offsets_negotiates_a_new_group_coordinator",
+    "send_offsets_repeats_a_remote_coordinator_without_another_handshake",
+    "send_offsets_reuses_bootstrap_api_versions",
+    "transactional_rediscover_skips_a_second_bootstrap_handshake",
+    "transactional_startup_skips_a_second_bootstrap_handshake"
+  ],
+  "command_receipts": 133,
+  "all_receipt_log_hashes_match": true,
+  "inputs_stable_and_match_phase_catalog": true,
+  "no_guard_stop": true,
+  "remaining_owned_children": false,
+  "memory_counter_status": "unknown",
+  "minimum_disk_free_bytes": 83178455040,
+  "rustc": "rustc 1.99.1 (58cf8f9c3 2026-10-13)\nbinary: rustc\ncommit-hash: 58cf8f9c35b355199727627d07ae34a4e2846d67\ncommit-date: 2026-10-13\nhost: x86_64-unknown-linux-gnu\nrelease: 1.99.1\nLLVM version: 23.1.1\n",
+  "cargo": "cargo 1.99.1 (5f94df478 2026-08-27)\n",
+  "limitations": [
+    "The v10 candidate is isolated and its complete candidate gate failed; this does not test whole-main source.",
+    "The elapsed assertion is wall-clock under a shared hosted runner; these results do not distinguish scheduling delays from implementation cost.",
+    "Both library runs used one test thread and an 8 MiB stack. The two-MiB group mock is not live Kafka qualification.",
+    "Ten selected binaries do not constitute the complete all-target runtime matrix.",
+    "OOM counters were unavailable; zero OOM events are not claimed.",
+    "The full 202,479,140-byte executable/source artifact 13205222440 remains external and was not downloaded or independently hashed.",
+    "The raw v10 spec and summary contain preparation-era statements saying v10 and v8 have no native runs; these are retained as historical bytes and superseded by actual run evidence."
+  ],
+  "production_ready": false,
+  "fastest_claim_qualified": false
+}

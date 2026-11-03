@@ -49,12 +49,12 @@ source "$ROOT/scripts/lib/crates-io.sh"
 name="$(sed -n 's/^name = "\(.*\)"/\1/p' Cargo.toml | head -1)"
 ver="$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -1)"
 pl_crates_probe_version "$name" "$ver" "partitionline-civilization-check/1"
-case "${PL_CRATES_PROBE_STATUS}" in
+case "${PL_CRATES_IDENTITY_STATUS}" in
   present)
-    ok "crates.io has ${name} ${ver} (${PL_CRATES_PROBE_DETAIL})"
+    ok "API and index identify ${name} ${ver}; consumer checked separately (${PL_CRATES_PROBE_DETAIL})"
     ;;
   absent)
-    ok "crates.io name free / ${name} ${ver} not yet published (${PL_CRATES_PROBE_DETAIL}) — WP-0.5 owner token"
+    ok "${name} ${ver} not yet published (${PL_CRATES_PROBE_DETAIL}) — WP-0.5 owner token"
     ;;
   *)
     ski "crates.io probe inconclusive (${PL_CRATES_PROBE_DETAIL})"

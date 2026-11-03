@@ -1,0 +1,8 @@
+{
+  "scenario": "Fake gh returns a minimal successful CI run and --json jobs object with standard-looking job databaseId/name/status/conclusion fields but no per-job or envelope run_id; fake artifacts bind to the run.",
+  "checker_sha256": "a89e7ad688293c448066f343ddcd8990945434fb64bbbd6522c09e1f526f87a8",
+  "exit": 1,
+  "stdout": "check-main-ci: sha=1111111 (branch=main check_sha=1111111)\ncheck-main-ci: run 123 (attempt 1) status=completed conclusion=success \u2014 CI\ncheck-main-ci: OK \u2014 [outcome=success] main HEAD CI is green (run 123)\n",
+  "stderr": "check-main-ci: FAIL \u2014 [outcome=stale] stale: job evidence carries no run binding (refusing unbound job for run 123)\n",
+  "limits": "Fake gh and git only; no live GitHub call. A real gh CLI response still needs separate verification."
+}

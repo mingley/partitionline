@@ -1,0 +1,15 @@
+{
+  "scope": "Correct duplicated word across the README line break; preserve all other v13 assets and workflow.",
+  "prior_manifest_sha256": "d9f5d1781489f6ec1423164c6e9a93100419a27c693d13cb9481759a2f56c52e",
+  "corrected_manifest_sha256": "868605db97da8e1506f8043d3463ef50abf9414b3b3aae41d5bc461d9dd7981a",
+  "prior_readme_sha256": "155acf77e145bc431af7b1ac0ad180c512143cde6e4dac96934ba32a58b62a30",
+  "corrected_readme_sha256": "86049d34c7e1b842bbf3ac3d3967166c1d2de6ecf9f48cb3dceb41883e74efd5",
+  "readme_bytes_before": 701,
+  "readme_bytes_after": 693,
+  "other_18_asset_hashes_and_sizes_unchanged": true,
+  "manifest_other_fields_unchanged": true,
+  "workflow_patch_sha256_unchanged": "18f5b5429d78c27b32bc4f382a3b4d763d04d4991ea878b9fac766e9816316b5",
+  "source_catalogs_controls_patches_spec_unchanged": true,
+  "prior_assets_directory": "/workspace/work/client-v13-readme-correction-20261103",
+  "limitations": "Static correction and digest checks only. No native testing or hosted workflow."
+}

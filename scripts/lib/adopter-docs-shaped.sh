@@ -31,14 +31,19 @@ if ! (return 0 2>/dev/null); then
       echo "adopter-docs-shaped: self-test FAIL — helper missing" >&2
       exit 1
     fi
-    # Align expectation with crates.io: absent → git-shaped; present → crates.io-shaped.
-    if bash scripts/check-installable.sh >/dev/null 2>&1; then
+    # An inconclusive probe cannot establish either published or absent state.
+    registry_rc=0
+    bash scripts/check-installable.sh >/dev/null 2>&1 || registry_rc=$?
+    if [[ "$registry_rc" -eq 0 ]]; then
       if ! pl_adopter_docs_crates_io_shaped; then
-        echo "adopter-docs-shaped: self-test FAIL — crates.io Installable but docs still git-shaped" >&2
+        echo "adopter-docs-shaped: self-test FAIL — registry confirmed but docs still git-shaped" >&2
         exit 1
       fi
-      echo "adopter-docs-shaped: self-test OK — helper present; tip crates.io-shaped (Installable)"
+      echo "adopter-docs-shaped: self-test OK — helper present; registry confirmed and docs crates.io-shaped"
       exit 0
+    elif [[ "$registry_rc" -ne 3 ]]; then
+      echo "adopter-docs-shaped: self-test FAIL — registry confirmation inconclusive" >&2
+      exit 1
     fi
     if pl_adopter_docs_crates_io_shaped; then
       echo "adopter-docs-shaped: self-test FAIL — tip docs crates.io-shaped while crate absent" >&2

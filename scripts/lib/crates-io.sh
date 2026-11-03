@@ -137,6 +137,7 @@ pl_index_has_version() {
 #   PL_CRATES_API_STATUS    — present | absent | yanked | unknown
 #   PL_CRATES_API_HTTP      — HTTP status, or 000 for a failed transfer
 #   PL_CRATES_INDEX_STATUS  — present | absent | yanked | unknown
+#   PL_CRATES_IDENTITY_STATUS — present | absent | unknown; requires both sources
 # Exit 0 always.
 pl_crates_probe_version() {
   local name="$1"
@@ -144,6 +145,7 @@ pl_crates_probe_version() {
   local ua="${3:-partitionline-crates-io/1}"
   local api_out code api_status
   PL_CRATES_PROBE_STATUS="unknown"
+  PL_CRATES_IDENTITY_STATUS="unknown"
   PL_CRATES_PROBE_DETAIL=""
   PL_CRATES_API_STATUS="unknown"
   PL_CRATES_API_HTTP=""
@@ -190,6 +192,13 @@ PY
     PL_CRATES_PROBE_STATUS="present"
   elif [[ "$PL_CRATES_INDEX_STATUS" == "absent" && "$code" == "404" ]]; then
     PL_CRATES_PROBE_STATUS="absent"
+  fi
+  # The index alone is sufficient to avoid re-publishing a version. Reporting
+  # registry confirmation requires an unyanked match from both endpoints.
+  if [[ "$PL_CRATES_API_STATUS" == "present" && "$PL_CRATES_INDEX_STATUS" == "present" ]]; then
+    PL_CRATES_IDENTITY_STATUS="present"
+  elif [[ "$PL_CRATES_PROBE_STATUS" == "absent" ]]; then
+    PL_CRATES_IDENTITY_STATUS="absent"
   fi
   return 0
 }

@@ -1,0 +1,100 @@
+{
+  "owner_publish_sha256": "763b2f24e65875d45bc329b50872f14b22b8cd7c7f0c0511e26a6dff8114d4c7",
+  "results": [
+    {
+      "case": "abnormal-ci",
+      "code": 42,
+      "exit": 1,
+      "stdout": "owner-publish: publishing partitionline 0.2.0\n",
+      "stderr": "owner-publish: exact-SHA full-profile CI not confirmed (rc=42) \u2014 refusing publish\n"
+    },
+    {
+      "case": "abnormal-ci",
+      "code": 126,
+      "exit": 1,
+      "stdout": "owner-publish: publishing partitionline 0.2.0\n",
+      "stderr": "owner-publish: exact-SHA full-profile CI not confirmed (rc=126) \u2014 refusing publish\n"
+    },
+    {
+      "case": "abnormal-ci",
+      "code": 127,
+      "exit": 1,
+      "stdout": "owner-publish: publishing partitionline 0.2.0\n",
+      "stderr": "owner-publish: exact-SHA full-profile CI not confirmed (rc=127) \u2014 refusing publish\n"
+    },
+    {
+      "case": "valid-fabricated-green-fixture",
+      "exit": 1,
+      "stdout": "owner-publish: publishing partitionline 0.2.0\ncheck-main-ci: sha=1111111 (branch=main check_sha=1111111)\n",
+      "stderr": "check-main-ci: WARN \u2014 [outcome=missing] missing: gh run list failed\nowner-publish: exact-SHA full-profile CI not confirmed (rc=1) \u2014 refusing publish\n",
+      "calls": [
+        {
+          "tool": "git",
+          "args": [
+            "rev-parse",
+            "--abbrev-ref",
+            "HEAD"
+          ]
+        },
+        {
+          "tool": "git",
+          "args": [
+            "status",
+            "--porcelain"
+          ]
+        },
+        {
+          "tool": "curl",
+          "endpoint": "api",
+          "url": "https://crates.io/api/v1/crates/partitionline/0.2.0",
+          "code": "404"
+        },
+        {
+          "tool": "curl",
+          "endpoint": "index",
+          "url": "https://index.crates.io/pa/rt/partitionline",
+          "code": "404"
+        },
+        {
+          "tool": "git",
+          "args": [
+            "rev-parse",
+            "HEAD"
+          ]
+        },
+        {
+          "tool": "git",
+          "args": [
+            "fetch",
+            "origin",
+            "main",
+            "--quiet"
+          ]
+        },
+        {
+          "tool": "git",
+          "args": [
+            "rev-parse",
+            "-q",
+            "--verify",
+            "1111111111111111111111111111111111111111^{commit}"
+          ]
+        },
+        {
+          "tool": "gh",
+          "args": [
+            "run",
+            "list",
+            "--branch",
+            "main",
+            "--limit",
+            "50",
+            "--json",
+            "databaseId,status,conclusion,headSha,name,workflowName,event,displayTitle,createdAt,attempt"
+          ]
+        }
+      ]
+    }
+  ],
+  "limits": "Fake GH, Git, registry and Cargo; no network or publication."
+}

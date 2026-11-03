@@ -11,7 +11,7 @@
 # Whitespace-only TOKEN is treated as unset (common paste/Secret mistake).
 
 # Load TOKEN_FILE into the current shell when TOKEN is unset. Never print contents.
-# Echoes a length-only status line when loaded. Returns 0 always (missing file → WARN).
+# Echoes a length-only status line when loaded. An unreadable file is an error.
 pl_load_cargo_registry_token_file() {
   local prefix="${1:-cargo-registry-token}"
   if [[ -n "${CARGO_REGISTRY_TOKEN:-}" ]]; then
@@ -20,13 +20,17 @@ pl_load_cargo_registry_token_file() {
   if [[ -z "${CARGO_REGISTRY_TOKEN_FILE:-}" ]]; then
     return 0
   fi
-  if [[ -r "${CARGO_REGISTRY_TOKEN_FILE}" ]]; then
+  if [[ -f "${CARGO_REGISTRY_TOKEN_FILE}" && -r "${CARGO_REGISTRY_TOKEN_FILE}" ]]; then
     # trim trailing CR/LF only — token bytes otherwise preserved
-    CARGO_REGISTRY_TOKEN="$(tr -d '\r\n' <"${CARGO_REGISTRY_TOKEN_FILE}")"
+    if ! CARGO_REGISTRY_TOKEN="$(tr -d '\r\n' <"${CARGO_REGISTRY_TOKEN_FILE}")"; then
+      echo "${prefix}: failed to read CARGO_REGISTRY_TOKEN_FILE" >&2
+      return 1
+    fi
     export CARGO_REGISTRY_TOKEN
     echo "${prefix}: loaded CARGO_REGISTRY_TOKEN from CARGO_REGISTRY_TOKEN_FILE (len=${#CARGO_REGISTRY_TOKEN})"
   else
-    echo "${prefix}: WARN — CARGO_REGISTRY_TOKEN_FILE set but not readable: ${CARGO_REGISTRY_TOKEN_FILE}" >&2
+    echo "${prefix}: CARGO_REGISTRY_TOKEN_FILE is not a readable regular file" >&2
+    return 1
   fi
   return 0
 }
@@ -40,7 +44,10 @@ pl_normalize_cargo_registry_token() {
   fi
   local raw="${CARGO_REGISTRY_TOKEN}"
   local trimmed
-  trimmed="$(printf '%s' "$raw" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')"
+  if ! trimmed="$(printf '%s' "$raw" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')"; then
+    echo "${prefix}: failed to normalize CARGO_REGISTRY_TOKEN" >&2
+    return 1
+  fi
   if [[ -z "$trimmed" ]]; then
     if [[ -n "$raw" ]]; then
       echo "${prefix}: WARN — CARGO_REGISTRY_TOKEN is whitespace-only; treating as unset (re-paste a real crates.io token)." >&2
@@ -86,11 +93,12 @@ pl_warn_misnamed_cargo_registry_token() {
   return 0
 }
 
-# Load TOKEN_FILE (if needed), normalize empty/whitespace TOKEN, warn on misnames.
+# Normalize, load TOKEN_FILE if needed, normalize again, and warn on misnames.
 # Call from the *parent* shell of cargo publish / registry probes (not only a subshell).
 pl_prepare_cargo_registry_token() {
   local prefix="${1:-cargo-registry-token}"
-  pl_load_cargo_registry_token_file "$prefix"
-  pl_normalize_cargo_registry_token "$prefix"
-  pl_warn_misnamed_cargo_registry_token "$prefix"
+  pl_normalize_cargo_registry_token "$prefix" || return 1
+  pl_load_cargo_registry_token_file "$prefix" || return 1
+  pl_normalize_cargo_registry_token "$prefix" || return 1
+  pl_warn_misnamed_cargo_registry_token "$prefix" || return 1
 }

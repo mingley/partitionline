@@ -1,0 +1,33 @@
+{
+  "scope": "Independent static review of incomplete group-cache physical-retirement v2 experiment",
+  "patch_sha256": "e5e4e8a5503c8449117c4464b42f97a65e5f95c9bb14a10be7520a4b15669cd6",
+  "author_receipt_sha256": "2a6cf5dcfd079153318c8de8f4dffbc872ea6d79dac2b4de365edeca038b60dc",
+  "reconstruction": [
+    "V10 native manifest preimages match all three existing source files",
+    "Gzip expands to exact patch; standalone and v1-plus-delta forward/reverse source reconstruction match exactly",
+    "All six prior group test bodies and the entire original mock test file remain byte-identical prefixes"
+  ],
+  "result": "Not adoptable: prior provisional, speculative and uncached-fallback ownership blockers remain, and no native qualification exists.",
+  "positive_scope": [
+    "Cached owner is retained across timeout and stream-lock waits; physical retirement replaces ConnIo under its stream lock.",
+    "Close now propagates a Timeout if it cannot acquire and retire the cached group slot within its deadline, and a bounded deferred task arranges later cleanup after close cancellation or timeout.",
+    "Linux fd tests inspect the exact socket inode rather than treating peer EOF as local fd destruction; procfs enumeration ignores only NotFound and fails closed on other errors.",
+    "The held-stream-lock control registers cleanup while the descriptor remains open, then releases the lock and checks eventual descriptor absence."
+  ],
+  "findings": [
+    {
+      "severity": "test witness limitation",
+      "detail": "The expired_cached_fd_is_gone_before_a_replacement_is_accepted test checks inode absence only after listener.accept and after reading the replacement request. It cannot prove the fd was absent at the time of accept; the code does order physical retirement before discovery, but a pre-dial observation/gate is needed for that precise runtime claim."
+    },
+    {
+      "severity": "remaining adoption blockers",
+      "detail": "Bootstrap and target negotiation, FindCoordinator, speculative rediscovery and busy fallback sockets remain in local futures without durable ownership. Close may report success while a parked uncached fallback retains an fd. Normal cancellation with a busy transport keeps a marked socket in the cache until another access or close."
+    }
+  ],
+  "limitations": [
+    "All new Linux procfs controls are unrun and require accessible procfs; no type-check, Clippy, Cargo, live Kafka, TLS/SASL, non-Linux runtime or benchmark.",
+    "A deferred task needs the originating runtime to progress and the current lock owner to release; cancellation or timeout does not itself prove completion.",
+    "Metadata-v3 changes overlap and were not merged or independently checked as a composite.",
+    "Existing broader producer close-cancellation/worker lifecycle issue remains outside this experiment."
+  ]
+}

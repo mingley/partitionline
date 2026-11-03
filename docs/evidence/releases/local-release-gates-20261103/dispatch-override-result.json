@@ -1,0 +1,42 @@
+{
+  "scenario": "WORKFLOW set to retired workflow display name; fake GH accepts lookup and run, fake API+index return 404.",
+  "script_sha256": "f389247ad86c2413edbeacfced2118ca5409c80681602b0123f07156ad31e89c",
+  "exit": 0,
+  "stdout": "owner-dispatch-first-publish: workflow=First publish (crates.io) [RETIRED] ref=main confirm=publish\nowner-dispatch-first-publish: workflow is visible:\nfake retired workflow\nowner-dispatch-first-publish: registry reports this version absent\nowner-dispatch-first-publish: dispatched. Watch:\n  gh run list --workflow=First publish (crates.io) [RETIRED] --limit 5\nAfter green:\n  bash scripts/check-installable.sh\n  bash scripts/owner-post-installable-handoff.sh   # chains day1 + TP + parks + bars\n  LAND_PARKS=1 bash scripts/owner-post-installable-handoff.sh   # if parks pending\n",
+  "stderr": "",
+  "calls": [
+    {
+      "tool": "gh",
+      "args": [
+        "workflow",
+        "view",
+        "First publish (crates.io) [RETIRED]"
+      ]
+    },
+    {
+      "tool": "curl",
+      "endpoint": "api",
+      "url": "https://crates.io/api/v1/crates/partitionline/0.2.0",
+      "code": "404"
+    },
+    {
+      "tool": "curl",
+      "endpoint": "index",
+      "url": "https://index.crates.io/pa/rt/partitionline",
+      "code": "404"
+    },
+    {
+      "tool": "gh",
+      "args": [
+        "workflow",
+        "run",
+        "First publish (crates.io) [RETIRED]",
+        "-f",
+        "confirm=publish",
+        "-f",
+        "ref=main"
+      ]
+    }
+  ],
+  "limits": "Fake GH and registry; no actual workflow dispatch or network. The real CLI name resolution is documented by gh but not tested live here."
+}

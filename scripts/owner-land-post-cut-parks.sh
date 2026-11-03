@@ -46,14 +46,20 @@ echo "owner-land-post-cut-parks: parks: ${PARKED_BRANCHES}"
 
 echo
 echo "== 0) Installable gate =="
-if bash scripts/check-installable.sh; then
-  echo "owner-land-post-cut-parks: crates.io Installable OK"
+registry_rc=0
+bash scripts/check-installable.sh || registry_rc=$?
+if [[ "$registry_rc" -eq 0 ]]; then
+  echo "owner-land-post-cut-parks: registry identity confirmed; consumer checked separately"
 else
   if [[ "$ALLOW_BEFORE_INSTALLABLE" == "1" ]]; then
     echo "owner-land-post-cut-parks: ALLOW_BEFORE_INSTALLABLE=1 — continuing without crates.io" >&2
   else
     echo "owner-land-post-cut-parks: refusing — Installable not proven yet" >&2
-    echo "  Publish first: bash scripts/owner-finish-installable.sh" >&2
+    if [[ "$registry_rc" -eq 3 ]]; then
+      echo "  Publish first: bash scripts/owner-finish-installable.sh" >&2
+    else
+      echo "  Registry confirmation is inconclusive; this version may already exist." >&2
+    fi
     exit 1
   fi
 fi

@@ -40,19 +40,15 @@ bash scripts/ci-crate-consumer.sh
 echo "== adopter crates.io consumer rehearsal (path) =="
 MODE=path bash scripts/verify-crates-io-consumer.sh
 
-echo "== exact-SHA main CI probe (KL-08; soft unless REQUIRE_MAIN_CI=1) =="
+echo "== exact-SHA main CI probe (full release profile) =="
 ci_rc=0
-CHECK_SHA="$(git rev-parse HEAD)" bash scripts/check-main-ci.sh || ci_rc=$?
-if [[ "$ci_rc" -eq 1 ]]; then
-  echo "ci-publish-ready: FAIL — CI red for this SHA" >&2
+env -u GH_RUNS_JSON -u GH_JOBS_JSON -u GH_ARTIFACTS_JSON \
+  -u REQUIRED_JOBS -u REQUIRED_ARTIFACTS -u GH_RUN_LIMIT \
+  MAIN_BRANCH=main REQUIRE_MAIN_CI=1 REQUIRE_PROFILE_EVIDENCE=1 \
+  CHECK_SHA="$(git rev-parse HEAD)" bash scripts/check-main-ci.sh || ci_rc=$?
+if [[ "$ci_rc" -ne 0 ]]; then
+  echo "ci-publish-ready: FAIL — exact-SHA full-profile CI not confirmed (rc=${ci_rc})" >&2
   exit 1
-fi
-if [[ "$ci_rc" -eq 2 && "${REQUIRE_MAIN_CI:-0}" == "1" ]]; then
-  echo "ci-publish-ready: FAIL — CI inconclusive and REQUIRE_MAIN_CI=1" >&2
-  exit 1
-fi
-if [[ "$ci_rc" -eq 2 ]]; then
-  echo "ci-publish-ready: WARN — CI inconclusive for this SHA (continuing; set REQUIRE_MAIN_CI=1 to hard-fail)"
 fi
 
 echo "== publish dry-run =="
@@ -86,17 +82,9 @@ elif [[ "$day1_rc" -ne 0 ]]; then
   exit "$day1_rc"
 fi
 
-echo "== first-publish Actions alternate (DRY_RUN visibility) =="
-# Same already-Installable refuse as cut-path + branch-lite — token-day
-# publish-ready must not soft-OK a re-dispatch rehearsal.
+echo "== retired first-publish dispatch guard =="
+bash scripts/owner-dispatch-first-publish.sh --self-test
 dispatch_rc=0
-DRY_RUN=1 bash scripts/owner-dispatch-first-publish.sh || dispatch_rc=$?
-if [[ "$dispatch_rc" -eq 2 ]]; then
-  echo "ci-publish-ready: PARTIAL — first-publish DRY_RUN already Installable (re-dispatch refused; handoff re-entry)"
-elif [[ "$dispatch_rc" -ne 0 ]]; then
-  echo "ci-publish-ready: FAIL — first-publish DRY_RUN rc=${dispatch_rc}" >&2
-  exit "$dispatch_rc"
-fi
 
 echo "== post-Installable handoff rehearsal (DRY_RUN) =="
 # Token-day publish-ready must surface parks-on-main / day1 handoff honesty
@@ -155,12 +143,17 @@ REQUIRE_BROKER="${REQUIRE_BROKER:-0}" bash scripts/ci-civilization-check.sh
 ver="$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -1)"
 echo
 if [[ "${day1_rc:-0}" -eq 2 || "${dispatch_rc:-0}" -eq 2 || "${handoff_rc:-0}" -eq 2 ]]; then
-  if bash scripts/check-installable.sh >/dev/null 2>&1; then
+  registry_rc=0
+  bash scripts/check-installable.sh >/dev/null 2>&1 || registry_rc=$?
+  if [[ "$registry_rc" -eq 0 ]]; then
     # Installable proven — post-cut PARTIAL must not soft-green publish-ready.
-    echo "ci-publish-ready: PARTIAL for partitionline ${ver} — Installable already met; post-cut re-entry (day1/dispatch/handoff)" >&2
+    echo "ci-publish-ready: PARTIAL for partitionline ${ver} — registry confirmed; post-cut re-entry requires consumer verification" >&2
+    exit 2
+  elif [[ "$registry_rc" -ne 3 ]]; then
+    echo "ci-publish-ready: PARTIAL — registry confirmation inconclusive; this version may already exist" >&2
     exit 2
   fi
-  echo "ci-publish-ready: ok with PARTIAL for partitionline ${ver} — pre-token rehearsal; Installable still blocked on CARGO_REGISTRY_TOKEN (cut still publishes first)"
+  echo "ci-publish-ready: ok with PARTIAL for partitionline ${ver} — registry reports this version absent; external consumer remains pending"
 else
   echo "ci-publish-ready: ok for partitionline ${ver}"
 fi

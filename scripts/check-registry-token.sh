@@ -1,193 +1,66 @@
 #!/usr/bin/env bash
-# Probe CARGO_REGISTRY_TOKEN without printing it.
-#
-# First cut of a *new* crate needs crates.io scope publish-new (publish-update
-# alone cannot create the crate). This script proves the token can authenticate
-# for publish-new — it does NOT create a crate.
-#
-# IMPORTANT:
-#   - Do NOT use GET /api/v1/me — cookie / user-info oriented; 403s valid
-#     publish-only tokens.
-#   - Do NOT PUT /api/v1/crates/new with an empty body — crates.io returns
-#     400 "invalid metadata length" *before* auth, so any garbage token looks
-#     "OK". That false-accept would greenwash a broken Installable cut.
-#
-# Probe: PUT a length-prefixed publish body for a nonexistent crate name with
-# an empty .crate tarball. Auth runs after metadata parse; empty tarball fails
-# afterward without creating a crate:
-#   400 / 422 → authenticated (validation / empty tarball)
-#   401 / 403 → rejected (bad token, missing publish-new, etc.)
-#
-# Exit codes:
-#   0  — token set and crates.io accepts it for publish-new auth
-#   2  — token unset (expected while READY_EXCEPT_TOKEN)
-#   1  — token set but rejected / probe failed
-#
-# Usage:
-#   bash scripts/check-registry-token.sh
-#   REQUIRE_TOKEN=1 bash scripts/check-registry-token.sh   # treat unset as FAIL
-#   bash scripts/check-registry-token.sh --self-test       # fake token must FAIL
-#   CARGO_REGISTRY_TOKEN_FILE=/path/to/token bash scripts/check-registry-token.sh
-#
-# When unset, also WARN if a common misnamed env var is set (CARGO_TOKEN,
-# CRATES_IO_TOKEN, …) — Secrets UI typos leave Installable stuck otherwise.
+# Check local CARGO_REGISTRY_TOKEN availability without contacting a registry.
+# Exit 2 when missing, 3 when present (authorization and scope are unverified),
+# and 1 on an input or read error. Only an actual publish validates authority.
 set -euo pipefail
 
-REQUIRE_TOKEN="${REQUIRE_TOKEN:-0}"
-UA="${CRATES_IO_UA:-partitionline-check-registry-token/1 (https://github.com/mingley/partitionline)}"
-# Nonexistent name → PublishNew scope. Must never be a real crate we care about.
-PROBE_NAME="${CRATES_IO_PROBE_NAME:-zz-partitionline-auth-probe-do-not-publish}"
-PROBE_VERS="${CRATES_IO_PROBE_VERS:-0.0.0-authprobe}"
-
-build_probe_body() {
-  # Cargo publish wire format: u32le metadata_len + JSON + u32le crate_len + bytes.
-  # Empty crate bytes → fails after auth without creating a crate.
-  python3 - "$PROBE_NAME" "$PROBE_VERS" <<'PY'
-import json, struct, sys
-name, vers = sys.argv[1], sys.argv[2]
-meta = {
-    "name": name,
-    "vers": vers,
-    "deps": [],
-    "features": {},
-    "authors": ["partitionline-auth-probe"],
-    "description": "auth probe only — must not publish",
-    "documentation": None,
-    "homepage": None,
-    "readme": None,
-    "readme_file": None,
-    "keywords": [],
-    "categories": [],
-    "license": "Apache-2.0",
-    "license_file": None,
-    "repository": None,
-    "links": None,
-}
-mj = json.dumps(meta, separators=(",", ":")).encode()
-sys.stdout.buffer.write(struct.pack("<I", len(mj)) + mj + struct.pack("<I", 0))
-PY
-}
-
-probe_once() {
-  local token="$1"
-  local out code body_snip
-  out="$(mktemp)"
-  local body
-  body="$(mktemp)"
-  build_probe_body >"$body"
-  code="$(curl -sS -A "$UA" -X PUT \
-    -H "Authorization: ${token}" \
-    -H "Content-Type: application/octet-stream" \
-    --data-binary @"$body" \
-    -o "$out" -w '%{http_code}' "https://crates.io/api/v1/crates/new" || true)"
-  body_snip="$(head -c 240 "$out" | tr '\n' ' ')"
-  rm -f "$out" "$body"
-  printf '%s\t%s\n' "$code" "$body_snip"
-}
-
-interpret_probe() {
-  local code="$1"
-  local body_snip="$2"
-  case "$code" in
-    400|422)
-      if [[ "$body_snip" == *"invalid metadata length"* ]]; then
-        echo "check-registry-token: FAIL — got pre-auth empty-body response (probe body broken)" >&2
-        echo "  body: ${body_snip}" >&2
-        return 1
-      fi
-      echo "check-registry-token: OK — crates.io accepted token for publish-new auth (http=${code})"
-      echo "  Reminder: first cut of a new crate still needs publish-new on this token."
-      return 0
-      ;;
-    401|403)
-      echo "check-registry-token: FAIL — crates.io rejected token (http=${code})" >&2
-      echo "  body: ${body_snip}" >&2
-      echo "  Recreate at https://crates.io/settings/tokens with publish-new (+ publish-update)." >&2
-      echo "  Note: empty-body PUT is not used — it 400s before auth and false-accepts." >&2
-      return 1
-      ;;
-    200)
-      echo "check-registry-token: FAIL — probe unexpectedly published (http=200) — investigate immediately" >&2
-      echo "  body: ${body_snip}" >&2
-      return 1
-      ;;
-    *)
-      echo "check-registry-token: FAIL — unexpected crates.io response (http=${code})" >&2
-      echo "  body: ${body_snip}" >&2
-      return 1
-      ;;
-  esac
-}
-
-if [[ "${1:-}" == "--self-test" ]]; then
-  # Local units first (no network): whitespace/misname helpers must stay honest.
-  # shellcheck source=scripts/lib/cargo-registry-token.sh
-  source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib/cargo-registry-token.sh"
-  echo "check-registry-token: self-test — whitespace-only TOKEN must become unset"
-  CARGO_REGISTRY_TOKEN='   '
-  export CARGO_REGISTRY_TOKEN
-  pl_normalize_cargo_registry_token "check-registry-token-self-test"
-  if [[ -n "${CARGO_REGISTRY_TOKEN:-}" ]]; then
-    echo "check-registry-token: self-test FAIL — whitespace-only TOKEN still set" >&2
-    exit 1
-  fi
-  echo "check-registry-token: self-test — leading/trailing space must be trimmed"
-  CARGO_REGISTRY_TOKEN='  abcd  '
-  export CARGO_REGISTRY_TOKEN
-  pl_normalize_cargo_registry_token "check-registry-token-self-test"
-  if [[ "${CARGO_REGISTRY_TOKEN:-}" != "abcd" ]]; then
-    echo "check-registry-token: self-test FAIL — expected trimmed token len=4, got len=${#CARGO_REGISTRY_TOKEN}" >&2
-    exit 1
-  fi
-  unset CARGO_REGISTRY_TOKEN
-  echo "check-registry-token: self-test — TOKEN_FILE whitespace loads then normalizes to unset"
-  _pl_st_tf="$(mktemp)"
-  printf '  \n' >"${_pl_st_tf}"
-  CARGO_REGISTRY_TOKEN_FILE="${_pl_st_tf}"
-  export CARGO_REGISTRY_TOKEN_FILE
-  pl_prepare_cargo_registry_token "check-registry-token-self-test"
-  rm -f "${_pl_st_tf}"
-  unset CARGO_REGISTRY_TOKEN_FILE
-  if [[ -n "${CARGO_REGISTRY_TOKEN:-}" ]]; then
-    echo "check-registry-token: self-test FAIL — whitespace TOKEN_FILE left TOKEN set" >&2
-    exit 1
-  fi
-  echo "check-registry-token: self-test — fake token must be rejected"
-  # shellcheck disable=SC2034
-  IFS=$'\t' read -r code body_snip < <(probe_once "cio_partitionline_self_test_invalid_token")
-  if interpret_probe "$code" "$body_snip"; then
-    echo "check-registry-token: self-test FAIL — fake token was accepted" >&2
-    exit 1
-  fi
-  echo "check-registry-token: self-test OK — normalize units + fake token rejected (http=${code})"
-  exit 0
-fi
-
-# Load TOKEN_FILE, normalize whitespace-only TOKEN, warn on misnames — in *this* process.
 # shellcheck source=scripts/lib/cargo-registry-token.sh
 source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib/cargo-registry-token.sh"
-pl_prepare_cargo_registry_token "check-registry-token"
 
-if [[ -z "${CARGO_REGISTRY_TOKEN:-}" ]]; then
-  echo "check-registry-token: MISSING — CARGO_REGISTRY_TOKEN unset"
-  # Post-Installable: missing token is not an Installable blocker while the
-  # version is already on crates.io — only needed for future cuts / Actions.
-  if [[ -x "$(dirname "${BASH_SOURCE[0]}")/check-installable.sh" ]] \
-    && bash "$(dirname "${BASH_SOURCE[0]}")/check-installable.sh" >/tmp/pl-tok-installable.log 2>&1; then
-    echo "  crates.io already has this crate/version (Installable met) — token only needed for future cuts / Actions."
-    echo "  Recreate at https://crates.io/settings/tokens (publish-update for later versions; publish-new only for a brand-new crate name)."
-  else
-    echo "  First cut of a NEW crate: https://crates.io/settings/tokens"
-    echo "  Enable scope publish-new (+ publish-update). publish-update alone cannot create the crate."
+check_token() {
+  local raw="${CARGO_REGISTRY_TOKEN:-}" trimmed
+  if ! trimmed="$(printf '%s' "$raw" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')"; then
+    echo "check-registry-token: failed to normalize token" >&2
+    return 1
   fi
-  if [[ "$REQUIRE_TOKEN" == "1" ]]; then
-    exit 1
+  if [[ -z "$trimmed" && -n "${CARGO_REGISTRY_TOKEN_FILE:-}" ]]; then
+    if [[ ! -f "$CARGO_REGISTRY_TOKEN_FILE" || ! -r "$CARGO_REGISTRY_TOKEN_FILE" ]]; then
+      echo "check-registry-token: token file is not a readable regular file" >&2
+      return 1
+    fi
+    if ! raw="$(tr -d '\r\n' <"$CARGO_REGISTRY_TOKEN_FILE")"; then
+      echo "check-registry-token: failed to read token file" >&2
+      return 1
+    fi
+    if ! trimmed="$(printf '%s' "$raw" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')"; then
+      echo "check-registry-token: failed to normalize token" >&2
+      return 1
+    fi
   fi
-  exit 2
+  if [[ -n "$trimmed" ]]; then
+    echo "check-registry-token: CARGO_REGISTRY_TOKEN is present; authorization and scope are unverified"
+    return 3
+  fi
+  unset CARGO_REGISTRY_TOKEN || true
+  pl_warn_misnamed_cargo_registry_token "check-registry-token"
+  echo "check-registry-token: CARGO_REGISTRY_TOKEN is not set"
+  return 2
+}
+
+if [[ "${1:-}" == "--self-test" && "$#" -eq 1 ]]; then
+  # Purely local fixtures; no credentials or network requests.
+  test_dir="$(mktemp -d)"
+  trap 'rm -rf "$test_dir"' EXIT
+  printf ' fixture-token \n' >"$test_dir/token"
+  rc=0
+  (unset CARGO_REGISTRY_TOKEN CARGO_REGISTRY_TOKEN_FILE; check_token) >/dev/null 2>&1 || rc=$?
+  [[ "$rc" -eq 2 ]] || { echo "check-registry-token: self-test missing token failed" >&2; exit 1; }
+  rc=0
+  (CARGO_REGISTRY_TOKEN=' fixture-token '; unset CARGO_REGISTRY_TOKEN_FILE; check_token) >/dev/null 2>&1 || rc=$?
+  [[ "$rc" -eq 3 ]] || { echo "check-registry-token: self-test present token failed" >&2; exit 1; }
+  rc=0
+  (unset CARGO_REGISTRY_TOKEN; CARGO_REGISTRY_TOKEN_FILE="$test_dir/token"; check_token) >/dev/null 2>&1 || rc=$?
+  [[ "$rc" -eq 3 ]] || { echo "check-registry-token: self-test token file failed" >&2; exit 1; }
+  rc=0
+  (unset CARGO_REGISTRY_TOKEN; CARGO_REGISTRY_TOKEN_FILE="$test_dir/missing"; check_token) >/dev/null 2>&1 || rc=$?
+  [[ "$rc" -eq 1 ]] || { echo "check-registry-token: self-test unreadable token file failed" >&2; exit 1; }
+  echo "check-registry-token: self-test OK — local availability only; scope unverified"
+  exit 0
 fi
-
-# Never echo the token. Length-only is enough for operators to confirm injection.
-echo "check-registry-token: probing crates.io PUT /api/v1/crates/new (token len=${#CARGO_REGISTRY_TOKEN}; structured empty-tarball body for ${PROBE_NAME}@${PROBE_VERS})"
-IFS=$'\t' read -r code body_snip < <(probe_once "${CARGO_REGISTRY_TOKEN}")
-interpret_probe "$code" "$body_snip"
-exit $?
+if [[ "$#" -ne 0 ]]; then
+  echo "usage: bash scripts/check-registry-token.sh [--self-test]" >&2
+  exit 1
+fi
+rc=0
+check_token || rc=$?
+exit "$rc"

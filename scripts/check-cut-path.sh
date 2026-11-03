@@ -7,6 +7,7 @@
 set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
+ver="$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -1)"
 
 echo "== check-cut-path: Installable preflight =="
 bash scripts/check-installable-preflight.sh
@@ -41,11 +42,11 @@ echo
 echo "== check-cut-path: registry token probe =="
 tok_rc=0
 bash scripts/check-registry-token.sh || tok_rc=$?
-if [[ "$tok_rc" -eq 1 ]]; then
-  echo "check-cut-path: FAIL — token present but rejected by crates.io" >&2
-  exit 1
-fi
-# tok_rc 0 (ok) or 2 (missing) are fine for rehearsal
+case "$tok_rc" in
+  2) echo "check-cut-path: token missing; rehearsal may continue" ;;
+  3) echo "check-cut-path: token present; authorization and scope unverified" ;;
+  *) echo "check-cut-path: token availability check failed (rc=${tok_rc})" >&2; exit 1 ;;
+esac
 
 echo
 echo "== check-cut-path: tip-delta (docs/scripts-only vs main) =="
@@ -90,7 +91,7 @@ echo
 echo "== check-cut-path: registry adopter consumer (post-Installable) =="
 # Live crates.io pin must cargo-check once Installable is met (git SKIP is not enough).
 if bash scripts/check-installable.sh >/dev/null 2>&1; then
-  MODE=registry bash scripts/verify-crates-io-consumer.sh
+  MODE=registry VER="$ver" bash scripts/verify-crates-io-consumer.sh
 else
   echo "check-cut-path: registry adopter deferred (Installable not met)"
 fi
@@ -124,20 +125,9 @@ echo "== check-cut-path: merge/tag readiness =="
 bash scripts/check-merge-ready.sh
 
 echo
-echo "== check-cut-path: first-publish Actions alternate (DRY_RUN visibility) =="
-# GitHub only lists workflow_dispatch from the default branch. Prove
-# first-publish.yml stays visible on main so the Actions-secret alternate
-# path remains owner-dispatchable once CARGO_REGISTRY_TOKEN is an Actions secret.
-# DRY_RUN=1 does not dispatch. Already-Installable exits PARTIAL/2 (refuse
-# re-dispatch soft-OK) — capture like day1 so set -e cannot abort tip proxies.
+echo "== check-cut-path: retired first-publish dispatch guard =="
+bash scripts/owner-dispatch-first-publish.sh --self-test
 dispatch_rc=0
-DRY_RUN=1 bash scripts/owner-dispatch-first-publish.sh || dispatch_rc=$?
-if [[ "$dispatch_rc" -eq 2 ]]; then
-  echo "check-cut-path: PARTIAL — first-publish DRY_RUN already Installable (re-dispatch refused; handoff re-entry)"
-elif [[ "$dispatch_rc" -ne 0 ]]; then
-  echo "check-cut-path: FAIL — first-publish DRY_RUN rc=${dispatch_rc}" >&2
-  exit "$dispatch_rc"
-fi
 
 echo
 echo "== check-cut-path: day1 after-publish rehearsal (no crates.io wait) =="
@@ -222,12 +212,17 @@ echo
 # not a failed rehearsal. Already-Installable first-publish / handoff parks-on-main
 # DRY_RUN PARTIAL is post-cut honesty. Exit 0 so tip proxies stay green while waiting.
 if [[ "${day1_rc:-0}" -eq 2 || "${dispatch_rc:-0}" -eq 2 || "${handoff_rc:-0}" -eq 2 || "$finish_rc" -eq 2 ]]; then
-  if bash scripts/check-installable.sh >/dev/null 2>&1; then
+  registry_rc=0
+  bash scripts/check-installable.sh >/dev/null 2>&1 || registry_rc=$?
+  if [[ "$registry_rc" -eq 0 ]]; then
     # Installable proven — post-cut PARTIAL must not soft-green tip cut-path.
-    echo "check-cut-path: PARTIAL — cut path rehearsed; Installable already met — post-cut re-entry (parks/day1/dispatch/finish)" >&2
+    echo "check-cut-path: PARTIAL — cut path rehearsed; registry confirmed — post-cut re-entry requires consumer verification" >&2
+    exit 2
+  elif [[ "$registry_rc" -ne 3 ]]; then
+    echo "check-cut-path: PARTIAL — registry confirmation inconclusive; this version may already exist" >&2
     exit 2
   fi
-  echo "check-cut-path: OK with PARTIAL — cut path rehearsed; Installable still blocked on CARGO_REGISTRY_TOKEN (pre-token rehearsal)"
+  echo "check-cut-path: OK with PARTIAL — registry reports this version absent; external consumer remains pending"
   exit 0
 fi
 echo "check-cut-path: OK — cut path rehearsed; blocked only on CARGO_REGISTRY_TOKEN if preflight said READY_EXCEPT_TOKEN"

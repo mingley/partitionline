@@ -1,0 +1,20 @@
+{
+  "scope": "Independent check of v13 README EOF-only superseding correction",
+  "prior_manifest_sha256": "868605db97da8e1506f8043d3463ef50abf9414b3b3aae41d5bc461d9dd7981a",
+  "new_manifest_sha256": "ef6af61dc5f2376debbcec0d018f11e22dee57929e578ad4992a0d09cf0c14d7",
+  "prior_readme_sha256": "86049d34c7e1b842bbf3ac3d3967166c1d2de6ecf9f48cb3dceb41883e74efd5",
+  "new_readme_sha256": "29b059d91ceceb62a9b141d6a655e9dee0bf2bf3ee40b520eb14257050323dc4",
+  "exact_change": "Remove the final extra newline; all preceding README bytes unchanged",
+  "other_assets_unchanged": 18,
+  "all_manifest_metadata_other_than_readme_pin_unchanged": true,
+  "all_19_root_and_staged_asset_bytes_match_manifest": true,
+  "staged_git_diff_check_passed": true,
+  "three_root_helper_pins_match": true,
+  "historical_workflow_patch_sha256": "18f5b5429d78c27b32bc4f382a3b4d763d04d4991ea878b9fac766e9816316b5",
+  "earlier_full_review_sha256": "2870f013c44a734bb92c58249b80c232248106192bde2af62ab728659b985290",
+  "first_readme_correction_review_sha256": "2754a542762d5f08d3b0deb9953afd54f77736abfd2775e0af3b033a0057026c",
+  "limitations": [
+    "Documentation-only check; prior source reconstruction not repeated",
+    "No Cargo, native/runtime, hosted workflow, production-readiness or publication qualification"
+  ]
+}

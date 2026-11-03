@@ -19,7 +19,9 @@ Client 0.1.0 is already published. The next client version must be at least
 | Qualified broker v2 all-feature all targets at that commit | 868 passed |
 | Broker v2 strict Clippy, docs, inventory and six fresh-process Fetch deadline checks | Passed |
 | Client capability lanes at that commit | 93 passed in each profile; 450 Java reverse checks in each |
-| Main broker CI, capability profiles, strict Clippy, audit, dependency policy, docs and package jobs | Passed at `e7660f6e5` |
+| Main broker CI at `c03416372` | Default passed; three all-feature Raft runtime tests failed |
+| Main capability profiles | Passed at `c03416372` |
+| Main strict Clippy, audit, dependency policy, docs and package jobs | Passed at `e7660f6e5` |
 | Main client and live Kafka compatibility CI | Failed at `e7660f6e5` |
 | Reconnect candidate | 14 unit controls and six integration targets passed; latest broad Fetch 167 passed, two failed, one ignored |
 | Integrated-source package navigation | 20 documentation tests passed; extracted crate checked 30 documents, 225 local links, 51 pinned repository targets |
@@ -39,6 +41,11 @@ are adopted byte-for-byte from v2; see the
 [epoch/journal record](../evidence/broker/epoch-journal-20261030/README.md).
 Earlier Fetch EOF, joined-shutdown QueueFull and Raft observer parse failures
 remain recorded and unexplained beyond the passing specific controls.
+The [latest broker runs](../evidence/broker/main-ci-fdaf-20261103/README.md)
+again failed both three- and five-node Raft runtime tests with `ParseIntError`;
+an observer test separately reported `NotLeader`.
+A test-only diagnostic now preserves the response and phase on parse failure;
+its native run and the actual cause remain open.
 No long campaign is credited.
 Current-commit green CI and the complete release gates remain open.
 
@@ -84,6 +91,11 @@ Current-commit green CI and the complete release gates remain open.
    live compatibility test aborts with stack overflow. Classic JoinGroup can
    return a transient coordinator error after only one rediscovery retry;
    its bounded retry loop still needs controls.
+
+   A [metadata retirement candidate](../evidence/client/metadata-retirement-20261103/README.md)
+   has source review and patch reconstruction but no native results. Its
+   deferred task depends on runtime progress, and cancelling close before
+   worker shutdown remains a separate lifecycle gap.
 
 4. **Bounded decoding.** Extend protection beyond the covered Fetch,
    ApiVersions, record and heartbeat paths. The grouped-assignment decoder and
@@ -144,15 +156,22 @@ and the [earlier native rounds](../evidence/releases/candidate-native-20261030/R
 The staged [v10 candidate](../evidence/client/candidate-20261030/v10/README.md)
 adds producer ownership changes, a deterministic retained-backing fixture
 and a separate handshake diagnostic. Both library profiles and strict Clippy
-passed. The original 450 ms Mock Produce assertion still fails, and the
-retained-backing test still times out without the mock timer. See the
-[v10 results](../evidence/client/candidate-native-b1-20261102/README.md).
+passed in run `41574318102`. A repeat in run `41576616151` had 2,279 passes
+and one failure in each library profile: the produce-topic encoding fairness
+control. Both runs retain the same 15 Mock Produce failures and the
+retained-backing timeout. The original 450 ms Mock Produce assertion still
+fails, and the retained-backing test still times out without the mock timer. See
+the [first v10 run](../evidence/client/candidate-native-b1-20261102/README.md)
+and the [repeat](../evidence/client/candidate-native-e766-20261103/README.md).
 The [handshake audit](../evidence/client/producer-handshake-v10-20261103/README.md)
 shows two sequential 250 ms response delays before metadata completes, so the
 old 450 ms end-to-end assertion conflicts with the candidate's required
 replacement-socket negotiation. The trace also shows speculative leader
 connections expiring before metadata returns. The assertion remains unchanged;
 neither connection reuse nor a production speedup has been established.
+A [group coordinator cache prototype](../evidence/client/group-coordinator-cache-20261103/README.md)
+has four reviewed socket ownership and shutdown blockers and must not be
+adopted until they are repaired and tested.
 The earlier
 [v8 run](../evidence/client/candidate-native-350-20261102/README.md) passed
 2,280 library tests in each profile and strict Clippy, but failed Mock Produce,
@@ -163,8 +182,9 @@ failed all 15 Mock Produce identities that fail in v10, plus three others,
 and the retained-backing test timed out. Fixture differences mean the shared
 identities do not by themselves prove the same cause.
 
-The staged [v12 client candidate](../evidence/client/candidate-20261030/v12/README.md)
-adds producer deadline-scan reductions and timeout diagnostics to that work.
+The staged [v13 client candidate](../evidence/client/candidate-20261030/v13/README.md)
+retains v12's producer deadline-scan reductions and timeout diagnostics.
+Its input catalogs also include the reviewed release-tooling changes.
 It retains the old test limits and requires 166 library and 17 integration
 controls in addition to 23 baseline cases. Its source reviews and patch
 reconstruction passed; compilation, runtime and performance results are
@@ -190,10 +210,14 @@ while creating its PR branch; no publication occurred.
 The earlier release rehearsal self-test was hard-coded to `0.1.0`, and the
 registry probe could treat an unavailable index as an absent version. V4 fixes
 both in source and passes offline review for `0.1.0` and `0.2.0`; the hosted
-offline rehearsal passed at `e7660f6e5`. The workflow's post-upload confirmation now requires a matching
-API and index result, with offline controls for malformed responses. The local
-owner-cut installability check still permits index-only confirmation; align it
-with the dual-source rule before publishing. The
+offline rehearsal passed at `e7660f6e5`. The workflow and local owner paths now
+require matching API and index identity before reporting confirmation. Consumer
+checks bind the selected version and source to the target package, and release
+paths fail closed on unconfirmed exact-SHA CI. The token check reports presence
+without claiming authorization. One hundred offline tests passed on the final
+patch, but live GitHub job-response shape and attempt binding remain unverified.
+The [local release record](../evidence/releases/local-release-gates-20261103/README.md)
+retains the new controls and original failures. The
 [release tooling record](../evidence/releases/release-readiness-20261102/README.md)
 retains the failures, earlier candidate and v4 results. None is a publication.
 

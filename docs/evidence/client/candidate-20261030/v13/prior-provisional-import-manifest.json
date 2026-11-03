@@ -1,0 +1,96 @@
+{
+  "source_root": "/workspace/work/client-v13-release-overlay-v4-provisional-20261103",
+  "scope": "V12 client source unchanged; source catalogs repinned to proposed release overlay. Independent release review pending.",
+  "files": {
+    "docs/evidence/client/candidate-20261030/v13/README.md": {
+      "sha256": "5866d737236f1ac028f5deaf5a3dca565acd6d4243a7a083769985dc2f90eaec",
+      "bytes": 804
+    },
+    "docs/evidence/client/candidate-20261030/v13/base-inputs.json": {
+      "sha256": "a3da99b83c5062bd329a69d90f863fed209d4859d4266225a231594d1e0eb723",
+      "bytes": 225901
+    },
+    "docs/evidence/client/candidate-20261030/v13/baseline-inputs.json": {
+      "sha256": "8022a6158d170bcac9f60709a5b0f3f29c1a96989b2dfb1ccfd27ce21061619c",
+      "bytes": 226601
+    },
+    "docs/evidence/client/candidate-20261030/v13/baseline.patch.gz": {
+      "sha256": "191709351911f47e5fda9fbb52910c645e0570afbb411db802a34bdfb018b86e",
+      "bytes": 71659
+    },
+    "docs/evidence/client/candidate-20261030/v13/controls.json": {
+      "sha256": "a67f4ab8e3ed90381749d7dfbf934746300e800788fb3524de368a88560711ea",
+      "bytes": 60616
+    },
+    "docs/evidence/client/candidate-20261030/v13/fixed-delta.patch.gz": {
+      "sha256": "aa35ae9318fad2ef5201b87c927077e02bc5e3fb50e1faa981668325a3ce3ecc",
+      "bytes": 39379
+    },
+    "docs/evidence/client/candidate-20261030/v13/fixed-inputs.json": {
+      "sha256": "343e16c2d0c9e0f65eae79de5509dcdce3cf437d45a00f358a4469e6ee357fba",
+      "bytes": 226796
+    },
+    "docs/evidence/client/candidate-20261030/v13/fixed.patch.gz": {
+      "sha256": "bdb8dc136cee056bdce3a4ebdd1321351fb6e3fc37b5ccf555a4fdc23025fbdd",
+      "bytes": 107375
+    },
+    "docs/evidence/client/candidate-20261030/v13/preparation.json": {
+      "sha256": "b494b76d277dc01997e8e6c15dc5b86135b8c4e0949a7203eb5971c2edae00e8",
+      "bytes": 6399
+    },
+    "docs/evidence/client/candidate-20261030/v13/prior-v12-assets.tar.gz": {
+      "sha256": "ea95a164dc22dddc75688e9d7ffc0ac113a21e631db82e9433795791ebb242e5",
+      "bytes": 2301823
+    },
+    "docs/evidence/client/candidate-20261030/v13/prior-v12-import-manifest.json": {
+      "sha256": "5a065102c2602cffaa9ca29105a17c198d8d90df238baec5355898e413d1cf0b",
+      "bytes": 4286
+    },
+    "docs/evidence/client/candidate-20261030/v13/release-overlay-manifest.json": {
+      "sha256": "2e527b93fff736c62ab98a1808c25d9cd06cbf261d39e5a704e1e1bc2c7483fb",
+      "bytes": 8334
+    },
+    "docs/evidence/client/candidate-20261030/v13/release-overlay-review.json": {
+      "sha256": "cf7185d0869e23084be986fea25551cb5609a9b4ba05f7b9cc5d1902a1ad0c8a",
+      "bytes": 209
+    },
+    "docs/evidence/client/candidate-20261030/v13/release-overlay.patch.gz": {
+      "sha256": "9134289bfad90b71f7edc01bb3a0f3453de98ed2ee0c597f75623691cecbc816",
+      "bytes": 36881
+    },
+    "docs/evidence/client/candidate-20261030/v13/spec.json": {
+      "sha256": "70d051be6b526c96b948a0087fcb5478c8df09bbff725a494a4334449480dfe5",
+      "bytes": 11456
+    }
+  },
+  "required_existing_root_files": {
+    "scripts/ci-qualify-client-candidate.py": {
+      "sha256": "b25fe0390d4e4c3227e45c2b27ab671f0f6d8dace7ada911be1aa1391085e2c5",
+      "bytes": 29067
+    },
+    "tests/ci/test_client_candidate_qualification.py": {
+      "sha256": "4285e1b9e0cb5bfdd8398554dcd584207753ccf568d72a6264d845e240ade18b",
+      "bytes": 11830
+    },
+    "scripts/candidate-command-ownership.py": {
+      "sha256": "34ddbf04a4bbead974fad4a451d30c7a56818248bd5b58c88c87bdfc41896da9",
+      "bytes": 5725
+    }
+  },
+  "required_release_patch_sha256": "4b32aab50b8fcbe64636c6927b55f768d4e5d3eab4652bcd064d6b8abb1f5bb6",
+  "workflow_version_requested": "client source_version:v13 (root-owned workflow)",
+  "counts": {
+    "base": 1745,
+    "baseline": 1752,
+    "fixed": 1754,
+    "library": 166,
+    "integration": 17,
+    "total": 183,
+    "baseline_cases": 23
+  },
+  "prior_v12_preserved": true,
+  "full_source_forward_reverse_exact": true,
+  "release_review_status": "pending",
+  "root_production_edits": false,
+  "native_qualification": "not run"
+}
