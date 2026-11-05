@@ -115,8 +115,16 @@ class BenchHistoryTests(unittest.TestCase):
             lambda h: h["config"].update(idempotent=1),
             lambda h: h["config"].update(acks=True),
             lambda h: h["config"].update(delivery="share"),
+            lambda h: h["config"].update(idempotence=False),
+            lambda h: h.update(transactional=True),
+            lambda h: h.update(delivery="share"),
+            lambda h: h.update(acks=0),
+            lambda h: h.update(produced=list(h["attempted"])),
+            lambda h: h.update(output=list(h["consumed"])),
             lambda h: h.update(txns=[{"txn_id": "t"}]),
             lambda h: h["attempted"][0].update(txn_id=""),
+            lambda h: h["attempted"][0].update(status="acked"),
+            lambda h: h["attempted"][0].update(payload="contradiction"),
             lambda h: h["attempted"].append(dict(h["attempted"][0])),
             lambda h: h["attempted"][0].update(status="ambiguous"),
         ):
@@ -153,6 +161,13 @@ class BenchHistoryTests(unittest.TestCase):
             bad[role][0][field] = value
             with self.subTest(role=role, field=field), self.assertRaises(BENCH.CHECKER.HistoryValidationError):
                 BENCH.CHECKER.verify_history(bad)
+
+    def test_receipt_policy_reports_missing_records_in_admission_order(self):
+        history, _ = self.verify(*fixture())
+        del history["consumed"][1:]
+        result = BENCH.CHECKER.verify_history(history)
+        missing = [v.record_ids[0] for v in result.violations if v.type == "REQUIRED_RECEIPT_MISSING"]
+        self.assertEqual(missing, [history["attempted"][1]["id"], history["attempted"][2]["id"]])
 
     def test_receipt_policy_accepts_valid_cross_partition_interleaving(self):
         history, _ = self.verify(*fixture(-1))

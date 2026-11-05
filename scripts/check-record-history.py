@@ -236,8 +236,13 @@ def parse_history(raw_data: Any, history_id_default: str = "history") -> Tuple[s
         raise HistoryValidationError("'require_accepted_receipt' must be a boolean")
     if require_accepted_receipt:
         fields = {"acks", "idempotent", "transactional", "isolation_level", "delivery"}
-        if not fields.issubset(cfg_raw):
-            raise HistoryValidationError("accepted receipt policy requires explicit semantics")
+        if set(cfg_raw) != fields | {"require_accepted_receipt"}:
+            raise HistoryValidationError("accepted receipt policy requires canonical explicit semantics")
+        aliases = ("acks", "idempotent", "idempotence", "transactional", "isolation_level",
+                   "delivery", "produced", "records_produced", "attempted_records",
+                   "output", "records_consumed", "consumed_records", "txns")
+        if any(name in raw_data for name in aliases):
+            raise HistoryValidationError("accepted receipt policy does not accept root aliases")
         if type(raw_idempotent) is not bool or type(raw_transactional) is not bool or type(acks) is bool:
             raise HistoryValidationError("accepted receipt policy requires boolean semantics and non-boolean acks")
 
@@ -310,6 +315,8 @@ def parse_history(raw_data: Any, history_id_default: str = "history") -> Tuple[s
                         type(raw.get("partition")) is not int or raw["partition"] < 0 or
                         raw.get("status") != "accepted"):
                     raise HistoryValidationError(f"{role} receipt record has incomplete identity or status")
+                if "payload" in raw:
+                    raise HistoryValidationError("accepted receipt policy stores payload hashes only")
                 key = raw.get("key")
                 digest = raw.get("payload_hash")
                 if (type(key) is not str or re.fullmatch(r"(?:[0-9a-f]{2})+", key) is None or
@@ -321,9 +328,11 @@ def parse_history(raw_data: Any, history_id_default: str = "history") -> Tuple[s
                         raise HistoryValidationError("accepted receipt policy requires ordered producer indices")
                 elif type(raw.get("offset")) is not int or raw["offset"] < 0:
                     raise HistoryValidationError("accepted receipt policy requires consumer offsets")
-        if len({r.id for r in attempted_records}) != len(attempted_records):
-            raise HistoryValidationError("accepted receipt policy requires unique producer IDs")
-        sizes = {r["id"]: r["payload_bytes"] for r in attempted_raw}
+        sizes = {}
+        for raw in attempted_raw:
+            if raw["id"] in sizes:
+                raise HistoryValidationError("accepted receipt policy requires unique producer IDs")
+            sizes[raw["id"]] = raw["payload_bytes"]
         if any(r["id"] in sizes and r["payload_bytes"] != sizes[r["id"]] for r in consumed_raw):
             raise HistoryValidationError("accepted receipt payload sizes disagree")
 
@@ -591,7 +600,10 @@ def verify_history(raw_data: Any, history_id_default: str = "history") -> CheckR
 
         required_ids = {r.id for r in required_expected}
         consumed_counts = Counter(r.id for r in consumed)
-        missing_ids = [rid for rid in required_ids if rid not in consumed_counts]
+        if config.require_accepted_receipt:
+            missing_ids = [r.id for r in required_expected if r.id not in consumed_counts]
+        else:
+            missing_ids = [rid for rid in required_ids if rid not in consumed_counts]
         duplicate_ids = [rid for rid, count in consumed_counts.items() if count > 1]
 
         # Detect Synthetic Missing/Duplicate Swaps (e.g. counts match, but IDs swapped)
