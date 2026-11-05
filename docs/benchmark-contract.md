@@ -101,9 +101,12 @@ delete that failure. A progress line such as `sent 8000000 records` is not
 success. Success is an independent check of high watermarks and payloads.
 
 Before each run, delete and recreate the topic so the log starts at zero.
-After the producer finishes, sum the high watermarks. That sum must equal
-the acked count. A consumer benchmark reads the full range and checks
-payloads and sequence IDs.
+Account separately for warmup and timed records. For an uncontended,
+nontransactional topic, compare end offsets with the total written and use
+verified per-partition offsets at the warmup boundary for the timed delta.
+Offsets alone do not prove receipt or payload integrity: an independent reader
+must check the expected IDs and payloads for both phases. Transaction control
+records and other writers can also change offsets.
 
 ## Do not move the old latency gates
 
@@ -292,7 +295,27 @@ After the run:
 kafka-get-offsets.sh --bootstrap-server 127.0.0.1:9092 --topic plbench-matched --time -1
 ```
 
-The partition end offsets must sum to 8,000,000.
+For the Partitionline command above, a fresh nontransactional topic with no
+other writes and complete delivery would end at a total of 8,010,000 offsets:
+10,000 warmup plus 8,000,000 measured records. The displayed C and Java
+commands do not include equivalent warmup and do not qualify the cell as
+printed. For each peer, verify its actual warmup and measured records
+separately; offsets alone are not an integrity check.
+
+The example now screens its completion counters after each flush, before
+stopping the phase timer. This rejects an observed mismatch or producer error;
+it is not a per-record delivery receipt, a phase-isolation barrier, or a fix
+for the known flush defects. The metrics snapshot adds work inside the timed
+interval, and warmup cleanup can still overlap measurement.
+Without `RECORD_HISTORY`, the example reuses the first 10,000 generated IDs
+in warmup and measurement. Enabling `RECORD_HISTORY` changes its key and
+payload modes. A qualifying comparison needs phase boundaries or a revised
+record stream matched across all peers.
+
+The current record-history converter also labels accepted records as
+acknowledged from aggregate counters. Do not use those labels as evidence of
+individual delivery outcomes. Repair the converter and preserve its delivery
+and ordering checks before using it to qualify acknowledged throughput.
 
 ## A missing feature is not a loss
 

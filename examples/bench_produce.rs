@@ -305,6 +305,16 @@ async fn main() -> partitionline::Result<()> {
                 failure = Some(error);
             }
         }
+        // A successful flush alone does not prove that every accepted record
+        // completed. Screen both phases before stopping their timers.
+        if failure.is_none() {
+            let phase_metrics = producer.metrics();
+            if phase_metrics.records_acked != next_id || phase_metrics.produce_errors != 0 {
+                failure = Some(partitionline::Error::protocol(
+                    "phase ended before all accepted records completed without errors",
+                ));
+            }
+        }
         if phase == "warmup" {
             warmup_count = sent;
             warmup_elapsed = start.elapsed().as_secs_f64();

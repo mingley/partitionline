@@ -1,6 +1,6 @@
 # Next work
 
-Updated 3 November 2026. Use latest stable Rust and push reviewed changes
+Updated 5 November 2026. Use latest stable Rust and push reviewed changes
 directly to `main`. The [task registry](tasks.json) remains unchanged:
 249 done, 13 in progress and 84 pending.
 
@@ -148,6 +148,13 @@ remain open.
    [design and independent review](../evidence/client/producer-flush-design-20261103/README.md)
    record unresolved cleanup, cancellation, transaction and liveness choices;
    the sketch and small abstract model are not an implementation.
+   Source review also found that repeated `begin_transaction` clears the open
+   transaction's partition tracking. After an abortable failure, cancellation
+   during identity recovery can clear the bump flag before a replacement
+   identity is known, while another begin is permitted. Guard admission, end
+   intent, cleanup and recovery as one lifecycle; a boolean CAS alone does not
+   resolve these races. These findings have not been reproduced in a native or
+   broker test.
 
 2. **Consumer delivery and isolation.** Topic recreation still fails one
    ownership control. Cancellation and mixed-error recovery must preserve
@@ -182,9 +189,11 @@ remain open.
    confined stack overrides to the test process: the requested 2 MiB case
    overflowed at runtime and the 8 MiB shortened join returned. These remain
    single diagnostic observations, not a full compatibility test. An
-   [original-caller witness](../evidence/client/classic-caller-witness-20261103/README.md)
-   is prepared but unrun; it stops inside the join helper before later
-   scenarios and cannot establish the unmodified test's full behavior.
+   [original-caller witness](../evidence/releases/main-ci-19fef2c-20261103/README.md)
+   reported stack overflow in both baseline and library-box arms. Its helper
+   stops after classic join and cannot establish the unmodified test's full
+   behavior; the logs report matching future sizes and alignments, which do
+   not prove identical layout or stack use.
    Classic JoinGroup can
    return a transient coordinator error after only one rediscovery retry;
    its bounded retry loop still needs controls.
@@ -417,6 +426,13 @@ prepared but unbuilt and unrun. Its supervisor has passing synthetic controls;
 that is process-cleanup evidence, not a performance result. Keep any eventual
 numbers limited to their settings, peers and architecture. The
 [benchmark contract](../benchmark-contract.md) governs broader claims.
+The producer example screens phase-end completion counters before stopping each
+timer; it is not a phase-isolation barrier. Individual outcomes and independent
+verification are still required.
+Its matched-bulk warmup and ID handling need a peer-matched verification
+method. The record-history converter currently labels accepted records as
+acknowledged from aggregate counters; preserve delivery and ordering checks
+while replacing that inference with actual per-record outcomes.
 The producer's pending queue can rescan deadlines and shift a vector on each
 small batch, creating quadratic work when a long queue drains one record at a
 time. Replica epoch publication rewrites the journal on epoch changes. Measure
@@ -427,7 +443,10 @@ skips certain deadline scans, but still needs native tests and benchmarking.
 It does not remove vector prefix shifts.
 An isolated [full-drain candidate](../evidence/perf/producer-full-drain-20261103/hosted/README.md)
 transfers matching-capacity vectors instead of copying a complete batch. Its
-correctness-gated x86 null-broker comparison has not run, and it does not
+correctness-gated x86 null-broker comparison did not reach its correctness
+gates or timing: [run 41676355649](https://github.com/mingley/partitionline/actions/runs/41676355649)
+failed while preparing the pinned source archive. The log does not distinguish
+archive failure from a timeout or free-space floor. The candidate does not
 address partial drains or establish Kafka performance.
 A [paired queue microbenchmark prototype](../evidence/perf/pending-queue-v16-20261103/README.md)
 has source review. Its [v17 rebind](../evidence/perf/pending-queue-v17-20261103/README.md)
