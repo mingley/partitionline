@@ -82,6 +82,13 @@ class BenchHistoryTests(unittest.TestCase):
                 result = BENCH.CHECKER.verify_history(reordered)
                 self.assertIn("KEY_ORDERING_VIOLATION", {v.type for v in result.violations})
 
+    def test_root_receipt_policy_is_rejected_even_without_config_flag(self):
+        history, _ = self.verify(*fixture())
+        del history["config"]["require_accepted_receipt"]
+        history["require_accepted_receipt"] = True
+        with self.assertRaises(BENCH.CHECKER.HistoryValidationError):
+            BENCH.CHECKER.verify_history(history)
+
     def test_receipt_policy_preserves_actual_acked_loss_classification(self):
         history, _ = self.verify(*fixture())
         history["config"]["require_accepted_receipt"] = False
@@ -116,6 +123,7 @@ class BenchHistoryTests(unittest.TestCase):
             lambda h: h["config"].update(acks=True),
             lambda h: h["config"].update(delivery="share"),
             lambda h: h["config"].update(idempotence=False),
+            lambda h: h.update(require_accepted_receipt=False),
             lambda h: h.update(transactional=True),
             lambda h: h.update(delivery="share"),
             lambda h: h.update(acks=0),

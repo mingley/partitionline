@@ -219,6 +219,10 @@ def parse_history(raw_data: Any, history_id_default: str = "history") -> Tuple[s
 
     history_id = str(raw_data.get("id") or raw_data.get("history_id") or history_id_default)
 
+    # The receipt policy is reserved for the canonical config object.
+    if "require_accepted_receipt" in raw_data:
+        raise HistoryValidationError("accepted receipt policy must be in config")
+
     # Extract config
     cfg_raw = raw_data.get("config", {})
     if not isinstance(cfg_raw, dict):
@@ -598,11 +602,11 @@ def verify_history(raw_data: Any, history_id_default: str = "history") -> CheckR
                         continue
                 required_expected.append(r)
 
-        required_ids = {r.id for r in required_expected}
         consumed_counts = Counter(r.id for r in consumed)
         if config.require_accepted_receipt:
             missing_ids = [r.id for r in required_expected if r.id not in consumed_counts]
         else:
+            required_ids = {r.id for r in required_expected}
             missing_ids = [rid for rid in required_ids if rid not in consumed_counts]
         duplicate_ids = [rid for rid, count in consumed_counts.items() if count > 1]
 
