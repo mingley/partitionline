@@ -46,6 +46,102 @@ class BenchHistoryTests(unittest.TestCase):
         self.assertFalse(result["qualification"])
         self.assertEqual(result["suite_hold"], "active")
 
+    def test_acceptance_is_never_inferred_as_an_individual_ack(self):
+        for acks, idempotent in ((0, False), (1, False), (-1, True)):
+            with self.subTest(acks=acks, idempotent=idempotent):
+                producer, consumer = fixture(acks)
+                producer[0]["idempotent"] = idempotent
+                history, result = self.verify(producer, consumer)
+                self.assertTrue(result["valid"])
+                self.assertFalse(result["acknowledged_throughput"])
+                self.assertFalse(result["individual_acknowledgements_observed"])
+                self.assertTrue(result["performance_claims_invalidated"])
+                self.assertTrue(history["config"]["require_accepted_receipt"])
+                self.assertTrue(all(row["status"] == "accepted" for row in history["attempted"]))
+                self.assertTrue(BENCH.CHECKER.verify_history(history).valid)
+
+    def test_saved_policy_replay_checks_missing_receipt_and_order(self):
+        for acks in (0, 1, -1):
+            with self.subTest(acks=acks):
+                history, _ = self.verify(*fixture(acks))
+                missing = json.loads(json.dumps(history))
+                del missing["consumed"][1]
+                result = BENCH.CHECKER.verify_history(missing)
+                self.assertIn("REQUIRED_RECEIPT_MISSING", {v.type for v in result.violations})
+                missing["config"]["require_accepted_receipt"] = False
+                self.assertTrue(BENCH.CHECKER.verify_history(missing).valid)
+                del missing["config"]["require_accepted_receipt"]
+                self.assertTrue(BENCH.CHECKER.verify_history(missing).valid)
+
+                reordered = json.loads(json.dumps(history))
+                reordered["consumed"][0], reordered["consumed"][1] = (
+                    reordered["consumed"][1], reordered["consumed"][0]
+                )
+                reordered["consumed"][0]["offset"] = 0
+                reordered["consumed"][1]["offset"] = 1
+                result = BENCH.CHECKER.verify_history(reordered)
+                self.assertIn("KEY_ORDERING_VIOLATION", {v.type for v in result.violations})
+
+    def test_receipt_policy_preserves_actual_acked_loss_classification(self):
+        history, _ = self.verify(*fixture())
+        history["attempted"][1]["status"] = "acked"
+        del history["consumed"][1]
+        result = BENCH.CHECKER.verify_history(history)
+        kinds = {v.type for v in result.violations}
+        self.assertIn("DATA_LOSS", kinds)
+        self.assertNotIn("REQUIRED_RECEIPT_MISSING", kinds)
+
+    def test_saved_policy_replay_rejects_extra_duplicate(self):
+        history, _ = self.verify(*fixture())
+        duplicate = dict(history["consumed"][0])
+        duplicate["offset"] = 1
+        history["consumed"].insert(1, duplicate)
+        history["consumed"][2]["offset"] = 2
+        history["consumed"][3]["offset"] = 3
+        result = BENCH.CHECKER.verify_history(history)
+        self.assertIn("UNEXPECTED_DUPLICATE", {v.type for v in result.violations})
+
+    def test_receipt_policy_rejects_ambiguous_or_transactional_histories(self):
+        history, _ = self.verify(*fixture())
+        for value in (None, 1, "true", []):
+            bad = json.loads(json.dumps(history))
+            bad["config"]["require_accepted_receipt"] = value
+            with self.subTest(value=value), self.assertRaises(BENCH.CHECKER.HistoryValidationError):
+                BENCH.CHECKER.verify_history(bad)
+        for mutation in (
+            lambda h: h["config"].update(transactional=True),
+            lambda h: h["config"].update(transactional=0),
+            lambda h: h["config"].update(idempotent=1),
+            lambda h: h["config"].update(acks=True),
+            lambda h: h["config"].update(delivery="share"),
+            lambda h: h.update(txns=[{"txn_id": "t"}]),
+            lambda h: h["attempted"][0].update(txn_id=""),
+            lambda h: h["attempted"].append(dict(h["attempted"][0])),
+            lambda h: h["attempted"][0].update(status="ambiguous"),
+        ):
+            bad = json.loads(json.dumps(history))
+            mutation(bad)
+            with self.assertRaises(BENCH.CHECKER.HistoryValidationError):
+                BENCH.CHECKER.verify_history(bad)
+
+    def test_ack_zero_receipt_policy_preserves_full_partition_order_on_replay(self):
+        history, _ = self.verify(*fixture(0))
+        history["attempted"][1]["key"] = "another-key"
+        history["consumed"][1]["key"] = "another-key"
+        history["consumed"][0], history["consumed"][1] = (
+            history["consumed"][1], history["consumed"][0]
+        )
+        history["consumed"][0]["offset"] = 0
+        history["consumed"][1]["offset"] = 1
+        result = BENCH.CHECKER.verify_history(history)
+        self.assertIn("PARTITION_ORDERING_VIOLATION", {v.type for v in result.violations})
+
+    def test_transactional_benchmark_receipts_fail_closed(self):
+        producer, consumer = fixture()
+        producer[0]["transactional"] = True
+        with self.assertRaises(BENCH.InvalidJournal):
+            self.verify(producer, consumer)
+
     def test_matching_count_missing_duplicate_swap_fails(self):
         p, c = fixture()
         c[2] = {**c[1], "offset": 1}
@@ -69,9 +165,8 @@ class BenchHistoryTests(unittest.TestCase):
         _, result = self.verify(p, c)
         self.assertIn("KEY_ORDERING_VIOLATION", {v["type"] for v in result["violations"]})
 
-    def test_control_offsets_are_gaps_not_application_records(self):
+    def test_offset_gaps_are_not_application_records(self):
         p, c = fixture()
-        p[0]["transactional"] = True
         c[0]["end_offsets"][0]["offset"] = 6
         for i, row in enumerate(c[1:-1]):
             row["offset"] = i * 2

@@ -124,6 +124,7 @@ class HistoryConfig:
     transactional: bool = False
     isolation_level: str = "read_committed"  # read_committed, read_uncommitted
     delivery: str = "partition"  # partition, share
+    require_accepted_receipt: bool = False  # independent benchmark receipt policy
 
     def __post_init__(self):
         # Normalize acks
@@ -223,10 +224,19 @@ def parse_history(raw_data: Any, history_id_default: str = "history") -> Tuple[s
         raise HistoryValidationError("'config' must be an object if present")
 
     acks = cfg_raw.get("acks", raw_data.get("acks", 1))
-    idempotent = bool(cfg_raw.get("idempotent", raw_data.get("idempotent", raw_data.get("idempotence", False))))
-    transactional = bool(cfg_raw.get("transactional", raw_data.get("transactional", False)))
+    raw_idempotent = cfg_raw.get("idempotent", raw_data.get("idempotent", raw_data.get("idempotence", False)))
+    raw_transactional = cfg_raw.get("transactional", raw_data.get("transactional", False))
+    idempotent = bool(raw_idempotent)
+    transactional = bool(raw_transactional)
     isolation_level = cfg_raw.get("isolation_level", raw_data.get("isolation_level", "read_committed"))
     delivery = cfg_raw.get("delivery", raw_data.get("delivery", "partition"))
+    require_accepted_receipt = cfg_raw.get("require_accepted_receipt", False)
+    if type(require_accepted_receipt) is not bool:
+        raise HistoryValidationError("'require_accepted_receipt' must be a boolean")
+    if require_accepted_receipt and (
+        type(raw_idempotent) is not bool or type(raw_transactional) is not bool or type(acks) is bool
+    ):
+        raise HistoryValidationError("accepted receipt policy requires explicit boolean semantics and non-boolean acks")
 
     config = HistoryConfig(
         acks=acks,
@@ -234,6 +244,7 @@ def parse_history(raw_data: Any, history_id_default: str = "history") -> Tuple[s
         transactional=transactional,
         isolation_level=isolation_level,
         delivery=delivery,
+        require_accepted_receipt=require_accepted_receipt,
     )
 
     # Extract attempted
@@ -274,6 +285,23 @@ def parse_history(raw_data: Any, history_id_default: str = "history") -> Tuple[s
     offset_commits = raw_data.get("offset_commits", [])
     if not isinstance(offset_commits, list):
         raise HistoryValidationError("'offset_commits' must be a list if present")
+
+    # This stricter benchmark policy treats attempt order as admission order.
+    # It is not a Kafka acknowledgement guarantee and has no transaction or
+    # share delivery semantics.
+    if config.require_accepted_receipt:
+        if config.delivery != "partition" or config.transactional:
+            raise HistoryValidationError("accepted receipt policy requires nontransactional partition delivery")
+        for name in ("transactions", "txns", "offset_commits"):
+            value = raw_data.get(name, [])
+            if not isinstance(value, list) or value:
+                raise HistoryValidationError("accepted receipt policy does not support transaction metadata")
+        if any(r.txn_id is not None for r in attempted_records + consumed_records):
+            raise HistoryValidationError("accepted receipt policy does not support transaction-tagged records")
+        if any(r.status not in ("accepted", "acked") for r in attempted_records):
+            raise HistoryValidationError("accepted receipt policy does not support ambiguous attempts")
+        if len({r.id for r in attempted_records}) != len(attempted_records):
+            raise HistoryValidationError("accepted receipt policy requires unique producer IDs")
 
     return history_id, config, attempted_records, consumed_records, txn_map, offset_commits
 
@@ -527,20 +555,24 @@ def verify_history(raw_data: Any, history_id_default: str = "history") -> CheckR
 
     else:
         # Standard partition delivery
-        # Determine acked records that should be consumed
-        acked_expected: List[Record] = []
+        # Accepted records are required only under an explicit readback policy.
+        # If an ID has both kinds of attempt, retain a real ack for reporting.
+        required_by_id: Dict[str, Record] = {}
         for r in attempted:
-            if r.status == "acked":
+            required = r.status == "acked" or (
+                config.require_accepted_receipt and r.status == "accepted"
+            )
+            if required:
                 if r.txn_id:
                     txn_info = txn_map.get(r.txn_id, {})
                     if txn_info.get("status", "committed").lower() == "aborted":
                         continue
-                acked_expected.append(r)
+                previous = required_by_id.get(r.id)
+                if previous is None or r.status == "acked":
+                    required_by_id[r.id] = r
 
-        acked_ids = {r.id for r in acked_expected}
         consumed_counts = Counter(r.id for r in consumed)
-
-        missing_ids = [rid for rid in acked_ids if rid not in consumed_counts]
+        missing_ids = [rid for rid in required_by_id if rid not in consumed_counts]
         duplicate_ids = [rid for rid, count in consumed_counts.items() if count > 1]
 
         # Detect Synthetic Missing/Duplicate Swaps (e.g. counts match, but IDs swapped)
@@ -560,16 +592,25 @@ def verify_history(raw_data: Any, history_id_default: str = "history") -> CheckR
                 },
             ))
 
-        # Check for Data Loss (missing acked records) when acks != 0
-        if config.acks != 0:
-            for mid in missing_ids:
-                mrec = attempted_by_id[mid][0]
+        # A required accepted receipt is not a broker acknowledgement.
+        for mid in missing_ids:
+            mrec = required_by_id[mid]
+            if mrec.status == "acked" and config.acks != 0:
                 violations.append(Violation(
                     type="DATA_LOSS",
                     record_ids=[mid],
                     topic=mrec.topic,
                     partition=mrec.partition,
                     message=f"Acked record '{mid}' on {mrec.topic}-{mrec.partition} was lost (never consumed)",
+                    details={"record_id": mid, "topic": mrec.topic, "partition": mrec.partition},
+                ))
+            elif mrec.status == "accepted":
+                violations.append(Violation(
+                    type="REQUIRED_RECEIPT_MISSING",
+                    record_ids=[mid],
+                    topic=mrec.topic,
+                    partition=mrec.partition,
+                    message=f"Accepted record '{mid}' was not consumed as required by the receipt policy",
                     details={"record_id": mid, "topic": mrec.topic, "partition": mrec.partition},
                 ))
 
@@ -590,7 +631,11 @@ def verify_history(raw_data: Any, history_id_default: str = "history") -> CheckR
             else:
                 attempts = attempted_by_id.get(did, [])
                 has_ambiguous = any(a.status in ("ambiguous", "attempted") for a in attempts)
-                if not has_ambiguous and len(attempts) == 1 and attempts[0].status == "acked":
+                required_single = len(attempts) == 1 and (
+                    attempts[0].status == "acked" or
+                    (config.require_accepted_receipt and attempts[0].status == "accepted")
+                )
+                if not has_ambiguous and required_single:
                     violations.append(Violation(
                         type="UNEXPECTED_DUPLICATE",
                         record_ids=[did],
@@ -633,11 +678,12 @@ def verify_history(raw_data: Any, history_id_default: str = "history") -> CheckR
         # B. Check partition sequence relative to produce order
         if config.delivery == "partition":
             # Attempted records for this partition in attempt order
-            part_attempted = [a for a in attempted if a.topic == topic and a.partition == partition and a.status == "acked"]
+            part_attempted = [a for a in attempted if a.topic == topic and a.partition == partition and
+                              (a.status == "acked" or (config.require_accepted_receipt and a.status == "accepted"))]
             produce_order = {a.id: idx for idx, a in enumerate(part_attempted)}
 
             consumed_part_ids = [r.id for r in part_recs if r.id in produce_order]
-            if config.idempotent:
+            if config.idempotent or (config.require_accepted_receipt and config.acks == 0):
                 for i in range(len(consumed_part_ids) - 1):
                     id_a = consumed_part_ids[i]
                     id_b = consumed_part_ids[i + 1]

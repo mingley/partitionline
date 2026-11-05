@@ -1,0 +1,20 @@
+name: Benchmark record-history qualification
+
+on:
+  push:
+    branches:
+      - qualification/record-history-20261105
+permissions:
+  contents: read
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Generic record-history tests
+        run: python3 -B -m unittest discover -s tests/history -p test_checker.py -v
+      - name: Benchmark history and shell controls
+        run: python3 -B -m unittest discover -s tests/ci -p test_bench_record_history.py -v
