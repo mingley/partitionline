@@ -15,25 +15,22 @@ replicated partition data or native Kafka KRaft.
 
 ## Validation
 
-The latest complete snapshot recorded here is commit `45cbff24d`. It does not
-cover later changes. The [CI evidence][ci] includes failure identities, logs,
-run links and the limits of each result.
+The latest complete snapshot recorded here is commit `74923475a`. It does not
+cover later changes. The [CI evidence][ci] gives the runs and result limits.
 
-| Check | Result at `45cbff24d` |
+| Check | Result at `74923475a` |
 | --- | --- |
-| Client library, default and all features | Each had 2,177 passes and 19 failures; failure identities differ. Both all-target runs stopped at the library. |
-| Kafka 4.1.2, 4.2.1 and 4.3.1 compatibility | Each aborted with a stack overflow during classic group join. The logs do not identify the failing frame. |
-| Windows default library | 2,161 passed and 35 failed. |
-| macOS arm64 default library | 2,179 passed and 17 failed. |
-| Broker default and all features | 734 and 882 tests passed, respectively. Clippy, docs, inventory and short fuzz supervision passed; the doctest commands found no tests. |
-| Client capability profiles | Both reported 93 passed cases. The compact reports do not qualify the SDK public runtime. |
+| Client library, default | 2,179 passed and 17 failed; the all-target run stopped at the library. |
+| Client library, all features | 2,173 passed and 23 failed; the all-target run stopped at the library. |
+| Kafka 4.1.2, 4.2.1 and 4.3.1 compatibility | Each overflowed after the classic-join marker. The failing frame is unknown. |
+| Windows default library | 2,177 passed and 19 failed. |
+| macOS arm64 default library | 2,175 passed and 21 failed. |
+| Broker default and all features | 734 and 882 tests passed, respectively. Clippy, docs, inventory and short fuzz supervision passed; doctests found no tests. |
+| Client capability profiles | Both workflows passed; their archives were not inspected for this status. |
 | Client format, Clippy, audit, documentation and package jobs | Passed. Other client and live-broker jobs failed or were skipped. |
 
-A [later main CI run][recent-ci] was canceled after client library failures;
-its partial results include stack overflows after the classic-join marker on
-Kafka 4.2.1 and 4.3.1. The broker and capabilities workflows passed at that commit. A closer
-classic-join witness also overflowed in both the baseline and boxed-library
-arms; it does not qualify the complete compatibility test.
+A closer [classic-join witness][recent-ci] overflowed in both the baseline and
+boxed-library arms; it does not qualify the complete compatibility test.
 
 Earlier results and candidate runs are retained in the [work plan][next] and
 [previous status][previous]. A focused pass does not replace the full release
@@ -47,7 +44,7 @@ matrix.
   these failures in both feature profiles. Repair the barrier and error
   ownership together. Partition issue order, sequence wrap, transaction
   fencing and unresolved-batch replay need further work and independent
-  histories. A [transaction-response candidate][txn] passed focused mock
+  histories. Source review also found transaction begin and recovery races. A [transaction-response candidate][txn] passed focused mock
   tests; real-broker and concurrency coverage remain open. Use `send` for an
   individual delivery result; with `acks=0`, a
   successful result only confirms the local write.
@@ -74,8 +71,8 @@ The [work plan][next] tracks the current candidates and outstanding tests.
 The [support matrix](support.md) describes configured coverage, and the
 [release guide](RELEASE.md) lists publication gates. No new release is ready.
 
-[ci]: https://github.com/mingley/partitionline/blob/399b349504a95fe5c4672f46d7f99c27bc978e6b/docs/evidence/releases/main-ci-45cb-20261103/README.md
-[next]: https://github.com/mingley/partitionline/blob/767cc33acd4487141ba40ac80bb1b963bd72efad/docs/plan/next-work.md
+[ci]: https://github.com/mingley/partitionline/blob/f6eecf19896650a6b18789df7cc8848d3a670cb4/docs/evidence/releases/main-ci-74923475-20261105/README.md
+[next]: https://github.com/mingley/partitionline/blob/f6eecf19896650a6b18789df7cc8848d3a670cb4/docs/plan/next-work.md
 [previous]: https://github.com/mingley/partitionline/blob/5c2a000639d9a8a7dccd56e8c1d6f3a58dca1601/docs/STATUS.md
 [flush]: https://github.com/mingley/partitionline/blob/e980829c439aa43edc01312c91838e58a412221a/docs/evidence/client/producer-flush-native-86f2-20261103/README.md
 [txn]: https://github.com/mingley/partitionline/blob/49ad56c6bce1366e2357c272f11c5c34160d60da/docs/evidence/client/add-partitions-native-4f0c-20261103/README.md
