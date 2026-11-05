@@ -17,6 +17,31 @@ soak = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(soak)
 
 
+def complete_rows(path):
+    try:
+        content = path.read_text()
+    except FileNotFoundError:
+        return []
+    # Writers may still be appending the last JSON object.
+    complete = content.rpartition("\n")[0]
+    rows = [json.loads(line) for line in complete.splitlines()]
+    if any(not isinstance(row, dict) for row in rows):
+        raise ValueError("sample row is not an object")
+    return rows
+
+
+def interrupt_ready(raw, host):
+    application = complete_rows(raw)
+    telemetry = complete_rows(host)
+    for row in telemetry:
+        if any(type(row.get(name)) is not int or row[name] < 0
+               for name in ("rss_bytes", "threads", "socket_fds")):
+            raise ValueError("invalid host telemetry")
+    live_samples = sum(row.get("kind") == "sample" and row.get("final") is False
+                       for row in application)
+    return live_samples >= 4 and len(telemetry) >= 2
+
+
 class ResourceSoak(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
@@ -74,15 +99,18 @@ class ResourceSoak(unittest.TestCase):
                                   "--binary",str(binary),"--duration-ms","2200"],stdout=subprocess.PIPE,stderr=subprocess.PIPE,text=True)
         try:
             raw = output/"attempt-0001/samples.jsonl"
+            host = output/"attempt-0001/host.jsonl"
             deadline = time.monotonic()+10
             while time.monotonic()<deadline:
-                if raw.exists() and len(raw.read_text().splitlines())>=4:
-                    break
                 if child.poll() is not None:
                     self.fail("driver exited before interrupt")
+                if interrupt_ready(raw, host):
+                    if child.poll() is not None:
+                        self.fail("driver exited before interrupt")
+                    break
                 time.sleep(.02)
             else:
-                self.fail("no samples before interrupt deadline")
+                self.fail("application and host samples not ready before interrupt deadline")
             child.send_signal(signal.SIGTERM)
             stdout,stderr = child.communicate(timeout=12)
             self.assertEqual(child.returncode,0,stdout+stderr)
@@ -92,6 +120,26 @@ class ResourceSoak(unittest.TestCase):
             child.wait(timeout=5)
             if child.stdout: child.stdout.close()
             if child.stderr: child.stderr.close()
+
+    def test_interrupt_readiness_requires_complete_host_samples(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            raw, host = Path(temporary)/"samples.jsonl", Path(temporary)/"host.jsonl"
+            sample = json.dumps({"kind": "sample", "final": False}) + "\n"
+            telemetry = json.dumps({"rss_bytes": 1, "threads": 1, "socket_fds": 0}) + "\n"
+            raw.write_text(sample * 4)
+            self.assertFalse(interrupt_ready(raw, host))
+            host.write_text(telemetry)
+            self.assertFalse(interrupt_ready(raw, host))
+            host.write_text(telemetry + telemetry.rstrip("\n"))
+            self.assertFalse(interrupt_ready(raw, host))
+            host.write_text(telemetry * 2)
+            self.assertTrue(interrupt_ready(raw, host))
+            host.write_text(telemetry + "{bad json}\n")
+            with self.assertRaises(ValueError):
+                interrupt_ready(raw, host)
+            host.write_text(telemetry + json.dumps({"rss_bytes": -1, "threads": 1, "socket_fds": 0}) + "\n")
+            with self.assertRaises(ValueError):
+                interrupt_ready(raw, host)
 
     def test_interrupt_resume_keeps_every_prior_byte_and_frozen_manifest(self):
         output = self.directory/"resumed"

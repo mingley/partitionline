@@ -25,3 +25,31 @@ jobs:
         run: python3 -B -m unittest discover -s tests/history -p test_checker.py -v
       - name: Benchmark history and shell controls
         run: python3 -B -m unittest discover -s tests/ci -p test_bench_record_history.py -v
+
+  resource-soak:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          sparse-checkout: |
+            .cargo
+            Cargo.toml
+            Cargo.lock
+            rust-toolchain.toml
+            README.md
+            src
+            examples
+            scripts
+            tests/ci
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Build resource driver
+        run: cargo +stable build --locked --example resource_soak
+      - name: Run interruption and resource controls
+        env:
+          PL_RESOURCE_SOAK_BINARY: ${{ github.workspace }}/target/debug/examples/resource_soak
+          PL_RESOURCE_SOAK_OUTPUT: ${{ runner.temp }}/resource-soak
+        run: |
+          mkdir -p "$PL_RESOURCE_SOAK_OUTPUT"
+          python3 -B -m unittest discover -s tests/ci -p test_resource_soak.py -v
