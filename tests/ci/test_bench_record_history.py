@@ -84,6 +84,7 @@ class BenchHistoryTests(unittest.TestCase):
 
     def test_receipt_policy_preserves_actual_acked_loss_classification(self):
         history, _ = self.verify(*fixture())
+        history["config"]["require_accepted_receipt"] = False
         history["attempted"][1]["status"] = "acked"
         del history["consumed"][1]
         result = BENCH.CHECKER.verify_history(history)
@@ -99,7 +100,7 @@ class BenchHistoryTests(unittest.TestCase):
         history["consumed"][2]["offset"] = 2
         history["consumed"][3]["offset"] = 3
         result = BENCH.CHECKER.verify_history(history)
-        self.assertIn("UNEXPECTED_DUPLICATE", {v.type for v in result.violations})
+        self.assertIn("REQUIRED_RECEIPT_DUPLICATE", {v.type for v in result.violations})
 
     def test_receipt_policy_rejects_ambiguous_or_transactional_histories(self):
         history, _ = self.verify(*fixture())
@@ -124,10 +125,54 @@ class BenchHistoryTests(unittest.TestCase):
             with self.assertRaises(BENCH.CHECKER.HistoryValidationError):
                 BENCH.CHECKER.verify_history(bad)
 
+    def test_receipt_policy_rejects_missing_evidence_and_semantics(self):
+        history, _ = self.verify(*fixture())
+        for field in ("acks", "idempotent", "transactional", "isolation_level", "delivery"):
+            bad = json.loads(json.dumps(history))
+            del bad["config"][field]
+            with self.subTest(config_field=field), self.assertRaises(BENCH.CHECKER.HistoryValidationError):
+                BENCH.CHECKER.verify_history(bad)
+        for acks in (0, 1):
+            bad = json.loads(json.dumps(history))
+            bad["config"].update(acks=acks, idempotent=True)
+            with self.subTest(acks=acks), self.assertRaises(BENCH.CHECKER.HistoryValidationError):
+                BENCH.CHECKER.verify_history(bad)
+        for role, field in (("attempted", "status"), ("attempted", "key"),
+                            ("attempted", "payload_hash"), ("attempted", "attempt_index"),
+                            ("consumed", "key"), ("consumed", "payload_hash"),
+                            ("consumed", "offset"), ("consumed", "payload_bytes")):
+            bad = json.loads(json.dumps(history))
+            del bad[role][0][field]
+            with self.subTest(role=role, field=field), self.assertRaises(BENCH.CHECKER.HistoryValidationError):
+                BENCH.CHECKER.verify_history(bad)
+        for role, field, value in (("consumed", "offset", None),
+                                   ("attempted", "key", None),
+                                   ("consumed", "payload_hash", None),
+                                   ("consumed", "payload_bytes", 25)):
+            bad = json.loads(json.dumps(history))
+            bad[role][0][field] = value
+            with self.subTest(role=role, field=field), self.assertRaises(BENCH.CHECKER.HistoryValidationError):
+                BENCH.CHECKER.verify_history(bad)
+
+    def test_receipt_policy_accepts_valid_cross_partition_interleaving(self):
+        history, _ = self.verify(*fixture(-1))
+        history["config"]["idempotent"] = True
+        template = history["attempted"][0]
+        attempted = []
+        for index, (name, partition) in enumerate((("a0", 0), ("b0", 1), ("a1", 0), ("b1", 1))):
+            attempted.append({**template, "id": name, "partition": partition,
+                              "key": f"{partition:02x}", "attempt_index": index})
+        history["attempted"] = attempted
+        history["consumed"] = [
+            {**attempted[0], "offset": 0}, {**attempted[2], "offset": 1},
+            {**attempted[1], "offset": 0}, {**attempted[3], "offset": 1},
+        ]
+        self.assertTrue(BENCH.CHECKER.verify_history(history).valid)
+
     def test_ack_zero_receipt_policy_preserves_full_partition_order_on_replay(self):
         history, _ = self.verify(*fixture(0))
-        history["attempted"][1]["key"] = "another-key"
-        history["consumed"][1]["key"] = "another-key"
+        history["attempted"][1]["key"] = "0102"
+        history["consumed"][1]["key"] = "0102"
         history["consumed"][0], history["consumed"][1] = (
             history["consumed"][1], history["consumed"][0]
         )

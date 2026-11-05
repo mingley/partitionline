@@ -88,8 +88,8 @@ PY
 )"
   [[ "$produce_status" == 0 && "$reported_acked" == "$COUNT" ]] || { echo 'producer command/count failed; raw attempt retained' >&2; exit 1; }
   # This producer is explicitly non-transactional; HW is an additional audit.
-  # Application counts and histories never derive from offsets. Transactional
-  # control offsets are validated as gaps by the history adapter, not records.
+  # Application counts and histories never derive from offsets. The history
+  # adapter does not qualify transactional records or control-offset behavior.
   [[ "$((hw-before_hw))" == "$reported_acked" ]] || { echo 'non-transactional HW audit failed; raw attempt retained' >&2; exit 1; }
   fetch_status=0
   RECORD_HISTORY="$run/consumer.jsonl" VERIFY=0 "$fetch_binary" > "$run/fetch.stdout.log" 2> "$run/fetch.stderr.log" || fetch_status=$?

@@ -24,6 +24,7 @@ import hashlib
 import json
 import os
 from pathlib import Path
+import re
 import sys
 from typing import Any, Dict, List, Optional, Set, Tuple, Union
 
@@ -233,10 +234,12 @@ def parse_history(raw_data: Any, history_id_default: str = "history") -> Tuple[s
     require_accepted_receipt = cfg_raw.get("require_accepted_receipt", False)
     if type(require_accepted_receipt) is not bool:
         raise HistoryValidationError("'require_accepted_receipt' must be a boolean")
-    if require_accepted_receipt and (
-        type(raw_idempotent) is not bool or type(raw_transactional) is not bool or type(acks) is bool
-    ):
-        raise HistoryValidationError("accepted receipt policy requires explicit boolean semantics and non-boolean acks")
+    if require_accepted_receipt:
+        fields = {"acks", "idempotent", "transactional", "isolation_level", "delivery"}
+        if not fields.issubset(cfg_raw):
+            raise HistoryValidationError("accepted receipt policy requires explicit semantics")
+        if type(raw_idempotent) is not bool or type(raw_transactional) is not bool or type(acks) is bool:
+            raise HistoryValidationError("accepted receipt policy requires boolean semantics and non-boolean acks")
 
     config = HistoryConfig(
         acks=acks,
@@ -246,6 +249,8 @@ def parse_history(raw_data: Any, history_id_default: str = "history") -> Tuple[s
         delivery=delivery,
         require_accepted_receipt=require_accepted_receipt,
     )
+    if config.require_accepted_receipt and config.idempotent and config.acks != -1:
+        raise HistoryValidationError("accepted receipt policy requires acks=-1 for idempotence")
 
     # Extract attempted
     attempted_raw = raw_data.get("attempted")
@@ -298,10 +303,29 @@ def parse_history(raw_data: Any, history_id_default: str = "history") -> Tuple[s
                 raise HistoryValidationError("accepted receipt policy does not support transaction metadata")
         if any(r.txn_id is not None for r in attempted_records + consumed_records):
             raise HistoryValidationError("accepted receipt policy does not support transaction-tagged records")
-        if any(r.status not in ("accepted", "acked") for r in attempted_records):
-            raise HistoryValidationError("accepted receipt policy does not support ambiguous attempts")
+        for role, records in (("producer", attempted_raw), ("consumer", consumed_raw)):
+            for index, raw in enumerate(records):
+                if (type(raw.get("id")) is not str or not raw["id"] or
+                        type(raw.get("topic")) is not str or not raw["topic"] or
+                        type(raw.get("partition")) is not int or raw["partition"] < 0 or
+                        raw.get("status") != "accepted"):
+                    raise HistoryValidationError(f"{role} receipt record has incomplete identity or status")
+                key = raw.get("key")
+                digest = raw.get("payload_hash")
+                if (type(key) is not str or re.fullmatch(r"(?:[0-9a-f]{2})+", key) is None or
+                        type(digest) is not str or re.fullmatch(r"[0-9a-f]{64}", digest) is None or
+                        type(raw.get("payload_bytes")) is not int or raw["payload_bytes"] < 24):
+                    raise HistoryValidationError(f"{role} receipt record has incomplete payload evidence")
+                if role == "producer":
+                    if type(raw.get("attempt_index")) is not int or raw["attempt_index"] != index:
+                        raise HistoryValidationError("accepted receipt policy requires ordered producer indices")
+                elif type(raw.get("offset")) is not int or raw["offset"] < 0:
+                    raise HistoryValidationError("accepted receipt policy requires consumer offsets")
         if len({r.id for r in attempted_records}) != len(attempted_records):
             raise HistoryValidationError("accepted receipt policy requires unique producer IDs")
+        sizes = {r["id"]: r["payload_bytes"] for r in attempted_raw}
+        if any(r["id"] in sizes and r["payload_bytes"] != sizes[r["id"]] for r in consumed_raw):
+            raise HistoryValidationError("accepted receipt payload sizes disagree")
 
     return history_id, config, attempted_records, consumed_records, txn_map, offset_commits
 
@@ -556,23 +580,18 @@ def verify_history(raw_data: Any, history_id_default: str = "history") -> CheckR
     else:
         # Standard partition delivery
         # Accepted records are required only under an explicit readback policy.
-        # If an ID has both kinds of attempt, retain a real ack for reporting.
-        required_by_id: Dict[str, Record] = {}
+        required_expected: List[Record] = []
         for r in attempted:
-            required = r.status == "acked" or (
-                config.require_accepted_receipt and r.status == "accepted"
-            )
-            if required:
+            if r.status == "acked" or (config.require_accepted_receipt and r.status == "accepted"):
                 if r.txn_id:
                     txn_info = txn_map.get(r.txn_id, {})
                     if txn_info.get("status", "committed").lower() == "aborted":
                         continue
-                previous = required_by_id.get(r.id)
-                if previous is None or r.status == "acked":
-                    required_by_id[r.id] = r
+                required_expected.append(r)
 
+        required_ids = {r.id for r in required_expected}
         consumed_counts = Counter(r.id for r in consumed)
-        missing_ids = [rid for rid in required_by_id if rid not in consumed_counts]
+        missing_ids = [rid for rid in required_ids if rid not in consumed_counts]
         duplicate_ids = [rid for rid, count in consumed_counts.items() if count > 1]
 
         # Detect Synthetic Missing/Duplicate Swaps (e.g. counts match, but IDs swapped)
@@ -593,18 +612,9 @@ def verify_history(raw_data: Any, history_id_default: str = "history") -> CheckR
             ))
 
         # A required accepted receipt is not a broker acknowledgement.
-        for mid in missing_ids:
-            mrec = required_by_id[mid]
-            if mrec.status == "acked" and config.acks != 0:
-                violations.append(Violation(
-                    type="DATA_LOSS",
-                    record_ids=[mid],
-                    topic=mrec.topic,
-                    partition=mrec.partition,
-                    message=f"Acked record '{mid}' on {mrec.topic}-{mrec.partition} was lost (never consumed)",
-                    details={"record_id": mid, "topic": mrec.topic, "partition": mrec.partition},
-                ))
-            elif mrec.status == "accepted":
+        if config.require_accepted_receipt:
+            for mid in missing_ids:
+                mrec = attempted_by_id[mid][0]
                 violations.append(Violation(
                     type="REQUIRED_RECEIPT_MISSING",
                     record_ids=[mid],
@@ -613,11 +623,29 @@ def verify_history(raw_data: Any, history_id_default: str = "history") -> CheckR
                     message=f"Accepted record '{mid}' was not consumed as required by the receipt policy",
                     details={"record_id": mid, "topic": mrec.topic, "partition": mrec.partition},
                 ))
+        elif config.acks != 0:
+            for mid in missing_ids:
+                mrec = attempted_by_id[mid][0]
+                violations.append(Violation(
+                    type="DATA_LOSS",
+                    record_ids=[mid],
+                    topic=mrec.topic,
+                    partition=mrec.partition,
+                    message=f"Acked record '{mid}' on {mrec.topic}-{mrec.partition} was lost (never consumed)",
+                    details={"record_id": mid, "topic": mrec.topic, "partition": mrec.partition},
+                ))
 
         # Check for unexpected duplicates
         for did in duplicate_ids:
             cnt = consumed_counts[did]
-            if config.idempotent:
+            if config.require_accepted_receipt:
+                violations.append(Violation(
+                    type="REQUIRED_RECEIPT_DUPLICATE",
+                    record_ids=[did],
+                    message=f"Record '{did}' was consumed {cnt} times; the receipt policy requires one",
+                    details={"record_id": did, "consumed_count": cnt},
+                ))
+            elif config.idempotent:
                 d_topic = attempted_by_id[did][0].topic if did in attempted_by_id else None
                 d_part = attempted_by_id[did][0].partition if did in attempted_by_id else None
                 violations.append(Violation(
@@ -631,11 +659,7 @@ def verify_history(raw_data: Any, history_id_default: str = "history") -> CheckR
             else:
                 attempts = attempted_by_id.get(did, [])
                 has_ambiguous = any(a.status in ("ambiguous", "attempted") for a in attempts)
-                required_single = len(attempts) == 1 and (
-                    attempts[0].status == "acked" or
-                    (config.require_accepted_receipt and attempts[0].status == "accepted")
-                )
-                if not has_ambiguous and required_single:
+                if not has_ambiguous and len(attempts) == 1 and attempts[0].status == "acked":
                     violations.append(Violation(
                         type="UNEXPECTED_DUPLICATE",
                         record_ids=[did],
