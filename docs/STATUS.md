@@ -1,6 +1,6 @@
 # Status
 
-Updated 3 November 2026.
+Updated 5 November 2026.
 
 `partitionline` 0.1.0 is published on crates.io. This repository contains later
 changes and uses the latest stable Rust. The next client release must be at
@@ -28,6 +28,12 @@ run links and the limits of each result.
 | Broker default and all features | 734 and 882 tests passed, respectively. Clippy, docs, inventory and short fuzz supervision passed; the doctest commands found no tests. |
 | Client capability profiles | Both reported 93 passed cases. The compact reports do not qualify the SDK public runtime. |
 | Client format, Clippy, audit, documentation and package jobs | Passed. Other client and live-broker jobs failed or were skipped. |
+
+A [later main CI run][recent-ci] was canceled after client library failures;
+its partial results include stack overflows after the classic-join marker on
+Kafka 4.2.1 and 4.3.1. The broker and capabilities workflows passed at that commit. A closer
+classic-join witness also overflowed in both the baseline and boxed-library
+arms; it does not qualify the complete compatibility test.
 
 Earlier results and candidate runs are retained in the [work plan][next] and
 [previous status][previous]. A focused pass does not replace the full release
@@ -69,7 +75,8 @@ The [support matrix](support.md) describes configured coverage, and the
 [release guide](RELEASE.md) lists publication gates. No new release is ready.
 
 [ci]: https://github.com/mingley/partitionline/blob/399b349504a95fe5c4672f46d7f99c27bc978e6b/docs/evidence/releases/main-ci-45cb-20261103/README.md
-[next]: https://github.com/mingley/partitionline/blob/49ad56c6bce1366e2357c272f11c5c34160d60da/docs/plan/next-work.md
+[next]: https://github.com/mingley/partitionline/blob/767cc33acd4487141ba40ac80bb1b963bd72efad/docs/plan/next-work.md
 [previous]: https://github.com/mingley/partitionline/blob/5c2a000639d9a8a7dccd56e8c1d6f3a58dca1601/docs/STATUS.md
 [flush]: https://github.com/mingley/partitionline/blob/e980829c439aa43edc01312c91838e58a412221a/docs/evidence/client/producer-flush-native-86f2-20261103/README.md
 [txn]: https://github.com/mingley/partitionline/blob/49ad56c6bce1366e2357c272f11c5c34160d60da/docs/evidence/client/add-partitions-native-4f0c-20261103/README.md
+[recent-ci]: https://github.com/mingley/partitionline/blob/767cc33acd4487141ba40ac80bb1b963bd72efad/docs/evidence/releases/main-ci-19fef2c-20261103/README.md
