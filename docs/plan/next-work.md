@@ -420,6 +420,15 @@ The retained epoch-recovery timeout after 2,704 seconds remains unexplained.
 Successful exact-seed replays and different-limit diagnostics do not replace
 the failed campaign. No campaign is running.
 
+At `44c4a36cb`, the [resource-soak CI job](https://github.com/mingley/partitionline/actions/runs/42131240635/job/127608095571)
+failed its interrupted-run test because the validator found fewer than two host
+samples. The cause is unconfirmed. The test now waits for complete application
+and host samples before signaling and verifies that the attempt actually
+interrupted; it does not change the driver's evidence requirements. The
+[hosted control](https://github.com/mingley/partitionline/actions/runs/42132168250)
+built the driver and passed all 11 resource tests. Its temporary sample output
+was not retained; this is a focused test result, not a sustained campaign.
+
 Benchmark scope is this shared x86_64 host, without extra machines or an
 external operator. A source-bound, one-partition closed-loop diagnostic is
 prepared but unbuilt and unrun. Its supervisor has passing synthetic controls;
