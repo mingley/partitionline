@@ -33,6 +33,8 @@ def complete_rows(path):
 def interrupt_ready(raw, host):
     application = complete_rows(raw)
     telemetry = complete_rows(host)
+    if any(row.get("kind") == "sample" and row.get("final") is True for row in application):
+        raise ValueError("load completed before interrupt")
     for row in telemetry:
         if any(type(row.get(name)) is not int or row[name] < 0
                for name in ("rss_bytes", "threads", "socket_fds")):
@@ -114,6 +116,11 @@ class ResourceSoak(unittest.TestCase):
             child.send_signal(signal.SIGTERM)
             stdout,stderr = child.communicate(timeout=12)
             self.assertEqual(child.returncode,0,stdout+stderr)
+            manifest = json.loads((output/"manifest.json").read_text())
+            self.assertFalse(manifest["completed"])
+            self.assertEqual(len(manifest["attempts"]),1)
+            self.assertEqual(manifest["attempts"][0]["status"],"interrupted")
+            self.assertTrue(manifest["attempts"][0]["check"]["interrupted"])
         finally:
             if child.poll() is None:
                 child.kill()
@@ -134,6 +141,12 @@ class ResourceSoak(unittest.TestCase):
             self.assertFalse(interrupt_ready(raw, host))
             host.write_text(telemetry * 2)
             self.assertTrue(interrupt_ready(raw, host))
+            raw.write_text(sample * 3 + sample.rstrip("\n"))
+            self.assertFalse(interrupt_ready(raw, host))
+            raw.write_text(sample * 4 + json.dumps({"kind": "sample", "final": True}) + "\n")
+            with self.assertRaises(ValueError):
+                interrupt_ready(raw, host)
+            raw.write_text(sample * 4)
             host.write_text(telemetry + "{bad json}\n")
             with self.assertRaises(ValueError):
                 interrupt_ready(raw, host)
