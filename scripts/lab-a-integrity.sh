@@ -32,7 +32,7 @@ finish() {
 import hashlib,json,pathlib,sys
 root=pathlib.Path(sys.argv[1]); status=int(sys.argv[2])
 with (root/'run-status.json').open('x') as out:
- json.dump({'exit_status':status,'integrity_verified':status==0,'performance_claims_invalidated':status!=0,'qualification':False,'suite_hold':'active'},out,indent=2); out.write('\n')
+ json.dump({'exit_status':status,'integrity_verified':status==0,'performance_claims_invalidated':True,'qualification':False,'suite_hold':'active'},out,indent=2); out.write('\n')
 with (root/'SHA256SUMS').open('x') as out:
  for path in sorted(root.rglob('*')):
   if path.is_file() and path.name!='SHA256SUMS': out.write(hashlib.sha256(path.read_bytes()).hexdigest()+'  '+str(path.relative_to(root))+'\n')
@@ -77,20 +77,20 @@ for ((i=1; i<=RUNS; i++)); do
   printf '%s\n' "$produce_status" > "$run/produce.exit-status.txt"
   hw="$(lab_a_hw_sum)"
   printf '%s\n' "$hw" > "$run/hw-after.txt"
-  acked="$(python3 - "$run/produce.stdout.log" <<'PY'
+  reported_acked="$(python3 - "$run/produce.stdout.log" <<'PY'
 import json,sys
 rows=[json.loads(line) for line in open(sys.argv[1]) if line.startswith('{')]
 if not rows: raise SystemExit('produce JSON missing')
 row=rows[-1]
-if row.get('acks') not in (1,-1) or row.get('run_disposition')!='executed': raise SystemExit('producer not acknowledged or failed')
+if row.get('acks') not in (1,-1) or row.get('run_disposition')!='executed': raise SystemExit('producer acknowledgement mode or run status invalid')
 print(row['acked'])
 PY
 )"
-  [[ "$produce_status" == 0 && "$acked" == "$COUNT" ]] || { echo 'producer command/count failed; raw attempt retained' >&2; exit 1; }
+  [[ "$produce_status" == 0 && "$reported_acked" == "$COUNT" ]] || { echo 'producer command/count failed; raw attempt retained' >&2; exit 1; }
   # This producer is explicitly non-transactional; HW is an additional audit.
-  # Application counts and histories never derive from offsets. Transactional
-  # control offsets are validated as gaps by the history adapter, not records.
-  [[ "$((hw-before_hw))" == "$acked" ]] || { echo 'non-transactional HW audit failed; raw attempt retained' >&2; exit 1; }
+  # Application counts and histories never derive from offsets. The history
+  # adapter does not qualify transactional records or control-offset behavior.
+  [[ "$((hw-before_hw))" == "$reported_acked" ]] || { echo 'non-transactional HW audit failed; raw attempt retained' >&2; exit 1; }
   fetch_status=0
   RECORD_HISTORY="$run/consumer.jsonl" VERIFY=0 "$fetch_binary" > "$run/fetch.stdout.log" 2> "$run/fetch.stderr.log" || fetch_status=$?
   printf '%s\n' "$fetch_status" > "$run/fetch.exit-status.txt"

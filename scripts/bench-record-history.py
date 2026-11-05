@@ -88,6 +88,7 @@ def build_history(producer_path, consumer_path):
     acks = pc.get("acks")
     require(type(acks) is int and acks in (-1, 0, 1), "invalid producer acks")
     require(type(pc.get("idempotent")) is bool and type(pc.get("transactional")) is bool, "producer semantics missing")
+    require(not pc["transactional"], "transactional benchmark receipt histories are not supported")
     require(not pc["idempotent"] or acks == -1, "idempotent producer requires acks=-1")
     for key in ("topic", "seed", "payload_bytes", "partitions"):
         require(pc.get(key) == cc.get(key), f"producer/consumer {key} differs")
@@ -130,8 +131,8 @@ def build_history(producer_path, consumer_path):
         require(row.get("phase") == ("warmup" if identity < warmup else "measure"), "producer phase differs from warmup boundary")
     history = {
         "history_id": "benchmark-record-history",
-        "config": {"acks": acks, "idempotent": pc["idempotent"], "transactional": pc["transactional"], "isolation_level": cc["isolation_level"], "delivery": "partition"},
-        "attempted": [{**r, "status": "acked" if acks else "accepted", "attempt_index": i} for i, r in enumerate(attempted)],
+        "config": {"acks": acks, "idempotent": pc["idempotent"], "transactional": pc["transactional"], "isolation_level": cc["isolation_level"], "delivery": "partition", "require_accepted_receipt": True},
+        "attempted": [{**r, "attempt_index": i} for i, r in enumerate(attempted)],
         "consumed": consumed,
         "transactions": pc.get("transactions", []),
     }
@@ -167,7 +168,8 @@ def verify(producer_path, consumer_path):
             previous[partition] = order
     if not result["valid"]:
         result["summary"] = f'FAIL: benchmark record-history gate rejected {len(result["violations"])} violation(s)'
-    result.update(integrity_verified=result["valid"], performance_claims_invalidated=not result["valid"], qualification=False, suite_hold="active", acknowledged_throughput=history["config"]["acks"] != 0)
+    # Aggregate counters and independent receipt are not per-record acks.
+    result.update(integrity_verified=result["valid"], performance_claims_invalidated=True, performance_claims_valid=False, qualification=False, suite_hold="active", acknowledged_throughput=False, individual_acknowledgements_observed=False)
     return history, result
 
 

@@ -428,11 +428,14 @@ numbers limited to their settings, peers and architecture. The
 [benchmark contract](../benchmark-contract.md) governs broader claims.
 The producer example screens phase-end completion counters before stopping each
 timer; it is not a phase-isolation barrier. Individual outcomes and independent
-verification are still required.
-Its matched-bulk warmup and ID handling need a peer-matched verification
-method. The record-history converter currently labels accepted records as
-acknowledged from aggregate counters; preserve delivery and ordering checks
-while replacing that inference with actual per-record outcomes.
+verification are still required. Its matched-bulk warmup and ID handling need a
+peer-matched verification method. The record-history converter now keeps
+accepted status and uses a strict nontransactional receipt policy rather than
+inferring individual acknowledgements from aggregate counters. The [hosted
+controls](https://github.com/mingley/partitionline/actions/runs/42130958330)
+passed 45 generic and 27 benchmark/shell tests. Full benchmark replay still
+requires the original journals and offset fence, and eight-million-record
+memory and runtime remain unmeasured.
 The producer's pending queue can rescan deadlines and shift a vector on each
 small batch, creating quadratic work when a long queue drains one record at a
 time. Replica epoch publication rewrites the journal on epoch changes. Measure

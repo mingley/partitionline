@@ -112,17 +112,24 @@ big-endian seed, a global ID, and SplitMix filler, at the requested size.
 IDs continue through warmup and measurement. Records go round robin to
 explicit partitions, with one stable seeded key per partition.
 
-The consumer reads each partition to an independent end offset, then checks
-IDs, bytes, keys, and order. It still looks for duplicates after `COUNT`
-records. Record IDs are not Kafka offsets: a transaction marker can consume
-an offset without being an application record. The gate allows those gaps
-and rejects exposed control markers. The extra “high watermark equals acked
-count” check applies only to the non-transactional producer.
+The consumer reads each partition to an end offset, then checks IDs, bytes,
+keys, and order. It still looks for duplicates after `COUNT` records. Offsets
+can have gaps, and exposed control records are rejected. This harness uses a
+nontransactional producer; its receipt policy does not qualify transactions.
+The high-watermark check is an additional count check.
 
-`scripts/bench-record-history.py` rebuilds the expected payloads in Python
-and runs `scripts/check-record-history.py`. Matching totals are not enough
-if an ID was swapped or a payload was corrupted. A failed verdict sets
-`performance_claims_invalidated=true` and leaves the raw attempt in place.
+`scripts/bench-record-history.py` rebuilds expected payloads in Python and
+runs `scripts/check-record-history.py`. It keeps accepted records labeled as
+accepted and requires complete receipt and ordering for this benchmark. The
+policy is limited to unique, keyed, nontransactional histories with the
+history-v1 payload format; it is not a general Kafka acknowledgement check. It
+does not observe individual producer acknowledgements, so even a valid receipt
+verdict sets `performance_claims_invalidated=true` and leaves Suite HOLD
+active. Retain the original journals and offset fence: generic replay checks
+record relationships but does not repeat the full generator or fence checks.
+Verify that the strict receipt policy is present when replaying a saved history;
+a mutable history can remove it. Campaign-scale memory and runtime remain
+unmeasured.
 
 Without `RECORD_HISTORY`, the producer still uses seeded payloads and ID
 keys, but the output is unverified until another reader checks it. The

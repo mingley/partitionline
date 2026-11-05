@@ -312,10 +312,12 @@ in warmup and measurement. Enabling `RECORD_HISTORY` changes its key and
 payload modes. A qualifying comparison needs phase boundaries or a revised
 record stream matched across all peers.
 
-The current record-history converter also labels accepted records as
-acknowledged from aggregate counters. Do not use those labels as evidence of
-individual delivery outcomes. Repair the converter and preserve its delivery
-and ordering checks before using it to qualify acknowledged throughput.
+The record-history converter retains accepted status and checks complete
+receipt and ordering under a strict benchmark policy. It does not observe
+individual acknowledgements and marks performance claims invalid. Generic
+replay checks relationships in the saved history only; retain the original
+journals and offset fence and verify the policy separately. The eight-million-
+record verifier's memory and runtime have not been qualified.
 
 ## A missing feature is not a loss
 
