@@ -1,0 +1,47 @@
+name: inspect disposable quorum artifact
+on:
+  push:
+    branches: [qualification/quorum-41-trace-read-20261108]
+permissions:
+  actions: read
+  contents: read
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Download the retained disposable diagnostic
+        uses: actions/download-artifact@v7
+        with:
+          name: disposable-quorum-delete-diagnostic
+          run-id: 42453736306
+          github-token: ${{ github.token }}
+          repository: mingley/partitionline
+          path: ${{ runner.temp }}/disposable-diag
+      - name: Inspect only captured JSON, without executing artifact contents
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - "$RUNNER_TEMP/disposable-diag" <<'PY'
+          import json, pathlib, sys
+          root = pathlib.Path(sys.argv[1])
+          def read(name):
+              p = root / name
+              if not p.is_file() or p.stat().st_size > 4 * 1024 * 1024:
+                  raise SystemExit(f"missing or oversized {name}")
+              return json.loads(p.read_text())
+          result = read("result.json")
+          events = read("qdiag-events.json")
+          if result.get("delete_attempts") != 0 or result.get("minority_attempts") != 0:
+              raise SystemExit("unexpected fixture identity or attempts")
+          name = result["after"]
+          commands = {e.get("command") for e in events if (e.get("decoded") or {}).get("name_hex") == name.encode().hex()}
+          commands.discard(None)
+          print("INCOMPLETE SYNTHETIC FIXTURE: post-failover create only; no delete", flush=True)
+          print("synthetic_after_name", name, "distinct_commands", len(commands), flush=True)
+          for event in events:
+              if event.get("command") in commands:
+                  print("CAPTURED_EVENT", json.dumps(event, sort_keys=True), flush=True)
+          if not commands:
+              print("NO_MATCHING_CREATE_COMMAND: do not infer admission", flush=True)
+          PY
