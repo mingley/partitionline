@@ -69,8 +69,10 @@ pub struct Config {
     /// Explicit rolling backend. None preserves the flat monolithic layout.
     /// Rolling startup rejects legacy/mixed layouts rather than hiding records.
     /// File/index budgets include sealed generations, staging and replacement.
-    /// At most `max_stores` active files plus four transient actor files are
-    /// open; no sealed-reader cache or unbounded index mapping is retained.
+    /// Each active journal keeps a file and, on Unix, a separate inode pin.
+    /// Rolling stores also pin their directory. Temporary readers, staged syncs,
+    /// and replacement files require additional descriptors. No sealed-reader
+    /// cache or unbounded index mapping is retained.
     pub segment_limits: Option<segments::Limits>,
     /// Independent ordinary-record byte/count/work limits.
     pub record_limits: records::Limits,
@@ -1446,7 +1448,7 @@ struct PendingSync {
     part_at: usize,
     id: TopicId,
     index: i32,
-    file: std::fs::File,
+    file: journal::SyncFile,
     batch_count: usize,
     failed: bool,
     /// Log start read while the partition was staged. `None` means the log
@@ -2922,7 +2924,7 @@ mod tests {
             part_at: 0,
             id,
             index,
-            file: File::open("/dev/null").expect("null device"),
+            file: journal::SyncFile::untracked(File::open("/dev/null").expect("null device")),
             batch_count: 1,
             failed: false,
             log_start: Some(0),

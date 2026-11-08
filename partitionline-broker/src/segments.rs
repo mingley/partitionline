@@ -397,7 +397,6 @@ struct Manifest {
 /// at most three further files. Store must aggregate these bounds across logs.
 pub struct Log {
     directory: PathBuf,
-    _ownership: journal::DirectoryOwnership,
     limits: Limits,
     journal_limits: journal::Limits,
     fetch_entries: usize,
@@ -412,6 +411,8 @@ pub struct Log {
     poisoned: bool,
     #[cfg(test)]
     fault: Option<(Phase, bool)>,
+    // Release the directory reservation after the active journal closes.
+    _ownership: journal::DirectoryOwnership,
 }
 fn data_name(base: u64, generation: u64) -> String {
     format!("{base:016x}-{generation:016x}.journal")
