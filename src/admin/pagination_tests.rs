@@ -2294,7 +2294,9 @@ async fn dtp_requested_and_unnamed_after_conversion_checkpoint_keep_precedence()
                     let response = DescribeTopicPartitionsResponse::new(topics);
                     send_page(&mut socket, &header, &response).await.unwrap();
                     let next = dtp_request(&mut socket, None).await;
-                    send_page(&mut socket, &next, &page(42, None)).await.unwrap();
+                    send_page(&mut socket, &next, &page(42, None))
+                        .await
+                        .unwrap();
                 });
                 let result = admin
                     .describe_topics_with_partition_limit_timeout(
