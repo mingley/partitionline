@@ -86,7 +86,7 @@ for kind in ("producer", "encode"):
         if kind == "producer":
             limit = 100_000 if batch == 1 else 256
         else:
-            limit = 1_048_576 if batch == 1 else 4096
+            limit = 4_194_304 if batch == 1 else 4096
         required = 1
         for mode in ("implicit", "explicit"):
             for arm in ("baseline", "candidate"):

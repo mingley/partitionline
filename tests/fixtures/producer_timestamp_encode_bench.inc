@@ -11,7 +11,7 @@
             .expect("PL_BENCH_BATCH")
             .parse()
             .expect("integer batch");
-        assert!((1..=1_048_576).contains(&rounds));
+        assert!((1..=4_194_304).contains(&rounds));
         assert!(batch == 1 || batch == 4096);
         let topic = Arc::<str>::from("t");
         let records: Vec<Pending> = (0..batch).map(|_| {
