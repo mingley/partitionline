@@ -10,13 +10,13 @@ Production readiness and fastest-client/server claims remain unqualified.
 Client 0.1.0 is already published. The next client version must be at least
 0.2.0; broker and schema publication remain disabled.
 
-The latest complete recorded main [CI snapshot](../evidence/releases/main-ci-7f59-20261108/README.md)
-is `7f59ef470340db6027958f439df3716a8dde536c`. Client libraries reported
-2,195 passed and 25 failed on Linux default features, 2,194 passed and 26
-failed with all features, 2,197 passed and 23 failed on Windows, and 2,195
-passed and 25 failed on macOS arm64. Kafka compatibility and both smoke jobs
+The latest complete recorded main [CI snapshot](../evidence/releases/main-ci-ba8-20261108/README.md)
+is `ba8d72f51c23b4bfbd1057e61bbd483da831aa91`. Client libraries reported
+2,227 passed and 17 failed on Linux default features, 2,237 passed and seven
+failed with all features, 2,234 passed and 10 failed on Windows, and 2,229
+passed and 15 failed on macOS arm64. Kafka compatibility and both smoke jobs
 failed. Broker CI passed 739 default and 887 all-feature tests, Clippy,
-Rustdoc, inventory and fuzz supervision. These results predate the coordinator
+Rustdoc, inventory and fuzz supervision. These results predate the journal
 repair and do not close the release gates.
 
 The [coordinator repair](../evidence/client/group-coordinator-retirement-20261108/README.md)
@@ -32,8 +32,17 @@ performance diagnostic.
 
 [Journal ownership controls](../qualification/journal-ownership-2026-11-08.md)
 reproduced false inode-identity collisions for files, cursors and directories
-on one x86 Linux host. They did not identify the cause of the earlier quorum
-failure. A repair and broader qualification remain open.
+on one x86 Linux host. The [repair](../evidence/broker/journal-ownership-repair-20261108/README.md)
+pins inode identities through owner and staged-sync lifetimes. It passed both
+full broker test profiles, with the isolated descriptor diagnostics run
+separately. It adds descriptors and reference-count operations; process-wide
+descriptor limits and broader fault qualification remain open. The controls did
+not establish the cause of the earlier quorum failure.
+
+An [admission candidate](../evidence/broker/fetch-owned-admission-20261108/README.md)
+retains data permits through actor-owned requests and replies, but is unapplied.
+Its default all-target run failed a transport deadline test; the cause remains
+unknown. The all-feature suite and focused controls passed.
 
 Earlier records:
 
