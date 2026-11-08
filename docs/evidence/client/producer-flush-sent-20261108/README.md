@@ -2,7 +2,7 @@
 
 [Run 42467199386][run] exercises a producer error that is successfully sent
 to a flush response channel but never observed by that flush's caller. This is
-a gated observation of existing behavior, not a producer fix or a complete
+an instrumented observation of existing behavior, not a producer fix or a complete
 flush-error contract.
 
 The test uses a public `Producer` with one mock broker and one partition. A
