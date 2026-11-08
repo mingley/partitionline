@@ -32,8 +32,16 @@ else
 fi
 taskset -c "$CLIENT_CPU" "$driver" > "$out/driver.log" 2>&1 &
 driver_pid=$!
-(sleep 180; echo "driver watchdog timeout: outcome unknown" > "$out/timeout.txt";
- kill -TERM "$driver_pid" 2>/dev/null || true; sleep 5; kill -KILL "$driver_pid" 2>/dev/null || true) &
+(
+    sleep 180 & sleeper=$!
+    trap 'kill "$sleeper" 2>/dev/null || true' EXIT TERM
+    wait "$sleeper" || exit 0
+    echo "driver watchdog timeout: outcome unknown" > "$out/timeout.txt"
+    kill -TERM "$driver_pid" 2>/dev/null || true
+    sleep 5 & sleeper=$!
+    wait "$sleeper" || exit 0
+    kill -KILL "$driver_pid" 2>/dev/null || true
+) &
 watchdog=$!
 taskset -c "$SAMPLER_CPU" python3 benchmarks/peers/kafka-ack/socket_sample.py \
     "$driver_pid" 19092 "$out/sockets.json" > "$out/socket-sampler.log" 2>&1 &

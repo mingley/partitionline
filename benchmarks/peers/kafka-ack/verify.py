@@ -78,7 +78,7 @@ def verify_c_config(path):
         "queue.buffering.max.ms": "0", "batch.size": "1000000",
         "batch.num.messages": "1", "max.in.flight.requests.per.connection": "1",
         "queue.buffering.max.messages": "1000000", "queue.buffering.max.kbytes": "32768",
-        "compression.codec": "none", "message.timeout.ms": "30000", "message.max.bytes": "1048576",
+        "compression.codec": "none", "message.timeout.ms": "30000", "request.timeout.ms": "30000", "message.max.bytes": "1048576",
         "security.protocol": "plaintext", "allow.auto.create.topics": "false",
         "socket.nagle.disable": "true", "socket.timeout.ms": "30000",
         "socket.connection.setup.timeout.ms": "10000", "connections.max.idle.ms": "540000",

@@ -98,7 +98,7 @@ static void write_phase(FILE *f,const phase_t *p) {
 }
 static void effective(FILE *f,rd_kafka_t *rk) {
     /* Allowlist only: conf_dump includes passwords/private-key paths. */
-    static const char *keys[]={"request.required.acks","enable.idempotence","queue.buffering.max.ms","batch.size","batch.num.messages", "max.in.flight.requests.per.connection","queue.buffering.max.messages","queue.buffering.max.kbytes","compression.codec","message.timeout.ms","message.max.bytes","security.protocol","sasl.mechanisms","socket.nagle.disable","partitioner","sticky.partitioning.linger.ms","message.send.max.retries","retry.backoff.ms","socket.timeout.ms","socket.connection.setup.timeout.ms","connections.max.idle.ms","allow.auto.create.topics","builtin.features"};
+    static const char *keys[]={"request.required.acks","enable.idempotence","queue.buffering.max.ms","batch.size","batch.num.messages", "max.in.flight.requests.per.connection","queue.buffering.max.messages","queue.buffering.max.kbytes","compression.codec","message.timeout.ms","request.timeout.ms","message.max.bytes","security.protocol","sasl.mechanisms","socket.nagle.disable","partitioner","sticky.partitioning.linger.ms","message.send.max.retries","retry.backoff.ms","retry.backoff.max.ms","reconnect.backoff.ms","reconnect.backoff.max.ms","socket.timeout.ms","socket.connection.setup.timeout.ms","connections.max.idle.ms","allow.auto.create.topics","builtin.features"};
     rd_kafka_conf_t *copy=rd_kafka_conf_dup(rd_kafka_conf(rk));
     size_t n; const char **dump=rd_kafka_conf_dump(copy,&n); int comma=0;
     fputc('{',f); for(size_t i=0;i<n;i+=2) for(size_t j=0;j<sizeof keys/sizeof keys[0];j++) if(!strcmp(dump[i],keys[j])) {

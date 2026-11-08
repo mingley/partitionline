@@ -14,9 +14,10 @@ factor 1 and min.insync.replicas 1.
 Record generation precedes each per-record clock. Both drivers stop the
 phase clock before writing receipt files; Rust measures from send to future
 completion and librdkafka measures from produce call to the delivery
-callback. Runtime scheduling, allocation ownership and the callback boundary
-still differ. The phase throughput includes record generation and delivery
-handling. Percentiles are closed-loop call-to-completion samples and omit
+callback. The Rust driver allocates the record key before starting its
+per-call clock; librdkafka copies the key and value inside its call. Runtime
+scheduling and the callback boundary also differ. Phase throughput includes
+record generation and delivery handling. Percentiles are closed-loop call-to-completion samples and omit
 scheduled arrivals, so they cannot establish open-loop tail latency or
 saturation throughput.
 
@@ -24,8 +25,9 @@ A pinned Apache Kafka Java client uses direct partition assignment to read
 every record between independently queried fences. The Python verifier checks
 each acknowledged offset, key, value and header count. The fixture also
 samples each driver's established broker sockets every 50 ms; sampling cannot
-exclude short-lived extra connections. Queue limits and timeout semantics are
-not identical, despite matching nominal settings.
+exclude short-lived extra connections. Queue limits and retry, socket and
+timeout behavior are not identical, despite matching nominal settings. No failure or recovery performance is
+measured.
 
 An external watchdog stops a stuck attempt. Ambiguous deliveries are never
 retried; failed attempts and partial evidence are retained. No repository

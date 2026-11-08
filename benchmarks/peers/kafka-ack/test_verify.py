@@ -61,6 +61,26 @@ class IndependentAuditTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "headers"):
             self.check_receipts()
 
+    def test_broker_request_timeout_is_checked(self):
+        cfg = {
+            "request.required.acks": "-1", "enable.idempotence": "true",
+            "queue.buffering.max.ms": "0", "batch.size": "1000000",
+            "batch.num.messages": "1", "max.in.flight.requests.per.connection": "1",
+            "queue.buffering.max.messages": "1000000", "queue.buffering.max.kbytes": "32768",
+            "compression.codec": "none", "message.timeout.ms": "30000",
+            "request.timeout.ms": "30000", "message.max.bytes": "1048576",
+            "security.protocol": "plaintext", "allow.auto.create.topics": "false",
+            "socket.nagle.disable": "true", "socket.timeout.ms": "30000",
+            "socket.connection.setup.timeout.ms": "10000", "connections.max.idle.ms": "540000",
+        }
+        path = self.root / "c-config.json"
+        path.write_text(json.dumps(cfg), encoding="utf-8")
+        verify.verify_c_config(path)
+        cfg["request.timeout.ms"] = "60000"
+        path.write_text(json.dumps(cfg), encoding="utf-8")
+        with self.assertRaisesRegex(ValueError, "request.timeout.ms"):
+            verify.verify_c_config(path)
+
     def test_truncated_or_bad_ack_and_fence(self):
         self.rows[2][4] = "9"
         self.write_trace()
