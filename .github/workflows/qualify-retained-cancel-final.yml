@@ -1,0 +1,122 @@
+name: Qualification - formatted retained admission cancellation
+
+on:
+  push:
+    branches: ["qualification/retained-cancel-combined-20261108"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  controls:
+    strategy:
+      fail-fast: false
+      matrix:
+        profile: [default, all]
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    env:
+      PROFILE: ${{ matrix.profile }}
+      CARGO_TERM_COLOR: never
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+      - name: Record source, toolchain and runner
+        run: |
+          set -eu
+          rustc -Vv
+          cargo -V
+          uname -a
+          git rev-parse HEAD
+          git rev-parse HEAD:src/producer.rs
+          git rev-parse HEAD:tests/producer_retained_backing.rs
+          git rev-parse HEAD:tests/common/mod.rs
+          sha256sum src/producer.rs tests/producer_retained_backing.rs tests/common/mod.rs Cargo.lock
+          test "$(git rev-parse HEAD:tests/producer_retained_backing.rs)" = "cfed2ebbee2bc5594d79d4b80b72d93f40c1ebc0"
+          test "$(git rev-parse HEAD:tests/common/mod.rs)" = "4917e00407f79e764909ddd37816e096303e5900"
+          test "$(git rev-parse HEAD:src/producer.rs)" = "1e7733c136e54b532cdc8bddabd1e0c828e50ed2"
+          test "$(sha256sum src/producer.rs | cut -d ' ' -f1)" = "3d65fcceecbb43c1a974f7f6b7bd58c8a310930f6bcced9052a00e88700eb37f"
+          mkdir -p qualification-logs
+      - name: Unchanged-source channel controls
+        id: channel
+        run: |
+          set -euo pipefail
+          args=()
+          if test "$PROFILE" = all; then args+=(--all-features); fi
+          for trial in 1 2 3; do
+            CARGO_TARGET_DIR="$GITHUB_WORKSPACE/target/retained-positive-$PROFILE" cargo +stable test --locked "${args[@]}" --test producer_retained_backing channel -- --test-threads=1 --nocapture 2>&1 | tee "qualification-logs/channel-$trial.log"
+            grep -F "test result: ok. 2 passed; 0 failed" "qualification-logs/channel-$trial.log"
+          done
+      - name: Full retained-backing test file
+        id: full
+        if: steps.channel.outcome == 'success'
+        run: |
+          set -euo pipefail
+          args=()
+          if test "$PROFILE" = all; then args+=(--all-features); fi
+          CARGO_TARGET_DIR="$GITHUB_WORKSPACE/target/retained-positive-$PROFILE" cargo +stable test --locked "${args[@]}" --test producer_retained_backing -- --test-threads=1 --nocapture 2>&1 | tee qualification-logs/full.log
+      - name: Producer cancellation regression tests
+        id: cancellation
+        if: steps.full.outcome == 'success'
+        run: |
+          set -euo pipefail
+          args=()
+          if test "$PROFILE" = all; then args+=(--all-features); fi
+          CARGO_TARGET_DIR="$GITHUB_WORKSPACE/target/retained-positive-$PROFILE" cargo +stable test --locked "${args[@]}" --test produce_cancel -- --test-threads=1 --nocapture 2>&1 | tee qualification-logs/produce-cancel.log
+      - name: Inject qualification-only omission and double release faults
+        id: negative_setup
+        if: always()
+        run: |
+          set -euo pipefail
+          python3 docs/evidence/client/producer-retained-cancel-20261108/inject_negative.py
+          git diff -- src/producer.rs | tee qualification-logs/injected.patch
+      - name: Fault controls
+        if: always() && steps.negative_setup.outcome == 'success'
+        run: |
+          set -euo pipefail
+          args=()
+          if test "$PROFILE" = all; then args+=(--all-features); fi
+          for fault in omit double; do
+            set +e
+            PL_RETAINED_NEGATIVE="$fault" CARGO_TARGET_DIR="$GITHUB_WORKSPACE/target/retained-negative-$PROFILE" cargo +stable test --locked "${args[@]}" --test producer_retained_backing cancelled_channel_admission_releases_only_the_unenqueued_reservation -- --exact --test-threads=1 --nocapture > "qualification-logs/$fault.log" 2>&1
+            code=$?
+            set -e
+            cat "qualification-logs/$fault.log"
+            echo "FAULT=$fault EXIT=$code"
+            test "$code" = 101
+            FAULT="$fault" python3 docs/evidence/client/producer-retained-cancel-20261108/check_negative.py "qualification-logs/$fault.log"
+          done
+      - name: Retain output
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: retained-cancel-${{ matrix.profile }}
+          path: qualification-logs
+          retention-days: 30
+  lint:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - name: Source provenance
+        run: |
+          set -eu
+          rustc -Vv
+          git rev-parse HEAD
+          git rev-parse HEAD:src/producer.rs
+          git rev-parse HEAD:tests/producer_retained_backing.rs
+          git rev-parse HEAD:tests/common/mod.rs
+          test "$(git rev-parse HEAD:src/producer.rs)" = "1e7733c136e54b532cdc8bddabd1e0c828e50ed2"
+          test "$(git rev-parse HEAD:tests/producer_retained_backing.rs)" = "cfed2ebbee2bc5594d79d4b80b72d93f40c1ebc0"
+          test "$(git rev-parse HEAD:tests/common/mod.rs)" = "4917e00407f79e764909ddd37816e096303e5900"
+      - name: Stable formatting
+        run: cargo +stable fmt --all -- --check
+      - name: Strict all-target all-feature Clippy
+        if: always()
+        run: cargo +stable clippy --locked --all-targets --all-features -- -D warnings
