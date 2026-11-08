@@ -7281,6 +7281,24 @@ impl Drop for WorkerLease {
     }
 }
 
+/// Test-only observation of a flush error sent into a live oneshot.
+#[cfg(flush_sent_witness)]
+#[doc(hidden)]
+pub mod flush_sent_witness {
+    use tokio::sync::Notify;
+
+    static ERROR_SENT: Notify = Notify::const_new();
+
+    /// Wait for the worker's successful error publication.
+    pub async fn observed() {
+        ERROR_SENT.notified().await;
+    }
+
+    pub(super) fn record() {
+        ERROR_SENT.notify_one();
+    }
+}
+
 struct Worker {
     id: Arc<()>,
     admission: Arc<WorkerAdmission>,
@@ -8109,7 +8127,15 @@ impl Worker {
                             self.drain_inflight().await;
                             match c {
                                 Ctrl::Flush(tx) | Ctrl::Close(tx) => {
-                                    drop(tx.send(self.take_fail()));
+                                    let result = self.take_fail();
+                                    #[cfg(flush_sent_witness)]
+                                    let is_error = result.is_err();
+                                    let sent = tx.send(result);
+                                    #[cfg(flush_sent_witness)]
+                                    if is_error && sent.is_ok() {
+                                        flush_sent_witness::record();
+                                    }
+                                    drop(sent);
                                 }
                                 Ctrl::Reconnect => {}
                             }
