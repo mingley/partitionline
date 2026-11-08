@@ -169,7 +169,11 @@ latency bound.
   propagation, controller queue accounting and a process-wide memory bound
   remain open. The in-memory [quota clock fix][quota-clock] clamps stale
   timestamps to the latest observed time; caller-supplied future times remain
-  trusted. Kafka wire throttling and server-wide fairness are still open.
+  trusted. A [quota error mapping fix][quota-map] stops labeling every local
+  refusal as Kafka error 89. This changes behavior for Git consumers. Focused
+  controls passed, but both full broker candidate suites stopped on Raft or
+  quorum failures; their causes remain unknown. Kafka wire throttling and
+  server-wide fairness are still open.
   A [Produce cancellation fix][cancel] removes unsynced stages
   at a scoped boundary; rolling storage can retain a durable prefix. The
   [data admission repair][admission] keeps permits with actor-owned work and
@@ -262,7 +266,7 @@ retained evidence. The [benchmark contract](benchmark-contract.md) and
 [interop-peer]: https://github.com/mingley/partitionline/blob/89a8e2e5ae2ab28942be66c8bd7e0390032b4450/docs/evidence/client/broker-interop-peer-types-20261108/README.md
 [ci-262]: https://github.com/mingley/partitionline/blob/cb55f7c603e2344775de8a395c6a584737f5bb95/docs/evidence/releases/main-ci-262-20261108/README.md
 [ci-02c]: https://github.com/mingley/partitionline/blob/0ce81683fe7107386e30f388cd2a4af31735d522/docs/evidence/releases/main-ci-02c-20261108/README.md
-[next]: https://github.com/mingley/partitionline/blob/89a8e2e5ae2ab28942be66c8bd7e0390032b4450/docs/plan/next-work.md
+[next]: https://github.com/mingley/partitionline/blob/e69b81e83db26264d2197a907b5b4dcca558fe0a/docs/plan/next-work.md
 [flush-public]: https://github.com/mingley/partitionline/blob/f93e91499e2ba6bdc88c0a25a0d83b8737d00d3c/docs/evidence/client/producer-flush-public-20261108/README.md
 [flush-sent]: https://github.com/mingley/partitionline/blob/efa7f23314e98f3aaa4559c3cf38302bdcdb9fb4/docs/evidence/client/producer-flush-sent-20261108/README.md
 [owner-design]: https://github.com/mingley/partitionline/blob/cb55f7c603e2344775de8a395c6a584737f5bb95/docs/evidence/client/producer-ownership-design-20261108/README.md
@@ -334,6 +338,7 @@ retained evidence. The [benchmark contract](benchmark-contract.md) and
 
 [ci-74]: https://github.com/mingley/partitionline/blob/a3abed795162f380336e87b49a5260cf58325c3d/docs/evidence/releases/main-ci-74dd-20261108/README.md
 [quota-clock]: https://github.com/mingley/partitionline/blob/bd37eb53e247b73160da8bbbb2cf53f9d77eb6c3/docs/evidence/broker/quota-logical-clock-20261108/README.md
+[quota-map]: https://github.com/mingley/partitionline/blob/e69b81e83db26264d2197a907b5b4dcca558fe0a/docs/evidence/broker/quota-wire-boundary-20261108/README.md
 [admin-growth]: https://github.com/mingley/partitionline/blob/bd37eb53e247b73160da8bbbb2cf53f9d77eb6c3/docs/evidence/client/admin-dtp-index-growth-20261108/README.md
 
 [ci-f5]: https://github.com/mingley/partitionline/blob/6667a8df9205f5ae9efe5d648ec21c0e997afb32/docs/evidence/releases/main-ci-f5ed-partial-20261108/README.md
