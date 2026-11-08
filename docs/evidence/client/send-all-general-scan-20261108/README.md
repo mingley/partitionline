@@ -63,8 +63,13 @@ toolchain and hasher, not a promised `HashSet` iteration order.
 Retaining every existing nudge yield also limits scalability. For an
 uninterrupted batch of `n` homogeneous records and chunk size 8,192, the
 suffix scans contain approximately `n² / (2 * 8192)` full chunks and yields.
-Reducing work inside each chunk helps, but this remains quadratic in chunk
-count for very large batches.
+For example, with 1,000,000 records and no metadata split or early failure,
+preserving these suffix yields would require 60,535,546 nudge yields and
+61,535,424 representative checks, before collection yields. These are counts
+from the loop structure, not measured timings. Reducing work inside each
+chunk helps, but this remains quadratic in chunk count for very large batches.
+A design must also recompute suffix lengths after metadata splitting and handle
+the separately nudged ready list and sticky routing.
 
 Before applying any such design, controls would need to exercise iterator
 ownership and cancellation at the original yields, 31/32 and 8,191/8,192/8,193
