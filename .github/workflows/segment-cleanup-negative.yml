@@ -76,14 +76,11 @@ jobs:
                       removed += 1;
                   }
           """
-          old = "\n".join(line[10:] if line.startswith("          ") else line for line in old.split("\n"))
-          new = "\n".join(line[10:] if line.startswith("          ") else line for line in new.split("\n"))
           assert text.count(old) == 1
           text = text.replace(old, new, 1)
           needle = """        SORT_CLEANUP_FOR_TEST.with(|sort| sort.set(true));
                   assert!(matches!(open(&path), Err(Error::InvalidLayout)));
           """
-          needle = "\n".join(line[10:] if line.startswith("          ") else line for line in needle.split("\n"))
           assert text.count(needle) == 1
           text = text.replace(needle, needle + '        assert!(path.join(MANIFEST_TEMP).try_exists()?, "PL_STAGING_DELETED_BEFORE_CLASSIFICATION");\n', 1)
           p.write_text(text)
