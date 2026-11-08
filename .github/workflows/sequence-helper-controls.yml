@@ -1,0 +1,47 @@
+name: sequence-helper-controls
+on:
+  push:
+    branches: [qual/sequence-helper-controls-20261108]
+jobs:
+  controls:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        profile: [default, all]
+    env:
+      PL_PROFILE: ${{ matrix.profile }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+      - name: Source and runner identity
+        run: |
+          git rev-parse HEAD
+          sha256sum src/producer.rs Cargo.lock
+          rustc -Vv
+          lscpu
+      - name: Real helper observations and regression contracts
+        shell: bash
+        run: |
+          set -euo pipefail
+          args=()
+          if [[ "$PL_PROFILE" == all ]]; then args=(--all-features); fi
+          cargo test --locked --lib "${args[@]}" producer::tests::sequence_identity_helpers_observe_numeric_base_collision -- --exact --nocapture
+          for testname in sequence_identity_readiness_contract sequence_identity_selection_contract; do
+            logfile="$RUNNER_TEMP/$testname.log"
+            if cargo test --locked --lib "${args[@]}" "producer::tests::$testname" -- --exact --nocapture >"$logfile" 2>&1; then
+              cat "$logfile"
+              echo "Expected existing helper contract violation: $testname"
+              exit 1
+            fi
+            cat "$logfile"
+            grep -F "test producer::tests::$testname ... FAILED" "$logfile"
+          done
+          grep -F "a different partition is not part of the first batch" "$RUNNER_TEMP/sequence_identity_readiness_contract.log"
+          grep -F "selection must hold or carry the complete first batch, selected 1" "$RUNNER_TEMP/sequence_identity_selection_contract.log"
+      - name: Strict source formatting check
+        if: always()
+        run: rustfmt --edition=2021 --check src/producer.rs
