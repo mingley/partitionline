@@ -5703,7 +5703,7 @@ mod ownership_tests {
             return Err("expected four remote voters".into());
         }
         for full in [false, true] {
-            let iterations = 200usize;
+            let iterations = if full { 2_000usize } else { 1_000_000usize };
             let mut elapsed = 0u128;
             for _ in 0..iterations {
                 if full {
