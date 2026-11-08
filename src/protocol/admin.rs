@@ -1026,6 +1026,16 @@ fn put_i32_array(buf: &mut BytesMut, flexible: bool, items: &[i32]) -> crate::er
     Ok(())
 }
 
+// Peer-declared counts are only checked against remaining wire bytes. Limit
+// the initial reservation until elements have actually been decoded. This is
+// not a limit on the final response size or on aggregate process memory.
+fn response_vec<T>(count: usize) -> Vec<T> {
+    const INITIAL_RESPONSE_BYTES: usize = 16 * 1024;
+    let element_size = std::mem::size_of::<T>().max(1);
+    let initial_items = (INITIAL_RESPONSE_BYTES / element_size).max(1);
+    Vec::with_capacity(count.min(initial_items))
+}
+
 fn get_i32_array<B: Buf>(buf: &mut B, flexible: bool) -> Result<Vec<i32>> {
     let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);
     let mut out = Vec::with_capacity(n);
@@ -1831,7 +1841,7 @@ pub fn decode_create_topics_response<B: Buf>(
     let flexible = create_topics_flexible(version)?;
     let throttle_time_ms = if version >= 2 { buf::get_i32(buf)? } else { 0 };
     let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);
-    let mut out = Vec::with_capacity(n);
+    let mut out = response_vec(n);
     for _ in 0..n {
         let name = buf::get_string(buf, flexible)?.unwrap_or_default();
         let topic_id = if version >= 7 {
@@ -1849,7 +1859,7 @@ pub fn decode_create_topics_response<B: Buf>(
             let num_partitions = buf::get_i32(buf)?;
             let replication_factor = buf::get_i16(buf)?;
             let cn = buf::get_array_len(buf, true)?.unwrap_or(0);
-            let mut configs = Vec::with_capacity(cn);
+            let mut configs = response_vec(cn);
             for _ in 0..cn {
                 let cname = buf::get_compact_string(buf)?.unwrap_or_default();
                 let value = buf::get_compact_string(buf)?;
@@ -1896,7 +1906,7 @@ pub async fn decode_create_topics_response_cooperative<B: Buf>(
     let flexible = create_topics_flexible(version)?;
     let throttle_time_ms = if version >= 2 { buf::get_i32(buf)? } else { 0 };
     let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);
-    let mut out = Vec::with_capacity(n);
+    let mut out = response_vec(n);
     let mut walked = 0usize;
     for _ in 0..n {
         let name = buf::get_string(buf, flexible)?.unwrap_or_default();
@@ -1915,7 +1925,7 @@ pub async fn decode_create_topics_response_cooperative<B: Buf>(
             let num_partitions = buf::get_i32(buf)?;
             let replication_factor = buf::get_i16(buf)?;
             let cn = buf::get_array_len(buf, true)?.unwrap_or(0);
-            let mut configs = Vec::with_capacity(cn);
+            let mut configs = response_vec(cn);
             for _ in 0..cn {
                 let cname = buf::get_compact_string(buf)?.unwrap_or_default();
                 let value = buf::get_compact_string(buf)?;
@@ -2672,7 +2682,7 @@ pub fn decode_delete_topics_response<B: Buf>(
     let flexible = delete_topics_flexible(version)?;
     let throttle_time_ms = if version >= 1 { buf::get_i32(buf)? } else { 0 };
     let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);
-    let mut out = Vec::with_capacity(n);
+    let mut out = response_vec(n);
     for _ in 0..n {
         let (name, topic_id) = if version >= 6 {
             let name = buf::get_compact_string(buf)?.unwrap_or_default();
@@ -2719,7 +2729,7 @@ pub async fn decode_delete_topics_response_cooperative<B: Buf>(
     let flexible = delete_topics_flexible(version)?;
     let throttle_time_ms = if version >= 1 { buf::get_i32(buf)? } else { 0 };
     let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);
-    let mut out = Vec::with_capacity(n);
+    let mut out = response_vec(n);
     let mut walked = 0usize;
     for _ in 0..n {
         let (name, topic_id) = if version >= 6 {
@@ -3364,14 +3374,14 @@ pub fn decode_describe_configs_response<B: Buf>(
     let flexible = describe_configs_flexible(version)?;
     let throttle_time_ms = buf::get_i32(buf)?;
     let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);
-    let mut out = Vec::with_capacity(n);
+    let mut out = response_vec(n);
     for _ in 0..n {
         let error_code = buf::get_i16(buf)?;
         let error_message = buf::get_string(buf, flexible)?;
         let resource_type = buf::get_i8(buf)?;
         let name = buf::get_string(buf, flexible)?.unwrap_or_default();
         let en = buf::get_array_len(buf, flexible)?.unwrap_or(0);
-        let mut entries = Vec::with_capacity(en);
+        let mut entries = response_vec(en);
         for _ in 0..en {
             let ename = buf::get_string(buf, flexible)?.unwrap_or_default();
             let value = buf::get_string(buf, flexible)?;
@@ -3389,7 +3399,7 @@ pub fn decode_describe_configs_response<B: Buf>(
             let mut synonyms = Vec::new();
             if version >= 1 {
                 let sn = buf::get_array_len(buf, flexible)?.unwrap_or(0);
-                synonyms.reserve(sn);
+                synonyms = response_vec(sn);
                 for _ in 0..sn {
                     let sname = buf::get_string(buf, flexible)?.unwrap_or_default();
                     let svalue = buf::get_string(buf, flexible)?;
@@ -3450,7 +3460,7 @@ pub async fn decode_describe_configs_response_cooperative<B: Buf>(
     let flexible = describe_configs_flexible(version)?;
     let throttle_time_ms = buf::get_i32(buf)?;
     let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);
-    let mut out = Vec::with_capacity(n);
+    let mut out = response_vec(n);
     let mut walked = 0usize;
     for _ in 0..n {
         let error_code = buf::get_i16(buf)?;
@@ -3458,7 +3468,7 @@ pub async fn decode_describe_configs_response_cooperative<B: Buf>(
         let resource_type = buf::get_i8(buf)?;
         let name = buf::get_string(buf, flexible)?.unwrap_or_default();
         let en = buf::get_array_len(buf, flexible)?.unwrap_or(0);
-        let mut entries = Vec::with_capacity(en);
+        let mut entries = response_vec(en);
         for _ in 0..en {
             let ename = buf::get_string(buf, flexible)?.unwrap_or_default();
             let value = buf::get_string(buf, flexible)?;
@@ -3476,7 +3486,7 @@ pub async fn decode_describe_configs_response_cooperative<B: Buf>(
             let mut synonyms = Vec::new();
             if version >= 1 {
                 let sn = buf::get_array_len(buf, flexible)?.unwrap_or(0);
-                synonyms.reserve(sn);
+                synonyms = response_vec(sn);
                 for _ in 0..sn {
                     let sname = buf::get_string(buf, flexible)?.unwrap_or_default();
                     let svalue = buf::get_string(buf, flexible)?;
@@ -4204,7 +4214,7 @@ pub fn decode_create_partitions_response<B: Buf>(
     let flexible = create_partitions_flexible(version)?;
     let throttle_time_ms = buf::get_i32(buf)?;
     let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);
-    let mut out = Vec::with_capacity(n);
+    let mut out = response_vec(n);
     for _ in 0..n {
         let name = buf::get_string(buf, flexible)?.unwrap_or_default();
         let error_code = buf::get_i16(buf)?;
@@ -4230,7 +4240,7 @@ pub async fn decode_create_partitions_response_cooperative<B: Buf>(
     let flexible = create_partitions_flexible(version)?;
     let throttle_time_ms = buf::get_i32(buf)?;
     let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);
-    let mut out = Vec::with_capacity(n);
+    let mut out = response_vec(n);
     let mut walked = 0usize;
     for _ in 0..n {
         let name = buf::get_string(buf, flexible)?.unwrap_or_default();
@@ -5258,7 +5268,7 @@ pub fn decode_incremental_alter_configs_resource_results<B: Buf>(
     let flexible = incremental_alter_configs_flexible(version)?;
     let throttle_time_ms = buf::get_i32(buf)?;
     let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);
-    let mut out = Vec::with_capacity(n);
+    let mut out = response_vec(n);
     for _ in 0..n {
         let error_code = buf::get_i16(buf)?;
         let error_message = buf::get_string(buf, flexible)?;
@@ -5290,7 +5300,7 @@ pub async fn decode_incremental_alter_configs_resource_results_cooperative<B: Bu
     let flexible = incremental_alter_configs_flexible(version)?;
     let throttle_time_ms = buf::get_i32(buf)?;
     let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);
-    let mut out = Vec::with_capacity(n);
+    let mut out = response_vec(n);
     let mut walked = 0usize;
     for _ in 0..n {
         let error_code = buf::get_i16(buf)?;
@@ -6049,7 +6059,7 @@ pub fn decode_alter_configs_resource_results<B: Buf>(
     let flexible = alter_configs_flexible(version)?;
     let throttle_time_ms = buf::get_i32(buf)?;
     let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);
-    let mut out = Vec::with_capacity(n);
+    let mut out = response_vec(n);
     for _ in 0..n {
         let error_code = buf::get_i16(buf)?;
         let error_message = buf::get_string(buf, flexible)?;
@@ -6081,7 +6091,7 @@ pub async fn decode_alter_configs_resource_results_cooperative<B: Buf>(
     let flexible = alter_configs_flexible(version)?;
     let throttle_time_ms = buf::get_i32(buf)?;
     let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);
-    let mut out = Vec::with_capacity(n);
+    let mut out = response_vec(n);
     let mut walked = 0usize;
     for _ in 0..n {
         let error_code = buf::get_i16(buf)?;
@@ -6799,11 +6809,11 @@ pub fn decode_delete_records_topics_response<B: Buf>(
     let flexible = delete_records_flexible(version)?;
     let throttle_time_ms = buf::get_i32(buf)?;
     let tn = buf::get_array_len(buf, flexible)?.unwrap_or(0);
-    let mut topics = Vec::with_capacity(tn);
+    let mut topics = response_vec(tn);
     for _ in 0..tn {
         let topic = buf::get_string(buf, flexible)?.unwrap_or_default();
         let pn = buf::get_array_len(buf, flexible)?.unwrap_or(0);
-        let mut partitions = Vec::with_capacity(pn);
+        let mut partitions = response_vec(pn);
         for _ in 0..pn {
             let partition = buf::get_i32(buf)?;
             let low_watermark = buf::get_i64(buf)?;
@@ -6838,12 +6848,12 @@ pub async fn decode_delete_records_topics_response_cooperative<B: Buf>(
     let flexible = delete_records_flexible(version)?;
     let throttle_time_ms = buf::get_i32(buf)?;
     let tn = buf::get_array_len(buf, flexible)?.unwrap_or(0);
-    let mut topics = Vec::with_capacity(tn);
+    let mut topics = response_vec(tn);
     let mut walked = 0usize;
     for _ in 0..tn {
         let topic = buf::get_string(buf, flexible)?.unwrap_or_default();
         let pn = buf::get_array_len(buf, flexible)?.unwrap_or(0);
-        let mut partitions = Vec::with_capacity(pn);
+        let mut partitions = response_vec(pn);
         for _ in 0..pn {
             let partition = buf::get_i32(buf)?;
             let low_watermark = buf::get_i64(buf)?;
