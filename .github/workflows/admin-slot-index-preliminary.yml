@@ -1,0 +1,52 @@
+name: Admin slot-index prototype preliminary compile and formatting
+on:
+  push:
+    branches: [qualification/admin-dtp-slot-index-20261108]
+permissions:
+  contents: read
+jobs:
+  format:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Show formatting changes
+        run: |
+          set -euo pipefail
+          cargo fmt --all
+          git diff -- src/admin.rs src/admin/pagination_tests.rs
+  tests:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        feature: [default, all]
+    env:
+      CARGO_INCREMENTAL: '0'
+      CARGO_TERM_COLOR: never
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Record draft source pins
+        run: |
+          set -euo pipefail
+          git rev-parse HEAD HEAD:src/admin.rs HEAD:src/admin/pagination_tests.rs HEAD:Cargo.toml HEAD:Cargo.lock
+          sha256sum src/admin.rs src/admin/pagination_tests.rs Cargo.toml Cargo.lock
+          rustc -Vv
+      - name: Run collision and slot controls with locked dependencies
+        run: |
+          set -euo pipefail
+          if test "${{ matrix.feature }}" = all; then
+            cargo test --locked --all-features --lib dtp_slot_index_ -- --test-threads=1
+          else
+            cargo test --locked --lib dtp_slot_index_ -- --test-threads=1
+          fi
+      - name: Run existing Admin pagination module
+        run: |
+          set -euo pipefail
+          if test "${{ matrix.feature }}" = all; then
+            cargo test --locked --all-features --lib admin::pagination_tests:: -- --test-threads=1
+          else
+            cargo test --locked --lib admin::pagination_tests:: -- --test-threads=1
+          fi
