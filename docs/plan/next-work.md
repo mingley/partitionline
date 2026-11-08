@@ -10,17 +10,20 @@ Production readiness and fastest-client/server claims remain unqualified.
 Client 0.1.0 is already published. The next client version must be at least
 0.2.0; broker and schema publication remain disabled.
 
-The latest complete recorded main [CI snapshot](../evidence/releases/main-ci-60c-20261108/README.md)
-is `60caa746c3654c89d01557e35e1100cdc2a84b74`. Client libraries reported
-2,224 passed and 20 failed on Linux default features, 2,225 passed and 19
-failed with all features, 2,231 passed and 13 failed on Windows, and 2,233
-passed and 11 failed on macOS arm64. Three Kafka compatibility jobs and both
-smoke jobs failed; resource-soak passed. Broker CI passed 773 default and 921
-all-feature tests, with four ignored per profile, plus strict checks, inventory
-and fuzz supervision. Both selected capability profiles passed; their archives
-were not independently inspected.
+The latest complete recorded main [CI snapshot](../evidence/releases/main-ci-c7-20261108/README.md)
+is `c7a91ce50cd231bb7d85e90297d98344e5a98dec`. Client libraries reported
+2,225 passed and 19 failed in each Linux profile, 2,214 passed and 30 failed
+on Windows, and 2,233 passed and 11 failed on macOS arm64. Three Kafka
+compatibility jobs and both smoke jobs failed; resource-soak passed. Broker CI
+passed 773 default and 921 all-feature tests, with four ignored per profile,
+plus strict checks, inventory and fuzz supervision. Both selected capability
+profiles passed; their archives were not independently inspected.
 
-The [preceding snapshot](../evidence/releases/main-ci-262-20261108/README.md)
+The [preceding snapshot](../evidence/releases/main-ci-60c-20261108/README.md)
+also failed client checks and passed broker checks. These source commits differ
+only in documentation.
+
+An [earlier snapshot](../evidence/releases/main-ci-262-20261108/README.md)
 recorded a `/proc` file-descriptor permission error in resource-soak, leaving
 that workload incomplete. Broker CI stopped in the default profile at 696
 passed, one failed and four ignored after a three-node Raft `NotLeader`
@@ -321,7 +324,12 @@ remain open.
    callbacks were observed and 65,544 bytes stayed counted. In a separate
    forced worker abort, a replacement task sent the next batch with a sequence
    gap and the repository mock returned error 45. The gate changes scheduling;
-   neither observation is a real-Kafka history. Seeded private
+   neither observation is a real-Kafka history. An
+   [in-flight close control](../evidence/client/producer-inflight-close-callback-20261108/README.md)
+   showed a blocking error interceptor delaying a 150 ms close to 751 ms on a
+   current-thread runtime while a registered timer was also delayed. The
+   record had been appended by the mock but its response was withheld. This
+   is a controlled mock history, not a general latency result. Seeded private
    [rollover controls](../evidence/client/producer-sequence-rollover-20261108/README.md)
    confirm saturation where Kafka sequence arithmetic wraps. In a separate
    seeded public mock history, two different sends returned success at the
