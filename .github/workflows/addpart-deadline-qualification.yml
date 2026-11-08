@@ -1,0 +1,133 @@
+name: AddPartitions retry deadline control
+
+on:
+  push:
+    branches: [qualification/addpart-deadline-b631-20261108]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: addpart-deadline-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  witness:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    env:
+      CARGO_BUILD_JOBS: '2'
+      CARGO_INCREMENTAL: '0'
+      CARGO_PROFILE_DEV_DEBUG: '0'
+      CARGO_PROFILE_TEST_DEBUG: '0'
+      CARGO_TERM_COLOR: never
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: b631809f0e03ba6f65f808e51d8e47e3fd9380d1
+          path: base
+          persist-credentials: false
+          sparse-checkout: |
+            .cargo
+            src
+            tests
+            examples
+            docs/evidence/client/add-partitions-coverage-20261103
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.sha }}
+          path: controls
+          persist-credentials: false
+          sparse-checkout: |
+            docs/evidence/client/addpart-deadline-20261108
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Check pins and instrument the controlled deadline crossing
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/addpart-deadline-evidence"
+          export CARGO_TARGET_DIR="$RUNNER_TEMP/addpart-deadline-target"
+          test ! -e "$CARGO_TARGET_DIR"
+          printf 'CARGO_TARGET_DIR=%s\n' "$CARGO_TARGET_DIR" >> "$GITHUB_ENV"
+          test "$RUNNER_ARCH" = X64
+          rustc +stable -vV
+          cargo +stable -V
+          cd "$GITHUB_WORKSPACE/base"
+          test "$(git rev-parse HEAD)" = b631809f0e03ba6f65f808e51d8e47e3fd9380d1
+          patch=docs/evidence/client/add-partitions-coverage-20261103/candidate-v3.patch
+          witness="$GITHUB_WORKSPACE/controls/docs/evidence/client/addpart-deadline-20261108/witness.rs"
+          sha256sum src/producer.rs "$patch" "$witness" | tee "$RUNNER_TEMP/addpart-deadline-evidence/pins.log"
+          printf '%s  %s\n' \
+            fd4ebd8230be5d82ab245283478b916dc92cb7160dfb84a755b8c94bd3259bd9 src/producer.rs \
+            5e356bd2d7616354de4a3e60ebd23bd12104bc4a9d8a29cc65cbd258f38d8cfe "$patch" \
+            7100ae56ccc64d3bff5a04bb80dab04e4169f04b4fe8d3b865e04f4c6d83d750 "$witness" | sha256sum --check -
+          git apply --check "$patch"
+          git apply "$patch"
+          printf '%s  %s\n' ab5a88887a1a2621084403631c7d361f3c323fc11430fe30d3c251e94735c2bb src/producer.rs | sha256sum --check -
+          mkdir -p src/producer
+          cp "$witness" src/producer/add_partitions_retry_deadline.rs
+          python3 -B - <<'PYCODE'
+          from pathlib import Path
+          import hashlib
+
+          path = Path("src/producer.rs")
+          source = path.read_text()
+          start = source.index("    async fn add_txn_partitions(&self, groups:")
+          end = source.index("\n    fn park_batch(", start)
+          method = source[start:end]
+          before = ("                txn_retry_sleep(&self.shared, attempt, deadline).await;\n"
+                    "                if Instant::now() < deadline {\n"
+                    "                    continue;\n"
+                    "                }")
+          after = ("                txn_retry_sleep(&self.shared, attempt, deadline).await;\n"
+                   "                if Instant::now() < deadline {\n"
+                   "                    #[cfg(test)]\n"
+                   "                    add_partitions_retry_deadline::checkpoint(&self.shared, deadline).await;\n"
+                   "                    continue;\n"
+                   "                }")
+          if method.count(before) != 1:
+              raise SystemExit("retry checkpoint anchor mismatch")
+          method = method.replace(before, after, 1)
+          source = source[:start] + method + source[end:]
+          source += '\n#[cfg(test)]\n#[path = "producer/add_partitions_retry_deadline.rs"]\nmod add_partitions_retry_deadline;\n'
+          digest = hashlib.sha256(source.encode()).hexdigest()
+          if digest != "76b188a2c020082fbd45ef1039eb6816417ffe2ef7bf81081fa8a9985f14aa18":
+              raise SystemExit("instrumented source mismatch: " + digest)
+          path.write_text(source)
+          print("instrumented source sha256:", digest)
+          PYCODE
+      - name: Compare retry exhaustion paths
+        timeout-minutes: 25
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$GITHUB_WORKSPACE/base"
+          for mode in default all; do
+            extra=''
+            if [[ "$mode" = all ]]; then extra=--all-features; fi
+            natural="$RUNNER_TEMP/addpart-deadline-evidence/$mode-natural.log"
+            timeout 600 cargo +stable test --locked $extra --lib producer::add_partitions_retry_deadline::natural_exhaustion_requires_abort -- --exact --nocapture > "$natural" 2>&1 || { cat "$natural"; exit 1; }
+            cat "$natural"
+            grep -F 'running 1 test' "$natural"
+            grep -F 'test result: ok. 1 passed; 0 failed;' "$natural"
+            grep -F 'PL_ADD_RETRY_DEADLINE cross=false' "$natural"
+            crossing="$RUNNER_TEMP/addpart-deadline-evidence/$mode-crossing.log"
+            set +e
+            timeout 600 cargo +stable test --locked $extra --lib producer::add_partitions_retry_deadline::post_check_deadline_exhaustion_requires_abort -- --exact --nocapture > "$crossing" 2>&1
+            status=$?
+            set -e
+            cat "$crossing"
+            test "$status" -eq 101
+            grep -F 'running 1 test' "$crossing"
+            grep -F 'PL_ADD_RETRY_DEADLINE cross=true crossed=1 buffer=0 pending=0 sequences=rewound state=Ok(())' "$crossing"
+            grep -F 'PL_ADD_RETRY_REQUIRES_ABORT' "$crossing"
+            grep -F 'test result: FAILED. 0 passed; 1 failed;' "$crossing"
+          done
+      - name: Retain control logs
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: addpart-deadline-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/addpart-deadline-evidence
+          if-no-files-found: error
+          retention-days: 30
