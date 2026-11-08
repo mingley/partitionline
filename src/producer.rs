@@ -3513,6 +3513,17 @@ impl Producer {
             .store(epoch, Ordering::SeqCst);
     }
 
+    /// Set the next sequence for an isolated rollover witness.
+    #[cfg(rollover_mock_witness)]
+    #[doc(hidden)]
+    pub fn __test_set_next_sequence(&self, topic: &str, partition: i32, next: i32) {
+        let mut sequences = self.inner.shared.seqs.lock();
+        let _ = sequences
+            .entry(Arc::from(topic))
+            .or_default()
+            .insert(partition, next);
+    }
+
     /// Test hook: sleeping reconnect timers.
     #[doc(hidden)]
     pub fn test_reconnect_tasks(&self) -> Vec<Arc<tokio::task::JoinHandle<()>>> {
