@@ -1132,16 +1132,19 @@ async fn read_frame_buffered<S: AsyncRead + Unpin>(
             if Instant::now() >= deadline {
                 return Err(Exit::ReadDeadline);
             }
-            if fill_complete_frame(ahead, config.max_request_bytes, &mut spare)? {
-                return if Instant::now() >= deadline {
-                    Err(Exit::ReadDeadline)
-                } else {
-                    Ok(spare)
-                };
-            }
-            let Ahead::Need(budget) = classify_ahead(ahead.pending(), config.max_request_bytes)
-            else {
-                return Err(Exit::InvalidLength);
+            let budget = match classify_ahead(ahead.pending(), config.max_request_bytes) {
+                Ahead::Need(budget) => budget,
+                Ahead::Invalid => return Err(Exit::InvalidLength),
+                Ahead::Ready => {
+                    if !fill_complete_frame(ahead, config.max_request_bytes, &mut spare)? {
+                        return Err(Exit::InvalidLength);
+                    }
+                    return if Instant::now() >= deadline {
+                        Err(Exit::ReadDeadline)
+                    } else {
+                        Ok(spare)
+                    };
+                }
             };
             ahead.compact();
             frame_mut(&mut ahead.bytes)
