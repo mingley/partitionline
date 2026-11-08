@@ -2297,7 +2297,7 @@
   "controller_implementation_gate": "KL11-13",
   "produce_fixture_root": "partitionline-broker/tests/fixtures/produce",
   "produce_source": "partitionline-broker/src/produce.rs",
-  "produce_source_sha256": "fa3bff1c088ff391ed34fdb8ec211da5f757b08c807a2c21d0ba1cd648391a56",
+  "produce_source_sha256": "ace0982025aac1d2f66846865fe4e9083b578a2dfccb6fba16af1f1d5183ff11",
   "produce_test_source": "partitionline-broker/tests/produce.rs",
   "produce_test_source_sha256": "449eb0f4b2774ff7f3d4759a32f5362a39cb775f564f1cc44bb4314fd09da733",
   "produce_fixtures_sha256": {
