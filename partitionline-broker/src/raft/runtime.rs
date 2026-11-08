@@ -5206,7 +5206,7 @@ mod ownership_tests {
             .ok_or("owner join")?
             .join()
             .map_err(|_| "owner panic")??;
-        source.assert_joined()?;
+        source.assert_joined(0)?;
         std::fs::remove_dir_all(&source.root)?;
         Ok(())
     }
