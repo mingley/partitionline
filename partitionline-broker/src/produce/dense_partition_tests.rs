@@ -99,11 +99,13 @@ fn dense_partition_production_path_selection_fallback_and_cancellation(
     impl Drop for Reset {
         fn drop(&mut self) {
             super::DENSE_TEST_FORCE_FALLBACK.with(|force| force.set(false));
+            super::DENSE_TEST_FORCED.with(|forced| forced.set(0));
             super::DENSE_TEST_SELECTED.with(|selected| selected.set(0));
         }
     }
     let _reset = Reset;
     super::DENSE_TEST_FORCE_FALLBACK.with(|force| force.set(false));
+    super::DENSE_TEST_FORCED.with(|forced| forced.set(0));
     super::DENSE_TEST_SELECTED.with(|selected| selected.set(0));
 
     let nanos = SystemTime::now().duration_since(UNIX_EPOCH)?.as_nanos();
@@ -153,7 +155,7 @@ fn dense_partition_production_path_selection_fallback_and_cancellation(
         let mut input = request(b"omega", &indexes, false)?;
         let response = process(&catalog, &mut store, &mut input, &common, Instant::now(), || Ok(()))?;
         assert!(response.is_some());
-        let expected = usize::from(count > 16);
+        let expected = if count > 16 { 1 } else { 0 };
         assert_eq!(super::DENSE_TEST_SELECTED.with(|selected| selected.get()), expected);
     }
 
@@ -164,14 +166,39 @@ fn dense_partition_production_path_selection_fallback_and_cancellation(
     let mut dense = request(b"omega", &repeated, false)?;
     let original = process(&catalog, &mut store, &mut dense, &common, Instant::now(), || Ok(()))?;
     assert_eq!(super::DENSE_TEST_SELECTED.with(|selected| selected.get()), 1);
+    let values = parts(&repeated);
+    let (first, duplicate) = reference(&values);
+    let mut want = Vec::new();
+    want.extend_from_slice(&77_i32.to_be_bytes());
+    want.extend_from_slice(&1_i32.to_be_bytes());
+    want.extend_from_slice(&5_i16.to_be_bytes());
+    want.extend_from_slice(b"omega");
+    want.extend_from_slice(&i32::try_from(first.iter().filter(|value| **value).count())?.to_be_bytes());
+    for (position, part) in values.iter().enumerate() {
+        if first[position] {
+            want.extend_from_slice(&part.index.to_be_bytes());
+            want.extend_from_slice(&(if duplicate[position] { 42_i16 } else { 3_i16 }).to_be_bytes());
+            want.extend_from_slice(&(-1_i64).to_be_bytes());
+            want.extend_from_slice(&(-1_i64).to_be_bytes());
+        }
+    }
+    want.extend_from_slice(&0_i32.to_be_bytes());
+    assert_eq!(original.as_deref(), Some(want.as_slice()));
     super::DENSE_TEST_FORCE_FALLBACK.with(|force| force.set(true));
     let mut fallback = request(b"omega", &repeated, false)?;
     let from_fallback = process(&catalog, &mut store, &mut fallback, &common, Instant::now(), || Ok(()))?;
     assert_eq!(original, from_fallback);
+    assert_eq!(super::DENSE_TEST_FORCED.with(|forced| forced.get()), 1);
     assert_eq!(super::DENSE_TEST_SELECTED.with(|selected| selected.get()), 1);
 
     super::DENSE_TEST_FORCE_FALLBACK.with(|force| force.set(false));
     super::DENSE_TEST_SELECTED.with(|selected| selected.set(0));
+    let mut sparse: Vec<i32> = (0..256).rev().collect();
+    sparse[255] = i32::MAX;
+    let mut sparse_input = request(b"omega", &sparse, false)?;
+    assert!(process(&catalog, &mut store, &mut sparse_input, &common, Instant::now(), || Ok(()))?.is_some());
+    assert_eq!(super::DENSE_TEST_SELECTED.with(|selected| selected.get()), 0);
+
     let mut indexes = vec![1, 0];
     indexes.extend((2..32).rev());
     let mut valid = request(b"alpha", &indexes, true)?;

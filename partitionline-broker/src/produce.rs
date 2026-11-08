@@ -1159,6 +1159,7 @@ fn strictly_increasing_indexes(parts: &[Part]) -> bool {
 #[cfg(test)]
 std::thread_local! {
     static DENSE_TEST_FORCE_FALLBACK: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
+    static DENSE_TEST_FORCED: std::cell::Cell<usize> = const { std::cell::Cell::new(0) };
     static DENSE_TEST_SELECTED: std::cell::Cell<usize> = const { std::cell::Cell::new(0) };
 }
 
@@ -1189,6 +1190,7 @@ fn mark_dense_partitions(parts: &[Part], first: &mut [bool], duplicated: &mut [b
     let mut owners = Vec::new();
     #[cfg(test)]
     if DENSE_TEST_FORCE_FALLBACK.with(|force| force.get()) {
+        DENSE_TEST_FORCED.with(|forced| forced.set(forced.get().saturating_add(1)));
         return false;
     }
     if owners.try_reserve_exact(slots).is_err() {
