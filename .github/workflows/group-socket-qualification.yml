@@ -56,16 +56,14 @@ jobs:
         run: bash ../.github/group-qualification/baseline.sh
       - name: Clippy
         run: cargo +stable clippy --locked --all-targets --all-features -- -D warnings
-      - name: Release stream-lock overhead probe
-        env:
-          CARGO_PROFILE_RELEASE_LTO: 'false'
-          CARGO_PROFILE_RELEASE_CODEGEN_UNITS: '16'
-        run: |
-          cargo +stable test --release --locked --lib net::tests::stream_lock_overhead_probe -- --exact --ignored --nocapture
-          cargo +stable test --release --locked --lib net::tests::stream_async_lock_overhead_probe -- --exact --ignored --nocapture
+      - name: Alternating baseline and candidate loopback probe
+        run: bash .github/group-qualification/perf.sh
       - name: Broader network tests
         run: |
           cargo +stable test --locked --lib net::tests:: -- --test-threads=1
-          cargo +stable test --locked --test tls_shutdown_deadline -- --test-threads=1
+      - name: TLS shutdown controls
+        if: always()
+        run: cargo +stable test --locked --test tls_shutdown_deadline -- --test-threads=1
       - name: Formatting
+        if: always()
         run: cargo +stable fmt --all -- --check
