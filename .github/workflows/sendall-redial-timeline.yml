@@ -1,0 +1,53 @@
+name: sendall redial request timeline
+on:
+  push:
+    branches: [qualification/sendall-redial-timeline-20261108]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  timeline:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Build exact baseline producer with mock tracing
+        run: |
+          set -euo pipefail
+          mkdir -p evidence
+          test "$(git rev-parse HEAD:src/producer.rs)" = 1e7733c136e54b532cdc8bddabd1e0c828e50ed2
+          git rev-parse HEAD HEAD:src/producer.rs HEAD:tests/mock_produce.rs HEAD:tests/common/mod.rs | tee evidence/blobs.txt
+          rustc -Vv | tee evidence/rust.txt
+          cargo test --locked --test mock_produce --no-run
+          mapfile -t bins < <(find target/debug/deps -maxdepth 1 -type f -executable -name 'mock_produce-*')
+          test "${#bins[@]}" = 1
+          sha256sum "${bins[0]}" | tee evidence/binary.txt
+          echo "BIN=${bins[0]}" >> "$GITHUB_ENV"
+      - name: Trace failed history and independent delay controls
+        run: |
+          set -euo pipefail
+          run_case() {
+            local name="$1" api="$2" meta="$3" wanted="$4" rc
+            echo "CASE $name api_ms=$api metadata_ms=$meta"
+            set +e
+            PL_TRACE_SENDALL=1 PL_TRACE_API_MS="$api" PL_TRACE_METADATA_MS="$meta" timeout 40s "$BIN" --exact send_all_redials_leaders_while_refreshing_metadata --nocapture --test-threads=1 >"evidence/$name.txt" 2>&1
+            rc=$?
+            set -e
+            cat "evidence/$name.txt"
+            echo "CASE_EXIT $name $rc"
+            test "$rc" = "$wanted"
+            grep -F 'REDIAL_TRACE start' "evidence/$name.txt"
+            grep -F 'test result:' "evidence/$name.txt"
+          }
+          run_case both-delayed 250 250 101
+          run_case api-zero 0 250 0
+          run_case metadata-zero 250 0 0
+          echo 'TIMELINE_COLLECTED; both-delayed remains a failing test'
+      - name: Retain complete timeline
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: sendall-redial-timeline
+          path: evidence
+          retention-days: 30
