@@ -886,6 +886,8 @@ fn validate_batch(
     if count > c.remaining().len() / 7 {
         return Err(invalid(at + batch::RECORD_COUNT, Invalid::Length));
     }
+    // Callers start totals at zero and stop on error. Both walks check the
+    // remaining header budget before publishing a successful batch's count.
     if plain_enabled() {
         if let Some(headers) = try_accept_plain(
             c.remaining(),
@@ -1330,8 +1332,8 @@ impl<'a> Cursor<'a> {
 #[cfg(test)]
 mod tests {
     use super::{
-        framed_assignment, trust_stored, try_accept_plain, validate, validate_batch, validate_read,
-        Error, Invalid, Limits, SKIP_PLAIN,
+        framed_assignment, trust_stored, try_accept_plain, validate, validate_batch,
+        validate_known_crc, validate_read, Budget, Error, Invalid, Limits, SKIP_PLAIN,
     };
     use crate::batch;
 
@@ -1617,6 +1619,56 @@ mod tests {
             .unwrap();
             let _ = both_with_limits(&bytes, false, limits, initial);
             let _ = both_with_limits(&bytes, true, limits, initial);
+        }
+
+        // Carry an exhausted aggregate budget across batches. A header-free
+        // batch still succeeds, but the next header must be rejected.
+        let limits =
+            Limits::new(1_000_000, 1_000_000, 10, 100, 100_000, 128, 1024, 5).unwrap();
+        let mut plain = encode(&[sample(0, b"tail")], 10, 10, 0);
+        plain[..8].copy_from_slice(&6_i64.to_be_bytes());
+        assert_eq!(
+            try_accept_plain(&plain[batch::LEN..], 1, 0, 10, 10, false, limits, 5),
+            Some(0)
+        );
+        assert!(both_with_limits(&plain, false, limits, 5).0.is_ok());
+        let mut with_tail = bytes.clone();
+        with_tail.extend_from_slice(&plain);
+
+        let mut last = sample(0, b"v");
+        last.headers.push((b"key".to_vec(), None));
+        let mut extra_header = encode(&[last], 10, 10, 0);
+        extra_header[..8].copy_from_slice(&7_i64.to_be_bytes());
+        let mut over_limit = with_tail.clone();
+        over_limit.extend_from_slice(&extra_header);
+        for input in [&with_tail, &over_limit] {
+            for mode in 0..3 {
+                let run = || match mode {
+                    0 => validate(input, limits)
+                        .map(|v| (v.batch_count(), v.record_count(), v.header_count())),
+                    1 => validate_known_crc(input, limits)
+                        .map(|v| (v.batch_count(), v.record_count(), v.header_count())),
+                    _ => validate_read(input, limits)
+                        .map(|v| (v.batch_count(), v.record_count(), v.header_count())),
+                };
+                SKIP_PLAIN.with(|flag| flag.set(false));
+                let fast = run();
+                SKIP_PLAIN.with(|flag| flag.set(true));
+                let slow = run();
+                SKIP_PLAIN.with(|flag| flag.set(false));
+                assert_eq!(fast, slow);
+                if input.len() == with_tail.len() {
+                    assert_eq!(fast, Ok((2, 7, 5)));
+                } else {
+                    assert!(matches!(
+                        fast,
+                        Err(Error::BudgetExceeded {
+                            budget: Budget::Headers,
+                            ..
+                        })
+                    ));
+                }
+            }
         }
 
         let mut sparse: Vec<_> = [0, 2, 5].into_iter().map(|n| sample(n, b"v")).collect();
