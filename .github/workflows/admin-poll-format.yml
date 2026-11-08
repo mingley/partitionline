@@ -1,0 +1,18 @@
+name: Admin poll candidate formatting
+on:
+  push:
+    branches:
+      - work/admin-poll-format-20261108
+permissions:
+  contents: read
+jobs:
+  format:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+      - run: |
+          rustc -Vv
+          cargo fmt --all
+          sha256sum src/admin.rs
+          git diff -- src/admin.rs
