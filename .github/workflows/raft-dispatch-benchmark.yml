@@ -21,7 +21,25 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p target/dispatch-bench
-          git worktree add --detach "$RUNNER_TEMP/dispatch-base" 5ff00c6d2b24e851f1c715e842a2c0e57faca502
+          git worktree add --detach "$RUNNER_TEMP/dispatch-base" 8d8f0c8cb6eab6b927b2270c3e45dcca3a81dd45
+          git show c7a91ce50cd231bb7d85e90297d98344e5a98dec:partitionline-broker/src/raft/runtime.rs > "$RUNNER_TEMP/base-source.rs"
+          git show 8865a7f41de51311db210885dc2175a6c4bc9e85:partitionline-broker/src/raft/runtime.rs > "$RUNNER_TEMP/candidate-source.rs"
+          python3 - <<'PY'
+          from pathlib import Path
+          import os
+          tmp = Path(os.environ["RUNNER_TEMP"])
+          def body(p):
+              s = p.read_text()
+              start = s.index("async fn dispatch_votes(")
+              end = s.index("struct Counter {", start)
+              return s[start:end]
+          base = tmp / "dispatch-base/partitionline-broker/src/raft/runtime.rs"
+          candidate = Path("partitionline-broker/src/raft/runtime.rs")
+          assert body(base) == body(tmp / "base-source.rs")
+          assert body(candidate) == body(tmp / "candidate-source.rs")
+          assert body(base) != body(candidate)
+          print("both measured dispatch functions match their pinned production sources")
+          PY
           rustc -Vv | tee target/dispatch-bench/host.txt
           lscpu | tee -a target/dispatch-bench/host.txt
           sha256sum "$RUNNER_TEMP/dispatch-base/partitionline-broker/src/raft/runtime.rs" partitionline-broker/src/raft/runtime.rs | tee -a target/dispatch-bench/host.txt
@@ -48,13 +66,47 @@ jobs:
               "$binary" --exact raft::runtime::ownership_tests::vote_dispatch_campaign_cost --ignored --nocapture --test-threads=1 | tee -a target/dispatch-bench/samples.txt
             done
           done
-          test "$(grep -c '^campaign-cost full=false ' target/dispatch-bench/samples.txt)" -eq 24
-          test "$(grep -c '^campaign-cost full=true ' target/dispatch-bench/samples.txt)" -eq 24
+          python3 - <<'PY'
+          from pathlib import Path
+          import csv, re
+          path = Path("target/dispatch-bench")
+          samples = []
+          active = None
+          for line in (path / "samples.txt").read_text().splitlines():
+              marker = re.search(r"sample round=(\d+) arm=(baseline|candidate)$", line)
+              measure = re.search(r"campaign-cost full=(false|true) peers=4 iterations=(\d+) elapsed_ns=(\d+)", line)
+              if marker:
+                  assert active is None or (active["passed"] and set(active["values"]) == {"false", "true"})
+                  active = {"round": int(marker.group(1)), "arm": marker.group(2), "values": {}, "passed": False}
+                  samples.append(active)
+              elif measure:
+                  assert active is not None and measure.group(1) not in active["values"]
+                  active["values"][measure.group(1)] = (int(measure.group(2)), int(measure.group(3)))
+              elif "test result: ok. 1 passed; 0 failed" in line:
+                  assert active is not None and not active["passed"]
+                  active["passed"] = True
+          assert len(samples) == 24
+          assert active and active["passed"] and set(active["values"]) == {"false", "true"}
+          with (path / "samples.csv").open("w", newline="") as f:
+              writer = csv.writer(f)
+              writer.writerow(["round", "arm", "full", "iterations", "elapsed_ns"])
+              for index, sample in enumerate(samples):
+                  round_number = index // 2 + 1
+                  order = ("baseline", "candidate") if round_number % 2 else ("candidate", "baseline")
+                  assert sample["round"] == round_number and sample["arm"] == order[index % 2]
+                  assert sample["passed"] and set(sample["values"]) == {"false", "true"}
+                  for full in ("false", "true"):
+                      iterations, elapsed = sample["values"][full]
+                      assert iterations == (2000 if full == "true" else 1000000)
+                      assert elapsed >= 100_000_000, f"sample too short: {sample}, {full}"
+                      writer.writerow([round_number, sample["arm"], full, iterations, elapsed])
+          print("verified 12 balanced pairs and both >=100ms shapes in every passing invocation")
+          PY
       - name: Retain timings and host details
         if: always()
         uses: actions/upload-artifact@v6
         with:
-          name: raft-dispatch-matched
+          name: raft-dispatch-matched-calibrated
           path: target/dispatch-bench/
           if-no-files-found: error
           retention-days: 30
