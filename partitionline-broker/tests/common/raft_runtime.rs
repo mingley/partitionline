@@ -137,6 +137,52 @@ fn image_response(answer: &str) -> TestResult<(u64, u64, u64)> {
         })?,
     ))
 }
+/// Check that an image covers the last expected data position and that any
+/// subsequently committed entries are election barriers. The prefix comes
+/// from a node that has observed the image's committed base.
+fn check_checkpoint_tail(prefix: &str, last_data: u64, image_term: u64, image_base: u64) -> TestResult {
+    if image_base == 0 || image_base < last_data {
+        return Err("checkpoint regressed behind the expected data".into());
+    }
+    let mut entries = prefix.split(';');
+    let mut last_term = 0;
+    for expected in 1..=image_base {
+        let entry = entries.next().ok_or("checkpoint prefix missing entry")?;
+        let mut fields = entry.splitn(4, ':');
+        let term: u64 = fields.next().ok_or("missing term")?.parse()?;
+        let index: u64 = fields.next().ok_or("missing index")?.parse()?;
+        let kind = fields.next().ok_or("missing kind")?;
+        let payload = fields.next().ok_or("missing payload")?;
+        if term == 0 || index != expected {
+            return Err("checkpoint prefix position mismatch".into());
+        }
+        if index > last_data && (kind != "1" || !payload.is_empty()) {
+            return Err("checkpoint tail has a non-barrier entry".into());
+        }
+        last_term = term;
+    }
+    if last_term != image_term {
+        return Err("checkpoint base term differs from committed prefix".into());
+    }
+    Ok(())
+}
+
+#[test]
+fn checkpoint_tail_accepts_only_contiguous_committed_barriers() {
+    let good = "1:1:1:;1:2:0:6162;2:3:1:";
+    assert!(check_checkpoint_tail(good, 2, 2, 3).is_ok());
+    for (text, last_data, term, base) in [
+        (good, 4, 2, 3),
+        (good, 2, 1, 3),
+        ("1:1:1:;1:2:0:6162", 2, 2, 3),
+        ("1:1:1:;1:2:0:6162;2:3:0:66", 2, 2, 3),
+        ("1:1:1:;1:2:0:6162;2:3:1:66", 2, 2, 3),
+        ("1:1:1:;1:2:0:6162;2:4:1:", 2, 2, 3),
+    ] {
+        assert!(check_checkpoint_tail(text, last_data, term, base).is_err());
+    }
+}
+
 fn change_response(answer: &str) -> TestResult<(u64, u64, bool)> {
     let [epoch, index, committed] = response_fields(answer, "change")?;
     Ok((
@@ -438,6 +484,15 @@ fn runtime_child_process() -> TestResult {
                             }
                             Err(e) => format!("error {e}"),
                         }
+                    } else if command.trim() == "observe" {
+                        let current = handle.state().await?;
+                        format!(
+                            "observe {} {} {} {}",
+                            current.last_position.term,
+                            current.last_position.index,
+                            current.committed_end,
+                            current.wal_durable_ops
+                        )
                     } else if command.trim() == "exit" {
                         write_text(
                             &root.join("exit-receipt"),
@@ -1252,6 +1307,107 @@ async fn observer_image_history(total: usize) -> TestResult {
         .await?;
     cluster.shutdown().await
 }
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn forced_election_can_extend_checkpoint_past_last_data() -> TestResult {
+    let mut cluster = Cluster::start_profile(5, 4).await?;
+    let observer = 4;
+    let voters = (0..4).collect::<Vec<_>>();
+    let old = cluster.leader(&[observer]).await?;
+    let mut last_data = 0;
+    let mut last_term = 0;
+    let mut expected = Vec::new();
+    for byte in [71u8, 72u8] {
+        let payload = vec![byte; 40 * 1024];
+        let answer = cluster.command(old, &format!("propose {}", hex(&payload)?)).await?;
+        (last_term, last_data) = proposal_position_response(&answer)?;
+        expected.push((last_data, hex(&payload)?));
+        cluster.commit("forced-checkpoint-data", last_data, &voters).await?;
+    }
+    for id in 0..5 {
+        if id != old {
+            cluster.gate.set(old, id, false);
+            cluster.gate.set(id, old, false);
+        }
+    }
+    let current = cluster.leader(&[old, observer]).await?;
+    let state = cluster.state(current)?;
+    assert!(state.0 > last_term, "new election must advance the term");
+    assert!(state.3 > last_data, "the current-term barrier must commit after data");
+    let barrier = state.3;
+    for id in 0..5 {
+        cluster.gate.set(old, id, true);
+        cluster.gate.set(id, old, true);
+    }
+    cluster.commit("forced-checkpoint-barrier", barrier, &voters).await?;
+    let current = cluster.leader(&[observer]).await?;
+    let response = cluster.command(current, "checkpoint 67").await?;
+    let (term, base, bytes) = image_response(&response)?;
+    assert!(bytes > 64 * 1024);
+    assert!(base > last_data, "checkpoint must include the later barrier");
+    let old_equality = std::panic::catch_unwind(|| assert_eq!(base, last_data));
+    assert!(old_equality.is_err(), "the former equality must reject this valid checkpoint");
+    cluster.commit("forced-checkpoint-base", base, &voters).await?;
+    let prefix = cluster.state(current)?.4;
+    check_checkpoint_tail(&prefix, last_data, term, base)?;
+    for (index, payload) in expected {
+        let entry = prefix.split(';').nth(usize::try_from(index - 1)?).ok_or("data position")?;
+        let mut fields = entry.splitn(4, ':');
+        let _term = fields.next().ok_or("data term")?;
+        let actual: u64 = fields.next().ok_or("data index")?.parse()?;
+        assert_eq!(actual, index);
+        assert_eq!(fields.next(), Some("0"));
+        assert_eq!(fields.next(), Some(payload.as_str()));
+    }
+    println!("PL_CHECKPOINT_LATER_BARRIER data={last_data} base={base} term={term}");
+    cluster.shutdown().await
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn forced_demoted_leader_requires_fresh_selection() -> TestResult {
+    let count = 3;
+    let mut cluster = Cluster::start(count).await?;
+    let old = cluster.leader(&[]).await?;
+    let answer = cluster.command(old, &format!("propose {}", hex(b"before-handover")?)).await?;
+    let prior = cluster.proposal_position(old, "forced-handover-prior", &answer)?;
+    let all = (0..count).collect::<Vec<_>>();
+    cluster.commit("forced-handover-prior-all", prior, &all).await?;
+    for id in 0..count {
+        if id != old {
+            cluster.gate.set(old, id, false);
+            cluster.gate.set(id, old, false);
+        }
+    }
+    let _new = cluster.leader(&[old]).await?;
+    let deadline = Instant::now() + Duration::from_secs(5);
+    while cluster.state(old)?.1 == "Leader" {
+        if Instant::now() >= deadline {
+            return Err("old leader did not lose its quorum lease".into());
+        }
+        tokio::time::sleep(Duration::from_millis(20)).await;
+    }
+    let before = cluster.command(old, "observe").await?;
+    let stale = cluster.command(old, &format!("propose {}", hex(b"must-not-append")?)).await?;
+    assert_eq!(stale, "error private peer runtime: Node(NotLeader)");
+    let after = cluster.command(old, "observe").await?;
+    assert_eq!(before, after, "rejected stale-leader proposal changed the log");
+    let selected = cluster.leader(&[]).await?;
+    assert_ne!(selected, old);
+    let peer = (0..count).find(|id| *id != selected && *id != old).ok_or("surviving peer")?;
+    assert_ne!(selected, peer);
+    cluster.gate.delay[selected * count + peer].store(800, Ordering::Release);
+    let answer = cluster.command(selected, &format!("propose {}", hex(b"after-handover")?)).await?;
+    let position = cluster.proposal_position(selected, "forced-handover-current", &answer)?;
+    let majority = all.iter().copied().filter(|id| *id != old).collect::<Vec<_>>();
+    cluster.commit("forced-handover-majority", position, &majority).await?;
+    for id in 0..count {
+        cluster.gate.set(old, id, true);
+        cluster.gate.set(id, old, true);
+    }
+    cluster.commit("forced-handover-healed", position, &all).await?;
+    println!("PL_STALE_LEADER_REJECTED old={old} current={selected} peer={peer}");
+    cluster.shutdown().await
+}
+
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn actual_three_peer_tcp_observer_multichunk_image_install_reopen_and_join() -> TestResult {
     observer_image_history(3).await

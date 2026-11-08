@@ -1,0 +1,65 @@
+name: raft leadership and checkpoint controls
+on:
+  push:
+    branches: [qualification/raft-runtime-controls-20261108]
+permissions:
+  contents: read
+jobs:
+  controls:
+    strategy:
+      fail-fast: false
+      matrix:
+        profile: [default, all-features]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      CARGO_INCREMENTAL: "0"
+      CARGO_BUILD_JOBS: "2"
+      CARGO_TERM_COLOR: never
+      CARGO_PROFILE_DEV_DEBUG: "0"
+      CARGO_PROFILE_TEST_DEBUG: "0"
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 2
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - name: Record exact source and toolchain
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/raft-controls"
+          test "$(uname -m)" = x86_64
+          test "$(git rev-parse HEAD^)" = c471f5eb0d7b92959e23e5880e35109060bff5d2
+          rustc +stable --version --verbose | tee "$RUNNER_TEMP/raft-controls/toolchain.log"
+          sha256sum partitionline-broker/tests/common/raft_runtime.rs partitionline-broker/src/raft/runtime.rs partitionline-broker/src/raft/replication.rs | tee "$RUNNER_TEMP/raft-controls/source-sha256.txt"
+      - name: Run explicit controls and original scenarios
+        shell: bash
+        env:
+          PROFILE: ${{ matrix.profile }}
+        run: |
+          set -euo pipefail
+          flags=()
+          if [ "$PROFILE" = all-features ]; then flags+=(--all-features); fi
+          for name in checkpoint_tail_accepts_only_contiguous_committed_barriers forced_election_can_extend_checkpoint_past_last_data forced_demoted_leader_requires_fresh_selection actual_five_peer_tcp_observer_multichunk_image_install_reopen_and_join actual_three_node_tcp_minority_partition_late_ack_image_restart_and_removal; do
+            for attempt in 1 2 3; do
+              log="$RUNNER_TEMP/raft-controls/$name-$attempt.log"
+              timeout 240s cargo +stable test --locked --manifest-path partitionline-broker/Cargo.toml "${flags[@]}" --lib "raft::runtime::tests::$name" -- --exact --nocapture --test-threads=1 > "$log" 2>&1 || { cat "$log"; exit 1; }
+              cat "$log"
+              grep -F 'test result: ok. 1 passed;' "$log"
+            done
+          done
+      - name: Check formatting
+        run: cargo +stable fmt --manifest-path partitionline-broker/Cargo.toml -- --check
+      - name: Check strict Clippy
+        if: matrix.profile == 'all-features'
+        run: cargo +stable clippy --locked --manifest-path partitionline-broker/Cargo.toml --all-targets --all-features -- -D warnings
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: raft-controls-${{ matrix.profile }}-${{ github.sha }}
+          path: ${{ runner.temp }}/raft-controls
+          if-no-files-found: warn
+          retention-days: 30
