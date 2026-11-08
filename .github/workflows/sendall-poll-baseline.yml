@@ -1,0 +1,57 @@
+name: Public send_all poll diagnostic
+
+on:
+  push:
+    branches: ["qualification/sendall-poll-baseline-20261108"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  baseline:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      CARGO_TERM_COLOR: never
+      CARGO_INCREMENTAL: "0"
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Provenance and settings
+        run: |
+          set -eu
+          rustc -Vv
+          cargo -V
+          uname -a
+          lscpu
+          if test -r /sys/fs/cgroup/cpu.max; then cat /sys/fs/cgroup/cpu.max; else echo "cpu.max unavailable"; fi
+          git rev-parse HEAD
+          git rev-parse HEAD:src/producer.rs
+          git rev-parse HEAD:tests/sendall_poll_probe.rs
+          sha256sum src/producer.rs tests/sendall_poll_probe.rs tests/common/mod.rs Cargo.lock
+          mkdir -p probe-logs
+      - name: Build release diagnostic
+        run: |
+          set -euo pipefail
+          cargo +stable test --release --locked --test sendall_poll_probe --no-run 2>&1 | tee probe-logs/build.log
+          find target/release/deps -maxdepth 1 -type f -executable -name 'sendall_poll_probe-*' -print -exec sha256sum {} \; | tee probe-logs/binary-sha256.txt
+          test "$(wc -l < probe-logs/binary-sha256.txt)" -eq 2
+      - name: Matched single-poll sizes
+        run: |
+          set -euo pipefail
+          for count in 512 1024 2048 4096; do
+            for trial in 1 2 3; do
+              echo "SAMPLE records=$count trial=$trial"
+              PL_RECORDS="$count" cargo +stable test --release --locked --test sendall_poll_probe -- --exact public_send_all_first_poll_diagnostic --test-threads=1 --nocapture 2>&1 | tee "probe-logs/run-$count-$trial.log"
+              grep -F "SENDALL_POLL records=$count " "probe-logs/run-$count-$trial.log"
+              grep -F "test result: ok. 1 passed; 0 failed" "probe-logs/run-$count-$trial.log"
+            done
+          done
+      - name: Retain diagnostic
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: sendall-poll-baseline
+          path: probe-logs
+          retention-days: 30
