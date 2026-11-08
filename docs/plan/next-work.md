@@ -10,22 +10,22 @@ Production readiness and fastest-client/server claims remain unqualified.
 Client 0.1.0 is already published. The next client version must be at least
 0.2.0; broker and schema publication remain disabled.
 
-The latest complete recorded main [CI snapshot](../evidence/releases/main-ci-ba8-20261108/README.md)
-is `ba8d72f51c23b4bfbd1057e61bbd483da831aa91`. Client libraries reported
-2,227 passed and 17 failed on Linux default features, 2,237 passed and seven
-failed with all features, 2,234 passed and 10 failed on Windows, and 2,229
-passed and 15 failed on macOS arm64. Kafka compatibility and both smoke jobs
-failed. Broker CI passed 739 default and 887 all-feature tests, Clippy,
-Rustdoc, inventory and fuzz supervision. These results predate the journal
-repair and do not close the release gates.
+The latest complete recorded main [CI snapshot](../evidence/releases/main-ci-eaa-20261108/README.md)
+is `eaa8ac6ddfe767d6ae7d45b19eb945a6a1578c9b`. Client libraries reported
+2,225 passed and 19 failed on Linux default features, 2,219 passed and 25
+failed with all features, 2,229 passed and 15 failed on Windows, and 2,235
+passed and nine failed on macOS arm64. Kafka compatibility and both smoke jobs
+failed. Broker CI passed 754 default and 902 all-feature tests, with three
+descriptor diagnostics ignored in each suite and passed separately. Clippy,
+Rustdoc, inventory and fuzz supervision passed. These results do not close the
+release gates.
 
-A later [broker CI run](../evidence/broker/main-ci-3fc-20261108/README.md)
-at `3fc8059` passed the default suite but stopped at two all-feature Raft
-runtime failures. Later all-feature targets and broker-job checks did not run;
-the inventory and fuzz jobs passed separately.
-A [subsequent broker run](../evidence/broker/main-ci-c471-20261108/README.md)
-stopped at a quorum integration test after a delete returned error 56. The
-retained log does not show whether the delete committed or identify the cause.
+Earlier [broker CI](../evidence/broker/main-ci-3fc-20261108/README.md)
+at `3fc8059` stopped at two all-feature Raft runtime failures. A
+[subsequent run](../evidence/broker/main-ci-c471-20261108/README.md) stopped
+at a quorum integration test after a delete returned error 56. The retained
+log does not show whether the delete committed or identify the cause. The
+later pass at `eaa8ac6` does not explain these failures.
 
 The [coordinator repair](../evidence/client/group-coordinator-retirement-20261108/README.md)
 retires a known coordinator socket before replacement. Focused local controls
@@ -342,8 +342,11 @@ measured the ownership repair against its baseline on one shared x86 host.
 Open, append and staged-sync medians were higher in that workload; the write
 samples varied widely and the host used an ext4 writeback mount with barriers
 disabled. This does not qualify durable storage performance.
+A [generation-lease variant](../evidence/broker/journal-generation-cost-20261108/README.md)
+reduced ticket size but did not show a convincing timing gain and remains
+unapplied.
 
-Three [record-header experiments](../evidence/broker/records-header-validation-20261108/README.md)
+[Record-header experiments](../evidence/broker/records-header-validation-20261108/README.md)
 improved some header-bearing batches but regressed other controls. They remain
 unapplied; the results do not establish Kafka throughput.
 
