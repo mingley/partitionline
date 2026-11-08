@@ -1,0 +1,63 @@
+name: Broker frame read paired benchmark
+on:
+  push:
+    branches: [qualification/broker-frame-read-bench-20261108]
+permissions:
+  contents: read
+jobs:
+  paired:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      CARGO_BUILD_JOBS: 2
+      CARGO_INCREMENTAL: 0
+      CARGO_TARGET_DIR: ${{ runner.temp }}/frame-bench-target
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Compile paired revisions and run alternating rounds
+        run: |
+          set -euo pipefail
+          rustc -Vv
+          uname -m
+          awk -F: '/model name/ {print $2; exit}' /proc/cpuinfo
+          core="$(python3 -c 'import os; print(min(os.sched_getaffinity(0)))')"
+          echo "frame-bench pinned_core=$core"
+          for profile in default all; do
+            args=()
+            if [[ "$profile" == all ]]; then args=(--all-features); fi
+            for variant in baseline unconditional refined; do
+              case "$variant" in
+                baseline) revision=60caa746c3654c89d01557e35e1100cdc2a84b74 ;;
+                unconditional) revision=190ea83f3fe66ed6c4bbdd6a08a1f58606d7478c ;;
+                refined) revision=5b5e3f4f56f58a857b3e7cb718a26a42746a3737 ;;
+              esac
+              git show "$revision:partitionline-broker/src/transport.rs" > partitionline-broker/src/transport.rs
+              cat .github/scripts/frame-ready-bench.rs >> partitionline-broker/src/transport.rs
+              cargo test --release --locked --manifest-path partitionline-broker/Cargo.toml --lib "${args[@]}" --no-run --message-format=json > "/tmp/frame-build-$profile-$variant.json"
+              executable="$(python3 - "/tmp/frame-build-$profile-$variant.json" <<'PY'
+          import json, sys
+          matches=[]
+          for line in open(sys.argv[1], encoding="utf-8"):
+              data=json.loads(line)
+              if data.get("reason") == "compiler-artifact" and data.get("target", {}).get("name") == "partitionline_broker" and data.get("profile", {}).get("test") and data.get("executable"):
+                  matches.append(data["executable"])
+          assert len(matches) == 1, matches
+          print(matches[0])
+          PY
+              )"
+              cp "$executable" "/tmp/frame-$profile-$variant"
+              sha256sum "/tmp/frame-$profile-$variant"
+            done
+          done
+          for round in 0 1 2 3 4 5; do
+            if (( round % 2 == 0 )); then variants=(baseline unconditional refined); else variants=(refined unconditional baseline); fi
+            for profile in default all; do
+              for variant in "${variants[@]}"; do
+                echo "frame-round=$round profile=$profile variant=$variant"
+                taskset -c "$core" env PL_FRAME_BENCH_VARIANT="$profile-$variant" "/tmp/frame-$profile-$variant" --exact transport::ready_frame_microbench::measure_ready_frame_cost --ignored --nocapture --test-threads=1
+              done
+            done
+          done
