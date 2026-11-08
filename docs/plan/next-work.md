@@ -279,7 +279,9 @@ remain open.
    waited for the retired worker's record but still lost a worker error after
    a flush waiter was canceled. A proposed [ownership design](../evidence/client/producer-ownership-design-20261108/README.md)
    records the unresolved lifecycle, transaction and sequence requirements;
-   the draft remains unapplied. Its short mock benchmark recorded higher
+   the draft remains unapplied. The [retained-admission test](../evidence/client/retained-cancellation-test-20261108/README.md)
+   now isolates one partial `send_all` cancellation and detects missing or
+   duplicate release in a gated mock; producer code is unchanged. Its short mock benchmark recorded higher
    median admission and flush times; it did not compare Kafka clients. A
    [private waker control](../evidence/client/producer-waker-handoff-20261108/README.md)
    found a double release under an injected panic; public reachability is not
