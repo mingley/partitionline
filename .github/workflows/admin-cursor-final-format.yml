@@ -1,0 +1,24 @@
+name: Format final Admin cursor controls
+on:
+  push:
+    branches: [qualification/admin-cursor-final-format-20261108]
+permissions:
+  contents: read
+jobs:
+  format:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+      - name: Format and print the exact test file
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD:src/admin.rs)" = e6c9899f3c645023782a9a33531665e3ef4b741c
+          test "$(git rev-parse HEAD:src/admin/pagination_tests.rs)" = 40f33c4a2523a95761648303b5f7fb160e51194e
+          cargo fmt --all
+          cargo fmt --all -- --check
+          git hash-object src/admin.rs src/admin/pagination_tests.rs
+          python3 -c 'from pathlib import Path; print("TEST_FILE_BEGIN"); [print("TEST_LINE "+line) for line in Path("src/admin/pagination_tests.rs").read_text().splitlines()]; print("TEST_FILE_END")'
