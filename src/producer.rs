@@ -2687,7 +2687,7 @@ impl Producer {
     /// returns an empty vec. A successful result contains every record's
     /// metadata. On error, other accepted records may still be delivered.
     /// With `acks=0`, returned offsets are `-1` because the broker sends no
-    /// acknowledgement. Queuing the records pauses every 8,192.
+    /// acknowledgement. Queuing the records pauses periodically.
     pub async fn send_all(
         &self,
         recs: impl IntoIterator<Item = ProduceRecord>,
@@ -2793,6 +2793,13 @@ impl Producer {
                             };
                             if let Some(slot) = slots.get_mut(ready_index) {
                                 *slot = Some(rx);
+                            }
+                            if one_explicit_route {
+                                fast_walked += 1;
+                                if fast_walked == 512 {
+                                    fast_walked = 0;
+                                    tokio::task::yield_now().await;
+                                }
                             }
                         }
                         match refresh.await {
