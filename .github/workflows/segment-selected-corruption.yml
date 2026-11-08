@@ -1,0 +1,45 @@
+name: Selected segment corruption witness
+on:
+  push:
+    branches: [qualification/segment-selected-corruption-20261108]
+permissions:
+  contents: read
+jobs:
+  witness:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        profile: [default, all-features]
+    env:
+      CARGO_BUILD_JOBS: "2"
+      CARGO_INCREMENTAL: "0"
+      CARGO_TERM_COLOR: never
+      PLB_SEGMENT_REPLACEMENT_CAPTURE: ${{ github.workspace }}/evidence/segment-corruption
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: 28679f16e06920bddee55371701cd23e0feec2f8
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Pin source and run corruption-after-exit control
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "28679f16e06920bddee55371701cd23e0feec2f8"
+          test "$(uname -m)" = x86_64
+          rustc --version --verbose
+          sha256sum partitionline-broker/src/segments.rs
+          args=()
+          if [ "${{ matrix.profile }}" = all-features ]; then args+=(--all-features); fi
+          cargo test --locked --manifest-path partitionline-broker/Cargo.toml --lib "${args[@]}" segments::tests::corrupt_selected_replacement_drops_old_generation_before_failing_open -- --exact --nocapture
+          find "$PLB_SEGMENT_REPLACEMENT_CAPTURE" -type f -exec sha256sum '{}' + | sort
+      - name: Retain interrupted, corrupted and post-reopen files
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: segment-corruption-${{ matrix.profile }}
+          path: evidence/segment-corruption/
+          if-no-files-found: warn
+          retention-days: 30
