@@ -1537,10 +1537,10 @@ async fn dtp_public_checkpoint_cancel_case(expire: bool) {
                 panic!("aggregate returned before the second page checkpoint: {result:?}")
             }
             Poll::Pending => {
-                if DTP_ROW_YIELD_OBSERVER.with(|observed| observed.get()) == 1 {
-                    Poll::Ready(())
-                } else {
-                    Poll::Pending
+                match DTP_ROW_YIELD_OBSERVER.with(|observed| observed.get()) {
+                    0 => Poll::Pending,
+                    1 => Poll::Ready(()),
+                    count => panic!("row checkpoint resumed before observation: {count}"),
                 }
             }
         }
