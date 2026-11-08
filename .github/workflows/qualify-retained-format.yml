@@ -1,0 +1,28 @@
+name: Format retained-cancellation candidate
+
+on:
+  push:
+    branches: ["qualification/retained-cancel-format-20261108"]
+
+permissions:
+  contents: read
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+      - name: Format test
+        run: |
+          rustc -Vv
+          git rev-parse HEAD:tests/producer_retained_backing.rs
+          cp tests/producer_retained_backing.rs /tmp/retained-formatted.rs
+          rustfmt --edition 2021 --config skip_children=true /tmp/retained-formatted.rs
+          sha256sum /tmp/retained-formatted.rs
+          echo FORMATTED_BASE64_BEGIN
+          base64 -w 120 /tmp/retained-formatted.rs
+          echo FORMATTED_BASE64_END
