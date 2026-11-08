@@ -64,4 +64,5 @@ jobs:
       - name: Formatting
         run: cargo +stable fmt --all -- --check
       - name: Broader network tests
-        run: cargo +stable test --locked --lib net::tests:: -- --test-threads=1
+        run: |
+          cargo +stable test --locked --lib net::tests:: -- --test-threads=1
