@@ -10,15 +10,16 @@ Production readiness and fastest-client/server claims remain unqualified.
 Client 0.1.0 is already published. The next client version must be at least
 0.2.0; broker and schema publication remain disabled.
 
-The latest recorded main [CI snapshot](../evidence/releases/main-ci-264322f-20261108/README.md)
-is `264322ff430b0594f4c3864e53dcd832de2a930b`. The Linux client library
-reported 2,185 passed and 22 failed by default, and 2,182 passed and 25 failed
-with all features. Windows and macOS arm64 each reported 2,193 passed and 14
-failed. All-target Clippy passed. Kafka 4.1.2, 4.2.1 and 4.3.1 overflowed
-after the classic-join marker; 3.9.1 and 4.1.0 smoke jobs failed after EOS
-timeouts. Broker default targets passed 737 tests; the all-feature run passed
-622 before a quorum test failed with an ambiguous or unexpected delete error
-56. These results do not cover later changes or close release gates.
+The latest recorded main [CI snapshot](../evidence/releases/main-ci-374dcf4-20261108/README.md)
+is `374dcf45db20ee728b00c0b0188e77ca1f47fa9c`. The Linux client library
+reported 2,190 passed and 17 failed by default, and 2,180 passed and 27 failed
+with all features. Windows reported 2,184 passed and 23 failed; macOS arm64
+reported 2,189 passed and 18 failed. All-target Clippy passed. Kafka 4.1.2,
+4.2.1 and 4.3.1 compatibility jobs failed; 3.9.1 and 4.1.0 smoke jobs failed
+after EOS timeouts. Broker CI passed 738 default and 886 all-feature tests,
+Clippy, docs, inventory and fuzz supervision. Earlier quorum and shutdown
+failures remain unexplained. These results do not cover later changes or close
+release gates.
 
 Earlier records:
 
@@ -155,7 +156,11 @@ remain open.
    Source review found that `flush` can miss delivery timeouts, lose a worker
    error when its caller is cancelled, or return before a retiring worker has
    handed retries off. Four focused controls [reproduced these failures](../evidence/client/producer-flush-native-86f2-20261103/README.md)
-   in both feature profiles on the pinned base. The
+   in both feature profiles on the pinned base. Separate
+   [cancellation controls](../evidence/client/addpart-retryfix-264-20261108/REPORT.md)
+   reproduced lost completion results and retained buffer bytes during a
+   coordinator retry and during single-record failure cleanup. Those controls
+   are synthetic and do not establish public shutdown behavior. The
    [source review](../evidence/client/producer-flush-controls-20261103/REPORT.md)
    describes the ownership transitions. Repair the barrier and error ownership
    together; the controls do not cover every lifecycle path. A
@@ -272,6 +277,11 @@ remain open.
    records those prerequisites; neither the authority nor the guard exists.
 
 ## Validation and performance
+
+A [closed-loop acknowledgment diagnostic](../evidence/client/ack-closed-loop-20261108/README.md)
+completed individual deliveries and independent readback for two client
+drivers. Its short runs have mismatched queue settings, timeout settings and
+driver costs, so they are not a qualified client comparison.
 
 An isolated [transaction decode experiment](../evidence/client/txn-decode-20261108/README.md)
 reduced loopback latency for larger responses on one shared x86 runner. It
