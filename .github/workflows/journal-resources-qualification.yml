@@ -1,0 +1,40 @@
+name: journal descriptor resource qualification
+on:
+  push:
+    branches: [qualification/journal-lease-resources-20261108]
+permissions:
+  contents: read
+jobs:
+  descriptor-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      CARGO_INCREMENTAL: "0"
+      CARGO_BUILD_JOBS: "2"
+      CARGO_TERM_COLOR: never
+      CARGO_PROFILE_DEV_DEBUG: "0"
+      CARGO_PROFILE_TEST_DEBUG: "0"
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          fetch-depth: 2
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - name: Source and formatted rendering
+        run: |
+          set -euo pipefail
+          test "$(uname -m)" = x86_64
+          test "$(git rev-parse HEAD^)" = 87ec84987e4413e64a91c29eb68ed8e3181a9ec1
+          rustc +stable --version --verbose
+          sha256sum partitionline-broker/src/produce.rs
+          cargo +stable fmt --manifest-path partitionline-broker/Cargo.toml --all
+          sha256sum partitionline-broker/src/produce.rs
+          printf 'PL_FMT_BEGIN produce\n'
+          base64 -w 2000 partitionline-broker/src/produce.rs | sed 's/^/PL_FMT_DATA /'
+          printf '\nPL_FMT_END produce\n'
+      - name: Measure idle stores and eight grouped Produce requests
+        run: cargo +stable test --locked --manifest-path partitionline-broker/Cargo.toml --lib produce::tests::store_and_grouped_sync_descriptor_cost -- --exact --ignored --test-threads=1 --nocapture
+      - name: Strict all-feature all-target Clippy
+        run: cargo +stable clippy --locked --manifest-path partitionline-broker/Cargo.toml --all-targets --all-features -- -D warnings
