@@ -15,28 +15,29 @@ replicated partition data or native Kafka KRaft.
 
 ## Validation
 
-The latest complete snapshot recorded here is commit `02c443cacd39a59d3991faeaf577032020ecb071`.
+The latest complete snapshot recorded here is commit `262d2544a4352d52538f19ef9ab0c8c5700774d3`.
 The [CI evidence][ci] links the runs and their limits.
 
-| Check | Result at `02c443c` |
+| Check | Result at `262d254` |
 | --- | --- |
-| Client library, Linux default | 2,231 passed and 13 failed; later targets did not run. |
-| Client library, Linux all features | 2,231 passed and 13 failed; later targets did not run. |
-| Windows default library | 2,221 passed and 23 failed. |
-| macOS arm64 default library | 2,228 passed and 16 failed. |
+| Client library, Linux default | 2,233 passed and 11 failed; later targets did not run. |
+| Client library, Linux all features | 2,233 passed and 11 failed; later targets did not run. |
+| Windows default library | 2,227 passed and 17 failed. |
+| macOS arm64 default library | 2,230 passed and 14 failed. |
 | Kafka 4.1.2, 4.2.1 and 4.3.1 compatibility | All three jobs failed with stack overflows. |
 | Kafka 3.9.1 and 4.1.0 smoke | Both reported JoinGroup error 16 and exhausted EOS retries after timeouts. |
-| Broker default targets | 688 passed, two failed and three ignored; later targets did not run. |
+| Resource soak | Failed with a `/proc` file-descriptor permission error; the workload result is incomplete. |
+| Broker default targets | 696 passed, one failed and four ignored; later targets did not run. |
 | Broker all-feature targets, Clippy and Rustdoc | Not run after the default failure. |
 | Broker inventory and fuzz supervision | Passed in separate jobs. |
 | Client capability profiles | Both passed selected checks; their archives were not independently inspected. |
-| Client format, all-target Clippy, audit, docs, package, auth, resource-soak and integrity smoke | Passed. Other client jobs failed or were skipped. |
+| Client format, all-target Clippy, audit, docs, package, auth and integrity smoke | Passed. Other client jobs failed or were skipped. |
 
-The broker failures were `NotLeader` responses in two five-node Raft tests.
-The captured node states were sampled after the failures and do not establish
-their causes. The [preceding complete snapshot][ci-1f37] passed both broker
-profiles; it does not explain the later failures. An [earlier snapshot][ci-1036]
-retains results for `1036a39`.
+The broker failure was a `NotLeader` response in a three-node Raft test.
+The node states were sampled after the failure and do not establish its cause
+or whether the mailbox change contributed. The [preceding complete snapshot][ci-02c]
+retains two earlier Raft failures. The mailbox's passing qualification checks
+do not explain these failures. [Earlier results][ci-1f37] are also retained.
 
 An earlier [main CI snapshot][ci-440] at `4409633` recorded 17 successful
 client jobs, nine failures, one cancellation and one skip. Linux default and
@@ -100,7 +101,10 @@ shows that a full one-slot route can discard a newer campaign; a later campaign
 recovered in that fixture. It does not explain the earlier stall. The [mailbox repair][vote-repair]
 now retains the newest pending vote and cancels the displaced correlation.
 Its full broker and targeted controls passed, but the older in-flight RPC
-continues unchanged.
+continues unchanged. A [stale-reply control][stale-vote] records
+how the owner handles higher terms on expired and current correlations; the
+policy decision remains open and the private transport does not authenticate
+its peers cryptographically.
 
 A [debugger trace][gdb] on the earlier `8b5de2e` source caught a stack fault
 while opening a consumer bootstrap connection. It identifies a failure point,
@@ -218,9 +222,9 @@ The [work plan][next] tracks the current candidates and outstanding tests.
 The [support matrix](support.md) describes configured coverage, and the
 [release guide](RELEASE.md) lists publication gates. No new release is ready.
 
-[ci]: https://github.com/mingley/partitionline/blob/0ce81683fe7107386e30f388cd2a4af31735d522/docs/evidence/releases/main-ci-02c-20261108/README.md
+[ci]: https://github.com/mingley/partitionline/blob/cb55f7c603e2344775de8a395c6a584737f5bb95/docs/evidence/releases/main-ci-262-20261108/README.md
 [previous-ci]: https://github.com/mingley/partitionline/blob/7ebb3cc81adc695cc4c74409a87a1a1dd4be9730/docs/evidence/releases/main-ci-ba8-20261108/README.md
-[next]: https://github.com/mingley/partitionline/blob/873b5d01ce0edef5ee3fd49f112c346aa4cc8fef/docs/plan/next-work.md
+[next]: https://github.com/mingley/partitionline/blob/cb55f7c603e2344775de8a395c6a584737f5bb95/docs/plan/next-work.md
 [previous]: https://github.com/mingley/partitionline/blob/5c2a000639d9a8a7dccd56e8c1d6f3a58dca1601/docs/STATUS.md
 [flush]: https://github.com/mingley/partitionline/blob/e980829c439aa43edc01312c91838e58a412221a/docs/evidence/client/producer-flush-native-86f2-20261103/README.md
 [txn]: https://github.com/mingley/partitionline/blob/49ad56c6bce1366e2357c272f11c5c34160d60da/docs/evidence/client/add-partitions-native-4f0c-20261103/README.md
@@ -264,7 +268,7 @@ The [support matrix](support.md) describes configured coverage, and the
 [sequence-cancel]: https://github.com/mingley/partitionline/blob/932a7835939034c730b92a12f867cf7c945320ba/docs/evidence/client/producer-sequence-cancel-20261108/README.md
 
 [ci-440]: https://github.com/mingley/partitionline/blob/3f90b40023905561548017f8ac21b063a63e8808/docs/evidence/releases/main-ci-440-20261108/README.md
-[owner-design]: https://github.com/mingley/partitionline/blob/3f90b40023905561548017f8ac21b063a63e8808/docs/evidence/client/producer-ownership-design-20261108/README.md
+[owner-design]: https://github.com/mingley/partitionline/blob/cb55f7c603e2344775de8a395c6a584737f5bb95/docs/evidence/client/producer-ownership-design-20261108/README.md
 [flush-barrier-public]: https://github.com/mingley/partitionline/blob/3f90b40023905561548017f8ac21b063a63e8808/docs/evidence/client/producer-flush-barrier-public-20261108/README.md
 [data-capacity]: https://github.com/mingley/partitionline/blob/3f90b40023905561548017f8ac21b063a63e8808/docs/evidence/broker/data-buffer-capacity-20261108/README.md
 
@@ -281,3 +285,6 @@ The [support matrix](support.md) describes configured coverage, and the
 
 [ci-364]: https://github.com/mingley/partitionline/blob/873b5d01ce0edef5ee3fd49f112c346aa4cc8fef/docs/evidence/releases/main-ci-364-20261108/README.md
 [vote-repair]: https://github.com/mingley/partitionline/blob/873b5d01ce0edef5ee3fd49f112c346aa4cc8fef/docs/evidence/broker/raft-vote-mailbox-20261108/README.md
+
+[ci-02c]: https://github.com/mingley/partitionline/blob/0ce81683fe7107386e30f388cd2a4af31735d522/docs/evidence/releases/main-ci-02c-20261108/README.md
+[stale-vote]: https://github.com/mingley/partitionline/blob/cb55f7c603e2344775de8a395c6a584737f5bb95/docs/evidence/broker/raft-stale-vote-term-20261108/README.md
