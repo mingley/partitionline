@@ -1,0 +1,38 @@
+name: Admin requested cursor baseline
+on:
+  push:
+    branches: [work/admin-requested-cursor-baseline-20261108]
+permissions:
+  contents: read
+jobs:
+  controls:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        feature: [default, all]
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Pin source and toolchain
+        run: |
+          rustc -Vv
+          sha256sum src/admin.rs src/admin/pagination_tests.rs Cargo.lock
+          git hash-object src/admin.rs src/admin/pagination_tests.rs
+      - name: Capture cursor mismatch and raw control
+        shell: bash
+        run: |
+          set +e
+          if [ "${{ matrix.feature }}" = all ]; then flags=--all-features; else flags=; fi
+          cargo test --locked $flags --lib dtp_requested_names_reject_unsolicited_cursor -- --nocapture > "$RUNNER_TEMP/cursor.log" 2>&1
+          negative=$?
+          cargo test --locked $flags --lib dtp_requested_names_raw_keeps_unsolicited_cursor -- --nocapture > "$RUNNER_TEMP/raw.log" 2>&1
+          positive=$?
+          set -e
+          cat "$RUNNER_TEMP/cursor.log"
+          cat "$RUNNER_TEMP/raw.log"
+          echo "BASELINE_CURSOR_RESULT negative=$negative positive=$positive"
+          test "$negative" -eq 101
+          test "$positive" -eq 0
+          grep -F "test admin::pagination_tests::dtp_requested_names_reject_unsolicited_cursor ... FAILED" "$RUNNER_TEMP/cursor.log"
