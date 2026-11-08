@@ -1623,8 +1623,7 @@ mod tests {
 
         // Carry an exhausted aggregate budget across batches. A header-free
         // batch still succeeds, but the next header must be rejected.
-        let limits =
-            Limits::new(1_000_000, 1_000_000, 10, 100, 100_000, 128, 1024, 5).unwrap();
+        let limits = Limits::new(1_000_000, 1_000_000, 10, 100, 100_000, 128, 1024, 5).unwrap();
         let mut plain = encode(&[sample(0, b"tail")], 10, 10, 0);
         plain[..8].copy_from_slice(&6_i64.to_be_bytes());
         assert_eq!(
