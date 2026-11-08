@@ -1,0 +1,36 @@
+name: Combined Admin reservation qualification
+on:
+  push:
+    branches: [qualification/admin-reservation-combined-check-20261108]
+  workflow_dispatch:
+jobs:
+  focused:
+    strategy:
+      fail-fast: false
+      matrix:
+        profile: [default, all-features]
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v7
+      - name: Source and Rust version
+        run: |
+          rustc --version
+          sha256sum src/protocol/admin.rs src/protocol/buf.rs tests/admin_response_reservation.rs
+      - name: Focused response controls
+        shell: bash
+        env:
+          PROFILE: ${{ matrix.profile }}
+        run: |
+          set -euo pipefail
+          features=()
+          if [ "$PROFILE" = all-features ]; then features=(--all-features); fi
+          cargo test --locked "${features[@]}" --test admin_response_reservation
+          cargo test --locked "${features[@]}" --lib protocol::admin::tests
+  static:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v7
+      - run: cargo fmt --all -- --check
+      - run: cargo clippy --locked --all-targets --all-features -- -D warnings
