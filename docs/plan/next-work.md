@@ -10,17 +10,17 @@ Production readiness and fastest-client/server claims remain unqualified.
 Client 0.1.0 is already published. The next client version must be at least
 0.2.0; broker and schema publication remain disabled.
 
-The latest complete recorded main [CI snapshot](../evidence/releases/main-ci-1f37-20261108/README.md)
-is `1f371635261b8c222f597100c06f83d06c3dab18`. Client libraries reported
-2,229 passed and 15 failed on Linux default features, 2,223 passed and 21
-failed with all features, 2,224 passed and 20 failed on Windows, and 2,235
-passed and 9 failed on macOS arm64. Three Kafka compatibility jobs and both
-smoke jobs failed. Broker CI passed 766 default and 914 all-feature tests,
-with three descriptor diagnostics ignored in each suite and passed separately
-on the same broker production source. Clippy, Rustdoc, inventory and fuzz
-supervision passed. These results do not close the release gates. The [previous
-complete snapshot](../evidence/releases/main-ci-1036-20261108/README.md)
-retains the earlier results.
+The latest complete recorded main [CI snapshot](../evidence/releases/main-ci-02c-20261108/README.md)
+is `02c443cacd39a59d3991faeaf577032020ecb071`. Client libraries reported
+2,231 passed and 13 failed on Linux default features, 2,231 passed and 13
+failed with all features, 2,221 passed and 23 failed on Windows, and 2,228
+passed and 16 failed on macOS arm64. Three Kafka compatibility jobs and both
+smoke jobs failed. Broker CI stopped in the default profile at 688 passed,
+two failed and three ignored after two five-node Raft `NotLeader` responses.
+Its all-feature suite, Clippy and Rustdoc did not run; inventory and fuzz
+supervision passed separately. The post-failure node samples do not establish
+the failures' causes. The [preceding snapshot](../evidence/releases/main-ci-1f37-20261108/README.md)
+passed both broker profiles; it does not explain these failures.
 
 An earlier [main CI snapshot](../evidence/releases/main-ci-440-20261108/README.md)
 at `4409633` recorded 17 successful client jobs, nine failures, one
@@ -279,7 +279,9 @@ remain open.
    waited for the retired worker's record but still lost a worker error after
    a flush waiter was canceled. A proposed [ownership design](../evidence/client/producer-ownership-design-20261108/README.md)
    records the unresolved lifecycle, transaction and sequence requirements;
-   the draft remains unapplied. A [private waker control](../evidence/client/producer-waker-handoff-20261108/README.md)
+   the draft remains unapplied. Its short mock benchmark recorded higher
+   median admission and flush times; it did not compare Kafka clients. A
+   [private waker control](../evidence/client/producer-waker-handoff-20261108/README.md)
    found a double release under an injected panic; public reachability is not
    established. An isolated [sequence cancellation control](../evidence/client/producer-sequence-cancel-20261108/README.md)
    dropped an artificial batch owner after the actual helper reserved sequence
@@ -439,6 +441,12 @@ also failed their qualification gate: sampled Rust arms used up to two
 broker sockets while librdkafka arms used one, and one Rust arm had no
 independent readback after a sampler permission error. Nineteen arms were
 verified. Their short, unmatched observations do not establish a ranking.
+
+A [record-encoding experiment](../evidence/client/record-body-arithmetic-20261108/README.md)
+was rejected after separate builds showed median elapsed time 6.1% higher
+for an empty single-record batch and 4.0% higher for a keyed 100-byte batch.
+The local shared-host codec test does not rank Kafka clients; an earlier
+same-binary comparison was invalid and is retained in the report.
 
 An isolated [transaction decode experiment](../evidence/client/txn-decode-20261108/README.md)
 reduced loopback latency for larger responses on one shared x86 runner. It
