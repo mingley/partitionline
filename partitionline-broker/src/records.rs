@@ -886,10 +886,26 @@ fn validate_batch(
     if count > c.remaining().len() / 7 {
         return Err(invalid(at + batch::RECORD_COUNT, Invalid::Length));
     }
+    if plain_enabled()
+        && try_accept_plain(
+            c.remaining(),
+            count,
+            last,
+            base_time,
+            max_time,
+            read,
+            limits,
+        )
+    {
+        #[cfg(test)]
+        RECORD_VISITS.with(|n| n.set(n.get() + count));
+        *total_records += count;
+        return Ok(());
+    }
     // Callers start totals at zero and stop on error. Both walks check the
     // remaining header budget before publishing a successful batch's count.
     if plain_enabled() {
-        if let Some(headers) = try_accept_plain(
+        if let Some(headers) = try_accept_headers(
             c.remaining(),
             count,
             last,
@@ -1002,12 +1018,99 @@ pub(crate) fn reset_record_visits() {
 pub(crate) fn record_visits() -> usize {
     RECORD_VISITS.with(std::cell::Cell::get)
 }
+/// Accept a no-header batch encoded with canonical varints.
+///
+/// Returns false without deciding an error so the generic walk keeps the
+/// existing rejection positions.
+fn try_accept_plain(
+    bytes: &[u8],
+    count: usize,
+    last: i32,
+    base_time: i64,
+    max_time: i64,
+    read: bool,
+    limits: Limits,
+) -> bool {
+    let mut index = 0usize;
+    let mut observed_max = i64::MIN;
+    let mut previous: Option<i32> = None;
+    for delta in 0..count {
+        let Some((body_len, next)) = read_canonical_i32(bytes, index) else {
+            return false;
+        };
+        if body_len < 6 {
+            return false;
+        }
+        let Ok(body_len) = usize::try_from(body_len) else {
+            return false;
+        };
+        let encoded = match next.checked_add(body_len) {
+            Some(end) => end.saturating_sub(index),
+            None => return false,
+        };
+        if encoded > limits.record_bytes {
+            return false;
+        }
+        let Some(body_end) = next.checked_add(body_len) else {
+            return false;
+        };
+        if bytes.len() < body_end || bytes.get(next) != Some(&0) {
+            return false;
+        }
+        let mut cursor = next.saturating_add(1);
+        let Some((timestamp_delta, next)) = read_canonical_i64(bytes, cursor) else {
+            return false;
+        };
+        cursor = next;
+        let Some(timestamp) = base_time.checked_add(timestamp_delta) else {
+            return false;
+        };
+        observed_max = observed_max.max(timestamp);
+        let Some((offset, next)) = read_canonical_i32(bytes, cursor) else {
+            return false;
+        };
+        cursor = next;
+        let offset_ok = if read {
+            offset >= 0 && offset <= last && previous.is_none_or(|n| offset > n)
+        } else {
+            i32::try_from(delta).ok() == Some(offset)
+        };
+        if !offset_ok {
+            return false;
+        }
+        previous = Some(offset);
+        let Some((key_len, next)) = read_canonical_i32(bytes, cursor) else {
+            return false;
+        };
+        cursor = next;
+        if !skip_plain_field(bytes, &mut cursor, body_end, key_len, limits.field_bytes) {
+            return false;
+        }
+        let Some((value_len, next)) = read_canonical_i32(bytes, cursor) else {
+            return false;
+        };
+        cursor = next;
+        if !skip_plain_field(bytes, &mut cursor, body_end, value_len, limits.field_bytes) {
+            return false;
+        }
+        let Some((headers, next)) = read_canonical_i32(bytes, cursor) else {
+            return false;
+        };
+        if headers != 0 || next != body_end {
+            return false;
+        }
+        index = body_end;
+    }
+    index == bytes.len() && (count == 0 || observed_max == max_time)
+}
+
+
 /// Accept a batch encoded with canonical varints.
 ///
 /// Returns None without deciding an error so the generic walk keeps the
 /// existing rejection positions.
 #[allow(clippy::too_many_arguments, reason = "independent validation inputs")]
-fn try_accept_plain(
+fn try_accept_headers(
     bytes: &[u8],
     count: usize,
     last: i32,
@@ -1332,7 +1435,7 @@ impl<'a> Cursor<'a> {
 #[cfg(test)]
 mod tests {
     use super::{
-        framed_assignment, trust_stored, try_accept_plain, validate, validate_batch,
+        framed_assignment, trust_stored, try_accept_headers, validate, validate_batch,
         validate_known_crc, validate_read, Budget, Error, Invalid, Limits, SKIP_PLAIN,
     };
     use crate::batch;
@@ -1589,7 +1692,7 @@ mod tests {
         let bytes = encode(&samples, 1_000, 1_005, 5);
         let limits = Limits::default();
         assert_eq!(
-            try_accept_plain(&bytes[batch::LEN..], 6, 5, 1_000, 1_005, false, limits, 0),
+            try_accept_headers(&bytes[batch::LEN..], 6, 5, 1_000, 1_005, false, limits, 0),
             Some(5)
         );
         assert_eq!(validate(&bytes, limits).unwrap().header_count(), 5);
@@ -1627,7 +1730,7 @@ mod tests {
         let mut plain = encode(&[sample(0, b"tail")], 10, 10, 0);
         plain[..8].copy_from_slice(&6_i64.to_be_bytes());
         assert_eq!(
-            try_accept_plain(&plain[batch::LEN..], 1, 0, 10, 10, false, limits, 5),
+            try_accept_headers(&plain[batch::LEN..], 1, 0, 10, 10, false, limits, 5),
             Some(0)
         );
         assert!(both_with_limits(&plain, false, limits, 5).0.is_ok());
@@ -1674,7 +1777,7 @@ mod tests {
         sparse[1].headers.push((b"key".to_vec(), None));
         let sparse_bytes = encode(&sparse, 20, 25, 5);
         assert_eq!(
-            try_accept_plain(
+            try_accept_headers(
                 &sparse_bytes[batch::LEN..],
                 3,
                 5,
