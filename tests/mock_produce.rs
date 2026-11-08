@@ -301,7 +301,11 @@ async fn send_all_dials_leaders_together() {
 /// Stale topic metadata reloads while idle leaders redial.
 #[tokio::test(flavor = "current_thread")]
 async fn send_all_redials_leaders_while_refreshing_metadata() {
+    use common::WireEventKind;
+    use partitionline::protocol::api_keys::{API_VERSIONS, METADATA, PRODUCE};
+
     let mock = common::Mock::start_three_node().await;
+    mock.enable_wire_trace(1_000);
     mock.set_topic_partitions("t", 1);
     mock.set_topic_partitions("u", 1);
     mock.set_partition_leader("t", 0, 2);
@@ -311,30 +315,152 @@ async fn send_all_redials_leaders_while_refreshing_metadata() {
     cfg.metadata_max_age = Duration::from_millis(30);
     cfg.connections_max_idle = Duration::from_millis(40);
     let producer = Producer::new(cfg).await.unwrap();
-    let _warm = producer
+    let warm = producer
         .send_all([
             ProduceRecord::to("t").partition(0).value(&b"a"[..]),
             ProduceRecord::to("u").partition(0).value(&b"b"[..]),
         ])
         .await
         .unwrap();
+    assert_eq!(warm.len(), 2);
+
+    // Identify the warm metadata and leader sockets. Replacement handshakes
+    // happen before these sockets are retired, so do not require closure yet.
+    let trace = mock.wire_trace();
+    let old_sockets: Vec<_> = [(1, METADATA), (2, PRODUCE), (3, PRODUCE)]
+        .into_iter()
+        .map(|(node, key)| {
+            let event = trace
+                .iter()
+                .rev()
+                .find(|event| {
+                    event.node == node
+                        && matches!(
+                            &event.kind,
+                            WireEventKind::Request { api_key, .. } if *api_key == key
+                        )
+                })
+                .expect("warm socket must have sent the expected request");
+            (node, event.socket)
+        })
+        .collect();
+    let warm_cursor = trace.last().map_or(0, |event| event.sequence);
+    let idle_started = Instant::now();
     tokio::time::sleep(Duration::from_millis(60)).await;
-    let delay = Duration::from_millis(250);
-    mock.set_metadata_delay(delay);
-    mock.set_api_versions_delay(delay);
-    let started = Instant::now();
-    let acks = producer
-        .send_all([
-            ProduceRecord::to("t").partition(0).value(&b"c"[..]),
-            ProduceRecord::to("u").partition(0).value(&b"d"[..]),
-        ])
+    assert!(idle_started.elapsed() >= Duration::from_millis(40));
+    let before = mock.wire_trace();
+    for (node, socket) in &old_sockets {
+        assert!(!before.iter().any(|event| {
+            event.sequence > warm_cursor
+                && event.node == *node
+                && event.socket == *socket
+                && matches!(
+                    event.kind,
+                    WireEventKind::Request { .. } | WireEventKind::Response { .. }
+                )
+        }), "warm socket became active during the idle interval");
+    }
+    let cursor = before.last().map_or(0, |event| event.sequence);
+    let metadata_before = mock.metadata_calls();
+    let gate = mock.hold_api_versions_responses();
+    let task_producer = producer.clone();
+    let send = tokio::spawn(async move {
+        task_producer
+            .send_all([
+                ProduceRecord::to("t").partition(0).value(&b"c"[..]),
+                ProduceRecord::to("u").partition(0).value(&b"d"[..]),
+            ])
+            .await
+    });
+    // The gate holds all three ApiVersions replies. Node 1 is the
+    // stale-metadata rediscovery connection; nodes 2 and 3 are the idle
+    // leaders. Requiring all three requests before release proves overlap
+    // without assuming an upper bound on total send_all latency.
+    let observed = tokio::time::timeout(Duration::from_secs(5), async {
+        loop {
+            let events = mock.wire_trace();
+            let all_requested = [1, 2, 3].into_iter().all(|node| {
+                events.iter().any(|event| {
+                    event.sequence > cursor
+                        && event.node == node
+                        && matches!(
+                            &event.kind,
+                            WireEventKind::Request { api_key, .. }
+                                if *api_key == API_VERSIONS
+                        )
+                })
+            });
+            if all_requested {
+                break events;
+            }
+            tokio::time::sleep(Duration::from_millis(2)).await;
+        }
+    })
+    .await
+    .unwrap_or_else(|_| {
+        gate.close();
+        panic!("leader redials did not overlap the metadata discovery handshake");
+    });
+    for (node, old_socket) in &old_sockets {
+        let request = observed
+            .iter()
+            .find(|event| {
+                event.sequence > cursor
+                    && event.node == *node
+                    && matches!(
+                        &event.kind,
+                        WireEventKind::Request { api_key, .. } if *api_key == API_VERSIONS
+                    )
+            })
+            .expect("all three requests were observed");
+        assert_ne!(request.socket, *old_socket, "redial reused a closed socket");
+        assert!(!observed.iter().any(|event| {
+            event.sequence > cursor
+                && event.node == *node
+                && matches!(
+                    &event.kind,
+                    WireEventKind::Response { api_key, .. } if *api_key == API_VERSIONS
+                )
+        }));
+    }
+    assert_eq!(mock.metadata_calls(), metadata_before);
+    gate.close();
+
+    let acks = tokio::time::timeout(Duration::from_secs(10), send)
         .await
+        .unwrap()
+        .unwrap()
         .unwrap();
-    let elapsed = started.elapsed();
-    assert_eq!(acks.len(), 2);
-    assert!(
-        elapsed < Duration::from_millis(450),
-        "send_all refreshed metadata before redialing leaders: {elapsed:?}"
+    let receipts: Vec<_> = acks
+        .iter()
+        .map(|ack| (ack.topic.to_string(), ack.partition, ack.offset))
+        .collect();
+    assert_eq!(
+        receipts,
+        vec![("t".to_string(), 0, 1), ("u".to_string(), 0, 1)]
+    );
+    assert!(mock.metadata_calls() > metadata_before);
+    assert_eq!(
+        mock.log_values("t", 0),
+        vec![(0, Some(b"a".to_vec())), (1, Some(b"c".to_vec()))]
+    );
+    assert_eq!(
+        mock.log_values("u", 0),
+        vec![(0, Some(b"b".to_vec())), (1, Some(b"d".to_vec()))]
+    );
+    let after = mock.wire_trace();
+    let old_closed = old_sockets
+        .iter()
+        .filter(|(node, socket)| {
+            after.iter().any(|event| {
+                event.node == *node
+                    && event.socket == *socket
+                    && matches!(event.kind, WireEventKind::Close)
+            })
+        })
+        .count();
+    println!(
+        "REDIAL_OVERLAP nodes=1,2,3 distinct_sockets=true replies_held=true old_closed={old_closed}"
     );
     producer.close().await.unwrap();
 }
