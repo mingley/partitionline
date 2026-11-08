@@ -562,7 +562,7 @@ impl Journal {
             .write(true)
             .create_new(true)
             .open(&tmp)?;
-        owner.identify(&file)?;
+        owner.identify_replacement(&file, &self._ownership)?;
         file.set_permissions(source_metadata.permissions())?;
         // Persist access permissions before any private bytes can reach disk.
         #[cfg(test)]
@@ -842,7 +842,7 @@ impl Journal {
         #[cfg(not(test))]
         let synchronized = file.sync_all();
         synchronized?;
-        owner.identify(&file)?;
+        owner.identify_replacement(&file, &self._ownership)?;
         let (mut replacement, _) = Engine::recover(file, 0, self.inner.limits)?;
         replacement.append(1, payload)?;
         // Writing can clear set-ID bits; restore the source mode before sync.
@@ -1406,6 +1406,8 @@ mod ownership {
     struct Lease {
         key: Key,
         _pin: Option<File>,
+        #[cfg(unix)]
+        _path: Option<Arc<Lease>>,
     }
     impl Drop for Lease {
         fn drop(&mut self) {
@@ -1418,7 +1420,11 @@ mod ownership {
         }
     }
 
-    fn register(key: Key, pin: Option<File>) -> Result<Arc<Lease>, Error> {
+    fn register(
+        key: Key,
+        pin: Option<File>,
+        path: Option<Arc<Lease>>,
+    ) -> Result<Arc<Lease>, Error> {
         {
             let mut open = registry().lock().map_err(|_| Error::OwnershipUnavailable)?;
             if open.contains(&key) {
@@ -1427,7 +1433,14 @@ mod ownership {
             open.try_reserve(1).map_err(|_| Error::AllocationFailed)?;
             open.insert(key.clone());
         }
-        Ok(Arc::new(Lease { key, _pin: pin }))
+        #[cfg(not(unix))]
+        let _ = path;
+        Ok(Arc::new(Lease {
+            key,
+            _pin: pin,
+            #[cfg(unix)]
+            _path: path,
+        }))
     }
 
     pub(super) struct Guard {
@@ -1445,6 +1458,7 @@ mod ownership {
     /// A staged sync retains both the path and the original inode reservation.
     pub(crate) struct SyncFile {
         file: File,
+        #[cfg(not(unix))]
         _path: Option<Arc<Lease>>,
         #[cfg(unix)]
         _inode: Option<Arc<Lease>>,
@@ -1458,6 +1472,7 @@ mod ownership {
         pub(crate) fn untracked(file: File) -> Self {
             Self {
                 file,
+                #[cfg(not(unix))]
                 _path: None,
                 #[cfg(unix)]
                 _inode: None,
@@ -1482,7 +1497,7 @@ mod ownership {
                 Err(error) => return Err(Error::Io(error)),
             };
             Ok(Self {
-                path: register(Key::Path(key), None)?,
+                path: register(Key::Path(key), None, None)?,
                 #[cfg(unix)]
                 inode: None,
             })
@@ -1491,20 +1506,47 @@ mod ownership {
         pub(super) fn identify(&mut self, file: &File) -> Result<(), Error> {
             #[cfg(unix)]
             {
-                if self.inode.is_some() {
-                    return Err(Error::OwnershipUnavailable);
-                }
-                let pin = file.try_clone()?;
-                let metadata = pin.metadata()?;
-                self.inode = Some(register(
-                    Key::Inode(metadata.dev(), metadata.ino()),
-                    Some(pin),
-                )?);
+                let path = Arc::clone(&self.path);
+                self.identify_with_path(file, path)?;
             }
             #[cfg(not(unix))]
             {
                 let _ = file;
             }
+            Ok(())
+        }
+
+        // A replacement inode must retain the destination pathname even if a
+        // staged ticket keeps that inode alive after the Journal is dropped.
+        pub(super) fn identify_replacement(
+            &mut self,
+            file: &File,
+            original: &Self,
+        ) -> Result<(), Error> {
+            #[cfg(unix)]
+            {
+                let path = Arc::clone(&original.path);
+                self.identify_with_path(file, path)?;
+            }
+            #[cfg(not(unix))]
+            {
+                let _ = (file, original);
+            }
+            Ok(())
+        }
+
+        #[cfg(unix)]
+        fn identify_with_path(&mut self, file: &File, path: Arc<Lease>) -> Result<(), Error> {
+            if self.inode.is_some() {
+                return Err(Error::OwnershipUnavailable);
+            }
+            let pin = file.try_clone()?;
+            let metadata = pin.metadata()?;
+            self.inode = Some(register(
+                Key::Inode(metadata.dev(), metadata.ino()),
+                Some(pin),
+                Some(path),
+            )?);
             Ok(())
         }
 
@@ -1539,6 +1581,17 @@ mod ownership {
                 }
                 let new_inode = replacement
                     .inode
+                    .as_ref()
+                    .ok_or(Error::OwnershipUnavailable)?;
+                if !new_inode
+                    ._path
+                    .as_ref()
+                    .is_some_and(|path| Arc::ptr_eq(path, &self.path))
+                {
+                    return Err(Error::OwnershipUnavailable);
+                }
+                let new_inode = replacement
+                    .inode
                     .take()
                     .ok_or(Error::OwnershipUnavailable)?;
                 Ok(RetiredInode {
@@ -1561,6 +1614,7 @@ mod ownership {
                 .clone();
             Ok(SyncFile {
                 file,
+                #[cfg(not(unix))]
                 _path: Some(Arc::clone(&self.path)),
                 #[cfg(unix)]
                 _inode: Some(inode),
@@ -2207,7 +2261,7 @@ mod tests {
         std::fs::hard_link(&path, &alias)?;
         let replacement_file = File::create(&tmp)?;
         let mut replacement = ownership::Guard::acquire(&tmp)?;
-        replacement.identify(&replacement_file)?;
+        replacement.identify_replacement(&replacement_file, &log._ownership)?;
         drop(replacement_file);
         let retired = log._ownership.adopt_replacement(&mut replacement)?;
         assert!(matches!(
@@ -2224,6 +2278,185 @@ mod tests {
         drop(old);
         drop(_ownership);
         drop(replacement);
+        std::fs::remove_dir_all(dir)?;
+        Ok(())
+    }
+
+    #[test]
+    #[cfg(unix)]
+    fn staged_tickets_keep_three_replaced_generations_and_the_path(
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        let dir = ownership_test_dir("three-generations")?;
+        let path = dir.join("log");
+        let limits = Limits::default();
+        let payloads: [&[u8]; 3] = [b"one", b"two", b"tri"];
+        let mut aliases = Vec::new();
+        let mut tickets = Vec::new();
+        let (mut log, _) = Journal::open(&path, 0, limits)?;
+        for (index, payload) in payloads.iter().enumerate() {
+            let ticket = log.append_staged(1, payload, crc32c::crc32c(payload))?;
+            ticket.sync_data()?;
+            log.commit_staged()?;
+            let alias = dir.join(format!("generation-{index}"));
+            std::fs::hard_link(&path, &alias)?;
+            aliases.push(alias);
+            tickets.push(ticket);
+            if index < 2 {
+                log.replace_with_snapshot(b"snapshot")?;
+            }
+        }
+        drop(log);
+        for alias in &aliases {
+            assert!(matches!(
+                Journal::open(alias, 0, limits),
+                Err(Error::AlreadyOpen)
+            ));
+        }
+        for (index, ticket) in tickets.into_iter().enumerate() {
+            drop(ticket);
+            let (mut previous, _) = Journal::open(&aliases[index], 0, limits)?;
+            let entries = previous.fetch(0, 2, 1024)?;
+            assert_eq!(
+                entries.last().ok_or("missing record")?.payload.as_slice(),
+                payloads[index]
+            );
+            drop(previous);
+            if index < 2 {
+                assert!(matches!(
+                    Journal::open(&path, 0, limits),
+                    Err(Error::AlreadyOpen)
+                ));
+                for alias in aliases.iter().skip(index + 1) {
+                    assert!(matches!(
+                        Journal::open(alias, 0, limits),
+                        Err(Error::AlreadyOpen)
+                    ));
+                }
+            }
+        }
+        let (mut current, _) = Journal::open(&path, 0, limits)?;
+        let entries = current.fetch(0, 2, 1024)?;
+        assert_eq!(entries[0].payload, b"snapshot");
+        assert_eq!(entries[1].payload, b"tri");
+        drop(current);
+        std::fs::remove_dir_all(dir)?;
+        Ok(())
+    }
+
+    #[test]
+    #[cfg(unix)]
+    fn replacement_rejects_an_inode_bound_to_another_path() -> Result<(), Box<dyn std::error::Error>>
+    {
+        let dir = ownership_test_dir("wrong-replacement-path")?;
+        let path = dir.join("log");
+        let temporary = dir.join("replacement");
+        let limits = Limits::default();
+        let (mut log, _) = Journal::open(&path, 0, limits)?;
+        log.append(1, b"original")?;
+        let file = File::create(&temporary)?;
+        let mut replacement = ownership::Guard::acquire(&temporary)?;
+        replacement.identify(&file)?;
+        assert!(matches!(
+            log._ownership.adopt_replacement(&mut replacement),
+            Err(Error::OwnershipUnavailable)
+        ));
+        assert!(matches!(
+            Journal::open(&path, 0, limits),
+            Err(Error::AlreadyOpen)
+        ));
+        assert!(matches!(
+            Journal::open(&temporary, 0, limits),
+            Err(Error::AlreadyOpen)
+        ));
+        assert_eq!(log.fetch(0, 1, 1024)?[0].payload, b"original");
+        drop(file);
+        drop(replacement);
+        let (fresh, _) = Journal::open(&temporary, 0, limits)?;
+        drop(fresh);
+        drop(log);
+        let (mut reopened, _) = Journal::open(&path, 0, limits)?;
+        assert_eq!(reopened.fetch(0, 1, 1024)?[0].payload, b"original");
+        drop(reopened);
+        std::fs::remove_dir_all(dir)?;
+        Ok(())
+    }
+
+    #[test]
+    #[cfg(unix)]
+    fn replacement_ticket_reserves_destination_before_publication(
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        let dir = ownership_test_dir("replacement-before-publication")?;
+        let path = dir.join("log");
+        let temporary = dir.join("temporary");
+        let alias = dir.join("temporary-alias");
+        let limits = Limits::default();
+        let (mut log, _) = Journal::open(&path, 0, limits)?;
+        log.append(1, b"original")?;
+        let file = File::create(&temporary)?;
+        std::fs::hard_link(&temporary, &alias)?;
+        let mut owner = ownership::Guard::acquire(&temporary)?;
+        owner.identify_replacement(&file, &log._ownership)?;
+        let ticket = owner.sync_file(file.try_clone()?)?;
+        assert!(matches!(
+            Journal::open(&path, 0, limits),
+            Err(Error::AlreadyOpen)
+        ));
+        assert!(matches!(
+            Journal::open(&alias, 0, limits),
+            Err(Error::AlreadyOpen)
+        ));
+        drop(file);
+        drop(owner);
+        drop(log);
+        assert!(matches!(
+            Journal::open(&path, 0, limits),
+            Err(Error::AlreadyOpen)
+        ));
+        assert!(matches!(
+            Journal::open(&alias, 0, limits),
+            Err(Error::AlreadyOpen)
+        ));
+        drop(ticket);
+        let (mut original, _) = Journal::open(&path, 0, limits)?;
+        assert_eq!(original.fetch(0, 1, 1024)?[0].payload, b"original");
+        let (other, _) = Journal::open(&alias, 0, limits)?;
+        drop(other);
+        drop(original);
+        std::fs::remove_dir_all(dir)?;
+        Ok(())
+    }
+
+    #[test]
+    #[cfg(not(unix))]
+    fn nonunix_ticket_retains_path_through_adoption_and_close(
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        let dir = ownership_test_dir("nonunix-ticket")?;
+        let path = dir.join("log");
+        let temporary = dir.join("temporary");
+        let file = File::create(&path)?;
+        let mut owner = ownership::Guard::acquire(&path)?;
+        owner.identify(&file)?;
+        let ticket = owner.sync_file(file.try_clone()?)?;
+        let replacement_file = File::create(&temporary)?;
+        let mut replacement = ownership::Guard::acquire(&temporary)?;
+        replacement.identify_replacement(&replacement_file, &owner)?;
+        let retired = owner.adopt_replacement(&mut replacement)?;
+        drop(retired);
+        drop(file);
+        drop(owner);
+        assert!(matches!(
+            ownership::Guard::acquire(&path),
+            Err(Error::AlreadyOpen)
+        ));
+        assert!(matches!(
+            ownership::Guard::acquire(&temporary),
+            Err(Error::AlreadyOpen)
+        ));
+        drop(ticket);
+        drop(ownership::Guard::acquire(&path)?);
+        drop(replacement_file);
+        drop(replacement);
+        drop(ownership::Guard::acquire(&temporary)?);
         std::fs::remove_dir_all(dir)?;
         Ok(())
     }
