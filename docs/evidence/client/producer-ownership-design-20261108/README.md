@@ -46,8 +46,11 @@ experiments, not production fixes. The draft stays off main.
   alone does not prove a leaked reservation or identify the cause.
 
 A [matched retained-backing diagnostic][paired-run] ran the same single
-fixture three times per arm, with separate target directories. Every invocation
-failed the 4,096-versus-4,097 snapshot assertion:
+fixture three times per arm, with separate target directories. The base was
+`4409633fa989effe1083e623f6e59fcc0d179eee`, the draft was
+`bc45ba4f65f126c406ff88a57fcfe08007d35b29`, and both used fixture SHA-256
+`ecc74d9d33d1ff5544002b027fe907fa8542f11052224ee1aa45a74c7475e110`.
+Every invocation failed the 4,096-versus-4,097 snapshot assertion:
 
 | Source | Features | Failed runs | Elapsed seconds, in run order |
 | --- | --- | --- | --- |
@@ -59,7 +62,8 @@ failed the 4,096-versus-4,097 snapshot assertion:
 The job succeeded because it collected all observations. The runner reported
 `/sys/fs/cgroup/cpu.max` unavailable; the CPU quota is unknown. These failed
 test durations are not a performance comparison and do not establish the cause
-of the assertion or prove a reservation leak.
+of the assertion or prove a reservation leak. The diagnostic does not explain
+the earlier default-feature `Timeout`.
 
 ## Source review
 
