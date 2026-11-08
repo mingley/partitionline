@@ -2577,6 +2577,36 @@ mod tests {
     }
 
     #[test]
+    fn grouped_preallocates_index_for_all_staged_writes() -> Result<(), Error> {
+        let mut journal = engine(0)?;
+        for value in 0u8..8 {
+            let payload = [value];
+            journal.stage(1, &payload, crc32c::crc32c(&payload), true)?;
+            let required = journal.index.len() + journal.staged.len();
+            assert!(
+                journal.index.capacity() >= required,
+                "index capacity {} is below {} committed and staged entries",
+                journal.index.capacity(),
+                required
+            );
+        }
+        let capacity = journal.index.capacity();
+        journal.storage.synchronize()?;
+        for value in 0u64..8 {
+            let result = journal.commit_staged()?;
+            assert_eq!((result.first_offset, result.next_offset), (value, value + 1));
+            assert_eq!(journal.index.capacity(), capacity);
+        }
+        let (mut recovered, recovery) = Engine::recover(journal.storage, 0, Limits::default())?;
+        assert_eq!(recovery.next_offset, 8);
+        let entries = recovered.fetch(0, 8, 1024)?;
+        for (value, entry) in (0u8..8).zip(entries) {
+            assert_eq!(entry.payload, [value]);
+        }
+        Ok(())
+    }
+
+    #[test]
     fn success_synchronizes_complete_bytes_before_return() {
         let mut journal = engine(7).unwrap();
         assert_eq!(journal.storage.synchronized.len(), 1);
