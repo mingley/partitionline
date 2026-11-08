@@ -1348,6 +1348,7 @@ async fn dtp_public_row_growth_poll_witness() {
         }
     }
     let events = DTP_TRACE_EVENTS.with(|events| events.borrow().clone());
+    assert_eq!(std::hint::black_box(&result).len(), count);
     let growth_count = events.iter().filter(|event| event.kind == "growth").count();
     let reserve_count = events.iter().filter(|event| event.kind == "reserve").count();
     let response_positions: Vec<_> = events.iter().enumerate().filter_map(|(index, event)| (event.kind == "response_drop").then_some(index)).collect();
