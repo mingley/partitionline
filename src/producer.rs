@@ -15688,12 +15688,7 @@ mod tests {
 
     // Diagnostic fixture: these records are injected into the real helpers.
     // It does not establish that public retries can reach this arrangement.
-    fn sequence_identity_witness(
-        partition: i32,
-        sequence: i32,
-        base: i32,
-        len: usize,
-    ) -> Pending {
+    fn sequence_identity_witness(partition: i32, sequence: i32, base: i32, len: usize) -> Pending {
         let mut pending = queued("sequence-witness", Some(partition));
         pending.seq = Some(sequence);
         pending.batch_base_seq = Some(base);
