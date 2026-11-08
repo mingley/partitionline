@@ -2,7 +2,7 @@
 
 The ordinary record validator first tries a fast walk for batches without
 headers. A positive header count makes that walk decline and the generic
-validator starts from the beginning. Four isolated candidates tried to
+validator starts from the beginning. Five isolated candidates tried to
 reduce that repeated work. None is applied: each regressed at least one
 measured control. The benchmark checks memory-resident uncompressed batches;
 it does not measure Kafka throughput or rank clients or servers.
@@ -131,3 +131,39 @@ and trailing bytes after the last record. The earlier
 [42451384857](https://github.com/mingley/partitionline/actions/runs/42451384857)
 also passed focused tests and Clippy but failed formatting. No full broker suite
 or current-main qualification was run for this candidate.
+
+## First-record probe
+
+A [fifth isolated candidate](https://github.com/mingley/partitionline/commit/545578e483ed490c73d14a9a9854b28bb602310b)
+kept the original no-header validator, then used a bounded first-record probe
+to decide whether to enter the resumable header walk. A header first appearing
+later in the batch went to the existing generic walk.
+
+In [run 42452199862](https://github.com/mingley/partitionline/actions/runs/42452199862),
+candidate/baseline median ratios were 0.888 for one record without headers,
+1.048 for one record with one header, 1.003 for 1,024 records without headers,
+0.672 for 1,024 with one header each, 0.752 with four headers each, 1.005
+with a header only on the last record, and 0.882 for larger values with
+headers. Early-invalid and late-invalid without headers were 0.999 and 1.006;
+late-invalid after earlier headers was 0.673. All eight one-header single
+record pairs were above baseline (1.030–1.061). This short shared-runner
+measurement does not establish production performance.
+
+The candidate source SHA-256 was
+`f93e95135d20b3e8bc42005452064905acc986dbc652dfab11a208632786d777`;
+fixture SHA-256 was
+`5b77706970c10ca45a9cdf461dcf5871cdc5891ea8a0128f2c6cd1209fb96cda`.
+Baseline and candidate binary hashes were
+`ed445ed68ef7238d70ec884e7cb52dcf596dce158d6fd1f9d39ce912b0691c28`
+and `7ee289e66124dcd702818d47e76ca44095758fb6fb741ce90c713dac17f0eddb`.
+GitHub reported SHA-256
+`e3009890bbf7769f7bd238634a371fbba22e10a4778b7d684aebaceb316b0b49`
+for the [artifact](https://github.com/mingley/partitionline/actions/runs/42452199862/artifacts/13606113500).
+The binaries were not retained, and the artifact has not been independently
+downloaded.
+
+[Run 42452193624](https://github.com/mingley/partitionline/actions/runs/42452193624)
+passed the focused library and 14 record integration tests in both profiles
+and strict all-target/all-feature Clippy, but failed formatting on four test
+call sites. This version remains unapplied. An additional isolated variant
+skips the probe for single-record batches and is under measurement.
