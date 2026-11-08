@@ -574,7 +574,11 @@ fn illegal_varlong_exception(value: u64) -> Error {
 /// back to the same encoding derived from the value.
 #[inline]
 pub(crate) fn put_unsigned_varint_width(buf: &mut BytesMut, v: u32, width: usize) {
-    put_unsigned_groups(buf, u64::from(v), width);
+    if width == 1 {
+        buf.put_u8(u7_64(u64::from(v)));
+    } else {
+        put_unsigned_groups(buf, u64::from(v), width);
+    }
 }
 
 #[cfg(test)]
@@ -657,7 +661,11 @@ fn put_unsigned_groups(buf: &mut BytesMut, mut v: u64, width: usize) {
 /// `width` is [`unsigned_varlong_size`] of `v` (1..=10).
 #[inline]
 pub(crate) fn put_unsigned_varlong_width(buf: &mut BytesMut, v: u64, width: usize) {
-    put_unsigned_groups(buf, v, width);
+    if width == 1 {
+        buf.put_u8(u7_64(v));
+    } else {
+        put_unsigned_groups(buf, v, width);
+    }
 }
 
 #[cfg(test)]
@@ -1331,6 +1339,55 @@ mod tests {
     use std::collections::{HashMap, HashSet};
 
     use super::*;
+
+    fn assert_width_writers_match_generic(value: u64, width: usize) {
+        let mut expected = BytesMut::from(&b"prefix"[..]);
+        let mut actual = expected.clone();
+        put_unsigned_groups(&mut expected, value, width);
+        put_unsigned_varlong_width(&mut actual, value, width);
+        assert_eq!(actual, expected, "varlong value={value} width={width}");
+
+        let int_value = u32::try_from(value & u64::from(u32::MAX)).unwrap_or_default();
+        let mut expected = BytesMut::from(&b"prefix"[..]);
+        let mut actual = expected.clone();
+        put_unsigned_groups(&mut expected, u64::from(int_value), width);
+        put_unsigned_varint_width(&mut actual, int_value, width);
+        assert_eq!(actual, expected, "varint value={int_value} width={width}");
+    }
+
+    #[test]
+    fn one_byte_width_path_matches_generic_for_noncanonical_inputs() {
+        let values = [
+            0,
+            1,
+            126,
+            127,
+            128,
+            129,
+            255,
+            16_383,
+            16_384,
+            u64::from(u32::MAX),
+            u64::MAX,
+        ];
+        for value in values {
+            for width in 0..=12 {
+                assert_width_writers_match_generic(value, width);
+            }
+            assert_width_writers_match_generic(value, usize::MAX);
+        }
+        let mut value = 0x6a09_e667_f3bc_c909u64;
+        for _ in 0..16_384 {
+            value ^= value << 13;
+            value ^= value >> 7;
+            value ^= value << 17;
+            // Width one with values above 127 is intentional: the previous
+            // writer masked to seven bits even for noncanonical inputs.
+            assert_width_writers_match_generic(value, 1);
+            let width = usize::try_from(value % 13).unwrap_or_default();
+            assert_width_writers_match_generic(value, width);
+        }
+    }
 
     #[test]
     fn copy_exact_spans_chunks_without_a_zeroed_buffer() {
