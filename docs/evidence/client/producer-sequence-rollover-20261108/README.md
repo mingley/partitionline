@@ -150,6 +150,37 @@ Other designs can meet the same invariants. See the
 [producer ownership note][ownership] for cancellation, notification, close,
 and transaction requirements that a sequence-only patch does not solve.
 
+## Fail-closed guard assessment
+
+One possible temporary mitigation is to refuse a reservation when
+`next + count` exceeds `i32::MAX`, leaving sequence `MAX` unused. This
+would stop early; it would not implement Kafka's sequence wrap. No guard has
+been implemented or tested.
+
+The current [assignment path][assign] reserves partition groups separately
+and can yield between them. For example, group A may reserve sequence 10,
+then group B may reach the proposed limit before any group is written. If
+the request fails without restoring A, A's next batch starts at 11 while the
+broker still expects 10. A numeric rewind alone is insufficient if another
+reservation or producer identity change intervened. An implementation needs
+an all-or-nothing, generation-checked reservation or an equally safe way to
+settle every earlier group.
+
+An error also has to settle every accepted record's receipt, callback,
+buffer and sticky reservation, and transaction state. Existing asynchronous
+failure cleanup has a cancellation window; a
+[one-record control][cleanup-cancel] observed a closed receipt and retained
+byte rather than the intended error. The separate
+[synchronous cleanup probe][cleanup-block] ran a blocking callback on the
+dropping runtime thread and delayed a timer. Those are scoped controls, not
+tests of the proposed guard.
+
+A producer-wide fence would need to coordinate final admissions, retries and
+write claims, including work already in progress when the fence is set.
+Checking a flag only when `send` starts does not provide that ordering.
+Preserving accepted-record ownership and shutdown deadlines therefore remains
+part of the mitigation, as described in the [ownership note][ownership].
+
 ## Qualification plan
 
 1. Extend the seeded producer controls to cover a wrapped pre-write rollback,
@@ -190,3 +221,5 @@ and transaction requirements that a sequence-only patch does not solve.
 [ownership]: https://github.com/mingley/partitionline/blob/60caa746c3654c89d01557e35e1100cdc2a84b74/docs/evidence/client/producer-ownership-design-20261108/README.md
 [java-increment]: https://github.com/apache/kafka/blob/3.9.1/clients/src/main/java/org/apache/kafka/common/record/DefaultRecordBatch.java#L556
 [java-duplicate]: https://github.com/apache/kafka/blob/3.9.1/storage/src/main/java/org/apache/kafka/storage/internals/log/ProducerStateEntry.java#L134
+[cleanup-cancel]: https://github.com/mingley/partitionline/actions/runs/42444842648
+[cleanup-block]: https://github.com/mingley/partitionline/actions/runs/42448073643
