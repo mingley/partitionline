@@ -1,0 +1,48 @@
+name: Producer sequence rollover helper witnesses
+
+on:
+  push:
+    branches: ["qualification/producer-rollover-controls-20261108"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  witness:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        profile: [default, all]
+    env:
+      PROFILE: ${{ matrix.profile }}
+      CARGO_TERM_COLOR: never
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Record provenance
+        run: |
+          set -eu
+          rustc -Vv
+          cargo -V
+          uname -a
+          git rev-parse HEAD
+          git rev-parse HEAD:src/producer.rs
+          sha256sum src/producer.rs Cargo.lock
+          mkdir -p witness-logs
+      - name: Run source-level controls
+        run: |
+          set -euo pipefail
+          args=()
+          if test "$PROFILE" = all; then args+=(--all-features); fi
+          cargo +stable test --locked "${args[@]}" --lib sequence_rollover_witness -- --test-threads=1 --nocapture 2>&1 | tee witness-logs/controls.log
+          grep -F "test result: ok. 3 passed; 0 failed" witness-logs/controls.log
+      - name: Retain output
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: producer-rollover-helper-${{ matrix.profile }}
+          path: witness-logs
+          retention-days: 30
