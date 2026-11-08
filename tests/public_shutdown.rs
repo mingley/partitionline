@@ -175,10 +175,37 @@ async fn close_history(cancel_first: bool) {
 
     gate.release();
     drop(release);
-    let metadata = tokio::time::timeout(WAIT, delivery.as_mut())
+    let (metadata, close_completed) = if cancel_first {
+        let metadata = tokio::time::timeout(WAIT, delivery.as_mut())
+            .await
+            .expect("target delivery deadline")
+            .expect("target acknowledgement");
+        (metadata, false)
+    } else {
+        let close = close.as_mut().expect("close exists");
+        tokio::time::timeout(WAIT, async {
+            tokio::select! {
+                biased;
+                result = close.as_mut() => {
+                    result.expect("close result");
+                    assert!(callbacks
+                        .acknowledgements
+                        .lock()
+                        .unwrap()
+                        .contains(&("t".to_string(), 0, 1, 5)));
+                    match poll_once(delivery.as_mut()).await {
+                        Poll::Ready(Ok(metadata)) => (metadata, true),
+                        other => panic!("close completed before target receipt: {other:?}"),
+                    }
+                }
+                result = delivery.as_mut() => {
+                    (result.expect("target acknowledgement"), false)
+                }
+            }
+        })
         .await
-        .expect("target delivery deadline")
-        .expect("target acknowledgement");
+        .expect("target/close deadline")
+    };
     assert_eq!((metadata.partition, metadata.offset), (0, 1));
     assert!(callbacks
         .acknowledgements
@@ -197,10 +224,12 @@ async fn close_history(cancel_first: bool) {
 
     if !cancel_first {
         let mut close = close.take().expect("close exists");
-        tokio::time::timeout(WAIT, close.as_mut())
-            .await
-            .expect("close deadline")
-            .expect("close result");
+        if !close_completed {
+            tokio::time::timeout(WAIT, close.as_mut())
+                .await
+                .expect("close deadline")
+                .expect("close result");
+        }
         drop(close);
     } else {
         tokio::time::timeout(
@@ -242,7 +271,9 @@ async fn close_history(cancel_first: bool) {
     .await
     .expect("post-close send deadline");
     assert!(matches!(after_close, Err(Error::Closed)));
-    println!("PUBLIC_SHUTDOWN cancel_first={cancel_first} late_accepted={late_accepted} target_ack=1 close_callback=1 bytes=0");
+    println!(
+        "PUBLIC_SHUTDOWN cancel_first={cancel_first} late_accepted={late_accepted} close_first={close_completed} target_ack=1 close_callback=1 bytes=0"
+    );
 }
 
 #[tokio::test(flavor = "current_thread")]
