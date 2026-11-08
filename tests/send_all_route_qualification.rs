@@ -233,7 +233,11 @@ async fn metadata_changes_before_first_nudge() {
     let out = tokio::time::timeout(LIMIT, task).await.unwrap().unwrap().unwrap();
     let snap = q::snapshot();
     eprintln!("changed metadata snapshot={snap:?}");
-    assert!(snap.shortcut + snap.fallback >= 64);
+    assert_eq!(snap.shortcut + snap.fallback, 64);
+    let accepted_nodes = mock.produce_nodes();
+    assert_eq!(accepted_nodes.first().copied(), Some(2));
+    assert!(accepted_nodes.len() >= 2);
+    assert!(accepted_nodes.iter().skip(1).all(|node| *node == 1), "{accepted_nodes:?}");
     verify(&mock, "t", 0, &out, &(0..64).collect::<Vec<_>>(), 1);
 }
 
