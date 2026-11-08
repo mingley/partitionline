@@ -1,0 +1,65 @@
+name: Producer guide docs and package checks
+
+on:
+  push:
+    branches: ["qualification/producer-guide-checks-20261108"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  docs:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Verify guide source
+        run: |
+          set -eu
+          rustc -Vv
+          git rev-parse HEAD
+          git rev-parse HEAD:docs/guide.md
+          sha256sum docs/guide.md Cargo.lock
+          test "$(git rev-parse HEAD:docs/guide.md)" = "f65615f8b930225083b4d8aceef1efba97f93f08"
+      - name: Documentation diagnostics negative tests
+        run: python3 -B -m unittest discover -s tests/ci -p test_docs_diagnostics.py
+      - name: Strict Rustdoc and doctests
+        run: bash scripts/ci-docs.sh
+      - name: Retain diagnostics
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: producer-guide-docs
+          path: target/docs-gate
+          if-no-files-found: warn
+          retention-days: 30
+  package:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Verify guide source
+        run: |
+          set -eu
+          rustc -Vv
+          git rev-parse HEAD
+          git rev-parse HEAD:docs/guide.md
+          sha256sum docs/guide.md Cargo.lock
+          test "$(git rev-parse HEAD:docs/guide.md)" = "f65615f8b930225083b4d8aceef1efba97f93f08"
+      - name: Markdown gate negative tests
+        run: python3 -B -m unittest discover -s tests/docs -p 'test_*.py'
+      - name: Compile Markdown and operator examples from extracted package
+        env:
+          PL_PACKAGE_TOOLCHAINS: stable
+        run: bash scripts/ci-crate-consumer.sh
+      - name: Retain package diagnostics
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: producer-guide-package
+          path: target/crate-consumer
+          if-no-files-found: warn
+          retention-days: 30
