@@ -42,7 +42,7 @@ use std::{
     time::{Duration, Instant},
 };
 use tokio::{
-    sync::{mpsc, oneshot, watch, Mutex, Semaphore},
+    sync::{mpsc, oneshot, watch, Mutex, OwnedSemaphorePermit, Semaphore},
     task::JoinHandle,
 };
 
@@ -259,11 +259,33 @@ struct Routing<'a> {
     config: &'a Config,
     endpoints: &'a [ControllerEndpoint],
 }
+type DataSender = (oneshot::Sender<DataCompletion>, OwnedSemaphorePermit);
+
+struct DataLease<R = Vec<u8>, S = Vec<u8>> {
+    request: R,
+    spare: S,
+    // Fields drop in order, so retained buffers are destroyed before admission.
+    permit: OwnedSemaphorePermit,
+}
+
+struct DataCompletion<T = Result<DataReply, Error>, R = Vec<u8>, S = Vec<u8>> {
+    // Response storage drops before the lease if the receiver is canceled.
+    result: T,
+    lease: DataLease<R, S>,
+}
+
 struct DataJob {
-    request: Vec<u8>,
-    spare: Vec<u8>,
+    lease: DataLease,
     admitted: Instant,
-    reply: oneshot::Sender<Result<DataReply, Error>>,
+    reply: oneshot::Sender<DataCompletion>,
+}
+
+struct ProduceBatch<R = Vec<u8>, S = Vec<u8>, O = Result<Option<Vec<u8>>, produce::Error>> {
+    // Fields drop in order even if a reply waker panics.
+    bodies: Vec<R>,
+    spares: Vec<S>,
+    results: Vec<O>,
+    senders: Vec<Option<DataSender>>,
 }
 struct Reused {
     response: Option<Vec<u8>>,
@@ -271,15 +293,8 @@ struct Reused {
     spare: Vec<u8>,
 }
 enum DataReply {
-    Produce {
-        response: Option<Vec<u8>>,
-        request: Vec<u8>,
-        spare: Vec<u8>,
-    },
-    Read {
-        request: Vec<u8>,
-        snapshot: fetch::Snapshot,
-    },
+    Produce { response: Option<Vec<u8>> },
+    Read { snapshot: fetch::Snapshot },
 }
 
 struct QuorumOpening {
@@ -305,7 +320,7 @@ pub struct Router {
     failed: AtomicBool,
     task: Mutex<Option<JoinHandle<()>>>,
     data: bool,
-    data_slots: Semaphore,
+    data_slots: Arc<Semaphore>,
     reads: Option<fetch::Limits>,
     retention: Option<retention::Config>,
     changes: watch::Receiver<()>,
@@ -347,11 +362,11 @@ impl Router {
     /// that actor and keeps its admission permit. The ordinary-only profile
     /// rejects transactional writes, so read-committed LSO equals local HW.
     /// Admission count times (maximum request plus response bytes) must fit
-    /// `reads.max_retained_bytes()`, default1GiB. This includes waiting requests
-    /// and completed unconsumed replies; actor scan work has separate limits.
-    /// If a caller cancels while the actor owns its request, the permit can be
-    /// released before the actor drops its buffers. The configured ceiling does
-    /// not bound that overlap or total process memory.
+    /// `reads.max_retained_bytes()`, default1GiB. Data requests retain their
+    /// permit while queued, processed, waiting or held in an unconsumed reply.
+    /// Limits use logical payload lengths; Vec capacity can be larger. Cached
+    /// actor buffers, parser metadata, allocator overhead, transport and caller
+    /// ownership are separate; this is not a total process memory bound.
     /// Existing metadata-only and Produce-only constructors keep their profiles.
     pub async fn open_with_read_store(
         path: impl Into<PathBuf>,
@@ -657,6 +672,8 @@ impl Router {
                                 endpoints: &endpoints,
                             },
                             &change_tx,
+                            #[cfg(test)]
+                            None,
                         );
                     }
                 }
@@ -680,7 +697,7 @@ impl Router {
                 return Err(Error::ActorFailed);
             }
         };
-        let data_slots = Semaphore::new(config.max_queued_requests);
+        let data_slots = Arc::new(Semaphore::new(config.max_queued_requests));
         Ok((
             Self {
                 config,
@@ -822,15 +839,20 @@ impl Router {
             // Keep admitted data jobs and completed, unconsumed actor replies
             // bounded together. Once transferred, Vec ownership/budgets belong
             // to the caller, as for the transport's connection/handler limits.
-            let _slot = self
-                .data_slots
-                .try_acquire()
+            let permit = Arc::clone(&self.data_slots)
+                .try_acquire_owned()
                 .map_err(|_| Error::QueueFull)?;
-            if request.len() > self.config.protocol_limits.max_request_bytes() {
+            let mut lease = DataLease {
+                request: std::mem::take(&mut request),
+                spare: std::mem::take(&mut spare),
+                permit,
+            };
+            if lease.request.len() > self.config.protocol_limits.max_request_bytes() {
                 return Err(protocol::Error::RequestTooLarge.into());
             }
             let version = i16::from_be_bytes(
-                request
+                lease
+                    .request
                     .get(2..4)
                     .ok_or(protocol::Error::Truncated)?
                     .try_into()
@@ -860,11 +882,9 @@ impl Router {
                 // and the serialized snapshot cannot disappear into a lost wake.
                 changes.borrow_and_update();
                 let (reply, receiver) = oneshot::channel();
-                let job_spare = std::mem::take(&mut spare);
                 self.sender
                     .try_send(Command::Data(DataJob {
-                        request,
-                        spare: job_spare,
+                        lease,
                         admitted,
                         reply,
                     }))
@@ -872,22 +892,25 @@ impl Router {
                         mpsc::error::TrySendError::Full(_) => Error::QueueFull,
                         mpsc::error::TrySendError::Closed(_) => Error::Stopped,
                     })?;
-                match receiver.await.map_err(|_| Error::ActorFailed)?? {
-                    DataReply::Produce {
-                        response,
-                        request,
-                        spare,
-                    } => {
+                let DataCompletion {
+                    result,
+                    lease: returned,
+                } = receiver.await.map_err(|_| Error::ActorFailed)?;
+                lease = returned;
+                match result? {
+                    DataReply::Produce { response } => {
+                        let DataLease {
+                            request,
+                            spare,
+                            permit: _permit,
+                        } = lease;
                         return Ok(Reused {
                             response,
                             request,
                             spare,
                         });
                     }
-                    DataReply::Read {
-                        request: retained,
-                        snapshot,
-                    } => {
+                    DataReply::Read { snapshot } => {
                         let deadline = admitted
                             .checked_add(snapshot.wait)
                             .ok_or(Error::InvalidConfig)?;
@@ -895,19 +918,25 @@ impl Router {
                             || snapshot.record_bytes >= snapshot.minimum_bytes
                             || Instant::now() >= deadline
                         {
+                            let DataLease {
+                                request,
+                                spare,
+                                permit: _permit,
+                            } = lease;
                             return Ok(Reused {
                                 response: Some(snapshot.response),
-                                request: retained,
+                                request,
                                 spare,
                             });
                         }
-                        request = retained;
                         // The candidate body is released. Its allocation stays
-                        // so the next attempt does not reserve it again.
+                        // with the permit so the next attempt can reuse it.
                         let mut recycled = snapshot.response;
                         recycled.clear();
-                        if recycled.capacity() >= spare.capacity() {
-                            spare = recycled;
+                        if recycled.capacity() >= lease.spare.capacity() {
+                            lease.spare = recycled;
+                        } else {
+                            drop(recycled);
                         }
                         if self.stopping.load(Ordering::Acquire) {
                             return Err(Error::Stopped);
@@ -1006,28 +1035,36 @@ fn reserve_count<T>(items: &mut Vec<T>, count: usize) {
 /// Each list is sized for every job before the first request is moved.
 fn take_queued_produce(
     jobs: &mut Vec<DataJob>,
-    bodies: &mut Vec<Vec<u8>>,
-    spares: &mut Vec<Vec<u8>>,
     admitted: &mut Vec<Instant>,
-    senders: &mut Vec<oneshot::Sender<Result<DataReply, Error>>>,
+    batch: &mut ProduceBatch,
 ) {
     let count = jobs.len();
-    bodies.clear();
-    spares.clear();
+    batch.bodies.clear();
+    batch.spares.clear();
+    batch.results.clear();
+    batch.senders.clear();
     admitted.clear();
-    senders.clear();
-    reserve_count(bodies, count);
-    reserve_count(spares, count);
+    reserve_count(&mut batch.bodies, count);
+    reserve_count(&mut batch.spares, count);
+    reserve_count(&mut batch.senders, count);
     reserve_count(admitted, count);
-    reserve_count(senders, count);
-    for mut queued in jobs.drain(..) {
-        bodies.push(std::mem::take(&mut queued.request));
-        spares.push(std::mem::take(&mut queued.spare));
+    for queued in jobs.drain(..) {
+        let DataLease {
+            request,
+            spare,
+            permit,
+        } = queued.lease;
+        batch.bodies.push(request);
+        batch.spares.push(spare);
         admitted.push(queued.admitted);
-        senders.push(queued.reply);
+        batch.senders.push(Some((queued.reply, permit)));
     }
 }
 
+#[cfg_attr(
+    test,
+    expect(clippy::too_many_arguments, reason = "test-only initial actor command")
+)]
 fn actor(
     mut catalog: Catalog,
     mut store: Option<produce::Store>,
@@ -1036,14 +1073,19 @@ fn actor(
     stopping: &AtomicBool,
     options: DataOptions<'_>,
     changes: &watch::Sender<()>,
+    #[cfg(test)] mut pending: Option<Command>,
 ) {
+    #[cfg(not(test))]
     let mut pending: Option<Command> = None;
     let mut grouped: Vec<DataJob> = Vec::new();
     let mut queued_jobs: Vec<DataJob> = Vec::new();
-    let mut queued_bodies: Vec<Vec<u8>> = Vec::new();
-    let mut queued_spares: Vec<Vec<u8>> = Vec::new();
     let mut queued_admitted: Vec<Instant> = Vec::new();
-    let mut queued_senders: Vec<oneshot::Sender<Result<DataReply, Error>>> = Vec::new();
+    let mut batch = ProduceBatch {
+        bodies: Vec::new(),
+        spares: Vec::new(),
+        results: Vec::new(),
+        senders: Vec::new(),
+    };
     while let Some(command) = pending.take().or_else(|| receiver.blocking_recv()) {
         if stopping.load(Ordering::Acquire) {
             receiver.close();
@@ -1111,15 +1153,15 @@ fn actor(
                 if job.reply.is_closed() {
                     continue;
                 }
-                let produce_key = job.request.get(..2) == Some(&[0, 0]);
+                let produce_key = job.lease.request.get(..2) == Some(&[0, 0]);
                 grouped.clear();
                 if produce_key {
                     reserve_count(&mut grouped, 7);
                     while grouped.len() < 7 {
                         match receiver.try_recv() {
                             Ok(Command::Data(next))
-                                if next.request.get(..2) == Some(&[0, 0])
-                                    && next.request.len() <= 64 * 1024 =>
+                                if next.lease.request.get(..2) == Some(&[0, 0])
+                                    && next.lease.request.len() <= 64 * 1024 =>
                             {
                                 if next.reply.is_closed() {
                                     continue;
@@ -1136,16 +1178,16 @@ fn actor(
                 }
                 let result = if catalog.is_poisoned() {
                     for extra in grouped.drain(..) {
-                        let _ = extra.reply.send(Err(Error::StoragePoisoned));
+                        finish_data_job(extra, Err(Error::StoragePoisoned));
                     }
                     Err(Error::StoragePoisoned)
                 } else if let Some(store) = store.as_mut() {
                     if produce_key && grouped.is_empty() {
-                        store.prepare_response_buf(std::mem::take(&mut job.spare));
+                        store.prepare_response_buf(std::mem::take(&mut job.lease.spare));
                         match produce::process(
                             &catalog,
                             store,
-                            &mut job.request,
+                            &mut job.lease.request,
                             config,
                             job.admitted,
                             || {
@@ -1157,13 +1199,8 @@ fn actor(
                             },
                         ) {
                             Ok(response) => {
-                                let spare = store.take_response_buf();
-                                let request = std::mem::take(&mut job.request);
-                                Ok(DataReply::Produce {
-                                    response,
-                                    request,
-                                    spare,
-                                })
+                                job.lease.spare = store.take_response_buf();
+                                Ok(DataReply::Produce { response })
                             }
                             Err(error) => Err(error.into()),
                         }
@@ -1173,24 +1210,20 @@ fn actor(
                         reserve_count(&mut queued_jobs, count);
                         queued_jobs.push(job);
                         queued_jobs.append(&mut grouped);
-                        take_queued_produce(
-                            &mut queued_jobs,
-                            &mut queued_bodies,
-                            &mut queued_spares,
-                            &mut queued_admitted,
-                            &mut queued_senders,
-                        );
-                        let mut results = produce::process_queued(
+                        take_queued_produce(&mut queued_jobs, &mut queued_admitted, &mut batch);
+                        let senders = &batch.senders;
+                        batch.results = produce::process_queued(
                             &catalog,
                             store,
-                            &mut queued_bodies,
+                            &mut batch.bodies,
                             &queued_admitted,
                             config,
-                            &mut queued_spares,
+                            &mut batch.spares,
                             |index| {
-                                let closed = queued_senders
+                                let closed = senders
                                     .get(index)
-                                    .is_none_or(|sender| sender.is_closed());
+                                    .and_then(Option::as_ref)
+                                    .is_none_or(|(sender, _)| sender.is_closed());
                                 if closed || stopping.load(Ordering::Acquire) {
                                     Err(produce::Error::Canceled)
                                 } else {
@@ -1201,32 +1234,65 @@ fn actor(
                         if store.take_changed() {
                             changes.send_replace(());
                         }
-                        let mut body_iter = queued_bodies.drain(..);
-                        let mut spare_iter = queued_spares.drain(..);
-                        for (sender, result) in queued_senders.drain(..).zip(results.drain(..)) {
-                            let request = body_iter.next().unwrap_or_default();
-                            let spare = spare_iter.next().unwrap_or_default();
-                            let reply = match result {
-                                Ok(response) => Ok(DataReply::Produce {
-                                    response,
-                                    request,
-                                    spare,
-                                }),
+                        if batch.bodies.len() != batch.senders.len()
+                            || batch.spares.len() != batch.senders.len()
+                            || batch.results.len() != batch.senders.len()
+                        {
+                            batch.bodies.clear();
+                            batch.spares.clear();
+                            batch.results.clear();
+                            for (sender, permit) in batch.senders.drain(..).flatten() {
+                                let lease = DataLease {
+                                    request: Vec::new(),
+                                    spare: Vec::new(),
+                                    permit,
+                                };
+                                let _ = sender.send(DataCompletion {
+                                    result: Err(Error::ActorFailed),
+                                    lease,
+                                });
+                            }
+                            produce::recycle_queued_replies(
+                                store,
+                                std::mem::take(&mut batch.results),
+                            );
+                            continue;
+                        }
+                        for index in 0..batch.senders.len() {
+                            let request = std::mem::take(&mut batch.bodies[index]);
+                            let spare = std::mem::take(&mut batch.spares[index]);
+                            let result = std::mem::replace(
+                                &mut batch.results[index],
+                                Err(produce::Error::Canceled),
+                            );
+                            let Some((sender, permit)) = batch.senders[index].take() else {
+                                continue;
+                            };
+                            let result = match result {
+                                Ok(response) => Ok(DataReply::Produce { response }),
                                 Err(error) => Err(error.into()),
                             };
-                            let _ = sender.send(reply);
+                            let lease = DataLease {
+                                request,
+                                spare,
+                                permit,
+                            };
+                            let _ = sender.send(DataCompletion { result, lease });
                         }
-                        produce::recycle_queued_replies(store, results);
+                        batch.bodies.clear();
+                        batch.spares.clear();
+                        batch.senders.clear();
+                        produce::recycle_queued_replies(store, std::mem::take(&mut batch.results));
                         continue;
-                    } else if job.request.get(..2) == Some(&[0, 21]) {
+                    } else if job.lease.request.get(..2) == Some(&[0, 21]) {
                         if let Some(retention) = options.retention {
                             retention::process(
                                 &catalog,
                                 store,
-                                &job.request,
+                                &job.lease.request,
                                 config,
                                 retention,
-                                std::mem::take(&mut job.spare),
+                                std::mem::take(&mut job.lease.spare),
                                 || {
                                     if job.reply.is_closed() || stopping.load(Ordering::Acquire) {
                                         Err(retention::Error::Canceled)
@@ -1237,42 +1303,35 @@ fn actor(
                             )
                             .map(|response| DataReply::Produce {
                                 response: Some(response),
-                                request: std::mem::take(&mut job.request),
-                                spare: Vec::new(),
                             })
                             .map_err(Into::into)
                         } else {
                             Err(protocol::Error::UnimplementedApi(21).into())
                         }
                     } else if let Some(reads) = options.reads {
-                        store.prepare_response_buf(std::mem::take(&mut job.spare));
-                        fetch::process(&catalog, store, &job.request, config, reads, || {
+                        store.prepare_response_buf(std::mem::take(&mut job.lease.spare));
+                        fetch::process(&catalog, store, &job.lease.request, config, reads, || {
                             if job.reply.is_closed() || stopping.load(Ordering::Acquire) {
                                 Err(fetch::Error::Canceled)
                             } else {
                                 Ok(())
                             }
                         })
-                        .map(|snapshot| DataReply::Read {
-                            request: job.request,
-                            snapshot,
-                        })
+                        .map(|snapshot| DataReply::Read { snapshot })
                         .map_err(Into::into)
                     } else {
                         Err(protocol::Error::UnimplementedApi(1).into())
                     }
                 } else {
                     for extra in grouped.drain(..) {
-                        let _ = extra
-                            .reply
-                            .send(Err(protocol::Error::UnimplementedApi(0).into()));
+                        finish_data_job(extra, Err(protocol::Error::UnimplementedApi(0).into()));
                     }
                     Err(protocol::Error::UnimplementedApi(0).into())
                 };
                 if store.as_mut().is_some_and(produce::Store::take_changed) {
                     changes.send_replace(());
                 }
-                let _ = job.reply.send(result);
+                finish_data_job(job, result);
             }
             Command::Compact(job) => {
                 if job.reply.is_closed() {
@@ -1299,13 +1358,18 @@ fn actor(
         reject(command);
     }
 }
+fn finish_data_job(job: DataJob, result: Result<DataReply, Error>) {
+    let DataJob { lease, reply, .. } = job;
+    let _ = reply.send(DataCompletion { result, lease });
+}
+
 fn reject(command: Command) {
     match command {
         Command::Request(job) => {
             let _ = job.reply.send(Err(Error::Stopped));
         }
         Command::Data(job) => {
-            let _ = job.reply.send(Err(Error::Stopped));
+            finish_data_job(job, Err(Error::Stopped));
         }
         Command::Sweep(job) => {
             let _ = job.reply.send(Err(Error::Stopped));
@@ -2850,66 +2914,189 @@ mod tests {
         assert_eq!(writer.bytes, [1, 2, 3]);
     }
 
+    struct PermitDropProbe {
+        semaphore: Arc<Semaphore>,
+        observed_held: Arc<std::sync::atomic::AtomicUsize>,
+    }
+
+    impl Drop for PermitDropProbe {
+        fn drop(&mut self) {
+            if self.semaphore.available_permits() == 0 {
+                let _previous = self.observed_held.fetch_add(1, Ordering::SeqCst);
+            }
+        }
+    }
+
+    #[test]
+    fn lease_drops_both_buffers_before_its_permit() -> Result<(), Box<dyn StdError>> {
+        let semaphore = Arc::new(Semaphore::new(1));
+        let observed = Arc::new(std::sync::atomic::AtomicUsize::new(0));
+        let probe = || PermitDropProbe {
+            semaphore: Arc::clone(&semaphore),
+            observed_held: Arc::clone(&observed),
+        };
+        let permit = Arc::clone(&semaphore).try_acquire_owned()?;
+        let lease = DataLease {
+            request: probe(),
+            spare: probe(),
+            permit,
+        };
+        drop(lease);
+        assert_eq!(observed.load(Ordering::SeqCst), 2);
+        assert_eq!(semaphore.available_permits(), 1);
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn canceling_a_waiting_lease_drops_buffers_before_its_permit(
+    ) -> Result<(), Box<dyn StdError>> {
+        let semaphore = Arc::new(Semaphore::new(1));
+        let observed = Arc::new(std::sync::atomic::AtomicUsize::new(0));
+        let probe = || PermitDropProbe {
+            semaphore: Arc::clone(&semaphore),
+            observed_held: Arc::clone(&observed),
+        };
+        let permit = Arc::clone(&semaphore).try_acquire_owned()?;
+        let lease = DataLease {
+            request: probe(),
+            spare: probe(),
+            permit,
+        };
+        let mut waiting = Box::pin(async move {
+            let _lease = lease;
+            std::future::pending::<()>().await;
+        });
+        let pending = std::future::poll_fn(|cx| {
+            std::task::Poll::Ready(std::future::Future::poll(waiting.as_mut(), cx).is_pending())
+        })
+        .await;
+        assert!(pending);
+        assert_eq!(observed.load(Ordering::SeqCst), 0);
+        assert_eq!(semaphore.available_permits(), 0);
+        drop(waiting);
+        assert_eq!(
+            observed.load(Ordering::SeqCst),
+            2,
+            "PL_WAIT_PERMIT_RELEASED_BEFORE_BUFFERS"
+        );
+        assert_eq!(semaphore.available_permits(), 1);
+        println!("PL_WAIT_CANCEL_DROPS_BUFFERS_FIRST");
+        Ok(())
+    }
+
+    #[test]
+    fn completion_drops_response_and_buffers_before_its_permit() -> Result<(), Box<dyn StdError>> {
+        let semaphore = Arc::new(Semaphore::new(1));
+        let observed = Arc::new(std::sync::atomic::AtomicUsize::new(0));
+        let probe = || PermitDropProbe {
+            semaphore: Arc::clone(&semaphore),
+            observed_held: Arc::clone(&observed),
+        };
+        let permit = Arc::clone(&semaphore).try_acquire_owned()?;
+        let completion = DataCompletion {
+            result: probe(),
+            lease: DataLease {
+                request: probe(),
+                spare: probe(),
+                permit,
+            },
+        };
+        drop(completion);
+        assert_eq!(
+            observed.load(Ordering::SeqCst),
+            3,
+            "PL_COMPLETION_PERMIT_RELEASED_BEFORE_BUFFERS"
+        );
+        assert_eq!(semaphore.available_permits(), 1);
+        Ok(())
+    }
+
+    #[test]
+    fn grouped_buffers_drop_before_permits_during_unwind() -> Result<(), Box<dyn StdError>> {
+        let semaphore = Arc::new(Semaphore::new(1));
+        let observed = Arc::new(std::sync::atomic::AtomicUsize::new(0));
+        let probe = || PermitDropProbe {
+            semaphore: Arc::clone(&semaphore),
+            observed_held: Arc::clone(&observed),
+        };
+        let permit = Arc::clone(&semaphore).try_acquire_owned()?;
+        let (sender, _receiver) = oneshot::channel::<DataCompletion>();
+        let batch = ProduceBatch {
+            bodies: vec![probe()],
+            spares: vec![probe()],
+            results: vec![probe()],
+            senders: vec![Some((sender, permit))],
+        };
+        let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(move || {
+            let _batch = batch;
+            std::panic::resume_unwind(Box::new("test grouped unwind"));
+        }));
+        assert!(result.is_err());
+        assert_eq!(
+            observed.load(Ordering::SeqCst),
+            3,
+            "PL_BATCH_PERMIT_RELEASED_BEFORE_BUFFERS"
+        );
+        assert_eq!(semaphore.available_permits(), 1);
+        Ok(())
+    }
+
     #[test]
     fn a_queued_produce_sizes_its_job_lists_once() {
+        let permits = Arc::new(Semaphore::new(8));
         let mut jobs = Vec::new();
         let mut parked = Vec::new();
-        for index in 0..4 {
-            let (reply, receiver) = oneshot::channel();
-            parked.push(receiver);
-            jobs.push(DataJob {
-                request: vec![index],
-                spare: vec![index],
-                admitted: Instant::now(),
-                reply,
-            });
-        }
-        let mut bodies = Vec::new();
-        let mut spares = Vec::new();
         let mut admitted = Vec::new();
-        let mut senders = Vec::new();
-        take_queued_produce(
-            &mut jobs,
-            &mut bodies,
-            &mut spares,
-            &mut admitted,
-            &mut senders,
-        );
-        assert!(jobs.is_empty());
-        assert_eq!(bodies.len(), 4);
-        assert_eq!(spares.len(), 4);
-        assert_eq!(admitted.len(), 4);
-        assert_eq!(senders.len(), 4);
-        let body_capacity = bodies.capacity();
-        let spare_capacity = spares.capacity();
-        let admitted_capacity = admitted.capacity();
-        let sender_capacity = senders.capacity();
-        assert!(body_capacity >= 4);
-        assert!(spare_capacity >= 4);
-        assert!(admitted_capacity >= 4);
-        assert!(sender_capacity >= 4);
-        for index in 0..4 {
-            let (reply, receiver) = oneshot::channel();
-            parked.push(receiver);
-            jobs.push(DataJob {
-                request: vec![index],
-                spare: vec![index],
-                admitted: Instant::now(),
-                reply,
-            });
+        let mut batch = ProduceBatch {
+            bodies: Vec::new(),
+            spares: Vec::new(),
+            results: Vec::new(),
+            senders: Vec::new(),
+        };
+        let mut capacities = None;
+        for _ in 0..2 {
+            for index in 0..4 {
+                let (reply, receiver) = oneshot::channel();
+                parked.push(receiver);
+                let lease = DataLease {
+                    request: vec![index],
+                    spare: vec![index],
+                    permit: Arc::clone(&permits)
+                        .try_acquire_owned()
+                        .expect("test permit"),
+                };
+                jobs.push(DataJob {
+                    lease,
+                    admitted: Instant::now(),
+                    reply,
+                });
+            }
+            take_queued_produce(&mut jobs, &mut admitted, &mut batch);
+            assert!(jobs.is_empty());
+            assert_eq!(batch.bodies.len(), 4);
+            assert_eq!(batch.spares.len(), 4);
+            assert_eq!(admitted.len(), 4);
+            assert_eq!(batch.senders.len(), 4);
+            let current = (
+                batch.bodies.capacity(),
+                batch.spares.capacity(),
+                admitted.capacity(),
+                batch.senders.capacity(),
+            );
+            if let Some(previous) = capacities {
+                assert_eq!(current, previous);
+            } else {
+                assert!(current.0 >= 4);
+                assert!(current.1 >= 4);
+                assert!(current.2 >= 4);
+                assert!(current.3 >= 4);
+                capacities = Some(current);
+            }
         }
-        take_queued_produce(
-            &mut jobs,
-            &mut bodies,
-            &mut spares,
-            &mut admitted,
-            &mut senders,
+        assert_eq!(
+            batch.bodies.first().map(Vec::as_slice),
+            Some([0].as_slice())
         );
-        assert_eq!(bodies.capacity(), body_capacity);
-        assert_eq!(spares.capacity(), spare_capacity);
-        assert_eq!(admitted.capacity(), admitted_capacity);
-        assert_eq!(senders.capacity(), sender_capacity);
-        assert_eq!(bodies.first().map(Vec::as_slice), Some([0].as_slice()));
     }
 
     #[test]
@@ -3330,13 +3517,14 @@ mod tests {
         data: bool,
         retention: Option<retention::Config>,
     ) -> (Arc<Router>, std::sync::mpsc::Sender<()>, PathBuf) {
-        parked_maintenance(data, retention, false, false)
+        parked_maintenance(data, retention, false, false, 1)
     }
     fn parked_maintenance(
         data: bool,
         retention: Option<retention::Config>,
         compaction: bool,
         read_enabled: bool,
+        capacity: usize,
     ) -> (Arc<Router>, std::sync::mpsc::Sender<()>, PathBuf) {
         let path = std::env::temp_dir().join(format!(
             "partitionline-actor-{}-{}",
@@ -3344,8 +3532,8 @@ mod tests {
             NEXT.fetch_add(1, Ordering::Relaxed)
         ));
         let mut config = Config::new(0, "127.0.0.1".into(), 19095, "actor-test".into());
-        config.max_queued_requests = 1;
-        let (sender, receiver) = mpsc::channel(1);
+        config.max_queued_requests = capacity;
+        let (sender, receiver) = mpsc::channel(capacity);
         let (release, gate) = std::sync::mpsc::channel();
         let stopping = Arc::new(AtomicBool::new(false));
         let worker_stop = Arc::clone(&stopping);
@@ -3458,6 +3646,7 @@ mod tests {
                         endpoints: &[],
                     },
                     &change_tx,
+                    None,
                 );
             }
         });
@@ -3469,7 +3658,7 @@ mod tests {
                 failed: AtomicBool::new(false),
                 task: Mutex::new(Some(task)),
                 data,
-                data_slots: Semaphore::new(1),
+                data_slots: Arc::new(Semaphore::new(capacity)),
                 reads,
                 retention,
                 changes,
@@ -3480,6 +3669,122 @@ mod tests {
             path,
         )
     }
+
+    type ClaimedFetchInfo = (usize, usize, usize);
+
+    fn claimed_fetch_actor() -> (
+        Arc<Router>,
+        oneshot::Receiver<ClaimedFetchInfo>,
+        std::sync::mpsc::Sender<()>,
+        PathBuf,
+    ) {
+        let path = std::env::temp_dir().join(format!(
+            "partitionline-claimed-fetch-{}-{}",
+            std::process::id(),
+            NEXT.fetch_add(1, Ordering::Relaxed)
+        ));
+        let mut config = Config::new(0, "127.0.0.1".into(), 19095, "actor-test".into());
+        config.max_queued_requests = 1;
+        config.protocol_limits = protocol::Limits::new(4096, 0).expect("test limits");
+        config.max_response_bytes = 64;
+        let (sender, mut receiver) = mpsc::channel(1);
+        let (claimed, claimed_rx) = oneshot::channel();
+        let (release, gate) = std::sync::mpsc::channel();
+        let stopping = Arc::new(AtomicBool::new(false));
+        let worker_stop = Arc::clone(&stopping);
+        let worker_config = config.clone();
+        let worker_path = path.clone();
+        let (change_tx, changes) = watch::channel(());
+        let change_tx = Arc::new(change_tx);
+        let wakeup = Arc::downgrade(&change_tx);
+        let read_limits = fetch::Limits::default()
+            .with_retained_bytes(4160)
+            .expect("test retained limit");
+        assert_eq!(
+            config.protocol_limits.max_request_bytes() + config.max_response_bytes,
+            read_limits.max_retained_bytes()
+        );
+        let reads = Some(read_limits);
+        let task = tokio::task::spawn_blocking(move || {
+            let Ok((mut catalog, _)) = Catalog::open(&worker_path, worker_config.catalog_limits)
+            else {
+                return;
+            };
+            let mut id = [0; 16];
+            id[15] = 2;
+            let Ok(id) = TopicId::new(id) else {
+                return;
+            };
+            if catalog.create("alpha", id, 2).is_err() {
+                return;
+            }
+            let Ok(store) = produce::Store::open(
+                produce::Config::new(worker_path.with_extension("parts")),
+                &catalog,
+            ) else {
+                return;
+            };
+            let Some(command) = receiver.blocking_recv() else {
+                return;
+            };
+            let Some(topic) = catalog.by_name("alpha") else {
+                return;
+            };
+            let topics = [MetadataTopic {
+                name: Some(topic.name()),
+                id: topic.id().bytes(),
+                error: 0,
+                topic: Some(topic),
+            }];
+            let Ok(planned_metadata_bytes) =
+                metadata_response_len(&worker_config, &[], 1, false, false, &topics)
+            else {
+                return;
+            };
+            let (request_len, request_capacity) = match &command {
+                Command::Data(job) => (job.lease.request.len(), job.lease.request.capacity()),
+                _ => return,
+            };
+            let _ = claimed.send((planned_metadata_bytes, request_len, request_capacity));
+            if gate.recv().is_err() {
+                return;
+            }
+            actor(
+                catalog,
+                Some(store),
+                receiver,
+                &worker_config,
+                &worker_stop,
+                DataOptions {
+                    reads,
+                    retention: None,
+                    endpoints: &[],
+                },
+                &change_tx,
+                Some(command),
+            );
+        });
+        (
+            Arc::new(Router {
+                config,
+                sender,
+                stopping,
+                failed: AtomicBool::new(false),
+                task: Mutex::new(Some(task)),
+                data: true,
+                data_slots: Arc::new(Semaphore::new(1)),
+                reads,
+                retention: None,
+                changes,
+                compaction: false,
+                wakeup,
+            }),
+            claimed_rx,
+            release,
+            path,
+        )
+    }
+
     fn request(key: i16) -> Vec<u8> {
         let mut bytes = Vec::new();
         bytes.extend_from_slice(&key.to_be_bytes());
@@ -3654,11 +3959,14 @@ mod tests {
         assert!(waiting.await.is_err());
         release.send(())?;
         tokio::time::timeout(Duration::from_secs(2), async {
-            while router.sender.capacity() == 0 {
-                tokio::task::yield_now().await;
+            loop {
+                match router.respond(request(3)).await {
+                    Err(Error::QueueFull) => tokio::task::yield_now().await,
+                    result => return result,
+                }
             }
         })
-        .await?;
+        .await??;
         let response = router
             .dispatch(input)
             .await?
@@ -3677,7 +3985,7 @@ mod tests {
     async fn unconsumed_fetch_receipt_keeps_admission_until_consumed_or_canceled(
     ) -> Result<(), Box<dyn StdError>> {
         for cancel in [false, true] {
-            let (router, release, path) = parked_maintenance(true, None, false, true);
+            let (router, release, path) = parked_maintenance(true, None, false, true, 1);
             let input =
                 include_bytes!("../tests/fixtures/fetch/4.3.1/fetch-v6-offset0.request.bin")
                     .to_vec();
@@ -3732,9 +4040,9 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn canceled_queued_fetch_releases_permit_before_actor_queue_drains(
+    async fn canceled_queued_fetch_keeps_permit_until_actor_queue_drains(
     ) -> Result<(), Box<dyn StdError>> {
-        let (router, release, path) = parked_maintenance(true, None, false, true);
+        let (router, release, path) = parked_maintenance(true, None, false, true, 1);
         let input =
             include_bytes!("../tests/fixtures/fetch/4.3.1/fetch-v6-offset0.request.bin").to_vec();
         let mut pending = Box::pin(router.dispatch(input.clone()));
@@ -3750,15 +4058,15 @@ mod tests {
         drop(pending);
         assert_eq!(
             router.data_slots.available_permits(),
-            1,
-            "PL_CANCELED_PERMIT_LEAKED"
+            0,
+            "PL_QUEUED_PERMIT_RELEASED_EARLY"
         );
         assert_eq!(router.sender.capacity(), 0);
         assert!(matches!(
             router.dispatch(input.clone()).await,
             Err(Error::QueueFull)
         ));
-        println!("PL_CANCELED_PERMIT_FREE_QUEUE_FULL");
+        println!("PL_CANCELED_JOB_HOLDS_PERMIT");
 
         release.send(())?;
         tokio::time::timeout(Duration::from_secs(5), async {
@@ -3771,6 +4079,7 @@ mod tests {
         })
         .await??;
         assert_eq!(router.sender.capacity(), 1);
+        assert_eq!(router.data_slots.available_permits(), 1);
         let response = router
             .dispatch(input)
             .await?
@@ -3778,6 +4087,205 @@ mod tests {
         assert_eq!(response.get(27..29), Some(&[0, 0][..]));
         assert_eq!(response.get(29..37), Some(&0i64.to_be_bytes()[..]));
         router.shutdown().await?;
+        tokio::task::spawn_blocking(move || -> std::io::Result<()> {
+            std::fs::remove_file(&path)?;
+            std::fs::remove_dir_all(path.with_extension("parts"))
+        })
+        .await??;
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn canceled_claimed_fetch_keeps_admission_until_actor_discards_it(
+    ) -> Result<(), Box<dyn StdError>> {
+        let (router, claimed, release, path) = claimed_fetch_actor();
+        let mut input = Vec::with_capacity(4096);
+        input.extend_from_slice(&1i16.to_be_bytes());
+        input.extend_from_slice(&6i16.to_be_bytes());
+        input.extend_from_slice(&77i32.to_be_bytes());
+        input.extend_from_slice(&4065i16.to_be_bytes());
+        input.resize(4075, b'x');
+        input.extend_from_slice(&(-1i32).to_be_bytes());
+        input.extend_from_slice(&0i32.to_be_bytes());
+        input.extend_from_slice(&0i32.to_be_bytes());
+        input.extend_from_slice(&0i32.to_be_bytes());
+        input.push(0);
+        input.extend_from_slice(&0i32.to_be_bytes());
+        assert_eq!(input.len(), 4096);
+        let mut retained_input = Vec::with_capacity(8192);
+        retained_input.extend_from_slice(&input);
+        let mut pending = Box::pin(router.dispatch(retained_input));
+        std::future::poll_fn(|cx| match std::future::Future::poll(pending.as_mut(), cx) {
+            std::task::Poll::Pending => std::task::Poll::Ready(Ok(())),
+            std::task::Poll::Ready(result) => {
+                std::task::Poll::Ready(Err(format!("claimed Fetch completed: {result:?}")))
+            }
+        })
+        .await?;
+        let (planned_metadata_bytes, request_len, request_capacity) =
+            tokio::time::timeout(Duration::from_secs(5), claimed).await??;
+        assert_eq!(planned_metadata_bytes, 103);
+        assert_eq!(request_len, 4096);
+        assert!(request_capacity >= 8192);
+        println!("PL_ACTOR_CLAIM len={request_len} capacity={request_capacity} envelope=4160");
+        assert_eq!(router.sender.capacity(), 1);
+        assert_eq!(router.data_slots.available_permits(), 0);
+        drop(pending);
+        assert_eq!(
+            router.data_slots.available_permits(),
+            0,
+            "PL_ACTOR_PERMIT_RELEASED_EARLY"
+        );
+        assert!(matches!(
+            router.dispatch(input.clone()).await,
+            Err(Error::QueueFull)
+        ));
+        println!("PL_CANCELED_ACTOR_HOLDS_PERMIT");
+        release.send(())?;
+        let barrier = tokio::time::timeout(Duration::from_secs(5), async {
+            loop {
+                match router.respond(request(3)).await {
+                    Err(Error::QueueFull) => tokio::task::yield_now().await,
+                    result => return result,
+                }
+            }
+        })
+        .await?;
+        assert!(matches!(barrier, Err(Error::ResponseLimit)));
+        println!("PL_METADATA_BARRIER response_bytes={planned_metadata_bytes} cap=64");
+        assert_eq!(router.data_slots.available_permits(), 1);
+        let response = router
+            .dispatch(input)
+            .await?
+            .ok_or("missing subsequent Fetch response")?;
+        assert_eq!(response.len(), 12, "request must be a valid empty Fetch");
+        assert_eq!(response.get(..4), Some(&77i32.to_be_bytes()[..]));
+        println!(
+            "PL_FRESH_FETCH input=4096 response={} envelope=4160",
+            response.len()
+        );
+        router.shutdown().await?;
+        tokio::task::spawn_blocking(move || -> std::io::Result<()> {
+            std::fs::remove_file(&path)?;
+            std::fs::remove_dir_all(path.with_extension("parts"))
+        })
+        .await??;
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn grouped_produce_replies_keep_their_own_admission_permits(
+    ) -> Result<(), Box<dyn StdError>> {
+        let (router, release, path) = parked_maintenance(true, None, false, false, 4);
+        let input =
+            include_bytes!("../tests/fixtures/produce/4.3.1/produce-v3-acks1.request.bin").to_vec();
+        let mut malformed = input.clone();
+        malformed.truncate(10);
+        let mut requests = vec![
+            Box::pin(router.dispatch(input.clone())),
+            Box::pin(router.dispatch(input.clone())),
+            Box::pin(router.dispatch(malformed)),
+            Box::pin(router.dispatch(input.clone())),
+        ];
+        for request in &mut requests {
+            std::future::poll_fn(|cx| match std::future::Future::poll(request.as_mut(), cx) {
+                std::task::Poll::Pending => std::task::Poll::Ready(Ok(())),
+                std::task::Poll::Ready(result) => {
+                    std::task::Poll::Ready(Err(format!("parked Produce completed: {result:?}")))
+                }
+            })
+            .await?;
+        }
+        assert_eq!(router.sender.capacity(), 0);
+        assert_eq!(router.data_slots.available_permits(), 0);
+        drop(requests.remove(0));
+        assert_eq!(
+            router.data_slots.available_permits(),
+            0,
+            "PL_GROUP_CANCELED_PERMIT_RELEASED_EARLY"
+        );
+        release.send(())?;
+        tokio::time::timeout(Duration::from_secs(5), async {
+            loop {
+                match router.respond(request(3)).await {
+                    Err(Error::QueueFull) => tokio::task::yield_now().await,
+                    result => return result,
+                }
+            }
+        })
+        .await??;
+        assert_eq!(router.data_slots.available_permits(), 1);
+        let canceled_reply = requests.pop().ok_or("missing final Produce")?;
+        drop(canceled_reply);
+        assert_eq!(router.data_slots.available_permits(), 2);
+        let first = requests
+            .remove(0)
+            .await?
+            .ok_or("missing first Produce reply")?;
+        assert_eq!(&first[25..33], &0i64.to_be_bytes());
+        assert_eq!(router.data_slots.available_permits(), 3);
+        let malformed = requests.remove(0).await;
+        assert!(malformed.is_err(), "malformed grouped Produce must fail");
+        assert_eq!(router.data_slots.available_permits(), 4);
+        let response = router
+            .dispatch(input)
+            .await?
+            .ok_or("missing subsequent Produce reply")?;
+        assert_eq!(&response[25..33], &2i64.to_be_bytes());
+        router.shutdown().await?;
+        tokio::task::spawn_blocking(move || -> std::io::Result<()> {
+            std::fs::remove_file(&path)?;
+            std::fs::remove_dir_all(path.with_extension("parts"))
+        })
+        .await??;
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn panicking_grouped_reply_waker_drops_remaining_permits() -> Result<(), Box<dyn StdError>>
+    {
+        struct PanicWake {
+            signal: Arc<tokio::sync::Notify>,
+        }
+
+        impl std::task::Wake for PanicWake {
+            fn wake(self: Arc<Self>) {
+                self.signal.notify_one();
+                std::panic::resume_unwind(Box::new("test reply waker panic"));
+            }
+        }
+
+        let (router, release, path) = parked_maintenance(true, None, false, false, 4);
+        let input =
+            include_bytes!("../tests/fixtures/produce/4.3.1/produce-v3-acks1.request.bin").to_vec();
+        let mut requests = vec![
+            Box::pin(router.dispatch(input.clone())),
+            Box::pin(router.dispatch(input.clone())),
+            Box::pin(router.dispatch(input)),
+        ];
+        let signal = Arc::new(tokio::sync::Notify::new());
+        let waker = std::task::Waker::from(Arc::new(PanicWake {
+            signal: Arc::clone(&signal),
+        }));
+        let mut context = std::task::Context::from_waker(&waker);
+        assert!(std::future::Future::poll(requests[0].as_mut(), &mut context).is_pending());
+        for request in requests.iter_mut().skip(1) {
+            std::future::poll_fn(|cx| match std::future::Future::poll(request.as_mut(), cx) {
+                std::task::Poll::Pending => std::task::Poll::Ready(Ok(())),
+                std::task::Poll::Ready(result) => {
+                    std::task::Poll::Ready(Err(format!("parked Produce completed: {result:?}")))
+                }
+            })
+            .await?;
+        }
+        assert_eq!(router.sender.capacity(), 1);
+        assert_eq!(router.data_slots.available_permits(), 1);
+        release.send(())?;
+        tokio::time::timeout(Duration::from_secs(5), signal.notified()).await?;
+        assert!(matches!(router.shutdown().await, Err(Error::ActorFailed)));
+        drop(requests);
+        assert_eq!(router.data_slots.available_permits(), 4);
+        println!("PL_GROUP_PANIC_WAKER_OBSERVED");
         tokio::task::spawn_blocking(move || -> std::io::Result<()> {
             std::fs::remove_file(&path)?;
             std::fs::remove_dir_all(path.with_extension("parts"))
@@ -3894,7 +4402,7 @@ mod tests {
     }
     fn parked_compaction(
     ) -> Result<(Arc<Router>, std::sync::mpsc::Sender<()>, PathBuf, TopicId), Error> {
-        let (router, release, path) = parked_maintenance(true, None, true, false);
+        let (router, release, path) = parked_maintenance(true, None, true, false, 1);
         let mut id = [0; 16];
         id[15] = 2;
         Ok((

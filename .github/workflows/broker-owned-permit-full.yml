@@ -1,0 +1,74 @@
+name: broker owned permit full qualification
+on:
+  push:
+    branches:
+      - qualification/broker-owned-permit-prototype-20261108
+permissions:
+  contents: read
+jobs:
+  inventory:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          fetch-depth: 2
+      - name: Verify parent, exact source and inventory controls
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/owned-full"
+          test "$(git rev-parse HEAD^)" = 7f59ef470340db6027958f439df3716a8dde536c
+          printf '%s  %s\n' 6933f51c2463feccfeb6264d5b0c18752c3711d8179d8f0d48a3f7c7e308664c partitionline-broker/src/metadata.rs | sha256sum -c -
+          printf '%s  %s\n' b5d3344c5002e1a923017d0b90c6471dd7fe994c78d981858b3d87b05c400e48 partitionline-broker/src/fetch.rs | sha256sum -c -
+          python3 -B scripts/check-broker-api-matrix.py --report "$RUNNER_TEMP/owned-full/report.json" 2>&1 | tee "$RUNNER_TEMP/owned-full/inventory.log"
+          python3 -B -m unittest discover -s tests/ci -p test_broker_api_matrix.py -v 2>&1 | tee "$RUNNER_TEMP/owned-full/controls.log"
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: broker-owned-inventory-${{ github.sha }}
+          path: ${{ runner.temp }}/owned-full
+          if-no-files-found: warn
+          retention-days: 30
+  suite:
+    strategy:
+      fail-fast: false
+      matrix:
+        profile: [default, all-features]
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      CARGO_INCREMENTAL: "0"
+      CARGO_BUILD_JOBS: "2"
+      CARGO_TERM_COLOR: never
+      CARGO_PROFILE_DEV_DEBUG: "0"
+      CARGO_PROFILE_TEST_DEBUG: "0"
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          fetch-depth: 2
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Verify source and run complete broker suite
+        shell: bash
+        env:
+          PROFILE: ${{ matrix.profile }}
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/owned-suite"
+          test "$(uname -m)" = x86_64
+          rustc +stable --version --verbose | tee "$RUNNER_TEMP/owned-suite/toolchain.log"
+          test "$(git rev-parse HEAD^)" = 7f59ef470340db6027958f439df3716a8dde536c
+          printf '%s  %s\n' 6933f51c2463feccfeb6264d5b0c18752c3711d8179d8f0d48a3f7c7e308664c partitionline-broker/src/metadata.rs | sha256sum -c -
+          printf '%s  %s\n' b5d3344c5002e1a923017d0b90c6471dd7fe994c78d981858b3d87b05c400e48 partitionline-broker/src/fetch.rs | sha256sum -c -
+          flags=()
+          if [ "$PROFILE" = all-features ]; then flags+=(--all-features); fi
+          cargo +stable test --locked --manifest-path partitionline-broker/Cargo.toml "${flags[@]}" 2>&1 | tee "$RUNNER_TEMP/owned-suite/suite.log"
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: broker-owned-suite-${{ matrix.profile }}-${{ github.sha }}
+          path: ${{ runner.temp }}/owned-suite
+          if-no-files-found: warn
+          retention-days: 30
