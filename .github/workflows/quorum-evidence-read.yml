@@ -1,0 +1,93 @@
+name: inspect retained quorum diagnostic copies
+on:
+  push:
+    branches: [qualification/quorum-evidence-read-20261108]
+permissions:
+  contents: read
+  actions: read
+jobs:
+  inspect:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/download-artifact@v7
+        with:
+          name: disposable-quorum-delete-diagnostic
+          run-id: 42454099113
+          github-token: ${{ github.token }}
+          path: evidence
+      - name: Correlate exact command identities against retained copies
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import hashlib, json
+          from pathlib import Path
+          root = Path("evidence")
+          result = json.loads((root / "result.json").read_text())
+          analysis = json.loads((root / "journal-analysis.json").read_text())
+          events = json.loads((root / "qdiag-events.json").read_text())
+          assert result["all_processes_and_captures_joined"]
+          assert result["minority_proposal_admission"] == "confirmed"
+          assert result["delete_attempts"] == 1
+          for key in ("diagnostic_bytes_dropped","diagnostic_decode_errors","capture_errors",
+                      "snapshot_parse_errors","snapshot_missing_files","snapshot_copy_errors",
+                      "snapshot_over_limit","snapshot_uninterpreted","snapshot_hash_changes"):
+              assert result[key] == 0, (key, result[key])
+          minority = result["minority_admission_evidence"][0]["decoded"]["token"]
+          delete = next(e["decoded"]["token"] for e in result["delete_command_traces"]
+                        if e["stage"] == "execute_enter")
+          tokens = {"minority_create":minority, "delete":delete}
+          summaries = {}
+          for node in range(3):
+              content = next(x for x in analysis if x["node"] == node and x["file"] == "content.wal")
+              app = next(x for x in analysis if x["node"] == node and x["file"] == "application.wal")
+              assert content["content"]["complete_interpretation"]
+              assert content["checksum_validation"] == "ok"
+              assert app["checksum_validation"] == "ok"
+              per_node = {"committed_through":content["content"]["committed_through"], "tokens":{}}
+              for label, token in tokens.items():
+                  hist = [e["append"] for e in content["content"]["history"]
+                          if e.get("append",{}).get("command")
+                          and e["append"]["command"]["token"] == token]
+                  live = [e for e in content["content"]["live"]
+                          if e.get("command") and e["command"]["token"] == token]
+                  receipts = [e for e in app["application_receipts"]
+                              if e.get("command") and e["command"]["token"] == token]
+                  per_node["tokens"][label] = {
+                      "appended_positions":[{"term":e["term"],"index":e["index"]} for e in hist],
+                      "live_positions":[{"term":e["term"],"index":e["index"]} for e in live],
+                      "live_position_at_or_below_committed_end":any(
+                          e["index"] <= per_node["committed_through"] for e in live),
+                      "application_receipts":[{"term":e["term"],"index":e["index"]} for e in receipts]}
+              summaries[str(node)] = per_node
+          hashes = []
+          for item in analysis:
+              if item.get("directory"): continue
+              path = root / "raw" / ("node-" + str(item["node"])) / item["file"]
+              before = hashlib.sha256(path.read_bytes()).hexdigest()
+              assert before == item["sha256_before"] == item["sha256_after"]
+              after = hashlib.sha256(path.read_bytes()).hexdigest()
+              assert before == after
+              hashes.append({"node":item["node"],"file":item["file"],"sha256":before})
+          timeline = []
+          for e in events:
+              decoded = e.get("decoded")
+              if decoded and decoded["token"] in tokens.values():
+                  timeline.append({"stage":e["stage"],"token":decoded["token"],
+                                   "detail":e.get("detail"),"capture_file":e["capture_file"]})
+          summary = {"minority_code":result["minority_code"],"delete_code":result["delete_code"],
+                     "tokens":tokens,"nodes":summaries,"timeline":timeline,"copy_hashes":hashes,
+                     "limitations":["snapshots are after graceful shutdown, not at response time",
+                        "structural WAL extraction and CRC checks are not full Raft authority validation",
+                        "this distinct synthetic fixture does not reveal the original failed request"]}
+          Path("summary.json").write_text(json.dumps(summary, indent=2, sort_keys=True) + "\n")
+          print("COPY_CORRELATION", json.dumps(summary, sort_keys=True))
+          PY
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: quorum-copy-correlation
+          path: summary.json
+          if-no-files-found: warn
+          retention-days: 30
