@@ -2294,3 +2294,110 @@ async fn dtp_requested_and_unnamed_after_conversion_checkpoint_keep_precedence()
         peer.await.unwrap();
     }
 }
+
+async fn dtp_public_checkpoint_cancel_case(expire: bool) {
+    use std::future::Future;
+    use std::task::Poll;
+
+    DTP_ROW_YIELD_OBSERVER.with(|observed| observed.set(0));
+    let names: Vec<String> = (0..8193)
+        .map(|index| format!("topic-{index:08}"))
+        .collect();
+    let (mut admin, listener) = admin_and_listener().await;
+    let peer = tokio::spawn(async move {
+        let (mut socket, _) = listener.accept().await.unwrap();
+        socket.set_nodelay(true).unwrap();
+        for page_index in 0..2 {
+            let (header, mut body) = request(&mut socket).await;
+            assert_eq!(
+                (header.api_key, header.api_version),
+                (DESCRIBE_TOPIC_PARTITIONS, 0)
+            );
+            let (requested, limit, cursor) =
+                decode_describe_topic_partitions_request(&mut body).unwrap();
+            assert_eq!(requested.len(), 8193);
+            for (index, name) in requested.iter().enumerate() {
+                assert_eq!(name, &format!("topic-{index:08}"));
+            }
+            assert_eq!(limit, 1);
+            let expected = if page_index == 0 {
+                None
+            } else {
+                Some(("topic-00004096", 0))
+            };
+            assert_eq!(
+                cursor
+                    .as_ref()
+                    .map(|c| (c.topic_name.as_str(), c.partition_index)),
+                expected
+            );
+            assert!(body.is_empty());
+            let mut response =
+                DescribeTopicPartitionsResponse::new(dtp_conversion_rows(page_index * 4096, 4096));
+            for (index, topic) in response.topics.iter_mut().enumerate() {
+                topic.topic_id[..8]
+                    .copy_from_slice(&((page_index * 4096 + index) as u64).to_be_bytes());
+            }
+            let next = if page_index == 0 {
+                "topic-00004096"
+            } else {
+                "topic-00008192"
+            };
+            response.next_cursor = Some(TopicPartitionCursor::new(next, 0));
+            send_page(&mut socket, &header, &response).await.unwrap();
+        }
+
+        // Any third pagination request would fail this assertion.
+        let raw = dtp_request(&mut socket, None).await;
+        send_page(&mut socket, &raw, &page(42, None)).await.unwrap();
+    });
+
+    let mut call = Box::pin(admin.describe_topics_with_partition_limit_timeout(
+        names.iter(),
+        false,
+        1,
+        Duration::from_secs(3),
+    ));
+    tokio::time::timeout(Duration::from_secs(5), std::future::poll_fn(|context| {
+        match call.as_mut().poll(context) {
+            Poll::Ready(result) => {
+                panic!("aggregate returned before the second page checkpoint: {result:?}")
+            }
+            Poll::Pending => {
+                if DTP_ROW_YIELD_OBSERVER.with(|observed| observed.get()) == 1 {
+                    Poll::Ready(())
+                } else {
+                    Poll::Pending
+                }
+            }
+        }
+    }))
+    .await
+    .expect("the public call never reached the row checkpoint");
+
+    if expire {
+        // The call is not polled during this sleep. Its original deadline
+        // necessarily passes before we resume it.
+        tokio::time::sleep(Duration::from_millis(3200)).await;
+        let result = call.as_mut().await;
+        assert!(matches!(result, Err(Error::Timeout)), "got {result:?}");
+    }
+    drop(call);
+    assert!(!admin.conn.is_closed());
+    let raw = admin
+        .describe_topic_partitions_timeout(&["orders"], 1, None, Duration::from_secs(5))
+        .await
+        .unwrap();
+    assert_eq!(raw.topics[0].partitions[0].partition_index, 42);
+    peer.await.unwrap();
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn dtp_public_checkpoint_cancel_after_first_page_keeps_socket() {
+    dtp_public_checkpoint_cancel_case(false).await;
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn dtp_public_checkpoint_timeout_after_first_page_keeps_socket() {
+    dtp_public_checkpoint_cancel_case(true).await;
+}
