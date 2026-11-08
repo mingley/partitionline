@@ -1,0 +1,91 @@
+name: Producer redial event-gate qualification
+on:
+  push:
+    branches:
+      - qualification/sendall-redial-gate-v3-20261108
+  workflow_dispatch:
+jobs:
+  gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    strategy:
+      fail-fast: false
+      matrix:
+        features: [default, all]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: positive
+      - uses: actions/checkout@v4
+        with:
+          ref: 0914c126f88128c7c9d6695cdfce63fd2fb322cb
+          path: negative
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - name: Record exact sources
+        shell: bash
+        run: |
+          set -euxo pipefail
+          test "$(git -C positive rev-parse HEAD:src/producer.rs)" = 1e7733c136e54b532cdc8bddabd1e0c828e50ed2
+          test "$(git -C negative rev-parse HEAD:src/producer.rs)" = e8bc8aab0a4a2d790b0eed6350f52dcd018a41d9
+          cmp positive/tests/mock_produce.rs negative/tests/mock_produce.rs
+          cmp positive/tests/common/mod.rs negative/tests/common/mod.rs
+          sha256sum positive/src/producer.rs negative/src/producer.rs positive/tests/mock_produce.rs positive/tests/common/mod.rs
+          rustc -vV
+          cargo -V
+          uname -a
+      - name: Verify event-gated positive history three times
+        shell: bash
+        env:
+          CARGO_TARGET_DIR: /tmp/redial-gate-positive
+          FEATURES: ${{ matrix.features }}
+        run: |
+          set -euxo pipefail
+          args=()
+          if test "$FEATURES" = all; then args+=(--all-features); fi
+          cd positive
+          for i in 1 2 3; do
+            cargo test --locked "${args[@]}" --test mock_produce send_all_redials_leaders_during_metadata_discovery_handshake -- --exact --nocapture 2>&1 | tee "/tmp/redial-positive-$i.log"
+            grep -F "REDIAL_OVERLAP nodes=1,2,3 distinct_sockets=true replies_held=true" "/tmp/redial-positive-$i.log"
+            grep -F "1 passed; 0 failed" "/tmp/redial-positive-$i.log"
+          done
+      - name: Reject serialized leader reconnects
+        shell: bash
+        env:
+          CARGO_TARGET_DIR: /tmp/redial-gate-negative
+          FEATURES: ${{ matrix.features }}
+        run: |
+          set -uxo pipefail
+          args=()
+          if test "$FEATURES" = all; then args+=(--all-features); fi
+          cd negative
+          set +e
+          cargo test --locked "${args[@]}" --test mock_produce send_all_redials_leaders_during_metadata_discovery_handshake -- --exact --nocapture 2>&1 | tee /tmp/redial-negative.log
+          result=${PIPESTATUS[0]}
+          set -e
+          test "$result" = 101
+          grep -F "leader redials did not overlap the metadata discovery handshake" /tmp/redial-negative.log
+          grep -F "0 passed; 1 failed" /tmp/redial-negative.log
+      - name: Check formatting
+        if: always()
+        shell: bash
+        run: |
+          set -euxo pipefail
+          cd positive
+          cargo fmt --all -- --check
+      - name: Strict all-feature all-target Clippy
+        if: matrix.features == 'all'
+        shell: bash
+        env:
+          CARGO_TARGET_DIR: /tmp/redial-gate-positive
+        run: |
+          set -euxo pipefail
+          cd positive
+          cargo clippy --locked --all-features --all-targets -- -D warnings
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: redial-gate-${{ matrix.features }}
+          path: /tmp/redial-*.log
+          if-no-files-found: warn
