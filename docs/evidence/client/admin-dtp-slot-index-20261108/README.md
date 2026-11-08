@@ -153,11 +153,61 @@ production and test blobs above. Because both candidate suites passed, the
 conditional baseline reruns did not run.
 
 [Lexical-name comparison 42490023473](https://github.com/mingley/partitionline/actions/runs/42490023473)
-is in progress. The original 14-shape fixture checks the peer's requested
-names and order, and the result count plus each error code or partition
-count. It does not independently check returned names, topic IDs or
-per-topic mappings during timed calls. Separate untimed controls for 32 and
-256 ordered and lexically sorted success and error rows passed for both
-source arms; they check those returned fields and their order. The comparison
-does not by itself measure against the older pre-validation source.
+passed on a shared AMD EPYC 9V45 x86 host using stable Rust 1.99.1 and LLVM
+23.1.1. The runner pinned each process to CPU 0; `cpu.max` was unavailable.
+It compared current-main Admin blob `3125c234259c87d1bc4a89d0cd0734d124529bea`
+against the candidate production blob `8c2f94353e04c2925b1bfaf8478285190dd317d7`.
+Separate target directories produced baseline and candidate binary SHA-256
+values `b667177f5f2cb72fbb623e7a018b6d49f5d1988b4b8a1ad0a33e2d927d4b4884`
+and `8f22c5f5c1e7230dbde53d1d920f2b65d34b9aac979931878370eb879d3c2aea`.
+Those binaries were not retained.
 
+Both arms used the unchanged 14-shape benchmark fixture Git blob
+`dae07e157e9b6687cca044b366d6aa4f5b673ab0` (SHA-256
+`4ca812ef0d29cd3df23de0126ffb844384ef063d3ec205907f99dceb12be9883`),
+which replaced the pagination test module in the benchmark builds. This is
+the same fixture as the earlier requested-name qualification. It checks the
+peer's requested names and order, and each result's count plus error code or
+partition count. It does not independently check returned names, topic IDs
+or per-topic partition mappings during the timed calls. Separate untimed
+controls with appended test blob `632486c76c79ee234eac53cc3a70b913cddeb8f1`
+passed for both source arms and checked those fields and order for 32 and 256
+ordered and lexical success and error rows.
+
+The comparison warmed each shape once per arm and measured 12 alternating
+pairs per shape. Each 32-name sample performs 1,000 public calls; each
+256-name sample performs 200. The single-name samples perform 4,000
+one-page calls or 250 sixteen-page calls. The following ratios are paired
+candidate/baseline elapsed time; a value above one is slower.
+
+| Mock shape | Paired median | Pair range | Candidate slower |
+| --- | ---: | ---: | ---: |
+| 1 name, one page | 0.9986 | 0.9589–1.0648 | 4/12 |
+| 1 name, 16 pages | 0.9985 | 0.9822–1.0238 | 5/12 |
+| 32 ordered error rows | 0.9300 | 0.9230–1.2470 | 1/12 |
+| 256 ordered error rows | 0.8234 | 0.8165–0.8314 | 0/12 |
+| 32 reversed error rows | 0.9342 | 0.9154–0.9445 | 0/12 |
+| 256 reversed error rows | 0.8498 | 0.7926–0.8759 | 0/12 |
+| 32 lexical error rows | 0.9339 | 0.8856–0.9397 | 0/12 |
+| 256 lexical error rows | 0.8452 | 0.6419–0.8538 | 0/12 |
+| 32 ordered success rows | 0.9427 | 0.9354–0.9484 | 0/12 |
+| 256 ordered success rows | 0.8575 | 0.7012–0.8691 | 0/12 |
+| 32 lexical success rows | 0.9443 | 0.9312–0.9496 | 0/12 |
+| 256 lexical success rows | 0.8762 | 0.8617–0.8916 | 0/12 |
+
+[All 336 observations](lexical-samples.csv), including the other two shapes,
+retain the measured execution order. The run's artifact is `13621307842`
+with digest
+`sha256:540eaee2a6c61631c1a0709e04c23749500eea2b25a00490bb404a91538f222b`.
+The fixture uses numeric request names with rows returned in request,
+reverse or lexicographic order. The result is a comparison against
+validation-enabled current main on one shared host. It does not directly
+compare with the older pre-validation source, establish real Kafka latency
+or establish a global ranking.
+
+The isolated [combined tree ab8f91f](https://github.com/mingley/partitionline/commit/ab8f91f7c56a019fceb39c30b09bc1a9166a6e74)
+starts at main `342e7b90ee63d6824be2652b65d71be483ea6d16`, changes only the
+four candidate Admin/Cargo blobs, and retains producer source blob
+`dcd012b3f86a8b9d4254f88d7f48946ce8f9e922`. The
+[combined Admin and producer gate](https://github.com/mingley/partitionline/actions/runs/42491179180)
+is still running.
