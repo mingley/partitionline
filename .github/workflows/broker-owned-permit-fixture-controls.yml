@@ -1,0 +1,171 @@
+name: broker admission fixture controls
+on:
+  push:
+    branches:
+      - qualification/broker-owned-permit-combined-ci-20261108
+permissions:
+  contents: read
+jobs:
+  static:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      CARGO_INCREMENTAL: "0"
+      CARGO_BUILD_JOBS: "2"
+      CARGO_TERM_COLOR: never
+      CARGO_PROFILE_DEV_DEBUG: "0"
+      CARGO_PROFILE_TEST_DEBUG: "0"
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          fetch-depth: 3
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - name: Verify source and registry changes
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/fixture-controls"
+          test "$(uname -m)" = x86_64
+          test "$(git rev-parse HEAD^)" = 7dcef586a8c6205cca10b71222088d83a84689fd
+          rustc +stable --version --verbose | tee "$RUNNER_TEMP/fixture-controls/toolchain.log"
+          python3 - <<'PY'
+          import hashlib, json, subprocess
+          from pathlib import Path
+          registry = Path('tests/conformance/broker/implemented-api-versions.json')
+          old = json.loads(subprocess.check_output(['git', 'show', f'HEAD^^:{registry}']))
+          new = json.loads(registry.read_text())
+          paths = {
+              'metadata_source_sha256': 'partitionline-broker/src/metadata.rs',
+              'fetch_source_sha256': 'partitionline-broker/src/fetch.rs',
+              'fetch_test_source_sha256': 'partitionline-broker/tests/fetch.rs',
+          }
+          for key, path in paths.items():
+              assert new[key] == hashlib.sha256(Path(path).read_bytes()).hexdigest(), key
+          for key in ('metadata_source_sha256', 'fetch_source_sha256', 'fetch_test_source_sha256'):
+              assert old[key] != new[key]
+              del old[key]
+              del new[key]
+          assert old == new
+          PY
+      - name: Stable formatting
+        id: fmt
+        continue-on-error: true
+        run: cargo +stable fmt --manifest-path partitionline-broker/Cargo.toml -- --check
+      - name: Strict all-target all-feature Clippy
+        id: clippy
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo +stable clippy --locked --manifest-path partitionline-broker/Cargo.toml --all-targets --all-features -- -D warnings 2>&1 | tee "$RUNNER_TEMP/fixture-controls/clippy.log"
+      - name: Require static gates
+        if: always()
+        env:
+          FORMAT: ${{ steps.fmt.outcome }}
+          CLIPPY: ${{ steps.clippy.outcome }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$FORMAT" = success
+          test "$CLIPPY" = success
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: broker-fixture-static-${{ github.sha }}
+          path: ${{ runner.temp }}/fixture-controls
+          if-no-files-found: warn
+          retention-days: 30
+  controls:
+    strategy:
+      fail-fast: false
+      matrix:
+        profile: [default, all-features]
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      CARGO_INCREMENTAL: "0"
+      CARGO_BUILD_JOBS: "2"
+      CARGO_TERM_COLOR: never
+      CARGO_PROFILE_DEV_DEBUG: "0"
+      CARGO_PROFILE_TEST_DEBUG: "0"
+      PROFILE: ${{ matrix.profile }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          fetch-depth: 2
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Verify source
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/fixture-controls"
+          test "$(uname -m)" = x86_64
+          test "$(git rev-parse HEAD^)" = 7dcef586a8c6205cca10b71222088d83a84689fd
+          printf '%s  %s\n' 4b58da7de8daf51d12c658c35a9252b91907e18475e49cb04fac3de751cb9a5b partitionline-broker/src/metadata.rs | sha256sum -c -
+          printf '%s  %s\n' 0e5fd830937e85b8be40c6c4ab0a2797c118a3a44f47f681f04ff558dec53cd1 partitionline-broker/tests/fetch.rs | sha256sum -c -
+      - name: Focused real Router and transport checks
+        id: normal
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -euo pipefail
+          flags=()
+          if [ "$PROFILE" = all-features ]; then flags+=(--all-features); fi
+          for name in transport_deadline_cancels_wait_and_releases_read_admission transport_joined_shutdown_cancels_live_long_poll_without_stopping_store wait_keeps_admission_cancel_releases_and_shutdown_wakes wake_between_snapshot_and_receipt_is_not_lost; do
+            log="$RUNNER_TEMP/fixture-controls/$name.log"
+            timeout 300s cargo +stable test --locked --manifest-path partitionline-broker/Cargo.toml "${flags[@]}" --test fetch "$name" -- --exact --nocapture > "$log" 2>&1 || { cat "$log"; exit 1; }
+            cat "$log"
+            grep -F 'test result: ok. 1 passed;' "$log"
+          done
+      - name: Before-admission and leaked-permit counterexamples
+        id: mutants
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -euo pipefail
+          flags=()
+          if [ "$PROFILE" = all-features ]; then flags+=(--all-features); fi
+          restore() { git checkout -- partitionline-broker/tests/fetch.rs partitionline-broker/src/metadata.rs; }
+          trap restore EXIT
+          for mode in before-admission leaked-permit; do
+            python3 -B .github/scripts/broker-fixture-counterexample.py "$mode"
+            log="$RUNNER_TEMP/fixture-controls/$mode.log"
+            set +e
+            timeout 300s cargo +stable test --locked --manifest-path partitionline-broker/Cargo.toml "${flags[@]}" --test fetch transport_deadline_cancels_wait_and_releases_read_admission -- --exact --nocapture > "$log" 2>&1
+            code=$?
+            set -e
+            cat "$log"
+            test "$code" -ne 0
+            test "$code" -ne 124
+            grep -F 'running 1 test' "$log"
+            grep -F 'test result: FAILED. 0 passed; 1 failed;' "$log"
+            if [ "$mode" = before-admission ]; then
+              grep -F 'pending Fetch did not hold admission' "$log"
+            else
+              grep -F 'fresh Produce acknowledgement' "$log"
+              grep -F 'handler_errors: 1' "$log"
+            fi
+            restore
+          done
+          git diff --exit-code -- partitionline-broker/tests/fetch.rs partitionline-broker/src/metadata.rs
+      - name: Require fixture controls
+        if: always()
+        env:
+          NORMAL: ${{ steps.normal.outcome }}
+          MUTANTS: ${{ steps.mutants.outcome }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$NORMAL" = success
+          test "$MUTANTS" = success
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: broker-fixture-controls-${{ matrix.profile }}-${{ github.sha }}
+          path: ${{ runner.temp }}/fixture-controls
+          if-no-files-found: warn
+          retention-days: 30
