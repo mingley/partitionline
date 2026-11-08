@@ -1,0 +1,53 @@
+name: Read retained acknowledgement diagnostic
+
+on:
+  push:
+    branches: [qualification/ack-readout-42444229431]
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  readout:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 12
+          persist-credentials: false
+          sparse-checkout: |
+            src
+            examples
+            benchmarks/peers/librdkafka
+            benchmarks/peers/partitionline
+      - name: Verify original artifact identity
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          git merge-base --is-ancestor c8a6c6fb84a27f224b37a2fce9cc8f4e443c9333 HEAD
+          gh api "repos/$GITHUB_REPOSITORY/actions/artifacts/13602847198" > "$RUNNER_TEMP/ack-artifact-metadata.json"
+          python3 - "$RUNNER_TEMP/ack-artifact-metadata.json" <<'PY'
+          import json, sys
+          a=json.load(open(sys.argv[1]))
+          assert a["id"] == 13602847198
+          assert a["name"] == "ack-paired-42444229431-1"
+          assert a["workflow_run"]["id"] == 42444229431
+          assert a["workflow_run"]["head_sha"] == "c8a6c6fb84a27f224b37a2fce9cc8f4e443c9333"
+          assert a["digest"] == "sha256:541836b5b0afd56c7f9dc1eb8c87de89dac7f0c0b125167c62862fc8b2a52f8c"
+          assert not a["expired"]
+          print(json.dumps({"artifact_id":a["id"],"run_id":a["workflow_run"]["id"],"digest":a["digest"]}))
+          PY
+      - name: Download only the pinned retained artifact
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
+        with:
+          artifact-ids: 13602847198
+          run-id: 42444229431
+          github-token: ${{ github.token }}
+          path: ${{ runner.temp }}/ack-retained-42444229431
+          digest-mismatch: error
+      - name: Reverify receipts and print bounded run summary
+        run: python3 -B benchmarks/peers/partitionline/readout_ack.py "$RUNNER_TEMP/ack-retained-42444229431"
