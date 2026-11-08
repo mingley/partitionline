@@ -1,0 +1,26 @@
+name: Raft vote candidate library lint
+on:
+  push:
+    branches: [qualification/raft-vote-lint-20261108]
+permissions:
+  contents: read
+jobs:
+  library-lint:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      CARGO_BUILD_JOBS: 2
+      CARGO_INCREMENTAL: 0
+      CARGO_PROFILE_DEV_DEBUG: 0
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+      - name: Check exact runtime and lint production library
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD:partitionline-broker/src/raft/runtime.rs)" = ac3287a639926e7c92507c5d83c8879d9e456c75
+          rustc --version
+          cargo clippy --locked --manifest-path partitionline-broker/Cargo.toml --lib -- -D warnings
+          cargo clippy --locked --manifest-path partitionline-broker/Cargo.toml --lib --all-features -- -D warnings
