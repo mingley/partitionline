@@ -83,9 +83,11 @@ mutation, and both jobs verified the original source hash after restoration.
 The [first matched whole-suite baseline control][broad] stopped after its
 first baseline suite failed: GitHub's Bash wrapper retained `-e`, so the
 harness exited before printing that suite's status and before any other arm
-ran. The [captured baseline log][broad-artifact] was uploaded. A
-[corrected matched control][broad2] explicitly captures each status and is
-running; the first attempt is not a complete comparison.
+ran. Its [captured baseline log][broad-artifact] was recovered: 615 passed,
+and delegation-token decoding (80.197017 ms) and named-result grouping
+(124.29199 ms) failed their 80 ms thresholds. A [corrected matched
+control][broad2] explicitly captures each status and is running; the first
+attempt is not a complete comparison.
 
 ## Limits
 
