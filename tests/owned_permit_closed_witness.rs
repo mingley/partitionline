@@ -27,7 +27,12 @@ async fn reserved_owned_permit_can_send_after_receiver_close() {
     assert_eq!(dropped.load(Ordering::SeqCst), 0);
     drop(value);
     assert_eq!(dropped.load(Ordering::SeqCst), 1);
-    assert!(receiver.recv().await.is_none());
+    assert!(
+        tokio::time::timeout(Duration::from_secs(1), receiver.recv())
+            .await
+            .expect("closed drain deadline")
+            .is_none()
+    );
     println!("OWNED_PERMIT_CLOSED_RECEIVER=drained");
 }
 
