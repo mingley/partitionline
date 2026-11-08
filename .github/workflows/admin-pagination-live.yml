@@ -1,0 +1,70 @@
+name: Apache Kafka constant-space pagination smoke
+on:
+  push:
+    branches:
+      - work/admin-pagination-constant-live-20261108
+permissions:
+  contents: read
+jobs:
+  apache:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    env:
+      KAFKA_BOOTSTRAP: 127.0.0.1:19092
+      KAFKA_TOPIC: pl-dtp-pagination-${{ github.run_id }}
+      KAFKA_REFERENCE: apache/kafka:4.1.2@sha256:5cc2a2fd93fa2687b44015eee04fb2c3edd9e526bd64bf8bec5ff1e268772e0e
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Identity
+        run: |
+          rustc -Vv
+          sha256sum src/admin.rs src/admin/pagination_tests.rs src/protocol/admin.rs Cargo.toml Cargo.lock tests/admin_dtp_live.rs
+          docker --version
+      - name: Start fresh digest-pinned broker
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker pull "$KAFKA_REFERENCE"
+          docker image inspect "$KAFKA_REFERENCE" --format '{{json .RepoDigests}} {{.Id}}'
+          docker create --name pl-dtp-test -p 127.0.0.1:19092:9092 \
+            -e KAFKA_NODE_ID=1 -e KAFKA_PROCESS_ROLES=broker,controller \
+            -e KAFKA_LISTENERS=PLAINTEXT://:9092,INTERNAL://:9094,CONTROLLER://:9093 \
+            -e KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://127.0.0.1:19092,INTERNAL://localhost:9094 \
+            -e KAFKA_LISTENER_SECURITY_PROTOCOL_MAP=PLAINTEXT:PLAINTEXT,INTERNAL:PLAINTEXT,CONTROLLER:PLAINTEXT \
+            -e KAFKA_INTER_BROKER_LISTENER_NAME=INTERNAL -e KAFKA_CONTROLLER_LISTENER_NAMES=CONTROLLER \
+            -e KAFKA_CONTROLLER_QUORUM_VOTERS=1@localhost:9093 \
+            -e KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR=1 -e KAFKA_AUTO_CREATE_TOPICS_ENABLE=false \
+            "$KAFKA_REFERENCE"
+          docker start pl-dtp-test
+          ready=0
+          for attempt in $(seq 1 45); do
+            if timeout 10s docker exec pl-dtp-test /opt/kafka/bin/kafka-broker-api-versions.sh --bootstrap-server localhost:9094 > "$RUNNER_TEMP/readiness.log" 2>&1; then ready=1; break; fi
+            sleep 1
+          done
+          cat "$RUNNER_TEMP/readiness.log"
+          test "$ready" = 1
+      - name: Create and independently inspect topic
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker exec pl-dtp-test /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9094 --create --topic "$KAFKA_TOPIC" --partitions 4 --replication-factor 1
+          docker exec pl-dtp-test /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9094 --describe --topic "$KAFKA_TOPIC" | tee "$RUNNER_TEMP/topic.txt"
+          python3 - "$RUNNER_TEMP/topic.txt" <<'PY'
+          import re,sys
+          source=open(sys.argv[1]).read()
+          parts=sorted(int(x) for x in re.findall(r'Partition:\s*(\d+)',source))
+          assert parts==[0,1,2,3], parts
+          print("independent Kafka CLI partitions:", parts)
+          PY
+      - name: Live client smoke in both profiles
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo test --locked --test admin_dtp_live -- --nocapture
+          cargo test --locked --all-features --test admin_dtp_live -- --nocapture
+      - name: Broker logs and cleanup
+        if: always()
+        run: |
+          docker logs pl-dtp-test || true
+          docker rm -f pl-dtp-test || true
