@@ -10,17 +10,15 @@ Production readiness and fastest-client/server claims remain unqualified.
 Client 0.1.0 is already published. The next client version must be at least
 0.2.0; broker and schema publication remain disabled.
 
-The latest completed main [CI snapshot](../evidence/releases/main-ci-b631-20261108/README.md)
-is `b631809f0e03ba6f65f808e51d8e47e3fd9380d1`. The Linux client default
-library reported 2,190 passed and 17 failed; Windows default reported 2,193/14
-and macOS arm64 default 2,183/24. All-feature testing stopped at a newly
-introduced mock-test Clippy lint; a subsequent test-only correction passed
-strict all-target Clippy and its selected tests. Kafka 4.1.2, 4.2.1 and 4.3.1
-overflowed after the classic-join marker; 3.9.1 and 4.1.0 smoke jobs failed
-after EOS timeouts. The broker default library had 446 passes and four Raft
-runtime failures; its all-feature suite did not run. Both client capability
-profiles passed selected checks; their archives were not independently
-inspected. These results do not cover later changes or close release gates.
+The latest recorded main [CI snapshot](../evidence/releases/main-ci-264322f-20261108/README.md)
+is `264322ff430b0594f4c3864e53dcd832de2a930b`. The Linux client library
+reported 2,185 passed and 22 failed by default, and 2,182 passed and 25 failed
+with all features. Windows and macOS arm64 each reported 2,193 passed and 14
+failed. All-target Clippy passed. Kafka 4.1.2, 4.2.1 and 4.3.1 overflowed
+after the classic-join marker; 3.9.1 and 4.1.0 smoke jobs failed after EOS
+timeouts. Broker default targets passed 737 tests; the all-feature run passed
+622 before a quorum test failed with an ambiguous or unexpected delete error
+56. These results do not cover later changes or close release gates.
 
 Earlier records:
 
@@ -181,7 +179,11 @@ remain open.
    resolve these races. These findings have not been reproduced in a native or
    broker test.
 
-2. **Consumer delivery and isolation.** Topic recreation still fails one
+2. **Consumer delivery and isolation.** A [nontransactional cancellation
+   control](https://github.com/mingley/partitionline/actions/runs/42443409232)
+   fetched a record while an interval commit remained pending. Canceling the
+   poll advanced the position, and the retry returned no record at that offset.
+   Fix and qualify ownership across the commit wait. Topic recreation still fails one
    ownership control. Cancellation and mixed-error recovery must preserve
    buffered records, delivered offsets, fetch cursors and aborted-transaction
    state together. A ReadCommitted retry can expose an aborted record when
@@ -250,6 +252,12 @@ remain open.
    [replication](../evidence/broker/replication-limits-20261028/README.md)
    and [transaction](../evidence/broker/transaction-checkpoint-20261028/README.md)
    records.
+
+   The [Fetch admission fixture](../evidence/broker/fetch-admission-20261108/README.md)
+   replaces a scheduling-dependent first-poll assertion with a gated actor and
+   checks both consumption and cancellation. A later full default qualification
+   failed a separate transport-shutdown test with `QueueFull`; its cause and
+   canceled actor memory overlap remain open.
 
    The [Produce cancellation fix](../evidence/broker/produce-cancel-20261108/README.md)
    rolls back a canceled request's unsynced monolithic stages. Its x86
