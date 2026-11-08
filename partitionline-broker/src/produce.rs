@@ -55,9 +55,9 @@ pub struct Config {
     pub max_stores: usize,
     /// Worst-case sum of configured backend disk budgets, at most one TiB.
     pub max_disk_bytes: u64,
-    /// Aggregate configured index envelopes; monolithic slots charge64bytes
-    /// each, while rolling limits include retained and transient index buffers.
-    /// Allocator bookkeeping is separate; the total is at most512MiB.
+    /// Aggregate configured index charges, at most 512 MiB. Monolithic stores
+    /// charge 64 bytes per configured entry; rolling stores use their index envelope.
+    /// Staging queues, allocator overhead and excess allocation capacity are separate.
     pub max_index_bytes: usize,
     /// Aggregate partitions in a request, 1..=4096.
     /// Each staged flat-log partition retains one sync descriptor. The actor
