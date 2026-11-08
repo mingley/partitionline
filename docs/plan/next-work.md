@@ -21,6 +21,12 @@ supervision. Both selected capability profiles passed; their archives were not
 independently inspected. The broker pass does not explain the preceding
 [e487 proposal failure](../evidence/broker/raft-delayed-proposal-20261108/README.md).
 
+A [newer partial broker run](../evidence/releases/main-ci-7fb-partial-20261108/README.md)
+at `7fb973f` also stopped at 490 passed, one failed and four ignored, after
+a five-node proposal returned `NotLeader`. Its append and commit outcome and
+the cause remain unknown. Inventory and fuzz supervision passed separately;
+later behavioral and strict checks in that job did not run.
+
 A [later partial broker run](../evidence/releases/main-ci-6902-20261108/README.md)
 at `6902d3b` stopped in the default library at 490 passed, one failed and
 four ignored. A disconnect test observed that its handler guard had not
@@ -478,7 +484,11 @@ remain open.
    deferred task depends on runtime progress, and cancelling close before
    worker shutdown remains a separate lifecycle gap.
 
-4. **Bounded decoding.** The [Admin pagination repair](../evidence/client/admin-pagination-20261108/README.md)
+4. **Bounded decoding.** A [scripted pagination witness](../evidence/client/admin-pagination-identity-20261108/README.md)
+   shows that a later topic error can be returned as success, and successful
+   pages with different topic IDs can be combined. An isolated candidate
+   remains unapplied while broad-suite failures and nullable-name behavior are
+   reviewed. The [Admin pagination repair](../evidence/client/admin-pagination-20261108/README.md)
    uses one checked deadline for DescribeTopicPartitions pages and rejects an
    immediately repeated cursor instead of returning a partial success. A
    four-partition Apache Kafka 4.1.2 smoke and focused controls passed in both
