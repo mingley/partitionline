@@ -1187,283 +1187,141 @@ async fn dtp_unnamed_topic_precedes_same_page_identity_conflict() {
         if message == "cannot aggregate DescribeTopicPartitions without a topic name"));
 }
 
-fn dtp_conversion_rows(start: usize, count: usize) -> Vec<DescribedTopicPartitions> {
-    (start..start + count)
-        .map(|index| {
-            let mut topic = DescribedTopicPartitions::new(format!("topic-{index:08}"), 0);
-            topic.topic_id[15] = 7;
-            topic.topic_authorized_operations = 37;
+/// Run the public Admin operation against a single mock response and time each
+/// poll. The peer checks every requested name and returns the same names.
+#[tokio::test(flavor = "current_thread")]
+async fn dtp_public_slot_index_witness() {
+    use std::future::Future;
+    use std::sync::atomic::{AtomicBool, Ordering};
+    use std::sync::Arc;
+
+    let count: usize = std::env::var("PL_ROW_PUBLIC_COUNT").unwrap().parse().unwrap();
+    assert!(count > 0);
+    let kind = std::env::var("PL_ROW_PUBLIC_KIND").unwrap();
+    let error = match kind.as_str() {
+        "empty" => 0,
+        "error" => crate::error::TOPIC_AUTHORIZATION_FAILED,
+        _ => panic!("unknown row kind"),
+    };
+    let unique: usize = std::env::var("PL_ROW_UNIQUE").unwrap().parse().unwrap();
+    assert!(unique > 0 && unique <= count);
+    let names: Vec<String> = (0..unique).map(|i| format!("topic-{i:08}")).collect();
+    let topics = (0..count)
+        .map(|i| {
+            let slot = i % unique;
+            let mut topic = DescribedTopicPartitions::new(names[slot].clone(), error);
+            if error == 0 {
+                topic.topic_id[..8].copy_from_slice(&(slot as u64).to_be_bytes());
+                topic.topic_id[15] = 7;
+            }
             topic
         })
-        .collect()
-}
-
-#[test]
-fn dtp_conversion_yields_on_the_exact_row_boundary() {
-    use std::future::Future;
-    use std::sync::atomic::Ordering;
-    use std::sync::Arc;
-    use std::task::{Context, Poll, Waker};
-
-    for count in [8191, 8192, 8193] {
-        let topics = dtp_conversion_rows(0, count);
-        let mut page = Vec::with_capacity(count);
-        let mut out: Vec<TopicDescription> = Vec::new();
-        let mut budget = 0;
-        let deadline = tokio::time::Instant::now() + Duration::from_secs(30);
-        let wake = Arc::new(CleanupWake::default());
-        let waker = Waker::from(Arc::clone(&wake));
-        let mut context = Context::from_waker(&waker);
-        let mut future = Box::pin(convert_described_topic_page(
-            &topics,
-            true,
-            &mut page,
-            &mut out,
-            deadline,
-            &mut budget,
-        ));
-        let first = future.as_mut().poll(&mut context);
-        if count < 8192 {
-            assert!(matches!(first, Poll::Ready(Ok(()))));
-            assert_eq!(wake.0.load(Ordering::SeqCst), 0);
-        } else {
-            assert!(matches!(first, Poll::Pending));
-            assert!(wake.0.load(Ordering::SeqCst) > 0);
-            assert!(matches!(
-                future.as_mut().poll(&mut context),
-                Poll::Ready(Ok(()))
-            ));
-        }
-        drop(future);
-        assert_eq!(budget, count % 8192);
-        assert_eq!(page.len(), count);
-        assert!(out.is_empty());
-        for (index, result) in page.iter().enumerate() {
-            assert_eq!(result.name, format!("topic-{index:08}"));
-            assert_eq!(result.topic_id[15], 7);
-            assert_eq!(result.error_code, 0);
-            assert!(result.partitions.is_empty());
-            assert_eq!(result.authorized_operations, 37);
-        }
-    }
-
-    // Drop after the first pending poll to inspect the exact conversion frontier.
-    for count in [8192, 8193] {
-        let topics = dtp_conversion_rows(0, count);
-        let mut page = Vec::with_capacity(count);
-        let mut out: Vec<TopicDescription> = Vec::new();
-        let mut budget = 0;
-        let wake = Arc::new(CleanupWake::default());
-        let waker = Waker::from(Arc::clone(&wake));
-        let mut context = Context::from_waker(&waker);
-        let mut future = Box::pin(convert_described_topic_page(
-            &topics,
-            false,
-            &mut page,
-            &mut out,
-            tokio::time::Instant::now() + Duration::from_secs(30),
-            &mut budget,
-        ));
-        assert!(future.as_mut().poll(&mut context).is_pending());
-        drop(future);
-        assert_eq!(page.len(), 8192);
-        assert_eq!(budget, 0);
-        assert!(out.is_empty());
-        assert!(page
-            .iter()
-            .all(|row| row.authorized_operations == AUTHORIZED_OPERATIONS_OMITTED));
-    }
-}
-
-#[test]
-fn dtp_conversion_carries_the_row_budget_across_pages() {
-    use std::future::Future;
-    use std::sync::atomic::Ordering;
-    use std::sync::Arc;
-    use std::task::{Context, Poll, Waker};
-
-    let first = dtp_conversion_rows(0, 8191);
-    let last = dtp_conversion_rows(8191, 1);
-    let next = dtp_conversion_rows(8192, 1);
-    let mut page = Vec::new();
-    let mut out: Vec<TopicDescription> = Vec::new();
-    let mut budget = 0;
-    let deadline = tokio::time::Instant::now() + Duration::from_secs(30);
-    let wake = Arc::new(CleanupWake::default());
-    let waker = Waker::from(Arc::clone(&wake));
-    let mut context = Context::from_waker(&waker);
-
-    let mut initial = Box::pin(convert_described_topic_page(
-        &first,
-        false,
-        &mut page,
-        &mut out,
-        deadline,
-        &mut budget,
-    ));
-    assert!(matches!(
-        initial.as_mut().poll(&mut context),
-        Poll::Ready(Ok(()))
-    ));
-    drop(initial);
-    assert_eq!(budget, 8191);
-    assert_eq!(page.len(), 8191);
-
-    page.clear();
-    let mut at_boundary = Box::pin(convert_described_topic_page(
-        &last,
-        false,
-        &mut page,
-        &mut out,
-        deadline,
-        &mut budget,
-    ));
-    assert!(at_boundary.as_mut().poll(&mut context).is_pending());
-    assert!(wake.0.load(Ordering::SeqCst) > 0);
-    assert!(matches!(
-        at_boundary.as_mut().poll(&mut context),
-        Poll::Ready(Ok(()))
-    ));
-    drop(at_boundary);
-    assert_eq!(budget, 0);
-    assert_eq!(page.len(), 1);
-    assert_eq!(page[0].name, "topic-00008191");
-
-    page.clear();
-    let mut after = Box::pin(convert_described_topic_page(
-        &next,
-        false,
-        &mut page,
-        &mut out,
-        deadline,
-        &mut budget,
-    ));
-    assert!(matches!(
-        after.as_mut().poll(&mut context),
-        Poll::Ready(Ok(()))
-    ));
-    drop(after);
-    assert_eq!(budget, 1);
-    assert_eq!(page[0].name, "topic-00008192");
-}
-
-#[test]
-fn dtp_conversion_keeps_partition_yields_and_ignores_error_partitions() {
-    use std::future::Future;
-    use std::sync::Arc;
-    use std::task::{Context, Poll, Waker};
-
-    let mut topic = DescribedTopicPartitions::new("orders", 0);
-    topic.partitions = (0..8192)
-        .map(|partition| {
-            let mut item = DescribedTopicPartition::new(0);
-            item.partition_index = partition;
-            item.replica_nodes = vec![1, 2];
-            item.isr_nodes = vec![2];
-            item
-        })
         .collect();
-    let mut page = Vec::new();
-    let mut out: Vec<TopicDescription> = Vec::new();
-    let mut budget = 0;
-    let wake = Arc::new(CleanupWake::default());
-    let waker = Waker::from(Arc::clone(&wake));
-    let mut context = Context::from_waker(&waker);
-    let deadline = tokio::time::Instant::now() + Duration::from_secs(30);
+    let response = DescribeTopicPartitionsResponse::new(topics);
+    let mut response_body = BytesMut::new();
+    encode_describe_topic_partitions_response(&mut response_body, &response).unwrap();
+    let wire_body_bytes = response_body.len();
+    assert!(wire_body_bytes + 32 < usize::try_from(crate::net::MAX_FRAME).unwrap());
+    drop(response);
 
-    let mut future = Box::pin(convert_described_topic_page(
-        std::slice::from_ref(&topic),
-        false,
-        &mut page,
-        &mut out,
-        deadline,
-        &mut budget,
-    ));
-    assert!(future.as_mut().poll(&mut context).is_pending());
-    drop(future);
-    assert!(page.is_empty());
-    assert_eq!(budget, 0);
-
-    let mut future = Box::pin(convert_described_topic_page(
-        std::slice::from_ref(&topic),
-        false,
-        &mut page,
-        &mut out,
-        deadline,
-        &mut budget,
-    ));
-    assert!(future.as_mut().poll(&mut context).is_pending());
-    assert!(matches!(
-        future.as_mut().poll(&mut context),
-        Poll::Ready(Ok(()))
-    ));
-    drop(future);
-    assert_eq!(budget, 1);
-    assert_eq!(page[0].partitions.len(), 8192);
-    assert_eq!(page[0].partitions[0].replicas, [1, 2]);
-    assert_eq!(page[0].partitions[8191].partition, 8191);
-
-    page.clear();
-    topic.error_code = crate::error::TOPIC_AUTHORIZATION_FAILED;
-    let mut future = Box::pin(convert_described_topic_page(
-        std::slice::from_ref(&topic),
-        false,
-        &mut page,
-        &mut out,
-        deadline,
-        &mut budget,
-    ));
-    assert!(matches!(
-        future.as_mut().poll(&mut context),
-        Poll::Ready(Ok(()))
-    ));
-    drop(future);
-    assert_eq!(page[0].error_code, crate::error::TOPIC_AUTHORIZATION_FAILED);
-    assert!(page[0].partitions.is_empty());
-    assert_eq!(budget, 2);
-}
-
-#[test]
-fn dtp_conversion_unnamed_after_checkpoint_keeps_error_and_deadline_rules() {
-    use std::future::Future;
-    use std::sync::Arc;
-    use std::task::{Context, Poll, Waker};
-
-    for expired in [false, true] {
-        let mut topics = dtp_conversion_rows(0, 8192);
-        let mut unnamed = DescribedTopicPartitions::new("ignored", 0);
-        unnamed.name = None;
-        topics.push(unnamed);
-        let mut page = Vec::new();
-        let mut out: Vec<TopicDescription> = Vec::new();
-        let mut budget = 0;
-        let wake = Arc::new(CleanupWake::default());
-        let waker = Waker::from(Arc::clone(&wake));
-        let mut context = Context::from_waker(&waker);
-        let deadline = if expired {
-            tokio::time::Instant::now() - Duration::from_secs(1)
-        } else {
-            tokio::time::Instant::now() + Duration::from_secs(30)
-        };
-        let mut future = Box::pin(convert_described_topic_page(
-            &topics,
-            false,
-            &mut page,
-            &mut out,
-            deadline,
-            &mut budget,
-        ));
-        assert!(future.as_mut().poll(&mut context).is_pending());
-        // Rejection cleanup may itself yield after visiting 8,192 descriptions.
-        let got = loop {
-            if let Poll::Ready(result) = future.as_mut().poll(&mut context) {
-                break result;
-            }
-        };
-        if expired {
-            assert!(matches!(got, Err(Error::Timeout)));
-        } else {
-            assert!(matches!(got, Err(Error::Unsupported(_))));
+    let (mut admin, listener) = admin_and_listener().await;
+    let response_written = Arc::new(AtomicBool::new(false));
+    let peer_written = Arc::clone(&response_written);
+    let (release_peer, peer_release) = tokio::sync::oneshot::channel();
+    let peer = tokio::spawn(async move {
+        let (mut socket, _) = listener.accept().await.unwrap();
+        socket.set_nodelay(true).unwrap();
+        let request_len = usize::try_from(socket.read_i32().await.unwrap()).unwrap();
+        assert!(request_len < usize::try_from(crate::net::MAX_FRAME).unwrap());
+        let mut request_bytes = vec![0; request_len];
+        let _read = socket.read_exact(&mut request_bytes).await.unwrap();
+        let mut request_body = Bytes::from(request_bytes);
+        let header = decode_request_header(&mut request_body).unwrap();
+        assert_eq!((header.api_key, header.api_version), (DESCRIBE_TOPIC_PARTITIONS, 0));
+        let (requested, limit, cursor) =
+            decode_describe_topic_partitions_request(&mut request_body).unwrap();
+        assert_eq!(requested.len(), unique);
+        for (i, name) in requested.iter().enumerate() {
+            assert_eq!(name, &format!("topic-{i:08}"));
         }
+        assert_eq!(limit, 1);
+        assert!(cursor.is_none());
+        assert!(request_body.is_empty());
+        drop(requested);
+        let mut response_header = BytesMut::new();
+        encode_response_header(
+            &mut response_header,
+            header.api_key,
+            header.api_version,
+            header.correlation_id,
+        )
+        .unwrap();
+        socket.write_i32(i32::try_from(response_header.len() + response_body.len()).unwrap()).await.unwrap();
+        socket.write_all(&response_header).await.unwrap();
+        socket.write_all(&response_body).await.unwrap();
+        peer_written.store(true, Ordering::SeqCst);
+        let _release = peer_release.await;
+        drop(response_body);
+        drop(socket);
+    });
+
+    let start = std::time::Instant::now();
+    let mut call = Box::pin(admin.describe_topics_with_partition_limit_timeout(
+        names.iter(),
+        false,
+        1,
+        Duration::from_secs(120),
+    ));
+    let mut all_polls = 0usize;
+    let mut after_write_polls = 0usize;
+    let mut max_before_write_ns = 0u128;
+    let mut max_after_write_ns = 0u128;
+    let mut max_pending_after_write_ns = 0u128;
+    let mut ready_poll_ns = 0u128;
+    let mut ready_after_write = false;
+    let result = std::future::poll_fn(|cx| {
+        let after_write = response_written.load(Ordering::SeqCst);
+        let poll_start = std::time::Instant::now();
+        let polled = call.as_mut().poll(cx);
+        let elapsed_ns = poll_start.elapsed().as_nanos();
+        all_polls += 1;
+        if polled.is_ready() {
+            ready_poll_ns = elapsed_ns;
+            ready_after_write = after_write;
+        } else if after_write {
+            max_pending_after_write_ns = max_pending_after_write_ns.max(elapsed_ns);
+        }
+        if after_write {
+            after_write_polls += 1;
+            max_after_write_ns = max_after_write_ns.max(elapsed_ns);
+        } else {
+            max_before_write_ns = max_before_write_ns.max(elapsed_ns);
+        }
+        polled
+    }).await.unwrap();
+    let total_ns = start.elapsed().as_nanos();
+    drop(call);
+    assert!(response_written.load(Ordering::SeqCst));
+    assert!(after_write_polls > 0);
+    assert!(ready_after_write);
+    assert_eq!(result.len(), unique);
+    for (i, row) in result.iter().enumerate() {
+        assert_eq!(row.name, names[i]);
+        assert_eq!(row.error_code, error);
+        assert!(row.partitions.is_empty());
+        assert_eq!(row.authorized_operations, AUTHORIZED_OPERATIONS_OMITTED);
+        let mut expected_id = [0; 16];
+        if error == 0 {
+            expected_id[..8].copy_from_slice(&(i as u64).to_be_bytes());
+            expected_id[15] = 7;
+        }
+        assert_eq!(row.topic_id, expected_id);
+        assert!(!row.is_internal);
     }
+    assert_eq!(std::hint::black_box(&result).len(), unique);
+    release_peer.send(()).unwrap();
+    peer.await.unwrap();
+    println!(
+        "ROW_SLOT rows={count} unique={unique} kind={kind} all_polls={all_polls} after_write_polls={after_write_polls} max_before_write_ns={max_before_write_ns} max_after_write_ns={max_after_write_ns} max_pending_after_write_ns={max_pending_after_write_ns} ready_poll_ns={ready_poll_ns} ready_after_write={ready_after_write} total_ns={total_ns} wire_body_bytes={wire_body_bytes}"
+    );
 }
