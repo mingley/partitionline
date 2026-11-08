@@ -1,0 +1,90 @@
+name: send-all-durable-qualification
+on:
+  push:
+    branches: [qualification/send-all-durable-tests-20261108]
+  workflow_dispatch:
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        profile: [default, all-features]
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Pin source and toolchain
+        run: |
+          mkdir -p target/send-all-durable
+          {
+            git rev-parse HEAD HEAD:src/producer.rs HEAD:tests/common/mod.rs HEAD:tests/producer_send_all_regression.rs
+            sha256sum src/producer.rs tests/common/mod.rs tests/producer_send_all_regression.rs Cargo.lock
+            rustc +stable -Vv
+            cargo +stable -V
+          } | tee target/send-all-durable/provenance.txt
+      - name: Run focused public tests
+        shell: bash
+        run: |
+          set -o pipefail
+          feature=()
+          if [ "${{ matrix.profile }}" = all-features ]; then feature=(--all-features); fi
+          /usr/bin/time -f 'elapsed_seconds=%e' cargo +stable test --locked --test producer_send_all_regression "${feature[@]}" -- --test-threads=1 --nocapture 2>&1 | tee target/send-all-durable/tests.log
+          grep -F 'test result: ok. 5 passed; 0 failed;' target/send-all-durable/tests.log
+      - name: Record test binary hashes
+        if: always()
+        run: |
+          find target/debug/deps -maxdepth 1 -type f -executable -name 'producer_send_all_regression-*' -exec sha256sum {} + | tee target/send-all-durable/binaries.txt
+      - name: Retain focused test logs
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: send-all-durable-${{ matrix.profile }}-${{ github.sha }}
+          path: target/send-all-durable
+          if-no-files-found: error
+          retention-days: 30
+
+  checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - name: Pin source and toolchain
+        run: |
+          mkdir -p target/send-all-durable
+          {
+            git rev-parse HEAD HEAD:src/producer.rs HEAD:tests/common/mod.rs HEAD:tests/producer_send_all_regression.rs
+            sha256sum src/producer.rs tests/common/mod.rs tests/producer_send_all_regression.rs Cargo.lock
+            rustc +stable -Vv
+            cargo +stable -V
+          } | tee target/send-all-durable/provenance.txt
+      - name: Stable rustfmt
+        shell: bash
+        run: |
+          set -o pipefail
+          /usr/bin/time -f 'elapsed_seconds=%e' cargo +stable fmt --all -- --check 2>&1 | tee target/send-all-durable/rustfmt.log
+      - name: Strict all-target, all-feature Clippy
+        if: always()
+        shell: bash
+        run: |
+          set -o pipefail
+          /usr/bin/time -f 'elapsed_seconds=%e' cargo +stable clippy --locked --all-targets --all-features -- -D warnings 2>&1 | tee target/send-all-durable/clippy.log
+      - name: Print formatted test if checks failed
+        if: failure()
+        run: |
+          rustfmt +stable --edition 2021 tests/producer_send_all_regression.rs
+          printf '%s\n' 'BEGIN_FORMATTED_SEND_ALL_TEST'
+          cat tests/producer_send_all_regression.rs
+          printf '%s\n' 'END_FORMATTED_SEND_ALL_TEST'
+      - name: Retain check logs
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: send-all-durable-checks-${{ github.sha }}
+          path: target/send-all-durable
+          if-no-files-found: error
+          retention-days: 30
