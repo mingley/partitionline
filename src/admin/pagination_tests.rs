@@ -2294,3 +2294,89 @@ async fn dtp_requested_and_unnamed_after_conversion_checkpoint_keep_precedence()
         peer.await.unwrap();
     }
 }
+
+#[tokio::test]
+async fn dtp_requested_public_describe_future_is_send() {
+    fn require_send<T: Send>(_: &T) {}
+
+    let (mut admin, _listener) = admin_and_listener().await;
+    let names = ["orders"];
+    let call = admin.describe_topics_with_partition_limit_timeout(
+        names.iter(),
+        false,
+        1,
+        Duration::from_secs(5),
+    );
+    require_send(&call);
+}
+
+#[test]
+fn dtp_requested_mismatch_iterator_and_null_cleanup_at_row_boundary() {
+    use std::future::Future;
+    use std::sync::Arc;
+    use std::task::{Context, Poll, Waker};
+
+    for count in [8191, 8192] {
+        let mut topics = dtp_conversion_rows(0, count);
+        topics.push(DescribedTopicPartitions::new("unrequested", 0));
+        let mut unnamed = DescribedTopicPartitions::new("ignored", 0);
+        unnamed.name = None;
+        topics.push(unnamed);
+        let mut iter = topics.iter();
+        let mut page = Vec::new();
+        let mut out: Vec<TopicDescription> = Vec::new();
+        let mut converted_rows = 0;
+        let wake = Arc::new(CleanupWake::default());
+        let waker = Waker::from(Arc::clone(&wake));
+        let mut context = Context::from_waker(&waker);
+        let deadline = tokio::time::Instant::now() + Duration::from_secs(30);
+        let mut call = Box::pin(convert_described_requested_page(
+            &mut iter,
+            |name| name != "unrequested",
+            false,
+            &mut page,
+            &mut out,
+            deadline,
+            &mut converted_rows,
+        ));
+        if count == 8192 {
+            assert!(call.as_mut().poll(&mut context).is_pending());
+        }
+        assert!(matches!(
+            call.as_mut().poll(&mut context),
+            Poll::Ready(Ok(true))
+        ));
+        drop(call);
+        assert!(iter.next().unwrap().name.is_none());
+        assert!(iter.next().is_none());
+        assert_eq!(page.len(), count);
+        assert_eq!(converted_rows, count % 8192);
+
+        let mut topics = dtp_conversion_rows(0, count);
+        let mut unnamed = DescribedTopicPartitions::new("ignored", 0);
+        unnamed.name = None;
+        topics.push(unnamed);
+        let mut iter = topics.iter();
+        let mut page = Vec::new();
+        let mut out: Vec<TopicDescription> = Vec::new();
+        let mut converted_rows = 0;
+        let mut call = Box::pin(convert_described_requested_page(
+            &mut iter,
+            |_| true,
+            false,
+            &mut page,
+            &mut out,
+            deadline,
+            &mut converted_rows,
+        ));
+        let mut pending = 0;
+        let result = loop {
+            match call.as_mut().poll(&mut context) {
+                Poll::Pending => pending += 1,
+                Poll::Ready(result) => break result,
+            }
+        };
+        assert!(matches!(result, Err(Error::Unsupported(_))));
+        assert_eq!(pending, if count == 8192 { 2 } else { 0 });
+    }
+}
