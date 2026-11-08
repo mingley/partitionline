@@ -7,7 +7,7 @@ The transaction error-state candidate remains on a qualification branch. It is b
 | `src/producer.rs` | `3d65fcceecbb43c1a974f7f6b7bd58c8a310930f6bcced9052a00e88700eb37f` |
 | `src/producer/txn_error_state_controls.rs` | `4215a4f116ab80588ebea39e78b89917acbb73bb64acd991c6cd3ecb7d4c6e45` |
 
-The candidate records error severity and an abort-claim ticket in one atomic. Pending states make abortable and fatal claims visible before the cause mutex becomes available; a fatal cause takes precedence over an earlier abortable cause. An old abort setter cannot publish after its claim was cleared and replaced. Ticket exhaustion fails closed instead of wrapping.
+The candidate records error severity and an abort-claim ticket in one atomic. Pending states make abortable and fatal claims visible before the cause mutex becomes available; a fatal cause takes precedence over an earlier abortable cause. An old abort setter cannot publish after its claim was cleared and replaced. While a cause is still pending, a reader receives a generic protocol error instead of waiting for the specific cause; after publication it receives the retained cause. Ticket exhaustion fails closed instead of wrapping.
 
 ## Completed qualification
 
