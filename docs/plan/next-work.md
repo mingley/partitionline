@@ -637,8 +637,13 @@ remain open.
 
    The in-memory [quota clock repair](../evidence/broker/quota-logical-clock-20261108/README.md)
    uses the latest observed time for stale calls and timed rate changes. Both
-   quota profiles and full broker behavioral suites passed. Kafka wire
-   throttling, durable administration and server-wide fairness remain open.
+   quota profiles and full broker behavioral suites passed. The later
+   [quota error mapping change](../evidence/broker/quota-wire-boundary-20261108/README.md)
+   returns no generic Kafka code for local refusals; this changes behavior
+   for Git consumers. Focused controls passed, but both full broker candidate
+   suites failed in Raft or quorum tests before completion; the causes remain
+   unknown. Kafka wire throttling, durable administration and server-wide
+   fairness remain open.
 
    The [Fetch admission fixture](../evidence/broker/fetch-admission-20261108/README.md)
    replaces a scheduling-dependent first-poll assertion with a gated actor and
