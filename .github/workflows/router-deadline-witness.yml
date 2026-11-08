@@ -1,0 +1,126 @@
+name: controlled Router transport deadline witness
+on:
+  push:
+    branches: [qualification/router-deadline-witness-20261108]
+permissions:
+  contents: read
+jobs:
+  paired:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      CARGO_INCREMENTAL: "0"
+      CARGO_BUILD_JOBS: "2"
+      CARGO_TERM_COLOR: never
+      RUSTFLAGS: ""
+      BASELINE: 7f59ef470340db6027958f439df3716a8dde536c
+      CANDIDATE: 6d1b06c1d5ea58393243086406b764b3d619793c
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          sparse-checkout: |
+            tools/router-deadline-witness.rs
+            .github/workflows/router-deadline-witness.yml
+          sparse-checkout-cone-mode: false
+      - uses: actions/checkout@v7
+        with:
+          ref: 7f59ef470340db6027958f439df3716a8dde536c
+          path: baseline
+          persist-credentials: false
+          sparse-checkout: partitionline-broker
+      - uses: actions/checkout@v7
+        with:
+          ref: 6d1b06c1d5ea58393243086406b764b3d619793c
+          path: candidate
+          persist-credentials: false
+          sparse-checkout: partitionline-broker
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Verify exact source, fixture, toolchain and witness
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p evidence
+          test "$(uname -m)" = x86_64
+          test "$(git -C baseline rev-parse HEAD)" = "$BASELINE"
+          test "$(git -C candidate rev-parse HEAD)" = "$CANDIDATE"
+          test -z "$(git -C baseline status --porcelain)"
+          test -z "$(git -C candidate status --porcelain)"
+          printf '%s  %s\n' 6933f51c2463feccfeb6264d5b0c18752c3711d8179d8f0d48a3f7c7e308664c candidate/partitionline-broker/src/metadata.rs | sha256sum -c -
+          printf '%s  %s\n' b5d3344c5002e1a923017d0b90c6471dd7fe994c78d981858b3d87b05c400e48 candidate/partitionline-broker/src/fetch.rs | sha256sum -c -
+          cmp baseline/partitionline-broker/Cargo.toml candidate/partitionline-broker/Cargo.toml
+          cmp baseline/partitionline-broker/Cargo.lock candidate/partitionline-broker/Cargo.lock
+          cmp baseline/partitionline-broker/tests/fetch.rs candidate/partitionline-broker/tests/fetch.rs
+          cmp baseline/partitionline-broker/tests/fixtures/fetch/4.3.1/log-batch-0.bin candidate/partitionline-broker/tests/fixtures/fetch/4.3.1/log-batch-0.bin
+          python3 - <<'PY'
+          from pathlib import Path
+          a = Path("baseline/partitionline-broker/src")
+          b = Path("candidate/partitionline-broker/src")
+          left = {p.relative_to(a) for p in a.rglob("*") if p.is_file()}
+          right = {p.relative_to(b) for p in b.rglob("*") if p.is_file()}
+          assert left == right
+          different = {str(p) for p in left if (a / p).read_bytes() != (b / p).read_bytes()}
+          assert different == {"metadata.rs", "fetch.rs"}, different
+          print("Differing broker production files:", sorted(different))
+          PY
+          {
+            date -u
+            uname -a
+            lscpu
+            rustc +stable --version --verbose
+            cargo +stable --version --verbose
+            printf 'BASELINE=%s\nCANDIDATE=%s\n' "$BASELINE" "$CANDIDATE"
+            printf 'RUSTFLAGS=%s\nCARGO_INCREMENTAL=%s\nCARGO_BUILD_JOBS=%s\n' "$RUSTFLAGS" "$CARGO_INCREMENTAL" "$CARGO_BUILD_JOBS"
+            python3 -c 'import os; print("allowed_cpus=" + ",".join(map(str, sorted(os.sched_getaffinity(0)))))'
+          } | tee evidence/host-toolchain.txt
+          sha256sum tools/router-deadline-witness.rs .github/workflows/router-deadline-witness.yml baseline/partitionline-broker/Cargo.toml baseline/partitionline-broker/Cargo.lock baseline/partitionline-broker/tests/fetch.rs baseline/partitionline-broker/src/metadata.rs baseline/partitionline-broker/src/fetch.rs baseline/partitionline-broker/tests/fixtures/fetch/4.3.1/log-batch-0.bin candidate/partitionline-broker/src/metadata.rs candidate/partitionline-broker/src/fetch.rs | tee evidence/source-sha256.txt
+      - name: Build exact original test plus identical witness for both revisions
+        shell: bash
+        run: |
+          set -euo pipefail
+          for side in baseline candidate; do
+            cp -a "$side/partitionline-broker" "$RUNNER_TEMP/deadline-src-$side"
+            diff -qr "$side/partitionline-broker/src" "$RUNNER_TEMP/deadline-src-$side/src"
+            cmp "$side/partitionline-broker/Cargo.toml" "$RUNNER_TEMP/deadline-src-$side/Cargo.toml"
+            cmp "$side/partitionline-broker/Cargo.lock" "$RUNNER_TEMP/deadline-src-$side/Cargo.lock"
+            cmp "$side/partitionline-broker/tests/fetch.rs" "$RUNNER_TEMP/deadline-src-$side/tests/fetch.rs"
+            cat tools/router-deadline-witness.rs >> "$RUNNER_TEMP/deadline-src-$side/tests/fetch.rs"
+          done
+          cmp "$RUNNER_TEMP/deadline-src-baseline/tests/fetch.rs" "$RUNNER_TEMP/deadline-src-candidate/tests/fetch.rs"
+          sha256sum "$RUNNER_TEMP/deadline-src-baseline/tests/fetch.rs" "$RUNNER_TEMP/deadline-src-candidate/tests/fetch.rs" | tee evidence/overlaid-test-sha256.txt
+          for side in baseline candidate; do
+            CARGO_TARGET_DIR="$GITHUB_WORKSPACE/build-$side" cargo +stable test --locked --manifest-path "$RUNNER_TEMP/deadline-src-$side/Cargo.toml" --test fetch --no-run 2>&1 | tee "evidence/build-$side.log"
+            find "build-$side/debug/deps" -maxdepth 1 -name 'fetch-*' -type f -executable -exec sha256sum {} \; | tee "evidence/binary-$side-sha256.txt"
+          done
+      - name: Run original once per revision and controlled witnesses
+        shell: bash
+        run: |
+          set -euo pipefail
+          cpus="$(python3 -c 'import os; print(",".join(map(str, sorted(os.sched_getaffinity(0))[:2])))')"
+          printf 'taskset_cpus=%s\n' "$cpus" | tee -a evidence/host-toolchain.txt
+          run_cell() {
+            side="$1"
+            kind="$2"
+            filter="$3"
+            exact="$4"
+            args=()
+            if [ "$exact" = yes ]; then args+=(--exact); fi
+            set +e
+            CARGO_TARGET_DIR="$GITHUB_WORKSPACE/build-$side" taskset -c "$cpus" cargo +stable test --locked --manifest-path "$RUNNER_TEMP/deadline-src-$side/Cargo.toml" --test fetch "$filter" -- --nocapture --test-threads=1 "${args[@]}" 2>&1 | tee "evidence/$side-$kind.log"
+            status="${PIPESTATUS[0]}"
+            set -e
+            printf '%s %s status=%s\n' "$side" "$kind" "$status" | tee -a evidence/status.txt
+          }
+          run_cell baseline original transport_deadline_cancels_wait_and_releases_read_admission yes
+          run_cell candidate original transport_deadline_cancels_wait_and_releases_read_admission yes
+          run_cell baseline controlled controlled_transport_deadline_witness::controlled_transport_deadline no
+          run_cell candidate controlled controlled_transport_deadline_witness::controlled_transport_deadline no
+          if grep -q 'status=[^0]' evidence/status.txt; then exit 1; fi
+      - name: Retain logs, source identities, witness and status even on failure
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: router-deadline-controlled-evidence
+          path: evidence/
+          if-no-files-found: warn
+          retention-days: 30
