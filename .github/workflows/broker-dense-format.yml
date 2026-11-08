@@ -1,7 +1,7 @@
 name: Format bounded dense Produce controls
 on:
   push:
-    branches: [qualification/broker-produce-dense-v4-20261108]
+    branches: [qualification/broker-produce-dense-v5-20261108]
 permissions:
   contents: read
 jobs:
@@ -18,16 +18,18 @@ jobs:
           set -euo pipefail
           test "$(git rev-parse HEAD:partitionline-broker/src/produce.rs)" = 6897be1463187c7cd123066729f8dd98ea3e100f
           test "$(git rev-parse HEAD:partitionline-broker/src/produce/dense_partition_tests.rs)" = d7bcf44f8a65114c9fd4a0a18ecab35069bb5501
-          test "$(git rev-parse HEAD:partitionline-broker/tests/produce_dense_partitions.rs)" = 9ec200b1c79582695ec3c05a4c65956e5c7206f7
+          test "$(git rev-parse HEAD:partitionline-broker/tests/produce_dense_partitions.rs)" = 8065e22d2593ab6bdc5f8b09254d3091604955d9
+          test "$(git rev-parse HEAD:partitionline-broker/tests/produce_dense_bench.rs)" = 1032c149b6bff20c013409892c215cf9045e53a9
           cargo fmt --manifest-path partitionline-broker/Cargo.toml --all
           cargo fmt --manifest-path partitionline-broker/Cargo.toml --all -- --check
-          git hash-object partitionline-broker/src/produce.rs partitionline-broker/src/produce/dense_partition_tests.rs partitionline-broker/tests/produce_dense_partitions.rs
+          git hash-object partitionline-broker/src/produce.rs partitionline-broker/src/produce/dense_partition_tests.rs partitionline-broker/tests/produce_dense_partitions.rs partitionline-broker/tests/produce_dense_bench.rs
           python3 - <<'PY'
           from pathlib import Path
           files=[
               ('SOURCE','partitionline-broker/src/produce.rs'),
               ('UNIT','partitionline-broker/src/produce/dense_partition_tests.rs'),
               ('INTEGRATION','partitionline-broker/tests/produce_dense_partitions.rs'),
+              ('BENCH','partitionline-broker/tests/produce_dense_bench.rs'),
           ]
           for label, name in files:
               contents=Path(name).read_text()
