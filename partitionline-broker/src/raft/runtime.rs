@@ -4743,18 +4743,18 @@ mod ownership_tests {
             assert_eq!(after.poisoned, before.poisoned);
             Ok(())
         }
-        fn assert_joined(&self) -> TestResult {
+        fn assert_joined(&self, manual_workers: usize) -> TestResult {
             use std::io::Write;
-            // This owner helper never starts a listener, supervisor or network
-            // worker. Assert its actual constructed owners after thread join;
-            // its manually sized channel differs from the public runtime.
+            // No listener or supervisor is started by this helper. Tests that
+            // manually start workers must join them before calling finish and
+            // supply their actual maximum concurrent task/socket count.
             let capacity = self.control.commands.max_capacity();
             let envelope_bound = checked_sum(&[product(capacity, 2)?, 1])?;
             let bounds = [
                 self.control.config.limits.client_slots,
                 self.control.config.pool,
-                0,
-                0,
+                manual_workers,
+                manual_workers,
                 envelope_bound,
             ];
             for (gauge, bound) in self.control.metrics.gauges.iter().zip(bounds) {
@@ -4792,8 +4792,13 @@ mod ownership_tests {
                     .elapsed()
                     .as_millis(),
             )?;
+            let scope = if manual_workers == 0 {
+                "direct blocking owner without network workers or supervisor"
+            } else {
+                "direct blocking owner with manually joined network workers and without supervisor"
+            };
             let text = format!(
-                "{{\"schema_version\":1,\"capture_revision\":2,\"scope\":\"direct blocking owner without network workers or supervisor\",\"pid\":{},\"stage\":\"direct-owner-joined\",\"now_ms\":{now_ms},\"clock_basis\":\"same exclusive owner process-local monotonic epoch\",\"source_sha\":\"{}\",\"local_id\":{},\"directory\":\"{}\",\"owner_joined\":true,\"supervisor_joined\":null,\"listener_closed\":null,\"network_workers_spawned\":0,\"network_workers_joined\":0,\"actual_mpsc_capacity\":{capacity},\"command_envelope_owner_bound\":{envelope_bound},\"resource_owners\":{},\"stopping\":true,\"available_client_permits\":{},\"available_transport_permits\":{}}}\n",
+                "{{\"schema_version\":1,\"capture_revision\":2,\"scope\":\"{scope}\",\"pid\":{},\"stage\":\"direct-owner-joined\",\"now_ms\":{now_ms},\"clock_basis\":\"same exclusive owner process-local monotonic epoch\",\"source_sha\":\"{}\",\"local_id\":{},\"directory\":\"{}\",\"owner_joined\":true,\"supervisor_joined\":null,\"listener_closed\":null,\"network_workers_spawned\":{manual_workers},\"network_workers_joined\":{manual_workers},\"actual_mpsc_capacity\":{capacity},\"command_envelope_owner_bound\":{envelope_bound},\"resource_owners\":{},\"stopping\":true,\"available_client_permits\":{},\"available_transport_permits\":{}}}\n",
                 std::process::id(),
                 std::env::var("PL_PEER_RUNTIME_SOURCE_SHA")?,
                 self.control.config.bootstrap.local().key().id,
@@ -4812,7 +4817,10 @@ mod ownership_tests {
             std::fs::File::open(root)?.sync_all()?;
             Ok(())
         }
-        async fn finish(mut self) -> TestResult {
+        async fn finish(self) -> TestResult {
+            self.finish_with_manual_workers(0).await
+        }
+        async fn finish_with_manual_workers(mut self, manual_workers: usize) -> TestResult {
             self.control.stop();
             self.control.reliable(Command::Stop).await?;
             let joined = self
@@ -4822,7 +4830,7 @@ mod ownership_tests {
                 .join()
                 .map_err(|_| "owner panic")?;
             joined?;
-            self.assert_joined()?;
+            self.assert_joined(manual_workers)?;
             std::fs::remove_dir_all(&self.root)?;
             Ok(())
         }
@@ -5062,7 +5070,7 @@ mod ownership_tests {
         drop(routes);
         tokio::time::timeout(Duration::from_secs(2), worker).await??;
         peer.finish().await?;
-        source.finish().await
+        source.finish_with_manual_workers(1).await
     }
 
     #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
