@@ -25,6 +25,8 @@ jobs:
             /src/
             /examples/
             /tests/common/
+            /tests/fixtures/protocol_oracles/elect_leaders_*
+            /tests/fixtures/protocol_oracles/describe_quorum_*
             /tests/mock_produce.rs
             /benchmarks/txn_decode_qualification.py
       - name: Check out pinned base
@@ -40,6 +42,8 @@ jobs:
             /src/
             /examples/
             /tests/common/
+            /tests/fixtures/protocol_oracles/elect_leaders_*
+            /tests/fixtures/protocol_oracles/describe_quorum_*
             /tests/mock_produce.rs
       - uses: dtolnay/rust-toolchain@stable
       - name: Install the identical qualification harness into the baseline

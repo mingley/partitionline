@@ -1623,6 +1623,15 @@ async fn txn_decode_add_partitions_coordinator_retry() {
     .unwrap()
     .unwrap();
     assert_eq!(mock.add_partitions_attempts(), 2);
+    mock.set_add_offsets_error_times(partitionline::error::NOT_COORDINATOR, 1);
+    producer
+        .send_offsets_to_transaction(
+            "txn-decode-group",
+            [(TopicPartition::new("txn-decode-retry", 0), 1)],
+        )
+        .await
+        .unwrap();
+    mock.set_end_txn_error_times(partitionline::error::NOT_COORDINATOR, 1);
     producer.commit_transaction().await.unwrap();
     producer.close().await.unwrap();
 }
