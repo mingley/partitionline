@@ -1,0 +1,70 @@
+name: Admin pagination qualification
+on:
+  push:
+    branches:
+      - work/admin-pagination-20261108
+
+permissions:
+  contents: read
+
+jobs:
+  qualification:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        profile: [default, all]
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 3
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Format candidate
+        run: |
+          rustc -Vv
+          cargo fmt --all
+          sha256sum src/admin.rs src/admin/pagination_tests.rs
+      - name: Candidate controls
+        shell: bash
+        run: |
+          set -euo pipefail
+          args=()
+          if [ "${{ matrix.profile }}" = all ]; then args+=(--all-features); fi
+          cargo test --locked --lib "${args[@]}" admin::pagination_tests:: -- --nocapture
+      - name: Verify baseline witnesses
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp src/admin.rs "$RUNNER_TEMP/admin-candidate.rs"
+          git show HEAD~2:src/admin.rs > src/admin.rs
+          python3 - <<'PY'
+          from pathlib import Path
+          path = Path("src/admin.rs")
+          data = path.read_text()
+          needle = "mod offsets;\n"
+          assert data.count(needle) == 1
+          path.write_text(data.replace(needle, needle + "#[cfg(test)]\nmod pagination_tests;\n", 1))
+          PY
+          args=()
+          if [ "${{ matrix.profile }}" = all ]; then args+=(--all-features); fi
+          for name in dtp_pagination_rejects_an_immediate_repeat dtp_pagination_rejects_a_nonadjacent_cycle dtp_pagination_rejects_oversized_timeout_without_panicking dtp_pagination_deadline_retires_inflight_socket_and_reconnects; do
+            if cargo test --locked --lib "${args[@]}" "$name" -- --nocapture > "$RUNNER_TEMP/$name.log" 2>&1; then
+              cat "$RUNNER_TEMP/$name.log"
+              exit 1
+            fi
+            cat "$RUNNER_TEMP/$name.log"
+            grep -F 'test result: FAILED. 0 passed; 1 failed' "$RUNNER_TEMP/$name.log"
+          done
+          cp "$RUNNER_TEMP/admin-candidate.rs" src/admin.rs
+      - name: Strict Clippy
+        if: matrix.profile == 'default'
+        run: cargo clippy --locked --all-targets --all-features -- -D warnings
+      - name: Preserve formatting
+        if: always()
+        shell: bash
+        run: |
+          git diff -- src/admin.rs
+          printf 'TESTFILE_BASE64_START\n'
+          base64 -w0 src/admin/pagination_tests.rs
+          printf '\nTESTFILE_BASE64_END\n'
