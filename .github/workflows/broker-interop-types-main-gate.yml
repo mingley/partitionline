@@ -1,0 +1,82 @@
+name: Broker interop peer main overlay qualification
+on:
+  push:
+    branches: [work/broker-interop-types-main-gate-20261108]
+permissions:
+  contents: read
+env:
+  CARGO_TERM_COLOR: never
+jobs:
+  checks:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - name: Pin and check current peer
+        shell: bash
+        run: |
+          set -euo pipefail
+          rustc -Vv
+          cargo -V
+          git rev-parse HEAD
+          sha256sum tests/conformance/broker/interop/src/main.rs tests/conformance/broker/interop/Cargo.lock Cargo.toml Cargo.lock
+          git hash-object tests/conformance/broker/interop/src/main.rs tests/conformance/broker/interop/Cargo.lock
+          cargo fmt --manifest-path tests/conformance/broker/interop/Cargo.toml -- --check
+          cargo check --locked --manifest-path tests/conformance/broker/interop/Cargo.toml --all-targets --all-features
+          cargo test --locked --manifest-path tests/conformance/broker/interop/Cargo.toml --all-features
+          cargo clippy --locked --manifest-path tests/conformance/broker/interop/Cargo.toml --all-targets --all-features -- -D warnings
+          git diff --exit-code -- tests/conformance/broker/interop/Cargo.lock
+  mutations:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Independently restore nullable-byte comparison mutations
+        shell: bash
+        run: |
+          set -euo pipefail
+          file=tests/conformance/broker/interop/src/main.rs
+          cp "$file" "$RUNNER_TEMP/peer-original.rs"
+          expected=$(sha256sum "$file" | cut -d' ' -f1)
+          git hash-object "$file" tests/conformance/broker/interop/Cargo.lock
+          mkdir -p "$RUNNER_TEMP/peer-mutations"
+          for mutant in collapse_null drop_key drop_value; do
+            cp "$RUNNER_TEMP/peer-original.rs" "$file"
+            MUTANT="$mutant" python3 - <<'PY'
+          import os
+          from pathlib import Path
+          path = Path("tests/conformance/broker/interop/src/main.rs")
+          source = path.read_text()
+          mutations = {
+              "collapse_null": ("row.key.as_deref() == expected.key.as_deref()", "row.key.as_deref().unwrap_or_default() == expected.key.as_deref().unwrap_or_default()"),
+              "drop_key": ("row.key.as_deref() == expected.key.as_deref()", "true"),
+              "drop_value": ("row.value == expected.value", "true"),
+          }
+          old, new = mutations[os.environ["MUTANT"]]
+          assert source.count(old) == 1, (os.environ["MUTANT"], source.count(old))
+          path.write_text(source.replace(old, new, 1))
+          PY
+            set +e
+            cargo test --locked --manifest-path tests/conformance/broker/interop/Cargo.toml --all-features tests::rich_record_comparison_preserves_null_empty_and_bytes -- --exact --nocapture > "$RUNNER_TEMP/peer-mutations/$mutant.txt" 2>&1
+            status=$?
+            set -e
+            cat "$RUNNER_TEMP/peer-mutations/$mutant.txt"
+            echo "MUTATION mutant=$mutant status=$status"
+            test "$status" -eq 101
+            grep -F "test tests::rich_record_comparison_preserves_null_empty_and_bytes ... FAILED" "$RUNNER_TEMP/peer-mutations/$mutant.txt"
+          done
+          cp "$RUNNER_TEMP/peer-original.rs" "$file"
+          actual=$(sha256sum "$file" | cut -d' ' -f1)
+          test "$actual" = "$expected"
+          sha256sum "$file" tests/conformance/broker/interop/Cargo.lock
+      - uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: broker-peer-type-mutations
+          path: ${{ runner.temp }}/peer-mutations/
+          if-no-files-found: warn
+          retention-days: 30
