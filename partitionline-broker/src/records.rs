@@ -886,7 +886,6 @@ fn validate_batch(
     if count > c.remaining().len() / 7 {
         return Err(invalid(at + batch::RECORD_COUNT, Invalid::Length));
     }
-    let mut has_headers = false;
     if plain_enabled()
         && try_accept_plain(
             c.remaining(),
@@ -896,7 +895,6 @@ fn validate_batch(
             max_time,
             read,
             limits,
-            &mut has_headers,
         )
     {
         #[cfg(test)]
@@ -907,7 +905,10 @@ fn validate_batch(
     let mut observed_max = i64::MIN;
     let mut previous = None;
     let mut completed = 0;
-    if has_headers {
+    if plain_enabled()
+        && count > 0
+        && first_record_has_headers(c.remaining(), last, base_time, read, limits)
+    {
         let prefix = scan_header_prefix(
             c.remaining(),
             count,
@@ -1035,7 +1036,6 @@ pub(crate) fn record_visits() -> usize {
 ///
 /// Returns false without deciding an error so the generic walk keeps the
 /// existing rejection positions.
-#[allow(clippy::too_many_arguments, reason = "independent validation inputs")]
 fn try_accept_plain(
     bytes: &[u8],
     count: usize,
@@ -1044,7 +1044,6 @@ fn try_accept_plain(
     max_time: i64,
     read: bool,
     limits: Limits,
-    has_headers: &mut bool,
 ) -> bool {
     let mut index = 0usize;
     let mut observed_max = i64::MIN;
@@ -1112,12 +1111,56 @@ fn try_accept_plain(
             return false;
         };
         if headers != 0 || next != body_end {
-            *has_headers = headers > 0 && next <= body_end;
             return false;
         }
         index = body_end;
     }
     index == bytes.len() && (count == 0 || observed_max == max_time)
+}
+
+/// Inspect just the first record before attempting the resumable header walk.
+/// Declining leaves the generic walk responsible for the original error.
+#[inline(never)]
+fn first_record_has_headers(
+    bytes: &[u8],
+    last: i32,
+    base_time: i64,
+    read: bool,
+    limits: Limits,
+) -> bool {
+    (|| {
+        let (length, next) = read_canonical_i32(bytes, 0)?;
+        if length < 6 {
+            return None;
+        }
+        let length = usize::try_from(length).ok()?;
+        let end = next.checked_add(length)?;
+        if end > limits.record_bytes || end > bytes.len() || bytes.get(next) != Some(&0) {
+            return None;
+        }
+        let mut cursor = next.checked_add(1)?;
+        let (timestamp, next) = read_canonical_i64(bytes, cursor)?;
+        base_time.checked_add(timestamp)?;
+        cursor = next;
+        let (offset, next) = read_canonical_i32(bytes, cursor)?;
+        if (!read && offset != 0) || (read && (offset < 0 || offset > last)) {
+            return None;
+        }
+        cursor = next;
+        let (key_len, next) = read_canonical_i32(bytes, cursor)?;
+        cursor = next;
+        if !skip_plain_field(bytes, &mut cursor, end, key_len, limits.field_bytes) {
+            return None;
+        }
+        let (value_len, next) = read_canonical_i32(bytes, cursor)?;
+        cursor = next;
+        if !skip_plain_field(bytes, &mut cursor, end, value_len, limits.field_bytes) {
+            return None;
+        }
+        let (headers, next) = read_canonical_i32(bytes, cursor)?;
+        Some(headers > 0 && next <= end)
+    })()
+    .unwrap_or(false)
 }
 
 /// Last record boundary checked by the header-aware walk.
@@ -1467,7 +1510,7 @@ impl<'a> Cursor<'a> {
 #[cfg(test)]
 mod tests {
     use super::{
-        framed_assignment, scan_header_prefix, trust_stored, try_accept_plain, validate,
+        first_record_has_headers, framed_assignment, scan_header_prefix, trust_stored, validate,
         validate_batch, validate_known_crc, validate_read, Budget, Error, Invalid, Limits,
         SKIP_PLAIN,
     };
@@ -1727,18 +1770,9 @@ mod tests {
         let prefix = scan_header_prefix(&bytes[batch::LEN..], 6, 5, 1_000, false, limits, 0);
         assert!(prefix.complete);
         assert_eq!(prefix.headers, 5);
-        let mut has_headers = false;
-        assert!(!try_accept_plain(
-            &bytes[batch::LEN..],
-            6,
-            5,
-            1_000,
-            1_005,
-            false,
-            limits,
-            &mut has_headers,
+        assert!(first_record_has_headers(
+            &bytes[batch::LEN..], 5, 1_000, false, limits,
         ));
-        assert!(has_headers);
         assert_eq!(validate(&bytes, limits).unwrap().header_count(), 5);
         assert!(both(&bytes, false).0.is_ok());
         assert!(both(&bytes, true).0.is_ok());
@@ -1776,34 +1810,16 @@ mod tests {
         let prefix = scan_header_prefix(&plain[batch::LEN..], 1, 0, 10, false, limits, 5);
         assert!(prefix.complete);
         assert_eq!(prefix.headers, 0);
-        let mut has_headers = false;
-        assert!(try_accept_plain(
-            &plain[batch::LEN..],
-            1,
-            0,
-            10,
-            10,
-            false,
-            limits,
-            &mut has_headers,
+        assert!(!first_record_has_headers(
+            &plain[batch::LEN..], 0, 10, false, limits,
         ));
-        assert!(!has_headers);
         assert!(both_with_limits(&plain, false, limits, 5).0.is_ok());
         let mut invalid_plain = [sample(0, b"v"), sample(1, b"v"), sample(2, b"v")];
         invalid_plain[2].attributes = 1;
         let invalid_plain = encode(&invalid_plain, 10, 12, 2);
-        let mut has_headers = false;
-        assert!(!try_accept_plain(
-            &invalid_plain[batch::LEN..],
-            3,
-            2,
-            10,
-            12,
-            false,
-            limits,
-            &mut has_headers,
+        assert!(!first_record_has_headers(
+            &invalid_plain[batch::LEN..], 2, 10, false, limits,
         ));
-        assert!(!has_headers);
         assert!(matches!(
             both_with_limits(&invalid_plain, false, limits, 0).0,
             Err(Error::Invalid {
@@ -1849,6 +1865,14 @@ mod tests {
                 }
             }
         }
+
+        let mut late_header = [sample(0, b"v"), sample(1, b"v")];
+        late_header[1].headers.push((b"key".to_vec(), None));
+        let late_header = encode(&late_header, 10, 11, 1);
+        assert!(!first_record_has_headers(
+            &late_header[batch::LEN..], 1, 10, false, limits,
+        ));
+        assert!(both_with_limits(&late_header, false, limits, 0).0.is_ok());
 
         let mut sparse: Vec<_> = [0, 2, 5].into_iter().map(|n| sample(n, b"v")).collect();
         sparse[1].headers.push((b"key".to_vec(), None));
@@ -1905,7 +1929,13 @@ mod tests {
         let mut fast_records = 0;
         let mut fast_headers = 1;
         let fast = validate_batch(
-            &late_key, 37, limits, &mut fast_records, &mut fast_headers, false, false,
+            &late_key,
+            37,
+            limits,
+            &mut fast_records,
+            &mut fast_headers,
+            false,
+            false,
         );
         let fast_visits = super::record_visits();
         SKIP_PLAIN.with(|flag| flag.set(true));
@@ -1913,7 +1943,13 @@ mod tests {
         let mut slow_records = 0;
         let mut slow_headers = 1;
         let slow = validate_batch(
-            &late_key, 37, limits, &mut slow_records, &mut slow_headers, false, false,
+            &late_key,
+            37,
+            limits,
+            &mut slow_records,
+            &mut slow_headers,
+            false,
+            false,
         );
         let slow_visits = super::record_visits();
         SKIP_PLAIN.with(|flag| flag.set(false));
@@ -1931,8 +1967,7 @@ mod tests {
         assert_eq!(fast_visits, 4);
 
         let mut bad_max = bytes.clone();
-        bad_max[batch::MAX_TIMESTAMP..batch::PRODUCER_ID]
-            .copy_from_slice(&1_006_i64.to_be_bytes());
+        bad_max[batch::MAX_TIMESTAMP..batch::PRODUCER_ID].copy_from_slice(&1_006_i64.to_be_bytes());
         assert!(matches!(
             both(&bad_max, false).0,
             Err(Error::Invalid {
