@@ -28,6 +28,37 @@ a cross-page 8,191-plus-one budget, and cover partition-heavy, error and
 unnamed rows. A helper test supplies an already expired deadline when checking
 unnamed-row cleanup.
 
+### Kafka smoke, Send and documentation
+
+[Run 42483748563](https://github.com/mingley/partitionline/actions/runs/42483748563)
+passed a focused single-broker Apache Kafka 4.1.2 smoke in default and
+all-feature profiles (1/1 in each). The raw DescribeTopicPartitions call
+returned four pages for a seven-partition topic with a limit of two. The
+aggregate matched the raw topic ID, partition indexes, leaders, leader epochs,
+replicas, in-sync replicas and offline replicas, with both authorization modes
+checked. The live fixture also asserts at compile time that the actual public
+describe future is `Send`. It uses the same production and permanent-test
+blobs above; the separate live-only fixture blob is
+`5aefcf29a857f49317d94cbdef56bf60ae787f7e` from
+[commit 9803e44](https://github.com/mingley/partitionline/commit/9803e44e2b79b789f8806011e1f2078bdb225ad0).
+
+The broker used
+`apache/kafka:4.1.2@sha256:5cc2a2fd93fa2687b44015eee04fb2c3edd9e526bd64bf8bec5ff1e268772e0e`;
+the inspected image ID was
+`sha256:69972c3ac7ce245bd7135c7fbe394ccfc7d9226ffa4009412da848748c3c9df6`.
+This normal small-page smoke does not exercise the 8,192-row checkpoint,
+authentication, multiple brokers, failures or performance.
+
+The same run passed `RUSTDOCFLAGS='-D warnings' cargo doc --locked
+--no-deps --all-features` and all 9 doctests with
+`cargo test --locked --doc --all-features`. The first attempt
+[run 42483520374](https://github.com/mingley/partitionline/actions/runs/42483520374)
+failed to compile its live-only fixture because the crate documentation was
+missing under `-D missing-docs`; it never started Kafka. Its separate strict
+docs job did pass. The corrected fixture adds the missing comment and the
+`Send` assertion. Both successful jobs in the second run retain their logs
+for 30 days.
+
 ### Public checkpoint observation and correction
 
 The first public probe used only a marker immediately before the new await.
