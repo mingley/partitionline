@@ -58,10 +58,17 @@ aggregate agreed on their nonzero topic ID and partition indexes. This is
 one normal local broker history, while the null-name and precedence cases
 use scripted responses.
 
-The independently restored negative mutations and [all-feature client
-Rustdoc and doctests][rustdoc] are still running. The broad suite is not
-green, and the remaining results must be recorded before this note is
-complete.
+The exact-source [all-feature client Rustdoc and doctests][rustdoc] passed
+with `RUSTDOCFLAGS="-D warnings"`; all nine doctests passed.
+
+Both profiles passed 14 independently restored negative controls each.
+The controls cover later and retained topic errors, changed and unknown IDs,
+cooperative partition and topic cleanup, null-name handling before and after
+partial results, null-before-ID precedence, retained errors followed by a
+different ID, and repeated-cursor precedence over errors and null names.
+Each intended test failed under its mutation, and each job verified the
+original source and test hashes after restoration. These controls do not
+change the failed full-suite results above.
 
 ## Matched whole-suite baseline
 
