@@ -77,6 +77,22 @@ unmodified-source comparison is still needed for performance and cannot cover
 every concurrent schedule. Details and exact pins are in the
 [route evidence](https://github.com/mingley/partitionline/blob/4882c2a04ba21da0f11471112cbfd8c4a713ed6a/docs/evidence/client/send-all-route-controls-20261108/README.md).
 
+A separate gated mock history
+[42472940666](https://github.com/mingley/partitionline/actions/runs/42472940666)
+passed three repetitions in each profile. After a public refresh changed the
+leader, node 2 received payload IDs 0–63 and returned error code 6; node 1
+then accepted the same IDs. Receipts, offsets and mock-log values matched.
+The test observed exactly those two 64-record batches in each run. It uses a
+forced schedule and an instrumented mock and does not prove behavior for all
+metadata races or against a real broker. Its instrumented producer blob was
+`9161723433cb7674c1db51e51ecb88852e43c3c5`, trace-mock blob
+`a42fabc941f9086d894b9e4831116a8137796389` and test blob
+`4365889bde22c6051d02c9123448acb24f096ab1`. The default test binary SHA-256
+was `6fc78edeccefd2ebe6c179cf8c8d43b8a58442d2f0d264354fc4ff44b33e5628`;
+the all-feature binary was
+`1861b23e43ed19aaa4accf9547e8d208495445b4133f2eff55e7aaf4333f2e14`.
+The binary hashes were recorded, but the binaries were not retained.
+
 Uninstrumented mock cancellation run
 [42472001367](https://github.com/mingley/partitionline/actions/runs/42472001367)
 passed 6/6 baseline and 6/6 candidate tests in each feature profile. Under an
