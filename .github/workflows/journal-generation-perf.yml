@@ -1,0 +1,181 @@
+name: matched journal release measurement
+on:
+  push:
+    branches: [qualification/journal-generation-perf-20261108]
+permissions:
+  contents: read
+jobs:
+  measure:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    env:
+      CARGO_INCREMENTAL: "0"
+      CARGO_BUILD_JOBS: "2"
+      CARGO_TERM_COLOR: never
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Configure benchmark directory
+        run: printf 'PL_PERF_ROOT=%s/journal-matched\n' "$RUNNER_TEMP" >> "$GITHUB_ENV"
+      - name: Capture host and checkout exact source
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$PL_PERF_ROOT"
+          {
+            test "$(uname -m)" = x86_64
+            date -u
+            uname -a
+            rustc +stable --version --verbose
+            cargo +stable --version
+            lscpu
+            ulimit -n
+            if [ -r /sys/fs/cgroup/cpu.max ]; then cat /sys/fs/cgroup/cpu.max; fi
+            if [ -r /proc/loadavg ]; then cat /proc/loadavg; fi
+            df -T "$PL_PERF_ROOT"
+            findmnt -T "$PL_PERF_ROOT"
+            git worktree add --detach "$PL_PERF_ROOT/base" c471f5eb0d7b92959e23e5880e35109060bff5d2
+            git worktree add --detach "$PL_PERF_ROOT/repair" 540ba2269cfea002ad584d825c0e0b3adebc34bd
+            git -C "$PL_PERF_ROOT/base" rev-parse HEAD
+            git -C "$PL_PERF_ROOT/repair" rev-parse HEAD
+            git diff --name-only c471f5eb0d7b92959e23e5880e35109060bff5d2 540ba2269cfea002ad584d825c0e0b3adebc34bd > "$PL_PERF_ROOT/source-diff.log"
+            test "$(cat "$PL_PERF_ROOT/source-diff.log")" = partitionline-broker/src/journal.rs
+            cmp "$PL_PERF_ROOT/base/partitionline-broker/Cargo.toml" "$PL_PERF_ROOT/repair/partitionline-broker/Cargo.toml"
+            cmp "$PL_PERF_ROOT/base/partitionline-broker/Cargo.lock" "$PL_PERF_ROOT/repair/partitionline-broker/Cargo.lock"
+            sha256sum "$PL_PERF_ROOT/base/partitionline-broker/Cargo.toml" "$PL_PERF_ROOT/base/partitionline-broker/Cargo.lock"
+          } 2>&1 | tee "$PL_PERF_ROOT/setup.log"
+      - name: Inject identical benchmark wrapper and harness
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY' 2>&1 | tee "$PL_PERF_ROOT/injection.log"
+          from pathlib import Path
+          import hashlib, os
+
+          root = Path(os.environ["PL_PERF_ROOT"])
+          wrapper = Path(".github/qualification/journal-owned-wrapper.rs").read_text()
+          harness = Path(".github/qualification/journal-owned-bench.rs").read_text()
+          helper = Path(".github/qualification/journal-owned-lease-helper.rs").read_text()
+          helper_anchor = "    pub(super) struct Guard {\n"
+          anchor = "    /// Write one entry and return a cloned descriptor for a later `sync_data`.\n"
+          expected = {
+              "base": "130adb705e0e3150508c7381cb1c572d293881bd6a9f3416a2df1fe21e42b549",
+              "repair": "6deea84fd4251c56a7d1d03eb6566c50609b5a4eb030267821173968348a3015",
+          }
+          print("wrapper_sha256", hashlib.sha256(wrapper.encode()).hexdigest())
+          print("harness_sha256", hashlib.sha256(harness.encode()).hexdigest())
+          print("helper_sha256", hashlib.sha256(helper.encode()).hexdigest())
+          for arm in ("base", "repair"):
+              source = root / arm / "partitionline-broker/src/journal.rs"
+              content = source.read_text()
+              actual = hashlib.sha256(content.encode()).hexdigest()
+              print(arm, "journal_before", actual)
+              if actual != expected[arm] or content.count(anchor) != 1 or content.count(helper_anchor) != 1:
+                  raise SystemExit(f"{arm}: source pin or wrapper anchor differs")
+              source.write_text(content.replace(anchor, wrapper + anchor).replace(helper_anchor, helper + helper_anchor))
+              (root / arm / "partitionline-broker/examples/journal_owned_cost.rs").write_text(harness)
+              print(arm, "journal_instrumented", hashlib.sha256(source.read_bytes()).hexdigest())
+          PY
+      - name: Build both optimized broker examples
+        shell: bash
+        run: |
+          set -euo pipefail
+          for arm in base repair; do
+            CARGO_TARGET_DIR="$PL_PERF_ROOT/target-$arm" cargo +stable build --release --locked --manifest-path "$PL_PERF_ROOT/$arm/partitionline-broker/Cargo.toml" --example journal_owned_cost 2>&1 | tee "$PL_PERF_ROOT/build-$arm.log"
+            test -x "$PL_PERF_ROOT/target-$arm/release/examples/journal_owned_cost"
+            sha256sum "$PL_PERF_ROOT/target-$arm/release/examples/journal_owned_cost" | tee "$PL_PERF_ROOT/binary-$arm.sha256"
+          done
+      - name: Run paired samples and validate all recovered records
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$PL_PERF_ROOT/data"
+          task_cpu="$(python3 -c 'import os; print(min(os.sched_getaffinity(0)))')"
+          printf 'pinned_cpu=%s\n' "$task_cpu" | tee "$PL_PERF_ROOT/placement.log"
+          if [ -r "/sys/devices/system/cpu/cpu$task_cpu/cpufreq/scaling_governor" ]; then
+            cat "/sys/devices/system/cpu/cpu$task_cpu/cpufreq/scaling_governor" | tee -a "$PL_PERF_ROOT/placement.log"
+          fi
+          for arm in base repair; do
+            taskset -c "$task_cpu" "$PL_PERF_ROOT/target-$arm/release/examples/journal_owned_cost" layout "$arm" 0 1 "$PL_PERF_ROOT/data" | tee -a "$PL_PERF_ROOT/layout.log"
+          done
+          taskset -c "$task_cpu" "$PL_PERF_ROOT/target-base/release/examples/journal_owned_cost" seed base 0 1 "$PL_PERF_ROOT/data" | tee "$PL_PERF_ROOT/seed.log"
+          sha256sum "$PL_PERF_ROOT/data/seed.journal" | tee "$PL_PERF_ROOT/seed.sha256"
+          run_sample() {
+            local arm="$1"
+            local mode="$2"
+            local trial="$3"
+            local operations=512
+            if [ "$mode" = open ] || [ "$mode" = group_stage ]; then operations=2048; fi
+            taskset -c "$task_cpu" "$PL_PERF_ROOT/target-$arm/release/examples/journal_owned_cost" "$mode" "$arm" "$trial" "$operations" "$PL_PERF_ROOT/data" | tee -a "$PL_PERF_ROOT/samples.log"
+          }
+          for mode in open append staged group_stage; do
+            for arm in base repair; do
+              run_sample "$arm" "$mode" 0
+            done
+          done
+          for trial in $(seq 1 20); do
+            if (( trial % 2 )); then
+              modes=(open append staged group_stage)
+              arms=(base repair)
+            else
+              modes=(group_stage staged append open)
+              arms=(repair base)
+            fi
+            for mode in "${modes[@]}"; do
+              for arm in "${arms[@]}"; do
+                run_sample "$arm" "$mode" "$trial"
+              done
+            done
+          done
+      - name: Summarize paired raw samples
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY' 2>&1 | tee "$PL_PERF_ROOT/summary.log"
+          import json, os, statistics
+          from pathlib import Path
+
+          root = Path(os.environ["PL_PERF_ROOT"])
+          rows = [json.loads(line.split(" ", 1)[1]) for line in
+                  (root / "samples.log").read_text().splitlines()
+                  if line.startswith("PL_MEASUREMENT ")]
+          if len(rows) != 168:
+              raise SystemExit(f"expected 168 measurements, got {len(rows)}")
+          lookup = {(r["mode"], r["trial"], r["arm"]): r for r in rows}
+          if len(lookup) != len(rows):
+              raise SystemExit("duplicate measurement key")
+          results = {}
+          for mode in ("open", "append", "staged", "group_stage"):
+              ops = 2048 if mode in ("open", "group_stage") else 512
+              base, repair, ratios = [], [], []
+              for trial in range(1, 21):
+                  left = lookup[(mode, trial, "base")]
+                  right = lookup[(mode, trial, "repair")]
+                  expected_records = 1 if mode == "open" else ops + 1
+                  if any(x["operations"] != ops or x["verified_records"] != expected_records
+                         or x["elapsed_ns"] <= 0 for x in (left, right)):
+                      raise SystemExit(f"invalid verification for {mode} trial {trial}")
+                  base.append(left["elapsed_ns"] / ops)
+                  repair.append(right["elapsed_ns"] / ops)
+                  ratios.append(right["elapsed_ns"] / left["elapsed_ns"])
+              results[mode] = {
+                  "samples_per_arm": len(base), "operations_per_sample": ops,
+                  "base_median_ns_per_op": statistics.median(base),
+                  "repair_median_ns_per_op": statistics.median(repair),
+                  "paired_ratio_median": statistics.median(ratios),
+                  "paired_ratio_min": min(ratios), "paired_ratio_max": max(ratios),
+              }
+          print(json.dumps({"workloads": results}, indent=2, sort_keys=True))
+          PY
+      - name: Retain raw samples and setup failures
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: matched-journal-release-results
+          path: |
+            ${{ runner.temp }}/journal-matched/*.log
+            ${{ runner.temp }}/journal-matched/*.sha256
+          if-no-files-found: warn
