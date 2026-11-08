@@ -429,7 +429,12 @@ remain open.
    though the records were in the mock log. This is not a real-Kafka result.
    [Private batch controls](../evidence/client/producer-batch-ownership-controls-20261108/README.md)
    show the packer can split an injected complete retry batch and expiration
-   acts on individual records. The applied [timestamp fix](../evidence/client/producer-timestamp-candidate-20261108/README.md)
+   acts on individual records. An isolated [owned-batch model](../evidence/client/producer-owned-batch-model-20261108/README.md)
+   exercises admission, whole-batch selection, close and ambiguous-write
+   fences with 44 controls and 15 rejected mutants. It does not run the Rust
+   producer; its unknown-write fence can retain capacity indefinitely, and
+   callback and close behavior require an explicit implementation decision.
+   The applied [timestamp fix](../evidence/client/producer-timestamp-candidate-20261108/README.md)
    retains each implicit timestamp from its first encode across retry and
    receipt handling. A delayed-ack Kafka 4.1.0 smoke passed; paired x86
    encoder tests showed a 1.8–4.7% cost for single-record implicit batches.
