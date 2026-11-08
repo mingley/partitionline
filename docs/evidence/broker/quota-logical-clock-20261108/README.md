@@ -73,9 +73,12 @@ name and marker; its all-feature baseline again showed 4/9 and the harness
 failed before candidate execution. The successful all-feature run captures
 the baseline output and uses separate targets.
 
-The standard full broker behavioral suites are running in
-[42488837344](https://github.com/mingley/partitionline/actions/runs/42488837344).
-Their results must be recorded before treating the broader check as complete.
+The standard locked all-target broker behavioral suites passed in
+[42488837344](https://github.com/mingley/partitionline/actions/runs/42488837344):
+794 passed and four ignored across 37 executables with default features, and
+942 passed and four ignored across 37 executables with all features. These
+runs used the exact candidate source and permanent test blobs above. They do
+not explain earlier intermittent Raft failures or qualify production use.
 
 ## Local timing
 
