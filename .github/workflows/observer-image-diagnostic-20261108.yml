@@ -1,0 +1,182 @@
+name: observer image failure diagnostics qualification
+on:
+  push:
+    branches: [qualification/observer-image-diagnostic-20261108]
+permissions:
+  contents: read
+jobs:
+  focused:
+    strategy:
+      fail-fast: false
+      matrix:
+        profile: [default, all-features]
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      CARGO_BUILD_JOBS: "2"
+      CARGO_INCREMENTAL: "0"
+      CARGO_PROFILE_DEV_DEBUG: "0"
+      CARGO_PROFILE_TEST_DEBUG: "0"
+      CARGO_TERM_COLOR: never
+      PROFILE: ${{ matrix.profile }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Verify source and unchanged assertions
+        shell: bash
+        run: |
+          set -euo pipefail
+          git merge-base --is-ancestor 1036a393eb85f23032b935bf86862b7e98e36e14 HEAD
+          test "$(git rev-parse HEAD:partitionline-broker/tests/common/raft_runtime.rs)" = 720ee937c12998759e9fcd8f7637a36f92322291
+          grep -F 'assert!(image_bytes > 64 * 1024, "real transfer must exceed 64KiB");' partitionline-broker/tests/common/raft_runtime.rs
+          grep -F 'assert_eq!(base, committed);' partitionline-broker/tests/common/raft_runtime.rs
+          rustc +stable -Vv
+          uname -a
+          sha256sum partitionline-broker/tests/common/raft_runtime.rs
+      - name: Check identity and bounded-output control
+        shell: bash
+        run: |
+          set -euo pipefail
+          args=()
+          if [ "$PROFILE" = all-features ]; then args+=(--all-features); fi
+          log="$RUNNER_TEMP/observer-real.log"
+          cargo +stable test --locked --manifest-path partitionline-broker/Cargo.toml --test raft_runtime "${args[@]}" observer_failure_sample_checks_identity_and_bounds_output -- --exact --nocapture > "$log" 2>&1
+          cat "$log"
+          grep -F 'test observer_failure_sample_checks_identity_and_bounds_output ... ok' "$log"
+          grep -F 'test result: ok. 1 passed;' "$log"
+      - name: Check identity mutant
+        shell: bash
+        run: |
+          set -euo pipefail
+          trap 'git checkout -- partitionline-broker/tests/common/raft_runtime.rs' EXIT
+          args=()
+          if [ "$PROFILE" = all-features ]; then args+=(--all-features); fi
+          python3 -B .github/scripts/observer-diagnostic-mutation.py identity
+          log="$RUNNER_TEMP/observer-mutant-identity.log"
+          set +e
+          cargo +stable test --locked --manifest-path partitionline-broker/Cargo.toml --test raft_runtime "${args[@]}" observer_failure_sample_checks_identity_and_bounds_output -- --exact --nocapture > "$log" 2>&1
+          code=$?
+          set -e
+          cat "$log"
+          test "$code" -eq 101
+          grep -F 'expected_exact=[true, false]' "$log"
+          grep -F 'test result: FAILED. 0 passed; 1 failed;' "$log"
+          git checkout -- partitionline-broker/tests/common/raft_runtime.rs
+      - name: Check output-bound mutant
+        shell: bash
+        run: |
+          set -euo pipefail
+          trap 'git checkout -- partitionline-broker/tests/common/raft_runtime.rs' EXIT
+          args=()
+          if [ "$PROFILE" = all-features ]; then args+=(--all-features); fi
+          python3 -B .github/scripts/observer-diagnostic-mutation.py bound
+          log="$RUNNER_TEMP/observer-mutant-bound.log"
+          set +e
+          cargo +stable test --locked --manifest-path partitionline-broker/Cargo.toml --test raft_runtime "${args[@]}" observer_failure_sample_checks_identity_and_bounds_output -- --exact --nocapture > "$log" 2>&1
+          code=$?
+          set -e
+          cat "$log"
+          test "$code" -eq 101
+          grep -F 'report.len() < 8192' "$log"
+          grep -F 'test result: FAILED. 0 passed; 1 failed;' "$log"
+          git checkout -- partitionline-broker/tests/common/raft_runtime.rs
+      - name: Force diagnostic after a fresh real checkpoint
+        shell: bash
+        run: |
+          set -euo pipefail
+          trap 'git checkout -- partitionline-broker/tests/common/raft_runtime.rs' EXIT
+          args=()
+          if [ "$PROFILE" = all-features ]; then args+=(--all-features); fi
+          python3 -B .github/scripts/observer-diagnostic-mutation.py force-image
+          log="$RUNNER_TEMP/observer-forced-image.log"
+          set +e
+          cargo +stable test --locked --manifest-path partitionline-broker/Cargo.toml --test raft_runtime "${args[@]}" actual_three_peer_tcp_observer_multichunk_image_install_reopen_and_join -- --exact --nocapture > "$log" 2>&1
+          code=$?
+          set -e
+          cat "$log"
+          test "$code" -eq 101
+          grep -F 'PL_OBSERVER_IMAGE' "$log"
+          grep -F 'image_bytes=0' "$log"
+          grep -F 'non_atomic_state_sample' "$log"
+          grep -F 'real transfer must exceed 64KiB' "$log"
+          grep -F 'test result: FAILED. 0 passed; 1 failed;' "$log"
+          git checkout -- partitionline-broker/tests/common/raft_runtime.rs
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: observer-diagnostic-${{ matrix.profile }}-${{ github.sha }}
+          path: ${{ runner.temp }}/observer-*.log
+          if-no-files-found: warn
+          retention-days: 30
+  static:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      CARGO_BUILD_JOBS: "2"
+      CARGO_INCREMENTAL: "0"
+      CARGO_PROFILE_DEV_DEBUG: "0"
+      CARGO_PROFILE_TEST_DEBUG: "0"
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+      - name: Formatting
+        id: fmt
+        continue-on-error: true
+        run: cargo +stable fmt --manifest-path partitionline-broker/Cargo.toml -- --check
+      - name: Strict Clippy
+        id: clippy
+        continue-on-error: true
+        run: cargo +stable clippy --locked --manifest-path partitionline-broker/Cargo.toml --all-targets --all-features -- -D warnings
+      - name: Broker inventory
+        id: inventory
+        continue-on-error: true
+        run: python3 -B scripts/check-broker-api-matrix.py --report target/broker-ci/api-matrix.json
+      - name: Broker inventory negative controls
+        id: negative
+        continue-on-error: true
+        run: python3 -B -m unittest discover -s tests/ci -p test_broker_api_matrix.py -v
+      - name: Require static results
+        if: always()
+        env:
+          FMT: ${{ steps.fmt.outcome }}
+          CLIPPY: ${{ steps.clippy.outcome }}
+          INVENTORY: ${{ steps.inventory.outcome }}
+          NEGATIVE: ${{ steps.negative.outcome }}
+        run: |
+          echo "fmt=$FMT clippy=$CLIPPY inventory=$INVENTORY negative=$NEGATIVE"
+          test "$FMT" = success && test "$CLIPPY" = success && test "$INVENTORY" = success && test "$NEGATIVE" = success
+      - name: Show formatting patch on failure
+        if: always() && steps.fmt.outcome == 'failure'
+        run: |
+          cargo +stable fmt --manifest-path partitionline-broker/Cargo.toml
+          git diff -- partitionline-broker/tests/common/raft_runtime.rs
+  suites:
+    strategy:
+      fail-fast: false
+      matrix:
+        profile: [default, all-features]
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      CARGO_BUILD_JOBS: "2"
+      CARGO_INCREMENTAL: "0"
+      CARGO_PROFILE_DEV_DEBUG: "0"
+      CARGO_PROFILE_TEST_DEBUG: "0"
+      PROFILE: ${{ matrix.profile }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Complete broker all-target suite
+        shell: bash
+        run: |
+          set -euo pipefail
+          args=()
+          if [ "$PROFILE" = all-features ]; then args+=(--all-features); fi
+          cargo +stable test --locked --manifest-path partitionline-broker/Cargo.toml --all-targets "${args[@]}"
