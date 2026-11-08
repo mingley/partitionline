@@ -74,8 +74,13 @@ their 80 ms thresholds—delegation-token decoding (91.759289 ms), named
 result grouping (97.628215 ms), and coordinator indexing (111.333483 ms).
 The all-feature suite had 626 passed and one failure: coordinator indexing
 at 160.219672 ms. These are retained failures, not a green broad suite.
-The [matched whole-suite baseline control][broad] and seven independently
-restored mutants per profile are still running.
+Fourteen negative controls passed across default and all-feature profiles:
+each profile independently restored the original source before mutating
+later-error propagation, first-error retention, known-ID comparison,
+known-ID tracking after an unknown page, cleanup yielding, error cleanup,
+and conflict cleanup. Each intended permanent test failed under its
+mutation, and both jobs verified the original source hash after restoration.
+The [matched whole-suite baseline control][broad] is still running.
 
 ## Limits
 
