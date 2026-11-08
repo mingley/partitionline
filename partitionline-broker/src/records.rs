@@ -905,8 +905,9 @@ fn validate_batch(
     let mut observed_max = i64::MIN;
     let mut previous = None;
     let mut completed = 0;
+    // Single-record batches stay on the generic fallback after a plain miss.
     if plain_enabled()
-        && count > 0
+        && count > 1
         && first_record_has_headers(c.remaining(), last, base_time, read, limits)
     {
         let prefix = scan_header_prefix(
@@ -1771,7 +1772,11 @@ mod tests {
         assert!(prefix.complete);
         assert_eq!(prefix.headers, 5);
         assert!(first_record_has_headers(
-            &bytes[batch::LEN..], 5, 1_000, false, limits,
+            &bytes[batch::LEN..],
+            5,
+            1_000,
+            false,
+            limits,
         ));
         assert_eq!(validate(&bytes, limits).unwrap().header_count(), 5);
         assert!(both(&bytes, false).0.is_ok());
@@ -1811,14 +1816,22 @@ mod tests {
         assert!(prefix.complete);
         assert_eq!(prefix.headers, 0);
         assert!(!first_record_has_headers(
-            &plain[batch::LEN..], 0, 10, false, limits,
+            &plain[batch::LEN..],
+            0,
+            10,
+            false,
+            limits,
         ));
         assert!(both_with_limits(&plain, false, limits, 5).0.is_ok());
         let mut invalid_plain = [sample(0, b"v"), sample(1, b"v"), sample(2, b"v")];
         invalid_plain[2].attributes = 1;
         let invalid_plain = encode(&invalid_plain, 10, 12, 2);
         assert!(!first_record_has_headers(
-            &invalid_plain[batch::LEN..], 2, 10, false, limits,
+            &invalid_plain[batch::LEN..],
+            2,
+            10,
+            false,
+            limits,
         ));
         assert!(matches!(
             both_with_limits(&invalid_plain, false, limits, 0).0,
@@ -1870,7 +1883,11 @@ mod tests {
         late_header[1].headers.push((b"key".to_vec(), None));
         let late_header = encode(&late_header, 10, 11, 1);
         assert!(!first_record_has_headers(
-            &late_header[batch::LEN..], 1, 10, false, limits,
+            &late_header[batch::LEN..],
+            1,
+            10,
+            false,
+            limits,
         ));
         assert!(both_with_limits(&late_header, false, limits, 0).0.is_ok());
 
