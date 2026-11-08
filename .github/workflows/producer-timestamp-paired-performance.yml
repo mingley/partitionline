@@ -1,0 +1,46 @@
+name: producer-timestamp-paired-performance
+on:
+  push:
+    branches: [qual/producer-timestamp-paired-performance-20261108]
+jobs:
+  paired:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Runner and input identity
+        run: |
+          git rev-parse HEAD
+          git hash-object src/producer.rs tests/common/mod.rs tests/producer_timestamp_perf.rs tests/fixtures/producer_timestamp_encode_bench.inc
+          sha256sum src/producer.rs tests/common/mod.rs tests/producer_timestamp_perf.rs tests/fixtures/producer_timestamp_encode_bench.inc scripts/producer_timestamp_perf.py scripts/prepare_producer_timestamp_perf.py Cargo.lock
+          rustc -Vv
+          uname -a
+          lscpu
+          cat /sys/fs/cgroup/cpu.max || true
+      - name: Build separate baseline and candidate targets
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p target/ts-perf
+          python3 scripts/prepare_producer_timestamp_perf.py 7dfbe4735d1c4268a1b8a7185bb34f1121f0db13 target/ts-perf
+          sha256sum target/ts-perf/baseline.rs target/ts-perf/candidate.rs
+          cp target/ts-perf/baseline.rs src/producer.rs
+          CARGO_TARGET_DIR=target/ts-perf-base cargo test --locked --release --lib --test producer_timestamp_perf --no-run --message-format=json > target/ts-perf/baseline-build.json
+          cp target/ts-perf/candidate.rs src/producer.rs
+          CARGO_TARGET_DIR=target/ts-perf-candidate cargo test --locked --release --lib --test producer_timestamp_perf --no-run --message-format=json > target/ts-perf/candidate-build.json
+      - name: Alternate calibrated producer and encoder samples
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 scripts/producer_timestamp_perf.py target/ts-perf/baseline-build.json target/ts-perf/candidate-build.json target/ts-perf/report.json 2>&1 | tee target/ts-perf/samples.log
+      - name: Preserve all samples and failures
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: producer-timestamp-paired-${{ github.sha }}
+          path: target/ts-perf
+          if-no-files-found: warn
+          retention-days: 30
