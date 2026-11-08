@@ -752,7 +752,7 @@ stops workers; a successful `close` does not replace a delivery result.
 | Buffered (queued, not yet on the wire) | `metrics().bytes_buffered > 0`; drop `send` future | **Ambiguous.** The worker may still deliver. |
 | After send / before ack | in flight to the broker; drop `send` future | **Ambiguous** |
 | After broker ack | `Ok(RecordMetadata)` from `send`, with `acks=1` or `all` | **Acknowledged.** `acks=0` cannot prove an offset. |
-| After `close` / `close_timeout` returns | a new `send` or `try_send` on any clone | **Failed** with `Error::Closed` when polled |
+| After `close` / `close_timeout` returns | a new `send` or `try_send` on any clone | **Failed** with `Error::Closed` (`send` fails when polled) |
 | `close_timeout` with outstanding work | The deadline expires before the work drains | Close reports `Error::Timeout`; a pending delivery can return `Timeout` or `Closed`. A record already transmitted stays ambiguous. |
 | A later send after an ambiguous result | The earlier per-record receipt is missing | Can duplicate the record, including when idempotence was on. |
 
