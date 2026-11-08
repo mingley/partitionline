@@ -71,7 +71,11 @@ async fn public_batch_sequence_worker_cancellation() {
     .expect("warmup result");
     assert_eq!(warm.offset, 0);
     assert_eq!(callbacks.acks.load(Ordering::SeqCst), 1);
-    assert_eq!(mock.produce_sequences().len(), 1);
+    let warm_sequences = mock.produce_sequences();
+    assert_eq!(warm_sequences.len(), 1);
+    let identity = (producer.__test_producer_id(), producer.__test_producer_epoch());
+    assert_eq!((warm_sequences[0].0, warm_sequences[0].1), identity);
+    assert_eq!((warm_sequences[0].2, warm_sequences[0].3), (0, 1));
 
     gate::arm();
     let _release = ReleaseGate;
@@ -94,6 +98,11 @@ async fn public_batch_sequence_worker_cancellation() {
     tokio::time::timeout(LIMIT, gate::reached())
         .await
         .expect("worker did not reach the 8192-record stamp yield");
+    assert_eq!(gate::snapshot(), (1, COUNT, 8192));
+    assert_eq!(
+        (producer.__test_producer_id(), producer.__test_producer_epoch()),
+        identity
+    );
     assert_eq!(mock.log_len("t", 0), 1, "target batch must not yet be written");
     assert_eq!(mock.produce_sequences().len(), 1);
     assert_eq!(callbacks.acks.load(Ordering::SeqCst), 1);
@@ -133,6 +142,7 @@ async fn public_batch_sequence_worker_cancellation() {
         let workers = producer.test_worker_tasks();
         assert_eq!(workers.len(), 1);
         let worker = workers.first().expect("one worker");
+        let old_task_id = worker.id();
         worker.abort();
         tokio::time::timeout(LIMIT, async {
             while !worker.is_finished() {
@@ -154,13 +164,30 @@ async fn public_batch_sequence_worker_cancellation() {
         assert_eq!(callbacks.errors.load(Ordering::SeqCst), 0);
         assert_eq!(mock.log_len("t", 0), 1);
 
-        let later = tokio::time::timeout(
-            LIMIT,
-            producer.send(ProduceRecord::to("t").partition(0).value(&b"later000"[..])),
-        )
+        // Hold the mock response after it has recorded the new Produce so
+        // the actual replacement task can be observed before handling error 45.
+        mock.set_produce_response_delay(Duration::from_secs(2));
+        let mut later_delivery =
+            Box::pin(producer.send(ProduceRecord::to("t").partition(0).value(&b"later000"[..])));
+        assert!(poll_fn(|cx| Poll::Ready(later_delivery.as_mut().poll(cx))).await.is_pending());
+        tokio::time::timeout(LIMIT, async {
+            while mock.produce_sequences().len() < 2 {
+                tokio::time::sleep(Duration::from_millis(1)).await;
+            }
+        })
         .await
-        .expect("replacement-worker delivery deadline")
-        .expect_err("the mock enforces contiguous idempotent sequences");
+        .expect("replacement worker did not write a later batch");
+        let replacement_workers = producer.test_worker_tasks();
+        assert!(
+            replacement_workers
+                .iter()
+                .any(|worker| worker.id() != old_task_id && !worker.is_finished()),
+            "a different live worker must own the later Produce"
+        );
+        let later = tokio::time::timeout(LIMIT, later_delivery.as_mut())
+            .await
+            .expect("replacement-worker delivery deadline")
+            .expect_err("the mock enforces contiguous idempotent sequences");
         assert_eq!(
             later.broker_code(),
             Some(partitionline::error::OUT_OF_ORDER_SEQUENCE_NUMBER)
@@ -175,6 +202,7 @@ async fn public_batch_sequence_worker_cancellation() {
         assert_eq!(callbacks.acks.load(Ordering::SeqCst), 1);
         assert_eq!(callbacks.errors.load(Ordering::SeqCst), 1);
         assert_eq!(producer.metrics().bytes_buffered, before.bytes_buffered);
+        drop(later_delivery);
         println!("SEQUENCE_PUBLIC_ABORT worker_aborted=1 receipt=closed callbacks_missing={COUNT} bytes_retained={} later_base=8194 mock_error=45", before.bytes_buffered);
     }
     drop(delivery);

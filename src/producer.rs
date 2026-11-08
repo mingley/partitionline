@@ -10382,10 +10382,13 @@ async fn sequences_already_assigned(pendings: &[Pending]) -> bool {
 #[cfg(sequence_owner_witness)]
 #[doc(hidden)]
 pub mod sequence_owner_witness {
-    use std::sync::atomic::{AtomicBool, Ordering};
+    use std::sync::atomic::{AtomicBool, AtomicI32, AtomicUsize, Ordering};
     use tokio::sync::Notify;
 
     static ARMED: AtomicBool = AtomicBool::new(false);
+    static BASE: AtomicI32 = AtomicI32::new(-1);
+    static COUNT: AtomicUsize = AtomicUsize::new(0);
+    static STAMPED: AtomicUsize = AtomicUsize::new(0);
     static REACHED: Notify = Notify::const_new();
     static RELEASE: Notify = Notify::const_new();
 
@@ -10399,13 +10402,25 @@ pub mod sequence_owner_witness {
         REACHED.notified().await;
     }
 
+    /// Return the reserved base, batch length and stamped-record count.
+    pub fn snapshot() -> (i32, usize, usize) {
+        (
+            BASE.load(Ordering::SeqCst),
+            COUNT.load(Ordering::SeqCst),
+            STAMPED.load(Ordering::SeqCst),
+        )
+    }
+
     /// Resume the worker.
     pub fn release() {
         RELEASE.notify_one();
     }
 
-    pub(super) async fn pause_at_stamp_yield() {
+    pub(super) async fn pause_at_stamp_yield(base: i32, count: usize, stamped: usize) {
         if ARMED.swap(false, Ordering::SeqCst) {
+            BASE.store(base, Ordering::SeqCst);
+            COUNT.store(count, Ordering::SeqCst);
+            STAMPED.store(stamped, Ordering::SeqCst);
             REACHED.notify_one();
             RELEASE.notified().await;
         }
@@ -10429,7 +10444,7 @@ async fn stamp_sequences(pendings: &mut [Pending], base: i32) {
         if walked == 8 * 1024 {
             walked = 0;
             #[cfg(sequence_owner_witness)]
-            sequence_owner_witness::pause_at_stamp_yield().await;
+            sequence_owner_witness::pause_at_stamp_yield(base, count, index).await;
             tokio::task::yield_now().await;
         }
     }
