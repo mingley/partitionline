@@ -301,7 +301,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             let mut iters = 8u64;
             loop {
                 let ns = run_selected(iters)?;
-                if ns >= 120_000_000 || iters >= 16_777_216 {
+                if ns >= 120_000_000 || iters >= 67_108_864 {
                     println!("{iters}");
                     return Ok(());
                 }
@@ -310,7 +310,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         }
         "bench" => {
             let iters = args.next().ok_or("missing iterations")?.parse::<u64>()?;
-            if iters == 0 || iters > 16_777_216 { return Err("invalid iteration count".into()); }
+            if iters == 0 || iters > 67_108_864 { return Err("invalid iteration count".into()); }
             println!("{name},{iters},{}", run_selected(iters)?);
             Ok(())
         }

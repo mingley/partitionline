@@ -631,7 +631,7 @@ pub fn get_varint<B: Buf>(buf: &mut B) -> Result<i32> {
 }
 
 /// Write `width` unsigned varint groups. One-byte values use a single `put_u8`.
-#[inline]
+#[inline(never)]
 fn put_unsigned_groups(buf: &mut BytesMut, mut v: u64, width: usize) {
     if width == 1 {
         buf.put_u8(u7_64(v));
@@ -1341,14 +1341,14 @@ mod tests {
     use super::*;
 
     fn assert_width_writers_match_generic(value: u64, width: usize) {
-        let mut expected = BytesMut::from(&b"prefix"[..]);
+        let mut expected = BytesMut::from(b"prefix".as_slice());
         let mut actual = expected.clone();
         put_unsigned_groups(&mut expected, value, width);
         put_unsigned_varlong_width(&mut actual, value, width);
         assert_eq!(actual, expected, "varlong value={value} width={width}");
 
         let int_value = u32::try_from(value & u64::from(u32::MAX)).unwrap_or_default();
-        let mut expected = BytesMut::from(&b"prefix"[..]);
+        let mut expected = BytesMut::from(b"prefix".as_slice());
         let mut actual = expected.clone();
         put_unsigned_groups(&mut expected, u64::from(int_value), width);
         put_unsigned_varint_width(&mut actual, int_value, width);
