@@ -59,10 +59,9 @@ profile. Both full Admin suites **failed** on 80 ms wall-time assertions:
 | Default | 670 / 3 | `decoding_many_described_group_members_does_not_hold_the_caller` (83.491501 ms); `grouping_many_named_results_does_not_hold_the_caller` (84.293590 ms); `indexing_many_coordinators_does_not_hold_the_caller` (127.861731 ms) |
 | All features | 672 / 1 | `indexing_many_coordinators_does_not_hold_the_caller` (110.190508 ms) |
 
-The 20 independently restored mutants per profile, a matched whole-suite
-comparison, and matched release timing are still running. The exact-suite
-failures are not passing results, and their causes have not been
-established.
+The 20 independently restored mutants per profile and matched release
+timing are still running. The exact-suite failures are not passing
+results, and their causes have not been established.
 
 A separate [instrumented row-checkpoint control][observer] passed in both
 profiles: two public cross-page cancellation/timeout checks and one
@@ -87,6 +86,27 @@ rustfmt on three test-line wraps; a hint draft also failed rustfmt before
 its corrected check. An isolated branch update was rejected as
 non-fast-forward and then updated with a lease. The [four-arm prototype
 timing][prototype-perf] is separate from the combined-source benchmark.
+
+## Matched Admin suites
+
+The [matched suite comparison][broad] ran both source versions on a
+shared AMD EPYC 9V45 x86_64 runner with Rust 1.99.1 and LLVM 23.1.1.
+It used the same compatibility test fixture in both arms, Git blob
+`33d917cba15f1c0c5ed5646c277b0890a725938c` (SHA-256
+`f11ee5fa7fa095e684e1ba0f7971b4fa2ea37c5ad5618251b93756fa3fbd2827`).
+This fixture does not contain the new name-validation or row-helper
+controls; those ran separately at the candidate test pin above. The
+matched workflow **failed**. In execution order:
+
+| Order | Profile and arm | Passed / failed | Failed test (measured time) |
+| --- | --- | --- | --- |
+| 1 | Default baseline | 633 / 2 | `grouping_many_named_results_does_not_hold_the_caller` (100.990434 ms); `indexing_many_coordinators_does_not_hold_the_caller` (81.886451 ms) |
+| 2 | Default candidate | 632 / 3 | `decoding_many_consumer_group_members_does_not_hold_the_caller` (99.864319 ms); `grouping_many_named_results_does_not_hold_the_caller` (96.591971 ms); `indexing_many_coordinators_does_not_hold_the_caller` (85.627277 ms) |
+| 3 | All features candidate | 632 / 3 | `flattening_many_list_reassignments_does_not_hold_the_caller` (86.812287 ms); `grouping_many_named_results_does_not_hold_the_caller` (89.779487 ms); `indexing_many_coordinators_does_not_hold_the_caller` (82.633298 ms) |
+| 4 | All features baseline | 631 / 4 | `decoding_many_listed_groups_does_not_hold_the_caller` (85.454642 ms); `flattening_many_list_reassignments_does_not_hold_the_caller` (91.471043 ms); `grouping_many_named_results_does_not_hold_the_caller` (82.687971 ms); `indexing_many_coordinators_does_not_hold_the_caller` (93.198846 ms) |
+
+The same runner saw wall-time failures in both source arms. This does not
+establish their cause or change the exact candidate-suite failures.
 
 ## Prototype timing
 
