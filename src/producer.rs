@@ -11615,7 +11615,7 @@ mod tests {
                 };
                 assert!((8..=65_536).contains(&len));
                 let mut request = vec![0; len];
-                peer.read_exact(&mut request).await.unwrap();
+                let _read = peer.read_exact(&mut request).await.unwrap();
                 let header = if version >= 3 { 5usize } else { 4 };
                 let size = i32::try_from(header + response.len()).unwrap();
                 let mut frame = Vec::with_capacity(4 + header + response.len());
@@ -11696,7 +11696,7 @@ mod tests {
             assert_eq!(result.0, body);
             assert_eq!(result.1, 0);
             assert_eq!(result.2, expected_reuse);
-            std::hint::black_box(&result);
+            drop(std::hint::black_box(result));
             if index >= 40 {
                 samples.push(elapsed);
             }
