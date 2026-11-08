@@ -47,6 +47,97 @@ use crate::protocol::txn::{
     TxnErrorDisposition, TxnOffsetCommitMember, TxnOffsetCommitRequest,
 };
 
+
+/// Qualification-only gate around one successful retry-to-worker handoff.
+#[cfg(sequence_retry_split_witness)]
+#[doc(hidden)]
+pub mod sequence_retry_split_witness {
+    use std::sync::atomic::{AtomicU8, AtomicUsize, Ordering};
+    use std::sync::{Mutex, OnceLock};
+    use tokio::sync::Notify;
+
+    static PHASE: AtomicU8 = AtomicU8::new(0);
+    static TRANSFERS: AtomicUsize = AtomicUsize::new(0);
+    static SNAPSHOT: Mutex<Option<(Option<i32>, usize, Option<i32>, Option<i32>)>> =
+        Mutex::new(None);
+    static CHANGED: OnceLock<Notify> = OnceLock::new();
+
+    fn changed() -> &'static Notify {
+        CHANGED.get_or_init(Notify::new)
+    }
+
+    /// Arm the first successful retry transfer.
+    pub fn arm() {
+        *SNAPSHOT.lock().unwrap() = None;
+        TRANSFERS.store(0, Ordering::SeqCst);
+        PHASE.store(1, Ordering::SeqCst);
+    }
+
+    /// Wait until the first successful transfer is held.
+    pub async fn reached() {
+        loop {
+            let notified = changed().notified();
+            tokio::pin!(notified);
+            let _ = notified.as_mut().enable();
+            if PHASE.load(Ordering::SeqCst) == 2 {
+                return;
+            }
+            notified.await;
+        }
+    }
+
+    /// Read base, declared length, sequence and partition of the held record.
+    pub fn snapshot() -> Option<(Option<i32>, usize, Option<i32>, Option<i32>)> {
+        *SNAPSHOT.lock().unwrap()
+    }
+
+    /// Wait until a specified number of retry handoffs have completed.
+    pub async fn transferred(count: usize) {
+        loop {
+            let notified = changed().notified();
+            tokio::pin!(notified);
+            let _ = notified.as_mut().enable();
+            if TRANSFERS.load(Ordering::SeqCst) >= count {
+                return;
+            }
+            notified.await;
+        }
+    }
+
+    /// Release the held transfer.
+    pub fn release() {
+        PHASE.store(3, Ordering::SeqCst);
+        changed().notify_waiters();
+    }
+
+    pub(crate) async fn after_transfer(
+        snapshot: (Option<i32>, usize, Option<i32>, Option<i32>),
+    ) {
+        let _ = TRANSFERS.fetch_add(1, Ordering::SeqCst);
+        changed().notify_waiters();
+        if PHASE.load(Ordering::SeqCst) != 1 {
+            return;
+        }
+        *SNAPSHOT.lock().unwrap() = Some(snapshot);
+        if PHASE
+            .compare_exchange(1, 2, Ordering::SeqCst, Ordering::SeqCst)
+            .is_err()
+        {
+            return;
+        }
+        changed().notify_waiters();
+        loop {
+            let notified = changed().notified();
+            tokio::pin!(notified);
+            let _ = notified.as_mut().enable();
+            if PHASE.load(Ordering::SeqCst) != 2 {
+                return;
+            }
+            notified.await;
+        }
+    }
+}
+
 /// Pre-send failure injection point for testing buffer ownership and resource contracts.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum PreSendFault {
@@ -7147,11 +7238,16 @@ async fn retry_one(shared: &Arc<Shared>, p: Pending) {
             match tokio::time::timeout(rest, w.reserve()).await {
                 Ok(Ok(permit)) => {
                     if let Some(p) = guard.p.take() {
+                        #[cfg(sequence_retry_split_witness)]
+                        let retry_snapshot =
+                            (p.batch_base_seq, p.batch_len, p.seq, p.rec.partition);
                         if let Err(p) = permit.send(p) {
                             guard.p = Some(p);
                             retire_closed_worker(shared, node, slot, &w.id);
                             continue;
                         }
+                        #[cfg(sequence_retry_split_witness)]
+                        sequence_retry_split_witness::after_transfer(retry_snapshot).await;
                     }
                     return;
                 }
