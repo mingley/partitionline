@@ -58,9 +58,10 @@ aggregate agreed on their nonzero topic ID and partition indexes. This is
 one normal local broker history, while the null-name and precedence cases
 use scripted responses.
 
-The independently restored negative mutations are still running. The
-broad suite is not green, and the remaining results must be recorded before
-this note is complete.
+The independently restored negative mutations and [all-feature client
+Rustdoc and doctests][rustdoc] are still running. The broad suite is not
+green, and the remaining results must be recorded before this note is
+complete.
 
 ## Matched whole-suite baseline
 
@@ -164,3 +165,4 @@ follow-ups.
 [broad]: https://github.com/mingley/partitionline/actions/runs/42478078989
 [perf]: https://github.com/mingley/partitionline/actions/runs/42477945484
 [intermediate-perf]: https://github.com/mingley/partitionline/actions/runs/42477689277
+[rustdoc]: https://github.com/mingley/partitionline/actions/runs/42479481083
