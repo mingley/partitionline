@@ -1,0 +1,17 @@
+name: Admin row checkpoint formatting draft
+on:
+  push:
+    branches: [qualification/admin-dtp-row-yield-20261108]
+permissions:
+  contents: read
+jobs:
+  format:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Show formatter diff for the isolated draft
+        run: |
+          set -euo pipefail
+          cargo fmt --all
+          git diff -- src/admin.rs src/admin/pagination_tests.rs
