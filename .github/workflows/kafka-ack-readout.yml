@@ -1,0 +1,121 @@
+name: Read retained exploratory Kafka acknowledgement evidence
+
+on:
+  push:
+    branches: [qualification/kafka-ack-readout-20261108]
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  readout:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      PYTHONDONTWRITEBYTECODE: "1"
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 10
+          persist-credentials: false
+      - name: Check retained artifact identities
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh api "repos/$GITHUB_REPOSITORY/actions/artifacts/13609190311" > "$RUNNER_TEMP/a1.json"
+          gh api "repos/$GITHUB_REPOSITORY/actions/artifacts/13609230874" > "$RUNNER_TEMP/a2.json"
+          python3 - "$RUNNER_TEMP/a1.json" "$RUNNER_TEMP/a2.json" <<'PY'
+          import json, sys
+          expected = [
+              (13609190311, 42458016805, "c96f02ef5e915462cdfbe82b4d6da52fa4dd9923", "sha256:f5703e26f17dff1d150d95fd444dec924311cf6fb3ec34e435310e908c1dd770"),
+              (13609230874, 42458425769, "5452ee0b560c3431563d147886af3fedcd2e27f5", "sha256:279efe3c9718090839f1de63c0186effbc7c4a7c9db6a4de4c36277a77806558"),
+          ]
+          for path, (aid, run, head, digest) in zip(sys.argv[1:], expected):
+              with open(path, encoding="utf-8") as f: a = json.load(f)
+              assert (a["id"], a["workflow_run"]["id"], a["workflow_run"]["head_sha"], a["digest"]) == (aid, run, head, digest)
+              assert not a["expired"]
+              print(json.dumps({"id": aid, "run": run, "head": head, "digest": digest, "expires": a["expires_at"]}))
+          PY
+      - name: Download first artifact
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
+        with:
+          artifact-ids: 13609190311
+          run-id: 42458016805
+          github-token: ${{ github.token }}
+          path: ${{ runner.temp }}/ack-first
+          digest-mismatch: error
+      - name: Download second artifact
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
+        with:
+          artifact-ids: 13609230874
+          run-id: 42458425769
+          github-token: ${{ github.token }}
+          path: ${{ runner.temp }}/ack-second
+          digest-mismatch: error
+      - name: Recheck source hashes, verified receipts, socket summaries and host
+        shell: bash
+        run: |
+          set -euo pipefail
+          for index in 1 2; do
+            if [ "$index" = 1 ]; then
+              evidence="$RUNNER_TEMP/ack-first"
+              source=c96f02ef5e915462cdfbe82b4d6da52fa4dd9923
+            else
+              evidence="$RUNNER_TEMP/ack-second"
+              source=5452ee0b560c3431563d147886af3fedcd2e27f5
+            fi
+            echo "::group::artifact $index source hashes"
+            copy="$RUNNER_TEMP/source-$index"
+            mkdir "$copy"
+            git archive "$source" Cargo.lock src/producer.rs examples/bench_kafka_paired.rs \
+              benchmarks/peers/librdkafka/build.sh benchmarks/peers/librdkafka/source-pin.json \
+              benchmarks/peers/kafka-ack .github/workflows/kafka-ack-comparison.yml | tar -x -C "$copy"
+            (cd "$copy" && sha256sum --check "$evidence/source-sha256.txt")
+            echo "::endgroup::"
+            echo "::group::artifact $index provenance"
+            for name in commits.txt uname.txt cgroup-cpu-max.txt affinity.txt rustc.txt cargo.txt \
+              java.txt c-compiler.txt kafka-image.txt native-build-manifest.json source-sha256.txt \
+              rust-binary-sha256.txt c-binary-sha256.txt java-audit-sha256.txt attempts.tsv; do
+              echo "--- $name"
+              cat "$evidence/$name"
+            done
+            grep -E '^(Architecture|CPU\(s\)|Model name|Thread|Core|Socket|Vendor ID|CPU MHz)' "$evidence/cpu.txt" || true
+            echo "::endgroup::"
+            echo "::group::artifact $index independent recheck"
+            checked=0
+            for pair in 1 2 3 4 5; do
+              for arm in rust c; do
+                out="$evidence/pair-$pair-$arm"
+                if [ ! -f "$out/verdict.json" ]; then
+                  echo "pair $pair $arm: no verified verdict"
+                  if [ -f "$out/driver-exit.txt" ]; then cat "$out/driver-exit.txt"; fi
+                  if [ -f "$out/socket-sampler-exit.txt" ]; then cat "$out/socket-sampler-exit.txt"; fi
+                  if [ -f "$out/failure-offsets.txt" ]; then cat "$out/failure-offsets.txt"; fi
+                  continue
+                fi
+                python3 -B "$copy/benchmarks/peers/kafka-ack/verify.py" --kind "$arm" --trace "$out/ack.csv" \
+                  --fences "$out/fences.tsv" --receipts "$out/java-receipts.jsonl" \
+                  --warmup 10000 --count 10000 --payload 100 --c-config "$out/c-config.json" > "$RUNNER_TEMP/check.json"
+                cmp "$RUNNER_TEMP/check.json" "$out/verdict.json"
+                python3 - "$pair" "$arm" "$out" <<'PY'
+          import json, pathlib, sys
+          pair, arm, directory = int(sys.argv[1]), sys.argv[2], pathlib.Path(sys.argv[3])
+          verdict = json.loads((directory / "verdict.json").read_text())
+          sockets = json.loads((directory / "sockets.json").read_text())
+          print(json.dumps({"pair": pair, "arm": arm, "verified": verdict["independent_receipts"],
+                "measure": verdict["measure"], "sockets": sockets["counts"],
+                "socket_samples": sockets["successful_samples"]}, sort_keys=True))
+          PY
+                checked=$((checked+1))
+              done
+            done
+            echo "verified_arm_count=$checked"
+            echo "--- representative native effective config"
+            cat "$evidence/pair-1-c/c-config.json"
+            echo "--- rejected aggregate"
+            cat "$evidence/aggregate.json"
+            echo "::endgroup::"
+          done
