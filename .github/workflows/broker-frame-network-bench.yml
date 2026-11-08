@@ -1,0 +1,60 @@
+name: Broker paired frame TCP TLS benchmark
+on:
+  push:
+    branches: [qualification/broker-frame-network-bench-20261108]
+permissions:
+  contents: read
+jobs:
+  paired:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      CARGO_BUILD_JOBS: 2
+      CARGO_INCREMENTAL: 0
+      CARGO_TARGET_DIR: target/frame-network-bench
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Compile separate release binaries and measure alternating rounds
+        run: |
+          set -euo pipefail
+          rustc -Vv
+          uname -m
+          awk -F: '/model name/ {print $2; exit}' /proc/cpuinfo
+          core="$(python3 -c 'import os; print(min(os.sched_getaffinity(0)))')"
+          echo "network-bench pinned_core=$core"
+          for variant in baseline candidate; do
+            case "$variant" in
+              baseline) revision=60caa746c3654c89d01557e35e1100cdc2a84b74; blob=e80acf8d5fe3614b35f079d3d6364d086b0abb84 ;;
+              candidate) revision=0a4c241a44f85bc47121b62fb67a6048d8b3f1fa; blob=a36cf086c3d683a5f24b818705b15d8ce54245f4 ;;
+            esac
+            git show "$revision:partitionline-broker/src/transport.rs" > partitionline-broker/src/transport.rs
+            test "$(git hash-object partitionline-broker/src/transport.rs)" = "$blob"
+            cat .github/scripts/frame-network-bench.rs >> partitionline-broker/src/transport.rs
+            cargo test --release --locked --manifest-path partitionline-broker/Cargo.toml --features tls --lib --no-run --message-format=json > "/tmp/frame-network-build-$variant.json"
+            executable="$(python3 - "/tmp/frame-network-build-$variant.json" <<'PY'
+          import json, sys
+          matches=[]
+          for line in open(sys.argv[1], encoding="utf-8"):
+              data=json.loads(line)
+              if data.get("reason") == "compiler-artifact" and data.get("target", {}).get("name") == "partitionline_broker" and data.get("profile", {}).get("test") and data.get("executable"):
+                  matches.append(data["executable"])
+          assert len(matches) == 1, matches
+          print(matches[0])
+          PY
+            )"
+            cp "$executable" "/tmp/frame-network-$variant"
+            sha256sum "/tmp/frame-network-$variant"
+          done
+          for round in 0 1 2 3 4 5; do
+            if (( round % 2 == 0 )); then variants=(baseline candidate); else variants=(candidate baseline); fi
+            for variant in "${variants[@]}"; do
+              echo "network-round=$round variant=$variant"
+              taskset -c "$core" env PL_FRAME_NETWORK_VARIANT="$variant" "/tmp/frame-network-$variant" --exact transport::frame_network_microbench::measure_frame_over_network --ignored --nocapture --test-threads=1 | tee /tmp/frame-network-sample.log
+              grep -qFx 'running 1 test' /tmp/frame-network-sample.log
+              grep -qE '^test result: ok\. 1 passed; 0 failed;' /tmp/frame-network-sample.log
+              test "$(grep -c 'frame-network variant=' /tmp/frame-network-sample.log)" -eq 4
+            done
+          done
