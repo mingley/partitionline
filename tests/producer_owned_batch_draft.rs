@@ -1,0 +1,318 @@
+//! Isolated controls for the unwired ownership substrate.
+//!
+//! These tests do not exercise the public Kafka producer or a broker.
+
+#![expect(clippy::expect_used, clippy::indexing_slicing, reason = "asserting fixture invariants")]
+
+#[expect(dead_code, reason = "qualification-only substrate is intentionally unwired")]
+#[path = "../src/producer/ownership_draft.rs"]
+mod ownership;
+
+use ownership::{BatchPhase, Identity, Limits, Owner, OwnerError, Partition};
+use std::sync::Arc;
+use std::time::{Duration, Instant};
+
+fn identity() -> Identity {
+    Identity { producer_id: 17, producer_epoch: 3, generation: 9 }
+}
+
+fn partition(name: &str, number: i32) -> Partition {
+    Partition { topic: Arc::from(name), incarnation: Some(7), partition: number }
+}
+
+fn admit(owner: &Owner, partition: &Partition, value: u8) -> ownership::RecordKey {
+    owner
+        .try_admit(
+            partition.clone(),
+            vec![value],
+            Instant::now() + Duration::from_secs(60),
+            None,
+        )
+        .expect("admit")
+}
+
+#[test]
+fn zero_limits_are_unlimited_and_finite_limits_count_empty_records() {
+    let p = partition("t", 0);
+    let unlimited = Owner::new(identity(), Limits::new(0, 0, 0));
+    for _ in 0..20 {
+        unlimited
+            .try_admit(p.clone(), vec![], Instant::now() + Duration::from_secs(1), None)
+            .expect("zero limits are unlimited");
+    }
+    assert_eq!(unlimited.counts().expect("counts"), (20, 0));
+
+    let bounded = Owner::new(identity(), Limits::new(1, 1, 1));
+    bounded
+        .try_admit(p.clone(), vec![], Instant::now() + Duration::from_secs(1), None)
+        .expect("first empty record");
+    let error = bounded
+        .try_admit(p, vec![42], Instant::now() + Duration::from_secs(1), None)
+        .expect_err("record credit is exhausted");
+    assert_eq!((error.kind, error.payload), (OwnerError::Full, vec![42]));
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn canceled_worker_cannot_drop_or_split_the_rooted_batch() {
+    let owner = Owner::new(identity(), Limits::new(8194, 8194, 1));
+    let p = partition("t", 0);
+    let members: Vec<_> = (0..8193).map(|_| admit(&owner, &p, b'x')).collect();
+    let key = owner.seal_batch(&p, 8193, 8193, Instant::now(), 123).expect("seal");
+    let snapshot = owner.snapshot(key).expect("snapshot");
+    assert_eq!(snapshot.members, members);
+    assert_eq!(snapshot.identity, identity());
+    let later = admit(&owner, &p, b'y');
+    let barrier = owner.flush_barrier().expect("barrier");
+    let claim = owner.claim(key).expect("claim");
+    let old_generation = claim.generation();
+    let (reached_tx, reached_rx) = tokio::sync::oneshot::channel();
+    let task = tokio::spawn(async move {
+        for member in snapshot.members.iter().take(8192) {
+            std::hint::black_box(member);
+        }
+        let _ = reached_tx.send(());
+        std::future::pending::<()>().await;
+        drop(claim);
+    });
+    reached_rx.await.expect("worker reached gate");
+    task.abort();
+    assert!(task.await.expect_err("worker canceled").is_cancelled());
+    assert_eq!(owner.snapshot(key).expect("retained").phase, BatchPhase::Retiring);
+    assert_eq!(owner.counts().expect("counts"), (8194, 8194));
+    assert!(!owner.drained(barrier).expect("barrier"));
+    assert!(matches!(owner.seal_batch(&p, 8193, 8193, Instant::now(), 456), Err(OwnerError::Busy)));
+    assert_eq!(
+        owner.confirm_stopped_after_join(key, old_generation).expect("stopped"),
+        BatchPhase::Ready
+    );
+    let retry = owner.claim(key).expect("whole batch can be reclaimed");
+    assert_ne!(retry.generation(), old_generation);
+    let restored = owner.snapshot(key).expect("same batch");
+    assert_eq!(restored.members, members);
+    assert_eq!(restored.base_sequence, 0);
+    assert_eq!(owner.with_record(members[0], |bytes, _, ts| (bytes[0], ts)).expect("record"), (b'x', Some(123)));
+    assert_eq!(owner.with_record(later, |bytes, _, ts| (bytes[0], ts)).expect("later"), (b'y', None));
+    drop(retry);
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn canceled_offered_attempt_remains_unknown_after_join_and_close() {
+    let owner = Owner::new(identity(), Limits::new(2, 2, 1));
+    let p = partition("t", 0);
+    let first = admit(&owner, &p, b'a');
+    let second = admit(&owner, &p, b'b');
+    let batch = owner.seal_batch(&p, 2, 2, Instant::now(), 7).expect("seal");
+    let claim = owner.claim(batch).expect("claim");
+    let old_generation = claim.generation();
+    let (reached_tx, reached_rx) = tokio::sync::oneshot::channel();
+    let task = tokio::spawn(async move {
+        let _attempt = claim.offer().expect("offer");
+        let _ = reached_tx.send(());
+        std::future::pending::<()>().await;
+        drop(claim);
+    });
+    reached_rx.await.expect("offered");
+    task.abort();
+    assert!(task.await.expect_err("worker canceled").is_cancelled());
+    assert_eq!(owner.snapshot(batch).expect("snapshot").phase, BatchPhase::Unknown);
+    assert_eq!(
+        owner.confirm_stopped_after_join(batch, old_generation).expect("stopped"),
+        BatchPhase::Unknown
+    );
+    assert!(matches!(owner.claim(batch), Err(OwnerError::Busy)));
+    assert_eq!(owner.snapshot(batch).expect("whole").members, vec![first, second]);
+    let close = owner.begin_close().expect("close");
+    owner.stop_after_timeout().expect("stop");
+    assert!(!owner.drained(close).expect("drained"));
+    assert!(matches!(owner.claim(batch), Err(OwnerError::Closed)));
+    assert_eq!(owner.counts().expect("retained"), (2, 2));
+}
+
+#[test]
+fn stale_completed_claim_cannot_clear_a_new_partition_batch() {
+    let owner = Owner::new(identity(), Limits::new(3, 3, 1));
+    let p = partition("t", 0);
+    let first = admit(&owner, &p, b'a');
+    let old = owner.seal_batch(&p, 1, 1, Instant::now(), 1).expect("seal");
+    let old_claim = owner.claim(old).expect("claim");
+    let old_attempt = old_claim.offer().expect("offer");
+    old_claim.acknowledge(old_attempt).expect("ack");
+    owner.retire_after_publication(old).expect("retire");
+    let second = admit(&owner, &p, b'b');
+    let new = owner.seal_batch(&p, 1, 1, Instant::now(), 2).expect("new batch");
+    let new_claim = owner.claim(new).expect("new claim");
+    let _new_attempt = new_claim.offer().expect("new offer");
+    assert_eq!(old_claim.acknowledge(old_attempt), Err(OwnerError::Stale));
+    drop(old_claim);
+    let third = admit(&owner, &p, b'c');
+    assert!(matches!(owner.seal_batch(&p, 1, 1, Instant::now(), 3), Err(OwnerError::Busy)));
+    assert_eq!(owner.snapshot(new).expect("new root").members, vec![second]);
+    assert!(owner.with_record(first, |_, _, _| ()).is_err());
+    assert!(owner.with_record(third, |_, _, _| ()).is_ok());
+}
+
+#[test]
+fn equal_numeric_sequences_do_not_mix_partition_identities() {
+    let owner = Owner::new(identity(), Limits::new(2, 2, 2));
+    let a = partition("t", 0);
+    let b = partition("t", 1);
+    let first = admit(&owner, &a, b'a');
+    let second = admit(&owner, &b, b'b');
+    let ba = owner.seal_batch(&a, 1, 1, Instant::now(), 1).expect("batch a");
+    let bb = owner.seal_batch(&b, 1, 1, Instant::now(), 1).expect("batch b");
+    let sa = owner.snapshot(ba).expect("a");
+    let sb = owner.snapshot(bb).expect("b");
+    assert_ne!(sa.key, sb.key);
+    assert_eq!((sa.base_sequence, sb.base_sequence), (0, 0));
+    assert_eq!(sa.members, vec![first]);
+    assert_eq!(sb.members, vec![second]);
+    let ca = owner.claim(ba).expect("claim a");
+    let cb = owner.claim(bb).expect("claim b");
+    let aa = ca.offer().expect("offer a");
+    let ab = cb.offer().expect("offer b");
+    assert_eq!(ca.acknowledge(ab), Err(OwnerError::Stale));
+    ca.acknowledge(aa).expect("correct a");
+    assert_eq!(owner.snapshot(bb).expect("b still active").phase, BatchPhase::Offered);
+}
+
+#[test]
+fn sequence_wrap_and_timestamp_are_derived_from_the_complete_batch() {
+    let owner = Owner::new(identity(), Limits::new(3, 3, 1));
+    let p = partition("t", 0);
+    let records: Vec<_> = (0..3).map(|_| admit(&owner, &p, b'x')).collect();
+    owner.set_next_sequence_for_test(&p, u32::try_from(i32::MAX).expect("positive sequence maximum") - 1).expect("seed");
+    let key = owner.seal_batch(&p, 3, 3, Instant::now(), 77).expect("seal");
+    let snapshot = owner.snapshot(key).expect("snapshot");
+    assert_eq!(snapshot.members, records);
+    assert_eq!((snapshot.sequence_at(0), snapshot.sequence_at(1), snapshot.sequence_at(2)),
+               (Some(u32::try_from(i32::MAX).expect("positive sequence maximum") - 1), Some(u32::try_from(i32::MAX).expect("positive sequence maximum")), Some(0)));
+    for record in records {
+        assert_eq!(owner.with_record(record, |_, _, timestamp| timestamp).expect("record"), Some(77));
+    }
+}
+
+#[test]
+fn close_timeout_fences_preexisting_claims_and_keeps_records_rooted() {
+    let owner = Owner::new(identity(), Limits::new(2, 2, 1));
+    let p = partition("t", 0);
+    let first = admit(&owner, &p, b'a');
+    let batch = owner.seal_batch(&p, 1, 1, Instant::now(), 1).expect("seal");
+    let claim = owner.claim(batch).expect("claim");
+    let generation = claim.generation();
+    let close = owner.begin_close().expect("close");
+    let rejected = owner
+        .try_admit(p.clone(), vec![b'b'], Instant::now() + Duration::from_secs(1), None)
+        .expect_err("closed");
+    assert_eq!((rejected.kind, rejected.payload), (OwnerError::Closed, vec![b'b']));
+    owner.stop_after_timeout().expect("stop");
+    assert_eq!(claim.offer(), Err(OwnerError::Stale));
+    drop(claim);
+    assert_eq!(owner.confirm_stopped_after_join(batch, generation).expect("stop"), BatchPhase::Ready);
+    assert!(matches!(owner.claim(batch), Err(OwnerError::Closed)));
+    assert!(!owner.drained(close).expect("drained"));
+    assert_eq!(owner.with_record(first, |bytes, _, _| bytes[0]).expect("first"), b'a');
+}
+
+#[test]
+fn claim_drop_does_not_wait_for_the_root_mutex() {
+    use std::sync::mpsc;
+    use std::thread;
+
+    let owner = Owner::new(identity(), Limits::new(1, 1, 1));
+    let p = partition("t", 0);
+    let record = admit(&owner, &p, b'a');
+    let batch = owner.seal_batch(&p, 1, 1, Instant::now(), 1).expect("seal");
+    let claim = owner.claim(batch).expect("claim");
+    let (locked_tx, locked_rx) = mpsc::channel();
+    let (release_tx, release_rx) = mpsc::channel();
+    let clone = owner.clone();
+    let lock_holder = thread::spawn(move || {
+        clone.with_record(record, |_, _, _| {
+            locked_tx.send(()).expect("notify lock");
+            release_rx.recv().expect("release lock");
+        }).expect("held record");
+    });
+    locked_rx.recv_timeout(Duration::from_secs(2)).expect("lock held");
+    let (done_tx, done_rx) = mpsc::channel();
+    let dropper = thread::spawn(move || {
+        drop(claim);
+        done_tx.send(()).expect("drop complete");
+    });
+    let dropped = done_rx.recv_timeout(Duration::from_secs(2));
+    release_tx.send(()).expect("release");
+    lock_holder.join().expect("holder");
+    dropper.join().expect("dropper");
+    dropped.expect("drop did not wait for root lock");
+    assert_eq!(owner.snapshot(batch).expect("batch").phase, BatchPhase::Retiring);
+}
+
+#[test]
+fn admission_and_close_share_a_cutoff_commit_point() {
+    use std::sync::Barrier as ThreadBarrier;
+    use std::thread;
+
+    let owner = Owner::new(identity(), Limits::new(32, 32, 1));
+    let p = partition("t", 0);
+    let start = Arc::new(ThreadBarrier::new(9));
+    let mut joins = Vec::new();
+    for _ in 0..8 {
+        let owner = owner.clone();
+        let p = p.clone();
+        let start = Arc::clone(&start);
+        joins.push(thread::spawn(move || {
+            start.wait();
+            owner.try_admit(p, vec![1], Instant::now() + Duration::from_secs(5), None)
+        }));
+    }
+    start.wait();
+    let close = owner.begin_close().expect("close");
+    let accepted = joins.into_iter().filter_map(|join| join.join().expect("thread").ok()).count();
+    assert_eq!(owner.counts().expect("count").0, accepted);
+    assert_eq!(owner.drained(close).expect("barrier"), accepted == 0);
+    let error = owner
+        .try_admit(p, vec![1], Instant::now() + Duration::from_secs(1), None)
+        .expect_err("closed after seal");
+    assert_eq!(error.kind, OwnerError::Closed);
+}
+
+#[test]
+fn expired_member_cannot_be_silently_selected() {
+    let owner = Owner::new(identity(), Limits::new(2, 2, 1));
+    let p = partition("t", 0);
+    owner.try_admit(p.clone(), vec![1], Instant::now(), None).expect("admit");
+    let later = admit(&owner, &p, 2);
+    assert!(matches!(owner.seal_batch(&p, 2, 2, Instant::now(), 1), Err(OwnerError::Expired)));
+    assert_eq!(owner.counts().expect("retained"), (2, 2));
+    assert!(owner.with_record(later, |_, _, _| ()).is_ok());
+}
+
+#[test]
+fn no_new_offer_is_granted_after_a_member_deadline() {
+    let owner = Owner::new(identity(), Limits::new(2, 2, 1));
+    let p = partition("deadline", 0);
+    let now = Instant::now();
+    let deadline = now + Duration::from_millis(10);
+    let _record = owner.try_admit(p.clone(), vec![1], deadline, None).expect("admit");
+    let batch = owner.seal_batch(&p, 0, 0, now, 123).expect("zero batch limits are unlimited");
+    let claim = owner.claim(batch).expect("claim");
+    assert_eq!(claim.offer_at(deadline), Err(OwnerError::Expired));
+    assert_eq!(owner.snapshot(batch).expect("snapshot").phase, BatchPhase::Claimed);
+    drop(claim);
+    assert_eq!(owner.snapshot(batch).expect("snapshot").phase, BatchPhase::Retiring);
+    assert_eq!(owner.counts().expect("counts"), (1, 1));
+}
+
+#[test]
+fn late_acknowledgement_retains_ambiguous_batch() {
+    let owner = Owner::new(identity(), Limits::new(2, 2, 1));
+    let p = partition("deadline", 0);
+    let now = Instant::now();
+    let deadline = now + Duration::from_millis(10);
+    let _record = owner.try_admit(p.clone(), vec![1], deadline, None).expect("admit");
+    let batch = owner.seal_batch(&p, 1, 1, now, 123).expect("seal");
+    let claim = owner.claim(batch).expect("claim");
+    let attempt = claim.offer_at(now + Duration::from_millis(1)).expect("offer");
+    assert_eq!(claim.acknowledge_at(attempt, deadline), Err(OwnerError::Expired));
+    assert_eq!(owner.snapshot(batch).expect("snapshot").phase, BatchPhase::Unknown);
+    assert_eq!(owner.counts().expect("counts"), (1, 1));
+}
