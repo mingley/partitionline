@@ -39,6 +39,21 @@ restart. Use
 port. `--sync-concurrency` sets the maximum concurrent partition syncs per
 storage actor (1–64, default 4); measure the setting on your storage.
 
+## File descriptors
+
+On Unix, an idle flat partition store keeps two file descriptors: its journal
+and an inode pin. An idle rolling store keeps those two plus a directory pin.
+Other journals, catalog files, sockets, temporary readers and replacements need
+additional descriptors. Each staged flat-log partition also keeps a sync
+descriptor. The storage actor can group up to eight Produce requests, each
+limited by `max_partitions`.
+
+`max_stores` limits the number of partition stores, and `max_sync_concurrency`
+limits concurrent sync workers. Neither setting limits the process's total file
+descriptors. Size the operating-system limit for stores and peak work. If the
+limit is reached, opening or staging can fail; a complete unacknowledged write
+may still appear after recovery.
+
 The other operator commands configure a separate on-disk admin journal. Their
 backup and restore commands cover that admin journal only; they do not back up
 the listener's catalog or partition journals. See
