@@ -1,0 +1,58 @@
+name: raft dispatch qualification
+on:
+  push:
+    branches: [qual/raft-dispatch-20261108]
+permissions:
+  contents: read
+jobs:
+  controls:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      CARGO_BUILD_JOBS: '2'
+      CARGO_INCREMENTAL: '0'
+      CARGO_TERM_COLOR: never
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - name: Toolchain and source pins
+        run: |
+          rustc -Vv
+          git rev-parse HEAD
+          git rev-parse 6414e36baf2ae8d90e32732efc04dcb3367485c9
+          sha256sum partitionline-broker/src/raft/runtime.rs
+      - name: Show formatting differences
+        run: cargo fmt --manifest-path partitionline-broker/Cargo.toml -- --check || true
+      - name: Baseline must reproduce blocked campaign dispatch
+        run: |
+          set -euo pipefail
+          git worktree add --detach "$RUNNER_TEMP/baseline" 6414e36baf2ae8d90e32732efc04dcb3367485c9
+          cd "$RUNNER_TEMP/baseline"
+          export CARGO_TARGET_DIR="$RUNNER_TEMP/base-target"
+          set +e
+          cargo test --locked --manifest-path partitionline-broker/Cargo.toml --lib raft::runtime::ownership_tests::aborted_dispatch_keeps_all_current_votes_offered -- --exact --nocapture > "$RUNNER_TEMP/baseline.log" 2>&1
+          status=$?
+          set -e
+          cat "$RUNNER_TEMP/baseline.log"
+          test "$status" -eq 101
+          grep -F 'all current votes must be offered before cancellation waits' "$RUNNER_TEMP/baseline.log"
+      - name: Candidate focused controls
+        env:
+          CARGO_TARGET_DIR: ${{ runner.temp }}/candidate-target
+        run: |
+          set -euo pipefail
+          for feature in default all; do
+            flags=()
+            if [ "$feature" = all ]; then flags=(--all-features); fi
+            for name in aborted_dispatch_keeps_all_current_votes_offered displaced_vote_cancellation_preserves_current_reply_in_both_orders stepdown_during_dispatch_fences_old_and_orders_next_campaign vote_slot_replaces_wakes_closes_and_keeps_ownership_bounded; do
+              cargo test --locked --manifest-path partitionline-broker/Cargo.toml --lib "${flags[@]}" "raft::runtime::ownership_tests::$name" -- --exact --nocapture
+            done
+          done
+      - name: Strict broker Clippy
+        env:
+          CARGO_TARGET_DIR: ${{ runner.temp }}/candidate-target
+        run: cargo clippy --locked --manifest-path partitionline-broker/Cargo.toml --all-targets --all-features -- -D warnings
