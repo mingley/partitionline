@@ -1260,10 +1260,36 @@ async fn dtp_public_row_growth_poll_witness() {
         peer_written.store(true, Ordering::SeqCst);
     });
 
+    struct ResetTrace;
+    impl Drop for ResetTrace {
+        fn drop(&mut self) {
+            DTP_TRACE_ACTIVE.with(|value| value.set(false));
+            DTP_TRACE_PREALLOC.with(|value| value.set(false));
+            DTP_TRACE_RESPONSE_START.with(|value| value.set(None));
+            DTP_TRACE_INDEX_START.with(|value| value.set(None));
+            DTP_TRACE_EVENTS.with(|events| events.borrow_mut().clear());
+        }
+    }
+
     let prealloc = std::env::var("PL_DTP_PREALLOC").as_deref() == Ok("1");
     DTP_TRACE_ACTIVE.with(|value| value.set(true));
     DTP_TRACE_PREALLOC.with(|value| value.set(prealloc));
+    DTP_TRACE_RESPONSE_START.with(|value| value.set(None));
+    DTP_TRACE_INDEX_START.with(|value| value.set(None));
     DTP_TRACE_EVENTS.with(|events| *events.borrow_mut() = Vec::with_capacity(64));
+    let _reset_trace = ResetTrace;
+    for response in [true, false] {
+        for _ in 0..16 {
+            let _end = DtpDropPhase { response, start: false };
+            let _start = DtpDropPhase { response, start: true };
+        }
+    }
+    let calibration = DTP_TRACE_EVENTS.with(|events| events.borrow().clone());
+    assert_eq!(calibration.len(), 32);
+    let response_calibration = calibration.iter().filter(|event| event.kind == "response_drop").map(|event| event.elapsed_ns).max().unwrap();
+    let index_calibration = calibration.iter().filter(|event| event.kind == "index_drop").map(|event| event.elapsed_ns).max().unwrap();
+    DTP_TRACE_EVENTS.with(|events| events.borrow_mut().clear());
+    let trace_capacity_start = DTP_TRACE_EVENTS.with(|events| events.borrow().capacity());
     let start = std::time::Instant::now();
     let mut call = Box::pin(admin.describe_topics_with_partition_limit_timeout(
         names.iter(),
@@ -1324,8 +1350,16 @@ async fn dtp_public_row_growth_poll_witness() {
     let events = DTP_TRACE_EVENTS.with(|events| events.borrow().clone());
     let growth_count = events.iter().filter(|event| event.kind == "growth").count();
     let reserve_count = events.iter().filter(|event| event.kind == "reserve").count();
-    assert!(events.iter().any(|event| event.kind == "response_drop"));
-    assert!(events.iter().any(|event| event.kind == "index_drop"));
+    let response_positions: Vec<_> = events.iter().enumerate().filter_map(|(index, event)| (event.kind == "response_drop").then_some(index)).collect();
+    let index_positions: Vec<_> = events.iter().enumerate().filter_map(|(index, event)| (event.kind == "index_drop").then_some(index)).collect();
+    assert_eq!(response_positions.len(), 1);
+    assert_eq!(index_positions.len(), 1);
+    assert!(response_positions[0] < index_positions[0]);
+    assert!((ready_events.0..ready_events.1).contains(&response_positions[0]));
+    assert!((ready_events.0..ready_events.1).contains(&index_positions[0]));
+    assert_eq!(events.iter().filter(|event| event.kind == "hash_fingerprint").count(), 1);
+    let trace_capacity_end = DTP_TRACE_EVENTS.with(|events| events.borrow().capacity());
+    assert_eq!(trace_capacity_end, trace_capacity_start, "trace event storage reallocated");
     if prealloc {
         assert_eq!(reserve_count, 1);
         assert_eq!(growth_count, 0);
@@ -1334,7 +1368,7 @@ async fn dtp_public_row_growth_poll_witness() {
         assert!(growth_count > 0);
     }
     println!(
-        "ROW_GROWTH rows={count} kind={kind} prealloc={prealloc} all_polls={all_polls} after_write_polls={after_write_polls} max_before_write_ns={max_before_write_ns} max_after_write_ns={max_after_write_ns} max_pending_after_write_ns={max_pending_after_write_ns} ready_poll_ns={ready_poll_ns} total_ns={total_ns} wire_body_bytes={wire_body_bytes} growth_count={growth_count} reserve_count={reserve_count} max_pending_event_start={} max_pending_event_end={} ready_event_start={} ready_event_end={}",
+        "ROW_GROWTH rows={count} kind={kind} prealloc={prealloc} all_polls={all_polls} after_write_polls={after_write_polls} max_before_write_ns={max_before_write_ns} max_after_write_ns={max_after_write_ns} max_pending_after_write_ns={max_pending_after_write_ns} ready_poll_ns={ready_poll_ns} total_ns={total_ns} wire_body_bytes={wire_body_bytes} growth_count={growth_count} reserve_count={reserve_count} trace_capacity_start={trace_capacity_start} trace_capacity_end={trace_capacity_end} response_calibration_max_ns={response_calibration} index_calibration_max_ns={index_calibration} max_pending_event_start={} max_pending_event_end={} ready_event_start={} ready_event_end={}",
         max_pending_events.0,
         max_pending_events.1,
         ready_events.0,
@@ -1342,16 +1376,15 @@ async fn dtp_public_row_growth_poll_witness() {
     );
     for (event_index, event) in events.iter().enumerate() {
         println!(
-            "DTP_EVENT rows={count} kind={kind} prealloc={prealloc} index={event_index} phase={} len={} before={} after={} elapsed_ns={} in_max_pending={} in_ready={}",
+            "DTP_EVENT rows={count} kind={kind} prealloc={prealloc} index={event_index} phase={} len={} before={} after={} elapsed_ns={} hash_fingerprint={} in_max_pending={} in_ready={}",
             event.kind,
             event.len,
             event.before,
             event.after,
             event.elapsed_ns,
+            event.hash_fingerprint,
             (max_pending_events.0..max_pending_events.1).contains(&event_index),
             (ready_events.0..ready_events.1).contains(&event_index),
         );
     }
-    DTP_TRACE_ACTIVE.with(|value| value.set(false));
-    DTP_TRACE_PREALLOC.with(|value| value.set(false));
 }
