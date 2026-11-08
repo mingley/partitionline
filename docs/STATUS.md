@@ -164,10 +164,12 @@ latency bound.
   unsolicited names and cursors, but was 9% and 22% slower in median elapsed
   time for 32 and 256 error rows in a paired mock comparison. A lower-cost
   revision is under investigation. Longer cursor cycles can duplicate
-  results, and cleanup and memory are not globally bounded. A [row-poll baseline][admin-row] measured a
-  93–98 ms longest public-future poll after a mock peer wrote 500,000 rows on
-  one x86 host. That poll includes other work and is not a Kafka throughput or
-  wall-time bound. [Admin response reservations][admin-reserve] cap
+  results, and cleanup and memory are not globally bounded. The applied
+  [row checkpoint][admin-row-checkpoint] yields after every 8,192 completed
+  conversions, including across page boundaries. A paired mock showed shorter
+  8,192-row polls, while 500,000-row maxima remained about 62–66 ms in both
+  arms. Polls include other work; neither this nor the earlier [baseline][admin-row]
+  establishes a Kafka throughput or wall-time bound. [Admin response reservations][admin-reserve] cap
   initial capacity requests in seven response families, but results can grow.
   A separate [DescribeTopicPartitions reservation candidate][dtp-reserve]
   remains unapplied after valid-decode regressions. GSSAPI and
@@ -264,4 +266,6 @@ retained evidence. The [benchmark contract](benchmark-contract.md) and
 [admin-row]: https://github.com/mingley/partitionline/blob/a0deb28cfdb8eb85fd16a1b3264b35fceb2c74e1/docs/evidence/client/admin-dtp-row-poll-20261108/README.md
 
 [retry-flush-split]: https://github.com/mingley/partitionline/blob/8d1461a039b40c9bc79b6cf501aebf2a79054a85/docs/evidence/client/producer-retry-flush-split-20261108/README.md
-[admin-name]: https://github.com/mingley/partitionline/blob/8d1461a039b40c9bc79b6cf501aebf2a79054a85/docs/evidence/client/admin-requested-topic-validation-20261108/README.md
+[admin-name]: https://github.com/mingley/partitionline/blob/7e758b28822b2a66d37733b2b0c1c6afa61d0acd/docs/evidence/client/admin-requested-topic-validation-20261108/README.md
+
+[admin-row-checkpoint]: https://github.com/mingley/partitionline/blob/7e758b28822b2a66d37733b2b0c1c6afa61d0acd/docs/evidence/client/admin-dtp-row-checkpoint-20261108/README.md
