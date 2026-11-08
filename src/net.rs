@@ -1316,7 +1316,7 @@ pub struct BrokerConn {
     prefetch: Arc<parking_lot::Mutex<BytesMut>>,
     /// Stops the idle watch when this connection is dropped.
     idle_watch: tokio::task::AbortHandle,
-    /// Requests physical closure by the watcher if the stream is locked.
+    /// One shared allocation per connection, used to request watcher cleanup.
     physical_retire: Arc<AtomicBool>,
     /// Wakes the idle watch after a request releases the stream.
     idle_arm: Arc<tokio::sync::Notify>,

@@ -62,16 +62,21 @@ for feature in default all; do
 done
 
 for feature in default all; do
-  log="$(mktemp)"
-  args=(+stable test --locked --test group_coord_tls_retirement idle_group_coordinator_retires_previous_tls_peer)
-  if [ "$feature" = all ]; then
-    args+=(--all-features)
-  fi
-  args+=(-- --exact --nocapture)
-  status=0
-  cargo "${args[@]}" >"$log" 2>&1 || status=$?
-  cat "$log"
-  test "$status" -eq 0
-  grep -Fq 'test result: ok. 1 passed; 0 failed;' "$log"
-  rm "$log"
+  for test_name in \
+    idle_group_coordinator_retires_previous_tls_peer \
+    idle_group_coordinator_reauthenticates_over_tls
+  do
+    log="$(mktemp)"
+    args=(+stable test --locked --test group_coord_tls_retirement "$test_name")
+    if [ "$feature" = all ]; then
+      args+=(--all-features)
+    fi
+    args+=(-- --exact --nocapture)
+    status=0
+    cargo "${args[@]}" >"$log" 2>&1 || status=$?
+    cat "$log"
+    test "$status" -eq 0
+    grep -Fq 'test result: ok. 1 passed; 0 failed;' "$log"
+    rm "$log"
+  done
 done
