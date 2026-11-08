@@ -77,8 +77,9 @@ async fn public_size_boundaries_and_readback() {
 #[tokio::test(flavor = "current_thread")]
 async fn maximum_topic_and_oversized_rejection() {
     let mock = common::Mock::start().await;
-    let producer = Producer::new(config(&mock)).await.unwrap();
     let topic = "a".repeat(249);
+    mock.set_topic_partitions(&topic, 1);
+    let producer = Producer::new(config(&mock)).await.unwrap();
     warm(&producer, &topic, 0).await;
     q::reset();
     let out = tokio::time::timeout(LIMIT, producer.send_all(records(&topic, 32))).await.unwrap().unwrap();
@@ -198,7 +199,7 @@ async fn retired_worker_then_replacement() {
     let mut guard = ReleaseOnDrop(true);
     let task_producer = producer.clone();
     let task = tokio::spawn(async move { task_producer.send_all(records("t", 64)).await });
-    tokio::time::timeout(LIMIT, q::reached()).await.unwrap();
+    tokio::time::timeout(Duration::from_secs(15), q::reached()).await.unwrap();
     old[0].abort();
     tokio::time::timeout(LIMIT, async { while !old[0].is_finished() { tokio::task::yield_now().await; } }).await.unwrap();
     q::release();
@@ -222,7 +223,7 @@ async fn metadata_changes_before_first_nudge() {
     let mut guard = ReleaseOnDrop(true);
     let p = producer.clone();
     let task = tokio::spawn(async move { p.send_all(records("t", 64)).await });
-    tokio::time::timeout(LIMIT, q::reached()).await.unwrap();
+    tokio::time::timeout(Duration::from_secs(15), q::reached()).await.unwrap();
     let before = mock.metadata_calls();
     mock.set_partition_leader("t", 0, 1);
     let infos = producer.partitions_for("t").await.unwrap();
@@ -250,7 +251,7 @@ async fn partial_admission_cancellation() {
     q::arm(2);
     let mut future = Box::pin(tokio::task::unconstrained(producer.send_all(records("t", 1024))));
     assert!(poll_fn(|cx| Poll::Ready(future.as_mut().poll(cx))).await.is_pending());
-    tokio::time::timeout(LIMIT, q::reached()).await.unwrap();
+    tokio::time::timeout(Duration::from_secs(15), q::reached()).await.unwrap();
     let before = producer.metrics();
     assert_eq!(before.records_queued, 513);
     assert_eq!(q::snapshot().yields, 1);
@@ -286,7 +287,7 @@ async fn full_then_draining_connect_queue() {
     let mut guard = ReleaseOnDrop(true);
     let mut future = Box::pin(tokio::task::unconstrained(producer.send_all(records("t", 1024))));
     assert!(poll_fn(|cx| Poll::Ready(future.as_mut().poll(cx))).await.is_pending());
-    tokio::time::timeout(LIMIT, q::reached()).await.unwrap();
+    tokio::time::timeout(Duration::from_secs(15), q::reached()).await.unwrap();
     assert_eq!(producer.metrics().records_queued, 513);
     let before = q::snapshot();
     assert!(before.nudge_full > 0, "{before:?}");
@@ -300,4 +301,29 @@ async fn full_then_draining_connect_queue() {
     eprintln!("queue before={before:?}, after={after:?}, filled={filled}");
     assert!(after.nudge_sent > before.nudge_sent);
     verify(&mock, "t", 0, &out, &(0..1024).collect::<Vec<_>>(), 1);
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn metadata_expires_before_first_nudge() {
+    let mock = common::Mock::start().await;
+    let producer = Producer::new(config(&mock).metadata_max_age(Duration::from_millis(250))).await.unwrap();
+    warm(&producer, "t", 0).await;
+    q::reset();
+    q::arm(1);
+    let mut guard = ReleaseOnDrop(true);
+    let p = producer.clone();
+    let task = tokio::spawn(async move { p.send_all(records("t", 64)).await });
+    tokio::time::timeout(Duration::from_secs(15), q::reached()).await.unwrap();
+    let before = mock.metadata_calls();
+    tokio::time::sleep(Duration::from_millis(350)).await;
+    q::release();
+    guard.0 = false;
+    let out = tokio::time::timeout(LIMIT, task).await.unwrap().unwrap().unwrap();
+    let snap = q::snapshot();
+    eprintln!("expired metadata snapshot={snap:?}");
+    assert!(snap.fallback >= 1);
+    assert!(snap.shortcut >= 1);
+    assert_eq!(snap.shortcut + snap.fallback, 64);
+    assert!(mock.metadata_calls() > before);
+    verify(&mock, "t", 0, &out, &(0..64).collect::<Vec<_>>(), 1);
 }
