@@ -1,0 +1,94 @@
+name: journal generation lease controls
+on:
+  push:
+    branches: [qualification/journal-generation-lease-20261108]
+permissions:
+  contents: read
+env:
+  CARGO_INCREMENTAL: "0"
+  CARGO_BUILD_JOBS: "2"
+  CARGO_TERM_COLOR: never
+  CARGO_PROFILE_DEV_DEBUG: "0"
+  CARGO_PROFILE_TEST_DEBUG: "0"
+jobs:
+  controls:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          fetch-depth: 2
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Verify exact source and add test-only ticket-size witness
+        run: |
+          set -euo pipefail
+          test "$(uname -m)" = x86_64
+          test "$(git rev-parse HEAD^)" = 7f8effb592bc598a0472453546c88f1e36641502
+          git rev-parse HEAD
+          git rev-parse HEAD^
+          rustc +stable --version --verbose
+          sha256sum partitionline-broker/src/journal.rs
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path("partitionline-broker/src/journal.rs")
+          src=p.read_text()
+          anchor="    #[test]\n    fn a_known_payload_crc_extends_the_fingerprint()"
+          assert src.count(anchor)==1
+          witness='''    #[test]
+              fn diagnostic_sync_ticket_size() {
+                  println!("PL_SYNC_TICKET_BYTES {}", std::mem::size_of::<SyncFile>());
+              }
+
+          '''
+          p.write_text(src.replace(anchor, witness+anchor))
+          PY
+      - name: Generation, pathname and exclusion controls
+        run: |
+          set -euo pipefail
+          cargo +stable test --locked --manifest-path partitionline-broker/Cargo.toml --lib staged_sync -- --nocapture
+          cargo +stable test --locked --manifest-path partitionline-broker/Cargo.toml --lib journal::tests::staged_tickets_keep_three_replaced_generations_and_the_path -- --exact --nocapture
+          cargo +stable test --locked --manifest-path partitionline-broker/Cargo.toml --lib journal::tests::replacement_rejects_an_inode_bound_to_another_path -- --exact --nocapture
+          cargo +stable test --locked --manifest-path partitionline-broker/Cargo.toml --lib journal::tests::old_inode_stays_reserved_until_replaced_engine_closes -- --exact --nocapture
+          cargo +stable test --locked --manifest-path partitionline-broker/Cargo.toml --lib checkpoint_preserves_exclusive_inode_ownership -- --nocapture
+      - name: Journal, cursor and directory inode pin controls
+        run: |
+          set -euo pipefail
+          cargo +stable test --locked --manifest-path partitionline-broker/Cargo.toml --lib journal::tests::journal_and_cursor_keep_inode_pinned_through_close -- --exact --nocapture
+          cargo +stable test --locked --manifest-path partitionline-broker/Cargo.toml --lib journal::tests::directory_ownership_pins_a_temporary_handle -- --exact --nocapture
+          cargo +stable test --locked --manifest-path partitionline-broker/Cargo.toml --lib segments::tests::sparse_cursor_and_rolling_log_pin_removed_inodes -- --exact --nocapture
+      - name: Descriptor accounting and ticket size
+        run: |
+          set -euo pipefail
+          cargo +stable test --locked --manifest-path partitionline-broker/Cargo.toml --lib journal::tests::diagnostic_sync_ticket_size -- --exact --nocapture
+          cargo +stable test --locked --manifest-path partitionline-broker/Cargo.toml --lib journal::tests::ownership_descriptor_cost -- --exact --ignored --test-threads=1 --nocapture
+          cargo +stable test --locked --manifest-path partitionline-broker/Cargo.toml --lib produce::tests::store_and_grouped_sync_descriptor_cost -- --exact --ignored --test-threads=1 --nocapture
+      - name: Descriptor exhaustion
+        run: |
+          set -euo pipefail
+          ulimit -n 64
+          cargo +stable test --locked --manifest-path partitionline-broker/Cargo.toml --lib journal::tests::ownership_descriptor_exhaustion_releases_reservations -- --exact --ignored --test-threads=1 --nocapture
+      - name: Default broker library
+        run: cargo +stable test --locked --manifest-path partitionline-broker/Cargo.toml --lib
+      - name: All-feature broker library
+        run: cargo +stable test --locked --manifest-path partitionline-broker/Cargo.toml --lib --all-features
+  style:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - name: Format candidate for further qualification
+        run: |
+          set -euo pipefail
+          cargo +stable fmt --manifest-path partitionline-broker/Cargo.toml --all
+          sha256sum partitionline-broker/src/journal.rs
+          printf 'PL_FMT_BEGIN journal\n'
+          base64 -w 2000 partitionline-broker/src/journal.rs | sed 's/^/PL_FMT_DATA /'
+          printf '\nPL_FMT_END journal\n'
+      - name: Strict all-feature all-target Clippy
+        run: cargo +stable clippy --locked --manifest-path partitionline-broker/Cargo.toml --all-targets --all-features -- -D warnings
