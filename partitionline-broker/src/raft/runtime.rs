@@ -58,6 +58,7 @@ struct TestMetrics {
     workers_spawned: AtomicUsize,
     workers_joined: AtomicUsize,
     clock: std::sync::OnceLock<std::time::Instant>,
+    successful_vote_cancel: std::sync::Mutex<Option<replication::DynamicVoteRequest>>,
 }
 #[cfg(test)]
 impl TestMetrics {
@@ -368,6 +369,16 @@ pub struct Config {
     charge: usize,
     pool: usize,
     managed: usize,
+    #[cfg(test)]
+    dispatch_shutdown_gate: Option<Arc<DispatchShutdownGate>>,
+}
+#[cfg(test)]
+#[derive(Debug)]
+struct DispatchShutdownGate {
+    armed: AtomicBool,
+    entered: Notify,
+    release: Semaphore,
+    request: std::sync::Mutex<Option<replication::DynamicVoteRequest>>,
 }
 impl Config {
     /// Validate exact genesis/routes and all positive byte/task/deadline ceilings.
@@ -525,6 +536,8 @@ impl Config {
             charge,
             pool,
             managed,
+            #[cfg(test)]
+            dispatch_shutdown_gate: None,
         })
     }
     /// Configured estimate for Node state and admitted command/transport buffers.
@@ -1449,7 +1462,12 @@ impl Owner {
                 Ok(Reply::Done)
             }
             Command::CancelVote(request) => {
-                self.node.timeout_dynamic_vote(request)?;
+                let result = self.node.timeout_dynamic_vote(request);
+                #[cfg(test)]
+                if result.is_ok() {
+                    *self.metrics.successful_vote_cancel.lock().unwrap_or_else(std::sync::PoisonError::into_inner) = Some(request);
+                }
+                result?;
                 Ok(Reply::Done)
             }
             Command::Chunk(q) => {
@@ -1838,12 +1856,25 @@ async fn supervise(
 }
 async fn dispatch_votes(control: &Control, routes: &[(Key, Arc<VoteSlot>)], jobs: Vec<Job>) {
     for job in jobs {
+        #[cfg(test)]
+        let offered_vote = match &job {
+            Job::Vote(request) => Some(*request),
+            _ => None,
+        };
         match routes.iter().find(|(k, _)| *k == job.peer()) {
             Some((_, slot)) => {
                 // The only production producer is the supervisor's Tick reply,
                 // which contains one vote per peer from successive campaigns.
                 // Admission and replacement are atomic with worker dequeue.
                 if let Some(displaced) = slot.offer(job) {
+                    #[cfg(test)]
+                    if let Some(gate) = &control.config.dispatch_shutdown_gate {
+                        if gate.armed.swap(false, Ordering::AcqRel) {
+                            *gate.request.lock().unwrap_or_else(std::sync::PoisonError::into_inner) = offered_vote;
+                            gate.entered.notify_one();
+                            let _ = gate.release.acquire().await;
+                        }
+                    }
                     let _ = control.cancel_job(displaced).await;
                 }
             }
@@ -5662,6 +5693,109 @@ mod ownership_tests {
         higher_peer.finish().await?;
         peer.finish().await?;
         source.finish().await
+    }
+
+    #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+    async fn supervisor_shutdown_during_replacement_cancels_exact_pending_vote() -> TestResult {
+        let helper = LocalOwner::open(0, 2, 16).await?;
+        let source_listener = TcpListener::bind("127.0.0.1:0").await?;
+        let source_address = source_listener.local_addr()?;
+        let peer_listener = TcpListener::bind("127.0.0.1:0").await?;
+        let peer_address = peer_listener.local_addr()?;
+        let local = Voter::new(
+            Key::new(0, [1; 16])?,
+            vec![Endpoint::new("CONTROLLER".into(), "127.0.0.1".into(), source_address.port())?],
+            0,
+            1,
+        )?;
+        let remote = Voter::new(
+            Key::new(1, [2; 16])?,
+            vec![Endpoint::new("CONTROLLER".into(), "127.0.0.1".into(), peer_address.port())?],
+            0,
+            1,
+        )?;
+        let genesis = Voters::new(0, LogPosition::default(), 1, vec![local.clone(), remote.clone()])?;
+        let bootstrap = Bootstrap::new(local, genesis, "CONTROLLER".into())?;
+        let controller = protocol::Config::new(0, vec![0], "supervisor-vote-shutdown".into())?;
+        let limits = Limits {
+            election_min_ms: 25,
+            election_max_ms: 25,
+            tick_ms: 5,
+            heartbeat_ms: 10,
+            quorum_ms: 10_000,
+            connect_ms: 1000,
+            rpc_ms: 5000,
+            transfer_ms: 5000,
+            command_ms: 3000,
+            ..Limits::default()
+        };
+        let mut config = Config::new(
+            controller, bootstrap, vec![Peer::new(remote, peer_address)?],
+            StorageLimits::standard()?, limits,
+        )?;
+        let gate = Arc::new(DispatchShutdownGate {
+            armed: AtomicBool::new(true),
+            entered: Notify::new(),
+            release: Semaphore::new(0),
+            request: std::sync::Mutex::new(None),
+        });
+        config.dispatch_shutdown_gate = Some(gate.clone());
+        let root = helper.root.join("shutdown-runtime");
+        std::fs::create_dir(&root)?;
+        let paths = Paths::new(root.join("metadata.wal"), root.join("election.wal"), root.join("images"))?;
+        let mut runtime = Runtime::start(source_listener, config, paths)?;
+        runtime.wait_ready().await?;
+        let control = runtime.control.clone();
+        let (mut socket, _) = tokio::time::timeout(Duration::from_secs(3), peer_listener.accept()).await??;
+        let mut wire = WireBuf::new();
+        let bound = control.config.limits.frame_bytes;
+        let deadline = Instant::now() + Duration::from_secs(3);
+        let hello = read_frame(&mut socket, bound, 64, deadline, &mut wire).await?;
+        let Message::Hello(hello) = hello.message else { return Err("shutdown race expected hello".into()); };
+        write_frame(&mut socket, &Frame { rpc: 0, message: Message::HelloAck(hello) }, bound, deadline, &mut wire).await?;
+        let first = read_frame(&mut socket, bound, 64, deadline, &mut wire).await?;
+        let Message::Vote(first) = first.message else { return Err("shutdown race expected first vote".into()); };
+
+        // Keep the first real RPC in flight until two newer campaigns have
+        // filled and replaced the pending slot. The test-only gate pauses the
+        // supervisor after replacement but before its displaced cancellation.
+        let gate_observed = tokio::time::timeout(Duration::from_secs(3), gate.entered.notified()).await;
+        let expected = *gate.request.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
+        let shutdown = tokio::spawn(async move {
+            let result = runtime.shutdown().await;
+            (runtime, result)
+        });
+        let stopping = tokio::time::timeout(Duration::from_secs(3), control.stopping()).await;
+        let canceled = tokio::time::timeout(Duration::from_secs(3), async {
+            loop {
+                let q = *control.metrics.successful_vote_cancel.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
+                if q.is_some() && q == expected { break; }
+                tokio::task::yield_now().await;
+            }
+        }).await;
+        // Always release the supervisor before validating observations.
+        gate.release.add_permits(1);
+        let (runtime, result) = tokio::time::timeout(Duration::from_secs(5), shutdown).await??;
+        gate_observed.map_err(|_| "no pending vote replacement")?;
+        stopping.map_err(|_| "shutdown did not signal stop")?;
+        canceled.map_err(|_| "pending vote was not canceled before supervisor resumed")?;
+        result?;
+        let expected = expected.ok_or("replacement request")?;
+        assert!(expected.request.term > first.request.term);
+        assert_eq!(control.tasks.load(Ordering::Acquire), 0);
+        assert_eq!(control.sockets.load(Ordering::Acquire), 0);
+        assert_eq!(control.metrics.workers_spawned.load(Ordering::Acquire), 1);
+        assert_eq!(control.metrics.workers_joined.load(Ordering::Acquire), 1);
+        assert_eq!(control.bytes.available_permits(), control.config.pool);
+        let mut byte = [0u8; 1];
+        let read = tokio::time::timeout(Duration::from_secs(2), tokio::io::AsyncReadExt::read(&mut socket, &mut byte)).await??;
+        assert_eq!(read, 0, "peer must observe socket EOF");
+        let rebound = TcpListener::bind(source_address).await?;
+        drop(rebound);
+        println!("supervisor-shutdown first={} canceled_pending={} exact=true socket_eof=true worker_owner_joined=true",
+            first.request.term, expected.request.term);
+        drop(runtime);
+        helper.finish().await
     }
 
     #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
