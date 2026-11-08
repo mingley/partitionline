@@ -189,6 +189,7 @@ struct DeadlineCallback {
     entered: std::sync::mpsc::Sender<bool>,
     latch: Arc<(parking_lot::Mutex<bool>, parking_lot::Condvar)>,
     calls: Arc<AtomicUsize>,
+    timed_out: Arc<AtomicBool>,
 }
 
 impl crate::interceptor::ProducerInterceptor for DeadlineCallback {
@@ -199,8 +200,15 @@ impl crate::interceptor::ProducerInterceptor for DeadlineCallback {
         // The release thread must acquire this lock after entry, proving that
         // this callback reached Condvar::wait before its hold interval starts.
         let _sent = self.entered.send(true);
+        let deadline = Instant::now() + Duration::from_secs(3);
         while !*released {
-            changed.wait(&mut released);
+            let remaining = deadline.saturating_duration_since(Instant::now());
+            if remaining.is_zero() || changed.wait_for(&mut released, remaining).timed_out() {
+                if !*released {
+                    self.timed_out.store(true, Ordering::SeqCst);
+                    break;
+                }
+            }
         }
     }
 }
@@ -224,6 +232,7 @@ async fn current_thread_cancel_deadline_probe() {
         .unwrap();
     let (_peer, _) = listener.accept().await.unwrap();
     let calls = Arc::new(AtomicUsize::new(0));
+    let callback_timed_out = Arc::new(AtomicBool::new(false));
     let latch = Arc::new((parking_lot::Mutex::new(false), parking_lot::Condvar::new()));
     let release_on_drop = ReleaseDeadlineLatch(Arc::clone(&latch));
     let (signal_tx, signal_rx) = std::sync::mpsc::channel();
@@ -231,28 +240,33 @@ async fn current_thread_cancel_deadline_probe() {
         entered: signal_tx.clone(),
         latch: Arc::clone(&latch),
         calls: Arc::clone(&calls),
+        timed_out: Arc::clone(&callback_timed_out),
     });
     let shared = test_shared(cfg, meta);
     let (finished_tx, finished_rx) = oneshot::channel();
     let release_thread = std::thread::spawn(move || {
         // Always release even on a timeout or panic before the callback enters.
         let release_at_exit = ReleaseDeadlineLatch(latch);
-        let held = if matches!(signal_rx.recv_timeout(Duration::from_secs(3)), Ok(true)) {
-            let (released, _) = &*release_at_exit.0;
+        let times = if matches!(signal_rx.recv_timeout(Duration::from_secs(3)), Ok(true)) {
+            let (released, changed) = &*release_at_exit.0;
             // Acquiring this lock proves that the callback has entered wait.
             let mut released = released.lock();
+            let waited_at = Instant::now();
             let (_delay_tx, delay_rx) = std::sync::mpsc::channel::<()>();
             let held = matches!(
                 delay_rx.recv_timeout(Duration::from_millis(600)),
                 Err(std::sync::mpsc::RecvTimeoutError::Timeout)
             );
+            let released_at = Instant::now();
             *released = true;
-            held
+            let _woken = changed.notify_all();
+            drop(released);
+            Some((waited_at, released_at, held))
         } else {
-            false
+            None
         };
         drop(release_at_exit);
-        let _notified = finished_tx.send(held);
+        let _notified = finished_tx.send(times);
     });
     let now = Instant::now();
     let mut rec = ProduceRecord::to("failure-deadline-probe").partition(0);
@@ -276,9 +290,10 @@ async fn current_thread_cancel_deadline_probe() {
     assert!(shared.try_reserve_buffer(1));
     let timer_fired = Arc::new(AtomicBool::new(false));
     let timer_flag = Arc::clone(&timer_fired);
+    let absolute_deadline = Instant::now() + Duration::from_millis(200);
     let (armed_tx, armed_rx) = oneshot::channel();
     let timer = tokio::spawn(async move {
-        let deadline = tokio::time::sleep(Duration::from_millis(200));
+        let deadline = tokio::time::sleep_until(tokio::time::Instant::from_std(absolute_deadline));
         tokio::pin!(deadline);
         let mut armed = Some(armed_tx);
         std::future::poll_fn(|context| {
@@ -296,10 +311,13 @@ async fn current_thread_cancel_deadline_probe() {
     let cleanup = fail_kept_pendings(&shared, vec![pending], Error::Timeout);
     let started = Instant::now();
     drop(cleanup);
-    let elapsed = started.elapsed();
+    let drop_ended = Instant::now();
+    let elapsed = drop_ended.duration_since(started);
     let timer_pending_after_drop = !timer_fired.load(Ordering::SeqCst);
     match expected.as_str() {
         "baseline" => {
+            assert!(started < absolute_deadline && drop_ended < absolute_deadline);
+            assert!(timer_pending_after_drop);
             assert_eq!(calls.load(Ordering::SeqCst), 0);
             assert!(matches!(rx.try_recv(), Err(oneshot::error::TryRecvError::Closed)));
             assert_eq!(shared.buffered_bytes.load(Ordering::SeqCst), 1);
@@ -307,6 +325,7 @@ async fn current_thread_cancel_deadline_probe() {
             let _sent = signal_tx.send(false);
         }
         "candidate" => {
+            assert!(started < absolute_deadline);
             assert_eq!(calls.load(Ordering::SeqCst), 1);
             assert!(elapsed >= Duration::from_millis(400), "{elapsed:?}");
             assert!(timer_pending_after_drop, "timer ran while its runtime thread was blocked");
@@ -317,11 +336,30 @@ async fn current_thread_cancel_deadline_probe() {
     }
     timer.await.unwrap();
     assert!(timer_fired.load(Ordering::SeqCst));
-    let held = tokio::time::timeout(Duration::from_secs(3), finished_rx)
+    let times = tokio::time::timeout(Duration::from_secs(3), finished_rx)
         .await
         .expect("release thread did not finish")
         .expect("release thread panicked");
-    assert_eq!(held, expected == "candidate");
+    if expected == "candidate" {
+        let (waited_at, released_at, held) = times.expect("callback wait was not observed");
+        assert!(held && !callback_timed_out.load(Ordering::SeqCst));
+        assert!(
+            started <= waited_at
+                && waited_at < absolute_deadline
+                && absolute_deadline < released_at
+                && released_at <= drop_ended
+        );
+        println!(
+            "PL_DEADLINE_INTERVAL wait_us={} deadline_us={} release_us={} drop_end_us={}",
+            waited_at.duration_since(started).as_micros(),
+            absolute_deadline.duration_since(started).as_micros(),
+            released_at.duration_since(started).as_micros(),
+            drop_ended.duration_since(started).as_micros()
+        );
+    } else {
+        assert!(times.is_none());
+        assert!(!callback_timed_out.load(Ordering::SeqCst));
+    }
     tokio::time::timeout(Duration::from_secs(3), async {
         while !release_thread.is_finished() {
             tokio::task::yield_now().await;
@@ -332,8 +370,9 @@ async fn current_thread_cancel_deadline_probe() {
     release_thread.join().expect("release thread panicked");
     drop(release_on_drop);
     println!(
-        "PL_DEADLINE arm={expected} elapsed_ms={} timer_pending_after_drop={timer_pending_after_drop} callback_wait_confirmed={held} callback_calls={}",
+        "PL_DEADLINE arm={expected} elapsed_ms={} timer_pending_after_drop={timer_pending_after_drop} callback_wait_confirmed={} callback_calls={}",
         elapsed.as_millis(),
+        expected == "candidate",
         calls.load(Ordering::SeqCst)
     );
 }
