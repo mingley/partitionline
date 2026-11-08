@@ -477,6 +477,108 @@ fn durable_addition_activates_new_set_old_majority_cannot_commit_and_restart_pre
 }
 
 #[test]
+fn higher_term_fences_stale_writer_and_checkpoint_includes_new_barrier() -> Result {
+    use std::io::Read;
+
+    let mut group = DynamicGroup::new(3, voter(4)?)?;
+    group.elect(10)?;
+    group.catch_up(1, 11)?;
+    group.catch_up(2, 12)?;
+    let first = group.node(0)?.propose(b"first", 13)?;
+    group.catch_up(1, 14)?;
+    group.catch_up(2, 15)?;
+    let last_data = group.node(0)?.propose(b"second", 16)?;
+    group.catch_up(1, 17)?;
+    group.catch_up(2, 18)?;
+    assert_eq!(first, 2);
+    assert_eq!(last_data, 3);
+    assert_eq!(group.node(0)?.state().committed_end, last_data);
+    let stale = group.node(0)?.state();
+    assert_eq!(stale.election.role, Role::Leader);
+
+    // Node 1 has both data records. Force its real higher-term election.
+    let requests = group.node(1)?.campaign_dynamic(40)?;
+    assert!(!requests.is_empty());
+    for request in requests {
+        let target = group
+            .local
+            .iter()
+            .position(|v| v.key() == request.context.peer)
+            .ok_or("missing vote target")?;
+        let response = group.node(target)?.receive_dynamic_vote(request, 40)?;
+        group.node(1)?.acknowledge_dynamic_vote(response, 40)?;
+    }
+    assert_eq!(group.node(1)?.state().election.role, Role::Leader);
+    let barrier = group.node(1)?.activate_leader(40)?;
+    assert_eq!(barrier, last_data + 1);
+
+    // An earlier valid leader observation cannot authorize a later stale write.
+    let fenced = group.node(0)?.state();
+    assert_ne!(fenced.election.role, Role::Leader);
+    assert!(fenced.election.persistent.term > stale.election.persistent.term);
+    let key = group.key(0);
+    let wal = group
+        .root
+        .join(format!("{}-{}.wal", key.id, hex_bytes(&key.directory)?));
+    let wal_bytes = |path: &std::path::Path| -> Result<Vec<u8>> {
+        let mut bytes = Vec::new();
+        fs::File::open(path)?
+            .take(1024 * 1024 + 1)
+            .read_to_end(&mut bytes)?;
+        if bytes.len() > 1024 * 1024 {
+            return Err("bounded journal".into());
+        }
+        Ok(bytes)
+    };
+    let before = wal_bytes(&wal)?;
+    assert!(matches!(
+        group.node(0)?.propose(b"stale proposal", 41),
+        Err(replication::Error::NotLeader)
+    ));
+    let observer = group.local[3].clone();
+    assert!(matches!(
+        group.node(0)?.probe_addition(observer, 41),
+        Err(replication::Error::NotLeader)
+    ));
+    assert_eq!(wal_bytes(&wal)?, before);
+    assert_eq!(group.node(0)?.state().last_position, fenced.last_position);
+    assert_eq!(group.node(0)?.state().committed_end, fenced.committed_end);
+
+    for target in [0, 2] {
+        let peer = group.key(target);
+        for _ in 0..4 {
+            let request = group.node(1)?.prepare_dynamic(peer, 42)?;
+            let response = group.node(target)?.receive_dynamic(&request, 42)?;
+            group.node(1)?.acknowledge_dynamic(response, 42)?;
+            if group.node(target)?.state().last_position.index == barrier {
+                break;
+            }
+        }
+        assert_eq!(group.node(target)?.state().last_position.index, barrier);
+    }
+    assert_eq!(group.node(1)?.state().committed_end, barrier);
+    let records = group.node(1)?.fetch_committed(1, 4, 4096)?;
+    assert_eq!(records.len(), 4);
+    assert_eq!(records[0].kind, replication::RecordKind::Barrier);
+    assert_eq!((records[1].index, records[1].payload.as_slice()), (first, b"first".as_slice()));
+    assert_eq!((records[2].index, records[2].payload.as_slice()), (last_data, b"second".as_slice()));
+    assert_eq!(records[3].kind, replication::RecordKind::Barrier);
+    assert_eq!(records[3].index, barrier);
+    let image = group.node(1)?.checkpoint([42; 16], 43)?;
+    assert_eq!(image.base.index, barrier);
+    assert_eq!(image.records, 4);
+    assert!(image.base.index > last_data);
+    group.reopen(1, 50)?;
+    assert_eq!(group.node(1)?.selected_snapshot()?, Some(image));
+    assert_eq!(group.node(1)?.fetch_committed(1, 4, 4096)?, records);
+    println!(
+        "RAFT_STALE_LEADER_FENCED last_data={last_data} new_barrier={barrier} checkpoint_base={}",
+        image.base.index
+    );
+    Ok(())
+}
+
+#[test]
 fn stale_genesis_leader_observation_is_fenced_before_proposal_append() -> Result {
     use std::io::Read;
     fn wal_bytes(path: &std::path::Path) -> Result<Vec<u8>> {
