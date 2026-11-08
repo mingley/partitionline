@@ -1,0 +1,85 @@
+name: grouped-journal-negative-controls
+on:
+  push:
+    branches: [qualification/grouped-journal-mutants-20261108]
+permissions:
+  contents: read
+jobs:
+  mutants:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        profile: [default, all]
+    env:
+      CARGO_BUILD_JOBS: '2'
+      CARGO_INCREMENTAL: '0'
+      CARGO_TERM_COLOR: never
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Detect missing queue preallocation
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('partitionline-broker/src/journal.rs')
+          s = p.read_text()
+          old = '        self.staged\n            .try_reserve(1)\n            .map_err(|_| Error::AllocationFailed)?;\n'
+          assert s.count(old) == 1
+          p.write_text(s.replace(old, ''))
+          PY
+          if [ '${{ matrix.profile }}' = all ]; then feature=--all-features; else feature=; fi
+          set +e
+          cargo test --locked --manifest-path partitionline-broker/Cargo.toml --lib $feature grouped_preallocates_index_for_all_staged_writes -- --nocapture > "$RUNNER_TEMP/queue-mutant.log" 2>&1
+          status=$?
+          set -e
+          cat "$RUNNER_TEMP/queue-mutant.log"
+          test "$status" -eq 101
+          grep -q 'test journal::tests::grouped_preallocates_index_for_all_staged_writes ... FAILED' "$RUNNER_TEMP/queue-mutant.log"
+          grep -q 'assertion.*left.*right.*failed' "$RUNNER_TEMP/queue-mutant.log"
+          git checkout HEAD -- partitionline-broker/src/journal.rs
+      - name: Detect incomplete index preallocation
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('partitionline-broker/src/journal.rs')
+          s = p.read_text()
+          old = 'reserve_index(&mut self.index, self.limits.max_index_entries, pending)?;'
+          assert s.count(old) == 1
+          p.write_text(s.replace(old, 'reserve_index(&mut self.index, self.limits.max_index_entries, 1)?;'))
+          PY
+          if [ '${{ matrix.profile }}' = all ]; then feature=--all-features; else feature=; fi
+          set +e
+          cargo test --locked --manifest-path partitionline-broker/Cargo.toml --lib $feature grouped_preallocates_index_for_all_staged_writes -- --nocapture > "$RUNNER_TEMP/index-mutant.log" 2>&1
+          status=$?
+          set -e
+          cat "$RUNNER_TEMP/index-mutant.log"
+          test "$status" -eq 101
+          grep -q 'index capacity 1 is below 2 committed and staged entries' "$RUNNER_TEMP/index-mutant.log"
+          git checkout HEAD -- partitionline-broker/src/journal.rs
+      - name: Detect failure injected after the write
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('partitionline-broker/src/journal.rs')
+          s = p.read_text()
+          hook = '        #[cfg(test)]\n        if self.staged.len() == self.staged.capacity()\n            && STAGED_RESERVE_TEST_ERROR.with(|failure| failure.replace(false))\n        {\n            return Err(Error::AllocationFailed);\n        }\n'
+          after = '        if let Err(error) = self.write_planned(index, payload) {\n            self.poisoned = true;\n            return Err(error);\n        }\n'
+          moved = '        #[cfg(test)]\n        if STAGED_RESERVE_TEST_ERROR.with(|failure| failure.replace(false)) {\n            return Err(Error::AllocationFailed);\n        }\n'
+          assert s.count(hook) == 1 and s.count(after) == 1
+          s = s.replace(hook, '').replace(after, after + moved)
+          p.write_text(s)
+          PY
+          if [ '${{ matrix.profile }}' = all ]; then feature=--all-features; else feature=; fi
+          set +e
+          cargo test --locked --manifest-path partitionline-broker/Cargo.toml --lib $feature grouped_reservation_failures_leave_prior_stage_intact -- --nocapture > "$RUNNER_TEMP/failure-mutant.log" 2>&1
+          status=$?
+          set -e
+          cat "$RUNNER_TEMP/failure-mutant.log"
+          test "$status" -eq 101
+          grep -q 'test journal::tests::grouped_reservation_failures_leave_prior_stage_intact ... FAILED' "$RUNNER_TEMP/failure-mutant.log"
+          grep -q 'assertion.*left.*right.*failed' "$RUNNER_TEMP/failure-mutant.log"
