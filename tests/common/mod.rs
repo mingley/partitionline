@@ -700,6 +700,8 @@ struct State {
     last_describe_delegation_token_version: Option<i16>,
     last_describe_delegation_token: Option<DescribeDelegationTokenRequest>,
     accepted_produce: Vec<i32>,
+    #[cfg(send_all_qualification)]
+    qualification_produce_trace: Vec<(i32, String, i32, i16, Vec<Option<Vec<u8>>>)>,
     produce_requests: Vec<i32>,
     produce_throttles: HashMap<i32, VecDeque<i32>>,
     /// Per-partition batches observed on Produce: (topic, partition, records, encoded bytes).
@@ -1225,6 +1227,8 @@ fn new_state(
         last_describe_delegation_token_version: None,
         last_describe_delegation_token: None,
         accepted_produce: Vec::new(),
+        #[cfg(send_all_qualification)]
+        qualification_produce_trace: Vec::new(),
         produce_requests: Vec::new(),
         produce_throttles: HashMap::new(),
         produce_batches: Vec::new(),
@@ -2549,6 +2553,12 @@ impl Mock {
 
     pub fn produce_nodes(&self) -> Vec<i32> {
         self.state.lock().accepted_produce.clone()
+    }
+
+    /// Qualification-only decoded Produce response and payload trace.
+    #[cfg(send_all_qualification)]
+    pub fn qualification_produce_trace(&self) -> Vec<(i32, String, i32, i16, Vec<Option<Vec<u8>>>)> {
+        self.state.lock().qualification_produce_trace.clone()
     }
 
     pub fn produce_request_nodes(&self) -> Vec<i32> {
@@ -7491,6 +7501,10 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                             st.last_produce_producer_epoch = Some(p.records.producer_epoch);
                             let key = (topic.topic.clone(), p.index);
                             let nrec = p.records.records.len() as i32;
+                            #[cfg(send_all_qualification)]
+                            let qualification_values = p.records.records.iter()
+                                .map(|record| record.value.as_ref().map(|value| value.to_vec()))
+                                .collect::<Vec<_>>();
                             // KL09-14: observe encoded batch sizes for bound tests.
                             let batch_bytes = p.records.size_in_bytes().unwrap();
                             st.produce_batches.push((
@@ -7647,6 +7661,13 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                                     record_errors: Vec::new(),
                                     error_message: None,
                                 });
+                            }
+                            #[cfg(send_all_qualification)]
+                            {
+                                let outcome = parts.last().expect("each partition has a response");
+                                st.qualification_produce_trace.push((
+                                    node_id, topic.topic.clone(), p.index, outcome.error_code, qualification_values,
+                                ));
                             }
                         }
                     }
