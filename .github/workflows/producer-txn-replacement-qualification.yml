@@ -1,0 +1,129 @@
+name: Producer transaction replacement qualification
+
+on:
+  push:
+    branches:
+      - qualification/producer-txn-replacement-20261108
+
+permissions:
+  contents: read
+
+jobs:
+  qualify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    env:
+      CARGO_INCREMENTAL: "0"
+      CARGO_BUILD_JOBS: "2"
+      CARGO_PROFILE_DEV_DEBUG: "0"
+      CARGO_PROFILE_TEST_DEBUG: "0"
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          fetch-depth: 4
+          sparse-checkout: |
+            .cargo
+            src
+            tests
+            examples
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - name: Verify source and host
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(uname -m)" = x86_64
+          test "$(git rev-parse HEAD~3)" = b391a007f3fe76d31e45f50390640c243ab4f393
+          rustc +stable --version --verbose
+          cargo +stable --version
+          test "$(df -Pk . | awk 'NR==2 {print $4}')" -ge 2000000
+          mkdir -p "$RUNNER_TEMP/txn-replacement-logs"
+      - name: Reproduce pre-fix replacement failures
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp src/producer.rs "$RUNNER_TEMP/txn-replacement-candidate.rs"
+          restore() { cp "$RUNNER_TEMP/txn-replacement-candidate.rs" src/producer.rs; }
+          trap restore EXIT
+          python3 - <<'PY'
+          from pathlib import Path
+          path = Path("src/producer.rs")
+          source = path.read_text()
+          start = source.index("async fn replace_txn_coordinator(\n")
+          end = source.index("\nasync fn group_coord_roundtrip(", start)
+          replacement = """async fn replace_txn_coordinator(
+              shared: &Shared,
+              new: CoordinatorConnection,
+              deadline: Instant,
+          ) -> Result<tokio::sync::MutexGuard<'_, Option<CoordinatorConnection>>> {
+              let _deadline = deadline;
+              let mut guard = shared.txn.lock().await;
+              if let Some(previous) = guard.take() {
+                  retire_owned_conn(previous.conn).await;
+              }
+              *guard = Some(new);
+              Ok(guard)
+          }
+          """
+          candidate = source[start:end]
+          assert candidate.count("guard.as_mut()") == 1
+          assert candidate.count("tokio::time::timeout_at") == 2
+          path.write_text(source[:start] + replacement + source[end:])
+          PY
+          baseline() {
+            local name="$1" held="$2" broken="$3" log
+            log="$RUNNER_TEMP/txn-replacement-logs/baseline-$name.log"
+            set +e
+            timeout 300s cargo +stable test --locked --lib "producer::tests::$name" -- --exact --nocapture > "$log" 2>&1
+            local status=$?
+            set -e
+            cat "$log"
+            test "$status" -eq 101
+            grep -F 'running 1 test' "$log"
+            grep -F "$held" "$log"
+            grep -F "$broken" "$log"
+            grep -F 'test result: FAILED. 0 passed; 1 failed;' "$log"
+          }
+          baseline replacement_cancel_retains_closed_coordinator PL_REPLACEMENT_RETIREMENT_HELD PL_REPLACEMENT_CANCEL_EMPTIED_COORDINATOR
+          baseline replacement_timeout_retains_coordinator_and_recovers PL_REPLACEMENT_STREAM_HELD PL_REPLACEMENT_TIMEOUT_BROKEN
+          baseline replacement_wait_for_slot_obeys_deadline PL_REPLACEMENT_SLOT_HELD PL_REPLACEMENT_SLOT_DEADLINE_BROKEN
+          restore
+          trap - EXIT
+          cmp src/producer.rs "$RUNNER_TEMP/txn-replacement-candidate.rs"
+          cargo +stable clean -p partitionline
+      - name: Candidate targeted controls
+        shell: bash
+        run: |
+          set -euo pipefail
+          for mode in default all-features; do
+            flags=()
+            if test "$mode" = all-features; then flags+=(--all-features); fi
+            for name in \
+              replacement_cancel_retains_closed_coordinator \
+              replacement_timeout_retains_coordinator_and_recovers \
+              replacement_wait_for_slot_obeys_deadline \
+              closed_transaction_coordinator_does_not_use_stale_api_versions \
+              closed_transaction_coordinator_rediscovers_for_epoch_bump \
+              txn_roundtrip_times_out_waiting_for_initial_lock \
+              txn_roundtrip_times_out_waiting_for_rediscovery_snapshot_lock
+            do
+              log="$RUNNER_TEMP/txn-replacement-logs/candidate-$mode-$name.log"
+              timeout 300s cargo +stable test --locked "${flags[@]}" --lib "producer::tests::$name" -- --exact --nocapture > "$log" 2>&1 || { cat "$log"; exit 1; }
+              cat "$log"
+              grep -F 'test result: ok. 1 passed;' "$log"
+            done
+          done
+      - name: All-feature library Clippy
+        run: cargo +stable clippy --locked --lib --all-features -- -D warnings
+      - name: Stable format
+        run: cargo +stable fmt --all -- --check
+      - name: Retain qualification logs
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: producer-txn-replacement-${{ github.sha }}
+          path: ${{ runner.temp }}/txn-replacement-logs
+          if-no-files-found: warn
+          retention-days: 30
