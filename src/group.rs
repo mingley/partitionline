@@ -11666,6 +11666,10 @@ mod coordinator_replacement_tests {
         }
         drop(replacement);
         assert!(conn.is_closed());
+        assert!(
+            conn.physically_retired_for_test(),
+            "handshake cancellation must release its I/O guard before retirement"
+        );
         assert_old_versions(&conn);
 
         replace_known_coord(
@@ -11725,6 +11729,10 @@ mod coordinator_replacement_tests {
         }
         drop(replacement);
         assert!(conn.is_closed());
+        assert!(
+            conn.physically_retired_for_test(),
+            "handshake cancellation must release its I/O guard before retirement"
+        );
         assert_old_versions(&conn);
         tokio::time::timeout(Duration::from_secs(3), peer)
             .await

@@ -36,21 +36,38 @@ async fn main() -> Result<(), Box<dyn Error>> {
         }
         Ok::<(), io::Error>(())
     });
-    let mut conn = BrokerConn::connect(&addr.to_string(), "local-lock-probe", Duration::from_secs(5))
-        .await?;
+    let mut conn = BrokerConn::connect(
+        &addr.to_string(),
+        "local-lock-probe",
+        Duration::from_secs(5),
+    )
+    .await?;
     for _ in 0..WARMUP {
         let _response = conn
-            .roundtrip_deadline(3, 0, |_buf| Ok(()), Deadline::from_timeout(Duration::from_secs(5)))
+            .roundtrip_deadline(
+                3,
+                0,
+                |_buf| Ok(()),
+                Deadline::from_timeout(Duration::from_secs(5)),
+            )
             .await?;
     }
     let started = Instant::now();
     for _ in 0..REQUESTS {
         let _response = conn
-            .roundtrip_deadline(3, 0, |_buf| Ok(()), Deadline::from_timeout(Duration::from_secs(5)))
+            .roundtrip_deadline(
+                3,
+                0,
+                |_buf| Ok(()),
+                Deadline::from_timeout(Duration::from_secs(5)),
+            )
             .await?;
     }
-    println!("local_roundtrip requests={REQUESTS} elapsed_ns={}", started.elapsed().as_nanos());
+    println!(
+        "local_roundtrip requests={REQUESTS} elapsed_ns={}",
+        started.elapsed().as_nanos()
+    );
     drop(conn);
-    tokio::time::timeout(Duration::from_secs(5), peer).await??;
+    tokio::time::timeout(Duration::from_secs(5), peer).await???;
     Ok(())
 }

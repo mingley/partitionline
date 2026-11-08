@@ -312,9 +312,10 @@ async fn offset_replacement(api: i16, uuid_request: bool, fail_first_request: bo
 
     let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
     let addr = listener.local_addr().unwrap().to_string();
-    let mut coord = crate::net::BrokerConn::connect(&addr, "idle-offset-replace", Duration::from_secs(3))
-        .await
-        .unwrap();
+    let mut coord =
+        crate::net::BrokerConn::connect(&addr, "idle-offset-replace", Duration::from_secs(3))
+            .await
+            .unwrap();
     let (mut first, _) = listener.accept().await.unwrap();
     if api == OFFSET_FETCH {
         coord.offset_fetch_version = if uuid_request { 10 } else { 9 };
@@ -367,7 +368,10 @@ async fn offset_replacement(api: i16, uuid_request: bool, fail_first_request: bo
         Duration::from_nanos(1)
     };
     tokio::task::yield_now().await;
-    assert_eq!(coord.idle_expired(cfg.connections_max_idle), !fail_first_request);
+    assert_eq!(
+        coord.idle_expired(cfg.connections_max_idle),
+        !fail_first_request
+    );
     let mut prior = HashMap::new();
     let mut encoded = Vec::new();
     if uuid_request {
@@ -389,7 +393,10 @@ async fn offset_replacement(api: i16, uuid_request: bool, fail_first_request: bo
         )
         .await;
         assert!(matches!(result, Err(Error::Unsupported(_))), "{result:?}");
-        assert!(encoded.is_empty(), "a UUID request cannot be re-encoded as v9");
+        assert!(
+            encoded.is_empty(),
+            "a UUID request cannot be re-encoded as v9"
+        );
     } else {
         let (version, body) = coord_offsets_legacy(
             &mut coord,
@@ -475,12 +482,14 @@ async fn typed_idle_replacement(api: i16) {
         let (header, body) = read_request(&mut socket).await;
         assert_eq!((header.api_key, header.api_version), (api, 8));
         if api == OFFSET_FETCH {
-            let request = decode_offset_fetch_request_data(&body, 8, OffsetLimits::default()).unwrap();
+            let request =
+                decode_offset_fetch_request_data(&body, 8, OffsetLimits::default()).unwrap();
             assert_eq!(request.groups.len(), 1);
             assert_eq!(request.groups[0].group_id, "retry");
             assert!(request.require_stable);
         } else {
-            let request = decode_offset_commit_request_data(&body, 8, OffsetLimits::default()).unwrap();
+            let request =
+                decode_offset_commit_request_data(&body, 8, OffsetLimits::default()).unwrap();
             assert_eq!(request.group_id, "retry");
             assert_eq!(request.generation_id_or_member_epoch, 3);
             assert_eq!(request.member_id, "member");

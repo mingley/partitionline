@@ -1746,6 +1746,13 @@ impl BrokerConn {
         retired
     }
 
+    #[cfg(test)]
+    pub(crate) fn physically_retired_for_test(&self) -> bool {
+        self.stream
+            .try_lock()
+            .is_ok_and(|io| matches!(&*io, ConnIo::Closed))
+    }
+
     /// Retire before opening a replacement, within the operation deadline.
     /// A canceled or timed-out attempt leaves the slot closed and its watcher
     /// responsible for physical retirement.
@@ -3409,7 +3416,10 @@ mod tests {
         let mut retiring =
             Box::pin(conn.retire_physical_deadline(Deadline::from_timeout(Duration::from_secs(2))));
         let first = std::future::poll_fn(|cx| Poll::Ready(retiring.as_mut().poll(cx))).await;
-        assert!(first.is_pending(), "retirement should wait for the held lock");
+        assert!(
+            first.is_pending(),
+            "retirement should wait for the held lock"
+        );
         drop(retiring);
         assert!(conn.is_closed());
         drop(held);
@@ -3529,7 +3539,10 @@ mod tests {
         assert!(first.is_pending());
         retirement.store(true, Ordering::SeqCst);
         drop(held);
-        assert!(stream.try_lock().is_err(), "the waiter must reserve the permit");
+        assert!(
+            stream.try_lock().is_err(),
+            "the waiter must reserve the permit"
+        );
         drop(watch);
         assert!(matches!(&*stream.try_lock().unwrap(), ConnIo::Closed));
         assert_retired_peer(&mut peer).await;
@@ -3561,11 +3574,7 @@ mod tests {
             held_tx.send(()).unwrap();
             std::future::pending::<()>().await;
         };
-        let task = tokio::spawn(guard_idle_watch(
-            Arc::clone(&stream),
-            retirement,
-            watcher,
-        ));
+        let task = tokio::spawn(guard_idle_watch(Arc::clone(&stream), retirement, watcher));
         conn.idle_watch = task.abort_handle();
         held_rx.await.unwrap();
         assert!(!conn.try_retire_physical());
@@ -3630,7 +3639,10 @@ mod tests {
         let (mut peer, _) = listener.accept().await.unwrap();
         conn.close();
         assert_retired_peer(&mut peer).await;
-        assert!(!conn.idle_watch.is_finished(), "watcher must still be draining");
+        assert!(
+            !conn.idle_watch.is_finished(),
+            "watcher must still be draining"
+        );
 
         let stream = Arc::clone(&conn.stream);
         let held = stream.lock().await;
