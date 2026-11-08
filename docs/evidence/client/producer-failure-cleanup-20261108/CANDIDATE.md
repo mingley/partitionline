@@ -16,15 +16,17 @@ still be sent. The first panic on normal execution is resumed after the rest
 of the batch is settled; secondary panics and panics during cancellation
 cleanup are contained. A panic in one interceptor still skips the remaining
 interceptors in that chain for that record, as before. If copying an
-`Error::Io` panics in its underlying formatter, the result falls back to a
-protocol error and the panic follows the same rule. Accounting changes are
-marked complete before notifications invoke task wakers.
+`Error::Io` panics in its underlying formatter, the result falls back to an
+I/O error with the original kind and the panic follows the same rule.
+Accounting changes are marked complete before notifications invoke task wakers.
 
 Normal callback processing yields between 8,192-record chunks. This is a
 record-count bound, not a bound on time spent scanning headers or running
 callbacks. Whole-batch sticky retirement remains synchronous. Cancellation
-Drop must synchronously settle the remaining suffix; an indefinitely blocking
-callback can therefore block it, and `panic=abort` cannot be caught. Handling
+Drop runs callbacks synchronously on the thread dropping the future, which may
+be outside a Tokio runtime; it must settle the remaining suffix before
+returning. An indefinitely blocking callback can therefore block it, and
+`panic=abort` cannot be caught. Handling
 a panicking waker does not prove that every other waiter was woken.
 
 This owner begins at the helper or batch-wrapper call boundary. It does not

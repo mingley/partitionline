@@ -77,14 +77,14 @@ async fn assert_timeouts(receivers: Vec<oneshot::Receiver<Result<RecordMetadata>
 struct CountErrors(Arc<AtomicUsize>);
 impl crate::interceptor::ProducerInterceptor for CountErrors {
     fn on_error(&self, _: &Error) {
-        self.0.fetch_add(1, Ordering::SeqCst);
+        let _ = self.0.fetch_add(1, Ordering::SeqCst);
     }
 }
 
 struct PanicErrors(Arc<AtomicUsize>);
 impl crate::interceptor::ProducerInterceptor for PanicErrors {
     fn on_error(&self, _: &Error) {
-        self.0.fetch_add(1, Ordering::SeqCst);
+        let _ = self.0.fetch_add(1, Ordering::SeqCst);
         panic!("failure interceptor");
     }
 }
@@ -216,7 +216,7 @@ async fn error_clone_unwind_still_reports_and_releases_all_records() {
     drop(panic);
     drop(cleanup);
     for receiver in receivers {
-        assert!(matches!(receiver.await, Ok(Err(Error::Protocol(_)))));
+        assert!(matches!(receiver.await, Ok(Err(Error::Io(error))) if error.kind() == std::io::ErrorKind::Other));
     }
     assert_eq!(budget.used.load(Ordering::SeqCst), 0);
     assert_eq!(shared.buffered_bytes.load(Ordering::SeqCst), 0);

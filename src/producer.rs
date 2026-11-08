@@ -11451,6 +11451,10 @@ fn fail_kept_pendings_sync(
 type CleanupPanic = Box<dyn std::any::Any + Send>;
 
 /// Discard a secondary panic even if its user-defined payload panics on drop.
+#[expect(
+    clippy::mem_forget,
+    reason = "Dropping a secondary panic payload can panic while already unwinding."
+)]
 fn discard_cleanup_panic(payload: CleanupPanic) {
     if let Err(nested) = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| drop(payload))) {
         std::mem::forget(nested);
@@ -11546,11 +11550,11 @@ impl FailureCleanup {
 
     /// Settle one record, preserving the first user-code panic for the caller.
     fn complete_one(&mut self) -> Option<CleanupPanic> {
+        let error = self.error.as_ref()?;
         let mut pending = self.remaining.pop_front()?;
         if !self.one_topic {
             self.shared.note_errors(&pending.rec.topic, 1);
         }
-        let error = self.error.as_ref().expect("failure cleanup has an error");
         let mut first = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
             self.shared.interceptors.on_error(error);
         }))
@@ -11562,7 +11566,10 @@ impl FailureCleanup {
                 Ok(error) => error,
                 Err(payload) => {
                     retain_first_cleanup_panic(&mut first, payload);
-                    Error::protocol("failed to copy delivery error")
+                    match error {
+                        Error::Io(io) => Error::Io(std::io::Error::from(io.kind())),
+                        _ => Error::protocol("failed to copy delivery error"),
+                    }
                 }
             };
             // oneshot::send may synchronously wake a user-provided waker.
