@@ -1,0 +1,94 @@
+name: Admin existing fairness controls
+on:
+  push:
+    branches:
+      - work/admin-existing-fairness-20261108
+permissions:
+  contents: read
+jobs:
+  compare:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 3
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Build instrumented baseline and candidate
+        shell: bash
+        run: |
+          set -euo pipefail
+          rustc -Vv
+          lscpu | grep -E 'Model name|CPU\(s\)'
+          cp src/admin.rs "$RUNNER_TEMP/candidate-admin.rs"
+          git show HEAD~2:src/admin.rs > "$RUNNER_TEMP/baseline-admin.rs"
+          for arm in baseline candidate; do
+            cp "$RUNNER_TEMP/$arm-admin.rs" src/admin.rs
+            ARM="$arm" python3 - <<'PY'
+          from pathlib import Path
+          import os
+          p=Path('src/admin.rs')
+          s=p.read_text()
+          if os.environ['ARM']=='baseline':
+              needle='mod offsets;\n'
+              assert s.count(needle)==1
+              s=s.replace(needle,needle+'#[cfg(test)]\nmod pagination_tests;\n',1)
+          for marker,label in [('extending described topics held the caller for {elapsed:?}','extend'),('indexing described producers held the caller for {elapsed:?}','producers')]:
+              anchor='        let elapsed = started.elapsed();\n        assert!(\n            elapsed < std::time::Duration::from_millis(80),\n            "'+marker
+              assert s.count(anchor)==1
+              replacement='        let elapsed = started.elapsed();\n        println!("DIAG '+label+' elapsed_ns={}", elapsed.as_nanos());\n        assert!(\n            elapsed < std::time::Duration::from_millis(80),\n            "'+marker
+              s=s.replace(anchor,replacement,1)
+          p.write_text(s)
+          PY
+            sha256sum src/admin.rs src/admin/pagination_tests.rs Cargo.lock
+            for profile in default all; do
+              args=()
+              if [ "$profile" = all ]; then args+=(--all-features); fi
+              target="$RUNNER_TEMP/$arm-$profile-target"
+              CARGO_TARGET_DIR="$target" cargo test --locked --lib "${args[@]}" --no-run
+              bins=()
+              for f in "$target"/debug/deps/partitionline-*; do
+                if [ -f "$f" ] && [ -x "$f" ]; then bins+=("$f"); fi
+              done
+              test "${#bins[@]}" = 1
+              cp "${bins[0]}" "$RUNNER_TEMP/$arm-$profile-binary"
+              sha256sum "$RUNNER_TEMP/$arm-$profile-binary"
+            done
+          done
+          for profile in default all; do
+            test "$(sha256sum "$RUNNER_TEMP/baseline-$profile-binary" | cut -d' ' -f1)" != "$(sha256sum "$RUNNER_TEMP/candidate-$profile-binary" | cut -d' ' -f1)"
+          done
+      - name: Alternating test observations
+        shell: bash
+        run: |
+          set -euo pipefail
+          printf 'profile,pair,test,arm,exit,elapsed_ns\n' > "$RUNNER_TEMP/observations.csv"
+          for profile in default all; do
+            for pair in $(seq 1 4); do
+              if [ $((pair % 2)) -eq 1 ]; then order=(baseline candidate); else order=(candidate baseline); fi
+              for test in extending_many_described_topics_does_not_hold_the_caller indexing_many_described_producers_does_not_hold_the_caller; do
+                for arm in "${order[@]}"; do
+                  set +e
+                  out=$("$RUNNER_TEMP/$arm-$profile-binary" --exact "admin::tests::$test" --nocapture 2>&1)
+                  rc=$?
+                  set -e
+                  printf '%s\n' "$out"
+                  ns=$(printf '%s\n' "$out" | sed -n 's/.*DIAG [a-z]* elapsed_ns=\([0-9]*\).*/\1/p')
+                  test -n "$ns"
+                  test "$rc" -eq 0 || test "$rc" -eq 101
+                  printf '%s,%s,%s,%s,%s,%s\n' "$profile" "$pair" "$test" "$arm" "$rc" "$ns" >> "$RUNNER_TEMP/observations.csv"
+                done
+              done
+            done
+          done
+          cat "$RUNNER_TEMP/observations.csv"
+          python3 - "$RUNNER_TEMP/observations.csv" <<'PY'
+          import csv,sys
+          rows=list(csv.DictReader(open(sys.argv[1])))
+          for profile in ('default','all'):
+              for test in sorted({r['test'] for r in rows}):
+                  for arm in ('baseline','candidate'):
+                      group=[r for r in rows if (r['profile'],r['test'],r['arm'])==(profile,test,arm)]
+                      assert len(group)==4
+                      print(profile,test,arm,'elapsed_ns',','.join(r['elapsed_ns'] for r in group),'failures',sum(r['exit']!='0' for r in group))
+          PY
