@@ -1,0 +1,52 @@
+name: Interval poll cancellation diagnostic
+
+on:
+  push:
+    branches: [diagnostic/interval-poll-cancel-v2-20261108]
+
+permissions:
+  contents: read
+
+jobs:
+  nontransactional-cancel:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      CARGO_BUILD_JOBS: '2'
+      CARGO_INCREMENTAL: '0'
+      CARGO_PROFILE_DEV_DEBUG: '0'
+      CARGO_PROFILE_TEST_DEBUG: '0'
+      CARGO_TERM_COLOR: never
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: 3a552f074e330a417f47b2d3c28e729b69dfd212
+          fetch-depth: 2
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Run the nontransactional cancellation control
+        shell: bash
+        run: |
+          set -euo pipefail
+          ulimit -c 0
+          test "$(uname -m)" = x86_64
+          test "$(git rev-parse HEAD)" = 3a552f074e330a417f47b2d3c28e729b69dfd212
+          test "$(git rev-parse HEAD^)" = 264322ff430b0594f4c3864e53dcd832de2a930b
+          test "$(git diff --name-only HEAD^ HEAD)" = tests/group_auto_commit_cancel.rs
+          test -z "$(git status --porcelain --untracked-files=normal)"
+          test -z "${RUST_MIN_STACK:-}"
+          test -z "${RUSTFLAGS:-}"
+          rustc -Vv
+          sha256sum src/group.rs tests/group_auto_commit_cancel.rs
+          set +e
+          cargo +stable test --locked --test group_auto_commit_cancel cancelled_interval_commit_poll_redelivers_fetched_record -- --exact --nocapture 2>&1 | tee "${RUNNER_TEMP}/cancel-control.log"
+          status=${PIPESTATUS[0]}
+          set -e
+          if test "$status" -eq 0; then
+            echo "PL_CANCEL_CONTROL_PASS"
+          elif test "$status" -eq 101 && grep -Fq "a cancelled poll must redeliver the second record" "${RUNNER_TEMP}/cancel-control.log"; then
+            echo "PL_CANCEL_DEFECT_REPRODUCED"
+          else
+            echo "PL_CANCEL_INCONCLUSIVE: unexpected exit $status"
+            exit 1
+          fi
