@@ -2,10 +2,10 @@
 
 The goals are a production-ready Kafka client and broker, the protocol
 behavior this repository commits to, and leading performance at the same
-Kafka settings. [tasks.json](https://github.com/mingley/partitionline/blob/main/docs/plan/tasks.json) is the queue: one card, its
+Kafka settings. [tasks.json](https://github.com/mingley/partitionline/blob/380b1816502e0e26dd148d3051703406e78891df/docs/plan/tasks.json) is the queue: one card, its
 dependencies, the files it starts from, and the check that closes it.
 [TODO.md](https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/TODO.md) is the short launch order. It is not a second status
-list. The [task workflow](https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/docs/plan/README.md) says how to pick a card.
+list. The [task workflow](https://github.com/mingley/partitionline/blob/380b1816502e0e26dd148d3051703406e78891df/docs/plan/README.md) says how to pick a card.
 
 The KL packages below are scope and closing gates. They are not one session
 of work. The numbers in the scorecard are proposed targets. They are not
@@ -24,8 +24,7 @@ Baseline: [cb7e97d](https://github.com/mingley/partitionline/tree/cb7e97d3b92a85
 audited **2026-09-21**. Read the [source audit](https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/docs/audits/2026-09-21.md) for
 frozen source locations, upstream pins, reproduced failures and coverage limits.
 The exact-SHA [CI run 33948193731](https://github.com/mingley/partitionline/actions/runs/33948193731)
-has 14 successful jobs, with actual broker identities checked. Existing CI
-is useful and green; it does not exercise every required behavior.
+has 14 successful jobs, with actual broker identities checked. That audited CI run passed; it did not exercise every required behavior.
 
 Five deterministic consumer cases failed at that baseline: whole-batch seek filtering,
 committed records after an earlier abort under the same PID, preserving
@@ -109,8 +108,7 @@ Each package may require several small PRs. Existing commands below are
 building blocks, **not proof that new acceptance criteria already pass**.
 New harnesses must be added and wired into CI before their package can close.
 Use the corresponding `KL01-*` through `KL10-*` cards in
-[tasks.json](https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/docs/plan/tasks.json). One session takes one ready card, not a
-whole numbered package.
+[tasks.json](https://github.com/mingley/partitionline/blob/380b1816502e0e26dd148d3051703406e78891df/docs/plan/tasks.json). Work can span related ready cards; retain evidence for each.
 
 ### KL-01: Recover the baseline and establish protocol oracles
 
@@ -421,9 +419,9 @@ version bump is implied by finishing a feature checklist.
 **Depends on:** KL-04 contract and result format; KL-03 for consumer
 optimizations; KL-04 campaigns before any claim.
 
-The [performance leadership program](https://github.com/mingley/partitionline/blob/main/docs/plan/performance-leadership.md) holds
+The [performance leadership program](https://github.com/mingley/partitionline/blob/380b1816502e0e26dd148d3051703406e78891df/docs/plan/performance-leadership.md) holds
 the strategy, hot-path map, and worker protocol. Status is
-[tasks.json](https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/docs/plan/tasks.json). 51 of 74 KL09 cards are done. KL09-13,
+[tasks.json](https://github.com/mingley/partitionline/blob/380b1816502e0e26dd148d3051703406e78891df/docs/plan/tasks.json). 51 of 74 KL09 cards are done. KL09-13,
 ranking the hotspot hypotheses, is in progress. Suite HOLD remains. The
 hot-path notes on that page name the pending cards. Do not read an older
 blob of either file as the current queue.
@@ -465,7 +463,7 @@ codec benchmarks; KL-05 for zstd.
 
 The [gateway adoption plan](https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/docs/plan/gateway-adoption.md) holds the profile,
 the dated evidence and the card map. Cards are KL10-01 through KL10-17 in
-[tasks.json](https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/docs/plan/tasks.json).
+[tasks.json](https://github.com/mingley/partitionline/blob/380b1816502e0e26dd148d3051703406e78891df/docs/plan/tasks.json).
 
 1. Restore a green `main`: the verifiable contract tests must find the
    example binaries they run (KL10-01). This card is done.
@@ -506,7 +504,7 @@ marks ready. Independent replay of the consumer histories is still KL01-22.
 | Alongside, specifications | KL01-01: conformance registry. KL02-01: resource contract. KL04-01: benchmark contract. KL05-01: feature matrix. | Independent fixtures, bounds, comparable peer drivers, and one-feature cards. |
 
 Read one ready card and the evidence it names. Long evidence runs are
-resumable jobs. The handoff rules are in the [task workflow](https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/docs/plan/README.md).
+resumable jobs. The handoff rules are in the [task workflow](https://github.com/mingley/partitionline/blob/380b1816502e0e26dd148d3051703406e78891df/docs/plan/README.md).
 
 Existing proof entry points (from the repository root):
 

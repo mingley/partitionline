@@ -20,6 +20,18 @@ ignored per profile, plus strict checks, inventory and fuzz supervision. Both
 selected capability profiles passed; their archives were not independently
 inspected.
 
+A later [partial main run](../evidence/releases/main-ci-a0ad-partial-20261108/README.md)
+at `a0ad79d` failed the Linux default library and three Kafka compatibility
+jobs; five other jobs were canceled. Its instruction and allocation gates
+failed before measurement because the codec benchmark lockfile was stale.
+The broker passed its default suite but stopped in the all-feature library at
+534 passed, one failed and four ignored; later broker checks did not run.
+Both selected capability profiles passed.
+
+The following [client run](https://github.com/mingley/partitionline/actions/runs/42492934484)
+at `258e376` failed its package adopter check on unpinned roadmap links. The
+links are now pinned; the rest of that run was still in progress when recorded.
+
 An earlier [partial main run](../evidence/releases/main-ci-f5ed-partial-20261108/README.md)
 passed the broker suites; Linux and Windows client libraries and three Kafka
 compatibility jobs failed. The macOS and both Kafka smoke jobs were later
