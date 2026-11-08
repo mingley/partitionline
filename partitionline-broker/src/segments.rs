@@ -37,6 +37,11 @@ const CHECKPOINT_BYTES: usize = 24;
 const EMPTY_TIME: i64 = i64::MIN;
 
 #[cfg(test)]
+thread_local! {
+    static SORT_CLEANUP_FOR_TEST: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
+}
+
+#[cfg(test)]
 fn initial_crash_point(phase: &str) {
     if std::env::var("PLB_SEGMENT_INITIAL_CRASH").ok().as_deref() == Some(phase) {
         std::process::exit(73);
@@ -1621,6 +1626,10 @@ impl Log {
             }
             names.push(name);
         }
+        #[cfg(test)]
+        if SORT_CLEANUP_FOR_TEST.with(|sort| sort.replace(false)) {
+            names.sort();
+        }
         for name in names {
             if name == MANIFEST {
                 continue;
@@ -3021,6 +3030,31 @@ mod tests {
             "PL_REPLACEMENT_CORRUPTION old_verified=true replacement_initially_identical=true acknowledged=2 selected_generation={} reopen_error={error:?} old_after=false",
             selected.generation
         );
+        Ok(())
+    }
+
+    #[test]
+    fn unknown_entry_after_staging_removes_staging_before_failing_open(
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        let temp = Temp::new()?;
+        let path = temp.0.join("log");
+        let (mut log, _) = open(&path)?;
+        assert_eq!(log.append(1, &payload(0))?.first_offset, 0);
+        drop(log);
+        fs::write(path.join(MANIFEST_TEMP), b"retained staging bytes")?;
+        fs::write(path.join("zzz-unknown"), b"user-owned bytes")?;
+        let before = initial_snapshot(&path)?;
+        retain_replacement_snapshot("unknown-before", &path, b"one append acknowledged\n")?;
+        SORT_CLEANUP_FOR_TEST.with(|sort| sort.set(true));
+        assert!(matches!(open(&path), Err(Error::InvalidLayout)));
+        assert!(!path.join(MANIFEST_TEMP).try_exists()?);
+        assert_eq!(fs::read(path.join("zzz-unknown"))?, b"user-owned bytes");
+        assert_eq!(
+            before.iter().find(|(name, _)| name == MANIFEST_TEMP).map(|(_, bytes)| bytes.as_slice()),
+            Some(&b"retained staging bytes"[..])
+        );
+        retain_replacement_snapshot("unknown-after", &path, b"one append acknowledged\n")?;
+        println!("PL_CLEANUP_UNKNOWN known_staging_removed=true unknown_preserved=true acknowledged=1");
         Ok(())
     }
 
