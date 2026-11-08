@@ -194,9 +194,11 @@ struct DeadlineCallback {
 impl crate::interceptor::ProducerInterceptor for DeadlineCallback {
     fn on_error(&self, _: &Error) {
         let _ = self.calls.fetch_add(1, Ordering::SeqCst);
-        let _sent = self.entered.send(true);
         let (released, changed) = &*self.latch;
         let mut released = released.lock();
+        // The release thread must acquire this lock after entry, proving that
+        // this callback reached Condvar::wait before its hold interval starts.
+        let _sent = self.entered.send(true);
         while !*released {
             changed.wait(&mut released);
         }
@@ -236,11 +238,16 @@ async fn current_thread_cancel_deadline_probe() {
         // Always release even on a timeout or panic before the callback enters.
         let release_at_exit = ReleaseDeadlineLatch(latch);
         let held = if matches!(signal_rx.recv_timeout(Duration::from_secs(3)), Ok(true)) {
+            let (released, _) = &*release_at_exit.0;
+            // Acquiring this lock proves that the callback has entered wait.
+            let mut released = released.lock();
             let (_delay_tx, delay_rx) = std::sync::mpsc::channel::<()>();
-            matches!(
+            let held = matches!(
                 delay_rx.recv_timeout(Duration::from_millis(600)),
                 Err(std::sync::mpsc::RecvTimeoutError::Timeout)
-            )
+            );
+            *released = true;
+            held
         } else {
             false
         };
@@ -325,7 +332,7 @@ async fn current_thread_cancel_deadline_probe() {
     release_thread.join().expect("release thread panicked");
     drop(release_on_drop);
     println!(
-        "PL_DEADLINE arm={expected} elapsed_ms={} timer_pending_after_drop={timer_pending_after_drop} callback_calls={}",
+        "PL_DEADLINE arm={expected} elapsed_ms={} timer_pending_after_drop={timer_pending_after_drop} callback_wait_confirmed={held} callback_calls={}",
         elapsed.as_millis(),
         calls.load(Ordering::SeqCst)
     );
