@@ -1,7 +1,7 @@
-name: sendall no-added-yield Apache Kafka history
+name: sendall corrected-source Apache Kafka history
 on:
   push:
-    branches: [qualification/sendall-no-yield-real-20261108]
+    branches: [qualification/sendall-docfix-real-20261108]
   workflow_dispatch:
 permissions:
   contents: read
@@ -17,7 +17,7 @@ jobs:
           set -euo pipefail
           mkdir -p evidence
           git rev-parse HEAD | tee evidence/commit.txt
-          test "$(git rev-parse HEAD:src/producer.rs)" = 650e34cca0cfa0bee9825ffc7d7da86514e28a31
+          test "$(git rev-parse HEAD:src/producer.rs)" = 31bdaf849244026b3d64334b1429f676d8d4e755
           git rev-parse HEAD:src/producer.rs HEAD:tests/sendall_real_kafka.rs HEAD:tests/verify_sendall_real_kafka.py | tee evidence/source-blobs.txt
           sha256sum src/producer.rs tests/sendall_real_kafka.rs tests/verify_sendall_real_kafka.py Cargo.lock | tee evidence/source-sha256.txt
           rustc -Vv | tee evidence/rust.txt
@@ -25,9 +25,9 @@ jobs:
       - name: Start fresh Apache Kafka
         run: |
           set -euo pipefail
-          docker pull apache/kafka:3.9.1
-          docker image inspect apache/kafka:3.9.1 --format '{{.Architecture}} {{.Os}} {{.Id}} {{json .RepoDigests}}' | tee evidence/image.txt
-          docker run -d --name sendall-kafka -p 9092:9092 apache/kafka:3.9.1
+          docker pull apache/kafka@sha256:4ceccc577f03f51f6af8dbfda55194d0d892f4fa7913ffbded567ce3895622ed
+          docker image inspect apache/kafka@sha256:4ceccc577f03f51f6af8dbfda55194d0d892f4fa7913ffbded567ce3895622ed --format '{{.Architecture}} {{.Os}} {{.Id}} {{json .RepoDigests}}' | tee evidence/image.txt
+          docker run -d --name sendall-kafka -p 9092:9092 apache/kafka@sha256:4ceccc577f03f51f6af8dbfda55194d0d892f4fa7913ffbded567ce3895622ed
           ready=0
           for i in $(seq 1 90); do
             if docker exec sendall-kafka /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --list >evidence/startup.out 2>evidence/startup.err; then
@@ -71,6 +71,6 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: sendall-no-yield-real-kafka-history
+          name: sendall-docfix-real-kafka-history
           path: evidence
           retention-days: 30
