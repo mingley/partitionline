@@ -10,19 +10,28 @@ Production readiness and fastest-client/server claims remain unqualified.
 Client 0.1.0 is already published. The next client version must be at least
 0.2.0; broker and schema publication remain disabled.
 
-The latest complete recorded main [CI snapshot](../evidence/releases/main-ci-47d-20261108/README.md)
-is `47df27f9f3e04fc524849f3a9753c0b0469f8947`. Client libraries reported
-2,229 passed and 15 failed on Linux default, 2,222 passed and 22 failed with
-all features, 2,226 passed and 18 failed on Windows, and 2,229 passed and
-15 failed on macOS arm64. Three Kafka compatibility jobs and both smoke jobs
-failed; resource-soak passed. Broker CI passed 779 default and 927 all-feature
-tests, with four ignored per profile, plus strict checks, inventory and fuzz
-supervision. Both selected capability profiles passed; their archives were not
-independently inspected.
+The latest complete recorded main [CI snapshot](../evidence/releases/main-ci-070-20261108/README.md)
+is `0708730155d869ab4fa52654a2e95d4013c4e594`. Client libraries reported
+2,234 passed and 20 failed on Linux default, 2,232 passed and 22 failed with
+all features, and 2,237 passed and 17 failed on each of Windows and macOS
+arm64. Three Kafka compatibility jobs and both smoke jobs failed; resource-soak
+passed. Broker CI stopped at 702 default tests passed, one failed and four
+ignored after a five-node observer-addition request returned `NotLeader`.
+The all-feature suite and later strict checks did not run in that job; inventory
+and fuzz supervision passed separately. Both selected capability profiles
+passed; their archives were not independently inspected.
 
-The [preceding snapshot](../evidence/releases/main-ci-118-20261108/README.md)
+The [preceding snapshot](../evidence/releases/main-ci-47d-20261108/README.md)
+failed client checks and passed both broker profiles before the Admin change.
+
+An [earlier snapshot](../evidence/releases/main-ci-118-20261108/README.md)
 also failed client checks and passed broker checks; it preceded the frame-read
-change.
+change. The [broker failure note](../evidence/broker/main-ci-070-partial-20261108/README.md)
+retains the later non-atomic samples; they do not establish the cause. An
+[observer-selection review](../evidence/broker/observer-selection-20261108/README.md)
+shows that the test keeps a separately sampled node across operations, and a
+forced in-process control shows a ready follower refusing a distinct addition.
+That control did not recreate the CI failure or establish its cause.
 
 An [earlier snapshot](../evidence/releases/main-ci-c7-20261108/README.md)
 also failed client checks and passed broker checks. These source commits differ
@@ -787,6 +796,14 @@ controls](https://github.com/mingley/partitionline/actions/runs/42130958330)
 passed 45 generic and 27 benchmark/shell tests. Full benchmark replay still
 requires the original journals and offset fence, and eight-million-record
 memory and runtime remain unmeasured.
+An isolated [send_all fast-path experiment](../evidence/perf/sendall-yield-perf-20261108/README.md)
+reduced a 4,096-record mock first poll from about 1.18 seconds to about
+1.1 ms on one shared x86 runner. It changed zero-linger batching from one
+batch to three, left an 8,192-record fallback cliff, and added a cancellation
+point where a caller-owned blocking destructor delayed the runtime. The
+yielding candidate remains unapplied; a separate no-added-yield version is
+under qualification. These are scoped mock results, not Kafka throughput.
+
 The producer's pending queue can rescan deadlines and shift a vector on each
 small batch, creating quadratic work when a long queue drains one record at a
 time. Replica epoch publication rewrites the journal on epoch changes. Measure
