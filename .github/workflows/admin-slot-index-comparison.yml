@@ -1,0 +1,124 @@
+name: Admin slot-index paired mock comparison
+on:
+  push:
+    branches: [qualification/admin-dtp-slot-comparison-20261108]
+permissions:
+  contents: read
+jobs:
+  compare:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 50
+    env:
+      CARGO_INCREMENTAL: '0'
+      CARGO_TERM_COLOR: never
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: 97a0757a3e5ab8777b147876305ab854b1faf675
+          path: baseline
+      - uses: actions/checkout@v7
+        with:
+          ref: 1d69db922dc3990540d57e7e66a710d75fcb396f
+          path: candidate
+      - uses: actions/checkout@v7
+        with:
+          path: driver
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Pin sources, identical fixture, compiler and host
+        run: |
+          set -euo pipefail
+          test "$(git -C baseline rev-parse HEAD:src/admin.rs)" = 3125c234259c87d1bc4a89d0cd0734d124529bea
+          test "$(git -C baseline rev-parse HEAD:src/admin/pagination_tests.rs)" = f18e87db6a6eab6d33a05288fe1d39817b9c2388
+          test "$(git -C candidate rev-parse HEAD:src/admin.rs)" = 8c2f94353e04c2925b1bfaf8478285190dd317d7
+          test "$(git -C candidate rev-parse HEAD:src/admin/pagination_tests.rs)" = c47052f9405a1261ac79fb1965ec86d46edc2265
+          test "$(git -C driver rev-parse HEAD:qualification/admin_slot_index_bench.rs)" = ea89fb501223e09a0ce8ea4bda7e4cb9b98954f6
+          mkdir -p evidence/samples evidence/warmups
+          for arm in baseline candidate; do
+            git -C "$arm" rev-parse HEAD HEAD:src/admin.rs HEAD:src/admin/pagination_tests.rs HEAD:Cargo.toml HEAD:Cargo.lock
+            sha256sum "$arm/src/admin.rs" "$arm/src/admin/pagination_tests.rs" "$arm/Cargo.toml" "$arm/Cargo.lock"
+            cp driver/qualification/admin_slot_index_bench.rs "$arm/src/admin/slot_index_bench.rs"
+            printf '\ninclude!("slot_index_bench.rs");\n' >> "$arm/src/admin/pagination_tests.rs"
+            sha256sum "$arm/src/admin/slot_index_bench.rs" "$arm/src/admin/pagination_tests.rs"
+          done
+          cmp baseline/src/admin/slot_index_bench.rs candidate/src/admin/slot_index_bench.rs
+          rustc -Vv
+          cargo -V
+          lscpu
+          if test -r /sys/fs/cgroup/cpu.max; then cat /sys/fs/cgroup/cpu.max; else echo 'cpu.max unavailable'; fi
+          cargo tree --locked --manifest-path candidate/Cargo.toml -e features -i hashbrown@0.17.1
+      - name: Build independently and verify binary provenance
+        run: |
+          set -euo pipefail
+          for arm in baseline candidate; do
+            CARGO_TARGET_DIR="$PWD/target-$arm" cargo test --locked --manifest-path "$arm/Cargo.toml" --release --lib dtp_public_slot_index_witness --no-run
+            mapfile -t bins < <(find "$PWD/target-$arm/release/deps" -maxdepth 1 -type f -executable -name 'partitionline-*')
+            test "${#bins[@]}" -eq 1
+            printf '%s\n' "${bins[0]}" > "evidence/$arm.binary-path"
+            sha256sum "${bins[0]}" | tee "evidence/$arm.binary-sha256"
+          done
+          test "$(cut -d' ' -f1 evidence/baseline.binary-sha256)" != "$(cut -d' ' -f1 evidence/candidate.binary-sha256)"
+      - name: Alternate verified public mock calls and collect peak process RSS
+        run: |
+          set -euo pipefail
+          run_one() {
+            local arm="$1" kind="$2" rows="$3" unique="$4" iteration="$5" folder="$6"
+            local prefix="evidence/$folder/${kind}_${rows}_${unique}_${iteration}_${arm}"
+            local executable
+            executable="$(cat "evidence/$arm.binary-path")"
+            printf '%s,%s,%s,%s,%s\n' "$arm" "$kind" "$rows" "$unique" "$iteration" > "$prefix.meta"
+            timeout 200 /usr/bin/time -f 'MAX_RSS_KB=%M USER_SECONDS=%U SYSTEM_SECONDS=%S ELAPSED_SECONDS=%e' -o "$prefix.resource" env \
+              PL_ROW_PUBLIC_COUNT="$rows" PL_ROW_UNIQUE="$unique" PL_ROW_PUBLIC_KIND="$kind" \
+              "$executable" --exact admin::pagination_tests::dtp_public_slot_index_witness --nocapture --test-threads=1 > "$prefix.log" 2>&1 || { cat "$prefix.log"; cat "$prefix.resource"; return 1; }
+            grep -F 'test result: ok. 1 passed; 0 failed;' "$prefix.log" >/dev/null
+            test "$(grep -c 'ROW_SLOT rows=' "$prefix.log")" = 1
+          }
+          for n in 1 2; do
+            run_one baseline empty 32 32 "$n" warmups
+            run_one candidate empty 32 32 "$n" warmups
+          done
+          for kind in empty error; do
+            for spec in 1:1:21 32:32:21 256:256:21 8191:8191:5 8192:8192:5 8193:8193:5 100000:100000:5 500000:500000:3 8192:32:5 100000:32:5; do
+              IFS=: read -r rows unique repetitions <<< "$spec"
+              for ((n=1;n<=repetitions;n++)); do
+                if ((n % 2)); then arms=(baseline candidate); else arms=(candidate baseline); fi
+                for arm in "${arms[@]}"; do run_one "$arm" "$kind" "$rows" "$unique" "$n" samples; done
+                echo "completed kind=$kind rows=$rows unique=$unique pair=$n"
+              done
+            done
+          done
+      - name: Summarize and retain all per-call results
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import csv
+          import statistics
+          rows = []
+          for p in sorted(Path('evidence/samples').glob('*.log')):
+              arm, kind, count, unique, iteration = p.with_suffix('.meta').read_text().strip().split(',')
+              lines = [line for line in p.read_text().splitlines() if 'ROW_SLOT rows=' in line]
+              assert len(lines) == 1, (p, lines)
+              vals = dict(x.split('=', 1) for x in lines[0].split('ROW_SLOT ', 1)[1].split())
+              resources = dict(x.split('=', 1) for x in p.with_suffix('.resource').read_text().split())
+              assert (vals['kind'], vals['rows'], vals['unique']) == (kind, count, unique)
+              rows.append(dict(arm=arm, kind=kind, count=int(count), unique=int(unique), iteration=int(iteration), **{k: int(v) for k,v in vals.items() if k not in ('kind','rows','unique','ready_after_write')}, max_rss_kb=int(resources['MAX_RSS_KB']), user_seconds=resources['USER_SECONDS'], system_seconds=resources['SYSTEM_SECONDS'], process_elapsed_seconds=resources['ELAPSED_SECONDS']))
+          assert len(rows) == 404, len(rows)
+          with open('evidence/samples.csv', 'w', newline='') as f:
+              writer = csv.DictWriter(f, fieldnames=list(rows[0]))
+              writer.writeheader()
+              writer.writerows(rows)
+          for kind in ('empty','error'):
+              for count, unique in ((1,1),(32,32),(256,256),(8191,8191),(8192,8192),(8193,8193),(100000,100000),(500000,500000),(8192,32),(100000,32)):
+                  groups = {arm:[r for r in rows if (r['arm'],r['kind'],r['count'],r['unique']) == (arm,kind,count,unique)] for arm in ('baseline','candidate')}
+                  assert len(groups['baseline']) == len(groups['candidate']) > 0
+                  for metric in ('total_ns','max_pending_after_write_ns','ready_poll_ns','max_rss_kb'):
+                      a=statistics.median(r[metric] for r in groups['baseline'])
+                      b=statistics.median(r[metric] for r in groups['candidate'])
+                      print(f"{kind} rows={count} unique={unique} n={len(groups['baseline'])} {metric} baseline_median={a} candidate_median={b} ratio={b/a if a else 'n/a'}")
+          PY
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: admin-slot-index-paired-mock
+          path: evidence/
+          retention-days: 30
