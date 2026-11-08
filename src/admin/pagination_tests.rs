@@ -1342,10 +1342,13 @@ async fn dtp_public_row_growth_poll_witness() {
         assert_eq!(row.error_code, error);
         assert!(row.partitions.is_empty());
         assert_eq!(row.authorized_operations, AUTHORIZED_OPERATIONS_OMITTED);
+        let mut expected_id = [0; 16];
         if error == 0 {
-            assert_eq!(&row.topic_id[..8], &(i as u64).to_be_bytes());
-            assert_eq!(row.topic_id[15], 7);
+            expected_id[..8].copy_from_slice(&(i as u64).to_be_bytes());
+            expected_id[15] = 7;
         }
+        assert_eq!(row.topic_id, expected_id);
+        assert!(!row.is_internal);
     }
     let events = DTP_TRACE_EVENTS.with(|events| events.borrow().clone());
     assert_eq!(std::hint::black_box(&result).len(), count);
@@ -1375,6 +1378,13 @@ async fn dtp_public_row_growth_poll_witness() {
         ready_events.0,
         ready_events.1,
     );
+    for (calibration_index, event) in calibration.iter().enumerate() {
+        println!(
+            "DTP_CALIBRATION rows={count} kind={kind} prealloc={prealloc} index={calibration_index} phase={} elapsed_ns={}",
+            event.kind,
+            event.elapsed_ns,
+        );
+    }
     for (event_index, event) in events.iter().enumerate() {
         println!(
             "DTP_EVENT rows={count} kind={kind} prealloc={prealloc} index={event_index} phase={} len={} before={} after={} elapsed_ns={} hash_fingerprint={} in_max_pending={} in_ready={}",
