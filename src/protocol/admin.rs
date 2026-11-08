@@ -20831,7 +20831,7 @@ fn put_compact_i32s(buf: &mut BytesMut, items: &[i32]) -> crate::error::Result<(
 
 fn get_compact_i32s<B: Buf>(buf: &mut B) -> Result<Vec<i32>> {
     let n = buf::get_array_len(buf, true)?.unwrap_or(0);
-    let mut out = Vec::with_capacity(n);
+    let mut out = response_vec(n);
     for _ in 0..n {
         out.push(buf::get_i32(buf)?);
     }
@@ -20852,7 +20852,7 @@ fn get_compact_nullable_i32s<B: Buf>(buf: &mut B) -> Result<Option<Vec<i32>>> {
     let Some(n) = buf::get_array_len(buf, true)? else {
         return Ok(None);
     };
-    let mut out = Vec::with_capacity(n);
+    let mut out = response_vec(n);
     for _ in 0..n {
         out.push(buf::get_i32(buf)?);
     }
@@ -21148,14 +21148,14 @@ pub fn decode_describe_topic_partitions_response<B: Buf>(
 ) -> Result<DescribeTopicPartitionsResponse> {
     let throttle_time_ms = buf::get_i32(buf)?;
     let n = buf::get_array_len(buf, true)?.unwrap_or(0);
-    let mut topics = Vec::with_capacity(n);
+    let mut topics = response_vec(n);
     for _ in 0..n {
         let error_code = buf::get_i16(buf)?;
         let name = buf::get_compact_string(buf)?;
         let topic_id = buf::get_uuid(buf)?;
         let is_internal = buf::get_bool(buf)?;
         let pn = buf::get_array_len(buf, true)?.unwrap_or(0);
-        let mut partitions = Vec::with_capacity(pn);
+        let mut partitions = response_vec(pn);
         for _ in 0..pn {
             let error_code = buf::get_i16(buf)?;
             let partition_index = buf::get_i32(buf)?;
@@ -21207,7 +21207,7 @@ pub async fn decode_describe_topic_partitions_response_cooperative<B: Buf>(
 ) -> Result<DescribeTopicPartitionsResponse> {
     let throttle_time_ms = buf::get_i32(buf)?;
     let n = buf::get_array_len(buf, true)?.unwrap_or(0);
-    let mut topics = Vec::with_capacity(n);
+    let mut topics = response_vec(n);
     let mut walked = 0usize;
     for _ in 0..n {
         let error_code = buf::get_i16(buf)?;
@@ -21215,7 +21215,7 @@ pub async fn decode_describe_topic_partitions_response_cooperative<B: Buf>(
         let topic_id = buf::get_uuid(buf)?;
         let is_internal = buf::get_bool(buf)?;
         let pn = buf::get_array_len(buf, true)?.unwrap_or(0);
-        let mut partitions = Vec::with_capacity(pn);
+        let mut partitions = response_vec(pn);
         for _ in 0..pn {
             let error_code = buf::get_i16(buf)?;
             let partition_index = buf::get_i32(buf)?;
