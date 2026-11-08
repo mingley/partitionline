@@ -141,8 +141,10 @@ latency bound.
   shortened scoped mock polls, but its [combined qualification][sendall-combined]
   failed 17 of 45 mock-producer tests in each profile; their cause is unknown.
   It remains unapplied. A separate [buffered-frame candidate][frame-classify]
-  regressed a scoped TCP/TLS loopback workload and remains unapplied. The
-  frame-read change reduced work per poll but slowed a scoped
+  regressed a scoped TCP/TLS loopback workload and remains unapplied. New
+  [test-only controls][frame-regression] check buffered cancellation and
+  invalid lengths on the existing path. The frame-read change reduced work
+  per poll but slowed a scoped
   256 KiB loopback test by about 2% over TCP and 1.6% over TLS/TCP. In a
   [follow-up][frame-followup] the TCP result changed direction on a different
   runner. These measurements do not rank Kafka implementations.
@@ -157,7 +159,7 @@ retained evidence. The [benchmark contract](benchmark-contract.md) and
 [ci]: https://github.com/mingley/partitionline/blob/ec1bd5191b0410df771838574f8bbff752fb31c0/docs/evidence/releases/main-ci-d257-20261108/README.md
 [ci-262]: https://github.com/mingley/partitionline/blob/cb55f7c603e2344775de8a395c6a584737f5bb95/docs/evidence/releases/main-ci-262-20261108/README.md
 [ci-02c]: https://github.com/mingley/partitionline/blob/0ce81683fe7107386e30f388cd2a4af31735d522/docs/evidence/releases/main-ci-02c-20261108/README.md
-[next]: https://github.com/mingley/partitionline/blob/ec1bd5191b0410df771838574f8bbff752fb31c0/docs/plan/next-work.md
+[next]: https://github.com/mingley/partitionline/blob/41ba724701109a935856e9a9343edd6a474360d8/docs/plan/next-work.md
 [flush-public]: https://github.com/mingley/partitionline/blob/f93e91499e2ba6bdc88c0a25a0d83b8737d00d3c/docs/evidence/client/producer-flush-public-20261108/README.md
 [flush-sent]: https://github.com/mingley/partitionline/blob/efa7f23314e98f3aaa4559c3cf38302bdcdb9fb4/docs/evidence/client/producer-flush-sent-20261108/README.md
 [owner-design]: https://github.com/mingley/partitionline/blob/cb55f7c603e2344775de8a395c6a584737f5bb95/docs/evidence/client/producer-ownership-design-20261108/README.md
@@ -196,4 +198,6 @@ retained evidence. The [benchmark contract](benchmark-contract.md) and
 [sendall-combined]: https://github.com/mingley/partitionline/blob/ec1bd5191b0410df771838574f8bbff752fb31c0/docs/evidence/client/send-all-combined-qualification-20261108/README.md
 
 [sequence-model]: https://github.com/mingley/partitionline/blob/ec1bd5191b0410df771838574f8bbff752fb31c0/docs/evidence/client/producer-sequence-ledger-model-20261108/README.md
-[frame-classify]: https://github.com/mingley/partitionline/blob/ec1bd5191b0410df771838574f8bbff752fb31c0/docs/evidence/broker/frame-classification-20261108/README.md
+[frame-classify]: https://github.com/mingley/partitionline/blob/41ba724701109a935856e9a9343edd6a474360d8/docs/evidence/broker/frame-classification-20261108/README.md
+
+[frame-regression]: https://github.com/mingley/partitionline/blob/41ba724701109a935856e9a9343edd6a474360d8/docs/evidence/broker/frame-read-regression-tests-20261108/README.md
