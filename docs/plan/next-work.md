@@ -10,16 +10,16 @@ Production readiness and fastest-client/server claims remain unqualified.
 Client 0.1.0 is already published. The next client version must be at least
 0.2.0; broker and schema publication remain disabled.
 
-The latest completed main [CI snapshot](../evidence/releases/main-ci-3f45-20261106/README.md)
-is `3f45fe6255e72abc6b0c4488bc13117779c50787`. The Linux client
-library reported 2,180 passed/16 failed by default and 2,170/26 with all
-features; Windows default reported 2,170/26 and macOS arm64 default 2,181/15.
-The Kafka 4.1.2, 4.2.1 and 4.3.1 compatibility jobs overflowed after the
-classic-join marker; 3.9.1 and 4.1.0 smoke jobs failed after EOS timeouts.
-The broker passed 734 default and 882 all-feature tests, both capability
-profiles passed their selected checks, and all 11 resource-soak driver
-controls passed. The capability archives were not independently inspected.
-These results do not cover later changes or close the release gates.
+The latest completed main [CI snapshot](../evidence/releases/main-ci-8b5-20261108/README.md)
+is `8b5de2e2cfe5f3164a5f89546804ab36c1771ade`. Both Linux client library
+profiles reported 2,181 passed and 18 failed; Windows default reported
+2,184/15 and macOS arm64 default 2,185/14. Kafka 4.1.2, 4.2.1 and 4.3.1
+overflowed after the classic-join marker; 3.9.1 and 4.1.0 smoke jobs failed
+after EOS timeouts. The broker default Fetch suite reported 25 passes and one
+failure; its all-feature suite did not run. The prior broker run passed both
+profiles. Both client capability profiles passed selected checks; their
+archives were not independently inspected. These results do not cover later
+changes or close the release gates.
 
 Earlier records:
 
@@ -145,8 +145,10 @@ remain open.
    [coverage candidate](../evidence/client/add-partitions-coverage-20261103/README.md)
    checks request identities and error precedence. Its [hosted focused run](../evidence/client/add-partitions-native-4f0c-20261103/README.md)
    reproduced both baseline witnesses and passed the candidate controls in
-   both feature profiles, plus formatting and library Clippy. It is not
-   applied; real Kafka, concurrent transaction ordering, request-side
+   both feature profiles, plus formatting and library Clippy. One
+   [single-node Kafka 3.9.1 transaction](https://github.com/mingley/partitionline/actions/runs/42438994537)
+   also passed with the candidate. It is not applied; real failure recovery,
+   concurrent transaction ordering, error-state races, request-side
    cancellation and performance remain open. The
    [first hosted attempt](https://github.com/mingley/partitionline/actions/runs/41674599283)
    failed before starting a job and used the same unsupported workflow context;
@@ -162,13 +164,14 @@ remain open.
    record unresolved cleanup, cancellation, transaction and liveness choices;
    the sketch and small abstract model are not an implementation.
    The [transaction lock fix](../evidence/client/txn-lock-deadline-20261108/README.md)
-   includes the initial and rediscovery-snapshot lock waits in the request
-   budget. Both baseline witnesses reproduced the timeout failures, and six
-   candidate controls per feature profile passed on x86 with stable Rust. The final replacement lock,
-   retirement, response decoding and portions of discovery remain outside a
-   complete deadline. Cancellation during replacement can leave the coordinator
-   slot empty, and concurrent discoveries can install a stale result. The
-   transaction error flags and stored cause also have unqualified races.
+   includes the initial and rediscovery-snapshot waits in the request budget.
+   The later [replacement fix](../evidence/client/txn-replacement-20261108/README.md)
+   keeps the old coordinator owned during cancellation and bounds the final
+   lock and retirement waits. It passed focused mock controls and a Kafka
+   3.9.1 happy-path comparison. Response decoding, parts of discovery and
+   epoch-bump waiting still exceed a complete deadline; concurrent
+   discoveries can install a stale result, and transaction error-state
+   transitions need further work.
    Source review also found that repeated `begin_transaction` clears the open
    transaction's partition tracking. After an abortable failure, cancellation
    during identity recovery can clear the bump flag before a replacement
@@ -260,6 +263,11 @@ remain open.
    records those prerequisites; neither the authority nor the guard exists.
 
 ## Validation and performance
+
+An isolated [transaction decode experiment](../evidence/client/txn-decode-20261108/README.md)
+reduced loopback latency for larger responses on one shared x86 runner. It
+is not applied: coverage, error precedence, cancellation and fairness need a
+combined implementation and new measurements before any performance claim.
 
 Run clean-commit client, broker and schema default/all-feature suites,
 all-target strict Clippy, formatting, rustdoc, package consumers and independent

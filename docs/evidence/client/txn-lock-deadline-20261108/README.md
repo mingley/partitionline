@@ -28,10 +28,12 @@ passed its baseline witnesses and five default candidate controls, then
 failed because an exact test filter matched zero tests. The final run used
 the correct module and required one selected test per invocation.
 
-This is not an end-to-end transaction deadline. Response decoding, parts of
-discovery, coordinator retirement and the final replacement lock can still
-exceed the request budget. Cancellation during replacement can leave the
-shared coordinator empty, and concurrent rediscoveries can replace a newer
-connection with an older result. Epoch recovery, transaction error-state
-races, real Kafka failure recovery and performance remain open. Tokio
-scheduling also affects when a ready timeout is observed.
+At the tested revision, this was not an end-to-end transaction deadline.
+Response decoding, parts of discovery, coordinator retirement and the final
+replacement lock could still exceed the request budget. Cancellation during
+replacement could leave the shared coordinator empty. The later
+[replacement fix](../txn-replacement-20261108/README.md) addresses those last
+two waits and preserves the slot during retirement. Concurrent rediscoveries,
+epoch recovery, transaction error-state races, real Kafka failure recovery
+and performance remain open. Tokio scheduling also affects when a ready
+timeout is observed.

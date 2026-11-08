@@ -5151,6 +5151,9 @@ async fn init_producer_id_roundtrip(
     let mut rediscover = false;
     let mut transport_retry_used = false;
     loop {
+        if txn_id.is_some() && txn.as_ref().is_none_or(|coord| coord.conn.is_closed()) {
+            rediscover = true;
+        }
         if rediscover {
             let tid = txn_id
                 .as_deref()
@@ -5625,14 +5628,22 @@ async fn txn_roundtrip(
         let mut guard = tokio::time::timeout(timeout_remaining(deadline)?, shared.txn.lock())
             .await
             .map_err(|_| Error::Timeout)?;
-        let conn = guard
-            .as_mut()
-            .ok_or_else(|| Error::protocol("no transaction coordinator"))?;
-        require_coord_version(conn, api_key, api_version)?;
-        let remaining = timeout_remaining(deadline)?;
-        conn.conn
-            .roundtrip(api_key, api_version, |buf| encode_body(buf), remaining)
-            .await
+        let _remaining = timeout_remaining(deadline)?;
+        match guard.as_mut() {
+            Some(conn) if !conn.conn.is_closed() => {
+                require_coord_version(conn, api_key, api_version)?;
+                let _remaining = timeout_remaining(deadline)?;
+                conn.conn
+                    .roundtrip_deadline(
+                        api_key,
+                        api_version,
+                        |buf| encode_body(buf),
+                        crate::net::Deadline::from_std(deadline),
+                    )
+                    .await
+            }
+            _ => Err(Error::Closed),
+        }
     };
     match first {
         Ok(body) if !error::coordinator_retriable(error_of(&body).await?) => return Ok(body),
@@ -5680,19 +5691,42 @@ async fn txn_roundtrip(
         .await?
     };
     remember_produce_keys(shared, new.conn.addr(), &new.keys);
-    let remaining = timeout_remaining(deadline)?;
-    let mut guard = shared.txn.lock().await;
-    if let Some(previous) = guard.take() {
-        retire_owned_conn(previous.conn).await;
-    }
-    *guard = Some(new);
+    require_coord_version(&new, api_key, api_version)?;
+    let mut guard = replace_txn_coordinator(shared, new, deadline).await?;
     let conn = guard
         .as_mut()
         .ok_or_else(|| Error::protocol("no transaction coordinator"))?;
-    require_coord_version(conn, api_key, api_version)?;
     conn.conn
-        .roundtrip(api_key, api_version, |buf| encode_body(buf), remaining)
+        .roundtrip_deadline(
+            api_key,
+            api_version,
+            |buf| encode_body(buf),
+            crate::net::Deadline::from_std(deadline),
+        )
         .await
+}
+
+/// Keep the old coordinator owned until its terminal shutdown completes.
+/// Cancellation leaves it closed in the slot, allowing a later rediscovery.
+async fn replace_txn_coordinator(
+    shared: &Shared,
+    new: CoordinatorConnection,
+    deadline: Instant,
+) -> Result<tokio::sync::MutexGuard<'_, Option<CoordinatorConnection>>> {
+    let limit = tokio::time::Instant::from_std(deadline);
+    let mut guard = tokio::time::timeout_at(limit, shared.txn.lock())
+        .await
+        .map_err(|_| Error::Timeout)?;
+    let _remaining = timeout_remaining(deadline)?;
+    if let Some(previous) = guard.as_mut() {
+        previous.conn.close();
+        tokio::time::timeout_at(limit, previous.conn.release_if_closed())
+            .await
+            .map_err(|_| Error::Timeout)?;
+    }
+    let _remaining = timeout_remaining(deadline)?;
+    *guard = Some(new);
+    Ok(guard)
 }
 
 async fn group_coord_roundtrip(
@@ -11530,6 +11564,544 @@ fn record_metadata(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    struct ThirdLockFixture {
+        shared: Arc<Shared>,
+        listener: tokio::net::TcpListener,
+        meta_peer: tokio::net::TcpStream,
+        old_peer: tokio::net::TcpStream,
+        new_peer: tokio::net::TcpStream,
+        new: CoordinatorConnection,
+        release: oneshot::Sender<()>,
+        holder: tokio::task::JoinHandle<()>,
+    }
+
+    async fn third_lock_coordinator(
+        listener: &tokio::net::TcpListener,
+        name: &str,
+    ) -> (CoordinatorConnection, tokio::net::TcpStream) {
+        let addr = listener.local_addr().unwrap().to_string();
+        let conn = BrokerConn::connect(&addr, name, Duration::from_secs(2))
+            .await
+            .unwrap();
+        let (peer, _) = listener.accept().await.unwrap();
+        (
+            CoordinatorConnection {
+                conn,
+                init_producer_id_version: Some(3),
+                keys: vec![ApiVersion {
+                    api_key: ADD_PARTITIONS_TO_TXN,
+                    min_version: 0,
+                    max_version: 0,
+                }],
+            },
+            peer,
+        )
+    }
+
+    async fn third_lock_fixture() -> ThirdLockFixture {
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap().to_string();
+        let meta = BrokerConn::connect(&addr, "third-meta", Duration::from_secs(2))
+            .await
+            .unwrap();
+        let (meta_peer, _) = listener.accept().await.unwrap();
+        let (old, old_peer) = third_lock_coordinator(&listener, "third-old").await;
+        let (new, new_peer) = third_lock_coordinator(&listener, "third-new").await;
+        let (acquired_tx, acquired_rx) = oneshot::channel();
+        let (release, release_rx) = oneshot::channel();
+        let holder = tokio::spawn(old.conn.test_hold_stream(acquired_tx, release_rx));
+        acquired_rx.await.unwrap();
+        let shared = test_shared(ProducerConfig::default().transactional_id("third"), meta);
+        *shared.txn.lock().await = Some(old);
+        ThirdLockFixture {
+            shared,
+            listener,
+            meta_peer,
+            old_peer,
+            new_peer,
+            new,
+            release,
+            holder,
+        }
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn replacement_cancel_retains_closed_coordinator() {
+        use std::task::Poll;
+
+        let fixture = third_lock_fixture().await;
+        let ThirdLockFixture {
+            shared,
+            listener: _listener,
+            meta_peer: _meta_peer,
+            old_peer: _old_peer,
+            new_peer: _new_peer,
+            new,
+            release,
+            holder,
+        } = fixture;
+        let mut call = Box::pin(replace_txn_coordinator(
+            &shared,
+            new,
+            Instant::now() + Duration::from_secs(5),
+        ));
+        let pending = std::future::poll_fn(|cx| {
+            Poll::Ready(std::future::Future::poll(call.as_mut(), cx).is_pending())
+        })
+        .await;
+        assert!(pending);
+        assert!(shared.txn.try_lock().is_err());
+        println!("PL_REPLACEMENT_RETIREMENT_HELD");
+        drop(call);
+        let guard = shared.txn.lock().await;
+        assert!(
+            guard.as_ref().is_some_and(|coord| coord.conn.is_closed()),
+            "PL_REPLACEMENT_CANCEL_EMPTIED_COORDINATOR"
+        );
+        drop(guard);
+        assert!(release.send(()).is_ok());
+        holder.await.unwrap();
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn replacement_timeout_retains_coordinator_and_recovers() {
+        use tokio::io::{AsyncReadExt, AsyncWriteExt};
+
+        let fixture = third_lock_fixture().await;
+        let ThirdLockFixture {
+            shared,
+            listener,
+            meta_peer: _meta_peer,
+            old_peer: _old_peer,
+            new_peer: _new_peer,
+            new,
+            release,
+            holder,
+        } = fixture;
+        println!("PL_REPLACEMENT_STREAM_HELD");
+        let result = tokio::time::timeout(
+            Duration::from_secs(4),
+            replace_txn_coordinator(&shared, new, Instant::now() + Duration::from_millis(200)),
+        )
+        .await;
+        assert!(
+            matches!(result, Ok(Err(Error::Timeout))),
+            "PL_REPLACEMENT_TIMEOUT_BROKEN"
+        );
+        let guard = shared.txn.lock().await;
+        assert!(
+            guard.as_ref().is_some_and(|coord| coord.conn.is_closed()),
+            "PL_REPLACEMENT_TIMEOUT_EMPTIED_COORDINATOR"
+        );
+        drop(guard);
+        assert!(release.send(()).is_ok());
+        holder.await.unwrap();
+
+        let (next, mut peer) = third_lock_coordinator(&listener, "third-recovered").await;
+        let guard = replace_txn_coordinator(&shared, next, Instant::now() + Duration::from_secs(3))
+            .await
+            .unwrap();
+        assert!(guard.as_ref().is_some_and(|coord| !coord.conn.is_closed()));
+        drop(guard);
+        let server_stop = Arc::new(Notify::new());
+        let server_done = Arc::clone(&server_stop);
+        let server = tokio::spawn(async move {
+            let len = peer.read_i32().await.unwrap();
+            assert!((8..=4096).contains(&len));
+            let mut request = vec![0; usize::try_from(len).unwrap()];
+            let _read = peer.read_exact(&mut request).await.unwrap();
+            peer.write_i32(4).await.unwrap();
+            peer.write_all(&request[4..8]).await.unwrap();
+            server_done.notified().await;
+        });
+        let body = txn_roundtrip(
+            &shared,
+            ADD_PARTITIONS_TO_TXN,
+            0,
+            |_| Ok(()),
+            Duration::from_secs(3),
+            |_| Box::pin(async { Ok(0) }),
+        )
+        .await
+        .unwrap();
+        assert!(body.is_empty());
+        server_stop.notify_one();
+        server.await.unwrap();
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn replacement_wait_for_slot_obeys_deadline() {
+        let fixture = third_lock_fixture().await;
+        let ThirdLockFixture {
+            shared,
+            listener: _listener,
+            meta_peer: _meta_peer,
+            old_peer: _old_peer,
+            new_peer: _new_peer,
+            new,
+            release,
+            holder,
+        } = fixture;
+        let guard = shared.txn.lock().await;
+        println!("PL_REPLACEMENT_SLOT_HELD");
+        let result = tokio::time::timeout(
+            Duration::from_secs(4),
+            replace_txn_coordinator(&shared, new, Instant::now() + Duration::from_millis(200)),
+        )
+        .await;
+        assert!(
+            matches!(result, Ok(Err(Error::Timeout))),
+            "PL_REPLACEMENT_SLOT_DEADLINE_BROKEN"
+        );
+        assert!(guard.as_ref().is_some_and(|coord| !coord.conn.is_closed()));
+        drop(guard);
+        assert!(release.send(()).is_ok());
+        holder.await.unwrap();
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn closed_transaction_coordinator_does_not_use_stale_api_versions() {
+        let fixture = third_lock_fixture().await;
+        let ThirdLockFixture {
+            shared,
+            listener: _listener,
+            meta_peer: _meta_peer,
+            old_peer: _old_peer,
+            new_peer: _new_peer,
+            new: _new,
+            release,
+            holder,
+        } = fixture;
+        {
+            let mut guard = shared.txn.lock().await;
+            let old = guard.as_mut().unwrap();
+            old.keys.clear();
+            old.conn.close();
+        }
+        let result = txn_roundtrip(
+            &shared,
+            ADD_PARTITIONS_TO_TXN,
+            0,
+            |_| Ok(()),
+            Duration::from_secs(2),
+            |_| Box::pin(async { Ok(0) }),
+        )
+        .await;
+        assert!(
+            matches!(result, Err(Error::Unsupported(message)) if message.contains("transaction discovery requires")),
+            "closed coordinator reused stale API versions"
+        );
+        assert!(release.send(()).is_ok());
+        holder.await.unwrap();
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn closed_transaction_coordinator_rediscovers_for_epoch_bump() {
+        let fixture = third_lock_fixture().await;
+        let ThirdLockFixture {
+            shared,
+            listener: _listener,
+            meta_peer: _meta_peer,
+            old_peer: _old_peer,
+            new_peer: _new_peer,
+            new: _new,
+            release,
+            holder,
+        } = fixture;
+        let mut guard = shared.txn.lock().await;
+        let old = guard.as_mut().unwrap();
+        old.init_producer_id_version = None;
+        old.conn.close();
+        let result = init_producer_id_roundtrip(
+            &shared.cfg,
+            &mut guard,
+            None,
+            3,
+            None,
+            (7, 0),
+            &[],
+            &HashMap::new(),
+            Instant::now() + Duration::from_secs(2),
+        )
+        .await;
+        assert!(
+            matches!(result, Err(Error::Unsupported(message)) if message.contains("transaction discovery requires")),
+            "closed coordinator reused stale InitProducerId versions"
+        );
+        drop(guard);
+        assert!(release.send(()).is_ok());
+        holder.await.unwrap();
+    }
+
+    struct ThirdDiscoveryMock {
+        addr: String,
+        finds: Arc<AtomicUsize>,
+        adds: Arc<AtomicUsize>,
+        inits: Arc<AtomicUsize>,
+        old_closed: Arc<Notify>,
+        stop: oneshot::Sender<()>,
+        server: tokio::task::JoinHandle<()>,
+    }
+
+    async fn third_discovery_mock(retry_first_add: bool) -> ThirdDiscoveryMock {
+        use tokio::io::{AsyncReadExt, AsyncWriteExt};
+
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let address = listener.local_addr().unwrap();
+        let finds = Arc::new(AtomicUsize::new(0));
+        let adds = Arc::new(AtomicUsize::new(0));
+        let inits = Arc::new(AtomicUsize::new(0));
+        let old_closed = Arc::new(Notify::new());
+        let finds_task = Arc::clone(&finds);
+        let adds_task = Arc::clone(&adds);
+        let inits_task = Arc::clone(&inits);
+        let closed_task = Arc::clone(&old_closed);
+        let (stop, mut stop_rx) = oneshot::channel();
+        let server = tokio::spawn(async move {
+            let mut clients = tokio::task::JoinSet::new();
+            let mut accepted = 0_usize;
+            loop {
+                tokio::select! {
+                    _ = &mut stop_rx => break,
+                    accepted_socket = listener.accept() => {
+                        let (mut socket, _) = accepted_socket.unwrap();
+                        let initial = accepted == 0;
+                        accepted += 1;
+                        let finds = Arc::clone(&finds_task);
+                        let adds = Arc::clone(&adds_task);
+                        let inits = Arc::clone(&inits_task);
+                        let closed = Arc::clone(&closed_task);
+                        let _handler = clients.spawn(async move {
+                            loop {
+                                let len = match socket.read_i32().await {
+                                    Ok(len) => len,
+                                    Err(_) => break,
+                                };
+                                assert!((8..=65_536).contains(&len));
+                                let mut frame = vec![0; usize::try_from(len).unwrap()];
+                                if socket.read_exact(&mut frame).await.is_err() {
+                                    break;
+                                }
+                                let mut input = frame.as_slice();
+                                let header = crate::protocol::header::decode_request_header(&mut input).unwrap();
+                                let mut body = BytesMut::new();
+                                match header.api_key {
+                                    crate::protocol::api_keys::API_VERSIONS => {
+                                        use crate::protocol::api::{encode_api_versions_response, ApiVersionsResponse};
+                                        let versions = ApiVersionsResponse {
+                                            error_code: 0,
+                                            api_keys: vec![
+                                                ApiVersion { api_key: FIND_COORDINATOR, min_version: 1, max_version: 1 },
+                                                ApiVersion { api_key: ADD_PARTITIONS_TO_TXN, min_version: 0, max_version: 0 },
+                                                ApiVersion { api_key: INIT_PRODUCER_ID, min_version: 3, max_version: 3 },
+                                            ],
+                                            throttle_time_ms: 0,
+                                            supported_features: Vec::new(),
+                                            finalized_features_epoch: None,
+                                            finalized_features: Vec::new(),
+                                            zk_migration_ready: false,
+                                        };
+                                        encode_api_versions_response(&mut body, header.api_version, &versions).unwrap();
+                                    }
+                                    FIND_COORDINATOR => {
+                                        let _old = finds.fetch_add(1, Ordering::SeqCst);
+                                        crate::protocol::group::encode_find_coordinator_response(
+                                            &mut body,
+                                            header.api_version,
+                                            1,
+                                            "127.0.0.1",
+                                            i32::from(address.port()),
+                                            "third",
+                                        ).unwrap();
+                                    }
+                                    ADD_PARTITIONS_TO_TXN => {
+                                        use crate::protocol::txn::{decode_add_partitions_to_txn_request, encode_add_partitions_to_txn_response};
+                                        let (tid, pid, epoch, topics) =
+                                            decode_add_partitions_to_txn_request(&mut input, header.api_version).unwrap();
+                                        assert_eq!((tid.as_str(), pid, epoch), ("third", 7, 1));
+                                        assert_eq!(topics.len(), 1);
+                                        assert_eq!(topics[0].topic, "events");
+                                        assert_eq!(topics[0].partitions, vec![0]);
+                                        let call = adds.fetch_add(1, Ordering::SeqCst);
+                                        let error = if retry_first_add && call == 0 {
+                                            error::NOT_COORDINATOR
+                                        } else {
+                                            0
+                                        };
+                                        encode_add_partitions_to_txn_response(&mut body, header.api_version, &topics, error).unwrap();
+                                    }
+                                    INIT_PRODUCER_ID => {
+                                        use crate::protocol::idem::{decode_init_producer_id_request, encode_init_producer_id_response};
+                                        let (tid, _timeout, pid, epoch) =
+                                            decode_init_producer_id_request(&mut input, header.api_version).unwrap();
+                                        assert_eq!(tid.as_deref(), Some("third"));
+                                        assert_eq!((pid, epoch), (7, 1));
+                                        let _old = inits.fetch_add(1, Ordering::SeqCst);
+                                        encode_init_producer_id_response(&mut body, header.api_version, 0, 7, 2).unwrap();
+                                    }
+                                    other => panic!("unexpected mock API {other}"),
+                                }
+                                let mut response = Vec::new();
+                                response.extend_from_slice(&header.correlation_id.to_be_bytes());
+                                if crate::protocol::header::response_header_version(header.api_key, header.api_version) >= 1 {
+                                    response.push(0);
+                                }
+                                response.extend_from_slice(&body);
+                                if socket.write_i32(i32::try_from(response.len()).unwrap()).await.is_err()
+                                    || socket.write_all(&response).await.is_err()
+                                {
+                                    break;
+                                }
+                            }
+                            if initial {
+                                closed.notify_one();
+                            }
+                        });
+                    }
+                }
+            }
+            clients.abort_all();
+            while let Some(result) = clients.join_next().await {
+                if let Err(error) = result {
+                    assert!(error.is_cancelled(), "mock broker handler failed: {error}");
+                }
+            }
+        });
+        ThirdDiscoveryMock {
+            addr: address.to_string(),
+            finds,
+            adds,
+            inits,
+            old_closed,
+            stop,
+            server,
+        }
+    }
+
+    async fn third_discovery_shared(addr: &str) -> (Arc<Shared>, tokio::net::TcpStream) {
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let meta_addr = listener.local_addr().unwrap().to_string();
+        let meta = BrokerConn::connect(&meta_addr, "third-meta", Duration::from_secs(2))
+            .await
+            .unwrap();
+        let (peer, _) = listener.accept().await.unwrap();
+        let config = ProducerConfig::bootstrap([addr.to_owned()]).transactional_id("third");
+        let mut shared = test_shared(config, meta);
+        Arc::get_mut(&mut shared).unwrap().find_coord_version = Some(1);
+        (shared, peer)
+    }
+
+    async fn third_discovery_add(shared: &Shared) -> Result<Bytes> {
+        use crate::protocol::txn::{encode_add_partitions_to_txn_request, TxnPartitionsTopic};
+
+        let topics = vec![TxnPartitionsTopic {
+            topic: "events".into(),
+            partitions: vec![0],
+        }];
+        txn_roundtrip(
+            shared,
+            ADD_PARTITIONS_TO_TXN,
+            0,
+            |buf| encode_add_partitions_to_txn_request(buf, 0, "third", 7, 1, &topics),
+            Duration::from_secs(5),
+            |body| {
+                Box::pin(async move {
+                    decode_add_partitions_to_txn_response_cooperative(&mut { body }, 0).await
+                })
+            },
+        )
+        .await
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn replacement_rediscovery_retries_real_coordinator_rpc() {
+        let mock = third_discovery_mock(true).await;
+        let (shared, _meta_peer) = third_discovery_shared(&mock.addr).await;
+        let old = BrokerConn::connect(&mock.addr, "third-old", Duration::from_secs(2))
+            .await
+            .unwrap();
+        *shared.txn.lock().await = Some(CoordinatorConnection {
+            conn: old,
+            init_producer_id_version: Some(3),
+            keys: vec![ApiVersion {
+                api_key: ADD_PARTITIONS_TO_TXN,
+                min_version: 0,
+                max_version: 0,
+            }],
+        });
+        let body = third_discovery_add(&shared).await.unwrap();
+        let mut input = body.as_ref();
+        assert_eq!(
+            crate::protocol::txn::decode_add_partitions_to_txn_response(&mut input, 0).unwrap(),
+            0
+        );
+        assert_eq!(mock.adds.load(Ordering::SeqCst), 2);
+        assert!(mock.finds.load(Ordering::SeqCst) >= 1);
+        tokio::time::timeout(Duration::from_secs(3), mock.old_closed.notified())
+            .await
+            .unwrap();
+        assert!(mock.stop.send(()).is_ok());
+        mock.server.await.unwrap();
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn missing_transaction_coordinator_rediscovers_before_rpc() {
+        let mock = third_discovery_mock(false).await;
+        let (shared, _meta_peer) = third_discovery_shared(&mock.addr).await;
+        assert!(shared.txn.lock().await.is_none());
+        let body = third_discovery_add(&shared).await.unwrap();
+        let mut input = body.as_ref();
+        assert_eq!(
+            crate::protocol::txn::decode_add_partitions_to_txn_response(&mut input, 0).unwrap(),
+            0
+        );
+        assert_eq!(mock.adds.load(Ordering::SeqCst), 1);
+        assert!(mock.finds.load(Ordering::SeqCst) >= 1);
+        assert!(shared.txn.lock().await.is_some());
+        assert!(mock.stop.send(()).is_ok());
+        mock.server.await.unwrap();
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn closed_transaction_coordinator_rediscovers_and_bumps_epoch() {
+        let mock = third_discovery_mock(false).await;
+        let (shared, _meta_peer) = third_discovery_shared(&mock.addr).await;
+        let mut old = BrokerConn::connect(&mock.addr, "third-old", Duration::from_secs(2))
+            .await
+            .unwrap();
+        old.close();
+        *shared.txn.lock().await = Some(CoordinatorConnection {
+            conn: old,
+            init_producer_id_version: None,
+            keys: Vec::new(),
+        });
+        let mut guard = shared.txn.lock().await;
+        let (body, version) = init_producer_id_roundtrip(
+            &shared.cfg,
+            &mut guard,
+            None,
+            3,
+            Some(1),
+            (7, 1),
+            &[],
+            &HashMap::new(),
+            Instant::now() + Duration::from_secs(5),
+        )
+        .await
+        .unwrap();
+        assert_eq!(version, 3);
+        let mut input = body.as_ref();
+        let (error, pid, epoch, ..) =
+            crate::protocol::idem::decode_init_producer_id_response(&mut input, version).unwrap();
+        assert_eq!((error, pid, epoch), (0, 7, 2));
+        assert_eq!(mock.inits.load(Ordering::SeqCst), 1);
+        assert!(mock.finds.load(Ordering::SeqCst) >= 1);
+        assert!(guard.as_ref().is_some_and(|coord| !coord.conn.is_closed()));
+        drop(guard);
+        assert!(mock.stop.send(()).is_ok());
+        mock.server.await.unwrap();
+    }
 
     #[tokio::test(flavor = "current_thread")]
     async fn txn_roundtrip_times_out_waiting_for_initial_lock() {
