@@ -451,7 +451,18 @@ remain open.
    deferred task depends on runtime progress, and cancelling close before
    worker shutdown remains a separate lifecycle gap.
 
-4. **Bounded decoding.** The [Admin response reservation change](../evidence/client/admin-response-reservation-20261108/README.md)
+4. **Bounded decoding.** The [Admin pagination repair](../evidence/client/admin-pagination-20261108/README.md)
+   uses one checked deadline for DescribeTopicPartitions pages and rejects an
+   immediately repeated cursor instead of returning a partial success. A
+   four-partition Apache Kafka 4.1.2 smoke and focused controls passed in both
+   profiles. The default broad Admin suite passed 604 tests; the all-feature
+   suite had 602 passes and two 80 ms timing failures. Those failures remain
+   unexplained, and an unchanged baseline also failed the same controls on a
+   shared host. Longer cursor cycles can continue until timeout, and accumulated
+   descriptions are not bounded by this change. A short three-way loopback
+   comparison measured candidate/baseline median elapsed ratios of 1.01145 for
+   single-page calls and 1.00551 for sixteen-page calls.
+   The [Admin response reservation change](../evidence/client/admin-response-reservation-20261108/README.md)
    limits the initial capacity requested from `Vec` in seven response
    families. Valid results can grow beyond that request; other decoders and
    aggregate memory remain outside its scope. Two short diagnostics measured
