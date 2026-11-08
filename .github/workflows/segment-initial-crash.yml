@@ -1,0 +1,46 @@
+name: Initial segment crash witness
+on:
+  push:
+    branches: [qualification/segment-initial-crash-20261108]
+permissions:
+  contents: read
+jobs:
+  witness:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        profile: [default, all-features]
+    env:
+      CARGO_BUILD_JOBS: "2"
+      CARGO_INCREMENTAL: "0"
+      CARGO_TERM_COLOR: never
+      PLB_SEGMENT_INITIAL_CAPTURE: ${{ github.workspace }}/evidence/initial-crash
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: 4d10b67d530f959f924bc2118e040b4798aeeb9a
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Pin source and run process-exit controls
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "4d10b67d530f959f924bc2118e040b4798aeeb9a"
+          test "$(uname -m)" = x86_64
+          rustc --version --verbose
+          sha256sum partitionline-broker/src/segments.rs
+          args=()
+          if [ "${{ matrix.profile }}" = all-features ]; then args+=(--all-features); fi
+          cargo test --locked --manifest-path partitionline-broker/Cargo.toml --lib "${args[@]}" segments::tests::initial_segment_open_process_exit_reopen_witness -- --exact --nocapture
+          cargo test --locked --manifest-path partitionline-broker/Cargo.toml --lib "${args[@]}" segments::tests::missing_manifest_with_acknowledged_input_fails_closed_without_changes -- --exact --nocapture
+          find "$PLB_SEGMENT_INITIAL_CAPTURE" -type f -exec sha256sum '{}' + | sort
+      - name: Retain interrupted files and receipts
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: segment-initial-crash-${{ matrix.profile }}
+          path: evidence/initial-crash/
+          if-no-files-found: warn
+          retention-days: 30
