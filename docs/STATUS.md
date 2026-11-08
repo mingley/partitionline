@@ -33,6 +33,13 @@ limits.
 | Client capability profiles | Both passed selected checks; their archives were not independently inspected. |
 | Client format, all-target Clippy, audit, docs, package, auth and integrity smoke | Passed. Other client jobs failed or were skipped. |
 
+A [more recent broker run][e02-broker] at `e02c1b8` passed 757 default
+tests with three ignored. Its all-feature suite stopped at 641 passed, one
+failed and three ignored when a before-failover CreateTopics request returned
+error 56. The log does not identify the cause or whether the operation
+committed. Later broker targets, Clippy and Rustdoc did not run; inventory
+and fuzz supervision passed separately.
+
 A [broker CI run][previous-broker] at `3fc8059` failed two all-feature
 Raft tests. A [subsequent run][latest-broker] at `c471f5e` passed the
 default suite, then failed an all-feature quorum test when a delete returned
@@ -108,10 +115,12 @@ pass does not replace the full release matrix.
   caches and process RSS remain outside the logical payload budget. An earlier
   default transport test failure remains unexplained. Earlier Raft failures
   remain open. The [journal repair][journal-repair]
-  pins inode identities through ownership and staged syncs; it passed both full
-  broker profiles and descriptor controls. It adds file descriptors on Unix.
-  [Earlier journal controls][journal] did not establish the cause of the quorum
-  failure.
+  pins inode identities through ownership and staged syncs; it adds file
+  descriptors on Unix. The [grouped reservation repair][journal-reserve]
+  reserves index and staging capacity before each write. Combined broker
+  suites and separate descriptor controls passed; cloning the sync descriptor
+  can still fail after a write. [Earlier journal controls][journal] did not
+  establish the cause of the quorum failure.
 - **Reliability and performance.** No 24-hour fault campaign or seven-day
   continuity run has passed. Matched x86 comparisons against other Kafka
   implementations, with independent record verification, have not been
@@ -131,7 +140,7 @@ The [support matrix](support.md) describes configured coverage, and the
 
 [ci]: https://github.com/mingley/partitionline/blob/a4d381f21701656389b95324fd3231c2c22a03a3/docs/evidence/releases/main-ci-de152e-20261108/README.md
 [previous-ci]: https://github.com/mingley/partitionline/blob/7ebb3cc81adc695cc4c74409a87a1a1dd4be9730/docs/evidence/releases/main-ci-ba8-20261108/README.md
-[next]: https://github.com/mingley/partitionline/blob/92099fa1606ce611daae3fd1082b61ba82f8db8e/docs/plan/next-work.md
+[next]: https://github.com/mingley/partitionline/blob/732b833aaab797527f2662d2f410c072c7a5af36/docs/plan/next-work.md
 [previous]: https://github.com/mingley/partitionline/blob/5c2a000639d9a8a7dccd56e8c1d6f3a58dca1601/docs/STATUS.md
 [flush]: https://github.com/mingley/partitionline/blob/e980829c439aa43edc01312c91838e58a412221a/docs/evidence/client/producer-flush-native-86f2-20261103/README.md
 [txn]: https://github.com/mingley/partitionline/blob/49ad56c6bce1366e2357c272f11c5c34160d60da/docs/evidence/client/add-partitions-native-4f0c-20261103/README.md
@@ -155,9 +164,11 @@ The [support matrix](support.md) describes configured coverage, and the
 [journal-repair]: https://github.com/mingley/partitionline/blob/b2d9bcaec1e12c2d79535382ec2c402038c0c6b9/docs/evidence/broker/journal-ownership-repair-20261108/README.md
 [admission]: https://github.com/mingley/partitionline/blob/b2d9bcaec1e12c2d79535382ec2c402038c0c6b9/docs/evidence/broker/fetch-owned-admission-20261108/README.md
 [journal-perf]: https://github.com/mingley/partitionline/blob/6f50202cd72c789b4396ee10c69a1089fc10bc41/docs/evidence/broker/journal-release-cost-20261108/README.md
-[records-perf]: https://github.com/mingley/partitionline/blob/92099fa1606ce611daae3fd1082b61ba82f8db8e/docs/evidence/broker/records-header-validation-20261108/README.md
+[records-perf]: https://github.com/mingley/partitionline/blob/732b833aaab797527f2662d2f410c072c7a5af36/docs/evidence/broker/records-header-validation-20261108/README.md
 [latest-broker]: https://github.com/mingley/partitionline/blob/ae2c6f6098ba41844fb7f74d3b02fb48655d3cb1/docs/evidence/broker/main-ci-c471-20261108/README.md
 [previous-broker]: https://github.com/mingley/partitionline/blob/3b29e8122e834ffbfacbd8c779b7c47dab264ebe/docs/evidence/broker/main-ci-3fc-20261108/README.md
 [quorum-diag]: https://github.com/mingley/partitionline/blob/a4d381f21701656389b95324fd3231c2c22a03a3/docs/evidence/broker/quorum-delete-diagnostic-20261108/README.md
 [quorum-boundary]: https://github.com/mingley/partitionline/blob/de152e78ca6d85e6cd4ea5915058b2bb6141cf42/docs/evidence/broker/quorum-proposal-boundary-20261108/README.md
-[raft-churn]: https://github.com/mingley/partitionline/actions/runs/42454616584
+[raft-churn]: https://github.com/mingley/partitionline/blob/732b833aaab797527f2662d2f410c072c7a5af36/docs/evidence/broker/raft-liveness-20261108/README.md
+[e02-broker]: https://github.com/mingley/partitionline/blob/732b833aaab797527f2662d2f410c072c7a5af36/docs/evidence/broker/main-ci-e02-20261108/README.md
+[journal-reserve]: https://github.com/mingley/partitionline/blob/732b833aaab797527f2662d2f410c072c7a5af36/docs/evidence/broker/grouped-journal-reservations-20261108/README.md
