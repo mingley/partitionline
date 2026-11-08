@@ -1,0 +1,106 @@
+name: Combined Admin requested-name paired timing
+on:
+  push:
+    branches: [work/admin-name-combined-perf-20261108]
+permissions:
+  contents: read
+jobs:
+  compare:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 50
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          path: candidate
+      - uses: actions/checkout@v7
+        with:
+          ref: 464d33d5afe668d46274972cd3baa4e870159bf8
+          path: baseline
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Pin and build release binaries
+        shell: bash
+        run: |
+          set -euo pipefail
+          rustc -Vv
+          cargo -V
+          lscpu | grep -E 'Model name|CPU\(s\)'
+          df -h "$RUNNER_TEMP"
+          sha256sum candidate/.github/fixtures/admin_name_combined_bench.rs.txt
+          git -C candidate hash-object .github/fixtures/admin_name_combined_bench.rs.txt
+          for arm in baseline candidate; do
+            cp candidate/.github/fixtures/admin_name_combined_bench.rs.txt "$arm/src/admin/pagination_tests.rs"
+            cmp candidate/.github/fixtures/admin_name_combined_bench.rs.txt "$arm/src/admin/pagination_tests.rs"
+            sha256sum "$arm/src/admin.rs" "$arm/src/admin/pagination_tests.rs" "$arm/Cargo.toml" "$arm/Cargo.lock"
+            git -C "$arm" hash-object src/admin.rs src/admin/pagination_tests.rs
+            target="$RUNNER_TEMP/target-$arm"
+            CARGO_TARGET_DIR="$target" cargo test --locked --release --manifest-path "$arm/Cargo.toml" --lib dtp_ --no-run
+            bins=()
+            for f in "$target"/release/deps/partitionline-*; do
+              if [ -f "$f" ] && [ -x "$f" ]; then bins+=("$f"); fi
+            done
+            test "${#bins[@]}" = 1
+            cp "${bins[0]}" "$RUNNER_TEMP/$arm-binary"
+            sha256sum "$RUNNER_TEMP/$arm-binary"
+            df -h "$RUNNER_TEMP"
+          done
+      - name: Warmup and paired loopback timings
+        shell: bash
+        run: |
+          set -euo pipefail
+          cpu=$(python3 -c 'import os; print(min(os.sched_getaffinity(0)))')
+          printf 'pinned_cpu=%s\n' "$cpu"
+          mkdir -p "$RUNNER_TEMP/combined-perf"
+          printf 'block,shape,arm,elapsed_ns\n' > "$RUNNER_TEMP/combined-perf/results.csv"
+          shapes=(single many_pages four thirty_two two_fifty_six reordered_thirty_two reordered_two_fifty_six many_names_pages lexical_thirty_two lexical_two_fifty_six success_thirty_two success_two_fifty_six lexical_success_thirty_two lexical_success_two_fifty_six)
+          for shape in "${shapes[@]}"; do
+            case "$shape" in single|many_pages) prefix=dtp_pagination_benchmark ;; *) prefix=dtp_requested_name_benchmark ;; esac
+            for arm in baseline candidate; do
+              taskset -c "$cpu" "$RUNNER_TEMP/$arm-binary" --exact "admin::pagination_tests::${prefix}_$shape" --ignored --nocapture > /dev/null
+            done
+          done
+          for block in $(seq 0 11); do
+            offset=0
+            for shape in "${shapes[@]}"; do
+              case "$shape" in single|many_pages) prefix=dtp_pagination_benchmark ;; *) prefix=dtp_requested_name_benchmark ;; esac
+              if [ $(((block + offset) % 2)) = 0 ]; then order=(baseline candidate); else order=(candidate baseline); fi
+              for arm in "${order[@]}"; do
+                out=$(taskset -c "$cpu" "$RUNNER_TEMP/$arm-binary" --exact "admin::pagination_tests::${prefix}_$shape" --ignored --nocapture)
+                ns=$(printf '%s\n' "$out" | sed -n 's/.*MEASURE .* elapsed_ns=\([0-9]*\).*/\1/p')
+                test -n "$ns"
+                printf '%s,%s,%s,%s\n' "$block" "$shape" "$arm" "$ns" >> "$RUNNER_TEMP/combined-perf/results.csv"
+              done
+              offset=$((offset + 1))
+            done
+          done
+          cat "$RUNNER_TEMP/combined-perf/results.csv"
+          python3 - "$RUNNER_TEMP/combined-perf/results.csv" <<'PY'
+          import csv,statistics,sys
+          rows=list(csv.DictReader(open(sys.argv[1])))
+          assert len(rows)==336, len(rows)
+          for shape in ('single','many_pages','four','thirty_two','two_fifty_six','reordered_thirty_two','reordered_two_fifty_six','many_names_pages','lexical_thirty_two','lexical_two_fifty_six','success_thirty_two','success_two_fifty_six','lexical_success_thirty_two','lexical_success_two_fifty_six'):
+              ratios=[]
+              for block in range(12):
+                  pair={r['arm']:int(r['elapsed_ns']) for r in rows if r['shape']==shape and int(r['block'])==block}
+                  ratios.append(pair['candidate']/pair['baseline'])
+              print('RESULT',shape,'median',statistics.median(ratios),'range',min(ratios),max(ratios),'slower',sum(x>1 for x in ratios),'paired',ratios)
+          PY
+      - uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: admin-name-combined-perf
+          path: ${{ runner.temp }}/combined-perf/
+          if-no-files-found: warn
+          retention-days: 30
+  smoke:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Compile and run combined benchmark fixtures
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp .github/fixtures/admin_name_combined_bench.rs.txt src/admin/pagination_tests.rs
+          git hash-object src/admin.rs src/admin/pagination_tests.rs
+          cargo test --locked --lib dtp_requested_name_benchmark -- --ignored --nocapture
