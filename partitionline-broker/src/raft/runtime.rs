@@ -50,6 +50,13 @@ struct TestGauge {
     peak: AtomicUsize,
 }
 #[cfg(test)]
+static VOTE_DIAG_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
+#[cfg(test)]
+static VOTE_DIAG_BYTES: AtomicUsize = AtomicUsize::new(0);
+#[cfg(test)]
+static VOTE_DIAG_OVERFLOW: AtomicBool = AtomicBool::new(false);
+
+#[cfg(test)]
 #[derive(Default)]
 struct TestMetrics {
     // Constructed RAII owners: client, charged bytes, network task, socket,
@@ -577,6 +584,37 @@ struct Control {
     config: Arc<Config>,
 }
 impl Control {
+    // Diagnostic branch only: enabled solely when the existing bounded test
+    // capture is requested. This records observations, not injected outcomes.
+    #[cfg(test)]
+    fn trace_vote(&self, event: &str, request: replication::DynamicVoteRequest) {
+        use std::io::Write;
+        let Some(root) = &self.capture_root else { return; };
+        let Some(clock) = self.metrics.clock.get() else { return; };
+        let line = format!(
+            "{{\"event\":\"{event}\",\"pid\":{},\"clock_us\":{},\"local\":{},\"peer\":{},\"term\":{},\"sequence\":{},\"candidate\":{},\"last_term\":{},\"last_index\":{},\"configuration_epoch\":{}}}\n",
+            std::process::id(), clock.elapsed().as_micros(), self.config.bootstrap.local().key().id,
+            request.context.peer.id, request.request.term, request.sequence, request.request.candidate,
+            request.request.log.term, request.request.log.index, request.context.configuration_epoch
+        );
+        let Ok(_guard) = VOTE_DIAG_LOCK.lock() else {
+            eprintln!("vote diagnostic mutex poisoned");
+            return;
+        };
+        const MAX_TRACE_BYTES: usize = 4 * 1024 * 1024;
+        if VOTE_DIAG_BYTES.fetch_update(Ordering::AcqRel, Ordering::Acquire, |n| n.checked_add(line.len()).filter(|v| *v <= MAX_TRACE_BYTES)).is_err() {
+            if !VOTE_DIAG_OVERFLOW.swap(true, Ordering::AcqRel) {
+                eprintln!("vote diagnostic byte limit reached");
+            }
+            return;
+        }
+        let result = std::fs::OpenOptions::new().append(true).create(true)
+            .open(root.join("vote-network.jsonl"))
+            .and_then(|mut file| file.write_all(line.as_bytes()));
+        if let Err(error) = result {
+            eprintln!("vote diagnostic write failed: {error}");
+        }
+    }
     fn stop(&self) {
         self.stopped.store(true, Ordering::Release);
         self.clients.close();
@@ -1763,13 +1801,29 @@ async fn supervise(
 }
 async fn dispatch_votes(control: &Control, routes: &[(Key, mpsc::Sender<Job>)], jobs: Vec<Job>) {
     for job in jobs {
+        #[cfg(test)]
+        let vote = match &job { Job::Vote(request) => Some(*request), _ => None };
+        #[cfg(test)]
+        if let Some(request) = vote { control.trace_vote("queue-attempt", request); }
         match routes.iter().find(|(k, _)| *k == job.peer()) {
             Some((_, tx)) => {
-                if let Err(error) = tx.try_send(job) {
+                let result = tx.try_send(job);
+                #[cfg(test)]
+                if let Some(request) = vote {
+                    let stage = match &result {
+                        Ok(()) => "queue-accepted",
+                        Err(mpsc::error::TrySendError::Full(_)) => "queue-full",
+                        Err(mpsc::error::TrySendError::Closed(_)) => "queue-closed",
+                    };
+                    control.trace_vote(stage, request);
+                }
+                if let Err(error) = result {
                     let _ = control.cancel_job(error.into_inner()).await;
                 }
             }
             None => {
+                #[cfg(test)]
+                if let Some(request) = vote { control.trace_vote("route-missing", request); }
                 let _ = control.cancel_job(job).await;
             }
         }
@@ -2007,6 +2061,8 @@ async fn rpc(
 ) -> Result<Message> {
     *id = id.checked_add(1).ok_or(Error::Peer)?;
     let frame = Frame { rpc: *id, message };
+    #[cfg(test)]
+    let vote = match &frame.message { Message::Vote(request) => Some(*request), _ => None };
     write_frame(
         socket,
         &frame,
@@ -2015,6 +2071,8 @@ async fn rpc(
         wire,
     )
     .await?;
+    #[cfg(test)]
+    if let Some(request) = vote { control.trace_vote("request-write-complete", request); }
     let response = read_frame(
         socket,
         control.config.limits.frame_bytes,
@@ -2026,6 +2084,8 @@ async fn rpc(
     if response.rpc != frame.rpc || !frame.message.matches_reply(&response.message) {
         return Err(Error::Peer);
     }
+    #[cfg(test)]
+    if let Some(request) = vote { control.trace_vote("reply-read-matched", request); }
     Ok(response.message)
 }
 enum PeerScan {
@@ -2234,6 +2294,10 @@ async fn outbound(control: Arc<Control>, peer: Peer, mut jobs: mpsc::Receiver<Jo
         let Some(job) = job else {
             continue;
         };
+        #[cfg(test)]
+        let vote = match &job { Job::Vote(request) => Some(*request), _ => None };
+        #[cfg(test)]
+        if let Some(request) = vote { control.trace_vote("worker-dequeued", request); }
         let cancellation = job.cancellation();
         let deadline = Instant::now()
             + Duration::from_millis(if matches!(job, Job::Image(_)) {
@@ -2267,6 +2331,10 @@ async fn outbound(control: Arc<Control>, peer: Peer, mut jobs: mpsc::Receiver<Jo
         } else {
             Err(Error::Peer)
         };
+        #[cfg(test)]
+        if let Some(request) = vote {
+            control.trace_vote(if result.is_ok() { "worker-reply-matched" } else { "worker-rpc-error" }, request);
+        }
         match result {
             Ok(response) => {
                 let ack = control.call(
@@ -2305,6 +2373,10 @@ async fn outbound(control: Arc<Control>, peer: Peer, mut jobs: mpsc::Receiver<Jo
                     Some(result) => result,
                     None => ack.await,
                 };
+                #[cfg(test)]
+                if let Some(request) = vote {
+                    control.trace_vote(if result.is_ok() { "owner-ack-returned" } else { "owner-ack-error" }, request);
+                }
                 if result.is_err() {
                     if let Some(open) = socket.take() {
                         abandon_open_peer(open).await;
@@ -4895,6 +4967,51 @@ mod ownership_tests {
             _ => Err("actual vote response".into()),
         }
     }
+    // Diagnostic-only verification of the capture hook with real bounded
+    // per-peer channels and real Node-generated vote requests.
+    #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+    #[ignore = "diagnostic control requires PL_PEER_RUNTIME_CAPTURE_DIR"]
+    async fn vote_queue_diagnostics_distinguish_admission_outcomes() -> TestResult {
+        let source = LocalOwner::open(0, 5, 16).await?;
+        tokio::time::sleep(Duration::from_millis(3)).await;
+        let jobs = match source.control.reliable(Command::Tick).await? {
+            Reply::Votes(jobs) => jobs,
+            _ => return Err("campaign reply".into()),
+        };
+        let requests = jobs.iter().map(|job| match job {
+            Job::Vote(request) => Ok(*request),
+            _ => Err("not a vote"),
+        }).collect::<std::result::Result<Vec<_>, _>>()?;
+        if requests.len() != 4 { return Err("expected four vote requests".into()); }
+        let (full_tx, full_rx) = mpsc::channel(1);
+        full_tx.try_send(Job::Vote(requests[0])).map_err(|_| "prefill vote route")?;
+        let (closed_tx, closed_rx) = mpsc::channel(1);
+        drop(closed_rx);
+        let (open_tx, mut open_rx) = mpsc::channel(1);
+        let routes = vec![
+            (requests[0].context.peer, full_tx),
+            (requests[1].context.peer, closed_tx),
+            (requests[2].context.peer, open_tx),
+        ];
+        dispatch_votes(&source.control, &routes, jobs).await;
+        let accepted = open_rx.try_recv().map_err(|_| "queued vote missing")?;
+        source.control.cancel_job(accepted).await?;
+        drop(full_rx);
+        let root = source.control.capture_root.as_ref().ok_or("diagnostic capture required")?;
+        let trace = std::fs::read_to_string(root.join("vote-network.jsonl"))?;
+        for (request, stage) in [
+            (requests[0], "queue-full"),
+            (requests[1], "queue-closed"),
+            (requests[2], "queue-accepted"),
+            (requests[3], "route-missing"),
+        ] {
+            let peer = format!("\"peer\":{}", request.context.peer.id);
+            let event = format!("\"event\":\"{stage}\"");
+            assert!(trace.lines().any(|line| line.contains(&peer) && line.contains(&event)), "missing stage {stage} for peer {}", request.context.peer.id);
+        }
+        source.finish().await
+    }
+
     #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
     async fn abandoned_vote_vector_and_full_route_release_every_exact_correlation() -> TestResult {
         let source = LocalOwner::open(0, 5, 16).await?;
