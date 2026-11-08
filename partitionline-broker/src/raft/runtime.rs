@@ -5676,6 +5676,70 @@ mod ownership_tests {
     }
 
     #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+    #[ignore = "manual matched dispatch measurement"]
+    async fn vote_dispatch_campaign_cost() -> TestResult {
+        let source = LocalOwner::open(0, 5, 16).await?;
+        tokio::time::sleep(Duration::from_millis(3)).await;
+        let Reply::Votes(old_jobs) = source.fixture("bench-old-tick", Command::Tick).await?? else {
+            return Err("old campaign".into());
+        };
+        let mut old = Vec::new();
+        let mut routes = Vec::new();
+        for job in old_jobs {
+            let Job::Vote(q) = job else {
+                return Err("old vote".into());
+            };
+            old.push(q);
+            routes.push((q.context.peer, Arc::new(VoteSlot::default())));
+        }
+        tokio::time::sleep(Duration::from_millis(3)).await;
+        let Reply::Votes(current_jobs) = source.fixture("bench-current-tick", Command::Tick).await??
+        else {
+            return Err("current campaign".into());
+        };
+        let current = current_jobs
+            .iter()
+            .map(|job| match job {
+                Job::Vote(q) => Ok(*q),
+                _ => Err("current vote"),
+            })
+            .collect::<std::result::Result<Vec<_>, _>>()?;
+        if current.len() != 4 || old.len() != 4 {
+            return Err("expected four remote voters".into());
+        }
+        for full in [false, true] {
+            let iterations = 200usize;
+            let mut elapsed = 0u128;
+            for _ in 0..iterations {
+                if full {
+                    for ((_, slot), q) in routes.iter().zip(&old) {
+                        if slot.offer(Job::Vote(*q)).is_some() {
+                            return Err("expected empty slot".into());
+                        }
+                    }
+                }
+                let jobs = current.iter().copied().map(Job::Vote).collect();
+                let started = std::time::Instant::now();
+                dispatch_votes(&source.control, &routes, jobs).await;
+                elapsed += started.elapsed().as_nanos();
+                for ((_, slot), expected) in routes.iter().zip(&current) {
+                    let mut state = slot
+                        .state
+                        .lock()
+                        .unwrap_or_else(std::sync::PoisonError::into_inner);
+                    if !matches!(state.pending.take(), Some(Job::Vote(q)) if q == *expected) {
+                        return Err("campaign vote missing after dispatch".into());
+                    }
+                }
+            }
+            println!(
+                "campaign-cost full={full} peers=4 iterations={iterations} elapsed_ns={elapsed}"
+            );
+        }
+        source.finish().await
+    }
+
+    #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
     async fn stepdown_during_dispatch_fences_old_and_orders_next_campaign() -> TestResult {
         let source = LocalOwner::open(0, 5, 1).await?;
         let peer = LocalOwner::open(1, 5, 16).await?;
