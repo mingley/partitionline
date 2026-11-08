@@ -1,0 +1,119 @@
+name: Admin slot and producer timestamp combined gate
+on:
+  push:
+    branches: [qualification/admin-slot-on-342e-20261108]
+permissions:
+  contents: read
+jobs:
+  tests:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      matrix:
+        feature: [default, all]
+    env:
+      CARGO_INCREMENTAL: '0'
+      CARGO_TERM_COLOR: never
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          path: candidate
+      - uses: actions/checkout@v7
+        with:
+          ref: 342e7b90ee63d6824be2652b65d71be483ea6d16
+          path: baseline
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Pin the combined tree and run Admin and producer controls
+        run: |
+          set -euo pipefail
+          mkdir -p evidence
+          test "$(git -C candidate rev-parse HEAD:src/admin.rs)" = 8c2f94353e04c2925b1bfaf8478285190dd317d7
+          test "$(git -C candidate rev-parse HEAD:src/admin/pagination_tests.rs)" = a69d5cceff56a7d1c52f321b5766d695423871aa
+          test "$(git -C candidate rev-parse HEAD:src/producer.rs)" = dcd012b3f86a8b9d4254f88d7f48946ce8f9e922
+          test "$(git -C candidate rev-parse HEAD:tests/producer_timestamp_contract_public.rs)" = d8f1f45285c15d1edd563898754d128045551886
+          test "$(git -C candidate rev-parse HEAD:tests/common/mod.rs)" = 4afd104e0b5e10227167d0d38328fe03dda07a0a
+          test "$(git -C candidate rev-parse HEAD:Cargo.toml)" = 4a90b08ab3fb886676231310b1f7132e04e2cfbb
+          test "$(git -C candidate rev-parse HEAD:Cargo.lock)" = 96e364d34121fe90183f87f4f49fd92b883bc447
+          git -C candidate rev-parse HEAD HEAD:src/admin.rs HEAD:src/admin/pagination_tests.rs HEAD:src/producer.rs HEAD:tests/producer_timestamp_contract_public.rs HEAD:tests/common/mod.rs HEAD:Cargo.toml HEAD:Cargo.lock
+          git -C baseline rev-parse HEAD HEAD:src/admin.rs HEAD:src/admin/pagination_tests.rs HEAD:src/producer.rs HEAD:tests/producer_timestamp_contract_public.rs HEAD:tests/common/mod.rs HEAD:Cargo.toml HEAD:Cargo.lock
+          rustc -Vv
+          if test "${{ matrix.feature }}" = all; then flags=--all-features; else flags=; fi
+          set +e
+          CARGO_TARGET_DIR="$PWD/target-candidate" cargo test --locked --manifest-path candidate/Cargo.toml $flags --lib admin:: -- --test-threads=1 > evidence/candidate-admin.log 2>&1
+          candidate_admin=$?
+          CARGO_TARGET_DIR="$PWD/target-candidate" cargo test --locked --manifest-path candidate/Cargo.toml $flags --test admin_response_reservation -- --test-threads=1 > evidence/candidate-admin-integration.log 2>&1
+          candidate_admin_integration=$?
+          CARGO_TARGET_DIR="$PWD/target-candidate" cargo test --locked --manifest-path candidate/Cargo.toml $flags --test producer_timestamp_contract_public -- --test-threads=1 > evidence/candidate-producer.log 2>&1
+          candidate_producer=$?
+          set -e
+          cat evidence/candidate-admin.log evidence/candidate-admin-integration.log evidence/candidate-producer.log
+          printf 'candidate_admin=%s candidate_admin_integration=%s candidate_producer=%s\n' "$candidate_admin" "$candidate_admin_integration" "$candidate_producer"
+          if test "$candidate_admin" -ne 0 || test "$candidate_admin_integration" -ne 0 || test "$candidate_producer" -ne 0; then
+            python3 - <<'PY'
+          from pathlib import Path
+          candidate=Path('candidate/src/admin/pagination_tests.rs').read_text()
+          marker='async fn dtp_slot_public_cross_page_case(case: u8) {'
+          assert candidate.count(marker)==1
+          fixture=candidate[candidate.index(marker):]
+          path=Path('baseline/src/admin/pagination_tests.rs')
+          original=path.read_text()
+          assert marker not in original
+          path.write_text(original.rstrip()+'\n\n'+fixture)
+          PY
+            sha256sum baseline/src/admin/pagination_tests.rs | tee evidence/baseline-compatible-fixture.sha256
+            set +e
+            CARGO_TARGET_DIR="$PWD/target-baseline" cargo test --locked --manifest-path baseline/Cargo.toml $flags --lib admin:: -- --test-threads=1 > evidence/baseline-admin.log 2>&1
+            baseline_admin=$?
+            CARGO_TARGET_DIR="$PWD/target-baseline" cargo test --locked --manifest-path baseline/Cargo.toml $flags --test admin_response_reservation -- --test-threads=1 > evidence/baseline-admin-integration.log 2>&1
+            baseline_admin_integration=$?
+            CARGO_TARGET_DIR="$PWD/target-baseline" cargo test --locked --manifest-path baseline/Cargo.toml $flags --test producer_timestamp_contract_public -- --test-threads=1 > evidence/baseline-producer.log 2>&1
+            baseline_producer=$?
+            set -e
+            cat evidence/baseline-admin.log evidence/baseline-admin-integration.log evidence/baseline-producer.log
+            printf 'baseline_admin=%s baseline_admin_integration=%s baseline_producer=%s\n' "$baseline_admin" "$baseline_admin_integration" "$baseline_producer"
+            exit 1
+          fi
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: admin-slot-342e-tests-${{ matrix.feature }}
+          path: evidence/
+          if-no-files-found: warn
+          retention-days: 30
+  lint:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    env:
+      CARGO_INCREMENTAL: '0'
+      CARGO_TERM_COLOR: never
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt,clippy
+      - name: Pin final sources, check formatting and strict Clippy
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD:src/admin.rs)" = 8c2f94353e04c2925b1bfaf8478285190dd317d7
+          test "$(git rev-parse HEAD:src/admin/pagination_tests.rs)" = a69d5cceff56a7d1c52f321b5766d695423871aa
+          test "$(git rev-parse HEAD:src/producer.rs)" = dcd012b3f86a8b9d4254f88d7f48946ce8f9e922
+          cargo fmt --all -- --check
+          cargo clippy --locked --all-targets --all-features -- -D warnings
+  docs:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    env:
+      CARGO_INCREMENTAL: '0'
+      CARGO_TERM_COLOR: never
+      RUSTDOCFLAGS: '-D warnings'
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Strict docs and doctests
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD:src/admin.rs)" = 8c2f94353e04c2925b1bfaf8478285190dd317d7
+          test "$(git rev-parse HEAD:src/producer.rs)" = dcd012b3f86a8b9d4254f88d7f48946ce8f9e922
+          cargo doc --locked --all-features --no-deps
+          cargo test --locked --all-features --doc
