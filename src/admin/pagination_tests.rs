@@ -1759,3 +1759,77 @@ async fn dtp_slot_index_duplicate_at_full_capacity_does_not_grow() {
         [0, 1]
     );
 }
+
+async fn dtp_slot_public_merge_checkpoint_case(expire: bool) {
+    use std::future::Future;
+    use std::task::Poll;
+
+    DTP_MERGE_YIELD_OBSERVER.with(|observed| observed.set(0));
+    let names: Vec<String> = (0..8193)
+        .map(|index| format!("topic-{index:08}"))
+        .collect();
+    let (mut admin, listener) = admin_and_listener().await;
+    let peer = tokio::spawn(async move {
+        let (mut socket, _) = listener.accept().await.unwrap();
+        socket.set_nodelay(true).unwrap();
+        let (header, mut body) = request(&mut socket).await;
+        assert_eq!((header.api_key, header.api_version), (DESCRIBE_TOPIC_PARTITIONS, 0));
+        let (requested, limit, cursor) =
+            decode_describe_topic_partitions_request(&mut body).unwrap();
+        assert_eq!(requested.len(), 8193);
+        for (index, name) in requested.iter().enumerate() {
+            assert_eq!(name, &format!("topic-{index:08}"));
+        }
+        assert_eq!(limit, 1);
+        assert!(cursor.is_none());
+        assert!(body.is_empty());
+        let mut response = DescribeTopicPartitionsResponse::new(dtp_conversion_rows(0, 8192));
+        response.next_cursor = Some(TopicPartitionCursor::new("topic-00008192", 0));
+        send_page(&mut socket, &header, &response).await.unwrap();
+        let raw = dtp_request(&mut socket, None).await;
+        send_page(&mut socket, &raw, &page(42, None)).await.unwrap();
+    });
+
+    let mut call = Box::pin(admin.describe_topics_with_partition_limit_timeout(
+        names.iter(),
+        false,
+        1,
+        Duration::from_secs(3),
+    ));
+    tokio::time::timeout(Duration::from_secs(5), std::future::poll_fn(|context| {
+        match call.as_mut().poll(context) {
+            Poll::Ready(result) => panic!("aggregate returned before the merge checkpoint: {result:?}"),
+            Poll::Pending => match DTP_MERGE_YIELD_OBSERVER.with(|observed| observed.get()) {
+                0 => Poll::Pending,
+                1 => Poll::Ready(()),
+                count => panic!("merge checkpoint resumed before observation: {count}"),
+            },
+        }
+    }))
+    .await
+    .expect("the public call never reached the merge checkpoint");
+
+    if expire {
+        tokio::time::sleep(Duration::from_millis(3200)).await;
+        let result = call.as_mut().await;
+        assert!(matches!(result, Err(Error::Timeout)), "got {result:?}");
+    }
+    drop(call);
+    assert!(!admin.conn.is_closed());
+    let raw = admin
+        .describe_topic_partitions_timeout(&["orders"], 1, None, Duration::from_secs(5))
+        .await
+        .unwrap();
+    assert_eq!(raw.topics[0].partitions[0].partition_index, 42);
+    peer.await.unwrap();
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn dtp_slot_public_merge_checkpoint_cancel_keeps_socket() {
+    dtp_slot_public_merge_checkpoint_case(false).await;
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn dtp_slot_public_merge_checkpoint_timeout_keeps_socket() {
+    dtp_slot_public_merge_checkpoint_case(true).await;
+}
