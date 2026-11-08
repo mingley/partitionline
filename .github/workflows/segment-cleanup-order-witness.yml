@@ -1,0 +1,45 @@
+name: Cleanup ordering witnesses
+on:
+  push:
+    branches: [qualification/segment-cleanup-order-witness-20261108]
+permissions:
+  contents: read
+jobs:
+  witness:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        profile: [default, all-features]
+    env:
+      CARGO_BUILD_JOBS: "2"
+      CARGO_INCREMENTAL: "0"
+      CARGO_TERM_COLOR: never
+      PLB_SEGMENT_REPLACEMENT_CAPTURE: ${{ github.workspace }}/evidence/segment-cleanup
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: 213a98ae0d488e05ee4e0bd925247ffdcc5731ac
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Reproduce cleanup ordering
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "213a98ae0d488e05ee4e0bd925247ffdcc5731ac"
+          test "$(uname -m)" = x86_64
+          rustc --version --verbose
+          sha256sum partitionline-broker/src/segments.rs
+          args=()
+          if [ "${{ matrix.profile }}" = all-features ]; then args+=(--all-features); fi
+          cargo test --locked --manifest-path partitionline-broker/Cargo.toml --lib "${args[@]}" segments::tests::unknown_entry_after_staging_removes_staging_before_failing_open -- --exact --nocapture
+          find "$PLB_SEGMENT_REPLACEMENT_CAPTURE" -type f -exec sha256sum '{}' + | sort
+      - name: Preserve before and after files
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: segment-cleanup-witness-${{ matrix.profile }}
+          path: evidence/segment-cleanup/
+          if-no-files-found: warn
+          retention-days: 30
