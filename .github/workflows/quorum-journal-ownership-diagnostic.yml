@@ -1,0 +1,184 @@
+name: quorum journal ownership diagnostic
+on:
+  push:
+    branches: [qualification/quorum-journal-20261108]
+permissions:
+  contents: read
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    env:
+      CARGO_INCREMENTAL: "0"
+      CARGO_BUILD_JOBS: "2"
+      CARGO_TERM_COLOR: never
+      CARGO_PROFILE_DEV_DEBUG: "0"
+      CARGO_PROFILE_TEST_DEBUG: "0"
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          fetch-depth: 2
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Verify source and install diagnostics
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/quorum-owner"
+          test "$(uname -m)" = x86_64
+          test "$(git rev-parse HEAD^)" = 7f59ef470340db6027958f439df3716a8dde536c
+          rustc +stable --version --verbose
+          sha256sum partitionline-broker/src/journal.rs partitionline-broker/src/metadata_quorum.rs
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path("partitionline-broker/src/journal.rs")
+          src=p.read_text()
+          begin=src.index("mod ownership {")
+          end=src.index("\nimpl<S: Storage> Engine",begin)
+          old=src[begin:end]
+          o=old
+          def one(a,b):
+              global o
+              assert o.count(a)==1,(a,o.count(a))
+              o=o.replace(a,b,1)
+          one("use std::collections::HashSet;","use std::collections::HashMap;")
+          one("#[derive(Clone, PartialEq, Eq, Hash)]","#[derive(Clone, Debug, PartialEq, Eq, Hash)]")
+          one("OnceLock<Mutex<HashSet<Key>>>","OnceLock<Mutex<HashMap<Key, PathBuf>>>")
+          one("fn registry() -> &'static Mutex<HashSet<Key>>", "fn registry() -> &'static Mutex<HashMap<Key, PathBuf>>")
+          one("Mutex::new(HashSet::new())","Mutex::new(HashMap::new())")
+          one("keys: Vec<Key>,","keys: Vec<Key>,\n        diagnostic_path: PathBuf,")
+          one("let mut guard = Self { keys: Vec::new() };","let mut guard = Self { keys: Vec::new(), diagnostic_path: key.clone() };")
+          one("if open.contains(&key) {\n                return Err(Error::AlreadyOpen);\n            }", """if let Some(previous) = open.get(&key) {
+                  let thread = std::thread::current();
+                  if thread.name().is_some_and(|name| name.contains("new_leader_repairs_uncommitted_metadata_without_creating_a_ghost_topic")) {
+                      eprintln!("PL_QUORUM_COLLISION key={key:?} owner={} attempted={}", previous.display(), self.diagnostic_path.display());
+                  }
+                  return Err(Error::AlreadyOpen);
+              }""")
+          one("open.insert(key.clone());","let _ = open.insert(key.clone(), self.diagnostic_path.clone());")
+          src=src[:begin]+o+src[end:]
+          anchor="#[cfg(test)]\nmod tests {\n"
+          assert src.count(anchor)==1
+          witness=r'''
+              #[cfg(unix)]
+              fn diagnostic_reuse_after_close(
+                  stale: super::ownership::Guard,
+                  original: (u64, u64),
+                  root: &std::path::Path,
+              ) -> Result<(), Box<dyn std::error::Error>> {
+                  use std::os::unix::fs::MetadataExt;
+                  for index in 0..8192 {
+                      let next = root.join(format!("next-{index}"));
+                      let f = std::fs::File::create(&next)?;
+                      let meta = f.metadata()?;
+                      drop(f);
+                      if (meta.dev(), meta.ino()) == original {
+                          assert!(matches!(
+                              super::Journal::open(&next, 0, super::Limits::default()),
+                              Err(super::Error::AlreadyOpen)
+                          ), "PL_REUSED_INODE_NOT_REJECTED");
+                          drop(stale);
+                          let (new, _) = super::Journal::open(&next, 0, super::Limits::default())?;
+                          drop(new);
+                          std::fs::remove_file(&next)?;
+                          println!("PL_STALE_INODE_REPRODUCED attempts={}", index + 1);
+                          return Ok(());
+                      }
+                      std::fs::remove_file(next)?;
+                  }
+                  Err("PL_INODE_REUSE_NOT_OBSERVED".into())
+              }
+
+              #[test]
+              #[cfg(unix)]
+              fn diagnostic_journal_inode_release_window() -> Result<(), Box<dyn std::error::Error>> {
+                  use std::os::unix::fs::MetadataExt;
+                  let root = std::env::temp_dir().join(format!("pl-owner-journal-{}", std::process::id()));
+                  std::fs::create_dir(&root)?;
+                  let path = root.join("old");
+                  let alias = root.join("alias");
+                  let (journal, _) = super::Journal::open(&path, 0, super::Limits::default())?;
+                  std::fs::hard_link(&path, &alias)?;
+                  assert!(matches!(super::Journal::open(&alias, 0, super::Limits::default()), Err(super::Error::AlreadyOpen)));
+                  std::fs::remove_file(&alias)?;
+                  let meta = std::fs::metadata(&path)?;
+                  let original = (meta.dev(), meta.ino());
+                  std::fs::remove_file(&path)?;
+                  let super::Journal { inner, _ownership: stale, .. } = journal;
+                  drop(inner);
+                  println!("PL_JOURNAL_FILE_CLOSED_GUARD_HELD");
+                  diagnostic_reuse_after_close(stale, original, &root)?;
+                  std::fs::remove_dir_all(root)?;
+                  Ok(())
+              }
+
+              #[test]
+              #[cfg(unix)]
+              fn diagnostic_cursor_inode_release_window() -> Result<(), Box<dyn std::error::Error>> {
+                  use std::os::unix::fs::MetadataExt;
+                  let root = std::env::temp_dir().join(format!("pl-owner-cursor-{}", std::process::id()));
+                  std::fs::create_dir(&root)?;
+                  let path = root.join("old");
+                  let alias = root.join("alias");
+                  let (journal, _) = super::Journal::open(&path, 0, super::Limits::default())?;
+                  drop(journal);
+                  let cursor = super::CheckedCursor::open(&path, 0, super::Limits::default())?;
+                  std::fs::hard_link(&path, &alias)?;
+                  assert!(matches!(super::Journal::open(&alias, 0, super::Limits::default()), Err(super::Error::AlreadyOpen)));
+                  std::fs::remove_file(&alias)?;
+                  let meta = std::fs::metadata(&path)?;
+                  let original = (meta.dev(), meta.ino());
+                  std::fs::remove_file(&path)?;
+                  let super::CheckedCursor { file, _ownership: stale, .. } = cursor;
+                  drop(file);
+                  println!("PL_CURSOR_FILE_CLOSED_GUARD_HELD");
+                  diagnostic_reuse_after_close(stale, original, &root)?;
+                  std::fs::remove_dir_all(root)?;
+                  Ok(())
+              }
+          '''
+          src=src.replace(anchor,anchor+witness,1)
+          p.write_text(src)
+          print("Installed diagnostic-only ownership provenance and two explicit drop-boundary witnesses")
+          PY
+      - name: Journal close-boundary witness
+        shell: bash
+        run: |
+          set -euo pipefail
+          timeout 600 cargo +stable test --locked --manifest-path partitionline-broker/Cargo.toml --lib journal::tests::diagnostic_journal_inode_release_window -- --exact --nocapture 2>&1 | tee "$RUNNER_TEMP/quorum-owner/journal.log"
+          grep -F 'PL_JOURNAL_FILE_CLOSED_GUARD_HELD' "$RUNNER_TEMP/quorum-owner/journal.log"
+          grep -F 'PL_STALE_INODE_REPRODUCED' "$RUNNER_TEMP/quorum-owner/journal.log"
+          grep -F 'test result: ok. 1 passed;' "$RUNNER_TEMP/quorum-owner/journal.log"
+      - name: Cursor close-boundary witness
+        shell: bash
+        run: |
+          set -euo pipefail
+          timeout 600 cargo +stable test --locked --manifest-path partitionline-broker/Cargo.toml --lib journal::tests::diagnostic_cursor_inode_release_window -- --exact --nocapture 2>&1 | tee "$RUNNER_TEMP/quorum-owner/cursor.log"
+          grep -F 'PL_CURSOR_FILE_CLOSED_GUARD_HELD' "$RUNNER_TEMP/quorum-owner/cursor.log"
+          grep -F 'PL_STALE_INODE_REPRODUCED' "$RUNNER_TEMP/quorum-owner/cursor.log"
+          grep -F 'test result: ok. 1 passed;' "$RUNNER_TEMP/quorum-owner/cursor.log"
+      - name: Instrumented full default library
+        id: full
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -euo pipefail
+          timeout 1200 cargo +stable test --locked --manifest-path partitionline-broker/Cargo.toml --lib 2>&1 | tee "$RUNNER_TEMP/quorum-owner/full-default.log"
+      - name: Report target collision if observed
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          if test -f "$RUNNER_TEMP/quorum-owner/full-default.log"; then
+            grep -F 'PL_QUORUM_COLLISION' "$RUNNER_TEMP/quorum-owner/full-default.log" || echo 'PL_ORIGINAL_TARGET_COLLISION_NOT_OBSERVED'
+            grep -F 'test result:' "$RUNNER_TEMP/quorum-owner/full-default.log" || true
+          fi
+          test "${{ steps.full.outcome }}" = success
+      - name: Retain diagnostic logs
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: quorum-journal-ownership-${{ github.sha }}
+          path: ${{ runner.temp }}/quorum-owner
+          if-no-files-found: warn
+          retention-days: 30
