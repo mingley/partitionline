@@ -1705,8 +1705,7 @@ fn dtp_requested_names_scan_yields_after_progress() {
     assert_eq!(seen.get(), 16_385);
 }
 
-#[tokio::test(flavor = "current_thread")]
-async fn dtp_requested_names_cancel_during_deferred_index_keeps_socket_usable() {
+async fn check_deferred_index_cancellation(cursor_trigger: bool) {
     struct ResetIndexProbe(Option<usize>);
     impl Drop for ResetIndexProbe {
         fn drop(&mut self) {
@@ -1724,9 +1723,20 @@ async fn dtp_requested_names_cancel_during_deferred_index_keeps_socket_usable() 
         let (mut socket, _) = listener.accept().await.unwrap();
         socket.set_nodelay(true).unwrap();
         let header = dtp_named_request(&mut socket, &peer_names, None).await;
-        send_page(&mut socket, &header, &page(0, None))
-            .await
-            .unwrap();
+        let next = if cursor_trigger {
+            ("orders", 0)
+        } else {
+            ("a", 1)
+        };
+        let mut first = page(0, Some(next));
+        first.topics[0].name = Some("a".into());
+        send_page(&mut socket, &header, &first).await.unwrap();
+        if !cursor_trigger {
+            let header = dtp_named_request(&mut socket, &peer_names, Some(("a", 1))).await;
+            send_page(&mut socket, &header, &page(0, None))
+                .await
+                .unwrap();
+        }
         let raw = dtp_named_request(&mut socket, &["orders"], None).await;
         send_page(&mut socket, &raw, &page(42, None)).await.unwrap();
     });
@@ -1755,6 +1765,16 @@ async fn dtp_requested_names_cancel_during_deferred_index_keeps_socket_usable() 
         .unwrap();
     assert_eq!(raw.topics[0].partitions[0].partition_index, 42);
     peer.await.unwrap();
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn dtp_requested_names_cancel_deferred_index_after_partial_page_keeps_socket_usable() {
+    check_deferred_index_cancellation(false).await;
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn dtp_requested_names_cancel_cursor_deferred_index_keeps_socket_usable() {
+    check_deferred_index_cancellation(true).await;
 }
 
 #[tokio::test]
@@ -2136,7 +2156,10 @@ fn dtp_conversion_yields_on_the_exact_row_boundary() {
 
     for count in [8191, 8192, 8193] {
         let topics = dtp_conversion_rows(0, count);
-        let names: Vec<&str> = topics.iter().filter_map(|topic| topic.name.as_deref()).collect();
+        let names: Vec<&str> = topics
+            .iter()
+            .filter_map(|topic| topic.name.as_deref())
+            .collect();
         let mut requested = RequestedDtpNames::new(&names);
         let mut page = Vec::with_capacity(count);
         let mut out: Vec<TopicDescription> = Vec::new();
@@ -2167,6 +2190,7 @@ fn dtp_conversion_yields_on_the_exact_row_boundary() {
             ));
         }
         drop(future);
+        assert!(requested.index.is_none());
         assert_eq!(budget, count % 8192);
         assert_eq!(page.len(), count);
         assert!(out.is_empty());
@@ -2182,7 +2206,10 @@ fn dtp_conversion_yields_on_the_exact_row_boundary() {
     // Drop after the first pending poll to inspect the exact conversion frontier.
     for count in [8192, 8193] {
         let topics = dtp_conversion_rows(0, count);
-        let names: Vec<&str> = topics.iter().filter_map(|topic| topic.name.as_deref()).collect();
+        let names: Vec<&str> = topics
+            .iter()
+            .filter_map(|topic| topic.name.as_deref())
+            .collect();
         let mut requested = RequestedDtpNames::new(&names);
         let mut page = Vec::with_capacity(count);
         let mut out: Vec<TopicDescription> = Vec::new();
@@ -2201,6 +2228,7 @@ fn dtp_conversion_yields_on_the_exact_row_boundary() {
         ));
         assert!(future.as_mut().poll(&mut context).is_pending());
         drop(future);
+        assert!(requested.index.is_none());
         assert_eq!(page.len(), 8192);
         assert_eq!(budget, 0);
         assert!(out.is_empty());
@@ -2249,6 +2277,7 @@ fn dtp_conversion_carries_the_row_budget_across_pages() {
         Poll::Ready(Ok(None))
     ));
     drop(initial);
+    assert!(requested.index.is_none());
     assert_eq!(budget, 8191);
     assert_eq!(page.len(), 8191);
 
@@ -2269,6 +2298,7 @@ fn dtp_conversion_carries_the_row_budget_across_pages() {
         Poll::Ready(Ok(None))
     ));
     drop(at_boundary);
+    assert!(requested.index.is_none());
     assert_eq!(budget, 0);
     assert_eq!(page.len(), 1);
     assert_eq!(page[0].name, "topic-00008191");
@@ -2288,6 +2318,7 @@ fn dtp_conversion_carries_the_row_budget_across_pages() {
         Poll::Ready(Ok(None))
     ));
     drop(after);
+    assert!(requested.index.is_none());
     assert_eq!(budget, 1);
     assert_eq!(page[0].name, "topic-00008192");
 }
@@ -2384,7 +2415,10 @@ fn dtp_conversion_unnamed_after_checkpoint_keeps_error_and_deadline_rules() {
         let mut unnamed = DescribedTopicPartitions::new("ignored", 0);
         unnamed.name = None;
         topics.push(unnamed);
-        let names: Vec<&str> = topics.iter().filter_map(|topic| topic.name.as_deref()).collect();
+        let names: Vec<&str> = topics
+            .iter()
+            .filter_map(|topic| topic.name.as_deref())
+            .collect();
         let mut requested = RequestedDtpNames::new(&names);
         let mut page = Vec::new();
         let mut out: Vec<TopicDescription> = Vec::new();
