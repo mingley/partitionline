@@ -1,0 +1,127 @@
+name: Raft short-election liveness investigation
+on:
+  push:
+    branches: [qualification/raft-liveness-evidence-20261108]
+permissions:
+  contents: read
+jobs:
+  fresh-cluster-controls:
+    strategy:
+      fail-fast: false
+      matrix:
+        control: [integration-default, unit-single-core, unit-single-core-captured]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      CARGO_INCREMENTAL: "0"
+      CARGO_BUILD_JOBS: "2"
+      CARGO_TERM_COLOR: never
+      CARGO_PROFILE_DEV_DEBUG: "0"
+      CARGO_PROFILE_TEST_DEBUG: "0"
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 2
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Run bounded fresh-cluster controls
+        shell: bash
+        env:
+          CONTROL: ${{ matrix.control }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD^)" = 1c762b58d87d7c19c86a4aced888b32c3722fb70
+          test "$(uname -m)" = x86_64
+          root="$RUNNER_TEMP/raft-liveness/$CONTROL"
+          mkdir -p "$root"
+          rustc +stable --version --verbose | tee "$root/rust.txt"
+          uname -a | tee "$root/uname.txt"
+          nproc | tee "$root/nproc.txt"
+          python3 -c 'import os; print("allowed_cpus", sorted(os.sched_getaffinity(0)))' | tee "$root/affinity.txt"
+          cpu="$(python3 -c 'import os; print(min(os.sched_getaffinity(0)))')"
+          case "$CONTROL" in
+            integration-default) attempts=6 ;;
+            unit-single-core) attempts=8 ;;
+            unit-single-core-captured) attempts=3 ;;
+            *) exit 2 ;;
+          esac
+          unset PL_PEER_RUNTIME_CAPTURE_DIR PL_PEER_RUNTIME_SOURCE_SHA
+          failures=0
+          for attempt in $(seq 1 "$attempts"); do
+            dir="$root/attempt-$attempt"
+            mkdir -p "$dir/tmp" "$dir/capture"
+            printf 'FRESH_CLUSTER_CONTROL control=%s attempt=%s cpu=%s source=%s\n' "$CONTROL" "$attempt" "$cpu" 1c762b58d87d7c19c86a4aced888b32c3722fb70 | tee -a "$root/status.txt"
+            set +e
+            if [[ "$CONTROL" = integration-default ]]; then
+              TMPDIR="$dir/tmp" timeout 180s cargo +stable test --locked --manifest-path partitionline-broker/Cargo.toml --all-features --test raft_runtime >"$dir/test.log" 2>&1
+            elif [[ "$CONTROL" = unit-single-core ]]; then
+              TMPDIR="$dir/tmp" timeout 180s taskset -c "$cpu" cargo +stable test --locked --manifest-path partitionline-broker/Cargo.toml --all-features --lib raft::runtime::tests::actual_five_node_tcp_minority_partition_late_ack_image_restart_and_removal -- --exact --nocapture --test-threads=1 >"$dir/test.log" 2>&1
+            else
+              TMPDIR="$dir/tmp" PL_PEER_RUNTIME_CAPTURE_DIR="$dir/capture" PL_PEER_RUNTIME_SOURCE_SHA=1c762b58d87d7c19c86a4aced888b32c3722fb70 timeout 180s taskset -c "$cpu" cargo +stable test --locked --manifest-path partitionline-broker/Cargo.toml --all-features --lib raft::runtime::tests::actual_five_node_tcp_minority_partition_late_ack_image_restart_and_removal -- --exact --nocapture --test-threads=1 >"$dir/test.log" 2>&1
+            fi
+            status=$?
+            set -e
+            printf 'FRESH_CLUSTER_RESULT control=%s attempt=%s status=%s\n' "$CONTROL" "$attempt" "$status" | tee -a "$root/status.txt"
+            grep -E 'PL_DELAYED_APPEND|test result:|^Error:|panicked|FAILED|error: test failed' "$dir/test.log" || true
+            if [[ "$status" != 0 ]]; then
+              failures=$((failures + 1))
+              cat "$dir/test.log"
+            fi
+          done
+          printf 'FRESH_CLUSTER_TOTAL control=%s failures=%s attempts=%s\n' "$CONTROL" "$failures" "$attempts" | tee -a "$root/status.txt"
+          if (( failures > 0 )); then exit 1; fi
+      - name: Summarize captured owner and proxy evidence
+        if: always()
+        shell: bash
+        env:
+          CONTROL: ${{ matrix.control }}
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from collections import Counter
+          from pathlib import Path
+          import json
+          import os
+          root = Path(os.environ["RUNNER_TEMP"]) / "raft-liveness" / os.environ["CONTROL"]
+          for path in sorted(root.rglob("owner.jsonl")):
+              rows = []
+              bad = 0
+              for line in path.read_text(errors="replace").splitlines():
+                  try:
+                      rows.append(json.loads(line))
+                  except json.JSONDecodeError:
+                      bad += 1
+              if not rows:
+                  continue
+              meta = rows[0]
+              events = [r for r in rows[1:] if "command" in r]
+              counts = Counter((r.get("command"), (r.get("input") or {}).get("kind")) for r in events)
+              generated = Counter(p.get("kind") for r in events for p in r.get("typed_output", []))
+              terms = [r.get("term") for r in events if isinstance(r.get("term"), int)]
+              last = events[-1] if events else {}
+              settings = meta.get("runtime_settings", {})
+              print("OWNER_SUMMARY", json.dumps({"path": str(path.relative_to(root)), "node": meta.get("local_id"), "pid": meta.get("pid"), "clock": meta.get("clock_basis"), "rpc_ms": settings.get("rpc_ms"), "election_min_ms": settings.get("election_min_ms"), "election_max_ms": settings.get("election_max_ms"), "events": len(events), "bad_lines": bad, "term_min": min(terms) if terms else None, "term_max": max(terms) if terms else None, "last_role": last.get("role"), "last_index": last.get("last_index"), "last_committed": last.get("committed_end"), "commands": {str(k): v for k, v in counts.items()}, "generated_kinds": dict(generated)}, sort_keys=True))
+              for r in events[-8:]:
+                  print("OWNER_TAIL", json.dumps({"node": meta.get("local_id"), "pid": meta.get("pid"), "now_ms": r.get("now_ms"), "command": r.get("command"), "input_kind": (r.get("input") or {}).get("kind"), "target": r.get("target"), "result_ok": r.get("result_ok"), "term": r.get("term"), "role": r.get("role"), "last_index": r.get("last_index"), "committed_end": r.get("committed_end")}, sort_keys=True))
+          for capture in sorted(root.glob("attempt-*/capture")):
+              counts = Counter()
+              delayed = []
+              bad = 0
+              for path in capture.rglob("*.forward.json"):
+                  try:
+                      row = json.loads(path.read_text())
+                  except (OSError, json.JSONDecodeError):
+                      bad += 1
+                      continue
+                  counts[(row.get("kind"), row.get("disposition"))] += 1
+                  if row.get("selected_delay_ms", 0):
+                      delayed.append(row)
+              print("PROXY_SUMMARY", json.dumps({"path": str(capture.relative_to(root)), "bad_receipts": bad, "counts": {str(k): v for k, v in counts.items()}, "delayed": delayed}, sort_keys=True))
+          PY
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: raft-liveness-${{ matrix.control }}-${{ github.sha }}
+          path: ${{ runner.temp }}/raft-liveness
+          if-no-files-found: warn
+          retention-days: 30
