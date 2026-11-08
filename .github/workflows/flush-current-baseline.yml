@@ -1,0 +1,95 @@
+name: Current producer flush baseline controls
+
+on:
+  push:
+    branches: [qualification/flush-current-baseline-20261108]
+
+permissions:
+  contents: read
+
+jobs:
+  baseline:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        mode: [default, all]
+    env:
+      CARGO_BUILD_JOBS: '2'
+      CARGO_INCREMENTAL: '0'
+      CARGO_PROFILE_TEST_DEBUG: '0'
+      CARGO_TERM_COLOR: never
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: 6298f6bfbed2ab98189d291ebebd2190a2ee75b6
+          persist-credentials: false
+          sparse-checkout: |
+            .cargo
+            src
+            tests
+            examples
+            docs/evidence/client/producer-flush-controls-20261103
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Pin baseline and install the existing test-only controls
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$RUNNER_ARCH" = X64
+          test "$(git rev-parse HEAD)" = 6298f6bfbed2ab98189d291ebebd2190a2ee75b6
+          printf '%s  %s\n' 3d65fcceecbb43c1a974f7f6b7bd58c8a310930f6bcced9052a00e88700eb37f src/producer.rs | sha256sum --check -
+          printf '%s  %s\n' dcb7fa244056a3ccad7c81ba38611e5cb2157d4a7bdfbe8245cedad2cdfd0c03 docs/evidence/client/producer-flush-controls-20261103/regression-controls.patch | sha256sum --check -
+          rustc +stable -vV
+          cargo +stable -V
+          mkdir -p "$RUNNER_TEMP/flush-current-evidence"
+          python3 - <<'PYCODE'
+          from pathlib import Path
+          import hashlib
+          patch = Path("docs/evidence/client/producer-flush-controls-20261103/regression-controls.patch")
+          source = Path("src/producer.rs")
+          lines = patch.read_text().splitlines(keepends=True)
+          additions = "".join(line[1:] for line in lines if line.startswith("+") and not line.startswith("+++"))
+          marker = "mod tests {\n    use super::*;\n"
+          current = source.read_text()
+          assert current.count(marker) == 1
+          assert additions.count("#[tokio::test") == 4
+          current = current.replace(marker, marker + additions, 1)
+          source.write_text(current)
+          print("INSTRUMENTED_PRODUCER_SHA256", hashlib.sha256(current.encode()).hexdigest())
+          PYCODE
+          git diff --stat -- src/producer.rs
+      - name: Reproduce four expected failures
+        shell: bash
+        env:
+          TEST_MODE: ${{ matrix.mode }}
+        run: |
+          set -euo pipefail
+          extra=''
+          if [[ "$TEST_MODE" = all ]]; then extra=--all-features; fi
+          for name in flush_reports_an_accepted_record_expiring_in_pending cancelled_flush_cannot_consume_an_unobserved_record_failure flush_cannot_succeed_while_a_retired_worker_still_owns_an_accepted_record flush_reports_failure_when_retry_guard_drops_an_accepted_record; do
+            case "$name" in
+              flush_reports_an_accepted_record_expiring_in_pending) expected='flush lost the delivery timeout' ;;
+              cancelled_flush_cannot_consume_an_unobserved_record_failure) expected='cancelled flush discarded the only failure report' ;;
+              flush_cannot_succeed_while_a_retired_worker_still_owns_an_accepted_record) expected='flush reported success before the retired worker processed the record' ;;
+              flush_reports_failure_when_retry_guard_drops_an_accepted_record) expected='flush lost the retry failure' ;;
+            esac
+            log="$RUNNER_TEMP/flush-current-evidence/$TEST_MODE-$name.log"
+            set +e
+            timeout 300 cargo +stable test --locked $extra --lib "producer::tests::$name" -- --exact --nocapture --test-threads=1 > "$log" 2>&1
+            status=$?
+            set -e
+            cat "$log"
+            test "$status" = 101
+            grep -F 'running 1 test' "$log"
+            grep -F 'test result: FAILED. 0 passed; 1 failed;' "$log"
+            grep -F "$expected" "$log"
+          done
+          echo "FLUSH_BASELINE_EXPECTED_FAILURES=4 mode=$TEST_MODE"
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: flush-current-baseline-${{ matrix.mode }}-${{ github.run_id }}
+          path: ${{ runner.temp }}/flush-current-evidence
+          if-no-files-found: error
+          retention-days: 30
