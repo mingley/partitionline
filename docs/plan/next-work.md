@@ -10,17 +10,19 @@ Production readiness and fastest-client/server claims remain unqualified.
 Client 0.1.0 is already published. The next client version must be at least
 0.2.0; broker and schema publication remain disabled.
 
-The latest complete recorded main [CI snapshot](../evidence/releases/main-ci-02c-20261108/README.md)
-is `02c443cacd39a59d3991faeaf577032020ecb071`. Client libraries reported
-2,231 passed and 13 failed on Linux default features, 2,231 passed and 13
-failed with all features, 2,221 passed and 23 failed on Windows, and 2,228
-passed and 16 failed on macOS arm64. Three Kafka compatibility jobs and both
-smoke jobs failed. Broker CI stopped in the default profile at 688 passed,
-two failed and three ignored after two five-node Raft `NotLeader` responses.
-Its all-feature suite, Clippy and Rustdoc did not run; inventory and fuzz
-supervision passed separately. The post-failure node samples do not establish
-the failures' causes. The [preceding snapshot](../evidence/releases/main-ci-1f37-20261108/README.md)
-passed both broker profiles; it does not explain these failures.
+The latest complete recorded main [CI snapshot](../evidence/releases/main-ci-262-20261108/README.md)
+is `262d2544a4352d52538f19ef9ab0c8c5700774d3`. Client libraries reported
+2,233 passed and 11 failed on Linux default features, 2,233 passed and 11
+failed with all features, 2,227 passed and 17 failed on Windows, and 2,230
+passed and 14 failed on macOS arm64. Three Kafka compatibility jobs and both
+smoke jobs failed. Resource-soak failed with a `/proc` file-descriptor
+permission error; the workload result is incomplete. Broker CI stopped in the
+default profile at 696 passed, one failed and four ignored after a three-node
+Raft `NotLeader` response. Its all-feature suite, Clippy and Rustdoc did not
+run; inventory and fuzz supervision passed separately. Post-failure node
+samples do not establish the cause or whether the mailbox change contributed.
+The [preceding snapshot](../evidence/releases/main-ci-02c-20261108/README.md)
+retains two earlier Raft failures.
 
 An earlier [main CI snapshot](../evidence/releases/main-ci-440-20261108/README.md)
 at `4409633` recorded 17 successful client jobs, nine failures, one
@@ -83,7 +85,10 @@ later campaign recovered in the control; this does not explain the earlier
 stall. The [mailbox repair](../evidence/broker/raft-vote-mailbox-20261108/README.md)
 now keeps the newest pending vote and cancels the displaced correlation.
 Its targeted and full broker checks passed, but it cannot interrupt an older
-in-flight RPC or establish the cause of those earlier failures.
+in-flight RPC or establish the cause of those earlier failures. A [stale-reply control](../evidence/broker/raft-stale-vote-term-20261108/README.md)
+records different handling for expired and current correlations. Whether an
+expired response should advance authority remains open; the private transport
+does not cryptographically authenticate peers.
 
 The [coordinator repair](../evidence/client/group-coordinator-retirement-20261108/README.md)
 retires a known coordinator socket before replacement. Focused local controls
