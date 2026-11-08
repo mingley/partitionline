@@ -15,26 +15,26 @@ replicated partition data or native Kafka KRaft.
 
 ## Validation
 
-The latest complete snapshot recorded here is commit `8b5de2e2cfe5f3164a5f89546804ab36c1771ade`.
+The latest complete snapshot recorded here is commit `b631809f0e03ba6f65f808e51d8e47e3fd9380d1`.
 It does not cover later changes. The [CI evidence][ci] links the runs and
 their limits.
 
-| Check | Result at `8b5de2e` |
+| Check | Result at `b631809` |
 | --- | --- |
-| Client library, Linux default | 2,181 passed and 18 failed; the all-target run stopped at the library. |
-| Client library, Linux all features | 2,181 passed and 18 failed; the all-target run stopped at the library. |
-| Windows default library | 2,184 passed and 15 failed. |
-| macOS arm64 default library | 2,185 passed and 14 failed. |
+| Client library, Linux default | 2,190 passed and 17 failed; the all-target run stopped at the library. |
+| Client all features | Stopped at an all-target Clippy lint before tests. A later [test-only correction][clippy] passed strict Clippy and 12 selected tests. |
+| Windows default library | 2,193 passed and 14 failed. |
+| macOS arm64 default library | 2,183 passed and 24 failed. |
 | Kafka 4.1.2, 4.2.1 and 4.3.1 compatibility | Each overflowed after the classic-join marker. |
 | Kafka 3.9.1 and 4.1.0 smoke | Both failed after repeated EOS timeouts. |
-| Broker default | The Fetch integration suite had 25 passes and one failure; later targets and all features did not run. |
+| Broker default library | 446 passed and four Raft runtime tests failed; later targets and all features did not run. |
 | Broker inventory and fuzz supervision | Both passed. |
 | Client capability profiles | Both jobs passed; their archives were not independently inspected for this status. |
-| Client format, Clippy, audit, docs, package, auth and integrity smoke | Passed. Other client and live-broker jobs failed or were skipped. |
+| Client format, audit, docs, package, auth and integrity smoke | Passed. Other client and live-broker jobs failed or were skipped. |
 
-A [debugger trace][gdb] on this source caught the stack fault while opening a
-consumer bootstrap connection. It identifies a failure point, not a complete
-fix or compatibility pass.
+A [debugger trace][gdb] on the earlier `8b5de2e` source caught a stack fault
+while opening a consumer bootstrap connection. It identifies a failure point,
+not a complete fix or compatibility pass.
 
 Earlier results and candidate runs are retained in the [work plan][next],
 [previous CI evidence][previous-ci] and [previous status][previous]. A focused
@@ -82,15 +82,16 @@ The [work plan][next] tracks the current candidates and outstanding tests.
 The [support matrix](support.md) describes configured coverage, and the
 [release guide](RELEASE.md) lists publication gates. No new release is ready.
 
-[ci]: https://github.com/mingley/partitionline/blob/447493b1fbee45c04fd339d199fd661746adbf25/docs/evidence/releases/main-ci-8b5-20261108/README.md
-[previous-ci]: https://github.com/mingley/partitionline/blob/ffa7b9bba3733aa554c75f853dac46a66500a4dd/docs/evidence/releases/main-ci-3f45-20261106/README.md
-[next]: https://github.com/mingley/partitionline/blob/447493b1fbee45c04fd339d199fd661746adbf25/docs/plan/next-work.md
+[ci]: https://github.com/mingley/partitionline/blob/892f04504d0ce02dad5e823795624920fd2413f9/docs/evidence/releases/main-ci-b631-20261108/README.md
+[previous-ci]: https://github.com/mingley/partitionline/blob/447493b1fbee45c04fd339d199fd661746adbf25/docs/evidence/releases/main-ci-8b5-20261108/README.md
+[next]: https://github.com/mingley/partitionline/blob/892f04504d0ce02dad5e823795624920fd2413f9/docs/plan/next-work.md
 [previous]: https://github.com/mingley/partitionline/blob/5c2a000639d9a8a7dccd56e8c1d6f3a58dca1601/docs/STATUS.md
 [flush]: https://github.com/mingley/partitionline/blob/e980829c439aa43edc01312c91838e58a412221a/docs/evidence/client/producer-flush-native-86f2-20261103/README.md
 [txn]: https://github.com/mingley/partitionline/blob/49ad56c6bce1366e2357c272f11c5c34160d60da/docs/evidence/client/add-partitions-native-4f0c-20261103/README.md
 [cancel]: https://github.com/mingley/partitionline/blob/277746439899c250871aebb7fe5e1ed959826592/docs/evidence/broker/produce-cancel-20261108/README.md
 [lock]: https://github.com/mingley/partitionline/blob/447493b1fbee45c04fd339d199fd661746adbf25/docs/evidence/client/txn-lock-deadline-20261108/README.md
 [txn-live]: https://github.com/mingley/partitionline/actions/runs/42438994537
-[replacement]: https://github.com/mingley/partitionline/blob/447493b1fbee45c04fd339d199fd661746adbf25/docs/evidence/client/txn-replacement-20261108/README.md
+[replacement]: https://github.com/mingley/partitionline/blob/892f04504d0ce02dad5e823795624920fd2413f9/docs/evidence/client/txn-replacement-20261108/README.md
 [perf]: https://github.com/mingley/partitionline/blob/447493b1fbee45c04fd339d199fd661746adbf25/docs/evidence/client/txn-decode-20261108/README.md
-[gdb]: https://github.com/mingley/partitionline/actions/runs/42440512105
+[gdb]: https://github.com/mingley/partitionline/actions/runs/42440732574
+[clippy]: https://github.com/mingley/partitionline/actions/runs/42441786927
