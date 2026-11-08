@@ -235,6 +235,24 @@ pub struct Mock {
     state: Arc<Mutex<State>>,
 }
 
+/// A test-controlled latch for one Produce response.
+pub struct ProduceResponseGate {
+    entered: Notify,
+    released: Notify,
+}
+
+impl ProduceResponseGate {
+    /// Wait until the mock has prepared the response and is holding it.
+    pub async fn entered(&self) {
+        self.entered.notified().await;
+    }
+
+    /// Permit the mock to send the held response.
+    pub fn release(&self) {
+        self.released.notify_one();
+    }
+}
+
 #[derive(Clone)]
 struct CreatedTopic {
     num_partitions: i32,
@@ -402,6 +420,7 @@ struct State {
     produce_recreate_once: Option<(String, [u8; 16])>,
     produce_response_id: Option<[u8; 16]>,
     produce_response_delay: Option<Duration>,
+    produce_response_gate: Option<Arc<ProduceResponseGate>>,
     expected_seq: HashMap<(i64, i16, String, i32), i32>,
     last_produce_base_sequence: Option<i32>,
     produce_sequences: Vec<(i64, i16, i32, i32)>,
@@ -949,6 +968,7 @@ fn new_state(
         produce_recreate_once: None,
         produce_response_id: None,
         produce_response_delay: None,
+        produce_response_gate: None,
         expected_seq: HashMap::new(),
         last_produce_base_sequence: None,
         produce_sequences: Vec::new(),
@@ -2357,6 +2377,26 @@ impl Mock {
         state.next_offset.insert(key, offset);
     }
 
+    /// Read recorded values and offsets without changing mock broker state.
+    pub fn log_values(&self, topic: &str, partition: i32) -> Vec<(i64, Option<Vec<u8>>)> {
+        self.state
+            .lock()
+            .log
+            .get(&(topic.to_string(), partition))
+            .map(|records| {
+                records
+                    .iter()
+                    .map(|record| {
+                        (
+                            record.offset,
+                            record.value.as_ref().map(|value| value.to_vec()),
+                        )
+                    })
+                    .collect()
+            })
+            .unwrap_or_default()
+    }
+
     pub fn log_len(&self, topic: &str, partition: i32) -> usize {
         self.state
             .lock()
@@ -2446,6 +2486,21 @@ impl Mock {
             .created_topics
             .get(name)
             .map(|topic| topic.is_internal)
+    }
+
+    /// Hold the next Produce response until the returned gate is released.
+    pub fn gate_next_produce_response(&self) -> Arc<ProduceResponseGate> {
+        let gate = Arc::new(ProduceResponseGate {
+            entered: Notify::new(),
+            released: Notify::new(),
+        });
+        let previous = self
+            .state
+            .lock()
+            .produce_response_gate
+            .replace(Arc::clone(&gate));
+        assert!(previous.is_none(), "a Produce gate is already installed");
+        gate
     }
 
     pub fn set_produce_error(&self, code: i16) {
@@ -7438,7 +7493,7 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 }
                 let txn_id = decoded.0;
                 let mut parts = Vec::new();
-                let (should_drop_resp, response_delay) = {
+                let (should_drop_resp, response_delay, response_gate) = {
                     let mut st = state.lock();
                     st.last_produce_version = Some(header.api_version);
                     st.last_produce_version_by_node
@@ -7714,8 +7769,13 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                             false
                         }
                     };
-                    (should_drop_resp, st.produce_response_delay)
+                    let response_gate = st.produce_response_gate.take();
+                    (should_drop_resp, st.produce_response_delay, response_gate)
                 };
+                if let Some(gate) = response_gate {
+                    gate.entered.notify_one();
+                    gate.released.notified().await;
+                }
                 if let Some(delay) = response_delay {
                     tokio::time::sleep(delay).await;
                 }
