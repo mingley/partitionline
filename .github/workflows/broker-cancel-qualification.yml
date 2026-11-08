@@ -1,0 +1,129 @@
+name: Broker Produce cancellation qualification
+
+on:
+  push:
+    branches:
+      - qualification/broker-cancel-20261108
+permissions:
+  contents: read
+concurrency:
+  group: broker-cancel-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  qualify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      CARGO_INCREMENTAL: '0'
+      CARGO_BUILD_JOBS: '2'
+      CARGO_TERM_COLOR: never
+      CARGO_TARGET_DIR: ${{ github.workspace }}/target/broker-cancel
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          sparse-checkout: |
+            .cargo
+            Cargo.toml
+            rust-toolchain.toml
+            partitionline-broker
+            scripts
+            tests/ci
+            tests/conformance/broker
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - name: Confirm source pin and free space
+        run: |
+          python3 -B - <<'PY'
+          import hashlib, json, pathlib, platform, shutil
+          source = pathlib.Path("partitionline-broker/src/produce.rs")
+          registry = json.loads(pathlib.Path("tests/conformance/broker/implemented-api-versions.json").read_text())
+          digest = hashlib.sha256(source.read_bytes()).hexdigest()
+          assert platform.machine() == "x86_64"
+          assert shutil.disk_usage(".").free >= 4 * 1024**3
+          assert digest == registry["produce_source_sha256"]
+          print("candidate produce source sha256", digest)
+          PY
+      - name: Broker format
+        run: cargo +stable fmt --manifest-path partitionline-broker/Cargo.toml -- --check
+      - name: Reproduce baseline cancellation failure
+        shell: bash
+        run: |
+          set -euo pipefail
+          source=partitionline-broker/src/produce.rs
+          cp "$source" "$RUNNER_TEMP/candidate-produce.rs"
+          restore() { cp "$RUNNER_TEMP/candidate-produce.rs" "$source"; }
+          trap restore EXIT
+          python3 -B - <<'PY'
+          from pathlib import Path
+          path = Path("partitionline-broker/src/produce.rs")
+          text = path.read_text()
+          fixed = """            if let Err(error) = active() {
+                          rollback_pending(store, &mut pending_sync);
+                          return Err(error);
+                      }"""
+          baseline = """            if let Err(error) = active() {
+                          if grouped {
+                              rollback_pending(store, &mut pending_sync);
+                          }
+                          return Err(error);
+                      }"""
+          if text.count(fixed) != 1:
+              raise SystemExit("candidate cancellation branch not unique")
+          path.write_text(text.replace(fixed, baseline))
+          PY
+          set +e
+          cargo +stable test --locked --manifest-path partitionline-broker/Cargo.toml --lib \
+            produce::tests::cancel_ungrouped_after_first_stage_rolls_back -- --exact --nocapture \
+            2>&1 | tee "$RUNNER_TEMP/broker-cancel-baseline.log"
+          result=${PIPESTATUS[0]}
+          set -e
+          test "$result" -eq 101
+          grep -Fq 'UNGROUPED_CANCEL_LEFT_STAGED' "$RUNNER_TEMP/broker-cancel-baseline.log"
+          grep -Eq 'test result: FAILED\. 0 passed; 1 failed;' "$RUNNER_TEMP/broker-cancel-baseline.log"
+          restore
+          trap - EXIT
+          cmp "$source" "$RUNNER_TEMP/candidate-produce.rs"
+          cargo +stable clean --manifest-path partitionline-broker/Cargo.toml -p partitionline-broker
+      - name: Focused candidate controls
+        shell: bash
+        run: |
+          set -euo pipefail
+          for profile in default all; do
+            features=()
+            if [[ "$profile" == all ]]; then features=(--all-features); fi
+            cargo +stable test --locked --manifest-path partitionline-broker/Cargo.toml \
+              "${features[@]}" --lib produce::tests::cancel_ -- --nocapture \
+              2>&1 | tee "$RUNNER_TEMP/broker-cancel-$profile.log"
+            for case in cancel_ungrouped_after_first_stage_rolls_back cancel_grouped_preserves_prior_request cancel_rolling_may_leave_durable_prefix; do
+              grep -Fq "test produce::tests::$case ... ok" "$RUNNER_TEMP/broker-cancel-$profile.log"
+            done
+            grep -Eq 'test result: ok\. 3 passed; 0 failed;' "$RUNNER_TEMP/broker-cancel-$profile.log"
+          done
+      - name: Full broker default and all-feature suites
+        run: |
+          cargo +stable test --locked --manifest-path partitionline-broker/Cargo.toml --all-targets
+          cargo +stable test --locked --manifest-path partitionline-broker/Cargo.toml --all-targets --all-features
+      - name: Strict broker Clippy and source inventory
+        run: |
+          cargo +stable clippy --locked --manifest-path partitionline-broker/Cargo.toml --all-targets --all-features -- -D warnings
+          PARTITIONLINE_PRODUCE_REPORT="$RUNNER_TEMP/broker-cancel-produce.json" \
+            cargo +stable test --locked --manifest-path partitionline-broker/Cargo.toml --test produce \
+            independent_apache_produce_goldens -- --exact
+          python3 -B scripts/check-broker-api-matrix.py --report "$RUNNER_TEMP/broker-cancel-inventory.json" \
+            --produce-handler-report "$RUNNER_TEMP/broker-cancel-produce.json"
+          python3 -B -m unittest discover -s tests/ci -p test_broker_api_matrix.py -v
+      - name: Retain qualification logs
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: broker-produce-cancel-${{ github.run_id }}
+          path: |
+            ${{ runner.temp }}/broker-cancel-baseline.log
+            ${{ runner.temp }}/broker-cancel-default.log
+            ${{ runner.temp }}/broker-cancel-all.log
+            ${{ runner.temp }}/broker-cancel-inventory.json
+            ${{ runner.temp }}/broker-cancel-produce.json
+          if-no-files-found: warn
+          retention-days: 30
