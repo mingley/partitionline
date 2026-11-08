@@ -560,8 +560,14 @@ fn higher_term_fences_stale_writer_and_checkpoint_includes_new_barrier() -> Resu
     let records = group.node(1)?.fetch_committed(1, 4, 4096)?;
     assert_eq!(records.len(), 4);
     assert_eq!(records[0].kind, replication::RecordKind::Barrier);
-    assert_eq!((records[1].index, records[1].payload.as_slice()), (first, b"first".as_slice()));
-    assert_eq!((records[2].index, records[2].payload.as_slice()), (last_data, b"second".as_slice()));
+    assert_eq!(
+        (records[1].index, records[1].payload.as_slice()),
+        (first, b"first".as_slice())
+    );
+    assert_eq!(
+        (records[2].index, records[2].payload.as_slice()),
+        (last_data, b"second".as_slice())
+    );
     assert_eq!(records[3].kind, replication::RecordKind::Barrier);
     assert_eq!(records[3].index, barrier);
     let image = group.node(1)?.checkpoint([42; 16], 43)?;
