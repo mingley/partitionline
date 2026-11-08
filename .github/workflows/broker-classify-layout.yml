@@ -1,0 +1,69 @@
+name: Broker classify benchmark layout control
+on:
+  push:
+    branches: [qualification/broker-classify-layout-control-20261108]
+permissions:
+  contents: read
+jobs:
+  paired:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      CARGO_BUILD_JOBS: 2
+      CARGO_INCREMENTAL: 0
+      CARGO_TARGET_DIR: target/frame-network-bench
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Compile distinct layouts and run rotated paired controls
+        run: |
+          set -euo pipefail
+          rustc -Vv
+          uname -m
+          awk -F: '/model name/ {print $2; exit}' /proc/cpuinfo
+          core="$(python3 -c 'import os; print(min(os.sched_getaffinity(0)))')"
+          echo "layout-bench pinned_core=$core"
+          for layout in plain extended; do
+            for variant in baseline candidate; do
+              case "$variant" in
+                baseline) revision=e487f7294773f75112f15437992ed780b53c7307; blob=a36cf086c3d683a5f24b818705b15d8ce54245f4 ;;
+                candidate) revision=6c92c25c995abf7bb65c3191f708fda617485ce7; blob=95a7e220ae8a6e34a0ae41936c3b36c7bc596ade ;;
+              esac
+              git show "$revision:partitionline-broker/src/transport.rs" > partitionline-broker/src/transport.rs
+              test "$(git hash-object partitionline-broker/src/transport.rs)" = "$blob"
+              cat .github/scripts/frame-network-raw.rs >> partitionline-broker/src/transport.rs
+              if [[ "$layout" == extended ]]; then cat .github/scripts/frame-ready-bench.rs >> partitionline-broker/src/transport.rs; fi
+              cargo test --release --locked --manifest-path partitionline-broker/Cargo.toml --features tls --lib --no-run --message-format=json > "/tmp/layout-build-$layout-$variant.json"
+              executable="$(python3 - "/tmp/layout-build-$layout-$variant.json" <<'PY'
+          import json, sys
+          matches=[]
+          for line in open(sys.argv[1], encoding="utf-8"):
+              data=json.loads(line)
+              if data.get("reason") == "compiler-artifact" and data.get("target", {}).get("name") == "partitionline_broker" and data.get("profile", {}).get("test") and data.get("executable"):
+                  matches.append(data["executable"])
+          assert len(matches) == 1, matches
+          print(matches[0])
+          PY
+              )"
+              cp "$executable" "/tmp/layout-$layout-$variant"
+              sha256sum "/tmp/layout-$layout-$variant"
+            done
+          done
+          cp /tmp/layout-plain-baseline /tmp/layout-plain-placebo
+          cmp /tmp/layout-plain-baseline /tmp/layout-plain-placebo
+          sha256sum /tmp/layout-plain-placebo
+          labels=(plain-baseline plain-candidate plain-placebo extended-baseline extended-candidate)
+          for round in 0 1 2 3 4 5; do
+            for index in 0 1 2 3 4; do
+              if (( round % 2 == 0 )); then pos=$(( (index + round) % 5 )); else pos=$(( (round + 5 - index) % 5 )); fi
+              variant="${labels[$pos]}"
+              echo "layout-round=$round variant=$variant"
+              taskset -c "$core" env PL_FRAME_NETWORK_VARIANT="$variant" "/tmp/layout-$variant" --exact transport::frame_network_microbench::measure_frame_over_network --ignored --nocapture --test-threads=1 | tee /tmp/layout-sample.log
+              grep -qFx 'running 1 test' /tmp/layout-sample.log
+              grep -qE '^test result: ok\. 1 passed; 0 failed;' /tmp/layout-sample.log
+              test "$(grep -c 'frame-network variant=' /tmp/layout-sample.log)" -eq 4
+              test "$(grep -c 'frame-network-rtt variant=' /tmp/layout-sample.log)" -eq 768
+            done
+          done
