@@ -1128,16 +1128,6 @@ pub(super) async fn coord_offsets_typed(
     }
 }
 
-fn bounded_consumer_config(
-    cfg: &crate::ConsumerConfig,
-    deadline: Deadline,
-) -> Result<crate::ConsumerConfig> {
-    let mut bounded = cfg.clone();
-    bounded.request_timeout = deadline.remaining()?;
-    bounded.connect_timeout = bounded.connect_timeout.min(bounded.request_timeout);
-    Ok(bounded)
-}
-
 #[cfg(test)]
 mod reconnect_tests;
 

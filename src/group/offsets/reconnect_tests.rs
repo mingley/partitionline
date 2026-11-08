@@ -307,7 +307,7 @@ async fn v10_load_retry_never_downgrades_uuid_requests() {
     }
 }
 
-async fn idle_replacement(api: i16, uuid_request: bool) {
+async fn offset_replacement(api: i16, uuid_request: bool, fail_first_request: bool) {
     use tokio::io::AsyncReadExt;
 
     let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
@@ -325,13 +325,20 @@ async fn idle_replacement(api: i16, uuid_request: bool) {
     }
     let peer = tokio::spawn(async move {
         let mut byte = [0u8; 1];
-        let first_result = tokio::time::timeout(Duration::from_secs(3), first.read(&mut byte))
-            .await
-            .unwrap();
-        match first_result {
-            Ok(0) => {}
-            Err(error) if error.kind() == std::io::ErrorKind::ConnectionReset => {}
-            other => panic!("old offset peer did not see retirement: {other:?}"),
+        if fail_first_request {
+            let (header, body) = read_request(&mut first).await;
+            assert_eq!((header.api_key, header.api_version), (api, 9));
+            assert_eq!(body.as_ref(), &9i16.to_be_bytes());
+            drop(first);
+        } else {
+            let first_result = tokio::time::timeout(Duration::from_secs(3), first.read(&mut byte))
+                .await
+                .unwrap();
+            match first_result {
+                Ok(0) => {}
+                Err(error) if error.kind() == std::io::ErrorKind::ConnectionReset => {}
+                other => panic!("old offset peer did not see retirement: {other:?}"),
+            }
         }
 
         let version = if uuid_request { 9 } else { 8 };
@@ -354,11 +361,15 @@ async fn idle_replacement(api: i16, uuid_request: bool) {
     });
     let mut cfg = crate::ConsumerConfig::bootstrap([addr]);
     cfg.sasl_plain = Some(("user".into(), "pass".into()));
-    cfg.connections_max_idle = Duration::from_nanos(1);
+    cfg.connections_max_idle = if fail_first_request {
+        Duration::from_secs(60)
+    } else {
+        Duration::from_nanos(1)
+    };
     tokio::task::yield_now().await;
-    assert!(coord.idle_expired(cfg.connections_max_idle));
+    assert_eq!(coord.idle_expired(cfg.connections_max_idle), !fail_first_request);
     let mut prior = HashMap::new();
-    let mut encoded = false;
+    let mut encoded = Vec::new();
     if uuid_request {
         let result = coord_offsets_v10(
             &mut coord,
@@ -367,7 +378,7 @@ async fn idle_replacement(api: i16, uuid_request: bool) {
             COORDINATOR_GROUP,
             api,
             |buf| {
-                encoded = true;
+                encoded.push(10);
                 buf.extend_from_slice(b"UUID");
                 Ok(())
             },
@@ -378,7 +389,7 @@ async fn idle_replacement(api: i16, uuid_request: bool) {
         )
         .await;
         assert!(matches!(result, Err(Error::Unsupported(_))), "{result:?}");
-        assert!(!encoded, "a UUID request cannot be re-encoded as v9");
+        assert!(encoded.is_empty(), "a UUID request cannot be re-encoded as v9");
     } else {
         let (version, body) = coord_offsets_legacy(
             &mut coord,
@@ -388,7 +399,7 @@ async fn idle_replacement(api: i16, uuid_request: bool) {
             api,
             9,
             |version, buf| {
-                encoded = true;
+                encoded.push(version);
                 buf.extend_from_slice(&version.to_be_bytes());
                 Ok(())
             },
@@ -399,7 +410,11 @@ async fn idle_replacement(api: i16, uuid_request: bool) {
         )
         .await
         .unwrap();
-        assert!(encoded);
+        if fail_first_request {
+            assert_eq!(encoded, [9, 8]);
+        } else {
+            assert_eq!(encoded, [8]);
+        }
         assert_eq!(version, 8);
         assert_eq!(body.as_ref(), response(api, 8, 0));
     }
@@ -416,13 +431,113 @@ async fn idle_replacement(api: i16, uuid_request: bool) {
 #[tokio::test(flavor = "current_thread")]
 async fn idle_offset_replacement_authenticates_and_reencodes_for_the_new_version() {
     for api in [OFFSET_FETCH, OFFSET_COMMIT] {
-        idle_replacement(api, false).await;
+        offset_replacement(api, false, false).await;
     }
 }
 
 #[tokio::test(flavor = "current_thread")]
 async fn idle_offset_replacement_never_downgrades_uuid_requests() {
     for api in [OFFSET_FETCH, OFFSET_COMMIT] {
-        idle_replacement(api, true).await;
+        offset_replacement(api, true, false).await;
+    }
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn failed_offset_request_retires_socket_and_reencodes_for_new_version() {
+    for api in [OFFSET_FETCH, OFFSET_COMMIT] {
+        offset_replacement(api, false, true).await;
+    }
+}
+
+async fn typed_idle_replacement(api: i16) {
+    let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let addr = listener.local_addr().unwrap().to_string();
+    let mut coord =
+        crate::net::BrokerConn::connect(&addr, "typed-idle-offset", Duration::from_secs(3))
+            .await
+            .unwrap();
+    let (mut first, _) = listener.accept().await.unwrap();
+    coord.offset_fetch_version = 9;
+    coord.offset_fetch_range = Some((1, 9));
+    coord.offset_commit_version = 9;
+    coord.offset_commit_range = Some((2, 9));
+    let peer = tokio::spawn(async move {
+        let mut byte = [0u8; 1];
+        let result = tokio::time::timeout(Duration::from_secs(3), first.read(&mut byte))
+            .await
+            .unwrap();
+        match result {
+            Ok(0) => {}
+            Err(error) if error.kind() == std::io::ErrorKind::ConnectionReset => {}
+            other => panic!("old typed offset peer did not see retirement: {other:?}"),
+        }
+        let mut socket = authenticate(&listener, api, 8).await;
+        let (header, body) = read_request(&mut socket).await;
+        assert_eq!((header.api_key, header.api_version), (api, 8));
+        if api == OFFSET_FETCH {
+            let request = decode_offset_fetch_request_data(&body, 8, OffsetLimits::default()).unwrap();
+            assert_eq!(request.groups.len(), 1);
+            assert_eq!(request.groups[0].group_id, "retry");
+            assert!(request.require_stable);
+        } else {
+            let request = decode_offset_commit_request_data(&body, 8, OffsetLimits::default()).unwrap();
+            assert_eq!(request.group_id, "retry");
+            assert_eq!(request.generation_id_or_member_epoch, 3);
+            assert_eq!(request.member_id, "member");
+        }
+        respond(&mut socket, &header, &response(api, 8, 0)).await;
+    });
+    let mut cfg = crate::ConsumerConfig::bootstrap([addr]);
+    cfg.sasl_plain = Some(("user".into(), "pass".into()));
+    cfg.connections_max_idle = Duration::from_nanos(1);
+    tokio::task::yield_now().await;
+    assert!(coord.idle_expired(cfg.connections_max_idle));
+    let request = if api == OFFSET_FETCH {
+        LegacyOffsetRequest::Fetch {
+            group_id: "retry",
+            member_id: None,
+            member_epoch: -1,
+            require_stable: true,
+            topics: Some(&[]),
+        }
+    } else {
+        LegacyOffsetRequest::Commit {
+            group_id: "retry",
+            generation: 3,
+            member_id: "member",
+            instance: None,
+            topics: &[],
+        }
+    };
+    let mut prior = HashMap::new();
+    let (version, body) = coord_offsets_typed(
+        &mut coord,
+        &cfg,
+        "retry",
+        COORDINATOR_GROUP,
+        &request,
+        &[],
+        &HashMap::new(),
+        &mut prior,
+        Duration::from_secs(3),
+    )
+    .await
+    .unwrap();
+    assert_eq!(version, 8);
+    assert_eq!(body.as_ref(), response(api, 8, 0));
+    coord
+        .retire_physical_deadline(crate::net::Deadline::from_timeout(Duration::from_secs(3)))
+        .await
+        .unwrap();
+    tokio::time::timeout(Duration::from_secs(3), peer)
+        .await
+        .unwrap()
+        .unwrap();
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn typed_idle_offset_replacement_uses_the_new_authenticated_version() {
+    for api in [OFFSET_FETCH, OFFSET_COMMIT] {
+        typed_idle_replacement(api).await;
     }
 }

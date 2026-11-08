@@ -7877,14 +7877,6 @@ fn take_ready_handshake(
     ready.get_mut(index)?.take()?.ok()
 }
 
-/// Open and negotiate a replacement TCP socket to the coordinator.
-pub(crate) async fn reopen_known_coord(
-    cfg: &ConsumerConfig,
-    previous: &BrokerConn,
-) -> Result<BrokerConn> {
-    connect_known_coord(cfg, &KnownCoord::capture(previous)).await
-}
-
 /// Versions already learned for one coordinator address.
 #[derive(Clone)]
 pub(crate) struct KnownCoord {

@@ -850,6 +850,75 @@ enum ConnIo {
     Script(ScriptIo),
 }
 
+/// The stream and its monotonic retirement request share one allocation.
+struct SharedConnIo {
+    inner: tokio::sync::Mutex<ConnIo>,
+    retire: AtomicBool,
+}
+
+impl SharedConnIo {
+    fn new(io: ConnIo) -> Self {
+        Self {
+            inner: tokio::sync::Mutex::new(io),
+            retire: AtomicBool::new(false),
+        }
+    }
+
+    fn try_lock(&self) -> std::result::Result<SharedConnIoGuard<'_>, tokio::sync::TryLockError> {
+        let io = self.inner.try_lock()?;
+        Ok(SharedConnIoGuard {
+            io,
+            _retire_after_unlock: RetireAfterUnlock(self),
+        })
+    }
+
+    async fn lock(&self) -> SharedConnIoGuard<'_> {
+        // The waiter may be canceled after Tokio reserves a permit for it but
+        // before it produces a guard. Its cleanup must run after that waiter's
+        // future releases the permit.
+        let after_unlock = RetireAfterUnlock(self);
+        let io = self.inner.lock().await;
+        SharedConnIoGuard {
+            io,
+            _retire_after_unlock: after_unlock,
+        }
+    }
+}
+
+/// Fields drop in declaration order: release the mutex before checking the
+/// flag. If a new guard wins the lock, its own drop performs the same check.
+struct SharedConnIoGuard<'a> {
+    io: tokio::sync::MutexGuard<'a, ConnIo>,
+    _retire_after_unlock: RetireAfterUnlock<'a>,
+}
+
+impl std::ops::Deref for SharedConnIoGuard<'_> {
+    type Target = ConnIo;
+
+    fn deref(&self) -> &Self::Target {
+        &self.io
+    }
+}
+
+impl std::ops::DerefMut for SharedConnIoGuard<'_> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.io
+    }
+}
+
+struct RetireAfterUnlock<'a>(&'a SharedConnIo);
+
+impl Drop for RetireAfterUnlock<'_> {
+    fn drop(&mut self) {
+        if !self.0.retire.load(Ordering::SeqCst) {
+            return;
+        }
+        if let Ok(mut io) = self.0.inner.try_lock() {
+            *io = ConnIo::Closed;
+        }
+    }
+}
+
 // These test doubles model a ready IO call that takes wall time inside one
 // poll. An async timer would yield and stop testing the caller's poll budget.
 #[cfg(test)]
@@ -1002,7 +1071,7 @@ enum IdleRead {
 ///
 /// Shutdown only closes the write half. A peer blocked in its own write stays
 /// there until those bytes are read or the socket is dropped.
-async fn discard_peer_write(stream: &tokio::sync::Mutex<ConnIo>, arm: &tokio::sync::Notify) {
+async fn discard_peer_write(stream: &SharedConnIo, arm: &tokio::sync::Notify) {
     let mut discard = [0u8; 8 * 1024];
     loop {
         let seen = poll_fn(|cx| {
@@ -1039,7 +1108,7 @@ async fn discard_peer_write(stream: &tokio::sync::Mutex<ConnIo>, arm: &tokio::sy
 /// so a close is not delayed until the next timer. Bytes it does read stay
 /// in `prefetch` for the next framed read.
 fn spawn_idle_watch(
-    stream: Arc<tokio::sync::Mutex<ConnIo>>,
+    stream: Arc<SharedConnIo>,
     prefetch: Arc<parking_lot::Mutex<BytesMut>>,
     closed: Arc<AtomicBool>,
     arm: Arc<tokio::sync::Notify>,
@@ -1198,7 +1267,7 @@ fn spawn_idle_watch(
 
 /// One TCP or TLS connection to a Kafka broker.
 pub struct BrokerConn {
-    stream: Arc<tokio::sync::Mutex<ConnIo>>,
+    stream: Arc<SharedConnIo>,
     /// Bytes an idle watch read so the owner can finish the frame.
     prefetch: Arc<parking_lot::Mutex<BytesMut>>,
     /// Stops the idle watch when this connection is dropped.
@@ -1293,7 +1362,7 @@ impl BrokerConn {
     /// Callers hold the stream lock, which is the same order the watch uses
     /// when it appends those bytes.
     /// Drop a stream lock and wake the idle watch so it can register again.
-    fn release_stream(&self, stream: tokio::sync::MutexGuard<'_, ConnIo>) {
+    fn release_stream(&self, stream: SharedConnIoGuard<'_>) {
         drop(stream);
         self.idle_arm.notify_one();
     }
@@ -1425,7 +1494,7 @@ impl BrokerConn {
         } else {
             ConnIo::Tcp(tcp)
         };
-        let stream = Arc::new(tokio::sync::Mutex::new(stream));
+        let stream = Arc::new(SharedConnIo::new(stream));
         let prefetch = Arc::new(parking_lot::Mutex::new(BytesMut::new()));
         let closed = Arc::new(AtomicBool::new(false));
         let idle_arm = Arc::new(tokio::sync::Notify::new());
@@ -1478,7 +1547,7 @@ impl BrokerConn {
     /// stays inside one poll can be told apart from one that yields.
     #[cfg(test)]
     fn script_conn(body: Vec<u8>, chunk: usize, pause: Duration) -> Self {
-        let stream = Arc::new(tokio::sync::Mutex::new(ConnIo::Script(ScriptIo {
+        let stream = Arc::new(SharedConnIo::new(ConnIo::Script(ScriptIo {
             body,
             pos: 0,
             chunk,
@@ -1667,9 +1736,10 @@ impl BrokerConn {
         Err(Error::Closed)
     }
 
-    /// Mark this connection closed and immediately drop its socket if it is
-    /// not currently locked by another task.
+    /// Mark the stream for physical retirement and close it now when unlocked.
+    /// If it is held, the lock holder closes it immediately after unlocking.
     pub(crate) fn try_retire_physical(&mut self) -> bool {
+        self.stream.retire.store(true, Ordering::SeqCst);
         self.close();
         self.idle_watch.abort();
         let stream = Arc::clone(&self.stream);
@@ -1684,8 +1754,8 @@ impl BrokerConn {
     }
 
     /// Retire the socket before a replacement is opened, within the original
-    /// operation deadline. A canceled or timed-out attempt leaves the slot
-    /// marked closed so the next attempt can finish retiring it.
+    /// operation deadline. Cancellation or timeout leaves the slot closed;
+    /// a stream lock held at that point finishes retirement when it is dropped.
     pub(crate) async fn retire_physical_deadline(&mut self, deadline: Deadline) -> Result<()> {
         let retired = self.try_retire_physical();
         deadline.check_expired()?;
@@ -3320,6 +3390,8 @@ mod tests {
         assert!(matches!(result, Err(Error::Timeout)));
         assert!(conn.is_closed());
         drop(held);
+        assert_retired_peer(&mut peer).await;
+        assert!(conn.is_closed(), "the abandoned slot must remain closed");
 
         conn.retire_physical_deadline(Deadline::from_timeout(Duration::from_secs(2)))
             .await
@@ -3347,11 +3419,128 @@ mod tests {
         drop(retiring);
         assert!(conn.is_closed());
         drop(held);
+        assert_retired_peer(&mut peer).await;
+        assert!(conn.is_closed(), "the abandoned slot must remain closed");
 
         conn.retire_physical_deadline(Deadline::from_timeout(Duration::from_secs(2)))
             .await
             .unwrap();
         assert_retired_peer(&mut peer).await;
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn repeated_physical_retirement_outside_runtime_needs_no_cleanup_task() {
+        let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap().to_string();
+        let conn = BrokerConn::connect(&addr, "retire-outside-runtime", Duration::from_secs(2))
+            .await
+            .unwrap();
+        let (mut peer, _) = listener.accept().await.unwrap();
+        let shared = Arc::clone(&conn.stream);
+        let held = shared.lock().await;
+        let worker = std::thread::spawn(move || {
+            assert!(tokio::runtime::Handle::try_current().is_err());
+            let mut conn = conn;
+            for _ in 0..100 {
+                assert!(!conn.try_retire_physical());
+            }
+            conn
+        });
+        let conn = worker.join().unwrap();
+        assert!(conn.is_closed());
+        drop(held);
+        assert_retired_peer(&mut peer).await;
+        assert!(conn.is_closed());
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn canceled_queued_stream_waiter_finishes_retirement() {
+        use std::future::Future;
+
+        let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap().to_string();
+        let mut conn = BrokerConn::connect(&addr, "retire-waiter-cancel", Duration::from_secs(2))
+            .await
+            .unwrap();
+        let (mut peer, _) = listener.accept().await.unwrap();
+        let shared = Arc::clone(&conn.stream);
+        let held = shared.lock().await;
+        let mut waiting = Box::pin(shared.lock());
+        let first = std::future::poll_fn(|cx| Poll::Ready(waiting.as_mut().poll(cx))).await;
+        assert!(first.is_pending(), "the second lock must be queued");
+        assert!(!conn.try_retire_physical());
+        drop(held);
+        drop(waiting);
+        assert_retired_peer(&mut peer).await;
+        assert!(conn.is_closed());
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn queued_stream_guard_handoff_finishes_retirement() {
+        use std::future::Future;
+
+        let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap().to_string();
+        let mut conn = BrokerConn::connect(&addr, "retire-waiter-guard", Duration::from_secs(2))
+            .await
+            .unwrap();
+        let (mut peer, _) = listener.accept().await.unwrap();
+        let shared = Arc::clone(&conn.stream);
+        let held = shared.lock().await;
+        let mut waiting = Box::pin(shared.lock());
+        let first = std::future::poll_fn(|cx| Poll::Ready(waiting.as_mut().poll(cx))).await;
+        assert!(first.is_pending(), "the second lock must be queued");
+        assert!(!conn.try_retire_physical());
+        drop(held);
+        let next = tokio::time::timeout(Duration::from_secs(2), &mut waiting)
+            .await
+            .unwrap();
+        drop(waiting);
+        drop(next);
+        assert_retired_peer(&mut peer).await;
+        assert!(conn.is_closed());
+    }
+
+    #[test]
+    #[ignore = "explicit release-mode lock overhead measurement"]
+    fn stream_lock_overhead_probe() {
+        use std::hint::black_box;
+
+        const ITERS: usize = 1_000_000;
+        const ROUNDS: usize = 8;
+        let raw = tokio::sync::Mutex::new(ConnIo::Closed);
+        let wrapped = SharedConnIo::new(ConnIo::Closed);
+        let raw_round = || {
+            let start = Instant::now();
+            for _ in 0..ITERS {
+                let mut guard = black_box(&raw).try_lock().unwrap();
+                black_box(&mut *guard);
+            }
+            start.elapsed()
+        };
+        let wrapped_round = || {
+            let start = Instant::now();
+            for _ in 0..ITERS {
+                let mut guard = black_box(&wrapped).try_lock().unwrap();
+                black_box(&mut *guard);
+            }
+            start.elapsed()
+        };
+        for round in 0..ROUNDS {
+            let (raw_elapsed, wrapped_elapsed) = if round % 2 == 0 {
+                (raw_round(), wrapped_round())
+            } else {
+                let wrapped_elapsed = wrapped_round();
+                (raw_round(), wrapped_elapsed)
+            };
+            println!(
+                "lock_probe round={round} iterations={ITERS} raw_ns={} wrapped_ns={}",
+                raw_elapsed.as_nanos(),
+                wrapped_elapsed.as_nanos()
+            );
+            assert!(raw_elapsed > Duration::ZERO);
+            assert!(wrapped_elapsed > Duration::ZERO);
+        }
     }
 
     #[tokio::test(flavor = "current_thread")]
@@ -3420,7 +3609,7 @@ mod tests {
     #[tokio::test(flavor = "current_thread")]
     async fn a_run_of_empty_frames_does_not_hold_the_caller() {
         let body = vec![0u8; 1024];
-        let stream = Arc::new(tokio::sync::Mutex::new(ConnIo::Script(ScriptIo {
+        let stream = Arc::new(SharedConnIo::new(ConnIo::Script(ScriptIo {
             body,
             pos: 0,
             chunk: usize::MAX,
@@ -3450,7 +3639,7 @@ mod tests {
     #[tokio::test(flavor = "current_thread")]
     async fn a_ready_idle_flood_does_not_hold_the_caller() {
         let body = vec![5u8; 64 * 1024];
-        let stream = Arc::new(tokio::sync::Mutex::new(ConnIo::Script(ScriptIo {
+        let stream = Arc::new(SharedConnIo::new(ConnIo::Script(ScriptIo {
             body,
             pos: 0,
             chunk: usize::MAX,
@@ -4575,7 +4764,7 @@ mod tests {
 
     #[tokio::test(flavor = "current_thread")]
     async fn terminal_idle_watch_releases_its_stream_and_finishes() {
-        let stream = Arc::new(tokio::sync::Mutex::new(ConnIo::Closed));
+        let stream = Arc::new(SharedConnIo::new(ConnIo::Closed));
         let prefetch = Arc::new(parking_lot::Mutex::new(BytesMut::new()));
         let closed = Arc::new(AtomicBool::new(true));
         let arm = Arc::new(tokio::sync::Notify::new());
