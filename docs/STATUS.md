@@ -111,7 +111,10 @@ pass does not replace the full release matrix.
   [completion model][flush-model] is not connected to the producer. A gated
   [draft comparison][flush-barrier-public] waited for the retry handoff but
   still lost a worker error when a flush waiter was canceled. A proposed
-  [ownership design][owner-design] is not yet implemented. In a short mock
+  A [retained-admission test][retained-test] now isolates partial `send_all`
+  cancellation and detects omitted or double byte release in a gated mock.
+  This changes no producer code. The [ownership design][owner-design] is not
+  yet implemented. In a short mock
   workload, the draft had higher median admission and flush times; it was not
   a Kafka comparison. A private
   [sequence control][sequence-cancel] closed receipts after an artificial
@@ -208,7 +211,7 @@ The [support matrix](support.md) describes configured coverage, and the
 
 [ci]: https://github.com/mingley/partitionline/blob/0ce81683fe7107386e30f388cd2a4af31735d522/docs/evidence/releases/main-ci-02c-20261108/README.md
 [previous-ci]: https://github.com/mingley/partitionline/blob/7ebb3cc81adc695cc4c74409a87a1a1dd4be9730/docs/evidence/releases/main-ci-ba8-20261108/README.md
-[next]: https://github.com/mingley/partitionline/blob/0ce81683fe7107386e30f388cd2a4af31735d522/docs/plan/next-work.md
+[next]: https://github.com/mingley/partitionline/blob/fd77aa6fd8c112006cd534e7fd426853bf27853a/docs/plan/next-work.md
 [previous]: https://github.com/mingley/partitionline/blob/5c2a000639d9a8a7dccd56e8c1d6f3a58dca1601/docs/STATUS.md
 [flush]: https://github.com/mingley/partitionline/blob/e980829c439aa43edc01312c91838e58a412221a/docs/evidence/client/producer-flush-native-86f2-20261103/README.md
 [txn]: https://github.com/mingley/partitionline/blob/49ad56c6bce1366e2357c272f11c5c34160d60da/docs/evidence/client/add-partitions-native-4f0c-20261103/README.md
@@ -263,4 +266,6 @@ The [support matrix](support.md) describes configured coverage, and the
 [disposal-design]: https://github.com/mingley/partitionline/blob/752b1bb0cfd97448b41244533a9fea36a2e3c843/docs/evidence/broker/data-buffer-capacity-20261108/off-runtime-design.md
 
 [ci-1f37]: https://github.com/mingley/partitionline/blob/752b1bb0cfd97448b41244533a9fea36a2e3c843/docs/evidence/releases/main-ci-1f37-20261108/README.md
-[record-arithmetic]: https://github.com/mingley/partitionline/blob/0ce81683fe7107386e30f388cd2a4af31735d522/docs/evidence/client/record-body-arithmetic-20261108/README.md
+[record-arithmetic]: https://github.com/mingley/partitionline/blob/fd77aa6fd8c112006cd534e7fd426853bf27853a/docs/evidence/client/record-body-arithmetic-20261108/README.md
+
+[retained-test]: https://github.com/mingley/partitionline/blob/fd77aa6fd8c112006cd534e7fd426853bf27853a/docs/evidence/client/retained-cancellation-test-20261108/README.md
