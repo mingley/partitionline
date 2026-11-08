@@ -367,9 +367,11 @@ impl Router {
     /// unconsumed reply. Request capacity and retained scratch capacity are
     /// checked against their respective maxima. A builder can still reserve
     /// more capacity than its logical response length. A request copy may
-    /// temporarily overlap its caller-provided allocation. Actor caches, parser
-    /// metadata, allocator overhead, transport and caller ownership are
-    /// separate; this is not a total process memory bound.
+    /// temporarily overlap its caller-provided allocation and yield between
+    /// chunks. Allocation and deallocation may still block, and yielding does
+    /// not guarantee scheduling latency. Actor caches, parser metadata,
+    /// allocator overhead, transport and caller ownership are separate; this
+    /// is not a total process memory bound.
     /// Existing metadata-only and Produce-only constructors keep their profiles.
     pub async fn open_with_read_store(
         path: impl Into<PathBuf>,
@@ -884,8 +886,12 @@ impl Router {
             }
             let maximum = self.config.protocol_limits.max_request_bytes();
             if lease.request.capacity() > maximum {
-                lease.request =
-                    bound_owned_vec(std::mem::take(&mut lease.request), maximum).await?;
+                lease.request = bound_owned_vec(
+                    std::mem::take(&mut lease.request),
+                    maximum,
+                    &self.stopping,
+                )
+                .await?;
             }
             let mut changes = self.changes.clone();
             loop {
@@ -1426,7 +1432,7 @@ impl Drop for NormalizationDropProbe {
 // Vec allocation may return more capacity than requested, including for
 // try_reserve_exact. Check the actual capacity before transferring ownership.
 // Reserve and deallocation can still block; chunking is not a poll-time bound.
-async fn bound_owned_vec(bytes: Vec<u8>, maximum: usize) -> Result<Vec<u8>, Error> {
+async fn bound_owned_vec(bytes: Vec<u8>, maximum: usize, stopping: &AtomicBool) -> Result<Vec<u8>, Error> {
     const COPY_CHUNK: usize = 256 * 1024;
     if bytes.capacity() <= maximum {
         return Ok(bytes);
@@ -1463,7 +1469,13 @@ async fn bound_owned_vec(bytes: Vec<u8>, maximum: usize) -> Result<Vec<u8>, Erro
     for chunk in buffers.source.chunks(COPY_CHUNK) {
         buffers.replacement.extend_from_slice(chunk);
         if buffers.replacement.len() < buffers.source.len() {
+            if stopping.load(Ordering::Acquire) {
+                return Err(Error::Stopped);
+            }
             tokio::task::yield_now().await;
+            if stopping.load(Ordering::Acquire) {
+                return Err(Error::Stopped);
+            }
         }
     }
     Ok(std::mem::take(&mut buffers.replacement))
@@ -4555,11 +4567,53 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn shutdown_at_each_copy_yield_releases_buffers_and_permit(
+    ) -> Result<(), Box<dyn StdError>> {
+        const MAXIMUM: usize = 1024 * 1024;
+        for stop_after in 1..=3 {
+            let (router, _claimed, _release) =
+                synthetic_read_actor(Duration::from_secs(60), MAXIMUM);
+            let observed = Arc::new(std::sync::atomic::AtomicUsize::new(0));
+            NORMALIZATION_DROP_PROBE.with(|probe| {
+                *probe.borrow_mut() = Some(NormalizationDropProbe {
+                    slots: Arc::clone(&router.data_slots),
+                    observed: Arc::clone(&observed),
+                });
+            });
+            let peer = Peer::capacity_witness();
+            let mut input = Vec::with_capacity(MAXIMUM * 2);
+            input.extend_from_slice(&capacity_witness_fetch());
+            input.resize(MAXIMUM, 0);
+            let mut pending = Box::pin(router.exchange_request(&peer, input, Vec::new()));
+            for _ in 0..stop_after {
+                let is_pending = std::future::poll_fn(|cx| {
+                    std::task::Poll::Ready(std::future::Future::poll(pending.as_mut(), cx).is_pending())
+                }).await;
+                assert!(is_pending);
+                assert_eq!(router.sender.capacity(), 1);
+                assert_eq!(router.data_slots.available_permits(), 0);
+                assert_eq!(observed.load(Ordering::SeqCst), 0);
+            }
+            router.request_stop();
+            let result = std::future::poll_fn(|cx| {
+                std::task::Poll::Ready(std::future::Future::poll(pending.as_mut(), cx))
+            }).await;
+            assert!(matches!(result, std::task::Poll::Ready(Err(Error::Stopped))));
+            assert_eq!(observed.load(Ordering::SeqCst), 1);
+            assert_eq!(router.data_slots.available_permits(), 1);
+            drop(pending);
+            router.shutdown().await?;
+        }
+        Ok(())
+    }
+
+    #[tokio::test]
     async fn cooperative_normalization_preserves_all_bytes() -> Result<(), Box<dyn StdError>> {
         const MAXIMUM: usize = 1024 * 1024;
         let mut input = Vec::with_capacity(MAXIMUM * 2);
         input.extend((0..MAXIMUM).map(|index| (index % 251) as u8));
-        let mut pending = Box::pin(bound_owned_vec(input, MAXIMUM));
+        let stopping = AtomicBool::new(false);
+        let mut pending = Box::pin(bound_owned_vec(input, MAXIMUM, &stopping));
         let first = std::future::poll_fn(|cx| {
             std::task::Poll::Ready(std::future::Future::poll(pending.as_mut(), cx).is_pending())
         }).await;
@@ -4614,7 +4668,8 @@ mod tests {
         bytes.extend_from_slice(b"valid input");
         let pointer = bytes.as_ptr();
         let capacity = bytes.capacity();
-        let bounded = bound_owned_vec(bytes, 4096).await?;
+        let stopping = AtomicBool::new(false);
+        let bounded = bound_owned_vec(bytes, 4096, &stopping).await?;
         assert_eq!(bounded, b"valid input");
         assert_eq!(bounded.as_ptr(), pointer);
         assert_eq!(bounded.capacity(), capacity);
