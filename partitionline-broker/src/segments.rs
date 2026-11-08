@@ -2929,6 +2929,101 @@ mod tests {
         Ok(())
     }
 
+    fn retain_replacement_snapshot(
+        stage: &str,
+        path: &Path,
+        receipt: &[u8],
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        let Some(root) = std::env::var_os("PLB_SEGMENT_REPLACEMENT_CAPTURE") else {
+            return Ok(());
+        };
+        let directory = PathBuf::from(root).join(stage);
+        fs::create_dir_all(&directory)?;
+        for (name, bytes) in initial_snapshot(path)? {
+            fs::write(directory.join(name), bytes)?;
+        }
+        fs::write(directory.join("ack-proof.txt"), receipt)?;
+        Ok(())
+    }
+
+    #[test]
+    fn corrupt_selected_replacement_drops_old_generation_before_failing_open(
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        if let Some(path) = std::env::var_os("PLB_SEGMENT_REPLACEMENT_PATH") {
+            let path = PathBuf::from(path);
+            let (mut log, _) = open(&path)?;
+            assert_eq!(log.append(1, &payload(0))?.first_offset, 0);
+            assert_eq!(log.append(1, &payload(1))?.first_offset, 1);
+            let receipt_path = path.parent().ok_or("missing parent")?.join("ack-proof.txt");
+            let mut receipt = File::create(receipt_path)?;
+            receipt.write_all(b"two appends returned success before replacement\n")?;
+            receipt.sync_all()?;
+            drop(receipt);
+            File::open(path.parent().ok_or("missing parent")?)?.sync_all()?;
+            log.fault = Some((Phase::ManifestRenamed, true));
+            log.replace_sealed(0)?;
+            return Err("replacement crash hook was not reached".into());
+        }
+        let temp = Temp::new()?;
+        let path = temp.0.join("log");
+        let child = std::process::Command::new(std::env::current_exe()?)
+            .args(["--exact", "segments::tests::corrupt_selected_replacement_drops_old_generation_before_failing_open", "--nocapture"])
+            .env("PLB_SEGMENT_REPLACEMENT_PATH", &path)
+            .output()?;
+        assert!(
+            child.status.success(),
+            "replacement child: stdout={} stderr={}",
+            String::from_utf8_lossy(&child.stdout),
+            String::from_utf8_lossy(&child.stderr)
+        );
+        let receipt = fs::read(temp.0.join("ack-proof.txt"))?;
+        assert_eq!(receipt, b"two appends returned success before replacement\n");
+        let manifest = parse_manifest(
+            &fs::read(path.join(MANIFEST))?,
+            Limits::new(150, 16, 4, 2, 1024 * 1024, 65536, 4096)?,
+            0,
+        )?;
+        assert_eq!(manifest.sealed.len(), 1);
+        let selected = manifest.sealed[0];
+        assert_eq!(selected.base, 0);
+        assert_ne!(selected.generation, 0);
+        let old_path = path.join(data_name(0, 0));
+        let replacement = path.join(data_name(selected.base, selected.generation));
+        let old_bytes = fs::read(&old_path)?;
+        assert_eq!(old_bytes, fs::read(&replacement)?);
+        let mut verified_old = StoredCursor::open(
+            &old_path,
+            0,
+            journal::Limits::new(1024, 8192, 16, 4096)?,
+            0,
+        )?;
+        assert_eq!(verified_old.next(4096)?.ok_or("old record missing")?.1.payload, payload(0));
+        drop(verified_old);
+        retain_replacement_snapshot("interrupted", &path, &receipt)?;
+        let mut file = OpenOptions::new().read(true).write(true).open(&replacement)?;
+        file.seek(SeekFrom::Start(24 + 32))?;
+        let mut byte = [0u8; 1];
+        file.read_exact(&mut byte)?;
+        byte[0] ^= 1;
+        file.seek(SeekFrom::Start(24 + 32))?;
+        file.write_all(&byte)?;
+        file.sync_all()?;
+        drop(file);
+        retain_replacement_snapshot("corrupted-selected", &path, &receipt)?;
+        let error = match open(&path) {
+            Ok(_) => return Err("corrupted selected generation unexpectedly opened".into()),
+            Err(error) => error,
+        };
+        assert!(!old_path.try_exists()?, "baseline unexpectedly retained old generation");
+        assert!(replacement.try_exists()?);
+        retain_replacement_snapshot("failed-reopen", &path, &receipt)?;
+        println!(
+            "PL_REPLACEMENT_CORRUPTION old_verified=true replacement_initially_identical=true acknowledged=2 selected_generation={} reopen_error={error:?} old_after=false",
+            selected.generation
+        );
+        Ok(())
+    }
+
     #[test]
     #[cfg(target_os = "linux")]
     fn sparse_cursor_and_rolling_log_pin_removed_inodes() -> Result<(), Box<dyn std::error::Error>>
