@@ -1,0 +1,226 @@
+name: quota clock qualification
+on:
+  push:
+    branches: [qualification/broker-quota-clock-20261108]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  behavior:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        profile: [default, all]
+    env:
+      PROFILE: ${{ matrix.profile }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: f519acf7d6f7ed4b29af6fc4890031ee6eb45bc8
+          path: baseline
+      - uses: actions/checkout@v7
+        with:
+          ref: 50e5833b8a1ac17d23426b17a5a93541aed9949f
+          path: candidate
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Pin exact sources and machine
+        shell: bash
+        run: |
+          set -euo pipefail
+          rustc -Vv
+          uname -m
+          test "$(uname -m)" = x86_64
+          git -C baseline rev-parse HEAD
+          git -C candidate rev-parse HEAD
+          git -C baseline hash-object partitionline-broker/src/quotas.rs partitionline-broker/tests/quotas_clock.rs
+          git -C candidate hash-object partitionline-broker/src/quotas.rs partitionline-broker/tests/quotas_clock.rs
+          cmp baseline/partitionline-broker/tests/quotas_clock.rs candidate/partitionline-broker/tests/quotas_clock.rs
+          cmp baseline/partitionline-broker/Cargo.lock candidate/partitionline-broker/Cargo.lock
+      - name: Baseline must expose the recorded clock failures
+        shell: bash
+        run: |
+          set -uo pipefail
+          features=()
+          if [[ "$PROFILE" == all ]]; then features=(--all-features); fi
+          export CARGO_TARGET_DIR="$RUNNER_TEMP/quota-target"
+          cargo test --locked --manifest-path baseline/partitionline-broker/Cargo.toml "${features[@]}" --test quotas_clock -- --nocapture 2>&1 | tee "$RUNNER_TEMP/quota-baseline.log"
+          status=${PIPESTATUS[0]}
+          set -e
+          test "$status" = 101
+          for name in stale_new_identity_cannot_get_a_second_burst_at_the_observed_time stale_client_charge_uses_the_latest_observed_time stale_replication_charge_uses_the_latest_observed_time stale_timed_rate_change_refills_at_the_old_rate_first stale_connect_reclaims_only_fully_refilled_idle_identity serialized_concurrent_callers_do_not_rewind_a_sampled_time later_rejection_observes_time_without_spending_tokens connection_cap_rejection_observes_valid_time clamped_time_preserves_fractional_refill_at_u64_max; do
+            grep -F "test $name ... FAILED" "$RUNNER_TEMP/quota-baseline.log"
+          done
+          grep -F 'test result: FAILED. 4 passed; 9 failed;' "$RUNNER_TEMP/quota-baseline.log"
+      - name: Candidate public controls and existing quota unit tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          features=()
+          if [[ "$PROFILE" == all ]]; then features=(--all-features); fi
+          export CARGO_TARGET_DIR="$RUNNER_TEMP/quota-target"
+          cargo test --locked --manifest-path candidate/partitionline-broker/Cargo.toml "${features[@]}" --test quotas_clock -- --nocapture 2>&1 | tee "$RUNNER_TEMP/quota-candidate.log"
+          grep -F 'test result: ok. 13 passed;' "$RUNNER_TEMP/quota-candidate.log"
+          cargo test --locked --manifest-path candidate/partitionline-broker/Cargo.toml "${features[@]}" --lib quotas::tests -- --nocapture 2>&1 | tee "$RUNNER_TEMP/quota-existing.log"
+          grep -F 'test result: ok. 10 passed;' "$RUNNER_TEMP/quota-existing.log"
+      - name: Retain behavioral logs
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: quota-clock-behavior-${{ matrix.profile }}
+          path: |
+            ${{ runner.temp }}/quota-baseline.log
+            ${{ runner.temp }}/quota-candidate.log
+            ${{ runner.temp }}/quota-existing.log
+          if-no-files-found: warn
+
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: 50e5833b8a1ac17d23426b17a5a93541aed9949f
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Stable broker formatting
+        run: cargo fmt --manifest-path partitionline-broker/Cargo.toml --all -- --check
+
+  strict:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: 50e5833b8a1ac17d23426b17a5a93541aed9949f
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Strict broker Clippy
+        run: cargo clippy --locked --manifest-path partitionline-broker/Cargo.toml --all-targets --all-features -- -D warnings
+      - name: Strict broker documentation
+        env:
+          RUSTDOCFLAGS: -D warnings
+        run: cargo doc --locked --manifest-path partitionline-broker/Cargo.toml --all-features --no-deps
+
+  mutants:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: 50e5833b8a1ac17d23426b17a5a93541aed9949f
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Restore one unclamped operation at a time
+        shell: bash
+        run: |
+          set -euo pipefail
+          export CARGO_TARGET_DIR="$RUNNER_TEMP/quota-mutants"
+          original="$(git hash-object partitionline-broker/src/quotas.rs)"
+          test "$original" = e873fc35cb8c2ae88884e4175d81d08844413c77
+          for case in admit connect rates; do
+            git checkout -- partitionline-broker/src/quotas.rs
+            CASE="$case" python3 - <<'PY'
+          import os
+          from pathlib import Path
+          path = Path("partitionline-broker/src/quotas.rs")
+          source = path.read_text()
+          which = os.environ["CASE"]
+          bounds = {
+              "admit": ("    pub fn admit(", "    /// Finish accepted work"),
+              "connect": ("    pub fn connect_at(", "    /// Return one connection permit"),
+              "rates": ("    pub fn set_rates_at(", "    /// Take one connection permit for"),
+          }
+          start, end = bounds[which]
+          left = source.index(start)
+          right = source.index(end, left)
+          part = source[left:right]
+          changed = "        let now_ms = self.observed_ms.max(now_ms);\n        self.observed_ms = now_ms;"
+          previous = "        self.observed_ms = self.observed_ms.max(now_ms);"
+          assert part.count(changed) == 1
+          path.write_text(source[:left] + part.replace(changed, previous) + source[right:])
+          PY
+            case "$case" in
+              admit) control=stale_new_identity_cannot_get_a_second_burst_at_the_observed_time ;;
+              connect) control=stale_connect_reclaims_only_fully_refilled_idle_identity ;;
+              rates) control=stale_timed_rate_change_refills_at_the_old_rate_first ;;
+            esac
+            set +e
+            cargo test --locked --manifest-path partitionline-broker/Cargo.toml --test quotas_clock "$control" -- --exact --nocapture > "$RUNNER_TEMP/mutant-$case.log" 2>&1
+            status=$?
+            set -e
+            cat "$RUNNER_TEMP/mutant-$case.log"
+            test "$status" = 101
+            grep -F "test $control ... FAILED" "$RUNNER_TEMP/mutant-$case.log"
+          done
+          git checkout -- partitionline-broker/src/quotas.rs
+          test "$(git hash-object partitionline-broker/src/quotas.rs)" = "$original"
+
+  perf:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          path: fixture
+      - uses: actions/checkout@v7
+        with:
+          ref: f519acf7d6f7ed4b29af6fc4890031ee6eb45bc8
+          path: baseline
+      - uses: actions/checkout@v7
+        with:
+          ref: 50e5833b8a1ac17d23426b17a5a93541aed9949f
+          path: candidate
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Build separate release fixtures
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(uname -m)" = x86_64
+          rustc -Vv
+          lscpu | grep -E 'Model name|Architecture|CPU\(s\)' | head -n 8
+          cp fixture/partitionline-broker/tests/quotas_clock_perf.rs baseline/partitionline-broker/tests/
+          cp fixture/partitionline-broker/tests/quotas_clock_perf.rs candidate/partitionline-broker/tests/
+          cmp baseline/partitionline-broker/tests/quotas_clock_perf.rs candidate/partitionline-broker/tests/quotas_clock_perf.rs
+          cmp baseline/partitionline-broker/Cargo.lock candidate/partitionline-broker/Cargo.lock
+          CARGO_TARGET_DIR="$RUNNER_TEMP/quota-base-release" cargo test --locked --release --manifest-path baseline/partitionline-broker/Cargo.toml --test quotas_clock_perf --no-run
+          CARGO_TARGET_DIR="$RUNNER_TEMP/quota-cand-release" cargo test --locked --release --manifest-path candidate/partitionline-broker/Cargo.toml --test quotas_clock_perf --no-run
+          mapfile -t base_bins < <(find "$RUNNER_TEMP/quota-base-release/release/deps" -maxdepth 1 -type f -perm -u+x -name 'quotas_clock_perf-*')
+          mapfile -t cand_bins < <(find "$RUNNER_TEMP/quota-cand-release/release/deps" -maxdepth 1 -type f -perm -u+x -name 'quotas_clock_perf-*')
+          test "${#base_bins[@]}" = 1
+          test "${#cand_bins[@]}" = 1
+          printf '%s\n' "${base_bins[0]}" > "$RUNNER_TEMP/quota-base-bin"
+          printf '%s\n' "${cand_bins[0]}" > "$RUNNER_TEMP/quota-cand-bin"
+          sha256sum "${base_bins[0]}" "${cand_bins[0]}"
+      - name: Alternating paired samples
+        shell: bash
+        run: |
+          set -euo pipefail
+          base="$(cat "$RUNNER_TEMP/quota-base-bin")"
+          cand="$(cat "$RUNNER_TEMP/quota-cand-bin")"
+          cpu="$(python3 -c 'import os; print(min(os.sched_getaffinity(0)))')"
+          printf 'pair,shape,arm,elapsed_ns\n' > "$RUNNER_TEMP/quota-clock.csv"
+          for shape in client replication connect rates; do
+            for pair in $(seq 1 12); do
+              if ((pair % 2 == 1)); then arms=(baseline candidate); else arms=(candidate baseline); fi
+              for arm in "${arms[@]}"; do
+                if [[ "$arm" == baseline ]]; then exe="$base"; else exe="$cand"; fi
+                output="$(QUOTA_SHAPE="$shape" taskset -c "$cpu" "$exe" --exact quota_clock_timing --nocapture --test-threads=1)"
+                line="$(printf '%s\n' "$output" | grep 'QUOTA_BENCH shape=')"
+                elapsed="$(printf '%s\n' "$line" | sed -n 's/.*elapsed_ns=\([0-9]*\).*/\1/p')"
+                test -n "$elapsed"
+                printf '%s,%s,%s,%s\n' "$pair" "$shape" "$arm" "$elapsed" >> "$RUNNER_TEMP/quota-clock.csv"
+              done
+            done
+          done
+          cat "$RUNNER_TEMP/quota-clock.csv"
+          python3 - "$RUNNER_TEMP/quota-clock.csv" <<'PY'
+          import csv, statistics, sys
+          rows = list(csv.DictReader(open(sys.argv[1], newline="")))
+          for shape in ("client", "replication", "connect", "rates"):
+              ratios = []
+              for pair in range(1, 13):
+                  values = {r["arm"]: int(r["elapsed_ns"]) for r in rows if r["shape"] == shape and int(r["pair"]) == pair}
+                  ratios.append(values["candidate"] / values["baseline"])
+              print(shape, "median", statistics.median(ratios), "range", min(ratios), max(ratios), "slower", sum(x > 1 for x in ratios))
+          PY
+      - name: Retain paired timing samples
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: quota-clock-paired-timing
+          path: ${{ runner.temp }}/quota-clock.csv
+          if-no-files-found: warn
