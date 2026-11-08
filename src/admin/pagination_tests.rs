@@ -766,7 +766,9 @@ fn dtp_pagination_error_and_conflict_cleanup_make_cooperative_progress() {
             let mut out = vec![TopicDescription::new(
                 "orders", [7; 16], false, 0, partitions,
             )];
-            let mut index = DescribedTopicIndex::from([("orders".into(), (0, [7; 16]))]);
+            let mut index = DescribedTopicIndex::new();
+            let hash = index.hash("orders");
+            index.insert_hashed(hash, 0, [7; 16]);
             let incoming = if identity_conflict {
                 TopicDescription::new("orders", [8; 16], false, 0, Vec::new())
             } else {
@@ -2497,4 +2499,294 @@ async fn dtp_requested_names_null_after_row_checkpoint_precedes_unrequested() {
     peer.await.unwrap();
     assert!(matches!(&got, Err(Error::Unsupported(message))
         if message == "cannot aggregate DescribeTopicPartitions without a topic name"));
+}
+
+#[derive(Clone)]
+struct DtpConstantHashBuilder;
+
+struct DtpConstantHasher;
+
+impl std::hash::Hasher for DtpConstantHasher {
+    fn finish(&self) -> u64 {
+        0
+    }
+
+    fn write(&mut self, _bytes: &[u8]) {}
+}
+
+impl std::hash::BuildHasher for DtpConstantHashBuilder {
+    type Hasher = DtpConstantHasher;
+
+    fn build_hasher(&self) -> Self::Hasher {
+        DtpConstantHasher
+    }
+}
+
+fn dtp_slot_test_description(
+    name: &str,
+    topic_id: [u8; 16],
+    error_code: i16,
+    partition: Option<i32>,
+) -> TopicDescription {
+    let partitions = partition
+        .map(|partition| crate::PartitionInfo {
+            topic: name.into(),
+            partition,
+            leader: 1,
+            leader_epoch: 2,
+            replicas: vec![1, 2],
+            isr: vec![1],
+            offline_replicas: vec![2],
+        })
+        .into_iter()
+        .collect();
+    TopicDescription::new(name, topic_id, false, error_code, partitions)
+}
+
+#[tokio::test]
+async fn dtp_slot_index_resolves_forced_collisions_and_keeps_errors() {
+    let mut out = Vec::new();
+    let mut index = DescribedTopicIndex::with_hasher(DtpConstantHashBuilder);
+    for (name, id, partition) in [
+        ("alpha", [0; 16], 0),
+        ("beta", [2; 16], 10),
+        ("", [3; 16], 20),
+        ("alpha", [1; 16], 1),
+        ("beta", [2; 16], 11),
+    ] {
+        place_described_topic(
+            &mut out,
+            &mut index,
+            dtp_slot_test_description(name, id, 0, Some(partition)),
+        )
+        .await
+        .unwrap();
+    }
+    assert_eq!(index.table.len(), 3);
+    assert_eq!(
+        out.iter()
+            .map(|item| item.name.as_str())
+            .collect::<Vec<_>>(),
+        ["alpha", "beta", ""]
+    );
+    assert_eq!(out[0].topic_id, [0; 16]);
+    assert_eq!(
+        out[0]
+            .partitions
+            .iter()
+            .map(|p| p.partition)
+            .collect::<Vec<_>>(),
+        [0, 1]
+    );
+    assert_eq!(
+        out[1]
+            .partitions
+            .iter()
+            .map(|p| p.partition)
+            .collect::<Vec<_>>(),
+        [10, 11]
+    );
+
+    place_described_topic(
+        &mut out,
+        &mut index,
+        dtp_slot_test_description("", [9; 16], crate::error::TOPIC_AUTHORIZATION_FAILED, None),
+    )
+    .await
+    .unwrap();
+    place_described_topic(
+        &mut out,
+        &mut index,
+        dtp_slot_test_description("", [4; 16], 0, Some(21)),
+    )
+    .await
+    .unwrap();
+    assert_eq!(out[2].error_code, crate::error::TOPIC_AUTHORIZATION_FAILED);
+    assert_eq!(out[2].topic_id, [9; 16]);
+    assert!(out[2].partitions.is_empty());
+
+    let conflict = place_described_topic(
+        &mut out,
+        &mut index,
+        dtp_slot_test_description("alpha", [4; 16], 0, Some(2)),
+    )
+    .await;
+    assert!(matches!(&conflict, Err(Error::Protocol(message))
+        if message == "DescribeTopicPartitions returned different topic IDs for the same topic"));
+    assert_eq!(
+        out[0]
+            .partitions
+            .iter()
+            .map(|p| p.partition)
+            .collect::<Vec<_>>(),
+        [0, 1]
+    );
+    assert_eq!(
+        out[1]
+            .partitions
+            .iter()
+            .map(|p| p.partition)
+            .collect::<Vec<_>>(),
+        [10, 11]
+    );
+}
+
+#[tokio::test]
+async fn dtp_slot_index_survives_output_reallocation_under_forced_collisions() {
+    let mut out = Vec::new();
+    let mut index = DescribedTopicIndex::with_hasher(DtpConstantHashBuilder);
+    for number in 0..128 {
+        let name = format!("topic-{number:03}");
+        place_described_topic(
+            &mut out,
+            &mut index,
+            dtp_slot_test_description(&name, [7; 16], 0, Some(0)),
+        )
+        .await
+        .unwrap();
+    }
+    for number in (0..128).rev() {
+        let name = format!("topic-{number:03}");
+        place_described_topic(
+            &mut out,
+            &mut index,
+            dtp_slot_test_description(&name, [7; 16], 0, Some(1)),
+        )
+        .await
+        .unwrap();
+    }
+    assert_eq!(out.len(), 128);
+    assert_eq!(index.table.len(), 128);
+    for (number, item) in out.iter().enumerate() {
+        assert_eq!(item.name, format!("topic-{number:03}"));
+        assert_eq!(
+            item.partitions
+                .iter()
+                .map(|p| p.partition)
+                .collect::<Vec<_>>(),
+            [0, 1]
+        );
+    }
+}
+
+#[tokio::test]
+async fn dtp_slot_index_fails_closed_on_missing_slot() {
+    let mut index = DescribedTopicIndex::with_hasher(DtpConstantHashBuilder);
+    let hash = index.hash("orders");
+    index.insert_hashed(hash, 42, [7; 16]);
+    let result = place_described_topic(
+        &mut Vec::new(),
+        &mut index,
+        dtp_slot_test_description("orders", [7; 16], 0, None),
+    )
+    .await;
+    assert!(matches!(&result, Err(Error::Protocol(message))
+        if message == "DescribeTopicPartitions index references a missing topic"));
+}
+
+#[derive(Clone)]
+struct DtpSameTagHashBuilder;
+
+#[derive(Default)]
+struct DtpSameTagHasher(u64);
+
+impl std::hash::Hasher for DtpSameTagHasher {
+    fn finish(&self) -> u64 {
+        self.0
+    }
+
+    fn write(&mut self, bytes: &[u8]) {
+        if bytes.first() == Some(&b'b') {
+            self.0 = 128;
+        }
+    }
+}
+
+impl std::hash::BuildHasher for DtpSameTagHashBuilder {
+    type Hasher = DtpSameTagHasher;
+
+    fn build_hasher(&self) -> Self::Hasher {
+        DtpSameTagHasher::default()
+    }
+}
+
+#[tokio::test]
+async fn dtp_slot_index_checks_full_hash_when_table_visits_same_tag() {
+    let mut out = Vec::new();
+    let mut index = DescribedTopicIndex::with_hasher(DtpSameTagHashBuilder);
+    place_described_topic(
+        &mut out,
+        &mut index,
+        dtp_slot_test_description("alpha", [1; 16], 0, Some(0)),
+    )
+    .await
+    .unwrap();
+    let alpha_hash = index.hash("alpha");
+    let beta_hash = index.hash("beta");
+    assert_ne!(alpha_hash, beta_hash);
+    let mut visited_different_hash = false;
+    let found = index.table.find_mut(beta_hash, |entry| {
+        if entry.hash != beta_hash {
+            visited_different_hash = true;
+        }
+        entry.hash == beta_hash
+            && out
+                .get(entry.slot)
+                .is_some_and(|topic| topic.name == "beta")
+    });
+    assert!(found.is_none());
+    assert!(
+        visited_different_hash,
+        "the table did not visit the other hash"
+    );
+    place_described_topic(
+        &mut out,
+        &mut index,
+        dtp_slot_test_description("beta", [2; 16], 0, Some(1)),
+    )
+    .await
+    .unwrap();
+    assert_eq!(
+        out.iter()
+            .map(|item| item.name.as_str())
+            .collect::<Vec<_>>(),
+        ["alpha", "beta"]
+    );
+}
+
+#[tokio::test]
+async fn dtp_slot_index_duplicate_at_full_capacity_does_not_grow() {
+    let mut out = Vec::new();
+    let mut index = DescribedTopicIndex::with_hasher(DtpConstantHashBuilder);
+    while index.table.is_empty() || index.table.len() < index.table.capacity() {
+        let name = format!("topic-{:03}", out.len());
+        place_described_topic(
+            &mut out,
+            &mut index,
+            dtp_slot_test_description(&name, [7; 16], 0, Some(0)),
+        )
+        .await
+        .unwrap();
+    }
+    let before_len = index.table.len();
+    let before_capacity = index.table.capacity();
+    assert!(before_len > 0);
+    assert_eq!(before_len, before_capacity);
+    place_described_topic(
+        &mut out,
+        &mut index,
+        dtp_slot_test_description("topic-000", [7; 16], 0, Some(1)),
+    )
+    .await
+    .unwrap();
+    assert_eq!(index.table.len(), before_len);
+    assert_eq!(index.table.capacity(), before_capacity);
+    assert_eq!(
+        out[0]
+            .partitions
+            .iter()
+            .map(|p| p.partition)
+            .collect::<Vec<_>>(),
+        [0, 1]
+    );
 }

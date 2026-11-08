@@ -8,6 +8,7 @@ use std::cmp::Ordering;
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::fmt;
 use std::future::Future;
+use std::hash::BuildHasher;
 use std::pin::Pin;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
@@ -16868,10 +16869,52 @@ async fn remaining_dtp_has_unnamed<'a>(
     false
 }
 
-// A zero topic ID means the broker did not supply an identity. Keep the
-// first nonzero ID separately from the public first-page description so that
-// later known IDs can still be compared after an unknown first page.
-type DescribedTopicIndex = HashMap<String, (usize, [u8; 16])>;
+// Topic names live in the output vector. Slots stay valid when the vector
+// reallocates and replacement descriptions have the same name. Keep the
+// hash so table growth does not need to rehash those names. A zero topic ID
+// means the broker did not supply an identity; keep the first nonzero ID
+// separately from the public first-page description.
+struct DescribedTopicEntry {
+    hash: u64,
+    slot: usize,
+    known_id: [u8; 16],
+}
+
+struct DescribedTopicIndex<S = std::collections::hash_map::RandomState> {
+    table: hashbrown::HashTable<DescribedTopicEntry>,
+    hash_builder: S,
+}
+
+impl DescribedTopicIndex {
+    fn new() -> Self {
+        Self::with_hasher(std::collections::hash_map::RandomState::new())
+    }
+}
+
+impl<S: BuildHasher> DescribedTopicIndex<S> {
+    fn with_hasher(hash_builder: S) -> Self {
+        Self {
+            table: hashbrown::HashTable::new(),
+            hash_builder,
+        }
+    }
+
+    fn hash(&self, name: &str) -> u64 {
+        self.hash_builder.hash_one(name)
+    }
+
+    fn insert_hashed(&mut self, hash: u64, slot: usize, known_id: [u8; 16]) {
+        let _entry = self.table.insert_unique(
+            hash,
+            DescribedTopicEntry {
+                hash,
+                slot,
+                known_id,
+            },
+            |entry| entry.hash,
+        );
+    }
+}
 
 async fn discard_described_partitions(partitions: &mut Vec<crate::PartitionInfo>) {
     const CHUNK: usize = 8 * 1024;
@@ -16923,43 +16966,65 @@ async fn reject_unrequested_described_topic(
     }
 }
 
-async fn place_described_topic(
+async fn place_described_topic<S: BuildHasher>(
     out: &mut Vec<TopicDescription>,
-    index: &mut DescribedTopicIndex,
+    index: &mut DescribedTopicIndex<S>,
     mut desc: TopicDescription,
 ) -> Result<()> {
-    if let Some((slot, known_id)) = index.get_mut(desc.name.as_str()) {
-        if let Some(existing) = out.get_mut(*slot) {
-            if existing.error_code != 0 {
-                discard_described_partitions(&mut desc.partitions).await;
-            } else if desc.error_code != 0 {
-                discard_described_partitions(&mut existing.partitions).await;
-                *existing = desc;
-            } else {
-                if desc.topic_id != [0; 16] {
-                    if *known_id == [0; 16] {
-                        *known_id = desc.topic_id;
-                    } else if *known_id != desc.topic_id {
-                        discard_described_partitions(&mut desc.partitions).await;
-                        return Err(Error::protocol(
-                            "DescribeTopicPartitions returned different topic IDs for the same topic",
-                        ));
-                    }
-                }
-                existing.partitions.extend(desc.partitions);
+    let hash = index.hash(desc.name.as_str());
+    let mut missing_slot = false;
+    let found = index.table.find_mut(hash, |entry| {
+        if entry.hash != hash {
+            return false;
+        }
+        match out.get(entry.slot) {
+            Some(existing) => existing.name == desc.name,
+            None => {
+                missing_slot = true;
+                false
             }
+        }
+    });
+    if missing_slot {
+        return Err(Error::protocol(
+            "DescribeTopicPartitions index references a missing topic",
+        ));
+    }
+    if let Some(entry) = found {
+        let Some(existing) = out.get_mut(entry.slot) else {
+            return Err(Error::protocol(
+                "DescribeTopicPartitions index references a missing topic",
+            ));
+        };
+        if existing.error_code != 0 {
+            discard_described_partitions(&mut desc.partitions).await;
+        } else if desc.error_code != 0 {
+            discard_described_partitions(&mut existing.partitions).await;
+            *existing = desc;
+        } else {
+            if desc.topic_id != [0; 16] {
+                if entry.known_id == [0; 16] {
+                    entry.known_id = desc.topic_id;
+                } else if entry.known_id != desc.topic_id {
+                    discard_described_partitions(&mut desc.partitions).await;
+                    return Err(Error::protocol(
+                        "DescribeTopicPartitions returned different topic IDs for the same topic",
+                    ));
+                }
+            }
+            existing.partitions.extend(desc.partitions);
         }
         return Ok(());
     }
     let slot = out.len();
-    let _previous = index.insert(desc.name.clone(), (slot, desc.topic_id));
+    index.insert_hashed(hash, slot, desc.topic_id);
     out.push(desc);
     Ok(())
 }
 
-async fn extend_described_topics(
+async fn extend_described_topics<S: BuildHasher>(
     out: &mut Vec<TopicDescription>,
-    index: &mut DescribedTopicIndex,
+    index: &mut DescribedTopicIndex<S>,
     incoming: Vec<TopicDescription>,
 ) -> Result<()> {
     let mut walked = 0usize;
@@ -18337,6 +18402,16 @@ mod tests {
 
     #[test]
     fn extending_described_topics_yields_and_completes() {
+        let lookup = |index: &DescribedTopicIndex, out: &[TopicDescription], name: &str| {
+            let hash = index.hash(name);
+            index
+                .table
+                .find(hash, |entry| {
+                    entry.hash == hash
+                        && out.get(entry.slot).is_some_and(|topic| topic.name == name)
+                })
+                .map(|entry| (entry.slot, entry.known_id))
+        };
         let small = vec![TopicDescription::new(
             "small",
             [0; 16],
@@ -18345,14 +18420,14 @@ mod tests {
             Vec::new(),
         )];
         let mut out = Vec::new();
-        let mut index = std::collections::HashMap::new();
+        let mut index = DescribedTopicIndex::new();
         let mut short = Box::pin(extend_described_topics(&mut out, &mut index, small));
         let (state, wakes) = observed_poll(short.as_mut());
         assert!(matches!(state, std::task::Poll::Ready(Ok(()))));
         assert_eq!(wakes, 0);
         drop(short);
         assert_eq!(out.len(), 1);
-        assert_eq!(index.get("small"), Some(&(0, [0; 16])));
+        assert_eq!(lookup(&index, &out, "small"), Some((0, [0; 16])));
 
         let make_topics = || -> Vec<TopicDescription> {
             (0..20_000)
@@ -18364,7 +18439,7 @@ mod tests {
         let mut previous = 0;
         for required_polls in 1..=2 {
             let mut partial = Vec::new();
-            let mut partial_index = std::collections::HashMap::new();
+            let mut partial_index = DescribedTopicIndex::new();
             let mut future = Box::pin(extend_described_topics(
                 &mut partial,
                 &mut partial_index,
@@ -18381,13 +18456,13 @@ mod tests {
                 "poll {required_polls} made no progress"
             );
             assert!(partial.len() < 20_000, "partial poll consumed every topic");
-            assert_eq!(partial_index.len(), partial.len());
+            assert_eq!(partial_index.table.len(), partial.len());
             previous = partial.len();
         }
 
         let incoming = make_topics();
         let mut out = Vec::new();
-        let mut index = std::collections::HashMap::new();
+        let mut index = DescribedTopicIndex::new();
         let mut long = Box::pin(extend_described_topics(&mut out, &mut index, incoming));
         for poll in 0..2 {
             let (state, wakes) = observed_poll(long.as_mut());
@@ -18397,11 +18472,11 @@ mod tests {
         finish_observed(long.as_mut()).unwrap();
         drop(long);
         assert_eq!(out.len(), 20_000);
-        assert_eq!(index.len(), 20_000);
+        assert_eq!(index.table.len(), 20_000);
         assert_eq!(out.first().map(TopicDescription::name), Some("topic-0"));
         assert_eq!(out.last().map(TopicDescription::name), Some("topic-19999"));
-        assert_eq!(index.get("topic-0"), Some(&(0, [0; 16])));
-        assert_eq!(index.get("topic-19999"), Some(&(19_999, [0; 16])));
+        assert_eq!(lookup(&index, &out, "topic-0"), Some((0, [0; 16])));
+        assert_eq!(lookup(&index, &out, "topic-19999"), Some((19_999, [0; 16])));
     }
 
     #[tokio::test(flavor = "current_thread")]
@@ -18438,7 +18513,7 @@ mod tests {
         );
         let other = TopicDescription::new("payments", [2; 16], false, 0, Vec::new());
         let mut out = Vec::new();
-        let mut index = std::collections::HashMap::new();
+        let mut index = DescribedTopicIndex::new();
         extend_described_topics(&mut out, &mut index, vec![first, other, again])
             .await
             .unwrap();

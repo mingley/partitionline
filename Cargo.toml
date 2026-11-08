@@ -95,6 +95,7 @@ bytes = "1"
 crc32c = "0.6"
 flate2 = { version = "1", default-features = false, features = ["rust_backend", "runtime_detection"] }
 getrandom = "0.4"
+hashbrown = { version = "0.17.1", default-features = false }
 hmac = "0.13"
 lz4_flex = "0.14"
 pbkdf2 = { version = "0.13", default-features = false, features = ["hmac"] }
