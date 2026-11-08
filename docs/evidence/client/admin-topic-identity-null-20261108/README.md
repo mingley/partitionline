@@ -138,12 +138,18 @@ implementations.
 
 The conversion loop processes topic rows before merging a page. It has no
 per-topic yield for a long run of empty or error rows; this pre-existing
-limit is source-derived and unmeasured. Null-name cleanup yields while
-releasing accumulated partition descriptions, but it still owns the decoded
-response and other state. Timeout or cancellation can synchronously drop
-remaining data, and a chunk bounds an item count rather than wall time,
-allocator work or total memory. Neither this change nor the cursor deadline
-provides a global memory bound.
+limit is source-derived and unmeasured. Null-name cleanup releases at most
+8,192 partition descriptions between yields and yields after 8,192 topic
+rows. Manual-poll controls check progress and wakeups using a counting
+waker that adds work only to those tests; they do not measure production
+wall time.
+
+During null-name cleanup the call still owns the decoded response and
+other state. Timeout or cancellation can synchronously drop remaining data,
+and a chunk bounds an item count rather than wall time, allocator work or
+total memory. On the tested x86_64 target the index value grows from 8 to
+24 bytes per slot, before hash-table capacity and allocator overhead.
+Neither this change nor the cursor deadline provides a global memory bound.
 
 Longer cursor cycles retain the existing timeout behavior. A non-adjacent
 repetition that later terminates can still append duplicate partitions.
