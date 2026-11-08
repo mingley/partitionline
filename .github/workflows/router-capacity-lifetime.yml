@@ -1,0 +1,49 @@
+name: public exchange capacity lifetime witness
+on:
+  push:
+    branches: [qualification/router-capacity-lifetime-20261108]
+permissions:
+  contents: read
+jobs:
+  witness:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      CARGO_INCREMENTAL: "0"
+      CARGO_BUILD_JOBS: "2"
+      CARGO_PROFILE_DEV_DEBUG: "0"
+      CARGO_PROFILE_TEST_DEBUG: "0"
+      CARGO_TERM_COLOR: never
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          fetch-depth: 2
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Verify source
+        run: |
+          set -euo pipefail
+          test "$(uname -m)" = x86_64
+          test "$(git rev-parse HEAD^)" = 5923a8d869f0854d8a4b7c2c078909301f66b5cf
+          git rev-parse HEAD^
+          rustc +stable --version --verbose
+          sha256sum partitionline-broker/src/{metadata,transport}.rs
+      - name: Observe actor-owned capacity and transfer boundary
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/capacity-lifetime"
+          cargo +stable test --locked --manifest-path partitionline-broker/Cargo.toml --lib metadata::tests::public_exchange_ -- --nocapture 2>&1 | tee "$RUNNER_TEMP/capacity-lifetime/default.log"
+          cargo +stable test --locked --manifest-path partitionline-broker/Cargo.toml --all-features --lib metadata::tests::public_exchange_ -- --nocapture 2>&1 | tee "$RUNNER_TEMP/capacity-lifetime/all-features.log"
+          for profile in default all-features; do
+            grep -F 'PL_PUBLIC_SPARE_CLAIM ' "$RUNNER_TEMP/capacity-lifetime/$profile.log"
+            grep -F 'PL_PUBLIC_SPARE_AFTER_CANCEL ' "$RUNNER_TEMP/capacity-lifetime/$profile.log"
+            grep -F 'PL_RECEIPT_PENDING actor_reply_unconsumed=true permit_held=true' "$RUNNER_TEMP/capacity-lifetime/$profile.log"
+            grep -F 'PL_RECEIPT_TRANSFERRED response_len=12 response_capacity=8192 permit_held=false' "$RUNNER_TEMP/capacity-lifetime/$profile.log"
+            grep -F 'test result: ok. 2 passed; 0 failed;' "$RUNNER_TEMP/capacity-lifetime/$profile.log"
+          done
+      - uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: public-exchange-capacity-lifetimes
+          path: ${{ runner.temp }}/capacity-lifetime
+          if-no-files-found: warn
