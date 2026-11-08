@@ -1,0 +1,69 @@
+name: Write-timeout fixture qualification
+
+on:
+  push:
+    branches:
+      - qualification/write-timeout-fixture-c49-20261108
+
+permissions:
+  contents: read
+
+jobs:
+  qualify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      CARGO_BUILD_JOBS: '2'
+      CARGO_PROFILE_DEV_DEBUG: '0'
+      CARGO_PROFILE_TEST_DEBUG: '0'
+      CARGO_INCREMENTAL: '0'
+      CARGO_TERM_COLOR: never
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          sparse-checkout: |
+            .cargo
+            .github
+            src
+            examples
+            tests
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          ref: c49cde3ecf7fc11be8bd0a0e31910f6a1dce6b51
+          path: baseline
+          sparse-checkout: |
+            .cargo
+            src
+            examples
+            tests
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          path: negative
+          sparse-checkout: |
+            .cargo
+            src
+            examples
+            tests
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+      - name: Record host and compiler
+        run: |
+          test "$(uname -m)" = x86_64
+          uname -a
+          rustc +stable -Vv
+          git rev-parse HEAD
+          git -C baseline rev-parse HEAD
+      - name: Candidate complete network suite
+        run: bash .github/write-timeout-fixture/suite.sh candidate
+      - name: Suppressed-closure negative control
+        run: bash .github/write-timeout-fixture/negative.sh
+      - name: Baseline complete network suite
+        if: always()
+        run: bash .github/write-timeout-fixture/suite.sh baseline
+      - name: Formatting
+        if: always()
+        run: cargo +stable fmt --all -- --check
