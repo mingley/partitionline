@@ -10,36 +10,39 @@ Production readiness and fastest-client/server claims remain unqualified.
 Client 0.1.0 is already published. The next client version must be at least
 0.2.0; broker and schema publication remain disabled.
 
-The latest complete recorded main [CI snapshot](../evidence/releases/main-ci-d257-20261108/README.md)
-is `d2575d27ca53af47a627ca48f27a12bba34945bd`. Client libraries reported
-2,237 passed and 17 failed on Linux default, 2,235 passed and 19 failed with
-all features, 2,237 passed and 17 failed on Windows, and 2,243 passed and 11
-failed on macOS arm64. Three Kafka compatibility jobs and both smoke jobs
-failed; resource-soak passed. Broker CI passed 779 default and 927 all-feature
-tests, with four ignored per profile, plus strict checks, inventory and fuzz
-supervision. Both selected capability profiles passed; their archives were not
-independently inspected. The broker pass does not explain the preceding
-[e487 proposal failure](../evidence/broker/raft-delayed-proposal-20261108/README.md).
+The latest complete recorded main [CI snapshot](../evidence/releases/main-ci-426-20261108/README.md)
+is `426041c9f5526dfb6a788344a0e03b3edfefffb0`. Client libraries reported
+2,259 passed and 13 failed on Linux default, 2,261 passed and 11 failed with
+all features, 2,257 passed and 15 failed on Windows, and 2,264 passed and
+eight failed on macOS arm64. Three Kafka compatibility jobs and both smoke
+jobs failed; resource-soak passed. Broker CI passed 781 default and 929
+all-feature tests, with four ignored per profile, plus strict checks,
+inventory and fuzz supervision. Both selected capability profiles passed;
+their archives were not independently inspected. The broker pass does not
+explain the prior [912 Raft failures](../evidence/releases/main-ci-912-partial-20261108/README.md).
 
-A [newer partial broker run](../evidence/releases/main-ci-912-partial-20261108/README.md)
+The [previous complete snapshot](../evidence/releases/main-ci-d257-20261108/README.md)
+also failed client checks and passed broker checks.
+
+An [earlier partial broker run](../evidence/releases/main-ci-912-partial-20261108/README.md)
 at `912254c` passed the default profile but stopped its all-feature profile
 after three Raft runtime failures. Later strict checks in that job did not
 run. Inventory, fuzz supervision and selected capability profiles passed;
 the failures remain unexplained.
 
-A [later partial CI snapshot](../evidence/releases/main-ci-c481-partial-20261108/README.md)
+An [earlier partial CI snapshot](../evidence/releases/main-ci-c481-partial-20261108/README.md)
 at `c4819e8` passed both broker profiles, inventory, fuzz supervision and
 selected capability profiles. Client CI failed eight jobs and canceled one;
 the canceled Kafka smoke has no result. The broker pass does not explain
 the earlier disconnect or Raft failures.
 
-A [newer partial broker run](../evidence/releases/main-ci-7fb-partial-20261108/README.md)
+Another [earlier partial broker run](../evidence/releases/main-ci-7fb-partial-20261108/README.md)
 at `7fb973f` also stopped at 490 passed, one failed and four ignored, after
 a five-node proposal returned `NotLeader`. Its append and commit outcome and
 the cause remain unknown. Inventory and fuzz supervision passed separately;
 later behavioral and strict checks in that job did not run.
 
-A [later partial broker run](../evidence/releases/main-ci-6902-20261108/README.md)
+Another [earlier partial broker run](../evidence/releases/main-ci-6902-20261108/README.md)
 at `6902d3b` stopped in the default library at 490 passed, one failed and
 four ignored. A disconnect test observed that its handler guard had not
 dropped after 32 yields; the cause and later behavior are unknown. All-feature
