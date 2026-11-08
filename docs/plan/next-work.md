@@ -21,6 +21,14 @@ inventory, fuzz supervision and both selected client capability profiles
 passed; capability archives were not independently inspected. The instruction
 counter had no baseline for this Rust version.
 
+A later [partial main run](../evidence/releases/main-ci-0c9-partial-20261108/README.md)
+at `0c9ab1e` stopped in a default broker integration target after 729 passes,
+one failure and four ignored. Later broker targets and strict checks did not
+run. The client failed its libraries, three Kafka compatibility jobs and the
+Kafka 4.1.0 smoke; the 3.9.1 smoke was still running when recorded. Both
+capability profiles, API inventory and fuzz supervision passed. The cause of
+the broker failure is unknown.
+
 The [preceding complete snapshot](../evidence/releases/main-ci-a374-20261108/README.md)
 also failed client checks but passed 806 default and 954 all-feature broker
 tests with four ignored per profile. That pass does not explain the later
@@ -446,6 +454,8 @@ remain open.
    fences with 44 controls and 15 rejected mutants. It does not run the Rust
    producer; its unknown-write fence can retain capacity indefinitely, and
    callback and close behavior require an explicit implementation decision.
+   An [unwired Rust draft](../evidence/client/producer-owned-batch-rust-draft-20261108/README.md)
+   still fails six isolated ownership controls and is not a producer repair.
    The applied [timestamp fix](../evidence/client/producer-timestamp-candidate-20261108/README.md)
    retains each implicit timestamp from its first encode across retry and
    receipt handling. A delayed-ack Kafka 4.1.0 smoke passed; paired x86
@@ -660,7 +670,9 @@ remain open.
    for Git consumers. Focused controls passed, but both full broker candidate
    suites failed in Raft or quorum tests before completion; the causes remain
    unknown. Kafka wire throttling, durable administration and server-wide
-   fairness remain open.
+   fairness remain open. The [Produce quota design](../evidence/broker/quota-produce-design-20261108/README.md)
+   records identity, accounting and channel-muting boundaries; its two local
+   controls pass, but no wire implementation has been added.
 
    The [Fetch admission fixture](../evidence/broker/fetch-admission-20261108/README.md)
    replaces a scheduling-dependent first-poll assertion with a gated actor and
