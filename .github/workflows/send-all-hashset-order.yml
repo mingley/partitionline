@@ -1,0 +1,40 @@
+name: send-all-hashset-order
+on:
+  push:
+    branches: [qualification/send-all-hashset-order-20261108]
+  workflow_dispatch:
+
+jobs:
+  diagnostic:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Pin source and compiler
+        run: |
+          mkdir -p target/hashset-order
+          {
+            git rev-parse HEAD HEAD:docs/evidence/client/send-all-hashset-order-20261108/witness.rs
+            sha256sum docs/evidence/client/send-all-hashset-order-20261108/witness.rs
+            rustc +stable -Vv
+            uname -m
+          } | tee target/hashset-order/provenance.txt
+      - name: Run standard-library witness
+        shell: bash
+        run: |
+          set -o pipefail
+          rustc +stable --edition=2021 -C opt-level=0 docs/evidence/client/send-all-hashset-order-20261108/witness.rs -o target/hashset-order/witness
+          sha256sum target/hashset-order/witness | tee target/hashset-order/binary.txt
+          target/hashset-order/witness | tee target/hashset-order/results.txt
+      - name: Retain evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: send-all-hashset-order-${{ github.sha }}
+          path: |
+            target/hashset-order/provenance.txt
+            target/hashset-order/binary.txt
+            target/hashset-order/results.txt
+          if-no-files-found: warn
+          retention-days: 30
