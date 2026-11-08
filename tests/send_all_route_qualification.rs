@@ -258,6 +258,15 @@ async fn metadata_changes_before_first_nudge() {
         .flat_map(|(_, _, _, _, values)| values.iter().cloned()).collect();
     assert!(!rejected.is_empty());
     assert!(rejected.is_subset(&accepted));
+    let ids = |set: &std::collections::HashSet<Option<Vec<u8>>>| {
+        let mut ids: Vec<u64> = set.iter().map(|value| {
+            let bytes: [u8; 8] = value.as_ref().expect("value").as_slice().try_into().expect("u64");
+            u64::from_le_bytes(bytes)
+        }).collect();
+        ids.sort_unstable();
+        ids
+    };
+    eprintln!("rejected ids={:?}; accepted ids={:?}", ids(&rejected), ids(&accepted));
     verify(&mock, "t", 0, &out, &(0..64).collect::<Vec<_>>(), 1);
 }
 
