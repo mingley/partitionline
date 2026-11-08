@@ -1,0 +1,39 @@
+name: Format bounded dense Produce controls
+on:
+  push:
+    branches: [qualification/broker-produce-dense-v4-20261108]
+permissions:
+  contents: read
+jobs:
+  format:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+      - name: Format exact candidate and print formatted sources
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD:partitionline-broker/src/produce.rs)" = 6897be1463187c7cd123066729f8dd98ea3e100f
+          test "$(git rev-parse HEAD:partitionline-broker/src/produce/dense_partition_tests.rs)" = d7bcf44f8a65114c9fd4a0a18ecab35069bb5501
+          test "$(git rev-parse HEAD:partitionline-broker/tests/produce_dense_partitions.rs)" = 9ec200b1c79582695ec3c05a4c65956e5c7206f7
+          cargo fmt --manifest-path partitionline-broker/Cargo.toml --all
+          cargo fmt --manifest-path partitionline-broker/Cargo.toml --all -- --check
+          git hash-object partitionline-broker/src/produce.rs partitionline-broker/src/produce/dense_partition_tests.rs partitionline-broker/tests/produce_dense_partitions.rs
+          python3 - <<'PY'
+          from pathlib import Path
+          files=[
+              ('SOURCE','partitionline-broker/src/produce.rs'),
+              ('UNIT','partitionline-broker/src/produce/dense_partition_tests.rs'),
+              ('INTEGRATION','partitionline-broker/tests/produce_dense_partitions.rs'),
+          ]
+          for label, name in files:
+              contents=Path(name).read_text()
+              assert contents.endswith('\n')
+              print('DENSE_FILE_BEGIN '+label)
+              for line in contents.splitlines():
+                  print('DENSE_LINE '+line)
+              print('DENSE_FILE_END '+label)
+          PY
