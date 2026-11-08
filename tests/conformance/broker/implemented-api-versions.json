@@ -2297,7 +2297,7 @@
   "controller_implementation_gate": "KL11-13",
   "produce_fixture_root": "partitionline-broker/tests/fixtures/produce",
   "produce_source": "partitionline-broker/src/produce.rs",
-  "produce_source_sha256": "326b7f8a7b465a8ab23fa431d39a68542bd469402fd927f0f567de95603c8bd4",
+  "produce_source_sha256": "fa3bff1c088ff391ed34fdb8ec211da5f757b08c807a2c21d0ba1cd648391a56",
   "produce_test_source": "partitionline-broker/tests/produce.rs",
   "produce_test_source_sha256": "449eb0f4b2774ff7f3d4759a32f5362a39cb775f564f1cc44bb4314fd09da733",
   "produce_fixtures_sha256": {
@@ -5110,11 +5110,11 @@
   "retention_test_source": "partitionline-broker/tests/retention.rs",
   "retention_test_source_sha256": "dfe982791f08ce3c13040dc02f4a5386630c3f27f5298a10fac338450020aa3e",
   "segments_source": "partitionline-broker/src/segments.rs",
-  "segments_source_sha256": "67cb953fccf334848d1ab069809174c0384abfb9523485879d7d810716224be5",
+  "segments_source_sha256": "dc437576653833f172aa8363e9ad21adbb3ee39df142e6036c05560b5cd61dc5",
   "segments_test_source": "partitionline-broker/tests/segments.rs",
   "segments_test_source_sha256": "1b861e89e02e05a93e6956c0a56c87e122497b4b3f1992b78bac371d303fc11e",
   "partition_source": "partitionline-broker/src/partition.rs",
-  "partition_source_sha256": "2623cdcf43735e1941a2bf7e6db67931cee70a23d9d4b2358e9ac954f04f61eb",
+  "partition_source_sha256": "e2006a15994329fecdb424f16af7d186cb2c5e769be8103fa32f9f21e37cd48e",
   "partition_test_source": "partitionline-broker/tests/partition.rs",
   "partition_test_source_sha256": "5f9566ae81f6cc25554651365a319d24dd0b68571047711353de2c20e2ee0dd6"
 }
