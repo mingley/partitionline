@@ -21,6 +21,13 @@ supervision. Both selected capability profiles passed; their archives were not
 independently inspected. The broker pass does not explain the preceding
 [e487 proposal failure](../evidence/broker/raft-delayed-proposal-20261108/README.md).
 
+A [later partial broker run](../evidence/releases/main-ci-6902-20261108/README.md)
+at `6902d3b` stopped in the default library at 490 passed, one failed and
+four ignored. A disconnect test observed that its handler guard had not
+dropped after 32 yields; the cause and later behavior are unknown. All-feature
+behavioral tests and later strict checks in that job did not run. Inventory
+and fuzz supervision passed separately.
+
 The [e487 snapshot](../evidence/releases/main-ci-e487-20261108/README.md)
 failed client checks and stopped broker CI at 488 default tests passed, one
 failed and four ignored after a five-node proposal returned `NotLeader`.
