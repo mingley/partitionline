@@ -2834,7 +2834,9 @@ mod tests {
         )
     }
 
-    fn cleanup_snapshot(path: &Path) -> Result<Vec<(String, Vec<u8>)>, Box<dyn std::error::Error>> {
+    type CleanupSnapshot = Vec<(String, Vec<u8>)>;
+
+    fn cleanup_snapshot(path: &Path) -> Result<CleanupSnapshot, Box<dyn std::error::Error>> {
         let mut files = Vec::new();
         for entry in fs::read_dir(path)? {
             let entry = entry?;
@@ -2845,10 +2847,7 @@ mod tests {
                 .file_name()
                 .into_string()
                 .map_err(|_| "invalid file name")?;
-            let bytes = fs::read(entry.path())?;
-            if bytes.len() > 8192 {
-                return Err("snapshot file exceeds fixture bound".into());
-            }
+            let bytes = read_bounded(&entry.path(), 8192)?;
             files.push((name, bytes));
         }
         files.sort_by(|a, b| a.0.cmp(&b.0));
@@ -2866,9 +2865,9 @@ mod tests {
         let directory = PathBuf::from(root).join(stage);
         fs::create_dir_all(&directory)?;
         for (name, bytes) in cleanup_snapshot(path)? {
-            fs::write(directory.join(name), bytes)?;
+            File::create(directory.join(name))?.write_all(&bytes)?;
         }
-        fs::write(directory.join("ack-proof.txt"), receipt)?;
+        File::create(directory.join("ack-proof.txt"))?.write_all(receipt)?;
         Ok(())
     }
 
@@ -2902,13 +2901,13 @@ mod tests {
             String::from_utf8_lossy(&child.stdout),
             String::from_utf8_lossy(&child.stderr)
         );
-        let receipt = fs::read(temp.0.join("ack-proof.txt"))?;
+        let receipt = read_bounded(&temp.0.join("ack-proof.txt"), 8192)?;
         assert_eq!(
             receipt,
             b"two appends returned success before replacement\n"
         );
         let manifest = parse_manifest(
-            &fs::read(path.join(MANIFEST))?,
+            &read_bounded(&path.join(MANIFEST), 8192)?,
             Limits::new(150, 16, 4, 2, 1024 * 1024, 65536, 4096)?,
             0,
         )?;
@@ -2918,8 +2917,8 @@ mod tests {
         assert_ne!(selected.generation, 0);
         let old_path = path.join(data_name(0, 0));
         let replacement = path.join(data_name(selected.base, selected.generation));
-        let old_bytes = fs::read(&old_path)?;
-        assert_eq!(old_bytes, fs::read(&replacement)?);
+        let old_bytes = read_bounded(&old_path, 8192)?;
+        assert_eq!(old_bytes, read_bounded(&replacement, 8192)?);
         let mut verified_old =
             StoredCursor::open(&old_path, 0, journal::Limits::new(1024, 8192, 16, 4096)?, 0)?;
         assert_eq!(
@@ -2953,7 +2952,7 @@ mod tests {
             old_path.try_exists()?,
             "PL_RETIRED_GENERATION_DELETED_BEFORE_VALIDATION"
         );
-        assert_eq!(fs::read(&old_path)?, old_bytes);
+        assert_eq!(read_bounded(&old_path, 8192)?, old_bytes);
         assert!(replacement.try_exists()?);
         let mut old_after =
             StoredCursor::open(&old_path, 0, journal::Limits::new(1024, 8192, 16, 4096)?, 0)?;
@@ -2978,18 +2977,18 @@ mod tests {
         let (mut log, _) = open(&path)?;
         assert_eq!(log.append(1, &payload(0))?.first_offset, 0);
         drop(log);
-        fs::write(path.join(MANIFEST_TEMP), b"retained staging bytes")?;
-        fs::write(path.join("zzz-unknown"), b"user-owned bytes")?;
+        File::create(path.join(MANIFEST_TEMP))?.write_all(b"retained staging bytes")?;
+        File::create(path.join("zzz-unknown"))?.write_all(b"user-owned bytes")?;
         let before = cleanup_snapshot(&path)?;
         retain_replacement_snapshot("unknown-before", &path, b"one append acknowledged\n")?;
         SORT_CLEANUP_FOR_TEST.with(|sort| sort.set(true));
         assert!(matches!(open(&path), Err(Error::InvalidLayout)));
         assert_eq!(cleanup_snapshot(&path)?, before);
         assert_eq!(
-            fs::read(path.join(MANIFEST_TEMP))?,
+            read_bounded(&path.join(MANIFEST_TEMP), 8192)?,
             b"retained staging bytes"
         );
-        assert_eq!(fs::read(path.join("zzz-unknown"))?, b"user-owned bytes");
+        assert_eq!(read_bounded(&path.join("zzz-unknown"), 8192)?, b"user-owned bytes");
         assert_eq!(
             before
                 .iter()
@@ -3023,7 +3022,7 @@ mod tests {
             drop(log);
 
             let manifest = parse_manifest(
-                &fs::read(path.join(MANIFEST))?,
+                &read_bounded(&path.join(MANIFEST), 8192)?,
                 Limits::new(150, 16, 4, 2, 1024 * 1024, 65536, 4096)?,
                 0,
             )?;
@@ -3034,8 +3033,8 @@ mod tests {
             assert_ne!(selected.generation, old.generation);
             let old_path = path.join(data_name(old.base, old.generation));
             let selected_path = path.join(data_name(selected.base, selected.generation));
-            let original = fs::read(&old_path)?;
-            assert_eq!(original, fs::read(&selected_path)?);
+            let original = read_bounded(&old_path, 8192)?;
+            assert_eq!(original, read_bounded(&selected_path, 8192)?);
             if damage == "corrupt" {
                 let mut file = OpenOptions::new()
                     .read(true)
@@ -3057,7 +3056,7 @@ mod tests {
                 old_path.try_exists()?,
                 "PL_LATER_GENERATION_DELETED_BEFORE_VALIDATION: {damage}"
             );
-            assert_eq!(fs::read(&old_path)?, original, "{damage}");
+            assert_eq!(read_bounded(&old_path, 8192)?, original, "{damage}");
             assert_eq!(cleanup_snapshot(&path)?, before, "{damage}");
             println!("PL_LATER_SELECTED_SCAN damage={damage} old_generation_preserved=true");
         }
@@ -3099,7 +3098,7 @@ mod tests {
             "{}.tmp",
             index_name(descriptor.base, descriptor.generation)
         ));
-        fs::write(&stale, vec![0xa5; usize::try_from(padding)?])?;
+        File::create(&stale)?.write_all(&vec![0xa5; usize::try_from(padding)?])?;
         assert!(occupied + padding <= 4096);
         assert!(occupied + padding + expected_index_bytes > 4096);
         let (mut recovered, recovery) = open_with_budget(&path)?;
@@ -3137,7 +3136,7 @@ mod tests {
                 "{}.tmp",
                 index_name(descriptor.base, descriptor.generation)
             ));
-            fs::write(&stale, b"stale-index-before-rebuild")?;
+            File::create(&stale)?.write_all(b"stale-index-before-rebuild")?;
             let child = std::process::Command::new(std::env::current_exe()?)
                 .args(["--exact", "segments::tests::process_exit_during_index_rebuild_recovers_all_acknowledged_inputs", "--nocapture"])
                 .env("PLB_SEGMENT_OPEN_INDEX_PATH", &path)
