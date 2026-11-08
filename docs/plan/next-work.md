@@ -10,17 +10,18 @@ Production readiness and fastest-client/server claims remain unqualified.
 Client 0.1.0 is already published. The next client version must be at least
 0.2.0; broker and schema publication remain disabled.
 
-The latest complete recorded main [CI snapshot](../evidence/releases/main-ci-de152e-20261108/README.md)
-is `de152e78ca6d85e6cd4ea5915058b2bb6141cf42`. Client libraries reported
-2,226 passed and 18 failed on Linux default features, 2,221 passed and 23
-failed with all features, 2,235 passed and nine failed on Windows, and 2,230
-passed and 14 failed on macOS arm64. Kafka compatibility and both smoke jobs
-failed. Broker CI passed 755 default and 903 all-feature tests, with three
-descriptor diagnostics ignored in each suite and passed separately on the
-same broker production source. Clippy, Rustdoc, inventory and fuzz supervision
-passed. These results do not close the release gates.
+The latest complete recorded main [CI snapshot](../evidence/releases/main-ci-629-20261108/README.md)
+is `6298f6bfbed2ab98189d291ebebd2190a2ee75b6`. Client libraries reported
+2,230 passed and 14 failed on Linux default features, 2,232 passed and 12
+failed with all features, 2,233 passed and 11 failed on Windows, and 2,234
+passed and 10 failed on macOS arm64. Kafka compatibility and both smoke jobs
+failed. Broker CI passed 761 default tests with three ignored; its all-feature
+library stopped at 516 passed, one failed and three ignored on a frame-read
+deadline test. Later broker targets and its Clippy and Rustdoc steps did not
+run; inventory and fuzz supervision passed separately. The results do not
+close the release gates.
 
-A [later client run](../evidence/releases/main-ci-e02-partial-20261108/README.md)
+A [partial earlier client run](../evidence/releases/main-ci-e02-partial-20261108/README.md)
 at `e02c1b8` recorded six failed jobs and four canceled when main advanced.
 Linux default and Windows library tests failed, as did three Kafka
 compatibility jobs and the Kafka 3.9.1 smoke job. The canceled jobs do not
@@ -43,7 +44,9 @@ safe to retry.
 A [later broker run](../evidence/broker/main-ci-e02-20261108/README.md) at
 `e02c1b8` stopped on a distinct before-failover CreateTopics error 56.
 The test did not retain the error message, topic ID, internal token, target
-node or operation outcome. This failure is unresolved.
+node or operation outcome. This failure is unresolved. A [test diagnostic](../evidence/broker/create-response-diagnostic-20261108/README.md)
+now records the message, contacted node and previous 41 responses on future
+unexpected Create failures; it does not determine commit outcome.
 
 The [Raft liveness investigation](../evidence/broker/raft-liveness-20261108/README.md)
 records a five-node short-election fixture that reached term 163 without a
@@ -78,6 +81,10 @@ grouped record. Combined with the record parser, it passed 761 default and 909
 all-feature tests, plus six separately run descriptor diagnostics. Later
 descriptor cloning can still fail after a write and requires reopen. The
 scoped benchmark was too noisy to establish a speedup.
+
+The current [frame-read deadline failure](../evidence/releases/main-ci-629-20261108/README.md)
+returned the deadline error after 82.681715 ms against an 80 ms test bound.
+The log does not distinguish scheduling delay from time inside a read poll.
 
 The [admission repair](../evidence/broker/fetch-owned-admission-20261108/README.md)
 retains data permits through actor-owned requests, waiting Fetches and
