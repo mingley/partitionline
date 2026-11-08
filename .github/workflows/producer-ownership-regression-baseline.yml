@@ -1,0 +1,93 @@
+name: producer-ownership-regression-baseline
+on:
+  push:
+    branches: [qual/producer-ownership-regression-20261108]
+jobs:
+  controls:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        profile: [default, all]
+    env:
+      PL_PROFILE: ${{ matrix.profile }}
+      RUSTFLAGS: '--cfg sequence_owner_witness --check-cfg=cfg(sequence_owner_witness) --cfg sequence_retry_yield_witness --check-cfg=cfg(sequence_retry_yield_witness)'
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+      - name: Source and runner identity
+        run: |
+          git rev-parse HEAD
+          sha256sum src/producer.rs tests/sequence_ownership_public.rs tests/sequence_retry_existing_yield_public.rs tests/producer_ownership_regression_public.rs tests/producer_retry_regression_public.rs tests/common/mod.rs Cargo.lock
+          rustc -Vv
+          lscpu
+      - name: Retained positive and observation controls
+        shell: bash
+        run: |
+          set -euo pipefail
+          args=()
+          if [[ "$PL_PROFILE" == all ]]; then args=(--all-features); fi
+          mkdir -p target/producer-regression-logs
+          for mode in resume abort close; do
+            PL_SEQUENCE_MODE="$mode" cargo test --locked --test sequence_ownership_public "${args[@]}" public_batch_sequence_worker_cancellation -- --exact --nocapture 2>&1 | tee "target/producer-regression-logs/observation-$mode.log"
+          done
+          cargo test --locked --test sequence_retry_existing_yield_public "${args[@]}" public_flush_at_existing_retry_yield -- --exact --nocapture 2>&1 | tee target/producer-regression-logs/observation-retry.log
+      - name: Desired accepted-record ownership controls are red on baseline
+        shell: bash
+        run: |
+          set -euo pipefail
+          args=()
+          if [[ "$PL_PROFILE" == all ]]; then args=(--all-features); fi
+          for case in abort close; do
+            for admission in mixed all; do
+              logfile="target/producer-regression-logs/ownership-$case-$admission.log"
+              set +e
+              PL_OWNER_CASE="$case" PL_ADMISSION="$admission" cargo test --locked --test producer_ownership_regression_public "${args[@]}" accepted_records_settle_after_worker_cancellation -- --exact --nocapture 2>&1 | tee "$logfile"
+              status=${PIPESTATUS[0]}
+              set -e
+              if [[ "$status" -ne 101 ]]; then
+                echo "Expected Rust assertion failure (exit 101), got $status"
+                exit 1
+              fi
+              grep -F "OWNERSHIP_REGRESSION case=$case admission=$admission" "$logfile"
+              grep -F "accepted records must each reach a terminal callback and release bytes" "$logfile"
+              grep -F "test accepted_records_settle_after_worker_cancellation ... FAILED" "$logfile"
+            done
+          done
+      - name: Desired complete-retry control is red on baseline
+        shell: bash
+        run: |
+          set -euo pipefail
+          args=()
+          if [[ "$PL_PROFILE" == all ]]; then args=(--all-features); fi
+          logfile=target/producer-regression-logs/retry-contract.log
+          set +e
+          cargo test --locked --test producer_retry_regression_public "${args[@]}" retained_retry_batch_is_not_split_by_flush -- --exact --nocapture 2>&1 | tee "$logfile"
+          status=${PIPESTATUS[0]}
+          set -e
+          if [[ "$status" -ne 101 ]]; then
+            echo "Expected Rust assertion failure (exit 101), got $status"
+            exit 1
+          fi
+          grep -F "RETRY_RELEASED_CONTROL_OK" "$logfile"
+          grep -F "RETRY_REGRESSION original=" "$logfile"
+          grep -F "retry must retain the original identity, base and count" "$logfile"
+          grep -F "test retained_retry_batch_is_not_split_by_flush ... FAILED" "$logfile"
+      - name: Diagnostic formatting
+        if: always()
+        shell: bash
+        run: |
+          if ! cargo fmt --all -- --check; then
+            echo "Diagnostic only: strict formatting did not pass."
+          fi
+      - name: Preserve every observation
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: producer-regression-${{ matrix.profile }}-${{ github.sha }}
+          path: target/producer-regression-logs
+          if-no-files-found: warn
+          retention-days: 30
