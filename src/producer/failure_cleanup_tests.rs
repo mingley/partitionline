@@ -13,16 +13,10 @@ async fn setup(
     (test_shared(cfg, meta), listener, peer)
 }
 
-fn records(
-    shared: &Shared,
-    count: usize,
-    mixed_topics: bool,
-) -> (
-    Vec<Pending>,
-    Vec<oneshot::Receiver<Result<RecordMetadata>>>,
-    Arc<StickyRecordBudget>,
-    u64,
-) {
+type FailureReceivers = Vec<oneshot::Receiver<Result<RecordMetadata>>>;
+type FailureRecords = (Vec<Pending>, FailureReceivers, Arc<StickyRecordBudget>, u64);
+
+fn records(shared: &Shared, count: usize, mixed_topics: bool) -> FailureRecords {
     let topic_a: Arc<str> = Arc::from("failure-a");
     let topic_b: Arc<str> = Arc::from("failure-b");
     let budget = Arc::new(StickyRecordBudget::new(count.max(1)));
@@ -68,7 +62,7 @@ fn poll_once<F: Future>(future: Pin<&mut F>) -> Poll<F::Output> {
     future.poll(&mut context)
 }
 
-async fn assert_timeouts(receivers: Vec<oneshot::Receiver<Result<RecordMetadata>>>) {
+async fn assert_timeouts(receivers: FailureReceivers) {
     for receiver in receivers {
         assert!(matches!(receiver.await, Ok(Err(Error::Timeout))));
     }
@@ -124,18 +118,18 @@ async fn cancellation_during_sum_and_after_a_callback_chunk_is_exact_once() {
     let count = 8 * 1024 + 3;
     let (batch, receivers, budget, _) = records(&shared, count, true);
     let mut cleanup = Box::pin(fail_kept_pendings(&shared, batch, Error::Timeout));
-    assert!(matches!(poll_once(cleanup.as_mut()), Poll::Pending));
-    assert!(matches!(poll_once(cleanup.as_mut()), Poll::Pending));
-    assert!(matches!(poll_once(cleanup.as_mut()), Poll::Pending));
-    assert_eq!(calls.load(Ordering::SeqCst), 1 + 8 * 1024);
+    for _ in 0..5 {
+        assert!(matches!(poll_once(cleanup.as_mut()), Poll::Pending));
+    }
+    assert_eq!(calls.load(Ordering::SeqCst), 4);
     assert_eq!(shared.buffered_bytes.load(Ordering::SeqCst), 0);
-    assert_eq!(budget.used.load(Ordering::SeqCst), 3);
+    assert_eq!(budget.used.load(Ordering::SeqCst), 8 * 1024);
     drop(cleanup);
     assert_timeouts(receivers).await;
     assert_eq!(shared.buffered_bytes.load(Ordering::SeqCst), 0);
     assert_eq!(budget.used.load(Ordering::SeqCst), 0);
     assert_eq!(calls.load(Ordering::SeqCst), 1 + count);
-    assert_eq!(shared.m_errors.load(Ordering::SeqCst), (1 + count) as u64);
+    assert_eq!(shared.m_errors.load(Ordering::SeqCst), u64::try_from(1 + count).unwrap());
 }
 
 #[tokio::test(flavor = "current_thread")]
@@ -149,7 +143,10 @@ async fn normal_completion_reuses_the_batch_and_preserves_error() {
     assert!(empty.is_empty());
     assert!(empty.capacity() >= capacity);
     for receiver in receivers {
-        assert!(matches!(receiver.await, Ok(Err(Error::Broker { code: 17, .. }))));
+        assert!(matches!(
+            receiver.await,
+            Ok(Err(Error::Broker { code: 17, .. }))
+        ));
     }
     assert_eq!(shared.buffered_bytes.load(Ordering::SeqCst), 0);
     assert_eq!(budget.used.load(Ordering::SeqCst), 0);
@@ -164,9 +161,11 @@ async fn callback_unwind_reports_all_records_and_propagates_first_panic() {
         setup(ProducerConfig::default().interceptor(PanicErrors(Arc::clone(&calls)))).await;
     let (batch, receivers, budget, _) = records(&shared, 3, true);
     let mut cleanup = Box::pin(fail_kept_pendings(&shared, batch, Error::Timeout));
-    assert!(matches!(poll_once(cleanup.as_mut()), Poll::Pending));
+    for _ in 0..2 {
+        assert!(matches!(poll_once(cleanup.as_mut()), Poll::Pending));
+    }
     let panic = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-        let _ = poll_once(cleanup.as_mut());
+        let _outcome = poll_once(cleanup.as_mut());
     }));
     assert!(panic.is_err());
     drop(panic);
@@ -208,15 +207,19 @@ async fn error_clone_unwind_still_reports_and_releases_all_records() {
     let (batch, receivers, budget, _) = records(&shared, 3, false);
     let error = Error::Io(std::io::Error::other(PanicDisplay));
     let mut cleanup = Box::pin(fail_kept_pendings(&shared, batch, error));
-    assert!(matches!(poll_once(cleanup.as_mut()), Poll::Pending));
+    for _ in 0..2 {
+        assert!(matches!(poll_once(cleanup.as_mut()), Poll::Pending));
+    }
     let panic = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-        let _ = poll_once(cleanup.as_mut());
+        let _outcome = poll_once(cleanup.as_mut());
     }));
     assert!(panic.is_err());
     drop(panic);
     drop(cleanup);
     for receiver in receivers {
-        assert!(matches!(receiver.await, Ok(Err(Error::Io(error))) if error.kind() == std::io::ErrorKind::Other));
+        assert!(
+            matches!(receiver.await, Ok(Err(Error::Io(error))) if error.kind() == std::io::ErrorKind::Other)
+        );
     }
     assert_eq!(budget.used.load(Ordering::SeqCst), 0);
     assert_eq!(shared.buffered_bytes.load(Ordering::SeqCst), 0);
@@ -282,18 +285,20 @@ async fn panicking_waker_does_not_double_release_bytes() {
     tokio::pin!(notified);
     let waker = std::task::Waker::from(Arc::new(PanicWaker));
     let mut context = Context::from_waker(&waker);
-    assert!(matches!(notified.as_mut().poll(&mut context), Poll::Pending));
+    assert!(matches!(
+        notified.as_mut().poll(&mut context),
+        Poll::Pending
+    ));
 
     let (batch, receivers, budget, _) = records(&shared, 3, false);
     let mut cleanup = Box::pin(fail_kept_pendings(&shared, batch, Error::Timeout));
     assert!(matches!(poll_once(cleanup.as_mut()), Poll::Pending));
     let panic = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-        let _ = poll_once(cleanup.as_mut());
+        let _outcome = poll_once(cleanup.as_mut());
     }));
     assert!(panic.is_err());
     drop(panic);
     drop(cleanup);
-    drop(notified);
     assert_timeouts(receivers).await;
     assert_eq!(budget.used.load(Ordering::SeqCst), 0);
     assert_eq!(shared.buffered_bytes.load(Ordering::SeqCst), 0);
@@ -366,7 +371,10 @@ async fn panicking_result_waker_keeps_all_outcomes_on_cancel_and_unwind() {
         let (batch, mut receivers, budget, _) = records(&shared, 3, true);
         let waker = std::task::Waker::from(Arc::new(PanicWaker));
         let mut context = Context::from_waker(&waker);
-        assert!(matches!(Pin::new(&mut receivers[0]).poll(&mut context), Poll::Pending));
+        assert!(matches!(
+            Pin::new(&mut receivers[0]).poll(&mut context),
+            Poll::Pending
+        ));
         let mut cleanup = Box::pin(fail_kept_pendings(&shared, batch, Error::Timeout));
         if cancel {
             assert!(std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
@@ -374,9 +382,11 @@ async fn panicking_result_waker_keeps_all_outcomes_on_cancel_and_unwind() {
             }))
             .is_ok());
         } else {
-            assert!(matches!(poll_once(cleanup.as_mut()), Poll::Pending));
+            for _ in 0..2 {
+                assert!(matches!(poll_once(cleanup.as_mut()), Poll::Pending));
+            }
             let panic = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-                let _ = poll_once(cleanup.as_mut());
+                let _outcome = poll_once(cleanup.as_mut());
             }));
             assert!(panic.is_err());
             drop(panic);
@@ -402,4 +412,131 @@ async fn closed_receiver_does_not_skip_other_outcomes_or_accounting() {
     assert_eq!(budget.used.load(Ordering::SeqCst), 0);
     assert_eq!(shared.buffered_bytes.load(Ordering::SeqCst), 0);
     assert_eq!(shared.m_errors.load(Ordering::SeqCst), 3);
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn canceled_unpolled_large_batch_finishes_synchronously() {
+    let calls = Arc::new(AtomicUsize::new(0));
+    let (shared, _listener, _peer) =
+        setup(ProducerConfig::default().interceptor(CountErrors(Arc::clone(&calls)))).await;
+    let count = 2 * 8 * 1024 + 1;
+    let (batch, receivers, budget, _) = records(&shared, count, false);
+    let cleanup = fail_kept_pendings(&shared, batch, Error::Timeout);
+    let started = Instant::now();
+    drop(cleanup);
+    let elapsed = started.elapsed();
+    println!(
+        "PL_SYNC_DROP records={count} elapsed_ns={}",
+        elapsed.as_nanos()
+    );
+    assert_eq!(calls.load(Ordering::SeqCst), count);
+    assert_eq!(budget.used.load(Ordering::SeqCst), 0);
+    assert_eq!(shared.buffered_bytes.load(Ordering::SeqCst), 0);
+    assert_eq!(shared.m_errors.load(Ordering::SeqCst), u64::try_from(count).unwrap());
+    assert_timeouts(receivers).await;
+}
+
+type CleanupLatch = Arc<(parking_lot::Mutex<bool>, parking_lot::Condvar)>;
+
+struct BlockError {
+    entered: Arc<Notify>,
+    latch: CleanupLatch,
+    calls: Arc<AtomicUsize>,
+}
+
+impl crate::interceptor::ProducerInterceptor for BlockError {
+    fn on_error(&self, _: &Error) {
+        let _ = self.calls.fetch_add(1, Ordering::SeqCst);
+        self.entered.notify_one();
+        let (released, changed) = &*self.latch;
+        let mut released = released.lock();
+        while !*released {
+            changed.wait(&mut released);
+        }
+    }
+}
+
+struct ReleaseCleanup(CleanupLatch);
+
+impl Drop for ReleaseCleanup {
+    fn drop(&mut self) {
+        let (released, changed) = &*self.0;
+        *released.lock() = true;
+        let _ = changed.notify_all();
+    }
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn blocking_callback_blocks_the_dropping_thread_until_released() {
+    let entered = Arc::new(Notify::new());
+    let calls = Arc::new(AtomicUsize::new(0));
+    let latch: CleanupLatch =
+        Arc::new((parking_lot::Mutex::new(false), parking_lot::Condvar::new()));
+    let release_on_drop = ReleaseCleanup(Arc::clone(&latch));
+    let cfg = ProducerConfig::default().interceptor(BlockError {
+        entered: Arc::clone(&entered),
+        latch,
+        calls: Arc::clone(&calls),
+    });
+    let (shared, _listener, _peer) = setup(cfg).await;
+    let (batch, mut receivers, budget, _) = records(&shared, 1, false);
+    let cleanup = fail_kept_pendings(&shared, batch, Error::Timeout);
+    let handle = std::thread::spawn(move || drop(cleanup));
+    tokio::time::timeout(Duration::from_secs(5), entered.notified())
+        .await
+        .expect("the callback did not start");
+    assert!(
+        !handle.is_finished(),
+        "drop returned while its callback was blocked"
+    );
+    assert_eq!(calls.load(Ordering::SeqCst), 1);
+    assert_eq!(shared.buffered_bytes.load(Ordering::SeqCst), 0);
+    assert!(matches!(
+        receivers[0].try_recv(),
+        Err(oneshot::error::TryRecvError::Empty)
+    ));
+    drop(release_on_drop);
+    tokio::time::timeout(
+        Duration::from_secs(5),
+        tokio::task::spawn_blocking(move || handle.join()),
+    )
+    .await
+    .expect("dropping thread did not finish")
+    .expect("join task failed")
+    .expect("dropping thread panicked");
+    assert_timeouts(receivers).await;
+    assert_eq!(budget.used.load(Ordering::SeqCst), 0);
+    assert_eq!(shared.m_errors.load(Ordering::SeqCst), 1);
+    assert_eq!(calls.load(Ordering::SeqCst), 1);
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn callback_yields_keep_short_first_chunk_and_bound_each_burst() {
+    let calls = Arc::new(AtomicUsize::new(0));
+    let (shared, _listener, _peer) =
+        setup(ProducerConfig::default().interceptor(CountErrors(Arc::clone(&calls)))).await;
+    let count = 2 * 8 * 1024 + 1;
+    let (batch, receivers, budget, _) = records(&shared, count, false);
+    let mut cleanup = Box::pin(fail_kept_pendings(&shared, batch, Error::Timeout));
+    let mut progress = Vec::new();
+    let mut ready = false;
+    for _ in 0..16 {
+        let state = poll_once(cleanup.as_mut());
+        let completed = calls.load(Ordering::SeqCst);
+        if progress.last().copied() != Some(completed) {
+            progress.push(completed);
+        }
+        if let Poll::Ready(empty) = state {
+            assert!(empty.is_empty());
+            ready = true;
+            break;
+        }
+    }
+    assert!(ready);
+    assert_eq!(progress, vec![0, 1, 1 + 8 * 1024, count]);
+    drop(cleanup);
+    assert_timeouts(receivers).await;
+    assert_eq!(budget.used.load(Ordering::SeqCst), 0);
+    assert_eq!(shared.buffered_bytes.load(Ordering::SeqCst), 0);
+    assert_eq!(shared.m_errors.load(Ordering::SeqCst), u64::try_from(count).unwrap());
 }

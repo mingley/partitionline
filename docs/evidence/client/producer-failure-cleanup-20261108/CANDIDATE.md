@@ -20,9 +20,10 @@ interceptors in that chain for that record, as before. If copying an
 I/O error with the original kind and the panic follows the same rule.
 Accounting changes are marked complete before notifications invoke task wakers.
 
-Normal callback processing yields between 8,192-record chunks. This is a
-record-count bound, not a bound on time spent scanning headers or running
-callbacks. Whole-batch sticky retirement remains synchronous. Cancellation
+Normal callback processing preserves the previous short leading chunk and
+yields between chunks of at most 8,192 records. It also preserves the earlier
+pre-callback yield count. This is a record-count bound, not a bound on time
+spent scanning headers or running callbacks. Whole-batch sticky retirement remains synchronous. Cancellation
 Drop runs callbacks synchronously on the thread dropping the future, which may
 be outside a Tokio runtime; it must settle the remaining suffix before
 returning. An indefinitely blocking callback can therefore block it, and

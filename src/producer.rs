@@ -11560,18 +11560,17 @@ impl FailureCleanup {
         }))
         .err();
         if let Some(tx) = pending.tx.take() {
-            let outcome = match std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-                clone_err(error)
-            })) {
-                Ok(error) => error,
-                Err(payload) => {
-                    retain_first_cleanup_panic(&mut first, payload);
-                    match error {
-                        Error::Io(io) => Error::Io(std::io::Error::from(io.kind())),
-                        _ => Error::protocol("failed to copy delivery error"),
+            let outcome =
+                match std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| clone_err(error))) {
+                    Ok(error) => error,
+                    Err(payload) => {
+                        retain_first_cleanup_panic(&mut first, payload);
+                        match error {
+                            Error::Io(io) => Error::Io(std::io::Error::from(io.kind())),
+                            _ => Error::protocol("failed to copy delivery error"),
+                        }
                     }
-                }
-            };
+                };
             // oneshot::send may synchronously wake a user-provided waker.
             if let Err(payload) = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
                 drop(tx.send(Err(outcome)));
@@ -11644,19 +11643,27 @@ fn fail_kept_pendings(
             std::panic::resume_unwind(payload);
         }
         cleanup.record_batch_metrics();
+        const CHUNK: usize = 8 * 1024;
+        // The previous tail-split loop yielded once per chunk before callbacks,
+        // then began with the short leading chunk. Keep those scheduling points
+        // without moving records away from their cancellation owner.
+        let chunks = cleanup.remaining.len().div_ceil(CHUNK);
+        for _ in 0..chunks {
+            tokio::task::yield_now().await;
+        }
+        let mut count = cleanup.remaining.len() % CHUNK;
+        if count == 0 {
+            count = CHUNK;
+        }
         while !cleanup.remaining.is_empty() {
-            for _ in 0..(8 * 1024) {
-                if cleanup.remaining.is_empty() {
-                    break;
-                }
+            for _ in 0..count {
                 if let Some(payload) = cleanup.complete_one() {
                     drop(cleanup);
                     std::panic::resume_unwind(payload);
                 }
             }
-            if !cleanup.remaining.is_empty() {
-                tokio::task::yield_now().await;
-            }
+            tokio::task::yield_now().await;
+            count = CHUNK;
         }
         cleanup.into_empty()
     }
