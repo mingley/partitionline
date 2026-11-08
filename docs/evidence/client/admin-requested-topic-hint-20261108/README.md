@@ -3,7 +3,7 @@
 The aggregate `describe_topics` can return a topic or next cursor that
 was not requested. The [initial candidate][prior] rejected these responses
 but added substantial overhead to the 32- and 256-name error-row fixtures.
-This note tracks a combined candidate with a cheaper common path. It is
+This note tracks a combined candidate with an ordered-name fast path. It is
 under review; final qualification results are recorded below as they
 complete.
 
@@ -62,9 +62,20 @@ profile. Both full Admin suites **failed** on 80 ms wall-time assertions:
 The 20 independently restored mutants per profile, a matched whole-suite
 comparison, and matched release timing are still running. The exact-suite
 failures are not passing results, and their causes have not been
-established. A separate [instrumented row-checkpoint control][observer]
-runs against a source with test-only markers; it must not be described as
-an exact-source run.
+established.
+
+A separate [instrumented row-checkpoint control][observer] passed in both
+profiles: two public cross-page cancellation/timeout checks and one
+mismatch-scan cancellation check passed in each. Removing the row yield
+made the targeted test fail with
+`row checkpoint resumed before observation: 2` in each profile, as
+intended. The observer-only source
+blob `c6042c72b8067f9c49f2dca6f31f0e907aaabc98` adds test-only
+before/after markers at the row yield; its tests blob is
+`8038f78dd5672ea7db82cb0f3b73d4f98df9691b`. The markers add work at the
+test checkpoint. These current-thread mock checks exercise that
+suspension and socket behavior; they are not an exact-source run or a
+wall-clock bound.
 
 The [earlier hint-only gate][hint-gate] passed 60 focused tests in each
 profile, strict checks and six restored mutants per profile. The earlier
