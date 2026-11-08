@@ -1408,8 +1408,15 @@ impl Shared {
     }
 
     fn retire_sticky(&self, pending: &[Pending], failed: bool) {
+        if self.retire_sticky_without_notify(pending, failed) {
+            self.cache_nudge.notify_waiters();
+        }
+    }
+
+    /// Retire sticky membership without waking arbitrary task wakers.
+    fn retire_sticky_without_notify(&self, pending: &[Pending], failed: bool) -> bool {
         let Some(state) = &self.sticky else {
-            return;
+            return false;
         };
         // Lock order is always metadata -> policy; neither lock crosses an await.
         let cluster = self.cluster.lock();
@@ -1422,9 +1429,7 @@ impl Shared {
                 state.release(tag, 1, &cluster);
             }
         }
-        drop(state);
-        drop(cluster);
-        self.cache_nudge.notify_waiters();
+        true
     }
     fn broker_throttle(&self, node: i32) -> Arc<BrokerThrottle> {
         let mut map = self.broker_throttles.lock();
@@ -1785,11 +1790,18 @@ impl Shared {
     }
 
     fn release_buffer(&self, bytes: u64) {
+        if self.release_buffer_without_notify(bytes) {
+            self.buffer_nudge.notify_waiters();
+        }
+    }
+
+    /// Update the byte counter before invoking arbitrary task wakers.
+    fn release_buffer_without_notify(&self, bytes: u64) -> bool {
         if bytes == 0 {
-            return;
+            return false;
         }
         let _ = self.buffered_bytes.fetch_sub(bytes, Ordering::Relaxed);
-        self.buffer_nudge.notify_waiters();
+        true
     }
 }
 
@@ -9078,9 +9090,17 @@ impl Worker {
     }
 
     /// Fail every record and keep the batch allocation for the next send.
-    async fn fail_kept_batch(&mut self, batch: Vec<Pending>, err: Error) {
-        let empty = fail_kept_pendings(&self.shared, batch, err).await;
-        self.park_batch(empty);
+    fn fail_kept_batch(
+        &mut self,
+        batch: Vec<Pending>,
+        err: Error,
+    ) -> impl Future<Output = ()> + '_ {
+        // Construct the owner before returning a future that might never be polled.
+        let cleanup = fail_kept_pendings(&self.shared, batch, err);
+        async move {
+            let empty = cleanup.await;
+            self.park_batch(empty);
+        }
     }
 
     /// Fail grouped records and keep the largest emptied batch list.
@@ -11576,30 +11596,225 @@ fn fail_kept_pendings_sync(
     pendings
 }
 
-/// [`fail_kept_pendings_sync`], pausing while record sizes and callbacks are still running.
-async fn fail_kept_pendings(
-    shared: &Shared,
-    mut pendings: Vec<Pending>,
+type CleanupPanic = Box<dyn std::any::Any + Send>;
+
+/// Discard a secondary panic even if its user-defined payload panics on drop.
+#[expect(
+    clippy::mem_forget,
+    reason = "Dropping a secondary panic payload can panic while already unwinding."
+)]
+fn discard_cleanup_panic(payload: CleanupPanic) {
+    if let Err(nested) = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| drop(payload))) {
+        std::mem::forget(nested);
+    }
+}
+
+fn retain_first_cleanup_panic(first: &mut Option<CleanupPanic>, next: CleanupPanic) {
+    if first.is_none() {
+        *first = Some(next);
+    } else {
+        discard_cleanup_panic(next);
+    }
+}
+
+/// Owns a failure batch from helper construction until every record is settled.
+///
+/// The whole sticky batch is retired before any yield, as in the old helper.
+/// The byte lease is released once, before callbacks. A canceled future settles
+/// all remaining records synchronously in Drop: that path is not time-bounded.
+struct FailureCleanup {
+    shared: Arc<Shared>,
+    remaining: VecDeque<Pending>,
+    error: Option<Error>,
+    sticky_retired: bool,
+    bytes_released: bool,
+    metrics_recorded: bool,
+    one_topic: bool,
+}
+
+impl FailureCleanup {
+    fn new(shared: Arc<Shared>, pending: Vec<Pending>, error: Error) -> Self {
+        Self {
+            shared,
+            remaining: VecDeque::from(pending),
+            error: Some(error),
+            sticky_retired: false,
+            bytes_released: false,
+            metrics_recorded: false,
+            one_topic: false,
+        }
+    }
+
+    fn retire_sticky(&mut self) -> Option<CleanupPanic> {
+        if self.sticky_retired {
+            return None;
+        }
+        let notify = self
+            .shared
+            .retire_sticky_without_notify(self.remaining.make_contiguous(), true);
+        // A wake may run user code and panic. The accounting is already final.
+        self.sticky_retired = true;
+        if notify {
+            std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+                self.shared.cache_nudge.notify_waiters();
+            }))
+            .err()
+        } else {
+            None
+        }
+    }
+
+    fn release_bytes(&mut self, bytes: u64) -> Option<CleanupPanic> {
+        if self.bytes_released {
+            return None;
+        }
+        let notify = self.shared.release_buffer_without_notify(bytes);
+        // Record the subtraction before waking arbitrary task wakers.
+        self.bytes_released = true;
+        if notify {
+            std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+                self.shared.buffer_nudge.notify_waiters();
+            }))
+            .err()
+        } else {
+            None
+        }
+    }
+
+    fn record_batch_metrics(&mut self) {
+        if self.metrics_recorded {
+            return;
+        }
+        let pending = self.remaining.make_contiguous();
+        self.one_topic = one_failure_topic(pending);
+        if self.one_topic {
+            if let Some(first) = pending.first() {
+                let count = u64::try_from(pending.len()).unwrap_or(u64::MAX);
+                self.shared.note_errors(&first.rec.topic, count);
+            }
+        }
+        self.metrics_recorded = true;
+    }
+
+    /// Settle one record, preserving the first user-code panic for the caller.
+    fn complete_one(&mut self) -> Option<CleanupPanic> {
+        let error = self.error.as_ref()?;
+        let mut pending = self.remaining.pop_front()?;
+        if !self.one_topic {
+            self.shared.note_errors(&pending.rec.topic, 1);
+        }
+        let mut first = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            self.shared.interceptors.on_error(error);
+        }))
+        .err();
+        if let Some(tx) = pending.tx.take() {
+            let outcome =
+                match std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| clone_err(error))) {
+                    Ok(error) => error,
+                    Err(payload) => {
+                        retain_first_cleanup_panic(&mut first, payload);
+                        match error {
+                            Error::Io(io) => Error::Io(std::io::Error::from(io.kind())),
+                            _ => Error::protocol("failed to copy delivery error"),
+                        }
+                    }
+                };
+            // oneshot::send may synchronously wake a user-provided waker.
+            if let Err(payload) = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+                drop(tx.send(Err(outcome)));
+            })) {
+                retain_first_cleanup_panic(&mut first, payload);
+            }
+        }
+        if let Err(payload) =
+            std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| drop(pending)))
+        {
+            retain_first_cleanup_panic(&mut first, payload);
+        }
+        first
+    }
+
+    fn into_empty(mut self) -> Vec<Pending> {
+        let empty = std::mem::take(&mut self.remaining);
+        let error = self.error.take();
+        drop(self);
+        // Preserve ordinary destructor behavior on the non-cancellation path.
+        drop(error);
+        Vec::from(empty)
+    }
+}
+
+impl Drop for FailureCleanup {
+    fn drop(&mut self) {
+        if let Some(payload) = self.retire_sticky() {
+            discard_cleanup_panic(payload);
+        }
+        if !self.bytes_released {
+            let bytes = pendings_bytes(self.remaining.make_contiguous());
+            if let Some(payload) = self.release_bytes(bytes) {
+                discard_cleanup_panic(payload);
+            }
+        }
+        self.record_batch_metrics();
+        while !self.remaining.is_empty() {
+            if let Some(payload) = self.complete_one() {
+                discard_cleanup_panic(payload);
+            }
+        }
+        if let Some(error) = self.error.take() {
+            if let Err(payload) =
+                std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| drop(error)))
+            {
+                discard_cleanup_panic(payload);
+            }
+        }
+    }
+}
+
+/// Fail a batch while retaining ownership if the future is canceled unpolled
+/// or at any yield. Normal callback work yields between 8,192-record chunks.
+fn fail_kept_pendings(
+    shared: &Arc<Shared>,
+    pendings: Vec<Pending>,
     err: Error,
-) -> Vec<Pending> {
-    shared.retire_sticky(&pendings, true);
-    let bytes = sum_pending_bytes(&pendings).await;
-    shared.release_buffer(bytes);
-    let one_topic = one_failure_topic(&pendings);
-    if one_topic {
-        if let Some(first) = pendings.first() {
-            let n = u64::try_from(pendings.len()).unwrap_or(u64::MAX);
-            shared.note_errors(&first.rec.topic, n);
+) -> impl Future<Output = Vec<Pending>> + 'static {
+    // This is a regular function, not an async fn: construct the owner now.
+    let mut cleanup = FailureCleanup::new(Arc::clone(shared), pendings, err);
+    async move {
+        if let Some(payload) = cleanup.retire_sticky() {
+            drop(cleanup);
+            std::panic::resume_unwind(payload);
         }
-    }
-    let chunks = detach_pending_chunks(&mut pendings).await;
-    for mut chunk in chunks {
-        for pending in chunk.drain(..) {
-            fail_one_pending(shared, pending, &err, one_topic);
+        let bytes = sum_pending_bytes(cleanup.remaining.make_contiguous()).await;
+        if let Some(payload) = cleanup.release_bytes(bytes) {
+            drop(cleanup);
+            std::panic::resume_unwind(payload);
         }
-        tokio::task::yield_now().await;
+        cleanup.record_batch_metrics();
+        const CHUNK: usize = 8 * 1024;
+        // The previous tail-split loop yielded once per chunk before callbacks,
+        // then began with the short leading chunk. Keep those scheduling points
+        // without moving records away from their cancellation owner.
+        let chunks = cleanup.remaining.len().div_ceil(CHUNK);
+        for _ in 0..chunks {
+            tokio::task::yield_now().await;
+        }
+        let mut count = cleanup.remaining.len() % CHUNK;
+        if count == 0 {
+            count = CHUNK;
+        }
+        while !cleanup.remaining.is_empty() {
+            for _ in 0..count {
+                if let Some(payload) = cleanup.complete_one() {
+                    drop(cleanup);
+                    std::panic::resume_unwind(payload);
+                }
+            }
+            tokio::task::yield_now().await;
+            count = CHUNK;
+        }
+        cleanup.into_empty()
     }
-    pendings
 }
 
 /// Move records off `pendings` in order, leaving its allocation in place.
@@ -11708,6 +11923,10 @@ fn record_metadata(
         serialized_value_size: serialized_bytes_size(rec.value.as_ref()),
     }
 }
+
+#[cfg(test)]
+#[path = "producer/failure_cleanup_tests.rs"]
+mod failure_cleanup_tests;
 
 #[cfg(test)]
 mod tests {
