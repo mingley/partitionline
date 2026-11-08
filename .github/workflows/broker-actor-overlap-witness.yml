@@ -1,0 +1,164 @@
+name: broker modeled actor input overlap
+
+on:
+  push:
+    branches:
+      - qualification/broker-actor-overlap-witness-20261108
+
+permissions:
+  contents: read
+
+jobs:
+  witness:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      CARGO_INCREMENTAL: "0"
+      CARGO_BUILD_JOBS: "2"
+      CARGO_TERM_COLOR: never
+      CARGO_PROFILE_DEV_DEBUG: "0"
+      CARGO_PROFILE_TEST_DEBUG: "0"
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          fetch-depth: 2
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.13'
+      - name: Verify host, exact parent and formatting
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/actor-overlap"
+          uname -a
+          test "$(uname -m)" = x86_64
+          rustc +stable --version --verbose
+          test "$(git rev-parse HEAD^)" = 374dcf45db20ee728b00c0b0188e77ca1f47fa9c
+          test "$(git rev-parse "374dcf45db20ee728b00c0b0188e77ca1f47fa9c:partitionline-broker/src/metadata.rs")" = e8cc7dbe61a130b22e139999282b2642ec77577e
+          test "$(git rev-parse "374dcf45db20ee728b00c0b0188e77ca1f47fa9c:tests/conformance/broker/implemented-api-versions.json")" = 7199e519a4fd08c331bc35f6f3096735cdde560f
+          cargo +stable fmt --manifest-path partitionline-broker/Cargo.toml -- --check
+      - name: Verify source and install early-release control
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import hashlib
+          import json
+          import os
+          import subprocess
+          p = Path('partitionline-broker/src/metadata.rs')
+          r = Path('tests/conformance/broker/implemented-api-versions.json')
+          base = "374dcf45db20ee728b00c0b0188e77ca1f47fa9c"
+          candidate = p.read_text()
+          original = subprocess.check_output(['git', 'show', f'{base}:{p}']).decode()
+          start, end = "\n    #[tokio::test]\n    async fn modeled_canceled_fetch_inputs_can_exceed_admission_envelope(", "\n    #[tokio::test]\n    async fn unconsumed_data_receipt_keeps_admission_bounded()"
+          assert candidate.count(start) == candidate.count(end) == 1
+          a, b = candidate.index(start), candidate.index(end, candidate.index(start))
+          assert candidate[:a] + candidate[b:] == original, 'changes extend beyond the modeled test'
+          old_registry = json.loads(subprocess.check_output(['git', 'show', f'{base}:{r}']))
+          new_registry = json.loads(r.read_text())
+          key = 'metadata_source_sha256'
+          assert new_registry[key] == hashlib.sha256(p.read_bytes()).hexdigest()
+          assert new_registry[key] != old_registry[key]
+          del new_registry[key]
+          del old_registry[key]
+          assert new_registry == old_registry, 'unrelated registry entries changed'
+          (Path(os.environ['RUNNER_TEMP']) / 'overlap-candidate.rs').write_text(candidate)
+          old, new = "            let _ = retained_tx.send(job.request.len());", "            let mut job = job;\n            let dropped = std::mem::take(&mut job.request);\n            drop(dropped);\n            let _ = retained_tx.send(job.request.len());"
+          assert candidate.count(old) == 1
+          p.write_text(candidate.replace(old, new))
+          print('Verified modeled test and source pin; installed early-buffer-release control')
+          PY
+      - name: Confirm the model detects early loss of the first input
+        shell: bash
+        run: |
+          set -euo pipefail
+          for mode in default all-features; do
+            flags=()
+            if test "$mode" = all-features; then flags+=(--all-features); fi
+            log="$RUNNER_TEMP/actor-overlap/early-release-$mode.log"
+            set +e
+            timeout 300s cargo +stable test --locked --manifest-path partitionline-broker/Cargo.toml "${flags[@]}" --lib metadata::tests::modeled_canceled_fetch_inputs_can_exceed_admission_envelope -- --exact --nocapture > "$log" 2>&1
+            status=$?
+            set -e
+            cat "$log"
+            test "$status" -eq 101
+            grep -F 'running 1 test' "$log"
+            grep -F 'PL_PHASE_FIRST_CLAIMED input=4096' "$log"
+            grep -F 'PL_PHASE_FIRST_CANCELED permit_free=true' "$log"
+            grep -F 'PL_FIRST_BUFFER_NOT_RETAINED' "$log"
+            grep -F 'test result: FAILED. 0 passed; 1 failed;' "$log"
+          done
+      - name: Confirm the model detects the envelope counterexample
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp "$RUNNER_TEMP/overlap-candidate.rs" partitionline-broker/src/metadata.rs
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('partitionline-broker/src/metadata.rs')
+          source = p.read_text()
+          old, new = "        assert!(retained > ceiling, \"PL_OVERLAP_NOT_OBSERVED\");", "        assert!(retained <= ceiling, \"PL_MODELED_ENVELOPE_EXCEEDED\");"
+          assert source.count(old) == 1
+          p.write_text(source.replace(old, new))
+          print('Installed a test-only no-overlap assertion')
+          PY
+          for mode in default all-features; do
+            flags=()
+            if test "$mode" = all-features; then flags+=(--all-features); fi
+            log="$RUNNER_TEMP/actor-overlap/no-overlap-$mode.log"
+            set +e
+            timeout 300s cargo +stable test --locked --manifest-path partitionline-broker/Cargo.toml "${flags[@]}" --lib metadata::tests::modeled_canceled_fetch_inputs_can_exceed_admission_envelope -- --exact --nocapture > "$log" 2>&1
+            status=$?
+            set -e
+            cat "$log"
+            test "$status" -eq 101
+            grep -F 'running 1 test' "$log"
+            grep -F 'PL_MODELED_INPUT_OVERLAP retained=8192 ceiling=4160' "$log"
+            grep -F 'PL_MODELED_ENVELOPE_EXCEEDED' "$log"
+            grep -F 'test result: FAILED. 0 passed; 1 failed;' "$log"
+          done
+      - name: Run modeled schedule and repeat both feature profiles
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp "$RUNNER_TEMP/overlap-candidate.rs" partitionline-broker/src/metadata.rs
+          cmp partitionline-broker/src/metadata.rs "$RUNNER_TEMP/overlap-candidate.rs"
+          for mode in default all-features; do
+            flags=()
+            if test "$mode" = all-features; then flags+=(--all-features); fi
+            for attempt in $(seq 1 10); do
+              log="$RUNNER_TEMP/actor-overlap/candidate-${mode}-${attempt}.log"
+              timeout 300s cargo +stable test --locked --manifest-path partitionline-broker/Cargo.toml "${flags[@]}" --lib metadata::tests::modeled_canceled_fetch_inputs_can_exceed_admission_envelope -- --exact --nocapture > "$log" 2>&1 || { cat "$log"; exit 1; }
+              grep -F 'PL_PHASE_FIRST_CLAIMED input=4096' "$log"
+              grep -F 'PL_PHASE_FIRST_CANCELED permit_free=true' "$log"
+              grep -F 'PL_MODELED_INPUT_OVERLAP retained=8192 ceiling=4160' "$log"
+              grep -F 'test result: ok. 1 passed;' "$log"
+            done
+          done
+      - name: Strict all-target all-feature broker Clippy
+        run: cargo +stable clippy --locked --manifest-path partitionline-broker/Cargo.toml --all-targets --all-features -- -D warnings
+      - name: Verify active API registry
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -B scripts/check-broker-api-matrix.py --report "$RUNNER_TEMP/actor-overlap/api-matrix.json" 2>&1 | tee "$RUNNER_TEMP/actor-overlap/api-inventory.log"
+      - name: Run all 55 API registry controls
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -B -m unittest discover -s tests/ci -p test_broker_api_matrix.py -v 2>&1 | tee "$RUNNER_TEMP/actor-overlap/api-controls.log"
+          grep -E '^Ran 55 tests? in ' "$RUNNER_TEMP/actor-overlap/api-controls.log"
+      - name: Retain model logs
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: broker-actor-overlap-witness-${{ github.sha }}
+          path: ${{ runner.temp }}/actor-overlap
+          if-no-files-found: warn
+          retention-days: 30

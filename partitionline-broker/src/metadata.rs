@@ -3729,6 +3729,129 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn modeled_canceled_fetch_inputs_can_exceed_admission_envelope(
+    ) -> Result<(), Box<dyn StdError>> {
+        fn bounded_empty_fetch() -> Vec<u8> {
+            let mut request = Vec::with_capacity(4096);
+            request.extend_from_slice(&1i16.to_be_bytes());
+            request.extend_from_slice(&6i16.to_be_bytes());
+            request.extend_from_slice(&77i32.to_be_bytes());
+            request.extend_from_slice(&4065i16.to_be_bytes());
+            request.resize(4075, b'x');
+            request.extend_from_slice(&(-1i32).to_be_bytes());
+            request.extend_from_slice(&0i32.to_be_bytes());
+            request.extend_from_slice(&0i32.to_be_bytes());
+            request.extend_from_slice(&0i32.to_be_bytes());
+            request.push(0);
+            request.extend_from_slice(&0i32.to_be_bytes());
+            request
+        }
+
+        let mut config = Config::new(0, "127.0.0.1".into(), 19095, "overlap".into());
+        config.max_queued_requests = 1;
+        config.protocol_limits = protocol::Limits::new(4096, 0)?;
+        config.max_response_bytes = 64;
+        let limits = fetch::Limits::default().with_retained_bytes(4160)?;
+        let path = std::env::temp_dir().join(format!(
+            "partitionline-fetch-overlap-{}-{}",
+            std::process::id(),
+            NEXT.fetch_add(1, Ordering::Relaxed)
+        ));
+        let (live, _) = Router::open_with_read_store(
+            &path,
+            config.clone(),
+            produce::Config::new(path.with_extension("parts")),
+            limits,
+        )
+        .await?;
+        let response = live.respond(bounded_empty_fetch()).await?;
+        assert_eq!(response.len(), 12, "request must be a valid empty Fetch");
+        assert_eq!(response.get(..4), Some(&77i32.to_be_bytes()[..]));
+        live.shutdown().await?;
+        tokio::task::spawn_blocking({
+            let path = path.clone();
+            move || -> std::io::Result<()> {
+                std::fs::remove_file(&path)?;
+                std::fs::remove_dir_all(path.with_extension("parts"))
+            }
+        })
+        .await??;
+
+        // Model the actor after it has taken the first command and before it
+        // checks cancellation. The normal Router dispatch path owns both jobs.
+        let (sender, mut receiver) = mpsc::channel(1);
+        let (claimed, claimed_rx) = oneshot::channel();
+        let (probe, probe_rx) = std::sync::mpsc::channel::<()>();
+        let (retained_tx, retained_rx) = oneshot::channel();
+        let (release, gate) = std::sync::mpsc::channel::<()>();
+        let stopping = Arc::new(AtomicBool::new(false));
+        let (changes_tx, changes) = watch::channel(());
+        let changes_tx = Arc::new(changes_tx);
+        let wakeup = Arc::downgrade(&changes_tx);
+        let task = tokio::task::spawn_blocking(move || {
+            let _keep_changes_open = changes_tx;
+            let Some(Command::Data(job)) = receiver.blocking_recv() else {
+                return;
+            };
+            let _ = claimed.send(job.request.len());
+            let _ = probe_rx.recv();
+            let _ = retained_tx.send(job.request.len());
+            let _ = gate.recv();
+            drop(job);
+        });
+        let router = Router {
+            config,
+            sender,
+            stopping,
+            failed: AtomicBool::new(false),
+            task: Mutex::new(Some(task)),
+            data: true,
+            data_slots: Semaphore::new(1),
+            reads: Some(limits),
+            retention: None,
+            changes,
+            compaction: false,
+            wakeup,
+        };
+
+        let mut first = Box::pin(router.dispatch(bounded_empty_fetch()));
+        let pending = std::future::poll_fn(|cx| {
+            std::task::Poll::Ready(std::future::Future::poll(first.as_mut(), cx).is_pending())
+        })
+        .await;
+        assert!(pending, "first Fetch did not wait for the modeled actor");
+        let first_len = tokio::time::timeout(Duration::from_secs(5), claimed_rx).await??;
+        assert_eq!(first_len, 4096);
+        assert_eq!(router.data_slots.available_permits(), 0);
+        assert_eq!(router.sender.capacity(), 1);
+        println!("PL_PHASE_FIRST_CLAIMED input={first_len}");
+        drop(first);
+        assert_eq!(router.data_slots.available_permits(), 1);
+        assert_eq!(router.sender.capacity(), 1);
+        println!("PL_PHASE_FIRST_CANCELED permit_free=true");
+
+        let mut second = Box::pin(router.dispatch(bounded_empty_fetch()));
+        let pending = std::future::poll_fn(|cx| {
+            std::task::Poll::Ready(std::future::Future::poll(second.as_mut(), cx).is_pending())
+        })
+        .await;
+        assert!(pending, "second Fetch was not queued");
+        assert_eq!(router.data_slots.available_permits(), 0);
+        assert_eq!(router.sender.capacity(), 0);
+        probe.send(())?;
+        let after_cancel = tokio::time::timeout(Duration::from_secs(5), retained_rx).await??;
+        assert_eq!(after_cancel, 4096, "PL_FIRST_BUFFER_NOT_RETAINED");
+        let retained = after_cancel + 4096;
+        let ceiling = limits.max_retained_bytes();
+        println!("PL_MODELED_INPUT_OVERLAP retained={retained} ceiling={ceiling}");
+        assert!(retained > ceiling, "PL_OVERLAP_NOT_OBSERVED");
+
+        drop(second);
+        release.send(())?;
+        router.shutdown().await?;
+        Ok(())
+    }
+    #[tokio::test]
     async fn unconsumed_data_receipt_keeps_admission_bounded() -> Result<(), Box<dyn StdError>> {
         let (router, release, path) = parked_profile(true);
         let input =
