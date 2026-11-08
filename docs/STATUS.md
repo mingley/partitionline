@@ -15,22 +15,22 @@ replicated partition data or native Kafka KRaft.
 
 ## Validation
 
-The latest complete snapshot recorded here is commit `b631809f0e03ba6f65f808e51d8e47e3fd9380d1`.
+The latest complete snapshot recorded here is commit `264322ff430b0594f4c3864e53dcd832de2a930b`.
 It does not cover later changes. The [CI evidence][ci] links the runs and
 their limits.
 
-| Check | Result at `b631809` |
+| Check | Result at `264322f` |
 | --- | --- |
-| Client library, Linux default | 2,190 passed and 17 failed; the all-target run stopped at the library. |
-| Client all features | Stopped at an all-target Clippy lint before tests. A later [test-only correction][clippy] passed strict Clippy and 12 selected tests. |
+| Client library, Linux default | 2,185 passed and 22 failed; the all-target run stopped at the library. |
+| Client library, Linux all features | 2,182 passed and 25 failed; later targets did not run. |
 | Windows default library | 2,193 passed and 14 failed. |
-| macOS arm64 default library | 2,183 passed and 24 failed. |
+| macOS arm64 default library | 2,193 passed and 14 failed. |
 | Kafka 4.1.2, 4.2.1 and 4.3.1 compatibility | Each overflowed after the classic-join marker. |
 | Kafka 3.9.1 and 4.1.0 smoke | Both failed after repeated EOS timeouts. |
-| Broker default library | 446 passed and four Raft runtime tests failed; later targets and all features did not run. |
+| Broker default targets | 737 passed. |
+| Broker all-feature targets | 622 passed before a quorum test failed with an ambiguous or unexpected delete error 56; later targets did not run. |
 | Broker inventory and fuzz supervision | Both passed. |
-| Client capability profiles | Both jobs passed; their archives were not independently inspected for this status. |
-| Client format, audit, docs, package, auth and integrity smoke | Passed. Other client and live-broker jobs failed or were skipped. |
+| Client format, all-target Clippy, audit, docs, package, auth and integrity smoke | Passed. Other client jobs failed or were skipped. |
 
 A [debugger trace][gdb] on the earlier `8b5de2e` source caught a stack fault
 while opening a consumer bootstrap connection. It identifies a failure point,
@@ -57,8 +57,10 @@ pass does not replace the full release matrix.
   delivery result; with `acks=0`, success only confirms the local write.
 - **Consumer and group correctness.** Resolve the classic-join stack overflow,
   group retry and topic-recreation failures, and cancellation across buffered
-  records, offsets and aborted-transaction state. An automated security review
-  stopped a specific ReadCommitted repair validation; that repair remains open.
+  records, offsets and aborted-transaction state. A [nontransactional
+  control][poll-loss] reproduced a lost record after canceling a poll while an
+  interval commit was pending. An automated security review stopped a specific
+  ReadCommitted repair validation; that repair remains open.
 - **Security and protocol coverage.** GSSAPI and connection-driven SASL
   reauthentication are incomplete. The [protocol support](gaps.md) page lists
   other feature gaps. An independent v18 candidate audit was also stopped by an
@@ -69,7 +71,10 @@ pass does not replace the full release matrix.
   truncation failures and power loss need more coverage. Replicated partition
   data, authenticated network leadership, committed-watermark protection,
   transaction participant and marker propagation, controller queue accounting
-  and a process-wide memory bound remain open. Earlier intermittent Raft
+  and a process-wide memory bound remain open. The [Fetch admission
+  fixture][fetch-admission] checks completed, unconsumed replies. Its latest
+  default qualification failed a separate transport-shutdown test with
+  `QueueFull`; canceled actor memory overlap remains unqualified. Earlier Raft
   failures remain unexplained.
 - **Reliability and performance.** No 24-hour fault campaign or seven-day
   continuity run has passed. Matched x86 comparisons against other Kafka
@@ -82,9 +87,9 @@ The [work plan][next] tracks the current candidates and outstanding tests.
 The [support matrix](support.md) describes configured coverage, and the
 [release guide](RELEASE.md) lists publication gates. No new release is ready.
 
-[ci]: https://github.com/mingley/partitionline/blob/892f04504d0ce02dad5e823795624920fd2413f9/docs/evidence/releases/main-ci-b631-20261108/README.md
+[ci]: https://github.com/mingley/partitionline/blob/0a81a55234b70c60d335ee15d29784f9ae265e8d/docs/evidence/releases/main-ci-264322f-20261108/README.md
 [previous-ci]: https://github.com/mingley/partitionline/blob/447493b1fbee45c04fd339d199fd661746adbf25/docs/evidence/releases/main-ci-8b5-20261108/README.md
-[next]: https://github.com/mingley/partitionline/blob/892f04504d0ce02dad5e823795624920fd2413f9/docs/plan/next-work.md
+[next]: https://github.com/mingley/partitionline/blob/0a81a55234b70c60d335ee15d29784f9ae265e8d/docs/plan/next-work.md
 [previous]: https://github.com/mingley/partitionline/blob/5c2a000639d9a8a7dccd56e8c1d6f3a58dca1601/docs/STATUS.md
 [flush]: https://github.com/mingley/partitionline/blob/e980829c439aa43edc01312c91838e58a412221a/docs/evidence/client/producer-flush-native-86f2-20261103/README.md
 [txn]: https://github.com/mingley/partitionline/blob/49ad56c6bce1366e2357c272f11c5c34160d60da/docs/evidence/client/add-partitions-native-4f0c-20261103/README.md
@@ -95,3 +100,5 @@ The [support matrix](support.md) describes configured coverage, and the
 [perf]: https://github.com/mingley/partitionline/blob/447493b1fbee45c04fd339d199fd661746adbf25/docs/evidence/client/txn-decode-20261108/README.md
 [gdb]: https://github.com/mingley/partitionline/actions/runs/42440732574
 [clippy]: https://github.com/mingley/partitionline/actions/runs/42441786927
+[fetch-admission]: https://github.com/mingley/partitionline/blob/0a81a55234b70c60d335ee15d29784f9ae265e8d/docs/evidence/broker/fetch-admission-20261108/README.md
+[poll-loss]: https://github.com/mingley/partitionline/actions/runs/42443409232
