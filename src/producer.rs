@@ -61,6 +61,16 @@ pub mod flush_shutdown_witness {
     use std::sync::atomic::{AtomicUsize, Ordering};
 
     static CLOSES: AtomicUsize = AtomicUsize::new(0);
+    static BUFFER_WAITS: AtomicUsize = AtomicUsize::new(0);
+
+    /// Return the number of failed buffer reservations observed in this process.
+    pub fn observed_buffer_waits() -> usize {
+        BUFFER_WAITS.load(Ordering::SeqCst)
+    }
+
+    pub(super) fn observe_buffer_wait() {
+        let _previous = BUFFER_WAITS.fetch_add(1, Ordering::SeqCst);
+    }
 
     /// Return the number of close markers observed in this process.
     pub fn observed_closes() -> usize {
@@ -2687,6 +2697,10 @@ impl Producer {
             }
             if self.inner.shared.try_reserve_buffer(bytes) {
                 return Ok(());
+            }
+            #[cfg(flush_shutdown_witness)]
+            if self.inner.shared.cfg.client_id == "shutdown-witness" {
+                flush_shutdown_witness::observe_buffer_wait();
             }
             if Instant::now() >= deadline {
                 return Err(Error::Timeout);
