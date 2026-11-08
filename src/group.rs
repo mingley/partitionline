@@ -7211,7 +7211,7 @@ pub(crate) fn connect_member_and_coordinator<'a>(
     prefetch_all: bool,
     deadline: Instant,
 ) -> impl std::future::Future<Output = Result<MemberCoordinatorConnection>> + Send + 'a {
-    async move {
+    Box::pin(async move {
         let started = async {
     let member = Consumer::connect_within(cfg.clone(), deadline);
     let coordinator = async move {
@@ -7303,7 +7303,7 @@ pub(crate) fn connect_member_and_coordinator<'a>(
             tokio::task::yield_now().await;
         }
         started
-    }
+    })
 }
 
 /// Wait until the coordinator closes `conn`.
