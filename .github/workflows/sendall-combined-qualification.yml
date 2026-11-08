@@ -1,0 +1,84 @@
+name: Combined producer and redial qualification
+on:
+  push:
+    branches: [qualification/sendall-combined-e487-20261108]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  format:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+      - name: Check pinned tree and formatting
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD:src/producer.rs)" = 31bdaf849244026b3d64334b1429f676d8d4e755
+          test "$(git rev-parse HEAD:tests/producer_send_all_regression.rs)" = d43afd11fc9d6eb42430710ebbf8889abbf88b1e
+          test "$(git rev-parse HEAD:tests/common/mod.rs)" = 30c2069ae40ff81c893acb202ee3d370ee75780f
+          test "$(git rev-parse HEAD:tests/mock_produce.rs)" = 4fd9a5a940086a97037bb45192ed84224a1542c6
+          rustc -Vv
+          cargo fmt --all -- --check
+  clippy:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+      - name: Strict all-target all-feature Clippy
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD:src/producer.rs)" = 31bdaf849244026b3d64334b1429f676d8d4e755
+          test "$(git rev-parse HEAD:tests/producer_send_all_regression.rs)" = d43afd11fc9d6eb42430710ebbf8889abbf88b1e
+          test "$(git rev-parse HEAD:tests/common/mod.rs)" = 30c2069ae40ff81c893acb202ee3d370ee75780f
+          test "$(git rev-parse HEAD:tests/mock_produce.rs)" = 4fd9a5a940086a97037bb45192ed84224a1542c6
+          rustc -Vv
+          cargo clippy --locked --all-targets --all-features -- -D warnings
+  tests:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        features: [default, all]
+    env:
+      TEST_FEATURES: ${{ matrix.features }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Pin combined tree
+        run: |
+          set -euo pipefail
+          git rev-parse HEAD
+          test "$(git rev-parse HEAD:src/producer.rs)" = 31bdaf849244026b3d64334b1429f676d8d4e755
+          test "$(git rev-parse HEAD:tests/producer_send_all_regression.rs)" = d43afd11fc9d6eb42430710ebbf8889abbf88b1e
+          test "$(git rev-parse HEAD:tests/common/mod.rs)" = 30c2069ae40ff81c893acb202ee3d370ee75780f
+          test "$(git rev-parse HEAD:tests/mock_produce.rs)" = 4fd9a5a940086a97037bb45192ed84224a1542c6
+          rustc -Vv
+      - name: Producer send_all public regression
+        run: |
+          set -euo pipefail
+          if test "$TEST_FEATURES" = all; then args=(--all-features); else args=(); fi
+          cargo test --locked "${args[@]}" --test producer_send_all_regression -- --nocapture
+      - name: Complete mock producer integration target
+        if: always()
+        run: |
+          set -euo pipefail
+          if test "$TEST_FEATURES" = all; then args=(--all-features); else args=(); fi
+          cargo test --locked "${args[@]}" --test mock_produce -- --nocapture
+      - name: Producer cancellation target
+        if: always()
+        run: |
+          set -euo pipefail
+          if test "$TEST_FEATURES" = all; then args=(--all-features); else args=(); fi
+          cargo test --locked "${args[@]}" --test produce_cancel -- --nocapture
+      - name: Producer retained-backing target
+        if: always()
+        run: |
+          set -euo pipefail
+          if test "$TEST_FEATURES" = all; then args=(--all-features); else args=(); fi
+          cargo test --locked "${args[@]}" --test producer_retained_backing -- --nocapture
