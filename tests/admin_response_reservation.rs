@@ -30,10 +30,7 @@ macro_rules! compare_decoders {
             let sync_remaining = contiguous.remaining();
             let split = prefix.len() / 2;
             let mut fragmented = prefix[..split].chain(&prefix[split..]);
-            let asynchronous = format!(
-                "{:?}",
-                $cooperative(&mut fragmented, $version).await
-            );
+            let asynchronous = format!("{:?}", $cooperative(&mut fragmented, $version).await);
             assert_eq!(asynchronous, sync, "version {} prefix {end}", $version);
             assert_eq!(fragmented.remaining(), sync_remaining);
         }
