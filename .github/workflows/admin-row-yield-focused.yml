@@ -1,0 +1,66 @@
+name: Admin row checkpoint focused qualification
+on:
+  push:
+    branches: [qualification/admin-dtp-row-yield-20261108]
+permissions:
+  contents: read
+jobs:
+  tests:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    strategy:
+      fail-fast: false
+      matrix:
+        feature: [default, all]
+    env:
+      CARGO_INCREMENTAL: '0'
+      CARGO_TERM_COLOR: never
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Pin the exact candidate
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD:src/admin.rs)" = 23cb280eee5e91a64a9a6f58347f707524163d07
+          test "$(git rev-parse HEAD:src/admin/pagination_tests.rs)" = 5451103503eabc359f5404849851ad11f5388cac
+          git rev-parse HEAD HEAD:src/admin.rs HEAD:src/admin/pagination_tests.rs HEAD:Cargo.lock
+          sha256sum src/admin.rs src/admin/pagination_tests.rs Cargo.lock
+          rustc -Vv
+      - name: Run focused row controls
+        run: |
+          set -euo pipefail
+          if test "${{ matrix.feature }}" = all; then
+            cargo test --locked --all-features --lib dtp_conversion_ -- --test-threads=1
+          else
+            cargo test --locked --lib dtp_conversion_ -- --test-threads=1
+          fi
+      - name: Run Admin pagination tests
+        run: |
+          set -euo pipefail
+          if test "${{ matrix.feature }}" = all; then
+            cargo test --locked --all-features --lib admin::pagination_tests:: -- --test-threads=1
+          else
+            cargo test --locked --lib admin::pagination_tests:: -- --test-threads=1
+          fi
+  lint:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    env:
+      CARGO_INCREMENTAL: '0'
+      CARGO_TERM_COLOR: never
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy,rustfmt
+      - name: Verify candidate source pins
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD:src/admin.rs)" = 23cb280eee5e91a64a9a6f58347f707524163d07
+          test "$(git rev-parse HEAD:src/admin/pagination_tests.rs)" = 5451103503eabc359f5404849851ad11f5388cac
+          git rev-parse HEAD HEAD:src/admin.rs HEAD:src/admin/pagination_tests.rs
+          rustc -Vv
+      - name: Check formatting
+        run: cargo fmt --all -- --check
+      - name: Check strict all-target all-feature Clippy
+        run: cargo clippy --locked --all-targets --all-features -- -D warnings
