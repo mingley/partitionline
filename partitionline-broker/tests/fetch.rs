@@ -1158,6 +1158,38 @@ async fn transactional_control_and_idempotent_writes_cannot_change_committed_vis
 #[tokio::test]
 async fn transport_deadline_cancels_wait_and_releases_read_admission(
 ) -> Result<(), Box<dyn StdError>> {
+    struct ObservedFetch {
+        router: Arc<Router>,
+        admitted: tokio::sync::watch::Sender<bool>,
+    }
+    impl transport::Handler for ObservedFetch {
+        type Error = metadata::Error;
+
+        async fn handle(&self, request: Vec<u8>) -> Result<Option<Vec<u8>>, Self::Error> {
+            self.router.dispatch(request).await
+        }
+
+        async fn exchange_request(
+            &self,
+            peer: &transport::Peer,
+            request: Vec<u8>,
+            spare: Vec<u8>,
+        ) -> Result<transport::ExchangeOutcome, Self::Error> {
+            let is_fetch = request.get(..2) == Some(&[0, 1]);
+            let inner =
+                transport::Handler::exchange_request(self.router.as_ref(), peer, request, spare);
+            tokio::pin!(inner);
+            std::future::poll_fn(|cx| {
+                let result = std::future::Future::poll(inner.as_mut(), cx);
+                if is_fetch && result.is_pending() {
+                    self.admitted.send_replace(true);
+                }
+                result
+            })
+            .await
+        }
+    }
+
     let root = scratch("tcp-cancel");
     seed(root.clone(), false, false).await?;
     let mut cfg = common();
@@ -1169,17 +1201,18 @@ async fn transport_deadline_cancels_wait_and_releases_read_admission(
         128 * 1024,
         128 * 1024,
         Duration::from_secs(2),
-        Duration::from_millis(100),
+        Duration::from_secs(2),
         Duration::from_secs(2),
     )?;
-    let mut transport = Transport::bind(
-        ([127, 0, 0, 1], 0).into(),
-        transport_config,
-        Arc::clone(&router),
-    )
-    .await?;
+    let (admitted, mut admission) = tokio::sync::watch::channel(false);
+    let handler = Arc::new(ObservedFetch {
+        router: Arc::clone(&router),
+        admitted,
+    });
+    let mut transport =
+        Transport::bind(([127, 0, 0, 1], 0).into(), transport_config, handler).await?;
     let mut phase = "initial Fetch connect";
-    let result = async {
+    let result = match tokio::time::timeout(Duration::from_secs(15), async {
         let mut socket = TcpStream::connect(transport.local_addr()).await?;
         phase = "initial Fetch send";
         send(
@@ -1187,15 +1220,33 @@ async fn transport_deadline_cancels_wait_and_releases_read_admission(
             &fetch_request(6, 0, 30000, 1, 10000, &[(0, 10000)]),
         )
         .await?;
+        phase = "initial Fetch admission";
+        tokio::time::timeout(Duration::from_secs(5), async {
+            while !*admission.borrow_and_update() {
+                admission.changed().await?;
+            }
+            Ok::<_, tokio::sync::watch::error::RecvError>(())
+        })
+        .await??;
+        // The FIFO barrier completes after the first snapshot leaves the actor
+        // queue. QueueFull here therefore checks the separately held data permit.
+        phase = "pending snapshot actor barrier";
+        barrier(&router).await?;
+        phase = "pending Fetch permit";
+        let occupied = router
+            .respond(fetch_request(6, 0, 0, 0, 10000, &[(0, 10000)]))
+            .await;
+        if !matches!(&occupied, Err(metadata::Error::QueueFull)) {
+            return Err(format!("pending Fetch did not hold admission: {occupied:?}").into());
+        }
         phase = "initial Fetch deadline EOF";
         let mut byte = [0];
         assert_eq!(
-            tokio::time::timeout(Duration::from_secs(2), socket.read(&mut byte)).await??,
+            tokio::time::timeout(Duration::from_secs(5), socket.read(&mut byte)).await??,
             0
         );
-        // Cancellation releases the data permit before the socket closes. If
-        // its snapshot was still queued, consume it before testing fresh work;
-        // queue occupancy and held data permits are separate admission limits.
+        // Canceled actor work can outlive the handler. Drain earlier queued or
+        // claimed work before testing fresh admission.
         phase = "canceled snapshot actor barrier";
         barrier(&router).await?;
         phase = "Produce fixture read";
@@ -1218,15 +1269,19 @@ async fn transport_deadline_cancels_wait_and_releases_read_admission(
         let response = receive(&mut socket).await?;
         assert_eq!(&records(&response, 6)[16..], &batch[16..]);
         Ok::<_, Box<dyn StdError>>(())
-    }
-    .await;
-    let report = transport.shutdown().await;
+    })
+    .await
+    {
+        Ok(result) => result,
+        Err(error) => Err(Box::new(error) as Box<dyn StdError>),
+    };
+    let report = tokio::time::timeout(Duration::from_secs(10), transport.shutdown()).await;
     if let Err(error) = &result {
         eprintln!("transport admission failed at {phase}: {error:?}; report={report:?}");
     }
-    let report = report?;
-    router.shutdown().await?;
-    clean(root).await?;
+    let report = report??;
+    tokio::time::timeout(Duration::from_secs(10), router.shutdown()).await??;
+    tokio::time::timeout(Duration::from_secs(10), clean(root)).await??;
     result?;
     assert_eq!(report.handler_deadlines, 1);
     Ok(())
@@ -1291,8 +1346,8 @@ async fn transport_joined_shutdown_cancels_live_long_poll_without_stopping_store
     assert_eq!(report.worker_failures, 0);
     let mut byte = [0];
     assert_eq!(socket.read(&mut byte).await?, 0);
-    // A canceled job can still occupy the actor queue after the transport's
-    // handler has released its data permit. Drain it before checking fresh work.
+    // Canceled work can outlive the handler and retain a queue slot or permit.
+    // Drain earlier actor work before checking fresh admission.
     barrier(&router).await?;
     let result = router
         .respond(fetch_request(6, 0, 0, 0, 10000, &[(0, 10000)]))
