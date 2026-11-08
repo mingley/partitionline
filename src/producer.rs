@@ -2705,17 +2705,20 @@ impl Producer {
             && self.inner.shared.interceptors.is_empty()
             && pending.len() < leader_scan_chunk()
             && pending.front().is_some_and(|(_, first)| {
-                first.partition.is_some_and(|partition| {
-                    partition >= 0
-                        && pending.iter().all(|(_, record)| {
-                            record.partition == Some(partition)
-                                && record.topic.as_ref() == first.topic.as_ref()
-                        })
-                })
+                first.topic.len() <= Topic::MAX_NAME_LENGTH
+                    && first.partition.is_some_and(|partition| {
+                        partition >= 0
+                            && pending.iter().all(|(_, record)| {
+                                record.partition == Some(partition)
+                                    && record.topic.len() == first.topic.len()
+                                    && record.topic.as_ref() == first.topic.as_ref()
+                            })
+                    })
             });
         let mut slots = Vec::new();
         slots.resize_with(pending.len(), || None);
         let mut failed: HashMap<Arc<str>, Error> = HashMap::new();
+        let mut fast_walked = 0usize;
         while let Some((index, rec)) = pending.pop_front() {
             if let Some(error) = prepared_topic_error(&failed, &rec.topic) {
                 return Err(error);
@@ -2816,6 +2819,13 @@ impl Producer {
             let rx = self.enqueue_one(rec).await?;
             if let Some(slot) = slots.get_mut(index) {
                 *slot = Some(rx);
+            }
+            if one_explicit_route {
+                fast_walked += 1;
+                if fast_walked == 512 && !pending.is_empty() {
+                    fast_walked = 0;
+                    tokio::task::yield_now().await;
+                }
             }
         }
         let mut out = Vec::with_capacity(slots.len());
