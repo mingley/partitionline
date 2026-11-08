@@ -10,17 +10,21 @@ Production readiness and fastest-client/server claims remain unqualified.
 Client 0.1.0 is already published. The next client version must be at least
 0.2.0; broker and schema publication remain disabled.
 
-The latest complete recorded main [CI snapshot](../evidence/releases/main-ci-118-20261108/README.md)
-is `1188156ec955a6141a1f06d2c25cddfa2856fa8b`. Client libraries reported
-2,225 passed and 19 failed on Linux default, 2,221 passed and 23 failed with
-all features, 2,225 passed and 19 failed on Windows, and 2,232 passed and
-12 failed on macOS arm64. Three Kafka compatibility jobs and both smoke jobs
-failed; resource-soak passed. Broker CI passed 773 default and 921 all-feature
+The latest complete recorded main [CI snapshot](../evidence/releases/main-ci-47d-20261108/README.md)
+is `47df27f9f3e04fc524849f3a9753c0b0469f8947`. Client libraries reported
+2,229 passed and 15 failed on Linux default, 2,222 passed and 22 failed with
+all features, 2,226 passed and 18 failed on Windows, and 2,229 passed and
+15 failed on macOS arm64. Three Kafka compatibility jobs and both smoke jobs
+failed; resource-soak passed. Broker CI passed 779 default and 927 all-feature
 tests, with four ignored per profile, plus strict checks, inventory and fuzz
 supervision. Both selected capability profiles passed; their archives were not
 independently inspected.
 
-The [preceding snapshot](../evidence/releases/main-ci-c7-20261108/README.md)
+The [preceding snapshot](../evidence/releases/main-ci-118-20261108/README.md)
+also failed client checks and passed broker checks; it preceded the frame-read
+change.
+
+An [earlier snapshot](../evidence/releases/main-ci-c7-20261108/README.md)
 also failed client checks and passed broker checks. These source commits differ
 only in documentation.
 
@@ -146,9 +150,12 @@ production transport. A later [framing change](../evidence/broker/frame-read-fai
 bounds consecutive ready frame reads by bytes and calls. It passed both broker
 profiles and focused controls, including a preloaded TLS stream. On one shared
 x86 host, 256 KiB loopback throughput fell about 2% over TCP and 1.6% over
-TLS/TCP. A one-byte read adapter had larger TLS cost. These are short framing
-measurements, not Kafka throughput or a global ranking. The synchronous
-complete-frame copy and work inside one read poll remain outside this bound.
+TLS/TCP. A one-byte read adapter had larger TLS cost. A
+[follow-up](../evidence/broker/frame-read-fairness-20261108/network-rtt-followup.md)
+retained individual RTTs and saw the TCP 256 KiB result change direction on a
+different runner; the cause is unknown. These are short framing measurements,
+not Kafka throughput or a global ranking. The synchronous complete-frame copy
+and work inside one read poll remain outside this bound.
 
 An [observer diagnostic](../evidence/broker/observer-image-diagnostic-20261108/README.md)
 records image size and a bounded, non-atomic prefix sample when either
@@ -321,8 +328,10 @@ remain open.
    a flush waiter was canceled. A separate [public flush history](../evidence/client/producer-flush-sent-20261108/README.md)
    shows an injected error can be sent to a live waiter, then discarded when
    that unpolled waiter is dropped while overlapping and later flushes return
-   Ok. This uses a mock and does not settle every flush-error contract. A
-   proposed [ownership design](../evidence/client/producer-ownership-design-20261108/README.md)
+   Ok. This uses a mock and does not settle every flush-error contract. An
+   isolated [bounded error-state model](../evidence/client/producer-flush-error-model-20261108/README.md)
+   still masks a worker timeout with a generic protocol summary and is not a
+   repair. A proposed [ownership design](../evidence/client/producer-ownership-design-20261108/README.md)
    records the unresolved lifecycle, transaction and sequence requirements;
    the draft remains unapplied. The [retained-admission test](../evidence/client/retained-cancellation-test-20261108/README.md)
    now isolates one partial `send_all` cancellation and detects missing or
@@ -447,7 +456,11 @@ remain open.
    families. Valid results can grow beyond that request; other decoders and
    aggregate memory remain outside its scope. Two short diagnostics measured
    roughly 6% higher median decode time for 20,000 valid CreateTopics results,
-   and some valid responses used more peak requested capacity.
+   and some valid responses used more peak requested capacity. A separate
+   [DescribeTopicPartitions reservation candidate](../evidence/client/admin-dtp-reservation-20261108/README.md)
+   reduced initial requests in malformed inputs but remains unapplied: valid
+   large-topic and large-partition decodes had higher median times in a short
+   shared-host comparison. Results can grow beyond the initial request.
    Extend protection beyond the covered Fetch, ApiVersions, record and
    heartbeat paths. The grouped-assignment decoder and
    small Share batch-reservation fixes are being validated with producer builds.
@@ -521,11 +534,13 @@ also remain unapplied. In a balanced three-way x86 run, the outlined variant
 improved the sampled header-heavy batch but was slower in all 12 paired
 500-record plain and null-key batches. Inline results changed direction across
 runs on different hosts and fixtures. The constant-input primitive loops can
-allow compiler hoisting; these results do not rank Kafka implementations. Two
+allow compiler hoisting; these results do not rank Kafka implementations. Three
 [batch-header candidates](../evidence/client/batch-header-write-20261108/README.md)
 also remain unapplied: the stack version repeatedly slowed a warm single-record
-case, and the reserve version slowed the sampled eight-record async case. Cold
-buffers improved, but the producer normally reuses its output buffer.
+case, and the reserve version slowed the sampled eight-record async case. A
+third capacity-zero variant slowed an empty batch; its fresh-buffer gains do
+not establish a benefit for the producer, which reserves the destination before
+starting the header.
 
 An isolated [transaction decode experiment](../evidence/client/txn-decode-20261108/README.md)
 reduced loopback latency for larger responses on one shared x86 runner. It
