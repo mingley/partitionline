@@ -12,6 +12,12 @@ TEMP.mkdir(parents=True, exist_ok=True)
 TEST = "transport::frame_read_deadline_tests::read_deadline_stops_a_ready_frame_body"
 BASE = "6298f6bfbed2ab98189d291ebebd2190a2ee75b6"
 
+def interrupt(signum, _frame):
+    raise SystemExit("qualification interrupted by signal " + str(signum))
+
+signal.signal(signal.SIGTERM, interrupt)
+signal.signal(signal.SIGINT, interrupt)
+
 def checked(args, **kwargs):
     subprocess.run(args, check=True, **kwargs)
 

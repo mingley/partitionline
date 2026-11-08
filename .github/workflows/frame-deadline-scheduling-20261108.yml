@@ -21,12 +21,14 @@ jobs:
       PROFILE: ${{ matrix.profile }}
     steps:
       - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
       - uses: dtolnay/rust-toolchain@stable
       - name: Record exact source and toolchain
         shell: bash
         run: |
           set -euo pipefail
-          test "$(git rev-parse HEAD^)" = 6298f6bfbed2ab98189d291ebebd2190a2ee75b6
+          git merge-base --is-ancestor 6298f6bfbed2ab98189d291ebebd2190a2ee75b6 HEAD
           test "$(git rev-parse HEAD:partitionline-broker/src/transport.rs)" = e80acf8d5fe3614b35f079d3d6364d086b0abb84
           test "$(git rev-parse HEAD:partitionline-broker/Cargo.toml)" = 4e23c42f8d9ac722005098a4b58e1046b711e1a3
           rustc +stable -Vv
