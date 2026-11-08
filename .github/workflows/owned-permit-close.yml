@@ -1,0 +1,54 @@
+name: OwnedPermit closed receiver witness
+
+on:
+  push:
+    branches: [qualification/owned-permit-close-20261108]
+
+permissions:
+  contents: read
+
+jobs:
+  witness:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      CARGO_BUILD_JOBS: '2'
+      CARGO_INCREMENTAL: '0'
+      CARGO_PROFILE_TEST_DEBUG: '0'
+      CARGO_TERM_COLOR: never
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          sparse-checkout: |
+            .cargo
+            src
+            tests
+            examples
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+      - name: Record pinned source and toolchain
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$RUNNER_ARCH" = X64
+          test "$(git rev-parse HEAD:Cargo.lock)" = d1cb698aaaf7554fe904ba02d671c4a8ab4975b3
+          rustc +stable -vV
+          cargo +stable -V
+          sha256sum Cargo.lock tests/owned_permit_closed_witness.rs
+          cargo +stable tree --locked -i tokio
+          rustfmt +stable --edition 2021 --check tests/owned_permit_closed_witness.rs
+      - name: Test default and all features
+        shell: bash
+        run: |
+          set -euo pipefail
+          for mode in default all; do
+            extra=''
+            if [[ "$mode" = all ]]; then extra=--all-features; fi
+            log="$RUNNER_TEMP/owned-permit-$mode.log"
+            timeout 600 cargo +stable test --locked $extra --test owned_permit_closed_witness -- --nocapture 2>&1 | tee "$log"
+            grep -F 'OWNED_PERMIT_CLOSED_RECEIVER=drained' "$log"
+            grep -F 'OWNED_PERMIT_DROPPED_RECEIVER=payload_dropped' "$log"
+            grep -F 'test result: ok. 2 passed; 0 failed;' "$log"
+          done
