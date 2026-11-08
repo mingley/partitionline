@@ -1,0 +1,104 @@
+name: Broker buffered classify paired control
+on:
+  push:
+    branches: [qualification/broker-frame-classify-measure-20261108]
+permissions:
+  contents: read
+jobs:
+  counts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      CARGO_BUILD_JOBS: 2
+      CARGO_INCREMENTAL: 0
+      CARGO_PROFILE_TEST_DEBUG: 0
+      CARGO_PROFILE_DEV_DEBUG: 0
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Count logical classifications with diagnostic instrumentation
+        run: |
+          set -euo pipefail
+          for variant in baseline candidate; do
+            case "$variant" in
+              baseline) revision=e487f7294773f75112f15437992ed780b53c7307; blob=a36cf086c3d683a5f24b818705b15d8ce54245f4 ;;
+              candidate) revision=6c92c25c995abf7bb65c3191f708fda617485ce7; blob=95a7e220ae8a6e34a0ae41936c3b36c7bc596ade ;;
+            esac
+            git show "$revision:partitionline-broker/src/transport.rs" > partitionline-broker/src/transport.rs
+            test "$(git hash-object partitionline-broker/src/transport.rs)" = "$blob"
+            python3 - <<'PY'
+          from pathlib import Path
+          p=Path("partitionline-broker/src/transport.rs")
+          s=p.read_text()
+          mark="fn classify_ahead(ahead: &[u8], max_request: usize) -> Ahead {"
+          assert s.count(mark)==1
+          s=s.replace(mark, "#[cfg(test)]\nstatic CLASSIFY_CONTROL: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(0);\n"+mark+"\n    #[cfg(test)]\n    CLASSIFY_CONTROL.fetch_add(1, std::sync::atomic::Ordering::Relaxed);",1)
+          p.write_text(s)
+          PY
+            cat .github/scripts/frame-classify-count.rs >> partitionline-broker/src/transport.rs
+            PL_CLASSIFY_VARIANT="$variant" cargo test --locked --manifest-path partitionline-broker/Cargo.toml --lib count_buffered_frame_classifications -- --nocapture --test-threads=1 | tee "/tmp/classify-count-$variant.log"
+            grep -qE '^test result: ok\. 1 passed; 0 failed;' "/tmp/classify-count-$variant.log"
+            test "$(grep -c "classify-count variant=$variant" "/tmp/classify-count-$variant.log")" -eq 3
+          done
+  bench:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      CARGO_BUILD_JOBS: 2
+      CARGO_INCREMENTAL: 0
+      CARGO_TARGET_DIR: target/classify-frame-bench
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Compile and measure alternating releases
+        run: |
+          set -euo pipefail
+          rustc -Vv
+          uname -m
+          awk -F: '/model name/ {print $2; exit}' /proc/cpuinfo
+          core="$(python3 -c 'import os; print(min(os.sched_getaffinity(0)))')"
+          echo "classify-bench pinned_core=$core"
+          for profile in default all; do
+            args=()
+            if [[ "$profile" == all ]]; then args=(--all-features); fi
+            for variant in baseline candidate; do
+              case "$variant" in
+                baseline) revision=e487f7294773f75112f15437992ed780b53c7307; blob=a36cf086c3d683a5f24b818705b15d8ce54245f4 ;;
+                candidate) revision=6c92c25c995abf7bb65c3191f708fda617485ce7; blob=95a7e220ae8a6e34a0ae41936c3b36c7bc596ade ;;
+              esac
+              git show "$revision:partitionline-broker/src/transport.rs" > partitionline-broker/src/transport.rs
+              test "$(git hash-object partitionline-broker/src/transport.rs)" = "$blob"
+              cat .github/scripts/frame-ready-bench.rs >> partitionline-broker/src/transport.rs
+              cargo test --release --locked --manifest-path partitionline-broker/Cargo.toml --lib "${args[@]}" --no-run --message-format=json > "/tmp/classify-build-$profile-$variant.json"
+              executable="$(python3 - "/tmp/classify-build-$profile-$variant.json" <<'PY'
+          import json, sys
+          matches=[]
+          for line in open(sys.argv[1], encoding="utf-8"):
+              data=json.loads(line)
+              if data.get("reason") == "compiler-artifact" and data.get("target", {}).get("name") == "partitionline_broker" and data.get("profile", {}).get("test") and data.get("executable"):
+                  matches.append(data["executable"])
+          assert len(matches) == 1, matches
+          print(matches[0])
+          PY
+              )"
+              cp "$executable" "/tmp/classify-$profile-$variant"
+              sha256sum "/tmp/classify-$profile-$variant"
+            done
+          done
+          for round in 0 1 2 3 4 5; do
+            if (( round % 2 == 0 )); then variants=(baseline candidate); else variants=(candidate baseline); fi
+            for profile in default all; do
+              for variant in "${variants[@]}"; do
+                echo "classify-round=$round profile=$profile variant=$variant"
+                taskset -c "$core" env PL_FRAME_BENCH_VARIANT="$profile-$variant" "/tmp/classify-$profile-$variant" --exact transport::ready_frame_microbench::measure_ready_frame_cost --ignored --nocapture --test-threads=1 | tee /tmp/classify-sample.log
+                grep -qFx 'running 1 test' /tmp/classify-sample.log
+                grep -qE '^test result: ok\. 1 passed; 0 failed;' /tmp/classify-sample.log
+                test "$(grep -c 'frame-boundary variant=' /tmp/classify-sample.log)" -eq 6
+                test "$(grep -c 'frame-bench variant=' /tmp/classify-sample.log)" -eq 10
+              done
+            done
+          done
