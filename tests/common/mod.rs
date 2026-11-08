@@ -1963,6 +1963,16 @@ fn node_endpoints_for(st: &State, leader_ids: impl IntoIterator<Item = i32>) -> 
 }
 
 impl Mock {
+    /// Require PLAIN credentials on subsequently accepted connections.
+    pub fn require_plain_sasl(&self, username: &str, password: &str) {
+        let mut state = self.state.lock();
+        assert_eq!(
+            state.accepts, 0,
+            "configure authentication before connecting"
+        );
+        state.sasl_user = Some((username.to_owned(), password.to_owned()));
+    }
+
     /// TCP connections accepted since the listeners started.
     pub fn accepts(&self) -> u32 {
         self.state.lock().accepts
