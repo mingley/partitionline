@@ -1,0 +1,92 @@
+name: Record header paired benchmark
+on:
+  push:
+    branches:
+      - qualification/record-header-bench-20261108
+permissions:
+  contents: read
+jobs:
+  benchmark:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      CARGO_INCREMENTAL: "0"
+      CARGO_BUILD_JOBS: "2"
+      CARGO_TERM_COLOR: never
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          path: harness
+      - uses: actions/checkout@v7
+        with:
+          ref: ba8d72f51c23b4bfbd1057e61bbd483da831aa91
+          path: baseline
+      - uses: actions/checkout@v7
+        with:
+          ref: 99ac0954ac645dfe0c93dd884c3b1be8c20d7384
+          path: candidate
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Build separate release binaries
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/records-bench"
+          rustc +stable -Vv | tee "$RUNNER_TEMP/records-bench/rust.txt"
+          uname -a | tee "$RUNNER_TEMP/records-bench/host.txt"
+          lscpu >> "$RUNNER_TEMP/records-bench/host.txt"
+          sha256sum harness/.github/qualification/records_header_bench.rs baseline/partitionline-broker/src/records.rs candidate/partitionline-broker/src/records.rs | tee "$RUNNER_TEMP/records-bench/source-hashes.txt"
+          for arm in baseline candidate; do
+            mkdir -p "$arm/partitionline-broker/examples"
+            cp harness/.github/qualification/records_header_bench.rs "$arm/partitionline-broker/examples/records_header_bench.rs"
+            cargo +stable build --release --locked --manifest-path "$arm/partitionline-broker/Cargo.toml" --example records_header_bench
+          done
+          sha256sum baseline/target/release/examples/records_header_bench candidate/target/release/examples/records_header_bench | tee "$RUNNER_TEMP/records-bench/binaries.txt"
+          test "$(sha256sum baseline/target/release/examples/records_header_bench | cut -d' ' -f1)" != "$(sha256sum candidate/target/release/examples/records_header_bench | cut -d' ' -f1)"
+      - name: Alternate matched arms on one CPU
+        shell: bash
+        run: |
+          set -euo pipefail
+          out="$RUNNER_TEMP/records-bench"
+          cpu="$(python3 -c 'import os; print(min(os.sched_getaffinity(0)))')"
+          printf 'pinned_cpu=%s\n' "$cpu" | tee "$out/cpu.txt"
+          for kind in one_plain many_plain many_header many_four late_header large_header; do
+            for pair in $(seq 1 8); do
+              if (( pair % 2 )); then arms="baseline candidate"; else arms="candidate baseline"; fi
+              for arm in $arms; do
+                taskset -c "$cpu" "$arm/target/release/examples/records_header_bench" "$kind" > "$out/$kind.$arm.$pair.samples" 2> "$out/$kind.$arm.$pair.input"
+              done
+            done
+          done
+          python3 - "$out" <<'PY'
+          import pathlib, statistics, sys
+          root = pathlib.Path(sys.argv[1])
+          for case in ("one_plain", "many_plain", "many_header", "many_four", "late_header", "large_header"):
+              all_samples = {"baseline": [], "candidate": []}
+              pairs = []
+              descriptions = set()
+              for pair in range(1, 9):
+                  medians = {}
+                  for arm in ("baseline", "candidate"):
+                      descriptions.add((root / f"{case}.{arm}.{pair}.input").read_text())
+                      lines = (root / f"{case}.{arm}.{pair}.samples").read_text().splitlines()
+                      assert len(lines) == 7, (case, arm, pair, lines)
+                      samples = []
+                      for line in lines:
+                          label, sample, iterations, ns = line.split()
+                          assert label == case
+                          samples.append(int(ns) / int(iterations))
+                      all_samples[arm].extend(samples)
+                      medians[arm] = statistics.median(samples)
+                  pairs.append(medians["candidate"] / medians["baseline"])
+              assert len(descriptions) == 1, (case, descriptions)
+              b, c = statistics.median(all_samples["baseline"]), statistics.median(all_samples["candidate"])
+              print(f"{case}: baseline={b:.1f} ns/op candidate={c:.1f} ns/op ratio={c/b:.4f}; paired ratios=" + ",".join(f"{x:.4f}" for x in pairs))
+              print(next(iter(descriptions)).strip())
+          PY
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: records-header-paired-${{ github.run_id }}
+          path: ${{ runner.temp }}/records-bench
+          if-no-files-found: warn
+          retention-days: 30
