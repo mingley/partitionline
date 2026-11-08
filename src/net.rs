@@ -5171,7 +5171,7 @@ mod tests {
             let _thread = std::thread::spawn(move || {
                 let _unused_result = ready_tx.send(());
                 let _unused_result = gate_rx.recv();
-                let mut buf = [0u8; 8];
+                let mut buf = [0u8; 8 * 1024];
                 loop {
                     match peer.read(&mut buf) {
                         Ok(0) | Err(_) => break,

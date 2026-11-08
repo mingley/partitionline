@@ -3,6 +3,7 @@ set -euo pipefail
 
 export CARGO_TARGET_DIR="$GITHUB_WORKSPACE/target"
 tests=(
+  'net::tests::write_timeout_shuts_the_broker_down'
   'net::tests::physical_retirement_timeout_keeps_a_closed_retryable_slot'
   'net::tests::cancelling_physical_retirement_keeps_a_closed_retryable_slot'
   'net::tests::repeated_physical_retirement_outside_runtime_needs_no_cleanup_task'

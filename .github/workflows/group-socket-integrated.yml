@@ -3,7 +3,7 @@ name: Group coordinator retirement qualification
 on:
   push:
     branches:
-      - qualification/group-socket-c49-20261108
+      - qualification/group-socket-c49-fixture-20261108
 
 permissions:
   contents: read
@@ -66,6 +66,8 @@ jobs:
         run: bash ../.github/group-qualification/baseline.sh
       - name: Negative controls for EOF and owner drop
         run: bash .github/group-qualification/negative.sh
+      - name: Negative control for write timeout closure
+        run: bash .github/group-qualification/negative-write.sh
       - name: Clippy
         run: cargo +stable clippy --locked --all-targets --all-features -- -D warnings
       - name: Alternating baseline and candidate loopback probe
