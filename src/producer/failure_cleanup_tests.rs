@@ -129,7 +129,10 @@ async fn cancellation_during_sum_and_after_a_callback_chunk_is_exact_once() {
     assert_eq!(shared.buffered_bytes.load(Ordering::SeqCst), 0);
     assert_eq!(budget.used.load(Ordering::SeqCst), 0);
     assert_eq!(calls.load(Ordering::SeqCst), 1 + count);
-    assert_eq!(shared.m_errors.load(Ordering::SeqCst), u64::try_from(1 + count).unwrap());
+    assert_eq!(
+        shared.m_errors.load(Ordering::SeqCst),
+        u64::try_from(1 + count).unwrap()
+    );
 }
 
 #[tokio::test(flavor = "current_thread")]
@@ -432,7 +435,10 @@ async fn canceled_unpolled_large_batch_finishes_synchronously() {
     assert_eq!(calls.load(Ordering::SeqCst), count);
     assert_eq!(budget.used.load(Ordering::SeqCst), 0);
     assert_eq!(shared.buffered_bytes.load(Ordering::SeqCst), 0);
-    assert_eq!(shared.m_errors.load(Ordering::SeqCst), u64::try_from(count).unwrap());
+    assert_eq!(
+        shared.m_errors.load(Ordering::SeqCst),
+        u64::try_from(count).unwrap()
+    );
     assert_timeouts(receivers).await;
 }
 
@@ -462,7 +468,7 @@ impl Drop for ReleaseCleanup {
     fn drop(&mut self) {
         let (released, changed) = &*self.0;
         *released.lock() = true;
-        let _ = changed.notify_all();
+        let _woken = changed.notify_all();
     }
 }
 
@@ -481,7 +487,11 @@ async fn blocking_callback_blocks_the_dropping_thread_until_released() {
     let (shared, _listener, _peer) = setup(cfg).await;
     let (batch, mut receivers, budget, _) = records(&shared, 1, false);
     let cleanup = fail_kept_pendings(&shared, batch, Error::Timeout);
-    let handle = std::thread::spawn(move || drop(cleanup));
+    let (finished_tx, finished_rx) = oneshot::channel();
+    let handle = std::thread::spawn(move || {
+        drop(cleanup);
+        let _notified = finished_tx.send(());
+    });
     tokio::time::timeout(Duration::from_secs(5), entered.notified())
         .await
         .expect("the callback did not start");
@@ -496,14 +506,18 @@ async fn blocking_callback_blocks_the_dropping_thread_until_released() {
         Err(oneshot::error::TryRecvError::Empty)
     ));
     drop(release_on_drop);
-    tokio::time::timeout(
-        Duration::from_secs(5),
-        tokio::task::spawn_blocking(move || handle.join()),
-    )
+    tokio::time::timeout(Duration::from_secs(5), finished_rx)
+        .await
+        .expect("dropping thread did not signal completion")
+        .expect("dropping thread panicked");
+    tokio::time::timeout(Duration::from_secs(5), async {
+        while !handle.is_finished() {
+            tokio::task::yield_now().await;
+        }
+    })
     .await
-    .expect("dropping thread did not finish")
-    .expect("join task failed")
-    .expect("dropping thread panicked");
+    .expect("dropping thread did not finish");
+    handle.join().expect("dropping thread panicked");
     assert_timeouts(receivers).await;
     assert_eq!(budget.used.load(Ordering::SeqCst), 0);
     assert_eq!(shared.m_errors.load(Ordering::SeqCst), 1);
@@ -511,32 +525,141 @@ async fn blocking_callback_blocks_the_dropping_thread_until_released() {
 }
 
 #[tokio::test(flavor = "current_thread")]
-async fn callback_yields_keep_short_first_chunk_and_bound_each_burst() {
+async fn callback_yields_match_the_original_chunk_boundaries() {
+    let scenarios: &[(usize, &[usize])] = &[
+        (0, &[]),
+        (2 * 8 * 1024, &[0, 0, 0, 0, 8 * 1024, 2 * 8 * 1024]),
+        (
+            2 * 8 * 1024 + 1,
+            &[0, 0, 0, 0, 0, 0, 1, 1 + 8 * 1024, 2 * 8 * 1024 + 1],
+        ),
+    ];
+    for (count, expected) in scenarios {
+        let calls = Arc::new(AtomicUsize::new(0));
+        let (shared, _listener, _peer) =
+            setup(ProducerConfig::default().interceptor(CountErrors(Arc::clone(&calls)))).await;
+        let (batch, receivers, budget, _) = records(&shared, *count, false);
+        let mut cleanup = Box::pin(fail_kept_pendings(&shared, batch, Error::Timeout));
+        for &completed in *expected {
+            assert!(matches!(poll_once(cleanup.as_mut()), Poll::Pending));
+            assert_eq!(calls.load(Ordering::SeqCst), completed);
+        }
+        let Poll::Ready(empty) = poll_once(cleanup.as_mut()) else {
+            panic!("cleanup did not finish after its expected yields");
+        };
+        assert!(empty.is_empty());
+        drop(cleanup);
+        assert_timeouts(receivers).await;
+        assert_eq!(budget.used.load(Ordering::SeqCst), 0);
+        assert_eq!(shared.buffered_bytes.load(Ordering::SeqCst), 0);
+        assert_eq!(
+            shared.m_errors.load(Ordering::SeqCst),
+            u64::try_from(*count).unwrap()
+        );
+    }
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn panicking_sticky_permit_waker_does_not_skip_other_records() {
+    for cancel in [true, false] {
+        let (shared, _listener, _peer) = setup(ProducerConfig::default()).await;
+        let (batch, receivers, budget, _) = records(&shared, 3, true);
+        let notified = budget.nudge.notified();
+        tokio::pin!(notified);
+        let waker = std::task::Waker::from(Arc::new(PanicWaker));
+        let mut context = Context::from_waker(&waker);
+        assert!(matches!(
+            notified.as_mut().poll(&mut context),
+            Poll::Pending
+        ));
+        let mut cleanup = Box::pin(fail_kept_pendings(&shared, batch, Error::Timeout));
+        if cancel {
+            assert!(std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+                drop(cleanup);
+            }))
+            .is_ok());
+        } else {
+            for _ in 0..2 {
+                assert!(matches!(poll_once(cleanup.as_mut()), Poll::Pending));
+            }
+            let panic = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+                let _outcome = poll_once(cleanup.as_mut());
+            }));
+            assert!(panic.is_err());
+            drop(panic);
+            drop(cleanup);
+        }
+        assert_timeouts(receivers).await;
+        assert_eq!(budget.used.load(Ordering::SeqCst), 0);
+        assert_eq!(shared.buffered_bytes.load(Ordering::SeqCst), 0);
+        assert_eq!(shared.m_errors.load(Ordering::SeqCst), 3);
+    }
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn first_callback_panic_survives_secondary_cleanup_panics() {
     let calls = Arc::new(AtomicUsize::new(0));
     let (shared, _listener, _peer) =
-        setup(ProducerConfig::default().interceptor(CountErrors(Arc::clone(&calls)))).await;
-    let count = 2 * 8 * 1024 + 1;
-    let (batch, receivers, budget, _) = records(&shared, count, false);
-    let mut cleanup = Box::pin(fail_kept_pendings(&shared, batch, Error::Timeout));
-    let mut progress = Vec::new();
-    let mut ready = false;
-    for _ in 0..16 {
-        let state = poll_once(cleanup.as_mut());
-        let completed = calls.load(Ordering::SeqCst);
-        if progress.last().copied() != Some(completed) {
-            progress.push(completed);
-        }
-        if let Poll::Ready(empty) = state {
-            assert!(empty.is_empty());
-            ready = true;
-            break;
-        }
+        setup(ProducerConfig::default().interceptor(PanicErrors(Arc::clone(&calls)))).await;
+    let (batch, mut receivers, budget, _) = records(&shared, 3, true);
+    let notified = budget.nudge.notified();
+    tokio::pin!(notified);
+    let waker = std::task::Waker::from(Arc::new(PanicWaker));
+    let mut context = Context::from_waker(&waker);
+    assert!(matches!(
+        notified.as_mut().poll(&mut context),
+        Poll::Pending
+    ));
+    assert!(matches!(
+        Pin::new(&mut receivers[0]).poll(&mut context),
+        Poll::Pending
+    ));
+    let error = Error::Io(std::io::Error::other(PanicDisplay));
+    let mut cleanup = Box::pin(fail_kept_pendings(&shared, batch, error));
+    for _ in 0..2 {
+        assert!(matches!(poll_once(cleanup.as_mut()), Poll::Pending));
     }
-    assert!(ready);
-    assert_eq!(progress, vec![0, 1, 1 + 8 * 1024, count]);
+    let panic = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+        let _outcome = poll_once(cleanup.as_mut());
+    }))
+    .expect_err("the first callback panic must propagate");
+    assert_eq!(panic.downcast_ref::<&str>(), Some(&"failure interceptor"));
+    drop(panic);
     drop(cleanup);
-    assert_timeouts(receivers).await;
+    for receiver in receivers {
+        assert!(
+            matches!(receiver.await, Ok(Err(Error::Io(error))) if error.kind() == std::io::ErrorKind::Other)
+        );
+    }
+    assert_eq!(calls.load(Ordering::SeqCst), 3);
     assert_eq!(budget.used.load(Ordering::SeqCst), 0);
     assert_eq!(shared.buffered_bytes.load(Ordering::SeqCst), 0);
-    assert_eq!(shared.m_errors.load(Ordering::SeqCst), u64::try_from(count).unwrap());
+    assert_eq!(shared.m_errors.load(Ordering::SeqCst), 3);
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn cancellation_at_pre_callback_and_final_yields_is_exact_once() {
+    for after_callbacks in [false, true] {
+        let calls = Arc::new(AtomicUsize::new(0));
+        let (shared, _listener, _peer) =
+            setup(ProducerConfig::default().interceptor(CountErrors(Arc::clone(&calls)))).await;
+        let (batch, receivers, budget, _) = records(&shared, 3, false);
+        let mut cleanup = Box::pin(fail_kept_pendings(&shared, batch, Error::Timeout));
+        for _ in 0..2 {
+            assert!(matches!(poll_once(cleanup.as_mut()), Poll::Pending));
+        }
+        assert_eq!(shared.buffered_bytes.load(Ordering::SeqCst), 0);
+        assert_eq!(calls.load(Ordering::SeqCst), 0);
+        if after_callbacks {
+            assert!(matches!(poll_once(cleanup.as_mut()), Poll::Pending));
+            assert_eq!(calls.load(Ordering::SeqCst), 3);
+            assert_eq!(budget.used.load(Ordering::SeqCst), 0);
+        }
+        drop(cleanup);
+        assert_timeouts(receivers).await;
+        assert_eq!(calls.load(Ordering::SeqCst), 3);
+        assert_eq!(budget.used.load(Ordering::SeqCst), 0);
+        assert_eq!(shared.buffered_bytes.load(Ordering::SeqCst), 0);
+        assert_eq!(shared.m_errors.load(Ordering::SeqCst), 3);
+    }
 }
