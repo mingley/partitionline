@@ -57,7 +57,8 @@ jobs:
           total=0
           run_expect() {
             local mode="$1" suite="$2" name="$3" expected="$4" extra="$5" group="$6"
-            local log="$RUNNER_TEMP/integrated-state-evidence/$group-$mode-$name.log" status
+            local safe_name="${name//:/_}"
+            local log="$RUNNER_TEMP/integrated-state-evidence/$group-$mode-$safe_name.log" status
             if [[ "$suite" = lib && "$expected" = 1 ]]; then
               if timeout 600 cargo +stable test --locked $extra --lib "$name" -- --exact --nocapture > "$log" 2>&1; then status=0; else status=$?; fi
             elif [[ "$suite" = lib ]]; then
@@ -141,6 +142,8 @@ jobs:
             echo "$?" > "$RUNNER_TEMP/integrated-state-evidence/clippy-status"
           fi
           cat "$log"
+          printf 'PL_FMT_STATUS=%s\n' "$(cat "$RUNNER_TEMP/integrated-state-evidence/fmt-status")"
+          printf 'PL_CLIPPY_STATUS=%s\n' "$(cat "$RUNNER_TEMP/integrated-state-evidence/clippy-status")"
           sha256sum src/producer.rs src/producer/txn_error_state_controls.rs | tee "$RUNNER_TEMP/integrated-state-evidence/final-pins.log"
           printf '%s  %s\n' \
             3d65fcceecbb43c1a974f7f6b7bd58c8a310930f6bcced9052a00e88700eb37f src/producer.rs \
