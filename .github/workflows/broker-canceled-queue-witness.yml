@@ -1,0 +1,132 @@
+name: broker canceled queue witness
+
+on:
+  push:
+    branches:
+      - qualification/broker-canceled-queue-witness-20261108
+
+permissions:
+  contents: read
+
+jobs:
+  witness:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      CARGO_INCREMENTAL: "0"
+      CARGO_BUILD_JOBS: "2"
+      CARGO_TERM_COLOR: never
+      CARGO_PROFILE_DEV_DEBUG: "0"
+      CARGO_PROFILE_TEST_DEBUG: "0"
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          fetch-depth: 2
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - name: Verify host, source pins and formatting
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/canceled-queue"
+          uname -a
+          test "$(uname -m)" = x86_64
+          rustc +stable --version --verbose
+          test "$(git rev-parse HEAD^)" = 7b96c6c1023504bf18897681985a21ce16dd0779
+          python3 - <<'PY'
+          import hashlib
+          import json
+          from pathlib import Path
+          p = Path('tests/conformance/broker/implemented-api-versions.json')
+          registry = json.loads(p.read_text())
+          for key, source in [('metadata_source_sha256', 'partitionline-broker/src/metadata.rs'), ('fetch_test_source_sha256', 'partitionline-broker/tests/fetch.rs')]:
+              assert registry[key] == hashlib.sha256(Path(source).read_bytes()).hexdigest()
+          print('Source pins match')
+          PY
+          cargo +stable fmt --manifest-path partitionline-broker/Cargo.toml -- --check
+      - name: Force the immediate-success assumption to fail
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp partitionline-broker/src/metadata.rs "$RUNNER_TEMP/metadata-candidate.rs"
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('partitionline-broker/src/metadata.rs')
+          source = p.read_text()
+          old, new = "        assert!(matches!(\n            router.dispatch(input.clone()).await,\n            Err(Error::QueueFull)\n        ));\n        println!(\"PL_CANCELED_PERMIT_FREE_QUEUE_FULL\");", "        println!(\"PL_CANCELED_PERMIT_FREE_QUEUE_FULL\");\n        let result = router.dispatch(input.clone()).await;\n        assert!(result.is_ok(), \"PL_IMMEDIATE_FRESH_FAILED: {result:?}\");"
+          assert source.count(old) == 1
+          p.write_text(source.replace(old, new))
+          print('Installed temporary immediate-success counterexample in the gated queue test')
+          PY
+          for mode in default all-features; do
+            flags=()
+            if test "$mode" = all-features; then flags+=(--all-features); fi
+            log="$RUNNER_TEMP/canceled-queue/baseline-$mode.log"
+            set +e
+            timeout 300s cargo +stable test --locked --manifest-path partitionline-broker/Cargo.toml "${flags[@]}" --lib metadata::tests::canceled_queued_fetch_releases_permit_before_actor_queue_drains -- --exact --nocapture > "$log" 2>&1
+            status=$?
+            set -e
+            cat "$log"
+            test "$status" -eq 101
+            grep -F 'running 1 test' "$log"
+            grep -F 'PL_CANCELED_PERMIT_FREE_QUEUE_FULL' "$log"
+            grep -F 'PL_IMMEDIATE_FRESH_FAILED: Err(QueueFull)' "$log"
+            grep -F 'test result: FAILED. 0 passed; 1 failed;' "$log"
+          done
+      - name: Verify canceled queue and subsequent clean fetch
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp "$RUNNER_TEMP/metadata-candidate.rs" partitionline-broker/src/metadata.rs
+          cmp partitionline-broker/src/metadata.rs "$RUNNER_TEMP/metadata-candidate.rs"
+          for mode in default all-features; do
+            flags=()
+            if test "$mode" = all-features; then flags+=(--all-features); fi
+            for attempt in $(seq 1 10); do
+              log="$RUNNER_TEMP/canceled-queue/candidate-${mode}-${attempt}.log"
+              timeout 300s cargo +stable test --locked --manifest-path partitionline-broker/Cargo.toml "${flags[@]}" --lib metadata::tests::canceled_queued_fetch_releases_permit_before_actor_queue_drains -- --exact --nocapture > "$log" 2>&1 || { cat "$log"; exit 1; }
+              grep -F 'PL_CANCELED_PERMIT_FREE_QUEUE_FULL' "$log"
+              grep -F 'test result: ok. 1 passed;' "$log"
+            done
+          done
+      - name: Verify the witness rejects a leaked permit
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('partitionline-broker/src/metadata.rs')
+          source = p.read_text()
+          slot = "            let _slot = self\n                .data_slots\n                .try_acquire()\n                .map_err(|_| Error::QueueFull)?;"
+          assert source.count(slot) == 1
+          p.write_text(source.replace(slot, slot + '\n            _slot.forget();'))
+          print('Temporarily leaked the admission permit')
+          PY
+          for mode in default all-features; do
+            flags=()
+            if test "$mode" = all-features; then flags+=(--all-features); fi
+            log="$RUNNER_TEMP/canceled-queue/permit-mutant-$mode.log"
+            set +e
+            timeout 300s cargo +stable test --locked --manifest-path partitionline-broker/Cargo.toml "${flags[@]}" --lib metadata::tests::canceled_queued_fetch_releases_permit_before_actor_queue_drains -- --exact --nocapture > "$log" 2>&1
+            status=$?
+            set -e
+            cat "$log"
+            test "$status" -eq 101
+            grep -F 'running 1 test' "$log"
+            grep -F 'PL_CANCELED_PERMIT_LEAKED' "$log"
+            grep -F 'test result: FAILED. 0 passed; 1 failed;' "$log"
+          done
+          cp "$RUNNER_TEMP/metadata-candidate.rs" partitionline-broker/src/metadata.rs
+          cmp partitionline-broker/src/metadata.rs "$RUNNER_TEMP/metadata-candidate.rs"
+      - name: Strict broker library Clippy
+        run: cargo +stable clippy --locked --manifest-path partitionline-broker/Cargo.toml --lib --all-features -- -D warnings
+      - name: Retain witness logs
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: broker-canceled-queue-witness-${{ github.sha }}
+          path: ${{ runner.temp }}/canceled-queue
+          if-no-files-found: warn
+          retention-days: 30
