@@ -16678,6 +16678,8 @@ async fn convert_described_requested_page<'a>(
             #[cfg(test)]
             DTP_ROW_YIELD_OBSERVER.with(|observed| observed.set(observed.get() + 1));
             tokio::task::yield_now().await;
+            #[cfg(test)]
+            DTP_ROW_YIELD_OBSERVER.with(|observed| observed.set(observed.get() + 1));
         }
     }
     Ok(false)
