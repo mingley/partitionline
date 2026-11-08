@@ -61,7 +61,7 @@ jobs:
             test "$(git rev-parse HEAD:src/producer.rs)" = 8e08f33e18d7aca953a09c2df988e170f6e17817
             test "$(git rev-parse HEAD:Cargo.lock)" = d1cb698aaaf7554fe904ba02d671c4a8ab4975b3
             test "$(git rev-parse "$base:tests/common/mod.rs")" = 9a995292044c527ae2c2a17eca09b9f947bb12ed
-            test "$(git rev-parse HEAD:tests/common/mod.rs)" = fbd0bfd7d9ca2ac1f07827e62d8779806fc7c725
+            test "$(git rev-parse HEAD:tests/common/mod.rs)" = 4917e00407f79e764909ddd37816e096303e5900
             test "$(git rev-parse HEAD:Cargo.toml)" = 585bbf9a31465d6bba3f66f593fddd1add516f36
             test "$(git rev-parse HEAD:rust-toolchain.toml)" = 05e6ca1bf94c42a23333262558d22b866615466e
             test -z "$(git status --porcelain)"

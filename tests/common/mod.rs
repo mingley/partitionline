@@ -2376,7 +2376,10 @@ impl Mock {
                 records
                     .iter()
                     .map(|record| {
-                        (record.offset, record.value.as_ref().map(|value| value.to_vec()))
+                        (
+                            record.offset,
+                            record.value.as_ref().map(|value| value.to_vec()),
+                        )
                     })
                     .collect()
             })
