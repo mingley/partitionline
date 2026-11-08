@@ -1,0 +1,101 @@
+name: Raft runtime failure observation
+
+on:
+  push:
+    branches: [qualification/raft-runtime-observe-20261108]
+
+permissions:
+  contents: read
+
+jobs:
+  observe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      CARGO_INCREMENTAL: "0"
+      CARGO_BUILD_JOBS: "2"
+      CARGO_PROFILE_DEV_DEBUG: "0"
+      CARGO_PROFILE_TEST_DEBUG: "0"
+      CARGO_TERM_COLOR: never
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          fetch-depth: 3
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Check source and runner
+        run: |
+          set -euo pipefail
+          test "$(uname -m)" = x86_64
+          git merge-base --is-ancestor b631809f0e03ba6f65f808e51d8e47e3fd9380d1 HEAD
+          git diff --quiet b631809f0e03ba6f65f808e51d8e47e3fd9380d1 HEAD -- partitionline-broker
+          rustc +stable --version --verbose
+          sha256sum partitionline-broker/src/raft/runtime.rs partitionline-broker/src/raft/replication.rs partitionline-broker/tests/common/raft_runtime.rs
+      - name: Observe four original runtime histories once
+        shell: bash
+        run: |
+          set -uo pipefail
+          export TMPDIR="$RUNNER_TEMP/raft-runtime-observe"
+          mkdir -p "$TMPDIR"
+          timeout --kill-after=5s 240s cargo +stable test --locked --manifest-path partitionline-broker/Cargo.toml --lib raft::runtime::tests::actual_ -- --nocapture > "$RUNNER_TEMP/raft-runtime-observe.log" 2>&1
+          status=$?
+          cat "$RUNNER_TEMP/raft-runtime-observe.log"
+          printf 'ORIGINAL_RUNTIME_TEST_EXIT=%s\n' "$status"
+          python3 -B - "$TMPDIR" <<'PY'
+          import hashlib, json, pathlib, sys
+          root = pathlib.Path(sys.argv[1])
+          for case in sorted(root.glob("partitionline76-tcp-*-genesis-*")):
+              nodes = []
+              for node in sorted(case.glob("node-*")):
+                  controls = []
+                  for inbox in sorted(node.rglob("inbox-*")):
+                      if not inbox.is_file():
+                          continue
+                      seq = inbox.name.removeprefix("inbox-")
+                      outbox = inbox.with_name("outbox-" + seq)
+                      try:
+                          cmd = inbox.read_text()
+                          reply = outbox.read_text()[:512] if outbox.exists() else "<no reply>"
+                      except (OSError, UnicodeError):
+                          continue
+                      if cmd.startswith("propose "):
+                          try:
+                              data = bytes.fromhex(cmd.removeprefix("propose ").strip())
+                              label = "propose bytes=%d sha256=%s" % (len(data), hashlib.sha256(data).hexdigest())
+                          except ValueError:
+                              label = "propose <invalid hex>"
+                      else:
+                          label = cmd[:96]
+                      controls.append({"sequence": str(inbox.relative_to(node)), "command": label, "reply": reply})
+                  state = None
+                  try:
+                      lines = (node / "state").read_text().splitlines()
+                      records = []
+                      for row in (lines[1].split(";") if len(lines) > 1 and lines[1] else []):
+                          fields = row.split(":", 3)
+                          if len(fields) != 4:
+                              records.append({"invalid_record": row[:128]})
+                              continue
+                          try:
+                              payload = bytes.fromhex(fields[3])
+                              records.append({"term": int(fields[0]), "index": int(fields[1]), "kind": int(fields[2]),
+                                              "payload_bytes": len(payload), "payload_sha256": hashlib.sha256(payload).hexdigest()})
+                          except ValueError:
+                              records.append({"invalid_record": row[:128]})
+                      state = {"header": lines[0] if lines else "", "records": records[:64],
+                               "image": lines[2] if len(lines) > 2 else ""}
+                  except (OSError, UnicodeError):
+                      pass
+                  nodes.append({"node": node.name, "controls": controls[-40:], "last_published_state": state})
+              print("RAFT_CASE_OBSERVATION " + json.dumps({"case": case.name, "nodes": nodes}, sort_keys=True))
+          PY
+          if ! grep -Fq 'running 4 tests' "$RUNNER_TEMP/raft-runtime-observe.log"; then exit 1; fi
+          exit "$status"
+      - name: Retain diagnostic log
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: raft-runtime-observe-${{ github.sha }}
+          path: ${{ runner.temp }}/raft-runtime-observe.log
+          if-no-files-found: warn
+          retention-days: 30
