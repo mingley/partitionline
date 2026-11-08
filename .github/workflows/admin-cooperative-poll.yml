@@ -1,0 +1,109 @@
+name: Admin cooperative poll controls
+on:
+  push:
+    branches:
+      - work/admin-cooperative-poll-20261108
+permissions:
+  contents: read
+jobs:
+  controls:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        profile: [default, all]
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Format and source identity
+        run: |
+          rustc -Vv
+          cargo fmt --all
+          sha256sum src/admin.rs Cargo.toml Cargo.lock
+      - name: Deterministic poll controls
+        shell: bash
+        run: |
+          set -euo pipefail
+          args=()
+          if [ "${{ matrix.profile }}" = all ]; then args+=(--all-features); fi
+          cargo test --locked --lib "${args[@]}" admin::tests::extending_described_topics_yields_and_completes -- --exact --nocapture
+          cargo test --locked --lib "${args[@]}" admin::tests::indexing_described_producers_yields_and_completes -- --exact --nocapture
+      - name: Negative mutations
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp src/admin.rs "$RUNNER_TEMP/candidate-admin.rs"
+          args=()
+          if [ "${{ matrix.profile }}" = all ]; then args+=(--all-features); fi
+          for kind in topics producers; do
+            if [ "$kind" = topics ]; then testname=extending_described_topics_yields_and_completes; else testname=indexing_described_producers_yields_and_completes; fi
+            for mode in none once no_wake; do
+              cp "$RUNNER_TEMP/candidate-admin.rs" src/admin.rs
+              KIND="$kind" MODE="$mode" python3 - <<'PY'
+          from pathlib import Path
+          import os
+          p=Path('src/admin.rs')
+          s=p.read_text()
+          funcs={'topics':'async fn extend_described_topics(', 'producers':'async fn index_described_producers('}
+          start=s.index(funcs[os.environ['KIND']])
+          end=s.index('\n}', start)+2
+          body=s[start:end]
+          mode=os.environ['MODE']
+          if mode=='none':
+              old='tokio::task::yield_now().await;'
+              new='std::future::ready(()).await;'
+          elif mode=='once':
+              old='walked = 0;'
+              new='walked = usize::MAX;'
+          else:
+              old='tokio::task::yield_now().await;'
+              new='std::future::pending::<()>().await;'
+          assert body.count(old)==1,(mode,body.count(old))
+          p.write_text(s[:start]+body.replace(old,new,1)+s[end:])
+          PY
+              log="$RUNNER_TEMP/${kind}-${mode}.log"
+              if cargo test --locked --lib "${args[@]}" "admin::tests::$testname" -- --exact --nocapture > "$log" 2>&1; then
+                cat "$log"
+                exit 1
+              fi
+              cat "$log"
+              grep -F 'test result: FAILED. 0 passed; 1 failed' "$log"
+              if [ "$mode" = no_wake ]; then grep -F 'did not schedule another poll' "$log"; else grep -F 'finished without yielding' "$log"; fi
+            done
+          done
+          cp "$RUNNER_TEMP/candidate-admin.rs" src/admin.rs
+      - name: Preserve formatting differences
+        if: always()
+        run: git diff -- src/admin.rs
+  static:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+      - run: cargo fmt --all
+      - name: Strict all-target all-feature Clippy
+        run: cargo clippy --locked --all-targets --all-features -- -D warnings
+  existing:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        profile: [default, all]
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+      - run: cargo fmt --all
+      - name: Existing Admin library suite
+        shell: bash
+        run: |
+          set -euo pipefail
+          args=()
+          if [ "${{ matrix.profile }}" = all ]; then args+=(--all-features); fi
+          cargo test --locked --lib "${args[@]}" admin::tests:: -- --test-threads=1
+      - name: Report any old-name references outside historical documents
+        if: always()
+        run: |
+          rg -n -F -e 'extending_many_described_topics_does_not_hold_the_caller' -e 'indexing_many_described_producers_does_not_hold_the_caller' --glob '!docs/evidence/**' --glob '!src/admin.rs' || true
