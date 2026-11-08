@@ -29,13 +29,32 @@ when per-record deadlines start. Preserving explicit yield locations therefore
 does not establish equivalent cancellation, metadata, queue, deadline or
 delivery behavior.
 
-A further source-derived concern is that repeated `HashSet::insert` calls may
-change table capacity even when inserting a duplicate, depending on the
-pinned standard-library implementation. If multiple chunks observe different
-leaders, one insertion per chunk could leave a different table and iteration
-order. With a bounded connect queue, a different iteration order could affect
-which nudge is accepted. This has not been demonstrated in a public producer
-or broker history, and slot-union equality alone would not rule it out.
+A standalone
+[control](https://github.com/mingley/partitionline/actions/runs/42475049099)
+confirms an in-memory ordering difference on stable Rust 1.99.1 / LLVM 23.1.1
+for x86_64. With a fixed hasher and the three keys `(1,0), (2,0), (4,0)`,
+inserting each key 8,192 times produced capacity 7 and iteration order
+`[(1,0), (2,0), (4,0)]`. Inserting each once produced capacity 3 and order
+`[(4,0), (1,0), (2,0)]`. A cloned `RandomState` instance also produced
+different first keys in its bounded search. A fixed-hasher one-key control
+kept capacity 3 and the same order.
+
+The witness models a one-free-slot queue by taking the first iterated key; its
+two sets therefore select different keys. It does **not** use a Tokio channel,
+the producer or Kafka, and does not prove that three changing leaders and a
+nearly full connect queue coincide in a public history. That history is a
+source-derived possibility, not an observed producer failure. Slot-union
+equality alone does not establish equivalent nudge order.
+
+The [witness source](https://github.com/mingley/partitionline/blob/3fa5a8e3652d60033fb9818c59229a897b21789f/docs/evidence/client/send-all-hashset-order-20261108/witness.rs)
+has blob `e93cdbc72075d4ea69aa69d6348887d4dbb190a8` and SHA-256
+`9d816603470d2d3a984328606a0614f9cec08324dce011e88c6b1cb4f4f5735c`.
+The executed binary SHA-256 was
+`7d3907236f2b3b98653bab0a1a86b8eb39984d4c983c9bd433577221f3743d1a`;
+the binary was not retained. The
+[logs and provenance](https://github.com/mingley/partitionline/actions/runs/42475049099/artifacts/13615470363)
+were retained. The selected keys and order are observations of this pinned
+toolchain and hasher, not a promised `HashSet` iteration order.
 
 Retaining every existing nudge yield also limits scalability. For an
 uninterrupted batch of `n` homogeneous records and chunk size 8,192, the
