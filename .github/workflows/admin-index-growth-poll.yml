@@ -1,0 +1,61 @@
+name: Admin index growth and completion phase diagnostic
+on:
+  push:
+    branches: [qualification/admin-dtp-index-growth-20261108]
+permissions:
+  contents: read
+jobs:
+  witness:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    env:
+      CARGO_INCREMENTAL: '0'
+      CARGO_TERM_COLOR: never
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Pin instrumented sources and host
+        run: |
+          set -euo pipefail
+          mkdir -p evidence
+          test "$(git rev-parse HEAD:src/admin.rs)" = 8ae4f6eecad9701af2c340a7b9fa7f7923f39fda
+          test "$(git rev-parse HEAD:src/admin/pagination_tests.rs)" = a9d2e458588967e067478d2565e0903780079100
+          git rev-parse HEAD HEAD:src/admin.rs HEAD:src/admin/pagination_tests.rs HEAD:Cargo.lock | tee evidence/blobs.txt
+          sha256sum src/admin.rs src/admin/pagination_tests.rs Cargo.lock | tee evidence/sha256.txt
+          rustc -Vv | tee evidence/rust.txt
+          cargo -V | tee evidence/cargo.txt
+          lscpu | tee evidence/cpu.txt
+          if test -r /sys/fs/cgroup/cpu.max; then cat /sys/fs/cgroup/cpu.max | tee evidence/cpu-max.txt; else echo 'cpu.max unavailable' | tee evidence/cpu-max.txt; fi
+      - name: Build one release diagnostic binary
+        run: |
+          set -euo pipefail
+          cargo test --locked --release --lib dtp_public_row_growth_poll_witness --no-run 2>&1 | tee evidence/build.txt
+          mapfile -t bins < <(find target/release/deps -maxdepth 1 -type f -executable -name 'partitionline-*')
+          test "${#bins[@]}" = 1
+          sha256sum "${bins[0]}" | tee evidence/binary.txt
+          echo "WITNESS_BIN=${bins[0]}" >> "$GITHUB_ENV"
+      - name: Interleave ordinary and pre-reserved index controls
+        run: |
+          set -euo pipefail
+          for kind in empty error; do
+            for count in 8192 100000 500000; do
+              for trial in 1 2 3 4 5; do
+                if (( trial % 2 )); then arms=(ordinary reserve); else arms=(reserve ordinary); fi
+                for arm in "${arms[@]}"; do
+                  echo "GROWTH_CASE kind=$kind rows=$count trial=$trial arm=$arm"
+                  if test "$arm" = reserve; then flag=1; else flag=0; fi
+                  log="evidence/${kind}-${count}-${trial}-${arm}.log"
+                  PL_DTP_PREALLOC="$flag" PL_ROW_PUBLIC_COUNT="$count" PL_ROW_PUBLIC_KIND="$kind" "$WITNESS_BIN" --exact admin::pagination_tests::dtp_public_row_growth_poll_witness --test-threads=1 --nocapture 2>&1 | tee "$log"
+                  grep -F "ROW_GROWTH rows=$count kind=$kind " "$log"
+                  grep -F 'test result: ok. 1 passed; 0 failed;' "$log"
+                done
+              done
+            done
+          done
+      - name: Retain all poll and growth events
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: admin-index-growth-poll-diagnostic
+          path: evidence
+          retention-days: 30
