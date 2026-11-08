@@ -1,0 +1,126 @@
+name: Classic join stack fault diagnostic
+
+on:
+  push:
+    branches: [diagnostic/classic-join-gdb-20261108]
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    env:
+      CARGO_BUILD_JOBS: '2'
+      CARGO_INCREMENTAL: '0'
+      CARGO_PROFILE_DEV_DEBUG: '0'
+      CARGO_PROFILE_TEST_DEBUG: '0'
+      CARGO_TERM_COLOR: never
+      PL_COMPAT_RUN_VERIFIABLE: '1'
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: 8b5de2e2cfe5f3164a5f89546804ab36c1771ade
+          persist-credentials: false
+          sparse-checkout: |
+            .cargo
+            examples
+            scripts
+            src
+            tests
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Record native host and unchanged subject
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(uname -m)" = x86_64
+          test "$(git rev-parse HEAD)" = 8b5de2e2cfe5f3164a5f89546804ab36c1771ade
+          test -z "$(git status --porcelain --untracked-files=normal)"
+          test -z "${RUST_MIN_STACK:-}"
+          test -z "${RUSTFLAGS:-}"
+          test -z "${CARGO_ENCODED_RUSTFLAGS:-}"
+          command -v gdb
+          command -v docker
+          mkdir -p "$RUNNER_TEMP/classic-stack/baseline" "$RUNNER_TEMP/classic-stack/gdb"
+          {
+            uname -a
+            rustc -Vv
+            cargo -V
+            gdb --version | head -n 1
+            echo "shell stack limit KiB: $(ulimit -s)"
+            sha256sum tests/broker_compatibility.rs src/group.rs
+            df -h .
+          } | tee "$RUNNER_TEMP/classic-stack/identity.log"
+      - name: Reproduce the unchanged compatibility failure
+        shell: bash
+        run: |
+          set -euo pipefail
+          ulimit -c 0
+          export PL_COMPAT_REPORT_DIR="$RUNNER_TEMP/classic-stack/baseline"
+          set +e
+          timeout 900s bash scripts/ci-broker-compatibility.sh 4.1.2 >"$PL_COMPAT_REPORT_DIR/driver.log" 2>&1
+          status=$?
+          set -e
+          printf '%s\n' "$status" >"$PL_COMPAT_REPORT_DIR/driver-exit.txt"
+          cat "$PL_COMPAT_REPORT_DIR/driver.log"
+          test "$status" -eq 101
+          grep -F 'compatibility group phase: classic join' "$PL_COMPAT_REPORT_DIR/runtime.log"
+          grep -F 'stack overflow' "$PL_COMPAT_REPORT_DIR/runtime.log"
+          if grep -Fq 'compatibility group phase: classic poll' "$PL_COMPAT_REPORT_DIR/runtime.log"; then
+            echo 'baseline reached classic poll; this is not the expected witness' >&2
+            exit 1
+          fi
+          mapfile -t bins < <(find target/debug/deps -maxdepth 1 -type f -name 'broker_compatibility-*' -executable | sort)
+          test "${#bins[@]}" -eq 1
+          sha256sum "${bins[0]}" | tee "$RUNNER_TEMP/classic-stack/test-binary.sha256"
+      - name: Capture the fault in the unchanged compatibility binary
+        shell: bash
+        run: |
+          set -euo pipefail
+          ulimit -c 0
+          cat >"$RUNNER_TEMP/classic-stack/gdb-runner.sh" <<'RUNNER'
+          #!/usr/bin/env bash
+          set -euo pipefail
+          exec gdb --batch --return-child-result \
+            -ex 'set pagination off' \
+            -ex 'set confirm off' \
+            -ex 'set print thread-events off' \
+            -ex 'set print asm-demangle on' \
+            -ex 'set disable-randomization off' \
+            -ex 'handle SIGPIPE nostop noprint pass' \
+            -ex 'handle SIGSEGV stop print nopass' \
+            -ex 'run' \
+            -ex 'echo PL_STACK_GDB_STOP\n' \
+            -ex 'info program' \
+            -ex 'info registers rip rsp rbp' \
+            -ex 'info symbol $pc' \
+            -ex 'x/24i $pc-32' \
+            -ex 'bt 48' \
+            -ex 'info threads' \
+            -ex 'thread apply all bt 8' \
+            -ex 'info proc mappings' \
+            --args "$@"
+          RUNNER
+          chmod 700 "$RUNNER_TEMP/classic-stack/gdb-runner.sh"
+          export CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_RUNNER="$RUNNER_TEMP/classic-stack/gdb-runner.sh"
+          export PL_COMPAT_REPORT_DIR="$RUNNER_TEMP/classic-stack/gdb"
+          set +e
+          timeout 900s bash scripts/ci-broker-compatibility.sh 4.1.2 >"$PL_COMPAT_REPORT_DIR/driver.log" 2>&1
+          status=$?
+          set -e
+          printf '%s\n' "$status" >"$PL_COMPAT_REPORT_DIR/driver-exit.txt"
+          cat "$PL_COMPAT_REPORT_DIR/driver.log"
+          test -s "$PL_COMPAT_REPORT_DIR/runtime.log"
+          grep -F 'compatibility group phase: classic join' "$PL_COMPAT_REPORT_DIR/runtime.log"
+          grep -F 'received signal SIGSEGV' "$PL_COMPAT_REPORT_DIR/runtime.log"
+          grep -F 'PL_STACK_GDB_STOP' "$PL_COMPAT_REPORT_DIR/runtime.log"
+          printf 'Captured a debugger stop; this workflow is diagnostic, not a compatibility pass.\n'
+      - name: Retain logs and receipts
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: classic-join-stack-fault-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/classic-stack
+          if-no-files-found: warn
+          retention-days: 30
