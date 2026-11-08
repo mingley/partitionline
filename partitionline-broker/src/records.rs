@@ -1020,40 +1020,27 @@ fn try_accept_plain(
     let mut observed_max = i64::MIN;
     let mut previous: Option<i32> = None;
     for delta in 0..count {
-        let Some((body_len, next)) = read_canonical_i32(bytes, index) else {
-            return None;
-        };
+        let (body_len, next) = read_canonical_i32(bytes, index)?;
         if body_len < 6 {
             return None;
         }
         let Ok(body_len) = usize::try_from(body_len) else {
             return None;
         };
-        let encoded = match next.checked_add(body_len) {
-            Some(end) => end.saturating_sub(index),
-            None => return None,
-        };
+        let encoded = next.checked_add(body_len)?.saturating_sub(index);
         if encoded > limits.record_bytes {
             return None;
         }
-        let Some(body_end) = next.checked_add(body_len) else {
-            return None;
-        };
+        let body_end = next.checked_add(body_len)?;
         if bytes.len() < body_end || bytes.get(next) != Some(&0) {
             return None;
         }
         let mut cursor = next.saturating_add(1);
-        let Some((timestamp_delta, next)) = read_canonical_i64(bytes, cursor) else {
-            return None;
-        };
+        let (timestamp_delta, next) = read_canonical_i64(bytes, cursor)?;
         cursor = next;
-        let Some(timestamp) = base_time.checked_add(timestamp_delta) else {
-            return None;
-        };
+        let timestamp = base_time.checked_add(timestamp_delta)?;
         observed_max = observed_max.max(timestamp);
-        let Some((offset, next)) = read_canonical_i32(bytes, cursor) else {
-            return None;
-        };
+        let (offset, next) = read_canonical_i32(bytes, cursor)?;
         cursor = next;
         let offset_ok = if read {
             offset >= 0 && offset <= last && previous.is_none_or(|n| offset > n)
@@ -1064,34 +1051,30 @@ fn try_accept_plain(
             return None;
         }
         previous = Some(offset);
-        let Some((key_len, next)) = read_canonical_i32(bytes, cursor) else {
-            return None;
-        };
+        let (key_len, next) = read_canonical_i32(bytes, cursor)?;
         cursor = next;
         if !skip_plain_field(bytes, &mut cursor, body_end, key_len, limits.field_bytes) {
             return None;
         }
-        let Some((value_len, next)) = read_canonical_i32(bytes, cursor) else {
-            return None;
-        };
+        let (value_len, next) = read_canonical_i32(bytes, cursor)?;
         cursor = next;
         if !skip_plain_field(bytes, &mut cursor, body_end, value_len, limits.field_bytes) {
             return None;
         }
-        let Some((headers, next)) = read_canonical_i32(bytes, cursor) else {
-            return None;
-        };
-        let headers = usize::try_from(headers).ok()?;
-        if headers > limits.headers_per_record
-            || headers > limits.headers.checked_sub(total_headers)?.checked_sub(added_headers)?
-        {
-            return None;
-        }
+        let (headers, next) = read_canonical_i32(bytes, cursor)?;
         if headers == 0 {
             if next != body_end {
                 return None;
             }
         } else {
+            let headers = usize::try_from(headers).ok()?;
+            let remaining_headers = limits
+                .headers
+                .checked_sub(total_headers)?
+                .checked_sub(added_headers)?;
+            if headers > limits.headers_per_record || headers > remaining_headers {
+                return None;
+            }
             cursor = next;
             if headers > body_end.checked_sub(cursor)? / 2 {
                 return None;
@@ -1347,8 +1330,8 @@ impl<'a> Cursor<'a> {
 #[cfg(test)]
 mod tests {
     use super::{
-        framed_assignment, trust_stored, validate, validate_batch, validate_read, Error, Invalid,
-        Limits, SKIP_PLAIN, try_accept_plain,
+        framed_assignment, trust_stored, try_accept_plain, validate, validate_batch, validate_read,
+        Error, Invalid, Limits, SKIP_PLAIN,
     };
     use crate::batch;
 
@@ -1591,10 +1574,16 @@ mod tests {
     fn header_batches_match_generic_walk_and_budgets() {
         let mut samples: Vec<_> = (0..6).map(|n| sample(n, b"value")).collect();
         samples[0].headers.push((Vec::new(), None));
-        samples[1].headers.push(("caf\u{e9}".as_bytes().to_vec(), Some(Vec::new())));
-        samples[2].headers.push((vec![b'k'; 63], Some(vec![b'v'; 64])));
+        samples[1]
+            .headers
+            .push(("caf\u{e9}".as_bytes().to_vec(), Some(Vec::new())));
+        samples[2]
+            .headers
+            .push((vec![b'k'; 63], Some(vec![b'v'; 64])));
         samples[2].headers.push((vec![b'k'; 64], None));
-        samples[4].headers.push((vec![b'k'; 128], Some(vec![b'v'; 128])));
+        samples[4]
+            .headers
+            .push((vec![b'k'; 128], Some(vec![b'v'; 128])));
         let bytes = encode(&samples, 1_000, 1_005, 5);
         let limits = Limits::default();
         assert_eq!(
@@ -1622,7 +1611,10 @@ mod tests {
             (128, 1024, 5, 1),
             (128, 1024, 5, 0),
         ] {
-            let limits = Limits::new(1_000_000, 1_000_000, 10, 100, 100_000, field, per_record, all).unwrap();
+            let limits = Limits::new(
+                1_000_000, 1_000_000, 10, 100, 100_000, field, per_record, all,
+            )
+            .unwrap();
             let _ = both_with_limits(&bytes, false, limits, initial);
             let _ = both_with_limits(&bytes, true, limits, initial);
         }
@@ -1631,7 +1623,16 @@ mod tests {
         sparse[1].headers.push((b"key".to_vec(), None));
         let sparse_bytes = encode(&sparse, 20, 25, 5);
         assert_eq!(
-            try_accept_plain(&sparse_bytes[batch::LEN..], 3, 5, 20, 25, true, Limits::default(), 0),
+            try_accept_plain(
+                &sparse_bytes[batch::LEN..],
+                3,
+                5,
+                20,
+                25,
+                true,
+                Limits::default(),
+                0
+            ),
             Some(1)
         );
         assert!(both(&sparse_bytes, true).0.is_ok());
@@ -1642,7 +1643,10 @@ mod tests {
         let bad = encode(&[invalid_utf8], 10, 10, 0);
         assert!(matches!(
             both(&bad, false).0,
-            Err(Error::Invalid { kind: Invalid::HeaderKey, .. })
+            Err(Error::Invalid {
+                kind: Invalid::HeaderKey,
+                ..
+            })
         ));
     }
 
