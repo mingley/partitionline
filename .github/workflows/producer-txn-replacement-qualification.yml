@@ -40,6 +40,8 @@ jobs:
           cargo +stable --version
           test "$(df -Pk . | awk 'NR==2 {print $4}')" -ge 2000000
           mkdir -p "$RUNNER_TEMP/txn-replacement-logs"
+      - name: Stable format
+        run: cargo +stable fmt --all -- --check
       - name: Reproduce pre-fix replacement failures
         shell: bash
         run: |
@@ -120,8 +122,6 @@ jobs:
           done
       - name: All-feature library Clippy
         run: cargo +stable clippy --locked --lib --all-features -- -D warnings
-      - name: Stable format
-        run: cargo +stable fmt --all -- --check
       - name: Retain qualification logs
         if: always()
         uses: actions/upload-artifact@v7

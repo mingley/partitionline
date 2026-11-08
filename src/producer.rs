@@ -11873,7 +11873,7 @@ mod tests {
                         let adds = Arc::clone(&adds_task);
                         let inits = Arc::clone(&inits_task);
                         let closed = Arc::clone(&closed_task);
-                        clients.spawn(async move {
+                        let _handler = clients.spawn(async move {
                             loop {
                                 let len = match socket.read_i32().await {
                                     Ok(len) => len,
