@@ -23,7 +23,7 @@ jobs:
           path: baseline
       - uses: actions/checkout@v7
         with:
-          ref: 8cfcbe0a9d7353fc1da432790662297b0601db1d
+          ref: f446fe349ec2f49ab0c2d0e0400d1d70c59e6adf
           path: candidate
       - uses: dtolnay/rust-toolchain@stable
       - name: Build separate release binaries
