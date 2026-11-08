@@ -67,7 +67,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
-      - name: Verify both remaining intended failures
+      - name: Verify all remaining intended failures
         shell: bash
         run: |
           set +e
@@ -79,6 +79,6 @@ jobs:
           status=${PIPESTATUS[0]}
           set -e
           test "$status" -ne 0
-          for marker in DEFINITIVE_ACK_LOST EXPIRED_SUFFIX_BLOCKED_PREFIX; do
+          for marker in DEFINITIVE_ACK_LOST EXPIRED_SUFFIX_BLOCKED_PREFIX FOREIGN_BARRIER_ACCEPTED UNKNOWN_VALID_ACK_REJECTED LAST_ARC_DROP_BLOCKED_WORKER RECLAIM_RELEASED_EARLY; do
             grep -F "$marker" "${RUNNER_TEMP}/counterexamples.log"
           done

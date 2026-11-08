@@ -260,19 +260,37 @@ impl Owner {
     ) -> Result<RecordKey, AdmitFailure> {
         let mut core = match self.core.lock() {
             Ok(core) => core,
-            Err(_) => return Err(AdmitFailure { kind: OwnerError::Poisoned, payload }),
+            Err(_) => {
+                return Err(AdmitFailure {
+                    kind: OwnerError::Poisoned,
+                    payload,
+                })
+            }
         };
         let fail = if core.admission_closed {
             Some(OwnerError::Closed)
-        } else if core.limits.records.is_some_and(|limit| core.records.len() >= limit) {
+        } else if core
+            .limits
+            .records
+            .is_some_and(|limit| core.records.len() >= limit)
+        {
             Some(OwnerError::Full)
-        } else if core.limits.logical_bytes.is_some_and(|limit| payload.len() > limit) {
+        } else if core
+            .limits
+            .logical_bytes
+            .is_some_and(|limit| payload.len() > limit)
+        {
             Some(OwnerError::TooLarge)
         } else if core.limits.logical_bytes.is_some_and(|limit| {
-            core.bytes.checked_add(payload.len()).is_none_or(|next| next > limit)
+            core.bytes
+                .checked_add(payload.len())
+                .is_none_or(|next| next > limit)
         }) || core.bytes.checked_add(payload.len()).is_none()
             || (!core.partitions.contains_key(&partition)
-                && core.limits.partitions.is_some_and(|limit| core.partitions.len() >= limit))
+                && core
+                    .limits
+                    .partitions
+                    .is_some_and(|limit| core.partitions.len() >= limit))
         {
             Some(OwnerError::Full)
         } else {
@@ -282,20 +300,30 @@ impl Owner {
             return Err(AdmitFailure { kind, payload });
         }
         let Some(next) = core.next_record.checked_add(1) else {
-            return Err(AdmitFailure { kind: OwnerError::Exhausted, payload });
+            return Err(AdmitFailure {
+                kind: OwnerError::Exhausted,
+                payload,
+            });
         };
         let key = RecordKey(core.next_record);
         core.next_record = next;
         core.bytes += payload.len();
-        drop(core.records.insert(key, Record {
-            payload,
-            deadline,
-            timestamp,
-            batch: None,
-            #[cfg(test)]
-            drop_probe: None,
-        }));
-        core.partitions.entry(partition).or_default().queue.push_back(key);
+        drop(core.records.insert(
+            key,
+            Record {
+                payload,
+                deadline,
+                timestamp,
+                batch: None,
+                #[cfg(test)]
+                drop_probe: None,
+            },
+        ));
+        core.partitions
+            .entry(partition)
+            .or_default()
+            .queue
+            .push_back(key);
         Ok(key)
     }
 
@@ -310,8 +338,16 @@ impl Owner {
         timestamp: i64,
     ) -> Result<BatchKey, OwnerError> {
         // As with admission limits, zero means no additional limit.
-        let record_limit = if record_limit == 0 { usize::MAX } else { record_limit };
-        let byte_limit = if byte_limit == 0 { usize::MAX } else { byte_limit };
+        let record_limit = if record_limit == 0 {
+            usize::MAX
+        } else {
+            record_limit
+        };
+        let byte_limit = if byte_limit == 0 {
+            usize::MAX
+        } else {
+            byte_limit
+        };
         let mut core = self.core.lock().map_err(|_| OwnerError::Poisoned)?;
         if core.claims_stopped {
             return Err(OwnerError::Closed);
@@ -328,7 +364,9 @@ impl Owner {
             if record.deadline <= now {
                 return Err(OwnerError::Expired);
             }
-            let next = bytes.checked_add(record.payload.len()).ok_or(OwnerError::Exhausted)?;
+            let next = bytes
+                .checked_add(record.payload.len())
+                .ok_or(OwnerError::Exhausted)?;
             if next > byte_limit {
                 if members.is_empty() {
                     return Err(OwnerError::TooLarge);
@@ -336,7 +374,8 @@ impl Owner {
                 break;
             }
             members.push(*key);
-            earliest_deadline = Some(earliest_deadline.map_or(record.deadline, |prior| prior.min(record.deadline)));
+            earliest_deadline =
+                Some(earliest_deadline.map_or(record.deadline, |prior| prior.min(record.deadline)));
             bytes = next;
         }
         if members.is_empty() {
@@ -371,7 +410,10 @@ impl Owner {
                 record.timestamp = Some(timestamp);
             }
         }
-        let partition_state = core.partitions.get_mut(partition).ok_or(OwnerError::Stale)?;
+        let partition_state = core
+            .partitions
+            .get_mut(partition)
+            .ok_or(OwnerError::Stale)?;
         for record_key in batch.members.iter() {
             if partition_state.queue.pop_front() != Some(*record_key) {
                 return Err(OwnerError::Stale);
@@ -476,7 +518,9 @@ impl Owner {
 
     pub(crate) fn flush_barrier(&self) -> Result<Barrier, OwnerError> {
         let core = self.core.lock().map_err(|_| OwnerError::Poisoned)?;
-        Ok(Barrier { cutoff: core.next_record - 1 })
+        Ok(Barrier {
+            cutoff: core.next_record - 1,
+        })
     }
 
     pub(crate) fn begin_close(&self) -> Result<Barrier, OwnerError> {
@@ -485,7 +529,9 @@ impl Owner {
             return Ok(barrier);
         }
         core.admission_closed = true;
-        let barrier = Barrier { cutoff: core.next_record - 1 };
+        let barrier = Barrier {
+            cutoff: core.next_record - 1,
+        };
         core.close_barrier = Some(barrier);
         Ok(barrier)
     }
@@ -539,17 +585,30 @@ impl Owner {
         if phase(batch.state.load(Ordering::Acquire)) != SETTLED {
             return Err(OwnerError::Busy);
         }
-        if core.partitions.get(&batch.partition).and_then(|part| part.active) != Some(key) {
+        if core
+            .partitions
+            .get(&batch.partition)
+            .and_then(|part| part.active)
+            != Some(key)
+        {
             return Err(OwnerError::Stale);
         }
-        let reclaim_bytes = batch.members.iter().try_fold(0_usize, |bytes, record_key| {
-            let record = core.records.get(record_key).ok_or(OwnerError::Stale)?;
-            if record.batch != Some(key) {
-                return Err(OwnerError::Stale);
-            }
-            bytes.checked_add(record.payload.len()).ok_or(OwnerError::Stale)
-        })?;
-        let remaining_bytes = core.bytes.checked_sub(reclaim_bytes).ok_or(OwnerError::Stale)?;
+        let reclaim_bytes = batch
+            .members
+            .iter()
+            .try_fold(0_usize, |bytes, record_key| {
+                let record = core.records.get(record_key).ok_or(OwnerError::Stale)?;
+                if record.batch != Some(key) {
+                    return Err(OwnerError::Stale);
+                }
+                bytes
+                    .checked_add(record.payload.len())
+                    .ok_or(OwnerError::Stale)
+            })?;
+        let remaining_bytes = core
+            .bytes
+            .checked_sub(reclaim_bytes)
+            .ok_or(OwnerError::Stale)?;
         let mut reclaimed = Vec::with_capacity(batch.members.len());
         for record_key in batch.members.iter() {
             let Some(record) = core.records.remove(record_key) else {
@@ -606,7 +665,10 @@ impl Owner {
             return Err(OwnerError::InvalidLimit);
         }
         let mut core = self.core.lock().map_err(|_| OwnerError::Poisoned)?;
-        let part = core.partitions.get_mut(partition).ok_or(OwnerError::Empty)?;
+        let part = core
+            .partitions
+            .get_mut(partition)
+            .ok_or(OwnerError::Empty)?;
         if part.active.is_some() {
             return Err(OwnerError::Busy);
         }
@@ -637,7 +699,8 @@ impl BatchClaim {
         if now >= self.batch.earliest_deadline {
             return Err(OwnerError::Expired);
         }
-        let _previous = self.batch
+        let _previous = self
+            .batch
             .state
             .compare_exchange(
                 state(self.generation, CLAIMED),
@@ -671,7 +734,8 @@ impl BatchClaim {
             return Err(OwnerError::Stale);
         }
         if now >= self.batch.earliest_deadline {
-            let _previous = self.batch
+            let _previous = self
+                .batch
                 .state
                 .compare_exchange(
                     state(self.generation, OFFERED),
@@ -682,7 +746,8 @@ impl BatchClaim {
                 .map_err(|_| OwnerError::Stale)?;
             return Err(OwnerError::Expired);
         }
-        let _previous = self.batch
+        let _previous = self
+            .batch
             .state
             .compare_exchange(
                 state(self.generation, OFFERED),

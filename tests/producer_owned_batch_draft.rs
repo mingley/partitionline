@@ -409,3 +409,104 @@ fn successful_retirement_drops_observed_record_after_unlocking_root() {
     assert_eq!(observed.expect("counts"), (0, 0));
     task.join().expect("retirement thread").expect("retire");
 }
+
+#[test]
+#[ignore = "Known counterexample: bare barriers are not scoped to their root"]
+fn counterexample_foreign_barrier_must_not_report_drained() {
+    let p = partition("barrier", 0);
+    let now = Instant::now();
+    let a = Owner::new(identity(), Limits::new(1, 1, 1));
+    let b = Owner::new(identity(), Limits::new(1, 1, 1));
+    let _record = a.try_admit(p, vec![1], now + Duration::from_secs(60), None).expect("admit");
+    let foreign = b.flush_barrier().expect("empty foreign barrier");
+    let result = a.drained(foreign);
+    assert!(matches!(result, Err(OwnerError::Stale)), "FOREIGN_BARRIER_ACCEPTED: {result:?}");
+}
+
+#[test]
+#[ignore = "Known counterexample: unknown writes cannot settle from an exact valid response"]
+fn counterexample_valid_ack_after_timeout_must_settle_protocol() {
+    let p = partition("unknown-ack", 0);
+    let now = Instant::now();
+    let owner = Owner::new(identity(), Limits::new(1, 1, 1));
+    let _record = owner.try_admit(p.clone(), vec![1], now + Duration::from_secs(60), None).expect("admit");
+    let batch = owner.seal_batch(&p, 1, 1, now, 1).expect("seal");
+    let claim = owner.claim(batch).expect("claim");
+    let attempt = claim.offer_at(now).expect("offer");
+    let _close = owner.begin_close().expect("close");
+    owner.stop_after_timeout().expect("stop");
+    let result = claim.acknowledge_at(attempt, now);
+    assert!(result.is_ok(), "UNKNOWN_VALID_ACK_REJECTED: {result:?}");
+}
+
+#[test]
+#[ignore = "Known counterexample: final Arc drop can synchronously run a record destructor"]
+fn counterexample_claim_drop_must_not_run_blocking_final_reclamation() {
+    use std::sync::mpsc;
+    use std::thread;
+
+    let owner = Owner::new(identity(), Limits::new(1, 1, 1));
+    let p = partition("drop", 0);
+    let now = Instant::now();
+    let record = owner.try_admit(p.clone(), vec![1], now + Duration::from_secs(60), None).expect("admit");
+    let batch = owner.seal_batch(&p, 1, 1, now, 1).expect("seal");
+    let claim = owner.claim(batch).expect("claim");
+    let (started_send, started_receive) = mpsc::channel();
+    let (release_send, release_receive) = mpsc::channel();
+    owner.install_drop_probe(record, move || {
+        started_send.send(()).expect("observer exists");
+        release_receive.recv().expect("release destructor");
+    }).expect("probe");
+    drop(owner);
+
+    let (done_send, done_receive) = mpsc::channel();
+    let task = thread::spawn(move || {
+        drop(claim);
+        done_send.send(()).expect("done receiver exists");
+    });
+    started_receive.recv_timeout(Duration::from_secs(2)).expect("destructor reached");
+    let completed_without_release = done_receive.recv_timeout(Duration::from_millis(100)).is_ok();
+    release_send.send(()).expect("release");
+    task.join().expect("claim drop thread");
+    assert!(completed_without_release, "LAST_ARC_DROP_BLOCKED_WORKER");
+}
+
+#[test]
+#[ignore = "Known counterexample: reclamation discharges credits and barriers before destructors finish"]
+fn counterexample_reclaim_must_keep_credits_and_barrier() {
+    use std::sync::mpsc;
+    use std::thread;
+
+    let owner = Owner::new(identity(), Limits::new(2, 2, 1));
+    let p = partition("reclaim-fence", 0);
+    let now = Instant::now();
+    let first = owner.try_admit(p.clone(), vec![1], now + Duration::from_secs(60), None).expect("first");
+    let second = owner.try_admit(p.clone(), vec![2], now + Duration::from_secs(60), None).expect("second");
+    let barrier = owner.flush_barrier().expect("barrier");
+    let batch = owner.seal_batch(&p, 2, 2, now, 1).expect("seal");
+    let claim = owner.claim(batch).expect("claim");
+    let attempt = claim.offer_at(now).expect("offer");
+    claim.acknowledge_at(attempt, now).expect("ack");
+
+    let (reached_send, reached_receive) = mpsc::channel();
+    let (release_first_send, release_first_receive) = mpsc::channel();
+    let (release_second_send, release_second_receive) = mpsc::channel();
+    let first_reached = reached_send.clone();
+    owner.install_drop_probe(first, move || {
+        first_reached.send(()).expect("observer");
+        release_first_receive.recv().expect("release first");
+    }).expect("first probe");
+    owner.install_drop_probe(second, move || {
+        reached_send.send(()).expect("observer");
+        release_second_receive.recv().expect("release second");
+    }).expect("second probe");
+    let retiring = owner.clone();
+    let task = thread::spawn(move || retiring.retire_after_publication(batch));
+    reached_receive.recv_timeout(Duration::from_secs(2)).expect("one destructor started");
+    let admitted = owner.try_admit(p, vec![3, 4], now + Duration::from_secs(60), None).is_ok();
+    let drained = owner.drained(barrier).expect("barrier state");
+    release_first_send.send(()).expect("release first");
+    release_second_send.send(()).expect("release second");
+    task.join().expect("retirement thread").expect("retirement");
+    assert!(!admitted && !drained, "RECLAIM_RELEASED_EARLY: admitted={admitted}, drained={drained}");
+}
