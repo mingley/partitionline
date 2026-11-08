@@ -32,8 +32,11 @@ requested set.
 
 The [reviewed candidate][candidate] is based on main
 `c4819e83e6f0f5a8a4e1f9dd0f0bbdcad81b862c`. Its production source Git
-blob is `4d4212057984e47201b2bb1fe383ac2ae5a55562` and its permanent
-test blob is `18780c30036bef5fbd693777b265e89a1dcd91e5`.
+blob is `4d4212057984e47201b2bb1fe383ac2ae5a55562` (SHA-256
+`25fac8f3acbb31f08417d374cff8156cef34d66ca08eb002b08bd6d9e32eb98f`)
+and its permanent test blob is `18780c30036bef5fbd693777b265e89a1dcd91e5`
+(SHA-256
+`e0527fc15e8f84e2d3bb23f27724ebb0995503f82910bdd1f587ef2fddb68afc`).
 
 A [preceding draft][draft] passed 27 pagination controls and two existing
 merge controls in each profile, plus strict all-target/all-feature Clippy.
@@ -41,12 +44,22 @@ The final candidate adds explicit same-page null-before-ID precedence
 documentation and a scripted control, so the draft results use different
 source and test blobs.
 
-The [final qualification][final] is running with the exact candidate
-blobs. It includes the focused and full Admin suites in both profiles,
-formatting, strict Clippy, a live Kafka 4.1.2 smoke, and independently
-restored negative mutations. The [same-host whole-suite comparison][broad]
-and [paired release-mode timing][perf] are also running. Their results must
-be recorded before this note is treated as complete.
+In the [final qualification][final], formatting and strict
+all-target/all-feature Clippy passed, as did the 28 default-profile
+pagination controls. The full default Admin suite failed: 633 passed and
+two exceeded their 80 ms thresholds, named-result grouping at
+137.547952 ms and coordinator indexing at 169.259935 ms.
+
+A fresh digest-pinned Kafka 4.1.2 broker passed the live smoke in both
+profiles. The CLI confirmed partitions 0–3; four raw pages and the
+aggregate agreed on their nonzero topic ID and partition indexes. This is
+one normal local broker history, while the null-name and precedence cases
+use scripted responses.
+
+The all-feature Admin suite, independently restored negative mutations,
+[same-host whole-suite comparison][broad] and [paired release-mode
+timing][perf] are still running. The broad suite is not green, and the
+remaining results must be recorded before this note is complete.
 
 ## Limits
 
