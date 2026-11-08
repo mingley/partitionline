@@ -3978,4 +3978,66 @@ mod buffered_read_fairness_control {
         );
         writer.await.unwrap().unwrap();
     }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn cancelled_buffered_pipeline_read_keeps_partial_next_frame() {
+        let length = 512usize;
+        let deadline = Instant::now() + Duration::from_secs(10);
+        let config = Config::new(
+            1, 1, 1024, 1024,
+            Duration::from_secs(10), Duration::from_secs(10), Duration::from_secs(10),
+        ).unwrap();
+        let mut ahead = ReadAhead::new();
+        frame_mut(&mut ahead.bytes).extend_from_slice(&5i32.to_be_bytes());
+        frame_mut(&mut ahead.bytes).extend_from_slice(b"first");
+        let prefix = (length as i32).to_be_bytes();
+        frame_mut(&mut ahead.bytes).extend_from_slice(&prefix[..2]);
+        let mut bytes = prefix[2..].to_vec();
+        bytes.extend(std::iter::repeat_n(0x5a, length));
+        let mut reader = ReadyReader { bytes, offset: 0, limit: 1, reads: 0 };
+
+        let first = read_frame(&mut reader, config, deadline, &mut ahead, new_frame())
+            .await.unwrap_or_else(|_| panic!("first frame failed"));
+        assert_eq!(first.as_slice(), b"first");
+        assert_eq!(reader.reads, 0);
+        assert_eq!(ahead.pending(), &prefix[..2]);
+
+        let mut pending = Box::pin(read_frame(&mut reader, config, deadline, &mut ahead, first));
+        let polled = std::future::poll_fn(|cx| Poll::Ready(pending.as_mut().poll(cx))).await;
+        assert!(matches!(polled, Poll::Pending), "second frame unexpectedly completed");
+        drop(pending);
+
+        assert_eq!(reader.offset, 128);
+        let mut expected = prefix.to_vec();
+        expected.extend(std::iter::repeat_n(0x5a, 126));
+        assert_eq!(ahead.pending(), expected.as_slice(), "cancellation lost or reordered the partial frame");
+
+        let second = read_frame(&mut reader, config, deadline, &mut ahead, new_frame())
+            .await.unwrap_or_else(|_| panic!("second frame failed after cancellation"));
+        assert_eq!(second.len(), length);
+        assert!(second.iter().all(|&b| b == 0x5a));
+        assert!(ahead.is_empty());
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn partially_prefetched_invalid_lengths_do_not_consume_the_body() {
+        let config = Config::new(
+            1, 1, 1024, 1024,
+            Duration::from_secs(10), Duration::from_secs(10), Duration::from_secs(10),
+        ).unwrap();
+        for prefix in [(-1i32).to_be_bytes(), (1025i32).to_be_bytes()] {
+            let mut ahead = ReadAhead::new();
+            frame_mut(&mut ahead.bytes).extend_from_slice(&prefix[..2]);
+            let mut bytes = prefix[2..].to_vec();
+            bytes.extend_from_slice(b"untouched");
+            let mut reader = ReadyReader { bytes, offset: 0, limit: 1, reads: 0 };
+            let result = read_frame(
+                &mut reader, config, Instant::now() + Duration::from_secs(10),
+                &mut ahead, new_frame(),
+            ).await;
+            assert!(matches!(result, Err(super::Exit::InvalidLength)), "invalid buffered prefix was not rejected");
+            assert_eq!(reader.offset, 2);
+            assert_eq!(reader.reads, 2);
+        }
+    }
 }

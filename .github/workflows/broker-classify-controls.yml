@@ -1,0 +1,87 @@
+name: Broker buffered classify behavioral controls
+on:
+  push:
+    branches: [qualification/broker-classify-controls-20261108]
+permissions:
+  contents: read
+jobs:
+  controls:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      CARGO_BUILD_JOBS: 2
+      CARGO_INCREMENTAL: 0
+      CARGO_PROFILE_TEST_DEBUG: 0
+      CARGO_PROFILE_DEV_DEBUG: 0
+      CARGO_TERM_COLOR: never
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+      - name: Format and retain candidate source
+        run: |
+          set -euo pipefail
+          rustc -Vv
+          cargo fmt --manifest-path partitionline-broker/Cargo.toml
+          cargo fmt --manifest-path partitionline-broker/Cargo.toml -- --check
+          git diff --name-only
+          cp partitionline-broker/src/transport.rs /tmp/classify-clean.rs
+          awk '{ print "CLASSIFY_FORMATTED_SOURCE:" $0 }' partitionline-broker/src/transport.rs
+      - name: Focused frame, deadline, TCP, TLS and pipeline tests
+        run: |
+          set -euo pipefail
+          for profile in default all; do
+            args=()
+            if [[ "$profile" == all ]]; then args=(--all-features); fi
+            for filter in read_ahead_tests buffered_read_fairness_control frame_read_deadline_tests; do
+              cargo test --locked --manifest-path partitionline-broker/Cargo.toml --lib "${args[@]}" "$filter" -- --nocapture | tee /tmp/classify-focus.log
+              grep -qE '^test result: ok\. [1-9][0-9]* passed; 0 failed;' /tmp/classify-focus.log
+            done
+            for filter in pipelined_requests_keep_wire_and_handler_order fragmented_prefix_body_empty_and_exact_limit_roundtrip; do
+              cargo test --locked --manifest-path partitionline-broker/Cargo.toml --test transport "${args[@]}" "$filter" -- --nocapture | tee /tmp/classify-focus.log
+              grep -qE '^test result: ok\. [1-9][0-9]* passed; 0 failed;' /tmp/classify-focus.log
+            done
+          done
+          cargo test --locked --manifest-path partitionline-broker/Cargo.toml --all-features --test tls verified_tls12_and_tls13_frame_roundtrip -- --nocapture | tee /tmp/classify-focus.log
+          grep -qE '^test result: ok\. 1 passed; 0 failed;' /tmp/classify-focus.log
+      - name: Buffered partial-state loss mutant
+        run: |
+          set -euo pipefail
+          cp /tmp/classify-clean.rs partitionline-broker/src/transport.rs
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path("partitionline-broker/src/transport.rs")
+          s=p.read_text()
+          old="""            if progress.record(n).is_some()
+                && matches!(
+                    classify_ahead(ahead.pending(), config.max_request_bytes),
+                    Ahead::Need(_)
+                )
+            {
+                tokio::task::yield_now().await;
+            }"""
+          new=old.replace("                tokio::task::yield_now().await;", "                frame_mut(&mut ahead.bytes).clear();\n                tokio::task::yield_now().await;")
+          assert s.count(old)==1
+          p.write_text(s.replace(old,new,1))
+          PY
+          if cargo test --locked --manifest-path partitionline-broker/Cargo.toml --lib cancelled_buffered_pipeline_read_keeps_partial_next_frame -- --nocapture > /tmp/classify-state-mutant.log 2>&1; then cat /tmp/classify-state-mutant.log; exit 1; fi
+          cat /tmp/classify-state-mutant.log
+          grep -F "cancellation lost or reordered the partial frame" /tmp/classify-state-mutant.log
+          cp /tmp/classify-clean.rs partitionline-broker/src/transport.rs
+      - name: Invalid prefix admission mutant
+        run: |
+          set -euo pipefail
+          cp /tmp/classify-clean.rs partitionline-broker/src/transport.rs
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path("partitionline-broker/src/transport.rs")
+          s=p.read_text()
+          old="Ahead::Invalid => return Err(Exit::InvalidLength),\n                Ahead::Ready =>"
+          assert s.count(old)==1
+          p.write_text(s.replace(old,"Ahead::Invalid => 1,\n                Ahead::Ready =>",1))
+          PY
+          if cargo test --locked --manifest-path partitionline-broker/Cargo.toml --lib partially_prefetched_invalid_lengths_do_not_consume_the_body -- --nocapture > /tmp/classify-invalid-mutant.log 2>&1; then cat /tmp/classify-invalid-mutant.log; exit 1; fi
+          cat /tmp/classify-invalid-mutant.log
+          grep -F "invalid buffered prefix was not rejected" /tmp/classify-invalid-mutant.log
+          cp /tmp/classify-clean.rs partitionline-broker/src/transport.rs
