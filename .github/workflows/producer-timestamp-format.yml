@@ -1,0 +1,21 @@
+name: producer-timestamp-format
+on:
+  push:
+    branches: [qual/producer-timestamp-format-20261108]
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+      - name: Produce reviewable formatting diff
+        shell: bash
+        run: |
+          set -euo pipefail
+          git rev-parse HEAD
+          rustfmt --edition=2021 src/producer.rs tests/common/mod.rs tests/producer_timestamp_contract_public.rs
+          echo PL_FORMAT_DIFF_BEGIN
+          git diff --no-color -- src/producer.rs tests/common/mod.rs tests/producer_timestamp_contract_public.rs
+          echo PL_FORMAT_DIFF_END
