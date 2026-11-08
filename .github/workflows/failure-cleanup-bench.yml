@@ -29,14 +29,18 @@ jobs:
           sparse-checkout: |
             .cargo
             src
+            tests
+            examples
       - uses: actions/checkout@v7
         with:
-          ref: 116e6ac22bebb26542768493d381823862decd87
+          ref: 3406403037e32d64a796f4f91914a1aaaf003cee
           path: candidate
           persist-credentials: false
           sparse-checkout: |
             .cargo
             src
+            tests
+            examples
       - uses: dtolnay/rust-toolchain@stable
       - name: Pin sources, apply the same test fixture, and record the host
         shell: bash
@@ -45,7 +49,7 @@ jobs:
           test "$RUNNER_ARCH" = X64
           test "$(uname -m)" = x86_64
           test "$(git -C baseline rev-parse HEAD:src/producer.rs)" = ca894b515e0e65e8a451cf811346513240ab6238
-          test "$(git -C candidate rev-parse HEAD:src/producer.rs)" = 4b80f4762511d63764c1684dfeab2aab9931bd2c
+          test "$(git -C candidate rev-parse HEAD:src/producer.rs)" = 1058ed122731767fb73a1aa5ea46288f4efdd0a9
           test "$(git -C baseline rev-parse HEAD:Cargo.lock)" = "$(git -C candidate rev-parse HEAD:Cargo.lock)"
           mkdir -p "$RUNNER_TEMP/failure-bench-evidence"
           evidence="$RUNNER_TEMP/failure-bench-evidence"
@@ -56,6 +60,7 @@ jobs:
           sha256sum fixture/benchmarks/qualification/failure_cleanup_bench.rs | tee "$evidence/fixture.sha256"
           for arm in baseline candidate; do
             sha256sum "$arm/Cargo.lock" "$arm/src/producer.rs" | tee "$evidence/$arm-original.sha256"
+            mkdir -p "$arm/src/producer"
             cp fixture/benchmarks/qualification/failure_cleanup_bench.rs "$arm/src/producer/failure_cleanup_bench.rs"
           done
           python3 - <<'PYCODE'
@@ -126,6 +131,9 @@ jobs:
             FINGERPRINT_EXPECTED="$arm" timeout 120 taskset -c "$cpu" "$binary" --exact producer::failure_cleanup_bench::unpolled_fingerprint --nocapture --test-threads=1 2>&1 | tee "$evidence/$arm-fingerprint.log"
             grep -F "PL_FINGERPRINT arm=$arm verified=true" "$evidence/$arm-fingerprint.log"
             grep -F 'test result: ok. 1 passed; 0 failed;' "$evidence/$arm-fingerprint.log"
+            timeout 120 taskset -c "$cpu" "$binary" --exact producer::failure_cleanup_bench::scheduling_fingerprint --nocapture --test-threads=1 2>&1 | tee "$evidence/$arm-scheduling.log"
+            grep -F 'PL_SCHEDULING_FINGERPRINT pending=0,0,0,0,0,0,1,8193,16385 ready=10 verified=true' "$evidence/$arm-scheduling.log"
+            grep -F 'test result: ok. 1 passed; 0 failed;' "$evidence/$arm-scheduling.log"
           done
           for pair in 1 2 3 4 5 6; do
             if (( pair % 2 == 1 )); then order='baseline candidate'; else order='candidate baseline'; fi
