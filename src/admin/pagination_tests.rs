@@ -1613,3 +1613,93 @@ async fn dtp_slot_index_fails_closed_on_missing_slot() {
     assert!(matches!(&result, Err(Error::Protocol(message))
         if message == "DescribeTopicPartitions index references a missing topic"));
 }
+
+#[derive(Clone)]
+struct DtpSameTagHashBuilder;
+
+#[derive(Default)]
+struct DtpSameTagHasher(u64);
+
+impl std::hash::Hasher for DtpSameTagHasher {
+    fn finish(&self) -> u64 {
+        self.0
+    }
+
+    fn write(&mut self, bytes: &[u8]) {
+        if bytes.first() == Some(&b'b') {
+            self.0 = 128;
+        }
+    }
+}
+
+impl std::hash::BuildHasher for DtpSameTagHashBuilder {
+    type Hasher = DtpSameTagHasher;
+
+    fn build_hasher(&self) -> Self::Hasher {
+        DtpSameTagHasher::default()
+    }
+}
+
+#[tokio::test]
+async fn dtp_slot_index_checks_full_hash_when_table_visits_same_tag() {
+    let mut out = Vec::new();
+    let mut index = DescribedTopicIndex::with_hasher(DtpSameTagHashBuilder);
+    place_described_topic(
+        &mut out,
+        &mut index,
+        dtp_slot_test_description("alpha", [1; 16], 0, Some(0)),
+    )
+    .await
+    .unwrap();
+    let alpha_hash = index.hash("alpha");
+    let beta_hash = index.hash("beta");
+    assert_ne!(alpha_hash, beta_hash);
+    let mut visited_different_hash = false;
+    let found = index.table.find_mut(beta_hash, |entry| {
+        if entry.hash != beta_hash {
+            visited_different_hash = true;
+        }
+        entry.hash == beta_hash
+            && out.get(entry.slot).is_some_and(|topic| topic.name == "beta")
+    });
+    assert!(found.is_none());
+    assert!(visited_different_hash, "the table did not visit the other hash");
+    place_described_topic(
+        &mut out,
+        &mut index,
+        dtp_slot_test_description("beta", [2; 16], 0, Some(1)),
+    )
+    .await
+    .unwrap();
+    assert_eq!(out.iter().map(|item| item.name.as_str()).collect::<Vec<_>>(), ["alpha", "beta"]);
+}
+
+#[tokio::test]
+async fn dtp_slot_index_duplicate_at_full_capacity_does_not_grow() {
+    let mut out = Vec::new();
+    let mut index = DescribedTopicIndex::with_hasher(DtpConstantHashBuilder);
+    while index.table.is_empty() || index.table.len() < index.table.capacity() {
+        let name = format!("topic-{:03}", out.len());
+        place_described_topic(
+            &mut out,
+            &mut index,
+            dtp_slot_test_description(&name, [7; 16], 0, Some(0)),
+        )
+        .await
+        .unwrap();
+    }
+    let before_len = index.table.len();
+    let before_capacity = index.table.capacity();
+    assert!(before_len > 0);
+    assert_eq!(before_len, before_capacity);
+    place_described_topic(
+        &mut out,
+        &mut index,
+        dtp_slot_test_description("topic-000", [7; 16], 0, Some(1)),
+    )
+    .await
+    .unwrap();
+    assert_eq!(index.table.len(), before_len);
+    assert_eq!(index.table.capacity(), before_capacity);
+    assert_eq!(out[0].partitions.iter().map(|p| p.partition).collect::<Vec<_>>(), [0, 1]);
+}
