@@ -2703,6 +2703,7 @@ impl Producer {
         // one-nudge-per-record behavior without repeatedly walking the suffix.
         let one_explicit_route = self.inner.shared.sticky.is_none()
             && self.inner.shared.interceptors.is_empty()
+            && pending.len() >= 32
             && pending.len() < leader_scan_chunk()
             && pending.front().is_some_and(|(_, first)| {
                 first.topic.len() <= Topic::MAX_NAME_LENGTH
@@ -2808,7 +2809,7 @@ impl Producer {
             }
             // Start every known leader handshake before this record waits
             // for its own worker, so a later leader is already dialing.
-            if one_explicit_route {
+            if one_explicit_route && self.has_fresh_explicit_worker(&rec) {
                 self.nudge_known_leaders(std::iter::once(&rec)).await;
             } else {
                 self.nudge_known_leaders(
@@ -3260,6 +3261,32 @@ impl Producer {
     ///
     /// A recorded metadata error still goes through the slow path so the
     /// caller sees it before another record is queued.
+    /// Check a cached explicit route without cloning a remembered metadata error.
+    fn has_fresh_explicit_worker(&self, rec: &ProduceRecord) -> bool {
+        let shared = &self.inner.shared;
+        if shared.meta_err_set.load(Ordering::Acquire) || shared.cfg.metadata_max_age.is_zero() {
+            return false;
+        }
+        let Some(partition) = rec.partition else {
+            return false;
+        };
+        let Ok(index) = usize::try_from(partition) else {
+            return false;
+        };
+        let fast = shared.fast.read();
+        let Some(route) = fast.routes.get(rec.topic.as_ref()) else {
+            return false;
+        };
+        route.np > partition
+            && route
+                .fetched_at
+                .is_some_and(|at| at.elapsed() < shared.cfg.metadata_max_age)
+            && route
+                .handles
+                .get(index)
+                .is_some_and(|worker| worker.admission.is_accepting())
+    }
+
     fn fresh_fast_route(
         &self,
         rec: &ProduceRecord,
