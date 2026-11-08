@@ -75,7 +75,7 @@ fn run_example<S: BuildHasher + Clone>(label: &str, builder: S, leaders: [i32; 3
     left.sort_unstable();
     right.sort_unstable();
     assert_eq!(left, right);
-    assert_eq!(left, leaders.map(|node| (node, 0)));
+    assert_eq!(left, leaders.map(|node| (node, 0)).to_vec());
     assert_ne!(original.capacity, representative.capacity);
     assert_ne!(original.order.first(), representative.order.first());
     println!("{label}: leaders={leaders:?}; inserts_per_chunk={CHUNK} versus 1");
@@ -89,7 +89,7 @@ fn run_example<S: BuildHasher + Clone>(label: &str, builder: S, leaders: [i32; 3
 
 fn main() {
     let fixed = BuildHasherDefault::<LeaderHasher>::default();
-    let control = observe(fixed, &[1], 8191);
+    let control = observe(fixed.clone(), &[1], 8191);
     let singleton = observe(fixed, &[1], 1);
     assert_eq!(control.capacity, singleton.capacity);
     assert_eq!(control.order, singleton.order);
