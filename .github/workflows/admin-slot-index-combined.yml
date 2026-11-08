@@ -1,0 +1,100 @@
+name: Admin combined slot-index and requested-name qualification
+on:
+  push:
+    branches: [qualification/admin-dtp-slot-combined-20261108]
+permissions:
+  contents: read
+jobs:
+  tests:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    strategy:
+      fail-fast: false
+      matrix:
+        feature: [default, all]
+    env:
+      CARGO_INCREMENTAL: '0'
+      CARGO_TERM_COLOR: never
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Pin exact prototype and dependencies
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD:src/admin.rs)" = 8c2f94353e04c2925b1bfaf8478285190dd317d7
+          test "$(git rev-parse HEAD:src/admin/pagination_tests.rs)" = c47052f9405a1261ac79fb1965ec86d46edc2265
+          test "$(git rev-parse HEAD:Cargo.toml)" = 4a90b08ab3fb886676231310b1f7132e04e2cfbb
+          test "$(git rev-parse HEAD:Cargo.lock)" = 96e364d34121fe90183f87f4f49fd92b883bc447
+          git rev-parse HEAD HEAD:src/admin.rs HEAD:src/admin/pagination_tests.rs HEAD:Cargo.toml HEAD:Cargo.lock
+          sha256sum src/admin.rs src/admin/pagination_tests.rs Cargo.toml Cargo.lock
+          rustc -Vv
+          cargo tree --locked -e features -i hashbrown
+      - name: Run forced collision, same-tag and capacity controls
+        run: |
+          set -euo pipefail
+          if test "${{ matrix.feature }}" = all; then flags=--all-features; else flags=; fi
+          cargo test --locked $flags --lib dtp_slot_index_ -- --test-threads=1
+      - name: Run Admin pagination and existing index controls
+        run: |
+          set -euo pipefail
+          if test "${{ matrix.feature }}" = all; then flags=--all-features; else flags=; fi
+          cargo test --locked $flags --lib admin::pagination_tests:: -- --test-threads=1
+          cargo test --locked $flags --lib extending_described_topics_yields_and_completes -- --test-threads=1
+          cargo test --locked $flags --lib described_topics_keep_the_first_page -- --test-threads=1
+      - name: Negative control ignoring collision name equality
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path("src/admin.rs")
+          s = p.read_text()
+          old = "Some(existing) => existing.name == desc.name,"
+          new = "Some(_existing) => true,"
+          assert s.count(old) == 1
+          p.write_text(s.replace(old, new))
+          PY
+          set +e
+          if test "${{ matrix.feature }}" = all; then flags=--all-features; else flags=; fi
+          timeout 240 cargo test --locked $flags --lib dtp_slot_index_resolves_forced_collisions_and_keeps_errors -- --test-threads=1 > collision-negative.log 2>&1
+          status=$?
+          set -e
+          cat collision-negative.log
+          test "$status" = 101
+          grep -F 'test result: FAILED. 0 passed; 1 failed;' collision-negative.log
+          grep -F 'dtp_slot_index_resolves_forced_collisions_and_keeps_errors ... FAILED' collision-negative.log
+  lint:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    env:
+      CARGO_INCREMENTAL: '0'
+      CARGO_TERM_COLOR: never
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy,rustfmt
+      - name: Pin source and check formatting
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD:src/admin.rs)" = 8c2f94353e04c2925b1bfaf8478285190dd317d7
+          test "$(git rev-parse HEAD:src/admin/pagination_tests.rs)" = c47052f9405a1261ac79fb1965ec86d46edc2265
+          cargo fmt --all -- --check
+      - name: Strict all-target all-feature Clippy
+        run: cargo clippy --locked --all-targets --all-features -- -D warnings
+
+  docs:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    env:
+      CARGO_INCREMENTAL: '0'
+      CARGO_TERM_COLOR: never
+      RUSTDOCFLAGS: '-D warnings'
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Strict public docs and doctests
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD:src/admin.rs)" = 8c2f94353e04c2925b1bfaf8478285190dd317d7
+          cargo doc --locked --no-deps --all-features
+          cargo test --locked --doc --all-features
