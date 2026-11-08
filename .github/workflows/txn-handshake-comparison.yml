@@ -1,0 +1,184 @@
+name: Transaction handshake comparison
+
+on:
+  push:
+    branches: [qualification/txn-handshake-compare-20261108]
+
+permissions:
+  contents: read
+
+jobs:
+  compare:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 50
+    env:
+      CARGO_BUILD_JOBS: '2'
+      CARGO_INCREMENTAL: '0'
+      CARGO_PROFILE_DEV_DEBUG: '0'
+      CARGO_PROFILE_TEST_DEBUG: '0'
+      CARGO_TERM_COLOR: never
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: 374dcf45db20ee728b00c0b0188e77ca1f47fa9c
+          path: baseline
+          persist-credentials: false
+          sparse-checkout: |
+            .cargo
+            src
+            tests
+            examples
+      - uses: actions/checkout@v7
+        with:
+          ref: ab7c3cd73e20d296462177fae5517f7b69bc993a
+          path: candidate
+          persist-credentials: false
+          sparse-checkout: |
+            .cargo
+            src
+            tests
+            examples
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Verify source and environment
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$RUNNER_ARCH" = X64
+          mkdir -p "$RUNNER_TEMP/handshake-evidence"
+          test "$(git -C baseline rev-parse HEAD)" = 374dcf45db20ee728b00c0b0188e77ca1f47fa9c
+          test "$(git -C candidate rev-parse HEAD)" = ab7c3cd73e20d296462177fae5517f7b69bc993a
+          printf '%s  %s\n' \
+            e21d03f495f504f167bc56139dc03798b0f323ca51370c7dceade23a2dad066e baseline/src/producer.rs \
+            3d65fcceecbb43c1a974f7f6b7bd58c8a310930f6bcced9052a00e88700eb37f candidate/src/producer.rs | sha256sum --check -
+          cmp baseline/tests/mock_produce.rs candidate/tests/mock_produce.rs
+          sha256sum baseline/tests/mock_produce.rs candidate/tests/mock_produce.rs | tee "$RUNNER_TEMP/handshake-evidence/test-pins.log"
+          uname -a
+          rustc +stable -vV
+          cargo +stable -V
+      - name: Compare original tests
+        timeout-minutes: 35
+        shell: bash
+        run: |
+          set -euo pipefail
+          failures=0
+          for tree in baseline candidate; do
+            cd "$GITHUB_WORKSPACE/$tree"
+            export CARGO_TARGET_DIR="$RUNNER_TEMP/handshake-$tree-target"
+            for mode in default all; do
+              extra=''
+              if [[ "$mode" = all ]]; then extra=--all-features; fi
+              for name in epoch_bump_reuses_a_produce_handshake send_offsets_reuses_bootstrap_api_versions; do
+                for attempt in 1 2 3; do
+                  log="$RUNNER_TEMP/handshake-evidence/original-$tree-$mode-$name-$attempt.log"
+                  if timeout 600 cargo +stable test --locked $extra --test mock_produce "$name" -- --exact --nocapture > "$log" 2>&1; then
+                    status=0
+                  else
+                    status=$?
+                  fi
+                  cat "$log"
+                  grep -F 'running 1 test' "$log"
+                  if [[ "$status" -eq 0 ]]; then
+                    grep -F 'test result: ok. 1 passed; 0 failed; 0 ignored;' "$log"
+                    echo "PASS $tree $mode $name $attempt" | tee -a "$RUNNER_TEMP/handshake-evidence/original-summary.log"
+                  elif [[ "$status" -eq 101 ]]; then
+                    grep -F 'test result: FAILED. 0 passed; 1 failed; 0 ignored;' "$log"
+                    echo "FAIL $tree $mode $name $attempt" | tee -a "$RUNNER_TEMP/handshake-evidence/original-summary.log"
+                    failures=$((failures + 1))
+                  else
+                    echo "unexpected command exit $status" >&2
+                    exit 1
+                  fi
+                done
+              done
+            done
+          done
+          echo "$failures" > "$RUNNER_TEMP/handshake-evidence/original-failures"
+      - name: Add phase-only observations
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -B - <<'PYCODE'
+          from pathlib import Path
+          import hashlib
+
+          names = [
+              "commit_reuses_a_produce_handshake_for_the_moved_coordinator",
+              "epoch_bump_reuses_a_produce_handshake",
+              "send_offsets_reuses_bootstrap_api_versions",
+          ]
+          for tree in ("baseline", "candidate"):
+              path = Path(tree) / "tests/mock_produce.rs"
+              source = path.read_text()
+              for name in names:
+                  start_marker = "async fn " + name + "() {"
+                  if source.count(start_marker) != 1:
+                      raise SystemExit("test start mismatch: " + name)
+                  start = source.index(start_marker)
+                  end = source.index("\n}\n", start) + len("\n}")
+                  body = source[start:end]
+                  def add_after(body, anchor, phase):
+                      if body.count(anchor) != 1:
+                          raise SystemExit(name + " anchor mismatch: " + phase)
+                      observation = (
+                          '\n    eprintln!("PL_HANDSHAKE_PHASE ' + name + " " + phase
+                          + ' {:?}", mock.api_versions_nodes());'
+                      )
+                      return body.replace(anchor, anchor + observation, 1)
+                  body = add_after(body, "let producer = Producer::new(cfg).await.unwrap();", "new")
+                  body = add_after(body, "producer.begin_transaction().await.unwrap();", "begin")
+                  if name != "send_offsets_reuses_bootstrap_api_versions":
+                      body = add_after(body, '.send(ProduceRecord::to("t").value(&b"v"[..]))\n        .await\n        .unwrap();', "sent")
+                  if name == "epoch_bump_reuses_a_produce_handshake":
+                      body = add_after(body, '.send(ProduceRecord::to("t").value(&b"lost"[..]))\n        .await\n        .unwrap_err();', "failed_send")
+                  source = source[:start] + body + source[end:]
+              path.write_text(source)
+              print(tree, "phase-only test SHA-256:", hashlib.sha256(source.encode()).hexdigest())
+          PYCODE
+          cmp baseline/tests/mock_produce.rs candidate/tests/mock_produce.rs
+      - name: Observe startup and transaction phases
+        timeout-minutes: 15
+        shell: bash
+        run: |
+          set -euo pipefail
+          for tree in baseline candidate; do
+            cd "$GITHUB_WORKSPACE/$tree"
+            export CARGO_TARGET_DIR="$RUNNER_TEMP/handshake-$tree-target"
+            for mode in default all; do
+              extra=''
+              if [[ "$mode" = all ]]; then extra=--all-features; fi
+              for name in commit_reuses_a_produce_handshake_for_the_moved_coordinator epoch_bump_reuses_a_produce_handshake send_offsets_reuses_bootstrap_api_versions; do
+                log="$RUNNER_TEMP/handshake-evidence/trace-$tree-$mode-$name.log"
+                if timeout 600 cargo +stable test --locked $extra --test mock_produce "$name" -- --exact --nocapture > "$log" 2>&1; then
+                  status=0
+                else
+                  status=$?
+                fi
+                cat "$log"
+                grep -F "PL_HANDSHAKE_PHASE $name new " "$log"
+                grep -F "PL_HANDSHAKE_PHASE $name begin " "$log"
+                grep -F 'running 1 test' "$log"
+                if [[ "$status" -eq 0 ]]; then
+                  grep -F 'test result: ok. 1 passed; 0 failed; 0 ignored;' "$log"
+                elif [[ "$status" -eq 101 ]]; then
+                  grep -F 'test result: FAILED. 0 passed; 1 failed; 0 ignored;' "$log"
+                else
+                  echo "unexpected command exit $status" >&2
+                  exit 1
+                fi
+              done
+            done
+          done
+      - name: Require original tests to pass
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat "$RUNNER_TEMP/handshake-evidence/original-summary.log"
+          test "$(cat "$RUNNER_TEMP/handshake-evidence/original-failures")" -eq 0
+      - name: Retain logs
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: handshake-comparison-${{ github.run_id }}
+          path: ${{ runner.temp }}/handshake-evidence
+          if-no-files-found: error
+          retention-days: 30
