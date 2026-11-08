@@ -558,12 +558,13 @@ visible length. A uniquely owned allocation with spare capacity, or with a
 hidden prefix, is compacted. An allocation that is already the exact size can
 be reused. Header strings and the header vector release spare capacity too.
 
-When `bytes_buffered` reaches `buffer_memory`, `try_send` returns `QueueFull`,
-including for a zero-value record. `send` waits up to `max_block` and then
-returns `Timeout`. Under a full load, `bytes_buffered` stays at or below
-`buffer_memory`. After `flush` or `close` it returns to 0. One permit covers
-the record while it is queued, in flight, or retrying, and that permit is
-released once.
+When the configured `buffer_memory` limit is reached, `try_send` returns
+`QueueFull`, including for a zero-value record. `send` waits for capacity
+up to its `max_block` deadline, unless it is canceled or the producer closes.
+The intended accounting keeps one reservation with a record while it is queued,
+in flight, or retrying, and releases it at completion. Normally the count
+returns to zero after work settles. The worker-cancellation exception above
+can leave it nonzero after a delivery future has returned `Closed`.
 
 A single record can still enter an empty buffer when its serialized upper
 bound fits in both `max_request_size` and `buffer_memory`. That is Kafka's
