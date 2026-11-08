@@ -5,10 +5,12 @@
 //! does not implement receipts, callbacks, retries after an unknown write,
 //! transaction fencing, Kafka encoding, or a complete memory bound.
 //!
-//! The supervisor must keep the root alive until all records and workers are
-//! resolved. Calling `confirm_stopped_after_join` requires the actual worker
-//! owning that claim to have terminated. A joined worker alone does not prove
-//! that an earlier write cannot still reach the broker.
+//! Claims and attempt tokens retain the root, but the last reference may still
+//! destroy it on a worker thread. A supervisor must retain the root until all
+//! records and workers are resolved; the draft does not enforce this or provide
+//! nonblocking reclamation. Calling `confirm_stopped_after_join` requires the
+//! actual worker owning that claim to have terminated. A joined worker alone
+//! does not prove an earlier write cannot still reach the broker.
 
 use std::collections::{HashMap, VecDeque};
 use std::sync::atomic::{AtomicU64, Ordering};
@@ -52,11 +54,31 @@ pub(crate) struct RecordKey(u64);
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
 pub(crate) struct BatchKey(u64);
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone)]
 pub(crate) struct AttemptKey {
+    root: Arc<Mutex<Core>>,
     batch: BatchKey,
     claim_generation: u64,
 }
+
+impl std::fmt::Debug for AttemptKey {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("AttemptKey")
+            .field("batch", &self.batch)
+            .field("claim_generation", &self.claim_generation)
+            .finish_non_exhaustive()
+    }
+}
+
+impl PartialEq for AttemptKey {
+    fn eq(&self, other: &Self) -> bool {
+        Arc::ptr_eq(&self.root, &other.root)
+            && self.batch == other.batch
+            && self.claim_generation == other.claim_generation
+    }
+}
+
+impl Eq for AttemptKey {}
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(crate) struct Barrier {
@@ -132,11 +154,25 @@ fn phase_name(value: u64) -> Option<BatchPhase> {
     }
 }
 
+#[cfg(test)]
+struct RecordDropProbe(Option<Box<dyn FnOnce() + Send>>);
+
+#[cfg(test)]
+impl Drop for RecordDropProbe {
+    fn drop(&mut self) {
+        if let Some(probe) = self.0.take() {
+            probe();
+        }
+    }
+}
+
 struct Record {
     payload: Vec<u8>,
     deadline: Instant,
     timestamp: Option<i64>,
     batch: Option<BatchKey>,
+    #[cfg(test)]
+    drop_probe: Option<RecordDropProbe>,
 }
 
 #[derive(Default)]
@@ -251,7 +287,14 @@ impl Owner {
         let key = RecordKey(core.next_record);
         core.next_record = next;
         core.bytes += payload.len();
-        drop(core.records.insert(key, Record { payload, deadline, timestamp, batch: None }));
+        drop(core.records.insert(key, Record {
+            payload,
+            deadline,
+            timestamp,
+            batch: None,
+            #[cfg(test)]
+            drop_probe: None,
+        }));
         core.partitions.entry(partition).or_default().queue.push_back(key);
         Ok(key)
     }
@@ -392,7 +435,11 @@ impl Owner {
                 Ordering::Acquire,
             )
             .map_err(|_| OwnerError::Busy)?;
-        Ok(BatchClaim { batch, generation: next_generation })
+        Ok(BatchClaim {
+            root: Arc::clone(&self.core),
+            batch,
+            generation: next_generation,
+        })
     }
 
     /// The caller must have awaited the actual worker's termination. This is
@@ -495,18 +542,50 @@ impl Owner {
         if core.partitions.get(&batch.partition).and_then(|part| part.active) != Some(key) {
             return Err(OwnerError::Stale);
         }
-        if batch.members.iter().any(|record_key| {
-            core.records.get(record_key).is_none_or(|record| record.batch != Some(key))
-        }) {
-            return Err(OwnerError::Stale);
-        }
+        let reclaim_bytes = batch.members.iter().try_fold(0_usize, |bytes, record_key| {
+            let record = core.records.get(record_key).ok_or(OwnerError::Stale)?;
+            if record.batch != Some(key) {
+                return Err(OwnerError::Stale);
+            }
+            bytes.checked_add(record.payload.len()).ok_or(OwnerError::Stale)
+        })?;
+        let remaining_bytes = core.bytes.checked_sub(reclaim_bytes).ok_or(OwnerError::Stale)?;
+        let mut reclaimed = Vec::with_capacity(batch.members.len());
         for record_key in batch.members.iter() {
-            let record = core.records.remove(record_key).ok_or(OwnerError::Stale)?;
-            core.bytes = core.bytes.checked_sub(record.payload.len()).ok_or(OwnerError::Stale)?;
+            let Some(record) = core.records.remove(record_key) else {
+                drop(core);
+                drop(reclaimed);
+                return Err(OwnerError::Stale);
+            };
+            reclaimed.push(record);
         }
-        let partition = core.partitions.get_mut(&batch.partition).ok_or(OwnerError::Stale)?;
+        let Some(partition) = core.partitions.get_mut(&batch.partition) else {
+            drop(core);
+            drop(reclaimed);
+            return Err(OwnerError::Stale);
+        };
         partition.active = None;
-        drop(core.batches.remove(&key));
+        core.bytes = remaining_bytes;
+        let removed_batch = core.batches.remove(&key);
+        drop(core);
+        drop(removed_batch);
+        drop(reclaimed);
+        Ok(())
+    }
+
+    /// Install a test-only destructor to observe whether reclamation holds the root lock.
+    #[cfg(test)]
+    pub(crate) fn install_drop_probe(
+        &self,
+        key: RecordKey,
+        probe: impl FnOnce() + Send + 'static,
+    ) -> Result<(), OwnerError> {
+        let mut core = self.core.lock().map_err(|_| OwnerError::Poisoned)?;
+        let record = core.records.get_mut(&key).ok_or(OwnerError::Stale)?;
+        if record.drop_probe.is_some() {
+            return Err(OwnerError::Busy);
+        }
+        record.drop_probe = Some(RecordDropProbe(Some(Box::new(probe))));
         Ok(())
     }
 
@@ -536,9 +615,10 @@ impl Owner {
     }
 }
 
-/// Holds only a batch descriptor. Dropping it never removes rooted payload
-/// records or invokes user callbacks, but the owner must outlive the claim.
+/// A claim keeps the root and batch alive. The atomic Drop body takes no
+/// locks, but the last root reference can still run synchronous destruction.
 pub(crate) struct BatchClaim {
+    root: Arc<Mutex<Core>>,
     batch: Arc<Batch>,
     generation: u64,
 }
@@ -566,7 +646,11 @@ impl BatchClaim {
                 Ordering::Acquire,
             )
             .map_err(|_| OwnerError::Stale)?;
-        Ok(AttemptKey { batch: self.batch.key, claim_generation: self.generation })
+        Ok(AttemptKey {
+            root: Arc::clone(&self.root),
+            batch: self.batch.key,
+            claim_generation: self.generation,
+        })
     }
 
     /// The caller supplies a response for this exact attempt; this prototype
@@ -580,7 +664,10 @@ impl BatchClaim {
         attempt: AttemptKey,
         now: Instant,
     ) -> Result<(), OwnerError> {
-        if attempt.batch != self.batch.key || attempt.claim_generation != self.generation {
+        if !Arc::ptr_eq(&attempt.root, &self.root)
+            || attempt.batch != self.batch.key
+            || attempt.claim_generation != self.generation
+        {
             return Err(OwnerError::Stale);
         }
         if now >= self.batch.earliest_deadline {

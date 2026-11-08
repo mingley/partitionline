@@ -67,7 +67,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
-      - name: Verify all four intended failures
+      - name: Verify both remaining intended failures
         shell: bash
         run: |
           set +e
@@ -79,6 +79,6 @@ jobs:
           status=${PIPESTATUS[0]}
           set -e
           test "$status" -ne 0
-          for marker in FOREIGN_ATTEMPT_ACCEPTED DEFINITIVE_ACK_LOST EXPIRED_SUFFIX_BLOCKED_PREFIX CLAIM_OFFERED_WITHOUT_ROOT; do
+          for marker in DEFINITIVE_ACK_LOST EXPIRED_SUFFIX_BLOCKED_PREFIX; do
             grep -F "$marker" "${RUNNER_TEMP}/counterexamples.log"
           done

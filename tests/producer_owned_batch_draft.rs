@@ -137,7 +137,7 @@ fn stale_completed_claim_cannot_clear_a_new_partition_batch() {
     let old = owner.seal_batch(&p, 1, 1, Instant::now(), 1).expect("seal");
     let old_claim = owner.claim(old).expect("claim");
     let old_attempt = old_claim.offer().expect("offer");
-    old_claim.acknowledge(old_attempt).expect("ack");
+    old_claim.acknowledge(old_attempt.clone()).expect("ack");
     owner.retire_after_publication(old).expect("retire");
     let second = admit(&owner, &p, b'b');
     let new = owner.seal_batch(&p, 1, 1, Instant::now(), 2).expect("new batch");
@@ -304,7 +304,7 @@ fn no_new_offer_is_granted_after_a_member_deadline() {
 }
 
 #[test]
-fn late_acknowledgement_retains_ambiguous_batch() {
+fn current_prototype_treats_late_ack_as_unknown() {
     let owner = Owner::new(identity(), Limits::new(2, 2, 1));
     let p = partition("deadline", 0);
     let now = Instant::now();
@@ -319,12 +319,13 @@ fn late_acknowledgement_retains_ambiguous_batch() {
 }
 
 #[test]
-#[ignore = "Known counterexample: attempts lack owner-scoped identity"]
-fn counterexample_foreign_owner_attempt_must_not_settle() {
+fn foreign_owner_attempt_cannot_settle_claim() {
     let p = partition("cross-owner", 0);
     let now = Instant::now();
     let a = Owner::new(identity(), Limits::new(1, 1, 1));
-    let b = Owner::new(identity(), Limits::new(1, 1, 1));
+    let mut other_identity = identity();
+    other_identity.producer_id += 1;
+    let b = Owner::new(other_identity, Limits::new(1, 1, 1));
     let _a_record = a.try_admit(p.clone(), vec![1], now + Duration::from_secs(60), None).expect("a admit");
     let _b_record = b.try_admit(p.clone(), vec![2], now + Duration::from_secs(60), None).expect("b admit");
     let a_batch = a.seal_batch(&p, 1, 1, now, 1).expect("a seal");
@@ -365,8 +366,7 @@ fn counterexample_expired_outside_limit_must_not_block_prefix() {
 }
 
 #[test]
-#[ignore = "Known counterexample: a claim can outlive its payload root"]
-fn counterexample_claim_must_keep_root_alive() {
+fn claim_and_attempt_keep_root_alive_until_both_drop() {
     let p = partition("root-lifetime", 0);
     let now = Instant::now();
     let owner = Owner::new(identity(), Limits::new(1, 1, 1));
@@ -374,7 +374,38 @@ fn counterexample_claim_must_keep_root_alive() {
     let batch = owner.seal_batch(&p, 1, 1, now, 1).expect("seal");
     let claim = owner.claim(batch).expect("claim");
     let root_alive = owner.root_lifetime_probe();
+    let attempt = claim.offer_at(now).expect("offer");
     drop(owner);
-    let offered = claim.offer_at(now).is_ok();
-    assert!(root_alive() || !offered, "CLAIM_OFFERED_WITHOUT_ROOT");
+    assert!(root_alive(), "claim and attempt retain the root");
+    drop(claim);
+    assert!(root_alive(), "attempt retains the root after claim is dropped");
+    drop(attempt);
+    assert!(!root_alive(), "the final attempt releases the root");
+}
+
+#[test]
+fn successful_retirement_drops_observed_record_after_unlocking_root() {
+    use std::sync::mpsc;
+    use std::thread;
+
+    let owner = Owner::new(identity(), Limits::new(1, 1, 1));
+    let p = partition("reclaim", 0);
+    let now = Instant::now();
+    let record = owner.try_admit(p.clone(), vec![1], now + Duration::from_secs(60), None).expect("admit");
+    let batch = owner.seal_batch(&p, 1, 1, now, 1).expect("seal");
+    let claim = owner.claim(batch).expect("claim");
+    let attempt = claim.offer_at(now).expect("offer");
+    claim.acknowledge_at(attempt, now).expect("ack");
+
+    let (send, receive) = mpsc::channel();
+    let observed_owner = owner.clone();
+    owner.install_drop_probe(record, move || {
+        let counts = observed_owner.counts();
+        send.send(counts).expect("probe receiver alive");
+    }).expect("install probe");
+    let retiring_owner = owner.clone();
+    let task = thread::spawn(move || retiring_owner.retire_after_publication(batch));
+    let observed = receive.recv_timeout(Duration::from_secs(2)).expect("record destructor must access unlocked root");
+    assert_eq!(observed.expect("counts"), (0, 0));
+    task.join().expect("retirement thread").expect("retire");
 }
