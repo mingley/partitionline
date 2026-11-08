@@ -39,6 +39,12 @@ later changes; see the linked runs for their exact source and scope.
 | Client capability profiles | Both passed selected checks; their archives were not independently inspected. |
 | Client format, all-target Clippy, audit, docs, package, auth and integrity smoke | Passed. Other client jobs failed or were skipped. |
 
+A [later partial broker run][ci-6902] stopped at 490 default library tests
+passed, one failed and four ignored. A disconnect test observed that its
+handler guard had not dropped after 32 yields; the cause and later behavior
+are unknown. Later behavioral and strict checks in that job did not run;
+inventory and fuzz supervision passed separately.
+
 The [earlier broker proposal failure][ci-e487-raft] returned `NotLeader` after a
 previously selected leader was used. Later node samples do not establish the
 cause or whether the proposal was appended or committed. It was not retried. The later broker pass does not explain that failure.
@@ -159,7 +165,7 @@ retained evidence. The [benchmark contract](benchmark-contract.md) and
 [ci]: https://github.com/mingley/partitionline/blob/ec1bd5191b0410df771838574f8bbff752fb31c0/docs/evidence/releases/main-ci-d257-20261108/README.md
 [ci-262]: https://github.com/mingley/partitionline/blob/cb55f7c603e2344775de8a395c6a584737f5bb95/docs/evidence/releases/main-ci-262-20261108/README.md
 [ci-02c]: https://github.com/mingley/partitionline/blob/0ce81683fe7107386e30f388cd2a4af31735d522/docs/evidence/releases/main-ci-02c-20261108/README.md
-[next]: https://github.com/mingley/partitionline/blob/41ba724701109a935856e9a9343edd6a474360d8/docs/plan/next-work.md
+[next]: https://github.com/mingley/partitionline/blob/ed1f82f06d30d92a77a996223234ca229db6ffe0/docs/plan/next-work.md
 [flush-public]: https://github.com/mingley/partitionline/blob/f93e91499e2ba6bdc88c0a25a0d83b8737d00d3c/docs/evidence/client/producer-flush-public-20261108/README.md
 [flush-sent]: https://github.com/mingley/partitionline/blob/efa7f23314e98f3aaa4559c3cf38302bdcdb9fb4/docs/evidence/client/producer-flush-sent-20261108/README.md
 [owner-design]: https://github.com/mingley/partitionline/blob/cb55f7c603e2344775de8a395c6a584737f5bb95/docs/evidence/client/producer-ownership-design-20261108/README.md
@@ -201,3 +207,5 @@ retained evidence. The [benchmark contract](benchmark-contract.md) and
 [frame-classify]: https://github.com/mingley/partitionline/blob/41ba724701109a935856e9a9343edd6a474360d8/docs/evidence/broker/frame-classification-20261108/README.md
 
 [frame-regression]: https://github.com/mingley/partitionline/blob/41ba724701109a935856e9a9343edd6a474360d8/docs/evidence/broker/frame-read-regression-tests-20261108/README.md
+
+[ci-6902]: https://github.com/mingley/partitionline/blob/ed1f82f06d30d92a77a996223234ca229db6ffe0/docs/evidence/releases/main-ci-6902-20261108/README.md
