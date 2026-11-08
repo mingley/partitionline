@@ -1,0 +1,48 @@
+name: send-all-route-v5-qualification
+on:
+  push:
+    branches: [qualification/send-all-route-v5-20261108]
+  workflow_dispatch:
+
+jobs:
+  controls:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    strategy:
+      fail-fast: false
+      matrix:
+        profile: [default, all-features]
+    env:
+      RUSTFLAGS: "--cfg send_all_qualification --check-cfg=cfg(send_all_qualification)"
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Pin source and toolchain
+        run: |
+          mkdir -p target/send-all-route-controls
+          {
+            git rev-parse HEAD HEAD:src/producer.rs HEAD:tests/common/mod.rs HEAD:tests/send_all_route_qualification.rs
+            sha256sum src/producer.rs tests/common/mod.rs tests/send_all_route_qualification.rs Cargo.lock
+            rustc +stable -Vv
+            cargo +stable -V
+            cat /sys/fs/cgroup/cpu.max || true
+          } | tee target/send-all-route-controls/provenance.txt
+      - name: Run untimed controls
+        shell: bash
+        run: |
+          set -o pipefail
+          feature=()
+          if [ "${{ matrix.profile }}" = all-features ]; then feature=(--all-features); fi
+          cargo +stable test --locked --test send_all_route_qualification "${feature[@]}" -- --test-threads=1 --nocapture 2>&1 | tee target/send-all-route-controls/tests.log
+      - name: Record test binary hashes
+        if: always()
+        run: |
+          find target/debug/deps -maxdepth 1 -type f -executable -name 'send_all_route_qualification-*' -exec sha256sum {} + | tee target/send-all-route-controls/binaries.txt
+      - name: Retain logs and provenance
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: send-all-route-v5-controls-${{ matrix.profile }}-${{ github.sha }}
+          path: target/send-all-route-controls
+          if-no-files-found: error
+          retention-days: 30
