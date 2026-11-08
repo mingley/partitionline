@@ -39,6 +39,13 @@ later changes; see the linked runs for their exact source and scope.
 | Client capability profiles | Both passed selected checks; their archives were not independently inspected. |
 | Client format, all-target Clippy, audit, docs, package, auth and integrity smoke | Passed. Other client jobs failed or were skipped. |
 
+A later [partial main CI snapshot][ci-536] passed 781 broker default tests,
+with four ignored, but its all-feature library stopped after one Raft failure
+(534 passed, four ignored). Client libraries and four completed Kafka jobs
+failed; the Kafka 3.9.1 smoke was still running when recorded. Both selected
+capability profiles passed. The earlier broker pass does not explain the later
+failure.
+
 An [earlier partial broker run][ci-912] passed its default profile but stopped
 the all-feature profile after three Raft runtime failures. Its later strict
 checks did not run. Inventory, fuzz supervision and selected capability
@@ -150,7 +157,10 @@ latency bound.
   [test revision][admin-poll] checks cooperative progress without establishing
   a wall-time bound. Non-null response names are not checked against the
   request, longer cursor cycles can duplicate results, and cleanup and memory
-  are not globally bounded. [Admin response reservations][admin-reserve] cap
+  are not globally bounded. A [row-poll baseline][admin-row] measured a
+  93–98 ms longest public-future poll after a mock peer wrote 500,000 rows on
+  one x86 host. That poll includes other work and is not a Kafka throughput or
+  wall-time bound. [Admin response reservations][admin-reserve] cap
   initial capacity requests in seven response families, but results can grow.
   A separate [DescribeTopicPartitions reservation candidate][dtp-reserve]
   remains unapplied after valid-decode regressions. GSSAPI and
@@ -242,3 +252,6 @@ retained evidence. The [benchmark contract](benchmark-contract.md) and
 [admin-null]: https://github.com/mingley/partitionline/blob/ad452fea03dcdde7e946322b3c55ca35bbccc224/docs/evidence/client/admin-topic-identity-null-20261108/README.md
 [ci-c481]: https://github.com/mingley/partitionline/blob/ad452fea03dcdde7e946322b3c55ca35bbccc224/docs/evidence/releases/main-ci-c481-partial-20261108/README.md
 [ci-912]: https://github.com/mingley/partitionline/blob/ed10995700da3252dbefb4696e1afd7dfe5a008d/docs/evidence/releases/main-ci-912-partial-20261108/README.md
+
+[ci-536]: https://github.com/mingley/partitionline/blob/a0deb28cfdb8eb85fd16a1b3264b35fceb2c74e1/docs/evidence/releases/main-ci-536-partial-20261108/README.md
+[admin-row]: https://github.com/mingley/partitionline/blob/a0deb28cfdb8eb85fd16a1b3264b35fceb2c74e1/docs/evidence/client/admin-dtp-row-poll-20261108/README.md
