@@ -1,0 +1,43 @@
+name: Raft supervised shutdown race control
+on:
+  push:
+    branches: [qualification/raft-vote-shutdown-20261108]
+permissions:
+  contents: read
+jobs:
+  shutdown:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      CARGO_BUILD_JOBS: 2
+      CARGO_INCREMENTAL: 0
+      CARGO_PROFILE_TEST_DEBUG: 0
+      CARGO_PROFILE_DEV_DEBUG: 0
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Real supervisor shutdown during replacement
+        run: |
+          set -euo pipefail
+          rustc --version
+          for features in default all; do
+            args=()
+            if [[ "$features" == all ]]; then args=(--all-features); fi
+            cargo test --locked --manifest-path partitionline-broker/Cargo.toml --lib "${args[@]}" supervisor_shutdown_during_replacement_cancels_exact_pending_vote -- --nocapture
+          done
+      - name: Dropped pending cancellation negative control
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path("partitionline-broker/src/raft/runtime.rs")
+          s=p.read_text()
+          old="if let Some(job) = jobs.close() {\n        let _ = control.cancel_job(job).await;\n    }"
+          assert s.count(old)==1
+          p.write_text(s.replace(old, "drop(jobs.close());", 1))
+          PY
+          if cargo test --locked --manifest-path partitionline-broker/Cargo.toml --lib supervisor_shutdown_during_replacement_cancels_exact_pending_vote -- --nocapture > /tmp/raft-no-pending-cancel.log 2>&1; then
+            cat /tmp/raft-no-pending-cancel.log; exit 1
+          fi
+          cat /tmp/raft-no-pending-cancel.log
+          grep -F "pending vote was not canceled before supervisor resumed" /tmp/raft-no-pending-cancel.log
