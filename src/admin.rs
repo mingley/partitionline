@@ -16750,6 +16750,12 @@ async fn index_requested_dtp_names<'a, T: AsRef<str>>(
         walked += 1;
         if walked == 8 * 1024 {
             walked = 0;
+            #[cfg(test)]
+            DTP_REQUESTED_INDEX_PROGRESS.with(|probe| {
+                if let Some(count) = probe.get() {
+                    probe.set(Some(count.saturating_add(8 * 1024)));
+                }
+            });
             tokio::task::yield_now().await;
         }
     }
@@ -16803,6 +16809,7 @@ impl<'a, T: AsRef<str>> RequestedDtpNames<'a, T> {
 #[cfg(test)]
 std::thread_local! {
     static DTP_REMAINING_SCAN_PROGRESS: std::cell::Cell<Option<usize>> = const { std::cell::Cell::new(None) };
+    static DTP_REQUESTED_INDEX_PROGRESS: std::cell::Cell<Option<usize>> = const { std::cell::Cell::new(None) };
 }
 
 async fn remaining_dtp_has_unnamed<'a>(

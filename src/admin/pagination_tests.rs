@@ -1705,38 +1705,158 @@ fn dtp_requested_names_scan_yields_after_progress() {
     assert_eq!(seen.get(), 16_385);
 }
 
-#[tokio::test]
-async fn dtp_requested_names_cancel_during_index_keeps_socket_usable() {
-    use std::future::Future;
+#[tokio::test(flavor = "current_thread")]
+async fn dtp_requested_names_cancel_during_deferred_index_keeps_socket_usable() {
+    struct ResetIndexProbe(Option<usize>);
+    impl Drop for ResetIndexProbe {
+        fn drop(&mut self) {
+            DTP_REQUESTED_INDEX_PROGRESS.with(|probe| probe.set(self.0));
+        }
+    }
 
+    let previous = DTP_REQUESTED_INDEX_PROGRESS.with(|probe| probe.replace(Some(0)));
+    let _reset = ResetIndexProbe(previous);
     let (mut admin, listener) = admin_and_listener().await;
-    let names = vec!["orders"; 8_193];
+    let mut names = vec!["a"; 50_000];
+    names[2] = "orders";
+    let peer_names = names.clone();
+    let peer = tokio::spawn(async move {
+        let (mut socket, _) = listener.accept().await.unwrap();
+        socket.set_nodelay(true).unwrap();
+        let header = dtp_named_request(&mut socket, &peer_names, None).await;
+        send_page(&mut socket, &header, &page(0, None))
+            .await
+            .unwrap();
+        let raw = dtp_named_request(&mut socket, &["orders"], None).await;
+        send_page(&mut socket, &raw, &page(42, None))
+            .await
+            .unwrap();
+    });
     let mut call = Box::pin(admin.describe_topics_with_partition_limit_timeout(
         names.iter(),
         false,
         1,
-        Duration::from_secs(5),
+        Duration::from_secs(10),
     ));
-    std::future::poll_fn(|cx| {
-        assert!(call.as_mut().poll(cx).is_pending());
-        std::task::Poll::Ready(())
-    })
-    .await;
+    loop {
+        tokio::select! {
+            biased;
+            result = &mut call => panic!("finished before deferred index cancellation: {result:?}"),
+            () = tokio::task::yield_now() => {}
+        }
+        let processed = DTP_REQUESTED_INDEX_PROGRESS.with(|probe| probe.get().unwrap_or(0));
+        if processed >= 8_192 {
+            break;
+        }
+    }
     drop(call);
     assert!(!admin.conn.is_closed());
-    let peer = tokio::spawn(async move {
-        let (mut socket, _) = listener.accept().await.unwrap();
-        let header = dtp_named_request(&mut socket, &["orders"], None).await;
-        send_page(&mut socket, &header, &page(42, None))
-            .await
-            .unwrap();
-    });
     let raw = admin
         .describe_topic_partitions_timeout(&["orders"], 1, None, Duration::from_secs(5))
         .await
         .unwrap();
     assert_eq!(raw.topics[0].partitions[0].partition_index, 42);
     peer.await.unwrap();
+}
+
+#[tokio::test]
+async fn dtp_requested_names_public_future_is_send() {
+    fn assert_send<T: Send>(_: T) {}
+
+    let (mut admin, _listener) = admin_and_listener().await;
+    let names = ["orders", "payments"];
+    assert_send(admin.describe_topics_with_partition_limit_timeout(
+        names.iter(),
+        false,
+        1,
+        Duration::from_secs(5),
+    ));
+}
+
+#[tokio::test]
+async fn dtp_requested_names_hint_falls_back_for_reordering_and_duplicates() {
+    let names = ["a", "b", "c", "d", "e", "f", "g", "h", "i", "j"];
+    let mut requested = RequestedDtpNames::new(&names);
+    for name in ["a", "a", "b", "c"] {
+        assert!(requested.contains(name).await);
+        assert!(requested.index.is_none());
+    }
+    assert!(requested.contains("j").await);
+    assert!(requested.index.is_some());
+    assert!(requested.contains("a").await);
+    assert!(!requested.contains("not-requested").await);
+
+    let duplicates = ["a", "b", "b", "c", "d", "e", "f", "g", "h", "i"];
+    let mut requested = RequestedDtpNames::new(&duplicates);
+    for name in ["a", "b", "c", "a"] {
+        assert!(requested.contains(name).await);
+    }
+    assert!(requested.index.is_some());
+}
+
+#[tokio::test]
+async fn dtp_requested_names_deferred_index_has_capped_initial_capacity() {
+    let names = vec!["orders"; 50_000];
+    let mut requested = RequestedDtpNames::new(&names);
+    assert!(!requested.contains("unrequested").await);
+    let index = requested.index.as_ref().unwrap();
+    assert_eq!(index.len(), 1);
+    let max_initial_capacity = HashSet::<&str>::with_capacity(32).capacity();
+    assert!(index.capacity() <= max_initial_capacity);
+}
+
+#[tokio::test]
+async fn dtp_requested_names_reordered_cursor_and_rows_preserve_pages() {
+    let (mut admin, listener) = admin_and_listener().await;
+    let mut names: Vec<String> = (0..12).map(|n| format!("topic-{n}")).collect();
+    names.push(names[0].clone());
+    let peer_names = names.clone();
+    let peer = tokio::spawn(async move {
+        let (mut socket, _) = listener.accept().await.unwrap();
+        let expected: Vec<&str> = peer_names.iter().map(String::as_str).collect();
+        let header = dtp_named_request(&mut socket, &expected, None).await;
+        let mut first = page(0, Some(("topic-1", 1)));
+        first.topics[0].name = Some("topic-0".into());
+        let mut second_topic = page(0, None).topics.pop().unwrap();
+        second_topic.name = Some("topic-1".into());
+        first.topics.push(second_topic);
+        send_page(&mut socket, &header, &first).await.unwrap();
+
+        let header = dtp_named_request(&mut socket, &expected, Some(("topic-1", 1))).await;
+        let mut second = page(1, Some(("topic-0", 4)));
+        second.topics[0].name = Some("topic-1".into());
+        let mut third_topic = page(0, None).topics.pop().unwrap();
+        third_topic.name = Some("topic-2".into());
+        second.topics.push(third_topic);
+        send_page(&mut socket, &header, &second).await.unwrap();
+
+        let header = dtp_named_request(&mut socket, &expected, Some(("topic-0", 4))).await;
+        let mut third = page(4, None);
+        third.topics[0].name = Some("topic-0".into());
+        send_page(&mut socket, &header, &third).await.unwrap();
+    });
+    let result = admin
+        .describe_topics_with_partition_limit_timeout(
+            names.iter(),
+            false,
+            1,
+            Duration::from_secs(5),
+        )
+        .await
+        .unwrap();
+    peer.await.unwrap();
+    assert_eq!(
+        result.iter().map(TopicDescription::name).collect::<Vec<_>>(),
+        ["topic-0", "topic-1", "topic-2"]
+    );
+    assert_eq!(
+        result[0].partitions().iter().map(|p| p.partition).collect::<Vec<_>>(),
+        [0, 4]
+    );
+    assert_eq!(
+        result[1].partitions().iter().map(|p| p.partition).collect::<Vec<_>>(),
+        [0, 1]
+    );
 }
 
 #[test]
