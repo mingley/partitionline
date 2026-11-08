@@ -2307,10 +2307,8 @@ mod tests {
         let nanos = std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)?
             .as_nanos();
-        let root = std::env::temp_dir().join(format!(
-            "pl-cancel-{}-{nanos}-{label}",
-            std::process::id()
-        ));
+        let root =
+            std::env::temp_dir().join(format!("pl-cancel-{}-{nanos}-{label}", std::process::id()));
         std::fs::create_dir(&root)?;
         let common = metadata::Config::new(0, "127.0.0.1".into(), 9092, "cancel".into());
         let (mut catalog, _) = Catalog::open(root.join("catalog"), common.catalog_limits)?;
@@ -2335,19 +2333,25 @@ mod tests {
     #[test]
     fn cancel_ungrouped_after_first_stage_rolls_back() -> Result<(), Box<dyn std::error::Error>> {
         use std::cell::Cell;
-        let (root, common, catalog, mut store, id) =
-            cancellation_test_fixture("ungrouped", false)?;
+        let (root, common, catalog, mut store, id) = cancellation_test_fixture("ungrouped", false)?;
         let mut input = cancellation_test_request(&[0, 1])?;
         let calls = Cell::new(0_usize);
-        let result = process(&catalog, &mut store, &mut input, &common, Instant::now(), || {
-            let next = calls.get() + 1;
-            calls.set(next);
-            if next == 3 {
-                Err(Error::Canceled)
-            } else {
-                Ok(())
-            }
-        });
+        let result = process(
+            &catalog,
+            &mut store,
+            &mut input,
+            &common,
+            Instant::now(),
+            || {
+                let next = calls.get() + 1;
+                calls.set(next);
+                if next == 3 {
+                    Err(Error::Canceled)
+                } else {
+                    Ok(())
+                }
+            },
+        );
         assert!(matches!(result, Err(Error::Canceled)));
         assert_eq!(calls.get(), 3);
         assert_eq!(store.slots.len(), 1);
@@ -2360,8 +2364,15 @@ mod tests {
         assert!(fetched?.is_empty());
 
         let mut retry = cancellation_test_request(&[0, 1])?;
-        assert!(process(&catalog, &mut store, &mut retry, &common, Instant::now(), || Ok(()))?
-            .is_some());
+        assert!(process(
+            &catalog,
+            &mut store,
+            &mut retry,
+            &common,
+            Instant::now(),
+            || Ok(())
+        )?
+        .is_some());
         assert_eq!(store.log_bounds(id, 0), Ok((0, 1)));
         assert_eq!(store.log_bounds(id, 1), Ok((0, 1)));
         let config = store.config.clone();
@@ -2419,8 +2430,15 @@ mod tests {
             .map_err(|code| std::io::Error::other(format!("slot error {code}")))?;
         assert_eq!(store.slots[position].partition.fetch(0, 2, 4096)?.len(), 1);
         let mut retry = cancellation_test_request(&[0])?;
-        assert!(process(&catalog, &mut store, &mut retry, &common, Instant::now(), || Ok(()))?
-            .is_some());
+        assert!(process(
+            &catalog,
+            &mut store,
+            &mut retry,
+            &common,
+            Instant::now(),
+            || Ok(())
+        )?
+        .is_some());
         assert_eq!(store.log_bounds(id, 0), Ok((0, 2)));
         drop(store);
         drop(catalog);
@@ -2434,15 +2452,22 @@ mod tests {
         let (root, common, catalog, mut store, id) = cancellation_test_fixture("rolling", true)?;
         let mut input = cancellation_test_request(&[0, 1])?;
         let calls = Cell::new(0_usize);
-        let result = process(&catalog, &mut store, &mut input, &common, Instant::now(), || {
-            let next = calls.get() + 1;
-            calls.set(next);
-            if next == 3 {
-                Err(Error::Canceled)
-            } else {
-                Ok(())
-            }
-        });
+        let result = process(
+            &catalog,
+            &mut store,
+            &mut input,
+            &common,
+            Instant::now(),
+            || {
+                let next = calls.get() + 1;
+                calls.set(next);
+                if next == 3 {
+                    Err(Error::Canceled)
+                } else {
+                    Ok(())
+                }
+            },
+        );
         assert!(matches!(result, Err(Error::Canceled)));
         assert_eq!(calls.get(), 3);
         assert_eq!(store.log_bounds(id, 0), Ok((0, 1)));
@@ -2455,7 +2480,10 @@ mod tests {
             .map_err(|code| std::io::Error::other(format!("slot error {code}")))?;
         assert_eq!(reopened.log_bounds(id, 0), Ok((0, 1)));
         assert_eq!(reopened.log_bounds(id, 1), Ok((0, 0)));
-        assert_eq!(reopened.slots[position].partition.fetch(0, 2, 4096)?.len(), 1);
+        assert_eq!(
+            reopened.slots[position].partition.fetch(0, 2, 4096)?.len(),
+            1
+        );
         drop(reopened);
         drop(catalog);
         std::fs::remove_dir_all(root)?;
