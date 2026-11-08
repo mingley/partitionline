@@ -1,0 +1,98 @@
+name: Broker buffered read tests controls
+on:
+  push:
+    branches: [qualification/broker-buffered-read-tests-gate-20261108]
+permissions:
+  contents: read
+jobs:
+  controls:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      CARGO_BUILD_JOBS: 2
+      CARGO_INCREMENTAL: 0
+      CARGO_PROFILE_TEST_DEBUG: 0
+      CARGO_PROFILE_DEV_DEBUG: 0
+      CARGO_TERM_COLOR: never
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Check exact source and positive controls
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD^)" = "0f4261da256552640db4ecdfa6ef45c840122ad2"
+          test "$(git rev-parse HEAD:partitionline-broker/src/transport.rs)" = "b84ca76cab8d8340147795e9665584326657cc9c"
+          test "$(git hash-object partitionline-broker/src/transport.rs)" = "b84ca76cab8d8340147795e9665584326657cc9c"
+          cp partitionline-broker/src/transport.rs /tmp/buffered-test-clean.rs
+          for profile in default all; do
+            args=()
+            if [[ "$profile" == all ]]; then args=(--all-features); fi
+            for name in cancelled_buffered_pipeline_read_keeps_partial_next_frame partially_prefetched_invalid_lengths_do_not_consume_the_body; do
+              cargo test --locked --manifest-path partitionline-broker/Cargo.toml --lib "${args[@]}" "$name" -- --nocapture | tee /tmp/buffered-test-positive.log
+              grep -qE '^test result: ok\. 1 passed; 0 failed;' /tmp/buffered-test-positive.log
+            done
+          done
+      - name: Reject partial state loss
+        run: |
+          set -euo pipefail
+          cp /tmp/buffered-test-clean.rs partitionline-broker/src/transport.rs
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path("partitionline-broker/src/transport.rs")
+          s=p.read_text()
+          mark="if progress.record(n).is_some()"
+          assert s.count(mark)==1
+          start=s.index(mark)
+          text="tokio::task::yield_now().await;"
+          end=s.index(text,start)
+          assert end-start<300 and "classify_ahead(ahead.pending()" in s[start:end]
+          s=s[:end]+"frame_mut(&mut ahead.bytes).clear();\n                "+s[end:]
+          p.write_text(s)
+          PY
+          if cargo test --locked --manifest-path partitionline-broker/Cargo.toml --lib cancelled_buffered_pipeline_read_keeps_partial_next_frame -- --nocapture > /tmp/buffered-state-mutant.log 2>&1; then cat /tmp/buffered-state-mutant.log; exit 1; fi
+          cat /tmp/buffered-state-mutant.log
+          grep -F "cancellation lost or reordered the partial frame" /tmp/buffered-state-mutant.log
+          cp /tmp/buffered-test-clean.rs partitionline-broker/src/transport.rs
+      - name: Reject disabled invalid-prefix checks
+        run: |
+          set -euo pipefail
+          cp /tmp/buffered-test-clean.rs partitionline-broker/src/transport.rs
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path("partitionline-broker/src/transport.rs")
+          s=p.read_text()
+          a="        Ahead::Invalid => Err(Exit::InvalidLength),\n        Ahead::Ready => {"
+          b="        Ahead::Invalid => Ok(false),\n        Ahead::Ready => {"
+          c="            let Ahead::Need(budget) = classify_ahead(ahead.pending(), config.max_request_bytes)\n            else {\n                return Err(Exit::InvalidLength);\n            };"
+          d="            let budget = match classify_ahead(ahead.pending(), config.max_request_bytes) {\n                Ahead::Need(budget) => budget,\n                _ => 1,\n            };"
+          assert s.count(a)==1 and s.count(c)==1
+          p.write_text(s.replace(a,b,1).replace(c,d,1))
+          PY
+          if cargo test --locked --manifest-path partitionline-broker/Cargo.toml --lib partially_prefetched_invalid_lengths_do_not_consume_the_body -- --nocapture > /tmp/buffered-invalid-mutant.log 2>&1; then cat /tmp/buffered-invalid-mutant.log; exit 1; fi
+          cat /tmp/buffered-invalid-mutant.log
+          grep -F "invalid buffered prefix was not rejected" /tmp/buffered-invalid-mutant.log
+          cp /tmp/buffered-test-clean.rs partitionline-broker/src/transport.rs
+  strict:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      CARGO_BUILD_JOBS: 2
+      CARGO_INCREMENTAL: 0
+      CARGO_PROFILE_DEV_DEBUG: 0
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - name: Check exact source, format and strict lint
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD^)" = "0f4261da256552640db4ecdfa6ef45c840122ad2"
+          test "$(git rev-parse HEAD:partitionline-broker/src/transport.rs)" = "b84ca76cab8d8340147795e9665584326657cc9c"
+          test "$(git hash-object partitionline-broker/src/transport.rs)" = "b84ca76cab8d8340147795e9665584326657cc9c"
+          cargo fmt --manifest-path partitionline-broker/Cargo.toml -- --check
+          cargo clippy --locked --manifest-path partitionline-broker/Cargo.toml --all-targets --all-features -- -D warnings
