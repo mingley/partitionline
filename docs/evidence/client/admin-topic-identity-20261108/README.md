@@ -80,7 +80,12 @@ later-error propagation, first-error retention, known-ID comparison,
 known-ID tracking after an unknown page, cleanup yielding, error cleanup,
 and conflict cleanup. Each intended permanent test failed under its
 mutation, and both jobs verified the original source hash after restoration.
-The [matched whole-suite baseline control][broad] is still running.
+The [first matched whole-suite baseline control][broad] stopped after its
+first baseline suite failed: GitHub's Bash wrapper retained `-e`, so the
+harness exited before printing that suite's status and before any other arm
+ran. The [captured baseline log][broad-artifact] was uploaded. A
+[corrected matched control][broad2] explicitly captures each status and is
+running; the first attempt is not a complete comparison.
 
 ## Limits
 
@@ -135,3 +140,5 @@ The candidate binary SHA-256 was
 [final]: https://github.com/mingley/partitionline/actions/runs/42475657022
 [perf]: https://github.com/mingley/partitionline/actions/runs/42475135691
 [broad]: https://github.com/mingley/partitionline/actions/runs/42475935325
+[broad-artifact]: https://github.com/mingley/partitionline/actions/runs/42475935325/artifacts/13615189307
+[broad2]: https://github.com/mingley/partitionline/actions/runs/42476592121
