@@ -15,16 +15,24 @@ pub mod send_all_qualification {
     static REACHED: Notify = Notify::const_new();
     static RELEASE: Notify = Notify::const_new();
 
+    /// Snapshot of qualification-only path events.
     #[derive(Debug)]
     pub struct Snapshot {
+        /// Singleton nudge selected.
         pub shortcut: usize,
+        /// Original suffix nudge selected.
         pub fallback: usize,
+        /// Yield boundaries reached.
         pub yields: usize,
+        /// Connect queue sends accepted.
         pub nudge_sent: usize,
+        /// Connect queue sends rejected as full.
         pub nudge_full: usize,
+        /// Connect queue sends rejected as closed.
         pub nudge_closed: usize,
     }
 
+    /// Reset counters when no qualification future is running.
     pub fn reset() {
         SHORTCUT.store(0, Ordering::SeqCst);
         FALLBACK.store(0, Ordering::SeqCst);
@@ -34,6 +42,7 @@ pub mod send_all_qualification {
         NUDGE_CLOSED.store(0, Ordering::SeqCst);
         ARMED.store(0, Ordering::SeqCst);
     }
+    /// Read all counters.
     pub fn snapshot() -> Snapshot {
         Snapshot {
             shortcut: SHORTCUT.load(Ordering::SeqCst),
@@ -49,7 +58,9 @@ pub mod send_all_qualification {
         assert!(kind == 1 || kind == 2);
         assert_eq!(ARMED.swap(kind, Ordering::SeqCst), 0);
     }
+    /// Wait until the armed checkpoint is reached.
     pub async fn reached() { REACHED.notified().await; }
+    /// Release a future held at the checkpoint.
     pub fn release() { RELEASE.notify_one(); }
     pub(super) async fn checkpoint(kind: u8) {
         if ARMED.compare_exchange(kind, 0, Ordering::SeqCst, Ordering::SeqCst).is_ok() {
@@ -57,12 +68,12 @@ pub mod send_all_qualification {
             RELEASE.notified().await;
         }
     }
-    pub(super) fn shortcut() { SHORTCUT.fetch_add(1, Ordering::SeqCst); }
-    pub(super) fn fallback() { FALLBACK.fetch_add(1, Ordering::SeqCst); }
-    pub(super) fn yielded() { YIELDS.fetch_add(1, Ordering::SeqCst); }
-    pub(super) fn sent() { NUDGE_SENT.fetch_add(1, Ordering::SeqCst); }
-    pub(super) fn full() { NUDGE_FULL.fetch_add(1, Ordering::SeqCst); }
-    pub(super) fn closed() { NUDGE_CLOSED.fetch_add(1, Ordering::SeqCst); }
+    pub(super) fn shortcut() { let _ = SHORTCUT.fetch_add(1, Ordering::SeqCst); }
+    pub(super) fn fallback() { let _ = FALLBACK.fetch_add(1, Ordering::SeqCst); }
+    pub(super) fn yielded() { let _ = YIELDS.fetch_add(1, Ordering::SeqCst); }
+    pub(super) fn sent() { let _ = NUDGE_SENT.fetch_add(1, Ordering::SeqCst); }
+    pub(super) fn full() { let _ = NUDGE_FULL.fetch_add(1, Ordering::SeqCst); }
+    pub(super) fn closed() { let _ = NUDGE_CLOSED.fetch_add(1, Ordering::SeqCst); }
 }
 
 use std::collections::{HashMap, HashSet, VecDeque};
