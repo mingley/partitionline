@@ -1218,7 +1218,7 @@ fn observer_failure_sample(
         if index != next_index
             || term == 0
             || term < previous_term
-            || (kind == 1) != payload.is_empty()
+            || (kind == 1 && !payload.is_empty())
         {
             valid = false;
         }
@@ -1282,6 +1282,10 @@ fn observer_failure_sample_checks_identity_and_bounds_output() -> TestResult {
     let wrong_term = format!("1:1:1:;1:2:0:{first};2:3:0:{second}");
     let report = observer_failure_sample(&wrong_term, &expected, 2, 3);
     assert!(report.contains("expected_exact=[true, false]"));
+    let empty_data = format!("1:1:1:;1:2:0:;1:3:0:{second}");
+    let report = observer_failure_sample(&empty_data, &expected, 1, 3);
+    assert!(report.contains("structural_sample_through_image_base=true"));
+    assert!(report.contains("expected_exact=[false, true]"));
     let malformed = "1:1:1:;1:2:0:zz";
     let report = observer_failure_sample(malformed, &expected, 1, 3);
     assert!(report.contains("malformed_entry=1"));

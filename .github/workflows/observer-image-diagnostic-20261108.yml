@@ -29,7 +29,7 @@ jobs:
         run: |
           set -euo pipefail
           git merge-base --is-ancestor 1036a393eb85f23032b935bf86862b7e98e36e14 HEAD
-          test "$(git rev-parse HEAD:partitionline-broker/tests/common/raft_runtime.rs)" = 720ee937c12998759e9fcd8f7637a36f92322291
+          test "$(git rev-parse HEAD:partitionline-broker/tests/common/raft_runtime.rs)" = 344643b7a686db9bb6017a526531d736324c12c3
           grep -F 'assert!(image_bytes > 64 * 1024, "real transfer must exceed 64KiB");' partitionline-broker/tests/common/raft_runtime.rs
           grep -F 'assert_eq!(base, committed);' partitionline-broker/tests/common/raft_runtime.rs
           rustc +stable -Vv
