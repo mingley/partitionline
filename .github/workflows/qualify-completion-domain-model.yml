@@ -1,0 +1,46 @@
+name: qualify-completion-domain-model
+
+on:
+  push:
+    branches: [qualification/completion-domain-model-20261108]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  model:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+      - name: Provenance
+        run: |
+          set -euo pipefail
+          git rev-parse HEAD
+          git rev-parse HEAD:docs/evidence/client/producer-completion-model-20261108/model.rs
+          sha256sum docs/evidence/client/producer-completion-model-20261108/model.rs
+          rustc +stable -Vv
+          uname -a
+          lscpu | awk '/Architecture:|Model name:|CPU\\(s\\):/'
+      - name: Run model controls
+        run: |
+          set -euo pipefail
+          mkdir -p target/completion-model
+          rustc +stable --edition=2024 --test -O docs/evidence/client/producer-completion-model-20261108/model.rs -o target/completion-model/model-tests
+          sha256sum target/completion-model/model-tests
+          target/completion-model/model-tests --test-threads=1
+      - name: Measure the standalone model
+        run: |
+          set -euo pipefail
+          rustc +stable --edition=2024 -O -A dead_code docs/evidence/client/producer-completion-model-20261108/model.rs -o target/completion-model/model
+          sha256sum target/completion-model/model
+          target/completion-model/model
+      - name: Check formatting
+        run: rustfmt +stable --edition=2024 --check docs/evidence/client/producer-completion-model-20261108/model.rs
+      - name: Print formatted source after a failure
+        if: failure()
+        run: rustfmt +stable --edition=2024 --emit stdout docs/evidence/client/producer-completion-model-20261108/model.rs

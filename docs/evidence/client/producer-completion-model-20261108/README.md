@@ -1,0 +1,47 @@
+# Producer completion-domain model
+
+This is an isolated executable model. It does not change the producer and is
+not a production implementation.
+
+The model serializes admission, a flush cutoff, completion and worker lease
+arbitration with one mutex. Admitted records receive monotonically increasing
+sequence numbers. A flush waits until a contiguous completed prefix reaches its
+cutoff, so canceled and overlapping flushes do not lose older pending records.
+The model retains a bounded slot for every active sequence, coalesces completed
+out-of-order intervals, rejects stale lease incarnations, and stops admission
+on sequence or incarnation exhaustion. A bounded first-error slot is claimed
+only by the flush future that returns it; later worker errors are coalesced.
+Deadline expiry and a recorded delivery timeout are distinct model variants.
+
+The tests manually poll flush futures. They explore a concurrent claim versus
+recovery race, retired workers, finalization steps, overlapping and canceled
+flushes, bounded capacity, exhaustion, and a reference-set comparison for
+random out-of-order completions. The x86 Actions job also reports timings for
+the standalone model. Those timings do not measure the producer or establish a
+performance change.
+
+This model leaves essential work open:
+
+- A test explicitly marks resource release, receipt publication, and callback
+  completion. It does not own or execute those operations.
+- There is no real receiver, channel, waker registration, wakeup, timeout
+  driver, retry actor, sticky partitioner, or broker. The model future must be
+  manually repolled.
+- It does not implement an acyclic supervisor, bounded deferred callback
+  executor, transaction generation fence, producer close, or runtime shutdown.
+- Pre-admission ownership and byte reservations are not modeled. The model
+  begins at a committed logical admission.
+- Recovery from an in-flight lease assumes the old owner has stopped; it does
+  not prove this or resolve an ambiguous Kafka write or sequence.
+- Worker IDs are limited to 64 unique values and are never reused. A real
+  implementation needs a bounded, ABA-safe worker lifecycle.
+- The first-error policy intentionally coalesces later errors and is not scoped
+  to individual flush cutoffs. It is a placeholder, not a decision to change
+  the producer's documented error behavior.
+- The model's fixed static error strings avoid user-defined clone and destructor
+  behavior. Its mutex and manual polling do not demonstrate fairness or
+  nonblocking cleanup.
+
+The existing producer can still return from flush while a retiring worker owns
+an accepted record. This model is a tool for testing part of a possible design,
+not evidence that this or any other production gap is fixed.
