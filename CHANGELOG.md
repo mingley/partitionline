@@ -14,6 +14,9 @@ Earlier working notes and dated measurements are in the
 
 ### API and configuration changes
 
+- In the unpublished broker crate, `quotas::Error::code()` now returns `None`
+  for local throttling. Earlier revisions returned `Some(89)`; callers must
+  select any Kafka response according to its API and version.
 - Build with the latest stable Rust. Package manifests now require Rust 1.99.
   The compiler requirement and public API changes require at least a 0.2.0
   client release.
