@@ -16605,6 +16605,11 @@ async fn topic_description_from(t: &crate::protocol::api::TopicMetadata) -> Topi
     }
 }
 
+#[cfg(test)]
+std::thread_local! {
+    static DTP_ROW_YIELD_OBSERVER: std::cell::Cell<usize> = const { std::cell::Cell::new(0) };
+}
+
 // Carry the row budget across pages so a stream of immediately ready, small
 // pages does not bypass the checkpoint. A completed 8,192nd row yields even
 // when it is the last row in a page.
@@ -16624,6 +16629,8 @@ async fn convert_described_topic_page(
         *converted_rows += 1;
         if *converted_rows == 8 * 1024 {
             *converted_rows = 0;
+            #[cfg(test)]
+            DTP_ROW_YIELD_OBSERVER.with(|observed| observed.set(observed.get() + 1));
             tokio::task::yield_now().await;
         }
     }
