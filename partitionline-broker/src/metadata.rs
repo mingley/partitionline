@@ -3729,6 +3729,61 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn canceled_queued_fetch_releases_permit_before_actor_queue_drains(
+    ) -> Result<(), Box<dyn StdError>> {
+        let (router, release, path) = parked_maintenance(true, None, false, true);
+        let input =
+            include_bytes!("../tests/fixtures/fetch/4.3.1/fetch-v6-offset0.request.bin").to_vec();
+        let mut pending = Box::pin(router.dispatch(input.clone()));
+        std::future::poll_fn(|cx| match std::future::Future::poll(pending.as_mut(), cx) {
+            std::task::Poll::Pending => std::task::Poll::Ready(Ok(())),
+            std::task::Poll::Ready(result) => {
+                std::task::Poll::Ready(Err(format!("parked Fetch completed: {result:?}")))
+            }
+        })
+        .await?;
+        assert_eq!(router.sender.capacity(), 0, "Fetch was not queued");
+        assert_eq!(router.data_slots.available_permits(), 0);
+        drop(pending);
+        assert_eq!(
+            router.data_slots.available_permits(),
+            1,
+            "PL_CANCELED_PERMIT_LEAKED"
+        );
+        assert_eq!(router.sender.capacity(), 0);
+        assert!(matches!(
+            router.dispatch(input.clone()).await,
+            Err(Error::QueueFull)
+        ));
+        println!("PL_CANCELED_PERMIT_FREE_QUEUE_FULL");
+
+        release.send(())?;
+        tokio::time::timeout(Duration::from_secs(5), async {
+            loop {
+                match router.respond(request(3)).await {
+                    Err(Error::QueueFull) => tokio::task::yield_now().await,
+                    result => return result,
+                }
+            }
+        })
+        .await??;
+        assert_eq!(router.sender.capacity(), 1);
+        let response = router
+            .dispatch(input)
+            .await?
+            .ok_or("missing subsequent Fetch response")?;
+        assert_eq!(response.get(27..29), Some(&[0, 0][..]));
+        assert_eq!(response.get(29..37), Some(&0i64.to_be_bytes()[..]));
+        router.shutdown().await?;
+        tokio::task::spawn_blocking(move || -> std::io::Result<()> {
+            std::fs::remove_file(&path)?;
+            std::fs::remove_dir_all(path.with_extension("parts"))
+        })
+        .await??;
+        Ok(())
+    }
+
+    #[tokio::test]
     async fn unconsumed_data_receipt_keeps_admission_bounded() -> Result<(), Box<dyn StdError>> {
         let (router, release, path) = parked_profile(true);
         let input =
