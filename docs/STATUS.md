@@ -15,28 +15,29 @@ replicated partition data or native Kafka KRaft.
 
 ## Validation
 
-The latest complete snapshot recorded here is commit `6298f6bfbed2ab98189d291ebebd2190a2ee75b6`.
+The latest complete snapshot recorded here is commit `1036a393eb85f23032b935bf86862b7e98e36e14`.
 It includes the record validation, grouped journal reservation and Admin
 response allocation changes. The [CI evidence][ci] links the runs and their
 limits.
 
-| Check | Result at `6298f6b` |
+| Check | Result at `1036a39` |
 | --- | --- |
-| Client library, Linux default | 2,230 passed and 14 failed; the all-target run stopped at the library. |
-| Client library, Linux all features | 2,232 passed and 12 failed; later targets did not run. |
-| Windows default library | 2,233 passed and 11 failed. |
-| macOS arm64 default library | 2,234 passed and 10 failed. |
+| Client library, Linux default | 2,223 passed and 21 failed; the all-target run stopped at the library. |
+| Client library, Linux all features | 2,225 passed and 19 failed; later targets did not run. |
+| Windows default library | 2,226 passed and 18 failed. |
+| macOS arm64 default library | 2,233 passed and 11 failed. |
 | Kafka 4.1.2, 4.2.1 and 4.3.1 compatibility | All three jobs failed with stack overflows. |
 | Kafka 3.9.1 and 4.1.0 smoke | Both reported JoinGroup error 16 and exhausted EOS retries after timeouts. |
-| Broker default targets | 761 passed, three ignored. |
-| Broker all-feature targets | The library stopped at 516 passed, one failed and three ignored on a frame-read deadline test; later targets did not run. |
-| Broker format, inventory and fuzz supervision | Passed. Broker Clippy, Rustdoc and doctests were skipped after the failure. |
+| Broker default and all-feature targets | 762 and 910 passed, respectively; three descriptor diagnostics were ignored in each suite and passed separately on the same production source. Both doctest commands found zero tests. |
+| Broker Clippy, Rustdoc, inventory and fuzz supervision | Passed. |
 | Client capability profiles | Both passed selected checks; their archives were not independently inspected. |
 | Client format, all-target Clippy, audit, docs, package, auth and integrity smoke | Passed. Other client jobs failed or were skipped. |
 
-The frame-read test used a 30 ms deadline and required total elapsed time
-under 80 ms; it observed the deadline error after 82.681715 ms. The log does not show
-whether scheduling delay or time inside a read poll caused the excess.
+An earlier [frame-read test failure][deadline-test] used a 30 ms deadline
+and required total elapsed time under 80 ms; it observed the deadline error
+after 82.681715 ms. The cause is unknown. The revised test retains deadline
+and yield controls without imposing that wall-time threshold; production
+transport logic is unchanged.
 
 An [earlier partial client run][e02-client] at `e02c1b8` recorded 17 successful jobs,
 six failures, four cancellations and one skip. Linux default and Windows
@@ -76,11 +77,15 @@ pass does not replace the full release matrix.
 
 ## Open work
 
-- **Producer delivery and ordering.** `flush` can miss delivery timeouts or
-  return before a retiring worker hands off retries. Cancellation can also
-  consume an error without returning it. [Focused x86 tests][flush] reproduced
-  these failures in both feature profiles. Repair the barrier and error
-  ownership together. Partition issue order, sequence wrap, transaction
+- **Producer delivery and ordering.** `flush` can return before a retiring
+  worker hands off retries, and cancellation can consume a recorded worker
+  error without returning it. [Focused x86 tests][flush] cover both. A
+  [public mock history][flush-public] used a timing gate to observe flush
+  returning while an accepted record receipt was pending. An isolated
+  [completion model][flush-model] is not connected to the producer.
+  Individual delivery timeouts remain reported through the record's own
+  result or callback under the documented contract. Repair the barrier and
+  error ownership together. Partition issue order, sequence wrap, transaction
   fencing and unresolved-batch replay need further work and independent
   histories. The [transaction lock][lock] and [replacement][replacement]
   fixes bound several coordinator waits and preserve the slot during
@@ -156,9 +161,9 @@ The [work plan][next] tracks the current candidates and outstanding tests.
 The [support matrix](support.md) describes configured coverage, and the
 [release guide](RELEASE.md) lists publication gates. No new release is ready.
 
-[ci]: https://github.com/mingley/partitionline/blob/be20c7f063bfd721e9a0821ad7711cb1c7847d8f/docs/evidence/releases/main-ci-629-20261108/README.md
+[ci]: https://github.com/mingley/partitionline/blob/f93e91499e2ba6bdc88c0a25a0d83b8737d00d3c/docs/evidence/releases/main-ci-1036-20261108/README.md
 [previous-ci]: https://github.com/mingley/partitionline/blob/7ebb3cc81adc695cc4c74409a87a1a1dd4be9730/docs/evidence/releases/main-ci-ba8-20261108/README.md
-[next]: https://github.com/mingley/partitionline/blob/be20c7f063bfd721e9a0821ad7711cb1c7847d8f/docs/plan/next-work.md
+[next]: https://github.com/mingley/partitionline/blob/f93e91499e2ba6bdc88c0a25a0d83b8737d00d3c/docs/plan/next-work.md
 [previous]: https://github.com/mingley/partitionline/blob/5c2a000639d9a8a7dccd56e8c1d6f3a58dca1601/docs/STATUS.md
 [flush]: https://github.com/mingley/partitionline/blob/e980829c439aa43edc01312c91838e58a412221a/docs/evidence/client/producer-flush-native-86f2-20261103/README.md
 [txn]: https://github.com/mingley/partitionline/blob/49ad56c6bce1366e2357c272f11c5c34160d60da/docs/evidence/client/add-partitions-native-4f0c-20261103/README.md
@@ -193,3 +198,6 @@ The [support matrix](support.md) describes configured coverage, and the
 [e02-client]: https://github.com/mingley/partitionline/blob/cd20f43f018f36b3aaa8311839fe11fc74dac3af/docs/evidence/releases/main-ci-e02-partial-20261108/README.md
 [admin-reserve]: https://github.com/mingley/partitionline/blob/cd20f43f018f36b3aaa8311839fe11fc74dac3af/docs/evidence/client/admin-response-reservation-20261108/README.md
 [create-diag]: https://github.com/mingley/partitionline/blob/be20c7f063bfd721e9a0821ad7711cb1c7847d8f/docs/evidence/broker/create-response-diagnostic-20261108/README.md
+[deadline-test]: https://github.com/mingley/partitionline/blob/f93e91499e2ba6bdc88c0a25a0d83b8737d00d3c/docs/evidence/broker/frame-read-deadline-test-20261108/README.md
+[flush-public]: https://github.com/mingley/partitionline/blob/f93e91499e2ba6bdc88c0a25a0d83b8737d00d3c/docs/evidence/client/producer-flush-public-20261108/README.md
+[flush-model]: https://github.com/mingley/partitionline/blob/f93e91499e2ba6bdc88c0a25a0d83b8737d00d3c/docs/evidence/client/producer-completion-horizon-20261108/README.md
