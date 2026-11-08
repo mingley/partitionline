@@ -21,26 +21,27 @@ dependency graph is not Rust-only.
 ## Validation
 
 The latest complete recorded [CI snapshot][ci] is main commit
-`464d33d5afe668d46274972cd3baa4e870159bf8`. The current branch includes
+`74dd7f7c9b2430b308142678bf9534c385f0ff04`. The current branch includes
 later changes; see the linked runs for their exact source and scope.
 
-| Check | Result at `464d33d` |
+| Check | Result at `74dd7f7` |
 | --- | --- |
-| Client library, Linux default | 2,259 passed and 17 failed; later targets did not run. |
-| Client library, Linux all features | 2,262 passed and 14 failed; later targets did not run. |
-| Client library, Windows default | 2,256 passed and 20 failed. |
-| Client library, macOS arm64 default | 2,262 passed and 14 failed. |
+| Client library, Linux default | 2,261 passed and 15 failed; later targets did not run. |
+| Client library, Linux all features | 2,265 passed and 11 failed; later targets did not run. |
+| Client library, Windows default | 2,262 passed and 14 failed. |
+| Client library, macOS arm64 default | 2,266 passed and 10 failed. |
 | Kafka 4.1.2, 4.2.1 and 4.3.1 compatibility | All three jobs failed. |
 | Kafka 3.9.1 and 4.1.0 smoke | Both jobs failed. |
 | Resource soak | Passed. |
-| Broker default library | 489 passed, two failed and four ignored. |
-| Broker remaining behavioral and strict checks | Did not run after the failure. |
-| Broker inventory and fuzz supervision | Passed. |
+| Broker default targets | 781 passed and four ignored. |
+| Broker all-feature targets | 929 passed and four ignored. |
+| Broker strict checks, inventory and fuzz supervision | Passed. |
 | Client capability profiles | Both passed selected checks; their archives were not independently inspected. |
 | Client format, all-target Clippy, audit, docs, package, auth and integrity smoke | Passed. Other client jobs failed or were skipped. |
 
-The [previous complete snapshot][ci-426] passed both broker profiles and
-strict checks. It does not explain the later Raft failures.
+The [preceding complete snapshot][ci-464] stopped its broker default library
+after two Raft observer failures. This later pass does not explain them. An
+[earlier complete snapshot][ci-426] also passed both broker profiles.
 
 An earlier [partial main CI snapshot][ci-536] passed 781 broker default tests,
 with four ignored, but its all-feature library stopped after one Raft failure
@@ -166,12 +167,13 @@ latency bound.
   assertions; a matched run with the original fixture passed the candidate
   and failed the baseline. The cause remains unknown. An earlier
   [test revision][admin-poll] checks cooperative progress without establishing
-  a wall-time bound. Non-null response names are not checked against the
-  request. An unapplied [name-validation candidate][admin-name] rejects
-  unsolicited names and cursors, but was 9% and 22% slower in median elapsed
-  time for 32 and 256 error rows in a paired mock comparison. A lower-cost
-  revision is under investigation. Longer cursor cycles can duplicate
-  results, and cleanup and memory are not globally bounded. The applied
+  a wall-time bound. The applied [name validation][admin-name] rejects
+  unrequested topic rows and cursors in the aggregate while preserving the
+  raw API. In a paired mock comparison, 256 reordered error rows were about
+  19% slower and reordered successful rows about 12% slower. Both full Admin
+  suites failed timing assertions; matched baseline suites also failed.
+  Longer cursor cycles can duplicate results, and cleanup and memory are not
+  globally bounded. The applied
   [row checkpoint][admin-row-checkpoint] yields after every 8,192 completed
   conversions, including across page boundaries. A paired mock showed shorter
   8,192-row polls, while 500,000-row maxima remained about 62–66 ms in both
@@ -213,7 +215,7 @@ stopped. The [work plan][next] records the broader outstanding work and
 retained evidence. The [benchmark contract](benchmark-contract.md) and
 [release guide](RELEASE.md) describe the remaining qualification gates.
 
-[ci]: https://github.com/mingley/partitionline/blob/a8403decd42d794b1da89ac985e2f390f32e01a7/docs/evidence/releases/main-ci-464-20261108/README.md
+[ci]: https://github.com/mingley/partitionline/blob/a3abed795162f380336e87b49a5260cf58325c3d/docs/evidence/releases/main-ci-74dd-20261108/README.md
 [ci-262]: https://github.com/mingley/partitionline/blob/cb55f7c603e2344775de8a395c6a584737f5bb95/docs/evidence/releases/main-ci-262-20261108/README.md
 [ci-02c]: https://github.com/mingley/partitionline/blob/0ce81683fe7107386e30f388cd2a4af31735d522/docs/evidence/releases/main-ci-02c-20261108/README.md
 [next]: https://github.com/mingley/partitionline/blob/ed10995700da3252dbefb4696e1afd7dfe5a008d/docs/plan/next-work.md
@@ -275,11 +277,13 @@ retained evidence. The [benchmark contract](benchmark-contract.md) and
 [admin-row]: https://github.com/mingley/partitionline/blob/a0deb28cfdb8eb85fd16a1b3264b35fceb2c74e1/docs/evidence/client/admin-dtp-row-poll-20261108/README.md
 
 [retry-flush-split]: https://github.com/mingley/partitionline/blob/8d1461a039b40c9bc79b6cf501aebf2a79054a85/docs/evidence/client/producer-retry-flush-split-20261108/README.md
-[admin-name]: https://github.com/mingley/partitionline/blob/7e758b28822b2a66d37733b2b0c1c6afa61d0acd/docs/evidence/client/admin-requested-topic-validation-20261108/README.md
+[admin-name]: https://github.com/mingley/partitionline/blob/a3abed795162f380336e87b49a5260cf58325c3d/docs/evidence/client/admin-requested-topic-hint-20261108/README.md
 
-[admin-row-checkpoint]: https://github.com/mingley/partitionline/blob/7e758b28822b2a66d37733b2b0c1c6afa61d0acd/docs/evidence/client/admin-dtp-row-checkpoint-20261108/README.md
+[admin-row-checkpoint]: https://github.com/mingley/partitionline/blob/a3abed795162f380336e87b49a5260cf58325c3d/docs/evidence/client/admin-dtp-row-checkpoint-20261108/README.md
 
 [ci-426]: https://github.com/mingley/partitionline/blob/ed10995700da3252dbefb4696e1afd7dfe5a008d/docs/evidence/releases/main-ci-426-20261108/README.md
 [batch-controls]: https://github.com/mingley/partitionline/blob/a8403decd42d794b1da89ac985e2f390f32e01a7/docs/evidence/client/producer-batch-ownership-controls-20261108/README.md
 [timestamp-history]: https://github.com/mingley/partitionline/blob/a8403decd42d794b1da89ac985e2f390f32e01a7/docs/evidence/client/producer-retry-timestamp-20261108/README.md
 [admin-phases]: https://github.com/mingley/partitionline/blob/a8403decd42d794b1da89ac985e2f390f32e01a7/docs/evidence/client/admin-dtp-poll-phases-20261108/README.md
+
+[ci-464]: https://github.com/mingley/partitionline/blob/a8403decd42d794b1da89ac985e2f390f32e01a7/docs/evidence/releases/main-ci-464-20261108/README.md
