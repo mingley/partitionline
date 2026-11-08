@@ -1,0 +1,36 @@
+name: Admin row checkpoint public cancellation controls
+on:
+  push:
+    branches: [qualification/admin-dtp-row-cancel-observer-20261108]
+permissions:
+  contents: read
+jobs:
+  tests:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    strategy:
+      fail-fast: false
+      matrix:
+        feature: [default, all]
+    env:
+      CARGO_INCREMENTAL: '0'
+      CARGO_TERM_COLOR: never
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Pin test-instrumented source
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD:src/admin.rs)" = 92cb8a5d6d6f180c12940acc5deda4192ecf0293
+          test "$(git rev-parse HEAD:src/admin/pagination_tests.rs)" = 629bc80e99299663669cc94fd000a934aa3ac94b
+          git rev-parse HEAD HEAD:src/admin.rs HEAD:src/admin/pagination_tests.rs HEAD:Cargo.lock
+          sha256sum src/admin.rs src/admin/pagination_tests.rs Cargo.lock
+          rustc -Vv
+      - name: Run public checkpoint cancellation and timeout controls
+        run: |
+          set -euo pipefail
+          if test "${{ matrix.feature }}" = all; then
+            cargo test --locked --all-features --lib dtp_public_checkpoint_ -- --test-threads=1
+          else
+            cargo test --locked --lib dtp_public_checkpoint_ -- --test-threads=1
+          fi
