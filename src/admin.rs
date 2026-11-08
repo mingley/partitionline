@@ -14124,9 +14124,15 @@ impl Admin {
         tokio::time::timeout_at(deadline, async {
             let mut cursor: Option<TopicPartitionCursor> = None;
             let mut out: Vec<TopicDescription> = Vec::new();
+            #[cfg(test)]
+            let _dtp_index_drop_end = DtpDropPhase { response: false, start: false };
             let mut described = DescribedTopicIndex::new();
+            #[cfg(test)]
+            let _dtp_index_drop_start = DtpDropPhase { response: false, start: true };
             let mut converted_rows = 0usize;
             loop {
+                #[cfg(test)]
+                let _dtp_response_drop_end = DtpDropPhase { response: true, start: false };
                 let resp = self
                     .describe_topic_partitions_until(
                         names,
@@ -14136,8 +14142,23 @@ impl Admin {
                         deadline,
                     )
                     .await?;
+                #[cfg(test)]
+                let _dtp_response_drop_start = DtpDropPhase { response: true, start: true };
                 if resp.next_cursor.is_some() && resp.next_cursor.as_ref() == cursor.as_ref() {
                     return Err(Error::protocol("repeated DescribeTopicPartitions cursor"));
+                }
+                #[cfg(test)]
+                if DTP_TRACE_PREALLOC.with(|enabled| enabled.get()) && described.capacity() == 0 {
+                    let before = described.capacity();
+                    let started = std::time::Instant::now();
+                    described.reserve(resp.topics.len());
+                    dtp_trace_event(
+                        "reserve",
+                        described.len(),
+                        before,
+                        described.capacity(),
+                        started.elapsed().as_nanos(),
+                    );
                 }
                 let mut page = Vec::with_capacity(resp.topics.len());
                 convert_described_topic_page(
@@ -16727,6 +16748,77 @@ async fn list_offset_topic_requests<'a>(
     groups
 }
 
+#[cfg(test)]
+#[derive(Clone, Debug)]
+struct DtpTraceEvent {
+    kind: &'static str,
+    len: usize,
+    before: usize,
+    after: usize,
+    elapsed_ns: u128,
+}
+
+#[cfg(test)]
+std::thread_local! {
+    static DTP_TRACE_ACTIVE: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
+    static DTP_TRACE_PREALLOC: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
+    static DTP_TRACE_EVENTS: std::cell::RefCell<Vec<DtpTraceEvent>> = const { std::cell::RefCell::new(Vec::new()) };
+    static DTP_TRACE_RESPONSE_START: std::cell::Cell<Option<std::time::Instant>> = const { std::cell::Cell::new(None) };
+    static DTP_TRACE_INDEX_START: std::cell::Cell<Option<std::time::Instant>> = const { std::cell::Cell::new(None) };
+}
+
+#[cfg(test)]
+fn dtp_trace_event(kind: &'static str, len: usize, before: usize, after: usize, elapsed_ns: u128) {
+    DTP_TRACE_EVENTS.with(|events| {
+        events.borrow_mut().push(DtpTraceEvent {
+            kind,
+            len,
+            before,
+            after,
+            elapsed_ns,
+        });
+    });
+}
+
+#[cfg(test)]
+struct DtpDropPhase {
+    response: bool,
+    start: bool,
+}
+
+#[cfg(test)]
+impl Drop for DtpDropPhase {
+    fn drop(&mut self) {
+        if !DTP_TRACE_ACTIVE.with(|active| active.get()) {
+            return;
+        }
+        let now = std::time::Instant::now();
+        let started = if self.response {
+            DTP_TRACE_RESPONSE_START.with(|time| {
+                if self.start {
+                    time.set(Some(now));
+                    None
+                } else {
+                    time.take()
+                }
+            })
+        } else {
+            DTP_TRACE_INDEX_START.with(|time| {
+                if self.start {
+                    time.set(Some(now));
+                    None
+                } else {
+                    time.take()
+                }
+            })
+        };
+        if let Some(started) = started {
+            let kind = if self.response { "response_drop" } else { "index_drop" };
+            dtp_trace_event(kind, 0, 0, 0, now.duration_since(started).as_nanos());
+        }
+    }
+}
+
 // A zero topic ID means the broker did not supply an identity. Keep the
 // first nonzero ID separately from the public first-page description so that
 // later known IDs can still be compared after an unknown first page.
@@ -16797,7 +16889,23 @@ async fn place_described_topic(
         return Ok(());
     }
     let slot = out.len();
+    #[cfg(not(test))]
     let _previous = index.insert(desc.name.clone(), (slot, desc.topic_id));
+    #[cfg(test)]
+    let _previous = {
+        let key = desc.name.clone();
+        let capacity = index.capacity();
+        let started = (DTP_TRACE_ACTIVE.with(|active| active.get()) && index.len() == capacity)
+            .then(std::time::Instant::now);
+        let previous = index.insert(key, (slot, desc.topic_id));
+        if let Some(started) = started {
+            let after = index.capacity();
+            if after > capacity {
+                dtp_trace_event("growth", index.len(), capacity, after, started.elapsed().as_nanos());
+            }
+        }
+        previous
+    };
     out.push(desc);
     Ok(())
 }
