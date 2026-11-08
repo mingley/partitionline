@@ -1,0 +1,104 @@
+name: combined broker descriptor controls
+on:
+  push:
+    branches:
+      - qualification/broker-owned-permit-descriptors-20261108
+permissions:
+  contents: read
+jobs:
+  descriptors:
+    strategy:
+      fail-fast: false
+      matrix:
+        profile: [default, all-features]
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      CARGO_INCREMENTAL: "0"
+      CARGO_BUILD_JOBS: "2"
+      CARGO_TERM_COLOR: never
+      CARGO_PROFILE_DEV_DEBUG: "0"
+      CARGO_PROFILE_TEST_DEBUG: "0"
+      PROFILE: ${{ matrix.profile }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          fetch-depth: 2
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Verify exact combined source and build the test binary
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/owned-fds"
+          test "$(uname -m)" = x86_64
+          test "$(git rev-parse HEAD^)" = 7dcef586a8c6205cca10b71222088d83a84689fd
+          rustc +stable --version --verbose | tee "$RUNNER_TEMP/owned-fds/toolchain.log"
+          git diff --exit-code HEAD^ -- partitionline-broker/src/metadata.rs partitionline-broker/src/fetch.rs partitionline-broker/tests/fetch.rs tests/conformance/broker/implemented-api-versions.json
+          python3 - <<'PY'
+          import hashlib, json
+          from pathlib import Path
+          reg = json.loads(Path('tests/conformance/broker/implemented-api-versions.json').read_text())
+          for key, path in {
+              'metadata_source_sha256': 'partitionline-broker/src/metadata.rs',
+              'fetch_source_sha256': 'partitionline-broker/src/fetch.rs',
+              'fetch_test_source_sha256': 'partitionline-broker/tests/fetch.rs',
+              'produce_source_sha256': 'partitionline-broker/src/produce.rs',
+              'partition_source_sha256': 'partitionline-broker/src/partition.rs',
+              'segments_source_sha256': 'partitionline-broker/src/segments.rs',
+          }.items():
+              assert reg[key] == hashlib.sha256(Path(path).read_bytes()).hexdigest(), key
+          PY
+          flags=()
+          if [ "$PROFILE" = all-features ]; then flags+=(--all-features); fi
+          cargo +stable test --locked --manifest-path partitionline-broker/Cargo.toml "${flags[@]}" --lib --no-run 2>&1 | tee "$RUNNER_TEMP/owned-fds/build.log"
+      - name: Journal descriptor cost
+        id: journal
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -euo pipefail
+          flags=()
+          if [ "$PROFILE" = all-features ]; then flags+=(--all-features); fi
+          cargo +stable test --locked --manifest-path partitionline-broker/Cargo.toml "${flags[@]}" --lib journal::tests::ownership_descriptor_cost -- --exact --ignored --test-threads=1 --nocapture 2>&1 | tee "$RUNNER_TEMP/owned-fds/journal.log"
+          grep -F 'test result: ok. 1 passed;' "$RUNNER_TEMP/owned-fds/journal.log"
+      - name: Store and grouped Produce descriptor cost
+        id: produce
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -euo pipefail
+          flags=()
+          if [ "$PROFILE" = all-features ]; then flags+=(--all-features); fi
+          cargo +stable test --locked --manifest-path partitionline-broker/Cargo.toml "${flags[@]}" --lib produce::tests::store_and_grouped_sync_descriptor_cost -- --exact --ignored --test-threads=1 --nocapture 2>&1 | tee "$RUNNER_TEMP/owned-fds/produce.log"
+          grep -F 'test result: ok. 1 passed;' "$RUNNER_TEMP/owned-fds/produce.log"
+      - name: Descriptor exhaustion and reservation recovery
+        id: exhaustion
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -euo pipefail
+          flags=()
+          if [ "$PROFILE" = all-features ]; then flags+=(--all-features); fi
+          ulimit -n 64
+          cargo +stable test --locked --manifest-path partitionline-broker/Cargo.toml "${flags[@]}" --lib journal::tests::ownership_descriptor_exhaustion_releases_reservations -- --exact --ignored --test-threads=1 --nocapture 2>&1 | tee "$RUNNER_TEMP/owned-fds/exhaustion.log"
+          grep -F 'test result: ok. 1 passed;' "$RUNNER_TEMP/owned-fds/exhaustion.log"
+      - name: Require descriptor controls
+        if: always()
+        env:
+          JOURNAL: ${{ steps.journal.outcome }}
+          PRODUCE: ${{ steps.produce.outcome }}
+          EXHAUSTION: ${{ steps.exhaustion.outcome }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$JOURNAL" = success
+          test "$PRODUCE" = success
+          test "$EXHAUSTION" = success
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: broker-owned-descriptors-${{ matrix.profile }}-${{ github.sha }}
+          path: ${{ runner.temp }}/owned-fds
+          if-no-files-found: warn
+          retention-days: 30
