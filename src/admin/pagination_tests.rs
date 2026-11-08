@@ -1226,6 +1226,7 @@ async fn dtp_public_row_growth_poll_witness() {
     let (mut admin, listener) = admin_and_listener().await;
     let response_written = Arc::new(AtomicBool::new(false));
     let peer_written = Arc::clone(&response_written);
+    let (release_peer, peer_release) = tokio::sync::oneshot::channel();
     let peer = tokio::spawn(async move {
         let (mut socket, _) = listener.accept().await.unwrap();
         socket.set_nodelay(true).unwrap();
@@ -1258,6 +1259,9 @@ async fn dtp_public_row_growth_poll_witness() {
         socket.write_all(&response_header).await.unwrap();
         socket.write_all(&response_body).await.unwrap();
         peer_written.store(true, Ordering::SeqCst);
+        let _release = peer_release.await;
+        drop(response_body);
+        drop(socket);
     });
 
     struct ResetTrace;
@@ -1286,6 +1290,8 @@ async fn dtp_public_row_growth_poll_witness() {
     }
     let calibration = DTP_TRACE_EVENTS.with(|events| events.borrow().clone());
     assert_eq!(calibration.len(), 32);
+    assert_eq!(calibration.iter().filter(|event| event.kind == "response_drop").count(), 16);
+    assert_eq!(calibration.iter().filter(|event| event.kind == "index_drop").count(), 16);
     let response_calibration = calibration.iter().filter(|event| event.kind == "response_drop").map(|event| event.elapsed_ns).max().unwrap();
     let index_calibration = calibration.iter().filter(|event| event.kind == "index_drop").map(|event| event.elapsed_ns).max().unwrap();
     DTP_TRACE_EVENTS.with(|events| events.borrow_mut().clear());
@@ -1332,7 +1338,6 @@ async fn dtp_public_row_growth_poll_witness() {
     }).await.unwrap();
     let total_ns = start.elapsed().as_nanos();
     drop(call);
-    peer.await.unwrap();
     assert!(response_written.load(Ordering::SeqCst));
     assert!(after_write_polls > 0);
     assert!(ready_after_write);
@@ -1364,6 +1369,8 @@ async fn dtp_public_row_growth_poll_witness() {
     assert_eq!(events.iter().filter(|event| event.kind == "hash_fingerprint").count(), 1);
     let trace_capacity_end = DTP_TRACE_EVENTS.with(|events| events.borrow().capacity());
     assert_eq!(trace_capacity_end, trace_capacity_start, "trace event storage reallocated");
+    release_peer.send(()).unwrap();
+    peer.await.unwrap();
     if prealloc {
         assert_eq!(reserve_count, 1);
         assert_eq!(growth_count, 0);
