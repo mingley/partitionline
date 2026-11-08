@@ -441,6 +441,19 @@ GitHub reported SHA-256
 for the [artifact](https://github.com/mingley/partitionline/actions/runs/42454937680/artifacts/13606889831).
 It has not been independently downloaded, and binaries were not retained.
 
-A single same-runner, unchanged all-feature baseline/candidate comparison
-[42455389333](https://github.com/mingley/partitionline/actions/runs/42455389333)
-is in progress; it does not erase the failure above.
+The same-runner [comparison 42455389333](https://github.com/mingley/partitionline/actions/runs/42455389333)
+ran each unchanged all-feature all-target command once, sequentially with
+separate checkouts and target directories. The baseline exited 101 after 765
+passed, one failed and three were ignored; it stopped at the five-node
+minority-partition delayed-reply test, so later targets did not run. Its
+proposal to node3 received `Node(NotLeader)` while diagnostics showed node2
+as leader. The candidate exited 0 with 905 passed and three ignored across all
+targets. The comparison job failed because the baseline failed. These two
+outcomes do not identify a cause and do not erase the earlier candidate
+observer failure.
+
+The [comparison artifact](https://github.com/mingley/partitionline/actions/runs/42455389333/artifacts/13608045132)
+has GitHub-reported SHA-256
+`863907b7d9fd2690c43b07c3aebc04d23f9699bf774c7bd2b0e7a93cf1813140`.
+It includes the individual suite logs, exit codes and test-binary hashes; the
+archive was not independently downloaded.
