@@ -1,0 +1,96 @@
+name: broker admission permit microbenchmark
+
+on:
+  push:
+    branches:
+      - qualification/broker-admission-permit-microbench-20261108
+
+permissions:
+  contents: read
+
+jobs:
+  measure:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      CARGO_INCREMENTAL: "0"
+      CARGO_BUILD_JOBS: "2"
+      CARGO_TERM_COLOR: never
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          fetch-depth: 2
+          sparse-checkout: |
+            .cargo
+            src
+            examples
+            partitionline-broker
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+      - name: Record host, compiler and source
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/permit-cost"
+          test "$(uname -m)" = x86_64
+          test "$(git rev-parse HEAD^)" = c49cde3ecf7fc11be8bd0a0e31910f6a1dce6b51
+          {
+            uname -a
+            lscpu
+            rustc +stable --version --verbose
+            cargo +stable --version
+            git rev-parse HEAD
+            git rev-parse HEAD:partitionline-broker/examples/admission_permit_cost.rs
+          } | tee "$RUNNER_TEMP/permit-cost/host.txt"
+          cargo +stable fmt --manifest-path partitionline-broker/Cargo.toml -- --check
+      - name: Compile optimized benchmark
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo +stable build --locked --release --manifest-path partitionline-broker/Cargo.toml --example admission_permit_cost 2>&1 | tee "$RUNNER_TEMP/permit-cost/build.log"
+      - name: Measure interleaved paired samples on one allowed CPU
+        shell: bash
+        run: |
+          set -euo pipefail
+          cpu=$(python3 -c 'import os; print(min(os.sched_getaffinity(0)))')
+          echo "$cpu" | tee "$RUNNER_TEMP/permit-cost/cpu.txt"
+          taskset -c "$cpu" partitionline-broker/target/release/examples/admission_permit_cost > "$RUNNER_TEMP/permit-cost/samples.csv"
+          python3 - <<'PY'
+          import csv
+          import json
+          import os
+          from pathlib import Path
+          import statistics
+          t = Path(os.environ['RUNNER_TEMP']) / 'permit-cost'
+          rows = list(csv.DictReader((t / 'samples.csv').open(newline='')))
+          expected = {'borrowed', 'owned', 'arc_only'}
+          by_round = {}
+          for row in rows:
+              rnd, case = int(row['round']), row['case']
+              elapsed, operations = int(row['elapsed_ns']), int(row['operations'])
+              assert case in expected and 0 <= rnd < 21 and operations == 2_000_000 and elapsed > 0
+              assert case not in by_round.setdefault(rnd, {})
+              by_round[rnd][case] = elapsed / operations
+          assert set(by_round) == set(range(21))
+          assert all(set(sample) == expected for sample in by_round.values())
+          summary = {}
+          for case in sorted(expected):
+              values = sorted(sample[case] for sample in by_round.values())
+              summary[case] = {'minimum_ns_per_op': values[0], 'median_ns_per_op': statistics.median(values), 'p90_ns_per_op': values[18], 'maximum_ns_per_op': values[-1]}
+          delta = [x['owned'] - x['borrowed'] for x in by_round.values()]
+          ratios = [x['owned'] / x['borrowed'] for x in by_round.values()]
+          summary['paired'] = {'median_owned_minus_borrowed_ns': statistics.median(delta), 'median_owned_over_borrowed': statistics.median(ratios)}
+          summary['limitations'] = 'Single-thread, uncontended semaphore and reference-count microbenchmark on one hosted x86 VM; not Kafka throughput or a contention measurement.'
+          (t / 'summary.json').write_text(json.dumps(summary, indent=2) + '\n')
+          print(json.dumps(summary, indent=2))
+          PY
+      - name: Retain host and all samples
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: broker-admission-permit-microbenchmark-${{ github.sha }}
+          path: ${{ runner.temp }}/permit-cost
+          if-no-files-found: warn
+          retention-days: 30
