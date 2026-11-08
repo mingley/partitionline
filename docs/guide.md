@@ -764,7 +764,7 @@ admission may finish later. Drop alone does not wait for in-flight produce.
 A blocking interceptor can delay worker cleanup and the close deadline. In a
 known cancellation path, accepted records can lose callbacks and leave
 `bytes_buffered` nonzero after the worker stops. See the
-[producer ownership evidence](evidence/client/producer-sequence-public-20261108/README.md)
+[producer ownership evidence](https://github.com/mingley/partitionline/blob/efa7f23314e98f3aaa4559c3cf38302bdcdb9fb4/docs/evidence/client/producer-sequence-public-20261108/README.md)
 for the controlled history and its limits. The ordinary cancellation mock is
 `tests/produce_cancel.rs`.
 
