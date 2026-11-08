@@ -42,7 +42,11 @@ later changes; see the linked runs for their exact source and scope.
 A later [partial main run][ci-a0] failed the Linux default library and
 three Kafka compatibility jobs; five jobs were canceled. Its instruction and
 allocation gates stopped before measurement because the codec benchmark
-lockfile was stale. The broker default suite passed, but its all-feature
+lockfile was stale. The [lockfile follow-up][admin-locks] updates six
+standalone consumers; its allocation tests passed, while the instruction gate
+was still running when recorded. A separate broker interoperability peer
+failed to compile under the expanded checks. The broker default suite passed,
+but its all-feature
 library stopped at 534 passed, one failed and four ignored. Both selected
 capability profiles passed; later broker checks did not run.
 
@@ -251,10 +255,11 @@ retained evidence. The [benchmark contract](benchmark-contract.md) and
 [ci]: https://github.com/mingley/partitionline/blob/6667a8df9205f5ae9efe5d648ec21c0e997afb32/docs/evidence/releases/main-ci-342e-20261108/README.md
 [ci-a0]: https://github.com/mingley/partitionline/blob/61af02b51269edb0ec12edf3c49118285f767c3b/docs/evidence/releases/main-ci-a0ad-partial-20261108/README.md
 [ci-97]: https://github.com/mingley/partitionline/blob/6667a8df9205f5ae9efe5d648ec21c0e997afb32/docs/evidence/releases/main-ci-97a-20261108/README.md
-[admin-slot]: https://github.com/mingley/partitionline/blob/6667a8df9205f5ae9efe5d648ec21c0e997afb32/docs/evidence/client/admin-dtp-slot-index-20261108/README.md
+[admin-slot]: https://github.com/mingley/partitionline/blob/1bee1751b5cd06ee58abbdfa4c467aa46eaf407a/docs/evidence/client/admin-dtp-slot-index-20261108/README.md
+[admin-locks]: https://github.com/mingley/partitionline/blob/1bee1751b5cd06ee58abbdfa4c467aa46eaf407a/docs/evidence/client/admin-slot-locks-20261108/README.md
 [ci-262]: https://github.com/mingley/partitionline/blob/cb55f7c603e2344775de8a395c6a584737f5bb95/docs/evidence/releases/main-ci-262-20261108/README.md
 [ci-02c]: https://github.com/mingley/partitionline/blob/0ce81683fe7107386e30f388cd2a4af31735d522/docs/evidence/releases/main-ci-02c-20261108/README.md
-[next]: https://github.com/mingley/partitionline/blob/61af02b51269edb0ec12edf3c49118285f767c3b/docs/plan/next-work.md
+[next]: https://github.com/mingley/partitionline/blob/1bee1751b5cd06ee58abbdfa4c467aa46eaf407a/docs/plan/next-work.md
 [flush-public]: https://github.com/mingley/partitionline/blob/f93e91499e2ba6bdc88c0a25a0d83b8737d00d3c/docs/evidence/client/producer-flush-public-20261108/README.md
 [flush-sent]: https://github.com/mingley/partitionline/blob/efa7f23314e98f3aaa4559c3cf38302bdcdb9fb4/docs/evidence/client/producer-flush-sent-20261108/README.md
 [owner-design]: https://github.com/mingley/partitionline/blob/cb55f7c603e2344775de8a395c6a584737f5bb95/docs/evidence/client/producer-ownership-design-20261108/README.md
