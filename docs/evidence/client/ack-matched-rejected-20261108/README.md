@@ -108,8 +108,8 @@ The Java reader checked its Kafka client version and commit.
 The first shared Ubuntu 24.04 runner reported four logical CPUs on an Intel
 Xeon Platinum 8573C; the second reported four on an Intel Xeon Platinum
 8370C. Both pinned the client to CPU 0, sampler to CPU 2, and broker to CPUs
-1 and 3. The captured `cpu.max` files were empty, so a CPU quota is not
-established. These runs were not independent reproductions.
+1 and 3. `/sys/fs/cgroup/cpu.max` did not exist on either runner; the
+capture files were empty and a CPU quota is not established.
 
 [Readout 42458956257](https://github.com/mingley/partitionline/actions/runs/42458956257)
 checked both artifact identities and archive digests, verified recorded
@@ -119,6 +119,19 @@ or reclassify the unverified arm. The artifacts retain the full samples,
 delivery traces, readback records, settings, host details and logs, with
 an expiry on 2026-12-08. Binary hashes are recorded but the binaries
 themselves were not retained for rehashing.
+
+Key recorded SHA-256 values are below. The readout rehashed the sources;
+the original jobs recorded the binary hashes.
+
+| File | First run | Second run |
+| --- | --- | --- |
+| `src/producer.rs` | `3d65fcceecbb43c1a974f7f6b7bd58c8a310930f6bcced9052a00e88700eb37f` | same |
+| Rust driver source | `5fdc2f71ecc755fa81ce00c3871bc004a9e0ac2b260b6fa33bccd7865b0f4871` | same |
+| C driver source | `e1a04ce76af9cd78968b50ffda84fc160613b4fd2846fd2ebe5d33c9bb034097` | `68d9aea7b29f23dff63b2b30c49ae56eb31b3125978336ac8413a02f92462dfe` |
+| Rust driver binary | `9e4037e7ce9735e0e8a96863c3836636dcf0da51eacba1b936589f9729a572a5` | same |
+| C driver binary | `df0ade954fbf148b4d110130e7d091ba88ee0fcf367c153cf9be8bfee425dafd` | `4c12c13e358e828038b36e2e8a4ad1c739c04ef28ac95e1dca9c37c12538246b` |
+| `librdkafka.so.1` | `76273cabc8e70047f97a08af9ce68d47ee1b2c466a3ed26b476717fee8542d83` | same |
+| Kafka client jar | `25c5e4eb059c35766f645c0e0bd2fe623a1ebdc18250957506b1edbf476d1272` | same |
 
 The second fixture explicitly captured and checked librdkafka's effective
 `request.timeout.ms=30000`; the first explicitly set it but did not include
@@ -168,6 +181,6 @@ SASL session expiry. Producer session-expiry behavior was not tested here.
   as incomplete rather than silently ignoring them, and perform independent
   readback after a successful driver exit even if sampling failed. A future
   attempt must still reject incomplete socket evidence.
-- Run a genuinely matched workload and the repository's open-loop,
-  duration, sample-size, durability and independent-reproduction gates before
-  making a client ranking or production-readiness claim.
+- Run a matched workload and the repository's open-loop,
+  duration, sample-size and durability gates before making a client ranking
+  or production-readiness claim.
