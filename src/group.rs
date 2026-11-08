@@ -2256,7 +2256,7 @@ impl ConsumerGroup {
         let flush_deadline = Instant::now() + self.cfg.request_timeout;
         self.flush_async_commits(flush_deadline).await;
         let recs = if self.cfg.enable_auto_commit {
-            Box::pin(self.fetch_while_interval_commits(wait)).await?
+            self.boxed_fetch_while_interval_commits(wait).await?
         } else {
             self.fetch_for_poll(wait).await?
         };
@@ -2815,6 +2815,16 @@ impl ConsumerGroup {
                 let _err = err;
             }
         }
+    }
+
+    // Keep construction of this large future off the usual poll stack. The
+    // returned future is still polled and dropped by the caller.
+    #[inline(never)]
+    fn boxed_fetch_while_interval_commits(
+        &mut self,
+        wait: Option<Duration>,
+    ) -> impl std::future::Future<Output = Result<ConsumerRecords>> + '_ {
+        Box::pin(self.fetch_while_interval_commits(wait))
     }
 
     /// Fetch while a due interval commit is in flight.
