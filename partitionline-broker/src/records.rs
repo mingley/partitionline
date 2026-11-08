@@ -886,8 +886,8 @@ fn validate_batch(
     if count > c.remaining().len() / 7 {
         return Err(invalid(at + batch::RECORD_COUNT, Invalid::Length));
     }
-    if plain_enabled()
-        && try_accept_plain(
+    if plain_enabled() {
+        if let Some(headers) = try_accept_plain(
             c.remaining(),
             count,
             last,
@@ -895,12 +895,14 @@ fn validate_batch(
             max_time,
             read,
             limits,
-        )
-    {
-        #[cfg(test)]
-        RECORD_VISITS.with(|n| n.set(n.get() + count));
-        *total_records += count;
-        return Ok(());
+            *total_headers,
+        ) {
+            #[cfg(test)]
+            RECORD_VISITS.with(|n| n.set(n.get() + count));
+            *total_records += count;
+            *total_headers += headers;
+            return Ok(());
+        }
     }
     let mut observed_max = i64::MIN;
     let mut previous = None;
@@ -998,9 +1000,9 @@ pub(crate) fn reset_record_visits() {
 pub(crate) fn record_visits() -> usize {
     RECORD_VISITS.with(std::cell::Cell::get)
 }
-/// Accept a no-header batch encoded with canonical varints.
+/// Accept a batch encoded with canonical varints.
 ///
-/// Returns false without deciding an error so the generic walk keeps the
+/// Returns None without deciding an error so the generic walk keeps the
 /// existing rejection positions.
 fn try_accept_plain(
     bytes: &[u8],
@@ -1010,44 +1012,46 @@ fn try_accept_plain(
     max_time: i64,
     read: bool,
     limits: Limits,
-) -> bool {
+    total_headers: usize,
+) -> Option<usize> {
     let mut index = 0usize;
+    let mut added_headers = 0usize;
     let mut observed_max = i64::MIN;
     let mut previous: Option<i32> = None;
     for delta in 0..count {
         let Some((body_len, next)) = read_canonical_i32(bytes, index) else {
-            return false;
+            return None;
         };
         if body_len < 6 {
-            return false;
+            return None;
         }
         let Ok(body_len) = usize::try_from(body_len) else {
-            return false;
+            return None;
         };
         let encoded = match next.checked_add(body_len) {
             Some(end) => end.saturating_sub(index),
-            None => return false,
+            None => return None,
         };
         if encoded > limits.record_bytes {
-            return false;
+            return None;
         }
         let Some(body_end) = next.checked_add(body_len) else {
-            return false;
+            return None;
         };
         if bytes.len() < body_end || bytes.get(next) != Some(&0) {
-            return false;
+            return None;
         }
         let mut cursor = next.saturating_add(1);
         let Some((timestamp_delta, next)) = read_canonical_i64(bytes, cursor) else {
-            return false;
+            return None;
         };
         cursor = next;
         let Some(timestamp) = base_time.checked_add(timestamp_delta) else {
-            return false;
+            return None;
         };
         observed_max = observed_max.max(timestamp);
         let Some((offset, next)) = read_canonical_i32(bytes, cursor) else {
-            return false;
+            return None;
         };
         cursor = next;
         let offset_ok = if read {
@@ -1056,32 +1060,67 @@ fn try_accept_plain(
             i32::try_from(delta).ok() == Some(offset)
         };
         if !offset_ok {
-            return false;
+            return None;
         }
         previous = Some(offset);
         let Some((key_len, next)) = read_canonical_i32(bytes, cursor) else {
-            return false;
+            return None;
         };
         cursor = next;
         if !skip_plain_field(bytes, &mut cursor, body_end, key_len, limits.field_bytes) {
-            return false;
+            return None;
         }
         let Some((value_len, next)) = read_canonical_i32(bytes, cursor) else {
-            return false;
+            return None;
         };
         cursor = next;
         if !skip_plain_field(bytes, &mut cursor, body_end, value_len, limits.field_bytes) {
-            return false;
+            return None;
         }
         let Some((headers, next)) = read_canonical_i32(bytes, cursor) else {
-            return false;
+            return None;
         };
-        if headers != 0 || next != body_end {
-            return false;
+        let headers = usize::try_from(headers).ok()?;
+        if headers > limits.headers_per_record
+            || headers > limits.headers.checked_sub(total_headers)?.checked_sub(added_headers)?
+        {
+            return None;
+        }
+        if headers == 0 {
+            if next != body_end {
+                return None;
+            }
+        } else {
+            cursor = next;
+            if headers > body_end.checked_sub(cursor)? / 2 {
+                return None;
+            }
+            for _ in 0..headers {
+                let (key_len, next) = read_canonical_i32(bytes, cursor)?;
+                let key_len = usize::try_from(key_len).ok()?;
+                if key_len > limits.field_bytes {
+                    return None;
+                }
+                cursor = next;
+                let end = cursor.checked_add(key_len)?;
+                if end > body_end || std::str::from_utf8(bytes.get(cursor..end)?).is_err() {
+                    return None;
+                }
+                cursor = end;
+                let (value_len, next) = read_canonical_i32(bytes, cursor)?;
+                cursor = next;
+                if !skip_plain_field(bytes, &mut cursor, body_end, value_len, limits.field_bytes) {
+                    return None;
+                }
+            }
+            if cursor != body_end {
+                return None;
+            }
+            added_headers += headers;
         }
         index = body_end;
     }
-    index == bytes.len() && (count == 0 || observed_max == max_time)
+    (index == bytes.len() && (count == 0 || observed_max == max_time)).then_some(added_headers)
 }
 
 fn skip_plain_field(
@@ -1308,7 +1347,7 @@ impl<'a> Cursor<'a> {
 mod tests {
     use super::{
         framed_assignment, trust_stored, validate, validate_batch, validate_read, Error, Invalid,
-        Limits, SKIP_PLAIN,
+        Limits, SKIP_PLAIN, try_accept_plain,
     };
     use crate::batch;
 
@@ -1414,13 +1453,21 @@ mod tests {
     }
 
     fn both(bytes: &[u8], read: bool) -> (Result<(), Error>, Result<(), Error>) {
-        let limits = Limits::default();
+        both_with_limits(bytes, read, Limits::default(), 0)
+    }
+
+    fn both_with_limits(
+        bytes: &[u8],
+        read: bool,
+        limits: Limits,
+        initial_headers: usize,
+    ) -> (Result<(), Error>, Result<(), Error>) {
         let mut records = 0_usize;
-        let mut headers = 0_usize;
+        let mut headers = initial_headers;
         let fast = validate_batch(bytes, 0, limits, &mut records, &mut headers, read, false);
         SKIP_PLAIN.with(|flag| flag.set(true));
         let mut slow_records = 0_usize;
-        let mut slow_headers = 0_usize;
+        let mut slow_headers = initial_headers;
         let slow = validate_batch(
             bytes,
             0,
@@ -1431,11 +1478,8 @@ mod tests {
             false,
         );
         SKIP_PLAIN.with(|flag| flag.set(false));
-        assert_eq!(fast.is_ok(), slow.is_ok());
-        if fast.is_ok() {
-            assert_eq!(records, slow_records);
-            assert_eq!(headers, slow_headers);
-        }
+        assert_eq!(records, slow_records);
+        assert_eq!(headers, slow_headers);
         assert_eq!(fast, slow);
         (fast, slow)
     }
@@ -1540,6 +1584,65 @@ mod tests {
             let _ = both(&garbage, false);
             let _ = both(&garbage, true);
         }
+    }
+
+    #[test]
+    fn header_batches_match_generic_walk_and_budgets() {
+        let mut samples: Vec<_> = (0..6).map(|n| sample(n, b"value")).collect();
+        samples[0].headers.push((Vec::new(), None));
+        samples[1].headers.push(("caf\u{e9}".as_bytes().to_vec(), Some(Vec::new())));
+        samples[2].headers.push((vec![b'k'; 63], Some(vec![b'v'; 64])));
+        samples[2].headers.push((vec![b'k'; 64], None));
+        samples[4].headers.push((vec![b'k'; 128], Some(vec![b'v'; 128])));
+        let bytes = encode(&samples, 1_000, 1_005, 5);
+        let limits = Limits::default();
+        assert_eq!(
+            try_accept_plain(&bytes[batch::LEN..], 6, 5, 1_000, 1_005, false, limits, 0),
+            Some(5)
+        );
+        assert_eq!(validate(&bytes, limits).unwrap().header_count(), 5);
+        assert!(both(&bytes, false).0.is_ok());
+        assert!(both(&bytes, true).0.is_ok());
+        for at in 0..bytes.len() {
+            let mut changed = bytes.clone();
+            changed[at] ^= 0xa5;
+            let _ = both(&changed, false);
+            let _ = both(&changed, true);
+        }
+        for end in batch::LEN..bytes.len() {
+            let _ = both(&bytes[..end], false);
+            let _ = both(&bytes[..end], true);
+        }
+
+        for &(field, per_record, all, initial) in &[
+            (63, 1024, 65536, 0),
+            (128, 1, 65536, 0),
+            (128, 1024, 4, 0),
+            (128, 1024, 5, 1),
+            (128, 1024, 5, 0),
+        ] {
+            let limits = Limits::new(1_000_000, 1_000_000, 10, 100, 100_000, field, per_record, all).unwrap();
+            let _ = both_with_limits(&bytes, false, limits, initial);
+            let _ = both_with_limits(&bytes, true, limits, initial);
+        }
+
+        let mut sparse: Vec<_> = [0, 2, 5].into_iter().map(|n| sample(n, b"v")).collect();
+        sparse[1].headers.push((b"key".to_vec(), None));
+        let sparse_bytes = encode(&sparse, 20, 25, 5);
+        assert_eq!(
+            try_accept_plain(&sparse_bytes[batch::LEN..], 3, 5, 20, 25, true, Limits::default(), 0),
+            Some(1)
+        );
+        assert!(both(&sparse_bytes, true).0.is_ok());
+        assert!(both(&sparse_bytes, false).0.is_err());
+
+        let mut invalid_utf8 = sample(0, b"v");
+        invalid_utf8.headers.push((vec![0xff], None));
+        let bad = encode(&[invalid_utf8], 10, 10, 0);
+        assert!(matches!(
+            both(&bad, false).0,
+            Err(Error::Invalid { kind: Invalid::HeaderKey, .. })
+        ));
     }
 
     #[test]
