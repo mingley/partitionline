@@ -20,6 +20,11 @@ all-feature tests, with four ignored per profile, plus strict checks,
 inventory and fuzz supervision. Both selected capability profiles passed;
 their archives were not independently inspected.
 
+A later [partial main run](../evidence/releases/main-ci-f5ed-partial-20261108/README.md)
+passed the broker suites; Linux and Windows client libraries and three Kafka
+compatibility jobs had failed when recorded. The remaining client and
+capability jobs were still running.
+
 The [previous complete snapshot](../evidence/releases/main-ci-74dd-20261108/README.md)
 also failed client checks and passed both broker profiles.
 
@@ -404,9 +409,12 @@ remain open.
    though the records were in the mock log. This is not a real-Kafka result.
    [Private batch controls](../evidence/client/producer-batch-ownership-controls-20261108/README.md)
    show the packer can split an injected complete retry batch and expiration
-   acts on individual records. A separate [timestamp history](../evidence/client/producer-retry-timestamp-20261108/README.md)
-   observed different implicit request, retry and receipt times in a mock;
-   the producer source was unchanged. These are not real-Kafka results. The [retained-admission test](../evidence/client/retained-cancellation-test-20261108/README.md)
+   acts on individual records. The applied [timestamp fix](../evidence/client/producer-timestamp-candidate-20261108/README.md)
+   retains each implicit timestamp from its first encode across retry and
+   receipt handling. A delayed-ack Kafka 4.1.0 smoke passed; paired x86
+   encoder tests showed a 1.8–4.7% cost for single-record implicit batches.
+   Full producer suites failed for both candidate and matched baseline;
+   batch ownership and cancellation remain open. The [retained-admission test](../evidence/client/retained-cancellation-test-20261108/README.md)
    now isolates one partial `send_all` cancellation and detects missing or
    duplicate release in a gated mock; producer code is unchanged. The barrier
    draft's short mock benchmark recorded higher median admission and flush

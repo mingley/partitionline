@@ -8435,7 +8435,7 @@ impl Worker {
             version,
             acks,
             timeout_ms,
-            &groups,
+            &mut groups,
             topic_ids.as_slice(),
             compression,
             now,
@@ -10847,7 +10847,7 @@ fn encode_produce_body(
     version: i16,
     acks: i16,
     timeout_ms: i32,
-    groups: &[(Arc<str>, i32, Vec<Pending>)],
+    groups: &mut [(Arc<str>, i32, Vec<Pending>)],
     topic_ids: &[(Arc<str>, [u8; 16])],
     compression: Compression,
     now: i64,
@@ -10887,7 +10887,7 @@ async fn encode_produce_body_async(
     version: i16,
     acks: i16,
     timeout_ms: i32,
-    groups: &[(Arc<str>, i32, Vec<Pending>)],
+    groups: &mut [(Arc<str>, i32, Vec<Pending>)],
     topic_ids: &[(Arc<str>, [u8; 16])],
     compression: Compression,
     now: i64,
@@ -10951,7 +10951,7 @@ async fn encode_produce_body_async(
 async fn write_indexed_produce_topics(
     buf: &mut BytesMut,
     version: i16,
-    groups: &[(Arc<str>, i32, Vec<Pending>)],
+    groups: &mut [(Arc<str>, i32, Vec<Pending>)],
     topic_ids: &[(Arc<str>, [u8; 16])],
     compression: Compression,
     now: i64,
@@ -11002,7 +11002,7 @@ async fn write_indexed_produce_topics(
             else {
                 continue;
             };
-            let Some((_, partition, pendings)) = groups.get(i) else {
+            let Some((_, partition, pendings)) = groups.get_mut(i) else {
                 continue;
             };
             buf.put_i32(*partition);
@@ -11070,7 +11070,7 @@ async fn write_indexed_produce_topics(
 )]
 async fn encode_flexible_partition_async(
     buf: &mut BytesMut,
-    pendings: &[Pending],
+    pendings: &mut [Pending],
     compression: Compression,
     now: i64,
     producer_id: i64,
@@ -11139,7 +11139,7 @@ async fn encode_flexible_partition_async(
 )]
 async fn encode_classic_partition_async(
     buf: &mut BytesMut,
-    pendings: &[Pending],
+    pendings: &mut [Pending],
     compression: Compression,
     now: i64,
     producer_id: i64,
@@ -11311,7 +11311,7 @@ async fn uncompressed_pending_len(
 
 async fn encode_pendings(
     buf: &mut BytesMut,
-    pendings: &[Pending],
+    pendings: &mut [Pending],
     header: &BatchHeader,
     now: i64,
     scratch: &mut CompressScratch,
@@ -11330,7 +11330,7 @@ async fn encode_pendings(
 
 async fn pack_compressed_pendings(
     header: &BatchHeader,
-    pendings: &[Pending],
+    pendings: &mut [Pending],
     now: i64,
     scratch: &mut CompressScratch,
 ) -> Result<usize> {
@@ -11339,10 +11339,10 @@ async fn pack_compressed_pendings(
     let mut written = 0usize;
     let mut walked = 0usize;
     let mut encode_error = None;
-    for (index, pending) in pendings.iter().enumerate() {
+    for (index, pending) in pendings.iter_mut().enumerate() {
         let appended = {
             let rec = EncodeRecord {
-                timestamp: pending.rec.timestamp.unwrap_or(now),
+                timestamp: *pending.rec.timestamp.get_or_insert(now),
                 key: pending.rec.key.as_deref(),
                 value: pending.rec.value.as_deref(),
                 headers: &pending.rec.headers,
@@ -11382,7 +11382,7 @@ async fn pack_compressed_pendings(
 async fn write_uncompressed_pendings(
     buf: &mut BytesMut,
     header: &BatchHeader,
-    pendings: &[Pending],
+    pendings: &mut [Pending],
     now: i64,
     scratch: &mut CompressScratch,
 ) -> Result<()> {
@@ -11393,9 +11393,9 @@ async fn write_uncompressed_pendings(
     let mut written = 0usize;
     let mut walked = 0usize;
     let mut encode_error = None;
-    for (index, pending) in pendings.iter().enumerate() {
+    for (index, pending) in pendings.iter_mut().enumerate() {
         let rec = EncodeRecord {
-            timestamp: pending.rec.timestamp.unwrap_or(now),
+            timestamp: *pending.rec.timestamp.get_or_insert(now),
             key: pending.rec.key.as_deref(),
             value: pending.rec.value.as_deref(),
             headers: &pending.rec.headers,
@@ -15686,6 +15686,101 @@ mod tests {
         }
     }
 
+    #[tokio::test(flavor = "current_thread")]
+    async fn timestamp_freezing_at_existing_encode_yields() {
+        use std::task::Poll;
+
+        for compression in [Compression::None, Compression::Gzip] {
+            let topic = Arc::<str>::from("t");
+            let mut groups = vec![(
+                Arc::clone(&topic),
+                0,
+                (0..8193).map(|_| queued("t", Some(0))).collect(),
+            )];
+            let mut buf = BytesMut::new();
+            let mut scratch = CompressScratch::default();
+            let mut group_scratch = ProduceGroupScratch::default();
+            let mut first = Box::pin(encode_produce_body_async(
+                &mut buf,
+                9,
+                1,
+                1000,
+                &mut groups,
+                &[],
+                compression,
+                1000,
+                -1,
+                -1,
+                None,
+                &mut scratch,
+                &mut group_scratch,
+            ));
+            let state = std::future::poll_fn(|cx| Poll::Ready(first.as_mut().poll(cx))).await;
+            assert!(
+                state.is_pending(),
+                "first yield should happen during sizing"
+            );
+            drop(first);
+            let records = &groups.first().unwrap().2;
+            assert!(records.iter().all(|record| record.rec.timestamp.is_none()));
+
+            buf.clear();
+            let mut second = Box::pin(encode_produce_body_async(
+                &mut buf,
+                9,
+                1,
+                1000,
+                &mut groups,
+                &[],
+                compression,
+                1000,
+                -1,
+                -1,
+                None,
+                &mut scratch,
+                &mut group_scratch,
+            ));
+            let state = std::future::poll_fn(|cx| Poll::Ready(second.as_mut().poll(cx))).await;
+            assert!(state.is_pending(), "sizing must yield");
+            let state = std::future::poll_fn(|cx| Poll::Ready(second.as_mut().poll(cx))).await;
+            assert!(state.is_pending(), "encoding must yield after 8192 records");
+            drop(second);
+            let records = &groups.first().unwrap().2;
+            assert_eq!(records.first().unwrap().rec.timestamp, Some(1000));
+            assert_eq!(records.get(8191).unwrap().rec.timestamp, Some(1000));
+            assert_eq!(records.get(8192).unwrap().rec.timestamp, None);
+
+            // This fixture retains the group itself; the current worker does
+            // not retain it when its enclosing future is canceled.
+            buf.clear();
+            encode_produce_body_async(
+                &mut buf,
+                9,
+                1,
+                1000,
+                &mut groups,
+                &[],
+                compression,
+                2000,
+                -1,
+                -1,
+                None,
+                &mut scratch,
+                &mut group_scratch,
+            )
+            .await
+            .unwrap();
+            let records = &groups.first().unwrap().2;
+            assert_eq!(records.first().unwrap().rec.timestamp, Some(1000));
+            assert_eq!(records.get(8191).unwrap().rec.timestamp, Some(1000));
+            let tail = records.get(8192).unwrap().rec.timestamp;
+            assert!(tail.is_some());
+            println!(
+                "TIMESTAMP_CANCEL compression={compression:?} preencode=unset partial=8192 resumed_tail={tail:?}"
+            );
+        }
+    }
+
     #[test]
     fn an_uncompressed_produce_sizes_its_batch_once() {
         let topic = Arc::<str>::from("orders");
@@ -15698,7 +15793,7 @@ mod tests {
                 pending
             })
             .collect();
-        let groups = [(Arc::clone(&topic), 0, pendings)];
+        let mut groups = [(Arc::clone(&topic), 0, pendings)];
         let mut scratch = CompressScratch::default();
         let mut grouped = ProduceGroupScratch::default();
         for version in [3_i16, 9] {
@@ -15708,7 +15803,7 @@ mod tests {
                 version,
                 1,
                 1_000,
-                &groups,
+                &mut groups,
                 &[],
                 Compression::None,
                 5,
@@ -15729,7 +15824,7 @@ mod tests {
                 version,
                 1,
                 1_000,
-                &groups,
+                &mut groups,
                 &[],
                 Compression::None,
                 5,
@@ -15756,7 +15851,7 @@ mod tests {
                 pending
             })
             .collect();
-        let groups = [(topic, 0, pendings)];
+        let mut groups = [(topic, 0, pendings)];
         let mut scratch = CompressScratch::default();
         let mut grouped = ProduceGroupScratch::default();
         let mut buf = BytesMut::new();
@@ -15765,7 +15860,7 @@ mod tests {
             3,
             1,
             1_000,
-            &groups,
+            &mut groups,
             &[],
             Compression::Gzip,
             5,
@@ -15786,7 +15881,7 @@ mod tests {
             3,
             1,
             1_000,
-            &groups,
+            &mut groups,
             &[],
             Compression::Gzip,
             5,
@@ -15804,7 +15899,7 @@ mod tests {
     #[test]
     fn uncompressed_produce_writes_the_sized_batch_header() {
         let pending = queued("orders", Some(0));
-        let groups = [(Arc::clone(&pending.rec.topic), 0, vec![pending])];
+        let mut groups = [(Arc::clone(&pending.rec.topic), 0, vec![pending])];
         let mut scratch = CompressScratch::default();
         let mut grouped = ProduceGroupScratch::default();
         for version in [3_i16, 9] {
@@ -15814,7 +15909,7 @@ mod tests {
                 version,
                 1,
                 1_000,
-                &groups,
+                &mut groups,
                 &[],
                 Compression::None,
                 5,
@@ -16377,7 +16472,7 @@ mod tests {
     async fn encoding_many_produce_partitions_does_not_hold_the_caller() {
         // 200_000 partitions: encoding each one-record batch held the caller 394ms.
         let topic: Arc<str> = Arc::from("orders");
-        let groups: Vec<(Arc<str>, i32, Vec<Pending>)> = (0..200_000)
+        let mut groups: Vec<(Arc<str>, i32, Vec<Pending>)> = (0..200_000)
             .map(|index| {
                 let mut pending = queued("orders", Some(index));
                 pending.rec.topic = Arc::clone(&topic);
@@ -16394,7 +16489,7 @@ mod tests {
                 9,
                 1,
                 1_000,
-                &groups,
+                &mut groups,
                 &[],
                 Compression::None,
                 0,
@@ -16417,7 +16512,7 @@ mod tests {
         first.rec.topic = Arc::clone(&topic);
         let mut second = queued("orders", Some(7));
         second.rec.topic = Arc::clone(&topic);
-        let small = vec![
+        let mut small = vec![
             (Arc::clone(&topic), 0, vec![first]),
             (Arc::clone(&topic), 7, vec![second]),
         ];
@@ -16428,7 +16523,7 @@ mod tests {
             9,
             1,
             1_000,
-            &small,
+            &mut small,
             &[],
             Compression::None,
             0,
@@ -16445,7 +16540,7 @@ mod tests {
             9,
             1,
             1_000,
-            &small,
+            &mut small,
             &[],
             Compression::None,
             0,
@@ -16464,7 +16559,7 @@ mod tests {
     #[tokio::test(flavor = "current_thread")]
     async fn encoding_many_produce_topics_does_not_hold_the_caller() {
         // 80_000 topics: encoding each one-record batch held the caller 180ms.
-        let groups: Vec<(Arc<str>, i32, Vec<Pending>)> = (0..80_000)
+        let mut groups: Vec<(Arc<str>, i32, Vec<Pending>)> = (0..80_000)
             .map(|index| {
                 let topic: Arc<str> = Arc::from(format!("topic-{index}"));
                 let mut pending = queued("orders", Some(0));
@@ -16481,7 +16576,7 @@ mod tests {
             encoded = write_indexed_produce_topics(
                 &mut buf,
                 9,
-                &groups,
+                &mut groups,
                 &[],
                 Compression::None,
                 0,
@@ -16506,7 +16601,7 @@ mod tests {
         orders_record.rec.topic = Arc::clone(&orders);
         let mut payments_record = queued("payments", Some(4));
         payments_record.rec.topic = Arc::clone(&payments);
-        let few = vec![
+        let mut few = vec![
             (Arc::clone(&orders), 1, vec![orders_record]),
             (Arc::clone(&payments), 4, vec![payments_record]),
         ];
@@ -16517,7 +16612,7 @@ mod tests {
             9,
             1,
             1_000,
-            &few,
+            &mut few,
             &[],
             Compression::None,
             0,
@@ -16534,7 +16629,7 @@ mod tests {
             9,
             1,
             1_000,
-            &few,
+            &mut few,
             &[],
             Compression::None,
             0,

@@ -254,6 +254,7 @@ type ListReassignmentTopicFilter = Vec<(String, Vec<i32>)>;
 
 type AppendedBatchKey = (i64, i16, String, i32, i32);
 type AppendedBatchVal = (i64, i32);
+type ProduceTimestampAttempt = (i64, i16, i32, i64, Vec<i64>);
 type FetchSessionRequest = (
     i32,
     i16,
@@ -405,6 +406,8 @@ struct State {
     expected_seq: HashMap<(i64, i16, String, i32), i32>,
     last_produce_base_sequence: Option<i32>,
     produce_sequences: Vec<(i64, i16, i32, i32)>,
+    produce_timestamp_attempts: Option<Vec<ProduceTimestampAttempt>>,
+    produce_logappend_override: Option<i64>,
     produce_drop_response: Option<bool>,
     produce_drop_response_left: Option<u32>,
     produce_drop_response_after_appends: Option<u32>,
@@ -953,6 +956,8 @@ fn new_state(
         expected_seq: HashMap::new(),
         last_produce_base_sequence: None,
         produce_sequences: Vec::new(),
+        produce_timestamp_attempts: None,
+        produce_logappend_override: None,
         produce_drop_response: None,
         produce_drop_response_left: None,
         produce_drop_response_after_appends: None,
@@ -2531,6 +2536,36 @@ impl Mock {
 
     pub fn produce_sequences(&self) -> Vec<(i64, i16, i32, i32)> {
         self.state.lock().produce_sequences.clone()
+    }
+
+    pub fn enable_produce_timestamp_observation(&self) {
+        self.state.lock().produce_timestamp_attempts = Some(Vec::new());
+    }
+
+    pub fn produce_timestamp_attempts(&self) -> Vec<ProduceTimestampAttempt> {
+        self.state
+            .lock()
+            .produce_timestamp_attempts
+            .clone()
+            .unwrap_or_default()
+    }
+
+    pub fn set_produce_logappend_override(&self, time: i64) {
+        self.state.lock().produce_logappend_override = Some(time);
+    }
+
+    pub fn log_timestamps(&self, topic: &str, partition: i32) -> Vec<(i64, i64)> {
+        self.state
+            .lock()
+            .log
+            .get(&(topic.to_string(), partition))
+            .map(|records| {
+                records
+                    .iter()
+                    .map(|record| (record.offset, record.timestamp))
+                    .collect()
+            })
+            .unwrap_or_default()
     }
 
     pub fn set_topic_partitions(&self, topic: &str, count: i32) {
@@ -7504,6 +7539,19 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                             st.last_produce_producer_epoch = Some(p.records.producer_epoch);
                             let key = (topic.topic.clone(), p.index);
                             let nrec = p.records.records.len() as i32;
+                            if let Some(attempts) = st.produce_timestamp_attempts.as_mut() {
+                                attempts.push((
+                                    p.records.producer_id,
+                                    p.records.producer_epoch,
+                                    p.records.base_sequence,
+                                    p.records.base_timestamp,
+                                    p.records
+                                        .records
+                                        .iter()
+                                        .map(|record| record.timestamp)
+                                        .collect(),
+                                ));
+                            }
                             // KL09-14: observe encoded batch sizes for bound tests.
                             let batch_bytes = p.records.size_in_bytes().unwrap();
                             st.produce_batches.push((
@@ -7605,12 +7653,15 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                                         }
                                         start
                                     };
+                                    let log_append_time_ms = st
+                                        .produce_logappend_override
+                                        .unwrap_or(RecordBatch::NO_TIMESTAMP);
                                     parts.push(ProducePartitionResponse {
                                         topic: topic.topic.clone(),
                                         partition: p.index,
                                         error_code: 0,
                                         base_offset,
-                                        log_append_time_ms: RecordBatch::NO_TIMESTAMP,
+                                        log_append_time_ms,
                                         log_start_offset: 0,
                                         current_leader_id: -1,
                                         current_leader_epoch: -1,

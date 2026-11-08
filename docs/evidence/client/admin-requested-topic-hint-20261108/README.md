@@ -163,7 +163,10 @@ The baseline and candidate release test binaries had SHA-256
 `9ff1df7c503db0bca2b5a83d68d87abeb21a15361b6fd0af58741681650f6e8f`
 and `b667177f5f2cb72fbb623e7a018b6d49f5d1988b4b8a1ad0a33e2d927d4b4884`.
 The [CSV](combined-timings.csv) preserves all 336 observations, with 12
-alternating pairs per shape.
+alternating pairs per shape. The peer checks requested names and order; the
+timed client checks result counts and error codes or partition counts, not
+returned names, topic IDs or per-topic partition mappings. Separate scripted
+and Kafka controls exercise behavior.
 
 | Shape | Baseline / candidate median (ms) | Median paired ratio | Paired ratio range | Candidate slower |
 | --- | --- | --- | --- | --- |
