@@ -15686,6 +15686,90 @@ mod tests {
         }
     }
 
+    // Diagnostic fixture: these records are injected into the real helpers.
+    // It does not establish that public retries can reach this arrangement.
+    fn sequence_identity_witness(
+        partition: i32,
+        sequence: i32,
+        base: i32,
+        len: usize,
+    ) -> Pending {
+        let mut pending = queued("sequence-witness", Some(partition));
+        pending.seq = Some(sequence);
+        pending.batch_base_seq = Some(base);
+        pending.batch_len = len;
+        pending.epoch_gen = 1;
+        pending
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn sequence_identity_helpers_observe_numeric_base_collision() {
+        let pending = vec![
+            sequence_identity_witness(0, 0, 0, 2),
+            sequence_identity_witness(1, 0, 0, 1),
+        ];
+        assert_eq!(count_leading_sequence(&pending, 0).await, 2);
+        let mut bases = HashMap::new();
+        let count = take_count_in(&pending, usize::MAX, usize::MAX, &mut bases).await;
+        assert_eq!(count, 2);
+        let mut scratch = ProduceGroupScratch::default();
+        let (groups, _) = group_pending(pending, &mut scratch).await;
+        assert_eq!(groups.len(), 2);
+        let first = groups.iter().find(|(_, part, _)| *part == 0).unwrap();
+        let second = groups.iter().find(|(_, part, _)| *part == 1).unwrap();
+        assert_eq!(first.2.len(), 1);
+        assert_eq!(first.2.first().unwrap().batch_len, 2);
+        assert_eq!(second.2.len(), 1);
+
+        let different_base = vec![
+            sequence_identity_witness(0, 0, 0, 2),
+            sequence_identity_witness(1, 1, 1, 1),
+        ];
+        assert_eq!(count_leading_sequence(&different_base, 0).await, 1);
+        let complete = vec![
+            sequence_identity_witness(0, 0, 0, 2),
+            sequence_identity_witness(0, 1, 0, 2),
+        ];
+        assert_eq!(count_leading_sequence(&complete, 0).await, 2);
+        let count = take_count_in(&complete, 2, usize::MAX, &mut bases).await;
+        assert_eq!(count, 2);
+        println!("SEQUENCE_HELPER_COLLISION observed=2 actual_first_partition=1 declared=2");
+        println!("SEQUENCE_HELPER_CONTROLS different_base=1 complete_batch=2");
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn sequence_identity_readiness_contract() {
+        let pending = vec![
+            sequence_identity_witness(0, 0, 0, 2),
+            sequence_identity_witness(1, 0, 0, 1),
+        ];
+        assert_eq!(
+            count_leading_sequence(&pending, 0).await,
+            1,
+            "a different partition is not part of the first batch"
+        );
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn sequence_identity_selection_contract() {
+        let pending = vec![
+            sequence_identity_witness(0, 0, 0, 2),
+            sequence_identity_witness(1, 0, 0, 1),
+            sequence_identity_witness(0, 1, 0, 2),
+        ];
+        let mut bases = HashMap::new();
+        let count = take_count_in(&pending, 2, usize::MAX, &mut bases).await;
+        let selected = pending
+            .iter()
+            .take(count)
+            .filter(|p| p.rec.partition == Some(0))
+            .count();
+        assert!(
+            selected == 0 || selected == 2,
+            "selection must hold or carry the complete first batch, selected {selected}"
+        );
+    }
+
     #[test]
     fn an_uncompressed_produce_sizes_its_batch_once() {
         let topic = Arc::<str>::from("orders");
