@@ -5151,6 +5151,9 @@ async fn init_producer_id_roundtrip(
     let mut rediscover = false;
     let mut transport_retry_used = false;
     loop {
+        if txn_id.is_some() && txn.as_ref().is_none_or(|coord| coord.conn.is_closed()) {
+            rediscover = true;
+        }
         if rediscover {
             let tid = txn_id
                 .as_deref()
@@ -5625,14 +5628,22 @@ async fn txn_roundtrip(
         let mut guard = tokio::time::timeout(timeout_remaining(deadline)?, shared.txn.lock())
             .await
             .map_err(|_| Error::Timeout)?;
-        let conn = guard
-            .as_mut()
-            .ok_or_else(|| Error::protocol("no transaction coordinator"))?;
-        require_coord_version(conn, api_key, api_version)?;
-        let remaining = timeout_remaining(deadline)?;
-        conn.conn
-            .roundtrip(api_key, api_version, |buf| encode_body(buf), remaining)
-            .await
+        let _remaining = timeout_remaining(deadline)?;
+        match guard.as_mut() {
+            Some(conn) if !conn.conn.is_closed() => {
+                require_coord_version(conn, api_key, api_version)?;
+                let _remaining = timeout_remaining(deadline)?;
+                conn.conn
+                    .roundtrip_deadline(
+                        api_key,
+                        api_version,
+                        |buf| encode_body(buf),
+                        crate::net::Deadline::from_std(deadline),
+                    )
+                    .await
+            }
+            _ => Err(Error::Closed),
+        }
     };
     match first {
         Ok(body) if !error::coordinator_retriable(error_of(&body).await?) => return Ok(body),
@@ -5680,19 +5691,42 @@ async fn txn_roundtrip(
         .await?
     };
     remember_produce_keys(shared, new.conn.addr(), &new.keys);
-    let remaining = timeout_remaining(deadline)?;
-    let mut guard = shared.txn.lock().await;
-    if let Some(previous) = guard.take() {
-        retire_owned_conn(previous.conn).await;
-    }
-    *guard = Some(new);
+    require_coord_version(&new, api_key, api_version)?;
+    let mut guard = replace_txn_coordinator(shared, new, deadline).await?;
     let conn = guard
         .as_mut()
         .ok_or_else(|| Error::protocol("no transaction coordinator"))?;
-    require_coord_version(conn, api_key, api_version)?;
     conn.conn
-        .roundtrip(api_key, api_version, |buf| encode_body(buf), remaining)
+        .roundtrip_deadline(
+            api_key,
+            api_version,
+            |buf| encode_body(buf),
+            crate::net::Deadline::from_std(deadline),
+        )
         .await
+}
+
+/// Keep the old coordinator owned until its terminal shutdown completes.
+/// Cancellation leaves it closed in the slot, allowing a later rediscovery.
+async fn replace_txn_coordinator(
+    shared: &Shared,
+    new: CoordinatorConnection,
+    deadline: Instant,
+) -> Result<tokio::sync::MutexGuard<'_, Option<CoordinatorConnection>>> {
+    let limit = tokio::time::Instant::from_std(deadline);
+    let mut guard = tokio::time::timeout_at(limit, shared.txn.lock())
+        .await
+        .map_err(|_| Error::Timeout)?;
+    let _remaining = timeout_remaining(deadline)?;
+    if let Some(previous) = guard.as_mut() {
+        previous.conn.close();
+        tokio::time::timeout_at(limit, previous.conn.release_if_closed())
+            .await
+            .map_err(|_| Error::Timeout)?;
+    }
+    let _remaining = timeout_remaining(deadline)?;
+    *guard = Some(new);
+    Ok(guard)
 }
 
 async fn group_coord_roundtrip(
@@ -11530,6 +11564,276 @@ fn record_metadata(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    struct ThirdLockFixture {
+        shared: Arc<Shared>,
+        listener: tokio::net::TcpListener,
+        meta_peer: tokio::net::TcpStream,
+        old_peer: tokio::net::TcpStream,
+        new_peer: tokio::net::TcpStream,
+        new: CoordinatorConnection,
+        release: oneshot::Sender<()>,
+        holder: tokio::task::JoinHandle<()>,
+    }
+
+    async fn third_lock_coordinator(
+        listener: &tokio::net::TcpListener,
+        name: &str,
+    ) -> (CoordinatorConnection, tokio::net::TcpStream) {
+        let addr = listener.local_addr().unwrap().to_string();
+        let conn = BrokerConn::connect(&addr, name, Duration::from_secs(2))
+            .await
+            .unwrap();
+        let (peer, _) = listener.accept().await.unwrap();
+        (
+            CoordinatorConnection {
+                conn,
+                init_producer_id_version: Some(3),
+                keys: vec![ApiVersion {
+                    api_key: ADD_PARTITIONS_TO_TXN,
+                    min_version: 0,
+                    max_version: 0,
+                }],
+            },
+            peer,
+        )
+    }
+
+    async fn third_lock_fixture() -> ThirdLockFixture {
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap().to_string();
+        let meta = BrokerConn::connect(&addr, "third-meta", Duration::from_secs(2))
+            .await
+            .unwrap();
+        let (meta_peer, _) = listener.accept().await.unwrap();
+        let (old, old_peer) = third_lock_coordinator(&listener, "third-old").await;
+        let (new, new_peer) = third_lock_coordinator(&listener, "third-new").await;
+        let (acquired_tx, acquired_rx) = oneshot::channel();
+        let (release, release_rx) = oneshot::channel();
+        let holder = tokio::spawn(old.conn.test_hold_stream(acquired_tx, release_rx));
+        acquired_rx.await.unwrap();
+        let shared = test_shared(ProducerConfig::default().transactional_id("third"), meta);
+        *shared.txn.lock().await = Some(old);
+        ThirdLockFixture {
+            shared,
+            listener,
+            meta_peer,
+            old_peer,
+            new_peer,
+            new,
+            release,
+            holder,
+        }
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn replacement_cancel_retains_closed_coordinator() {
+        use std::task::Poll;
+
+        let fixture = third_lock_fixture().await;
+        let ThirdLockFixture {
+            shared,
+            listener: _listener,
+            meta_peer: _meta_peer,
+            old_peer: _old_peer,
+            new_peer: _new_peer,
+            new,
+            release,
+            holder,
+        } = fixture;
+        let mut call = Box::pin(replace_txn_coordinator(
+            &shared,
+            new,
+            Instant::now() + Duration::from_secs(5),
+        ));
+        let pending = std::future::poll_fn(|cx| {
+            Poll::Ready(std::future::Future::poll(call.as_mut(), cx).is_pending())
+        })
+        .await;
+        assert!(pending);
+        assert!(shared.txn.try_lock().is_err());
+        println!("PL_REPLACEMENT_RETIREMENT_HELD");
+        drop(call);
+        let guard = shared.txn.lock().await;
+        assert!(
+            guard.as_ref().is_some_and(|coord| coord.conn.is_closed()),
+            "PL_REPLACEMENT_CANCEL_EMPTIED_COORDINATOR"
+        );
+        drop(guard);
+        assert!(release.send(()).is_ok());
+        holder.await.unwrap();
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn replacement_timeout_retains_coordinator_and_recovers() {
+        use tokio::io::{AsyncReadExt, AsyncWriteExt};
+
+        let fixture = third_lock_fixture().await;
+        let ThirdLockFixture {
+            shared,
+            listener,
+            meta_peer: _meta_peer,
+            old_peer: _old_peer,
+            new_peer: _new_peer,
+            new,
+            release,
+            holder,
+        } = fixture;
+        println!("PL_REPLACEMENT_STREAM_HELD");
+        let result = tokio::time::timeout(
+            Duration::from_secs(4),
+            replace_txn_coordinator(&shared, new, Instant::now() + Duration::from_millis(200)),
+        )
+        .await;
+        assert!(
+            matches!(result, Ok(Err(Error::Timeout))),
+            "PL_REPLACEMENT_TIMEOUT_BROKEN"
+        );
+        let guard = shared.txn.lock().await;
+        assert!(
+            guard.as_ref().is_some_and(|coord| coord.conn.is_closed()),
+            "PL_REPLACEMENT_TIMEOUT_EMPTIED_COORDINATOR"
+        );
+        drop(guard);
+        assert!(release.send(()).is_ok());
+        holder.await.unwrap();
+
+        let (next, mut peer) = third_lock_coordinator(&listener, "third-recovered").await;
+        let guard =
+            replace_txn_coordinator(&shared, next, Instant::now() + Duration::from_secs(3))
+                .await
+                .unwrap();
+        assert!(guard.as_ref().is_some_and(|coord| !coord.conn.is_closed()));
+        drop(guard);
+        let server_stop = Arc::new(Notify::new());
+        let server_done = Arc::clone(&server_stop);
+        let server = tokio::spawn(async move {
+            let len = peer.read_i32().await.unwrap();
+            assert!((8..=4096).contains(&len));
+            let mut request = vec![0; usize::try_from(len).unwrap()];
+            let _read = peer.read_exact(&mut request).await.unwrap();
+            peer.write_i32(4).await.unwrap();
+            peer.write_all(&request[4..8]).await.unwrap();
+            server_done.notified().await;
+        });
+        let body = txn_roundtrip(
+            &shared,
+            ADD_PARTITIONS_TO_TXN,
+            0,
+            |_| Ok(()),
+            Duration::from_secs(3),
+            |_| Box::pin(async { Ok(0) }),
+        )
+        .await
+        .unwrap();
+        assert!(body.is_empty());
+        server_stop.notify_one();
+        server.await.unwrap();
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn replacement_wait_for_slot_obeys_deadline() {
+        let fixture = third_lock_fixture().await;
+        let ThirdLockFixture {
+            shared,
+            listener: _listener,
+            meta_peer: _meta_peer,
+            old_peer: _old_peer,
+            new_peer: _new_peer,
+            new,
+            release,
+            holder,
+        } = fixture;
+        let guard = shared.txn.lock().await;
+        println!("PL_REPLACEMENT_SLOT_HELD");
+        let result = tokio::time::timeout(
+            Duration::from_secs(4),
+            replace_txn_coordinator(&shared, new, Instant::now() + Duration::from_millis(200)),
+        )
+        .await;
+        assert!(
+            matches!(result, Ok(Err(Error::Timeout))),
+            "PL_REPLACEMENT_SLOT_DEADLINE_BROKEN"
+        );
+        assert!(guard.as_ref().is_some_and(|coord| !coord.conn.is_closed()));
+        drop(guard);
+        assert!(release.send(()).is_ok());
+        holder.await.unwrap();
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn closed_transaction_coordinator_does_not_use_stale_api_versions() {
+        let fixture = third_lock_fixture().await;
+        let ThirdLockFixture {
+            shared,
+            listener: _listener,
+            meta_peer: _meta_peer,
+            old_peer: _old_peer,
+            new_peer: _new_peer,
+            new: _new,
+            release,
+            holder,
+        } = fixture;
+        {
+            let mut guard = shared.txn.lock().await;
+            let old = guard.as_mut().unwrap();
+            old.keys.clear();
+            old.conn.close();
+        }
+        let result = txn_roundtrip(
+            &shared,
+            ADD_PARTITIONS_TO_TXN,
+            0,
+            |_| Ok(()),
+            Duration::from_secs(2),
+            |_| Box::pin(async { Ok(0) }),
+        )
+        .await;
+        assert!(
+            matches!(result, Err(Error::Unsupported(message)) if message.contains("transaction discovery requires")),
+            "closed coordinator reused stale API versions"
+        );
+        assert!(release.send(()).is_ok());
+        holder.await.unwrap();
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn closed_transaction_coordinator_rediscovers_for_epoch_bump() {
+        let fixture = third_lock_fixture().await;
+        let ThirdLockFixture {
+            shared,
+            listener: _listener,
+            meta_peer: _meta_peer,
+            old_peer: _old_peer,
+            new_peer: _new_peer,
+            new: _new,
+            release,
+            holder,
+        } = fixture;
+        let mut guard = shared.txn.lock().await;
+        let old = guard.as_mut().unwrap();
+        old.init_producer_id_version = None;
+        old.conn.close();
+        let result = init_producer_id_roundtrip(
+            &shared.cfg,
+            &mut guard,
+            None,
+            3,
+            None,
+            (7, 0),
+            &[],
+            &HashMap::new(),
+            Instant::now() + Duration::from_secs(2),
+        )
+        .await;
+        assert!(
+            matches!(result, Err(Error::Unsupported(message)) if message.contains("transaction discovery requires")),
+            "closed coordinator reused stale InitProducerId versions"
+        );
+        drop(guard);
+        assert!(release.send(()).is_ok());
+        holder.await.unwrap();
+    }
 
     #[tokio::test(flavor = "current_thread")]
     async fn txn_roundtrip_times_out_waiting_for_initial_lock() {
