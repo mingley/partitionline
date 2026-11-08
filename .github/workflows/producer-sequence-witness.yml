@@ -1,0 +1,35 @@
+name: Producer sequence cancellation witness
+on:
+  push:
+    branches:
+      - qualification/producer-sequence-cancel-1036-20261108
+permissions:
+  contents: read
+jobs:
+  witness:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Pin source and test inputs
+        run: |
+          set -eux
+          git rev-parse HEAD
+          git rev-parse HEAD:src/producer.rs
+          test "$(git rev-parse HEAD:src/producer.rs)" = "1e7733c136e54b532cdc8bddabd1e0c828e50ed2"
+          sha256sum src/producer.rs src/producer/sequence_cancel_witness.rs Cargo.lock
+          rustc -Vv
+          cargo -V
+          python3 - <<'PY'
+          from pathlib import Path
+          path = Path("src/producer.rs")
+          source = path.read_text()
+          marker = '#[path = "producer/sequence_cancel_witness.rs"]'
+          assert marker not in source
+          path.write_text(source + '\n#[cfg(test)]\n' + marker + '\nmod sequence_cancel_witness;\n')
+          PY
+          sha256sum src/producer.rs
+      - name: Default controls
+        run: cargo test --locked --lib sequence_cancel_witness -- --nocapture --test-threads=1
+      - name: All-feature controls
+        run: cargo test --locked --all-features --lib sequence_cancel_witness -- --nocapture --test-threads=1
