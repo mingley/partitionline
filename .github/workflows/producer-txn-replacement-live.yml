@@ -1,0 +1,178 @@
+name: Producer transaction replacement live smoke
+
+on:
+  push:
+    branches:
+      - qualification/producer-txn-replacement-live-20261108
+
+permissions:
+  contents: read
+
+jobs:
+  kafka:
+    name: Kafka 3.9.1 transaction smoke (${{ matrix.arm }})
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arm: baseline
+            source: 8b5de2e2cfe5f3164a5f89546804ab36c1771ade
+          - arm: candidate
+            source: 696bc9198b60f30d61c366d505029d9608a601b8
+    env:
+      CARGO_BUILD_JOBS: "2"
+      CARGO_INCREMENTAL: "0"
+      CARGO_PROFILE_DEV_DEBUG: "0"
+      CARGO_PROFILE_TEST_DEBUG: "0"
+      CARGO_TERM_COLOR: never
+      PYTHONDONTWRITEBYTECODE: "1"
+      KAFKA_IMAGE: apache/kafka@sha256:4ceccc577f03f51f6af8dbfda55194d0d892f4fa7913ffbded567ce3895622ed
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ matrix.source }}
+          path: source
+          persist-credentials: false
+          sparse-checkout: |
+            src
+            tests
+            examples
+            .cargo
+      - uses: actions/checkout@v7
+        with:
+          ref: 3b8130487e870fe9855fa84ea551cc59328715c7
+          path: assets
+          persist-credentials: false
+          sparse-checkout: |
+            docs/evidence/client/add-partitions-live-20261108
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Check source, witness and runner
+        shell: bash
+        env:
+          SOURCE_SHA: ${{ matrix.source }}
+        run: |
+          set -euo pipefail
+          test "$(uname -m)" = x86_64
+          test "$(git -C source rev-parse HEAD)" = "$SOURCE_SHA"
+          test "$(git -C assets rev-parse HEAD)" = 3b8130487e870fe9855fa84ea551cc59328715c7
+          test "$(df -Pk . | awk 'NR==2 {print $4}')" -gt 1572864
+          root="assets/docs/evidence/client/add-partitions-live-20261108"
+          test "$(git -C assets hash-object "$GITHUB_WORKSPACE/$root/witness.rs")" = 1e95adeab7849d7dcc33db84ccd087f9da2b08ec
+          test "$(git -C assets hash-object "$GITHUB_WORKSPACE/$root/observe.py")" = eacaea86782f289a13847da39377a1c8a47066e9
+          test "$(git -C assets hash-object "$GITHUB_WORKSPACE/$root/validate.py")" = 4fd793446dc26d930eddc474d402f88ca4d55ae3
+          rustc +stable -vV
+          cargo +stable -V
+          mkdir -p "$RUNNER_TEMP/txn-replacement-live"
+          case "$SOURCE_SHA" in
+            8b5de2e2cfe5f3164a5f89546804ab36c1771ade)
+              producer_hash=f4a842a85958e0fa90fe3fec458424770ccf389e8a56748999e031e6714b5ed1
+              net_hash=df239f20fdc4e3240defa78e632faa50c09dc69876478581e061d5c68722bb38 ;;
+            696bc9198b60f30d61c366d505029d9608a601b8)
+              producer_hash=fd4ebd8230be5d82ab245283478b916dc92cb7160dfb84a755b8c94bd3259bd9
+              net_hash=27aac491033d6ae73e85927d13289b0054cb658b029b5b9382b64d9b259b3431 ;;
+            *) exit 1 ;;
+          esac
+          printf '%s  %s\n' "$producer_hash" "$GITHUB_WORKSPACE/source/src/producer.rs" \
+            "$net_hash" "$GITHUB_WORKSPACE/source/src/net.rs" > "$RUNNER_TEMP/txn-replacement-live/expected-sources.sha256"
+          sha256sum -c "$RUNNER_TEMP/txn-replacement-live/expected-sources.sha256"
+          sha256sum source/src/producer.rs source/src/net.rs source/Cargo.lock "$root/witness.rs" "$root/observe.py" "$root/validate.py" | tee "$RUNNER_TEMP/txn-replacement-live/source-pins.txt"
+      - name: Exercise real multi-partition transaction
+        shell: bash
+        timeout-minutes: 35
+        run: |
+          set -euo pipefail
+          cd "$GITHUB_WORKSPACE/source"
+          assets="$GITHUB_WORKSPACE/assets/docs/evidence/client/add-partitions-live-20261108"
+          evidence="$RUNNER_TEMP/txn-replacement-live"
+          proxy_pid=''
+          cleanup() {
+            docker logs txn-replacement-kafka > "$evidence/kafka.log" 2>&1 || true
+            if [[ -n "$proxy_pid" ]]; then
+              kill "$proxy_pid" 2>/dev/null || true
+              wait "$proxy_pid" 2>/dev/null || true
+            fi
+            docker rm -f txn-replacement-kafka >/dev/null 2>&1 || true
+          }
+          trap cleanup EXIT
+          docker pull "$KAFKA_IMAGE" 2>&1 | tee "$evidence/docker-pull.log"
+          docker image inspect "$KAFKA_IMAGE" --format '{{json .RepoDigests}} {{.Id}}' | tee "$evidence/image-id.txt"
+          docker run -d --name txn-replacement-kafka --network host \
+            -e CLUSTER_ID=MkU3OEVBNTcwNTJENDM2Qk \
+            -e KAFKA_NODE_ID=1 \
+            -e KAFKA_PROCESS_ROLES=broker,controller \
+            -e KAFKA_CONTROLLER_QUORUM_VOTERS=1@127.0.0.1:9095 \
+            -e KAFKA_LISTENERS=CONTROLLER://127.0.0.1:9095,EXTERNAL://127.0.0.1:9093,INTERNAL://127.0.0.1:9094 \
+            -e KAFKA_ADVERTISED_LISTENERS=EXTERNAL://127.0.0.1:19092,INTERNAL://127.0.0.1:9094 \
+            -e KAFKA_LISTENER_SECURITY_PROTOCOL_MAP=CONTROLLER:PLAINTEXT,EXTERNAL:PLAINTEXT,INTERNAL:PLAINTEXT \
+            -e KAFKA_CONTROLLER_LISTENER_NAMES=CONTROLLER \
+            -e KAFKA_INTER_BROKER_LISTENER_NAME=INTERNAL \
+            -e KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR=1 \
+            -e KAFKA_OFFSETS_TOPIC_NUM_PARTITIONS=1 \
+            -e KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR=1 \
+            -e KAFKA_TRANSACTION_STATE_LOG_MIN_ISR=1 \
+            -e KAFKA_TRANSACTION_STATE_LOG_NUM_PARTITIONS=1 \
+            -e KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS=0 \
+            -e KAFKA_AUTO_CREATE_TOPICS_ENABLE=false \
+            "$KAFKA_IMAGE" | tee "$evidence/container-id.txt"
+          ready=0
+          for attempt in $(seq 1 30); do
+            if timeout 8 docker exec txn-replacement-kafka /opt/kafka/bin/kafka-broker-api-versions.sh --bootstrap-server 127.0.0.1:9094 > "$evidence/ready.log" 2>&1; then ready=1; break; fi
+            sleep 2
+          done
+          test "$ready" = 1
+          timeout 60 docker exec txn-replacement-kafka /opt/kafka/bin/kafka-topics.sh \
+            --bootstrap-server 127.0.0.1:9094 --create --topic pl-add-coverage --partitions 2 --replication-factor 1 | tee "$evidence/create-topic.log"
+          python3 -B - "$assets/observe.py" <<'PYCODE'
+          import runpy, sys
+          m = runpy.run_path(sys.argv[1])
+          request = bytes.fromhex("0018 0003 00000007 0000 00 0274 0000000000000009 0002 02 0261 03 00000000 00000001 00 00")
+          response = bytes.fromhex("00000007 00 00000000 02 0261 03 00000000 0000 00 00000001 0000 00 00 00")
+          q, r = m["decode_request"](request), m["decode_response"](response)
+          assert q["correlation"] == r["correlation"] == 7
+          assert q["topics"] == [{"topic": "a", "partitions": [0, 1]}]
+          assert r["topics"] == [{"topic": "a", "partitions": [{"partition": 0, "error": 0}, {"partition": 1, "error": 0}]}]
+          print("v3 observer wire vector controls passed")
+          PYCODE
+          python3 -B "$assets/observe.py" --events "$evidence/wire.jsonl" > "$evidence/proxy.log" 2>&1 &
+          proxy_pid=$!
+          for attempt in $(seq 1 30); do
+            if grep -q listening "$evidence/proxy.log"; then break; fi
+            kill -0 "$proxy_pid"
+            sleep 1
+          done
+          grep -q listening "$evidence/proxy.log"
+          test ! -e examples/add_partitions_coverage_live.rs
+          cp "$assets/witness.rs" examples/add_partitions_coverage_live.rs
+          cmp "$assets/witness.rs" examples/add_partitions_coverage_live.rs
+          timeout 900 cargo +stable run --locked --example add_partitions_coverage_live 2>&1 | tee "$evidence/client.log"
+          grep -F 'commit returned success' "$evidence/client.log"
+          python3 -B "$assets/validate.py" "$evidence/wire.jsonl" | tee "$evidence/matched-wire.json"
+          state=0
+          for attempt in $(seq 1 20); do
+            if timeout 15 docker exec txn-replacement-kafka /opt/kafka/bin/kafka-transactions.sh --bootstrap-server 127.0.0.1:9094 describe --transactional-id pl-add-coverage-391 > "$evidence/transaction-state.log" 2>&1 && grep -qw CompleteCommit "$evidence/transaction-state.log"; then state=1; break; fi
+            sleep 2
+          done
+          cat "$evidence/transaction-state.log"
+          test "$state" = 1
+          for partition in 0 1; do
+            timeout 45 docker exec txn-replacement-kafka /opt/kafka/bin/kafka-console-consumer.sh \
+              --bootstrap-server 127.0.0.1:9094 --topic pl-add-coverage --partition "$partition" \
+              --from-beginning --max-messages 1 --timeout-ms 20000 \
+              --consumer-property isolation.level=read_uncommitted > "$evidence/readback-$partition.log" 2>&1
+            cat "$evidence/readback-$partition.log"
+          done
+          grep -Fx pl-add-coverage-zero "$evidence/readback-0.log"
+          grep -Fx pl-add-coverage-one "$evidence/readback-1.log"
+          sha256sum -c "$evidence/expected-sources.sha256"
+          cmp "$assets/witness.rs" examples/add_partitions_coverage_live.rs
+          sha256sum src/producer.rs src/net.rs Cargo.lock "$assets/witness.rs" | tee "$evidence/final-pins.txt"
+      - name: Retain live smoke logs
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: txn-replacement-kafka-${{ matrix.arm }}-${{ github.run_id }}
+          path: ${{ runner.temp }}/txn-replacement-live
+          if-no-files-found: warn
+          retention-days: 30
