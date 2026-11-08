@@ -1330,6 +1330,7 @@ fn read_canonical_i64(bytes: &[u8], index: usize) -> Option<(i64, usize)> {
     Some((((raw >> 1) as i64) ^ -((raw & 1) as i64), next))
 }
 
+#[inline(always)]
 fn read_canonical_u64(bytes: &[u8], index: usize, width: usize, last: u8) -> Option<(u64, usize)> {
     let first = *bytes.get(index)?;
     if first & 0x80 == 0 {
