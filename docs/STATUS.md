@@ -39,6 +39,16 @@ later changes; see the linked runs for their exact source and scope.
 | Client capability profiles | Both passed selected checks; their archives were not independently inspected. |
 | Client format, all-target Clippy, audit, docs, package, auth and integrity smoke | Passed. Other client jobs failed or were skipped. |
 
+A [newer partial broker run][ci-912] passed its default profile but stopped
+the all-feature profile after three Raft runtime failures. Its later strict
+checks did not run. Inventory, fuzz supervision and selected capability
+profiles passed; the failures remain unexplained.
+
+A [later partial CI run][ci-c481] passed both broker profiles, inventory,
+fuzz supervision and selected capability profiles. The client failed eight
+jobs and canceled one Kafka smoke. That broker pass does not explain the
+earlier disconnect or Raft failures.
+
 A [newer partial broker run][ci-7fb] stopped at 490 default library tests
 passed, one failed and four ignored after a five-node Raft proposal returned
 `NotLeader`. The cause and the proposal's append and commit outcome are
@@ -129,25 +139,23 @@ latency bound.
   The cause and any connection to the candidate remain unknown. The applied
   [frame-read change][frame-read] limits ready frame reads before requesting a
   yield. It does not bound one read poll or synchronous complete-frame copying.
-- **Security and protocol coverage.** [Admin pagination][admin-pages] now uses
+- **Security and protocol coverage.** [Admin pagination][admin-pages] uses
   one deadline across DescribeTopicPartitions pages and rejects an immediate
-  cursor repeat. A [scripted witness][admin-identity] shows that later topic
-  errors can be reported as success and pages with different topic IDs can
-  be combined. An earlier candidate's broad Admin suites failed timing
-  assertions on both baseline and candidate in a matched run. The candidate
-  remains unapplied while nullable-name semantics and a revision are reviewed. Earlier focused controls and a
-  Kafka 4.1.2 smoke passed in both profiles; the earlier broad all-feature Admin suite failed two timing checks,
-  while the default suite passed. A [test revision][admin-poll] checks
-  cooperative yields and progress; both selected Admin suites passed, but the
-  earlier timings remain unexplained. Longer cycles can continue until timeout,
-  and accumulated results are not bounded by this change. [Admin response
-  reservations][admin-reserve] cap initial vector capacity requests in seven
-  response families, but results
-  can grow and process memory is not bounded by that change. A separate
-  [DescribeTopicPartitions reservation candidate][dtp-reserve] remains
-  unapplied after large valid-decode regressions. GSSAPI and connection-driven
-  SASL reauthentication remain incomplete. See the
-  [protocol gaps](gaps.md) for other missing functionality.
+  cursor repeat. The [identity fix][admin-null] retains topic errors, rejects
+  conflicting known IDs, and returns `Unsupported` for null wire names in
+  the aggregate; raw pages remain available. Focused controls and a Kafka
+  4.1.2 smoke passed in both profiles. Both full Admin suites failed timing
+  assertions; a matched run with the original fixture passed the candidate
+  and failed the baseline. The cause remains unknown. An earlier
+  [test revision][admin-poll] checks cooperative progress without establishing
+  a wall-time bound. Non-null response names are not checked against the
+  request, longer cursor cycles can duplicate results, and cleanup and memory
+  are not globally bounded. [Admin response reservations][admin-reserve] cap
+  initial capacity requests in seven response families, but results can grow.
+  A separate [DescribeTopicPartitions reservation candidate][dtp-reserve]
+  remains unapplied after valid-decode regressions. GSSAPI and
+  connection-driven SASL reauthentication remain incomplete; see the
+  [protocol gaps](gaps.md).
 - **Reliability and performance.** No 24-hour fault campaign or seven-day
   continuity run has passed. Matched x86 comparisons against other Kafka
   implementations with independent record verification remain incomplete;
@@ -180,7 +188,7 @@ retained evidence. The [benchmark contract](benchmark-contract.md) and
 [ci]: https://github.com/mingley/partitionline/blob/ec1bd5191b0410df771838574f8bbff752fb31c0/docs/evidence/releases/main-ci-d257-20261108/README.md
 [ci-262]: https://github.com/mingley/partitionline/blob/cb55f7c603e2344775de8a395c6a584737f5bb95/docs/evidence/releases/main-ci-262-20261108/README.md
 [ci-02c]: https://github.com/mingley/partitionline/blob/0ce81683fe7107386e30f388cd2a4af31735d522/docs/evidence/releases/main-ci-02c-20261108/README.md
-[next]: https://github.com/mingley/partitionline/blob/9b9bdf7d1c8ab9ef4ca79d7dd090941c16d7b85c/docs/plan/next-work.md
+[next]: https://github.com/mingley/partitionline/blob/ad452fea03dcdde7e946322b3c55ca35bbccc224/docs/plan/next-work.md
 [flush-public]: https://github.com/mingley/partitionline/blob/f93e91499e2ba6bdc88c0a25a0d83b8737d00d3c/docs/evidence/client/producer-flush-public-20261108/README.md
 [flush-sent]: https://github.com/mingley/partitionline/blob/efa7f23314e98f3aaa4559c3cf38302bdcdb9fb4/docs/evidence/client/producer-flush-sent-20261108/README.md
 [owner-design]: https://github.com/mingley/partitionline/blob/cb55f7c603e2344775de8a395c6a584737f5bb95/docs/evidence/client/producer-ownership-design-20261108/README.md
@@ -227,6 +235,10 @@ retained evidence. The [benchmark contract](benchmark-contract.md) and
 
 [ci-7fb]: https://github.com/mingley/partitionline/blob/c3531f20b76ac7a9578b02a548ad37c0aba1bd99/docs/evidence/releases/main-ci-7fb-partial-20261108/README.md
 [disconnect-eof]: https://github.com/mingley/partitionline/blob/45430d95ca633701db2e449604e4a7ea4e360e5c/docs/evidence/broker/disconnect-eof-20261108/README.md
-[admin-identity]: https://github.com/mingley/partitionline/blob/c3531f20b76ac7a9578b02a548ad37c0aba1bd99/docs/evidence/client/admin-pagination-identity-20261108/README.md
+[admin-identity]: https://github.com/mingley/partitionline/blob/ad452fea03dcdde7e946322b3c55ca35bbccc224/docs/evidence/client/admin-pagination-identity-20261108/README.md
 
 [disconnect-events]: https://github.com/mingley/partitionline/blob/9b9bdf7d1c8ab9ef4ca79d7dd090941c16d7b85c/docs/evidence/broker/disconnect-event-tests-20261108/README.md
+
+[admin-null]: https://github.com/mingley/partitionline/blob/ad452fea03dcdde7e946322b3c55ca35bbccc224/docs/evidence/client/admin-topic-identity-null-20261108/README.md
+[ci-c481]: https://github.com/mingley/partitionline/blob/ad452fea03dcdde7e946322b3c55ca35bbccc224/docs/evidence/releases/main-ci-c481-partial-20261108/README.md
+[ci-912]: https://github.com/mingley/partitionline/blob/ad452fea03dcdde7e946322b3c55ca35bbccc224/docs/evidence/releases/main-ci-912-partial-20261108/README.md
