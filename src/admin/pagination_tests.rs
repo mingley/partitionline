@@ -1047,18 +1047,18 @@ async fn dtp_aggregate_distinguishes_empty_name_from_null() {
     let peer = tokio::spawn(async move {
         let (mut socket, _) = listener.accept().await.unwrap();
         socket.set_nodelay(true).unwrap();
-        let first = dtp_request(&mut socket, None).await;
-        let mut first_page = page(0, Some(("orders", 1)));
+        let first = dtp_named_request(&mut socket, &[""], None).await;
+        let mut first_page = page(0, Some(("", 1)));
         first_page.topics[0].name = Some(String::new());
         send_page(&mut socket, &first, &first_page).await.unwrap();
-        let second = dtp_request(&mut socket, Some(("orders", 1))).await;
+        let second = dtp_named_request(&mut socket, &[""], Some(("", 1))).await;
         let mut second_page = page(1, None);
         second_page.topics[0].name = Some(String::new());
         send_page(&mut socket, &second, &second_page).await.unwrap();
     });
     let result = admin
         .describe_topics_with_partition_limit_timeout(
-            ["orders"].iter(),
+            [""].iter(),
             false,
             1,
             Duration::from_secs(5),
@@ -1185,4 +1185,582 @@ async fn dtp_unnamed_topic_precedes_same_page_identity_conflict() {
     peer.await.unwrap();
     assert!(matches!(&got, Err(Error::Unsupported(message))
         if message == "cannot aggregate DescribeTopicPartitions without a topic name"));
+}
+
+async fn dtp_named_request(
+    socket: &mut TcpStream,
+    expected_names: &[&str],
+    expected_cursor: Option<(&str, i32)>,
+) -> RequestHeader {
+    let (header, mut body) = request(socket).await;
+    assert_eq!(
+        (header.api_key, header.api_version),
+        (DESCRIBE_TOPIC_PARTITIONS, 0)
+    );
+    let (names, limit, cursor) = decode_describe_topic_partitions_request(&mut body).unwrap();
+    let expected_names: Vec<String> = expected_names.iter().map(|name| (*name).to_owned()).collect();
+    assert_eq!(names, expected_names);
+    assert_eq!(limit, 1);
+    assert_eq!(
+        cursor
+            .as_ref()
+            .map(|c| (c.topic_name.as_str(), c.partition_index)),
+        expected_cursor
+    );
+    assert!(body.is_empty());
+    header
+}
+
+async fn unrequested_topic_case(name: &'static str, error_code: i16, after_partial: bool) {
+    let (mut admin, listener) = admin_and_listener().await;
+    let peer = tokio::spawn(async move {
+        let (mut socket, _) = listener.accept().await.unwrap();
+        socket.set_nodelay(true).unwrap();
+        let first = dtp_named_request(&mut socket, &["orders"], None).await;
+        let header = if after_partial {
+            send_page(&mut socket, &first, &page(0, Some(("orders", 1))))
+                .await
+                .unwrap();
+            dtp_named_request(&mut socket, &["orders"], Some(("orders", 1))).await
+        } else {
+            first
+        };
+        let mut unexpected = page(1, None);
+        unexpected.topics[0].name = Some(name.into());
+        unexpected.topics[0].error_code = error_code;
+        if error_code != 0 {
+            unexpected.topics[0].partitions.clear();
+        }
+        send_page(&mut socket, &header, &unexpected).await.unwrap();
+    });
+    let got = admin
+        .describe_topics_with_partition_limit_timeout(
+            ["orders"].iter(),
+            false,
+            1,
+            Duration::from_secs(5),
+        )
+        .await;
+    peer.await.unwrap();
+    assert!(
+        matches!(&got, Err(Error::Protocol(message))
+            if message == "DescribeTopicPartitions returned an unrequested topic"),
+        "got {got:?}"
+    );
+    if let Err(error) = &got {
+        assert!(!error.is_retriable());
+    }
+}
+
+#[tokio::test]
+async fn dtp_requested_names_reject_unsolicited_success() {
+    unrequested_topic_case("payments", 0, false).await;
+}
+
+#[tokio::test]
+async fn dtp_requested_names_reject_unsolicited_error() {
+    unrequested_topic_case("payments", crate::error::TOPIC_AUTHORIZATION_FAILED, false).await;
+}
+
+#[tokio::test]
+async fn dtp_requested_names_reject_unsolicited_after_partial_result() {
+    unrequested_topic_case("payments", 0, true).await;
+}
+
+#[tokio::test]
+async fn dtp_requested_names_reject_unrequested_empty_name() {
+    unrequested_topic_case("", 0, false).await;
+}
+
+#[tokio::test]
+async fn dtp_requested_names_raw_empty_request_still_means_all() {
+    let (mut admin, listener) = admin_and_listener().await;
+    let peer = tokio::spawn(async move {
+        let (mut socket, _) = listener.accept().await.unwrap();
+        let header = dtp_named_request(&mut socket, &[], None).await;
+        let mut response = page(0, None);
+        response.topics[0].name = Some("payments".into());
+        send_page(&mut socket, &header, &response).await.unwrap();
+    });
+    let raw = admin
+        .describe_topic_partitions_timeout(&[], 1, None, Duration::from_secs(5))
+        .await
+        .unwrap();
+    peer.await.unwrap();
+    assert_eq!(raw.topics[0].name.as_deref(), Some("payments"));
+}
+
+#[tokio::test]
+async fn dtp_requested_names_allow_duplicate_inputs_and_requested_errors() {
+    let (mut admin, listener) = admin_and_listener().await;
+    let peer = tokio::spawn(async move {
+        let (mut socket, _) = listener.accept().await.unwrap();
+        let header = dtp_named_request(
+            &mut socket,
+            &["orders", "orders", "payments"],
+            None,
+        )
+        .await;
+        let mut response = page(0, None);
+        response.topics.push(DescribedTopicPartitions::new(
+            "payments",
+            crate::error::TOPIC_AUTHORIZATION_FAILED,
+        ));
+        send_page(&mut socket, &header, &response).await.unwrap();
+    });
+    let result = admin
+        .describe_topics_with_partition_limit_timeout(
+            ["orders", "orders", "payments"].iter(),
+            false,
+            1,
+            Duration::from_secs(5),
+        )
+        .await
+        .unwrap();
+    peer.await.unwrap();
+    assert_eq!(
+        result.iter().map(TopicDescription::name).collect::<Vec<_>>(),
+        ["orders", "payments"]
+    );
+    assert_eq!(result[0].error_code(), 0);
+    assert_eq!(result[1].error_code(), crate::error::TOPIC_AUTHORIZATION_FAILED);
+}
+
+#[tokio::test]
+async fn dtp_requested_names_metadata_fallback_preserves_projection() {
+    use crate::protocol::api::{decode_metadata_request, encode_metadata_response, TopicMetadata};
+    let (mut admin, listener) = admin_and_listener().await;
+    admin.describe_topic_partitions_version = None;
+    admin.metadata_version = 4;
+    let peer = tokio::spawn(async move {
+        let (mut socket, _) = listener.accept().await.unwrap();
+        let (header, mut body) = request(&mut socket).await;
+        assert_eq!((header.api_key, header.api_version), (METADATA, 4));
+        let (names, allow_auto, _include_topic, _include_cluster) =
+            decode_metadata_request(&mut body, 4).unwrap();
+        assert_eq!(names, Some(vec!["orders".into(), "orders".into(), "missing".into()]));
+        assert!(!allow_auto);
+        assert!(body.is_empty());
+        let mut response = MetadataResponse::blank();
+        response.topics = vec![
+            TopicMetadata::new(0, "orders", false, Vec::new()),
+            TopicMetadata::new(0, "unrequested", false, Vec::new()),
+            TopicMetadata::new(crate::error::UNKNOWN_TOPIC_OR_PARTITION, "missing", false, Vec::new()),
+        ];
+        let mut encoded = BytesMut::new();
+        encode_response_header(
+            &mut encoded,
+            header.api_key,
+            header.api_version,
+            header.correlation_id,
+        )
+        .unwrap();
+        encode_metadata_response(&mut encoded, 4, &response).unwrap();
+        socket.write_i32(i32::try_from(encoded.len()).unwrap()).await.unwrap();
+        socket.write_all(&encoded).await.unwrap();
+    });
+    let result = admin
+        .describe_topics_with_partition_limit_timeout(
+            ["orders", "orders", "missing"].iter(),
+            false,
+            1,
+            Duration::from_secs(5),
+        )
+        .await
+        .unwrap();
+    peer.await.unwrap();
+    assert_eq!(
+        result.iter().map(TopicDescription::name).collect::<Vec<_>>(),
+        ["orders", "orders", "missing"]
+    );
+    assert_eq!(result[0].error_code(), 0);
+    assert_eq!(result[1].error_code(), 0);
+    assert_eq!(result[2].error_code(), crate::error::UNKNOWN_TOPIC_OR_PARTITION);
+}
+
+#[tokio::test]
+async fn dtp_requested_names_reject_unsolicited_cursor() {
+    let (mut admin, listener) = admin_and_listener().await;
+    let (done_tx, done_rx) = tokio::sync::oneshot::channel();
+    let peer = tokio::spawn(async move {
+        let (mut socket, _) = listener.accept().await.unwrap();
+        socket.set_nodelay(true).unwrap();
+        let first = dtp_named_request(&mut socket, &["orders"], None).await;
+        send_page(&mut socket, &first, &page(0, Some(("payments", 0))))
+            .await
+            .unwrap();
+        tokio::select! {
+            _ = done_rx => {}
+            header = dtp_named_request(&mut socket, &["orders"], Some(("payments", 0))) => {
+                send_page(&mut socket, &header, &page(1, None)).await.unwrap();
+            }
+        }
+    });
+    let got = admin
+        .describe_topics_with_partition_limit_timeout(
+            ["orders"].iter(),
+            false,
+            1,
+            Duration::from_secs(5),
+        )
+        .await;
+    let _ = done_tx.send(());
+    peer.await.unwrap();
+    assert!(matches!(&got, Err(Error::Protocol(message))
+        if message == "DescribeTopicPartitions returned an unrequested cursor topic"));
+}
+
+#[tokio::test]
+async fn dtp_requested_names_raw_keeps_unsolicited_cursor() {
+    let (mut admin, listener) = admin_and_listener().await;
+    let peer = tokio::spawn(async move {
+        let (mut socket, _) = listener.accept().await.unwrap();
+        let first = dtp_named_request(&mut socket, &["orders"], None).await;
+        send_page(&mut socket, &first, &page(0, Some(("payments", 0))))
+            .await
+            .unwrap();
+    });
+    let raw = admin
+        .describe_topic_partitions_timeout(&["orders"], 1, None, Duration::from_secs(5))
+        .await
+        .unwrap();
+    peer.await.unwrap();
+    assert_eq!(
+        raw.next_cursor,
+        Some(TopicPartitionCursor::new("payments", 0))
+    );
+}
+
+#[tokio::test]
+async fn dtp_requested_names_null_precedes_unsolicited_row_and_cursor() {
+    let (mut admin, listener) = admin_and_listener().await;
+    let peer = tokio::spawn(async move {
+        let (mut socket, _) = listener.accept().await.unwrap();
+        let header = dtp_named_request(&mut socket, &["orders"], None).await;
+        let mut response = page(0, Some(("another-unrequested", 0)));
+        response.topics[0].name = Some("payments".into());
+        let mut unnamed = DescribedTopicPartitions::new("ignored", 0);
+        unnamed.name = None;
+        response.topics.push(unnamed);
+        send_page(&mut socket, &header, &response).await.unwrap();
+    });
+    let got = admin
+        .describe_topics_with_partition_limit_timeout(
+            ["orders"].iter(),
+            false,
+            1,
+            Duration::from_secs(5),
+        )
+        .await;
+    peer.await.unwrap();
+    assert!(matches!(&got, Err(Error::Unsupported(message))
+        if message == "cannot aggregate DescribeTopicPartitions without a topic name"));
+}
+
+#[tokio::test]
+async fn dtp_requested_names_unsolicited_row_precedes_unsolicited_cursor() {
+    let (mut admin, listener) = admin_and_listener().await;
+    let peer = tokio::spawn(async move {
+        let (mut socket, _) = listener.accept().await.unwrap();
+        let header = dtp_named_request(&mut socket, &["orders"], None).await;
+        let mut response = page(0, Some(("another-unrequested", 0)));
+        response.topics[0].name = Some("payments".into());
+        send_page(&mut socket, &header, &response).await.unwrap();
+    });
+    let got = admin
+        .describe_topics_with_partition_limit_timeout(
+            ["orders"].iter(),
+            false,
+            1,
+            Duration::from_secs(5),
+        )
+        .await;
+    peer.await.unwrap();
+    assert!(matches!(&got, Err(Error::Protocol(message))
+        if message == "DescribeTopicPartitions returned an unrequested topic"));
+}
+
+#[tokio::test]
+async fn dtp_requested_names_repeated_cursor_precedes_unsolicited_rows() {
+    let (mut admin, listener) = admin_and_listener().await;
+    let peer = tokio::spawn(async move {
+        let (mut socket, _) = listener.accept().await.unwrap();
+        let first = dtp_named_request(&mut socket, &["orders"], None).await;
+        send_page(&mut socket, &first, &page(0, Some(("orders", 1))))
+            .await
+            .unwrap();
+        let second = dtp_named_request(&mut socket, &["orders"], Some(("orders", 1))).await;
+        let mut response = page(1, Some(("orders", 1)));
+        response.topics[0].name = Some("payments".into());
+        let mut unnamed = DescribedTopicPartitions::new("ignored", 0);
+        unnamed.name = None;
+        response.topics.push(unnamed);
+        send_page(&mut socket, &second, &response).await.unwrap();
+    });
+    let got = admin
+        .describe_topics_with_partition_limit_timeout(
+            ["orders"].iter(),
+            false,
+            1,
+            Duration::from_secs(5),
+        )
+        .await;
+    peer.await.unwrap();
+    assert!(matches!(&got, Err(Error::Protocol(message))
+        if message == "repeated DescribeTopicPartitions cursor"));
+}
+
+#[tokio::test]
+async fn dtp_requested_names_cursor_precedes_same_page_id_conflict() {
+    let (mut admin, listener) = admin_and_listener().await;
+    let peer = tokio::spawn(async move {
+        let (mut socket, _) = listener.accept().await.unwrap();
+        let first = dtp_named_request(&mut socket, &["orders"], None).await;
+        send_page(&mut socket, &first, &page(0, Some(("orders", 1))))
+            .await
+            .unwrap();
+        let second = dtp_named_request(&mut socket, &["orders"], Some(("orders", 1))).await;
+        let mut response = page(1, Some(("payments", 0)));
+        response.topics[0].topic_id = [8; 16];
+        send_page(&mut socket, &second, &response).await.unwrap();
+    });
+    let got = admin
+        .describe_topics_with_partition_limit_timeout(
+            ["orders"].iter(),
+            false,
+            1,
+            Duration::from_secs(5),
+        )
+        .await;
+    peer.await.unwrap();
+    assert!(matches!(&got, Err(Error::Protocol(message))
+        if message == "DescribeTopicPartitions returned an unrequested cursor topic"));
+}
+
+#[tokio::test]
+async fn dtp_requested_names_row_precedes_same_page_id_conflict() {
+    let (mut admin, listener) = admin_and_listener().await;
+    let peer = tokio::spawn(async move {
+        let (mut socket, _) = listener.accept().await.unwrap();
+        let first = dtp_named_request(&mut socket, &["orders"], None).await;
+        send_page(&mut socket, &first, &page(0, Some(("orders", 1))))
+            .await
+            .unwrap();
+        let second = dtp_named_request(&mut socket, &["orders"], Some(("orders", 1))).await;
+        let mut response = page(1, None);
+        response.topics[0].topic_id = [8; 16];
+        response.topics.push(DescribedTopicPartitions::new("payments", 0));
+        send_page(&mut socket, &second, &response).await.unwrap();
+    });
+    let got = admin
+        .describe_topics_with_partition_limit_timeout(
+            ["orders"].iter(),
+            false,
+            1,
+            Duration::from_secs(5),
+        )
+        .await;
+    peer.await.unwrap();
+    assert!(matches!(&got, Err(Error::Protocol(message))
+        if message == "DescribeTopicPartitions returned an unrequested topic"));
+}
+
+#[tokio::test]
+async fn dtp_requested_names_errors_do_not_copy_long_unrequested_names() {
+    let (mut admin, listener) = admin_and_listener().await;
+    let peer = tokio::spawn(async move {
+        let (mut socket, _) = listener.accept().await.unwrap();
+        let header = dtp_named_request(&mut socket, &["orders"], None).await;
+        let mut response = page(0, None);
+        response.topics[0].name = Some("x".repeat(128 * 1024));
+        send_page(&mut socket, &header, &response).await.unwrap();
+    });
+    let got = admin
+        .describe_topics_with_partition_limit_timeout(
+            ["orders"].iter(),
+            false,
+            1,
+            Duration::from_secs(5),
+        )
+        .await;
+    peer.await.unwrap();
+    assert!(matches!(&got, Err(Error::Protocol(message))
+        if message == "DescribeTopicPartitions returned an unrequested topic"));
+}
+
+#[tokio::test]
+async fn dtp_requested_names_large_input_accepts_members_and_duplicates() {
+    let (mut admin, listener) = admin_and_listener().await;
+    let mut names: Vec<String> = (0..12).map(|n| format!("topic-{n}")).collect();
+    names.push(names[0].clone());
+    let peer_names = names.clone();
+    let peer = tokio::spawn(async move {
+        let (mut socket, _) = listener.accept().await.unwrap();
+        let expected: Vec<&str> = peer_names.iter().map(String::as_str).collect();
+        let header = dtp_named_request(&mut socket, &expected, None).await;
+        let mut response = page(0, None);
+        response.topics[0].name = Some(peer_names[11].clone());
+        response.topics.push(DescribedTopicPartitions::new(
+            peer_names[0].as_str(),
+            crate::error::TOPIC_AUTHORIZATION_FAILED,
+        ));
+        send_page(&mut socket, &header, &response).await.unwrap();
+    });
+    let result = admin
+        .describe_topics_with_partition_limit_timeout(
+            names.iter(),
+            false,
+            1,
+            Duration::from_secs(5),
+        )
+        .await
+        .unwrap();
+    peer.await.unwrap();
+    assert_eq!(
+        result.iter().map(TopicDescription::name).collect::<Vec<_>>(),
+        ["topic-11", "topic-0"]
+    );
+    assert_eq!(result[1].error_code(), crate::error::TOPIC_AUTHORIZATION_FAILED);
+}
+
+#[test]
+fn dtp_requested_names_index_yields_after_progress() {
+    use std::sync::Arc;
+    use std::task::{Context, Waker};
+
+    let owned: Vec<String> = (0..16_385).map(|n| format!("topic-{n}")).collect();
+    let names: Vec<&str> = owned.iter().map(String::as_str).collect();
+    let wake = Arc::new(CleanupWake::default());
+    let waker = Waker::from(Arc::clone(&wake));
+    let mut context = Context::from_waker(&waker);
+    for polls in 1..=2 {
+        let mut index = HashSet::new();
+        let mut future = Box::pin(index_requested_dtp_names(&names, &mut index));
+        for _ in 0..polls {
+            poll_cleanup_yield(future.as_mut(), &mut context, &wake);
+        }
+        drop(future);
+        assert_eq!(index.len(), polls * 8_192);
+    }
+}
+
+#[tokio::test]
+async fn dtp_requested_names_index_stores_only_distinct_borrowed_names() {
+    let names = vec!["orders"; 16_385];
+    let mut index = HashSet::new();
+    index_requested_dtp_names(&names, &mut index).await;
+    assert_eq!(index.len(), 1);
+    assert!(index.contains("orders"));
+}
+
+#[test]
+fn dtp_requested_names_scan_yields_after_progress() {
+    use std::cell::Cell;
+    use std::future::Future;
+    use std::sync::Arc;
+    use std::task::{Context, Poll, Waker};
+
+    let mut topics: Vec<_> = (0..16_385)
+        .map(|_| DescribedTopicPartitions::new("orders", 0))
+        .collect();
+    topics.last_mut().unwrap().name = None;
+    let seen = Cell::new(0usize);
+    let iter = topics.iter().inspect(|_| seen.set(seen.get() + 1));
+    let wake = Arc::new(CleanupWake::default());
+    let waker = Waker::from(Arc::clone(&wake));
+    let mut context = Context::from_waker(&waker);
+    let mut future = Box::pin(remaining_dtp_has_unnamed(iter));
+    poll_cleanup_yield(future.as_mut(), &mut context, &wake);
+    assert_eq!(seen.get(), 8_192);
+    poll_cleanup_yield(future.as_mut(), &mut context, &wake);
+    assert_eq!(seen.get(), 16_384);
+    assert!(matches!(future.as_mut().poll(&mut context), Poll::Ready(true)));
+    assert_eq!(seen.get(), 16_385);
+}
+
+#[tokio::test]
+async fn dtp_requested_names_cancel_during_index_keeps_socket_usable() {
+    use std::future::Future;
+
+    let (mut admin, listener) = admin_and_listener().await;
+    let names = vec!["orders"; 8_193];
+    let mut call = Box::pin(admin.describe_topics_with_partition_limit_timeout(
+        names.iter(),
+        false,
+        1,
+        Duration::from_secs(5),
+    ));
+    std::future::poll_fn(|cx| {
+        assert!(call.as_mut().poll(cx).is_pending());
+        std::task::Poll::Ready(())
+    })
+    .await;
+    drop(call);
+    assert!(!admin.conn.is_closed());
+    let peer = tokio::spawn(async move {
+        let (mut socket, _) = listener.accept().await.unwrap();
+        let header = dtp_named_request(&mut socket, &["orders"], None).await;
+        send_page(&mut socket, &header, &page(42, None)).await.unwrap();
+    });
+    let raw = admin
+        .describe_topic_partitions_timeout(&["orders"], 1, None, Duration::from_secs(5))
+        .await
+        .unwrap();
+    assert_eq!(raw.topics[0].partitions[0].partition_index, 42);
+    peer.await.unwrap();
+}
+
+#[test]
+fn dtp_requested_names_rejection_cleans_and_checks_deadline() {
+    use std::future::Future;
+    use std::sync::Arc;
+    use std::task::{Context, Poll, Waker};
+
+    let wake = Arc::new(CleanupWake::default());
+    let waker = Waker::from(Arc::clone(&wake));
+    let mut context = Context::from_waker(&waker);
+    for polls in 1..=2 {
+        let partitions = (0..16_385)
+            .map(|partition| crate::PartitionInfo {
+                topic: "orders".into(),
+                partition,
+                leader: 1,
+                leader_epoch: 0,
+                replicas: vec![1],
+                isr: vec![1],
+                offline_replicas: Vec::new(),
+            })
+            .collect();
+        let mut out = vec![TopicDescription::new(
+            "orders", [7; 16], false, 0, partitions,
+        )];
+        let mut page = Vec::new();
+        let deadline = tokio::time::Instant::now() + Duration::from_secs(5);
+        let mut future = Box::pin(reject_unrequested_described_topic(
+            &mut page,
+            &mut out,
+            deadline,
+            "fixed rejection",
+        ));
+        for _ in 0..polls {
+            poll_cleanup_yield(future.as_mut(), &mut context, &wake);
+        }
+        drop(future);
+        assert_eq!(out[0].partitions.len(), 16_385 - polls * 8_192);
+    }
+    let expired = tokio::time::Instant::now()
+        .checked_sub(Duration::from_secs(1))
+        .unwrap();
+    let mut page = Vec::new();
+    let mut out = Vec::new();
+    let mut future = Box::pin(reject_unrequested_described_topic(
+        &mut page,
+        &mut out,
+        expired,
+        "fixed rejection",
+    ));
+    assert!(matches!(
+        future.as_mut().poll(&mut context),
+        Poll::Ready(Error::Timeout)
+    ));
 }
