@@ -353,6 +353,94 @@ Neither archive was independently downloaded, and binaries were not retained.
 
 [Run 42453957702](https://github.com/mingley/partitionline/actions/runs/42453957702)
 passed formatting, focused record tests in both profiles and strict all-target,
-all-feature Clippy. The candidate has not passed a full broker suite or a
-current-main qualification. Real broker traffic, longer fault campaigns, other
-processors and broader workloads remain unmeasured.
+all-feature Clippy. A later combined-source run is recorded below; it passed
+the default broker suite but failed its all-feature suite. Real broker traffic,
+longer fault campaigns, other processors and broader workloads remain unmeasured.
+
+## Combined source and differential corpus
+
+Clean candidate [`a0fd448`](https://github.com/mingley/partitionline/commit/a0fd44856104acf5449d2f1941d5747834c73ced)
+changes only `partitionline-broker/src/records.rs` on main commit
+`de152e78ca6d85e6cd4ea5915058b2bb6141cf42`. Its source SHA-256 is
+`5accc57fff730a286754c0247fe4b72b7d9f16ab53581f20eb2f489e4bc28741`.
+The production portion before the test module is byte-identical to the
+cold-outlined candidate above; the added corpus and its formatting are test-only.
+
+The corpus uses 256 deterministic seeds in both admission and read modes,
+with original, truncated, byte-mutated, noncanonical-varint and
+overflow-varint variants. It varies first and later headers, sparse offsets,
+field sizes and nullability, invalid UTF-8, timestamp edges, source origins,
+and byte and count budgets. It compares the exact error, partial record and
+header counts, and test-only record visits with the generic walk; mismatch
+messages retain the case ID. The initial
+[run 42454605981](https://github.com/mingley/partitionline/actions/runs/42454605981)
+passed the focused tests in both profiles and strict Clippy but failed
+formatting; no seed failed. The clean candidate uses the formatted test source.
+
+[Test-only counters](https://github.com/mingley/partitionline/actions/runs/42455027939)
+confirmed 38 completed header fast scans and 170 partial-prefix resumes per
+profile while executing the corpus. These counts are path executions, not
+distinct seeds. The temporary counters are not part of the candidate.
+
+The [combined broker qualification](https://github.com/mingley/partitionline/actions/runs/42454937724)
+passed formatting, strict all-target/all-feature Clippy, inventory and its
+controls. The default all-target command passed 757 tests with three ignored.
+A test-only mutation that prevented cursor advancement caused the expected
+assertion failure in both profiles. The all-feature command failed in the
+library: 512 passed, one failed and three were ignored; later targets did not
+run. The failed five-peer observer test sent a proposal to node2 and received
+`Node(NotLeader)`, while its diagnostics showed node0 as leader. No cause or
+relationship to the records change has been established. The candidate remains
+unapplied.
+
+The [default](https://github.com/mingley/partitionline/actions/runs/42454937724/artifacts/13607536446)
+and [all-feature](https://github.com/mingley/partitionline/actions/runs/42454937724/artifacts/13606839289)
+archives have GitHub-reported SHA-256 values
+`f03616f248b00000a49084b6e6407b568c6499fdb33ce02a32bd2e5a2aab97e2`
+and `316855f62bcb48e2cbd068ba1805555574b6e3af79714bc4f0a623957871780a`.
+The [mutation archive](https://github.com/mingley/partitionline/actions/runs/42454937724/artifacts/13607107229)
+has reported SHA-256
+`a01ea16e994f782bbe9a33c83fd66b9934ca0abb9c838a38aa98fed5b2598066`.
+These archives have not been independently downloaded.
+
+## Fresh paired repeat on combined source
+
+[Run 42454937680](https://github.com/mingley/partitionline/actions/runs/42454937680)
+compared `de152e7` and `a0fd448` on a fresh shared x86-64 runner with the
+same 13-case release fixture, one pinned logical CPU and eight alternating
+AB/BA pairs. Candidate/baseline pooled median ratios and paired ranges were:
+
+| Case | Pooled median ratio | Paired range |
+| --- | ---: | ---: |
+| One record, no headers | 0.975 | 0.966–0.984 |
+| One record, one header | 1.000 | 0.976–1.018 |
+| Two records, one header each | 0.961 | 0.936–0.971 |
+| Eight records, one header each | 0.754 | 0.749–0.761 |
+| 32 records, one header each | 0.620 | 0.617–0.760 |
+| 1,024 records, no headers | 1.003 | 1.001–1.007 |
+| 1,024 records, one header each | 0.600 | 0.588–0.613 |
+| 1,024 records, four headers each | 0.671 | 0.657–0.678 |
+| 1,024 records, header only on last | 0.942 | 0.927–0.948 |
+| 256 records, one header and a 1,024-byte value each | 0.891 | 0.889–0.893 |
+| Invalid attributes on first record | 1.001 | 0.999–1.001 |
+| Invalid attributes on last record, no headers | 0.944 | 0.941–0.946 |
+| Invalid attributes on last record, earlier headers | 0.594 | 0.587–0.608 |
+
+The 1,024-record header-free median was 0.3% higher, and all eight paired
+ratios were above baseline. This short shared-host measurement does not
+establish the cause or a general performance change. It is not a Kafka
+throughput comparison.
+
+Fixture SHA-256 was
+`d268ab717b4447c560eba6b009ca58eb91e62d9cbcb776ecaf7ba258a3dbcc18`.
+Baseline and candidate binary SHA-256 values were
+`19fe60ccc7679d4ad454223ffde57629e4b1888d19ad8c44e52806bcda9bcb3d`
+and `c8b2b60e6d36721e52f2538093a92a7c1e8d6daa2b3377cf5054d40572aa4de8`.
+GitHub reported SHA-256
+`37185966ce3d142ee9429fb8532dce4ddcbf80ccec3d396674e2f5e2c2984539`
+for the [artifact](https://github.com/mingley/partitionline/actions/runs/42454937680/artifacts/13606889831).
+It has not been independently downloaded, and binaries were not retained.
+
+A single same-runner, unchanged all-feature baseline/candidate comparison
+[42455389333](https://github.com/mingley/partitionline/actions/runs/42455389333)
+is in progress; it does not erase the failure above.
