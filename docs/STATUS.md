@@ -15,25 +15,25 @@ replicated partition data or native Kafka KRaft.
 
 ## Validation
 
-The latest complete snapshot recorded here is commit `1036a393eb85f23032b935bf86862b7e98e36e14`.
-It includes the record validation, grouped journal reservation and Admin
-response allocation changes. The [CI evidence][ci] links the runs and their
-limits.
+The latest complete snapshot recorded here is commit `1f371635261b8c222f597100c06f83d06c3dab18`.
+The [CI evidence][ci] links the runs and their limits.
 
-| Check | Result at `1036a39` |
+| Check | Result at `1f37163` |
 | --- | --- |
-| Client library, Linux default | 2,223 passed and 21 failed; the all-target run stopped at the library. |
-| Client library, Linux all features | 2,225 passed and 19 failed; later targets did not run. |
-| Windows default library | 2,226 passed and 18 failed. |
-| macOS arm64 default library | 2,233 passed and 11 failed. |
+| Client library, Linux default | 2,229 passed and 15 failed; later targets did not run. |
+| Client library, Linux all features | 2,223 passed and 21 failed; later targets did not run. |
+| Windows default library | 2,224 passed and 20 failed. |
+| macOS arm64 default library | 2,235 passed and 9 failed. |
 | Kafka 4.1.2, 4.2.1 and 4.3.1 compatibility | All three jobs failed with stack overflows. |
 | Kafka 3.9.1 and 4.1.0 smoke | Both reported JoinGroup error 16 and exhausted EOS retries after timeouts. |
-| Broker default and all-feature targets | 762 and 910 passed, respectively; three descriptor diagnostics were ignored in each suite and passed separately on the same production source. Both doctest commands found zero tests. |
+| Broker default and all-feature targets | 766 and 914 passed, respectively; three descriptor diagnostics were ignored in each suite and passed separately on the same production source. Both doctest commands found zero tests. |
 | Broker Clippy, Rustdoc, inventory and fuzz supervision | Passed. |
 | Client capability profiles | Both passed selected checks; their archives were not independently inspected. |
-| Client format, all-target Clippy, audit, docs, package, auth and integrity smoke | Passed. Other client jobs failed or were skipped. |
+| Client format, all-target Clippy, audit, docs, package, auth, resource-soak and integrity smoke | Passed. Other client jobs failed or were skipped. |
 
-A newer [main CI snapshot][ci-440] at `4409633` recorded 17 successful
+The [earlier complete snapshot][ci-1036] retains results for `1036a39`.
+
+An earlier [main CI snapshot][ci-440] at `4409633` recorded 17 successful
 client jobs, nine failures, one cancellation and one skip. Linux default and
 all-feature libraries reported 2,233/11 and 2,232/12 passed/failed; Windows
 reported 2,225/19 and macOS arm64 2,230/14. Three current Kafka compatibility
@@ -44,13 +44,11 @@ Kafka 4.1.0 smoke was canceled when main advanced. Broker CI passed 764 default
 and 912 all-feature tests, with three ignored per profile. Both selected
 capability profiles passed; their archives were not independently inspected.
 
-At `f092d69`, a newer [broker run][ci-f092-broker] passed 766 default and
-914 all-feature tests, with three ignored per profile; strict checks,
-inventory and fuzz supervision passed. Both selected [capability
-profiles][ci-f092-capabilities] passed; their archives were not independently
-inspected. Its [client run][ci-f092-client] was in progress when this record
-was written: resource-soak passed and three current Kafka compatibility jobs
-failed. See the run for its final status.
+An [intervening snapshot][ci-f092] at `f092d69` recorded 18 successful
+client jobs, five failures, four cancellations and one skip. Resource-soak
+passed, but that does not explain the earlier `/proc` permission failure.
+Broker CI passed 766 default and 914 all-feature tests, with three ignored in
+each profile.
 
 An earlier [frame-read test failure][deadline-test] used a 30 ms deadline
 and required total elapsed time under 80 ms; it observed the deadline error
@@ -86,7 +84,9 @@ explain either failure; both remain open. A [separate diagnostic][quorum-diag]
 did not reproduce error 56, and a [proposal-boundary test][quorum-boundary]
 covers only one leader-removal schedule. An unmerged [Raft test run][raft-churn]
 also observed prolonged election churn in a five-node short-timeout fixture;
-its cause remains unknown.
+its cause remains unknown. A [forced vote-route control][vote-route]
+shows that a full one-slot route can discard a newer campaign; a later campaign
+recovered in that fixture. It does not explain the earlier stall.
 
 A [debugger trace][gdb] on the earlier `8b5de2e` source caught a stack fault
 while opening a consumer bootstrap connection. It identifies a failure point,
@@ -166,11 +166,14 @@ pass does not replace the full release matrix.
   but its combined broker suites failed Raft tests. A scoped 256 MiB spare
   disposal took a 16.134 ms median in the caller's first poll. Supplied
   allocations can overlap during normalization; caches, response capacity and
-  process RSS remain outside the logical payload budget. An earlier
+  process RSS remain outside the logical payload budget. An [off-runtime
+  disposal design][disposal-design] is proposed but unimplemented. An earlier
   default transport test failure remains unexplained. Earlier Raft failures
   remain open. The [journal repair][journal-repair]
   pins inode identities through ownership and staged syncs; it adds file
-  descriptors on Unix. The [grouped reservation repair][journal-reserve]
+  descriptors on Unix. A [process-exit control][segment-crash] also found that
+  a freshly created segmented log can fail to reopen if it exits before its
+  initial manifest is published; no append was attempted in that witness. The [grouped reservation repair][journal-reserve]
   reserves index and staging capacity before each write. Combined broker
   suites and separate descriptor controls passed; cloning the sync descriptor
   can still fail after a write. [Earlier journal controls][journal] did not
@@ -195,9 +198,9 @@ The [work plan][next] tracks the current candidates and outstanding tests.
 The [support matrix](support.md) describes configured coverage, and the
 [release guide](RELEASE.md) lists publication gates. No new release is ready.
 
-[ci]: https://github.com/mingley/partitionline/blob/f93e91499e2ba6bdc88c0a25a0d83b8737d00d3c/docs/evidence/releases/main-ci-1036-20261108/README.md
+[ci]: https://github.com/mingley/partitionline/blob/752b1bb0cfd97448b41244533a9fea36a2e3c843/docs/evidence/releases/main-ci-1f37-20261108/README.md
 [previous-ci]: https://github.com/mingley/partitionline/blob/7ebb3cc81adc695cc4c74409a87a1a1dd4be9730/docs/evidence/releases/main-ci-ba8-20261108/README.md
-[next]: https://github.com/mingley/partitionline/blob/3f90b40023905561548017f8ac21b063a63e8808/docs/plan/next-work.md
+[next]: https://github.com/mingley/partitionline/blob/752b1bb0cfd97448b41244533a9fea36a2e3c843/docs/plan/next-work.md
 [previous]: https://github.com/mingley/partitionline/blob/5c2a000639d9a8a7dccd56e8c1d6f3a58dca1601/docs/STATUS.md
 [flush]: https://github.com/mingley/partitionline/blob/e980829c439aa43edc01312c91838e58a412221a/docs/evidence/client/producer-flush-native-86f2-20261103/README.md
 [txn]: https://github.com/mingley/partitionline/blob/49ad56c6bce1366e2357c272f11c5c34160d60da/docs/evidence/client/add-partitions-native-4f0c-20261103/README.md
@@ -241,9 +244,12 @@ The [support matrix](support.md) describes configured coverage, and the
 [sequence-cancel]: https://github.com/mingley/partitionline/blob/932a7835939034c730b92a12f867cf7c945320ba/docs/evidence/client/producer-sequence-cancel-20261108/README.md
 
 [ci-440]: https://github.com/mingley/partitionline/blob/3f90b40023905561548017f8ac21b063a63e8808/docs/evidence/releases/main-ci-440-20261108/README.md
-[ci-f092-broker]: https://github.com/mingley/partitionline/actions/runs/42460194861
-[ci-f092-capabilities]: https://github.com/mingley/partitionline/actions/runs/42460194888
-[ci-f092-client]: https://github.com/mingley/partitionline/actions/runs/42460194939
 [owner-design]: https://github.com/mingley/partitionline/blob/3f90b40023905561548017f8ac21b063a63e8808/docs/evidence/client/producer-ownership-design-20261108/README.md
 [flush-barrier-public]: https://github.com/mingley/partitionline/blob/3f90b40023905561548017f8ac21b063a63e8808/docs/evidence/client/producer-flush-barrier-public-20261108/README.md
 [data-capacity]: https://github.com/mingley/partitionline/blob/3f90b40023905561548017f8ac21b063a63e8808/docs/evidence/broker/data-buffer-capacity-20261108/README.md
+
+[ci-1036]: https://github.com/mingley/partitionline/blob/f93e91499e2ba6bdc88c0a25a0d83b8737d00d3c/docs/evidence/releases/main-ci-1036-20261108/README.md
+[ci-f092]: https://github.com/mingley/partitionline/blob/752b1bb0cfd97448b41244533a9fea36a2e3c843/docs/evidence/releases/main-ci-f092-20261108/README.md
+[vote-route]: https://github.com/mingley/partitionline/blob/752b1bb0cfd97448b41244533a9fea36a2e3c843/docs/evidence/broker/raft-vote-route-20261108/README.md
+[segment-crash]: https://github.com/mingley/partitionline/blob/752b1bb0cfd97448b41244533a9fea36a2e3c843/docs/evidence/broker/segment-initial-crash-20261108/README.md
+[disposal-design]: https://github.com/mingley/partitionline/blob/752b1bb0cfd97448b41244533a9fea36a2e3c843/docs/evidence/broker/data-buffer-capacity-20261108/off-runtime-design.md
