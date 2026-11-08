@@ -17531,6 +17531,39 @@ mod tests {
     };
     use bytes::BytesMut;
 
+    struct ObservedWake(std::sync::atomic::AtomicUsize);
+
+    impl std::task::Wake for ObservedWake {
+        fn wake(self: std::sync::Arc<Self>) {
+            let _previous = self.0.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+        }
+
+        fn wake_by_ref(self: &std::sync::Arc<Self>) {
+            let _previous = self.0.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+        }
+    }
+
+    fn observed_poll<F: std::future::Future>(
+        future: std::pin::Pin<&mut F>,
+    ) -> (std::task::Poll<F::Output>, usize) {
+        let count = std::sync::Arc::new(ObservedWake(std::sync::atomic::AtomicUsize::new(0)));
+        let waker = std::task::Waker::from(std::sync::Arc::clone(&count));
+        let mut context = std::task::Context::from_waker(&waker);
+        let result = future.poll(&mut context);
+        (result, count.0.load(std::sync::atomic::Ordering::SeqCst))
+    }
+
+    fn finish_observed<F: std::future::Future>(mut future: std::pin::Pin<&mut F>) -> F::Output {
+        for _ in 0..8 {
+            let (state, wakes) = observed_poll(future.as_mut());
+            match state {
+                std::task::Poll::Ready(value) => return value,
+                std::task::Poll::Pending => assert!(wakes > 0, "pending future did not wake"),
+            }
+        }
+        panic!("future did not complete within the poll limit")
+    }
+
     #[tokio::test(flavor = "current_thread")]
     async fn listing_many_missing_leaders_does_not_hold_the_caller() {
         let cluster = Cluster::default();
@@ -17977,28 +18010,40 @@ mod tests {
         );
     }
 
-    #[tokio::test(flavor = "current_thread")]
-    async fn extending_many_described_topics_does_not_hold_the_caller() {
-        // Scanning earlier descriptions is the same name scan that held assignment
-        // grouping for 1.2s. Indexing 1_000_000 topics without a pause held the
-        // caller 1.2s.
-        let incoming: Vec<TopicDescription> = (0..1_000_000)
-            .map(|index| {
-                TopicDescription::new(format!("topic-{index}"), [0; 16], false, 0, Vec::new())
+    #[test]
+    fn extending_described_topics_yields_and_completes() {
+        let small = vec![TopicDescription::new("small", [0; 16], false, 0, Vec::new())];
+        let mut out = Vec::new();
+        let mut index = std::collections::HashMap::new();
+        let mut short = Box::pin(extend_described_topics(&mut out, &mut index, small));
+        let (state, wakes) = observed_poll(short.as_mut());
+        assert!(matches!(state, std::task::Poll::Ready(())));
+        assert_eq!(wakes, 0);
+        drop(short);
+        assert_eq!(out.len(), 1);
+        assert_eq!(index.get("small"), Some(&0));
+
+        let incoming: Vec<TopicDescription> = (0..20_000)
+            .map(|item| {
+                TopicDescription::new(format!("topic-{item}"), [0; 16], false, 0, Vec::new())
             })
             .collect();
         let mut out = Vec::new();
         let mut index = std::collections::HashMap::new();
-        let started = std::time::Instant::now();
-        tokio::select! {
-            _ = extend_described_topics(&mut out, &mut index, incoming) => {}
-            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        let mut long = Box::pin(extend_described_topics(&mut out, &mut index, incoming));
+        for poll in 0..2 {
+            let (state, wakes) = observed_poll(long.as_mut());
+            assert!(state.is_pending(), "poll {poll} finished without yielding");
+            assert!(wakes > 0, "poll {poll} did not schedule another poll");
         }
-        let elapsed = started.elapsed();
-        assert!(
-            elapsed < std::time::Duration::from_millis(80),
-            "extending described topics held the caller for {elapsed:?}"
-        );
+        finish_observed(long.as_mut());
+        drop(long);
+        assert_eq!(out.len(), 20_000);
+        assert_eq!(index.len(), 20_000);
+        assert_eq!(out.first().map(TopicDescription::name), Some("topic-0"));
+        assert_eq!(out.last().map(TopicDescription::name), Some("topic-19999"));
+        assert_eq!(index.get("topic-0"), Some(&0));
+        assert_eq!(index.get("topic-19999"), Some(&19_999));
     }
 
     #[tokio::test(flavor = "current_thread")]
@@ -23771,26 +23816,35 @@ mod tests {
         assert!(popped[2].is_none());
     }
 
-    #[tokio::test(flavor = "current_thread")]
-    async fn indexing_many_described_producers_does_not_hold_the_caller() {
-        // 2_000_000 partitions: recording each producer result held the caller 1.37s.
-        let partitions: Vec<DescribeProducersPartition> = (0..2_000_000)
-            .map(|index| DescribeProducersPartition::error(index, 0))
+    #[test]
+    fn indexing_described_producers_yields_and_completes() {
+        let partitions: Vec<DescribeProducersPartition> = (0..20_000)
+            .map(|item| DescribeProducersPartition::error(item, 0))
             .collect();
         let topics = vec![DescribeProducersTopic::new("orders", partitions)];
-        let started = std::time::Instant::now();
-        tokio::select! {
-            indexed = index_described_producers(topics) => {
-                assert_eq!(indexed.get("orders").map(std::collections::HashMap::len), Some(2_000_000));
-                assert_eq!(indexed.get("orders").and_then(|parts| parts.get(&0)).map(|part| part.partition_index), Some(0));
-            }
-            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        let mut long = Box::pin(index_described_producers(topics));
+        for poll in 0..2 {
+            let (state, wakes) = observed_poll(long.as_mut());
+            assert!(state.is_pending(), "poll {poll} finished without yielding");
+            assert!(wakes > 0, "poll {poll} did not schedule another poll");
         }
-        let elapsed = started.elapsed();
-        assert!(
-            elapsed < std::time::Duration::from_millis(80),
-            "indexing described producers held the caller for {elapsed:?}"
+        let indexed = finish_observed(long.as_mut());
+        assert_eq!(indexed.get("orders").map(HashMap::len), Some(20_000));
+        assert_eq!(
+            indexed
+                .get("orders")
+                .and_then(|parts| parts.get(&0))
+                .map(|part| part.partition_index),
+            Some(0)
         );
+        assert_eq!(
+            indexed
+                .get("orders")
+                .and_then(|parts| parts.get(&19_999))
+                .map(|part| part.partition_index),
+            Some(19_999)
+        );
+
         let repeated = vec![
             DescribeProducersTopic::new(
                 "orders",
@@ -23801,7 +23855,12 @@ mod tests {
             ),
             DescribeProducersTopic::new("payments", vec![DescribeProducersPartition::error(4, 0)]),
         ];
-        let indexed = index_described_producers(repeated).await;
+        let mut short = Box::pin(index_described_producers(repeated));
+        let (state, wakes) = observed_poll(short.as_mut());
+        let std::task::Poll::Ready(indexed) = state else {
+            panic!("small producer index did not complete on its first poll");
+        };
+        assert_eq!(wakes, 0);
         assert_eq!(
             indexed
                 .get("orders")
