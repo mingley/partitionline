@@ -30,6 +30,7 @@ jobs:
         shell: bash
         run: |
           set -uo pipefail
+          set +e
           mkdir -p target/matched
           cp src/producer.rs "$RUNNER_TEMP/candidate.rs"
           args=()
