@@ -2516,6 +2516,23 @@ impl Mock {
         st.produce_drop_response_node = None;
     }
 
+    /// Seed this mock's expected sequence for an isolated rollover witness.
+    #[cfg(rollover_mock_witness)]
+    pub fn __test_seed_expected_sequence(
+        &self,
+        producer_id: i64,
+        epoch: i16,
+        topic: &str,
+        partition: i32,
+        next: i32,
+    ) {
+        let _ = self
+            .state
+            .lock()
+            .expected_seq
+            .insert((producer_id, epoch, topic.to_owned(), partition), next);
+    }
+
     pub fn last_produce_base_sequence(&self) -> Option<i32> {
         self.state.lock().last_produce_base_sequence
     }
@@ -7556,7 +7573,17 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                                     } else if seq != expected {
                                         error_code = 45;
                                     } else {
-                                        st.expected_seq.insert(skey, expected + nrec);
+                                        #[cfg(rollover_mock_witness)]
+                                        let next = {
+                                            let modulus = i64::from(i32::MAX) + 1;
+                                            i32::try_from(
+                                                (i64::from(expected) + i64::from(nrec)) % modulus,
+                                            )
+                                            .expect("mock sequence fits")
+                                        };
+                                        #[cfg(not(rollover_mock_witness))]
+                                        let next = expected + nrec;
+                                        st.expected_seq.insert(skey, next);
                                     }
                                 }
                                 let start = *st.next_offset.get(&key).unwrap_or(&0);
