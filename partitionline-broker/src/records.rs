@@ -1323,6 +1323,8 @@ fn read_canonical_i32(bytes: &[u8], index: usize) -> Option<(i32, usize)> {
     Some((((raw >> 1) as i32) ^ -((raw & 1) as i32), next))
 }
 
+// Keep the short timestamp decoder in the record scan's common path.
+#[inline(always)]
 fn read_canonical_i64(bytes: &[u8], index: usize) -> Option<(i64, usize)> {
     let (raw, next) = read_canonical_u64(bytes, index, 10, 1)?;
     Some((((raw >> 1) as i64) ^ -((raw & 1) as i64), next))
