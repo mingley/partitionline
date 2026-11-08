@@ -32,6 +32,12 @@ their limits.
 | Resource-soak controls | All 11 passed; no sustained campaign is credited. |
 | Client format, Clippy, audit, documentation and package jobs | Passed. Other client and live-broker jobs failed or were skipped. |
 
+At commit `f5ba3420e`, the [broker workflow][broker-main] passed 737 default
+and 885 all-feature tests, Clippy, docs, inventory and short fuzz checks. In
+the [main CI][main-partial], the Linux default client library reported 2,165
+passed and 31 failed, and Kafka 4.3.1 again overflowed after the classic-join
+marker. Other jobs had not all finished when these results were recorded.
+
 A closer [classic-join witness][recent-ci] overflowed in both the baseline and
 boxed-library arms; it does not qualify the complete compatibility test.
 
@@ -47,10 +53,12 @@ pass does not replace the full release matrix.
   these failures in both feature profiles. Repair the barrier and error
   ownership together. Partition issue order, sequence wrap, transaction
   fencing and unresolved-batch replay need further work and independent
-  histories. Source review also found transaction begin and recovery races. A [transaction-response candidate][txn] passed focused mock
-  tests; real-broker and concurrency coverage remain open. Use `send` for an
-  individual delivery result; with `acks=0`, a
-  successful result only confirms the local write.
+  histories. Two [transaction lock waits][lock] now use the request budget,
+  but replacement, recovery and error-state races remain open. An unapplied
+  [transaction-response candidate][txn] passed focused mocks and one
+  [single-node Kafka 3.9.1 test][txn-live]; failure and concurrency coverage
+  remain open. Use `send` for an individual delivery result; with `acks=0`,
+  a successful result only confirms the local write.
 - **Consumer and group correctness.** Resolve the classic-join stack overflow,
   group retry and topic-recreation failures, and cancellation across buffered
   records, offsets and aborted-transaction state. An automated security review
@@ -79,9 +87,13 @@ The [support matrix](support.md) describes configured coverage, and the
 
 [ci]: https://github.com/mingley/partitionline/blob/ffa7b9bba3733aa554c75f853dac46a66500a4dd/docs/evidence/releases/main-ci-3f45-20261106/README.md
 [previous-ci]: https://github.com/mingley/partitionline/blob/f6eecf19896650a6b18789df7cc8848d3a670cb4/docs/evidence/releases/main-ci-74923475-20261105/README.md
-[next]: https://github.com/mingley/partitionline/blob/277746439899c250871aebb7fe5e1ed959826592/docs/plan/next-work.md
+[next]: https://github.com/mingley/partitionline/blob/d32e10aaaa66a90d470ceb825b35226244f2e823/docs/plan/next-work.md
 [previous]: https://github.com/mingley/partitionline/blob/5c2a000639d9a8a7dccd56e8c1d6f3a58dca1601/docs/STATUS.md
 [flush]: https://github.com/mingley/partitionline/blob/e980829c439aa43edc01312c91838e58a412221a/docs/evidence/client/producer-flush-native-86f2-20261103/README.md
 [txn]: https://github.com/mingley/partitionline/blob/49ad56c6bce1366e2357c272f11c5c34160d60da/docs/evidence/client/add-partitions-native-4f0c-20261103/README.md
 [recent-ci]: https://github.com/mingley/partitionline/blob/767cc33acd4487141ba40ac80bb1b963bd72efad/docs/evidence/releases/main-ci-19fef2c-20261103/README.md
 [cancel]: https://github.com/mingley/partitionline/blob/277746439899c250871aebb7fe5e1ed959826592/docs/evidence/broker/produce-cancel-20261108/README.md
+[lock]: https://github.com/mingley/partitionline/blob/d32e10aaaa66a90d470ceb825b35226244f2e823/docs/evidence/client/txn-lock-deadline-20261108/README.md
+[txn-live]: https://github.com/mingley/partitionline/actions/runs/42438994537
+[broker-main]: https://github.com/mingley/partitionline/actions/runs/42439153552
+[main-partial]: https://github.com/mingley/partitionline/actions/runs/42439153574
