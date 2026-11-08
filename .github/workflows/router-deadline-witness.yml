@@ -14,7 +14,7 @@ jobs:
       CARGO_TERM_COLOR: never
       RUSTFLAGS: ""
       BASELINE: 7f59ef470340db6027958f439df3716a8dde536c
-      CANDIDATE: 6d1b06c1d5ea58393243086406b764b3d619793c
+      CANDIDATE: 0210c7cdf2ade9b6849c4beea019b3544911aaff
     steps:
       - uses: actions/checkout@v7
         with:
@@ -31,7 +31,7 @@ jobs:
           sparse-checkout: partitionline-broker
       - uses: actions/checkout@v7
         with:
-          ref: 6d1b06c1d5ea58393243086406b764b3d619793c
+          ref: 0210c7cdf2ade9b6849c4beea019b3544911aaff
           path: candidate
           persist-credentials: false
           sparse-checkout: partitionline-broker
@@ -46,8 +46,8 @@ jobs:
           test "$(git -C candidate rev-parse HEAD)" = "$CANDIDATE"
           test -z "$(git -C baseline status --porcelain)"
           test -z "$(git -C candidate status --porcelain)"
-          printf '%s  %s\n' 6933f51c2463feccfeb6264d5b0c18752c3711d8179d8f0d48a3f7c7e308664c candidate/partitionline-broker/src/metadata.rs | sha256sum -c -
-          printf '%s  %s\n' b5d3344c5002e1a923017d0b90c6471dd7fe994c78d981858b3d87b05c400e48 candidate/partitionline-broker/src/fetch.rs | sha256sum -c -
+          printf '%s  %s\n' 4b58da7de8daf51d12c658c35a9252b91907e18475e49cb04fac3de751cb9a5b candidate/partitionline-broker/src/metadata.rs | sha256sum -c -
+          printf '%s  %s\n' 0a35525b57e7cc6d83bb5ca82c544070126f8f2d1932b36e38525cf12a823e89 candidate/partitionline-broker/src/fetch.rs | sha256sum -c -
           cmp baseline/partitionline-broker/Cargo.toml candidate/partitionline-broker/Cargo.toml
           cmp baseline/partitionline-broker/Cargo.lock candidate/partitionline-broker/Cargo.lock
           cmp baseline/partitionline-broker/tests/fetch.rs candidate/partitionline-broker/tests/fetch.rs

@@ -102,6 +102,8 @@ mod controlled_transport_deadline_witness {
         send(&mut first, &fetch_request(6, 0, 30000, 1, 10000, &[(0, 10000)])).await?;
         event(&mut fetch_rx).await?;
         println!("WITNESS {label}: real Fetch reached pending");
+        barrier(&router).await?;
+        println!("WITNESS {label}: pre-probe FIFO barrier completed");
         assert!(matches!(
             router.respond(fetch_request(6, 0, 0, 0, 10000, &[(0, 10000)])).await,
             Err(metadata::Error::QueueFull)
