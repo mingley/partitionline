@@ -21,28 +21,29 @@ dependency graph is not Rust-only.
 ## Validation
 
 The latest complete recorded [CI snapshot][ci] is main commit
-`97a0757a3e5ab8777b147876305ab854b1faf675`. The current branch includes
+`342e7b90ee63d6824be2652b65d71be483ea6d16`. The current branch includes
 later changes; see the linked runs for their exact source and scope.
 
-| Check | Result at `97a0757` |
+| Check | Result at `342e7b9` |
 | --- | --- |
-| Client library, Linux default | 2,301 passed and nine failed; later targets did not run. |
-| Client library, Linux all features | 2,290 passed and 20 failed; later targets did not run. |
-| Client library, Windows default | 2,296 passed and 14 failed. |
-| Client library, macOS arm64 default | 2,295 passed and 15 failed. |
+| Client library, Linux default | 2,290 passed and 21 failed; later targets did not run. |
+| Client library, Linux all features | 2,301 passed and 10 failed; later targets did not run. |
+| Client library, Windows default | 2,297 passed and 14 failed. |
+| Client library, macOS arm64 default | 2,297 passed and 14 failed. |
 | Kafka 4.1.2, 4.2.1 and 4.3.1 compatibility | All three jobs failed. |
 | Kafka 3.9.1 and 4.1.0 smoke | Both jobs failed. |
 | Resource soak | Passed. |
-| Broker default targets | 781 passed and four ignored. |
-| Broker all-feature targets | 929 passed and four ignored. |
+| Broker default targets | 794 passed and four ignored. |
+| Broker all-feature targets | 942 passed and four ignored. |
 | Broker strict checks, inventory and fuzz supervision | Passed. |
 | Client capability profiles | Both passed selected checks; their archives were not independently inspected. |
 | Client format, all-target Clippy, audit, docs, package, auth and integrity smoke | Passed. Other client jobs failed or were skipped. |
 
-A later [partial main run][ci-f5] passed 794 default and 942 all-feature
-broker tests, with four ignored per profile. At the snapshot, Linux and
-Windows client libraries and three Kafka compatibility jobs had failed; other
-client and capability jobs were still running.
+An earlier [partial main run][ci-f5] passed both broker and capability
+profiles. Linux and Windows client libraries and three Kafka compatibility
+jobs failed; the macOS and both Kafka smoke jobs were canceled without
+results. An [earlier complete snapshot][ci-97] also failed client checks and
+passed both broker profiles.
 
 The [previous complete snapshot][ci-74] also failed client checks and passed
 both broker profiles. An [earlier snapshot][ci-464] stopped its broker
@@ -184,6 +185,13 @@ latency bound.
   raw API. In a paired mock comparison, 256 reordered error rows were about
   19% slower and reordered successful rows about 12% slower. Both full Admin
   suites failed timing assertions; matched baseline suites also failed.
+  The applied [slot index][admin-slot] avoids a second owned name per distinct
+  topic. On one x86 mock, 500,000 distinct rows fell from a 579 ms median to
+  381 ms across three pairs; a separate 256-row lexical mock improved 12–15%
+  in paired medians. Focused controls, a full Admin run and a Kafka smoke
+  passed. A later combined gate failed timing assertions in both profiles;
+  its all-feature baseline also failed one. The cause remains unknown.
+  These measurements do not establish Kafka throughput or a ranking.
   Longer cursor cycles can duplicate results, and cleanup and memory are not
   globally bounded. The applied
   [row checkpoint][admin-row-checkpoint] yields after every 8,192 completed
@@ -229,10 +237,12 @@ stopped. The [work plan][next] records the broader outstanding work and
 retained evidence. The [benchmark contract](benchmark-contract.md) and
 [release guide](RELEASE.md) describe the remaining qualification gates.
 
-[ci]: https://github.com/mingley/partitionline/blob/bd37eb53e247b73160da8bbbb2cf53f9d77eb6c3/docs/evidence/releases/main-ci-97a-20261108/README.md
+[ci]: https://github.com/mingley/partitionline/blob/6667a8df9205f5ae9efe5d648ec21c0e997afb32/docs/evidence/releases/main-ci-342e-20261108/README.md
+[ci-97]: https://github.com/mingley/partitionline/blob/6667a8df9205f5ae9efe5d648ec21c0e997afb32/docs/evidence/releases/main-ci-97a-20261108/README.md
+[admin-slot]: https://github.com/mingley/partitionline/blob/6667a8df9205f5ae9efe5d648ec21c0e997afb32/docs/evidence/client/admin-dtp-slot-index-20261108/README.md
 [ci-262]: https://github.com/mingley/partitionline/blob/cb55f7c603e2344775de8a395c6a584737f5bb95/docs/evidence/releases/main-ci-262-20261108/README.md
 [ci-02c]: https://github.com/mingley/partitionline/blob/0ce81683fe7107386e30f388cd2a4af31735d522/docs/evidence/releases/main-ci-02c-20261108/README.md
-[next]: https://github.com/mingley/partitionline/blob/ed10995700da3252dbefb4696e1afd7dfe5a008d/docs/plan/next-work.md
+[next]: https://github.com/mingley/partitionline/blob/6667a8df9205f5ae9efe5d648ec21c0e997afb32/docs/plan/next-work.md
 [flush-public]: https://github.com/mingley/partitionline/blob/f93e91499e2ba6bdc88c0a25a0d83b8737d00d3c/docs/evidence/client/producer-flush-public-20261108/README.md
 [flush-sent]: https://github.com/mingley/partitionline/blob/efa7f23314e98f3aaa4559c3cf38302bdcdb9fb4/docs/evidence/client/producer-flush-sent-20261108/README.md
 [owner-design]: https://github.com/mingley/partitionline/blob/cb55f7c603e2344775de8a395c6a584737f5bb95/docs/evidence/client/producer-ownership-design-20261108/README.md
@@ -306,5 +316,5 @@ retained evidence. The [benchmark contract](benchmark-contract.md) and
 [quota-clock]: https://github.com/mingley/partitionline/blob/bd37eb53e247b73160da8bbbb2cf53f9d77eb6c3/docs/evidence/broker/quota-logical-clock-20261108/README.md
 [admin-growth]: https://github.com/mingley/partitionline/blob/bd37eb53e247b73160da8bbbb2cf53f9d77eb6c3/docs/evidence/client/admin-dtp-index-growth-20261108/README.md
 
-[ci-f5]: https://github.com/mingley/partitionline/blob/b7ab4f229385d239a60f2a44b5ebafdaa5656631/docs/evidence/releases/main-ci-f5ed-partial-20261108/README.md
+[ci-f5]: https://github.com/mingley/partitionline/blob/6667a8df9205f5ae9efe5d648ec21c0e997afb32/docs/evidence/releases/main-ci-f5ed-partial-20261108/README.md
 [timestamp-fix]: https://github.com/mingley/partitionline/blob/b7ab4f229385d239a60f2a44b5ebafdaa5656631/docs/evidence/client/producer-timestamp-candidate-20261108/README.md
