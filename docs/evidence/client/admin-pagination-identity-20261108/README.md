@@ -131,16 +131,19 @@ rows. A very large page of such rows can occupy one poll beyond the
 deadline; this source-derived limit has not been measured here and was not
 changed by the earlier candidate.
 
-Discarded partitions are released in batches of at most 8,192 with
-cooperative yields between batches, including the previously accumulated result on an
-identity conflict. Manual-poll controls check progress and wakeups; the
-observing waker adds work only to those test polls. This bounds a batch's
-item count, not its wall time, nested allocations, allocator work or process
-memory. A timeout or cancellation can still synchronously drop remaining
-state, including the raw decoded response and other accumulated values.
-The index retains an additional 16-byte topic ID alongside each topic slot
-on the tested x86_64 target, before hash-table capacity and allocator
-overhead; result and index growth remain dependent on the responses.
+Discarded partitions in each vector are released in chunks of at most 8,192,
+with yields between chunks. Conflict cleanup also has a separate counter
+that yields after 8,192 topic rows. It does not yield after every small
+vector, so many such vectors can release far more than 8,192 partitions in
+one poll; there is no global partition-count or wall-time bound. Manual-poll
+controls check progress and wakeups; the observing waker adds work only to
+those tests and does not establish overall fairness.
+
+A timeout or cancellation can still synchronously drop remaining state,
+including the raw decoded response and other accumulated values. On the
+tested x86_64 target the index value size grows from 8 to 24 bytes, before
+hash-table capacity and allocator overhead; result and index growth remain
+dependent on the responses.
 Longer cursor cycles retain the existing timeout behavior and can grow the
 aggregate until timeout. A non-adjacent cursor repetition that later
 terminates can still append duplicate partitions.

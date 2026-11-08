@@ -21,6 +21,18 @@ supervision. Both selected capability profiles passed; their archives were not
 independently inspected. The broker pass does not explain the preceding
 [e487 proposal failure](../evidence/broker/raft-delayed-proposal-20261108/README.md).
 
+A [newer partial broker run](../evidence/releases/main-ci-912-partial-20261108/README.md)
+at `912254c` passed the default profile but stopped its all-feature profile
+after three Raft runtime failures. Later strict checks in that job did not
+run. Inventory, fuzz supervision and selected capability profiles passed;
+the failures remain unexplained.
+
+A [later partial CI snapshot](../evidence/releases/main-ci-c481-partial-20261108/README.md)
+at `c4819e8` passed both broker profiles, inventory, fuzz supervision and
+selected capability profiles. Client CI failed eight jobs and canceled one;
+the canceled Kafka smoke has no result. The broker pass does not explain
+the earlier disconnect or Raft failures.
+
 A [newer partial broker run](../evidence/releases/main-ci-7fb-partial-20261108/README.md)
 at `7fb973f` also stopped at 490 passed, one failed and four ignored, after
 a five-node proposal returned `NotLeader`. Its append and commit outcome and
@@ -486,11 +498,16 @@ remain open.
    deferred task depends on runtime progress, and cancelling close before
    worker shutdown remains a separate lifecycle gap.
 
-4. **Bounded decoding.** A [scripted pagination witness](../evidence/client/admin-pagination-identity-20261108/README.md)
-   shows that a later topic error can be returned as success, and successful
-   pages with different topic IDs can be combined. An isolated candidate
-   remains unapplied while broad-suite failures and nullable-name behavior are
-   reviewed. The [Admin pagination repair](../evidence/client/admin-pagination-20261108/README.md)
+4. **Bounded decoding.** A [pagination identity repair](../evidence/client/admin-topic-identity-null-20261108/README.md)
+   preserves the first returned topic error, rejects conflicting known topic
+   IDs, and reports unsupported aggregation for a null wire name while
+   leaving raw pages available. Focused controls and a Kafka 4.1.2 smoke
+   passed in both profiles. The full Admin suites each failed two wall-time
+   assertions; a matched run using the original fixture passed both candidate
+   profiles and failed both baseline profiles. The cause remains unknown.
+   Non-null response names are not checked against the request; long cursor
+   cycles, conversion polls and synchronous cleanup still need work. The
+   earlier [Admin pagination repair](../evidence/client/admin-pagination-20261108/README.md)
    uses one checked deadline for DescribeTopicPartitions pages and rejects an
    immediately repeated cursor instead of returning a partial success. A
    four-partition Apache Kafka 4.1.2 smoke and focused controls passed in both
