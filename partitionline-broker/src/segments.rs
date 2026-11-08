@@ -36,6 +36,13 @@ const DESCRIPTOR_BYTES: usize = 56;
 const CHECKPOINT_BYTES: usize = 24;
 const EMPTY_TIME: i64 = i64::MIN;
 
+#[cfg(test)]
+fn initial_crash_point(phase: &str) {
+    if std::env::var("PLB_SEGMENT_INITIAL_CRASH").ok().as_deref() == Some(phase) {
+        std::process::exit(73);
+    }
+}
+
 /// Positive rolling, persistent-resource and bounded scan limits.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Limits {
@@ -1267,6 +1274,10 @@ impl Log {
         }
         let (active, recovered) =
             journal::Journal::open(&active_path, result.manifest.active_base, journal_limits)?;
+        #[cfg(test)]
+        if initial {
+            initial_crash_point("active-synced");
+        }
         result.committed_next = active.next_offset();
         if result.manifest.floor > result.committed_next {
             return Err(Error::InvalidLayout);
@@ -1462,13 +1473,23 @@ impl Log {
             .write(true)
             .create_new(true)
             .open(self.directory.join(MANIFEST_TEMP))?;
+        #[cfg(test)]
+        if std::env::var("PLB_SEGMENT_INITIAL_CRASH").ok().as_deref() == Some("manifest-partial") {
+            file.write_all(&bytes[..bytes.len() / 2])?;
+            file.sync_all()?;
+            std::process::exit(73);
+        }
         file.write_all(&bytes)?;
+        #[cfg(test)]
+        initial_crash_point("manifest-written");
         self.hit(if cleanup {
             Phase::RetentionClearWritten
         } else {
             Phase::ManifestWritten
         })?;
         file.sync_all()?;
+        #[cfg(test)]
+        initial_crash_point("manifest-synced");
         self.hit(if cleanup {
             Phase::RetentionClearSynced
         } else {
@@ -1479,12 +1500,16 @@ impl Log {
             self.directory.join(MANIFEST_TEMP),
             self.directory.join(MANIFEST),
         )?;
+        #[cfg(test)]
+        initial_crash_point("manifest-renamed");
         self.hit(if cleanup {
             Phase::RetentionClearRenamed
         } else {
             Phase::ManifestRenamed
         })?;
         File::open(&self.directory)?.sync_all()?;
+        #[cfg(test)]
+        initial_crash_point("directory-synced");
         self.hit(if cleanup {
             Phase::RetentionClearDirectorySynced
         } else {
@@ -2796,6 +2821,112 @@ mod tests {
             records::Limits::default(),
             Limits::new(150, 16, 4, 2, 1024 * 1024, 65536, 4096)?,
         )
+    }
+
+    fn initial_snapshot(path: &Path) -> Result<Vec<(String, Vec<u8>)>, Box<dyn std::error::Error>> {
+        let mut files = Vec::new();
+        for entry in fs::read_dir(path)? {
+            let entry = entry?;
+            if !entry.file_type()?.is_file() {
+                return Err("unexpected non-file".into());
+            }
+            let name = entry.file_name().into_string().map_err(|_| "invalid file name")?;
+            let bytes = fs::read(entry.path())?;
+            if bytes.len() > 8192 {
+                return Err("snapshot file exceeds fixture bound".into());
+            }
+            files.push((name, bytes));
+        }
+        files.sort_by(|a, b| a.0.cmp(&b.0));
+        Ok(files)
+    }
+
+    fn retain_initial_snapshot(
+        phase: &str,
+        files: &[(String, Vec<u8>)],
+        outcome: &str,
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        let Some(root) = std::env::var_os("PLB_SEGMENT_INITIAL_CAPTURE") else {
+            return Ok(());
+        };
+        let directory = PathBuf::from(root).join(phase);
+        fs::create_dir_all(&directory)?;
+        for (name, bytes) in files {
+            fs::write(directory.join(name), bytes)?;
+        }
+        fs::write(
+            directory.join("case.json"),
+            format!("{{\"phase\":\"{phase}\",\"outcome\":\"{outcome}\",\"child_exit\":73,\"acknowledged_appends_before_exit\":0,\"power_loss_claim\":false}}\n"),
+        )?;
+        Ok(())
+    }
+
+    #[test]
+    fn initial_segment_open_process_exit_reopen_witness() -> Result<(), Box<dyn std::error::Error>> {
+        if let Some(path) = std::env::var_os("PLB_SEGMENT_INITIAL_PATH") {
+            let _ = open(Path::new(&path))?;
+            return Err("initial crash hook was not reached".into());
+        }
+        for phase in [
+            "active-synced",
+            "manifest-partial",
+            "manifest-written",
+            "manifest-synced",
+            "manifest-renamed",
+            "directory-synced",
+        ] {
+            let temp = Temp::new()?;
+            let path = temp.0.join("log");
+            let child = std::process::Command::new(std::env::current_exe()?)
+                .args(["--exact", "segments::tests::initial_segment_open_process_exit_reopen_witness", "--nocapture"])
+                .env("PLB_SEGMENT_INITIAL_PATH", &path)
+                .env("PLB_SEGMENT_INITIAL_CRASH", phase)
+                .output()?;
+            assert_eq!(
+                child.status.code(),
+                Some(73),
+                "{phase}: stdout={} stderr={}",
+                String::from_utf8_lossy(&child.stdout),
+                String::from_utf8_lossy(&child.stderr)
+            );
+            let before = initial_snapshot(&path)?;
+            let names: Vec<_> = before.iter().map(|(name, bytes)| (name.as_str(), bytes.len())).collect();
+            let has_manifest = path.join(MANIFEST).try_exists()?;
+            let is_published = matches!(phase, "manifest-renamed" | "directory-synced");
+            assert_eq!(has_manifest, is_published);
+            if is_published {
+                let (mut recovered, recovery) = open(&path)?;
+                assert_eq!(recovery.next_offset, 0);
+                assert_eq!(recovered.append(1, &payload(0))?.first_offset, 0);
+                drop(recovered);
+                let (mut reopened, _) = open(&path)?;
+                assert_eq!(reopened.fetch(0, 1, 4096)?[0].payload, payload(0));
+                retain_initial_snapshot(phase, &before, "empty-recovered")?;
+                println!("PL_INITIAL_OPEN phase={phase} files={names:?} append_acks_before_exit=0 reopen=empty-recovered");
+            } else {
+                assert!(matches!(open(&path), Err(Error::InvalidLayout)));
+                assert_eq!(initial_snapshot(&path)?, before);
+                retain_initial_snapshot(phase, &before, "invalid-layout")?;
+                println!("PL_INITIAL_OPEN phase={phase} files={names:?} append_acks_before_exit=0 reopen=invalid-layout");
+            }
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn missing_manifest_with_acknowledged_input_fails_closed_without_changes(
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        let temp = Temp::new()?;
+        let path = temp.0.join("log");
+        let (mut log, _) = open(&path)?;
+        assert_eq!(log.append(1, &payload(0))?.first_offset, 0);
+        drop(log);
+        fs::remove_file(path.join(MANIFEST))?;
+        let before = initial_snapshot(&path)?;
+        assert!(matches!(open(&path), Err(Error::InvalidLayout)));
+        assert_eq!(initial_snapshot(&path)?, before);
+        println!("PL_MISSING_MANIFEST_ACKNOWLEDGED data_unchanged=true reopen=invalid-layout");
+        Ok(())
     }
 
     #[test]
