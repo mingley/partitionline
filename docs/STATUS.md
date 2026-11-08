@@ -15,19 +15,20 @@ replicated partition data or native Kafka KRaft.
 
 ## Validation
 
-The latest complete snapshot recorded here is commit `eaa8ac6ddfe767d6ae7d45b19eb945a6a1578c9b`.
-It includes the coordinator, journal and admission repairs. The
-[CI evidence][ci] links the runs and their limits.
+The latest complete snapshot recorded here is commit `de152e78ca6d85e6cd4ea5915058b2bb6141cf42`.
+It includes the coordinator, journal and admission repairs, plus a focused
+Raft proposal-boundary test. The [CI evidence][ci] links the runs and their
+limits.
 
-| Check | Result at `eaa8ac6` |
+| Check | Result at `de152e7` |
 | --- | --- |
-| Client library, Linux default | 2,225 passed and 19 failed; the all-target run stopped at the library. |
-| Client library, Linux all features | 2,219 passed and 25 failed; later targets did not run. |
-| Windows default library | 2,229 passed and 15 failed. |
-| macOS arm64 default library | 2,235 passed and nine failed. |
+| Client library, Linux default | 2,226 passed and 18 failed; the all-target run stopped at the library. |
+| Client library, Linux all features | 2,221 passed and 23 failed; later targets did not run. |
+| Windows default library | 2,235 passed and nine failed. |
+| macOS arm64 default library | 2,230 passed and 14 failed. |
 | Kafka 4.1.2, 4.2.1 and 4.3.1 compatibility | All three jobs failed with stack overflows. |
-| Kafka 3.9.1 and 4.1.0 smoke | Both failed after repeated EOS timeouts and reported JoinGroup error 16. |
-| Broker default and all-feature targets | 754 and 902 passed, respectively; three descriptor diagnostics were ignored in each suite and passed separately. Both doctest commands found zero tests. |
+| Kafka 3.9.1 and 4.1.0 smoke | Both exhausted EOS retries after timeouts; 4.1.0 also reported JoinGroup error 16. |
+| Broker default and all-feature targets | 755 and 903 passed, respectively; three descriptor diagnostics were ignored in each suite and passed separately on the same production source. Both doctest commands found zero tests. |
 | Broker Clippy, Rustdoc, inventory and fuzz supervision | Passed. |
 | Client capability profiles | Both passed selected checks; their archives were not independently inspected. |
 | Client format, all-target Clippy, audit, docs, package, auth and integrity smoke | Passed. Other client jobs failed or were skipped. |
@@ -37,8 +38,12 @@ Raft tests. A [subsequent run][latest-broker] at `c471f5e` passed the
 default suite, then failed an all-feature quorum test when a delete returned
 error 56. The log does not establish whether it committed. Later targets and
 the broker job's Clippy and Rustdoc steps did not run; inventory and fuzz
-supervision passed separately. The later `eaa8ac6` broker pass does not
-explain either failure; both remain open.
+supervision passed separately. The later `eaa8ac6` and `de152e7` broker passes do not
+explain either failure; both remain open. A [separate diagnostic][quorum-diag]
+did not reproduce error 56, and a [proposal-boundary test][quorum-boundary]
+covers only one leader-removal schedule. An unmerged [Raft test run][raft-churn]
+also observed prolonged election churn in a five-node short-timeout fixture;
+its cause remains unknown.
 
 A [debugger trace][gdb] on the earlier `8b5de2e` source caught a stack fault
 while opening a consumer bootstrap connection. It identifies a failure point,
@@ -114,17 +119,18 @@ pass does not replace the full release matrix.
   but its short runs have mismatched settings and driver costs. A [decode
   experiment][perf] improved large synthetic loopback responses but remains
   unapplied. A [journal comparison][journal-perf] measured added latency on
-  one shared host with a writeback filesystem. [Record-header experiments][records-perf]
-  improved some cases but regressed others and remain unapplied. See the
+  one shared host with a writeback filesystem. [Record-header experiments][records-perf] improved some cases, while
+  several variants regressed others. A later candidate is still under test
+  and remains unapplied. See the
   [benchmark contract](benchmark-contract.md) for performance claim requirements.
 
 The [work plan][next] tracks the current candidates and outstanding tests.
 The [support matrix](support.md) describes configured coverage, and the
 [release guide](RELEASE.md) lists publication gates. No new release is ready.
 
-[ci]: https://github.com/mingley/partitionline/blob/9da5b5153a23bd64b8693a1323cdb7458cc36e31/docs/evidence/releases/main-ci-eaa-20261108/README.md
+[ci]: https://github.com/mingley/partitionline/blob/a4d381f21701656389b95324fd3231c2c22a03a3/docs/evidence/releases/main-ci-de152e-20261108/README.md
 [previous-ci]: https://github.com/mingley/partitionline/blob/7ebb3cc81adc695cc4c74409a87a1a1dd4be9730/docs/evidence/releases/main-ci-ba8-20261108/README.md
-[next]: https://github.com/mingley/partitionline/blob/9da5b5153a23bd64b8693a1323cdb7458cc36e31/docs/plan/next-work.md
+[next]: https://github.com/mingley/partitionline/blob/a4d381f21701656389b95324fd3231c2c22a03a3/docs/plan/next-work.md
 [previous]: https://github.com/mingley/partitionline/blob/5c2a000639d9a8a7dccd56e8c1d6f3a58dca1601/docs/STATUS.md
 [flush]: https://github.com/mingley/partitionline/blob/e980829c439aa43edc01312c91838e58a412221a/docs/evidence/client/producer-flush-native-86f2-20261103/README.md
 [txn]: https://github.com/mingley/partitionline/blob/49ad56c6bce1366e2357c272f11c5c34160d60da/docs/evidence/client/add-partitions-native-4f0c-20261103/README.md
@@ -148,6 +154,9 @@ The [support matrix](support.md) describes configured coverage, and the
 [journal-repair]: https://github.com/mingley/partitionline/blob/b2d9bcaec1e12c2d79535382ec2c402038c0c6b9/docs/evidence/broker/journal-ownership-repair-20261108/README.md
 [admission]: https://github.com/mingley/partitionline/blob/b2d9bcaec1e12c2d79535382ec2c402038c0c6b9/docs/evidence/broker/fetch-owned-admission-20261108/README.md
 [journal-perf]: https://github.com/mingley/partitionline/blob/6f50202cd72c789b4396ee10c69a1089fc10bc41/docs/evidence/broker/journal-release-cost-20261108/README.md
-[records-perf]: https://github.com/mingley/partitionline/blob/9da5b5153a23bd64b8693a1323cdb7458cc36e31/docs/evidence/broker/records-header-validation-20261108/README.md
+[records-perf]: https://github.com/mingley/partitionline/blob/a4d381f21701656389b95324fd3231c2c22a03a3/docs/evidence/broker/records-header-validation-20261108/README.md
 [latest-broker]: https://github.com/mingley/partitionline/blob/ae2c6f6098ba41844fb7f74d3b02fb48655d3cb1/docs/evidence/broker/main-ci-c471-20261108/README.md
 [previous-broker]: https://github.com/mingley/partitionline/blob/3b29e8122e834ffbfacbd8c779b7c47dab264ebe/docs/evidence/broker/main-ci-3fc-20261108/README.md
+[quorum-diag]: https://github.com/mingley/partitionline/blob/a4d381f21701656389b95324fd3231c2c22a03a3/docs/evidence/broker/quorum-delete-diagnostic-20261108/README.md
+[quorum-boundary]: https://github.com/mingley/partitionline/blob/de152e78ca6d85e6cd4ea5915058b2bb6141cf42/docs/evidence/broker/quorum-proposal-boundary-20261108/README.md
+[raft-churn]: https://github.com/mingley/partitionline/actions/runs/42454616584
