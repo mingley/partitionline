@@ -1836,21 +1836,26 @@ async fn supervise(
     }
     Ok(state)
 }
-async fn dispatch_votes(control: &Control, routes: &[(Key, Arc<VoteSlot>)], jobs: Vec<Job>) {
-    for job in jobs {
-        match routes.iter().find(|(k, _)| *k == job.peer()) {
-            Some((_, slot)) => {
-                // The only production producer is the supervisor's Tick reply,
-                // which contains one vote per peer from successive campaigns.
-                // Admission and replacement are atomic with worker dequeue.
-                if let Some(displaced) = slot.offer(job) {
-                    let _ = control.cancel_job(displaced).await;
-                }
-            }
-            None => {
-                let _ = control.cancel_job(job).await;
-            }
+async fn dispatch_votes(control: &Control, routes: &[(Key, Arc<VoteSlot>)], mut jobs: Vec<Job>) {
+    // The supervisor's Tick contains at most one vote per peer. Move all
+    // current votes into their slots before waiting for owner cancellation:
+    // a full owner queue must not prevent later peers from starting their RPCs.
+    // The consumed suffix holds displaced or unadmitted jobs, reusing the
+    // original allocation without growing it.
+    let mut unoffered = jobs.len();
+    while unoffered != 0 {
+        unoffered -= 1;
+        let job = jobs.swap_remove(unoffered);
+        let cancel = match routes.iter().find(|(key, _)| *key == job.peer()) {
+            Some((_, slot)) => slot.offer(job),
+            None => Some(job),
+        };
+        if let Some(cancel) = cancel {
+            jobs.push(cancel);
         }
+    }
+    for job in jobs {
+        let _ = control.cancel_job(job).await;
     }
 }
 struct Counter {
