@@ -537,11 +537,12 @@ buffer in the application bounded.
 
 ### Buffer ownership
 
-`ProducerConfig::buffer_memory` reserves the visible key, value, and header
-bytes from the moment a record is accepted until the broker acks it or the
-send fails for good. Header keys and header values both count. A header-heavy
-record, a zero-value record, and a record that will be compressed all count
-their uncompressed visible bytes.
+`ProducerConfig::buffer_memory` tracks the visible key, value, and header
+bytes of accepted records. Reservations normally release after acknowledgement
+or a final failure; a known worker-cancellation path can leave the counter
+nonzero after a delivery future returns `Closed`. Header keys and header
+values both count. A header-heavy record, a zero-value record, and a record
+that will be compressed all count their uncompressed visible bytes.
 
 `metrics().bytes_buffered` and `metrics().bytes_queued` use that same count.
 
@@ -751,15 +752,21 @@ stops workers; a successful `close` does not replace a delivery result.
 | Buffered (queued, not yet on the wire) | `metrics().bytes_buffered > 0`; drop `send` future | **Ambiguous.** The worker may still deliver. |
 | After send / before ack | in flight to the broker; drop `send` future | **Ambiguous** |
 | After broker ack | `Ok(RecordMetadata)` from `send`, with `acks=1` or `all` | **Acknowledged.** `acks=0` cannot prove an offset. |
-| After `close` / `close_timeout` | further `send` or `try_send` on any clone | **Failed** with `Error::Closed` |
-| `close_timeout` while a batch is in flight | The deadline hits a stalled broker or the retry queue | In-flight batches return `Error::Timeout`. A record already transmitted stays ambiguous. |
+| After `close` / `close_timeout` returns | a new `send` or `try_send` on any clone | **Failed** with `Error::Closed` when polled |
+| `close_timeout` with outstanding work | The deadline expires before the work drains | Close reports `Error::Timeout`; a pending delivery can return `Timeout` or `Closed`. A record already transmitted stays ambiguous. |
 | A later send after an ambiguous result | The earlier per-record receipt is missing | Can duplicate the record, including when idempotence was on. |
 
 Call `close` or `close_timeout` instead of dropping the last `Producer`.
-Drop alone does not wait for in-flight produce. Concurrent sends on every
-clone get `Error::Closed` immediately. Dropping the last handle aborts the
-worker and background tasks, and releases buffer permits and connections.
-The mock is `tests/produce_cancel.rs`.
+Close first attempts to flush and then stops admission, so another clone can
+still admit a record during that initial flush. Calls already waiting for
+admission may finish later. Drop alone does not wait for in-flight produce.
+
+A blocking interceptor can delay worker cleanup and the close deadline. In a
+known cancellation path, accepted records can lose callbacks and leave
+`bytes_buffered` nonzero after the worker stops. See the
+[producer ownership evidence](evidence/client/producer-sequence-public-20261108/README.md)
+for the controlled history and its limits. The ordinary cancellation mock is
+`tests/produce_cancel.rs`.
 
 Run the recipe against an existing topic:
 
