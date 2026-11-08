@@ -303,6 +303,10 @@ impl DirectoryOwnership {
     pub(crate) fn identify(&mut self, file: &File) -> Result<(), Error> {
         self.0.identify(file)
     }
+    #[cfg(all(test, unix))]
+    pub(crate) fn pinned_identity(&self) -> Result<(u64, u64, u64), Error> {
+        self.0.pinned_identity()
+    }
 }
 
 pub(crate) struct CheckedCursor {
@@ -1515,7 +1519,7 @@ mod ownership {
         pub(super) fn release_inode(&mut self) {
             #[cfg(unix)]
             {
-                self.inode.take();
+                drop(self.inode.take());
             }
         }
 
@@ -2115,6 +2119,79 @@ mod tests {
         staged_sync_retains_old_generation(true)
     }
 
+
+    #[test]
+    #[cfg(unix)]
+    fn staged_syncs_keep_each_generation_and_path_until_the_last_drop(
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        let dir = ownership_test_dir("multi-generation")?;
+        let path = dir.join("log");
+        let old_alias = dir.join("old");
+        let new_alias = dir.join("new");
+        let limits = Limits::default();
+        let (mut log, _) = Journal::open(&path, 0, limits)?;
+        let old_ticket = log.append_staged(1, b"old", crc32c::crc32c(b"old"))?;
+        old_ticket.sync_data()?;
+        log.commit_staged()?;
+        std::fs::hard_link(&path, &old_alias)?;
+        log.replace_with_snapshot(b"new")?;
+        let new_ticket = log.append_staged(1, b"tail", crc32c::crc32c(b"tail"))?;
+        new_ticket.sync_data()?;
+        log.commit_staged()?;
+        std::fs::hard_link(&path, &new_alias)?;
+        drop(log);
+
+        assert!(matches!(Journal::open(&path, 0, limits), Err(Error::AlreadyOpen)));
+        assert!(matches!(Journal::open(&old_alias, 0, limits), Err(Error::AlreadyOpen)));
+        assert!(matches!(Journal::open(&new_alias, 0, limits), Err(Error::AlreadyOpen)));
+        drop(old_ticket);
+        let (mut old, _) = Journal::open(&old_alias, 0, limits)?;
+        assert_eq!(old.fetch(0, 1, 1024)?[0].payload, b"old");
+        drop(old);
+        assert!(matches!(Journal::open(&path, 0, limits), Err(Error::AlreadyOpen)));
+        assert!(matches!(Journal::open(&new_alias, 0, limits), Err(Error::AlreadyOpen)));
+
+        drop(new_ticket);
+        let (mut current, _) = Journal::open(&path, 0, limits)?;
+        assert_eq!(current.fetch(0, 2, 1024)?[0].payload, b"new");
+        assert_eq!(current.fetch(0, 2, 1024)?[1].payload, b"tail");
+        drop(current);
+        let (via_alias, _) = Journal::open(&new_alias, 0, limits)?;
+        drop(via_alias);
+        std::fs::remove_dir_all(dir)?;
+        Ok(())
+    }
+
+    #[test]
+    #[cfg(unix)]
+    fn old_inode_stays_reserved_until_replaced_engine_closes(
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        let dir = ownership_test_dir("retired-engine")?;
+        let path = dir.join("log");
+        let alias = dir.join("old");
+        let tmp = dir.join("replacement");
+        let limits = Limits::default();
+        let (mut log, _) = Journal::open(&path, 0, limits)?;
+        log.append(1, b"old")?;
+        std::fs::hard_link(&path, &alias)?;
+        let replacement_file = File::create(&tmp)?;
+        let mut replacement = ownership::Guard::acquire(&tmp)?;
+        replacement.identify(&replacement_file)?;
+        drop(replacement_file);
+        let retired = log._ownership.adopt_replacement(&mut replacement)?;
+        assert!(matches!(Journal::open(&alias, 0, limits), Err(Error::AlreadyOpen)));
+        let Journal { inner, _ownership, .. } = log;
+        drop(inner);
+        drop(retired);
+        let (mut old, _) = Journal::open(&alias, 0, limits)?;
+        assert_eq!(old.fetch(0, 1, 1024)?[0].payload, b"old");
+        drop(old);
+        drop(_ownership);
+        drop(replacement);
+        std::fs::remove_dir_all(dir)?;
+        Ok(())
+    }
+
     #[test]
     #[cfg(unix)]
     fn journal_and_cursor_keep_inode_pinned_through_close(
@@ -2159,6 +2236,36 @@ mod tests {
             let (mut reopened, _) = Journal::open(&alias, 0, Limits::default())?;
             assert_eq!(reopened.fetch(0, 1, 1024)?[0].payload, b"data");
             drop(reopened);
+
+            let unlinked = dir.join(if cursor { "cursor-unlinked" } else { "journal-unlinked" });
+            let fresh = dir.join(if cursor { "cursor-fresh" } else { "journal-fresh" });
+            let (log, _) = Journal::open(&unlinked, 0, Limits::default())?;
+            let metadata = std::fs::metadata(&unlinked)?;
+            let identity = (metadata.dev(), metadata.ino());
+            let check_pin = |guard: ownership::Guard| -> Result<(), Box<dyn std::error::Error>> {
+                assert_eq!(guard.pinned_identity()?, (identity.0, identity.1, 0));
+                let (other, _) = Journal::open(&fresh, 0, Limits::default())?;
+                let metadata = std::fs::metadata(&fresh)?;
+                assert_ne!((metadata.dev(), metadata.ino()), identity);
+                drop(other);
+                drop(guard);
+                let (new, _) = Journal::open(&unlinked, 0, Limits::default())?;
+                drop(new);
+                Ok(())
+            };
+            if cursor {
+                drop(log);
+                let owner = CheckedCursor::open(&unlinked, 0, Limits::default())?;
+                std::fs::remove_file(&unlinked)?;
+                let CheckedCursor { file, _ownership, .. } = owner;
+                drop(file);
+                check_pin(_ownership)?;
+            } else {
+                std::fs::remove_file(&unlinked)?;
+                let Journal { inner, _ownership, .. } = log;
+                drop(inner);
+                check_pin(_ownership)?;
+            }
         }
         std::fs::remove_dir_all(dir)?;
         Ok(())
@@ -2223,6 +2330,66 @@ mod tests {
         assert_eq!(after, baseline);
         assert_eq!(directory_open, baseline + 1);
         assert_eq!(directory_closed, baseline);
+        std::fs::remove_dir_all(root)?;
+        Ok(())
+    }
+
+
+    #[test]
+    #[cfg(target_os = "linux")]
+    #[ignore = "run alone with a small descriptor limit"]
+    fn ownership_descriptor_exhaustion_releases_reservations(
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        fn exhaust() -> Result<Vec<File>, Box<dyn std::error::Error>> {
+            let mut files = Vec::new();
+            for _ in 0..256 {
+                match File::open("/dev/null") {
+                    Ok(file) => files.push(file),
+                    Err(error) if error.raw_os_error() == Some(24) => return Ok(files),
+                    Err(error) => return Err(error.into()),
+                }
+            }
+            Err("descriptor limit was not reached within 256 handles".into())
+        }
+
+        let root = ownership_test_dir("fd-exhaustion")?;
+        let path = root.join("log");
+        let spare = File::open("/dev/null")?;
+        let held = exhaust()?;
+        drop(spare);
+        assert!(matches!(
+            Journal::open(&path, 0, Limits::default()),
+            Err(Error::Io(error)) if error.raw_os_error() == Some(24)
+        ));
+        // The new file exists: opening it succeeded and duplicating the pin failed.
+        assert!(path.exists());
+        drop(held);
+        let (mut log, _) = Journal::open(&path, 0, Limits::default())?;
+        let held = exhaust()?;
+        assert!(matches!(
+            log.append_staged(1, b"unconfirmed", crc32c::crc32c(b"unconfirmed")),
+            Err(Error::Io(error)) if error.raw_os_error() == Some(24)
+        ));
+        assert!(log.is_poisoned());
+        drop(held);
+        drop(log);
+        let (mut reopened, _) = Journal::open(&path, 0, Limits::default())?;
+        assert_eq!(reopened.fetch(0, 1, 1024)?[0].payload, b"unconfirmed");
+        drop(reopened);
+
+        let mut directory = DirectoryOwnership::acquire(&root)?;
+        let source = File::open(&root)?;
+        let held = exhaust()?;
+        assert!(matches!(
+            directory.identify(&source),
+            Err(Error::Io(error)) if error.raw_os_error() == Some(24)
+        ));
+        drop(source);
+        drop(directory);
+        drop(held);
+        let mut reopened = DirectoryOwnership::acquire(&root)?;
+        reopened.identify(&File::open(&root)?)?;
+        drop(reopened);
         std::fs::remove_dir_all(root)?;
         Ok(())
     }
@@ -2638,12 +2805,12 @@ mod tests {
         let fetched = reopened.fetch(0, 1, 1024)?;
         assert_eq!(fetched[0].payload, b"left");
         let (mut aborted, _) = Journal::open(dir.join("c"), 0, limits)?;
-        let _file = aborted.append_staged(1, b"gone", crc32c::crc32c(b"gone"))?;
+        let file = aborted.append_staged(1, b"gone", crc32c::crc32c(b"gone"))?;
         aborted.abort_staged();
         assert!(aborted.is_poisoned());
         assert!(aborted.append(1, b"next").is_err());
         drop(aborted);
-        drop(_file);
+        drop(file);
         let (mut recovered, recovery) = Journal::open(dir.join("c"), 0, limits)?;
         assert_eq!(recovery.recovered_entries, 1);
         assert_eq!(recovered.fetch(0, 1, 1024)?[0].payload, b"gone");

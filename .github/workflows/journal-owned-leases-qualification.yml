@@ -18,14 +18,14 @@ jobs:
       - uses: actions/checkout@v7
         with:
           persist-credentials: false
-          fetch-depth: 4
+          fetch-depth: 8
       - uses: dtolnay/rust-toolchain@stable
       - name: Install candidate behavioral tests on the base source
         shell: bash
         run: |
           set -euo pipefail
           test "$(uname -m)" = x86_64
-          test "$(git rev-parse HEAD~2)" = 7f59ef470340db6027958f439df3716a8dde536c
+          git merge-base --is-ancestor 7f59ef470340db6027958f439df3716a8dde536c HEAD
           python3 - <<'PY'
           from pathlib import Path
           src=Path('partitionline-broker/src/journal.rs').read_text()
@@ -79,13 +79,24 @@ jobs:
           sha256sum partitionline-broker/src/{journal,partition,produce,segments}.rs
       - name: Ticket generation and post-drop liveness
         run: cargo +stable test --locked --manifest-path partitionline-broker/Cargo.toml --lib staged_sync_retains -- --nocapture
+      - name: Multiple generations and engine close boundary
+        run: |
+          set -euo pipefail
+          cargo +stable test --locked --manifest-path partitionline-broker/Cargo.toml --lib journal::tests::staged_syncs_keep_each_generation_and_path_until_the_last_drop -- --exact --nocapture
+          cargo +stable test --locked --manifest-path partitionline-broker/Cargo.toml --lib journal::tests::old_inode_stays_reserved_until_replaced_engine_closes -- --exact --nocapture
       - name: File and directory pin controls
         run: |
           set -euo pipefail
           cargo +stable test --locked --manifest-path partitionline-broker/Cargo.toml --lib journal::tests::journal_and_cursor_keep_inode_pinned_through_close -- --exact --nocapture
           cargo +stable test --locked --manifest-path partitionline-broker/Cargo.toml --lib journal::tests::directory_ownership_pins_a_temporary_handle -- --exact --nocapture
+          cargo +stable test --locked --manifest-path partitionline-broker/Cargo.toml --lib segments::tests::sparse_cursor_and_rolling_log_pin_removed_inodes -- --exact --nocapture
       - name: Descriptor cost on an otherwise idle test process
         run: cargo +stable test --locked --manifest-path partitionline-broker/Cargo.toml --lib journal::tests::ownership_descriptor_cost -- --exact --ignored --test-threads=1 --nocapture
+      - name: Descriptor exhaustion and recovery
+        run: |
+          set -euo pipefail
+          ulimit -n 64
+          cargo +stable test --locked --manifest-path partitionline-broker/Cargo.toml --lib journal::tests::ownership_descriptor_exhaustion_releases_reservations -- --exact --ignored --test-threads=1 --nocapture
       - name: Default broker library suite
         run: cargo +stable test --locked --manifest-path partitionline-broker/Cargo.toml --lib
   style:
@@ -98,7 +109,15 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: rustfmt, clippy
-      - name: Format
-        run: cargo +stable fmt --manifest-path partitionline-broker/Cargo.toml --all -- --check
+      - name: Render formatted source for the next isolated candidate
+        run: |
+          set -euo pipefail
+          cargo +stable fmt --manifest-path partitionline-broker/Cargo.toml --all
+          printf 'PL_FMT_BEGIN journal\n'
+          base64 -w 2000 partitionline-broker/src/journal.rs | sed 's/^/PL_FMT_DATA /'
+          printf '\nPL_FMT_END journal\n'
+          printf 'PL_FMT_BEGIN segments\n'
+          base64 -w 2000 partitionline-broker/src/segments.rs | sed 's/^/PL_FMT_DATA /'
+          printf '\nPL_FMT_END segments\n'
       - name: Clippy all targets and features
         run: cargo +stable clippy --locked --manifest-path partitionline-broker/Cargo.toml --all-targets --all-features -- -D warnings
