@@ -21,7 +21,9 @@ reported; `cpu.max` was unavailable, so the quota is unknown. It alternated
 baseline/candidate order, built into separate target directories, and used
 three samples per ordinary configuration. One extra interceptor-enabled
 fallback sample per arm was collected. In all 110 samples, the mock's ordered
-record values, returned offsets, byte accounting and error count passed.
+record values, returned offsets, byte accounting and error count passed. The
+[110 individual samples](samples.csv) retain nanosecond values and batch sizes;
+queued counts include the warmup record.
 
 The benchmark warms a one-partition route, uses a current-thread runtime, no
 interceptor and explicit partition 0, then measures a manually polled public
@@ -102,8 +104,27 @@ candidate. Its default and all-feature producer jobs both failed the existing
 mixed-topic `send_all_redials_leaders_while_refreshing_metadata` timing
 assertion at 759.073 ms and 755.417 ms respectively (limit 450 ms). Each had
 3 passed and 1 failed; later cancellation and retained-backing suites were
-not run. Its two mixed records do not meet the shortcut's source-level
-eligibility, but the failure's cause remains unproven.
+not run in those jobs. The exact failed jobs were
+[default](https://github.com/mingley/partitionline/actions/runs/42471313301/job/128702472985)
+and [all features](https://github.com/mingley/partitionline/actions/runs/42471313301/job/128702472573).
+Its two mixed records do not meet the shortcut's source-level eligibility.
+
+In matched run [42471756660](https://github.com/mingley/partitionline/actions/runs/42471756660),
+all six trials of the four-test group failed the same redial assertion on each
+source in each profile: 12 failures per source, with three other tests passing
+per trial. Baseline/candidate elapsed ranges were 756.787–757.823 /
+756.473–757.957 ms with default features and 756.921–758.446 /
+756.979–760.700 ms with all features. The workflow successfully collected
+these failures; it did not make the test pass. The cause remains unproven.
+The yielding candidate then passed `produce_cancel` (23 passed, 0 ignored)
+and `producer_retained_backing` (9 passed, 1 ignored) in both profiles.
+
+The distinct no-added-yield source also failed this assertion in its own
+[default](https://github.com/mingley/partitionline/actions/runs/42471922968/job/128704453918)
+and [all-feature](https://github.com/mingley/partitionline/actions/runs/42471922968/job/128704453922)
+jobs at 758.844 and 757.571 ms. Its later cancellation and retained-backing
+suites had the same 23 passed and 9 passed/1 ignored counts in each profile.
+Both candidates remain unapplied; their remaining checks are separate.
 
 An instrumented route-control run
 [42471551212](https://github.com/mingley/partitionline/actions/runs/42471551212)
