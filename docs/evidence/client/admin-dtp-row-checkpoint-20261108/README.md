@@ -36,8 +36,9 @@ all-feature profiles (1/1 in each). The raw DescribeTopicPartitions call
 returned four pages for a seven-partition topic with a limit of two. The
 aggregate matched the raw topic ID, partition indexes, leaders, leader epochs,
 replicas, in-sync replicas and offline replicas, with both authorization modes
-checked. The live fixture also asserts at compile time that the actual public
-describe future is `Send`. It uses the same production and permanent-test
+checked. The live fixture also asserts at compile time that the public describe
+future is `Send` when called with a slice iterator of `&str`; it does not
+cover arbitrary non-`Send` iterators. It uses the same production and permanent-test
 blobs above; the separate live-only fixture blob is
 `5aefcf29a857f49317d94cbdef56bf60ae787f7e` from
 [commit 9803e44](https://github.com/mingley/partitionline/commit/9803e44e2b79b789f8806011e1f2078bdb225ad0).

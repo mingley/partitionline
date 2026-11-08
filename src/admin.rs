@@ -5880,10 +5880,15 @@ impl Admin {
     ///
     /// A null DescribeTopicPartitions name cannot be associated with a
     /// requested name. This aggregate reports [`Error::Unsupported`] unless a
-    /// global error takes precedence. Within a page, a null name is detected
-    /// before conflicting topic IDs are checked. Non-null response names are
-    /// not validated against the request. For raw pages, use
-    /// [`Self::describe_topic_partitions_timeout`].
+    /// global error takes precedence. It treats a response topic or next cursor
+    /// outside the requested names as a client-side [`Error::Protocol`].
+    /// This is a client consistency policy. An immediately repeated cursor
+    /// is checked before these name checks. Within a page, any null name takes
+    /// precedence over an unrequested topic, which takes precedence over an
+    /// unrequested cursor. These checks precede page ID-conflict detection.
+    /// Large, out-of-order responses can require an index whose memory grows
+    /// with distinct requested names. For raw pages, use
+    /// [`Self::describe_topic_partitions_timeout`], which preserves the response.
     pub async fn describe_topics_with_partition_limit_timeout<'a, S>(
         &mut self,
         topics: impl IntoIterator<Item = &'a S>,
@@ -14122,6 +14127,8 @@ impl Admin {
             .checked_add(timeout)
             .ok_or(Error::Timeout)?;
         tokio::time::timeout_at(deadline, async {
+            let _remaining = dtp_remaining(deadline)?;
+            let mut requested_names = RequestedDtpNames::new(names);
             let mut cursor: Option<TopicPartitionCursor> = None;
             let mut out: Vec<TopicDescription> = Vec::new();
             let mut described = DescribedTopicIndex::new();
@@ -14140,15 +14147,41 @@ impl Admin {
                     return Err(Error::protocol("repeated DescribeTopicPartitions cursor"));
                 }
                 let mut page = Vec::with_capacity(resp.topics.len());
-                convert_described_topic_page(
+                if let Some(unrequested) = convert_described_topic_page(
                     &resp.topics,
+                    &mut requested_names,
                     include_authorized_operations,
                     &mut page,
                     &mut out,
                     deadline,
                     &mut converted_rows,
                 )
-                .await?;
+                .await?
+                {
+                    if remaining_dtp_has_unnamed(resp.topics.iter().skip(unrequested + 1)).await {
+                        return Err(
+                            reject_unnamed_described_topic(&mut page, &mut out, deadline).await,
+                        );
+                    }
+                    return Err(reject_unrequested_described_topic(
+                        &mut page,
+                        &mut out,
+                        deadline,
+                        "DescribeTopicPartitions returned an unrequested topic",
+                    )
+                    .await);
+                }
+                if let Some(next) = resp.next_cursor.as_ref() {
+                    if !requested_names.contains(next.topic_name.as_str()).await {
+                        return Err(reject_unrequested_described_topic(
+                            &mut page,
+                            &mut out,
+                            deadline,
+                            "DescribeTopicPartitions returned an unrequested cursor topic",
+                        )
+                        .await);
+                    }
+                }
                 if let Err(error) = extend_described_topics(&mut out, &mut described, page).await {
                     let _remaining = dtp_remaining(deadline)?;
                     return Err(error);
@@ -16608,17 +16641,21 @@ async fn topic_description_from(t: &crate::protocol::api::TopicMetadata) -> Topi
 // Carry the row budget across pages so a stream of immediately ready, small
 // pages does not bypass the checkpoint. A completed 8,192nd row yields even
 // when it is the last row in a page.
-async fn convert_described_topic_page(
+async fn convert_described_topic_page<T: AsRef<str> + Sync>(
     topics: &[DescribedTopicPartitions],
+    requested_names: &mut RequestedDtpNames<'_, T>,
     include_authorized_operations: bool,
     page: &mut Vec<TopicDescription>,
     out: &mut [TopicDescription],
     deadline: tokio::time::Instant,
     converted_rows: &mut usize,
-) -> Result<()> {
-    for topic in topics {
-        if topic.name.is_none() {
+) -> Result<Option<usize>> {
+    for (index, topic) in topics.iter().enumerate() {
+        let Some(name) = topic.name.as_deref() else {
             return Err(reject_unnamed_described_topic(page, out, deadline).await);
+        };
+        if !requested_names.contains(name).await {
+            return Ok(Some(index));
         }
         page.push(topic_description_from_dtp(topic, include_authorized_operations).await);
         *converted_rows += 1;
@@ -16627,7 +16664,7 @@ async fn convert_described_topic_page(
             tokio::task::yield_now().await;
         }
     }
-    Ok(())
+    Ok(None)
 }
 
 async fn topic_description_from_dtp(
@@ -16727,6 +16764,110 @@ async fn list_offset_topic_requests<'a>(
     groups
 }
 
+async fn index_requested_dtp_names<'a, T: AsRef<str>>(
+    names: &'a [T],
+    requested: &mut HashSet<&'a str>,
+) {
+    let mut walked = 0usize;
+    for name in names {
+        let _inserted = requested.insert(name.as_ref());
+        walked += 1;
+        if walked == 8 * 1024 {
+            walked = 0;
+            #[cfg(test)]
+            DTP_REQUESTED_INDEX_PROGRESS.with(|probe| {
+                if let Some((before, after)) = probe.get() {
+                    probe.set(Some((before.saturating_add(1), after)));
+                }
+            });
+            tokio::task::yield_now().await;
+            #[cfg(test)]
+            DTP_REQUESTED_INDEX_PROGRESS.with(|probe| {
+                if let Some((before, after)) = probe.get() {
+                    probe.set(Some((before, after.saturating_add(1))));
+                }
+            });
+        }
+    }
+}
+
+struct RequestedDtpNames<'a, T> {
+    names: &'a [T],
+    index: Option<HashSet<&'a str>>,
+    hint: usize,
+}
+
+impl<'a, T: AsRef<str>> RequestedDtpNames<'a, T> {
+    fn new(names: &'a [T]) -> Self {
+        Self {
+            names,
+            index: None,
+            hint: 0,
+        }
+    }
+
+    async fn contains(&mut self, name: &str) -> bool {
+        if let Some(index) = &self.index {
+            return index.contains(name);
+        }
+        if self
+            .names
+            .get(self.hint)
+            .is_some_and(|candidate| candidate.as_ref() == name)
+        {
+            return true;
+        }
+        if self
+            .names
+            .get(self.hint + 1)
+            .is_some_and(|candidate| candidate.as_ref() == name)
+        {
+            self.hint += 1;
+            return true;
+        }
+        if self.names.len() <= 8 {
+            return self
+                .names
+                .iter()
+                .any(|candidate| candidate.as_ref() == name);
+        }
+        let mut index = HashSet::with_capacity(self.names.len().min(32));
+        index_requested_dtp_names(self.names, &mut index).await;
+        let contains = index.contains(name);
+        self.index = Some(index);
+        contains
+    }
+}
+
+#[cfg(test)]
+std::thread_local! {
+    static DTP_REMAINING_SCAN_PROGRESS: std::cell::Cell<Option<usize>> = const { std::cell::Cell::new(None) };
+    static DTP_REQUESTED_INDEX_PROGRESS: std::cell::Cell<Option<(usize, usize)>> = const { std::cell::Cell::new(None) };
+}
+
+async fn remaining_dtp_has_unnamed<'a>(
+    topics: impl Iterator<Item = &'a DescribedTopicPartitions>,
+) -> bool {
+    let mut walked = 0usize;
+    for topic in topics {
+        #[cfg(test)]
+        DTP_REMAINING_SCAN_PROGRESS.with(|probe| {
+            if let Some(count) = probe.get() {
+                probe.set(Some(count.saturating_add(1)));
+            }
+        });
+        if topic.name.is_none() {
+            return true;
+        }
+        walked += 1;
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
+    }
+    false
+}
+
 // A zero topic ID means the broker did not supply an identity. Keep the
 // first nonzero ID separately from the public first-page description so that
 // later known IDs can still be compared after an unknown first page.
@@ -16764,6 +16905,20 @@ async fn reject_unnamed_described_topic(
         Ok(_) => Error::Unsupported(
             "cannot aggregate DescribeTopicPartitions without a topic name".into(),
         ),
+        Err(error) => error,
+    }
+}
+
+async fn reject_unrequested_described_topic(
+    page: &mut [TopicDescription],
+    out: &mut [TopicDescription],
+    deadline: tokio::time::Instant,
+    message: &'static str,
+) -> Error {
+    discard_described_topics(page).await;
+    discard_described_topics(out).await;
+    match dtp_remaining(deadline) {
+        Ok(_) => Error::protocol(message),
         Err(error) => error,
     }
 }

@@ -10,18 +10,21 @@ Production readiness and fastest-client/server claims remain unqualified.
 Client 0.1.0 is already published. The next client version must be at least
 0.2.0; broker and schema publication remain disabled.
 
-The latest complete recorded main [CI snapshot](../evidence/releases/main-ci-464-20261108/README.md)
-is `464d33d5afe668d46274972cd3baa4e870159bf8`. Client libraries reported
-2,259 passed and 17 failed on Linux default, 2,262 passed and 14 failed with
-all features, 2,256 passed and 20 failed on Windows, and 2,262 passed and 14
+The latest complete recorded main [CI snapshot](../evidence/releases/main-ci-74dd-20261108/README.md)
+is `74dd7f7c9b2430b308142678bf9534c385f0ff04`. Client libraries reported
+2,261 passed and 15 failed on Linux default, 2,265 passed and 11 failed with
+all features, 2,262 passed and 14 failed on Windows, and 2,266 passed and 10
 failed on macOS arm64. Three Kafka compatibility jobs and both smoke jobs
-failed; resource-soak passed. The broker default library stopped with 489
-passed, two Raft observer tests failed and four ignored. Later broker
-behavioral and strict checks did not run; inventory and fuzz supervision
-passed. Both selected capability profiles passed; their archives were not
-independently inspected.
+failed; resource-soak passed. The broker passed 781 default and 929
+all-feature tests, with four ignored per profile, plus strict checks,
+inventory and fuzz supervision. Both selected capability profiles passed;
+their archives were not independently inspected.
 
-The [previous complete snapshot](../evidence/releases/main-ci-426-20261108/README.md)
+The [preceding complete snapshot](../evidence/releases/main-ci-464-20261108/README.md)
+stopped the broker default library after two Raft observer failures. The
+later pass does not explain those failures.
+
+An [earlier complete snapshot](../evidence/releases/main-ci-426-20261108/README.md)
 passed both broker profiles and strict checks. It does not explain the later
 broker failures.
 
@@ -527,12 +530,13 @@ remain open.
    passed in both profiles. The full Admin suites each failed two wall-time
    assertions; a matched run using the original fixture passed both candidate
    profiles and failed both baseline profiles. The cause remains unknown.
-   Non-null response names are not checked against the request. An unapplied
-   [validation candidate](../evidence/client/admin-requested-topic-validation-20261108/README.md)
-   rejects unsolicited names and cursors, but a paired mock comparison showed
-   material slowdowns for 32 and 256 error rows; a lower-cost revision is under
-   investigation. Long cursor cycles, conversion polls and synchronous cleanup
-   still need work. A
+   The applied [requested-name validation](../evidence/client/admin-requested-topic-hint-20261108/README.md)
+   rejects unrequested topic rows and cursors in the aggregate while preserving
+   the raw API. In paired mock timing, 256 reordered error rows were about 19%
+   slower and reordered successful rows about 12% slower; these are not Kafka
+   throughput results. The full Admin suites failed timing assertions and the
+   matched baseline also failed. Long cursor cycles, conversion polls and
+   synchronous cleanup still need work. A
    [row-poll baseline](../evidence/client/admin-dtp-row-poll-20261108/README.md)
    measured 93–98 ms for the longest public future poll after a mock peer wrote
    a 500,000-row response on one x86 host. The applied [row checkpoint](../evidence/client/admin-dtp-row-checkpoint-20261108/README.md)
