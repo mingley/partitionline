@@ -3,17 +3,16 @@
 The aggregate `describe_topics` can return a topic or next cursor that
 was not requested. The [initial candidate][prior] rejected these responses
 but added substantial overhead to the 32- and 256-name error-row fixtures.
-This note tracks a combined candidate with an ordered-name fast path. It is
-under review; final qualification results are recorded below as they
-complete.
+This note tracks a combined candidate with an ordered-name fast path.
+The source remains under review; qualification results are recorded below.
 
-The candidate compares each returned name to the current and next requested
-names. It compares the strings, so the hint cannot accept an unrelated
-name. A different order, an omitted name, or duplicates may cause a
-fallback. For more than eight inputs, the first mismatch builds one
-randomized `HashSet<&str>` from caller names; smaller lists use direct
-membership checks. The fallback yields after each 8,192 inputs and reuses
-the index. This does not assume Kafka or another peer returns names in the
+Before an index is built, the candidate compares a returned name to the
+current and next requested names. It compares the strings, so the hint
+cannot accept an unrelated name. A different order, an omitted name, or
+duplicates may cause a fallback. For more than eight inputs, the first
+mismatch builds one randomized `HashSet<&str>` from caller names; smaller
+lists use direct membership checks. Index construction yields after each
+8,192 inputs, and later checks use the index. This does not assume Kafka or another peer returns names in the
 request order. The empty aggregate remains a no-op, Metadata fallback
 keeps its existing projection, and the raw one-page API is unchanged.
 
@@ -62,9 +61,9 @@ wall-time assertions:
 | Default | 670 / 3 | `decoding_many_described_group_members_does_not_hold_the_caller` (83.491501 ms); `grouping_many_named_results_does_not_hold_the_caller` (84.293590 ms); `indexing_many_coordinators_does_not_hold_the_caller` (127.861731 ms) |
 | All features | 672 / 1 | `indexing_many_coordinators_does_not_hold_the_caller` (110.190508 ms) |
 
-The 20 independently restored mutants per profile are still running.
-The exact-suite failures are not passing results, and their causes have not
-been established.
+All 20 independently restored mutations produced their expected test
+failure in each profile. The exact-suite failures are not passing results,
+and their causes have not been established.
 
 A separate [instrumented row-checkpoint control][observer] passed in both
 profiles: two public cross-page cancellation/timeout checks and one
@@ -89,6 +88,46 @@ rustfmt on three test-line wraps; a hint draft also failed rustfmt before
 its corrected check. An isolated branch update was rejected as
 non-fast-forward and then updated with a lease. The [four-arm prototype
 timing][prototype-perf] is separate from the combined-source benchmark.
+
+## Restored mutation controls
+
+The [candidate gate][gate] restores the source before each mutation, then
+requires Cargo exit 101 and the named test to fail. Both feature profiles
+completed all 20 cases below. The original source and test SHA-256 values
+matched again after each job. These are negative controls, not passing test
+runs on mutated code.
+
+| Mutation | Expected failing test |
+| --- | --- |
+| `row_guard` | `dtp_requested_names_reject_unsolicited_success` |
+| `current_hint` | `dtp_requested_names_reject_unsolicited_success` |
+| `next_hint` | `dtp_requested_names_hint_next_rejects_unrequested_name` |
+| `indexed_fail_open` | `dtp_requested_names_existing_index_rejects_later_unsolicited_topic` |
+| `cap_duplicates` | `dtp_requested_names_deferred_index_has_capped_initial_capacity` |
+| `cursor_guard` | `dtp_requested_names_reject_unsolicited_cursor` |
+| `null_priority` | `dtp_requested_names_null_precedes_unsolicited_row_and_cursor` |
+| `null_after_checkpoint` | `dtp_requested_names_null_after_row_checkpoint_precedes_unrequested` |
+| `repeated` | `dtp_requested_names_repeated_cursor_precedes_unsolicited_rows` |
+| `index_population` | `dtp_requested_names_large_input_accepts_members_and_duplicates` |
+| `index_yield` | `dtp_requested_names_index_yields_after_progress` |
+| `index_cancel_page` | `dtp_requested_names_cancel_deferred_index_after_partial_page_keeps_socket_usable` |
+| `index_cancel_cursor` | `dtp_requested_names_cancel_cursor_deferred_index_keeps_socket_usable` |
+| `scan_yield` | `dtp_requested_names_scan_yields_after_progress` |
+| `scan_cancel` | `dtp_requested_names_cancel_during_scan_keeps_socket_usable` |
+| `cleanup` | `dtp_requested_names_rejection_cleans_and_checks_deadline` |
+| `cursor_id` | `dtp_requested_names_cursor_precedes_same_page_id_conflict` |
+| `row_cursor` | `dtp_requested_names_unsolicited_row_precedes_unsolicited_cursor` |
+| `row_yield` | `dtp_conversion_yields_on_the_exact_row_boundary` |
+| `row_budget_reset` | `dtp_conversion_carries_the_row_budget_across_pages` |
+
+The no-index-yield mutation after a prior page failed with
+`deferred index never paused at its checkpoint`; the cursor variant failed
+with `deferred index checkpoint completed without an observable pause`.
+The row-yield mutation failed with
+`row conversion checkpoint did not suspend at 8,192 rows`; the row-budget
+mutation failed with `row conversion checkpoint did not carry across pages`.
+These messages distinguish the intended suspension checks from unrelated
+pending work.
 
 ## Matched Admin suites
 
