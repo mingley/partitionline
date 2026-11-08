@@ -1293,6 +1293,9 @@ fn observer_failure_sample_checks_identity_and_bounds_output() -> TestResult {
     let report = observer_failure_sample(&repeated, &expected, 1, 3);
     assert!(report.len() < 8192);
     assert!(report.contains("truncated=true"));
+    let role = "\u{1b}".repeat(4096);
+    let full_line = format!("role={} {report}", diagnostic_snippet(&role));
+    assert!(full_line.len() < 12 * 1024);
     Ok(())
 }
 
@@ -1331,7 +1334,8 @@ async fn observer_image_history(total: usize) -> TestResult {
     if image_bytes <= 64 * 1024 || base != committed {
         let sample = match cluster.state(leader) {
             Ok((term, role, last, committed, prefix)) => format!(
-                "term={term} role={role} last={last} committed={committed} {}",
+                "term={term} role={} last={last} committed={committed} {}",
+                diagnostic_snippet(&role),
                 observer_failure_sample(&prefix, &expected, base_term, base)
             ),
             Err(error) => format!(
