@@ -119,9 +119,10 @@ pass does not replace the full release matrix.
   but its short runs have mismatched settings and driver costs. A [decode
   experiment][perf] improved large synthetic loopback responses but remains
   unapplied. A [journal comparison][journal-perf] measured added latency on
-  one shared host with a writeback filesystem. [Record-header experiments][records-perf] improved some cases, while
-  several variants regressed others. A later candidate is still under test
-  and remains unapplied. See the
+  one shared host with a writeback filesystem. [Record-header validation][records-perf] now uses a resumable header-aware
+  scan. A short x86 benchmark improved header-heavy cases, while its
+  1,024-record header-free median was 0.3% higher. An earlier candidate suite
+  and a baseline comparison failed separate Raft tests. See the
   [benchmark contract](benchmark-contract.md) for performance claim requirements.
 
 The [work plan][next] tracks the current candidates and outstanding tests.
@@ -130,7 +131,7 @@ The [support matrix](support.md) describes configured coverage, and the
 
 [ci]: https://github.com/mingley/partitionline/blob/a4d381f21701656389b95324fd3231c2c22a03a3/docs/evidence/releases/main-ci-de152e-20261108/README.md
 [previous-ci]: https://github.com/mingley/partitionline/blob/7ebb3cc81adc695cc4c74409a87a1a1dd4be9730/docs/evidence/releases/main-ci-ba8-20261108/README.md
-[next]: https://github.com/mingley/partitionline/blob/a4d381f21701656389b95324fd3231c2c22a03a3/docs/plan/next-work.md
+[next]: https://github.com/mingley/partitionline/blob/92099fa1606ce611daae3fd1082b61ba82f8db8e/docs/plan/next-work.md
 [previous]: https://github.com/mingley/partitionline/blob/5c2a000639d9a8a7dccd56e8c1d6f3a58dca1601/docs/STATUS.md
 [flush]: https://github.com/mingley/partitionline/blob/e980829c439aa43edc01312c91838e58a412221a/docs/evidence/client/producer-flush-native-86f2-20261103/README.md
 [txn]: https://github.com/mingley/partitionline/blob/49ad56c6bce1366e2357c272f11c5c34160d60da/docs/evidence/client/add-partitions-native-4f0c-20261103/README.md
@@ -154,7 +155,7 @@ The [support matrix](support.md) describes configured coverage, and the
 [journal-repair]: https://github.com/mingley/partitionline/blob/b2d9bcaec1e12c2d79535382ec2c402038c0c6b9/docs/evidence/broker/journal-ownership-repair-20261108/README.md
 [admission]: https://github.com/mingley/partitionline/blob/b2d9bcaec1e12c2d79535382ec2c402038c0c6b9/docs/evidence/broker/fetch-owned-admission-20261108/README.md
 [journal-perf]: https://github.com/mingley/partitionline/blob/6f50202cd72c789b4396ee10c69a1089fc10bc41/docs/evidence/broker/journal-release-cost-20261108/README.md
-[records-perf]: https://github.com/mingley/partitionline/blob/a4d381f21701656389b95324fd3231c2c22a03a3/docs/evidence/broker/records-header-validation-20261108/README.md
+[records-perf]: https://github.com/mingley/partitionline/blob/92099fa1606ce611daae3fd1082b61ba82f8db8e/docs/evidence/broker/records-header-validation-20261108/README.md
 [latest-broker]: https://github.com/mingley/partitionline/blob/ae2c6f6098ba41844fb7f74d3b02fb48655d3cb1/docs/evidence/broker/main-ci-c471-20261108/README.md
 [previous-broker]: https://github.com/mingley/partitionline/blob/3b29e8122e834ffbfacbd8c779b7c47dab264ebe/docs/evidence/broker/main-ci-3fc-20261108/README.md
 [quorum-diag]: https://github.com/mingley/partitionline/blob/a4d381f21701656389b95324fd3231c2c22a03a3/docs/evidence/broker/quorum-delete-diagnostic-20261108/README.md
