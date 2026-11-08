@@ -1,0 +1,71 @@
+name: retained backing snapshot diagnostic
+
+on:
+  push:
+    branches: [qualification/retained-snapshot-20261108]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  snapshot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        mode: [default, all]
+    env:
+      PL_MODE: ${{ matrix.mode }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Source provenance
+        run: |
+          git rev-parse HEAD
+          git rev-parse HEAD:src/producer.rs
+          test "$(git rev-parse HEAD:src/producer.rs)" = 1e7733c136e54b532cdc8bddabd1e0c828e50ed2
+          sha256sum src/producer.rs tests/producer_retained_backing.rs Cargo.lock
+          rustc +stable -Vv
+      - name: Capture the original assertion and snapshots
+        run: |
+          set -uo pipefail
+          mkdir -p target/retained-snapshot
+          args=()
+          if [[ "$PL_MODE" == all ]]; then args+=(--all-features); fi
+          cargo +stable test --locked "${args[@]}" --test producer_retained_backing cancelled_channel_admission_releases_only_the_unenqueued_reservation -- --exact --nocapture --test-threads=1 2>&1 | tee target/retained-snapshot/test.log
+          status=${PIPESTATUS[0]}
+          printf 'TEST_EXIT=%s\n' "$status"
+          python3 - "$status" <<'PY'
+          import json
+          import pathlib
+          import re
+          import sys
+          text = pathlib.Path('target/retained-snapshot/test.log').read_text()
+          if 'running 1 test' not in text:
+              raise SystemExit('the intended test did not run')
+          snapshots = {}
+          for phase in ('WARM', 'BEFORE', 'AFTER'):
+              match = re.search(r'SNAPSHOT_' + phase + r' ([^\r\n]+)', text)
+              if not match:
+                  raise SystemExit(f'missing {phase} snapshot; see retained log')
+              snapshots[phase] = {key: int(value) for key, value in re.findall(r'(\w+)=(\d+)', match.group(1))}
+          before, after = snapshots['BEFORE'], snapshots['AFTER']
+          result = {'test_exit': int(sys.argv[1]), 'snapshots': snapshots,
+                    'acked_delta': after['acked'] - before['acked'],
+                    'errors_delta': after['errors'] - before['errors'],
+                    'buffered_delta': after['bytes'] - before['bytes'],
+                    'queued_delta': after['queued'] - before['queued']}
+          pathlib.Path('target/retained-snapshot/summary.json').write_text(json.dumps(result, indent=2) + '\n')
+          print('SNAPSHOT_SUMMARY', json.dumps(result, sort_keys=True))
+          print('The job records the original test result; it does not classify a failure as a pass.')
+          PY
+      - name: Retain logs
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: retained-snapshot-${{ matrix.mode }}-${{ github.run_id }}
+          path: target/retained-snapshot
+          if-no-files-found: warn
+          retention-days: 30

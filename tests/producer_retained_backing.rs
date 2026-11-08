@@ -190,6 +190,15 @@ async fn cancelled_channel_admission_releases_only_the_unenqueued_reservation() 
         .await?;
     assert_eq!(warm.offset, 0);
     producer.flush().await?;
+    let warmup = producer.metrics();
+    eprintln!(
+        "SNAPSHOT_WARM queued={} acked={} errors={} bytes={} log={}",
+        warmup.records_queued,
+        warmup.records_acked,
+        warmup.produce_errors,
+        warmup.bytes_buffered,
+        mock.log_len("t", 0),
+    );
     mock.set_produce_response_delay(Duration::from_secs(3));
     let task_producer = producer.clone();
     let inputs = (0..5000).map(|_| ProduceRecord::to("t").partition(0).value("x"));
@@ -208,9 +217,27 @@ async fn cancelled_channel_admission_releases_only_the_unenqueued_reservation() 
     let accepted = producer.metrics().records_queued - 1;
     assert!(accepted < 5000, "input never blocked on the channel");
     assert_eq!(producer.metrics().bytes_buffered, accepted + 1);
+    let before_cancel = producer.metrics();
+    eprintln!(
+        "SNAPSHOT_BEFORE accepted={accepted} queued={} acked={} errors={} bytes={} log={}",
+        before_cancel.records_queued,
+        before_cancel.records_acked,
+        before_cancel.produce_errors,
+        before_cancel.bytes_buffered,
+        mock.log_len("t", 0),
+    );
     task.abort();
     assert!(task.await.is_err_and(|error| error.is_cancelled()));
-    let after_cancel = producer.metrics().bytes_buffered;
+    let after_cancel_metrics = producer.metrics();
+    let after_cancel = after_cancel_metrics.bytes_buffered;
+    eprintln!(
+        "SNAPSHOT_AFTER accepted={accepted} queued={} acked={} errors={} bytes={} log={}",
+        after_cancel_metrics.records_queued,
+        after_cancel_metrics.records_acked,
+        after_cancel_metrics.produce_errors,
+        after_cancel_metrics.bytes_buffered,
+        mock.log_len("t", 0),
+    );
     mock.set_produce_response_delay(Duration::ZERO);
     tokio::time::timeout(Duration::from_secs(10), producer.flush())
         .await
