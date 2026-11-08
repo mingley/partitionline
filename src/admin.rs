@@ -14158,6 +14158,7 @@ impl Admin {
                         before,
                         described.capacity(),
                         started.elapsed().as_nanos(),
+                        0,
                     );
                 }
                 let mut page = Vec::with_capacity(resp.topics.len());
@@ -16756,6 +16757,7 @@ struct DtpTraceEvent {
     before: usize,
     after: usize,
     elapsed_ns: u128,
+    hash_fingerprint: u64,
 }
 
 #[cfg(test)]
@@ -16768,7 +16770,14 @@ std::thread_local! {
 }
 
 #[cfg(test)]
-fn dtp_trace_event(kind: &'static str, len: usize, before: usize, after: usize, elapsed_ns: u128) {
+fn dtp_trace_event(
+    kind: &'static str,
+    len: usize,
+    before: usize,
+    after: usize,
+    elapsed_ns: u128,
+    hash_fingerprint: u64,
+) {
     DTP_TRACE_EVENTS.with(|events| {
         events.borrow_mut().push(DtpTraceEvent {
             kind,
@@ -16776,6 +16785,7 @@ fn dtp_trace_event(kind: &'static str, len: usize, before: usize, after: usize, 
             before,
             after,
             elapsed_ns,
+            hash_fingerprint,
         });
     });
 }
@@ -16814,7 +16824,7 @@ impl Drop for DtpDropPhase {
         };
         if let Some(started) = started {
             let kind = if self.response { "response_drop" } else { "index_drop" };
-            dtp_trace_event(kind, 0, 0, 0, now.duration_since(started).as_nanos());
+            dtp_trace_event(kind, 0, 0, 0, now.duration_since(started).as_nanos(), 0);
         }
     }
 }
@@ -16895,13 +16905,17 @@ async fn place_described_topic(
     let _previous = {
         let key = desc.name.clone();
         let capacity = index.capacity();
-        let started = (DTP_TRACE_ACTIVE.with(|active| active.get()) && index.len() == capacity)
-            .then(std::time::Instant::now);
+        let trace_enabled = DTP_TRACE_ACTIVE.with(|active| active.get());
+        if trace_enabled && index.is_empty() {
+            let fingerprint = std::hash::BuildHasher::hash_one(index.hasher(), "dtp-trace-seed");
+            dtp_trace_event("hash_fingerprint", 0, 0, 0, 0, fingerprint);
+        }
+        let started = (trace_enabled && index.len() == capacity).then(std::time::Instant::now);
         let previous = index.insert(key, (slot, desc.topic_id));
         if let Some(started) = started {
             let after = index.capacity();
             if after > capacity {
-                dtp_trace_event("growth", index.len(), capacity, after, started.elapsed().as_nanos());
+                dtp_trace_event("growth", index.len(), capacity, after, started.elapsed().as_nanos(), 0);
             }
         }
         previous
