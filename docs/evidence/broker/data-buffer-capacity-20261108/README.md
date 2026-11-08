@@ -77,4 +77,17 @@ No retry is being used to erase these results.
 
 The [matched benchmark against `f092d69`](https://github.com/mingley/partitionline/actions/runs/42460277400) passed its checks over eight alternating pairs on a shared AMD EPYC 9V45 runner. Candidate/baseline elapsed medians and ranges were 0.995 (0.929–1.073) for in-budget exchanges and 1.003 (0.960–1.034) for oversized 31-byte exchanges. The median of pair medians for direct 64 MiB cooperative normalization was 27.399 ms, with individual range 25.658–29.429 ms; it includes yields and is not uninterrupted poll time. The release binary hashes were identical to those listed above for the `fea406c9` run. The host differs from that run, so the absolute timings are not a direct host-controlled comparison.
 
-A separate [public Router poll witness](https://github.com/mingley/partitionline/actions/runs/42460490528) measures the synchronous drop of faulted-in 64 MiB and 256 MiB spare allocations, and the actual polls of a 64 MiB prefix-valid padded request. It is a scheduling fixture, not a Kafka throughput test. That run is still in progress.
+A separate [public Router poll witness](https://github.com/mingley/partitionline/actions/runs/42460490528) used the actual `Handler::exchange_request` futures on a current-thread Tokio runtime. It ran six alternating pairs on a shared AMD EPYC 9V74 host with rustc 1.99.1, using CPUs 0 and 1. Three trials per arm and size initialized and faulted in the caller's spare before timing its first poll:
+
+| Spare length, capacity at least | Baseline first-poll median (range) | Candidate first-poll median (range) |
+| --- | ---: | ---: |
+| 64 MiB | 14.743 µs (9.263–18.207 µs) | 3.800 ms (3.605–4.370 ms) |
+| 256 MiB | 16.700 µs (11.807–26.319 µs) | 16.134 ms (14.760–17.359 ms) |
+
+There were 18 samples per arm and size. The baseline transferred the spare to the actor, so its first poll did not measure the later disposal; the candidate dropped it on that poll. This is an ownership and scheduling shift, not an end-to-end cost comparison.
+
+The same witness timed each actual public-path poll for an initialized 64 MiB input with capacity above the 64 MiB limit. Its Fetch key/version prefix was valid, but the body was intentionally padded; the fixture measures normalization and admission, not Kafka processing. The candidate performed 256 polls per trial. Across the 18 trials, the median of per-trial poll medians was 126.924 µs and the median of per-trial p99s was 150.163 µs. The final poll, which included the final copy, original-source deallocation and enqueue, had a 4.321 ms median and 3.734–4.663 ms range. The baseline's single first poll had a 14.061 µs median and 8.933–30.455 µs range because it did not normalize the input.
+
+Input/spare initialization, startup and cleanup were outside the measured polls. The harness manually yielded between polls, and scheduler and host conditions varied; these measurements are not a latency bound. The witness harness SHA-256 is `b0bfbb508d2a41478cd7b918ff96b529960042ec663ce47d2a26e1e5548b9c5a`, the workflow SHA-256 is `59f68aea6d634a00cc3f8615161ce26300c2984f2c95c16a007d8a3b7b6bbaa7`, and the baseline and candidate binary SHA-256 values are `4a7ba79aee78d8956026f509a5a48dae64bf554991f49f1db5e841c38bdb7b8a` and `4dd95bf249cc795dc17f4be56385b86236386c34253fdc8759de29aa2be59bf5`. Raw poll samples and build/source hashes are retained in the run artifact.
+
+The newly synchronous drop of an arbitrary caller-supplied spare can materially stall a current-thread runtime; large allocation and final source deallocation also remain synchronous. The candidate remains isolated while the Raft failures and an ownership-preserving off-runtime disposal design are investigated.
