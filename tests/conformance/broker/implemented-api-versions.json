@@ -176,7 +176,7 @@
     }
   ],
   "metadata_source": "partitionline-broker/src/metadata.rs",
-  "metadata_source_sha256": "1e538a6954b087652af06e39a972cd244ab9074288ea4aa8fb6ea0fa05fc195a",
+  "metadata_source_sha256": "6933f51c2463feccfeb6264d5b0c18752c3711d8179d8f0d48a3f7c7e308664c",
   "metadata_test_source": "partitionline-broker/tests/metadata.rs",
   "metadata_test_source_sha256": "a500a6cbc819d9fdef11a9bce27ef03153ddde39221a15b5442e3ae9b7aba17c",
   "metadata_fixture_root": "partitionline-broker/tests/fixtures/metadata",
@@ -3631,7 +3631,7 @@
   ],
   "read_write_implementation_gate": "KL11-07",
   "fetch_source": "partitionline-broker/src/fetch.rs",
-  "fetch_source_sha256": "96a4bb9ecbb0dcbbc7b8249ee82527fb575f12138c346ca335ac31500c8cedad",
+  "fetch_source_sha256": "b5d3344c5002e1a923017d0b90c6471dd7fe994c78d981858b3d87b05c400e48",
   "fetch_test_source": "partitionline-broker/tests/fetch.rs",
   "fetch_test_source_sha256": "f33dd42b768d8bdd1268bf5cdd419205a7f2e7fea65446e630a6581c32990aed",
   "fetch_fixture_root": "partitionline-broker/tests/fixtures/fetch",

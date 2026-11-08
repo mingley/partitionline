@@ -1,0 +1,161 @@
+name: broker owned permit prototype
+
+on:
+  push:
+    branches:
+      - qualification/broker-owned-permit-integrated-20261108
+
+permissions:
+  contents: read
+
+concurrency:
+  group: broker-owned-permit-prototype-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  prototype:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      CARGO_INCREMENTAL: "0"
+      CARGO_BUILD_JOBS: "2"
+      CARGO_TERM_COLOR: never
+      CARGO_PROFILE_DEV_DEBUG: "0"
+      CARGO_PROFILE_TEST_DEBUG: "0"
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          fetch-depth: 2
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - name: Verify host and registry pins
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/owned-permit"
+          test "$(uname -m)" = x86_64
+          rustc +stable --version --verbose
+          test "$(git rev-parse HEAD^)" = c86a2eee826459672e3a25b8ea6ea744dccb0119
+          python3 - <<'PY'
+          from pathlib import Path
+          import hashlib, json, subprocess
+          base = 'c86a2eee826459672e3a25b8ea6ea744dccb0119'
+          rp = Path('tests/conformance/broker/implemented-api-versions.json')
+          old = json.loads(subprocess.check_output(['git', 'show', f'{base}:{rp}']))
+          new = json.loads(rp.read_text())
+          for key, path in [('metadata_source_sha256', 'partitionline-broker/src/metadata.rs'), ('fetch_source_sha256', 'partitionline-broker/src/fetch.rs')]:
+              assert new[key] == hashlib.sha256(Path(path).read_bytes()).hexdigest()
+              del old[key]
+              del new[key]
+          assert old == new
+          PY
+      - name: Stable formatting
+        id: fmt
+        continue-on-error: true
+        run: cargo +stable fmt --manifest-path partitionline-broker/Cargo.toml -- --check
+      - name: Targeted default tests
+        id: tests_0
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -euo pipefail
+          flags=()
+          true
+          for name in \
+            metadata::tests::lease_drops_both_buffers_before_its_permit \
+            metadata::tests::canceling_a_waiting_lease_drops_buffers_before_its_permit \
+            metadata::tests::completion_drops_response_and_buffers_before_its_permit \
+            metadata::tests::grouped_buffers_drop_before_permits_during_unwind \
+            metadata::tests::canceled_claimed_fetch_keeps_admission_until_actor_discards_it \
+            metadata::tests::canceled_queued_fetch_keeps_permit_until_actor_queue_drains \
+            metadata::tests::grouped_produce_replies_keep_their_own_admission_permits \
+            metadata::tests::panicking_grouped_reply_waker_drops_remaining_permits \
+            metadata::tests::unconsumed_fetch_receipt_keeps_admission_until_consumed_or_canceled \
+            metadata::tests::unconsumed_data_receipt_keeps_admission_bounded \
+            metadata::tests::queued_data_cancel_and_full_admission_never_append \
+            metadata::tests::a_queued_produce_sizes_its_job_lists_once
+          do
+            log="$RUNNER_TEMP/owned-permit/default-${name##*::}.log"
+            timeout 300s cargo +stable test --locked --manifest-path partitionline-broker/Cargo.toml "${flags[@]}" --lib "$name" -- --exact --nocapture > "$log" 2>&1 || { cat "$log"; exit 1; }
+            cat "$log"
+            grep -F 'test result: ok. 1 passed;' "$log"
+          done
+          for name in \
+            wait_keeps_admission_cancel_releases_and_shutdown_wakes \
+            wake_between_snapshot_and_receipt_is_not_lost \
+            transport_joined_shutdown_cancels_live_long_poll_without_stopping_store \
+            transport_deadline_cancels_wait_and_releases_read_admission
+          do
+            log="$RUNNER_TEMP/owned-permit/default-${name}.log"
+            timeout 300s cargo +stable test --locked --manifest-path partitionline-broker/Cargo.toml "${flags[@]}" --test fetch "$name" -- --exact --nocapture > "$log" 2>&1 || { cat "$log"; exit 1; }
+            cat "$log"
+            grep -F 'test result: ok. 1 passed;' "$log"
+          done
+      - name: Targeted all-features tests
+        id: tests_1
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -euo pipefail
+          flags=()
+          flags+=(--all-features)
+          for name in \
+            metadata::tests::lease_drops_both_buffers_before_its_permit \
+            metadata::tests::canceling_a_waiting_lease_drops_buffers_before_its_permit \
+            metadata::tests::completion_drops_response_and_buffers_before_its_permit \
+            metadata::tests::grouped_buffers_drop_before_permits_during_unwind \
+            metadata::tests::canceled_claimed_fetch_keeps_admission_until_actor_discards_it \
+            metadata::tests::canceled_queued_fetch_keeps_permit_until_actor_queue_drains \
+            metadata::tests::grouped_produce_replies_keep_their_own_admission_permits \
+            metadata::tests::panicking_grouped_reply_waker_drops_remaining_permits \
+            metadata::tests::unconsumed_fetch_receipt_keeps_admission_until_consumed_or_canceled \
+            metadata::tests::unconsumed_data_receipt_keeps_admission_bounded \
+            metadata::tests::queued_data_cancel_and_full_admission_never_append \
+            metadata::tests::a_queued_produce_sizes_its_job_lists_once
+          do
+            log="$RUNNER_TEMP/owned-permit/all-features-${name##*::}.log"
+            timeout 300s cargo +stable test --locked --manifest-path partitionline-broker/Cargo.toml "${flags[@]}" --lib "$name" -- --exact --nocapture > "$log" 2>&1 || { cat "$log"; exit 1; }
+            cat "$log"
+            grep -F 'test result: ok. 1 passed;' "$log"
+          done
+          for name in \
+            wait_keeps_admission_cancel_releases_and_shutdown_wakes \
+            wake_between_snapshot_and_receipt_is_not_lost \
+            transport_joined_shutdown_cancels_live_long_poll_without_stopping_store \
+            transport_deadline_cancels_wait_and_releases_read_admission
+          do
+            log="$RUNNER_TEMP/owned-permit/all-features-${name}.log"
+            timeout 300s cargo +stable test --locked --manifest-path partitionline-broker/Cargo.toml "${flags[@]}" --test fetch "$name" -- --exact --nocapture > "$log" 2>&1 || { cat "$log"; exit 1; }
+            cat "$log"
+            grep -F 'test result: ok. 1 passed;' "$log"
+          done
+      - name: Strict all-target broker Clippy
+        id: clippy
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo +stable clippy --locked --manifest-path partitionline-broker/Cargo.toml --all-targets --all-features -- -D warnings 2>&1 | tee "$RUNNER_TEMP/owned-permit/clippy.log"
+      - name: Require all prototype checks
+        if: always()
+        shell: bash
+        env:
+          FORMAT: ${{ steps.fmt.outcome }}
+          DEFAULT: ${{ steps.tests_0.outcome }}
+          ALL: ${{ steps.tests_1.outcome }}
+          CLIPPY: ${{ steps.clippy.outcome }}
+        run: |
+          set -euo pipefail
+          for outcome in "$FORMAT" "$DEFAULT" "$ALL" "$CLIPPY"; do
+            test "$outcome" = success
+          done
+      - name: Retain prototype diagnostics
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: broker-owned-permit-prototype-${{ github.sha }}
+          path: ${{ runner.temp }}/owned-permit
+          if-no-files-found: warn
+          retention-days: 30
