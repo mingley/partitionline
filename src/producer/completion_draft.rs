@@ -62,6 +62,11 @@ impl CompletionDomain {
         }))
     }
 
+    #[cfg(test)]
+    pub(super) fn exhaust_sequence_for_test(&self) {
+        self.state.lock().last = u64::MAX;
+    }
+
     pub(super) fn cutoff(&self) -> u64 {
         self.state.lock().last
     }
@@ -89,6 +94,12 @@ impl CompletionDomain {
 }
 
 impl CompletionReservation {
+    pub(super) fn exhausted(&self) -> bool {
+        self.domain
+            .as_ref()
+            .is_some_and(|domain| domain.state.lock().exhausted)
+    }
+
     pub(super) fn commit(&mut self) -> Option<CompletionTicket> {
         let domain = Arc::clone(self.domain.as_ref()?);
         let mut state = domain.state.lock();

@@ -9,6 +9,7 @@ use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 mod completion_draft;
 #[cfg(test)]
 #[path = "producer/completion_draft_controls.rs"]
+#[expect(clippy::unwrap_used)]
 mod completion_draft_controls;
 
 use completion_draft::{CompletionDomain, CompletionReservation, CompletionStatus, CompletionTicket};
@@ -899,8 +900,16 @@ impl Pending {
         true
     }
 
-    fn complete_completion(&mut self) {
-        if let Some(ticket) = self.completion.take() {
+    fn completion_exhausted(&self) -> bool {
+        self.completion_reservation
+            .as_ref()
+            .is_some_and(CompletionReservation::exhausted)
+    }
+
+    fn complete_completion(mut self) {
+        let ticket = self.completion.take();
+        drop(self);
+        if let Some(ticket) = ticket {
             ticket.complete();
         }
     }
@@ -2406,7 +2415,7 @@ impl Producer {
             }
         }
         let shared = Arc::new(Shared {
-            completion: CompletionDomain::new(),
+            completion: crate::producer::completion_draft::CompletionDomain::new(),
             cfg: cfg.clone(),
             cluster: parking_lot::Mutex::new(Cluster::default()),
             meta: Mutex::new(meta),
@@ -3024,7 +3033,9 @@ impl Producer {
                 }
                 Ok(Err(mpsc::error::SendError(returned))) => {
                     pending = returned;
-                    if self.inner.shared.closed.load(Ordering::SeqCst) {
+                    if self.inner.shared.closed.load(Ordering::SeqCst)
+                        || pending.completion_exhausted()
+                    {
                         return Err(Error::Closed);
                     }
                     retire_observed_worker(&self.inner.shared, &worker.id);
@@ -3150,9 +3161,10 @@ impl Producer {
                 Err(Error::QueueFull)
             }
             Err(mpsc::error::TrySendError::Closed(mut pending)) => {
+                let exhausted = pending.completion_exhausted();
                 pending.sticky = None;
                 *pending_slot = Some(pending);
-                if shared.closed.load(Ordering::SeqCst) {
+                if shared.closed.load(Ordering::SeqCst) || exhausted {
                     Err(Error::Closed)
                 } else {
                     retire_closed_worker(shared, node, slot, &worker.id);
@@ -3537,8 +3549,10 @@ impl Producer {
         }) {
             return Err(match e {
                 mpsc::error::TrySendError::Full(_) => Error::QueueFull,
-                mpsc::error::TrySendError::Closed(_) => {
-                    if self.inner.shared.closed.load(Ordering::SeqCst) {
+                mpsc::error::TrySendError::Closed(returned) => {
+                    if self.inner.shared.closed.load(Ordering::SeqCst)
+                        || returned.completion_exhausted()
+                    {
                         Error::Closed
                     } else {
                         retire_observed_worker(&self.inner.shared, &w.id);
@@ -4280,7 +4294,7 @@ impl Producer {
             self.flush_workers(deadline).await?;
             let status = self.inner.shared.completion.status(cutoff);
             if status == CompletionStatus::Lost {
-                return Err(Error::protocol("producer lost a completion owner"));
+                return Err(Error::Closed);
             }
             if status == CompletionStatus::Complete
                 && self.inner.shared.retries_out.load(Ordering::SeqCst) == 0
@@ -4288,7 +4302,7 @@ impl Producer {
                 self.flush_workers(deadline).await?;
                 let status = self.inner.shared.completion.status(cutoff);
                 if status == CompletionStatus::Lost {
-                    return Err(Error::protocol("producer lost a completion owner"));
+                    return Err(Error::Closed);
                 }
                 if status == CompletionStatus::Complete
                     && self.inner.shared.retries_out.load(Ordering::SeqCst) == 0
@@ -4323,6 +4337,8 @@ impl Producer {
         let deadline = Instant::now() + timeout;
         let flush = self.flush_until(deadline).await;
         self.shutdown_workers(Some(deadline)).await;
+        let completion_lost =
+            self.inner.shared.completion.status(u64::MAX) == CompletionStatus::Lost;
         self.inner.shared.interceptors.close();
         // The metadata socket drops with this handle. Yield so the broker
         // observes that close before the result returns.
@@ -4332,6 +4348,7 @@ impl Producer {
         }
         match flush {
             Err(Error::Timeout) => Err(Error::Timeout),
+            _ if completion_lost => Err(Error::Closed),
             _ => Ok(()),
         }
     }
@@ -4343,6 +4360,8 @@ impl Producer {
         let deadline = Instant::now() + timeout;
         let flush = self.flush_until(deadline).await;
         self.shutdown_workers(Some(deadline)).await;
+        let completion_lost =
+            self.inner.shared.completion.status(u64::MAX) == CompletionStatus::Lost;
         self.inner.shared.interceptors.close();
         // The metadata socket drops with this handle. Yield so the broker
         // observes that close before the result returns.
@@ -4352,6 +4371,7 @@ impl Producer {
         }
         match flush {
             Err(Error::Timeout) => Err(Error::Timeout),
+            _ if completion_lost => Err(Error::Closed),
             _ => Ok(()),
         }
     }
@@ -6744,7 +6764,7 @@ fn test_shared(cfg: ProducerConfig, meta: BrokerConn) -> Arc<Shared> {
     let (retry_tx, _retry_rx) = mpsc::channel(1);
     let sticky_policy = cfg.partitioner.arc().unkeyed_batching_policy();
     Arc::new(Shared {
-        completion: CompletionDomain::new(),
+        completion: crate::producer::completion_draft::CompletionDomain::new(),
         cfg: cfg.clone(),
         cluster: parking_lot::Mutex::new(Cluster::default()),
         meta: Mutex::new(meta),
@@ -18164,7 +18184,7 @@ mod rediscover_stop_tests {
         let (retry_tx, _retry_rx) = mpsc::channel(1);
         let sticky_policy = cfg.partitioner.arc().unkeyed_batching_policy();
         let shared = Arc::new(Shared {
-            completion: CompletionDomain::new(),
+            completion: crate::producer::completion_draft::CompletionDomain::new(),
             cfg: cfg.clone(),
             cluster: parking_lot::Mutex::new(Cluster::default()),
             meta: Mutex::new(meta),
