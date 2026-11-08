@@ -1,0 +1,91 @@
+name: Raft vote combined-source controls
+on:
+  push:
+    branches: [qualification/raft-vote-combined-20261108]
+permissions:
+  contents: read
+jobs:
+  controls:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      CARGO_BUILD_JOBS: 2
+      CARGO_INCREMENTAL: 0
+      CARGO_PROFILE_TEST_DEBUG: 0
+      CARGO_PROFILE_DEV_DEBUG: 0
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Check exact committed source formatting
+        run: |
+          set -euo pipefail
+          git rev-parse HEAD
+          git rev-parse HEAD:partitionline-broker/src/raft/runtime.rs
+          cargo fmt --manifest-path partitionline-broker/Cargo.toml -- --check
+          cp partitionline-broker/src/raft/runtime.rs /tmp/raft-clean.rs
+      - name: Focused controls under both profiles
+        run: |
+          set -euo pipefail
+          rustc --version
+          for features in default all; do
+            args=()
+            if [[ "$features" == all ]]; then args=(--all-features); fi
+            for case in vote_slot_replaces_wakes_closes_and_keeps_ownership_bounded queued_new_vote_replaces_stale_campaign_and_is_elected abandoned_vector_and_route_outcomes_fence_exact_correlations vote_slot_sustained_ready_allows_a_competing_task_to_progress vote_slot_close_and_offer_are_linearizable aborted_dispatch_exposes_undispatched_vote_ownership stepdown_during_dispatch_fences_old_and_orders_next_campaign stopping_outbound_cancels_its_pending_vote_before_exit; do
+              cargo test --locked --manifest-path partitionline-broker/Cargo.toml --lib "${args[@]}" "$case" -- --nocapture
+            done
+          done
+      - name: Full route retains old vote mutant
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path("partitionline-broker/src/raft/runtime.rs")
+          s = p.read_text()
+          old = "let displaced = state.pending.replace(job);"
+          new = "let displaced = if state.pending.is_some() { Some(job) } else { state.pending = Some(job); None };"
+          assert s.count(old) == 1
+          p.write_text(s.replace(old, new, 1))
+          PY
+          if cargo test --locked --manifest-path partitionline-broker/Cargo.toml --lib queued_new_vote_replaces_stale_campaign_and_is_elected -- --nocapture > /tmp/raft-retain-old.log 2>&1; then
+            cat /tmp/raft-retain-old.log; exit 1
+          fi
+          cat /tmp/raft-retain-old.log
+          grep -F "latest campaign must replace the queued stale vote" /tmp/raft-retain-old.log
+          cp /tmp/raft-clean.rs partitionline-broker/src/raft/runtime.rs
+      - name: Missing wakeup mutant
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path("partitionline-broker/src/raft/runtime.rs")
+          s = p.read_text()
+          old = "drop(state);\n        self.ready.notify_one();\n        Ok(displaced)"
+          new = "drop(state);\n        Ok(displaced)"
+          assert s.count(old) == 1
+          p.write_text(s.replace(old, new, 1))
+          PY
+          if cargo test --locked --manifest-path partitionline-broker/Cargo.toml --lib vote_slot_replaces_wakes_closes_and_keeps_ownership_bounded -- --nocapture > /tmp/raft-missing-wake.log 2>&1; then
+            cat /tmp/raft-missing-wake.log; exit 1
+          fi
+          cat /tmp/raft-missing-wake.log
+          grep -F "pending receiver did not wake after offer" /tmp/raft-missing-wake.log
+          cp /tmp/raft-clean.rs partitionline-broker/src/raft/runtime.rs
+      - name: Missing cooperative budget mutant
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path("partitionline-broker/src/raft/runtime.rs")
+          s = p.read_text()
+          old = "tokio::task::consume_budget().await;"
+          assert s.count(old) == 1
+          p.write_text(s.replace(old, "", 1))
+          PY
+          if cargo test --locked --manifest-path partitionline-broker/Cargo.toml --lib vote_slot_sustained_ready_allows_a_competing_task_to_progress -- --nocapture > /tmp/raft-no-budget.log 2>&1; then
+            cat /tmp/raft-no-budget.log; exit 1
+          fi
+          cat /tmp/raft-no-budget.log
+          grep -F "sustained ready slot monopolized the current-thread executor" /tmp/raft-no-budget.log
+          cp /tmp/raft-clean.rs partitionline-broker/src/raft/runtime.rs
+      - name: Matched uncontended route operation cost
+        run: cargo test --release --locked --manifest-path partitionline-broker/Cargo.toml --lib vote_slot_vs_mpsc_uncontended_cost -- --ignored --nocapture --test-threads=1
