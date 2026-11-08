@@ -1,0 +1,47 @@
+name: produce quota design controls
+on:
+  push:
+    branches: [qualification/produce-quota-design-20261108]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  controls:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        profile: [default, all]
+    env:
+      PROFILE: ${{ matrix.profile }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Pin source and toolchain
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(uname -m)" = x86_64
+          rustc -Vv
+          git rev-parse HEAD
+          test "$(git hash-object partitionline-broker/src/quotas.rs)" = fe6ed7dabd863ec9e1b3f54101d57ea4d2abc6a0
+          test "$(git hash-object partitionline-broker/src/protocol.rs)" = ef4b58ac44dd7b93b91b61f64654002898c72b48
+          test "$(git hash-object partitionline-broker/Cargo.lock)" = 19652acd96b929402b1e4a9394a33d12a7e69449
+          test "$(git hash-object docs/evidence/broker/quota-produce-design-20261108/controls.rs)" = 2ff8fe41c662ba250d517001e4ecaada65d9b4c4
+          sha256sum partitionline-broker/src/quotas.rs partitionline-broker/src/protocol.rs docs/evidence/broker/quota-produce-design-20261108/controls.rs
+      - name: Run local boundary controls
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp docs/evidence/broker/quota-produce-design-20261108/controls.rs partitionline-broker/tests/quota_wire_boundaries.rs
+          features=()
+          if [[ "$PROFILE" == all ]]; then features=(--all-features); fi
+          cargo test --locked --manifest-path partitionline-broker/Cargo.toml "${features[@]}" --test quota_wire_boundaries -- --test-threads=1 2>&1 | tee "$RUNNER_TEMP/quota-design-controls.log"
+          grep -F 'test result: ok. 2 passed;' "$RUNNER_TEMP/quota-design-controls.log"
+      - name: Retain control log
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: produce-quota-design-${{ matrix.profile }}
+          path: ${{ runner.temp }}/quota-design-controls.log
+          if-no-files-found: warn
