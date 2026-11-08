@@ -5880,10 +5880,15 @@ impl Admin {
     ///
     /// A null DescribeTopicPartitions name cannot be associated with a
     /// requested name. This aggregate reports [`Error::Unsupported`] unless a
-    /// global error takes precedence. Within a page, a null name is detected
-    /// before conflicting topic IDs are checked. Non-null response names are
-    /// not validated against the request. For raw pages, use
-    /// [`Self::describe_topic_partitions_timeout`].
+    /// global error takes precedence. It treats a response topic or next cursor
+    /// outside the requested names as a client-side [`Error::Protocol`].
+    /// This is a client consistency policy. An immediately repeated cursor
+    /// is checked before these name checks. Within a page, any null name takes
+    /// precedence over an unrequested topic, which takes precedence over an
+    /// unrequested cursor. These checks precede page ID-conflict detection.
+    /// Large requests use additional memory proportional to the number of
+    /// distinct requested names. For raw pages, use
+    /// [`Self::describe_topic_partitions_timeout`], which preserves the response.
     pub async fn describe_topics_with_partition_limit_timeout<'a, S>(
         &mut self,
         topics: impl IntoIterator<Item = &'a S>,
@@ -14122,6 +14127,12 @@ impl Admin {
             .checked_add(timeout)
             .ok_or(Error::Timeout)?;
         tokio::time::timeout_at(deadline, async {
+            let _remaining = dtp_remaining(deadline)?;
+            let mut requested_names = HashSet::new();
+            let use_index = names.len() > 8;
+            if use_index {
+                index_requested_dtp_names(names, &mut requested_names).await;
+            }
             let mut cursor: Option<TopicPartitionCursor> = None;
             let mut out: Vec<TopicDescription> = Vec::new();
             let mut described = DescribedTopicIndex::new();
@@ -14139,15 +14150,50 @@ impl Admin {
                     return Err(Error::protocol("repeated DescribeTopicPartitions cursor"));
                 }
                 let mut page = Vec::with_capacity(resp.topics.len());
-                for topic in &resp.topics {
-                    if topic.name.is_none() {
+                let mut topics = resp.topics.iter();
+                let mut unrequested = false;
+                for topic in topics.by_ref() {
+                    let Some(name) = topic.name.as_deref() else {
                         return Err(
                             reject_unnamed_described_topic(&mut page, &mut out, deadline).await,
                         );
+                    };
+                    if !dtp_topic_requested(names, use_index.then_some(&requested_names), name) {
+                        unrequested = true;
+                        break;
                     }
                     page.push(
                         topic_description_from_dtp(topic, include_authorized_operations).await,
                     );
+                }
+                if unrequested {
+                    if remaining_dtp_has_unnamed(topics).await {
+                        return Err(
+                            reject_unnamed_described_topic(&mut page, &mut out, deadline).await,
+                        );
+                    }
+                    return Err(reject_unrequested_described_topic(
+                        &mut page,
+                        &mut out,
+                        deadline,
+                        "DescribeTopicPartitions returned an unrequested topic",
+                    )
+                    .await);
+                }
+                if let Some(next) = resp.next_cursor.as_ref() {
+                    if !dtp_topic_requested(
+                        names,
+                        use_index.then_some(&requested_names),
+                        next.topic_name.as_str(),
+                    ) {
+                        return Err(reject_unrequested_described_topic(
+                            &mut page,
+                            &mut out,
+                            deadline,
+                            "DescribeTopicPartitions returned an unrequested cursor topic",
+                        )
+                        .await);
+                    }
                 }
                 if let Err(error) = extend_described_topics(&mut out, &mut described, page).await {
                     let _remaining = dtp_remaining(deadline)?;
@@ -16702,6 +16748,60 @@ async fn list_offset_topic_requests<'a>(
     groups
 }
 
+async fn index_requested_dtp_names<'a, T: AsRef<str>>(
+    names: &'a [T],
+    requested: &mut HashSet<&'a str>,
+) {
+    let mut walked = 0usize;
+    for name in names {
+        let _inserted = requested.insert(name.as_ref());
+        walked += 1;
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
+    }
+}
+
+fn dtp_topic_requested<T: AsRef<str>>(
+    names: &[T],
+    requested: Option<&HashSet<&str>>,
+    name: &str,
+) -> bool {
+    match requested {
+        Some(index) => index.contains(name),
+        None => names.iter().any(|requested| requested.as_ref() == name),
+    }
+}
+
+#[cfg(test)]
+std::thread_local! {
+    static DTP_REMAINING_SCAN_PROGRESS: std::cell::Cell<Option<usize>> = const { std::cell::Cell::new(None) };
+}
+
+async fn remaining_dtp_has_unnamed<'a>(
+    topics: impl Iterator<Item = &'a DescribedTopicPartitions>,
+) -> bool {
+    let mut walked = 0usize;
+    for topic in topics {
+        #[cfg(test)]
+        DTP_REMAINING_SCAN_PROGRESS.with(|probe| {
+            if let Some(count) = probe.get() {
+                probe.set(Some(count.saturating_add(1)));
+            }
+        });
+        if topic.name.is_none() {
+            return true;
+        }
+        walked += 1;
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
+    }
+    false
+}
+
 // A zero topic ID means the broker did not supply an identity. Keep the
 // first nonzero ID separately from the public first-page description so that
 // later known IDs can still be compared after an unknown first page.
@@ -16739,6 +16839,20 @@ async fn reject_unnamed_described_topic(
         Ok(_) => Error::Unsupported(
             "cannot aggregate DescribeTopicPartitions without a topic name".into(),
         ),
+        Err(error) => error,
+    }
+}
+
+async fn reject_unrequested_described_topic(
+    page: &mut [TopicDescription],
+    out: &mut [TopicDescription],
+    deadline: tokio::time::Instant,
+    message: &'static str,
+) -> Error {
+    discard_described_topics(page).await;
+    discard_described_topics(out).await;
+    match dtp_remaining(deadline) {
+        Ok(_) => Error::protocol(message),
         Err(error) => error,
     }
 }
