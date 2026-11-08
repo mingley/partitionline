@@ -2,7 +2,8 @@
 
 This note tracks an isolated candidate for the name-based
 `describe_topics` aggregate. It is separate from the [earlier topic
-identity change][prior], and its final checks are still running.
+identity change][prior]. The remaining restored-mutant, matched-suite and
+release-timing jobs are still running.
 
 Kafka 4.1.0's [request handler][handler] builds a set from a nonempty
 explicit topic list, deduplicates names, and emits success and topic-error
@@ -60,14 +61,38 @@ passed 53 pagination controls in both profiles and strict Clippy, including
 cancellation after scan progress and same-socket reuse. The final test blob
 adds a negative control for the >8-name index path.
 
-The [final exact-source gate][final] passed all-feature client Rustdoc with
-`RUSTDOCFLAGS="-D warnings"` and all nine client doctests. Its focused and
-full Admin suites, strict Clippy, live Kafka smoke and restored negative
-controls are still running. The [matched whole-suite control][broad] and
-[paired release timing][perf] are also running. An [earlier matched-control
-attempt][broad-setup] was setup-only: its baseline and candidate fixture
-bytes differed before the corrected run copied the same fixture to both
-arms. Remaining results must be recorded before this note is complete.
+## Final-source checks
+
+The [final gate][final] used workflow commit
+`a5226e76d15709312624da964e11b596d21e917b` with the source and test blobs
+above. The 54 pagination controls passed in each profile; rustfmt, strict
+all-target/all-feature Clippy, all-feature client Rustdoc with
+`RUSTDOCFLAGS="-D warnings"`, and nine client doctests passed.
+
+The Kafka 4.1.2 live smoke passed two tests in each profile, using image
+`apache/kafka:4.1.2@sha256:5cc2a2fd93fa2687b44015eee04fb2c3edd9e526bd64bf8bec5ff1e268772e0e`
+and fixture blob `5163fe81c4cbfd2462ffa86ba406851ff4a92fec`. The
+broker's command-line tool independently confirmed the two created
+topics' four and two partitions. The test covered pagination and ten
+requested entries comprising both topics, a duplicate, and seven missing
+names. This normal-broker smoke does not reproduce the scripted unsolicited
+or null responses.
+
+Both exact-source full Admin suites **failed**, with four 80 ms wall-time
+assertions in each profile. These tests exercise other methods; their causes are not established, and
+the full suites did not pass.
+
+| Profile | Passed / failed | Failed test (measured time) |
+| --- | --- | --- |
+| Default | 657 / 4 | `decoding_many_consumer_group_members_does_not_hold_the_caller` (98.622396 ms); `decoding_many_share_group_members_does_not_hold_the_caller` (103.339267 ms); `grouping_many_replica_dirs_does_not_hold_the_caller` (105.723794 ms); `indexing_many_coordinators_does_not_hold_the_caller` (121.705861 ms) |
+| All features | 657 / 4 | `decoding_many_delegation_tokens_does_not_hold_the_caller` (80.368156 ms); `grouping_many_named_results_does_not_hold_the_caller` (95.433503 ms); `indexing_many_coordinators_does_not_hold_the_caller` (186.831326 ms); `indexing_many_listed_offsets_does_not_hold_the_caller` (85.166865 ms) |
+
+The [matched whole-suite control][broad], [paired release timing][perf],
+and restored negative controls remain in progress. An [earlier
+matched-control attempt][broad-setup] failed before tests: fixture comparison
+reported a difference at byte 37789, line 1050. The corrected run copies
+the same fixture to both arms. Results from these remaining jobs must be
+recorded before this note is complete.
 
 ## Resource and compatibility limits
 
