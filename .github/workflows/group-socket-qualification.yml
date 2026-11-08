@@ -1,0 +1,57 @@
+name: Group coordinator retirement qualification
+
+on:
+  push:
+    branches:
+      - qualification/group-socket-20261108
+
+permissions:
+  contents: read
+
+jobs:
+  qualify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    env:
+      CARGO_BUILD_JOBS: '2'
+      CARGO_PROFILE_DEV_DEBUG: '0'
+      CARGO_PROFILE_TEST_DEBUG: '0'
+      CARGO_INCREMENTAL: '0'
+      CARGO_TERM_COLOR: never
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          sparse-checkout: |
+            .cargo
+            src
+            examples
+            tests
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - name: Record host and compiler
+        run: |
+          test "$(uname -m)" = x86_64
+          uname -a
+          rustc +stable -Vv
+          cargo +stable -V
+          git rev-parse HEAD
+      - name: Physical retirement and coordinator cancellation
+        run: |
+          cargo +stable test --locked --lib physical_retirement -- --nocapture
+          cargo +stable test --locked --lib group::coordinator_replacement_tests -- --nocapture
+      - name: Idle socket and offset compatibility
+        run: |
+          cargo +stable test --locked --lib group::rediscover_stop_tests::replacing_an_idle -- --nocapture
+          cargo +stable test --locked --lib group::offsets::reconnect_tests -- --nocapture
+      - name: All-feature socket and offset regressions
+        run: |
+          cargo +stable test --locked --all-features --lib physical_retirement -- --nocapture
+          cargo +stable test --locked --all-features --lib group::coordinator_replacement_tests -- --nocapture
+          cargo +stable test --locked --all-features --lib group::rediscover_stop_tests::replacing_an_idle -- --nocapture
+          cargo +stable test --locked --all-features --lib group::offsets::reconnect_tests -- --nocapture
+      - name: Clippy
+        run: cargo +stable clippy --locked --lib --all-features -- -D warnings
+      - name: Formatting
+        run: cargo +stable fmt --all -- --check

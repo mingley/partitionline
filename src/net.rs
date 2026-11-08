@@ -1667,6 +1667,39 @@ impl BrokerConn {
         Err(Error::Closed)
     }
 
+    /// Mark this connection closed and immediately drop its socket if it is
+    /// not currently locked by another task.
+    pub(crate) fn try_retire_physical(&mut self) -> bool {
+        self.close();
+        self.idle_watch.abort();
+        let stream = Arc::clone(&self.stream);
+        let retired = match stream.try_lock() {
+            Ok(mut io) => {
+                *io = ConnIo::Closed;
+                true
+            }
+            Err(_) => false,
+        };
+        retired
+    }
+
+    /// Retire the socket before a replacement is opened, within the original
+    /// operation deadline. A canceled or timed-out attempt leaves the slot
+    /// marked closed so the next attempt can finish retiring it.
+    pub(crate) async fn retire_physical_deadline(&mut self, deadline: Deadline) -> Result<()> {
+        let retired = self.try_retire_physical();
+        deadline.check_expired()?;
+        if retired {
+            return Ok(());
+        }
+        let stream = Arc::clone(&self.stream);
+        let mut io = timeout_at(deadline.target(), stream.lock())
+            .await
+            .map_err(|_| Error::Timeout)?;
+        *io = ConnIo::Closed;
+        deadline.check_expired()
+    }
+
     /// Shut down a connection that is already marked closed.
     ///
     /// [`Self::close`] only sets the flag. TLS cleanup drops the socket if
@@ -3257,6 +3290,69 @@ mod tests {
     use std::time::Duration;
     use tokio::io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt, ReadBuf};
     use tokio::net::TcpListener;
+
+    async fn assert_retired_peer(peer: &mut tokio::net::TcpStream) {
+        let mut byte = [0u8; 1];
+        let result = tokio::time::timeout(Duration::from_secs(2), peer.read(&mut byte))
+            .await
+            .expect("peer did not observe retirement");
+        match result {
+            Ok(0) => {}
+            Err(error) if error.kind() == std::io::ErrorKind::ConnectionReset => {}
+            other => panic!("expected EOF or a reset, got {other:?}"),
+        }
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn physical_retirement_timeout_keeps_a_closed_retryable_slot() {
+        let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap().to_string();
+        let mut conn = BrokerConn::connect(&addr, "retire-timeout", Duration::from_secs(2))
+            .await
+            .unwrap();
+        let (mut peer, _) = listener.accept().await.unwrap();
+        let shared = Arc::clone(&conn.stream);
+        let held = shared.lock().await;
+
+        let result = conn
+            .retire_physical_deadline(Deadline::from_timeout(Duration::from_millis(50)))
+            .await;
+        assert!(matches!(result, Err(Error::Timeout)));
+        assert!(conn.is_closed());
+        drop(held);
+
+        conn.retire_physical_deadline(Deadline::from_timeout(Duration::from_secs(2)))
+            .await
+            .unwrap();
+        assert_retired_peer(&mut peer).await;
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn cancelling_physical_retirement_keeps_a_closed_retryable_slot() {
+        use std::future::Future;
+
+        let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap().to_string();
+        let mut conn = BrokerConn::connect(&addr, "retire-cancel", Duration::from_secs(2))
+            .await
+            .unwrap();
+        let (mut peer, _) = listener.accept().await.unwrap();
+        let shared = Arc::clone(&conn.stream);
+        let held = shared.lock().await;
+
+        let mut retiring =
+            Box::pin(conn.retire_physical_deadline(Deadline::from_timeout(Duration::from_secs(2))));
+        let first = std::future::poll_fn(|cx| Poll::Ready(retiring.as_mut().poll(cx))).await;
+        assert!(first.is_pending(), "retirement should wait for the held lock");
+        drop(retiring);
+        assert!(conn.is_closed());
+        drop(held);
+
+        conn.retire_physical_deadline(Deadline::from_timeout(Duration::from_secs(2)))
+            .await
+            .unwrap();
+        assert_retired_peer(&mut peer).await;
+    }
 
     #[tokio::test(flavor = "current_thread")]
     async fn cancelling_first_poll_of_large_frame_retires_connection() {

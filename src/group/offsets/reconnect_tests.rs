@@ -306,3 +306,123 @@ async fn v10_load_retry_never_downgrades_uuid_requests() {
         moved_after_load(api, 10, 9).await;
     }
 }
+
+async fn idle_replacement(api: i16, uuid_request: bool) {
+    use tokio::io::AsyncReadExt;
+
+    let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let addr = listener.local_addr().unwrap().to_string();
+    let mut coord = crate::net::BrokerConn::connect(&addr, "idle-offset-replace", Duration::from_secs(3))
+        .await
+        .unwrap();
+    let (mut first, _) = listener.accept().await.unwrap();
+    if api == OFFSET_FETCH {
+        coord.offset_fetch_version = if uuid_request { 10 } else { 9 };
+        coord.offset_fetch_range = Some((1, if uuid_request { 10 } else { 9 }));
+    } else {
+        coord.offset_commit_version = if uuid_request { 10 } else { 9 };
+        coord.offset_commit_range = Some((2, if uuid_request { 10 } else { 9 }));
+    }
+    let peer = tokio::spawn(async move {
+        let mut byte = [0u8; 1];
+        let first_result = tokio::time::timeout(Duration::from_secs(3), first.read(&mut byte))
+            .await
+            .unwrap();
+        match first_result {
+            Ok(0) => {}
+            Err(error) if error.kind() == std::io::ErrorKind::ConnectionReset => {}
+            other => panic!("old offset peer did not see retirement: {other:?}"),
+        }
+
+        let version = if uuid_request { 9 } else { 8 };
+        let mut socket = authenticate(&listener, api, version).await;
+        if uuid_request {
+            let result = tokio::time::timeout(Duration::from_secs(3), socket.read(&mut byte))
+                .await
+                .unwrap();
+            match result {
+                Ok(0) => {}
+                Err(error) if error.kind() == std::io::ErrorKind::ConnectionReset => {}
+                other => panic!("UUID request was sent to a v9-only socket: {other:?}"),
+            }
+        } else {
+            let (header, body) = read_request(&mut socket).await;
+            assert_eq!((header.api_key, header.api_version), (api, version));
+            assert_eq!(body.as_ref(), &version.to_be_bytes());
+            respond(&mut socket, &header, &response(api, version, 0)).await;
+        }
+    });
+    let mut cfg = crate::ConsumerConfig::bootstrap([addr]);
+    cfg.sasl_plain = Some(("user".into(), "pass".into()));
+    cfg.connections_max_idle = Duration::from_nanos(1);
+    tokio::task::yield_now().await;
+    assert!(coord.idle_expired(cfg.connections_max_idle));
+    let mut prior = HashMap::new();
+    let mut encoded = false;
+    if uuid_request {
+        let result = coord_offsets_v10(
+            &mut coord,
+            &cfg,
+            "retry",
+            COORDINATOR_GROUP,
+            api,
+            |buf| {
+                encoded = true;
+                buf.extend_from_slice(b"UUID");
+                Ok(())
+            },
+            &[],
+            &HashMap::new(),
+            &mut prior,
+            Duration::from_secs(3),
+        )
+        .await;
+        assert!(matches!(result, Err(Error::Unsupported(_))), "{result:?}");
+        assert!(!encoded, "a UUID request cannot be re-encoded as v9");
+    } else {
+        let (version, body) = coord_offsets_legacy(
+            &mut coord,
+            &cfg,
+            "retry",
+            COORDINATOR_GROUP,
+            api,
+            9,
+            |version, buf| {
+                encoded = true;
+                buf.extend_from_slice(&version.to_be_bytes());
+                Ok(())
+            },
+            &[],
+            &HashMap::new(),
+            &mut prior,
+            Duration::from_secs(3),
+        )
+        .await
+        .unwrap();
+        assert!(encoded);
+        assert_eq!(version, 8);
+        assert_eq!(body.as_ref(), response(api, 8, 0));
+    }
+    coord
+        .retire_physical_deadline(crate::net::Deadline::from_timeout(Duration::from_secs(3)))
+        .await
+        .unwrap();
+    tokio::time::timeout(Duration::from_secs(3), peer)
+        .await
+        .unwrap()
+        .unwrap();
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn idle_offset_replacement_authenticates_and_reencodes_for_the_new_version() {
+    for api in [OFFSET_FETCH, OFFSET_COMMIT] {
+        idle_replacement(api, false).await;
+    }
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn idle_offset_replacement_never_downgrades_uuid_requests() {
+    for api in [OFFSET_FETCH, OFFSET_COMMIT] {
+        idle_replacement(api, true).await;
+    }
+}

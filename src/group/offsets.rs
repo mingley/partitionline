@@ -724,10 +724,7 @@ pub(super) async fn coord_offsets_v10(
         .ok_or(Error::Timeout)?;
     let deadline = Deadline::from_std(target);
     if coord.idle_expired(cfg.connections_max_idle) {
-        let bounded = bounded_consumer_config(cfg, deadline)?;
-        let replacement = super::reopen_known_coord(&bounded, coord).await?;
-        let previous = std::mem::replace(coord, replacement);
-        super::retire_lookup_conn(previous).await;
+        super::replace_known_coord(coord, cfg, deadline).await?;
         require_copied_coord_version(coord, api, 10)?;
     }
     let mut body = match coord
@@ -736,10 +733,7 @@ pub(super) async fn coord_offsets_v10(
     {
         Ok(body) => body,
         Err(Error::Io(_) | Error::Timeout | Error::Closed) => {
-            let bounded = bounded_consumer_config(cfg, deadline)?;
-            let replacement = super::reopen_known_coord(&bounded, coord).await?;
-            let previous = std::mem::replace(coord, replacement);
-            super::retire_lookup_conn(previous).await;
+            super::replace_known_coord(coord, cfg, deadline).await?;
             require_copied_coord_version(coord, api, 10)?;
             coord
                 .roundtrip_deadline(api, 10, |buf| encode(buf), deadline)
@@ -812,10 +806,7 @@ pub(super) async fn coord_offsets_legacy(
         .ok_or(Error::Timeout)?;
     let deadline = Deadline::from_std(target);
     if coord.idle_expired(cfg.connections_max_idle) {
-        let bounded = bounded_consumer_config(cfg, deadline)?;
-        let replacement = super::reopen_known_coord(&bounded, coord).await?;
-        let previous = std::mem::replace(coord, replacement);
-        super::retire_lookup_conn(previous).await;
+        super::replace_known_coord(coord, cfg, deadline).await?;
         version = legacy_coord_version(coord, api)?;
     }
     let mut body = match coord
@@ -824,10 +815,7 @@ pub(super) async fn coord_offsets_legacy(
     {
         Ok(body) => body,
         Err(Error::Io(_) | Error::Timeout | Error::Closed) => {
-            let bounded = bounded_consumer_config(cfg, deadline)?;
-            let replacement = super::reopen_known_coord(&bounded, coord).await?;
-            let previous = std::mem::replace(coord, replacement);
-            super::retire_lookup_conn(previous).await;
+            super::replace_known_coord(coord, cfg, deadline).await?;
             version = legacy_coord_version(coord, api)?;
             coord
                 .roundtrip_deadline(api, version, |buf| encode(version, buf), deadline)
@@ -1083,20 +1071,14 @@ pub(super) async fn coord_offsets_typed(
     );
     let api = request.api();
     if coord.idle_expired(cfg.connections_max_idle) {
-        let replacement =
-            super::reopen_known_coord(&bounded_consumer_config(cfg, deadline)?, coord).await?;
-        let previous = std::mem::replace(coord, replacement);
-        super::retire_lookup_conn(previous).await;
+        super::replace_known_coord(coord, cfg, deadline).await?;
     }
     let mut version = legacy_coord_version(coord, api)?;
     let mut cached = None;
     let mut body = match send_typed_offset(coord, request, version, &mut cached, deadline).await {
         Ok(body) => body,
         Err(Error::Io(_) | Error::Timeout | Error::Closed) => {
-            let replacement =
-                super::reopen_known_coord(&bounded_consumer_config(cfg, deadline)?, coord).await?;
-            let previous = std::mem::replace(coord, replacement);
-            super::retire_lookup_conn(previous).await;
+            super::replace_known_coord(coord, cfg, deadline).await?;
             version = legacy_coord_version(coord, api)?;
             send_typed_offset(coord, request, version, &mut cached, deadline).await?
         }
