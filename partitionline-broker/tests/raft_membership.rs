@@ -529,6 +529,78 @@ fn stale_genesis_leader_observation_is_fenced_before_proposal_append() -> Result
 }
 
 #[test]
+fn proposal_boundary_during_leader_removal_is_preappend_on_not_leader() -> Result {
+    use std::io::Read;
+
+    fn bounded_wal(path: &std::path::Path) -> Result<Vec<u8>> {
+        let mut bytes = Vec::new();
+        fs::File::open(path)?
+            .take(1024 * 1024 + 1)
+            .read_to_end(&mut bytes)?;
+        if bytes.len() > 1024 * 1024 {
+            return Err("synthetic WAL exceeded diagnostic bound".into());
+        }
+        Ok(bytes)
+    }
+
+    let mut group = DynamicGroup::new(3, voter(4)?)?;
+    group.elect(10)?;
+    group.catch_up(1, 11)?;
+    group.catch_up(2, 12)?;
+    let leader = group.key(0);
+    let receipt = group.node(0)?.remove_voter(leader, 13)?;
+    assert!(!receipt.committed);
+    let before = group.node(0)?.state();
+    assert_eq!(before.election.role, Role::Leader);
+    assert_eq!(before.active_term, Some(before.election.persistent.term));
+    assert_eq!(before.last_position.index, 2);
+    assert_eq!(before.committed_end, 1);
+
+    let outcome = group.node(0)?.propose(b"PL_SYNTHETIC_PROPOSAL_BOUNDARY", 14);
+    let after = group.node(0)?.state();
+    let position = match outcome {
+        Ok(position) => position,
+        Err(replication::Error::NotLeader) => {
+            assert_eq!(
+                after.last_position, before.last_position,
+                "PL_NOT_LEADER_AFTER_APPEND"
+            );
+            return Err("unexpected pre-append leadership loss".into());
+        }
+        Err(error) => return Err(error.into()),
+    };
+    assert_eq!(position, 3);
+    assert_eq!(after.last_position.index, 3);
+    assert_eq!(after.committed_end, 1);
+    assert_eq!(after.election.role, Role::Leader);
+    println!("PL_UNCOMMITTED_REMOVAL_PROPOSAL_APPENDED position=3 committed=1");
+
+    group.catch_up(1, 15)?;
+    assert_eq!(group.node(0)?.state().committed_end, 1);
+    group.catch_up(2, 16)?;
+    let removed = group.node(0)?.state();
+    assert_eq!(removed.election.role, Role::Follower);
+    assert_eq!(removed.committed_end, 3);
+    let records = group.node(0)?.fetch_committed(3, 1, 1024 * 1024)?;
+    assert_eq!(records.len(), 1);
+    assert_eq!(records[0].payload, b"PL_SYNTHETIC_PROPOSAL_BOUNDARY");
+
+    let name = format!("{}-{}", leader.id, hex_bytes(&leader.directory)?);
+    let wal_path = group.root.join(format!("{name}.wal"));
+    let before_wal = bounded_wal(&wal_path)?;
+    assert!(matches!(
+        group.node(0)?.propose(b"PL_SYNTHETIC_AFTER_REMOVAL", 17),
+        Err(replication::Error::NotLeader)
+    ));
+    let after_refusal = group.node(0)?.state();
+    assert_eq!(after_refusal.last_position, removed.last_position);
+    assert_eq!(after_refusal.committed_end, removed.committed_end);
+    assert_eq!(bounded_wal(&wal_path)?, before_wal);
+    println!("PL_REMOVED_LEADER_NOT_LEADER_WITHOUT_APPEND");
+    Ok(())
+}
+
+#[test]
 fn removed_leader_counts_no_self_vote_and_fences_after_commit_even_without_caller() -> Result {
     let mut group = DynamicGroup::new(3, voter(4)?)?;
     group.elect(10)?;
