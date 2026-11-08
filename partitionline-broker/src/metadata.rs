@@ -3673,7 +3673,7 @@ mod tests {
         )
     }
 
-    type ClaimedFetchInfo = (usize, usize, usize);
+    type ClaimedFetchInfo = (usize, usize, usize, usize, usize);
 
     fn claimed_fetch_actor() -> (
         Arc<Router>,
@@ -3744,11 +3744,16 @@ mod tests {
             else {
                 return;
             };
-            let (request_len, request_capacity) = match &command {
-                Command::Data(job) => (job.lease.request.len(), job.lease.request.capacity()),
+            let (request_len, request_capacity, spare_len, spare_capacity) = match &command {
+                Command::Data(job) => (
+                    job.lease.request.len(),
+                    job.lease.request.capacity(),
+                    job.lease.spare.len(),
+                    job.lease.spare.capacity(),
+                ),
                 _ => return,
             };
-            let _ = claimed.send((planned_metadata_bytes, request_len, request_capacity));
+            let _ = claimed.send((planned_metadata_bytes, request_len, request_capacity, spare_len, spare_capacity));
             if gate.recv().is_err() {
                 return;
             }
@@ -4098,6 +4103,67 @@ mod tests {
         Ok(())
     }
 
+
+    #[tokio::test]
+    async fn public_exchange_can_transfer_oversized_spare_into_a_claimed_job(
+    ) -> Result<(), Box<dyn StdError>> {
+        let (router, claimed, release, path) = claimed_fetch_actor();
+        let mut input = Vec::new();
+        input.extend_from_slice(&1i16.to_be_bytes());
+        input.extend_from_slice(&6i16.to_be_bytes());
+        input.extend_from_slice(&77i32.to_be_bytes());
+        input.extend_from_slice(&(-1i16).to_be_bytes());
+        input.extend_from_slice(&(-1i32).to_be_bytes());
+        input.extend_from_slice(&0i32.to_be_bytes());
+        input.extend_from_slice(&0i32.to_be_bytes());
+        input.extend_from_slice(&0i32.to_be_bytes());
+        input.push(0);
+        input.extend_from_slice(&0i32.to_be_bytes());
+        assert_eq!(input.len(), 31);
+        let mut spare = Vec::with_capacity(8192);
+        spare.push(42);
+        let peer = Peer::capacity_witness();
+        let control = input.clone();
+        let mut pending = Box::pin(router.exchange_request(&peer, input, spare));
+        std::future::poll_fn(|cx| match std::future::Future::poll(pending.as_mut(), cx) {
+            std::task::Poll::Pending => std::task::Poll::Ready(Ok(())),
+            std::task::Poll::Ready(_) => std::task::Poll::Ready(Err("unexpected completion")),
+        })
+        .await?;
+        let (_, request_len, request_capacity, spare_len, spare_capacity) =
+            tokio::time::timeout(Duration::from_secs(5), claimed).await??;
+        assert_eq!(request_len, 31);
+        assert_eq!(spare_len, 1);
+        assert!(spare_capacity >= 8192);
+        assert!(request_capacity + spare_capacity > 4160);
+        assert_eq!(router.data_slots.available_permits(), 0);
+        println!(
+            "PL_PUBLIC_SPARE_CLAIM request_len={request_len} request_capacity={request_capacity} spare_len={spare_len} spare_capacity={spare_capacity} logical_budget=4160"
+        );
+        drop(pending);
+        assert_eq!(router.data_slots.available_permits(), 0);
+        println!("PL_PUBLIC_SPARE_AFTER_CANCEL actor_retains_command=true permit_held=true");
+        release.send(())?;
+        tokio::time::timeout(Duration::from_secs(5), async {
+            while router.data_slots.available_permits() == 0 {
+                tokio::task::yield_now().await;
+            }
+        })
+        .await?;
+        let response = router.dispatch(control).await?.ok_or("missing Fetch response")?;
+        assert_eq!(response.len(), 12);
+        assert_eq!(response.get(..4), Some(&77i32.to_be_bytes()[..]));
+        println!("PL_PUBLIC_SPARE_FRESH_FETCH response_len={}", response.len());
+        router.shutdown().await?;
+        assert_eq!(router.data_slots.available_permits(), 1);
+        tokio::task::spawn_blocking(move || -> std::io::Result<()> {
+            std::fs::remove_file(&path)?;
+            std::fs::remove_dir_all(path.with_extension("parts"))
+        })
+        .await??;
+        Ok(())
+    }
+
     #[tokio::test]
     async fn canceled_claimed_fetch_keeps_admission_until_actor_discards_it(
     ) -> Result<(), Box<dyn StdError>> {
@@ -4125,7 +4191,7 @@ mod tests {
             }
         })
         .await?;
-        let (planned_metadata_bytes, request_len, request_capacity) =
+        let (planned_metadata_bytes, request_len, request_capacity, _, _) =
             tokio::time::timeout(Duration::from_secs(5), claimed).await??;
         assert_eq!(planned_metadata_bytes, 103);
         assert_eq!(request_len, 4096);
