@@ -1,0 +1,187 @@
+name: frame deadline scheduling qualification
+on:
+  push:
+    branches: [qualification/frame-deadline-scheduling-20261108]
+permissions:
+  contents: read
+jobs:
+  focused:
+    strategy:
+      fail-fast: false
+      matrix:
+        profile: [default, all-features]
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      CARGO_BUILD_JOBS: "2"
+      CARGO_INCREMENTAL: "0"
+      CARGO_PROFILE_DEV_DEBUG: "0"
+      CARGO_PROFILE_TEST_DEBUG: "0"
+      CARGO_TERM_COLOR: never
+      PROFILE: ${{ matrix.profile }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Record exact source and toolchain
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD^)" = 6298f6bfbed2ab98189d291ebebd2190a2ee75b6
+          test "$(git rev-parse HEAD:partitionline-broker/src/transport.rs)" = e80acf8d5fe3614b35f079d3d6364d086b0abb84
+          test "$(git rev-parse HEAD:partitionline-broker/Cargo.toml)" = 4e23c42f8d9ac722005098a4b58e1046b711e1a3
+          rustc +stable -Vv
+          uname -a
+          sha256sum partitionline-broker/src/transport.rs partitionline-broker/Cargo.toml
+      - name: Run real focused controls
+        shell: bash
+        run: |
+          set -euo pipefail
+          args=()
+          if [ "$PROFILE" = all-features ]; then args+=(--all-features); fi
+          for name in read_deadline_stops_a_ready_frame_body ready_body_checks_deadline_before_next_poll ready_body_yields_before_complete an_expired_buffered_frame_is_rejected_before_consumption; do
+            test_name="transport::frame_read_deadline_tests::$name"
+            log="$RUNNER_TEMP/real-$name.log"
+            cargo +stable test --locked --manifest-path partitionline-broker/Cargo.toml --lib "${args[@]}" "$test_name" -- --exact --nocapture > "$log" 2>&1
+            cat "$log"
+            grep -F "test $test_name ... ok" "$log"
+            grep -F 'test result: ok. 1 passed;' "$log"
+          done
+      - name: Check deadline mutant is detected
+        shell: bash
+        run: |
+          set -euo pipefail
+          trap 'git checkout -- partitionline-broker/src/transport.rs' EXIT
+          args=()
+          if [ "$PROFILE" = all-features ]; then args+=(--all-features); fi
+          python3 -B .github/scripts/frame-deadline-mutation.py deadline
+          log="$RUNNER_TEMP/mutant-deadline.log"
+          set +e
+          cargo +stable test --locked --manifest-path partitionline-broker/Cargo.toml --lib "${args[@]}" 'transport::frame_read_deadline_tests::ready_body_checks_deadline_before_next_poll' -- --exact --nocapture > "$log" 2>&1
+          code=$?
+          set -e
+          cat "$log"
+          test "$code" -eq 101
+          grep -F 'deadline was crossed inside one poll but another body poll started' "$log"
+          grep -F 'test result: FAILED. 0 passed; 1 failed;' "$log"
+          git checkout -- partitionline-broker/src/transport.rs
+          git diff --exit-code -- partitionline-broker/src/transport.rs
+      - name: Check no-yield mutant is detected
+        shell: bash
+        run: |
+          set -euo pipefail
+          trap 'git checkout -- partitionline-broker/src/transport.rs' EXIT
+          args=()
+          if [ "$PROFILE" = all-features ]; then args+=(--all-features); fi
+          python3 -B .github/scripts/frame-deadline-mutation.py yield
+          log="$RUNNER_TEMP/mutant-yield.log"
+          set +e
+          cargo +stable test --locked --manifest-path partitionline-broker/Cargo.toml --lib "${args[@]}" 'transport::frame_read_deadline_tests::ready_body_yields_before_complete' -- --exact --nocapture > "$log" 2>&1
+          code=$?
+          set -e
+          cat "$log"
+          test "$code" -eq 101
+          grep -F 'ready frame completed without yielding before the full body' "$log"
+          grep -F 'test result: FAILED. 0 passed; 1 failed;' "$log"
+          git checkout -- partitionline-broker/src/transport.rs
+          git diff --exit-code -- partitionline-broker/src/transport.rs
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: frame-deadline-focused-${{ matrix.profile }}-${{ github.sha }}
+          path: |
+            ${{ runner.temp }}/real-*.log
+            ${{ runner.temp }}/mutant-*.log
+          if-no-files-found: warn
+          retention-days: 30
+  static:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      CARGO_BUILD_JOBS: "2"
+      CARGO_INCREMENTAL: "0"
+      CARGO_PROFILE_DEV_DEBUG: "0"
+      CARGO_PROFILE_TEST_DEBUG: "0"
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+      - name: Formatting
+        id: fmt
+        continue-on-error: true
+        run: cargo +stable fmt --manifest-path partitionline-broker/Cargo.toml -- --check
+      - name: Strict Clippy
+        id: clippy
+        continue-on-error: true
+        run: cargo +stable clippy --locked --manifest-path partitionline-broker/Cargo.toml --all-targets --all-features -- -D warnings
+      - name: Broker inventory
+        id: inventory
+        continue-on-error: true
+        run: python3 -B scripts/check-broker-api-matrix.py --report target/broker-ci/api-matrix.json
+      - name: Broker inventory negative controls
+        id: negative
+        continue-on-error: true
+        run: python3 -B -m unittest discover -s tests/ci -p test_broker_api_matrix.py -v
+      - name: Require static results
+        if: always()
+        env:
+          FMT: ${{ steps.fmt.outcome }}
+          CLIPPY: ${{ steps.clippy.outcome }}
+          INVENTORY: ${{ steps.inventory.outcome }}
+          NEGATIVE: ${{ steps.negative.outcome }}
+        run: |
+          echo "fmt=$FMT clippy=$CLIPPY inventory=$INVENTORY negative=$NEGATIVE"
+          test "$FMT" = success && test "$CLIPPY" = success && test "$INVENTORY" = success && test "$NEGATIVE" = success
+      - name: Show formatting patch on failure
+        if: always() && steps.fmt.outcome == 'failure'
+        run: |
+          cargo +stable fmt --manifest-path partitionline-broker/Cargo.toml
+          git diff -- partitionline-broker/src/transport.rs partitionline-broker/Cargo.toml
+  suites:
+    strategy:
+      fail-fast: false
+      matrix:
+        profile: [default, all-features]
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      CARGO_BUILD_JOBS: "2"
+      CARGO_INCREMENTAL: "0"
+      CARGO_PROFILE_DEV_DEBUG: "0"
+      CARGO_PROFILE_TEST_DEBUG: "0"
+      PROFILE: ${{ matrix.profile }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Complete broker all-target suite
+        shell: bash
+        run: |
+          set -euo pipefail
+          args=()
+          if [ "$PROFILE" = all-features ]; then args+=(--all-features); fi
+          cargo +stable test --locked --manifest-path partitionline-broker/Cargo.toml --all-targets "${args[@]}"
+  paused-process-witness:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      CARGO_BUILD_JOBS: "2"
+      CARGO_INCREMENTAL: "0"
+      CARGO_PROFILE_DEV_DEBUG: "0"
+      CARGO_PROFILE_TEST_DEBUG: "0"
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Compare baseline and candidate with a stopped disposable test process
+        run: python3 -B .github/scripts/frame-deadline-pause-witness.py
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: frame-deadline-process-pause-${{ github.sha }}
+          path: ${{ runner.temp }}/frame-deadline-pause/*-test.log
+          if-no-files-found: warn
+          retention-days: 30
