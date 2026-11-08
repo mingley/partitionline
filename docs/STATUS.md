@@ -33,18 +33,24 @@ limits.
 | Client capability profiles | Both passed selected checks; their archives were not independently inspected. |
 | Client format, all-target Clippy, audit, docs, package, auth and integrity smoke | Passed. Other client jobs failed or were skipped. |
 
-A newer [client CI run][ci-440-client] at `4409633` was still running
-when this record was written. Linux default and all-feature libraries reported
-2,233/11 and 2,232/12 passed/failed; Windows reported 2,225/19 and macOS
-arm64 2,230/14. The three current Kafka compatibility jobs failed with stack
-overflows; the Kafka 3.9.1 smoke reported JoinGroup error 16. The
+A newer [main CI snapshot][ci-440] at `4409633` recorded 17 successful
+client jobs, nine failures, one cancellation and one skip. Linux default and
+all-feature libraries reported 2,233/11 and 2,232/12 passed/failed; Windows
+reported 2,225/19 and macOS arm64 2,230/14. Three current Kafka compatibility
+jobs failed with stack overflows, and the Kafka 3.9.1 smoke failed. The
 resource-soak job failed because the runner denied access to a process's
 `/proc` file-descriptor directory; the workload result is incomplete. The
-Kafka 4.1.0 smoke was still running. See the run for its final state. The
-[broker CI run][ci-440-broker] passed 764 default and 912 all-feature tests,
-with three ignored per profile; its strict checks, inventory and fuzz
-supervision passed. Both selected [capability profiles][ci-440-capabilities]
-passed; their archives were not independently inspected.
+Kafka 4.1.0 smoke was canceled when main advanced. Broker CI passed 764 default
+and 912 all-feature tests, with three ignored per profile. Both selected
+capability profiles passed; their archives were not independently inspected.
+
+At `f092d69`, a newer [broker run][ci-f092-broker] passed 766 default and
+914 all-feature tests, with three ignored per profile; strict checks,
+inventory and fuzz supervision passed. Both selected [capability
+profiles][ci-f092-capabilities] passed; their archives were not independently
+inspected. Its [client run][ci-f092-client] was in progress when this record
+was written: resource-soak passed and three current Kafka compatibility jobs
+failed. See the run for its final status.
 
 An earlier [frame-read test failure][deadline-test] used a 30 ms deadline
 and required total elapsed time under 80 ms; it observed the deadline error
@@ -97,7 +103,10 @@ pass does not replace the full release matrix.
   error without returning it. [Focused x86 tests][flush] cover both. A
   [public mock history][flush-public] used a timing gate to observe flush
   returning while an accepted record receipt was pending. An isolated
-  [completion model][flush-model] is not connected to the producer. A private
+  [completion model][flush-model] is not connected to the producer. A gated
+  [draft comparison][flush-barrier-public] waited for the retry handoff but
+  still lost a worker error when a flush waiter was canceled. A proposed
+  [ownership design][owner-design] is not yet implemented. A private
   [sequence control][sequence-cancel] closed receipts after an artificial
   owner was dropped while the reserved counter stayed advanced; it did not
   execute the public producer or Kafka I/O.
@@ -152,8 +161,12 @@ pass does not replace the full release matrix.
   A [modeled cancellation overlap][fetch-overlap] retained two 4,096-byte
   inputs under a 4,160-byte configured admission ceiling; it did not measure
   process RSS. The [admission repair][admission] keeps data permits with
-  actor-owned requests and unconsumed replies. Vector capacity, supplied spares,
-  caches and process RSS remain outside the logical payload budget. An earlier
+  actor-owned requests and unconsumed replies. An unmerged [capacity
+  candidate][data-capacity] checks request and scratch capacity before enqueue,
+  but its combined broker suites failed Raft tests. A scoped 256 MiB spare
+  disposal took a 16.134 ms median in the caller's first poll. Supplied
+  allocations can overlap during normalization; caches, response capacity and
+  process RSS remain outside the logical payload budget. An earlier
   default transport test failure remains unexplained. Earlier Raft failures
   remain open. The [journal repair][journal-repair]
   pins inode identities through ownership and staged syncs; it adds file
@@ -184,7 +197,7 @@ The [support matrix](support.md) describes configured coverage, and the
 
 [ci]: https://github.com/mingley/partitionline/blob/f93e91499e2ba6bdc88c0a25a0d83b8737d00d3c/docs/evidence/releases/main-ci-1036-20261108/README.md
 [previous-ci]: https://github.com/mingley/partitionline/blob/7ebb3cc81adc695cc4c74409a87a1a1dd4be9730/docs/evidence/releases/main-ci-ba8-20261108/README.md
-[next]: https://github.com/mingley/partitionline/blob/932a7835939034c730b92a12f867cf7c945320ba/docs/plan/next-work.md
+[next]: https://github.com/mingley/partitionline/blob/3f90b40023905561548017f8ac21b063a63e8808/docs/plan/next-work.md
 [previous]: https://github.com/mingley/partitionline/blob/5c2a000639d9a8a7dccd56e8c1d6f3a58dca1601/docs/STATUS.md
 [flush]: https://github.com/mingley/partitionline/blob/e980829c439aa43edc01312c91838e58a412221a/docs/evidence/client/producer-flush-native-86f2-20261103/README.md
 [txn]: https://github.com/mingley/partitionline/blob/49ad56c6bce1366e2357c272f11c5c34160d60da/docs/evidence/client/add-partitions-native-4f0c-20261103/README.md
@@ -226,6 +239,11 @@ The [support matrix](support.md) describes configured coverage, and the
 [ack-rejected]: https://github.com/mingley/partitionline/blob/932a7835939034c730b92a12f867cf7c945320ba/docs/evidence/client/ack-matched-rejected-20261108/README.md
 [observer-diag]: https://github.com/mingley/partitionline/blob/932a7835939034c730b92a12f867cf7c945320ba/docs/evidence/broker/observer-image-diagnostic-20261108/README.md
 [sequence-cancel]: https://github.com/mingley/partitionline/blob/932a7835939034c730b92a12f867cf7c945320ba/docs/evidence/client/producer-sequence-cancel-20261108/README.md
-[ci-440-client]: https://github.com/mingley/partitionline/actions/runs/42459181316
-[ci-440-broker]: https://github.com/mingley/partitionline/actions/runs/42459181380
-[ci-440-capabilities]: https://github.com/mingley/partitionline/actions/runs/42459181276
+
+[ci-440]: https://github.com/mingley/partitionline/blob/3f90b40023905561548017f8ac21b063a63e8808/docs/evidence/releases/main-ci-440-20261108/README.md
+[ci-f092-broker]: https://github.com/mingley/partitionline/actions/runs/42460194861
+[ci-f092-capabilities]: https://github.com/mingley/partitionline/actions/runs/42460194888
+[ci-f092-client]: https://github.com/mingley/partitionline/actions/runs/42460194939
+[owner-design]: https://github.com/mingley/partitionline/blob/3f90b40023905561548017f8ac21b063a63e8808/docs/evidence/client/producer-ownership-design-20261108/README.md
+[flush-barrier-public]: https://github.com/mingley/partitionline/blob/3f90b40023905561548017f8ac21b063a63e8808/docs/evidence/client/producer-flush-barrier-public-20261108/README.md
+[data-capacity]: https://github.com/mingley/partitionline/blob/3f90b40023905561548017f8ac21b063a63e8808/docs/evidence/broker/data-buffer-capacity-20261108/README.md
