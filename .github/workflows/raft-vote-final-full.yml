@@ -1,0 +1,81 @@
+name: Raft vote final full broker qualification
+on:
+  push:
+    branches: [qualification/raft-vote-final-full-20261108]
+permissions:
+  contents: read
+jobs:
+  broker-tests:
+    name: broker tests ${{ matrix.profile }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        profile: [default, all-features]
+    env:
+      CARGO_TARGET_DIR: target/broker-ci/stable
+      CARGO_BUILD_JOBS: '2'
+      CARGO_INCREMENTAL: '0'
+      CARGO_TERM_COLOR: never
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Verify exact candidate source
+        run: |
+          set -euo pipefail
+          git rev-parse HEAD
+          test "$(git rev-parse HEAD:partitionline-broker/src/raft/runtime.rs)" = d8fec08072b9128bbcb9623dfdf267212689d63d
+          git rev-parse HEAD:partitionline-broker/src/raft/runtime.rs
+          rustc --version
+          openssl version
+      - name: Locked default profile, all targets
+        if: matrix.profile == 'default'
+        run: cargo test --locked --manifest-path partitionline-broker/Cargo.toml --all-targets
+      - name: Locked all-features profile, all targets
+        if: matrix.profile == 'all-features'
+        run: cargo test --locked --manifest-path partitionline-broker/Cargo.toml --all-targets --all-features
+  broker-clippy:
+    name: broker strict all-target all-feature clippy
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      CARGO_TARGET_DIR: target/broker-ci/stable
+      CARGO_BUILD_JOBS: '2'
+      CARGO_INCREMENTAL: '0'
+      CARGO_TERM_COLOR: never
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - name: Verify exact candidate and format
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD:partitionline-broker/src/raft/runtime.rs)" = d8fec08072b9128bbcb9623dfdf267212689d63d
+          cargo fmt --manifest-path partitionline-broker/Cargo.toml -- --check
+      - name: Strict all-target all-feature clippy
+        run: cargo clippy --locked --manifest-path partitionline-broker/Cargo.toml --all-targets --all-features -- -D warnings
+  broker-docs:
+    name: broker strict rustdoc and doctests
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      CARGO_TARGET_DIR: target/broker-ci/stable
+      CARGO_BUILD_JOBS: '2'
+      CARGO_INCREMENTAL: '0'
+      CARGO_TERM_COLOR: never
+      RUSTDOCFLAGS: -D warnings
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Verify exact candidate source
+        run: test "$(git rev-parse HEAD:partitionline-broker/src/raft/runtime.rs)" = d8fec08072b9128bbcb9623dfdf267212689d63d
+      - name: Strict all-feature Rustdoc
+        run: cargo doc --locked --manifest-path partitionline-broker/Cargo.toml --all-features --no-deps
+      - name: Strict default-feature doctests
+        if: always()
+        run: cargo test --locked --manifest-path partitionline-broker/Cargo.toml --doc
+      - name: Strict all-feature doctests
+        if: always()
+        run: cargo test --locked --manifest-path partitionline-broker/Cargo.toml --doc --all-features
