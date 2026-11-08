@@ -57,7 +57,7 @@ jobs:
             test "$(git rev-parse "$base:src/producer.rs")" = 1e7733c136e54b532cdc8bddabd1e0c828e50ed2
             test "$(git rev-parse HEAD:src/producer.rs)" = f0dfd6f1834092aa89ad152274e7a39991cbda4e
             test "$(git rev-parse HEAD:tests/common/mod.rs)" = 9d14334cf587b774701692547fdbdfd64bd399a1
-            test "$(git rev-parse HEAD:tests/public_flush_barrier.rs)" = 644badc82eaa1863dc703d23a56dfca5e221ffc1
+            test "$(git rev-parse HEAD:tests/public_flush_barrier.rs)" = d06c664b50375b6dca23bee3007bdec768fa6379
             test "$(git rev-parse HEAD:tests/public_flush_retirement.rs)" = 98bf92a75f599eb3c1285f960fba8a341ccb553b
             test "$(git rev-parse HEAD:Cargo.lock)" = d1cb698aaaf7554fe904ba02d671c4a8ab4975b3
             test "$(git rev-parse "$base:tests/common/mod.rs")" = 9a995292044c527ae2c2a17eca09b9f947bb12ed
@@ -81,7 +81,7 @@ jobs:
           for mode in default all-features; do
             extra=()
             if [ "$mode" = all-features ]; then extra+=(--all-features); fi
-            for case in overlapping_flushes_wait_for_accepted_record later_record_has_independent_completion flush_deadline_does_not_finish_record; do
+            for case in overlapping_flushes_wait_for_accepted_record later_record_has_independent_completion flush_deadline_does_not_finish_record blocked_callback_keeps_flush_and_receipt_pending; do
               log="$evidence/$mode-$case.log"
               timeout 600 cargo +stable test --locked "${extra[@]}" --test public_flush_barrier "$case" -- --exact --nocapture --test-threads=1 2>&1 | tee "$log"
               grep -F 'test result: ok. 1 passed; 0 failed;' "$log"
