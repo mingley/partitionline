@@ -1,0 +1,137 @@
+name: Raft vote admission liveness controls
+on:
+  push:
+    branches: [qualification/raft-vote-admission-evidence-20261108]
+permissions:
+  contents: read
+jobs:
+  fresh-controls:
+    strategy:
+      fail-fast: false
+      matrix:
+        control: [queue-hook-control, no-capture-single-core, capture-single-core]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      CARGO_INCREMENTAL: "0"
+      CARGO_BUILD_JOBS: "2"
+      CARGO_TERM_COLOR: never
+      CARGO_PROFILE_DEV_DEBUG: "0"
+      CARGO_PROFILE_TEST_DEBUG: "0"
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 2
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Run real-channel diagnostic control and fresh clusters
+        shell: bash
+        env:
+          CONTROL: ${{ matrix.control }}
+        run: |
+          set -euo pipefail
+          test "$(uname -m)" = x86_64
+          test "$(git rev-parse HEAD^)" = cf93521a6ebee95c6ec056684716403ce60a21bb
+          test "$(git hash-object partitionline-broker/src/raft/runtime.rs)" = f917ce765a5583e55b7d361629394e6ed4d44003
+          root="$RUNNER_TEMP/raft-vote-diag/$CONTROL"
+          mkdir -p "$root"
+          rustc +stable --version --verbose | tee "$root/rust.txt"
+          uname -a | tee "$root/uname.txt"
+          python3 -c 'import os; print("allowed_cpus", sorted(os.sched_getaffinity(0)))' | tee "$root/affinity.txt"
+          cpu="$(python3 -c 'import os; print(min(os.sched_getaffinity(0)))')"
+          case "$CONTROL" in
+            queue-hook-control) attempts=1 ;;
+            no-capture-single-core) attempts=5 ;;
+            capture-single-core) attempts=5 ;;
+            *) exit 2 ;;
+          esac
+          unset PL_PEER_RUNTIME_CAPTURE_DIR PL_PEER_RUNTIME_SOURCE_SHA
+          failures=0
+          for attempt in $(seq 1 "$attempts"); do
+            dir="$root/attempt-$attempt"
+            mkdir -p "$dir/tmp" "$dir/capture"
+            printf 'VOTE_DIAG_START control=%s attempt=%s cpu=%s\n' "$CONTROL" "$attempt" "$cpu" | tee -a "$root/status.txt"
+            set +e
+            if [[ "$CONTROL" = queue-hook-control ]]; then
+              TMPDIR="$dir/tmp" PL_PEER_RUNTIME_CAPTURE_DIR="$dir/capture" PL_PEER_RUNTIME_SOURCE_SHA=cf93521a6ebee95c6ec056684716403ce60a21bb timeout 180s taskset -c "$cpu" cargo +stable test --locked --manifest-path partitionline-broker/Cargo.toml --all-features --lib raft::runtime::ownership_tests::vote_queue_diagnostics_distinguish_admission_outcomes -- --exact --ignored --nocapture --test-threads=1 >"$dir/test.log" 2>&1
+            elif [[ "$CONTROL" = no-capture-single-core ]]; then
+              TMPDIR="$dir/tmp" timeout 180s taskset -c "$cpu" cargo +stable test --locked --manifest-path partitionline-broker/Cargo.toml --all-features --lib raft::runtime::tests::actual_five_node_tcp_minority_partition_late_ack_image_restart_and_removal -- --exact --nocapture --test-threads=1 >"$dir/test.log" 2>&1
+            else
+              TMPDIR="$dir/tmp" PL_PEER_RUNTIME_CAPTURE_DIR="$dir/capture" PL_PEER_RUNTIME_SOURCE_SHA=cf93521a6ebee95c6ec056684716403ce60a21bb timeout 180s taskset -c "$cpu" cargo +stable test --locked --manifest-path partitionline-broker/Cargo.toml --all-features --lib raft::runtime::tests::actual_five_node_tcp_minority_partition_late_ack_image_restart_and_removal -- --exact --nocapture --test-threads=1 >"$dir/test.log" 2>&1
+            fi
+            status=$?
+            set -e
+            printf 'VOTE_DIAG_RESULT control=%s attempt=%s status=%s\n' "$CONTROL" "$attempt" "$status" | tee -a "$root/status.txt"
+            grep -E 'PL_DELAYED_APPEND|test result:|^Error:|panicked|FAILED|error: test failed|vote diagnostic' "$dir/test.log" || true
+            if [[ "$status" != 0 ]]; then
+              failures=$((failures + 1))
+              cat "$dir/test.log"
+            fi
+          done
+          printf 'VOTE_DIAG_TOTAL control=%s failures=%s attempts=%s\n' "$CONTROL" "$failures" "$attempts" | tee -a "$root/status.txt"
+          if (( failures > 0 )); then exit 1; fi
+      - name: Summarize admission, transport and owner observations
+        if: always()
+        shell: bash
+        env:
+          CONTROL: ${{ matrix.control }}
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from collections import Counter
+          from pathlib import Path
+          import json
+          import os
+          root = Path(os.environ["RUNNER_TEMP"]) / "raft-vote-diag" / os.environ["CONTROL"]
+          for path in sorted(root.rglob("vote-network.jsonl")):
+              rows = []
+              bad = 0
+              for line in path.read_text(errors="replace").splitlines():
+                  try:
+                      rows.append(json.loads(line))
+                  except json.JSONDecodeError:
+                      bad += 1
+              events = Counter(r.get("event") for r in rows)
+              keys = {}
+              for r in rows:
+                  key = (r.get("pid"), r.get("local"), r.get("peer"), r.get("term"), r.get("sequence"))
+                  keys.setdefault(key, []).append(r.get("event"))
+              print("VOTE_NETWORK_SUMMARY", json.dumps({"path": str(path.relative_to(root)), "records": len(rows), "bad_lines": bad, "events": dict(events), "unique_correlations": len(keys), "clock": "process-local clock_us; same epoch as that process owner.jsonl"}, sort_keys=True))
+              for key, stages in list(keys.items())[-12:]:
+                  print("VOTE_NETWORK_TAIL", json.dumps({"correlation": key, "stages": stages}))
+          for path in sorted(root.rglob("owner.jsonl")):
+              rows = []
+              for line in path.read_text(errors="replace").splitlines():
+                  try:
+                      rows.append(json.loads(line))
+                  except json.JSONDecodeError:
+                      pass
+              if not rows:
+                  continue
+              meta = rows[0]
+              events = [r for r in rows[1:] if "command" in r]
+              counts = Counter((r.get("command"), (r.get("input") or {}).get("kind")) for r in events)
+              generated = Counter(p.get("kind") for r in events for p in r.get("typed_output", []))
+              terms = [r.get("term") for r in events if isinstance(r.get("term"), int)]
+              print("VOTE_OWNER_SUMMARY", json.dumps({"path": str(path.relative_to(root)), "node": meta.get("local_id"), "pid": meta.get("pid"), "events": len(events), "term_max": max(terms) if terms else None, "commands": {str(k): v for k, v in counts.items()}, "generated_kinds": dict(generated)}, sort_keys=True))
+          for capture in sorted(root.glob("attempt-*/capture")):
+              counts = Counter()
+              for path in capture.rglob("*.forward.json"):
+                  try:
+                      row = json.loads(path.read_text())
+                  except (OSError, json.JSONDecodeError):
+                      continue
+                  counts[(row.get("kind"), row.get("disposition"))] += 1
+              print("VOTE_PROXY_SUMMARY", json.dumps({"path": str(capture.relative_to(root)), "counts": {str(k): v for k, v in counts.items()}, "clock": "parent proxy process; do not compare numerically with owner clock"}, sort_keys=True))
+          for path in sorted(root.rglob("*.log")):
+              for line in path.read_text(errors="replace").splitlines():
+                  if "vote diagnostic " in line:
+                      print("VOTE_DIAG_WARNING", str(path.relative_to(root)), line)
+          PY
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: raft-vote-diag-${{ matrix.control }}-${{ github.sha }}
+          path: ${{ runner.temp }}/raft-vote-diag
+          if-no-files-found: warn
+          retention-days: 30
