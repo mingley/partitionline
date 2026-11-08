@@ -149,6 +149,60 @@ cleanup are settled, and a canceled flush must not consume a failure.
 Transaction-generation fencing remains separate from that cursor. See the
 [independent flush review](../producer-flush-review-20261108/README.md).
 
+## Receiver lifetime and possible slot ownership
+
+A reserved channel permit is not proof that a cleanup worker is alive.
+[Run 42449432639](https://github.com/mingley/partitionline/actions/runs/42449432639)
+tested the repository's locked Tokio 1.53.3 on x86_64 with stable Rust 1.99.1.
+When the receiver was closed but retained, an already reserved
+`OwnedPermit` sent a value and that receiver drained it. When the receiver
+was dropped first, `send` still returned a closed sender without a delivery
+error; the tracked value was destroyed by the time that final sender was
+dropped. The test does not identify which of those two operations destroyed
+the value. Both controls passed in default and all-feature builds. These are
+channel tests, not producer or broker tests.
+
+The [test source](https://github.com/mingley/partitionline/blob/50eed7b7445c1c1fec4523e3ad480cd253088f7b/tests/owned_permit_closed_witness.rs)
+has SHA-256
+`50bee13d6104a7e9e4bdac75b46f1ab7824901da8bada156a58dbfd1697cf146`;
+`Cargo.lock` has SHA-256
+`bdc37c48feb0d7a17a1b08e70c5301ec30b9a90e64c93adaf28aef6b6f9f46bc`.
+[Run 42449260787](https://github.com/mingley/partitionline/actions/runs/42449260787)
+failed before tests because the new integration test lacked a crate comment;
+the later passing run includes that correction and a bounded receive.
+
+A possible design to investigate is a preallocated registry with one
+generation-checked slot per reserved record and a separately rooted
+supervisor. A failed batch would transfer its vector into a slot reserved by
+one member; the supervisor would settle it independently of the dropping
+runtime thread. This is a design sketch, not a proven or implemented fix:
+
+- The root must survive while admission is open or any pre-admission
+  reservation, accepted record, ready slot, callback or outcome remains.
+  Tokens and producer ingress need weak references back to the registry.
+  Otherwise a queued oneshot's waker can retain a task and Producer, forming
+  `registry -> job -> sender -> waker -> task -> Producer -> registry`.
+  User-provided callbacks can create additional cycles themselves.
+- A slot cannot be reused until its batch finishes; its generation must not
+  wrap. Every queued batch must own at least one distinct live token.
+  Supervisor failure, restart, slot publication, and exhausted capacity need
+  explicit fail-closed behavior. A reserved slot or a bounded queue alone
+  does not prove nonblocking submission or worker liveness.
+- Count pre-admission reservations in the bound and lifetime, or acquire a
+  worker permit, *try* a record slot, and release that worker permit before
+  any wait if the slot is unavailable. Retries retain their existing token.
+  An externally held, unpolled future can otherwise retain capacity past close.
+- Failure of a sequenced sticky cohort needs a fence that linearizes with
+  retry and fire handoffs. Deferring the current policy update alone permits a
+  retry to pass its cancellation check first. Transaction failure publication
+  must remain separately generation-scoped.
+- A standard cleanup thread changes the callback's Tokio runtime and
+  task-local context. Current `Inner::drop` also invokes interceptor
+  `close` and notification wakers synchronously. Preserving callback order,
+  context and shutdown semantics needs an explicit contract; catching a panic
+  from a missing runtime is not equivalent to running the callback. Bound
+  process-wide workers and retained records, including timed-out closes.
+
 ## Required controls
 
 Test unpolled and partially polled cancellation, every handoff and retry,
