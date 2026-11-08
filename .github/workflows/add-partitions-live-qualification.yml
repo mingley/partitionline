@@ -129,14 +129,15 @@ jobs:
       CARGO_PROFILE_DEV_DEBUG: '0'
       CARGO_PROFILE_TEST_DEBUG: '0'
       CARGO_TERM_COLOR: never
-      CARGO_TARGET_DIR: ${{ runner.temp }}/add-partitions-live-target
-      EVIDENCE_OUTPUT: ${{ runner.temp }}/add-partitions-live-evidence
       PYTHONDONTWRITEBYTECODE: '1'
     steps:
       - name: Initialize evidence and check runner
         shell: bash
         run: |
           set -euo pipefail
+          export EVIDENCE_OUTPUT="$RUNNER_TEMP/add-partitions-live-evidence"
+          export CARGO_TARGET_DIR="$RUNNER_TEMP/add-partitions-live-target"
+          printf 'EVIDENCE_OUTPUT=%s\nCARGO_TARGET_DIR=%s\n' "$EVIDENCE_OUTPUT" "$CARGO_TARGET_DIR" >> "$GITHUB_ENV"
           mkdir -p "$EVIDENCE_OUTPUT"
           printf 'trigger_sha=%s\nrun_id=%s\nrun_attempt=%s\nrunner_arch=%s\n' \
             "$GITHUB_SHA" "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT" "$RUNNER_ARCH" | tee "$EVIDENCE_OUTPUT/trigger.txt"
