@@ -1002,22 +1002,34 @@ enum IdleRead {
 ///
 /// Shutdown only closes the write half. A peer blocked in its own write stays
 /// there until those bytes are read or the socket is dropped.
-async fn discard_peer_write(stream: &tokio::sync::Mutex<ConnIo>, arm: &tokio::sync::Notify) {
+async fn discard_peer_write(
+    stream: &tokio::sync::Mutex<ConnIo>,
+    arm: &tokio::sync::Notify,
+    physical_retire: &AtomicBool,
+) {
     let mut discard = [0u8; 8 * 1024];
     loop {
-        let seen = poll_fn(|cx| {
-            let Ok(mut io) = stream.try_lock() else {
-                return Poll::Ready(IdleRead::Busy);
-            };
-            let mut read = ReadBuf::new(&mut discard);
-            match Pin::new(&mut *io).poll_read(cx, &mut read) {
-                Poll::Pending => Poll::Pending,
-                Poll::Ready(Err(_)) => Poll::Ready(IdleRead::Eof),
-                Poll::Ready(Ok(())) if read.filled().is_empty() => Poll::Ready(IdleRead::Eof),
-                Poll::Ready(Ok(())) => Poll::Ready(IdleRead::Data(read.filled().len())),
-            }
-        })
-        .await;
+        if physical_retire.load(Ordering::SeqCst) {
+            let mut io = stream.lock().await;
+            *io = ConnIo::Closed;
+            return;
+        }
+        let seen = tokio::select! {
+            biased;
+            _ = arm.notified() => continue,
+            seen = poll_fn(|cx| {
+                let Ok(mut io) = stream.try_lock() else {
+                    return Poll::Ready(IdleRead::Busy);
+                };
+                let mut read = ReadBuf::new(&mut discard);
+                match Pin::new(&mut *io).poll_read(cx, &mut read) {
+                    Poll::Pending => Poll::Pending,
+                    Poll::Ready(Err(_)) => Poll::Ready(IdleRead::Eof),
+                    Poll::Ready(Ok(())) if read.filled().is_empty() => Poll::Ready(IdleRead::Eof),
+                    Poll::Ready(Ok(())) => Poll::Ready(IdleRead::Data(read.filled().len())),
+                }
+            }) => seen,
+        };
         match seen {
             IdleRead::Busy => {
                 tokio::select! {
@@ -1032,6 +1044,38 @@ async fn discard_peer_write(stream: &tokio::sync::Mutex<ConnIo>, arm: &tokio::sy
     }
 }
 
+/// Finish a requested physical close when the watcher is canceled or dropped.
+/// The guarded watcher future is dropped first, so its stream guard is released.
+struct RetireSocketOnDrop {
+    stream: Arc<tokio::sync::Mutex<ConnIo>>,
+    physical_retire: Arc<AtomicBool>,
+}
+
+impl Drop for RetireSocketOnDrop {
+    fn drop(&mut self) {
+        if !self.physical_retire.load(Ordering::SeqCst) {
+            return;
+        }
+        if let Ok(mut io) = self.stream.try_lock() {
+            *io = ConnIo::Closed;
+        }
+    }
+}
+
+async fn guard_idle_watch<F>(
+    stream: Arc<tokio::sync::Mutex<ConnIo>>,
+    physical_retire: Arc<AtomicBool>,
+    watch: F,
+) where
+    F: Future<Output = ()>,
+{
+    let _retire = RetireSocketOnDrop {
+        stream,
+        physical_retire,
+    };
+    watch.await;
+}
+
 /// Notice a broker that stops writing while the owner is not reading.
 ///
 /// The owner holds the stream lock for the whole read or write, so this
@@ -1042,9 +1086,12 @@ fn spawn_idle_watch(
     stream: Arc<tokio::sync::Mutex<ConnIo>>,
     prefetch: Arc<parking_lot::Mutex<BytesMut>>,
     closed: Arc<AtomicBool>,
+    physical_retire: Arc<AtomicBool>,
     arm: Arc<tokio::sync::Notify>,
 ) -> tokio::task::AbortHandle {
-    tokio::spawn(async move {
+    let cleanup_stream = Arc::clone(&stream);
+    let cleanup_retire = Arc::clone(&physical_retire);
+    let watch = async move {
         let mut buf = [0u8; 1024];
         // Yield often enough that a ready flood cannot hold the runtime, and
         // rarely enough that a full unsolicited frame still reaches its cap.
@@ -1054,6 +1101,12 @@ fn spawn_idle_watch(
         let mut scanned = 0usize;
         loop {
             if closed.load(Ordering::SeqCst) {
+                if physical_retire.load(Ordering::SeqCst) {
+                    let mut io = stream.lock().await;
+                    *io = ConnIo::Closed;
+                    arm.notify_one();
+                    return;
+                }
                 if let Ok(mut io) = stream.try_lock() {
                     drop(poll_fn(|cx| io.poll_terminal_shutdown(cx)).await);
                     if matches!(&*io, ConnIo::Tls(_) | ConnIo::Closed) {
@@ -1067,7 +1120,7 @@ fn spawn_idle_watch(
                     // shutdown.
                     drop(io);
                     arm.notify_one();
-                    discard_peer_write(&stream, &arm).await;
+                    discard_peer_write(&stream, &arm, &physical_retire).await;
                     return;
                 }
                 // The owner still holds the socket. Leaving now would drop
@@ -1147,7 +1200,7 @@ fn spawn_idle_watch(
                                         }
                                         drop(io);
                                         arm.notify_one();
-                                        discard_peer_write(&stream, &arm).await;
+                                        discard_peer_write(&stream, &arm, &physical_retire).await;
                                     }
                                     arm.notify_one();
                                     return;
@@ -1192,8 +1245,8 @@ fn spawn_idle_watch(
                 }
             }
         }
-    })
-    .abort_handle()
+    };
+    tokio::spawn(guard_idle_watch(cleanup_stream, cleanup_retire, watch)).abort_handle()
 }
 
 /// One TCP or TLS connection to a Kafka broker.
@@ -1203,6 +1256,8 @@ pub struct BrokerConn {
     prefetch: Arc<parking_lot::Mutex<BytesMut>>,
     /// Stops the idle watch when this connection is dropped.
     idle_watch: tokio::task::AbortHandle,
+    /// Requests physical closure by the watcher if the stream is locked.
+    physical_retire: Arc<AtomicBool>,
     /// Wakes the idle watch after a request releases the stream.
     idle_arm: Arc<tokio::sync::Notify>,
     read_buf: BytesMut,
@@ -1428,17 +1483,20 @@ impl BrokerConn {
         let stream = Arc::new(tokio::sync::Mutex::new(stream));
         let prefetch = Arc::new(parking_lot::Mutex::new(BytesMut::new()));
         let closed = Arc::new(AtomicBool::new(false));
+        let physical_retire = Arc::new(AtomicBool::new(false));
         let idle_arm = Arc::new(tokio::sync::Notify::new());
         let idle_watch = spawn_idle_watch(
             Arc::clone(&stream),
             Arc::clone(&prefetch),
             Arc::clone(&closed),
+            Arc::clone(&physical_retire),
             Arc::clone(&idle_arm),
         );
         Ok(Self {
             stream,
             prefetch,
             idle_watch,
+            physical_retire,
             idle_arm,
             read_buf: BytesMut::with_capacity(8 * 1024),
             write_buf: BytesMut::with_capacity(16 * 1024),
@@ -1486,6 +1544,7 @@ impl BrokerConn {
         })));
         let prefetch = Arc::new(parking_lot::Mutex::new(BytesMut::new()));
         let closed = Arc::new(AtomicBool::new(false));
+        let physical_retire = Arc::new(AtomicBool::new(false));
         let idle_arm = Arc::new(tokio::sync::Notify::new());
         let parked = tokio::spawn(std::future::pending::<()>());
         let idle_watch = parked.abort_handle();
@@ -1494,6 +1553,7 @@ impl BrokerConn {
             stream,
             prefetch,
             idle_watch,
+            physical_retire,
             idle_arm,
             read_buf: BytesMut::with_capacity(8 * 1024),
             write_buf: BytesMut::with_capacity(16 * 1024),
@@ -1679,6 +1739,56 @@ impl BrokerConn {
         }
         self.release_if_closed().await;
         Err(Error::Closed)
+    }
+
+    /// Request physical retirement. If another task owns the stream, the idle
+    /// watcher finishes retirement when that task releases the mutex.
+    pub(crate) fn try_retire_physical(&mut self) -> bool {
+        self.physical_retire.store(true, Ordering::SeqCst);
+        self.close();
+        let stream = Arc::clone(&self.stream);
+        let retired = match stream.try_lock() {
+            Ok(mut io) => {
+                *io = ConnIo::Closed;
+                true
+            }
+            Err(_) => false,
+        };
+        if retired {
+            self.idle_watch.abort();
+        }
+        retired
+    }
+
+    #[cfg(test)]
+    pub(crate) fn physically_retired_for_test(&self) -> bool {
+        self.stream
+            .try_lock()
+            .is_ok_and(|io| matches!(&*io, ConnIo::Closed))
+    }
+
+    /// Retire before opening a replacement, within the operation deadline.
+    /// A canceled or timed-out attempt leaves the slot closed and its watcher
+    /// responsible for physical retirement.
+    pub(crate) async fn retire_physical_deadline(&mut self, deadline: Deadline) -> Result<()> {
+        let retired = self.try_retire_physical();
+        deadline.check_expired()?;
+        if retired {
+            return Ok(());
+        }
+        let stream = Arc::clone(&self.stream);
+        // If the watcher hands its permit to this waiter and then exits,
+        // cancellation must release the waiter before trying the final close.
+        let _cleanup = RetireSocketOnDrop {
+            stream: Arc::clone(&stream),
+            physical_retire: Arc::clone(&self.physical_retire),
+        };
+        let mut io = timeout_at(deadline.target(), stream.lock())
+            .await
+            .map_err(|_| Error::Timeout)?;
+        *io = ConnIo::Closed;
+        self.idle_watch.abort();
+        deadline.check_expired()
     }
 
     /// Shut down a connection that is already marked closed.
@@ -3272,6 +3382,361 @@ mod tests {
     use tokio::io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt, ReadBuf};
     use tokio::net::TcpListener;
 
+    async fn assert_retired_peer(peer: &mut tokio::net::TcpStream) {
+        let mut byte = [0u8; 1];
+        let result = tokio::time::timeout(Duration::from_secs(2), peer.read(&mut byte))
+            .await
+            .expect("peer did not observe retirement");
+        match result {
+            Ok(0) => {}
+            Err(error) if error.kind() == std::io::ErrorKind::ConnectionReset => {}
+            other => panic!("expected EOF or a reset, got {other:?}"),
+        }
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn physical_retirement_timeout_keeps_a_closed_retryable_slot() {
+        let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap().to_string();
+        let mut conn = BrokerConn::connect(&addr, "retire-timeout", Duration::from_secs(2))
+            .await
+            .unwrap();
+        let (mut peer, _) = listener.accept().await.unwrap();
+        let shared = Arc::clone(&conn.stream);
+        let held = shared.lock().await;
+
+        let result = conn
+            .retire_physical_deadline(Deadline::from_timeout(Duration::from_millis(50)))
+            .await;
+        assert!(matches!(result, Err(Error::Timeout)));
+        assert!(conn.is_closed());
+        drop(held);
+        assert_retired_peer(&mut peer).await;
+        assert!(conn.is_closed(), "the abandoned slot must remain closed");
+
+        conn.retire_physical_deadline(Deadline::from_timeout(Duration::from_secs(2)))
+            .await
+            .unwrap();
+        assert_retired_peer(&mut peer).await;
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn cancelling_physical_retirement_keeps_a_closed_retryable_slot() {
+        use std::future::Future;
+
+        let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap().to_string();
+        let mut conn = BrokerConn::connect(&addr, "retire-cancel", Duration::from_secs(2))
+            .await
+            .unwrap();
+        let (mut peer, _) = listener.accept().await.unwrap();
+        let shared = Arc::clone(&conn.stream);
+        let held = shared.lock().await;
+
+        let mut retiring =
+            Box::pin(conn.retire_physical_deadline(Deadline::from_timeout(Duration::from_secs(2))));
+        let first = std::future::poll_fn(|cx| Poll::Ready(retiring.as_mut().poll(cx))).await;
+        assert!(
+            first.is_pending(),
+            "retirement should wait for the held lock"
+        );
+        drop(retiring);
+        assert!(conn.is_closed());
+        drop(held);
+        assert_retired_peer(&mut peer).await;
+        assert!(conn.is_closed(), "the abandoned slot must remain closed");
+
+        conn.retire_physical_deadline(Deadline::from_timeout(Duration::from_secs(2)))
+            .await
+            .unwrap();
+        assert_retired_peer(&mut peer).await;
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn repeated_physical_retirement_outside_runtime_needs_no_cleanup_task() {
+        let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap().to_string();
+        let conn = BrokerConn::connect(&addr, "retire-outside-runtime", Duration::from_secs(2))
+            .await
+            .unwrap();
+        let (mut peer, _) = listener.accept().await.unwrap();
+        let shared = Arc::clone(&conn.stream);
+        let held = shared.lock().await;
+        let worker = std::thread::spawn(move || {
+            assert!(tokio::runtime::Handle::try_current().is_err());
+            let mut conn = conn;
+            for _ in 0..100 {
+                assert!(!conn.try_retire_physical());
+            }
+            conn
+        });
+        let conn = worker.join().unwrap();
+        assert!(conn.is_closed());
+        drop(held);
+        assert_retired_peer(&mut peer).await;
+        assert!(conn.is_closed());
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn canceled_queued_stream_waiter_finishes_retirement() {
+        use std::future::Future;
+
+        let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap().to_string();
+        let mut conn = BrokerConn::connect(&addr, "retire-waiter-cancel", Duration::from_secs(2))
+            .await
+            .unwrap();
+        let (mut peer, _) = listener.accept().await.unwrap();
+        let shared = Arc::clone(&conn.stream);
+        let held = shared.lock().await;
+        let mut waiting = Box::pin(shared.lock());
+        let first = std::future::poll_fn(|cx| Poll::Ready(waiting.as_mut().poll(cx))).await;
+        assert!(first.is_pending(), "the second lock must be queued");
+        assert!(!conn.try_retire_physical());
+        drop(held);
+        assert!(
+            shared.try_lock().is_err(),
+            "the queued waiter must hold the reserved permit"
+        );
+        drop(waiting);
+        assert_retired_peer(&mut peer).await;
+        assert!(conn.is_closed());
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn queued_stream_guard_handoff_finishes_retirement() {
+        use std::future::Future;
+
+        let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap().to_string();
+        let mut conn = BrokerConn::connect(&addr, "retire-waiter-guard", Duration::from_secs(2))
+            .await
+            .unwrap();
+        let (mut peer, _) = listener.accept().await.unwrap();
+        let shared = Arc::clone(&conn.stream);
+        let held = shared.lock().await;
+        let mut waiting = Box::pin(shared.lock());
+        let first = std::future::poll_fn(|cx| Poll::Ready(waiting.as_mut().poll(cx))).await;
+        assert!(first.is_pending(), "the second lock must be queued");
+        assert!(!conn.try_retire_physical());
+        drop(held);
+        assert!(
+            shared.try_lock().is_err(),
+            "the queued waiter must hold the reserved permit"
+        );
+        let next = tokio::time::timeout(Duration::from_secs(2), &mut waiting)
+            .await
+            .unwrap();
+        assert!(matches!(&*next, ConnIo::Tcp(_)));
+        drop(waiting);
+        drop(next);
+        assert_retired_peer(&mut peer).await;
+        assert!(conn.is_closed());
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn dropped_watcher_waiter_retires_a_reserved_stream() {
+        use std::future::Future;
+
+        let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap().to_string();
+        let client = TcpStream::connect(&addr).await.unwrap();
+        let (mut peer, _) = listener.accept().await.unwrap();
+        let stream = Arc::new(tokio::sync::Mutex::new(ConnIo::Tcp(client)));
+        let retirement = Arc::new(AtomicBool::new(false));
+        let held = stream.lock().await;
+        let watcher_stream = Arc::clone(&stream);
+        let watcher = async move {
+            let _io = watcher_stream.lock().await;
+            std::future::pending::<()>().await;
+        };
+        let mut watch = Box::pin(guard_idle_watch(
+            Arc::clone(&stream),
+            Arc::clone(&retirement),
+            watcher,
+        ));
+        let first = std::future::poll_fn(|cx| Poll::Ready(watch.as_mut().poll(cx))).await;
+        assert!(first.is_pending());
+        retirement.store(true, Ordering::SeqCst);
+        drop(held);
+        assert!(
+            stream.try_lock().is_err(),
+            "the waiter must reserve the permit"
+        );
+        drop(watch);
+        assert!(matches!(&*stream.try_lock().unwrap(), ConnIo::Closed));
+        assert_retired_peer(&mut peer).await;
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn dropping_owner_retires_a_stream_locked_by_its_watcher() {
+        let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap().to_string();
+        let mut conn = BrokerConn::connect(&addr, "retire-owner-drop", Duration::from_secs(2))
+            .await
+            .unwrap();
+        let (mut peer, _) = listener.accept().await.unwrap();
+        conn.idle_watch.abort();
+        tokio::time::timeout(Duration::from_secs(2), async {
+            while !conn.idle_watch.is_finished() {
+                tokio::task::yield_now().await;
+            }
+        })
+        .await
+        .unwrap();
+
+        let stream = Arc::clone(&conn.stream);
+        let watcher_stream = Arc::clone(&stream);
+        let retirement = Arc::clone(&conn.physical_retire);
+        let (held_tx, held_rx) = tokio::sync::oneshot::channel();
+        let watcher = async move {
+            let _io = watcher_stream.lock().await;
+            held_tx.send(()).unwrap();
+            std::future::pending::<()>().await;
+        };
+        let task = tokio::spawn(guard_idle_watch(Arc::clone(&stream), retirement, watcher));
+        conn.idle_watch = task.abort_handle();
+        held_rx.await.unwrap();
+        assert!(!conn.try_retire_physical());
+        drop(conn);
+        assert!(task.await.unwrap_err().is_cancelled());
+        assert!(matches!(&*stream.try_lock().unwrap(), ConnIo::Closed));
+        assert_retired_peer(&mut peer).await;
+    }
+
+    #[test]
+    fn runtime_shutdown_retires_a_stream_locked_by_its_watcher() {
+        use std::io::Read;
+
+        let runtime = tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build()
+            .unwrap();
+        let (stream, mut peer) = runtime.block_on(async {
+            let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+            let addr = listener.local_addr().unwrap().to_string();
+            let client = TcpStream::connect(&addr).await.unwrap();
+            let (peer, _) = listener.accept().await.unwrap();
+            let stream = Arc::new(tokio::sync::Mutex::new(ConnIo::Tcp(client)));
+            let watcher_stream = Arc::clone(&stream);
+            let retirement = Arc::new(AtomicBool::new(false));
+            let (held_tx, held_rx) = tokio::sync::oneshot::channel();
+            let watcher = async move {
+                let _io = watcher_stream.lock().await;
+                held_tx.send(()).unwrap();
+                std::future::pending::<()>().await;
+            };
+            let _task = tokio::spawn(guard_idle_watch(
+                Arc::clone(&stream),
+                Arc::clone(&retirement),
+                watcher,
+            ));
+            held_rx.await.unwrap();
+            assert!(stream.try_lock().is_err());
+            retirement.store(true, Ordering::SeqCst);
+            let peer = peer.into_std().unwrap();
+            peer.set_nonblocking(false).unwrap();
+            peer.set_read_timeout(Some(Duration::from_secs(2))).unwrap();
+            (stream, peer)
+        });
+        drop(runtime);
+        assert!(matches!(&*stream.try_lock().unwrap(), ConnIo::Closed));
+        let mut byte = [0u8; 1];
+        match peer.read(&mut byte) {
+            Ok(0) => {}
+            Err(error) if error.kind() == std::io::ErrorKind::ConnectionReset => {}
+            other => panic!("expected EOF or a reset after runtime shutdown, got {other:?}"),
+        }
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn retirement_wakes_a_watcher_already_draining_a_closed_socket() {
+        let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap().to_string();
+        let mut conn = BrokerConn::connect(&addr, "retire-draining", Duration::from_secs(2))
+            .await
+            .unwrap();
+        let (mut peer, _) = listener.accept().await.unwrap();
+        conn.close();
+        assert_retired_peer(&mut peer).await;
+        assert!(
+            !conn.idle_watch.is_finished(),
+            "watcher must still be draining"
+        );
+
+        let stream = Arc::clone(&conn.stream);
+        let held = stream.lock().await;
+        assert!(!conn.try_retire_physical());
+        drop(held);
+        tokio::time::timeout(Duration::from_secs(2), async {
+            loop {
+                if stream
+                    .try_lock()
+                    .is_ok_and(|io| matches!(&*io, ConnIo::Closed))
+                {
+                    break;
+                }
+                tokio::task::yield_now().await;
+            }
+        })
+        .await
+        .expect("the draining watcher did not retire the socket");
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn canceled_retirement_waiter_closes_after_watcher_drops() {
+        use std::future::Future;
+
+        let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap().to_string();
+        let mut conn = BrokerConn::connect(&addr, "retire-waiter-exit", Duration::from_secs(2))
+            .await
+            .unwrap();
+        let (mut peer, _) = listener.accept().await.unwrap();
+        conn.idle_watch.abort();
+        tokio::time::timeout(Duration::from_secs(2), async {
+            while !conn.idle_watch.is_finished() {
+                tokio::task::yield_now().await;
+            }
+        })
+        .await
+        .unwrap();
+        let stream = Arc::clone(&conn.stream);
+        let watcher_stream = Arc::clone(&stream);
+        let watcher = async move {
+            let _io = watcher_stream.lock().await;
+            std::future::pending::<()>().await;
+        };
+        let mut watch = Box::pin(guard_idle_watch(
+            Arc::clone(&stream),
+            Arc::clone(&conn.physical_retire),
+            watcher,
+        ));
+        let first = std::future::poll_fn(|cx| Poll::Ready(watch.as_mut().poll(cx))).await;
+        assert!(first.is_pending());
+        assert!(
+            stream.try_lock().is_err(),
+            "the watcher must hold the stream"
+        );
+
+        let mut retiring =
+            Box::pin(conn.retire_physical_deadline(Deadline::from_timeout(Duration::from_secs(2))));
+        let first = std::future::poll_fn(|cx| Poll::Ready(retiring.as_mut().poll(cx))).await;
+        assert!(
+            first.is_pending(),
+            "retirement must queue behind the watcher"
+        );
+        drop(watch);
+        assert!(
+            stream.try_lock().is_err(),
+            "the retirement waiter must hold the reserved permit"
+        );
+        drop(retiring);
+        assert!(conn.is_closed());
+        assert!(conn.physically_retired_for_test());
+        assert_retired_peer(&mut peer).await;
+    }
+
     #[tokio::test(flavor = "current_thread")]
     async fn cancelling_first_poll_of_large_frame_retires_connection() {
         use std::future::Future;
@@ -3353,6 +3818,7 @@ mod tests {
             Arc::clone(&stream),
             Arc::clone(&prefetch),
             Arc::clone(&closed),
+            Arc::new(AtomicBool::new(false)),
             Arc::clone(&arm),
         );
         let started = std::time::Instant::now();
@@ -3381,6 +3847,7 @@ mod tests {
             Arc::clone(&stream),
             Arc::clone(&prefetch),
             Arc::clone(&closed),
+            Arc::new(AtomicBool::new(false)),
             Arc::clone(&arm),
         );
         let started = std::time::Instant::now();
@@ -4497,7 +4964,13 @@ mod tests {
         let prefetch = Arc::new(parking_lot::Mutex::new(BytesMut::new()));
         let closed = Arc::new(AtomicBool::new(true));
         let arm = Arc::new(tokio::sync::Notify::new());
-        let watch = spawn_idle_watch(Arc::clone(&stream), prefetch, closed, arm);
+        let watch = spawn_idle_watch(
+            Arc::clone(&stream),
+            prefetch,
+            closed,
+            Arc::new(AtomicBool::new(false)),
+            arm,
+        );
         tokio::time::timeout(Duration::from_secs(1), async {
             while !watch.is_finished() {
                 tokio::task::yield_now().await;
