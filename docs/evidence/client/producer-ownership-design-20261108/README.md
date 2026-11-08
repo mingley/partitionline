@@ -53,7 +53,14 @@ public producer or broker failures:
   and wakes synchronously on the task performing the drop. Its polling
   fallback can miss a short deadline after completion.
 
+The baseline [close and close_timeout][close-source] return Ok for non-Timeout
+flush errors after shutdown. Propagating lost ownership from close would be an
+explicit public contract choice; it needs compatibility documentation and tests.
+
 ## Requirements for a repair
+
+The following slot and supervisor structure is one proposed design. Other
+implementations may satisfy the same ownership and lifecycle requirements.
 
 1. Give each accepted record a bounded, independently rooted owner for its
    immutable payload, receipt, byte reservation, sticky permit and completion
@@ -112,3 +119,4 @@ the standalone model or the private helper witnesses.
 [draft-run]: https://github.com/mingley/partitionline/actions/runs/42460005132
 [assignment]: https://github.com/mingley/partitionline/blob/1036a393eb85f23032b935bf86862b7e98e36e14/src/producer.rs#L10429
 [response]: https://github.com/mingley/partitionline/blob/1036a393eb85f23032b935bf86862b7e98e36e14/src/producer.rs#L8670
+[close-source]: https://github.com/mingley/partitionline/blob/1036a393eb85f23032b935bf86862b7e98e36e14/src/producer.rs#L4215
