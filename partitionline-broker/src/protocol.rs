@@ -187,7 +187,7 @@ pub enum Error {
     TrailingBytes,
     /// No handler is implemented for this API key.
     UnimplementedApi(i16),
-    /// Reservation of the fixed small response buffer failed.
+    /// A protocol buffer could not be allocated within its capacity limit.
     Allocation,
 }
 

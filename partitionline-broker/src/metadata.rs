@@ -159,7 +159,7 @@ impl Config {
 pub enum Error {
     /// Invalid local endpoint or resource bounds.
     InvalidConfig,
-    /// Bounded protocol parsing failed before mutation.
+    /// Protocol parsing or buffer allocation failed.
     Protocol(protocol::Error),
     /// API/version is outside this router's implemented range.
     UnsupportedVersion {
@@ -364,12 +364,14 @@ impl Router {
     /// Admission count times (maximum request plus response bytes) must fit
     /// `reads.max_retained_bytes()`, which defaults to 1 GiB. Data requests
     /// retain their permit while queued, processed, waiting or held in an
-    /// unconsumed reply. Limits use logical request and response lengths; a
-    /// `Vec` can have more capacity than its length. `Handler::exchange_request`
-    /// accepts a caller-supplied spare `Vec` without checking its size against
-    /// this budget. Actor-cached buffers, parser metadata, allocator overhead,
-    /// transport and caller ownership are separate; this is not a total process
-    /// memory bound.
+    /// unconsumed reply. Request capacity and retained scratch capacity are
+    /// checked against their respective maxima. A builder can still reserve
+    /// more capacity than its logical response length. A request copy may
+    /// temporarily overlap its caller-provided allocation and yield between
+    /// chunks. Allocation and deallocation may still block, and yielding does
+    /// not guarantee scheduling latency. Actor caches, parser metadata,
+    /// allocator overhead, transport and caller ownership are separate; this
+    /// is not a total process memory bound.
     /// Existing metadata-only and Produce-only constructors keep their profiles.
     pub async fn open_with_read_store(
         path: impl Into<PathBuf>,
@@ -875,7 +877,19 @@ impl Router {
                     version,
                 });
             }
+            // Include synchronous normalization in request timing.
             let admitted = Instant::now();
+            // A caller can provide a short Vec with arbitrarily large capacity.
+            // Compact it before the actor can retain it under a data permit.
+            if lease.spare.capacity() > self.config.max_response_bytes {
+                drop(std::mem::take(&mut lease.spare));
+            }
+            let maximum = self.config.protocol_limits.max_request_bytes();
+            if lease.request.capacity() > maximum {
+                lease.request =
+                    bound_owned_vec(std::mem::take(&mut lease.request), maximum, &self.stopping)
+                        .await?;
+            }
             let mut changes = self.changes.clone();
             loop {
                 if self.stopping.load(Ordering::Acquire) {
@@ -934,13 +948,11 @@ impl Router {
                         }
                         // The candidate body is released. Its allocation stays
                         // with the permit so the next attempt can reuse it.
-                        let mut recycled = snapshot.response;
-                        recycled.clear();
-                        if recycled.capacity() >= lease.spare.capacity() {
-                            lease.spare = recycled;
-                        } else {
-                            drop(recycled);
-                        }
+                        recycle_read_response(
+                            &mut lease.spare,
+                            snapshot.response,
+                            self.config.max_response_bytes,
+                        );
                         if self.stopping.load(Ordering::Acquire) {
                             return Err(Error::Stopped);
                         }
@@ -1092,7 +1104,7 @@ fn actor(
     while let Some(command) = pending.take().or_else(|| receiver.blocking_recv()) {
         if stopping.load(Ordering::Acquire) {
             receiver.close();
-            reject(command);
+            reject(command, config.max_response_bytes);
             break;
         }
         match command {
@@ -1181,12 +1193,19 @@ fn actor(
                 }
                 let result = if catalog.is_poisoned() {
                     for extra in grouped.drain(..) {
-                        finish_data_job(extra, Err(Error::StoragePoisoned));
+                        finish_data_job(
+                            extra,
+                            Err(Error::StoragePoisoned),
+                            config.max_response_bytes,
+                        );
                     }
                     Err(Error::StoragePoisoned)
                 } else if let Some(store) = store.as_mut() {
                     if produce_key && grouped.is_empty() {
-                        store.prepare_response_buf(std::mem::take(&mut job.lease.spare));
+                        store.prepare_response_buf(
+                            std::mem::take(&mut job.lease.spare),
+                            config.max_response_bytes,
+                        );
                         match produce::process(
                             &catalog,
                             store,
@@ -1280,7 +1299,11 @@ fn actor(
                                 spare,
                                 permit,
                             };
-                            let _ = sender.send(DataCompletion { result, lease });
+                            let _ = sender.send(bounded_data_completion(
+                                lease,
+                                result,
+                                config.max_response_bytes,
+                            ));
                         }
                         batch.bodies.clear();
                         batch.spares.clear();
@@ -1312,7 +1335,10 @@ fn actor(
                             Err(protocol::Error::UnimplementedApi(21).into())
                         }
                     } else if let Some(reads) = options.reads {
-                        store.prepare_response_buf(std::mem::take(&mut job.lease.spare));
+                        store.prepare_response_buf(
+                            std::mem::take(&mut job.lease.spare),
+                            config.max_response_bytes,
+                        );
                         fetch::process(&catalog, store, &job.lease.request, config, reads, || {
                             if job.reply.is_closed() || stopping.load(Ordering::Acquire) {
                                 Err(fetch::Error::Canceled)
@@ -1327,14 +1353,18 @@ fn actor(
                     }
                 } else {
                     for extra in grouped.drain(..) {
-                        finish_data_job(extra, Err(protocol::Error::UnimplementedApi(0).into()));
+                        finish_data_job(
+                            extra,
+                            Err(protocol::Error::UnimplementedApi(0).into()),
+                            config.max_response_bytes,
+                        );
                     }
                     Err(protocol::Error::UnimplementedApi(0).into())
                 };
                 if store.as_mut().is_some_and(produce::Store::take_changed) {
                     changes.send_replace(());
                 }
-                finish_data_job(job, result);
+                finish_data_job(job, result, config.max_response_bytes);
             }
             Command::Compact(job) => {
                 if job.reply.is_closed() {
@@ -1358,21 +1388,135 @@ fn actor(
     }
     receiver.close();
     while let Some(command) = receiver.blocking_recv() {
-        reject(command);
+        reject(command, config.max_response_bytes);
     }
 }
-fn finish_data_job(job: DataJob, result: Result<DataReply, Error>) {
-    let DataJob { lease, reply, .. } = job;
-    let _ = reply.send(DataCompletion { result, lease });
+// Keep the response allocation only if its actual capacity fits the scratch
+// budget. A writer may have grown it beyond the logical response length.
+fn recycle_read_response(spare: &mut Vec<u8>, mut response: Vec<u8>, maximum: usize) {
+    response.clear();
+    if response.capacity() <= maximum && response.capacity() >= spare.capacity() {
+        *spare = response;
+    }
+    #[cfg(test)]
+    RECYCLED_CAPACITY.with(|observed| observed.set(Some(spare.capacity())));
 }
 
-fn reject(command: Command) {
+// A canceled copy drops these fields in order before the outer DataLease
+// releases its permit. Both allocations can coexist while the copy yields.
+struct NormalizationBuffers {
+    source: Vec<u8>,
+    replacement: Vec<u8>,
+    #[cfg(test)]
+    _drop_probe: Option<NormalizationDropProbe>,
+}
+
+#[cfg(test)]
+struct NormalizationDropProbe {
+    slots: Arc<Semaphore>,
+    observed: Arc<std::sync::atomic::AtomicUsize>,
+}
+
+#[cfg(test)]
+impl Drop for NormalizationDropProbe {
+    fn drop(&mut self) {
+        if self.slots.available_permits() == 0 {
+            self.observed.fetch_add(1, Ordering::SeqCst);
+        }
+    }
+}
+
+// Vec allocation may return more capacity than requested, including for
+// try_reserve_exact. Check the actual capacity before transferring ownership.
+// Reserve and deallocation can still block; chunking is not a poll-time bound.
+async fn bound_owned_vec(
+    bytes: Vec<u8>,
+    maximum: usize,
+    stopping: &AtomicBool,
+) -> Result<Vec<u8>, Error> {
+    const COPY_CHUNK: usize = 256 * 1024;
+    if bytes.capacity() <= maximum {
+        return Ok(bytes);
+    }
+    if bytes.len() > maximum {
+        return Err(protocol::Error::Allocation.into());
+    }
+    let mut buffers = NormalizationBuffers {
+        source: bytes,
+        replacement: Vec::new(),
+        #[cfg(test)]
+        _drop_probe: NORMALIZATION_DROP_PROBE.with(|probe| probe.borrow_mut().take()),
+    };
+    #[cfg(test)]
+    NORMALIZATION_STARTED.with(|started| started.set(Some(Instant::now())));
+    #[cfg(test)]
+    NORMALIZATION_DELAY.with(|delay| {
+        let duration = delay.replace(Duration::ZERO);
+        if !duration.is_zero() {
+            std::thread::sleep(duration);
+        }
+    });
+    #[cfg(test)]
+    if FAIL_BUFFER_REPACK.with(|fail| fail.replace(false)) {
+        return Err(protocol::Error::Allocation.into());
+    }
+    buffers
+        .replacement
+        .try_reserve_exact(buffers.source.len())
+        .map_err(|_| protocol::Error::Allocation)?;
+    if buffers.replacement.capacity() > maximum {
+        return Err(protocol::Error::Allocation.into());
+    }
+    for chunk in buffers.source.chunks(COPY_CHUNK) {
+        buffers.replacement.extend_from_slice(chunk);
+        if buffers.replacement.len() < buffers.source.len() {
+            if stopping.load(Ordering::Acquire) {
+                return Err(Error::Stopped);
+            }
+            tokio::task::yield_now().await;
+            if stopping.load(Ordering::Acquire) {
+                return Err(Error::Stopped);
+            }
+        }
+    }
+    Ok(std::mem::take(&mut buffers.replacement))
+}
+
+#[cfg(test)]
+thread_local! {
+    static FAIL_BUFFER_REPACK: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
+    static NORMALIZATION_STARTED: std::cell::Cell<Option<Instant>> = const { std::cell::Cell::new(None) };
+    static NORMALIZATION_DELAY: std::cell::Cell<Duration> = const { std::cell::Cell::new(Duration::ZERO) };
+    static RECYCLED_CAPACITY: std::cell::Cell<Option<usize>> = const { std::cell::Cell::new(None) };
+    static NORMALIZATION_DROP_PROBE: std::cell::RefCell<Option<NormalizationDropProbe>> = const { std::cell::RefCell::new(None) };
+}
+
+// A response can still exceed the configured logical maximum in capacity if
+// an allocator over-reserves while the writer grows. Do not allocate or change
+// the result after a potentially durable operation; only discard excess scratch.
+fn bounded_data_completion(
+    mut lease: DataLease,
+    result: Result<DataReply, Error>,
+    maximum: usize,
+) -> DataCompletion {
+    if lease.spare.capacity() > maximum {
+        drop(std::mem::take(&mut lease.spare));
+    }
+    DataCompletion { result, lease }
+}
+
+fn finish_data_job(job: DataJob, result: Result<DataReply, Error>, maximum: usize) {
+    let DataJob { lease, reply, .. } = job;
+    let _ = reply.send(bounded_data_completion(lease, result, maximum));
+}
+
+fn reject(command: Command, maximum: usize) {
     match command {
         Command::Request(job) => {
             let _ = job.reply.send(Err(Error::Stopped));
         }
         Command::Data(job) => {
-            finish_data_job(job, Err(Error::Stopped));
+            finish_data_job(job, Err(Error::Stopped), maximum);
         }
         Command::Sweep(job) => {
             let _ = job.reply.send(Err(Error::Stopped));
@@ -3673,7 +3817,7 @@ mod tests {
         )
     }
 
-    type ClaimedFetchInfo = (usize, usize, usize);
+    type ClaimedFetchInfo = (usize, usize, usize, usize, usize);
 
     fn claimed_fetch_actor() -> (
         Arc<Router>,
@@ -3744,11 +3888,22 @@ mod tests {
             else {
                 return;
             };
-            let (request_len, request_capacity) = match &command {
-                Command::Data(job) => (job.lease.request.len(), job.lease.request.capacity()),
+            let (request_len, request_capacity, spare_len, spare_capacity) = match &command {
+                Command::Data(job) => (
+                    job.lease.request.len(),
+                    job.lease.request.capacity(),
+                    job.lease.spare.len(),
+                    job.lease.spare.capacity(),
+                ),
                 _ => return,
             };
-            let _ = claimed.send((planned_metadata_bytes, request_len, request_capacity));
+            let _ = claimed.send((
+                planned_metadata_bytes,
+                request_len,
+                request_capacity,
+                spare_len,
+                spare_capacity,
+            ));
             if gate.recv().is_err() {
                 return;
             }
@@ -3783,6 +3938,151 @@ mod tests {
                 wakeup,
             }),
             claimed_rx,
+            release,
+            path,
+        )
+    }
+
+    fn claimed_spare_actor() -> (
+        Arc<Router>,
+        oneshot::Receiver<ClaimedFetchInfo>,
+        std::sync::mpsc::Sender<()>,
+        oneshot::Receiver<ClaimedFetchInfo>,
+        std::sync::mpsc::Sender<()>,
+        PathBuf,
+    ) {
+        let path = std::env::temp_dir().join(format!(
+            "partitionline-claimed-fetch-{}-{}",
+            std::process::id(),
+            NEXT.fetch_add(1, Ordering::Relaxed)
+        ));
+        let mut config = Config::new(0, "127.0.0.1".into(), 19095, "actor-test".into());
+        config.max_queued_requests = 1;
+        config.protocol_limits = protocol::Limits::new(4096, 0).expect("test limits");
+        config.max_response_bytes = 64;
+        let (sender, mut receiver) = mpsc::channel(1);
+        let (claimed, claimed_rx) = oneshot::channel();
+        let (release, gate) = std::sync::mpsc::channel();
+        let (probe, probe_gate) = std::sync::mpsc::channel();
+        let (after, after_rx) = oneshot::channel();
+        let stopping = Arc::new(AtomicBool::new(false));
+        let worker_stop = Arc::clone(&stopping);
+        let worker_config = config.clone();
+        let worker_path = path.clone();
+        let (change_tx, changes) = watch::channel(());
+        let change_tx = Arc::new(change_tx);
+        let wakeup = Arc::downgrade(&change_tx);
+        let read_limits = fetch::Limits::default()
+            .with_retained_bytes(4160)
+            .expect("test retained limit");
+        assert_eq!(
+            config.protocol_limits.max_request_bytes() + config.max_response_bytes,
+            read_limits.max_retained_bytes()
+        );
+        let reads = Some(read_limits);
+        let task = tokio::task::spawn_blocking(move || {
+            let Ok((mut catalog, _)) = Catalog::open(&worker_path, worker_config.catalog_limits)
+            else {
+                return;
+            };
+            let mut id = [0; 16];
+            id[15] = 2;
+            let Ok(id) = TopicId::new(id) else {
+                return;
+            };
+            if catalog.create("alpha", id, 2).is_err() {
+                return;
+            }
+            let Ok(store) = produce::Store::open(
+                produce::Config::new(worker_path.with_extension("parts")),
+                &catalog,
+            ) else {
+                return;
+            };
+            let Some(command) = receiver.blocking_recv() else {
+                return;
+            };
+            let Some(topic) = catalog.by_name("alpha") else {
+                return;
+            };
+            let topics = [MetadataTopic {
+                name: Some(topic.name()),
+                id: topic.id().bytes(),
+                error: 0,
+                topic: Some(topic),
+            }];
+            let Ok(planned_metadata_bytes) =
+                metadata_response_len(&worker_config, &[], 1, false, false, &topics)
+            else {
+                return;
+            };
+            let (request_len, request_capacity, spare_len, spare_capacity) = match &command {
+                Command::Data(job) => (
+                    job.lease.request.len(),
+                    job.lease.request.capacity(),
+                    job.lease.spare.len(),
+                    job.lease.spare.capacity(),
+                ),
+                _ => return,
+            };
+            let observed = (
+                planned_metadata_bytes,
+                request_len,
+                request_capacity,
+                spare_len,
+                spare_capacity,
+            );
+            let _ = claimed.send(observed);
+            if probe_gate.recv().is_err() {
+                return;
+            }
+            let retained = match &command {
+                Command::Data(job) => (
+                    planned_metadata_bytes,
+                    job.lease.request.len(),
+                    job.lease.request.capacity(),
+                    job.lease.spare.len(),
+                    job.lease.spare.capacity(),
+                ),
+                _ => return,
+            };
+            let _ = after.send(retained);
+            if gate.recv().is_err() {
+                return;
+            }
+            actor(
+                catalog,
+                Some(store),
+                receiver,
+                &worker_config,
+                &worker_stop,
+                DataOptions {
+                    reads,
+                    retention: None,
+                    endpoints: &[],
+                },
+                &change_tx,
+                Some(command),
+            );
+        });
+        (
+            Arc::new(Router {
+                config,
+                sender,
+                stopping,
+                failed: AtomicBool::new(false),
+                task: Mutex::new(Some(task)),
+                data: true,
+                data_slots: Arc::new(Semaphore::new(1)),
+                reads,
+                retention: None,
+                changes,
+                compaction: false,
+                wakeup,
+            }),
+            claimed_rx,
+            probe,
+            after_rx,
             release,
             path,
         )
@@ -4098,6 +4398,485 @@ mod tests {
         Ok(())
     }
 
+    // A synthetic actor supplies a deliberately over-capacity response so this
+    // exercises allocator over-reservation without depending on an allocator.
+    fn synthetic_read_actor(
+        wait: Duration,
+        maximum_request: usize,
+    ) -> (
+        Router,
+        oneshot::Receiver<Instant>,
+        std::sync::mpsc::Sender<()>,
+    ) {
+        let mut config = Config::new(0, "127.0.0.1".into(), 19095, "recycle-test".into());
+        config.max_queued_requests = 1;
+        config.protocol_limits = protocol::Limits::new(maximum_request, 0).expect("test limits");
+        config.max_response_bytes = 64;
+        let (sender, mut receiver) = mpsc::channel(1);
+        let (claimed, claimed_rx) = oneshot::channel();
+        let (release, gate) = std::sync::mpsc::channel();
+        let (change_tx, changes) = watch::channel(());
+        let change_tx = Arc::new(change_tx);
+        let wakeup = Arc::downgrade(&change_tx);
+        let task = tokio::task::spawn_blocking(move || {
+            let _change_tx = change_tx;
+            let Some(Command::Data(job)) = receiver.blocking_recv() else {
+                return;
+            };
+            let admitted = job.admitted;
+            if gate.recv().is_err() {
+                return;
+            }
+            let mut response = Vec::with_capacity(8192);
+            response.extend_from_slice(&[0; 12]);
+            let snapshot = fetch::Snapshot {
+                response,
+                record_bytes: 0,
+                minimum_bytes: 1,
+                wait,
+                immediate: false,
+            };
+            finish_data_job(job, Ok(DataReply::Read { snapshot }), 64);
+            let _ = claimed.send(admitted);
+            while let Some(command) = receiver.blocking_recv() {
+                if matches!(command, Command::Stop) {
+                    break;
+                }
+            }
+        });
+        (
+            Router {
+                config,
+                sender,
+                stopping: Arc::new(AtomicBool::new(false)),
+                failed: AtomicBool::new(false),
+                task: Mutex::new(Some(task)),
+                data: true,
+                data_slots: Arc::new(Semaphore::new(1)),
+                reads: Some(fetch::Limits::default()),
+                retention: None,
+                changes,
+                compaction: false,
+                wakeup,
+            },
+            claimed_rx,
+            release,
+        )
+    }
+
+    #[tokio::test]
+    async fn over_capacity_read_recycle_is_dropped_before_wait_and_cancel(
+    ) -> Result<(), Box<dyn StdError>> {
+        let (router, claimed, release) = synthetic_read_actor(Duration::from_secs(60), 4096);
+        let peer = Peer::capacity_witness();
+        RECYCLED_CAPACITY.with(|observed| observed.set(None));
+        let mut input = Vec::with_capacity(8192);
+        input.extend_from_slice(&capacity_witness_fetch());
+        let mut pending = Box::pin(router.exchange_request(&peer, input, Vec::new()));
+        std::future::poll_fn(|cx| match std::future::Future::poll(pending.as_mut(), cx) {
+            std::task::Poll::Pending => std::task::Poll::Ready(Ok(())),
+            std::task::Poll::Ready(_) => std::task::Poll::Ready(Err("unexpected completion")),
+        })
+        .await?;
+        release.send(())?;
+        let _ = tokio::time::timeout(Duration::from_secs(5), claimed).await??;
+        let is_waiting = std::future::poll_fn(|cx| {
+            std::task::Poll::Ready(std::future::Future::poll(pending.as_mut(), cx).is_pending())
+        })
+        .await;
+        assert!(is_waiting);
+        assert_eq!(RECYCLED_CAPACITY.with(|observed| observed.get()), Some(0));
+        assert_eq!(router.data_slots.available_permits(), 0);
+        drop(pending);
+        assert_eq!(router.data_slots.available_permits(), 1);
+        router.shutdown().await?;
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn normalization_time_counts_toward_fetch_deadline() -> Result<(), Box<dyn StdError>> {
+        let wait = Duration::from_millis(10);
+        let (router, claimed, release) = synthetic_read_actor(wait, 4096);
+        let peer = Peer::capacity_witness();
+        NORMALIZATION_STARTED.with(|started| started.set(None));
+        NORMALIZATION_DELAY.with(|delay| delay.set(Duration::from_millis(40)));
+        let mut input = Vec::with_capacity(8192);
+        input.extend_from_slice(&capacity_witness_fetch());
+        let mut pending = Box::pin(router.exchange_request(&peer, input, Vec::new()));
+        std::future::poll_fn(|cx| match std::future::Future::poll(pending.as_mut(), cx) {
+            std::task::Poll::Pending => std::task::Poll::Ready(Ok(())),
+            std::task::Poll::Ready(_) => std::task::Poll::Ready(Err("unexpected completion")),
+        })
+        .await?;
+        release.send(())?;
+        let admitted = tokio::time::timeout(Duration::from_secs(5), claimed).await??;
+        let started = NORMALIZATION_STARTED
+            .with(|started| started.get())
+            .ok_or("missing normalization timestamp")?;
+        assert!(admitted <= started);
+        assert!(admitted.checked_add(wait).ok_or("deadline overflow")? <= Instant::now());
+        let polled = std::future::poll_fn(|cx| {
+            std::task::Poll::Ready(std::future::Future::poll(pending.as_mut(), cx))
+        })
+        .await;
+        let outcome = match polled {
+            std::task::Poll::Ready(Ok(outcome)) => outcome,
+            _ => return Err("elapsed deadline must return the first snapshot".into()),
+        };
+        assert_eq!(outcome.response.ok_or("missing response")?.len(), 12);
+        drop(pending);
+        assert_eq!(router.data_slots.available_permits(), 1);
+        router.shutdown().await?;
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn cancellation_at_each_copy_yield_drops_buffers_before_permit(
+    ) -> Result<(), Box<dyn StdError>> {
+        const MAXIMUM: usize = 1024 * 1024;
+        for stop_after in 1..=3 {
+            let (router, _claimed, _release) =
+                synthetic_read_actor(Duration::from_secs(60), MAXIMUM);
+            let observed = Arc::new(std::sync::atomic::AtomicUsize::new(0));
+            NORMALIZATION_DROP_PROBE.with(|probe| {
+                *probe.borrow_mut() = Some(NormalizationDropProbe {
+                    slots: Arc::clone(&router.data_slots),
+                    observed: Arc::clone(&observed),
+                });
+            });
+            let peer = Peer::capacity_witness();
+            let mut input = Vec::with_capacity(MAXIMUM * 2);
+            input.extend_from_slice(&capacity_witness_fetch());
+            input.resize(MAXIMUM, 0);
+            let mut pending =
+                Box::pin(router.exchange_request(&peer, input, Vec::with_capacity(8192)));
+            for _ in 0..stop_after {
+                let is_pending = std::future::poll_fn(|cx| {
+                    std::task::Poll::Ready(
+                        std::future::Future::poll(pending.as_mut(), cx).is_pending(),
+                    )
+                })
+                .await;
+                assert!(is_pending);
+                assert_eq!(router.sender.capacity(), 1, "must yield before enqueue");
+                assert_eq!(router.data_slots.available_permits(), 0);
+                assert_eq!(observed.load(Ordering::SeqCst), 0);
+            }
+            drop(pending);
+            assert_eq!(
+                observed.load(Ordering::SeqCst),
+                1,
+                "copy buffers drop while permit is held"
+            );
+            assert_eq!(router.data_slots.available_permits(), 1);
+            assert_eq!(router.sender.capacity(), 1);
+            router.shutdown().await?;
+        }
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn shutdown_at_each_copy_yield_releases_buffers_and_permit(
+    ) -> Result<(), Box<dyn StdError>> {
+        const MAXIMUM: usize = 1024 * 1024;
+        for stop_after in 1..=3 {
+            let (router, _claimed, _release) =
+                synthetic_read_actor(Duration::from_secs(60), MAXIMUM);
+            let observed = Arc::new(std::sync::atomic::AtomicUsize::new(0));
+            NORMALIZATION_DROP_PROBE.with(|probe| {
+                *probe.borrow_mut() = Some(NormalizationDropProbe {
+                    slots: Arc::clone(&router.data_slots),
+                    observed: Arc::clone(&observed),
+                });
+            });
+            let peer = Peer::capacity_witness();
+            let mut input = Vec::with_capacity(MAXIMUM * 2);
+            input.extend_from_slice(&capacity_witness_fetch());
+            input.resize(MAXIMUM, 0);
+            let mut pending = Box::pin(router.exchange_request(&peer, input, Vec::new()));
+            for _ in 0..stop_after {
+                let is_pending = std::future::poll_fn(|cx| {
+                    std::task::Poll::Ready(
+                        std::future::Future::poll(pending.as_mut(), cx).is_pending(),
+                    )
+                })
+                .await;
+                assert!(is_pending);
+                assert_eq!(router.sender.capacity(), 1);
+                assert_eq!(router.data_slots.available_permits(), 0);
+                assert_eq!(observed.load(Ordering::SeqCst), 0);
+            }
+            router.request_stop();
+            let result = std::future::poll_fn(|cx| {
+                std::task::Poll::Ready(std::future::Future::poll(pending.as_mut(), cx))
+            })
+            .await;
+            assert!(matches!(
+                result,
+                std::task::Poll::Ready(Err(Error::Stopped))
+            ));
+            assert_eq!(observed.load(Ordering::SeqCst), 1);
+            assert_eq!(router.data_slots.available_permits(), 1);
+            drop(pending);
+            router.shutdown().await?;
+        }
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn cooperative_normalization_preserves_all_bytes() -> Result<(), Box<dyn StdError>> {
+        const MAXIMUM: usize = 1024 * 1024;
+        let mut input = Vec::with_capacity(MAXIMUM * 2);
+        input.extend((0..MAXIMUM).map(|index| (index % 251) as u8));
+        let stopping = AtomicBool::new(false);
+        let mut pending = Box::pin(bound_owned_vec(input, MAXIMUM, &stopping));
+        let first = std::future::poll_fn(|cx| {
+            std::task::Poll::Ready(std::future::Future::poll(pending.as_mut(), cx).is_pending())
+        })
+        .await;
+        assert!(first, "large copy must yield to the executor");
+        let output = pending.await?;
+        assert_eq!(output.len(), MAXIMUM);
+        assert!(output.capacity() <= MAXIMUM);
+        assert!(output
+            .iter()
+            .enumerate()
+            .all(|(index, byte)| *byte == (index % 251) as u8));
+        Ok(())
+    }
+
+    #[test]
+    fn completion_preserves_response_without_allocating_and_discards_oversized_scratch(
+    ) -> Result<(), Box<dyn StdError>> {
+        let slots = Arc::new(Semaphore::new(1));
+        let mut response = Vec::with_capacity(8192);
+        response.extend_from_slice(&[7; 12]);
+        let pointer = response.as_ptr();
+        let capacity = response.capacity();
+        FAIL_BUFFER_REPACK.with(|fail| fail.set(true));
+        let completion = bounded_data_completion(
+            DataLease {
+                request: vec![1],
+                spare: Vec::with_capacity(8192),
+                permit: Arc::clone(&slots).try_acquire_owned()?,
+            },
+            Ok(DataReply::Produce {
+                response: Some(response),
+            }),
+            64,
+        );
+        let response = match &completion.result {
+            Ok(DataReply::Produce {
+                response: Some(response),
+            }) => response,
+            _ => panic!("expected response"),
+        };
+        assert_eq!(response.as_slice(), &[7; 12]);
+        assert_eq!(response.as_ptr(), pointer);
+        assert_eq!(response.capacity(), capacity);
+        assert_eq!(completion.lease.spare.capacity(), 0);
+        assert!(FAIL_BUFFER_REPACK.with(|fail| fail.replace(false)));
+        assert_eq!(slots.available_permits(), 0);
+        drop(completion);
+        assert_eq!(slots.available_permits(), 1);
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn bounded_vector_keeps_in_budget_allocation_and_bytes() -> Result<(), Box<dyn StdError>>
+    {
+        let mut bytes = Vec::with_capacity(32);
+        bytes.extend_from_slice(b"valid input");
+        let pointer = bytes.as_ptr();
+        let capacity = bytes.capacity();
+        let stopping = AtomicBool::new(false);
+        let bounded = bound_owned_vec(bytes, 4096, &stopping).await?;
+        assert_eq!(bounded, b"valid input");
+        assert_eq!(bounded.as_ptr(), pointer);
+        assert_eq!(bounded.capacity(), capacity);
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn canceled_unpolled_and_failed_normalization_do_not_enqueue(
+    ) -> Result<(), Box<dyn StdError>> {
+        let (router, claimed, release, path) = claimed_fetch_actor();
+        let peer = Peer::capacity_witness();
+        let make_oversized = || {
+            let mut bytes = Vec::with_capacity(8192);
+            bytes.extend_from_slice(&capacity_witness_fetch());
+            bytes
+        };
+
+        let pending = router.exchange_request(&peer, make_oversized(), Vec::with_capacity(8192));
+        drop(pending);
+        assert_eq!(router.sender.capacity(), 1);
+        assert_eq!(router.data_slots.available_permits(), 1);
+
+        FAIL_BUFFER_REPACK.with(|fail| fail.set(true));
+        let failed = router
+            .exchange_request(&peer, make_oversized(), Vec::new())
+            .await;
+        assert!(matches!(
+            failed,
+            Err(Error::Protocol(protocol::Error::Allocation))
+        ));
+        assert_eq!(router.sender.capacity(), 1);
+        assert_eq!(router.data_slots.available_permits(), 1);
+
+        let expected = capacity_witness_fetch();
+        let mut pending = Box::pin(router.exchange_request(&peer, make_oversized(), Vec::new()));
+        std::future::poll_fn(|cx| match std::future::Future::poll(pending.as_mut(), cx) {
+            std::task::Poll::Pending => std::task::Poll::Ready(Ok(())),
+            std::task::Poll::Ready(_) => std::task::Poll::Ready(Err("unexpected completion")),
+        })
+        .await?;
+        let (_, request_len, request_capacity, _, _) =
+            tokio::time::timeout(Duration::from_secs(5), claimed).await??;
+        assert_eq!(request_len, expected.len());
+        assert!(request_capacity <= 4096);
+        assert_eq!(router.data_slots.available_permits(), 0);
+        release.send(())?;
+        let outcome = tokio::time::timeout(Duration::from_secs(5), pending).await??;
+        assert_eq!(outcome.request, expected);
+        assert!(outcome.request.capacity() <= 4096);
+        let response = outcome.response.ok_or("missing Fetch response")?;
+        assert_eq!(response.len(), 12);
+        assert_eq!(response.get(..4), Some(&77i32.to_be_bytes()[..]));
+        assert_eq!(router.data_slots.available_permits(), 1);
+        router.shutdown().await?;
+        tokio::task::spawn_blocking(move || -> std::io::Result<()> {
+            std::fs::remove_file(&path)?;
+            std::fs::remove_dir_all(path.with_extension("parts"))
+        })
+        .await??;
+        Ok(())
+    }
+
+    fn capacity_witness_fetch() -> Vec<u8> {
+        let mut input = Vec::new();
+        input.extend_from_slice(&1i16.to_be_bytes());
+        input.extend_from_slice(&6i16.to_be_bytes());
+        input.extend_from_slice(&77i32.to_be_bytes());
+        input.extend_from_slice(&(-1i16).to_be_bytes());
+        input.extend_from_slice(&(-1i32).to_be_bytes());
+        input.extend_from_slice(&0i32.to_be_bytes());
+        input.extend_from_slice(&0i32.to_be_bytes());
+        input.extend_from_slice(&0i32.to_be_bytes());
+        input.push(0);
+        input.extend_from_slice(&0i32.to_be_bytes());
+        input
+    }
+
+    #[tokio::test]
+    async fn public_exchange_caps_oversized_spare_in_claimed_job() -> Result<(), Box<dyn StdError>>
+    {
+        let (router, claimed, probe, after, release, path) = claimed_spare_actor();
+        let input = capacity_witness_fetch();
+        assert_eq!(input.len(), 31);
+        let mut spare = Vec::with_capacity(8192);
+        spare.push(42);
+        let peer = Peer::capacity_witness();
+        let control = input.clone();
+        let mut pending = Box::pin(router.exchange_request(&peer, input, spare));
+        std::future::poll_fn(|cx| match std::future::Future::poll(pending.as_mut(), cx) {
+            std::task::Poll::Pending => std::task::Poll::Ready(Ok(())),
+            std::task::Poll::Ready(_) => std::task::Poll::Ready(Err("unexpected completion")),
+        })
+        .await?;
+        let (_, request_len, request_capacity, spare_len, spare_capacity) =
+            tokio::time::timeout(Duration::from_secs(5), claimed).await??;
+        assert_eq!(request_len, 31);
+        assert_eq!(spare_len, 0);
+        assert_eq!(spare_capacity, 0);
+        assert!(request_capacity <= 4096);
+        assert_eq!(router.data_slots.available_permits(), 0);
+        println!(
+            "PL_PUBLIC_SPARE_CLAIM request_len={request_len} request_capacity={request_capacity} spare_len={spare_len} spare_capacity={spare_capacity} logical_budget=4160"
+        );
+        drop(pending);
+        assert_eq!(router.data_slots.available_permits(), 0);
+        probe.send(())?;
+        let (_, after_request_len, after_request_capacity, after_spare_len, after_spare_capacity) =
+            tokio::time::timeout(Duration::from_secs(5), after).await??;
+        assert_eq!(after_request_len, request_len);
+        assert_eq!(after_request_capacity, request_capacity);
+        assert_eq!(after_spare_len, spare_len);
+        assert_eq!(after_spare_capacity, spare_capacity);
+        assert_eq!(router.data_slots.available_permits(), 0);
+        println!("PL_PUBLIC_SPARE_AFTER_CANCEL request_len={after_request_len} request_capacity={after_request_capacity} spare_len={after_spare_len} spare_capacity={after_spare_capacity} permit_held=true");
+        release.send(())?;
+        tokio::time::timeout(Duration::from_secs(5), async {
+            while router.data_slots.available_permits() == 0 {
+                tokio::task::yield_now().await;
+            }
+        })
+        .await?;
+        let response = router
+            .dispatch(control)
+            .await?
+            .ok_or("missing Fetch response")?;
+        assert_eq!(response.len(), 12);
+        assert_eq!(response.get(..4), Some(&77i32.to_be_bytes()[..]));
+        println!(
+            "PL_PUBLIC_SPARE_FRESH_FETCH response_len={}",
+            response.len()
+        );
+        router.shutdown().await?;
+        assert_eq!(router.data_slots.available_permits(), 1);
+        tokio::task::spawn_blocking(move || -> std::io::Result<()> {
+            std::fs::remove_file(&path)?;
+            std::fs::remove_dir_all(path.with_extension("parts"))
+        })
+        .await??;
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn public_exchange_spare_transfers_only_after_receipt_is_consumed(
+    ) -> Result<(), Box<dyn StdError>> {
+        let (router, claimed, probe, after, release, path) = claimed_spare_actor();
+        let input = capacity_witness_fetch();
+        let spare = Vec::with_capacity(8192);
+        let peer = Peer::capacity_witness();
+        let mut pending = Box::pin(router.exchange_request(&peer, input, spare));
+        std::future::poll_fn(|cx| match std::future::Future::poll(pending.as_mut(), cx) {
+            std::task::Poll::Pending => std::task::Poll::Ready(Ok(())),
+            std::task::Poll::Ready(_) => std::task::Poll::Ready(Err("unexpected completion")),
+        })
+        .await?;
+        let (_, _, _, _, claimed_capacity) =
+            tokio::time::timeout(Duration::from_secs(5), claimed).await??;
+        assert_eq!(claimed_capacity, 0);
+        probe.send(())?;
+        let _ = tokio::time::timeout(Duration::from_secs(5), after).await??;
+        release.send(())?;
+        let barrier =
+            tokio::time::timeout(Duration::from_secs(5), router.respond(request(3))).await?;
+        assert!(matches!(barrier, Err(Error::ResponseLimit)));
+        assert_eq!(router.data_slots.available_permits(), 0);
+        println!("PL_RECEIPT_PENDING actor_reply_unconsumed=true permit_held=true");
+        let outcome = pending.await?;
+        assert_eq!(router.data_slots.available_permits(), 1);
+        let response = outcome.response.ok_or("missing Fetch response")?;
+        assert_eq!(response.len(), 12);
+        assert_eq!(response.get(..4), Some(&77i32.to_be_bytes()[..]));
+        assert!(response.capacity() <= 64);
+        println!(
+            "PL_RECEIPT_TRANSFERRED response_len={} response_capacity={} permit_held=false",
+            response.len(),
+            response.capacity()
+        );
+        drop(response);
+        router.shutdown().await?;
+        tokio::task::spawn_blocking(move || -> std::io::Result<()> {
+            std::fs::remove_file(&path)?;
+            std::fs::remove_dir_all(path.with_extension("parts"))
+        })
+        .await??;
+        Ok(())
+    }
+
     #[tokio::test]
     async fn canceled_claimed_fetch_keeps_admission_until_actor_discards_it(
     ) -> Result<(), Box<dyn StdError>> {
@@ -4125,11 +4904,11 @@ mod tests {
             }
         })
         .await?;
-        let (planned_metadata_bytes, request_len, request_capacity) =
+        let (planned_metadata_bytes, request_len, request_capacity, _, _) =
             tokio::time::timeout(Duration::from_secs(5), claimed).await??;
         assert_eq!(planned_metadata_bytes, 103);
         assert_eq!(request_len, 4096);
-        assert!(request_capacity >= 8192);
+        assert!(request_capacity <= 4096);
         println!("PL_ACTOR_CLAIM len={request_len} capacity={request_capacity} envelope=4160");
         assert_eq!(router.sender.capacity(), 1);
         assert_eq!(router.data_slots.available_permits(), 0);
