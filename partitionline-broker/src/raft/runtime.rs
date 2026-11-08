@@ -1836,21 +1836,26 @@ async fn supervise(
     }
     Ok(state)
 }
-async fn dispatch_votes(control: &Control, routes: &[(Key, Arc<VoteSlot>)], jobs: Vec<Job>) {
-    for job in jobs {
-        match routes.iter().find(|(k, _)| *k == job.peer()) {
-            Some((_, slot)) => {
-                // The only production producer is the supervisor's Tick reply,
-                // which contains one vote per peer from successive campaigns.
-                // Admission and replacement are atomic with worker dequeue.
-                if let Some(displaced) = slot.offer(job) {
-                    let _ = control.cancel_job(displaced).await;
-                }
-            }
-            None => {
-                let _ = control.cancel_job(job).await;
-            }
+async fn dispatch_votes(control: &Control, routes: &[(Key, Arc<VoteSlot>)], mut jobs: Vec<Job>) {
+    // The supervisor's Tick contains at most one vote per peer. Move all
+    // current votes into their slots before waiting for owner cancellation:
+    // a full owner queue must not prevent later peers from starting their RPCs.
+    // The consumed suffix holds displaced or unadmitted jobs, reusing the
+    // original allocation without growing it.
+    let mut unoffered = jobs.len();
+    while unoffered != 0 {
+        unoffered -= 1;
+        let job = jobs.swap_remove(unoffered);
+        let cancel = match routes.iter().find(|(key, _)| *key == job.peer()) {
+            Some((_, slot)) => slot.offer(job),
+            None => Some(job),
+        };
+        if let Some(cancel) = cancel {
+            jobs.push(cancel);
         }
+    }
+    for job in jobs {
+        let _ = control.cancel_job(job).await;
     }
 }
 struct Counter {
@@ -5257,7 +5262,7 @@ mod ownership_tests {
     }
 
     #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-    async fn aborted_dispatch_exposes_undispatched_vote_ownership() -> TestResult {
+    async fn aborted_dispatch_keeps_all_current_votes_offered() -> TestResult {
         let source = LocalOwner::open(0, 5, 1).await?;
         let mut peers = Vec::new();
         for id in 1..5 {
@@ -5322,62 +5327,47 @@ mod ownership_tests {
             })
             .await
             .map_err(|_| "filler admission")?;
-        let child_control = source.control.clone();
-        let child_routes = routes.clone();
-        let task =
-            tokio::spawn(
-                async move { dispatch_votes(&child_control, &child_routes, new_jobs).await },
-            );
-        let observed = tokio::time::timeout(Duration::from_secs(2), async {
-            loop {
-                let first = {
-                    let state = routes[0]
-                        .1
-                        .state
-                        .lock()
-                        .unwrap_or_else(std::sync::PoisonError::into_inner);
-                    match &state.pending {
-                        Some(Job::Vote(q)) => Some(*q),
-                        _ => None,
-                    }
-                };
-                if first == Some(new[0]) {
-                    break;
-                }
-                tokio::task::yield_now().await;
-            }
-        })
-        .await;
+        // Poll the real dispatch until it reaches its first pending owner
+        // cancellation. The full queue makes this boundary deterministic.
+        let mut dispatch = Box::pin(dispatch_votes(&source.control, &routes, new_jobs));
+        let dispatch_pending =
+            std::future::poll_fn(
+                |cx| match std::future::Future::poll(dispatch.as_mut(), cx) {
+                    std::task::Poll::Pending => std::task::Poll::Ready(true),
+                    std::task::Poll::Ready(()) => std::task::Poll::Ready(false),
+                },
+            )
+            .await;
         let channel_was_full = source.control.commands.capacity() == 0;
-        let second_pending = {
-            let state = routes[1]
-                .1
-                .state
-                .lock()
-                .unwrap_or_else(std::sync::PoisonError::into_inner);
-            match &state.pending {
-                Some(Job::Vote(q)) => Some(*q),
-                _ => None,
-            }
-        };
-        task.abort();
-        let task_result = task.await;
+        let offered = routes
+            .iter()
+            .map(|(_, slot)| {
+                let state = slot
+                    .state
+                    .lock()
+                    .unwrap_or_else(std::sync::PoisonError::into_inner);
+                match &state.pending {
+                    Some(Job::Vote(q)) => Some(*q),
+                    _ => None,
+                }
+            })
+            .collect::<Vec<_>>();
+        drop(dispatch);
         // Release and consume the held operations before any assertions so
         // failure cannot strand the owner thread.
         let released = release.send(());
         let held_delivered = held_reply.await;
         let filler_delivered = filler_rx.await;
-        observed.map_err(|_| "replacement was not observed")?;
+        assert!(dispatch_pending, "dispatch did not wait for cancellation");
         assert!(
             channel_was_full,
             "cancellation admission had a reserved-free slot"
         );
         assert_eq!(
-            second_pending,
-            Some(old[1]),
-            "the next route had not been processed"
+            offered,
+            new.iter().copied().map(Some).collect::<Vec<_>>(),
+            "all current votes must be offered before cancellation waits"
         );
-        assert!(task_result.is_err_and(|e| e.is_cancelled()));
         released.map_err(|_| "owner gate release")?;
         held_delivered?.result?;
         filler_delivered?.result?;
@@ -5389,19 +5379,19 @@ mod ownership_tests {
             .reject_vote("aborted-dispatch-displaced", stale)
             .await?;
 
-        // The second current job was never offered, but its exact correlation
-        // remains live until the owner advances its term or steps down.
-        let unoffered = grant(&peers[1], new[1]).await?;
+        // The second current job is now queued; its exact correlation remains
+        // usable after the independently aborted dispatch.
+        let queued = grant(&peers[1], new[1]).await?;
         assert!(matches!(
             source
-                .fixture("unoffered-current", Command::Acknowledge(unoffered))
+                .fixture("queued-current", Command::Acknowledge(queued))
                 .await??,
             Reply::Done
         ));
         assert_eq!(source.state().await?.election.role, Role::Candidate);
 
         // A later real campaign replaces the whole correlation vector. Both
-        // the queued and another never-offered current job must now be fenced.
+        // previously queued current jobs must now be fenced.
         tokio::time::sleep(Duration::from_millis(3)).await;
         let Reply::Votes(next_jobs) = source
             .fixture("after-abort-next-tick", Command::Tick)
@@ -5422,9 +5412,9 @@ mod ownership_tests {
         source
             .reject_vote("later-campaign-fences-queued", queued_old)
             .await?;
-        let unoffered_old = grant(&peers[2], new[2]).await?;
+        let queued_old_other = grant(&peers[2], new[2]).await?;
         source
-            .reject_vote("later-campaign-fences-unoffered", unoffered_old)
+            .reject_vote("later-campaign-fences-other-queued", queued_old_other)
             .await?;
 
         // A genuine higher-term vote request from a peer steps the source
@@ -5459,11 +5449,229 @@ mod ownership_tests {
         source
             .reject_vote("stepdown-fences-current", after_stepdown_reply)
             .await?;
-        println!("aborted-dispatch displaced_fenced=true unoffered_current=accepted later_campaign_fenced_queued_and_unoffered=true stepdown_fenced_current=true");
+        println!("aborted-dispatch all_current_offered=true displaced_fenced=true queued_current=accepted later_campaign_fenced_queued=true stepdown_fenced_current=true");
         drop(routes);
         for peer in peers {
             peer.finish().await?;
         }
+        source.finish().await
+    }
+
+    #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+    async fn displaced_vote_cancellation_preserves_current_reply_in_both_orders() -> TestResult {
+        for current_first in [true, false] {
+            let source = LocalOwner::open(0, 5, 1).await?;
+            let peer = LocalOwner::open(2, 5, 16).await?;
+            tokio::time::sleep(Duration::from_millis(3)).await;
+            let Reply::Votes(old_jobs) =
+                source.fixture("cancel-order-old", Command::Tick).await??
+            else {
+                return Err("old campaign".into());
+            };
+            let mut routes = Vec::new();
+            for job in old_jobs {
+                let Job::Vote(q) = job else {
+                    return Err("old vote".into());
+                };
+                let slot = Arc::new(VoteSlot::default());
+                assert!(slot.offer(Job::Vote(q)).is_none());
+                routes.push((q.context.peer, slot));
+            }
+            tokio::time::sleep(Duration::from_millis(3)).await;
+            let Reply::Votes(jobs) = source
+                .fixture("cancel-order-current", Command::Tick)
+                .await??
+            else {
+                return Err("current campaign".into());
+            };
+            let current = jobs
+                .iter()
+                .map(|job| match job {
+                    Job::Vote(q) => Ok(*q),
+                    _ => Err("current vote"),
+                })
+                .collect::<std::result::Result<Vec<_>, _>>()?;
+            assert_eq!(current.len(), 4);
+            let request = *current
+                .iter()
+                .find(|q| q.context.peer.id == 2)
+                .ok_or("missing peer 2")?;
+            let mut response = Some(grant(&peer, request).await?);
+
+            // Hold the owner and fill its only queue slot. In the first arm the
+            // real current reply is ahead of every displaced cancellation. In
+            // the second arm the current reply is submitted after cancellation.
+            let (held, held_reply, entered, release) = gate(Command::State);
+            source
+                .control
+                .commands
+                .send(held)
+                .await
+                .map_err(|_| "held admission")?;
+            entered.await?;
+            let (filler_tx, filler_rx) = oneshot::channel();
+            let command = if current_first {
+                Command::Acknowledge(response.take().ok_or("missing response")?)
+            } else {
+                Command::State
+            };
+            source
+                .control
+                .commands
+                .send(Envelope {
+                    command,
+                    reply: filler_tx,
+                    permit: None,
+                    transport: None,
+                    started: Arc::new(AtomicBool::new(false)),
+                    deadline: None,
+                    delivery_gate: None,
+                    _counter: None,
+                })
+                .await
+                .map_err(|_| "filler admission")?;
+            let mut dispatch = Box::pin(dispatch_votes(&source.control, &routes, jobs));
+            let dispatch_pending =
+                std::future::poll_fn(
+                    |cx| match std::future::Future::poll(dispatch.as_mut(), cx) {
+                        std::task::Poll::Pending => std::task::Poll::Ready(true),
+                        std::task::Poll::Ready(()) => std::task::Poll::Ready(false),
+                    },
+                )
+                .await;
+            let all_offered = routes.iter().zip(&current).all(|((_, slot), expected)| {
+                let state = slot
+                    .state
+                    .lock()
+                    .unwrap_or_else(std::sync::PoisonError::into_inner);
+                matches!(&state.pending, Some(Job::Vote(q)) if q == expected)
+            });
+            let blocked = dispatch_pending && source.control.commands.capacity() == 0;
+            let released = release.send(());
+            let held_delivered = held_reply.await;
+            let filler_delivered = filler_rx.await;
+            let dispatched = tokio::time::timeout(Duration::from_secs(2), dispatch).await;
+            assert!(all_offered, "current votes were not all offered");
+            assert!(blocked);
+            released.map_err(|_| "owner gate release")?;
+            held_delivered?.result?;
+            let filler = filler_delivered?.result?;
+            dispatched?;
+            if current_first {
+                assert!(matches!(filler, Reply::Done));
+            } else {
+                assert!(matches!(filler, Reply::State(_)));
+                let reply = source
+                    .control
+                    .reliable(Command::Acknowledge(response.ok_or("missing response")?))
+                    .await?;
+                assert!(matches!(reply, Reply::Done));
+            }
+            let state = source.state().await?;
+            assert_eq!(state.election.role, Role::Candidate);
+            assert_eq!(state.election.granted_votes, 2);
+            drop(routes);
+            peer.finish().await?;
+            source.finish().await?;
+        }
+        Ok(())
+    }
+
+    #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+    async fn aborted_dispatch_can_leave_an_unadmitted_correlation() -> TestResult {
+        let source = LocalOwner::open(0, 5, 1).await?;
+        let peer = LocalOwner::open(1, 5, 16).await?;
+        tokio::time::sleep(Duration::from_millis(3)).await;
+        let Reply::Votes(old_jobs) = source.fixture("unadmitted-old", Command::Tick).await?? else {
+            return Err("old campaign".into());
+        };
+        let mut routes = Vec::new();
+        for (index, job) in old_jobs.into_iter().enumerate() {
+            let Job::Vote(q) = job else {
+                return Err("old vote".into());
+            };
+            if index == 0 {
+                continue;
+            }
+            let slot = Arc::new(VoteSlot::default());
+            if index == 1 {
+                assert!(slot.close().is_none());
+            } else {
+                assert!(slot.offer(Job::Vote(q)).is_none());
+            }
+            routes.push((q.context.peer, slot));
+        }
+        tokio::time::sleep(Duration::from_millis(3)).await;
+        let Reply::Votes(jobs) = source.fixture("unadmitted-current", Command::Tick).await?? else {
+            return Err("current campaign".into());
+        };
+        let current = jobs
+            .iter()
+            .map(|job| match job {
+                Job::Vote(q) => Ok(*q),
+                _ => Err("current vote"),
+            })
+            .collect::<std::result::Result<Vec<_>, _>>()?;
+        let missing = *current
+            .iter()
+            .find(|q| q.context.peer.id == 1)
+            .ok_or("missing peer 1")?;
+        assert!(!routes.iter().any(|(key, _)| *key == missing.context.peer));
+
+        let (held, held_reply, entered, release) = gate(Command::State);
+        source
+            .control
+            .commands
+            .send(held)
+            .await
+            .map_err(|_| "held admission")?;
+        entered.await?;
+        let (filler_tx, filler_rx) = oneshot::channel();
+        source
+            .control
+            .commands
+            .send(Envelope {
+                command: Command::State,
+                reply: filler_tx,
+                permit: None,
+                transport: None,
+                started: Arc::new(AtomicBool::new(false)),
+                deadline: None,
+                delivery_gate: None,
+                _counter: None,
+            })
+            .await
+            .map_err(|_| "filler admission")?;
+        let mut dispatch = Box::pin(dispatch_votes(&source.control, &routes, jobs));
+        let pending =
+            std::future::poll_fn(
+                |cx| match std::future::Future::poll(dispatch.as_mut(), cx) {
+                    std::task::Poll::Pending => std::task::Poll::Ready(true),
+                    std::task::Poll::Ready(()) => std::task::Poll::Ready(false),
+                },
+            )
+            .await;
+        drop(dispatch);
+        let released = release.send(());
+        let held_delivered = held_reply.await;
+        let filler_delivered = filler_rx.await;
+        assert!(pending);
+        released.map_err(|_| "owner gate release")?;
+        held_delivered?.result?;
+        filler_delivered?.result?;
+
+        // This genuine response is injected directly after the missing route's
+        // dispatch future was dropped. No real network send is claimed.
+        let response = grant(&peer, missing).await?;
+        assert!(matches!(
+            source
+                .fixture("unadmitted-still-registered", Command::Acknowledge(response))
+                .await??,
+            Reply::Done
+        ));
+        assert_eq!(source.state().await?.election.role, Role::Candidate);
+        drop(routes);
+        peer.finish().await?;
         source.finish().await
     }
 
