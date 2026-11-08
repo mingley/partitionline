@@ -11664,9 +11664,11 @@ mod tests {
             for (errors, expected) in [(vec![0, 0], 0), (vec![47, 48], 47)] {
                 let body = txn_decode_body(version, &errors);
                 let (shared, _meta_peer, server) = txn_decode_fixture(version, body.clone()).await;
-                let (got, code, _) = txn_decode_call(&shared, version).await.unwrap();
+                let (got, code, reused) = txn_decode_call(&shared, version).await.unwrap();
                 assert_eq!(got, body);
                 assert_eq!(code, expected, "first-error compatibility, v{version}");
+                let expected_reuse = std::env::var("PL_TXN_REUSE").unwrap() == "1";
+                assert_eq!(reused, expected_reuse, "compiled reply path, v{version}");
                 server.abort();
             }
             let body = txn_decode_body(version, &[47, 48]);

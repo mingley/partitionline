@@ -84,13 +84,14 @@ jobs:
           printf 'RUSTFLAGS=%s\nCARGO_BUILD_RUSTFLAGS=%s\n' "${RUSTFLAGS-}" "${CARGO_BUILD_RUSTFLAGS-}"
       - name: Build, run controls and copy each benchmark binary
         shell: bash
-        env:
-          CARGO_TARGET_DIR: ${{ github.workspace }}/target
         run: |
           set -euxo pipefail
           for kind in baseline candidate; do
             (
               cd "$kind"
+              export CARGO_TARGET_DIR="$GITHUB_WORKSPACE/target-$kind"
+              export PL_TXN_REUSE=0
+              if [ "$kind" = candidate ]; then export PL_TXN_REUSE=1; fi
               cargo +stable test --locked --release --lib txn_decode_classification_controls -- --nocapture --test-threads=1
               cargo +stable test --locked --release --test mock_produce txn_decode_add_partitions_coordinator_retry -- --nocapture --test-threads=1
               cargo +stable test --locked --release --lib --no-run --message-format=json > "$RUNNER_TEMP/$kind.json"
@@ -107,6 +108,10 @@ jobs:
           PY
           done
           sha256sum "$RUNNER_TEMP/baseline-test" "$RUNNER_TEMP/candidate-test"
+          if cmp -s "$RUNNER_TEMP/baseline-test" "$RUNNER_TEMP/candidate-test"; then
+            printf '%s\n' 'baseline and candidate binaries are identical; rejecting benchmark' >&2
+            exit 1
+          fi
       - name: Paired x86 loopback timings
         shell: bash
         run: python3 -u candidate/benchmarks/txn_decode_qualification.py "$RUNNER_TEMP/baseline-test" "$RUNNER_TEMP/candidate-test"

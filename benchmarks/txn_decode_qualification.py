@@ -26,7 +26,13 @@ def run(kind, executable, version, count, pair):
                PL_TXN_REUSE="1" if kind == "candidate" else "0")
     cmd = [executable, "producer::tests::txn_decode_loopback_benchmark", "--exact",
            "--ignored", "--nocapture", "--test-threads=1"]
-    result = subprocess.run(cmd, env=env, text=True, capture_output=True, check=True, timeout=120)
+    result = subprocess.run(cmd, env=env, text=True, capture_output=True, timeout=120)
+    if result.returncode != 0:
+        print("CHILD FAILURE", json.dumps({"kind": kind, "version": version,
+              "partitions": count, "pair": pair, "returncode": result.returncode}), flush=True)
+        print("CHILD STDOUT\n" + result.stdout, flush=True)
+        print("CHILD STDERR\n" + result.stderr, flush=True)
+        raise RuntimeError("benchmark child failed")
     marker = "PL_TXN_DECODE_BENCH "
     found = [line.split(marker, 1)[1] for line in result.stdout.splitlines() if marker in line]
     if len(found) != 1:
