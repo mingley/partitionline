@@ -1,0 +1,95 @@
+name: sendall existing timing test matched control
+on:
+  push:
+    branches: [qualification/sendall-timing-control-20261108]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  control:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        features: [default, all]
+    env:
+      FEATURES: ${{ matrix.features }}
+      CARGO_INCREMENTAL: '0'
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: 47df27f9f3e04fc524849f3a9753c0b0469f8947
+          path: baseline
+      - uses: actions/checkout@v7
+        with:
+          ref: 3fd30f13c07056dc0ac3d937b3f370d92880bd98
+          path: candidate
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Verify exact source and build distinct debug tests
+        run: |
+          set -euo pipefail
+          mkdir -p logs
+          rustc -Vv | tee logs/rust.txt
+          lscpu | tee logs/cpu.txt
+          if test -r /sys/fs/cgroup/cpu.max; then cat /sys/fs/cgroup/cpu.max | tee logs/cpu-max.txt; else echo 'cpu.max unavailable' | tee logs/cpu-max.txt; fi
+          test "$(git -C baseline rev-parse HEAD:src/producer.rs)" = 1e7733c136e54b532cdc8bddabd1e0c828e50ed2
+          test "$(git -C candidate rev-parse HEAD:src/producer.rs)" = d634fa4752e33d77e042404f199f31ee2bcb1c48
+          cmp baseline/tests/mock_produce.rs candidate/tests/mock_produce.rs
+          cmp baseline/tests/common/mod.rs candidate/tests/common/mod.rs
+          cmp baseline/Cargo.lock candidate/Cargo.lock
+          sha256sum baseline/src/producer.rs candidate/src/producer.rs baseline/tests/mock_produce.rs baseline/tests/common/mod.rs baseline/Cargo.lock | tee logs/source-sha.txt
+          args=()
+          if test "$FEATURES" = all; then args+=(--all-features); fi
+          CARGO_TARGET_DIR="$GITHUB_WORKSPACE/target-base" cargo test --manifest-path baseline/Cargo.toml --locked "${args[@]}" --test mock_produce --no-run
+          CARGO_TARGET_DIR="$GITHUB_WORKSPACE/target-cand" cargo test --manifest-path candidate/Cargo.toml --locked "${args[@]}" --test mock_produce --no-run
+          mapfile -t base < <(find target-base/debug/deps -maxdepth 1 -type f -executable -name 'mock_produce-*')
+          mapfile -t cand < <(find target-cand/debug/deps -maxdepth 1 -type f -executable -name 'mock_produce-*')
+          test "${#base[@]}" = 1
+          test "${#cand[@]}" = 1
+          sha256sum "${base[0]}" "${cand[0]}" | tee logs/binary-sha.txt
+          if cmp -s "${base[0]}" "${cand[0]}"; then exit 1; fi
+          echo "BASE_BIN=$GITHUB_WORKSPACE/${base[0]}" >> "$GITHUB_ENV"
+          echo "CAND_BIN=$GITHUB_WORKSPACE/${cand[0]}" >> "$GITHUB_ENV"
+      - name: Interleave four-test groups and retain failures
+        run: |
+          set -euo pipefail
+          run_one() {
+            local arm="$1" trial="$2" bin status log
+            if test "$arm" = baseline; then bin="$BASE_BIN"; else bin="$CAND_BIN"; fi
+            log="logs/${FEATURES}-${arm}-${trial}.log"
+            echo "CONTROL arm=$arm trial=$trial features=$FEATURES"
+            set +e
+            timeout 120s "$bin" send_all --nocapture >"$log" 2>&1
+            status=$?
+            set -e
+            cat "$log"
+            echo "CONTROL_EXIT arm=$arm trial=$trial status=$status"
+            grep -F 'running 4 tests' "$log"
+            grep -F 'test result:' "$log"
+            if test "$status" != 0 && test "$status" != 101; then exit "$status"; fi
+          }
+          for trial in 1 2 3 4 5 6; do
+            if test $((trial % 2)) = 0; then
+              run_one candidate "$trial"
+              run_one baseline "$trial"
+            else
+              run_one baseline "$trial"
+              run_one candidate "$trial"
+            fi
+          done
+          echo 'CONTROL_COLLECTION_COMPLETE; exit status records test failures and does not imply they passed'
+      - name: Candidate remaining producer suites
+        run: |
+          set -euo pipefail
+          args=()
+          if test "$FEATURES" = all; then args+=(--all-features); fi
+          CARGO_TARGET_DIR="$GITHUB_WORKSPACE/target-cand" cargo test --manifest-path candidate/Cargo.toml --locked "${args[@]}" --test produce_cancel -- --nocapture
+          CARGO_TARGET_DIR="$GITHUB_WORKSPACE/target-cand" cargo test --manifest-path candidate/Cargo.toml --locked "${args[@]}" --test producer_retained_backing -- --nocapture
+      - name: Retain source pins and every trial
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: sendall-existing-timing-control-${{ matrix.features }}
+          path: logs
+          retention-days: 30
