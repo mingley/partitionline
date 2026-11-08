@@ -15,21 +15,11 @@ name: release
 # + a complementary `ghost-noop` job so a spurious push evaluation stays a
 # green no-op instead of "all jobs skipped" / empty-job red X.
 #
-# Auth (civilization-grade):
-#   Prefer crates.io Trusted Publishing (OIDC, short-lived token) via
-#   rust-lang/crates-io-auth-action. Fall back to repository secret
-#   CARGO_REGISTRY_TOKEN — required for the *first* crates.io publish
-#   (Trusted Publishing can only be configured after the crate exists).
-#   Docs: https://crates.io/docs/trusted-publishing
-#
-# Owner setup (one-time):
-#   1. crates.io → Account → New Token (scope: publish-update for partitionline)
-#   2. GitHub → Settings → Secrets → Actions → CARGO_REGISTRY_TOKEN
-#   3. Merge civilization → main, then: git tag v0.1.0 && git push origin v0.1.0
-#   4. After 0.1.0 exists: crates.io → partitionline → Settings → Trusted
-#      Publishing → Add GitHub (owner mingley, repo partitionline,
-#      workflow release.yml). Later tags can publish without the long-lived
-#      Actions secret.
+# Authentication:
+# Prefer crates.io Trusted Publishing (OIDC, short-lived token). The workflow
+# can use a repository token if trusted publishing is not configured.
+# Client 0.1.0 is already published. Follow docs/RELEASE.md for the next
+# version, the exact-commit checks and the final tag.
 #
 # Optional: Actions → release → Run workflow (workflow_dispatch) after the
 # matching final tag already exists on the tip you intend to publish.

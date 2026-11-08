@@ -20,19 +20,24 @@ descriptor diagnostics ignored in each suite and passed separately on the
 same broker production source. Clippy, Rustdoc, inventory and fuzz supervision
 passed. These results do not close the release gates.
 
-A newer [main client run](https://github.com/mingley/partitionline/actions/runs/42459181316)
-at `4409633` was still in progress when this record was written. Linux
-default and all-feature libraries reported 2,233/11 and 2,232/12
-passed/failed; Windows reported 2,225/19 and macOS arm64 2,230/14.
-The three current Kafka compatibility jobs failed with stack overflows;
-the Kafka 3.9.1 smoke reported JoinGroup error 16. Resource-soak failed
-because the runner denied access to a process's `/proc` file-descriptor
-directory; that workload's result is incomplete. The Kafka 4.1.0 smoke
-was still running. See the run for its final status. The [broker run](https://github.com/mingley/partitionline/actions/runs/42459181380)
-passed 764 default and 912 all-feature tests, with three ignored per
-profile; strict checks, inventory and fuzz supervision also passed. The
-[selected capability profiles](https://github.com/mingley/partitionline/actions/runs/42459181276)
-passed, without independent archive inspection.
+A newer [main CI snapshot](../evidence/releases/main-ci-440-20261108/README.md)
+at `4409633` recorded 17 successful client jobs, nine failures, one
+cancellation and one skip. The failed jobs include the Linux, Windows and
+macOS client libraries, three current Kafka compatibility jobs, the Kafka
+3.9.1 smoke and resource-soak. The soak log reports an OS permission error
+for a process's `/proc` directory; its workload result is incomplete. The
+Kafka 4.1.0 smoke was canceled when main advanced. Broker CI passed 764 default
+and 912 all-feature tests, with three ignored in each profile. Strict checks,
+inventory and fuzz supervision passed. Both selected capability profiles
+passed; their archives were not independently inspected.
+
+At `f092d69`, a newer [broker run](https://github.com/mingley/partitionline/actions/runs/42460194861)
+passed 766 default and 914 all-feature tests, with three ignored in each
+profile; strict checks, inventory and fuzz supervision passed. The selected
+[capability profiles](https://github.com/mingley/partitionline/actions/runs/42460194888)
+passed without independent archive inspection. Its [client run](https://github.com/mingley/partitionline/actions/runs/42460194939)
+was in progress when this record was written: resource-soak passed and three
+current Kafka compatibility jobs failed. See the run for its final status.
 
 A [partial earlier client run](../evidence/releases/main-ci-e02-partial-20261108/README.md)
 at `e02c1b8` recorded six failed jobs and four canceled when main advanced.
@@ -112,6 +117,13 @@ unconsumed replies. The combined source passed both full broker test profiles
 and separate descriptor controls. Its earlier default all-target transport
 failure remains unexplained; a stronger fixture uses a longer finite deadline
 and checks real admission before cancellation.
+
+A [data-buffer capacity candidate](../evidence/broker/data-buffer-capacity-20261108/README.md)
+checks request and scratch capacity before enqueue and avoids recycling
+oversized buffers. It is unapplied: the combined default and all-feature
+broker runs failed Raft tests. In a scoped public-path measurement, freeing a
+faulted-in 256 MiB caller spare took a 16.134 ms median in the caller's first
+poll. Its logical admission budget is not a process RSS bound.
 
 Earlier records:
 
@@ -253,7 +265,11 @@ remain open.
    receipt remained pending; the gate changes scheduling and the mock is not
    Kafka. Individual delivery timeouts are not necessarily flush errors under
    the documented contract. An isolated [completion model](../evidence/client/producer-completion-horizon-20261108/README.md)
-   is not connected to the producer. A [private waker control](../evidence/client/producer-waker-handoff-20261108/README.md)
+   is not connected to the producer. A [gated public draft comparison](../evidence/client/producer-flush-barrier-public-20261108/README.md)
+   waited for the retired worker's record but still lost a worker error after
+   a flush waiter was canceled. A proposed [ownership design](../evidence/client/producer-ownership-design-20261108/README.md)
+   records the unresolved lifecycle, transaction and sequence requirements;
+   the draft remains unapplied. A [private waker control](../evidence/client/producer-waker-handoff-20261108/README.md)
    found a double release under an injected panic; public reachability is not
    established. An isolated [sequence cancellation control](../evidence/client/producer-sequence-cancel-20261108/README.md)
    dropped an artificial batch owner after the actual helper reserved sequence
