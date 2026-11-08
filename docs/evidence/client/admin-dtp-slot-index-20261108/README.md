@@ -146,4 +146,18 @@ scheduler effects, small sample counts and mock-peer work affect timings.
 
 ## Additional checks
 
-PENDING_RESULTS
+[Full Admin run 42489700720](https://github.com/mingley/partitionline/actions/runs/42489700720)
+passed 679 Admin-filtered unit tests and the Admin response integration test
+in each feature profile, with no failures or ignored tests. It used the final
+production and test blobs above. Because both candidate suites passed, the
+conditional baseline reruns did not run.
+
+[Lexical-name comparison 42490023473](https://github.com/mingley/partitionline/actions/runs/42490023473)
+is in progress. The original 14-shape fixture checks the peer's requested
+names and order, and the result count plus each error code or partition
+count. It does not independently check returned names, topic IDs or
+per-topic mappings during timed calls. Separate untimed controls for 32 and
+256 ordered and lexically sorted success and error rows passed for both
+source arms; they check those returned fields and their order. The comparison
+does not by itself measure against the older pre-validation source.
+
