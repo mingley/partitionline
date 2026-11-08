@@ -1170,6 +1170,132 @@ impl Drop for Cluster {
     }
 }
 
+// Summarize the bounded state-file sample without treating it as an atomic
+// snapshot of the preceding checkpoint. Payloads are never printed.
+fn observer_failure_sample(
+    prefix: &str,
+    expected: &[(u64, u64, u8); 2],
+    image_term: u64,
+    image_base: u64,
+) -> String {
+    use std::fmt::Write as _;
+    const MAX_ENTRIES: usize = 64;
+    const MAX_DETAILS: usize = 7 * 1024;
+    let mut details = String::new();
+    let mut expected_exact = [false; 2];
+    let mut next_index = 1_u64;
+    let mut previous_term = 0_u64;
+    let mut base_term_matches = false;
+    let mut valid = true;
+    let mut truncated = false;
+    let mut observed = 0_usize;
+    for entry in prefix.split(';') {
+        if prefix.is_empty() {
+            break;
+        }
+        if observed >= MAX_ENTRIES {
+            truncated = true;
+            valid = false;
+            break;
+        }
+        let mut parts = entry.splitn(4, ':');
+        let parsed = (|| {
+            let term = parts.next()?.parse::<u64>().ok()?;
+            let index = parts.next()?.parse::<u64>().ok()?;
+            let kind = parts.next()?.parse::<u8>().ok()?;
+            if kind > 2 {
+                return None;
+            }
+            let payload = unhex(parts.next()?).ok()?;
+            Some((term, index, kind, payload))
+        })();
+        let Some((term, index, kind, payload)) = parsed else {
+            valid = false;
+            let _ = write!(details, " malformed_entry={observed}");
+            break;
+        };
+        observed += 1;
+        if index != next_index
+            || term == 0
+            || term < previous_term
+            || (kind == 1 && !payload.is_empty())
+        {
+            valid = false;
+        }
+        previous_term = term;
+        next_index = match index.checked_add(1) {
+            Some(next) => next,
+            None => {
+                valid = false;
+                u64::MAX
+            }
+        };
+        if index == image_base {
+            base_term_matches = term == image_term;
+        }
+        for (slot, (want_term, want_index, want_byte)) in expected.iter().enumerate() {
+            if term == *want_term
+                && index == *want_index
+                && kind == 0
+                && payload.len() == 40 * 1024
+                && payload.iter().all(|byte| byte == want_byte)
+            {
+                expected_exact[slot] = true;
+            }
+        }
+        let row = format!(
+            " [term={term} index={index} kind={kind} bytes={} crc32c={:08x}]",
+            payload.len(),
+            crc32c::crc32c(&payload)
+        );
+        if details.len().saturating_add(row.len()) > MAX_DETAILS {
+            valid = false;
+            truncated = true;
+            break;
+        }
+        details.push_str(&row);
+    }
+    let complete_to_base =
+        valid && !truncated && image_base > 0 && next_index > image_base && base_term_matches;
+    format!(
+        "non_atomic_state_sample observed={observed} structural_sample_through_image_base={complete_to_base} expected_exact={expected_exact:?} truncated={truncated}{details}"
+    )
+}
+
+#[test]
+fn observer_failure_sample_checks_identity_and_bounds_output() -> TestResult {
+    let first = hex(&vec![71_u8; 40 * 1024])?;
+    let second = hex(&vec![72_u8; 40 * 1024])?;
+    let expected = [(1, 2, 71), (1, 3, 72)];
+    let good = format!("1:1:1:;1:2:0:{first};1:3:0:{second}");
+    let report = observer_failure_sample(&good, &expected, 1, 3);
+    assert!(report.contains("structural_sample_through_image_base=true"));
+    assert!(report.contains("expected_exact=[true, true]"));
+    let missing = format!("1:1:1:;1:2:0:{first}");
+    let report = observer_failure_sample(&missing, &expected, 1, 3);
+    assert!(report.contains("structural_sample_through_image_base=false"));
+    assert!(report.contains("expected_exact=[true, false]"));
+    let replaced = format!("1:1:1:;1:2:0:{first};1:3:0:47;1:4:0:48");
+    let report = observer_failure_sample(&replaced, &expected, 1, 3);
+    assert!(report.contains("expected_exact=[true, false]"));
+    assert!(report.contains("index=4"));
+    let wrong_term = format!("1:1:1:;1:2:0:{first};2:3:0:{second}");
+    let report = observer_failure_sample(&wrong_term, &expected, 2, 3);
+    assert!(report.contains("expected_exact=[true, false]"));
+    let empty_data = format!("1:1:1:;1:2:0:;1:3:0:{second}");
+    let report = observer_failure_sample(&empty_data, &expected, 1, 3);
+    assert!(report.contains("structural_sample_through_image_base=true"));
+    assert!(report.contains("expected_exact=[false, true]"));
+    let malformed = "1:1:1:;1:2:0:zz";
+    let report = observer_failure_sample(malformed, &expected, 1, 3);
+    assert!(report.contains("malformed_entry=1"));
+    let repeated = "1:1:1:;".repeat(1024);
+    let report = observer_failure_sample(&repeated, &expected, 1, 3);
+    assert!(report.len() < 8192);
+    assert!(report.contains("truncated=true"));
+    Ok(())
+}
+
 async fn observer_image_history(total: usize) -> TestResult {
     let genesis = total - 1;
     let observer = genesis;
@@ -1180,21 +1306,43 @@ async fn observer_image_history(total: usize) -> TestResult {
     // preparation is eligible before feature negotiation starts admission.
     assert_eq!(cluster.state(observer)?.3, 0);
     let mut committed = 0;
-    for byte in [71u8, 72u8] {
+    let mut expected = [(0_u64, 0_u64, 0_u8); 2];
+    for (slot, byte) in [71u8, 72u8].into_iter().enumerate() {
         let answer = cluster
             .command(leader, &format!("propose {}", hex(&vec![byte; 40 * 1024])?))
             .await?;
-        committed = cluster.proposal_position(leader, "observer-prefix-proposal", &answer)?;
+        let (term, index) = cluster.response(
+            leader,
+            "observer-prefix-proposal",
+            proposal_position_response(&answer),
+        )?;
+        expected[slot] = (term, index, byte);
+        committed = index;
         cluster
             .commit("observer-prefix-on-genesis", committed, &voters)
             .await?;
     }
     let checkpoint = cluster.command(leader, "checkpoint 62").await?;
-    let (_, base, image_bytes) = cluster.response(
+    let (base_term, base, image_bytes) = cluster.response(
         leader,
         "observer-prefix-checkpoint",
         image_response(&checkpoint),
     )?;
+    if image_bytes <= 64 * 1024 || base != committed {
+        let sample = match cluster.state(leader) {
+            Ok((term, role, last, committed, prefix)) => format!(
+                "term={term} role={role} last={last} committed={committed} {}",
+                observer_failure_sample(&prefix, &expected, base_term, base)
+            ),
+            Err(error) => format!(
+                "non_atomic_state_sample_error={}",
+                diagnostic_snippet(&error.to_string())
+            ),
+        };
+        eprintln!(
+            "PL_OBSERVER_IMAGE leader={leader} image_bytes={image_bytes} image_base_term={base_term} image_base={base} expected={expected:?} {sample}"
+        );
+    }
     assert!(image_bytes > 64 * 1024, "real transfer must exceed 64KiB");
     assert_eq!(base, committed);
     assert_eq!(cluster.image_base(observer)?.1, 0);
