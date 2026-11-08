@@ -397,7 +397,6 @@ struct Manifest {
 /// at most three further files. Store must aggregate these bounds across logs.
 pub struct Log {
     directory: PathBuf,
-    _ownership: journal::DirectoryOwnership,
     limits: Limits,
     journal_limits: journal::Limits,
     fetch_entries: usize,
@@ -412,6 +411,8 @@ pub struct Log {
     poisoned: bool,
     #[cfg(test)]
     fault: Option<(Phase, bool)>,
+    // Release the directory reservation after the active journal closes.
+    _ownership: journal::DirectoryOwnership,
 }
 fn data_name(base: u64, generation: u64) -> String {
     format!("{base:016x}-{generation:016x}.journal")
@@ -2796,6 +2797,56 @@ mod tests {
             Limits::new(150, 16, 4, 2, 1024 * 1024, 65536, 4096)?,
         )
     }
+
+    #[test]
+    #[cfg(target_os = "linux")]
+    fn sparse_cursor_and_rolling_log_pin_removed_inodes() -> Result<(), Box<dyn std::error::Error>>
+    {
+        use std::os::unix::fs::MetadataExt;
+
+        let temp = Temp::new()?;
+        let path = temp.0.join("sparse");
+        let alias = temp.0.join("alias");
+        let limits = journal::Limits::default();
+        drop(SparseWriter::new(&path, 0, limits)?);
+        std::fs::hard_link(&path, &alias)?;
+        let cursor = SparseCursor::open(&path, 0, limits)?;
+        assert!(matches!(
+            SparseCursor::open(&alias, 0, limits),
+            Err(Error::Storage(journal::Error::AlreadyOpen))
+        ));
+        drop(cursor);
+        drop(SparseCursor::open(&alias, 0, limits)?);
+        std::fs::remove_file(&alias)?;
+        let metadata = std::fs::metadata(&path)?;
+        let cursor = SparseCursor::open(&path, 0, limits)?;
+        std::fs::remove_file(&path)?;
+        let SparseCursor {
+            file, _ownership, ..
+        } = cursor;
+        drop(file);
+        assert_eq!(
+            _ownership.pinned_identity()?,
+            (metadata.dev(), metadata.ino(), 0)
+        );
+        drop(_ownership);
+        drop(SparseWriter::new(&path, 0, limits)?);
+        drop(SparseCursor::open(&path, 0, limits)?);
+
+        let directory = temp.0.join("rolled");
+        let (log, _) = open(&directory)?;
+        let metadata = std::fs::metadata(&directory)?;
+        std::fs::remove_dir_all(&directory)?;
+        assert_eq!(
+            log._ownership.pinned_identity()?,
+            (metadata.dev(), metadata.ino(), 0)
+        );
+        drop(log);
+        let (reopened, _) = open(&directory)?;
+        drop(reopened);
+        Ok(())
+    }
+
     const COMPACTION_PHASES: [Phase; 16] = [
         Phase::CompactionHeaderSynced,
         Phase::CompactionEntrySynced,
