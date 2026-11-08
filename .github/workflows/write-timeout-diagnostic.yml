@@ -1,0 +1,76 @@
+name: Write timeout phase diagnostic
+
+on:
+  push:
+    branches:
+      - qualification/write-timeout-diagnostic-20261108
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    env:
+      CARGO_BUILD_JOBS: '2'
+      CARGO_PROFILE_DEV_DEBUG: '0'
+      CARGO_PROFILE_TEST_DEBUG: '0'
+      CARGO_INCREMENTAL: '0'
+      CARGO_TERM_COLOR: never
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          sparse-checkout: |
+            .cargo
+            .github
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          ref: 646fe0269599964b80077b781911282a3318a7ad
+          path: baseline-8
+          sparse-checkout: |
+            .cargo
+            src
+            examples
+            tests
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          ref: 646fe0269599964b80077b781911282a3318a7ad
+          path: baseline-8192
+          sparse-checkout: |
+            .cargo
+            src
+            examples
+            tests
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          ref: 67b753b16433a50cc6b28ae1620d0838ffce9825
+          path: candidate-8
+          sparse-checkout: |
+            .cargo
+            src
+            examples
+            tests
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          ref: 67b753b16433a50cc6b28ae1620d0838ffce9825
+          path: candidate-8192
+          sparse-checkout: |
+            .cargo
+            src
+            examples
+            tests
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Record host and compiler
+        run: |
+          test "$(uname -m)" = x86_64
+          uname -a
+          rustc +stable -Vv
+          cargo +stable -V
+      - name: Observe peer drain with the unchanged deadline
+        run: bash .github/write-timeout-diagnostic/run.sh
