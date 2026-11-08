@@ -4076,3 +4076,169 @@ mod buffered_read_fairness_control {
         }
     }
 }
+
+
+#[cfg(test)]
+mod disconnect_eof_controls {
+    use super::{exchange, Config, Exit, Handler, Peer, Transport};
+    use std::future::Future;
+    use std::io::{self, IoSlice};
+    use std::net::SocketAddr;
+    use std::pin::Pin;
+    use std::sync::{Arc, Mutex};
+    use std::task::{Context, Poll, Waker};
+    use std::time::Duration;
+    use tokio::io::{AsyncRead, AsyncWrite, AsyncWriteExt, ReadBuf};
+    use tokio::net::{TcpListener, TcpStream};
+    use tokio::sync::{watch, Notify, Semaphore};
+    use tokio::time::timeout;
+
+    const WAIT: Duration = Duration::from_secs(2);
+    fn config() -> Config {
+        Config::new(4, 1, 1024, 1024, Duration::from_secs(30), Duration::from_secs(30), Duration::from_secs(30))
+            .unwrap_or_else(|e| panic!("{e}"))
+    }
+    async fn wait_true(rx: &mut watch::Receiver<bool>) -> bool {
+        loop {
+            if *rx.borrow_and_update() { return true; }
+            if rx.changed().await.is_err() { return false; }
+        }
+    }
+    async fn observed(rx: &mut watch::Receiver<bool>) -> bool {
+        matches!(timeout(WAIT, wait_true(rx)).await, Ok(true))
+    }
+
+    struct SignaledHold {
+        started: watch::Sender<bool>,
+        stopped: watch::Sender<bool>,
+        release: Arc<Notify>,
+    }
+    impl Handler for SignaledHold {
+        type Error = io::Error;
+        fn handle(&self, request: Vec<u8>) -> impl Future<Output = Result<Option<Vec<u8>>, Self::Error>> + Send {
+            let started = self.started.clone();
+            let stopped = self.stopped.clone();
+            let release = Arc::clone(&self.release);
+            async move {
+                struct DropSignal(watch::Sender<bool>);
+                impl Drop for DropSignal {
+                    fn drop(&mut self) { let _ = self.0.send_replace(true); }
+                }
+                let _guard = DropSignal(stopped);
+                let _ = started.send_replace(true);
+                release.notified().await;
+                Ok(Some(request))
+            }
+        }
+    }
+
+    #[derive(Default)]
+    struct GateState { open: bool, waker: Option<Waker> }
+    struct EofGate { state: Mutex<GateState>, seen: watch::Sender<bool> }
+    impl EofGate {
+        fn open(&self) {
+            let wake = {
+                let mut state = self.state.lock().unwrap_or_else(|e| e.into_inner());
+                state.open = true;
+                state.waker.take()
+            };
+            if let Some(waker) = wake { waker.wake(); }
+        }
+    }
+    struct GateEof<S> { inner: S, gate: Arc<EofGate> }
+    impl<S: AsyncRead + Unpin> AsyncRead for GateEof<S> {
+        fn poll_read(mut self: Pin<&mut Self>, cx: &mut Context<'_>, out: &mut ReadBuf<'_>) -> Poll<io::Result<()>> {
+            let before = out.filled().len();
+            let remaining = out.remaining();
+            let result = Pin::new(&mut self.inner).poll_read(cx, out);
+            if remaining > 0 && matches!(&result, Poll::Ready(Ok(()))) && out.filled().len() == before {
+                let blocked = {
+                    let mut state = self.gate.state.lock().unwrap_or_else(|e| e.into_inner());
+                    if state.open { false } else { state.waker = Some(cx.waker().clone()); true }
+                };
+                if blocked {
+                    let _ = self.gate.seen.send_replace(true);
+                    return Poll::Pending;
+                }
+            }
+            result
+        }
+    }
+    impl<S: AsyncWrite + Unpin> AsyncWrite for GateEof<S> {
+        fn poll_write(mut self: Pin<&mut Self>, cx: &mut Context<'_>, buf: &[u8]) -> Poll<io::Result<usize>> {
+            Pin::new(&mut self.inner).poll_write(cx, buf)
+        }
+        fn poll_flush(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<io::Result<()>> {
+            Pin::new(&mut self.inner).poll_flush(cx)
+        }
+        fn poll_shutdown(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<io::Result<()>> {
+            Pin::new(&mut self.inner).poll_shutdown(cx)
+        }
+        fn is_write_vectored(&self) -> bool { self.inner.is_write_vectored() }
+        fn poll_write_vectored(mut self: Pin<&mut Self>, cx: &mut Context<'_>, bufs: &[IoSlice<'_>]) -> Poll<io::Result<usize>> {
+            Pin::new(&mut self.inner).poll_write_vectored(cx, bufs)
+        }
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn withheld_tcp_eof_can_outlast_32_yields_then_stop_handler() {
+        let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let (client, accepted) = tokio::join!(TcpStream::connect(listener.local_addr().unwrap()), listener.accept());
+        let mut client = client.unwrap();
+        let (server, address) = accepted.unwrap();
+        let (started, mut started_rx) = watch::channel(false);
+        let (stopped, mut stopped_rx) = watch::channel(false);
+        let (seen, mut seen_rx) = watch::channel(false);
+        let release = Arc::new(Notify::new());
+        let gate = Arc::new(EofGate { state: Mutex::new(GateState::default()), seen });
+        let handler = Arc::new(SignaledHold { started, stopped, release: Arc::clone(&release) });
+        let peer = Peer { address, #[cfg(feature = "tls")] tls: None, #[cfg(feature = "sasl")] identity: None };
+        let mut task = tokio::spawn(exchange(GateEof { inner: server, gate: Arc::clone(&gate) }, config(), handler, Arc::new(Semaphore::new(1)), peer, #[cfg(feature = "sasl")] None));
+        let sent = client.write_all(&0i32.to_be_bytes()).await.is_ok();
+        let started_ok = observed(&mut started_rx).await;
+        drop(client);
+        let saw_eof = observed(&mut seen_rx).await;
+        for _ in 0..32 { tokio::task::yield_now().await; }
+        let stopped_while_gated = *stopped_rx.borrow();
+        let live_while_gated = !task.is_finished();
+        gate.open();
+        let stopped_before_release = observed(&mut stopped_rx).await;
+        if !stopped_before_release { release.notify_one(); task.abort(); }
+        let joined = timeout(WAIT, &mut task).await;
+        if joined.is_err() { task.abort(); let _ = task.await; }
+        let peer_closed = matches!(joined, Ok(Ok(Exit::PeerClosed)));
+        println!("disconnect-gate sent={sent} started={started_ok} eof_held={saw_eof} stopped_after_32={stopped_while_gated} task_live={live_while_gated} stopped_before_release={stopped_before_release} peer_closed={peer_closed}");
+        assert!(sent && started_ok, "fixture never started the handler");
+        assert!(saw_eof, "fixture did not intercept real TCP EOF");
+        assert!(!stopped_while_gated && live_while_gated, "handler stopped while EOF was withheld");
+        assert!(stopped_before_release, "handler remained pending after EOF release");
+        assert!(peer_closed, "exchange did not join with peer-closed exit");
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn real_transport_disconnect_drops_handler_before_release_or_shutdown() {
+        let (started, mut started_rx) = watch::channel(false);
+        let (stopped, mut stopped_rx) = watch::channel(false);
+        let release = Arc::new(Notify::new());
+        let handler = Arc::new(SignaledHold { started, stopped, release: Arc::clone(&release) });
+        let mut transport = Transport::bind("127.0.0.1:0".parse::<SocketAddr>().unwrap(), config(), handler).await.unwrap();
+        let mut client = TcpStream::connect(transport.local_addr()).await.unwrap();
+        let sent = client.write_all(&0i32.to_be_bytes()).await.is_ok();
+        let started_ok = observed(&mut started_rx).await;
+        drop(client);
+        let stopped_before_cleanup = observed(&mut stopped_rx).await;
+        release.notify_one();
+        let shutdown = timeout(WAIT, transport.shutdown()).await;
+        if shutdown.is_err() {
+            if let Some(mut runner) = transport.runner.take() {
+                runner.abort();
+                let _ = (&mut runner).await;
+            }
+        }
+        let joined = matches!(shutdown, Ok(Ok(ref r)) if r.accepted_connections == 1 && r.joined_connections == 1);
+        println!("disconnect-transport sent={sent} started={started_ok} stopped_before_release_shutdown={stopped_before_cleanup} joined={joined}");
+        assert!(sent && started_ok, "transport fixture never started the handler");
+        assert!(stopped_before_cleanup, "disconnect did not stop handler before release or shutdown");
+        assert!(joined, "transport did not report the accepted connection joined");
+    }
+}

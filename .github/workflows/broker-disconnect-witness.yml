@@ -1,0 +1,74 @@
+name: Broker disconnect controlled witness
+on:
+  push:
+    branches: [qualification/broker-disconnect-witness-20261108]
+permissions:
+  contents: read
+jobs:
+  witness:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      CARGO_BUILD_JOBS: 2
+      CARGO_INCREMENTAL: 0
+      CARGO_PROFILE_TEST_DEBUG: 0
+      CARGO_PROFILE_DEV_DEBUG: 0
+      CARGO_TERM_COLOR: never
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Confirm source and run real TCP controls
+        run: |
+          set -euo pipefail
+          rustc -Vv
+          test "$(git rev-parse HEAD:partitionline-broker/src/transport.rs)" = "87f88e329ff180d3c673df10988e687aa7332fa5"
+          cp partitionline-broker/src/transport.rs /tmp/disconnect-witness-clean.rs
+          for profile in default all; do
+            args=()
+            if [[ "$profile" == all ]]; then args=(--all-features); fi
+            cargo test --locked --manifest-path partitionline-broker/Cargo.toml --lib "${args[@]}" withheld_tcp_eof_can_outlast_32_yields_then_stop_handler -- --nocapture | tee /tmp/disconnect-positive.log
+            grep -qE '^test result: ok\. 1 passed; 0 failed;' /tmp/disconnect-positive.log
+            grep -F 'disconnect-gate sent=true started=true eof_held=true stopped_after_32=false task_live=true stopped_before_release=true peer_closed=true' /tmp/disconnect-positive.log
+            cargo test --locked --manifest-path partitionline-broker/Cargo.toml --lib "${args[@]}" real_transport_disconnect_drops_handler_before_release_or_shutdown -- --nocapture | tee /tmp/disconnect-positive.log
+            grep -qE '^test result: ok\. 1 passed; 0 failed;' /tmp/disconnect-positive.log
+            grep -F 'disconnect-transport sent=true started=true stopped_before_release_shutdown=true joined=true' /tmp/disconnect-positive.log
+          done
+      - name: Sample the original test without changing it
+        run: |
+          set -u
+          passed=0
+          asserted=0
+          timedout=0
+          other=0
+          for attempt in $(seq 1 40); do
+            timeout 5s cargo test --locked --manifest-path partitionline-broker/Cargo.toml --lib transport::disconnect_tests::client_disconnect_stops_the_handler -- --exact --nocapture > /tmp/disconnect-original.log 2>&1
+            rc=$?
+            if [[ $rc -eq 0 ]]; then passed=$((passed + 1));
+            elif [[ $rc -eq 101 ]] && grep -qF 'client disconnect left the handler running' /tmp/disconnect-original.log; then
+              asserted=$((asserted + 1)); cat /tmp/disconnect-original.log
+            elif [[ $rc -eq 124 ]]; then timedout=$((timedout + 1)); cat /tmp/disconnect-original.log
+            else other=$((other + 1)); cat /tmp/disconnect-original.log
+            fi
+          done
+          echo "disconnect-original attempts=40 passed=$passed asserted=$asserted timedout=$timedout other=$other"
+          test "$other" -eq 0
+      - name: No EOF cancellation mutant
+        run: |
+          set -euo pipefail
+          cp /tmp/disconnect-witness-clean.rs partitionline-broker/src/transport.rs
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path("partitionline-broker/src/transport.rs")
+          s=p.read_text()
+          old="            Ok(0) => return Exit::PeerClosed,"
+          new="            Ok(0) => return std::future::pending::<Exit>().await,"
+          assert s.count(old)==1
+          p.write_text(s.replace(old,new,1))
+          PY
+          if cargo test --locked --manifest-path partitionline-broker/Cargo.toml --lib withheld_tcp_eof_can_outlast_32_yields_then_stop_handler -- --nocapture > /tmp/disconnect-gate-mutant.log 2>&1; then cat /tmp/disconnect-gate-mutant.log; exit 1; fi
+          cat /tmp/disconnect-gate-mutant.log
+          grep -F "handler remained pending after EOF release" /tmp/disconnect-gate-mutant.log
+          if cargo test --locked --manifest-path partitionline-broker/Cargo.toml --lib real_transport_disconnect_drops_handler_before_release_or_shutdown -- --nocapture > /tmp/disconnect-transport-mutant.log 2>&1; then cat /tmp/disconnect-transport-mutant.log; exit 1; fi
+          cat /tmp/disconnect-transport-mutant.log
+          grep -F "disconnect did not stop handler before release or shutdown" /tmp/disconnect-transport-mutant.log
+          cp /tmp/disconnect-witness-clean.rs partitionline-broker/src/transport.rs
