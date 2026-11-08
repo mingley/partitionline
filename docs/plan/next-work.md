@@ -818,8 +818,12 @@ reduced a 4,096-record mock first poll from about 1.18 seconds to about
 1.1 ms on one shared x86 runner. It changed zero-linger batching from one
 batch to three, left an 8,192-record fallback cliff, and added a cancellation
 point where a caller-owned blocking destructor delayed the runtime. The
-yielding candidate remains unapplied; a separate no-added-yield version is
-under qualification. These are scoped mock results, not Kafka throughput.
+yielding candidate remains unapplied. The [no-added-yield candidate](../evidence/perf/sendall-no-yield-20261108/README.md)
+retains the 8,192-record cliff and passed narrow mock and single-broker
+producer histories, but its [combined qualification](../evidence/client/send-all-combined-qualification-20261108/README.md)
+failed 17 of 45 mock-producer tests in each feature profile. Their cause and
+any relationship to the candidate are unknown. It remains unapplied. These
+are scoped mock results, not Kafka throughput.
 
 The producer's pending queue can rescan deadlines and shift a vector on each
 small batch, creating quadratic work when a long queue drains one record at a
