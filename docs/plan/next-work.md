@@ -358,11 +358,15 @@ A [generation-lease variant](../evidence/broker/journal-generation-cost-20261108
 reduced ticket size but did not show a convincing timing gain and remains
 unapplied.
 
-[Record-header experiments](../evidence/broker/records-header-validation-20261108/README.md)
-improved some header-bearing batches but several variants regressed other
-controls. A later outlined candidate showed promising synthetic measurements;
-its expanded differential tests and full qualification are still in progress.
-The candidates remain unapplied and do not establish Kafka throughput.
+The applied [record-header validation path](../evidence/broker/records-header-validation-20261108/README.md)
+checks a validated prefix before resuming the generic walk. A seeded
+differential corpus checks exact errors and partial counts. On one shared
+x86 host, the fresh 13-case synthetic benchmark showed lower times for
+header-heavy batches and a 0.3% higher median for 1,024 header-free records.
+The default suite and a later all-feature candidate suite passed; an earlier
+candidate suite and the same-runner baseline suite failed separate Raft tests.
+Those failures remain unexplained. These measurements do not establish Kafka
+throughput or a ranking.
 
 Run clean-commit client, broker and schema default/all-feature suites,
 all-target strict Clippy, formatting, rustdoc, package consumers and independent
