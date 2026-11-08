@@ -1,0 +1,74 @@
+name: Admin combined name and row checkpoint snapshot qualification
+on:
+  push:
+    branches: [qualification/admin-dtp-name-row-combined-20261108]
+permissions:
+  contents: read
+jobs:
+  tests:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    strategy:
+      fail-fast: false
+      matrix:
+        feature: [default, all]
+    env:
+      CARGO_INCREMENTAL: '0'
+      CARGO_TERM_COLOR: never
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Pin exact combined snapshot
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD:src/admin.rs)" = 95d95498f07faccba3f1f95b2cab0a20f1d9eaf5
+          test "$(git rev-parse HEAD:src/admin/pagination_tests.rs)" = fc16bda39bac493941389dc4d9bda51542f1ff41
+          git rev-parse HEAD HEAD:src/admin.rs HEAD:src/admin/pagination_tests.rs HEAD:Cargo.lock
+          sha256sum src/admin.rs src/admin/pagination_tests.rs Cargo.lock
+          rustc -Vv
+      - name: Run focused row controls
+        run: |
+          set -euo pipefail
+          if test "${{ matrix.feature }}" = all; then
+            cargo test --locked --all-features --lib dtp_conversion_ -- --test-threads=1
+          else
+            cargo test --locked --lib dtp_conversion_ -- --test-threads=1
+          fi
+      - name: Run requested-name and boundary controls
+        run: |
+          set -euo pipefail
+          if test "${{ matrix.feature }}" = all; then
+            cargo test --locked --all-features --lib dtp_requested_ -- --test-threads=1
+          else
+            cargo test --locked --lib dtp_requested_ -- --test-threads=1
+          fi
+      - name: Run complete Admin pagination module
+        run: |
+          set -euo pipefail
+          if test "${{ matrix.feature }}" = all; then
+            cargo test --locked --all-features --lib admin::pagination_tests:: -- --test-threads=1
+          else
+            cargo test --locked --lib admin::pagination_tests:: -- --test-threads=1
+          fi
+  lint:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    env:
+      CARGO_INCREMENTAL: '0'
+      CARGO_TERM_COLOR: never
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy,rustfmt
+      - name: Pin exact combined snapshot
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD:src/admin.rs)" = 95d95498f07faccba3f1f95b2cab0a20f1d9eaf5
+          test "$(git rev-parse HEAD:src/admin/pagination_tests.rs)" = fc16bda39bac493941389dc4d9bda51542f1ff41
+          git rev-parse HEAD HEAD:src/admin.rs HEAD:src/admin/pagination_tests.rs
+          rustc -Vv
+      - name: Check formatting
+        run: cargo fmt --all -- --check
+      - name: Strict all-target all-feature Clippy
+        run: cargo clippy --locked --all-targets --all-features -- -D warnings
