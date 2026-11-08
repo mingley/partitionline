@@ -1,0 +1,75 @@
+name: Admin response integration qualification
+on:
+  push:
+    branches: [qualification/admin-reservation-integration-20261108]
+  workflow_dispatch:
+jobs:
+  integration:
+    strategy:
+      fail-fast: false
+      matrix:
+        profile: [default, all-features]
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v7
+      - name: Existing Admin mock integration tests
+        shell: bash
+        env:
+          PROFILE: ${{ matrix.profile }}
+        run: |
+          set -uo pipefail
+          mkdir -p "$RUNNER_TEMP/admin-integration-$PROFILE"
+          features=()
+          if [ "$PROFILE" = all-features ]; then features=(--all-features); fi
+          failed=0
+          tests=(
+            admin_create_duplicate_is_already_exists
+            admin_delete_and_describe
+            admin_partitions_alter_configs_and_acls
+            admin_alter_configs_delete_records_describe_cluster
+            alter_configs_negotiates_v1_when_broker_caps
+            admin_alter_configs_for
+            delete_records_follows_partition_leader
+            delete_records_negotiates_v1_when_broker_caps
+            delete_records_high_watermark_truncates_to_log_end
+            admin_delete_records_for_batches_partitions
+            create_topics_follows_controller
+            create_topics_redials_controller_while_refreshing_metadata
+            create_topics_negotiates_below_v7_when_broker_caps
+            delete_topics_follows_controller
+            delete_topics_negotiates_below_v6_when_broker_caps
+            describe_configs_negotiates_below_v4_when_broker_caps
+            create_partitions_follows_controller
+            create_partitions_negotiates_below_v3_when_broker_caps
+            admin_create_delete_topics_partitions_timeout
+            admin_delete_topics_by_id
+            incremental_alter_configs_follows_controller
+            incremental_alter_configs_negotiates_v0_when_broker_caps
+            admin_incremental_alter_configs_for
+          )
+          rustc --version
+          sha256sum src/protocol/admin.rs tests/admin_response_reservation.rs
+          for case in "${tests[@]}"; do
+            log="$RUNNER_TEMP/admin-integration-$PROFILE/$case.log"
+            if cargo test --locked "${features[@]}" --test full_surface "$case" -- --exact >"$log" 2>&1; then
+              if grep -Eq 'test result: ok\. 1 passed; 0 failed;' "$log"; then
+                echo "PASS $case"
+              else
+                echo "FAIL $case: no single passing test"
+                cat "$log"
+                failed=1
+              fi
+            else
+              echo "FAIL $case"
+              cat "$log"
+              failed=1
+            fi
+          done
+          exit "$failed"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: admin-integration-${{ matrix.profile }}
+          path: ${{ runner.temp }}/admin-integration-${{ matrix.profile }}/
+          if-no-files-found: warn
