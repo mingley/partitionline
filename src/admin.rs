@@ -8,6 +8,7 @@ use std::cmp::Ordering;
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::fmt;
 use std::future::Future;
+use std::hash::BuildHasher;
 use std::pin::Pin;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
@@ -16727,10 +16728,48 @@ async fn list_offset_topic_requests<'a>(
     groups
 }
 
-// A zero topic ID means the broker did not supply an identity. Keep the
-// first nonzero ID separately from the public first-page description so that
-// later known IDs can still be compared after an unknown first page.
-type DescribedTopicIndex = HashMap<String, (usize, [u8; 16])>;
+// Topic names live in the output vector. Slots stay valid when the vector
+// reallocates and replacement descriptions have the same name. Keep the
+// hash so table growth does not need to rehash those names. A zero topic ID
+// means the broker did not supply an identity; keep the first nonzero ID
+// separately from the public first-page description.
+struct DescribedTopicEntry {
+    hash: u64,
+    slot: usize,
+    known_id: [u8; 16],
+}
+
+struct DescribedTopicIndex<S = std::collections::hash_map::RandomState> {
+    table: hashbrown::HashTable<DescribedTopicEntry>,
+    hash_builder: S,
+}
+
+impl DescribedTopicIndex {
+    fn new() -> Self {
+        Self::with_hasher(std::collections::hash_map::RandomState::new())
+    }
+}
+
+impl<S: BuildHasher> DescribedTopicIndex<S> {
+    fn with_hasher(hash_builder: S) -> Self {
+        Self {
+            table: hashbrown::HashTable::new(),
+            hash_builder,
+        }
+    }
+
+    fn hash(&self, name: &str) -> u64 {
+        self.hash_builder.hash_one(name)
+    }
+
+    fn insert_hashed(&mut self, hash: u64, slot: usize, known_id: [u8; 16]) {
+        let _entry = self.table.insert_unique(
+            hash,
+            DescribedTopicEntry { hash, slot, known_id },
+            |entry| entry.hash,
+        );
+    }
+}
 
 async fn discard_described_partitions(partitions: &mut Vec<crate::PartitionInfo>) {
     const CHUNK: usize = 8 * 1024;
@@ -16768,43 +16807,61 @@ async fn reject_unnamed_described_topic(
     }
 }
 
-async fn place_described_topic(
+async fn place_described_topic<S: BuildHasher>(
     out: &mut Vec<TopicDescription>,
-    index: &mut DescribedTopicIndex,
+    index: &mut DescribedTopicIndex<S>,
     mut desc: TopicDescription,
 ) -> Result<()> {
-    if let Some((slot, known_id)) = index.get_mut(desc.name.as_str()) {
-        if let Some(existing) = out.get_mut(*slot) {
-            if existing.error_code != 0 {
-                discard_described_partitions(&mut desc.partitions).await;
-            } else if desc.error_code != 0 {
-                discard_described_partitions(&mut existing.partitions).await;
-                *existing = desc;
-            } else {
-                if desc.topic_id != [0; 16] {
-                    if *known_id == [0; 16] {
-                        *known_id = desc.topic_id;
-                    } else if *known_id != desc.topic_id {
-                        discard_described_partitions(&mut desc.partitions).await;
-                        return Err(Error::protocol(
-                            "DescribeTopicPartitions returned different topic IDs for the same topic",
-                        ));
-                    }
-                }
-                existing.partitions.extend(desc.partitions);
+    let hash = index.hash(desc.name.as_str());
+    let mut missing_slot = false;
+    let found = index.table.find_mut(hash, |entry| {
+        if entry.hash != hash {
+            return false;
+        }
+        match out.get(entry.slot) {
+            Some(existing) => existing.name == desc.name,
+            None => {
+                missing_slot = true;
+                false
             }
+        }
+    });
+    if missing_slot {
+        return Err(Error::protocol("DescribeTopicPartitions index references a missing topic"));
+    }
+    if let Some(entry) = found {
+        let Some(existing) = out.get_mut(entry.slot) else {
+            return Err(Error::protocol("DescribeTopicPartitions index references a missing topic"));
+        };
+        if existing.error_code != 0 {
+            discard_described_partitions(&mut desc.partitions).await;
+        } else if desc.error_code != 0 {
+            discard_described_partitions(&mut existing.partitions).await;
+            *existing = desc;
+        } else {
+            if desc.topic_id != [0; 16] {
+                if entry.known_id == [0; 16] {
+                    entry.known_id = desc.topic_id;
+                } else if entry.known_id != desc.topic_id {
+                    discard_described_partitions(&mut desc.partitions).await;
+                    return Err(Error::protocol(
+                        "DescribeTopicPartitions returned different topic IDs for the same topic",
+                    ));
+                }
+            }
+            existing.partitions.extend(desc.partitions);
         }
         return Ok(());
     }
     let slot = out.len();
-    let _previous = index.insert(desc.name.clone(), (slot, desc.topic_id));
+    index.insert_hashed(hash, slot, desc.topic_id);
     out.push(desc);
     Ok(())
 }
 
-async fn extend_described_topics(
+async fn extend_described_topics<S: BuildHasher>(
     out: &mut Vec<TopicDescription>,
-    index: &mut DescribedTopicIndex,
+    index: &mut DescribedTopicIndex<S>,
     incoming: Vec<TopicDescription>,
 ) -> Result<()> {
     let mut walked = 0usize;
