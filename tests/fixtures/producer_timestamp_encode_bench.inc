@@ -7,9 +7,14 @@
             .expect("PL_BENCH_ROUNDS")
             .parse()
             .expect("integer rounds");
-        assert!((1..=4096).contains(&rounds));
+        let batch: usize = std::env::var("PL_BENCH_BATCH")
+            .expect("PL_BENCH_BATCH")
+            .parse()
+            .expect("integer batch");
+        assert!((1..=1_048_576).contains(&rounds));
+        assert!(batch == 1 || batch == 4096);
         let topic = Arc::<str>::from("t");
-        let records: Vec<Pending> = (0..4096).map(|_| {
+        let records: Vec<Pending> = (0..batch).map(|_| {
             let mut record = queued("t", Some(0));
             record.rec.value = Some(Bytes::from_static(b"12345678"));
             if mode == "explicit" {
@@ -44,6 +49,17 @@
             }
         }
         let (bytes, crc) = expected.unwrap();
-        println!("TIMESTAMP_BENCH_ENCODE mode={mode} rounds={rounds} records={} elapsed_ns={} bytes={bytes} crc={crc}", rounds * 4096, measured.as_nanos());
+        let mut decoded = buf.clone().freeze();
+        let (_, _, _, topics) = crate::protocol::api::decode_produce_request(&mut decoded, 9).unwrap();
+        let records = &topics.first().unwrap().partitions.first().unwrap().records;
+        let expected_time = if mode == "explicit" { 1234567 } else { 123456789 };
+        assert_eq!(records.records.len(), batch);
+        assert_eq!(records.base_timestamp, expected_time);
+        for record in &records.records {
+            assert_eq!(record.timestamp, expected_time);
+            assert_eq!(record.value.as_deref(), Some(&b"12345678"[..]));
+        }
+        let reset = if mode == "implicit" { 1 } else { 0 };
+        println!("TIMESTAMP_BENCH_ENCODE mode={mode} batch={batch} rounds={rounds} records={} elapsed_ns={} bytes={bytes} crc={crc} reset_implicit={reset} timestamps_verified=1", rounds * batch, measured.as_nanos());
     }
 

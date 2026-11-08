@@ -5,8 +5,6 @@ use bytes::Bytes;
 use partitionline::{ProduceRecord, Producer, ProducerConfig};
 use std::time::{Duration, Instant};
 
-const BATCH: usize = 4096;
-
 #[tokio::test(flavor = "current_thread")]
 #[ignore]
 async fn timestamp_producer_sample() {
@@ -16,14 +14,20 @@ async fn timestamp_producer_sample() {
         .expect("PL_BENCH_ROUNDS")
         .parse()
         .expect("integer rounds");
-    assert!((1..=1024).contains(&rounds));
+    let batch: usize = std::env::var("PL_BENCH_BATCH")
+        .expect("PL_BENCH_BATCH")
+        .parse()
+        .expect("integer batch");
+    assert!((1..=100_000).contains(&rounds));
+    assert!(batch == 1 || batch == 4096);
     let mock = common::Mock::start().await;
     mock.set_topic_partitions("t", 1);
+    mock.enable_produce_timestamp_observation();
     let producer = Producer::new(
         ProducerConfig::bootstrap([mock.addr.clone()])
             .idempotent(true)
             .connections(1)
-            .batch_records(BATCH)
+            .batch_records(batch)
             .batch_bytes(2 * 1024 * 1024)
             .max_request_size(2 * 1024 * 1024)
             .buffer_memory(0)
@@ -40,9 +44,9 @@ async fn timestamp_producer_sample() {
     assert_eq!(warm.offset(), 0);
 
     let started = Instant::now();
-    for batch in 0..rounds {
-        for item in 0..BATCH {
-            let index = u64::try_from(batch * BATCH + item).unwrap();
+    for batch_index in 0..rounds {
+        for item in 0..batch {
+            let index = u64::try_from(batch_index * batch + item).unwrap();
             let record = ProduceRecord::to("t")
                 .partition(0)
                 .value(Bytes::copy_from_slice(&index.to_le_bytes()));
@@ -52,7 +56,7 @@ async fn timestamp_producer_sample() {
         producer.flush_timeout(Duration::from_secs(30)).await.expect("flush");
     }
     let elapsed = started.elapsed();
-    let total = rounds * BATCH;
+    let total = rounds * batch;
     let log = mock.log_values("t", 0);
     assert_eq!(log.len(), total + 1);
     assert_eq!(log.first(), Some(&(0, Some(b"warm".to_vec()))));
@@ -65,6 +69,19 @@ async fn timestamp_producer_sample() {
     assert_eq!(metrics.records_acked, u64::try_from(total + 1).unwrap());
     assert_eq!(metrics.produce_errors, 0);
     assert_eq!(metrics.bytes_buffered, 0);
-    println!("TIMESTAMP_BENCH_PRODUCER mode={mode} rounds={rounds} records={total} elapsed_ns={}", elapsed.as_nanos());
+    let attempts = mock.produce_timestamp_attempts();
+    let mut observed = 0usize;
+    for attempt in attempts.iter().skip(1) {
+        for timestamp in &attempt.4 {
+            if mode == "explicit" {
+                assert_eq!(*timestamp, 1234567);
+            } else {
+                assert_eq!(*timestamp, attempt.3);
+            }
+            observed += 1;
+        }
+    }
+    assert_eq!(observed, total);
+    println!("TIMESTAMP_BENCH_PRODUCER mode={mode} batch={batch} rounds={rounds} records={total} elapsed_ns={} new_records=1 timestamps_verified=1", elapsed.as_nanos());
     let _close = producer.close_timeout(Duration::from_secs(5)).await;
 }
