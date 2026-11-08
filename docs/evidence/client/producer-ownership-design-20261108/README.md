@@ -38,6 +38,14 @@ experiments, not production fixes. The draft stays off main.
   These results do not establish whether the draft, fixture timing, or another
   cause produced the failures.
 
+- In [gated shutdown run 42461750015][shutdown-run], three mock histories
+  passed in each source/feature arm. In the b7 draft, a second send waiting
+  for buffer capacity remained pending for 200 ms after the close seal; after
+  the held response was released it returned Closed, and final buffered bytes
+  were zero. The earlier bc45 draft admitted that waiter after the release.
+  This instrumented mock test does not qualify either draft. The waiter had not
+  reserved its own bytes, so it does not reproduce the separate, source-derived
+  concern about an already-reserved pre-admission future.
 - A later [close-sealing draft run 42460603408][sealing-run] passed 14 focused
   controls and 23 producer-cancellation tests in each feature mode. Both
   modes then failed the same retained-backing test, with 4,096 buffered bytes
@@ -175,6 +183,7 @@ the standalone model or the private helper witnesses.
 [compile-run]: https://github.com/mingley/partitionline/actions/runs/42459658935
 [sealing-run]: https://github.com/mingley/partitionline/actions/runs/42460603408
 [paired-run]: https://github.com/mingley/partitionline/actions/runs/42460753994
+[shutdown-run]: https://github.com/mingley/partitionline/actions/runs/42461750015
 [sealing-draft]: https://github.com/mingley/partitionline/blob/b7c11784d79b05a36ca624b3de17a952603d4931/docs/evidence/client/producer-completion-draft-20261108/README.md
 [assignment]: https://github.com/mingley/partitionline/blob/1036a393eb85f23032b935bf86862b7e98e36e14/src/producer.rs#L10429
 [response]: https://github.com/mingley/partitionline/blob/1036a393eb85f23032b935bf86862b7e98e36e14/src/producer.rs#L8670
