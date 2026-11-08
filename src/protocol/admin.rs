@@ -1036,6 +1036,17 @@ fn response_vec<T>(count: usize) -> Vec<T> {
     Vec::with_capacity(count.min(initial_items))
 }
 
+// Grow only after every currently reserved slot has been validated. Even when
+// the peer declares a huge final count, the next requested capacity is at
+// most four times the number of already decoded elements.
+fn response_push<T>(out: &mut Vec<T>, item: T, count: usize) {
+    if out.len() == out.capacity() {
+        let target = out.capacity().max(1).saturating_mul(4).min(count);
+        out.reserve_exact(target.saturating_sub(out.len()));
+    }
+    out.push(item);
+}
+
 fn get_i32_array<B: Buf>(buf: &mut B, flexible: bool) -> Result<Vec<i32>> {
     let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);
     let mut out = Vec::with_capacity(n);
@@ -1867,20 +1878,20 @@ pub fn decode_create_topics_response<B: Buf>(
                 let config_source = buf::get_i8(buf)?;
                 let is_sensitive = buf::get_bool(buf)?;
                 buf::skip_tagged_fields(buf)?;
-                configs.push(CreatedTopicConfig {
+                response_push(&mut configs, CreatedTopicConfig {
                     name: cname,
                     value,
                     read_only,
                     config_source,
                     is_sensitive,
-                });
+                }, cn);
             }
             buf::skip_tagged_fields(buf)?;
             (num_partitions, replication_factor, configs)
         } else {
             (-1, -1, Vec::new())
         };
-        out.push(TopicResult {
+        response_push(&mut out, TopicResult {
             name,
             error_code,
             error_message,
@@ -1888,7 +1899,7 @@ pub fn decode_create_topics_response<B: Buf>(
             num_partitions,
             replication_factor,
             configs,
-        });
+        }, n);
     }
     if flexible {
         buf::skip_tagged_fields(buf)?;
@@ -1933,13 +1944,13 @@ pub async fn decode_create_topics_response_cooperative<B: Buf>(
                 let config_source = buf::get_i8(buf)?;
                 let is_sensitive = buf::get_bool(buf)?;
                 buf::skip_tagged_fields(buf)?;
-                configs.push(CreatedTopicConfig {
+                response_push(&mut configs, CreatedTopicConfig {
                     name: cname,
                     value,
                     read_only,
                     config_source,
                     is_sensitive,
-                });
+                }, cn);
                 walked = walked.saturating_add(1);
                 if walked == 8 * 1024 {
                     walked = 0;
@@ -1951,7 +1962,7 @@ pub async fn decode_create_topics_response_cooperative<B: Buf>(
         } else {
             (-1, -1, Vec::new())
         };
-        out.push(TopicResult {
+        response_push(&mut out, TopicResult {
             name,
             error_code,
             error_message,
@@ -1959,7 +1970,7 @@ pub async fn decode_create_topics_response_cooperative<B: Buf>(
             num_partitions,
             replication_factor,
             configs,
-        });
+        }, n);
         walked = walked.saturating_add(1);
         if walked == 8 * 1024 {
             walked = 0;
@@ -2703,7 +2714,7 @@ pub fn decode_delete_topics_response<B: Buf>(
         if flexible {
             buf::skip_tagged_fields(buf)?;
         }
-        out.push(TopicResult {
+        response_push(&mut out, TopicResult {
             name,
             error_code,
             error_message,
@@ -2711,7 +2722,7 @@ pub fn decode_delete_topics_response<B: Buf>(
             num_partitions: -1,
             replication_factor: -1,
             configs: Vec::new(),
-        });
+        }, n);
     }
     if flexible {
         buf::skip_tagged_fields(buf)?;
@@ -2751,7 +2762,7 @@ pub async fn decode_delete_topics_response_cooperative<B: Buf>(
         if flexible {
             buf::skip_tagged_fields(buf)?;
         }
-        out.push(TopicResult {
+        response_push(&mut out, TopicResult {
             name,
             error_code,
             error_message,
@@ -2759,7 +2770,7 @@ pub async fn decode_delete_topics_response_cooperative<B: Buf>(
             num_partitions: -1,
             replication_factor: -1,
             configs: Vec::new(),
-        });
+        }, n);
         walked = walked.saturating_add(1);
         if walked == 8 * 1024 {
             walked = 0;
@@ -3407,11 +3418,11 @@ pub fn decode_describe_configs_response<B: Buf>(
                     if flexible {
                         buf::skip_tagged_fields(buf)?;
                     }
-                    synonyms.push(ConfigSynonym {
+                    response_push(&mut synonyms, ConfigSynonym {
                         name: sname,
                         value: svalue,
                         source: ssource,
-                    });
+                    }, sn);
                 }
             }
             let (config_type, documentation) = if version >= 3 {
@@ -3422,7 +3433,7 @@ pub fn decode_describe_configs_response<B: Buf>(
             if flexible {
                 buf::skip_tagged_fields(buf)?;
             }
-            entries.push(ConfigEntry {
+            response_push(&mut entries, ConfigEntry {
                 name: ename,
                 value,
                 read_only,
@@ -3431,18 +3442,18 @@ pub fn decode_describe_configs_response<B: Buf>(
                 synonyms,
                 config_type,
                 documentation,
-            });
+            }, en);
         }
         if flexible {
             buf::skip_tagged_fields(buf)?;
         }
-        out.push(DescribeConfigsResult {
+        response_push(&mut out, DescribeConfigsResult {
             error_code,
             error_message,
             resource_type,
             name,
             entries,
-        });
+        }, n);
     }
     if flexible {
         buf::skip_tagged_fields(buf)?;
@@ -3494,11 +3505,11 @@ pub async fn decode_describe_configs_response_cooperative<B: Buf>(
                     if flexible {
                         buf::skip_tagged_fields(buf)?;
                     }
-                    synonyms.push(ConfigSynonym {
+                    response_push(&mut synonyms, ConfigSynonym {
                         name: sname,
                         value: svalue,
                         source: ssource,
-                    });
+                    }, sn);
                     walked = walked.saturating_add(1);
                     if walked == 8 * 1024 {
                         walked = 0;
@@ -3514,7 +3525,7 @@ pub async fn decode_describe_configs_response_cooperative<B: Buf>(
             if flexible {
                 buf::skip_tagged_fields(buf)?;
             }
-            entries.push(ConfigEntry {
+            response_push(&mut entries, ConfigEntry {
                 name: ename,
                 value,
                 read_only,
@@ -3523,7 +3534,7 @@ pub async fn decode_describe_configs_response_cooperative<B: Buf>(
                 synonyms,
                 config_type,
                 documentation,
-            });
+            }, en);
             walked = walked.saturating_add(1);
             if walked == 8 * 1024 {
                 walked = 0;
@@ -3533,13 +3544,13 @@ pub async fn decode_describe_configs_response_cooperative<B: Buf>(
         if flexible {
             buf::skip_tagged_fields(buf)?;
         }
-        out.push(DescribeConfigsResult {
+        response_push(&mut out, DescribeConfigsResult {
             error_code,
             error_message,
             resource_type,
             name,
             entries,
-        });
+        }, n);
         walked = walked.saturating_add(1);
         if walked == 8 * 1024 {
             walked = 0;
@@ -4222,7 +4233,7 @@ pub fn decode_create_partitions_response<B: Buf>(
         if flexible {
             buf::skip_tagged_fields(buf)?;
         }
-        out.push(TopicResult::new(name, error_code, error_message));
+        response_push(&mut out, TopicResult::new(name, error_code, error_message), n);
     }
     if flexible {
         buf::skip_tagged_fields(buf)?;
@@ -4249,7 +4260,7 @@ pub async fn decode_create_partitions_response_cooperative<B: Buf>(
         if flexible {
             buf::skip_tagged_fields(buf)?;
         }
-        out.push(TopicResult::new(name, error_code, error_message));
+        response_push(&mut out, TopicResult::new(name, error_code, error_message), n);
         walked = walked.saturating_add(1);
         if walked == 8 * 1024 {
             walked = 0;
@@ -5277,12 +5288,12 @@ pub fn decode_incremental_alter_configs_resource_results<B: Buf>(
         if flexible {
             buf::skip_tagged_fields(buf)?;
         }
-        out.push(AlterConfigsResourceResult {
+        response_push(&mut out, AlterConfigsResourceResult {
             error_code,
             error_message,
             resource_type,
             name,
-        });
+        }, n);
     }
     if flexible {
         buf::skip_tagged_fields(buf)?;
@@ -5310,12 +5321,12 @@ pub async fn decode_incremental_alter_configs_resource_results_cooperative<B: Bu
         if flexible {
             buf::skip_tagged_fields(buf)?;
         }
-        out.push(AlterConfigsResourceResult {
+        response_push(&mut out, AlterConfigsResourceResult {
             error_code,
             error_message,
             resource_type,
             name,
-        });
+        }, n);
         walked = walked.saturating_add(1);
         if walked == 8 * 1024 {
             walked = 0;
@@ -6068,12 +6079,12 @@ pub fn decode_alter_configs_resource_results<B: Buf>(
         if flexible {
             buf::skip_tagged_fields(buf)?;
         }
-        out.push(AlterConfigsResourceResult {
+        response_push(&mut out, AlterConfigsResourceResult {
             error_code,
             error_message,
             resource_type,
             name,
-        });
+        }, n);
     }
     if flexible {
         buf::skip_tagged_fields(buf)?;
@@ -6101,12 +6112,12 @@ pub async fn decode_alter_configs_resource_results_cooperative<B: Buf>(
         if flexible {
             buf::skip_tagged_fields(buf)?;
         }
-        out.push(AlterConfigsResourceResult {
+        response_push(&mut out, AlterConfigsResourceResult {
             error_code,
             error_message,
             resource_type,
             name,
-        });
+        }, n);
         walked = walked.saturating_add(1);
         if walked == 8 * 1024 {
             walked = 0;
@@ -6821,16 +6832,16 @@ pub fn decode_delete_records_topics_response<B: Buf>(
             if flexible {
                 buf::skip_tagged_fields(buf)?;
             }
-            partitions.push(DeletedRecordsPartition {
+            response_push(&mut partitions, DeletedRecordsPartition {
                 partition,
                 low_watermark,
                 error_code,
-            });
+            }, pn);
         }
         if flexible {
             buf::skip_tagged_fields(buf)?;
         }
-        topics.push(DeletedRecordsTopic { topic, partitions });
+        response_push(&mut topics, DeletedRecordsTopic { topic, partitions }, tn);
     }
     if flexible {
         buf::skip_tagged_fields(buf)?;
@@ -6861,11 +6872,11 @@ pub async fn decode_delete_records_topics_response_cooperative<B: Buf>(
             if flexible {
                 buf::skip_tagged_fields(buf)?;
             }
-            partitions.push(DeletedRecordsPartition {
+            response_push(&mut partitions, DeletedRecordsPartition {
                 partition,
                 low_watermark,
                 error_code,
-            });
+            }, pn);
             walked = walked.saturating_add(1);
             if walked == 8 * 1024 {
                 walked = 0;
@@ -6875,7 +6886,7 @@ pub async fn decode_delete_records_topics_response_cooperative<B: Buf>(
         if flexible {
             buf::skip_tagged_fields(buf)?;
         }
-        topics.push(DeletedRecordsTopic { topic, partitions });
+        response_push(&mut topics, DeletedRecordsTopic { topic, partitions }, tn);
         walked = walked.saturating_add(1);
         if walked == 8 * 1024 {
             walked = 0;
