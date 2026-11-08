@@ -1,0 +1,42 @@
+name: matched retained-backing diagnostic
+
+on:
+  push:
+    branches: [qualification/completion-retained-match-20261108]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  paired:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          path: control
+      - uses: actions/checkout@v7
+        with:
+          ref: 4409633fa989effe1083e623f6e59fcc0d179eee
+          path: baseline
+      - uses: actions/checkout@v7
+        with:
+          ref: bc45ba4f65f126c406ff88a57fcfe08007d35b29
+          path: candidate
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Host provenance
+        run: |
+          uname -a
+          lscpu | awk '/Architecture:|Model name:|CPU\(s\):/'
+          cat /sys/fs/cgroup/cpu.max
+      - name: Paired exact-test observations
+        run: python3 control/docs/evidence/client/producer-completion-draft-20261108/matched_retained.py
+      - name: Retain every observation
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: matched-retained-${{ github.run_id }}
+          path: matched-retained-results
+          if-no-files-found: warn
+          retention-days: 30
