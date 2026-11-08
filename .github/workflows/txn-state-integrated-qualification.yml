@@ -1,0 +1,163 @@
+name: Integrated transaction error-state qualification
+
+on:
+  push:
+    branches: [qualification/txn-state-integrated-7f59-20261108]
+
+permissions:
+  contents: read
+
+jobs:
+  qualify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 75
+    env:
+      CARGO_BUILD_JOBS: '2'
+      CARGO_INCREMENTAL: '0'
+      CARGO_PROFILE_DEV_DEBUG: '0'
+      CARGO_PROFILE_TEST_DEBUG: '0'
+      CARGO_TERM_COLOR: never
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: 7f59ef470340db6027958f439df3716a8dde536c
+          path: candidate
+          persist-credentials: false
+          sparse-checkout: |
+            .cargo
+            src
+            tests
+            examples
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - name: Verify source and environment
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$RUNNER_ARCH" = X64
+          mkdir -p "$RUNNER_TEMP/integrated-state-evidence"
+          test "$(git -C "$GITHUB_WORKSPACE/candidate" rev-parse HEAD)" = 7f59ef470340db6027958f439df3716a8dde536c
+          printf '%s  %s\n' \
+            3d65fcceecbb43c1a974f7f6b7bd58c8a310930f6bcced9052a00e88700eb37f "$GITHUB_WORKSPACE/candidate/src/producer.rs" \
+            4215a4f116ab80588ebea39e78b89917acbb73bb64acd991c6cd3ecb7d4c6e45 "$GITHUB_WORKSPACE/candidate/src/producer/txn_error_state_controls.rs" | sha256sum --check -
+          sha256sum "$GITHUB_WORKSPACE/candidate/src/producer.rs" "$GITHUB_WORKSPACE/candidate/src/producer/txn_error_state_controls.rs" | tee "$RUNNER_TEMP/integrated-state-evidence/pins.log"
+          uname -a
+          rustc +stable -vV
+          cargo +stable -V
+      - name: Run state, coordinator, and integration controls
+        timeout-minutes: 50
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$GITHUB_WORKSPACE/candidate"
+          export CARGO_TARGET_DIR="$RUNNER_TEMP/integrated-state-target"
+          test ! -e "$CARGO_TARGET_DIR"
+          failures=0
+          total=0
+          run_expect() {
+            local mode="$1" suite="$2" name="$3" expected="$4" extra="$5" group="$6"
+            local log="$RUNNER_TEMP/integrated-state-evidence/$group-$mode-$name.log" status
+            if [[ "$suite" = lib && "$expected" = 1 ]]; then
+              if timeout 600 cargo +stable test --locked $extra --lib "$name" -- --exact --nocapture > "$log" 2>&1; then status=0; else status=$?; fi
+            elif [[ "$suite" = lib ]]; then
+              if timeout 600 cargo +stable test --locked $extra --lib "$name" -- --nocapture > "$log" 2>&1; then status=0; else status=$?; fi
+            else
+              if timeout 600 cargo +stable test --locked $extra --test "$suite" "$name" -- --exact --nocapture > "$log" 2>&1; then status=0; else status=$?; fi
+            fi
+            cat "$log"
+            if [[ "$status" -eq 0 ]] && grep -Fq "test result: ok. $expected passed; 0 failed; 0 ignored;" "$log"; then
+              echo "PASS $group $mode $suite $name ($expected tests)" | tee -a "$RUNNER_TEMP/integrated-state-evidence/summary.log"
+            else
+              echo "FAIL $group $mode $suite $name (exit $status)" | tee -a "$RUNNER_TEMP/integrated-state-evidence/summary.log"
+              failures=$((failures + 1))
+            fi
+            total=$((total + 1))
+          }
+          for mode in default all; do
+            extra=''
+            if [[ "$mode" = all ]]; then extra=--all-features; fi
+            run_expect "$mode" lib producer::txn_error_state_controls:: 13 "$extra" state
+            for name in \
+              txn_roundtrip_times_out_waiting_for_initial_lock \
+              txn_roundtrip_times_out_waiting_for_rediscovery_snapshot_lock \
+              txn_roundtrip_contended_after_canceled_waiter \
+              replacement_cancel_retains_closed_coordinator \
+              replacement_timeout_retains_coordinator_and_recovers \
+              replacement_wait_for_slot_obeys_deadline \
+              replacement_rediscovery_retries_real_coordinator_rpc \
+              missing_transaction_coordinator_rediscovers_before_rpc \
+              closed_transaction_coordinator_rediscovers_and_bumps_epoch
+            do
+              run_expect "$mode" lib "producer::tests::$name" 1 "$extra" coordinator
+            done
+            while read -r suite name; do
+              run_expect "$mode" "$suite" "$name" 1 "$extra" integration
+            done <<'CASES'
+          full_surface transactional_fenced_produce_is_fatal_classic
+          full_surface transactional_fenced_produce_is_fatal_v2
+          full_surface transactional_abort_required_blocks_commit_until_abort_classic
+          full_surface transactional_abort_required_v2_recovers_without_reinit
+          full_surface transactional_fatal_produce_errors_fence_producer
+          full_surface transactional_commit_and_abort_require_open_transaction
+          full_surface transactional_end_txn_errors_classified
+          full_surface transactional_txn_offset_commit_errors_classified
+          full_surface transactional_add_offsets_errors_classified_classic
+          buffer_ownership permit_stays_owned_across_retry_and_releases_exactly_once
+          buffer_ownership presend_failure_transaction_partition_releases_permit_and_flush_fails
+          buffer_ownership presend_failure_real_mock_add_partitions_to_txn
+          mock_produce transactional_startup_reuses_the_bootstrap_socket
+          mock_produce commit_reuses_a_produce_handshake_for_the_moved_coordinator
+          mock_produce epoch_bump_reuses_a_produce_handshake
+          mock_produce send_offsets_reuses_bootstrap_api_versions
+          mock_produce add_partitions_drops_the_coordinator_when_it_closes_during_backoff
+          produce_cancel dropping_send_future_while_buffered_is_ambiguous_but_still_delivers
+          produce_cancel retry_queue_shutdown_boundedly_completes_and_releases_permits
+          producer_initialization producer_id_terminal_errors_do_not_retry
+          producer_initialization transaction_coordinator_startup_retries_within_one_deadline
+          CASES
+          done
+          echo "$failures" > "$RUNNER_TEMP/integrated-state-evidence/test-failures"
+          echo "$total" > "$RUNNER_TEMP/integrated-state-evidence/test-invocations"
+          test "$total" -eq 62
+      - name: Check formatting and strict all-target Clippy
+        timeout-minutes: 20
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$GITHUB_WORKSPACE/candidate"
+          export CARGO_TARGET_DIR="$RUNNER_TEMP/integrated-state-target"
+          log="$RUNNER_TEMP/integrated-state-evidence/fmt.log"
+          if timeout 180 cargo +stable fmt --all -- --check > "$log" 2>&1; then
+            echo 0 > "$RUNNER_TEMP/integrated-state-evidence/fmt-status"
+          else
+            echo "$?" > "$RUNNER_TEMP/integrated-state-evidence/fmt-status"
+          fi
+          cat "$log"
+          log="$RUNNER_TEMP/integrated-state-evidence/clippy.log"
+          if timeout 600 cargo +stable clippy --locked --all-targets --all-features -- -D warnings > "$log" 2>&1; then
+            echo 0 > "$RUNNER_TEMP/integrated-state-evidence/clippy-status"
+          else
+            echo "$?" > "$RUNNER_TEMP/integrated-state-evidence/clippy-status"
+          fi
+          cat "$log"
+          sha256sum src/producer.rs src/producer/txn_error_state_controls.rs | tee "$RUNNER_TEMP/integrated-state-evidence/final-pins.log"
+          printf '%s  %s\n' \
+            3d65fcceecbb43c1a974f7f6b7bd58c8a310930f6bcced9052a00e88700eb37f src/producer.rs \
+            4215a4f116ab80588ebea39e78b89917acbb73bb64acd991c6cd3ecb7d4c6e45 src/producer/txn_error_state_controls.rs | sha256sum --check -
+      - name: Require controls, formatting, and Clippy to pass
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat "$RUNNER_TEMP/integrated-state-evidence/summary.log"
+          test "$(cat "$RUNNER_TEMP/integrated-state-evidence/test-failures")" -eq 0
+          test "$(cat "$RUNNER_TEMP/integrated-state-evidence/fmt-status")" -eq 0
+          test "$(cat "$RUNNER_TEMP/integrated-state-evidence/clippy-status")" -eq 0
+      - name: Retain logs
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: integrated-state-${{ github.run_id }}
+          path: ${{ runner.temp }}/integrated-state-evidence
+          if-no-files-found: error
+          retention-days: 30
