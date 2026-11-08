@@ -50,8 +50,11 @@ pass does not replace the full release matrix.
   fencing and unresolved-batch replay need further work and independent
   histories. The [transaction lock][lock] and [replacement][replacement]
   fixes bound several coordinator waits and preserve the slot during
-  cancellation. Complete deadlines, concurrent discovery and error-state
-  races remain open. [Cancellation controls][cleanup] reproduced lost record
+  cancellation. The [error-state repair][txn-state] makes fatal and abortable
+  claims visible before their causes are installed and prevents stale claims
+  from overwriting newer ones. Complete deadlines, concurrent discovery,
+  transaction generations and already-admitted operations remain open.
+  [Cancellation controls][cleanup] reproduced lost record
   completions and retained buffer bytes during retry and failure cleanup.
   An unapplied [transaction-response candidate][txn]
   passed focused mocks and one [single-node Kafka 3.9.1 test][txn-live];
@@ -99,7 +102,7 @@ The [support matrix](support.md) describes configured coverage, and the
 
 [ci]: https://github.com/mingley/partitionline/blob/2b5e830fd514a9ad3dea27d937d85977a5bea041/docs/evidence/releases/main-ci-374dcf4-20261108/README.md
 [previous-ci]: https://github.com/mingley/partitionline/blob/447493b1fbee45c04fd339d199fd661746adbf25/docs/evidence/releases/main-ci-8b5-20261108/README.md
-[next]: https://github.com/mingley/partitionline/blob/d358d94ff0773e23a9429e85f79c9aa0e48d6a8c/docs/plan/next-work.md
+[next]: https://github.com/mingley/partitionline/blob/dee7e33536ef7ace765b7ca2b4f4986d83bcd644/docs/plan/next-work.md
 [previous]: https://github.com/mingley/partitionline/blob/5c2a000639d9a8a7dccd56e8c1d6f3a58dca1601/docs/STATUS.md
 [flush]: https://github.com/mingley/partitionline/blob/e980829c439aa43edc01312c91838e58a412221a/docs/evidence/client/producer-flush-native-86f2-20261103/README.md
 [txn]: https://github.com/mingley/partitionline/blob/49ad56c6bce1366e2357c272f11c5c34160d60da/docs/evidence/client/add-partitions-native-4f0c-20261103/README.md
@@ -116,3 +119,4 @@ The [support matrix](support.md) describes configured coverage, and the
 [ack]: https://github.com/mingley/partitionline/blob/2b5e830fd514a9ad3dea27d937d85977a5bea041/docs/evidence/client/ack-closed-loop-20261108/README.md
 [fetch-queue]: https://github.com/mingley/partitionline/blob/4d830d8990f7d50bd853ad92ad0e85a9850d8f94/docs/evidence/broker/fetch-canceled-queue-20261108/README.md
 [fetch-overlap]: https://github.com/mingley/partitionline/blob/d358d94ff0773e23a9429e85f79c9aa0e48d6a8c/docs/evidence/broker/fetch-actor-overlap-20261108/README.md
+[txn-state]: https://github.com/mingley/partitionline/blob/dee7e33536ef7ace765b7ca2b4f4986d83bcd644/docs/evidence/client/txn-error-state-374-20261108/REPORT.md
