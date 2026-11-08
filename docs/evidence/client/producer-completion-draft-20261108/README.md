@@ -15,7 +15,7 @@ cleanup: an unexpected drop can still lose the receipt or retain bytes.
 
 Known gaps include Kafka batch sequence reservation and ambiguous writes,
 transaction-generation fencing, canceled flush error ownership, callback
-panic and wake behavior, receiver publication unwind, close/shutdown ownership,
+panic and wake behavior, receiver publication unwind, close/shutdown ownership and the effects of canceling an already-sealed close,
 worker starvation, sticky cohort boundaries, and the compatibility impact
 of the new hard record cap. A lost owner is mapped to `Error::Closed` for
 flush and abort drain; it is not a properly typed internal drain outcome. The

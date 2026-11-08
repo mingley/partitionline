@@ -24,6 +24,7 @@ struct State {
     pending: BTreeSet<u64>,
     lost: Option<u64>,
     exhausted: bool,
+    sealed: bool,
 }
 
 pub(super) struct CompletionDomain {
@@ -50,7 +51,7 @@ impl CompletionDomain {
 
     pub(super) fn try_reserve(self: &Arc<Self>) -> Result<Option<CompletionReservation>, ()> {
         let mut state = self.state.lock();
-        if state.exhausted {
+        if state.exhausted || state.sealed {
             return Err(());
         }
         if state.used >= self.limit {
@@ -65,6 +66,14 @@ impl CompletionDomain {
     #[cfg(test)]
     pub(super) fn exhaust_sequence_for_test(&self) {
         self.state.lock().last = u64::MAX;
+    }
+
+    pub(super) fn seal(&self) {
+        self.state.lock().sealed = true;
+    }
+
+    pub(super) fn is_sealed(&self) -> bool {
+        self.state.lock().sealed
     }
 
     pub(super) fn cutoff(&self) -> u64 {
@@ -94,15 +103,19 @@ impl CompletionDomain {
 }
 
 impl CompletionReservation {
-    pub(super) fn exhausted(&self) -> bool {
-        self.domain
-            .as_ref()
-            .is_some_and(|domain| domain.state.lock().exhausted)
+    pub(super) fn unavailable(&self) -> bool {
+        self.domain.as_ref().is_some_and(|domain| {
+            let state = domain.state.lock();
+            state.exhausted || state.sealed
+        })
     }
 
     pub(super) fn commit(&mut self) -> Option<CompletionTicket> {
         let domain = Arc::clone(self.domain.as_ref()?);
         let mut state = domain.state.lock();
+        if state.sealed {
+            return None;
+        }
         let Some(sequence) = state.last.checked_add(1) else {
             state.exhausted = true;
             return None;
@@ -198,6 +211,23 @@ mod tests {
         assert!(domain.try_reserve().unwrap().is_none());
         drop(reservation);
         assert!(domain.try_reserve().unwrap().is_some());
+    }
+
+
+    #[test]
+    fn seal_rejects_uncommitted_work_but_keeps_accepted_tickets() {
+        let domain = CompletionDomain::new();
+        let accepted = admit(&domain);
+        let mut before_seal = domain.try_reserve().unwrap().unwrap();
+        domain.seal();
+        assert!(domain.is_sealed());
+        assert!(domain.try_reserve().is_err());
+        assert!(before_seal.commit().is_none());
+        assert!(before_seal.unavailable());
+        let cutoff = domain.cutoff();
+        assert_eq!(domain.status(cutoff), CompletionStatus::Pending);
+        accepted.complete();
+        assert_eq!(domain.status(cutoff), CompletionStatus::Complete);
     }
 
     #[test]

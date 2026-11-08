@@ -162,8 +162,77 @@ async fn sequence_exhaustion_is_not_a_worker_retirement() {
     let result = worker.try_send(pending);
     assert!(matches!(
         result.as_ref(),
-        Err(mpsc::error::TrySendError::Closed(returned)) if returned.completion_exhausted()
+        Err(mpsc::error::TrySendError::Closed(returned)) if returned.completion_unavailable()
     ));
     assert!(worker.admission.is_accepting());
     assert!(receiver.try_recv().is_err());
+}
+
+
+#[tokio::test]
+async fn close_seals_admission_before_waiting_for_accepted_ticket() {
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let addr = listener.local_addr().unwrap().to_string();
+    let meta = BrokerConn::connect(&addr, "completion-close", Duration::from_secs(2))
+        .await
+        .unwrap();
+    let (_peer, _) = listener.accept().await.unwrap();
+    let shared = test_shared(ProducerConfig::default(), meta);
+    let mut reservation = shared.completion.try_reserve().unwrap().unwrap();
+    let ticket = reservation.commit().unwrap();
+    let producer = Producer {
+        inner: Arc::new(Inner {
+            shared: Arc::clone(&shared),
+        }),
+    };
+    let other = producer.clone();
+    let closing = tokio::spawn(producer.close_timeout(Duration::from_secs(2)));
+    tokio::time::timeout(Duration::from_secs(1), async {
+        while !shared.completion.is_sealed() {
+            tokio::task::yield_now().await;
+        }
+    }).await.unwrap();
+    assert!(matches!(
+        other.try_send(ProduceRecord::to("t").value("later")),
+        Err(Error::Closed)
+    ));
+    assert!(shared.completion.try_reserve().is_err());
+    ticket.complete();
+    assert!(closing.await.unwrap().is_ok());
+}
+
+#[tokio::test]
+async fn abort_drain_does_not_ignore_worker_error_with_pending_ticket() {
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let addr = listener.local_addr().unwrap().to_string();
+    let meta = BrokerConn::connect(&addr, "completion-abort", Duration::from_secs(2))
+        .await
+        .unwrap();
+    let (_peer, _) = listener.accept().await.unwrap();
+    let shared = test_shared(ProducerConfig::default(), meta);
+    let mut reservation = shared.completion.try_reserve().unwrap().unwrap();
+    let ticket = reservation.commit().unwrap();
+    let (data, _data_rx) = mpsc::channel(1);
+    let (control, mut control_rx) = mpsc::channel(1);
+    let handle = WorkerHandle::new(
+        Arc::new(()),
+        Arc::new(WorkerAdmission::new()),
+        data,
+        control,
+        Arc::new(tokio::spawn(std::future::pending::<()>())),
+    );
+    let _previous = shared.nodes.lock().insert(1, vec![Some(handle)]);
+    let response = tokio::spawn(async move {
+        if let Some(Ctrl::Flush(reply)) = control_rx.recv().await {
+            drop(reply.send(Err(Error::protocol("injected worker failure"))));
+        }
+    });
+    let producer = Producer {
+        inner: Arc::new(Inner {
+            shared: Arc::clone(&shared),
+        }),
+    };
+    assert!(producer.drain_before_abort().await.is_err());
+    response.await.unwrap();
+    drop(ticket);
 }

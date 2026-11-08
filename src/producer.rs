@@ -900,10 +900,10 @@ impl Pending {
         true
     }
 
-    fn completion_exhausted(&self) -> bool {
+    fn completion_unavailable(&self) -> bool {
         self.completion_reservation
             .as_ref()
-            .is_some_and(CompletionReservation::exhausted)
+            .is_some_and(CompletionReservation::unavailable)
     }
 
     fn complete_completion(mut self) {
@@ -2949,7 +2949,9 @@ impl Producer {
     }
 
     fn ensure_send_open(&self) -> Result<()> {
-        if self.inner.shared.closed.load(Ordering::SeqCst) {
+        if self.inner.shared.closed.load(Ordering::SeqCst)
+            || self.inner.shared.completion.is_sealed()
+        {
             return Err(Error::Closed);
         }
         // A fenced producer fails sends immediately instead of emitting
@@ -3034,7 +3036,7 @@ impl Producer {
                 Ok(Err(mpsc::error::SendError(returned))) => {
                     pending = returned;
                     if self.inner.shared.closed.load(Ordering::SeqCst)
-                        || pending.completion_exhausted()
+                        || pending.completion_unavailable()
                     {
                         return Err(Error::Closed);
                     }
@@ -3161,7 +3163,7 @@ impl Producer {
                 Err(Error::QueueFull)
             }
             Err(mpsc::error::TrySendError::Closed(mut pending)) => {
-                let exhausted = pending.completion_exhausted();
+                let exhausted = pending.completion_unavailable();
                 pending.sticky = None;
                 *pending_slot = Some(pending);
                 if shared.closed.load(Ordering::SeqCst) || exhausted {
@@ -3454,7 +3456,9 @@ impl Producer {
     /// Records are never queued without a partition, so each partition is
     /// pinned to one TCP connection on its current leader.
     pub fn try_send(&self, rec: ProduceRecord) -> Result<()> {
-        if self.inner.shared.closed.load(Ordering::SeqCst) {
+        if self.inner.shared.closed.load(Ordering::SeqCst)
+            || self.inner.shared.completion.is_sealed()
+        {
             return Err(Error::Closed);
         }
         // Same fencing rule as [`Self::send_all`]: fatal blocks, abortable
@@ -3551,7 +3555,7 @@ impl Producer {
                 mpsc::error::TrySendError::Full(_) => Error::QueueFull,
                 mpsc::error::TrySendError::Closed(returned) => {
                     if self.inner.shared.closed.load(Ordering::SeqCst)
-                        || returned.completion_exhausted()
+                        || returned.completion_unavailable()
                     {
                         Error::Closed
                     } else {
@@ -3926,7 +3930,10 @@ impl Producer {
         match self.flush().await {
             Ok(()) => Ok(()),
             Err(e) if matches!(e, Error::Closed | Error::Timeout) => Err(e),
-            Err(_) => Ok(()),
+            Err(e) => match self.inner.shared.completion.status(u64::MAX) {
+                CompletionStatus::Complete => Ok(()),
+                CompletionStatus::Pending | CompletionStatus::Lost => Err(e),
+            },
         }
     }
 
@@ -4335,10 +4342,10 @@ impl Producer {
             .delivery_timeout
             .max(self.inner.shared.cfg.request_timeout);
         let deadline = Instant::now() + timeout;
+        self.inner.shared.completion.seal();
         let flush = self.flush_until(deadline).await;
         self.shutdown_workers(Some(deadline)).await;
-        let completion_lost =
-            self.inner.shared.completion.status(u64::MAX) == CompletionStatus::Lost;
+        let completion_status = self.inner.shared.completion.status(u64::MAX);
         self.inner.shared.interceptors.close();
         // The metadata socket drops with this handle. Yield so the broker
         // observes that close before the result returns.
@@ -4348,7 +4355,8 @@ impl Producer {
         }
         match flush {
             Err(Error::Timeout) => Err(Error::Timeout),
-            _ if completion_lost => Err(Error::Closed),
+            _ if completion_status == CompletionStatus::Lost => Err(Error::Closed),
+            _ if completion_status == CompletionStatus::Pending => Err(Error::Timeout),
             _ => Ok(()),
         }
     }
@@ -4358,10 +4366,10 @@ impl Producer {
     /// A flush timeout is returned after the producer is closed.
     pub async fn close_timeout(self, timeout: Duration) -> Result<()> {
         let deadline = Instant::now() + timeout;
+        self.inner.shared.completion.seal();
         let flush = self.flush_until(deadline).await;
         self.shutdown_workers(Some(deadline)).await;
-        let completion_lost =
-            self.inner.shared.completion.status(u64::MAX) == CompletionStatus::Lost;
+        let completion_status = self.inner.shared.completion.status(u64::MAX);
         self.inner.shared.interceptors.close();
         // The metadata socket drops with this handle. Yield so the broker
         // observes that close before the result returns.
@@ -4371,7 +4379,8 @@ impl Producer {
         }
         match flush {
             Err(Error::Timeout) => Err(Error::Timeout),
-            _ if completion_lost => Err(Error::Closed),
+            _ if completion_status == CompletionStatus::Lost => Err(Error::Closed),
+            _ if completion_status == CompletionStatus::Pending => Err(Error::Timeout),
             _ => Ok(()),
         }
     }
