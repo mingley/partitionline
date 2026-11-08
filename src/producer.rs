@@ -1,3 +1,70 @@
+// Qualification-only path counters and scheduling gates. Never enabled in normal builds.
+#[cfg(send_all_qualification)]
+#[doc(hidden)]
+pub mod send_all_qualification {
+    use std::sync::atomic::{AtomicU8, AtomicUsize, Ordering};
+    use tokio::sync::Notify;
+
+    static SHORTCUT: AtomicUsize = AtomicUsize::new(0);
+    static FALLBACK: AtomicUsize = AtomicUsize::new(0);
+    static YIELDS: AtomicUsize = AtomicUsize::new(0);
+    static NUDGE_SENT: AtomicUsize = AtomicUsize::new(0);
+    static NUDGE_FULL: AtomicUsize = AtomicUsize::new(0);
+    static NUDGE_CLOSED: AtomicUsize = AtomicUsize::new(0);
+    static ARMED: AtomicU8 = AtomicU8::new(0);
+    static REACHED: Notify = Notify::const_new();
+    static RELEASE: Notify = Notify::const_new();
+
+    #[derive(Debug)]
+    pub struct Snapshot {
+        pub shortcut: usize,
+        pub fallback: usize,
+        pub yields: usize,
+        pub nudge_sent: usize,
+        pub nudge_full: usize,
+        pub nudge_closed: usize,
+    }
+
+    pub fn reset() {
+        SHORTCUT.store(0, Ordering::SeqCst);
+        FALLBACK.store(0, Ordering::SeqCst);
+        YIELDS.store(0, Ordering::SeqCst);
+        NUDGE_SENT.store(0, Ordering::SeqCst);
+        NUDGE_FULL.store(0, Ordering::SeqCst);
+        NUDGE_CLOSED.store(0, Ordering::SeqCst);
+        ARMED.store(0, Ordering::SeqCst);
+    }
+    pub fn snapshot() -> Snapshot {
+        Snapshot {
+            shortcut: SHORTCUT.load(Ordering::SeqCst),
+            fallback: FALLBACK.load(Ordering::SeqCst),
+            yields: YIELDS.load(Ordering::SeqCst),
+            nudge_sent: NUDGE_SENT.load(Ordering::SeqCst),
+            nudge_full: NUDGE_FULL.load(Ordering::SeqCst),
+            nudge_closed: NUDGE_CLOSED.load(Ordering::SeqCst),
+        }
+    }
+    /// One is before the nudge decision; two is before the 512-item yield.
+    pub fn arm(kind: u8) {
+        assert!(kind == 1 || kind == 2);
+        assert_eq!(ARMED.swap(kind, Ordering::SeqCst), 0);
+    }
+    pub async fn reached() { REACHED.notified().await; }
+    pub fn release() { RELEASE.notify_one(); }
+    pub(super) async fn checkpoint(kind: u8) {
+        if ARMED.compare_exchange(kind, 0, Ordering::SeqCst, Ordering::SeqCst).is_ok() {
+            REACHED.notify_one();
+            RELEASE.notified().await;
+        }
+    }
+    pub(super) fn shortcut() { SHORTCUT.fetch_add(1, Ordering::SeqCst); }
+    pub(super) fn fallback() { FALLBACK.fetch_add(1, Ordering::SeqCst); }
+    pub(super) fn yielded() { YIELDS.fetch_add(1, Ordering::SeqCst); }
+    pub(super) fn sent() { NUDGE_SENT.fetch_add(1, Ordering::SeqCst); }
+    pub(super) fn full() { NUDGE_FULL.fetch_add(1, Ordering::SeqCst); }
+    pub(super) fn closed() { NUDGE_CLOSED.fetch_add(1, Ordering::SeqCst); }
+}
+
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::fmt;
 use std::future::Future;
@@ -2798,6 +2865,11 @@ impl Producer {
                                 fast_walked += 1;
                                 if fast_walked == 512 {
                                     fast_walked = 0;
+                                    #[cfg(send_all_qualification)]
+                                    {
+                                        send_all_qualification::yielded();
+                                        send_all_qualification::checkpoint(2).await;
+                                    }
                                     tokio::task::yield_now().await;
                                 }
                             }
@@ -2816,9 +2888,15 @@ impl Producer {
             }
             // Start every known leader handshake before this record waits
             // for its own worker, so a later leader is already dialing.
+            #[cfg(send_all_qualification)]
+            send_all_qualification::checkpoint(1).await;
             if one_explicit_route && self.has_fresh_explicit_worker(&rec) {
+                #[cfg(send_all_qualification)]
+                send_all_qualification::shortcut();
                 self.nudge_known_leaders(std::iter::once(&rec)).await;
             } else {
+                #[cfg(send_all_qualification)]
+                send_all_qualification::fallback();
                 self.nudge_known_leaders(
                     std::iter::once(&rec).chain(pending.iter().map(|(_, rec)| rec)),
                 )
@@ -2832,6 +2910,11 @@ impl Producer {
                 fast_walked += 1;
                 if fast_walked == 512 && !pending.is_empty() {
                     fast_walked = 0;
+                    #[cfg(send_all_qualification)]
+                    {
+                        send_all_qualification::yielded();
+                        send_all_qualification::checkpoint(2).await;
+                    }
                     tokio::task::yield_now().await;
                 }
             }
@@ -3627,6 +3710,24 @@ impl Producer {
                 tokio::task::yield_now().await;
             }
         }
+    }
+
+    /// Qualification-only queue saturation hook; call without yielding.
+    #[cfg(send_all_qualification)]
+    #[doc(hidden)]
+    pub fn __qualification_fill_connect_queue(&self) -> usize {
+        let mut filled = 0;
+        while self.inner.shared.connect_tx.try_send((i32::MIN, 0)).is_ok() {
+            filled += 1;
+        }
+        filled
+    }
+
+    /// Qualification-only remaining connect queue capacity.
+    #[cfg(send_all_qualification)]
+    #[doc(hidden)]
+    pub fn __qualification_connect_capacity(&self) -> usize {
+        self.inner.shared.connect_tx.capacity()
     }
 
     /// Test hook: inspect worker task handles to verify task termination.
@@ -6489,7 +6590,14 @@ fn invalidate_cached_topic(shared: &Shared, topic: &str) {
 }
 
 fn try_nudge_slot(tx: &mpsc::Sender<(i32, usize)>, node: i32, slot: usize) {
+    #[cfg(not(send_all_qualification))]
     tx.try_send((node, slot)).unwrap_or(());
+    #[cfg(send_all_qualification)]
+    match tx.try_send((node, slot)) {
+        Ok(()) => send_all_qualification::sent(),
+        Err(mpsc::error::TrySendError::Full(_)) => send_all_qualification::full(),
+        Err(mpsc::error::TrySendError::Closed(_)) => send_all_qualification::closed(),
+    }
 }
 
 fn retire_worker_nudge(shared: &Shared, node: i32, id: &Arc<()>) -> Option<WorkerHandle> {
