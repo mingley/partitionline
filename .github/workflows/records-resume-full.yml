@@ -1,0 +1,129 @@
+name: Combined record validation qualification
+on:
+  push:
+    branches:
+      - qualification/records-resume-combined-20261108
+permissions:
+  contents: read
+jobs:
+  suites:
+    strategy:
+      fail-fast: false
+      matrix:
+        profile: [default, all-features]
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      CARGO_INCREMENTAL: "0"
+      CARGO_BUILD_JOBS: "2"
+      CARGO_TERM_COLOR: never
+      CARGO_PROFILE_DEV_DEBUG: "0"
+      CARGO_PROFILE_TEST_DEBUG: "0"
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 2
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Verify source and run all broker targets
+        shell: bash
+        env:
+          PROFILE: ${{ matrix.profile }}
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/records-full"
+          test "$(git rev-parse HEAD^)" = a0fd44856104acf5449d2f1941d5747834c73ced
+          test "$(git rev-parse HEAD:partitionline-broker/src/records.rs)" = 3f94f4409eddc0b79bfbec307ad79a6562b80811
+          rustc +stable -Vv | tee "$RUNNER_TEMP/records-full/toolchain.log"
+          sha256sum partitionline-broker/src/records.rs | tee "$RUNNER_TEMP/records-full/source.log"
+          flags=()
+          if [ "$PROFILE" = all-features ]; then flags+=(--all-features); fi
+          cargo +stable test --locked --manifest-path partitionline-broker/Cargo.toml --all-targets "${flags[@]}" 2>&1 | tee "$RUNNER_TEMP/records-full/tests.log"
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: records-full-${{ matrix.profile }}-${{ github.run_id }}
+          path: ${{ runner.temp }}/records-full
+          if-no-files-found: warn
+          retention-days: 30
+  style-and-inventory:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      CARGO_INCREMENTAL: "0"
+      CARGO_BUILD_JOBS: "2"
+      CARGO_TERM_COLOR: never
+      CARGO_PROFILE_DEV_DEBUG: "0"
+      CARGO_PROFILE_TEST_DEBUG: "0"
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 2
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - name: Verify source, formatting and strict Clippy
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD^)" = a0fd44856104acf5449d2f1941d5747834c73ced
+          test "$(git rev-parse HEAD:partitionline-broker/src/records.rs)" = 3f94f4409eddc0b79bfbec307ad79a6562b80811
+          cargo +stable fmt --manifest-path partitionline-broker/Cargo.toml -- --check
+          cargo +stable clippy --locked --manifest-path partitionline-broker/Cargo.toml --all-targets --all-features -- -D warnings
+      - name: Broker inventory and controls
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -B scripts/check-broker-api-matrix.py --report "$RUNNER_TEMP/records-inventory.json"
+          python3 -B -m unittest discover -s tests/ci -p test_broker_api_matrix.py -v
+  negative-control:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      CARGO_INCREMENTAL: "0"
+      CARGO_BUILD_JOBS: "2"
+      CARGO_TERM_COLOR: never
+      CARGO_PROFILE_DEV_DEBUG: "0"
+      CARGO_PROFILE_TEST_DEBUG: "0"
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 2
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Prove cursor mutation is detected
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/records-negative"
+          test "$(git rev-parse HEAD^)" = a0fd44856104acf5449d2f1941d5747834c73ced
+          test "$(git rev-parse HEAD:partitionline-broker/src/records.rs)" = 3f94f4409eddc0b79bfbec307ad79a6562b80811
+          cp partitionline-broker/src/records.rs "$RUNNER_TEMP/records-negative/original.rs"
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path("partitionline-broker/src/records.rs")
+          text = p.read_text()
+          before = "        c.position += prefix.index;"
+          after = "        c.position += 0;"
+          assert text.count(before) == 1
+          p.write_text(text.replace(before, after))
+          PY
+          for profile in default all-features; do
+            flags=()
+            if [ "$profile" = all-features ]; then flags+=(--all-features); fi
+            set +e
+            cargo +stable test --locked --manifest-path partitionline-broker/Cargo.toml "${flags[@]}" --lib records::tests::header_batches_match_generic_walk_and_budgets -- --exact --nocapture > "$RUNNER_TEMP/records-negative/$profile.log" 2>&1
+            status=$?
+            set -e
+            cat "$RUNNER_TEMP/records-negative/$profile.log"
+            test "$status" -ne 0
+            grep -F 'test result: FAILED. 0 passed; 1 failed;' "$RUNNER_TEMP/records-negative/$profile.log"
+            grep -F 'assertion `left == right` failed' "$RUNNER_TEMP/records-negative/$profile.log"
+          done
+          cp "$RUNNER_TEMP/records-negative/original.rs" partitionline-broker/src/records.rs
+          test "$(git hash-object partitionline-broker/src/records.rs)" = 3f94f4409eddc0b79bfbec307ad79a6562b80811
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: records-negative-${{ github.run_id }}
+          path: ${{ runner.temp }}/records-negative
+          if-no-files-found: warn
+          retention-days: 30
