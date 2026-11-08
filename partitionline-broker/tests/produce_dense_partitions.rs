@@ -1,4 +1,4 @@
-//! Public Produce duplicate-partition controls.
+//! Public Produce duplicate-partition controls and a scoped router benchmark.
 #![allow(
     clippy::unwrap_used,
     clippy::indexing_slicing,
@@ -16,13 +16,13 @@ use std::{
     fs,
     path::PathBuf,
     sync::atomic::{AtomicU64, Ordering},
-    time::{SystemTime, UNIX_EPOCH},
+    time::{Instant, SystemTime, UNIX_EPOCH},
 };
 
 static NEXT: AtomicU64 = AtomicU64::new(0);
-type TestResult<T = ()> = Result<T, Box<dyn Error>>;
+pub(crate) type TestResult<T = ()> = Result<T, Box<dyn Error>>;
 
-fn request(
+pub(crate) fn request(
     indexes: &[i32],
     topic: &str,
     acks: i16,
@@ -61,7 +61,7 @@ fn request(
 
 // Independent wire oracle for one Produce v3 topic. The sorted map supplies
 // counts; the set keeps only each partition's first response in request order.
-fn expected(
+pub(crate) fn expected(
     indexes: &[i32],
     topic: &str,
     acks: i16,
@@ -122,7 +122,7 @@ fn expected(
     Ok(out)
 }
 
-async fn router(label: &str) -> TestResult<(PathBuf, Router)> {
+pub(crate) async fn router(label: &str) -> TestResult<(PathBuf, Router)> {
     let nanos = SystemTime::now().duration_since(UNIX_EPOCH)?.as_nanos();
     let root = std::env::temp_dir().join(format!(
         "pl-produce-dense-{}-{nanos}-{}-{label}",
@@ -289,5 +289,68 @@ async fn produce_dense_public_precedence_order_and_readback() -> TestResult {
         }
     }
     fs::remove_dir_all(root)?;
+    Ok(())
+}
+
+pub(crate) fn benchmark_indexes(count: usize, shape: &str) -> TestResult<Vec<i32>> {
+    let mut indexes: Vec<i32> = (0..count).map(|value| value as i32).collect();
+    match shape {
+        "ascending" => {}
+        "reversed" => indexes.reverse(),
+        "rotate" => indexes.rotate_left(count / 3),
+        "duplicates" => {
+            for (position, value) in indexes.iter_mut().enumerate() {
+                *value = (position % 7) as i32;
+            }
+            indexes.reverse();
+        }
+        "sparse_last" => {
+            indexes.reverse();
+            if let Some(last) = indexes.last_mut() {
+                *last = i32::MAX;
+            }
+        }
+        "negative_last" => {
+            indexes.reverse();
+            if let Some(last) = indexes.last_mut() {
+                *last = -1;
+            }
+        }
+        _ => return Err("unknown benchmark shape".into()),
+    }
+    Ok(indexes)
+}
+
+#[tokio::test(flavor = "current_thread")]
+#[ignore = "paired router timing; run only by the qualification workflow"]
+async fn produce_dense_router_timing() -> TestResult {
+    let count: usize = std::env::var("PL_DENSE_COUNT")?.parse()?;
+    let iterations: usize = std::env::var("PL_DENSE_ITERATIONS")?.parse()?;
+    let shape = std::env::var("PL_DENSE_SHAPE")?;
+    assert!((1..=4096).contains(&count));
+    assert!(iterations > 0);
+    let indexes = benchmark_indexes(count, &shape)?;
+    let input = request(&indexes, "omega", 1, 60_000, None, None)?;
+    let want = expected(&indexes, "omega", 1, 60_000, None, false, [0, 0])?;
+    let (root, router) = router("timing").await?;
+    let warm = router
+        .dispatch(input.clone())
+        .await?
+        .ok_or("missing warmup")?;
+    assert_eq!(warm, want);
+    let start = Instant::now();
+    for _ in 0..iterations {
+        let response = router
+            .dispatch(input.clone())
+            .await?
+            .ok_or("missing response")?;
+        assert_eq!(response, want);
+    }
+    let elapsed_ns = start.elapsed().as_nanos();
+    router.shutdown().await?;
+    fs::remove_dir_all(root)?;
+    println!(
+        "DENSE_ROUTER shape={shape} count={count} iterations={iterations} elapsed_ns={elapsed_ns}"
+    );
     Ok(())
 }
