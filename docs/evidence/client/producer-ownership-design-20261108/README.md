@@ -108,6 +108,16 @@ implementations may satisfy the same ownership and lifecycle requirements.
    need a separate transaction-generation admission fence; acknowledging a
    flush error must not clear transaction failure state.
 
+Another possible design keeps the existing `Pending` values in independently
+rooted worker and batch state instead of allocating one slot per record. It
+would avoid making per-record slots a prerequisite, but every currently
+detached vector, iterator and scratch group would need a rooted, resumable
+cursor. Transfers between a worker, retry actor and replacement worker would
+still need exclusive ownership, stale-descriptor protection and a batch
+sequence journal. The supervisor would wait for the old task to stop before
+recovering its state, without holding locks across user callbacks. Neither
+design has been implemented or measured.
+
 No implementation can guarantee that a callback which blocks forever finishes
 before a strict close deadline. The service must retain its unfinished work
 without blocking the caller, and the API must define callback execution context
