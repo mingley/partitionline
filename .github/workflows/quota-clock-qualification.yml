@@ -1,0 +1,91 @@
+name: quota clock qualification
+on:
+  push:
+    branches: [qualification/broker-quota-clock-v4-20261108]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  behavior:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        profile: [all]
+    env:
+      PROFILE: ${{ matrix.profile }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: a422c352acd4b3ef19b4d226c19d1d9528ac6c86
+          path: baseline
+      - uses: actions/checkout@v7
+        with:
+          ref: 06a39aa3149d9cdee7607c4b1b30da24e5189c8f
+          path: candidate
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Pin exact sources and machine
+        shell: bash
+        run: |
+          set -euo pipefail
+          rustc -Vv
+          uname -m
+          test "$(uname -m)" = x86_64
+          git -C baseline rev-parse HEAD
+          git -C candidate rev-parse HEAD
+          git -C baseline hash-object partitionline-broker/src/quotas.rs partitionline-broker/tests/quotas_clock.rs
+          git -C candidate hash-object partitionline-broker/src/quotas.rs partitionline-broker/tests/quotas_clock.rs
+          cmp baseline/partitionline-broker/tests/quotas_clock.rs candidate/partitionline-broker/tests/quotas_clock.rs
+          cmp baseline/partitionline-broker/Cargo.lock candidate/partitionline-broker/Cargo.lock
+          sha256sum baseline/partitionline-broker/src/quotas.rs candidate/partitionline-broker/src/quotas.rs candidate/partitionline-broker/tests/quotas_clock.rs
+      - name: Baseline must expose the recorded clock failures
+        shell: bash
+        run: |
+          set -uo pipefail
+          features=()
+          if [[ "$PROFILE" == all ]]; then features=(--all-features); fi
+          export CARGO_TARGET_DIR="$RUNNER_TEMP/quota-baseline-target"
+          set +e
+          cargo test --locked --manifest-path baseline/partitionline-broker/Cargo.toml "${features[@]}" --test quotas_clock -- --nocapture --test-threads=1 2>&1 | tee "$RUNNER_TEMP/quota-baseline.log"
+          status=${PIPESTATUS[0]}
+          set -e
+          test "$status" = 101
+          for name in stale_new_identity_cannot_get_a_second_burst_at_the_observed_time stale_client_charge_uses_the_latest_observed_time stale_replication_charge_uses_the_latest_observed_time stale_timed_rate_change_refills_at_the_old_rate_first stale_connect_reclaims_only_fully_refilled_idle_identity serialized_concurrent_callers_do_not_rewind_a_sampled_time later_rejection_observes_time_without_spending_tokens connection_cap_rejection_observes_valid_time clamped_time_preserves_fractional_refill_at_u64_max; do
+            grep -F "test $name ... FAILED" "$RUNNER_TEMP/quota-baseline.log"
+          done
+          grep -F 'test result: FAILED. 4 passed; 9 failed;' "$RUNNER_TEMP/quota-baseline.log"
+      - name: Candidate public controls and existing quota unit tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          features=()
+          if [[ "$PROFILE" == all ]]; then features=(--all-features); fi
+          export CARGO_TARGET_DIR="$RUNNER_TEMP/quota-candidate-target"
+          cargo test --locked --manifest-path candidate/partitionline-broker/Cargo.toml "${features[@]}" --test quotas_clock -- --nocapture --test-threads=1 2>&1 | tee "$RUNNER_TEMP/quota-candidate.log"
+          grep -F 'test result: ok. 13 passed;' "$RUNNER_TEMP/quota-candidate.log"
+          cargo test --locked --manifest-path candidate/partitionline-broker/Cargo.toml "${features[@]}" --lib quotas::tests -- --nocapture --test-threads=1 2>&1 | tee "$RUNNER_TEMP/quota-existing.log"
+          grep -F 'test result: ok. 10 passed;' "$RUNNER_TEMP/quota-existing.log"
+      - name: Check independent binary provenance
+        shell: bash
+        run: |
+          set -euo pipefail
+          mapfile -t base_bins < <(find "$RUNNER_TEMP/quota-baseline-target/debug/deps" -maxdepth 1 -type f -perm -u+x -name 'quotas_clock-*')
+          mapfile -t cand_bins < <(find "$RUNNER_TEMP/quota-candidate-target/debug/deps" -maxdepth 1 -type f -perm -u+x -name 'quotas_clock-*')
+          test "${#base_bins[@]}" = 1
+          test "${#cand_bins[@]}" = 1
+          sha256sum "${base_bins[0]}" "${cand_bins[0]}" | tee "$RUNNER_TEMP/quota-binaries.sha256"
+          base_hash="$(sha256sum "${base_bins[0]}" | cut -d' ' -f1)"
+          candidate_hash="$(sha256sum "${cand_bins[0]}" | cut -d' ' -f1)"
+          test "$base_hash" != "$candidate_hash"
+      - name: Retain behavioral logs
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: quota-clock-behavior-${{ matrix.profile }}
+          path: |
+            ${{ runner.temp }}/quota-baseline.log
+            ${{ runner.temp }}/quota-candidate.log
+            ${{ runner.temp }}/quota-existing.log
+            ${{ runner.temp }}/quota-binaries.sha256
+          if-no-files-found: warn
+
