@@ -15,16 +15,16 @@ replicated partition data or native Kafka KRaft.
 
 ## Validation
 
-The latest complete snapshot recorded here is commit `7f59ef470340db6027958f439df3716a8dde536c`.
-It predates the coordinator repair. The [CI evidence][ci] links the runs
-and their limits.
+The latest complete snapshot recorded here is commit `ba8d72f51c23b4bfbd1057e61bbd483da831aa91`.
+It includes the coordinator repair and predates the journal repair. The
+[CI evidence][ci] links the runs and their limits.
 
-| Check | Result at `7f59ef4` |
+| Check | Result at `ba8d72f` |
 | --- | --- |
-| Client library, Linux default | 2,195 passed and 25 failed; the all-target run stopped at the library. |
-| Client library, Linux all features | 2,194 passed and 26 failed; later targets did not run. |
-| Windows default library | 2,197 passed and 23 failed. |
-| macOS arm64 default library | 2,195 passed and 25 failed. |
+| Client library, Linux default | 2,227 passed and 17 failed; the all-target run stopped at the library. |
+| Client library, Linux all features | 2,237 passed and seven failed; later targets did not run. |
+| Windows default library | 2,234 passed and 10 failed. |
+| macOS arm64 default library | 2,229 passed and 15 failed. |
 | Kafka 4.1.2, 4.2.1 and 4.3.1 compatibility | All three jobs failed with stack overflows. |
 | Kafka 3.9.1 and 4.1.0 smoke | Both failed after repeated EOS timeouts and reported JoinGroup error 16. |
 | Broker default and all-feature targets | 739 and 887 passed, respectively. Clippy and Rustdoc passed; both doctest commands found zero tests. |
@@ -89,9 +89,13 @@ pass does not replace the full release matrix.
   its full default run stopped on a quorum `Journal(AlreadyOpen)` failure.
   A [modeled cancellation overlap][fetch-overlap] retained two 4,096-byte
   inputs under a 4,160-byte configured admission ceiling; it did not measure
-  process RSS. Permit ownership and earlier Raft failures remain unresolved.
-  [Journal ownership controls][journal] also reproduced false inode-identity
-  collisions; they did not establish the cause of the earlier quorum failure.
+  process RSS. An [admission candidate][admission] retains permits with
+  actor-owned requests, but its default all-target test failure is unresolved.
+  Earlier Raft failures remain open. The [journal repair][journal-repair]
+  pins inode identities through ownership and staged syncs; it passed both full
+  broker profiles and descriptor controls. It adds file descriptors on Unix.
+  [Earlier journal controls][journal] did not establish the cause of the quorum
+  failure.
 - **Reliability and performance.** No 24-hour fault campaign or seven-day
   continuity run has passed. Matched x86 comparisons against other Kafka
   implementations, with independent record verification, have not been
@@ -105,9 +109,9 @@ The [work plan][next] tracks the current candidates and outstanding tests.
 The [support matrix](support.md) describes configured coverage, and the
 [release guide](RELEASE.md) lists publication gates. No new release is ready.
 
-[ci]: https://github.com/mingley/partitionline/blob/cf02f56c4e4c49b11032f7abc1eb46b14ed9ded2/docs/evidence/releases/main-ci-7f59-20261108/README.md
-[previous-ci]: https://github.com/mingley/partitionline/blob/447493b1fbee45c04fd339d199fd661746adbf25/docs/evidence/releases/main-ci-8b5-20261108/README.md
-[next]: https://github.com/mingley/partitionline/blob/cf02f56c4e4c49b11032f7abc1eb46b14ed9ded2/docs/plan/next-work.md
+[ci]: https://github.com/mingley/partitionline/blob/7ebb3cc81adc695cc4c74409a87a1a1dd4be9730/docs/evidence/releases/main-ci-ba8-20261108/README.md
+[previous-ci]: https://github.com/mingley/partitionline/blob/cf02f56c4e4c49b11032f7abc1eb46b14ed9ded2/docs/evidence/releases/main-ci-7f59-20261108/README.md
+[next]: https://github.com/mingley/partitionline/blob/7ebb3cc81adc695cc4c74409a87a1a1dd4be9730/docs/plan/next-work.md
 [previous]: https://github.com/mingley/partitionline/blob/5c2a000639d9a8a7dccd56e8c1d6f3a58dca1601/docs/STATUS.md
 [flush]: https://github.com/mingley/partitionline/blob/e980829c439aa43edc01312c91838e58a412221a/docs/evidence/client/producer-flush-native-86f2-20261103/README.md
 [txn]: https://github.com/mingley/partitionline/blob/49ad56c6bce1366e2357c272f11c5c34160d60da/docs/evidence/client/add-partitions-native-4f0c-20261103/README.md
@@ -126,5 +130,7 @@ The [support matrix](support.md) describes configured coverage, and the
 [fetch-overlap]: https://github.com/mingley/partitionline/blob/d358d94ff0773e23a9429e85f79c9aa0e48d6a8c/docs/evidence/broker/fetch-actor-overlap-20261108/README.md
 [txn-state]: https://github.com/mingley/partitionline/blob/cf02f56c4e4c49b11032f7abc1eb46b14ed9ded2/docs/evidence/client/txn-error-state-374-20261108/REPORT.md
 [socket]: https://github.com/mingley/partitionline/blob/c86a2eee826459672e3a25b8ea6ea744dccb0119/docs/evidence/client/group-coordinator-retirement-20261108/README.md
-[cleanup-deferred]: https://github.com/mingley/partitionline/blob/cf02f56c4e4c49b11032f7abc1eb46b14ed9ded2/docs/evidence/client/producer-failure-cleanup-20261108/DEFERRED.md
+[cleanup-deferred]: https://github.com/mingley/partitionline/blob/7ebb3cc81adc695cc4c74409a87a1a1dd4be9730/docs/evidence/client/producer-failure-cleanup-20261108/DEFERRED.md
 [journal]: https://github.com/mingley/partitionline/blob/cf02f56c4e4c49b11032f7abc1eb46b14ed9ded2/docs/qualification/journal-ownership-2026-11-08.md
+[journal-repair]: https://github.com/mingley/partitionline/blob/7ebb3cc81adc695cc4c74409a87a1a1dd4be9730/docs/evidence/broker/journal-ownership-repair-20261108/README.md
+[admission]: https://github.com/mingley/partitionline/blob/7ebb3cc81adc695cc4c74409a87a1a1dd4be9730/docs/evidence/broker/fetch-owned-admission-20261108/README.md
