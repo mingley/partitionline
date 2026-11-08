@@ -1,0 +1,60 @@
+name: Public in-flight close callback witness
+
+on:
+  push:
+    branches: ["qualification/inflight-close-callback-20261108"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  witness:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        profile: [default, all]
+    env:
+      PROFILE: ${{ matrix.profile }}
+      RUSTFLAGS: "--cfg inflight_drop_witness --check-cfg=cfg(inflight_drop_witness)"
+      CARGO_TERM_COLOR: never
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Provenance
+        run: |
+          set -eu
+          rustc -Vv
+          cargo -V
+          uname -a
+          git rev-parse HEAD
+          git rev-parse HEAD:src/producer.rs
+          git rev-parse HEAD:tests/public_inflight_drop.rs
+          sha256sum src/producer.rs tests/public_inflight_drop.rs tests/common/mod.rs Cargo.lock
+          mkdir -p witness-logs
+      - name: Immediate callback release
+        run: |
+          set -euo pipefail
+          args=()
+          if test "$PROFILE" = all; then args+=(--all-features); fi
+          PL_HOLD_CALLBACK=0 cargo +stable test --locked "${args[@]}" --test public_inflight_drop -- --exact public_close_deadline_with_inflight_interceptor --test-threads=1 --nocapture 2>&1 | tee witness-logs/immediate.log
+          grep -F "INFLIGHT_DROP_WITNESS held=false" witness-logs/immediate.log
+          grep -F "test result: ok. 1 passed; 0 failed" witness-logs/immediate.log
+      - name: Held callback with external release
+        if: always()
+        run: |
+          set -euo pipefail
+          args=()
+          if test "$PROFILE" = all; then args+=(--all-features); fi
+          PL_HOLD_CALLBACK=1 cargo +stable test --locked "${args[@]}" --test public_inflight_drop -- --exact public_close_deadline_with_inflight_interceptor --test-threads=1 --nocapture 2>&1 | tee witness-logs/held.log
+          grep -F "INFLIGHT_DROP_WITNESS held=true" witness-logs/held.log
+          grep -F "test result: ok. 1 passed; 0 failed" witness-logs/held.log
+      - name: Retain witness output
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: inflight-close-callback-${{ matrix.profile }}
+          path: witness-logs
+          retention-days: 30

@@ -7545,6 +7545,33 @@ impl ProduceTopicIds {
     }
 }
 
+/// Test-only observation of an in-flight response guard.
+#[cfg(inflight_drop_witness)]
+#[doc(hidden)]
+pub mod inflight_drop_witness {
+    use std::sync::atomic::{AtomicBool, Ordering};
+    use tokio::sync::Notify;
+
+    static ARMED: AtomicBool = AtomicBool::new(false);
+    static REACHED: Notify = Notify::const_new();
+
+    /// Arm the next in-flight guard observation.
+    pub fn arm() {
+        ARMED.store(true, Ordering::SeqCst);
+    }
+
+    /// Wait until the worker constructs the in-flight guard.
+    pub async fn reached() {
+        REACHED.notified().await;
+    }
+
+    pub(super) fn record() {
+        if ARMED.swap(false, Ordering::SeqCst) {
+            REACHED.notify_one();
+        }
+    }
+}
+
 struct InFlightGuard {
     shared: Arc<Shared>,
     inf: Option<InFlight>,
@@ -8537,6 +8564,8 @@ impl Worker {
             shared: Arc::clone(&self.shared),
             inf: Some(inf),
         };
+        #[cfg(inflight_drop_witness)]
+        inflight_drop_witness::record();
         let (correlation, version, batch_deadline) = match guard.inf.as_ref() {
             Some(inf) => {
                 let dl = inf
