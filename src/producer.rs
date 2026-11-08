@@ -15686,6 +15686,192 @@ mod tests {
         }
     }
 
+    // These controls inject private worker state. They do not establish that
+    // the exact arrangement arose through public admission or a real broker.
+    fn owned_batch_witness(partition: i32, sequence: i32) -> Pending {
+        let mut pending = queued("t", Some(partition));
+        pending.seq = Some(sequence);
+        pending.batch_base_seq = Some(0);
+        pending.batch_len = 2;
+        pending.epoch_gen = 1;
+        pending
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn owned_batch_packing_observation() {
+        let pending = vec![
+            queued("t", Some(1)),
+            owned_batch_witness(0, 0),
+            owned_batch_witness(0, 1),
+        ];
+        let mut bases = HashMap::new();
+        let n = take_count_in(&pending, 2, usize::MAX, &mut bases).await;
+        assert_eq!(n, 2);
+        let mut first = pending;
+        let _rest = first.split_off(n);
+        let mut scratch = ProduceGroupScratch::default();
+        let (groups, _) = group_pending(first, &mut scratch).await;
+        let assigned = groups.iter().find(|(_, part, _)| *part == 0).unwrap();
+        assert_eq!(assigned.2.len(), 1);
+        assert_eq!(assigned.2.first().unwrap().batch_len, 2);
+        println!("BATCH_PACK complete_retry_envelope=2 preceding_unassigned=1 selected_retry=1");
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn owned_batch_packing_completeness_contract() {
+        let pending = vec![
+            queued("t", Some(1)),
+            owned_batch_witness(0, 0),
+            owned_batch_witness(0, 1),
+        ];
+        let mut bases = HashMap::new();
+        let n = take_count_in(&pending, 2, usize::MAX, &mut bases).await;
+        let retry_count = pending
+            .iter()
+            .take(n)
+            .filter(|item| item.rec.partition == Some(0))
+            .count();
+        assert!(
+            retry_count == 0 || retry_count == 2,
+            "retry envelope was split: selected {retry_count}"
+        );
+    }
+
+    async fn expiry_witness_worker(
+        sticky: bool,
+    ) -> (Worker, Arc<Shared>, tokio::net::TcpStream, tokio::net::TcpStream) {
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap().to_string();
+        let meta = BrokerConn::connect(&addr, "expiry-meta", Duration::from_secs(2))
+            .await
+            .unwrap();
+        let (meta_peer, _) = listener.accept().await.unwrap();
+        let conn = BrokerConn::connect(&addr, "expiry-worker", Duration::from_secs(2))
+            .await
+            .unwrap();
+        let (worker_peer, _) = listener.accept().await.unwrap();
+        let mut cfg = ProducerConfig::default().batch_records(2);
+        if sticky {
+            cfg = cfg.partitioner(crate::partitioner::StickyPartitioner::new());
+        }
+        let shared = test_shared(cfg, meta);
+        let (_data_tx, data) = mpsc::channel(4);
+        let (_ctrl_tx, ctrl) = mpsc::channel(4);
+        let id = Arc::new(());
+        let worker = Worker {
+            id,
+            admission: Arc::new(WorkerAdmission::for_producer(Arc::clone(&shared.closed))),
+            node_id: 1,
+            throttle: shared.broker_throttle(1),
+            conn,
+            data,
+            ctrl,
+            shared: Arc::clone(&shared),
+            write_buf: BytesMut::new(),
+            pending: Vec::new(),
+            spare_batch: Vec::new(),
+            pending_estimate: 0,
+            earliest_deadline: None,
+            in_flight: VecDeque::new(),
+            fail: None,
+            compress_scratch: CompressScratch::default(),
+            group_scratch: ProduceGroupScratch::default(),
+            ack_index: AckIndex::default(),
+            ack_slots: Vec::new(),
+            spare_acks: Vec::new(),
+            ack_requested: HashMap::new(),
+            ack_seen: HashMap::new(),
+            ack_tracker: None,
+            _live: WorkerLease::register(&shared),
+        };
+        (worker, shared, meta_peer, worker_peer)
+    }
+
+    fn install_two_member_sticky_cohort(worker: &Worker) -> (StickyTag, StickyTag) {
+        let topic = Arc::<str>::from("t");
+        let mut cluster = worker.shared.cluster.lock();
+        let _ = cluster.leaders.insert(Arc::clone(&topic), vec![1]);
+        let mut policy = worker.shared.sticky.as_ref().unwrap().lock();
+        let first = policy.plan(&topic, 0, &worker.id, 1, &cluster);
+        let first_tag = first.tag;
+        policy.commit(&topic, 0, &worker.id, true, first, &cluster);
+        let second = policy.plan(&topic, 0, &worker.id, 1, &cluster);
+        let second_tag = second.tag;
+        policy.commit(&topic, 0, &worker.id, true, second, &cluster);
+        assert_ne!(first_tag.id, 0);
+        assert_eq!(first_tag.id, second_tag.id);
+        assert_eq!((first_tag.index, second_tag.index), (0, 1));
+        assert_eq!(policy.members(first_tag), 2);
+        (first_tag, second_tag)
+    }
+
+    fn assigned_pair(
+        first_deadline: Instant,
+        second_deadline: Instant,
+        sticky: Option<(StickyTag, StickyTag)>,
+    ) -> (Vec<Pending>, oneshot::Receiver<Result<RecordMetadata>>, oneshot::Receiver<Result<RecordMetadata>>) {
+        let (first_tx, first_rx) = oneshot::channel();
+        let (second_tx, second_rx) = oneshot::channel();
+        let mut first = owned_batch_witness(0, 0);
+        let mut second = owned_batch_witness(0, 1);
+        first.rec.value = Some(Bytes::from_static(b"a"));
+        second.rec.value = Some(Bytes::from_static(b"b"));
+        first.deadline = first_deadline;
+        second.deadline = second_deadline;
+        first.tx = Some(first_tx);
+        second.tx = Some(second_tx);
+        if let Some((a, b)) = sticky {
+            first.sticky = Some(a);
+            second.sticky = Some(b);
+        }
+        (vec![first, second], first_rx, second_rx)
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn owned_batch_deadline_and_sticky_observations() {
+        let now = Instant::now();
+        let expired = now.checked_sub(Duration::from_secs(1)).unwrap();
+        let live = now + Duration::from_secs(60);
+        for sticky in [false, true] {
+            let (mut worker, shared, _meta_peer, _worker_peer) =
+                expiry_witness_worker(sticky).await;
+            let tags = sticky.then(|| install_two_member_sticky_cohort(&worker));
+            let (pending, mut first_rx, mut second_rx) = assigned_pair(expired, live, tags);
+            worker.pending = pending;
+            shared.buffered_bytes.store(2, Ordering::SeqCst);
+            worker.purge_expired_pending().await;
+            assert!(matches!(first_rx.try_recv(), Ok(Err(Error::Timeout))));
+            assert!(matches!(second_rx.try_recv(), Err(oneshot::error::TryRecvError::Empty)));
+            assert_eq!(worker.pending.len(), 1);
+            let survivor = worker.pending.first().unwrap();
+            assert_eq!((survivor.seq, survivor.batch_base_seq, survivor.batch_len), (Some(1), Some(0), 2));
+            assert_eq!(shared.buffered_bytes.load(Ordering::SeqCst), 1);
+            if let Some((_, tag)) = tags {
+                assert!(shared.sticky.as_ref().unwrap().lock().cancelled(tag));
+                worker.purge_expired_pending().await;
+                assert!(worker.pending.is_empty());
+                assert!(matches!(second_rx.try_recv(), Ok(Err(Error::Timeout))));
+                assert_eq!(shared.buffered_bytes.load(Ordering::SeqCst), 0);
+            }
+            shared.closed.store(true, Ordering::SeqCst);
+            println!("BATCH_EXPIRY sticky={sticky} first_purge=1_survivor second_purge={}", if sticky { "canceled" } else { "not_run" });
+        }
+
+        let (mut worker, shared, _meta_peer, _worker_peer) = expiry_witness_worker(true).await;
+        let tags = install_two_member_sticky_cohort(&worker);
+        let (pending, mut first_rx, mut second_rx) = assigned_pair(live, live, Some(tags));
+        worker.pending = pending;
+        shared.buffered_bytes.store(2, Ordering::SeqCst);
+        shared.sticky.as_ref().unwrap().lock().cancel(tags.0);
+        worker.purge_expired_pending().await;
+        assert!(worker.pending.is_empty());
+        assert!(matches!(first_rx.try_recv(), Ok(Err(Error::Timeout))));
+        assert!(matches!(second_rx.try_recv(), Ok(Err(Error::Timeout))));
+        assert_eq!(shared.buffered_bytes.load(Ordering::SeqCst), 0);
+        shared.closed.store(true, Ordering::SeqCst);
+        println!("BATCH_STICKY_CANCEL both_live_members=failed_together bytes=0");
+    }
+
     #[test]
     fn an_uncompressed_produce_sizes_its_batch_once() {
         let topic = Arc::<str>::from("orders");
