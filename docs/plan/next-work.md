@@ -10,19 +10,25 @@ Production readiness and fastest-client/server claims remain unqualified.
 Client 0.1.0 is already published. The next client version must be at least
 0.2.0; broker and schema publication remain disabled.
 
-The latest complete recorded main [CI snapshot](../evidence/releases/main-ci-262-20261108/README.md)
-is `262d2544a4352d52538f19ef9ab0c8c5700774d3`. Client libraries reported
-2,233 passed and 11 failed on Linux default features, 2,233 passed and 11
-failed with all features, 2,227 passed and 17 failed on Windows, and 2,230
-passed and 14 failed on macOS arm64. Three Kafka compatibility jobs and both
-smoke jobs failed. Resource-soak failed with a `/proc` file-descriptor
-permission error; the workload result is incomplete. Broker CI stopped in the
-default profile at 696 passed, one failed and four ignored after a three-node
-Raft `NotLeader` response. Its all-feature suite, Clippy and Rustdoc did not
-run; inventory and fuzz supervision passed separately. Post-failure node
-samples do not establish the cause or whether the mailbox change contributed.
-The [preceding snapshot](../evidence/releases/main-ci-02c-20261108/README.md)
-retains two earlier Raft failures.
+The latest complete recorded main [CI snapshot](../evidence/releases/main-ci-60c-20261108/README.md)
+is `60caa746c3654c89d01557e35e1100cdc2a84b74`. Client libraries reported
+2,224 passed and 20 failed on Linux default features, 2,225 passed and 19
+failed with all features, 2,231 passed and 13 failed on Windows, and 2,233
+passed and 11 failed on macOS arm64. Three Kafka compatibility jobs and both
+smoke jobs failed; resource-soak passed. Broker CI passed 773 default and 921
+all-feature tests, with four ignored per profile, plus strict checks, inventory
+and fuzz supervision. Both selected capability profiles passed; their archives
+were not independently inspected.
+
+The [preceding snapshot](../evidence/releases/main-ci-262-20261108/README.md)
+recorded a `/proc` file-descriptor permission error in resource-soak, leaving
+that workload incomplete. Broker CI stopped in the default profile at 696
+passed, one failed and four ignored after a three-node Raft `NotLeader`
+response. Its all-feature suite, Clippy and Rustdoc did not run; inventory and
+fuzz supervision passed separately. Post-failure node samples do not establish
+the cause or whether the mailbox change contributed. The later passes do not
+explain either failure. An [earlier snapshot](../evidence/releases/main-ci-02c-20261108/README.md)
+retains two additional Raft failures.
 
 An earlier [main CI snapshot](../evidence/releases/main-ci-440-20261108/README.md)
 at `4409633` recorded 17 successful client jobs, nine failures, one
@@ -291,19 +297,40 @@ remain open.
    the documented contract. An isolated [completion model](../evidence/client/producer-completion-horizon-20261108/README.md)
    is not connected to the producer. A [gated public draft comparison](../evidence/client/producer-flush-barrier-public-20261108/README.md)
    waited for the retired worker's record but still lost a worker error after
-   a flush waiter was canceled. A proposed [ownership design](../evidence/client/producer-ownership-design-20261108/README.md)
+   a flush waiter was canceled. A separate [public flush history](../evidence/client/producer-flush-sent-20261108/README.md)
+   shows an injected error can be sent to a live waiter, then discarded when
+   that unpolled waiter is dropped while overlapping and later flushes return
+   Ok. This uses a mock and does not settle every flush-error contract. A
+   proposed [ownership design](../evidence/client/producer-ownership-design-20261108/README.md)
    records the unresolved lifecycle, transaction and sequence requirements;
    the draft remains unapplied. The [retained-admission test](../evidence/client/retained-cancellation-test-20261108/README.md)
    now isolates one partial `send_all` cancellation and detects missing or
-   duplicate release in a gated mock; producer code is unchanged. Its short mock benchmark recorded higher
-   median admission and flush times; it did not compare Kafka clients. A
+   duplicate release in a gated mock; producer code is unchanged. The barrier
+   draft's short mock benchmark recorded higher median admission and flush
+   times; it did not compare Kafka clients. A
    [private waker control](../evidence/client/producer-waker-handoff-20261108/README.md)
    found a double release under an injected panic; public reachability is not
    established. An isolated [sequence cancellation control](../evidence/client/producer-sequence-cancel-20261108/README.md)
    dropped an artificial batch owner after the actual helper reserved sequence
    numbers: receipt channels closed while the counter stayed advanced. This
    does not execute the public producer or Kafka I/O; safe batch ownership and
-   recovery across partial writes remain open. Separate
+   recovery across partial writes remain open. A gated
+   [public producer history](../evidence/client/producer-sequence-public-20261108/README.md)
+   paused an idempotent batch before its last stamp. Public `close_timeout`
+   returned `Timeout`, the retained receipt returned `Closed`, no batch
+   callbacks were observed and 65,544 bytes stayed counted. In a separate
+   forced worker abort, a replacement task sent the next batch with a sequence
+   gap and the repository mock returned error 45. The gate changes scheduling;
+   neither observation is a real-Kafka history. Seeded private
+   [rollover controls](../evidence/client/producer-sequence-rollover-20261108/README.md)
+   confirm saturation where Kafka sequence arithmetic wraps. In a separate
+   seeded public mock history, two different sends returned success at the
+   same offset while the mock stored only the first value. A three-line
+   arithmetic control stored both but is not an ownership or concurrency fix.
+   Neither history is a real-Kafka result. A
+   [cleanup-service review](../evidence/client/producer-cleanup-service-20261108/README.md)
+   describes ownership, admission, write, callback and shutdown requirements;
+   it is not an implementation. Separate
    [cancellation controls](../evidence/client/addpart-retryfix-264-20261108/REPORT.md)
    reproduced lost completion results and retained buffer bytes during a
    coordinator retry and during single-record failure cleanup. Those controls
@@ -462,7 +489,13 @@ A [record-encoding experiment](../evidence/client/record-body-arithmetic-2026110
 was rejected after separate builds showed median elapsed time 6.1% higher
 for an empty single-record batch and 4.0% higher for a keyed 100-byte batch.
 The local shared-host codec test does not rank Kafka clients; an earlier
-same-binary comparison was invalid and is retained in the report.
+same-binary comparison was invalid and is retained in the report. Two
+[one-byte varint candidates](../evidence/client/one-byte-varint-20261108/README.md)
+also remain unapplied. In a balanced three-way x86 run, the outlined variant
+improved the sampled header-heavy batch but was slower in all 12 paired
+500-record plain and null-key batches. Inline results changed direction across
+runs on different hosts and fixtures. The constant-input primitive loops can
+allow compiler hoisting; these results do not rank Kafka implementations.
 
 An isolated [transaction decode experiment](../evidence/client/txn-decode-20261108/README.md)
 reduced loopback latency for larger responses on one shared x86 runner. It
