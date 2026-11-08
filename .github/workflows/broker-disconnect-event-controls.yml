@@ -1,0 +1,98 @@
+name: Broker disconnect event test controls
+on:
+  push:
+    branches: [qualification/broker-disconnect-event-controls-20261108]
+permissions:
+  contents: read
+jobs:
+  controls:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      CARGO_BUILD_JOBS: 2
+      CARGO_INCREMENTAL: 0
+      CARGO_PROFILE_TEST_DEBUG: 0
+      CARGO_PROFILE_DEV_DEBUG: 0
+      CARGO_TERM_COLOR: never
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+      - name: Format and retain source
+        run: |
+          set -euo pipefail
+          rustc -Vv
+          cargo fmt --manifest-path partitionline-broker/Cargo.toml
+          cargo fmt --manifest-path partitionline-broker/Cargo.toml -- --check
+          git diff --name-only
+          cp partitionline-broker/src/transport.rs /tmp/disconnect-event-clean.rs
+          awk '{ print "DISCONNECT_EVENT_SOURCE:" $0 }' partitionline-broker/src/transport.rs
+      - name: Existing disconnect and flood checks in both profiles
+        run: |
+          set -euo pipefail
+          for profile in default all; do
+            args=()
+            if [[ "$profile" == all ]]; then args=(--all-features); fi
+            cargo test --locked --manifest-path partitionline-broker/Cargo.toml --lib "${args[@]}" transport::disconnect_tests:: -- --nocapture | tee /tmp/disconnect-event-positive.log
+            grep -qE '^test result: ok\. 3 passed; 0 failed;' /tmp/disconnect-event-positive.log
+            test "$(grep -c 'disconnect-check observed=true stopped_before_cleanup=1 joined=true' /tmp/disconnect-event-positive.log)" -eq 2
+          done
+      - name: No EOF cancellation mutant
+        run: |
+          set -euo pipefail
+          cp /tmp/disconnect-event-clean.rs partitionline-broker/src/transport.rs
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path("partitionline-broker/src/transport.rs")
+          s=p.read_text()
+          old="            Ok(0) => return Exit::PeerClosed,"
+          assert s.count(old)==1
+          p.write_text(s.replace(old,"            Ok(0) => return std::future::pending::<Exit>().await,",1))
+          PY
+          for name in client_disconnect_stops_the_handler pipelined_disconnect_stops_the_handler; do
+            if cargo test --locked --manifest-path partitionline-broker/Cargo.toml --lib "$name" -- --nocapture > /tmp/disconnect-event-mutant.log 2>&1; then cat /tmp/disconnect-event-mutant.log; exit 1; fi
+            cat /tmp/disconnect-event-mutant.log
+            grep -F 'disconnect-check observed=false stopped_before_cleanup=0 joined=true' /tmp/disconnect-event-mutant.log
+            grep -F 'disconnect did not stop the handler before cleanup' /tmp/disconnect-event-mutant.log
+          done
+          cp /tmp/disconnect-event-clean.rs partitionline-broker/src/transport.rs
+      - name: Premature notice plus no EOF cancellation mutant
+        run: |
+          set -euo pipefail
+          cp /tmp/disconnect-event-clean.rs partitionline-broker/src/transport.rs
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path("partitionline-broker/src/transport.rs")
+          s=p.read_text()
+          eof="            Ok(0) => return Exit::PeerClosed,"
+          guard="                let _guard = Guard(stopped, stopped_notice);"
+          started="                started.fetch_add(1, Ordering::SeqCst);"
+          assert s.count(eof)==1 and s.count(guard)==1 and s.count(started)==1
+          s=s.replace(eof,"            Ok(0) => return std::future::pending::<Exit>().await,",1)
+          s=s.replace(guard,"                let _guard = Guard(stopped, Arc::clone(&stopped_notice));",1)
+          s=s.replace(started,started+"\n                stopped_notice.notify_one();",1)
+          p.write_text(s)
+          PY
+          if cargo test --locked --manifest-path partitionline-broker/Cargo.toml --lib client_disconnect_stops_the_handler -- --nocapture > /tmp/disconnect-false-notice.log 2>&1; then cat /tmp/disconnect-false-notice.log; exit 1; fi
+          cat /tmp/disconnect-false-notice.log
+          grep -F 'disconnect-check observed=true stopped_before_cleanup=0 joined=true' /tmp/disconnect-false-notice.log
+          grep -F 'client disconnect did not stop the handler before cleanup' /tmp/disconnect-false-notice.log
+          cp /tmp/disconnect-event-clean.rs partitionline-broker/src/transport.rs
+  strict:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      CARGO_BUILD_JOBS: 2
+      CARGO_INCREMENTAL: 0
+      CARGO_PROFILE_DEV_DEBUG: 0
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - name: Format and run strict all-target Clippy
+        run: |
+          set -euo pipefail
+          cargo fmt --manifest-path partitionline-broker/Cargo.toml
+          cargo clippy --locked --manifest-path partitionline-broker/Cargo.toml --all-targets --all-features -- -D warnings
