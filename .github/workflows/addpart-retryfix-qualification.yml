@@ -1,0 +1,100 @@
+name: AddPartitions retry repair and cancellation probe
+
+on:
+  push:
+    branches: [qualification/addpart-retryfix-264-20261108]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: addpart-retryfix-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  witness:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    env:
+      CARGO_BUILD_JOBS: '2'
+      CARGO_INCREMENTAL: '0'
+      CARGO_PROFILE_DEV_DEBUG: '0'
+      CARGO_PROFILE_TEST_DEBUG: '0'
+      CARGO_TERM_COLOR: never
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: 264322ff430b0594f4c3864e53dcd832de2a930b
+          path: base
+          persist-credentials: false
+          sparse-checkout: |
+            .cargo
+            src
+            tests
+            examples
+            docs/evidence/client/add-partitions-coverage-20261103
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.sha }}
+          path: controls
+          persist-credentials: false
+          sparse-checkout: |
+            docs/evidence/client/addpart-retryfix-264-20261108
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - name: Pin source and prepare candidate
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/addpart-retryfix-evidence"
+          export CARGO_TARGET_DIR="$RUNNER_TEMP/addpart-retryfix-target"
+          test ! -e "$CARGO_TARGET_DIR"
+          printf 'CARGO_TARGET_DIR=%s\n' "$CARGO_TARGET_DIR" >> "$GITHUB_ENV"
+          test "$RUNNER_ARCH" = X64
+          rustc +stable -vV
+          cargo +stable -V
+          cd "$GITHUB_WORKSPACE/base"
+          test "$(git rev-parse HEAD)" = 264322ff430b0594f4c3864e53dcd832de2a930b
+          patch=docs/evidence/client/add-partitions-coverage-20261103/candidate-v3.patch
+          controls="$GITHUB_WORKSPACE/controls/docs/evidence/client/addpart-retryfix-264-20261108"
+          printf '%s  %s\n' \
+            e21d03f495f504f167bc56139dc03798b0f323ca51370c7dceade23a2dad066e src/producer.rs \
+            5e356bd2d7616354de4a3e60ebd23bd12104bc4a9d8a29cc65cbd258f38d8cfe "$patch" \
+            fb4bdf04bcdbcd10ea195d6d8a465515f218e1fdff92a863547ea97ed2e54973 "$controls/witness.rs" \
+            028027015af405dd2ab02e11dbce6e290eef5bb25e7360b7cf4dd2ebf6714e3b "$controls/prepare.py" | tee "$RUNNER_TEMP/addpart-retryfix-evidence/pins.log" | sha256sum --check -
+          git apply --check "$patch"
+          git apply "$patch"
+          printf '%s  %s\n' c578d05b5e9c7598174b47b4ad3e0c90e9528f51527c479534e1e48d1f442677 src/producer.rs | sha256sum --check -
+          mkdir -p src/producer
+          cp "$controls/witness.rs" src/producer/add_partitions_retry_deadline.rs
+          python3 -B "$controls/prepare.py" | tee "$RUNNER_TEMP/addpart-retryfix-evidence/prepare.log"
+      - name: Run retry and cancellation controls
+        timeout-minutes: 30
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$GITHUB_WORKSPACE/base"
+          failed=0
+          for mode in default all; do
+            extra=''
+            if [[ "$mode" = all ]]; then extra=--all-features; fi
+            for name in natural_exhaustion_requires_abort post_check_deadline_exhaustion_requires_abort prior_fatal_is_preserved_at_retry_timeout cancel_after_disposition_releases_worker_owned_records; do
+              log="$RUNNER_TEMP/addpart-retryfix-evidence/$mode-$name.log"
+              set +e
+              timeout 600 cargo +stable test --locked $extra --lib "producer::add_partitions_retry_deadline::$name" -- --exact --nocapture > "$log" 2>&1
+              status=$?
+              set -e
+              cat "$log"
+              if [[ "$status" != 0 ]] || ! grep -Fq 'test result: ok. 1 passed; 0 failed;' "$log"; then failed=1; fi
+            done
+          done
+          exit "$failed"
+      - name: Retain control logs
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: addpart-retryfix-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/addpart-retryfix-evidence
+          if-no-files-found: error
+          retention-days: 30
