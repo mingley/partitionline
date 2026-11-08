@@ -1,0 +1,108 @@
+name: isolated transaction decode qualification
+
+on:
+  push:
+    branches: [qualification/txn-decode-20261108]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  qualify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Check out candidate
+        uses: actions/checkout@v7
+        with:
+          path: candidate
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /Cargo.toml
+            /Cargo.lock
+            /README.md
+            /src/
+            /examples/
+            /tests/common/
+            /tests/mock_produce.rs
+            /benchmarks/txn_decode_qualification.py
+      - name: Check out pinned base
+        uses: actions/checkout@v7
+        with:
+          ref: 3f45fe6255e72abc6b0c4488bc13117779c50787
+          path: baseline
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /Cargo.toml
+            /Cargo.lock
+            /README.md
+            /src/
+            /examples/
+            /tests/common/
+            /tests/mock_produce.rs
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Install the identical qualification harness into the baseline
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import hashlib
+          base = Path("baseline/src/producer.rs")
+          candidate = Path("candidate/src/producer.rs")
+          first = "    // BEGIN TXN DECODE QUALIFICATION HARNESS\n"
+          last = "    // END TXN DECODE QUALIFICATION HARNESS\n"
+          anchor = "mod tests {\n    use super::*;\n"
+          b, c = base.read_text(), candidate.read_text()
+          assert c.count(first) == c.count(last) == b.count(anchor) == 1
+          block = first + c.split(first, 1)[1].split(last, 1)[0] + last
+          base.write_text(b.replace(anchor, anchor + "\n" + block, 1))
+          base_test = Path("baseline/tests/mock_produce.rs")
+          candidate_test = Path("candidate/tests/mock_produce.rs")
+          marker = '#[tokio::test(flavor = "current_thread")]\nasync fn txn_decode_add_partitions_coordinator_retry()'
+          bt, ct = base_test.read_text(), candidate_test.read_text()
+          assert bt.count(marker) == 0 and ct.count(marker) == 1
+          base_test.write_text(bt + "\n" + marker + ct.split(marker, 1)[1])
+          print("qualification harness sha256", hashlib.sha256(block.encode()).hexdigest())
+          PY
+      - name: Record compiler, source and machine settings
+        shell: bash
+        run: |
+          rustc +stable -Vv
+          cargo +stable -V
+          uname -a
+          lscpu
+          sha256sum baseline/src/producer.rs candidate/src/producer.rs
+          sha256sum baseline/tests/mock_produce.rs candidate/tests/mock_produce.rs
+          sha256sum candidate/benchmarks/txn_decode_qualification.py
+          git -C baseline rev-parse HEAD
+          git -C candidate rev-parse HEAD
+          printf 'RUSTFLAGS=%s\nCARGO_BUILD_RUSTFLAGS=%s\n' "${RUSTFLAGS-}" "${CARGO_BUILD_RUSTFLAGS-}"
+      - name: Build, run controls and copy each benchmark binary
+        shell: bash
+        env:
+          CARGO_TARGET_DIR: ${{ github.workspace }}/target
+        run: |
+          set -euxo pipefail
+          for kind in baseline candidate; do
+            (
+              cd "$kind"
+              cargo +stable test --locked --release --lib txn_decode_classification_controls -- --nocapture --test-threads=1
+              cargo +stable test --locked --release --test mock_produce txn_decode_add_partitions_coordinator_retry -- --nocapture --test-threads=1
+              cargo +stable test --locked --release --lib --no-run --message-format=json > "$RUNNER_TEMP/$kind.json"
+            )
+            python3 - "$RUNNER_TEMP/$kind.json" "$RUNNER_TEMP/$kind-test" <<'PY'
+          import json, shutil, sys
+          messages = [json.loads(line) for line in open(sys.argv[1])]
+          executables = [m["executable"] for m in messages
+                         if m.get("reason") == "compiler-artifact"
+                         and m.get("target", {}).get("name") == "partitionline"
+                         and m.get("profile", {}).get("test") and m.get("executable")]
+          assert len(executables) == 1, executables
+          shutil.copy2(executables[0], sys.argv[2])
+          PY
+          done
+          sha256sum "$RUNNER_TEMP/baseline-test" "$RUNNER_TEMP/candidate-test"
+      - name: Paired x86 loopback timings
+        shell: bash
+        run: python3 -u candidate/benchmarks/txn_decode_qualification.py "$RUNNER_TEMP/baseline-test" "$RUNNER_TEMP/candidate-test"

@@ -3839,7 +3839,7 @@ impl Producer {
                 let add_offsets_version = self.inner.shared.add_offsets_version;
                 let mut attempt = 0u32;
                 loop {
-                    let body = txn_roundtrip(
+                    let (body, _) = txn_roundtrip(
                         &self.inner.shared,
                         ADD_OFFSETS_TO_TXN,
                         add_offsets_version,
@@ -3974,7 +3974,7 @@ impl Producer {
             // transaction stays open and the caller retries the same
             // idempotent `EndTxn`, which can never split one transaction
             // into two outcomes.
-            let body = txn_roundtrip(
+            let (body, _) = txn_roundtrip(
                 &self.inner.shared,
                 END_TXN,
                 end_txn_version,
@@ -5614,7 +5614,7 @@ async fn txn_roundtrip(
     encode_body: impl Fn(&mut BytesMut) -> Result<()>,
     request_timeout: Duration,
     error_of: impl for<'a> Fn(&'a [u8]) -> Pin<Box<dyn Future<Output = Result<i16>> + Send + 'a>>,
-) -> Result<Bytes> {
+) -> Result<(Bytes, Option<i16>)> {
     let deadline = Instant::now() + request_timeout;
     let tid = shared
         .cfg
@@ -5633,8 +5633,12 @@ async fn txn_roundtrip(
             .await
     };
     match first {
-        Ok(body) if !error::coordinator_retriable(error_of(&body).await?) => return Ok(body),
-        Ok(_) => {}
+        Ok(body) => {
+            let code = error_of(&body).await?;
+            if !error::coordinator_retriable(code) {
+                return Ok((body, Some(code)));
+            }
+        }
         // `Closed` is a dead socket, not a dead producer: rediscover and
         // retry once like any other transport failure (KL03-10). Without
         // this, one broker-side close bricks the coordinator channel.
@@ -5688,6 +5692,7 @@ async fn txn_roundtrip(
     conn.conn
         .roundtrip(api_key, api_version, |buf| encode_body(buf), remaining)
         .await
+        .map(|body| (body, None))
 }
 
 async fn group_coord_roundtrip(
@@ -8801,7 +8806,7 @@ impl Worker {
                 &topics,
             )
             .await?;
-            let body = match txn_roundtrip(
+            let (body, classified) = match txn_roundtrip(
                 &self.shared,
                 ADD_PARTITIONS_TO_TXN,
                 version,
@@ -8825,16 +8830,21 @@ impl Worker {
                     return Err(e);
                 }
             };
-            let err =
-                match decode_add_partitions_to_txn_response_cooperative(&mut body.clone(), version)
-                    .await
+            let err = match classified {
+                Some(code) => code,
+                None => match decode_add_partitions_to_txn_response_cooperative(
+                    &mut body.clone(),
+                    version,
+                )
+                .await
                 {
                     Ok(e) => e,
                     Err(e) => {
                         forget_added_txn_parts(&self.shared.txn_partitions, &added).await;
                         return Err(e);
                     }
-                };
+                },
+            };
             if err == 0 {
                 break;
             }
@@ -11525,6 +11535,179 @@ fn record_metadata(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    // BEGIN TXN DECODE QUALIFICATION HARNESS
+    trait TxnDecodeReply {
+        fn classify_parts(self) -> (Bytes, Option<i16>);
+    }
+
+    impl TxnDecodeReply for Bytes {
+        fn classify_parts(self) -> (Bytes, Option<i16>) {
+            (self, None)
+        }
+    }
+
+    impl TxnDecodeReply for (Bytes, Option<i16>) {
+        fn classify_parts(self) -> (Bytes, Option<i16>) {
+            self
+        }
+    }
+
+    fn txn_decode_body(version: i16, errors: &[i16]) -> Bytes {
+        use crate::protocol::txn::{
+            encode_add_partitions_to_txn_topics_response, AddPartitionsToTxnPartitionResult,
+            AddPartitionsToTxnTopicResult,
+        };
+        let partitions = errors
+            .iter()
+            .enumerate()
+            .map(|(index, &error_code)| AddPartitionsToTxnPartitionResult {
+                partition: i32::try_from(index).unwrap(),
+                error_code,
+            })
+            .collect();
+        let topics = [AddPartitionsToTxnTopicResult {
+            topic: "topic".to_owned(),
+            partitions,
+        }];
+        let mut buf = BytesMut::new();
+        encode_add_partitions_to_txn_topics_response(&mut buf, version, &topics).unwrap();
+        buf.freeze()
+    }
+
+    async fn txn_decode_fixture(
+        version: i16,
+        response: Bytes,
+    ) -> (
+        Arc<Shared>,
+        tokio::net::TcpStream,
+        tokio::task::JoinHandle<()>,
+    ) {
+        use tokio::io::{AsyncReadExt, AsyncWriteExt};
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap().to_string();
+        let meta = BrokerConn::connect(&addr, "decode-meta", Duration::from_secs(5))
+            .await
+            .unwrap();
+        let (meta_peer, _) = listener.accept().await.unwrap();
+        let conn = BrokerConn::connect(&addr, "decode-txn", Duration::from_secs(5))
+            .await
+            .unwrap();
+        let (mut peer, _) = listener.accept().await.unwrap();
+        peer.set_nodelay(true).unwrap();
+        let mut cfg = ProducerConfig::default();
+        cfg.transactional_id = Some("decode-bench".into());
+        let shared = test_shared(cfg, meta);
+        *shared.txn.lock().await = Some(CoordinatorConnection {
+            conn,
+            init_producer_id_version: None,
+            keys: vec![ApiVersion {
+                api_key: ADD_PARTITIONS_TO_TXN,
+                min_version: 0,
+                max_version: 3,
+            }],
+        });
+        let server = tokio::spawn(async move {
+            loop {
+                let len = match peer.read_i32().await {
+                    Ok(len) => usize::try_from(len).unwrap(),
+                    Err(_) => break,
+                };
+                assert!((8..=65_536).contains(&len));
+                let mut request = vec![0; len];
+                peer.read_exact(&mut request).await.unwrap();
+                let header = if version >= 3 { 5usize } else { 4 };
+                let size = i32::try_from(header + response.len()).unwrap();
+                let mut frame = Vec::with_capacity(4 + header + response.len());
+                frame.extend_from_slice(&size.to_be_bytes());
+                frame.extend_from_slice(&request[4..8]);
+                if version >= 3 {
+                    frame.push(0);
+                }
+                frame.extend_from_slice(&response);
+                if peer.write_all(&frame).await.is_err() {
+                    break;
+                }
+            }
+        });
+        (shared, meta_peer, server)
+    }
+
+    async fn txn_decode_call(shared: &Shared, version: i16) -> Result<(Bytes, i16, bool)> {
+        let reply = txn_roundtrip(
+            shared,
+            ADD_PARTITIONS_TO_TXN,
+            version,
+            |_| Ok(()),
+            Duration::from_secs(5),
+            |body| {
+                Box::pin(async move {
+                    decode_add_partitions_to_txn_response_cooperative(&mut { body }, version).await
+                })
+            },
+        )
+        .await?;
+        let (body, classified) = reply.classify_parts();
+        let reused = classified.is_some();
+        let code = match classified {
+            Some(code) => code,
+            None => {
+                decode_add_partitions_to_txn_response_cooperative(&mut body.clone(), version).await?
+            }
+        };
+        Ok((body, code, reused))
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn txn_decode_classification_controls() {
+        for version in [0, 3] {
+            for (errors, expected) in [(vec![0, 0], 0), (vec![47, 48], 47)] {
+                let body = txn_decode_body(version, &errors);
+                let (shared, _meta_peer, server) = txn_decode_fixture(version, body.clone()).await;
+                let (got, code, _) = txn_decode_call(&shared, version).await.unwrap();
+                assert_eq!(got, body);
+                assert_eq!(code, expected, "first-error compatibility, v{version}");
+                server.abort();
+            }
+            let body = txn_decode_body(version, &[47, 48]);
+            let malformed = body.slice(..body.len() - 1);
+            let (shared, _meta_peer, server) = txn_decode_fixture(version, malformed).await;
+            assert!(
+                txn_decode_call(&shared, version).await.is_err(),
+                "malformed tail after a partition error must fail, v{version}"
+            );
+            server.abort();
+        }
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    #[ignore]
+    async fn txn_decode_loopback_benchmark() {
+        let count: usize = std::env::var("PL_TXN_PARTITIONS").unwrap().parse().unwrap();
+        let version: i16 = std::env::var("PL_TXN_VERSION").unwrap().parse().unwrap();
+        let expected_reuse = std::env::var("PL_TXN_REUSE").unwrap() == "1";
+        let body = txn_decode_body(version, &vec![0; count]);
+        let (shared, _meta_peer, server) = txn_decode_fixture(version, body.clone()).await;
+        let mut samples = Vec::new();
+        for index in 0..340 {
+            let started = Instant::now();
+            let result = txn_decode_call(&shared, version).await.unwrap();
+            let elapsed = started.elapsed().as_nanos();
+            assert_eq!(result.0, body);
+            assert_eq!(result.1, 0);
+            assert_eq!(result.2, expected_reuse);
+            std::hint::black_box(&result);
+            if index >= 40 {
+                samples.push(elapsed);
+            }
+        }
+        println!(
+            "PL_TXN_DECODE_BENCH {{\"partitions\":{},\"version\":{},\"reuse\":{},\"samples_ns\":{:?}}}",
+            count, version, expected_reuse, samples
+        );
+        server.abort();
+    }
+    // END TXN DECODE QUALIFICATION HARNESS
 
     #[tokio::test(flavor = "current_thread")]
     async fn unpolled_retired_worker_is_counted_until_its_resources_drop() {

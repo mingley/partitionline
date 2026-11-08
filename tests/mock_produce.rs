@@ -1599,3 +1599,30 @@ async fn idle_coordinator_socket_drops_when_the_broker_stops_writing() {
     }
     drop(producer);
 }
+
+
+#[tokio::test(flavor = "current_thread")]
+async fn txn_decode_add_partitions_coordinator_retry() {
+    let mock = common::Mock::start().await;
+    mock.set_topic_partitions("txn-decode-retry", 1);
+    mock.set_transaction_version(Some(1));
+    let mut cfg = ProducerConfig::bootstrap([mock.addr.clone()]);
+    cfg.linger = Duration::ZERO;
+    cfg.connections = 1;
+    cfg.transactional_id = Some("txn-decode-retry".into());
+    cfg.request_timeout = Duration::from_secs(5);
+    cfg.delivery_timeout = Duration::from_secs(5);
+    let producer = Producer::new(cfg).await.unwrap();
+    producer.begin_transaction().await.unwrap();
+    mock.set_add_partitions_error_times(partitionline::error::NOT_COORDINATOR, 1);
+    let _sent = tokio::time::timeout(
+        Duration::from_secs(10),
+        producer.send(ProduceRecord::to("txn-decode-retry").value(&b"value"[..])),
+    )
+    .await
+    .unwrap()
+    .unwrap();
+    assert_eq!(mock.add_partitions_attempts(), 2);
+    producer.commit_transaction().await.unwrap();
+    producer.close().await.unwrap();
+}
