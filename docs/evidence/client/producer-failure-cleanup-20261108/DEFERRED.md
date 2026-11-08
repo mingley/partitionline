@@ -10,6 +10,53 @@ current-thread runtime; a 16,385-record debug fixture took about 14 ms before
 Drop returned. This is not a worst-case bound. Keep the candidate isolated
 until that behavior is resolved or deliberately accepted.
 
+## Controlled cancellation and deadline witness
+
+[Run 42448073643](https://github.com/mingley/partitionline/actions/runs/42448073643)
+compared main `7f59ef470340db6027958f439df3716a8dde536c` with candidate
+`dca26dfaf47989db15e3d27b0cddafc5483a9d84` on a shared x86_64 GitHub
+runner using stable Rust 1.99.1, LLVM 23.1.1 and unoptimized test binaries.
+Each arm dropped the same unpolled, one-record cleanup future on a
+current-thread Tokio runtime. A timer had already been polled pending; a
+separate thread could release the callback latch. The candidate's callback
+wait was confirmed before the hold began. The callback wait, release and test
+had timeouts.
+
+| Observation | Baseline | Candidate |
+| --- | --- | --- |
+| Drop duration | less than 1 ms at the logged resolution | 600.342 ms |
+| Error callback | not invoked | invoked once and held on the latch |
+| Record result | receiver closed | `Timeout` |
+| Reserved bytes after Drop | 1 | 0 |
+
+For the candidate, relative to the start of Drop, the callback wait was
+observed at 0.134 ms, the timer deadline was at 199.872 ms, and the latch
+released at 600.272 ms. Drop returned at 600.342 ms while the timer task was
+still incomplete; the task completed after the runtime could run again. The
+baseline Drop returned before the same configured deadline. This shows a
+specific timer task being delayed by direct cancellation cleanup; it is not a
+measurement of `close_timeout` or a universal deadline bound. The baseline
+already has other synchronous callback paths.
+
+The baseline and candidate producer SHA-256 values were
+`3d65fcceecbb43c1a974f7f6b7bd58c8a310930f6bcced9052a00e88700eb37f` and
+`2055b2882cb9c1e0bcdf242fbee45f1ed2799717c2950ffd9d49adc62f62d476`.
+Both received the same test-only fixture, SHA-256
+`419150a0803c9fe92ce2b5a810158bc4e21b27a63da4f738a82b6a840ae3ad70`,
+in separate build directories. Their recorded binary SHA-256 values were
+`872f26149ddae13e90111f61d96aca9d7b8d6cf123a59829835ed81297dfe79c`
+and `033e72163374833daf4bb7bf3257a932ca941b8656c8c39b6c74dbeb75234b54`.
+The binaries themselves were not retained. Artifact
+`failure-cleanup-deadline-42448073643` has ID `13604441645`, SHA-256
+`4b436ad492d0ef1d8be422cb9cb9aca1089790429cf8842d4ff4f085d6f90c79`,
+and a reported expiry of 2026-12-08.
+
+The candidate's separate [correctness run 42447458557](https://github.com/mingley/partitionline/actions/runs/42447458557)
+passed 17 cleanup controls and 13 transaction-state controls in each of the
+default and all-feature builds, plus rustfmt and strict all-target/all-feature
+Clippy. Three negative controls reproduced on the baseline. Those are local
+fixtures, not a complete ownership audit or real-broker qualification.
+
 The existing helper can lose a record result and retain its byte reservation
 when canceled. Moving cleanup to an independent owner can address both
 ownership and executor isolation, but it requires changes beyond one helper.
