@@ -1,6 +1,6 @@
 # Next work
 
-Updated 5 November 2026. Use latest stable Rust and push reviewed changes
+Updated 8 November 2026. Use latest stable Rust and push reviewed changes
 directly to `main`. The [task registry](tasks.json) remains unchanged:
 249 done, 13 in progress and 84 pending.
 
@@ -9,6 +9,19 @@ directly to `main`. The [task registry](tasks.json) remains unchanged:
 Production readiness and fastest-client/server claims remain unqualified.
 Client 0.1.0 is already published. The next client version must be at least
 0.2.0; broker and schema publication remain disabled.
+
+The latest completed main [CI snapshot](../evidence/releases/main-ci-3f45-20261106/README.md)
+is `3f45fe6255e72abc6b0c4488bc13117779c50787`. The Linux client
+library reported 2,180 passed/16 failed by default and 2,170/26 with all
+features; Windows default reported 2,170/26 and macOS arm64 default 2,181/15.
+The Kafka 4.1.2, 4.2.1 and 4.3.1 compatibility jobs overflowed after the
+classic-join marker; 3.9.1 and 4.1.0 smoke jobs failed after EOS timeouts.
+The broker passed 734 default and 882 all-feature tests, both capability
+profiles passed their selected checks, and all 11 resource-soak driver
+controls passed. The capability archives were not independently inspected.
+These results do not cover later changes or close the release gates.
+
+Earlier records:
 
 | Scope | Recorded result |
 | --- | --- |
@@ -173,7 +186,7 @@ remain open.
    them. Large v10 encoding and duplicate response-classification decoding
    remain follow-ups.
 
-   The current CI also exposes seven socket lifecycle failures. The pending
+   The latest CI also exposes socket and dial lifecycle failures. The pending
    repair retires idle sockets before attempting replacement and makes the
    completed-dial tests wait for real ApiVersions and authentication. A separate
    live compatibility test aborts with stack overflow. The [stack investigation](../evidence/client/live-compat-stack-2645-20261103/README.md)

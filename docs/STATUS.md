@@ -1,6 +1,6 @@
 # Status
 
-Updated 5 November 2026.
+Updated 8 November 2026.
 
 `partitionline` 0.1.0 is published on crates.io. This repository contains later
 changes and uses the latest stable Rust. The next client release must be at
@@ -15,25 +15,28 @@ replicated partition data or native Kafka KRaft.
 
 ## Validation
 
-The latest complete snapshot recorded here is commit `74923475a`. It does not
-cover later changes. The [CI evidence][ci] gives the runs and result limits.
+The latest complete snapshot recorded here is commit `3f45fe6255e72abc6b0c4488bc13117779c50787`.
+It does not cover later changes. The [CI evidence][ci] links the runs and
+their limits.
 
-| Check | Result at `74923475a` |
+| Check | Result at `3f45fe6` |
 | --- | --- |
-| Client library, default | 2,179 passed and 17 failed; the all-target run stopped at the library. |
-| Client library, all features | 2,173 passed and 23 failed; the all-target run stopped at the library. |
+| Client library, Linux default | 2,180 passed and 16 failed; the all-target run stopped at the library. |
+| Client library, Linux all features | 2,170 passed and 26 failed; the all-target run stopped at the library. |
+| Windows default library | 2,170 passed and 26 failed. |
+| macOS arm64 default library | 2,181 passed and 15 failed. |
 | Kafka 4.1.2, 4.2.1 and 4.3.1 compatibility | Each overflowed after the classic-join marker. The failing frame is unknown. |
-| Windows default library | 2,177 passed and 19 failed. |
-| macOS arm64 default library | 2,175 passed and 21 failed. |
+| Kafka 3.9.1 and 4.1.0 smoke | Both failed after repeated EOS timeouts. |
 | Broker default and all features | 734 and 882 tests passed, respectively. Clippy, docs, inventory and short fuzz supervision passed; doctests found no tests. |
-| Client capability profiles | Both workflows passed; their archives were not inspected for this status. |
+| Client capability profiles | Both jobs passed; their archives were not independently inspected for this status. |
+| Resource-soak controls | All 11 passed; no sustained campaign is credited. |
 | Client format, Clippy, audit, documentation and package jobs | Passed. Other client and live-broker jobs failed or were skipped. |
 
 A closer [classic-join witness][recent-ci] overflowed in both the baseline and
 boxed-library arms; it does not qualify the complete compatibility test.
 
-Earlier results and candidate runs are retained in the [work plan][next] and
-[previous status][previous]. A focused pass does not replace the full release
+Earlier results and candidate runs are retained in the [work plan][next],
+[previous CI evidence][previous-ci] and [previous status][previous]. A focused pass does not replace the full release
 matrix.
 
 ## Open work
@@ -71,8 +74,9 @@ The [work plan][next] tracks the current candidates and outstanding tests.
 The [support matrix](support.md) describes configured coverage, and the
 [release guide](RELEASE.md) lists publication gates. No new release is ready.
 
-[ci]: https://github.com/mingley/partitionline/blob/f6eecf19896650a6b18789df7cc8848d3a670cb4/docs/evidence/releases/main-ci-74923475-20261105/README.md
-[next]: https://github.com/mingley/partitionline/blob/5ef23ef6395ae79ea9b93b39057a3ac26989fbe8/docs/plan/next-work.md
+[ci]: evidence/releases/main-ci-3f45-20261106/README.md
+[previous-ci]: https://github.com/mingley/partitionline/blob/f6eecf19896650a6b18789df7cc8848d3a670cb4/docs/evidence/releases/main-ci-74923475-20261105/README.md
+[next]: plan/next-work.md
 [previous]: https://github.com/mingley/partitionline/blob/5c2a000639d9a8a7dccd56e8c1d6f3a58dca1601/docs/STATUS.md
 [flush]: https://github.com/mingley/partitionline/blob/e980829c439aa43edc01312c91838e58a412221a/docs/evidence/client/producer-flush-native-86f2-20261103/README.md
 [txn]: https://github.com/mingley/partitionline/blob/49ad56c6bce1366e2357c272f11c5c34160d60da/docs/evidence/client/add-partitions-native-4f0c-20261103/README.md
