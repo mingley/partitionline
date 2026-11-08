@@ -104,9 +104,11 @@ An [earlier snapshot][ci-02c] retains two more Raft failures. The
 - **Security and protocol coverage.** [Admin pagination][admin-pages] now uses
   one deadline across DescribeTopicPartitions pages and rejects an immediate
   cursor repeat. Focused controls and a Kafka 4.1.2 smoke passed in both
-  profiles; the broad all-feature Admin suite failed two timing checks, while
-  the default suite passed. Longer cycles can continue until timeout, and
-  accumulated results are not bounded by this change. [Admin response
+  profiles; the earlier broad all-feature Admin suite failed two timing checks,
+  while the default suite passed. A [test revision][admin-poll] checks
+  cooperative yields and progress; both selected Admin suites passed, but the
+  earlier timings remain unexplained. Longer cycles can continue until timeout,
+  and accumulated results are not bounded by this change. [Admin response
   reservations][admin-reserve] cap initial vector capacity requests in seven
   response families, but results
   can grow and process memory is not bounded by that change. A separate
@@ -139,7 +141,7 @@ retained evidence. The [benchmark contract](benchmark-contract.md) and
 [ci]: https://github.com/mingley/partitionline/blob/ca14593d5611937a11379fea1fd1345db6cca49a/docs/evidence/releases/main-ci-070-20261108/README.md
 [ci-262]: https://github.com/mingley/partitionline/blob/cb55f7c603e2344775de8a395c6a584737f5bb95/docs/evidence/releases/main-ci-262-20261108/README.md
 [ci-02c]: https://github.com/mingley/partitionline/blob/0ce81683fe7107386e30f388cd2a4af31735d522/docs/evidence/releases/main-ci-02c-20261108/README.md
-[next]: https://github.com/mingley/partitionline/blob/ca14593d5611937a11379fea1fd1345db6cca49a/docs/plan/next-work.md
+[next]: https://github.com/mingley/partitionline/blob/4a9dd9599d1dd1aacb76cf75baa49ba8b4e1f3a7/docs/plan/next-work.md
 [flush-public]: https://github.com/mingley/partitionline/blob/f93e91499e2ba6bdc88c0a25a0d83b8737d00d3c/docs/evidence/client/producer-flush-public-20261108/README.md
 [flush-sent]: https://github.com/mingley/partitionline/blob/efa7f23314e98f3aaa4559c3cf38302bdcdb9fb4/docs/evidence/client/producer-flush-sent-20261108/README.md
 [owner-design]: https://github.com/mingley/partitionline/blob/cb55f7c603e2344775de8a395c6a584737f5bb95/docs/evidence/client/producer-ownership-design-20261108/README.md
@@ -169,3 +171,4 @@ retained evidence. The [benchmark contract](benchmark-contract.md) and
 [ci-070]: https://github.com/mingley/partitionline/blob/ca14593d5611937a11379fea1fd1345db6cca49a/docs/evidence/broker/main-ci-070-partial-20261108/README.md
 [observer]: https://github.com/mingley/partitionline/blob/ca14593d5611937a11379fea1fd1345db6cca49a/docs/evidence/broker/observer-selection-20261108/README.md
 [sendall]: https://github.com/mingley/partitionline/blob/ca14593d5611937a11379fea1fd1345db6cca49a/docs/evidence/perf/sendall-yield-perf-20261108/README.md
+[admin-poll]: https://github.com/mingley/partitionline/blob/4a9dd9599d1dd1aacb76cf75baa49ba8b4e1f3a7/docs/evidence/client/admin-cooperative-poll-20261108/README.md
