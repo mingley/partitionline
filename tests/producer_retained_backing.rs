@@ -172,10 +172,6 @@ async fn rejected_record_releases_caller_backing_without_reserving() -> Result<(
 }
 
 #[tokio::test(flavor = "current_thread")]
-#[expect(
-    clippy::unwrap_used,
-    reason = "the controlled test fixture must fail on poisoned locks or impossible conversions"
-)]
 async fn dropping_channel_waiter_releases_only_its_reservation() -> Result<(), Error> {
     const CHANNEL_CAPACITY: usize = 4096;
     const VALUE_BYTES: u64 = 8;
@@ -183,12 +179,12 @@ async fn dropping_channel_waiter_releases_only_its_reservation() -> Result<(), E
 
     #[derive(Clone, Default)]
     struct Callbacks {
-        offsets: Arc<std::sync::Mutex<Vec<i64>>>,
+        offsets: Arc<parking_lot::Mutex<Vec<i64>>>,
         errors: Arc<AtomicUsize>,
     }
     impl partitionline::interceptor::ProducerInterceptor for Callbacks {
         fn on_ack(&self, metadata: &partitionline::RecordMetadata) {
-            self.offsets.lock().unwrap().push(metadata.offset);
+            self.offsets.lock().push(metadata.offset);
         }
         fn on_error(&self, _error: &Error) {
             let _previous = self.errors.fetch_add(1, Ordering::SeqCst);
@@ -240,12 +236,7 @@ async fn dropping_channel_waiter_releases_only_its_reservation() -> Result<(), E
     let payload = vec![b'z'; CANCELED_BYTES];
     let mut blocked =
         Box::pin(producer.send_all([ProduceRecord::to("t").partition(0).value(payload)]));
-    struct NoopWake;
-    impl std::task::Wake for NoopWake {
-        fn wake(self: Arc<Self>) {}
-    }
-    let waker = std::task::Waker::from(Arc::new(NoopWake));
-    let mut context = std::task::Context::from_waker(&waker);
+    let mut context = std::task::Context::from_waker(std::task::Waker::noop());
     let first_poll = std::future::Future::poll(blocked.as_mut(), &mut context);
     assert!(
         first_poll.is_pending(),
@@ -283,7 +274,7 @@ async fn dropping_channel_waiter_releases_only_its_reservation() -> Result<(), E
     assert_eq!(after_flush.produce_errors, warm_metrics.produce_errors);
     assert_eq!(callbacks.errors.load(Ordering::SeqCst), 0);
     {
-        let offsets = callbacks.offsets.lock().unwrap();
+        let offsets = callbacks.offsets.lock();
         assert_eq!(offsets.len(), CHANNEL_CAPACITY + 1);
         for (index, offset) in offsets.iter().enumerate() {
             assert_eq!(*offset, i64::try_from(index).unwrap());
@@ -303,10 +294,6 @@ async fn dropping_channel_waiter_releases_only_its_reservation() -> Result<(), E
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-#[expect(
-    clippy::unwrap_used,
-    reason = "the controlled test fixture must fail on poisoned locks or impossible conversions"
-)]
 async fn cancelled_channel_admission_releases_only_the_unenqueued_reservation() -> Result<(), Error>
 {
     const CHANNEL_CAPACITY: usize = 4096;
@@ -329,21 +316,24 @@ async fn cancelled_channel_admission_releases_only_the_unenqueued_reservation() 
 
     #[derive(Clone)]
     struct HoldWarmupAck {
-        entered: Arc<std::sync::Mutex<Option<tokio::sync::oneshot::Sender<()>>>>,
-        release: Arc<std::sync::Mutex<std::sync::mpsc::Receiver<()>>>,
-        offsets: Arc<std::sync::Mutex<Vec<i64>>>,
+        entered: Arc<parking_lot::Mutex<Option<tokio::sync::oneshot::Sender<()>>>>,
+        release: Arc<parking_lot::Mutex<Option<std::sync::mpsc::Receiver<()>>>>,
+        offsets: Arc<parking_lot::Mutex<Vec<i64>>>,
         errors: Arc<AtomicUsize>,
     }
     impl partitionline::interceptor::ProducerInterceptor for HoldWarmupAck {
         fn on_ack(&self, metadata: &partitionline::RecordMetadata) {
             if metadata.offset == 0 {
-                let entered = self.entered.lock().unwrap().take();
+                let entered = self.entered.lock().take();
                 if let Some(entered) = entered {
                     let _sent = entered.send(());
                 }
-                let _released = self.release.lock().unwrap().recv();
+                let release = self.release.lock().take();
+                if let Some(release) = release {
+                    let _released = release.recv();
+                }
             }
-            self.offsets.lock().unwrap().push(metadata.offset);
+            self.offsets.lock().push(metadata.offset);
         }
         fn on_error(&self, _error: &Error) {
             let _previous = self.errors.fetch_add(1, Ordering::SeqCst);
@@ -355,9 +345,9 @@ async fn cancelled_channel_admission_releases_only_the_unenqueued_reservation() 
     let (release_tx, release_rx) = std::sync::mpsc::channel();
     let mut release = ReleaseOnDrop(Some(release_tx));
     let callbacks = HoldWarmupAck {
-        entered: Arc::new(std::sync::Mutex::new(Some(entered_tx))),
-        release: Arc::new(std::sync::Mutex::new(release_rx)),
-        offsets: Arc::new(std::sync::Mutex::new(Vec::new())),
+        entered: Arc::new(parking_lot::Mutex::new(Some(entered_tx))),
+        release: Arc::new(parking_lot::Mutex::new(Some(release_rx))),
+        offsets: Arc::new(parking_lot::Mutex::new(Vec::new())),
         errors: Arc::new(AtomicUsize::new(0)),
     };
     let producer = Producer::new(
@@ -464,7 +454,7 @@ async fn cancelled_channel_admission_releases_only_the_unenqueued_reservation() 
     assert_eq!(after_flush.produce_errors, warm_metrics.produce_errors);
     assert_eq!(callbacks.errors.load(Ordering::SeqCst), 0);
     {
-        let offsets = callbacks.offsets.lock().unwrap();
+        let offsets = callbacks.offsets.lock();
         assert_eq!(offsets.len(), CHANNEL_CAPACITY + 1);
         for (index, offset) in offsets.iter().enumerate() {
             assert_eq!(*offset, i64::try_from(index).unwrap());
