@@ -3249,10 +3249,6 @@ impl Producer {
         Some((p, Arc::clone(w), Arc::clone(&f.tracker)))
     }
 
-    /// A cached route whose metadata is still inside `metadata_max_age`.
-    ///
-    /// A recorded metadata error still goes through the slow path so the
-    /// caller sees it before another record is queued.
     /// Check a cached explicit route without cloning a remembered metadata error.
     fn has_fresh_explicit_worker(&self, rec: &ProduceRecord) -> bool {
         let shared = &self.inner.shared;
@@ -3279,6 +3275,10 @@ impl Producer {
                 .is_some_and(|worker| worker.admission.is_accepting())
     }
 
+    /// A cached route whose metadata is still inside `metadata_max_age`.
+    ///
+    /// A recorded metadata error still goes through the slow path so the
+    /// caller sees it before another record is queued.
     fn fresh_fast_route(
         &self,
         rec: &ProduceRecord,
