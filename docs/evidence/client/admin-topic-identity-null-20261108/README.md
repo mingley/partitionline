@@ -58,10 +58,33 @@ aggregate agreed on their nonzero topic ID and partition indexes. This is
 one normal local broker history, while the null-name and precedence cases
 use scripted responses.
 
-The independently restored negative mutations, [same-host whole-suite
-comparison][broad] and [paired release-mode
+The independently restored negative mutations and [paired release-mode
 timing][perf] are still running. The broad suite is not green, and the
 remaining results must be recorded before this note is complete.
+
+## Matched whole-suite baseline
+
+The [matched comparison][broad] ran both complete Admin suites on one shared
+AMD EPYC 9V45 x86_64 runner. The baseline and candidate used the same
+original pagination fixture and default harness settings; the new permanent
+controls were checked separately. In execution order:
+
+- Default baseline: 614 passed, 3 failed. List-reassignment flattening took
+  81.995848 ms, named-result grouping 86.528503 ms, and coordinator indexing
+  132.443488 ms against their 80 ms thresholds.
+- Default candidate: 617 passed, none failed.
+- All-feature candidate: 617 passed, none failed.
+- All-feature baseline: 615 passed, 2 failed. Named-result grouping took
+  87.028318 ms and coordinator indexing 82.004267 ms.
+
+Both baseline arms exited 101, both candidate arms exited 0, and the job
+status was failure. This single matched run does not explain the wall-time
+failures or override the failures of the final full suites above. The
+baseline source SHA-256 was
+`929aaafb35e3ef1f376de7debd090367960ec22428cccf79a4bd806c50992d79`,
+the candidate source was the final hash above, and both arms used pagination
+fixture SHA-256
+`cb19e0db9291dd8a1daf9eff49ea5bd039a6d8f8d72cf04af3c1cca0798e5114`.
 
 ## Limits
 
