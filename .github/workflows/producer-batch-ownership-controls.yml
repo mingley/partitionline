@@ -1,0 +1,48 @@
+name: producer-batch-ownership-controls
+on:
+  push:
+    branches: [qual/producer-batch-ownership-controls-20261108]
+jobs:
+  controls:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        profile: [default, all]
+    env:
+      PL_PROFILE: ${{ matrix.profile }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+      - name: Source and runner identity
+        run: |
+          git rev-parse HEAD
+          sha256sum src/producer.rs Cargo.lock
+          rustc -Vv
+          lscpu
+      - name: Complete envelope packing and expiration controls
+        shell: bash
+        run: |
+          set -euo pipefail
+          args=()
+          if [[ "$PL_PROFILE" == all ]]; then args=(--all-features); fi
+          cargo test --locked --lib "${args[@]}" producer::tests::owned_batch_packing_observation -- --exact --nocapture
+          cargo test --locked --lib "${args[@]}" producer::tests::owned_batch_deadline_and_sticky_observations -- --exact --nocapture
+          if cargo test --locked --lib "${args[@]}" producer::tests::owned_batch_packing_completeness_contract -- --exact --nocapture >"$RUNNER_TEMP/contract.log" 2>&1; then
+            cat "$RUNNER_TEMP/contract.log"
+            echo "Expected existing packing contract violation"
+            exit 1
+          fi
+          cat "$RUNNER_TEMP/contract.log"
+          grep -F "test producer::tests::owned_batch_packing_completeness_contract ... FAILED" "$RUNNER_TEMP/contract.log"
+          grep -F "retry envelope was split: selected 1" "$RUNNER_TEMP/contract.log"
+      - name: Diagnostic formatting
+        if: always()
+        shell: bash
+        run: |
+          if ! rustfmt --edition=2021 --check src/producer.rs; then
+            echo "Diagnostic only: strict formatting did not pass."
+          fi
