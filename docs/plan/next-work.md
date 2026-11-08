@@ -20,6 +20,20 @@ descriptor diagnostics ignored in each suite and passed separately on the
 same broker production source. Clippy, Rustdoc, inventory and fuzz supervision
 passed. These results do not close the release gates.
 
+A newer [main client run](https://github.com/mingley/partitionline/actions/runs/42459181316)
+at `4409633` was still in progress when this record was written. Linux
+default and all-feature libraries reported 2,233/11 and 2,232/12
+passed/failed; Windows reported 2,225/19 and macOS arm64 2,230/14.
+The three current Kafka compatibility jobs failed with stack overflows;
+the Kafka 3.9.1 smoke reported JoinGroup error 16. Resource-soak failed
+because the runner denied access to a process's `/proc` file-descriptor
+directory; that workload's result is incomplete. The Kafka 4.1.0 smoke
+was still running. See the run for its final status. The [broker run](https://github.com/mingley/partitionline/actions/runs/42459181380)
+passed 764 default and 912 all-feature tests, with three ignored per
+profile; strict checks, inventory and fuzz supervision also passed. The
+[selected capability profiles](https://github.com/mingley/partitionline/actions/runs/42459181276)
+passed, without independent archive inspection.
+
 A [partial earlier client run](../evidence/releases/main-ci-e02-partial-20261108/README.md)
 at `e02c1b8` recorded six failed jobs and four canceled when main advanced.
 Linux default and Windows library tests failed, as did three Kafka
@@ -86,6 +100,11 @@ returned its deadline error after 82.681715 ms against an 80 ms wall-time
 assertion. The log does not distinguish scheduling delay from time inside a
 read poll. The revised test keeps the deadline check and independently tests
 yielding without a wall-time threshold; production transport is unchanged.
+
+An [observer diagnostic](../evidence/broker/observer-image-diagnostic-20261108/README.md)
+records image size and a bounded, non-atomic prefix sample when either
+checkpoint assertion fails. Focused controls and combined broker suites
+passed, but the earlier unexpectedly small image remains unexplained.
 
 The [admission repair](../evidence/broker/fetch-owned-admission-20261108/README.md)
 retains data permits through actor-owned requests, waiting Fetches and
@@ -236,7 +255,11 @@ remain open.
    the documented contract. An isolated [completion model](../evidence/client/producer-completion-horizon-20261108/README.md)
    is not connected to the producer. A [private waker control](../evidence/client/producer-waker-handoff-20261108/README.md)
    found a double release under an injected panic; public reachability is not
-   established. Separate
+   established. An isolated [sequence cancellation control](../evidence/client/producer-sequence-cancel-20261108/README.md)
+   dropped an artificial batch owner after the actual helper reserved sequence
+   numbers: receipt channels closed while the counter stayed advanced. This
+   does not execute the public producer or Kafka I/O; safe batch ownership and
+   recovery across partial writes remain open. Separate
    [cancellation controls](../evidence/client/addpart-retryfix-264-20261108/REPORT.md)
    reproduced lost completion results and retained buffer bytes during a
    coordinator retry and during single-record failure cleanup. Those controls
@@ -384,6 +407,12 @@ A [closed-loop acknowledgment diagnostic](../evidence/client/ack-closed-loop-202
 completed individual deliveries and independent readback for two client
 drivers. Its short runs have mismatched queue settings, timeout settings and
 driver costs, so they are not a qualified client comparison.
+
+Two newer [Kafka producer comparison attempts](../evidence/client/ack-matched-rejected-20261108/README.md)
+also failed their qualification gate: sampled Rust arms used up to two
+broker sockets while librdkafka arms used one, and one Rust arm had no
+independent readback after a sampler permission error. Nineteen arms were
+verified. Their short, unmatched observations do not establish a ranking.
 
 An isolated [transaction decode experiment](../evidence/client/txn-decode-20261108/README.md)
 reduced loopback latency for larger responses on one shared x86 runner. It
