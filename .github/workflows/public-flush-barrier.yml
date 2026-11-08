@@ -57,7 +57,7 @@ jobs:
             test "$(git rev-parse "$base:src/producer.rs")" = 1e7733c136e54b532cdc8bddabd1e0c828e50ed2
             test "$(git rev-parse HEAD:src/producer.rs)" = f0dfd6f1834092aa89ad152274e7a39991cbda4e
             test "$(git rev-parse HEAD:tests/common/mod.rs)" = 9d14334cf587b774701692547fdbdfd64bd399a1
-            test "$(git rev-parse HEAD:tests/public_flush_barrier.rs)" = d06c664b50375b6dca23bee3007bdec768fa6379
+            test "$(git rev-parse HEAD:tests/public_flush_barrier.rs)" = 5ebebae3ec6168bb2739a841ae0ad6b99da36273
             test "$(git rev-parse HEAD:tests/public_flush_retirement.rs)" = 98bf92a75f599eb3c1285f960fba8a341ccb553b
             test "$(git rev-parse HEAD:Cargo.lock)" = d1cb698aaaf7554fe904ba02d671c4a8ab4975b3
             test "$(git rev-parse "$base:tests/common/mod.rs")" = 9a995292044c527ae2c2a17eca09b9f947bb12ed

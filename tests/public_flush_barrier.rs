@@ -212,14 +212,18 @@ async fn cancelled_flush_does_not_consume_other_waiter_error() {
     let result = tokio::time::timeout(DEADLINE, second.as_mut())
         .await
         .expect("second flush deadline");
+    assert_eq!(callbacks.acknowledgements.lock().unwrap().len(), 1);
+    let metrics = producer.metrics();
+    assert_eq!(metrics.records_queued, 2);
+    assert_eq!(metrics.records_acked, 1);
+    assert_eq!(metrics.produce_errors, 1);
+    assert_eq!(metrics.bytes_buffered, 0);
+    assert_eq!(mock.log_values("t", 0), vec![(0, Some(b"warm".to_vec()))]);
     match result {
         Err(error) if error.broker_code() == Some(partitionline::error::MESSAGE_TOO_LARGE) => {}
         Ok(()) => panic!("BASELINE_CANCELLED_ERROR_LOST"),
         Err(error) => panic!("unexpected second flush error: {error:?}"),
     }
-    assert_eq!(callbacks.acknowledgements.lock().unwrap().len(), 1);
-    assert_eq!(producer.metrics().bytes_buffered, 0);
-    assert_eq!(mock.log_values("t", 0), vec![(0, Some(b"warm".to_vec()))]);
     drop(delivery);
     drop(second);
     close(producer).await;
