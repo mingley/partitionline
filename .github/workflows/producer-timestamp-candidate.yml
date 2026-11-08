@@ -1,0 +1,77 @@
+name: producer-timestamp-candidate
+on:
+  push:
+    branches: [qual/producer-timestamp-candidate-20261108]
+jobs:
+  controls:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        profile: [default, all]
+        arm: [baseline, candidate]
+    env:
+      PL_PROFILE: ${{ matrix.profile }}
+      PL_ARM: ${{ matrix.arm }}
+      RUSTFLAGS: '--cfg producer_timestamp_witness --check-cfg=cfg(producer_timestamp_witness)'
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - name: Select and identify exact source
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "$PL_ARM" == baseline ]]; then
+            git show 7dfbe4735d1c4268a1b8a7185bb34f1121f0db13:src/producer.rs > src/producer.rs
+          fi
+          git rev-parse HEAD
+          git hash-object src/producer.rs
+          sha256sum src/producer.rs tests/common/mod.rs tests/producer_timestamp_contract_public.rs Cargo.lock
+          rustc -Vv
+          lscpu
+      - name: Public mock timestamp contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          args=()
+          if [[ "$PL_PROFILE" == all ]]; then args=(--all-features); fi
+          if [[ "$PL_ARM" == baseline ]]; then
+            if cargo test --locked --test producer_timestamp_contract_public "${args[@]}" producer_timestamp_contracts_across_encoders -- --exact --nocapture >"$RUNNER_TEMP/contract.log" 2>&1; then
+              cat "$RUNNER_TEMP/contract.log"
+              echo "Baseline unexpectedly met the timestamp contract"
+              exit 1
+            fi
+            cat "$RUNNER_TEMP/contract.log"
+            grep -F 'test producer_timestamp_contracts_across_encoders ... FAILED' "$RUNNER_TEMP/contract.log"
+            grep -F 'assertion `left == right` failed' "$RUNNER_TEMP/contract.log"
+          else
+            cargo test --locked --test producer_timestamp_contract_public "${args[@]}" producer_timestamp_contracts_across_encoders -- --exact --nocapture
+          fi
+      - name: Controlled partial encode cancellation
+        if: matrix.arm == 'candidate'
+        shell: bash
+        run: |
+          set -euo pipefail
+          args=()
+          if [[ "$PL_PROFILE" == all ]]; then args=(--all-features); fi
+          cargo test --locked --lib "${args[@]}" producer::tests::timestamp_freezing_at_existing_encode_yields -- --exact --nocapture
+      - name: Producer cancellation tests
+        if: matrix.arm == 'candidate'
+        shell: bash
+        run: |
+          set -euo pipefail
+          args=()
+          if [[ "$PL_PROFILE" == all ]]; then args=(--all-features); fi
+          cargo test --locked --test produce_cancel "${args[@]}"
+      - name: Diagnostic format
+        if: always()
+        shell: bash
+        run: |
+          if ! cargo fmt --all -- --check; then
+            echo "Diagnostic only: strict formatting did not pass."
+          fi
