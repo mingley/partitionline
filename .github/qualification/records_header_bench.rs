@@ -74,6 +74,7 @@ fn main() {
     let mode = &args[1];
     let (count, headers, late, payload, iters, invalid) = match mode.as_str() {
         "one_plain" => (1, 0, false, 32, 50_000, None),
+        "one_header" => (1, 1, false, 32, 50_000, None),
         "many_plain" => (1024, 0, false, 32, 180, None),
         "many_header" => (1024, 1, false, 32, 180, None),
         "many_four" => (1024, 4, false, 32, 100, None),
@@ -81,6 +82,7 @@ fn main() {
         "large_header" => (256, 1, false, 1024, 180, None),
         "invalid_first" => (1024, 1, false, 32, 1000, Some(0)),
         "invalid_late" => (1024, 0, false, 32, 180, Some(1023)),
+        "invalid_late_headers" => (1024, 1, false, 32, 180, Some(1023)),
         other => panic!("unknown mode {other}"),
     };
     let (mut data, expected_headers, record_starts) = batch(count, headers, late, payload);
