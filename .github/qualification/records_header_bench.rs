@@ -75,6 +75,9 @@ fn main() {
     let (count, headers, late, payload, iters, invalid) = match mode.as_str() {
         "one_plain" => (1, 0, false, 32, 50_000, None),
         "one_header" => (1, 1, false, 32, 50_000, None),
+        "two_header" => (2, 1, false, 32, 30_000, None),
+        "eight_header" => (8, 1, false, 32, 10_000, None),
+        "thirtytwo_header" => (32, 1, false, 32, 3_000, None),
         "many_plain" => (1024, 0, false, 32, 180, None),
         "many_header" => (1024, 1, false, 32, 180, None),
         "many_four" => (1024, 4, false, 32, 100, None),

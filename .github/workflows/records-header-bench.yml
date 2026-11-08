@@ -23,7 +23,7 @@ jobs:
           path: baseline
       - uses: actions/checkout@v7
         with:
-          ref: 545578e483ed490c73d14a9a9854b28bb602310b
+          ref: 626e6208099392513e076ddb80a8d17e6310aa7e
           path: candidate
       - uses: dtolnay/rust-toolchain@stable
       - name: Build separate release binaries
@@ -49,7 +49,7 @@ jobs:
           out="$RUNNER_TEMP/records-bench"
           cpu="$(python3 -c 'import os; print(min(os.sched_getaffinity(0)))')"
           printf 'pinned_cpu=%s\n' "$cpu" | tee "$out/cpu.txt"
-          for kind in one_plain one_header many_plain many_header many_four late_header large_header invalid_first invalid_late invalid_late_headers; do
+          for kind in one_plain one_header two_header eight_header thirtytwo_header many_plain many_header many_four late_header large_header invalid_first invalid_late invalid_late_headers; do
             for pair in $(seq 1 8); do
               if (( pair % 2 )); then arms="baseline candidate"; else arms="candidate baseline"; fi
               for arm in $arms; do
@@ -60,7 +60,7 @@ jobs:
           python3 - "$out" <<'PY'
           import pathlib, statistics, sys
           root = pathlib.Path(sys.argv[1])
-          for case in ("one_plain", "one_header", "many_plain", "many_header", "many_four", "late_header", "large_header", "invalid_first", "invalid_late", "invalid_late_headers"):
+          for case in ("one_plain", "one_header", "two_header", "eight_header", "thirtytwo_header", "many_plain", "many_header", "many_four", "late_header", "large_header", "invalid_first", "invalid_late", "invalid_late_headers"):
               all_samples = {"baseline": [], "candidate": []}
               pairs = []
               descriptions = set()
