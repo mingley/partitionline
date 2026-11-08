@@ -1,0 +1,39 @@
+name: producer-owned-batch-model
+on:
+  push:
+    branches: [qual/producer-owned-batch-model-20261108]
+jobs:
+  model:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - name: Source and runtime pins
+        run: |
+          mkdir -p target/owned-model
+          git rev-parse HEAD
+          git hash-object src/producer.rs tests/models/producer_owned_batch_model.py scripts/check_owned_batch_model_mutants.py
+          sha256sum src/producer.rs tests/models/producer_owned_batch_model.py scripts/check_owned_batch_model_mutants.py
+          python3 --version
+          uname -a
+      - name: Compile model and mutants
+        run: |
+          python3 -m py_compile tests/models/producer_owned_batch_model.py scripts/check_owned_batch_model_mutants.py
+      - name: Exercise ownership and completion controls
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 tests/models/producer_owned_batch_model.py 2>&1 | tee target/owned-model/controls.log
+      - name: Reject deliberately broken transitions
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 scripts/check_owned_batch_model_mutants.py 2>&1 | tee target/owned-model/mutants.log
+      - name: Preserve results
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: producer-owned-batch-model-${{ github.sha }}
+          path: target/owned-model
+          if-no-files-found: warn
+          retention-days: 30
