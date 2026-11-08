@@ -54,6 +54,82 @@ use crate::protocol::txn::{
     TxnErrorDisposition, TxnOffsetCommitMember, TxnOffsetCommitRequest,
 };
 
+/// Test-only observer for controlled public flush histories.
+#[cfg(flush_barrier_witness)]
+#[doc(hidden)]
+pub mod flush_barrier_witness {
+    use std::sync::atomic::{AtomicUsize, Ordering};
+
+    static CUTOFFS: AtomicUsize = AtomicUsize::new(0);
+
+    /// Number of observed fixture cutoffs in this process.
+    pub fn observed_cutoffs() -> usize {
+        CUTOFFS.load(Ordering::SeqCst)
+    }
+
+    pub(super) fn observe_cutoff() {
+        let _previous = CUTOFFS.fetch_add(1, Ordering::SeqCst);
+    }
+}
+
+/// Qualification-only timing gate; this module is absent in ordinary builds.
+#[cfg(flush_retirement_witness)]
+#[doc(hidden)]
+pub mod flush_retirement_witness {
+    use std::sync::atomic::{AtomicBool, Ordering};
+    use std::sync::OnceLock;
+    use tokio::sync::Notify;
+
+    struct Gate {
+        retired: AtomicBool,
+        entered: Notify,
+        release: Notify,
+    }
+
+    static GATE: OnceLock<Gate> = OnceLock::new();
+
+    /// Install the gate once in the isolated witness process.
+    pub fn install() {
+        assert!(GATE
+            .set(Gate {
+                retired: AtomicBool::new(false),
+                entered: Notify::new(),
+                release: Notify::new(),
+            })
+            .is_ok());
+    }
+
+    /// Wait until a real retired worker reaches the retry handoff.
+    pub async fn observed() {
+        GATE.get().expect("gate not installed").entered.notified().await;
+    }
+
+    /// Release the paused worker.
+    pub fn release() {
+        if let Some(gate) = GATE.get() {
+            gate.release.notify_one();
+        }
+    }
+
+    pub(super) fn mark_retired() {
+        if let Some(gate) = GATE.get() {
+            gate.retired.store(true, Ordering::Release);
+        }
+    }
+
+    pub(super) async fn pause_if_retired() {
+        if let Some(gate) = GATE.get() {
+            if gate.retired.swap(false, Ordering::AcqRel) {
+                let released = gate.release.notified();
+                tokio::pin!(released);
+                let _registered = released.as_mut().enable();
+                gate.entered.notify_one();
+                released.await;
+            }
+        }
+    }
+}
+
 /// Pre-send failure injection point for testing buffer ownership and resource contracts.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum PreSendFault {
@@ -4287,6 +4363,10 @@ impl Producer {
 
     async fn flush_until(&self, deadline: Instant) -> Result<()> {
         let cutoff = self.inner.shared.completion.cutoff();
+        #[cfg(flush_barrier_witness)]
+        if self.inner.shared.cfg.client_id == "flush-barrier-witness" {
+            flush_barrier_witness::observe_cutoff();
+        }
         loop {
             if Instant::now() >= deadline {
                 return Err(Error::Timeout);
@@ -8691,6 +8771,12 @@ impl Worker {
                 if let Some(inf) = guard.inf.take() {
                     if e.is_retriable() {
                         let _retired = retire_worker_nudge(&self.shared, self.node_id, &self.id);
+                        #[cfg(flush_retirement_witness)]
+                        if _retired.is_some()
+                            && self.shared.cfg.client_id == "flush-retirement-witness"
+                        {
+                            flush_retirement_witness::mark_retired();
+                        }
                         self.requeue(inf.groups).await;
                         while let Some(remaining) = self.in_flight.pop_front() {
                             self.requeue(remaining.groups).await;
@@ -9322,6 +9408,10 @@ impl Worker {
             }
         }
         let chunks = detach_pending_chunks(&mut pendings).await;
+        #[cfg(flush_retirement_witness)]
+        if self.shared.cfg.client_id == "flush-retirement-witness" {
+            flush_retirement_witness::pause_if_retired().await;
+        }
         let mut index = 0usize;
         let mut walked = 0usize;
         for chunk in chunks {

@@ -1,0 +1,145 @@
+name: Public producer completion candidate controls
+
+on:
+  push:
+    branches: [qualification/public-flush-barrier-bc45-20261108]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  baseline:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    env:
+      CARGO_BUILD_JOBS: '2'
+      CARGO_INCREMENTAL: '0'
+      CARGO_PROFILE_DEV_DEBUG: '0'
+      CARGO_PROFILE_TEST_DEBUG: '0'
+      CARGO_TERM_COLOR: never
+      RUST_BACKTRACE: '0'
+      RUSTFLAGS: '--cfg flush_barrier_witness --check-cfg=cfg(flush_barrier_witness) --cfg flush_retirement_witness --check-cfg=cfg(flush_retirement_witness)'
+    steps:
+      - name: Prepare retained evidence
+        shell: bash
+        run: mkdir -p "$RUNNER_TEMP/public-flush-candidate"
+      - name: Checkout isolated controls
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 30
+          persist-credentials: false
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /Cargo.toml
+            /Cargo.lock
+            /rust-toolchain.toml
+            /README.md
+            /clippy.toml
+            /.cargo/
+            /src/
+            /examples/
+            /tests/common/
+            /tests/public_flush_barrier.rs
+            /tests/public_flush_retirement.rs
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Verify source and record provenance
+        shell: bash
+        run: |
+          set -euo pipefail
+          evidence="$RUNNER_TEMP/public-flush-candidate"
+          base=bc45ba4f65f126c406ff88a57fcfe08007d35b29
+          {
+            echo "qualification_commit=$GITHUB_SHA"
+            echo "base_commit=$base"
+            git merge-base --is-ancestor "$base" HEAD
+            test "$(git rev-parse "$base:src/producer.rs")" = 8c0e6754f7bdd4500e8e9c5c4af8009cad86a671
+            test "$(git rev-parse HEAD:src/producer.rs)" = 4b87fd5745de51418e00a7beab290aa5f74467b5
+            test "$(git rev-parse HEAD:tests/common/mod.rs)" = 9d14334cf587b774701692547fdbdfd64bd399a1
+            test "$(git rev-parse HEAD:tests/public_flush_barrier.rs)" = 8afe8f68297335f2708e5a2e83a4c139b1055f6a
+            test "$(git rev-parse HEAD:tests/public_flush_retirement.rs)" = 98bf92a75f599eb3c1285f960fba8a341ccb553b
+            test "$(git rev-parse HEAD:src/producer/completion_draft.rs)" = 2fd3dbe9f8069e1e97526ed10d54118d0dac68a3
+            test "$(git rev-parse HEAD:src/producer/completion_draft_controls.rs)" = 13439d6701912f76d1b27e22206769a1f04d86c9
+            test "$(git rev-parse HEAD:Cargo.lock)" = d1cb698aaaf7554fe904ba02d671c4a8ab4975b3
+            test "$(git rev-parse "$base:tests/common/mod.rs")" = 9a995292044c527ae2c2a17eca09b9f947bb12ed
+            test "$(git rev-parse HEAD:Cargo.toml)" = 585bbf9a31465d6bba3f66f593fddd1add516f36
+            test "$(git rev-parse HEAD:rust-toolchain.toml)" = 05e6ca1bf94c42a23333262558d22b866615466e
+            test -z "$(git status --porcelain)"
+            git diff "$base" HEAD -- src/producer.rs > "$evidence/producer-observers.patch"
+            git diff "$base" HEAD -- tests/common/mod.rs > "$evidence/mock-gates.patch"
+            sha256sum src/producer.rs src/producer/completion_draft.rs src/producer/completion_draft_controls.rs Cargo.toml Cargo.lock rust-toolchain.toml tests/common/mod.rs tests/public_flush_barrier.rs tests/public_flush_retirement.rs "$evidence/producer-observers.patch" "$evidence/mock-gates.patch"
+            rustc +stable -vV
+            cargo +stable -V
+            uname -a
+            echo "RUSTFLAGS=$RUSTFLAGS"
+          } 2>&1 | tee "$evidence/provenance.log"
+          cp tests/public_flush_barrier.rs tests/public_flush_retirement.rs "$evidence/"
+      - name: Run public histories against the completion candidate
+        shell: bash
+        run: |
+          set -euo pipefail
+          evidence="$RUNNER_TEMP/public-flush-candidate"
+          failures=0
+          for mode in default all-features; do
+            extra=()
+            if [ "$mode" = all-features ]; then extra+=(--all-features); fi
+            export CARGO_TARGET_DIR="$RUNNER_TEMP/producer-completion-bc45-$mode"
+            echo "MODE=$mode CARGO_TARGET_DIR=$CARGO_TARGET_DIR"
+            build_log="$evidence/$mode-build.log"
+            set +e
+            timeout 600 cargo +stable test --locked "${extra[@]}" --test public_flush_barrier --test public_flush_retirement --no-run 2>&1 | tee "$build_log"
+            build_status=${PIPESTATUS[0]}
+            set -e
+            if [ "$build_status" -ne 0 ]; then
+              echo "BUILD_FAILED $mode status=$build_status"
+              failures=$((failures + 1))
+              continue
+            fi
+            find "$CARGO_TARGET_DIR/debug/deps" -maxdepth 1 -type f -executable \
+              \( -name 'public_flush_barrier-*' -o -name 'public_flush_retirement-*' \) -print0 |
+              sort -z | xargs -0 -r sha256sum | tee "$evidence/$mode-binaries.log"
+            grep -Fq "public_flush_barrier-" "$evidence/$mode-binaries.log"
+            grep -Fq "public_flush_retirement-" "$evidence/$mode-binaries.log"
+            for pair in public_flush_retirement:public_flush_waits_for_retired_worker_retry_handoff public_flush_barrier:overlapping_flushes_wait_for_accepted_record public_flush_barrier:later_record_has_independent_completion public_flush_barrier:flush_deadline_does_not_finish_record public_flush_barrier:blocked_callback_keeps_flush_and_receipt_pending; do
+              IFS=: read -r test_binary case <<< "$pair"
+              log="$evidence/$mode-$case.log"
+              set +e
+              timeout 600 cargo +stable test --locked "${extra[@]}" --test "$test_binary" "$case" -- --exact --nocapture --test-threads=1 2>&1 | tee "$log"
+              result=${PIPESTATUS[0]}
+              set -e
+              if [ "$result" -ne 0 ] || ! grep -Fq 'test result: ok. 1 passed; 0 failed;' "$log"; then
+                echo "CONTROL_FAILED $mode $case status=$result"
+                failures=$((failures + 1))
+              else
+                echo "CONTROL_PASSED $mode $case"
+              fi
+            done
+            case=cancelled_flush_does_not_consume_other_waiter_error
+            log="$evidence/$mode-$case.log"
+            set +e
+            timeout 600 cargo +stable test --locked "${extra[@]}" --test public_flush_barrier "$case" -- --exact --nocapture --test-threads=1 2>&1 | tee "$log"
+            result=${PIPESTATUS[0]}
+            set -e
+            if [ "$result" -eq 101 ] && [ "$(grep -Fc BASELINE_CANCELLED_ERROR_LOST "$log")" -eq 1 ] && grep -Fq 'test result: FAILED. 0 passed; 1 failed;' "$log"; then
+              echo "EXPECTED_CANDIDATE_LIMITATION $mode $case BASELINE_CANCELLED_ERROR_LOST"
+            else
+              echo "UNEXPECTED_CANCELLATION_RESULT $mode status=$result"
+              failures=$((failures + 1))
+            fi
+          done
+          echo "candidate_control_failures=$failures"
+          test "$failures" -eq 0
+      - name: Check control formatting
+        shell: bash
+        run: |
+          set -euo pipefail
+          rustfmt +stable --edition 2021 --check tests/public_flush_barrier.rs tests/public_flush_retirement.rs 2>&1 | tee "$RUNNER_TEMP/public-flush-candidate/rustfmt.log"
+      - name: Retain controls, patches, provenance and logs
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: public-flush-candidate-${{ github.run_id }}
+          path: ${{ runner.temp }}/public-flush-candidate
+          if-no-files-found: error
+          retention-days: 30
