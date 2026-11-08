@@ -273,6 +273,162 @@ mod tests {
         let d = snapshot(&failures, &fourth, "D");
         failures.acknowledge(&fourth, &d);
     }
+
+    #[test]
+    fn record_before_ack_promotes_later_error() {
+        let failures = WorkerFailures::new();
+        let first = failures.register();
+        failures.record(event("A"));
+        let a = snapshot(&failures, &first, "A");
+        failures.record(event("B"));
+        failures.acknowledge(&first, &a);
+        let next = failures.register();
+        let b = snapshot(&failures, &next, "B");
+        failures.acknowledge(&next, &b);
+    }
+
+    #[test]
+    fn ack_before_record_places_later_error_in_new_epoch() {
+        let failures = WorkerFailures::new();
+        let first = failures.register();
+        failures.record(event("A"));
+        let a = snapshot(&failures, &first, "A");
+        failures.acknowledge(&first, &a);
+        failures.record(event("B"));
+        let next = failures.register();
+        let b = snapshot(&failures, &next, "B");
+        failures.acknowledge(&next, &b);
+    }
+
+    #[test]
+    fn marker_then_exact_error_then_new_overflow_remain_visible() {
+        let failures = WorkerFailures::new();
+        let first = failures.register();
+        failures.record(event("A"));
+        let a = snapshot(&failures, &first, "A");
+        failures.record(event("B"));
+        failures.record(event("C"));
+        failures.acknowledge(&first, &a);
+        let second = failures.register();
+        let b = snapshot(&failures, &second, "B");
+        failures.acknowledge(&second, &b);
+        let third = failures.register();
+        let summary = snapshot(&failures, &third, "additional worker errors were coalesced");
+        failures.record(event("D"));
+        failures.record(event("E"));
+        failures.acknowledge(&third, &summary);
+        let fourth = failures.register();
+        let d = snapshot(&failures, &fourth, "D");
+        failures.acknowledge(&fourth, &d);
+        let fifth = failures.register();
+        let summary2 = snapshot(&failures, &fifth, "additional worker errors were coalesced");
+        failures.acknowledge(&fifth, &summary2);
+    }
+
+
+    #[test]
+    fn late_summary_ack_cannot_clear_later_epoch_with_same_marker_arc() {
+        let failures = WorkerFailures::new();
+        let first = failures.register();
+        failures.record(event("A"));
+        let a = snapshot(&failures, &first, "A");
+        failures.record(event("B"));
+        failures.record(event("C"));
+        failures.acknowledge(&first, &a);
+        let second = failures.register();
+        let b = snapshot(&failures, &second, "B");
+        failures.acknowledge(&second, &b);
+        let old_summary = failures.register();
+        let old_marker = snapshot(&failures, &old_summary, "additional worker errors were coalesced");
+        failures.record(event("D"));
+        failures.record(event("E"));
+        failures.acknowledge(&old_summary, &old_marker);
+        let fourth = failures.register();
+        let d = snapshot(&failures, &fourth, "D");
+        failures.acknowledge(&fourth, &d);
+        let new_summary = failures.register();
+        let new_marker = snapshot(&failures, &new_summary, "additional worker errors were coalesced");
+        assert!(Arc::ptr_eq(&old_marker, &new_marker));
+        failures.acknowledge(&old_summary, &old_marker);
+        assert!(Arc::ptr_eq(
+            &snapshot(&failures, &new_summary, "additional worker errors were coalesced"),
+            &new_marker
+        ));
+        failures.acknowledge(&new_summary, &new_marker);
+    }
+
+    #[derive(Debug)]
+    struct BlockingDrop {
+        entered: std::sync::mpsc::Sender<()>,
+        release: Mutex<std::sync::mpsc::Receiver<()>>,
+    }
+    impl std::fmt::Display for BlockingDrop {
+        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            f.write_str("private blocking drop")
+        }
+    }
+    impl std::error::Error for BlockingDrop {}
+    impl Drop for BlockingDrop {
+        fn drop(&mut self) {
+            let _sent = self.entered.send(());
+            let _release = self.release.lock().recv();
+        }
+    }
+
+    #[test]
+    fn private_suppressed_error_destructor_can_block_record_thread_without_holding_lock() {
+        let failures = WorkerFailures::new();
+        let first = failures.register();
+        failures.record(event("A"));
+        let a = snapshot(&failures, &first, "A");
+        failures.record(event("B"));
+        let (entered_tx, entered_rx) = std::sync::mpsc::channel();
+        let (release_tx, release_rx) = std::sync::mpsc::channel();
+        let payload = BlockingDrop {
+            entered: entered_tx,
+            release: Mutex::new(release_rx),
+        };
+        let worker = Arc::clone(&failures);
+        let record = std::thread::spawn(move || {
+            worker.record(Error::Io(std::io::Error::other(payload)));
+        });
+        entered_rx.recv_timeout(std::time::Duration::from_secs(3)).expect("drop entered");
+        // The destructor is blocked, but state access can still acquire the lock.
+        assert_eq!(label(&snapshot(&failures, &first, "A")), "A");
+        release_tx.send(()).expect("release");
+        record.join().expect("record thread");
+        failures.acknowledge(&first, &a);
+    }
+
+    #[derive(Debug)]
+    struct PanicOnDrop;
+    impl std::fmt::Display for PanicOnDrop {
+        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            f.write_str("private panic drop")
+        }
+    }
+    impl std::error::Error for PanicOnDrop {}
+    impl Drop for PanicOnDrop {
+        fn drop(&mut self) {
+            panic!("PRIVATE_ERROR_DROP_PANIC");
+        }
+    }
+
+    #[test]
+    fn private_suppressed_error_destructor_can_unwind_record_after_unlock() {
+        let failures = WorkerFailures::new();
+        let first = failures.register();
+        failures.record(event("A"));
+        let a = snapshot(&failures, &first, "A");
+        failures.record(event("B"));
+        let outcome = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            failures.record(Error::Io(std::io::Error::other(PanicOnDrop)));
+        }));
+        assert!(outcome.is_err());
+        assert_eq!(label(&snapshot(&failures, &first, "A")), "A");
+        failures.acknowledge(&first, &a);
+    }
+
     #[test]
     #[ignore = "negative control: the draft hides a timeout behind a generic summary"]
     fn overflow_must_not_hide_worker_timeout() {

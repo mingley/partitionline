@@ -37,7 +37,7 @@ jobs:
           args=()
           if test "$PROFILE" = all; then args+=(--all-features); fi
           cargo +stable test --locked "${args[@]}" --lib flush_failure_model::tests -- --test-threads=1 --nocapture 2>&1 | tee model-logs/model.log
-          grep -F "test result: ok. 6 passed; 0 failed; 1 ignored" model-logs/model.log
+          grep -F "test result: ok. 12 passed; 0 failed; 1 ignored" model-logs/model.log
       - name: Negative control - overflow hides Timeout
         if: always()
         run: |
