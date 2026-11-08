@@ -1,0 +1,60 @@
+name: qualify-producer-completion-draft
+
+on:
+  push:
+    branches: [qualification/completion-integration-20261108]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  focused:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        mode: [default, all]
+    env:
+      PL_MODE: ${{ matrix.mode }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+      - name: Provenance
+        run: |
+          set -euo pipefail
+          git rev-parse HEAD
+          git rev-parse HEAD:src/producer.rs
+          git rev-parse HEAD:src/producer/completion_draft.rs
+          sha256sum src/producer.rs src/producer/completion_draft.rs src/producer/completion_draft_controls.rs Cargo.lock
+          rustc +stable -Vv
+          uname -a
+      - name: Integrated admission and ledger controls
+        run: |
+          set -euo pipefail
+          args=()
+          if [[ "$PL_MODE" == all ]]; then args+=(--all-features); fi
+          cargo +stable test --locked "${args[@]}" --lib completion_draft -- --test-threads=1
+      - name: Existing producer cancellation controls
+        run: |
+          set -euo pipefail
+          args=()
+          if [[ "$PL_MODE" == all ]]; then args+=(--all-features); fi
+          cargo +stable test --locked "${args[@]}" --test produce_cancel -- --test-threads=1
+      - name: Existing retained-payload controls
+        run: |
+          set -euo pipefail
+          args=()
+          if [[ "$PL_MODE" == all ]]; then args+=(--all-features); fi
+          cargo +stable test --locked "${args[@]}" --test producer_retained_backing -- --test-threads=1
+      - name: Existing mock retry controls
+        run: |
+          set -euo pipefail
+          args=()
+          if [[ "$PL_MODE" == all ]]; then args+=(--all-features); fi
+          cargo +stable test --locked "${args[@]}" --test mock_produce retry_ -- --test-threads=1
+      - name: Format check
+        run: cargo +stable fmt --all -- --check

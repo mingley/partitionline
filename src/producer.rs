@@ -6,6 +6,12 @@ use std::sync::atomic::{AtomicBool, AtomicI16, AtomicI64, AtomicU64, AtomicUsize
 use std::sync::Arc;
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
+mod completion_draft;
+#[cfg(test)]
+#[path = "producer/completion_draft_controls.rs"]
+mod completion_draft_controls;
+
+use completion_draft::{CompletionDomain, CompletionReservation, CompletionStatus, CompletionTicket};
 use bytes::{BufMut, Bytes, BytesMut};
 use tokio::sync::{mpsc, oneshot, Mutex, Notify};
 
@@ -856,6 +862,8 @@ impl Drop for StickyRecordPermit {
 }
 
 struct Pending {
+    completion: Option<CompletionTicket>,
+    completion_reservation: Option<CompletionReservation>,
     sticky_record: Option<StickyRecordPermit>,
     sticky: Option<StickyTag>,
     rec: ProduceRecord,
@@ -876,6 +884,26 @@ struct Pending {
     /// Produce v10+ CurrentLeader already patched cluster metadata.
     skip_meta_refresh: bool,
     retry_after: Instant,
+}
+
+impl Pending {
+    fn commit_completion(&mut self) -> bool {
+        let Some(reservation) = self.completion_reservation.as_mut() else {
+            return true;
+        };
+        let Some(ticket) = reservation.commit() else {
+            return false;
+        };
+        self.completion = Some(ticket);
+        self.completion_reservation = None;
+        true
+    }
+
+    fn complete_completion(&mut self) {
+        if let Some(ticket) = self.completion.take() {
+            ticket.complete();
+        }
+    }
 }
 
 enum Ctrl {
@@ -972,9 +1000,9 @@ impl WorkerPermit<'_> {
         clippy::result_large_err,
         reason = "Rejected sends return the owned record without allocating."
     )]
-    fn send(self, pending: Pending) -> std::result::Result<(), Pending> {
+    fn send(self, mut pending: Pending) -> std::result::Result<(), Pending> {
         let _commit = self.admission.commit.lock();
-        if !self.admission.is_accepting() {
+        if !self.admission.is_accepting() || !pending.commit_completion() {
             return Err(pending);
         }
         self.permit.send(pending);
@@ -1058,13 +1086,27 @@ impl WorkerHandle {
     )]
     fn try_send(
         &self,
-        pending: Pending,
+        mut pending: Pending,
     ) -> std::result::Result<(), mpsc::error::TrySendError<Pending>> {
         let _commit = self.admission.commit.lock();
         if !self.admission.is_accepting() {
             return Err(mpsc::error::TrySendError::Closed(pending));
         }
-        self.data.try_send(pending)
+        match self.data.try_reserve() {
+            Ok(permit) => {
+                if !pending.commit_completion() {
+                    return Err(mpsc::error::TrySendError::Closed(pending));
+                }
+                permit.send(pending);
+                Ok(())
+            }
+            Err(mpsc::error::TrySendError::Full(())) => {
+                Err(mpsc::error::TrySendError::Full(pending))
+            }
+            Err(mpsc::error::TrySendError::Closed(())) => {
+                Err(mpsc::error::TrySendError::Closed(pending))
+            }
+        }
     }
 }
 
@@ -1157,6 +1199,7 @@ const TXN_ERROR_FATAL_COMMITTED: u64 = 4;
 const TXN_ERROR_TICKET_STEP: u64 = 8;
 
 struct Shared {
+    completion: Arc<CompletionDomain>,
     cfg: ProducerConfig,
     cluster: parking_lot::Mutex<Cluster>,
     meta: Mutex<BrokerConn>,
@@ -2363,6 +2406,7 @@ impl Producer {
             }
         }
         let shared = Arc::new(Shared {
+            completion: CompletionDomain::new(),
             cfg: cfg.clone(),
             cluster: parking_lot::Mutex::new(Cluster::default()),
             meta: Mutex::new(meta),
@@ -2578,6 +2622,34 @@ impl Producer {
                 _ = notified => {}
                 _ = tokio::time::sleep(rest.min(Duration::from_millis(5))) => {}
             }
+        }
+    }
+
+    fn try_completion(&self) -> Result<CompletionReservation> {
+        match self.inner.shared.completion.try_reserve() {
+            Ok(Some(reservation)) => Ok(reservation),
+            Ok(None) => Err(Error::QueueFull),
+            Err(()) => Err(Error::Closed),
+        }
+    }
+
+    async fn wait_completion(&self, deadline: Instant) -> Result<CompletionReservation> {
+        loop {
+            if self.inner.shared.closed.load(Ordering::SeqCst) {
+                return Err(Error::Closed);
+            }
+            match self.try_completion() {
+                Ok(reservation) => return Ok(reservation),
+                Err(Error::QueueFull) => {}
+                Err(error) => return Err(error),
+            }
+            let now = Instant::now();
+            if now >= deadline {
+                return Err(Error::Timeout);
+            }
+            tokio::time::sleep(
+                deadline.saturating_duration_since(now).min(Duration::from_millis(5))
+            ).await;
         }
     }
 
@@ -2917,11 +2989,14 @@ impl Producer {
         if self.inner.shared.closed.load(Ordering::SeqCst) {
             return Err(Error::Closed);
         }
+        let completion_reservation = self.wait_completion(block_deadline).await?;
         compact_record_backing(&mut rec);
         let now = Instant::now();
         let deadline = now + self.inner.shared.cfg.delivery_timeout;
         let topic = tracker.is_none().then(|| Arc::clone(&rec.topic));
         let mut pending = Pending {
+            completion: None,
+            completion_reservation: Some(completion_reservation),
             sticky_record: None,
             sticky: None,
             rec,
@@ -2976,6 +3051,8 @@ impl Producer {
         now: Instant,
     ) -> Pending {
         Pending {
+            completion: None,
+            completion_reservation: None,
             sticky_record: None,
             sticky: None,
             rec,
@@ -3137,6 +3214,8 @@ impl Producer {
             bytes,
             active: true,
         };
+        pending.as_mut().ok_or(Error::Closed)?.completion_reservation =
+            Some(self.wait_completion(deadline).await?);
         compact_record_backing(&mut pending.as_mut().ok_or(Error::Closed)?.rec);
         loop {
             if shared.closed.load(Ordering::SeqCst) {
@@ -3389,11 +3468,13 @@ impl Producer {
                 bytes,
                 active: true,
             };
+            let completion_reservation = self.try_completion()?;
             compact_record_backing(&mut rec);
             let unkeyed = rec.partition.is_none() && rec.key.is_none();
             let now = Instant::now();
             let topic = Arc::clone(&rec.topic);
             let mut current = self.new_pending(rec, None, now);
+            current.completion_reservation = Some(completion_reservation);
             current.sticky_record = Some(record_permit);
             let mut pending = Some(current);
             match self.sticky_enqueue(&mut pending, unkeyed, None) {
@@ -3435,8 +3516,11 @@ impl Producer {
             bytes,
             active: true,
         };
+        let completion_reservation = self.try_completion()?;
         compact_record_backing(&mut rec);
         if let Err(e) = w.try_send(Pending {
+            completion: None,
+            completion_reservation: Some(completion_reservation),
             sticky_record: None,
             sticky: None,
             rec,
@@ -4188,14 +4272,27 @@ impl Producer {
     }
 
     async fn flush_until(&self, deadline: Instant) -> Result<()> {
+        let cutoff = self.inner.shared.completion.cutoff();
         loop {
             if Instant::now() >= deadline {
                 return Err(Error::Timeout);
             }
             self.flush_workers(deadline).await?;
-            if self.inner.shared.retries_out.load(Ordering::SeqCst) == 0 {
+            let status = self.inner.shared.completion.status(cutoff);
+            if status == CompletionStatus::Lost {
+                return Err(Error::protocol("producer lost a completion owner"));
+            }
+            if status == CompletionStatus::Complete
+                && self.inner.shared.retries_out.load(Ordering::SeqCst) == 0
+            {
                 self.flush_workers(deadline).await?;
-                if self.inner.shared.retries_out.load(Ordering::SeqCst) == 0 {
+                let status = self.inner.shared.completion.status(cutoff);
+                if status == CompletionStatus::Lost {
+                    return Err(Error::protocol("producer lost a completion owner"));
+                }
+                if status == CompletionStatus::Complete
+                    && self.inner.shared.retries_out.load(Ordering::SeqCst) == 0
+                {
                     return Ok(());
                 }
             }
@@ -6647,6 +6744,7 @@ fn test_shared(cfg: ProducerConfig, meta: BrokerConn) -> Arc<Shared> {
     let (retry_tx, _retry_rx) = mpsc::channel(1);
     let sticky_policy = cfg.partitioner.arc().unkeyed_batching_policy();
     Arc::new(Shared {
+        completion: CompletionDomain::new(),
         cfg: cfg.clone(),
         cluster: parking_lot::Mutex::new(Cluster::default()),
         meta: Mutex::new(meta),
@@ -8866,7 +8964,7 @@ impl Worker {
                         let mut index = 0usize;
                         let mut walked = 0usize;
                         for chunk in chunks {
-                            for p in chunk {
+                            for mut p in chunk {
                                 // KL09-16: build ack metadata only when a
                                 // caller oneshot or an interceptor consumes it.
                                 if p.tx.is_some() || !self.shared.interceptors.is_empty() {
@@ -8882,10 +8980,11 @@ impl Worker {
                                         now,
                                     );
                                     self.shared.interceptors.on_ack(&md);
-                                    if let Some(tx) = p.tx {
+                                    if let Some(tx) = p.tx.take() {
                                         drop(tx.send(Ok(md)));
                                     }
                                 }
+                                p.complete_completion();
                                 index = index.saturating_add(1);
                                 walked = walked.saturating_add(1);
                                 if walked == 8 * 1024 {
@@ -11461,10 +11560,11 @@ async fn complete_acks0(
         let mut stamped = None;
         let chunks = detach_pending_chunks(&mut pendings).await;
         for chunk in chunks {
-            for p in chunk {
+            for mut p in chunk {
                 // KL09-16: build ack metadata only when a caller oneshot
                 // or an interceptor consumes it.
                 if p.tx.is_none() && shared.interceptors.is_empty() {
+                    p.complete_completion();
                     continue;
                 }
                 let now = *stamped.get_or_insert_with(now_ms);
@@ -11478,9 +11578,10 @@ async fn complete_acks0(
                     now,
                 );
                 shared.interceptors.on_ack(&md);
-                if let Some(tx) = p.tx {
+                if let Some(tx) = p.tx.take() {
                     drop(tx.send(Ok(md)));
                 }
+                p.complete_completion();
             }
         }
         shared.note_ack_latency_on(
@@ -11534,14 +11635,15 @@ fn fail_pendings(shared: &Shared, pendings: Vec<Pending>, err: Error) {
     let _empty = fail_kept_pendings_sync(shared, pendings, err);
 }
 
-fn fail_one_pending(shared: &Shared, pending: Pending, err: &Error, one_topic: bool) {
+fn fail_one_pending(shared: &Shared, mut pending: Pending, err: &Error, one_topic: bool) {
     if !one_topic {
         shared.note_errors(&pending.rec.topic, 1);
     }
     shared.interceptors.on_error(err);
-    if let Some(tx) = pending.tx {
+    if let Some(tx) = pending.tx.take() {
         drop(tx.send(Err(clone_err(err))));
     }
+    pending.complete_completion();
 }
 
 fn one_failure_topic(pendings: &[Pending]) -> bool {
@@ -13701,6 +13803,8 @@ mod tests {
             let deadline = now + Duration::from_secs(2);
             let (result_tx, mut result_rx) = oneshot::channel();
             let pending = Pending {
+                completion: None,
+                completion_reservation: None,
                 sticky_record: None,
                 sticky: None,
                 rec: ProduceRecord::to("t").partition(0).value("value"),
@@ -15670,6 +15774,8 @@ mod tests {
             rec = rec.partition(partition);
         }
         Pending {
+            completion: None,
+            completion_reservation: None,
             sticky_record: None,
             sticky: None,
             rec,
@@ -18058,6 +18164,7 @@ mod rediscover_stop_tests {
         let (retry_tx, _retry_rx) = mpsc::channel(1);
         let sticky_policy = cfg.partitioner.arc().unkeyed_batching_policy();
         let shared = Arc::new(Shared {
+            completion: CompletionDomain::new(),
             cfg: cfg.clone(),
             cluster: parking_lot::Mutex::new(Cluster::default()),
             meta: Mutex::new(meta),
