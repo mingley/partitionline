@@ -260,7 +260,7 @@ Neither archive has been independently downloaded; binaries were not retained.
 passed formatting, the focused tests in both profiles and strict Clippy.
 
 A subsequent isolated variant also inlines the lower-level decoder; its paired
-results are below. Its separate disassembly run is still in progress.
+and disassembly results are below.
 
 ## Nested decoder inline follow-up
 
@@ -287,3 +287,18 @@ for the [measurement artifact](https://github.com/mingley/partitionline/actions/
 The archive has not been independently downloaded and the binaries were not
 retained. [Run 42453600001](https://github.com/mingley/partitionline/actions/runs/42453600001)
 passed formatting, the focused tests in both profiles and strict Clippy.
+
+The separate [disassembly run](https://github.com/mingley/partitionline/actions/runs/42453612237)
+rebuilt the same baseline and nested-inline binary hashes. Its eight paired
+no-header ratios ranged from 0.999 to 1.034, with a median of 1.017. Both
+`try_accept_plain` functions had no separate call to `read_canonical_i64`
+or `read_canonical_u64`; the disassembly contained 285 lines for baseline
+and 288 for candidate. The header scanner and first-record probe grew from
+297 and 185 disassembly lines in the earlier gated candidate to 403 and 285
+in the nested-inline candidate. These counts and the paired timing are
+observations, not a complete instruction-cost or cache analysis.
+
+The [code-generation artifact](https://github.com/mingley/partitionline/actions/runs/42453612237/artifacts/13607355168)
+has GitHub-reported SHA-256
+`814f685a86f8fd790702e0cb47f02af75611a5c91d0d18ab4f23718a5320b588`.
+It has not been independently downloaded, and the binaries were not retained.
