@@ -1706,14 +1706,14 @@ fn dtp_requested_names_scan_yields_after_progress() {
 }
 
 async fn check_deferred_index_cancellation(cursor_trigger: bool) {
-    struct ResetIndexProbe(Option<usize>);
+    struct ResetIndexProbe(Option<(usize, usize)>);
     impl Drop for ResetIndexProbe {
         fn drop(&mut self) {
             DTP_REQUESTED_INDEX_PROGRESS.with(|probe| probe.set(self.0));
         }
     }
 
-    let previous = DTP_REQUESTED_INDEX_PROGRESS.with(|probe| probe.replace(Some(0)));
+    let previous = DTP_REQUESTED_INDEX_PROGRESS.with(|probe| probe.replace(Some((0, 0))));
     let _reset = ResetIndexProbe(previous);
     let (mut admin, listener) = admin_and_listener().await;
     let mut names = vec!["a"; 50_000];
@@ -1749,13 +1749,18 @@ async fn check_deferred_index_cancellation(cursor_trigger: bool) {
     loop {
         tokio::select! {
             biased;
-            result = &mut call => panic!("finished before deferred index cancellation: {result:?}"),
+            result = &mut call => panic!("deferred index never paused at its checkpoint: {result:?}"),
             () = tokio::task::yield_now() => {}
         }
-        let processed = DTP_REQUESTED_INDEX_PROGRESS.with(|probe| probe.get().unwrap_or(0));
-        if processed >= 8_192 {
+        let (before, after) =
+            DTP_REQUESTED_INDEX_PROGRESS.with(|probe| probe.get().unwrap_or((0, 0)));
+        if before > after {
             break;
         }
+        assert_eq!(
+            before, 0,
+            "deferred index checkpoint completed without an observable pause"
+        );
     }
     drop(call);
     assert!(!admin.conn.is_closed());
