@@ -224,6 +224,7 @@ async fn metadata_changes_before_first_nudge() {
     let task = tokio::spawn(async move { p.send_all(records("t", 64)).await });
     tokio::time::timeout(Duration::from_secs(15), q::reached()).await.unwrap();
     let before = mock.metadata_calls();
+    let trace_start = mock.qualification_produce_trace().len();
     mock.set_partition_leader("t", 0, 1);
     let infos = producer.partitions_for("t").await.unwrap();
     assert!(mock.metadata_calls() > before);
@@ -238,6 +239,25 @@ async fn metadata_changes_before_first_nudge() {
     assert_eq!(accepted_nodes.first().copied(), Some(2));
     assert!(accepted_nodes.len() >= 2);
     assert!(accepted_nodes.iter().skip(1).all(|node| *node == 1), "{accepted_nodes:?}");
+    let trace = mock.qualification_produce_trace();
+    let target = &trace[trace_start..];
+    eprintln!("post-refresh produce (node, topic, partition, code, count) = {:?}",
+        target.iter().map(|(node, topic, part, code, values)|
+            (*node, topic, *part, *code, values.len())).collect::<Vec<_>>());
+    assert!(target.iter().all(|(_, topic, part, _, values)| topic == "t" && *part == 0 && !values.is_empty()));
+    let old_errors: Vec<_> = target.iter().filter(|(node, _, _, code, _)| *node == 2 && *code == 6).collect();
+    let new_successes: Vec<_> = target.iter().filter(|(node, _, _, code, _)| *node == 1 && *code == 0).collect();
+    assert!(!old_errors.is_empty(), "no old-leader rejection: {target:?}");
+    assert!(!new_successes.is_empty(), "no new-leader acceptance: {target:?}");
+    let accepted: std::collections::HashSet<_> = new_successes.iter()
+        .flat_map(|(_, _, _, _, values)| values.iter().cloned()).collect();
+    let expected: std::collections::HashSet<_> = (0..64)
+        .map(|i| Some((i as u64).to_le_bytes().to_vec())).collect();
+    assert_eq!(accepted, expected);
+    let rejected: std::collections::HashSet<_> = old_errors.iter()
+        .flat_map(|(_, _, _, _, values)| values.iter().cloned()).collect();
+    assert!(!rejected.is_empty());
+    assert!(rejected.is_subset(&accepted));
     verify(&mock, "t", 0, &out, &(0..64).collect::<Vec<_>>(), 1);
 }
 
