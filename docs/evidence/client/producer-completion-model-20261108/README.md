@@ -48,7 +48,8 @@ This model leaves essential work open:
   placeholder, not a decision to change the producer's documented error behavior.
 - The model's fixed static error strings avoid user-defined clone and destructor
   behavior. Its mutex and manual polling do not demonstrate fairness or
-  nonblocking cleanup.
+  nonblocking cleanup. The deadline starts before acquiring the domain mutex,
+  but a contended blocking lock can itself delay the poll past that deadline.
 
 The existing producer can still return from flush while a retiring worker owns
 an accepted record. This model is a tool for testing part of a possible design,

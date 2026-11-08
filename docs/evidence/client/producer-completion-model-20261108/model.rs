@@ -289,7 +289,15 @@ impl Domain {
     }
 
     fn flush(self: &Arc<Self>, timeout: Duration) -> Flush {
-        Flush { domain: Arc::clone(self), cutoff: None, timeout, deadline: None, done: false }
+        Flush {
+            domain: Arc::clone(self),
+            cutoff: None,
+            timeout,
+            deadline: None,
+            done: false,
+            #[cfg(test)]
+            before_lock: None,
+        }
     }
 
     fn close_and_cutoff(&self) -> u64 {
@@ -330,6 +338,8 @@ struct Flush {
     timeout: Duration,
     deadline: Option<Instant>,
     done: bool,
+    #[cfg(test)]
+    before_lock: Option<std::sync::mpsc::Sender<()>>,
 }
 
 impl Future for Flush {
@@ -337,14 +347,22 @@ impl Future for Flush {
 
     fn poll(mut self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<Self::Output> {
         assert!(!self.done, "a completed model future was polled again");
+        let now = Instant::now();
+        let timeout = self.timeout;
+        let deadline = *self.deadline.get_or_insert_with(|| now.checked_add(timeout).unwrap_or(now));
+        if now >= deadline {
+            self.done = true;
+            return Poll::Ready(Err(FlushError::Deadline));
+        }
+        #[cfg(test)]
+        if let Some(before_lock) = self.before_lock.take() {
+            before_lock.send(()).unwrap();
+        }
         let domain = Arc::clone(&self.domain);
         let answer = {
             let mut state = domain.state.lock().unwrap();
             let cutoff = *self.cutoff.get_or_insert(state.last);
-            let now = Instant::now();
-            let timeout = self.timeout;
-            let deadline = *self.deadline.get_or_insert_with(|| now.checked_add(timeout).unwrap_or(now));
-            if now >= deadline {
+            if Instant::now() >= deadline {
                 Some(Err(FlushError::Deadline))
             } else if state.prefix < cutoff {
                 None
@@ -450,6 +468,20 @@ mod tests {
         assert!(poll_flush(&mut flush).is_pending());
         finish(&domain, record);
         assert_eq!(poll_flush(&mut flush), Poll::Ready(Ok(())));
+    }
+
+    #[test]
+    fn flush_deadline_starts_before_waiting_for_the_domain_lock() {
+        let domain = Domain::new(1);
+        let guard = domain.state.lock().unwrap();
+        let mut flush = domain.flush(Duration::from_millis(40));
+        let (started, observed) = std::sync::mpsc::channel();
+        flush.before_lock = Some(started);
+        let task = thread::spawn(move || poll_flush(&mut flush));
+        observed.recv_timeout(Duration::from_secs(1)).unwrap();
+        thread::sleep(Duration::from_millis(80));
+        drop(guard);
+        assert_eq!(task.join().unwrap(), Poll::Ready(Err(FlushError::Deadline)));
     }
 
     #[test]
@@ -566,6 +598,43 @@ mod tests {
                 next
             };
             finish(&domain, winner);
+        }
+    }
+
+    #[test]
+    fn concurrent_publish_and_abort_have_one_marker_winner() {
+        for _ in 0..250 {
+            let domain = Domain::new(1);
+            let lease = domain.admit(1).unwrap();
+            let barrier = Arc::new(Barrier::new(3));
+            let left_domain = Arc::clone(&domain);
+            let left_barrier = Arc::clone(&barrier);
+            let left = thread::spawn(move || {
+                left_barrier.wait();
+                left_domain.published(lease)
+            });
+            let right_domain = Arc::clone(&domain);
+            let right_barrier = Arc::clone(&barrier);
+            let right = thread::spawn(move || {
+                right_barrier.wait();
+                right_domain.abort_publication(lease)
+            });
+            barrier.wait();
+            let published = left.join().unwrap();
+            let aborted = right.join().unwrap();
+            assert_ne!(published.is_ok(), aborted.is_ok());
+            let winner = if published.is_ok() {
+                domain.claim(lease).unwrap();
+                lease
+            } else {
+                assert_eq!(domain.claim(lease), Err(DomainError::Stale));
+                let next = domain.retry(lease.sequence, 2).unwrap();
+                domain.claim(next).unwrap();
+                domain.published(next).unwrap();
+                next
+            };
+            finish(&domain, winner);
+            assert!(domain.state.lock().unwrap().publishers.is_empty());
         }
     }
 
@@ -716,9 +785,16 @@ mod tests {
         {
             let mut state = domain.state.lock().unwrap();
             state.slots.get_mut(&lease.sequence).unwrap().incarnation = u64::MAX;
+            assert!(state.publishers.remove(&(lease.sequence, 0, lease.worker)));
+            assert!(state.publishers.insert((lease.sequence, u64::MAX, lease.worker)));
         }
         lease.incarnation = u64::MAX;
         assert_eq!(domain.recover_unclaimed(lease), Err(DomainError::Exhausted));
+        {
+            let state = domain.state.lock().unwrap();
+            assert!(state.slots.contains_key(&lease.sequence));
+            assert!(state.publishers.contains(&(lease.sequence, u64::MAX, lease.worker)));
+        }
         assert_eq!(domain.admit(2), Err(DomainError::Closed));
         let mut flush = domain.flush(deadline());
         assert!(poll_flush(&mut flush).is_pending());
