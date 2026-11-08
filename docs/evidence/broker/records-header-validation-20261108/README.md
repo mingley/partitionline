@@ -2,7 +2,7 @@
 
 The ordinary record validator first tries a fast walk for batches without
 headers. A positive header count makes that walk decline and the generic
-validator starts from the beginning. Three isolated candidates tried to
+validator starts from the beginning. Four isolated candidates tried to
 reduce that repeated work. None is applied: each regressed at least one
 measured control. The benchmark checks memory-resident uncompressed batches;
 it does not measure Kafka throughput or rank clients or servers.
@@ -88,7 +88,46 @@ second [42449654498](https://github.com/mingley/partitionline/actions/runs/42449
 built both examples but looked for them in the wrong target directory. Neither
 attempt produced measurements.
 
-A possible next design could retain the boundary and validated state of the
-header-aware walk and resume the generic parser at the first unvalidated record.
-It would need to preserve exact error positions and the partial record and
-header counts, including budget failures. It is not implemented or qualified.
+## Resumable header walk
+
+A fourth [isolated candidate](https://github.com/mingley/partitionline/commit/f446fe349ec2f49ab0c2d0e0400d1d70c59e6adf)
+lets the header-aware walk publish only complete records, then resumes the
+generic walk at the first unvalidated record. It carries the cursor, previous
+offset, maximum timestamp and completed header count. This avoids restarting
+the generic walk at the beginning after a late malformed record. It also keeps
+a boolean no-header scan and records whether that scan saw a positive header
+count.
+
+[Run 42451631245](https://github.com/mingley/partitionline/actions/runs/42451631245)
+used the same paired procedure and workloads above. Candidate/baseline median
+ratios were 0.951 for one header-free record, 1.070 for 1,024 header-free
+records, 0.830 for one record with a header, 0.740 for 1,024 records with
+one header each, 0.743 for four headers each, 0.735 for a header only on the
+last record, and 0.934 for the larger-value case. The early-invalid ratio was
+0.999, the late-invalid no-header ratio was 1.045, and the late-invalid ratio
+after earlier headers was 0.738. All eight paired ratios for the 1,024-record
+header-free case were between 1.058 and 1.082. The increased no-header and
+late-invalid no-header medians leave this candidate unapplied.
+
+The candidate `records.rs` SHA-256 was
+`2edefb30d2f6dce7815308d29e64ab4f7f82df089bb1877628b0ae3bedb35c58`.
+The fixture SHA-256 was
+`5b77706970c10ca45a9cdf461dcf5871cdc5891ea8a0128f2c6cd1209fb96cda`.
+Baseline and candidate release binary SHA-256 values were
+`ed445ed68ef7238d70ec884e7cb52dcf596dce158d6fd1f9d39ce912b0691c28`
+and `26f85c742adf8bc6562dbfbffdf1529c4e934df52fbdcef902e321d6c2a9ac1c`.
+The [artifact](https://github.com/mingley/partitionline/actions/runs/42451631245/artifacts/13605773823)
+has GitHub-reported SHA-256
+`3457169da9862c320731162099793c67826e217ff16c94127ba05fadad27acd8`;
+it has not been independently downloaded, and the binaries were not retained.
+
+The [focused run](https://github.com/mingley/partitionline/actions/runs/42451624981)
+passed library controls and 14 record integration tests in both feature
+profiles, plus strict all-target/all-feature Clippy, but failed its formatting
+gate. Its controls compare generic errors, partial counts and visit counts for
+a nonzero byte origin and a failure inside a later header. They also check an
+exhausted aggregate header budget across batches, a maximum timestamp mismatch
+and trailing bytes after the last record. The earlier
+[42451384857](https://github.com/mingley/partitionline/actions/runs/42451384857)
+also passed focused tests and Clippy but failed formatting. No full broker suite
+or current-main qualification was run for this candidate.
