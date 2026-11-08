@@ -1,0 +1,258 @@
+name: Combined requested topic names qualification
+on:
+  push:
+    branches: [work/admin-name-combined-final-20261108]
+permissions:
+  contents: read
+jobs:
+  admin:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    strategy:
+      fail-fast: false
+      matrix:
+        feature: [default, all]
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Pin source and toolchain
+        run: |
+          rustc -Vv
+          sha256sum src/admin.rs src/admin/pagination_tests.rs Cargo.lock
+          git hash-object src/admin.rs src/admin/pagination_tests.rs
+      - name: Focused pagination controls
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ "${{ matrix.feature }}" = all ]; then flags=--all-features; else flags=; fi
+          cargo test --locked $flags --lib admin::pagination_tests -- --nocapture
+      - name: Full Admin suite
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ "${{ matrix.feature }}" = all ]; then flags=--all-features; else flags=; fi
+          cargo test --locked $flags --lib admin:: -- --nocapture
+  strict:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - name: Pin source, check formatting and strict Clippy
+        run: |
+          rustc -Vv
+          sha256sum src/admin.rs src/admin/pagination_tests.rs Cargo.lock
+          git hash-object src/admin.rs src/admin/pagination_tests.rs
+          cargo fmt --all -- --check
+          cargo clippy --locked --all-targets --all-features -- -D warnings
+  mutations:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 55
+    strategy:
+      fail-fast: false
+      matrix:
+        feature: [default, all]
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Independently restore and run negative controls
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ "${{ matrix.feature }}" = all ]; then flags=--all-features; else flags=; fi
+          sha256sum src/admin.rs src/admin/pagination_tests.rs Cargo.lock
+          cp src/admin.rs "$RUNNER_TEMP/admin-original.rs"
+          expected=$(sha256sum "$RUNNER_TEMP/admin-original.rs" | cut -d' ' -f1)
+          mkdir -p "$RUNNER_TEMP/mutation-logs"
+          for mutant in row_guard current_hint next_hint indexed_fail_open cap_duplicates cursor_guard null_priority null_after_checkpoint repeated index_population index_yield index_cancel_page index_cancel_cursor scan_yield scan_cancel cleanup cursor_id row_cursor row_yield row_budget_reset; do
+            cp "$RUNNER_TEMP/admin-original.rs" src/admin.rs
+            MUTANT="$mutant" python3 - <<'PY'
+          import os
+          from pathlib import Path
+          path=Path("src/admin.rs")
+          source=path.read_text()
+          mutant=os.environ["MUTANT"]
+          edits={
+              "row_guard": ("if !requested_names.contains(name).await {", "if false {"),
+              "row_cursor": ("if !requested_names.contains(name).await {", "if false {"),
+              "current_hint": (".get(self.hint)\n            .is_some_and(|candidate| candidate.as_ref() == name)", ".get(self.hint)\n            .is_some()"),
+              "next_hint": (".get(self.hint + 1)\n            .is_some_and(|candidate| candidate.as_ref() == name)", ".get(self.hint + 1)\n            .is_some()"),
+              "indexed_fail_open": ("return index.contains(name);", "return true;"),
+              "cap_duplicates": ("HashSet::with_capacity(self.names.len().min(32))", "HashSet::with_capacity(self.names.len())"),
+              "cursor_guard": ("if !requested_names.contains(next.topic_name.as_str()).await {", "if false {"),
+              "cursor_id": ("if !requested_names.contains(next.topic_name.as_str()).await {", "if false {"),
+              "null_priority": ("if remaining_dtp_has_unnamed(resp.topics.iter().skip(unrequested + 1)).await {", "if false {"),
+              "null_after_checkpoint": ("if remaining_dtp_has_unnamed(resp.topics.iter().skip(unrequested + 1)).await {", "if false {"),
+              "repeated": ("if resp.next_cursor.is_some() && resp.next_cursor.as_ref() == cursor.as_ref() {", "if false {"),
+              "index_population": ("index_requested_dtp_names(self.names, &mut index).await;", "std::hint::black_box(());"),
+          }
+          if mutant in edits:
+              old,new=edits[mutant]
+              assert source.count(old)==1, (mutant,source.count(old))
+              source=source.replace(old,new,1)
+          else:
+              bounds={
+                  "index_yield": ("async fn index_requested_dtp_names", "struct RequestedDtpNames"),
+                  "index_cancel_page": ("async fn index_requested_dtp_names", "struct RequestedDtpNames"),
+                  "index_cancel_cursor": ("async fn index_requested_dtp_names", "struct RequestedDtpNames"),
+                  "scan_yield": ("async fn remaining_dtp_has_unnamed", "// A zero topic ID"),
+                  "scan_cancel": ("async fn remaining_dtp_has_unnamed", "// A zero topic ID"),
+                  "cleanup": ("async fn reject_unrequested_described_topic", "async fn place_described_topic"),
+                  "row_yield": ("async fn convert_described_topic_page", "async fn topic_description_from_dtp"),
+                  "row_budget_reset": ("async fn convert_described_topic_page", "async fn topic_description_from_dtp"),
+              }
+              start,end=bounds[mutant]
+              begin=source.index(start)
+              finish=source.index(end,begin)
+              block=source[begin:finish]
+              if mutant == "cleanup":
+                  old,new="discard_described_topics(out).await;", "for topic in out { topic.partitions.clear(); }"
+              elif mutant == "row_budget_reset":
+                  old,new="for (index, topic) in topics.iter().enumerate() {", "*converted_rows = 0;\n    for (index, topic) in topics.iter().enumerate() {"
+              else:
+                  old,new="tokio::task::yield_now().await;", "std::hint::black_box(());"
+              assert block.count(old)==1, (mutant,block.count(old))
+              source=source[:begin]+block.replace(old,new,1)+source[finish:]
+          path.write_text(source)
+          PY
+            case "$mutant" in
+              row_guard) testname=dtp_requested_names_reject_unsolicited_success ;;
+              current_hint) testname=dtp_requested_names_reject_unsolicited_success ;;
+              next_hint) testname=dtp_requested_names_hint_next_rejects_unrequested_name ;;
+              indexed_fail_open) testname=dtp_requested_names_existing_index_rejects_later_unsolicited_topic ;;
+              cap_duplicates) testname=dtp_requested_names_deferred_index_has_capped_initial_capacity ;;
+              cursor_guard) testname=dtp_requested_names_reject_unsolicited_cursor ;;
+              null_priority) testname=dtp_requested_names_null_precedes_unsolicited_row_and_cursor ;;
+              null_after_checkpoint) testname=dtp_requested_names_null_after_row_checkpoint_precedes_unrequested ;;
+              repeated) testname=dtp_requested_names_repeated_cursor_precedes_unsolicited_rows ;;
+              index_population) testname=dtp_requested_names_large_input_accepts_members_and_duplicates ;;
+              index_yield) testname=dtp_requested_names_index_yields_after_progress ;;
+              index_cancel_page) testname=dtp_requested_names_cancel_deferred_index_after_partial_page_keeps_socket_usable ;;
+              index_cancel_cursor) testname=dtp_requested_names_cancel_cursor_deferred_index_keeps_socket_usable ;;
+              scan_yield) testname=dtp_requested_names_scan_yields_after_progress ;;
+              scan_cancel) testname=dtp_requested_names_cancel_during_scan_keeps_socket_usable ;;
+              cleanup) testname=dtp_requested_names_rejection_cleans_and_checks_deadline ;;
+              cursor_id) testname=dtp_requested_names_cursor_precedes_same_page_id_conflict ;;
+              row_cursor) testname=dtp_requested_names_unsolicited_row_precedes_unsolicited_cursor ;;
+              row_yield) testname=dtp_conversion_yields_on_the_exact_row_boundary ;;
+              row_budget_reset) testname=dtp_conversion_carries_the_row_budget_across_pages ;;
+            esac
+            fullname="admin::pagination_tests::$testname"
+            set +e
+            cargo test --locked $flags --lib "$fullname" -- --exact --nocapture > "$RUNNER_TEMP/mutation-logs/$mutant.txt" 2>&1
+            result=$?
+            set -e
+            cat "$RUNNER_TEMP/mutation-logs/$mutant.txt"
+            echo "MUTATION mutant=$mutant status=$result expected_test=$fullname"
+            test "$result" -eq 101
+            grep -F "test $fullname ... FAILED" "$RUNNER_TEMP/mutation-logs/$mutant.txt"
+            case "$mutant" in
+              index_cancel_page|index_cancel_cursor) grep -E 'deferred index (never paused at its checkpoint|checkpoint completed without an observable pause)' "$RUNNER_TEMP/mutation-logs/$mutant.txt" ;;
+              row_yield) grep -F 'row conversion checkpoint did not suspend at 8,192 rows' "$RUNNER_TEMP/mutation-logs/$mutant.txt" ;;
+              row_budget_reset) grep -F 'row conversion checkpoint did not carry across pages' "$RUNNER_TEMP/mutation-logs/$mutant.txt" ;;
+            esac
+          done
+          cp "$RUNNER_TEMP/admin-original.rs" src/admin.rs
+          actual=$(sha256sum src/admin.rs | cut -d' ' -f1)
+          test "$actual" = "$expected"
+          sha256sum src/admin.rs src/admin/pagination_tests.rs
+      - uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: admin-combined-mutations-${{ matrix.feature }}
+          path: ${{ runner.temp }}/mutation-logs/
+          if-no-files-found: warn
+          retention-days: 30
+  rustdoc:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      RUSTDOCFLAGS: "-D warnings"
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Pin source and toolchain
+        run: |
+          rustc -Vv
+          sha256sum src/admin.rs src/admin/pagination_tests.rs Cargo.toml Cargo.lock
+          git hash-object src/admin.rs src/admin/pagination_tests.rs
+      - name: All-feature client Rustdoc
+        run: cargo doc --locked -p partitionline --all-features --no-deps
+      - name: All-feature client doctests
+        run: cargo test --locked -p partitionline --all-features --doc
+  apache:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      KAFKA_BOOTSTRAP: 127.0.0.1:19092
+      KAFKA_TOPIC: pl-dtp-request-${{ github.run_id }}
+      KAFKA_TOPIC_EXTRA: pl-dtp-extra-${{ github.run_id }}
+      KAFKA_REFERENCE: apache/kafka:4.1.2@sha256:5cc2a2fd93fa2687b44015eee04fb2c3edd9e526bd64bf8bec5ff1e268772e0e
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Pin source and toolchain
+        run: |
+          rustc -Vv
+          sha256sum src/admin.rs src/admin/pagination_tests.rs Cargo.lock .github/fixtures/admin_requested_names_live.rs.txt
+          git hash-object src/admin.rs src/admin/pagination_tests.rs
+          docker --version
+      - name: Start digest-pinned Kafka
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker pull "$KAFKA_REFERENCE"
+          docker image inspect "$KAFKA_REFERENCE" --format '{{json .RepoDigests}} {{.Id}}'
+          docker create --name pl-dtp-test -p 127.0.0.1:19092:9092 \
+            -e KAFKA_NODE_ID=1 -e KAFKA_PROCESS_ROLES=broker,controller \
+            -e KAFKA_LISTENERS=PLAINTEXT://:9092,INTERNAL://:9094,CONTROLLER://:9093 \
+            -e KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://127.0.0.1:19092,INTERNAL://localhost:9094 \
+            -e KAFKA_LISTENER_SECURITY_PROTOCOL_MAP=PLAINTEXT:PLAINTEXT,INTERNAL:PLAINTEXT,CONTROLLER:PLAINTEXT \
+            -e KAFKA_INTER_BROKER_LISTENER_NAME=INTERNAL -e KAFKA_CONTROLLER_LISTENER_NAMES=CONTROLLER \
+            -e KAFKA_CONTROLLER_QUORUM_VOTERS=1@localhost:9093 \
+            -e KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR=1 -e KAFKA_AUTO_CREATE_TOPICS_ENABLE=false \
+            "$KAFKA_REFERENCE"
+          docker start pl-dtp-test
+          ready=0
+          for attempt in $(seq 1 45); do
+            if timeout 10s docker exec pl-dtp-test /opt/kafka/bin/kafka-broker-api-versions.sh --bootstrap-server localhost:9094 > "$RUNNER_TEMP/readiness.log" 2>&1; then ready=1; break; fi
+            sleep 1
+          done
+          cat "$RUNNER_TEMP/readiness.log"
+          test "$ready" = 1
+      - name: Create and independently inspect topic
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker exec pl-dtp-test /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9094 --create --topic "$KAFKA_TOPIC" --partitions 4 --replication-factor 1
+          docker exec pl-dtp-test /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9094 --create --topic "$KAFKA_TOPIC_EXTRA" --partitions 2 --replication-factor 1
+          docker exec pl-dtp-test /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9094 --describe --topic "$KAFKA_TOPIC" | tee "$RUNNER_TEMP/topic.txt"
+          python3 - "$RUNNER_TEMP/topic.txt" <<'PY'
+          import re,sys
+          source=open(sys.argv[1]).read()
+          parts=sorted(int(x) for x in re.findall(r'Partition:\s*(\d+)',source))
+          assert parts==[0,1,2,3], parts
+          print("independent Kafka CLI partitions:", parts)
+          PY
+          docker exec pl-dtp-test /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9094 --describe --topic "$KAFKA_TOPIC_EXTRA" | tee "$RUNNER_TEMP/extra-topic.txt"
+          python3 - "$RUNNER_TEMP/extra-topic.txt" <<'PY'
+          import re,sys
+          source=open(sys.argv[1]).read()
+          parts=sorted(int(x) for x in re.findall(r'Partition:\s*(\d+)',source))
+          assert parts==[0,1], parts
+          print("independent extra Kafka CLI partitions:", parts)
+          PY
+      - name: Live raw and aggregate client checks
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp .github/fixtures/admin_requested_names_live.rs.txt tests/admin_dtp_live.rs
+          cargo test --locked --test admin_dtp_live -- --nocapture
+          cargo test --locked --all-features --test admin_dtp_live -- --nocapture
+      - name: Broker logs and cleanup
+        if: always()
+        run: |
+          docker logs pl-dtp-test || true
+          docker rm -f pl-dtp-test || true
