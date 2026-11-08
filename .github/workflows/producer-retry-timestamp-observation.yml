@@ -31,6 +31,7 @@ jobs:
           args=()
           if [[ "$PL_PROFILE" == all ]]; then args=(--all-features); fi
           cargo test --locked --test producer_retry_timestamp_public "${args[@]}" producer_retry_timestamp_observation -- --exact --nocapture 2>&1 | tee "$RUNNER_TEMP/history.log"
+          grep -F "TIMESTAMP_FIRST original=" "$RUNNER_TEMP/history.log"
           grep -F "TIMESTAMP_IMPLICIT original=" "$RUNNER_TEMP/history.log"
           grep -F "TIMESTAMP_EXPLICIT original=1234567 retry=1234567 receipt=1234567 log=1234567" "$RUNNER_TEMP/history.log"
       - name: Diagnostic source formatting
