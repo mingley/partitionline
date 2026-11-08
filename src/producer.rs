@@ -5622,12 +5622,14 @@ async fn txn_roundtrip(
         .clone()
         .ok_or_else(reject_java_no_transaction_manager)?;
     let first = {
-        let remaining = timeout_remaining(deadline)?;
-        let mut guard = shared.txn.lock().await;
+        let mut guard = tokio::time::timeout(timeout_remaining(deadline)?, shared.txn.lock())
+            .await
+            .map_err(|_| Error::Timeout)?;
         let conn = guard
             .as_mut()
             .ok_or_else(|| Error::protocol("no transaction coordinator"))?;
         require_coord_version(conn, api_key, api_version)?;
+        let remaining = timeout_remaining(deadline)?;
         conn.conn
             .roundtrip(api_key, api_version, |buf| encode_body(buf), remaining)
             .await
@@ -5643,7 +5645,10 @@ async fn txn_roundtrip(
     }
     let find_version = required_find_coordinator(shared.find_coord_version)?;
     let found = {
-        let guard = shared.txn.lock().await;
+        let guard = tokio::time::timeout(timeout_remaining(deadline)?, shared.txn.lock())
+            .await
+            .map_err(|_| Error::Timeout)?;
+        let _remaining = timeout_remaining(deadline)?;
         guard
             .as_ref()
             .map(|coord| (coord.conn.addr().to_string(), coord.keys.clone()))
@@ -11525,6 +11530,260 @@ fn record_metadata(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn txn_roundtrip_times_out_waiting_for_initial_lock() {
+        use std::task::Poll;
+
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap().to_string();
+        let meta = BrokerConn::connect(&addr, "lock-test", Duration::from_secs(1))
+            .await
+            .unwrap();
+        let (_peer, _) = listener.accept().await.unwrap();
+        let shared = test_shared(
+            ProducerConfig::default().transactional_id("lock-test"),
+            meta,
+        );
+        let guard = shared.txn.lock().await;
+        let encodes = AtomicUsize::new(0);
+        let mut call = Box::pin(txn_roundtrip(
+            &shared,
+            ADD_PARTITIONS_TO_TXN,
+            0,
+            |_| {
+                let _old = encodes.fetch_add(1, Ordering::SeqCst);
+                Ok(())
+            },
+            Duration::from_secs(2),
+            |_| Box::pin(async { Ok(0) }),
+        ));
+        let pending = std::future::poll_fn(|cx| {
+            Poll::Ready(std::future::Future::poll(call.as_mut(), cx).is_pending())
+        })
+        .await;
+        assert!(pending, "first roundtrip did not reach its lock wait");
+        println!("PL_FIRST_LOCK_HELD");
+
+        let result = tokio::time::timeout(Duration::from_secs(8), call.as_mut()).await;
+        assert!(
+            matches!(result, Ok(Err(Error::Timeout))),
+            "PL_FIRST_DEADLINE_BROKEN"
+        );
+        assert_eq!(encodes.load(Ordering::SeqCst), 0);
+        drop(call);
+        drop(guard);
+        let unlocked = tokio::time::timeout(Duration::from_secs(5), shared.txn.lock())
+            .await
+            .unwrap();
+        assert!(unlocked.is_none());
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn txn_roundtrip_times_out_waiting_for_rediscovery_snapshot_lock() {
+        use tokio::io::{AsyncReadExt, AsyncWriteExt};
+
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap().to_string();
+        let meta = BrokerConn::connect(&addr, "meta", Duration::from_secs(1))
+            .await
+            .unwrap();
+        let (_meta_peer, _) = listener.accept().await.unwrap();
+        let coord = BrokerConn::connect(&addr, "coord", Duration::from_secs(1))
+            .await
+            .unwrap();
+        let (mut coord_peer, _) = listener.accept().await.unwrap();
+        let mut shared = test_shared(
+            ProducerConfig::default().transactional_id("lock-test"),
+            meta,
+        );
+        Arc::get_mut(&mut shared).unwrap().find_coord_version = Some(1);
+        *shared.txn.lock().await = Some(CoordinatorConnection {
+            conn: coord,
+            init_producer_id_version: None,
+            keys: vec![ApiVersion {
+                api_key: ADD_PARTITIONS_TO_TXN,
+                min_version: 0,
+                max_version: 0,
+            }],
+        });
+
+        let server_stop = Arc::new(Notify::new());
+        let server_done = Arc::clone(&server_stop);
+        let server = tokio::spawn(async move {
+            let len = coord_peer.read_i32().await.unwrap();
+            assert!((8..=4096).contains(&len));
+            let mut request = vec![0; usize::try_from(len).unwrap()];
+            let _read = coord_peer.read_exact(&mut request).await.unwrap();
+            coord_peer.write_i32(4).await.unwrap();
+            coord_peer.write_all(&request[4..8]).await.unwrap();
+            server_done.notified().await;
+        });
+        let started = Arc::new(Notify::new());
+        let ready = Arc::new(Notify::new());
+        let release = Arc::new(Notify::new());
+        let acquired = Arc::new(AtomicBool::new(false));
+        let holder_shared = Arc::clone(&shared);
+        let holder_started = Arc::clone(&started);
+        let holder_ready = Arc::clone(&ready);
+        let holder_release = Arc::clone(&release);
+        let holder_acquired = Arc::clone(&acquired);
+        let holder = tokio::spawn(async move {
+            holder_started.notified().await;
+            let _guard = holder_shared.txn.lock().await;
+            holder_acquired.store(true, Ordering::SeqCst);
+            holder_ready.notify_one();
+            holder_release.notified().await;
+        });
+
+        let callback_started = Arc::clone(&started);
+        let callback_ready = Arc::clone(&ready);
+        let encodes = AtomicUsize::new(0);
+        let result = tokio::time::timeout(
+            Duration::from_secs(8),
+            txn_roundtrip(
+                &shared,
+                ADD_PARTITIONS_TO_TXN,
+                0,
+                |_| {
+                    let _old = encodes.fetch_add(1, Ordering::SeqCst);
+                    Ok(())
+                },
+                Duration::from_secs(2),
+                move |_| {
+                    let started = Arc::clone(&callback_started);
+                    let ready = Arc::clone(&callback_ready);
+                    Box::pin(async move {
+                        started.notify_one();
+                        ready.notified().await;
+                        println!("PL_SNAPSHOT_LOCK_HELD");
+                        Ok(error::NOT_COORDINATOR)
+                    })
+                },
+            ),
+        )
+        .await;
+        assert!(
+            matches!(result, Ok(Err(Error::Timeout))),
+            "PL_SNAPSHOT_DEADLINE_BROKEN"
+        );
+        assert!(
+            acquired.load(Ordering::SeqCst),
+            "fixture never held rediscovery lock"
+        );
+        assert_eq!(encodes.load(Ordering::SeqCst), 1);
+        assert!(
+            tokio::time::timeout(Duration::from_millis(100), listener.accept())
+                .await
+                .is_err(),
+            "unexpected rediscovery dial"
+        );
+        release.notify_one();
+        tokio::time::timeout(Duration::from_secs(5), holder)
+            .await
+            .unwrap()
+            .unwrap();
+        server_stop.notify_one();
+        tokio::time::timeout(Duration::from_secs(5), server)
+            .await
+            .unwrap()
+            .unwrap();
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn txn_roundtrip_contended_after_canceled_waiter() {
+        use std::task::Poll;
+        use tokio::io::{AsyncReadExt, AsyncWriteExt};
+
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap().to_string();
+        let meta = BrokerConn::connect(&addr, "meta", Duration::from_secs(1))
+            .await
+            .unwrap();
+        let (_meta_peer, _) = listener.accept().await.unwrap();
+        let coord = BrokerConn::connect(&addr, "coord", Duration::from_secs(1))
+            .await
+            .unwrap();
+        let (mut coord_peer, _) = listener.accept().await.unwrap();
+        let shared = test_shared(
+            ProducerConfig::default().transactional_id("lock-test"),
+            meta,
+        );
+        *shared.txn.lock().await = Some(CoordinatorConnection {
+            conn: coord,
+            init_producer_id_version: None,
+            keys: vec![ApiVersion {
+                api_key: ADD_PARTITIONS_TO_TXN,
+                min_version: 0,
+                max_version: 0,
+            }],
+        });
+
+        let server_stop = Arc::new(Notify::new());
+        let server_done = Arc::clone(&server_stop);
+        let server = tokio::spawn(async move {
+            let len = coord_peer.read_i32().await.unwrap();
+            assert!((8..=4096).contains(&len));
+            let mut request = vec![0; usize::try_from(len).unwrap()];
+            let _read = coord_peer.read_exact(&mut request).await.unwrap();
+            coord_peer.write_i32(4).await.unwrap();
+            coord_peer.write_all(&request[4..8]).await.unwrap();
+            server_done.notified().await;
+        });
+
+        let guard = shared.txn.lock().await;
+        let encodes = AtomicUsize::new(0);
+        let mut canceled = Box::pin(txn_roundtrip(
+            &shared,
+            ADD_PARTITIONS_TO_TXN,
+            0,
+            |_| {
+                let _old = encodes.fetch_add(1, Ordering::SeqCst);
+                Ok(())
+            },
+            Duration::from_secs(10),
+            |_| Box::pin(async { Ok(0) }),
+        ));
+        let pending = std::future::poll_fn(|cx| {
+            Poll::Ready(std::future::Future::poll(canceled.as_mut(), cx).is_pending())
+        })
+        .await;
+        assert!(pending, "canceled caller never waited for the lock");
+        drop(canceled);
+        assert_eq!(encodes.load(Ordering::SeqCst), 0);
+
+        let mut call = Box::pin(txn_roundtrip(
+            &shared,
+            ADD_PARTITIONS_TO_TXN,
+            0,
+            |_| {
+                let _old = encodes.fetch_add(1, Ordering::SeqCst);
+                Ok(())
+            },
+            Duration::from_secs(10),
+            |_| Box::pin(async { Ok(0) }),
+        ));
+        let pending = std::future::poll_fn(|cx| {
+            Poll::Ready(std::future::Future::poll(call.as_mut(), cx).is_pending())
+        })
+        .await;
+        assert!(pending, "replacement caller never waited for the lock");
+        assert_eq!(encodes.load(Ordering::SeqCst), 0);
+        drop(guard);
+
+        let result = tokio::time::timeout(Duration::from_secs(5), call.as_mut())
+            .await
+            .unwrap()
+            .unwrap();
+        drop(call);
+        assert!(result.is_empty());
+        assert_eq!(encodes.load(Ordering::SeqCst), 1);
+        server_stop.notify_one();
+        tokio::time::timeout(Duration::from_secs(5), server)
+            .await
+            .unwrap()
+            .unwrap();
+    }
 
     #[tokio::test(flavor = "current_thread")]
     async fn unpolled_retired_worker_is_counted_until_its_resources_drop() {

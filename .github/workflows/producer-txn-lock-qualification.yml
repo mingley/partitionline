@@ -1,0 +1,153 @@
+name: producer transaction lock qualification
+
+on:
+  push:
+    branches:
+      - qualification/producer-txn-lock-20261108
+
+permissions:
+  contents: read
+
+concurrency:
+  group: producer-txn-lock-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  qualify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    env:
+      CARGO_INCREMENTAL: "0"
+      CARGO_PROFILE_DEV_DEBUG: "0"
+      CARGO_PROFILE_TEST_DEBUG: "0"
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          fetch-depth: 2
+          sparse-checkout: |
+            .cargo
+            src
+            tests
+            examples
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - name: Record host and check stable formatting
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/txn-lock-logs"
+          uname -a
+          test "$(uname -m)" = x86_64
+          rustc +stable --version --verbose
+          cargo +stable --version
+          df -h .
+          test "$(df -Pk . | awk 'NR==2 {print $4}')" -ge 2000000
+          cargo +stable fmt --all -- --check
+      - name: Prepare exact baseline with the candidate regression tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          base=3f45fe6255e72abc6b0c4488bc13117779c50787
+          test "$(git rev-parse HEAD^)" = "$base"
+          test "$(git rev-parse "$base:src/producer.rs")" = 997768c28b67fd8c0f647450467e29c4f88cbf81
+          cp src/producer.rs "$RUNNER_TEMP/producer-candidate.rs"
+          git show "$base:src/producer.rs" > "$RUNNER_TEMP/producer-baseline.rs"
+          python3 - <<'PY'
+          from pathlib import Path
+          import os
+          candidate = Path('src/producer.rs').read_text()
+          base = (Path(os.environ['RUNNER_TEMP']) / 'producer-baseline.rs').read_text()
+          begin = "\n    #[tokio::test(flavor = \"current_thread\")]\n    async fn txn_roundtrip_times_out_waiting_for_initial_lock() {"
+          end = "\n    #[tokio::test(flavor = \"current_thread\")]\n    async fn unpolled_retired_worker_is_counted_until_its_resources_drop() {"
+          anchor = "#[cfg(test)]\nmod tests {\n    use super::*;\n"
+          assert candidate.count(begin) == 1 and candidate.count(end) == 1
+          start = candidate.index(begin)
+          stop = candidate.index(end, start)
+          tests = candidate[start:stop]
+          without_tests = candidate[:start] + candidate[stop:]
+          old_first = "        let remaining = timeout_remaining(deadline)?;\n        let mut guard = shared.txn.lock().await;\n        let conn = guard\n            .as_mut()\n            .ok_or_else(|| Error::protocol(\"no transaction coordinator\"))?;\n        require_coord_version(conn, api_key, api_version)?;"
+          new_first = "        let mut guard = tokio::time::timeout(timeout_remaining(deadline)?, shared.txn.lock())\n            .await\n            .map_err(|_| Error::Timeout)?;\n        let conn = guard\n            .as_mut()\n            .ok_or_else(|| Error::protocol(\"no transaction coordinator\"))?;\n        require_coord_version(conn, api_key, api_version)?;\n        let remaining = timeout_remaining(deadline)?;"
+          old_snapshot = "    let found = {\n        let guard = shared.txn.lock().await;\n        guard"
+          new_snapshot = "    let found = {\n        let guard = tokio::time::timeout(timeout_remaining(deadline)?, shared.txn.lock())\n            .await\n            .map_err(|_| Error::Timeout)?;\n        let _remaining = timeout_remaining(deadline)?;\n        guard"
+          assert base.count(old_first) == 1 and base.count(old_snapshot) == 1
+          expected = base.replace(old_first, new_first).replace(old_snapshot, new_snapshot)
+          assert without_tests == expected, 'candidate contains unexpected changes'
+          assert base.count(anchor) == 1
+          Path('src/producer.rs').write_text(base.replace(anchor, anchor + tests))
+          print('Verified exact base plus test witnesses and two production hunks')
+          PY
+      - name: Verify both regressions fail on the baseline
+        shell: bash
+        run: |
+          set -euo pipefail
+          baseline_test() {
+            local name="$1" held="$2" broken="$3" mode="$4"
+            shift 4
+            local log="$RUNNER_TEMP/txn-lock-logs/baseline-${mode}-${name}.log"
+            set +e
+            timeout 300s cargo +stable test --locked "$@" --lib "producer::tests::${name}" -- --exact --nocapture > "$log" 2>&1
+            local status=$?
+            set -e
+            cat "$log"
+            test "$status" -eq 101
+            grep -F 'running 1 test' "$log"
+            grep -F "$held" "$log"
+            grep -F "$broken" "$log"
+            grep -F 'test result: FAILED. 0 passed; 1 failed;' "$log"
+          }
+          baseline_control() {
+            local mode="$1"
+            shift
+            local log="$RUNNER_TEMP/txn-lock-logs/baseline-${mode}-cancellation-control.log"
+            timeout 300s cargo +stable test --locked "$@" --lib producer::tests::txn_roundtrip_contended_after_canceled_waiter -- --exact --nocapture > "$log" 2>&1 || { cat "$log"; return 1; }
+            cat "$log"
+            grep -F 'test result: ok. 1 passed;' "$log"
+          }
+          for mode in default all-features; do
+            flags=()
+            if test "$mode" = all-features; then flags+=(--all-features); fi
+            baseline_test txn_roundtrip_times_out_waiting_for_initial_lock PL_FIRST_LOCK_HELD PL_FIRST_DEADLINE_BROKEN "$mode" "${flags[@]}"
+            baseline_test txn_roundtrip_times_out_waiting_for_rediscovery_snapshot_lock PL_SNAPSHOT_LOCK_HELD PL_SNAPSHOT_DEADLINE_BROKEN "$mode" "${flags[@]}"
+            baseline_control "$mode" "${flags[@]}"
+          done
+      - name: Restore and test the candidate
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp "$RUNNER_TEMP/producer-candidate.rs" src/producer.rs
+          cmp src/producer.rs "$RUNNER_TEMP/producer-candidate.rs"
+          candidate_test() {
+            local name="$1" mode="$2"
+            shift 2
+            local log="$RUNNER_TEMP/txn-lock-logs/candidate-${mode}-${name}.log"
+            timeout 300s cargo +stable test --locked "$@" --lib "producer::tests::${name}" -- --exact --nocapture > "$log" 2>&1 || { cat "$log"; return 1; }
+            cat "$log"
+            grep -F 'test result: ok. 1 passed;' "$log"
+          }
+          for mode in default all-features; do
+            flags=()
+            if test "$mode" = all-features; then flags+=(--all-features); fi
+            for name in \
+              txn_roundtrip_times_out_waiting_for_initial_lock \
+              txn_roundtrip_times_out_waiting_for_rediscovery_snapshot_lock \
+              txn_roundtrip_contended_after_canceled_waiter \
+              a_producer_coordinator_lookup_lets_the_broker_leave \
+              replacing_a_coordinator_socket_lets_the_broker_leave \
+              transaction_discovery_timeout_closes_the_bootstrap_socket
+            do
+              candidate_test "$name" "$mode" "${flags[@]}"
+            done
+          done
+      - name: Clippy with all library features
+        shell: bash
+        run: cargo +stable clippy --locked --lib --all-features -- -D warnings
+      - name: Retain qualification logs
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: producer-txn-lock-qualification-${{ github.sha }}
+          path: ${{ runner.temp }}/txn-lock-logs
+          if-no-files-found: warn
+          retention-days: 30
