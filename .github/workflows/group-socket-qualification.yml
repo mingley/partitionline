@@ -63,8 +63,9 @@ jobs:
         run: |
           cargo +stable test --release --locked --lib net::tests::stream_lock_overhead_probe -- --exact --ignored --nocapture
           cargo +stable test --release --locked --lib net::tests::stream_async_lock_overhead_probe -- --exact --ignored --nocapture
-      - name: Formatting
-        run: cargo +stable fmt --all -- --check
       - name: Broader network tests
         run: |
           cargo +stable test --locked --lib net::tests:: -- --test-threads=1
+          cargo +stable test --locked --test tls_shutdown_deadline -- --test-threads=1
+      - name: Formatting
+        run: cargo +stable fmt --all -- --check

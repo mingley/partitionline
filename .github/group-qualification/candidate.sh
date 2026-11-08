@@ -36,6 +36,32 @@ for feature in default all; do
     cat "$log"
     test "$status" -eq 0
     grep -Fq 'test result: ok. 1 passed; 0 failed;' "$log"
+    test_bin="$(sed -n 's/.*Running unittests src\/lib.rs (\(.*\))$/\1/p' "$log" | tail -n 1)"
+    test -n "$test_bin"
+    test_bin="$(realpath "$test_bin")"
+    case "$test_bin" in
+      "$GITHUB_WORKSPACE"/target/*) ;;
+      *) printf 'unexpected candidate executable: %s\n' "$test_bin" >&2; exit 1 ;;
+    esac
+    if [ "$feature" = default ]; then
+      sha256sum "$test_bin" | cut -d ' ' -f 1 > "$GITHUB_WORKSPACE/candidate-test.sha256"
+    fi
+    printf 'candidate executable: %s\n' "$test_bin"
     rm "$log"
   done
+done
+
+for feature in default all; do
+  log="$(mktemp)"
+  args=(+stable test --locked --test group_coord_tls_retirement idle_group_coordinator_retires_previous_tls_peer)
+  if [ "$feature" = all ]; then
+    args+=(--all-features)
+  fi
+  args+=(-- --exact --nocapture)
+  status=0
+  cargo "${args[@]}" >"$log" 2>&1 || status=$?
+  cat "$log"
+  test "$status" -eq 0
+  grep -Fq 'test result: ok. 1 passed; 0 failed;' "$log"
+  rm "$log"
 done

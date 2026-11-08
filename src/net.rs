@@ -3470,6 +3470,10 @@ mod tests {
         assert!(first.is_pending(), "the second lock must be queued");
         assert!(!conn.try_retire_physical());
         drop(held);
+        assert!(
+            shared.inner.try_lock().is_err(),
+            "the queued waiter must hold the reserved permit"
+        );
         drop(waiting);
         assert_retired_peer(&mut peer).await;
         assert!(conn.is_closed());
@@ -3492,9 +3496,14 @@ mod tests {
         assert!(first.is_pending(), "the second lock must be queued");
         assert!(!conn.try_retire_physical());
         drop(held);
+        assert!(
+            shared.inner.try_lock().is_err(),
+            "the queued waiter must hold the reserved permit"
+        );
         let next = tokio::time::timeout(Duration::from_secs(2), &mut waiting)
             .await
             .unwrap();
+        assert!(matches!(&*next, ConnIo::Tcp(_)));
         drop(waiting);
         drop(next);
         assert_retired_peer(&mut peer).await;
