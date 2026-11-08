@@ -917,7 +917,8 @@ fn validate_batch(
             limits,
             *total_headers,
         );
-        if prefix.complete && prefix.index == c.remaining().len()
+        if prefix.complete
+            && prefix.index == c.remaining().len()
             && (count == 0 || prefix.observed_max == max_time)
         {
             #[cfg(test)]
@@ -1118,7 +1119,6 @@ fn try_accept_plain(
     }
     index == bytes.len() && (count == 0 || observed_max == max_time)
 }
-
 
 /// Last record boundary checked by the header-aware walk.
 #[derive(Debug, Clone, Copy)]
@@ -1729,7 +1729,14 @@ mod tests {
         assert_eq!(prefix.headers, 5);
         let mut has_headers = false;
         assert!(!try_accept_plain(
-            &bytes[batch::LEN..], 6, 5, 1_000, 1_005, false, limits, &mut has_headers,
+            &bytes[batch::LEN..],
+            6,
+            5,
+            1_000,
+            1_005,
+            false,
+            limits,
+            &mut has_headers,
         ));
         assert!(has_headers);
         assert_eq!(validate(&bytes, limits).unwrap().header_count(), 5);
@@ -1771,7 +1778,14 @@ mod tests {
         assert_eq!(prefix.headers, 0);
         let mut has_headers = false;
         assert!(try_accept_plain(
-            &plain[batch::LEN..], 1, 0, 10, 10, false, limits, &mut has_headers,
+            &plain[batch::LEN..],
+            1,
+            0,
+            10,
+            10,
+            false,
+            limits,
+            &mut has_headers,
         ));
         assert!(!has_headers);
         assert!(both_with_limits(&plain, false, limits, 5).0.is_ok());
@@ -1780,7 +1794,14 @@ mod tests {
         let invalid_plain = encode(&invalid_plain, 10, 12, 2);
         let mut has_headers = false;
         assert!(!try_accept_plain(
-            &invalid_plain[batch::LEN..], 3, 2, 10, 12, false, limits, &mut has_headers,
+            &invalid_plain[batch::LEN..],
+            3,
+            2,
+            10,
+            12,
+            false,
+            limits,
+            &mut has_headers,
         ));
         assert!(!has_headers);
         assert!(matches!(
@@ -1850,7 +1871,9 @@ mod tests {
         // previous offset and header count retained for the generic walk.
         let mut late_bad: Vec<_> = (0..4).map(|n| sample(n, b"v")).collect();
         for record in &mut late_bad {
-            record.headers.push((b"key".to_vec(), Some(b"value".to_vec())));
+            record
+                .headers
+                .push((b"key".to_vec(), Some(b"value".to_vec())));
         }
         late_bad[3].attributes = 1;
         let late_bad = encode(&late_bad, 20, 23, 3);
@@ -1864,6 +1887,67 @@ mod tests {
             both_with_limits(&late_bad, false, limits, 0).0,
             Err(Error::Invalid {
                 kind: Invalid::RecordAttributes,
+                ..
+            })
+        ));
+
+        let mut late_key: Vec<_> = (0..4).map(|n| sample(n, b"v")).collect();
+        for record in &mut late_key {
+            record.headers.push((b"key".to_vec(), None));
+        }
+        late_key[3].headers[0].0 = vec![0xff];
+        let late_key = encode(&late_key, 20, 23, 3);
+        let prefix = scan_header_prefix(&late_key[batch::LEN..], 4, 3, 20, false, limits, 1);
+        assert!(!prefix.complete);
+        assert_eq!(prefix.completed, 3);
+        assert_eq!(prefix.headers, 3);
+        super::reset_record_visits();
+        let mut fast_records = 0;
+        let mut fast_headers = 1;
+        let fast = validate_batch(
+            &late_key, 37, limits, &mut fast_records, &mut fast_headers, false, false,
+        );
+        let fast_visits = super::record_visits();
+        SKIP_PLAIN.with(|flag| flag.set(true));
+        super::reset_record_visits();
+        let mut slow_records = 0;
+        let mut slow_headers = 1;
+        let slow = validate_batch(
+            &late_key, 37, limits, &mut slow_records, &mut slow_headers, false, false,
+        );
+        let slow_visits = super::record_visits();
+        SKIP_PLAIN.with(|flag| flag.set(false));
+        assert_eq!(fast, slow);
+        assert!(matches!(
+            fast,
+            Err(Error::Invalid {
+                kind: Invalid::HeaderKey,
+                ..
+            })
+        ));
+        assert_eq!((fast_records, fast_headers), (slow_records, slow_headers));
+        assert_eq!(fast_headers, 5);
+        assert_eq!(fast_visits, slow_visits);
+        assert_eq!(fast_visits, 4);
+
+        let mut bad_max = bytes.clone();
+        bad_max[batch::MAX_TIMESTAMP..batch::PRODUCER_ID]
+            .copy_from_slice(&1_006_i64.to_be_bytes());
+        assert!(matches!(
+            both(&bad_max, false).0,
+            Err(Error::Invalid {
+                kind: Invalid::Timestamp,
+                ..
+            })
+        ));
+        let mut trailing = bytes.clone();
+        trailing.push(0);
+        let new_len = i32::try_from(trailing.len() - batch::PREFIX).unwrap();
+        trailing[batch::LENGTH..batch::LEADER_EPOCH].copy_from_slice(&new_len.to_be_bytes());
+        assert!(matches!(
+            both(&trailing, false).0,
+            Err(Error::Invalid {
+                kind: Invalid::TrailingBytes,
                 ..
             })
         ));
