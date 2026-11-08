@@ -89,9 +89,11 @@ pass does not replace the full release matrix.
   its full default run stopped on a quorum `Journal(AlreadyOpen)` failure.
   A [modeled cancellation overlap][fetch-overlap] retained two 4,096-byte
   inputs under a 4,160-byte configured admission ceiling; it did not measure
-  process RSS. An [admission candidate][admission] retains permits with
-  actor-owned requests, but its default all-target test failure is unresolved.
-  Earlier Raft failures remain open. The [journal repair][journal-repair]
+  process RSS. The [admission repair][admission] keeps data permits with
+  actor-owned requests and unconsumed replies. Vector capacity, supplied spares,
+  caches and process RSS remain outside the logical payload budget. An earlier
+  default transport test failure remains unexplained. Earlier Raft failures
+  remain open. The [journal repair][journal-repair]
   pins inode identities through ownership and staged syncs; it passed both full
   broker profiles and descriptor controls. It adds file descriptors on Unix.
   [Earlier journal controls][journal] did not establish the cause of the quorum
@@ -111,7 +113,7 @@ The [support matrix](support.md) describes configured coverage, and the
 
 [ci]: https://github.com/mingley/partitionline/blob/7ebb3cc81adc695cc4c74409a87a1a1dd4be9730/docs/evidence/releases/main-ci-ba8-20261108/README.md
 [previous-ci]: https://github.com/mingley/partitionline/blob/cf02f56c4e4c49b11032f7abc1eb46b14ed9ded2/docs/evidence/releases/main-ci-7f59-20261108/README.md
-[next]: https://github.com/mingley/partitionline/blob/7ebb3cc81adc695cc4c74409a87a1a1dd4be9730/docs/plan/next-work.md
+[next]: https://github.com/mingley/partitionline/blob/b2d9bcaec1e12c2d79535382ec2c402038c0c6b9/docs/plan/next-work.md
 [previous]: https://github.com/mingley/partitionline/blob/5c2a000639d9a8a7dccd56e8c1d6f3a58dca1601/docs/STATUS.md
 [flush]: https://github.com/mingley/partitionline/blob/e980829c439aa43edc01312c91838e58a412221a/docs/evidence/client/producer-flush-native-86f2-20261103/README.md
 [txn]: https://github.com/mingley/partitionline/blob/49ad56c6bce1366e2357c272f11c5c34160d60da/docs/evidence/client/add-partitions-native-4f0c-20261103/README.md
@@ -132,5 +134,5 @@ The [support matrix](support.md) describes configured coverage, and the
 [socket]: https://github.com/mingley/partitionline/blob/c86a2eee826459672e3a25b8ea6ea744dccb0119/docs/evidence/client/group-coordinator-retirement-20261108/README.md
 [cleanup-deferred]: https://github.com/mingley/partitionline/blob/7ebb3cc81adc695cc4c74409a87a1a1dd4be9730/docs/evidence/client/producer-failure-cleanup-20261108/DEFERRED.md
 [journal]: https://github.com/mingley/partitionline/blob/cf02f56c4e4c49b11032f7abc1eb46b14ed9ded2/docs/qualification/journal-ownership-2026-11-08.md
-[journal-repair]: https://github.com/mingley/partitionline/blob/7ebb3cc81adc695cc4c74409a87a1a1dd4be9730/docs/evidence/broker/journal-ownership-repair-20261108/README.md
-[admission]: https://github.com/mingley/partitionline/blob/7ebb3cc81adc695cc4c74409a87a1a1dd4be9730/docs/evidence/broker/fetch-owned-admission-20261108/README.md
+[journal-repair]: https://github.com/mingley/partitionline/blob/b2d9bcaec1e12c2d79535382ec2c402038c0c6b9/docs/evidence/broker/journal-ownership-repair-20261108/README.md
+[admission]: https://github.com/mingley/partitionline/blob/b2d9bcaec1e12c2d79535382ec2c402038c0c6b9/docs/evidence/broker/fetch-owned-admission-20261108/README.md
