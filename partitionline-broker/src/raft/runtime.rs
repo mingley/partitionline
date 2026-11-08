@@ -5367,20 +5367,195 @@ mod ownership_tests {
         let stale = grant(&peers[0], old[0]).await?;
         source.reject_vote("aborted-dispatch-displaced", stale).await?;
 
-        // The accepted first new vote is still queued. The second new vote
-        // was never offered; a direct genuine reply shows its correlation
-        // remains live after independently aborting the dispatch future.
-        let accepted = grant(&peers[0], new[0]).await?;
-        assert!(matches!(source.fixture("queued-current", Command::Acknowledge(accepted)).await??, Reply::Done));
+        // The second current job was never offered, but its exact correlation
+        // remains live until the owner advances its term or steps down.
         let unoffered = grant(&peers[1], new[1]).await?;
         assert!(matches!(source.fixture("unoffered-current", Command::Acknowledge(unoffered)).await??, Reply::Done));
-        assert_eq!(source.state().await?.election.role, Role::Leader);
-        println!("aborted-dispatch displaced_fenced=true queued_current=accepted unoffered_current=accepted");
+        assert_eq!(source.state().await?.election.role, Role::Candidate);
+
+        // A later real campaign replaces the whole correlation vector. Both
+        // the queued and another never-offered current job must now be fenced.
+        tokio::time::sleep(Duration::from_millis(3)).await;
+        let Reply::Votes(next_jobs) = source.fixture("after-abort-next-tick", Command::Tick).await?? else {
+            return Err("next campaign".into());
+        };
+        let next = next_jobs.iter().map(|job| match job {
+            Job::Vote(q) => Ok(*q),
+            _ => Err("next vote"),
+        }).collect::<std::result::Result<Vec<_>, _>>()?;
+        assert_eq!(next.len(), 4);
+        assert!(next[0].request.term > new[0].request.term);
+        let queued_old = grant(&peers[0], new[0]).await?;
+        source.reject_vote("later-campaign-fences-queued", queued_old).await?;
+        let unoffered_old = grant(&peers[2], new[2]).await?;
+        source.reject_vote("later-campaign-fences-unoffered", unoffered_old).await?;
+
+        // A genuine higher-term vote request from a peer steps the source
+        // down. Its still-registered next-term correlation is then fenced.
+        let mut higher = None;
+        for _ in 0..16 {
+            tokio::time::sleep(Duration::from_millis(3)).await;
+            let Reply::Votes(votes) = peers[3].fixture("higher-peer-tick", Command::Tick).await?? else {
+                return Err("higher peer campaign".into());
+            };
+            for vote in votes {
+                let Job::Vote(q) = vote else { return Err("higher peer vote".into()); };
+                if q.context.peer.id == 0 && q.request.term > next[0].request.term {
+                    higher = Some(q);
+                }
+            }
+            if higher.is_some() { break; }
+        }
+        let higher = higher.ok_or("higher campaign not generated")?;
+        let _genuine_reply = grant(&source, higher).await?;
+        let after_stepdown = source.state().await?;
+        assert_eq!(after_stepdown.election.role, Role::Follower);
+        assert_eq!(after_stepdown.election.persistent.term, higher.request.term);
+        let after_stepdown_reply = grant(&peers[0], next[0]).await?;
+        source.reject_vote("stepdown-fences-current", after_stepdown_reply).await?;
+        println!("aborted-dispatch displaced_fenced=true unoffered_current=accepted later_campaign_fenced_queued_and_unoffered=true stepdown_fenced_current=true");
         drop(routes);
         for peer in peers {
             peer.finish().await?;
         }
         source.finish().await
+    }
+
+
+
+    #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+    async fn stepdown_during_dispatch_fences_old_and_orders_next_campaign() -> TestResult {
+        let source = LocalOwner::open(0, 5, 1).await?;
+        let peer = LocalOwner::open(1, 5, 16).await?;
+        let higher_peer = LocalOwner::open(4, 5, 16).await?;
+        tokio::time::sleep(Duration::from_millis(3)).await;
+        let Reply::Votes(old_jobs) = source.fixture("stepdown-old-tick", Command::Tick).await?? else {
+            return Err("old campaign".into());
+        };
+        let mut routes = Vec::new();
+        for job in old_jobs {
+            let Job::Vote(q) = job else { return Err("old vote".into()); };
+            let slot = Arc::new(VoteSlot::default());
+            assert!(slot.offer(Job::Vote(q)).map_err(|_| "fill old route")?.is_none());
+            routes.push((q.context.peer, slot));
+        }
+        tokio::time::sleep(Duration::from_millis(3)).await;
+        let Reply::Votes(current_jobs) = source.fixture("stepdown-current-tick", Command::Tick).await?? else {
+            return Err("current campaign".into());
+        };
+        let current = current_jobs.iter().map(|job| match job {
+            Job::Vote(q) => Ok(*q), _ => Err("current vote")
+        }).collect::<std::result::Result<Vec<_>, _>>()?;
+        assert_eq!(current.len(), 4);
+        let mut higher = None;
+        for _ in 0..16 {
+            tokio::time::sleep(Duration::from_millis(3)).await;
+            let Reply::Votes(votes) = higher_peer.fixture("stepdown-peer-tick", Command::Tick).await?? else {
+                return Err("higher campaign".into());
+            };
+            for vote in votes {
+                let Job::Vote(q) = vote else { return Err("higher vote".into()); };
+                if q.context.peer.id == 0 && q.request.term > current[0].request.term {
+                    higher = Some(q);
+                }
+            }
+            if higher.is_some() { break; }
+        }
+        let higher = higher.ok_or("higher vote")?;
+
+        // Hold the owner, put the real higher-term inbound vote ahead of the
+        // first cancellation, and observe the first replacement before release.
+        let (held, held_reply, entered, release) = gate(Command::State);
+        source.control.commands.send(held).await.map_err(|_| "held admission")?;
+        entered.await?;
+        let (incoming_tx, incoming_rx) = oneshot::channel();
+        source.control.commands.send(Envelope {
+            command: Command::Inbound(higher.context.leader, Message::Vote(higher)),
+            reply: incoming_tx,
+            permit: None,
+            transport: None,
+            started: Arc::new(AtomicBool::new(false)),
+            deadline: None,
+            delivery_gate: None,
+            _counter: None,
+        }).await.map_err(|_| "incoming admission")?;
+        let child_control = source.control.clone();
+        let child_routes = routes.clone();
+        let task = tokio::spawn(async move { dispatch_votes(&child_control, &child_routes, current_jobs).await });
+        let observed = tokio::time::timeout(Duration::from_secs(2), async {
+            loop {
+                let q = {
+                    let state = routes[0].1.state.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
+                    match &state.pending { Some(Job::Vote(q)) => Some(*q), _ => None }
+                };
+                if q == Some(current[0]) { break; }
+                tokio::task::yield_now().await;
+            }
+        }).await;
+        let channel_was_full = source.control.commands.capacity() == 0;
+        let released = release.send(());
+        let held_delivered = held_reply.await;
+        let incoming_delivered = incoming_rx.await;
+        let dispatch_result = tokio::time::timeout(Duration::from_secs(2), task).await;
+        observed.map_err(|_| "replacement was not observed")?;
+        assert!(channel_was_full);
+        released.map_err(|_| "owner gate release")?;
+        held_delivered?.result?;
+        let incoming = incoming_delivered?.result?;
+        assert!(matches!(incoming, Reply::Message(Message::VoteReply(q)) if q.request == higher && q.response.granted));
+        dispatch_result??;
+        let stepped = source.state().await?;
+        assert_eq!(stepped.election.role, Role::Follower);
+        assert_eq!(stepped.election.persistent.term, higher.request.term);
+        let stale = grant(&peer, current[0]).await?;
+        source.reject_vote("stepdown-fences-dispatched-current", stale).await?;
+
+        // This next Tick is deliberately issued only after dispatch has
+        // completed, as in supervise; all per-peer slots move forward in term.
+        tokio::time::sleep(Duration::from_millis(3)).await;
+        let Reply::Votes(next_jobs) = source.fixture("post-stepdown-tick", Command::Tick).await?? else {
+            return Err("post-stepdown campaign".into());
+        };
+        let next = next_jobs.iter().map(|job| match job {
+            Job::Vote(q) => Ok(*q), _ => Err("post-stepdown vote")
+        }).collect::<std::result::Result<Vec<_>, _>>()?;
+        assert_eq!(next.len(), 4);
+        assert!(next.iter().all(|q| q.request.term > higher.request.term));
+        dispatch_votes(&source.control, &routes, next_jobs).await;
+        for (index, (_, slot)) in routes.iter().enumerate() {
+            let pending = slot.state.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
+            assert!(matches!(&pending.pending, Some(Job::Vote(q)) if *q == next[index]));
+        }
+        println!("dispatch-stepdown old_current={} higher={} next={} all_routes_forward=true",
+            current[0].request.term, higher.request.term, next[0].request.term);
+        drop(routes);
+        higher_peer.finish().await?;
+        peer.finish().await?;
+        source.finish().await
+    }
+
+    #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+    async fn stopping_outbound_cancels_its_pending_vote_before_exit() -> TestResult {
+        let source = LocalOwner::open(0, 2, 16).await?;
+        let (job, request) = queue_control_campaign(&source).await?;
+        let route = source.control.config.peers[0].clone();
+        let slot = Arc::new(VoteSlot::default());
+        assert!(slot.offer(job).map_err(|_| "pending offer")?.is_none());
+        source.control.stop();
+        let worker_control = source.control.clone();
+        let worker_slot = slot.clone();
+        let worker = tokio::spawn(async move { outbound(worker_control, route, worker_slot).await });
+        tokio::time::timeout(Duration::from_secs(2), worker).await??;
+        // Cancellation remains accepted after stop, and an exact duplicate
+        // must reject because the worker already retired the pending request.
+        match source.control.reliable(Command::CancelVote(request)).await {
+            Err(Error::Node(replication::Error::InvalidPeer)) => {}
+            Err(other) => return Err(format!("worker cancellation probe failed: {other:?}").into()),
+            Ok(_) => return Err("worker did not retire pending vote".into()),
+        }
+        assert!(matches!(slot.offer(Job::Vote(request)), Err(Job::Vote(q)) if q == request));
+        println!("outbound-stop pending_canceled=true route_closed=true worker_joined=true");
+        source.finish_with_manual_workers(1).await
     }
 
     #[tokio::test(flavor = "multi_thread", worker_threads = 2)]

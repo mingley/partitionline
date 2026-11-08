@@ -28,7 +28,7 @@ jobs:
           for features in default all; do
             args=()
             if [[ "$features" == all ]]; then args=(--all-features); fi
-            for case in vote_slot_replaces_wakes_closes_and_keeps_ownership_bounded queued_new_vote_replaces_stale_campaign_and_is_elected abandoned_vector_and_route_outcomes_fence_exact_correlations vote_slot_sustained_ready_allows_a_competing_task_to_progress vote_slot_close_and_offer_are_linearizable aborted_dispatch_exposes_undispatched_vote_ownership; do
+            for case in vote_slot_replaces_wakes_closes_and_keeps_ownership_bounded queued_new_vote_replaces_stale_campaign_and_is_elected abandoned_vector_and_route_outcomes_fence_exact_correlations vote_slot_sustained_ready_allows_a_competing_task_to_progress vote_slot_close_and_offer_are_linearizable aborted_dispatch_exposes_undispatched_vote_ownership stepdown_during_dispatch_fences_old_and_orders_next_campaign stopping_outbound_cancels_its_pending_vote_before_exit; do
               cargo test --locked --manifest-path partitionline-broker/Cargo.toml --lib "${args[@]}" "$case" -- --nocapture
             done
           done
