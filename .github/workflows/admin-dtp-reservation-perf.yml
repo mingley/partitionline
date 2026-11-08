@@ -1,0 +1,107 @@
+name: DescribeTopicPartitions allocation comparison
+on:
+  push:
+    branches:
+      - work/admin-dtp-reservation-perf-20261108
+permissions:
+  contents: read
+jobs:
+  compare:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          path: candidate
+      - uses: actions/checkout@v7
+        with:
+          ref: 60caa746c3654c89d01557e35e1100cdc2a84b74
+          path: baseline
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Build separate probes with the same dependency lock
+        shell: bash
+        run: |
+          set -euo pipefail
+          rustc -Vv
+          lscpu | grep -E 'Model name|CPU\(s\)'
+          sha256sum candidate/qualification/dtp-reservation/driver.rs candidate/src/protocol/admin.rs baseline/src/protocol/admin.rs
+          for arm in candidate baseline; do
+            mkdir -p "$RUNNER_TEMP/probe-$arm/src"
+            cp candidate/qualification/dtp-reservation/driver.rs "$RUNNER_TEMP/probe-$arm/src/main.rs"
+            cat > "$RUNNER_TEMP/probe-$arm/Cargo.toml" <<EOF
+          [package]
+          name = "dtp-reservation-probe"
+          version = "0.0.0"
+          edition = "2021"
+          [workspace]
+          [dependencies]
+          partitionline = { path = "$GITHUB_WORKSPACE/$arm" }
+          bytes = "1"
+          tokio = { version = "1", features = ["rt", "net", "time"] }
+          EOF
+          done
+          cargo generate-lockfile --manifest-path "$RUNNER_TEMP/probe-candidate/Cargo.toml"
+          cp "$RUNNER_TEMP/probe-candidate/Cargo.lock" "$RUNNER_TEMP/probe-baseline/Cargo.lock"
+          sha256sum "$RUNNER_TEMP/probe-candidate/Cargo.lock" "$RUNNER_TEMP/probe-baseline/Cargo.lock"
+          for arm in baseline candidate; do
+            CARGO_TARGET_DIR="$RUNNER_TEMP/target-$arm" cargo build --locked --release --manifest-path "$RUNNER_TEMP/probe-$arm/Cargo.toml"
+            cp "$RUNNER_TEMP/target-$arm/release/dtp-reservation-probe" "$RUNNER_TEMP/$arm-binary"
+            sha256sum "$RUNNER_TEMP/$arm-binary"
+          done
+          test "$(sha256sum "$RUNNER_TEMP/baseline-binary" | cut -d' ' -f1)" != "$(sha256sum "$RUNNER_TEMP/candidate-binary" | cut -d' ' -f1)"
+      - name: Malformed and differential controls
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/dtp-evidence"
+          for arm in baseline candidate; do
+            "$RUNNER_TEMP/$arm-binary" witness > "$RUNNER_TEMP/dtp-evidence/$arm-witness.txt"
+            "$RUNNER_TEMP/$arm-binary" corpus > "$RUNNER_TEMP/dtp-evidence/$arm-corpus.txt"
+            cat "$RUNNER_TEMP/dtp-evidence/$arm-witness.txt"
+          done
+          diff -u "$RUNNER_TEMP/dtp-evidence/baseline-corpus.txt" "$RUNNER_TEMP/dtp-evidence/candidate-corpus.txt"
+          python3 - "$RUNNER_TEMP/dtp-evidence" <<'PY'
+          import pathlib,sys
+          root=pathlib.Path(sys.argv[1])
+          old=[x.split('|',5) for x in (root/'baseline-witness.txt').read_text().splitlines()]
+          new=[x.split('|',5) for x in (root/'candidate-witness.txt').read_text().splitlines()]
+          assert len(old)==len(new)==6
+          for a,b in zip(old,new):
+              assert (a[0],a[1],a[4],a[5])==(b[0],b[1],b[4],b[5]),(a,b)
+              assert int(b[3])<int(a[3]),(a,b)
+              if a[0] in ('0','1'): assert int(b[3])<=16*1024,(a,b)
+          print('all six allocation controls match errors and remaining bytes; candidate requests less')
+          PY
+      - name: Paired valid decode timings
+        shell: bash
+        run: |
+          set -euo pipefail
+          cpu=$(python3 -c 'import os; print(min(os.sched_getaffinity(0)))')
+          printf 'pinned_cpu=%s\n' "$cpu"
+          for pair in $(seq 1 8); do
+            if [ $((pair % 2)) -eq 1 ]; then order=(baseline candidate); else order=(candidate baseline); fi
+            for arm in "${order[@]}"; do
+              taskset -c "$cpu" "$RUNNER_TEMP/$arm-binary" bench > "$RUNNER_TEMP/dtp-evidence/$arm-$pair.txt"
+              cat "$RUNNER_TEMP/dtp-evidence/$arm-$pair.txt"
+            done
+          done
+          python3 - "$RUNNER_TEMP/dtp-evidence" <<'PY'
+          import pathlib,statistics,sys
+          root=pathlib.Path(sys.argv[1])
+          for shape in ('small','topics','parts','replicas'):
+              ratios=[]
+              for pair in range(1,9):
+                  vals={}
+                  for arm in ('baseline','candidate'):
+                      rows=[r.split('|') for r in (root/f'{arm}-{pair}.txt').read_text().splitlines()]
+                      vals[arm]=int(next(r[2] for r in rows if r[0]==shape))
+                  ratios.append(vals['candidate']/vals['baseline'])
+              print(shape,'median',statistics.median(ratios),'range',min(ratios),max(ratios),'slower',sum(x>1 for x in ratios),'ratios',ratios)
+          PY
+      - uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: dtp-reservation-diagnostics
+          path: ${{ runner.temp }}/dtp-evidence/
+          if-no-files-found: warn
+          retention-days: 30
