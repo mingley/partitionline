@@ -14128,8 +14128,12 @@ impl Admin {
             .ok_or(Error::Timeout)?;
         tokio::time::timeout_at(deadline, async {
             let _remaining = dtp_remaining(deadline)?;
-            let mut requested_names = HashSet::new();
             let use_index = names.len() > 8;
+            let mut requested_names = if use_index {
+                HashSet::with_capacity(names.len().min(32))
+            } else {
+                HashSet::new()
+            };
             if use_index {
                 index_requested_dtp_names(names, &mut requested_names).await;
             }
