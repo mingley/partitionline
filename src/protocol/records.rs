@@ -3266,7 +3266,12 @@ pub(crate) fn start_record_batch(
     let batch_start = buf.len();
     buf.extend_from_slice(&wire);
     // The successful append guarantees these positions fit in usize.
-    (batch_start, batch_start + 8, batch_start + 17, batch_start + 21)
+    (
+        batch_start,
+        batch_start + 8,
+        batch_start + 17,
+        batch_start + 21,
+    )
 }
 
 pub(crate) fn finish_record_batch(
@@ -5142,7 +5147,10 @@ mod tests {
                     let expected_positions = reference_start_record_batch(&mut expected, &header);
                     let actual_positions = start_record_batch(&mut actual, &header);
                     assert_eq!(actual_positions, expected_positions);
-                    assert_eq!(actual, expected, "count={count}, base={base}, prefix={prefix_len}");
+                    assert_eq!(
+                        actual, expected,
+                        "count={count}, base={base}, prefix={prefix_len}"
+                    );
                 }
             }
         }
