@@ -23,7 +23,7 @@ jobs:
           path: baseline
       - uses: actions/checkout@v7
         with:
-          ref: daf08811cebd8d769a45f3db83417a5905d61e91
+          ref: 99108fb47ddd234f6b9e8a18c89bbf2446d88672
           path: candidate
       - uses: dtolnay/rust-toolchain@stable
       - name: Build separate release binaries
@@ -38,10 +38,10 @@ jobs:
           for arm in baseline candidate; do
             mkdir -p "$arm/partitionline-broker/examples"
             cp harness/.github/qualification/records_header_bench.rs "$arm/partitionline-broker/examples/records_header_bench.rs"
-            cargo +stable build --release --locked --manifest-path "$arm/partitionline-broker/Cargo.toml" --example records_header_bench
+            CARGO_TARGET_DIR="$RUNNER_TEMP/records-target-$arm" cargo +stable build --release --locked --manifest-path "$arm/partitionline-broker/Cargo.toml" --example records_header_bench
           done
-          sha256sum baseline/target/release/examples/records_header_bench candidate/target/release/examples/records_header_bench | tee "$RUNNER_TEMP/records-bench/binaries.txt"
-          test "$(sha256sum baseline/target/release/examples/records_header_bench | cut -d' ' -f1)" != "$(sha256sum candidate/target/release/examples/records_header_bench | cut -d' ' -f1)"
+          sha256sum "$RUNNER_TEMP/records-target-baseline/release/examples/records_header_bench" "$RUNNER_TEMP/records-target-candidate/release/examples/records_header_bench" | tee "$RUNNER_TEMP/records-bench/binaries.txt"
+          test "$(sha256sum "$RUNNER_TEMP/records-target-baseline/release/examples/records_header_bench" | cut -d' ' -f1)" != "$(sha256sum "$RUNNER_TEMP/records-target-candidate/release/examples/records_header_bench" | cut -d' ' -f1)"
       - name: Alternate matched arms on one CPU
         shell: bash
         run: |
@@ -53,7 +53,7 @@ jobs:
             for pair in $(seq 1 8); do
               if (( pair % 2 )); then arms="baseline candidate"; else arms="candidate baseline"; fi
               for arm in $arms; do
-                taskset -c "$cpu" "$arm/target/release/examples/records_header_bench" "$kind" > "$out/$kind.$arm.$pair.samples" 2> "$out/$kind.$arm.$pair.input"
+                taskset -c "$cpu" "$RUNNER_TEMP/records-target-$arm/release/examples/records_header_bench" "$kind" > "$out/$kind.$arm.$pair.samples" 2> "$out/$kind.$arm.$pair.input"
               done
             done
           done
