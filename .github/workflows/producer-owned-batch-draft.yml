@@ -57,3 +57,28 @@ jobs:
           components: clippy
       - name: Strict target clippy
         run: cargo clippy --locked --all-features --test producer_owned_batch_draft -- -D warnings
+  expected-counterexamples:
+    name: Known counterexamples (${{ matrix.profile }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        profile: [default, all]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Verify all four intended failures
+        shell: bash
+        run: |
+          set +e
+          if [ "${{ matrix.profile }}" = all ]; then
+            cargo test --locked --all-features --test producer_owned_batch_draft -- --ignored --test-threads=1 --nocapture 2>&1 | tee "${RUNNER_TEMP}/counterexamples.log"
+          else
+            cargo test --locked --test producer_owned_batch_draft -- --ignored --test-threads=1 --nocapture 2>&1 | tee "${RUNNER_TEMP}/counterexamples.log"
+          fi
+          status=${PIPESTATUS[0]}
+          set -e
+          test "$status" -ne 0
+          for marker in FOREIGN_ATTEMPT_ACCEPTED DEFINITIVE_ACK_LOST EXPIRED_SUFFIX_BLOCKED_PREFIX CLAIM_OFFERED_WITHOUT_ROOT; do
+            grep -F "$marker" "${RUNNER_TEMP}/counterexamples.log"
+          done

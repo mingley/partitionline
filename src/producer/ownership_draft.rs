@@ -234,10 +234,9 @@ impl Owner {
             Some(OwnerError::TooLarge)
         } else if core.limits.logical_bytes.is_some_and(|limit| {
             core.bytes.checked_add(payload.len()).is_none_or(|next| next > limit)
-        }) || core.bytes.checked_add(payload.len()).is_none() {
-            Some(OwnerError::Full)
-        } else if !core.partitions.contains_key(&partition)
-            && core.limits.partitions.is_some_and(|limit| core.partitions.len() >= limit)
+        }) || core.bytes.checked_add(payload.len()).is_none()
+            || (!core.partitions.contains_key(&partition)
+                && core.limits.partitions.is_some_and(|limit| core.partitions.len() >= limit))
         {
             Some(OwnerError::Full)
         } else {
@@ -252,7 +251,7 @@ impl Owner {
         let key = RecordKey(core.next_record);
         core.next_record = next;
         core.bytes += payload.len();
-        let _ = core.records.insert(key, Record { payload, deadline, timestamp, batch: None });
+        drop(core.records.insert(key, Record { payload, deadline, timestamp, batch: None }));
         core.partitions.entry(partition).or_default().queue.push_back(key);
         Ok(key)
     }
@@ -338,7 +337,7 @@ impl Owner {
         partition_state.active = Some(key);
         partition_state.next_sequence = next_sequence;
         core.next_batch = next_batch;
-        let _ = core.batches.insert(key, batch);
+        drop(core.batches.insert(key, batch));
         Ok(key)
     }
 
@@ -384,7 +383,7 @@ impl Owner {
         if next_generation > MAX_CLAIM_GENERATION {
             return Err(OwnerError::Exhausted);
         }
-        batch
+        let _previous = batch
             .state
             .compare_exchange(
                 current,
@@ -411,7 +410,7 @@ impl Owner {
         }
         match phase(current) {
             RETIRING => {
-                batch
+                let _previous = batch
                     .state
                     .compare_exchange(
                         current,
@@ -507,8 +506,15 @@ impl Owner {
         }
         let partition = core.partitions.get_mut(&batch.partition).ok_or(OwnerError::Stale)?;
         partition.active = None;
-        let _ = core.batches.remove(&key);
+        drop(core.batches.remove(&key));
         Ok(())
+    }
+
+    /// Test-only probe for whether a claim keeps the payload root alive.
+    #[cfg(test)]
+    pub(crate) fn root_lifetime_probe(&self) -> impl Fn() -> bool + 'static {
+        let root = Arc::downgrade(&self.core);
+        move || root.upgrade().is_some()
     }
 
     #[cfg(test)]
@@ -551,7 +557,7 @@ impl BatchClaim {
         if now >= self.batch.earliest_deadline {
             return Err(OwnerError::Expired);
         }
-        self.batch
+        let _previous = self.batch
             .state
             .compare_exchange(
                 state(self.generation, CLAIMED),
@@ -578,7 +584,7 @@ impl BatchClaim {
             return Err(OwnerError::Stale);
         }
         if now >= self.batch.earliest_deadline {
-            self.batch
+            let _previous = self.batch
                 .state
                 .compare_exchange(
                     state(self.generation, OFFERED),
@@ -589,7 +595,7 @@ impl BatchClaim {
                 .map_err(|_| OwnerError::Stale)?;
             return Err(OwnerError::Expired);
         }
-        self.batch
+        let _previous = self.batch
             .state
             .compare_exchange(
                 state(self.generation, OFFERED),

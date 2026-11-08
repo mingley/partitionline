@@ -2,9 +2,10 @@
 //!
 //! These tests do not exercise the public Kafka producer or a broker.
 
-#![expect(clippy::expect_used, clippy::indexing_slicing, reason = "asserting fixture invariants")]
+#![expect(clippy::expect_used, reason = "asserting fixture invariants")]
 
 #[expect(dead_code, reason = "qualification-only substrate is intentionally unwired")]
+#[expect(clippy::disallowed_types, reason = "isolated draft tests poisoned std mutex behavior and does not hold guards across awaits")]
 #[path = "../src/producer/ownership_draft.rs"]
 mod ownership;
 
@@ -36,14 +37,14 @@ fn zero_limits_are_unlimited_and_finite_limits_count_empty_records() {
     let p = partition("t", 0);
     let unlimited = Owner::new(identity(), Limits::new(0, 0, 0));
     for _ in 0..20 {
-        unlimited
+        let _record = unlimited
             .try_admit(p.clone(), vec![], Instant::now() + Duration::from_secs(1), None)
             .expect("zero limits are unlimited");
     }
     assert_eq!(unlimited.counts().expect("counts"), (20, 0));
 
     let bounded = Owner::new(identity(), Limits::new(1, 1, 1));
-    bounded
+    let _record = bounded
         .try_admit(p.clone(), vec![], Instant::now() + Duration::from_secs(1), None)
         .expect("first empty record");
     let error = bounded
@@ -68,9 +69,9 @@ async fn canceled_worker_cannot_drop_or_split_the_rooted_batch() {
     let (reached_tx, reached_rx) = tokio::sync::oneshot::channel();
     let task = tokio::spawn(async move {
         for member in snapshot.members.iter().take(8192) {
-            std::hint::black_box(member);
+            let _observed = std::hint::black_box(member);
         }
-        let _ = reached_tx.send(());
+        reached_tx.send(()).expect("receiver alive");
         std::future::pending::<()>().await;
         drop(claim);
     });
@@ -90,8 +91,8 @@ async fn canceled_worker_cannot_drop_or_split_the_rooted_batch() {
     let restored = owner.snapshot(key).expect("same batch");
     assert_eq!(restored.members, members);
     assert_eq!(restored.base_sequence, 0);
-    assert_eq!(owner.with_record(members[0], |bytes, _, ts| (bytes[0], ts)).expect("record"), (b'x', Some(123)));
-    assert_eq!(owner.with_record(later, |bytes, _, ts| (bytes[0], ts)).expect("later"), (b'y', None));
+    assert_eq!(owner.with_record(members.first().copied().expect("first member"), |bytes, _, ts| (bytes.first().copied().expect("byte"), ts)).expect("record"), (b'x', Some(123)));
+    assert_eq!(owner.with_record(later, |bytes, _, ts| (bytes.first().copied().expect("byte"), ts)).expect("later"), (b'y', None));
     drop(retry);
 }
 
@@ -107,7 +108,7 @@ async fn canceled_offered_attempt_remains_unknown_after_join_and_close() {
     let (reached_tx, reached_rx) = tokio::sync::oneshot::channel();
     let task = tokio::spawn(async move {
         let _attempt = claim.offer().expect("offer");
-        let _ = reached_tx.send(());
+        reached_tx.send(()).expect("receiver alive");
         std::future::pending::<()>().await;
         drop(claim);
     });
@@ -210,7 +211,7 @@ fn close_timeout_fences_preexisting_claims_and_keeps_records_rooted() {
     assert_eq!(owner.confirm_stopped_after_join(batch, generation).expect("stop"), BatchPhase::Ready);
     assert!(matches!(owner.claim(batch), Err(OwnerError::Closed)));
     assert!(!owner.drained(close).expect("drained"));
-    assert_eq!(owner.with_record(first, |bytes, _, _| bytes[0]).expect("first"), b'a');
+    assert_eq!(owner.with_record(first, |bytes, _, _| bytes.first().copied().expect("byte")).expect("first"), b'a');
 }
 
 #[test]
@@ -260,11 +261,11 @@ fn admission_and_close_share_a_cutoff_commit_point() {
         let p = p.clone();
         let start = Arc::clone(&start);
         joins.push(thread::spawn(move || {
-            start.wait();
+            let _arrival = start.wait();
             owner.try_admit(p, vec![1], Instant::now() + Duration::from_secs(5), None)
         }));
     }
-    start.wait();
+    let _arrival = start.wait();
     let close = owner.begin_close().expect("close");
     let accepted = joins.into_iter().filter_map(|join| join.join().expect("thread").ok()).count();
     assert_eq!(owner.counts().expect("count").0, accepted);
@@ -279,7 +280,7 @@ fn admission_and_close_share_a_cutoff_commit_point() {
 fn expired_member_cannot_be_silently_selected() {
     let owner = Owner::new(identity(), Limits::new(2, 2, 1));
     let p = partition("t", 0);
-    owner.try_admit(p.clone(), vec![1], Instant::now(), None).expect("admit");
+    let _record = owner.try_admit(p.clone(), vec![1], Instant::now(), None).expect("admit");
     let later = admit(&owner, &p, 2);
     assert!(matches!(owner.seal_batch(&p, 2, 2, Instant::now(), 1), Err(OwnerError::Expired)));
     assert_eq!(owner.counts().expect("retained"), (2, 2));
@@ -315,4 +316,65 @@ fn late_acknowledgement_retains_ambiguous_batch() {
     assert_eq!(claim.acknowledge_at(attempt, deadline), Err(OwnerError::Expired));
     assert_eq!(owner.snapshot(batch).expect("snapshot").phase, BatchPhase::Unknown);
     assert_eq!(owner.counts().expect("counts"), (1, 1));
+}
+
+#[test]
+#[ignore = "Known counterexample: attempts lack owner-scoped identity"]
+fn counterexample_foreign_owner_attempt_must_not_settle() {
+    let p = partition("cross-owner", 0);
+    let now = Instant::now();
+    let a = Owner::new(identity(), Limits::new(1, 1, 1));
+    let b = Owner::new(identity(), Limits::new(1, 1, 1));
+    let _a_record = a.try_admit(p.clone(), vec![1], now + Duration::from_secs(60), None).expect("a admit");
+    let _b_record = b.try_admit(p.clone(), vec![2], now + Duration::from_secs(60), None).expect("b admit");
+    let a_batch = a.seal_batch(&p, 1, 1, now, 1).expect("a seal");
+    let b_batch = b.seal_batch(&p, 1, 1, now, 1).expect("b seal");
+    let a_claim = a.claim(a_batch).expect("a claim");
+    let b_claim = b.claim(b_batch).expect("b claim");
+    let _a_attempt = a_claim.offer_at(now).expect("a offer");
+    let b_attempt = b_claim.offer_at(now).expect("b offer");
+    let outcome = a_claim.acknowledge_at(b_attempt, now);
+    assert!(matches!(outcome, Err(OwnerError::Stale)), "FOREIGN_ATTEMPT_ACCEPTED: {outcome:?}");
+}
+
+#[test]
+#[ignore = "Known counterexample: settlement is conflated with user deadline"]
+fn counterexample_definitive_late_ack_must_settle_protocol() {
+    let p = partition("late-ack", 0);
+    let now = Instant::now();
+    let deadline = now + Duration::from_millis(10);
+    let owner = Owner::new(identity(), Limits::new(1, 1, 1));
+    let _record = owner.try_admit(p.clone(), vec![1], deadline, None).expect("admit");
+    let batch = owner.seal_batch(&p, 1, 1, now, 1).expect("seal");
+    let claim = owner.claim(batch).expect("claim");
+    let attempt = claim.offer_at(now).expect("offer");
+    let outcome = claim.acknowledge_at(attempt, deadline);
+    assert!(outcome.is_ok(), "DEFINITIVE_ACK_LOST: {outcome:?}");
+}
+
+#[test]
+#[ignore = "Known counterexample: an out-of-budget expired record blocks the fitting prefix"]
+fn counterexample_expired_outside_limit_must_not_block_prefix() {
+    let p = partition("prefix", 0);
+    let now = Instant::now();
+    let owner = Owner::new(identity(), Limits::new(2, 2, 1));
+    let _live = owner.try_admit(p.clone(), vec![1], now + Duration::from_secs(60), None).expect("live");
+    let _expired = owner.try_admit(p.clone(), vec![2], now, None).expect("expired");
+    let outcome = owner.seal_batch(&p, 2, 1, now, 1);
+    assert!(outcome.is_ok(), "EXPIRED_SUFFIX_BLOCKED_PREFIX: {outcome:?}");
+}
+
+#[test]
+#[ignore = "Known counterexample: a claim can outlive its payload root"]
+fn counterexample_claim_must_keep_root_alive() {
+    let p = partition("root-lifetime", 0);
+    let now = Instant::now();
+    let owner = Owner::new(identity(), Limits::new(1, 1, 1));
+    let _record = owner.try_admit(p.clone(), vec![1], now + Duration::from_secs(60), None).expect("admit");
+    let batch = owner.seal_batch(&p, 1, 1, now, 1).expect("seal");
+    let claim = owner.claim(batch).expect("claim");
+    let root_alive = owner.root_lifetime_probe();
+    drop(owner);
+    let offered = claim.offer_at(now).is_ok();
+    assert!(root_alive() || !offered, "CLAIM_OFFERED_WITHOUT_ROOT");
 }
