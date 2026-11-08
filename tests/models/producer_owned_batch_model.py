@@ -105,6 +105,7 @@ class Owner:
         self.next_waiter = 1
         self.next_cohort = 1
         self.reservations = {}
+        self.reservation_cohort = {}
         self.records = {}
         self.queues = {}
         self.callback_order = {}
@@ -117,6 +118,7 @@ class Owner:
         self.used_bytes = 0
         self.closed = False
         self.close_result = None
+        self.close_drained = False
         self.now = 0
         self.completions = CompletionIntervals()
         self.reported = 0
@@ -152,6 +154,11 @@ class Owner:
         size = self.reservations.pop(token, None)
         if size is None:
             return False
+        cohort = self.reservation_cohort.pop(token, None)
+        if cohort is not None:
+            state = self.cohorts.get(cohort)
+            assert state is not None and state["live"] == 0 and state["creator"] == token
+            del self.cohorts[cohort]
         self.used_slots -= 1
         self.used_bytes -= size
         return True
@@ -168,10 +175,17 @@ class Owner:
             self.discard_reservation(token)
             return "partition_full"
         state = self.cohorts.get(cohort) if cohort is not None else None
+        created = self.reservation_cohort.get(token)
+        if created is not None and created != cohort:
+            self.discard_reservation(token)
+            return "cohort_mismatch"
         if cohort is not None:
             if state is None or state["sealed"] or state["cancelled"]:
                 self.discard_reservation(token)
                 return "cohort_closed"
+            if state["creator"] is not None and state["creator"] != token:
+                self.discard_reservation(token)
+                return "cohort_creator"
             if state["partition"] is not None and state["partition"] != partition:
                 self.discard_reservation(token)
                 return "cohort_partition"
@@ -191,6 +205,9 @@ class Owner:
             if prior is not None and prior != cohort:
                 self.cohorts[prior]["sealed"] = True
         del self.reservations[token]
+        self.reservation_cohort.pop(token, None)
+        if state is not None and state["creator"] == token:
+            state["creator"] = None
         self.partitions.add(partition)
         rec = Record(ticket, partition, payload, deadline, cohort, timestamp)
         self.records[ticket] = rec
@@ -202,16 +219,19 @@ class Owner:
             state["live"] += 1
         return ticket
 
-    def new_cohort(self):
-        if self.closed:
+    def new_cohort(self, reservation):
+        if self.closed or reservation not in self.reservations:
             return "closed"
+        if reservation in self.reservation_cohort:
+            return "reservation_has_cohort"
         if self.slot_limit is not None and len(self.cohorts) >= self.slot_limit:
             return "full"
         cohort = self._fresh("next_cohort")
         self.cohorts[cohort] = {
             "sealed": False, "cancelled": False, "members": [],
-            "live": 0, "partition": None,
+            "live": 0, "partition": None, "creator": reservation,
         }
+        self.reservation_cohort[reservation] = cohort
         return cohort
 
     def seal_cohort(self, cohort):
@@ -220,6 +240,7 @@ class Owner:
             return False
         state["sealed"] = True
         if state["live"] == 0:
+            self.reservation_cohort.pop(state["creator"], None)
             del self.cohorts[cohort]
         return True
 
@@ -229,6 +250,7 @@ class Owner:
             return False
         state["cancelled"] = True
         if state["live"] == 0:
+            self.reservation_cohort.pop(state["creator"], None)
             del self.cohorts[cohort]
         return True
 
@@ -249,7 +271,9 @@ class Owner:
             if tuple(itertools.islice(q, 0, len(expected))) != expected:
                 return None
             size = sum(len(self.records[x].data) for x in expected)
-            if ((hard_records is not None and len(expected) > hard_records)
+            if (len(expected) > max_records
+                    or (len(expected) > 1 and size > max_bytes)
+                    or (hard_records is not None and len(expected) > hard_records)
                     or (hard_bytes is not None and size > hard_bytes)):
                 for ticket in expected:
                     assert q.popleft() == ticket
@@ -257,11 +281,10 @@ class Owner:
                 if not q:
                     self.queues.pop(partition, None)
                 return "too_large"
-            if len(expected) > max_records or size > max_bytes:
-                return None
             members = list(expected)
         else:
-            if hard_bytes is not None and len(first.data) > hard_bytes:
+            if ((hard_records is not None and hard_records < 1)
+                    or (hard_bytes is not None and len(first.data) > hard_bytes)):
                 ticket = q.popleft()
                 self._outcome(ticket, "too_large")
                 if not q:
@@ -270,9 +293,11 @@ class Owner:
             total = 0
             for ticket in q:
                 rec = self.records[ticket]
-                if rec.cohort is not None or len(members) == max_records:
+                if (rec.cohort is not None or len(members) == max_records
+                        or (hard_records is not None and len(members) >= hard_records)):
                     break
-                if members and total + len(rec.data) > max_bytes:
+                if members and (total + len(rec.data) > max_bytes
+                                or (hard_bytes is not None and total + len(rec.data) > hard_bytes)):
                     break
                 members.append(ticket)
                 total += len(rec.data)
@@ -373,16 +398,31 @@ class Owner:
         return True
 
     def fail_queued(self, ticket, result):
+        if result == "ok":
+            return False
         rec = self.records.get(ticket)
         if rec is None or rec.batch is not None or rec.outcome is not None:
             return False
         q = self.queues.get(rec.partition)
         if q is None or ticket not in q:
             return False
+        if rec.cohort is not None:
+            self.cohorts[rec.cohort]["cancelled"] = True
+            self._outcome(ticket, result)
+            self.expire(self.now)
+            return True
         q.remove(ticket)
         if not q:
             del self.queues[rec.partition]
         return self._outcome(ticket, result)
+
+    def receipt(self, ticket):
+        # Models callback-before-receipt publication while the slot is rooted.
+        # Receiver ownership and wakeup are not represented.
+        rec = self.records.get(ticket)
+        if rec is None:
+            return "not_rooted"
+        return rec.outcome if rec.callback == "done" else "pending"
 
     def claim_callback(self, ticket):
         rec = self.records.get(ticket)
@@ -420,6 +460,7 @@ class Owner:
             self._release(ticket)
         else:
             self._collect_batch(rec.batch)
+        self._progress_close()
         return True
 
     def _release(self, ticket):
@@ -573,23 +614,35 @@ class Owner:
         self._compact_errors()
         return True
 
+    def _progress_close(self):
+        barrier = self.barriers.get("close")
+        if barrier is None or self.completions.prefix < barrier.cutoff:
+            return
+        if any(
+            batch.phase != "done" and any(ticket <= barrier.cutoff for ticket in batch.members)
+            for batch in self.batches.values()
+        ):
+            return
+        result = barrier.error if barrier.error is not None else "ok"
+        self.reported = max(self.reported, barrier.cutoff)
+        del self.barriers["close"]
+        self._compact_errors()
+        self.close_drained = True
+        # A prior observer timeout remains its result even after cleanup.
+        if self.close_result is None:
+            self.close_result = result
+
     def poll_flush(self, waiter):
-        if waiter == "close" and self.close_result is not None:
-            return self.close_result
+        if waiter == "close":
+            self._progress_close()
+            return self.close_result if self.close_result is not None else "pending"
         barrier = self.barriers.get(waiter)
         if barrier is None:
             return "unknown"
         if self.completions.prefix < barrier.cutoff:
             return "pending"
-        if waiter == "close" and any(
-            batch.phase != "done" and any(ticket <= barrier.cutoff for ticket in batch.members)
-            for batch in self.batches.values()
-        ):
-            return "pending"
         result = barrier.error if barrier.error is not None else "ok"
         self.reported = max(self.reported, barrier.cutoff)
-        if waiter == "close":
-            self.close_result = result
         del self.barriers[waiter]
         self._compact_errors()
         return result
@@ -597,6 +650,7 @@ class Owner:
     def close_deadline(self):
         if not self.closed:
             raise ValueError("close has not begun")
+        self._progress_close()
         if self.close_result is None:
             # Timeout returns to the observer; the reserved close barrier,
             # rooted batch and uncertainty fence remain in the owner.
@@ -622,6 +676,16 @@ def admit(owner, partition, data=b"", deadline=100, cohort=None, timestamp=None)
     if not isinstance(token, int):
         return token
     return owner.commit(token, partition, data, deadline, cohort, timestamp)
+
+
+def admit_new_cohort(owner, partition, data=b"", deadline=100):
+    reservation = owner.reserve(len(data))
+    assert isinstance(reservation, int)
+    cohort = owner.new_cohort(reservation)
+    assert isinstance(cohort, int)
+    ticket = owner.commit(reservation, partition, data, deadline, cohort)
+    assert isinstance(ticket, int)
+    return cohort, ticket
 
 
 def finish(owner, ticket):
@@ -769,12 +833,10 @@ class OwnerControls(unittest.TestCase):
 
     def test_expiring_sticky_member_cannot_split_an_unknown_batch(self):
         owner = Owner(slots=2)
-        cohort = owner.new_cohort()
-        one = admit(owner, "p", b"a", deadline=10, cohort=cohort)
+        cohort, one = admit_new_cohort(owner, "p", b"a", deadline=10)
         two = admit(owner, "p", b"b", deadline=20, cohort=cohort)
         self.assertIsNone(owner.seal_batch("p", 2, 2, 1))
         owner.seal_cohort(cohort)
-        self.assertIsNone(owner.seal_batch("p", 1, 2, 1))
         batch = owner.seal_batch("p", 2, 2, 1)
         lease = owner.claim(batch)
         owner.offer(batch, lease, 1)
@@ -884,7 +946,14 @@ class OwnerControls(unittest.TestCase):
                 elif action == "complete":
                     ticket = rng.choice(eligible)
                     outcome = rng.choice(("ok", "timeout"))
-                    self.assertTrue(owner.fail_queued(ticket, outcome))
+                    if outcome == "ok":
+                        partition = owner.records[ticket].partition
+                        batch = owner.seal_batch(partition, 1, 1, 0)
+                        lease = owner.claim(batch)
+                        attempt = owner.offer(batch, lease, 0)
+                        self.assertTrue(owner.acknowledge(batch, lease, attempt, 0))
+                    else:
+                        self.assertTrue(owner.fail_queued(ticket, outcome))
                     finish(owner, ticket)
                     completed[ticket] = outcome
                 elif action == "cancel":
@@ -932,8 +1001,7 @@ class OwnerControls(unittest.TestCase):
 
     def test_sticky_interleaving_and_cross_partition_rejected_before_admission(self):
         owner = Owner(slots=3, byte_limit=3)
-        cohort = owner.new_cohort()
-        first = admit(owner, "p", b"a", cohort=cohort)
+        cohort, first = admit_new_cohort(owner, "p", b"a")
         second = admit(owner, "p", b"b")
         self.assertEqual(admit(owner, "p", b"c", cohort=cohort), "cohort_closed")
         self.assertEqual(owner.used_slots, 2)
@@ -942,8 +1010,7 @@ class OwnerControls(unittest.TestCase):
         self.assertEqual(owner.queues["p"][0], second)
 
         other = Owner(slots=2)
-        cohort = other.new_cohort()
-        self.assertIsInstance(admit(other, "p", b"a", cohort=cohort), int)
+        cohort, _ = admit_new_cohort(other, "p", b"a")
         self.assertEqual(admit(other, "q", b"b", cohort=cohort), "cohort_partition")
         other.cancel_cohort(cohort)
         self.assertEqual(admit(other, "p", b"c", cohort=cohort), "cohort_closed")
@@ -952,8 +1019,7 @@ class OwnerControls(unittest.TestCase):
     def test_cohort_metadata_is_reclaimed_but_sequence_state_is_bounded_separately(self):
         owner = Owner(slots=1, byte_limit=1, partitions=2)
         for index in range(200):
-            cohort = owner.new_cohort()
-            ticket = admit(owner, "p", b"x", cohort=cohort)
+            cohort, ticket = admit_new_cohort(owner, "p", b"x")
             owner.seal_cohort(cohort)
             batch = owner.seal_batch("p", 1, 1, 0)
             self.assertEqual(owner.batches[batch].base, index)
@@ -982,13 +1048,45 @@ class OwnerControls(unittest.TestCase):
         self.assertTrue(owner.change_epoch(2, broker_authorized=True))
         self.assertIsInstance(admit(owner, "r", b"x"), int)
 
+    def test_queued_record_cannot_succeed_without_ack(self):
+        owner = Owner(slots=1)
+        ticket = admit(owner, "p", b"x")
+        self.assertFalse(owner.fail_queued(ticket, "ok"))
+        self.assertIsNone(owner.records[ticket].outcome)
+        self.assertEqual(tuple(owner.queues["p"]), (ticket,))
+
+    def test_queued_sticky_failure_cancels_the_entire_cohort(self):
+        owner = Owner(slots=2)
+        cohort, first = admit_new_cohort(owner, "p", b"a")
+        second = admit(owner, "p", b"b", cohort=cohort)
+        owner.seal_cohort(cohort)
+        self.assertTrue(owner.fail_queued(first, "failure"))
+        self.assertEqual(owner.records[first].outcome, "failure")
+        self.assertEqual(owner.records[second].outcome, "cohort_failed")
+        self.assertNotIn("p", owner.queues)
+        finish(owner, first)
+        finish(owner, second)
+        self.assertNotIn(cohort, owner.cohorts)
+        self.assertEqual(owner.used_slots, 0)
+
+    def test_nonsticky_selection_obeys_aggregate_hard_limits(self):
+        for hard_records in range(1, 4):
+            for hard_bytes in range(1, 4):
+                owner = Owner(slots=3)
+                tickets = [admit(owner, "p", b"x") for _ in range(3)]
+                batch = owner.seal_batch("p", 3, 3, 0,
+                                         hard_records=hard_records, hard_bytes=hard_bytes)
+                expected = min(hard_records, hard_bytes, 3)
+                self.assertEqual(owner.batches[batch].members, tuple(tickets[:expected]))
+                self.assertEqual(sum(len(owner.records[t].data) for t in owner.batches[batch].members),
+                                 expected)
+
     def test_sticky_hard_limit_fails_all_without_assigning_sequence(self):
         owner = Owner(slots=2)
-        cohort = owner.new_cohort()
-        one = admit(owner, "p", b"a", cohort=cohort)
+        cohort, one = admit_new_cohort(owner, "p", b"a")
         two = admit(owner, "p", b"b", cohort=cohort)
         owner.seal_cohort(cohort)
-        self.assertEqual(owner.seal_batch("p", 1, 2, 1, hard_records=1), "too_large")
+        self.assertEqual(owner.seal_batch("p", 2, 2, 1, hard_records=1), "too_large")
         self.assertEqual(owner.records[one].outcome, "cohort_too_large")
         self.assertEqual(owner.records[two].outcome, "cohort_too_large")
         self.assertNotIn("p", owner.next_sequence)
@@ -1093,8 +1191,7 @@ class OwnerControls(unittest.TestCase):
 
     def test_close_seals_open_sticky_cohort_and_drains_it(self):
         owner = Owner(slots=1)
-        cohort = owner.new_cohort()
-        ticket = admit(owner, "p", b"x", cohort=cohort)
+        cohort, ticket = admit_new_cohort(owner, "p", b"x")
         close = owner.close()
         batch = owner.seal_batch("p", 1, 1, 0)
         self.assertIsInstance(batch, int)
@@ -1121,6 +1218,62 @@ class OwnerControls(unittest.TestCase):
         self.assertEqual(owner.poll_flush(close), "timeout")
         self.assertEqual(owner.batches[batch].phase, "unknown")
         self.assertEqual(owner.used_slots, 1)
+
+    def test_soft_cohort_limit_is_an_explicit_failure(self):
+        owner = Owner(slots=2)
+        cohort, one = admit_new_cohort(owner, "p", b"a")
+        two = admit(owner, "p", b"b", cohort=cohort)
+        owner.seal_cohort(cohort)
+        self.assertEqual(owner.seal_batch("p", 1, 2, 0), "too_large")
+        self.assertEqual(owner.records[one].outcome, "cohort_too_large")
+        self.assertEqual(owner.records[two].outcome, "cohort_too_large")
+
+    def test_later_timeout_receipt_can_wait_behind_prior_callback(self):
+        owner = Owner(slots=2)
+        first = admit(owner, "p", b"a", deadline=100)
+        second = admit(owner, "p", b"b", deadline=1)
+        batch = owner.seal_batch("p", 2, 2, 0)
+        lease = owner.claim(batch)
+        attempt = owner.offer(batch, lease, 0)
+        self.assertTrue(owner.ambiguous(batch, lease, attempt))
+        owner.expire(1)
+        self.assertEqual(owner.records[second].outcome, "timeout")
+        self.assertEqual(owner.receipt(second), "pending")
+        self.assertIsNone(owner.claim_callback(second))
+        owner.expire(100)
+        finish(owner, first)
+        finish(owner, second)
+        self.assertEqual(owner.receipt(second), "timeout")
+
+    def test_timed_out_close_drains_later_without_rewriting_observer_result(self):
+        owner = Owner(slots=1)
+        ticket = admit(owner, "p", b"x")
+        close = owner.close()
+        self.assertEqual(owner.close_deadline(), "timeout")
+        batch = owner.seal_batch("p", 1, 1, 0)
+        lease = owner.claim(batch)
+        attempt = owner.offer(batch, lease, 0)
+        self.assertTrue(owner.acknowledge(batch, lease, attempt, 0))
+        finish(owner, ticket)
+        self.assertTrue(owner.close_drained)
+        self.assertNotIn(close, owner.barriers)
+        self.assertEqual(owner.poll_flush(close), "timeout")
+        self.assertEqual(owner.used_slots, 0)
+
+    def test_abandoned_cohort_reservation_is_revoked(self):
+        owner = Owner(slots=1)
+        reservation = owner.reserve(0)
+        cohort = owner.new_cohort(reservation)
+        self.assertEqual(owner.new_cohort(reservation), "reservation_has_cohort")
+        self.assertTrue(owner.discard_reservation(reservation))
+        self.assertNotIn(cohort, owner.cohorts)
+        next_reservation = owner.reserve(0)
+        next_cohort = owner.new_cohort(next_reservation)
+        self.assertNotEqual(next_cohort, cohort)
+        close = owner.close()
+        self.assertNotIn(next_cohort, owner.cohorts)
+        self.assertEqual(owner.used_slots, 0)
+        self.assertEqual(owner.poll_flush(close), "ok")
 
     def test_exhausted_ticket_does_not_detach_reservation(self):
         owner = Owner(slots=3, max_token=1)

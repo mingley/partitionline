@@ -46,9 +46,25 @@ mutants = [
          'return self.barriers.pop(waiter, None) is not None'),
     ], "OwnerControls.test_canceled_close_observer_does_not_erase_durable_cutoff"),
     ("close-reports-unsettled-success", [
-        ('if waiter == "close" and any(\n            batch.phase != "done" and any(ticket <= barrier.cutoff for ticket in batch.members)\n            for batch in self.batches.values()\n        ):',
+        ('if any(\n            batch.phase != "done" and any(ticket <= barrier.cutoff for ticket in batch.members)\n            for batch in self.batches.values()\n        ):',
          'if False:'),
     ], "OwnerControls.test_close_cannot_report_success_after_unknown_error_was_consumed"),
+    ("hard-limit-skipped", [
+        ('or (hard_records is not None and len(members) >= hard_records)):',
+         'or False):'),
+        ('or (hard_bytes is not None and total + len(rec.data) > hard_bytes)):',
+         'or False):'),
+    ], "OwnerControls.test_nonsticky_selection_obeys_aggregate_hard_limits"),
+    ("sticky-failure-splits", [
+        ('if rec.cohort is not None:\n            self.cohorts[rec.cohort]["cancelled"] = True\n            self._outcome(ticket, result)\n            self.expire(self.now)\n            return True',
+         'if False:\n            pass'),
+    ], "OwnerControls.test_queued_sticky_failure_cancels_the_entire_cohort"),
+    ("close-never-drains", [
+        ('self._progress_close()\n        return True\n\n    def _release',
+         'pass\n        return True\n\n    def _release'),
+        ('self._progress_close()\n            return self.close_result if self.close_result is not None else "pending"',
+         'pass\n            return self.close_result if self.close_result is not None else "pending"'),
+    ], "OwnerControls.test_timed_out_close_drains_later_without_rewriting_observer_result"),
     ("ack-beats-deadline", [
         ("# timer fairness are not represented by this synthetic clock.\n        self.expire(now)",
          "# timer fairness are not represented by this synthetic clock.\n        pass"),
