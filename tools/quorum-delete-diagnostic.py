@@ -19,6 +19,8 @@ BIN = os.environ["QD_OPERATOR"]
 OUT.mkdir(parents=True, exist_ok=True)
 EVENTS = (OUT / "events.jsonl").open("w", encoding="utf-8", buffering=1)
 CAP = 1024 * 1024
+MAX_COPY = 16 * 1024 * 1024
+IDENTITY_MAX = 16 * 1024
 ALL_NODES = []
 
 def emit(event, **fields):
@@ -287,20 +289,25 @@ def inspect_content(entries):
                 cursor += length
                 index = start + j
                 if index in live: raise ValueError("append overwrites live record")
-                record = {"index":index,"term":term,"kind":kind,"command":decode_command(data)}
+                command = decode_command(data)
+                if kind == 0 and command is None: complete = False
+                record = {"index":index,"term":term,"kind":kind,"command":command}
                 live[index] = record
                 history.append({"journal_index":journal_index,"append":record})
         elif op == 3:
+            if cursor + 8 > len(payload): raise ValueError("truncate body")
             keep = int.from_bytes(payload[cursor:cursor+8],"big")
             history.append({"journal_index":journal_index,"truncate_keep_through":keep})
             live = {i:r for i,r in live.items() if i <= keep}
         elif op == 4:
+            if cursor + 8 > len(payload): raise ValueError("commit body")
             committed = int.from_bytes(payload[cursor:cursor+8],"big")
             history.append({"journal_index":journal_index,"commit_through":committed})
         else:
             complete = False
             history.append({"journal_index":journal_index,"unsupported_op":op})
     return {"complete_interpretation":complete, "committed_through":committed,
+            "verification_scope":"CRC32C and operation/record extraction; not full Raft authority or voter validation",
             "live":list(live.values()), "history":history}
 
 def inspect_application(entries):
@@ -328,10 +335,28 @@ def snapshot_and_inspect(roots):
                 results.append({"node":ident,"file":name,"missing":True})
                 continue
             target = dst / name
-            shutil.copyfile(source, target)
-            before = digest(target)
-            item = {"node":ident, "file":name, "bytes":target.stat().st_size,
-                    "sha256_before":before}
+            limit = IDENTITY_MAX if name == "quorum.identity" else MAX_COPY
+            item = {"node":ident, "file":name, "source_bytes":source.stat().st_size,
+                    "copy_limit":limit}
+            if item["source_bytes"] > limit:
+                item["over_limit"] = True
+                results.append(item)
+                continue
+            try:
+                total = 0
+                with source.open("rb") as inp, target.open("xb") as out:
+                    while True:
+                        block = inp.read(min(65536, limit + 1 - total))
+                        if not block: break
+                        total += len(block)
+                        if total > limit: raise ValueError("source grew beyond copy bound")
+                        out.write(block)
+                before = digest(target)
+                item.update(bytes=target.stat().st_size, sha256_before=before)
+            except Exception as error:
+                item["copy_error"] = repr(error)
+                results.append(item)
+                continue
             try:
                 if name.endswith(".wal"):
                     entries = parse_journal(target)
@@ -346,6 +371,49 @@ def snapshot_and_inspect(roots):
             item["sha256_after"] = digest(target)
             item["unchanged_by_inspection"] = item["sha256_before"] == item["sha256_after"]
             results.append(item)
+        source_images = root / "images"
+        image_item = {"node":ident, "file":"images", "directory":True,
+                      "root_members":sorted(p.name for p in root.iterdir()) if root.exists() else []}
+        if not source_images.is_dir():
+            image_item["missing"] = True
+        else:
+            members = []
+            for member in source_images.iterdir():
+                if len(members) >= 32:
+                    image_item["directory_over_limit"] = True
+                    break
+                members.append(member)
+            members.sort()
+            image_item["members"] = [p.name for p in members]
+            image_item["complete_interpretation"] = not members
+            for member in members:
+                if not member.is_file() or member.is_symlink():
+                    image_item.setdefault("unsupported_members", []).append(member.name)
+                    continue
+                size = member.stat().st_size
+                if size > MAX_COPY:
+                    image_item.setdefault("over_limit_members", []).append(member.name)
+                    continue
+                image_dir = dst / "images"
+                image_dir.mkdir(exist_ok=True)
+                target = image_dir / member.name
+                try:
+                    total = 0
+                    with member.open("rb") as inp, target.open("xb") as out:
+                        while True:
+                            block = inp.read(min(65536, MAX_COPY + 1 - total))
+                            if not block: break
+                            total += len(block)
+                            if total > MAX_COPY: raise ValueError("image exceeded copy bound")
+                            out.write(block)
+                    before = digest(target)
+                    after = digest(target)
+                    image_item.setdefault("copied_members", []).append({
+                        "name":member.name, "bytes":total, "sha256_before":before,
+                        "sha256_after":after, "unchanged_by_inspection":before == after})
+                except Exception as error:
+                    image_item.setdefault("copy_errors", []).append(repr(error))
+        results.append(image_item)
     (OUT / "journal-analysis.json").write_text(json.dumps(results, indent=2, sort_keys=True) + "\n")
     emit("raw_copies_inspected", files=len(results),
          parse_errors=sum("parse_error" in x for x in results),
@@ -367,7 +435,8 @@ def main():
     all_nodes = ALL_NODES
     starts = [0, 0, 0]
     result = {"before":before,"after":after,"minority":minority,
-              "delete_attempts":0, "minority_attempts":0, "outcome":"incomplete"}
+              "delete_attempts":0, "minority_attempts":0, "outcome":"incomplete",
+              "snapshot_timing_note":"after graceful stop/join, not necessarily at Delete response"}
     emit("fixture_start", roots=[str(x) for x in roots], members=members,
          names={"before":before,"after":after,"minority":minority},
          mutation_label="synthetic disposable fixture; one mutation attempt per name")
@@ -433,31 +502,51 @@ def main():
         result["all_processes_and_captures_joined"] = all_joined
         qevents = []
         for path in sorted(OUT.glob("node-*-start-*.stderr")):
-            for line in path.read_text(encoding="utf-8", errors="replace").splitlines():
-                if not line.startswith("QDIAG\t"): continue
-                fields = dict(part.split("=", 1) for part in line.split("\t")[1:] if "=" in part)
+            for raw_line in path.read_bytes().splitlines():
+                if not raw_line.startswith(b"QDIAG\t"): continue
+                try:
+                    line = raw_line.decode("utf-8", "strict")
+                    pieces = line.split("\t")[1:]
+                    if any("=" not in piece for piece in pieces): raise ValueError("malformed QDIAG field")
+                    fields = dict(part.split("=", 1) for part in pieces)
+                    if "stage" not in fields: raise ValueError("missing QDIAG stage")
+                    if "command" in fields:
+                        fields["decoded"] = decode_command(bytes.fromhex(fields["command"]))
+                        if fields["decoded"] is None: raise ValueError("invalid QDIAG command")
+                    elif fields["stage"] not in ("position_mismatch","delete_token","delete_command"):
+                        raise ValueError("missing QDIAG command")
+                except Exception as error:
+                    fields = {"decode_error":repr(error), "raw_hex":raw_line.hex()}
                 fields["capture_file"] = path.name
-                if "command" in fields:
-                    try: fields["decoded"] = decode_command(bytes.fromhex(fields["command"]))
-                    except Exception as error: fields["decode_error"] = repr(error)
                 qevents.append(fields)
         (OUT / "qdiag-events.json").write_text(json.dumps(qevents, indent=2, sort_keys=True) + "\n")
         minority_events = [e for e in qevents if e.get("decoded")
                            and e["decoded"].get("name_hex") == minority.encode().hex()]
         exact_commands = {e["command"] for e in minority_events
                           if e.get("stage") == "execute_enter"}
+        owner_entered = {(e.get("capture_file"),e.get("command")) for e in minority_events
+                         if e.get("stage") == "owner_before_propose"}
         admitted = [e for e in minority_events
                     if e.get("command") in exact_commands
+                    and (e.get("capture_file"),e.get("command")) in owner_entered
                     and e.get("stage") == "owner_propose_result"
                     and e.get("detail", "").startswith("(Ok(")]
         result["minority_proposal_admission"] = "confirmed" if admitted else "unproven"
         result["minority_admission_evidence"] = admitted
         result["delete_command_traces"] = [e for e in qevents if e.get("decoded") and e["decoded"].get("opcode") == 2]
         result["diagnostic_bytes_dropped"] = sum(n.stdout.dropped + n.stderr.dropped for n in all_nodes)
+        result["diagnostic_decode_errors"] = sum("decode_error" in e for e in qevents)
+        result["capture_errors"] = sum(bool(c.error) for n in all_nodes for c in (n.stdout,n.stderr))
+        result["nonzero_node_exits"] = sum(n.p.returncode != 0 for n in all_nodes)
         if all_joined:
             analysis = snapshot_and_inspect(roots)
             result["snapshot_parse_errors"] = sum("parse_error" in x for x in analysis)
-            result["snapshot_hash_changes"] = sum(not x.get("unchanged_by_inspection",True) for x in analysis)
+            result["snapshot_missing_files"] = sum(bool(x.get("missing")) for x in analysis)
+            result["snapshot_copy_errors"] = sum(bool(x.get("copy_error") or x.get("copy_errors")) for x in analysis)
+            result["snapshot_over_limit"] = sum(bool(x.get("over_limit") or x.get("over_limit_members") or x.get("directory_over_limit")) for x in analysis)
+            result["snapshot_uninterpreted"] = sum(x.get("content",{}).get("complete_interpretation") is False or x.get("complete_interpretation") is False or bool(x.get("unsupported_members")) for x in analysis)
+            result["snapshot_hash_changes"] = sum(not x.get("unchanged_by_inspection",True) for x in analysis) + sum(not y.get("unchanged_by_inspection",True) for x in analysis for y in x.get("copied_members",[]))
+            result["snapshot_inventory"] = [{"node":x["node"],"file":x["file"],"bytes":x.get("bytes"),"sha256":x.get("sha256_before"),"missing":x.get("missing",False),"members":x.get("members"),"root_members":x.get("root_members")} for x in analysis]
         else:
             result["snapshot_status"] = "refused: a process or capture thread was not joined"
             emit("snapshot_refused", reason=result["snapshot_status"])
