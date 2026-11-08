@@ -1,0 +1,57 @@
+name: Admin requested topic names draft qualification
+on:
+  push:
+    branches: [work/admin-requested-name-draft-20261108]
+permissions:
+  contents: read
+jobs:
+  format:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+      - name: Capture rustfmt patch
+        run: |
+          rustc -Vv
+          cargo fmt --all
+          sha256sum src/admin.rs src/admin/pagination_tests.rs
+          git diff -- src/admin.rs
+          python3 - <<'PY'
+          import base64
+          data=base64.b64encode(open("src/admin/pagination_tests.rs","rb").read()).decode()
+          for i in range(0,len(data),3000):
+              print(f"FORMATTED_TEST_{i//3000:04d}:{data[i:i+3000]}")
+          PY
+          git hash-object src/admin.rs src/admin/pagination_tests.rs
+  focused:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        feature: [default, all]
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Source pins
+        run: sha256sum src/admin.rs src/admin/pagination_tests.rs Cargo.lock
+      - name: Focused pagination and existing cooperative controls
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ "${{ matrix.feature }}" = all ]; then flags=--all-features; else flags=; fi
+          cargo test --locked $flags --lib admin::pagination_tests -- --nocapture
+          cargo test --locked $flags --lib extending_described_topics_yields_and_completes -- --nocapture
+          cargo test --locked $flags --lib described_topics_keep_the_first_page -- --nocapture
+  clippy:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+      - run: cargo clippy --locked --all-targets --all-features -- -D warnings
