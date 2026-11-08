@@ -23,7 +23,7 @@ jobs:
           path: baseline
       - uses: actions/checkout@v7
         with:
-          ref: 00ebf674cafd594746ac3e25cfb8f648acfdb9cd
+          ref: fdfd97f5c82dc2efb294fc671d394a6ddb0603de
           path: candidate
       - uses: dtolnay/rust-toolchain@stable
       - name: Build, measure and retain disassembly
