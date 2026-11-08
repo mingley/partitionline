@@ -54,6 +54,7 @@ thread_local! {
     static PAIR_RESERVE_TEST_ERROR: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
     static INDEX_RESERVE_TEST_ERROR: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
     static STAGED_RESERVE_TEST_ERROR: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
+    static STAGE_RESERVATION_OBSERVATION: std::cell::Cell<Option<(usize, usize, usize, usize)>> = const { std::cell::Cell::new(None) };
 }
 
 #[cfg(test)]
@@ -1845,12 +1846,23 @@ impl<S: Storage> Engine<S> {
     ) -> Result<(), Error> {
         let (index, file_bytes) = self.plan(record_count, payload, checksum, extend)?;
         #[cfg(test)]
-        if STAGED_RESERVE_TEST_ERROR.with(|failure| failure.replace(false)) {
+        if self.staged.len() == self.staged.capacity()
+            && STAGED_RESERVE_TEST_ERROR.with(|failure| failure.replace(false))
+        {
             return Err(Error::AllocationFailed);
         }
         self.staged
             .try_reserve(1)
             .map_err(|_| Error::AllocationFailed)?;
+        #[cfg(test)]
+        STAGE_RESERVATION_OBSERVATION.with(|observation| {
+            observation.set(Some((
+                self.index.len(),
+                self.index.capacity(),
+                self.staged.len(),
+                self.staged.capacity(),
+            )));
+        });
         if let Err(error) = self.write_planned(index, payload) {
             self.poisoned = true;
             return Err(error);
@@ -2608,12 +2620,20 @@ mod tests {
             let payload = [value];
             journal.stage(1, &payload, crc32c::crc32c(&payload), true)?;
             let required = journal.index.len() + journal.staged.len();
+            let (index_len, index_capacity, queued, queue_capacity) =
+                STAGE_RESERVATION_OBSERVATION.with(|observation| observation.get())
+                    .ok_or(Error::InvalidEntry)?;
+            assert_eq!(index_len, journal.index.len());
+            assert_eq!(queued + 1, journal.staged.len());
+            assert_eq!(index_capacity, journal.index.capacity());
+            assert_eq!(queue_capacity, journal.staged.capacity());
             assert!(
-                journal.index.capacity() >= required,
+                index_capacity >= required,
                 "index capacity {} is below {} committed and staged entries",
-                journal.index.capacity(),
+                index_capacity,
                 required
             );
+            assert!(queue_capacity > queued, "staging queue was full before the write");
         }
         let capacity = journal.index.capacity();
         journal.storage.synchronize()?;
@@ -2639,10 +2659,16 @@ mod tests {
         for fail_index in [true, false] {
             let mut journal = engine(0)?;
             journal.stage(1, b"a", crc32c::crc32c(b"a"), true)?;
+            while !fail_index && journal.staged.len() < journal.staged.capacity() {
+                assert!(journal.staged.len() < 32, "unexpected queue capacity");
+                journal.stage(1, b"a", crc32c::crc32c(b"a"), true)?;
+            }
+            let pending = journal.staged.len();
             let bytes = journal.storage.cursor.get_ref().clone();
             if fail_index {
                 INDEX_RESERVE_TEST_ERROR.with(|failure| failure.set(true));
             } else {
+                assert_eq!(journal.staged.len(), journal.staged.capacity());
                 STAGED_RESERVE_TEST_ERROR.with(|failure| failure.set(true));
             }
             assert!(matches!(
@@ -2650,14 +2676,18 @@ mod tests {
                 Err(Error::AllocationFailed)
             ));
             assert_eq!(*journal.storage.cursor.get_ref(), bytes);
-            assert_eq!(journal.staged.len(), 1);
+            assert_eq!(journal.staged.len(), pending);
             assert_eq!(journal.index.len(), 0);
             assert!(!journal.poisoned);
             journal.storage.synchronize()?;
-            assert_eq!(journal.commit_staged()?.next_offset, 1);
+            for _ in 0..pending {
+                journal.commit_staged()?;
+            }
             let (mut recovered, outcome) = Engine::recover(journal.storage, 0, Limits::default())?;
-            assert_eq!(outcome.next_offset, 1);
-            assert_eq!(recovered.fetch(0, 1, 1024)?[0].payload, b"a");
+            assert_eq!(outcome.next_offset, pending as u64);
+            for entry in recovered.fetch(0, pending, 1024)? {
+                assert_eq!(entry.payload, b"a");
+            }
         }
         Ok(())
     }
@@ -2705,7 +2735,7 @@ mod tests {
         let path = dir.join("log");
         let (mut journal, _) = Journal::open(&path, 0, Limits::default())?;
         let mut tickets = Vec::new();
-        for value in [b'a', b'b', b'c'] {
+        for value in *b"abc" {
             let bytes = [value];
             tickets.push(journal.append_staged_grouped(1, &bytes, crc32c::crc32c(&bytes))?);
             assert_eq!(journal.entry_count(), 0);
@@ -2716,7 +2746,7 @@ mod tests {
         assert_eq!(journal.inner.index.capacity(), capacity);
         assert_eq!(journal.unstage_last()?, 2);
         drop(tickets.pop());
-        let bytes = [b'd'];
+        let bytes = *b"d";
         tickets.push(journal.append_staged_grouped(1, &bytes, crc32c::crc32c(&bytes))?);
         tickets[2].sync_data()?;
         assert_eq!(journal.commit_staged()?.first_offset, 1);
