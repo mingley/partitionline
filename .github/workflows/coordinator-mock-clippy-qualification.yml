@@ -1,0 +1,82 @@
+name: coordinator mock Clippy fix qualification
+
+on:
+  push:
+    branches: [qualification/clippy-test-loop-20261108]
+
+permissions:
+  contents: read
+
+jobs:
+  qualify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    env:
+      CARGO_INCREMENTAL: "0"
+      CARGO_BUILD_JOBS: "2"
+      CARGO_PROFILE_DEV_DEBUG: "0"
+      CARGO_PROFILE_TEST_DEBUG: "0"
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 2
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - name: Verify exact base and test-only change
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(uname -m)" = x86_64
+          test "$(git rev-parse HEAD^)" = b631809f0e03ba6f65f808e51d8e47e3fd9380d1
+          git show HEAD^:src/producer.rs > "$RUNNER_TEMP/baseline-producer.rs"
+          python3 - "$RUNNER_TEMP/baseline-producer.rs" <<'PY'
+          import pathlib, sys
+          before = pathlib.Path(sys.argv[1]).read_text()
+          after = pathlib.Path("src/producer.rs").read_text()
+          old = """                            loop {
+                                          let len = match socket.read_i32().await {
+                                              Ok(len) => len,
+                                              Err(_) => break,
+                                          };"""
+          new = """                            while let Ok(len) = socket.read_i32().await {"""
+          assert before.count(old) == 1
+          assert after == before.replace(old, new, 1)
+          print("exact requested test-only replacement verified")
+          PY
+          git rev-parse HEAD HEAD^
+          git hash-object src/producer.rs
+          sha256sum src/producer.rs
+          rustc +stable --version --verbose
+          cargo +stable --version
+          printf '%s\n' 'Prior main failure: https://github.com/mingley/partitionline/actions/runs/42441209189/job/128610627588'
+      - name: Stable format
+        run: cargo +stable fmt --all -- --check
+      - name: Stable strict all-target all-feature Clippy
+        run: cargo +stable clippy --locked --all-targets --all-features -- -D warnings
+      - name: Relevant mock and replacement tests with exact counts
+        shell: bash
+        run: |
+          set -euo pipefail
+          for mode in default all-features; do
+            flags=()
+            if [ "$mode" = all-features ]; then flags+=(--all-features); fi
+            for name in \
+              replacement_rediscovery_retries_real_coordinator_rpc \
+              missing_transaction_coordinator_rediscovers_before_rpc \
+              closed_transaction_coordinator_rediscovers_and_bumps_epoch \
+              replacement_cancel_retains_closed_coordinator \
+              replacement_timeout_retains_coordinator_and_recovers \
+              replacement_wait_for_slot_obeys_deadline
+            do
+              log="$RUNNER_TEMP/$mode-$name.log"
+              if ! timeout 300s cargo +stable test --locked "${flags[@]}" --lib "producer::tests::$name" -- --exact --nocapture > "$log" 2>&1; then
+                cat "$log"
+                exit 1
+              fi
+              cat "$log"
+              grep -F 'running 1 test' "$log"
+              grep -F 'test result: ok. 1 passed; 0 failed;' "$log"
+            done
+          done

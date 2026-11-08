@@ -11873,11 +11873,7 @@ mod tests {
                         let inits = Arc::clone(&inits_task);
                         let closed = Arc::clone(&closed_task);
                         let _handler = clients.spawn(async move {
-                            loop {
-                                let len = match socket.read_i32().await {
-                                    Ok(len) => len,
-                                    Err(_) => break,
-                                };
+                            while let Ok(len) = socket.read_i32().await {
                                 assert!((8..=65_536).contains(&len));
                                 let mut frame = vec![0; usize::try_from(len).unwrap()];
                                 if socket.read_exact(&mut frame).await.is_err() {
