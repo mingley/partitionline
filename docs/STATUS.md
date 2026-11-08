@@ -55,6 +55,12 @@ passed, but that does not explain the earlier `/proc` permission failure.
 Broker CI passed 766 default and 914 all-feature tests, with three ignored in
 each profile.
 
+A [later partial snapshot][ci-364] at `36424a5` recorded three failed
+current Kafka compatibility jobs and eight canceled client jobs when main
+advanced. Its broker run passed 766 default and 914 all-feature tests, with
+three ignored per profile. Those passes do not explain the earlier `02c443c`
+Raft failures.
+
 An earlier [frame-read test failure][deadline-test] used a 30 ms deadline
 and required total elapsed time under 80 ms; it observed the deadline error
 after 82.681715 ms. The cause is unknown. The revised test retains deadline
@@ -91,7 +97,10 @@ covers only one leader-removal schedule. An unmerged [Raft test run][raft-churn]
 also observed prolonged election churn in a five-node short-timeout fixture;
 its cause remains unknown. A [forced vote-route control][vote-route]
 shows that a full one-slot route can discard a newer campaign; a later campaign
-recovered in that fixture. It does not explain the earlier stall.
+recovered in that fixture. It does not explain the earlier stall. The [mailbox repair][vote-repair]
+now retains the newest pending vote and cancels the displaced correlation.
+Its full broker and targeted controls passed, but the older in-flight RPC
+continues unchanged.
 
 A [debugger trace][gdb] on the earlier `8b5de2e` source caught a stack fault
 while opening a consumer bootstrap connection. It identifies a failure point,
@@ -211,7 +220,7 @@ The [support matrix](support.md) describes configured coverage, and the
 
 [ci]: https://github.com/mingley/partitionline/blob/0ce81683fe7107386e30f388cd2a4af31735d522/docs/evidence/releases/main-ci-02c-20261108/README.md
 [previous-ci]: https://github.com/mingley/partitionline/blob/7ebb3cc81adc695cc4c74409a87a1a1dd4be9730/docs/evidence/releases/main-ci-ba8-20261108/README.md
-[next]: https://github.com/mingley/partitionline/blob/fd77aa6fd8c112006cd534e7fd426853bf27853a/docs/plan/next-work.md
+[next]: https://github.com/mingley/partitionline/blob/873b5d01ce0edef5ee3fd49f112c346aa4cc8fef/docs/plan/next-work.md
 [previous]: https://github.com/mingley/partitionline/blob/5c2a000639d9a8a7dccd56e8c1d6f3a58dca1601/docs/STATUS.md
 [flush]: https://github.com/mingley/partitionline/blob/e980829c439aa43edc01312c91838e58a412221a/docs/evidence/client/producer-flush-native-86f2-20261103/README.md
 [txn]: https://github.com/mingley/partitionline/blob/49ad56c6bce1366e2357c272f11c5c34160d60da/docs/evidence/client/add-partitions-native-4f0c-20261103/README.md
@@ -269,3 +278,6 @@ The [support matrix](support.md) describes configured coverage, and the
 [record-arithmetic]: https://github.com/mingley/partitionline/blob/fd77aa6fd8c112006cd534e7fd426853bf27853a/docs/evidence/client/record-body-arithmetic-20261108/README.md
 
 [retained-test]: https://github.com/mingley/partitionline/blob/fd77aa6fd8c112006cd534e7fd426853bf27853a/docs/evidence/client/retained-cancellation-test-20261108/README.md
+
+[ci-364]: https://github.com/mingley/partitionline/blob/873b5d01ce0edef5ee3fd49f112c346aa4cc8fef/docs/evidence/releases/main-ci-364-20261108/README.md
+[vote-repair]: https://github.com/mingley/partitionline/blob/873b5d01ce0edef5ee3fd49f112c346aa4cc8fef/docs/evidence/broker/raft-vote-mailbox-20261108/README.md
