@@ -988,9 +988,8 @@ async fn barrier(router: &Router) -> Result<(), Box<dyn StdError>> {
 }
 
 #[tokio::test]
-async fn unpolled_snapshot_holds_combined_admission_and_cancel_releases(
-) -> Result<(), Box<dyn StdError>> {
-    let root = scratch("unpolled");
+async fn read_store_enforces_combined_retained_bytes() -> Result<(), Box<dyn StdError>> {
+    let root = scratch("retained-bytes");
     seed(root.clone(), true, false).await?;
     let mut cfg = common();
     cfg.max_queued_requests = 1;
@@ -1012,14 +1011,6 @@ async fn unpolled_snapshot_holds_combined_admission_and_cancel_releases(
     )
     .await?;
     let input = fetch_request(6, 0, 0, 0, 10000, &[(0, 10000)]);
-    let mut unpolled = Box::pin(router.dispatch(input.clone()));
-    poll_pending(unpolled.as_mut()).await?;
-    barrier(&router).await?;
-    assert!(matches!(
-        router.dispatch(input.clone()).await,
-        Err(metadata::Error::QueueFull)
-    ));
-    drop(unpolled);
     let result = router.respond(input).await?;
     assert_eq!(watermark(&result), 4);
     router.shutdown().await?;

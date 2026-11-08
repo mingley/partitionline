@@ -1,0 +1,295 @@
+name: broker fetch admission qualification
+
+on:
+  push:
+    branches:
+      - qualification/broker-fetch-admission-20261108
+
+permissions:
+  contents: read
+
+concurrency:
+  group: broker-fetch-admission-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  qualify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    env:
+      CARGO_INCREMENTAL: "0"
+      CARGO_BUILD_JOBS: "2"
+      CARGO_TERM_COLOR: never
+      CARGO_PROFILE_DEV_DEBUG: "0"
+      CARGO_PROFILE_TEST_DEBUG: "0"
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          fetch-depth: 2
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.13'
+      - name: Host, exact parent and stable formatting
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/fetch-admission-logs"
+          uname -a
+          test "$(uname -m)" = x86_64
+          rustc +stable --version --verbose
+          cargo +stable --version
+          df -h .
+          test "$(df -Pk . | awk 'NR==2 {print $4}')" -ge 2000000
+          base=264322ff430b0594f4c3864e53dcd832de2a930b
+          test "$(git rev-parse HEAD^)" = "$base"
+          test "$(git rev-parse "$base:partitionline-broker/src/metadata.rs")" = 6e25fccc46ca78332d872e94f78bda812c29c162
+          test "$(git rev-parse "$base:partitionline-broker/tests/fetch.rs")" = e2cefe746e1d23a83f0197fdfa634bae71008634
+          openssl version
+          python3 - <<'PY'
+          import hashlib
+          import json
+          from pathlib import Path
+          import subprocess
+          base = '264322ff430b0594f4c3864e53dcd832de2a930b'
+          path = 'tests/conformance/broker/implemented-api-versions.json'
+          old = json.loads(subprocess.check_output(['git', 'show', f'{base}:{path}']))
+          new = json.loads(Path(path).read_text())
+          for key, source in [('metadata_source_sha256', 'partitionline-broker/src/metadata.rs'), ('fetch_test_source_sha256', 'partitionline-broker/tests/fetch.rs')]:
+              actual = hashlib.sha256(Path(source).read_bytes()).hexdigest()
+              assert new[key] == actual, (key, new[key], actual)
+              assert new[key] != old[key]
+              del new[key]
+              del old[key]
+          assert new == old, 'registry changed outside the two reviewed source pins'
+          print('Registry pins match the candidate source; all other entries, including Produce, are unchanged')
+          PY
+          cargo +stable fmt --manifest-path partitionline-broker/Cargo.toml -- --check
+      - name: Prepare deterministic baseline witness
+        shell: bash
+        run: |
+          set -euo pipefail
+          base=264322ff430b0594f4c3864e53dcd832de2a930b
+          cp partitionline-broker/src/metadata.rs "$RUNNER_TEMP/metadata-candidate.rs"
+          cp partitionline-broker/tests/fetch.rs "$RUNNER_TEMP/fetch-candidate.rs"
+          git show "$base:partitionline-broker/src/metadata.rs" > "$RUNNER_TEMP/metadata-base.rs"
+          git show "$base:partitionline-broker/tests/fetch.rs" > "$RUNNER_TEMP/fetch-base.rs"
+          python3 - <<'PY'
+          from pathlib import Path
+          import os
+          t = Path(os.environ['RUNNER_TEMP'])
+          candidate_m = Path('partitionline-broker/src/metadata.rs').read_text()
+          candidate_f = Path('partitionline-broker/tests/fetch.rs').read_text()
+          base_m = (t / 'metadata-base.rs').read_text()
+          base_f = (t / 'fetch-base.rs').read_text()
+          begin = "\n    #[tokio::test]\n    async fn unconsumed_fetch_receipt_keeps_admission_until_consumed_or_canceled("
+          end = "\n    #[tokio::test]\n    async fn unconsumed_data_receipt_keeps_admission_bounded()"
+          assert candidate_m.count(begin) == 1 and candidate_m.count(end) == 1
+          start = candidate_m.index(begin)
+          stop = candidate_m.index(end, start)
+          expected = base_m
+          old, new = "parked_maintenance(data, retention, false)", "parked_maintenance(data, retention, false, false)"
+          assert expected.count(old) == 1
+          expected = expected.replace(old, new)
+          old, new = "parked_maintenance(true, None, true);", "parked_maintenance(true, None, true, false);"
+          assert expected.count(old) == 1
+          expected = expected.replace(old, new)
+          old, new = "        compaction: bool,\n    ) -> (Arc<Router>, std::sync::mpsc::Sender<()>, PathBuf) {\n        let path = std::env::temp_dir().join(format!(\n            \"partitionline-actor-", "        compaction: bool,\n        read_enabled: bool,\n    ) -> (Arc<Router>, std::sync::mpsc::Sender<()>, PathBuf) {\n        let path = std::env::temp_dir().join(format!(\n            \"partitionline-actor-"
+          assert expected.count(old) == 1
+          expected = expected.replace(old, new)
+          old, new = "        let reads = (retention.is_some() || compaction).then(fetch::Limits::default);", "        let reads =\n            (read_enabled || retention.is_some() || compaction).then(fetch::Limits::default);"
+          assert expected.count(old) == 1
+          expected = expected.replace(old, new)
+          assert candidate_m[:start] + candidate_m[stop + 1:] == expected, 'unexpected metadata changes'
+          old_test = "#[tokio::test]\nasync fn unpolled_snapshot_holds_combined_admission_and_cancel_releases("
+          new_test = "#[tokio::test]\nasync fn read_store_enforces_combined_retained_bytes("
+          end_test = "\n#[tokio::test]\nasync fn registered_handle_corruption_poison_wakes_waiters_and_maps_legacy_errors("
+          assert base_f.count(old_test) == candidate_f.count(new_test) == 1
+          bs, cs = base_f.index(old_test), candidate_f.index(new_test)
+          be, ce = base_f.index(end_test, bs), candidate_f.index(end_test, cs)
+          assert base_f[:bs] + base_f[be:] == candidate_f[:cs] + candidate_f[ce:], 'unexpected fetch test changes'
+          match = "                match receiver.await.map_err(|_| Error::ActorFailed)?? {"
+          handoff = "                let receiver = if std::env::var_os(\"PL_FETCH_EAGER_REPLY_WITNESS\").is_some() {\n                    let (forward, relayed) = oneshot::channel();\n                    let waiter = std::thread::spawn(move || {\n                        if let Ok(result) = receiver.blocking_recv() {\n                            let _ = forward.send(result);\n                        }\n                    });\n                    waiter.join().map_err(|_| Error::ActorFailed)?;\n                    relayed\n                } else {\n                    receiver\n                };\n"
+          old_poll = "    poll_pending(unpolled.as_mut()).await?;"
+          diagnostic_poll = "    std::future::poll_fn(|cx| {\n        match std::future::Future::poll(unpolled.as_mut(), cx) {\n            std::task::Poll::Pending => std::task::Poll::Ready(Ok(())),\n            std::task::Poll::Ready(result) => {\n                println!(\"PL_FETCH_EAGER_REPLY={result:?}\");\n                std::task::Poll::Ready(Err(\"waiter completed prematurely\"))\n            }\n        }\n    })\n    .await?;"
+          assert base_m.count(match) == 1 and base_f.count(old_poll) == 1
+          Path('partitionline-broker/src/metadata.rs').write_text(base_m.replace(match, handoff + match))
+          Path('partitionline-broker/tests/fetch.rs').write_text(base_f.replace(old_poll, diagnostic_poll))
+          print('Verified scoped fixture changes; installed a temporary deterministic actor handoff on the baseline')
+          PY
+      - name: Reproduce successful immediate reply before first poll
+        shell: bash
+        run: |
+          set -euo pipefail
+          for mode in default all-features; do
+            flags=()
+            if test "$mode" = all-features; then flags+=(--all-features); fi
+            log="$RUNNER_TEMP/fetch-admission-logs/baseline-$mode.log"
+            set +e
+            PL_FETCH_EAGER_REPLY_WITNESS=1 timeout 300s cargo +stable test --locked --manifest-path partitionline-broker/Cargo.toml "${flags[@]}" --test fetch unpolled_snapshot_holds_combined_admission_and_cancel_releases -- --exact --nocapture > "$log" 2>&1
+            status=$?
+            set -e
+            cat "$log"
+            test "$status" -eq 101
+            grep -F 'running 1 test' "$log"
+            grep -F 'PL_FETCH_EAGER_REPLY=Ok(Some(' "$log"
+            grep -F 'waiter completed prematurely' "$log"
+            grep -F 'test result: FAILED. 0 passed; 1 failed;' "$log"
+          done
+      - name: Restore candidate and test selected admission paths
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp "$RUNNER_TEMP/metadata-candidate.rs" partitionline-broker/src/metadata.rs
+          cp "$RUNNER_TEMP/fetch-candidate.rs" partitionline-broker/tests/fetch.rs
+          cmp partitionline-broker/src/metadata.rs "$RUNNER_TEMP/metadata-candidate.rs"
+          cmp partitionline-broker/tests/fetch.rs "$RUNNER_TEMP/fetch-candidate.rs"
+          candidate_test() {
+            local name="$1" target="$2" mode="$3"
+            local log="$RUNNER_TEMP/fetch-admission-logs/candidate-${mode}-${name##*::}.log"
+            timeout 300s cargo +stable test --locked --manifest-path partitionline-broker/Cargo.toml "${flags[@]}" "$target" "$name" -- --exact --nocapture > "$log" 2>&1 || { cat "$log"; return 1; }
+            cat "$log"
+            grep -F 'test result: ok. 1 passed;' "$log"
+          }
+          for mode in default all-features; do
+            flags=()
+            if test "$mode" = all-features; then flags+=(--all-features); fi
+            candidate_test metadata::tests::unconsumed_fetch_receipt_keeps_admission_until_consumed_or_canceled --lib "$mode"
+            candidate_test metadata::tests::unconsumed_data_receipt_keeps_admission_bounded --lib "$mode"
+            candidate_test metadata::tests::queued_cancel_and_full_admission_never_mutate --lib "$mode"
+            candidate_test read_store_enforces_combined_retained_bytes '--test=fetch' "$mode"
+            for attempt in $(seq 1 10); do
+              timeout 60s cargo +stable test --locked --manifest-path partitionline-broker/Cargo.toml "${flags[@]}" --lib metadata::tests::unconsumed_fetch_receipt_keeps_admission_until_consumed_or_canceled -- --exact > "$RUNNER_TEMP/fetch-admission-logs/repeat-${mode}-${attempt}.log" 2>&1 || { cat "$RUNNER_TEMP/fetch-admission-logs/repeat-${mode}-${attempt}.log"; exit 1; }
+              grep -F 'test result: ok. 1 passed;' "$RUNNER_TEMP/fetch-admission-logs/repeat-${mode}-${attempt}.log"
+            done
+          done
+      - name: Prove the admission regression catches premature permit release
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('partitionline-broker/src/metadata.rs')
+          source = p.read_text()
+          slot = "            let _slot = self\n                .data_slots\n                .try_acquire()\n                .map_err(|_| Error::QueueFull)?;"
+          assert source.count(slot) == 1
+          p.write_text(source.replace(slot, slot + '\n            drop(_slot);'))
+          print('Temporarily released the data permit before the actor snapshot')
+          PY
+          for mode in default all-features; do
+            flags=()
+            if test "$mode" = all-features; then flags+=(--all-features); fi
+            log="$RUNNER_TEMP/fetch-admission-logs/permit-mutant-$mode.log"
+            set +e
+            timeout 300s cargo +stable test --locked --manifest-path partitionline-broker/Cargo.toml "${flags[@]}" --lib metadata::tests::unconsumed_fetch_receipt_keeps_admission_until_consumed_or_canceled -- --exact --nocapture > "$log" 2>&1
+            status=$?
+            set -e
+            cat "$log"
+            test "$status" -eq 101
+            grep -F 'running 1 test' "$log"
+            grep -F 'PL_MISSING_ADMISSION_PERMIT' "$log"
+            grep -F 'test result: FAILED. 0 passed; 1 failed;' "$log"
+          done
+          cp "$RUNNER_TEMP/metadata-candidate.rs" partitionline-broker/src/metadata.rs
+          cmp partitionline-broker/src/metadata.rs "$RUNNER_TEMP/metadata-candidate.rs"
+      - name: Verify pinned broker API inventory
+        id: inventory
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -B scripts/check-broker-api-matrix.py --report "$RUNNER_TEMP/fetch-admission-logs/api-matrix.json" 2>&1 | tee "$RUNNER_TEMP/fetch-admission-logs/api-inventory.log"
+      - name: Run all API inventory negative controls
+        id: inventory_controls
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -B -m unittest discover -s tests/ci -p test_broker_api_matrix.py -v 2>&1 | tee "$RUNNER_TEMP/fetch-admission-logs/api-controls.log"
+          grep -E '^Ran 55 tests? in ' "$RUNNER_TEMP/fetch-admission-logs/api-controls.log"
+      - name: Verify stale-leader fencing exact test
+        id: stale_leader
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo +stable test --locked --manifest-path partitionline-broker/Cargo.toml --test raft_membership stale_genesis_leader_observation_is_fenced_before_proposal_append -- --exact 2>&1 | tee "$RUNNER_TEMP/fetch-admission-logs/stale-leader.log"
+          grep -Fx 'test stale_genesis_leader_observation_is_fenced_before_proposal_append ... ok' "$RUNNER_TEMP/fetch-admission-logs/stale-leader.log"
+          grep -E '^test result: ok\. 1 passed; 0 failed; 0 ignored;' "$RUNNER_TEMP/fetch-admission-logs/stale-leader.log"
+      - name: Full broker default-feature suite
+        id: full_default
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -euo pipefail
+          timeout 1200s cargo +stable test --locked --manifest-path partitionline-broker/Cargo.toml --all-targets 2>&1 | tee "$RUNNER_TEMP/fetch-admission-logs/full-default.log"
+      - name: Full broker all-feature suite
+        id: full_all
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -euo pipefail
+          timeout 1200s cargo +stable test --locked --manifest-path partitionline-broker/Cargo.toml --all-targets --all-features 2>&1 | tee "$RUNNER_TEMP/fetch-admission-logs/full-all-features.log"
+      - name: Strict all-target all-feature broker Clippy
+        id: clippy
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo +stable clippy --locked --manifest-path partitionline-broker/Cargo.toml --all-targets --all-features -- -D warnings 2>&1 | tee "$RUNNER_TEMP/fetch-admission-logs/clippy.log"
+      - name: Strict all-feature broker Rustdoc
+        id: rustdoc
+        continue-on-error: true
+        shell: bash
+        env:
+          RUSTDOCFLAGS: -D warnings
+        run: |
+          set -euo pipefail
+          cargo +stable doc --locked --manifest-path partitionline-broker/Cargo.toml --all-features --no-deps 2>&1 | tee "$RUNNER_TEMP/fetch-admission-logs/rustdoc.log"
+      - name: Strict default broker doctests
+        id: doc_default
+        continue-on-error: true
+        shell: bash
+        env:
+          RUSTDOCFLAGS: -D warnings
+        run: |
+          set -euo pipefail
+          cargo +stable test --locked --manifest-path partitionline-broker/Cargo.toml --doc 2>&1 | tee "$RUNNER_TEMP/fetch-admission-logs/doc-default.log"
+      - name: Strict all-feature broker doctests
+        id: doc_all
+        continue-on-error: true
+        shell: bash
+        env:
+          RUSTDOCFLAGS: -D warnings
+        run: |
+          set -euo pipefail
+          cargo +stable test --locked --manifest-path partitionline-broker/Cargo.toml --doc --all-features 2>&1 | tee "$RUNNER_TEMP/fetch-admission-logs/doc-all-features.log"
+      - name: Require every independent gate to pass
+        if: always()
+        shell: bash
+        env:
+          INVENTORY: ${{ steps.inventory.outcome }}
+          CONTROLS: ${{ steps.inventory_controls.outcome }}
+          STALE_LEADER: ${{ steps.stale_leader.outcome }}
+          FULL_DEFAULT: ${{ steps.full_default.outcome }}
+          FULL_ALL: ${{ steps.full_all.outcome }}
+          CLIPPY: ${{ steps.clippy.outcome }}
+          RUSTDOC: ${{ steps.rustdoc.outcome }}
+          DOC_DEFAULT: ${{ steps.doc_default.outcome }}
+          DOC_ALL: ${{ steps.doc_all.outcome }}
+        run: |
+          set -euo pipefail
+          for outcome in "$INVENTORY" "$CONTROLS" "$STALE_LEADER" "$FULL_DEFAULT" "$FULL_ALL" "$CLIPPY" "$RUSTDOC" "$DOC_DEFAULT" "$DOC_ALL"; do
+            test "$outcome" = success
+          done
+      - name: Retain qualification logs
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: broker-fetch-admission-qualification-${{ github.sha }}
+          path: ${{ runner.temp }}/fetch-admission-logs
+          if-no-files-found: warn
+          retention-days: 30

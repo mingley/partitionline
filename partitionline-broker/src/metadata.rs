@@ -3327,12 +3327,13 @@ mod tests {
         data: bool,
         retention: Option<retention::Config>,
     ) -> (Arc<Router>, std::sync::mpsc::Sender<()>, PathBuf) {
-        parked_maintenance(data, retention, false)
+        parked_maintenance(data, retention, false, false)
     }
     fn parked_maintenance(
         data: bool,
         retention: Option<retention::Config>,
         compaction: bool,
+        read_enabled: bool,
     ) -> (Arc<Router>, std::sync::mpsc::Sender<()>, PathBuf) {
         let path = std::env::temp_dir().join(format!(
             "partitionline-actor-{}-{}",
@@ -3350,7 +3351,8 @@ mod tests {
         let (change_tx, changes) = watch::channel(());
         let change_tx = Arc::new(change_tx);
         let wakeup = Arc::downgrade(&change_tx);
-        let reads = (retention.is_some() || compaction).then(fetch::Limits::default);
+        let reads =
+            (read_enabled || retention.is_some() || compaction).then(fetch::Limits::default);
         let task = tokio::task::spawn_blocking(move || {
             if gate.recv().is_err() {
                 return;
@@ -3667,6 +3669,65 @@ mod tests {
         .await??;
         Ok(())
     }
+
+    #[tokio::test]
+    async fn unconsumed_fetch_receipt_keeps_admission_until_consumed_or_canceled(
+    ) -> Result<(), Box<dyn StdError>> {
+        for cancel in [false, true] {
+            let (router, release, path) = parked_maintenance(true, None, false, true);
+            let input =
+                include_bytes!("../tests/fixtures/fetch/4.3.1/fetch-v6-offset0.request.bin")
+                    .to_vec();
+            let mut pending = Box::pin(router.dispatch(input.clone()));
+            std::future::poll_fn(|cx| match std::future::Future::poll(pending.as_mut(), cx) {
+                std::task::Poll::Pending => std::task::Poll::Ready(Ok(())),
+                std::task::Poll::Ready(result) => {
+                    std::task::Poll::Ready(Err(format!("parked Fetch completed: {result:?}")))
+                }
+            })
+            .await?;
+            assert_eq!(router.sender.capacity(), 0, "Fetch was not queued");
+            release.send(())?;
+
+            // The metadata reply follows the Fetch on the same actor. At this
+            // point its snapshot has been sent, but the caller has not polled it.
+            tokio::time::timeout(Duration::from_secs(5), async {
+                loop {
+                    match router.respond(request(3)).await {
+                        Err(Error::QueueFull) => tokio::task::yield_now().await,
+                        result => return result,
+                    }
+                }
+            })
+            .await??;
+            assert_eq!(router.sender.capacity(), 1, "actor queue did not drain");
+            assert!(
+                matches!(router.dispatch(input.clone()).await, Err(Error::QueueFull)),
+                "PL_MISSING_ADMISSION_PERMIT"
+            );
+            if cancel {
+                drop(pending);
+            } else {
+                let response = pending.await?.ok_or("missing Fetch response")?;
+                assert_eq!(response.get(27..29), Some(&[0, 0][..]));
+                assert_eq!(response.get(29..37), Some(&0i64.to_be_bytes()[..]));
+            }
+            let response = router
+                .dispatch(input)
+                .await?
+                .ok_or("missing subsequent Fetch response")?;
+            assert_eq!(response.get(27..29), Some(&[0, 0][..]));
+            assert_eq!(response.get(29..37), Some(&0i64.to_be_bytes()[..]));
+            router.shutdown().await?;
+            tokio::task::spawn_blocking(move || -> std::io::Result<()> {
+                std::fs::remove_file(&path)?;
+                std::fs::remove_dir_all(path.with_extension("parts"))
+            })
+            .await??;
+        }
+        Ok(())
+    }
+
     #[tokio::test]
     async fn unconsumed_data_receipt_keeps_admission_bounded() -> Result<(), Box<dyn StdError>> {
         let (router, release, path) = parked_profile(true);
@@ -3775,7 +3836,7 @@ mod tests {
     }
     fn parked_compaction(
     ) -> Result<(Arc<Router>, std::sync::mpsc::Sender<()>, PathBuf, TopicId), Error> {
-        let (router, release, path) = parked_maintenance(true, None, true);
+        let (router, release, path) = parked_maintenance(true, None, true, false);
         let mut id = [0; 16];
         id[15] = 2;
         Ok((
