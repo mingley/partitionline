@@ -27,7 +27,7 @@ jobs:
       - name: Checkout matched baseline
         uses: actions/checkout@v7
         with:
-          ref: f6ea03662d78908cce6656dd7a50aa913721fb66
+          ref: 25b69b08118951b4075f12ce944831365b23cbee
           path: baseline
           fetch-depth: 30
           persist-credentials: false
@@ -70,19 +70,19 @@ jobs:
           evidence="$RUNNER_TEMP/public-shutdown"
           {
             echo "candidate_qualification_commit=$GITHUB_SHA"
-            echo "baseline_qualification_commit=f6ea03662d78908cce6656dd7a50aa913721fb66"
+            echo "baseline_qualification_commit=25b69b08118951b4075f12ce944831365b23cbee"
             echo "baseline_base=bc45ba4f65f126c406ff88a57fcfe08007d35b29"
             echo "candidate_base=b7c11784d79b05a36ca624b3de17a952603d4931"
-            test "$(git -C baseline rev-parse HEAD)" = f6ea03662d78908cce6656dd7a50aa913721fb66
+            test "$(git -C baseline rev-parse HEAD)" = 25b69b08118951b4075f12ce944831365b23cbee
             test "$(git -C candidate rev-parse HEAD)" = "$GITHUB_SHA"
             test "$(git -C baseline rev-parse bc45ba4f65f126c406ff88a57fcfe08007d35b29:src/producer.rs)" = 8c0e6754f7bdd4500e8e9c5c4af8009cad86a671
             test "$(git -C candidate rev-parse b7c11784d79b05a36ca624b3de17a952603d4931:src/producer.rs)" = 0f4affa57ce20eb33b94b2b9754f2d85a75fad7c
-            test "$(git -C baseline rev-parse HEAD:src/producer.rs)" = 42e49943c62c01b2d5f78d8aa59a949641de7400
-            test "$(git -C candidate rev-parse HEAD:src/producer.rs)" = 021aa79849b0ff07a118ed04afa1d795bf38786a
+            test "$(git -C baseline rev-parse HEAD:src/producer.rs)" = c80dca539d304b316d78f9654032de427536a1ea
+            test "$(git -C candidate rev-parse HEAD:src/producer.rs)" = beb1d1ef51cc97004017d63c08e170832106cf35
             test "$(git -C baseline rev-parse HEAD:src/producer/completion_draft.rs)" = 2fd3dbe9f8069e1e97526ed10d54118d0dac68a3
             test "$(git -C candidate rev-parse HEAD:src/producer/completion_draft.rs)" = 758164ed462f3e26f59a639540d9374928d06795
             for side in baseline candidate; do
-              test "$(git -C "$side" rev-parse HEAD:tests/public_shutdown.rs)" = 7a4b45205aff7fc9dea055a2b4506a67e20789f5
+              test "$(git -C "$side" rev-parse HEAD:tests/public_shutdown.rs)" = 841debe31d3a0daeb79c7dad4a2344194db172c1
               test "$(git -C "$side" rev-parse HEAD:tests/common/mod.rs)" = 9d14334cf587b774701692547fdbdfd64bd399a1
               test "$(git -C "$side" rev-parse HEAD:Cargo.lock)" = d1cb698aaaf7554fe904ba02d671c4a8ab4975b3
               test -z "$(git -C "$side" status --porcelain)"
@@ -143,6 +143,7 @@ jobs:
           echo "shutdown_control_failures=$failures"
           test "$failures" -eq 0
       - name: Check witness formatting
+        if: always()
         shell: bash
         run: |
           set -euo pipefail

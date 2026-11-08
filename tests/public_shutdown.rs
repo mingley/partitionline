@@ -146,7 +146,10 @@ async fn close_history(cancel_first: bool) {
     assert_eq!(producer.metrics().records_queued, 2);
     assert_eq!(producer.metrics().bytes_buffered, 5);
     entered(&gate).await;
-    assert_eq!(mock.log_values("t", 0), vec![(0, Some(b"warm".to_vec())), (1, Some(b"alpha".to_vec()))]);
+    assert_eq!(
+        mock.log_values("t", 0),
+        vec![(0, Some(b"warm".to_vec())), (1, Some(b"alpha".to_vec()))]
+    );
 
     let initial = marker::observed_closes();
     let closing_handle = producer.clone();
@@ -158,11 +161,16 @@ async fn close_history(cancel_first: bool) {
         drop(close.take());
     }
 
-    let mut late =
-        Box::pin(producer.send(ProduceRecord::to("t").partition(0).value(&b"late"[..])));
+    let mut late = Box::pin(producer.send(ProduceRecord::to("t").partition(0).value(&b"late"[..])));
     let late_accepted = expect_post_close_poll(poll_once(late.as_mut()).await);
-    assert_eq!(producer.metrics().records_queued, if late_accepted { 3 } else { 2 });
-    assert_eq!(callbacks.sends.load(Ordering::SeqCst), if late_accepted { 3 } else { 2 });
+    assert_eq!(
+        producer.metrics().records_queued,
+        if late_accepted { 3 } else { 2 }
+    );
+    assert_eq!(
+        callbacks.sends.load(Ordering::SeqCst),
+        if late_accepted { 3 } else { 2 }
+    );
     assert_eq!(callbacks.closes.load(Ordering::SeqCst), 0);
 
     gate.release();
@@ -172,7 +180,11 @@ async fn close_history(cancel_first: bool) {
         .expect("target delivery deadline")
         .expect("target acknowledgement");
     assert_eq!((metadata.partition, metadata.offset), (0, 1));
-    assert!(callbacks.acknowledgements.lock().unwrap().contains(&("t".to_string(), 0, 1, 5)));
+    assert!(callbacks
+        .acknowledgements
+        .lock()
+        .unwrap()
+        .contains(&("t".to_string(), 0, 1, 5)));
     if late_accepted {
         let late_metadata = tokio::time::timeout(WAIT, late.as_mut())
             .await
@@ -191,23 +203,34 @@ async fn close_history(cancel_first: bool) {
             .expect("close result");
         drop(close);
     } else {
-        tokio::time::timeout(WAIT, producer.clone().close_timeout(Duration::from_secs(10)))
-            .await
-            .expect("second close deadline")
-            .expect("second close result");
+        tokio::time::timeout(
+            WAIT,
+            producer.clone().close_timeout(Duration::from_secs(10)),
+        )
+        .await
+        .expect("second close deadline")
+        .expect("second close result");
     }
     assert_eq!(callbacks.closes.load(Ordering::SeqCst), 1);
     assert!(callbacks.errors.lock().unwrap().is_empty());
     assert_eq!(producer.metrics().bytes_buffered, 0);
     let expected = if late_accepted {
-        vec![(0, Some(b"warm".to_vec())), (1, Some(b"alpha".to_vec())), (2, Some(b"late".to_vec()))]
+        vec![
+            (0, Some(b"warm".to_vec())),
+            (1, Some(b"alpha".to_vec())),
+            (2, Some(b"late".to_vec())),
+        ]
     } else {
         vec![(0, Some(b"warm".to_vec())), (1, Some(b"alpha".to_vec()))]
     };
     assert_eq!(mock.log_values("t", 0), expected);
     let acks = callbacks.acknowledgements.lock().unwrap().clone();
     let expected_acks = if late_accepted {
-        vec![("t".to_string(), 0, 0, 4), ("t".to_string(), 0, 1, 5), ("t".to_string(), 0, 2, 4)]
+        vec![
+            ("t".to_string(), 0, 0, 4),
+            ("t".to_string(), 0, 1, 5),
+            ("t".to_string(), 0, 2, 4),
+        ]
     } else {
         vec![("t".to_string(), 0, 0, 4), ("t".to_string(), 0, 1, 5)]
     };
@@ -237,14 +260,18 @@ async fn pre_admission_buffer_waiter_is_checked_at_the_seal() {
     let (mock, producer, callbacks) = setup(1024).await;
     let gate = mock.gate_next_produce_response();
     let release = Release(Arc::clone(&gate));
-    let mut first = Box::pin(producer.send(ProduceRecord::to("t").partition(0).value(vec![b'a'; 600])));
+    let mut first =
+        Box::pin(producer.send(ProduceRecord::to("t").partition(0).value(vec![b'a'; 600])));
     assert!(poll_once(first.as_mut()).await.is_pending());
     assert_eq!(producer.metrics().records_queued, 2);
     assert_eq!(producer.metrics().bytes_buffered, 600);
     entered(&gate).await;
 
-    let mut waiting = Box::pin(producer.send(ProduceRecord::to("t").partition(0).value(vec![b'b'; 600])));
+    let initial_waits = marker::observed_buffer_waits();
+    let mut waiting =
+        Box::pin(producer.send(ProduceRecord::to("t").partition(0).value(vec![b'b'; 600])));
     assert!(poll_once(waiting.as_mut()).await.is_pending());
+    assert!(marker::observed_buffer_waits() > initial_waits);
     assert_eq!(callbacks.sends.load(Ordering::SeqCst), 3);
     assert_eq!(producer.metrics().records_queued, 2);
     assert_eq!(producer.metrics().bytes_buffered, 600);
@@ -278,7 +305,10 @@ async fn pre_admission_buffer_waiter_is_checked_at_the_seal() {
         .expect("close result");
     drop(close);
 
-    assert_eq!(producer.metrics().records_queued, if candidate() { 2 } else { 3 });
+    assert_eq!(
+        producer.metrics().records_queued,
+        if candidate() { 2 } else { 3 }
+    );
     assert_eq!(producer.metrics().bytes_buffered, 0);
     assert_eq!(callbacks.closes.load(Ordering::SeqCst), 1);
     assert!(callbacks.errors.lock().unwrap().is_empty());
@@ -291,8 +321,16 @@ async fn pre_admission_buffer_waiter_is_checked_at_the_seal() {
     let expected = if candidate() {
         vec![(0, Some(b"warm".to_vec())), (1, Some(vec![b'a'; 600]))]
     } else {
-        vec![(0, Some(b"warm".to_vec())), (1, Some(vec![b'a'; 600])), (2, Some(vec![b'b'; 600]))]
+        vec![
+            (0, Some(b"warm".to_vec())),
+            (1, Some(vec![b'a'; 600])),
+            (2, Some(vec![b'b'; 600])),
+        ]
     };
     assert_eq!(mock.log_values("t", 0), expected);
-    println!("PUBLIC_SHUTDOWN_PRE_ADMISSION sealed={} waiter_ack={} bytes=0", candidate(), !candidate());
+    println!(
+        "PUBLIC_SHUTDOWN_PRE_ADMISSION sealed={} waiter_ack={} bytes=0",
+        candidate(),
+        !candidate()
+    );
 }
