@@ -29,7 +29,11 @@ jobs:
         run: |
           uname -a
           lscpu | awk '/Architecture:|Model name:|CPU\(s\):/'
-          cat /sys/fs/cgroup/cpu.max
+          if [[ -r /sys/fs/cgroup/cpu.max ]]; then
+            cat /sys/fs/cgroup/cpu.max
+          else
+            printf '%s\n' 'cpu.max unavailable'
+          fi
       - name: Paired exact-test observations
         run: python3 control/docs/evidence/client/producer-completion-draft-20261108/matched_retained.py
       - name: Retain every observation
