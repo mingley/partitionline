@@ -12,13 +12,14 @@ jobs:
       CARGO_INCREMENTAL: "0"
       CARGO_BUILD_JOBS: "2"
       CARGO_TERM_COLOR: never
-      PL_PERF_ROOT: ${{ runner.temp }}/journal-matched
     steps:
       - uses: actions/checkout@v7
         with:
           fetch-depth: 0
           persist-credentials: false
       - uses: dtolnay/rust-toolchain@stable
+      - name: Configure benchmark directory
+        run: printf 'PL_PERF_ROOT=%s/journal-matched\n' "$RUNNER_TEMP" >> "$GITHUB_ENV"
       - name: Capture host and checkout exact source
         shell: bash
         run: |
