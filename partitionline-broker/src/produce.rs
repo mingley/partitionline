@@ -2005,9 +2005,7 @@ fn process_inner(
     for (topic_at, topic) in results.iter_mut().enumerate() {
         for (part_at, part) in topic.parts.iter_mut().enumerate() {
             if let Err(error) = active() {
-                if grouped {
-                    rollback_pending(store, &mut pending_sync);
-                }
+                rollback_pending(store, &mut pending_sync);
                 return Err(error);
             }
             if part.error == 0 {
@@ -2277,6 +2275,220 @@ impl Writer {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    type CancelFixture = (PathBuf, metadata::Config, Catalog, Store, TopicId);
+
+    fn cancellation_test_request(parts: &[i32]) -> Result<Vec<u8>, Box<dyn std::error::Error>> {
+        let batch = include_bytes!("../tests/fixtures/records/valid-basic.bin");
+        let mut out = Vec::new();
+        out.extend_from_slice(&0_i16.to_be_bytes());
+        out.extend_from_slice(&3_i16.to_be_bytes());
+        out.extend_from_slice(&77_i32.to_be_bytes());
+        out.extend_from_slice(&(-1_i16).to_be_bytes());
+        out.extend_from_slice(&(-1_i16).to_be_bytes());
+        out.extend_from_slice(&1_i16.to_be_bytes());
+        out.extend_from_slice(&60_000_i32.to_be_bytes());
+        out.extend_from_slice(&1_i32.to_be_bytes());
+        out.extend_from_slice(&5_i16.to_be_bytes());
+        out.extend_from_slice(b"alpha");
+        out.extend_from_slice(&i32::try_from(parts.len())?.to_be_bytes());
+        for part in parts {
+            out.extend_from_slice(&part.to_be_bytes());
+            out.extend_from_slice(&i32::try_from(batch.len())?.to_be_bytes());
+            out.extend_from_slice(batch);
+        }
+        Ok(out)
+    }
+
+    fn cancellation_test_fixture(
+        label: &str,
+        rolling: bool,
+    ) -> Result<CancelFixture, Box<dyn std::error::Error>> {
+        let nanos = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)?
+            .as_nanos();
+        let root =
+            std::env::temp_dir().join(format!("pl-cancel-{}-{nanos}-{label}", std::process::id()));
+        std::fs::create_dir(&root)?;
+        let common = metadata::Config::new(0, "127.0.0.1".into(), 9092, "cancel".into());
+        let (mut catalog, _) = Catalog::open(root.join("catalog"), common.catalog_limits)?;
+        let id = TopicId::new([7; 16])?;
+        let _created = catalog.create("alpha", id, 2)?;
+        let mut config = Config::new(root.join("data"));
+        if rolling {
+            config.segment_limits = Some(segments::Limits::new(
+                150,
+                2,
+                4,
+                2,
+                8 * 1024 * 1024,
+                65_536,
+                2 * 1024 * 1024,
+            )?);
+        }
+        let store = Store::open(config, &catalog)?;
+        Ok((root, common, catalog, store, id))
+    }
+
+    #[test]
+    fn cancel_ungrouped_after_first_stage_rolls_back() -> Result<(), Box<dyn std::error::Error>> {
+        use std::cell::Cell;
+        let (root, common, catalog, mut store, id) = cancellation_test_fixture("ungrouped", false)?;
+        let mut input = cancellation_test_request(&[0, 1])?;
+        let calls = Cell::new(0_usize);
+        let result = process(
+            &catalog,
+            &mut store,
+            &mut input,
+            &common,
+            Instant::now(),
+            || {
+                let next = calls.get() + 1;
+                calls.set(next);
+                if next == 3 {
+                    Err(Error::Canceled)
+                } else {
+                    Ok(())
+                }
+            },
+        );
+        assert!(matches!(result, Err(Error::Canceled)));
+        assert_eq!(calls.get(), 3);
+        assert_eq!(store.slots.len(), 1);
+        assert!(store.take_changed());
+        let position = store
+            .slot(id, 0)
+            .map_err(|code| std::io::Error::other(format!("slot error {code}")))?;
+        let fetched = store.slots[position].partition.fetch(0, 1, 4096);
+        assert!(fetched.is_ok(), "UNGROUPED_CANCEL_LEFT_STAGED");
+        assert!(fetched?.is_empty());
+
+        let mut retry = cancellation_test_request(&[0, 1])?;
+        assert!(process(
+            &catalog,
+            &mut store,
+            &mut retry,
+            &common,
+            Instant::now(),
+            || Ok(())
+        )?
+        .is_some());
+        assert_eq!(store.log_bounds(id, 0), Ok((0, 1)));
+        assert_eq!(store.log_bounds(id, 1), Ok((0, 1)));
+        let config = store.config.clone();
+        drop(store);
+        let mut reopened = Store::open(config, &catalog)?;
+        for part in [0, 1] {
+            let position = reopened
+                .slot(id, part)
+                .map_err(|code| std::io::Error::other(format!("slot error {code}")))?;
+            assert_eq!(reopened.log_bounds(id, part), Ok((0, 1)));
+            let entries = reopened.slots[position].partition.fetch(0, 2, 4096)?;
+            assert_eq!(entries.len(), 1);
+            assert_eq!(entries[0].first_offset, 0);
+            assert_eq!(entries[0].record_count, 1);
+        }
+        drop(reopened);
+        drop(catalog);
+        std::fs::remove_dir_all(root)?;
+        Ok(())
+    }
+
+    #[test]
+    fn cancel_grouped_preserves_prior_request() -> Result<(), Box<dyn std::error::Error>> {
+        let (root, common, catalog, mut store, id) = cancellation_test_fixture("grouped", false)?;
+        let mut inputs = vec![
+            cancellation_test_request(&[0])?,
+            cancellation_test_request(&[0, 1])?,
+        ];
+        let admitted = [Instant::now(), Instant::now()];
+        let mut spares = vec![Vec::new(), Vec::new()];
+        let mut calls = [0_usize; 2];
+        let replies = process_queued(
+            &catalog,
+            &mut store,
+            &mut inputs,
+            &admitted,
+            &common,
+            &mut spares,
+            |index| {
+                calls[index] += 1;
+                if index == 1 && calls[index] == 3 {
+                    Err(Error::Canceled)
+                } else {
+                    Ok(())
+                }
+            },
+        );
+        assert_eq!(calls, [2, 3]);
+        assert!(matches!(replies.first(), Some(Ok(Some(_)))));
+        assert!(matches!(replies.get(1), Some(Err(Error::Canceled))));
+        assert_eq!(store.log_bounds(id, 0), Ok((0, 1)));
+        assert_eq!(store.log_bounds(id, 1), Ok((0, 0)));
+        let position = store
+            .slot(id, 0)
+            .map_err(|code| std::io::Error::other(format!("slot error {code}")))?;
+        assert_eq!(store.slots[position].partition.fetch(0, 2, 4096)?.len(), 1);
+        let mut retry = cancellation_test_request(&[0])?;
+        assert!(process(
+            &catalog,
+            &mut store,
+            &mut retry,
+            &common,
+            Instant::now(),
+            || Ok(())
+        )?
+        .is_some());
+        assert_eq!(store.log_bounds(id, 0), Ok((0, 2)));
+        drop(store);
+        drop(catalog);
+        std::fs::remove_dir_all(root)?;
+        Ok(())
+    }
+
+    #[test]
+    fn cancel_rolling_may_leave_durable_prefix() -> Result<(), Box<dyn std::error::Error>> {
+        use std::cell::Cell;
+        let (root, common, catalog, mut store, id) = cancellation_test_fixture("rolling", true)?;
+        let mut input = cancellation_test_request(&[0, 1])?;
+        let calls = Cell::new(0_usize);
+        let result = process(
+            &catalog,
+            &mut store,
+            &mut input,
+            &common,
+            Instant::now(),
+            || {
+                let next = calls.get() + 1;
+                calls.set(next);
+                if next == 3 {
+                    Err(Error::Canceled)
+                } else {
+                    Ok(())
+                }
+            },
+        );
+        assert!(matches!(result, Err(Error::Canceled)));
+        assert_eq!(calls.get(), 3);
+        assert_eq!(store.log_bounds(id, 0), Ok((0, 1)));
+        assert_eq!(store.log_bounds(id, 1), Ok((0, 0)));
+        let config = store.config.clone();
+        drop(store);
+        let mut reopened = Store::open(config, &catalog)?;
+        let position = reopened
+            .slot(id, 0)
+            .map_err(|code| std::io::Error::other(format!("slot error {code}")))?;
+        assert_eq!(reopened.log_bounds(id, 0), Ok((0, 1)));
+        assert_eq!(reopened.log_bounds(id, 1), Ok((0, 0)));
+        assert_eq!(
+            reopened.slots[position].partition.fetch(0, 2, 4096)?.len(),
+            1
+        );
+        drop(reopened);
+        drop(catalog);
+        std::fs::remove_dir_all(root)?;
+        Ok(())
+    }
 
     #[test]
     fn cached_read_errors_report_poison_for_direct_and_relocated_handles(

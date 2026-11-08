@@ -239,6 +239,13 @@ remain open.
    and [transaction](../evidence/broker/transaction-checkpoint-20261028/README.md)
    records.
 
+   The [Produce cancellation fix](../evidence/broker/produce-cancel-20261108/README.md)
+   rolls back a canceled request's unsynced monolithic stages. Its x86
+   qualification reproduced the prior failure and passed three controls in
+   each profile, 737 default and 885 all-feature broker tests, strict Clippy
+   and inventory checks. Rolling storage may retain a durable prefix;
+   transport cancellation, truncation failure and power loss remain open.
+
    A safe committed-prefix guard needs a current, partition-bound authority
    and proof that local bytes match the committed leader lineage. The
    [reviewed design](../evidence/broker/committed-prefix-20261102/DESIGN.md)
