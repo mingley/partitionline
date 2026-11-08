@@ -1,0 +1,58 @@
+name: Admin DTP public row poll baseline
+on:
+  push:
+    branches: [qualification/admin-row-public-baseline-20261108]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  witness:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    env:
+      CARGO_INCREMENTAL: '0'
+      CARGO_TERM_COLOR: never
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Record exact source and machine
+        run: |
+          set -euo pipefail
+          mkdir -p evidence
+          test "$(git rev-parse HEAD:src/admin.rs)" = 4d4212057984e47201b2bb1fe383ac2ae5a55562
+          test "$(git rev-parse HEAD:src/admin/pagination_tests.rs)" = 6944285477b86a8cad7b2e65ef3b55dcebd64f95
+          git rev-parse HEAD HEAD:src/admin.rs HEAD:src/admin/pagination_tests.rs HEAD:Cargo.lock | tee evidence/blobs.txt
+          sha256sum src/admin.rs src/admin/pagination_tests.rs Cargo.lock | tee evidence/source-sha256.txt
+          rustc -Vv | tee evidence/rust.txt
+          cargo -V | tee evidence/cargo.txt
+          lscpu | tee evidence/cpu.txt
+          if test -r /sys/fs/cgroup/cpu.max; then cat /sys/fs/cgroup/cpu.max | tee evidence/cpu-max.txt; else echo 'cpu.max unavailable' | tee evidence/cpu-max.txt; fi
+      - name: Build release public witness
+        run: |
+          set -euo pipefail
+          cargo test --locked --release --lib dtp_public_row_poll_witness --no-run 2>&1 | tee evidence/build.txt
+          mapfile -t bins < <(find target/release/deps -maxdepth 1 -type f -executable -name 'partitionline-*')
+          test "${#bins[@]}" = 1
+          sha256sum "${bins[0]}" | tee evidence/binary.txt
+          echo "WITNESS_BIN=${bins[0]}" >> "$GITHUB_ENV"
+      - name: Measure actual Admin polls against the mock peer
+        run: |
+          set -euo pipefail
+          for kind in empty error; do
+            for count in 1 32 8191 8192 8193 100000 500000; do
+              for trial in 1 2 3; do
+                echo "ROW_PUBLIC_CASE kind=$kind rows=$count trial=$trial"
+                log="evidence/${kind}-${count}-${trial}.log"
+                PL_ROW_PUBLIC_COUNT="$count" PL_ROW_PUBLIC_KIND="$kind" "$WITNESS_BIN" --exact admin::pagination_tests::dtp_public_row_poll_witness --test-threads=1 --nocapture 2>&1 | tee "$log"
+                grep -F "ROW_PUBLIC rows=$count kind=$kind " "$log"
+                grep -F 'test result: ok. 1 passed; 0 failed;' "$log"
+              done
+            done
+          done
+      - name: Retain raw measurements
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: admin-row-public-baseline
+          path: evidence
+          retention-days: 30
