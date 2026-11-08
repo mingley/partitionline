@@ -2,7 +2,7 @@
 
 The ordinary record validator first tries a fast walk for batches without
 headers. A positive header count makes that walk decline and the generic
-validator starts from the beginning. Six isolated candidates tried to
+validator starts from the beginning. Seven isolated candidates tried to
 reduce that repeated work. None is applied: each regressed at least one
 measured control. The benchmark checks memory-resident uncompressed batches;
 it does not measure Kafka throughput or rank clients or servers.
@@ -224,3 +224,40 @@ has GitHub-reported SHA-256
 `d9b1f273edcfade2c1d6a3fa0def3eecfe67e6e26397319a246679ef206ec4da`.
 It contains the selected disassembly and measurements; it has not been
 independently downloaded, and the binaries were not retained.
+
+## Timestamp wrapper inline follow-up
+
+The [wrapper-only candidate](https://github.com/mingley/partitionline/commit/981729e409cd994eebbea8df92c82627a968e70d)
+added `#[inline(always)]` to the canonical timestamp decoder.
+[Run 42453294784](https://github.com/mingley/partitionline/actions/runs/42453294784)
+measured candidate/baseline median ratios of 1.076 for 1,024 header-free
+records, 1.069 for early-invalid, and 1.043 for late-invalid without headers.
+The one-header single-record ratio was 1.002; the 1,024 one-header-per-record
+ratio was 0.745. This candidate also remains unapplied.
+
+In the separate [code-generation run](https://github.com/mingley/partitionline/actions/runs/42453306515),
+the two executable SHA-256 values matched the paired benchmark. The candidate
+no longer had a separate `read_canonical_i64` symbol, but
+`try_accept_plain` called the lower-level `read_canonical_u64` function,
+which the baseline did not call. Its eight paired no-header ratios ranged
+from 1.070 to 1.152. The code change and benchmark do not isolate a single
+cause for the remaining regression.
+
+The candidate source SHA-256 was
+`05f4e2a0af73228bd60d9dce388a083cfb087eecb7f630721f6928cfced46493`;
+fixture SHA-256 was
+`d268ab717b4447c560eba6b009ca58eb91e62d9cbcb776ecaf7ba258a3dbcc18`.
+Baseline and candidate binary SHA-256 values were
+`e4698019bfb9f7d9bd9da9dd975ae89b85c1d25f48ec27a07a2d7a738be7ebe7`
+and `182803178448a27eedbc0075a13e7c748804cad0814fa4feae0e77665038359c`.
+GitHub reported SHA-256
+`e728636692bab296839c2132638f178b0e48d430f9d39540ad022ee2f74b4b57`
+for the [measurement artifact](https://github.com/mingley/partitionline/actions/runs/42453294784/artifacts/13606516440)
+and `138da599ce81fd943f7dca330e12471bbef81a80bc168b01cedf62bd30ee204e`
+for the [code-generation artifact](https://github.com/mingley/partitionline/actions/runs/42453306515/artifacts/13607215077).
+Neither archive has been independently downloaded; binaries were not retained.
+[Run 42453286145](https://github.com/mingley/partitionline/actions/runs/42453286145)
+passed formatting, the focused tests in both profiles and strict Clippy.
+
+A subsequent isolated variant also inlines the lower-level decoder. Its
+paired benchmark and disassembly are in progress.
