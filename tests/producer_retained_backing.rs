@@ -171,18 +171,38 @@ async fn rejected_record_releases_caller_backing_without_reserving() -> Result<(
     Ok(())
 }
 
-#[tokio::test]
-async fn cancelled_channel_admission_releases_only_the_unenqueued_reservation() -> Result<(), Error>
+#[tokio::test(flavor = "current_thread")]
+async fn dropping_channel_waiter_releases_only_its_reservation() -> Result<(), Error>
 {
+    const CHANNEL_CAPACITY: usize = 4096;
+    const VALUE_BYTES: u64 = 8;
+    const CANCELED_BYTES: usize = 113;
+
+    #[derive(Clone, Default)]
+    struct Callbacks {
+        offsets: Arc<std::sync::Mutex<Vec<i64>>>,
+        errors: Arc<AtomicUsize>,
+    }
+    impl partitionline::interceptor::ProducerInterceptor for Callbacks {
+        fn on_ack(&self, metadata: &partitionline::RecordMetadata) {
+            self.offsets.lock().unwrap().push(metadata.offset);
+        }
+        fn on_error(&self, _error: &Error) {
+            let _previous = self.errors.fetch_add(1, Ordering::SeqCst);
+        }
+    }
+
     let mock = common::Mock::start().await;
+    let callbacks = Callbacks::default();
     let producer = Producer::new(
         ProducerConfig::bootstrap([mock.addr.clone()])
-            .connections(25) // Existing channel policy: max(100000 / connections, 4096).
-            .max_in_flight(1)
-            .batch_records(1)
+            .connections(25) // max(100000 / connections, 4096) per worker channel.
+            .batch_records(CHANNEL_CAPACITY)
             .linger(Duration::ZERO)
             .buffer_memory(0)
-            .delivery_timeout(Duration::from_secs(15)),
+            .metadata_max_age(Duration::from_secs(60))
+            .delivery_timeout(Duration::from_secs(30))
+            .interceptor(callbacks.clone()),
     )
     .await?;
     let warm = producer
@@ -190,14 +210,200 @@ async fn cancelled_channel_admission_releases_only_the_unenqueued_reservation() 
         .await?;
     assert_eq!(warm.offset, 0);
     producer.flush().await?;
-    mock.set_produce_response_delay(Duration::from_secs(3));
+
+    // No scheduler yield occurs while filling the channel, probing its
+    // capacity, polling the blocked send_all once, or dropping it. The worker
+    // cannot run between these snapshots on the current-thread runtime.
+    let warm_metrics = producer.metrics();
+    assert_eq!(warm_metrics.bytes_buffered, 0);
+    assert_eq!(warm_metrics.records_acked, 1);
+    assert_eq!(warm_metrics.produce_errors, 0);
+    for index in 0..CHANNEL_CAPACITY {
+        let value = u64::try_from(index).unwrap().to_le_bytes().to_vec();
+        producer.try_send(ProduceRecord::to("t").partition(0).value(value))?;
+    }
+    assert!(matches!(
+        producer.try_send(ProduceRecord::to("t").partition(0).value("probe")),
+        Err(Error::QueueFull)
+    ));
+    let full = producer.metrics();
+    let accepted = u64::try_from(CHANNEL_CAPACITY).unwrap();
+    assert_eq!(full.records_queued, warm_metrics.records_queued + accepted);
+    assert_eq!(full.records_acked, warm_metrics.records_acked);
+    assert_eq!(full.produce_errors, warm_metrics.produce_errors);
+    assert_eq!(full.bytes_buffered, accepted * VALUE_BYTES);
+    assert_eq!(mock.log_len("t", 0), 1);
+
+    let payload = vec![b'z'; CANCELED_BYTES];
+    let mut blocked = Box::pin(producer.send_all([
+        ProduceRecord::to("t").partition(0).value(payload),
+    ]));
+    struct NoopWake;
+    impl std::task::Wake for NoopWake {
+        fn wake(self: Arc<Self>) {}
+    }
+    let waker = std::task::Waker::from(Arc::new(NoopWake));
+    let mut context = std::task::Context::from_waker(&waker);
+    let first_poll = std::future::Future::poll(blocked.as_mut(), &mut context);
+    assert!(first_poll.is_pending(), "send_all did not wait on the full channel");
+    let while_blocked = producer.metrics();
+    assert_eq!(while_blocked.records_queued, full.records_queued);
+    assert_eq!(while_blocked.records_acked, full.records_acked);
+    assert_eq!(while_blocked.produce_errors, full.produce_errors);
+    assert_eq!(
+        while_blocked.bytes_buffered,
+        full.bytes_buffered + u64::try_from(CANCELED_BYTES).unwrap()
+    );
+
+    drop(blocked);
+    let after_cancel = producer.metrics();
+    assert_eq!(after_cancel.records_queued, full.records_queued);
+    assert_eq!(after_cancel.records_acked, full.records_acked);
+    assert_eq!(after_cancel.produce_errors, full.produce_errors);
+    assert_eq!(mock.log_len("t", 0), 1);
+    assert_eq!(
+        after_cancel.bytes_buffered, full.bytes_buffered,
+        "cancelled channel admission retained its unqueued reservation"
+    );
+
+    tokio::time::timeout(Duration::from_secs(20), producer.flush())
+        .await
+        .map_err(|_| Error::Timeout)??;
+    let after_flush = producer.metrics();
+    assert_eq!(after_flush.bytes_buffered, 0);
+    assert_eq!(after_flush.records_acked, warm_metrics.records_acked + accepted);
+    assert_eq!(after_flush.produce_errors, warm_metrics.produce_errors);
+    assert_eq!(callbacks.errors.load(Ordering::SeqCst), 0);
+    {
+        let offsets = callbacks.offsets.lock().unwrap();
+        assert_eq!(offsets.len(), CHANNEL_CAPACITY + 1);
+        for (index, offset) in offsets.iter().enumerate() {
+            assert_eq!(*offset, i64::try_from(index).unwrap());
+        }
+    }
+
+    let log = mock.log_values("t", 0);
+    assert_eq!(log.len(), CHANNEL_CAPACITY + 1);
+    assert_eq!(log.first(), Some(&(0, Some(b"warm".to_vec()))));
+    for (index, (offset, value)) in log.iter().skip(1).enumerate() {
+        assert_eq!(*offset, i64::try_from(index + 1).unwrap());
+        let expected = u64::try_from(index).unwrap().to_le_bytes();
+        assert_eq!(value.as_deref(), Some(expected.as_slice()));
+    }
+    producer.close().await?;
+    Ok(())
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn cancelled_channel_admission_releases_only_the_unenqueued_reservation() -> Result<(), Error>
+{
+    const CHANNEL_CAPACITY: usize = 4096;
+    const VALUE_BYTES: u64 = 8;
+    const CANCELED_BYTES: usize = 113;
+
+    struct ReleaseOnDrop(Option<std::sync::mpsc::Sender<()>>);
+    impl ReleaseOnDrop {
+        fn release(&mut self) {
+            if let Some(sender) = self.0.take() {
+                let _sent = sender.send(());
+            }
+        }
+    }
+    impl Drop for ReleaseOnDrop {
+        fn drop(&mut self) {
+            self.release();
+        }
+    }
+
+    #[derive(Clone)]
+    struct HoldWarmupAck {
+        entered: Arc<std::sync::Mutex<Option<tokio::sync::oneshot::Sender<()>>>>,
+        release: Arc<std::sync::Mutex<std::sync::mpsc::Receiver<()>>>,
+        offsets: Arc<std::sync::Mutex<Vec<i64>>>,
+        errors: Arc<AtomicUsize>,
+    }
+    impl partitionline::interceptor::ProducerInterceptor for HoldWarmupAck {
+        fn on_ack(&self, metadata: &partitionline::RecordMetadata) {
+            if metadata.offset == 0 {
+                let entered = self.entered.lock().unwrap().take();
+                if let Some(entered) = entered {
+                    let _sent = entered.send(());
+                }
+                let _released = self.release.lock().unwrap().recv();
+            }
+            self.offsets.lock().unwrap().push(metadata.offset);
+        }
+        fn on_error(&self, _error: &Error) {
+            let _previous = self.errors.fetch_add(1, Ordering::SeqCst);
+        }
+    }
+
+    let mock = common::Mock::start().await;
+    let (entered_tx, entered_rx) = tokio::sync::oneshot::channel();
+    let (release_tx, release_rx) = std::sync::mpsc::channel();
+    let mut release = ReleaseOnDrop(Some(release_tx));
+    let callbacks = HoldWarmupAck {
+        entered: Arc::new(std::sync::Mutex::new(Some(entered_tx))),
+        release: Arc::new(std::sync::Mutex::new(release_rx)),
+        offsets: Arc::new(std::sync::Mutex::new(Vec::new())),
+        errors: Arc::new(AtomicUsize::new(0)),
+    };
+    let producer = Producer::new(
+        ProducerConfig::bootstrap([mock.addr.clone()])
+            .connections(25)
+            .batch_records(CHANNEL_CAPACITY)
+            .linger(Duration::ZERO)
+            .buffer_memory(0)
+            .metadata_max_age(Duration::from_secs(60))
+            .delivery_timeout(Duration::from_secs(30))
+            .interceptor(callbacks.clone()),
+    )
+    .await?;
+    let warm_producer = producer.clone();
+    let warm = tokio::spawn(async move {
+        warm_producer
+            .send(ProduceRecord::to("t").partition(0).value("warm"))
+            .await
+    });
+    tokio::time::timeout(Duration::from_secs(5), entered_rx)
+        .await
+        .map_err(|_| Error::Timeout)?
+        .map_err(|_| Error::Closed)?;
+
+    // The worker is paused inside the warmup callback, so it cannot drain the
+    // channel or finish accepted records while the target task is canceled.
+    let warm_metrics = producer.metrics();
+    assert_eq!(warm_metrics.bytes_buffered, 0);
+    assert_eq!(warm_metrics.records_acked, 1);
+    for index in 0..CHANNEL_CAPACITY {
+        let value = u64::try_from(index).unwrap().to_le_bytes().to_vec();
+        producer.try_send(ProduceRecord::to("t").partition(0).value(value))?;
+    }
+    assert!(matches!(
+        producer.try_send(ProduceRecord::to("t").partition(0).value("probe")),
+        Err(Error::QueueFull)
+    ));
+    let full = producer.metrics();
+    let accepted = u64::try_from(CHANNEL_CAPACITY).unwrap();
+    assert_eq!(full.records_queued, warm_metrics.records_queued + accepted);
+    assert_eq!(full.records_acked, warm_metrics.records_acked);
+    assert_eq!(full.produce_errors, warm_metrics.produce_errors);
+    assert_eq!(full.bytes_buffered, accepted * VALUE_BYTES);
+
     let task_producer = producer.clone();
-    let inputs = (0..5000).map(|_| ProduceRecord::to("t").partition(0).value("x"));
-    let task = tokio::spawn(async move { task_producer.send_all(inputs).await });
-    tokio::time::timeout(Duration::from_secs(2), async {
+    let target = tokio::spawn(async move {
+        task_producer
+            .send_all([ProduceRecord::to("t")
+                .partition(0)
+                .value(vec![b'z'; CANCELED_BYTES])])
+            .await
+    });
+    tokio::time::timeout(Duration::from_secs(5), async {
         loop {
             let metrics = producer.metrics();
-            if metrics.records_queued >= 4097 && metrics.bytes_buffered == metrics.records_queued {
+            if metrics.bytes_buffered == full.bytes_buffered + u64::try_from(CANCELED_BYTES).unwrap()
+                && metrics.records_queued == full.records_queued
+            {
                 break;
             }
             tokio::task::yield_now().await;
@@ -205,23 +411,44 @@ async fn cancelled_channel_admission_releases_only_the_unenqueued_reservation() 
     })
     .await
     .map_err(|_| Error::Timeout)?;
-    let accepted = producer.metrics().records_queued - 1;
-    assert!(accepted < 5000, "input never blocked on the channel");
-    assert_eq!(producer.metrics().bytes_buffered, accepted + 1);
-    task.abort();
-    assert!(task.await.is_err_and(|error| error.is_cancelled()));
-    let after_cancel = producer.metrics().bytes_buffered;
-    mock.set_produce_response_delay(Duration::ZERO);
-    tokio::time::timeout(Duration::from_secs(10), producer.flush())
+    assert!(!target.is_finished());
+    target.abort();
+    assert!(target.await.is_err_and(|error| error.is_cancelled()));
+    let after_cancel = producer.metrics();
+    assert_eq!(after_cancel.records_queued, full.records_queued);
+    assert_eq!(after_cancel.records_acked, full.records_acked);
+    assert_eq!(after_cancel.produce_errors, full.produce_errors);
+    assert_eq!(
+        after_cancel.bytes_buffered, full.bytes_buffered,
+        "cancelled channel admission retained its unqueued reservation"
+    );
+
+    release.release();
+    assert_eq!(warm.await.map_err(|_| Error::Closed)??.offset, 0);
+    tokio::time::timeout(Duration::from_secs(20), producer.flush())
         .await
         .map_err(|_| Error::Timeout)??;
-    let after_flush = producer.metrics().bytes_buffered;
+    let after_flush = producer.metrics();
+    assert_eq!(after_flush.bytes_buffered, 0);
+    assert_eq!(after_flush.records_acked, warm_metrics.records_acked + accepted);
+    assert_eq!(after_flush.produce_errors, warm_metrics.produce_errors);
+    assert_eq!(callbacks.errors.load(Ordering::SeqCst), 0);
+    {
+        let offsets = callbacks.offsets.lock().unwrap();
+        assert_eq!(offsets.len(), CHANNEL_CAPACITY + 1);
+        for (index, offset) in offsets.iter().enumerate() {
+            assert_eq!(*offset, i64::try_from(index).unwrap());
+        }
+    }
+    let log = mock.log_values("t", 0);
+    assert_eq!(log.len(), CHANNEL_CAPACITY + 1);
+    assert_eq!(log.first(), Some(&(0, Some(b"warm".to_vec()))));
+    for (index, (offset, value)) in log.iter().skip(1).enumerate() {
+        assert_eq!(*offset, i64::try_from(index + 1).unwrap());
+        let expected = u64::try_from(index).unwrap().to_le_bytes();
+        assert_eq!(value.as_deref(), Some(expected.as_slice()));
+    }
     producer.close().await?;
-    assert_eq!(
-        after_cancel, accepted,
-        "cancelled channel admission leaked its reservation"
-    );
-    assert_eq!(after_flush, 0);
     Ok(())
 }
 
