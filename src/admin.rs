@@ -5886,8 +5886,8 @@ impl Admin {
     /// is checked before these name checks. Within a page, any null name takes
     /// precedence over an unrequested topic, which takes precedence over an
     /// unrequested cursor. These checks precede page ID-conflict detection.
-    /// Large requests use additional memory proportional to the number of
-    /// distinct requested names. For raw pages, use
+    /// Large, out-of-order responses can require an index whose memory grows
+    /// with distinct requested names. For raw pages, use
     /// [`Self::describe_topic_partitions_timeout`], which preserves the response.
     pub async fn describe_topics_with_partition_limit_timeout<'a, S>(
         &mut self,
@@ -14128,11 +14128,7 @@ impl Admin {
             .ok_or(Error::Timeout)?;
         tokio::time::timeout_at(deadline, async {
             let _remaining = dtp_remaining(deadline)?;
-            let mut requested_names = HashSet::new();
-            let use_index = names.len() > 8;
-            if use_index {
-                index_requested_dtp_names(names, &mut requested_names).await;
-            }
+            let mut requested_names = RequestedDtpNames::new(names);
             let mut cursor: Option<TopicPartitionCursor> = None;
             let mut out: Vec<TopicDescription> = Vec::new();
             let mut described = DescribedTopicIndex::new();
@@ -14158,7 +14154,7 @@ impl Admin {
                             reject_unnamed_described_topic(&mut page, &mut out, deadline).await,
                         );
                     };
-                    if !dtp_topic_requested(names, use_index.then_some(&requested_names), name) {
+                    if !requested_names.contains(name).await {
                         unrequested = true;
                         break;
                     }
@@ -14181,11 +14177,7 @@ impl Admin {
                     .await);
                 }
                 if let Some(next) = resp.next_cursor.as_ref() {
-                    if !dtp_topic_requested(
-                        names,
-                        use_index.then_some(&requested_names),
-                        next.topic_name.as_str(),
-                    ) {
+                    if !requested_names.contains(next.topic_name.as_str()).await {
                         return Err(reject_unrequested_described_topic(
                             &mut page,
                             &mut out,
@@ -16763,14 +16755,48 @@ async fn index_requested_dtp_names<'a, T: AsRef<str>>(
     }
 }
 
-fn dtp_topic_requested<T: AsRef<str>>(
-    names: &[T],
-    requested: Option<&HashSet<&str>>,
-    name: &str,
-) -> bool {
-    match requested {
-        Some(index) => index.contains(name),
-        None => names.iter().any(|requested| requested.as_ref() == name),
+struct RequestedDtpNames<'a, T> {
+    names: &'a [T],
+    index: Option<HashSet<&'a str>>,
+    hint: usize,
+}
+
+impl<'a, T: AsRef<str>> RequestedDtpNames<'a, T> {
+    fn new(names: &'a [T]) -> Self {
+        Self {
+            names,
+            index: None,
+            hint: 0,
+        }
+    }
+
+    async fn contains(&mut self, name: &str) -> bool {
+        if let Some(index) = &self.index {
+            return index.contains(name);
+        }
+        if self
+            .names
+            .get(self.hint)
+            .is_some_and(|candidate| candidate.as_ref() == name)
+        {
+            return true;
+        }
+        if self
+            .names
+            .get(self.hint + 1)
+            .is_some_and(|candidate| candidate.as_ref() == name)
+        {
+            self.hint += 1;
+            return true;
+        }
+        if self.names.len() <= 8 {
+            return self.names.iter().any(|candidate| candidate.as_ref() == name);
+        }
+        let mut index = HashSet::with_capacity(self.names.len().min(32));
+        index_requested_dtp_names(self.names, &mut index).await;
+        let contains = index.contains(name);
+        self.index = Some(index);
+        contains
     }
 }
 
