@@ -22,12 +22,26 @@ use std::time::Duration;
 #[derive(Clone)]
 struct CallbackCounts {
     acknowledgements: Arc<AtomicUsize>,
+    warm: Arc<AtomicUsize>,
+    target: Arc<AtomicUsize>,
+    unexpected: Arc<AtomicUsize>,
     errors: Arc<AtomicUsize>,
 }
 
 impl ProducerInterceptor for CallbackCounts {
-    fn on_ack(&self, _metadata: &RecordMetadata) {
+    fn on_ack(&self, metadata: &RecordMetadata) {
         let _previous = self.acknowledgements.fetch_add(1, Ordering::SeqCst);
+        let counter = match (
+            metadata.topic.as_ref(),
+            metadata.partition,
+            metadata.offset,
+            metadata.serialized_value_size,
+        ) {
+            ("t", 0, 0, 4) => &self.warm,
+            ("t", 0, 1, 6) => &self.target,
+            _ => &self.unexpected,
+        };
+        let _previous = counter.fetch_add(1, Ordering::SeqCst);
     }
 
     fn on_error(&self, _error: &Error) {
@@ -50,6 +64,9 @@ async fn public_flush_can_complete_before_retired_worker_retry_handoff() {
     mock.set_topic_partitions("t", 1);
     let callbacks = CallbackCounts {
         acknowledgements: Arc::new(AtomicUsize::new(0)),
+        warm: Arc::new(AtomicUsize::new(0)),
+        target: Arc::new(AtomicUsize::new(0)),
+        unexpected: Arc::new(AtomicUsize::new(0)),
         errors: Arc::new(AtomicUsize::new(0)),
     };
     let producer = tokio::time::timeout(
@@ -78,6 +95,9 @@ async fn public_flush_can_complete_before_retired_worker_retry_handoff() {
     .expect("warmup acknowledgement");
     assert_eq!(warm.offset, 0);
     assert_eq!(callbacks.acknowledgements.load(Ordering::SeqCst), 1);
+    assert_eq!(callbacks.warm.load(Ordering::SeqCst), 1);
+    assert_eq!(callbacks.target.load(Ordering::SeqCst), 0);
+    assert_eq!(callbacks.unexpected.load(Ordering::SeqCst), 0);
     assert_eq!(mock.log_len("t", 0), 1);
     assert_eq!(mock.produce_batches().len(), 1);
 
@@ -117,6 +137,9 @@ async fn public_flush_can_complete_before_retired_worker_retry_handoff() {
         "warmup and target were sent"
     );
     assert_eq!(callbacks.acknowledgements.load(Ordering::SeqCst), 1);
+    assert_eq!(callbacks.warm.load(Ordering::SeqCst), 1);
+    assert_eq!(callbacks.target.load(Ordering::SeqCst), 0);
+    assert_eq!(callbacks.unexpected.load(Ordering::SeqCst), 0);
     assert_eq!(callbacks.errors.load(Ordering::SeqCst), 0);
     let before_flush = producer.metrics();
     assert_eq!(before_flush.records_queued, 2);
@@ -156,6 +179,9 @@ async fn public_flush_can_complete_before_retired_worker_retry_handoff() {
     assert_eq!(after.produce_errors, 0);
     assert_eq!(after.bytes_buffered, 0);
     assert_eq!(callbacks.acknowledgements.load(Ordering::SeqCst), 2);
+    assert_eq!(callbacks.warm.load(Ordering::SeqCst), 1);
+    assert_eq!(callbacks.target.load(Ordering::SeqCst), 1);
+    assert_eq!(callbacks.unexpected.load(Ordering::SeqCst), 0);
     assert_eq!(callbacks.errors.load(Ordering::SeqCst), 0);
     assert_eq!(
         mock.log_len("t", 0),
