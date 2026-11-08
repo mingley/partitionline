@@ -10,16 +10,17 @@ Production readiness and fastest-client/server claims remain unqualified.
 Client 0.1.0 is already published. The next client version must be at least
 0.2.0; broker and schema publication remain disabled.
 
-The latest completed main [CI snapshot](../evidence/releases/main-ci-8b5-20261108/README.md)
-is `8b5de2e2cfe5f3164a5f89546804ab36c1771ade`. Both Linux client library
-profiles reported 2,181 passed and 18 failed; Windows default reported
-2,184/15 and macOS arm64 default 2,185/14. Kafka 4.1.2, 4.2.1 and 4.3.1
+The latest completed main [CI snapshot](../evidence/releases/main-ci-b631-20261108/README.md)
+is `b631809f0e03ba6f65f808e51d8e47e3fd9380d1`. The Linux client default
+library reported 2,190 passed and 17 failed; Windows default reported 2,193/14
+and macOS arm64 default 2,183/24. All-feature testing stopped at a newly
+introduced mock-test Clippy lint; a subsequent test-only correction passed
+strict all-target Clippy and its selected tests. Kafka 4.1.2, 4.2.1 and 4.3.1
 overflowed after the classic-join marker; 3.9.1 and 4.1.0 smoke jobs failed
-after EOS timeouts. The broker default Fetch suite reported 25 passes and one
-failure; its all-feature suite did not run. The prior broker run passed both
-profiles. Both client capability profiles passed selected checks; their
-archives were not independently inspected. These results do not cover later
-changes or close the release gates.
+after EOS timeouts. The broker default library had 446 passes and four Raft
+runtime failures; its all-feature suite did not run. Both client capability
+profiles passed selected checks; their archives were not independently
+inspected. These results do not cover later changes or close release gates.
 
 Earlier records:
 

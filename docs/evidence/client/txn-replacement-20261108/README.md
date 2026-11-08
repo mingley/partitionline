@@ -38,3 +38,10 @@ rediscoveries can still install an older result over a newer one. Real failure
 recovery, cancellation after discovery, TLS/SASL behavior, physical cleanup
 under every contention path, transaction error-state races and performance
 remain open.
+
+After adoption, the [main all-target Clippy job](https://github.com/mingley/partitionline/actions/runs/42441209189/job/128610627588)
+found a loop-style lint in one new mock server. A test-only correction passed
+[stable formatting, strict all-target/all-feature Clippy and 12 selected tests](https://github.com/mingley/partitionline/actions/runs/42441786927)
+on x86 with Rust 1.99.1. The corrected `src/producer.rs` SHA-256 is
+`e21d03f495f504f167bc56139dc03798b0f323ca51370c7dceade23a2dad066e`.
+It does not alter the production replacement code or repeat the Kafka smoke.
