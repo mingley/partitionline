@@ -21,25 +21,29 @@ dependency graph is not Rust-only.
 ## Validation
 
 The latest complete recorded [CI snapshot][ci] is main commit
-`342e7b90ee63d6824be2652b65d71be483ea6d16`. The current branch includes
+`a3748caecae60a893de96c0700e1e5ab04854443`. The current branch includes
 later changes; see the linked runs for their exact source and scope.
 
-| Check | Result at `342e7b9` |
+| Check | Result at `a3748ca` |
 | --- | --- |
-| Client library, Linux default | 2,290 passed and 21 failed; later targets did not run. |
-| Client library, Linux all features | 2,301 passed and 10 failed; later targets did not run. |
-| Client library, Windows default | 2,297 passed and 14 failed. |
-| Client library, macOS arm64 default | 2,297 passed and 14 failed. |
+| Client library, Linux default | 2,299 passed and 18 failed; later targets did not run. |
+| Client library, Linux all features | 2,295 passed and 22 failed; later targets did not run. |
+| Client library, Windows default | 2,302 passed and 15 failed. |
+| Client library, macOS arm64 default | 2,307 passed and 10 failed. |
 | Kafka 4.1.2, 4.2.1 and 4.3.1 compatibility | All three jobs failed. |
 | Kafka 3.9.1 and 4.1.0 smoke | Both jobs failed. |
 | Resource soak | Passed. |
-| Broker default targets | 794 passed and four ignored. |
-| Broker all-feature targets | 942 passed and four ignored. |
+| Broker default targets | 806 passed and four ignored. |
+| Broker all-feature targets | 954 passed and four ignored. |
 | Broker strict checks, inventory and fuzz supervision | Passed. |
 | Client capability profiles | Both passed selected checks; their archives were not independently inspected. |
 | Client format, all-target Clippy, audit, docs, package, auth and integrity smoke | Passed. Other client jobs failed or were skipped. |
+| Instruction-count gate | Ran without a baseline for this Rust version; no regression comparison. |
 
-A later [partial main run][ci-a0] failed the Linux default library and
+An [earlier complete snapshot][ci-342] also failed client checks and passed
+both broker profiles.
+
+An earlier [partial main run][ci-a0] failed the Linux default library and
 three Kafka compatibility jobs; five jobs were canceled. Its instruction and
 allocation gates stopped before measurement because the codec benchmark
 lockfile was stale. The [lockfile follow-up][admin-locks] updates six
@@ -238,7 +242,11 @@ latency bound.
   implementations with independent record verification remain incomplete;
   [two attempts][ack-rejected] failed their comparison gates. An applied
   [record-header validation change][records-perf] improved a short
-  header-heavy codec workload on a shared x86 runner. A separate
+  header-heavy codec workload on a shared x86 runner. An unapplied
+  [dense Produce candidate][dense-produce] improved in-process tests for large
+  unordered requests to a missing topic. Append samples with two valid
+  partitions were too noisy to establish a gain; a successful multi-partition
+  workload is being measured separately. A separate
   [one-byte varint experiment][onebyte] and three
   [batch-header candidates][batch-header] had mixed results and remain
   unapplied. A [send_all candidate][sendall] greatly shortened a large mock
@@ -262,7 +270,9 @@ stopped. The [work plan][next] records the broader outstanding work and
 retained evidence. The [benchmark contract](benchmark-contract.md) and
 [release guide](RELEASE.md) describe the remaining qualification gates.
 
-[ci]: https://github.com/mingley/partitionline/blob/6667a8df9205f5ae9efe5d648ec21c0e997afb32/docs/evidence/releases/main-ci-342e-20261108/README.md
+[ci]: https://github.com/mingley/partitionline/blob/7f15017fd312945612886c3b6a8c26ffc8098458/docs/evidence/releases/main-ci-a374-20261108/README.md
+[ci-342]: https://github.com/mingley/partitionline/blob/7f15017fd312945612886c3b6a8c26ffc8098458/docs/evidence/releases/main-ci-342e-20261108/README.md
+[dense-produce]: https://github.com/mingley/partitionline/blob/7f15017fd312945612886c3b6a8c26ffc8098458/docs/evidence/broker/produce-dense-partition-20261108/README.md
 [ci-a0]: https://github.com/mingley/partitionline/blob/61af02b51269edb0ec12edf3c49118285f767c3b/docs/evidence/releases/main-ci-a0ad-partial-20261108/README.md
 [ci-97]: https://github.com/mingley/partitionline/blob/6667a8df9205f5ae9efe5d648ec21c0e997afb32/docs/evidence/releases/main-ci-97a-20261108/README.md
 [admin-slot]: https://github.com/mingley/partitionline/blob/89a8e2e5ae2ab28942be66c8bd7e0390032b4450/docs/evidence/client/admin-dtp-slot-index-20261108/README.md
@@ -270,7 +280,7 @@ retained evidence. The [benchmark contract](benchmark-contract.md) and
 [interop-peer]: https://github.com/mingley/partitionline/blob/89a8e2e5ae2ab28942be66c8bd7e0390032b4450/docs/evidence/client/broker-interop-peer-types-20261108/README.md
 [ci-262]: https://github.com/mingley/partitionline/blob/cb55f7c603e2344775de8a395c6a584737f5bb95/docs/evidence/releases/main-ci-262-20261108/README.md
 [ci-02c]: https://github.com/mingley/partitionline/blob/0ce81683fe7107386e30f388cd2a4af31735d522/docs/evidence/releases/main-ci-02c-20261108/README.md
-[next]: https://github.com/mingley/partitionline/blob/73a88b959c71ac12515c13f14e1e24ce569a66c2/docs/plan/next-work.md
+[next]: https://github.com/mingley/partitionline/blob/7f15017fd312945612886c3b6a8c26ffc8098458/docs/plan/next-work.md
 [flush-public]: https://github.com/mingley/partitionline/blob/f93e91499e2ba6bdc88c0a25a0d83b8737d00d3c/docs/evidence/client/producer-flush-public-20261108/README.md
 [flush-sent]: https://github.com/mingley/partitionline/blob/efa7f23314e98f3aaa4559c3cf38302bdcdb9fb4/docs/evidence/client/producer-flush-sent-20261108/README.md
 [owner-design]: https://github.com/mingley/partitionline/blob/cb55f7c603e2344775de8a395c6a584737f5bb95/docs/evidence/client/producer-ownership-design-20261108/README.md
@@ -335,7 +345,7 @@ retained evidence. The [benchmark contract](benchmark-contract.md) and
 
 [ci-426]: https://github.com/mingley/partitionline/blob/ed10995700da3252dbefb4696e1afd7dfe5a008d/docs/evidence/releases/main-ci-426-20261108/README.md
 [batch-controls]: https://github.com/mingley/partitionline/blob/a8403decd42d794b1da89ac985e2f390f32e01a7/docs/evidence/client/producer-batch-ownership-controls-20261108/README.md
-[owned-model]: https://github.com/mingley/partitionline/blob/73a88b959c71ac12515c13f14e1e24ce569a66c2/docs/evidence/client/producer-owned-batch-model-20261108/README.md
+[owned-model]: https://github.com/mingley/partitionline/blob/7f15017fd312945612886c3b6a8c26ffc8098458/docs/evidence/client/producer-owned-batch-model-20261108/README.md
 [timestamp-history]: https://github.com/mingley/partitionline/blob/a8403decd42d794b1da89ac985e2f390f32e01a7/docs/evidence/client/producer-retry-timestamp-20261108/README.md
 [admin-phases]: https://github.com/mingley/partitionline/blob/a8403decd42d794b1da89ac985e2f390f32e01a7/docs/evidence/client/admin-dtp-poll-phases-20261108/README.md
 
