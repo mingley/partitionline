@@ -59,3 +59,39 @@ The binary digests were logged, but the binaries were not retained. The run alte
 These are scoped shared-host mock-router results, not a real Kafka workload, concurrent throughput, independent durability verification, a fastest-broker comparison, or a production-readiness qualification. Hash seeds and hosted scheduling were not controlled. The sorted and sparse cases include small median increases; the 16-entry path is unchanged by the candidate, making host noise a plausible but unproven contributor.
 
 Two earlier measurement runs used the same source and fixture pins but a start-of-line output parser. Both failed on their first baseline warmup because libtest prefixed the measurement with `test ...`: [42495612451](https://github.com/mingley/partitionline/actions/runs/42495612451) observed 18,702,927 ns for 2,000 operations, and [42495632174](https://github.com/mingley/partitionline/actions/runs/42495632174) observed 13,487,422 ns. Neither collected a candidate sample or a valid pair. The successful run corrected only the driver to find the unique marker within the line; the two failed runs are not pooled with it.
+
+## All-valid partition writes
+
+[Run 42496577865](https://github.com/mingley/partitionline/actions/runs/42496577865) compared the same baseline and candidate Produce blobs using a separate, all-success workload. It found **no useful supported improvement** for the tested writes; the candidate remains unapplied.
+
+Each request contains 17 or 32 real catalog partitions, all with valid one-record Kafka batches. Keys vary by partition and values by iteration; their batch CRC32C values are computed before timing. A full warmup request creates and writes every partition before the timed loop. Each timed sample then sends 10 sequential requests through the in-process router and checks every response byte, including requested partition order, success code and offset. The timed interval includes request cloning, dispatch, the normal monolithic staged synchronization path and response comparison. There are no concurrent producers, network transport, replication or Kafka peer. The configuration sets monolithic storage and permits four concurrent sync workers, which share the pinned CPU; sync syscall counts were not independently traced.
+
+After clean shutdown, a separate test parser reads every raw journal file directly. It checks file and entry magic, exact file length, offset and record count, header and payload CRC32C, and every complete partition/iteration-specific batch against an independently constructed expected payload. The software CRC32C implementation checks the standard `123456789` vector and the original batch's checksum. Each 17-partition fixture execution verifies 187 records, and each 32-partition execution verifies 352 records, including that execution's warmup. Across all 156 successful fixture executions the raw checker verified 42,042 records. This is independent of the broker's journal decoder, but it is a clean-shutdown filesystem read, not a power-loss test.
+
+For each of six shapes the driver ran one separate warmup execution per arm and 12 alternating matched pairs. The [raw samples](all-valid-samples.csv) (Git blob `70096da9436bd4d5eca52e74da6a89f02017d953`) retain all 156 arm executions; `block=-1` marks the 12 warmup executions and is excluded from the paired table. Every other block has one baseline and one candidate. Times are for 10 requests per arm. The two arm medians are calculated separately; the percentage and range are candidate/baseline changes within each pair and therefore need not equal a ratio of the displayed medians.
+
+| Partitions and order | Baseline median ms/10 requests | Candidate median ms/10 requests | Median paired change | Paired range | Candidate faster pairs |
+| --- | --- | --- | --- | --- | --- |
+| 17 ascending | 9.847 | 10.194 | 3.14% | -20.19% to 36.76% | 4/12 |
+| 17 reversed | 9.996 | 9.906 | -0.29% | -5.89% to 7.47% | 7/12 |
+| 17 rotate | 9.897 | 9.891 | -0.70% | -4.44% to 2.33% | 7/12 |
+| 32 ascending | 16.312 | 16.232 | -1.70% | -5.79% to 2.47% | 8/12 |
+| 32 reversed | 16.350 | 16.519 | -0.82% | -2.11% to 2.79% | 7/12 |
+| 32 rotate | 16.870 | 16.724 | 0.00% | -4.62% to 21.68% | 6/12 |
+
+Setup includes catalog/router creation and one fully checked warmup; shutdown, independent raw verification, and file cleanup are outside the timed interval. Median overheads below are baseline / candidate milliseconds per fixture execution. Input and expected-response construction is outside all listed phases.
+
+| Partitions and order | Setup + warmup | Shutdown | Raw verification | Cleanup |
+| --- | --- | --- | --- | --- |
+| 17 ascending | 7.487 / 7.543 | 0.036 / 0.040 | 0.248 / 0.249 | 2.197 / 2.300 |
+| 17 reversed | 7.449 / 7.725 | 0.032 / 0.033 | 0.240 / 0.243 | 2.291 / 2.344 |
+| 17 rotate | 7.332 / 7.556 | 0.032 / 0.033 | 0.243 / 0.250 | 2.281 / 2.220 |
+| 32 ascending | 11.347 / 11.327 | 0.053 / 0.055 | 0.452 / 0.480 | 4.047 / 4.045 |
+| 32 reversed | 11.497 / 11.494 | 0.058 / 0.056 | 0.476 / 0.458 | 3.989 / 3.888 |
+| 32 rotate | 11.750 / 11.580 | 0.071 / 0.074 | 0.479 / 0.482 | 4.017 / 3.969 |
+
+The same x86_64 hosted runner compared both arms on CPU 0, with separate release target directories, Rust `1.99.1 (58cf8f9c3 2026-10-13)`, LLVM 23.1.1, Cargo 1.99.1, and an AMD EPYC 9V45 under Microsoft virtualization. Four CPUs were visible; `cpu.max` was unavailable, so no quota is inferred. `TMPDIR` was set to `/home/runner/work/_temp/dense-success-temp`; each fixture asserted that Rust's actual temporary directory resolved to that location. `df -T` reported `/dev/root` as ext4, while `stat -f` reported the ext2/ext3 filesystem family. Scheduling, filesystem cache and other host activity were uncontrolled. These results come from a different host/run than the earlier rejected-request measurements and are not pooled with them.
+
+The measurement branch is pinned at `2278ad87da7b60f132f4400667174a3f7f85ae89`: all-success fixture Git blob `964529e5d7ef1481febd8220fb79e307f216830e` (SHA-256 `fdbe3263d4c1eeddacc6c593057ae7fce05bc7e9933f54bb50d7b27e8a10a7fa`), copied helper blob `72a0ba73820f1734331f89c49cc77be139aa9de7` (SHA-256 `fd4ed4e6c5547ecdd00eae9bec543686bf142a6333159f132de38d96abd65a42`), driver blob `fb7e43b65de7a73d1097505c8e614cea617ce289`, and workflow blob `b980d8d4f3a08cdf450a9d7bf3842e7a743a8d50`. Both arms used the same original batch fixture blob `9e8276e77b37abb5979d98c4aaaac25d7279d1dd` (SHA-256 `431810cfa21b3c669ede109ac7d40c53a63acf07e27f4087a1e834dd5cc00c28`) and identical broker manifest and lockfile blobs listed above. The baseline and candidate source SHA-256 values were `ace0982025aac1d2f66846865fe4e9083b578a2dfccb6fba16af1f1d5183ff11` and `c3173ad3f56304836b2fc2a239e090b1e5d537ecbc9380f95230fdc5a26f3cc4`, respectively. Release executable SHA-256 values were `e4fe50aae678d5c248212f9fbfb48700999911b0a76f32da2e7976e1e32d3b3c` for baseline and `d42e8370d6c61fda7bebf045185c33a2ebbd98eb0e9c01673908b9ab0c386b31` for candidate; the binaries were not retained. The timing fixtures are qualification-only and do not modify the candidate's permanent tests.
+
+Every paired range crosses zero, including the unchanged ascending path. A batch total over 10 sequential requests cannot establish per-request tail latency, concurrent throughput, production readiness, or a comparison against other Kafka servers. The full broker suite remains unrun on the candidate, and the cancellation-stage reachability limitation described above remains open.
