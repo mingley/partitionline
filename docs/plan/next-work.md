@@ -161,6 +161,14 @@ remain open.
    [design and independent review](../evidence/client/producer-flush-design-20261103/README.md)
    record unresolved cleanup, cancellation, transaction and liveness choices;
    the sketch and small abstract model are not an implementation.
+   The [transaction lock fix](../evidence/client/txn-lock-deadline-20261108/README.md)
+   includes the initial and rediscovery-snapshot lock waits in the request
+   budget. Both baseline witnesses reproduced the timeout failures, and six
+   candidate controls per feature profile passed on x86 with stable Rust. The final replacement lock,
+   retirement, response decoding and portions of discovery remain outside a
+   complete deadline. Cancellation during replacement can leave the coordinator
+   slot empty, and concurrent discoveries can install a stale result. The
+   transaction error flags and stored cause also have unqualified races.
    Source review also found that repeated `begin_transaction` clears the open
    transaction's partition tracking. After an abortable failure, cancellation
    during identity recovery can clear the bump flag before a replacement
