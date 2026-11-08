@@ -20,9 +20,9 @@ use std::{
 };
 
 static NEXT: AtomicU64 = AtomicU64::new(0);
-type TestResult<T = ()> = Result<T, Box<dyn Error>>;
+pub(crate) type TestResult<T = ()> = Result<T, Box<dyn Error>>;
 
-fn request(
+pub(crate) fn request(
     indexes: &[i32],
     topic: &str,
     acks: i16,
@@ -61,7 +61,7 @@ fn request(
 
 // Independent wire oracle for one Produce v3 topic. The sorted map supplies
 // counts; the set keeps only each partition's first response in request order.
-fn expected(
+pub(crate) fn expected(
     indexes: &[i32],
     topic: &str,
     acks: i16,
@@ -120,7 +120,7 @@ fn expected(
     Ok(out)
 }
 
-async fn router(label: &str) -> TestResult<(PathBuf, Router)> {
+pub(crate) async fn router(label: &str) -> TestResult<(PathBuf, Router)> {
     let nanos = SystemTime::now().duration_since(UNIX_EPOCH)?.as_nanos();
     let root = std::env::temp_dir().join(format!(
         "pl-produce-dense-{}-{nanos}-{}-{label}",
@@ -214,7 +214,7 @@ async fn produce_dense_public_precedence_order_and_readback() -> TestResult {
     Ok(())
 }
 
-fn benchmark_indexes(count: usize, shape: &str) -> TestResult<Vec<i32>> {
+pub(crate) fn benchmark_indexes(count: usize, shape: &str) -> TestResult<Vec<i32>> {
     let mut indexes: Vec<i32> = (0..count).map(|value| value as i32).collect();
     match shape {
         "ascending" => {}
