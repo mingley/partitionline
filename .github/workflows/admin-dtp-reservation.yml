@@ -1,0 +1,48 @@
+name: DescribeTopicPartitions reservation checks
+on:
+  push:
+    branches:
+      - work/admin-dtp-reservation-20261108
+permissions:
+  contents: read
+jobs:
+  checks:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        profile: [default, all]
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Format and source identity
+        run: |
+          rustc -Vv
+          cargo fmt --all
+          sha256sum src/protocol/admin.rs tests/admin_response_reservation.rs Cargo.toml Cargo.lock
+      - name: New and existing response reservation controls
+        shell: bash
+        run: |
+          set -euo pipefail
+          args=()
+          if [ "${{ matrix.profile }}" = all ]; then args+=(--all-features); fi
+          cargo test --locked "${args[@]}" --test admin_response_reservation -- --test-threads=1
+      - name: Existing protocol Admin library tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          args=()
+          if [ "${{ matrix.profile }}" = all ]; then args+=(--all-features); fi
+          cargo test --locked "${args[@]}" --lib protocol::admin::tests:: -- --test-threads=1
+      - name: Strict all-target all-feature Clippy
+        if: matrix.profile == 'default'
+        run: cargo clippy --locked --all-targets --all-features -- -D warnings
+      - name: Preserve formatted source
+        if: always()
+        shell: bash
+        run: |
+          git diff -- src/protocol/admin.rs
+          printf 'TESTFILE_BASE64_START\n'
+          base64 -w0 tests/admin_response_reservation.rs
+          printf '\nTESTFILE_BASE64_END\n'
