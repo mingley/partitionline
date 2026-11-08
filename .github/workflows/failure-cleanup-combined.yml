@@ -1,0 +1,151 @@
+name: Failure cleanup candidate qualification
+
+on:
+  push:
+    branches: [qualification/failure-cleanup-combined-20261108]
+
+permissions:
+  contents: read
+
+jobs:
+  baseline:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    env:
+      CARGO_BUILD_JOBS: '2'
+      CARGO_INCREMENTAL: '0'
+      CARGO_PROFILE_TEST_DEBUG: '0'
+      CARGO_TERM_COLOR: never
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          path: candidate
+          persist-credentials: false
+          sparse-checkout: |
+            .cargo
+            src
+      - uses: actions/checkout@v7
+        with:
+          ref: 7f59ef470340db6027958f439df3716a8dde536c
+          path: baseline
+          persist-credentials: false
+          sparse-checkout: |
+            .cargo
+            src
+            tests
+            examples
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Install exact candidate controls on baseline
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$RUNNER_ARCH" = X64
+          test "$(git -C baseline rev-parse HEAD:src/producer.rs)" = 1e7733c136e54b532cdc8bddabd1e0c828e50ed2
+          test "$(git -C candidate rev-parse HEAD:src/producer/failure_cleanup_tests.rs)" = ce7f2c0724deb1907448eb221fe470fe89dc7684
+          mkdir -p baseline/src/producer
+          cp candidate/src/producer/failure_cleanup_tests.rs baseline/src/producer/failure_cleanup_tests.rs
+          python3 - <<'PYCODE'
+          from pathlib import Path
+          path = Path("baseline/src/producer.rs")
+          text = path.read_text()
+          marker = "#[cfg(test)]\nmod tests {"
+          assert text.count(marker) == 1
+          text = text.replace(marker, '#[cfg(test)]\n#[path = "producer/failure_cleanup_tests.rs"]\nmod failure_cleanup_tests;\n\n' + marker, 1)
+          path.write_text(text)
+          test_path = Path("baseline/src/producer/failure_cleanup_tests.rs")
+          tests = test_path.read_text()
+          needle = '#[tokio::test(flavor = "current_thread")]\nasync fn blocking_callback_blocks_the_dropping_thread_until_released()'
+          assert tests.count(needle) == 1
+          test_path.write_text(tests.replace(needle, '#[cfg(any())]\n' + needle, 1))
+          PYCODE
+          rustc +stable -vV
+          sha256sum baseline/src/producer.rs baseline/src/producer/failure_cleanup_tests.rs
+      - name: Baseline negative controls
+        working-directory: baseline
+        shell: bash
+        run: |
+          set -euo pipefail
+          export CARGO_TARGET_DIR="$RUNNER_TEMP/cleanup-baseline-target"
+          for name in unpolled_helper_releases_and_reports_each_record unpolled_worker_batch_wrapper_owns_cleanup cancellation_during_sum_and_after_a_callback_chunk_is_exact_once; do
+            log="$RUNNER_TEMP/baseline-$name.log"
+            set +e
+            timeout 600 cargo +stable test --locked --lib "producer::failure_cleanup_tests::$name" -- --exact --nocapture > "$log" 2>&1
+            status=$?
+            set -e
+            cat "$log"
+            test "$status" = 101
+            grep -F 'running 1 test' "$log"
+            grep -F 'test result: FAILED. 0 passed; 1 failed;' "$log"
+          done
+          echo "BASELINE_NEGATIVE_CONTROLS=3/3"
+  candidate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    env:
+      CARGO_BUILD_JOBS: '2'
+      CARGO_INCREMENTAL: '0'
+      CARGO_PROFILE_DEV_DEBUG: '0'
+      CARGO_PROFILE_TEST_DEBUG: '0'
+      CARGO_TERM_COLOR: never
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          sparse-checkout: |
+            .cargo
+            src
+            tests
+            examples
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - name: Pin source and compiler
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$RUNNER_ARCH" = X64
+          test "$(git rev-parse HEAD:src/producer.rs)" = cef43c9ebf3755c9676201ef7950eb444d0d34e8
+          test "$(git rev-parse HEAD:src/producer/failure_cleanup_tests.rs)" = ce7f2c0724deb1907448eb221fe470fe89dc7684
+          rustc +stable -vV
+          cargo +stable -V
+          sha256sum Cargo.lock src/producer.rs src/producer/failure_cleanup_tests.rs
+      - name: Default controls
+        shell: bash
+        run: |
+          set -euo pipefail
+          export CARGO_TARGET_DIR="$RUNNER_TEMP/cleanup-candidate-target"
+          timeout 600 cargo +stable test --locked --lib producer::failure_cleanup_tests:: -- --nocapture 2>&1 | tee "$RUNNER_TEMP/default.log"
+          grep -F 'test result: ok. 17 passed; 0 failed;' "$RUNNER_TEMP/default.log"
+      - name: All-feature controls
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          export CARGO_TARGET_DIR="$RUNNER_TEMP/cleanup-candidate-target"
+          timeout 600 cargo +stable test --locked --all-features --lib producer::failure_cleanup_tests:: -- --nocapture 2>&1 | tee "$RUNNER_TEMP/all.log"
+          grep -F 'test result: ok. 17 passed; 0 failed;' "$RUNNER_TEMP/all.log"
+      - name: Transaction-state controls on combined source
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          export CARGO_TARGET_DIR="$RUNNER_TEMP/cleanup-candidate-target"
+          for mode in default all; do
+            extra=''
+            if [[ "$mode" = all ]]; then extra=--all-features; fi
+            timeout 600 cargo +stable test --locked $extra --lib producer::txn_error_state_controls:: -- --nocapture 2>&1 | tee "$RUNNER_TEMP/txn-$mode.log"
+            grep -F 'test result: ok. 13 passed; 0 failed;' "$RUNNER_TEMP/txn-$mode.log"
+          done
+      - name: Stable rustfmt
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          rustfmt +stable --edition 2021 --check src/producer.rs src/producer/failure_cleanup_tests.rs
+      - name: Strict all-target all-feature Clippy
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          export CARGO_TARGET_DIR="$RUNNER_TEMP/cleanup-candidate-target"
+          timeout 600 cargo +stable clippy --locked --all-targets --all-features -- -D warnings
