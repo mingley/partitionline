@@ -10,25 +10,29 @@ Production readiness and fastest-client/server claims remain unqualified.
 Client 0.1.0 is already published. The next client version must be at least
 0.2.0; broker and schema publication remain disabled.
 
-The latest complete recorded main [CI snapshot](../evidence/releases/main-ci-426-20261108/README.md)
-is `426041c9f5526dfb6a788344a0e03b3edfefffb0`. Client libraries reported
-2,259 passed and 13 failed on Linux default, 2,261 passed and 11 failed with
-all features, 2,257 passed and 15 failed on Windows, and 2,264 passed and
-eight failed on macOS arm64. Three Kafka compatibility jobs and both smoke
-jobs failed; resource-soak passed. Broker CI passed 781 default and 929
-all-feature tests, with four ignored per profile, plus strict checks,
-inventory and fuzz supervision. Both selected capability profiles passed;
-their archives were not independently inspected. The broker pass does not
-explain the prior [912 Raft failures](../evidence/releases/main-ci-912-partial-20261108/README.md).
+The latest complete recorded main [CI snapshot](../evidence/releases/main-ci-464-20261108/README.md)
+is `464d33d5afe668d46274972cd3baa4e870159bf8`. Client libraries reported
+2,259 passed and 17 failed on Linux default, 2,262 passed and 14 failed with
+all features, 2,256 passed and 20 failed on Windows, and 2,262 passed and 14
+failed on macOS arm64. Three Kafka compatibility jobs and both smoke jobs
+failed; resource-soak passed. The broker default library stopped with 489
+passed, two Raft observer tests failed and four ignored. Later broker
+behavioral and strict checks did not run; inventory and fuzz supervision
+passed. Both selected capability profiles passed; their archives were not
+independently inspected.
 
-A later [partial main run](../evidence/releases/main-ci-536-partial-20261108/README.md)
+The [previous complete snapshot](../evidence/releases/main-ci-426-20261108/README.md)
+passed both broker profiles and strict checks. It does not explain the later
+broker failures.
+
+An earlier [partial main run](../evidence/releases/main-ci-536-partial-20261108/README.md)
 at `536d5e9` passed the broker default suite but its all-feature library stopped
 after one Raft runtime failure. Client library checks and four completed Kafka
 jobs failed; the Kafka 3.9.1 smoke was later canceled without a result. Both
 capability profiles passed. The previous broker pass does not explain the new
 failure.
 
-The [previous complete snapshot](../evidence/releases/main-ci-d257-20261108/README.md)
+An [earlier complete snapshot](../evidence/releases/main-ci-d257-20261108/README.md)
 also failed client checks and passed broker checks.
 
 An [earlier partial broker run](../evidence/releases/main-ci-912-partial-20261108/README.md)
@@ -391,7 +395,12 @@ remain open.
    the draft remains unapplied. In an instrumented [retry/flush history](../evidence/client/producer-retry-flush-split-20261108/README.md),
    holding an existing requeue yield let flush send an incomplete retry after
    the mock had stored the full batch. Receipts and flush reported errors even
-   though the records were in the mock log. This is not a real-Kafka result. The [retained-admission test](../evidence/client/retained-cancellation-test-20261108/README.md)
+   though the records were in the mock log. This is not a real-Kafka result.
+   [Private batch controls](../evidence/client/producer-batch-ownership-controls-20261108/README.md)
+   show the packer can split an injected complete retry batch and expiration
+   acts on individual records. A separate [timestamp history](../evidence/client/producer-retry-timestamp-20261108/README.md)
+   observed different implicit request, retry and receipt times in a mock;
+   the producer source was unchanged. These are not real-Kafka results. The [retained-admission test](../evidence/client/retained-cancellation-test-20261108/README.md)
    now isolates one partial `send_all` cancellation and detects missing or
    duplicate release in a gated mock; producer code is unchanged. The barrier
    draft's short mock benchmark recorded higher median admission and flush
@@ -529,8 +538,11 @@ remain open.
    a 500,000-row response on one x86 host. The applied [row checkpoint](../evidence/client/admin-dtp-row-checkpoint-20261108/README.md)
    yields after 8,192 completed conversions, carrying the count across pages.
    In a paired mock it shortened the median 8,192-row poll but the longest
-   500,000-row polls remained about 62–66 ms in both arms. Other work and
-   synchronous destruction remain unbounded; this is not Kafka throughput.
+   500,000-row polls remained about 62–66 ms in both arms. A separate
+   [poll-phase diagnostic](../evidence/client/admin-dtp-poll-phases-20261108/README.md)
+   observed long Pending and Ready polls, without identifying their causes.
+   Other work and synchronous destruction remain unbounded; this is not
+   Kafka throughput.
    The earlier [Admin pagination repair](../evidence/client/admin-pagination-20261108/README.md)
    uses one checked deadline for DescribeTopicPartitions pages and rejects an
    immediately repeated cursor instead of returning a partial success. A
