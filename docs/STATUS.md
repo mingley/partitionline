@@ -244,9 +244,9 @@ latency bound.
   [record-header validation change][records-perf] improved a short
   header-heavy codec workload on a shared x86 runner. An unapplied
   [dense Produce candidate][dense-produce] improved in-process tests for large
-  unordered requests to a missing topic. Append samples with two valid
-  partitions were too noisy to establish a gain; a successful multi-partition
-  workload is being measured separately. A separate
+  unordered requests to a missing topic. A separate test of successful writes
+  across 17 and 32 partitions showed no reliable gain; every paired range
+  crossed zero. The candidate remains unapplied. A separate
   [one-byte varint experiment][onebyte] and three
   [batch-header candidates][batch-header] had mixed results and remain
   unapplied. A [send_all candidate][sendall] greatly shortened a large mock
@@ -272,7 +272,7 @@ retained evidence. The [benchmark contract](benchmark-contract.md) and
 
 [ci]: https://github.com/mingley/partitionline/blob/7f15017fd312945612886c3b6a8c26ffc8098458/docs/evidence/releases/main-ci-a374-20261108/README.md
 [ci-342]: https://github.com/mingley/partitionline/blob/7f15017fd312945612886c3b6a8c26ffc8098458/docs/evidence/releases/main-ci-342e-20261108/README.md
-[dense-produce]: https://github.com/mingley/partitionline/blob/7f15017fd312945612886c3b6a8c26ffc8098458/docs/evidence/broker/produce-dense-partition-20261108/README.md
+[dense-produce]: https://github.com/mingley/partitionline/blob/e9f59e8e7e52f50b37c5b386ceefa60c54a3bb88/docs/evidence/broker/produce-dense-partition-20261108/README.md
 [ci-a0]: https://github.com/mingley/partitionline/blob/61af02b51269edb0ec12edf3c49118285f767c3b/docs/evidence/releases/main-ci-a0ad-partial-20261108/README.md
 [ci-97]: https://github.com/mingley/partitionline/blob/6667a8df9205f5ae9efe5d648ec21c0e997afb32/docs/evidence/releases/main-ci-97a-20261108/README.md
 [admin-slot]: https://github.com/mingley/partitionline/blob/89a8e2e5ae2ab28942be66c8bd7e0390032b4450/docs/evidence/client/admin-dtp-slot-index-20261108/README.md
@@ -280,7 +280,7 @@ retained evidence. The [benchmark contract](benchmark-contract.md) and
 [interop-peer]: https://github.com/mingley/partitionline/blob/89a8e2e5ae2ab28942be66c8bd7e0390032b4450/docs/evidence/client/broker-interop-peer-types-20261108/README.md
 [ci-262]: https://github.com/mingley/partitionline/blob/cb55f7c603e2344775de8a395c6a584737f5bb95/docs/evidence/releases/main-ci-262-20261108/README.md
 [ci-02c]: https://github.com/mingley/partitionline/blob/0ce81683fe7107386e30f388cd2a4af31735d522/docs/evidence/releases/main-ci-02c-20261108/README.md
-[next]: https://github.com/mingley/partitionline/blob/7f15017fd312945612886c3b6a8c26ffc8098458/docs/plan/next-work.md
+[next]: https://github.com/mingley/partitionline/blob/e9f59e8e7e52f50b37c5b386ceefa60c54a3bb88/docs/plan/next-work.md
 [flush-public]: https://github.com/mingley/partitionline/blob/f93e91499e2ba6bdc88c0a25a0d83b8737d00d3c/docs/evidence/client/producer-flush-public-20261108/README.md
 [flush-sent]: https://github.com/mingley/partitionline/blob/efa7f23314e98f3aaa4559c3cf38302bdcdb9fb4/docs/evidence/client/producer-flush-sent-20261108/README.md
 [owner-design]: https://github.com/mingley/partitionline/blob/cb55f7c603e2344775de8a395c6a584737f5bb95/docs/evidence/client/producer-ownership-design-20261108/README.md
