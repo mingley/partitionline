@@ -1,4 +1,4 @@
-name: Three-way fixed Kafka batch header encoding
+name: Three-way cold-buffer Kafka batch header encoding
 
 on:
   push:
@@ -17,7 +17,7 @@ jobs:
       CARGO_TERM_COLOR: never
       PYTHONDONTWRITEBYTECODE: "1"
       BASE_SHA: 60caa746c3654c89d01557e35e1100cdc2a84b74
-      CURRENT_SHA: f14eb8849db06c1f34725a94073445cc71206384
+      CURRENT_SHA: 0101be5465aa7dddf29b17fe9623b5933484a021
     steps:
       - uses: actions/checkout@v7
         with:
@@ -82,13 +82,13 @@ jobs:
           done
           baseline_hash=$(git show "$BASE_SHA:src/protocol/records.rs" | sha256sum | cut -d' ' -f1)
           current_hash=$(git show "$CURRENT_SHA:src/protocol/records.rs" | sha256sum | cut -d' ' -f1)
-          reserve_hash=$(git show "HEAD:src/protocol/records.rs" | sha256sum | cut -d' ' -f1)
+          cold_hash=$(git show "HEAD:src/protocol/records.rs" | sha256sum | cut -d' ' -f1)
           test "$(sha256sum "$RUNNER_TEMP/encode-base/src/protocol/records.rs" | cut -d' ' -f1)" = "$baseline_hash"
           test "$(sha256sum "$RUNNER_TEMP/encode-current/src/protocol/records.rs" | cut -d' ' -f1)" = "$current_hash"
-          test "$(sha256sum src/protocol/records.rs | cut -d' ' -f1)" = "$reserve_hash"
+          test "$(sha256sum src/protocol/records.rs | cut -d' ' -f1)" = "$cold_hash"
           test "$baseline_hash" != "$current_hash"
-          test "$baseline_hash" != "$reserve_hash"
-          test "$current_hash" != "$reserve_hash"
+          test "$baseline_hash" != "$cold_hash"
+          test "$current_hash" != "$cold_hash"
           sha256sum "$RUNNER_TEMP/encode-base/src/protocol/records.rs" "$RUNNER_TEMP/encode-current/src/protocol/records.rs" \
             src/protocol/records.rs | tee "$EVIDENCE/source-tree-sha256.txt"
           export CARGO_TARGET_DIR="$RUNNER_TEMP/record-target-baseline"
@@ -101,14 +101,14 @@ jobs:
             2>&1 | tee "$EVIDENCE/build-current.log"
           cp "$CARGO_TARGET_DIR/release/examples/bench_record_body" "$RUNNER_TEMP/encode-current-bin"
           grep -F "Compiling partitionline v0.1.0 ($RUNNER_TEMP/encode-current)" "$EVIDENCE/build-current.log"
-          export CARGO_TARGET_DIR="$RUNNER_TEMP/record-target-reserve"
+          export CARGO_TARGET_DIR="$RUNNER_TEMP/record-target-cold"
           cargo +stable build --locked --release --example bench_record_body --manifest-path "$GITHUB_WORKSPACE/Cargo.toml" \
-            2>&1 | tee "$EVIDENCE/build-reserve.log"
-          cp "$CARGO_TARGET_DIR/release/examples/bench_record_body" "$RUNNER_TEMP/encode-reserve"
-          grep -F "Compiling partitionline v0.1.0 ($GITHUB_WORKSPACE)" "$EVIDENCE/build-reserve.log"
+            2>&1 | tee "$EVIDENCE/build-cold.log"
+          cp "$CARGO_TARGET_DIR/release/examples/bench_record_body" "$RUNNER_TEMP/encode-cold"
+          grep -F "Compiling partitionline v0.1.0 ($GITHUB_WORKSPACE)" "$EVIDENCE/build-cold.log"
           sha256sum "$RUNNER_TEMP/encode-baseline" "$RUNNER_TEMP/encode-current-bin" \
-            "$RUNNER_TEMP/encode-reserve" | tee "$EVIDENCE/binary-sha256.txt"
-          for pair in "baseline current-bin" "baseline reserve" "current-bin reserve"; do
+            "$RUNNER_TEMP/encode-cold" | tee "$EVIDENCE/binary-sha256.txt"
+          for pair in "baseline current-bin" "baseline cold" "current-bin cold"; do
             read -r left right <<< "$pair"
             if cmp -s "$RUNNER_TEMP/encode-$left" "$RUNNER_TEMP/encode-$right"; then
               echo "equal independently built binaries: $left and $right; inspect before measuring" | tee "$EVIDENCE/identical-binaries.txt"
@@ -120,20 +120,20 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          for arm in baseline current-bin reserve; do
+          for arm in baseline current-bin cold; do
             taskset -c "$BENCH_CPU" "$RUNNER_TEMP/encode-$arm" corpus "$EVIDENCE/$arm-corpus.bin" \
               2> "$EVIDENCE/$arm-corpus.log"
             cat "$EVIDENCE/$arm-corpus.log"
           done
           cmp "$EVIDENCE/baseline-corpus.bin" "$EVIDENCE/current-bin-corpus.bin"
-          cmp "$EVIDENCE/baseline-corpus.bin" "$EVIDENCE/reserve-corpus.bin"
+          cmp "$EVIDENCE/baseline-corpus.bin" "$EVIDENCE/cold-corpus.bin"
           sha256sum "$EVIDENCE/baseline-corpus.bin" "$EVIDENCE/current-bin-corpus.bin" \
-            "$EVIDENCE/reserve-corpus.bin" | tee "$EVIDENCE/corpus-sha256.txt"
+            "$EVIDENCE/cold-corpus.bin" | tee "$EVIDENCE/corpus-sha256.txt"
       - name: Capture optimized encoder code
         shell: bash
         run: |
           set -euo pipefail
-          for arm in baseline current-bin reserve; do
+          for arm in baseline current-bin cold; do
             nm -S -C "$RUNNER_TEMP/encode-$arm" > "$EVIDENCE/$arm-symbols.txt"
             objdump -dC --no-show-raw-insn "$RUNNER_TEMP/encode-$arm" > "$EVIDENCE/$arm.asm"
             grep -E 'records::start_record_batch|records::encode_record' "$EVIDENCE/$arm-symbols.txt" \
@@ -141,16 +141,16 @@ jobs:
           done
           python3 benchmarks/record-body/inspect_asm.py "$EVIDENCE/baseline.asm" "$EVIDENCE/current-bin.asm" \
             "$EVIDENCE/baseline-current-diff.txt" > "$EVIDENCE/baseline-current-diff.log"
-          python3 benchmarks/record-body/inspect_asm.py "$EVIDENCE/baseline.asm" "$EVIDENCE/reserve.asm" \
-            "$EVIDENCE/baseline-reserve-diff.txt" > "$EVIDENCE/baseline-reserve-diff.log"
-          python3 benchmarks/record-body/inspect_asm.py "$EVIDENCE/current-bin.asm" "$EVIDENCE/reserve.asm" \
-            "$EVIDENCE/current-reserve-diff.txt" > "$EVIDENCE/current-reserve-diff.log"
+          python3 benchmarks/record-body/inspect_asm.py "$EVIDENCE/baseline.asm" "$EVIDENCE/cold.asm" \
+            "$EVIDENCE/baseline-cold-diff.txt" > "$EVIDENCE/baseline-cold-diff.log"
+          python3 benchmarks/record-body/inspect_asm.py "$EVIDENCE/current-bin.asm" "$EVIDENCE/cold.asm" \
+            "$EVIDENCE/current-cold-diff.txt" > "$EVIDENCE/current-cold-diff.log"
       - name: Balanced three-way whole-batch measurements
         shell: bash
         run: |
           set -euo pipefail
           python3 benchmarks/record-body/measure_three.py "$RUNNER_TEMP/encode-baseline" \
-            "$RUNNER_TEMP/encode-current-bin" "$RUNNER_TEMP/encode-reserve" \
+            "$RUNNER_TEMP/encode-current-bin" "$RUNNER_TEMP/encode-cold" \
             "$BENCH_CPU" "$EVIDENCE/measurements.json" 2>&1 | tee "$EVIDENCE/measure.log"
       - name: Retain inputs, failures and measurements
         if: always() && env.EVIDENCE != ''

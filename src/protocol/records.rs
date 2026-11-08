@@ -3240,8 +3240,10 @@ pub(crate) fn start_record_batch(
     header: &BatchHeader,
 ) -> (usize, usize, usize, usize) {
     let batch_start = buf.len();
-    // Reserve the fixed v2 header before writing its fields.
-    buf.reserve(61);
+    // A fresh buffer can fit the fixed v2 header in one allocation.
+    if buf.capacity() == 0 {
+        buf.reserve(61);
+    }
     buf.put_i64(header.base_offset);
     let batch_len_pos = buf.len();
     buf.put_i32(0);

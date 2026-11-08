@@ -12,8 +12,8 @@ names = ["one_empty", "one_100", "f01_8_plain", "f02_8_headers", "f03_500_plain"
          "boundaries", "large_values", "gzip_128", "snappy_128", "lz4_128",
          "async_f01_8", "async_f03_500", "async_headers", "async_large",
          "zero_records", "cold_one_empty", "cold_one_100"]
-base, current, reserve, cpu, output = sys.argv[1:]
-binaries = {"base": base, "current": current, "reserve": reserve}
+base, always, cold, cpu, output = sys.argv[1:]
+binaries = {"base": base, "always": always, "cold": cold}
 
 def call(binary, *arguments):
     command = ["taskset", "-c", cpu, binary, *map(str, arguments)]
@@ -31,9 +31,9 @@ for name in names:
     if not 1 <= iterations[name] <= 67_108_864:
         raise ValueError(f"invalid calibration for {name}")
 print(json.dumps({"calibrated_iterations": iterations}, sort_keys=True), flush=True)
-orders = [("base", "current", "reserve"), ("current", "reserve", "base"),
-          ("reserve", "base", "current"), ("reserve", "current", "base"),
-          ("current", "base", "reserve"), ("base", "reserve", "current")]
+orders = [("base", "always", "cold"), ("always", "cold", "base"),
+          ("cold", "base", "always"), ("cold", "always", "base"),
+          ("always", "base", "cold"), ("base", "cold", "always")]
 trials = []
 for trial in range(1, 13):
     shapes = names.copy()
@@ -51,21 +51,21 @@ for trial in range(1, 13):
                 raise ValueError(f"invalid time: {raw!r}")
             times[arm] = ns
         row = {"trial": trial, "shape": name, "iterations": iterations[name], "order": order,
-               "base_elapsed_ns": times["base"], "current_elapsed_ns": times["current"],
-               "reserve_elapsed_ns": times["reserve"],
-               "current_over_base": times["current"] / times["base"],
-               "reserve_over_base": times["reserve"] / times["base"],
-               "reserve_over_current": times["reserve"] / times["current"]}
+               "base_elapsed_ns": times["base"], "always_elapsed_ns": times["always"],
+               "cold_elapsed_ns": times["cold"],
+               "always_over_base": times["always"] / times["base"],
+               "cold_over_base": times["cold"] / times["base"],
+               "cold_over_always": times["cold"] / times["always"]}
         trials.append(row)
         print(json.dumps(row, sort_keys=True), flush=True)
 summaries = []
 for name in names:
     rows = [r for r in trials if r["shape"] == name]
     summary = {"shape": name, "trials": len(rows)}
-    for arm in ("base", "current", "reserve"):
+    for arm in ("base", "always", "cold"):
         summary[arm + "_median_ns_per_batch"] = statistics.median(
             r[arm + "_elapsed_ns"] / r["iterations"] for r in rows)
-    for metric in ("current_over_base", "reserve_over_base", "reserve_over_current"):
+    for metric in ("always_over_base", "cold_over_base", "cold_over_always"):
         values = [r[metric] for r in rows]
         med = statistics.median(values)
         summary[metric] = {"median": med, "min": min(values), "max": max(values),
