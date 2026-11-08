@@ -175,13 +175,60 @@ fn assert_api_versions(port: u16) {
     assert_eq!(r.pos, bytes.len());
 }
 
-fn create_error(bytes: &[u8], name: &str) -> i16 {
+fn create_error_fields<'a>(bytes: &'a [u8], name: &str) -> (i16, &'a [u8]) {
     let mut r = Cursor { bytes, pos: 0 };
     assert_eq!(r.i32(), 77);
     r.i32();
     assert_eq!(r.i32(), 1);
     assert_eq!(r.string(), Some(name));
-    r.i16()
+    let code = r.i16();
+    (code, &bytes[r.pos..])
+}
+
+fn create_error(bytes: &[u8], name: &str) -> i16 {
+    create_error_fields(bytes, name).0
+}
+
+fn decode_create_error_message(bytes: &[u8]) -> Result<Option<&str>, &'static str> {
+    let prefix = bytes.get(..2).ok_or("missing message length")?;
+    let length = i16::from_be_bytes([prefix[0], prefix[1]]);
+    if length == -1 {
+        return Ok(None);
+    }
+    let length = usize::try_from(length).map_err(|_| "invalid message length")?;
+    let message = bytes.get(2..2 + length).ok_or("truncated message")?;
+    std::str::from_utf8(message)
+        .map(Some)
+        .map_err(|_| "message is not UTF-8")
+}
+
+#[test]
+fn create_error_message_decodes_v3_failure() {
+    // Correlation, throttle, one topic named x, error 56, and its message.
+    let response = [
+        0, 0, 0, 77, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, b'x', 0, 56, 0, 4, b'd', b'i', b's', b'k',
+    ];
+    let (code, message) = create_error_fields(&response, "x");
+    assert_eq!(code, 56);
+    assert_eq!(decode_create_error_message(message), Ok(Some("disk")));
+    assert_eq!(decode_create_error_message(&[255, 255]), Ok(None));
+    assert_eq!(decode_create_error_message(&[0, 0]), Ok(Some("")));
+    assert_eq!(
+        decode_create_error_message(&[]),
+        Err("missing message length")
+    );
+    assert_eq!(
+        decode_create_error_message(&[255, 254]),
+        Err("invalid message length")
+    );
+    assert_eq!(
+        decode_create_error_message(&[0, 2, b'x']),
+        Err("truncated message")
+    );
+    assert_eq!(
+        decode_create_error_message(&[0, 1, 255]),
+        Err("message is not UTF-8")
+    );
 }
 fn delete_error(bytes: &[u8], name: &str) -> i16 {
     let mut r = Cursor { bytes, pos: 0 };
@@ -253,15 +300,25 @@ fn leader(ports: &[u16], alive: &[bool], wanted: Option<usize>) -> usize {
 )]
 fn create_eventually(ports: &[u16], alive: &[bool], name: &str, old: Option<usize>) -> usize {
     let deadline = Instant::now() + Duration::from_secs(20);
+    let mut prior_41_responses = 0usize;
     loop {
         let current = leader(ports, alive, old);
         match exchange(ports[current], &create(name)) {
-            Ok(bytes) => match create_error(&bytes, name) {
-                0 => return current,
-                41 => {} // Leader discovery can precede its active term barrier.
-                error => panic!("ambiguous or unexpected create error {error} for {name}"),
-            },
-            Err(error) => panic!("ambiguous create transport error for {name}: {error}"),
+            Ok(bytes) => {
+                let (code, message) = create_error_fields(&bytes, name);
+                match code {
+                    0 => return current,
+                    // Leader discovery can precede its active term barrier.
+                    41 => prior_41_responses += 1,
+                    error => panic!(
+                        "ambiguous or unexpected create error {error} for {name}; contacted node {current}; prior 41 responses {prior_41_responses}; wire error message {:?}",
+                        decode_create_error_message(message)
+                    ),
+                }
+            }
+            Err(error) => panic!(
+                "ambiguous create transport error for {name}: {error}; contacted node {current}; prior 41 responses {prior_41_responses}; wire error message unavailable"
+            ),
         }
         assert!(Instant::now() < deadline, "create deadline");
         thread::sleep(Duration::from_millis(50));
