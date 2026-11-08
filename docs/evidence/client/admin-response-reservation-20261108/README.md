@@ -32,6 +32,10 @@ and all-feature profiles on x86 Linux and Rust 1.99.1. Formatting and strict
 all-target/all-feature Clippy passed. The earlier
 [run 42454670542](https://github.com/mingley/partitionline/actions/runs/42454670542)
 failed at formatting before any tests ran; the test formatting was corrected.
+A later [combined-tree run 42456288775](https://github.com/mingley/partitionline/actions/runs/42456288775)
+also failed formatting because its initial test blob was unformatted. The
+static job stopped before Clippy; the corrected tree restores the exact test
+blob used in the passing focused and integration runs.
 
 The new test compares synchronous and cooperative output and cursor position
 for valid and truncated responses, including fragmented buffers. It exercises
