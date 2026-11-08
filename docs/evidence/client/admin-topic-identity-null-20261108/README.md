@@ -86,6 +86,25 @@ the candidate source was the final hash above, and both arms used pagination
 fixture SHA-256
 `cb19e0db9291dd8a1daf9eff49ea5bd039a6d8f8d72cf04af3c1cca0798e5114`.
 
+## Intermediate timing
+
+An [intermediate nullable-source comparison][intermediate-perf] used a
+shared AMD EPYC 7763 x86_64 runner pinned to CPU 0, Rust 1.99.1 and LLVM
+23.1.1. It tested 12 alternating pairs of 4,000 one-page reads and 250
+sixteen-page reads after warmup. The intermediate production blob was
+`0e7091bc9fbc60b51fefdab7d4ef99b3914141fe` (SHA-256
+`f785c320bf501a7d25e4db7b87a5d472ec09e74bc8a9321b1aecf366642a817f`);
+it predates the final Rustdoc and test correction. Its benchmark fixture
+blob was `f262df289a1473d3b9975633cbaddbd85a2672a1`. The
+[48 intermediate samples](intermediate-paired-timings.csv) are retained.
+
+The paired candidate/baseline median was 0.99622 for one-page reads
+(range 0.68748–1.04290; candidate slower in 5 of 12 pairs) and 0.98716
+for sixteen-page reads (range 0.89933–1.00313; slower in 3 of 12 pairs).
+The one-page baseline included a 178.76 ms sample. These local results do
+not qualify the final source or establish a comparison with other Kafka
+implementations.
+
 ## Limits
 
 The conversion loop processes topic rows before merging a page. It has no
@@ -109,3 +128,4 @@ follow-ups.
 [final]: https://github.com/mingley/partitionline/actions/runs/42478040397
 [broad]: https://github.com/mingley/partitionline/actions/runs/42478078989
 [perf]: https://github.com/mingley/partitionline/actions/runs/42477945484
+[intermediate-perf]: https://github.com/mingley/partitionline/actions/runs/42477689277
