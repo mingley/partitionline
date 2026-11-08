@@ -2366,6 +2366,23 @@ impl Mock {
             .unwrap_or(0)
     }
 
+    /// Read recorded values and offsets without changing mock broker state.
+    pub fn log_values(&self, topic: &str, partition: i32) -> Vec<(i64, Option<Vec<u8>>)> {
+        self.state
+            .lock()
+            .log
+            .get(&(topic.to_string(), partition))
+            .map(|records| {
+                records
+                    .iter()
+                    .map(|record| {
+                        (record.offset, record.value.as_ref().map(|value| value.to_vec()))
+                    })
+                    .collect()
+            })
+            .unwrap_or_default()
+    }
+
     pub fn metadata_calls(&self) -> u32 {
         self.state.lock().metadata_calls
     }

@@ -108,6 +108,10 @@ async fn public_flush_can_complete_before_retired_worker_retry_handoff() {
     assert_eq!(producer.retries_in_flight(), 0);
     assert_eq!(mock.log_len("t", 0), 2, "mock appended the target");
     assert_eq!(
+        mock.log_values("t", 0),
+        vec![(0, Some(b"warm".to_vec())), (1, Some(TARGET.to_vec()))]
+    );
+    assert_eq!(
         mock.produce_batches().len(),
         2,
         "warmup and target were sent"
@@ -157,6 +161,10 @@ async fn public_flush_can_complete_before_retired_worker_retry_handoff() {
         mock.log_len("t", 0),
         2,
         "idempotent retry must not duplicate"
+    );
+    assert_eq!(
+        mock.log_values("t", 0),
+        vec![(0, Some(b"warm".to_vec())), (1, Some(TARGET.to_vec()))]
     );
     let batches = mock.produce_batches();
     assert_eq!(batches.len(), 3, "warmup, dropped reply, and retry");

@@ -60,13 +60,15 @@ jobs:
             test "$(git rev-parse "$base:src/producer.rs")" = 1e7733c136e54b532cdc8bddabd1e0c828e50ed2
             test "$(git rev-parse HEAD:src/producer.rs)" = 8e08f33e18d7aca953a09c2df988e170f6e17817
             test "$(git rev-parse HEAD:Cargo.lock)" = d1cb698aaaf7554fe904ba02d671c4a8ab4975b3
-            test "$(git rev-parse HEAD:tests/common/mod.rs)" = 9a995292044c527ae2c2a17eca09b9f947bb12ed
+            test "$(git rev-parse "$base:tests/common/mod.rs")" = 9a995292044c527ae2c2a17eca09b9f947bb12ed
+            test "$(git rev-parse HEAD:tests/common/mod.rs)" = fbd0bfd7d9ca2ac1f07827e62d8779806fc7c725
             test "$(git rev-parse HEAD:Cargo.toml)" = 585bbf9a31465d6bba3f66f593fddd1add516f36
             test "$(git rev-parse HEAD:rust-toolchain.toml)" = 05e6ca1bf94c42a23333262558d22b866615466e
             test -z "$(git status --porcelain)"
             git rev-parse HEAD:tests/public_flush_retirement.rs
             git diff "$base" HEAD -- src/producer.rs > "$evidence/producer-timing-gate.patch"
-            sha256sum src/producer.rs Cargo.toml Cargo.lock rust-toolchain.toml tests/common/mod.rs tests/public_flush_retirement.rs "$evidence/producer-timing-gate.patch"
+            git diff "$base" HEAD -- tests/common/mod.rs > "$evidence/mock-readback.patch"
+            sha256sum src/producer.rs Cargo.toml Cargo.lock rust-toolchain.toml tests/common/mod.rs tests/public_flush_retirement.rs "$evidence/producer-timing-gate.patch" "$evidence/mock-readback.patch"
             rustc +stable -vV
             cargo +stable -V
             uname -a
