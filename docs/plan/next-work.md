@@ -177,8 +177,12 @@ remain open.
    lock and retirement waits. It passed focused mock controls and a Kafka
    3.9.1 happy-path comparison. Response decoding, parts of discovery and
    epoch-bump waiting still exceed a complete deadline; concurrent
-   discoveries can install a stale result, and transaction error-state
-   transitions need further work.
+   discoveries can install a stale result. The [transaction error-state
+   repair](../evidence/client/txn-error-state-374-20261108/REPORT.md) makes
+   fatal and abortable claims visible before their cause lock and prevents
+   cleared claims from overwriting newer ones. Transaction generations and
+   already-admitted operations remain unguarded; three handshake-count tests
+   still fail on both the baseline and candidate.
    Source review also found that repeated `begin_transaction` clears the open
    transaction's partition tracking. After an abortable failure, cancellation
    during identity recovery can clear the bump flag before a replacement
