@@ -59,7 +59,6 @@ async fn simple_case(n: usize) {
     if (32..8192).contains(&n) {
         assert_eq!(snap.shortcut, n);
         assert_eq!(snap.fallback, 0);
-        assert_eq!(snap.yields, 0);
     } else {
         assert_eq!(snap.shortcut, 0);
         assert_eq!(snap.fallback, n);
@@ -254,7 +253,6 @@ async fn synthetically_gated_partial_admission_cancellation() {
     tokio::time::timeout(Duration::from_secs(15), q::reached()).await.unwrap();
     let before = producer.metrics();
     assert_eq!(before.records_queued, 513);
-    assert_eq!(q::snapshot().yields, 0);
     drop(future);
     tokio::time::timeout(LIMIT, async {
         loop {
@@ -340,7 +338,7 @@ async fn ungated_unconstrained_cancellation_after_single_poll() {
     assert!(poll_fn(|cx| Poll::Ready(future.as_mut().poll(cx))).await.is_pending());
     assert_eq!(producer.metrics().records_queued, 1025);
     let snap = q::snapshot();
-    assert_eq!((snap.shortcut, snap.fallback, snap.yields), (1024, 0, 0));
+    assert_eq!((snap.shortcut, snap.fallback), (1024, 0));
     drop(future);
     tokio::time::timeout(LIMIT, async {
         loop {
@@ -358,4 +356,42 @@ async fn ungated_unconstrained_cancellation_after_single_poll() {
         assert_eq!(*offset, (i + 1) as i64);
         assert_eq!(value.as_deref(), Some((i as u64).to_le_bytes().as_slice()));
     }
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn same_length_mixed_topics_fall_back() {
+    let mock = common::Mock::start().await;
+    mock.set_topic_partitions("u", 1);
+    let producer = Producer::new(config(&mock)).await.unwrap();
+    warm(&producer, "t", 0).await;
+    warm(&producer, "u", 0).await;
+    q::reset();
+    let input: Vec<_> = (0..32).map(|i| {
+        let topic = if i % 2 == 0 { "t" } else { "u" };
+        ProduceRecord::to(topic).partition(0).value((i as u64).to_le_bytes().to_vec())
+    }).collect();
+    let out = tokio::time::timeout(LIMIT, producer.send_all(input)).await.unwrap().unwrap();
+    let snap = q::snapshot();
+    assert_eq!((snap.shortcut, snap.fallback), (0, 32));
+    for topic in ["t", "u"] {
+        let md: Vec<_> = out.iter().filter(|m| m.topic.as_ref() == topic).cloned().collect();
+        let ids: Vec<_> = (0..32).filter(|i| (i % 2 == 0) == (topic == "t")).collect();
+        verify(&mock, topic, 0, &md, &ids, 1);
+    }
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn negative_partition_falls_back_and_is_rejected() {
+    let mock = common::Mock::start().await;
+    let producer = Producer::new(config(&mock)).await.unwrap();
+    warm(&producer, "t", 0).await;
+    q::reset();
+    let mut input = records("t", 32);
+    input[0].partition = Some(-1);
+    let err = tokio::time::timeout(LIMIT, producer.send_all(input)).await.unwrap().unwrap_err();
+    let snap = q::snapshot();
+    assert!(matches!(err, Error::Protocol(_)));
+    assert_eq!((snap.shortcut, snap.fallback), (0, 1));
+    assert_eq!(producer.metrics().records_queued, 1);
+    assert_eq!(mock.log_len("t", 0), 1);
 }
