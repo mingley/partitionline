@@ -41,7 +41,7 @@ def run(arm, case):
         raise RuntimeError("benchmark test failed")
     if "running 1 test" not in p.stdout or "1 passed; 0 failed" not in p.stdout:
         raise RuntimeError(f"unexpected test count arm={arm} case={case} output={p.stdout!r}")
-    lines = [x for x in p.stdout.splitlines() if x.startswith(prefix)]
+    lines = [x[x.index(prefix):] for x in p.stdout.splitlines() if prefix in x]
     if len(lines) != 1:
         raise RuntimeError(f"missing measurement arm={arm} case={case} output={p.stdout!r}")
     line = lines[0]
