@@ -36,8 +36,8 @@ A closer [classic-join witness][recent-ci] overflowed in both the baseline and
 boxed-library arms; it does not qualify the complete compatibility test.
 
 Earlier results and candidate runs are retained in the [work plan][next],
-[previous CI evidence][previous-ci] and [previous status][previous]. A focused pass does not replace the full release
-matrix.
+[previous CI evidence][previous-ci] and [previous status][previous]. A focused
+pass does not replace the full release matrix.
 
 ## Open work
 
@@ -74,9 +74,9 @@ The [work plan][next] tracks the current candidates and outstanding tests.
 The [support matrix](support.md) describes configured coverage, and the
 [release guide](RELEASE.md) lists publication gates. No new release is ready.
 
-[ci]: evidence/releases/main-ci-3f45-20261106/README.md
+[ci]: https://github.com/mingley/partitionline/blob/ffa7b9bba3733aa554c75f853dac46a66500a4dd/docs/evidence/releases/main-ci-3f45-20261106/README.md
 [previous-ci]: https://github.com/mingley/partitionline/blob/f6eecf19896650a6b18789df7cc8848d3a670cb4/docs/evidence/releases/main-ci-74923475-20261105/README.md
-[next]: plan/next-work.md
+[next]: https://github.com/mingley/partitionline/blob/ffa7b9bba3733aa554c75f853dac46a66500a4dd/docs/plan/next-work.md
 [previous]: https://github.com/mingley/partitionline/blob/5c2a000639d9a8a7dccd56e8c1d6f3a58dca1601/docs/STATUS.md
 [flush]: https://github.com/mingley/partitionline/blob/e980829c439aa43edc01312c91838e58a412221a/docs/evidence/client/producer-flush-native-86f2-20261103/README.md
 [txn]: https://github.com/mingley/partitionline/blob/49ad56c6bce1366e2357c272f11c5c34160d60da/docs/evidence/client/add-partitions-native-4f0c-20261103/README.md
