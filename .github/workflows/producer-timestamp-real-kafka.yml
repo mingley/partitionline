@@ -1,0 +1,82 @@
+name: producer-timestamp-real-kafka
+on:
+  push:
+    branches: [qual/producer-timestamp-real-kafka-20261108]
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Start independent Kafka broker
+        run: |
+          mkdir -p target/ts-live/wire target/ts-live/classes
+          docker run -d --name pl-ts-live -p 127.0.0.1:9093:9092 apache/kafka:4.1.0
+          docker inspect --format '{{.Image}}' pl-ts-live
+          docker image inspect --format '{{json .RepoDigests}}' apache/kafka:4.1.0
+      - name: Build separate release producers
+        shell: bash
+        run: |
+          set -euo pipefail
+          git rev-parse HEAD
+          git hash-object src/producer.rs tests/producer_timestamp_kafka_smoke.rs
+          sha256sum src/producer.rs tests/producer_timestamp_kafka_smoke.rs tests/fixtures/producer_timestamp_proxy.py tests/fixtures/ObserveProduceTime.java scripts/producer_timestamp_live_verify.py Cargo.lock
+          rustc -Vv
+          java -version
+          lscpu
+          cp src/producer.rs "$RUNNER_TEMP/candidate.rs"
+          git show 7dfbe4735d1c4268a1b8a7185bb34f1121f0db13:src/producer.rs > src/producer.rs
+          git hash-object src/producer.rs
+          CARGO_TARGET_DIR=target/ts-live-base cargo test --locked --release --test producer_timestamp_kafka_smoke --no-run --message-format=json > target/ts-live/baseline-build.json
+          cp "$RUNNER_TEMP/candidate.rs" src/producer.rs
+          git hash-object src/producer.rs
+          CARGO_TARGET_DIR=target/ts-live-candidate cargo test --locked --release --test producer_timestamp_kafka_smoke --no-run --message-format=json > target/ts-live/candidate-build.json
+      - name: Configure CreateTime topics and independent Java decoder
+        shell: bash
+        run: |
+          set -euo pipefail
+          for i in $(seq 1 90); do
+            if docker exec pl-ts-live /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --list > target/ts-live/topics.log 2>&1; then
+              break
+            fi
+            sleep 2
+          done
+          docker exec pl-ts-live /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --list
+          docker exec pl-ts-live /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --create --topic pl-time-baseline --partitions 1 --replication-factor 1 --config message.timestamp.type=CreateTime
+          docker exec pl-ts-live /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --create --topic pl-time-candidate --partitions 1 --replication-factor 1 --config message.timestamp.type=CreateTime
+          docker cp pl-ts-live:/opt/kafka/libs target/ts-live/libs
+          sha256sum target/ts-live/libs/kafka-clients-*.jar
+          javac -cp 'target/ts-live/libs/*' -d target/ts-live/classes tests/fixtures/ObserveProduceTime.java
+      - name: Delay Kafka responses and compare wire timestamps
+        shell: bash
+        run: |
+          set -euo pipefail
+          PL_WIRE_CAPTURE="$PWD/target/ts-live/wire" python3 -u tests/fixtures/producer_timestamp_proxy.py > target/ts-live/proxy.log 2>&1 &
+          proxy_pid=$!
+          trap 'kill "$proxy_pid" 2>/dev/null || true' EXIT
+          for i in $(seq 1 100); do
+            if grep -q PROXY_READY target/ts-live/proxy.log; then break; fi
+            sleep 0.1
+          done
+          grep -q PROXY_READY target/ts-live/proxy.log
+          python3 scripts/producer_timestamp_live_verify.py target/ts-live/baseline-build.json target/ts-live/candidate-build.json 'target/ts-live/classes:target/ts-live/libs/*' target/ts-live/wire target/ts-live/proxy.log target/ts-live/report.json 2>&1 | tee target/ts-live/comparison.log
+      - name: Preserve broker and proxy output
+        if: always()
+        run: |
+          docker logs pl-ts-live > target/ts-live/kafka.log 2>&1 || true
+          docker rm -f pl-ts-live || true
+      - name: Upload exact real-broker evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: producer-timestamp-kafka-${{ github.sha }}
+          path: target/ts-live
+          if-no-files-found: warn
+          retention-days: 30
