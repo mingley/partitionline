@@ -1,0 +1,24 @@
+name: Broker TLS buffered read baseline
+on:
+  push:
+    branches: [qualification/broker-frame-tls-baseline-20261108]
+permissions:
+  contents: read
+jobs:
+  tls:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      CARGO_BUILD_JOBS: 2
+      CARGO_INCREMENTAL: 0
+      CARGO_PROFILE_TEST_DEBUG: 0
+      CARGO_PROFILE_DEV_DEBUG: 0
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Characterize installed TLS reader
+        run: |
+          set -euo pipefail
+          rustc --version
+          cargo test --locked --manifest-path partitionline-broker/Cargo.toml --lib --features tls characterize_real_tls_buffered_body_poll -- --nocapture
+          cargo test --locked --manifest-path partitionline-broker/Cargo.toml --lib --all-features characterize_real_tls_buffered_body_poll -- --nocapture
