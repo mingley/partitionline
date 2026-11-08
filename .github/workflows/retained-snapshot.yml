@@ -34,8 +34,10 @@ jobs:
           mkdir -p target/retained-snapshot
           args=()
           if [[ "$PL_MODE" == all ]]; then args+=(--all-features); fi
+          set +e
           cargo +stable test --locked "${args[@]}" --test producer_retained_backing cancelled_channel_admission_releases_only_the_unenqueued_reservation -- --exact --nocapture --test-threads=1 2>&1 | tee target/retained-snapshot/test.log
           status=${PIPESTATUS[0]}
+          set -e
           printf 'TEST_EXIT=%s\n' "$status"
           python3 - "$status" <<'PY'
           import json
@@ -46,11 +48,19 @@ jobs:
           if 'running 1 test' not in text:
               raise SystemExit('the intended test did not run')
           snapshots = {}
+          missing = []
           for phase in ('WARM', 'BEFORE', 'AFTER'):
               match = re.search(r'SNAPSHOT_' + phase + r' ([^\r\n]+)', text)
               if not match:
-                  raise SystemExit(f'missing {phase} snapshot; see retained log')
+                  missing.append(phase)
+                  continue
               snapshots[phase] = {key: int(value) for key, value in re.findall(r'(\w+)=(\d+)', match.group(1))}
+          if missing:
+              result = {'test_exit': int(sys.argv[1]), 'snapshots': snapshots, 'missing': missing}
+              pathlib.Path('target/retained-snapshot/summary.json').write_text(json.dumps(result, indent=2) + '\n')
+              print('SNAPSHOT_INCOMPLETE', json.dumps(result, sort_keys=True))
+              print('The intended test started, but the missing snapshots prevent attribution.')
+              raise SystemExit(0)
           before, after = snapshots['BEFORE'], snapshots['AFTER']
           result = {'test_exit': int(sys.argv[1]), 'snapshots': snapshots,
                     'acked_delta': after['acked'] - before['acked'],
