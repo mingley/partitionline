@@ -18239,6 +18239,13 @@ mod tests {
 
     #[test]
     fn extending_described_topics_yields_and_completes() {
+        let lookup = |index: &DescribedTopicIndex, out: &[TopicDescription], name: &str| {
+            let hash = index.hash(name);
+            index.table.find(hash, |entry| {
+                entry.hash == hash
+                    && out.get(entry.slot).is_some_and(|topic| topic.name == name)
+            }).map(|entry| (entry.slot, entry.known_id))
+        };
         let small = vec![TopicDescription::new(
             "small",
             [0; 16],
@@ -18247,14 +18254,14 @@ mod tests {
             Vec::new(),
         )];
         let mut out = Vec::new();
-        let mut index = std::collections::HashMap::new();
+        let mut index = DescribedTopicIndex::new();
         let mut short = Box::pin(extend_described_topics(&mut out, &mut index, small));
         let (state, wakes) = observed_poll(short.as_mut());
         assert!(matches!(state, std::task::Poll::Ready(Ok(()))));
         assert_eq!(wakes, 0);
         drop(short);
         assert_eq!(out.len(), 1);
-        assert_eq!(index.get("small"), Some(&(0, [0; 16])));
+        assert_eq!(lookup(&index, &out, "small"), Some((0, [0; 16])));
 
         let make_topics = || -> Vec<TopicDescription> {
             (0..20_000)
@@ -18266,7 +18273,7 @@ mod tests {
         let mut previous = 0;
         for required_polls in 1..=2 {
             let mut partial = Vec::new();
-            let mut partial_index = std::collections::HashMap::new();
+            let mut partial_index = DescribedTopicIndex::new();
             let mut future = Box::pin(extend_described_topics(
                 &mut partial,
                 &mut partial_index,
@@ -18283,13 +18290,13 @@ mod tests {
                 "poll {required_polls} made no progress"
             );
             assert!(partial.len() < 20_000, "partial poll consumed every topic");
-            assert_eq!(partial_index.len(), partial.len());
+            assert_eq!(partial_index.table.len(), partial.len());
             previous = partial.len();
         }
 
         let incoming = make_topics();
         let mut out = Vec::new();
-        let mut index = std::collections::HashMap::new();
+        let mut index = DescribedTopicIndex::new();
         let mut long = Box::pin(extend_described_topics(&mut out, &mut index, incoming));
         for poll in 0..2 {
             let (state, wakes) = observed_poll(long.as_mut());
@@ -18299,11 +18306,11 @@ mod tests {
         finish_observed(long.as_mut()).unwrap();
         drop(long);
         assert_eq!(out.len(), 20_000);
-        assert_eq!(index.len(), 20_000);
+        assert_eq!(index.table.len(), 20_000);
         assert_eq!(out.first().map(TopicDescription::name), Some("topic-0"));
         assert_eq!(out.last().map(TopicDescription::name), Some("topic-19999"));
-        assert_eq!(index.get("topic-0"), Some(&(0, [0; 16])));
-        assert_eq!(index.get("topic-19999"), Some(&(19_999, [0; 16])));
+        assert_eq!(lookup(&index, &out, "topic-0"), Some((0, [0; 16])));
+        assert_eq!(lookup(&index, &out, "topic-19999"), Some((19_999, [0; 16])));
     }
 
     #[tokio::test(flavor = "current_thread")]
@@ -18340,7 +18347,7 @@ mod tests {
         );
         let other = TopicDescription::new("payments", [2; 16], false, 0, Vec::new());
         let mut out = Vec::new();
-        let mut index = std::collections::HashMap::new();
+        let mut index = DescribedTopicIndex::new();
         extend_described_topics(&mut out, &mut index, vec![first, other, again])
             .await
             .unwrap();
