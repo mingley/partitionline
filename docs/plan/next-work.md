@@ -19,6 +19,11 @@ failed. Broker CI passed 739 default and 887 all-feature tests, Clippy,
 Rustdoc, inventory and fuzz supervision. These results predate the journal
 repair and do not close the release gates.
 
+A later [broker CI run](../evidence/broker/main-ci-3fc-20261108/README.md)
+at `3fc8059` passed the default suite but stopped at two all-feature Raft
+runtime failures. Later all-feature targets and broker-job checks did not run;
+the inventory and fuzz jobs passed separately.
+
 The [coordinator repair](../evidence/client/group-coordinator-retirement-20261108/README.md)
 retires a known coordinator socket before replacement. Focused local controls
 and all 67 candidate network tests passed, but its baseline comparison job
