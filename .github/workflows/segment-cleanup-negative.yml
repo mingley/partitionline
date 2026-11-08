@@ -1,0 +1,110 @@
+name: Segment cleanup negative controls
+on:
+  push:
+    branches: [qualification/segment-cleanup-negative-20261108]
+permissions:
+  contents: read
+jobs:
+  negative:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        profile: [default, all-features]
+    env:
+      CARGO_BUILD_JOBS: "2"
+      CARGO_INCREMENTAL: "0"
+      CARGO_TERM_COLOR: never
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: 890ccad6a7cf01b46d64d30b1037229fdde8327c
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Restore early cleanup and verify both preservation tests reject it
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "890ccad6a7cf01b46d64d30b1037229fdde8327c"
+          mkdir -p evidence
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path("partitionline-broker/src/segments.rs")
+          text = p.read_text()
+          cleanup = "        recovery.removed_staging_files = result.cleanup()?;\n"
+          anchor = "        result.rebuild_active()?;\n"
+          assert text.count(cleanup) == 1 and text.count(anchor) == 1
+          text = text.replace(cleanup, "", 1).replace(anchor, anchor + cleanup, 1)
+          p.write_text(text)
+          PY
+          cp partitionline-broker/src/segments.rs evidence/early-cleanup.rs
+          sha256sum evidence/early-cleanup.rs
+          args=()
+          if [ "${{ matrix.profile }}" = all-features ]; then args+=(--all-features); fi
+          for spec in 'corrupt_selected_replacement_preserves_old_generation_on_failed_open:PL_RETIRED_GENERATION_DELETED_BEFORE_VALIDATION' 'later_selected_scan_failure_preserves_old_generation_and_all_files:PL_LATER_GENERATION_DELETED_BEFORE_VALIDATION'; do
+            test_name="${spec%%:*}"
+            marker="${spec#*:}"
+            set +e
+            cargo test --locked --manifest-path partitionline-broker/Cargo.toml --lib "${args[@]}" "segments::tests::$test_name" -- --exact --nocapture > "evidence/$test_name.log" 2>&1
+            status=$?
+            set -e
+            cat "evidence/$test_name.log"
+            test "$status" -ne 0
+            grep -F "$marker" "evidence/$test_name.log"
+            grep -F 'test result: FAILED' "evidence/$test_name.log"
+          done
+      - name: Restore one-pass deletion and verify unknown-entry control rejects it
+        shell: bash
+        run: |
+          set -euo pipefail
+          git checkout -- partitionline-broker/src/segments.rs
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path("partitionline-broker/src/segments.rs")
+          text = p.read_text()
+          text = text.replace("        let mut candidates = 0usize;\n", "", 1)
+          old = """            names.swap(position, candidates);
+                      candidates += 1;
+                  }
+                  for name in names.into_iter().take(candidates) {
+                      fs::remove_file(self.directory.join(name))?;
+                      removed += 1;
+                  }
+          """
+          new = """            fs::remove_file(self.directory.join(name))?;
+                      removed += 1;
+                  }
+          """
+          old = "\n".join(line[10:] if line.startswith("          ") else line for line in old.split("\n"))
+          new = "\n".join(line[10:] if line.startswith("          ") else line for line in new.split("\n"))
+          assert text.count(old) == 1
+          text = text.replace(old, new, 1)
+          needle = """        SORT_CLEANUP_FOR_TEST.with(|sort| sort.set(true));
+                  assert!(matches!(open(&path), Err(Error::InvalidLayout)));
+          """
+          needle = "\n".join(line[10:] if line.startswith("          ") else line for line in needle.split("\n"))
+          assert text.count(needle) == 1
+          text = text.replace(needle, needle + '        assert!(path.join(MANIFEST_TEMP).try_exists()?, "PL_STAGING_DELETED_BEFORE_CLASSIFICATION");\n', 1)
+          p.write_text(text)
+          PY
+          cp partitionline-broker/src/segments.rs evidence/one-pass-cleanup.rs
+          sha256sum evidence/one-pass-cleanup.rs
+          args=()
+          if [ "${{ matrix.profile }}" = all-features ]; then args+=(--all-features); fi
+          set +e
+          cargo test --locked --manifest-path partitionline-broker/Cargo.toml --lib "${args[@]}" segments::tests::unknown_entry_after_staging_preserves_all_files_on_failed_open -- --exact --nocapture > evidence/unknown.log 2>&1
+          status=$?
+          set -e
+          cat evidence/unknown.log
+          test "$status" -ne 0
+          grep -F 'PL_STAGING_DELETED_BEFORE_CLASSIFICATION' evidence/unknown.log
+          grep -F 'test result: FAILED' evidence/unknown.log
+      - name: Preserve mutations and failing logs
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: segment-cleanup-negative-${{ matrix.profile }}
+          path: evidence/
+          if-no-files-found: warn
+          retention-days: 30
