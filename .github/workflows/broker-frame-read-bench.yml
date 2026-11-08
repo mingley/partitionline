@@ -11,7 +11,7 @@ jobs:
     env:
       CARGO_BUILD_JOBS: 2
       CARGO_INCREMENTAL: 0
-      CARGO_TARGET_DIR: ${{ runner.temp }}/frame-bench-target
+      CARGO_TARGET_DIR: target/frame-bench
     steps:
       - uses: actions/checkout@v4
         with:
