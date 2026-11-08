@@ -15,25 +15,30 @@ replicated partition data or native Kafka KRaft.
 
 ## Validation
 
-The latest complete snapshot recorded here is commit `de152e78ca6d85e6cd4ea5915058b2bb6141cf42`.
-It includes the coordinator, journal and admission repairs, plus a focused
-Raft proposal-boundary test. The [CI evidence][ci] links the runs and their
+The latest complete snapshot recorded here is commit `6298f6bfbed2ab98189d291ebebd2190a2ee75b6`.
+It includes the record validation, grouped journal reservation and Admin
+response allocation changes. The [CI evidence][ci] links the runs and their
 limits.
 
-| Check | Result at `de152e7` |
+| Check | Result at `6298f6b` |
 | --- | --- |
-| Client library, Linux default | 2,226 passed and 18 failed; the all-target run stopped at the library. |
-| Client library, Linux all features | 2,221 passed and 23 failed; later targets did not run. |
-| Windows default library | 2,235 passed and nine failed. |
-| macOS arm64 default library | 2,230 passed and 14 failed. |
+| Client library, Linux default | 2,230 passed and 14 failed; the all-target run stopped at the library. |
+| Client library, Linux all features | 2,232 passed and 12 failed; later targets did not run. |
+| Windows default library | 2,233 passed and 11 failed. |
+| macOS arm64 default library | 2,234 passed and 10 failed. |
 | Kafka 4.1.2, 4.2.1 and 4.3.1 compatibility | All three jobs failed with stack overflows. |
-| Kafka 3.9.1 and 4.1.0 smoke | Both exhausted EOS retries after timeouts; 4.1.0 also reported JoinGroup error 16. |
-| Broker default and all-feature targets | 755 and 903 passed, respectively; three descriptor diagnostics were ignored in each suite and passed separately on the same production source. Both doctest commands found zero tests. |
-| Broker Clippy, Rustdoc, inventory and fuzz supervision | Passed. |
+| Kafka 3.9.1 and 4.1.0 smoke | Both reported JoinGroup error 16 and exhausted EOS retries after timeouts. |
+| Broker default targets | 761 passed, three ignored. |
+| Broker all-feature targets | The library stopped at 516 passed, one failed and three ignored on a frame-read deadline test; later targets did not run. |
+| Broker format, inventory and fuzz supervision | Passed. Broker Clippy, Rustdoc and doctests were skipped after the failure. |
 | Client capability profiles | Both passed selected checks; their archives were not independently inspected. |
 | Client format, all-target Clippy, audit, docs, package, auth and integrity smoke | Passed. Other client jobs failed or were skipped. |
 
-A [later client run][e02-client] at `e02c1b8` recorded 17 successful jobs,
+The frame-read test used a 30 ms deadline and required total elapsed time
+under 80 ms; it observed the deadline error after 82.681715 ms. The log does not show
+whether scheduling delay or time inside a read poll caused the excess.
+
+An [earlier partial client run][e02-client] at `e02c1b8` recorded 17 successful jobs,
 six failures, four cancellations and one skip. Linux default and Windows
 library tests failed, along with three Kafka compatibility jobs and the
 Kafka 3.9.1 smoke job. The all-feature Linux, macOS, Kafka 4.1.0 smoke and
@@ -45,7 +50,9 @@ tests with three ignored. Its all-feature suite stopped at 641 passed, one
 failed and three ignored when a before-failover CreateTopics request returned
 error 56. The log does not identify the cause or whether the operation
 committed. Later broker targets, Clippy and Rustdoc did not run; inventory
-and fuzz supervision passed separately.
+and fuzz supervision passed separately. A [test diagnostic][create-diag]
+now records the error message and contacted node on future unexpected Create
+failures; it does not establish their commit outcome.
 
 A [broker CI run][previous-broker] at `3fc8059` failed two all-feature
 Raft tests. A [subsequent run][latest-broker] at `c471f5e` passed the
@@ -149,9 +156,9 @@ The [work plan][next] tracks the current candidates and outstanding tests.
 The [support matrix](support.md) describes configured coverage, and the
 [release guide](RELEASE.md) lists publication gates. No new release is ready.
 
-[ci]: https://github.com/mingley/partitionline/blob/a4d381f21701656389b95324fd3231c2c22a03a3/docs/evidence/releases/main-ci-de152e-20261108/README.md
+[ci]: https://github.com/mingley/partitionline/blob/be20c7f063bfd721e9a0821ad7711cb1c7847d8f/docs/evidence/releases/main-ci-629-20261108/README.md
 [previous-ci]: https://github.com/mingley/partitionline/blob/7ebb3cc81adc695cc4c74409a87a1a1dd4be9730/docs/evidence/releases/main-ci-ba8-20261108/README.md
-[next]: https://github.com/mingley/partitionline/blob/cd20f43f018f36b3aaa8311839fe11fc74dac3af/docs/plan/next-work.md
+[next]: https://github.com/mingley/partitionline/blob/be20c7f063bfd721e9a0821ad7711cb1c7847d8f/docs/plan/next-work.md
 [previous]: https://github.com/mingley/partitionline/blob/5c2a000639d9a8a7dccd56e8c1d6f3a58dca1601/docs/STATUS.md
 [flush]: https://github.com/mingley/partitionline/blob/e980829c439aa43edc01312c91838e58a412221a/docs/evidence/client/producer-flush-native-86f2-20261103/README.md
 [txn]: https://github.com/mingley/partitionline/blob/49ad56c6bce1366e2357c272f11c5c34160d60da/docs/evidence/client/add-partitions-native-4f0c-20261103/README.md
@@ -185,3 +192,4 @@ The [support matrix](support.md) describes configured coverage, and the
 [journal-reserve]: https://github.com/mingley/partitionline/blob/732b833aaab797527f2662d2f410c072c7a5af36/docs/evidence/broker/grouped-journal-reservations-20261108/README.md
 [e02-client]: https://github.com/mingley/partitionline/blob/cd20f43f018f36b3aaa8311839fe11fc74dac3af/docs/evidence/releases/main-ci-e02-partial-20261108/README.md
 [admin-reserve]: https://github.com/mingley/partitionline/blob/cd20f43f018f36b3aaa8311839fe11fc74dac3af/docs/evidence/client/admin-response-reservation-20261108/README.md
+[create-diag]: https://github.com/mingley/partitionline/blob/be20c7f063bfd721e9a0821ad7711cb1c7847d8f/docs/evidence/broker/create-response-diagnostic-20261108/README.md
