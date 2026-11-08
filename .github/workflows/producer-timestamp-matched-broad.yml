@@ -1,0 +1,64 @@
+name: producer-timestamp-matched-broad
+on:
+  push:
+    branches: [qual/producer-timestamp-matched-broad-20261108]
+jobs:
+  paired:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        profile: [default, all]
+    env:
+      PL_PROFILE: ${{ matrix.profile }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Identify source and runner
+        run: |
+          git rev-parse HEAD
+          git hash-object src/producer.rs tests/common/mod.rs tests/mock_produce.rs Cargo.lock
+          sha256sum src/producer.rs tests/common/mod.rs tests/mock_produce.rs Cargo.lock
+          rustc -Vv
+          uname -a
+          lscpu
+          cat /sys/fs/cgroup/cpu.max || true
+      - name: Baseline then candidate on separate targets
+        shell: bash
+        run: |
+          set -uo pipefail
+          mkdir -p target/matched
+          cp src/producer.rs "$RUNNER_TEMP/candidate.rs"
+          args=()
+          if [[ "$PL_PROFILE" == all ]]; then args=(--all-features); fi
+          for arm in baseline candidate; do
+            if [[ "$arm" == baseline ]]; then
+              git show 7dfbe4735d1c4268a1b8a7185bb34f1121f0db13:src/producer.rs > src/producer.rs
+            else
+              cp "$RUNNER_TEMP/candidate.rs" src/producer.rs
+            fi
+            echo "MATCHED_SOURCE arm=$arm blob=$(git hash-object src/producer.rs)"
+            sha256sum src/producer.rs
+            CARGO_TARGET_DIR="target/matched-$arm" cargo test --locked --lib "${args[@]}" producer::tests:: -- --test-threads=1 > "target/matched/$arm-lib.log" 2>&1
+            code=$?
+            echo "$code" > "target/matched/$arm-lib.status"
+            tail -n 100 "target/matched/$arm-lib.log"
+            CARGO_TARGET_DIR="target/matched-$arm" cargo test --locked --test mock_produce "${args[@]}" > "target/matched/$arm-mock.log" 2>&1
+            code=$?
+            echo "$code" > "target/matched/$arm-mock.status"
+            tail -n 120 "target/matched/$arm-mock.log"
+          done
+      - name: Summarize both failures without attribution
+        if: always()
+        run: python3 scripts/compare_timestamp_broad.py target/matched
+      - name: Preserve complete matched logs
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: producer-timestamp-matched-${{ matrix.profile }}-${{ github.sha }}
+          path: target/matched
+          if-no-files-found: warn
+          retention-days: 30
