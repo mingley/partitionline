@@ -22,14 +22,6 @@ jobs:
       - uses: actions/checkout@v7
         with:
           persist-credentials: false
-          sparse-checkout: |
-            .cargo
-            src
-            examples
-            partitionline-broker
-            scripts
-            tests/ci
-            tests/conformance/broker
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: rustfmt, clippy
