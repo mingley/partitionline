@@ -7,6 +7,8 @@
 //! accepted, and disconnect releases only that client's connection permits.
 //! Client identity state is bounded by the configured connection cap; idle
 //! identities are reclaimed only after both buckets refill and all debt clears.
+//! Time-bearing operations use the latest observed time when passed an older
+//! value. Callers must use one clock and avoid timestamps from the future.
 //!
 //! This is not a Kafka throttle response on the wire.
 
@@ -248,7 +250,8 @@ impl Window {
     }
 
     /// Account for elapsed time at the current rates before replacing them.
-    /// Accepted work and its accumulated debt remain in the window.
+    /// Accepted work and its accumulated debt remain in the window. Invalid
+    /// rates are rejected before observing time.
     pub fn set_rates_at(
         &mut self,
         produce_bytes_per_sec: u64,
@@ -260,7 +263,8 @@ impl Window {
         {
             return Err(Error::InvalidLimits);
         }
-        self.observed_ms = self.observed_ms.max(now_ms);
+        let now_ms = self.observed_ms.max(now_ms);
+        self.observed_ms = now_ms;
         for client in self.clients.values_mut() {
             client
                 .produce
@@ -286,9 +290,11 @@ impl Window {
 
     /// Take one connection permit and reclaim fully refilled idle identities
     /// when needed. Times must use the same millisecond clock as [`Self::admit`].
+    /// A valid client name observes time even when the connection is refused.
     pub fn connect_at(&mut self, client: &str, now_ms: u64) -> Result<(), Error> {
         self.named(client)?;
-        self.observed_ms = self.observed_ms.max(now_ms);
+        let now_ms = self.observed_ms.max(now_ms);
+        self.observed_ms = now_ms;
         if self.connections >= self.limits.max_connections {
             return Err(Error::Throttled);
         }
@@ -317,6 +323,8 @@ impl Window {
     }
 
     /// Accept a byte charge, or refuse it without spending tokens.
+    /// A nonzero request within the in-flight byte cap observes time even if
+    /// a later identity, work-ID, or quota check refuses the request.
     pub fn admit(
         &mut self,
         client: Option<&str>,
@@ -332,7 +340,8 @@ impl Window {
                 Error::Throttled
             });
         }
-        self.observed_ms = self.observed_ms.max(now_ms);
+        let now_ms = self.observed_ms.max(now_ms);
+        self.observed_ms = now_ms;
         // Reserve a distinct work ID before spending tokens; overflow must never
         // overwrite a live permit or leave charged work without a receipt.
         let work_id = self.next_work;
