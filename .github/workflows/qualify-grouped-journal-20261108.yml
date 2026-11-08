@@ -19,7 +19,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
         with:
-          fetch-depth: 2
+          fetch-depth: 3
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: rustfmt, clippy
@@ -31,7 +31,7 @@ jobs:
       - name: Reproduce baseline capacity defect
         shell: bash
         run: |
-          git show HEAD^:partitionline-broker/src/journal.rs > partitionline-broker/src/journal.rs
+          git show 1b6d49cc3ad989bd57311e3950d327e01ddc02ae:partitionline-broker/src/journal.rs > partitionline-broker/src/journal.rs
           set +e
           if [ '${{ matrix.profile }}' = all ]; then feature=--all-features; else feature=; fi
           cargo test --locked --manifest-path partitionline-broker/Cargo.toml --lib $feature grouped_preallocates_index_for_all_staged_writes -- --nocapture > "$RUNNER_TEMP/baseline.log" 2>&1
