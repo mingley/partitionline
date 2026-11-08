@@ -1,0 +1,127 @@
+name: Admin requested-name paired timing
+on:
+  push:
+    branches: [work/admin-requested-name-perf-20261108]
+permissions:
+  contents: read
+jobs:
+  compare:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          path: candidate
+      - uses: actions/checkout@v7
+        with:
+          ref: 426041c9f5526dfb6a788344a0e03b3edfefffb0
+          path: baseline
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Build separate release test binaries
+        shell: bash
+        run: |
+          set -euo pipefail
+          rustc -Vv
+          lscpu | grep -E 'Model name|CPU\(s\)'
+          cp candidate/src/admin/pagination_tests.rs baseline/src/admin/pagination_tests.rs
+          for arm in baseline candidate; do
+            sha256sum "$arm/src/admin.rs" "$arm/src/admin/pagination_tests.rs" "$arm/Cargo.lock"
+            git -C "$arm" hash-object src/admin.rs src/admin/pagination_tests.rs
+            target="$RUNNER_TEMP/target-$arm"
+            CARGO_TARGET_DIR="$target" cargo test --locked --release --manifest-path "$arm/Cargo.toml" --lib dtp_ --no-run
+            bins=()
+            for f in "$target"/release/deps/partitionline-*; do
+              if [ -f "$f" ] && [ -x "$f" ]; then bins+=("$f"); fi
+            done
+            test "${#bins[@]}" = 1
+            cp "${bins[0]}" "$RUNNER_TEMP/$arm-binary"
+            sha256sum "$RUNNER_TEMP/$arm-binary"
+          done
+          test "$(sha256sum "$RUNNER_TEMP/baseline-binary" | cut -d' ' -f1)" != "$(sha256sum "$RUNNER_TEMP/candidate-binary" | cut -d' ' -f1)"
+      - name: Requested-name index capacity observations
+        shell: bash
+        run: |
+          cat > "$RUNNER_TEMP/name_index_capacity.rs" <<'RS'
+          use std::collections::HashSet;
+          fn main() {
+              println!("borrowed_str_bytes={}", std::mem::size_of::<&str>());
+              for count in [1_usize, 9, 32, 256, 1024] {
+                  let names: Vec<String> = (0..count).map(|i| format!("topic-{i}")).collect();
+                  let mut set = HashSet::new();
+                  let mut growths = 0;
+                  for name in &names {
+                      let before = set.capacity();
+                      let _inserted = set.insert(name.as_str());
+                      if set.capacity() > before {
+                          growths += 1;
+                      }
+                  }
+                  println!("INDEX unique={} capacity={} capacity_growths={}", set.len(), set.capacity(), growths);
+              }
+              let mut set = HashSet::new();
+              let mut growths = 0;
+              for _ in 0..1024 {
+                  let before = set.capacity();
+                  let _inserted = set.insert("same");
+                  if set.capacity() > before {
+                      growths += 1;
+                  }
+              }
+              println!("INDEX duplicate_inputs=1024 unique={} capacity={} capacity_growths={}", set.len(), set.capacity(), growths);
+          }
+          RS
+          rustc "$RUNNER_TEMP/name_index_capacity.rs" -o "$RUNNER_TEMP/name_index_capacity"
+          "$RUNNER_TEMP/name_index_capacity"
+      - name: Warmup and paired loopback timings
+        shell: bash
+        run: |
+          set -euo pipefail
+          cpu=$(python3 -c 'import os; print(min(os.sched_getaffinity(0)))')
+          printf 'pinned_cpu=%s\n' "$cpu"
+          mkdir -p "$RUNNER_TEMP/name-perf"
+          printf 'block,shape,arm,elapsed_ns\n' > "$RUNNER_TEMP/name-perf/results.csv"
+          for shape in single many_pages four thirty_two two_fifty_six; do
+            case "$shape" in
+              single|many_pages) prefix=dtp_pagination_benchmark ;;
+              *) prefix=dtp_requested_name_benchmark ;;
+            esac
+            for arm in baseline candidate; do
+              taskset -c "$cpu" "$RUNNER_TEMP/$arm-binary" --exact "admin::pagination_tests::${prefix}_$shape" --ignored --nocapture > /dev/null
+            done
+          done
+          for block in $(seq 0 11); do
+            offset=0
+            for shape in single many_pages four thirty_two two_fifty_six; do
+              case "$shape" in
+                single|many_pages) prefix=dtp_pagination_benchmark ;;
+                *) prefix=dtp_requested_name_benchmark ;;
+              esac
+              if [ $(((block + offset) % 2)) = 0 ]; then order=(baseline candidate); else order=(candidate baseline); fi
+              for arm in "${order[@]}"; do
+                out=$(taskset -c "$cpu" "$RUNNER_TEMP/$arm-binary" --exact "admin::pagination_tests::${prefix}_$shape" --ignored --nocapture)
+                ns=$(printf '%s\n' "$out" | sed -n 's/.*MEASURE .* elapsed_ns=\([0-9]*\).*/\1/p')
+                test -n "$ns"
+                printf '%s,%s,%s,%s\n' "$block" "$shape" "$arm" "$ns" >> "$RUNNER_TEMP/name-perf/results.csv"
+              done
+              offset=$((offset + 1))
+            done
+          done
+          cat "$RUNNER_TEMP/name-perf/results.csv"
+          python3 - "$RUNNER_TEMP/name-perf/results.csv" <<'PY'
+          import csv,statistics,sys
+          rows=list(csv.DictReader(open(sys.argv[1])))
+          assert len(rows)==120
+          for shape in ('single','many_pages','four','thirty_two','two_fifty_six'):
+              ratios=[]
+              for block in range(12):
+                  pair={r['arm']:int(r['elapsed_ns']) for r in rows if r['shape']==shape and int(r['block'])==block}
+                  ratios.append(pair['candidate']/pair['baseline'])
+              print(shape,'median',statistics.median(ratios),'range',min(ratios),max(ratios),'slower',sum(x>1 for x in ratios),'paired',ratios)
+          PY
+      - uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: admin-requested-name-perf
+          path: ${{ runner.temp }}/name-perf/
+          if-no-files-found: warn
+          retention-days: 30
