@@ -41,6 +41,12 @@ later changes; see the linked runs for their exact source and scope.
 | Client format, all-target Clippy, audit, docs, package, auth and integrity smoke | Passed. Other client jobs failed or were skipped. |
 | Instruction-count gate | Ran without a baseline for this Rust version; no regression comparison. |
 
+A later [partial main run][ci-0c] stopped in a broker integration target
+at 729 passed, one failed and four ignored. Later broker targets and strict
+checks did not run; the cause remains unknown. Client libraries, three Kafka
+compatibility jobs and one smoke job failed; the other smoke was still running
+when recorded. Inventory, fuzz supervision and both capability profiles passed.
+
 The [preceding complete snapshot][ci-a374] also failed client checks but
 passed 806 default and 954 all-feature broker tests, with four ignored per
 profile. That pass does not explain the later broker failures. An [earlier
@@ -155,7 +161,8 @@ latency bound.
   [owned-batch model][owned-model] checks proposed admission, batch, close and
   uncertainty rules, but does not run the Rust producer. Its unknown-write
   fence can retain capacity indefinitely, and callback and close semantics
-  need decisions before implementation. A
+  need decisions before implementation. An [unwired Rust draft][owner-rust]
+  still fails six isolated ownership controls and is not a producer repair. A
   [timestamp history][timestamp-history] observed mismatched times in a mock.
   The applied [timestamp fix][timestamp-fix] retains implicit times across
   retry and acknowledgement; a delayed-ack Kafka 4.1.0 smoke passed. Paired
@@ -187,7 +194,8 @@ latency bound.
   refusal as Kafka error 89. This changes behavior for Git consumers. Focused
   controls passed, but both full broker candidate suites stopped on Raft or
   quorum failures; their causes remain unknown. Kafka wire throttling and
-  server-wide fairness are still open.
+  server-wide fairness are still open. The [Produce quota design][quota-design]
+  records the identity, accounting and muting work needed for a wire path.
   A [Produce cancellation fix][cancel] removes unsynced stages
   at a scoped boundary; rolling storage can retain a durable prefix. The
   [data admission repair][admission] keeps permits with actor-owned work and
@@ -277,6 +285,7 @@ retained evidence. The [benchmark contract](benchmark-contract.md) and
 [release guide](RELEASE.md) describe the remaining qualification gates.
 
 [ci]: https://github.com/mingley/partitionline/blob/6def5c2ff779fb034b92e751a641d6b51f0c1e2c/docs/evidence/releases/main-ci-d314-20261108/README.md
+[ci-0c]: https://github.com/mingley/partitionline/blob/ed86c9c937dd3f5a7edb73858a6474b04073a827/docs/evidence/releases/main-ci-0c9-partial-20261108/README.md
 [ci-a374]: https://github.com/mingley/partitionline/blob/6def5c2ff779fb034b92e751a641d6b51f0c1e2c/docs/evidence/releases/main-ci-a374-20261108/README.md
 [ci-342]: https://github.com/mingley/partitionline/blob/7f15017fd312945612886c3b6a8c26ffc8098458/docs/evidence/releases/main-ci-342e-20261108/README.md
 [dense-produce]: https://github.com/mingley/partitionline/blob/e9f59e8e7e52f50b37c5b386ceefa60c54a3bb88/docs/evidence/broker/produce-dense-partition-20261108/README.md
@@ -287,7 +296,7 @@ retained evidence. The [benchmark contract](benchmark-contract.md) and
 [interop-peer]: https://github.com/mingley/partitionline/blob/89a8e2e5ae2ab28942be66c8bd7e0390032b4450/docs/evidence/client/broker-interop-peer-types-20261108/README.md
 [ci-262]: https://github.com/mingley/partitionline/blob/cb55f7c603e2344775de8a395c6a584737f5bb95/docs/evidence/releases/main-ci-262-20261108/README.md
 [ci-02c]: https://github.com/mingley/partitionline/blob/0ce81683fe7107386e30f388cd2a4af31735d522/docs/evidence/releases/main-ci-02c-20261108/README.md
-[next]: https://github.com/mingley/partitionline/blob/e18186f0cb9c25393117fe41148ae5860f52a8a0/docs/plan/next-work.md
+[next]: https://github.com/mingley/partitionline/blob/ed86c9c937dd3f5a7edb73858a6474b04073a827/docs/plan/next-work.md
 [flush-public]: https://github.com/mingley/partitionline/blob/f93e91499e2ba6bdc88c0a25a0d83b8737d00d3c/docs/evidence/client/producer-flush-public-20261108/README.md
 [flush-sent]: https://github.com/mingley/partitionline/blob/efa7f23314e98f3aaa4559c3cf38302bdcdb9fb4/docs/evidence/client/producer-flush-sent-20261108/README.md
 [owner-design]: https://github.com/mingley/partitionline/blob/cb55f7c603e2344775de8a395c6a584737f5bb95/docs/evidence/client/producer-ownership-design-20261108/README.md
@@ -354,6 +363,7 @@ retained evidence. The [benchmark contract](benchmark-contract.md) and
 [batch-controls]: https://github.com/mingley/partitionline/blob/a8403decd42d794b1da89ac985e2f390f32e01a7/docs/evidence/client/producer-batch-ownership-controls-20261108/README.md
 [owned-model]: https://github.com/mingley/partitionline/blob/7f15017fd312945612886c3b6a8c26ffc8098458/docs/evidence/client/producer-owned-batch-model-20261108/README.md
 [owner-regressions]: https://github.com/mingley/partitionline/blob/e18186f0cb9c25393117fe41148ae5860f52a8a0/docs/evidence/client/producer-ownership-regression-controls-20261108/README.md
+[owner-rust]: https://github.com/mingley/partitionline/blob/ed86c9c937dd3f5a7edb73858a6474b04073a827/docs/evidence/client/producer-owned-batch-rust-draft-20261108/README.md
 [tls-assessment]: https://github.com/mingley/partitionline/blob/e18186f0cb9c25393117fe41148ae5860f52a8a0/docs/evidence/security/tls-provider-assessment-20261108/README.md
 [timestamp-history]: https://github.com/mingley/partitionline/blob/a8403decd42d794b1da89ac985e2f390f32e01a7/docs/evidence/client/producer-retry-timestamp-20261108/README.md
 [admin-phases]: https://github.com/mingley/partitionline/blob/a8403decd42d794b1da89ac985e2f390f32e01a7/docs/evidence/client/admin-dtp-poll-phases-20261108/README.md
@@ -363,6 +373,7 @@ retained evidence. The [benchmark contract](benchmark-contract.md) and
 [ci-74]: https://github.com/mingley/partitionline/blob/a3abed795162f380336e87b49a5260cf58325c3d/docs/evidence/releases/main-ci-74dd-20261108/README.md
 [quota-clock]: https://github.com/mingley/partitionline/blob/bd37eb53e247b73160da8bbbb2cf53f9d77eb6c3/docs/evidence/broker/quota-logical-clock-20261108/README.md
 [quota-map]: https://github.com/mingley/partitionline/blob/e69b81e83db26264d2197a907b5b4dcca558fe0a/docs/evidence/broker/quota-wire-boundary-20261108/README.md
+[quota-design]: https://github.com/mingley/partitionline/blob/ed86c9c937dd3f5a7edb73858a6474b04073a827/docs/evidence/broker/quota-produce-design-20261108/README.md
 [admin-growth]: https://github.com/mingley/partitionline/blob/bd37eb53e247b73160da8bbbb2cf53f9d77eb6c3/docs/evidence/client/admin-dtp-index-growth-20261108/README.md
 
 [ci-f5]: https://github.com/mingley/partitionline/blob/6667a8df9205f5ae9efe5d648ec21c0e997afb32/docs/evidence/releases/main-ci-f5ed-partial-20261108/README.md
