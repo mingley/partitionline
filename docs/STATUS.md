@@ -32,6 +32,11 @@ their limits.
 | Client capability profiles | Both passed selected checks; their archives were not independently inspected. |
 | Client format, all-target Clippy, audit, docs, package, auth and integrity smoke | Passed. Other client jobs failed or were skipped. |
 
+A focused [transaction state check][txn-state] on `7f59ef4` passed the state
+and coordinator controls in both feature profiles. Three handshake-count tests
+failed in each profile and also failed on the earlier baseline. The check does
+not replace the full release matrix.
+
 A [debugger trace][gdb] on the earlier `8b5de2e` source caught a stack fault
 while opening a consumer bootstrap connection. It identifies a failure point,
 not a complete fix or compatibility pass.
@@ -119,4 +124,4 @@ The [support matrix](support.md) describes configured coverage, and the
 [ack]: https://github.com/mingley/partitionline/blob/2b5e830fd514a9ad3dea27d937d85977a5bea041/docs/evidence/client/ack-closed-loop-20261108/README.md
 [fetch-queue]: https://github.com/mingley/partitionline/blob/4d830d8990f7d50bd853ad92ad0e85a9850d8f94/docs/evidence/broker/fetch-canceled-queue-20261108/README.md
 [fetch-overlap]: https://github.com/mingley/partitionline/blob/d358d94ff0773e23a9429e85f79c9aa0e48d6a8c/docs/evidence/broker/fetch-actor-overlap-20261108/README.md
-[txn-state]: https://github.com/mingley/partitionline/blob/dee7e33536ef7ace765b7ca2b4f4986d83bcd644/docs/evidence/client/txn-error-state-374-20261108/REPORT.md
+[txn-state]: evidence/client/txn-error-state-374-20261108/REPORT.md
