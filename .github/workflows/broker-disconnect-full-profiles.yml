@@ -1,0 +1,37 @@
+name: Broker exact disconnect source profiles
+on:
+  push:
+    branches: [qualification/broker-disconnect-full-profiles-20261108]
+permissions:
+  contents: read
+jobs:
+  broker:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        profile: [default, all]
+    env:
+      CARGO_TARGET_DIR: target/broker-ci/stable
+      CARGO_BUILD_JOBS: 2
+      CARGO_INCREMENTAL: 0
+      CARGO_TERM_COLOR: never
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Run ordinary broker behavioral profile once
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD^)" = "619c38da19c05dff8aa7e4f3b300ca1ab32a8f76"
+          test "$(git rev-parse HEAD:partitionline-broker/src/transport.rs)" = "913ebb4caef03382bf4dfd0a02f249c2b6c5c1ef"
+          test "$(git hash-object partitionline-broker/src/transport.rs)" = "913ebb4caef03382bf4dfd0a02f249c2b6c5c1ef"
+          test "$(git rev-parse HEAD:partitionline-broker/Cargo.toml)" = "4e23c42f8d9ac722005098a4b58e1046b711e1a3"
+          test "$(git rev-parse HEAD:partitionline-broker/Cargo.lock)" = "19652acd96b929402b1e4a9394a33d12a7e69449"
+          rustc -Vv
+          openssl version
+          args=()
+          if [[ "${{ matrix.profile }}" == all ]]; then args=(--all-features); fi
+          cargo test --locked --manifest-path partitionline-broker/Cargo.toml --all-targets "${args[@]}"
