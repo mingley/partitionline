@@ -1,0 +1,41 @@
+name: Admin constant-space pagination checks
+on:
+  push:
+    branches:
+      - work/admin-pagination-constant-20261108
+permissions:
+  contents: read
+jobs:
+  checks:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        profile: [default, all]
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Format and source identity
+        run: |
+          rustc -Vv
+          cargo fmt --all
+          sha256sum src/admin.rs src/admin/pagination_tests.rs Cargo.toml Cargo.lock
+      - name: Focused pagination and cancellation
+        shell: bash
+        run: |
+          set -euo pipefail
+          args=()
+          if [ "${{ matrix.profile }}" = all ]; then args+=(--all-features); fi
+          cargo test --locked --lib "${args[@]}" admin::pagination_tests:: -- --nocapture --test-threads=1
+      - name: Strict all-target all-feature Clippy
+        if: matrix.profile == 'default'
+        run: cargo clippy --locked --all-targets --all-features -- -D warnings
+      - name: Preserve formatted source
+        if: always()
+        shell: bash
+        run: |
+          git diff -- src/admin.rs
+          printf 'TESTFILE_BASE64_START\n'
+          base64 -w0 src/admin/pagination_tests.rs
+          printf '\nTESTFILE_BASE64_END\n'
