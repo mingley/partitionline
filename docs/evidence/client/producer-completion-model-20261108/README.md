@@ -5,18 +5,23 @@ not a production implementation.
 
 The model serializes admission, a flush cutoff, completion and worker lease
 arbitration with one mutex. Admitted records receive monotonically increasing
-sequence numbers. A flush waits until a contiguous completed prefix reaches its
-cutoff, so canceled and overlapping flushes do not lose older pending records.
+sequence numbers. The flush cutoff and deadline are captured at first poll,
+matching the current async method boundary. A flush waits until a contiguous
+completed prefix reaches its cutoff, so canceled and overlapping flushes do not
+lose older pending records.
 The model retains a bounded slot for every active sequence, coalesces completed
 out-of-order intervals, rejects stale lease incarnations, and stops admission
-on sequence or incarnation exhaustion. A bounded first-error slot is claimed
-only by the flush future that returns it; later worker errors are coalesced.
+on sequence or incarnation exhaustion. A separate bounded publisher-operation
+set survives record completion or retry, and prevents a late publisher from
+mistaking an accepted record for a rejected one. A bounded first-error slot is
+claimed only by the flush future that returns it; later worker errors are coalesced.
 Deadline expiry and a recorded delivery timeout are distinct model variants.
 
 The tests manually poll flush futures. They explore a concurrent claim versus
-recovery race, retired workers, finalization steps, overlapping and canceled
-flushes, bounded capacity, exhaustion, and a reference-set comparison for
-random out-of-order completions. The x86 Actions job also reports timings for
+recovery race, publisher return after completion, retired workers, ordered
+error publication, finalization steps, overlapping and canceled flushes,
+bounded capacity, exhaustion, and a reference-set comparison for random
+out-of-order completions. The x86 Actions job also reports timings for
 the standalone model. Those timings do not measure the producer or establish a
 performance change.
 
@@ -26,7 +31,8 @@ This model leaves essential work open:
   completion. It does not own or execute those operations.
 - There is no real receiver, channel, waker registration, wakeup, timeout
   driver, retry actor, sticky partitioner, or broker. The model future must be
-  manually repolled.
+  manually repolled. The publisher set models bookkeeping, not whether an OS
+  thread or channel operation will eventually return.
 - It does not implement an acyclic supervisor, bounded deferred callback
   executor, transaction generation fence, producer close, or runtime shutdown.
 - Pre-admission ownership and byte reservations are not modeled. The model
@@ -36,8 +42,10 @@ This model leaves essential work open:
 - Worker IDs are limited to 64 unique values and are never reused. A real
   implementation needs a bounded, ABA-safe worker lifecycle.
 - The first-error policy intentionally coalesces later errors and is not scoped
-  to individual flush cutoffs. It is a placeholder, not a decision to change
-  the producer's documented error behavior.
+  to individual flush cutoffs. Finalizing a modeled failed record installs its
+  modeled error in the same mutex transition as completion, but arbitrary
+  independent worker errors may still be published at other times. This is a
+  placeholder, not a decision to change the producer's documented error behavior.
 - The model's fixed static error strings avoid user-defined clone and destructor
   behavior. Its mutex and manual polling do not demonstrate fairness or
   nonblocking cleanup.

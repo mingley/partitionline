@@ -9,7 +9,7 @@ use std::future::Future;
 use std::pin::Pin;
 use std::sync::{Arc, Mutex};
 use std::task::{Context, Poll};
-use std::time::Instant;
+use std::time::{Duration, Instant};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 struct Lease {
@@ -24,7 +24,7 @@ enum Phase {
     Queued(u64),
     InFlight(u64),
     Retry,
-    Finalizing { released: bool, result: bool, callback: bool },
+    Finalizing { released: bool, result: bool, callback: bool, recorded_error: Option<&'static str> },
 }
 
 #[derive(Debug)]
@@ -56,6 +56,8 @@ struct State {
     last: u64,
     prefix: u64,
     slots: BTreeMap<u64, Slot>,
+    publishers: BTreeSet<(u64, u64, u64)>,
+    publisher_capacity: usize,
     intervals: BTreeMap<u64, u64>,
     retired: BTreeSet<u64>,
     closed: bool,
@@ -74,6 +76,8 @@ impl Domain {
                 last: 0,
                 prefix: 0,
                 slots: BTreeMap::new(),
+                publishers: BTreeSet::new(),
+                publisher_capacity: capacity.saturating_mul(2),
                 intervals: BTreeMap::new(),
                 retired: BTreeSet::new(),
                 closed: false,
@@ -95,7 +99,7 @@ impl Domain {
         if state.retired.contains(&worker) {
             return Err(DomainError::WorkerRetired);
         }
-        if state.slots.len() == state.capacity {
+        if state.slots.len() == state.capacity || state.publishers.len() == state.publisher_capacity {
             return Err(DomainError::Full);
         }
         let Some(sequence) = state.last.checked_add(1) else {
@@ -104,6 +108,7 @@ impl Domain {
         };
         state.last = sequence;
         state.slots.insert(sequence, Slot { incarnation: 0, phase: Phase::Publishing(worker) });
+        state.publishers.insert((sequence, 0, worker));
         Ok(Lease { sequence, incarnation: 0, worker })
     }
 
@@ -111,18 +116,40 @@ impl Domain {
     // won while the publisher was waking the receiver.
     fn published(&self, lease: Lease) -> Result<(), DomainError> {
         let mut state = self.state.lock().unwrap();
-        let slot = state.slots.get_mut(&lease.sequence).ok_or(DomainError::Stale)?;
-        if slot.incarnation != lease.incarnation {
+        if !state.publishers.remove(&(lease.sequence, lease.incarnation, lease.worker)) {
             return Err(DomainError::Stale);
         }
-        match slot.phase {
-            Phase::Publishing(worker) if worker == lease.worker => {
-                slot.phase = Phase::Queued(worker);
-                Ok(())
+        // A receiver may already have claimed, retried, or finished the
+        // record. Its admission remains accepted even after slot removal.
+        if let Some(slot) = state.slots.get_mut(&lease.sequence) {
+            if slot.incarnation == lease.incarnation && slot.phase == Phase::Publishing(lease.worker) {
+                slot.phase = Phase::Queued(lease.worker);
             }
-            Phase::InFlight(worker) if worker == lease.worker => Ok(()),
-            _ => Err(DomainError::Stale),
         }
+        Ok(())
+    }
+
+    // A publication guard reports cancellation or unwind. Once admission
+    // committed, this never returns the payload to the caller. A descriptor
+    // that was enqueued before cancellation is invalidated unless claimed.
+    fn abort_publication(&self, lease: Lease) -> Result<(), DomainError> {
+        let mut state = self.state.lock().unwrap();
+        if !state.publishers.remove(&(lease.sequence, lease.incarnation, lease.worker)) {
+            return Err(DomainError::Stale);
+        }
+        if let Some(slot) = state.slots.get_mut(&lease.sequence) {
+            if slot.incarnation == lease.incarnation
+                && matches!(slot.phase, Phase::Publishing(worker) | Phase::Queued(worker) if worker == lease.worker)
+            {
+                let Some(incarnation) = slot.incarnation.checked_add(1) else {
+                    state.closed = true;
+                    return Err(DomainError::Exhausted);
+                };
+                slot.incarnation = incarnation;
+                slot.phase = Phase::Retry;
+            }
+        }
+        Ok(())
     }
 
     fn claim(&self, lease: Lease) -> Result<(), DomainError> {
@@ -196,21 +223,26 @@ impl Domain {
         if state.retired.contains(&worker) {
             return Err(DomainError::WorkerRetired);
         }
+        if state.publishers.len() == state.publisher_capacity {
+            return Err(DomainError::Full);
+        }
         let slot = state.slots.get_mut(&sequence).ok_or(DomainError::Stale)?;
         if slot.phase != Phase::Retry {
             return Err(DomainError::Busy);
         }
         slot.phase = Phase::Publishing(worker);
-        Ok(Lease { sequence, incarnation: slot.incarnation, worker })
+        let incarnation = slot.incarnation;
+        state.publishers.insert((sequence, incarnation, worker));
+        Ok(Lease { sequence, incarnation, worker })
     }
 
-    fn begin_finalization(&self, lease: Lease) -> Result<(), DomainError> {
+    fn begin_finalization(&self, lease: Lease, recorded_error: Option<&'static str>) -> Result<(), DomainError> {
         let mut state = self.state.lock().unwrap();
         let slot = state.slots.get_mut(&lease.sequence).ok_or(DomainError::Stale)?;
         if slot.incarnation != lease.incarnation || slot.phase != Phase::InFlight(lease.worker) {
             return Err(DomainError::Stale);
         }
-        slot.phase = Phase::Finalizing { released: false, result: false, callback: false };
+        slot.phase = Phase::Finalizing { released: false, result: false, callback: false, recorded_error };
         Ok(())
     }
 
@@ -221,7 +253,7 @@ impl Domain {
         if slot.incarnation != lease.incarnation {
             return Err(DomainError::Stale);
         }
-        let Phase::Finalizing { released: r, result: s, callback: c } = &mut slot.phase else {
+        let Phase::Finalizing { released: r, result: s, callback: c, .. } = &mut slot.phase else {
             return Err(DomainError::Stale);
         };
         *r |= released;
@@ -236,8 +268,11 @@ impl Domain {
         if slot.incarnation != lease.incarnation {
             return Err(DomainError::Stale);
         }
-        if slot.phase != (Phase::Finalizing { released: true, result: true, callback: true }) {
+        let Phase::Finalizing { released: true, result: true, callback: true, recorded_error } = slot.phase else {
             return Err(DomainError::Incomplete);
+        };
+        if state.recorded_error.is_none() {
+            state.recorded_error = recorded_error;
         }
         state.slots.remove(&lease.sequence);
         state.insert_complete(lease.sequence);
@@ -253,9 +288,8 @@ impl Domain {
         true
     }
 
-    fn flush(self: &Arc<Self>, deadline: Instant) -> Flush {
-        let cutoff = self.state.lock().unwrap().last;
-        Flush { domain: Arc::clone(self), cutoff, deadline, done: false }
+    fn flush(self: &Arc<Self>, timeout: Duration) -> Flush {
+        Flush { domain: Arc::clone(self), cutoff: None, timeout, deadline: None, done: false }
     }
 
     fn close_and_cutoff(&self) -> u64 {
@@ -292,8 +326,9 @@ impl State {
 
 struct Flush {
     domain: Arc<Domain>,
-    cutoff: u64,
-    deadline: Instant,
+    cutoff: Option<u64>,
+    timeout: Duration,
+    deadline: Option<Instant>,
     done: bool,
 }
 
@@ -302,11 +337,16 @@ impl Future for Flush {
 
     fn poll(mut self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<Self::Output> {
         assert!(!self.done, "a completed model future was polled again");
+        let domain = Arc::clone(&self.domain);
         let answer = {
-            let mut state = self.domain.state.lock().unwrap();
-            if Instant::now() >= self.deadline {
+            let mut state = domain.state.lock().unwrap();
+            let cutoff = *self.cutoff.get_or_insert(state.last);
+            let now = Instant::now();
+            let timeout = self.timeout;
+            let deadline = *self.deadline.get_or_insert_with(|| now.checked_add(timeout).unwrap_or(now));
+            if now >= deadline {
                 Some(Err(FlushError::Deadline))
-            } else if state.prefix < self.cutoff {
+            } else if state.prefix < cutoff {
                 None
             } else {
                 Some(match state.recorded_error.take() {
@@ -329,7 +369,7 @@ fn exercise(domain: &Domain) {
     let lease = domain.admit(1).unwrap();
     domain.published(lease).unwrap();
     domain.claim(lease).unwrap();
-    domain.begin_finalization(lease).unwrap();
+    domain.begin_finalization(lease, None).unwrap();
     domain.mark_finalization(lease, true, true, true).unwrap();
     domain.finish(lease).unwrap();
 }
@@ -358,7 +398,6 @@ mod tests {
     use std::sync::{Barrier, Mutex};
     use std::task::{Wake, Waker};
     use std::thread;
-    use std::time::Duration;
 
     struct Noop;
     impl Wake for Noop {
@@ -370,8 +409,8 @@ mod tests {
         Pin::new(flush).poll(&mut Context::from_waker(&waker))
     }
 
-    fn deadline() -> Instant {
-        Instant::now() + Duration::from_secs(30)
+    fn deadline() -> Duration {
+        Duration::from_secs(30)
     }
 
     fn begin(domain: &Domain, worker: u64) -> Lease {
@@ -382,7 +421,7 @@ mod tests {
     }
 
     fn finish(domain: &Domain, lease: Lease) {
-        domain.begin_finalization(lease).unwrap();
+        domain.begin_finalization(lease, None).unwrap();
         domain.mark_finalization(lease, true, true, true).unwrap();
         domain.finish(lease).unwrap();
     }
@@ -404,11 +443,21 @@ mod tests {
     }
 
     #[test]
+    fn cutoff_is_taken_on_first_poll_instead_of_future_construction() {
+        let domain = Domain::new(1);
+        let mut flush = domain.flush(deadline());
+        let record = begin(&domain, 1);
+        assert!(poll_flush(&mut flush).is_pending());
+        finish(&domain, record);
+        assert_eq!(poll_flush(&mut flush), Poll::Ready(Ok(())));
+    }
+
+    #[test]
     fn terminal_publication_is_required_before_horizon_advances() {
         let domain = Domain::new(1);
         let lease = begin(&domain, 1);
         let mut flush = domain.flush(deadline());
-        domain.begin_finalization(lease).unwrap();
+        domain.begin_finalization(lease, None).unwrap();
         domain.mark_finalization(lease, true, false, true).unwrap();
         assert_eq!(domain.finish(lease), Err(DomainError::Incomplete));
         assert!(poll_flush(&mut flush).is_pending());
@@ -436,6 +485,43 @@ mod tests {
     }
 
     #[test]
+    fn unwound_publisher_retains_accepted_ownership() {
+        let domain = Domain::new(1);
+        let before_claim = domain.admit(1).unwrap();
+        domain.abort_publication(before_claim).unwrap();
+        assert_eq!(domain.claim(before_claim), Err(DomainError::Stale));
+        let replacement = domain.retry(before_claim.sequence, 2).unwrap();
+        domain.claim(replacement).unwrap();
+        domain.published(replacement).unwrap();
+        finish(&domain, replacement);
+
+        let after_claim = domain.admit(1).unwrap();
+        domain.claim(after_claim).unwrap();
+        domain.abort_publication(after_claim).unwrap();
+        finish(&domain, after_claim);
+        assert!(domain.state.lock().unwrap().publishers.is_empty());
+    }
+
+    #[test]
+    fn publisher_can_finish_after_record_completion_or_retry() {
+        let domain = Domain::new(1);
+        let original = domain.admit(1).unwrap();
+        domain.claim(original).unwrap();
+        domain.recover_after_owner_stopped(original).unwrap();
+        let retry = domain.retry(original.sequence, 2).unwrap();
+        domain.claim(retry).unwrap();
+        finish(&domain, retry);
+        // Both in-progress publisher operations remain rooted and bounded
+        // even though the record's terminal state has been published.
+        assert_eq!(domain.state.lock().unwrap().publishers.len(), 2);
+        assert_eq!(domain.admit(3), Err(DomainError::Full));
+        assert_eq!(domain.published(original), Ok(()));
+        assert_eq!(domain.published(retry), Ok(()));
+        assert_eq!(domain.published(original), Err(DomainError::Stale));
+        assert_eq!(domain.state.lock().unwrap().publishers.len(), 0);
+    }
+
+    #[test]
     fn claimed_owner_requires_explicit_stop_before_retry() {
         let domain = Domain::new(1);
         let old = begin(&domain, 1);
@@ -444,6 +530,7 @@ mod tests {
         domain.recover_after_owner_stopped(old).unwrap();
         let next = domain.retry(old.sequence, 2).unwrap();
         domain.claim(next).unwrap();
+        domain.published(next).unwrap();
         finish(&domain, next);
     }
 
@@ -469,11 +556,13 @@ mod tests {
             let claimed = left.join().unwrap();
             let recovered = right.join().unwrap();
             assert_ne!(claimed.is_ok(), recovered.is_ok());
+            domain.published(lease).unwrap();
             let winner = if claimed.is_ok() {
                 lease
             } else {
                 let next = domain.retry(lease.sequence, 2).unwrap();
                 domain.claim(next).unwrap();
+                domain.published(next).unwrap();
                 next
             };
             finish(&domain, winner);
@@ -489,7 +578,7 @@ mod tests {
         let mut canceled = domain.flush(deadline());
         assert!(poll_flush(&mut canceled).is_pending());
         drop(canceled);
-        let mut expired = domain.flush(Instant::now());
+        let mut expired = domain.flush(Duration::ZERO);
         assert_eq!(poll_flush(&mut expired), Poll::Ready(Err(FlushError::Deadline)));
         finish(&domain, lease);
         let mut claimant = domain.flush(deadline());
@@ -500,11 +589,27 @@ mod tests {
 
 
     #[test]
+    fn worker_error_and_record_completion_publish_as_one_transition() {
+        let domain = Domain::new(1);
+        let lease = begin(&domain, 1);
+        let mut flush = domain.flush(deadline());
+        assert!(poll_flush(&mut flush).is_pending());
+        domain.begin_finalization(lease, Some("worker failure")).unwrap();
+        domain.mark_finalization(lease, true, true, false).unwrap();
+        assert_eq!(domain.finish(lease), Err(DomainError::Incomplete));
+        assert!(poll_flush(&mut flush).is_pending());
+        domain.mark_finalization(lease, false, false, true).unwrap();
+        domain.finish(lease).unwrap();
+        assert_eq!(poll_flush(&mut flush), Poll::Ready(Err(FlushError::Recorded("worker failure"))));
+    }
+
+    #[test]
     fn recorded_delivery_timeout_is_not_the_flush_deadline() {
         let domain = Domain::new(1);
         let lease = begin(&domain, 1);
-        assert!(domain.record_worker_error("delivery timeout"));
-        finish(&domain, lease);
+        domain.begin_finalization(lease, Some("delivery timeout")).unwrap();
+        domain.mark_finalization(lease, true, true, true).unwrap();
+        domain.finish(lease).unwrap();
         let mut flush = domain.flush(deadline());
         assert_eq!(poll_flush(&mut flush), Poll::Ready(Err(FlushError::Recorded("delivery timeout"))));
     }
@@ -528,6 +633,8 @@ mod tests {
     fn interval_horizon_matches_reference_under_random_out_of_order_completion() {
         let domain = Domain::new(16);
         let mut active: Vec<Lease> = Vec::new();
+        let mut completed = BTreeSet::new();
+        let mut reference_prefix = 0u64;
         let mut snapshots: Vec<(u64, Flush)> = Vec::new();
         let mut random = 0x5eed_1234_9abc_def0u64;
         for _ in 0..50_000 {
@@ -540,10 +647,16 @@ mod tests {
                     let index = (random as usize) % active.len();
                     let lease = active.swap_remove(index);
                     finish(&domain, lease);
+                    completed.insert(lease.sequence);
+                    while completed.remove(&(reference_prefix + 1)) {
+                        reference_prefix += 1;
+                    }
                 }
                 2 if snapshots.len() < 16 => {
-                    let flush = domain.flush(deadline());
-                    snapshots.push((flush.cutoff, flush));
+                    let mut flush = domain.flush(deadline());
+                    if poll_flush(&mut flush).is_pending() {
+                        snapshots.push((flush.cutoff.unwrap(), flush));
+                    }
                 }
                 _ if !snapshots.is_empty() => {
                     let index = (random as usize) % snapshots.len();
@@ -554,8 +667,23 @@ mod tests {
                 _ => {}
             }
             let state = domain.state.lock().unwrap();
+            let oldest = active.iter().map(|lease| lease.sequence).min();
+            assert_eq!(state.prefix, oldest.map_or(state.last, |sequence| sequence - 1));
+            assert_eq!(state.prefix, reference_prefix);
+            let modeled = state.intervals.iter().flat_map(|(&start, &end)| start..=end).collect::<Vec<_>>();
+            let expected = completed.iter().copied().collect::<Vec<_>>();
+            assert_eq!(modeled, expected);
+            let mut previous_end = None;
+            for (&start, &end) in &state.intervals {
+                assert!(start <= end);
+                if let Some(previous) = previous_end {
+                    assert!(previous + 1 < start);
+                }
+                previous_end = Some(end);
+            }
             assert!(state.intervals.len() <= state.slots.len());
             assert!(state.slots.len() <= state.capacity);
+            assert!(state.publishers.len() <= state.publisher_capacity);
         }
         for lease in active {
             finish(&domain, lease);
@@ -563,6 +691,22 @@ mod tests {
         let state = domain.state.lock().unwrap();
         assert_eq!(state.prefix, state.last);
         assert!(state.intervals.is_empty());
+    }
+
+    #[test]
+    fn last_sequence_completes_then_exhaustion_closes_admission() {
+        let domain = Domain::new(1);
+        {
+            let mut state = domain.state.lock().unwrap();
+            state.last = u64::MAX - 1;
+            state.prefix = u64::MAX - 1;
+        }
+        let last = begin(&domain, 1);
+        assert_eq!(last.sequence, u64::MAX);
+        finish(&domain, last);
+        assert_eq!(domain.state.lock().unwrap().prefix, u64::MAX);
+        assert_eq!(domain.admit(1), Err(DomainError::Exhausted));
+        assert_eq!(domain.admit(1), Err(DomainError::Closed));
     }
 
     #[test]
