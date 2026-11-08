@@ -137,6 +137,87 @@ fn image_response(answer: &str) -> TestResult<(u64, u64, u64)> {
         })?,
     ))
 }
+/// Check that an image covers the last expected data position and that any
+/// subsequently committed entries are election barriers. The prefix comes
+/// from a node that has observed the image's committed base.
+fn check_checkpoint_tail(prefix: &str, last_data: u64, image_term: u64, image_base: u64) -> TestResult {
+    if image_base == 0 || image_base < last_data {
+        return Err("checkpoint regressed behind the expected data".into());
+    }
+    let mut entries = prefix.split(';');
+    let mut last_term = 0;
+    for expected in 1..=image_base {
+        let entry = entries.next().ok_or("checkpoint prefix missing entry")?;
+        let mut fields = entry.splitn(4, ':');
+        let term: u64 = fields.next().ok_or("missing term")?.parse()?;
+        let index: u64 = fields.next().ok_or("missing index")?.parse()?;
+        let kind = fields.next().ok_or("missing kind")?;
+        let payload = fields.next().ok_or("missing payload")?;
+        if term == 0 || index != expected {
+            return Err("checkpoint prefix position mismatch".into());
+        }
+        if index > last_data && (kind != "1" || !payload.is_empty()) {
+            return Err("checkpoint tail has a non-barrier entry".into());
+        }
+        last_term = term;
+    }
+    if last_term != image_term {
+        return Err("checkpoint base term differs from committed prefix".into());
+    }
+    Ok(())
+}
+
+#[test]
+fn checkpoint_tail_accepts_only_contiguous_committed_barriers() {
+    let good = "1:1:1:;1:2:0:6162;2:3:1:";
+    assert!(check_checkpoint_tail(good, 2, 2, 3).is_ok());
+    for (text, last_data, term, base) in [
+        (good, 4, 2, 3),
+        (good, 2, 1, 3),
+        ("1:1:1:;1:2:0:6162", 2, 2, 3),
+        ("1:1:1:;1:2:0:6162;2:3:0:66", 2, 2, 3),
+        ("1:1:1:;1:2:0:6162;2:3:1:66", 2, 2, 3),
+        ("1:1:1:;1:2:0:6162;2:4:1:", 2, 2, 3),
+    ] {
+        assert!(check_checkpoint_tail(text, last_data, term, base).is_err());
+    }
+}
+
+fn check_checkpoint_data(prefix: &str, expected: &[(u64, u64, String)]) -> TestResult {
+    for (term, index, payload) in expected {
+        let position = index.checked_sub(1).ok_or("zero data index")?;
+        let entry = prefix
+            .split(';')
+            .nth(usize::try_from(position)?)
+            .ok_or("checkpoint prefix missing data")?;
+        let mut fields = entry.splitn(4, ':');
+        let actual_term: u64 = fields.next().ok_or("data term")?.parse()?;
+        let actual_index: u64 = fields.next().ok_or("data index")?.parse()?;
+        if actual_term != *term || actual_index != *index
+            || fields.next() != Some("0") || fields.next() != Some(payload.as_str())
+        {
+            return Err("checkpoint prefix changed expected data".into());
+        }
+    }
+    Ok(())
+}
+
+#[test]
+fn checkpoint_data_checks_term_position_kind_and_payload() {
+    let prefix = "1:1:1:;2:2:0:6162;3:3:1:";
+    let good = vec![(2, 2, "6162".to_string())];
+    assert!(check_checkpoint_data(prefix, &good).is_ok());
+    for bad in [
+        vec![(1, 2, "6162".to_string())],
+        vec![(2, 3, "".to_string())],
+        vec![(2, 2, "61".to_string())],
+        vec![(2, 4, "6162".to_string())],
+        vec![(2, 0, "6162".to_string())],
+    ] {
+        assert!(check_checkpoint_data(prefix, &bad).is_err());
+    }
+}
+
 fn change_response(answer: &str) -> TestResult<(u64, u64, bool)> {
     let [epoch, index, committed] = response_fields(answer, "change")?;
     Ok((
@@ -438,6 +519,15 @@ fn runtime_child_process() -> TestResult {
                             }
                             Err(e) => format!("error {e}"),
                         }
+                    } else if command.trim() == "observe" {
+                        let current = handle.state().await?;
+                        format!(
+                            "observe {} {} {} {}",
+                            current.last_position.term,
+                            current.last_position.index,
+                            current.committed_end,
+                            current.wal_durable_ops
+                        )
                     } else if command.trim() == "exit" {
                         write_text(
                             &root.join("exit-receipt"),
@@ -470,6 +560,12 @@ struct Gate {
     count: usize,
     allowed: Vec<AtomicBool>,
     delay: Vec<AtomicU64>,
+    connections: Vec<AtomicU64>,
+    delayed_connection: Vec<AtomicU64>,
+    delayed_prior_connection: Vec<AtomicU64>,
+    delayed_rpc: Vec<AtomicU64>,
+    delayed_ms: Vec<AtomicU64>,
+    delayed_forward: Vec<AtomicU64>,
     capture: Option<PathBuf>,
     clock: std::time::Instant,
     captured_bytes: AtomicU64,
@@ -481,6 +577,12 @@ impl Gate {
             count,
             allowed: (0..count * count).map(|_| AtomicBool::new(true)).collect(),
             delay: (0..count * count).map(|_| AtomicU64::new(0)).collect(),
+            connections: (0..count * count).map(|_| AtomicU64::new(0)).collect(),
+            delayed_connection: (0..count * count).map(|_| AtomicU64::new(0)).collect(),
+            delayed_prior_connection: (0..count * count).map(|_| AtomicU64::new(0)).collect(),
+            delayed_rpc: (0..count * count).map(|_| AtomicU64::new(0)).collect(),
+            delayed_ms: (0..count * count).map(|_| AtomicU64::new(0)).collect(),
+            delayed_forward: (0..count * count).map(|_| AtomicU64::new(0)).collect(),
             capture,
             clock: std::time::Instant::now(),
             captured_bytes: AtomicU64::new(0),
@@ -594,10 +696,23 @@ async fn pipe<R: AsyncRead + Unpin, W: AsyncWrite + Unpin>(
         // source times out while the proxy is holding it. Forwarding is a later
         // fact; only the owner's ACK command proves response consumption.
         gate.capture_file(&name, &bytes)?;
-        let delay = if reply {
-            gate.delay[source * gate.count + target].swap(0, Ordering::AcqRel)
+        let slot = source * gate.count + target;
+        // The held response must be a real AppendReply, not an unrelated
+        // feature or election reply on the same link.
+        let delay = if reply && bytes[14] == 21 {
+            gate.delay[slot].swap(0, Ordering::AcqRel)
         } else {
             0
+        };
+        let delayed_start = if delay > 0 {
+            let rpc = u64::from_be_bytes(bytes[16..24].try_into()?);
+            gate.delayed_rpc[slot].store(rpc, Ordering::Relaxed);
+            gate.delayed_connection[slot].store(connection + 1, Ordering::Relaxed);
+            gate.delayed_prior_connection[slot]
+                .store(gate.connections[slot].load(Ordering::Acquire), Ordering::Relaxed);
+            Some(Instant::now())
+        } else {
+            None
         };
         let mut receipt = ForwardReceipt {
             source,
@@ -639,6 +754,12 @@ async fn pipe<R: AsyncRead + Unpin, W: AsyncWrite + Unpin>(
         } else {
             "forward-write-error"
         };
+        if let Some(start) = delayed_start {
+            let held_ms = u64::try_from(start.elapsed().as_millis())?;
+            gate.delayed_forward[slot]
+                .store(if result.is_ok() { 1 } else { 2 }, Ordering::Relaxed);
+            gate.delayed_ms[slot].store(held_ms, Ordering::Release);
+        }
         gate.forward_receipt(&name, &bytes, receipt)?;
         result?;
         ordinal += 1;
@@ -670,6 +791,7 @@ async fn proxy(
                     if first.len()<32 || first[14]!=1{return Err::<(),Box<dyn std::error::Error+Send+Sync>>("Hello required".into());}
                     let source=u32::from_be_bytes(first[28..32].try_into()?) as usize;
                     if !gate.permits(source,target){return Ok(());}
+                    gate.connections[source*gate.count+target].fetch_max(id+1,Ordering::AcqRel);
                     let deadline=Instant::now()+Duration::from_secs(2);
                     let address=loop {
                         if backend.exists(){break read_text(&backend,128)?.trim().parse::<SocketAddr>()?;}
@@ -958,6 +1080,31 @@ impl Cluster {
         );
         Ok(())
     }
+    async fn require_delayed_append(&self, source: usize, target: usize) -> TestResult {
+        let slot = source * self.gate.count + target;
+        let deadline = Instant::now() + Duration::from_secs(5);
+        loop {
+            let held_ms = self.gate.delayed_ms[slot].load(Ordering::Acquire);
+            let previous = self.gate.delayed_prior_connection[slot].load(Ordering::Relaxed);
+            let latest = self.gate.connections[slot].load(Ordering::Acquire);
+            let rpc = self.gate.delayed_rpc[slot].load(Ordering::Relaxed);
+            let delayed_connection = self.gate.delayed_connection[slot].load(Ordering::Relaxed);
+            let forward = self.gate.delayed_forward[slot].load(Ordering::Relaxed);
+            if held_ms >= 500 && rpc > 0 && delayed_connection > 0 && latest > previous {
+                let write = match forward {
+                    1 => "ok",
+                    2 => "error",
+                    _ => return Err("missing delayed proxy write result".into()),
+                };
+                println!("PL_DELAYED_APPEND source={source} target={target} rpc={rpc} connection={delayed_connection} prior_latest={previous} latest={latest} held_ms={held_ms} proxy_write={write} owner_consumption=unobserved");
+                return Ok(());
+            }
+            if Instant::now() >= deadline {
+                return Err(format!("delayed AppendReply or reconnect not observed: source={source} target={target} rpc={rpc} connection={delayed_connection} prior_latest={previous} latest={latest} held_ms={held_ms}").into());
+            }
+            tokio::time::sleep(Duration::from_millis(20)).await;
+        }
+    }
     async fn leader(&mut self, excluded: &[usize]) -> TestResult<usize> {
         let deadline = Instant::now() + Duration::from_secs(15);
         loop {
@@ -1180,23 +1327,34 @@ async fn observer_image_history(total: usize) -> TestResult {
     // preparation is eligible before feature negotiation starts admission.
     assert_eq!(cluster.state(observer)?.3, 0);
     let mut committed = 0;
+    let mut expected_data = Vec::new();
     for byte in [71u8, 72u8] {
+        let payload = hex(&vec![byte; 40 * 1024])?;
         let answer = cluster
-            .command(leader, &format!("propose {}", hex(&vec![byte; 40 * 1024])?))
+            .command(leader, &format!("propose {payload}"))
             .await?;
-        committed = cluster.proposal_position(leader, "observer-prefix-proposal", &answer)?;
+        let (term, index) = cluster.response(
+            leader,
+            "observer-prefix-proposal",
+            proposal_position_response(&answer),
+        )?;
+        committed = index;
+        expected_data.push((term, index, payload));
         cluster
             .commit("observer-prefix-on-genesis", committed, &voters)
             .await?;
     }
     let checkpoint = cluster.command(leader, "checkpoint 62").await?;
-    let (_, base, image_bytes) = cluster.response(
+    let (base_term, base, image_bytes) = cluster.response(
         leader,
         "observer-prefix-checkpoint",
         image_response(&checkpoint),
     )?;
     assert!(image_bytes > 64 * 1024, "real transfer must exceed 64KiB");
-    assert_eq!(base, committed);
+    cluster.commit("observer-checkpoint-base", base, &voters).await?;
+    let prefix = cluster.state(leader)?.4;
+    check_checkpoint_tail(&prefix, committed, base_term, base)?;
+    check_checkpoint_data(&prefix, &expected_data)?;
     assert_eq!(cluster.image_base(observer)?.1, 0);
     let added = cluster.command(leader, &format!("add {observer}")).await?;
     let (_, addition, _) = cluster
@@ -1253,6 +1411,106 @@ async fn observer_image_history(total: usize) -> TestResult {
     cluster.shutdown().await
 }
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn forced_election_can_extend_checkpoint_past_last_data() -> TestResult {
+    let mut cluster = Cluster::start_profile(5, 4).await?;
+    let observer = 4;
+    let voters = (0..4).collect::<Vec<_>>();
+    let old = cluster.leader(&[observer]).await?;
+    let mut last_data = 0;
+    let mut last_term = 0;
+    let mut expected = Vec::new();
+    for byte in [71u8, 72u8] {
+        let payload = vec![byte; 40 * 1024];
+        let answer = cluster.command(old, &format!("propose {}", hex(&payload)?)).await?;
+        (last_term, last_data) = proposal_position_response(&answer)?;
+        expected.push((last_data, hex(&payload)?));
+        cluster.commit("forced-checkpoint-data", last_data, &voters).await?;
+    }
+    for id in 0..5 {
+        if id != old {
+            cluster.gate.set(old, id, false);
+            cluster.gate.set(id, old, false);
+        }
+    }
+    let current = cluster.leader(&[old, observer]).await?;
+    let state = cluster.state(current)?;
+    assert!(state.0 > last_term, "new election must advance the term");
+    assert!(state.3 > last_data, "the current-term barrier must commit after data");
+    let barrier = state.3;
+    for id in 0..5 {
+        cluster.gate.set(old, id, true);
+        cluster.gate.set(id, old, true);
+    }
+    cluster.commit("forced-checkpoint-barrier", barrier, &voters).await?;
+    let current = cluster.leader(&[observer]).await?;
+    let response = cluster.command(current, "checkpoint 67").await?;
+    let (term, base, bytes) = image_response(&response)?;
+    assert!(bytes > 64 * 1024);
+    assert!(base > last_data, "checkpoint must include the later barrier");
+    cluster.commit("forced-checkpoint-base", base, &voters).await?;
+    let prefix = cluster.state(current)?.4;
+    check_checkpoint_tail(&prefix, last_data, term, base)?;
+    for (index, payload) in expected {
+        let entry = prefix.split(';').nth(usize::try_from(index - 1)?).ok_or("data position")?;
+        let mut fields = entry.splitn(4, ':');
+        let _term = fields.next().ok_or("data term")?;
+        let actual: u64 = fields.next().ok_or("data index")?.parse()?;
+        assert_eq!(actual, index);
+        assert_eq!(fields.next(), Some("0"));
+        assert_eq!(fields.next(), Some(payload.as_str()));
+    }
+    println!("PL_CHECKPOINT_LATER_BARRIER data={last_data} base={base} term={term}");
+    cluster.shutdown().await
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn forced_demoted_leader_requires_fresh_selection() -> TestResult {
+    let count = 3;
+    let mut cluster = Cluster::start(count).await?;
+    let old = cluster.leader(&[]).await?;
+    let answer = cluster.command(old, &format!("propose {}", hex(b"before-handover")?)).await?;
+    let prior = cluster.proposal_position(old, "forced-handover-prior", &answer)?;
+    let all = (0..count).collect::<Vec<_>>();
+    cluster.commit("forced-handover-prior-all", prior, &all).await?;
+    for id in 0..count {
+        if id != old {
+            cluster.gate.set(old, id, false);
+            cluster.gate.set(id, old, false);
+        }
+    }
+    let _new = cluster.leader(&[old]).await?;
+    let deadline = Instant::now() + Duration::from_secs(5);
+    while cluster.state(old)?.1 == "Leader" {
+        if Instant::now() >= deadline {
+            return Err("old leader did not lose its quorum lease".into());
+        }
+        tokio::time::sleep(Duration::from_millis(20)).await;
+    }
+    let before = cluster.command(old, "observe").await?;
+    let stale = cluster.command(old, &format!("propose {}", hex(b"must-not-append")?)).await?;
+    assert_eq!(stale, "error private peer runtime: Node(NotLeader)");
+    let after = cluster.command(old, "observe").await?;
+    assert_eq!(before, after, "rejected stale-leader proposal changed the log");
+    let selected = cluster.leader(&[]).await?;
+    assert_ne!(selected, old);
+    let peer = (0..count).find(|id| *id != selected && *id != old).ok_or("surviving peer")?;
+    assert_ne!(selected, peer);
+    cluster.gate.delay[selected * count + peer].store(800, Ordering::Release);
+    let answer = cluster.command(selected, &format!("propose {}", hex(b"after-handover")?)).await?;
+    let position = cluster.proposal_position(selected, "forced-handover-current", &answer)?;
+    let majority = all.iter().copied().filter(|id| *id != old).collect::<Vec<_>>();
+    cluster.commit("forced-handover-majority", position, &majority).await?;
+    cluster.require_delayed_append(selected, peer).await?;
+    for id in 0..count {
+        cluster.gate.set(old, id, true);
+        cluster.gate.set(id, old, true);
+    }
+    cluster.commit("forced-handover-healed", position, &all).await?;
+    println!("PL_STALE_LEADER_REJECTED old={old} current={selected} peer={peer}");
+    cluster.shutdown().await
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn actual_three_peer_tcp_observer_multichunk_image_install_reopen_and_join() -> TestResult {
     observer_image_history(3).await
 }
@@ -1301,8 +1559,13 @@ async fn fault_history(count: usize) -> TestResult {
     cluster
         .commit("fault-restarted-follower-all", after, &all)
         .await?;
-    // One delayed old response crosses its source RPC deadline and a reconnect.
-    // Actual proxy packets and owner ACKs distinguish forward attempts from receipts.
+    // Reacquire the leader after restart: the earlier leader may have been
+    // demoted during recovery. Pick a distinct live peer before arming the gate.
+    // A possibly appended proposal is never retried.
+    let leader = cluster.leader(&[]).await?;
+    let follower = (leader + 1) % count;
+    // An observed AppendReply must cross the configured RPC deadline. The
+    // proxy's write result alone does not prove that an owner consumed it.
     cluster.gate.delay[leader * count + follower].store(800, Ordering::Release);
     let answer = cluster
         .command(leader, &format!("propose {}", hex(b"reordered-late-ack")?))
@@ -1312,6 +1575,7 @@ async fn fault_history(count: usize) -> TestResult {
     cluster
         .commit("fault-delayed-old-reply-all", reordered, &all)
         .await?;
+    cluster.require_delayed_append(leader, follower).await?;
     // Isolate the prior leader bidirectionally. Majority elects autonomously;
     // the isolated writer cannot gain a committed divergent prefix.
     for id in 0..count {
