@@ -11,22 +11,15 @@ elif mode == "bound":
     old = "    const MAX_ENTRIES: usize = 64;\n    const MAX_DETAILS: usize = 7 * 1024;\n"
     new = "    const MAX_ENTRIES: usize = 10000;\n    const MAX_DETAILS: usize = 1024 * 1024;\n"
 elif mode == "force-image":
-    old = """    let (base_term, base, image_bytes) = cluster.response(
-        leader,
-        "observer-prefix-checkpoint",
-        image_response(&checkpoint),
-    )?;
-    if image_bytes <= 64 * 1024 || base != committed {
-"""
-    new = """    let (base_term, base, _image_bytes) = cluster.response(
-        leader,
-        "observer-prefix-checkpoint",
-        image_response(&checkpoint),
-    )?;
-    // Diagnostic-only mutation of the reported size after a real checkpoint.
-    let image_bytes = 0_u64;
-    if image_bytes <= 64 * 1024 || base != committed {
-"""
+    condition = "    if image_bytes <= 64 * 1024 || base != committed {\n"
+    assertion = '    assert!(image_bytes > 64 * 1024, "real transfer must exceed 64KiB");\n'
+    if text.count(condition) != 1 or text.count(assertion) != 1:
+        raise SystemExit("force-image anchors did not match exactly once")
+    text = text.replace(condition, "    if true || image_bytes <= 64 * 1024 || base != committed {\n", 1)
+    text = text.replace(assertion, '    assert!(false, "synthetic forced observer diagnostic");\n', 1)
+    path.write_text(text)
+    print("installed observer diagnostic mutation", mode)
+    raise SystemExit(0)
 else:
     raise SystemExit("expected identity, bound, or force-image")
 if text.count(old) != 1:

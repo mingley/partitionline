@@ -98,9 +98,9 @@ jobs:
           cat "$log"
           test "$code" -eq 101
           grep -F 'PL_OBSERVER_IMAGE' "$log"
-          grep -F 'image_bytes=0' "$log"
+          grep -E 'image_bytes=[1-9][0-9]*' "$log"
           grep -F 'non_atomic_state_sample' "$log"
-          grep -F 'real transfer must exceed 64KiB' "$log"
+          grep -F 'synthetic forced observer diagnostic' "$log"
           grep -F 'test result: FAILED. 0 passed; 1 failed;' "$log"
           git checkout -- partitionline-broker/tests/common/raft_runtime.rs
       - uses: actions/upload-artifact@v7
