@@ -1,0 +1,35 @@
+name: Admin active cursor cycle comparison
+on:
+  push:
+    branches:
+      - work/admin-active-cursor-cycle-20261108
+permissions:
+  contents: read
+jobs:
+  cycle:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arm: history
+            ref: fc7741bf912e483054147e95430a901135249362
+          - arm: constant
+            ref: 762940f9bbee0142939c1f71d003dad3651b2650
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          path: fixture
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ matrix.ref }}
+          path: project
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Actively cycling peer
+        env:
+          DTP_CYCLE_MODE: ${{ matrix.arm }}
+        run: |
+          sha256sum project/src/admin.rs fixture/qualification/dtp-active-cycle.rs
+          cat fixture/qualification/dtp-active-cycle.rs >> project/src/admin/pagination_tests.rs
+          cargo test --locked --manifest-path project/Cargo.toml --lib dtp_active_cycle_control -- --nocapture
