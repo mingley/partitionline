@@ -48,6 +48,7 @@ struct Ledger {
     next_sequence: i32,
     bound: usize,
     fenced: bool,
+    unsettled: Option<Ticket>,
     entries: VecDeque<Entry>,
 }
 
@@ -65,6 +66,7 @@ impl Ledger {
             next_sequence,
             bound,
             fenced: false,
+            unsettled: None,
             entries: VecDeque::with_capacity(bound),
         }
     }
@@ -72,6 +74,9 @@ impl Ledger {
     fn reserve(&mut self, count: i32) -> Result<Ticket, Failure> {
         if self.fenced {
             return Err(Failure::Fenced);
+        }
+        if self.unsettled.is_some() {
+            return Err(Failure::Busy);
         }
         if count <= 0 {
             return Err(Failure::InvalidCount);
@@ -103,6 +108,9 @@ impl Ledger {
         if self.fenced {
             return Err(Failure::Fenced);
         }
+        if self.unsettled.is_some_and(|unsettled| unsettled != ticket) {
+            return Err(Failure::Busy);
+        }
         let head = self.entries.front_mut().ok_or(Failure::Stale)?;
         if head.ticket != ticket {
             return if self.entries.iter().any(|entry| entry.ticket == ticket) {
@@ -127,6 +135,7 @@ impl Ledger {
             return Err(Failure::WrongState);
         }
         head.phase = Phase::Ambiguous;
+        self.unsettled = Some(ticket);
         Ok(())
     }
 
@@ -167,10 +176,11 @@ impl Ledger {
         Ok(())
     }
 
-    /// Only permitted after the caller proves no outstanding write claim,
-    /// completion, or accepted batch still belongs to this ledger.
+    /// Requires external proof that no outstanding write claim, completion,
+    /// or accepted batch still belongs to this ledger. An ambiguous attempt
+    /// leaves this model permanently non-quiescent; no settlement API is modeled.
     fn new_identity(&mut self) -> Result<(), Failure> {
-        if !self.entries.is_empty() {
+        if !self.entries.is_empty() || self.unsettled.is_some() {
             return Err(Failure::Busy);
         }
         let generation = self.generation.checked_add(1).ok_or(Failure::Exhausted)?;
@@ -220,12 +230,14 @@ fn only_the_head_can_write_and_an_ambiguous_write_keeps_the_same_range() {
     assert_eq!(ledger.begin(first), Ok(first));
     assert_eq!(ledger.rollback(first), Err(Failure::NotTail));
     ledger.ambiguous(first).unwrap();
-    assert_eq!(ledger.begin(second), Err(Failure::NotHead));
+    assert_eq!(ledger.begin(second), Err(Failure::Busy));
     assert_eq!(ledger.begin(first), Ok(first));
     ledger.acknowledge(first).unwrap();
-    assert_eq!(ledger.begin(second), Ok(second));
-    ledger.acknowledge(second).unwrap();
-    assert!(ledger.entries.is_empty());
+    // A retry acknowledgment alone does not prove the first attempt can no
+    // longer arrive, so later writes stay blocked in this conservative model.
+    assert_eq!(ledger.begin(second), Err(Failure::Busy));
+    assert_eq!(ledger.reserve(1), Err(Failure::Busy));
+    assert_eq!(ledger.new_identity(), Err(Failure::Busy));
     assert_eq!(ledger.next_sequence, 2);
 }
 
@@ -244,9 +256,21 @@ fn rollback_requires_the_current_unwritten_tail() {
     assert_eq!(ledger.rollback(a), Err(Failure::WrongState));
     ledger.begin(a).unwrap();
     ledger.acknowledge(a).unwrap();
-    let c = ledger.reserve(1).unwrap();
-    assert_eq!(c.base, 0);
-    assert_ne!(a.id, c.id);
+    assert_eq!(ledger.reserve(1), Err(Failure::Busy));
+    assert_eq!(ledger.new_identity(), Err(Failure::Busy));
+}
+
+#[test]
+fn ambiguous_attempt_stays_fenced_after_a_retry_is_acknowledged() {
+    let mut ledger = Ledger::new(5, 7);
+    let old = ledger.reserve(1).unwrap();
+    ledger.begin(old).unwrap();
+    ledger.ambiguous(old).unwrap();
+    ledger.begin(old).unwrap();
+    ledger.acknowledge(old).unwrap();
+    assert!(ledger.entries.is_empty());
+    assert_eq!(ledger.reserve(1), Err(Failure::Busy));
+    assert_eq!(ledger.new_identity(), Err(Failure::Busy));
 }
 
 #[test]
@@ -254,9 +278,7 @@ fn identity_changes_need_quiescence_and_never_reuse_tickets() {
     let mut ledger = Ledger::new(5, 7);
     let old = ledger.reserve(1).unwrap();
     ledger.begin(old).unwrap();
-    ledger.ambiguous(old).unwrap();
     assert_eq!(ledger.new_identity(), Err(Failure::Busy));
-    ledger.begin(old).unwrap();
     ledger.acknowledge(old).unwrap();
     ledger.new_identity().unwrap();
     let current = ledger.reserve(1).unwrap();
