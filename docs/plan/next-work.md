@@ -23,6 +23,9 @@ A later [broker CI run](../evidence/broker/main-ci-3fc-20261108/README.md)
 at `3fc8059` passed the default suite but stopped at two all-feature Raft
 runtime failures. Later all-feature targets and broker-job checks did not run;
 the inventory and fuzz jobs passed separately.
+A [subsequent broker run](../evidence/broker/main-ci-c471-20261108/README.md)
+stopped at a quorum integration test after a delete returned error 56. The
+retained log does not show whether the delete committed or identify the cause.
 
 The [coordinator repair](../evidence/client/group-coordinator-retirement-20261108/README.md)
 retires a known coordinator socket before replacement. Focused local controls
