@@ -4,6 +4,7 @@ This is a proposal for review, not an implemented or qualified change. The curre
 
 ## Constraints
 
+- Before its first poll, the caller's future owns the supplied Vecs, has no data permit and has not allocated a replacement. Dropping that future can synchronously free those Vecs; admission controls have not run yet.
 - No normalizer or disposal task may release a data permit before every buffer it still owns has either been dropped or transferred to the caller.
 - Cancellation and shutdown must not abandon queued cleanup or start an unbounded number of tasks.
 - Admission, worker setup and any allocation that can return an error must complete before an actor can make a durable mutation. Completion and reclamation after a mutation must not add a new fallible allocation or change a successful receipt to an error.
@@ -32,7 +33,7 @@ Stopping closes admission and marks in-progress normalizations canceled. The act
 
 A stricter quiescent shutdown can wait for all completed receipts to be consumed or dropped, or report their count while leaving cleanup service alive. Waiting can be indefinite if a caller retains a receipt. Reclaiming an unconsumed successful receipt on shutdown would change its later outcome after a durable mutation, so it cannot be silently substituted. The existing shutdown contract and any new quiescent API need explicit review.
 
-If no pool slot exists, a compatibility fallback can use the existing synchronous normalization/disposal path before actor admission. This preserves the request result and keeps the number of worker jobs bounded, but can stall the caller under overload or worker failure. Alternatively, an explicitly designed API can return request and spare ownership with an admission error; the caller then decides how to dispose of them. These are different contracts, and neither should be hidden behind an absolute nonblocking claim.
+If no pool slot exists, a compatibility fallback can use the existing synchronous normalization/disposal path before actor admission. This preserves the request result and keeps the number of worker jobs bounded, but can stall the caller under overload or worker failure. The fallback runs in the caller's future; it must not spawn another untracked task. Alternatively, an explicitly designed API can return request and spare ownership with an admission error; the caller then decides how to dispose of them. These are different contracts, and neither should be hidden behind an absolute nonblocking claim.
 
 Routing only over-capacity inputs also leaves the baseline behavior for an in-budget but large Vec: its eventual drop may still stall an async caller. Routing based on actual allocation size could cover more cases, at the cost of additional queueing and credit use. Either scope must be stated and measured.
 
