@@ -1426,6 +1426,15 @@ impl Drop for NormalizationDropProbe {
     }
 }
 
+#[cfg(test)]
+#[expect(
+    clippy::disallowed_methods,
+    reason = "the deadline control models a synchronously blocking allocator"
+)]
+fn test_normalization_delay(duration: Duration) {
+    std::thread::sleep(duration);
+}
+
 // Vec allocation may return more capacity than requested, including for
 // try_reserve_exact. Check the actual capacity before transferring ownership.
 // Reserve and deallocation can still block; chunking is not a poll-time bound.
@@ -1453,7 +1462,7 @@ async fn bound_owned_vec(
     NORMALIZATION_DELAY.with(|delay| {
         let duration = delay.replace(Duration::ZERO);
         if !duration.is_zero() {
-            std::thread::sleep(duration);
+            test_normalization_delay(duration);
         }
     });
     #[cfg(test)]
@@ -3951,14 +3960,16 @@ mod tests {
         )
     }
 
-    fn claimed_spare_actor() -> (
+    type ClaimedSpareFixture = (
         Arc<Router>,
         oneshot::Receiver<ClaimedFetchInfo>,
         std::sync::mpsc::Sender<()>,
         oneshot::Receiver<ClaimedFetchInfo>,
         std::sync::mpsc::Sender<()>,
         PathBuf,
-    ) {
+    );
+
+    fn claimed_spare_actor() -> ClaimedSpareFixture {
         let path = std::env::temp_dir().join(format!(
             "partitionline-claimed-fetch-{}-{}",
             std::process::id(),
