@@ -75,9 +75,14 @@ jobs:
         run: |
           set -euo pipefail
           for side in baseline candidate; do
-            cp tools/router-paired-perf.rs "$side/partitionline-broker/examples/router_paired_perf.rs"
-            cmp tools/router-paired-perf.rs "$side/partitionline-broker/examples/router_paired_perf.rs"
-            CARGO_TARGET_DIR="$GITHUB_WORKSPACE/build-$side" cargo +stable build --locked --release --manifest-path "$side/partitionline-broker/Cargo.toml" --example router_paired_perf 2>&1 | tee "evidence/build-$side.log"
+            cp -a "$side/partitionline-broker" "$RUNNER_TEMP/router-src-$side"
+            diff -qr "$side/partitionline-broker/src" "$RUNNER_TEMP/router-src-$side/src"
+            cmp "$side/partitionline-broker/Cargo.toml" "$RUNNER_TEMP/router-src-$side/Cargo.toml"
+            cmp "$side/partitionline-broker/Cargo.lock" "$RUNNER_TEMP/router-src-$side/Cargo.lock"
+            cmp "$side/partitionline-broker/tests/fixtures/fetch/4.3.1/log-batch-3.bin" "$RUNNER_TEMP/router-src-$side/tests/fixtures/fetch/4.3.1/log-batch-3.bin"
+            cp tools/router-paired-perf.rs "$RUNNER_TEMP/router-src-$side/examples/router_paired_perf.rs"
+            cmp tools/router-paired-perf.rs "$RUNNER_TEMP/router-src-$side/examples/router_paired_perf.rs"
+            CARGO_TARGET_DIR="$GITHUB_WORKSPACE/build-$side" cargo +stable build --locked --release --manifest-path "$RUNNER_TEMP/router-src-$side/Cargo.toml" --example router_paired_perf 2>&1 | tee "evidence/build-$side.log"
             cp "build-$side/release/examples/router_paired_perf" "evidence/bin/$side"
           done
           sha256sum evidence/bin/baseline evidence/bin/candidate | tee evidence/binary-sha256.txt
