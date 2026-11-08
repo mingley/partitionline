@@ -166,7 +166,10 @@ remain open.
    together; the controls do not cover every lifecycle path. A
    [design and independent review](../evidence/client/producer-flush-design-20261103/README.md)
    record unresolved cleanup, cancellation, transaction and liveness choices;
-   the sketch and small abstract model are not an implementation.
+   the sketch and small abstract model are not an implementation. A later
+   [independent review](../evidence/client/producer-flush-review-20261108/README.md)
+   adds sticky-cohort, starvation, overlapping-waiter and seal-incarnation
+   requirements; these are source observations, not a tested repair.
    The [transaction lock fix](../evidence/client/txn-lock-deadline-20261108/README.md)
    includes the initial and rediscovery-snapshot waits in the request budget.
    The later [replacement fix](../evidence/client/txn-replacement-20261108/README.md)
@@ -265,7 +268,10 @@ remain open.
    failure; that uninstrumented failure's cause remains unproven. The queue
    fixture passed its focused controls and 887 all-feature tests, while its
    full default run stopped at a quorum `Journal(AlreadyOpen)` failure.
-   Canceled actor memory overlap remains open.
+   A [modeled cancellation overlap](../evidence/broker/fetch-actor-overlap-20261108/README.md)
+   retained 8,192 bytes of input under a 4,160-byte configured ceiling.
+   It models a possible actor schedule, not process RSS. Permit ownership
+   remains open.
 
    The [Produce cancellation fix](../evidence/broker/produce-cancel-20261108/README.md)
    rolls back a canceled request's unsynced monolithic stages. Its x86

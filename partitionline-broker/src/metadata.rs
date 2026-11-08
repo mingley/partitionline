@@ -349,6 +349,9 @@ impl Router {
     /// Admission count times (maximum request plus response bytes) must fit
     /// `reads.max_retained_bytes()`, default1GiB. This includes waiting requests
     /// and completed unconsumed replies; actor scan work has separate limits.
+    /// If a caller cancels while the actor owns its request, the permit can be
+    /// released before the actor drops its buffers. The configured ceiling does
+    /// not bound that overlap or total process memory.
     /// Existing metadata-only and Produce-only constructors keep their profiles.
     pub async fn open_with_read_store(
         path: impl Into<PathBuf>,

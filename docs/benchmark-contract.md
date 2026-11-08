@@ -7,6 +7,13 @@ Contract version **1.1.0**. Schema version **1.0.0** for Kafka result files.
 This document specifies the scenarios. It does not run them. Every cell is
 `specified` or `not_run`. None is `passed`.
 
+Current qualification work targets x86_64 on the available host. A second
+machine, architecture or operator is not required for x86-scoped work.
+A separate run on the same host can reproduce an x86 result when its inputs,
+settings and independent record checks are retained. Claims must name the
+tested hardware, workloads and peers; x86 results alone do not establish an
+unqualified fastest-client claim across other architectures.
+
 Suite HOLD is still on. An unsigned sample, a shared CI runner, or a local
 VM does not lift it. Official qualification still needs signed evidence on
 controlled hardware.
@@ -382,7 +389,7 @@ Evidence levels:
 | L0 | Microbenchmarks, allocations, instruction counts | Internal notes |
 | L1 | Client ceilings | Internal notes |
 | L2 | Local broker runs, paired and repeated | Engineering direction. Unsigned |
-| L3 | Controlled x86_64 and arm64 campaigns | Dated per-cell comparison, losses included |
+| L3 | Controlled campaigns on the named architecture | Dated per-cell comparison, losses included |
 | L4 | Independent reproduction and the Suite HOLD process | The strongest sentence above whose requirement is met |
 
 ## Version history
