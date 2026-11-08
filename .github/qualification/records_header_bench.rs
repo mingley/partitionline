@@ -27,11 +27,12 @@ fn field(out: &mut Vec<u8>, data: Option<&[u8]>) {
         vint(out, -1);
     }
 }
-fn batch(count: usize, headers: usize, late: bool, payload: usize) -> (Vec<u8>, usize) {
+fn batch(count: usize, headers: usize, late: bool, payload: usize) -> (Vec<u8>, usize, Vec<usize>) {
     let mut body = Vec::new();
     let mut encoded = Vec::new();
     let value = vec![b'x'; payload];
     let mut header_count = 0;
+    let mut record_starts = Vec::new();
     for n in 0..count {
         body.clear();
         body.push(0);
@@ -49,6 +50,7 @@ fn batch(count: usize, headers: usize, late: bool, payload: usize) -> (Vec<u8>, 
         }
         header_count += current;
         vint(&mut encoded, body.len() as i32);
+        record_starts.push(61 + encoded.len());
         encoded.extend_from_slice(&body);
     }
     let mut out = vec![0u8; 61];
@@ -65,21 +67,23 @@ fn batch(count: usize, headers: usize, late: bool, payload: usize) -> (Vec<u8>, 
     out.extend_from_slice(&encoded);
     let crc = crc32c::crc32c(&out[21..]);
     out[17..21].copy_from_slice(&crc.to_be_bytes());
-    (out, header_count)
+    (out, header_count, record_starts)
 }
 fn main() {
     let args: Vec<String> = std::env::args().collect();
     let mode = &args[1];
-    let (count, headers, late, payload, iters) = match mode.as_str() {
-        "one_plain" => (1, 0, false, 32, 50_000),
-        "many_plain" => (1024, 0, false, 32, 180),
-        "many_header" => (1024, 1, false, 32, 180),
-        "many_four" => (1024, 4, false, 32, 100),
-        "late_header" => (1024, 1, true, 32, 180),
-        "large_header" => (256, 1, false, 1024, 180),
+    let (count, headers, late, payload, iters, invalid) = match mode.as_str() {
+        "one_plain" => (1, 0, false, 32, 50_000, None),
+        "many_plain" => (1024, 0, false, 32, 180, None),
+        "many_header" => (1024, 1, false, 32, 180, None),
+        "many_four" => (1024, 4, false, 32, 100, None),
+        "late_header" => (1024, 1, true, 32, 180, None),
+        "large_header" => (256, 1, false, 1024, 180, None),
+        "invalid_first" => (1024, 1, false, 32, 1000, Some(0)),
+        "invalid_late" => (1024, 0, false, 32, 180, Some(1023)),
         other => panic!("unknown mode {other}"),
     };
-    let (data, expected_headers) = batch(count, headers, late, payload);
+    let (mut data, expected_headers, record_starts) = batch(count, headers, late, payload);
     let limits = Limits::default();
     let checked = records::validate(&data, limits).unwrap();
     assert_eq!(checked.as_bytes(), data);
@@ -107,15 +111,38 @@ fn main() {
         records::validate(&damaged, limits),
         Err(records::Error::Invalid { kind: records::Invalid::Checksum, .. })
     ));
-    eprintln!("case={mode} bytes={} crc={:08x} records={count} headers={expected_headers} iterations={iters}", data.len(), crc32c::crc32c(&data));
+    let expected_error = if let Some(index) = invalid {
+        data[record_starts[index]] = 1;
+        let crc = crc32c::crc32c(&data[21..]);
+        data[17..21].copy_from_slice(&crc.to_be_bytes());
+        let error = records::validate(&data, limits).unwrap_err();
+        assert!(matches!(
+            error,
+            records::Error::Invalid { kind: records::Invalid::RecordAttributes, .. }
+        ));
+        Some(error)
+    } else {
+        None
+    };
+    eprintln!("case={mode} bytes={} crc={:08x} records={count} headers={expected_headers} iterations={iters} invalid={expected_error:?}", data.len(), crc32c::crc32c(&data));
     let work = || {
         let mut checksum = 0usize;
         for _ in 0..iters {
-            let result = records::validate(black_box(&data), limits).unwrap();
-            checksum = checksum.wrapping_add(result.record_count()).wrapping_add(result.header_count());
-            black_box(result.as_bytes());
+            match expected_error {
+                Some(error) => {
+                    let result = records::validate(black_box(&data), limits).unwrap_err();
+                    assert_eq!(result, error);
+                    checksum = checksum.wrapping_add(1);
+                }
+                None => {
+                    let result = records::validate(black_box(&data), limits).unwrap();
+                    checksum = checksum.wrapping_add(result.record_count()).wrapping_add(result.header_count());
+                    black_box(result.as_bytes());
+                }
+            }
         }
-        assert_eq!(checksum, iters * (count + expected_headers));
+        let expected = if expected_error.is_some() { iters } else { iters * (count + expected_headers) };
+        assert_eq!(checksum, expected);
     };
     work();
     for sample in 0..7 {
