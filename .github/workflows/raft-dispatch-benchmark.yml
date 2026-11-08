@@ -1,0 +1,60 @@
+name: raft dispatch matched benchmark
+on:
+  push:
+    branches: [qual/raft-dispatch-bench-20261108]
+permissions:
+  contents: read
+jobs:
+  measure:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    env:
+      CARGO_BUILD_JOBS: '2'
+      CARGO_INCREMENTAL: '0'
+      CARGO_TERM_COLOR: never
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Build separate optimized targets
+        run: |
+          set -euo pipefail
+          mkdir -p target/dispatch-bench
+          git worktree add --detach "$RUNNER_TEMP/dispatch-base" 5ff00c6d2b24e851f1c715e842a2c0e57faca502
+          rustc -Vv | tee target/dispatch-bench/host.txt
+          lscpu | tee -a target/dispatch-bench/host.txt
+          sha256sum "$RUNNER_TEMP/dispatch-base/partitionline-broker/src/raft/runtime.rs" partitionline-broker/src/raft/runtime.rs | tee -a target/dispatch-bench/host.txt
+          CARGO_TARGET_DIR="$RUNNER_TEMP/base-target" cargo test --release --locked --manifest-path "$RUNNER_TEMP/dispatch-base/partitionline-broker/Cargo.toml" --lib --no-run
+          CARGO_TARGET_DIR="$RUNNER_TEMP/candidate-target" cargo test --release --locked --manifest-path partitionline-broker/Cargo.toml --lib --no-run
+          mapfile -t baseline < <(find "$RUNNER_TEMP/base-target/release/deps" -maxdepth 1 -type f -executable -name 'partitionline_broker-*')
+          mapfile -t candidate < <(find "$RUNNER_TEMP/candidate-target/release/deps" -maxdepth 1 -type f -executable -name 'partitionline_broker-*')
+          test "${#baseline[@]}" -eq 1
+          test "${#candidate[@]}" -eq 1
+          printf '%s\n' "${baseline[0]}" > target/dispatch-bench/baseline-path.txt
+          printf '%s\n' "${candidate[0]}" > target/dispatch-bench/candidate-path.txt
+          sha256sum "${baseline[0]}" "${candidate[0]}" | tee -a target/dispatch-bench/host.txt
+          test "$(sha256sum "${baseline[0]}" | cut -d' ' -f1)" != "$(sha256sum "${candidate[0]}" | cut -d' ' -f1)"
+      - name: Alternating matched campaign samples
+        run: |
+          set -euo pipefail
+          baseline="$(cat target/dispatch-bench/baseline-path.txt)"
+          candidate="$(cat target/dispatch-bench/candidate-path.txt)"
+          for round in $(seq 1 12); do
+            if [ $((round % 2)) -eq 1 ]; then order=(baseline candidate); else order=(candidate baseline); fi
+            for arm in "${order[@]}"; do
+              printf 'sample round=%s arm=%s\n' "$round" "$arm" | tee -a target/dispatch-bench/samples.txt
+              if [ "$arm" = baseline ]; then binary="$baseline"; else binary="$candidate"; fi
+              "$binary" --exact raft::runtime::ownership_tests::vote_dispatch_campaign_cost --ignored --nocapture --test-threads=1 | tee -a target/dispatch-bench/samples.txt
+            done
+          done
+          test "$(grep -c '^campaign-cost full=false ' target/dispatch-bench/samples.txt)" -eq 24
+          test "$(grep -c '^campaign-cost full=true ' target/dispatch-bench/samples.txt)" -eq 24
+      - name: Retain timings and host details
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: raft-dispatch-matched
+          path: target/dispatch-bench/
+          if-no-files-found: error
+          retention-days: 30
