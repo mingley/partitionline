@@ -1,0 +1,60 @@
+name: producer sequence ledger model
+on:
+  push:
+    branches: [qual/sequence-ledger-model-20261108]
+permissions:
+  contents: read
+jobs:
+  model:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+      - name: Source and runner identity
+        run: |
+          rustc -Vv
+          lscpu
+          git rev-parse HEAD
+          sha256sum tests/producer_sequence_ledger_model.rs
+      - name: Standalone bounded-ledger controls
+        run: |
+          set -euo pipefail
+          rustc --edition=2021 -D warnings --test tests/producer_sequence_ledger_model.rs -o "$RUNNER_TEMP/model-tests"
+          "$RUNNER_TEMP/model-tests" --nocapture
+      - name: Incorrect ownership mutants must fail
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import os
+          original = Path("tests/producer_sequence_ledger_model.rs").read_text()
+          out = Path(os.environ["RUNNER_TEMP"])
+          cases = [
+              ("aba", "if tail.ticket != ticket {", "if tail.ticket.base != ticket.base {"),
+              ("fifo", "if head.ticket != ticket {", "if head.ticket.key != ticket.key {"),
+              ("epoch", "if !self.entries.is_empty() {\n            return Err(Failure::Busy);\n        }", "if false { return Err(Failure::Busy); }"),
+          ]
+          for name, old, new in cases:
+              assert original.count(old) >= 1
+              (out / (name + ".rs")).write_text(original.replace(old, new, 1))
+          PY
+          for pair in \
+            'aba:a_reused_wire_base_does_not_reuse_a_ticket' \
+            'fifo:only_the_head_can_write_and_an_ambiguous_write_keeps_the_same_range' \
+            'epoch:identity_changes_need_quiescence_and_never_reuse_tickets'; do
+            mutant="${pair%%:*}"
+            testname="${pair#*:}"
+            rustc --edition=2021 --test "$RUNNER_TEMP/$mutant.rs" -o "$RUNNER_TEMP/$mutant-test"
+            set +e
+            "$RUNNER_TEMP/$mutant-test" --exact "$testname" --nocapture > "$RUNNER_TEMP/$mutant.log" 2>&1
+            status=$?
+            set -e
+            cat "$RUNNER_TEMP/$mutant.log"
+            test "$status" -eq 101
+            grep -F "test $testname ... FAILED" "$RUNNER_TEMP/$mutant.log"
+          done
+      - name: Diagnostic formatting
+        run: rustfmt --edition 2021 --check tests/producer_sequence_ledger_model.rs || true
