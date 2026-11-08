@@ -1,0 +1,47 @@
+name: producer-timestamp-prior-histories
+on:
+  push:
+    branches: [qual/producer-timestamp-prior-histories-20261108]
+jobs:
+  histories:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        profile: [default, all]
+    env:
+      PL_PROFILE: ${{ matrix.profile }}
+      RUSTFLAGS: '--cfg sequence_owner_witness --check-cfg=cfg(sequence_owner_witness) --cfg sequence_retry_yield_witness --check-cfg=cfg(sequence_retry_yield_witness)'
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Source and runner identity
+        run: |
+          git rev-parse HEAD
+          git hash-object src/producer.rs tests/common/mod.rs tests/sequence_ownership_public.rs tests/sequence_retry_existing_yield_public.rs
+          sha256sum src/producer.rs tests/common/mod.rs tests/sequence_ownership_public.rs tests/sequence_retry_existing_yield_public.rs Cargo.lock
+          rustc -Vv
+          lscpu
+      - name: Recorded worker ownership histories
+        shell: bash
+        run: |
+          set -euo pipefail
+          args=()
+          if [[ "$PL_PROFILE" == all ]]; then args=(--all-features); fi
+          for mode in resume abort close; do
+            PL_SEQUENCE_MODE="$mode" cargo test --locked --test sequence_ownership_public "${args[@]}" public_batch_sequence_worker_cancellation -- --exact --nocapture
+          done
+      - name: Recorded retry split history
+        shell: bash
+        run: |
+          set -euo pipefail
+          args=()
+          if [[ "$PL_PROFILE" == all ]]; then args=(--all-features); fi
+          cargo test --locked --test sequence_retry_existing_yield_public "${args[@]}" public_flush_at_existing_retry_yield -- --exact --nocapture
+      - name: Diagnostic formatting of instrumented source
+        if: always()
+        run: |
+          if ! rustfmt --edition=2021 --check src/producer.rs tests/sequence_ownership_public.rs tests/sequence_retry_existing_yield_public.rs; then
+            echo 'Diagnostic only: strict formatting did not pass.'
+          fi
