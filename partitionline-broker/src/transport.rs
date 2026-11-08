@@ -812,6 +812,39 @@ fn park_response(mut current: Vec<u8>, mut incoming: Vec<u8>) -> Vec<u8> {
     }
 }
 
+
+/// Bound one run of immediately ready body reads by both bytes and calls.
+/// Call count matters when an AsyncRead repeatedly returns only a few bytes.
+#[derive(Default)]
+struct ReadYield {
+    bytes: usize,
+    calls: usize,
+}
+#[derive(Clone, Copy)]
+enum ReadLimit {
+    Bytes,
+    Calls,
+}
+impl ReadYield {
+    #[inline]
+    fn record(&mut self, bytes: usize) -> Option<ReadLimit> {
+        // Each read is capped to 8 KiB and both counters reset at these limits.
+        self.bytes += bytes;
+        self.calls += 1;
+        let limit = if self.bytes >= 64 * 1024 {
+            Some(ReadLimit::Bytes)
+        } else if self.calls >= 128 {
+            Some(ReadLimit::Calls)
+        } else {
+            None
+        };
+        if limit.is_some() {
+            *self = Self::default();
+        }
+        limit
+    }
+}
+
 async fn read_exact_spare<S: AsyncRead + Unpin>(
     socket: &mut S,
     payload: &mut Vec<u8>,
@@ -819,7 +852,7 @@ async fn read_exact_spare<S: AsyncRead + Unpin>(
     deadline: Instant,
 ) -> Result<(), Exit> {
     payload.try_reserve_exact(length).map_err(|_| Exit::Io)?;
-    let mut yielded_at = payload.len();
+    let mut progress = ReadYield::default();
     while payload.len() < length {
         if Instant::now() >= deadline {
             return Err(Exit::ReadDeadline);
@@ -835,9 +868,11 @@ async fn read_exact_spare<S: AsyncRead + Unpin>(
                 "frame body closed",
             )));
         }
-        if payload.len().saturating_sub(yielded_at) >= 64 * 1024 {
-            yielded_at = payload.len();
-            tokio::task::yield_now().await;
+        match progress.record(n) {
+            // Preserve the original 64 KiB direct-read fairness behavior.
+            Some(ReadLimit::Bytes) => tokio::task::yield_now().await,
+            Some(ReadLimit::Calls) if payload.len() < length => tokio::task::yield_now().await,
+            _ => {}
         }
     }
     if Instant::now() >= deadline {
@@ -1093,6 +1128,7 @@ async fn read_frame_buffered<S: AsyncRead + Unpin>(
         };
     }
     timeout_at(deadline, async {
+        let mut progress = ReadYield::default();
         loop {
             if Instant::now() >= deadline {
                 return Err(Exit::ReadDeadline);
@@ -1122,6 +1158,14 @@ async fn read_frame_buffered<S: AsyncRead + Unpin>(
                     io::ErrorKind::UnexpectedEof,
                     "frame body closed",
                 )));
+            }
+            if progress.record(n).is_some()
+                && matches!(
+                    classify_ahead(ahead.pending(), config.max_request_bytes),
+                    Ahead::Need(_)
+                )
+            {
+                tokio::task::yield_now().await;
             }
         }
     })
@@ -3682,3 +3726,182 @@ mod frame_read_deadline_tests {
         );
     }
 }
+
+
+#[cfg(test)]
+mod buffered_read_fairness_control {
+    use super::{frame_mut, new_frame, read_frame, Config, ReadAhead};
+    use std::future::Future;
+    use std::pin::Pin;
+    use std::task::{Context, Poll};
+    use std::time::Duration;
+    use tokio::io::{AsyncRead, ReadBuf};
+    use tokio::time::Instant;
+
+    struct ReadyReader {
+        bytes: Vec<u8>,
+        offset: usize,
+        limit: usize,
+        reads: usize,
+    }
+
+    impl AsyncRead for ReadyReader {
+        fn poll_read(
+            mut self: Pin<&mut Self>,
+            _cx: &mut Context<'_>,
+            out: &mut ReadBuf<'_>,
+        ) -> Poll<std::io::Result<()>> {
+            self.reads += 1;
+            let available = self.bytes.len().saturating_sub(self.offset);
+            let n = available.min(out.remaining()).min(self.limit);
+            let start = self.offset;
+            out.put_slice(&self.bytes[start..start + n]);
+            self.offset += n;
+            Poll::Ready(Ok(()))
+        }
+    }
+
+    async fn single_poll(buffered: bool, length: usize, chunk: usize) -> (bool, usize, usize) {
+        let config = Config::new(
+            1, 1, length.max(1), 1024,
+            Duration::from_secs(10), Duration::from_secs(10), Duration::from_secs(10),
+        ).unwrap();
+        let prefix = (length as i32).to_be_bytes();
+        let mut data = Vec::new();
+        let mut ahead = ReadAhead::new();
+        if buffered {
+            frame_mut(&mut ahead.bytes).extend_from_slice(&prefix);
+        } else {
+            data.extend_from_slice(&prefix);
+        }
+        data.extend(std::iter::repeat_n(0x5a, length));
+        let mut reader = ReadyReader { bytes: data, offset: 0, limit: chunk, reads: 0 };
+        let mut future = Box::pin(read_frame(
+            &mut reader, config, Instant::now() + Duration::from_secs(10), &mut ahead, new_frame()
+        ));
+        let result = std::future::poll_fn(|cx| Poll::Ready(future.as_mut().poll(cx))).await;
+        drop(future);
+        let completed = match result {
+            Poll::Ready(Ok(frame)) => {
+                assert_eq!(frame.len(), length);
+                assert!(frame.iter().all(|b| *b == 0x5a));
+                true
+            }
+            Poll::Ready(Err(_)) => panic!("unexpected read error"),
+            Poll::Pending => false,
+        };
+        (completed, reader.reads, reader.offset)
+    }
+
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn ready_frame_body_yields_on_byte_and_read_count_limits() {
+        let (ready, reads, bytes) = single_poll(true, 256 * 1024, 8192).await;
+        assert!(!ready, "buffered ready body completed without yielding");
+        assert_eq!((reads, bytes), (8, 64 * 1024));
+        let (ready, reads, bytes) = single_poll(false, 4096, 1).await;
+        assert!(!ready, "fragmented direct body completed without yielding");
+        assert_eq!((reads, bytes), (132, 132)); // Four prefix reads, then 128 body reads.
+        let (ready, reads, bytes) = single_poll(true, 4096, 1).await;
+        assert!(!ready, "fragmented buffered body completed without yielding");
+        assert_eq!((reads, bytes), (128, 128));
+        println!("frame-fairness buffered_8k_reads=8 direct_one_byte_reads=132 buffered_one_byte_reads=128");
+    }
+
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn exact_read_limits_do_not_add_final_scheduling_turns() {
+        // This was already a yield in the direct path before the change.
+        let (ready, reads, bytes) = single_poll(false, 64 * 1024, 8192).await;
+        assert!(!ready);
+        assert_eq!((reads, bytes), (9, 64 * 1024 + 4));
+
+        // These three complete frames did not previously need a yield.
+        let (ready, reads, bytes) = single_poll(true, 64 * 1024, 8192).await;
+        assert!(ready, "complete buffered 64 KiB frame acquired a new yield");
+        assert_eq!((reads, bytes), (8, 64 * 1024));
+        let (ready, reads, bytes) = single_poll(false, 128, 1).await;
+        assert!(ready, "complete 128-read direct frame acquired a new yield");
+        assert_eq!((reads, bytes), (132, 132));
+        let (ready, reads, bytes) = single_poll(true, 128, 1).await;
+        assert!(ready, "complete 128-read buffered frame acquired a new yield");
+        assert_eq!((reads, bytes), (128, 128));
+
+        // A still-incomplete frame crosses the call boundary and must yield.
+        let (ready, reads, bytes) = single_poll(false, 129, 1).await;
+        assert!(!ready);
+        assert_eq!((reads, bytes), (132, 132));
+        let (ready, reads, bytes) = single_poll(true, 129, 1).await;
+        assert!(!ready);
+        assert_eq!((reads, bytes), (128, 128));
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn small_ready_frames_finish_without_a_forced_yield() {
+        let (ready, reads, bytes) = single_poll(false, 32, 8192).await;
+        assert!(ready);
+        assert_eq!((reads, bytes), (2, 36));
+        let (ready, reads, bytes) = single_poll(true, 32, 8192).await;
+        assert!(ready);
+        assert_eq!((reads, bytes), (1, 32));
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn ready_partial_frames_complete_with_exact_bytes() {
+        for (buffered, length, chunk) in [(false, 4096, 1), (true, 4096, 1), (true, 256 * 1024, 8192)] {
+            let config = Config::new(
+                1, 1, length, 1024, Duration::from_secs(10), Duration::from_secs(10), Duration::from_secs(10),
+            ).unwrap();
+            let prefix = (length as i32).to_be_bytes();
+            let mut data = Vec::new();
+            let mut ahead = ReadAhead::new();
+            if buffered { frame_mut(&mut ahead.bytes).extend_from_slice(&prefix); } else { data.extend_from_slice(&prefix); }
+            data.extend(std::iter::repeat_n(0x5a, length));
+            let mut reader = ReadyReader { bytes: data, offset: 0, limit: chunk, reads: 0 };
+            let frame = read_frame(&mut reader, config, Instant::now() + Duration::from_secs(10), &mut ahead, new_frame()).await;
+            assert!(matches!(frame, Ok(ref body) if body.len() == length && body.iter().all(|b| *b == 0x5a)));
+            assert!(ahead.is_empty());
+        }
+    }
+
+    #[tokio::test(flavor = "current_thread", start_paused = true)]
+    async fn expired_buffered_deadline_does_not_poll_reader() {
+        let config = Config::new(
+            1, 1, 1024, 1024, Duration::from_secs(1), Duration::from_secs(1), Duration::from_secs(1),
+        ).unwrap();
+        let mut ahead = ReadAhead::new();
+        frame_mut(&mut ahead.bytes).extend_from_slice(&4i32.to_be_bytes());
+        let mut reader = ReadyReader { bytes: vec![1, 2, 3, 4], offset: 0, limit: 8192, reads: 0 };
+        let result = read_frame(&mut reader, config, Instant::now(), &mut ahead, new_frame()).await;
+        assert!(matches!(result, Err(super::Exit::ReadDeadline)));
+        assert_eq!(reader.reads, 0);
+    }
+
+    #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+    async fn fragmented_prefetched_prefix_reassembles_on_real_tcp() {
+        use tokio::io::{AsyncReadExt, AsyncWriteExt};
+        use tokio::net::{TcpListener, TcpStream};
+        let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let address = listener.local_addr().unwrap();
+        let (client, accepted) = tokio::join!(TcpStream::connect(address), listener.accept());
+        let mut client = client.unwrap();
+        let (mut server, _) = accepted.unwrap();
+        let len = 256 * 1024usize;
+        let writer = tokio::spawn(async move {
+            client.write_all(&(len as i32).to_be_bytes()).await?;
+            client.write_all(&vec![0x5a; len]).await?;
+            std::io::Result::Ok(())
+        });
+        let mut first = [0u8; 2];
+        server.read_exact(&mut first).await.unwrap();
+        let mut ahead = ReadAhead::new();
+        frame_mut(&mut ahead.bytes).extend_from_slice(&first);
+        let config = Config::new(
+            1, 1, len, 1024, Duration::from_secs(5), Duration::from_secs(5), Duration::from_secs(5),
+        ).unwrap();
+        let result = read_frame(&mut server, config, Instant::now() + Duration::from_secs(5), &mut ahead, new_frame()).await;
+        assert!(matches!(result, Ok(ref body) if body.len() == len && body.iter().all(|b| *b == 0x5a)));
+        writer.await.unwrap().unwrap();
+    }
+}
+
