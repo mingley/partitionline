@@ -1120,7 +1120,7 @@ pub(crate) fn process(
         }
     }
     active()?;
-    store.keep_scan_buf(scan_buf);
+    store.keep_scan_buf(scan_buf, limits.scan_bytes);
     Ok(Snapshot {
         response: out.bytes,
         record_bytes,
