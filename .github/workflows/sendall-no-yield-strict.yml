@@ -1,0 +1,62 @@
+name: sendall no-added-yield strict
+on:
+  push:
+    branches: [qualification/sendall-no-yield-strict-20261108]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  format:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+      - name: Pin and check formatting
+        run: |
+          test "$(git rev-parse HEAD:src/producer.rs)" = 650e34cca0cfa0bee9825ffc7d7da86514e28a31
+          rustc -Vv
+          cargo fmt --all -- --check
+  clippy:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+      - name: Strict all-target all-feature Clippy
+        run: |
+          test "$(git rev-parse HEAD:src/producer.rs)" = 650e34cca0cfa0bee9825ffc7d7da86514e28a31
+          rustc -Vv
+          cargo clippy --locked --all-targets --all-features -- -D warnings
+  producer:
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        features: [default, all]
+    env:
+      TEST_FEATURES: ${{ matrix.features }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Public send_all tests
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD:src/producer.rs)" = 650e34cca0cfa0bee9825ffc7d7da86514e28a31
+          rustc -Vv
+          if test "$TEST_FEATURES" = all; then args=(--all-features); else args=(); fi
+          cargo test --locked "${args[@]}" --test mock_produce send_all -- --nocapture
+      - name: Cancellation tests
+        if: always()
+        run: |
+          set -euo pipefail
+          if test "$TEST_FEATURES" = all; then args=(--all-features); else args=(); fi
+          cargo test --locked "${args[@]}" --test produce_cancel -- --nocapture
+      - name: Retained-backing tests
+        if: always()
+        run: |
+          set -euo pipefail
+          if test "$TEST_FEATURES" = all; then args=(--all-features); else args=(); fi
+          cargo test --locked "${args[@]}" --test producer_retained_backing -- --nocapture
