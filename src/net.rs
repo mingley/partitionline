@@ -1763,6 +1763,12 @@ impl BrokerConn {
             return Ok(());
         }
         let stream = Arc::clone(&self.stream);
+        // If the watcher hands its permit to this waiter and then exits,
+        // cancellation must release the waiter before trying the final close.
+        let _cleanup = RetireSocketOnDrop {
+            stream: Arc::clone(&stream),
+            physical_retire: Arc::clone(&self.physical_retire),
+        };
         let mut io = timeout_at(deadline.target(), stream.lock())
             .await
             .map_err(|_| Error::Timeout)?;
@@ -3661,6 +3667,60 @@ mod tests {
         })
         .await
         .expect("the draining watcher did not retire the socket");
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn canceled_retirement_waiter_closes_after_watcher_drops() {
+        use std::future::Future;
+
+        let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap().to_string();
+        let mut conn = BrokerConn::connect(&addr, "retire-waiter-exit", Duration::from_secs(2))
+            .await
+            .unwrap();
+        let (mut peer, _) = listener.accept().await.unwrap();
+        conn.idle_watch.abort();
+        tokio::time::timeout(Duration::from_secs(2), async {
+            while !conn.idle_watch.is_finished() {
+                tokio::task::yield_now().await;
+            }
+        })
+        .await
+        .unwrap();
+        let stream = Arc::clone(&conn.stream);
+        let watcher_stream = Arc::clone(&stream);
+        let watcher = async move {
+            let _io = watcher_stream.lock().await;
+            std::future::pending::<()>().await;
+        };
+        let mut watch = Box::pin(guard_idle_watch(
+            Arc::clone(&stream),
+            Arc::clone(&conn.physical_retire),
+            watcher,
+        ));
+        let first = std::future::poll_fn(|cx| Poll::Ready(watch.as_mut().poll(cx))).await;
+        assert!(first.is_pending());
+        assert!(
+            stream.try_lock().is_err(),
+            "the watcher must hold the stream"
+        );
+
+        let mut retiring =
+            Box::pin(conn.retire_physical_deadline(Deadline::from_timeout(Duration::from_secs(2))));
+        let first = std::future::poll_fn(|cx| Poll::Ready(retiring.as_mut().poll(cx))).await;
+        assert!(
+            first.is_pending(),
+            "retirement must queue behind the watcher"
+        );
+        drop(watch);
+        assert!(
+            stream.try_lock().is_err(),
+            "the retirement waiter must hold the reserved permit"
+        );
+        drop(retiring);
+        assert!(conn.is_closed());
+        assert!(conn.physically_retired_for_test());
+        assert_retired_peer(&mut peer).await;
     }
 
     #[tokio::test(flavor = "current_thread")]

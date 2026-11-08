@@ -9,6 +9,7 @@ tests=(
   'net::tests::canceled_queued_stream_waiter_finishes_retirement'
   'net::tests::queued_stream_guard_handoff_finishes_retirement'
   'net::tests::dropped_watcher_waiter_retires_a_reserved_stream'
+  'net::tests::canceled_retirement_waiter_closes_after_watcher_drops'
   'net::tests::dropping_owner_retires_a_stream_locked_by_its_watcher'
   'net::tests::runtime_shutdown_retires_a_stream_locked_by_its_watcher'
   'net::tests::retirement_wakes_a_watcher_already_draining_a_closed_socket'
