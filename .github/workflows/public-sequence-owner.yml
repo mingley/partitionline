@@ -1,0 +1,62 @@
+name: Public producer sequence-ownership witness
+
+on:
+  push:
+    branches: ["qualification/public-sequence-owner-20261108"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  witness:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        profile: [default, all]
+    env:
+      PROFILE: ${{ matrix.profile }}
+      RUSTFLAGS: "--cfg sequence_owner_witness --check-cfg=cfg(sequence_owner_witness)"
+      CARGO_TERM_COLOR: never
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Provenance
+        run: |
+          set -eu
+          rustc -Vv
+          cargo -V
+          uname -a
+          git rev-parse HEAD
+          git rev-parse HEAD:src/producer.rs
+          git rev-parse HEAD:tests/sequence_ownership_public.rs
+          git rev-parse HEAD:tests/common/mod.rs
+          sha256sum src/producer.rs tests/sequence_ownership_public.rs tests/common/mod.rs Cargo.lock
+          mkdir -p witness-logs
+      - name: Run released-gate control
+        id: control
+        run: |
+          set -euo pipefail
+          args=()
+          if test "$PROFILE" = all; then args+=(--all-features); fi
+          PL_SEQUENCE_ABORT=0 cargo +stable test --locked "${args[@]}" --test sequence_ownership_public -- --exact public_batch_sequence_worker_cancellation --test-threads=1 --nocapture 2>&1 | tee witness-logs/control.log
+          grep -F "SEQUENCE_PUBLIC_CONTROL" witness-logs/control.log
+          grep -F "test result: ok. 1 passed; 0 failed" witness-logs/control.log
+      - name: Observe forced worker cancellation
+        if: always()
+        run: |
+          set -euo pipefail
+          args=()
+          if test "$PROFILE" = all; then args+=(--all-features); fi
+          PL_SEQUENCE_ABORT=1 cargo +stable test --locked "${args[@]}" --test sequence_ownership_public -- --exact public_batch_sequence_worker_cancellation --test-threads=1 --nocapture 2>&1 | tee witness-logs/cancel.log
+          grep -F "SEQUENCE_PUBLIC_ABORT" witness-logs/cancel.log
+          grep -F "test result: ok. 1 passed; 0 failed" witness-logs/cancel.log
+      - name: Retain controls and observations
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: public-sequence-ownership-${{ matrix.profile }}
+          path: witness-logs
+          retention-days: 30

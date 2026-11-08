@@ -10378,6 +10378,40 @@ async fn sequences_already_assigned(pendings: &[Pending]) -> bool {
     true
 }
 
+/// Test-only gate at an existing sequence-stamping yield.
+#[cfg(sequence_owner_witness)]
+#[doc(hidden)]
+pub mod sequence_owner_witness {
+    use std::sync::atomic::{AtomicBool, Ordering};
+    use tokio::sync::Notify;
+
+    static ARMED: AtomicBool = AtomicBool::new(false);
+    static REACHED: Notify = Notify::const_new();
+    static RELEASE: Notify = Notify::const_new();
+
+    /// Arm the next sequence-stamping yield.
+    pub fn arm() {
+        ARMED.store(true, Ordering::SeqCst);
+    }
+
+    /// Wait until the real worker reaches the armed yield.
+    pub async fn reached() {
+        REACHED.notified().await;
+    }
+
+    /// Resume the worker.
+    pub fn release() {
+        RELEASE.notify_one();
+    }
+
+    pub(super) async fn pause_at_stamp_yield() {
+        if ARMED.swap(false, Ordering::SeqCst) {
+            REACHED.notify_one();
+            RELEASE.notified().await;
+        }
+    }
+}
+
 async fn stamp_sequences(pendings: &mut [Pending], base: i32) {
     let count = pendings.len();
     let mut index = 0usize;
@@ -10394,6 +10428,8 @@ async fn stamp_sequences(pendings: &mut [Pending], base: i32) {
         walked = walked.saturating_add(1);
         if walked == 8 * 1024 {
             walked = 0;
+            #[cfg(sequence_owner_witness)]
+            sequence_owner_witness::pause_at_stamp_yield().await;
             tokio::task::yield_now().await;
         }
     }
