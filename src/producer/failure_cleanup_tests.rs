@@ -299,3 +299,92 @@ async fn panicking_waker_does_not_double_release_bytes() {
     assert_eq!(shared.buffered_bytes.load(Ordering::SeqCst), 0);
     assert_eq!(shared.m_errors.load(Ordering::SeqCst), 3);
 }
+
+#[tokio::test(flavor = "current_thread")]
+async fn all_sequenced_sticky_cohorts_retire_before_the_first_yield() {
+    let cfg = ProducerConfig::default()
+        .partitioner(crate::partitioner::StickyPartitioner::new())
+        .batch_records(32)
+        .batch_bytes(1_000_000);
+    let (shared, _listener, _peer) = setup(cfg).await;
+    let topics: [Arc<str>; 2] = [Arc::from("failure-a"), Arc::from("failure-b")];
+    {
+        let mut cluster = shared.cluster.lock();
+        for topic in &topics {
+            let _ = cluster.leaders.insert(Arc::clone(topic), vec![1]);
+        }
+    }
+    let worker = Arc::new(());
+    let mut tags = Vec::new();
+    {
+        let cluster = shared.cluster.lock();
+        let mut policy = shared.sticky.as_ref().unwrap().lock();
+        for topic in &topics {
+            let plan = policy.plan(topic, 0, &worker, 1, &cluster);
+            let tag = plan.tag;
+            assert_ne!(tag.id, 0);
+            policy.commit(topic, 0, &worker, true, plan, &cluster);
+            let next = policy.plan(topic, 0, &worker, 1, &cluster);
+            assert_eq!(next.tag.id, tag.id);
+            policy.commit(topic, 0, &worker, true, next, &cluster);
+            assert_eq!(policy.members(tag), 2);
+            assert!(!policy.cancelled(tag));
+            tags.push(tag);
+        }
+    }
+    let (mut batch, receivers, budget, _) = records(&shared, 8 * 1024 + 1, false);
+    batch[0].rec.topic = Arc::clone(&topics[0]);
+    batch[0].sticky = Some(tags[0]);
+    batch[0].seq = Some(0);
+    batch[8 * 1024].rec.topic = Arc::clone(&topics[1]);
+    batch[8 * 1024].sticky = Some(tags[1]);
+    batch[8 * 1024].seq = Some(0);
+    let mut cleanup = Box::pin(fail_kept_pendings(&shared, batch, Error::Timeout));
+    assert!(matches!(poll_once(cleanup.as_mut()), Poll::Pending));
+    {
+        let policy = shared.sticky.as_ref().unwrap().lock();
+        for tag in &tags {
+            assert!(policy.cancelled(*tag));
+            assert_eq!(policy.members(*tag), 1);
+        }
+    }
+    drop(cleanup);
+    assert_timeouts(receivers).await;
+    assert_eq!(budget.used.load(Ordering::SeqCst), 0);
+    assert_eq!(shared.buffered_bytes.load(Ordering::SeqCst), 0);
+    let cluster = shared.cluster.lock();
+    let mut policy = shared.sticky.as_ref().unwrap().lock();
+    for tag in tags {
+        policy.release(tag, 1, &cluster);
+    }
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn panicking_result_waker_keeps_all_outcomes_on_cancel_and_unwind() {
+    for cancel in [true, false] {
+        let (shared, _listener, _peer) = setup(ProducerConfig::default()).await;
+        let (batch, mut receivers, budget, _) = records(&shared, 3, true);
+        let waker = std::task::Waker::from(Arc::new(PanicWaker));
+        let mut context = Context::from_waker(&waker);
+        assert!(matches!(Pin::new(&mut receivers[0]).poll(&mut context), Poll::Pending));
+        let mut cleanup = Box::pin(fail_kept_pendings(&shared, batch, Error::Timeout));
+        if cancel {
+            assert!(std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+                drop(cleanup);
+            }))
+            .is_ok());
+        } else {
+            assert!(matches!(poll_once(cleanup.as_mut()), Poll::Pending));
+            let panic = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+                let _ = poll_once(cleanup.as_mut());
+            }));
+            assert!(panic.is_err());
+            drop(panic);
+            drop(cleanup);
+        }
+        assert_timeouts(receivers).await;
+        assert_eq!(budget.used.load(Ordering::SeqCst), 0);
+        assert_eq!(shared.buffered_bytes.load(Ordering::SeqCst), 0);
+        assert_eq!(shared.m_errors.load(Ordering::SeqCst), 3);
+    }
+}

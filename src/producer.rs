@@ -11565,7 +11565,12 @@ impl FailureCleanup {
                     Error::protocol("failed to copy delivery error")
                 }
             };
-            drop(tx.send(Err(outcome)));
+            // oneshot::send may synchronously wake a user-provided waker.
+            if let Err(payload) = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+                drop(tx.send(Err(outcome)));
+            })) {
+                retain_first_cleanup_panic(&mut first, payload);
+            }
         }
         if let Err(payload) =
             std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| drop(pending)))
