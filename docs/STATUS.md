@@ -141,7 +141,11 @@ latency bound.
   mock stored the original batch; both observed receipts and flush returned
   errors. It held an existing yield and does not establish a Kafka outcome.
   [Private batch controls][batch-controls] also show that packing can split an
-  injected complete retry and expiration acts on individual records. A
+  injected complete retry and expiration acts on individual records. An
+  [owned-batch model][owned-model] checks proposed admission, batch, close and
+  uncertainty rules, but does not run the Rust producer. Its unknown-write
+  fence can retain capacity indefinitely, and callback and close semantics
+  need decisions before implementation. A
   [timestamp history][timestamp-history] observed mismatched times in a mock.
   The applied [timestamp fix][timestamp-fix] retains implicit times across
   retry and acknowledgement; a delayed-ack Kafka 4.1.0 smoke passed. Paired
@@ -266,7 +270,7 @@ retained evidence. The [benchmark contract](benchmark-contract.md) and
 [interop-peer]: https://github.com/mingley/partitionline/blob/89a8e2e5ae2ab28942be66c8bd7e0390032b4450/docs/evidence/client/broker-interop-peer-types-20261108/README.md
 [ci-262]: https://github.com/mingley/partitionline/blob/cb55f7c603e2344775de8a395c6a584737f5bb95/docs/evidence/releases/main-ci-262-20261108/README.md
 [ci-02c]: https://github.com/mingley/partitionline/blob/0ce81683fe7107386e30f388cd2a4af31735d522/docs/evidence/releases/main-ci-02c-20261108/README.md
-[next]: https://github.com/mingley/partitionline/blob/e69b81e83db26264d2197a907b5b4dcca558fe0a/docs/plan/next-work.md
+[next]: https://github.com/mingley/partitionline/blob/73a88b959c71ac12515c13f14e1e24ce569a66c2/docs/plan/next-work.md
 [flush-public]: https://github.com/mingley/partitionline/blob/f93e91499e2ba6bdc88c0a25a0d83b8737d00d3c/docs/evidence/client/producer-flush-public-20261108/README.md
 [flush-sent]: https://github.com/mingley/partitionline/blob/efa7f23314e98f3aaa4559c3cf38302bdcdb9fb4/docs/evidence/client/producer-flush-sent-20261108/README.md
 [owner-design]: https://github.com/mingley/partitionline/blob/cb55f7c603e2344775de8a395c6a584737f5bb95/docs/evidence/client/producer-ownership-design-20261108/README.md
@@ -331,6 +335,7 @@ retained evidence. The [benchmark contract](benchmark-contract.md) and
 
 [ci-426]: https://github.com/mingley/partitionline/blob/ed10995700da3252dbefb4696e1afd7dfe5a008d/docs/evidence/releases/main-ci-426-20261108/README.md
 [batch-controls]: https://github.com/mingley/partitionline/blob/a8403decd42d794b1da89ac985e2f390f32e01a7/docs/evidence/client/producer-batch-ownership-controls-20261108/README.md
+[owned-model]: https://github.com/mingley/partitionline/blob/73a88b959c71ac12515c13f14e1e24ce569a66c2/docs/evidence/client/producer-owned-batch-model-20261108/README.md
 [timestamp-history]: https://github.com/mingley/partitionline/blob/a8403decd42d794b1da89ac985e2f390f32e01a7/docs/evidence/client/producer-retry-timestamp-20261108/README.md
 [admin-phases]: https://github.com/mingley/partitionline/blob/a8403decd42d794b1da89ac985e2f390f32e01a7/docs/evidence/client/admin-dtp-poll-phases-20261108/README.md
 
