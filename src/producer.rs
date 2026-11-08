@@ -2722,14 +2722,13 @@ impl Producer {
                         return Err(Error::Timeout);
                     }
                     let timeout = self.inner.shared.cfg.request_timeout.min(budget);
-                    self.reconnect_cached_leaders(
-                        std::iter::once(&rec)
-                            .chain(ready.iter().map(|(_, rec)| rec))
-                            .chain(pending.iter().map(|(_, rec)| rec)),
-                    )
-                    .await;
                     let requested = if ready.is_empty() {
-                        refresh_topics_within(&self.inner.shared, &topics, timeout).await?
+                        let requested = refresh_topics_within(&self.inner.shared, &topics, timeout).await?;
+                        self.reconnect_cached_leaders(
+                            std::iter::once(&rec).chain(pending.iter().map(|(_, rec)| rec)),
+                        )
+                        .await;
+                        requested
                     } else {
                         self.nudge_known_leaders(ready.iter().map(|(_, rec)| rec))
                             .await;
