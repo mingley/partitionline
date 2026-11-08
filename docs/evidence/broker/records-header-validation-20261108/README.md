@@ -2,7 +2,7 @@
 
 The ordinary record validator first tries a fast walk for batches without
 headers. A positive header count makes that walk decline and the generic
-validator starts from the beginning. Five isolated candidates tried to
+validator starts from the beginning. Six isolated candidates tried to
 reduce that repeated work. None is applied: each regressed at least one
 measured control. The benchmark checks memory-resident uncompressed batches;
 it does not measure Kafka throughput or rank clients or servers.
@@ -165,5 +165,43 @@ downloaded.
 [Run 42452193624](https://github.com/mingley/partitionline/actions/runs/42452193624)
 passed the focused library and 14 record integration tests in both profiles
 and strict all-target/all-feature Clippy, but failed formatting on four test
-call sites. This version remains unapplied. An additional isolated variant
-skips the probe for single-record batches and is under measurement.
+call sites. This version remains unapplied. A further isolated variant skips the probe
+for single-record batches; its results are below.
+
+## Single-record gate
+
+[Run 42452507038](https://github.com/mingley/partitionline/actions/runs/42452507038)
+tested isolated source
+[`626e6208`](https://github.com/mingley/partitionline/commit/626e6208099392513e076ddb80a8d17e6310aa7e),
+which skips the probe when a batch has one record. The same paired procedure
+also measured two-, eight- and 32-record header batches. Candidate/baseline
+median ratios were 0.959 for one header-free record, 0.881 for one header
+record, 0.908 for two, 0.782 for eight, and 0.768 for 32. For 1,024 records,
+the header-free ratio was 1.153, one header each was 0.756, four headers each
+was 0.731, and a header only on the last record was 1.025. The larger-value
+header case was 0.990. Early-invalid, late-invalid without headers, and
+late-invalid after earlier headers were 1.076, 1.020, and 0.754.
+
+All eight paired ratios for 1,024 header-free records were between 1.146 and
+1.155. Although the original boolean no-header function was preserved in the
+source, this run does not establish why the compiled candidate was slower. The
+regression and the invalid controls keep the candidate unapplied. These
+shared-host microbenchmarks do not establish a Kafka throughput ranking.
+
+The candidate `records.rs` SHA-256 was
+`f5d62a4762b0477a17cee038e1952e92979d30971542d821f523551f3ebd71b2`,
+fixture SHA-256 was
+`d268ab717b4447c560eba6b009ca58eb91e62d9cbcb776ecaf7ba258a3dbcc18`,
+and baseline and candidate binary SHA-256 values were
+`e4698019bfb9f7d9bd9da9dd975ae89b85c1d25f48ec27a07a2d7a738be7ebe7`
+and `cc47803dc94514c108abc85f1ff7f4055f822c5d2f3999a5565b4b311e155e12`.
+GitHub reported SHA-256
+`1f0b90728ae73859d3c4472689606caaddebae648089d222191f8ebcd679f384`
+for the [artifact](https://github.com/mingley/partitionline/actions/runs/42452507038/artifacts/13606362211).
+The binaries were not retained, and the artifact has not been independently
+downloaded.
+
+[Run 42452481310](https://github.com/mingley/partitionline/actions/runs/42452481310)
+passed formatting, focused library and 14 record integration tests in both
+profiles, and strict all-target/all-feature Clippy. It did not run the full
+broker suites on current main.
