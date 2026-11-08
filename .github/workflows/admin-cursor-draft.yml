@@ -1,0 +1,94 @@
+name: Draft bounded Admin cursor-cycle controls
+on:
+  push:
+    branches: [qualification/admin-cursor-draft-20261108]
+permissions:
+  contents: read
+jobs:
+  format:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+      - name: Format and print changed sections
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD:src/admin.rs)" = 1945e609f0fd9b16712f41f23485735c2ce3d777
+          test "$(git rev-parse HEAD:src/admin/pagination_tests.rs)" = c4229d8f31820fd0115fe8a05f490e3e59e14128
+          cargo fmt --all
+          git hash-object src/admin.rs src/admin/pagination_tests.rs
+          cargo fmt --all -- --check
+          python3 .github/fixtures/admin_cursor_extract.py
+  behavior:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      matrix:
+        feature: [default, all]
+    env:
+      CARGO_INCREMENTAL: '0'
+      CARGO_TERM_COLOR: never
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+      - name: Verify and format exact draft
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD:src/admin.rs)" = 1945e609f0fd9b16712f41f23485735c2ce3d777
+          test "$(git rev-parse HEAD:src/admin/pagination_tests.rs)" = c4229d8f31820fd0115fe8a05f490e3e59e14128
+          cargo fmt --all
+          git hash-object src/admin.rs src/admin/pagination_tests.rs
+          rustc -Vv
+      - name: Full Admin pagination test module
+        run: |
+          set -euo pipefail
+          if test "${{ matrix.feature }}" = all; then flags=--all-features; else flags=; fi
+          cargo test --locked $flags --lib admin::pagination_tests:: -- --test-threads=1
+  baseline:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        feature: [default, all]
+    env:
+      CARGO_INCREMENTAL: '0'
+      CARGO_TERM_COLOR: never
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: 133d2413217cee4130bca2267e4e36b7225ff86f
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Baseline public cycle witness
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD:src/admin.rs)" = 8c2f94353e04c2925b1bfaf8478285190dd317d7
+          test "$(git rev-parse HEAD:src/admin/pagination_tests.rs)" = a69d5cceff56a7d1c52f321b5766d695423871aa
+          if test "${{ matrix.feature }}" = all; then flags=--all-features; else flags=; fi
+          cargo test --locked $flags --lib admin::pagination_tests::dtp_pagination_nonadjacent_cycle_times_out_without_partial_result -- --exact --test-threads=1
+  strict:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    env:
+      CARGO_INCREMENTAL: '0'
+      CARGO_TERM_COLOR: never
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt,clippy
+      - name: Format draft
+        run: cargo fmt --all
+      - name: Strict all-target all-feature Clippy
+        run: cargo clippy --locked --all-targets --all-features -- -D warnings
+      - name: Strict Rustdoc
+        if: always()
+        env:
+          RUSTDOCFLAGS: '-D warnings'
+        run: cargo doc --locked --all-features --no-deps
