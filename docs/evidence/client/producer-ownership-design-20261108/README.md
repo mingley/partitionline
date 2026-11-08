@@ -61,11 +61,17 @@ public producer or broker failures:
 - A retiring worker can finish a failed record's draft ticket before it calls
   `note_fail`. A concurrent flush that no longer sees that worker can return
   before its recorded error is published.
-- The draft captures a flush cutoff before close stops new sends. A later
-  admission can remain Pending after shutdown starts; the draft's Lost-only
-  post-shutdown check can still return success. An earlier non-timeout worker
-  error can also make `drain_before_abort` skip the ticket check and proceed
-  toward `EndTxn`.
+- The earlier [bc45 draft][draft] captures a flush cutoff before close stops new
+  sends. A later admission can remain Pending after shutdown starts while its
+  Lost-only post-shutdown check returns success. In that version an earlier
+  non-timeout worker error can also make `drain_before_abort` skip the ticket
+  check and proceed toward `EndTxn`.
+- The later [b7 draft][sealing-draft] seals admission first. A send that reserved
+  resources before the seal can nevertheless remain blocked waiting for worker
+  capacity until another event or its timeout; close can finish while an
+  unpolled pre-admission future still holds its byte reservation. The revised
+  abort check also has no transaction-generation fence against a concurrent
+  admission after its check and before `EndTxn`.
 - The draft's completion token finishes only after `Pending` is dropped.
   This closes one accounting-order window but still runs record destructors
   and wakes synchronously on the task performing the drop. Its polling
@@ -148,6 +154,7 @@ the standalone model or the private helper witnesses.
 [public-run]: https://github.com/mingley/partitionline/actions/runs/42460321562
 [compile-run]: https://github.com/mingley/partitionline/actions/runs/42459658935
 [sealing-run]: https://github.com/mingley/partitionline/actions/runs/42460603408
+[sealing-draft]: https://github.com/mingley/partitionline/blob/b7c11784d79b05a36ca624b3de17a952603d4931/docs/evidence/client/producer-completion-draft-20261108/README.md
 [assignment]: https://github.com/mingley/partitionline/blob/1036a393eb85f23032b935bf86862b7e98e36e14/src/producer.rs#L10429
 [response]: https://github.com/mingley/partitionline/blob/1036a393eb85f23032b935bf86862b7e98e36e14/src/producer.rs#L8670
 [close-source]: https://github.com/mingley/partitionline/blob/1036a393eb85f23032b935bf86862b7e98e36e14/src/producer.rs#L4215
