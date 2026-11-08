@@ -54,6 +54,7 @@ thread_local! {
     static PAIR_RESERVE_TEST_ERROR: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
     static INDEX_RESERVE_TEST_ERROR: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
     static STAGED_RESERVE_TEST_ERROR: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
+    static STAGE_RESERVATION_OBSERVATION: std::cell::Cell<Option<(usize, usize, usize, usize)>> = const { std::cell::Cell::new(None) };
 }
 
 #[cfg(test)]
@@ -1853,6 +1854,15 @@ impl<S: Storage> Engine<S> {
         self.staged
             .try_reserve(1)
             .map_err(|_| Error::AllocationFailed)?;
+        #[cfg(test)]
+        STAGE_RESERVATION_OBSERVATION.with(|observation| {
+            observation.set(Some((
+                self.index.len(),
+                self.index.capacity(),
+                self.staged.len(),
+                self.staged.capacity(),
+            )));
+        });
         if let Err(error) = self.write_planned(index, payload) {
             self.poisoned = true;
             return Err(error);
@@ -2610,12 +2620,20 @@ mod tests {
             let payload = [value];
             journal.stage(1, &payload, crc32c::crc32c(&payload), true)?;
             let required = journal.index.len() + journal.staged.len();
+            let (index_len, index_capacity, queued, queue_capacity) =
+                STAGE_RESERVATION_OBSERVATION.with(|observation| observation.get())
+                    .ok_or(Error::InvalidEntry)?;
+            assert_eq!(index_len, journal.index.len());
+            assert_eq!(queued + 1, journal.staged.len());
+            assert_eq!(index_capacity, journal.index.capacity());
+            assert_eq!(queue_capacity, journal.staged.capacity());
             assert!(
-                journal.index.capacity() >= required,
+                index_capacity >= required,
                 "index capacity {} is below {} committed and staged entries",
-                journal.index.capacity(),
+                index_capacity,
                 required
             );
+            assert!(queue_capacity > queued, "staging queue was full before the write");
         }
         let capacity = journal.index.capacity();
         journal.storage.synchronize()?;
