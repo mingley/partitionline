@@ -694,8 +694,9 @@ class Owner:
             raise ValueError("close has not begun")
         self._progress()
         if self.close_result is None:
-            # No new write may start after this observer returns Timeout.
-            # Already offered I/O is still ambiguous until its worker stops.
+            # No new model write claim is granted after Timeout. An already
+            # offered call may still begin or finish real I/O until the worker
+            # stops; this model does not simulate that boundary.
             self.close_result = "timeout"
             self.stop_writes = True
             for rec in list(self.records.values()):
