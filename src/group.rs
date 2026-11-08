@@ -2813,11 +2813,10 @@ impl ConsumerGroup {
         }
     }
 
-    /// Fetch while a due interval commit is in flight.
+    /// Commit due offsets before fetching the next batch.
     ///
-    /// The commit uses the group coordinator. The fetch uses the leader
-    /// sockets, so one slow commit does not hold the records. A failed
-    /// commit puts any fetched batch back in front of the buffer.
+    /// The commit may suspend. Do not hold an undelivered fetched batch
+    /// across it: dropping the poll future must not discard those records.
     async fn fetch_while_interval_commits(
         &mut self,
         wait: Option<Duration>,
@@ -2863,7 +2862,6 @@ impl ConsumerGroup {
         let address_keys = self.consumer.copy_learned_broker_keys();
         let coord = &mut self.coord;
         let cfg = &self.cfg;
-        let consumer = &mut self.consumer;
         let prior = &mut self.prior_coords;
         let request = offsets::LegacyOffsetRequest::Commit {
             group_id: &group_id,
@@ -2872,52 +2870,26 @@ impl ConsumerGroup {
             instance: instance.as_deref(),
             topics: &topics,
         };
-        let (committed, fetched) = tokio::join!(
-            offsets::coord_offsets_typed(
-                coord,
-                cfg,
-                &group_id,
-                COORDINATOR_GROUP,
-                &request,
-                &bootstrap_keys,
-                &address_keys,
-                prior,
-                timeout,
-            ),
-            async {
-                match wait {
-                    Some(timeout) => consumer.fetch_allow_unassigned_timeout(timeout).await,
-                    None => consumer.fetch_allow_unassigned().await,
-                }
-            },
-        );
+        let committed = offsets::coord_offsets_typed(
+            coord,
+            cfg,
+            &group_id,
+            COORDINATOR_GROUP,
+            &request,
+            &bootstrap_keys,
+            &address_keys,
+            prior,
+            timeout,
+        )
+        .await;
         self.classic_commit_topics = topics;
-        let (version, body) = match committed {
-            Ok(committed) => committed,
-            Err(error) => {
-                if let Ok(recs) = fetched {
-                    self.consumer.restore_fetched(recs).await;
-                }
-                return Err(error);
-            }
-        };
-        let err = match decode_offset_commit_response_cooperative(&mut body.clone(), version).await
-        {
-            Ok(err) => err,
-            Err(error) => {
-                if let Ok(recs) = fetched {
-                    self.consumer.restore_fetched(recs).await;
-                }
-                return Err(error);
-            }
-        };
+        let (version, body) = committed?;
+        let err = decode_offset_commit_response_cooperative(&mut body.clone(), version).await?;
         self.note_commit(err == 0);
         if err != 0 {
-            if let Ok(recs) = fetched {
-                self.consumer.restore_fetched(recs).await;
-            }
             return Err(Error::broker(err, "OffsetCommit"));
         }
+        let fetched = self.fetch_for_poll(wait).await;
         self.last_auto_commit = Instant::now();
         fetched
     }
