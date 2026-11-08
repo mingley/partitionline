@@ -5682,6 +5682,162 @@ mod ownership_tests {
     }
 
     #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+    async fn live_peers_receive_current_votes_while_old_cancellation_waits() -> TestResult {
+        let source = LocalOwner::open(0, 5, 1).await?;
+        let peers = vec![
+            LocalOwner::open(2, 5, 16).await?,
+            LocalOwner::open(3, 5, 16).await?,
+        ];
+        tokio::time::sleep(Duration::from_millis(3)).await;
+        let Reply::Votes(old_jobs) = source.fixture("wire-old", Command::Tick).await?? else {
+            return Err("old campaign".into());
+        };
+        let mut routes = Vec::new();
+        for job in old_jobs {
+            let Job::Vote(q) = job else {
+                return Err("old vote".into());
+            };
+            let slot = Arc::new(VoteSlot::default());
+            assert!(slot.offer(Job::Vote(q)).is_none());
+            routes.push((q.context.peer, slot));
+        }
+        tokio::time::sleep(Duration::from_millis(3)).await;
+        let Reply::Votes(jobs) = source.fixture("wire-current", Command::Tick).await?? else {
+            return Err("current campaign".into());
+        };
+        let current = jobs
+            .iter()
+            .map(|job| match job {
+                Job::Vote(q) => Ok(*q),
+                _ => Err("current vote"),
+            })
+            .collect::<std::result::Result<Vec<_>, _>>()?;
+        let term = current.first().ok_or("empty campaign")?.request.term;
+        let mut startup = Vec::new();
+        for peer in &peers {
+            let listener = TcpListener::bind("127.0.0.1:0").await?;
+            let route = Peer::new(
+                peer.control.config.bootstrap.local().clone(),
+                listener.local_addr()?,
+            )?;
+            let slot = routes
+                .iter()
+                .find(|(key, _)| *key == route.key())
+                .ok_or("missing route")?
+                .1
+                .clone();
+            let slots = Arc::new(
+                (0..peer.control.config.peers.len())
+                    .map(|_| AtomicBool::new(false))
+                    .collect::<Vec<_>>(),
+            );
+            let permit = Arc::new(Semaphore::new(1)).acquire_owned().await?;
+            startup.push((route, slot, listener, peer.control.clone(), slots, permit));
+        }
+
+        // Freeze the owner and fill its only command slot before the first
+        // displaced cancellation can be admitted.
+        let (held, held_reply, entered, release) = gate(Command::State);
+        source
+            .control
+            .commands
+            .send(held)
+            .await
+            .map_err(|_| "held admission")?;
+        entered.await?;
+        let (filler_tx, filler_rx) = oneshot::channel();
+        source
+            .control
+            .commands
+            .send(Envelope {
+                command: Command::State,
+                reply: filler_tx,
+                permit: None,
+                transport: None,
+                started: Arc::new(AtomicBool::new(false)),
+                deadline: None,
+                delivery_gate: None,
+                _counter: None,
+            })
+            .await
+            .map_err(|_| "filler admission")?;
+        let mut dispatch = Box::pin(dispatch_votes(&source.control, &routes, jobs));
+        let pending = std::future::poll_fn(|cx| {
+            match std::future::Future::poll(dispatch.as_mut(), cx) {
+                std::task::Poll::Pending => std::task::Poll::Ready(true),
+                std::task::Poll::Ready(()) => std::task::Poll::Ready(false),
+            }
+        })
+        .await;
+        let mut workers = Vec::new();
+        let mut servers = Vec::new();
+        for (route, slot, listener, control, slots, permit) in startup {
+            servers.push(tokio::spawn(async move {
+                if let Ok((socket, _)) = listener.accept().await {
+                    serve(control, socket, permit, slots).await;
+                }
+            }));
+            workers.push(tokio::spawn(outbound(source.control.clone(), route, slot)));
+        }
+        let observed = tokio::time::timeout(Duration::from_secs(2), async {
+            loop {
+                let first = peers[0].state().await?;
+                let second = peers[1].state().await?;
+                if [first, second].iter().all(|s| {
+                    s.election.persistent.term == term
+                        && s.election.persistent.voted_for == Some(0)
+                }) {
+                    break Ok::<(), Box<dyn std::error::Error + Send + Sync>>(());
+                }
+                tokio::task::yield_now().await;
+            }
+        })
+        .await;
+        let owner_still_blocked = source.control.commands.capacity() == 0;
+        let released = release.send(());
+        let held_delivered = held_reply.await;
+        let filler_delivered = filler_rx.await;
+        let dispatched = tokio::time::timeout(Duration::from_secs(2), dispatch).await;
+        source.control.stop();
+        let mut joined = true;
+        for mut worker in workers {
+            match tokio::time::timeout(Duration::from_secs(2), &mut worker).await {
+                Ok(Ok(())) => {}
+                Ok(Err(_)) => joined = false,
+                Err(_) => {
+                    worker.abort();
+                    let _ = worker.await;
+                    joined = false;
+                }
+            }
+        }
+        for mut server in servers {
+            match tokio::time::timeout(Duration::from_secs(2), &mut server).await {
+                Ok(Ok(())) => {}
+                Ok(Err(_)) => joined = false,
+                Err(_) => {
+                    server.abort();
+                    let _ = server.await;
+                    joined = false;
+                }
+            }
+        }
+        assert!(joined, "network workers did not join cleanly");
+        assert!(pending && owner_still_blocked);
+        released.map_err(|_| "owner gate release")?;
+        held_delivered?.result?;
+        filler_delivered?.result?;
+        dispatched?;
+        observed??;
+        println!("wire-votes peer2_term={term} peer3_term={term} owner_cancel_blocked=true");
+        source.finish_with_manual_workers(2).await?;
+        for peer in peers {
+            peer.finish_with_manual_workers(1).await?;
+        }
+        Ok(())
+    }
+
+    #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
     async fn stepdown_during_dispatch_fences_old_and_orders_next_campaign() -> TestResult {
         let source = LocalOwner::open(0, 5, 1).await?;
         let peer = LocalOwner::open(1, 5, 16).await?;
