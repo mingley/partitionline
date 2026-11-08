@@ -51,8 +51,10 @@ passed, one failed and four ignored. A disconnect test observed that its
 handler guard had not dropped after 32 yields; the cause and later behavior
 are unknown. A [gated EOF control][disconnect-eof] showed one possible delayed
 observation and a separate loopback control stopped its handler; neither
-establishes the CI cause. Later behavioral and strict checks in that job did not run;
-inventory and fuzz supervision passed separately.
+establishes the CI cause. A [test revision][disconnect-events] waits for
+explicit start and drop events and passed both full broker profiles; it does
+not explain the earlier failure. Later behavioral and strict checks in that
+failed job did not run; inventory and fuzz supervision passed separately.
 
 The [earlier broker proposal failure][ci-e487-raft] returned `NotLeader` after a
 previously selected leader was used. Later node samples do not establish the
@@ -178,7 +180,7 @@ retained evidence. The [benchmark contract](benchmark-contract.md) and
 [ci]: https://github.com/mingley/partitionline/blob/ec1bd5191b0410df771838574f8bbff752fb31c0/docs/evidence/releases/main-ci-d257-20261108/README.md
 [ci-262]: https://github.com/mingley/partitionline/blob/cb55f7c603e2344775de8a395c6a584737f5bb95/docs/evidence/releases/main-ci-262-20261108/README.md
 [ci-02c]: https://github.com/mingley/partitionline/blob/0ce81683fe7107386e30f388cd2a4af31735d522/docs/evidence/releases/main-ci-02c-20261108/README.md
-[next]: https://github.com/mingley/partitionline/blob/c3531f20b76ac7a9578b02a548ad37c0aba1bd99/docs/plan/next-work.md
+[next]: https://github.com/mingley/partitionline/blob/9b9bdf7d1c8ab9ef4ca79d7dd090941c16d7b85c/docs/plan/next-work.md
 [flush-public]: https://github.com/mingley/partitionline/blob/f93e91499e2ba6bdc88c0a25a0d83b8737d00d3c/docs/evidence/client/producer-flush-public-20261108/README.md
 [flush-sent]: https://github.com/mingley/partitionline/blob/efa7f23314e98f3aaa4559c3cf38302bdcdb9fb4/docs/evidence/client/producer-flush-sent-20261108/README.md
 [owner-design]: https://github.com/mingley/partitionline/blob/cb55f7c603e2344775de8a395c6a584737f5bb95/docs/evidence/client/producer-ownership-design-20261108/README.md
@@ -226,3 +228,5 @@ retained evidence. The [benchmark contract](benchmark-contract.md) and
 [ci-7fb]: https://github.com/mingley/partitionline/blob/c3531f20b76ac7a9578b02a548ad37c0aba1bd99/docs/evidence/releases/main-ci-7fb-partial-20261108/README.md
 [disconnect-eof]: https://github.com/mingley/partitionline/blob/45430d95ca633701db2e449604e4a7ea4e360e5c/docs/evidence/broker/disconnect-eof-20261108/README.md
 [admin-identity]: https://github.com/mingley/partitionline/blob/c3531f20b76ac7a9578b02a548ad37c0aba1bd99/docs/evidence/client/admin-pagination-identity-20261108/README.md
+
+[disconnect-events]: https://github.com/mingley/partitionline/blob/9b9bdf7d1c8ab9ef4ca79d7dd090941c16d7b85c/docs/evidence/broker/disconnect-event-tests-20261108/README.md
