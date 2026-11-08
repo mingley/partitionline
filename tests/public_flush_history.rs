@@ -159,10 +159,13 @@ async fn baseline_history(admission: Admission) {
         admission.name()
     );
 
-    tokio::time::timeout(Duration::from_secs(5), producer.close_timeout(Duration::from_secs(3)))
-        .await
-        .expect("close harness deadline")
-        .expect("close after witness");
+    tokio::time::timeout(
+        Duration::from_secs(5),
+        producer.close_timeout(Duration::from_secs(3)),
+    )
+    .await
+    .expect("close harness deadline")
+    .expect("close after witness");
 }
 
 #[tokio::test(flavor = "current_thread")]
