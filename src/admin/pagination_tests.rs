@@ -303,3 +303,46 @@ async fn dtp_empty_describe_stays_a_noop_at_extreme_timeouts() {
         assert!(got.is_empty());
     }
 }
+
+async fn pagination_bench(pages: i32, iterations: usize) {
+    let (mut admin, listener) = admin_and_listener().await;
+    let peer = tokio::spawn(async move {
+        let (mut socket, _) = listener.accept().await.unwrap();
+        socket.set_nodelay(true).unwrap();
+        for _ in 0..iterations {
+            for index in 0..pages {
+                let expected = if index == 0 { None } else { Some(("orders", index)) };
+                let header = dtp_request(&mut socket, expected).await;
+                let next = if index + 1 == pages { None } else { Some(("orders", index + 1)) };
+                send_page(&mut socket, &header, &page(index, next)).await.unwrap();
+            }
+        }
+    });
+    let names = ["orders"];
+    let start = std::time::Instant::now();
+    for _ in 0..iterations {
+        let got = admin
+            .describe_topics_with_partition_limit_timeout(names.iter(), false, 1, Duration::from_secs(5))
+            .await
+            .unwrap();
+        assert_eq!(got.len(), 1);
+        assert_eq!(got[0].partitions().len(), usize::try_from(pages).unwrap());
+        assert_eq!(got[0].partitions().first().map(|x| x.partition), Some(0));
+        assert_eq!(got[0].partitions().last().map(|x| x.partition), Some(pages - 1));
+    }
+    let elapsed = start.elapsed().as_nanos();
+    peer.await.unwrap();
+    println!("MEASURE pages={pages} iterations={iterations} elapsed_ns={elapsed}");
+}
+
+#[tokio::test]
+#[ignore = "manual matched loopback diagnostic"]
+async fn dtp_pagination_benchmark_single() {
+    pagination_bench(1, 4000).await;
+}
+
+#[tokio::test]
+#[ignore = "manual matched loopback diagnostic"]
+async fn dtp_pagination_benchmark_many_pages() {
+    pagination_bench(16, 250).await;
+}
