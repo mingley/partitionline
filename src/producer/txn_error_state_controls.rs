@@ -11,6 +11,7 @@ pub(super) enum Point {
     FatalEntry,
     ClearEntry,
     ReaderBeforeCause,
+    TicketExhausted,
 }
 
 struct Hook {
@@ -278,19 +279,19 @@ async fn fatal_publishes_before_waiting_for_cause_lock() {
     let fatal_tx = results_tx.clone();
     let fatal_reader = thread::spawn(move || {
         fatal_tx
-            .send(fatal_shared.fail_on_txn_fatal().is_ok())
+            .send(fatal_shared.fail_on_txn_fatal().err().map(|error| error.to_string()))
             .unwrap();
     });
     let any_shared = Arc::clone(&shared);
     let any_reader = thread::spawn(move || {
         results_tx
-            .send(any_shared.fail_on_txn_error().is_ok())
+            .send(any_shared.fail_on_txn_error().err().map(|error| error.to_string()))
             .unwrap();
     });
     let mut early = Vec::new();
     for _ in 0..2 {
-        if let Ok(ok) = results_rx.recv_timeout(Duration::from_millis(500)) {
-            early.push(ok);
+        if let Ok(message) = results_rx.recv_timeout(Duration::from_millis(500)) {
+            early.push(message);
         }
     }
     drop(held);
@@ -301,7 +302,11 @@ async fn fatal_publishes_before_waiting_for_cause_lock() {
     println!("PL_TXN_FATAL_PUBLICATION published={published} early={early:?}");
     assert!(published, "PL_TXN_FATAL_PUBLICATION");
     assert_eq!(early.len(), 2, "PL_TXN_FATAL_READERS_BLOCKED");
-    assert!(!early.contains(&true), "PL_TXN_FATAL_READER_ALLOWED");
+    let expected_message = Some("protocol: transactional producer in fatal error state");
+    assert!(
+        early.iter().all(|message| message.as_deref() == expected_message),
+        "PL_TXN_FATAL_READER_ALLOWED"
+    );
     assert_eq!(
         shared.fail_on_txn_fatal().unwrap_err().broker_code(),
         Some(error::PRODUCER_FENCED)
@@ -362,7 +367,6 @@ async fn first_fatal_wins_during_clear_and_competing_fatal() {
     );
 }
 
-
 fn install_control(
     shared: &Arc<Shared>,
     pause: Point,
@@ -413,7 +417,9 @@ async fn abortable_publishes_before_waiting_for_cause_lock() {
     let (result_tx, result_rx) = mpsc::channel();
     let reader_shared = Arc::clone(&shared);
     let reader = thread::spawn(move || {
-        result_tx.send(reader_shared.fail_on_txn_error().is_ok()).unwrap();
+        result_tx
+            .send(reader_shared.fail_on_txn_error().is_ok())
+            .unwrap();
     });
     let early = result_rx.recv_timeout(Duration::from_secs(1)).ok();
     let fatal_only_allowed = shared.fail_on_txn_fatal().is_ok();
@@ -449,10 +455,7 @@ async fn cleared_stalled_abort_cannot_overwrite_new_abort() {
     assert!(shared.fail_on_txn_error().is_ok());
     let new_shared = Arc::clone(&shared);
     let new = thread::spawn(move || {
-        new_shared.set_txn_abortable(Error::broker(
-            error::TRANSACTION_ABORTABLE,
-            "new abortable",
-        ));
+        new_shared.set_txn_abortable(Error::broker(error::TRANSACTION_ABORTABLE, "new abortable"));
     });
     new.join().unwrap();
     let before = shared.fail_on_txn_error().unwrap_err().broker_code();
@@ -462,7 +465,11 @@ async fn cleared_stalled_abort_cannot_overwrite_new_abort() {
     let after = shared.fail_on_txn_error().unwrap_err().broker_code();
     println!("PL_TXN_STALE_ABORT before={before:?} after={after:?}");
     assert_eq!(before, Some(error::TRANSACTION_ABORTABLE));
-    assert_eq!(after, Some(error::TRANSACTION_ABORTABLE), "PL_TXN_STALE_ABORT");
+    assert_eq!(
+        after,
+        Some(error::TRANSACTION_ABORTABLE),
+        "PL_TXN_STALE_ABORT"
+    );
 }
 
 #[tokio::test(flavor = "current_thread")]
@@ -513,4 +520,60 @@ async fn abort_ticket_exhaustion_fails_closed() {
     let fatal = shared.fail_on_txn_fatal();
     println!("PL_TXN_TICKET_EXHAUSTION fatal={fatal:?}");
     assert!(fatal.is_err(), "PL_TXN_TICKET_EXHAUSTION");
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn last_abort_ticket_clears_then_exhaustion_fences() {
+    let (shared, _peer) = fixture().await;
+    shared.txn_error_test_force_ticket_before_exhaustion();
+    shared.set_txn_abortable(Error::broker(
+        error::TOPIC_AUTHORIZATION_FAILED,
+        "last valid abortable",
+    ));
+    assert_eq!(
+        shared.fail_on_txn_error().unwrap_err().broker_code(),
+        Some(error::TOPIC_AUTHORIZATION_FAILED)
+    );
+    shared.clear_txn_abortable();
+    assert!(shared.fail_on_txn_error().is_ok());
+    shared.set_txn_abortable(Error::broker(
+        error::TRANSACTION_ABORTABLE,
+        "overflowing abortable",
+    ));
+    let fatal = shared.fail_on_txn_fatal().unwrap_err().to_string();
+    println!("PL_TXN_LAST_TICKET fatal={fatal}");
+    assert!(
+        fatal.contains("transactional error ticket exhausted"),
+        "PL_TXN_LAST_TICKET"
+    );
+    shared.set_txn_fatal(Error::broker(error::PRODUCER_FENCED, "later fatal"));
+    assert_eq!(shared.fail_on_txn_fatal().unwrap_err().to_string(), fatal);
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn real_fatal_wins_before_exhaustion_is_published() {
+    let (shared, _peer) = fixture().await;
+    shared.txn_error_test_force_ticket_exhaustion();
+    let _serial = SERIAL.lock();
+    let (paused, _attempted, release) =
+        install_control(&shared, Point::TicketExhausted, Point::FatalEntry);
+    let overflow_shared = Arc::clone(&shared);
+    let overflow = thread::spawn(move || {
+        overflow_shared.set_txn_abortable(Error::broker(
+            error::TRANSACTION_ABORTABLE,
+            "overflowing abortable",
+        ));
+    });
+    paused.recv_timeout(Duration::from_secs(5)).unwrap();
+    shared.set_txn_fatal(Error::broker(error::PRODUCER_FENCED, "real fatal"));
+    release.send(()).unwrap();
+    overflow.join().unwrap();
+    *ACTIVE.lock() = None;
+    let cause = shared.fail_on_txn_fatal().unwrap_err().broker_code();
+    println!("PL_TXN_REAL_FATAL_BEFORE_EXHAUSTION cause={cause:?}");
+    assert_eq!(
+        cause,
+        Some(error::PRODUCER_FENCED),
+        "PL_TXN_REAL_FATAL_BEFORE_EXHAUSTION"
+    );
 }

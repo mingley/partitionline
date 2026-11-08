@@ -1498,7 +1498,7 @@ impl Shared {
                 return Err(Error::protocol("transaction in error state"));
             }
             TXN_ERROR_FATAL_PENDING => {
-                return Err(Error::protocol("transactional producer fenced"));
+                return Err(Error::protocol("transactional producer in fatal error state"));
             }
             _ => {}
         }
@@ -1509,7 +1509,9 @@ impl Shared {
         match self.txn_error_state.load(Ordering::SeqCst) & TXN_ERROR_KIND_MASK {
             TXN_ERROR_NONE => Ok(()),
             TXN_ERROR_ABORT_PENDING => Err(Error::protocol("transaction in error state")),
-            TXN_ERROR_FATAL_PENDING => Err(Error::protocol("transactional producer fenced")),
+            TXN_ERROR_FATAL_PENDING => {
+                Err(Error::protocol("transactional producer in fatal error state"))
+            }
             _ => match error.as_ref() {
                 Some(error) => Err(error.clone()),
                 None => Err(Error::protocol("transaction in error state")),
@@ -1520,7 +1522,9 @@ impl Shared {
     /// Abort is allowed while abort-required, but not when fatal.
     fn fail_on_txn_fatal(&self) -> Result<()> {
         match self.txn_error_state.load(Ordering::SeqCst) & TXN_ERROR_KIND_MASK {
-            TXN_ERROR_FATAL_PENDING => Err(Error::protocol("transactional producer fenced")),
+            TXN_ERROR_FATAL_PENDING => {
+                Err(Error::protocol("transactional producer in fatal error state"))
+            }
             TXN_ERROR_FATAL_COMMITTED => match self.txn_error.lock().as_ref() {
                 Some(error) => Err(error.clone()),
                 None => Err(Error::protocol("transactional producer fenced")),
@@ -1571,6 +1575,11 @@ impl Shared {
                 return;
             }
             let Some(next) = state.checked_add(TXN_ERROR_TICKET_STEP) else {
+                #[cfg(test)]
+                txn_error_state_controls::pause(
+                    self,
+                    txn_error_state_controls::Point::TicketExhausted,
+                );
                 self.set_txn_fatal(Error::protocol("transactional error ticket exhausted"));
                 return;
             };
@@ -1647,6 +1656,14 @@ impl Shared {
     fn txn_error_test_force_ticket_exhaustion(&self) {
         self.txn_error_state
             .store(u64::MAX & !TXN_ERROR_KIND_MASK, Ordering::SeqCst);
+    }
+
+    #[cfg(test)]
+    fn txn_error_test_force_ticket_before_exhaustion(&self) {
+        self.txn_error_state.store(
+            (u64::MAX & !TXN_ERROR_KIND_MASK) - TXN_ERROR_TICKET_STEP,
+            Ordering::SeqCst,
+        );
     }
 
     /// Java `TransactionManager.canHandleAbortableError` for the negotiated

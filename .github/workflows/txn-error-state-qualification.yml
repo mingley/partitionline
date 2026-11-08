@@ -62,8 +62,8 @@ jobs:
           test "$(git -C "$GITHUB_WORKSPACE/baseline" rev-parse HEAD)" = 264322ff430b0594f4c3864e53dcd832de2a930b
           sha256sum "$GITHUB_WORKSPACE/candidate/src/producer.rs" "$GITHUB_WORKSPACE/candidate/src/producer/txn_error_state_controls.rs" | tee "$RUNNER_TEMP/txn-state-evidence/candidate-pins.log"
           printf '%s  %s\n' \
-            7db02dd53cdc1ff6d47f14941b2c795216cd2b0eb012a8d7a350f3f7b5983f83 "$GITHUB_WORKSPACE/candidate/src/producer.rs" \
-            244f35cd07c878ec659f6a6050087524bd148f95622c7fe7c758bfbe489329ee "$GITHUB_WORKSPACE/candidate/src/producer/txn_error_state_controls.rs" \
+            f75663a4e3eb8dcbdf08b6e4fbbaff0ec816dd8c60b2687fa30c1cb151dc709d "$GITHUB_WORKSPACE/candidate/src/producer.rs" \
+            8645a30995e2ad3e34b6d8ee43312109119881b0891dcc1a9a3f2362a4cef00f "$GITHUB_WORKSPACE/candidate/src/producer/txn_error_state_controls.rs" \
             e21d03f495f504f167bc56139dc03798b0f323ca51370c7dceade23a2dad066e "$GITHUB_WORKSPACE/baseline/src/producer.rs" | sha256sum --check -
       - name: Verify stable formatting
         shell: bash
@@ -161,11 +161,13 @@ jobs:
               "    /// Java `TransactionManager.canHandleAbortableError`",
               "    #[cfg(test)]\n"
               "    fn txn_error_test_force_ticket_exhaustion(&self) {}\n\n"
+              "    #[cfg(test)]\n"
+              "    fn txn_error_test_force_ticket_before_exhaustion(&self) {}\n\n"
               "    /// Java `TransactionManager.canHandleAbortableError`"
           )
           source += '\n#[cfg(test)]\n#[path = "producer/txn_error_state_controls.rs"]\nmod txn_error_state_controls;\n'
           digest = hashlib.sha256(source.encode()).hexdigest()
-          if digest != "fd6bb690b06d5735cec280f0bbdac47fd66e01269c1766d7c2ec08d147a37231":
+          if digest != "b1b222a1a49f8878a0539224cd25ef427077f49ce212657f611a0c08804a017c":
               raise SystemExit("instrumented baseline hash mismatch: " + digest)
           path.write_text(source)
           print("instrumented baseline source sha256:", digest)
@@ -216,7 +218,7 @@ jobs:
             if [[ "$mode" = all ]]; then extra=--all-features; fi
             log="$RUNNER_TEMP/txn-state-evidence/candidate-$mode.log"
             timeout 600 cargo +stable test --locked $extra --lib producer::txn_error_state_controls:: -- --nocapture 2>&1 | tee "$log"
-            grep -F 'test result: ok. 10 passed; 0 failed; 0 ignored;' "$log"
+            grep -F 'test result: ok. 12 passed; 0 failed; 0 ignored;' "$log"
           done
           for mode in default all; do
             extra=''
