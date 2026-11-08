@@ -135,7 +135,10 @@ latency bound.
   [batch-header candidates][batch-header] had mixed results and remain
   unapplied. A [send_all candidate][sendall] greatly shortened a large mock
   poll but changed batching and introduced a blocking-cancellation boundary;
-  it also remains unapplied. The frame-read change reduced work per poll but slowed a scoped
+  it remains unapplied. A [no-added-yield candidate][sendall-no-yield] also
+  shortened scoped mock polls, but its [combined qualification][sendall-combined]
+  failed 17 of 45 mock-producer tests in each profile; their cause is unknown.
+  It remains unapplied. The frame-read change reduced work per poll but slowed a scoped
   256 KiB loopback test by about 2% over TCP and 1.6% over TLS/TCP. In a
   [follow-up][frame-followup] the TCP result changed direction on a different
   runner. These measurements do not rank Kafka implementations.
@@ -150,7 +153,7 @@ retained evidence. The [benchmark contract](benchmark-contract.md) and
 [ci]: https://github.com/mingley/partitionline/blob/c27d634f6fd781bbf50afc7e012808dbb88452a2/docs/evidence/releases/main-ci-e487-20261108/README.md
 [ci-262]: https://github.com/mingley/partitionline/blob/cb55f7c603e2344775de8a395c6a584737f5bb95/docs/evidence/releases/main-ci-262-20261108/README.md
 [ci-02c]: https://github.com/mingley/partitionline/blob/0ce81683fe7107386e30f388cd2a4af31735d522/docs/evidence/releases/main-ci-02c-20261108/README.md
-[next]: https://github.com/mingley/partitionline/blob/c27d634f6fd781bbf50afc7e012808dbb88452a2/docs/plan/next-work.md
+[next]: https://github.com/mingley/partitionline/blob/f0a7312a31d1a04f1d2c65c19e6f39e0fe501ac3/docs/plan/next-work.md
 [flush-public]: https://github.com/mingley/partitionline/blob/f93e91499e2ba6bdc88c0a25a0d83b8737d00d3c/docs/evidence/client/producer-flush-public-20261108/README.md
 [flush-sent]: https://github.com/mingley/partitionline/blob/efa7f23314e98f3aaa4559c3cf38302bdcdb9fb4/docs/evidence/client/producer-flush-sent-20261108/README.md
 [owner-design]: https://github.com/mingley/partitionline/blob/cb55f7c603e2344775de8a395c6a584737f5bb95/docs/evidence/client/producer-ownership-design-20261108/README.md
@@ -184,3 +187,6 @@ retained evidence. The [benchmark contract](benchmark-contract.md) and
 
 [ci-e487-raft]: https://github.com/mingley/partitionline/blob/c27d634f6fd781bbf50afc7e012808dbb88452a2/docs/evidence/broker/raft-delayed-proposal-20261108/README.md
 [redial-gate]: https://github.com/mingley/partitionline/blob/c27d634f6fd781bbf50afc7e012808dbb88452a2/docs/evidence/client/sendall-redial-gate-20261108/README.md
+
+[sendall-no-yield]: https://github.com/mingley/partitionline/blob/f0a7312a31d1a04f1d2c65c19e6f39e0fe501ac3/docs/evidence/perf/sendall-no-yield-20261108/README.md
+[sendall-combined]: https://github.com/mingley/partitionline/blob/f0a7312a31d1a04f1d2c65c19e6f39e0fe501ac3/docs/evidence/client/send-all-combined-qualification-20261108/README.md
