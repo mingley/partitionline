@@ -329,6 +329,16 @@ reduced loopback latency for larger responses on one shared x86 runner. It
 is not applied: coverage, error precedence, cancellation and fairness need a
 combined implementation and new measurements before any performance claim.
 
+A [journal comparison](../evidence/broker/journal-release-cost-20261108/README.md)
+measured the ownership repair against its baseline on one shared x86 host.
+Open, append and staged-sync medians were higher in that workload; the write
+samples varied widely and the host used an ext4 writeback mount with barriers
+disabled. This does not qualify durable storage performance.
+
+Three [record-header experiments](../evidence/broker/records-header-validation-20261108/README.md)
+improved some header-bearing batches but regressed other controls. They remain
+unapplied; the results do not establish Kafka throughput.
+
 Run clean-commit client, broker and schema default/all-feature suites,
 all-target strict Clippy, formatting, rustdoc, package consumers and independent
 peer histories after fixes. Test-lint cleanup passes the remote client
@@ -526,10 +536,8 @@ built the driver and passed all 11 resource tests. Its temporary sample output
 was not retained; this is a focused test result, not a sustained campaign.
 
 Benchmark scope is this shared x86_64 host, without extra machines or an
-external operator. A source-bound, one-partition closed-loop diagnostic is
-prepared but unbuilt and unrun. Its supervisor has passing synthetic controls;
-that is process-cleanup evidence, not a performance result. Keep any eventual
-numbers limited to their settings, peers and architecture. The
+external operator. The completed closed-loop run described above is
+exploratory. Keep numbers limited to their settings, peers and architecture. The
 [benchmark contract](../benchmark-contract.md) governs broader claims.
 The producer example screens phase-end completion counters before stopping each
 timer; it is not a phase-isolation barrier. Individual outcomes and independent
