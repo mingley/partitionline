@@ -159,7 +159,7 @@ impl Config {
 pub enum Error {
     /// Invalid local endpoint or resource bounds.
     InvalidConfig,
-    /// Bounded protocol parsing or input normalization failed before mutation.
+    /// Protocol parsing or buffer allocation failed.
     Protocol(protocol::Error),
     /// API/version is outside this router's implemented range.
     UnsupportedVersion {
@@ -875,6 +875,8 @@ impl Router {
                     version,
                 });
             }
+            // Include synchronous normalization in request timing.
+            let admitted = Instant::now();
             // A caller can provide a short Vec with arbitrarily large capacity.
             // Compact it before the actor can retain it under a data permit.
             lease.request = bound_owned_vec(
@@ -884,7 +886,6 @@ impl Router {
             if lease.spare.capacity() > self.config.max_response_bytes {
                 drop(std::mem::take(&mut lease.spare));
             }
-            let admitted = Instant::now();
             let mut changes = self.changes.clone();
             loop {
                 if self.stopping.load(Ordering::Acquire) {
@@ -943,13 +944,11 @@ impl Router {
                         }
                         // The candidate body is released. Its allocation stays
                         // with the permit so the next attempt can reuse it.
-                        let mut recycled = snapshot.response;
-                        recycled.clear();
-                        if recycled.capacity() >= lease.spare.capacity() {
-                            lease.spare = recycled;
-                        } else {
-                            drop(recycled);
-                        }
+                        recycle_read_response(
+                            &mut lease.spare,
+                            snapshot.response,
+                            self.config.max_response_bytes,
+                        );
                         if self.stopping.load(Ordering::Acquire) {
                             return Err(Error::Stopped);
                         }
@@ -1370,6 +1369,17 @@ fn actor(
         reject(command, config.max_response_bytes);
     }
 }
+// Keep the response allocation only if its actual capacity fits the scratch
+// budget. A writer may have grown it beyond the logical response length.
+fn recycle_read_response(spare: &mut Vec<u8>, mut response: Vec<u8>, maximum: usize) {
+    response.clear();
+    if response.capacity() <= maximum && response.capacity() >= spare.capacity() {
+        *spare = response;
+    }
+    #[cfg(test)]
+    RECYCLED_CAPACITY.with(|observed| observed.set(Some(spare.capacity())));
+}
+
 // Vec allocation may return more capacity than requested, including for
 // try_reserve_exact. Check the actual capacity before transferring ownership.
 // During compaction both the original and replacement allocations coexist.
@@ -1380,6 +1390,15 @@ fn bound_owned_vec(bytes: Vec<u8>, maximum: usize) -> Result<Vec<u8>, Error> {
     if bytes.len() > maximum {
         return Err(protocol::Error::Allocation.into());
     }
+    #[cfg(test)]
+    NORMALIZATION_STARTED.with(|started| started.set(Some(Instant::now())));
+    #[cfg(test)]
+    NORMALIZATION_DELAY.with(|delay| {
+        let duration = delay.replace(Duration::ZERO);
+        if !duration.is_zero() {
+            std::thread::sleep(duration);
+        }
+    });
     #[cfg(test)]
     if FAIL_BUFFER_REPACK.with(|fail| fail.replace(false)) {
         return Err(protocol::Error::Allocation.into());
@@ -1398,6 +1417,9 @@ fn bound_owned_vec(bytes: Vec<u8>, maximum: usize) -> Result<Vec<u8>, Error> {
 #[cfg(test)]
 thread_local! {
     static FAIL_BUFFER_REPACK: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
+    static NORMALIZATION_STARTED: std::cell::Cell<Option<Instant>> = const { std::cell::Cell::new(None) };
+    static NORMALIZATION_DELAY: std::cell::Cell<Duration> = const { std::cell::Cell::new(Duration::ZERO) };
+    static RECYCLED_CAPACITY: std::cell::Cell<Option<usize>> = const { std::cell::Cell::new(None) };
 }
 
 // A response can still exceed the configured logical maximum in capacity if
@@ -4295,6 +4317,122 @@ mod tests {
         Ok(())
     }
 
+
+    // A synthetic actor supplies a deliberately over-capacity response so this
+    // exercises allocator over-reservation without depending on an allocator.
+    fn synthetic_read_actor(wait: Duration) -> (Router, oneshot::Receiver<Instant>, std::sync::mpsc::Sender<()>) {
+        let mut config = Config::new(0, "127.0.0.1".into(), 19095, "recycle-test".into());
+        config.max_queued_requests = 1;
+        config.protocol_limits = protocol::Limits::new(4096, 0).expect("test limits");
+        config.max_response_bytes = 64;
+        let (sender, mut receiver) = mpsc::channel(1);
+        let (claimed, claimed_rx) = oneshot::channel();
+        let (release, gate) = std::sync::mpsc::channel();
+        let (change_tx, changes) = watch::channel(());
+        let change_tx = Arc::new(change_tx);
+        let wakeup = Arc::downgrade(&change_tx);
+        let task = tokio::task::spawn_blocking(move || {
+            let _change_tx = change_tx;
+            let Some(Command::Data(job)) = receiver.blocking_recv() else {
+                return;
+            };
+            let admitted = job.admitted;
+            if gate.recv().is_err() {
+                return;
+            }
+            let mut response = Vec::with_capacity(8192);
+            response.extend_from_slice(&[0; 12]);
+            let snapshot = fetch::Snapshot {
+                response,
+                record_bytes: 0,
+                minimum_bytes: 1,
+                wait,
+                immediate: false,
+            };
+            finish_data_job(job, Ok(DataReply::Read { snapshot }), 64);
+            let _ = claimed.send(admitted);
+            while let Some(command) = receiver.blocking_recv() {
+                if matches!(command, Command::Stop) {
+                    break;
+                }
+            }
+        });
+        (Router {
+            config,
+            sender,
+            stopping: Arc::new(AtomicBool::new(false)),
+            failed: AtomicBool::new(false),
+            task: Mutex::new(Some(task)),
+            data: true,
+            data_slots: Arc::new(Semaphore::new(1)),
+            reads: Some(fetch::Limits::default()),
+            retention: None,
+            changes,
+            compaction: false,
+            wakeup,
+        }, claimed_rx, release)
+    }
+
+    #[tokio::test]
+    async fn over_capacity_read_recycle_is_dropped_before_wait_and_cancel(
+    ) -> Result<(), Box<dyn StdError>> {
+        let (router, claimed, release) = synthetic_read_actor(Duration::from_secs(60));
+        let peer = Peer::capacity_witness();
+        RECYCLED_CAPACITY.with(|observed| observed.set(None));
+        let mut input = Vec::with_capacity(8192);
+        input.extend_from_slice(&capacity_witness_fetch());
+        let mut pending = Box::pin(router.exchange_request(&peer, input, Vec::new()));
+        std::future::poll_fn(|cx| match std::future::Future::poll(pending.as_mut(), cx) {
+            std::task::Poll::Pending => std::task::Poll::Ready(Ok(())),
+            std::task::Poll::Ready(_) => std::task::Poll::Ready(Err("unexpected completion")),
+        }).await?;
+        release.send(())?;
+        let _ = tokio::time::timeout(Duration::from_secs(5), claimed).await??;
+        let is_waiting = std::future::poll_fn(|cx| {
+            std::task::Poll::Ready(std::future::Future::poll(pending.as_mut(), cx).is_pending())
+        }).await;
+        assert!(is_waiting);
+        assert_eq!(RECYCLED_CAPACITY.with(|observed| observed.get()), Some(0));
+        assert_eq!(router.data_slots.available_permits(), 0);
+        drop(pending);
+        assert_eq!(router.data_slots.available_permits(), 1);
+        router.shutdown().await?;
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn normalization_time_counts_toward_fetch_deadline(
+    ) -> Result<(), Box<dyn StdError>> {
+        let wait = Duration::from_millis(10);
+        let (router, claimed, release) = synthetic_read_actor(wait);
+        let peer = Peer::capacity_witness();
+        NORMALIZATION_STARTED.with(|started| started.set(None));
+        NORMALIZATION_DELAY.with(|delay| delay.set(Duration::from_millis(40)));
+        let mut input = Vec::with_capacity(8192);
+        input.extend_from_slice(&capacity_witness_fetch());
+        let mut pending = Box::pin(router.exchange_request(&peer, input, Vec::new()));
+        std::future::poll_fn(|cx| match std::future::Future::poll(pending.as_mut(), cx) {
+            std::task::Poll::Pending => std::task::Poll::Ready(Ok(())),
+            std::task::Poll::Ready(_) => std::task::Poll::Ready(Err("unexpected completion")),
+        }).await?;
+        release.send(())?;
+        let admitted = tokio::time::timeout(Duration::from_secs(5), claimed).await??;
+        let started = NORMALIZATION_STARTED.with(|started| started.get()).ok_or("missing normalization timestamp")?;
+        assert!(admitted <= started);
+        assert!(admitted.checked_add(wait).ok_or("deadline overflow")? <= Instant::now());
+        let polled = std::future::poll_fn(|cx| {
+            std::task::Poll::Ready(std::future::Future::poll(pending.as_mut(), cx))
+        }).await;
+        let outcome = match polled {
+            std::task::Poll::Ready(Ok(outcome)) => outcome,
+            _ => return Err("elapsed deadline must return the first snapshot".into()),
+        };
+        assert_eq!(outcome.response.ok_or("missing response")?.len(), 12);
+        drop(pending);
+        assert_eq!(router.data_slots.available_permits(), 1);
+        router.shutdown().await?;
+        Ok(())
+    }
 
     #[test]
     fn completion_preserves_response_without_allocating_and_discards_oversized_scratch(
