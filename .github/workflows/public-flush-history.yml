@@ -1,0 +1,99 @@
+name: Public producer flush expiry history
+
+on:
+  push:
+    branches: [qualification/public-flush-history-20261108]
+    paths:
+      - tests/public_flush_history.rs
+      - .github/workflows/public-flush-history.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  witness:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    env:
+      CARGO_BUILD_JOBS: '2'
+      CARGO_INCREMENTAL: '0'
+      CARGO_PROFILE_DEV_DEBUG: '0'
+      CARGO_PROFILE_TEST_DEBUG: '0'
+      CARGO_TERM_COLOR: never
+      RUST_BACKTRACE: '0'
+    steps:
+      - name: Prepare retained evidence
+        shell: bash
+        run: mkdir -p "$RUNNER_TEMP/public-flush-history"
+      - name: Checkout isolated witness
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 4
+          persist-credentials: false
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /Cargo.toml
+            /Cargo.lock
+            /rust-toolchain.toml
+            /README.md
+            /clippy.toml
+            /.cargo/
+            /src/
+            /examples/
+            /tests/common/
+            /tests/public_flush_history.rs
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Verify source and record provenance
+        shell: bash
+        run: |
+          set -euo pipefail
+          evidence="$RUNNER_TEMP/public-flush-history"
+          {
+            echo "qualification_commit=$GITHUB_SHA"
+            echo 'base_commit=6298f6bfbed2ab98189d291ebebd2190a2ee75b6'
+            git merge-base --is-ancestor 6298f6bfbed2ab98189d291ebebd2190a2ee75b6 HEAD
+            test "$(git rev-parse HEAD:src/producer.rs)" = 1e7733c136e54b532cdc8bddabd1e0c828e50ed2
+            test "$(git rev-parse HEAD:Cargo.lock)" = d1cb698aaaf7554fe904ba02d671c4a8ab4975b3
+            test "$(git rev-parse HEAD:tests/common/mod.rs)" = 9a995292044c527ae2c2a17eca09b9f947bb12ed
+            test "$(git rev-parse HEAD:Cargo.toml)" = 585bbf9a31465d6bba3f66f593fddd1add516f36
+            test "$(git rev-parse HEAD:rust-toolchain.toml)" = 05e6ca1bf94c42a23333262558d22b866615466e
+            test -z "$(git status --porcelain)"
+            git rev-parse HEAD:tests/public_flush_history.rs
+            sha256sum src/producer.rs Cargo.toml Cargo.lock rust-toolchain.toml tests/common/mod.rs tests/public_flush_history.rs
+            rustc +stable -vV
+            cargo +stable -V
+            uname -a
+            df -h "$GITHUB_WORKSPACE"
+          } 2>&1 | tee "$evidence/provenance.log"
+          cp tests/public_flush_history.rs "$evidence/public_flush_history.rs"
+      - name: Check test formatting
+        shell: bash
+        run: |
+          set -euo pipefail
+          rustfmt +stable --edition 2021 --check tests/public_flush_history.rs 2>&1 | tee "$RUNNER_TEMP/public-flush-history/rustfmt.log"
+      - name: Run default and all-feature public histories
+        shell: bash
+        run: |
+          set -euo pipefail
+          evidence="$RUNNER_TEMP/public-flush-history"
+          for mode in default all-features; do
+            extra=()
+            if [ "$mode" = all-features ]; then
+              extra+=(--all-features)
+            fi
+            log="$evidence/$mode.log"
+            timeout 600 cargo +stable test --locked "${extra[@]}" --test public_flush_history -- --nocapture --test-threads=1 2>&1 | tee "$log"
+            test "$(grep -Fc 'PUBLIC_FLUSH_HISTORY mode=try_send admission=accepted delivery=timeout callback=1 queued=2 acked=1 errors=1 buffered=0 appended=1 produce_batches=1 flush=ok' "$log")" -eq 1
+            test "$(grep -Fc 'PUBLIC_FLUSH_HISTORY mode=send admission=accepted delivery=timeout callback=1 queued=2 acked=1 errors=1 buffered=0 appended=1 produce_batches=1 flush=ok' "$log")" -eq 1
+            grep -F 'test result: ok. 2 passed; 0 failed;' "$log"
+          done
+      - name: Retain witness source, provenance and logs
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: public-flush-history-${{ github.run_id }}
+          path: ${{ runner.temp }}/public-flush-history
+          if-no-files-found: error
+          retention-days: 30
