@@ -1047,22 +1047,17 @@ async fn dtp_aggregate_distinguishes_empty_name_from_null() {
     let peer = tokio::spawn(async move {
         let (mut socket, _) = listener.accept().await.unwrap();
         socket.set_nodelay(true).unwrap();
-        let first = dtp_request(&mut socket, None).await;
-        let mut first_page = page(0, Some(("orders", 1)));
+        let first = dtp_named_request(&mut socket, &[""], None).await;
+        let mut first_page = page(0, Some(("", 1)));
         first_page.topics[0].name = Some(String::new());
         send_page(&mut socket, &first, &first_page).await.unwrap();
-        let second = dtp_request(&mut socket, Some(("orders", 1))).await;
+        let second = dtp_named_request(&mut socket, &[""], Some(("", 1))).await;
         let mut second_page = page(1, None);
         second_page.topics[0].name = Some(String::new());
         send_page(&mut socket, &second, &second_page).await.unwrap();
     });
     let result = admin
-        .describe_topics_with_partition_limit_timeout(
-            ["orders"].iter(),
-            false,
-            1,
-            Duration::from_secs(5),
-        )
+        .describe_topics_with_partition_limit_timeout([""].iter(), false, 1, Duration::from_secs(5))
         .await
         .unwrap();
     peer.await.unwrap();
@@ -1186,3 +1181,31 @@ async fn dtp_unnamed_topic_precedes_same_page_identity_conflict() {
     assert!(matches!(&got, Err(Error::Unsupported(message))
         if message == "cannot aggregate DescribeTopicPartitions without a topic name"));
 }
+
+async fn dtp_named_request(
+    socket: &mut TcpStream,
+    expected_names: &[&str],
+    expected_cursor: Option<(&str, i32)>,
+) -> RequestHeader {
+    let (header, mut body) = request(socket).await;
+    assert_eq!(
+        (header.api_key, header.api_version),
+        (DESCRIBE_TOPIC_PARTITIONS, 0)
+    );
+    let (names, limit, cursor) = decode_describe_topic_partitions_request(&mut body).unwrap();
+    let expected_names: Vec<String> = expected_names
+        .iter()
+        .map(|name| (*name).to_owned())
+        .collect();
+    assert_eq!(names, expected_names);
+    assert_eq!(limit, 1);
+    assert_eq!(
+        cursor
+            .as_ref()
+            .map(|c| (c.topic_name.as_str(), c.partition_index)),
+        expected_cursor
+    );
+    assert!(body.is_empty());
+    header
+}
+
