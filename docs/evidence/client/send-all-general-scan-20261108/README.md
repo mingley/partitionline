@@ -72,7 +72,11 @@ preserving these suffix yields would require 60,535,546 nudge yields and
 from the loop structure, not measured timings. Reducing work inside each
 chunk helps, but this remains quadratic in chunk count for very large batches.
 A design must also recompute suffix lengths after metadata splitting and handle
-the separately nudged ready list and sticky routing.
+the separately nudged ready list and sticky routing. Even identical raw routes
+can be split between ready and pending if metadata freshness changes during
+the per-record scan. Route tracking must avoid extra iterator polls, eager
+validation or whole-record clones: input records can own values with
+observable destructors.
 
 Before applying any such design, controls would need to exercise iterator
 ownership and cancellation at the original yields, 31/32 and 8,191/8,192/8,193
