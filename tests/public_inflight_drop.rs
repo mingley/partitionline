@@ -17,7 +17,7 @@ use std::time::{Duration, Instant};
 struct Callbacks {
     acks: Arc<AtomicUsize>,
     errors: Arc<AtomicUsize>,
-    entered: std::sync::mpsc::Sender<()>,
+    entered: std::sync::mpsc::Sender<Instant>,
     release: Arc<parking_lot::Mutex<Option<std::sync::mpsc::Receiver<()>>>>,
 }
 impl ProducerInterceptor for Callbacks {
@@ -26,7 +26,7 @@ impl ProducerInterceptor for Callbacks {
     }
     fn on_error(&self, _error: &Error) {
         let _previous = self.errors.fetch_add(1, Ordering::SeqCst);
-        let _sent = self.entered.send(());
+        let _sent = self.entered.send(Instant::now());
         let release = self.release.lock().take();
         if let Some(release) = release {
             let _released = release.recv();
@@ -64,6 +64,21 @@ async fn public_close_deadline_with_inflight_interceptor() {
     assert_eq!(warm.offset, 0);
     assert_eq!(callbacks.acks.load(Ordering::SeqCst), 1);
 
+    // The independent release is armed before any target poll can invoke a
+    // blocking callback, including unexpected early failures.
+    let ticked = Arc::new(AtomicBool::new(false));
+    let observer_flag = Arc::clone(&ticked);
+    let watchdog = std::thread::spawn(move || {
+        let entered_at = entered_rx.recv_timeout(Duration::from_secs(15));
+        if entered_at.is_ok() && held {
+            std::thread::sleep(Duration::from_millis(600));
+        }
+        let release_at = Instant::now();
+        let before_release = observer_flag.load(Ordering::SeqCst);
+        let _sent = release_tx.send(());
+        entered_at.ok().map(|entered_at| (entered_at, release_at, before_release))
+    });
+
     mock.set_produce_response_delay(Duration::from_secs(10));
     marker::arm();
     let mut target =
@@ -82,25 +97,31 @@ async fn public_close_deadline_with_inflight_interceptor() {
     assert_eq!(producer.metrics().bytes_buffered, 6);
     assert_eq!(callbacks.errors.load(Ordering::SeqCst), 0);
 
-    let ticked = Arc::new(AtomicBool::new(false));
+    // Confirm the timer is registered before starting close. A mere spawn or
+    // scheduler yield would not establish that its sleep was polled.
     let ticker_flag = Arc::clone(&ticked);
+    let ticker_deadline = Instant::now() + Duration::from_millis(250);
+    let (registered_tx, registered_rx) = tokio::sync::oneshot::channel();
     let ticker = tokio::spawn(async move {
-        tokio::time::sleep(Duration::from_millis(250)).await;
+        let sleep = tokio::time::sleep_until(tokio::time::Instant::from_std(ticker_deadline));
+        tokio::pin!(sleep);
+        let mut registered = Some(registered_tx);
+        poll_fn(|cx| match sleep.as_mut().poll(cx) {
+            Poll::Ready(()) => Poll::Ready(()),
+            Poll::Pending => {
+                if let Some(registered) = registered.take() {
+                    let _sent = registered.send(());
+                }
+                Poll::Pending
+            }
+        })
+        .await;
         ticker_flag.store(true, Ordering::SeqCst);
     });
-    tokio::task::yield_now().await;
-    let observer_flag = Arc::clone(&ticked);
-    let watchdog = std::thread::spawn(move || {
-        if entered_rx.recv_timeout(Duration::from_secs(10)).is_err() {
-            return None;
-        }
-        if held {
-            std::thread::sleep(Duration::from_millis(600));
-        }
-        let before_release = observer_flag.load(Ordering::SeqCst);
-        let _sent = release_tx.send(());
-        Some(before_release)
-    });
+    tokio::time::timeout(Duration::from_secs(5), registered_rx)
+        .await
+        .expect("timer registration deadline")
+        .expect("timer registered while pending");
     let start = Instant::now();
     let close = producer.clone().close_timeout(Duration::from_millis(150)).await;
     let elapsed = start.elapsed();
@@ -112,8 +133,13 @@ async fn public_close_deadline_with_inflight_interceptor() {
     })
     .await
     .expect("watchdog did not finish");
-    let tick_before_release = watchdog.join().expect("watchdog thread").expect("callback entered");
+    let (entered_at, release_at, tick_before_release) =
+        watchdog.join().expect("watchdog thread").expect("callback entered");
     if held {
+        assert!(
+            entered_at < ticker_deadline && ticker_deadline < release_at,
+            "timer deadline must fall inside the externally held callback"
+        );
         assert!(!tick_before_release, "timer ran while current-thread callback was held");
         assert!(elapsed >= Duration::from_millis(600), "close returned before release: {elapsed:?}");
     }
@@ -128,7 +154,11 @@ async fn public_close_deadline_with_inflight_interceptor() {
         mock.log_values("t", 0),
         vec![(0, Some(b"warm".to_vec())), (1, Some(b"target".to_vec()))]
     );
-    ticker.abort();
+    tokio::time::timeout(Duration::from_secs(5), ticker)
+        .await
+        .expect("timer completion deadline")
+        .expect("timer task");
+    assert!(ticked.load(Ordering::SeqCst));
     println!(
         "INFLIGHT_DROP_WITNESS held={held} close_ms={} tick_before_release={tick_before_release} receipt=timeout callbacks=1 bytes=0 target_appended=1",
         elapsed.as_millis()
