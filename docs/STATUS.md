@@ -42,8 +42,8 @@ later changes; see the linked runs for their exact source and scope.
 A later [partial main CI snapshot][ci-536] passed 781 broker default tests,
 with four ignored, but its all-feature library stopped after one Raft failure
 (534 passed, four ignored). Client libraries and four completed Kafka jobs
-failed; the Kafka 3.9.1 smoke was still running when recorded. Both selected
-capability profiles passed. The earlier broker pass does not explain the later
+failed; the Kafka 3.9.1 smoke was later canceled without a result. Both
+selected capability profiles passed. The earlier broker pass does not explain the later
 failure.
 
 An [earlier partial broker run][ci-912] passed its default profile but stopped
@@ -108,7 +108,11 @@ latency bound.
   A gated [public cancellation history][sequence-public] also left accepted records
   without callbacks and 65,544 bytes in buffer accounting after a worker
   stopped; a later worker sent a sequence gap that the mock rejected. These
-  are controlled mock histories, not real-Kafka results. An [in-flight
+  are controlled mock histories, not real-Kafka results. Another instrumented
+  [retry/flush history][retry-flush-split] sent an incomplete retry after the
+  mock stored the original batch; both observed receipts and flush returned
+  errors. It held an existing yield and does not establish a Kafka outcome.
+  An [in-flight
   close control][callback] also showed a blocking interceptor delaying a
   150 ms close to 751 ms on a current-thread runtime, with the target appended
   by the mock and its response withheld. [Flush controls][flush-public]
@@ -156,8 +160,11 @@ latency bound.
   and failed the baseline. The cause remains unknown. An earlier
   [test revision][admin-poll] checks cooperative progress without establishing
   a wall-time bound. Non-null response names are not checked against the
-  request, longer cursor cycles can duplicate results, and cleanup and memory
-  are not globally bounded. A [row-poll baseline][admin-row] measured a
+  request. An unapplied [name-validation candidate][admin-name] rejects
+  unsolicited names and cursors, but was 9% and 22% slower in median elapsed
+  time for 32 and 256 error rows in a paired mock comparison. A lower-cost
+  revision is under investigation. Longer cursor cycles can duplicate
+  results, and cleanup and memory are not globally bounded. A [row-poll baseline][admin-row] measured a
   93–98 ms longest public-future poll after a mock peer wrote 500,000 rows on
   one x86 host. That poll includes other work and is not a Kafka throughput or
   wall-time bound. [Admin response reservations][admin-reserve] cap
@@ -253,5 +260,8 @@ retained evidence. The [benchmark contract](benchmark-contract.md) and
 [ci-c481]: https://github.com/mingley/partitionline/blob/ad452fea03dcdde7e946322b3c55ca35bbccc224/docs/evidence/releases/main-ci-c481-partial-20261108/README.md
 [ci-912]: https://github.com/mingley/partitionline/blob/ed10995700da3252dbefb4696e1afd7dfe5a008d/docs/evidence/releases/main-ci-912-partial-20261108/README.md
 
-[ci-536]: https://github.com/mingley/partitionline/blob/a0deb28cfdb8eb85fd16a1b3264b35fceb2c74e1/docs/evidence/releases/main-ci-536-partial-20261108/README.md
+[ci-536]: https://github.com/mingley/partitionline/blob/8d1461a039b40c9bc79b6cf501aebf2a79054a85/docs/evidence/releases/main-ci-536-partial-20261108/README.md
 [admin-row]: https://github.com/mingley/partitionline/blob/a0deb28cfdb8eb85fd16a1b3264b35fceb2c74e1/docs/evidence/client/admin-dtp-row-poll-20261108/README.md
+
+[retry-flush-split]: https://github.com/mingley/partitionline/blob/8d1461a039b40c9bc79b6cf501aebf2a79054a85/docs/evidence/client/producer-retry-flush-split-20261108/README.md
+[admin-name]: https://github.com/mingley/partitionline/blob/8d1461a039b40c9bc79b6cf501aebf2a79054a85/docs/evidence/client/admin-requested-topic-validation-20261108/README.md
