@@ -1,0 +1,167 @@
+name: Exploratory matched Kafka acknowledged-produce diagnostic
+
+on:
+  push:
+    branches: [qualification/kafka-ack-comparison-20261108]
+
+permissions:
+  contents: read
+
+jobs:
+  paired:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 50
+    env:
+      CARGO_INCREMENTAL: "0"
+      CARGO_BUILD_JOBS: "2"
+      C_PEER_BUILD_JOBS: "2"
+      CARGO_TERM_COLOR: never
+      PYTHONDONTWRITEBYTECODE: "1"
+      KAFKA_IMAGE: apache/kafka@sha256:4ceccc577f03f51f6af8dbfda55194d0d892f4fa7913ffbded567ce3895622ed
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 10
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Record source and host
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(uname -m)" = x86_64
+          base=6298f6bfbed2ab98189d291ebebd2190a2ee75b6
+          git merge-base --is-ancestor "$base" HEAD
+          git diff --exit-code "$base" HEAD -- Cargo.lock Cargo.toml src benchmarks/peers/librdkafka
+          evidence="$RUNNER_TEMP/ack-matched-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
+          mkdir "$evidence"
+          printf 'ACK_EVIDENCE=%s\n' "$evidence" >> "$GITHUB_ENV"
+          git rev-parse HEAD "$base" | tee "$evidence/commits.txt"
+          rustc +stable -Vv | tee "$evidence/rustc.txt"
+          cargo +stable -V | tee "$evidence/cargo.txt"
+          java -version 2>&1 | tee "$evidence/java.txt"
+          cc --version | head -n 1 > "$evidence/c-compiler.txt"
+          uname -a | tee "$evidence/uname.txt"
+          lscpu > "$evidence/cpu.txt"
+          cat /sys/fs/cgroup/cpu.max > "$evidence/cgroup-cpu-max.txt" || true
+          taskset -cp $$ > "$evidence/process-affinity.txt"
+          docker version > "$evidence/docker-version.txt"
+          sha256sum Cargo.lock src/producer.rs examples/bench_kafka_paired.rs \
+            benchmarks/peers/librdkafka/build.sh benchmarks/peers/librdkafka/source-pin.json \
+            benchmarks/peers/kafka-ack/* .github/workflows/kafka-ack-comparison.yml \
+            > "$evidence/source-sha256.txt"
+      - name: Test independent checks and build Rust driver
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -B -m unittest discover -s benchmarks/peers/kafka-ack -p 'test_*.py' -v 2>&1 | tee "$ACK_EVIDENCE/verifier-tests.log"
+          cargo +stable test --locked --example bench_kafka_paired 2>&1 | tee "$ACK_EVIDENCE/rust-tests.log"
+          cargo +stable build --locked --release --example bench_kafka_paired 2>&1 | tee "$ACK_EVIDENCE/rust-build.log"
+          sha256sum target/release/examples/bench_kafka_paired > "$ACK_EVIDENCE/rust-binary-sha256.txt"
+      - name: Build pinned librdkafka and native driver
+        shell: bash
+        run: |
+          set -euo pipefail
+          export C_PEER_BUILD_DIR="$RUNNER_TEMP/ack-c-peer"
+          bash benchmarks/peers/librdkafka/build.sh > "$ACK_EVIDENCE/c-build.log" 2>&1 || { cat "$ACK_EVIDENCE/c-build.log"; exit 1; }
+          cc -std=c11 -O3 -Wall -Wextra -Werror -isystem "$C_PEER_BUILD_DIR/source/src" \
+            benchmarks/peers/kafka-ack/peer.c -L"$C_PEER_BUILD_DIR/lib" \
+            -Wl,-rpath,'$ORIGIN/lib' -lrdkafka -o "$C_PEER_BUILD_DIR/paired-ack" \
+            2> "$ACK_EVIDENCE/c-driver-build.log" || { cat "$ACK_EVIDENCE/c-driver-build.log"; exit 1; }
+          cp "$C_PEER_BUILD_DIR/build-manifest.json" "$ACK_EVIDENCE/native-build-manifest.json"
+          sha256sum "$C_PEER_BUILD_DIR/paired-ack" "$C_PEER_BUILD_DIR/lib/librdkafka.so.1" \
+            > "$ACK_EVIDENCE/c-binary-sha256.txt"
+      - name: Start pinned Kafka and compile independent reader
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker pull "$KAFKA_IMAGE" > "$ACK_EVIDENCE/docker-pull.log" 2>&1
+          docker image inspect "$KAFKA_IMAGE" --format '{{.Id}} {{json .RepoDigests}}' > "$ACK_EVIDENCE/kafka-image.txt"
+          read -r client_cpu sampler_cpu broker_cpus < <(python3 - <<'PY'
+          import os
+          cpus=sorted(os.sched_getaffinity(0))
+          assert len(cpus)>=2, cpus
+          client=cpus[0]
+          sampler=cpus[1] if len(cpus)==2 else cpus[2]
+          brokers=cpus[1:] if len(cpus)==2 else [c for c in cpus[1:] if c!=sampler]
+          print(client, sampler, ",".join(map(str,brokers)))
+          PY
+          )
+          printf 'CLIENT_CPU=%s\nSAMPLER_CPU=%s\n' "$client_cpu" "$sampler_cpu" >> "$GITHUB_ENV"
+          printf 'client_cpu=%s sampler_cpu=%s broker_cpus=%s\n' "$client_cpu" "$sampler_cpu" "$broker_cpus" > "$ACK_EVIDENCE/affinity.txt"
+          docker run -d --name "ack-kafka-$GITHUB_RUN_ID" --cpuset-cpus "$broker_cpus" \
+            -p 127.0.0.1:19092:19092 \
+            -e KAFKA_NODE_ID=1 -e KAFKA_PROCESS_ROLES=broker,controller \
+            -e KAFKA_LISTENERS=PLAINTEXT://:19092,CONTROLLER://:9093 \
+            -e KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://127.0.0.1:19092 \
+            -e KAFKA_CONTROLLER_LISTENER_NAMES=CONTROLLER \
+            -e KAFKA_LISTENER_SECURITY_PROTOCOL_MAP=CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT \
+            -e KAFKA_CONTROLLER_QUORUM_VOTERS=1@127.0.0.1:9093 \
+            -e KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR=1 \
+            -e KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR=1 \
+            -e KAFKA_TRANSACTION_STATE_LOG_MIN_ISR=1 \
+            -e KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS=0 \
+            "$KAFKA_IMAGE" > "$ACK_EVIDENCE/container-id.txt"
+          ready=0
+          for attempt in $(seq 1 60); do
+            if timeout 5s docker exec "ack-kafka-$GITHUB_RUN_ID" /opt/kafka/bin/kafka-topics.sh \
+              --bootstrap-server 127.0.0.1:19092 --list > "$ACK_EVIDENCE/ready.log" 2>&1; then
+              ready=1
+              break
+            fi
+            sleep 2
+          done
+          test "$ready" = 1
+          docker cp "ack-kafka-$GITHUB_RUN_ID:/opt/kafka/libs" "$RUNNER_TEMP/kafka-libs"
+          mkdir "$RUNNER_TEMP/ack-java"
+          javac -cp "$RUNNER_TEMP/kafka-libs/*" -d "$RUNNER_TEMP/ack-java" benchmarks/peers/kafka-ack/ReceiptAudit.java
+          sha256sum "$RUNNER_TEMP"/kafka-libs/kafka-clients-3.9.1.jar \
+            "$RUNNER_TEMP/ack-java/ReceiptAudit.class" > "$ACK_EVIDENCE/java-audit-sha256.txt"
+      - name: Ten balanced attempts with independent byte-for-byte verification
+        shell: bash
+        run: |
+          set -euo pipefail
+          export KAFKA_BOOTSTRAP=127.0.0.1:19092 WARMUP=10000 COUNT=10000 PAYLOAD_BYTES=100
+          printf 'pair\tarm\texit\n' > "$ACK_EVIDENCE/attempts.tsv"
+          failures=0
+          for pair in 1 2 3 4 5; do
+            if (( pair % 2 )); then sequence="rust c"; else sequence="c rust"; fi
+            for arm in $sequence; do
+              echo "::group::pair $pair $arm"
+              set +e
+              bash benchmarks/peers/kafka-ack/run-one.sh "$pair" "$arm"
+              status=$?
+              set -e
+              printf '%s\t%s\t%s\n' "$pair" "$arm" "$status" | tee -a "$ACK_EVIDENCE/attempts.tsv"
+              if [ "$status" -ne 0 ]; then
+                failures=$((failures+1))
+                find "$ACK_EVIDENCE/pair-$pair-$arm" -maxdepth 1 -type f -name '*.log' -exec sh -c 'echo "--- $1"; tail -n 40 "$1"' _ {} \;
+              fi
+              echo "::endgroup::"
+            done
+          done
+          set +e
+          python3 benchmarks/peers/kafka-ack/aggregate.py "$ACK_EVIDENCE" | tee "$ACK_EVIDENCE/aggregate.json"
+          aggregate_status=$?
+          set -e
+          test "$failures" = 0
+          test "$aggregate_status" = 0
+      - name: Retain failure context and stop isolated broker
+        if: always()
+        shell: bash
+        run: |
+          if docker inspect "ack-kafka-$GITHUB_RUN_ID" >/dev/null 2>&1; then
+            docker logs "ack-kafka-$GITHUB_RUN_ID" > "$ACK_EVIDENCE/kafka.log" 2>&1 || true
+            docker rm -f "ack-kafka-$GITHUB_RUN_ID" >/dev/null || true
+          fi
+      - name: Retain all source pins, attempts, receipts and settings
+        if: always() && env.ACK_EVIDENCE != ''
+        uses: actions/upload-artifact@v7
+        with:
+          name: ack-matched-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ env.ACK_EVIDENCE }}
+          if-no-files-found: error
+          retention-days: 30
