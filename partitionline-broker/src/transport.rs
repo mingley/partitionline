@@ -3976,3 +3976,69 @@ mod buffered_read_fairness_control {
         writer.await.unwrap().unwrap();
     }
 }
+
+#[cfg(all(test, feature = "tls"))]
+mod frame_tls_tcp_control {
+    use super::{frame_mut, new_frame, read_frame, Config, ReadAhead};
+    use crate::security::tls::{Acceptor, ClientAuth, Limits};
+    use std::sync::Arc;
+    use std::time::Duration;
+    use tokio::io::{AsyncReadExt, AsyncWriteExt};
+    use tokio::net::{TcpListener, TcpStream};
+    use tokio::time::Instant;
+
+    #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+    async fn fragmented_prefetched_prefix_reassembles_over_tls_tcp() {
+        let acceptor = Acceptor::new(
+            vec![include_bytes!("../tests/fixtures/tls/server1.cert.der").to_vec()],
+            include_bytes!("../tests/fixtures/tls/server1.key.der").to_vec(),
+            ClientAuth::ServerOnly,
+            Limits::default(),
+        ).unwrap();
+        let mut roots = rustls::RootCertStore::empty();
+        roots.add(rustls::pki_types::CertificateDer::from(
+            include_bytes!("../tests/fixtures/tls/ca1.cert.der").to_vec(),
+        )).unwrap();
+        let config = rustls::ClientConfig::builder_with_provider(Arc::new(
+            rustls::crypto::ring::default_provider(),
+        ))
+        .with_protocol_versions(rustls::DEFAULT_VERSIONS).unwrap()
+        .with_root_certificates(roots)
+        .with_no_client_auth();
+        let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let (client, accepted) = tokio::join!(
+            TcpStream::connect(listener.local_addr().unwrap()),
+            listener.accept(),
+        );
+        let connector = tokio_rustls::TlsConnector::from(Arc::new(config));
+        let acceptor = tokio_rustls::TlsAcceptor::from(acceptor.snapshot().server.clone());
+        let name = rustls::pki_types::ServerName::try_from("localhost".to_owned()).unwrap();
+        let (client, server) = tokio::join!(
+            connector.connect(name, client.unwrap()),
+            acceptor.accept(accepted.unwrap().0),
+        );
+        let mut client = client.unwrap();
+        let mut server = server.unwrap();
+        let length = 256 * 1024usize;
+        let writer = tokio::spawn(async move {
+            client.write_all(&(length as i32).to_be_bytes()).await?;
+            client.write_all(&vec![0x5a; length]).await?;
+            client.flush().await?;
+            std::io::Result::Ok(())
+        });
+        let mut first = [0u8; 2];
+        server.read_exact(&mut first).await.unwrap();
+        let mut ahead = ReadAhead::new();
+        frame_mut(&mut ahead.bytes).extend_from_slice(&first);
+        let config = Config::new(
+            1, 1, length, 1024,
+            Duration::from_secs(10), Duration::from_secs(10), Duration::from_secs(10),
+        ).unwrap();
+        let result = read_frame(
+            &mut server, config, Instant::now() + Duration::from_secs(10),
+            &mut ahead, new_frame(),
+        ).await;
+        assert!(matches!(result, Ok(ref body) if body.len() == length && body.iter().all(|b| *b == 0x5a)));
+        tokio::time::timeout(Duration::from_secs(10), writer).await.unwrap().unwrap().unwrap();
+    }
+}

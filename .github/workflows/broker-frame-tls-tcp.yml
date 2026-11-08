@@ -1,0 +1,27 @@
+name: Broker TLS TCP frame control
+on:
+  push:
+    branches: [qualification/broker-frame-tls-tcp-20261108]
+permissions:
+  contents: read
+jobs:
+  tls-tcp:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      CARGO_BUILD_JOBS: 2
+      CARGO_INCREMENTAL: 0
+      CARGO_PROFILE_TEST_DEBUG: 0
+      CARGO_PROFILE_DEV_DEBUG: 0
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: TLS over loopback TCP with fragmented prefetched prefix
+        run: |
+          set -euo pipefail
+          rustc -Vv
+          for features in tls all; do
+            args=(--features tls)
+            if [[ "$features" == all ]]; then args=(--all-features); fi
+            cargo test --locked --manifest-path partitionline-broker/Cargo.toml --lib "${args[@]}" fragmented_prefetched_prefix_reassembles_over_tls_tcp -- --nocapture
+          done
