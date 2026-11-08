@@ -33,11 +33,26 @@ limits.
 | Client capability profiles | Both passed selected checks; their archives were not independently inspected. |
 | Client format, all-target Clippy, audit, docs, package, auth and integrity smoke | Passed. Other client jobs failed or were skipped. |
 
+A newer [client CI run][ci-440-client] at `4409633` was still running
+when this record was written. Linux default and all-feature libraries reported
+2,233/11 and 2,232/12 passed/failed; Windows reported 2,225/19 and macOS
+arm64 2,230/14. The three current Kafka compatibility jobs failed with stack
+overflows; the Kafka 3.9.1 smoke reported JoinGroup error 16. The
+resource-soak job failed because the runner denied access to a process's
+`/proc` file-descriptor directory; the workload result is incomplete. The
+Kafka 4.1.0 smoke was still running. See the run for its final state. The
+[broker CI run][ci-440-broker] passed 764 default and 912 all-feature tests,
+with three ignored per profile; its strict checks, inventory and fuzz
+supervision passed. Both selected [capability profiles][ci-440-capabilities]
+passed; their archives were not independently inspected.
+
 An earlier [frame-read test failure][deadline-test] used a 30 ms deadline
 and required total elapsed time under 80 ms; it observed the deadline error
 after 82.681715 ms. The cause is unknown. The revised test retains deadline
 and yield controls without imposing that wall-time threshold; production
-transport logic is unchanged.
+transport logic is unchanged. An [observer diagnostic][observer-diag] now
+captures bounded checkpoint failure details; its sampled prefix is non-atomic,
+and the original small-image failure remains unexplained.
 
 An [earlier partial client run][e02-client] at `e02c1b8` recorded 17 successful jobs,
 six failures, four cancellations and one skip. Linux default and Windows
@@ -82,7 +97,10 @@ pass does not replace the full release matrix.
   error without returning it. [Focused x86 tests][flush] cover both. A
   [public mock history][flush-public] used a timing gate to observe flush
   returning while an accepted record receipt was pending. An isolated
-  [completion model][flush-model] is not connected to the producer.
+  [completion model][flush-model] is not connected to the producer. A private
+  [sequence control][sequence-cancel] closed receipts after an artificial
+  owner was dropped while the reserved counter stayed advanced; it did not
+  execute the public producer or Kafka I/O.
   Individual delivery timeouts remain reported through the record's own
   result or callback under the documented contract. Repair the barrier and
   error ownership together. Partition issue order, sequence wrap, transaction
@@ -148,7 +166,10 @@ pass does not replace the full release matrix.
   continuity run has passed. Matched x86 comparisons against other Kafka
   implementations, with independent record verification, have not been
   completed. A [closed-loop diagnostic][ack] verified individual deliveries,
-  but its short runs have mismatched settings and driver costs. A [decode
+  but its short runs have mismatched settings and driver costs. Two newer
+  [comparison attempts][ack-rejected] also failed their socket-equality gate;
+  one arm was not independently verified. They do not establish a ranking.
+  A [decode
   experiment][perf] improved large synthetic loopback responses but remains
   unapplied. A [journal comparison][journal-perf] measured added latency on
   one shared host with a writeback filesystem. [Record-header validation][records-perf] now uses a resumable header-aware
@@ -163,7 +184,7 @@ The [support matrix](support.md) describes configured coverage, and the
 
 [ci]: https://github.com/mingley/partitionline/blob/f93e91499e2ba6bdc88c0a25a0d83b8737d00d3c/docs/evidence/releases/main-ci-1036-20261108/README.md
 [previous-ci]: https://github.com/mingley/partitionline/blob/7ebb3cc81adc695cc4c74409a87a1a1dd4be9730/docs/evidence/releases/main-ci-ba8-20261108/README.md
-[next]: https://github.com/mingley/partitionline/blob/f93e91499e2ba6bdc88c0a25a0d83b8737d00d3c/docs/plan/next-work.md
+[next]: https://github.com/mingley/partitionline/blob/932a7835939034c730b92a12f867cf7c945320ba/docs/plan/next-work.md
 [previous]: https://github.com/mingley/partitionline/blob/5c2a000639d9a8a7dccd56e8c1d6f3a58dca1601/docs/STATUS.md
 [flush]: https://github.com/mingley/partitionline/blob/e980829c439aa43edc01312c91838e58a412221a/docs/evidence/client/producer-flush-native-86f2-20261103/README.md
 [txn]: https://github.com/mingley/partitionline/blob/49ad56c6bce1366e2357c272f11c5c34160d60da/docs/evidence/client/add-partitions-native-4f0c-20261103/README.md
@@ -201,3 +222,10 @@ The [support matrix](support.md) describes configured coverage, and the
 [deadline-test]: https://github.com/mingley/partitionline/blob/f93e91499e2ba6bdc88c0a25a0d83b8737d00d3c/docs/evidence/broker/frame-read-deadline-test-20261108/README.md
 [flush-public]: https://github.com/mingley/partitionline/blob/f93e91499e2ba6bdc88c0a25a0d83b8737d00d3c/docs/evidence/client/producer-flush-public-20261108/README.md
 [flush-model]: https://github.com/mingley/partitionline/blob/f93e91499e2ba6bdc88c0a25a0d83b8737d00d3c/docs/evidence/client/producer-completion-horizon-20261108/README.md
+
+[ack-rejected]: https://github.com/mingley/partitionline/blob/932a7835939034c730b92a12f867cf7c945320ba/docs/evidence/client/ack-matched-rejected-20261108/README.md
+[observer-diag]: https://github.com/mingley/partitionline/blob/932a7835939034c730b92a12f867cf7c945320ba/docs/evidence/broker/observer-image-diagnostic-20261108/README.md
+[sequence-cancel]: https://github.com/mingley/partitionline/blob/932a7835939034c730b92a12f867cf7c945320ba/docs/evidence/client/producer-sequence-cancel-20261108/README.md
+[ci-440-client]: https://github.com/mingley/partitionline/actions/runs/42459181316
+[ci-440-broker]: https://github.com/mingley/partitionline/actions/runs/42459181380
+[ci-440-capabilities]: https://github.com/mingley/partitionline/actions/runs/42459181276
