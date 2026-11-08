@@ -2187,7 +2187,10 @@ fn dtp_conversion_yields_on_the_exact_row_boundary() {
             assert!(matches!(first, Poll::Ready(Ok(None))));
             assert_eq!(wake.0.load(Ordering::SeqCst), 0);
         } else {
-            assert!(matches!(first, Poll::Pending));
+            assert!(
+                matches!(first, Poll::Pending),
+                "row conversion checkpoint did not suspend at 8,192 rows"
+            );
             assert!(wake.0.load(Ordering::SeqCst) > 0);
             assert!(matches!(
                 future.as_mut().poll(&mut context),
@@ -2231,7 +2234,10 @@ fn dtp_conversion_yields_on_the_exact_row_boundary() {
             tokio::time::Instant::now() + Duration::from_secs(30),
             &mut budget,
         ));
-        assert!(future.as_mut().poll(&mut context).is_pending());
+        assert!(
+            future.as_mut().poll(&mut context).is_pending(),
+            "row conversion checkpoint did not suspend at 8,192 rows"
+        );
         drop(future);
         assert!(requested.index.is_none());
         assert_eq!(page.len(), 8192);
@@ -2296,7 +2302,10 @@ fn dtp_conversion_carries_the_row_budget_across_pages() {
         deadline,
         &mut budget,
     ));
-    assert!(at_boundary.as_mut().poll(&mut context).is_pending());
+    assert!(
+        at_boundary.as_mut().poll(&mut context).is_pending(),
+        "row conversion checkpoint did not carry across pages"
+    );
     assert!(wake.0.load(Ordering::SeqCst) > 0);
     assert!(matches!(
         at_boundary.as_mut().poll(&mut context),
