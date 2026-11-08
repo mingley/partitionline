@@ -159,7 +159,7 @@ impl Config {
 pub enum Error {
     /// Invalid local endpoint or resource bounds.
     InvalidConfig,
-    /// Bounded protocol parsing or buffer reservation failed.
+    /// Bounded protocol parsing or input normalization failed before mutation.
     Protocol(protocol::Error),
     /// API/version is outside this router's implemented range.
     UnsupportedVersion {
@@ -1400,37 +1400,15 @@ thread_local! {
     static FAIL_BUFFER_REPACK: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
 }
 
-// The request and response-side Vecs in a completed receipt remain under its
-// permit until consumption or cancellation. Store caches have separate caps.
+// A response can still exceed the configured logical maximum in capacity if
+// an allocator over-reserves while the writer grows. Do not allocate or change
+// the result after a potentially durable operation; only discard excess scratch.
 fn bounded_data_completion(
     mut lease: DataLease,
     result: Result<DataReply, Error>,
     maximum: usize,
 ) -> DataCompletion {
-    let result = result.and_then(|reply| match reply {
-        DataReply::Produce { response: Some(bytes) } => {
-            if bytes.len() > maximum {
-                return Err(Error::ResponseLimit);
-            }
-            Ok(DataReply::Produce {
-                response: Some(bound_owned_vec(bytes, maximum)?),
-            })
-        }
-        DataReply::Produce { response: None } => Ok(DataReply::Produce { response: None }),
-        DataReply::Read { mut snapshot } => {
-            if snapshot.response.len() > maximum {
-                return Err(Error::ResponseLimit);
-            }
-            snapshot.response = bound_owned_vec(snapshot.response, maximum)?;
-            Ok(DataReply::Read { snapshot })
-        }
-    });
-    let response_capacity = match &result {
-        Ok(DataReply::Produce { response: Some(bytes) }) => bytes.capacity(),
-        Ok(DataReply::Read { snapshot }) => snapshot.response.capacity(),
-        _ => 0,
-    };
-    if lease.spare.capacity().saturating_add(response_capacity) > maximum {
+    if lease.spare.capacity() > maximum {
         drop(std::mem::take(&mut lease.spare));
     }
     DataCompletion { result, lease }
@@ -4319,14 +4297,18 @@ mod tests {
 
 
     #[test]
-    fn completion_compacts_actual_response_capacity_and_preserves_permit() -> Result<(), Box<dyn StdError>> {
+    fn completion_preserves_response_without_allocating_and_discards_oversized_scratch(
+    ) -> Result<(), Box<dyn StdError>> {
         let slots = Arc::new(Semaphore::new(1));
         let mut response = Vec::with_capacity(8192);
         response.extend_from_slice(&[7; 12]);
+        let pointer = response.as_ptr();
+        let capacity = response.capacity();
+        FAIL_BUFFER_REPACK.with(|fail| fail.set(true));
         let completion = bounded_data_completion(
             DataLease {
                 request: vec![1],
-                spare: Vec::with_capacity(64),
+                spare: Vec::with_capacity(8192),
                 permit: Arc::clone(&slots).try_acquire_owned()?,
             },
             Ok(DataReply::Produce { response: Some(response) }),
@@ -4337,27 +4319,12 @@ mod tests {
             _ => panic!("expected response"),
         };
         assert_eq!(response.as_slice(), &[7; 12]);
-        assert!(response.capacity() <= 64);
-        assert!(response.capacity() + completion.lease.spare.capacity() <= 64);
+        assert_eq!(response.as_ptr(), pointer);
+        assert_eq!(response.capacity(), capacity);
+        assert_eq!(completion.lease.spare.capacity(), 0);
+        assert!(FAIL_BUFFER_REPACK.with(|fail| fail.replace(false)));
         assert_eq!(slots.available_permits(), 0);
         drop(completion);
-        assert_eq!(slots.available_permits(), 1);
-
-        let mut response = Vec::with_capacity(8192);
-        response.extend_from_slice(&[7; 12]);
-        FAIL_BUFFER_REPACK.with(|fail| fail.set(true));
-        let failed = bounded_data_completion(
-            DataLease {
-                request: vec![1],
-                spare: Vec::new(),
-                permit: Arc::clone(&slots).try_acquire_owned()?,
-            },
-            Ok(DataReply::Produce { response: Some(response) }),
-            64,
-        );
-        assert!(matches!(&failed.result, Err(Error::Protocol(protocol::Error::Allocation))));
-        assert_eq!(slots.available_permits(), 0);
-        drop(failed);
         assert_eq!(slots.available_permits(), 1);
         Ok(())
     }
