@@ -38,6 +38,16 @@ jobs:
             src
             examples
             tests
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          ref: ${{ github.sha }}
+          path: negative
+          sparse-checkout: |
+            .cargo
+            src
+            examples
+            tests
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: rustfmt, clippy
@@ -54,6 +64,8 @@ jobs:
       - name: Baseline old-peer failure witnesses
         working-directory: baseline
         run: bash ../.github/group-qualification/baseline.sh
+      - name: Negative controls for EOF and owner drop
+        run: bash .github/group-qualification/negative.sh
       - name: Clippy
         run: cargo +stable clippy --locked --all-targets --all-features -- -D warnings
       - name: Alternating baseline and candidate loopback probe

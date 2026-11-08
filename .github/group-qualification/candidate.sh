@@ -13,6 +13,8 @@ tests=(
   'net::tests::dropping_owner_retires_a_stream_locked_by_its_watcher'
   'net::tests::runtime_shutdown_retires_a_stream_locked_by_its_watcher'
   'net::tests::retirement_wakes_a_watcher_already_draining_a_closed_socket'
+  'net::tests::idle_watcher_closes_when_tls_shutdown_stalls_after_eof'
+  'net::tests::owner_drop_keeps_retirement_watcher_until_detached_holder_releases'
   'group::coordinator_replacement_tests::canceled_versions_retires_both_sockets_and_can_retry'
   'group::coordinator_replacement_tests::canceled_sasl_restores_versions_and_retires_replacement'
   'group::coordinator_replacement_tests::expired_replacement_retires_old_socket_without_dialing'

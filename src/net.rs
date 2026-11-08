@@ -848,6 +848,9 @@ enum ConnIo {
     /// Test double that returns a fixed body in small ready chunks.
     #[cfg(test)]
     Script(ScriptIo),
+    /// Test double for TLS EOF with a shutdown that remains pending.
+    #[cfg(test)]
+    PendingTls(PendingTlsIo),
 }
 
 // These test doubles model a ready IO call that takes wall time inside one
@@ -922,6 +925,50 @@ impl AsyncWrite for ScriptIo {
     }
 }
 
+#[cfg(test)]
+struct PendingTlsIo {
+    shutdown_polled: Arc<AtomicBool>,
+    dropped: Arc<AtomicBool>,
+}
+
+#[cfg(test)]
+impl Drop for PendingTlsIo {
+    fn drop(&mut self) {
+        self.dropped.store(true, Ordering::SeqCst);
+    }
+}
+
+#[cfg(test)]
+impl AsyncRead for PendingTlsIo {
+    fn poll_read(
+        self: Pin<&mut Self>,
+        _cx: &mut Context<'_>,
+        _buf: &mut ReadBuf<'_>,
+    ) -> Poll<io::Result<()>> {
+        Poll::Ready(Ok(()))
+    }
+}
+
+#[cfg(test)]
+impl AsyncWrite for PendingTlsIo {
+    fn poll_write(
+        self: Pin<&mut Self>,
+        _cx: &mut Context<'_>,
+        buf: &[u8],
+    ) -> Poll<io::Result<usize>> {
+        Poll::Ready(Ok(buf.len()))
+    }
+
+    fn poll_flush(self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<io::Result<()>> {
+        Poll::Ready(Ok(()))
+    }
+
+    fn poll_shutdown(self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<io::Result<()>> {
+        self.shutdown_polled.store(true, Ordering::SeqCst);
+        Poll::Pending
+    }
+}
+
 impl AsyncRead for ConnIo {
     fn poll_read(
         self: Pin<&mut Self>,
@@ -934,6 +981,8 @@ impl AsyncRead for ConnIo {
             ConnIo::Tls(s) => Pin::new(s.as_mut()).poll_read(cx, buf),
             #[cfg(test)]
             ConnIo::Script(s) => Pin::new(s).poll_read(cx, buf),
+            #[cfg(test)]
+            ConnIo::PendingTls(s) => Pin::new(s).poll_read(cx, buf),
         }
     }
 }
@@ -953,6 +1002,8 @@ impl AsyncWrite for ConnIo {
             ConnIo::Tls(s) => Pin::new(s.as_mut()).poll_write(cx, buf),
             #[cfg(test)]
             ConnIo::Script(s) => Pin::new(s).poll_write(cx, buf),
+            #[cfg(test)]
+            ConnIo::PendingTls(s) => Pin::new(s).poll_write(cx, buf),
         }
     }
 
@@ -963,6 +1014,8 @@ impl AsyncWrite for ConnIo {
             ConnIo::Tls(s) => Pin::new(s.as_mut()).poll_flush(cx),
             #[cfg(test)]
             ConnIo::Script(s) => Pin::new(s).poll_flush(cx),
+            #[cfg(test)]
+            ConnIo::PendingTls(s) => Pin::new(s).poll_flush(cx),
         }
     }
 
@@ -973,6 +1026,8 @@ impl AsyncWrite for ConnIo {
             ConnIo::Tls(s) => Pin::new(s.as_mut()).poll_shutdown(cx),
             #[cfg(test)]
             ConnIo::Script(s) => Pin::new(s).poll_shutdown(cx),
+            #[cfg(test)]
+            ConnIo::PendingTls(s) => Pin::new(s).poll_shutdown(cx),
         }
     }
 }
@@ -983,6 +1038,11 @@ impl ConnIo {
     fn poll_terminal_shutdown(&mut self, cx: &mut Context<'_>) -> Poll<io::Result<()>> {
         match Pin::new(&mut *self).poll_shutdown(cx) {
             Poll::Pending if matches!(self, Self::Tls(_)) => {
+                *self = Self::Closed;
+                Poll::Ready(Ok(()))
+            }
+            #[cfg(test)]
+            Poll::Pending if matches!(self, Self::PendingTls(_)) => {
                 *self = Self::Closed;
                 Poll::Ready(Ok(()))
             }
@@ -1232,7 +1292,7 @@ fn spawn_idle_watch(
                         IdleRead::Eof => {
                             closed.store(true, Ordering::SeqCst);
                             if let Ok(mut io) = stream.try_lock() {
-                                drop(poll_fn(|cx| Pin::new(&mut *io).poll_shutdown(cx)).await);
+                                drop(poll_fn(|cx| io.poll_terminal_shutdown(cx)).await);
                             }
                             // Shut the write half down before waking a heartbeat
                             // that already has bytes buffered. That waiter is
@@ -1338,7 +1398,11 @@ pub struct BrokerConn {
 
 impl Drop for BrokerConn {
     fn drop(&mut self) {
-        self.idle_watch.abort();
+        // A requested physical retirement keeps the existing watcher alive
+        // until a held stream lock is released; no additional task is spawned.
+        if !self.physical_retire.load(Ordering::SeqCst) {
+            self.idle_watch.abort();
+        }
     }
 }
 
@@ -3589,17 +3653,23 @@ mod tests {
         let watcher_stream = Arc::clone(&stream);
         let retirement = Arc::clone(&conn.physical_retire);
         let (held_tx, held_rx) = tokio::sync::oneshot::channel();
+        let (release_tx, release_rx) = tokio::sync::oneshot::channel();
         let watcher = async move {
-            let _io = watcher_stream.lock().await;
+            let mut io = watcher_stream.lock().await;
             held_tx.send(()).unwrap();
-            std::future::pending::<()>().await;
+            release_rx.await.unwrap();
+            *io = ConnIo::Closed;
         };
         let task = tokio::spawn(guard_idle_watch(Arc::clone(&stream), retirement, watcher));
         conn.idle_watch = task.abort_handle();
         held_rx.await.unwrap();
         assert!(!conn.try_retire_physical());
         drop(conn);
-        assert!(task.await.unwrap_err().is_cancelled());
+        release_tx.send(()).unwrap();
+        tokio::time::timeout(Duration::from_secs(2), task)
+            .await
+            .unwrap()
+            .unwrap();
         assert!(matches!(&*stream.try_lock().unwrap(), ConnIo::Closed));
         assert_retired_peer(&mut peer).await;
     }
@@ -3734,6 +3804,87 @@ mod tests {
         drop(retiring);
         assert!(conn.is_closed());
         assert!(conn.physically_retired_for_test());
+        assert_retired_peer(&mut peer).await;
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn idle_watcher_closes_when_tls_shutdown_stalls_after_eof() {
+        let shutdown_polled = Arc::new(AtomicBool::new(false));
+        let dropped = Arc::new(AtomicBool::new(false));
+        let stream = Arc::new(tokio::sync::Mutex::new(ConnIo::PendingTls(PendingTlsIo {
+            shutdown_polled: Arc::clone(&shutdown_polled),
+            dropped: Arc::clone(&dropped),
+        })));
+        let prefetch = Arc::new(parking_lot::Mutex::new(BytesMut::new()));
+        let closed = Arc::new(AtomicBool::new(false));
+        let retirement = Arc::new(AtomicBool::new(false));
+        let arm = Arc::new(tokio::sync::Notify::new());
+        let watch = spawn_idle_watch(
+            Arc::clone(&stream),
+            prefetch,
+            closed,
+            retirement,
+            arm,
+        );
+        tokio::time::timeout(Duration::from_secs(2), async {
+            while !watch.is_finished() {
+                tokio::task::yield_now().await;
+            }
+        })
+        .await
+        .expect("TLS EOF watcher held the stream while shutdown was pending");
+        assert!(shutdown_polled.load(Ordering::SeqCst));
+        assert!(dropped.load(Ordering::SeqCst));
+        assert!(matches!(&*stream.try_lock().unwrap(), ConnIo::Closed));
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn owner_drop_keeps_retirement_watcher_until_detached_holder_releases() {
+        let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap().to_string();
+        let mut conn = BrokerConn::connect(&addr, "retire-detached-holder", Duration::from_secs(2))
+            .await
+            .unwrap();
+        let (mut peer, _) = listener.accept().await.unwrap();
+        conn.idle_watch.abort();
+        tokio::time::timeout(Duration::from_secs(2), async {
+            while !conn.idle_watch.is_finished() {
+                tokio::task::yield_now().await;
+            }
+        })
+        .await
+        .unwrap();
+
+        let stream = Arc::clone(&conn.stream);
+        let held = stream.lock().await;
+        let watcher_stream = Arc::clone(&stream);
+        let (started_tx, started_rx) = tokio::sync::oneshot::channel();
+        let watcher = async move {
+            started_tx.send(()).unwrap();
+            let mut io = watcher_stream.lock().await;
+            *io = ConnIo::Closed;
+        };
+        let mut task = tokio::spawn(guard_idle_watch(
+            Arc::clone(&stream),
+            Arc::clone(&conn.physical_retire),
+            watcher,
+        ));
+        conn.idle_watch = task.abort_handle();
+        started_rx.await.unwrap();
+        assert!(!conn.try_retire_physical());
+        drop(conn);
+        assert!(
+            tokio::time::timeout(Duration::from_millis(100), &mut task)
+                .await
+                .is_err(),
+            "the retirement watcher must remain pending while the holder owns the stream"
+        );
+        drop(held);
+        tokio::time::timeout(Duration::from_secs(2), task)
+            .await
+            .unwrap()
+            .unwrap();
+        assert!(matches!(&*stream.try_lock().unwrap(), ConnIo::Closed));
         assert_retired_peer(&mut peer).await;
     }
 
