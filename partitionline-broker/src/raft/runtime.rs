@@ -6240,6 +6240,139 @@ mod ownership_tests {
         drop(listeners);
         Ok(())
     }
+    async fn observer_addition_after_leader_selection_case(step_down: bool) -> TestResult {
+        let source = LocalOwner::open_profile(0, 3, 2, 16, StorageLimits::standard()?, 100).await?;
+        let peer = LocalOwner::open_profile(1, 3, 2, 16, StorageLimits::standard()?, 100).await?;
+        let observer =
+            LocalOwner::open_profile(2, 3, 2, 16, StorageLimits::standard()?, 100).await?;
+        let result: TestResult = async {
+            tokio::time::sleep(Duration::from_millis(3)).await;
+            let Reply::Votes(jobs) = source.fixture("selection-campaign", Command::Tick).await??
+            else {
+                return Err("campaign".into());
+            };
+            assert_eq!(jobs.len(), 1);
+            let Job::Vote(request) = jobs.into_iter().next().ok_or("missing vote")? else {
+                return Err("vote job".into());
+            };
+            let response = grant(&peer, request).await?;
+            source
+                .fixture("selection-vote", Command::Acknowledge(response))
+                .await??;
+            source.fixture("selection-activate", Command::Tick).await??;
+            let peer_key = peer.control.config.bootstrap.local().key();
+            for _ in 0..2 {
+                owner_append_exchange(&source, &peer, peer_key).await?;
+            }
+            let selected = source.state().await?;
+            assert_eq!(selected.election.role, Role::Leader);
+            assert!(selected.ready);
+            assert_eq!(selected.active_term, Some(selected.election.persistent.term));
+            assert!(selected.committed_end > 0);
+            let observer_key = observer.control.config.bootstrap.local().key();
+
+            if step_down {
+                // A real peer's newer campaign changes source leadership after
+                // the earlier selected state and before this distinct addition.
+                tokio::time::sleep(Duration::from_millis(3)).await;
+                let Reply::Votes(jobs) = peer.fixture("newer-campaign", Command::Tick).await??
+                else {
+                    return Err("newer campaign".into());
+                };
+                let request = jobs
+                    .into_iter()
+                    .find_map(|job| match job {
+                        Job::Vote(q) if q.context.peer.id == 0 => Some(q),
+                        _ => None,
+                    })
+                    .ok_or("missing newer vote")?;
+                assert!(request.request.term > selected.election.persistent.term);
+                let response = grant(&source, request).await?;
+                assert!(matches!(
+                    response,
+                    Message::VoteReply(reply) if reply.request == request && reply.response.granted
+                ));
+            }
+
+            let before = source.state().await?;
+            assert!(before.ready);
+            if step_down {
+                assert_eq!(before.election.role, Role::Follower);
+                assert!(before.election.persistent.term > selected.election.persistent.term);
+            } else {
+                assert_eq!(before.election.role, Role::Leader);
+            }
+            let before_voters = match source.fixture("before-add-voters", Command::Voters).await?? {
+                Reply::Voters(voters) => voters,
+                _ => return Err("voters".into()),
+            };
+            assert!(matches!(
+                source.fixture("before-add-state", Command::Addition(observer_key)).await?,
+                Err(Error::Peer)
+            ));
+            if step_down {
+                let handle = Handle {
+                    control: source.control.clone(),
+                };
+                assert!(matches!(
+                    handle.add_voter(observer_key).await,
+                    Err(Error::Node(replication::Error::NotLeader))
+                ));
+                assert!(matches!(
+                    source.fixture("after-refusal-add-state", Command::Addition(observer_key)).await?,
+                    Err(Error::Peer)
+                ));
+            } else {
+                assert!(matches!(
+                    source.fixture("positive-add", Command::Add(observer_key)).await??,
+                    Reply::Done
+                ));
+                assert!(matches!(
+                    source.fixture("positive-add-state", Command::Addition(observer_key)).await??,
+                    Reply::Addition(None)
+                ));
+            }
+            let after = source.state().await?;
+            let after_voters = match source.fixture("after-add-voters", Command::Voters).await?? {
+                Reply::Voters(voters) => voters,
+                _ => return Err("voters".into()),
+            };
+            assert_eq!(after.wal_durable_ops, before.wal_durable_ops);
+            assert_eq!(after.election_durable_states, before.election_durable_states);
+            assert_eq!(after.last_position, before.last_position);
+            assert_eq!(after.committed_end, before.committed_end);
+            assert_eq!(after_voters, before_voters);
+            println!(
+                "observer-selection step_down={step_down} selected_term={} current_term={} ready={} role={:?} no_config_append=true",
+                selected.election.persistent.term,
+                after.election.persistent.term,
+                after.ready,
+                after.election.role
+            );
+            Ok(())
+        }
+        .await;
+        let mut cleanup_error = None;
+        for owner in [observer, peer, source] {
+            if let Err(error) = owner.finish().await {
+                if cleanup_error.is_none() {
+                    cleanup_error = Some(error);
+                }
+            }
+        }
+        result?;
+        match cleanup_error {
+            Some(error) => Err(error),
+            None => Ok(()),
+        }
+    }
+
+    #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+    async fn observer_addition_after_leader_selection_requires_live_leadership() -> TestResult {
+        observer_addition_after_leader_selection_case(false).await?;
+        observer_addition_after_leader_selection_case(true).await
+    }
+
     async fn owner_append_exchange(source: &LocalOwner, peer: &LocalOwner, key: Key) -> TestResult {
         let request = match source.control.reliable(Command::Prepare(key)).await? {
             Reply::Job(Some(Job::Append(q))) => q,
