@@ -14,7 +14,8 @@
 
 use std::collections::BTreeMap;
 
-/// Kafka `THROTTLING_QUOTA_EXCEEDED`.
+/// Kafka `THROTTLING_QUOTA_EXCEEDED`. This code is API-specific and is not a
+/// generic mapping for a local bandwidth or capacity refusal.
 pub const THROTTLING_QUOTA_EXCEEDED: i16 = 89;
 
 /// Which byte quota a request spends.
@@ -43,7 +44,7 @@ pub struct Limits {
     pub max_connections: usize,
     /// Accepted but unfinished request bytes.
     pub max_inflight_bytes: u64,
-    /// Longest throttle this broker will ask a client to wait.
+    /// Largest delay this window accepts for one admission.
     pub max_throttle_ms: u64,
 }
 
@@ -86,14 +87,15 @@ impl Limits {
 pub struct Admission {
     /// Caller-visible work id.
     pub work_id: u64,
-    /// Delay before the response should be sent. Zero means the bucket had tokens.
+    /// Computed local delay in milliseconds; zero means the bucket had tokens.
+    /// This value does not define when a Kafka response is sent.
     pub throttle_ms: u64,
 }
 
 /// Why a quota decision was refused.
 #[derive(Debug)]
 pub enum Error {
-    /// The request would exceed the throttle, connection, or in-flight cap.
+    /// A local quota or capacity limit refused the operation.
     Throttled,
     /// The client id or byte count is not usable.
     InvalidRequest,
@@ -104,12 +106,13 @@ pub enum Error {
 }
 
 impl Error {
-    /// Kafka code for a throttle refusal. Other failures have none.
+    /// Return a Kafka error code when this failure has an unambiguous mapping.
+    ///
+    /// Local window refusals do not select a Kafka API or version, so none
+    /// has a generic wire code. In particular, Kafka bandwidth quotas use
+    /// response throttle times and channel muting, not a blanket error 89.
     pub fn code(&self) -> Option<i16> {
-        match self {
-            Self::Throttled => Some(THROTTLING_QUOTA_EXCEEDED),
-            Self::InvalidRequest | Self::UnknownWork | Self::InvalidLimits => None,
-        }
+        None
     }
 }
 
@@ -449,6 +452,35 @@ mod tests {
 
     fn limits() -> Limits {
         Limits::new(100, 100, 50, 2, 4, 1_000, 1_000).unwrap_or_else(|_| panic!("quota limits"))
+    }
+
+    // These exhaustion states are not practical to construct through public
+    // calls. Keep their error mapping under test using private state here.
+    #[test]
+    fn exhausted_work_ids_have_no_generic_kafka_error() {
+        let mut window = Window::new(limits(), 0);
+        window.next_work = u64::MAX;
+        let error = match window.admit(None, Kind::Replication, 1, 0) {
+            Err(error) => error,
+            Ok(_) => panic!("expected exhausted work IDs to refuse admission"),
+        };
+        assert!(matches!(error, Error::Throttled));
+        assert_eq!(error.code(), None);
+        assert_eq!(window.inflight_bytes(), 0);
+    }
+
+    #[test]
+    fn overflowing_debt_has_no_generic_kafka_error() {
+        let mut window = Window::new(limits(), 0);
+        window.replication.debt = u128::MAX;
+        window.replication.credit = 0;
+        let error = match window.admit(None, Kind::Replication, 1, 0) {
+            Err(error) => error,
+            Ok(_) => panic!("expected overflowing debt to refuse admission"),
+        };
+        assert!(matches!(error, Error::Throttled));
+        assert_eq!(error.code(), None);
+        assert_eq!(window.inflight_bytes(), 0);
     }
 
     #[test]
