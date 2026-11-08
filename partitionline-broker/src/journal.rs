@@ -2620,9 +2620,9 @@ mod tests {
             let payload = [value];
             journal.stage(1, &payload, crc32c::crc32c(&payload), true)?;
             let required = journal.index.len() + journal.staged.len();
-            let (index_len, index_capacity, queued, queue_capacity) =
-                STAGE_RESERVATION_OBSERVATION.with(|observation| observation.get())
-                    .ok_or(Error::InvalidEntry)?;
+            let (index_len, index_capacity, queued, queue_capacity) = STAGE_RESERVATION_OBSERVATION
+                .with(|observation| observation.get())
+                .ok_or(Error::InvalidEntry)?;
             assert_eq!(index_len, journal.index.len());
             assert_eq!(queued + 1, journal.staged.len());
             assert_eq!(index_capacity, journal.index.capacity());
@@ -2633,7 +2633,10 @@ mod tests {
                 index_capacity,
                 required
             );
-            assert!(queue_capacity > queued, "staging queue was full before the write");
+            assert!(
+                queue_capacity > queued,
+                "staging queue was full before the write"
+            );
         }
         let capacity = journal.index.capacity();
         journal.storage.synchronize()?;
