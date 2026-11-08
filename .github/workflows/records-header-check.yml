@@ -1,0 +1,61 @@
+name: Record header validation qualification
+on:
+  push:
+    branches:
+      - qualification/record-header-fastpath-20261108
+permissions:
+  contents: read
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      CARGO_INCREMENTAL: "0"
+      CARGO_BUILD_JOBS: "2"
+      CARGO_TERM_COLOR: never
+      CARGO_PROFILE_DEV_DEBUG: "0"
+      CARGO_PROFILE_TEST_DEBUG: "0"
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - name: Record toolchain and source hash
+        run: |
+          rustc +stable -Vv
+          sha256sum partitionline-broker/src/records.rs
+      - name: Check formatting
+        id: format
+        continue-on-error: true
+        run: cargo +stable fmt --manifest-path partitionline-broker/Cargo.toml -- --check
+      - name: Default library and record tests
+        id: default
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo +stable test --locked --manifest-path partitionline-broker/Cargo.toml --lib records::tests
+          cargo +stable test --locked --manifest-path partitionline-broker/Cargo.toml --test records
+      - name: All-feature library and record tests
+        id: all
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo +stable test --locked --manifest-path partitionline-broker/Cargo.toml --all-features --lib records::tests
+          cargo +stable test --locked --manifest-path partitionline-broker/Cargo.toml --all-features --test records
+      - name: Strict all-target Clippy
+        id: clippy
+        continue-on-error: true
+        run: cargo +stable clippy --locked --manifest-path partitionline-broker/Cargo.toml --all-targets --all-features -- -D warnings
+      - name: Require checks
+        if: always()
+        shell: bash
+        env:
+          FMT: ${{ steps.format.outcome }}
+          DEFAULT: ${{ steps.default.outcome }}
+          ALL: ${{ steps.all.outcome }}
+          CLIPPY: ${{ steps.clippy.outcome }}
+        run: |
+          printf 'format=%s default=%s all=%s clippy=%s\n' "$FMT" "$DEFAULT" "$ALL" "$CLIPPY"
+          test "$FMT" = success && test "$DEFAULT" = success && test "$ALL" = success && test "$CLIPPY" = success
