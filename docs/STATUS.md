@@ -59,11 +59,14 @@ pass does not replace the full release matrix.
   reauthentication are incomplete. The [protocol support](gaps.md) page lists
   other feature gaps. An independent v18 candidate audit was also stopped by an
   automated security review; the draft remains unapplied.
-- **Broker durability and limits.** Add replicated partition data, authenticated
-  network leadership, committed-watermark protection, and transaction
-  participant and marker propagation. Controller queue memory accounting,
-  real failure and transport coverage, and a process-wide memory bound remain
-  open. Earlier intermittent Raft failures remain unexplained.
+- **Broker durability and limits.** A [scoped Produce fix][cancel] removes
+  unsynced journal stages when cancellation is observed between partitions.
+  Rolling storage can retain a durable prefix; transport cancellation,
+  truncation failures and power loss need more coverage. Replicated partition
+  data, authenticated network leadership, committed-watermark protection,
+  transaction participant and marker propagation, controller queue accounting
+  and a process-wide memory bound remain open. Earlier intermittent Raft
+  failures remain unexplained.
 - **Reliability and performance.** No 24-hour fault campaign or seven-day
   continuity run has passed. Matched x86 comparisons against other Kafka
   implementations, with independent record verification, have not been
@@ -76,8 +79,9 @@ The [support matrix](support.md) describes configured coverage, and the
 
 [ci]: https://github.com/mingley/partitionline/blob/ffa7b9bba3733aa554c75f853dac46a66500a4dd/docs/evidence/releases/main-ci-3f45-20261106/README.md
 [previous-ci]: https://github.com/mingley/partitionline/blob/f6eecf19896650a6b18789df7cc8848d3a670cb4/docs/evidence/releases/main-ci-74923475-20261105/README.md
-[next]: https://github.com/mingley/partitionline/blob/ffa7b9bba3733aa554c75f853dac46a66500a4dd/docs/plan/next-work.md
+[next]: https://github.com/mingley/partitionline/blob/277746439899c250871aebb7fe5e1ed959826592/docs/plan/next-work.md
 [previous]: https://github.com/mingley/partitionline/blob/5c2a000639d9a8a7dccd56e8c1d6f3a58dca1601/docs/STATUS.md
 [flush]: https://github.com/mingley/partitionline/blob/e980829c439aa43edc01312c91838e58a412221a/docs/evidence/client/producer-flush-native-86f2-20261103/README.md
 [txn]: https://github.com/mingley/partitionline/blob/49ad56c6bce1366e2357c272f11c5c34160d60da/docs/evidence/client/add-partitions-native-4f0c-20261103/README.md
 [recent-ci]: https://github.com/mingley/partitionline/blob/767cc33acd4487141ba40ac80bb1b963bd72efad/docs/evidence/releases/main-ci-19fef2c-20261103/README.md
+[cancel]: https://github.com/mingley/partitionline/blob/277746439899c250871aebb7fe5e1ed959826592/docs/evidence/broker/produce-cancel-20261108/README.md
