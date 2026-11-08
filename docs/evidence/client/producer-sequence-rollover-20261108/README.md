@@ -1,8 +1,8 @@
 # Producer sequence rollover: source review
 
-This note records a source-derived correctness issue and a test plan. It does
-not claim an observed real-broker failure, a completed fix, or producer
-qualification. The reviewed producer at main
+This note records a producer helper defect and a test plan. The helper
+controls inject sequence state near the boundary; they do not establish a
+real-broker failure, a completed fix, or producer qualification. The reviewed producer at main
 [`60caa746c3654c89d01557e35e1100cdc2a84b74`][source] has Git blob
 `1e7733c136e54b532cdc8bddabd1e0c828e50ed2` and SHA-256
 `3d65fcceecbb43c1a974f7f6b7bd58c8a310930f6bcced9052a00e88700eb37f`.
@@ -16,8 +16,8 @@ this; this repository already implements the same operation as
 has rollover controls, but [producer reservation][reserve] and
 [per-record stamping][stamp] instead use saturating addition.
 
-Two source-level counterexamples, assuming one topic, partition, producer ID
-and epoch, are:
+Two counterexamples, assuming one topic, partition, producer ID and epoch,
+are:
 
 - Starting with the next sequence at `i32::MAX - 1`, reserving three
   records should stamp `[MAX - 1, MAX, 0]` and leave the next sequence at
@@ -34,6 +34,28 @@ and epoch, are:
 The [existing mock][mock] also advances its expected sequence using plain
 `i32` addition, so it cannot currently validate a boundary crossing in a
 debug test without overflow.
+
+## Seeded helper controls
+
+[Run 42466788425][helper-run] executed three controls per profile on hosted
+x86_64 using stable Rust 1.99.1 and LLVM 23.1.1. Both default and all-feature
+jobs passed all three. One ordinary reservation matched an independent
+widened-integer modulo oracle. The two other controls deliberately asserted
+that the current helper output differs from that oracle: a three-record batch
+starting at `MAX - 1` saturated both its next value and its third record's
+stamp, and two one-record reservations starting at `MAX` reused `MAX`.
+These passing controls confirm the defect; they are not passing correctness
+tests for a fixed implementation.
+
+The [qualification commit][helper-source] appends a `cfg(test)` module to
+the producer and changes no production code. Its test-instrumented producer
+Git blob is `80c39579b7adff4407ffb4ccd5a3b1439d2eecaa`, SHA-256
+`93df1c7e38d9039676b3dc943ab1772c9839ae823a6508ee75f7051841e96e25`.
+The controls directly invoke the private helpers with an injected sequence
+map; they do not exercise public admission, retries, a mock or a broker.
+Artifacts `producer-rollover-helper-default` and
+`producer-rollover-helper-all` have IDs `13611159360` and
+`13611838243`, respectively, and expire on 2026-12-08.
 
 ## Repair boundaries
 
@@ -103,6 +125,8 @@ and transaction requirements that a sequence-only patch does not solve.
    latency and allocations, including the size of `Pending`. No speed or
    production-readiness conclusion follows from these proposed tests.
 
+[helper-run]: https://github.com/mingley/partitionline/actions/runs/42466788425
+[helper-source]: https://github.com/mingley/partitionline/commit/39d776770b594de9510006d25c1606bebbb37f54
 [source]: https://github.com/mingley/partitionline/blob/60caa746c3654c89d01557e35e1100cdc2a84b74/src/producer.rs
 [reserve]: https://github.com/mingley/partitionline/blob/60caa746c3654c89d01557e35e1100cdc2a84b74/src/producer.rs#L11217
 [stamp]: https://github.com/mingley/partitionline/blob/60caa746c3654c89d01557e35e1100cdc2a84b74/src/producer.rs#L10379
