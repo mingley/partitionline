@@ -319,9 +319,17 @@ async fn send_all_redials_leaders_while_refreshing_metadata() {
         .await
         .unwrap();
     tokio::time::sleep(Duration::from_millis(60)).await;
-    let delay = Duration::from_millis(250);
-    mock.set_metadata_delay(delay);
-    mock.set_api_versions_delay(delay);
+    let metadata_delay = std::env::var("PL_TRACE_METADATA_MS")
+        .ok()
+        .and_then(|value| value.parse::<u64>().ok())
+        .unwrap_or(250);
+    let api_delay = std::env::var("PL_TRACE_API_MS")
+        .ok()
+        .and_then(|value| value.parse::<u64>().ok())
+        .unwrap_or(250);
+    mock.set_metadata_delay(Duration::from_millis(metadata_delay));
+    mock.set_api_versions_delay(Duration::from_millis(api_delay));
+    eprintln!("REDIAL_TRACE start at={:?}", Instant::now());
     let started = Instant::now();
     let acks = producer
         .send_all([
