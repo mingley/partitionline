@@ -364,12 +364,12 @@ impl Router {
     /// Admission count times (maximum request plus response bytes) must fit
     /// `reads.max_retained_bytes()`, which defaults to 1 GiB. Data requests
     /// retain their permit while queued, processed, waiting or held in an
-    /// unconsumed reply. Limits use logical request and response lengths; a
-    /// `Vec` can have more capacity than its length. `Handler::exchange_request`
-    /// accepts a caller-supplied spare `Vec` without checking its size against
-    /// this budget. Actor-cached buffers, parser metadata, allocator overhead,
-    /// transport and caller ownership are separate; this is not a total process
-    /// memory bound.
+    /// unconsumed reply. Request capacity and retained scratch capacity are
+    /// checked against their respective maxima. A builder can still reserve
+    /// more capacity than its logical response length. A request copy may
+    /// temporarily overlap its caller-provided allocation. Actor caches, parser
+    /// metadata, allocator overhead, transport and caller ownership are
+    /// separate; this is not a total process memory bound.
     /// Existing metadata-only and Produce-only constructors keep their profiles.
     pub async fn open_with_read_store(
         path: impl Into<PathBuf>,
@@ -879,12 +879,13 @@ impl Router {
             let admitted = Instant::now();
             // A caller can provide a short Vec with arbitrarily large capacity.
             // Compact it before the actor can retain it under a data permit.
-            lease.request = bound_owned_vec(
-                std::mem::take(&mut lease.request),
-                self.config.protocol_limits.max_request_bytes(),
-            )?;
             if lease.spare.capacity() > self.config.max_response_bytes {
                 drop(std::mem::take(&mut lease.spare));
+            }
+            let maximum = self.config.protocol_limits.max_request_bytes();
+            if lease.request.capacity() > maximum {
+                lease.request =
+                    bound_owned_vec(std::mem::take(&mut lease.request), maximum).await?;
             }
             let mut changes = self.changes.clone();
             loop {
@@ -1189,12 +1190,19 @@ fn actor(
                 }
                 let result = if catalog.is_poisoned() {
                     for extra in grouped.drain(..) {
-                        finish_data_job(extra, Err(Error::StoragePoisoned), config.max_response_bytes);
+                        finish_data_job(
+                            extra,
+                            Err(Error::StoragePoisoned),
+                            config.max_response_bytes,
+                        );
                     }
                     Err(Error::StoragePoisoned)
                 } else if let Some(store) = store.as_mut() {
                     if produce_key && grouped.is_empty() {
-                        store.prepare_response_buf(std::mem::take(&mut job.lease.spare), config.max_response_bytes);
+                        store.prepare_response_buf(
+                            std::mem::take(&mut job.lease.spare),
+                            config.max_response_bytes,
+                        );
                         match produce::process(
                             &catalog,
                             store,
@@ -1288,7 +1296,11 @@ fn actor(
                                 spare,
                                 permit,
                             };
-                            let _ = sender.send(bounded_data_completion(lease, result, config.max_response_bytes));
+                            let _ = sender.send(bounded_data_completion(
+                                lease,
+                                result,
+                                config.max_response_bytes,
+                            ));
                         }
                         batch.bodies.clear();
                         batch.spares.clear();
@@ -1320,7 +1332,10 @@ fn actor(
                             Err(protocol::Error::UnimplementedApi(21).into())
                         }
                     } else if let Some(reads) = options.reads {
-                        store.prepare_response_buf(std::mem::take(&mut job.lease.spare), config.max_response_bytes);
+                        store.prepare_response_buf(
+                            std::mem::take(&mut job.lease.spare),
+                            config.max_response_bytes,
+                        );
                         fetch::process(&catalog, store, &job.lease.request, config, reads, || {
                             if job.reply.is_closed() || stopping.load(Ordering::Acquire) {
                                 Err(fetch::Error::Canceled)
@@ -1335,7 +1350,11 @@ fn actor(
                     }
                 } else {
                     for extra in grouped.drain(..) {
-                        finish_data_job(extra, Err(protocol::Error::UnimplementedApi(0).into()), config.max_response_bytes);
+                        finish_data_job(
+                            extra,
+                            Err(protocol::Error::UnimplementedApi(0).into()),
+                            config.max_response_bytes,
+                        );
                     }
                     Err(protocol::Error::UnimplementedApi(0).into())
                 };
@@ -1380,16 +1399,47 @@ fn recycle_read_response(spare: &mut Vec<u8>, mut response: Vec<u8>, maximum: us
     RECYCLED_CAPACITY.with(|observed| observed.set(Some(spare.capacity())));
 }
 
+// A canceled copy drops these fields in order before the outer DataLease
+// releases its permit. Both allocations can coexist while the copy yields.
+struct NormalizationBuffers {
+    source: Vec<u8>,
+    replacement: Vec<u8>,
+    #[cfg(test)]
+    _drop_probe: Option<NormalizationDropProbe>,
+}
+
+#[cfg(test)]
+struct NormalizationDropProbe {
+    slots: Arc<Semaphore>,
+    observed: Arc<std::sync::atomic::AtomicUsize>,
+}
+
+#[cfg(test)]
+impl Drop for NormalizationDropProbe {
+    fn drop(&mut self) {
+        if self.slots.available_permits() == 0 {
+            self.observed.fetch_add(1, Ordering::SeqCst);
+        }
+    }
+}
+
 // Vec allocation may return more capacity than requested, including for
 // try_reserve_exact. Check the actual capacity before transferring ownership.
-// During compaction both the original and replacement allocations coexist.
-fn bound_owned_vec(bytes: Vec<u8>, maximum: usize) -> Result<Vec<u8>, Error> {
+// Reserve and deallocation can still block; chunking is not a poll-time bound.
+async fn bound_owned_vec(bytes: Vec<u8>, maximum: usize) -> Result<Vec<u8>, Error> {
+    const COPY_CHUNK: usize = 256 * 1024;
     if bytes.capacity() <= maximum {
         return Ok(bytes);
     }
     if bytes.len() > maximum {
         return Err(protocol::Error::Allocation.into());
     }
+    let mut buffers = NormalizationBuffers {
+        source: bytes,
+        replacement: Vec::new(),
+        #[cfg(test)]
+        _drop_probe: NORMALIZATION_DROP_PROBE.with(|probe| probe.borrow_mut().take()),
+    };
     #[cfg(test)]
     NORMALIZATION_STARTED.with(|started| started.set(Some(Instant::now())));
     #[cfg(test)]
@@ -1403,15 +1453,20 @@ fn bound_owned_vec(bytes: Vec<u8>, maximum: usize) -> Result<Vec<u8>, Error> {
     if FAIL_BUFFER_REPACK.with(|fail| fail.replace(false)) {
         return Err(protocol::Error::Allocation.into());
     }
-    let mut replacement = Vec::new();
-    replacement
-        .try_reserve_exact(bytes.len())
+    buffers
+        .replacement
+        .try_reserve_exact(buffers.source.len())
         .map_err(|_| protocol::Error::Allocation)?;
-    if replacement.capacity() > maximum {
+    if buffers.replacement.capacity() > maximum {
         return Err(protocol::Error::Allocation.into());
     }
-    replacement.extend_from_slice(&bytes);
-    Ok(replacement)
+    for chunk in buffers.source.chunks(COPY_CHUNK) {
+        buffers.replacement.extend_from_slice(chunk);
+        if buffers.replacement.len() < buffers.source.len() {
+            tokio::task::yield_now().await;
+        }
+    }
+    Ok(std::mem::take(&mut buffers.replacement))
 }
 
 #[cfg(test)]
@@ -1420,6 +1475,7 @@ thread_local! {
     static NORMALIZATION_STARTED: std::cell::Cell<Option<Instant>> = const { std::cell::Cell::new(None) };
     static NORMALIZATION_DELAY: std::cell::Cell<Duration> = const { std::cell::Cell::new(Duration::ZERO) };
     static RECYCLED_CAPACITY: std::cell::Cell<Option<usize>> = const { std::cell::Cell::new(None) };
+    static NORMALIZATION_DROP_PROBE: std::cell::RefCell<Option<NormalizationDropProbe>> = const { std::cell::RefCell::new(None) };
 }
 
 // A response can still exceed the configured logical maximum in capacity if
@@ -3828,7 +3884,13 @@ mod tests {
                 ),
                 _ => return,
             };
-            let _ = claimed.send((planned_metadata_bytes, request_len, request_capacity, spare_len, spare_capacity));
+            let _ = claimed.send((
+                planned_metadata_bytes,
+                request_len,
+                request_capacity,
+                spare_len,
+                spare_capacity,
+            ));
             if gate.recv().is_err() {
                 return;
             }
@@ -3950,7 +4012,13 @@ mod tests {
                 ),
                 _ => return,
             };
-            let observed = (planned_metadata_bytes, request_len, request_capacity, spare_len, spare_capacity);
+            let observed = (
+                planned_metadata_bytes,
+                request_len,
+                request_capacity,
+                spare_len,
+                spare_capacity,
+            );
             let _ = claimed.send(observed);
             if probe_gate.recv().is_err() {
                 return;
@@ -4317,13 +4385,19 @@ mod tests {
         Ok(())
     }
 
-
     // A synthetic actor supplies a deliberately over-capacity response so this
     // exercises allocator over-reservation without depending on an allocator.
-    fn synthetic_read_actor(wait: Duration) -> (Router, oneshot::Receiver<Instant>, std::sync::mpsc::Sender<()>) {
+    fn synthetic_read_actor(
+        wait: Duration,
+        maximum_request: usize,
+    ) -> (
+        Router,
+        oneshot::Receiver<Instant>,
+        std::sync::mpsc::Sender<()>,
+    ) {
         let mut config = Config::new(0, "127.0.0.1".into(), 19095, "recycle-test".into());
         config.max_queued_requests = 1;
-        config.protocol_limits = protocol::Limits::new(4096, 0).expect("test limits");
+        config.protocol_limits = protocol::Limits::new(maximum_request, 0).expect("test limits");
         config.max_response_bytes = 64;
         let (sender, mut receiver) = mpsc::channel(1);
         let (claimed, claimed_rx) = oneshot::channel();
@@ -4357,26 +4431,30 @@ mod tests {
                 }
             }
         });
-        (Router {
-            config,
-            sender,
-            stopping: Arc::new(AtomicBool::new(false)),
-            failed: AtomicBool::new(false),
-            task: Mutex::new(Some(task)),
-            data: true,
-            data_slots: Arc::new(Semaphore::new(1)),
-            reads: Some(fetch::Limits::default()),
-            retention: None,
-            changes,
-            compaction: false,
-            wakeup,
-        }, claimed_rx, release)
+        (
+            Router {
+                config,
+                sender,
+                stopping: Arc::new(AtomicBool::new(false)),
+                failed: AtomicBool::new(false),
+                task: Mutex::new(Some(task)),
+                data: true,
+                data_slots: Arc::new(Semaphore::new(1)),
+                reads: Some(fetch::Limits::default()),
+                retention: None,
+                changes,
+                compaction: false,
+                wakeup,
+            },
+            claimed_rx,
+            release,
+        )
     }
 
     #[tokio::test]
     async fn over_capacity_read_recycle_is_dropped_before_wait_and_cancel(
     ) -> Result<(), Box<dyn StdError>> {
-        let (router, claimed, release) = synthetic_read_actor(Duration::from_secs(60));
+        let (router, claimed, release) = synthetic_read_actor(Duration::from_secs(60), 4096);
         let peer = Peer::capacity_witness();
         RECYCLED_CAPACITY.with(|observed| observed.set(None));
         let mut input = Vec::with_capacity(8192);
@@ -4385,12 +4463,14 @@ mod tests {
         std::future::poll_fn(|cx| match std::future::Future::poll(pending.as_mut(), cx) {
             std::task::Poll::Pending => std::task::Poll::Ready(Ok(())),
             std::task::Poll::Ready(_) => std::task::Poll::Ready(Err("unexpected completion")),
-        }).await?;
+        })
+        .await?;
         release.send(())?;
         let _ = tokio::time::timeout(Duration::from_secs(5), claimed).await??;
         let is_waiting = std::future::poll_fn(|cx| {
             std::task::Poll::Ready(std::future::Future::poll(pending.as_mut(), cx).is_pending())
-        }).await;
+        })
+        .await;
         assert!(is_waiting);
         assert_eq!(RECYCLED_CAPACITY.with(|observed| observed.get()), Some(0));
         assert_eq!(router.data_slots.available_permits(), 0);
@@ -4401,10 +4481,9 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn normalization_time_counts_toward_fetch_deadline(
-    ) -> Result<(), Box<dyn StdError>> {
+    async fn normalization_time_counts_toward_fetch_deadline() -> Result<(), Box<dyn StdError>> {
         let wait = Duration::from_millis(10);
-        let (router, claimed, release) = synthetic_read_actor(wait);
+        let (router, claimed, release) = synthetic_read_actor(wait, 4096);
         let peer = Peer::capacity_witness();
         NORMALIZATION_STARTED.with(|started| started.set(None));
         NORMALIZATION_DELAY.with(|delay| delay.set(Duration::from_millis(40)));
@@ -4414,15 +4493,19 @@ mod tests {
         std::future::poll_fn(|cx| match std::future::Future::poll(pending.as_mut(), cx) {
             std::task::Poll::Pending => std::task::Poll::Ready(Ok(())),
             std::task::Poll::Ready(_) => std::task::Poll::Ready(Err("unexpected completion")),
-        }).await?;
+        })
+        .await?;
         release.send(())?;
         let admitted = tokio::time::timeout(Duration::from_secs(5), claimed).await??;
-        let started = NORMALIZATION_STARTED.with(|started| started.get()).ok_or("missing normalization timestamp")?;
+        let started = NORMALIZATION_STARTED
+            .with(|started| started.get())
+            .ok_or("missing normalization timestamp")?;
         assert!(admitted <= started);
         assert!(admitted.checked_add(wait).ok_or("deadline overflow")? <= Instant::now());
         let polled = std::future::poll_fn(|cx| {
             std::task::Poll::Ready(std::future::Future::poll(pending.as_mut(), cx))
-        }).await;
+        })
+        .await;
         let outcome = match polled {
             std::task::Poll::Ready(Ok(outcome)) => outcome,
             _ => return Err("elapsed deadline must return the first snapshot".into()),
@@ -4431,6 +4514,60 @@ mod tests {
         drop(pending);
         assert_eq!(router.data_slots.available_permits(), 1);
         router.shutdown().await?;
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn cancellation_at_each_copy_yield_drops_buffers_before_permit(
+    ) -> Result<(), Box<dyn StdError>> {
+        const MAXIMUM: usize = 1024 * 1024;
+        for stop_after in 1..=3 {
+            let (router, _claimed, _release) =
+                synthetic_read_actor(Duration::from_secs(60), MAXIMUM);
+            let observed = Arc::new(std::sync::atomic::AtomicUsize::new(0));
+            NORMALIZATION_DROP_PROBE.with(|probe| {
+                *probe.borrow_mut() = Some(NormalizationDropProbe {
+                    slots: Arc::clone(&router.data_slots),
+                    observed: Arc::clone(&observed),
+                });
+            });
+            let peer = Peer::capacity_witness();
+            let mut input = Vec::with_capacity(MAXIMUM * 2);
+            input.extend_from_slice(&capacity_witness_fetch());
+            input.resize(MAXIMUM, 0);
+            let mut pending = Box::pin(router.exchange_request(&peer, input, Vec::with_capacity(8192)));
+            for _ in 0..stop_after {
+                let is_pending = std::future::poll_fn(|cx| {
+                    std::task::Poll::Ready(std::future::Future::poll(pending.as_mut(), cx).is_pending())
+                }).await;
+                assert!(is_pending);
+                assert_eq!(router.sender.capacity(), 1, "must yield before enqueue");
+                assert_eq!(router.data_slots.available_permits(), 0);
+                assert_eq!(observed.load(Ordering::SeqCst), 0);
+            }
+            drop(pending);
+            assert_eq!(observed.load(Ordering::SeqCst), 1, "copy buffers drop while permit is held");
+            assert_eq!(router.data_slots.available_permits(), 1);
+            assert_eq!(router.sender.capacity(), 1);
+            router.shutdown().await?;
+        }
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn cooperative_normalization_preserves_all_bytes() -> Result<(), Box<dyn StdError>> {
+        const MAXIMUM: usize = 1024 * 1024;
+        let mut input = Vec::with_capacity(MAXIMUM * 2);
+        input.extend((0..MAXIMUM).map(|index| (index % 251) as u8));
+        let mut pending = Box::pin(bound_owned_vec(input, MAXIMUM));
+        let first = std::future::poll_fn(|cx| {
+            std::task::Poll::Ready(std::future::Future::poll(pending.as_mut(), cx).is_pending())
+        }).await;
+        assert!(first, "large copy must yield to the executor");
+        let output = pending.await?;
+        assert_eq!(output.len(), MAXIMUM);
+        assert!(output.capacity() <= MAXIMUM);
+        assert!(output.iter().enumerate().all(|(index, byte)| *byte == (index % 251) as u8));
         Ok(())
     }
 
@@ -4449,11 +4586,15 @@ mod tests {
                 spare: Vec::with_capacity(8192),
                 permit: Arc::clone(&slots).try_acquire_owned()?,
             },
-            Ok(DataReply::Produce { response: Some(response) }),
+            Ok(DataReply::Produce {
+                response: Some(response),
+            }),
             64,
         );
         let response = match &completion.result {
-            Ok(DataReply::Produce { response: Some(response) }) => response,
+            Ok(DataReply::Produce {
+                response: Some(response),
+            }) => response,
             _ => panic!("expected response"),
         };
         assert_eq!(response.as_slice(), &[7; 12]);
@@ -4467,13 +4608,13 @@ mod tests {
         Ok(())
     }
 
-    #[test]
-    fn bounded_vector_keeps_in_budget_allocation_and_bytes() -> Result<(), Box<dyn StdError>> {
+    #[tokio::test]
+    async fn bounded_vector_keeps_in_budget_allocation_and_bytes() -> Result<(), Box<dyn StdError>> {
         let mut bytes = Vec::with_capacity(32);
         bytes.extend_from_slice(b"valid input");
         let pointer = bytes.as_ptr();
         let capacity = bytes.capacity();
-        let bounded = bound_owned_vec(bytes, 4096)?;
+        let bounded = bound_owned_vec(bytes, 4096).await?;
         assert_eq!(bounded, b"valid input");
         assert_eq!(bounded.as_ptr(), pointer);
         assert_eq!(bounded.capacity(), capacity);
@@ -4497,8 +4638,13 @@ mod tests {
         assert_eq!(router.data_slots.available_permits(), 1);
 
         FAIL_BUFFER_REPACK.with(|fail| fail.set(true));
-        let failed = router.exchange_request(&peer, make_oversized(), Vec::new()).await;
-        assert!(matches!(failed, Err(Error::Protocol(protocol::Error::Allocation))));
+        let failed = router
+            .exchange_request(&peer, make_oversized(), Vec::new())
+            .await;
+        assert!(matches!(
+            failed,
+            Err(Error::Protocol(protocol::Error::Allocation))
+        ));
         assert_eq!(router.sender.capacity(), 1);
         assert_eq!(router.data_slots.available_permits(), 1);
 
@@ -4507,7 +4653,8 @@ mod tests {
         std::future::poll_fn(|cx| match std::future::Future::poll(pending.as_mut(), cx) {
             std::task::Poll::Pending => std::task::Poll::Ready(Ok(())),
             std::task::Poll::Ready(_) => std::task::Poll::Ready(Err("unexpected completion")),
-        }).await?;
+        })
+        .await?;
         let (_, request_len, request_capacity, _, _) =
             tokio::time::timeout(Duration::from_secs(5), claimed).await??;
         assert_eq!(request_len, expected.len());
@@ -4525,7 +4672,8 @@ mod tests {
         tokio::task::spawn_blocking(move || -> std::io::Result<()> {
             std::fs::remove_file(&path)?;
             std::fs::remove_dir_all(path.with_extension("parts"))
-        }).await??;
+        })
+        .await??;
         Ok(())
     }
 
@@ -4545,8 +4693,8 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn public_exchange_caps_oversized_spare_in_claimed_job(
-    ) -> Result<(), Box<dyn StdError>> {
+    async fn public_exchange_caps_oversized_spare_in_claimed_job() -> Result<(), Box<dyn StdError>>
+    {
         let (router, claimed, probe, after, release, path) = claimed_spare_actor();
         let input = capacity_witness_fetch();
         assert_eq!(input.len(), 31);
@@ -4588,10 +4736,16 @@ mod tests {
             }
         })
         .await?;
-        let response = router.dispatch(control).await?.ok_or("missing Fetch response")?;
+        let response = router
+            .dispatch(control)
+            .await?
+            .ok_or("missing Fetch response")?;
         assert_eq!(response.len(), 12);
         assert_eq!(response.get(..4), Some(&77i32.to_be_bytes()[..]));
-        println!("PL_PUBLIC_SPARE_FRESH_FETCH response_len={}", response.len());
+        println!(
+            "PL_PUBLIC_SPARE_FRESH_FETCH response_len={}",
+            response.len()
+        );
         router.shutdown().await?;
         assert_eq!(router.data_slots.available_permits(), 1);
         tokio::task::spawn_blocking(move || -> std::io::Result<()> {
@@ -4621,7 +4775,8 @@ mod tests {
         probe.send(())?;
         let _ = tokio::time::timeout(Duration::from_secs(5), after).await??;
         release.send(())?;
-        let barrier = tokio::time::timeout(Duration::from_secs(5), router.respond(request(3))).await?;
+        let barrier =
+            tokio::time::timeout(Duration::from_secs(5), router.respond(request(3))).await?;
         assert!(matches!(barrier, Err(Error::ResponseLimit)));
         assert_eq!(router.data_slots.available_permits(), 0);
         println!("PL_RECEIPT_PENDING actor_reply_unconsumed=true permit_held=true");
