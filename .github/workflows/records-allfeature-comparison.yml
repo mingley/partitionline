@@ -1,0 +1,59 @@
+name: Record candidate all-feature comparison
+on:
+  push:
+    branches:
+      - qualification/records-allfeature-comparison-20261108
+permissions:
+  contents: read
+jobs:
+  compare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    env:
+      CARGO_INCREMENTAL: "0"
+      CARGO_BUILD_JOBS: "2"
+      CARGO_TERM_COLOR: never
+      CARGO_PROFILE_DEV_DEBUG: "0"
+      CARGO_PROFILE_TEST_DEBUG: "0"
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: de152e78ca6d85e6cd4ea5915058b2bb6141cf42
+          path: baseline
+      - uses: actions/checkout@v7
+        with:
+          ref: a0fd44856104acf5449d2f1941d5747834c73ced
+          path: candidate
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Run each unchanged all-feature suite once
+        shell: bash
+        run: |
+          set -euo pipefail
+          out="$RUNNER_TEMP/records-allfeature-comparison"
+          mkdir -p "$out"
+          rustc +stable -Vv | tee "$out/toolchain.log"
+          uname -a | tee "$out/host.log"
+          test "$(git -C baseline rev-parse HEAD)" = de152e78ca6d85e6cd4ea5915058b2bb6141cf42
+          test "$(git -C candidate rev-parse HEAD)" = a0fd44856104acf5449d2f1941d5747834c73ced
+          test "$(git -C baseline rev-parse HEAD:partitionline-broker/src/records.rs)" = ad478c1143386816b0ad7af0723523b09178a39e
+          test "$(git -C candidate rev-parse HEAD:partitionline-broker/src/records.rs)" = 3f94f4409eddc0b79bfbec307ad79a6562b80811
+          sha256sum baseline/partitionline-broker/src/records.rs candidate/partitionline-broker/src/records.rs | tee "$out/source.log"
+          for arm in baseline candidate; do
+            printf 'PL_BEGIN %s\n' "$arm"
+            set +e
+            CARGO_TARGET_DIR="$RUNNER_TEMP/comparison-target-$arm" cargo +stable test --locked --manifest-path "$arm/partitionline-broker/Cargo.toml" --all-targets --all-features 2>&1 | tee "$out/$arm.log"
+            status="${PIPESTATUS[0]}"
+            set -e
+            printf '%s\n' "$status" > "$out/$arm.status"
+            printf 'PL_STATUS %s %s\n' "$arm" "$status"
+            find "$RUNNER_TEMP/comparison-target-$arm/debug/deps" -maxdepth 1 -type f -executable -name 'partitionline_broker-*' -exec sha256sum {} + > "$out/$arm.binaries" || true
+          done
+          test "$(cat "$out/baseline.status")" = 0
+          test "$(cat "$out/candidate.status")" = 0
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: records-allfeature-comparison-${{ github.run_id }}
+          path: ${{ runner.temp }}/records-allfeature-comparison
+          if-no-files-found: warn
+          retention-days: 30
