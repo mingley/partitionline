@@ -1,0 +1,60 @@
+name: Admin slot index merge cancellation controls
+on:
+  push:
+    branches: [qualification/admin-dtp-slot-combined-observer-20261108]
+permissions:
+  contents: read
+jobs:
+  tests:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      matrix:
+        feature: [default, all]
+    env:
+      CARGO_INCREMENTAL: '0'
+      CARGO_TERM_COLOR: never
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Pin combined observer source
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD:src/admin.rs)" = 38c1ffcebf039777539e10bc37b0fc6728d7b97c
+          test "$(git rev-parse HEAD:src/admin/pagination_tests.rs)" = c7790f0479c6275796020f57598cf1bcc673fa17
+          git rev-parse HEAD HEAD:src/admin.rs HEAD:src/admin/pagination_tests.rs HEAD:Cargo.lock
+          sha256sum src/admin.rs src/admin/pagination_tests.rs Cargo.lock
+          rustc -Vv
+      - name: Run public checkpoint cancellation and timeout
+        run: |
+          set -euo pipefail
+          if test "${{ matrix.feature }}" = all; then
+            cargo test --locked --all-features --lib dtp_slot_public_merge_checkpoint_ -- --test-threads=1
+          else
+            cargo test --locked --lib dtp_slot_public_merge_checkpoint_ -- --test-threads=1
+          fi
+      - name: Negative control suppressing the merge yield
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path("src/admin.rs")
+          s = p.read_text()
+          old = "DTP_MERGE_YIELD_OBSERVER.with(|observed| observed.set(observed.get() + 1));\n            tokio::task::yield_now().await;"
+          new = "DTP_MERGE_YIELD_OBSERVER.with(|observed| observed.set(observed.get() + 1));\n            std::future::ready(()).await;"
+          assert s.count(old) == 1
+          p.write_text(s.replace(old, new))
+          PY
+          set +e
+          if test "${{ matrix.feature }}" = all; then
+            timeout 240 cargo test --locked --all-features --lib dtp_slot_public_merge_checkpoint_cancel_keeps_socket -- --test-threads=1 > negative.log 2>&1
+          else
+            timeout 240 cargo test --locked --lib dtp_slot_public_merge_checkpoint_cancel_keeps_socket -- --test-threads=1 > negative.log 2>&1
+          fi
+          status=$?
+          set -e
+          cat negative.log
+          test "$status" = 101
+          grep -F 'test result: FAILED. 0 passed; 1 failed;' negative.log
+          grep -E 'merge checkpoint resumed before observation|aggregate returned before the merge checkpoint' negative.log
