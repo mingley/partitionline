@@ -2687,7 +2687,7 @@ impl Producer {
     /// returns an empty vec. A successful result contains every record's
     /// metadata. On error, other accepted records may still be delivered.
     /// With `acks=0`, returned offsets are `-1` because the broker sends no
-    /// acknowledgement. Queuing the records pauses periodically.
+    /// acknowledgement. Queuing the records pauses every 8,192.
     pub async fn send_all(
         &self,
         recs: impl IntoIterator<Item = ProduceRecord>,
@@ -2719,7 +2719,6 @@ impl Producer {
         let mut slots = Vec::new();
         slots.resize_with(pending.len(), || None);
         let mut failed: HashMap<Arc<str>, Error> = HashMap::new();
-        let mut fast_walked = 0usize;
         while let Some((index, rec)) = pending.pop_front() {
             if let Some(error) = prepared_topic_error(&failed, &rec.topic) {
                 return Err(error);
@@ -2794,13 +2793,6 @@ impl Producer {
                             if let Some(slot) = slots.get_mut(ready_index) {
                                 *slot = Some(rx);
                             }
-                            if one_explicit_route {
-                                fast_walked += 1;
-                                if fast_walked == 512 {
-                                    fast_walked = 0;
-                                    tokio::task::yield_now().await;
-                                }
-                            }
                         }
                         match refresh.await {
                             Ok(Ok(requested)) => requested,
@@ -2827,13 +2819,6 @@ impl Producer {
             let rx = self.enqueue_one(rec).await?;
             if let Some(slot) = slots.get_mut(index) {
                 *slot = Some(rx);
-            }
-            if one_explicit_route {
-                fast_walked += 1;
-                if fast_walked == 512 && !pending.is_empty() {
-                    fast_walked = 0;
-                    tokio::task::yield_now().await;
-                }
             }
         }
         let mut out = Vec::with_capacity(slots.len());
