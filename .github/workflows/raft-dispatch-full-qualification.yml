@@ -1,0 +1,68 @@
+name: raft dispatch full qualification
+on:
+  push:
+    branches: [qual/raft-dispatch-full-20261108]
+permissions:
+  contents: read
+jobs:
+  profiles:
+    name: broker ${{ matrix.profile }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        profile: [default, all]
+    env:
+      CARGO_BUILD_JOBS: '2'
+      CARGO_INCREMENTAL: '0'
+      CARGO_TERM_COLOR: never
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Source and toolchain
+        run: |
+          rustc -Vv
+          git rev-parse HEAD
+          sha256sum partitionline-broker/src/raft/runtime.rs
+      - name: Targeted vote ownership controls
+        run: |
+          set -euo pipefail
+          flags=()
+          if [ "${{ matrix.profile }}" = all ]; then flags=(--all-features); fi
+          for name in aborted_dispatch_keeps_all_current_votes_offered displaced_vote_cancellation_preserves_current_reply_in_both_orders aborted_dispatch_can_leave_an_unadmitted_correlation stepdown_during_dispatch_fences_old_and_orders_next_campaign abandoned_vector_and_route_outcomes_fence_exact_correlations; do
+            cargo test --locked --manifest-path partitionline-broker/Cargo.toml --lib "${flags[@]}" "raft::runtime::ownership_tests::$name" -- --exact --nocapture
+          done
+      - name: Full broker profile
+        run: |
+          set -euo pipefail
+          flags=()
+          if [ "${{ matrix.profile }}" = all ]; then flags=(--all-features); fi
+          cargo test --locked --manifest-path partitionline-broker/Cargo.toml --all-targets "${flags[@]}"
+  static:
+    name: format and strict checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      CARGO_BUILD_JOBS: '2'
+      CARGO_INCREMENTAL: '0'
+      CARGO_TERM_COLOR: never
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - name: Format
+        run: cargo fmt --manifest-path partitionline-broker/Cargo.toml -- --check
+      - name: Strict all-target all-feature Clippy
+        run: cargo clippy --locked --manifest-path partitionline-broker/Cargo.toml --all-targets --all-features -- -D warnings
+      - name: Rustdoc
+        env:
+          RUSTDOCFLAGS: -D warnings
+        run: cargo doc --locked --manifest-path partitionline-broker/Cargo.toml --all-features --no-deps
+      - name: Doctests
+        env:
+          RUSTDOCFLAGS: -D warnings
+        run: |
+          cargo test --locked --manifest-path partitionline-broker/Cargo.toml --doc
+          cargo test --locked --manifest-path partitionline-broker/Cargo.toml --doc --all-features
