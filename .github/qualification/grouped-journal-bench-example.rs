@@ -1,3 +1,4 @@
+//! Temporary grouped journal qualification workload.
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let width = std::env::args().nth(1).ok_or("missing width")?.parse::<usize>()?;
     let dir = std::env::temp_dir().join(format!(
