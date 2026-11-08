@@ -1,0 +1,34 @@
+name: Admin pagination identity baseline controls
+on:
+  push:
+    branches: [work/admin-identity-baseline-20261108]
+permissions:
+  contents: read
+jobs:
+  baseline:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        feature: [default, all]
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Source and toolchain
+        run: |
+          rustc -Vv
+          sha256sum src/admin.rs src/admin/pagination_tests.rs Cargo.lock
+      - name: Record expected failures without masking cargo exit
+        shell: bash
+        run: |
+          set +e
+          if [ "${{ matrix.feature }}" = all ]; then flags=--all-features; else flags=; fi
+          cargo test --locked $flags --lib dtp_pagination_propagates_later -- --nocapture
+          errors=$?
+          cargo test --locked $flags --lib dtp_pagination_rejects_recreated -- --nocapture
+          recreated=$?
+          cargo test --locked $flags --lib dtp_pagination_keeps_first_topic_error -- --nocapture
+          sticky=$?
+          echo "BASELINE_EXIT errors=$errors recreated=$recreated sticky=$sticky"
+          test "$errors" -eq 101 && test "$recreated" -eq 101 && test "$sticky" -eq 101
