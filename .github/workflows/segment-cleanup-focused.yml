@@ -1,0 +1,57 @@
+name: Segment cleanup focused qualification
+on:
+  push:
+    branches: [qualification/segment-cleanup-repair-20261108]
+permissions:
+  contents: read
+jobs:
+  focused:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        profile: [default, all-features]
+    env:
+      CARGO_BUILD_JOBS: "2"
+      CARGO_INCREMENTAL: "0"
+      CARGO_TERM_COLOR: never
+      PLB_SEGMENT_REPLACEMENT_CAPTURE: ${{ github.workspace }}/evidence/segment-cleanup
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: 6d0029b80fb63b424bda08851b2ce3624a8bfbfc
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+      - name: Preserve format patch
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "6d0029b80fb63b424bda08851b2ce3624a8bfbfc"
+          rustc --version --verbose
+          cargo fmt --manifest-path partitionline-broker/Cargo.toml -- --check > "$RUNNER_TEMP/fmt-check.log" 2>&1 || cat "$RUNNER_TEMP/fmt-check.log"
+          cargo fmt --manifest-path partitionline-broker/Cargo.toml
+          git diff --no-ext-diff -- partitionline-broker/src > "$RUNNER_TEMP/fmt.patch"
+          echo PL_FMT_PATCH_BEGIN
+          base64 -w 120 "$RUNNER_TEMP/fmt.patch"
+          echo PL_FMT_PATCH_END
+      - name: Exercise preservation, classification and index rebuilding
+        shell: bash
+        run: |
+          set -euo pipefail
+          args=()
+          if [ "${{ matrix.profile }}" = all-features ]; then args+=(--all-features); fi
+          for name in corrupt_selected_replacement_preserves_old_generation_on_failed_open unknown_entry_after_staging_preserves_all_files_on_failed_open later_selected_scan_failure_preserves_old_generation_and_all_files index_rebuild_removes_stale_temp_before_disk_reservation process_exit_during_index_rebuild_recovers_all_acknowledged_inputs replacement_publication_and_cleanup_failures_select_complete_generations process_exit_at_each_roll_publication_stage_recovers_committed_payloads; do
+            echo "PL_FOCUSED profile=${{ matrix.profile }} test=$name"
+            cargo test --locked --manifest-path partitionline-broker/Cargo.toml --lib "${args[@]}" "segments::tests::$name" -- --exact --nocapture
+          done
+      - name: Preserve fault files
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: segment-cleanup-focused-${{ matrix.profile }}
+          path: evidence/segment-cleanup/
+          if-no-files-found: warn
+          retention-days: 30
