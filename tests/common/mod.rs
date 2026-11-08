@@ -405,6 +405,8 @@ struct State {
     expected_seq: HashMap<(i64, i16, String, i32), i32>,
     last_produce_base_sequence: Option<i32>,
     produce_sequences: Vec<(i64, i16, i32, i32)>,
+    #[cfg(producer_timestamp_witness)]
+    produce_timestamp_attempts: Vec<(i64, i16, i32, i64, Option<i64>)>,
     produce_drop_response: Option<bool>,
     produce_drop_response_left: Option<u32>,
     produce_drop_response_after_appends: Option<u32>,
@@ -953,6 +955,8 @@ fn new_state(
         expected_seq: HashMap::new(),
         last_produce_base_sequence: None,
         produce_sequences: Vec::new(),
+        #[cfg(producer_timestamp_witness)]
+        produce_timestamp_attempts: Vec::new(),
         produce_drop_response: None,
         produce_drop_response_left: None,
         produce_drop_response_after_appends: None,
@@ -2531,6 +2535,21 @@ impl Mock {
 
     pub fn produce_sequences(&self) -> Vec<(i64, i16, i32, i32)> {
         self.state.lock().produce_sequences.clone()
+    }
+
+    #[cfg(producer_timestamp_witness)]
+    pub fn produce_timestamp_attempts(&self) -> Vec<(i64, i16, i32, i64, Option<i64>)> {
+        self.state.lock().produce_timestamp_attempts.clone()
+    }
+
+    #[cfg(producer_timestamp_witness)]
+    pub fn log_timestamps(&self, topic: &str, partition: i32) -> Vec<(i64, i64)> {
+        self.state
+            .lock()
+            .log
+            .get(&(topic.to_string(), partition))
+            .map(|records| records.iter().map(|record| (record.offset, record.timestamp)).collect())
+            .unwrap_or_default()
     }
 
     pub fn set_topic_partitions(&self, topic: &str, count: i32) {
@@ -7504,6 +7523,14 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                             st.last_produce_producer_epoch = Some(p.records.producer_epoch);
                             let key = (topic.topic.clone(), p.index);
                             let nrec = p.records.records.len() as i32;
+                            #[cfg(producer_timestamp_witness)]
+                            st.produce_timestamp_attempts.push((
+                                p.records.producer_id,
+                                p.records.producer_epoch,
+                                p.records.base_sequence,
+                                p.records.base_timestamp,
+                                p.records.records.first().map(|record| record.timestamp),
+                            ));
                             // KL09-14: observe encoded batch sizes for bound tests.
                             let batch_bytes = p.records.size_in_bytes().unwrap();
                             st.produce_batches.push((
