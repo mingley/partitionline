@@ -1,0 +1,67 @@
+name: raft dispatch negative controls
+on:
+  push:
+    branches: [qual/raft-dispatch-mutants-20261108]
+permissions:
+  contents: read
+jobs:
+  negatives:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      CARGO_BUILD_JOBS: '2'
+      CARGO_INCREMENTAL: '0'
+      CARGO_TERM_COLOR: never
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Wrong-current-cancellation mutant must fail
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path("partitionline-broker/src/raft/runtime.rs")
+          s = p.read_text()
+          old = "            Some((_, slot)) => slot.offer(job),"
+          new = """            Some((_, slot)) => {
+                  let wrong = match &job {
+                      Job::Vote(q) => Some(Job::Vote(*q)),
+                      _ => None,
+                  };
+                  let _displaced = slot.offer(job);
+                  wrong
+              },"""
+          assert s.count(old) == 1
+          p.write_text(s.replace(old, new))
+          PY
+          git diff -- partitionline-broker/src/raft/runtime.rs
+          export CARGO_TARGET_DIR="$RUNNER_TEMP/mutant-current"
+          set +e
+          cargo test --locked --manifest-path partitionline-broker/Cargo.toml --lib raft::runtime::ownership_tests::displaced_vote_cancellation_preserves_current_reply_in_both_orders -- --exact --nocapture > "$RUNNER_TEMP/mutant-current.log" 2>&1
+          status=$?
+          set -e
+          cat "$RUNNER_TEMP/mutant-current.log"
+          test "$status" -eq 101
+          grep -F 'test raft::runtime::ownership_tests::displaced_vote_cancellation_preserves_current_reply_in_both_orders ... FAILED' "$RUNNER_TEMP/mutant-current.log"
+      - name: Missing cleanup mutant must fail
+        run: |
+          set -euo pipefail
+          git restore partitionline-broker/src/raft/runtime.rs
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path("partitionline-broker/src/raft/runtime.rs")
+          s = p.read_text()
+          old = "    for job in jobs {\n        let _ = control.cancel_job(job).await;\n    }"
+          new = "    let _ = control;\n    drop(jobs);"
+          assert s.count(old) == 1
+          p.write_text(s.replace(old, new))
+          PY
+          git diff -- partitionline-broker/src/raft/runtime.rs
+          export CARGO_TARGET_DIR="$RUNNER_TEMP/mutant-cleanup"
+          set +e
+          cargo test --locked --manifest-path partitionline-broker/Cargo.toml --lib raft::runtime::ownership_tests::abandoned_vector_and_route_outcomes_fence_exact_correlations -- --exact --nocapture > "$RUNNER_TEMP/mutant-cleanup.log" 2>&1
+          status=$?
+          set -e
+          cat "$RUNNER_TEMP/mutant-cleanup.log"
+          test "$status" -eq 101
+          grep -F 'test raft::runtime::ownership_tests::abandoned_vector_and_route_outcomes_fence_exact_correlations ... FAILED' "$RUNNER_TEMP/mutant-cleanup.log"
