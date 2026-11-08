@@ -39,6 +39,11 @@ later changes; see the linked runs for their exact source and scope.
 | Client capability profiles | Both passed selected checks; their archives were not independently inspected. |
 | Client format, all-target Clippy, audit, docs, package, auth and integrity smoke | Passed. Other client jobs failed or were skipped. |
 
+A later [partial main run][ci-f5] passed 794 default and 942 all-feature
+broker tests, with four ignored per profile. At the snapshot, Linux and
+Windows client libraries and three Kafka compatibility jobs had failed; other
+client and capability jobs were still running.
+
 The [previous complete snapshot][ci-74] also failed client checks and passed
 both broker profiles. An [earlier snapshot][ci-464] stopped its broker
 default library after two Raft observer failures. Later passes do not explain
@@ -119,9 +124,12 @@ latency bound.
   errors. It held an existing yield and does not establish a Kafka outcome.
   [Private batch controls][batch-controls] also show that packing can split an
   injected complete retry and expiration acts on individual records. A
-  separate [timestamp history][timestamp-history] observed different implicit
-  request, retry and receipt times in a mock. These are not real-Kafka results.
-  An [in-flight
+  [timestamp history][timestamp-history] observed mismatched times in a mock.
+  The applied [timestamp fix][timestamp-fix] retains implicit times across
+  retry and acknowledgement; a delayed-ack Kafka 4.1.0 smoke passed. Paired
+  x86 encoder tests showed a 1.8–4.7% cost for single-record implicit batches.
+  Broad producer suites failed for both candidate and matched baseline; batch
+  ownership and cancellation remain open. An [in-flight
   close control][callback] also showed a blocking interceptor delaying a
   150 ms close to 751 ms on a current-thread runtime, with the target appended
   by the mock and its response withheld. [Flush controls][flush-public]
@@ -283,7 +291,7 @@ retained evidence. The [benchmark contract](benchmark-contract.md) and
 [admin-row]: https://github.com/mingley/partitionline/blob/a0deb28cfdb8eb85fd16a1b3264b35fceb2c74e1/docs/evidence/client/admin-dtp-row-poll-20261108/README.md
 
 [retry-flush-split]: https://github.com/mingley/partitionline/blob/8d1461a039b40c9bc79b6cf501aebf2a79054a85/docs/evidence/client/producer-retry-flush-split-20261108/README.md
-[admin-name]: https://github.com/mingley/partitionline/blob/a3abed795162f380336e87b49a5260cf58325c3d/docs/evidence/client/admin-requested-topic-hint-20261108/README.md
+[admin-name]: https://github.com/mingley/partitionline/blob/b7ab4f229385d239a60f2a44b5ebafdaa5656631/docs/evidence/client/admin-requested-topic-hint-20261108/README.md
 
 [admin-row-checkpoint]: https://github.com/mingley/partitionline/blob/a3abed795162f380336e87b49a5260cf58325c3d/docs/evidence/client/admin-dtp-row-checkpoint-20261108/README.md
 
@@ -297,3 +305,6 @@ retained evidence. The [benchmark contract](benchmark-contract.md) and
 [ci-74]: https://github.com/mingley/partitionline/blob/a3abed795162f380336e87b49a5260cf58325c3d/docs/evidence/releases/main-ci-74dd-20261108/README.md
 [quota-clock]: https://github.com/mingley/partitionline/blob/bd37eb53e247b73160da8bbbb2cf53f9d77eb6c3/docs/evidence/broker/quota-logical-clock-20261108/README.md
 [admin-growth]: https://github.com/mingley/partitionline/blob/bd37eb53e247b73160da8bbbb2cf53f9d77eb6c3/docs/evidence/client/admin-dtp-index-growth-20261108/README.md
+
+[ci-f5]: https://github.com/mingley/partitionline/blob/b7ab4f229385d239a60f2a44b5ebafdaa5656631/docs/evidence/releases/main-ci-f5ed-partial-20261108/README.md
+[timestamp-fix]: https://github.com/mingley/partitionline/blob/b7ab4f229385d239a60f2a44b5ebafdaa5656631/docs/evidence/client/producer-timestamp-candidate-20261108/README.md
