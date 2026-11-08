@@ -227,24 +227,24 @@ fn run(shape: Shape, iterations: u64) -> Result<u128, Box<dyn Error>> {
         return runtime.block_on(async {
             for _ in 0..iterations.min(256) {
                 encode_cooperative(&records, shape, &mut output, &mut scratch).await?;
-                std::hint::black_box(&output);
+                let _observed = std::hint::black_box(&output);
             }
             let start = Instant::now();
             for _ in 0..iterations {
                 encode_cooperative(std::hint::black_box(&records), shape, &mut output, &mut scratch).await?;
-                std::hint::black_box(&output);
+                let _observed = std::hint::black_box(&output);
             }
             Ok(start.elapsed().as_nanos())
         });
     }
     for _ in 0..iterations.min(256) {
         encode(&records, shape, &mut output, &mut scratch)?;
-        std::hint::black_box(&output);
+        let _observed = std::hint::black_box(&output);
     }
     let start = Instant::now();
     for _ in 0..iterations {
         encode(std::hint::black_box(&records), shape, &mut output, &mut scratch)?;
-        std::hint::black_box(&output);
+        let _observed = std::hint::black_box(&output);
     }
     Ok(start.elapsed().as_nanos())
 }
