@@ -15,29 +15,32 @@ replicated partition data or native Kafka KRaft.
 
 ## Validation
 
-The latest complete snapshot recorded here is commit `262d2544a4352d52538f19ef9ab0c8c5700774d3`.
+The latest complete snapshot recorded here is commit `60caa746c3654c89d01557e35e1100cdc2a84b74`.
 The [CI evidence][ci] links the runs and their limits.
 
-| Check | Result at `262d254` |
+| Check | Result at `60caa746` |
 | --- | --- |
-| Client library, Linux default | 2,233 passed and 11 failed; later targets did not run. |
-| Client library, Linux all features | 2,233 passed and 11 failed; later targets did not run. |
-| Windows default library | 2,227 passed and 17 failed. |
-| macOS arm64 default library | 2,230 passed and 14 failed. |
+| Client library, Linux default | 2,224 passed and 20 failed; later targets did not run. |
+| Client library, Linux all features | 2,225 passed and 19 failed; later targets did not run. |
+| Windows default library | 2,231 passed and 13 failed. |
+| macOS arm64 default library | 2,233 passed and 11 failed. |
 | Kafka 4.1.2, 4.2.1 and 4.3.1 compatibility | All three jobs failed with stack overflows. |
-| Kafka 3.9.1 and 4.1.0 smoke | Both reported JoinGroup error 16 and exhausted EOS retries after timeouts. |
-| Resource soak | Failed with a `/proc` file-descriptor permission error; the workload result is incomplete. |
-| Broker default targets | 696 passed, one failed and four ignored; later targets did not run. |
-| Broker all-feature targets, Clippy and Rustdoc | Not run after the default failure. |
-| Broker inventory and fuzz supervision | Passed in separate jobs. |
+| Kafka 3.9.1 and 4.1.0 smoke | Both reported JoinGroup error 16 and timeouts after retries. |
+| Resource soak | Passed. |
+| Broker default and all-feature targets | 773 and 921 passed, with four ignored in each profile. |
+| Broker Clippy, Rustdoc, doctests, inventory and fuzz supervision | Passed. |
 | Client capability profiles | Both passed selected checks; their archives were not independently inspected. |
 | Client format, all-target Clippy, audit, docs, package, auth and integrity smoke | Passed. Other client jobs failed or were skipped. |
 
-The broker failure was a `NotLeader` response in a three-node Raft test.
-The node states were sampled after the failure and do not establish its cause
-or whether the mailbox change contributed. The [preceding complete snapshot][ci-02c]
-retains two earlier Raft failures. The mailbox's passing qualification checks
-do not explain these failures. [Earlier results][ci-1f37] are also retained.
+The [preceding snapshot][ci-262] recorded a `/proc` file-descriptor
+permission error in resource-soak; that workload result is incomplete. Its
+broker default suite stopped at 696 passed, one failed and four ignored after
+a three-node Raft `NotLeader` response. The all-feature suite, Clippy and
+Rustdoc did not run; inventory and fuzz supervision passed separately. The
+node states were sampled after the failure and do not establish its cause or
+whether the mailbox change contributed. The later broker and resource-soak
+passes do not explain these failures. An [earlier snapshot][ci-02c] retains
+two more Raft failures. [Earlier results][ci-1f37] are also retained.
 
 An earlier [main CI snapshot][ci-440] at `4409633` recorded 17 successful
 client jobs, nine failures, one cancellation and one skip. Linux default and
@@ -123,16 +126,29 @@ pass does not replace the full release matrix.
   returning while an accepted record receipt was pending. An isolated
   [completion model][flush-model] is not connected to the producer. A gated
   [draft comparison][flush-barrier-public] waited for the retry handoff but
-  still lost a worker error when a flush waiter was canceled. A proposed
-  A [retained-admission test][retained-test] now isolates partial `send_all`
-  cancellation and detects omitted or double byte release in a gated mock.
-  This changes no producer code. The [ownership design][owner-design] is not
-  yet implemented. In a short mock
-  workload, the draft had higher median admission and flush times; it was not
-  a Kafka comparison. A private
-  [sequence control][sequence-cancel] closed receipts after an artificial
-  owner was dropped while the reserved counter stayed advanced; it did not
-  execute the public producer or Kafka I/O.
+  still lost a worker error when a flush waiter was canceled. A
+  [separate mock history][flush-sent] shows that a recorded error can be sent
+  to a live flush waiter, then discarded when the unpolled waiter is dropped
+  while overlapping and later flushes return Ok. A
+  [retained-admission test][retained-test] now isolates partial `send_all`
+  cancellation and detects omitted or double byte release in a gated mock;
+  producer code is unchanged. The [ownership design][owner-design] is not
+  implemented. In a short mock workload, the barrier draft had higher median
+  admission and flush times; it was not a Kafka comparison. A
+  [public sequence history][sequence-public] forced a worker to stop during
+  stamping. Public `close_timeout` returned `Timeout`, the retained receipt
+  returned `Closed`, no batch callbacks were observed and 65,544 bytes
+  stayed counted. In a separate forced abort a replacement worker sent a
+  sequence gap that the repository mock rejected. The gate changes scheduling;
+  neither history establishes a real-Kafka result. Seeded
+  [rollover controls][sequence-rollover] confirm saturation where Kafka
+  sequence arithmetic wraps. In a seeded public mock history, two distinct
+  sends returned success at the same offset while only the first value was
+  stored. A three-line arithmetic control stored both but is not an ownership
+  or concurrency fix. These are not real-Kafka results. The
+  [cleanup-service review][cleanup-service]
+  describes outstanding ownership and shutdown requirements; no repair is
+  implemented.
   Individual delivery timeouts remain reported through the record's own
   result or callback under the documented contract. Repair the barrier and
   error ownership together. Partition issue order, sequence wrap, transaction
@@ -212,7 +228,12 @@ pass does not replace the full release matrix.
   experiment][perf] improved large synthetic loopback responses but remains
   unapplied. A [journal comparison][journal-perf] measured added latency on
   one shared host with a writeback filesystem. A [record-encoding experiment][record-arithmetic] was rejected after
-  separate builds showed slower single-record batches. [Record-header validation][records-perf] now uses a resumable header-aware
+  separate builds showed slower single-record batches. Two
+  [one-byte varint candidates][onebyte] are also unapplied: an outlined
+  variant improved one header-heavy case but slowed all 12 paired samples of
+  two plain batch shapes on a shared x86 runner. The primitive loops can
+  allow compiler hoisting, and these measurements do not rank Kafka clients.
+  [Record-header validation][records-perf] now uses a resumable header-aware
   scan. A short x86 benchmark improved header-heavy cases, while its
   1,024-record header-free median was 0.3% higher. An earlier candidate suite
   and a baseline comparison failed separate Raft tests. See the
@@ -222,9 +243,10 @@ The [work plan][next] tracks the current candidates and outstanding tests.
 The [support matrix](support.md) describes configured coverage, and the
 [release guide](RELEASE.md) lists publication gates. No new release is ready.
 
-[ci]: https://github.com/mingley/partitionline/blob/cb55f7c603e2344775de8a395c6a584737f5bb95/docs/evidence/releases/main-ci-262-20261108/README.md
+[ci]: https://github.com/mingley/partitionline/blob/efa7f23314e98f3aaa4559c3cf38302bdcdb9fb4/docs/evidence/releases/main-ci-60c-20261108/README.md
+[ci-262]: https://github.com/mingley/partitionline/blob/cb55f7c603e2344775de8a395c6a584737f5bb95/docs/evidence/releases/main-ci-262-20261108/README.md
 [previous-ci]: https://github.com/mingley/partitionline/blob/7ebb3cc81adc695cc4c74409a87a1a1dd4be9730/docs/evidence/releases/main-ci-ba8-20261108/README.md
-[next]: https://github.com/mingley/partitionline/blob/cb55f7c603e2344775de8a395c6a584737f5bb95/docs/plan/next-work.md
+[next]: https://github.com/mingley/partitionline/blob/efa7f23314e98f3aaa4559c3cf38302bdcdb9fb4/docs/plan/next-work.md
 [previous]: https://github.com/mingley/partitionline/blob/5c2a000639d9a8a7dccd56e8c1d6f3a58dca1601/docs/STATUS.md
 [flush]: https://github.com/mingley/partitionline/blob/e980829c439aa43edc01312c91838e58a412221a/docs/evidence/client/producer-flush-native-86f2-20261103/README.md
 [txn]: https://github.com/mingley/partitionline/blob/49ad56c6bce1366e2357c272f11c5c34160d60da/docs/evidence/client/add-partitions-native-4f0c-20261103/README.md
@@ -288,3 +310,9 @@ The [support matrix](support.md) describes configured coverage, and the
 
 [ci-02c]: https://github.com/mingley/partitionline/blob/0ce81683fe7107386e30f388cd2a4af31735d522/docs/evidence/releases/main-ci-02c-20261108/README.md
 [stale-vote]: https://github.com/mingley/partitionline/blob/cb55f7c603e2344775de8a395c6a584737f5bb95/docs/evidence/broker/raft-stale-vote-term-20261108/README.md
+
+[sequence-public]: https://github.com/mingley/partitionline/blob/efa7f23314e98f3aaa4559c3cf38302bdcdb9fb4/docs/evidence/client/producer-sequence-public-20261108/README.md
+[sequence-rollover]: https://github.com/mingley/partitionline/blob/efa7f23314e98f3aaa4559c3cf38302bdcdb9fb4/docs/evidence/client/producer-sequence-rollover-20261108/README.md
+[cleanup-service]: https://github.com/mingley/partitionline/blob/efa7f23314e98f3aaa4559c3cf38302bdcdb9fb4/docs/evidence/client/producer-cleanup-service-20261108/README.md
+[onebyte]: https://github.com/mingley/partitionline/blob/efa7f23314e98f3aaa4559c3cf38302bdcdb9fb4/docs/evidence/client/one-byte-varint-20261108/README.md
+[flush-sent]: https://github.com/mingley/partitionline/blob/efa7f23314e98f3aaa4559c3cf38302bdcdb9fb4/docs/evidence/client/producer-flush-sent-20261108/README.md
