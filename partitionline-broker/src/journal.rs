@@ -1756,7 +1756,11 @@ impl<S: Storage> Engine<S> {
         }
         // Every staged record needs an index slot before it is written. The
         // queued records are published later without another fallible allocation.
-        let pending = self.staged.len().checked_add(1).ok_or(Error::IndexBudgetExceeded)?;
+        let pending = self
+            .staged
+            .len()
+            .checked_add(1)
+            .ok_or(Error::IndexBudgetExceeded)?;
         reserve_index(&mut self.index, self.limits.max_index_entries, pending)?;
         let index = Index {
             first_offset: origin_offset,
@@ -2615,7 +2619,10 @@ mod tests {
         journal.storage.synchronize()?;
         for value in 0u64..8 {
             let result = journal.commit_staged()?;
-            assert_eq!((result.first_offset, result.next_offset), (value, value + 1));
+            assert_eq!(
+                (result.first_offset, result.next_offset),
+                (value, value + 1)
+            );
             assert_eq!(journal.index.capacity(), capacity);
         }
         let (mut recovered, recovery) = Engine::recover(journal.storage, 0, Limits::default())?;
@@ -2648,11 +2655,46 @@ mod tests {
             assert!(!journal.poisoned);
             journal.storage.synchronize()?;
             assert_eq!(journal.commit_staged()?.next_offset, 1);
-            let (mut recovered, outcome) =
-                Engine::recover(journal.storage, 0, Limits::default())?;
+            let (mut recovered, outcome) = Engine::recover(journal.storage, 0, Limits::default())?;
             assert_eq!(outcome.next_offset, 1);
             assert_eq!(recovered.fetch(0, 1, 1024)?[0].payload, b"a");
         }
+        Ok(())
+    }
+
+    #[test]
+    fn grouped_capacity_limit_rejects_before_write() -> Result<(), Error> {
+        let limits = Limits::new(8, 4096, 3, 1024)?;
+        let (mut journal, _) = Engine::recover(Faults::new(Vec::new()), 0, limits)?;
+        for value in 0u8..3 {
+            let payload = [value];
+            journal.stage(1, &payload, crc32c::crc32c(&payload), true)?;
+        }
+        let bytes = journal.storage.cursor.get_ref().clone();
+        assert!(matches!(
+            journal.stage(1, b"x", crc32c::crc32c(b"x"), true),
+            Err(Error::IndexBudgetExceeded)
+        ));
+        assert_eq!(*journal.storage.cursor.get_ref(), bytes);
+        assert_eq!(journal.staged.len(), 3);
+        assert!(!journal.poisoned);
+        journal.storage.synchronize()?;
+        for value in 0u64..3 {
+            assert_eq!(journal.commit_staged()?.first_offset, value);
+        }
+        let (mut recovered, outcome) = Engine::recover(journal.storage, 0, limits)?;
+        assert_eq!(outcome.next_offset, 3);
+        let entries = recovered.fetch(0, 3, 1024)?;
+        assert_eq!(entries.len(), 3);
+        for (value, entry) in (0u8..3).zip(entries) {
+            assert_eq!(entry.payload, [value]);
+        }
+        let mut index = Vec::new();
+        assert!(matches!(
+            reserve_index(&mut index, 3, usize::MAX),
+            Err(Error::IndexBudgetExceeded)
+        ));
+        assert!(index.is_empty());
         Ok(())
     }
 
@@ -2685,7 +2727,13 @@ mod tests {
         let (mut recovered, outcome) = Journal::open(&path, 0, Limits::default())?;
         assert_eq!(outcome.next_offset, 3);
         let entries = recovered.fetch(0, 3, 1024)?;
-        assert_eq!(entries.iter().map(|entry| entry.payload[0]).collect::<Vec<_>>(), b"abd");
+        assert_eq!(
+            entries
+                .iter()
+                .map(|entry| entry.payload[0])
+                .collect::<Vec<_>>(),
+            b"abd"
+        );
         drop(recovered);
         std::fs::remove_dir_all(dir)?;
         Ok(())
