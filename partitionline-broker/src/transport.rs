@@ -1949,6 +1949,7 @@ mod disconnect_tests {
     struct Hold {
         started: Arc<AtomicUsize>,
         stopped: Arc<AtomicUsize>,
+        stopped_notice: Arc<Notify>,
         release: Arc<Notify>,
     }
 
@@ -1961,15 +1962,17 @@ mod disconnect_tests {
         ) -> impl Future<Output = Result<Option<Vec<u8>>, Self::Error>> + Send {
             let started = Arc::clone(&self.started);
             let stopped = Arc::clone(&self.stopped);
+            let stopped_notice = Arc::clone(&self.stopped_notice);
             let release = Arc::clone(&self.release);
             async move {
-                struct Guard(Arc<AtomicUsize>);
+                struct Guard(Arc<AtomicUsize>, Arc<Notify>);
                 impl Drop for Guard {
                     fn drop(&mut self) {
                         self.0.fetch_add(1, Ordering::SeqCst);
+                        self.1.notify_one();
                     }
                 }
-                let _guard = Guard(stopped);
+                let _guard = Guard(stopped, stopped_notice);
                 started.fetch_add(1, Ordering::SeqCst);
                 release.notified().await;
                 Ok(Some(request))
@@ -1981,6 +1984,7 @@ mod disconnect_tests {
     async fn client_disconnect_stops_the_handler() {
         let started = Arc::new(AtomicUsize::new(0));
         let stopped = Arc::new(AtomicUsize::new(0));
+        let stopped_notice = Arc::new(Notify::new());
         let release = Arc::new(Notify::new());
         let config = Config::new(
             4,
@@ -2000,6 +2004,7 @@ mod disconnect_tests {
             Arc::new(Hold {
                 started: Arc::clone(&started),
                 stopped: Arc::clone(&stopped),
+                stopped_notice: Arc::clone(&stopped_notice),
                 release: Arc::clone(&release),
             }),
         )
@@ -2016,25 +2021,30 @@ mod disconnect_tests {
             tokio::task::yield_now().await;
         }
         drop(socket);
-        for _ in 0..32 {
-            tokio::task::yield_now().await;
-        }
-        assert_eq!(
-            stopped.load(Ordering::SeqCst),
-            1,
-            "client disconnect left the handler running"
-        );
-        release.notify_waiters();
-        transport
-            .shutdown()
+        let observed = tokio::time::timeout(Duration::from_secs(2), stopped_notice.notified())
             .await
-            .unwrap_or_else(|error| panic!("{error}"));
+            .is_ok();
+        let stopped_before_cleanup = stopped.load(Ordering::SeqCst);
+        release.notify_one();
+        let shutdown = tokio::time::timeout(Duration::from_secs(2), transport.shutdown()).await;
+        if let Some(runner) = transport.runner.as_mut().filter(|_| shutdown.is_err()) {
+            runner.abort();
+            let _ = runner.await;
+        }
+        let joined = matches!(shutdown, Ok(Ok(_)));
+        println!("disconnect-check observed={observed} stopped_before_cleanup={stopped_before_cleanup} joined={joined}");
+        assert!(
+            observed && stopped_before_cleanup == 1,
+            "client disconnect did not stop the handler before cleanup"
+        );
+        assert!(joined, "transport shutdown did not complete");
     }
 
     #[tokio::test(flavor = "current_thread")]
     async fn pipelined_disconnect_stops_the_handler() {
         let started = Arc::new(AtomicUsize::new(0));
         let stopped = Arc::new(AtomicUsize::new(0));
+        let stopped_notice = Arc::new(Notify::new());
         let release = Arc::new(Notify::new());
         let config = Config::new(
             4,
@@ -2054,6 +2064,7 @@ mod disconnect_tests {
             Arc::new(Hold {
                 started: Arc::clone(&started),
                 stopped: Arc::clone(&stopped),
+                stopped_notice: Arc::clone(&stopped_notice),
                 release: Arc::clone(&release),
             }),
         )
@@ -2070,25 +2081,30 @@ mod disconnect_tests {
             tokio::task::yield_now().await;
         }
         drop(socket);
-        for _ in 0..32 {
-            tokio::task::yield_now().await;
-        }
-        assert_eq!(
-            stopped.load(Ordering::SeqCst),
-            1,
-            "pipelined disconnect left the handler running"
-        );
-        release.notify_waiters();
-        transport
-            .shutdown()
+        let observed = tokio::time::timeout(Duration::from_secs(2), stopped_notice.notified())
             .await
-            .unwrap_or_else(|error| panic!("{error}"));
+            .is_ok();
+        let stopped_before_cleanup = stopped.load(Ordering::SeqCst);
+        release.notify_one();
+        let shutdown = tokio::time::timeout(Duration::from_secs(2), transport.shutdown()).await;
+        if let Some(runner) = transport.runner.as_mut().filter(|_| shutdown.is_err()) {
+            runner.abort();
+            let _ = runner.await;
+        }
+        let joined = matches!(shutdown, Ok(Ok(_)));
+        println!("disconnect-check observed={observed} stopped_before_cleanup={stopped_before_cleanup} joined={joined}");
+        assert!(
+            observed && stopped_before_cleanup == 1,
+            "pipelined disconnect did not stop the handler before cleanup"
+        );
+        assert!(joined, "transport shutdown did not complete");
     }
 
     #[tokio::test(flavor = "current_thread")]
     async fn flooded_request_stops_the_handler() {
         let started = Arc::new(AtomicUsize::new(0));
         let stopped = Arc::new(AtomicUsize::new(0));
+        let stopped_notice = Arc::new(Notify::new());
         let release = Arc::new(Notify::new());
         let config = Config::new(
             4,
@@ -2109,6 +2125,7 @@ mod disconnect_tests {
             Arc::new(Hold {
                 started: Arc::clone(&started),
                 stopped: Arc::clone(&stopped),
+                stopped_notice: Arc::clone(&stopped_notice),
                 release: Arc::clone(&release),
             }),
         )
