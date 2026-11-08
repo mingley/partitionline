@@ -16774,22 +16774,11 @@ fn dtp_topic_requested<T: AsRef<str>>(
     }
 }
 
-#[cfg(test)]
-std::thread_local! {
-    static DTP_REMAINING_SCAN_PROGRESS: std::cell::Cell<Option<usize>> = const { std::cell::Cell::new(None) };
-}
-
 async fn remaining_dtp_has_unnamed<'a>(
     topics: impl Iterator<Item = &'a DescribedTopicPartitions>,
 ) -> bool {
     let mut walked = 0usize;
     for topic in topics {
-        #[cfg(test)]
-        DTP_REMAINING_SCAN_PROGRESS.with(|probe| {
-            if let Some(count) = probe.get() {
-                probe.set(Some(count.saturating_add(1)));
-            }
-        });
         if topic.name.is_none() {
             return true;
         }

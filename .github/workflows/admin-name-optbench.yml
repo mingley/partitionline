@@ -1,0 +1,128 @@
+name: Admin requested-name optimization comparison
+on:
+  push:
+    branches: [work/admin-name-optbench-20261108]
+permissions:
+  contents: read
+jobs:
+  compare:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 75
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          path: fixture
+      - uses: actions/checkout@v7
+        with:
+          ref: 426041c9f5526dfb6a788344a0e03b3edfefffb0
+          path: baseline
+      - uses: actions/checkout@v7
+        with:
+          ref: 0092a3931387528f712bf06f6075b4b5c1a94d4d
+          path: original
+      - uses: actions/checkout@v7
+        with:
+          ref: f59bbd06670a64b20df277ddbb35c1d4fa78a946
+          path: capped
+      - uses: actions/checkout@v7
+        with:
+          ref: f7e21cf970fc5f5af9b5cfc98661afe50f1b7138
+          path: hinted
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Pin sources and build release binaries
+        shell: bash
+        run: |
+          set -euo pipefail
+          rustc -Vv
+          cargo -V
+          lscpu | grep -E 'Model name|CPU\(s\)'
+          df -h "$RUNNER_TEMP"
+          sha256sum fixture/.github/fixtures/admin_name_opt_bench.rs.txt
+          git -C fixture hash-object .github/fixtures/admin_name_opt_bench.rs.txt
+          for arm in baseline original capped hinted; do
+            cp fixture/.github/fixtures/admin_name_opt_bench.rs.txt "$arm/src/admin/pagination_tests.rs"
+            cmp fixture/.github/fixtures/admin_name_opt_bench.rs.txt "$arm/src/admin/pagination_tests.rs"
+            sha256sum "$arm/src/admin.rs" "$arm/src/admin/pagination_tests.rs" "$arm/Cargo.toml" "$arm/Cargo.lock"
+            git -C "$arm" hash-object src/admin.rs src/admin/pagination_tests.rs
+            target="$RUNNER_TEMP/target-$arm"
+            CARGO_TARGET_DIR="$target" cargo test --locked --release --manifest-path "$arm/Cargo.toml" --lib dtp_ --no-run
+            bins=()
+            for f in "$target"/release/deps/partitionline-*; do
+              if [ -f "$f" ] && [ -x "$f" ]; then bins+=("$f"); fi
+            done
+            test "${#bins[@]}" = 1
+            cp "${bins[0]}" "$RUNNER_TEMP/$arm-binary"
+            sha256sum "$RUNNER_TEMP/$arm-binary"
+            df -h "$RUNNER_TEMP"
+          done
+      - name: Warm up and run alternating comparisons
+        shell: bash
+        run: |
+          set -euo pipefail
+          cpu=$(python3 -c 'import os; print(min(os.sched_getaffinity(0)))')
+          printf 'pinned_cpu=%s\n' "$cpu"
+          mkdir -p "$RUNNER_TEMP/name-opt"
+          printf 'block,shape,comparison,arm,elapsed_ns\n' > "$RUNNER_TEMP/name-opt/results.csv"
+          shapes=(single many_pages four thirty_two two_fifty_six reordered_thirty_two reordered_two_fifty_six many_names_pages)
+          for shape in "${shapes[@]}"; do
+            case "$shape" in single|many_pages) prefix=dtp_pagination_benchmark ;; *) prefix=dtp_requested_name_benchmark ;; esac
+            for arm in baseline original capped hinted; do
+              taskset -c "$cpu" "$RUNNER_TEMP/$arm-binary" --exact "admin::pagination_tests::${prefix}_$shape" --ignored --nocapture > /dev/null
+            done
+          done
+          for block in $(seq 0 11); do
+            offset=0
+            for shape in "${shapes[@]}"; do
+              case "$shape" in single|many_pages) prefix=dtp_pagination_benchmark ;; *) prefix=dtp_requested_name_benchmark ;; esac
+              if [ $((block % 2)) = 0 ]; then comparisons=(original capped hinted); else comparisons=(hinted capped original); fi
+              for comparison in "${comparisons[@]}"; do
+                if [ $(((block + offset) % 2)) = 0 ]; then order=(baseline "$comparison"); else order=("$comparison" baseline); fi
+                for arm in "${order[@]}"; do
+                  out=$(taskset -c "$cpu" "$RUNNER_TEMP/$arm-binary" --exact "admin::pagination_tests::${prefix}_$shape" --ignored --nocapture)
+                  ns=$(printf '%s\n' "$out" | sed -n 's/.*MEASURE .* elapsed_ns=\([0-9]*\).*/\1/p')
+                  test -n "$ns"
+                  printf '%s,%s,%s,%s,%s\n' "$block" "$shape" "$comparison" "$arm" "$ns" >> "$RUNNER_TEMP/name-opt/results.csv"
+                done
+                offset=$((offset + 1))
+              done
+            done
+          done
+          cat "$RUNNER_TEMP/name-opt/results.csv"
+          python3 - "$RUNNER_TEMP/name-opt/results.csv" <<'PY'
+          import csv,statistics,sys
+          rows=list(csv.DictReader(open(sys.argv[1])))
+          assert len(rows)==576, len(rows)
+          for shape in ('single','many_pages','four','thirty_two','two_fifty_six','reordered_thirty_two','reordered_two_fifty_six','many_names_pages'):
+              for comp in ('original','capped','hinted'):
+                  ratios=[]
+                  for block in range(12):
+                      pair={r['arm']:int(r['elapsed_ns']) for r in rows if r['shape']==shape and r['comparison']==comp and int(r['block'])==block}
+                      ratios.append(pair[comp]/pair['baseline'])
+                  print('RESULT',shape,comp,'median',statistics.median(ratios),'range',min(ratios),max(ratios),'slower',sum(x>1 for x in ratios),'paired',ratios)
+          PY
+      - uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: admin-name-optimization-bench
+          path: ${{ runner.temp }}/name-opt/
+          if-no-files-found: warn
+          retention-days: 30
+  smoke:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          path: fixture
+      - uses: actions/checkout@v7
+        with:
+          ref: f7e21cf970fc5f5af9b5cfc98661afe50f1b7138
+          path: hinted
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Compile and run prototype fixtures
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp fixture/.github/fixtures/admin_name_opt_bench.rs.txt hinted/src/admin/pagination_tests.rs
+          git -C hinted hash-object src/admin.rs src/admin/pagination_tests.rs
+          cargo test --locked --manifest-path hinted/Cargo.toml --lib dtp_requested_name_benchmark -- --ignored --nocapture
