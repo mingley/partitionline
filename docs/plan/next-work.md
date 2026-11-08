@@ -39,10 +39,12 @@ separately. It adds descriptors and reference-count operations; process-wide
 descriptor limits and broader fault qualification remain open. The controls did
 not establish the cause of the earlier quorum failure.
 
-An [admission candidate](../evidence/broker/fetch-owned-admission-20261108/README.md)
-retains data permits through actor-owned requests and replies, but is unapplied.
-Its default all-target run failed a transport deadline test; the cause remains
-unknown. The all-feature suite and focused controls passed.
+The [admission repair](../evidence/broker/fetch-owned-admission-20261108/README.md)
+retains data permits through actor-owned requests, waiting Fetches and
+unconsumed replies. The combined source passed both full broker test profiles
+and separate descriptor controls. Its earlier default all-target transport
+failure remains unexplained; a stronger fixture uses a longer finite deadline
+and checks real admission before cancellation.
 
 Earlier records:
 
@@ -297,8 +299,11 @@ remain open.
    full default run stopped at a quorum `Journal(AlreadyOpen)` failure.
    A [modeled cancellation overlap](../evidence/broker/fetch-actor-overlap-20261108/README.md)
    retained 8,192 bytes of input under a 4,160-byte configured ceiling.
-   It models a possible actor schedule, not process RSS. Permit ownership
-   remains open.
+   It models a possible actor schedule, not process RSS. The applied
+   [admission repair](../evidence/broker/fetch-owned-admission-20261108/README.md)
+   keeps the data permit with actor-owned work. Vector capacity, caller-supplied
+   spares, actor caches, transport ownership and process RSS are not bounded
+   by that logical payload budget.
 
    The [Produce cancellation fix](../evidence/broker/produce-cancel-20261108/README.md)
    rolls back a canceled request's unsynced monolithic stages. Its x86
