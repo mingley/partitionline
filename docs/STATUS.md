@@ -15,21 +15,20 @@ replicated partition data or native Kafka KRaft.
 
 ## Validation
 
-The latest complete snapshot recorded here is commit `374dcf45db20ee728b00c0b0188e77ca1f47fa9c`.
-It does not cover later changes. The [CI evidence][ci] links the runs and
-their limits.
+The latest complete snapshot recorded here is commit `7f59ef470340db6027958f439df3716a8dde536c`.
+It predates the coordinator repair. The [CI evidence][ci] links the runs
+and their limits.
 
-| Check | Result at `374dcf4` |
+| Check | Result at `7f59ef4` |
 | --- | --- |
-| Client library, Linux default | 2,190 passed and 17 failed; the all-target run stopped at the library. |
-| Client library, Linux all features | 2,180 passed and 27 failed; later targets did not run. |
-| Windows default library | 2,184 passed and 23 failed. |
-| macOS arm64 default library | 2,189 passed and 18 failed. |
-| Kafka 4.1.2, 4.2.1 and 4.3.1 compatibility | All three jobs failed. |
-| Kafka 3.9.1 and 4.1.0 smoke | Both failed after repeated EOS timeouts. |
-| Broker default and all-feature targets | 738 and 886 passed, respectively. Clippy and Rustdoc passed; both doctest commands found zero tests. |
+| Client library, Linux default | 2,195 passed and 25 failed; the all-target run stopped at the library. |
+| Client library, Linux all features | 2,194 passed and 26 failed; later targets did not run. |
+| Windows default library | 2,197 passed and 23 failed. |
+| macOS arm64 default library | 2,195 passed and 25 failed. |
+| Kafka 4.1.2, 4.2.1 and 4.3.1 compatibility | All three jobs failed with stack overflows. |
+| Kafka 3.9.1 and 4.1.0 smoke | Both failed after repeated EOS timeouts and reported JoinGroup error 16. |
+| Broker default and all-feature targets | 739 and 887 passed, respectively. Clippy and Rustdoc passed; both doctest commands found zero tests. |
 | Broker inventory and fuzz supervision | Both passed. |
-| Client capability profiles | Both passed selected checks; their archives were not independently inspected. |
 | Client format, all-target Clippy, audit, docs, package, auth and integrity smoke | Passed. Other client jobs failed or were skipped. |
 
 A [debugger trace][gdb] on the earlier `8b5de2e` source caught a stack fault
@@ -56,11 +55,15 @@ pass does not replace the full release matrix.
   transaction generations and already-admitted operations remain open.
   [Cancellation controls][cleanup] reproduced lost record
   completions and retained buffer bytes during retry and failure cleanup.
+  A [cleanup candidate][cleanup-deferred] remains unapplied because a user
+  callback can block the dropping runtime thread past a timer deadline.
   An unapplied [transaction-response candidate][txn]
   passed focused mocks and one [single-node Kafka 3.9.1 test][txn-live];
   failure and concurrency coverage remain open. Use `send` for an individual
   delivery result; with `acks=0`, success only confirms the local write.
-- **Consumer and group correctness.** Resolve the classic-join stack overflow,
+- **Consumer and group correctness.** A [socket repair][socket] retires known
+  coordinators before reconnecting; live failover and other authentication paths
+  need testing. Resolve the classic-join stack overflow,
   group retry and topic-recreation failures, and cancellation across buffered
   records, offsets and aborted-transaction state. A [nontransactional
   control][poll-loss] reproduced a lost record after canceling a poll while an
@@ -87,6 +90,8 @@ pass does not replace the full release matrix.
   A [modeled cancellation overlap][fetch-overlap] retained two 4,096-byte
   inputs under a 4,160-byte configured admission ceiling; it did not measure
   process RSS. Permit ownership and earlier Raft failures remain unresolved.
+  [Journal ownership controls][journal] also reproduced false inode-identity
+  collisions; they did not establish the cause of the earlier quorum failure.
 - **Reliability and performance.** No 24-hour fault campaign or seven-day
   continuity run has passed. Matched x86 comparisons against other Kafka
   implementations, with independent record verification, have not been
@@ -100,9 +105,9 @@ The [work plan][next] tracks the current candidates and outstanding tests.
 The [support matrix](support.md) describes configured coverage, and the
 [release guide](RELEASE.md) lists publication gates. No new release is ready.
 
-[ci]: https://github.com/mingley/partitionline/blob/2b5e830fd514a9ad3dea27d937d85977a5bea041/docs/evidence/releases/main-ci-374dcf4-20261108/README.md
+[ci]: https://github.com/mingley/partitionline/blob/cf02f56c4e4c49b11032f7abc1eb46b14ed9ded2/docs/evidence/releases/main-ci-7f59-20261108/README.md
 [previous-ci]: https://github.com/mingley/partitionline/blob/447493b1fbee45c04fd339d199fd661746adbf25/docs/evidence/releases/main-ci-8b5-20261108/README.md
-[next]: https://github.com/mingley/partitionline/blob/dee7e33536ef7ace765b7ca2b4f4986d83bcd644/docs/plan/next-work.md
+[next]: https://github.com/mingley/partitionline/blob/cf02f56c4e4c49b11032f7abc1eb46b14ed9ded2/docs/plan/next-work.md
 [previous]: https://github.com/mingley/partitionline/blob/5c2a000639d9a8a7dccd56e8c1d6f3a58dca1601/docs/STATUS.md
 [flush]: https://github.com/mingley/partitionline/blob/e980829c439aa43edc01312c91838e58a412221a/docs/evidence/client/producer-flush-native-86f2-20261103/README.md
 [txn]: https://github.com/mingley/partitionline/blob/49ad56c6bce1366e2357c272f11c5c34160d60da/docs/evidence/client/add-partitions-native-4f0c-20261103/README.md
@@ -119,4 +124,7 @@ The [support matrix](support.md) describes configured coverage, and the
 [ack]: https://github.com/mingley/partitionline/blob/2b5e830fd514a9ad3dea27d937d85977a5bea041/docs/evidence/client/ack-closed-loop-20261108/README.md
 [fetch-queue]: https://github.com/mingley/partitionline/blob/4d830d8990f7d50bd853ad92ad0e85a9850d8f94/docs/evidence/broker/fetch-canceled-queue-20261108/README.md
 [fetch-overlap]: https://github.com/mingley/partitionline/blob/d358d94ff0773e23a9429e85f79c9aa0e48d6a8c/docs/evidence/broker/fetch-actor-overlap-20261108/README.md
-[txn-state]: https://github.com/mingley/partitionline/blob/dee7e33536ef7ace765b7ca2b4f4986d83bcd644/docs/evidence/client/txn-error-state-374-20261108/REPORT.md
+[txn-state]: https://github.com/mingley/partitionline/blob/cf02f56c4e4c49b11032f7abc1eb46b14ed9ded2/docs/evidence/client/txn-error-state-374-20261108/REPORT.md
+[socket]: https://github.com/mingley/partitionline/blob/c86a2eee826459672e3a25b8ea6ea744dccb0119/docs/evidence/client/group-coordinator-retirement-20261108/README.md
+[cleanup-deferred]: https://github.com/mingley/partitionline/blob/cf02f56c4e4c49b11032f7abc1eb46b14ed9ded2/docs/evidence/client/producer-failure-cleanup-20261108/DEFERRED.md
+[journal]: https://github.com/mingley/partitionline/blob/cf02f56c4e4c49b11032f7abc1eb46b14ed9ded2/docs/qualification/journal-ownership-2026-11-08.md
