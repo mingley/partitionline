@@ -526,9 +526,12 @@ remain open.
    still need work. A
    [row-poll baseline](../evidence/client/admin-dtp-row-poll-20261108/README.md)
    measured 93–98 ms for the longest public future poll after a mock peer wrote
-   a 500,000-row response on one x86 host. Those polls include other work;
-   this does not measure Kafka throughput or establish a wall-time bound. The
-   earlier [Admin pagination repair](../evidence/client/admin-pagination-20261108/README.md)
+   a 500,000-row response on one x86 host. The applied [row checkpoint](../evidence/client/admin-dtp-row-checkpoint-20261108/README.md)
+   yields after 8,192 completed conversions, carrying the count across pages.
+   In a paired mock it shortened the median 8,192-row poll but the longest
+   500,000-row polls remained about 62–66 ms in both arms. Other work and
+   synchronous destruction remain unbounded; this is not Kafka throughput.
+   The earlier [Admin pagination repair](../evidence/client/admin-pagination-20261108/README.md)
    uses one checked deadline for DescribeTopicPartitions pages and rejects an
    immediately repeated cursor instead of returning a partial success. A
    four-partition Apache Kafka 4.1.2 smoke and focused controls passed in both

@@ -2,9 +2,8 @@
 
 This note tracks an isolated candidate for the name-based
 `describe_topics` aggregate. It is separate from the [earlier topic
-identity change][prior]. The candidate is not applied. The restored-mutant
-jobs are still running. A lower-cost revision is under investigation after
-the initial timing comparison.
+identity change][prior]. The candidate is not applied. A lower-cost revision
+is under investigation after the initial timing comparison.
 
 Kafka 4.1.0's [request handler][handler] builds a set from a nonempty
 explicit topic list, deduplicates names, and emits success and topic-error
@@ -153,8 +152,29 @@ identical inputs it observed one unique value, capacity 3, and one growth.
 This is a capacity probe, not an allocator-byte measurement; the candidate
 uses the set only when the input has more than eight entries.
 
-The restored negative-control jobs remain in progress. Their results must
-be recorded before this note is complete.
+The [candidate gate][final] also ran 12 separately restored negative
+mutants in each profile. Every targeted test failed as expected with Cargo
+exit 101, and the original source and test SHA-256 values were verified
+again after each job. The workflow as a whole still failed because of the
+full Admin suites reported above.
+
+| Mutation | Expected failing control |
+| --- | --- |
+| Remove row guard | `dtp_requested_names_reject_unsolicited_success` |
+| Let the large-input index accept any name | `dtp_requested_names_large_input_rejects_unsolicited_topic` |
+| Remove cursor membership guard | `dtp_requested_names_reject_unsolicited_cursor` |
+| Disable null-name priority | `dtp_requested_names_null_precedes_unsolicited_row_and_cursor` |
+| Remove immediate-repeat check | `dtp_requested_names_repeated_cursor_precedes_unsolicited_rows` |
+| Remove index-construction yield | `dtp_requested_names_index_yields_after_progress` |
+| Remove remainder-scan yield | `dtp_requested_names_scan_yields_after_progress` |
+| Replace cooperative accumulated-output cleanup with a synchronous clear | `dtp_requested_names_rejection_cleans_and_checks_deadline` |
+| Do not populate the requested-name index | `dtp_requested_names_large_input_accepts_members_and_duplicates` |
+| Remove scan yield for cancellation test | `dtp_requested_names_cancel_during_scan_keeps_socket_usable` |
+| Remove cursor guard for cursor/ID precedence | `dtp_requested_names_cursor_precedes_same_page_id_conflict` |
+| Remove row guard for row/cursor precedence | `dtp_requested_names_unsolicited_row_precedes_unsolicited_cursor` |
+
+These controls exercise the named mutations and fixtures; they do not prove
+all possible broker behavior or a wall-clock bound.
 
 ## Resource and compatibility limits
 
