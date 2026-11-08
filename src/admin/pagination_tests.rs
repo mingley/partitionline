@@ -392,3 +392,491 @@ async fn dtp_empty_describe_stays_a_noop_at_extreme_timeouts() {
         assert!(got.is_empty());
     }
 }
+
+async fn later_topic_error_case(code: i16) {
+    let (mut admin, listener) = admin_and_listener().await;
+    let peer = tokio::spawn(async move {
+        let (mut socket, _) = listener.accept().await.unwrap();
+        socket.set_nodelay(true).unwrap();
+        let first = dtp_request(&mut socket, None).await;
+        send_page(&mut socket, &first, &page(0, Some(("orders", 1))))
+            .await
+            .unwrap();
+        let second = dtp_request(&mut socket, Some(("orders", 1))).await;
+        let mut failed = page(1, None);
+        failed.topics[0].error_code = code;
+        failed.topics[0].topic_id = [0; 16];
+        failed.topics[0].partitions.clear();
+        send_page(&mut socket, &second, &failed).await.unwrap();
+    });
+    let result = admin
+        .describe_topics_with_partition_limit_timeout(
+            ["orders"].iter(),
+            true,
+            1,
+            Duration::from_secs(5),
+        )
+        .await
+        .unwrap();
+    peer.await.unwrap();
+    assert_eq!(result.len(), 1);
+    assert_eq!(result[0].name(), "orders");
+    assert_eq!(result[0].error_code(), code);
+    assert!(
+        result[0].partitions().is_empty(),
+        "failed topic retained partial partitions"
+    );
+    assert_eq!(result[0].topic_id(), Uuid::from([0; 16]));
+}
+
+#[tokio::test]
+async fn dtp_pagination_propagates_later_topic_deletion() {
+    later_topic_error_case(crate::error::UNKNOWN_TOPIC_OR_PARTITION).await;
+}
+
+#[tokio::test]
+async fn dtp_pagination_propagates_later_topic_denial() {
+    later_topic_error_case(crate::error::TOPIC_AUTHORIZATION_FAILED).await;
+}
+
+#[tokio::test]
+async fn dtp_pagination_rejects_recreated_topic_with_different_id() {
+    let (mut admin, listener) = admin_and_listener().await;
+    let peer = tokio::spawn(async move {
+        let (mut socket, _) = listener.accept().await.unwrap();
+        socket.set_nodelay(true).unwrap();
+        let first = dtp_request(&mut socket, None).await;
+        send_page(&mut socket, &first, &page(0, Some(("orders", 1))))
+            .await
+            .unwrap();
+        let second = dtp_request(&mut socket, Some(("orders", 1))).await;
+        let mut recreated = page(1, None);
+        recreated.topics[0].topic_id = [8; 16];
+        send_page(&mut socket, &second, &recreated).await.unwrap();
+    });
+    let result = admin
+        .describe_topics_with_partition_limit_timeout(
+            ["orders"].iter(),
+            false,
+            1,
+            Duration::from_secs(5),
+        )
+        .await;
+    peer.await.unwrap();
+    assert!(
+        matches!(&result, Err(Error::Protocol(message))
+            if message == "DescribeTopicPartitions returned different topic IDs for the same topic"),
+        "got {result:?}"
+    );
+}
+
+#[tokio::test]
+async fn dtp_pagination_keeps_first_topic_error_across_later_success() {
+    let (mut admin, listener) = admin_and_listener().await;
+    let peer = tokio::spawn(async move {
+        let (mut socket, _) = listener.accept().await.unwrap();
+        socket.set_nodelay(true).unwrap();
+        for position in 0..2 {
+            let (header, mut body) = request(&mut socket).await;
+            assert_eq!(
+                (header.api_key, header.api_version),
+                (DESCRIBE_TOPIC_PARTITIONS, 0)
+            );
+            let (names, limit, cursor) =
+                decode_describe_topic_partitions_request(&mut body).unwrap();
+            assert_eq!(names, vec!["orders", "payments"]);
+            assert_eq!(limit, 1);
+            assert_eq!(
+                cursor
+                    .as_ref()
+                    .map(|c| (c.topic_name.as_str(), c.partition_index)),
+                if position == 0 {
+                    None
+                } else {
+                    Some(("orders", 1))
+                }
+            );
+            assert!(body.is_empty());
+            let mut response = page(
+                position,
+                if position == 0 {
+                    Some(("orders", 1))
+                } else {
+                    None
+                },
+            );
+            let payment = if position == 0 {
+                let mut denied = DescribedTopicPartitions::new(
+                    "payments",
+                    crate::error::TOPIC_AUTHORIZATION_FAILED,
+                );
+                denied.topic_id = [9; 16];
+                denied
+            } else {
+                let mut success = DescribedTopicPartitions::new("payments", 0);
+                success.topic_id = [8; 16];
+                success.partitions = vec![DescribedTopicPartition::new(0)];
+                success
+            };
+            response.topics.push(payment);
+            send_page(&mut socket, &header, &response).await.unwrap();
+        }
+    });
+    let result = admin
+        .describe_topics_with_partition_limit_timeout(
+            ["orders", "payments"].iter(),
+            false,
+            1,
+            Duration::from_secs(5),
+        )
+        .await
+        .unwrap();
+    peer.await.unwrap();
+    assert_eq!(
+        result
+            .iter()
+            .map(TopicDescription::name)
+            .collect::<Vec<_>>(),
+        ["orders", "payments"]
+    );
+    assert_eq!(
+        result[0]
+            .partitions()
+            .iter()
+            .map(|p| p.partition)
+            .collect::<Vec<_>>(),
+        [0, 1]
+    );
+    assert_eq!(
+        result[1].error_code(),
+        crate::error::TOPIC_AUTHORIZATION_FAILED
+    );
+    assert_eq!(result[1].topic_id(), Uuid::from([9; 16]));
+    assert!(
+        result[1].partitions().is_empty(),
+        "error topic retained later success partitions"
+    );
+}
+
+async fn unknown_id_case(final_id: [u8; 16], expect_conflict: bool) {
+    let (mut admin, listener) = admin_and_listener().await;
+    let peer = tokio::spawn(async move {
+        let (mut socket, _) = listener.accept().await.unwrap();
+        socket.set_nodelay(true).unwrap();
+        let ids = [[0; 16], [7; 16], [0; 16], final_id];
+        for (i, id) in ids.into_iter().enumerate() {
+            let index = i32::try_from(i).unwrap();
+            let header = dtp_request(
+                &mut socket,
+                if i == 0 {
+                    None
+                } else {
+                    Some(("orders", index))
+                },
+            )
+            .await;
+            let mut response = page(
+                index,
+                if i == 3 {
+                    None
+                } else {
+                    Some(("orders", index + 1))
+                },
+            );
+            response.topics[0].topic_id = id;
+            send_page(&mut socket, &header, &response).await.unwrap();
+        }
+    });
+    let got = admin
+        .describe_topics_with_partition_limit_timeout(
+            ["orders"].iter(),
+            false,
+            1,
+            Duration::from_secs(5),
+        )
+        .await;
+    peer.await.unwrap();
+    if expect_conflict {
+        assert!(
+            matches!(&got, Err(Error::Protocol(message))
+                if message == "DescribeTopicPartitions returned different topic IDs for the same topic"),
+            "got {got:?}"
+        );
+    } else {
+        let result = got.unwrap();
+        assert_eq!(result.len(), 1);
+        assert_eq!(result[0].topic_id(), Uuid::from([0; 16]));
+        assert_eq!(
+            result[0]
+                .partitions()
+                .iter()
+                .map(|p| p.partition)
+                .collect::<Vec<_>>(),
+            [0, 1, 2, 3]
+        );
+    }
+}
+
+#[tokio::test]
+async fn dtp_pagination_checks_known_ids_despite_unknown_pages() {
+    unknown_id_case([8; 16], true).await;
+}
+
+#[tokio::test]
+async fn dtp_pagination_keeps_unknown_id_when_known_pages_agree() {
+    unknown_id_case([7; 16], false).await;
+}
+
+#[test]
+fn dtp_discard_partitions_yields_after_making_progress() {
+    use std::future::Future;
+    use std::sync::Arc;
+    use std::task::{Context, Poll, Waker};
+
+    let make_partitions = || -> Vec<crate::PartitionInfo> {
+        (0..16_385)
+            .map(|partition| crate::PartitionInfo {
+                topic: "orders".into(),
+                partition,
+                leader: 1,
+                leader_epoch: 0,
+                replicas: vec![1],
+                isr: vec![1],
+                offline_replicas: Vec::new(),
+            })
+            .collect()
+    };
+    let wake = Arc::new(CleanupWake::default());
+    let waker = Waker::from(Arc::clone(&wake));
+    let mut context = Context::from_waker(&waker);
+
+    for polls in 1..=2 {
+        let mut partitions = make_partitions();
+        let mut future = Box::pin(discard_described_partitions(&mut partitions));
+        for _ in 0..polls {
+            poll_cleanup_yield(future.as_mut(), &mut context, &wake);
+        }
+        drop(future);
+        assert_eq!(partitions.len(), 16_385 - polls * 8_192);
+    }
+    let mut partitions = make_partitions();
+    let mut future = Box::pin(discard_described_partitions(&mut partitions));
+    poll_cleanup_yield(future.as_mut(), &mut context, &wake);
+    poll_cleanup_yield(future.as_mut(), &mut context, &wake);
+    assert!(matches!(
+        future.as_mut().poll(&mut context),
+        Poll::Ready(())
+    ));
+    drop(future);
+    assert!(partitions.is_empty());
+}
+
+#[tokio::test]
+async fn dtp_pagination_later_error_with_known_id_keeps_order() {
+    let (mut admin, listener) = admin_and_listener().await;
+    let peer = tokio::spawn(async move {
+        let (mut socket, _) = listener.accept().await.unwrap();
+        socket.set_nodelay(true).unwrap();
+        for position in 0..2 {
+            let (header, mut body) = request(&mut socket).await;
+            assert_eq!(
+                (header.api_key, header.api_version),
+                (DESCRIBE_TOPIC_PARTITIONS, 0)
+            );
+            let (names, limit, cursor) =
+                decode_describe_topic_partitions_request(&mut body).unwrap();
+            assert_eq!(names, vec!["orders", "payments"]);
+            assert_eq!(limit, 1);
+            assert_eq!(
+                cursor
+                    .as_ref()
+                    .map(|c| (c.topic_name.as_str(), c.partition_index)),
+                if position == 0 {
+                    None
+                } else {
+                    Some(("orders", 1))
+                }
+            );
+            assert!(body.is_empty());
+            let response = if position == 0 {
+                page(0, Some(("orders", 1)))
+            } else {
+                let mut response = page(1, None);
+                response.topics[0].error_code = crate::error::UNKNOWN_TOPIC_OR_PARTITION;
+                response.topics[0].topic_id = [9; 16];
+                response.topics[0].partitions.clear();
+                let mut payment = DescribedTopicPartitions::new("payments", 0);
+                payment.topic_id = [8; 16];
+                payment.partitions = vec![DescribedTopicPartition::new(0)];
+                response.topics.push(payment);
+                response
+            };
+            send_page(&mut socket, &header, &response).await.unwrap();
+        }
+    });
+    let result = admin
+        .describe_topics_with_partition_limit_timeout(
+            ["orders", "payments"].iter(),
+            false,
+            1,
+            Duration::from_secs(5),
+        )
+        .await
+        .unwrap();
+    peer.await.unwrap();
+    assert_eq!(
+        result
+            .iter()
+            .map(TopicDescription::name)
+            .collect::<Vec<_>>(),
+        ["orders", "payments"]
+    );
+    assert_eq!(
+        result[0].error_code(),
+        crate::error::UNKNOWN_TOPIC_OR_PARTITION
+    );
+    assert_eq!(result[0].topic_id(), Uuid::from([9; 16]));
+    assert!(result[0].partitions().is_empty());
+    assert_eq!(result[1].error_code(), 0);
+    assert_eq!(result[1].topic_id(), Uuid::from([8; 16]));
+    assert_eq!(result[1].partitions().len(), 1);
+}
+
+#[test]
+fn dtp_pagination_error_and_conflict_cleanup_make_cooperative_progress() {
+    use std::sync::Arc;
+    use std::task::{Context, Waker};
+
+    let wake = Arc::new(CleanupWake::default());
+    let waker = Waker::from(Arc::clone(&wake));
+    let mut context = Context::from_waker(&waker);
+    for identity_conflict in [false, true] {
+        for polls in 1..=2 {
+            let partitions = (0..16_385)
+                .map(|partition| crate::PartitionInfo {
+                    topic: "orders".into(),
+                    partition,
+                    leader: 1,
+                    leader_epoch: 0,
+                    replicas: vec![1],
+                    isr: vec![1],
+                    offline_replicas: Vec::new(),
+                })
+                .collect();
+            let mut out = vec![TopicDescription::new(
+                "orders", [7; 16], false, 0, partitions,
+            )];
+            let mut index = DescribedTopicIndex::from([("orders".into(), (0, [7; 16]))]);
+            let incoming = if identity_conflict {
+                TopicDescription::new("orders", [8; 16], false, 0, Vec::new())
+            } else {
+                TopicDescription::new(
+                    "orders",
+                    [0; 16],
+                    false,
+                    crate::error::UNKNOWN_TOPIC_OR_PARTITION,
+                    Vec::new(),
+                )
+            };
+            let mut future = Box::pin(extend_described_topics(
+                &mut out,
+                &mut index,
+                vec![incoming],
+            ));
+            for _ in 0..polls {
+                poll_cleanup_yield(future.as_mut(), &mut context, &wake);
+            }
+            drop(future);
+            assert_eq!(out[0].partitions.len(), 16_385 - polls * 8_192);
+        }
+    }
+}
+
+#[tokio::test]
+async fn dtp_pagination_id_conflict_fails_the_call_and_keeps_socket_usable() {
+    let (mut admin, listener) = admin_and_listener().await;
+    let peer = tokio::spawn(async move {
+        let (mut socket, _) = listener.accept().await.unwrap();
+        socket.set_nodelay(true).unwrap();
+        for position in 0..3 {
+            let (header, mut body) = request(&mut socket).await;
+            let (names, limit, cursor) =
+                decode_describe_topic_partitions_request(&mut body).unwrap();
+            assert_eq!(
+                (header.api_key, header.api_version),
+                (DESCRIBE_TOPIC_PARTITIONS, 0)
+            );
+            assert_eq!(names, vec!["a-payments", "orders"]);
+            assert_eq!(limit, 1);
+            let expected = match position {
+                0 => None,
+                1 => Some(("orders", 0)),
+                _ => Some(("orders", 1)),
+            };
+            assert_eq!(
+                cursor
+                    .as_ref()
+                    .map(|c| (c.topic_name.as_str(), c.partition_index)),
+                expected
+            );
+            assert!(body.is_empty());
+            let response = match position {
+                0 => {
+                    let mut response = page(0, Some(("orders", 0)));
+                    response.topics[0].name = Some("a-payments".into());
+                    response.topics[0].topic_id = [6; 16];
+                    response
+                }
+                1 => page(0, Some(("orders", 1))),
+                _ => {
+                    let mut response = page(1, None);
+                    response.topics[0].topic_id = [8; 16];
+                    response
+                }
+            };
+            send_page(&mut socket, &header, &response).await.unwrap();
+        }
+        let header = dtp_request(&mut socket, None).await;
+        send_page(&mut socket, &header, &page(42, None))
+            .await
+            .unwrap();
+    });
+    let got = admin
+        .describe_topics_with_partition_limit_timeout(
+            ["a-payments", "orders"].iter(),
+            false,
+            1,
+            Duration::from_secs(5),
+        )
+        .await;
+    let error = got.expect_err("a conflict must not return a partial list of topic descriptions");
+    assert!(matches!(&error, Error::Protocol(message)
+        if message == "DescribeTopicPartitions returned different topic IDs for the same topic"));
+    assert!(!error.is_retriable());
+    assert!(!admin.conn.is_closed());
+    let next = admin
+        .describe_topic_partitions_timeout(&["orders"], 1, None, Duration::from_secs(5))
+        .await
+        .unwrap();
+    assert_eq!(next.topics[0].partitions[0].partition_index, 42);
+    peer.await.unwrap();
+}
+
+#[derive(Default)]
+struct CleanupWake(std::sync::atomic::AtomicUsize);
+
+impl std::task::Wake for CleanupWake {
+    fn wake(self: std::sync::Arc<Self>) {
+        self.0.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+    }
+}
+
+fn poll_cleanup_yield<F: std::future::Future>(
+    future: std::pin::Pin<&mut F>,
+    context: &mut std::task::Context<'_>,
+    wake: &CleanupWake,
+) {
+    let before = wake.0.load(std::sync::atomic::Ordering::SeqCst);
+    assert!(future.poll(context).is_pending());
+    assert!(wake.0.load(std::sync::atomic::Ordering::SeqCst) > before);
+}
