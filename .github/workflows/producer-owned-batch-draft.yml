@@ -1,0 +1,59 @@
+name: Isolated producer ownership substrate
+
+on:
+  push:
+    branches:
+      - qual/producer-owned-batch-draft-20261108-v1
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Prototype tests (${{ matrix.profile }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        profile: [default, all]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Record exact pins
+        run: |
+          git rev-parse HEAD
+          git hash-object src/producer/ownership_draft.rs tests/producer_owned_batch_draft.rs
+          sha256sum src/producer/ownership_draft.rs tests/producer_owned_batch_draft.rs
+          rustc -Vv
+      - name: Run isolated controls
+        run: |
+          if [ "${{ matrix.profile }}" = all ]; then
+            cargo test --locked --all-features --test producer_owned_batch_draft -- --test-threads=1
+          else
+            cargo test --locked --test producer_owned_batch_draft -- --test-threads=1
+          fi
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+      - name: Format report
+        run: |
+          rustfmt --edition 2021 src/producer/ownership_draft.rs tests/producer_owned_batch_draft.rs
+          printf 'FORMATTED_SOURCE_BASE64='
+          base64 -w0 src/producer/ownership_draft.rs
+          printf '\nFORMATTED_TEST_BASE64='
+          base64 -w0 tests/producer_owned_batch_draft.rs
+          printf '\n'
+          git diff --exit-code -- src/producer/ownership_draft.rs tests/producer_owned_batch_draft.rs
+  strict:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+      - name: Strict target clippy
+        run: cargo clippy --locked --all-features --test producer_owned_batch_draft -- -D warnings
