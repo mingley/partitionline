@@ -388,15 +388,37 @@ mod tests {
             entered: entered_tx,
             release: Mutex::new(release_rx),
         };
+        struct ReleaseOnDrop(Option<std::sync::mpsc::Sender<()>>);
+        impl ReleaseOnDrop {
+            fn release(&mut self) {
+                if let Some(sender) = self.0.take() {
+                    let _sent = sender.send(());
+                }
+            }
+        }
+        impl Drop for ReleaseOnDrop {
+            fn drop(&mut self) {
+                self.release();
+            }
+        }
+        let mut release = ReleaseOnDrop(Some(release_tx));
         let worker = Arc::clone(&failures);
         let record = std::thread::spawn(move || {
             worker.record(Error::Io(std::io::Error::other(payload)));
         });
         entered_rx.recv_timeout(std::time::Duration::from_secs(3)).expect("drop entered");
-        // The destructor is blocked, but state access can still acquire the lock.
-        assert_eq!(label(&snapshot(&failures, &first, "A")), "A");
-        release_tx.send(()).expect("release");
+        let (observed_tx, observed_rx) = std::sync::mpsc::channel();
+        let observer = Arc::clone(&failures);
+        let observer_epoch = Arc::clone(&first);
+        let read = std::thread::spawn(move || {
+            let value = observer.snapshot(&observer_epoch).map(|error| label(&error).to_string());
+            let _sent = observed_tx.send(value);
+        });
+        let before_release = observed_rx.recv_timeout(std::time::Duration::from_millis(500));
+        release.release();
         record.join().expect("record thread");
+        read.join().expect("snapshot thread");
+        assert_eq!(before_release.expect("snapshot held state lock"), Some("A".to_string()));
         failures.acknowledge(&first, &a);
     }
 
