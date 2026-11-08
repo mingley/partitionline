@@ -10,20 +10,23 @@ Production readiness and fastest-client/server claims remain unqualified.
 Client 0.1.0 is already published. The next client version must be at least
 0.2.0; broker and schema publication remain disabled.
 
-The latest complete recorded main [CI snapshot](../evidence/releases/main-ci-97a-20261108/README.md)
-is `97a0757a3e5ab8777b147876305ab854b1faf675`. Client libraries reported
-2,301 passed and nine failed on Linux default, 2,290 passed and 20 failed with
-all features, 2,296 passed and 14 failed on Windows, and 2,295 passed and 15
-failed on macOS arm64. Three Kafka compatibility jobs and both smoke jobs
-failed; resource-soak passed. The broker passed 781 default and 929
-all-feature tests, with four ignored per profile, plus strict checks,
-inventory and fuzz supervision. Both selected capability profiles passed;
-their archives were not independently inspected.
+The latest complete recorded main [CI snapshot](../evidence/releases/main-ci-342e-20261108/README.md)
+is `342e7b90ee63d6824be2652b65d71be483ea6d16`. Client libraries reported
+2,290 passed and 21 failed on Linux default, 2,301 passed and 10 failed with
+all features, and 2,297 passed and 14 failed on both Windows and macOS arm64.
+Three Kafka compatibility jobs and both smoke jobs failed; resource-soak
+passed. The broker passed 794 default and 942 all-feature tests, with four
+ignored per profile, plus strict checks, inventory and fuzz supervision. Both
+selected capability profiles passed; their archives were not independently
+inspected.
 
-A later [partial main run](../evidence/releases/main-ci-f5ed-partial-20261108/README.md)
+An earlier [partial main run](../evidence/releases/main-ci-f5ed-partial-20261108/README.md)
 passed the broker suites; Linux and Windows client libraries and three Kafka
-compatibility jobs had failed when recorded. The remaining client and
-capability jobs were still running.
+compatibility jobs failed. The macOS and both Kafka smoke jobs were later
+canceled without results; both capability profiles passed.
+
+An [earlier complete snapshot](../evidence/releases/main-ci-97a-20261108/README.md)
+also failed client checks and passed both broker profiles.
 
 The [previous complete snapshot](../evidence/releases/main-ci-74dd-20261108/README.md)
 also failed client checks and passed both broker profiles.
@@ -546,8 +549,15 @@ remain open.
    the raw API. In paired mock timing, 256 reordered error rows were about 19%
    slower and reordered successful rows about 12% slower; these are not Kafka
    throughput results. The full Admin suites failed timing assertions and the
-   matched baseline also failed. Long cursor cycles, conversion polls and
-   synchronous cleanup still need work. A
+   matched baseline also failed. The applied [slot index](../evidence/client/admin-dtp-slot-index-20261108/README.md)
+   avoids a second owned name per distinct topic. In one paired x86 mock,
+   500,000 distinct rows fell from a 579 ms median to 381 ms across three
+   pairs. A separate 256-row lexical mock improved by 12–15% in paired
+   medians. These do not establish Kafka throughput or a ranking. Focused
+   controls, a full Admin run and a Kafka smoke passed; a later combined run
+   failed timing assertions in both profiles, and its all-feature baseline
+   also failed one. Their cause is unknown. Long cursor cycles, conversion
+   polls and synchronous cleanup still need work. A
    [row-poll baseline](../evidence/client/admin-dtp-row-poll-20261108/README.md)
    measured 93–98 ms for the longest public future poll after a mock peer wrote
    a 500,000-row response on one x86 host. The applied [row checkpoint](../evidence/client/admin-dtp-row-checkpoint-20261108/README.md)
