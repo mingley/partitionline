@@ -886,8 +886,10 @@ fn validate_batch(
     if count > c.remaining().len() / 7 {
         return Err(invalid(at + batch::RECORD_COUNT, Invalid::Length));
     }
-    if plain_enabled()
-        && try_accept_plain(
+    // Callers start totals at zero and stop on error. Both walks check the
+    // remaining header budget before publishing a successful batch's count.
+    let scan = if plain_enabled() {
+        try_accept_plain(
             c.remaining(),
             count,
             last,
@@ -896,31 +898,35 @@ fn validate_batch(
             read,
             limits,
         )
-    {
-        #[cfg(test)]
-        RECORD_VISITS.with(|n| n.set(n.get() + count));
-        *total_records += count;
-        return Ok(());
-    }
-    // Callers start totals at zero and stop on error. Both walks check the
-    // remaining header budget before publishing a successful batch's count.
-    if plain_enabled() {
-        if let Some(headers) = try_accept_headers(
-            c.remaining(),
-            count,
-            last,
-            base_time,
-            max_time,
-            read,
-            limits,
-            *total_headers,
-        ) {
+    } else {
+        PlainScan::Declined
+    };
+    match scan {
+        PlainScan::Valid => {
             #[cfg(test)]
             RECORD_VISITS.with(|n| n.set(n.get() + count));
             *total_records += count;
-            *total_headers += headers;
             return Ok(());
         }
+        PlainScan::HasHeaders => {
+            if let Some(headers) = try_accept_headers(
+                c.remaining(),
+                count,
+                last,
+                base_time,
+                max_time,
+                read,
+                limits,
+                *total_headers,
+            ) {
+                #[cfg(test)]
+                RECORD_VISITS.with(|n| n.set(n.get() + count));
+                *total_records += count;
+                *total_headers += headers;
+                return Ok(());
+            }
+        }
+        PlainScan::Declined => {}
     }
     let mut observed_max = i64::MIN;
     let mut previous = None;
@@ -1020,8 +1026,14 @@ pub(crate) fn record_visits() -> usize {
 }
 /// Accept a no-header batch encoded with canonical varints.
 ///
-/// Returns false without deciding an error so the generic walk keeps the
+/// Declines without deciding an error so the generic walk keeps the
 /// existing rejection positions.
+#[derive(Clone, Copy)]
+enum PlainScan {
+    Valid,
+    HasHeaders,
+    Declined,
+}
 fn try_accept_plain(
     bytes: &[u8],
     count: usize,
@@ -1030,44 +1042,44 @@ fn try_accept_plain(
     max_time: i64,
     read: bool,
     limits: Limits,
-) -> bool {
+) -> PlainScan {
     let mut index = 0usize;
     let mut observed_max = i64::MIN;
     let mut previous: Option<i32> = None;
     for delta in 0..count {
         let Some((body_len, next)) = read_canonical_i32(bytes, index) else {
-            return false;
+            return PlainScan::Declined;
         };
         if body_len < 6 {
-            return false;
+            return PlainScan::Declined;
         }
         let Ok(body_len) = usize::try_from(body_len) else {
-            return false;
+            return PlainScan::Declined;
         };
         let encoded = match next.checked_add(body_len) {
             Some(end) => end.saturating_sub(index),
-            None => return false,
+            None => return PlainScan::Declined,
         };
         if encoded > limits.record_bytes {
-            return false;
+            return PlainScan::Declined;
         }
         let Some(body_end) = next.checked_add(body_len) else {
-            return false;
+            return PlainScan::Declined;
         };
         if bytes.len() < body_end || bytes.get(next) != Some(&0) {
-            return false;
+            return PlainScan::Declined;
         }
         let mut cursor = next.saturating_add(1);
         let Some((timestamp_delta, next)) = read_canonical_i64(bytes, cursor) else {
-            return false;
+            return PlainScan::Declined;
         };
         cursor = next;
         let Some(timestamp) = base_time.checked_add(timestamp_delta) else {
-            return false;
+            return PlainScan::Declined;
         };
         observed_max = observed_max.max(timestamp);
         let Some((offset, next)) = read_canonical_i32(bytes, cursor) else {
-            return false;
+            return PlainScan::Declined;
         };
         cursor = next;
         let offset_ok = if read {
@@ -1076,34 +1088,40 @@ fn try_accept_plain(
             i32::try_from(delta).ok() == Some(offset)
         };
         if !offset_ok {
-            return false;
+            return PlainScan::Declined;
         }
         previous = Some(offset);
         let Some((key_len, next)) = read_canonical_i32(bytes, cursor) else {
-            return false;
+            return PlainScan::Declined;
         };
         cursor = next;
         if !skip_plain_field(bytes, &mut cursor, body_end, key_len, limits.field_bytes) {
-            return false;
+            return PlainScan::Declined;
         }
         let Some((value_len, next)) = read_canonical_i32(bytes, cursor) else {
-            return false;
+            return PlainScan::Declined;
         };
         cursor = next;
         if !skip_plain_field(bytes, &mut cursor, body_end, value_len, limits.field_bytes) {
-            return false;
+            return PlainScan::Declined;
         }
         let Some((headers, next)) = read_canonical_i32(bytes, cursor) else {
-            return false;
+            return PlainScan::Declined;
         };
+        if headers > 0 && next <= body_end {
+            return PlainScan::HasHeaders;
+        }
         if headers != 0 || next != body_end {
-            return false;
+            return PlainScan::Declined;
         }
         index = body_end;
     }
-    index == bytes.len() && (count == 0 || observed_max == max_time)
+    if index == bytes.len() && (count == 0 || observed_max == max_time) {
+        PlainScan::Valid
+    } else {
+        PlainScan::Declined
+    }
 }
-
 
 /// Accept a batch encoded with canonical varints.
 ///
@@ -1435,8 +1453,9 @@ impl<'a> Cursor<'a> {
 #[cfg(test)]
 mod tests {
     use super::{
-        framed_assignment, trust_stored, try_accept_headers, validate, validate_batch,
-        validate_known_crc, validate_read, Budget, Error, Invalid, Limits, SKIP_PLAIN,
+        framed_assignment, trust_stored, try_accept_headers, try_accept_plain, validate,
+        validate_batch, validate_known_crc, validate_read, Budget, Error, Invalid, Limits,
+        PlainScan, SKIP_PLAIN,
     };
     use crate::batch;
 
@@ -1695,6 +1714,10 @@ mod tests {
             try_accept_headers(&bytes[batch::LEN..], 6, 5, 1_000, 1_005, false, limits, 0),
             Some(5)
         );
+        assert!(matches!(
+            try_accept_plain(&bytes[batch::LEN..], 6, 5, 1_000, 1_005, false, limits),
+            PlainScan::HasHeaders
+        ));
         assert_eq!(validate(&bytes, limits).unwrap().header_count(), 5);
         assert!(both(&bytes, false).0.is_ok());
         assert!(both(&bytes, true).0.is_ok());
@@ -1733,7 +1756,25 @@ mod tests {
             try_accept_headers(&plain[batch::LEN..], 1, 0, 10, 10, false, limits, 5),
             Some(0)
         );
+        assert!(matches!(
+            try_accept_plain(&plain[batch::LEN..], 1, 0, 10, 10, false, limits),
+            PlainScan::Valid
+        ));
         assert!(both_with_limits(&plain, false, limits, 5).0.is_ok());
+        let mut invalid_plain = [sample(0, b"v"), sample(1, b"v"), sample(2, b"v")];
+        invalid_plain[2].attributes = 1;
+        let invalid_plain = encode(&invalid_plain, 10, 12, 2);
+        assert!(matches!(
+            try_accept_plain(&invalid_plain[batch::LEN..], 3, 2, 10, 12, false, limits),
+            PlainScan::Declined
+        ));
+        assert!(matches!(
+            both_with_limits(&invalid_plain, false, limits, 0).0,
+            Err(Error::Invalid {
+                kind: Invalid::RecordAttributes,
+                ..
+            })
+        ));
         let mut with_tail = bytes.clone();
         with_tail.extend_from_slice(&plain);
 
