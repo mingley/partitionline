@@ -1,0 +1,97 @@
+# Paginated topic errors and identity
+
+This candidate changes the `describe_topics` path that aggregates
+DescribeTopicPartitions pages. A per-topic error now replaces an earlier
+partial success and keeps the error's fields with no partitions. An earlier
+error remains the result if a later page succeeds. Topics retain their
+first-seen order.
+
+For successful pages of one topic, the index remembers the first nonzero
+topic ID and compares subsequent nonzero IDs. A change fails the whole
+aggregate call with a client-side `Error::Protocol`, including when the
+broker reports a valid deletion and recreation. This error is not classified
+as retriable by `Error::is_retriable`; a caller may retry the whole read.
+Error-page IDs are not compared. If the first successful page has a zero ID,
+the returned successful description keeps zero even if a later page has a
+known ID; the earlier page's identity cannot be established. Pages need not
+be a consistent snapshot. The raw one-page API is unchanged.
+
+Kafka's [4.1.0 handler][handler] takes the current cursor, filters the
+requested topics, and returns topic errors for unauthorized descriptions.
+Its [metadata cache][cache] reads a current image per request and reports
+unknown topics and topic IDs. The [response schema][response] carries
+per-topic errors and IDs. These sources describe the pinned implementation;
+they do not establish a cross-page snapshot or general broker ordering rule.
+No new non-adjacent cursor-cycle rejection was added.
+
+## Controls and earlier failures
+
+The [baseline run][baseline] used source Git blob
+`540592a38a92ebeaada716b51d3b0f735b72b8be` and scripted
+pagination tests (blob `c502fbfd7371cb28522c79d092a64e58cc658e3f`).
+Both default and all-feature profiles reproduced all four failures:
+a later deletion error (code 3) or authorization error (code 29) was
+returned as success (code 0); pages with IDs `[7; 16]` and `[8; 16]`
+were returned together under ID `[7; 16]`; and a topic that first
+reported an authorization error retained a partition from a later success.
+The three Cargo invocations per profile each exited 101; the job succeeded
+only because those failures were expected.
+
+The [first draft][draft1] failed to compile in both profiles and in Clippy:
+the local index still had the old `HashMap<String, usize>` type after
+the helper's index type changed. The [next draft][draft2] passed its 19
+pagination controls and two existing merge controls in both profiles, but
+strict Clippy rejected two manual no-op test wakers. A [draft Kafka 4.1.2
+smoke][draft-live] passed four raw pages and aggregation in both profiles,
+with matching nonzero IDs and CLI-confirmed partition indexes 0–3.
+
+The [first main-overlay qualification][failed-final] passed its live Kafka
+job but failed both focused profiles and strict Clippy because its observing
+test waker ignored `AtomicUsize::fetch_add`'s return under
+`-D unused-results`. Its mutation jobs stopped at the first compile
+failure and did not qualify any mutant. The latest test blob binds that
+return value.
+
+## Final candidate and qualification
+
+The clean candidate is [commit `ea54757`][candidate], based on main
+`d2575d27ca53af47a627ca48f27a12bba34945bd`. The production source
+Git blob is `d66f9c4a3ac9cb1094713ab147ab783ae81ced31`
+(SHA-256 `e959c24b36cadb25b223a786e5f18dcf8f9615e27b04b7eb28dcd91fbc98a3aa`);
+the permanent test blob is `746dc1724698adcc53dd4f026a73ebc5b6d4f93a`.
+The [final qualification run][final] is pending. It covers both focused
+and full Admin profiles, formatting and strict all-target/all-feature
+Clippy, a fresh live Kafka smoke and seven independently restored mutants
+per profile. Results must be recorded before this note is treated as a
+completed qualification.
+
+## Limits
+
+Discarded partitions are released in batches of at most 8,192 before a
+cooperative yield, including the previously accumulated result on an
+identity conflict. Manual-poll controls check progress and wakeups; the
+observing waker adds work only to those test polls. This bounds a batch's
+item count, not its wall time, nested allocations, allocator work or process
+memory. A timeout or cancellation can still synchronously drop remaining
+state, including the raw decoded response and other accumulated values.
+The index retains an additional 16-byte topic ID alongside each topic slot
+on the tested x86_64 target, before hash-table capacity and allocator
+overhead; result and index growth remain dependent on the responses.
+Longer cursor cycles retain the existing timeout behavior and can grow the
+aggregate until timeout.
+
+The [paired release-mode loopback comparison][perf] is pending. It compares
+one-page and 16-page reads on one shared x86_64 runner; it does not establish
+performance against other Kafka implementations or across workloads.
+
+[handler]: https://github.com/apache/kafka/blob/4.1.0/core/src/main/java/kafka/server/handlers/DescribeTopicPartitionsRequestHandler.java
+[cache]: https://github.com/apache/kafka/blob/4.1.0/core/src/main/scala/kafka/server/metadata/KRaftMetadataCache.scala
+[response]: https://github.com/apache/kafka/blob/4.1.0/clients/src/main/resources/common/message/DescribeTopicPartitionsResponse.json
+[baseline]: https://github.com/mingley/partitionline/actions/runs/42474445429
+[draft1]: https://github.com/mingley/partitionline/actions/runs/42474732955
+[draft2]: https://github.com/mingley/partitionline/actions/runs/42474908779
+[draft-live]: https://github.com/mingley/partitionline/actions/runs/42474939466
+[failed-final]: https://github.com/mingley/partitionline/actions/runs/42475491527
+[candidate]: https://github.com/mingley/partitionline/commit/ea54757826cd18d824059d2bc87470151c80dcef
+[final]: https://github.com/mingley/partitionline/actions/runs/42475657022
+[perf]: https://github.com/mingley/partitionline/actions/runs/42475135691
