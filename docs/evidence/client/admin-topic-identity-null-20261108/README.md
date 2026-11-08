@@ -58,9 +58,9 @@ aggregate agreed on their nonzero topic ID and partition indexes. This is
 one normal local broker history, while the null-name and precedence cases
 use scripted responses.
 
-The independently restored negative mutations and [paired release-mode
-timing][perf] are still running. The broad suite is not green, and the
-remaining results must be recorded before this note is complete.
+The independently restored negative mutations are still running. The
+broad suite is not green, and the remaining results must be recorded before
+this note is complete.
 
 ## Matched whole-suite baseline
 
@@ -85,6 +85,35 @@ baseline source SHA-256 was
 the candidate source was the final hash above, and both arms used pagination
 fixture SHA-256
 `cb19e0db9291dd8a1daf9eff49ea5bd039a6d8f8d72cf04af3c1cca0798e5114`.
+
+## Final paired release timing
+
+The [final-source comparison][perf] ran on a shared x86_64 AMD EPYC 7763
+runner pinned to CPU 0, with Rust 1.99.1 and LLVM 23.1.1. After warmup,
+it measured 12 alternating pairs of 4,000 one-page reads and 250
+sixteen-page reads, each shape involving 4,000 page exchanges. The
+candidate production SHA-256 was the final source hash above. Both arms
+used benchmark fixture Git blob
+`f262df289a1473d3b9975633cbaddbd85a2672a1` (SHA-256
+`6debb31af2d9ed693e3b14390fbb512de75d2a8baad0f1e35d777d356527ff7f`).
+All [48 samples](paired-timings.csv) are retained.
+
+For one-page reads, median elapsed time was 120.91 ms baseline and
+121.42 ms candidate. The median paired candidate/baseline ratio was
+1.00507 (range 0.80783–1.01235), with the candidate slower in 9 of 12
+pairs. For sixteen-page reads, the medians were 119.54 ms and 120.02 ms;
+the paired ratio was 1.00484 (range 0.98541–1.01858), with the candidate
+slower in 9 of 12. One baseline one-page sample was 151.27 ms. These
+results show a small slowdown signal in this noisy local fixture; they do
+not establish performance against other Kafka implementations, larger
+topic lists, other machines, or production workloads.
+
+The baseline source SHA-256 was
+`929aaafb35e3ef1f376de7debd090367960ec22428cccf79a4bd806c50992d79`;
+the baseline binary SHA-256 was
+`2e620a9bb063189720b0c12cd77b0289bb4334f77fd588ff335231f0313b3907`
+and the candidate binary SHA-256 was
+`a67e4c33ae4f76e6523e6d2b4b50405b18d0f40a7f819e7fd29f46357e99ba1b`.
 
 ## Intermediate timing
 
