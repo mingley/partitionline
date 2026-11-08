@@ -20,6 +20,12 @@ descriptor diagnostics ignored in each suite and passed separately on the
 same broker production source. Clippy, Rustdoc, inventory and fuzz supervision
 passed. These results do not close the release gates.
 
+A [later client run](../evidence/releases/main-ci-e02-partial-20261108/README.md)
+at `e02c1b8` recorded six failed jobs and four canceled when main advanced.
+Linux default and Windows library tests failed, as did three Kafka
+compatibility jobs and the Kafka 3.9.1 smoke job. The canceled jobs do not
+have a qualification result.
+
 Earlier [broker CI](../evidence/broker/main-ci-3fc-20261108/README.md)
 at `3fc8059` stopped at two all-feature Raft runtime failures. A
 [subsequent run](../evidence/broker/main-ci-c471-20261108/README.md) stopped
@@ -301,8 +307,14 @@ remain open.
    deferred task depends on runtime progress, and cancelling close before
    worker shutdown remains a separate lifecycle gap.
 
-4. **Bounded decoding.** Extend protection beyond the covered Fetch,
-   ApiVersions, record and heartbeat paths. The grouped-assignment decoder and
+4. **Bounded decoding.** The [Admin response reservation change](../evidence/client/admin-response-reservation-20261108/README.md)
+   limits the initial capacity requested from `Vec` in seven response
+   families. Valid results can grow beyond that request; other decoders and
+   aggregate memory remain outside its scope. Two short diagnostics measured
+   roughly 6% higher median decode time for 20,000 valid CreateTopics results,
+   and some valid responses used more peak requested capacity.
+   Extend protection beyond the covered Fetch, ApiVersions, record and
+   heartbeat paths. The grouped-assignment decoder and
    small Share batch-reservation fixes are being validated with producer builds.
    Per-message logical budgets do not bound all retained capacities or total
    process memory. Check valid large inputs, malformed error ordering and
