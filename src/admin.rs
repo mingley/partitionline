@@ -16392,6 +16392,11 @@ async fn pop_described_producers(
     out
 }
 
+#[cfg(test)]
+std::thread_local! {
+    static PRODUCER_INDEX_PROGRESS: std::cell::Cell<Option<usize>> = const { std::cell::Cell::new(None) };
+}
+
 async fn index_described_producers(topics: Vec<DescribeProducersTopic>) -> DescribedProducerIndex {
     let mut by_tp: DescribedProducerIndex = HashMap::new();
     let mut walked = 0usize;
@@ -16399,6 +16404,12 @@ async fn index_described_producers(topics: Vec<DescribeProducersTopic>) -> Descr
         let parts = by_tp.entry(topic.name).or_default();
         for part in topic.partitions {
             let _ = parts.insert(part.partition_index, part);
+            #[cfg(test)]
+            PRODUCER_INDEX_PROGRESS.with(|probe| {
+                if let Some(count) = probe.get() {
+                    probe.set(Some(count.saturating_add(1)));
+                }
+            });
             walked = walked.saturating_add(1);
             if walked == 8 * 1024 {
                 walked = 0;
@@ -17564,6 +17575,27 @@ mod tests {
         panic!("future did not complete within the poll limit")
     }
 
+    struct ProducerIndexProgress(Option<usize>);
+
+    impl ProducerIndexProgress {
+        fn start() -> Self {
+            Self(PRODUCER_INDEX_PROGRESS.with(|probe| probe.replace(Some(0))))
+        }
+
+        fn count(&self) -> usize {
+            PRODUCER_INDEX_PROGRESS.with(|probe| match probe.get() {
+                Some(count) => count,
+                None => panic!("producer index progress probe is not active"),
+            })
+        }
+    }
+
+    impl Drop for ProducerIndexProgress {
+        fn drop(&mut self) {
+            PRODUCER_INDEX_PROGRESS.with(|probe| probe.set(self.0));
+        }
+    }
+
     #[tokio::test(flavor = "current_thread")]
     async fn listing_many_missing_leaders_does_not_hold_the_caller() {
         let cluster = Cluster::default();
@@ -18023,11 +18055,35 @@ mod tests {
         assert_eq!(out.len(), 1);
         assert_eq!(index.get("small"), Some(&0));
 
-        let incoming: Vec<TopicDescription> = (0..20_000)
-            .map(|item| {
-                TopicDescription::new(format!("topic-{item}"), [0; 16], false, 0, Vec::new())
-            })
-            .collect();
+        let make_topics = || -> Vec<TopicDescription> {
+            (0..20_000)
+                .map(|item| {
+                    TopicDescription::new(format!("topic-{item}"), [0; 16], false, 0, Vec::new())
+                })
+                .collect()
+        };
+        let mut previous = 0;
+        for required_polls in 1..=2 {
+            let mut partial = Vec::new();
+            let mut partial_index = std::collections::HashMap::new();
+            let mut future = Box::pin(extend_described_topics(
+                &mut partial,
+                &mut partial_index,
+                make_topics(),
+            ));
+            for poll in 0..required_polls {
+                let (state, wakes) = observed_poll(future.as_mut());
+                assert!(state.is_pending(), "poll {poll} finished without yielding");
+                assert!(wakes > 0, "poll {poll} did not schedule another poll");
+            }
+            drop(future);
+            assert!(partial.len() > previous, "poll {required_polls} made no progress");
+            assert!(partial.len() < 20_000, "partial poll consumed every topic");
+            assert_eq!(partial_index.len(), partial.len());
+            previous = partial.len();
+        }
+
+        let incoming = make_topics();
         let mut out = Vec::new();
         let mut index = std::collections::HashMap::new();
         let mut long = Box::pin(extend_described_topics(&mut out, &mut index, incoming));
@@ -23822,13 +23878,20 @@ mod tests {
             .map(|item| DescribeProducersPartition::error(item, 0))
             .collect();
         let topics = vec![DescribeProducersTopic::new("orders", partitions)];
+        let probe = ProducerIndexProgress::start();
         let mut long = Box::pin(index_described_producers(topics));
+        let mut previous = 0;
         for poll in 0..2 {
             let (state, wakes) = observed_poll(long.as_mut());
             assert!(state.is_pending(), "poll {poll} finished without yielding");
             assert!(wakes > 0, "poll {poll} did not schedule another poll");
+            let count = probe.count();
+            assert!(count > previous, "poll {poll} made no progress");
+            assert!(count < 20_000, "partial poll consumed every partition");
+            previous = count;
         }
         let indexed = finish_observed(long.as_mut());
+        assert_eq!(probe.count(), 20_000);
         assert_eq!(indexed.get("orders").map(HashMap::len), Some(20_000));
         assert_eq!(
             indexed
