@@ -2,8 +2,8 @@
 
 This note tracks an isolated candidate for the name-based
 `describe_topics` aggregate. It is separate from the [earlier topic
-identity change][prior]. The remaining restored-mutant, matched-suite and
-release-timing jobs are still running.
+identity change][prior]. The restored-mutant jobs are still running. A faster revision is under
+investigation after the initial timing comparison.
 
 Kafka 4.1.0's [request handler][handler] builds a set from a nonempty
 explicit topic list, deduplicates names, and emits success and topic-error
@@ -114,8 +114,46 @@ attempt][broad-setup] failed before tests: fixture comparison reported a
 difference at byte 37789, line 1050. The corrected run copied the same
 fixture to both arms.
 
-The [paired release timing][perf] and restored negative controls remain in
-progress. Their results must be recorded before this note is complete.
+## Matched release timing
+
+The initial [paired comparison][perf] used a shared x86_64 AMD EPYC 7763,
+one pinned CPU, Rust 1.99.1 and LLVM 23.1.1. Each of five shapes had one
+warmup and 12 alternating baseline/candidate pairs. Both arms used the
+identical benchmark test fixture Git blob
+`ff54c6adee06ac202cc80da58535a6bba1803b74` (SHA-256
+`95760d3b42c942bb3a1f7f41e59086586a8e9893b83d2d969410ce6ef397e3fd`).
+Production blobs are the baseline and candidate recorded above. Release
+test binaries had SHA-256
+`187ce61c8d5ed3a26b7129db6779ba7406484f3e07dab2c20f4f794afcd78bf6`
+and `7f53f21c3a915e1bb98b15f068156826d4bbbf6615d1b23f5d81f8433729ae4c`.
+The [CSV](paired-timings.csv) preserves all 120 elapsed-time samples in
+measurement order.
+
+| Shape | Baseline / candidate median time (ms) | Median paired ratio | Paired ratio range | Candidate slower |
+| --- | --- | --- | --- | --- |
+| 4,000 one-name, one-page successful reads | 124.146 / 125.400 | 1.0089 | 1.0024–1.3838 | 12 / 12 |
+| 250 one-name, 16-page successful reads | 122.748 / 124.246 | 1.0112 | 0.9953–1.0272 | 11 / 12 |
+| 2,000 four-name, one-page error-row reads | 64.000 / 64.267 | 1.0123 | 0.9717–1.0294 | 8 / 12 |
+| 1,000 32-name, one-page error-row reads | 44.340 / 48.362 | 1.0909 | 1.0788–1.1091 | 12 / 12 |
+| 200 256-name, one-page error-row reads | 27.843 / 34.078 | 1.2221 | 1.1946–1.2312 | 12 / 12 |
+
+A ratio above one is slower for the candidate. The 32- and 256-name
+regressions are material for these particular loopback fixtures; this is
+not a comparison with another Kafka client or a claim about all workloads.
+The first two shapes include partitions; the remaining shapes return only
+`UNKNOWN_TOPIC_OR_PARTITION` rows. A lower-cost revision is being
+investigated and must be measured and qualified separately.
+
+A standalone probe on the same target measured a 16-byte `&str`. Inserting
+1, 9, 32, 256 and 1,024 unique names into an initially empty
+`HashSet<&str>` gave final capacities 3, 14, 56, 448 and 1,792, with 1, 3,
+5, 8 and 10 observed capacity-growth events respectively. For 1,024
+identical inputs it observed one unique value, capacity 3, and one growth.
+This is a capacity probe, not an allocator-byte measurement; the candidate
+uses the set only when the input has more than eight entries.
+
+The restored negative-control jobs remain in progress. Their results must
+be recorded before this note is complete.
 
 ## Resource and compatibility limits
 
