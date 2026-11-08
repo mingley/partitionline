@@ -13,7 +13,10 @@ jobs:
         with:
           persist-credentials: false
           fetch-depth: 2
-          sparse-checkout: partitionline-broker
+          sparse-checkout: |
+            partitionline-broker
+            src
+            examples
       - uses: dtolnay/rust-toolchain@stable
       - name: Verify x86_64 Windows and source
         shell: pwsh
