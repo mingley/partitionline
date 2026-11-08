@@ -3686,7 +3686,7 @@ mod frame_read_deadline_tests {
 
 #[cfg(test)]
 mod buffered_read_fairness_control {
-    use super::{frame_mut, new_frame, read_frame, Config, Exit, ReadAhead};
+    use super::{frame_mut, new_frame, read_frame, Config, ReadAhead};
     use std::future::Future;
     use std::pin::Pin;
     use std::task::{Context, Poll};
@@ -3743,7 +3743,7 @@ mod buffered_read_fairness_control {
                 assert!(frame.iter().all(|b| *b == 0x5a));
                 true
             }
-            Poll::Ready(Err(error)) => panic!("unexpected read error: {error:?}"),
+            Poll::Ready(Err(_)) => panic!("unexpected read error"),
             Poll::Pending => false,
         };
         (completed, reader.reads, reader.offset)
