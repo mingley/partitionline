@@ -20,8 +20,8 @@ jobs:
         run: |
           set -euo pipefail
           rustc --version
-          cargo test --locked -p partitionline-broker --lib queued_old_vote_loses_a_new_campaign_and_later_recovers -- --nocapture
-          cargo test --locked -p partitionline-broker --lib --all-features queued_old_vote_loses_a_new_campaign_and_later_recovers -- --nocapture
+          cargo test --locked --manifest-path partitionline-broker/Cargo.toml --lib queued_old_vote_loses_a_new_campaign_and_later_recovers -- --nocapture
+          cargo test --locked --manifest-path partitionline-broker/Cargo.toml --lib --all-features queued_old_vote_loses_a_new_campaign_and_later_recovers -- --nocapture
       - name: Negative control for canceled correlation
         run: |
           set -euo pipefail
@@ -33,7 +33,7 @@ jobs:
           assert source.count(old) == 1
           p.write_text(source.replace(old, "drop(error.into_inner());", 1))
           PY
-          if cargo test --locked -p partitionline-broker --lib queued_old_vote_loses_a_new_campaign_and_later_recovers -- --nocapture > /tmp/raft-vote-mutant.log 2>&1; then
+          if cargo test --locked --manifest-path partitionline-broker/Cargo.toml --lib queued_old_vote_loses_a_new_campaign_and_later_recovers -- --nocapture > /tmp/raft-vote-mutant.log 2>&1; then
             cat /tmp/raft-vote-mutant.log
             echo "negative control unexpectedly passed"
             exit 1
