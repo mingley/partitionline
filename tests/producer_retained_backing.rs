@@ -172,9 +172,11 @@ async fn rejected_record_releases_caller_backing_without_reserving() -> Result<(
 }
 
 #[tokio::test(flavor = "current_thread")]
-#[expect(clippy::unwrap_used, reason = "the controlled test fixture must fail on poisoned locks or impossible conversions")]
-async fn dropping_channel_waiter_releases_only_its_reservation() -> Result<(), Error>
-{
+#[expect(
+    clippy::unwrap_used,
+    reason = "the controlled test fixture must fail on poisoned locks or impossible conversions"
+)]
+async fn dropping_channel_waiter_releases_only_its_reservation() -> Result<(), Error> {
     const CHANNEL_CAPACITY: usize = 4096;
     const VALUE_BYTES: u64 = 8;
     const CANCELED_BYTES: usize = 113;
@@ -236,9 +238,8 @@ async fn dropping_channel_waiter_releases_only_its_reservation() -> Result<(), E
     assert_eq!(mock.log_len("t", 0), 1);
 
     let payload = vec![b'z'; CANCELED_BYTES];
-    let mut blocked = Box::pin(producer.send_all([
-        ProduceRecord::to("t").partition(0).value(payload),
-    ]));
+    let mut blocked =
+        Box::pin(producer.send_all([ProduceRecord::to("t").partition(0).value(payload)]));
     struct NoopWake;
     impl std::task::Wake for NoopWake {
         fn wake(self: Arc<Self>) {}
@@ -246,7 +247,10 @@ async fn dropping_channel_waiter_releases_only_its_reservation() -> Result<(), E
     let waker = std::task::Waker::from(Arc::new(NoopWake));
     let mut context = std::task::Context::from_waker(&waker);
     let first_poll = std::future::Future::poll(blocked.as_mut(), &mut context);
-    assert!(first_poll.is_pending(), "send_all did not wait on the full channel");
+    assert!(
+        first_poll.is_pending(),
+        "send_all did not wait on the full channel"
+    );
     let while_blocked = producer.metrics();
     assert_eq!(while_blocked.records_queued, full.records_queued);
     assert_eq!(while_blocked.records_acked, full.records_acked);
@@ -272,7 +276,10 @@ async fn dropping_channel_waiter_releases_only_its_reservation() -> Result<(), E
         .map_err(|_| Error::Timeout)??;
     let after_flush = producer.metrics();
     assert_eq!(after_flush.bytes_buffered, 0);
-    assert_eq!(after_flush.records_acked, warm_metrics.records_acked + accepted);
+    assert_eq!(
+        after_flush.records_acked,
+        warm_metrics.records_acked + accepted
+    );
     assert_eq!(after_flush.produce_errors, warm_metrics.produce_errors);
     assert_eq!(callbacks.errors.load(Ordering::SeqCst), 0);
     {
@@ -296,7 +303,10 @@ async fn dropping_channel_waiter_releases_only_its_reservation() -> Result<(), E
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-#[expect(clippy::unwrap_used, reason = "the controlled test fixture must fail on poisoned locks or impossible conversions")]
+#[expect(
+    clippy::unwrap_used,
+    reason = "the controlled test fixture must fail on poisoned locks or impossible conversions"
+)]
 async fn cancelled_channel_admission_releases_only_the_unenqueued_reservation() -> Result<(), Error>
 {
     const CHANNEL_CAPACITY: usize = 4096;
@@ -435,7 +445,8 @@ async fn cancelled_channel_admission_releases_only_the_unenqueued_reservation() 
     assert_eq!(after_cancel.records_acked, warm_metrics.records_acked);
     assert_eq!(after_cancel.produce_errors, warm_metrics.produce_errors);
     assert_eq!(
-        after_cancel.bytes_buffered, accepted * VALUE_BYTES,
+        after_cancel.bytes_buffered,
+        accepted * VALUE_BYTES,
         "cancelled channel admission retained its unqueued reservation"
     );
 
@@ -446,7 +457,10 @@ async fn cancelled_channel_admission_releases_only_the_unenqueued_reservation() 
         .map_err(|_| Error::Timeout)??;
     let after_flush = producer.metrics();
     assert_eq!(after_flush.bytes_buffered, 0);
-    assert_eq!(after_flush.records_acked, warm_metrics.records_acked + accepted);
+    assert_eq!(
+        after_flush.records_acked,
+        warm_metrics.records_acked + accepted
+    );
     assert_eq!(after_flush.produce_errors, warm_metrics.produce_errors);
     assert_eq!(callbacks.errors.load(Ordering::SeqCst), 0);
     {
