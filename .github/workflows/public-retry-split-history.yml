@@ -1,0 +1,43 @@
+name: public-retry-split-history
+on:
+  push:
+    branches: [qual/public-retry-split-history-20261108]
+jobs:
+  mock-history:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        profile: [default, all]
+    env:
+      PL_PROFILE: ${{ matrix.profile }}
+      RUSTFLAGS: '--cfg sequence_retry_split_witness --check-cfg=cfg(sequence_retry_split_witness)'
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+      - name: Source and runner identity
+        run: |
+          git rev-parse HEAD
+          sha256sum src/producer.rs tests/sequence_retry_split_public.rs tests/common/mod.rs Cargo.lock
+          rustc -Vv
+          lscpu
+      - name: Released and held retry handoff
+        shell: bash
+        run: |
+          set -euo pipefail
+          args=()
+          if [[ "$PL_PROFILE" == all ]]; then args=(--all-features); fi
+          cargo test --locked --test sequence_retry_split_public "${args[@]}" public_flush_can_split_a_retry_batch -- --exact --nocapture 2>&1 | tee "$RUNNER_TEMP/history.log"
+          grep -F "SPLIT_RELEASED original=1:2 retry=1:2 receipts=1,2" "$RUNNER_TEMP/history.log"
+          grep -F "SPLIT_HELD original=1:2 first_retry=1:1 receipt=error45 flush=error45" "$RUNNER_TEMP/history.log"
+          grep -F "SPLIT_SECOND retry=2:1 receipt=error45 flush=error45" "$RUNNER_TEMP/history.log"
+      - name: Diagnostic source formatting
+        if: always()
+        shell: bash
+        run: |
+          if ! rustfmt --edition=2021 --check src/producer.rs tests/sequence_retry_split_public.rs; then
+            echo "Diagnostic only: strict formatting did not pass."
+          fi
