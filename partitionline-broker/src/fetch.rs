@@ -80,15 +80,17 @@ impl Limits {
     pub fn max_wait(self) -> Duration {
         Duration::from_millis(u64::from(self.wait_ms))
     }
-    /// Set the combined retained input/output ceiling, 1byte..=1GiB.
+    /// Set the logical input/output admission budget, 1 byte..=1 GiB.
     ///
     /// Router startup requires admission count times (maximum request plus
     /// maximum response bytes) to fit this ceiling. Waiting inputs and completed
-    /// unconsumed snapshots share those permits. A canceled caller can release
-    /// its permit before the actor drops its request and work buffers. This
-    /// ceiling does not bound that overlap or total process memory. Actor scan
-    /// buffers, parser metadata, allocator overhead and transport/caller
-    /// ownership are also separate from this byte envelope.
+    /// unconsumed snapshots share those permits. Data commands retain a permit
+    /// while their request or reply is actor-owned, including after caller
+    /// cancellation. Limits use logical request and response lengths; `Vec`
+    /// capacity can be larger. `Handler::exchange_request` accepts a spare
+    /// `Vec` supplied by the caller without checking its size against this
+    /// budget. Cached actor buffers, parser metadata, allocator overhead,
+    /// transport/caller ownership and process RSS are outside this ceiling.
     pub fn with_retained_bytes(mut self, bytes: usize) -> Result<Self, Error> {
         if !(1..=1024 * 1024 * 1024).contains(&bytes) {
             return Err(Error::InvalidLimits);
@@ -96,7 +98,7 @@ impl Limits {
         self.retained_bytes = bytes;
         Ok(self)
     }
-    /// Configured read input/output admission ceiling, default1GiB.
+    /// Configured read input/output admission budget, default 1 GiB.
     pub fn max_retained_bytes(self) -> usize {
         self.retained_bytes
     }
