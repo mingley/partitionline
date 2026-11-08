@@ -280,6 +280,12 @@ async fn pre_admission_buffer_waiter_is_checked_at_the_seal() {
     let mut close = Box::pin(producer.clone().close_timeout(Duration::from_secs(20)));
     wait_for_close(close.as_mut(), initial + 1).await;
     assert!(poll_once(waiting.as_mut()).await.is_pending());
+    assert!(
+        tokio::time::timeout(Duration::from_millis(200), waiting.as_mut())
+            .await
+            .is_err(),
+        "buffer waiter resolved before the accepted record released bytes"
+    );
     assert_eq!(producer.metrics().records_queued, 2);
     gate.release();
     drop(release);
@@ -329,7 +335,7 @@ async fn pre_admission_buffer_waiter_is_checked_at_the_seal() {
     };
     assert_eq!(mock.log_values("t", 0), expected);
     println!(
-        "PUBLIC_SHUTDOWN_PRE_ADMISSION sealed={} waiter_ack={} bytes=0",
+        "PUBLIC_SHUTDOWN_PRE_ADMISSION sealed={} waiter_ack={} pending_200ms=true bytes=0",
         candidate(),
         !candidate()
     );
