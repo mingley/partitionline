@@ -1,9 +1,9 @@
 # Paginated topic descriptions with nullable names
 
-This note tracks the revised candidate for aggregated
-DescribeTopicPartitions responses. It is not yet applied to main. The
-[earlier candidate and its measurements][old] use different source and
-test blobs; they do not qualify the null-name guard described here.
+This note records the revised handling of aggregated
+DescribeTopicPartitions responses. The [earlier candidate and its
+measurements][old] use different source and test blobs; they do not qualify
+the null-name guard described here.
 
 The candidate keeps the first reported per-topic error and clears any
 partial partitions. Until an error is retained, successful pages with
