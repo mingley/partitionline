@@ -1,0 +1,64 @@
+name: Broker frame ready-read controls
+on:
+  push:
+    branches: [qualification/broker-frame-read-candidate-20261108]
+permissions:
+  contents: read
+jobs:
+  controls:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      CARGO_BUILD_JOBS: 2
+      CARGO_INCREMENTAL: 0
+      CARGO_PROFILE_TEST_DEBUG: 0
+      CARGO_PROFILE_DEV_DEBUG: 0
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Format and retain exact staged source
+        run: |
+          set -euo pipefail
+          cargo fmt --manifest-path partitionline-broker/Cargo.toml
+          cp partitionline-broker/src/transport.rs /tmp/frame-clean.rs
+          awk '{ print "FRAME_FORMATTED_SOURCE:" $0 }' partitionline-broker/src/transport.rs
+      - name: Ready-reader, deadline, and real-TCP controls
+        run: |
+          set -euo pipefail
+          rustc --version
+          for features in default all; do
+            args=()
+            if [[ "$features" == all ]]; then args=(--all-features); fi
+            for case in ready_frame_body_yields_on_byte_and_read_count_limits small_ready_frames_finish_without_a_forced_yield ready_partial_frames_complete_with_exact_bytes expired_buffered_deadline_does_not_poll_reader fragmented_prefetched_prefix_reassembles_on_real_tcp read_deadline_stops_a_ready_frame_body ready_body_yields_before_complete; do
+              cargo test --locked --manifest-path partitionline-broker/Cargo.toml --lib "${args[@]}" "$case" -- --nocapture
+            done
+          done
+      - name: No buffered yield mutant
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path("partitionline-broker/src/transport.rs")
+          s=p.read_text()
+          old="            if progress.record(n) {\n                tokio::task::yield_now().await;\n            }"
+          assert s.count(old)==1
+          p.write_text(s.replace(old, "", 1))
+          PY
+          if cargo test --locked --manifest-path partitionline-broker/Cargo.toml --lib ready_frame_body_yields_on_byte_and_read_count_limits -- --nocapture > /tmp/frame-no-buffered-yield.log 2>&1; then cat /tmp/frame-no-buffered-yield.log; exit 1; fi
+          cat /tmp/frame-no-buffered-yield.log
+          grep -F "buffered ready body completed without yielding" /tmp/frame-no-buffered-yield.log
+          cp /tmp/frame-clean.rs partitionline-broker/src/transport.rs
+      - name: No read-count bound mutant
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path("partitionline-broker/src/transport.rs")
+          s=p.read_text()
+          old="if self.bytes >= 64 * 1024 || self.calls >= 128 {"
+          assert s.count(old)==1
+          p.write_text(s.replace(old, "if self.bytes >= 64 * 1024 {", 1))
+          PY
+          if cargo test --locked --manifest-path partitionline-broker/Cargo.toml --lib ready_frame_body_yields_on_byte_and_read_count_limits -- --nocapture > /tmp/frame-no-read-count.log 2>&1; then cat /tmp/frame-no-read-count.log; exit 1; fi
+          cat /tmp/frame-no-read-count.log
+          grep -F "fragmented direct body completed without yielding" /tmp/frame-no-read-count.log
