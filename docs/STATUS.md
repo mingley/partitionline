@@ -78,8 +78,10 @@ pass does not replace the full release matrix.
   and a process-wide memory bound remain open. The [Fetch admission
   fixture][fetch-admission] checks completed, unconsumed replies. Its latest
   default qualification failed a separate transport-shutdown test with
-  `QueueFull`; canceled actor memory overlap remains unqualified. Earlier Raft
-  failures remain unexplained.
+  `QueueFull`. A [queue-drain fixture candidate][fetch-queue] has focused
+  witnesses, but its full default run failed a metadata quorum test with
+  `Journal(AlreadyOpen)`; the original `QueueFull` cause remains unproven.
+  Canceled actor memory overlap and earlier Raft failures remain unresolved.
 - **Reliability and performance.** No 24-hour fault campaign or seven-day
   continuity run has passed. Matched x86 comparisons against other Kafka
   implementations, with independent record verification, have not been
@@ -110,3 +112,5 @@ The [support matrix](support.md) describes configured coverage, and the
 [poll-loss]: https://github.com/mingley/partitionline/actions/runs/42443409232
 [cleanup]: https://github.com/mingley/partitionline/blob/2b5e830fd514a9ad3dea27d937d85977a5bea041/docs/evidence/client/addpart-retryfix-264-20261108/REPORT.md
 [ack]: https://github.com/mingley/partitionline/blob/2b5e830fd514a9ad3dea27d937d85977a5bea041/docs/evidence/client/ack-closed-loop-20261108/README.md
+
+[fetch-queue]: ../evidence/broker/fetch-canceled-queue-20261108/README.md
