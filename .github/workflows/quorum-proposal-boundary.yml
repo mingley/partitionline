@@ -1,0 +1,128 @@
+name: quorum proposal leadership boundary
+on:
+  push:
+    branches:
+      - qualification/quorum-41-boundary-formatted-20261108
+permissions:
+  contents: read
+jobs:
+  controls:
+    strategy:
+      fail-fast: false
+      matrix:
+        profile: [default, all-features]
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      CARGO_INCREMENTAL: "0"
+      CARGO_BUILD_JOBS: "2"
+      CARGO_TERM_COLOR: never
+      CARGO_PROFILE_DEV_DEBUG: "0"
+      CARGO_PROFILE_TEST_DEBUG: "0"
+      PROFILE: ${{ matrix.profile }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          fetch-depth: 2
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Verify source and parent
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/quorum-boundary"
+          test "$(uname -m)" = x86_64
+          test "$(git rev-parse HEAD^)" = eaa8ac6ddfe767d6ae7d45b19eb945a6a1578c9b
+          rustc +stable --version --verbose | tee "$RUNNER_TEMP/quorum-boundary/toolchain.log"
+          printf '%s  %s\n' f74747a0e7c9c4e211388a9428b0eaf1c5773f9c41c942b9ab72c2d4132c573e partitionline-broker/src/raft/replication.rs | sha256sum -c -
+          printf '%s  %s\n' dc6e09d5f5b7bea32aa85d151502a65021480fd18cbf54c7d90c3feebe0d2ffd partitionline-broker/tests/raft_membership.rs | sha256sum -c -
+      - name: Real-node boundary controls
+        id: real
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -euo pipefail
+          flags=()
+          if [ "$PROFILE" = all-features ]; then flags+=(--all-features); fi
+          for test_name in stale_genesis_leader_observation_is_fenced_before_proposal_append proposal_boundary_during_leader_removal_is_preappend_on_not_leader removed_leader_counts_no_self_vote_and_fences_after_commit_even_without_caller; do
+            log="$RUNNER_TEMP/quorum-boundary/$test_name.log"
+            timeout 300s cargo +stable test --locked --manifest-path partitionline-broker/Cargo.toml "${flags[@]}" --test raft_membership "$test_name" -- --exact --nocapture > "$log" 2>&1 || { cat "$log"; exit 1; }
+            cat "$log"
+            grep -F 'test result: ok. 1 passed;' "$log"
+          done
+      - name: Synthetic post-append NotLeader counterexample
+        id: mutant
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -euo pipefail
+          flags=()
+          if [ "$PROFILE" = all-features ]; then flags+=(--all-features); fi
+          trap 'git checkout -- partitionline-broker/src/raft/replication.rs' EXIT
+          python3 -B .github/scripts/quorum-proposal-boundary-mutation.py
+          log="$RUNNER_TEMP/quorum-boundary/mutant.log"
+          set +e
+          timeout 300s cargo +stable test --locked --manifest-path partitionline-broker/Cargo.toml "${flags[@]}" --test raft_membership proposal_boundary_during_leader_removal_is_preappend_on_not_leader -- --exact --nocapture > "$log" 2>&1
+          code=$?
+          set -e
+          cat "$log"
+          test "$code" -ne 0
+          test "$code" -ne 124
+          grep -F 'running 1 test' "$log"
+          grep -F 'test result: FAILED. 0 passed; 1 failed;' "$log"
+          grep -F 'PL_NOT_LEADER_AFTER_APPEND' "$log"
+          git checkout -- partitionline-broker/src/raft/replication.rs
+          git diff --exit-code -- partitionline-broker/src/raft/replication.rs
+      - name: Require boundary controls
+        if: always()
+        env:
+          REAL: ${{ steps.real.outcome }}
+          MUTANT: ${{ steps.mutant.outcome }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$REAL" = success
+          test "$MUTANT" = success
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: quorum-boundary-${{ matrix.profile }}-${{ github.sha }}
+          path: ${{ runner.temp }}/quorum-boundary
+          if-no-files-found: warn
+          retention-days: 30
+  style:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      CARGO_INCREMENTAL: "0"
+      CARGO_BUILD_JOBS: "2"
+      CARGO_TERM_COLOR: never
+      CARGO_PROFILE_DEV_DEBUG: "0"
+      CARGO_PROFILE_TEST_DEBUG: "0"
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          fetch-depth: 2
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - name: Stable formatting
+        id: fmt
+        continue-on-error: true
+        run: cargo +stable fmt --manifest-path partitionline-broker/Cargo.toml -- --check
+      - name: Strict all-target all-feature Clippy
+        id: clippy
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo +stable clippy --locked --manifest-path partitionline-broker/Cargo.toml --all-targets --all-features -- -D warnings
+      - name: Require style gates
+        if: always()
+        env:
+          FORMAT: ${{ steps.fmt.outcome }}
+          CLIPPY: ${{ steps.clippy.outcome }}
+        run: |
+          test "$FORMAT" = success
+          test "$CLIPPY" = success
