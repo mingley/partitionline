@@ -90,9 +90,11 @@ the corrected blob above. The correction moves a doc comment; those samples
 remain pinned to their actual source. Their
 [122 samples](https://github.com/mingley/partitionline/blob/45fcf7520667a2e3425e4ff0bbf12d3f5974d503/docs/evidence/perf/sendall-no-yield-20261108/samples.csv)
 include a 17.250 ms eligible poll on a 249-byte topic and the multi-second
-8,192-record fallback. The corrected-source rerun
+8,192-record fallback. The separately pinned corrected-source rerun
 [42473834473](https://github.com/mingley/partitionline/actions/runs/42473834473)
-is separate; its outcome must be recorded independently.
+passed all 122 mock samples. Its [report and raw samples](../../perf/sendall-corrected-source-20261108/README.md)
+record its own CPU, source, binary hashes, poll and completion ranges, batch
+sizes and limitations. The combined behavioral failure remains unresolved.
 
 Earlier instrumented
 [route controls](https://github.com/mingley/partitionline/blob/501e1f75a2dac18e6cb8ec92c8936f6963119552/docs/evidence/client/send-all-route-controls-20261108/README.md)

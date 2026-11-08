@@ -10,18 +10,21 @@ Production readiness and fastest-client/server claims remain unqualified.
 Client 0.1.0 is already published. The next client version must be at least
 0.2.0; broker and schema publication remain disabled.
 
-The latest complete recorded main [CI snapshot](../evidence/releases/main-ci-e487-20261108/README.md)
-is `e487f7294773f75112f15437992ed780b53c7307`. Client libraries reported
-2,232 passed and 22 failed on Linux default, 2,239 passed and 15 failed with
-all features, 2,226 passed and 28 failed on Windows, and 2,243 passed and 11
+The latest complete recorded main [CI snapshot](../evidence/releases/main-ci-d257-20261108/README.md)
+is `d2575d27ca53af47a627ca48f27a12bba34945bd`. Client libraries reported
+2,237 passed and 17 failed on Linux default, 2,235 passed and 19 failed with
+all features, 2,237 passed and 17 failed on Windows, and 2,243 passed and 11
 failed on macOS arm64. Three Kafka compatibility jobs and both smoke jobs
-failed; resource-soak passed. Broker CI stopped at 488 default tests passed,
-one failed and four ignored after a five-node proposal returned `NotLeader`.
-The proposal's append and commit outcome is unknown; it was not retried.
-The all-feature suite and later strict checks did not run in that job;
-inventory and fuzz supervision passed separately. Both selected capability
-profiles passed; their archives were not independently inspected. See the
-[proposal review](../evidence/broker/raft-delayed-proposal-20261108/README.md).
+failed; resource-soak passed. Broker CI passed 779 default and 927 all-feature
+tests, with four ignored per profile, plus strict checks, inventory and fuzz
+supervision. Both selected capability profiles passed; their archives were not
+independently inspected. The broker pass does not explain the preceding
+[e487 proposal failure](../evidence/broker/raft-delayed-proposal-20261108/README.md).
+
+The [e487 snapshot](../evidence/releases/main-ci-e487-20261108/README.md)
+failed client checks and stopped broker CI at 488 default tests passed, one
+failed and four ignored after a five-node proposal returned `NotLeader`.
+The append and commit outcome was unknown; the proposal was not retried.
 
 The [previous complete snapshot](../evidence/releases/main-ci-070-20261108/README.md)
 at `0708730` also failed client checks and stopped on a distinct broker
@@ -377,7 +380,9 @@ remain open.
    seeded public mock history, two different sends returned success at the
    same offset while the mock stored only the first value. A three-line
    arithmetic control stored both but is not an ownership or concurrency fix.
-   Neither history is a real-Kafka result. A
+   Neither history is a real-Kafka result. A [sequence ownership model](../evidence/client/producer-sequence-ledger-model-20261108/README.md)
+   passed isolated controls but can fence progress indefinitely after an
+   ambiguous write; it remains unapplied and does not qualify the producer. A
    [cleanup-service review](../evidence/client/producer-cleanup-service-20261108/README.md)
    describes ownership, admission, write, callback and shutdown requirements;
    it is not an implementation. Separate
@@ -824,6 +829,14 @@ producer histories, but its [combined qualification](../evidence/client/send-all
 failed 17 of 45 mock-producer tests in each feature profile. Their cause and
 any relationship to the candidate are unknown. It remains unapplied. These
 are scoped mock results, not Kafka throughput.
+
+A [corrected-source rerun](../evidence/perf/sendall-corrected-source-20261108/README.md)
+retains 122 additional matched mock samples and the same unresolved behavioral
+gate. A [larger-scan review](../evidence/client/send-all-general-scan-20261108/README.md)
+documents changed lock timing, nudge ordering and quadratic chunk work; it is
+not implemented. A separate [buffered-frame experiment](../evidence/broker/frame-classification-20261108/README.md)
+improved synthetic one-byte reads but regressed 256 KiB TCP and TLS loopback
+throughput on one shared runner. It remains unapplied.
 
 The producer's pending queue can rescan deadlines and shift a vector on each
 small batch, creating quadratic work when a long queue drains one record at a
