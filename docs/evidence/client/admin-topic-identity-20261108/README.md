@@ -93,9 +93,30 @@ Longer cursor cycles retain the existing timeout behavior and can grow the
 aggregate until timeout. A non-adjacent cursor repetition that later
 terminates can still append duplicate partitions.
 
-The [paired release-mode loopback comparison][perf] is pending. It compares
-one-page and 16-page reads on one shared x86_64 runner; it does not establish
-performance against other Kafka implementations or across workloads.
+The [paired release-mode loopback comparison][perf] used a shared x86_64
+AMD EPYC 7763 runner pinned to CPU 0, Rust 1.99.1 and LLVM 23.1.1.
+Each arm was warmed up, then measured in 12 alternating pairs for 4,000
+one-page reads and 250 sixteen-page reads, with 4,000 page exchanges in
+each shape. The candidate used the final production blob and an isolated
+benchmark test fixture (Git blob `f262df289a1473d3b9975633cbaddbd85a2672a1`,
+SHA-256 `6debb31af2d9ed693e3b14390fbb512de75d2a8baad0f1e35d777d356527ff7f`).
+All [48 elapsed-time samples](paired-timings.csv) are retained.
+
+For the one-page shape, median elapsed time was 123.75 ms baseline and
+123.59 ms candidate; the median paired candidate/baseline ratio was 0.99789
+(range 0.97572–1.00702), with the candidate slower in 6 of 12 pairs. For
+16-page reads, medians were 122.63 ms and 121.09 ms; the paired ratio was
+0.98845 (range 0.88400–1.03038), with the candidate slower in 3 of 12.
+One baseline 16-page sample was 137.17 ms. These noisy local exchanges do
+not establish performance against other Kafka implementations, large topic
+lists, other machines, or production workloads.
+
+The baseline source SHA-256 was
+`929aaafb35e3ef1f376de7debd090367960ec22428cccf79a4bd806c50992d79`;
+its binary SHA-256 was
+`2e620a9bb063189720b0c12cd77b0289bb4334f77fd588ff335231f0313b3907`.
+The candidate binary SHA-256 was
+`36d6b1aeca7f52a0159cba4e8176c332665dbf08a1ee84deec38e6ded6bbba3b`.
 
 [handler]: https://github.com/apache/kafka/blob/4.1.0/core/src/main/java/kafka/server/handlers/DescribeTopicPartitionsRequestHandler.java
 [cache]: https://github.com/apache/kafka/blob/4.1.0/core/src/main/scala/kafka/server/metadata/KRaftMetadataCache.scala
