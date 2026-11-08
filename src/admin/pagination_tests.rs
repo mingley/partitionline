@@ -1532,10 +1532,29 @@ async fn dtp_slot_index_resolves_forced_collisions_and_keeps_errors() {
         .unwrap();
     }
     assert_eq!(index.table.len(), 3);
-    assert_eq!(out.iter().map(|item| item.name.as_str()).collect::<Vec<_>>(), ["alpha", "beta", ""]);
+    assert_eq!(
+        out.iter()
+            .map(|item| item.name.as_str())
+            .collect::<Vec<_>>(),
+        ["alpha", "beta", ""]
+    );
     assert_eq!(out[0].topic_id, [0; 16]);
-    assert_eq!(out[0].partitions.iter().map(|p| p.partition).collect::<Vec<_>>(), [0, 1]);
-    assert_eq!(out[1].partitions.iter().map(|p| p.partition).collect::<Vec<_>>(), [10, 11]);
+    assert_eq!(
+        out[0]
+            .partitions
+            .iter()
+            .map(|p| p.partition)
+            .collect::<Vec<_>>(),
+        [0, 1]
+    );
+    assert_eq!(
+        out[1]
+            .partitions
+            .iter()
+            .map(|p| p.partition)
+            .collect::<Vec<_>>(),
+        [10, 11]
+    );
 
     place_described_topic(
         &mut out,
@@ -1563,8 +1582,22 @@ async fn dtp_slot_index_resolves_forced_collisions_and_keeps_errors() {
     .await;
     assert!(matches!(&conflict, Err(Error::Protocol(message))
         if message == "DescribeTopicPartitions returned different topic IDs for the same topic"));
-    assert_eq!(out[0].partitions.iter().map(|p| p.partition).collect::<Vec<_>>(), [0, 1]);
-    assert_eq!(out[1].partitions.iter().map(|p| p.partition).collect::<Vec<_>>(), [10, 11]);
+    assert_eq!(
+        out[0]
+            .partitions
+            .iter()
+            .map(|p| p.partition)
+            .collect::<Vec<_>>(),
+        [0, 1]
+    );
+    assert_eq!(
+        out[1]
+            .partitions
+            .iter()
+            .map(|p| p.partition)
+            .collect::<Vec<_>>(),
+        [10, 11]
+    );
 }
 
 #[tokio::test]
@@ -1595,7 +1628,13 @@ async fn dtp_slot_index_survives_output_reallocation_under_forced_collisions() {
     assert_eq!(index.table.len(), 128);
     for (number, item) in out.iter().enumerate() {
         assert_eq!(item.name, format!("topic-{number:03}"));
-        assert_eq!(item.partitions.iter().map(|p| p.partition).collect::<Vec<_>>(), [0, 1]);
+        assert_eq!(
+            item.partitions
+                .iter()
+                .map(|p| p.partition)
+                .collect::<Vec<_>>(),
+            [0, 1]
+        );
     }
 }
 
@@ -1660,10 +1699,15 @@ async fn dtp_slot_index_checks_full_hash_when_table_visits_same_tag() {
             visited_different_hash = true;
         }
         entry.hash == beta_hash
-            && out.get(entry.slot).is_some_and(|topic| topic.name == "beta")
+            && out
+                .get(entry.slot)
+                .is_some_and(|topic| topic.name == "beta")
     });
     assert!(found.is_none());
-    assert!(visited_different_hash, "the table did not visit the other hash");
+    assert!(
+        visited_different_hash,
+        "the table did not visit the other hash"
+    );
     place_described_topic(
         &mut out,
         &mut index,
@@ -1671,7 +1715,12 @@ async fn dtp_slot_index_checks_full_hash_when_table_visits_same_tag() {
     )
     .await
     .unwrap();
-    assert_eq!(out.iter().map(|item| item.name.as_str()).collect::<Vec<_>>(), ["alpha", "beta"]);
+    assert_eq!(
+        out.iter()
+            .map(|item| item.name.as_str())
+            .collect::<Vec<_>>(),
+        ["alpha", "beta"]
+    );
 }
 
 #[tokio::test]
@@ -1701,5 +1750,12 @@ async fn dtp_slot_index_duplicate_at_full_capacity_does_not_grow() {
     .unwrap();
     assert_eq!(index.table.len(), before_len);
     assert_eq!(index.table.capacity(), before_capacity);
-    assert_eq!(out[0].partitions.iter().map(|p| p.partition).collect::<Vec<_>>(), [0, 1]);
+    assert_eq!(
+        out[0]
+            .partitions
+            .iter()
+            .map(|p| p.partition)
+            .collect::<Vec<_>>(),
+        [0, 1]
+    );
 }
