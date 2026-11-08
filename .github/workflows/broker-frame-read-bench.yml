@@ -57,7 +57,11 @@ jobs:
             for profile in default all; do
               for variant in "${variants[@]}"; do
                 echo "frame-round=$round profile=$profile variant=$variant"
-                taskset -c "$core" env PL_FRAME_BENCH_VARIANT="$profile-$variant" "/tmp/frame-$profile-$variant" --exact transport::ready_frame_microbench::measure_ready_frame_cost --ignored --nocapture --test-threads=1
+                taskset -c "$core" env PL_FRAME_BENCH_VARIANT="$profile-$variant" "/tmp/frame-$profile-$variant" --exact transport::ready_frame_microbench::measure_ready_frame_cost --ignored --nocapture --test-threads=1 | tee /tmp/frame-sample.log
+                grep -qFx 'running 1 test' /tmp/frame-sample.log
+                grep -qE '^test result: ok\. 1 passed; 0 failed;' /tmp/frame-sample.log
+                test "$(grep -c 'frame-boundary variant=' /tmp/frame-sample.log)" -eq 6
+                test "$(grep -c 'frame-bench variant=' /tmp/frame-sample.log)" -eq 10
               done
             done
           done
