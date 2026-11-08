@@ -5602,7 +5602,10 @@ mod ownership_tests {
             routes.push((q.context.peer, slot));
         }
         tokio::time::sleep(Duration::from_millis(3)).await;
-        let Reply::Votes(jobs) = source.fixture("unadmitted-current", Command::Tick).await?? else {
+        let Reply::Votes(jobs) = source
+            .fixture("unadmitted-current", Command::Tick)
+            .await??
+        else {
             return Err("current campaign".into());
         };
         let current = jobs
@@ -5665,7 +5668,10 @@ mod ownership_tests {
         let response = grant(&peer, missing).await?;
         assert!(matches!(
             source
-                .fixture("unadmitted-still-registered", Command::Acknowledge(response))
+                .fixture(
+                    "unadmitted-still-registered",
+                    Command::Acknowledge(response)
+                )
                 .await??,
             Reply::Done
         ));
