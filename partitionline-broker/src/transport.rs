@@ -1948,7 +1948,9 @@ mod disconnect_tests {
 
     struct Hold {
         started: Arc<AtomicUsize>,
+        started_notice: Arc<Notify>,
         stopped: Arc<AtomicUsize>,
+        stopped_notice: Arc<Notify>,
         release: Arc<Notify>,
     }
 
@@ -1960,27 +1962,49 @@ mod disconnect_tests {
             request: Vec<u8>,
         ) -> impl Future<Output = Result<Option<Vec<u8>>, Self::Error>> + Send {
             let started = Arc::clone(&self.started);
+            let started_notice = Arc::clone(&self.started_notice);
             let stopped = Arc::clone(&self.stopped);
+            let stopped_notice = Arc::clone(&self.stopped_notice);
             let release = Arc::clone(&self.release);
             async move {
-                struct Guard(Arc<AtomicUsize>);
+                struct Guard(Arc<AtomicUsize>, Arc<Notify>);
                 impl Drop for Guard {
                     fn drop(&mut self) {
                         self.0.fetch_add(1, Ordering::SeqCst);
+                        self.1.notify_one();
                     }
                 }
-                let _guard = Guard(stopped);
+                let _guard = Guard(stopped, stopped_notice);
                 started.fetch_add(1, Ordering::SeqCst);
+                started_notice.notify_one();
                 release.notified().await;
                 Ok(Some(request))
             }
         }
     }
 
+    async fn wait_started(started: &AtomicUsize, notice: &Notify) -> bool {
+        tokio::time::timeout(Duration::from_secs(2), notice.notified())
+            .await
+            .is_ok()
+            && started.load(Ordering::SeqCst) == 1
+    }
+
+    async fn shutdown_test_transport(transport: &mut Transport) -> bool {
+        let shutdown = tokio::time::timeout(Duration::from_secs(2), transport.shutdown()).await;
+        if let Some(runner) = transport.runner.as_mut().filter(|_| shutdown.is_err()) {
+            runner.abort();
+            let _ = runner.await;
+        }
+        matches!(shutdown, Ok(Ok(_)))
+    }
+
     #[tokio::test(flavor = "current_thread")]
     async fn client_disconnect_stops_the_handler() {
         let started = Arc::new(AtomicUsize::new(0));
+        let started_notice = Arc::new(Notify::new());
         let stopped = Arc::new(AtomicUsize::new(0));
+        let stopped_notice = Arc::new(Notify::new());
         let release = Arc::new(Notify::new());
         let config = Config::new(
             4,
@@ -1999,7 +2023,9 @@ mod disconnect_tests {
             config,
             Arc::new(Hold {
                 started: Arc::clone(&started),
+                started_notice: Arc::clone(&started_notice),
                 stopped: Arc::clone(&stopped),
+                stopped_notice: Arc::clone(&stopped_notice),
                 release: Arc::clone(&release),
             }),
         )
@@ -2012,29 +2038,36 @@ mod disconnect_tests {
             .write_all(&0i32.to_be_bytes())
             .await
             .unwrap_or_else(|error| panic!("{error}"));
-        while started.load(Ordering::SeqCst) == 0 {
-            tokio::task::yield_now().await;
-        }
+        let started_ok = wait_started(&started, &started_notice).await;
         drop(socket);
-        for _ in 0..32 {
-            tokio::task::yield_now().await;
-        }
-        assert_eq!(
-            stopped.load(Ordering::SeqCst),
-            1,
-            "client disconnect left the handler running"
+        let observed = if started_ok {
+            tokio::time::timeout(Duration::from_secs(2), stopped_notice.notified())
+                .await
+                .is_ok()
+        } else {
+            false
+        };
+        let stopped_before_cleanup = stopped.load(Ordering::SeqCst);
+        release.notify_one();
+        let joined = shutdown_test_transport(&mut transport).await;
+        println!("disconnect-check started={started_ok} observed={observed} stopped_before_cleanup={stopped_before_cleanup} joined={joined}");
+        assert!(
+            started_ok,
+            "handler did not start before the test setup deadline"
         );
-        release.notify_waiters();
-        transport
-            .shutdown()
-            .await
-            .unwrap_or_else(|error| panic!("{error}"));
+        assert!(
+            observed && stopped_before_cleanup == 1,
+            "client disconnect did not stop the handler before cleanup"
+        );
+        assert!(joined, "transport shutdown did not complete");
     }
 
     #[tokio::test(flavor = "current_thread")]
     async fn pipelined_disconnect_stops_the_handler() {
         let started = Arc::new(AtomicUsize::new(0));
+        let started_notice = Arc::new(Notify::new());
         let stopped = Arc::new(AtomicUsize::new(0));
+        let stopped_notice = Arc::new(Notify::new());
         let release = Arc::new(Notify::new());
         let config = Config::new(
             4,
@@ -2053,7 +2086,9 @@ mod disconnect_tests {
             config,
             Arc::new(Hold {
                 started: Arc::clone(&started),
+                started_notice: Arc::clone(&started_notice),
                 stopped: Arc::clone(&stopped),
+                stopped_notice: Arc::clone(&stopped_notice),
                 release: Arc::clone(&release),
             }),
         )
@@ -2066,29 +2101,36 @@ mod disconnect_tests {
             .write_all(&[0, 0, 0, 0, 0, 0, 0, 0])
             .await
             .unwrap_or_else(|error| panic!("{error}"));
-        while started.load(Ordering::SeqCst) == 0 {
-            tokio::task::yield_now().await;
-        }
+        let started_ok = wait_started(&started, &started_notice).await;
         drop(socket);
-        for _ in 0..32 {
-            tokio::task::yield_now().await;
-        }
-        assert_eq!(
-            stopped.load(Ordering::SeqCst),
-            1,
-            "pipelined disconnect left the handler running"
+        let observed = if started_ok {
+            tokio::time::timeout(Duration::from_secs(2), stopped_notice.notified())
+                .await
+                .is_ok()
+        } else {
+            false
+        };
+        let stopped_before_cleanup = stopped.load(Ordering::SeqCst);
+        release.notify_one();
+        let joined = shutdown_test_transport(&mut transport).await;
+        println!("disconnect-check started={started_ok} observed={observed} stopped_before_cleanup={stopped_before_cleanup} joined={joined}");
+        assert!(
+            started_ok,
+            "handler did not start before the test setup deadline"
         );
-        release.notify_waiters();
-        transport
-            .shutdown()
-            .await
-            .unwrap_or_else(|error| panic!("{error}"));
+        assert!(
+            observed && stopped_before_cleanup == 1,
+            "pipelined disconnect did not stop the handler before cleanup"
+        );
+        assert!(joined, "transport shutdown did not complete");
     }
 
     #[tokio::test(flavor = "current_thread")]
     async fn flooded_request_stops_the_handler() {
         let started = Arc::new(AtomicUsize::new(0));
+        let started_notice = Arc::new(Notify::new());
         let stopped = Arc::new(AtomicUsize::new(0));
+        let stopped_notice = Arc::new(Notify::new());
         let release = Arc::new(Notify::new());
         let config = Config::new(
             4,
@@ -2108,7 +2150,9 @@ mod disconnect_tests {
             config,
             Arc::new(Hold {
                 started: Arc::clone(&started),
+                started_notice: Arc::clone(&started_notice),
                 stopped: Arc::clone(&stopped),
+                stopped_notice: Arc::clone(&stopped_notice),
                 release: Arc::clone(&release),
             }),
         )
@@ -2122,8 +2166,17 @@ mod disconnect_tests {
             .write_all(&0i32.to_be_bytes())
             .await
             .unwrap_or_else(|error| panic!("{error}"));
-        while started.load(Ordering::SeqCst) == 0 {
-            tokio::task::yield_now().await;
+        if !wait_started(&started, &started_notice).await {
+            drop(writer);
+            drop(reader);
+            release.notify_one();
+            let joined = shutdown_test_transport(&mut transport).await;
+            println!("disconnect-setup joined={joined}");
+            assert!(
+                joined,
+                "transport shutdown did not complete after setup timeout"
+            );
+            panic!("handler did not start before the test setup deadline");
         }
         // Keep the write half open. Dropping it would look like a disconnect.
         let flood = vec![0u8; bound.saturating_add(5)];
@@ -2131,11 +2184,9 @@ mod disconnect_tests {
         let mut buf = [0u8; 8];
         let saw = tokio::time::timeout(Duration::from_millis(300), reader.read(&mut buf)).await;
         drop(writer);
-        release.notify_waiters();
-        transport
-            .shutdown()
-            .await
-            .unwrap_or_else(|error| panic!("{error}"));
+        release.notify_one();
+        let joined = shutdown_test_transport(&mut transport).await;
+        assert!(joined, "transport shutdown did not complete");
         assert!(
             matches!(saw, Ok(Ok(0))),
             "handler kept the socket while the client flooded the connection"
