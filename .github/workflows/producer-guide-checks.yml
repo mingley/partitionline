@@ -60,6 +60,6 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: producer-guide-package
-          path: target/crate-consumer
+          path: target/package-check
           if-no-files-found: warn
           retention-days: 30
