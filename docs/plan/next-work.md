@@ -10,17 +10,20 @@ Production readiness and fastest-client/server claims remain unqualified.
 Client 0.1.0 is already published. The next client version must be at least
 0.2.0; broker and schema publication remain disabled.
 
-The latest complete recorded main [CI snapshot](../evidence/releases/main-ci-74dd-20261108/README.md)
-is `74dd7f7c9b2430b308142678bf9534c385f0ff04`. Client libraries reported
-2,261 passed and 15 failed on Linux default, 2,265 passed and 11 failed with
-all features, 2,262 passed and 14 failed on Windows, and 2,266 passed and 10
+The latest complete recorded main [CI snapshot](../evidence/releases/main-ci-97a-20261108/README.md)
+is `97a0757a3e5ab8777b147876305ab854b1faf675`. Client libraries reported
+2,301 passed and nine failed on Linux default, 2,290 passed and 20 failed with
+all features, 2,296 passed and 14 failed on Windows, and 2,295 passed and 15
 failed on macOS arm64. Three Kafka compatibility jobs and both smoke jobs
 failed; resource-soak passed. The broker passed 781 default and 929
 all-feature tests, with four ignored per profile, plus strict checks,
 inventory and fuzz supervision. Both selected capability profiles passed;
 their archives were not independently inspected.
 
-The [preceding complete snapshot](../evidence/releases/main-ci-464-20261108/README.md)
+The [previous complete snapshot](../evidence/releases/main-ci-74dd-20261108/README.md)
+also failed client checks and passed both broker profiles.
+
+An [earlier complete snapshot](../evidence/releases/main-ci-464-20261108/README.md)
 stopped the broker default library after two Raft observer failures. The
 later pass does not explain those failures.
 
@@ -545,8 +548,10 @@ remain open.
    500,000-row polls remained about 62–66 ms in both arms. A separate
    [poll-phase diagnostic](../evidence/client/admin-dtp-poll-phases-20261108/README.md)
    observed long Pending and Ready polls, without identifying their causes.
-   Other work and synchronous destruction remain unbounded; this is not
-   Kafka throughput.
+   An instrumented [index-growth diagnostic](../evidence/client/admin-dtp-index-growth-20261108/README.md)
+   associated a resize with the longest Pending poll in ten large mock cases;
+   its pre-reserved control changes allocation and table layout. Other work
+   and synchronous destruction remain unbounded; this is not Kafka throughput.
    The earlier [Admin pagination repair](../evidence/client/admin-pagination-20261108/README.md)
    uses one checked deadline for DescribeTopicPartitions pages and rejects an
    immediately repeated cursor instead of returning a partial success. A
@@ -594,6 +599,11 @@ remain open.
    [replication](../evidence/broker/replication-limits-20261028/README.md)
    and [transaction](../evidence/broker/transaction-checkpoint-20261028/README.md)
    records.
+
+   The in-memory [quota clock repair](../evidence/broker/quota-logical-clock-20261108/README.md)
+   uses the latest observed time for stale calls and timed rate changes. Both
+   quota profiles and full broker behavioral suites passed. Kafka wire
+   throttling, durable administration and server-wide fairness remain open.
 
    The [Fetch admission fixture](../evidence/broker/fetch-admission-20261108/README.md)
    replaces a scheduling-dependent first-poll assertion with a gated actor and
