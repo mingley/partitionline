@@ -21,27 +21,27 @@ dependency graph is not Rust-only.
 ## Validation
 
 The latest complete recorded [CI snapshot][ci] is main commit
-`e487f7294773f75112f15437992ed780b53c7307`. The current branch includes
+`d2575d27ca53af47a627ca48f27a12bba34945bd`. The current branch includes
 later changes; see the linked runs for their exact source and scope.
 
-| Check | Result at `e487f72` |
+| Check | Result at `d2575d2` |
 | --- | --- |
-| Client library, Linux default | 2,232 passed and 22 failed; later targets did not run. |
-| Client library, Linux all features | 2,239 passed and 15 failed; later targets did not run. |
-| Client library, Windows default | 2,226 passed and 28 failed. |
+| Client library, Linux default | 2,237 passed and 17 failed; later targets did not run. |
+| Client library, Linux all features | 2,235 passed and 19 failed; later targets did not run. |
+| Client library, Windows default | 2,237 passed and 17 failed. |
 | Client library, macOS arm64 default | 2,243 passed and 11 failed. |
 | Kafka 4.1.2, 4.2.1 and 4.3.1 compatibility | All three jobs failed with stack overflows. |
 | Kafka 3.9.1 and 4.1.0 smoke | Both reported JoinGroup error 16 and timeouts after retries. |
 | Resource soak | Passed. |
-| Broker default targets | 488 passed, one failed and four ignored; later targets did not run. |
-| Broker all-feature targets, Clippy, Rustdoc and doctests | Not run after the default failure. |
-| Broker inventory and fuzz supervision | Passed in separate jobs. |
+| Broker default targets | 779 passed, four ignored. |
+| Broker all-feature targets | 927 passed, four ignored. |
+| Broker strict checks, inventory and fuzz supervision | Passed. |
 | Client capability profiles | Both passed selected checks; their archives were not independently inspected. |
 | Client format, all-target Clippy, audit, docs, package, auth and integrity smoke | Passed. Other client jobs failed or were skipped. |
 
-The [broker proposal failure][ci-e487-raft] returned `NotLeader` after a
+The [earlier broker proposal failure][ci-e487-raft] returned `NotLeader` after a
 previously selected leader was used. Later node samples do not establish the
-cause or whether the proposal was appended or committed. It was not retried.
+cause or whether the proposal was appended or committed. It was not retried. The later broker pass does not explain that failure.
 
 The [previous broker failure][ci-070] was a `NotLeader` response to a five-node
 observer-addition request. Later non-atomic samples do not establish the
@@ -68,8 +68,10 @@ latency bound.
   returned success for two distinct records at the same offset while the mock
   stored only the first. Producer sequence allocation saturates at the
   boundary instead of wrapping. A small arithmetic control corrected that
-  history but does not solve identity, rollback or ownership races. A gated
-  [public cancellation history][sequence-public] also left accepted records
+  history but does not solve identity, rollback or ownership races. An
+  [isolated ledger model][sequence-model] keeps an uncertainty fence after
+  ambiguous writes but can block progress indefinitely; it is not applied.
+  A gated [public cancellation history][sequence-public] also left accepted records
   without callbacks and 65,544 bytes in buffer accounting after a worker
   stopped; a later worker sent a sequence gap that the mock rejected. These
   are controlled mock histories, not real-Kafka results. An [in-flight
@@ -138,7 +140,9 @@ latency bound.
   it remains unapplied. A [no-added-yield candidate][sendall-no-yield] also
   shortened scoped mock polls, but its [combined qualification][sendall-combined]
   failed 17 of 45 mock-producer tests in each profile; their cause is unknown.
-  It remains unapplied. The frame-read change reduced work per poll but slowed a scoped
+  It remains unapplied. A separate [buffered-frame candidate][frame-classify]
+  regressed a scoped TCP/TLS loopback workload and remains unapplied. The
+  frame-read change reduced work per poll but slowed a scoped
   256 KiB loopback test by about 2% over TCP and 1.6% over TLS/TCP. In a
   [follow-up][frame-followup] the TCP result changed direction on a different
   runner. These measurements do not rank Kafka implementations.
@@ -150,10 +154,10 @@ stopped. The [work plan][next] records the broader outstanding work and
 retained evidence. The [benchmark contract](benchmark-contract.md) and
 [release guide](RELEASE.md) describe the remaining qualification gates.
 
-[ci]: https://github.com/mingley/partitionline/blob/c27d634f6fd781bbf50afc7e012808dbb88452a2/docs/evidence/releases/main-ci-e487-20261108/README.md
+[ci]: https://github.com/mingley/partitionline/blob/ec1bd5191b0410df771838574f8bbff752fb31c0/docs/evidence/releases/main-ci-d257-20261108/README.md
 [ci-262]: https://github.com/mingley/partitionline/blob/cb55f7c603e2344775de8a395c6a584737f5bb95/docs/evidence/releases/main-ci-262-20261108/README.md
 [ci-02c]: https://github.com/mingley/partitionline/blob/0ce81683fe7107386e30f388cd2a4af31735d522/docs/evidence/releases/main-ci-02c-20261108/README.md
-[next]: https://github.com/mingley/partitionline/blob/f0a7312a31d1a04f1d2c65c19e6f39e0fe501ac3/docs/plan/next-work.md
+[next]: https://github.com/mingley/partitionline/blob/ec1bd5191b0410df771838574f8bbff752fb31c0/docs/plan/next-work.md
 [flush-public]: https://github.com/mingley/partitionline/blob/f93e91499e2ba6bdc88c0a25a0d83b8737d00d3c/docs/evidence/client/producer-flush-public-20261108/README.md
 [flush-sent]: https://github.com/mingley/partitionline/blob/efa7f23314e98f3aaa4559c3cf38302bdcdb9fb4/docs/evidence/client/producer-flush-sent-20261108/README.md
 [owner-design]: https://github.com/mingley/partitionline/blob/cb55f7c603e2344775de8a395c6a584737f5bb95/docs/evidence/client/producer-ownership-design-20261108/README.md
@@ -188,5 +192,8 @@ retained evidence. The [benchmark contract](benchmark-contract.md) and
 [ci-e487-raft]: https://github.com/mingley/partitionline/blob/c27d634f6fd781bbf50afc7e012808dbb88452a2/docs/evidence/broker/raft-delayed-proposal-20261108/README.md
 [redial-gate]: https://github.com/mingley/partitionline/blob/c27d634f6fd781bbf50afc7e012808dbb88452a2/docs/evidence/client/sendall-redial-gate-20261108/README.md
 
-[sendall-no-yield]: https://github.com/mingley/partitionline/blob/f0a7312a31d1a04f1d2c65c19e6f39e0fe501ac3/docs/evidence/perf/sendall-no-yield-20261108/README.md
-[sendall-combined]: https://github.com/mingley/partitionline/blob/f0a7312a31d1a04f1d2c65c19e6f39e0fe501ac3/docs/evidence/client/send-all-combined-qualification-20261108/README.md
+[sendall-no-yield]: https://github.com/mingley/partitionline/blob/ec1bd5191b0410df771838574f8bbff752fb31c0/docs/evidence/perf/sendall-no-yield-20261108/README.md
+[sendall-combined]: https://github.com/mingley/partitionline/blob/ec1bd5191b0410df771838574f8bbff752fb31c0/docs/evidence/client/send-all-combined-qualification-20261108/README.md
+
+[sequence-model]: https://github.com/mingley/partitionline/blob/ec1bd5191b0410df771838574f8bbff752fb31c0/docs/evidence/client/producer-sequence-ledger-model-20261108/README.md
+[frame-classify]: https://github.com/mingley/partitionline/blob/ec1bd5191b0410df771838574f8bbff752fb31c0/docs/evidence/broker/frame-classification-20261108/README.md
