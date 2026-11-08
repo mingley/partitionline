@@ -420,6 +420,12 @@ mod tests {
         read.join().expect("snapshot thread");
         assert_eq!(before_release.expect("snapshot held state lock"), Some("A".to_string()));
         failures.acknowledge(&first, &a);
+        let next = failures.register();
+        let b = snapshot(&failures, &next, "B");
+        failures.acknowledge(&next, &b);
+        let summary = failures.register();
+        let marker = snapshot(&failures, &summary, "additional worker errors were coalesced");
+        failures.acknowledge(&summary, &marker);
     }
 
     #[derive(Debug)]
@@ -446,9 +452,20 @@ mod tests {
         let outcome = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
             failures.record(Error::Io(std::io::Error::other(PanicOnDrop)));
         }));
-        assert!(outcome.is_err());
+        let panic_payload = outcome.expect_err("private destructor must panic");
+        let message = panic_payload
+            .downcast_ref::<&str>()
+            .copied()
+            .or_else(|| panic_payload.downcast_ref::<String>().map(String::as_str));
+        assert_eq!(message, Some("PRIVATE_ERROR_DROP_PANIC"));
         assert_eq!(label(&snapshot(&failures, &first, "A")), "A");
         failures.acknowledge(&first, &a);
+        let next = failures.register();
+        let b = snapshot(&failures, &next, "B");
+        failures.acknowledge(&next, &b);
+        let summary = failures.register();
+        let marker = snapshot(&failures, &summary, "additional worker errors were coalesced");
+        failures.acknowledge(&summary, &marker);
     }
 
     #[test]
