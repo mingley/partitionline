@@ -21,7 +21,7 @@ jobs:
       - uses: actions/checkout@v7
         with:
           persist-credentials: false
-          fetch-depth: 4
+          fetch-depth: 12
           sparse-checkout: |
             .cargo
             src
@@ -35,7 +35,7 @@ jobs:
         run: |
           set -euo pipefail
           test "$(uname -m)" = x86_64
-          test "$(git rev-parse HEAD~3)" = b391a007f3fe76d31e45f50390640c243ab4f393
+          git merge-base --is-ancestor b391a007f3fe76d31e45f50390640c243ab4f393 HEAD
           rustc +stable --version --verbose
           cargo +stable --version
           test "$(df -Pk . | awk 'NR==2 {print $4}')" -ge 2000000
@@ -106,6 +106,9 @@ jobs:
               replacement_wait_for_slot_obeys_deadline \
               closed_transaction_coordinator_does_not_use_stale_api_versions \
               closed_transaction_coordinator_rediscovers_for_epoch_bump \
+              replacement_rediscovery_retries_real_coordinator_rpc \
+              missing_transaction_coordinator_rediscovers_before_rpc \
+              closed_transaction_coordinator_rediscovers_and_bumps_epoch \
               txn_roundtrip_times_out_waiting_for_initial_lock \
               txn_roundtrip_times_out_waiting_for_rediscovery_snapshot_lock
             do
