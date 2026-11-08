@@ -25,8 +25,8 @@ jobs:
           if (-not (rustc +stable --version --verbose | Select-String "host: x86_64-pc-windows")) {
             throw "expected x86_64 Windows host"
           }
-          if ((git rev-parse HEAD^) -ne "c222fd2c1181a24ab4fc39fead726892992d1d89") {
-            throw "unexpected source commit"
+          if ((git rev-parse HEAD:partitionline-broker/src/journal.rs) -ne "3d01f0389ed7a5ef9e3d5b7019c4f47c62d73fef") {
+            throw "unexpected journal source blob"
           }
       - name: Exercise path-only ticket and adoption lifetimes
         shell: pwsh
