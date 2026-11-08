@@ -102,7 +102,7 @@ fn corpus() {
         let x=decode_describe_topic_partitions_response(&mut a);
         let mut b=wire.as_slice();
         let y=rt.block_on(decode_describe_topic_partitions_response_cooperative(&mut b));
-        assert_eq!(x,y,"case {i}");
+        assert_eq!(format!("{x:?}"),format!("{y:?}"),"case {i}");
         assert_eq!(a.remaining(),b.remaining(),"case {i}");
         println!("{i}|{}|{:?}",a.remaining(),x);
     }
