@@ -10,24 +10,20 @@ Production readiness and fastest-client/server claims remain unqualified.
 Client 0.1.0 is already published. The next client version must be at least
 0.2.0; broker and schema publication remain disabled.
 
-The latest complete recorded main [CI snapshot](../evidence/releases/main-ci-d314-20261108/README.md)
-is `d314151e6718ffb2172bf9297728724216401099`. Client libraries reported
-2,301 passed and 16 failed on Linux default, 2,303 passed and 14 failed with
-all features, 2,306 passed and 11 failed on Windows, and 2,298 passed and 19
+The latest complete recorded main [CI snapshot](../evidence/releases/main-ci-0c9-20261108/README.md)
+is `0c9ab1e712a043a2acc5fa56963cff2f3e5ccc91`. Client libraries reported
+2,307 passed and 10 failed on Linux default, 2,299 passed and 18 failed with
+all features, 2,303 passed and 14 failed on Windows, and 2,308 passed and nine
 failed on macOS arm64. Three Kafka compatibility jobs and both smoke jobs
-failed. Broker CI stopped in the default library at 490 passed, three failed
-and four ignored; later broker targets and strict checks did not run. API
-inventory, fuzz supervision and both selected client capability profiles
+failed. Broker CI stopped in a default integration target at 729 passed, one
+failed and four ignored; later broker targets and strict checks did not run.
+API inventory, fuzz supervision and both selected client capability profiles
 passed; capability archives were not independently inspected. The instruction
 counter had no baseline for this Rust version.
 
-A later [partial main run](../evidence/releases/main-ci-0c9-partial-20261108/README.md)
-at `0c9ab1e` stopped in a default broker integration target after 729 passes,
-one failure and four ignored. Later broker targets and strict checks did not
-run. The client failed its libraries, three Kafka compatibility jobs and the
-Kafka 4.1.0 smoke; the 3.9.1 smoke was still running when recorded. Both
-capability profiles, API inventory and fuzz supervision passed. The cause of
-the broker failure is unknown.
+An [earlier complete snapshot](../evidence/releases/main-ci-d314-20261108/README.md)
+also failed client checks and stopped in the broker default library. The cause
+of the broker failures is unknown.
 
 The [preceding complete snapshot](../evidence/releases/main-ci-a374-20261108/README.md)
 also failed client checks but passed 806 default and 954 all-feature broker
