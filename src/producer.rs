@@ -54,6 +54,24 @@ use crate::protocol::txn::{
     TxnErrorDisposition, TxnOffsetCommitMember, TxnOffsetCommitRequest,
 };
 
+/// Qualification-only marker for controlled shutdown histories.
+#[cfg(flush_shutdown_witness)]
+#[doc(hidden)]
+pub mod flush_shutdown_witness {
+    use std::sync::atomic::{AtomicUsize, Ordering};
+
+    static CLOSES: AtomicUsize = AtomicUsize::new(0);
+
+    /// Return the number of close markers observed in this process.
+    pub fn observed_closes() -> usize {
+        CLOSES.load(Ordering::SeqCst)
+    }
+
+    pub(super) fn observe_close() {
+        let _previous = CLOSES.fetch_add(1, Ordering::SeqCst);
+    }
+}
+
 /// Pre-send failure injection point for testing buffer ownership and resource contracts.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum PreSendFault {
@@ -4343,6 +4361,10 @@ impl Producer {
             .max(self.inner.shared.cfg.request_timeout);
         let deadline = Instant::now() + timeout;
         self.inner.shared.completion.seal();
+        #[cfg(flush_shutdown_witness)]
+        if self.inner.shared.cfg.client_id == "shutdown-witness" {
+            flush_shutdown_witness::observe_close();
+        }
         let flush = self.flush_until(deadline).await;
         self.shutdown_workers(Some(deadline)).await;
         let completion_status = self.inner.shared.completion.status(u64::MAX);
@@ -4367,6 +4389,10 @@ impl Producer {
     pub async fn close_timeout(self, timeout: Duration) -> Result<()> {
         let deadline = Instant::now() + timeout;
         self.inner.shared.completion.seal();
+        #[cfg(flush_shutdown_witness)]
+        if self.inner.shared.cfg.client_id == "shutdown-witness" {
+            flush_shutdown_witness::observe_close();
+        }
         let flush = self.flush_until(deadline).await;
         self.shutdown_workers(Some(deadline)).await;
         let completion_status = self.inner.shared.completion.status(u64::MAX);

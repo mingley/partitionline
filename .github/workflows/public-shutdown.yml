@@ -1,0 +1,158 @@
+name: Public shutdown seal histories
+
+on:
+  push:
+    branches: [qualification/public-shutdown-b7-20261108]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  histories:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    env:
+      CARGO_BUILD_JOBS: '2'
+      CARGO_INCREMENTAL: '0'
+      CARGO_PROFILE_DEV_DEBUG: '0'
+      CARGO_PROFILE_TEST_DEBUG: '0'
+      CARGO_TERM_COLOR: never
+      RUST_BACKTRACE: '0'
+      RUSTFLAGS: '--cfg flush_shutdown_witness --check-cfg=cfg(flush_shutdown_witness)'
+    steps:
+      - name: Prepare retained evidence
+        shell: bash
+        run: mkdir -p "$RUNNER_TEMP/public-shutdown"
+      - name: Checkout matched baseline
+        uses: actions/checkout@v7
+        with:
+          ref: f6ea03662d78908cce6656dd7a50aa913721fb66
+          path: baseline
+          fetch-depth: 30
+          persist-credentials: false
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /Cargo.toml
+            /Cargo.lock
+            /rust-toolchain.toml
+            /README.md
+            /clippy.toml
+            /.cargo/
+            /src/
+            /examples/
+            /tests/common/
+            /tests/public_shutdown.rs
+      - name: Checkout sealed experiment
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.sha }}
+          path: candidate
+          fetch-depth: 30
+          persist-credentials: false
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /Cargo.toml
+            /Cargo.lock
+            /rust-toolchain.toml
+            /README.md
+            /clippy.toml
+            /.cargo/
+            /src/
+            /examples/
+            /tests/common/
+            /tests/public_shutdown.rs
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Verify source and record provenance
+        shell: bash
+        run: |
+          set -euo pipefail
+          evidence="$RUNNER_TEMP/public-shutdown"
+          {
+            echo "candidate_qualification_commit=$GITHUB_SHA"
+            echo "baseline_qualification_commit=f6ea03662d78908cce6656dd7a50aa913721fb66"
+            echo "baseline_base=bc45ba4f65f126c406ff88a57fcfe08007d35b29"
+            echo "candidate_base=b7c11784d79b05a36ca624b3de17a952603d4931"
+            test "$(git -C baseline rev-parse HEAD)" = f6ea03662d78908cce6656dd7a50aa913721fb66
+            test "$(git -C candidate rev-parse HEAD)" = "$GITHUB_SHA"
+            test "$(git -C baseline rev-parse bc45ba4f65f126c406ff88a57fcfe08007d35b29:src/producer.rs)" = 8c0e6754f7bdd4500e8e9c5c4af8009cad86a671
+            test "$(git -C candidate rev-parse b7c11784d79b05a36ca624b3de17a952603d4931:src/producer.rs)" = 0f4affa57ce20eb33b94b2b9754f2d85a75fad7c
+            test "$(git -C baseline rev-parse HEAD:src/producer.rs)" = 42e49943c62c01b2d5f78d8aa59a949641de7400
+            test "$(git -C candidate rev-parse HEAD:src/producer.rs)" = 021aa79849b0ff07a118ed04afa1d795bf38786a
+            test "$(git -C baseline rev-parse HEAD:src/producer/completion_draft.rs)" = 2fd3dbe9f8069e1e97526ed10d54118d0dac68a3
+            test "$(git -C candidate rev-parse HEAD:src/producer/completion_draft.rs)" = 758164ed462f3e26f59a639540d9374928d06795
+            for side in baseline candidate; do
+              test "$(git -C "$side" rev-parse HEAD:tests/public_shutdown.rs)" = 7a4b45205aff7fc9dea055a2b4506a67e20789f5
+              test "$(git -C "$side" rev-parse HEAD:tests/common/mod.rs)" = 9d14334cf587b774701692547fdbdfd64bd399a1
+              test "$(git -C "$side" rev-parse HEAD:Cargo.lock)" = d1cb698aaaf7554fe904ba02d671c4a8ab4975b3
+              test -z "$(git -C "$side" status --porcelain)"
+              sha256sum "$side/src/producer.rs" "$side/src/producer/completion_draft.rs" "$side/tests/common/mod.rs" "$side/tests/public_shutdown.rs" "$side/Cargo.lock"
+            done
+            git -C baseline diff bc45ba4f65f126c406ff88a57fcfe08007d35b29 HEAD -- src/producer.rs > "$evidence/baseline-observer.patch"
+            git -C candidate diff b7c11784d79b05a36ca624b3de17a952603d4931 HEAD -- src/producer.rs > "$evidence/candidate-observer.patch"
+            git -C baseline diff bc45ba4f65f126c406ff88a57fcfe08007d35b29 HEAD -- tests/common/mod.rs > "$evidence/mock-gate.patch"
+            sha256sum "$evidence/baseline-observer.patch" "$evidence/candidate-observer.patch" "$evidence/mock-gate.patch"
+            rustc +stable -vV
+            cargo +stable -V
+            uname -a
+            echo "RUSTFLAGS=$RUSTFLAGS"
+          } 2>&1 | tee "$evidence/provenance.log"
+          cp candidate/tests/public_shutdown.rs "$evidence/"
+      - name: Run matched public shutdown histories
+        shell: bash
+        run: |
+          set -euo pipefail
+          evidence="$RUNNER_TEMP/public-shutdown"
+          failures=0
+          for side in baseline candidate; do
+            export WITNESS_EXPECT=baseline
+            if [ "$side" = candidate ]; then export WITNESS_EXPECT=sealed; fi
+            for mode in default all-features; do
+              extra=()
+              if [ "$mode" = all-features ]; then extra+=(--all-features); fi
+              export CARGO_TARGET_DIR="$RUNNER_TEMP/shutdown-$side-$mode-target"
+              echo "SIDE=$side MODE=$mode WITNESS_EXPECT=$WITNESS_EXPECT CARGO_TARGET_DIR=$CARGO_TARGET_DIR"
+              build_log="$evidence/$side-$mode-build.log"
+              set +e
+              (cd "$GITHUB_WORKSPACE/$side" && timeout 600 cargo +stable test --locked "${extra[@]}" --test public_shutdown --no-run) 2>&1 | tee "$build_log"
+              build_status=${PIPESTATUS[0]}
+              set -e
+              if [ "$build_status" -ne 0 ]; then
+                echo "BUILD_FAILED $side $mode status=$build_status"
+                failures=$((failures + 1))
+                continue
+              fi
+              find "$CARGO_TARGET_DIR/debug/deps" -maxdepth 1 -type f -executable -name 'public_shutdown-*' -print0 |
+                sort -z | xargs -0 -r sha256sum | tee "$evidence/$side-$mode-binary.log"
+              grep -Fq "public_shutdown-" "$evidence/$side-$mode-binary.log"
+              for case in close_seals_before_draining_the_accepted_record cancelled_close_preserves_the_experiment_seal pre_admission_buffer_waiter_is_checked_at_the_seal; do
+                log="$evidence/$side-$mode-$case.log"
+                set +e
+                (cd "$GITHUB_WORKSPACE/$side" && timeout 90 cargo +stable test --locked "${extra[@]}" --test public_shutdown "$case" -- --exact --nocapture --test-threads=1) 2>&1 | tee "$log"
+                status=${PIPESTATUS[0]}
+                set -e
+                if [ "$status" -ne 0 ] || ! grep -Fq 'test result: ok. 1 passed; 0 failed;' "$log"; then
+                  echo "CONTROL_FAILED $side $mode $case status=$status"
+                  failures=$((failures + 1))
+                else
+                  echo "CONTROL_PASSED $side $mode $case"
+                fi
+              done
+            done
+          done
+          echo "shutdown_control_failures=$failures"
+          test "$failures" -eq 0
+      - name: Check witness formatting
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd candidate
+          rustfmt +stable --edition 2021 --check tests/public_shutdown.rs 2>&1 | tee "$RUNNER_TEMP/public-shutdown/rustfmt.log"
+      - name: Retain source patches, pins and logs
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: public-shutdown-${{ github.run_id }}
+          path: ${{ runner.temp }}/public-shutdown
+          if-no-files-found: error
+          retention-days: 30
