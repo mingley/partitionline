@@ -1,0 +1,32 @@
+name: Admin slot-index final full pagination tests
+on:
+  push:
+    branches: [qualification/admin-dtp-slot-final-tests-20261108]
+permissions:
+  contents: read
+jobs:
+  tests:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        feature: [default, all]
+    env:
+      CARGO_INCREMENTAL: '0'
+      CARGO_TERM_COLOR: never
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Pin sources and run final tests
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD:src/admin.rs)" = 8c2f94353e04c2925b1bfaf8478285190dd317d7
+          test "$(git rev-parse HEAD:src/admin/pagination_tests.rs)" = a69d5cceff56a7d1c52f321b5766d695423871aa
+          git rev-parse HEAD HEAD:src/admin.rs HEAD:src/admin/pagination_tests.rs HEAD:Cargo.toml HEAD:Cargo.lock
+          rustc -Vv
+          if test "${{ matrix.feature }}" = all; then flags=--all-features; else flags=; fi
+          cargo test --locked $flags --lib dtp_slot_index_ -- --test-threads=1 | tee slot.log
+          grep -F 'test result: ok. 6 passed; 0 failed;' slot.log
+          cargo test --locked $flags --lib admin::pagination_tests:: -- --test-threads=1 | tee pagination.log
+          grep -F 'test result: ok. 72 passed; 0 failed;' pagination.log
