@@ -89,9 +89,15 @@ jobs:
               raise SystemExit("retry checkpoint anchor mismatch")
           method = method.replace(before, after, 1)
           source = source[:start] + method + source[end:]
+          test_anchor = "#[cfg(test)]\nmod tests {\n    use super::*;\n"
+          test_import = ("#[cfg(test)]\nmod tests {\n    use super::*;\n"
+                         "    use crate::protocol::txn::decode_add_partitions_to_txn_response_cooperative;\n")
+          if source.count(test_anchor) != 1:
+              raise SystemExit("test import anchor mismatch")
+          source = source.replace(test_anchor, test_import, 1)
           source += '\n#[cfg(test)]\n#[path = "producer/add_partitions_retry_deadline.rs"]\nmod add_partitions_retry_deadline;\n'
           digest = hashlib.sha256(source.encode()).hexdigest()
-          if digest != "76b188a2c020082fbd45ef1039eb6816417ffe2ef7bf81081fa8a9985f14aa18":
+          if digest != "86a5ad4dad76ff9566535e2a099aaeac8eec0351575fa6ee55d2855aecba0525":
               raise SystemExit("instrumented source mismatch: " + digest)
           path.write_text(source)
           print("instrumented source sha256:", digest)
