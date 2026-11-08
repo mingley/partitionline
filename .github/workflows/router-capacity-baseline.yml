@@ -1,0 +1,44 @@
+name: Matched baseline broker behavior
+on:
+  push:
+    branches: [qualification/router-capacity-baseline-20261108]
+permissions:
+  contents: read
+env:
+  CARGO_BUILD_JOBS: "2"
+  CARGO_INCREMENTAL: "0"
+  CARGO_TERM_COLOR: never
+jobs:
+  behavioral:
+    name: broker behavior (${{ matrix.profile }})
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    strategy:
+      fail-fast: false
+      matrix:
+        profile: [default, all-features]
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: 4409633fa989effe1083e623f6e59fcc0d179eee
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Verify exact source and run all targets
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "4409633fa989effe1083e623f6e59fcc0d179eee"
+          test -z "$(git status --porcelain)"
+          rustc --version --verbose
+          sha256sum partitionline-broker/src/{metadata,fetch,produce,protocol,transport}.rs tests/conformance/broker/implemented-api-versions.json
+          args=()
+          if [ "${{ matrix.profile }}" = all-features ]; then args+=(--all-features); fi
+          cargo test --locked --manifest-path partitionline-broker/Cargo.toml --all-targets "${args[@]}" 2>&1 | tee "$RUNNER_TEMP/broker-behavior.log"
+      - name: Preserve behavior output including failures
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: capacity-behavior-${{ matrix.profile }}
+          path: ${{ runner.temp }}/broker-behavior.log
+          if-no-files-found: warn
+          retention-days: 30
