@@ -122,7 +122,7 @@ Non-null response names are not checked against requested names, and pages
 need not represent a single metadata snapshot. These remain separate
 follow-ups.
 
-[old]: ../admin-topic-identity-20261108/README.md
+[old]: ../admin-pagination-identity-20261108/README.md
 [candidate]: https://github.com/mingley/partitionline/commit/f56f686719ec6a6387986a1a541d5c435ef59156
 [draft]: https://github.com/mingley/partitionline/actions/runs/42477540206
 [final]: https://github.com/mingley/partitionline/actions/runs/42478040397
