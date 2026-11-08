@@ -1,0 +1,28 @@
+name: Admin identity final formatting probe
+on:
+  push:
+    branches: [work/admin-identity-format-20261108]
+permissions:
+  contents: read
+jobs:
+  format:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+      - name: Emit formatted test and check production source
+        run: |
+          rustc -Vv
+          cargo fmt --all
+          sha256sum src/admin.rs src/admin/pagination_tests.rs
+          git hash-object src/admin.rs src/admin/pagination_tests.rs
+          git diff -- src/admin.rs
+          python3 - <<'PY'
+          import base64
+          data=base64.b64encode(open("src/admin/pagination_tests.rs","rb").read()).decode()
+          for i in range(0,len(data),3000):
+              print(f"FORMATTED_TEST_{i//3000:04d}:{data[i:i+3000]}")
+          PY
