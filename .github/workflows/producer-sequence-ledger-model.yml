@@ -35,7 +35,8 @@ jobs:
           cases = [
               ("aba", "if tail.ticket != ticket {", "if tail.ticket.base != ticket.base {"),
               ("fifo", "if head.ticket != ticket {", "if head.ticket.key != ticket.key {"),
-              ("epoch", "if !self.entries.is_empty() {\n            return Err(Failure::Busy);\n        }", "if false { return Err(Failure::Busy); }"),
+              ("epoch", "if !self.entries.is_empty() || self.unsettled.is_some() {\n            return Err(Failure::Busy);\n        }", "if false { return Err(Failure::Busy); }"),
+              ("uncertain", "if !self.entries.is_empty() || self.unsettled.is_some() {", "if !self.entries.is_empty() {"),
           ]
           for name, old, new in cases:
               assert original.count(old) >= 1
@@ -44,7 +45,8 @@ jobs:
           for pair in \
             'aba:a_reused_wire_base_does_not_reuse_a_ticket' \
             'fifo:only_the_head_can_write_and_an_ambiguous_write_keeps_the_same_range' \
-            'epoch:identity_changes_need_quiescence_and_never_reuse_tickets'; do
+            'epoch:identity_changes_need_quiescence_and_never_reuse_tickets' \
+            'uncertain:ambiguous_attempt_stays_fenced_after_a_retry_is_acknowledged'; do
             mutant="${pair%%:*}"
             testname="${pair#*:}"
             rustc --edition=2021 --test "$RUNNER_TEMP/$mutant.rs" -o "$RUNNER_TEMP/$mutant-test"
