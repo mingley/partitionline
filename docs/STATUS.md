@@ -21,42 +21,42 @@ dependency graph is not Rust-only.
 ## Validation
 
 The latest complete recorded [CI snapshot][ci] is main commit
-`d2575d27ca53af47a627ca48f27a12bba34945bd`. The current branch includes
+`426041c9f5526dfb6a788344a0e03b3edfefffb0`. The current branch includes
 later changes; see the linked runs for their exact source and scope.
 
-| Check | Result at `d2575d2` |
+| Check | Result at `426041c` |
 | --- | --- |
-| Client library, Linux default | 2,237 passed and 17 failed; later targets did not run. |
-| Client library, Linux all features | 2,235 passed and 19 failed; later targets did not run. |
-| Client library, Windows default | 2,237 passed and 17 failed. |
-| Client library, macOS arm64 default | 2,243 passed and 11 failed. |
+| Client library, Linux default | 2,259 passed and 13 failed; later targets did not run. |
+| Client library, Linux all features | 2,261 passed and 11 failed; later targets did not run. |
+| Client library, Windows default | 2,257 passed and 15 failed. |
+| Client library, macOS arm64 default | 2,264 passed and eight failed. |
 | Kafka 4.1.2, 4.2.1 and 4.3.1 compatibility | All three jobs failed with stack overflows. |
 | Kafka 3.9.1 and 4.1.0 smoke | Both reported JoinGroup error 16 and timeouts after retries. |
 | Resource soak | Passed. |
-| Broker default targets | 779 passed, four ignored. |
-| Broker all-feature targets | 927 passed, four ignored. |
+| Broker default targets | 781 passed, four ignored. |
+| Broker all-feature targets | 929 passed, four ignored. |
 | Broker strict checks, inventory and fuzz supervision | Passed. |
 | Client capability profiles | Both passed selected checks; their archives were not independently inspected. |
 | Client format, all-target Clippy, audit, docs, package, auth and integrity smoke | Passed. Other client jobs failed or were skipped. |
 
-A [newer partial broker run][ci-912] passed its default profile but stopped
+An [earlier partial broker run][ci-912] passed its default profile but stopped
 the all-feature profile after three Raft runtime failures. Its later strict
 checks did not run. Inventory, fuzz supervision and selected capability
 profiles passed; the failures remain unexplained.
 
-A [later partial CI run][ci-c481] passed both broker profiles, inventory,
+An [earlier partial CI run][ci-c481] passed both broker profiles, inventory,
 fuzz supervision and selected capability profiles. The client failed eight
 jobs and canceled one Kafka smoke. That broker pass does not explain the
 earlier disconnect or Raft failures.
 
-A [newer partial broker run][ci-7fb] stopped at 490 default library tests
+Another [earlier partial broker run][ci-7fb] stopped at 490 default library tests
 passed, one failed and four ignored after a five-node Raft proposal returned
 `NotLeader`. The cause and the proposal's append and commit outcome are
 unknown; it was not retried. Inventory and fuzz supervision passed separately.
 The same commit's client run had eight failed jobs and one canceled job; the
 canceled Kafka smoke has no result.
 
-A [later partial broker run][ci-6902] stopped at 490 default library tests
+Another [earlier partial broker run][ci-6902] stopped at 490 default library tests
 passed, one failed and four ignored. A disconnect test observed that its
 handler guard had not dropped after 32 yields; the cause and later behavior
 are unknown. A [gated EOF control][disconnect-eof] showed one possible delayed
@@ -185,10 +185,10 @@ stopped. The [work plan][next] records the broader outstanding work and
 retained evidence. The [benchmark contract](benchmark-contract.md) and
 [release guide](RELEASE.md) describe the remaining qualification gates.
 
-[ci]: https://github.com/mingley/partitionline/blob/ec1bd5191b0410df771838574f8bbff752fb31c0/docs/evidence/releases/main-ci-d257-20261108/README.md
+[ci]: https://github.com/mingley/partitionline/blob/ed10995700da3252dbefb4696e1afd7dfe5a008d/docs/evidence/releases/main-ci-426-20261108/README.md
 [ci-262]: https://github.com/mingley/partitionline/blob/cb55f7c603e2344775de8a395c6a584737f5bb95/docs/evidence/releases/main-ci-262-20261108/README.md
 [ci-02c]: https://github.com/mingley/partitionline/blob/0ce81683fe7107386e30f388cd2a4af31735d522/docs/evidence/releases/main-ci-02c-20261108/README.md
-[next]: https://github.com/mingley/partitionline/blob/ad452fea03dcdde7e946322b3c55ca35bbccc224/docs/plan/next-work.md
+[next]: https://github.com/mingley/partitionline/blob/ed10995700da3252dbefb4696e1afd7dfe5a008d/docs/plan/next-work.md
 [flush-public]: https://github.com/mingley/partitionline/blob/f93e91499e2ba6bdc88c0a25a0d83b8737d00d3c/docs/evidence/client/producer-flush-public-20261108/README.md
 [flush-sent]: https://github.com/mingley/partitionline/blob/efa7f23314e98f3aaa4559c3cf38302bdcdb9fb4/docs/evidence/client/producer-flush-sent-20261108/README.md
 [owner-design]: https://github.com/mingley/partitionline/blob/cb55f7c603e2344775de8a395c6a584737f5bb95/docs/evidence/client/producer-ownership-design-20261108/README.md
@@ -241,4 +241,4 @@ retained evidence. The [benchmark contract](benchmark-contract.md) and
 
 [admin-null]: https://github.com/mingley/partitionline/blob/ad452fea03dcdde7e946322b3c55ca35bbccc224/docs/evidence/client/admin-topic-identity-null-20261108/README.md
 [ci-c481]: https://github.com/mingley/partitionline/blob/ad452fea03dcdde7e946322b3c55ca35bbccc224/docs/evidence/releases/main-ci-c481-partial-20261108/README.md
-[ci-912]: https://github.com/mingley/partitionline/blob/ad452fea03dcdde7e946322b3c55ca35bbccc224/docs/evidence/releases/main-ci-912-partial-20261108/README.md
+[ci-912]: https://github.com/mingley/partitionline/blob/ed10995700da3252dbefb4696e1afd7dfe5a008d/docs/evidence/releases/main-ci-912-partial-20261108/README.md
