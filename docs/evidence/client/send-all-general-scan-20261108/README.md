@@ -51,7 +51,10 @@ two sets therefore select different keys. It does **not** use a Tokio channel,
 the producer or Kafka, and does not prove that three changing leaders and a
 nearly full connect queue coincide in a public history. That history is a
 source-derived possibility, not an observed producer failure. Slot-union
-equality alone does not establish equivalent nudge order.
+equality alone does not establish equivalent nudge order. Blindly replaying
+all duplicate insertions after one freshness check is also insufficient:
+metadata can expire between records of a locked chunk, so the original might
+skip later insertions that would otherwise grow the table.
 
 The [witness source](https://github.com/mingley/partitionline/blob/3fa5a8e3652d60033fb9818c59229a897b21789f/docs/evidence/client/send-all-hashset-order-20261108/witness.rs)
 has blob `e93cdbc72075d4ea69aa69d6348887d4dbb190a8` and SHA-256
@@ -76,7 +79,9 @@ the separately nudged ready list and sticky routing. Even identical raw routes
 can be split between ready and pending if metadata freshness changes during
 the per-record scan. Route tracking must avoid extra iterator polls, eager
 validation or whole-record clones: input records can own values with
-observable destructors.
+observable destructors. A retained topic `Arc` clone can also change a
+caller's observed strong count; comparing the already-collected front record
+is one way to avoid that extra ownership.
 
 Before applying any such design, controls would need to exercise iterator
 ownership and cancellation at the original yields, 31/32 and 8,191/8,192/8,193
