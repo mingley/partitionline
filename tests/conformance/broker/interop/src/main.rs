@@ -246,7 +246,7 @@ async fn write_rust(
             for index in start..end {
                 let sent = producer.send(record(&topic, partition, index)).await?;
                 proof.check(
-                    sent.topic == topic && sent.partition == partition,
+                    sent.topic.as_ref() == topic.as_str() && sent.partition == partition,
                     "public Producer topic/partition receipt",
                 )?;
                 proof.check(
@@ -382,7 +382,7 @@ async fn admin_lifecycle(
 fn matches_rich(row: &FetchedRecord, index: i64) -> bool {
     let expected = record(&row.topic, row.partition, index);
     row.timestamp == expected.timestamp.unwrap_or(-1)
-        && row.key == expected.key
+        && row.key.as_deref() == expected.key.as_deref()
         && row.value == expected.value
         && row.headers == expected.headers
 }
@@ -627,4 +627,80 @@ async fn main() -> Result<()> {
     }
     fs::write(output, report).await?;
     result?
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn fetched(topic: &str, index: i64) -> FetchedRecord {
+        let expected = record(topic, 0, index);
+        FetchedRecord {
+            topic: topic.into(),
+            partition: 0,
+            offset: index,
+            timestamp: expected.timestamp.unwrap_or(-1),
+            timestamp_type: TimestampType::CreateTime,
+            key: expected.key.map(Into::into),
+            value: expected.value,
+            headers: expected.headers,
+            leader_epoch: None,
+        }
+    }
+
+    #[test]
+    fn rich_record_comparison_preserves_null_empty_and_bytes() {
+        assert!(matches!(
+            fetched("t", 1).key,
+            Some(partitionline::RecordBytes::Short(..))
+        ));
+        assert!(matches!(
+            fetched("interop-topic-with-a-long-enough-key", 1).key,
+            Some(partitionline::RecordBytes::Long(_))
+        ));
+        for topic in ["t", "interop-topic-with-a-long-enough-key"] {
+            for index in 0..12 {
+                let row = fetched(topic, index);
+                assert!(matches_rich(&row, index));
+
+                let mut wrong_key = row.clone();
+                wrong_key.key = if row.key.is_some() {
+                    None
+                } else {
+                    Some(partitionline::RecordBytes::from(&[][..]))
+                };
+                assert!(!matches_rich(&wrong_key, index));
+
+                let mut wrong_value = row.clone();
+                wrong_value.value = if row.value.is_some() {
+                    None
+                } else {
+                    Some(Vec::<u8>::new().into())
+                };
+                assert!(!matches_rich(&wrong_value, index));
+            }
+        }
+
+        let mut null_key = fetched("t", 0);
+        assert!(null_key.key.is_none());
+        null_key.key = Some(partitionline::RecordBytes::from(&[][..]));
+        assert!(!matches_rich(&null_key, 0));
+
+        let mut empty_value = fetched("t", 1);
+        assert_eq!(empty_value.value.as_deref(), Some(&[][..]));
+        empty_value.value = None;
+        assert!(!matches_rich(&empty_value, 1));
+
+        let mut wrong_key = fetched("t", 1);
+        wrong_key.key = Some(partitionline::RecordBytes::from(&b"wrong-key"[..]));
+        assert!(!matches_rich(&wrong_key, 1));
+
+        let mut wrong_timestamp = fetched("t", 1);
+        wrong_timestamp.timestamp += 1;
+        assert!(!matches_rich(&wrong_timestamp, 1));
+
+        let mut wrong_headers = fetched("t", 1);
+        wrong_headers.headers.clear();
+        assert!(!matches_rich(&wrong_headers, 1));
+    }
 }
