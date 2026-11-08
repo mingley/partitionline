@@ -1,0 +1,74 @@
+name: broker owned permit all-target and doc tests
+on:
+  push:
+    branches:
+      - qualification/broker-owned-permit-final-all-targets-20261108
+permissions:
+  contents: read
+jobs:
+  suite:
+    strategy:
+      fail-fast: false
+      matrix:
+        profile: [default, all-features]
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      CARGO_INCREMENTAL: "0"
+      CARGO_BUILD_JOBS: "2"
+      CARGO_TERM_COLOR: never
+      CARGO_PROFILE_DEV_DEBUG: "0"
+      CARGO_PROFILE_TEST_DEBUG: "0"
+      PROFILE: ${{ matrix.profile }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          fetch-depth: 2
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Verify exact source and host
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/owned-targets"
+          test "$(uname -m)" = x86_64
+          test "$(git rev-parse HEAD^)" = 0210c7cdf2ade9b6849c4beea019b3544911aaff
+          rustc +stable --version --verbose | tee "$RUNNER_TEMP/owned-targets/toolchain.log"
+          printf '%s  %s\n' 4b58da7de8daf51d12c658c35a9252b91907e18475e49cb04fac3de751cb9a5b partitionline-broker/src/metadata.rs | sha256sum -c -
+          printf '%s  %s\n' 0a35525b57e7cc6d83bb5ca82c544070126f8f2d1932b36e38525cf12a823e89 partitionline-broker/src/fetch.rs | sha256sum -c -
+          git diff --exit-code HEAD^ -- partitionline-broker/src/metadata.rs partitionline-broker/src/fetch.rs tests/conformance/broker/implemented-api-versions.json
+      - name: Complete broker all-target suite
+        id: targets
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -euo pipefail
+          flags=()
+          if [ "$PROFILE" = all-features ]; then flags+=(--all-features); fi
+          cargo +stable test --locked --manifest-path partitionline-broker/Cargo.toml --all-targets "${flags[@]}" 2>&1 | tee "$RUNNER_TEMP/owned-targets/all-targets.log"
+      - name: Broker doc tests
+        id: docs
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -euo pipefail
+          flags=()
+          if [ "$PROFILE" = all-features ]; then flags+=(--all-features); fi
+          cargo +stable test --locked --manifest-path partitionline-broker/Cargo.toml --doc "${flags[@]}" 2>&1 | tee "$RUNNER_TEMP/owned-targets/doc-tests.log"
+      - name: Require both test gates
+        if: always()
+        env:
+          TARGETS: ${{ steps.targets.outcome }}
+          DOCS: ${{ steps.docs.outcome }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$TARGETS" = success
+          test "$DOCS" = success
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: broker-owned-targets-${{ matrix.profile }}-${{ github.sha }}
+          path: ${{ runner.temp }}/owned-targets
+          if-no-files-found: warn
+          retention-days: 30
