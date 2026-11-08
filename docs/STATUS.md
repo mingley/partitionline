@@ -22,30 +22,27 @@ alternative for the current TLS and OIDC behavior.
 ## Validation
 
 The latest complete recorded [CI snapshot][ci] is main commit
-`d314151e6718ffb2172bf9297728724216401099`. The current branch includes
+`0c9ab1e712a043a2acc5fa56963cff2f3e5ccc91`. The current branch includes
 later changes; see the linked runs for their exact source and scope.
 
-| Check | Result at `d314151` |
+| Check | Result at `0c9ab1e` |
 | --- | --- |
-| Client library, Linux default | 2,301 passed and 16 failed; later targets did not run. |
-| Client library, Linux all features | 2,303 passed and 14 failed; later targets did not run. |
-| Client library, Windows default | 2,306 passed and 11 failed. |
-| Client library, macOS arm64 default | 2,298 passed and 19 failed. |
+| Client library, Linux default | 2,307 passed and 10 failed; later targets did not run. |
+| Client library, Linux all features | 2,299 passed and 18 failed; later targets did not run. |
+| Client library, Windows default | 2,303 passed and 14 failed. |
+| Client library, macOS arm64 default | 2,308 passed and nine failed. |
 | Kafka 4.1.2, 4.2.1 and 4.3.1 compatibility | All three jobs failed. |
 | Kafka 3.9.1 and 4.1.0 smoke | Both jobs failed. |
 | Resource soak | Passed. |
-| Broker default library | 490 passed, three failed and four ignored; later targets did not run. |
+| Broker default targets | 729 passed, one failed and four ignored; later targets did not run. |
 | Broker all-feature and strict checks | Did not run after the default failure. |
 | Broker inventory and fuzz supervision | Passed separately. |
 | Client capability profiles | Both passed selected checks; their archives were not independently inspected. |
 | Client format, all-target Clippy, audit, docs, package, auth and integrity smoke | Passed. Other client jobs failed or were skipped. |
 | Instruction-count gate | Ran without a baseline for this Rust version; no regression comparison. |
 
-A later [partial main run][ci-0c] stopped in a broker integration target
-at 729 passed, one failed and four ignored. Later broker targets and strict
-checks did not run; the cause remains unknown. Client libraries, three Kafka
-compatibility jobs and one smoke job failed; the other smoke was still running
-when recorded. Inventory, fuzz supervision and both capability profiles passed.
+An [earlier complete snapshot][ci-d314] also failed client checks and stopped
+in the broker default library. The cause of the broker failures is unknown.
 
 The [preceding complete snapshot][ci-a374] also failed client checks but
 passed 806 default and 954 all-feature broker tests, with four ignored per
@@ -284,7 +281,8 @@ stopped. The [work plan][next] records the broader outstanding work and
 retained evidence. The [benchmark contract](benchmark-contract.md) and
 [release guide](RELEASE.md) describe the remaining qualification gates.
 
-[ci]: https://github.com/mingley/partitionline/blob/6def5c2ff779fb034b92e751a641d6b51f0c1e2c/docs/evidence/releases/main-ci-d314-20261108/README.md
+[ci]: https://github.com/mingley/partitionline/blob/0cd0ebea7316bc076d8033d1a6fbafce50358541/docs/evidence/releases/main-ci-0c9-20261108/README.md
+[ci-d314]: https://github.com/mingley/partitionline/blob/0cd0ebea7316bc076d8033d1a6fbafce50358541/docs/evidence/releases/main-ci-d314-20261108/README.md
 [ci-0c]: https://github.com/mingley/partitionline/blob/ed86c9c937dd3f5a7edb73858a6474b04073a827/docs/evidence/releases/main-ci-0c9-partial-20261108/README.md
 [ci-a374]: https://github.com/mingley/partitionline/blob/6def5c2ff779fb034b92e751a641d6b51f0c1e2c/docs/evidence/releases/main-ci-a374-20261108/README.md
 [ci-342]: https://github.com/mingley/partitionline/blob/7f15017fd312945612886c3b6a8c26ffc8098458/docs/evidence/releases/main-ci-342e-20261108/README.md
@@ -296,7 +294,7 @@ retained evidence. The [benchmark contract](benchmark-contract.md) and
 [interop-peer]: https://github.com/mingley/partitionline/blob/89a8e2e5ae2ab28942be66c8bd7e0390032b4450/docs/evidence/client/broker-interop-peer-types-20261108/README.md
 [ci-262]: https://github.com/mingley/partitionline/blob/cb55f7c603e2344775de8a395c6a584737f5bb95/docs/evidence/releases/main-ci-262-20261108/README.md
 [ci-02c]: https://github.com/mingley/partitionline/blob/0ce81683fe7107386e30f388cd2a4af31735d522/docs/evidence/releases/main-ci-02c-20261108/README.md
-[next]: https://github.com/mingley/partitionline/blob/ed86c9c937dd3f5a7edb73858a6474b04073a827/docs/plan/next-work.md
+[next]: https://github.com/mingley/partitionline/blob/0cd0ebea7316bc076d8033d1a6fbafce50358541/docs/plan/next-work.md
 [flush-public]: https://github.com/mingley/partitionline/blob/f93e91499e2ba6bdc88c0a25a0d83b8737d00d3c/docs/evidence/client/producer-flush-public-20261108/README.md
 [flush-sent]: https://github.com/mingley/partitionline/blob/efa7f23314e98f3aaa4559c3cf38302bdcdb9fb4/docs/evidence/client/producer-flush-sent-20261108/README.md
 [owner-design]: https://github.com/mingley/partitionline/blob/cb55f7c603e2344775de8a395c6a584737f5bb95/docs/evidence/client/producer-ownership-design-20261108/README.md
