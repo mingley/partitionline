@@ -1,0 +1,42 @@
+name: Raft vote mailbox control
+on:
+  push:
+    branches: [qualification/raft-vote-mailbox-20261108]
+permissions:
+  contents: read
+jobs:
+  vote-mailbox:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      CARGO_BUILD_JOBS: 2
+      CARGO_INCREMENTAL: 0
+      CARGO_PROFILE_TEST_DEBUG: 0
+      CARGO_PROFILE_DEV_DEBUG: 0
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Fresh real-worker control
+        run: |
+          set -euo pipefail
+          rustc --version
+          cargo test --locked -p partitionline-broker --lib queued_old_vote_loses_a_new_campaign_and_later_recovers -- --nocapture
+          cargo test --locked -p partitionline-broker --lib --all-features queued_old_vote_loses_a_new_campaign_and_later_recovers -- --nocapture
+      - name: Negative control for canceled correlation
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path("partitionline-broker/src/raft/runtime.rs")
+          source = p.read_text()
+          old = "let _ = control.cancel_job(error.into_inner()).await;"
+          assert source.count(old) == 1
+          p.write_text(source.replace(old, "drop(error.into_inner());", 1))
+          PY
+          if cargo test --locked -p partitionline-broker --lib queued_old_vote_loses_a_new_campaign_and_later_recovers -- --nocapture > /tmp/raft-vote-mutant.log 2>&1; then
+            cat /tmp/raft-vote-mutant.log
+            echo "negative control unexpectedly passed"
+            exit 1
+          fi
+          cat /tmp/raft-vote-mutant.log
+          grep -F "queue-full-cancels-current-correlation: abandoned correlation was accepted" /tmp/raft-vote-mutant.log

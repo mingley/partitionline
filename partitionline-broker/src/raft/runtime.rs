@@ -4895,6 +4895,182 @@ mod ownership_tests {
             _ => Err("actual vote response".into()),
         }
     }
+
+    async fn queue_control_campaign(
+        source: &LocalOwner,
+    ) -> TestResult<(Job, replication::DynamicVoteRequest)> {
+        tokio::time::sleep(Duration::from_millis(3)).await;
+        let Reply::Votes(mut jobs) = source.fixture("queue-control-tick", Command::Tick).await?? else {
+            return Err("queue control expected campaign".into());
+        };
+        if jobs.len() != 1 {
+            return Err(format!("queue control expected one vote, got {}", jobs.len()).into());
+        }
+        let job = jobs.pop().ok_or("queue control missing vote")?;
+        let Job::Vote(request) = &job else {
+            return Err("queue control expected vote job".into());
+        };
+        Ok((Job::Vote(*request), *request))
+    }
+
+    async fn queue_control_read_vote(
+        listener: &TcpListener,
+        source: &LocalOwner,
+    ) -> TestResult<(TcpStream, WireBuf, u64, replication::DynamicVoteRequest)> {
+        let (mut socket, _) = tokio::time::timeout(Duration::from_secs(2), listener.accept()).await??;
+        let mut wire = WireBuf::new();
+        let bound = source.control.config.limits.frame_bytes;
+        let deadline = Instant::now() + Duration::from_secs(2);
+        let hello = read_frame(&mut socket, bound, 64, deadline, &mut wire).await?;
+        let Message::Hello(hello) = hello.message else {
+            return Err("queue control expected hello".into());
+        };
+        write_frame(
+            &mut socket,
+            &Frame { rpc: 0, message: Message::HelloAck(hello) },
+            bound,
+            deadline,
+            &mut wire,
+        ).await?;
+        let vote = read_frame(&mut socket, bound, 64, deadline, &mut wire).await?;
+        let Message::Vote(request) = vote.message else {
+            return Err("queue control expected vote on wire".into());
+        };
+        Ok((socket, wire, vote.rpc, request))
+    }
+
+    async fn queue_control_reply(
+        peer: &LocalOwner,
+        source: &LocalOwner,
+        socket: &mut TcpStream,
+        wire: &mut WireBuf,
+        rpc: u64,
+        request: replication::DynamicVoteRequest,
+    ) -> TestResult {
+        let response = grant(peer, request).await?;
+        let Message::VoteReply(ref reply) = response else {
+            return Err("queue control expected genuine vote response".into());
+        };
+        if !reply.response.granted || reply.request != request {
+            return Err(format!("queue control expected exact grant, got {reply:?}").into());
+        }
+        write_frame(
+            socket,
+            &Frame { rpc, message: response },
+            source.control.config.limits.frame_bytes,
+            Instant::now() + Duration::from_secs(2),
+            wire,
+        ).await?;
+        Ok(())
+    }
+
+    async fn queue_control_wait_closed(socket: &mut TcpStream) -> TestResult {
+        let mut byte = [0u8; 1];
+        let read = tokio::time::timeout(
+            Duration::from_secs(2),
+            tokio::io::AsyncReadExt::read(socket, &mut byte),
+        ).await??;
+        if read != 0 {
+            return Err("queue control expected stale-ack socket closure".into());
+        }
+        Ok(())
+    }
+
+    async fn queue_control_case(cancel_newest: bool) -> TestResult {
+        let source = LocalOwner::open_profile(0, 2, 2, 16, StorageLimits::standard()?, 1000).await?;
+        let peer = LocalOwner::open(1, 2, 16).await?;
+        let listener = TcpListener::bind("127.0.0.1:0").await?;
+        let route = Peer::new(peer.control.config.bootstrap.local().clone(), listener.local_addr()?)?;
+        let peer_key = route.key();
+        let (tx, rx) = mpsc::channel(1);
+        let routes = vec![(peer_key, tx)];
+        let control = source.control.clone();
+        let worker = tokio::spawn(async move { outbound(control, route, rx).await });
+
+        // Hold a genuine first vote on a real outbound connection; the worker
+        // cannot dequeue its one-slot route until this response is released.
+        let (first_job, first) = queue_control_campaign(&source).await?;
+        dispatch_votes(&source.control, &routes, vec![first_job]).await;
+        let (mut first_socket, mut first_wire, first_rpc, first_on_wire) =
+            queue_control_read_vote(&listener, &source).await?;
+        assert_eq!(first_on_wire, first);
+
+        let (second_job, second) = queue_control_campaign(&source).await?;
+        assert!(second.request.term > first.request.term);
+        dispatch_votes(&source.control, &routes, vec![second_job]).await;
+        assert_eq!(routes[0].1.capacity(), 0, "second vote must fill the route");
+
+        let (third_job, third) = queue_control_campaign(&source).await?;
+        assert!(third.request.term > second.request.term);
+        if cancel_newest {
+            dispatch_votes(&source.control, &routes, vec![third_job]).await;
+        } else {
+            // Counterfactual: leave the current correlation registered. We
+            // supply its actual peer response directly after observing the
+            // same first and second wire requests below.
+            drop(third_job);
+        }
+        assert_eq!(routes[0].1.capacity(), 0, "old vote remains queued");
+
+        queue_control_reply(&peer, &source, &mut first_socket, &mut first_wire, first_rpc, first).await?;
+        queue_control_wait_closed(&mut first_socket).await?;
+        let (mut second_socket, mut second_wire, second_rpc, second_on_wire) =
+            queue_control_read_vote(&listener, &source).await?;
+        assert_eq!(second_on_wire, second, "worker sends the older queued campaign");
+        queue_control_reply(&peer, &source, &mut second_socket, &mut second_wire, second_rpc, second).await?;
+        queue_control_wait_closed(&mut second_socket).await?;
+
+        let third_reply = grant(&peer, third).await?;
+        let Message::VoteReply(ref genuine) = third_reply else {
+            return Err("queue control expected third genuine reply".into());
+        };
+        assert!(genuine.response.granted, "third campaign was eligible for this peer's vote");
+        if cancel_newest {
+            source.reject_vote("queue-full-cancels-current-correlation", third_reply).await?;
+            assert_eq!(source.state().await?.election.role, Role::Candidate);
+            // A new campaign can recover after the queued stale work has drained.
+            let (fourth_job, fourth) = queue_control_campaign(&source).await?;
+            assert!(fourth.request.term > third.request.term);
+            dispatch_votes(&source.control, &routes, vec![fourth_job]).await;
+            let (mut fourth_socket, mut fourth_wire, fourth_rpc, fourth_on_wire) =
+                queue_control_read_vote(&listener, &source).await?;
+            assert_eq!(fourth_on_wire, fourth);
+            queue_control_reply(&peer, &source, &mut fourth_socket, &mut fourth_wire, fourth_rpc, fourth).await?;
+            let wait = Instant::now() + Duration::from_secs(2);
+            loop {
+                if source.state().await?.election.role == Role::Leader {
+                    break;
+                }
+                if Instant::now() >= wait {
+                    return Err("queue control fresh campaign was not elected".into());
+                }
+                tokio::task::yield_now().await;
+            }
+            println!("queue-control cancel_newest=true first={} second={} dropped={} recovered={}",
+                first.request.term, second.request.term, third.request.term, fourth.request.term);
+            drop(fourth_socket);
+        } else {
+            match source.fixture("queue-counterfactual-genuine-grant", Command::Acknowledge(third_reply)).await?? {
+                Reply::Done => {}
+                _ => return Err("queue control expected acknowledged vote".into()),
+            }
+            assert_eq!(source.state().await?.election.role, Role::Leader);
+            println!("queue-control cancel_newest=false first={} second={} elected={}",
+                first.request.term, second.request.term, third.request.term);
+        }
+        source.control.stop();
+        drop(routes);
+        tokio::time::timeout(Duration::from_secs(2), worker).await??;
+        peer.finish().await?;
+        source.finish().await
+    }
+
+    #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+    async fn queued_old_vote_loses_a_new_campaign_and_later_recovers() -> TestResult {
+        queue_control_case(true).await?;
+        queue_control_case(false).await
+    }
+
     #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
     async fn abandoned_vote_vector_and_full_route_release_every_exact_correlation() -> TestResult {
         let source = LocalOwner::open(0, 5, 16).await?;
