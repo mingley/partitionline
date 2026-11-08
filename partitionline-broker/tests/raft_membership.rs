@@ -574,6 +574,34 @@ fn higher_term_fences_stale_writer_and_checkpoint_includes_new_barrier() -> Resu
     assert_eq!(image.base.index, barrier);
     assert_eq!(image.records, 4);
     assert!(image.base.index > last_data);
+
+    // Verify the selected image itself with exclusive ownership, then reopen.
+    let key = group.key(1);
+    let image_path = group
+        .root
+        .join(format!("{}-{}.images", key.id, hex_bytes(&key.directory)?));
+    drop(group.nodes[1].take());
+    let identity = snapshot::Identity::dynamic(
+        "membership-test".into(),
+        "__cluster_metadata".into(),
+        0,
+        group.genesis.clone(),
+    )?;
+    let mut store = snapshot::Store::open(image_path, identity, snapshot::Limits::default())?;
+    let decoded = store.load(image.generation)?;
+    let expected = records
+        .iter()
+        .map(|record| snapshot::Entry {
+            term: record.term,
+            index: record.index,
+            barrier: record.kind == replication::RecordKind::Barrier,
+            voters: record.kind == replication::RecordKind::Voters,
+            payload: record.payload.clone(),
+        })
+        .collect::<Vec<_>>();
+    assert_eq!(decoded.descriptor, image);
+    assert_eq!(decoded.entries, expected);
+    drop(store);
     group.reopen(1, 50)?;
     assert_eq!(group.node(1)?.selected_snapshot()?, Some(image));
     assert_eq!(group.node(1)?.fetch_committed(1, 4, 4096)?, records);
