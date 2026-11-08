@@ -39,6 +39,12 @@ cancellations and one skip. Its resource-soak job passed; that does not
 explain the earlier `/proc` permission failure. Broker CI passed 766 default
 and 914 all-feature tests, with three ignored per profile.
 
+A [later partial snapshot](../evidence/releases/main-ci-364-20261108/README.md)
+at `36424a5` recorded three failed current Kafka compatibility jobs and eight
+canceled client jobs when main advanced. Its broker run passed 766 default and
+914 all-feature tests, with three ignored per profile; those passes do not
+explain the earlier `02c443c` Raft failures.
+
 A [partial earlier client run](../evidence/releases/main-ci-e02-partial-20261108/README.md)
 at `e02c1b8` recorded six failed jobs and four canceled when main advanced.
 Linux default and Windows library tests failed, as did three Kafka
@@ -74,7 +80,10 @@ did not recur in 27 fresh controls. Instrumented successful histories recorded
 failure's cause. The test candidate and instrumentation remain unapplied. A [vote-route control](../evidence/broker/raft-vote-route-20261108/README.md)
 later forced one newer campaign to be discarded by a full one-slot route. A
 later campaign recovered in the control; this does not explain the earlier
-stall.
+stall. The [mailbox repair](../evidence/broker/raft-vote-mailbox-20261108/README.md)
+now keeps the newest pending vote and cancels the displaced correlation.
+Its targeted and full broker checks passed, but it cannot interrupt an older
+in-flight RPC or establish the cause of those earlier failures.
 
 The [coordinator repair](../evidence/client/group-coordinator-retirement-20261108/README.md)
 retires a known coordinator socket before replacement. Focused local controls
