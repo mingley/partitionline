@@ -3236,8 +3236,9 @@ mod handler_deadline_tests {
 #[cfg(test)]
 mod frame_read_deadline_tests {
     use super::{frame_mut, new_frame, read_frame, watch_disconnect, Config, Exit, ReadAhead};
+    use std::future::Future;
     use std::pin::Pin;
-    use std::task::{Context, Poll};
+    use std::task::{Context, Poll, Waker};
     use std::time::Duration;
     use tokio::io::{AsyncRead, ReadBuf};
     use tokio::time::Instant;
@@ -3353,10 +3354,142 @@ mod frame_read_deadline_tests {
         .await;
         let elapsed = started.elapsed();
         let deadline = matches!(result, Err(Exit::ReadDeadline));
-        assert!(
-            deadline && elapsed < Duration::from_millis(80),
-            "a ready frame body held the read past its deadline: {elapsed:?} deadline {deadline}"
+        println!(
+            "PL_READY_FRAME elapsed={elapsed:?} deadline={deadline} remaining={}",
+            socket.left
         );
+        assert!(
+            deadline,
+            "a ready frame body did not return the read deadline"
+        );
+        assert!(
+            socket.left > 0,
+            "the body was read completely after its deadline"
+        );
+    }
+
+    /// A ready source that can advance Tokio's paused clock inside one body poll.
+    struct CountingFrame {
+        announced: bool,
+        left: usize,
+        body_polls: usize,
+        advance_on_first_body: bool,
+        advanced_to: Option<Instant>,
+    }
+
+    impl AsyncRead for CountingFrame {
+        fn poll_read(
+            self: Pin<&mut Self>,
+            cx: &mut Context<'_>,
+            buf: &mut ReadBuf<'_>,
+        ) -> Poll<std::io::Result<()>> {
+            let this = self.get_mut();
+            let dst = buf.initialize_unfilled();
+            if dst.is_empty() {
+                return Poll::Ready(Ok(()));
+            }
+            if !this.announced {
+                this.announced = true;
+                let prefix = i32::try_from(this.left).unwrap_or(i32::MAX).to_be_bytes();
+                let count = prefix.len().min(dst.len());
+                dst[..count].copy_from_slice(&prefix[..count]);
+                buf.advance(count);
+                return Poll::Ready(Ok(()));
+            }
+            if this.left == 0 {
+                return Poll::Pending;
+            }
+            this.body_polls += 1;
+            if this.advance_on_first_body && this.body_polls == 1 {
+                let mut advance = Box::pin(tokio::time::advance(Duration::from_millis(30)));
+                let _ = advance.as_mut().poll(cx);
+                this.advanced_to = Some(Instant::now());
+            }
+            let count = dst.len().min(this.left).min(1024);
+            dst[..count].fill(3);
+            buf.advance(count);
+            this.left -= count;
+            Poll::Ready(Ok(()))
+        }
+    }
+
+    #[tokio::test(flavor = "current_thread", start_paused = true)]
+    async fn ready_body_checks_deadline_before_next_poll() {
+        let config = Config::new(
+            1,
+            1,
+            2 * 1024 * 1024,
+            1024,
+            Duration::from_secs(5),
+            Duration::from_secs(5),
+            Duration::from_secs(5),
+        )
+        .unwrap_or_else(|error| panic!("{error}"));
+        let deadline = Instant::now() + Duration::from_millis(30);
+        let mut socket = CountingFrame {
+            announced: false,
+            left: 256 * 1024,
+            body_polls: 0,
+            advance_on_first_body: true,
+            advanced_to: None,
+        };
+        let result = read_frame(
+            &mut socket,
+            config,
+            deadline,
+            &mut ReadAhead::new(),
+            new_frame(),
+        )
+        .await;
+        assert!(
+            socket.advanced_to.is_some_and(|now| now >= deadline),
+            "paused clock was not advanced inside the first body poll"
+        );
+        assert!(matches!(result, Err(Exit::ReadDeadline)));
+        assert_eq!(
+            socket.body_polls, 1,
+            "deadline was crossed inside one poll but another body poll started"
+        );
+        assert_eq!(socket.left, 255 * 1024);
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn ready_body_yields_before_complete() {
+        let config = Config::new(
+            1,
+            1,
+            2 * 1024 * 1024,
+            1024,
+            Duration::from_secs(5),
+            Duration::from_secs(5),
+            Duration::from_secs(5),
+        )
+        .unwrap_or_else(|error| panic!("{error}"));
+        let mut socket = CountingFrame {
+            announced: false,
+            left: 256 * 1024,
+            body_polls: 0,
+            advance_on_first_body: false,
+            advanced_to: None,
+        };
+        let mut ahead = ReadAhead::new();
+        let mut read = Box::pin(read_frame(
+            &mut socket,
+            config,
+            Instant::now() + Duration::from_secs(3600),
+            &mut ahead,
+            new_frame(),
+        ));
+        let mut cx = Context::from_waker(Waker::noop());
+        let first = read.as_mut().poll(&mut cx);
+        assert!(
+            matches!(first, Poll::Pending),
+            "ready frame completed without yielding before the full body"
+        );
+        drop(read);
+        assert!(socket.announced);
+        assert!(socket.body_polls > 0);
+        assert!(socket.left > 0, "the body was consumed before yielding");
     }
 
     /// A legal frame that fills whatever spare capacity the read offered.
