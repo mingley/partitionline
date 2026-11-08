@@ -15,21 +15,21 @@ replicated partition data or native Kafka KRaft.
 
 ## Validation
 
-The latest complete snapshot recorded here is commit `264322ff430b0594f4c3864e53dcd832de2a930b`.
+The latest complete snapshot recorded here is commit `374dcf45db20ee728b00c0b0188e77ca1f47fa9c`.
 It does not cover later changes. The [CI evidence][ci] links the runs and
 their limits.
 
-| Check | Result at `264322f` |
+| Check | Result at `374dcf4` |
 | --- | --- |
-| Client library, Linux default | 2,185 passed and 22 failed; the all-target run stopped at the library. |
-| Client library, Linux all features | 2,182 passed and 25 failed; later targets did not run. |
-| Windows default library | 2,193 passed and 14 failed. |
-| macOS arm64 default library | 2,193 passed and 14 failed. |
-| Kafka 4.1.2, 4.2.1 and 4.3.1 compatibility | Each overflowed after the classic-join marker. |
+| Client library, Linux default | 2,190 passed and 17 failed; the all-target run stopped at the library. |
+| Client library, Linux all features | 2,180 passed and 27 failed; later targets did not run. |
+| Windows default library | 2,184 passed and 23 failed. |
+| macOS arm64 default library | 2,189 passed and 18 failed. |
+| Kafka 4.1.2, 4.2.1 and 4.3.1 compatibility | All three jobs failed. |
 | Kafka 3.9.1 and 4.1.0 smoke | Both failed after repeated EOS timeouts. |
-| Broker default targets | 737 passed. |
-| Broker all-feature targets | 622 passed before a quorum test failed with an ambiguous or unexpected delete error 56; later targets did not run. |
+| Broker default and all-feature targets | 738 and 886 passed, respectively. Clippy and Rustdoc passed; both doctest commands found zero tests. |
 | Broker inventory and fuzz supervision | Both passed. |
+| Client capability profiles | Both passed selected checks; their archives were not independently inspected. |
 | Client format, all-target Clippy, audit, docs, package, auth and integrity smoke | Passed. Other client jobs failed or were skipped. |
 
 A [debugger trace][gdb] on the earlier `8b5de2e` source caught a stack fault
@@ -51,7 +51,9 @@ pass does not replace the full release matrix.
   histories. The [transaction lock][lock] and [replacement][replacement]
   fixes bound several coordinator waits and preserve the slot during
   cancellation. Complete deadlines, concurrent discovery and error-state
-  races remain open. An unapplied [transaction-response candidate][txn]
+  races remain open. [Cancellation controls][cleanup] reproduced lost record
+  completions and retained buffer bytes during retry and failure cleanup.
+  An unapplied [transaction-response candidate][txn]
   passed focused mocks and one [single-node Kafka 3.9.1 test][txn-live];
   failure and concurrency coverage remain open. Use `send` for an individual
   delivery result; with `acks=0`, success only confirms the local write.
@@ -60,7 +62,9 @@ pass does not replace the full release matrix.
   records, offsets and aborted-transaction state. A [nontransactional
   control][poll-loss] reproduced a lost record after canceling a poll while an
   interval commit was pending. An automated security review stopped a specific
-  ReadCommitted repair validation; that repair remains open.
+  ReadCommitted repair validation; that repair remains open. A later
+  consumer/group investigation was stopped by an automatic security review
+  that did not identify the specific action; that work remains stopped.
 - **Security and protocol coverage.** GSSAPI and connection-driven SASL
   reauthentication are incomplete. The [protocol support](gaps.md) page lists
   other feature gaps. An independent v18 candidate audit was also stopped by an
@@ -79,17 +83,19 @@ pass does not replace the full release matrix.
 - **Reliability and performance.** No 24-hour fault campaign or seven-day
   continuity run has passed. Matched x86 comparisons against other Kafka
   implementations, with independent record verification, have not been
-  completed. A [decode experiment][perf] improved large synthetic loopback
-  responses but remains unapplied. See the [benchmark contract](benchmark-contract.md)
+  completed. A [closed-loop diagnostic][ack] verified individual deliveries,
+  but its short runs have mismatched settings and driver costs. A [decode
+  experiment][perf] improved large synthetic loopback responses but remains
+  unapplied. See the [benchmark contract](benchmark-contract.md)
   for the settings and evidence required for a performance claim.
 
 The [work plan][next] tracks the current candidates and outstanding tests.
 The [support matrix](support.md) describes configured coverage, and the
 [release guide](RELEASE.md) lists publication gates. No new release is ready.
 
-[ci]: https://github.com/mingley/partitionline/blob/0a81a55234b70c60d335ee15d29784f9ae265e8d/docs/evidence/releases/main-ci-264322f-20261108/README.md
+[ci]: https://github.com/mingley/partitionline/blob/2b5e830fd514a9ad3dea27d937d85977a5bea041/docs/evidence/releases/main-ci-374dcf4-20261108/README.md
 [previous-ci]: https://github.com/mingley/partitionline/blob/447493b1fbee45c04fd339d199fd661746adbf25/docs/evidence/releases/main-ci-8b5-20261108/README.md
-[next]: https://github.com/mingley/partitionline/blob/0a81a55234b70c60d335ee15d29784f9ae265e8d/docs/plan/next-work.md
+[next]: https://github.com/mingley/partitionline/blob/2b5e830fd514a9ad3dea27d937d85977a5bea041/docs/plan/next-work.md
 [previous]: https://github.com/mingley/partitionline/blob/5c2a000639d9a8a7dccd56e8c1d6f3a58dca1601/docs/STATUS.md
 [flush]: https://github.com/mingley/partitionline/blob/e980829c439aa43edc01312c91838e58a412221a/docs/evidence/client/producer-flush-native-86f2-20261103/README.md
 [txn]: https://github.com/mingley/partitionline/blob/49ad56c6bce1366e2357c272f11c5c34160d60da/docs/evidence/client/add-partitions-native-4f0c-20261103/README.md
@@ -102,3 +108,5 @@ The [support matrix](support.md) describes configured coverage, and the
 [clippy]: https://github.com/mingley/partitionline/actions/runs/42441786927
 [fetch-admission]: https://github.com/mingley/partitionline/blob/0a81a55234b70c60d335ee15d29784f9ae265e8d/docs/evidence/broker/fetch-admission-20261108/README.md
 [poll-loss]: https://github.com/mingley/partitionline/actions/runs/42443409232
+[cleanup]: https://github.com/mingley/partitionline/blob/2b5e830fd514a9ad3dea27d937d85977a5bea041/docs/evidence/client/addpart-retryfix-264-20261108/REPORT.md
+[ack]: https://github.com/mingley/partitionline/blob/2b5e830fd514a9ad3dea27d937d85977a5bea041/docs/evidence/client/ack-closed-loop-20261108/README.md
