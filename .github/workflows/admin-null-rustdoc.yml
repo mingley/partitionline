@@ -1,0 +1,24 @@
+name: Nullable Admin client Rustdoc
+on:
+  push:
+    branches: [work/admin-null-rustdoc-20261108]
+permissions:
+  contents: read
+jobs:
+  docs:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      RUSTDOCFLAGS: "-D warnings"
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Pin source and toolchain
+        run: |
+          rustc -Vv
+          sha256sum src/admin.rs src/admin/pagination_tests.rs Cargo.toml Cargo.lock
+          git hash-object src/admin.rs src/admin/pagination_tests.rs
+      - name: All-feature client Rustdoc
+        run: cargo doc --locked -p partitionline --all-features --no-deps
+      - name: All-feature client doctests
+        run: cargo test --locked -p partitionline --all-features --doc
