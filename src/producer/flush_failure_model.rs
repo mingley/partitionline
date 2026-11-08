@@ -273,4 +273,25 @@ mod tests {
         let d = snapshot(&failures, &fourth, "D");
         failures.acknowledge(&fourth, &d);
     }
+    #[test]
+    #[ignore = "negative control: the draft hides a timeout behind a generic summary"]
+    fn overflow_must_not_hide_worker_timeout() {
+        let failures = WorkerFailures::new();
+        let first = failures.register();
+        failures.record(event("A"));
+        let a = snapshot(&failures, &first, "A");
+        failures.record(event("B"));
+        failures.record(Error::Timeout);
+        failures.acknowledge(&first, &a);
+        let second = failures.register();
+        let b = snapshot(&failures, &second, "B");
+        failures.acknowledge(&second, &b);
+        let summary = failures.register();
+        let result = failures.snapshot(&summary).expect("overflow must be reported");
+        assert!(
+            matches!(result.as_ref(), Error::Timeout),
+            "OVERFLOW_HIDES_TIMEOUT: {result:?}"
+        );
+    }
+
 }

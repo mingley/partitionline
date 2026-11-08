@@ -37,7 +37,22 @@ jobs:
           args=()
           if test "$PROFILE" = all; then args+=(--all-features); fi
           cargo +stable test --locked "${args[@]}" --lib flush_failure_model::tests -- --test-threads=1 --nocapture 2>&1 | tee model-logs/model.log
-          grep -F "test result: ok. 6 passed; 0 failed" model-logs/model.log
+          grep -F "test result: ok. 6 passed; 0 failed; 1 ignored" model-logs/model.log
+      - name: Negative control - overflow hides Timeout
+        if: always()
+        run: |
+          set -euo pipefail
+          args=()
+          if test "$PROFILE" = all; then args+=(--all-features); fi
+          set +e
+          cargo +stable test --locked "${args[@]}" --lib producer::flush_failure_model::tests::overflow_must_not_hide_worker_timeout -- --exact --ignored --test-threads=1 --nocapture > model-logs/negative.log 2>&1
+          code=$?
+          set -e
+          cat model-logs/negative.log
+          echo "NEGATIVE_EXIT=$code"
+          test "$code" = 101
+          grep -F "OVERFLOW_HIDES_TIMEOUT" model-logs/negative.log
+          grep -F "test result: FAILED. 0 passed; 1 failed" model-logs/negative.log
       - name: Retain model output
         if: always()
         uses: actions/upload-artifact@v7
