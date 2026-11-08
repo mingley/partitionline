@@ -1,0 +1,35 @@
+name: producer-timestamp-perf-diagnostic
+on:
+  push:
+    branches: [qual/producer-timestamp-perf-diagnostic-20261108]
+permissions:
+  actions: read
+  contents: read
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v7
+        with:
+          github-token: ${{ github.token }}
+          run-id: 42486098207
+          name: producer-timestamp-paired-ecfcacb9f118a0cda5cdcb63d7f5522e5e2ad784
+          path: artifact
+      - name: Print exact compiler diagnostics
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          path = Path("artifact/baseline-build.json")
+          print(f"DIAGNOSTIC_FILE {path} bytes={path.stat().st_size}")
+          count = 0
+          with path.open(encoding="utf-8") as f:
+              for line in f:
+                  item = json.loads(line)
+                  if item.get("reason") == "compiler-message" and item.get("message", {}).get("level") == "error":
+                      print(item["message"].get("rendered") or item["message"])
+                      count += 1
+          print(f"DIAGNOSTIC_ERRORS {count}")
+          if count == 0:
+              raise RuntimeError("no compiler error found")
+          PY
