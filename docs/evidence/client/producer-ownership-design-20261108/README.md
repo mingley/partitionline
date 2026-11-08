@@ -18,6 +18,17 @@ experiments, not production fixes. The draft stays off main.
   ran the remaining interceptor callbacks synchronously on cancellation. A
   blocking callback delayed an unrelated timer in its controlled current-thread
   test. That synchronous-drop candidate remains unapplied.
+- In [public-history run 42460321562][public-run], the draft was exercised
+  through public producer calls against a gated mock broker, with test-only
+  producer observers and mock gates. Five positive histories passed in each
+  feature mode. In a sixth, after one flush waiter was canceled, the surviving
+  waiter returned Ok even though delivery and callback observed a broker error.
+  The job deliberately recorded this expected negative;
+  its successful job status does not qualify the draft or prove behavior with
+  a real Kafka broker.
+- The first [draft run 42459658935][compile-run] failed both feature modes at
+  compilation because a test fixture lacked a `CompletionDomain` import; no
+  controls ran in that attempt.
 - In [draft run 42460005132][draft-run], both feature modes passed 11 focused
   controls and 23 producer-cancellation tests. Both then failed
   `cancelled_channel_admission_releases_only_the_unenqueued_reservation`:
@@ -117,6 +128,8 @@ the standalone model or the private helper witnesses.
 [waker]: ../producer-waker-handoff-20261108/README.md
 [cleanup]: ../producer-failure-cleanup-20261108/DEFERRED.md
 [draft-run]: https://github.com/mingley/partitionline/actions/runs/42460005132
+[public-run]: https://github.com/mingley/partitionline/actions/runs/42460321562
+[compile-run]: https://github.com/mingley/partitionline/actions/runs/42459658935
 [assignment]: https://github.com/mingley/partitionline/blob/1036a393eb85f23032b935bf86862b7e98e36e14/src/producer.rs#L10429
 [response]: https://github.com/mingley/partitionline/blob/1036a393eb85f23032b935bf86862b7e98e36e14/src/producer.rs#L8670
 [close-source]: https://github.com/mingley/partitionline/blob/1036a393eb85f23032b935bf86862b7e98e36e14/src/producer.rs#L4215
