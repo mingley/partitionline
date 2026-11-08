@@ -24,7 +24,13 @@ The design must resolve the following before it can be treated as safe:
   rooted service alive until every outstanding permit, queued envelope and
   active cleanup resolves. A rejected or failed handoff must not drop the
   envelope on the caller's runtime thread.
-- **All ownership boundaries.** Guarding only `assign_sequences` leaves
+- **All ownership boundaries.** A cleanup credit must be acquired before an
+  accepted batch enters any cancellable detached state; waiting for one after
+  grouping merely moves the loss window. One possible bound charges each
+  simultaneous recovery envelope to a distinct accepted-record credit, with
+  all split and retry siblings moving their credits with their owned records.
+  This is a proposed accounting proof, not an implementation. Guarding only
+  `assign_sequences` leaves
   detached records in grouping, AddPartitions, encoding, socket writes,
   response parsing, terminal callbacks and retry handoff. The owner must exist
   before any cancellable future can take the batch and must move through each
@@ -41,7 +47,10 @@ The design must resolve the following before it can be treated as safe:
   callback or publication was attempted, while acknowledging that a panic
   cannot prove exactly-once external callback side effects.
 - **Bounded work and shutdown.** One blocked callback can occupy a cleanup
-  thread indefinitely. Service slots, worker admission and callback execution
+  thread indefinitely. A thread per producer is only a per-producer bound:
+  repeated timed-out closes with blocked callbacks can retain unbounded threads
+  process-wide unless the service has a shared bound or an explicit wider
+  resource policy. Service slots, worker admission and callback execution
   must have explicit bounds and backpressure; a close deadline must not
   synchronously wait for user code. The service and its envelopes must survive
   a timed close, while runtime shutdown, service failure and receiver loss must
