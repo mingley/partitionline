@@ -1,0 +1,114 @@
+name: Matched send_all single-poll diagnostic
+
+on:
+  push:
+    branches: ["qualification/sendall-paired-20261108"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  paired:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    env:
+      CARGO_TERM_COLOR: never
+      CARGO_INCREMENTAL: "0"
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/checkout@v7
+        with:
+          ref: 47df27f9f3e04fc524849f3a9753c0b0469f8947
+          path: baseline
+      - uses: actions/checkout@v7
+        with:
+          ref: 3fd30f13c07056dc0ac3d937b3f370d92880bd98
+          path: candidate
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Verify source and copy identical diagnostic
+        run: |
+          set -euo pipefail
+          rustc -Vv
+          cargo -V
+          uname -a
+          lscpu
+          if test -r /sys/fs/cgroup/cpu.max; then cat /sys/fs/cgroup/cpu.max; else echo "cpu.max unavailable"; fi
+          test "$(git -C baseline rev-parse HEAD)" = "47df27f9f3e04fc524849f3a9753c0b0469f8947"
+          test "$(git -C candidate rev-parse HEAD)" = "3fd30f13c07056dc0ac3d937b3f370d92880bd98"
+          test "$(git -C baseline rev-parse HEAD:src/producer.rs)" = "1e7733c136e54b532cdc8bddabd1e0c828e50ed2"
+          test "$(git -C candidate rev-parse HEAD:src/producer.rs)" = "d634fa4752e33d77e042404f199f31ee2bcb1c48"
+          cp tests/sendall_poll_probe.rs baseline/tests/sendall_poll_probe.rs
+          cp tests/sendall_poll_probe.rs candidate/tests/sendall_poll_probe.rs
+          cmp baseline/tests/sendall_poll_probe.rs candidate/tests/sendall_poll_probe.rs
+          cmp baseline/tests/common/mod.rs candidate/tests/common/mod.rs
+          cmp baseline/Cargo.lock candidate/Cargo.lock
+          sha256sum baseline/src/producer.rs candidate/src/producer.rs baseline/tests/sendall_poll_probe.rs baseline/tests/common/mod.rs baseline/Cargo.lock
+          mkdir -p paired-logs
+      - name: Build independent release binaries
+        run: |
+          set -euo pipefail
+          CARGO_TARGET_DIR="$GITHUB_WORKSPACE/target-baseline" cargo +stable test --manifest-path baseline/Cargo.toml --release --locked --test sendall_poll_probe --no-run 2>&1 | tee paired-logs/build-baseline.log
+          CARGO_TARGET_DIR="$GITHUB_WORKSPACE/target-candidate" cargo +stable test --manifest-path candidate/Cargo.toml --release --locked --test sendall_poll_probe --no-run 2>&1 | tee paired-logs/build-candidate.log
+          mapfile -t base_bins < <(find "$GITHUB_WORKSPACE/target-baseline/release/deps" -maxdepth 1 -type f -executable -name 'sendall_poll_probe-*')
+          mapfile -t cand_bins < <(find "$GITHUB_WORKSPACE/target-candidate/release/deps" -maxdepth 1 -type f -executable -name 'sendall_poll_probe-*')
+          test "${#base_bins[@]}" -eq 1
+          test "${#cand_bins[@]}" -eq 1
+          sha256sum "${base_bins[0]}" "${cand_bins[0]}" | tee paired-logs/binary-sha256.txt
+          if cmp -s "${base_bins[0]}" "${cand_bins[0]}"; then echo "baseline and candidate binaries unexpectedly identical" >&2; exit 1; fi
+          echo "BASE_BIN=${base_bins[0]}" >> "$GITHUB_ENV"
+          echo "CAND_BIN=${cand_bins[0]}" >> "$GITHUB_ENV"
+      - name: Interleaved matched samples
+        run: |
+          set -euo pipefail
+          run_one() {
+            local arm="$1" count="$2" trial="$3" topic_len="$4" intercept="$5" linger="$6" bin
+            if test "$arm" = baseline; then bin="$BASE_BIN"; else bin="$CAND_BIN"; fi
+            local log="paired-logs/$arm-$count-$trial-$topic_len-$intercept-$linger.log"
+            echo "PAIR arm=$arm count=$count trial=$trial topic_len=$topic_len intercept=$intercept linger=$linger"
+            PL_RECORDS="$count" PL_TOPIC_LEN="$topic_len" PL_INTERCEPTOR="$intercept" PL_LINGER_MS="$linger" "$bin" --exact public_send_all_first_poll_diagnostic --test-threads=1 --nocapture 2>&1 | tee "$log"
+            grep -F "SENDALL_POLL records=$count " "$log"
+            grep -F "SENDALL_COMPLETE records=$count " "$log"
+            grep -F "SENDALL_BATCHES records=$count " "$log"
+            grep -F "test result: ok. 1 passed; 0 failed" "$log"
+          }
+          for count in 1 16 31 32 33 256 511 512 513 1024 4096 8191 8192 8193; do
+            for trial in 1 2 3; do
+              if test "$trial" = 2; then
+                run_one candidate "$count" "$trial" 1 0 0
+                run_one baseline "$count" "$trial" 1 0 0
+              else
+                run_one baseline "$count" "$trial" 1 0 0
+                run_one candidate "$count" "$trial" 1 0 0
+              fi
+            done
+          done
+          for trial in 1 2 3; do
+            if test "$trial" = 2; then
+              run_one candidate 4096 "$trial" 249 0 0
+              run_one baseline 4096 "$trial" 249 0 0
+            else
+              run_one baseline 4096 "$trial" 249 0 0
+              run_one candidate 4096 "$trial" 249 0 0
+            fi
+          done
+          run_one baseline 1024 1 1 1 0
+          run_one candidate 1024 1 1 1 0
+          for count in 512 4096 8191; do
+            for trial in 1 2 3; do
+              if test "$trial" = 2; then
+                run_one candidate "$count" "$trial" 1 0 5
+                run_one baseline "$count" "$trial" 1 0 5
+              else
+                run_one baseline "$count" "$trial" 1 0 5
+                run_one candidate "$count" "$trial" 1 0 5
+              fi
+            done
+          done
+      - name: Retain paired measurements
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: sendall-paired-diagnostic
+          path: paired-logs
+          retention-days: 30
