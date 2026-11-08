@@ -1,0 +1,37 @@
+name: journal generation Windows path controls
+on:
+  push:
+    branches: [qualification/journal-generation-windows-20261108]
+permissions:
+  contents: read
+jobs:
+  windows-path:
+    runs-on: windows-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          fetch-depth: 2
+          sparse-checkout: partitionline-broker
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Verify x86_64 Windows and source
+        shell: pwsh
+        run: |
+          rustc +stable --version --verbose
+          if (-not (rustc +stable --version --verbose | Select-String "host: x86_64-pc-windows")) {
+            throw "expected x86_64 Windows host"
+          }
+          if ((git rev-parse HEAD^) -ne "c222fd2c1181a24ab4fc39fead726892992d1d89") {
+            throw "unexpected source commit"
+          }
+      - name: Exercise path-only ticket and adoption lifetimes
+        shell: pwsh
+        run: |
+          cargo +stable test --locked --manifest-path partitionline-broker/Cargo.toml --lib journal::tests::nonunix_ticket_retains_path_through_adoption_and_close -- --exact --nocapture
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Compile the all-feature Windows library
+        shell: pwsh
+        run: |
+          cargo +stable check --locked --manifest-path partitionline-broker/Cargo.toml --lib --all-features
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
