@@ -25,9 +25,11 @@ The broader integration selection in [run 42444608489](https://github.com/mingle
 - `epoch_bump_reuses_a_produce_handshake`: three observed, two expected.
 - `send_offsets_reuses_bootstrap_api_versions`: two observed, one expected.
 
-The first test failed three times in each profile on the exact unmodified `374dcf4` baseline and three times in each profile on the candidate. That comparison does not establish the cause or classify the other two failures. The job retained a failing gate for the integration selection. [Logs](https://github.com/mingley/partitionline/actions/runs/42445260031/artifacts/13603467513) include the comparisons and individual results.
+The first test failed three times in each profile on the exact unmodified `374dcf4` baseline and three times in each profile on the candidate. The job retained a failing gate for the integration selection. [Logs](https://github.com/mingley/partitionline/actions/runs/42445260031/artifacts/13603467513) include the comparisons and individual results.
 
-A comparison of the remaining two tests and a test-only phase trace are running separately in [run 42446145535](https://github.com/mingley/partitionline/actions/runs/42446145535).
+[Run 42446145535](https://github.com/mingley/partitionline/actions/runs/42446145535) compared the other two original tests, without altering their assertions. Each failed three times on the baseline and three times on the candidate in both profiles. A separate test-only phase trace showed two ApiVersions v4 requests to node 1 by the end of producer construction in all three cases. Transaction begin added none; in the two-node cases the first send added one request to node 2, and the subsequent failed send in the epoch-bump case added none. Results matched across baseline, candidate and both profiles.
+
+The [source](https://github.com/mingley/partitionline/blob/374dcf45db20ee728b00c0b0188e77ca1f47fa9c/src/producer.rs#L4460) deliberately negotiates new sockets even when cached versions exist, because a broker can change at the same address. The test expectations conflict with that policy. The phase trace reports broker and version, not socket identity; it does not prove behavior across broker replacement. The original failures remain recorded and the diagnostic job failed its test gate. [Logs](https://github.com/mingley/partitionline/actions/runs/42446145535/artifacts/13603009480) contain the original repetitions and traced runs.
 
 ## Limits
 
