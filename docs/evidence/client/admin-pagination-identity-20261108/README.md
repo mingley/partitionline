@@ -1,19 +1,21 @@
-# Paginated topic errors and identity
+# Paginated topic errors and identity: earlier candidate
 
-This isolated candidate remains unapplied while its broader qualification and
-a follow-up review are in progress. It changes the `describe_topics` path
-that aggregates DescribeTopicPartitions pages. An independent source review
-identified wording that needs to distinguish retained topic errors from
-global cursor or timeout errors, and a nullable-name case that still needs
-controls. A per-topic error now replaces an earlier
+This note records the earlier candidate and its checks. A later revision is
+being prepared to handle nullable topic names; none of these runs qualify
+that changed code.
+
+This candidate changes the `describe_topics` path that aggregates
+DescribeTopicPartitions pages. A per-topic error now replaces an earlier
 partial success and keeps the error's fields with no partitions. An earlier
 error remains the result if a later page succeeds. Topics retain their
 first-seen order.
 
-For successful pages of one topic, the index remembers the first nonzero
-topic ID and compares subsequent nonzero IDs. A change fails the whole
-aggregate call with a client-side `Error::Protocol`, including when the
-broker reports a valid deletion and recreation. This error is not classified
+Until a topic error is retained, the index remembers the first nonzero
+ID from successful pages and compares subsequent nonzero IDs. A change fails
+the whole aggregate call with a client-side `Error::Protocol`, including
+when a valid topic deletion and recreation occurs. Global errors, including
+an immediately repeated cursor or timeout, can take precedence over a
+page's topic error. This error is not classified
 as retriable by `Error::is_retriable`; a caller may retry the whole read.
 Error-page IDs are not compared. If the first successful page has a zero ID,
 the returned successful description keeps zero even if a later page has a
@@ -56,9 +58,9 @@ test waker ignored `AtomicUsize::fetch_add`'s return under
 failure and did not qualify any mutant. The latest test blob binds that
 return value.
 
-## Final candidate and qualification
+## Earlier candidate and qualification
 
-The clean candidate is [commit `ea54757`][candidate], based on main
+The earlier clean candidate is [commit `ea54757`][candidate], based on main
 `d2575d27ca53af47a627ca48f27a12bba34945bd`. The production source
 Git blob is `d66f9c4a3ac9cb1094713ab147ab783ae81ced31`
 (SHA-256 `e959c24b36cadb25b223a786e5f18dcf8f9615e27b04b7eb28dcd91fbc98a3aa`);
@@ -89,11 +91,45 @@ first baseline suite failed: GitHub's Bash wrapper retained `-e`, so the
 harness exited before printing that suite's status and before any other arm
 ran. Its [captured baseline log][broad-artifact] was recovered: 615 passed,
 and delegation-token decoding (80.197017 ms) and named-result grouping
-(124.29199 ms) failed their 80 ms thresholds. A [corrected matched
-control][broad2] explicitly captures each status and is running; the first
-attempt is not a complete comparison.
+(124.29199 ms) failed their 80 ms thresholds.
+
+The [corrected four-arm control][broad2] ran both whole Admin suites on one
+shared AMD EPYC 9V74 x86_64 runner, with the original pagination test
+fixture in both arms and the earlier candidate's production source. The
+default test harness settings were the same. All four arms exited 101:
+
+- Default baseline: 614 passed, 3 failed. Reassignment-result flattening
+  took 90.309441 ms, named-result grouping 97.145835 ms, and coordinator
+  indexing 104.467155 ms against their 80 ms thresholds.
+- Default candidate: 616 passed, 1 failed. Coordinator indexing took
+  117.736497 ms.
+- All-feature candidate: 615 passed, 2 failed. Delegation-token decoding
+  took 82.966014 ms and coordinator indexing 106.761231 ms.
+- All-feature baseline: 614 passed, 3 failed. Delegation-token decoding took
+  92.037223 ms, named-result grouping 94.303584 ms, and coordinator
+  indexing 106.311004 ms.
+
+This is the execution order. The shared host and matching failures do not
+establish their cause. The run used baseline source SHA-256
+`929aaafb35e3ef1f376de7debd090367960ec22428cccf79a4bd806c50992d79`,
+candidate source SHA-256
+`e959c24b36cadb25b223a786e5f18dcf8f9615e27b04b7eb28dcd91fbc98a3aa`,
+and the same pagination fixture SHA-256
+`cb19e0db9291dd8a1daf9eff49ea5bd039a6d8f8d72cf04af3c1cca0798e5114`
+in both arms. The candidate fixture here does not contain the new controls;
+those passed separately as described above.
 
 ## Limits
+
+The earlier candidate converts a null response topic name to an empty
+string before indexing it. Different unnamed topics can therefore be
+conflated or produce a client-side identity error. The response schema
+allows null names, and the revised candidate is addressing this separately.
+
+The existing conversion loop does not yield between empty or error topic
+rows. A very large page of such rows can occupy one poll beyond the
+deadline; this source-derived limit has not been measured here and was not
+changed by the earlier candidate.
 
 Discarded partitions are released in batches of at most 8,192 with
 cooperative yields between batches, including the previously accumulated result on an

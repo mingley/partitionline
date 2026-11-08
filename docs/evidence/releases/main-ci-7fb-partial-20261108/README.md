@@ -15,6 +15,17 @@ is unknown.
 
 Later default targets, all-feature behavioral tests, broker Clippy, Rustdoc
 and doctests did not run. Pinned inventory and fuzz supervision passed in
-separate jobs. At the time this note was prepared, the client and capability
-runs for this commit were still in progress; they are not counted as results
-here.
+separate jobs.
+
+The [client run](https://github.com/mingley/partitionline/actions/runs/42476521821)
+finished with 18 successful jobs, eight failures, one canceled and one skipped.
+Linux default had 2,239 passed and 15 failed; Linux all features had 2,240
+passed and 14 failed. Windows had 2,246 passed and eight failed, and macOS
+arm64 had 2,242 passed and 12 failed. Later targets did not run after the
+library failures. Kafka 4.1.2, 4.2.1 and 4.3.1 compatibility jobs aborted
+with stack overflows; the Kafka 3.9.1 smoke reported JoinGroup error 16 and
+timeouts. The Kafka 4.1.0 smoke was canceled when main advanced and has no
+qualification result.
+
+Both selected [capability profiles](https://github.com/mingley/partitionline/actions/runs/42476521802)
+passed; their archives were not independently inspected.
