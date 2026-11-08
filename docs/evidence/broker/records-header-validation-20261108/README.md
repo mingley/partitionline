@@ -205,3 +205,22 @@ downloaded.
 passed formatting, focused library and 14 record integration tests in both
 profiles, and strict all-target/all-feature Clippy. It did not run the full
 broker suites on current main.
+
+## Code-generation diagnostic
+
+[Run 42452972248](https://github.com/mingley/partitionline/actions/runs/42452972248)
+rebuilt the same fixture and sources for the gated candidate. Its baseline and
+candidate executable hashes matched the two hashes above. Eight paired
+candidate/baseline medians for the 1,024-record no-header case ranged from
+1.133 to 1.180, reproducing the regression on those binaries.
+
+The recorded x86 disassembly shows that the baseline
+`try_accept_plain` had 285 disassembly lines and did not call a separate
+`read_canonical_i64` symbol; the candidate had 339 lines and called a
+separate `read_canonical_i64` symbol. These are observations about this
+compiler and pair of builds, not proof that inlining or any one instruction
+caused the measured difference. The [artifact](https://github.com/mingley/partitionline/actions/runs/42452972248/artifacts/13607045289)
+has GitHub-reported SHA-256
+`d9b1f273edcfade2c1d6a3fa0def3eecfe67e6e26397319a246679ef206ec4da`.
+It contains the selected disassembly and measurements; it has not been
+independently downloaded, and the binaries were not retained.
