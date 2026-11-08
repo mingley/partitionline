@@ -21,6 +21,13 @@ inventory and fuzz supervision. Both selected capability profiles passed;
 their archives were not independently inspected. The broker pass does not
 explain the prior [912 Raft failures](../evidence/releases/main-ci-912-partial-20261108/README.md).
 
+A later [partial main run](../evidence/releases/main-ci-536-partial-20261108/README.md)
+at `536d5e9` passed the broker default suite but its all-feature library stopped
+after one Raft runtime failure. Client library checks and four completed Kafka
+jobs failed; the Kafka 3.9.1 smoke was still running at the snapshot. Both
+capability profiles passed. The previous broker pass does not explain the new
+failure.
+
 The [previous complete snapshot](../evidence/releases/main-ci-d257-20261108/README.md)
 also failed client checks and passed broker checks.
 
@@ -509,7 +516,11 @@ remain open.
    assertions; a matched run using the original fixture passed both candidate
    profiles and failed both baseline profiles. The cause remains unknown.
    Non-null response names are not checked against the request; long cursor
-   cycles, conversion polls and synchronous cleanup still need work. The
+   cycles, conversion polls and synchronous cleanup still need work. A
+   [row-poll baseline](../evidence/client/admin-dtp-row-poll-20261108/README.md)
+   measured 93–98 ms for the longest public future poll after a mock peer wrote
+   a 500,000-row response on one x86 host. Those polls include other work;
+   this does not measure Kafka throughput or establish a wall-time bound. The
    earlier [Admin pagination repair](../evidence/client/admin-pagination-20261108/README.md)
    uses one checked deadline for DescribeTopicPartitions pages and rejects an
    immediately repeated cursor instead of returning a partial success. A
