@@ -1,0 +1,80 @@
+name: grouped-journal-benchmark
+on:
+  push:
+    branches: [qualification/grouped-journal-benchmark-20261108]
+permissions:
+  contents: read
+jobs:
+  measure:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      CARGO_BUILD_JOBS: '2'
+      CARGO_INCREMENTAL: '0'
+      CARGO_TERM_COLOR: never
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Host and fixture
+        shell: bash
+        run: |
+          rustc -Vv
+          uname -a
+          lscpu
+          findmnt -T "$RUNNER_TEMP" -no SOURCE,FSTYPE,OPTIONS
+          cat /sys/fs/cgroup/cpu.max || true
+          sha256sum .github/qualification/grouped-journal-bench-append.rs .github/qualification/grouped-journal-bench-example.rs
+      - name: Build matched release binaries
+        shell: bash
+        run: |
+          mkdir -p partitionline-broker/examples
+          cp .github/qualification/grouped-journal-bench-example.rs partitionline-broker/examples/grouped_reservation_qualification.rs
+          git show 1b6d49cc3ad989bd57311e3950d327e01ddc02ae:partitionline-broker/src/journal.rs > partitionline-broker/src/journal.rs
+          sha256sum partitionline-broker/src/journal.rs
+          cat .github/qualification/grouped-journal-bench-append.rs >> partitionline-broker/src/journal.rs
+          CARGO_TARGET_DIR="$RUNNER_TEMP/bench-target" cargo build --locked --release --manifest-path partitionline-broker/Cargo.toml --example grouped_reservation_qualification
+          cp "$RUNNER_TEMP/bench-target/release/examples/grouped_reservation_qualification" "$RUNNER_TEMP/baseline-bench"
+          git checkout HEAD -- partitionline-broker/src/journal.rs
+          sha256sum partitionline-broker/src/journal.rs
+          cat .github/qualification/grouped-journal-bench-append.rs >> partitionline-broker/src/journal.rs
+          CARGO_TARGET_DIR="$RUNNER_TEMP/bench-target" cargo build --locked --release --manifest-path partitionline-broker/Cargo.toml --example grouped_reservation_qualification
+          cp "$RUNNER_TEMP/bench-target/release/examples/grouped_reservation_qualification" "$RUNNER_TEMP/candidate-bench"
+          sha256sum "$RUNNER_TEMP/baseline-bench" "$RUNNER_TEMP/candidate-bench"
+      - name: Paired verified runs
+        shell: bash
+        run: |
+          cpu=$(python3 -c 'import os; print(min(os.sched_getaffinity(0)))')
+          printf 'cpu=%s\n' "$cpu"
+          : > "$RUNNER_TEMP/samples.tsv"
+          for width in 1 8; do
+            for pair in $(seq 1 12); do
+              if (( pair % 2 )); then order='baseline candidate'; else order='candidate baseline'; fi
+              for arm in $order; do
+                ns=$(taskset -c "$cpu" "$RUNNER_TEMP/$arm-bench" "$width" | sed -n 's/^PL_NS=//p')
+                test -n "$ns"
+                printf '%s\t%s\t%s\t%s\n' "$width" "$pair" "$arm" "$ns" | tee -a "$RUNNER_TEMP/samples.tsv"
+              done
+            done
+          done
+          python3 - <<'PY'
+          import os, statistics
+          from pathlib import Path
+          rows = [line.split() for line in Path(os.environ['RUNNER_TEMP'], 'samples.tsv').read_text().splitlines()]
+          assert len(rows) == 48
+          for width in ('1', '8'):
+              ratios = []
+              for pair in range(1, 13):
+                  values = {arm: int(ns) for w, p, arm, ns in rows if w == width and int(p) == pair}
+                  assert set(values) == {'baseline', 'candidate'}
+                  ratios.append(values['candidate'] / values['baseline'])
+              print(f'WIDTH={width} PAIRS=12 MEDIAN_RATIO={statistics.median(ratios):.6f} RANGE={min(ratios):.6f}..{max(ratios):.6f}')
+          PY
+      - name: Retain raw samples
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: grouped-journal-paired-samples
+          path: ${{ runner.temp }}/samples.tsv
+          if-no-files-found: warn
