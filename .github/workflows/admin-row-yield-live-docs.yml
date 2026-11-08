@@ -1,7 +1,7 @@
-name: Standalone Admin checkpoint live Kafka and docs
+name: Standalone Admin checkpoint live Kafka and docs v2
 on:
   push:
-    branches: [qualification/admin-dtp-row-live-docs-20261108]
+    branches: [qualification/admin-dtp-row-live-docs-v2-20261108]
 permissions:
   contents: read
 jobs:
@@ -49,7 +49,7 @@ jobs:
           mkdir -p evidence
           test "$(git rev-parse HEAD:src/admin.rs)" = 23cb280eee5e91a64a9a6f58347f707524163d07
           test "$(git rev-parse HEAD:src/admin/pagination_tests.rs)" = 5451103503eabc359f5404849851ad11f5388cac
-          test "$(git rev-parse HEAD:tests/admin_dtp_row_live_qualification.rs)" = 73ae4a35ca0c4e64087ab254ac33f0145677a011
+          test "$(git rev-parse HEAD:tests/admin_dtp_row_live_qualification.rs)" = 5aefcf29a857f49317d94cbdef56bf60ae787f7e
           git rev-parse HEAD HEAD:src/admin.rs HEAD:src/admin/pagination_tests.rs HEAD:tests/admin_dtp_row_live_qualification.rs HEAD:Cargo.lock | tee evidence/blobs.txt
           sha256sum src/admin.rs src/admin/pagination_tests.rs tests/admin_dtp_row_live_qualification.rs Cargo.lock | tee evidence/sources.sha256
           rustc -Vv | tee evidence/rust.txt
