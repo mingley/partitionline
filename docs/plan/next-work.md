@@ -738,9 +738,10 @@ throughput or a ranking.
 An unapplied [dense Produce partition candidate](../evidence/broker/produce-dense-partition-20261108/README.md)
 reduced in-process time for large unordered requests to a missing topic in a
 paired x86 test. Small and sparse cases had mixed results; append samples with
-only two valid partitions were too noisy to establish a gain. The full broker
-suite was not run on the candidate, and a successful multi-partition workload
-is being measured separately.
+only two valid partitions were too noisy to establish a gain. A separate
+all-valid 17- and 32-partition test also showed no reliable improvement;
+all paired ranges crossed zero. The full broker suite was not run on the
+candidate.
 
 Run clean-commit client, broker and schema default/all-feature suites,
 all-target strict Clippy, formatting, rustdoc, package consumers and independent
