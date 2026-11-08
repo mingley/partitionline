@@ -4,8 +4,11 @@ When reconnecting directly to a known idle or failed group coordinator, the
 client retires the old socket before opening a replacement. The replacement
 negotiates API versions and authenticates on the same operation deadline. A
 canceled or failed handshake leaves the coordinator slot closed so a later call
-can retry. Coordinator rediscovery through a live bootstrap uses separate
-paths.
+can retry. The slot keeps the previous coordinator versions and offset ranges
+as retry metadata. It clears SASL session times; frame buffers and correlation
+IDs belong to the retired socket and are not carried to a new connection.
+The replacement takes its client ID from the current configuration.
+Coordinator rediscovery through a live bootstrap uses separate paths.
 
 Each broker connection allocates one shared atomic retirement flag. If the
 stream mutex is busy, its existing idle watcher waits for the mutex and closes

@@ -7961,6 +7961,7 @@ impl Drop for PendingCoordinatorReplacement<'_> {
             self.known.apply(self.conn);
             self.conn.offset_commit_range = self.offset_commit_range;
             self.conn.offset_fetch_range = self.offset_fetch_range;
+            self.conn.clear_sasl_session();
             let _retired = self.conn.try_retire_physical();
         }
     }
@@ -7976,6 +7977,7 @@ async fn replace_known_coord(
     let known = KnownCoord::capture(coord);
     let offset_commit_range = coord.offset_commit_range;
     let offset_fetch_range = coord.offset_fetch_range;
+    coord.clear_sasl_session();
     coord.retire_physical_deadline(deadline).await?;
     let remaining = deadline.remaining()?;
     let replacement = tokio::time::timeout_at(
@@ -11556,6 +11558,23 @@ mod coordinator_replacement_tests {
         decode_request_header(&mut Bytes::from(frame)).unwrap()
     }
 
+    async fn reply(socket: &mut TcpStream, request: &RequestHeader, body: &[u8]) {
+        let mut frame = BytesMut::new();
+        encode_response_header(
+            &mut frame,
+            request.api_key,
+            request.api_version,
+            request.correlation_id,
+        )
+        .unwrap();
+        frame.extend_from_slice(body);
+        socket
+            .write_i32(i32::try_from(frame.len()).unwrap())
+            .await
+            .unwrap();
+        socket.write_all(&frame).await.unwrap();
+    }
+
     async fn reply_to_versions(socket: &mut TcpStream, request: &RequestHeader) {
         assert_eq!((request.api_key, request.api_version), (API_VERSIONS, 4));
         let api_keys = [
@@ -11583,20 +11602,7 @@ mod coordinator_replacement_tests {
             },
         )
         .unwrap();
-        let mut frame = BytesMut::new();
-        encode_response_header(
-            &mut frame,
-            request.api_key,
-            request.api_version,
-            request.correlation_id,
-        )
-        .unwrap();
-        frame.extend_from_slice(&body);
-        socket
-            .write_i32(i32::try_from(frame.len()).unwrap())
-            .await
-            .unwrap();
-        socket.write_all(&frame).await.unwrap();
+        reply(socket, request, &body).await;
     }
 
     async fn assert_peer_retired(socket: &mut TcpStream) {
@@ -11613,20 +11619,42 @@ mod coordinator_replacement_tests {
 
     fn remember_old_versions(conn: &mut BrokerConn) {
         conn.heartbeat_version = 1;
+        conn.sync_group_version = 2;
+        conn.join_group_version = 4;
+        conn.leave_group_version = 1;
+        conn.consumer_group_heartbeat_version = 1;
+        conn.share_group_heartbeat_version = 1;
+        conn.sasl_handshake_version = 0;
+        conn.sasl_authenticate_version = 1;
         conn.offset_fetch_version = 7;
         conn.offset_fetch_range = Some((1, 7));
         conn.offset_commit_version = 6;
         conn.offset_commit_range = Some((2, 6));
         conn.find_coordinator_version = 1;
+        conn.record_sasl_session_lifetime(60_000);
+        assert_eq!(conn.session_lifetime_ms(), Some(60_000));
     }
 
-    fn assert_old_versions(conn: &BrokerConn) {
+    fn assert_old_versions(conn: &BrokerConn, address: &str) {
+        assert_eq!(conn.addr(), address);
         assert_eq!(conn.heartbeat_version, 1);
+        assert_eq!(conn.sync_group_version, 2);
+        assert_eq!(conn.join_group_version, 4);
+        assert_eq!(conn.leave_group_version, 1);
+        assert_eq!(conn.consumer_group_heartbeat_version, 1);
+        assert_eq!(conn.share_group_heartbeat_version, 1);
+        assert_eq!(conn.sasl_handshake_version, 0);
+        assert_eq!(conn.sasl_authenticate_version, 1);
         assert_eq!(conn.offset_fetch_version, 7);
         assert_eq!(conn.offset_fetch_range, Some((1, 7)));
         assert_eq!(conn.offset_commit_version, 6);
         assert_eq!(conn.offset_commit_range, Some((2, 6)));
         assert_eq!(conn.find_coordinator_version, 1);
+        assert_eq!(conn.session_lifetime_ms(), None);
+        assert_eq!(conn.authenticated_at(), None);
+        assert_eq!(conn.session_expiry(), None);
+        assert_eq!(conn.reauth_at(), None);
+        assert_eq!(conn.in_flight(), 0);
     }
 
     #[tokio::test(flavor = "current_thread")]
@@ -11652,7 +11680,7 @@ mod coordinator_replacement_tests {
             reply_to_versions(&mut third, &request).await;
             assert_peer_retired(&mut third).await;
         });
-        let cfg = ConsumerConfig::bootstrap([addr]);
+        let cfg = ConsumerConfig::bootstrap([addr.clone()]);
         let mut replacement = Box::pin(replace_known_coord(
             &mut conn,
             &cfg,
@@ -11670,7 +11698,7 @@ mod coordinator_replacement_tests {
             conn.physically_retired_for_test(),
             "handshake cancellation must release its I/O guard before retirement"
         );
-        assert_old_versions(&conn);
+        assert_old_versions(&conn, &addr);
 
         replace_known_coord(
             &mut conn,
@@ -11714,7 +11742,7 @@ mod coordinator_replacement_tests {
             received_tx.send(()).unwrap();
             assert_peer_retired(&mut second).await;
         });
-        let mut cfg = ConsumerConfig::bootstrap([addr]);
+        let mut cfg = ConsumerConfig::bootstrap([addr.clone()]);
         cfg.sasl_plain = Some(("user".into(), "pass".into()));
         let mut replacement = Box::pin(replace_known_coord(
             &mut conn,
@@ -11733,11 +11761,194 @@ mod coordinator_replacement_tests {
             conn.physically_retired_for_test(),
             "handshake cancellation must release its I/O guard before retirement"
         );
-        assert_old_versions(&conn);
+        assert_old_versions(&conn, &addr);
         tokio::time::timeout(Duration::from_secs(3), peer)
             .await
             .unwrap()
             .unwrap();
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn rejected_sasl_restores_retry_metadata_and_retires_replacement() {
+        let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap().to_string();
+        let mut conn = BrokerConn::connect(&addr, "rejected-sasl", Duration::from_secs(3))
+            .await
+            .unwrap();
+        let (mut first, _) = listener.accept().await.unwrap();
+        remember_old_versions(&mut conn);
+        let peer = tokio::spawn(async move {
+            assert_peer_retired(&mut first).await;
+            let (mut second, _) = listener.accept().await.unwrap();
+            let request = read_request(&mut second).await;
+            reply_to_versions(&mut second, &request).await;
+            let request = read_request(&mut second).await;
+            assert_eq!((request.api_key, request.api_version), (SASL_HANDSHAKE, 1));
+            let mut body = BytesMut::new();
+            crate::protocol::sasl::encode_sasl_handshake_response(&mut body, 1, 0, &["PLAIN"])
+                .unwrap();
+            reply(&mut second, &request, &body).await;
+            let request = read_request(&mut second).await;
+            assert_eq!(
+                (request.api_key, request.api_version),
+                (SASL_AUTHENTICATE, 2)
+            );
+            body.clear();
+            crate::protocol::sasl::encode_sasl_authenticate_response(
+                &mut body,
+                2,
+                58,
+                Some("denied"),
+                &[],
+                120_000,
+            )
+            .unwrap();
+            reply(&mut second, &request, &body).await;
+            assert_peer_retired(&mut second).await;
+        });
+        let mut cfg = ConsumerConfig::bootstrap([addr.clone()]);
+        cfg.sasl_plain = Some(("user".into(), "pass".into()));
+        let result = replace_known_coord(
+            &mut conn,
+            &cfg,
+            Deadline::from_timeout(Duration::from_secs(5)),
+        )
+        .await;
+        assert!(matches!(result, Err(Error::Broker { code: 58, .. })));
+        assert!(conn.is_closed());
+        assert_old_versions(&conn, &addr);
+        tokio::time::timeout(Duration::from_secs(3), peer)
+            .await
+            .unwrap()
+            .unwrap();
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn aborted_replacement_discards_provisional_sasl_session() {
+        let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap().to_string();
+        let mut conn = BrokerConn::connect(&addr, "provisional-session", Duration::from_secs(3))
+            .await
+            .unwrap();
+        let (mut peer, _) = listener.accept().await.unwrap();
+        remember_old_versions(&mut conn);
+        let known = super::KnownCoord::capture(&conn);
+        let offset_commit_range = conn.offset_commit_range;
+        let offset_fetch_range = conn.offset_fetch_range;
+        conn.clear_sasl_session();
+        let pending = super::PendingCoordinatorReplacement {
+            conn: &mut conn,
+            known,
+            offset_commit_range,
+            offset_fetch_range,
+            ready: false,
+        };
+        pending.conn.heartbeat_version = 4;
+        pending.conn.sync_group_version = 5;
+        pending.conn.join_group_version = 9;
+        pending.conn.leave_group_version = 5;
+        pending.conn.consumer_group_heartbeat_version = 0;
+        pending.conn.share_group_heartbeat_version = 0;
+        pending.conn.sasl_handshake_version = 1;
+        pending.conn.sasl_authenticate_version = 2;
+        pending.conn.offset_fetch_version = 10;
+        pending.conn.offset_fetch_range = Some((10, 10));
+        pending.conn.offset_commit_version = 10;
+        pending.conn.offset_commit_range = Some((10, 10));
+        pending.conn.find_coordinator_version = 6;
+        pending.conn.record_sasl_session_lifetime(30_000);
+        assert_eq!(pending.conn.session_lifetime_ms(), Some(30_000));
+        drop(pending);
+
+        assert!(conn.is_closed());
+        assert_old_versions(&conn, &addr);
+        assert_peer_retired(&mut peer).await;
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn successful_replacement_records_the_new_sasl_session() {
+        let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap().to_string();
+        let mut conn = BrokerConn::connect(&addr, "new-session", Duration::from_secs(3))
+            .await
+            .unwrap();
+        let (mut first, _) = listener.accept().await.unwrap();
+        remember_old_versions(&mut conn);
+        let peer = tokio::spawn(async move {
+            assert_peer_retired(&mut first).await;
+            let (mut second, _) = listener.accept().await.unwrap();
+            let request = read_request(&mut second).await;
+            reply_to_versions(&mut second, &request).await;
+
+            let request = read_request(&mut second).await;
+            assert_eq!((request.api_key, request.api_version), (SASL_HANDSHAKE, 1));
+            let mut body = BytesMut::new();
+            crate::protocol::sasl::encode_sasl_handshake_response(&mut body, 1, 0, &["PLAIN"])
+                .unwrap();
+            reply(&mut second, &request, &body).await;
+
+            let request = read_request(&mut second).await;
+            assert_eq!(
+                (request.api_key, request.api_version),
+                (SASL_AUTHENTICATE, 2)
+            );
+            body.clear();
+            crate::protocol::sasl::encode_sasl_authenticate_response(
+                &mut body,
+                2,
+                0,
+                None,
+                &[],
+                120_000,
+            )
+            .unwrap();
+            reply(&mut second, &request, &body).await;
+            assert_peer_retired(&mut second).await;
+        });
+        let mut cfg = ConsumerConfig::bootstrap([addr]);
+        cfg.sasl_plain = Some(("user".into(), "pass".into()));
+        replace_known_coord(
+            &mut conn,
+            &cfg,
+            Deadline::from_timeout(Duration::from_secs(5)),
+        )
+        .await
+        .unwrap();
+        assert!(!conn.is_closed());
+        assert_eq!(conn.session_lifetime_ms(), Some(120_000));
+        assert!(conn.authenticated_at().is_some());
+        assert!(conn.session_expiry().is_some());
+        assert!(conn.reauth_at().is_some());
+        conn.retire_physical_deadline(Deadline::from_timeout(Duration::from_secs(3)))
+            .await
+            .unwrap();
+        tokio::time::timeout(Duration::from_secs(3), peer)
+            .await
+            .unwrap()
+            .unwrap();
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn failed_replacement_dial_discards_the_old_sasl_session() {
+        let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap().to_string();
+        let mut conn = BrokerConn::connect(&addr, "failed-dial", Duration::from_secs(3))
+            .await
+            .unwrap();
+        let (mut peer, _) = listener.accept().await.unwrap();
+        remember_old_versions(&mut conn);
+        drop(listener);
+        let cfg = ConsumerConfig::bootstrap([addr.clone()]);
+        let result = replace_known_coord(
+            &mut conn,
+            &cfg,
+            Deadline::from_timeout(Duration::from_secs(3)),
+        )
+        .await;
+        assert!(matches!(result, Err(Error::Io(_))), "{result:?}");
+        assert!(conn.is_closed());
+        assert_old_versions(&conn, &addr);
+        assert_peer_retired(&mut peer).await;
     }
 
     #[tokio::test(flavor = "current_thread")]
@@ -11749,12 +11960,12 @@ mod coordinator_replacement_tests {
             .unwrap();
         let (mut first, _) = listener.accept().await.unwrap();
         remember_old_versions(&mut conn);
-        let cfg = ConsumerConfig::bootstrap([addr]);
+        let cfg = ConsumerConfig::bootstrap([addr.clone()]);
         let result =
             replace_known_coord(&mut conn, &cfg, Deadline::from_timeout(Duration::ZERO)).await;
         assert!(matches!(result, Err(Error::Timeout)));
         assert!(conn.is_closed());
-        assert_old_versions(&conn);
+        assert_old_versions(&conn, &addr);
         assert_peer_retired(&mut first).await;
         assert!(
             tokio::time::timeout(Duration::from_millis(30), listener.accept())
@@ -11780,7 +11991,7 @@ mod coordinator_replacement_tests {
             assert_eq!((request.api_key, request.api_version), (API_VERSIONS, 4));
             assert_peer_retired(&mut second).await;
         });
-        let cfg = ConsumerConfig::bootstrap([addr]);
+        let cfg = ConsumerConfig::bootstrap([addr.clone()]);
         let result = replace_known_coord(
             &mut conn,
             &cfg,
@@ -11789,7 +12000,7 @@ mod coordinator_replacement_tests {
         .await;
         assert!(matches!(result, Err(Error::Timeout)));
         assert!(conn.is_closed());
-        assert_old_versions(&conn);
+        assert_old_versions(&conn, &addr);
         tokio::time::timeout(Duration::from_secs(3), peer)
             .await
             .unwrap()

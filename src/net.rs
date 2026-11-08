@@ -3819,13 +3819,7 @@ mod tests {
         let closed = Arc::new(AtomicBool::new(false));
         let retirement = Arc::new(AtomicBool::new(false));
         let arm = Arc::new(tokio::sync::Notify::new());
-        let watch = spawn_idle_watch(
-            Arc::clone(&stream),
-            prefetch,
-            closed,
-            retirement,
-            arm,
-        );
+        let watch = spawn_idle_watch(Arc::clone(&stream), prefetch, closed, retirement, arm);
         tokio::time::timeout(Duration::from_secs(2), async {
             while !watch.is_finished() {
                 tokio::task::yield_now().await;
