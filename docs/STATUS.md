@@ -69,8 +69,12 @@ pass does not replace the full release matrix.
   truncation failures and power loss need more coverage. Replicated partition
   data, authenticated network leadership, committed-watermark protection,
   transaction participant and marker propagation, controller queue accounting
-  and a process-wide memory bound remain open. Earlier intermittent Raft
-  failures remain unexplained.
+  and a process-wide memory bound remain open. A [Fetch admission fixture
+  candidate][fetch-admission] checks completed, unconsumed replies; its latest
+  full default run failed a separate transport-shutdown test with `QueueFull`.
+  A caller can release its permit while the actor still owns the canceled
+  request and work buffers; the memory overlap needs separate qualification.
+  Earlier intermittent Raft failures remain unexplained.
 - **Reliability and performance.** No 24-hour fault campaign or seven-day
   continuity run has passed. Matched x86 comparisons against other Kafka
   implementations, with independent record verification, have not been
@@ -95,3 +99,5 @@ The [support matrix](support.md) describes configured coverage, and the
 [perf]: https://github.com/mingley/partitionline/blob/447493b1fbee45c04fd339d199fd661746adbf25/docs/evidence/client/txn-decode-20261108/README.md
 [gdb]: https://github.com/mingley/partitionline/actions/runs/42440732574
 [clippy]: https://github.com/mingley/partitionline/actions/runs/42441786927
+
+[fetch-admission]: ../evidence/broker/fetch-admission-20261108/README.md
