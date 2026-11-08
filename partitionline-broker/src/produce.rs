@@ -2340,6 +2340,9 @@ impl Writer {
 }
 
 #[cfg(test)]
+mod dense_partition_tests;
+
+#[cfg(test)]
 mod tests {
     use super::*;
 
