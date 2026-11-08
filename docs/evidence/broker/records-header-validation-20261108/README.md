@@ -2,9 +2,9 @@
 
 The ordinary record validator first tries a fast walk for batches without
 headers. A positive header count makes that walk decline and the generic
-validator starts from the beginning. Eight isolated candidates tried to
-reduce that repeated work. None is applied: each regressed at least one
-measured control. The benchmark checks memory-resident uncompressed batches;
+validator starts from the beginning. Nine isolated candidates tried to
+reduce that repeated work. None is applied. Earlier versions regressed at
+least one measured control; the latest needs broader qualification. The benchmark checks memory-resident uncompressed batches;
 it does not measure Kafka throughput or rank clients or servers.
 
 ## Paired measurements
@@ -302,3 +302,57 @@ The [code-generation artifact](https://github.com/mingley/partitionline/actions/
 has GitHub-reported SHA-256
 `814f685a86f8fd790702e0cb47f02af75611a5c91d0d18ab4f23718a5320b588`.
 It has not been independently downloaded, and the binaries were not retained.
+
+## Cold-outlined fallback
+
+The [cold-outlined candidate](https://github.com/mingley/partitionline/commit/fdfd97f5c82dc2efb294fc671d394a6ddb0603de)
+keeps single-record batches on the existing path and places the extra
+first-record probe and resumable header scan behind a `#[cold]`,
+`#[inline(never)]` helper. Marking this path cold is an optimization hint,
+not a claim that headers are rare in production.
+
+[Run 42453967798](https://github.com/mingley/partitionline/actions/runs/42453967798)
+used the same paired fixture. Candidate/baseline median ratios and the ranges
+of the eight paired medians were:
+
+| Case | Pooled median ratio | Paired range |
+| --- | ---: | ---: |
+| One record, no headers | 0.972 | 0.939–1.648 |
+| One record, one header | 0.965 | 0.954–0.981 |
+| Two records, one header each | 0.810 | 0.798–0.833 |
+| Eight records, one header each | 0.755 | 0.745–0.768 |
+| 32 records, one header each | 0.663 | 0.656–0.672 |
+| 1,024 records, no headers | 0.953 | 0.930–0.969 |
+| 1,024 records, one header each | 0.672 | 0.661–0.678 |
+| 1,024 records, four headers each | 0.698 | 0.687–0.708 |
+| 1,024 records, header only on last | 0.990 | 0.974–1.004 |
+| 256 records, one header and a 1,024-byte value each | 0.916 | 0.901–0.932 |
+| Invalid attributes on first record | 0.999 | 0.990–1.010 |
+| Invalid attributes on last record, no headers | 0.987 | 0.978–1.004 |
+| Invalid attributes on last record, earlier headers | 0.666 | 0.659–0.673 |
+
+The one-record no-header case included a large 1.648 pair outlier. A
+[separate run](https://github.com/mingley/partitionline/actions/runs/42453969163)
+rebuilt identical binary hashes and repeated only the 1,024-record no-header
+case; its paired ratios ranged from 0.997 to 1.016. These shared-host results
+are not proof of a general performance gain or a Kafka throughput comparison.
+
+The candidate `records.rs` SHA-256 was
+`f126d5a952cf8329a423ead7f3e295ed210ed8046d4115ed072e1f07c42eb71e`;
+fixture SHA-256 was
+`d268ab717b4447c560eba6b009ca58eb91e62d9cbcb776ecaf7ba258a3dbcc18`.
+Baseline and candidate binary SHA-256 values were
+`e4698019bfb9f7d9bd9da9dd975ae89b85c1d25f48ec27a07a2d7a738be7ebe7`
+and `89951c22e7a68e863196a4520a0a0841c249076d370e12c595ba36b3337d5258`.
+GitHub reported SHA-256
+`6e4e7d551c9e6819eef2a9a3fdc47d6f29547d94da16b53ad30db3b4644e39a0`
+for the [measurement artifact](https://github.com/mingley/partitionline/actions/runs/42453967798/artifacts/13606727029)
+and `b6e33e8ca87aa214ba7c8f620317889230153071cc00687a1c85955668c3314c`
+for the [code-generation artifact](https://github.com/mingley/partitionline/actions/runs/42453969163/artifacts/13606932812).
+Neither archive was independently downloaded, and binaries were not retained.
+
+[Run 42453957702](https://github.com/mingley/partitionline/actions/runs/42453957702)
+passed formatting, focused record tests in both profiles and strict all-target,
+all-feature Clippy. The candidate has not passed a full broker suite or a
+current-main qualification. Real broker traffic, longer fault campaigns, other
+processors and broader workloads remain unmeasured.
