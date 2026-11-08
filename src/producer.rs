@@ -17392,7 +17392,7 @@ mod rediscover_stop_tests {
             producer_epoch: AtomicI16::new(RecordBatch::NO_PRODUCER_EPOCH),
             epoch_gen: AtomicU64::new(0),
             epoch_bump_required: AtomicBool::new(false),
-            txn_error_state: AtomicU8::new(TXN_ERROR_NONE),
+            txn_error_state: std::sync::atomic::AtomicU8::new(super::TXN_ERROR_NONE),
             txn_error: parking_lot::Mutex::new(None),
             seqs: parking_lot::Mutex::new(HashMap::new()),
             cache_nudge: Notify::new(),
