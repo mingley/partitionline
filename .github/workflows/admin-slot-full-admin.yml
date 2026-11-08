@@ -1,0 +1,81 @@
+name: Admin slot-index full Admin behavior
+on:
+  push:
+    branches: [qualification/admin-dtp-slot-full-admin-20261108]
+permissions:
+  contents: read
+jobs:
+  suite:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      matrix:
+        feature: [default, all]
+    env:
+      CARGO_INCREMENTAL: '0'
+      CARGO_TERM_COLOR: never
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          path: candidate
+      - uses: actions/checkout@v7
+        with:
+          ref: 97a0757a3e5ab8777b147876305ab854b1faf675
+          path: baseline
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Run full Admin suites and retain any matched-baseline failures
+        run: |
+          set -euo pipefail
+          mkdir -p evidence
+          test "$(git -C candidate rev-parse HEAD:src/admin.rs)" = 8c2f94353e04c2925b1bfaf8478285190dd317d7
+          test "$(git -C candidate rev-parse HEAD:src/admin/pagination_tests.rs)" = a69d5cceff56a7d1c52f321b5766d695423871aa
+          test "$(git -C baseline rev-parse HEAD:src/admin.rs)" = 3125c234259c87d1bc4a89d0cd0734d124529bea
+          test "$(git -C baseline rev-parse HEAD:src/admin/pagination_tests.rs)" = f18e87db6a6eab6d33a05288fe1d39817b9c2388
+          for arm in baseline candidate; do
+            git -C "$arm" rev-parse HEAD HEAD:src/admin.rs HEAD:src/admin/pagination_tests.rs HEAD:Cargo.toml HEAD:Cargo.lock
+            sha256sum "$arm/src/admin.rs" "$arm/src/admin/pagination_tests.rs" "$arm/Cargo.toml" "$arm/Cargo.lock"
+          done
+          rustc -Vv
+          if test "${{ matrix.feature }}" = all; then flags=--all-features; else flags=; fi
+          set +e
+          CARGO_TARGET_DIR="$PWD/target-candidate" cargo test --locked --manifest-path candidate/Cargo.toml $flags --lib admin:: -- --test-threads=1 > evidence/candidate-admin.log 2>&1
+          candidate_admin=$?
+          CARGO_TARGET_DIR="$PWD/target-candidate" cargo test --locked --manifest-path candidate/Cargo.toml $flags --test admin_response_reservation -- --test-threads=1 > evidence/candidate-integration.log 2>&1
+          candidate_integration=$?
+          set -e
+          cat evidence/candidate-admin.log
+          cat evidence/candidate-integration.log
+          printf 'candidate_admin_exit=%s candidate_integration_exit=%s\n' "$candidate_admin" "$candidate_integration"
+          if test "$candidate_admin" -ne 0 || test "$candidate_integration" -ne 0; then
+            python3 - <<'PY'
+          from pathlib import Path
+          candidate=Path('candidate/src/admin/pagination_tests.rs').read_text()
+          marker='async fn dtp_slot_public_cross_page_case(case: u8) {'
+          assert candidate.count(marker)==1
+          fixture=candidate[candidate.index(marker):]
+          base=Path('baseline/src/admin/pagination_tests.rs')
+          old=base.read_text()
+          assert marker not in old
+          base.write_text(old.rstrip()+'\n\n'+fixture)
+          PY
+            sha256sum baseline/src/admin/pagination_tests.rs | tee evidence/baseline-compatible-fixture.sha256
+            set +e
+            CARGO_TARGET_DIR="$PWD/target-baseline" cargo test --locked --manifest-path baseline/Cargo.toml $flags --lib admin:: -- --test-threads=1 > evidence/baseline-admin.log 2>&1
+            baseline_admin=$?
+            CARGO_TARGET_DIR="$PWD/target-baseline" cargo test --locked --manifest-path baseline/Cargo.toml $flags --test admin_response_reservation -- --test-threads=1 > evidence/baseline-integration.log 2>&1
+            baseline_integration=$?
+            set -e
+            cat evidence/baseline-admin.log
+            cat evidence/baseline-integration.log
+            printf 'baseline_admin_exit=%s baseline_integration_exit=%s\n' "$baseline_admin" "$baseline_integration"
+            exit 1
+          fi
+      - name: Retain Admin test logs
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: admin-slot-full-suite-${{ matrix.feature }}
+          path: evidence/
+          if-no-files-found: warn
+          retention-days: 30
