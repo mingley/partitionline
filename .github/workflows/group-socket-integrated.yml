@@ -1,0 +1,80 @@
+name: Group coordinator retirement qualification
+
+on:
+  push:
+    branches:
+      - qualification/group-socket-c49-20261108
+
+permissions:
+  contents: read
+
+jobs:
+  qualify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    env:
+      CARGO_BUILD_JOBS: '2'
+      CARGO_PROFILE_DEV_DEBUG: '0'
+      CARGO_PROFILE_TEST_DEBUG: '0'
+      CARGO_INCREMENTAL: '0'
+      CARGO_TERM_COLOR: never
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          sparse-checkout: |
+            .cargo
+            .github
+            src
+            examples
+            tests
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          ref: c49cde3ecf7fc11be8bd0a0e31910f6a1dce6b51
+          path: baseline
+          sparse-checkout: |
+            .cargo
+            src
+            examples
+            tests
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          ref: ${{ github.sha }}
+          path: negative
+          sparse-checkout: |
+            .cargo
+            src
+            examples
+            tests
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - name: Record host and compiler
+        run: |
+          test "$(uname -m)" = x86_64
+          uname -a
+          rustc +stable -Vv
+          cargo +stable -V
+          git rev-parse HEAD
+          git -C baseline rev-parse HEAD
+      - name: Exact candidate regressions on both feature sets
+        run: bash .github/group-qualification/candidate.sh
+      - name: Baseline old-peer failure witnesses
+        working-directory: baseline
+        run: bash ../.github/group-qualification/baseline.sh
+      - name: Negative controls for EOF and owner drop
+        run: bash .github/group-qualification/negative.sh
+      - name: Clippy
+        run: cargo +stable clippy --locked --all-targets --all-features -- -D warnings
+      - name: Alternating baseline and candidate loopback probe
+        run: bash .github/group-qualification/perf.sh
+      - name: Same-host baseline and candidate net suites
+        run: bash .github/group-qualification/net-suite.sh
+      - name: TLS shutdown controls
+        if: always()
+        run: cargo +stable test --locked --test tls_shutdown_deadline -- --test-threads=1
+      - name: Formatting
+        if: always()
+        run: cargo +stable fmt --all -- --check
