@@ -1,0 +1,74 @@
+name: Broker bounded dense Produce partition controls
+on:
+  push:
+    branches: [qualification/broker-dense-final-20261108]
+permissions:
+  contents: read
+jobs:
+  behavior:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      matrix:
+        feature: [default, all]
+    env:
+      CARGO_INCREMENTAL: '0'
+      CARGO_TERM_COLOR: never
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          path: candidate
+      - uses: actions/checkout@v7
+        with:
+          ref: a3748caecae60a893de96c0700e1e5ab04854443
+          path: baseline
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Verify source and fixture identity
+        run: |
+          set -euo pipefail
+          test "$(git -C candidate rev-parse HEAD:partitionline-broker/src/produce.rs)" = 6897be1463187c7cd123066729f8dd98ea3e100f
+          test "$(git -C candidate rev-parse HEAD:partitionline-broker/src/produce/dense_partition_tests.rs)" = 5522262296bd98855d4dcb09f967606346557c34
+          test "$(git -C candidate rev-parse HEAD:partitionline-broker/tests/produce_dense_partitions.rs)" = 82a4045662ec3ced99383cc002625fa63fcfa005
+          test "$(git -C baseline rev-parse HEAD:partitionline-broker/src/produce.rs)" = 28ac0a2eb00c4994cc3ebc8d3fe4fa035e6bdc4a
+          git -C candidate rev-parse HEAD HEAD:partitionline-broker/src/produce.rs HEAD:partitionline-broker/src/produce/dense_partition_tests.rs HEAD:partitionline-broker/tests/produce_dense_partitions.rs HEAD:partitionline-broker/Cargo.lock
+          git -C baseline rev-parse HEAD HEAD:partitionline-broker/src/produce.rs HEAD:partitionline-broker/Cargo.lock
+          sha256sum candidate/partitionline-broker/src/produce.rs candidate/partitionline-broker/src/produce/dense_partition_tests.rs candidate/partitionline-broker/tests/produce_dense_partitions.rs
+          rustc -Vv
+          cp candidate/partitionline-broker/tests/produce_dense_partitions.rs baseline/partitionline-broker/tests/produce_dense_partitions.rs
+          cmp candidate/partitionline-broker/tests/produce_dense_partitions.rs baseline/partitionline-broker/tests/produce_dense_partitions.rs
+      - name: Run candidate classifier and public wire controls
+        run: |
+          set -euo pipefail
+          if test "${{ matrix.feature }}" = all; then flags=--all-features; else flags=; fi
+          export CARGO_TARGET_DIR="$PWD/target-candidate"
+          cargo test --locked --manifest-path candidate/partitionline-broker/Cargo.toml $flags --lib dense_partition_tests:: -- --test-threads=1
+          cargo test --locked --manifest-path candidate/partitionline-broker/Cargo.toml $flags --test produce_dense_partitions produce_dense_public_precedence_order_and_readback -- --exact --test-threads=1
+          cargo test --locked --manifest-path candidate/partitionline-broker/Cargo.toml $flags --test produce independent_apache_produce_goldens -- --exact --test-threads=1
+      - name: Run the identical public fixture on baseline
+        run: |
+          set -euo pipefail
+          if test "${{ matrix.feature }}" = all; then flags=--all-features; else flags=; fi
+          export CARGO_TARGET_DIR="$PWD/target-baseline"
+          cargo test --locked --manifest-path baseline/partitionline-broker/Cargo.toml $flags --test produce_dense_partitions produce_dense_public_precedence_order_and_readback -- --exact --test-threads=1
+  strict:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    env:
+      CARGO_INCREMENTAL: '0'
+      CARGO_TERM_COLOR: never
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt,clippy
+      - name: Check formatting
+        run: cargo fmt --manifest-path partitionline-broker/Cargo.toml --all -- --check
+      - name: Strict all-target all-feature Clippy
+        if: always()
+        run: cargo clippy --locked --manifest-path partitionline-broker/Cargo.toml --all-targets --all-features -- -D warnings
+      - name: Strict public Rustdoc
+        if: always()
+        env:
+          RUSTDOCFLAGS: '-D warnings'
+        run: cargo doc --locked --manifest-path partitionline-broker/Cargo.toml --all-features --no-deps
