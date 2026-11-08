@@ -438,7 +438,10 @@ remain open.
    though the records were in the mock log. This is not a real-Kafka result.
    [Private batch controls](../evidence/client/producer-batch-ownership-controls-20261108/README.md)
    show the packer can split an injected complete retry batch and expiration
-   acts on individual records. An isolated [owned-batch model](../evidence/client/producer-owned-batch-model-20261108/README.md)
+   acts on individual records. Five [public regression controls](../evidence/client/producer-ownership-regression-controls-20261108/README.md)
+   fail against the current producer in both profiles under controlled mock
+   yields; their finite observation windows do not prove permanent loss. An
+   isolated [owned-batch model](../evidence/client/producer-owned-batch-model-20261108/README.md)
    exercises admission, whole-batch selection, close and ambiguous-write
    fences with 44 controls and 15 rejected mutants. It does not run the Rust
    producer; its unknown-write fence can retain capacity indefinitely, and
@@ -1017,6 +1020,8 @@ is unimplemented: a smaller durable sidecar changes migration and backup
 semantics, and cannot preserve the current full-file mutation check without
 additional validation.
 
-The TLS graph still includes Ring C/assembly. The dependency update keeps that
-provider. The passing audit applies to its checked lockfile and advisory
-database revision; it does not establish an all-dependency Rust-only claim.
+The TLS graph still includes Ring C/assembly, and broker OIDC uses Ring
+independently of rustls. A read-only [provider assessment](../evidence/security/tls-provider-assessment-20261108/README.md)
+found no reviewed alternative qualified to retain the current TLS and OIDC
+behavior. No provider change has been made. The passing audit applies only to
+its checked lockfile and advisory database revision.
