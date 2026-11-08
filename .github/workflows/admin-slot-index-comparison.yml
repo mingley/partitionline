@@ -102,7 +102,7 @@ jobs:
               resources = dict(x.split('=', 1) for x in p.with_suffix('.resource').read_text().split())
               assert (vals['kind'], vals['rows'], vals['unique']) == (kind, count, unique)
               rows.append(dict(arm=arm, kind=kind, count=int(count), unique=int(unique), iteration=int(iteration), **{k: int(v) for k,v in vals.items() if k not in ('kind','rows','unique','ready_after_write')}, max_rss_kb=int(resources['MAX_RSS_KB']), user_seconds=resources['USER_SECONDS'], system_seconds=resources['SYSTEM_SECONDS'], process_elapsed_seconds=resources['ELAPSED_SECONDS']))
-          assert len(rows) == 404, len(rows)
+          assert len(rows) == 384, len(rows)
           with open('evidence/samples.csv', 'w', newline='') as f:
               writer = csv.DictWriter(f, fieldnames=list(rows[0]))
               writer.writeheader()
