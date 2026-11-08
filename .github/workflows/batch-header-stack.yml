@@ -1,4 +1,4 @@
-name: Fixed Kafka batch header encoding experiment
+name: Three-way fixed Kafka batch header encoding
 
 on:
   push:
@@ -17,6 +17,7 @@ jobs:
       CARGO_TERM_COLOR: never
       PYTHONDONTWRITEBYTECODE: "1"
       BASE_SHA: 60caa746c3654c89d01557e35e1100cdc2a84b74
+      CURRENT_SHA: f14eb8849db06c1f34725a94073445cc71206384
     steps:
       - uses: actions/checkout@v7
         with:
@@ -31,14 +32,16 @@ jobs:
           set -euo pipefail
           test "$(uname -m)" = x86_64
           git merge-base --is-ancestor "$BASE_SHA" HEAD
+          git merge-base --is-ancestor "$CURRENT_SHA" HEAD
+          git diff --exit-code "$BASE_SHA" "$CURRENT_SHA" -- Cargo.toml Cargo.lock src ':!src/protocol/records.rs'
           git diff --exit-code "$BASE_SHA" HEAD -- Cargo.toml Cargo.lock src ':!src/protocol/records.rs'
           evidence="$RUNNER_TEMP/batch-header-stack-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
           mkdir "$evidence"
           printf 'EVIDENCE=%s\n' "$evidence" >> "$GITHUB_ENV"
-          git rev-parse HEAD "$BASE_SHA" | tee "$evidence/commits.txt"
+          git rev-parse HEAD "$CURRENT_SHA" "$BASE_SHA" | tee "$evidence/commits.txt"
           git diff "$BASE_SHA" HEAD -- src/protocol/records.rs > "$evidence/production.patch"
           sha256sum Cargo.lock src/protocol/records.rs examples/bench_record_body.rs \
-            benchmarks/record-body/measure.py benchmarks/record-body/inspect_asm.py .github/workflows/batch-header-stack.yml > "$evidence/source-sha256.txt"
+            benchmarks/record-body/measure_three.py benchmarks/record-body/inspect_asm.py .github/workflows/batch-header-stack.yml > "$evidence/source-sha256.txt"
           git show "$BASE_SHA:src/protocol/records.rs" | sha256sum > "$evidence/baseline-source-sha256.txt"
           rustc +stable -Vv | tee "$evidence/rustc.txt"
           cargo +stable -V | tee "$evidence/cargo.txt"
@@ -65,67 +68,89 @@ jobs:
             2>&1 | tee "$EVIDENCE/record-tests.log"
           cargo +stable test --locked --all-features --lib protocol::records::tests \
             2>&1 | tee "$EVIDENCE/record-all-features-tests.log"
-      - name: Build identical benchmark fixture for both source trees
+      - name: Build fixture against all three verified source trees
         shell: bash
         run: |
           set -euo pipefail
           git worktree add --detach "$RUNNER_TEMP/encode-base" "$BASE_SHA"
-          cp examples/bench_record_body.rs "$RUNNER_TEMP/encode-base/examples/bench_record_body.rs"
-          cmp examples/bench_record_body.rs "$RUNNER_TEMP/encode-base/examples/bench_record_body.rs"
-          cmp Cargo.lock "$RUNNER_TEMP/encode-base/Cargo.lock"
-          cmp Cargo.toml "$RUNNER_TEMP/encode-base/Cargo.toml"
+          git worktree add --detach "$RUNNER_TEMP/encode-current" "$CURRENT_SHA"
+          for tree in "$RUNNER_TEMP/encode-base" "$RUNNER_TEMP/encode-current"; do
+            cp examples/bench_record_body.rs "$tree/examples/bench_record_body.rs"
+            cmp examples/bench_record_body.rs "$tree/examples/bench_record_body.rs"
+            cmp Cargo.lock "$tree/Cargo.lock"
+            cmp Cargo.toml "$tree/Cargo.toml"
+          done
           baseline_hash=$(git show "$BASE_SHA:src/protocol/records.rs" | sha256sum | cut -d' ' -f1)
-          candidate_hash=$(git show "HEAD:src/protocol/records.rs" | sha256sum | cut -d' ' -f1)
+          current_hash=$(git show "$CURRENT_SHA:src/protocol/records.rs" | sha256sum | cut -d' ' -f1)
+          reserve_hash=$(git show "HEAD:src/protocol/records.rs" | sha256sum | cut -d' ' -f1)
           test "$(sha256sum "$RUNNER_TEMP/encode-base/src/protocol/records.rs" | cut -d' ' -f1)" = "$baseline_hash"
-          test "$(sha256sum src/protocol/records.rs | cut -d' ' -f1)" = "$candidate_hash"
-          test "$baseline_hash" != "$candidate_hash"
-          sha256sum "$RUNNER_TEMP/encode-base/src/protocol/records.rs" src/protocol/records.rs | tee "$EVIDENCE/source-tree-sha256.txt"
+          test "$(sha256sum "$RUNNER_TEMP/encode-current/src/protocol/records.rs" | cut -d' ' -f1)" = "$current_hash"
+          test "$(sha256sum src/protocol/records.rs | cut -d' ' -f1)" = "$reserve_hash"
+          test "$baseline_hash" != "$current_hash"
+          test "$baseline_hash" != "$reserve_hash"
+          test "$current_hash" != "$reserve_hash"
+          sha256sum "$RUNNER_TEMP/encode-base/src/protocol/records.rs" "$RUNNER_TEMP/encode-current/src/protocol/records.rs" \
+            src/protocol/records.rs | tee "$EVIDENCE/source-tree-sha256.txt"
           export CARGO_TARGET_DIR="$RUNNER_TEMP/record-target-baseline"
           cargo +stable build --locked --release --example bench_record_body --manifest-path "$RUNNER_TEMP/encode-base/Cargo.toml" \
             2>&1 | tee "$EVIDENCE/build-baseline.log"
           cp "$CARGO_TARGET_DIR/release/examples/bench_record_body" "$RUNNER_TEMP/encode-baseline"
           grep -F "Compiling partitionline v0.1.0 ($RUNNER_TEMP/encode-base)" "$EVIDENCE/build-baseline.log"
-          export CARGO_TARGET_DIR="$RUNNER_TEMP/record-target-candidate"
+          export CARGO_TARGET_DIR="$RUNNER_TEMP/record-target-current"
+          cargo +stable build --locked --release --example bench_record_body --manifest-path "$RUNNER_TEMP/encode-current/Cargo.toml" \
+            2>&1 | tee "$EVIDENCE/build-current.log"
+          cp "$CARGO_TARGET_DIR/release/examples/bench_record_body" "$RUNNER_TEMP/encode-current-bin"
+          grep -F "Compiling partitionline v0.1.0 ($RUNNER_TEMP/encode-current)" "$EVIDENCE/build-current.log"
+          export CARGO_TARGET_DIR="$RUNNER_TEMP/record-target-reserve"
           cargo +stable build --locked --release --example bench_record_body --manifest-path "$GITHUB_WORKSPACE/Cargo.toml" \
-            2>&1 | tee "$EVIDENCE/build-candidate.log"
-          cp "$CARGO_TARGET_DIR/release/examples/bench_record_body" "$RUNNER_TEMP/encode-candidate"
-          grep -F "Compiling partitionline v0.1.0 ($GITHUB_WORKSPACE)" "$EVIDENCE/build-candidate.log"
-          sha256sum "$RUNNER_TEMP/encode-baseline" "$RUNNER_TEMP/encode-candidate" | tee "$EVIDENCE/binary-sha256.txt"
-          if cmp -s "$RUNNER_TEMP/encode-baseline" "$RUNNER_TEMP/encode-candidate"; then
-            echo "independently built binaries match: inspect optimized code before measuring" | tee "$EVIDENCE/identical-binaries.txt"
-            nm -S -C "$RUNNER_TEMP/encode-baseline" > "$EVIDENCE/baseline-symbols.txt"
-            objdump -Cd "$RUNNER_TEMP/encode-baseline" > "$EVIDENCE/baseline-disassembly.txt"
-            objdump -Cd "$RUNNER_TEMP/encode-candidate" > "$EVIDENCE/candidate-disassembly.txt"
-            exit 1
-          fi
+            2>&1 | tee "$EVIDENCE/build-reserve.log"
+          cp "$CARGO_TARGET_DIR/release/examples/bench_record_body" "$RUNNER_TEMP/encode-reserve"
+          grep -F "Compiling partitionline v0.1.0 ($GITHUB_WORKSPACE)" "$EVIDENCE/build-reserve.log"
+          sha256sum "$RUNNER_TEMP/encode-baseline" "$RUNNER_TEMP/encode-current-bin" \
+            "$RUNNER_TEMP/encode-reserve" | tee "$EVIDENCE/binary-sha256.txt"
+          for pair in "baseline current-bin" "baseline reserve" "current-bin reserve"; do
+            read -r left right <<< "$pair"
+            if cmp -s "$RUNNER_TEMP/encode-$left" "$RUNNER_TEMP/encode-$right"; then
+              echo "equal independently built binaries: $left and $right; inspect before measuring" | tee "$EVIDENCE/identical-binaries.txt"
+              objdump -Cd "$RUNNER_TEMP/encode-$left" > "$EVIDENCE/identical-$left.asm"
+              exit 1
+            fi
+          done
       - name: Compare full encoded batches and exact failures
         shell: bash
         run: |
           set -euo pipefail
-          taskset -c "$BENCH_CPU" "$RUNNER_TEMP/encode-baseline" corpus "$EVIDENCE/baseline-corpus.bin" \
-            2> "$EVIDENCE/baseline-corpus.log"
-          taskset -c "$BENCH_CPU" "$RUNNER_TEMP/encode-candidate" corpus "$EVIDENCE/candidate-corpus.bin" \
-            2> "$EVIDENCE/candidate-corpus.log"
-          cat "$EVIDENCE/baseline-corpus.log" "$EVIDENCE/candidate-corpus.log"
-          cmp "$EVIDENCE/baseline-corpus.bin" "$EVIDENCE/candidate-corpus.bin"
-          sha256sum "$EVIDENCE/baseline-corpus.bin" "$EVIDENCE/candidate-corpus.bin" | tee "$EVIDENCE/corpus-sha256.txt"
+          for arm in baseline current-bin reserve; do
+            taskset -c "$BENCH_CPU" "$RUNNER_TEMP/encode-$arm" corpus "$EVIDENCE/$arm-corpus.bin" \
+              2> "$EVIDENCE/$arm-corpus.log"
+            cat "$EVIDENCE/$arm-corpus.log"
+          done
+          cmp "$EVIDENCE/baseline-corpus.bin" "$EVIDENCE/current-bin-corpus.bin"
+          cmp "$EVIDENCE/baseline-corpus.bin" "$EVIDENCE/reserve-corpus.bin"
+          sha256sum "$EVIDENCE/baseline-corpus.bin" "$EVIDENCE/current-bin-corpus.bin" \
+            "$EVIDENCE/reserve-corpus.bin" | tee "$EVIDENCE/corpus-sha256.txt"
       - name: Capture optimized encoder code
         shell: bash
         run: |
           set -euo pipefail
-          nm -S -C "$RUNNER_TEMP/encode-baseline" > "$EVIDENCE/baseline-symbols.txt"
-          nm -S -C "$RUNNER_TEMP/encode-candidate" > "$EVIDENCE/candidate-symbols.txt"
-          objdump -dC --no-show-raw-insn "$RUNNER_TEMP/encode-baseline" > "$EVIDENCE/baseline.asm"
-          objdump -dC --no-show-raw-insn "$RUNNER_TEMP/encode-candidate" > "$EVIDENCE/candidate.asm"
-          python3 benchmarks/record-body/inspect_asm.py "$EVIDENCE/baseline.asm" "$EVIDENCE/candidate.asm" \
-            "$EVIDENCE/selected-diff.txt" > "$EVIDENCE/assembly-diff.log"
-          grep -E 'records::start_record_batch|records::encode_record' "$EVIDENCE/baseline-symbols.txt" | tee "$EVIDENCE/selected-baseline-symbols.txt" || true
-          grep -E 'records::start_record_batch|records::encode_record' "$EVIDENCE/candidate-symbols.txt" | tee "$EVIDENCE/selected-candidate-symbols.txt" || true
-      - name: Paired whole-batch measurements
+          for arm in baseline current-bin reserve; do
+            nm -S -C "$RUNNER_TEMP/encode-$arm" > "$EVIDENCE/$arm-symbols.txt"
+            objdump -dC --no-show-raw-insn "$RUNNER_TEMP/encode-$arm" > "$EVIDENCE/$arm.asm"
+            grep -E 'records::start_record_batch|records::encode_record' "$EVIDENCE/$arm-symbols.txt" \
+              | tee "$EVIDENCE/$arm-selected-symbols.txt" || true
+          done
+          python3 benchmarks/record-body/inspect_asm.py "$EVIDENCE/baseline.asm" "$EVIDENCE/current-bin.asm" \
+            "$EVIDENCE/baseline-current-diff.txt" > "$EVIDENCE/baseline-current-diff.log"
+          python3 benchmarks/record-body/inspect_asm.py "$EVIDENCE/baseline.asm" "$EVIDENCE/reserve.asm" \
+            "$EVIDENCE/baseline-reserve-diff.txt" > "$EVIDENCE/baseline-reserve-diff.log"
+          python3 benchmarks/record-body/inspect_asm.py "$EVIDENCE/current-bin.asm" "$EVIDENCE/reserve.asm" \
+            "$EVIDENCE/current-reserve-diff.txt" > "$EVIDENCE/current-reserve-diff.log"
+      - name: Balanced three-way whole-batch measurements
         shell: bash
         run: |
           set -euo pipefail
-          python3 benchmarks/record-body/measure.py "$RUNNER_TEMP/encode-baseline" "$RUNNER_TEMP/encode-candidate" \
+          python3 benchmarks/record-body/measure_three.py "$RUNNER_TEMP/encode-baseline" \
+            "$RUNNER_TEMP/encode-current-bin" "$RUNNER_TEMP/encode-reserve" \
             "$BENCH_CPU" "$EVIDENCE/measurements.json" 2>&1 | tee "$EVIDENCE/measure.log"
       - name: Retain inputs, failures and measurements
         if: always() && env.EVIDENCE != ''

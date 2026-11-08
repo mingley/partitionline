@@ -3239,39 +3239,31 @@ pub(crate) fn start_record_batch(
     buf: &mut BytesMut,
     header: &BatchHeader,
 ) -> (usize, usize, usize, usize) {
-    // The v2 header is fixed-width. Append it once so the destination buffer
-    // only needs to check its capacity for the whole header.
-    let mut wire = [0u8; 61];
-    let mut out = wire.as_mut_slice();
-    out.put_i64(header.base_offset);
-    out.put_i32(0);
-    out.put_i32(header.partition_leader_epoch);
-    out.put_i8(MAGIC_V2);
-    out.put_u32(0);
-    out.put_i16(header.attributes);
+    let batch_start = buf.len();
+    // Reserve the fixed v2 header before writing its fields.
+    buf.reserve(61);
+    buf.put_i64(header.base_offset);
+    let batch_len_pos = buf.len();
+    buf.put_i32(0);
+    buf.put_i32(header.partition_leader_epoch);
+    buf.put_i8(MAGIC_V2);
+    let crc_pos = buf.len();
+    buf.put_u32(0);
+    let crc_start = buf.len();
+    buf.put_i16(header.attributes);
     let last_delta = if header.count <= 0 {
         0
     } else {
         header.count - 1
     };
-    out.put_i32(last_delta);
-    out.put_i64(header.base_timestamp);
-    out.put_i64(header.max_timestamp);
-    out.put_i64(header.producer_id);
-    out.put_i16(header.producer_epoch);
-    out.put_i32(header.base_sequence);
-    out.put_i32(header.count);
-    debug_assert!(out.is_empty());
-
-    let batch_start = buf.len();
-    buf.extend_from_slice(&wire);
-    // The successful append guarantees these positions fit in usize.
-    (
-        batch_start,
-        batch_start + 8,
-        batch_start + 17,
-        batch_start + 21,
-    )
+    buf.put_i32(last_delta);
+    buf.put_i64(header.base_timestamp);
+    buf.put_i64(header.max_timestamp);
+    buf.put_i64(header.producer_id);
+    buf.put_i16(header.producer_epoch);
+    buf.put_i32(header.base_sequence);
+    buf.put_i32(header.count);
+    (batch_start, batch_len_pos, crc_pos, crc_start)
 }
 
 pub(crate) fn finish_record_batch(
