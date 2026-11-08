@@ -16647,6 +16647,11 @@ async fn topic_description_from(t: &crate::protocol::api::TopicMetadata) -> Topi
     }
 }
 
+#[cfg(test)]
+std::thread_local! {
+    static DTP_ROW_YIELD_OBSERVER: std::cell::Cell<usize> = const { std::cell::Cell::new(0) };
+}
+
 // Carry the completed-row budget across pages, including a final row exactly
 // at the boundary. The iterator stops immediately after an unrequested row
 // so the caller can scan the remainder for a null name before returning it.
@@ -16670,6 +16675,8 @@ async fn convert_described_requested_page<'a>(
         *converted_rows += 1;
         if *converted_rows == 8 * 1024 {
             *converted_rows = 0;
+            #[cfg(test)]
+            DTP_ROW_YIELD_OBSERVER.with(|observed| observed.set(observed.get() + 1));
             tokio::task::yield_now().await;
         }
     }
