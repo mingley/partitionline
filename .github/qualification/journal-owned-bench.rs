@@ -1,3 +1,5 @@
+//! Matched release-mode journal workload measurement.
+
 use partitionline_broker::journal::{Journal, Limits};
 use std::{env, error::Error, fs, hint::black_box, path::PathBuf, time::Instant};
 
