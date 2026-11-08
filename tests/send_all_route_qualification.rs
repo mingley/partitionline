@@ -104,7 +104,7 @@ async fn maximum_topic_and_oversized_rejection() {
 struct P0(Arc<AtomicUsize>);
 impl Partitioner for P0 {
     fn partition(&self, _topic: &str, _key: Option<&[u8]>, _n: i32) -> i32 {
-        self.0.fetch_add(1, Ordering::SeqCst);
+        let _ = self.0.fetch_add(1, Ordering::SeqCst);
         0
     }
 }
