@@ -1,7 +1,7 @@
-name: sendall candidate Apache Kafka history
+name: sendall no-added-yield Apache Kafka history
 on:
   push:
-    branches: [qualification/sendall-real-kafka-20261108]
+    branches: [qualification/sendall-no-yield-real-20261108]
   workflow_dispatch:
 permissions:
   contents: read
@@ -17,7 +17,7 @@ jobs:
           set -euo pipefail
           mkdir -p evidence
           git rev-parse HEAD | tee evidence/commit.txt
-          test "$(git rev-parse HEAD:src/producer.rs)" = d634fa4752e33d77e042404f199f31ee2bcb1c48
+          test "$(git rev-parse HEAD:src/producer.rs)" = 650e34cca0cfa0bee9825ffc7d7da86514e28a31
           git rev-parse HEAD:src/producer.rs HEAD:tests/sendall_real_kafka.rs HEAD:tests/verify_sendall_real_kafka.py | tee evidence/source-blobs.txt
           sha256sum src/producer.rs tests/sendall_real_kafka.rs tests/verify_sendall_real_kafka.py Cargo.lock | tee evidence/source-sha256.txt
           rustc -Vv | tee evidence/rust.txt
@@ -71,6 +71,6 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: sendall-real-kafka-history
+          name: sendall-no-yield-real-kafka-history
           path: evidence
           retention-days: 30
