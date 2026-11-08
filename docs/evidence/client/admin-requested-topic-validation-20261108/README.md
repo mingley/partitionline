@@ -87,12 +87,35 @@ the full suites did not pass.
 | Default | 657 / 4 | `decoding_many_consumer_group_members_does_not_hold_the_caller` (98.622396 ms); `decoding_many_share_group_members_does_not_hold_the_caller` (103.339267 ms); `grouping_many_replica_dirs_does_not_hold_the_caller` (105.723794 ms); `indexing_many_coordinators_does_not_hold_the_caller` (121.705861 ms) |
 | All features | 657 / 4 | `decoding_many_delegation_tokens_does_not_hold_the_caller` (80.368156 ms); `grouping_many_named_results_does_not_hold_the_caller` (95.433503 ms); `indexing_many_coordinators_does_not_hold_the_caller` (186.831326 ms); `indexing_many_listed_offsets_does_not_hold_the_caller` (85.166865 ms) |
 
-The [matched whole-suite control][broad], [paired release timing][perf],
-and restored negative controls remain in progress. An [earlier
-matched-control attempt][broad-setup] failed before tests: fixture comparison
-reported a difference at byte 37789, line 1050. The corrected run copies
-the same fixture to both arms. Results from these remaining jobs must be
-recorded before this note is complete.
+## Matched full-suite comparison
+
+The [matched comparison][broad] ran four suites on one shared x86_64 AMD
+EPYC 9V45 runner, in the order shown below, with Rust 1.99.1. The workflow
+returned **failure**. Baseline source blob was
+`4d4212057984e47201b2bb1fe383ac2ae5a55562` and candidate source was
+`eb5a967b89e94a8a3d1a7598919accdfde96f20f`. Both arms used the identical
+compatibility test fixture `33d917cba15f1c0c5ed5646c277b0890a725938c`
+(SHA-256 `f11ee5fa7fa095e684e1ba0f7971b4fa2ea37c5ad5618251b93756fa3fbd2827`);
+it updates the old empty-name control to request an empty string and does
+not include the new permanent tests. The manifests and lockfile were
+identical as recorded in the run.
+
+| Order | Profile and arm | Passed / failed | Failed test (measured time) |
+| --- | --- | --- | --- |
+| 1 | Default baseline | 633 / 2 | `flattening_many_list_reassignments_does_not_hold_the_caller` (84.143988 ms); `grouping_many_named_results_does_not_hold_the_caller` (81.229789 ms) |
+| 2 | Default candidate | 633 / 2 | `grouping_many_named_results_does_not_hold_the_caller` (80.073845 ms); `indexing_many_coordinators_does_not_hold_the_caller` (88.175662 ms) |
+| 3 | All features candidate | 635 / 0 | None |
+| 4 | All features baseline | 632 / 3 | `decoding_many_share_group_members_does_not_hold_the_caller` (92.625747 ms); `grouping_many_named_results_does_not_hold_the_caller` (93.780793 ms); `indexing_many_coordinators_does_not_hold_the_caller` (144.736546 ms) |
+
+The matching fixture shows wall-time failures in both arms on the same
+runner; it does not establish their cause or turn the separately failed
+exact-test-blob suites into passes. An [earlier matched-control
+attempt][broad-setup] failed before tests: fixture comparison reported a
+difference at byte 37789, line 1050. The corrected run copied the same
+fixture to both arms.
+
+The [paired release timing][perf] and restored negative controls remain in
+progress. Their results must be recorded before this note is complete.
 
 ## Resource and compatibility limits
 
