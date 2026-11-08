@@ -11834,7 +11834,6 @@ mod tests {
         holder.await.unwrap();
     }
 
-
     struct ThirdDiscoveryMock {
         addr: String,
         finds: Arc<AtomicUsize>,
@@ -12006,9 +12005,11 @@ mod tests {
             0,
             |buf| encode_add_partitions_to_txn_request(buf, 0, "third", 7, 1, &topics),
             Duration::from_secs(5),
-            |body| Box::pin(async move {
-                decode_add_partitions_to_txn_response_cooperative(&mut { body }, 0).await
-            }),
+            |body| {
+                Box::pin(async move {
+                    decode_add_partitions_to_txn_response_cooperative(&mut { body }, 0).await
+                })
+            },
         )
         .await
     }
@@ -12023,14 +12024,23 @@ mod tests {
         *shared.txn.lock().await = Some(CoordinatorConnection {
             conn: old,
             init_producer_id_version: Some(3),
-            keys: vec![ApiVersion { api_key: ADD_PARTITIONS_TO_TXN, min_version: 0, max_version: 0 }],
+            keys: vec![ApiVersion {
+                api_key: ADD_PARTITIONS_TO_TXN,
+                min_version: 0,
+                max_version: 0,
+            }],
         });
         let body = third_discovery_add(&shared).await.unwrap();
         let mut input = body.as_ref();
-        assert_eq!(crate::protocol::txn::decode_add_partitions_to_txn_response(&mut input, 0).unwrap(), 0);
+        assert_eq!(
+            crate::protocol::txn::decode_add_partitions_to_txn_response(&mut input, 0).unwrap(),
+            0
+        );
         assert_eq!(mock.adds.load(Ordering::SeqCst), 2);
         assert!(mock.finds.load(Ordering::SeqCst) >= 1);
-        tokio::time::timeout(Duration::from_secs(3), mock.old_closed.notified()).await.unwrap();
+        tokio::time::timeout(Duration::from_secs(3), mock.old_closed.notified())
+            .await
+            .unwrap();
         assert!(mock.stop.send(()).is_ok());
         mock.server.await.unwrap();
     }
@@ -12042,7 +12052,10 @@ mod tests {
         assert!(shared.txn.lock().await.is_none());
         let body = third_discovery_add(&shared).await.unwrap();
         let mut input = body.as_ref();
-        assert_eq!(crate::protocol::txn::decode_add_partitions_to_txn_response(&mut input, 0).unwrap(), 0);
+        assert_eq!(
+            crate::protocol::txn::decode_add_partitions_to_txn_response(&mut input, 0).unwrap(),
+            0
+        );
         assert_eq!(mock.adds.load(Ordering::SeqCst), 1);
         assert!(mock.finds.load(Ordering::SeqCst) >= 1);
         assert!(shared.txn.lock().await.is_some());
