@@ -99,7 +99,7 @@ async fn public_batch_sequence_worker_cancellation() {
     tokio::time::timeout(LIMIT, gate::reached())
         .await
         .expect("worker did not reach the 8192-record stamp yield");
-    assert_eq!(gate::snapshot(), (1, COUNT, 8192));
+    assert_eq!(gate::snapshot(), (1, COUNT, 8192, true));
     assert_eq!(
         (producer.__test_producer_id(), producer.__test_producer_epoch()),
         identity
@@ -194,8 +194,16 @@ async fn public_batch_sequence_worker_cancellation() {
             Box::pin(producer.send(ProduceRecord::to("t").partition(0).value(&b"later000"[..])));
         assert!(poll_fn(|cx| Poll::Ready(later_delivery.as_mut().poll(cx))).await.is_pending());
         tokio::time::timeout(LIMIT, async {
-            while mock.produce_sequences().len() < 2 {
-                tokio::time::sleep(Duration::from_millis(1)).await;
+            tokio::select! {
+                biased;
+                () = async {
+                    while mock.produce_sequences().len() < 2 {
+                        tokio::time::sleep(Duration::from_millis(1)).await;
+                    }
+                } => {}
+                result = &mut later_delivery => {
+                    panic!("later delivery finished before mock observation: {result:?}");
+                }
             }
         })
         .await
