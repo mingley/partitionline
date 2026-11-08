@@ -1,0 +1,83 @@
+name: Admin slot-index cross-page and packaging controls
+on:
+  push:
+    branches: [qualification/admin-dtp-slot-crosspage-20261108]
+permissions:
+  contents: read
+  checks: write
+jobs:
+  cross-page:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    strategy:
+      fail-fast: false
+      matrix:
+        feature: [default, all]
+    env:
+      CARGO_INCREMENTAL: '0'
+      CARGO_TERM_COLOR: never
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Pin candidate and exercise cross-page public histories
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD:src/admin.rs)" = 8c2f94353e04c2925b1bfaf8478285190dd317d7
+          test "$(git rev-parse HEAD:src/admin/pagination_tests.rs)" = 2e08f39767cc49e42a4ca2e2cd9c9a9854279af5
+          git rev-parse HEAD HEAD:src/admin.rs HEAD:src/admin/pagination_tests.rs HEAD:Cargo.toml HEAD:Cargo.lock
+          rustc -Vv
+          if test "${{ matrix.feature }}" = all; then flags=--all-features; else flags=; fi
+          cargo test --locked $flags --lib dtp_slot_index_public_cross_page_cases -- --test-threads=1 | tee result.log
+          grep -F 'test result: ok. 1 passed; 0 failed;' result.log
+  lint:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    env:
+      CARGO_INCREMENTAL: '0'
+      CARGO_TERM_COLOR: never
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy,rustfmt
+      - name: Format and strict Clippy
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD:src/admin.rs)" = 8c2f94353e04c2925b1bfaf8478285190dd317d7
+          test "$(git rev-parse HEAD:src/admin/pagination_tests.rs)" = 2e08f39767cc49e42a4ca2e2cd9c9a9854279af5
+          cargo fmt --all -- --check
+          cargo clippy --locked --all-targets --all-features -- -D warnings
+  deny:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: EmbarkStudios/cargo-deny-action@v2
+        with:
+          command: check advisories licenses bans sources
+  audit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: rustsec/audit-check@v2.0.0
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+  package:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Package, extracted-crate consumer and publish dry run
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD:src/admin.rs)" = 8c2f94353e04c2925b1bfaf8478285190dd317d7
+          test "$(git rev-parse HEAD:Cargo.toml)" = 4a90b08ab3fb886676231310b1f7132e04e2cfbb
+          test "$(git rev-parse HEAD:Cargo.lock)" = 96e364d34121fe90183f87f4f49fd92b883bc447
+          cargo package --locked
+          tar -tzf target/package/partitionline-*.crate | sed -n '1,80p'
+          bash scripts/ci-crate-consumer.sh
+          cargo publish --dry-run --allow-dirty
