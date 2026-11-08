@@ -95,6 +95,12 @@ bc45. Separate build directories produced different binaries, whose SHA-256
 values were
 `714a558c7df6afde6fa5e27cacf69c51d19eb105f74531d908c9a685941c68f0` and
 `16aacaca991d64bf676c6eddd90c6eb2176ba373da622a586d4b35e5b3a1ed2d`.
+The timing driver SHA-256 was
+`51b5b5d5b595841e9179501bd59e9c1047a41d54a2f2f2f3304e94064b983076`,
+the mock fixture was
+`b3761d62c090d87251c1825e64ec468c5e092d22ca27fd4a690b46b7631fa5b1`,
+and both lockfiles were
+`bdc37c48feb0d7a17a1b08e70c5301ec30b9a90e64c93adaf28aef6b6f9f46bc`.
 The binaries were not retained. The [sample artifact][timing-artifact] has ID
 `13609867189` and SHA-256
 `e84e1bcc680662220575cbbbc4d2fb5380594feea7d15d244f6170f9f39b3aa5`.
