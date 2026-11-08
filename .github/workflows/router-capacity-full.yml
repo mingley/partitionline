@@ -1,0 +1,97 @@
+name: Combined broker capacity qualification
+on:
+  push:
+    branches: [qualification/router-capacity-full3-20261108]
+permissions:
+  contents: read
+env:
+  CARGO_BUILD_JOBS: "2"
+  CARGO_INCREMENTAL: "0"
+  CARGO_TERM_COLOR: never
+jobs:
+  behavioral:
+    name: broker behavior (${{ matrix.profile }})
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    strategy:
+      fail-fast: false
+      matrix:
+        profile: [default, all-features]
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: fea406c9b12e28e322cea966ebb34336fca48c81
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Verify exact source and run all targets
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "fea406c9b12e28e322cea966ebb34336fca48c81"
+          test -z "$(git status --porcelain)"
+          rustc --version --verbose
+          sha256sum partitionline-broker/src/{metadata,fetch,produce,protocol,transport}.rs tests/conformance/broker/implemented-api-versions.json
+          args=()
+          if [ "${{ matrix.profile }}" = all-features ]; then args+=(--all-features); fi
+          cargo test --locked --manifest-path partitionline-broker/Cargo.toml --all-targets "${args[@]}" 2>&1 | tee "$RUNNER_TEMP/broker-behavior.log"
+      - name: Preserve behavior output including failures
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: capacity-behavior-${{ matrix.profile }}
+          path: ${{ runner.temp }}/broker-behavior.log
+          if-no-files-found: warn
+          retention-days: 30
+  quality:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: fea406c9b12e28e322cea966ebb34336fca48c81
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - name: Exact source and format
+        run: |
+          test "$(git rev-parse HEAD)" = "fea406c9b12e28e322cea966ebb34336fca48c81"
+          cargo fmt --manifest-path partitionline-broker/Cargo.toml -- --check
+      - name: Strict all-feature broker Clippy
+        run: cargo clippy --locked --manifest-path partitionline-broker/Cargo.toml --all-targets --all-features -- -D warnings
+      - name: Strict all-feature Rustdoc
+        env:
+          RUSTDOCFLAGS: -D warnings
+        run: cargo doc --locked --manifest-path partitionline-broker/Cargo.toml --all-features --no-deps
+      - name: Strict default and all-feature doctests
+        env:
+          RUSTDOCFLAGS: -D warnings
+        run: |
+          cargo test --locked --manifest-path partitionline-broker/Cargo.toml --doc
+          cargo test --locked --manifest-path partitionline-broker/Cargo.toml --doc --all-features
+  inventory:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: fea406c9b12e28e322cea966ebb34336fca48c81
+          persist-credentials: false
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.13'
+      - name: Verify inventory and negative controls
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "fea406c9b12e28e322cea966ebb34336fca48c81"
+          python3 -B scripts/check-broker-api-matrix.py --report "$RUNNER_TEMP/api-matrix.json"
+          python3 -B -m unittest discover -s tests/ci -p test_broker_api_matrix.py -v
+      - name: Preserve inventory report
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: capacity-api-inventory
+          path: ${{ runner.temp }}/api-matrix.json
+          if-no-files-found: warn
+          retention-days: 30
