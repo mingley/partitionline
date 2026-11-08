@@ -1,0 +1,75 @@
+name: Record corpus path coverage
+on:
+  push:
+    branches:
+      - qualification/records-corpus-coverage-20261108
+permissions:
+  contents: read
+jobs:
+  coverage:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      CARGO_INCREMENTAL: "0"
+      CARGO_BUILD_JOBS: "2"
+      CARGO_TERM_COLOR: never
+      CARGO_PROFILE_DEV_DEBUG: "0"
+      CARGO_PROFILE_TEST_DEBUG: "0"
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 2
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Inject test-only path counters
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD^)" = a0fd44856104acf5449d2f1941d5747834c73ced
+          test "$(git rev-parse HEAD:partitionline-broker/src/records.rs)" = 3f94f4409eddc0b79bfbec307ad79a6562b80811
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path("partitionline-broker/src/records.rs")
+          text = p.read_text()
+          anchor = "    if let Some(prefix) = prefix {\n"
+          inject = """    if let Some(prefix) = prefix {
+              #[cfg(test)]
+              if prefix.completed > 0 {
+                  if prefix.complete
+                      && prefix.index == c.remaining().len()
+                      && (count == 0 || prefix.observed_max == max_time)
+                  {
+                      CORPUS_FAST.with(|n| n.set(n.get() + 1));
+                  } else {
+                      CORPUS_RESUME.with(|n| n.set(n.get() + 1));
+                  }
+              }
+          """
+          assert text.count(anchor) == 1
+          text = text.replace(anchor, inject)
+          anchor = "thread_local! {\n"
+          inject = """thread_local! {
+              static CORPUS_FAST: std::cell::Cell<usize> = const { std::cell::Cell::new(0) };
+              static CORPUS_RESUME: std::cell::Cell<usize> = const { std::cell::Cell::new(0) };
+          """
+          assert text.count(anchor) == 1
+          text = text.replace(anchor, inject)
+          anchor = "        assert!(resumed_prefix_cases > 0);\n"
+          inject = """        assert!(resumed_prefix_cases > 0);
+                  let fast = super::CORPUS_FAST.with(std::cell::Cell::get);
+                  let resumed = super::CORPUS_RESUME.with(std::cell::Cell::get);
+                  println!("PL_CORPUS_PATHS fast={fast} resumed={resumed}");
+                  assert!(fast > 0);
+                  assert!(resumed > 0);
+          """
+          assert text.count(anchor) == 1
+          p.write_text(text.replace(anchor, inject))
+          PY
+      - name: Require actual fast and resume paths in each profile
+        shell: bash
+        run: |
+          set -euo pipefail
+          for profile in default all-features; do
+            flags=()
+            if [ "$profile" = all-features ]; then flags+=(--all-features); fi
+            cargo +stable test --locked --manifest-path partitionline-broker/Cargo.toml "${flags[@]}" --lib records::tests::header_walk_deterministic_differential_corpus -- --exact --nocapture
+          done
