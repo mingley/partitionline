@@ -32,7 +32,11 @@ delivery behavior.
 A standalone
 [control](https://github.com/mingley/partitionline/actions/runs/42475049099)
 confirms an in-memory ordering difference on stable Rust 1.99.1 / LLVM 23.1.1
-for x86_64. With a fixed hasher and the three keys `(1,0), (2,0), (4,0)`,
+for x86_64, with rustc commit `58cf8f9c35b355199727627d07ae34a4e2846d67`.
+The matching Rust source [library lockfile](https://github.com/rust-lang/rust/blob/58cf8f9c35b355199727627d07ae34a4e2846d67/library/Cargo.lock)
+pins `hashbrown` 0.17.1 with checksum
+`ed5909b6e89a2db4456e54cd5f673791d7eca6732202bbf2a9cc504fe2f9b84a`.
+With a fixed hasher and the three keys `(1,0), (2,0), (4,0)`,
 inserting each key 8,192 times produced capacity 7 and iteration order
 `[(1,0), (2,0), (4,0)]`. Inserting each once produced capacity 3 and order
 `[(4,0), (1,0), (2,0)]`. A cloned `RandomState` instance also produced
