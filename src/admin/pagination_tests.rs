@@ -2790,3 +2790,90 @@ async fn dtp_slot_index_duplicate_at_full_capacity_does_not_grow() {
         [0, 1]
     );
 }
+
+async fn dtp_slot_public_cross_page_case(case: u8) {
+    let (mut admin, listener) = admin_and_listener().await;
+    let peer = tokio::spawn(async move {
+        let (mut socket, _) = listener.accept().await.unwrap();
+        socket.set_nodelay(true).unwrap();
+        let first = dtp_named_request(&mut socket, &["orders"], None).await;
+        let mut first_page = page(0, Some(("orders", 1)));
+        first_page.topics.extend((0..8190).map(|_| {
+            let mut topic = DescribedTopicPartitions::new("orders", 0);
+            topic.topic_id = [7; 16];
+            topic
+        }));
+        assert_eq!(first_page.topics.len(), 8191);
+        send_page(&mut socket, &first, &first_page).await.unwrap();
+
+        let second = dtp_named_request(&mut socket, &["orders"], Some(("orders", 1))).await;
+        let mut second_page = page(1, None);
+        match case {
+            0 => {}
+            1 => second_page.topics[0].topic_id = [8; 16],
+            2 => second_page
+                .topics
+                .push(DescribedTopicPartitions::new("unrequested", 0)),
+            3 => {
+                second_page
+                    .topics
+                    .push(DescribedTopicPartitions::new("unrequested", 0));
+                let mut unnamed = DescribedTopicPartitions::new("ignored", 0);
+                unnamed.name = None;
+                second_page.topics.push(unnamed);
+            }
+            _ => unreachable!(),
+        }
+        send_page(&mut socket, &second, &second_page).await.unwrap();
+        let raw = dtp_named_request(&mut socket, &["orders"], None).await;
+        send_page(&mut socket, &raw, &page(42, None)).await.unwrap();
+    });
+    let got = admin
+        .describe_topics_with_partition_limit_timeout(
+            ["orders"].iter(),
+            false,
+            1,
+            Duration::from_secs(15),
+        )
+        .await;
+    match case {
+        0 => {
+            let topics = got.unwrap();
+            assert_eq!(topics.len(), 1);
+            assert_eq!(topics[0].name, "orders");
+            assert_eq!(topics[0].topic_id, [7; 16]);
+            assert_eq!(topics[0].error_code, 0);
+            assert_eq!(
+                topics[0]
+                    .partitions
+                    .iter()
+                    .map(|partition| partition.partition)
+                    .collect::<Vec<_>>(),
+                [0, 1]
+            );
+        }
+        1 => assert!(matches!(&got, Err(Error::Protocol(message))
+            if message == "DescribeTopicPartitions returned different topic IDs for the same topic")),
+        2 => assert!(matches!(&got, Err(Error::Protocol(message))
+            if message == "DescribeTopicPartitions returned an unrequested topic")),
+        3 => assert!(matches!(&got, Err(Error::Unsupported(message))
+            if message == "cannot aggregate DescribeTopicPartitions without a topic name")),
+        _ => unreachable!(),
+    }
+    assert!(!admin.conn.is_closed());
+    let raw = admin
+        .describe_topic_partitions_timeout(&["orders"], 1, None, Duration::from_secs(5))
+        .await
+        .unwrap();
+    assert_eq!(raw.topics[0].partitions[0].partition_index, 42);
+    peer.await.unwrap();
+}
+
+// The first page populates the merge index with 8,191 rows. The first valid
+// row of page two reaches the cross-page conversion budget boundary.
+#[tokio::test(flavor = "current_thread")]
+async fn dtp_slot_index_public_cross_page_cases() {
+    for case in 0..4 {
+        dtp_slot_public_cross_page_case(case).await;
+    }
+}
