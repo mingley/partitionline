@@ -1229,7 +1229,10 @@ fn dtp_conversion_yields_on_the_exact_row_boundary() {
         } else {
             assert!(matches!(first, Poll::Pending));
             assert!(wake.0.load(Ordering::SeqCst) > 0);
-            assert!(matches!(future.as_mut().poll(&mut context), Poll::Ready(Ok(()))));
+            assert!(matches!(
+                future.as_mut().poll(&mut context),
+                Poll::Ready(Ok(()))
+            ));
         }
         drop(future);
         assert_eq!(budget, count % 8192);
@@ -1266,7 +1269,9 @@ fn dtp_conversion_yields_on_the_exact_row_boundary() {
         assert_eq!(page.len(), 8192);
         assert_eq!(budget, 0);
         assert!(out.is_empty());
-        assert!(page.iter().all(|row| row.authorized_operations == AUTHORIZED_OPERATIONS_OMITTED));
+        assert!(page
+            .iter()
+            .all(|row| row.authorized_operations == AUTHORIZED_OPERATIONS_OMITTED));
     }
 }
 
@@ -1289,20 +1294,36 @@ fn dtp_conversion_carries_the_row_budget_across_pages() {
     let mut context = Context::from_waker(&waker);
 
     let mut initial = Box::pin(convert_described_topic_page(
-        &first, false, &mut page, &mut out, deadline, &mut budget,
+        &first,
+        false,
+        &mut page,
+        &mut out,
+        deadline,
+        &mut budget,
     ));
-    assert!(matches!(initial.as_mut().poll(&mut context), Poll::Ready(Ok(()))));
+    assert!(matches!(
+        initial.as_mut().poll(&mut context),
+        Poll::Ready(Ok(()))
+    ));
     drop(initial);
     assert_eq!(budget, 8191);
     assert_eq!(page.len(), 8191);
 
     page.clear();
     let mut at_boundary = Box::pin(convert_described_topic_page(
-        &last, false, &mut page, &mut out, deadline, &mut budget,
+        &last,
+        false,
+        &mut page,
+        &mut out,
+        deadline,
+        &mut budget,
     ));
     assert!(at_boundary.as_mut().poll(&mut context).is_pending());
     assert!(wake.0.load(Ordering::SeqCst) > 0);
-    assert!(matches!(at_boundary.as_mut().poll(&mut context), Poll::Ready(Ok(()))));
+    assert!(matches!(
+        at_boundary.as_mut().poll(&mut context),
+        Poll::Ready(Ok(()))
+    ));
     drop(at_boundary);
     assert_eq!(budget, 0);
     assert_eq!(page.len(), 1);
@@ -1310,9 +1331,17 @@ fn dtp_conversion_carries_the_row_budget_across_pages() {
 
     page.clear();
     let mut after = Box::pin(convert_described_topic_page(
-        &next, false, &mut page, &mut out, deadline, &mut budget,
+        &next,
+        false,
+        &mut page,
+        &mut out,
+        deadline,
+        &mut budget,
     ));
-    assert!(matches!(after.as_mut().poll(&mut context), Poll::Ready(Ok(()))));
+    assert!(matches!(
+        after.as_mut().poll(&mut context),
+        Poll::Ready(Ok(()))
+    ));
     drop(after);
     assert_eq!(budget, 1);
     assert_eq!(page[0].name, "topic-00008192");
@@ -1343,7 +1372,12 @@ fn dtp_conversion_keeps_partition_yields_and_ignores_error_partitions() {
     let deadline = tokio::time::Instant::now() + Duration::from_secs(30);
 
     let mut future = Box::pin(convert_described_topic_page(
-        std::slice::from_ref(&topic), false, &mut page, &mut out, deadline, &mut budget,
+        std::slice::from_ref(&topic),
+        false,
+        &mut page,
+        &mut out,
+        deadline,
+        &mut budget,
     ));
     assert!(future.as_mut().poll(&mut context).is_pending());
     drop(future);
@@ -1351,10 +1385,18 @@ fn dtp_conversion_keeps_partition_yields_and_ignores_error_partitions() {
     assert_eq!(budget, 0);
 
     let mut future = Box::pin(convert_described_topic_page(
-        std::slice::from_ref(&topic), false, &mut page, &mut out, deadline, &mut budget,
+        std::slice::from_ref(&topic),
+        false,
+        &mut page,
+        &mut out,
+        deadline,
+        &mut budget,
     ));
     assert!(future.as_mut().poll(&mut context).is_pending());
-    assert!(matches!(future.as_mut().poll(&mut context), Poll::Ready(Ok(()))));
+    assert!(matches!(
+        future.as_mut().poll(&mut context),
+        Poll::Ready(Ok(()))
+    ));
     drop(future);
     assert_eq!(budget, 1);
     assert_eq!(page[0].partitions.len(), 8192);
@@ -1364,9 +1406,17 @@ fn dtp_conversion_keeps_partition_yields_and_ignores_error_partitions() {
     page.clear();
     topic.error_code = crate::error::TOPIC_AUTHORIZATION_FAILED;
     let mut future = Box::pin(convert_described_topic_page(
-        std::slice::from_ref(&topic), false, &mut page, &mut out, deadline, &mut budget,
+        std::slice::from_ref(&topic),
+        false,
+        &mut page,
+        &mut out,
+        deadline,
+        &mut budget,
     ));
-    assert!(matches!(future.as_mut().poll(&mut context), Poll::Ready(Ok(()))));
+    assert!(matches!(
+        future.as_mut().poll(&mut context),
+        Poll::Ready(Ok(()))
+    ));
     drop(future);
     assert_eq!(page[0].error_code, crate::error::TOPIC_AUTHORIZATION_FAILED);
     assert!(page[0].partitions.is_empty());
@@ -1396,7 +1446,12 @@ fn dtp_conversion_unnamed_after_checkpoint_keeps_error_and_deadline_rules() {
             tokio::time::Instant::now() + Duration::from_secs(30)
         };
         let mut future = Box::pin(convert_described_topic_page(
-            &topics, false, &mut page, &mut out, deadline, &mut budget,
+            &topics,
+            false,
+            &mut page,
+            &mut out,
+            deadline,
+            &mut budget,
         ));
         assert!(future.as_mut().poll(&mut context).is_pending());
         // Rejection cleanup may itself yield after visiting 8,192 descriptions.
