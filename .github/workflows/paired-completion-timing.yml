@@ -1,0 +1,52 @@
+name: paired completion draft timing
+
+on:
+  push:
+    branches: [qualification/completion-timing-20261108]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  paired:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          path: control
+      - uses: actions/checkout@v7
+        with:
+          ref: 4409633fa989effe1083e623f6e59fcc0d179eee
+          path: baseline
+      - uses: actions/checkout@v7
+        with:
+          ref: bc45ba4f65f126c406ff88a57fcfe08007d35b29
+          path: candidate
+      - uses: actions/checkout@v7
+        with:
+          ref: 8371f09924118dd8c3a8098d4b0f7ee8b6c66e6c
+          path: fixture
+          sparse-checkout: tests/common/mod.rs
+          sparse-checkout-cone-mode: false
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Host provenance
+        run: |
+          uname -a
+          lscpu | awk '/Architecture:|Model name:|CPU\(s\):/'
+          if [[ -r /sys/fs/cgroup/cpu.max ]]; then
+            cat /sys/fs/cgroup/cpu.max
+          else
+            printf '%s\n' 'cpu.max unavailable'
+          fi
+      - name: Run matched mock timing
+        run: python3 control/docs/evidence/client/producer-completion-draft-20261108/paired_timing.py
+      - name: Retain every sample
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: completion-timing-${{ github.run_id }}
+          path: completion-timing-results
+          if-no-files-found: warn
+          retention-days: 30
