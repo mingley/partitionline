@@ -3633,7 +3633,7 @@
   "fetch_source": "partitionline-broker/src/fetch.rs",
   "fetch_source_sha256": "0a35525b57e7cc6d83bb5ca82c544070126f8f2d1932b36e38525cf12a823e89",
   "fetch_test_source": "partitionline-broker/tests/fetch.rs",
-  "fetch_test_source_sha256": "f33dd42b768d8bdd1268bf5cdd419205a7f2e7fea65446e630a6581c32990aed",
+  "fetch_test_source_sha256": "0e5fd830937e85b8be40c6c4ab0a2797c118a3a44f47f681f04ff558dec53cd1",
   "fetch_fixture_root": "partitionline-broker/tests/fixtures/fetch",
   "fetch_fixtures_sha256": {
     "4.1.2/cases.tsv": "f80ab5cc0e21fb8ef35e3d2cf508a35234c2e8851d71e79e0233993b7a6319e5",
