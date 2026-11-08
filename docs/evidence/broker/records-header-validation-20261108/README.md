@@ -458,3 +458,13 @@ has GitHub-reported SHA-256
 `863907b7d9fd2690c43b07c3aebc04d23f9699bf774c7bd2b0e7a93cf1813140`.
 It includes the individual suite logs, exit codes and test-binary hashes; the
 archive was not independently downloaded.
+
+## Main broker CI after integration
+
+The [broker run at `e02c1b8`](../main-ci-e02-20261108/README.md) passed
+757 default-feature tests with three ignored. Its all-feature command stopped
+at 641 passed, one failed and three ignored when a before-failover
+CreateTopics request returned error 56 in the three-process metadata quorum
+test. Later targets and the broker job's Clippy, Rustdoc and doctests did not
+run. Inventory and fuzz supervision passed separately. The log does not
+establish the Create's outcome or the failure's cause.

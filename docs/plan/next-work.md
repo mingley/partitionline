@@ -34,10 +34,17 @@ A [leader-removal control](../evidence/broker/quorum-proposal-boundary-20261108/
 shows one pre-append refusal; it does not establish that every NotLeader is
 safe to retry.
 
-An unmerged Raft test candidate's [all-feature suite](https://github.com/mingley/partitionline/actions/runs/42454616584)
-timed out waiting for a stable leader in a five-node short-election fixture.
-After 15 seconds its sampled nodes were in term 163. The stage and cause are
-not established; the candidate remains unqualified.
+A [later broker run](../evidence/broker/main-ci-e02-20261108/README.md) at
+`e02c1b8` stopped on a distinct before-failover CreateTopics error 56.
+The test did not retain the error message, topic ID, internal token, target
+node or operation outcome. This failure is unresolved.
+
+The [Raft liveness investigation](../evidence/broker/raft-liveness-20261108/README.md)
+records a five-node short-election fixture that reached term 163 without a
+stable leader, a separate observer timeout and later controls. The failure
+did not recur in 27 fresh controls. Instrumented successful histories recorded
+87 full vote queues, but the capture changed timing and did not establish the
+failure's cause. The test candidate and instrumentation remain unapplied.
 
 The [coordinator repair](../evidence/client/group-coordinator-retirement-20261108/README.md)
 retires a known coordinator socket before replacement. Focused local controls
@@ -58,6 +65,13 @@ full broker test profiles, with the isolated descriptor diagnostics run
 separately. It adds descriptors and reference-count operations; process-wide
 descriptor limits and broader fault qualification remain open. The controls did
 not establish the cause of the earlier quorum failure.
+
+The [grouped journal reservation repair](../evidence/broker/grouped-journal-reservations-20261108/README.md)
+reserves the committed-index and staging-queue capacity before writing each
+grouped record. Combined with the record parser, it passed 761 default and 909
+all-feature tests, plus six separately run descriptor diagnostics. Later
+descriptor cloning can still fail after a write and requires reopen. The
+scoped benchmark was too noisy to establish a speedup.
 
 The [admission repair](../evidence/broker/fetch-owned-admission-20261108/README.md)
 retains data permits through actor-owned requests, waiting Fetches and
