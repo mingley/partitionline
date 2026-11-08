@@ -5864,7 +5864,12 @@ impl Admin {
     /// DescribeTopicPartitions and Metadata have no TimeoutMs; `timeout`
     /// is the RPC deadline. For DescribeTopicPartitions it also covers
     /// cooperative page encoding, decoding and aggregation across the cursor
-    /// loop.
+    /// loop. A topic's first reported error is retained and its partitions are
+    /// empty. Two successful pages with different nonzero topic IDs return a
+    /// client-side [`Error::Protocol`]; retry if the topic was recreated. A
+    /// zero ID is unknown, so it cannot establish that page's identity. The
+    /// returned ID of a successful description stays that of its first page.
+    /// Pages need not be a snapshot.
     pub async fn describe_topics_with_partition_limit_timeout<'a, S>(
         &mut self,
         topics: impl IntoIterator<Item = &'a S>,
@@ -14105,7 +14110,7 @@ impl Admin {
         tokio::time::timeout_at(deadline, async {
             let mut cursor: Option<TopicPartitionCursor> = None;
             let mut out: Vec<TopicDescription> = Vec::new();
-            let mut described: HashMap<String, usize> = HashMap::new();
+            let mut described = DescribedTopicIndex::new();
             loop {
                 let resp = self
                     .describe_topic_partitions_until(
@@ -14125,7 +14130,10 @@ impl Admin {
                         topic_description_from_dtp(topic, include_authorized_operations).await,
                     );
                 }
-                extend_described_topics(&mut out, &mut described, page).await;
+                if let Err(error) = extend_described_topics(&mut out, &mut described, page).await {
+                    let _remaining = dtp_remaining(deadline)?;
+                    return Err(error);
+                }
                 match resp.next_cursor {
                     Some(next) => cursor = Some(next),
                     None => {
@@ -16675,36 +16683,95 @@ async fn list_offset_topic_requests<'a>(
     groups
 }
 
-fn place_described_topic(
+// A zero topic ID means the broker did not supply an identity. Keep the
+// first nonzero ID separately from the public first-page description so that
+// later known IDs can still be compared after an unknown first page.
+type DescribedTopicIndex = HashMap<String, (usize, [u8; 16])>;
+
+async fn discard_described_partitions(partitions: &mut Vec<crate::PartitionInfo>) {
+    const CHUNK: usize = 8 * 1024;
+    while partitions.len() > CHUNK {
+        partitions.truncate(partitions.len() - CHUNK);
+        tokio::task::yield_now().await;
+    }
+    partitions.clear();
+}
+
+async fn place_described_topic(
     out: &mut Vec<TopicDescription>,
-    index: &mut HashMap<String, usize>,
-    desc: TopicDescription,
-) {
-    if let Some(&slot) = index.get(desc.name.as_str()) {
-        if let Some(existing) = out.get_mut(slot) {
-            existing.partitions.extend(desc.partitions);
+    index: &mut DescribedTopicIndex,
+    mut desc: TopicDescription,
+) -> Result<()> {
+    if let Some((slot, known_id)) = index.get_mut(desc.name.as_str()) {
+        if let Some(existing) = out.get_mut(*slot) {
+            if existing.error_code != 0 {
+                discard_described_partitions(&mut desc.partitions).await;
+            } else if desc.error_code != 0 {
+                discard_described_partitions(&mut existing.partitions).await;
+                *existing = desc;
+            } else {
+                if desc.topic_id != [0; 16] {
+                    if *known_id == [0; 16] {
+                        *known_id = desc.topic_id;
+                    } else if *known_id != desc.topic_id {
+                        discard_described_partitions(&mut desc.partitions).await;
+                        return Err(Error::protocol(
+                            "DescribeTopicPartitions returned different topic IDs for the same topic",
+                        ));
+                    }
+                }
+                existing.partitions.extend(desc.partitions);
+            }
         }
-        return;
+        return Ok(());
     }
     let slot = out.len();
-    let _previous = index.insert(desc.name.clone(), slot);
+    let _previous = index.insert(desc.name.clone(), (slot, desc.topic_id));
     out.push(desc);
+    Ok(())
 }
 
 async fn extend_described_topics(
     out: &mut Vec<TopicDescription>,
-    index: &mut HashMap<String, usize>,
+    index: &mut DescribedTopicIndex,
     incoming: Vec<TopicDescription>,
-) {
+) -> Result<()> {
     let mut walked = 0usize;
-    for desc in incoming {
-        place_described_topic(out, index, desc);
+    let mut incoming = incoming.into_iter();
+    let mut failure = None;
+    for desc in incoming.by_ref() {
+        if let Err(error) = place_described_topic(out, index, desc).await {
+            failure = Some(error);
+            break;
+        }
         walked = walked.saturating_add(1);
         if walked == 8 * 1024 {
             walked = 0;
             tokio::task::yield_now().await;
         }
     }
+    if let Some(error) = failure {
+        // This call returns no descriptions on an identity conflict. Release
+        // nested partition allocations cooperatively before returning it.
+        for mut desc in incoming {
+            discard_described_partitions(&mut desc.partitions).await;
+            walked = walked.saturating_add(1);
+            if walked == 8 * 1024 {
+                walked = 0;
+                tokio::task::yield_now().await;
+            }
+        }
+        for desc in out.iter_mut() {
+            discard_described_partitions(&mut desc.partitions).await;
+            walked = walked.saturating_add(1);
+            if walked == 8 * 1024 {
+                walked = 0;
+                tokio::task::yield_now().await;
+            }
+        }
+        return Err(error);
+    }
+    Ok(())
 }
 
 async fn unique_in_order<'a>(keys: &[&'a str]) -> Vec<&'a str> {
@@ -18055,11 +18122,11 @@ mod tests {
         let mut index = std::collections::HashMap::new();
         let mut short = Box::pin(extend_described_topics(&mut out, &mut index, small));
         let (state, wakes) = observed_poll(short.as_mut());
-        assert!(matches!(state, std::task::Poll::Ready(())));
+        assert!(matches!(state, std::task::Poll::Ready(Ok(()))));
         assert_eq!(wakes, 0);
         drop(short);
         assert_eq!(out.len(), 1);
-        assert_eq!(index.get("small"), Some(&0));
+        assert_eq!(index.get("small"), Some(&(0, [0; 16])));
 
         let make_topics = || -> Vec<TopicDescription> {
             (0..20_000)
@@ -18101,14 +18168,14 @@ mod tests {
             assert!(state.is_pending(), "poll {poll} finished without yielding");
             assert!(wakes > 0, "poll {poll} did not schedule another poll");
         }
-        finish_observed(long.as_mut());
+        finish_observed(long.as_mut()).unwrap();
         drop(long);
         assert_eq!(out.len(), 20_000);
         assert_eq!(index.len(), 20_000);
         assert_eq!(out.first().map(TopicDescription::name), Some("topic-0"));
         assert_eq!(out.last().map(TopicDescription::name), Some("topic-19999"));
-        assert_eq!(index.get("topic-0"), Some(&0));
-        assert_eq!(index.get("topic-19999"), Some(&19_999));
+        assert_eq!(index.get("topic-0"), Some(&(0, [0; 16])));
+        assert_eq!(index.get("topic-19999"), Some(&(19_999, [0; 16])));
     }
 
     #[tokio::test(flavor = "current_thread")]
@@ -18146,7 +18213,9 @@ mod tests {
         let other = TopicDescription::new("payments", [2; 16], false, 0, Vec::new());
         let mut out = Vec::new();
         let mut index = std::collections::HashMap::new();
-        extend_described_topics(&mut out, &mut index, vec![first, other, again]).await;
+        extend_described_topics(&mut out, &mut index, vec![first, other, again])
+            .await
+            .unwrap();
         assert_eq!(out.len(), 2);
         assert_eq!(out.first().map(|topic| topic.name.as_str()), Some("orders"));
         assert_eq!(
