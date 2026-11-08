@@ -1,0 +1,300 @@
+name: AddPartitions isolated live and focused qualification
+
+on:
+  push:
+    branches: [qualify/add-partitions-3f45fe6-20261108]
+    paths:
+      - .github/workflows/add-partitions-live-qualification.yml
+      - docs/evidence/client/add-partitions-live-20261108/**
+
+permissions:
+  contents: read
+
+concurrency:
+  group: add-partitions-qualification-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  qualify:
+    name: Frozen AddPartitions candidate (stable Rust, x86_64)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 300
+    env:
+      CARGO_BUILD_JOBS: '2'
+      CARGO_INCREMENTAL: '0'
+      CARGO_PROFILE_DEV_DEBUG: '0'
+      CARGO_PROFILE_TEST_DEBUG: '0'
+      CARGO_TERM_COLOR: never
+      PYTHONDONTWRITEBYTECODE: '1'
+    steps:
+      - name: Initialize failure evidence
+        timeout-minutes: 2
+        run: |
+          set -euo pipefail
+          export EVIDENCE_OUTPUT="$RUNNER_TEMP/add-partitions-qualification"
+          printf 'EVIDENCE_OUTPUT=%s\n' "$EVIDENCE_OUTPUT" >> "$GITHUB_ENV"
+          mkdir -p "$EVIDENCE_OUTPUT"
+          printf 'trigger_sha=%s\nrun_id=%s\nrun_attempt=%s\nrunner_arch=%s\n' \
+            "$GITHUB_SHA" "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT" "$RUNNER_ARCH" \
+            > "$EVIDENCE_OUTPUT/trigger.txt"
+          cat > "$RUNNER_TEMP/check-add-partitions-capacity.py" <<'PYCODE'
+          import json, os, shutil, sys, time
+          from pathlib import Path
+          floor = 1536 * 1024 * 1024
+          roots = [Path(os.environ['GITHUB_WORKSPACE']), Path(os.environ['RUNNER_TEMP']),
+                   Path(os.environ.get('CARGO_HOME', str(Path.home() / '.cargo'))),
+                   Path(os.environ.get('RUSTUP_HOME', str(Path.home() / '.rustup')))]
+          mounts = {}
+          for root in roots:
+              path = root.resolve()
+              while not path.exists():
+                  path = path.parent
+              mounts.setdefault(path.stat().st_dev, path)
+          free = {str(path): shutil.disk_usage(path).free for path in mounts.values()}
+          sample = {'context': sys.argv[1], 'unix_seconds': time.time(), 'free_bytes': free,
+                    'minimum_bytes': floor}
+          with (Path(os.environ['EVIDENCE_OUTPUT']) / 'preflight-capacity.jsonl').open('a') as out:
+              out.write(json.dumps(sample, sort_keys=True) + '\n')
+          print(json.dumps(sample, sort_keys=True))
+          if min(free.values()) < floor:
+              raise SystemExit('free space below 1.5 GiB floor')
+          PYCODE
+          python3 -B "$RUNNER_TEMP/check-add-partitions-capacity.py" initial
+      - name: Checkout frozen qualification capsule from the triggering commit
+        timeout-minutes: 10
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.sha }}
+          path: capsule
+          persist-credentials: false
+          sparse-checkout: |
+            docs/evidence/client/add-partitions-coverage-20261103
+      - name: Check capacity after capsule checkout
+        timeout-minutes: 2
+        run: python3 -B "$RUNNER_TEMP/check-add-partitions-capacity.py" after-capsule
+      - name: Checkout exact candidate base
+        timeout-minutes: 10
+        uses: actions/checkout@v7
+        with:
+          ref: 45cbff24de76490594970fc962cd04e7be9fafb1
+          path: base
+          persist-credentials: false
+          sparse-checkout: |
+            src
+            tests
+            examples
+            .cargo
+      - name: Check capacity after base checkout
+        timeout-minutes: 2
+        run: python3 -B "$RUNNER_TEMP/check-add-partitions-capacity.py" after-base
+      - name: Install latest stable Rust
+        timeout-minutes: 10
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - name: Check capacity after toolchain installation
+        timeout-minutes: 2
+        run: python3 -B "$RUNNER_TEMP/check-add-partitions-capacity.py" after-toolchain
+      - name: Verify and run the pinned qualification runner
+        timeout-minutes: 240
+        shell: bash
+        run: |
+          set -euo pipefail
+          capsule="$GITHUB_WORKSPACE/capsule/docs/evidence/client/add-partitions-coverage-20261103"
+          printf '%s  %s\n' \
+            4d4b5bf25e41a880b3ba47bc00bd69bebf034162b697768d6b24c7bee14e8747 \
+            "$capsule/qualify.py" | sha256sum --check - 2>&1 | tee "$EVIDENCE_OUTPUT/runner-pin.log"
+          python3 -B "$capsule/qualify.py" \
+            --checkout "$GITHUB_WORKSPACE/base" \
+            --patch "$capsule/candidate-v3.patch" \
+            --witness "$capsule/witness.rs" \
+            --output "$EVIDENCE_OUTPUT"
+      - name: Retain all attempts and failures
+        timeout-minutes: 15
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: add-partitions-v3-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ env.EVIDENCE_OUTPUT }}
+          if-no-files-found: error
+          retention-days: 30
+
+  kafka391:
+    name: Candidate on 3f45fe6 with Kafka 3.9.1 (stable Rust, x86_64)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    env:
+      CARGO_BUILD_JOBS: '2'
+      CARGO_INCREMENTAL: '0'
+      CARGO_PROFILE_DEV_DEBUG: '0'
+      CARGO_PROFILE_TEST_DEBUG: '0'
+      CARGO_TERM_COLOR: never
+      CARGO_TARGET_DIR: ${{ runner.temp }}/add-partitions-live-target
+      EVIDENCE_OUTPUT: ${{ runner.temp }}/add-partitions-live-evidence
+      PYTHONDONTWRITEBYTECODE: '1'
+    steps:
+      - name: Initialize evidence and check runner
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$EVIDENCE_OUTPUT"
+          printf 'trigger_sha=%s\nrun_id=%s\nrun_attempt=%s\nrunner_arch=%s\n' \
+            "$GITHUB_SHA" "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT" "$RUNNER_ARCH" | tee "$EVIDENCE_OUTPUT/trigger.txt"
+          test "$RUNNER_ARCH" = X64
+          df -h "$GITHUB_WORKSPACE" "$RUNNER_TEMP" | tee "$EVIDENCE_OUTPUT/free-space.txt"
+          test "$(df -Pk "$RUNNER_TEMP" | awk 'NR==2 {print $4}')" -gt 1572864
+      - name: Checkout qualification assets
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.sha }}
+          path: capsule
+          persist-credentials: false
+          sparse-checkout: |
+            docs/evidence/client/add-partitions-coverage-20261103
+            docs/evidence/client/add-partitions-live-20261108
+      - name: Checkout exact 3f45fe6 source
+        uses: actions/checkout@v7
+        with:
+          ref: 3f45fe6255e72abc6b0c4488bc13117779c50787
+          path: base
+          persist-credentials: false
+          sparse-checkout: |
+            src
+            tests
+            examples
+            .cargo
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - name: Apply candidate and check focused controls
+        timeout-minutes: 55
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$GITHUB_WORKSPACE/base"
+          capsule="$GITHUB_WORKSPACE/capsule/docs/evidence/client/add-partitions-coverage-20261103"
+          test "$(git rev-parse HEAD)" = 3f45fe6255e72abc6b0c4488bc13117779c50787
+          test -z "$(git status --porcelain)"
+          rustc +stable -vV | tee "$EVIDENCE_OUTPUT/rustc.txt"
+          cargo +stable -V | tee "$EVIDENCE_OUTPUT/cargo.txt"
+          sha256sum src/producer.rs src/protocol/txn.rs src/error.rs Cargo.lock "$capsule/candidate-v3.patch" "$capsule/witness.rs" | tee "$EVIDENCE_OUTPUT/input-pins.txt"
+          printf '%s  %s\n' eb7d6067c3c1e9e1ddfc8c3c140cfc16a889da250429a884c1805f41f13e38d1 src/producer.rs \
+            5e356bd2d7616354de4a3e60ebd23bd12104bc4a9d8a29cc65cbd258f38d8cfe "$capsule/candidate-v3.patch" \
+            539c1df76bc8114792699c09d65ff0986b1afddfbcc2803ec3cf115e783f4a6c "$capsule/witness.rs" | sha256sum --check -
+          git apply --check "$capsule/candidate-v3.patch"
+          git apply "$capsule/candidate-v3.patch"
+          printf '%s  %s\n' 8449efda125a37c7f24b36ff22cb1b5bc87e66de59b61f80121b082686929cf6 src/producer.rs | sha256sum --check -
+          sha256sum src/producer.rs | tee "$EVIDENCE_OUTPUT/candidate-source-sha256.txt"
+          git diff -- src/producer.rs > "$EVIDENCE_OUTPUT/applied.diff"
+          cp src/producer.rs "$RUNNER_TEMP/add-partitions-patched.rs"
+          cp "$capsule/witness.rs" src/producer/add_partitions_regression_witness.rs
+          printf '\n#[cfg(test)]\n#[path = "producer/add_partitions_regression_witness.rs"]\nmod add_partitions_regression_witness;\n' >> src/producer.rs
+          for features in default all; do
+            extra=''
+            if [[ "$features" = all ]]; then extra=--all-features; fi
+            log="$EVIDENCE_OUTPUT/focused-$features.log"
+            timeout 900 cargo +stable test --locked --lib $extra producer::add_partitions_validation_tests:: -- --nocapture 2>&1 | tee "$log"
+            grep -Eq '^test result: ok\. 6 passed; 0 failed; 0 ignored;' "$log"
+            log="$EVIDENCE_OUTPUT/mock-$features.log"
+            timeout 900 cargo +stable test --locked --lib $extra producer::add_partitions_regression_witness:: -- --nocapture 2>&1 | tee "$log"
+            grep -Eq '^test result: ok\. 2 passed; 0 failed; 0 ignored;' "$log"
+          done
+          cp "$RUNNER_TEMP/add-partitions-patched.rs" src/producer.rs
+          rm src/producer/add_partitions_regression_witness.rs
+          sha256sum src/producer.rs | tee "$EVIDENCE_OUTPUT/live-source-sha256.txt"
+          printf '%s  %s\n' 8449efda125a37c7f24b36ff22cb1b5bc87e66de59b61f80121b082686929cf6 src/producer.rs | sha256sum --check -
+          git diff --quiet -- src/protocol/txn.rs src/error.rs Cargo.lock
+          timeout 120 rustfmt +stable --edition 2021 --check src/producer.rs 2>&1 | tee "$EVIDENCE_OUTPUT/rustfmt.log"
+          timeout 900 cargo +stable clippy --locked --lib --all-features -- -D warnings 2>&1 | tee "$EVIDENCE_OUTPUT/clippy.log"
+      - name: Exercise one real multi-partition transaction
+        timeout-minutes: 35
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$GITHUB_WORKSPACE/base"
+          assets="$GITHUB_WORKSPACE/capsule/docs/evidence/client/add-partitions-live-20261108"
+          evidence="$EVIDENCE_OUTPUT"
+          test "$(sha256sum src/producer.rs | cut -d' ' -f1)" = 8449efda125a37c7f24b36ff22cb1b5bc87e66de59b61f80121b082686929cf6
+          proxy_pid=''
+          cleanup() {
+            docker logs addpart-kafka > "$evidence/kafka.log" 2>&1 || true
+            if [[ -n "$proxy_pid" ]]; then kill "$proxy_pid" 2>/dev/null || true; fi
+            docker rm -f addpart-kafka >/dev/null 2>&1 || true
+          }
+          trap cleanup EXIT
+          docker pull apache/kafka:3.9.1 2>&1 | tee "$evidence/docker-pull.log"
+          docker image inspect apache/kafka:3.9.1 --format '{{json .RepoDigests}} {{.Id}}' | tee "$evidence/image-id.txt"
+          docker run -d --name addpart-kafka --network host \
+            -e CLUSTER_ID=MkU3OEVBNTcwNTJENDM2Qk \
+            -e KAFKA_NODE_ID=1 \
+            -e KAFKA_PROCESS_ROLES=broker,controller \
+            -e KAFKA_CONTROLLER_QUORUM_VOTERS=1@127.0.0.1:9095 \
+            -e KAFKA_LISTENERS=CONTROLLER://127.0.0.1:9095,EXTERNAL://127.0.0.1:9093,INTERNAL://127.0.0.1:9094 \
+            -e KAFKA_ADVERTISED_LISTENERS=EXTERNAL://127.0.0.1:19092,INTERNAL://127.0.0.1:9094 \
+            -e KAFKA_LISTENER_SECURITY_PROTOCOL_MAP=CONTROLLER:PLAINTEXT,EXTERNAL:PLAINTEXT,INTERNAL:PLAINTEXT \
+            -e KAFKA_CONTROLLER_LISTENER_NAMES=CONTROLLER \
+            -e KAFKA_INTER_BROKER_LISTENER_NAME=INTERNAL \
+            -e KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR=1 \
+            -e KAFKA_OFFSETS_TOPIC_NUM_PARTITIONS=1 \
+            -e KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR=1 \
+            -e KAFKA_TRANSACTION_STATE_LOG_MIN_ISR=1 \
+            -e KAFKA_TRANSACTION_STATE_LOG_NUM_PARTITIONS=1 \
+            -e KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS=0 \
+            -e KAFKA_AUTO_CREATE_TOPICS_ENABLE=false \
+            apache/kafka:3.9.1 | tee "$evidence/container-id.txt"
+          ready=0
+          for attempt in $(seq 1 30); do
+            if timeout 8 docker exec addpart-kafka /opt/kafka/bin/kafka-broker-api-versions.sh --bootstrap-server 127.0.0.1:9094 > "$evidence/ready.log" 2>&1; then ready=1; break; fi
+            sleep 2
+          done
+          test "$ready" = 1
+          cat "$evidence/ready.log"
+          timeout 60 docker exec addpart-kafka /opt/kafka/bin/kafka-topics.sh \
+            --bootstrap-server 127.0.0.1:9094 --create --topic pl-add-coverage --partitions 2 --replication-factor 1 | tee "$evidence/create-topic.log"
+          python3 -B - "$assets/observe.py" <<'PYCODE'
+          import runpy, sys
+          m = runpy.run_path(sys.argv[1])
+          request = bytes.fromhex("0018 0003 00000007 0000 00 0274 0000000000000009 0002 02 0261 03 00000000 00000001 00 00")
+          response = bytes.fromhex("00000007 00 00000000 02 0261 03 00000000 0000 00 00000001 0000 00 00 00")
+          q, r = m["decode_request"](request), m["decode_response"](response)
+          assert q["correlation"] == r["correlation"] == 7
+          assert q["topics"] == [{"topic": "a", "partitions": [0, 1]}]
+          assert r["topics"] == [{"topic": "a", "partitions": [{"partition": 0, "error": 0}, {"partition": 1, "error": 0}]}]
+          print("v3 observer wire vector controls passed")
+          PYCODE
+          python3 -B "$assets/observe.py" --events "$evidence/wire.jsonl" > "$evidence/proxy.log" 2>&1 &
+          proxy_pid=$!
+          for attempt in $(seq 1 30); do
+            if grep -q listening "$evidence/proxy.log"; then break; fi
+            kill -0 "$proxy_pid"
+            sleep 1
+          done
+          grep -q listening "$evidence/proxy.log"
+          cp "$assets/witness.rs" examples/add_partitions_coverage_live.rs
+          timeout 900 cargo +stable run --locked --example add_partitions_coverage_live 2>&1 | tee "$evidence/client.log"
+          python3 -B "$assets/validate.py" "$evidence/wire.jsonl" | tee "$evidence/matched-wire.json"
+          state=0
+          for attempt in $(seq 1 20); do
+            if timeout 15 docker exec addpart-kafka /opt/kafka/bin/kafka-transactions.sh --bootstrap-server 127.0.0.1:9094 describe --transactional-id pl-add-coverage-391 > "$evidence/transaction-state.log" 2>&1 && grep -qw CompleteCommit "$evidence/transaction-state.log"; then state=1; break; fi
+            sleep 2
+          done
+          cat "$evidence/transaction-state.log"
+          test "$state" = 1
+          for partition in 0 1; do
+            timeout 45 docker exec addpart-kafka /opt/kafka/bin/kafka-console-consumer.sh \
+              --bootstrap-server 127.0.0.1:9094 --topic pl-add-coverage --partition "$partition" \
+              --from-beginning --max-messages 1 --timeout-ms 20000 \
+              --consumer-property isolation.level=read_uncommitted > "$evidence/readback-$partition.log" 2>&1
+            cat "$evidence/readback-$partition.log"
+          done
+          grep -Fx pl-add-coverage-zero "$evidence/readback-0.log"
+          grep -Fx pl-add-coverage-one "$evidence/readback-1.log"
+          sha256sum src/producer.rs "$assets/witness.rs" "$assets/observe.py" "$assets/validate.py" | tee "$evidence/final-source-and-witness-pins.txt"
+      - name: Retain live attempt
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: add-partitions-kafka391-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ env.EVIDENCE_OUTPUT }}
+          if-no-files-found: error
+          retention-days: 30
