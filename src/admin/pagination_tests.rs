@@ -1728,9 +1728,7 @@ async fn dtp_requested_names_cancel_during_deferred_index_keeps_socket_usable() 
             .await
             .unwrap();
         let raw = dtp_named_request(&mut socket, &["orders"], None).await;
-        send_page(&mut socket, &raw, &page(42, None))
-            .await
-            .unwrap();
+        send_page(&mut socket, &raw, &page(42, None)).await.unwrap();
     });
     let mut call = Box::pin(admin.describe_topics_with_partition_limit_timeout(
         names.iter(),
@@ -1846,15 +1844,26 @@ async fn dtp_requested_names_reordered_cursor_and_rows_preserve_pages() {
         .unwrap();
     peer.await.unwrap();
     assert_eq!(
-        result.iter().map(TopicDescription::name).collect::<Vec<_>>(),
+        result
+            .iter()
+            .map(TopicDescription::name)
+            .collect::<Vec<_>>(),
         ["topic-0", "topic-1", "topic-2"]
     );
     assert_eq!(
-        result[0].partitions().iter().map(|p| p.partition).collect::<Vec<_>>(),
+        result[0]
+            .partitions()
+            .iter()
+            .map(|p| p.partition)
+            .collect::<Vec<_>>(),
         [0, 4]
     );
     assert_eq!(
-        result[1].partitions().iter().map(|p| p.partition).collect::<Vec<_>>(),
+        result[1]
+            .partitions()
+            .iter()
+            .map(|p| p.partition)
+            .collect::<Vec<_>>(),
         [0, 1]
     );
 }

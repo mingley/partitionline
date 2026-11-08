@@ -16796,7 +16796,10 @@ impl<'a, T: AsRef<str>> RequestedDtpNames<'a, T> {
             return true;
         }
         if self.names.len() <= 8 {
-            return self.names.iter().any(|candidate| candidate.as_ref() == name);
+            return self
+                .names
+                .iter()
+                .any(|candidate| candidate.as_ref() == name);
         }
         let mut index = HashSet::with_capacity(self.names.len().min(32));
         index_requested_dtp_names(self.names, &mut index).await;
