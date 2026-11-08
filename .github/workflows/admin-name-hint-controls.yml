@@ -1,0 +1,39 @@
+name: Requested name hint draft controls
+on:
+  push:
+    branches: [work/admin-name-hint-controls-20261108]
+permissions:
+  contents: read
+jobs:
+  profiles:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        profile: [default, all]
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Run pagination controls
+        shell: bash
+        run: |
+          set -euo pipefail
+          rustc -Vv
+          git hash-object src/admin.rs src/admin/pagination_tests.rs
+          sha256sum src/admin.rs src/admin/pagination_tests.rs Cargo.lock
+          if [ "${{ matrix.profile }}" = all ]; then flags=--all-features; else flags=; fi
+          cargo test --locked $flags --lib admin::pagination_tests -- --nocapture
+  strict:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - name: Formatting and clippy
+        run: |
+          git hash-object src/admin.rs src/admin/pagination_tests.rs
+          cargo fmt --all -- --check
+          cargo clippy --locked --all-targets --all-features -- -D warnings
