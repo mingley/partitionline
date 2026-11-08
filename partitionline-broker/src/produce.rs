@@ -1156,6 +1156,75 @@ fn strictly_increasing_indexes(parts: &[Part]) -> bool {
     true
 }
 
+#[cfg(test)]
+std::thread_local! {
+    static DENSE_TEST_FORCE_FALLBACK: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
+    static DENSE_TEST_FORCED: std::cell::Cell<usize> = const { std::cell::Cell::new(0) };
+    static DENSE_TEST_SELECTED: std::cell::Cell<usize> = const { std::cell::Cell::new(0) };
+}
+
+// Dense, unordered partition lists initialize at most 4,096 u16 owner slots.
+// The allocator may reserve more. Sparse and negative indexes use the map path.
+fn mark_dense_partitions(parts: &[Part], first: &mut [bool], duplicated: &mut [bool]) -> bool {
+    const MAX_SLOTS: usize = 4096;
+    if parts.len() != first.len()
+        || parts.len() != duplicated.len()
+        || parts.len() > usize::from(u16::MAX)
+    {
+        return false;
+    }
+    let ceiling = parts.len().saturating_mul(2).min(MAX_SLOTS);
+    let mut max_index = None;
+    for part in parts {
+        let Ok(index) = usize::try_from(part.index) else {
+            return false;
+        };
+        if index >= ceiling {
+            return false;
+        }
+        max_index = Some(max_index.map_or(index, |maximum: usize| maximum.max(index)));
+    }
+    let Some(slots) = max_index.and_then(|maximum| maximum.checked_add(1)) else {
+        return false;
+    };
+    let mut owners = Vec::new();
+    #[cfg(test)]
+    if DENSE_TEST_FORCE_FALLBACK.with(|force| force.get()) {
+        DENSE_TEST_FORCED.with(|forced| forced.set(forced.get().saturating_add(1)));
+        return false;
+    }
+    if owners.try_reserve_exact(slots).is_err() {
+        return false;
+    }
+    owners.resize(slots, u16::MAX);
+    for (position, part) in parts.iter().enumerate() {
+        let Ok(index) = usize::try_from(part.index) else {
+            return false;
+        };
+        let Some(owner) = owners.get_mut(index) else {
+            return false;
+        };
+        if *owner == u16::MAX {
+            let Ok(position) = u16::try_from(position) else {
+                return false;
+            };
+            *owner = position;
+            let Some(flag) = first.get_mut(usize::from(position)) else {
+                return false;
+            };
+            *flag = true;
+        } else {
+            let Some(flag) = duplicated.get_mut(usize::from(*owner)) else {
+                return false;
+            };
+            *flag = true;
+        }
+    }
+    #[cfg(test)]
+    DENSE_TEST_SELECTED.with(|selected| selected.set(selected.get().saturating_add(1)));
+    true
+}
+
 fn short_topic_copies<'a>(
     topics: &'a [Topic],
     version: i16,
@@ -1912,17 +1981,21 @@ fn process_inner(
         if !unique_parts && !scan_parts {
             part_first = vec![false; topic.partitions.len()];
             part_duplicated = vec![false; topic.partitions.len()];
-            let mut part_owner: HashMap<i32, usize> = HashMap::new();
-            for (position, part) in topic.partitions.iter().enumerate() {
-                if let Some(earlier) = part_owner.get(&part.index).copied() {
-                    if let Some(flag) = part_duplicated.get_mut(earlier) {
-                        *flag = true;
+            if !mark_dense_partitions(&topic.partitions, &mut part_first, &mut part_duplicated) {
+                part_first.fill(false);
+                part_duplicated.fill(false);
+                let mut part_owner: HashMap<i32, usize> = HashMap::new();
+                for (position, part) in topic.partitions.iter().enumerate() {
+                    if let Some(earlier) = part_owner.get(&part.index).copied() {
+                        if let Some(flag) = part_duplicated.get_mut(earlier) {
+                            *flag = true;
+                        }
+                    } else {
+                        if let Some(flag) = part_first.get_mut(position) {
+                            *flag = true;
+                        }
+                        let _ = part_owner.insert(part.index, position);
                     }
-                } else {
-                    if let Some(flag) = part_first.get_mut(position) {
-                        *flag = true;
-                    }
-                    let _ = part_owner.insert(part.index, position);
                 }
             }
         }
@@ -2279,6 +2352,9 @@ impl Writer {
         }
     }
 }
+
+#[cfg(test)]
+mod dense_partition_tests;
 
 #[cfg(test)]
 mod tests {
