@@ -38,6 +38,13 @@ experiments, not production fixes. The draft stays off main.
   These results do not establish whether the draft, fixture timing, or another
   cause produced the failures.
 
+- A later [close-sealing draft run 42460603408][sealing-run] passed 14 focused
+  controls and 23 producer-cancellation tests in each feature mode. Both
+  modes then failed the same retained-backing test, with 4,096 buffered bytes
+  versus 4,097 captured accepted records; each had 7 passed, 1 failed and 1
+  ignored. Later retry and format checks were skipped. The snapshot assertion
+  alone does not prove a leaked reservation or identify the cause.
+
 ## Source review
 
 The following are interleavings derived from code inspection, not reproduced
@@ -140,6 +147,7 @@ the standalone model or the private helper witnesses.
 [draft-run]: https://github.com/mingley/partitionline/actions/runs/42460005132
 [public-run]: https://github.com/mingley/partitionline/actions/runs/42460321562
 [compile-run]: https://github.com/mingley/partitionline/actions/runs/42459658935
+[sealing-run]: https://github.com/mingley/partitionline/actions/runs/42460603408
 [assignment]: https://github.com/mingley/partitionline/blob/1036a393eb85f23032b935bf86862b7e98e36e14/src/producer.rs#L10429
 [response]: https://github.com/mingley/partitionline/blob/1036a393eb85f23032b935bf86862b7e98e36e14/src/producer.rs#L8670
 [close-source]: https://github.com/mingley/partitionline/blob/1036a393eb85f23032b935bf86862b7e98e36e14/src/producer.rs#L4215
