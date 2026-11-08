@@ -16733,6 +16733,11 @@ async fn list_offset_topic_requests<'a>(
 // hash so table growth does not need to rehash those names. A zero topic ID
 // means the broker did not supply an identity; keep the first nonzero ID
 // separately from the public first-page description.
+#[cfg(test)]
+std::thread_local! {
+    static DTP_MERGE_YIELD_OBSERVER: std::cell::Cell<usize> = const { std::cell::Cell::new(0) };
+}
+
 struct DescribedTopicEntry {
     hash: u64,
     slot: usize,
@@ -16883,7 +16888,11 @@ async fn extend_described_topics<S: BuildHasher>(
         walked = walked.saturating_add(1);
         if walked == 8 * 1024 {
             walked = 0;
+            #[cfg(test)]
+            DTP_MERGE_YIELD_OBSERVER.with(|observed| observed.set(observed.get() + 1));
             tokio::task::yield_now().await;
+            #[cfg(test)]
+            DTP_MERGE_YIELD_OBSERVER.with(|observed| observed.set(observed.get() + 1));
         }
     }
     if let Some(error) = failure {
