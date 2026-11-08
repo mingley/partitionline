@@ -32,6 +32,6 @@ jobs:
           PY
           sha256sum src/producer.rs
       - name: Default-feature handoff controls
-        run: cargo test --locked --lib producer::flush_waker_witness:: -- --nocapture --test-threads=1
+        run: cargo test --locked --lib flush_waker_witness -- --nocapture --test-threads=1
       - name: All-feature handoff controls
-        run: cargo test --locked --all-features --lib producer::flush_waker_witness:: -- --nocapture --test-threads=1
+        run: cargo test --locked --all-features --lib flush_waker_witness -- --nocapture --test-threads=1
