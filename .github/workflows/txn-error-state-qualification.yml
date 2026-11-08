@@ -50,7 +50,7 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p "$RUNNER_TEMP/txn-state-evidence"
-          export CARGO_TARGET_DIR="$RUNNER_TEMP/txn-state-target"
+          export CARGO_TARGET_DIR="$RUNNER_TEMP/txn-state-baseline-target"
           printf 'CARGO_TARGET_DIR=%s\n' "$CARGO_TARGET_DIR" >> "$GITHUB_ENV"
           test "$RUNNER_ARCH" = X64
           uname -a
@@ -175,6 +175,9 @@ jobs:
         run: |
           set -euo pipefail
           cd "$GITHUB_WORKSPACE/candidate"
+          export CARGO_TARGET_DIR="$RUNNER_TEMP/txn-state-candidate-target"
+          test ! -e "$CARGO_TARGET_DIR"
+          printf 'candidate_target=%s\n' "$CARGO_TARGET_DIR" | tee "$RUNNER_TEMP/txn-state-evidence/candidate-target.log"
           for mode in default all; do
             extra=''
             if [[ "$mode" = all ]]; then extra=--all-features; fi
