@@ -101,6 +101,17 @@ The reviewer inspected the same model behavior at `b0d069f`; the final
 commit changes a comment only. These are model histories and source-derived
 counterexamples, not proof that the public producer reached those schedules.
 
+To reproduce at the model commit from the repository root:
+
+```sh
+python3 -m py_compile tests/models/producer_owned_batch_model.py scripts/check_owned_batch_model_mutants.py
+python3 tests/models/producer_owned_batch_model.py
+python3 scripts/check_owned_batch_model_mutants.py
+```
+
+The model and runner live in the linked model commit; they are not part of
+the production producer.
+
 ## Smallest safe integration route
 
 Keep an isolated Rust branch until admission, batch selection, retries, terminal

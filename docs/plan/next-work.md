@@ -10,17 +10,20 @@ Production readiness and fastest-client/server claims remain unqualified.
 Client 0.1.0 is already published. The next client version must be at least
 0.2.0; broker and schema publication remain disabled.
 
-The latest complete recorded main [CI snapshot](../evidence/releases/main-ci-342e-20261108/README.md)
-is `342e7b90ee63d6824be2652b65d71be483ea6d16`. Client libraries reported
-2,290 passed and 21 failed on Linux default, 2,301 passed and 10 failed with
-all features, and 2,297 passed and 14 failed on both Windows and macOS arm64.
-Three Kafka compatibility jobs and both smoke jobs failed; resource-soak
-passed. The broker passed 794 default and 942 all-feature tests, with four
+The latest complete recorded main [CI snapshot](../evidence/releases/main-ci-a374-20261108/README.md)
+is `a3748caecae60a893de96c0700e1e5ab04854443`. Client libraries reported
+2,299 passed and 18 failed on Linux default, 2,295 passed and 22 failed with
+all features, 2,302 passed and 15 failed on Windows, and 2,307 passed and 10
+failed on macOS arm64. Three Kafka compatibility jobs and both smoke jobs
+failed. The broker passed 806 default and 954 all-feature tests, with four
 ignored per profile, plus strict checks, inventory and fuzz supervision. Both
 selected capability profiles passed; their archives were not independently
-inspected.
+inspected. The instruction counter had no baseline for this Rust version.
 
-A later [partial main run](../evidence/releases/main-ci-a0ad-partial-20261108/README.md)
+An [earlier complete snapshot](../evidence/releases/main-ci-342e-20261108/README.md)
+also failed client checks and passed both broker profiles.
+
+An earlier [partial main run](../evidence/releases/main-ci-a0ad-partial-20261108/README.md)
 at `a0ad79d` failed the Linux default library and three Kafka compatibility
 jobs; five other jobs were canceled. Its instruction and allocation gates
 failed before measurement because the codec benchmark lockfile was stale.
@@ -731,6 +734,13 @@ The default suite and a later all-feature candidate suite passed; an earlier
 candidate suite and the same-runner baseline suite failed separate Raft tests.
 Those failures remain unexplained. These measurements do not establish Kafka
 throughput or a ranking.
+
+An unapplied [dense Produce partition candidate](../evidence/broker/produce-dense-partition-20261108/README.md)
+reduced in-process time for large unordered requests to a missing topic in a
+paired x86 test. Small and sparse cases had mixed results; append samples with
+only two valid partitions were too noisy to establish a gain. The full broker
+suite was not run on the candidate, and a successful multi-partition workload
+is being measured separately.
 
 Run clean-commit client, broker and schema default/all-feature suites,
 all-target strict Clippy, formatting, rustdoc, package consumers and independent
