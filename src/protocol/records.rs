@@ -3507,6 +3507,28 @@ fn record_batch_size_in_bytes(records: &[Record], base_offset: Option<i64>) -> R
     buf::i32_from_usize(size)
 }
 
+// All widths come from u32/u64 varint encoders: at most 10 for a
+// timestamp and 5 for each other field. Their sum plus attributes is <= 31.
+// Only the payload lengths and header total need overflow checks.
+#[inline]
+fn checked_record_body_length(
+    ts_width: usize,
+    offset_width: usize,
+    key: &NullablePrefix,
+    value: &NullablePrefix,
+    header_width: usize,
+    headers_len: usize,
+) -> Result<i32> {
+    let fixed = 1 + ts_width + offset_width + key.width + value.width + header_width;
+    let body = key
+        .payload
+        .checked_add(value.payload)
+        .and_then(|n| n.checked_add(fixed))
+        .and_then(|n| n.checked_add(headers_len))
+        .ok_or_else(|| Error::protocol("record body size overflow"))?;
+    buf::i32_from_usize(body)
+}
+
 pub(crate) fn encode_record(
     buf: &mut BytesMut,
     rec: &EncodeRecord<'_>,
@@ -3525,17 +3547,14 @@ pub(crate) fn encode_record(
     let header_bits = buf::zigzag_bits_i32(header_count);
     let header_width = buf::unsigned_varint_size(header_bits);
     let headers_len = fill_header_wires(rec.headers, header_wires)?;
-    let body = 1usize
-        .checked_add(ts_width)
-        .and_then(|n| n.checked_add(offset_width))
-        .and_then(|n| n.checked_add(key.width))
-        .and_then(|n| n.checked_add(key.payload))
-        .and_then(|n| n.checked_add(value.width))
-        .and_then(|n| n.checked_add(value.payload))
-        .and_then(|n| n.checked_add(header_width))
-        .and_then(|n| n.checked_add(headers_len))
-        .ok_or_else(|| Error::protocol("record body size overflow"))?;
-    let body_len = buf::i32_from_usize(body)?;
+    let body_len = checked_record_body_length(
+        ts_width,
+        offset_width,
+        &key,
+        &value,
+        header_width,
+        headers_len,
+    )?;
     let body_bits = buf::zigzag_bits_i32(body_len);
     let body_width = buf::unsigned_varint_size(body_bits);
     buf::put_unsigned_varint_width(buf, body_bits, body_width);
@@ -5084,6 +5103,65 @@ fn read_bytes_varint<B: Buf>(buf: &mut B) -> Result<Option<Bytes>> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn record_body_length_matches_sequential_checked_additions() {
+        let lengths = [
+            0,
+            1,
+            127,
+            128,
+            65_536,
+            usize::try_from(i32::MAX).unwrap_or(usize::MAX),
+            usize::MAX.saturating_sub(31),
+            usize::MAX,
+        ];
+        for ts in [1, 10] {
+            for offset in [1, 5] {
+                for key_width in [1, 5] {
+                    for value_width in [1, 5] {
+                        for headers_width in [1, 5] {
+                            for key_len in lengths {
+                                for value_len in lengths {
+                                    for headers_len in lengths {
+                                        let key = NullablePrefix {
+                                            bits: 0,
+                                            width: key_width,
+                                            payload: key_len,
+                                        };
+                                        let value = NullablePrefix {
+                                            bits: 0,
+                                            width: value_width,
+                                            payload: value_len,
+                                        };
+                                        let reference = 1usize
+                                            .checked_add(ts)
+                                            .and_then(|n| n.checked_add(offset))
+                                            .and_then(|n| n.checked_add(key.width))
+                                            .and_then(|n| n.checked_add(key.payload))
+                                            .and_then(|n| n.checked_add(value.width))
+                                            .and_then(|n| n.checked_add(value.payload))
+                                            .and_then(|n| n.checked_add(headers_width))
+                                            .and_then(|n| n.checked_add(headers_len))
+                                            .ok_or_else(|| Error::protocol("record body size overflow"))
+                                            .and_then(buf::i32_from_usize);
+                                        let actual = checked_record_body_length(
+                                            ts, offset, &key, &value, headers_width, headers_len,
+                                        );
+                                        assert_eq!(
+                                            actual.map_err(|error| error.to_string()),
+                                            reference.map_err(|error| error.to_string()),
+                                            "widths={ts},{offset},{key_width},{value_width},{headers_width} lengths={key_len},{value_len},{headers_len}"
+                                        );
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
 
     fn put_be_i32(bytes: &mut [u8], at: i32, value: i32) {
         let at = usize::try_from(at).unwrap();

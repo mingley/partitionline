@@ -1,0 +1,105 @@
+name: Paired Kafka record encoding length arithmetic
+
+on:
+  push:
+    branches: [qualification/record-body-length-20261108]
+
+permissions:
+  contents: read
+
+jobs:
+  measure:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    env:
+      CARGO_INCREMENTAL: "0"
+      CARGO_BUILD_JOBS: "2"
+      CARGO_TERM_COLOR: never
+      PYTHONDONTWRITEBYTECODE: "1"
+      BASE_SHA: f092d69d43ebb300c756cca006f4964c9820e491
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 4
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+      - name: Pin sources and host
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(uname -m)" = x86_64
+          git merge-base --is-ancestor "$BASE_SHA" HEAD
+          git diff --exit-code "$BASE_SHA" HEAD -- Cargo.toml Cargo.lock src ':!src/protocol/records.rs'
+          evidence="$RUNNER_TEMP/record-body-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
+          mkdir "$evidence"
+          printf 'EVIDENCE=%s\n' "$evidence" >> "$GITHUB_ENV"
+          git rev-parse HEAD "$BASE_SHA" | tee "$evidence/commits.txt"
+          git diff "$BASE_SHA" HEAD -- src/protocol/records.rs > "$evidence/production.patch"
+          sha256sum Cargo.lock src/protocol/records.rs examples/bench_record_body.rs \
+            benchmarks/record-body/measure.py .github/workflows/record-body-length.yml > "$evidence/source-sha256.txt"
+          git show "$BASE_SHA:src/protocol/records.rs" | sha256sum > "$evidence/baseline-source-sha256.txt"
+          rustc +stable -Vv | tee "$evidence/rustc.txt"
+          cargo +stable -V | tee "$evidence/cargo.txt"
+          uname -a | tee "$evidence/uname.txt"
+          lscpu | tee "$evidence/lscpu.txt"
+          taskset -cp $$ | tee "$evidence/affinity.txt"
+          if [ -r /sys/fs/cgroup/cpu.max ]; then cat /sys/fs/cgroup/cpu.max > "$evidence/cpu-max.txt"; else echo unavailable > "$evidence/cpu-max.txt"; fi
+          read -r cpu < <(python3 -c 'import os; print(min(os.sched_getaffinity(0)))')
+          echo "BENCH_CPU=$cpu" >> "$GITHUB_ENV"
+      - name: Candidate overflow and record correctness
+        shell: bash
+        run: |
+          set -euo pipefail
+          if ! rustfmt +stable --edition 2021 --check src/protocol/records.rs > "$EVIDENCE/rustfmt.log" 2>&1; then
+            cat "$EVIDENCE/rustfmt.log"
+            rustfmt +stable --edition 2021 src/protocol/records.rs
+            git diff -- src/protocol/records.rs > "$EVIDENCE/formatted.patch"
+            cat "$EVIDENCE/formatted.patch"
+            exit 1
+          fi
+          cargo +stable test --locked --lib record_body_length_matches_sequential_checked_additions \
+            2>&1 | tee "$EVIDENCE/body-overflow-tests.log"
+          cargo +stable test --locked --lib protocol::records::tests \
+            2>&1 | tee "$EVIDENCE/record-tests.log"
+      - name: Build identical benchmark fixture for both source trees
+        shell: bash
+        run: |
+          set -euo pipefail
+          git worktree add --detach "$RUNNER_TEMP/encode-base" "$BASE_SHA"
+          cp examples/bench_record_body.rs "$RUNNER_TEMP/encode-base/examples/bench_record_body.rs"
+          export CARGO_TARGET_DIR="$RUNNER_TEMP/record-target"
+          cargo +stable build --locked --release --example bench_record_body --manifest-path "$RUNNER_TEMP/encode-base/Cargo.toml" \
+            2>&1 | tee "$EVIDENCE/build-baseline.log"
+          cp "$CARGO_TARGET_DIR/release/examples/bench_record_body" "$RUNNER_TEMP/encode-baseline"
+          cargo +stable build --locked --release --example bench_record_body \
+            2>&1 | tee "$EVIDENCE/build-candidate.log"
+          cp "$CARGO_TARGET_DIR/release/examples/bench_record_body" "$RUNNER_TEMP/encode-candidate"
+          sha256sum "$RUNNER_TEMP/encode-baseline" "$RUNNER_TEMP/encode-candidate" | tee "$EVIDENCE/binary-sha256.txt"
+          cmp examples/bench_record_body.rs "$RUNNER_TEMP/encode-base/examples/bench_record_body.rs"
+      - name: Compare full encoded batches and exact failures
+        shell: bash
+        run: |
+          set -euo pipefail
+          taskset -c "$BENCH_CPU" "$RUNNER_TEMP/encode-baseline" corpus "$EVIDENCE/baseline-corpus.bin" \
+            2> "$EVIDENCE/baseline-corpus.log"
+          taskset -c "$BENCH_CPU" "$RUNNER_TEMP/encode-candidate" corpus "$EVIDENCE/candidate-corpus.bin" \
+            2> "$EVIDENCE/candidate-corpus.log"
+          cat "$EVIDENCE/baseline-corpus.log" "$EVIDENCE/candidate-corpus.log"
+          cmp "$EVIDENCE/baseline-corpus.bin" "$EVIDENCE/candidate-corpus.bin"
+          sha256sum "$EVIDENCE/baseline-corpus.bin" "$EVIDENCE/candidate-corpus.bin" | tee "$EVIDENCE/corpus-sha256.txt"
+      - name: Paired whole-batch measurements
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 benchmarks/record-body/measure.py "$RUNNER_TEMP/encode-baseline" "$RUNNER_TEMP/encode-candidate" \
+            "$BENCH_CPU" "$EVIDENCE/measurements.json" 2>&1 | tee "$EVIDENCE/measure.log"
+      - name: Retain inputs, failures and measurements
+        if: always() && env.EVIDENCE != ''
+        uses: actions/upload-artifact@v7
+        with:
+          name: record-body-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ env.EVIDENCE }}
+          if-no-files-found: error
+          retention-days: 30
