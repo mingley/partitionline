@@ -1,0 +1,82 @@
+name: bounded disposable quorum Delete diagnostic
+on:
+  push:
+    branches: [qualification/quorum-delete-56-diag-20261108]
+permissions:
+  contents: read
+jobs:
+  diagnostic:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      CARGO_INCREMENTAL: "0"
+      CARGO_BUILD_JOBS: "2"
+      CARGO_TERM_COLOR: never
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          fetch-depth: 2
+          sparse-checkout: |
+            partitionline-broker
+            tools
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Capture pinned parent, instrumented source and host
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p evidence
+          test "$(git rev-parse HEAD^)" = c471f5eb0d7b92959e23e5880e35109060bff5d2
+          {
+            date -u
+            uname -a
+            lscpu
+            rustc +stable --version --verbose
+            cargo +stable --version --verbose
+            git rev-parse HEAD
+            git rev-parse HEAD^
+            git diff --name-status HEAD^ HEAD
+            printf 'CARGO_INCREMENTAL=%s\nCARGO_BUILD_JOBS=%s\n' "$CARGO_INCREMENTAL" "$CARGO_BUILD_JOBS"
+          } | tee evidence/provenance.txt
+          git show HEAD^:partitionline-broker/src/catalog.rs | sha256sum | tee evidence/parent-catalog-sha256.txt
+          git show HEAD^:partitionline-broker/src/metadata_quorum.rs | sha256sum | tee evidence/parent-metadata-quorum-sha256.txt
+          git show HEAD^:partitionline-broker/src/raft/runtime.rs | sha256sum | tee evidence/parent-runtime-sha256.txt
+          sha256sum partitionline-broker/Cargo.toml partitionline-broker/src/catalog.rs partitionline-broker/src/metadata_quorum.rs partitionline-broker/src/raft/runtime.rs tools/quorum-delete-diagnostic.py | tee evidence/instrumented-source-sha256.txt
+      - name: Build opt-in diagnostic operator with all existing features
+        shell: bash
+        run: |
+          set -euo pipefail
+          CARGO_TARGET_DIR="$GITHUB_WORKSPACE/target/qd" cargo +stable build --locked --all-features --manifest-path partitionline-broker/Cargo.toml --bin operator 2>&1 | tee evidence/build.log
+          sha256sum target/qd/debug/operator | tee evidence/operator-sha256.txt
+      - name: One disposable failover scenario and one never-retried Delete
+        shell: bash
+        run: |
+          set -euo pipefail
+          export QD_EVIDENCE="$GITHUB_WORKSPACE/evidence"
+          export QD_OPERATOR="$GITHUB_WORKSPACE/target/qd/debug/operator"
+          timeout 300 python3 -u tools/quorum-delete-diagnostic.py 2>&1 | tee evidence/scenario.log
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          r = json.loads(Path("evidence/result.json").read_text())
+          print("DIAGNOSTIC_RESULT", json.dumps(r, sort_keys=True))
+          if not r.get("all_processes_and_captures_joined"):
+              raise SystemExit("INCOMPLETE: one or more processes or capture threads not joined")
+          if r.get("delete_attempts") != 1:
+              raise SystemExit("INCOMPLETE: did not reach the one intended fresh Delete")
+          if r.get("diagnostic_bytes_dropped"):
+              raise SystemExit("INCOMPLETE: bounded stream capture dropped bytes")
+          if r.get("snapshot_parse_errors") or r.get("snapshot_hash_changes"):
+              raise SystemExit("INCOMPLETE: raw copy parse failure or changed copy")
+          if r.get("minority_proposal_admission") != "confirmed":
+              print("MINORITY_CONTROL_UNPROVEN: no matching owner append success")
+          print("NOTE: captured results describe one synthetic fixture, not the original ambiguous operation")
+          PY
+      - name: Retain partial or complete diagnostics
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: disposable-quorum-delete-diagnostic
+          path: evidence/
+          if-no-files-found: warn
+          retention-days: 30

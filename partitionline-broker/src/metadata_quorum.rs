@@ -650,6 +650,17 @@ impl Application {
     }
 }
 
+
+/// Qualification-only, opt-in, bounded command and exact-result trace.
+#[cfg(feature = "quorum-diagnostic")]
+pub(crate) fn diagnostic(stage: &str, command: &[u8], detail: &impl std::fmt::Debug) {
+    if std::env::var_os("PL_QUORUM_DIAGNOSTIC").is_none() {
+        return;
+    }
+    let command_hex: String = command.iter().map(|b| format!("{b:02x}")).collect();
+    eprintln!("QDIAG\tstage={stage}\tcommand={command_hex}\tdetail={detail:?}");
+}
+
 /// Exclusive blocking application owner borrowing an existing runtime authority.
 ///
 /// `open` refreshes every old application receipt before returning a readable
@@ -793,22 +804,40 @@ impl QuorumCatalog {
     /// Execute within the earlier caller/application deadline; it is never renewed.
     pub fn execute_until(&mut self, command: &Command, outer: Instant) -> Result<Receipt, Error> {
         let deadline = outer.min(Instant::now() + self.deadline);
-        self.refresh_until(deadline)?;
-        if let Some(receipt) = self.application.lookup(command.bytes())? {
+        #[cfg(feature = "quorum-diagnostic")]
+        diagnostic("execute_enter", command.bytes(), &deadline);
+        let before = self.refresh_until(deadline);
+        #[cfg(feature = "quorum-diagnostic")]
+        diagnostic("refresh_before", command.bytes(), &before);
+        before?;
+        let existing = self.application.lookup(command.bytes());
+        #[cfg(feature = "quorum-diagnostic")]
+        diagnostic("lookup_before", command.bytes(), &existing);
+        if let Some(receipt) = existing? {
             return Ok(receipt);
         }
         let mut payload = Vec::new();
-        payload
-            .try_reserve_exact(command.bytes.len())
-            .map_err(|_| Error::Allocation)?;
+        let reserved = payload.try_reserve_exact(command.bytes.len());
+        #[cfg(feature = "quorum-diagnostic")]
+        diagnostic("payload_reserve", command.bytes(), &reserved);
+        reserved.map_err(|_| Error::Allocation)?;
         payload.extend_from_slice(&command.bytes);
-        let position = self.source_until(deadline, self.source.propose(payload))?;
-        self.source_until(deadline, self.source.wait_committed(position))?;
-        self.refresh_until(deadline)?;
-        let receipt = self
-            .application
-            .lookup(command.bytes())?
-            .ok_or(Error::SourceMismatch)?;
+        let proposed = self.source_until(deadline, self.source.propose(payload));
+        #[cfg(feature = "quorum-diagnostic")]
+        diagnostic("propose_result", command.bytes(), &proposed);
+        let position = proposed?;
+        let committed = self.source_until(deadline, self.source.wait_committed(position));
+        #[cfg(feature = "quorum-diagnostic")]
+        diagnostic("wait_committed_result", command.bytes(), &committed);
+        committed?;
+        let after = self.refresh_until(deadline);
+        #[cfg(feature = "quorum-diagnostic")]
+        diagnostic("refresh_after", command.bytes(), &after);
+        after?;
+        let found = self.application.lookup(command.bytes());
+        #[cfg(feature = "quorum-diagnostic")]
+        diagnostic("receipt_lookup", command.bytes(), &found);
+        let receipt = found?.ok_or(Error::SourceMismatch)?;
         // Concurrent retry can have committed an earlier appearance. Either
         // receipt still binds this exact token/bytes; do not claim the later copy
         // made a second catalog mutation.

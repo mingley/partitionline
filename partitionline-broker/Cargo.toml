@@ -9,6 +9,8 @@ description = "Experimental Rust Kafka broker; production qualification tracked 
 
 [features]
 default = []
+# Diagnostic-only event hooks; active only with PL_QUORUM_DIAGNOSTIC set.
+quorum-diagnostic = []
 tls = ["dep:rustls", "dep:rustls-webpki", "dep:tokio-rustls"]
 sasl = ["dep:ctutils", "dep:base64", "dep:hmac", "dep:pbkdf2", "dep:sha2", "dep:zeroize"]
 oidc = ["sasl", "tls", "dep:ring", "dep:serde", "dep:serde_json", "dep:hyper", "dep:hyper-util", "dep:http-body-util", "dep:http"]

@@ -768,6 +768,17 @@ struct Delivered {
     _permit: Option<AdmissionPermit>,
     _transport: Option<Arc<AdmissionPermit>>,
 }
+#[cfg(feature = "quorum-diagnostic")]
+fn diagnostic_owner(stage: &str, command: &[u8], detail: &impl std::fmt::Debug) {
+    if std::env::var_os("PL_QUORUM_DIAGNOSTIC").is_none()
+        || !command.starts_with(b"PLMETCMD")
+    {
+        return;
+    }
+    let command_hex: String = command.iter().map(|b| format!("{b:02x}")).collect();
+    eprintln!("QDIAG\tstage={stage}\tcommand={command_hex}\tdetail={detail:?}");
+}
+
 enum Command {
     Tick,
     State,
@@ -1206,12 +1217,22 @@ impl Owner {
             Command::State => Ok(Reply::State(self.node.state())),
             Command::Voters => Ok(Reply::Voters(self.node.voters()?.clone())),
             Command::Propose(bytes) => {
-                let index = self.node.propose(&bytes, now)?;
+                #[cfg(feature = "quorum-diagnostic")]
+                diagnostic_owner("owner_before_propose", &bytes, &self.node.state());
+                let proposed = self.node.propose(&bytes, now);
+                #[cfg(feature = "quorum-diagnostic")]
+                diagnostic_owner("owner_propose_result", &bytes, &(&proposed, self.node.state()));
+                let index = proposed?;
                 let term = self.node.term_at(index)?.ok_or(Error::Peer)?;
                 Ok(Reply::Position(LogPosition { term, index }))
             }
             Command::Position(p) => {
-                if self.node.term_at(p.index)? != Some(p.term) {
+                let actual = self.node.term_at(p.index)?;
+                if actual != Some(p.term) {
+                    #[cfg(feature = "quorum-diagnostic")]
+                    if std::env::var_os("PL_QUORUM_DIAGNOSTIC").is_some() {
+                        eprintln!("QDIAG\tstage=position_mismatch\texpected={p:?}\tactual={actual:?}\tstate={:?}", self.node.state());
+                    }
                     return Err(Error::PositionMismatch);
                 }
                 Ok(Reply::Visible(self.node.state().committed_end >= p.index))

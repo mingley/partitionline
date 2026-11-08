@@ -446,13 +446,26 @@ impl Catalog {
         match &mut self.inner {
             Backend::Local(inner) => inner.delete(id).map(|_| ()),
             Backend::Quorum(inner) => {
-                let token = fresh_request_id()?;
-                let command =
-                    crate::metadata_quorum::Command::delete(token, id).map_err(quorum_error)?;
-                let receipt = inner
-                    .execute_until(&command, tokio::time::Instant::from_std(until))
-                    .map_err(quorum_error)?;
-                outcome(receipt.outcome)
+                let token_result = fresh_request_id();
+                #[cfg(feature = "quorum-diagnostic")]
+                if std::env::var_os("PL_QUORUM_DIAGNOSTIC").is_some() {
+                    eprintln!("QDIAG\tstage=delete_token\ttarget={:?}\tdetail={token_result:?}", id.bytes());
+                }
+                let token = token_result?;
+                let command_result = crate::metadata_quorum::Command::delete(token, id);
+                #[cfg(feature = "quorum-diagnostic")]
+                if std::env::var_os("PL_QUORUM_DIAGNOSTIC").is_some() {
+                    eprintln!("QDIAG\tstage=delete_command\ttoken={:?}\ttarget={:?}\tdetail={command_result:?}", token.bytes(), id.bytes());
+                }
+                let command = command_result.map_err(quorum_error)?;
+                let result = inner.execute_until(&command, tokio::time::Instant::from_std(until));
+                #[cfg(feature = "quorum-diagnostic")]
+                crate::metadata_quorum::diagnostic("catalog_execute_result", command.bytes(), &result);
+                let receipt = result.map_err(quorum_error)?;
+                let result = outcome(receipt.outcome);
+                #[cfg(feature = "quorum-diagnostic")]
+                crate::metadata_quorum::diagnostic("catalog_outcome", command.bytes(), &result);
+                result
             }
         }
     }
