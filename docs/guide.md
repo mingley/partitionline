@@ -754,7 +754,7 @@ stops workers; a successful `close` does not replace a delivery result.
 | After send / before ack | in flight to the broker; drop `send` future | **Ambiguous** |
 | After broker ack | `Ok(RecordMetadata)` from `send`, with `acks=1` or `all` | **Acknowledged.** `acks=0` cannot prove an offset. |
 | After `close` / `close_timeout` returns | a new `send` or `try_send` on any clone | **Failed** with `Error::Closed` (`send` fails when polled) |
-| `close_timeout` with outstanding work | The deadline expires before the work drains | Close reports `Error::Timeout`; a pending delivery can return `Timeout` or `Closed`. A record already transmitted stays ambiguous. |
+| `close_timeout` with outstanding work | The flush reaches its deadline | Close reports `Error::Timeout`; a pending delivery can return `Timeout` or `Closed`. A record already transmitted stays ambiguous. |
 | A later send after an ambiguous result | The earlier per-record receipt is missing | Can duplicate the record, including when idempotence was on. |
 
 Call `close` or `close_timeout` instead of dropping the last `Producer`.
