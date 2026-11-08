@@ -10,15 +10,21 @@ Production readiness and fastest-client/server claims remain unqualified.
 Client 0.1.0 is already published. The next client version must be at least
 0.2.0; broker and schema publication remain disabled.
 
-The latest complete recorded main [CI snapshot](../evidence/releases/main-ci-a374-20261108/README.md)
-is `a3748caecae60a893de96c0700e1e5ab04854443`. Client libraries reported
-2,299 passed and 18 failed on Linux default, 2,295 passed and 22 failed with
-all features, 2,302 passed and 15 failed on Windows, and 2,307 passed and 10
+The latest complete recorded main [CI snapshot](../evidence/releases/main-ci-d314-20261108/README.md)
+is `d314151e6718ffb2172bf9297728724216401099`. Client libraries reported
+2,301 passed and 16 failed on Linux default, 2,303 passed and 14 failed with
+all features, 2,306 passed and 11 failed on Windows, and 2,298 passed and 19
 failed on macOS arm64. Three Kafka compatibility jobs and both smoke jobs
-failed. The broker passed 806 default and 954 all-feature tests, with four
-ignored per profile, plus strict checks, inventory and fuzz supervision. Both
-selected capability profiles passed; their archives were not independently
-inspected. The instruction counter had no baseline for this Rust version.
+failed. Broker CI stopped in the default library at 490 passed, three failed
+and four ignored; later broker targets and strict checks did not run. API
+inventory, fuzz supervision and both selected client capability profiles
+passed; capability archives were not independently inspected. The instruction
+counter had no baseline for this Rust version.
+
+The [preceding complete snapshot](../evidence/releases/main-ci-a374-20261108/README.md)
+also failed client checks but passed 806 default and 954 all-feature broker
+tests with four ignored per profile. That pass does not explain the later
+broker failures.
 
 An [earlier complete snapshot](../evidence/releases/main-ci-342e-20261108/README.md)
 also failed client checks and passed both broker profiles.
