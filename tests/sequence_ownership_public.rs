@@ -42,7 +42,8 @@ impl Drop for ReleaseGate {
 
 #[tokio::test(flavor = "current_thread")]
 async fn public_batch_sequence_worker_cancellation() {
-    let abort = std::env::var("PL_SEQUENCE_ABORT").as_deref() == Ok("1");
+    let mode = std::env::var("PL_SEQUENCE_MODE").unwrap_or_else(|_| "resume".to_string());
+    assert!(matches!(mode.as_str(), "resume" | "abort" | "close"));
     let mock = common::Mock::start().await;
     mock.set_topic_partitions("t", 1);
     let callbacks = Counts::default();
@@ -108,7 +109,7 @@ async fn public_batch_sequence_worker_cancellation() {
     assert_eq!(callbacks.acks.load(Ordering::SeqCst), 1);
     assert_eq!(callbacks.errors.load(Ordering::SeqCst), 0);
 
-    if !abort {
+    if mode == "resume" {
         gate::release();
         let result = tokio::time::timeout(LIMIT, delivery.as_mut())
             .await
@@ -143,7 +144,17 @@ async fn public_batch_sequence_worker_cancellation() {
         assert_eq!(workers.len(), 1);
         let worker = workers.first().expect("one worker");
         let old_task_id = worker.id();
-        worker.abort();
+        if mode == "abort" {
+            worker.abort();
+        } else {
+            let result = tokio::time::timeout(
+                LIMIT,
+                producer.clone().close_timeout(Duration::from_millis(150)),
+            )
+            .await
+            .expect("public close deadline");
+            assert!(matches!(result, Err(Error::Timeout)), "close result: {result:?}");
+        }
         tokio::time::timeout(LIMIT, async {
             while !worker.is_finished() {
                 tokio::task::yield_now().await;
@@ -163,6 +174,18 @@ async fn public_batch_sequence_worker_cancellation() {
         assert_eq!(callbacks.acks.load(Ordering::SeqCst), 1);
         assert_eq!(callbacks.errors.load(Ordering::SeqCst), 0);
         assert_eq!(mock.log_len("t", 0), 1);
+
+        if mode == "close" {
+            assert!(matches!(
+                producer.try_send(ProduceRecord::to("t").partition(0).value(&b"later000"[..])),
+                Err(Error::Closed)
+            ));
+            println!(
+                "SEQUENCE_PUBLIC_CLOSE close=timeout worker_aborted=1 receipt=closed callbacks_missing={COUNT} bytes_retained={}",
+                before.bytes_buffered
+            );
+            return;
+        }
 
         // Hold the mock response after it has recorded the new Produce so
         // the actual replacement task can be observed before handling error 45.

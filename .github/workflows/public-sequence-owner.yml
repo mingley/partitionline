@@ -41,7 +41,7 @@ jobs:
           set -euo pipefail
           args=()
           if test "$PROFILE" = all; then args+=(--all-features); fi
-          PL_SEQUENCE_ABORT=0 cargo +stable test --locked "${args[@]}" --test sequence_ownership_public -- --exact public_batch_sequence_worker_cancellation --test-threads=1 --nocapture 2>&1 | tee witness-logs/control.log
+          PL_SEQUENCE_MODE=resume cargo +stable test --locked "${args[@]}" --test sequence_ownership_public -- --exact public_batch_sequence_worker_cancellation --test-threads=1 --nocapture 2>&1 | tee witness-logs/control.log
           grep -F "SEQUENCE_PUBLIC_CONTROL" witness-logs/control.log
           grep -F "test result: ok. 1 passed; 0 failed" witness-logs/control.log
       - name: Observe forced worker cancellation
@@ -50,9 +50,18 @@ jobs:
           set -euo pipefail
           args=()
           if test "$PROFILE" = all; then args+=(--all-features); fi
-          PL_SEQUENCE_ABORT=1 cargo +stable test --locked "${args[@]}" --test sequence_ownership_public -- --exact public_batch_sequence_worker_cancellation --test-threads=1 --nocapture 2>&1 | tee witness-logs/cancel.log
+          PL_SEQUENCE_MODE=abort cargo +stable test --locked "${args[@]}" --test sequence_ownership_public -- --exact public_batch_sequence_worker_cancellation --test-threads=1 --nocapture 2>&1 | tee witness-logs/cancel.log
           grep -F "SEQUENCE_PUBLIC_ABORT" witness-logs/cancel.log
           grep -F "test result: ok. 1 passed; 0 failed" witness-logs/cancel.log
+      - name: Observe public deadline shutdown
+        if: always()
+        run: |
+          set -euo pipefail
+          args=()
+          if test "$PROFILE" = all; then args+=(--all-features); fi
+          PL_SEQUENCE_MODE=close cargo +stable test --locked "${args[@]}" --test sequence_ownership_public -- --exact public_batch_sequence_worker_cancellation --test-threads=1 --nocapture 2>&1 | tee witness-logs/close.log
+          grep -F "SEQUENCE_PUBLIC_CLOSE" witness-logs/close.log
+          grep -F "test result: ok. 1 passed; 0 failed" witness-logs/close.log
       - name: Retain controls and observations
         if: always()
         uses: actions/upload-artifact@v7
