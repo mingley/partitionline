@@ -434,6 +434,7 @@ struct State {
     api_versions_nodes: Vec<(i32, i16)>,
     api_versions_delay: Option<Duration>,
     node_api_versions_delay: HashMap<i32, Duration>,
+    api_versions_response_gate: Option<Arc<tokio::sync::Semaphore>>,
     /// Last Metadata topic filter: `None` = never recorded;
     /// `Some(None)` = all topics; `Some(Some(names))` = named.
     last_metadata_topics: Option<Option<Vec<String>>>,
@@ -978,6 +979,7 @@ fn new_state(
         api_versions_nodes: Vec::new(),
         api_versions_delay: None,
         node_api_versions_delay: HashMap::new(),
+        api_versions_response_gate: None,
         last_metadata_topics: None,
         last_metadata_topic_ids: None,
         last_metadata_include_topic_authorized: None,
@@ -2426,6 +2428,13 @@ impl Mock {
 
     pub fn set_api_versions_delay(&self, delay: Duration) {
         self.state.lock().api_versions_delay = Some(delay);
+    }
+
+    /// Hold ApiVersions responses until the returned gate is closed.
+    pub fn hold_api_versions_responses(&self) -> Arc<tokio::sync::Semaphore> {
+        let gate = Arc::new(tokio::sync::Semaphore::new(0));
+        self.state.lock().api_versions_response_gate = Some(Arc::clone(&gate));
+        gate
     }
 
     /// Delay ApiVersions responses from one node independently of the others.
@@ -5457,6 +5466,10 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
         }
         match header.api_key {
             API_VERSIONS => {
+                let gate = { state.lock().api_versions_response_gate.clone() };
+                if let Some(gate) = gate {
+                    let _released = gate.acquire().await;
+                }
                 let delay = {
                     let st = state.lock();
                     st.node_api_versions_delay

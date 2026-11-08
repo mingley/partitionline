@@ -10,16 +10,22 @@ Production readiness and fastest-client/server claims remain unqualified.
 Client 0.1.0 is already published. The next client version must be at least
 0.2.0; broker and schema publication remain disabled.
 
-The latest complete recorded main [CI snapshot](../evidence/releases/main-ci-070-20261108/README.md)
-is `0708730155d869ab4fa52654a2e95d4013c4e594`. Client libraries reported
-2,234 passed and 20 failed on Linux default, 2,232 passed and 22 failed with
-all features, and 2,237 passed and 17 failed on each of Windows and macOS
-arm64. Three Kafka compatibility jobs and both smoke jobs failed; resource-soak
-passed. Broker CI stopped at 702 default tests passed, one failed and four
-ignored after a five-node observer-addition request returned `NotLeader`.
-The all-feature suite and later strict checks did not run in that job; inventory
-and fuzz supervision passed separately. Both selected capability profiles
-passed; their archives were not independently inspected.
+The latest complete recorded main [CI snapshot](../evidence/releases/main-ci-e487-20261108/README.md)
+is `e487f7294773f75112f15437992ed780b53c7307`. Client libraries reported
+2,232 passed and 22 failed on Linux default, 2,239 passed and 15 failed with
+all features, 2,226 passed and 28 failed on Windows, and 2,243 passed and 11
+failed on macOS arm64. Three Kafka compatibility jobs and both smoke jobs
+failed; resource-soak passed. Broker CI stopped at 488 default tests passed,
+one failed and four ignored after a five-node proposal returned `NotLeader`.
+The proposal's append and commit outcome is unknown; it was not retried.
+The all-feature suite and later strict checks did not run in that job;
+inventory and fuzz supervision passed separately. Both selected capability
+profiles passed; their archives were not independently inspected. See the
+[proposal review](../evidence/broker/raft-delayed-proposal-20261108/README.md).
+
+The [previous complete snapshot](../evidence/releases/main-ci-070-20261108/README.md)
+at `0708730` also failed client checks and stopped on a distinct broker
+`NotLeader` response.
 
 The [preceding snapshot](../evidence/releases/main-ci-47d-20261108/README.md)
 failed client checks and passed both broker profiles before the Admin change.
@@ -800,6 +806,13 @@ controls](https://github.com/mingley/partitionline/actions/runs/42130958330)
 passed 45 generic and 27 benchmark/shell tests. Full benchmark replay still
 requires the original journals and offset fence, and eight-million-record
 memory and runtime remain unmeasured.
+The old producer redial test's 450 ms assertion failed on both the baseline
+and an isolated candidate. Its [replacement](../evidence/client/sendall-redial-gate-20261108/README.md)
+checks concurrent discovery handshakes with an event gate; it does not assert
+the former total-latency bound or physical socket closure. The
+[request timeline](../evidence/client/sendall-redial-timeline-20261108/README.md)
+retains the earlier failure.
+
 An isolated [send_all fast-path experiment](../evidence/perf/sendall-yield-perf-20261108/README.md)
 reduced a 4,096-record mock first poll from about 1.18 seconds to about
 1.1 ms on one shared x86 runner. It changed zero-linger batching from one
