@@ -15,8 +15,9 @@ Client version 0.1.0 is published on crates.io. This repository contains later
 changes and uses the latest stable Rust. The next client release must be at
 least 0.2.0 because the public API and compiler requirements have changed.
 The broker and schema companion are not published. No new release is ready.
-The TLS dependency graph includes Ring C and assembly, so the complete
-dependency graph is not Rust-only.
+The TLS dependency graph includes Ring C and assembly; broker OIDC also uses
+Ring directly. The [provider assessment][tls-assessment] did not qualify an
+alternative for the current TLS and OIDC behavior.
 
 ## Validation
 
@@ -148,7 +149,9 @@ latency bound.
   mock stored the original batch; both observed receipts and flush returned
   errors. It held an existing yield and does not establish a Kafka outcome.
   [Private batch controls][batch-controls] also show that packing can split an
-  injected complete retry and expiration acts on individual records. An
+  injected complete retry and expiration acts on individual records. Five
+  [public regression controls][owner-regressions] fail under controlled mock
+  yields in both profiles; their time limits do not prove permanent loss. An
   [owned-batch model][owned-model] checks proposed admission, batch, close and
   uncertainty rules, but does not run the Rust producer. Its unknown-write
   fence can retain capacity indefinitely, and callback and close semantics
@@ -284,7 +287,7 @@ retained evidence. The [benchmark contract](benchmark-contract.md) and
 [interop-peer]: https://github.com/mingley/partitionline/blob/89a8e2e5ae2ab28942be66c8bd7e0390032b4450/docs/evidence/client/broker-interop-peer-types-20261108/README.md
 [ci-262]: https://github.com/mingley/partitionline/blob/cb55f7c603e2344775de8a395c6a584737f5bb95/docs/evidence/releases/main-ci-262-20261108/README.md
 [ci-02c]: https://github.com/mingley/partitionline/blob/0ce81683fe7107386e30f388cd2a4af31735d522/docs/evidence/releases/main-ci-02c-20261108/README.md
-[next]: https://github.com/mingley/partitionline/blob/6def5c2ff779fb034b92e751a641d6b51f0c1e2c/docs/plan/next-work.md
+[next]: https://github.com/mingley/partitionline/blob/e18186f0cb9c25393117fe41148ae5860f52a8a0/docs/plan/next-work.md
 [flush-public]: https://github.com/mingley/partitionline/blob/f93e91499e2ba6bdc88c0a25a0d83b8737d00d3c/docs/evidence/client/producer-flush-public-20261108/README.md
 [flush-sent]: https://github.com/mingley/partitionline/blob/efa7f23314e98f3aaa4559c3cf38302bdcdb9fb4/docs/evidence/client/producer-flush-sent-20261108/README.md
 [owner-design]: https://github.com/mingley/partitionline/blob/cb55f7c603e2344775de8a395c6a584737f5bb95/docs/evidence/client/producer-ownership-design-20261108/README.md
@@ -350,6 +353,8 @@ retained evidence. The [benchmark contract](benchmark-contract.md) and
 [ci-426]: https://github.com/mingley/partitionline/blob/ed10995700da3252dbefb4696e1afd7dfe5a008d/docs/evidence/releases/main-ci-426-20261108/README.md
 [batch-controls]: https://github.com/mingley/partitionline/blob/a8403decd42d794b1da89ac985e2f390f32e01a7/docs/evidence/client/producer-batch-ownership-controls-20261108/README.md
 [owned-model]: https://github.com/mingley/partitionline/blob/7f15017fd312945612886c3b6a8c26ffc8098458/docs/evidence/client/producer-owned-batch-model-20261108/README.md
+[owner-regressions]: https://github.com/mingley/partitionline/blob/e18186f0cb9c25393117fe41148ae5860f52a8a0/docs/evidence/client/producer-ownership-regression-controls-20261108/README.md
+[tls-assessment]: https://github.com/mingley/partitionline/blob/e18186f0cb9c25393117fe41148ae5860f52a8a0/docs/evidence/security/tls-provider-assessment-20261108/README.md
 [timestamp-history]: https://github.com/mingley/partitionline/blob/a8403decd42d794b1da89ac985e2f390f32e01a7/docs/evidence/client/producer-retry-timestamp-20261108/README.md
 [admin-phases]: https://github.com/mingley/partitionline/blob/a8403decd42d794b1da89ac985e2f390f32e01a7/docs/evidence/client/admin-dtp-poll-phases-20261108/README.md
 
