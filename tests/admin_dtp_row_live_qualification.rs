@@ -1,3 +1,5 @@
+//! Real Kafka pagination smoke for the isolated Admin row checkpoint.
+
 use partitionline::{Admin, AUTHORIZED_OPERATIONS_OMITTED};
 use std::time::Duration;
 
@@ -6,6 +8,17 @@ async fn kafka_412_admin_describe_topic_partitions_paginates() {
     let bootstrap = std::env::var("KAFKA_BOOTSTRAP").expect("KAFKA_BOOTSTRAP must name the test broker");
     let topic_name = std::env::var("PL_DTP_TOPIC").expect("PL_DTP_TOPIC must name the test topic");
     let mut admin = Admin::connect(bootstrap).await.unwrap();
+    {
+        fn require_send<T: Send>(_: &T) {}
+        let names = [topic_name.as_str()];
+        let future = admin.describe_topics_with_partition_limit_timeout(
+            names.iter(),
+            false,
+            2,
+            Duration::from_secs(10),
+        );
+        require_send(&future);
+    }
     let mut cursor = None;
     let mut pages = 0usize;
     let mut topic_id = None;
