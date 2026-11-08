@@ -1,4 +1,4 @@
-# Transaction error-state candidate
+# Transaction error state
 
 The transaction error-state repair was developed from main commit [`374dcf45`](https://github.com/mingley/partitionline/commit/374dcf45db20ee728b00c0b0188e77ca1f47fa9c). The source tested by [run 42444340333](https://github.com/mingley/partitionline/actions/runs/42444340333) is commit [`bb1f0ee2`](https://github.com/mingley/partitionline/commit/bb1f0ee2bf7faa9c96605015f19db26195742581):
 
@@ -10,6 +10,10 @@ The transaction error-state repair was developed from main commit [`374dcf45`](h
 The candidate records error severity and an abort-claim ticket in one atomic. Pending states make abortable and fatal claims visible before the cause mutex becomes available; a fatal cause takes precedence over an earlier abortable cause. An old abort setter cannot publish after its claim was cleared and replaced. While a cause is still pending, a reader receives a generic protocol error instead of waiting for the specific cause; after publication it receives the retained cause. Ticket exhaustion fails closed instead of wrapping.
 
 ## Completed qualification
+
+[Run 42446812343](https://github.com/mingley/partitionline/actions/runs/42446812343) checked out exact integrated main commit [`7f59ef47`](https://github.com/mingley/partitionline/commit/7f59ef470340db6027958f439df3716a8dde536c) and verified the two source hashes above. All 13 state controls and nine coordinator controls passed in each feature profile. Eighteen of 21 selected integration cases passed in each profile; the same three handshake-count tests listed below failed in both profiles. All three also failed in repeated baseline comparisons. The job's test gate failed.
+
+The formatting check printed no diagnostics, and strict all-target, all-feature Clippy printed a successful completion. Their exit statuses were saved to files but not printed; the test gate stopped first, and artifact upload then failed because the per-test filenames contained colons. Those saved statuses are unavailable. The [job log](https://github.com/mingley/partitionline/actions/runs/42446812343/job/128627353649) retains the individual test output and Clippy completion. The earlier exact-source runs described below passed strict Clippy with an enforced gate. A corrected artifact retry is separate and was still running when this note was written.
 
 Run 42444340333 passed on GitHub-hosted Ubuntu 24.04 x86_64 with Rust 1.99.1. In each of the default and all-feature profiles, it ran 13 candidate state controls and nine existing transaction coordinator and lock controls. The state controls cover fatal versus abortable precedence, readers while the cause lock is held, a reader rechecking after fatal publication, competing fatal writers, clear versus setters, a cleared stalled abort followed by another abort, and last-ticket and exhaustion boundaries.
 
