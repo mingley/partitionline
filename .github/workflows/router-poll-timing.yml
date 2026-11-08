@@ -1,0 +1,121 @@
+name: Public Router poll timing witness
+on:
+  push:
+    branches: [qualification/router-poll-timing-20261108]
+permissions:
+  contents: read
+jobs:
+  paired:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    env:
+      CARGO_BUILD_JOBS: "2"
+      CARGO_INCREMENTAL: "0"
+      CARGO_TERM_COLOR: never
+      RUSTFLAGS: ""
+      BASELINE: f092d69d43ebb300c756cca006f4964c9820e491
+      CANDIDATE: a72fbd02af1eae4027f58fcaeb9b372457dfcc83
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/checkout@v7
+        with:
+          ref: f092d69d43ebb300c756cca006f4964c9820e491
+          path: baseline
+          persist-credentials: false
+      - uses: actions/checkout@v7
+        with:
+          ref: a72fbd02af1eae4027f58fcaeb9b372457dfcc83
+          path: candidate
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Pin host, inputs and source
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p evidence/runs evidence/bin
+          test "$(uname -m)" = x86_64
+          test "$(git -C baseline rev-parse HEAD)" = "$BASELINE"
+          test "$(git -C candidate rev-parse HEAD)" = "$CANDIDATE"
+          test -z "$(git -C baseline status --porcelain)"
+          test -z "$(git -C candidate status --porcelain)"
+          cmp baseline/partitionline-broker/Cargo.toml candidate/partitionline-broker/Cargo.toml
+          cmp baseline/partitionline-broker/Cargo.lock candidate/partitionline-broker/Cargo.lock
+          {
+            date -u
+            uname -a
+            lscpu
+            df -T "$RUNNER_TEMP"
+            rustc +stable --version --verbose
+            cargo +stable --version --verbose
+            printf 'BASELINE=%s\nCANDIDATE=%s\n' "$BASELINE" "$CANDIDATE"
+            python3 -c 'import os; print("allowed_cpus=" + ",".join(map(str, sorted(os.sched_getaffinity(0)))))'
+          } | tee evidence/host.txt
+          sha256sum tools/router-poll-timing.rs .github/workflows/router-poll-timing.yml baseline/partitionline-broker/Cargo.toml baseline/partitionline-broker/Cargo.lock baseline/partitionline-broker/src/{metadata,transport}.rs candidate/partitionline-broker/src/{metadata,transport}.rs | tee evidence/source-sha256.txt
+      - name: Build identical harness and test Peer adapter
+        shell: bash
+        run: |
+          set -euo pipefail
+          for side in baseline candidate; do
+            cp -a "$side/partitionline-broker" "$RUNNER_TEMP/poll-src-$side"
+            cp tools/router-poll-timing.rs "$RUNNER_TEMP/poll-src-$side/examples/router_poll_timing.rs"
+          done
+          python3 - <<'PY'
+          import os
+          from pathlib import Path
+          for side in ("baseline", "candidate"):
+              p = Path(os.environ["RUNNER_TEMP"]) / ("poll-src-" + side) / "src" / "transport.rs"
+              text = p.read_text()
+              needle = "impl Peer {\n"
+              assert text.count(needle) == 1
+              adapter = """
+              #[doc(hidden)]
+              pub fn __qualification_peer() -> Self {
+                  Self {
+                      address: SocketAddr::from(([127, 0, 0, 1], 9)),
+                      #[cfg(feature = "sasl")]
+                      identity: None,
+                      #[cfg(feature = "tls")]
+                      tls: None,
+                  }
+              }
+          """
+              p.write_text(text.replace(needle, needle + adapter))
+          PY
+          for side in baseline candidate; do
+            sha256sum "$RUNNER_TEMP/poll-src-$side"/src/transport.rs | tee -a evidence/instrumented-sha256.txt
+            CARGO_TARGET_DIR="$GITHUB_WORKSPACE/build-$side" cargo +stable build --locked --release --manifest-path "$RUNNER_TEMP/poll-src-$side/Cargo.toml" --example router_poll_timing 2>&1 | tee "evidence/build-$side.log"
+            cp "build-$side/release/examples/router_poll_timing" "evidence/bin/$side"
+          done
+          sha256sum evidence/bin/baseline evidence/bin/candidate | tee evidence/binary-sha256.txt
+      - name: Six alternating pairs on identical CPUs and filesystem
+        shell: bash
+        run: |
+          set -euo pipefail
+          cpus="$(python3 -c 'import os; print(",".join(map(str, sorted(os.sched_getaffinity(0))[:2])))')"
+          printf 'taskset_cpus=%s\n' "$cpus" | tee -a evidence/host.txt
+          index=0
+          for pair in $(seq 1 6); do
+            if [ $((pair % 2)) -eq 1 ]; then order="baseline candidate"; else order="candidate baseline"; fi
+            for side in $order; do
+              index=$((index + 1))
+              id="$(printf '%02d-pair%02d-%s' "$index" "$pair" "$side")"
+              echo "START $id"
+              if ! ARM="$side" BENCH_ROOT="$RUNNER_TEMP/poll-witness-$id" taskset -c "$cpus" "evidence/bin/$side" > "evidence/runs/$id.csv" 2> "evidence/runs/$id.stderr"; then
+                cat "evidence/runs/$id.stderr"
+                tail -n 30 "evidence/runs/$id.csv"
+                exit 1
+              fi
+              grep -E '^(spare_poll|request_summary|validated),' "evidence/runs/$id.csv"
+            done
+          done
+          sha256sum evidence/runs/* | tee evidence/run-sha256.txt
+      - name: Retain poll samples and failed setups
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: router-poll-timing-evidence
+          path: evidence/
+          if-no-files-found: warn
+          retention-days: 30
