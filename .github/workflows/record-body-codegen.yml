@@ -1,0 +1,126 @@
+name: Inspect record encoder x86 code generation
+
+on:
+  push:
+    branches: [qualification/record-body-codegen-20261108]
+
+permissions:
+  contents: read
+
+jobs:
+  inspect:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    env:
+      CARGO_INCREMENTAL: "0"
+      CARGO_BUILD_JOBS: "2"
+      CARGO_TERM_COLOR: never
+      PYTHONDONTWRITEBYTECODE: "1"
+      BASE_SHA: f092d69d43ebb300c756cca006f4964c9820e491
+      CANDIDATE_SHA: b4c08995515af680f2f7099aaba1d455c9fa2f77
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 10
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Record source, compiler and host
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(uname -m)" = x86_64
+          git merge-base --is-ancestor "$CANDIDATE_SHA" HEAD
+          git diff --exit-code "$CANDIDATE_SHA" HEAD -- Cargo.toml Cargo.lock src examples/bench_record_body.rs benchmarks/record-body/measure.py
+          git diff --exit-code "$BASE_SHA" "$CANDIDATE_SHA" -- Cargo.toml Cargo.lock src ':!src/protocol/records.rs'
+          test "$(rustc +stable -V)" = "rustc 1.99.1 (58cf8f9c3 2026-10-13)"
+          evidence="$RUNNER_TEMP/record-codegen-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
+          mkdir "$evidence"
+          printf 'EVIDENCE=%s\n' "$evidence" >> "$GITHUB_ENV"
+          git rev-parse HEAD "$CANDIDATE_SHA" "$BASE_SHA" | tee "$evidence/commits.txt"
+          rustc +stable -Vv | tee "$evidence/rustc.txt"
+          cargo +stable -V | tee "$evidence/cargo.txt"
+          uname -a | tee "$evidence/uname.txt"
+          lscpu | tee "$evidence/lscpu.txt"
+          taskset -cp $$ | tee "$evidence/affinity.txt"
+          if [ -r /sys/fs/cgroup/cpu.max ]; then cat /sys/fs/cgroup/cpu.max > "$evidence/cpu-max.txt"; else echo unavailable > "$evidence/cpu-max.txt"; fi
+          sha256sum Cargo.lock src/protocol/records.rs examples/bench_record_body.rs \
+            benchmarks/record-body/measure.py benchmarks/record-body/inspect_asm.py \
+            .github/workflows/record-body-codegen.yml > "$evidence/source-sha256.txt"
+          read -r cpu < <(python3 -c 'import os; print(min(os.sched_getaffinity(0)))')
+          echo "BENCH_CPU=$cpu" >> "$GITHUB_ENV"
+      - name: Independently compile both source trees
+        shell: bash
+        run: |
+          set -euo pipefail
+          git worktree add --detach "$RUNNER_TEMP/codegen-base" "$BASE_SHA"
+          cp examples/bench_record_body.rs "$RUNNER_TEMP/codegen-base/examples/bench_record_body.rs"
+          cmp Cargo.toml "$RUNNER_TEMP/codegen-base/Cargo.toml"
+          cmp Cargo.lock "$RUNNER_TEMP/codegen-base/Cargo.lock"
+          cmp examples/bench_record_body.rs "$RUNNER_TEMP/codegen-base/examples/bench_record_body.rs"
+          baseline_hash=$(git show "$BASE_SHA:src/protocol/records.rs" | sha256sum | cut -d' ' -f1)
+          candidate_hash=$(git show "$CANDIDATE_SHA:src/protocol/records.rs" | sha256sum | cut -d' ' -f1)
+          test "$(sha256sum "$RUNNER_TEMP/codegen-base/src/protocol/records.rs" | cut -d' ' -f1)" = "$baseline_hash"
+          test "$(sha256sum src/protocol/records.rs | cut -d' ' -f1)" = "$candidate_hash"
+          test "$baseline_hash" != "$candidate_hash"
+          sha256sum "$RUNNER_TEMP/codegen-base/src/protocol/records.rs" src/protocol/records.rs | tee "$EVIDENCE/source-tree-sha256.txt"
+          export CARGO_TARGET_DIR="$RUNNER_TEMP/cg-target-base"
+          cargo +stable build --locked --release --example bench_record_body \
+            --manifest-path "$RUNNER_TEMP/codegen-base/Cargo.toml" 2>&1 | tee "$EVIDENCE/base-build.log"
+          grep -F "Compiling partitionline v0.1.0 ($RUNNER_TEMP/codegen-base)" "$EVIDENCE/base-build.log"
+          cp "$CARGO_TARGET_DIR/release/examples/bench_record_body" "$RUNNER_TEMP/cg-baseline"
+          export CARGO_TARGET_DIR="$RUNNER_TEMP/cg-target-candidate"
+          cargo +stable build --locked --release --example bench_record_body \
+            --manifest-path "$GITHUB_WORKSPACE/Cargo.toml" 2>&1 | tee "$EVIDENCE/candidate-build.log"
+          grep -F "Compiling partitionline v0.1.0 ($GITHUB_WORKSPACE)" "$EVIDENCE/candidate-build.log"
+          cp "$CARGO_TARGET_DIR/release/examples/bench_record_body" "$RUNNER_TEMP/cg-candidate"
+          sha256sum "$RUNNER_TEMP/cg-baseline" "$RUNNER_TEMP/cg-candidate" | tee "$EVIDENCE/binary-sha256.txt"
+          if cmp -s "$RUNNER_TEMP/cg-baseline" "$RUNNER_TEMP/cg-candidate"; then
+            echo equal > "$EVIDENCE/binary-identity.txt"
+          else
+            echo distinct > "$EVIDENCE/binary-identity.txt"
+          fi
+      - name: Compare encoded output
+        shell: bash
+        run: |
+          set -euo pipefail
+          taskset -c "$BENCH_CPU" "$RUNNER_TEMP/cg-baseline" corpus "$EVIDENCE/baseline-corpus.bin" \
+            2> "$EVIDENCE/baseline-corpus.log"
+          taskset -c "$BENCH_CPU" "$RUNNER_TEMP/cg-candidate" corpus "$EVIDENCE/candidate-corpus.bin" \
+            2> "$EVIDENCE/candidate-corpus.log"
+          cat "$EVIDENCE/baseline-corpus.log" "$EVIDENCE/candidate-corpus.log"
+          cmp "$EVIDENCE/baseline-corpus.bin" "$EVIDENCE/candidate-corpus.bin"
+          sha256sum "$EVIDENCE/baseline-corpus.bin" "$EVIDENCE/candidate-corpus.bin" | tee "$EVIDENCE/corpus-sha256.txt"
+      - name: Inspect the optimized executable code
+        shell: bash
+        run: |
+          set -euo pipefail
+          objdump --version | head -n 1 | tee "$EVIDENCE/binutils.txt"
+          nm -S -C "$RUNNER_TEMP/cg-baseline" > "$EVIDENCE/baseline-symbols.txt"
+          nm -S -C "$RUNNER_TEMP/cg-candidate" > "$EVIDENCE/candidate-symbols.txt"
+          grep -E 'bench_record_body::(run|encode)|records::(encode_record|checked_record_body_length|write_record_batch|write_uncompressed_batch)' \
+            "$EVIDENCE/baseline-symbols.txt" | tee "$EVIDENCE/baseline-selected-symbols.txt" || true
+          grep -E 'bench_record_body::(run|encode)|records::(encode_record|checked_record_body_length|write_record_batch|write_uncompressed_batch)' \
+            "$EVIDENCE/candidate-symbols.txt" | tee "$EVIDENCE/candidate-selected-symbols.txt" || true
+          objdump -dC --no-show-raw-insn "$RUNNER_TEMP/cg-baseline" > "$EVIDENCE/baseline.asm"
+          objdump -dC --no-show-raw-insn "$RUNNER_TEMP/cg-candidate" > "$EVIDENCE/candidate.asm"
+          sha256sum "$EVIDENCE/baseline.asm" "$EVIDENCE/candidate.asm" | tee "$EVIDENCE/disassembly-sha256.txt"
+          python3 benchmarks/record-body/inspect_asm.py "$EVIDENCE/baseline.asm" "$EVIDENCE/candidate.asm" \
+            "$EVIDENCE/selected-diff.txt" | tee "$EVIDENCE/diff.log"
+      - name: Repeat paired whole-batch measurements
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ "$(cat "$EVIDENCE/binary-identity.txt")" = equal ]; then
+            echo "Identical executable hashes: comparison deferred pending code review."
+            exit 1
+          fi
+          python3 benchmarks/record-body/measure.py "$RUNNER_TEMP/cg-baseline" "$RUNNER_TEMP/cg-candidate" \
+            "$BENCH_CPU" "$EVIDENCE/measurements.json" 2>&1 | tee "$EVIDENCE/measure.log"
+      - name: Retain logs, byte checks and disassembly
+        if: always() && env.EVIDENCE != ''
+        uses: actions/upload-artifact@v7
+        with:
+          name: record-codegen-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ env.EVIDENCE }}
+          if-no-files-found: error
+          retention-days: 30
