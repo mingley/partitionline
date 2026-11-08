@@ -726,6 +726,13 @@ impl QuorumCatalog {
         let deadline = outer.min(Instant::now() + self.deadline);
         self.application.alive()?;
         let state = self.source_until(deadline, self.source.state())?;
+        #[cfg(feature = "quorum-diagnostic")]
+        if std::env::var_os("PL_QUORUM_DIAGNOSTIC").is_some() {
+            eprintln!("QSTATE\tnode={}\tterm={}\trole={:?}\tleader={:?}\tactive_term={:?}\tlast_term={}\tlast_index={}\tcommitted={}\tready={}\tpoisoned={}",
+                state.local_id, state.election.persistent.term, state.election.role,
+                state.election.leader, state.active_term, state.last_position.term,
+                state.last_position.index, state.committed_end, state.ready, state.poisoned);
+        }
         if state.poisoned || !state.ready {
             return Err(Error::Poisoned);
         }

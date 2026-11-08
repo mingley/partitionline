@@ -190,20 +190,64 @@ def meta(port, name):
          topic_error=code, partitions=parts, caveat="applied projection, not linearizable")
     return controller, code
 
-def leader(ports, alive, exclude=None):
-    deadline = time.monotonic() + 20
+def state_since(node, start):
+    deadline = time.monotonic() + 2
     while time.monotonic() < deadline:
+        try:
+            raw = node.stderr.path.read_bytes()
+        except FileNotFoundError:
+            raw = b""
+        for line in reversed(raw[start:].splitlines()):
+            if not line.startswith(b"QSTATE\t"): continue
+            try:
+                fields = dict(part.split("=", 1) for part in line.decode("utf-8").split("\t")[1:])
+                if {"node","term","role","leader","active_term","ready","poisoned"} <= fields.keys():
+                    return fields
+            except (ValueError, UnicodeError):
+                pass
+        time.sleep(.01)
+    return None
+
+def leader(ports, live, exclude=None):
+    deadline = time.monotonic() + 20
+    previous, stable = None, 0
+    while time.monotonic() < deadline:
+        alive = [n is not None for n in live]
+        observations = []
         for i, port in enumerate(ports):
             if not alive[i]: continue
-            observation = meta(port, "qd-probe")
-            if observation is not None:
-                controller = observation[0]
-                if 0 <= controller < 3 and alive[controller] and controller != exclude:
-                    emit("leader_hint", observer=i, reported_controller=controller,
-                         caveat="hint only; not an admission proof")
-                    return controller
-        time.sleep(0.05)
-    raise RuntimeError("leader hint timeout")
+            observed = meta(port, "qd-probe")
+            observations.append((i, observed[0] if observed is not None else None))
+        controllers = [x[1] for x in observations]
+        agreed = (controllers[0] if controllers and None not in controllers
+                  and len(set(controllers)) == 1 else None)
+        if agreed is None or not 0 <= agreed < 3 or not alive[agreed] or agreed == exclude:
+            previous, stable = None, 0
+            time.sleep(.05)
+            continue
+        stable = stable + 1 if previous == agreed else 1
+        previous = agreed
+        if stable < 2:
+            time.sleep(.05)
+            continue
+        node = live[agreed]
+        try: start = node.stderr.path.stat().st_size
+        except FileNotFoundError: start = 0
+        observation = meta(ports[agreed], "qd-owner-preflight")
+        sample = state_since(node, start)
+        good = bool(observation is not None and observation[0] == agreed and sample
+                    and sample["node"] == str(agreed) and sample["role"] == "Leader"
+                    and sample["leader"] == f"Some({agreed})"
+                    and sample["active_term"] == f"Some({sample['term']})"
+                    and sample["ready"] == "true" and sample["poisoned"] == "false")
+        emit("leader_preflight", observations=observations, stable_rounds=stable,
+             proposed_controller=agreed, owner_state=sample, qualifies=good,
+             caveat="all observations are hints; leadership may change before the one request")
+        if good:
+            return agreed
+        previous, stable = None, 0
+        time.sleep(.05)
+    raise RuntimeError("stable metadata and active owner-state hint timeout")
 
 def wait_present(ports, alive, name):
     deadline = time.monotonic() + 20
@@ -446,14 +490,14 @@ def main():
     def alive(): return [x is not None for x in live]
     try:
         for i in range(3): start(i)
-        first = leader(clients, alive())
+        first = leader(clients, live)
         response = exchange(clients[first], create(before), "create", before)
         code = mutation_error(response, before)
         emit("create_once_result", name=before, contacted_node=first, code=code)
         if code != 0: raise RuntimeError("initial create failed or ambiguous; not retrying")
         wait_present(clients, alive(), before)
         live[first].stop("first_leader_failover"); live[first] = None
-        new = leader(clients, alive(), first)
+        new = leader(clients, live, first)
         response = exchange(clients[new], create(after), "create", after)
         code = mutation_error(response, after)
         emit("create_once_result", name=after, contacted_node=new, code=code)
@@ -462,7 +506,7 @@ def main():
         start(first)
         wait_present(clients, alive(), before)
         wait_present(clients, alive(), after)
-        isolated = leader(clients, alive())
+        isolated = leader(clients, live)
         for i in range(3):
             if i != isolated:
                 live[i].stop("isolate_minority"); live[i] = None
@@ -475,7 +519,7 @@ def main():
             if i != isolated: start(i)
         wait_present(clients, alive(), before)
         wait_present(clients, alive(), after)
-        current = leader(clients, alive())
+        current = leader(clients, live)
         result["delete_attempts"] += 1
         response = exchange(clients[current], delete(before), "delete", before)
         result["delete_code"] = mutation_error(response, before)
@@ -503,17 +547,22 @@ def main():
         qevents = []
         for path in sorted(OUT.glob("node-*-start-*.stderr")):
             for raw_line in path.read_bytes().splitlines():
-                if not raw_line.startswith(b"QDIAG\t"): continue
+                if not (raw_line.startswith(b"QDIAG\t") or raw_line.startswith(b"QSTATE\t")): continue
                 try:
                     line = raw_line.decode("utf-8", "strict")
-                    pieces = line.split("\t")[1:]
-                    if any("=" not in piece for piece in pieces): raise ValueError("malformed QDIAG field")
+                    parts = line.split("\t")
+                    pieces = parts[1:]
+                    if any("=" not in piece for piece in pieces): raise ValueError("malformed diagnostic field")
                     fields = dict(part.split("=", 1) for part in pieces)
-                    if "stage" not in fields: raise ValueError("missing QDIAG stage")
+                    if parts[0] == "QSTATE":
+                        fields["stage"] = "owner_state_sample"
+                        if not {"node","term","role","leader","active_term","ready","poisoned"} <= fields.keys():
+                            raise ValueError("missing QSTATE field")
+                    elif "stage" not in fields: raise ValueError("missing QDIAG stage")
                     if "command" in fields:
                         fields["decoded"] = decode_command(bytes.fromhex(fields["command"]))
                         if fields["decoded"] is None: raise ValueError("invalid QDIAG command")
-                    elif fields["stage"] not in ("position_mismatch","delete_token","delete_command"):
+                    elif parts[0] == "QDIAG" and fields["stage"] not in ("position_mismatch","delete_token","delete_command"):
                         raise ValueError("missing QDIAG command")
                 except Exception as error:
                     fields = {"decode_error":repr(error), "raw_hex":raw_line.hex()}
@@ -534,6 +583,8 @@ def main():
         result["minority_proposal_admission"] = "confirmed" if admitted else "unproven"
         result["minority_admission_evidence"] = admitted
         result["delete_command_traces"] = [e for e in qevents if e.get("decoded") and e["decoded"].get("opcode") == 2]
+        result["delete_catalog_stage"] = "command_observed" if result["delete_command_traces"] else "unobserved"
+        result["delete_terminal_errors"] = [e for e in result["delete_command_traces"] if e.get("stage") in ("catalog_execute_result","catalog_outcome") and e.get("detail","").startswith("Err(")]
         result["diagnostic_bytes_dropped"] = sum(n.stdout.dropped + n.stderr.dropped for n in all_nodes)
         result["diagnostic_decode_errors"] = sum("decode_error" in e for e in qevents)
         result["capture_errors"] = sum(bool(c.error) for n in all_nodes for c in (n.stdout,n.stderr))
