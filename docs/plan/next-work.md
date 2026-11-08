@@ -24,7 +24,10 @@ A later [partial main run](../evidence/releases/main-ci-a0ad-partial-20261108/RE
 at `a0ad79d` failed the Linux default library and three Kafka compatibility
 jobs; five other jobs were canceled. Its instruction and allocation gates
 failed before measurement because the codec benchmark lockfile was stale.
-The broker passed its default suite but stopped in the all-feature library at
+The [follow-up](../evidence/client/admin-slot-locks-20261108/README.md) updates
+six standalone locks; its allocation checks passed and instruction gate was
+still running when recorded. The broker interoperability peer has a separate
+compile failure under the new checks. The broker passed its default suite but stopped in the all-feature library at
 534 passed, one failed and four ignored; later broker checks did not run.
 Both selected capability profiles passed.
 
