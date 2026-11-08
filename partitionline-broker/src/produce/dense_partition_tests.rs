@@ -81,8 +81,94 @@ fn dense_partition_classifier_declines_sparse_negative_and_mismatched_inputs() {
 fn dense_partition_classifier_preserves_last_u16_owner_and_declines_overflow() {
     let mut indexes = vec![0; usize::from(u16::MAX)];
     let last = indexes.len() - 1;
+    indexes[last - 1] = 1;
     indexes[last] = 1;
     check(&indexes, true);
     indexes.push(1);
     check(&indexes, false);
+}
+
+
+#[test]
+fn dense_partition_production_path_selection_fallback_and_cancellation(
+) -> Result<(), Box<dyn std::error::Error>> {
+    use super::{metadata, process, Catalog, Config, Error, Store, TopicId};
+    use std::{cell::Cell, fs, time::{Instant, SystemTime, UNIX_EPOCH}};
+
+    struct Reset;
+    impl Drop for Reset {
+        fn drop(&mut self) {
+            super::DENSE_TEST_FORCE_FALLBACK.with(|force| force.set(false));
+            super::DENSE_TEST_SELECTED.with(|selected| selected.set(0));
+        }
+    }
+    let _reset = Reset;
+    super::DENSE_TEST_FORCE_FALLBACK.with(|force| force.set(false));
+    super::DENSE_TEST_SELECTED.with(|selected| selected.set(0));
+
+    let nanos = SystemTime::now().duration_since(UNIX_EPOCH)?.as_nanos();
+    let root = std::env::temp_dir().join(format!(
+        "pl-dense-selected-{}-{nanos}", std::process::id()
+    ));
+    fs::create_dir(&root)?;
+    let common = metadata::Config::new(0, "127.0.0.1".into(), 9092, "dense".into());
+    let (mut catalog, _) = Catalog::open(root.join("catalog"), common.catalog_limits)?;
+    let mut id = [0; 16];
+    id[15] = 2;
+    let _created = catalog.create("alpha", TopicId::new(id)?, 2)?;
+    let mut config = Config::new(root.join("data"));
+    config.max_partitions = 4096;
+    let mut store = Store::open(config, &catalog)?;
+
+    fn request(topic: &[u8], valid: bool) -> Result<Vec<u8>, Box<dyn std::error::Error>> {
+        let batch = include_bytes!("../../tests/fixtures/records/valid-basic.bin");
+        let mut out = Vec::new();
+        out.extend_from_slice(&0_i16.to_be_bytes());
+        out.extend_from_slice(&3_i16.to_be_bytes());
+        out.extend_from_slice(&77_i32.to_be_bytes());
+        out.extend_from_slice(&(-1_i16).to_be_bytes());
+        out.extend_from_slice(&(-1_i16).to_be_bytes());
+        out.extend_from_slice(&1_i16.to_be_bytes());
+        out.extend_from_slice(&60_000_i32.to_be_bytes());
+        out.extend_from_slice(&1_i32.to_be_bytes());
+        out.extend_from_slice(&i16::try_from(topic.len())?.to_be_bytes());
+        out.extend_from_slice(topic);
+        out.extend_from_slice(&32_i32.to_be_bytes());
+        for index in (0_i32..32).rev() {
+            out.extend_from_slice(&index.to_be_bytes());
+            if valid {
+                out.extend_from_slice(&i32::try_from(batch.len())?.to_be_bytes());
+                out.extend_from_slice(batch);
+            } else {
+                out.extend_from_slice(&(-1_i32).to_be_bytes());
+            }
+        }
+        Ok(out)
+    }
+
+    let mut dense = request(b"omega", false)?;
+    let original = process(&catalog, &mut store, &mut dense, &common, Instant::now(), || Ok(()))?;
+    assert_eq!(super::DENSE_TEST_SELECTED.with(|selected| selected.get()), 1);
+    super::DENSE_TEST_FORCE_FALLBACK.with(|force| force.set(true));
+    let mut fallback = request(b"omega", false)?;
+    let from_fallback = process(&catalog, &mut store, &mut fallback, &common, Instant::now(), || Ok(()))?;
+    assert_eq!(original, from_fallback);
+    assert_eq!(super::DENSE_TEST_SELECTED.with(|selected| selected.get()), 1);
+
+    super::DENSE_TEST_FORCE_FALLBACK.with(|force| force.set(false));
+    let mut valid = request(b"alpha", true)?;
+    let calls = Cell::new(0usize);
+    let canceled = process(&catalog, &mut store, &mut valid, &common, Instant::now(), || {
+        let next = calls.get() + 1;
+        calls.set(next);
+        if next == 2 { Err(Error::Canceled) } else { Ok(()) }
+    });
+    assert!(matches!(canceled, Err(Error::Canceled)));
+    assert_eq!(calls.get(), 2);
+    assert_eq!(super::DENSE_TEST_SELECTED.with(|selected| selected.get()), 2);
+    assert!(store.slots.is_empty());
+    drop(store);
+    drop(catalog);
+    fs::remove_dir_all(root)?;
+    Ok(())
 }

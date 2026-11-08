@@ -1156,6 +1156,12 @@ fn strictly_increasing_indexes(parts: &[Part]) -> bool {
     true
 }
 
+#[cfg(test)]
+std::thread_local! {
+    static DENSE_TEST_FORCE_FALLBACK: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
+    static DENSE_TEST_SELECTED: std::cell::Cell<usize> = const { std::cell::Cell::new(0) };
+}
+
 // Dense, unordered partition lists can use at most 8 KiB of temporary
 // owner slots. Sparse, negative and unusually large indexes use the map path.
 fn mark_dense_partitions(parts: &[Part], first: &mut [bool], duplicated: &mut [bool]) -> bool {
@@ -1181,6 +1187,10 @@ fn mark_dense_partitions(parts: &[Part], first: &mut [bool], duplicated: &mut [b
         return false;
     };
     let mut owners = Vec::new();
+    #[cfg(test)]
+    if DENSE_TEST_FORCE_FALLBACK.with(|force| force.get()) {
+        return false;
+    }
     if owners.try_reserve_exact(slots).is_err() {
         return false;
     }
@@ -1208,6 +1218,8 @@ fn mark_dense_partitions(parts: &[Part], first: &mut [bool], duplicated: &mut [b
             *flag = true;
         }
     }
+    #[cfg(test)]
+    DENSE_TEST_SELECTED.with(|selected| selected.set(selected.get().saturating_add(1)));
     true
 }
 

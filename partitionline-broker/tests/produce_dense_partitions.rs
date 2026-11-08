@@ -134,6 +134,7 @@ async fn router(label: &str) -> TestResult<(PathBuf, Router)> {
     Ok((root, router))
 }
 
+#[allow(clippy::too_many_arguments, reason = "independent wire fixture options")]
 async fn assert_response(
     router: &Router,
     indexes: &[i32],
@@ -204,7 +205,7 @@ async fn produce_dense_public_precedence_order_and_durable_readback() -> TestRes
     Ok(())
 }
 
-fn benchmark_indexes(count: usize, shape: &str) -> Vec<i32> {
+fn benchmark_indexes(count: usize, shape: &str) -> TestResult<Vec<i32>> {
     let mut indexes: Vec<i32> = (0..count).map(|value| value as i32).collect();
     match shape {
         "ascending" => {}
@@ -228,9 +229,9 @@ fn benchmark_indexes(count: usize, shape: &str) -> Vec<i32> {
                 *last = -1;
             }
         }
-        _ => panic!("unknown benchmark shape"),
+        _ => return Err("unknown benchmark shape".into()),
     }
-    indexes
+    Ok(indexes)
 }
 
 #[tokio::test(flavor = "current_thread")]
@@ -241,7 +242,7 @@ async fn produce_dense_router_timing() -> TestResult {
     let shape = std::env::var("PL_DENSE_SHAPE")?;
     assert!((1..=4096).contains(&count));
     assert!(iterations > 0);
-    let indexes = benchmark_indexes(count, &shape);
+    let indexes = benchmark_indexes(count, &shape)?;
     let input = request(&indexes, "omega", 1, 60_000, None, None)?;
     let want = expected(&indexes, "omega", 1, 60_000, None, false, 0)?;
     let (root, router) = router("timing").await?;
