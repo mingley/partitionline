@@ -59,16 +59,28 @@ The clean candidate is [commit `ea54757`][candidate], based on main
 Git blob is `d66f9c4a3ac9cb1094713ab147ab783ae81ced31`
 (SHA-256 `e959c24b36cadb25b223a786e5f18dcf8f9615e27b04b7eb28dcd91fbc98a3aa`);
 the permanent test blob is `746dc1724698adcc53dd4f026a73ebc5b6d4f93a`.
-The [final qualification run][final] is pending. It covers both focused
-and full Admin profiles, formatting and strict all-target/all-feature
-Clippy, a fresh live Kafka smoke and seven independently restored mutants
-per profile. Results must be recorded before this note is treated as a
-completed qualification.
+The permanent test SHA-256 is
+`46b288f3cf9337699b6adf58466fcb1e0deaa686b523f24633e3ece2a6d97a71`.
+In the [final qualification run][final], formatting and strict
+all-target/all-feature Clippy passed. The pagination controls passed 20/20
+in each feature profile. A fresh digest-pinned Kafka 4.1.2 broker passed the
+live smoke in both profiles: the CLI confirmed partitions 0–3, and four raw
+pages and the aggregate had the same nonzero topic ID and expected
+partitions. This is one normal local broker history; metadata changes and
+authorization errors were scripted in the loopback controls.
+
+The full default Admin suite failed: 624 passed and three tests exceeded
+their 80 ms thresholds—delegation-token decoding (91.759289 ms), named
+result grouping (97.628215 ms), and coordinator indexing (111.333483 ms).
+The all-feature suite had 626 passed and one failure: coordinator indexing
+at 160.219672 ms. These are retained failures, not a green broad suite.
+The [matched whole-suite baseline control][broad] and seven independently
+restored mutants per profile are still running.
 
 ## Limits
 
-Discarded partitions are released in batches of at most 8,192 before a
-cooperative yield, including the previously accumulated result on an
+Discarded partitions are released in batches of at most 8,192 with
+cooperative yields between batches, including the previously accumulated result on an
 identity conflict. Manual-poll controls check progress and wakeups; the
 observing waker adds work only to those test polls. This bounds a batch's
 item count, not its wall time, nested allocations, allocator work or process
@@ -78,7 +90,8 @@ The index retains an additional 16-byte topic ID alongside each topic slot
 on the tested x86_64 target, before hash-table capacity and allocator
 overhead; result and index growth remain dependent on the responses.
 Longer cursor cycles retain the existing timeout behavior and can grow the
-aggregate until timeout.
+aggregate until timeout. A non-adjacent cursor repetition that later
+terminates can still append duplicate partitions.
 
 The [paired release-mode loopback comparison][perf] is pending. It compares
 one-page and 16-page reads on one shared x86_64 runner; it does not establish
@@ -95,3 +108,4 @@ performance against other Kafka implementations or across workloads.
 [candidate]: https://github.com/mingley/partitionline/commit/ea54757826cd18d824059d2bc87470151c80dcef
 [final]: https://github.com/mingley/partitionline/actions/runs/42475657022
 [perf]: https://github.com/mingley/partitionline/actions/runs/42475135691
+[broad]: https://github.com/mingley/partitionline/actions/runs/42475935325
