@@ -1,0 +1,176 @@
+name: Classic v2 stack fault diagnostic
+
+on:
+  push:
+    branches: [diagnostic/classic-v2-gdb-20261108]
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    env:
+      CARGO_BUILD_JOBS: '2'
+      CARGO_INCREMENTAL: '0'
+      CARGO_PROFILE_DEV_DEBUG: '0'
+      CARGO_PROFILE_TEST_DEBUG: '0'
+      CARGO_TERM_COLOR: never
+      PL_COMPAT_RUN_VERIFIABLE: '1'
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: 179aba82d7b64055f9e93e393714698e48b7328d
+          persist-credentials: false
+          sparse-checkout: |
+            .cargo
+            examples
+            scripts
+            src
+            tests
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Install debugger if missing
+        shell: bash
+        run: |
+          set -euo pipefail
+          if ! command -v gdb; then
+            sudo apt-get update -qq
+            sudo apt-get install -y gdb
+          fi
+      - name: Record native host and unchanged subject
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/classic-stack/baseline" "$RUNNER_TEMP/classic-stack/gdb"
+          echo 'checking architecture and source'
+          test "$(uname -m)" = x86_64
+          test "$(git rev-parse HEAD)" = 179aba82d7b64055f9e93e393714698e48b7328d
+          printf '%s  %s\n' '5e289d3af378a44c162e3142468cbf58afe03955f6204a67825b0776f424cad0' tests/broker_compatibility.rs | sha256sum -c -
+          printf '%s  %s\n' 'fc37f50d01f8a7023513c630f43fca3da4b2765b948cc0e8b2792f0e46386338' src/group.rs | sha256sum -c -
+          git status --short
+          test -z "$(git status --porcelain --untracked-files=normal)"
+          echo 'checking for stack or compiler overrides'
+          test -z "${RUST_MIN_STACK:-}"
+          test -z "${RUSTFLAGS:-}"
+          test -z "${CARGO_ENCODED_RUSTFLAGS:-}"
+          echo 'checking debugger and Docker'
+          command -v gdb
+          command -v docker
+          {
+            uname -a
+            rustc -Vv
+            cargo -V
+            gdb --version | head -n 1
+            echo "shell stack limit KiB: $(ulimit -s)"
+            sha256sum tests/broker_compatibility.rs src/group.rs
+            df -h .
+          } | tee "$RUNNER_TEMP/classic-stack/identity.log"
+      - name: Reproduce the unchanged compatibility failure
+        shell: bash
+        run: |
+          set -euo pipefail
+          ulimit -c 0
+          export PL_COMPAT_REPORT_DIR="$RUNNER_TEMP/classic-stack/baseline"
+          set +e
+          timeout 900s bash scripts/ci-broker-compatibility.sh 4.1.2 >"$PL_COMPAT_REPORT_DIR/driver.log" 2>&1
+          status=$?
+          set -e
+          printf '%s\n' "$status" >"$PL_COMPAT_REPORT_DIR/driver-exit.txt"
+          cat "$PL_COMPAT_REPORT_DIR/driver.log"
+          test "$status" -eq 101
+          grep -F 'compatibility group phase: classic join' "$PL_COMPAT_REPORT_DIR/runtime.log"
+          grep -F 'stack overflow' "$PL_COMPAT_REPORT_DIR/runtime.log"
+          grep -F 'compatibility group phase: classic join' "$PL_COMPAT_REPORT_DIR/runtime.log"
+          mapfile -t bins < <(find target/debug/deps -maxdepth 1 -type f -name 'broker_compatibility-*' -executable | sort)
+          test "${#bins[@]}" -eq 1
+          sha256sum "${bins[0]}" | tee "$RUNNER_TEMP/classic-stack/test-binary.sha256"
+      - name: Capture the fault in the unchanged compatibility binary
+        shell: bash
+        run: |
+          set -euo pipefail
+          ulimit -c 0
+          cat >"$RUNNER_TEMP/classic-stack/frame-commands.gdb" <<'GDB'
+          set pagination off
+          set confirm off
+          set print thread-events off
+          set print asm-demangle on
+          set disable-randomization off
+          handle SIGPIPE nostop noprint pass
+          handle SIGSEGV stop print nopass
+          run
+          echo PL_STACK_GDB_STOP\n
+          info program
+          info registers rip rsp rbp
+          info symbol $pc
+          x/24i $pc-32
+          python
+          import gdb, re
+          frame = gdb.newest_frame()
+          frames = []
+          while frame is not None and len(frames) < 40:
+              try:
+                  frames.append((int(frame.read_register("rsp")), int(frame.pc()), frame.name() or "?"))
+                  frame = frame.older()
+              except gdb.error as error:
+                  print("PL_FRAME_READ_ERROR", str(error))
+                  break
+          print("PL_FRAME_START")
+          for i, (sp, pc, name) in enumerate(frames):
+              delta = frames[i + 1][0] - sp if i + 1 < len(frames) else 0
+              print("PL_FRAME\t{}\t{:#x}\t{}\t{:#x}\t{}".format(i, sp, delta, pc, name[:700]))
+          print("PL_FRAME_END")
+          print("PL_PROLOGUE_START")
+          needles = ("partitionline::", "broker_compatibility::run")
+          for i, (sp, pc, name) in enumerate(frames):
+              if i > 27 or not any(needle in name for needle in needles):
+                  continue
+              symbol = gdb.execute("info symbol {:#x}".format(pc), to_string=True).strip()
+              match = re.search(r" \+ (\d+) in section ", symbol)
+              if match is None:
+                  continue
+              start = pc - int(match.group(1))
+              print("PL_PROLOGUE\t{}\t{}".format(i, name[:500]))
+              try:
+                  print(gdb.execute("x/12i {:#x}".format(start), to_string=True), end="")
+              except gdb.error as error:
+                  print("PL_PROLOGUE_ERROR", str(error))
+          print("PL_PROLOGUE_END")
+          end
+          bt 48
+          info threads
+          thread apply all bt 8
+          info proc mappings
+          GDB
+          cat >"$RUNNER_TEMP/classic-stack/gdb-runner.sh" <<'RUNNER'
+          #!/usr/bin/env bash
+          set -euo pipefail
+          exec gdb --batch --return-child-result \
+            -x "$RUNNER_TEMP/classic-stack/frame-commands.gdb" --args "$@"
+          RUNNER
+          chmod 700 "$RUNNER_TEMP/classic-stack/gdb-runner.sh"
+          export CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_RUNNER="$RUNNER_TEMP/classic-stack/gdb-runner.sh"
+          export PL_COMPAT_REPORT_DIR="$RUNNER_TEMP/classic-stack/gdb"
+          set +e
+          timeout 900s bash scripts/ci-broker-compatibility.sh 4.1.2 >"$PL_COMPAT_REPORT_DIR/driver.log" 2>&1
+          status=$?
+          set -e
+          printf '%s\n' "$status" >"$PL_COMPAT_REPORT_DIR/driver-exit.txt"
+          cat "$PL_COMPAT_REPORT_DIR/driver.log"
+          test -s "$PL_COMPAT_REPORT_DIR/runtime.log"
+          grep -F 'compatibility group phase: classic join' "$PL_COMPAT_REPORT_DIR/runtime.log"
+          grep -F 'received signal SIGSEGV' "$PL_COMPAT_REPORT_DIR/runtime.log"
+          grep -F 'PL_STACK_GDB_STOP' "$PL_COMPAT_REPORT_DIR/runtime.log"
+          sha256sum --check "$RUNNER_TEMP/classic-stack/test-binary.sha256"
+          sed -n '/^PL_FRAME_START$/,/^PL_FRAME_END$/p' "$PL_COMPAT_REPORT_DIR/runtime.log"
+          sed -n '/^PL_PROLOGUE_START$/,/^PL_PROLOGUE_END$/p' "$PL_COMPAT_REPORT_DIR/runtime.log"
+          grep -Fq 'PL_FRAME_END' "$PL_COMPAT_REPORT_DIR/runtime.log"
+          printf 'Captured a debugger stop; this workflow is diagnostic, not a compatibility pass.\n'
+      - name: Retain logs and receipts
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: classic-v2-stack-fault-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/classic-stack
+          if-no-files-found: warn
+          retention-days: 30
