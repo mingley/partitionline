@@ -1186,3 +1186,96 @@ async fn dtp_unnamed_topic_precedes_same_page_identity_conflict() {
     assert!(matches!(&got, Err(Error::Unsupported(message))
         if message == "cannot aggregate DescribeTopicPartitions without a topic name"));
 }
+
+
+/// Measure a representative conversion followed by the existing page merge.
+#[test]
+fn dtp_row_conversion_poll_witness() {
+    use std::cell::Cell;
+    use std::future::Future;
+    use std::sync::atomic::Ordering;
+    use std::sync::Arc;
+    use std::task::{Context, Poll, Waker};
+
+    let count: usize = std::env::var("PL_ROW_COUNT").unwrap().parse().unwrap();
+    let kind = std::env::var("PL_ROW_KIND").unwrap();
+    let error = match kind.as_str() {
+        "empty" => 0,
+        "error" => crate::error::TOPIC_AUTHORIZATION_FAILED,
+        _ => panic!("unknown row kind"),
+    };
+    let mut rows = Vec::with_capacity(count);
+    for index in 0..count {
+        let mut topic = DescribedTopicPartitions::new(format!("topic-{index:08}"), error);
+        topic.topic_id = if error == 0 { [7; 16] } else { [0; 16] };
+        rows.push(topic);
+    }
+    let input_name_bytes: usize = rows
+        .iter()
+        .map(|topic| topic.name.as_ref().map_or(0, String::len))
+        .sum();
+    let response = DescribeTopicPartitionsResponse::new(rows);
+    let mut wire = BytesMut::new();
+    encode_describe_topic_partitions_response(&mut wire, &response).unwrap();
+    let wire_body_bytes = wire.len();
+    assert!(wire_body_bytes + 32 < usize::try_from(crate::net::MAX_FRAME).unwrap());
+    drop(wire);
+
+    let converted = Cell::new(0usize);
+    let page_capacity = Cell::new(0usize);
+    let mut out = Vec::new();
+    let mut index = DescribedTopicIndex::new();
+    let mut work = Box::pin(async {
+        let mut page = Vec::with_capacity(response.topics.len());
+        page_capacity.set(page.capacity());
+        for topic in &response.topics {
+            if topic.name.is_none() {
+                return Err(Error::Unsupported("unexpected null name in fixture".into()));
+            }
+            page.push(topic_description_from_dtp(topic, false).await);
+            converted.set(converted.get() + 1);
+        }
+        extend_described_topics(&mut out, &mut index, page).await
+    });
+    let wake = Arc::new(CleanupWake::default());
+    let waker = Waker::from(Arc::clone(&wake));
+    let mut context = Context::from_waker(&waker);
+    let started = std::time::Instant::now();
+    let first = work.as_mut().poll(&mut context);
+    let poll_ns = started.elapsed().as_nanos();
+    let passed_5ms = started.elapsed() >= Duration::from_millis(5);
+    let pending = matches!(first, Poll::Pending);
+    if count >= 8192 {
+        assert!(pending);
+        assert!(wake.0.load(Ordering::SeqCst) > 0);
+    } else {
+        assert!(matches!(first, Poll::Ready(Ok(()))));
+    }
+    let future_drop_started = std::time::Instant::now();
+    drop(work);
+    let future_drop_ns = future_drop_started.elapsed().as_nanos();
+    assert_eq!(converted.get(), count);
+    let expected_merged = count.min(8192);
+    assert_eq!(out.len(), expected_merged);
+    assert_eq!(index.len(), expected_merged);
+    for (row, result) in out.iter().enumerate() {
+        assert_eq!(result.name, format!("topic-{row:08}"));
+        assert_eq!(result.error_code, error);
+        assert!(result.partitions.is_empty());
+        assert_eq!(result.authorized_operations, AUTHORIZED_OPERATIONS_OMITTED);
+    }
+    let merged = out.len();
+    let aggregate_drop_started = std::time::Instant::now();
+    drop(out);
+    drop(index);
+    let aggregate_drop_ns = aggregate_drop_started.elapsed().as_nanos();
+    let response_drop_started = std::time::Instant::now();
+    drop(response);
+    let response_drop_ns = response_drop_started.elapsed().as_nanos();
+    println!(
+        "ROW_WITNESS rows={count} kind={kind} pending={pending} converted={} merged={merged} first_poll_ns={poll_ns} wall_5ms_passed={passed_5ms} future_drop_ns={future_drop_ns} aggregate_drop_ns={aggregate_drop_ns} response_drop_ns={response_drop_ns} page_capacity={} page_vector_bytes={} input_name_bytes={input_name_bytes} wire_body_bytes={wire_body_bytes}",
+        converted.get(),
+        page_capacity.get(),
+        page_capacity.get() * std::mem::size_of::<TopicDescription>(),
+    );
+}
