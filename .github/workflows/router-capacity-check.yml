@@ -1,0 +1,46 @@
+name: Scoped actor capacity checks
+on:
+  push:
+    branches: [qualification/router-capacity-stop-20261108]
+permissions:
+  contents: read
+jobs:
+  focused:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    env:
+      CARGO_BUILD_JOBS: "2"
+      CARGO_INCREMENTAL: "0"
+      CARGO_TERM_COLOR: never
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: a6423d8555f272a8f996aefbfba4572df0f65db5
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+      - name: Preserve initial format diff and test formatted candidate
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "a6423d8555f272a8f996aefbfba4572df0f65db5"
+          rustc --version --verbose
+          cargo fmt --manifest-path partitionline-broker/Cargo.toml -- --check > "$RUNNER_TEMP/fmt-check.log" 2>&1 || cat "$RUNNER_TEMP/fmt-check.log"
+          cargo fmt --manifest-path partitionline-broker/Cargo.toml
+          git diff --no-ext-diff -- partitionline-broker/src > "$RUNNER_TEMP/fmt.patch"
+          echo PL_FMT_PATCH_BEGIN
+          base64 -w 120 "$RUNNER_TEMP/fmt.patch"
+          echo PL_FMT_PATCH_END
+      - name: Focused default and all-feature controls
+        shell: bash
+        run: |
+          set -euo pipefail
+          for features in default all; do
+            args=()
+            if [ "$features" = all ]; then args+=(--all-features); fi
+            for filter in capacity canceled_unpolled_and_failed_normalization_do_not_enqueue public_exchange_ canceled_claimed_fetch_keeps_admission_until_actor_discards_it a_timestamp_scan_reuses_its_payload_buffer over_capacity_read_recycle_is_dropped_before_wait_and_cancel normalization_time_counts_toward_fetch_deadline cancellation_at_each_copy_yield_drops_buffers_before_permit cooperative_normalization_preserves_all_bytes shutdown_at_each_copy_yield_releases_buffers_and_permit; do
+              echo "PL_FOCUSED features=$features filter=$filter"
+              cargo test --locked --manifest-path partitionline-broker/Cargo.toml --lib "${args[@]}" "$filter" -- --nocapture
+            done
+          done
