@@ -19,9 +19,9 @@ external OS thread. That watchdog starts before producer setup and warmup and
 sends a release even if its bounded entry wait expires. A separate Tokio timer
 signals only after its sleep has been polled to Pending. The test then calls
 public `close_timeout(150 ms)` on a producer clone. In the held arm, the
-watchdog verifies that the timer deadline lies between callback entry and
-external release, waits 600 ms, records whether the timer ran, and releases
-the callback. The timer is awaited after release.
+watchdog waits 600 ms, records whether the timer ran, and releases the
+callback. The test verifies that the timer deadline lay between callback
+entry and release, then awaits the timer after release.
 
 ## Observations
 
