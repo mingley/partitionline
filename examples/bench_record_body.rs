@@ -5,7 +5,8 @@ use std::io::{BufWriter, Write};
 use std::time::Instant;
 use bytes::{Bytes, BytesMut};
 use partitionline::protocol::records::{
-    decode_record_batch, write_record_batch_scratch, BatchHeader, CompressScratch,
+    decode_record_batch, write_record_batch_scratch, write_uncompressed_batch_cooperative,
+    BatchHeader, CompressScratch,
     EncodeRecord, Header, Record,
 };
 
@@ -35,6 +36,10 @@ const SHAPES: &[Shape] = &[
     Shape { name: "gzip_128", count: 128, value: 100, headers: 0, codec: 1, key: 2, mixed: false },
     Shape { name: "snappy_128", count: 128, value: 100, headers: 0, codec: 2, key: 2, mixed: false },
     Shape { name: "lz4_128", count: 128, value: 100, headers: 0, codec: 3, key: 2, mixed: false },
+    Shape { name: "async_f01_8", count: 8, value: 100, headers: 0, codec: 0, key: 2, mixed: false },
+    Shape { name: "async_f03_500", count: 500, value: 100, headers: 0, codec: 0, key: 2, mixed: false },
+    Shape { name: "async_headers", count: 128, value: 100, headers: 16, codec: 0, key: 2, mixed: false },
+    Shape { name: "async_large", count: 16, value: 65_536, headers: 0, codec: 0, key: 2, mixed: false },
 ];
 
 fn mix(mut n: u64) -> u64 {
@@ -92,14 +97,40 @@ fn encode(
     Ok(())
 }
 
+async fn encode_cooperative(
+    records: &[Record],
+    shape: Shape,
+    output: &mut BytesMut,
+    scratch: &mut CompressScratch,
+) -> Result<(), Box<dyn Error>> {
+    output.clear();
+    let header = BatchHeader {
+        attributes: shape.codec,
+        count: i32::try_from(records.len())?,
+        max_timestamp: 16,
+        ..BatchHeader::default()
+    };
+    write_uncompressed_batch_cooperative(
+        output, &header, records.iter().map(EncodeRecord::from_record), scratch,
+    ).await?;
+    Ok(())
+}
+
 fn checked_one(
     output: &mut BufWriter<File>,
     shape: Shape,
     scratch: &mut CompressScratch,
+    runtime: &tokio::runtime::Runtime,
 ) -> Result<(), Box<dyn Error>> {
     let records = make_records(shape);
     let mut encoded = BytesMut::new();
     encode(&records, shape, &mut encoded, scratch)?;
+    if shape.codec == 0 {
+        let mut async_output = BytesMut::new();
+        let mut async_scratch = CompressScratch::new();
+        runtime.block_on(encode_cooperative(&records, shape, &mut async_output, &mut async_scratch))?;
+        if async_output != encoded { return Err("cooperative batch mismatch".into()); }
+    }
     let mut input = encoded.clone().freeze();
     let decoded = decode_record_batch(&mut input)?;
     if decoded.records() != records.as_slice() || !input.is_empty() {
@@ -115,6 +146,7 @@ fn check_error(
     header: BatchHeader,
     records: &[Record],
     scratch: &mut CompressScratch,
+    runtime: &tokio::runtime::Runtime,
 ) -> Result<(), Box<dyn Error>> {
     let sentinel = b"before";
     let mut dst = BytesMut::from(sentinel.as_slice());
@@ -124,6 +156,21 @@ fn check_error(
     let err = match result { Ok(()) => return Err("expected encoder failure".into()), Err(err) => err };
     if dst.as_ref() != sentinel { return Err("failed encode changed caller buffer".into()); }
     let message = err.to_string();
+    if header.attributes == 0 {
+        let mut cooperative = BytesMut::from(sentinel.as_slice());
+        let mut cooperative_scratch = CompressScratch::new();
+        let result = runtime.block_on(write_uncompressed_batch_cooperative(
+            &mut cooperative, &header, records.iter().map(EncodeRecord::from_record),
+            &mut cooperative_scratch,
+        ));
+        let cooperative_error = match result {
+            Ok(()) => return Err("expected cooperative encoder failure".into()),
+            Err(error) => error.to_string(),
+        };
+        if cooperative_error != message || cooperative.as_ref() != sentinel {
+            return Err("cooperative error or rollback differs".into());
+        }
+    }
     output.write_all(&(u64::try_from(message.len())?).to_le_bytes())?;
     output.write_all(message.as_bytes())?;
     output.write_all(&dst)?;
@@ -133,6 +180,7 @@ fn check_error(
 fn corpus(path: &str) -> Result<(), Box<dyn Error>> {
     let mut out = BufWriter::new(File::create(path)?);
     let mut scratch = CompressScratch::new();
+    let runtime = tokio::runtime::Builder::new_current_thread().enable_all().build()?;
     let mut cases = 0usize;
     for codec in 0..=3 {
         for count in [1, 7, 64] {
@@ -141,7 +189,7 @@ fn corpus(path: &str) -> Result<(), Box<dyn Error>> {
                     for key in [0, 1, 2] {
                         checked_one(&mut out, Shape {
                             name: "corpus", count, value, headers, codec, key, mixed: false,
-                        }, &mut scratch)?;
+                        }, &mut scratch, &runtime)?;
                         cases += 1;
                     }
                 }
@@ -151,20 +199,20 @@ fn corpus(path: &str) -> Result<(), Box<dyn Error>> {
     for codec in 0..=3 {
         checked_one(&mut out, Shape {
             name: "mixed", count: 128, value: 128, headers: 3, codec, key: 2, mixed: true,
-        }, &mut scratch)?;
+        }, &mut scratch, &runtime)?;
         cases += 1;
     }
     let shape = SHAPES[1];
     let mut records = make_records(shape);
     let header = BatchHeader { count: 2, ..BatchHeader::default() };
-    check_error(&mut out, header, &records, &mut scratch)?;
+    check_error(&mut out, header, &records, &mut scratch, &runtime)?;
     records.push(records[0].clone());
     records[1].offset = 1;
     let header = BatchHeader { base_offset: i64::MAX, count: 2, ..BatchHeader::default() };
-    check_error(&mut out, header, &records, &mut scratch)?;
+    check_error(&mut out, header, &records, &mut scratch, &runtime)?;
     records[0].timestamp = i64::MAX;
     let header = BatchHeader { base_timestamp: i64::MIN, count: 2, ..BatchHeader::default() };
-    check_error(&mut out, header, &records, &mut scratch)?;
+    check_error(&mut out, header, &records, &mut scratch, &runtime)?;
     out.flush()?;
     eprintln!("corpus_cases={cases}, error_cases=3");
     Ok(())
@@ -174,7 +222,22 @@ fn run(shape: Shape, iterations: u64) -> Result<u128, Box<dyn Error>> {
     let records = make_records(shape);
     let mut output = BytesMut::new();
     let mut scratch = CompressScratch::new();
-    for _ in 0..iterations.min(32) {
+    if shape.name.starts_with("async_") {
+        let runtime = tokio::runtime::Builder::new_current_thread().enable_all().build()?;
+        return runtime.block_on(async {
+            for _ in 0..iterations.min(256) {
+                encode_cooperative(&records, shape, &mut output, &mut scratch).await?;
+                std::hint::black_box(&output);
+            }
+            let start = Instant::now();
+            for _ in 0..iterations {
+                encode_cooperative(std::hint::black_box(&records), shape, &mut output, &mut scratch).await?;
+                std::hint::black_box(&output);
+            }
+            Ok(start.elapsed().as_nanos())
+        });
+    }
+    for _ in 0..iterations.min(256) {
         encode(&records, shape, &mut output, &mut scratch)?;
         std::hint::black_box(&output);
     }

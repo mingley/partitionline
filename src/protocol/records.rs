@@ -5143,10 +5143,17 @@ mod tests {
                                             .and_then(|n| n.checked_add(value.payload))
                                             .and_then(|n| n.checked_add(headers_width))
                                             .and_then(|n| n.checked_add(headers_len))
-                                            .ok_or_else(|| Error::protocol("record body size overflow"))
+                                            .ok_or_else(|| {
+                                                Error::protocol("record body size overflow")
+                                            })
                                             .and_then(buf::i32_from_usize);
                                         let actual = checked_record_body_length(
-                                            ts, offset, &key, &value, headers_width, headers_len,
+                                            ts,
+                                            offset,
+                                            &key,
+                                            &value,
+                                            headers_width,
+                                            headers_len,
                                         );
                                         assert_eq!(
                                             actual.map_err(|error| error.to_string()),

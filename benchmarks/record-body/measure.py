@@ -9,7 +9,8 @@ import sys
 
 names = ["one_empty", "one_100", "f01_8_plain", "f02_8_headers", "f03_500_plain",
          "f04_32_headers", "many_null_key", "many_empty_key", "header_heavy",
-         "boundaries", "large_values", "gzip_128", "snappy_128", "lz4_128"]
+         "boundaries", "large_values", "gzip_128", "snappy_128", "lz4_128",
+         "async_f01_8", "async_f03_500", "async_headers", "async_large"]
 base, candidate, cpu, output = sys.argv[1:]
 def call(binary, *arguments):
     command = ["taskset", "-c", cpu, binary, *map(str, arguments)]
