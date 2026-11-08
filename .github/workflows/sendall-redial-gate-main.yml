@@ -1,0 +1,60 @@
+name: Producer redial gate on current main
+on:
+  push:
+    branches:
+      - qualification/sendall-redial-gate-main-20261108
+  workflow_dispatch:
+jobs:
+  gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        features: [default, all]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 3
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - name: Check exact current tree and source blobs
+        shell: bash
+        run: |
+          set -euxo pipefail
+          test "$(git rev-parse HEAD^^)" = e487f7294773f75112f15437992ed780b53c7307
+          test "$(git rev-parse HEAD:src/producer.rs)" = 1e7733c136e54b532cdc8bddabd1e0c828e50ed2
+          test "$(git rev-parse HEAD:tests/common/mod.rs)" = 30c2069ae40ff81c893acb202ee3d370ee75780f
+          test "$(git rev-parse HEAD:tests/mock_produce.rs)" = 4fd9a5a940086a97037bb45192ed84224a1542c6
+          sha256sum src/producer.rs tests/common/mod.rs tests/mock_produce.rs
+          rustc -vV
+          cargo -V
+          uname -a
+      - name: Verify event-gated history three times
+        shell: bash
+        env:
+          FEATURES: ${{ matrix.features }}
+        run: |
+          set -euxo pipefail
+          args=()
+          if test "$FEATURES" = all; then args+=(--all-features); fi
+          for i in 1 2 3; do
+            cargo test --locked "${args[@]}" --test mock_produce send_all_redials_leaders_during_metadata_discovery_handshake -- --exact --nocapture 2>&1 | tee "/tmp/redial-current-$i.log"
+            grep -F "REDIAL_OVERLAP nodes=1,2,3 distinct_sockets=true replies_held=true" "/tmp/redial-current-$i.log"
+            grep -F "1 passed; 0 failed" "/tmp/redial-current-$i.log"
+          done
+      - name: Check formatting
+        if: always()
+        shell: bash
+        run: cargo fmt --all -- --check
+      - name: Strict all-feature all-target Clippy
+        if: matrix.features == 'all'
+        shell: bash
+        run: cargo clippy --locked --all-features --all-targets -- -D warnings
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: redial-gate-main-${{ matrix.features }}
+          path: /tmp/redial-current-*.log
+          if-no-files-found: warn
