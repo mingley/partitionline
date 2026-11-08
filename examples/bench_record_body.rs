@@ -202,19 +202,21 @@ fn corpus(path: &str) -> Result<(), Box<dyn Error>> {
         }, &mut scratch, &runtime)?;
         cases += 1;
     }
-    let shape = SHAPES[1];
-    let mut records = make_records(shape);
-    let header = BatchHeader { count: 2, ..BatchHeader::default() };
-    check_error(&mut out, header, &records, &mut scratch, &runtime)?;
-    records.push(records[0].clone());
-    records[1].offset = 1;
-    let header = BatchHeader { base_offset: i64::MAX, count: 2, ..BatchHeader::default() };
-    check_error(&mut out, header, &records, &mut scratch, &runtime)?;
-    records[0].timestamp = i64::MAX;
-    let header = BatchHeader { base_timestamp: i64::MIN, count: 2, ..BatchHeader::default() };
-    check_error(&mut out, header, &records, &mut scratch, &runtime)?;
+    for codec in 0..=3 {
+        let shape = SHAPES[1];
+        let mut records = make_records(shape);
+        let header = BatchHeader { attributes: codec, count: 2, ..BatchHeader::default() };
+        check_error(&mut out, header, &records, &mut scratch, &runtime)?;
+        records.push(records[0].clone());
+        records[1].offset = 1;
+        let header = BatchHeader { attributes: codec, base_offset: i64::MAX, count: 2, ..BatchHeader::default() };
+        check_error(&mut out, header, &records, &mut scratch, &runtime)?;
+        records[0].timestamp = i64::MAX;
+        let header = BatchHeader { attributes: codec, base_timestamp: i64::MIN, count: 2, ..BatchHeader::default() };
+        check_error(&mut out, header, &records, &mut scratch, &runtime)?;
+    }
     out.flush()?;
-    eprintln!("corpus_cases={cases}, error_cases=3");
+    eprintln!("corpus_cases={cases}, error_cases=12");
     Ok(())
 }
 

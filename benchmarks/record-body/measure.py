@@ -38,9 +38,11 @@ for trial in range(1, 10):
             ns = int(fields[2])
             if ns <= 0:
                 raise ValueError(f"invalid time: {raw!r}")
-            pair[arm] = ns / iterations[name]
+            pair[arm] = ns
         row = {"trial": trial, "shape": name, "iterations": iterations[name],
-               "base_ns_per_batch": pair["base"], "candidate_ns_per_batch": pair["candidate"],
+               "base_elapsed_ns": pair["base"], "candidate_elapsed_ns": pair["candidate"],
+               "base_ns_per_batch": pair["base"] / iterations[name],
+               "candidate_ns_per_batch": pair["candidate"] / iterations[name],
                "candidate_over_base": pair["candidate"] / pair["base"],
                "order": "base-candidate" if trial % 2 else "candidate-base"}
         trials.append(row)

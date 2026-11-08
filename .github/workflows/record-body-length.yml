@@ -69,15 +69,33 @@ jobs:
           set -euo pipefail
           git worktree add --detach "$RUNNER_TEMP/encode-base" "$BASE_SHA"
           cp examples/bench_record_body.rs "$RUNNER_TEMP/encode-base/examples/bench_record_body.rs"
-          export CARGO_TARGET_DIR="$RUNNER_TEMP/record-target"
+          cmp examples/bench_record_body.rs "$RUNNER_TEMP/encode-base/examples/bench_record_body.rs"
+          cmp Cargo.lock "$RUNNER_TEMP/encode-base/Cargo.lock"
+          cmp Cargo.toml "$RUNNER_TEMP/encode-base/Cargo.toml"
+          baseline_hash=$(git show "$BASE_SHA:src/protocol/records.rs" | sha256sum | cut -d' ' -f1)
+          candidate_hash=$(git show "HEAD:src/protocol/records.rs" | sha256sum | cut -d' ' -f1)
+          test "$(sha256sum "$RUNNER_TEMP/encode-base/src/protocol/records.rs" | cut -d' ' -f1)" = "$baseline_hash"
+          test "$(sha256sum src/protocol/records.rs | cut -d' ' -f1)" = "$candidate_hash"
+          test "$baseline_hash" != "$candidate_hash"
+          sha256sum "$RUNNER_TEMP/encode-base/src/protocol/records.rs" src/protocol/records.rs | tee "$EVIDENCE/source-tree-sha256.txt"
+          export CARGO_TARGET_DIR="$RUNNER_TEMP/record-target-baseline"
           cargo +stable build --locked --release --example bench_record_body --manifest-path "$RUNNER_TEMP/encode-base/Cargo.toml" \
             2>&1 | tee "$EVIDENCE/build-baseline.log"
           cp "$CARGO_TARGET_DIR/release/examples/bench_record_body" "$RUNNER_TEMP/encode-baseline"
-          cargo +stable build --locked --release --example bench_record_body \
+          grep -F "Compiling partitionline v0.1.0 ($RUNNER_TEMP/encode-base)" "$EVIDENCE/build-baseline.log"
+          export CARGO_TARGET_DIR="$RUNNER_TEMP/record-target-candidate"
+          cargo +stable build --locked --release --example bench_record_body --manifest-path "$GITHUB_WORKSPACE/Cargo.toml" \
             2>&1 | tee "$EVIDENCE/build-candidate.log"
           cp "$CARGO_TARGET_DIR/release/examples/bench_record_body" "$RUNNER_TEMP/encode-candidate"
+          grep -F "Compiling partitionline v0.1.0 ($GITHUB_WORKSPACE)" "$EVIDENCE/build-candidate.log"
           sha256sum "$RUNNER_TEMP/encode-baseline" "$RUNNER_TEMP/encode-candidate" | tee "$EVIDENCE/binary-sha256.txt"
-          cmp examples/bench_record_body.rs "$RUNNER_TEMP/encode-base/examples/bench_record_body.rs"
+          if cmp -s "$RUNNER_TEMP/encode-baseline" "$RUNNER_TEMP/encode-candidate"; then
+            echo "independently built binaries match: inspect optimized code before measuring" | tee "$EVIDENCE/identical-binaries.txt"
+            nm -S -C "$RUNNER_TEMP/encode-baseline" > "$EVIDENCE/baseline-symbols.txt"
+            objdump -Cd "$RUNNER_TEMP/encode-baseline" > "$EVIDENCE/baseline-disassembly.txt"
+            objdump -Cd "$RUNNER_TEMP/encode-candidate" > "$EVIDENCE/candidate-disassembly.txt"
+            exit 1
+          fi
       - name: Compare full encoded batches and exact failures
         shell: bash
         run: |
