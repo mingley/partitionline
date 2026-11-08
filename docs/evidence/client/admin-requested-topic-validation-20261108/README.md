@@ -10,11 +10,10 @@ explicit topic list, deduplicates names, and emits success and topic-error
 rows from that set. Its [metadata cache][cache] produces next cursors from
 the filtered requested-topic iterator. The [request schema][request]
 describes the list as the topics to fetch; it does not separately state a
-cross-implementation cursor-membership rule. The aggregate therefore
-enforces requested-name membership for response rows and next cursors as a
-client consistency policy, returning a fixed-text client-side
-`Error::Protocol` rather than fabricating a broker error. The raw
-single-page API does not enforce this policy.
+cross-implementation cursor-membership rule. The candidate would enforce requested-name membership for response rows
+and next cursors as a client consistency policy, returning a fixed-text
+client-side `Error::Protocol` rather than fabricating a broker error. The
+raw single-page API would not enforce this policy.
 
 An immediately repeated cursor is checked first. Subject to timeout, any
 null name in a page takes precedence over an unrequested named row; the
@@ -61,9 +60,9 @@ passed 53 pagination controls in both profiles and strict Clippy, including
 cancellation after scan progress and same-socket reuse. The final test blob
 adds a negative control for the >8-name index path.
 
-## Final-source checks
+## Initial candidate-source checks
 
-The [final gate][final] used workflow commit
+The [candidate gate][final] used workflow commit
 `a5226e76d15709312624da964e11b596d21e917b` with the source and test blobs
 above. The 54 pagination controls passed in each profile; rustfmt, strict
 all-target/all-feature Clippy, all-feature client Rustdoc with
@@ -78,7 +77,7 @@ requested entries comprising both topics, a duplicate, and seven missing
 names. This normal-broker smoke does not reproduce the scripted unsolicited
 or null responses.
 
-Both exact-source full Admin suites **failed**, with four 80 ms wall-time
+Both candidate-source full Admin suites **failed**, with four 80 ms wall-time
 assertions in each profile. These tests exercise other methods; their causes are not established, and
 the full suites did not pass.
 
@@ -157,8 +156,9 @@ be recorded before this note is complete.
 
 ## Resource and compatibility limits
 
-For up to eight input names, membership uses direct checks. Larger input
-lists build a `HashSet<&str>` of borrowed, distinct caller-supplied names;
+In the initial candidate, for up to eight input names, membership uses
+direct checks. Larger input lists build a `HashSet<&str>` of borrowed,
+distinct caller-supplied names;
 it does not clone the names or add peer-supplied response names. Its
 additional table memory grows with distinct caller names and table capacity,
 not with the number of unsolicited response names. Index construction and
