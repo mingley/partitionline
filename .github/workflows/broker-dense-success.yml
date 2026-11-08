@@ -1,0 +1,63 @@
+name: Matched all-valid dense Produce writes
+on:
+  push:
+    branches: [qualification/broker-dense-success-real-20261108]
+permissions:
+  contents: read
+jobs:
+  measure:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    env:
+      CARGO_INCREMENTAL: '0'
+      CARGO_TERM_COLOR: never
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          path: candidate
+      - uses: actions/checkout@v7
+        with:
+          ref: a3748caecae60a893de96c0700e1e5ab04854443
+          path: baseline
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Verify source and copy identical fixtures
+        run: |
+          set -euo pipefail
+          test "$(git -C candidate rev-parse HEAD:partitionline-broker/src/produce.rs)" = 6897be1463187c7cd123066729f8dd98ea3e100f
+          test "$(git -C baseline rev-parse HEAD:partitionline-broker/src/produce.rs)" = 28ac0a2eb00c4994cc3ebc8d3fe4fa035e6bdc4a
+          test "$(git -C candidate rev-parse HEAD:partitionline-broker/tests/produce_dense_partitions.rs)" = 72a0ba73820f1734331f89c49cc77be139aa9de7
+          test "$(git -C candidate rev-parse HEAD:partitionline-broker/tests/produce_dense_success.rs)" = 964529e5d7ef1481febd8220fb79e307f216830e
+          git -C candidate rev-parse HEAD HEAD:partitionline-broker/src/produce.rs HEAD:partitionline-broker/Cargo.toml HEAD:partitionline-broker/Cargo.lock HEAD:partitionline-broker/tests/fixtures/records/valid-basic.bin
+          git -C baseline rev-parse HEAD HEAD:partitionline-broker/src/produce.rs HEAD:partitionline-broker/Cargo.toml HEAD:partitionline-broker/Cargo.lock HEAD:partitionline-broker/tests/fixtures/records/valid-basic.bin
+          cp candidate/partitionline-broker/tests/produce_dense_partitions.rs candidate/partitionline-broker/tests/produce_dense_success.rs baseline/partitionline-broker/tests/
+          cmp candidate/partitionline-broker/tests/produce_dense_partitions.rs baseline/partitionline-broker/tests/produce_dense_partitions.rs
+          cmp candidate/partitionline-broker/tests/produce_dense_success.rs baseline/partitionline-broker/tests/produce_dense_success.rs
+          cmp candidate/partitionline-broker/tests/fixtures/records/valid-basic.bin baseline/partitionline-broker/tests/fixtures/records/valid-basic.bin
+          sha256sum candidate/partitionline-broker/src/produce.rs baseline/partitionline-broker/src/produce.rs candidate/partitionline-broker/tests/produce_dense_partitions.rs baseline/partitionline-broker/tests/produce_dense_partitions.rs candidate/partitionline-broker/tests/produce_dense_success.rs baseline/partitionline-broker/tests/produce_dense_success.rs candidate/partitionline-broker/tests/fixtures/records/valid-basic.bin baseline/partitionline-broker/tests/fixtures/records/valid-basic.bin
+          rustc -Vv
+          cargo -V
+          lscpu
+          if test -r /sys/fs/cgroup/cpu.max; then cat /sys/fs/cgroup/cpu.max; else echo 'cpu.max unavailable'; fi
+      - name: Build isolated release executables
+        run: |
+          set -euo pipefail
+          for arm in baseline candidate; do
+            CARGO_TARGET_DIR="$PWD/target-$arm" cargo test --locked --release --manifest-path "$arm/partitionline-broker/Cargo.toml" --test produce_dense_success --no-run
+          done
+      - name: Measure alternating all-valid writes and independently verify storage
+        run: |
+          set -euo pipefail
+          export TMPDIR="$RUNNER_TEMP/dense-success-temp"
+          mkdir -p "$TMPDIR"
+          export PL_DENSE_EXPECT_TEMP="$TMPDIR"
+          export RUST_TEST_THREADS=1
+          printf 'RUST_TEMP %s\n' "$(realpath "$TMPDIR")"
+          df -T "$TMPDIR"
+          stat -f -c 'TEMP_FS type=%T block_size=%S blocks=%b free=%f' "$TMPDIR"
+          python3 candidate/.github/fixtures/broker_dense_success_driver.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: dense-produce-all-valid-samples
+          path: dense-success-samples.csv
+          if-no-files-found: warn
