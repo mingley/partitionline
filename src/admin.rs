@@ -14,6 +14,8 @@ use std::time::{Duration, Instant};
 
 mod offsets;
 use offsets::AdminOffsetConn;
+#[cfg(test)]
+mod pagination_tests;
 mod streams;
 pub use streams::{DescribeStreamsGroupsOptions, StreamsGroupDescription};
 
@@ -3749,6 +3751,15 @@ fn partitions_from_new<'a>(
             assignments: t.assignments.as_deref(),
         })
         .collect()
+}
+
+fn dtp_remaining(deadline: tokio::time::Instant) -> Result<Duration> {
+    let remaining = deadline.saturating_duration_since(tokio::time::Instant::now());
+    if remaining.is_zero() {
+        Err(Error::Timeout)
+    } else {
+        Ok(remaining)
+    }
 }
 
 fn startup_remaining(deadline: Instant) -> Result<Duration> {
@@ -14021,9 +14032,28 @@ impl Admin {
         cursor: Option<&TopicPartitionCursor>,
         timeout: Duration,
     ) -> Result<DescribeTopicPartitionsResponse> {
+        let deadline = tokio::time::Instant::now()
+            .checked_add(timeout)
+            .ok_or(Error::Timeout)?;
+        tokio::time::timeout_at(
+            deadline,
+            self.describe_topic_partitions_until(names, response_partition_limit, cursor, deadline),
+        )
+        .await
+        .map_err(|_| Error::Timeout)?
+    }
+
+    async fn describe_topic_partitions_until<T: AsRef<str> + Sync>(
+        &mut self,
+        names: &[T],
+        response_partition_limit: i32,
+        cursor: Option<&TopicPartitionCursor>,
+        deadline: tokio::time::Instant,
+    ) -> Result<DescribeTopicPartitionsResponse> {
         let version = self.describe_topic_partitions_version.ok_or_else(|| {
             Error::Unsupported("broker does not support DescribeTopicPartitions".into())
         })?;
+        dtp_remaining(deadline)?;
         let mut encoded = BytesMut::new();
         encode_describe_topic_partitions_names_cooperative(
             &mut encoded,
@@ -14040,10 +14070,13 @@ impl Admin {
                     buf.extend_from_slice(&encoded);
                     Ok(())
                 },
-                timeout,
+                dtp_remaining(deadline)?,
             )
             .await?;
-        decode_describe_topic_partitions_response_cooperative(&mut body.clone()).await
+        let response =
+            decode_describe_topic_partitions_response_cooperative(&mut body.clone()).await?;
+        dtp_remaining(deadline)?;
+        Ok(response)
     }
 
     async fn describe_topics_dtp<T: AsRef<str> + Sync>(
@@ -14053,33 +14086,57 @@ impl Admin {
         response_partition_limit: i32,
         timeout: Duration,
     ) -> Result<Vec<TopicDescription>> {
-        let deadline = Instant::now() + timeout;
-        let mut cursor: Option<TopicPartitionCursor> = None;
-        let mut out: Vec<TopicDescription> = Vec::new();
-        let mut described: HashMap<String, usize> = HashMap::new();
-        loop {
-            if Instant::now() >= deadline {
-                return Err(Error::Timeout);
+        let deadline = tokio::time::Instant::now()
+            .checked_add(timeout)
+            .ok_or(Error::Timeout)?;
+        tokio::time::timeout_at(deadline, async {
+            let mut cursor: Option<TopicPartitionCursor> = None;
+            let mut seen: HashMap<String, HashSet<i32>> = HashMap::new();
+            let mut out: Vec<TopicDescription> = Vec::new();
+            let mut described: HashMap<String, usize> = HashMap::new();
+            loop {
+                let resp = self
+                    .describe_topic_partitions_until(
+                        names,
+                        response_partition_limit,
+                        cursor.as_ref(),
+                        deadline,
+                    )
+                    .await?;
+                if let Some(next) = &resp.next_cursor {
+                    if cursor.as_ref() == Some(next)
+                        || seen
+                            .get(next.topic_name.as_str())
+                            .is_some_and(|parts| parts.contains(&next.partition_index))
+                    {
+                        return Err(Error::protocol("repeated DescribeTopicPartitions cursor"));
+                    }
+                }
+                let mut page = Vec::with_capacity(resp.topics.len());
+                for topic in &resp.topics {
+                    page.push(
+                        topic_description_from_dtp(topic, include_authorized_operations).await,
+                    );
+                }
+                extend_described_topics(&mut out, &mut described, page).await;
+                match resp.next_cursor {
+                    Some(next) => {
+                        if let Some(previous) = cursor.replace(next) {
+                            let _inserted = seen
+                                .entry(previous.topic_name)
+                                .or_default()
+                                .insert(previous.partition_index);
+                        }
+                    }
+                    None => {
+                        dtp_remaining(deadline)?;
+                        return Ok(out);
+                    }
+                }
             }
-            let resp = self
-                .describe_topic_partitions_once(
-                    names,
-                    response_partition_limit,
-                    cursor.as_ref(),
-                    timeout,
-                )
-                .await?;
-            let mut page = Vec::with_capacity(resp.topics.len());
-            for topic in &resp.topics {
-                page.push(topic_description_from_dtp(topic, include_authorized_operations).await);
-            }
-            extend_described_topics(&mut out, &mut described, page).await;
-            match resp.next_cursor {
-                Some(next) if cursor.as_ref() != Some(&next) => cursor = Some(next),
-                _ => break,
-            }
-        }
-        Ok(out)
+        })
+        .await
+        .map_err(|_| Error::Timeout)?
     }
 
     async fn describe_topics_metadata<T: AsRef<str> + Sync>(
