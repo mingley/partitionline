@@ -237,6 +237,7 @@ into a pass.
 Main CI at `a0ad79d` failed its instruction and allocation gates before
 measurement: the separate codec lockfile did not include the new dependency.
 The [follow-up](../admin-slot-locks-20261108/README.md) updates the six tracked
-standalone locks that depend on the client. Its allocation checks passed; the
-instruction gate was still running when recorded. The expanded locked build
-also exposed a separate broker interoperability peer compile failure.
+standalone locks that depend on the client. Allocation and packed-crate
+adopter checks passed; the instruction counter had no baseline for this Rust
+version. The expanded locked build exposed a separate broker interoperability
+peer compile failure, addressed by a focused peer type fix.

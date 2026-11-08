@@ -25,9 +25,11 @@ at `a0ad79d` failed the Linux default library and three Kafka compatibility
 jobs; five other jobs were canceled. Its instruction and allocation gates
 failed before measurement because the codec benchmark lockfile was stale.
 The [follow-up](../evidence/client/admin-slot-locks-20261108/README.md) updates
-six standalone locks; its allocation checks passed and instruction gate was
-still running when recorded. The broker interoperability peer has a separate
-compile failure under the new checks. The broker passed its default suite but stopped in the all-feature library at
+six standalone locks; its allocation checks and packed-crate adopter passed.
+The instruction counter ran without a baseline and made no regression
+comparison. The [broker interoperability peer fix](../evidence/client/broker-interop-peer-types-20261108/README.md)
+resolves two exposed type errors with focused controls; live interoperability
+was not tested in that gate. The broker passed its default suite but stopped in the all-feature library at
 534 passed, one failed and four ignored; later broker checks did not run.
 Both selected capability profiles passed.
 

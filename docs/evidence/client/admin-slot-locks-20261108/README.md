@@ -18,13 +18,38 @@ The [first qualification](https://github.com/mingley/partitionline/actions/runs/
 checked the exact lock graph delta and passed stable `cargo check --locked`
 for codec, runtime, sticky-partitioner, librdkafka interoperability and the
 selected client record-batch fuzz target. The existing codec allocation gate
-passed all three census tests. Its instruction-count gate was still running
-when this note was recorded.
+passed all three census tests and its six failure-preservation unit tests.
+The instruction-count gate completed but reported `BASELINE_MISSING` for
+`x86_64-1.99.1`; it printed ten instruction counts and did not compare
+them to a baseline. The two runs printed the same values:
+
+| Codec case | Instructions |
+| --- | ---: |
+| `iai_compress_gzip/text` | 11,146,149 |
+| `iai_compress_lz4/text` | 2,182,009 |
+| `iai_compress_snappy/text` | 1,468,674 |
+| `iai_crc/f03` | 148,476 |
+| `iai_decode/f03` | 466,620 |
+| `iai_decompress_gzip/text` | 1,298,623 |
+| `iai_decompress_lz4/text` | 1,044,834 |
+| `iai_decompress_snappy/text` | 913,835 |
+| `iai_encode/f03` | 706,204 |
+| `iai_request/v9` | 185,021 |
 
 The broker interoperability peer resolved its lock and compiled the client,
-but its own binary failed with two type errors in topic-name and nullable-key
-comparisons. That is a separate source failure, not a passing locked build.
-A [rebased qualification](https://github.com/mingley/partitionline/actions/runs/42493530806)
-included the corrected roadmap links and a packed-crate adopter check; it was
-still running when recorded. No Kafka comparison or production qualification
-is implied by these checks.
+but its binary failed with two E0308 errors: a topic comparison expected
+`Arc<str>` rather than `String`, and a nullable key comparison expected
+`Option<RecordBytes>` rather than `Option<Bytes>`. That was a failed
+locked build, not a lockfile error.
+
+The [rebased qualification](https://github.com/mingley/partitionline/actions/runs/42493530806)
+used the corrected roadmap links and the same six lock blobs. Its exact
+dependency-delta check, the same five standalone checks, allocation gate,
+and packed-crate adopter passed. The adopter checked 30 packaged documents,
+228 local links, 108 pinned repository targets, and four stable feature
+cells with 24 snippet tests each. The peer failed with the same two type
+errors. The instruction-count gate again reported `BASELINE_MISSING`, so
+there was no measured regression comparison. A separate [peer type
+adaptation](../broker-interop-peer-types-20261108/README.md) addresses the
+compile errors with focused checks. No Kafka comparison or production
+qualification is implied by these checks.
