@@ -46,7 +46,7 @@ runner with Rust 1.99.1. Its source and test blobs match the clean candidate
 - All three original-baseline coordinator peer-retirement witnesses failed
   with their expected messages. Separate target directories and executable
   hashes guarded against reusing candidate binaries.
-- Three mutated builds failed as expected: reverting terminal TLS EOF shutdown,
+- Three mutation controls failed as expected: reverting terminal TLS EOF shutdown,
   aborting the retirement watcher on owner drop, and suppressing both watcher
   and synchronous shutdown after a write timeout. These controls exercised the
   corresponding peer-close assertions.
