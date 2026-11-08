@@ -105,6 +105,13 @@ async fn public_close_deadline_with_inflight_interceptor() {
     let close = producer.clone().close_timeout(Duration::from_millis(150)).await;
     let elapsed = start.elapsed();
     assert!(matches!(close, Err(Error::Timeout)), "close result: {close:?}");
+    tokio::time::timeout(Duration::from_secs(12), async {
+        while !watchdog.is_finished() {
+            tokio::time::sleep(Duration::from_millis(1)).await;
+        }
+    })
+    .await
+    .expect("watchdog did not finish");
     let tick_before_release = watchdog.join().expect("watchdog thread").expect("callback entered");
     if held {
         assert!(!tick_before_release, "timer ran while current-thread callback was held");
