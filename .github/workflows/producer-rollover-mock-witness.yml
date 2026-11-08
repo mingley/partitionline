@@ -1,0 +1,93 @@
+name: Seeded producer rollover mock history
+
+on:
+  push:
+    branches: ["qualification/producer-rollover-mock-20261108"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  witness:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        profile: [default, all]
+    env:
+      PROFILE: ${{ matrix.profile }}
+      RUSTFLAGS: "--cfg rollover_mock_witness --check-cfg=cfg(rollover_mock_witness)"
+      CARGO_TERM_COLOR: never
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Record baseline provenance
+        run: |
+          set -eu
+          rustc -Vv
+          cargo -V
+          uname -a
+          git rev-parse HEAD
+          git rev-parse HEAD:src/producer.rs
+          git rev-parse HEAD:tests/common/mod.rs
+          git rev-parse HEAD:tests/sequence_rollover_public.rs
+          sha256sum src/producer.rs tests/common/mod.rs tests/sequence_rollover_public.rs Cargo.lock
+          mkdir -p witness-logs
+      - name: Run baseline
+        run: |
+          set -euo pipefail
+          args=()
+          if test "$PROFILE" = all; then args+=(--all-features); fi
+          ROLLOVER_ARM=baseline CARGO_TARGET_DIR=target/rollover-baseline cargo +stable test --locked "${args[@]}" --test sequence_rollover_public -- --exact seeded_max_sequence_two_distinct_records --test-threads=1 --nocapture 2>&1 | tee witness-logs/baseline.log
+          grep -F "ROLLOVER_MOCK baseline second_receipt=0 second_value_absent=true" witness-logs/baseline.log
+          grep -F "test result: ok. 1 passed; 0 failed" witness-logs/baseline.log
+          mapfile -t bins < <(find target/rollover-baseline/debug/deps -maxdepth 1 -type f -executable -name 'sequence_rollover_public-*')
+          test "${#bins[@]}" -eq 1
+          sha256sum "${bins[0]}" | tee witness-logs/baseline-binary.sha256
+      - name: Apply demonstration-only arithmetic mutation
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          path = Path("src/producer.rs")
+          source = path.read_text()
+          changes = [
+              ("*slot = slot.saturating_add(added);",
+               "*slot = RecordBatch::increment_sequence(*slot, added);"),
+              ("pending.seq = Some(base.saturating_add(i32::try_from(index).unwrap_or(0)));",
+               "pending.seq = Some(RecordBatch::increment_sequence(base, i32::try_from(index).unwrap_or(0)));"),
+              ("if *curr == base.saturating_add(count) {",
+               "if *curr == RecordBatch::increment_sequence(base, count) {"),
+          ]
+          for old, new in changes:
+              if source.count(old) != 1:
+                  raise SystemExit(f"expected exactly one occurrence: {old}")
+              source = source.replace(old, new)
+          path.write_text(source)
+          PY
+          git diff --check
+          git diff -- src/producer.rs | tee witness-logs/arithmetic.patch
+          sha256sum src/producer.rs | tee witness-logs/arithmetic-source.sha256
+      - name: Run arithmetic control
+        run: |
+          set -euo pipefail
+          args=()
+          if test "$PROFILE" = all; then args+=(--all-features); fi
+          ROLLOVER_ARM=arithmetic CARGO_TARGET_DIR=target/rollover-arithmetic cargo +stable test --locked "${args[@]}" --test sequence_rollover_public -- --exact seeded_max_sequence_two_distinct_records --test-threads=1 --nocapture 2>&1 | tee witness-logs/arithmetic.log
+          grep -F "ROLLOVER_MOCK arithmetic second_receipt=1 second_value_present=true" witness-logs/arithmetic.log
+          grep -F "test result: ok. 1 passed; 0 failed" witness-logs/arithmetic.log
+          mapfile -t bins < <(find target/rollover-arithmetic/debug/deps -maxdepth 1 -type f -executable -name 'sequence_rollover_public-*')
+          test "${#bins[@]}" -eq 1
+          sha256sum "${bins[0]}" | tee witness-logs/arithmetic-binary.sha256
+          baseline_sha="$(cut -d ' ' -f1 witness-logs/baseline-binary.sha256)"
+          arithmetic_sha="$(cut -d ' ' -f1 witness-logs/arithmetic-binary.sha256)"
+          test "$baseline_sha" != "$arithmetic_sha"
+      - name: Retain output
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: producer-rollover-mock-${{ matrix.profile }}
+          path: witness-logs
+          retention-days: 30
