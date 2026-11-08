@@ -10,16 +10,15 @@ Production readiness and fastest-client/server claims remain unqualified.
 Client 0.1.0 is already published. The next client version must be at least
 0.2.0; broker and schema publication remain disabled.
 
-The latest complete recorded main [CI snapshot](../evidence/releases/main-ci-629-20261108/README.md)
-is `6298f6bfbed2ab98189d291ebebd2190a2ee75b6`. Client libraries reported
-2,230 passed and 14 failed on Linux default features, 2,232 passed and 12
-failed with all features, 2,233 passed and 11 failed on Windows, and 2,234
-passed and 10 failed on macOS arm64. Kafka compatibility and both smoke jobs
-failed. Broker CI passed 761 default tests with three ignored; its all-feature
-library stopped at 516 passed, one failed and three ignored on a frame-read
-deadline test. Later broker targets and its Clippy and Rustdoc steps did not
-run; inventory and fuzz supervision passed separately. The results do not
-close the release gates.
+The latest complete recorded main [CI snapshot](../evidence/releases/main-ci-1036-20261108/README.md)
+is `1036a393eb85f23032b935bf86862b7e98e36e14`. Client libraries reported
+2,223 passed and 21 failed on Linux default features, 2,225 passed and 19
+failed with all features, 2,226 passed and 18 failed on Windows, and 2,233
+passed and 11 failed on macOS arm64. Kafka compatibility and both smoke jobs
+failed. Broker CI passed 762 default and 910 all-feature tests, with three
+descriptor diagnostics ignored in each suite and passed separately on the
+same broker production source. Clippy, Rustdoc, inventory and fuzz supervision
+passed. These results do not close the release gates.
 
 A [partial earlier client run](../evidence/releases/main-ci-e02-partial-20261108/README.md)
 at `e02c1b8` recorded six failed jobs and four canceled when main advanced.
@@ -82,9 +81,11 @@ all-feature tests, plus six separately run descriptor diagnostics. Later
 descriptor cloning can still fail after a write and requires reopen. The
 scoped benchmark was too noisy to establish a speedup.
 
-The current [frame-read deadline failure](../evidence/releases/main-ci-629-20261108/README.md)
-returned the deadline error after 82.681715 ms against an 80 ms test bound.
-The log does not distinguish scheduling delay from time inside a read poll.
+An earlier [frame-read deadline test](../evidence/broker/frame-read-deadline-test-20261108/README.md)
+returned its deadline error after 82.681715 ms against an 80 ms wall-time
+assertion. The log does not distinguish scheduling delay from time inside a
+read poll. The revised test keeps the deadline check and independently tests
+yielding without a wall-time threshold; production transport is unchanged.
 
 The [admission repair](../evidence/broker/fetch-owned-admission-20261108/README.md)
 retains data permits through actor-owned requests, waiting Fetches and
@@ -225,10 +226,17 @@ remain open.
    [first hosted attempt](https://github.com/mingley/partitionline/actions/runs/41674599283)
    failed before starting a job and used the same unsupported workflow context;
    the corrected retry produced the focused result above.
-   Source review found that `flush` can miss delivery timeouts, lose a worker
-   error when its caller is cancelled, or return before a retiring worker has
-   handed retries off. Four focused controls [reproduced these failures](../evidence/client/producer-flush-native-86f2-20261103/README.md)
-   in both feature profiles on the pinned base. Separate
+   Source review found that `flush` can lose a recorded worker error when
+   its caller is cancelled or return before a retiring worker hands retries
+   off. [Focused controls](../evidence/client/producer-flush-native-86f2-20261103/README.md)
+   exercise those cases in both feature profiles. A [public mock history](../evidence/client/producer-flush-public-20261108/README.md)
+   paused a real worker at retry handoff and saw flush return while the record
+   receipt remained pending; the gate changes scheduling and the mock is not
+   Kafka. Individual delivery timeouts are not necessarily flush errors under
+   the documented contract. An isolated [completion model](../evidence/client/producer-completion-horizon-20261108/README.md)
+   is not connected to the producer. A [private waker control](../evidence/client/producer-waker-handoff-20261108/README.md)
+   found a double release under an injected panic; public reachability is not
+   established. Separate
    [cancellation controls](../evidence/client/addpart-retryfix-264-20261108/REPORT.md)
    reproduced lost completion results and retained buffer bytes during a
    coordinator retry and during single-record failure cleanup. Those controls
