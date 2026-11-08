@@ -16661,7 +16661,11 @@ async fn convert_described_topic_page<T: AsRef<str> + Sync>(
         *converted_rows += 1;
         if *converted_rows == 8 * 1024 {
             *converted_rows = 0;
+            #[cfg(test)]
+            DTP_ROW_YIELD_OBSERVER.with(|observed| observed.set(observed.get() + 1));
             tokio::task::yield_now().await;
+            #[cfg(test)]
+            DTP_ROW_YIELD_OBSERVER.with(|observed| observed.set(observed.get() + 1));
         }
     }
     Ok(None)
@@ -16841,6 +16845,7 @@ impl<'a, T: AsRef<str>> RequestedDtpNames<'a, T> {
 
 #[cfg(test)]
 std::thread_local! {
+    static DTP_ROW_YIELD_OBSERVER: std::cell::Cell<usize> = const { std::cell::Cell::new(0) };
     static DTP_REMAINING_SCAN_PROGRESS: std::cell::Cell<Option<usize>> = const { std::cell::Cell::new(None) };
     static DTP_REQUESTED_INDEX_PROGRESS: std::cell::Cell<Option<(usize, usize)>> = const { std::cell::Cell::new(None) };
 }
