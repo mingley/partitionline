@@ -1,0 +1,57 @@
+name: sendall-v4-strict
+on:
+  push:
+    branches: [qualification/sendall-v4-strict-20261108]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  format:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+      - name: Pin and check formatting
+        run: |
+          git rev-parse HEAD
+          git rev-parse HEAD:src/producer.rs
+          rustc -Vv
+          cargo fmt --all -- --check
+  clippy:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+      - name: Strict all-target all-feature Clippy
+        run: |
+          git rev-parse HEAD:src/producer.rs
+          rustc -Vv
+          cargo clippy --locked --all-targets --all-features -- -D warnings
+  producer:
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        features: [default, all]
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Focused producer histories
+        env:
+          TEST_FEATURES: ${{ matrix.features }}
+        run: |
+          git rev-parse HEAD:src/producer.rs
+          rustc -Vv
+          if [ "$TEST_FEATURES" = all ]; then
+            cargo test --locked --all-features --test mock_produce send_all -- --nocapture
+            cargo test --locked --all-features --test produce_cancel -- --nocapture
+            cargo test --locked --all-features --test producer_retained_backing -- --nocapture
+          else
+            cargo test --locked --test mock_produce send_all -- --nocapture
+            cargo test --locked --test produce_cancel -- --nocapture
+            cargo test --locked --test producer_retained_backing -- --nocapture
+          fi
