@@ -1,0 +1,61 @@
+
+#[tokio::test(flavor = "current_thread")]
+async fn dtp_name_semantic_control() {
+    for count in [32usize, 256] {
+        for lexical in [false, true] {
+            for success in [false, true] {
+                let (mut admin, listener) = admin_and_listener().await;
+                let names: Vec<String> = (0..count).map(|n| format!("topic-{n}")).collect();
+                let peer_names = names.clone();
+                let peer = tokio::spawn(async move {
+                    let (mut socket, _) = listener.accept().await.unwrap();
+                    socket.set_nodelay(true).unwrap();
+                    let (header, mut body) = request(&mut socket).await;
+                    assert_eq!((header.api_key, header.api_version), (DESCRIBE_TOPIC_PARTITIONS, 0));
+                    let (requested, limit, cursor) = decode_describe_topic_partitions_request(&mut body).unwrap();
+                    assert_eq!(requested, peer_names);
+                    assert_eq!(limit, if success { i32::try_from(count).unwrap() } else { 1 });
+                    assert!(cursor.is_none());
+                    assert!(body.is_empty());
+                    let mut topics: Vec<_> = peer_names.iter().map(|name| {
+                        let error = if success { 0 } else { crate::error::UNKNOWN_TOPIC_OR_PARTITION };
+                        let mut topic = DescribedTopicPartitions::new(name.as_str(), error);
+                        if success {
+                            let mut partition = DescribedTopicPartition::new(0);
+                            partition.leader_id = 1;
+                            topic.partitions.push(partition);
+                        }
+                        topic
+                    }).collect();
+                    if lexical {
+                        topics.sort_by(|left, right| left.name.cmp(&right.name));
+                    }
+                    send_page(&mut socket, &header, &DescribeTopicPartitionsResponse::new(topics)).await.unwrap();
+                });
+                let limit = if success { i32::try_from(count).unwrap() } else { 1 };
+                let got = admin.describe_topics_with_partition_limit_timeout(
+                    names.iter(), false, limit, Duration::from_secs(5),
+                ).await.unwrap();
+                let mut expected = names.clone();
+                if lexical {
+                    expected.sort();
+                }
+                assert_eq!(got.len(), expected.len());
+                for (row, name) in got.iter().zip(expected.iter()) {
+                    assert_eq!(&row.name, name);
+                    assert_eq!(row.topic_id, [0; 16]);
+                    assert!(!row.is_internal);
+                    assert_eq!(row.error_code, if success { 0 } else { crate::error::UNKNOWN_TOPIC_OR_PARTITION });
+                    assert_eq!(row.authorized_operations, AUTHORIZED_OPERATIONS_OMITTED);
+                    assert_eq!(row.partitions.len(), if success { 1 } else { 0 });
+                    if success {
+                        assert_eq!(row.partitions[0].topic, *name);
+                        assert_eq!(row.partitions[0].partition, 0);
+                        assert_eq!(row.partitions[0].leader, 1);
+                    }
+                }
+                peer.await.unwrap();
+            }
+        }
+    }
+}
