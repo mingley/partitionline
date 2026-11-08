@@ -1,0 +1,186 @@
+name: qualify Raft checkpoint and delayed-reply tests
+on:
+  push:
+    branches: [qualification/raft-coordination-candidate-v3-20261108]
+permissions:
+  contents: read
+jobs:
+  focused:
+    strategy:
+      fail-fast: false
+      matrix:
+        profile: [default, all-features]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      CARGO_INCREMENTAL: "0"
+      CARGO_BUILD_JOBS: "2"
+      CARGO_TERM_COLOR: never
+      CARGO_PROFILE_DEV_DEBUG: "0"
+      CARGO_PROFILE_TEST_DEBUG: "0"
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 2
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - name: Verify source and run controls
+        shell: bash
+        env:
+          PROFILE: ${{ matrix.profile }}
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/raft-candidate"
+          test "$(uname -m)" = x86_64
+          test "$(git rev-parse HEAD^)" = 6e5555c440b769d7db079acea7c4976bf87a993d
+          test "$(git hash-object partitionline-broker/tests/common/raft_runtime.rs)" = 93b7e92112c27385a1db5dd652e0760116214580
+          rustc +stable --version --verbose | tee "$RUNNER_TEMP/raft-candidate/rust.txt"
+          flags=()
+          if [ "$PROFILE" = all-features ]; then flags+=(--all-features); fi
+          for name in checkpoint_prefix_requires_exact_data_and_only_barriers forced_election_can_extend_checkpoint_past_last_data forced_demoted_leader_requires_fresh_selection actual_three_peer_tcp_observer_multichunk_image_install_reopen_and_join actual_five_peer_tcp_observer_multichunk_image_install_reopen_and_join actual_three_node_tcp_minority_partition_late_ack_image_restart_and_removal actual_five_node_tcp_minority_partition_late_ack_image_restart_and_removal; do
+            for attempt in 1 2 3; do
+              log="$RUNNER_TEMP/raft-candidate/$name-$attempt.log"
+              timeout 240s cargo +stable test --locked --manifest-path partitionline-broker/Cargo.toml "${flags[@]}" --lib "raft::runtime::tests::$name" -- --exact --nocapture --test-threads=1 > "$log" 2>&1 || { cat "$log"; exit 1; }
+              cat "$log"
+              grep -F 'test result: ok. 1 passed;' "$log"
+              if [[ "$name" = forced_demoted_leader_requires_fresh_selection || "$name" = actual_three_node_tcp_minority_partition_late_ack_image_restart_and_removal || "$name" = actual_five_node_tcp_minority_partition_late_ack_image_restart_and_removal ]]; then
+                grep -E 'PL_DELAYED_APPEND .*held_ms=[5-9][0-9][0-9]|PL_DELAYED_APPEND .*held_ms=[1-9][0-9]{3,}' "$log"
+                grep -F 'owner_consumption=unobserved' "$log"
+              fi
+            done
+          done
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: raft-candidate-focused-${{ matrix.profile }}-${{ github.sha }}
+          path: ${{ runner.temp }}/raft-candidate
+          if-no-files-found: warn
+          retention-days: 30
+  suites:
+    strategy:
+      fail-fast: false
+      matrix:
+        profile: [default, all-features]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      CARGO_INCREMENTAL: "0"
+      CARGO_BUILD_JOBS: "2"
+      CARGO_TERM_COLOR: never
+      CARGO_PROFILE_DEV_DEBUG: "0"
+      CARGO_PROFILE_TEST_DEBUG: "0"
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 2
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Verify source and run complete all-target suite
+        shell: bash
+        env:
+          PROFILE: ${{ matrix.profile }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD^)" = 6e5555c440b769d7db079acea7c4976bf87a993d
+          test "$(git hash-object partitionline-broker/tests/common/raft_runtime.rs)" = 93b7e92112c27385a1db5dd652e0760116214580
+          flags=()
+          if [ "$PROFILE" = all-features ]; then flags+=(--all-features); fi
+          cargo +stable test --locked --manifest-path partitionline-broker/Cargo.toml "${flags[@]}" --all-targets
+  static:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      CARGO_INCREMENTAL: "0"
+      CARGO_BUILD_JOBS: "2"
+      CARGO_TERM_COLOR: never
+      CARGO_PROFILE_DEV_DEBUG: "0"
+      CARGO_PROFILE_TEST_DEBUG: "0"
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 2
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - name: Format and strict all-target Clippy
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD^)" = 6e5555c440b769d7db079acea7c4976bf87a993d
+          test "$(git hash-object partitionline-broker/tests/common/raft_runtime.rs)" = 93b7e92112c27385a1db5dd652e0760116214580
+          cargo +stable fmt --manifest-path partitionline-broker/Cargo.toml -- --check
+          cargo +stable clippy --locked --manifest-path partitionline-broker/Cargo.toml --all-targets --all-features -- -D warnings
+      - name: Verify pinned inventory
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -B scripts/check-broker-api-matrix.py
+          python3 -B -m unittest discover -s tests/ci -p test_broker_api_matrix.py
+  negative:
+    strategy:
+      fail-fast: false
+      matrix:
+        profile: [default, all-features]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      CARGO_INCREMENTAL: "0"
+      CARGO_BUILD_JOBS: "2"
+      CARGO_TERM_COLOR: never
+      CARGO_PROFILE_DEV_DEBUG: "0"
+      CARGO_PROFILE_TEST_DEBUG: "0"
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 2
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Mutate delay and reconnection observations separately
+        shell: bash
+        env:
+          PROFILE: ${{ matrix.profile }}
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/raft-negative"
+          test "$(git rev-parse HEAD^)" = 6e5555c440b769d7db079acea7c4976bf87a993d
+          flags=()
+          if [ "$PROFILE" = all-features ]; then flags+=(--all-features); fi
+          for mode in no_delay short_hold no_match no_reconnect; do
+            git checkout -- partitionline-broker/tests/common/raft_runtime.rs
+            MODE="$mode" python3 - <<'PY'
+          import os
+          from pathlib import Path
+          path = Path("partitionline-broker/tests/common/raft_runtime.rs")
+          source = path.read_text()
+          mode = os.environ["MODE"]
+          old, new = {
+              "no_delay": ("gate.delay[slot].swap(0, Ordering::AcqRel)", "0"),
+              "no_match": ("observed.append_rpc.load(Ordering::Acquire) == rpc", "observed.append_rpc.load(Ordering::Acquire) == rpc.saturating_add(1)"),
+              "short_hold": ("let held_ms = u64::try_from(start.elapsed().as_millis())?;", "let held_ms = 1;"),
+              "no_reconnect": ("gate.connections[source*gate.count+target].fetch_max(id+1,Ordering::AcqRel);", "let _ = (source, target, id);"),
+          }[mode]
+          assert source.count(old) == 1, (mode, source.count(old))
+          path.write_text(source.replace(old, new))
+          PY
+            log="$RUNNER_TEMP/raft-negative/$mode.log"
+            set +e
+            timeout 240s cargo +stable test --locked --manifest-path partitionline-broker/Cargo.toml "${flags[@]}" --lib raft::runtime::tests::forced_demoted_leader_requires_fresh_selection -- --exact --nocapture --test-threads=1 > "$log" 2>&1
+            status=$?
+            set -e
+            cat "$log"
+            test "$status" = 101
+            grep -F 'test result: FAILED. 0 passed; 1 failed;' "$log"
+            grep -E 'delayed AppendReply or (source EOF|reconnect) not observed' "$log"
+          done
+          git checkout -- partitionline-broker/tests/common/raft_runtime.rs
+          test "$(git hash-object partitionline-broker/tests/common/raft_runtime.rs)" = 93b7e92112c27385a1db5dd652e0760116214580
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: raft-candidate-negative-${{ matrix.profile }}-${{ github.sha }}
+          path: ${{ runner.temp }}/raft-negative
+          if-no-files-found: warn
+          retention-days: 30
