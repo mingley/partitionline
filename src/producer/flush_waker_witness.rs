@@ -4,6 +4,16 @@ use std::future::Future;
 use std::panic::{catch_unwind, AssertUnwindSafe};
 use std::task::{Context, Wake, Waker};
 
+struct CountWake {
+    called: Arc<AtomicBool>,
+}
+
+impl Wake for CountWake {
+    fn wake(self: Arc<Self>) {
+        self.called.store(true, Ordering::SeqCst);
+    }
+}
+
 struct PanicWake {
     admission: Arc<WorkerAdmission>,
     called: Arc<AtomicBool>,
@@ -60,6 +70,13 @@ async fn normal_handoff_keeps_one_reservation_until_terminal() {
         admission: &admission,
         permit: data_tx.reserve().await.unwrap(),
     };
+    let called = Arc::new(AtomicBool::new(false));
+    let waker = Waker::from(Arc::new(CountWake {
+        called: Arc::clone(&called),
+    }));
+    let mut cx = Context::from_waker(&waker);
+    let mut recv = Box::pin(data_rx.recv());
+    assert!(recv.as_mut().poll(&mut cx).is_pending());
     {
         let mut reservation = BufferReservation {
             shared: &shared,
@@ -69,6 +86,8 @@ async fn normal_handoff_keeps_one_reservation_until_terminal() {
         assert!(permit.send(pending()).is_ok());
         reservation.active = false;
     }
+    assert!(called.load(Ordering::SeqCst));
+    drop(recv);
     assert_eq!(shared.buffered_bytes.load(Ordering::SeqCst), 1);
     fail_pendings(&shared, vec![data_rx.try_recv().unwrap()], Error::Timeout);
     assert_eq!(shared.buffered_bytes.load(Ordering::SeqCst), 0);
