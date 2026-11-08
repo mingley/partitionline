@@ -1,0 +1,76 @@
+name: sendall candidate Apache Kafka history
+on:
+  push:
+    branches: [qualification/sendall-real-kafka-20261108]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  real-kafka:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Source and host identity
+        run: |
+          set -euo pipefail
+          mkdir -p evidence
+          git rev-parse HEAD | tee evidence/commit.txt
+          test "$(git rev-parse HEAD:src/producer.rs)" = d634fa4752e33d77e042404f199f31ee2bcb1c48
+          git rev-parse HEAD:src/producer.rs HEAD:tests/sendall_real_kafka.rs HEAD:tests/verify_sendall_real_kafka.py | tee evidence/source-blobs.txt
+          sha256sum src/producer.rs tests/sendall_real_kafka.rs tests/verify_sendall_real_kafka.py Cargo.lock | tee evidence/source-sha256.txt
+          rustc -Vv | tee evidence/rust.txt
+          uname -a | tee evidence/host.txt
+      - name: Start fresh Apache Kafka
+        run: |
+          set -euo pipefail
+          docker pull apache/kafka:3.9.1
+          docker image inspect apache/kafka:3.9.1 --format '{{.Architecture}} {{.Os}} {{.Id}} {{json .RepoDigests}}' | tee evidence/image.txt
+          docker run -d --name sendall-kafka -p 9092:9092 apache/kafka:3.9.1
+          ready=0
+          for i in $(seq 1 90); do
+            if docker exec sendall-kafka /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --list >evidence/startup.out 2>evidence/startup.err; then
+              ready=1
+              break
+            fi
+            sleep 2
+          done
+          test "$ready" = 1
+      - name: Build public producer history
+        run: |
+          set -euo pipefail
+          cargo test --release --locked --all-features --test sendall_real_kafka --no-run
+          mapfile -t bins < <(find target/release/deps -maxdepth 1 -type f -executable -name 'sendall_real_kafka-*')
+          test "${#bins[@]}" = 1
+          sha256sum "${bins[0]}" | tee evidence/binary.txt
+          echo "SENDALL_BIN=${bins[0]}" >> "$GITHUB_ENV"
+      - name: Verify delivery and full independent Kafka readback
+        run: |
+          set -euo pipefail
+          for mode in 0 1; do
+            topic="pl-sendall-${GITHUB_RUN_ID}-${mode}"
+            docker exec sendall-kafka /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --create --topic "$topic" --partitions 1 --replication-factor 1
+            before="$(docker exec sendall-kafka /opt/kafka/bin/kafka-get-offsets.sh --bootstrap-server localhost:9092 --topic "$topic" --time -1)"
+            printf '%s\n' "$before" | tee "evidence/offset-before-$mode.txt"
+            test "$before" = "$topic:0:0"
+            PL_KAFKA_BOOTSTRAP=127.0.0.1:9092 PL_KAFKA_TOPIC="$topic" PL_KAFKA_IDEMPOTENT="$mode" "$SENDALL_BIN" --exact explicit_partition_send_all_real_kafka_history --nocapture --test-threads=1 2>&1 | tee "evidence/producer-$mode.txt"
+            grep -F 'test result: ok. 1 passed; 0 failed' "evidence/producer-$mode.txt"
+            after="$(docker exec sendall-kafka /opt/kafka/bin/kafka-get-offsets.sh --bootstrap-server localhost:9092 --topic "$topic" --time -1)"
+            printf '%s\n' "$after" | tee "evidence/offset-after-$mode.txt"
+            test "$after" = "$topic:0:22561"
+            timeout 180s docker exec sendall-kafka /opt/kafka/bin/kafka-console-consumer.sh --bootstrap-server localhost:9092 --topic "$topic" --from-beginning --max-messages 22561 --timeout-ms 120000 >"evidence/records-$mode.txt" 2>"evidence/consumer-$mode.err"
+            python3 tests/verify_sendall_real_kafka.py "evidence/records-$mode.txt" | tee "evidence/verified-$mode.txt"
+          done
+      - name: Capture broker logs
+        if: always()
+        run: |
+          mkdir -p evidence
+          docker logs sendall-kafka >evidence/broker.log 2>&1 || true
+      - name: Retain complete histories
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: sendall-real-kafka-history
+          path: evidence
+          retention-days: 30
