@@ -85,12 +85,12 @@ impl Limits {
     /// Router startup requires admission count times (maximum request plus
     /// maximum response bytes) to fit this ceiling. Data commands retain a
     /// permit while queued, processed, waiting or held in an unconsumed reply,
-    /// including after caller cancellation. Request and retained scratch
-    /// capacities are checked separately. Builders can reserve more than the
-    /// logical response length, and copying an oversized request temporarily
-    /// overlaps its original allocation. Actor caches, parser metadata,
-    /// allocator overhead, transport/caller ownership and process RSS are
-    /// outside this logical ceiling.
+    /// including after caller cancellation. Request and scratch capacities
+    /// are checked before enqueue. An oversized input and its replacement can
+    /// coexist across yields until normalization finishes or the future is
+    /// dropped. Builders can reserve more than the logical response length.
+    /// Actor caches, parser metadata, allocator overhead, transport/caller
+    /// ownership and process RSS are outside this logical ceiling.
     pub fn with_retained_bytes(mut self, bytes: usize) -> Result<Self, Error> {
         if !(1..=1024 * 1024 * 1024).contains(&bytes) {
             return Err(Error::InvalidLimits);

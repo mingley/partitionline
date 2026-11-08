@@ -364,14 +364,14 @@ impl Router {
     /// Admission count times (maximum request plus response bytes) must fit
     /// `reads.max_retained_bytes()`, which defaults to 1 GiB. Data requests
     /// retain their permit while queued, processed, waiting or held in an
-    /// unconsumed reply. Request capacity and retained scratch capacity are
-    /// checked against their respective maxima. A builder can still reserve
-    /// more capacity than its logical response length. A request copy may
-    /// temporarily overlap its caller-provided allocation and yield between
-    /// chunks. Allocation and deallocation may still block, and yielding does
-    /// not guarantee scheduling latency. Actor caches, parser metadata,
-    /// allocator overhead, transport and caller ownership are separate; this
-    /// is not a total process memory bound.
+    /// unconsumed reply. Request and scratch capacities are checked before
+    /// enqueue. During normalization, an oversized caller allocation and its
+    /// replacement coexist until normalization finishes or the future is
+    /// dropped. The copy yields between chunks; allocation and deallocation
+    /// may still block, and yielding does not guarantee scheduling latency.
+    /// A builder can reserve more capacity than its logical response length.
+    /// Actor caches, parser metadata, allocator overhead, transport and caller
+    /// ownership are separate; this is not a total process memory bound.
     /// Existing metadata-only and Produce-only constructors keep their profiles.
     pub async fn open_with_read_store(
         path: impl Into<PathBuf>,
@@ -1421,7 +1421,7 @@ struct NormalizationDropProbe {
 impl Drop for NormalizationDropProbe {
     fn drop(&mut self) {
         if self.slots.available_permits() == 0 {
-            self.observed.fetch_add(1, Ordering::SeqCst);
+            let _previous = self.observed.fetch_add(1, Ordering::SeqCst);
         }
     }
 }
@@ -1464,6 +1464,13 @@ async fn bound_owned_vec(
         .replacement
         .try_reserve_exact(buffers.source.len())
         .map_err(|_| protocol::Error::Allocation)?;
+    #[cfg(test)]
+    if NORMALIZATION_OVER_CAPACITY.with(|force| force.replace(false)) {
+        buffers
+            .replacement
+            .try_reserve_exact(maximum.saturating_add(1))
+            .map_err(|_| protocol::Error::Allocation)?;
+    }
     if buffers.replacement.capacity() > maximum {
         return Err(protocol::Error::Allocation.into());
     }
@@ -1485,6 +1492,7 @@ async fn bound_owned_vec(
 #[cfg(test)]
 thread_local! {
     static FAIL_BUFFER_REPACK: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
+    static NORMALIZATION_OVER_CAPACITY: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
     static NORMALIZATION_STARTED: std::cell::Cell<Option<Instant>> = const { std::cell::Cell::new(None) };
     static NORMALIZATION_DELAY: std::cell::Cell<Duration> = const { std::cell::Cell::new(Duration::ZERO) };
     static RECYCLED_CAPACITY: std::cell::Cell<Option<usize>> = const { std::cell::Cell::new(None) };
@@ -4713,16 +4721,33 @@ mod tests {
         assert_eq!(router.sender.capacity(), 1);
         assert_eq!(router.data_slots.available_permits(), 1);
 
-        FAIL_BUFFER_REPACK.with(|fail| fail.set(true));
-        let failed = router
-            .exchange_request(&peer, make_oversized(), Vec::new())
-            .await;
-        assert!(matches!(
-            failed,
-            Err(Error::Protocol(protocol::Error::Allocation))
-        ));
-        assert_eq!(router.sender.capacity(), 1);
-        assert_eq!(router.data_slots.available_permits(), 1);
+        let observed = Arc::new(std::sync::atomic::AtomicUsize::new(0));
+        for over_capacity in [false, true] {
+            NORMALIZATION_DROP_PROBE.with(|probe| {
+                *probe.borrow_mut() = Some(NormalizationDropProbe {
+                    slots: Arc::clone(&router.data_slots),
+                    observed: Arc::clone(&observed),
+                });
+            });
+            if over_capacity {
+                NORMALIZATION_OVER_CAPACITY.with(|force| force.set(true));
+            } else {
+                FAIL_BUFFER_REPACK.with(|fail| fail.set(true));
+            }
+            let failed = router
+                .exchange_request(&peer, make_oversized(), Vec::new())
+                .await;
+            assert!(matches!(
+                failed,
+                Err(Error::Protocol(protocol::Error::Allocation))
+            ));
+            assert_eq!(router.sender.capacity(), 1);
+            assert_eq!(router.data_slots.available_permits(), 1);
+            assert_eq!(
+                observed.load(Ordering::SeqCst),
+                if over_capacity { 2 } else { 1 }
+            );
+        }
 
         let expected = capacity_witness_fetch();
         let mut pending = Box::pin(router.exchange_request(&peer, make_oversized(), Vec::new()));
