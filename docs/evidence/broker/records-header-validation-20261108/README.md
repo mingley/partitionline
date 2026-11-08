@@ -2,7 +2,7 @@
 
 The ordinary record validator first tries a fast walk for batches without
 headers. A positive header count makes that walk decline and the generic
-validator starts from the beginning. Seven isolated candidates tried to
+validator starts from the beginning. Eight isolated candidates tried to
 reduce that repeated work. None is applied: each regressed at least one
 measured control. The benchmark checks memory-resident uncompressed batches;
 it does not measure Kafka throughput or rank clients or servers.
@@ -259,5 +259,31 @@ Neither archive has been independently downloaded; binaries were not retained.
 [Run 42453286145](https://github.com/mingley/partitionline/actions/runs/42453286145)
 passed formatting, the focused tests in both profiles and strict Clippy.
 
-A subsequent isolated variant also inlines the lower-level decoder. Its
-paired benchmark and disassembly are in progress.
+A subsequent isolated variant also inlines the lower-level decoder; its paired
+results are below. Its separate disassembly run is still in progress.
+
+## Nested decoder inline follow-up
+
+The [nested-inline candidate](https://github.com/mingley/partitionline/commit/00ebf674cafd594746ac3e25cfb8f648acfdb9cd)
+also marks the lower-level canonical decoder `#[inline(always)]`.
+[Run 42453611803](https://github.com/mingley/partitionline/actions/runs/42453611803)
+measured candidate/baseline median ratios of 1.013 for 1,024 header-free
+records, 1.021 for a header only on the last record and 1.022 for late-invalid
+without headers. All eight paired ratios for each of those cases were above
+baseline. Early-invalid was 0.999. Header-heavy valid cases ranged from 0.618
+to 0.902. The candidate remains unapplied because the common and fallback
+regressions remain.
+
+The candidate source SHA-256 was
+`7bdc7b868ee762ec34a92412bc65fe833679bedd05b0c5d45e2a7ca9e82415d5`;
+fixture SHA-256 was
+`d268ab717b4447c560eba6b009ca58eb91e62d9cbcb776ecaf7ba258a3dbcc18`.
+Baseline and candidate binary SHA-256 values were
+`e4698019bfb9f7d9bd9da9dd975ae89b85c1d25f48ec27a07a2d7a738be7ebe7`
+and `6c943416e9a8e45baa50bb0e3847fcb008aa3754d46a9ac1ecf166f5b284fabc`.
+GitHub reported SHA-256
+`196f2cb3e0f3e0281c0b6796df9adcd7a7ab27bae3e7d8bed0c49b99b21d97f2`
+for the [measurement artifact](https://github.com/mingley/partitionline/actions/runs/42453611803/artifacts/13607161014).
+The archive has not been independently downloaded and the binaries were not
+retained. [Run 42453600001](https://github.com/mingley/partitionline/actions/runs/42453600001)
+passed formatting, the focused tests in both profiles and strict Clippy.
