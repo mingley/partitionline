@@ -18,8 +18,8 @@ mutants = [
          "for token in list(self.reservations):\n            pass"),
     ], "OwnerControls.test_limits_and_close_revoke_pre_admission"),
     ("split-retry", [
-        ("if partition in self.active or max_records <= 0 or max_bytes <= 0:",
-         "if max_records <= 0 or max_bytes <= 0:"),
+        ("if self.stop_writes or partition in self.active:",
+         "if self.stop_writes or False:"),
     ], "OwnerControls.test_unknown_handoff_remains_a_whole_batch_during_flush_and_close"),
     ("terminal-lease-reused", [
         ('or batch.phase not in ("claimed", "offered", "unknown")):',
@@ -60,11 +60,9 @@ mutants = [
          'if False:\n            pass'),
     ], "OwnerControls.test_queued_sticky_failure_cancels_the_entire_cohort"),
     ("close-never-drains", [
-        ('self._progress_close()\n        return True\n\n    def _release',
-         'pass\n        return True\n\n    def _release'),
-        ('self._progress_close()\n            return self.close_result if self.close_result is not None else "pending"',
-         'pass\n            return self.close_result if self.close_result is not None else "pending"'),
-    ], "OwnerControls.test_timed_out_close_drains_later_without_rewriting_observer_result"),
+        ('if batch.phase == "retiring":\n            batch.phase = "ready"\n        self._progress()\n        return True',
+         'if batch.phase == "retiring":\n            batch.phase = "ready"\n        pass\n        return True'),
+    ], "OwnerControls.test_stopped_unwritten_worker_triggers_timed_close_reclamation"),
     ("ack-beats-deadline", [
         ("# timer fairness are not represented by this synthetic clock.\n        self.expire(now)",
          "# timer fairness are not represented by this synthetic clock.\n        pass"),
