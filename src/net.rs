@@ -3514,7 +3514,7 @@ mod tests {
             let start = Instant::now();
             for _ in 0..ITERS {
                 let mut guard = black_box(&raw).try_lock().unwrap();
-                black_box(&mut *guard);
+                let _observed = black_box(&mut *guard);
             }
             start.elapsed()
         };
@@ -3522,7 +3522,7 @@ mod tests {
             let start = Instant::now();
             for _ in 0..ITERS {
                 let mut guard = black_box(&wrapped).try_lock().unwrap();
-                black_box(&mut *guard);
+                let _observed = black_box(&mut *guard);
             }
             start.elapsed()
         };
@@ -3535,6 +3535,51 @@ mod tests {
             };
             println!(
                 "lock_probe round={round} iterations={ITERS} raw_ns={} wrapped_ns={}",
+                raw_elapsed.as_nanos(),
+                wrapped_elapsed.as_nanos()
+            );
+            assert!(raw_elapsed > Duration::ZERO);
+            assert!(wrapped_elapsed > Duration::ZERO);
+        }
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    #[ignore = "explicit release-mode asynchronous lock overhead measurement"]
+    async fn stream_async_lock_overhead_probe() {
+        use std::hint::black_box;
+
+        const ITERS: usize = 1_000_000;
+        const ROUNDS: usize = 8;
+
+        async fn raw_round(raw: &tokio::sync::Mutex<ConnIo>) -> Duration {
+            let start = Instant::now();
+            for _ in 0..ITERS {
+                let mut guard = black_box(raw).lock().await;
+                let _observed = black_box(&mut *guard);
+            }
+            start.elapsed()
+        }
+
+        async fn wrapped_round(wrapped: &SharedConnIo) -> Duration {
+            let start = Instant::now();
+            for _ in 0..ITERS {
+                let mut guard = black_box(wrapped).lock().await;
+                let _observed = black_box(&mut *guard);
+            }
+            start.elapsed()
+        }
+
+        let raw = tokio::sync::Mutex::new(ConnIo::Closed);
+        let wrapped = SharedConnIo::new(ConnIo::Closed);
+        for round in 0..ROUNDS {
+            let (raw_elapsed, wrapped_elapsed) = if round % 2 == 0 {
+                (raw_round(&raw).await, wrapped_round(&wrapped).await)
+            } else {
+                let wrapped_elapsed = wrapped_round(&wrapped).await;
+                (raw_round(&raw).await, wrapped_elapsed)
+            };
+            println!(
+                "async_lock_probe round={round} iterations={ITERS} raw_ns={} wrapped_ns={}",
                 raw_elapsed.as_nanos(),
                 wrapped_elapsed.as_nanos()
             );
