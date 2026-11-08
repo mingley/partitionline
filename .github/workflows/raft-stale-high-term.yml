@@ -1,0 +1,92 @@
+name: Raft stale higher-term response controls
+on:
+  push:
+    branches: [qualification/raft-stale-high-term-20261108]
+permissions:
+  contents: read
+jobs:
+  controls:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      CARGO_BUILD_JOBS: 2
+      CARGO_INCREMENTAL: 0
+      CARGO_PROFILE_TEST_DEBUG: 0
+      CARGO_PROFILE_DEV_DEBUG: 0
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Genuine peer and malformed-wire controls
+        run: |
+          set -euo pipefail
+          rustc --version
+          cp partitionline-broker/src/raft/runtime.rs /tmp/higher-runtime.rs
+          cp partitionline-broker/src/raft/replication.rs /tmp/higher-replication.rs
+          cp partitionline-broker/src/raft/election.rs /tmp/higher-election.rs
+          for features in default all; do
+            args=()
+            if [[ "$features" == all ]]; then args=(--all-features); fi
+            for case in matched_stale_high_term_reply_is_fenced_but_current_reply_steps_down malformed_high_term_responses_do_not_change_authority replayed_genuine_old_reply_is_rejected_on_new_connection; do
+              cargo test --locked --manifest-path partitionline-broker/Cargo.toml --lib "${args[@]}" "$case" -- --nocapture
+            done
+          done
+      - name: Missing owner correlation mutant
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path("partitionline-broker/src/raft/replication.rs")
+          s=p.read_text()
+          old=".position(|r| *r == response.request)\n            .ok_or(Error::InvalidPeer)?;"
+          assert s.count(old)==1
+          p.write_text(s.replace(old, ".position(|r| *r == response.request).unwrap_or(0);", 1))
+          PY
+          if cargo test --locked --manifest-path partitionline-broker/Cargo.toml --lib matched_stale_high_term_reply_is_fenced_but_current_reply_steps_down -- --nocapture > /tmp/higher-owner-mutant.log 2>&1; then cat /tmp/higher-owner-mutant.log; exit 1; fi
+          cat /tmp/higher-owner-mutant.log
+          grep -F "old correlation rejected as InvalidPeer" /tmp/higher-owner-mutant.log
+          cp /tmp/higher-replication.rs partitionline-broker/src/raft/replication.rs
+      - name: Missing request-echo guard mutant
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path("partitionline-broker/src/raft/runtime.rs")
+          s=p.read_text()
+          old="if response.rpc != frame.rpc || !frame.message.matches_reply(&response.message) {"
+          assert s.count(old)==1
+          p.write_text(s.replace(old, "if response.rpc != frame.rpc {", 1))
+          PY
+          if cargo test --locked --manifest-path partitionline-broker/Cargo.toml --lib replayed_genuine_old_reply_is_rejected_on_new_connection -- --nocapture > /tmp/higher-wire-mutant.log 2>&1; then cat /tmp/higher-wire-mutant.log; exit 1; fi
+          cat /tmp/higher-wire-mutant.log
+          grep -F "replayed old request must not reach the owner" /tmp/higher-wire-mutant.log
+          cp /tmp/higher-runtime.rs partitionline-broker/src/raft/runtime.rs
+      - name: Missing voter identity guard mutant
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path("partitionline-broker/src/raft/election.rs")
+          s=p.read_text()
+          old="if response.voter != voter.id\n            || !dynamic.view.contains(voter)"
+          assert s.count(old)==1
+          p.write_text(s.replace(old, "if !dynamic.view.contains(voter)", 1))
+          PY
+          if cargo test --locked --manifest-path partitionline-broker/Cargo.toml --lib malformed_high_term_responses_do_not_change_authority -- --nocapture > /tmp/higher-voter-mutant.log 2>&1; then cat /tmp/higher-voter-mutant.log; exit 1; fi
+          cat /tmp/higher-voter-mutant.log
+          grep -F "owner must reject mismatched response identity" /tmp/higher-voter-mutant.log
+          cp /tmp/higher-election.rs partitionline-broker/src/raft/election.rs
+      - name: Missing candidate identity guard mutant
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path("partitionline-broker/src/raft/election.rs")
+          s=p.read_text()
+          old="if response.candidate != self.membership.local || response.term == 0 {"
+          assert s.count(old)==1
+          p.write_text(s.replace(old, "if response.term == 0 {", 1))
+          PY
+          if cargo test --locked --manifest-path partitionline-broker/Cargo.toml --lib malformed_high_term_responses_do_not_change_authority -- --nocapture > /tmp/higher-candidate-mutant.log 2>&1; then cat /tmp/higher-candidate-mutant.log; exit 1; fi
+          cat /tmp/higher-candidate-mutant.log
+          grep -F "owner must reject mismatched response identity" /tmp/higher-candidate-mutant.log
+          cp /tmp/higher-election.rs partitionline-broker/src/raft/election.rs

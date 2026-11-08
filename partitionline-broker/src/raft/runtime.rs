@@ -58,6 +58,10 @@ struct TestMetrics {
     workers_spawned: AtomicUsize,
     workers_joined: AtomicUsize,
     clock: std::sync::OnceLock<std::time::Instant>,
+    // One last bounded observation for this isolated test-only control.
+    #[expect(clippy::disallowed_types, reason = "test telemetry only holds one copied value and never crosses an await")]
+    vote_ack: std::sync::Mutex<Option<(replication::DynamicVoteResponse, u8)>>,
+    vote_ack_ready: Notify,
 }
 #[cfg(test)]
 impl TestMetrics {
@@ -1388,7 +1392,19 @@ impl Owner {
             Command::Acknowledge(message) => {
                 match message {
                     Message::VoteReply(r) => {
-                        self.node.acknowledge_dynamic_vote(r, now)?;
+                        let result = self.node.acknowledge_dynamic_vote(r, now);
+                        #[cfg(test)]
+                        {
+                            let kind = match &result {
+                                Err(replication::Error::InvalidPeer) => 1,
+                                Ok(super::election::Tally::SteppedDown) => 2,
+                                Err(_) => 3,
+                                Ok(_) => 4,
+                            };
+                            *self.metrics.vote_ack.lock().unwrap_or_else(std::sync::PoisonError::into_inner) = Some((r, kind));
+                            self.metrics.vote_ack_ready.notify_one();
+                        }
+                        result?;
                     }
                     Message::FeatureReply(r) => {
                         let expected = self
@@ -5254,6 +5270,253 @@ mod ownership_tests {
             println!("vote-route-cost round={round} loops={loops} slot_ns={slot_ns} mpsc_ns={channel_ns}");
         }
         source.finish().await
+    }
+
+
+    async fn higher_term_advance(peer: &LocalOwner, minimum: u64) -> TestResult<u64> {
+        for _ in 0..16 {
+            tokio::time::sleep(Duration::from_millis(3)).await;
+            match peer.fixture("higher-peer-campaign", Command::Tick).await?? {
+                Reply::Votes(_) => {}
+                _ => return Err("higher peer expected campaign".into()),
+            }
+            let term = peer.state().await?.election.persistent.term;
+            if term >= minimum {
+                return Ok(term);
+            }
+        }
+        Err("higher peer did not reach minimum term".into())
+    }
+
+    async fn higher_term_event(
+        owner: &LocalOwner,
+        sequence: u64,
+    ) -> TestResult<(replication::DynamicVoteResponse, u8)> {
+        let deadline = Instant::now() + Duration::from_secs(2);
+        loop {
+            let notified = owner.control.metrics.vote_ack_ready.notified();
+            let event = *owner.control.metrics.vote_ack.lock()
+                .unwrap_or_else(std::sync::PoisonError::into_inner);
+            if let Some((reply, kind)) = event {
+                if reply.request.sequence == sequence {
+                    return Ok((reply, kind));
+                }
+            }
+            tokio::time::timeout_at(deadline, notified).await
+                .map_err(|_| "source owner did not observe the vote acknowledgement")?;
+        }
+    }
+
+    async fn higher_term_reply(peer: &LocalOwner, request: replication::DynamicVoteRequest, term: u64) -> TestResult<replication::DynamicVoteResponse> {
+        let response = grant(peer, request).await?;
+        let Message::VoteReply(reply) = response else {
+            return Err("expected actual peer vote response".into());
+        };
+        if reply.request != request || reply.response.term != term ||
+           reply.response.voter != request.context.peer.id ||
+           reply.response.candidate != request.context.leader.id ||
+           reply.response.granted {
+            return Err(format!("unexpected genuine high-term response: {reply:?}").into());
+        }
+        Ok(reply)
+    }
+
+    #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+    async fn matched_stale_high_term_reply_is_fenced_but_current_reply_steps_down() -> TestResult {
+        let source = LocalOwner::open_profile(0, 2, 2, 16, StorageLimits::standard()?, 1000).await?;
+        let peer = LocalOwner::open(1, 2, 16).await?;
+        let listener = TcpListener::bind("127.0.0.1:0").await?;
+        let route = Peer::new(peer.control.config.bootstrap.local().clone(), listener.local_addr()?)?;
+        let key = route.key();
+        let slot = Arc::new(VoteSlot::default());
+        let routes = vec![(key, slot.clone())];
+        let worker_control = source.control.clone();
+        let worker = tokio::spawn(async move { outbound(worker_control, route, slot).await });
+
+        let (old_job, old) = queue_control_campaign(&source).await?;
+        dispatch_votes(&source.control, &routes, vec![old_job]).await;
+        let (mut old_socket, mut old_wire, old_rpc, wire_old) =
+            queue_control_read_vote(&listener, &source).await?;
+        assert_eq!(wire_old, old);
+        let peer_term = higher_term_advance(&peer, old.request.term + 5).await?;
+        assert_eq!(peer.state().await?.election.persistent.term, peer_term);
+
+        // The first RPC is still in flight; source now owns a newer campaign.
+        let (new_job, current) = queue_control_campaign(&source).await?;
+        assert!(current.request.term > old.request.term && peer_term > current.request.term);
+        dispatch_votes(&source.control, &routes, vec![new_job]).await;
+        let before = source.state().await?;
+        assert_eq!(before.election.role, Role::Candidate);
+        assert_eq!(before.election.persistent.term, current.request.term);
+        let old_reply = higher_term_reply(&peer, old, peer_term).await?;
+        write_frame(
+            &mut old_socket,
+            &Frame { rpc: old_rpc, message: Message::VoteReply(old_reply) },
+            source.control.config.limits.frame_bytes,
+            Instant::now() + Duration::from_secs(2),
+            &mut old_wire,
+        ).await?;
+        let (observed_old, old_result) = higher_term_event(&source, old.sequence).await?;
+        assert_eq!(observed_old, old_reply, "owner observed exact matched old response");
+        assert_eq!(old_result, 1, "old correlation rejected as InvalidPeer");
+        queue_control_wait_closed(&mut old_socket).await?;
+        let after_stale = source.state().await?;
+        assert_eq!(after_stale.election.persistent, before.election.persistent);
+        assert_eq!(after_stale.election.role, Role::Candidate);
+        assert_eq!(after_stale.election_durable_states, before.election_durable_states);
+        assert_eq!(after_stale.election.granted_votes, before.election.granted_votes);
+
+        // The queued current vote goes through a new real connection. The same
+        // genuine peer term now has an exact live owner correlation.
+        let (mut current_socket, mut current_wire, current_rpc, wire_current) =
+            queue_control_read_vote(&listener, &source).await?;
+        assert_eq!(wire_current, current);
+        let current_reply = higher_term_reply(&peer, current, peer_term).await?;
+        write_frame(
+            &mut current_socket,
+            &Frame { rpc: current_rpc, message: Message::VoteReply(current_reply) },
+            source.control.config.limits.frame_bytes,
+            Instant::now() + Duration::from_secs(2),
+            &mut current_wire,
+        ).await?;
+        let (observed_current, current_result) = higher_term_event(&source, current.sequence).await?;
+        assert_eq!(observed_current, current_reply);
+        assert_eq!(current_result, 2, "current correlation must report SteppedDown");
+        let stepped = source.state().await?;
+        assert_eq!(stepped.election.role, Role::Follower);
+        assert_eq!(stepped.election.persistent.term, peer_term);
+        assert_eq!(stepped.election.persistent.voted_for, None);
+        assert_eq!(stepped.election_durable_states, before.election_durable_states + 1);
+        source.reject_vote("direct-replay-after-stepdown", Message::VoteReply(current_reply)).await?;
+        println!("higher-term matched_old={} current={} peer={} old_owner=InvalidPeer current_owner=SteppedDown replay=InvalidPeer",
+            old.request.term, current.request.term, peer_term);
+        source.control.stop();
+        drop(routes);
+        drop(current_socket);
+        tokio::time::timeout(Duration::from_secs(2), worker).await??;
+        peer.finish().await?;
+        source.finish_with_manual_workers(1).await
+    }
+
+    async fn higher_term_bad_wire_case(case: u8) -> TestResult {
+        let source = LocalOwner::open_profile(0, 2, 2, 16, StorageLimits::standard()?, 1000).await?;
+        let peer = LocalOwner::open(1, 2, 16).await?;
+        let listener = TcpListener::bind("127.0.0.1:0").await?;
+        let route = Peer::new(peer.control.config.bootstrap.local().clone(), listener.local_addr()?)?;
+        let key = route.key();
+        let slot = Arc::new(VoteSlot::default());
+        let routes = vec![(key, slot.clone())];
+        let worker_control = source.control.clone();
+        let worker = tokio::spawn(async move { outbound(worker_control, route, slot).await });
+
+        let (job, request) = queue_control_campaign(&source).await?;
+        dispatch_votes(&source.control, &routes, vec![job]).await;
+        let (mut socket, mut wire, rpc, on_wire) =
+            queue_control_read_vote(&listener, &source).await?;
+        assert_eq!(on_wire, request);
+        let peer_term = higher_term_advance(&peer, request.request.term + 5).await?;
+        let mut reply = higher_term_reply(&peer, request, peer_term).await?;
+        let before = source.state().await?;
+        let rpc = match case {
+            0 => rpc + 1, // wrong connection-local RPC id
+            1 => { reply.request.sequence += 1; rpc },
+            2 => { reply.request.context.peer.directory[0] ^= 1; rpc },
+            3 => { reply.response.voter = request.context.leader.id; rpc },
+            4 => { reply.response.candidate = request.context.peer.id; rpc },
+            _ => return Err("invalid bad-wire case".into()),
+        };
+        write_frame(
+            &mut socket,
+            &Frame { rpc, message: Message::VoteReply(reply) },
+            source.control.config.limits.frame_bytes,
+            Instant::now() + Duration::from_secs(2),
+            &mut wire,
+        ).await?;
+        if case <= 2 {
+            queue_control_wait_closed(&mut socket).await?;
+            let event = *source.control.metrics.vote_ack.lock()
+                .unwrap_or_else(std::sync::PoisonError::into_inner);
+            assert!(event.is_none(), "wire mismatch must not reach the owner");
+        } else {
+            let (observed, kind) = higher_term_event(&source, request.sequence).await?;
+            assert_eq!(observed, reply);
+            assert_eq!(kind, 3, "owner must reject mismatched response identity");
+            queue_control_wait_closed(&mut socket).await?;
+        }
+        let after = source.state().await?;
+        assert_eq!(after.election.persistent, before.election.persistent);
+        assert_eq!(after.election.role, Role::Candidate);
+        assert_eq!(after.election_durable_states, before.election_durable_states);
+        println!("higher-term malformed_case={case} peer_term={peer_term} owner_reached={} authority_unchanged=true", case > 2);
+        source.control.stop();
+        drop(routes);
+        drop(socket);
+        tokio::time::timeout(Duration::from_secs(2), worker).await??;
+        peer.finish().await?;
+        source.finish_with_manual_workers(1).await
+    }
+
+
+    #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+    async fn replayed_genuine_old_reply_is_rejected_on_new_connection() -> TestResult {
+        let source = LocalOwner::open_profile(0, 2, 2, 16, StorageLimits::standard()?, 1000).await?;
+        let peer = LocalOwner::open(1, 2, 16).await?;
+        let listener = TcpListener::bind("127.0.0.1:0").await?;
+        let route = Peer::new(peer.control.config.bootstrap.local().clone(), listener.local_addr()?)?;
+        let key = route.key();
+        let slot = Arc::new(VoteSlot::default());
+        let routes = vec![(key, slot.clone())];
+        let worker_control = source.control.clone();
+        let worker = tokio::spawn(async move { outbound(worker_control, route, slot).await });
+
+        let (old_job, old) = queue_control_campaign(&source).await?;
+        dispatch_votes(&source.control, &routes, vec![old_job]).await;
+        let (old_socket, _old_wire, old_rpc, wire_old) = queue_control_read_vote(&listener, &source).await?;
+        assert_eq!(wire_old, old);
+        let peer_term = higher_term_advance(&peer, old.request.term + 5).await?;
+        let genuine_old_reply = higher_term_reply(&peer, old, peer_term).await?;
+        let (current_job, current) = queue_control_campaign(&source).await?;
+        assert!(peer_term > current.request.term && current.request.term > old.request.term);
+        dispatch_votes(&source.control, &routes, vec![current_job]).await;
+        drop(old_socket); // Lose the old connection without delivering its reply.
+        let (mut socket, mut wire, current_rpc, on_wire) =
+            queue_control_read_vote(&listener, &source).await?;
+        assert_eq!(on_wire, current);
+        assert_eq!(old_rpc, current_rpc, "connection-local ids can be reused");
+        let before = source.state().await?;
+        // The exact genuine old payload is replayed with the new connection's
+        // current RPC id. Its echoed source request is still the old one.
+        write_frame(
+            &mut socket,
+            &Frame { rpc: current_rpc, message: Message::VoteReply(genuine_old_reply) },
+            source.control.config.limits.frame_bytes,
+            Instant::now() + Duration::from_secs(2),
+            &mut wire,
+        ).await?;
+        queue_control_wait_closed(&mut socket).await?;
+        let event = *source.control.metrics.vote_ack.lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
+        assert!(event.is_none(), "replayed old request must not reach the owner");
+        let after = source.state().await?;
+        assert_eq!(after.election.persistent, before.election.persistent);
+        assert_eq!(after.election.role, Role::Candidate);
+        assert_eq!(after.election_durable_states, before.election_durable_states);
+        println!("higher-term replay old={} current={} peer={} reused_rpc={} owner_reached=false",
+            old.request.term, current.request.term, peer_term, current_rpc);
+        source.control.stop();
+        drop(routes);
+        drop(socket);
+        tokio::time::timeout(Duration::from_secs(2), worker).await??;
+        peer.finish().await?;
+        source.finish_with_manual_workers(1).await
+    }
+
+    #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+    async fn malformed_high_term_responses_do_not_change_authority() -> TestResult {
+        for case in 0..5 {
+            higher_term_bad_wire_case(case).await?;
+        }
+        Ok(())
     }
 
     #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
