@@ -75,7 +75,7 @@ a gated metadata change and expiry, worker replacement, and a synthetic
 full-to-draining connect queue. The gates and counters change scheduling; an
 unmodified-source comparison is still needed for performance and cannot cover
 every concurrent schedule. Details and exact pins are in the
-[route evidence](https://github.com/mingley/partitionline/blob/4882c2a04ba21da0f11471112cbfd8c4a713ed6a/docs/evidence/client/send-all-route-controls-20261108/README.md).
+[route evidence](https://github.com/mingley/partitionline/blob/501e1f75a2dac18e6cb8ec92c8936f6963119552/docs/evidence/client/send-all-route-controls-20261108/README.md).
 
 A separate gated mock history
 [42472940666](https://github.com/mingley/partitionline/actions/runs/42472940666)
