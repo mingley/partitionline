@@ -23,7 +23,7 @@ async fn request(socket: &mut TcpStream) -> (RequestHeader, Bytes) {
     let len = usize::try_from(socket.read_i32().await.unwrap()).unwrap();
     assert!(len < 1024 * 1024);
     let mut data = vec![0; len];
-    socket.read_exact(&mut data).await.unwrap();
+    let _read = socket.read_exact(&mut data).await.unwrap();
     let mut body = Bytes::from(data);
     let header = decode_request_header(&mut body).unwrap();
     (header, body)
@@ -217,4 +217,89 @@ async fn dtp_raw_request_preserves_next_cursor_and_rejects_zero_timeout() {
         .unwrap();
     assert_eq!(result.next_cursor, Some(TopicPartitionCursor::new("orders", 1)));
     peer.await.unwrap();
+}
+
+#[tokio::test]
+async fn dtp_raw_cancel_during_encoding_keeps_socket_usable() {
+    use std::future::Future;
+
+    let (mut admin, listener) = admin_and_listener().await;
+    let names = vec!["orders"; 8193];
+    let mut call = Box::pin(admin.describe_topic_partitions_timeout(
+        &names,
+        1,
+        None,
+        Duration::from_secs(5),
+    ));
+    std::future::poll_fn(|cx| {
+        assert!(call.as_mut().poll(cx).is_pending());
+        std::task::Poll::Ready(())
+    }).await;
+    drop(call);
+    assert!(!admin.conn.is_closed(), "encoding cancellation retired an idle socket");
+    let peer = tokio::spawn(async move {
+        let (mut socket, _) = listener.accept().await.unwrap();
+        let header = dtp_request(&mut socket, None).await;
+        send_page(&mut socket, &header, &page(42, None)).await.unwrap();
+    });
+    let result = admin
+        .describe_topic_partitions_timeout(&["orders"], 1, None, Duration::from_secs(5))
+        .await
+        .unwrap();
+    assert_eq!(result.topics[0].partitions[0].partition_index, 42);
+    peer.await.unwrap();
+}
+
+#[tokio::test]
+async fn dtp_raw_cancel_after_request_retires_socket() {
+    let (mut admin, listener) = admin_and_listener().await;
+    let (ready_tx, ready_rx) = tokio::sync::oneshot::channel();
+    let (release_tx, release_rx) = tokio::sync::oneshot::channel();
+    let peer = tokio::spawn(async move {
+        let (mut socket, _) = listener.accept().await.unwrap();
+        let header = dtp_request(&mut socket, None).await;
+        ready_tx.send(()).unwrap();
+        release_rx.await.unwrap();
+        let _late = send_page(&mut socket, &header, &page(9, None)).await;
+    });
+    let names = ["orders"];
+    let mut call = Box::pin(admin.describe_topic_partitions_timeout(
+        &names,
+        1,
+        None,
+        Duration::from_secs(5),
+    ));
+    tokio::select! {
+        got = &mut call => panic!("finished before cancellation: {got:?}"),
+        got = ready_rx => got.unwrap(),
+    }
+    drop(call);
+    assert!(admin.conn.is_closed(), "inflight cancellation kept the socket usable");
+    release_tx.send(()).unwrap();
+    peer.await.unwrap();
+}
+
+#[tokio::test]
+async fn dtp_raw_unsupported_precedes_zero_and_oversized_timeout() {
+    let (mut admin, _listener) = admin_and_listener().await;
+    admin.describe_topic_partitions_version = None;
+    for duration in [Duration::ZERO, Duration::MAX] {
+        let got = admin
+            .describe_topic_partitions_timeout(&["orders"], 1, None, duration)
+            .await;
+        assert!(matches!(got, Err(Error::Unsupported(_))), "got {got:?}");
+    }
+}
+
+#[tokio::test]
+async fn dtp_empty_describe_stays_a_noop_at_extreme_timeouts() {
+    let (mut admin, _listener) = admin_and_listener().await;
+    let names: [&str; 0] = [];
+    for duration in [Duration::ZERO, Duration::MAX] {
+        let got = admin
+            .describe_topics_with_partition_limit_timeout(names.iter(), false, 1, duration)
+            .await
+            .unwrap();
+        assert!(got.is_empty());
+    }
 }

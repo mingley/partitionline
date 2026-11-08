@@ -5807,8 +5807,9 @@ impl Admin {
     /// `DescribeTopicsOptions.timeoutMs`.
     ///
     /// DescribeTopicPartitions and Metadata have no TimeoutMs; `timeout`
-    /// is the RPC deadline (and the DTP NextCursor loop budget).
-    /// `ResponsePartitionLimit` is 2000 (Java
+    /// is the RPC deadline. For DescribeTopicPartitions it also covers
+    /// cooperative page encoding, decoding and aggregation across the cursor
+    /// loop. `ResponsePartitionLimit` is 2000 (Java
     /// `DescribeTopicsOptions.partitionSizeLimitPerResponse` default).
     /// For a custom limit, use
     /// [`Self::describe_topics_with_partition_limit_timeout`].
@@ -5861,7 +5862,9 @@ impl Admin {
     /// `DescribeTopicsOptions.timeoutMs`.
     ///
     /// DescribeTopicPartitions and Metadata have no TimeoutMs; `timeout`
-    /// is the RPC deadline (and the DTP NextCursor loop budget).
+    /// is the RPC deadline. For DescribeTopicPartitions it also covers
+    /// cooperative page encoding, decoding and aggregation across the cursor
+    /// loop.
     pub async fn describe_topics_with_partition_limit_timeout<'a, S>(
         &mut self,
         topics: impl IntoIterator<Item = &'a S>,
@@ -14010,10 +14013,10 @@ impl Admin {
 
     /// [`Self::describe_topic_partitions`] with a one-shot RPC deadline.
     ///
-    /// DescribeTopicPartitions has no TimeoutMs; `timeout` is the RPC
-    /// deadline. Java `Admin.describeTopics` uses
-    /// [`Self::describe_topics_timeout`]. This overload is the crate-first
-    /// raw DescribeTopicPartitions (api 75) path.
+    /// DescribeTopicPartitions has no TimeoutMs; `timeout` bounds request
+    /// encoding, the RPC and response decoding. Java `Admin.describeTopics`
+    /// uses [`Self::describe_topics_timeout`]. This overload returns one raw
+    /// DescribeTopicPartitions (api 75) page, including its next cursor.
     pub async fn describe_topic_partitions_timeout(
         &mut self,
         topics: &[&str],
@@ -14032,12 +14035,21 @@ impl Admin {
         cursor: Option<&TopicPartitionCursor>,
         timeout: Duration,
     ) -> Result<DescribeTopicPartitionsResponse> {
+        let version = self.describe_topic_partitions_version.ok_or_else(|| {
+            Error::Unsupported("broker does not support DescribeTopicPartitions".into())
+        })?;
         let deadline = tokio::time::Instant::now()
             .checked_add(timeout)
             .ok_or(Error::Timeout)?;
         tokio::time::timeout_at(
             deadline,
-            self.describe_topic_partitions_until(names, response_partition_limit, cursor, deadline),
+            self.describe_topic_partitions_until(
+                names,
+                response_partition_limit,
+                cursor,
+                version,
+                deadline,
+            ),
         )
         .await
         .map_err(|_| Error::Timeout)?
@@ -14048,12 +14060,10 @@ impl Admin {
         names: &[T],
         response_partition_limit: i32,
         cursor: Option<&TopicPartitionCursor>,
+        version: i16,
         deadline: tokio::time::Instant,
     ) -> Result<DescribeTopicPartitionsResponse> {
-        let version = self.describe_topic_partitions_version.ok_or_else(|| {
-            Error::Unsupported("broker does not support DescribeTopicPartitions".into())
-        })?;
-        dtp_remaining(deadline)?;
+        let _remaining = dtp_remaining(deadline)?;
         let mut encoded = BytesMut::new();
         encode_describe_topic_partitions_names_cooperative(
             &mut encoded,
@@ -14075,7 +14085,7 @@ impl Admin {
             .await?;
         let response =
             decode_describe_topic_partitions_response_cooperative(&mut body.clone()).await?;
-        dtp_remaining(deadline)?;
+        let _remaining = dtp_remaining(deadline)?;
         Ok(response)
     }
 
@@ -14086,6 +14096,9 @@ impl Admin {
         response_partition_limit: i32,
         timeout: Duration,
     ) -> Result<Vec<TopicDescription>> {
+        let version = self.describe_topic_partitions_version.ok_or_else(|| {
+            Error::Unsupported("broker does not support DescribeTopicPartitions".into())
+        })?;
         let deadline = tokio::time::Instant::now()
             .checked_add(timeout)
             .ok_or(Error::Timeout)?;
@@ -14100,6 +14113,7 @@ impl Admin {
                         names,
                         response_partition_limit,
                         cursor.as_ref(),
+                        version,
                         deadline,
                     )
                     .await?;
@@ -14129,7 +14143,7 @@ impl Admin {
                         }
                     }
                     None => {
-                        dtp_remaining(deadline)?;
+                        let _remaining = dtp_remaining(deadline)?;
                         return Ok(out);
                     }
                 }

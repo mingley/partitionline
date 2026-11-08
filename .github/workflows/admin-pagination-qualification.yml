@@ -18,7 +18,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
         with:
-          fetch-depth: 3
+          fetch-depth: 4
       - uses: dtolnay/rust-toolchain@stable
       - name: Format candidate
         run: |
@@ -37,7 +37,7 @@ jobs:
         run: |
           set -euo pipefail
           cp src/admin.rs "$RUNNER_TEMP/admin-candidate.rs"
-          git show HEAD~2:src/admin.rs > src/admin.rs
+          git show HEAD~3:src/admin.rs > src/admin.rs
           python3 - <<'PY'
           from pathlib import Path
           path = Path("src/admin.rs")
