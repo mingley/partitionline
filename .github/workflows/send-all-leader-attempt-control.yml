@@ -1,0 +1,50 @@
+name: send-all-leader-attempt-control
+on:
+  push:
+    branches: [qualification/send-all-leader-attempt-20261108]
+  workflow_dispatch:
+
+jobs:
+  control:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        profile: [default, all-features]
+    env:
+      RUSTFLAGS: "--cfg send_all_qualification --check-cfg=cfg(send_all_qualification)"
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Pin source and toolchain
+        run: |
+          mkdir -p target/send-all-leader-attempt
+          {
+            git rev-parse HEAD HEAD:src/producer.rs HEAD:tests/common/mod.rs HEAD:tests/send_all_route_qualification.rs
+            sha256sum src/producer.rs tests/common/mod.rs tests/send_all_route_qualification.rs Cargo.lock
+            rustc +stable -Vv
+            cargo +stable -V
+          } | tee target/send-all-leader-attempt/provenance.txt
+      - name: Repeat the targeted control
+        shell: bash
+        run: |
+          set -o pipefail
+          feature=()
+          if [ "${{ matrix.profile }}" = all-features ]; then feature=(--all-features); fi
+          for repetition in 1 2 3; do
+            cargo +stable test --locked --test send_all_route_qualification "${feature[@]}" metadata_changes_before_first_nudge -- --exact --test-threads=1 --nocapture 2>&1 | tee "target/send-all-leader-attempt/test-$repetition.log"
+            grep -F 'test result: ok. 1 passed; 0 failed;' "target/send-all-leader-attempt/test-$repetition.log"
+          done
+      - name: Record test binary hashes
+        if: always()
+        run: |
+          find target/debug/deps -maxdepth 1 -type f -executable -name 'send_all_route_qualification-*' -exec sha256sum {} + | tee target/send-all-leader-attempt/binaries.txt
+      - name: Retain logs and provenance
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: send-all-leader-attempt-${{ matrix.profile }}-${{ github.sha }}
+          path: target/send-all-leader-attempt
+          if-no-files-found: error
+          retention-days: 30
