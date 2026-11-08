@@ -59,9 +59,9 @@ profile. Both full Admin suites **failed** on 80 ms wall-time assertions:
 | Default | 670 / 3 | `decoding_many_described_group_members_does_not_hold_the_caller` (83.491501 ms); `grouping_many_named_results_does_not_hold_the_caller` (84.293590 ms); `indexing_many_coordinators_does_not_hold_the_caller` (127.861731 ms) |
 | All features | 672 / 1 | `indexing_many_coordinators_does_not_hold_the_caller` (110.190508 ms) |
 
-The 20 independently restored mutants per profile and matched release
-timing are still running. The exact-suite failures are not passing
-results, and their causes have not been established.
+The 20 independently restored mutants per profile are still running.
+The exact-suite failures are not passing results, and their causes have not
+been established.
 
 A separate [instrumented row-checkpoint control][observer] passed in both
 profiles: two public cross-page cancellation/timeout checks and one
@@ -108,6 +108,54 @@ matched workflow **failed**. In execution order:
 The same runner saw wall-time failures in both source arms. This does not
 establish their cause or change the exact candidate-suite failures.
 
+## Combined-source timing
+
+The [matched release comparison][perf] used one pinned CPU on a shared
+AMD EPYC 7763 runner, Rust 1.99.1 and LLVM 23.1.1. It compared the exact
+candidate source blob `3125c234259c87d1bc4a89d0cd0734d124529bea` against
+main's row-checkpoint source `23cb280eee5e91a64a9a6f58347f707524163d07`.
+Both arms used the same benchmark fixture Git blob
+`dae07e157e9b6687cca044b366d6aa4f5b673ab0` (SHA-256
+`4ca812ef0d29cd3df23de0126ffb844384ef063d3ec205907f99dceb12be9883`).
+The baseline and candidate release test binaries had SHA-256
+`9ff1df7c503db0bca2b5a83d68d87abeb21a15361b6fd0af58741681650f6e8f`
+and `b667177f5f2cb72fbb623e7a018b6d49f5d1988b4b8a1ad0a33e2d927d4b4884`.
+The [CSV](combined-timings.csv) preserves all 336 observations, with 12
+alternating pairs per shape.
+
+| Shape | Baseline / candidate median (ms) | Median paired ratio | Paired ratio range | Candidate slower |
+| --- | --- | --- | --- | --- |
+| One-name, one successful page | 123.223 / 124.010 | 1.0107 | 0.9887–1.0183 | 9/12 |
+| One-name, 16 successful pages | 122.538 / 123.506 | 1.0053 | 0.9980–1.0180 | 9/12 |
+| 4 ordered error rows | 63.185 / 63.568 | 0.9990 | 0.9507–1.0168 | 5/12 |
+| 32 ordered error rows | 44.306 / 44.510 | 1.0044 | 0.9756–1.0234 | 9/12 |
+| 256 ordered error rows | 28.244 / 28.560 | 1.0112 | 1.0011–1.0173 | 12/12 |
+| 32 reversed error rows | 44.304 / 46.486 | 1.0510 | 1.0303–1.0706 | 12/12 |
+| 256 reversed error rows | 28.166 / 33.403 | 1.1874 | 1.1686–1.2143 | 12/12 |
+| 32 names, three successful pages | 30.861 / 31.359 | 1.0137 | 1.0069–1.0215 | 12/12 |
+| 32 lexical error rows | 44.375 / 46.760 | 1.0557 | 1.0381–1.1913 | 12/12 |
+| 256 lexical error rows | 28.294 / 33.715 | 1.1900 | 1.1700–1.2088 | 12/12 |
+| 32 ordered successful rows | 52.956 / 53.726 | 1.0116 | 0.9850–1.0217 | 10/12 |
+| 256 ordered successful rows | 40.811 / 41.766 | 1.0201 | 0.9863–1.0356 | 11/12 |
+| 32 lexical successful rows | 53.793 / 55.799 | 1.0376 | 1.0175–1.0475 | 12/12 |
+| 256 lexical successful rows | 40.862 / 45.628 | 1.1207 | 1.1070–1.1322 | 12/12 |
+
+A ratio above one means the candidate was slower for that pair. The ratio
+is the median of paired ratios, not the ratio of the two median elapsed
+times. One-page, 16-page, four-name, 32-name, 256-name and three-page
+shapes use 4,000, 250, 2,000, 1,000, 200 and 250 reads per sample
+respectively. Successful rows have one partition; error rows carry
+`UNKNOWN_TOPIC_OR_PARTITION`. Ordered and reversed response rows follow
+or reverse the numeric input order; lexical rows use lexicographic response
+order for numerically ordered input. The latter is relevant to Kafka-style
+sorting but does not model every broker or request.
+
+The candidate's paired median was about 19% slower for 256 lexical error
+rows and 12% slower for 256 lexical successful rows on this runner; both
+were slower in all 12 pairs. These loopback fixtures include mock-peer work
+and are not a comparison with another Kafka client. They do not establish a
+global performance ranking or a bound on all workloads.
+
 ## Prototype timing
 
 The [four-arm comparison][prototype-perf] used one pinned CPU on a shared
@@ -141,8 +189,8 @@ the three-page case ran 250 reads. Error-row shapes contain
 partitions. The hint reduced cost on the ordered fixtures, but the reversed
 256-name case remained materially slower on this host. These are
 loopback fixtures, not comparisons with other Kafka clients. They do not
-qualify the merged source; [its matched timing][perf] is separate and still
-running.
+qualify the merged source; [its matched timing][perf] is reported separately
+above.
 
 ## Limits
 
