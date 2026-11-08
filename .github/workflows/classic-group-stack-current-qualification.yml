@@ -1,0 +1,203 @@
+name: Classic group stack qualification on current main
+
+on:
+  push:
+    branches: [qualification/classic-group-stack-current-20261108]
+
+permissions:
+  contents: read
+
+jobs:
+  qualify:
+    strategy:
+      fail-fast: false
+      matrix:
+        kafka: ['4.1.2', '4.2.1', '4.3.1']
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    env:
+      CARGO_BUILD_JOBS: '2'
+      CARGO_INCREMENTAL: '0'
+      CARGO_PROFILE_DEV_DEBUG: '0'
+      CARGO_PROFILE_TEST_DEBUG: '0'
+      CARGO_TERM_COLOR: never
+      PL_COMPAT_RUN_VERIFIABLE: '1'
+    steps:
+      - name: Check out the unchanged baseline
+        uses: actions/checkout@v7
+        with:
+          ref: 264322ff430b0594f4c3864e53dcd832de2a930b
+          path: baseline
+          persist-credentials: false
+          sparse-checkout: |
+            .cargo
+            examples
+            scripts
+            src
+            tests
+      - name: Check out the candidate
+        uses: actions/checkout@v7
+        with:
+          ref: a68649d3f51860eb73cfabf87e8ee33c71d814bb
+          path: candidate
+          fetch-depth: 2
+          persist-credentials: false
+          sparse-checkout: |
+            .cargo
+            examples
+            scripts
+            src
+            tests
+      - uses: dtolnay/rust-toolchain@stable
+      - id: source
+        name: Check exact source scope and stack settings
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(uname -m)" = x86_64
+          test "$(git -C baseline rev-parse HEAD)" = 264322ff430b0594f4c3864e53dcd832de2a930b
+          test "$(git -C candidate rev-parse HEAD)" = a68649d3f51860eb73cfabf87e8ee33c71d814bb
+          test "$(git -C candidate rev-parse HEAD^)" = 264322ff430b0594f4c3864e53dcd832de2a930b
+          test "$(git -C candidate diff --name-only HEAD^ HEAD)" = src/group.rs
+          test -z "${RUST_MIN_STACK:-}"
+          test -z "${RUSTFLAGS:-}"
+          test -z "${CARGO_ENCODED_RUSTFLAGS:-}"
+          test -z "$(git -C baseline status --porcelain --untracked-files=normal)"
+          test -z "$(git -C candidate status --porcelain --untracked-files=normal)"
+          cmp baseline/tests/broker_compatibility.rs candidate/tests/broker_compatibility.rs
+          printf '%s  %s\n' '5e289d3af378a44c162e3142468cbf58afe03955f6204a67825b0776f424cad0' baseline/tests/broker_compatibility.rs | sha256sum -c -
+          printf '%s  %s\n' 'ce00d2e7b049298b6c8111b7123f39859c9f2f6f3d89cbc51dc6939962d868ab' baseline/src/group.rs | sha256sum -c -
+          test "$(git hash-object candidate/src/group.rs)" = 2e82299d1f6ae57b1014bd29d55c0cd0c1eddeb8
+          mkdir -p "$RUNNER_TEMP/classic-box/baseline" "$RUNNER_TEMP/classic-box/candidate"
+          {
+            uname -a
+            rustc -Vv
+            cargo -V
+            echo "shell stack limit KiB: $(ulimit -s)"
+            git -C candidate rev-parse HEAD
+            sha256sum baseline/tests/broker_compatibility.rs baseline/src/group.rs candidate/src/group.rs
+          } | tee "$RUNNER_TEMP/classic-box/identity.log"
+      - id: baseline
+        name: Unchanged baseline against Kafka ${{ matrix.kafka }}
+        continue-on-error: true
+        working-directory: baseline
+        shell: bash
+        run: |
+          set -euo pipefail
+          ulimit -c 0
+          export PL_COMPAT_REPORT_DIR="$RUNNER_TEMP/classic-box/baseline"
+          export CARGO_TARGET_DIR="$RUNNER_TEMP/classic-targets/baseline"
+          set +e
+          timeout 900s bash scripts/ci-broker-compatibility.sh ${{ matrix.kafka }} >"$PL_COMPAT_REPORT_DIR/driver.log" 2>&1
+          status=$?
+          set -e
+          printf '%s\n' "$status" >"$PL_COMPAT_REPORT_DIR/driver-exit.txt"
+          cat "$PL_COMPAT_REPORT_DIR/driver.log"
+          test "$status" -eq 101
+          grep -F 'compatibility group phase: classic join' "$PL_COMPAT_REPORT_DIR/runtime.log"
+          grep -F 'stack overflow' "$PL_COMPAT_REPORT_DIR/runtime.log"
+          if grep -Fq 'compatibility group phase: classic poll' "$PL_COMPAT_REPORT_DIR/runtime.log"; then
+            echo 'baseline advanced past the expected witness' >&2
+            exit 1
+          fi
+          mapfile -t bins < <(find "$CARGO_TARGET_DIR/debug/deps" -maxdepth 1 -type f -name 'broker_compatibility-*' -executable | sort)
+          test "${#bins[@]}" -eq 1
+          sha256sum "${bins[0]}" | tee "$RUNNER_TEMP/classic-box/baseline-test-binary.sha256"
+      - id: compatibility
+        name: Unchanged full compatibility profile with candidate
+        if: always() && steps.source.outcome == 'success'
+        continue-on-error: true
+        working-directory: candidate
+        shell: bash
+        run: |
+          set -euo pipefail
+          ulimit -c 0
+          export PL_COMPAT_REPORT_DIR="$RUNNER_TEMP/classic-box/candidate"
+          export CARGO_TARGET_DIR="$RUNNER_TEMP/classic-targets/candidate"
+          set +e
+          timeout 900s bash scripts/ci-broker-compatibility.sh ${{ matrix.kafka }} >"$PL_COMPAT_REPORT_DIR/driver.log" 2>&1
+          status=$?
+          set -e
+          printf '%s\n' "$status" >"$PL_COMPAT_REPORT_DIR/driver-exit.txt"
+          cat "$PL_COMPAT_REPORT_DIR/driver.log"
+          if test -f "$PL_COMPAT_REPORT_DIR/runtime.log"; then
+            tail -n 100 "$PL_COMPAT_REPORT_DIR/runtime.log"
+          fi
+          mapfile -t bins < <(find "$CARGO_TARGET_DIR/debug/deps" -maxdepth 1 -type f -name 'broker_compatibility-*' -executable | sort)
+          test "${#bins[@]}" -eq 1
+          sha256sum "${bins[0]}" | tee "$RUNNER_TEMP/classic-box/candidate-test-binary.sha256"
+          test "$(cut -d' ' -f1 "$RUNNER_TEMP/classic-box/baseline-test-binary.sha256")" != "$(cut -d' ' -f1 "$RUNNER_TEMP/classic-box/candidate-test-binary.sha256")"
+          python3 -B - "${bins[0]}" <<'PY'
+          import subprocess, sys
+          process = subprocess.Popen(["objdump", "-C", "-d", sys.argv[1]], stdout=subprocess.PIPE, text=True)
+          assert process.stdout is not None
+          found = False
+          for line in process.stdout:
+              fields = line.strip().split(None, 1)
+              if len(fields) == 2 and fields[1] == "<<partitionline::group::ConsumerGroup>::poll_fetch::{closure#0}>:":
+                  found = True
+                  print("PL_V3_POLL_PROLOGUE")
+                  print(line, end="")
+                  for _ in range(12):
+                      print(next(process.stdout), end="")
+                  break
+          if process.poll() is None:
+              process.terminate()
+          process.wait()
+          assert found, "poll_fetch prologue not found"
+          PY
+          test "$status" -eq 0
+          grep -F 'PL_COMPAT_COMPLETE' "$PL_COMPAT_REPORT_DIR/runtime.log"
+          test -f "$PL_COMPAT_REPORT_DIR/report-validation.log"
+      - id: controls
+        name: Group cancellation and commit controls in both feature profiles
+        if: always() && steps.source.outcome == 'success'
+        continue-on-error: true
+        working-directory: candidate
+        shell: bash
+        run: |
+          set -euo pipefail
+          export CARGO_TARGET_DIR="$RUNNER_TEMP/classic-targets/candidate"
+          failed=0
+          for mode in default all-features; do
+            flags=()
+            if test "$mode" = all-features; then flags+=(--all-features); fi
+            for selector in rediscover_stop_tests consumer_close_commit group_coordinator_startup; do
+              case "$selector" in
+                rediscover_stop_tests) args=(--lib group::rediscover_stop_tests) ;;
+                *) args=(--test "$selector") ;;
+              esac
+              log="$RUNNER_TEMP/classic-box/candidate/$mode-$selector.log"
+              if cargo +stable test --locked "${flags[@]}" "${args[@]}" -- --nocapture 2>&1 | tee "$log"; then
+                :
+              else
+                failed=1
+              fi
+            done
+          done
+          exit "$failed"
+      - id: lint
+        name: Format and strict all-target Clippy
+        if: always() && steps.source.outcome == 'success'
+        continue-on-error: true
+        working-directory: candidate
+        run: |
+          export CARGO_TARGET_DIR="$RUNNER_TEMP/classic-targets/candidate"
+          cargo +stable fmt --all -- --check
+          cargo +stable clippy --locked --all-targets --all-features -- -D warnings
+      - name: Retain logs
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: classic-current-${{ matrix.kafka }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/classic-box
+          if-no-files-found: warn
+          retention-days: 30
+      - name: Require baseline witness, full profile, controls and lint
+        if: always()
+        run: |
+          test "${{ steps.source.outcome }}" = success
+          test "${{ steps.baseline.outcome }}" = success
+          test "${{ steps.compatibility.outcome }}" = success
+          test "${{ steps.controls.outcome }}" = success
+          test "${{ steps.lint.outcome }}" = success
