@@ -841,6 +841,10 @@ impl Job {
 /// supersedes the older pending correlation, never the in-flight RPC.
 #[derive(Default)]
 struct VoteSlot {
+    #[expect(
+        clippy::disallowed_types,
+        reason = "the short per-peer critical sections only move bounded state, perform no I/O or callbacks, and never cross an await"
+    )]
     state: std::sync::Mutex<VoteSlotState>,
     ready: Notify,
 }
@@ -852,19 +856,19 @@ struct VoteSlotState {
 }
 
 impl VoteSlot {
-    /// Returns a displaced pending job, or returns the unsent job if closed.
-    fn offer(&self, job: Job) -> std::result::Result<Option<Job>, Job> {
+    /// Return the exact displaced or unadmitted job, if one needs cancellation.
+    fn offer(&self, job: Job) -> Option<Job> {
         let mut state = self
             .state
             .lock()
             .unwrap_or_else(std::sync::PoisonError::into_inner);
         if state.closed {
-            return Err(job);
+            return Some(job);
         }
         let displaced = state.pending.replace(job);
         drop(state);
         self.ready.notify_one();
-        Ok(displaced)
+        displaced
     }
 
     /// Single-consumer, cancellation-safe wait. A notification sent after the
@@ -1839,11 +1843,8 @@ async fn dispatch_votes(control: &Control, routes: &[(Key, Arc<VoteSlot>)], jobs
                 // The only production producer is the supervisor's Tick reply,
                 // which contains one vote per peer from successive campaigns.
                 // Admission and replacement are atomic with worker dequeue.
-                match slot.offer(job) {
-                    Ok(Some(displaced)) | Err(displaced) => {
-                        let _ = control.cancel_job(displaced).await;
-                    }
-                    Ok(None) => {}
+                if let Some(displaced) = slot.offer(job) {
+                    let _ = control.cancel_job(displaced).await;
                 }
             }
             None => {
@@ -4089,7 +4090,7 @@ mod ownership_tests {
         };
         assert!(tx
             .offer(Job::Vote(request))
-            .map_err(|_| "send vote")?
+            
             .is_none());
         let (mut socket, _) = listener.accept().await?;
         let bound = owner.control.config.limits.frame_bytes;
@@ -4199,7 +4200,7 @@ mod ownership_tests {
         tokio::time::sleep(Duration::from_millis(20)).await;
         assert!(tx
             .offer(Job::Vote(request))
-            .map_err(|_| "send vote")?
+            
             .is_none());
         let (mut socket, _) = tokio::time::timeout(Duration::from_secs(2), listener.accept())
             .await
@@ -4311,7 +4312,7 @@ mod ownership_tests {
         tokio::time::sleep(Duration::from_millis(20)).await;
         assert!(tx
             .offer(Job::Vote(request))
-            .map_err(|_| "send vote")?
+            
             .is_none());
         let (mut socket, _) = tokio::time::timeout(Duration::from_secs(2), listener.accept())
             .await
@@ -4429,7 +4430,7 @@ mod ownership_tests {
         tokio::time::sleep(Duration::from_millis(20)).await;
         assert!(tx
             .offer(Job::Vote(request))
-            .map_err(|_| "send vote")?
+            
             .is_none());
         let (mut socket, _) = tokio::time::timeout(Duration::from_secs(2), listener.accept())
             .await
@@ -4567,7 +4568,7 @@ mod ownership_tests {
         tokio::time::sleep(Duration::from_millis(20)).await;
         assert!(tx
             .offer(Job::Image(offer))
-            .map_err(|_| "send image")?
+            
             .is_none());
         let (mut socket, _) = tokio::time::timeout(Duration::from_secs(2), listener.accept())
             .await
@@ -5116,7 +5117,7 @@ mod ownership_tests {
         .await;
         assert!(slot
             .offer(Job::Vote(first))
-            .map_err(|_| "first offer")?
+            
             .is_none());
         let woke = tokio::time::timeout(Duration::from_secs(2), waiting)
             .await
@@ -5135,10 +5136,10 @@ mod ownership_tests {
         }
         assert!(slot
             .offer(Job::Vote(first))
-            .map_err(|_| "replacement first")?
+            
             .is_none());
-        assert!(matches!(slot.offer(Job::Vote(second)), Ok(Some(Job::Vote(q))) if q == first));
-        assert!(matches!(slot.offer(Job::Vote(third)), Ok(Some(Job::Vote(q))) if q == second));
+        assert!(matches!(slot.offer(Job::Vote(second)), Some(Job::Vote(q)) if q == first));
+        assert!(matches!(slot.offer(Job::Vote(third)), Some(Job::Vote(q)) if q == second));
         assert!(matches!(slot.recv().await, Some(Job::Vote(q)) if q == third));
 
         // Every offered sequence is either taken once or displaced once.
@@ -5166,8 +5167,8 @@ mod ownership_tests {
             let mut q = first;
             q.sequence = sequence;
             match slot.offer(Job::Vote(q)) {
-                Ok(Some(Job::Vote(_))) => displaced += 1,
-                Ok(None) => {}
+                Some(Job::Vote(_)) => displaced += 1,
+                None => {}
                 _ => return Err("stress offer unexpected result".into()),
             }
             if sequence % 31 == 0 {
@@ -5179,10 +5180,10 @@ mod ownership_tests {
 
         assert!(slot
             .offer(Job::Vote(first))
-            .map_err(|_| "pre-close offer")?
+            
             .is_none());
         assert!(matches!(slot.close(), Some(Job::Vote(q)) if q == first));
-        assert!(matches!(slot.offer(Job::Vote(second)), Err(Job::Vote(q)) if q == second));
+        assert!(matches!(slot.offer(Job::Vote(second)), Some(Job::Vote(q)) if q == second));
         assert!(slot.recv().await.is_none());
         println!("vote-slot stress offered=10000 taken={taken} displaced={displaced}");
         source.finish().await
@@ -5199,7 +5200,7 @@ mod ownership_tests {
         for _ in 0..10_000 {
             assert!(slot
                 .offer(Job::Vote(vote))
-                .map_err(|_| "fairness offer")?
+                
                 .is_none());
             assert!(matches!(slot.recv().await, Some(Job::Vote(q)) if q == vote));
             if progressed.load(Ordering::Acquire) {
@@ -5233,8 +5234,8 @@ mod ownership_tests {
             let reclaimed = slot.close();
             let offered = sender.await?;
             match (reclaimed, offered) {
-                (Some(Job::Vote(a)), Ok(None)) if a == vote => admitted_then_closed += 1,
-                (None, Err(Job::Vote(a))) if a == vote => rejected_after_closed += 1,
+                (Some(Job::Vote(a)), None) if a == vote => admitted_then_closed += 1,
+                (None, Some(Job::Vote(a))) if a == vote => rejected_after_closed += 1,
                 _ => return Err("close/offer lost, duplicated, or changed the exact job".into()),
             }
             assert!(slot.recv().await.is_none());
@@ -5260,7 +5261,7 @@ mod ownership_tests {
                     for _ in 0..loops {
                         if slot
                             .offer(Job::Vote(std::hint::black_box(request)))
-                            .map_err(|_| "bench offer")?
+                            
                             .is_some()
                         {
                             return Err("bench slot unexpectedly full".into());
@@ -5302,7 +5303,7 @@ mod ownership_tests {
             };
             old.push(q);
             let slot = Arc::new(VoteSlot::default());
-            assert!(slot.offer(Job::Vote(q)).map_err(|_| "fill old")?.is_none());
+            assert!(slot.offer(Job::Vote(q)).is_none());
             routes.push((q.context.peer, slot));
         }
         assert_eq!(old.len(), 4);
@@ -5512,7 +5513,7 @@ mod ownership_tests {
             let slot = Arc::new(VoteSlot::default());
             assert!(slot
                 .offer(Job::Vote(q))
-                .map_err(|_| "fill old route")?
+                
                 .is_none());
             routes.push((q.context.peer, slot));
         }
@@ -5669,7 +5670,7 @@ mod ownership_tests {
         let (job, request) = queue_control_campaign(&source).await?;
         let route = source.control.config.peers[0].clone();
         let slot = Arc::new(VoteSlot::default());
-        assert!(slot.offer(job).map_err(|_| "pending offer")?.is_none());
+        assert!(slot.offer(job).is_none());
         source.control.stop();
         let worker_control = source.control.clone();
         let worker_slot = slot.clone();
@@ -5683,7 +5684,7 @@ mod ownership_tests {
             Err(other) => return Err(format!("worker cancellation probe failed: {other:?}").into()),
             Ok(_) => return Err("worker did not retire pending vote".into()),
         }
-        assert!(matches!(slot.offer(Job::Vote(request)), Err(Job::Vote(q)) if q == request));
+        assert!(matches!(slot.offer(Job::Vote(request)), Some(Job::Vote(q)) if q == request));
         println!("outbound-stop pending_canceled=true route_closed=true worker_joined=true");
         source.finish_with_manual_workers(1).await
     }
@@ -5850,7 +5851,7 @@ mod ownership_tests {
             if index == 0 {
                 assert!(slot
                     .offer(Job::Vote(*q))
-                    .map_err(|_| "fill route")?
+                    
                     .is_none());
             }
             if index == 2 {
