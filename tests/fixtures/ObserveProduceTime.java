@@ -5,6 +5,7 @@ import java.nio.file.Path;
 import org.apache.kafka.common.protocol.ApiKeys;
 import org.apache.kafka.common.protocol.ByteBufferAccessor;
 import org.apache.kafka.common.record.RecordBatch;
+import org.apache.kafka.common.record.DefaultRecordBatch;
 import org.apache.kafka.common.record.Records;
 import org.apache.kafka.common.requests.ProduceRequest;
 import org.apache.kafka.common.requests.ProduceResponse;
@@ -34,7 +35,10 @@ public final class ObserveProduceTime {
                         value.get(bytes);
                         marker = new String(bytes, StandardCharsets.UTF_8);
                         timestamp = record.timestamp();
-                        baseTimestamp = batch.baseTimestamp();
+                        if (!(batch instanceof DefaultRecordBatch)) {
+                            throw new IllegalStateException("expected a magic-v2 batch");
+                        }
+                        baseTimestamp = ((DefaultRecordBatch) batch).baseTimestamp();
                         recordsSeen++;
                     }
                 }
