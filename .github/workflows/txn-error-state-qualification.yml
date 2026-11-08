@@ -1,0 +1,195 @@
+name: Transaction error state qualification
+
+on:
+  push:
+    branches: [qualification/txn-error-state-20261108]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: txn-error-state-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  qualify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 50
+    env:
+      CARGO_BUILD_JOBS: '2'
+      CARGO_INCREMENTAL: '0'
+      CARGO_PROFILE_DEV_DEBUG: '0'
+      CARGO_PROFILE_TEST_DEBUG: '0'
+      CARGO_TERM_COLOR: never
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.sha }}
+          path: candidate
+          persist-credentials: false
+          sparse-checkout: |
+            .cargo
+            src
+            tests
+            examples
+      - uses: actions/checkout@v7
+        with:
+          ref: 8b5de2e2cfe5f3164a5f89546804ab36c1771ade
+          path: baseline
+          persist-credentials: false
+          sparse-checkout: |
+            .cargo
+            src
+            tests
+            examples
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - name: Record source and host
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/txn-state-evidence"
+          export CARGO_TARGET_DIR="$RUNNER_TEMP/txn-state-target"
+          printf 'CARGO_TARGET_DIR=%s\n' "$CARGO_TARGET_DIR" >> "$GITHUB_ENV"
+          test "$RUNNER_ARCH" = X64
+          uname -a
+          rustc +stable -vV
+          cargo +stable -V
+          df -h "$RUNNER_TEMP"
+          test "$(df -Pk "$RUNNER_TEMP" | awk 'NR==2 {print $4}')" -gt 1572864
+          test "$(git -C "$GITHUB_WORKSPACE/candidate" rev-parse HEAD)" = "$GITHUB_SHA"
+          test "$(git -C "$GITHUB_WORKSPACE/baseline" rev-parse HEAD)" = 8b5de2e2cfe5f3164a5f89546804ab36c1771ade
+          sha256sum "$GITHUB_WORKSPACE/candidate/src/producer.rs" "$GITHUB_WORKSPACE/candidate/src/producer/txn_error_state_controls.rs" | tee "$RUNNER_TEMP/txn-state-evidence/candidate-pins.log"
+          printf '%s  %s\n' \
+            3b6a1917df9ee2f9079abb59bd5dd4123056ae20ae19c3ec90f41bd445c088b0 "$GITHUB_WORKSPACE/candidate/src/producer.rs" \
+            8c36d462538755118f8ffc53558a87702cd0065803cad05d8eb63c4e8d95097d "$GITHUB_WORKSPACE/candidate/src/producer/txn_error_state_controls.rs" \
+            f4a842a85958e0fa90fe3fec458424770ccf389e8a56748999e031e6714b5ed1 "$GITHUB_WORKSPACE/baseline/src/producer.rs" | sha256sum --check -
+      - name: Verify stable formatting
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$GITHUB_WORKSPACE/candidate"
+          cargo +stable fmt --all
+          git diff -- src/producer.rs src/producer/txn_error_state_controls.rs
+          git diff --quiet -- src/producer.rs src/producer/txn_error_state_controls.rs
+      - name: Build instrumented baseline with the same controls
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$GITHUB_WORKSPACE/baseline"
+          mkdir -p src/producer
+          cp "$GITHUB_WORKSPACE/candidate/src/producer/txn_error_state_controls.rs" src/producer/
+          python3 -B - <<'PYCODE'
+          from pathlib import Path
+          import hashlib
+
+          path = Path("src/producer.rs")
+          source = path.read_text()
+          def replace_once(old, new):
+              global source
+              if source.count(old) != 1:
+                  raise SystemExit("baseline instrumentation anchor mismatch")
+              source = source.replace(old, new, 1)
+
+          replace_once(
+              "    fn set_txn_fatal(&self, err: Error) {\n",
+              "    fn set_txn_fatal(&self, err: Error) {\n"
+              "        #[cfg(test)]\n"
+              "        txn_error_state_controls::mark(self, txn_error_state_controls::Point::FatalEntry);\n"
+          )
+          replace_once(
+              "            *self.txn_error.lock() = Some(err);\n"
+              "        }\n"
+              "    }\n\n"
+              "    /// Java `resetTransactionState`",
+              "            #[cfg(test)]\n"
+              "            txn_error_state_controls::pause(self, txn_error_state_controls::Point::AbortBeforeCause);\n"
+              "            *self.txn_error.lock() = Some(err);\n"
+              "        }\n"
+              "    }\n\n"
+              "    /// Java `resetTransactionState`"
+          )
+          replace_once(
+              "    fn clear_txn_abortable(&self) {\n",
+              "    fn clear_txn_abortable(&self) {\n"
+              "        #[cfg(test)]\n"
+              "        txn_error_state_controls::mark(self, txn_error_state_controls::Point::ClearEntry);\n"
+          )
+          replace_once(
+              "        if !self.txn_fatal.load(Ordering::SeqCst) {\n"
+              "            *self.txn_error.lock() = None;",
+              "        if !self.txn_fatal.load(Ordering::SeqCst) {\n"
+              "            #[cfg(test)]\n"
+              "            txn_error_state_controls::pause(self, txn_error_state_controls::Point::ClearBeforeCause);\n"
+              "            *self.txn_error.lock() = None;"
+          )
+          replace_once(
+              "    /// Java `TransactionManager.canHandleAbortableError`",
+              "    #[cfg(test)]\n"
+              "    fn txn_error_test_snapshot(&self) -> (bool, bool) {\n"
+              "        (\n"
+              "            self.txn_fatal.load(Ordering::SeqCst),\n"
+              "            self.txn_abort_required.load(Ordering::SeqCst),\n"
+              "        )\n"
+              "    }\n\n"
+              "    /// Java `TransactionManager.canHandleAbortableError`"
+          )
+          source += '\n#[cfg(test)]\n#[path = "producer/txn_error_state_controls.rs"]\nmod txn_error_state_controls;\n'
+          digest = hashlib.sha256(source.encode()).hexdigest()
+          if digest != "b648be3921368aa8a1ad0f0c3a44da8f37ad80307f0b7f0e515eaefa2a96da19":
+              raise SystemExit("instrumented baseline hash mismatch: " + digest)
+          path.write_text(source)
+          print("instrumented baseline source sha256:", digest)
+          PYCODE
+      - name: Confirm controls expose the baseline behavior
+        timeout-minutes: 25
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$GITHUB_WORKSPACE/baseline"
+          baseline_test() {
+            local mode="$1" name="$2" marker="$3" extra="$4" status
+            local log="$RUNNER_TEMP/txn-state-evidence/baseline-$mode-$name.log"
+            set +e
+            timeout 600 cargo +stable test --locked $extra --lib "producer::txn_error_state_controls::$name" -- --exact --nocapture > "$log" 2>&1
+            status=$?
+            set -e
+            cat "$log"
+            test "$status" -eq 101
+            grep -F 'running 1 test' "$log"
+            grep -F "$marker" "$log"
+            grep -F 'test result: FAILED. 0 passed; 1 failed;' "$log"
+          }
+          for mode in default all; do
+            extra=''
+            if [[ "$mode" = all ]]; then extra=--all-features; fi
+            baseline_test "$mode" fatal_response_supersedes_an_abortable_cause PL_TXN_FATAL_CAUSE "$extra"
+            baseline_test "$mode" abortable_publication_cannot_overtake_fatal PL_TXN_ABORT_FATAL_RACE "$extra"
+            baseline_test "$mode" abortable_publication_cannot_overtake_clear PL_TXN_ABORT_CLEAR_RACE "$extra"
+            baseline_test "$mode" clear_cannot_erase_a_fatal_cause PL_TXN_CLEAR_FATAL_RACE "$extra"
+          done
+      - name: Test the serialized state transitions
+        timeout-minutes: 20
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$GITHUB_WORKSPACE/candidate"
+          for mode in default all; do
+            extra=''
+            if [[ "$mode" = all ]]; then extra=--all-features; fi
+            log="$RUNNER_TEMP/txn-state-evidence/candidate-$mode.log"
+            timeout 600 cargo +stable test --locked $extra --lib producer::txn_error_state_controls:: -- --nocapture 2>&1 | tee "$log"
+            grep -F 'test result: ok. 4 passed; 0 failed; 0 ignored;' "$log"
+          done
+          timeout 180 cargo +stable fmt --all -- --check
+          timeout 600 cargo +stable clippy --locked --lib --all-features -- -D warnings
+          sha256sum src/producer.rs src/producer/txn_error_state_controls.rs | tee "$RUNNER_TEMP/txn-state-evidence/final-pins.log"
+      - name: Retain attempt logs
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: txn-error-state-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/txn-state-evidence
+          if-no-files-found: error
+          retention-days: 30
