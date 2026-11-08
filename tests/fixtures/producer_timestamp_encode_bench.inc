@@ -9,7 +9,7 @@
             .expect("integer rounds");
         assert!((1..=4096).contains(&rounds));
         let topic = Arc::<str>::from("t");
-        let records = (0..4096).map(|_| {
+        let records: Vec<Pending> = (0..4096).map(|_| {
             let mut record = queued("t", Some(0));
             record.rec.value = Some(Bytes::from_static(b"12345678"));
             if mode == "explicit" {
