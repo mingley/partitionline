@@ -27,6 +27,8 @@ The broader integration selection in [run 42444608489](https://github.com/mingle
 
 The first test failed three times in each profile on the exact unmodified `374dcf4` baseline and three times in each profile on the candidate. That comparison does not establish the cause or classify the other two failures. The job retained a failing gate for the integration selection. [Logs](https://github.com/mingley/partitionline/actions/runs/42445260031/artifacts/13603467513) include the comparisons and individual results.
 
+A comparison of the remaining two tests and a test-only phase trace are running separately in [run 42446145535](https://github.com/mingley/partitionline/actions/runs/42446145535).
+
 ## Limits
 
 The ticket distinguishes state claims, not transaction generations. A late operation can first report an old transaction's error after another transaction begins; operations already admitted before a claim can also continue. These lifecycle and admission races remain open. The controls use deliberate test scheduling and do not prove all interleavings. This qualification does not cover the separate AddPartitions response-coverage candidate, retry-timeout repair, cancellation ownership, a live-broker failure campaign, performance, or production readiness.
