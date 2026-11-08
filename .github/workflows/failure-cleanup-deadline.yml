@@ -1,0 +1,144 @@
+name: Failure cleanup current-thread deadline witness
+
+on:
+  push:
+    branches: [qualification/failure-cleanup-deadline-20261108]
+
+permissions:
+  contents: read
+
+jobs:
+  witness:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    env:
+      CARGO_BUILD_JOBS: '2'
+      CARGO_INCREMENTAL: '0'
+      CARGO_PROFILE_DEV_DEBUG: '0'
+      CARGO_PROFILE_TEST_DEBUG: '0'
+      CARGO_TERM_COLOR: never
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          path: fixture
+          persist-credentials: false
+          sparse-checkout: benchmarks/qualification
+      - uses: actions/checkout@v7
+        with:
+          ref: 7f59ef470340db6027958f439df3716a8dde536c
+          path: baseline
+          persist-credentials: false
+          sparse-checkout: |
+            .cargo
+            src
+            tests
+            examples
+      - uses: actions/checkout@v7
+        with:
+          ref: dca26dfaf47989db15e3d27b0cddafc5483a9d84
+          path: candidate
+          persist-credentials: false
+          sparse-checkout: |
+            .cargo
+            src
+            tests
+            examples
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Verify source and install the identical test-only probe
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$RUNNER_ARCH" = X64
+          test "$(uname -m)" = x86_64
+          test "$(git -C baseline rev-parse HEAD:src/producer.rs)" = 1e7733c136e54b532cdc8bddabd1e0c828e50ed2
+          test "$(git -C candidate rev-parse HEAD:src/producer.rs)" = cef43c9ebf3755c9676201ef7950eb444d0d34e8
+          test "$(git -C baseline rev-parse HEAD:Cargo.lock)" = "$(git -C candidate rev-parse HEAD:Cargo.lock)"
+          test "$(git -C fixture rev-parse HEAD:benchmarks/qualification/failure_cleanup_bench.rs)" = 4ba5078ee63c38883db2c9418f019d5758f43ec3
+          mkdir -p "$RUNNER_TEMP/deadline-witness"
+          evidence="$RUNNER_TEMP/deadline-witness"
+          rustc +stable -vV | tee "$evidence/rustc.txt"
+          cargo +stable -V | tee "$evidence/cargo.txt"
+          uname -a | tee "$evidence/uname.txt"
+          lscpu > "$evidence/cpu.txt"
+          for arm in baseline candidate; do
+            sha256sum "$arm/Cargo.lock" "$arm/src/producer.rs" | tee "$evidence/$arm-original.sha256"
+            mkdir -p "$arm/src/producer"
+            cp fixture/benchmarks/qualification/failure_cleanup_bench.rs "$arm/src/producer/failure_cleanup_bench.rs"
+          done
+          python3 - <<'PYCODE'
+          from pathlib import Path
+          marker = "#[cfg(test)]\nmod tests {"
+          extra = '#[cfg(test)]\n#[path = "producer/failure_cleanup_tests.rs"]\nmod failure_cleanup_tests;\n\n'
+          addition = '#[cfg(test)]\n#[path = "producer/failure_cleanup_bench.rs"]\nmod failure_cleanup_bench;\n\n'
+          for arm in ("baseline", "candidate"):
+              path = Path(arm) / "src/producer.rs"
+              source = path.read_text()
+              assert source.count(marker) == 1
+              if arm == "candidate":
+                  assert source.count(extra) == 1
+                  source = source.replace(extra, "", 1)
+              else:
+                  assert extra not in source
+              path.write_text(source.replace(marker, addition + marker, 1))
+          PYCODE
+          for arm in baseline candidate; do
+            git -C "$arm" diff -- src/producer.rs > "$evidence/$arm-test-transform.diff"
+            sha256sum "$arm/Cargo.lock" "$arm/src/producer.rs" "$arm/src/producer/failure_cleanup_bench.rs" | tee "$evidence/$arm-build-source.sha256"
+          done
+          cmp baseline/src/producer/failure_cleanup_bench.rs candidate/src/producer/failure_cleanup_bench.rs
+      - name: Build separate test binaries
+        shell: bash
+        run: |
+          set -euo pipefail
+          evidence="$RUNNER_TEMP/deadline-witness"
+          for arm in baseline candidate; do
+            (
+              cd "$arm"
+              export CARGO_TARGET_DIR="$RUNNER_TEMP/deadline-target-$arm"
+              if ! timeout 600 cargo +stable test --locked --lib --no-run --message-format=json > "$evidence/$arm-build.json" 2> "$evidence/$arm-build.log"; then
+                cat "$evidence/$arm-build.log"
+                exit 1
+              fi
+              tail -n 10 "$evidence/$arm-build.log"
+            )
+            python3 - "$evidence/$arm-build.json" "$evidence/$arm-binary.txt" <<'PYCODE'
+          import hashlib
+          import json
+          import pathlib
+          import sys
+          artifacts = []
+          for line in pathlib.Path(sys.argv[1]).read_text().splitlines():
+              event = json.loads(line)
+              if event.get("reason") == "compiler-artifact" and event.get("profile", {}).get("test") and event.get("executable") and "lib" in event.get("target", {}).get("kind", []):
+                  artifacts.append(event["executable"])
+          assert len(artifacts) == 1, artifacts
+          binary = pathlib.Path(artifacts[0])
+          digest = hashlib.sha256(binary.read_bytes()).hexdigest()
+          pathlib.Path(sys.argv[2]).write_text(str(binary) + "\n" + digest + "\n")
+          print("BINARY", binary.name, digest)
+          PYCODE
+            sha256sum "$arm/Cargo.lock" "$arm/src/producer.rs" "$arm/src/producer/failure_cleanup_bench.rs" > "$evidence/$arm-after-build.sha256"
+            cmp "$evidence/$arm-build-source.sha256" "$evidence/$arm-after-build.sha256"
+          done
+          test "$(tail -n 1 "$evidence/baseline-binary.txt")" != "$(tail -n 1 "$evidence/candidate-binary.txt")"
+      - name: Run baseline and candidate deadline probes
+        shell: bash
+        run: |
+          set -euo pipefail
+          evidence="$RUNNER_TEMP/deadline-witness"
+          cpu="$(python3 -c 'import os; print(min(os.sched_getaffinity(0)))')"
+          echo "client_cpu=$cpu" | tee "$evidence/affinity.txt"
+          for arm in baseline candidate; do
+            binary="$(head -n 1 "$evidence/$arm-binary.txt")"
+            FINGERPRINT_EXPECTED="$arm" timeout 30 taskset -c "$cpu" "$binary" --exact producer::failure_cleanup_bench::current_thread_cancel_deadline_probe --nocapture --test-threads=1 2>&1 | tee "$evidence/$arm.log"
+            grep -F "PL_DEADLINE arm=$arm " "$evidence/$arm.log"
+            grep -F 'test result: ok. 1 passed; 0 failed;' "$evidence/$arm.log"
+          done
+          grep -F 'PL_DEADLINE_INTERVAL ' "$evidence/candidate.log"
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: failure-cleanup-deadline-${{ github.run_id }}
+          path: ${{ runner.temp }}/deadline-witness
+          if-no-files-found: error
+          retention-days: 30
