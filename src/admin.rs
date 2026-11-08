@@ -16765,7 +16765,11 @@ impl<S: BuildHasher> DescribedTopicIndex<S> {
     fn insert_hashed(&mut self, hash: u64, slot: usize, known_id: [u8; 16]) {
         let _entry = self.table.insert_unique(
             hash,
-            DescribedTopicEntry { hash, slot, known_id },
+            DescribedTopicEntry {
+                hash,
+                slot,
+                known_id,
+            },
             |entry| entry.hash,
         );
     }
@@ -16827,11 +16831,15 @@ async fn place_described_topic<S: BuildHasher>(
         }
     });
     if missing_slot {
-        return Err(Error::protocol("DescribeTopicPartitions index references a missing topic"));
+        return Err(Error::protocol(
+            "DescribeTopicPartitions index references a missing topic",
+        ));
     }
     if let Some(entry) = found {
         let Some(existing) = out.get_mut(entry.slot) else {
-            return Err(Error::protocol("DescribeTopicPartitions index references a missing topic"));
+            return Err(Error::protocol(
+                "DescribeTopicPartitions index references a missing topic",
+            ));
         };
         if existing.error_code != 0 {
             discard_described_partitions(&mut desc.partitions).await;
@@ -18241,10 +18249,13 @@ mod tests {
     fn extending_described_topics_yields_and_completes() {
         let lookup = |index: &DescribedTopicIndex, out: &[TopicDescription], name: &str| {
             let hash = index.hash(name);
-            index.table.find(hash, |entry| {
-                entry.hash == hash
-                    && out.get(entry.slot).is_some_and(|topic| topic.name == name)
-            }).map(|entry| (entry.slot, entry.known_id))
+            index
+                .table
+                .find(hash, |entry| {
+                    entry.hash == hash
+                        && out.get(entry.slot).is_some_and(|topic| topic.name == name)
+                })
+                .map(|entry| (entry.slot, entry.known_id))
         };
         let small = vec![TopicDescription::new(
             "small",
