@@ -1,0 +1,115 @@
+name: Failure cleanup cancellation witness
+
+on:
+  push:
+    branches: [qualification/failure-cleanup-374-20261108]
+
+permissions:
+  contents: read
+
+jobs:
+  witness:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      CARGO_BUILD_JOBS: '2'
+      CARGO_INCREMENTAL: '0'
+      CARGO_PROFILE_DEV_DEBUG: '0'
+      CARGO_PROFILE_TEST_DEBUG: '0'
+      CARGO_TERM_COLOR: never
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: 374dcf45db20ee728b00c0b0188e77ca1f47fa9c
+          persist-credentials: false
+          sparse-checkout: |
+            .cargo
+            src
+            tests
+            examples
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Check host and install control
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$RUNNER_ARCH" = X64
+          test "$(git rev-parse HEAD)" = 374dcf45db20ee728b00c0b0188e77ca1f47fa9c
+          printf '%s  %s\n' e21d03f495f504f167bc56139dc03798b0f323ca51370c7dceade23a2dad066e src/producer.rs | sha256sum --check -
+          rustc +stable -vV
+          cargo +stable -V
+          mkdir -p "$RUNNER_TEMP/cleanup-evidence"
+          python3 -B - <<'PYCODE'
+          from pathlib import Path
+          import hashlib
+
+          path = Path("src/producer.rs")
+          source = path.read_text()
+          marker = "mod tests {\n    use super::*;\n"
+          if source.count(marker) != 1:
+              raise SystemExit("test module marker mismatch")
+          control = r'''
+              #[tokio::test(flavor = "current_thread")]
+              async fn failure_cleanup_single_record_cancellation_witness() {
+                  let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+                  let addr = listener.local_addr().unwrap().to_string();
+                  let meta = BrokerConn::connect(&addr, "cleanup-witness", Duration::from_secs(1))
+                      .await
+                      .unwrap();
+                  let (_peer, _) = listener.accept().await.unwrap();
+                  let shared = test_shared(ProducerConfig::default(), meta);
+
+                  let (tx, rx) = oneshot::channel();
+                  let mut record = queued("witness", Some(0));
+                  record.rec.value = Some(Bytes::from_static(b"x"));
+                  record.tx = Some(tx);
+                  assert!(shared.try_reserve_buffer(1));
+                  let mut cleanup = Box::pin(fail_kept_pendings(&shared, vec![record], Error::Timeout));
+                  let mut context = std::task::Context::from_waker(std::task::Waker::noop());
+                  assert!(matches!(
+                      std::future::Future::poll(cleanup.as_mut(), &mut context),
+                      std::task::Poll::Pending
+                  ), "cleanup did not yield at the first poll");
+                  drop(cleanup);
+                  assert!(rx.await.is_err(), "canceled cleanup unexpectedly completed the record");
+                  assert_eq!(shared.buffered_bytes.load(Ordering::SeqCst), 1);
+                  println!("PL_CLEANUP_CANCELED: receiver closed, reserved bytes=1");
+
+                  // Clear only the deliberately leaked reservation, then exercise the
+                  // same single-record helper to completion as an independent control.
+                  shared.release_buffer(1);
+                  let (tx, rx) = oneshot::channel();
+                  let mut record = queued("witness", Some(0));
+                  record.rec.value = Some(Bytes::from_static(b"x"));
+                  record.tx = Some(tx);
+                  assert!(shared.try_reserve_buffer(1));
+                  let _empty = fail_kept_pendings(&shared, vec![record], Error::Timeout).await;
+                  assert!(matches!(rx.await, Ok(Err(Error::Timeout))));
+                  assert_eq!(shared.buffered_bytes.load(Ordering::SeqCst), 0);
+                  println!("PL_CLEANUP_COMPLETED: receiver Timeout, reserved bytes=0");
+              }
+          '''
+          source = source.replace(marker, marker + control, 1)
+          path.write_text(source)
+          print("instrumented producer SHA-256:", hashlib.sha256(source.encode()).hexdigest())
+          PYCODE
+      - name: Run normal and canceled cleanup controls
+        shell: bash
+        run: |
+          set -euo pipefail
+          for mode in default all; do
+            extra=''
+            if [[ "$mode" = all ]]; then extra=--all-features; fi
+            log="$RUNNER_TEMP/cleanup-evidence/$mode.log"
+            timeout 600 cargo +stable test --locked $extra --lib producer::tests::failure_cleanup_single_record_cancellation_witness -- --exact --nocapture 2>&1 | tee "$log"
+            grep -F 'PL_CLEANUP_CANCELED: receiver closed, reserved bytes=1' "$log"
+            grep -F 'PL_CLEANUP_COMPLETED: receiver Timeout, reserved bytes=0' "$log"
+            grep -F 'test result: ok. 1 passed; 0 failed; 0 ignored;' "$log"
+          done
+      - name: Retain logs
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: failure-cleanup-${{ github.run_id }
+          path: ${{ runner.temp }}/cleanup-evidence
+          if-no-files-found: error
+          retention-days: 30
