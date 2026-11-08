@@ -1,0 +1,45 @@
+name: Classic join debugger readout
+
+on:
+  push:
+    branches: [diagnostic/classic-join-readout-20261108]
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  readout:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/download-artifact@v7
+        with:
+          name: classic-join-stack-fault-42440512105-1
+          run-id: '42440512105'
+          github-token: ${{ github.token }}
+          path: ${{ runner.temp }}/classic-stack
+      - name: Print bounded debugger stop and source identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          root="$RUNNER_TEMP/classic-stack"
+          cat "$root/identity.log"
+          cat "$root/test-binary.sha256"
+          python3 -B - <<'PY'
+          import os
+          from pathlib import Path
+          path = Path(os.environ['RUNNER_TEMP']) / 'classic-stack/gdb/runtime.log'
+          text = path.read_text(encoding='utf-8', errors='replace')
+          lines = text.splitlines()
+          starts = [i for i, line in enumerate(lines) if 'received signal SIGSEGV' in line]
+          if len(starts) != 1:
+              raise SystemExit('expected exactly one captured SIGSEGV')
+          start = starts[0]
+          print('--- begin bounded fault excerpt ---')
+          for line in lines[start:start + 90]:
+              if len(line) > 2000:
+                  line = line[:2000] + ' [truncated]'
+              print(line)
+          print('--- end bounded fault excerpt ---')
+          PY
