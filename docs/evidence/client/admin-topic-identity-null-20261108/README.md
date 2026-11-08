@@ -45,10 +45,12 @@ documentation and a scripted control, so the draft results use different
 source and test blobs.
 
 In the [final qualification][final], formatting and strict
-all-target/all-feature Clippy passed, as did the 28 default-profile
-pagination controls. The full default Admin suite failed: 633 passed and
-two exceeded their 80 ms thresholds, named-result grouping at
-137.547952 ms and coordinator indexing at 169.259935 ms.
+all-target/all-feature Clippy passed, as did 28 pagination controls in
+each profile. Both full Admin suites failed with 633 passed and two
+failures each. In the default profile, named-result grouping took
+137.547952 ms and coordinator indexing 169.259935 ms. In the all-feature
+profile, created-topic decoding took 83.091523 ms and coordinator indexing
+114.643677 ms. Each failed its 80 ms threshold.
 
 A fresh digest-pinned Kafka 4.1.2 broker passed the live smoke in both
 profiles. The CLI confirmed partitions 0–3; four raw pages and the
@@ -56,8 +58,8 @@ aggregate agreed on their nonzero topic ID and partition indexes. This is
 one normal local broker history, while the null-name and precedence cases
 use scripted responses.
 
-The all-feature Admin suite, independently restored negative mutations,
-[same-host whole-suite comparison][broad] and [paired release-mode
+The independently restored negative mutations, [same-host whole-suite
+comparison][broad] and [paired release-mode
 timing][perf] are still running. The broad suite is not green, and the
 remaining results must be recorded before this note is complete.
 
