@@ -355,7 +355,8 @@ async fn cancelled_channel_admission_releases_only_the_unenqueued_reservation() 
             .linger(Duration::ZERO)
             .buffer_memory(0)
             .metadata_max_age(Duration::from_secs(60))
-            .delivery_timeout(Duration::from_secs(30))
+            .delivery_timeout(Duration::from_secs(120))
+            .max_block(Duration::from_secs(60))
             .interceptor(callbacks.clone()),
     )
     .await?;
@@ -371,55 +372,68 @@ async fn cancelled_channel_admission_releases_only_the_unenqueued_reservation() 
         .map_err(|_| Error::Closed)?;
 
     // The worker is paused inside the warmup callback, so it cannot drain the
-    // channel or finish accepted records while the target task is canceled.
+    // channel or finish accepted records while send_all is canceled.
     let warm_metrics = producer.metrics();
     assert_eq!(warm_metrics.bytes_buffered, 0);
     assert_eq!(warm_metrics.records_acked, 1);
+    assert_eq!(warm_metrics.produce_errors, 0);
+    let accepted = u64::try_from(CHANNEL_CAPACITY).unwrap();
+    let expected_bytes = accepted * VALUE_BYTES + u64::try_from(CANCELED_BYTES).unwrap();
+    let expected_queued = warm_metrics.records_queued + accepted;
+    let mut inputs = Vec::with_capacity(CHANNEL_CAPACITY + 1);
     for index in 0..CHANNEL_CAPACITY {
         let value = u64::try_from(index).unwrap().to_le_bytes().to_vec();
-        producer.try_send(ProduceRecord::to("t").partition(0).value(value))?;
+        inputs.push(ProduceRecord::to("t").partition(0).value(value));
     }
+    inputs.push(
+        ProduceRecord::to("t")
+            .partition(0)
+            .value(vec![b'z'; CANCELED_BYTES]),
+    );
+
+    let task_producer = producer.clone();
+    let (blocked_tx, blocked_rx) = tokio::sync::oneshot::channel();
+    let target = tokio::spawn(async move {
+        let mut blocked_tx = Some(blocked_tx);
+        let mut send = Box::pin(task_producer.send_all(inputs));
+        std::future::poll_fn(|cx| {
+            let result = std::future::Future::poll(send.as_mut(), cx);
+            if result.is_pending() {
+                let metrics = task_producer.metrics();
+                if metrics.bytes_buffered == expected_bytes
+                    && metrics.records_queued == expected_queued
+                {
+                    if let Some(blocked_tx) = blocked_tx.take() {
+                        let _sent = blocked_tx.send(());
+                    }
+                }
+            }
+            result
+        })
+        .await
+    });
+    tokio::time::timeout(Duration::from_secs(30), blocked_rx)
+        .await
+        .map_err(|_| Error::Timeout)?
+        .map_err(|_| Error::Closed)?;
+    let before_cancel = producer.metrics();
+    assert_eq!(before_cancel.bytes_buffered, expected_bytes);
+    assert_eq!(before_cancel.records_queued, expected_queued);
+    assert_eq!(before_cancel.records_acked, warm_metrics.records_acked);
+    assert_eq!(before_cancel.produce_errors, warm_metrics.produce_errors);
     assert!(matches!(
         producer.try_send(ProduceRecord::to("t").partition(0).value("probe")),
         Err(Error::QueueFull)
     ));
-    let full = producer.metrics();
-    let accepted = u64::try_from(CHANNEL_CAPACITY).unwrap();
-    assert_eq!(full.records_queued, warm_metrics.records_queued + accepted);
-    assert_eq!(full.records_acked, warm_metrics.records_acked);
-    assert_eq!(full.produce_errors, warm_metrics.produce_errors);
-    assert_eq!(full.bytes_buffered, accepted * VALUE_BYTES);
-
-    let task_producer = producer.clone();
-    let target = tokio::spawn(async move {
-        task_producer
-            .send_all([ProduceRecord::to("t")
-                .partition(0)
-                .value(vec![b'z'; CANCELED_BYTES])])
-            .await
-    });
-    tokio::time::timeout(Duration::from_secs(5), async {
-        loop {
-            let metrics = producer.metrics();
-            if metrics.bytes_buffered == full.bytes_buffered + u64::try_from(CANCELED_BYTES).unwrap()
-                && metrics.records_queued == full.records_queued
-            {
-                break;
-            }
-            tokio::task::yield_now().await;
-        }
-    })
-    .await
-    .map_err(|_| Error::Timeout)?;
     assert!(!target.is_finished());
     target.abort();
     assert!(target.await.is_err_and(|error| error.is_cancelled()));
     let after_cancel = producer.metrics();
-    assert_eq!(after_cancel.records_queued, full.records_queued);
-    assert_eq!(after_cancel.records_acked, full.records_acked);
-    assert_eq!(after_cancel.produce_errors, full.produce_errors);
+    assert_eq!(after_cancel.records_queued, expected_queued);
+    assert_eq!(after_cancel.records_acked, warm_metrics.records_acked);
+    assert_eq!(after_cancel.produce_errors, warm_metrics.produce_errors);
     assert_eq!(
-        after_cancel.bytes_buffered, full.bytes_buffered,
+        after_cancel.bytes_buffered, accepted * VALUE_BYTES,
         "cancelled channel admission retained its unqueued reservation"
     );
 
