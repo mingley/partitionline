@@ -18630,3 +18630,72 @@ mod rediscover_stop_tests {
 #[cfg(test)]
 #[path = "producer/txn_error_state_controls.rs"]
 mod txn_error_state_controls;
+
+#[cfg(test)]
+mod sequence_rollover_witness {
+    use super::*;
+
+    fn reference_advance(sequence: i32, increment: i32) -> i32 {
+        let modulus = i64::from(i32::MAX) + 1;
+        i32::try_from((i64::from(sequence) + i64::from(increment)) % modulus)
+            .expect("sequence fits")
+    }
+
+    fn pending() -> Pending {
+        let now = Instant::now();
+        Pending {
+            sticky_record: None,
+            sticky: None,
+            rec: ProduceRecord::to("rollover").partition(0),
+            tx: None,
+            seq: None,
+            batch_base_seq: None,
+            batch_len: 1,
+            epoch_gen: 0,
+            deadline: now,
+            queued_at: now,
+            retry: 0,
+            skip_meta_refresh: false,
+            retry_after: now,
+        }
+    }
+
+    #[test]
+    fn ordinary_reservation_matches_reference() {
+        let mut parts = HashMap::from([(0, 7)]);
+        let base = sequence_in(&mut parts, 0, 3);
+        assert_eq!(base, 7);
+        assert_eq!(parts.get(&0), Some(&reference_advance(base, 3)));
+        assert_eq!(parts.get(&0), Some(&10));
+    }
+
+    #[test]
+    fn saturated_single_record_reservations_repeat_the_base() {
+        let mut parts = HashMap::from([(0, i32::MAX)]);
+        let first = sequence_in(&mut parts, 0, 1);
+        let second = sequence_in(&mut parts, 0, 1);
+        let expected_second = reference_advance(first, 1);
+        assert_eq!(first, i32::MAX);
+        assert_eq!(second, i32::MAX);
+        assert_eq!(expected_second, 0);
+        assert_ne!(second, expected_second);
+    }
+
+    #[tokio::test]
+    async fn crossing_batch_saturates_reservation_and_record_stamp() {
+        let mut parts = HashMap::from([(0, i32::MAX - 1)]);
+        let base = sequence_in(&mut parts, 0, 3);
+        let expected_next = reference_advance(base, 3);
+        assert_eq!(base, i32::MAX - 1);
+        assert_eq!(expected_next, 1);
+        assert_eq!(parts.get(&0), Some(&i32::MAX));
+        assert_ne!(parts.get(&0), Some(&expected_next));
+
+        let mut batch = vec![pending(), pending(), pending()];
+        stamp_sequences(&mut batch, base).await;
+        let sequences: Vec<_> = batch.iter().map(|record| record.seq).collect();
+        assert_eq!(sequences, [Some(i32::MAX - 1), Some(i32::MAX), Some(i32::MAX)]);
+        assert_eq!(reference_advance(base, 2), 0);
+        assert_ne!(sequences[2], Some(reference_advance(base, 2)));
+    }
+}
