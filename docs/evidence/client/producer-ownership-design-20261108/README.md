@@ -73,6 +73,37 @@ test durations are not a performance comparison and do not establish the cause
 of the assertion or prove a reservation leak. The diagnostic does not explain
 the earlier default-feature `Timeout`.
 
+## Short mock timing
+
+[Run 42461275246][timing-run] compared base `4409633` with the bc45 draft
+using default-feature release builds, one partition and 4,096 eight-byte
+records on one hosted AMD EPYC 9V74 x86_64 machine. It alternated eight
+samples per arm over approximately 0.15 seconds in total. Each sample checked
+the complete ordered mock log, aggregate acknowledgement callback count,
+error count and final byte accounting.
+
+| Measurement | Base median | bc45 median |
+| --- | --- | --- |
+| Admit 4,096 records | 1.555 ms | 1.954 ms |
+| Flush | 3.975 ms | 4.257 ms |
+
+The producer source SHA-256 values were
+`3d65fcceecbb43c1a974f7f6b7bd58c8a310930f6bcced9052a00e88700eb37f` for
+the base and
+`0ec7876bd7a2954847694d497f9c2a4275d23f6a48b2e7fbf89d86dea447b6ea` for
+bc45. Separate build directories produced different binaries, whose SHA-256
+values were
+`714a558c7df6afde6fa5e27cacf69c51d19eb105f74531d908c9a685941c68f0` and
+`16aacaca991d64bf676c6eddd90c6eb2176ba373da622a586d4b35e5b3a1ed2d`.
+The binaries were not retained. The [sample artifact][timing-artifact] has ID
+`13609867189` and SHA-256
+`e84e1bcc680662220575cbbbc4d2fb5380594feea7d15d244f6170f9f39b3aa5`.
+
+The runner reported `cpu.max` unavailable; its CPU quota is unknown. The
+mock uses this repository's codec, and this short diagnostic neither measures
+the later b7 draft nor compares Kafka implementations or establishes production
+readiness.
+
 ## Source review
 
 The following are interleavings derived from code inspection, not reproduced
@@ -184,6 +215,8 @@ the standalone model or the private helper witnesses.
 [sealing-run]: https://github.com/mingley/partitionline/actions/runs/42460603408
 [paired-run]: https://github.com/mingley/partitionline/actions/runs/42460753994
 [shutdown-run]: https://github.com/mingley/partitionline/actions/runs/42461750015
+[timing-run]: https://github.com/mingley/partitionline/actions/runs/42461275246
+[timing-artifact]: https://github.com/mingley/partitionline/actions/runs/42461275246/artifacts/13609867189
 [sealing-draft]: https://github.com/mingley/partitionline/blob/b7c11784d79b05a36ca624b3de17a952603d4931/docs/evidence/client/producer-completion-draft-20261108/README.md
 [assignment]: https://github.com/mingley/partitionline/blob/1036a393eb85f23032b935bf86862b7e98e36e14/src/producer.rs#L10429
 [response]: https://github.com/mingley/partitionline/blob/1036a393eb85f23032b935bf86862b7e98e36e14/src/producer.rs#L8670
