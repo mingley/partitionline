@@ -46,6 +46,21 @@ async fn public_close_deadline_with_inflight_interceptor() {
         entered: entered_tx,
         release: Arc::new(parking_lot::Mutex::new(Some(release_rx))),
     };
+    // The independent release is armed before setup or warmup can invoke a
+    // blocking callback, including unexpected early failures.
+    let ticked = Arc::new(AtomicBool::new(false));
+    let observer_flag = Arc::clone(&ticked);
+    let watchdog = std::thread::spawn(move || {
+        let entered_at = entered_rx.recv_timeout(Duration::from_secs(15));
+        if entered_at.is_ok() && held {
+            std::thread::sleep(Duration::from_millis(600));
+        }
+        let release_at = Instant::now();
+        let before_release = observer_flag.load(Ordering::SeqCst);
+        let _sent = release_tx.send(());
+        entered_at.ok().map(|entered_at| (entered_at, release_at, before_release))
+    });
+
     let producer = Producer::new(
         ProducerConfig::bootstrap([mock.addr.clone()])
             .idempotent(false)
@@ -63,21 +78,6 @@ async fn public_close_deadline_with_inflight_interceptor() {
         .expect("warmup");
     assert_eq!(warm.offset, 0);
     assert_eq!(callbacks.acks.load(Ordering::SeqCst), 1);
-
-    // The independent release is armed before any target poll can invoke a
-    // blocking callback, including unexpected early failures.
-    let ticked = Arc::new(AtomicBool::new(false));
-    let observer_flag = Arc::clone(&ticked);
-    let watchdog = std::thread::spawn(move || {
-        let entered_at = entered_rx.recv_timeout(Duration::from_secs(15));
-        if entered_at.is_ok() && held {
-            std::thread::sleep(Duration::from_millis(600));
-        }
-        let release_at = Instant::now();
-        let before_release = observer_flag.load(Ordering::SeqCst);
-        let _sent = release_tx.send(());
-        entered_at.ok().map(|entered_at| (entered_at, release_at, before_release))
-    });
 
     mock.set_produce_response_delay(Duration::from_secs(10));
     marker::arm();
