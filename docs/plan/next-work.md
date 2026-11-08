@@ -467,7 +467,11 @@ remain open.
    profiles. The default broad Admin suite passed 604 tests; the all-feature
    suite had 602 passes and two 80 ms timing failures. Those failures remain
    unexplained, and an unchanged baseline also failed the same controls on a
-   shared host. Longer cursor cycles can continue until timeout, and accumulated
+   shared host. The [test revision](../evidence/client/admin-cooperative-poll-20261108/README.md)
+   checks repeated yields, wakeups and progress without a wall-time threshold;
+   both selected Admin suites and strict checks passed, and 16 negative
+   mutations were detected. It does not establish an 80 ms latency bound.
+   Longer cursor cycles can continue until timeout, and accumulated
    descriptions are not bounded by this change. A short three-way loopback
    comparison measured candidate/baseline median elapsed ratios of 1.01145 for
    single-page calls and 1.00551 for sixteen-page calls.
