@@ -1,0 +1,23 @@
+name: Raft final candidate existing broker inventory
+on:
+  push:
+    branches: [qualification/raft-vote-final-inventory-20261108]
+permissions:
+  contents: read
+jobs:
+  inventory:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - name: Verify source pin and unchanged inventory
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD:partitionline-broker/src/raft/runtime.rs)" = d8fec08072b9128bbcb9623dfdf267212689d63d
+          git rev-parse HEAD
+          git rev-parse HEAD:partitionline-broker/src/raft/runtime.rs
+          python3 -B scripts/check-broker-api-matrix.py --report target/broker-ci/api-matrix.json
+          python3 -B -m unittest discover -s tests/ci -p test_broker_api_matrix.py -v
