@@ -233,14 +233,19 @@ async fn current_thread_cancel_deadline_probe() {
     let shared = test_shared(cfg, meta);
     let (finished_tx, finished_rx) = oneshot::channel();
     let release_thread = std::thread::spawn(move || {
-        if matches!(signal_rx.recv_timeout(Duration::from_secs(3)), Ok(true)) {
+        // Always release even on a timeout or panic before the callback enters.
+        let release_at_exit = ReleaseDeadlineLatch(latch);
+        let held = if matches!(signal_rx.recv_timeout(Duration::from_secs(3)), Ok(true)) {
             let (_delay_tx, delay_rx) = std::sync::mpsc::channel::<()>();
-            let _waited = delay_rx.recv_timeout(Duration::from_millis(600));
-            let (released, changed) = &*latch;
-            *released.lock() = true;
-            let _woken = changed.notify_all();
-        }
-        let _notified = finished_tx.send(());
+            matches!(
+                delay_rx.recv_timeout(Duration::from_millis(600)),
+                Err(std::sync::mpsc::RecvTimeoutError::Timeout)
+            )
+        } else {
+            false
+        };
+        drop(release_at_exit);
+        let _notified = finished_tx.send(held);
     });
     let now = Instant::now();
     let mut rec = ProduceRecord::to("failure-deadline-probe").partition(0);
@@ -268,8 +273,16 @@ async fn current_thread_cancel_deadline_probe() {
     let timer = tokio::spawn(async move {
         let deadline = tokio::time::sleep(Duration::from_millis(200));
         tokio::pin!(deadline);
-        let _armed = armed_tx.send(());
-        deadline.await;
+        let mut armed = Some(armed_tx);
+        std::future::poll_fn(|context| {
+            let state = deadline.as_mut().poll(context);
+            if let Some(tx) = armed.take() {
+                assert!(state.is_pending(), "deadline elapsed before registration");
+                let _armed = tx.send(());
+            }
+            state
+        })
+        .await;
         timer_flag.store(true, Ordering::SeqCst);
     });
     armed_rx.await.unwrap();
@@ -296,10 +309,12 @@ async fn current_thread_cancel_deadline_probe() {
         _ => panic!("unknown benchmark arm"),
     }
     timer.await.unwrap();
-    tokio::time::timeout(Duration::from_secs(3), finished_rx)
+    assert!(timer_fired.load(Ordering::SeqCst));
+    let held = tokio::time::timeout(Duration::from_secs(3), finished_rx)
         .await
         .expect("release thread did not finish")
         .expect("release thread panicked");
+    assert_eq!(held, expected == "candidate");
     tokio::time::timeout(Duration::from_secs(3), async {
         while !release_thread.is_finished() {
             tokio::task::yield_now().await;
