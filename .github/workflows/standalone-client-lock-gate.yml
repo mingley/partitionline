@@ -1,0 +1,131 @@
+name: Standalone client lock qualification
+on:
+  push:
+    branches: [work/standalone-client-lock-gate-20261108]
+permissions:
+  contents: read
+env:
+  CARGO_TERM_COLOR: never
+jobs:
+  delta:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 3
+      - name: Verify only the client hashbrown dependency was added
+        shell: bash
+        run: |
+          set -euo pipefail
+          git rev-parse HEAD
+          git diff --stat 258e376416d07526ff53ac70fb35603e12f0639b -- '**/Cargo.lock'
+          python3 - <<'PY'
+          import copy, pathlib, subprocess, tomllib
+          base = "258e376416d07526ff53ac70fb35603e12f0639b"
+          paths = [
+              "benchmarks/codec/Cargo.lock",
+              "benchmarks/runtime/Cargo.lock",
+              "benchmarks/sticky-partitioner/Cargo.lock",
+              "fuzz/Cargo.lock",
+              "tests/conformance/broker/interop/Cargo.lock",
+              "tests/conformance/librdkafka/rust/Cargo.lock",
+          ]
+          root = tomllib.loads(pathlib.Path("Cargo.lock").read_text())
+          hb = [p for p in root["package"] if p["name"] == "hashbrown" and p["version"] == "0.17.1"]
+          assert len(hb) == 1 and "dependencies" not in hb[0], hb
+          def key(p):
+              return p["name"], p["version"], p.get("source", "")
+          for path in paths:
+              before = tomllib.loads(subprocess.check_output(
+                  ["git", "show", f"{base}:{path}"], text=True))
+              after = tomllib.loads(pathlib.Path(path).read_text())
+              assert {k:v for k,v in before.items() if k != "package"} == {k:v for k,v in after.items() if k != "package"}, path
+              old = {key(p): p for p in before["package"]}
+              new = {key(p): p for p in after["package"]}
+              assert len(old) == len(before["package"]) and len(new) == len(after["package"]), path
+              assert set(new) - set(old) == {key(hb[0])}, path
+              assert not set(old) - set(new), path
+              assert new[key(hb[0])] == hb[0], path
+              for k in old:
+                  if k[0] == "partitionline":
+                      expected = copy.deepcopy(old[k])
+                      expected["dependencies"].append("hashbrown")
+                      expected["dependencies"].sort()
+                      actual = copy.deepcopy(new[k])
+                      actual["dependencies"].sort()
+                      assert actual == expected, (path, k)
+                  else:
+                      assert new[k] == old[k], (path, k)
+              print(f"LOCK_DELTA_OK {path} adds only hashbrown 0.17.1 and client edge")
+          PY
+  locked:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - id: codec
+            manifest: benchmarks/codec/Cargo.toml
+          - id: runtime
+            manifest: benchmarks/runtime/Cargo.toml
+          - id: sticky
+            manifest: benchmarks/sticky-partitioner/Cargo.toml
+          - id: fuzz
+            manifest: fuzz/Cargo.toml
+          - id: broker-interop
+            manifest: tests/conformance/broker/interop/Cargo.toml
+          - id: librdkafka-interop
+            manifest: tests/conformance/librdkafka/rust/Cargo.toml
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Check standalone manifest with frozen lockfile
+        shell: bash
+        run: |
+          set -euo pipefail
+          rustc -Vv
+          cargo -V
+          manifest="${{ matrix.manifest }}"
+          lock="${manifest%Cargo.toml}Cargo.lock"
+          sha256sum Cargo.toml Cargo.lock "$manifest" "$lock"
+          git hash-object "$lock"
+          case "${{ matrix.id }}" in
+            codec|sticky|broker-interop|librdkafka-interop) args=(--all-targets --all-features) ;;
+            runtime) args=(--all-targets) ;;
+            fuzz) args=(--bin decode_record_batches) ;;
+          esac
+          cargo check --locked --manifest-path "$manifest" "${args[@]}"
+          git diff --exit-code -- "$lock"
+          echo "LOCKED_CHECK_OK ${{ matrix.id }}"
+  allocation:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Existing allocation-gate failure controls
+        run: python3 -B -m unittest discover -s tests/ci -p test_alloc_gate.py
+      - name: Existing codec allocation gate
+        run: bash scripts/ci-alloc-budget.sh
+      - uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: standalone-lock-alloc-budget
+          path: artifacts/alloc-budget/
+          if-no-files-found: warn
+          retention-days: 30
+  perf:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Install existing performance-gate prerequisites
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y valgrind
+          cargo install iai-callgrind-runner --version 0.14.2 --locked
+      - name: Existing codec instruction-count gate
+        run: bash scripts/ci-perf-gate.sh
