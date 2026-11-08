@@ -260,9 +260,12 @@ remain open.
 
    The [Fetch admission fixture](../evidence/broker/fetch-admission-20261108/README.md)
    replaces a scheduling-dependent first-poll assertion with a gated actor and
-   checks both consumption and cancellation. A later full default qualification
-   failed a separate transport-shutdown test with `QueueFull`; its cause and
-   canceled actor memory overlap remain open.
+   checks both consumption and cancellation. A separate [queue witness](../evidence/broker/fetch-canceled-queue-20261108/README.md)
+   demonstrates one possible cause of a later transport-shutdown `QueueFull`
+   failure; that uninstrumented failure's cause remains unproven. The queue
+   fixture passed its focused controls and 887 all-feature tests, while its
+   full default run stopped at a quorum `Journal(AlreadyOpen)` failure.
+   Canceled actor memory overlap remains open.
 
    The [Produce cancellation fix](../evidence/broker/produce-cancel-20261108/README.md)
    rolls back a canceled request's unsynced monolithic stages. Its x86

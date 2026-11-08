@@ -1291,6 +1291,9 @@ async fn transport_joined_shutdown_cancels_live_long_poll_without_stopping_store
     assert_eq!(report.worker_failures, 0);
     let mut byte = [0];
     assert_eq!(socket.read(&mut byte).await?, 0);
+    // A canceled job can still occupy the actor queue after the transport's
+    // handler has released its data permit. Drain it before checking fresh work.
+    barrier(&router).await?;
     let result = router
         .respond(fetch_request(6, 0, 0, 0, 10000, &[(0, 10000)]))
         .await?;
