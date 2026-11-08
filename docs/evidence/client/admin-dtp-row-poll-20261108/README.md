@@ -52,7 +52,52 @@ large pages, nor measure a Kafka deployment. Large partitions, replica arrays,
 allocation and destruction can themselves hold a poll or cancellation; a
 row-count checkpoint would not bound their cost.
 
-## Reproduction and pins
+## Public Admin call against a mock peer
+
+[Run 42480909473](https://github.com/mingley/partitionline/actions/runs/42480909473)
+passed all 42 public-call cases. A current-thread test invokes
+`describe_topics_with_partition_limit_timeout` and measures every poll of
+that public future. The TCP peer checks every requested name and returns the
+same ordered names, with either no partitions or a topic-authorization error.
+The caller verifies every returned name, error code, empty partition list and
+omitted authorization flag. This is a mock peer, not a Kafka broker.
+
+The peer marks when its complete response has been written. The largest
+individual public-future poll beginning after that mark was:
+
+| Rows | Empty topics | Topic errors |
+| ---: | ---: | ---: |
+| 1 | 0.029–0.030 ms | 0.026–0.028 ms |
+| 32 | 0.043–0.066 ms | 0.042–0.048 ms |
+| 8,191 | 3.971–4.067 ms | 4.129–4.191 ms |
+| 8,192 | 2.741–2.796 ms | 2.689–2.837 ms |
+| 8,193 | 2.749–2.822 ms | 2.757–2.889 ms |
+| 100,000 | 10.565–11.415 ms | 10.660–11.155 ms |
+| 500,000 | 93.375–98.155 ms | 93.380–95.045 ms |
+
+These measurements include whatever public-call work happened in each
+measured poll, including possible reads, decoding, row conversion, merging and
+destruction. They do not isolate the conversion loop. Some decoding can start
+before the peer's write completes; the mark does not identify a decoder or
+conversion boundary. Whole-call times in [the samples](public-mock-baseline.csv)
+also include mock-peer work and are not a Kafka latency benchmark. The
+500,000-row body was 20,000,009 bytes; the test requested every returned name.
+There were three separate process samples per count and kind.
+
+This run used an Intel Xeon Platinum 8370C on GitHub-hosted Ubuntu 24.04,
+stable Rust 1.99.1 and LLVM 23.1.1. The `cpu.max` file was unavailable.
+It used the same production Git blob and release settings listed below.
+The [test fixture](https://github.com/mingley/partitionline/blob/bb91475c679cceaac872d8ae78ad0fd59b928386/src/admin/pagination_tests.rs)
+is blob `6944285477b86a8cad7b2e65ef3b55dcebd64f95`, SHA-256
+`31177dabc599e64818cccd2033aab0523ab84481ef8f07ef8cb9e6be37ff4c8a`;
+workflow commit `aa6cf3f8967c32cee0811d0ec6df20dbb73bfc02`.
+Its test binary had SHA-256
+`fb00b56fb4f960b94fa1f4f4ade7a94cbb6c1f6f86046528c92b0e38639d725d`
+and was not retained. The run artifact retains the machine details and raw
+output for 30 days. These public and representative results came from
+different hosts and are not a matched comparison.
+
+## Representative probe reproduction and pins
 
 - Production source: [`src/admin.rs`](https://github.com/mingley/partitionline/blob/426041c9f5526dfb6a788344a0e03b3edfefffb0/src/admin.rs),
   Git blob `4d4212057984e47201b2bb1fe383ac2ae5a55562`,
@@ -73,6 +118,3 @@ row-count checkpoint would not bound their cost.
 - The [run artifact](https://github.com/mingley/partitionline/actions/runs/42480362800)
   retained build, environment and raw output with 30-day retention.
 
-A separate public Admin call against a mock peer is running. It will be
-reported separately because response reading and decoding also affect its
-poll timings.
