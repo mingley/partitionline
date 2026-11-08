@@ -581,6 +581,11 @@ class Owner:
             return "unknown"
         if self.completions.prefix < barrier.cutoff:
             return "pending"
+        if waiter == "close" and any(
+            batch.phase != "done" and any(ticket <= barrier.cutoff for ticket in batch.members)
+            for batch in self.batches.values()
+        ):
+            return "pending"
         result = barrier.error if barrier.error is not None else "ok"
         self.reported = max(self.reported, barrier.cutoff)
         if waiter == "close":
@@ -588,6 +593,15 @@ class Owner:
         del self.barriers[waiter]
         self._compact_errors()
         return result
+
+    def close_deadline(self):
+        if not self.closed:
+            raise ValueError("close has not begun")
+        if self.close_result is None:
+            # Timeout returns to the observer; the reserved close barrier,
+            # rooted batch and uncertainty fence remain in the owner.
+            self.close_result = "timeout"
+        return self.close_result
 
     def close(self):
         if self.closed:
@@ -1076,6 +1090,37 @@ class OwnerControls(unittest.TestCase):
         finish(owner, ticket)
         self.assertEqual(owner.poll_flush(close), (ticket, "encoding_error"))
         self.assertEqual(owner.poll_flush(owner.close()), (ticket, "encoding_error"))
+
+    def test_close_seals_open_sticky_cohort_and_drains_it(self):
+        owner = Owner(slots=1)
+        cohort = owner.new_cohort()
+        ticket = admit(owner, "p", b"x", cohort=cohort)
+        close = owner.close()
+        batch = owner.seal_batch("p", 1, 1, 0)
+        self.assertIsInstance(batch, int)
+        lease = owner.claim(batch)
+        attempt = owner.offer(batch, lease, 0)
+        self.assertTrue(owner.acknowledge(batch, lease, attempt, 0))
+        finish(owner, ticket)
+        self.assertEqual(owner.poll_flush(close), "ok")
+        self.assertEqual(owner.used_slots, 0)
+
+    def test_close_cannot_report_success_after_unknown_error_was_consumed(self):
+        owner = Owner(slots=1)
+        ticket = admit(owner, "p", b"x", deadline=1)
+        batch = owner.seal_batch("p", 1, 1, 0)
+        lease = owner.claim(batch)
+        owner.offer(batch, lease, 0)
+        flush = owner.begin_flush()
+        owner.expire(1)
+        finish(owner, ticket)
+        self.assertEqual(owner.poll_flush(flush), (ticket, "timeout"))
+        close = owner.close()
+        self.assertEqual(owner.poll_flush(close), "pending")
+        self.assertEqual(owner.close_deadline(), "timeout")
+        self.assertEqual(owner.poll_flush(close), "timeout")
+        self.assertEqual(owner.batches[batch].phase, "unknown")
+        self.assertEqual(owner.used_slots, 1)
 
     def test_exhausted_ticket_does_not_detach_reservation(self):
         owner = Owner(slots=3, max_token=1)

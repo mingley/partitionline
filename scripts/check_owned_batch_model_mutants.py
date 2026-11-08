@@ -45,6 +45,10 @@ mutants = [
         ('return waiter in self.barriers or self.close_result is not None',
          'return self.barriers.pop(waiter, None) is not None'),
     ], "OwnerControls.test_canceled_close_observer_does_not_erase_durable_cutoff"),
+    ("close-reports-unsettled-success", [
+        ('if waiter == "close" and any(\n            batch.phase != "done" and any(ticket <= barrier.cutoff for ticket in batch.members)\n            for batch in self.batches.values()\n        ):',
+         'if False:'),
+    ], "OwnerControls.test_close_cannot_report_success_after_unknown_error_was_consumed"),
     ("ack-beats-deadline", [
         ("# timer fairness are not represented by this synthetic clock.\n        self.expire(now)",
          "# timer fairness are not represented by this synthetic clock.\n        pass"),
