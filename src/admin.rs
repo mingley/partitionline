@@ -14136,6 +14136,7 @@ impl Admin {
             let mut cursor: Option<TopicPartitionCursor> = None;
             let mut out: Vec<TopicDescription> = Vec::new();
             let mut described = DescribedTopicIndex::new();
+            let mut converted_rows = 0usize;
             loop {
                 let resp = self
                     .describe_topic_partitions_until(
@@ -14151,21 +14152,16 @@ impl Admin {
                 }
                 let mut page = Vec::with_capacity(resp.topics.len());
                 let mut topics = resp.topics.iter();
-                let mut unrequested = false;
-                for topic in topics.by_ref() {
-                    let Some(name) = topic.name.as_deref() else {
-                        return Err(
-                            reject_unnamed_described_topic(&mut page, &mut out, deadline).await,
-                        );
-                    };
-                    if !dtp_topic_requested(names, use_index.then_some(&requested_names), name) {
-                        unrequested = true;
-                        break;
-                    }
-                    page.push(
-                        topic_description_from_dtp(topic, include_authorized_operations).await,
-                    );
-                }
+                let unrequested = convert_described_requested_page(
+                    &mut topics,
+                    |name| dtp_topic_requested(names, use_index.then_some(&requested_names), name),
+                    include_authorized_operations,
+                    &mut page,
+                    &mut out,
+                    deadline,
+                    &mut converted_rows,
+                )
+                .await?;
                 if unrequested {
                     if remaining_dtp_has_unnamed(topics).await {
                         return Err(
@@ -16649,6 +16645,35 @@ async fn topic_description_from(t: &crate::protocol::api::TopicMetadata) -> Topi
         partitions,
         authorized_operations: t.topic_authorized_operations,
     }
+}
+
+// Carry the completed-row budget across pages, including a final row exactly
+// at the boundary. The iterator stops immediately after an unrequested row
+// so the caller can scan the remainder for a null name before returning it.
+async fn convert_described_requested_page<'a>(
+    topics: &mut impl Iterator<Item = &'a DescribedTopicPartitions>,
+    is_requested: impl Fn(&str) -> bool,
+    include_authorized_operations: bool,
+    page: &mut Vec<TopicDescription>,
+    out: &mut [TopicDescription],
+    deadline: tokio::time::Instant,
+    converted_rows: &mut usize,
+) -> Result<bool> {
+    for topic in topics.by_ref() {
+        let Some(name) = topic.name.as_deref() else {
+            return Err(reject_unnamed_described_topic(page, out, deadline).await);
+        };
+        if !is_requested(name) {
+            return Ok(true);
+        }
+        page.push(topic_description_from_dtp(topic, include_authorized_operations).await);
+        *converted_rows += 1;
+        if *converted_rows == 8 * 1024 {
+            *converted_rows = 0;
+            tokio::task::yield_now().await;
+        }
+    }
+    Ok(false)
 }
 
 async fn topic_description_from_dtp(
