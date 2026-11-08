@@ -21,22 +21,29 @@ dependency graph is not Rust-only.
 ## Validation
 
 The latest complete recorded [CI snapshot][ci] is main commit
-`47df27f9f3e04fc524849f3a9753c0b0469f8947`. The current branch includes
+`0708730155d869ab4fa52654a2e95d4013c4e594`. The current branch includes
 later changes; see the linked runs for their exact source and scope.
 
-| Check | Result at `47df27f` |
+| Check | Result at `0708730` |
 | --- | --- |
-| Client library, Linux default | 2,229 passed and 15 failed; later targets did not run. |
-| Client library, Linux all features | 2,222 passed and 22 failed; later targets did not run. |
-| Client library, Windows default | 2,226 passed and 18 failed. |
-| Client library, macOS arm64 default | 2,229 passed and 15 failed. |
+| Client library, Linux default | 2,234 passed and 20 failed; later targets did not run. |
+| Client library, Linux all features | 2,232 passed and 22 failed; later targets did not run. |
+| Client library, Windows default | 2,237 passed and 17 failed. |
+| Client library, macOS arm64 default | 2,237 passed and 17 failed. |
 | Kafka 4.1.2, 4.2.1 and 4.3.1 compatibility | All three jobs failed with stack overflows. |
 | Kafka 3.9.1 and 4.1.0 smoke | Both reported JoinGroup error 16 and timeouts after retries. |
 | Resource soak | Passed. |
-| Broker default and all-feature targets | 779 and 927 passed, with four ignored in each profile. |
-| Broker Clippy, Rustdoc, doctests, inventory and fuzz supervision | Passed. |
+| Broker default targets | 702 passed, one failed and four ignored; later targets did not run. |
+| Broker all-feature targets, Clippy, Rustdoc and doctests | Not run after the default failure. |
+| Broker inventory and fuzz supervision | Passed in separate jobs. |
 | Client capability profiles | Both passed selected checks; their archives were not independently inspected. |
 | Client format, all-target Clippy, audit, docs, package, auth and integrity smoke | Passed. Other client jobs failed or were skipped. |
+
+The [broker failure][ci-070] was a `NotLeader` response to a five-node
+observer-addition request. Later non-atomic samples do not establish the
+cause. An [independent control][observer] shows that a node can remain ready
+after losing leadership, but it did not recreate the CI failure. The preceding
+broker run passed both profiles; that pass does not explain this failure.
 
 An [earlier snapshot][ci-262] had an OS permission error accessing a
 `/proc` file-descriptor directory, so that resource-soak workload was
@@ -115,7 +122,9 @@ An [earlier snapshot][ci-02c] retains two more Raft failures. The
   header-heavy codec workload on a shared x86 runner. A separate
   [one-byte varint experiment][onebyte] and three
   [batch-header candidates][batch-header] had mixed results and remain
-  unapplied. The frame-read change reduced work per poll but slowed a scoped
+  unapplied. A [send_all candidate][sendall] greatly shortened a large mock
+  poll but changed batching and introduced a blocking-cancellation boundary;
+  it also remains unapplied. The frame-read change reduced work per poll but slowed a scoped
   256 KiB loopback test by about 2% over TCP and 1.6% over TLS/TCP. In a
   [follow-up][frame-followup] the TCP result changed direction on a different
   runner. These measurements do not rank Kafka implementations.
@@ -127,10 +136,10 @@ stopped. The [work plan][next] records the broader outstanding work and
 retained evidence. The [benchmark contract](benchmark-contract.md) and
 [release guide](RELEASE.md) describe the remaining qualification gates.
 
-[ci]: https://github.com/mingley/partitionline/blob/a9b011e488b38091fec7575c88fd6b5a32718a0c/docs/evidence/releases/main-ci-47d-20261108/README.md
+[ci]: https://github.com/mingley/partitionline/blob/ca14593d5611937a11379fea1fd1345db6cca49a/docs/evidence/releases/main-ci-070-20261108/README.md
 [ci-262]: https://github.com/mingley/partitionline/blob/cb55f7c603e2344775de8a395c6a584737f5bb95/docs/evidence/releases/main-ci-262-20261108/README.md
 [ci-02c]: https://github.com/mingley/partitionline/blob/0ce81683fe7107386e30f388cd2a4af31735d522/docs/evidence/releases/main-ci-02c-20261108/README.md
-[next]: https://github.com/mingley/partitionline/blob/db0fac19e50efef965bb3e0af454cc4b3d41f9d5/docs/plan/next-work.md
+[next]: https://github.com/mingley/partitionline/blob/ca14593d5611937a11379fea1fd1345db6cca49a/docs/plan/next-work.md
 [flush-public]: https://github.com/mingley/partitionline/blob/f93e91499e2ba6bdc88c0a25a0d83b8737d00d3c/docs/evidence/client/producer-flush-public-20261108/README.md
 [flush-sent]: https://github.com/mingley/partitionline/blob/efa7f23314e98f3aaa4559c3cf38302bdcdb9fb4/docs/evidence/client/producer-flush-sent-20261108/README.md
 [owner-design]: https://github.com/mingley/partitionline/blob/cb55f7c603e2344775de8a395c6a584737f5bb95/docs/evidence/client/producer-ownership-design-20261108/README.md
@@ -157,3 +166,6 @@ retained evidence. The [benchmark contract](benchmark-contract.md) and
 [dtp-reserve]: https://github.com/mingley/partitionline/blob/a9b011e488b38091fec7575c88fd6b5a32718a0c/docs/evidence/client/admin-dtp-reservation-20261108/README.md
 [frame-followup]: https://github.com/mingley/partitionline/blob/a9b011e488b38091fec7575c88fd6b5a32718a0c/docs/evidence/broker/frame-read-fairness-20261108/network-rtt-followup.md
 [admin-pages]: https://github.com/mingley/partitionline/blob/db0fac19e50efef965bb3e0af454cc4b3d41f9d5/docs/evidence/client/admin-pagination-20261108/README.md
+[ci-070]: https://github.com/mingley/partitionline/blob/ca14593d5611937a11379fea1fd1345db6cca49a/docs/evidence/broker/main-ci-070-partial-20261108/README.md
+[observer]: https://github.com/mingley/partitionline/blob/ca14593d5611937a11379fea1fd1345db6cca49a/docs/evidence/broker/observer-selection-20261108/README.md
+[sendall]: https://github.com/mingley/partitionline/blob/ca14593d5611937a11379fea1fd1345db6cca49a/docs/evidence/perf/sendall-yield-perf-20261108/README.md
