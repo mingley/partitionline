@@ -1,0 +1,48 @@
+name: combined-journal-descriptor-controls
+on:
+  push:
+    branches: [qualification/grouped-journal-combined-descriptors-20261108]
+permissions:
+  contents: read
+jobs:
+  descriptors:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        profile: [default, all]
+    env:
+      CARGO_BUILD_JOBS: '2'
+      CARGO_INCREMENTAL: '0'
+      CARGO_TERM_COLOR: never
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Source and host
+        run: |
+          rustc -Vv
+          uname -a
+          sha256sum partitionline-broker/src/journal.rs partitionline-broker/src/records.rs partitionline-broker/src/produce.rs tests/conformance/broker/implemented-api-versions.json
+      - name: Journal descriptor cost
+        shell: bash
+        run: |
+          set -o pipefail
+          if [ '${{ matrix.profile }}' = all ]; then feature=--all-features; else feature=; fi
+          cargo test --locked --manifest-path partitionline-broker/Cargo.toml --lib $feature journal::tests::ownership_descriptor_cost -- --exact --ignored --test-threads=1 --nocapture 2>&1 | tee "$RUNNER_TEMP/journal-descriptor.log"
+          grep -F 'test result: ok. 1 passed; 0 failed; 0 ignored;' "$RUNNER_TEMP/journal-descriptor.log"
+      - name: Grouped Produce descriptor cost
+        shell: bash
+        run: |
+          set -o pipefail
+          if [ '${{ matrix.profile }}' = all ]; then feature=--all-features; else feature=; fi
+          cargo test --locked --manifest-path partitionline-broker/Cargo.toml --lib $feature produce::tests::store_and_grouped_sync_descriptor_cost -- --exact --ignored --test-threads=1 --nocapture 2>&1 | tee "$RUNNER_TEMP/produce-descriptor.log"
+          grep -F 'test result: ok. 1 passed; 0 failed; 0 ignored;' "$RUNNER_TEMP/produce-descriptor.log"
+      - name: Descriptor exhaustion releases ownership
+        shell: bash
+        run: |
+          set -o pipefail
+          if [ '${{ matrix.profile }}' = all ]; then feature=--all-features; else feature=; fi
+          ulimit -n 64
+          cargo test --locked --manifest-path partitionline-broker/Cargo.toml --lib $feature journal::tests::ownership_descriptor_exhaustion_releases_reservations -- --exact --ignored --test-threads=1 --nocapture 2>&1 | tee "$RUNNER_TEMP/exhaustion.log"
+          grep -F 'test result: ok. 1 passed; 0 failed; 0 ignored;' "$RUNNER_TEMP/exhaustion.log"
