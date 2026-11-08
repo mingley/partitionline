@@ -21,15 +21,15 @@ dependency graph is not Rust-only.
 ## Validation
 
 The latest complete recorded [CI snapshot][ci] is main commit
-`74dd7f7c9b2430b308142678bf9534c385f0ff04`. The current branch includes
+`97a0757a3e5ab8777b147876305ab854b1faf675`. The current branch includes
 later changes; see the linked runs for their exact source and scope.
 
-| Check | Result at `74dd7f7` |
+| Check | Result at `97a0757` |
 | --- | --- |
-| Client library, Linux default | 2,261 passed and 15 failed; later targets did not run. |
-| Client library, Linux all features | 2,265 passed and 11 failed; later targets did not run. |
-| Client library, Windows default | 2,262 passed and 14 failed. |
-| Client library, macOS arm64 default | 2,266 passed and 10 failed. |
+| Client library, Linux default | 2,301 passed and nine failed; later targets did not run. |
+| Client library, Linux all features | 2,290 passed and 20 failed; later targets did not run. |
+| Client library, Windows default | 2,296 passed and 14 failed. |
+| Client library, macOS arm64 default | 2,295 passed and 15 failed. |
 | Kafka 4.1.2, 4.2.1 and 4.3.1 compatibility | All three jobs failed. |
 | Kafka 3.9.1 and 4.1.0 smoke | Both jobs failed. |
 | Resource soak | Passed. |
@@ -39,9 +39,10 @@ later changes; see the linked runs for their exact source and scope.
 | Client capability profiles | Both passed selected checks; their archives were not independently inspected. |
 | Client format, all-target Clippy, audit, docs, package, auth and integrity smoke | Passed. Other client jobs failed or were skipped. |
 
-The [preceding complete snapshot][ci-464] stopped its broker default library
-after two Raft observer failures. This later pass does not explain them. An
-[earlier complete snapshot][ci-426] also passed both broker profiles.
+The [previous complete snapshot][ci-74] also failed client checks and passed
+both broker profiles. An [earlier snapshot][ci-464] stopped its broker
+default library after two Raft observer failures. Later passes do not explain
+those failures.
 
 An earlier [partial main CI snapshot][ci-536] passed 781 broker default tests,
 with four ignored, but its all-feature library stopped after one Raft failure
@@ -140,7 +141,10 @@ latency bound.
 - **Broker durability and limits.** Replicated partition data, authenticated
   network leadership, committed-watermark protection, transaction marker
   propagation, controller queue accounting and a process-wide memory bound
-  remain open. A [Produce cancellation fix][cancel] removes unsynced stages
+  remain open. The in-memory [quota clock fix][quota-clock] clamps stale
+  timestamps to the latest observed time; caller-supplied future times remain
+  trusted. Kafka wire throttling and server-wide fairness are still open.
+  A [Produce cancellation fix][cancel] removes unsynced stages
   at a scoped boundary; rolling storage can retain a durable prefix. The
   [data admission repair][admission] keeps permits with actor-owned work and
   unconsumed replies, but its logical payload budget does not bound process
@@ -178,8 +182,10 @@ latency bound.
   conversions, including across page boundaries. A paired mock showed shorter
   8,192-row polls, while 500,000-row maxima remained about 62–66 ms in both
   arms. A separate [poll-phase diagnostic][admin-phases] found long Pending
-  and Ready polls without identifying their causes. Polls include other work;
-  neither this nor the earlier [baseline][admin-row] establishes a Kafka
+  and Ready polls. An instrumented [index-growth diagnostic][admin-growth]
+  associated a resize with long Pending polls, but its reserved control changes
+  allocation and table layout. Polls include other work; neither this nor the
+  earlier [baseline][admin-row] establishes a Kafka
   throughput or wall-time bound. [Admin response reservations][admin-reserve] cap
   initial capacity requests in seven response families, but results can grow.
   A separate [DescribeTopicPartitions reservation candidate][dtp-reserve]
@@ -215,7 +221,7 @@ stopped. The [work plan][next] records the broader outstanding work and
 retained evidence. The [benchmark contract](benchmark-contract.md) and
 [release guide](RELEASE.md) describe the remaining qualification gates.
 
-[ci]: https://github.com/mingley/partitionline/blob/a3abed795162f380336e87b49a5260cf58325c3d/docs/evidence/releases/main-ci-74dd-20261108/README.md
+[ci]: https://github.com/mingley/partitionline/blob/bd37eb53e247b73160da8bbbb2cf53f9d77eb6c3/docs/evidence/releases/main-ci-97a-20261108/README.md
 [ci-262]: https://github.com/mingley/partitionline/blob/cb55f7c603e2344775de8a395c6a584737f5bb95/docs/evidence/releases/main-ci-262-20261108/README.md
 [ci-02c]: https://github.com/mingley/partitionline/blob/0ce81683fe7107386e30f388cd2a4af31735d522/docs/evidence/releases/main-ci-02c-20261108/README.md
 [next]: https://github.com/mingley/partitionline/blob/ed10995700da3252dbefb4696e1afd7dfe5a008d/docs/plan/next-work.md
@@ -287,3 +293,7 @@ retained evidence. The [benchmark contract](benchmark-contract.md) and
 [admin-phases]: https://github.com/mingley/partitionline/blob/a8403decd42d794b1da89ac985e2f390f32e01a7/docs/evidence/client/admin-dtp-poll-phases-20261108/README.md
 
 [ci-464]: https://github.com/mingley/partitionline/blob/a8403decd42d794b1da89ac985e2f390f32e01a7/docs/evidence/releases/main-ci-464-20261108/README.md
+
+[ci-74]: https://github.com/mingley/partitionline/blob/a3abed795162f380336e87b49a5260cf58325c3d/docs/evidence/releases/main-ci-74dd-20261108/README.md
+[quota-clock]: https://github.com/mingley/partitionline/blob/bd37eb53e247b73160da8bbbb2cf53f9d77eb6c3/docs/evidence/broker/quota-logical-clock-20261108/README.md
+[admin-growth]: https://github.com/mingley/partitionline/blob/bd37eb53e247b73160da8bbbb2cf53f9d77eb6c3/docs/evidence/client/admin-dtp-index-growth-20261108/README.md
