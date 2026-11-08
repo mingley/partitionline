@@ -14125,6 +14125,7 @@ impl Admin {
             let mut cursor: Option<TopicPartitionCursor> = None;
             let mut out: Vec<TopicDescription> = Vec::new();
             let mut described = DescribedTopicIndex::new();
+            let mut converted_rows = 0usize;
             loop {
                 let resp = self
                     .describe_topic_partitions_until(
@@ -14139,16 +14140,15 @@ impl Admin {
                     return Err(Error::protocol("repeated DescribeTopicPartitions cursor"));
                 }
                 let mut page = Vec::with_capacity(resp.topics.len());
-                for topic in &resp.topics {
-                    if topic.name.is_none() {
-                        return Err(
-                            reject_unnamed_described_topic(&mut page, &mut out, deadline).await,
-                        );
-                    }
-                    page.push(
-                        topic_description_from_dtp(topic, include_authorized_operations).await,
-                    );
-                }
+                convert_described_topic_page(
+                    &resp.topics,
+                    include_authorized_operations,
+                    &mut page,
+                    &mut out,
+                    deadline,
+                    &mut converted_rows,
+                )
+                .await?;
                 if let Err(error) = extend_described_topics(&mut out, &mut described, page).await {
                     let _remaining = dtp_remaining(deadline)?;
                     return Err(error);
@@ -16603,6 +16603,31 @@ async fn topic_description_from(t: &crate::protocol::api::TopicMetadata) -> Topi
         partitions,
         authorized_operations: t.topic_authorized_operations,
     }
+}
+
+// Carry the row budget across pages so a stream of immediately ready, small
+// pages does not bypass the checkpoint. A completed 8,192nd row yields even
+// when it is the last row in a page.
+async fn convert_described_topic_page(
+    topics: &[DescribedTopicPartitions],
+    include_authorized_operations: bool,
+    page: &mut Vec<TopicDescription>,
+    out: &mut [TopicDescription],
+    deadline: tokio::time::Instant,
+    converted_rows: &mut usize,
+) -> Result<()> {
+    for topic in topics {
+        if topic.name.is_none() {
+            return Err(reject_unnamed_described_topic(page, out, deadline).await);
+        }
+        page.push(topic_description_from_dtp(topic, include_authorized_operations).await);
+        *converted_rows += 1;
+        if *converted_rows == 8 * 1024 {
+            *converted_rows = 0;
+            tokio::task::yield_now().await;
+        }
+    }
+    Ok(())
 }
 
 async fn topic_description_from_dtp(
