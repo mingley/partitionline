@@ -33,6 +33,13 @@ limits.
 | Client capability profiles | Both passed selected checks; their archives were not independently inspected. |
 | Client format, all-target Clippy, audit, docs, package, auth and integrity smoke | Passed. Other client jobs failed or were skipped. |
 
+A [later client run][e02-client] at `e02c1b8` recorded 17 successful jobs,
+six failures, four cancellations and one skip. Linux default and Windows
+library tests failed, along with three Kafka compatibility jobs and the
+Kafka 3.9.1 smoke job. The all-feature Linux, macOS, Kafka 4.1.0 smoke and
+package jobs were canceled when main advanced; they have no result for that
+commit.
+
 A [more recent broker run][e02-broker] at `e02c1b8` passed 757 default
 tests with three ignored. Its all-feature suite stopped at 641 passed, one
 failed and three ignored when a before-failover CreateTopics request returned
@@ -92,8 +99,12 @@ pass does not replace the full release matrix.
   ReadCommitted repair validation; that repair remains open. A later
   consumer/group investigation was stopped by an automatic security review
   that did not identify the specific action; that work remains stopped.
-- **Security and protocol coverage.** GSSAPI and connection-driven SASL
-  reauthentication are incomplete. The [protocol support](gaps.md) page lists
+- **Security and protocol coverage.** [Admin response reservations][admin-reserve]
+  now limit initial `Vec` capacity requests in seven response families.
+  Results can grow beyond that request, and other decoders and process memory
+  remain outside its scope. Two short diagnostics measured roughly 6% higher
+  median decode time for 20,000 valid CreateTopics results. GSSAPI and
+  connection-driven SASL reauthentication are incomplete. The [protocol support](gaps.md) page lists
   other feature gaps. An independent v18 candidate audit was also stopped by an
   automated security review; the draft remains unapplied.
 - **Broker durability and limits.** A [scoped Produce fix][cancel] removes
@@ -140,7 +151,7 @@ The [support matrix](support.md) describes configured coverage, and the
 
 [ci]: https://github.com/mingley/partitionline/blob/a4d381f21701656389b95324fd3231c2c22a03a3/docs/evidence/releases/main-ci-de152e-20261108/README.md
 [previous-ci]: https://github.com/mingley/partitionline/blob/7ebb3cc81adc695cc4c74409a87a1a1dd4be9730/docs/evidence/releases/main-ci-ba8-20261108/README.md
-[next]: https://github.com/mingley/partitionline/blob/732b833aaab797527f2662d2f410c072c7a5af36/docs/plan/next-work.md
+[next]: https://github.com/mingley/partitionline/blob/cd20f43f018f36b3aaa8311839fe11fc74dac3af/docs/plan/next-work.md
 [previous]: https://github.com/mingley/partitionline/blob/5c2a000639d9a8a7dccd56e8c1d6f3a58dca1601/docs/STATUS.md
 [flush]: https://github.com/mingley/partitionline/blob/e980829c439aa43edc01312c91838e58a412221a/docs/evidence/client/producer-flush-native-86f2-20261103/README.md
 [txn]: https://github.com/mingley/partitionline/blob/49ad56c6bce1366e2357c272f11c5c34160d60da/docs/evidence/client/add-partitions-native-4f0c-20261103/README.md
@@ -172,3 +183,5 @@ The [support matrix](support.md) describes configured coverage, and the
 [raft-churn]: https://github.com/mingley/partitionline/blob/732b833aaab797527f2662d2f410c072c7a5af36/docs/evidence/broker/raft-liveness-20261108/README.md
 [e02-broker]: https://github.com/mingley/partitionline/blob/732b833aaab797527f2662d2f410c072c7a5af36/docs/evidence/broker/main-ci-e02-20261108/README.md
 [journal-reserve]: https://github.com/mingley/partitionline/blob/732b833aaab797527f2662d2f410c072c7a5af36/docs/evidence/broker/grouped-journal-reservations-20261108/README.md
+[e02-client]: https://github.com/mingley/partitionline/blob/cd20f43f018f36b3aaa8311839fe11fc74dac3af/docs/evidence/releases/main-ci-e02-partial-20261108/README.md
+[admin-reserve]: https://github.com/mingley/partitionline/blob/cd20f43f018f36b3aaa8311839fe11fc74dac3af/docs/evidence/client/admin-response-reservation-20261108/README.md
