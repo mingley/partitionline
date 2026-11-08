@@ -2,7 +2,9 @@ use std::collections::{HashMap, HashSet, VecDeque};
 use std::fmt;
 use std::future::Future;
 use std::pin::Pin;
-use std::sync::atomic::{AtomicBool, AtomicI16, AtomicI64, AtomicU64, AtomicUsize, Ordering};
+use std::sync::atomic::{
+    AtomicBool, AtomicI16, AtomicI64, AtomicU64, AtomicU8, AtomicUsize, Ordering,
+};
 use std::sync::Arc;
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
@@ -1148,6 +1150,10 @@ struct CoordinatorConnection {
 /// copy the topic name on every batch.
 type SequenceMap = HashMap<Arc<str>, HashMap<i32, i32>>;
 
+const TXN_ERROR_NONE: u8 = 0;
+const TXN_ERROR_ABORTABLE: u8 = 1;
+const TXN_ERROR_FATAL: u8 = 2;
+
 struct Shared {
     cfg: ProducerConfig,
     cluster: parking_lot::Mutex<Cluster>,
@@ -1194,16 +1200,9 @@ struct Shared {
     /// Produce is fatal (pinned Java `maybeTransitionToErrorState`) and never
     /// sets this flag.
     epoch_bump_required: AtomicBool,
-    /// Java `TransactionManager.State.FATAL_ERROR`: fencing, authorization, or
-    /// identity errors (KL03-10). Terminal: close and recreate the producer.
-    txn_fatal: AtomicBool,
-    /// Java `TransactionManager.State.ABORTABLE_ERROR`: the open transaction
-    /// must be aborted before any other transactional operation (KL03-10).
-    /// Cleared by a successful abort.
-    txn_abort_required: AtomicBool,
-    /// First fatal/abortable transactional error (Java `lastError`).
-    /// `begin`/`commit`/`send_offsets` fail with it while set; `abort` fails
-    /// with it only when [`Self::txn_fatal`] is set.
+    /// Fast-path summary of the transactional error severity. Transitions and
+    /// their causes are serialized by `txn_error`; fatal is terminal.
+    txn_error_state: AtomicU8,
     txn_error: parking_lot::Mutex<Option<Error>>,
     seqs: parking_lot::Mutex<SequenceMap>,
     cache_nudge: Notify,
@@ -1489,59 +1488,81 @@ impl Shared {
         let _ = self.epoch_gen.fetch_add(1, Ordering::SeqCst);
     }
 
-    /// Java `TransactionManager.maybeFailWithError` for `begin`/`commit`/
-    /// `send_offsets`: fail with the remembered error while fatal or
-    /// abort-required (KL03-10).
+    /// Fail with the remembered error while fatal or abort-required.
     fn fail_on_txn_error(&self) -> Result<()> {
-        if self.txn_fatal.load(Ordering::SeqCst) || self.txn_abort_required.load(Ordering::SeqCst) {
-            if let Some(e) = self.txn_error.lock().clone() {
-                return Err(e);
-            }
-            return Err(Error::protocol("transaction in error state"));
+        if self.txn_error_state.load(Ordering::SeqCst) == TXN_ERROR_NONE {
+            return Ok(());
         }
-        Ok(())
+        let error = self.txn_error.lock();
+        // Abort can clear an error between the fast-path read and this lock.
+        if self.txn_error_state.load(Ordering::SeqCst) == TXN_ERROR_NONE {
+            return Ok(());
+        }
+        if let Some(error) = error.as_ref() {
+            return Err(error.clone());
+        }
+        Err(Error::protocol("transaction in error state"))
     }
 
-    /// Java `beginAbort` guard: abort is the recovery path out of
-    /// abort-required, but a fenced producer cannot even abort (KL03-10).
+    /// Abort is allowed while abort-required, but not when fatal.
     fn fail_on_txn_fatal(&self) -> Result<()> {
-        if self.txn_fatal.load(Ordering::SeqCst) {
-            if let Some(e) = self.txn_error.lock().clone() {
-                return Err(e);
-            }
-            return Err(Error::protocol("transactional producer fenced"));
+        if self.txn_error_state.load(Ordering::SeqCst) != TXN_ERROR_FATAL {
+            return Ok(());
         }
-        Ok(())
+        if let Some(error) = self.txn_error.lock().as_ref() {
+            return Err(error.clone());
+        }
+        Err(Error::protocol("transactional producer fenced"))
     }
 
-    /// Record a fatal transactional error (Java `transitionToFatalError`).
-    /// The first error is retained as the root cause; the flag is terminal.
+    /// Record a fatal transactional error. It replaces an earlier abortable
+    /// cause, and the first fatal cause remains terminal.
     fn set_txn_fatal(&self, err: Error) {
-        if !self.txn_fatal.swap(true, Ordering::SeqCst) && self.txn_error.lock().is_none() {
-            *self.txn_error.lock() = Some(err);
+        #[cfg(test)]
+        txn_error_state_controls::mark(self, txn_error_state_controls::Point::FatalEntry);
+        let mut error = self.txn_error.lock();
+        if self.txn_error_state.load(Ordering::SeqCst) != TXN_ERROR_FATAL {
+            *error = Some(err);
+            self.txn_error_state
+                .store(TXN_ERROR_FATAL, Ordering::SeqCst);
         }
     }
 
-    /// Record an abortable transactional error (Java
-    /// `transitionToAbortableError`). Ignored once fatal: fatal wins.
+    /// Record the first abortable cause unless the producer is already fatal.
     fn set_txn_abortable(&self, err: Error) {
-        if self.txn_fatal.load(Ordering::SeqCst) {
-            return;
-        }
-        if !self.txn_abort_required.swap(true, Ordering::SeqCst) && self.txn_error.lock().is_none()
-        {
-            *self.txn_error.lock() = Some(err);
+        let mut error = self.txn_error.lock();
+        if self.txn_error_state.load(Ordering::SeqCst) == TXN_ERROR_NONE {
+            #[cfg(test)]
+            txn_error_state_controls::pause(
+                self,
+                txn_error_state_controls::Point::AbortBeforeCause,
+            );
+            *error = Some(err);
+            self.txn_error_state
+                .store(TXN_ERROR_ABORTABLE, Ordering::SeqCst);
         }
     }
 
-    /// Java `resetTransactionState` (success path): a completed abort clears
-    /// the abort-required state so the next transaction can begin. Never
-    /// clears fatal.
+    /// A completed abort clears an abortable cause but never a fatal one.
     fn clear_txn_abortable(&self) {
-        self.txn_abort_required.store(false, Ordering::SeqCst);
-        if !self.txn_fatal.load(Ordering::SeqCst) {
-            *self.txn_error.lock() = None;
+        #[cfg(test)]
+        txn_error_state_controls::mark(self, txn_error_state_controls::Point::ClearEntry);
+        let mut error = self.txn_error.lock();
+        if self.txn_error_state.load(Ordering::SeqCst) == TXN_ERROR_ABORTABLE {
+            #[cfg(test)]
+            txn_error_state_controls::pause(
+                self,
+                txn_error_state_controls::Point::ClearBeforeCause,
+            );
+            *error = None;
+            self.txn_error_state.store(TXN_ERROR_NONE, Ordering::SeqCst);
         }
+    }
+
+    #[cfg(test)]
+    fn txn_error_test_snapshot(&self) -> (bool, bool) {
+        let state = self.txn_error_state.load(Ordering::SeqCst);
+        (state == TXN_ERROR_FATAL, state == TXN_ERROR_ABORTABLE)
     }
 
     /// Java `TransactionManager.canHandleAbortableError` for the negotiated
@@ -2246,8 +2267,7 @@ impl Producer {
             producer_epoch: AtomicI16::new(producer_epoch),
             epoch_gen: AtomicU64::new(0),
             epoch_bump_required: AtomicBool::new(false),
-            txn_fatal: AtomicBool::new(false),
-            txn_abort_required: AtomicBool::new(false),
+            txn_error_state: AtomicU8::new(TXN_ERROR_NONE),
             txn_error: parking_lot::Mutex::new(None),
             seqs: parking_lot::Mutex::new(HashMap::new()),
             cache_nudge: Notify::new(),
@@ -6529,8 +6549,7 @@ fn test_shared(cfg: ProducerConfig, meta: BrokerConn) -> Arc<Shared> {
         producer_epoch: AtomicI16::new(RecordBatch::NO_PRODUCER_EPOCH),
         epoch_gen: AtomicU64::new(0),
         epoch_bump_required: AtomicBool::new(false),
-        txn_fatal: AtomicBool::new(false),
-        txn_abort_required: AtomicBool::new(false),
+        txn_error_state: AtomicU8::new(TXN_ERROR_NONE),
         txn_error: parking_lot::Mutex::new(None),
         seqs: parking_lot::Mutex::new(HashMap::new()),
         cache_nudge: Notify::new(),
@@ -17941,8 +17960,7 @@ mod rediscover_stop_tests {
             producer_epoch: AtomicI16::new(RecordBatch::NO_PRODUCER_EPOCH),
             epoch_gen: AtomicU64::new(0),
             epoch_bump_required: AtomicBool::new(false),
-            txn_fatal: AtomicBool::new(false),
-            txn_abort_required: AtomicBool::new(false),
+            txn_error_state: std::sync::atomic::AtomicU8::new(super::TXN_ERROR_NONE),
             txn_error: parking_lot::Mutex::new(None),
             seqs: parking_lot::Mutex::new(HashMap::new()),
             cache_nudge: Notify::new(),
@@ -18479,3 +18497,7 @@ mod rediscover_stop_tests {
         peer.abort();
     }
 }
+
+#[cfg(test)]
+#[path = "producer/txn_error_state_controls.rs"]
+mod txn_error_state_controls;
