@@ -24,7 +24,12 @@ enum Phase {
     Queued(u64),
     InFlight(u64),
     Retry,
-    Finalizing { released: bool, result: bool, callback: bool, recorded_error: Option<&'static str> },
+    Finalizing {
+        released: bool,
+        result: bool,
+        callback: bool,
+        recorded_error: Option<&'static str>,
+    },
 }
 
 #[derive(Debug)]
@@ -99,7 +104,8 @@ impl Domain {
         if state.retired.contains(&worker) {
             return Err(DomainError::WorkerRetired);
         }
-        if state.slots.len() == state.capacity || state.publishers.len() == state.publisher_capacity {
+        if state.slots.len() == state.capacity || state.publishers.len() == state.publisher_capacity
+        {
             return Err(DomainError::Full);
         }
         let Some(sequence) = state.last.checked_add(1) else {
@@ -107,22 +113,37 @@ impl Domain {
             return Err(DomainError::Exhausted);
         };
         state.last = sequence;
-        state.slots.insert(sequence, Slot { incarnation: 0, phase: Phase::Publishing(worker) });
+        state.slots.insert(
+            sequence,
+            Slot {
+                incarnation: 0,
+                phase: Phase::Publishing(worker),
+            },
+        );
         state.publishers.insert((sequence, 0, worker));
-        Ok(Lease { sequence, incarnation: 0, worker })
+        Ok(Lease {
+            sequence,
+            incarnation: 0,
+            worker,
+        })
     }
 
     // Represents successful return from channel publication; dequeue may have
     // won while the publisher was waking the receiver.
     fn published(&self, lease: Lease) -> Result<(), DomainError> {
         let mut state = self.state.lock().unwrap();
-        if !state.publishers.remove(&(lease.sequence, lease.incarnation, lease.worker)) {
+        if !state
+            .publishers
+            .remove(&(lease.sequence, lease.incarnation, lease.worker))
+        {
             return Err(DomainError::Stale);
         }
         // A receiver may already have claimed, retried, or finished the
         // record. Its admission remains accepted even after slot removal.
         if let Some(slot) = state.slots.get_mut(&lease.sequence) {
-            if slot.incarnation == lease.incarnation && slot.phase == Phase::Publishing(lease.worker) {
+            if slot.incarnation == lease.incarnation
+                && slot.phase == Phase::Publishing(lease.worker)
+            {
                 slot.phase = Phase::Queued(lease.worker);
             }
         }
@@ -134,7 +155,10 @@ impl Domain {
     // that was enqueued before cancellation is invalidated unless claimed.
     fn abort_publication(&self, lease: Lease) -> Result<(), DomainError> {
         let mut state = self.state.lock().unwrap();
-        if !state.publishers.remove(&(lease.sequence, lease.incarnation, lease.worker)) {
+        if !state
+            .publishers
+            .remove(&(lease.sequence, lease.incarnation, lease.worker))
+        {
             return Err(DomainError::Stale);
         }
         if let Some(slot) = state.slots.get_mut(&lease.sequence) {
@@ -157,7 +181,10 @@ impl Domain {
         if state.retired.contains(&lease.worker) {
             return Err(DomainError::WorkerRetired);
         }
-        let slot = state.slots.get_mut(&lease.sequence).ok_or(DomainError::Stale)?;
+        let slot = state
+            .slots
+            .get_mut(&lease.sequence)
+            .ok_or(DomainError::Stale)?;
         if slot.incarnation != lease.incarnation {
             return Err(DomainError::Stale);
         }
@@ -179,7 +206,10 @@ impl Domain {
     // in-flight lease cannot be recovered by this pre-write operation.
     fn recover_unclaimed(&self, lease: Lease) -> Result<(), DomainError> {
         let mut state = self.state.lock().unwrap();
-        let slot = state.slots.get_mut(&lease.sequence).ok_or(DomainError::Stale)?;
+        let slot = state
+            .slots
+            .get_mut(&lease.sequence)
+            .ok_or(DomainError::Stale)?;
         if slot.incarnation != lease.incarnation {
             return Err(DomainError::Stale);
         }
@@ -202,7 +232,10 @@ impl Domain {
     // can no longer produce side effects. Kafka batch ambiguity is not modeled.
     fn recover_after_owner_stopped(&self, lease: Lease) -> Result<(), DomainError> {
         let mut state = self.state.lock().unwrap();
-        let slot = state.slots.get_mut(&lease.sequence).ok_or(DomainError::Stale)?;
+        let slot = state
+            .slots
+            .get_mut(&lease.sequence)
+            .ok_or(DomainError::Stale)?;
         if slot.incarnation != lease.incarnation || slot.phase != Phase::InFlight(lease.worker) {
             return Err(DomainError::Stale);
         }
@@ -233,27 +266,58 @@ impl Domain {
         slot.phase = Phase::Publishing(worker);
         let incarnation = slot.incarnation;
         state.publishers.insert((sequence, incarnation, worker));
-        Ok(Lease { sequence, incarnation, worker })
+        Ok(Lease {
+            sequence,
+            incarnation,
+            worker,
+        })
     }
 
-    fn begin_finalization(&self, lease: Lease, recorded_error: Option<&'static str>) -> Result<(), DomainError> {
+    fn begin_finalization(
+        &self,
+        lease: Lease,
+        recorded_error: Option<&'static str>,
+    ) -> Result<(), DomainError> {
         let mut state = self.state.lock().unwrap();
-        let slot = state.slots.get_mut(&lease.sequence).ok_or(DomainError::Stale)?;
+        let slot = state
+            .slots
+            .get_mut(&lease.sequence)
+            .ok_or(DomainError::Stale)?;
         if slot.incarnation != lease.incarnation || slot.phase != Phase::InFlight(lease.worker) {
             return Err(DomainError::Stale);
         }
-        slot.phase = Phase::Finalizing { released: false, result: false, callback: false, recorded_error };
+        slot.phase = Phase::Finalizing {
+            released: false,
+            result: false,
+            callback: false,
+            recorded_error,
+        };
         Ok(())
     }
 
     // These flags are witness inputs, not implementations of the effects.
-    fn mark_finalization(&self, lease: Lease, released: bool, result: bool, callback: bool) -> Result<(), DomainError> {
+    fn mark_finalization(
+        &self,
+        lease: Lease,
+        released: bool,
+        result: bool,
+        callback: bool,
+    ) -> Result<(), DomainError> {
         let mut state = self.state.lock().unwrap();
-        let slot = state.slots.get_mut(&lease.sequence).ok_or(DomainError::Stale)?;
+        let slot = state
+            .slots
+            .get_mut(&lease.sequence)
+            .ok_or(DomainError::Stale)?;
         if slot.incarnation != lease.incarnation {
             return Err(DomainError::Stale);
         }
-        let Phase::Finalizing { released: r, result: s, callback: c, .. } = &mut slot.phase else {
+        let Phase::Finalizing {
+            released: r,
+            result: s,
+            callback: c,
+            ..
+        } = &mut slot.phase
+        else {
             return Err(DomainError::Stale);
         };
         *r |= released;
@@ -268,7 +332,13 @@ impl Domain {
         if slot.incarnation != lease.incarnation {
             return Err(DomainError::Stale);
         }
-        let Phase::Finalizing { released: true, result: true, callback: true, recorded_error } = slot.phase else {
+        let Phase::Finalizing {
+            released: true,
+            result: true,
+            callback: true,
+            recorded_error,
+        } = slot.phase
+        else {
             return Err(DomainError::Incomplete);
         };
         if state.recorded_error.is_none() {
@@ -349,7 +419,9 @@ impl Future for Flush {
         assert!(!self.done, "a completed model future was polled again");
         let now = Instant::now();
         let timeout = self.timeout;
-        let deadline = *self.deadline.get_or_insert_with(|| now.checked_add(timeout).unwrap_or(now));
+        let deadline = *self
+            .deadline
+            .get_or_insert_with(|| now.checked_add(timeout).unwrap_or(now));
         if now >= deadline {
             self.done = true;
             return Poll::Ready(Err(FlushError::Deadline));
@@ -406,8 +478,13 @@ fn main() {
     }
     samples.sort_unstable();
     println!("model admitted-to-finish ns/record sorted={samples:?}");
-    println!("model median_ns={} iterations_per_sample={iterations}", samples[4]);
-    println!("model limitations: no broker, callback, wake, payload, retries, allocator baseline, or production comparison");
+    println!(
+        "model median_ns={} iterations_per_sample={iterations}",
+        samples[4]
+    );
+    println!(
+        "model limitations: no broker, callback, wake, payload, retries, allocator baseline, or production comparison"
+    );
 }
 
 #[cfg(test)]
@@ -648,14 +725,19 @@ mod tests {
         assert!(poll_flush(&mut canceled).is_pending());
         drop(canceled);
         let mut expired = domain.flush(Duration::ZERO);
-        assert_eq!(poll_flush(&mut expired), Poll::Ready(Err(FlushError::Deadline)));
+        assert_eq!(
+            poll_flush(&mut expired),
+            Poll::Ready(Err(FlushError::Deadline))
+        );
         finish(&domain, lease);
         let mut claimant = domain.flush(deadline());
         let mut overlap = domain.flush(deadline());
-        assert_eq!(poll_flush(&mut claimant), Poll::Ready(Err(FlushError::Recorded("recorded worker failure"))));
+        assert_eq!(
+            poll_flush(&mut claimant),
+            Poll::Ready(Err(FlushError::Recorded("recorded worker failure")))
+        );
         assert_eq!(poll_flush(&mut overlap), Poll::Ready(Ok(())));
     }
-
 
     #[test]
     fn worker_error_and_record_completion_publish_as_one_transition() {
@@ -663,24 +745,34 @@ mod tests {
         let lease = begin(&domain, 1);
         let mut flush = domain.flush(deadline());
         assert!(poll_flush(&mut flush).is_pending());
-        domain.begin_finalization(lease, Some("worker failure")).unwrap();
+        domain
+            .begin_finalization(lease, Some("worker failure"))
+            .unwrap();
         domain.mark_finalization(lease, true, true, false).unwrap();
         assert_eq!(domain.finish(lease), Err(DomainError::Incomplete));
         assert!(poll_flush(&mut flush).is_pending());
         domain.mark_finalization(lease, false, false, true).unwrap();
         domain.finish(lease).unwrap();
-        assert_eq!(poll_flush(&mut flush), Poll::Ready(Err(FlushError::Recorded("worker failure"))));
+        assert_eq!(
+            poll_flush(&mut flush),
+            Poll::Ready(Err(FlushError::Recorded("worker failure")))
+        );
     }
 
     #[test]
     fn recorded_delivery_timeout_is_not_the_flush_deadline() {
         let domain = Domain::new(1);
         let lease = begin(&domain, 1);
-        domain.begin_finalization(lease, Some("delivery timeout")).unwrap();
+        domain
+            .begin_finalization(lease, Some("delivery timeout"))
+            .unwrap();
         domain.mark_finalization(lease, true, true, true).unwrap();
         domain.finish(lease).unwrap();
         let mut flush = domain.flush(deadline());
-        assert_eq!(poll_flush(&mut flush), Poll::Ready(Err(FlushError::Recorded("delivery timeout"))));
+        assert_eq!(
+            poll_flush(&mut flush),
+            Poll::Ready(Err(FlushError::Recorded("delivery timeout")))
+        );
     }
 
     #[test]
@@ -737,9 +829,16 @@ mod tests {
             }
             let state = domain.state.lock().unwrap();
             let oldest = active.iter().map(|lease| lease.sequence).min();
-            assert_eq!(state.prefix, oldest.map_or(state.last, |sequence| sequence - 1));
+            assert_eq!(
+                state.prefix,
+                oldest.map_or(state.last, |sequence| sequence - 1)
+            );
             assert_eq!(state.prefix, reference_prefix);
-            let modeled = state.intervals.iter().flat_map(|(&start, &end)| start..=end).collect::<Vec<_>>();
+            let modeled = state
+                .intervals
+                .iter()
+                .flat_map(|(&start, &end)| start..=end)
+                .collect::<Vec<_>>();
             let expected = completed.iter().copied().collect::<Vec<_>>();
             assert_eq!(modeled, expected);
             let mut previous_end = None;
@@ -786,14 +885,22 @@ mod tests {
             let mut state = domain.state.lock().unwrap();
             state.slots.get_mut(&lease.sequence).unwrap().incarnation = u64::MAX;
             assert!(state.publishers.remove(&(lease.sequence, 0, lease.worker)));
-            assert!(state.publishers.insert((lease.sequence, u64::MAX, lease.worker)));
+            assert!(
+                state
+                    .publishers
+                    .insert((lease.sequence, u64::MAX, lease.worker))
+            );
         }
         lease.incarnation = u64::MAX;
         assert_eq!(domain.recover_unclaimed(lease), Err(DomainError::Exhausted));
         {
             let state = domain.state.lock().unwrap();
             assert!(state.slots.contains_key(&lease.sequence));
-            assert!(state.publishers.contains(&(lease.sequence, u64::MAX, lease.worker)));
+            assert!(
+                state
+                    .publishers
+                    .contains(&(lease.sequence, u64::MAX, lease.worker))
+            );
         }
         assert_eq!(domain.admit(2), Err(DomainError::Closed));
         let mut flush = domain.flush(deadline());
