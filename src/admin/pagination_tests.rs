@@ -2241,57 +2241,85 @@ fn dtp_conversion_unnamed_after_checkpoint_keeps_error_and_deadline_rules() {
 
 #[tokio::test(flavor = "current_thread")]
 async fn dtp_requested_and_unnamed_after_conversion_checkpoint_keep_precedence() {
-    for has_unnamed in [false, true] {
-        let names: Vec<String> = (0..8192)
-            .map(|index| format!("topic-{index:08}"))
-            .collect();
-        let (mut admin, listener) = admin_and_listener().await;
-        let peer = tokio::spawn(async move {
-            let (mut socket, _) = listener.accept().await.unwrap();
-            let (header, mut body) = request(&mut socket).await;
-            let (requested, limit, cursor) =
-                decode_describe_topic_partitions_request(&mut body).unwrap();
-            assert_eq!(requested.len(), 8192);
-            for (index, name) in requested.iter().enumerate() {
-                assert_eq!(name, &format!("topic-{index:08}"));
+    // Test the direct-name path as well as the indexed path. Duplicate rows
+    // in the direct case are synthetic and keep the request to one name.
+    for indexed in [false, true] {
+        for count in [8191, 8192] {
+            for tail in 0..3 {
+                let names: Vec<String> = if indexed {
+                    (0..count)
+                        .map(|index| format!("topic-{index:08}"))
+                        .collect()
+                } else {
+                    vec!["orders".into()]
+                };
+                let (mut admin, listener) = admin_and_listener().await;
+                let peer = tokio::spawn(async move {
+                    let (mut socket, _) = listener.accept().await.unwrap();
+                    let (header, mut body) = request(&mut socket).await;
+                    let (requested, limit, cursor) =
+                        decode_describe_topic_partitions_request(&mut body).unwrap();
+                    if indexed {
+                        assert_eq!(requested.len(), count);
+                        for (index, name) in requested.iter().enumerate() {
+                            assert_eq!(name, &format!("topic-{index:08}"));
+                        }
+                    } else {
+                        assert_eq!(requested, ["orders"]);
+                    }
+                    assert_eq!(limit, 1);
+                    assert!(cursor.is_none());
+                    assert!(body.is_empty());
+                    let mut topics = if indexed {
+                        dtp_conversion_rows(0, count)
+                    } else {
+                        (0..count)
+                            .map(|_| DescribedTopicPartitions::new("orders", 0))
+                            .collect()
+                    };
+                    let mut unnamed = DescribedTopicPartitions::new("ignored", 0);
+                    unnamed.name = None;
+                    if tail == 1 {
+                        topics.push(unnamed);
+                        topics.push(DescribedTopicPartitions::new("unrequested", 0));
+                    } else {
+                        topics.push(DescribedTopicPartitions::new("unrequested", 0));
+                        if tail == 2 {
+                            topics.push(unnamed);
+                        } else {
+                            let name = if indexed { "topic-00000000" } else { "orders" };
+                            topics.push(DescribedTopicPartitions::new(name, 0));
+                        }
+                    }
+                    let response = DescribeTopicPartitionsResponse::new(topics);
+                    send_page(&mut socket, &header, &response).await.unwrap();
+                    let next = dtp_request(&mut socket, None).await;
+                    send_page(&mut socket, &next, &page(42, None)).await.unwrap();
+                });
+                let result = admin
+                    .describe_topics_with_partition_limit_timeout(
+                        names.iter(),
+                        false,
+                        1,
+                        Duration::from_secs(5),
+                    )
+                    .await;
+                if tail == 0 {
+                    assert!(matches!(&result, Err(Error::Protocol(message))
+                        if message == "DescribeTopicPartitions returned an unrequested topic"));
+                } else {
+                    assert!(matches!(&result, Err(Error::Unsupported(message))
+                        if message == "cannot aggregate DescribeTopicPartitions without a topic name"));
+                }
+                assert!(!admin.conn.is_closed());
+                let next = admin
+                    .describe_topic_partitions_timeout(&["orders"], 1, None, Duration::from_secs(5))
+                    .await
+                    .unwrap();
+                assert_eq!(next.topics[0].partitions[0].partition_index, 42);
+                peer.await.unwrap();
             }
-            assert_eq!(limit, 1);
-            assert!(cursor.is_none());
-            assert!(body.is_empty());
-            let mut topics = dtp_conversion_rows(0, 8192);
-            topics.push(DescribedTopicPartitions::new("unrequested", 0));
-            if has_unnamed {
-                let mut unnamed = DescribedTopicPartitions::new("ignored", 0);
-                unnamed.name = None;
-                topics.push(unnamed);
-            }
-            let response = DescribeTopicPartitionsResponse::new(topics);
-            send_page(&mut socket, &header, &response).await.unwrap();
-            let next = dtp_request(&mut socket, None).await;
-            send_page(&mut socket, &next, &page(42, None)).await.unwrap();
-        });
-        let result = admin
-            .describe_topics_with_partition_limit_timeout(
-                names.iter(),
-                false,
-                1,
-                Duration::from_secs(5),
-            )
-            .await;
-        if has_unnamed {
-            assert!(matches!(&result, Err(Error::Unsupported(message))
-                if message == "cannot aggregate DescribeTopicPartitions without a topic name"));
-        } else {
-            assert!(matches!(&result, Err(Error::Protocol(message))
-                if message == "DescribeTopicPartitions returned an unrequested topic"));
         }
-        assert!(!admin.conn.is_closed());
-        let next = admin
-            .describe_topic_partitions_timeout(&["orders"], 1, None, Duration::from_secs(5))
-            .await
-            .unwrap();
-        assert_eq!(next.topics[0].partitions[0].partition_index, 42);
-        peer.await.unwrap();
     }
 }
 
