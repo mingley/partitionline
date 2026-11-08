@@ -138,9 +138,11 @@ async fn full_scan_boundary_yields_before_admission() -> TestResult {
     // With the route warmed and cooperative budgeting disabled, the first
     // poll stops at the 8,192-record collection yield. The second reaches
     // the nudge scan's own yield before the first record is admitted.
-    let mut send = Box::pin(tokio::task::unconstrained(
-        producer.send_all(records(0, 8192, Some(0))?),
-    ));
+    let mut send = Box::pin(tokio::task::unconstrained(producer.send_all(records(
+        0,
+        8192,
+        Some(0),
+    )?)));
     assert!(poll_fn(|cx| Poll::Ready(send.as_mut().poll(cx)))
         .await
         .is_pending());
@@ -170,7 +172,9 @@ async fn mixed_explicit_partitions_preserve_input_order() -> TestResult {
     let input = (0..32)
         .map(|id| {
             let partition = if id % 2 == 0 { 0 } else { 1 };
-            Ok(ProduceRecord::to("t").partition(partition).value(value(id)?))
+            Ok(ProduceRecord::to("t")
+                .partition(partition)
+                .value(value(id)?))
         })
         .collect::<Result<Vec<_>, TryFromIntError>>()?;
     let output = producer.send_all(input).await?;
