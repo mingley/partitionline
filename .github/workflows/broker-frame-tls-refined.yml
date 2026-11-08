@@ -1,0 +1,39 @@
+name: Broker TLS bounded read control
+on:
+  push:
+    branches: [qualification/broker-frame-tls-refined-20261108]
+permissions:
+  contents: read
+jobs:
+  tls:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      CARGO_BUILD_JOBS: 2
+      CARGO_INCREMENTAL: 0
+      CARGO_PROFILE_TEST_DEBUG: 0
+      CARGO_PROFILE_DEV_DEBUG: 0
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Installed TLS bounded first poll
+        run: |
+          set -euo pipefail
+          rustc --version
+          cp partitionline-broker/src/transport.rs /tmp/frame-tls-clean.rs
+          cargo test --locked --manifest-path partitionline-broker/Cargo.toml --lib --features tls characterize_real_tls_buffered_body_poll -- --nocapture
+          cargo test --locked --manifest-path partitionline-broker/Cargo.toml --lib --all-features characterize_real_tls_buffered_body_poll -- --nocapture
+      - name: Missing buffered yield negative control
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path("partitionline-broker/src/transport.rs")
+          s=p.read_text()
+          old="if progress.record(n).is_some()"
+          assert s.count(old)==1
+          p.write_text(s.replace(old, "if false && progress.record(n).is_some()", 1))
+          PY
+          if cargo test --locked --manifest-path partitionline-broker/Cargo.toml --lib --features tls characterize_real_tls_buffered_body_poll -- --nocapture > /tmp/frame-tls-no-yield.log 2>&1; then cat /tmp/frame-tls-no-yield.log; exit 1; fi
+          cat /tmp/frame-tls-no-yield.log
+          grep -F "TLS body finished without yielding" /tmp/frame-tls-no-yield.log

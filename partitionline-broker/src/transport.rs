@@ -3905,3 +3905,78 @@ mod buffered_read_fairness_control {
     }
 }
 
+
+
+#[cfg(all(test, feature = "tls"))]
+mod buffered_tls_ready_characterization {
+    use super::{frame_mut, new_frame, read_frame, Config, ReadAhead};
+    use crate::security::tls::{Acceptor, ClientAuth, Limits};
+    use std::future::Future;
+    use std::pin::Pin;
+    use std::sync::{Arc, atomic::{AtomicUsize, Ordering}};
+    use std::task::{Context, Poll};
+    use std::time::Duration;
+    use tokio::io::{AsyncRead, AsyncWriteExt, ReadBuf};
+    use tokio::time::Instant;
+
+    struct Counted<R> { inner: R, calls: Arc<AtomicUsize>, bytes: Arc<AtomicUsize> }
+    impl<R: AsyncRead + Unpin> AsyncRead for Counted<R> {
+        fn poll_read(mut self: Pin<&mut Self>, cx: &mut Context<'_>, out: &mut ReadBuf<'_>) -> Poll<std::io::Result<()>> {
+            self.calls.fetch_add(1, Ordering::Relaxed);
+            let before = out.filled().len();
+            let result = Pin::new(&mut self.inner).poll_read(cx, out);
+            if matches!(result, Poll::Ready(Ok(()))) {
+                self.bytes.fetch_add(out.filled().len() - before, Ordering::Relaxed);
+            }
+            result
+        }
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn characterize_real_tls_buffered_body_poll() {
+        let acceptor = Acceptor::new(
+            vec![include_bytes!("../tests/fixtures/tls/server1.cert.der").to_vec()],
+            include_bytes!("../tests/fixtures/tls/server1.key.der").to_vec(),
+            ClientAuth::ServerOnly,
+            Limits::default(),
+        ).unwrap();
+        let snapshot = acceptor.snapshot();
+        let mut roots = rustls::RootCertStore::empty();
+        roots.add(rustls::pki_types::CertificateDer::from(
+            include_bytes!("../tests/fixtures/tls/ca1.cert.der").to_vec()
+        )).unwrap();
+        let config = rustls::ClientConfig::builder_with_provider(Arc::new(rustls::crypto::ring::default_provider()))
+            .with_protocol_versions(rustls::DEFAULT_VERSIONS).unwrap()
+            .with_root_certificates(roots).with_no_client_auth();
+        let (client_io, server_io) = tokio::io::duplex(2 * 1024 * 1024);
+        let connector = tokio_rustls::TlsConnector::from(Arc::new(config));
+        let acceptor = tokio_rustls::TlsAcceptor::from(snapshot.server.clone());
+        let name = rustls::pki_types::ServerName::try_from("localhost".to_owned()).unwrap();
+        let (client, server) = tokio::join!(connector.connect(name, client_io), acceptor.accept(server_io));
+        let mut client = client.unwrap();
+        let server = server.unwrap();
+        let length = 256 * 1024usize;
+        client.write_all(&vec![0x5a; length]).await.unwrap();
+        client.flush().await.unwrap();
+        let calls = Arc::new(AtomicUsize::new(0));
+        let bytes = Arc::new(AtomicUsize::new(0));
+        let mut server = Counted { inner: server, calls: calls.clone(), bytes: bytes.clone() };
+        let mut ahead = ReadAhead::new();
+        frame_mut(&mut ahead.bytes).extend_from_slice(&(length as i32).to_be_bytes());
+        let config = Config::new(
+            1, 1, length, 1024, Duration::from_secs(10), Duration::from_secs(10), Duration::from_secs(10),
+        ).unwrap();
+        tokio::task::yield_now().await;
+        let mut read = Box::pin(read_frame(&mut server, config, Instant::now() + Duration::from_secs(10), &mut ahead, new_frame()));
+        let first = std::future::poll_fn(|cx| Poll::Ready(read.as_mut().poll(cx))).await;
+        let first_calls = calls.load(Ordering::Relaxed);
+        let first_bytes = bytes.load(Ordering::Relaxed);
+        let completed_first = matches!(&first, Poll::Ready(_));
+        assert!(!completed_first, "TLS body finished without yielding");
+        assert!(first_calls <= 128, "TLS outer read-call budget exceeded");
+        assert!(first_bytes <= 64 * 1024 + 8191, "TLS outer read-byte budget exceeded");
+        let result = match first { Poll::Ready(result) => result, Poll::Pending => read.await };
+        assert!(matches!(result, Ok(ref body) if body.len() == length && body.iter().all(|b| *b == 0x5a)));
+        println!("frame-tls first_ready={completed_first} first_calls={first_calls} first_bytes={first_bytes} total_bytes={length}");
+    }
+}
