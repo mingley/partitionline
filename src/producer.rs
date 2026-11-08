@@ -15686,6 +15686,58 @@ mod tests {
         }
     }
 
+    #[tokio::test(flavor = "current_thread")]
+    async fn timestamp_freezing_at_existing_encode_yields() {
+        use std::task::Poll;
+
+        for compression in [Compression::None, Compression::Gzip] {
+            let topic = Arc::<str>::from("t");
+            let mut groups = vec![(Arc::clone(&topic), 0, (0..8193).map(|_| queued("t", Some(0))).collect())];
+            let mut buf = BytesMut::new();
+            let mut scratch = CompressScratch::default();
+            let mut group_scratch = ProduceGroupScratch::default();
+            let mut first = Box::pin(encode_produce_body_async(
+                &mut buf, 9, 1, 1000, &mut groups, &[], compression, 1000,
+                -1, -1, None, &mut scratch, &mut group_scratch,
+            ));
+            let state = std::future::poll_fn(|cx| Poll::Ready(first.as_mut().poll(cx))).await;
+            assert!(state.is_pending(), "first yield should happen during sizing");
+            drop(first);
+            let records = &groups.first().unwrap().2;
+            assert!(records.iter().all(|record| record.rec.timestamp.is_none()));
+
+            buf.clear();
+            let mut second = Box::pin(encode_produce_body_async(
+                &mut buf, 9, 1, 1000, &mut groups, &[], compression, 1000,
+                -1, -1, None, &mut scratch, &mut group_scratch,
+            ));
+            let state = std::future::poll_fn(|cx| Poll::Ready(second.as_mut().poll(cx))).await;
+            assert!(state.is_pending(), "sizing must yield");
+            let state = std::future::poll_fn(|cx| Poll::Ready(second.as_mut().poll(cx))).await;
+            assert!(state.is_pending(), "encoding must yield after 8192 records");
+            drop(second);
+            let records = &groups.first().unwrap().2;
+            assert_eq!(records.first().unwrap().rec.timestamp, Some(1000));
+            assert_eq!(records.get(8191).unwrap().rec.timestamp, Some(1000));
+            assert_eq!(records.get(8192).unwrap().rec.timestamp, None);
+
+            // This fixture retains the group itself; the current worker does
+            // not retain it when its enclosing future is canceled.
+            buf.clear();
+            encode_produce_body_async(
+                &mut buf, 9, 1, 1000, &mut groups, &[], compression, 2000,
+                -1, -1, None, &mut scratch, &mut group_scratch,
+            )
+            .await
+            .unwrap();
+            let records = &groups.first().unwrap().2;
+            assert_eq!(records.first().unwrap().rec.timestamp, Some(1000));
+            assert_eq!(records.get(8191).unwrap().rec.timestamp, Some(1000));
+            assert_eq!(records.get(8192).unwrap().rec.timestamp, Some(2000));
+            println!("TIMESTAMP_CANCEL compression={compression:?} preencode=unset partial=8192 resumed_tail=2000");
+        }
+    }
+
     #[test]
     fn an_uncompressed_produce_sizes_its_batch_once() {
         let topic = Arc::<str>::from("orders");
