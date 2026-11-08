@@ -94,8 +94,14 @@ An [earlier snapshot][ci-02c] retains two more Raft failures. The
   The cause and any connection to the candidate remain unknown. The applied
   [frame-read change][frame-read] limits ready frame reads before requesting a
   yield. It does not bound one read poll or synchronous complete-frame copying.
-- **Security and protocol coverage.** [Admin response reservations][admin-reserve]
-  cap initial vector capacity requests in seven response families, but results
+- **Security and protocol coverage.** [Admin pagination][admin-pages] now uses
+  one deadline across DescribeTopicPartitions pages and rejects an immediate
+  cursor repeat. Focused controls and a Kafka 4.1.2 smoke passed in both
+  profiles; the broad all-feature Admin suite failed two timing checks, while
+  the default suite passed. Longer cycles can continue until timeout, and
+  accumulated results are not bounded by this change. [Admin response
+  reservations][admin-reserve] cap initial vector capacity requests in seven
+  response families, but results
   can grow and process memory is not bounded by that change. A separate
   [DescribeTopicPartitions reservation candidate][dtp-reserve] remains
   unapplied after large valid-decode regressions. GSSAPI and connection-driven
@@ -124,7 +130,7 @@ retained evidence. The [benchmark contract](benchmark-contract.md) and
 [ci]: https://github.com/mingley/partitionline/blob/a9b011e488b38091fec7575c88fd6b5a32718a0c/docs/evidence/releases/main-ci-47d-20261108/README.md
 [ci-262]: https://github.com/mingley/partitionline/blob/cb55f7c603e2344775de8a395c6a584737f5bb95/docs/evidence/releases/main-ci-262-20261108/README.md
 [ci-02c]: https://github.com/mingley/partitionline/blob/0ce81683fe7107386e30f388cd2a4af31735d522/docs/evidence/releases/main-ci-02c-20261108/README.md
-[next]: https://github.com/mingley/partitionline/blob/a9b011e488b38091fec7575c88fd6b5a32718a0c/docs/plan/next-work.md
+[next]: https://github.com/mingley/partitionline/blob/db0fac19e50efef965bb3e0af454cc4b3d41f9d5/docs/plan/next-work.md
 [flush-public]: https://github.com/mingley/partitionline/blob/f93e91499e2ba6bdc88c0a25a0d83b8737d00d3c/docs/evidence/client/producer-flush-public-20261108/README.md
 [flush-sent]: https://github.com/mingley/partitionline/blob/efa7f23314e98f3aaa4559c3cf38302bdcdb9fb4/docs/evidence/client/producer-flush-sent-20261108/README.md
 [owner-design]: https://github.com/mingley/partitionline/blob/cb55f7c603e2344775de8a395c6a584737f5bb95/docs/evidence/client/producer-ownership-design-20261108/README.md
@@ -150,3 +156,4 @@ retained evidence. The [benchmark contract](benchmark-contract.md) and
 [batch-header]: https://github.com/mingley/partitionline/blob/a9b011e488b38091fec7575c88fd6b5a32718a0c/docs/evidence/client/batch-header-write-20261108/README.md
 [dtp-reserve]: https://github.com/mingley/partitionline/blob/a9b011e488b38091fec7575c88fd6b5a32718a0c/docs/evidence/client/admin-dtp-reservation-20261108/README.md
 [frame-followup]: https://github.com/mingley/partitionline/blob/a9b011e488b38091fec7575c88fd6b5a32718a0c/docs/evidence/broker/frame-read-fairness-20261108/network-rtt-followup.md
+[admin-pages]: https://github.com/mingley/partitionline/blob/db0fac19e50efef965bb3e0af454cc4b3d41f9d5/docs/evidence/client/admin-pagination-20261108/README.md
