@@ -38,6 +38,33 @@ experiments, not production fixes. The draft stays off main.
   These results do not establish whether the draft, fixture timing, or another
   cause produced the failures.
 
+- A later [close-sealing draft run 42460603408][sealing-run] passed 14 focused
+  controls and 23 producer-cancellation tests in each feature mode. Both
+  modes then failed the same retained-backing test, with 4,096 buffered bytes
+  versus 4,097 captured accepted records; each had 7 passed, 1 failed and 1
+  ignored. Later retry and format checks were skipped. The snapshot assertion
+  alone does not prove a leaked reservation or identify the cause.
+
+A [matched retained-backing diagnostic][paired-run] ran the same single
+fixture three times per arm, with separate target directories. The base was
+`4409633fa989effe1083e623f6e59fcc0d179eee`, the draft was
+`bc45ba4f65f126c406ff88a57fcfe08007d35b29`, and both used fixture SHA-256
+`ecc74d9d33d1ff5544002b027fe907fa8542f11052224ee1aa45a74c7475e110`.
+Every invocation failed the 4,096-versus-4,097 snapshot assertion:
+
+| Source | Features | Failed runs | Elapsed seconds, in run order |
+| --- | --- | --- | --- |
+| Base `4409633` | Default | 3 of 3 | 24.028, 23.705, 23.671 |
+| Draft `bc45ba4` | Default | 3 of 3 | 23.762, 23.775, 23.817 |
+| Base `4409633` | All | 3 of 3 | 23.951, 23.887, 23.710 |
+| Draft `bc45ba4` | All | 3 of 3 | 23.868, 23.944, 23.829 |
+
+The job succeeded because it collected all observations. The runner reported
+`/sys/fs/cgroup/cpu.max` unavailable; the CPU quota is unknown. These failed
+test durations are not a performance comparison and do not establish the cause
+of the assertion or prove a reservation leak. The diagnostic does not explain
+the earlier default-feature `Timeout`.
+
 ## Source review
 
 The following are interleavings derived from code inspection, not reproduced
@@ -54,11 +81,17 @@ public producer or broker failures:
 - A retiring worker can finish a failed record's draft ticket before it calls
   `note_fail`. A concurrent flush that no longer sees that worker can return
   before its recorded error is published.
-- The draft captures a flush cutoff before close stops new sends. A later
-  admission can remain Pending after shutdown starts; the draft's Lost-only
-  post-shutdown check can still return success. An earlier non-timeout worker
-  error can also make `drain_before_abort` skip the ticket check and proceed
-  toward `EndTxn`.
+- The earlier [bc45 draft][draft] captures a flush cutoff before close stops new
+  sends. A later admission can remain Pending after shutdown starts while its
+  Lost-only post-shutdown check returns success. In that version an earlier
+  non-timeout worker error can also make `drain_before_abort` skip the ticket
+  check and proceed toward `EndTxn`.
+- The later [b7 draft][sealing-draft] seals admission first. A send that reserved
+  resources before the seal can nevertheless remain blocked waiting for worker
+  capacity until another event or its timeout; close can finish while an
+  unpolled pre-admission future still holds its byte reservation. The revised
+  abort check also has no transaction-generation fence against a concurrent
+  admission after its check and before `EndTxn`.
 - The draft's completion token finishes only after `Pending` is dropped.
   This closes one accounting-order window but still runs record destructors
   and wakes synchronously on the task performing the drop. Its polling
@@ -140,6 +173,9 @@ the standalone model or the private helper witnesses.
 [draft-run]: https://github.com/mingley/partitionline/actions/runs/42460005132
 [public-run]: https://github.com/mingley/partitionline/actions/runs/42460321562
 [compile-run]: https://github.com/mingley/partitionline/actions/runs/42459658935
+[sealing-run]: https://github.com/mingley/partitionline/actions/runs/42460603408
+[paired-run]: https://github.com/mingley/partitionline/actions/runs/42460753994
+[sealing-draft]: https://github.com/mingley/partitionline/blob/b7c11784d79b05a36ca624b3de17a952603d4931/docs/evidence/client/producer-completion-draft-20261108/README.md
 [assignment]: https://github.com/mingley/partitionline/blob/1036a393eb85f23032b935bf86862b7e98e36e14/src/producer.rs#L10429
 [response]: https://github.com/mingley/partitionline/blob/1036a393eb85f23032b935bf86862b7e98e36e14/src/producer.rs#L8670
 [close-source]: https://github.com/mingley/partitionline/blob/1036a393eb85f23032b935bf86862b7e98e36e14/src/producer.rs#L4215

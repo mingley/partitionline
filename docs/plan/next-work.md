@@ -10,17 +10,19 @@ Production readiness and fastest-client/server claims remain unqualified.
 Client 0.1.0 is already published. The next client version must be at least
 0.2.0; broker and schema publication remain disabled.
 
-The latest complete recorded main [CI snapshot](../evidence/releases/main-ci-1036-20261108/README.md)
-is `1036a393eb85f23032b935bf86862b7e98e36e14`. Client libraries reported
-2,223 passed and 21 failed on Linux default features, 2,225 passed and 19
-failed with all features, 2,226 passed and 18 failed on Windows, and 2,233
-passed and 11 failed on macOS arm64. Kafka compatibility and both smoke jobs
-failed. Broker CI passed 762 default and 910 all-feature tests, with three
-descriptor diagnostics ignored in each suite and passed separately on the
-same broker production source. Clippy, Rustdoc, inventory and fuzz supervision
-passed. These results do not close the release gates.
+The latest complete recorded main [CI snapshot](../evidence/releases/main-ci-1f37-20261108/README.md)
+is `1f371635261b8c222f597100c06f83d06c3dab18`. Client libraries reported
+2,229 passed and 15 failed on Linux default features, 2,223 passed and 21
+failed with all features, 2,224 passed and 20 failed on Windows, and 2,235
+passed and 9 failed on macOS arm64. Three Kafka compatibility jobs and both
+smoke jobs failed. Broker CI passed 766 default and 914 all-feature tests,
+with three descriptor diagnostics ignored in each suite and passed separately
+on the same broker production source. Clippy, Rustdoc, inventory and fuzz
+supervision passed. These results do not close the release gates. The [previous
+complete snapshot](../evidence/releases/main-ci-1036-20261108/README.md)
+retains the earlier results.
 
-A newer [main CI snapshot](../evidence/releases/main-ci-440-20261108/README.md)
+An earlier [main CI snapshot](../evidence/releases/main-ci-440-20261108/README.md)
 at `4409633` recorded 17 successful client jobs, nine failures, one
 cancellation and one skip. The failed jobs include the Linux, Windows and
 macOS client libraries, three current Kafka compatibility jobs, the Kafka
@@ -31,13 +33,11 @@ and 912 all-feature tests, with three ignored in each profile. Strict checks,
 inventory and fuzz supervision passed. Both selected capability profiles
 passed; their archives were not independently inspected.
 
-At `f092d69`, a newer [broker run](https://github.com/mingley/partitionline/actions/runs/42460194861)
-passed 766 default and 914 all-feature tests, with three ignored in each
-profile; strict checks, inventory and fuzz supervision passed. The selected
-[capability profiles](https://github.com/mingley/partitionline/actions/runs/42460194888)
-passed without independent archive inspection. Its [client run](https://github.com/mingley/partitionline/actions/runs/42460194939)
-was in progress when this record was written: resource-soak passed and three
-current Kafka compatibility jobs failed. See the run for its final status.
+An [intervening snapshot](../evidence/releases/main-ci-f092-20261108/README.md)
+at `f092d69` recorded 18 successful client jobs, five failures, four
+cancellations and one skip. Its resource-soak job passed; that does not
+explain the earlier `/proc` permission failure. Broker CI passed 766 default
+and 914 all-feature tests, with three ignored per profile.
 
 A [partial earlier client run](../evidence/releases/main-ci-e02-partial-20261108/README.md)
 at `e02c1b8` recorded six failed jobs and four canceled when main advanced.
@@ -71,7 +71,10 @@ records a five-node short-election fixture that reached term 163 without a
 stable leader, a separate observer timeout and later controls. The failure
 did not recur in 27 fresh controls. Instrumented successful histories recorded
 87 full vote queues, but the capture changed timing and did not establish the
-failure's cause. The test candidate and instrumentation remain unapplied.
+failure's cause. The test candidate and instrumentation remain unapplied. A [vote-route control](../evidence/broker/raft-vote-route-20261108/README.md)
+later forced one newer campaign to be discarded by a full one-slot route. A
+later campaign recovered in the control; this does not explain the earlier
+stall.
 
 The [coordinator repair](../evidence/client/group-coordinator-retirement-20261108/README.md)
 retires a known coordinator socket before replacement. Focused local controls
@@ -118,12 +121,19 @@ and separate descriptor controls. Its earlier default all-target transport
 failure remains unexplained; a stronger fixture uses a longer finite deadline
 and checks real admission before cancellation.
 
+A [segmented-log crash control](../evidence/broker/segment-initial-crash-20261108/README.md)
+found that a fresh log can fail to reopen after exit before initial manifest
+publication. No append was attempted in that witness. An acknowledged-data
+control with the manifest removed failed closed. Recovery and marker
+provenance remain open.
+
 A [data-buffer capacity candidate](../evidence/broker/data-buffer-capacity-20261108/README.md)
 checks request and scratch capacity before enqueue and avoids recycling
 oversized buffers. It is unapplied: the combined default and all-feature
 broker runs failed Raft tests. In a scoped public-path measurement, freeing a
 faulted-in 256 MiB caller spare took a 16.134 ms median in the caller's first
-poll. Its logical admission budget is not a process RSS bound.
+poll. Its logical admission budget is not a process RSS bound. An [off-runtime disposal design](../evidence/broker/data-buffer-capacity-20261108/off-runtime-design.md)
+is unimplemented and requires explicit overload and shutdown semantics.
 
 Earlier records:
 

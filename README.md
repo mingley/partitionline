@@ -17,8 +17,10 @@ partitionline = "0.1"
 Version 0.1.0 is available on [crates.io](https://crates.io/crates/partitionline).
 The repository includes changes made after that release. See the
 [support matrix](docs/support.md) for tested versions and platforms and the
-[task registry](https://github.com/mingley/partitionline/blob/c025be19b7d19dfd17d85eea66b43de93288dffb/docs/plan/tasks.json) for remaining work. Production and
-performance qualification are ongoing.
+[task registry](https://github.com/mingley/partitionline/blob/c025be19b7d19dfd17d85eea66b43de93288dffb/docs/plan/tasks.json) for remaining work. The current source is **not yet qualified for production
+use**: client CI and Kafka compatibility checks still fail. See the
+[current status](docs/STATUS.md) for the results and open work. Performance
+rankings have not been established.
 
 Use the latest stable Rust to build the current source.
 
