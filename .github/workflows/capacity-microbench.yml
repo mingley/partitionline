@@ -1,0 +1,63 @@
+name: Capacity copy timing witness
+on:
+  push:
+    branches: [qualification/capacity-microbench-20261108]
+permissions:
+  contents: read
+jobs:
+  timing:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Measure synchronous fallible Vec copy
+        shell: bash
+        run: |
+          set -euo pipefail
+          date -u
+          uname -a
+          rustc +stable --version --verbose
+          lscpu
+          cat > "$RUNNER_TEMP/capacity_copy.rs" <<'RS'
+          use std::{hint::black_box,time::Instant};
+          #[inline(never)]
+          fn bound(bytes: Vec<u8>, maximum: usize) -> Result<Vec<u8>, ()> {
+              if bytes.capacity() <= maximum { return Ok(bytes); }
+              if bytes.len() > maximum { return Err(()); }
+              let mut replacement = Vec::new();
+              replacement.try_reserve_exact(bytes.len()).map_err(|_| ())?;
+              if replacement.capacity() > maximum { return Err(()); }
+              replacement.extend_from_slice(&bytes);
+              Ok(replacement)
+          }
+          fn main() {
+              for (length, maximum, count) in [
+                  (31usize, 4096usize, 100),
+                  (4096, 4096, 100),
+                  (1_048_576, 1_048_576, 20),
+                  (8_388_608, 8_388_608, 10),
+                  (67_108_864, 67_108_864, 10),
+              ] {
+                  let mut times = Vec::new();
+                  for sequence in 0..count {
+                      let mut input = Vec::with_capacity(maximum + 1);
+                      input.resize(length, 0xa5);
+                      assert!(input.capacity() > maximum);
+                      let started = Instant::now();
+                      let output = bound(black_box(input), maximum).unwrap();
+                      let ns = started.elapsed().as_nanos();
+                      assert_eq!(output.len(), length);
+                      assert!(output.iter().all(|b| *b == 0xa5));
+                      assert!(output.capacity() <= maximum);
+                      black_box(&output);
+                      times.push(ns);
+                      println!("sample,{length},{maximum},{sequence},{ns},{}", output.capacity());
+                  }
+                  times.sort_unstable();
+                  println!("summary,{length},{maximum},{count},{},{},{}", times[0], times[count / 2], times[count - 1]);
+              }
+          }
+          RS
+          sha256sum "$RUNNER_TEMP/capacity_copy.rs"
+          rustc +stable -O --edition 2024 "$RUNNER_TEMP/capacity_copy.rs" -o "$RUNNER_TEMP/capacity_copy"
+          sha256sum "$RUNNER_TEMP/capacity_copy"
+          "$RUNNER_TEMP/capacity_copy"
