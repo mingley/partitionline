@@ -94,6 +94,78 @@ The one-empty and one-100 regressions appeared in every pair. The other
 changes are small relative to some pair ranges and should not be treated as
 settled speedups or regressions without further controlled measurement.
 
+## Optimized code and repeat
+
+[Run 42462618286](https://github.com/mingley/partitionline/actions/runs/42462618286)
+rebuilt the same pinned sources and fixture in separate target directories on
+a shared four-logical-CPU AMD EPYC 7763 x86 runner, again pinned to CPU 0.
+The compiler was stable rustc 1.99.1 with LLVM 23.1.1. The two executable
+SHA-256 hashes matched the corresponding baseline and candidate hashes in
+the first corrected run, and the 1,012 batches and 12 error cases matched
+again. Nine alternating pairs were run per shape; individual arms lasted
+123.9–238.8 ms.
+
+The repeated median paired ratios were 1.06629 for the empty record and
+1.03915 for the keyed 100-byte record. All nine empty-record pairs were
+slower; eight of nine 100-byte pairs were slower. Seventeen of the 18
+shapes had slower median ratios, although many differences are small or
+overlap the observed pair ranges. One `many_empty_key` pair was an outlier
+at 1.4766; all nine paired values, elapsed nanoseconds and iteration counts
+remain in the artifact. These codec results do not establish Kafka client
+or broker performance.
+
+| Shape | Baseline ns/batch | Candidate ns/batch | Median ratio | Pair ratio range |
+| --- | ---: | ---: | ---: | ---: |
+| `one_empty` | 80.7 | 86.0 | 1.06629 | 1.0474–1.0759 |
+| `one_100` | 118.7 | 123.4 | 1.03915 | 0.9929–1.0477 |
+| `f01_8_plain` | 611.5 | 621.1 | 1.01515 | 1.0130–1.0224 |
+| `f02_8_headers` | 1095.7 | 1099.1 | 1.00182 | 0.9952–1.0220 |
+| `f03_500_plain` | 35479.8 | 35688.1 | 1.00905 | 0.9972–1.0140 |
+| `f04_32_headers` | 9615.7 | 9627.8 | 1.00368 | 0.9925–1.0084 |
+| `many_null_key` | 32615.7 | 32588.6 | 1.00156 | 0.9907–1.0067 |
+| `many_empty_key` | 34709.7 | 35244.9 | 1.01767 | 1.0087–1.4766 |
+| `header_heavy` | 70501.5 | 70892.4 | 1.00508 | 0.9974–1.0163 |
+| `boundaries` | 13074.0 | 13128.0 | 1.00578 | 0.9822–1.0254 |
+| `large_values` | 231016.0 | 231103.8 | 1.00097 | 0.9928–1.0058 |
+| `gzip_128` | 248508.0 | 248250.6 | 0.99905 | 0.9841–1.0072 |
+| `snappy_128` | 13572.8 | 13682.1 | 1.00309 | 0.9828–1.0421 |
+| `lz4_128` | 13780.6 | 13903.8 | 1.00857 | 1.0005–1.0196 |
+| `async_f01_8` | 640.4 | 647.3 | 1.01141 | 0.9964–1.0248 |
+| `async_f03_500` | 35929.0 | 36304.6 | 1.01153 | 1.0025–1.0194 |
+| `async_headers` | 70923.1 | 71139.1 | 1.00588 | 0.9981–1.0254 |
+| `async_large` | 230832.6 | 230683.6 | 1.00073 | 0.9914–1.0125 |
+
+The final linked x86 disassembly shows that `encode_record` remained a
+shared function and grew from 2,625 to 2,693 bytes; the selected disassembly
+contained 621 versus 619 instructions. The arithmetic helper was inlined
+on the successful path; there is no new helper call on that path.
+
+For a successful body length, the baseline generates the zigzag value with
+one `add` and then computes its width without an explicit minimum clamp.
+The candidate emits `lea`, `sar` and `xor` for the same zigzag and adds
+`cmp`, `mov` and `cmov` for the width clamp. The preceding bounds check,
+register allocation and placement of cold error blocks also differ. In the
+linked binaries the baseline success branch is a short jump from offset
+`0x49f` to `0x4e7`; the candidate uses a longer jump from `0x4c2` to
+`0x638`. Those instructions are consistent with range information being
+less useful to the optimizer at the candidate's use site, but this
+disassembly does not reveal LLVM's internal reasoning.
+
+The extra prefix instructions and changed layout are plausible contributors
+to the repeated regression, not an isolated causal measurement. The readout
+runner did not have Valgrind installed; `perf stat` reported no accessible
+events with `perf_event_paranoid=4`. No privileged counter settings were
+changed. The baseline also calls the generic varint writer for several
+one-byte fields; whether specializing that path helps remains unmeasured.
+
+[Readout 42463137001](https://github.com/mingley/partitionline/actions/runs/42463137001)
+verified the artifact identity and digest before displaying the relevant
+instruction ranges. Complete disassembly, symbols, corpus, raw paired
+measurements and host/build details are in
+[artifact 13610647012](https://github.com/mingley/partitionline/actions/runs/42462618286/artifacts/13610647012)
+(SHA-256 `5fda2ae97ea3df622dcf94fc30408231f882126d67ba3ac09029c0bfe39bca96`,
+expiry 2026-12-08). The artifact contains binary hashes, not the binaries.
+
 ## Earlier attempts
 
 - [Run 42460658543](https://github.com/mingley/partitionline/actions/runs/42460658543)
