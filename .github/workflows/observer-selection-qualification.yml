@@ -1,0 +1,39 @@
+name: observer addition leadership control
+on:
+  push:
+    branches: [qual/observer-selection-20261108]
+permissions:
+  contents: read
+jobs:
+  controls:
+    name: observer control ${{ matrix.profile }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        profile: [default, all]
+    env:
+      CARGO_BUILD_JOBS: '2'
+      CARGO_INCREMENTAL: '0'
+      CARGO_TERM_COLOR: never
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - name: Identity
+        run: |
+          rustc -Vv
+          git rev-parse HEAD
+          sha256sum partitionline-broker/src/raft/runtime.rs
+      - name: Diagnostic formatting check
+        run: cargo fmt --manifest-path partitionline-broker/Cargo.toml -- --check || true
+      - name: Live leader and pre-add stepdown controls
+        run: |
+          set -euo pipefail
+          flags=()
+          if [ "${{ matrix.profile }}" = all ]; then flags=(--all-features); fi
+          cargo test --locked --manifest-path partitionline-broker/Cargo.toml --lib "${flags[@]}" raft::runtime::ownership_tests::observer_addition_after_leader_selection_requires_live_leadership -- --exact --nocapture
+      - name: Strict all-target Clippy
+        run: cargo clippy --locked --manifest-path partitionline-broker/Cargo.toml --all-targets --all-features -- -D warnings
