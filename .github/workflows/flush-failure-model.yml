@@ -1,0 +1,47 @@
+name: Bounded flush failure epoch model
+
+on:
+  push:
+    branches: ["qualification/flush-failure-model-20261108"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  model:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        profile: [default, all]
+    env:
+      PROFILE: ${{ matrix.profile }}
+      CARGO_TERM_COLOR: never
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Provenance
+        run: |
+          set -eu
+          rustc -Vv
+          git rev-parse HEAD
+          git rev-parse HEAD:src/producer.rs
+          git rev-parse HEAD:src/producer/flush_failure_model.rs
+          sha256sum src/producer.rs src/producer/flush_failure_model.rs Cargo.lock
+          mkdir -p model-logs
+      - name: Bounded epoch controls
+        run: |
+          set -euo pipefail
+          args=()
+          if test "$PROFILE" = all; then args+=(--all-features); fi
+          cargo +stable test --locked "${args[@]}" --lib flush_failure_model::tests -- --test-threads=1 --nocapture 2>&1 | tee model-logs/model.log
+          grep -F "test result: ok. 6 passed; 0 failed" model-logs/model.log
+      - name: Retain model output
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: flush-failure-model-${{ matrix.profile }}
+          path: model-logs
+          retention-days: 30

@@ -6,6 +6,10 @@ use std::sync::atomic::{AtomicBool, AtomicI16, AtomicI64, AtomicU64, AtomicUsize
 use std::sync::Arc;
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
+#[cfg(test)]
+#[path = "producer/flush_failure_model.rs"]
+mod flush_failure_model;
+
 use bytes::{BufMut, Bytes, BytesMut};
 use tokio::sync::{mpsc, oneshot, Mutex, Notify};
 
