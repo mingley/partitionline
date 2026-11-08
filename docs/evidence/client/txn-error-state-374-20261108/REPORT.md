@@ -19,7 +19,13 @@ Earlier [run 42443810287](https://github.com/mingley/partitionline/actions/runs/
 
 The broader integration selection in [run 42444608489](https://github.com/mingley/partitionline/actions/runs/42444608489), at commit [`33e775b4`](https://github.com/mingley/partitionline/commit/33e775b49195d4a22c9e9abb5a3293bf14ebe615), failed. The state and coordinator controls passed in both profiles. Thirteen default-profile integration cases passed, then `commit_reuses_a_produce_handshake_for_the_moved_coordinator` observed three ApiVersions requests where it expected two before coordinator movement. The remaining integration cases, all-feature integration selection, and that run's Clippy step did not run. [Logs](https://github.com/mingley/partitionline/actions/runs/42444608489/artifacts/13602773411) retain the failure.
 
-[Run 42445260031](https://github.com/mingley/partitionline/actions/runs/42445260031) is in progress on the same candidate source. It continues through all selected cases after failures, compares the handshake test repeatedly against the unmodified baseline in each profile, and retains a failing gate if any selected case fails.
+[Run 42445260031](https://github.com/mingley/partitionline/actions/runs/42445260031) tested the same candidate source at commit [`ab7c3cd7`](https://github.com/mingley/partitionline/commit/ab7c3cd73e20d296462177fae5517f7b69bc993a). It completed the state and coordinator controls in both profiles and passed strict all-target, all-feature Clippy. Eighteen of 21 selected integration tests passed in each profile. These three handshake-count tests failed in each profile:
+
+- `commit_reuses_a_produce_handshake_for_the_moved_coordinator`: three ApiVersions requests observed, two expected.
+- `epoch_bump_reuses_a_produce_handshake`: three observed, two expected.
+- `send_offsets_reuses_bootstrap_api_versions`: two observed, one expected.
+
+The first test failed three times in each profile on the exact unmodified `374dcf4` baseline and three times in each profile on the candidate. That comparison does not establish the cause or classify the other two failures. The job retained a failing gate for the integration selection. [Logs](https://github.com/mingley/partitionline/actions/runs/42445260031/artifacts/13603467513) include the comparisons and individual results.
 
 ## Limits
 
