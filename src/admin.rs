@@ -16791,9 +16791,25 @@ async fn index_requested_dtp_names<'a, T: AsRef<str>>(
     }
 }
 
+async fn requested_dtp_names_are_sorted<T: AsRef<str>>(names: &[T]) -> bool {
+    let mut walked = 0usize;
+    for pair in names.windows(2) {
+        if pair[0].as_ref() > pair[1].as_ref() {
+            return false;
+        }
+        walked += 1;
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
+    }
+    true
+}
+
 struct RequestedDtpNames<'a, T> {
     names: &'a [T],
     index: Option<HashSet<&'a str>>,
+    sorted: bool,
     hint: usize,
 }
 
@@ -16802,6 +16818,7 @@ impl<'a, T: AsRef<str>> RequestedDtpNames<'a, T> {
         Self {
             names,
             index: None,
+            sorted: false,
             hint: 0,
         }
     }
@@ -16830,6 +16847,17 @@ impl<'a, T: AsRef<str>> RequestedDtpNames<'a, T> {
                 .names
                 .iter()
                 .any(|candidate| candidate.as_ref() == name);
+        }
+        if self.sorted || requested_dtp_names_are_sorted(self.names).await {
+            self.sorted = true;
+            if let Ok(slot) = self
+                .names
+                .binary_search_by(|candidate| candidate.as_ref().cmp(name))
+            {
+                self.hint = slot;
+                return true;
+            }
+            return false;
         }
         let mut index = HashSet::with_capacity(self.names.len().min(32));
         index_requested_dtp_names(self.names, &mut index).await;
