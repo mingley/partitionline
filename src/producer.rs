@@ -2697,6 +2697,25 @@ impl Producer {
         if pending.is_empty() {
             return Ok(Vec::new());
         }
+        // Below the scan's cooperative chunk size, a suffix containing one
+        // explicit route produces at most one distinct leader nudge while the
+        // cluster lock is held. Check the raw inputs once, then keep the same
+        // one-nudge-per-record behavior without repeatedly walking the suffix.
+        let one_explicit_route = self.inner.shared.sticky.is_none()
+            && self.inner.shared.interceptors.is_empty()
+            && pending.len() >= 32
+            && pending.len() < leader_scan_chunk()
+            && pending.front().is_some_and(|(_, first)| {
+                first.topic.len() <= Topic::MAX_NAME_LENGTH
+                    && first.partition.is_some_and(|partition| {
+                        partition >= 0
+                            && pending.iter().all(|(_, record)| {
+                                record.partition == Some(partition)
+                                    && record.topic.len() == first.topic.len()
+                                    && record.topic.as_ref() == first.topic.as_ref()
+                            })
+                    })
+            });
         let mut slots = Vec::new();
         slots.resize_with(pending.len(), || None);
         let mut failed: HashMap<Arc<str>, Error> = HashMap::new();
@@ -2789,10 +2808,14 @@ impl Producer {
             }
             // Start every known leader handshake before this record waits
             // for its own worker, so a later leader is already dialing.
-            self.nudge_known_leaders(
-                std::iter::once(&rec).chain(pending.iter().map(|(_, rec)| rec)),
-            )
-            .await;
+            if one_explicit_route && self.has_fresh_explicit_worker(&rec) {
+                self.nudge_known_leaders(std::iter::once(&rec)).await;
+            } else {
+                self.nudge_known_leaders(
+                    std::iter::once(&rec).chain(pending.iter().map(|(_, rec)| rec)),
+                )
+                .await;
+            }
             let rx = self.enqueue_one(rec).await?;
             if let Some(slot) = slots.get_mut(index) {
                 *slot = Some(rx);
@@ -3224,6 +3247,32 @@ impl Producer {
             return None;
         }
         Some((p, Arc::clone(w), Arc::clone(&f.tracker)))
+    }
+
+    /// Check a cached explicit route without cloning a remembered metadata error.
+    fn has_fresh_explicit_worker(&self, rec: &ProduceRecord) -> bool {
+        let shared = &self.inner.shared;
+        if shared.meta_err_set.load(Ordering::Acquire) || shared.cfg.metadata_max_age.is_zero() {
+            return false;
+        }
+        let Some(partition) = rec.partition else {
+            return false;
+        };
+        let Ok(index) = usize::try_from(partition) else {
+            return false;
+        };
+        let fast = shared.fast.read();
+        let Some(route) = fast.routes.get(rec.topic.as_ref()) else {
+            return false;
+        };
+        route.np > partition
+            && route
+                .fetched_at
+                .is_some_and(|at| at.elapsed() < shared.cfg.metadata_max_age)
+            && route
+                .handles
+                .get(index)
+                .is_some_and(|worker| worker.admission.is_accepting())
     }
 
     /// A cached route whose metadata is still inside `metadata_max_age`.
