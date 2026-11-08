@@ -1186,3 +1186,229 @@ async fn dtp_unnamed_topic_precedes_same_page_identity_conflict() {
     assert!(matches!(&got, Err(Error::Unsupported(message))
         if message == "cannot aggregate DescribeTopicPartitions without a topic name"));
 }
+
+fn dtp_conversion_rows(start: usize, count: usize) -> Vec<DescribedTopicPartitions> {
+    (start..start + count)
+        .map(|index| {
+            let mut topic = DescribedTopicPartitions::new(format!("topic-{index:08}"), 0);
+            topic.topic_id[15] = 7;
+            topic.topic_authorized_operations = 37;
+            topic
+        })
+        .collect()
+}
+
+#[test]
+fn dtp_conversion_yields_on_the_exact_row_boundary() {
+    use std::future::Future;
+    use std::sync::atomic::Ordering;
+    use std::sync::Arc;
+    use std::task::{Context, Poll, Waker};
+
+    for count in [8191, 8192, 8193] {
+        let topics = dtp_conversion_rows(0, count);
+        let mut page = Vec::with_capacity(count);
+        let mut out: Vec<TopicDescription> = Vec::new();
+        let mut budget = 0;
+        let deadline = tokio::time::Instant::now() + Duration::from_secs(30);
+        let wake = Arc::new(CleanupWake::default());
+        let waker = Waker::from(Arc::clone(&wake));
+        let mut context = Context::from_waker(&waker);
+        let mut future = Box::pin(convert_described_topic_page(
+            &topics,
+            true,
+            &mut page,
+            &mut out,
+            deadline,
+            &mut budget,
+        ));
+        let first = future.as_mut().poll(&mut context);
+        if count < 8192 {
+            assert!(matches!(first, Poll::Ready(Ok(()))));
+            assert_eq!(wake.0.load(Ordering::SeqCst), 0);
+        } else {
+            assert!(matches!(first, Poll::Pending));
+            assert!(wake.0.load(Ordering::SeqCst) > 0);
+            assert!(matches!(future.as_mut().poll(&mut context), Poll::Ready(Ok(()))));
+        }
+        drop(future);
+        assert_eq!(budget, count % 8192);
+        assert_eq!(page.len(), count);
+        assert!(out.is_empty());
+        for (index, result) in page.iter().enumerate() {
+            assert_eq!(result.name, format!("topic-{index:08}"));
+            assert_eq!(result.topic_id[15], 7);
+            assert_eq!(result.error_code, 0);
+            assert!(result.partitions.is_empty());
+            assert_eq!(result.authorized_operations, 37);
+        }
+    }
+
+    // Drop after the first pending poll to inspect the exact conversion frontier.
+    for count in [8192, 8193] {
+        let topics = dtp_conversion_rows(0, count);
+        let mut page = Vec::with_capacity(count);
+        let mut out: Vec<TopicDescription> = Vec::new();
+        let mut budget = 0;
+        let wake = Arc::new(CleanupWake::default());
+        let waker = Waker::from(Arc::clone(&wake));
+        let mut context = Context::from_waker(&waker);
+        let mut future = Box::pin(convert_described_topic_page(
+            &topics,
+            false,
+            &mut page,
+            &mut out,
+            tokio::time::Instant::now() + Duration::from_secs(30),
+            &mut budget,
+        ));
+        assert!(future.as_mut().poll(&mut context).is_pending());
+        drop(future);
+        assert_eq!(page.len(), 8192);
+        assert_eq!(budget, 0);
+        assert!(out.is_empty());
+        assert!(page.iter().all(|row| row.authorized_operations == AUTHORIZED_OPERATIONS_OMITTED));
+    }
+}
+
+#[test]
+fn dtp_conversion_carries_the_row_budget_across_pages() {
+    use std::future::Future;
+    use std::sync::atomic::Ordering;
+    use std::sync::Arc;
+    use std::task::{Context, Poll, Waker};
+
+    let first = dtp_conversion_rows(0, 8191);
+    let last = dtp_conversion_rows(8191, 1);
+    let next = dtp_conversion_rows(8192, 1);
+    let mut page = Vec::new();
+    let mut out: Vec<TopicDescription> = Vec::new();
+    let mut budget = 0;
+    let deadline = tokio::time::Instant::now() + Duration::from_secs(30);
+    let wake = Arc::new(CleanupWake::default());
+    let waker = Waker::from(Arc::clone(&wake));
+    let mut context = Context::from_waker(&waker);
+
+    let mut initial = Box::pin(convert_described_topic_page(
+        &first, false, &mut page, &mut out, deadline, &mut budget,
+    ));
+    assert!(matches!(initial.as_mut().poll(&mut context), Poll::Ready(Ok(()))));
+    drop(initial);
+    assert_eq!(budget, 8191);
+    assert_eq!(page.len(), 8191);
+
+    page.clear();
+    let mut at_boundary = Box::pin(convert_described_topic_page(
+        &last, false, &mut page, &mut out, deadline, &mut budget,
+    ));
+    assert!(at_boundary.as_mut().poll(&mut context).is_pending());
+    assert!(wake.0.load(Ordering::SeqCst) > 0);
+    assert!(matches!(at_boundary.as_mut().poll(&mut context), Poll::Ready(Ok(()))));
+    drop(at_boundary);
+    assert_eq!(budget, 0);
+    assert_eq!(page.len(), 1);
+    assert_eq!(page[0].name, "topic-00008191");
+
+    page.clear();
+    let mut after = Box::pin(convert_described_topic_page(
+        &next, false, &mut page, &mut out, deadline, &mut budget,
+    ));
+    assert!(matches!(after.as_mut().poll(&mut context), Poll::Ready(Ok(()))));
+    drop(after);
+    assert_eq!(budget, 1);
+    assert_eq!(page[0].name, "topic-00008192");
+}
+
+#[test]
+fn dtp_conversion_keeps_partition_yields_and_ignores_error_partitions() {
+    use std::future::Future;
+    use std::sync::Arc;
+    use std::task::{Context, Poll, Waker};
+
+    let mut topic = DescribedTopicPartitions::new("orders", 0);
+    topic.partitions = (0..8192)
+        .map(|partition| {
+            let mut item = DescribedTopicPartition::new(0);
+            item.partition_index = partition;
+            item.replica_nodes = vec![1, 2];
+            item.isr_nodes = vec![2];
+            item
+        })
+        .collect();
+    let mut page = Vec::new();
+    let mut out: Vec<TopicDescription> = Vec::new();
+    let mut budget = 0;
+    let wake = Arc::new(CleanupWake::default());
+    let waker = Waker::from(Arc::clone(&wake));
+    let mut context = Context::from_waker(&waker);
+    let deadline = tokio::time::Instant::now() + Duration::from_secs(30);
+
+    let mut future = Box::pin(convert_described_topic_page(
+        std::slice::from_ref(&topic), false, &mut page, &mut out, deadline, &mut budget,
+    ));
+    assert!(future.as_mut().poll(&mut context).is_pending());
+    drop(future);
+    assert!(page.is_empty());
+    assert_eq!(budget, 0);
+
+    let mut future = Box::pin(convert_described_topic_page(
+        std::slice::from_ref(&topic), false, &mut page, &mut out, deadline, &mut budget,
+    ));
+    assert!(future.as_mut().poll(&mut context).is_pending());
+    assert!(matches!(future.as_mut().poll(&mut context), Poll::Ready(Ok(()))));
+    drop(future);
+    assert_eq!(budget, 1);
+    assert_eq!(page[0].partitions.len(), 8192);
+    assert_eq!(page[0].partitions[0].replicas, [1, 2]);
+    assert_eq!(page[0].partitions[8191].partition, 8191);
+
+    page.clear();
+    topic.error_code = crate::error::TOPIC_AUTHORIZATION_FAILED;
+    let mut future = Box::pin(convert_described_topic_page(
+        std::slice::from_ref(&topic), false, &mut page, &mut out, deadline, &mut budget,
+    ));
+    assert!(matches!(future.as_mut().poll(&mut context), Poll::Ready(Ok(()))));
+    drop(future);
+    assert_eq!(page[0].error_code, crate::error::TOPIC_AUTHORIZATION_FAILED);
+    assert!(page[0].partitions.is_empty());
+    assert_eq!(budget, 2);
+}
+
+#[test]
+fn dtp_conversion_unnamed_after_checkpoint_keeps_error_and_deadline_rules() {
+    use std::future::Future;
+    use std::sync::Arc;
+    use std::task::{Context, Poll, Waker};
+
+    for expired in [false, true] {
+        let mut topics = dtp_conversion_rows(0, 8192);
+        let mut unnamed = DescribedTopicPartitions::new("ignored", 0);
+        unnamed.name = None;
+        topics.push(unnamed);
+        let mut page = Vec::new();
+        let mut out: Vec<TopicDescription> = Vec::new();
+        let mut budget = 0;
+        let wake = Arc::new(CleanupWake::default());
+        let waker = Waker::from(Arc::clone(&wake));
+        let mut context = Context::from_waker(&waker);
+        let deadline = if expired {
+            tokio::time::Instant::now() - Duration::from_secs(1)
+        } else {
+            tokio::time::Instant::now() + Duration::from_secs(30)
+        };
+        let mut future = Box::pin(convert_described_topic_page(
+            &topics, false, &mut page, &mut out, deadline, &mut budget,
+        ));
+        assert!(future.as_mut().poll(&mut context).is_pending());
+        // Rejection cleanup may itself yield after visiting 8,192 descriptions.
+        let got = loop {
+            if let Poll::Ready(result) = future.as_mut().poll(&mut context) {
+                break result;
+            }
+        };
+        if expired {
+            assert!(matches!(got, Err(Error::Timeout)));
+        } else {
+            assert!(matches!(got, Err(Error::Unsupported(_))));
+        }
+    }
+}
