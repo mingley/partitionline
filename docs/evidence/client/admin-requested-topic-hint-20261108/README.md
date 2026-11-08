@@ -52,7 +52,10 @@ and fixture Git blob `5163fe81c4cbfd2462ffa86ba406851ff4a92fec`.
 It does not reproduce unsolicited or null response rows.
 
 The final candidate's 66 focused pagination controls passed in each
-profile. Both full Admin suites **failed** on 80 ms wall-time assertions:
+profile, including a compile-time `Send` assertion for the public future
+when passed a slice iterator of `&str`. Arbitrary non-`Send` iterators
+are outside that assertion. Both full Admin suites **failed** on 80 ms
+wall-time assertions:
 
 | Profile | Passed / failed | Failed test (measured time) |
 | --- | --- | --- |
@@ -192,6 +195,55 @@ loopback fixtures, not comparisons with other Kafka clients. They do not
 qualify the merged source; [its matched timing][perf] is reported separately
 above.
 
+## Separate sorted-input experiment
+
+The [sorted-input experiment][sorted-perf] compared the combined candidate
+source `3125c234259c87d1bc4a89d0cd0734d124529bea` with prototype source
+`ed27320d26193080eb38d9bf863d4c5737a7e9ca`. On the first hint miss for
+more than eight inputs, the prototype scans for nondecreasing request names,
+yielding every 8,192 comparisons. It uses binary search for sorted names
+and the existing randomized set for unsorted names. Duplicates are allowed.
+
+This prototype is **not applied or qualified for integration**. A smoke
+run passed eight generated fixture shapes, but it has not completed
+permanent cancellation, deadline, mutation, live Kafka, broad-suite or
+exact-source documentation checks. The source scan's yield is not a
+wall-time bound. Results do not qualify the candidate above.
+
+The shared AMD EPYC 7763 runner used one pinned CPU, Rust 1.99.1 and LLVM
+23.1.1. Both arms used benchmark fixture Git blob
+`807700b69d6023338bc0ce18e54b0fe19180eda5` (SHA-256
+`c7c72a250ddca1e858b06530ccb019450e03007bb4fb613493f645de497989a1`).
+Baseline and prototype release test binaries had SHA-256
+`4039c07895d0b6653f75bf8e2b884d6327bcf5eeaf76a88dffe475ea21a1603b`
+and `8fd95c866dfb941cfae457aba78ac4b99fa28e807667afc25234fb0f439b7234`.
+The [CSV](sorted-prototype-timings.csv) contains all 240 observations;
+there are 12 alternating pairs per shape.
+
+| Shape | Hint / sorted prototype median (ms) | Median paired ratio | Paired ratio range | Prototype slower |
+| --- | --- | --- | --- | --- |
+| One-name, one successful page | 123.302 / 123.243 | 0.9929 | 0.9787–1.0154 | 3/12 |
+| One-name, 16 successful pages | 122.277 / 121.856 | 0.9975 | 0.9649–1.0406 | 4/12 |
+| 32 sorted names, reversed rows | 46.858 / 46.319 | 0.9888 | 0.9465–0.9969 | 0/12 |
+| 256 sorted names, reversed rows | 33.155 / 32.825 | 0.9882 | 0.9434–1.0021 | 1/12 |
+| 256 sorted names, ordered rows | 28.775 / 28.771 | 0.9991 | 0.9905–1.1158 | 5/12 |
+| 256 sorted names, duplicates, reversed rows | 40.679 / 39.382 | 0.9650 | 0.9617–0.9889 | 0/12 |
+| 256 sorted long names, reversed rows | 27.912 / 25.515 | 0.9120 | 0.9033–0.9181 | 0/12 |
+| 256 unsorted names, reversed rows | 33.272 / 33.005 | 0.9945 | 0.9448–1.0096 | 2/12 |
+| 256 unsorted names, ordered rows | 28.474 / 28.194 | 0.9982 | 0.9867–1.0611 | 5/12 |
+| 256 unsorted long names, reversed rows | 27.786 / 27.376 | 0.9865 | 0.9687–1.0086 | 2/12 |
+
+Ratios are prototype divided by the hint candidate. The 32-name cases run
+1,000 reads; 256-name cases run 200, except long-name cases run 80.
+Single- and 16-page controls run 4,000 and 250 reads. Sorted names use
+zero-padded numeric suffixes; unsorted names use unpadded numeric suffixes.
+The duplicate fixture sends each of 256 sorted names twice and receives
+one error row per distinct name. Long names share a prefix and are about
+200 bytes. These synthetic loopback results show a modest gain on short
+sorted names and a larger gain on that long-name fixture; they do not
+remove the separate numeric-input/lexical-response regression above or
+establish a global ranking.
+
 ## Limits
 
 The initial fallback reservation is based on at most 32 input entries even
@@ -223,5 +275,6 @@ The temporary row observer and its overhead are reported separately.
 [draft-gate]: https://github.com/mingley/partitionline/actions/runs/42484745286
 [draft-fmt]: https://github.com/mingley/partitionline/actions/runs/42484469639
 [prototype-perf]: https://github.com/mingley/partitionline/actions/runs/42483323372
+[sorted-perf]: https://github.com/mingley/partitionline/actions/runs/42485820704
 [broad]: https://github.com/mingley/partitionline/actions/runs/42485301649
 [perf]: https://github.com/mingley/partitionline/actions/runs/42484971478
