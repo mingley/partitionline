@@ -37,3 +37,78 @@ jobs:
           git hash-object src/admin.rs src/admin/pagination_tests.rs
           cargo fmt --all -- --check
           cargo clippy --locked --all-targets --all-features -- -D warnings
+  mutations:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    strategy:
+      fail-fast: false
+      matrix:
+        profile: [default, all]
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Run independently restored hint mutants
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ "${{ matrix.profile }}" = all ]; then flags=--all-features; else flags=; fi
+          cp src/admin.rs "$RUNNER_TEMP/original.rs"
+          expected=$(sha256sum "$RUNNER_TEMP/original.rs" | cut -d' ' -f1)
+          git hash-object src/admin.rs src/admin/pagination_tests.rs
+          mkdir -p "$RUNNER_TEMP/hint-mutations"
+          for mutant in current_hint next_hint indexed_fail_open cap_duplicates deferred_index_yield deferred_cancel; do
+            cp "$RUNNER_TEMP/original.rs" src/admin.rs
+            MUTANT="$mutant" python3 - <<'PY'
+          import os
+          from pathlib import Path
+          path=Path("src/admin.rs")
+          source=path.read_text()
+          mutant=os.environ["MUTANT"]
+          edits={
+              "current_hint": (".get(self.hint)\n            .is_some_and(|candidate| candidate.as_ref() == name)", ".get(self.hint)\n            .is_some()"),
+              "next_hint": (".get(self.hint + 1)\n            .is_some_and(|candidate| candidate.as_ref() == name)", ".get(self.hint + 1)\n            .is_some()"),
+              "indexed_fail_open": ("return index.contains(name);", "return true;"),
+              "cap_duplicates": ("HashSet::with_capacity(self.names.len().min(32))", "HashSet::with_capacity(self.names.len())"),
+          }
+          if mutant in edits:
+              old,new=edits[mutant]
+              assert source.count(old)==1, (mutant,source.count(old))
+              source=source.replace(old,new,1)
+          else:
+              start=source.index("async fn index_requested_dtp_names")
+              end=source.index("struct RequestedDtpNames",start)
+              block=source[start:end]
+              old="tokio::task::yield_now().await;"
+              assert block.count(old)==1, (mutant,block.count(old))
+              source=source[:start]+block.replace(old,"std::hint::black_box(());",1)+source[end:]
+          path.write_text(source)
+          PY
+            case "$mutant" in
+              current_hint) testname=dtp_requested_names_reject_unsolicited_success ;;
+              next_hint) testname=dtp_requested_names_hint_next_rejects_unrequested_name ;;
+              indexed_fail_open) testname=dtp_requested_names_existing_index_rejects_later_unsolicited_topic ;;
+              cap_duplicates) testname=dtp_requested_names_deferred_index_has_capped_initial_capacity ;;
+              deferred_index_yield) testname=dtp_requested_names_index_yields_after_progress ;;
+              deferred_cancel) testname=dtp_requested_names_cancel_during_deferred_index_keeps_socket_usable ;;
+            esac
+            fullname="admin::pagination_tests::$testname"
+            set +e
+            cargo test --locked $flags --lib "$fullname" -- --exact --nocapture > "$RUNNER_TEMP/hint-mutations/$mutant.txt" 2>&1
+            status=$?
+            set -e
+            cat "$RUNNER_TEMP/hint-mutations/$mutant.txt"
+            echo "MUTATION mutant=$mutant status=$status expected_test=$fullname"
+            test "$status" -eq 101
+            grep -F "test $fullname ... FAILED" "$RUNNER_TEMP/hint-mutations/$mutant.txt"
+          done
+          cp "$RUNNER_TEMP/original.rs" src/admin.rs
+          actual=$(sha256sum src/admin.rs | cut -d' ' -f1)
+          test "$actual" = "$expected"
+          sha256sum src/admin.rs src/admin/pagination_tests.rs
+      - uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: hint-mutations-${{ matrix.profile }}
+          path: ${{ runner.temp }}/hint-mutations/
+          if-no-files-found: warn
+          retention-days: 30

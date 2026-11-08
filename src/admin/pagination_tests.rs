@@ -2063,3 +2063,55 @@ async fn dtp_requested_names_large_input_rejects_unsolicited_topic() {
     assert!(matches!(&got, Err(Error::Protocol(message))
         if message == "DescribeTopicPartitions returned an unrequested topic"));
 }
+
+#[tokio::test]
+async fn dtp_requested_names_existing_index_rejects_later_unsolicited_topic() {
+    let (mut admin, listener) = admin_and_listener().await;
+    let names: Vec<String> = (0..12).map(|n| format!("topic-{n}")).collect();
+    let peer_names = names.clone();
+    let peer = tokio::spawn(async move {
+        let (mut socket, _) = listener.accept().await.unwrap();
+        let expected: Vec<&str> = peer_names.iter().map(String::as_str).collect();
+        let header = dtp_named_request(&mut socket, &expected, None).await;
+        let mut response = page(0, None);
+        response.topics[0].name = Some(peer_names[11].clone());
+        response
+            .topics
+            .push(DescribedTopicPartitions::new("unrequested", 0));
+        send_page(&mut socket, &header, &response).await.unwrap();
+    });
+    let got = admin
+        .describe_topics_with_partition_limit_timeout(
+            names.iter(),
+            false,
+            1,
+            Duration::from_secs(5),
+        )
+        .await;
+    peer.await.unwrap();
+    assert!(matches!(&got, Err(Error::Protocol(message))
+        if message == "DescribeTopicPartitions returned an unrequested topic"));
+}
+
+#[tokio::test]
+async fn dtp_requested_names_hint_next_rejects_unrequested_name() {
+    let (mut admin, listener) = admin_and_listener().await;
+    let peer = tokio::spawn(async move {
+        let (mut socket, _) = listener.accept().await.unwrap();
+        let header = dtp_named_request(&mut socket, &["orders", "payments"], None).await;
+        let mut response = page(0, None);
+        response.topics[0].name = Some("unrequested".into());
+        send_page(&mut socket, &header, &response).await.unwrap();
+    });
+    let got = admin
+        .describe_topics_with_partition_limit_timeout(
+            ["orders", "payments"].iter(),
+            false,
+            1,
+            Duration::from_secs(5),
+        )
+        .await;
+    peer.await.unwrap();
+    assert!(matches!(&got, Err(Error::Protocol(message))
+        if message == "DescribeTopicPartitions returned an unrequested topic"));
+}
