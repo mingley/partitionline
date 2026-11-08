@@ -1,0 +1,99 @@
+name: Admin combined checkpoint paired public mock timing
+on:
+  push:
+    branches: [qualification/admin-dtp-combined-paired-20261108]
+permissions:
+  contents: read
+jobs:
+  paired:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 55
+    env:
+      CARGO_INCREMENTAL: '0'
+      CARGO_TERM_COLOR: never
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: 0092a3931387528f712bf06f6075b4b5c1a94d4d
+          path: baseline
+          persist-credentials: false
+      - uses: actions/checkout@v7
+        with:
+          ref: a0dfdba26a82215fc6a63b07ecc67eb3578fb18d
+          path: candidate
+          persist-credentials: false
+      - uses: actions/checkout@v7
+        with:
+          ref: bb91475c679cceaac872d8ae78ad0fd59b928386
+          path: fixture
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Install identical test fixture and pin both sources
+        run: |
+          set -euo pipefail
+          mkdir -p evidence
+          cp fixture/src/admin/pagination_tests.rs baseline/src/admin/pagination_tests.rs
+          cp fixture/src/admin/pagination_tests.rs candidate/src/admin/pagination_tests.rs
+          test "$(git -C baseline hash-object src/admin.rs)" = eb5a967b89e94a8a3d1a7598919accdfde96f20f
+          test "$(git -C candidate hash-object src/admin.rs)" = 95d95498f07faccba3f1f95b2cab0a20f1d9eaf5
+          test "$(git -C baseline hash-object src/admin/pagination_tests.rs)" = 6944285477b86a8cad7b2e65ef3b55dcebd64f95
+          test "$(git -C candidate hash-object src/admin/pagination_tests.rs)" = 6944285477b86a8cad7b2e65ef3b55dcebd64f95
+          cmp baseline/Cargo.lock candidate/Cargo.lock
+          cmp baseline/Cargo.toml candidate/Cargo.toml
+          git -C baseline rev-parse HEAD HEAD:src/admin.rs HEAD:Cargo.lock | tee evidence/baseline-blobs.txt
+          git -C candidate rev-parse HEAD HEAD:src/admin.rs HEAD:Cargo.lock | tee evidence/candidate-blobs.txt
+          sha256sum baseline/src/admin.rs candidate/src/admin.rs baseline/src/admin/pagination_tests.rs candidate/src/admin/pagination_tests.rs baseline/Cargo.lock | tee evidence/sha256.txt
+          rustc -Vv | tee evidence/rust.txt
+          cargo -V | tee evidence/cargo.txt
+          lscpu | tee evidence/cpu.txt
+          if test -r /sys/fs/cgroup/cpu.max; then cat /sys/fs/cgroup/cpu.max | tee evidence/cpu-max.txt; else echo 'cpu.max unavailable' | tee evidence/cpu-max.txt; fi
+          printf 'RUSTFLAGS=%s\n' "${RUSTFLAGS-unset}" | tee evidence/flags.txt
+      - name: Build separate release binaries
+        run: |
+          set -euo pipefail
+          cargo test --locked --release --manifest-path baseline/Cargo.toml --target-dir "$GITHUB_WORKSPACE/target-baseline" --lib dtp_public_row_poll_witness --no-run 2>&1 | tee evidence/build-baseline.txt
+          cargo test --locked --release --manifest-path candidate/Cargo.toml --target-dir "$GITHUB_WORKSPACE/target-candidate" --lib dtp_public_row_poll_witness --no-run 2>&1 | tee evidence/build-candidate.txt
+          mapfile -t baseline_bins < <(find target-baseline/release/deps -maxdepth 1 -type f -executable -name 'partitionline-*')
+          mapfile -t candidate_bins < <(find target-candidate/release/deps -maxdepth 1 -type f -executable -name 'partitionline-*')
+          test "${#baseline_bins[@]}" = 1
+          test "${#candidate_bins[@]}" = 1
+          baseline_hash="$(sha256sum "${baseline_bins[0]}" | cut -d' ' -f1)"
+          candidate_hash="$(sha256sum "${candidate_bins[0]}" | cut -d' ' -f1)"
+          test "$baseline_hash" != "$candidate_hash"
+          sha256sum "${baseline_bins[0]}" "${candidate_bins[0]}" | tee evidence/binaries.txt
+          echo "BASELINE_BIN=${baseline_bins[0]}" >> "$GITHUB_ENV"
+          echo "CANDIDATE_BIN=${candidate_bins[0]}" >> "$GITHUB_ENV"
+      - name: Interleave validated public mock calls
+        run: |
+          set -euo pipefail
+          for kind in empty error; do
+            for count in 1 32 8191 8192 8193 100000 500000; do
+              case "$count" in
+                1|32) trials=21 ;;
+                500000) trials=3 ;;
+                *) trials=5 ;;
+              esac
+              for trial in $(seq 1 "$trials"); do
+                if (( trial % 2 )); then
+                  arms=(baseline candidate)
+                else
+                  arms=(candidate baseline)
+                fi
+                for arm in "${arms[@]}"; do
+                  echo "ROW_PAIR arm=$arm kind=$kind rows=$count trial=$trial"
+                  if test "$arm" = baseline; then bin="$BASELINE_BIN"; else bin="$CANDIDATE_BIN"; fi
+                  log="evidence/${arm}-${kind}-${count}-${trial}.log"
+                  PL_ROW_PUBLIC_COUNT="$count" PL_ROW_PUBLIC_KIND="$kind" "$bin" --exact admin::pagination_tests::dtp_public_row_poll_witness --test-threads=1 --nocapture 2>&1 | tee "$log"
+                  grep -F "ROW_PUBLIC rows=$count kind=$kind " "$log"
+                  grep -F 'test result: ok. 1 passed; 0 failed;' "$log"
+                done
+              done
+            done
+          done
+      - name: Retain raw measurements and build provenance
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: admin-combined-row-checkpoint-public-paired
+          path: evidence
+          retention-days: 30
