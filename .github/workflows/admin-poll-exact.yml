@@ -1,0 +1,49 @@
+name: Exact Admin cooperative poll checks
+on:
+  push:
+    branches:
+      - work/admin-poll-exact-20261108
+permissions:
+  contents: read
+jobs:
+  suite:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        profile: [default, all]
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Exact source and formatting
+        run: |
+          rustc -Vv
+          sha256sum src/admin.rs Cargo.toml Cargo.lock
+          cargo fmt --all -- --check
+      - name: New poll controls
+        shell: bash
+        run: |
+          set -euo pipefail
+          args=()
+          if [ "${{ matrix.profile }}" = all ]; then args+=(--all-features); fi
+          cargo test --locked --lib "${args[@]}" admin::tests::extending_described_topics_yields_and_completes -- --exact
+          cargo test --locked --lib "${args[@]}" admin::tests::indexing_described_producers_yields_and_completes -- --exact
+      - name: Existing Admin library suite
+        shell: bash
+        run: |
+          set -euo pipefail
+          args=()
+          if [ "${{ matrix.profile }}" = all ]; then args+=(--all-features); fi
+          cargo test --locked --lib "${args[@]}" admin::tests:: -- --test-threads=1
+  static:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Exact source and strict Clippy
+        run: |
+          rustc -Vv
+          sha256sum src/admin.rs Cargo.toml Cargo.lock
+          cargo clippy --locked --all-targets --all-features -- -D warnings
