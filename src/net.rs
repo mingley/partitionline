@@ -1586,6 +1586,20 @@ impl BrokerConn {
         !self.read_buf.is_empty() || !self.prefetch.lock().is_empty()
     }
 
+    #[cfg(test)]
+    pub(crate) fn test_hold_stream(
+        &self,
+        acquired: tokio::sync::oneshot::Sender<()>,
+        release: tokio::sync::oneshot::Receiver<()>,
+    ) -> impl std::future::Future<Output = ()> + Send + 'static {
+        let stream = Arc::clone(&self.stream);
+        async move {
+            let _guard = stream.lock().await;
+            let _notified = acquired.send(());
+            let _released = release.await;
+        }
+    }
+
     /// Mark this connection as permanently closed/failed.
     pub fn close(&mut self) {
         self.closed.store(true, Ordering::SeqCst);
