@@ -14,7 +14,7 @@ concurrency:
 jobs:
   qualify:
     runs-on: ubuntu-24.04
-    timeout-minutes: 50
+    timeout-minutes: 75
     env:
       CARGO_BUILD_JOBS: '2'
       CARGO_INCREMENTAL: '0'
@@ -240,6 +240,52 @@ jobs:
               grep -F 'test result: ok. 1 passed; 0 failed; 0 ignored;' "$log"
             done
           done
+      - name: Run producer and transaction regression selection
+        timeout-minutes: 30
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$GITHUB_WORKSPACE/candidate"
+          export CARGO_TARGET_DIR="$RUNNER_TEMP/txn-state-candidate-target"
+          for mode in default all; do
+            extra=''
+            if [[ "$mode" = all ]]; then extra=--all-features; fi
+            while read -r suite name; do
+              log="$RUNNER_TEMP/txn-state-evidence/regression-$mode-$suite-$name.log"
+              timeout 600 cargo +stable test --locked $extra --test "$suite" "$name" -- --exact --nocapture > "$log" 2>&1 || { cat "$log"; exit 1; }
+              cat "$log"
+              grep -F 'test result: ok. 1 passed; 0 failed; 0 ignored;' "$log"
+            done <<'CASES'
+          full_surface transactional_fenced_produce_is_fatal_classic
+          full_surface transactional_fenced_produce_is_fatal_v2
+          full_surface transactional_abort_required_blocks_commit_until_abort_classic
+          full_surface transactional_abort_required_v2_recovers_without_reinit
+          full_surface transactional_fatal_produce_errors_fence_producer
+          full_surface transactional_commit_and_abort_require_open_transaction
+          full_surface transactional_end_txn_errors_classified
+          full_surface transactional_txn_offset_commit_errors_classified
+          full_surface transactional_add_offsets_errors_classified_classic
+          buffer_ownership permit_stays_owned_across_retry_and_releases_exactly_once
+          buffer_ownership presend_failure_transaction_partition_releases_permit_and_flush_fails
+          buffer_ownership presend_failure_real_mock_add_partitions_to_txn
+          mock_produce transactional_startup_reuses_the_bootstrap_socket
+          mock_produce commit_reuses_a_produce_handshake_for_the_moved_coordinator
+          mock_produce epoch_bump_reuses_a_produce_handshake
+          mock_produce send_offsets_reuses_bootstrap_api_versions
+          mock_produce add_partitions_drops_the_coordinator_when_it_closes_during_backoff
+          produce_cancel dropping_send_future_while_buffered_is_ambiguous_but_still_delivers
+          produce_cancel retry_queue_shutdown_boundedly_completes_and_releases_permits
+          producer_initialization producer_id_terminal_errors_do_not_retry
+          producer_initialization transaction_coordinator_startup_retries_within_one_deadline
+          CASES
+          done
+      - name: Verify stable format and strict all-target Clippy
+        timeout-minutes: 20
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$GITHUB_WORKSPACE/candidate"
+          export CARGO_TARGET_DIR="$RUNNER_TEMP/txn-state-candidate-target"
           timeout 180 cargo +stable fmt --all -- --check
           timeout 600 cargo +stable clippy --locked --all-targets --all-features -- -D warnings
           sha256sum src/producer.rs src/producer/txn_error_state_controls.rs | tee "$RUNNER_TEMP/txn-state-evidence/final-pins.log"
