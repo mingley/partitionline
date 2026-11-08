@@ -68,7 +68,7 @@ fn expected(
     timeout: i32,
     transaction: Option<&str>,
     has_batch: bool,
-    base_offset: i64,
+    base_offsets: [i64; 2],
 ) -> TestResult<Vec<u8>> {
     let mut counts = BTreeMap::new();
     for index in indexes {
@@ -107,7 +107,13 @@ fn expected(
     for (index, error) in entries {
         out.extend_from_slice(&index.to_be_bytes());
         out.extend_from_slice(&error.to_be_bytes());
-        out.extend_from_slice(&(if error == 0 { base_offset } else { -1 }).to_be_bytes());
+        let base = if error == 0 {
+            let position = usize::try_from(index)?;
+            *base_offsets.get(position).ok_or("unexpected successful partition")?
+        } else {
+            -1
+        };
+        out.extend_from_slice(&base.to_be_bytes());
         out.extend_from_slice(&(-1_i64).to_be_bytes());
     }
     out.extend_from_slice(&0_i32.to_be_bytes());
@@ -143,33 +149,33 @@ async fn assert_response(
     timeout: i32,
     transaction: Option<&str>,
     batch: Option<&[u8]>,
-    base_offset: i64,
+    base_offsets: [i64; 2],
 ) -> TestResult {
     let bytes = request(indexes, topic, acks, timeout, transaction, batch)?;
-    let want = expected(indexes, topic, acks, timeout, transaction, batch.is_some(), base_offset)?;
+    let want = expected(indexes, topic, acks, timeout, transaction, batch.is_some(), base_offsets)?;
     let got = router.dispatch(bytes).await?.ok_or("missing response")?;
     assert_eq!(got, want);
     Ok(())
 }
 
 #[tokio::test(flavor = "current_thread")]
-async fn produce_dense_public_precedence_order_and_durable_readback() -> TestResult {
+async fn produce_dense_public_precedence_order_and_readback() -> TestResult {
     let (root, router) = router("controls").await?;
     for size in [16usize, 17, 32, 256] {
         let mut values: Vec<i32> = (0..size).rev().map(|value| value as i32).collect();
-        assert_response(&router, &values, "omega", 1, 60_000, None, None, 0).await?;
+        assert_response(&router, &values, "omega", 1, 60_000, None, None, [0, 0]).await?;
         values[size - 1] = values[0];
-        assert_response(&router, &values, "omega", 1, 60_000, None, None, 0).await?;
+        assert_response(&router, &values, "omega", 1, 60_000, None, None, [0, 0]).await?;
         values[size - 1] = -1;
-        assert_response(&router, &values, "omega", 1, 60_000, None, None, 0).await?;
+        assert_response(&router, &values, "omega", 1, 60_000, None, None, [0, 0]).await?;
         values[size - 1] = i32::MAX;
-        assert_response(&router, &values, "omega", 1, 60_000, None, None, 0).await?;
+        assert_response(&router, &values, "omega", 1, 60_000, None, None, [0, 0]).await?;
     }
     let mut duplicate: Vec<i32> = (0..32).rev().collect();
     duplicate[31] = duplicate[0];
-    assert_response(&router, &duplicate, "alpha", 2, 60_000, None, None, 0).await?;
-    assert_response(&router, &duplicate, "alpha", 1, -1, Some("tx"), None, 0).await?;
-    assert_response(&router, &duplicate, "alpha", 1, 60_000, Some("tx"), None, 0).await?;
+    assert_response(&router, &duplicate, "alpha", 2, 60_000, None, None, [0, 0]).await?;
+    assert_response(&router, &duplicate, "alpha", 1, -1, Some("tx"), None, [0, 0]).await?;
+    assert_response(&router, &duplicate, "alpha", 1, 60_000, Some("tx"), None, [0, 0]).await?;
     let no_ack = request(&duplicate, "alpha", 0, 60_000, None, None)?;
     assert!(matches!(
         router.dispatch(no_ack).await,
@@ -179,9 +185,12 @@ async fn produce_dense_public_precedence_order_and_durable_readback() -> TestRes
     let indexes: Vec<i32> = (0..32).rev().collect();
     let valid = request(&indexes, "alpha", 1, 60_000, None, Some(batch))?;
     assert!(router.dispatch(valid[..valid.len() - 1].to_vec()).await.is_err());
-    assert_response(&router, &indexes, "alpha", 1, 60_000, None, Some(batch), 0).await?;
-    assert_response(&router, &duplicate, "alpha", 2, 60_000, None, Some(batch), 0).await?;
-    assert_response(&router, &indexes, "alpha", 1, 60_000, None, Some(batch), 1).await?;
+    assert_response(&router, &indexes, "alpha", 1, 60_000, None, Some(batch), [0, 0]).await?;
+    let mut duplicate_valid = indexes.clone();
+    duplicate_valid.push(0);
+    assert_response(&router, &duplicate_valid, "alpha", 1, 60_000, None, Some(batch), [1, 1]).await?;
+    assert_response(&router, &duplicate, "alpha", 2, 60_000, None, Some(batch), [0, 0]).await?;
+    assert_response(&router, &indexes, "alpha", 1, 60_000, None, Some(batch), [1, 2]).await?;
     router.shutdown().await?;
     drop(router);
 
@@ -191,7 +200,7 @@ async fn produce_dense_public_precedence_order_and_durable_readback() -> TestRes
         let (mut log, _) =
             partition::Partition::open(path, 0, config.journal_limits, config.record_limits)?;
         let entries = log.fetch(0, 4, 1 << 20)?;
-        assert_eq!(entries.len(), 2);
+        assert_eq!(entries.len(), if index == 0 { 2 } else { 3 });
         for (offset, entry) in entries.iter().enumerate() {
             assert_eq!(entry.first_offset, offset as u64);
             assert_eq!(entry.record_count, 1);
@@ -244,7 +253,7 @@ async fn produce_dense_router_timing() -> TestResult {
     assert!(iterations > 0);
     let indexes = benchmark_indexes(count, &shape)?;
     let input = request(&indexes, "omega", 1, 60_000, None, None)?;
-    let want = expected(&indexes, "omega", 1, 60_000, None, false, 0)?;
+    let want = expected(&indexes, "omega", 1, 60_000, None, false, [0, 0])?;
     let (root, router) = router("timing").await?;
     let warm = router.dispatch(input.clone()).await?.ok_or("missing warmup")?;
     assert_eq!(warm, want);

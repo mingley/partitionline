@@ -1162,8 +1162,8 @@ std::thread_local! {
     static DENSE_TEST_SELECTED: std::cell::Cell<usize> = const { std::cell::Cell::new(0) };
 }
 
-// Dense, unordered partition lists can use at most 8 KiB of temporary
-// owner slots. Sparse, negative and unusually large indexes use the map path.
+// Dense, unordered partition lists initialize at most 4,096 u16 owner slots.
+// The allocator may reserve more. Sparse and negative indexes use the map path.
 fn mark_dense_partitions(parts: &[Part], first: &mut [bool], duplicated: &mut [bool]) -> bool {
     const MAX_SLOTS: usize = 4096;
     if parts.len() != first.len()

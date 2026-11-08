@@ -115,12 +115,13 @@ fn dense_partition_production_path_selection_fallback_and_cancellation(
     let (mut catalog, _) = Catalog::open(root.join("catalog"), common.catalog_limits)?;
     let mut id = [0; 16];
     id[15] = 2;
-    let _created = catalog.create("alpha", TopicId::new(id)?, 2)?;
+    let topic_id = TopicId::new(id)?;
+    let _created = catalog.create("alpha", topic_id, 2)?;
     let mut config = Config::new(root.join("data"));
     config.max_partitions = 4096;
     let mut store = Store::open(config, &catalog)?;
 
-    fn request(topic: &[u8], valid: bool) -> Result<Vec<u8>, Box<dyn std::error::Error>> {
+    fn request(topic: &[u8], indexes: &[i32], valid: bool) -> Result<Vec<u8>, Box<dyn std::error::Error>> {
         let batch = include_bytes!("../../tests/fixtures/records/valid-basic.bin");
         let mut out = Vec::new();
         out.extend_from_slice(&0_i16.to_be_bytes());
@@ -133,8 +134,8 @@ fn dense_partition_production_path_selection_fallback_and_cancellation(
         out.extend_from_slice(&1_i32.to_be_bytes());
         out.extend_from_slice(&i16::try_from(topic.len())?.to_be_bytes());
         out.extend_from_slice(topic);
-        out.extend_from_slice(&32_i32.to_be_bytes());
-        for index in (0_i32..32).rev() {
+        out.extend_from_slice(&i32::try_from(indexes.len())?.to_be_bytes());
+        for index in indexes {
             out.extend_from_slice(&index.to_be_bytes());
             if valid {
                 out.extend_from_slice(&i32::try_from(batch.len())?.to_be_bytes());
@@ -146,27 +147,50 @@ fn dense_partition_production_path_selection_fallback_and_cancellation(
         Ok(out)
     }
 
-    let mut dense = request(b"omega", false)?;
+    for count in [16_i32, 17, 32, 256, 4096] {
+        super::DENSE_TEST_SELECTED.with(|selected| selected.set(0));
+        let indexes: Vec<i32> = (0..count).rev().collect();
+        let mut input = request(b"omega", &indexes, false)?;
+        let response = process(&catalog, &mut store, &mut input, &common, Instant::now(), || Ok(()))?;
+        assert!(response.is_some());
+        let expected = usize::from(count > 16);
+        assert_eq!(super::DENSE_TEST_SELECTED.with(|selected| selected.get()), expected);
+    }
+
+    super::DENSE_TEST_SELECTED.with(|selected| selected.set(0));
+    let mut repeated: Vec<i32> = (0..32).rev().collect();
+    repeated[29] = 31;
+    repeated[30] = 31;
+    let mut dense = request(b"omega", &repeated, false)?;
     let original = process(&catalog, &mut store, &mut dense, &common, Instant::now(), || Ok(()))?;
     assert_eq!(super::DENSE_TEST_SELECTED.with(|selected| selected.get()), 1);
     super::DENSE_TEST_FORCE_FALLBACK.with(|force| force.set(true));
-    let mut fallback = request(b"omega", false)?;
+    let mut fallback = request(b"omega", &repeated, false)?;
     let from_fallback = process(&catalog, &mut store, &mut fallback, &common, Instant::now(), || Ok(()))?;
     assert_eq!(original, from_fallback);
     assert_eq!(super::DENSE_TEST_SELECTED.with(|selected| selected.get()), 1);
 
     super::DENSE_TEST_FORCE_FALLBACK.with(|force| force.set(false));
-    let mut valid = request(b"alpha", true)?;
+    super::DENSE_TEST_SELECTED.with(|selected| selected.set(0));
+    let mut indexes = vec![1, 0];
+    indexes.extend((2..32).rev());
+    let mut valid = request(b"alpha", &indexes, true)?;
     let calls = Cell::new(0usize);
     let canceled = process(&catalog, &mut store, &mut valid, &common, Instant::now(), || {
         let next = calls.get() + 1;
         calls.set(next);
-        if next == 2 { Err(Error::Canceled) } else { Ok(()) }
+        if next == 3 { Err(Error::Canceled) } else { Ok(()) }
     });
     assert!(matches!(canceled, Err(Error::Canceled)));
-    assert_eq!(calls.get(), 2);
-    assert_eq!(super::DENSE_TEST_SELECTED.with(|selected| selected.get()), 2);
-    assert!(store.slots.is_empty());
+    assert_eq!(calls.get(), 3);
+    assert_eq!(super::DENSE_TEST_SELECTED.with(|selected| selected.get()), 1);
+    let position = store.slot(topic_id, 1)
+        .map_err(|code| std::io::Error::other(format!("slot error {code}")))?;
+    assert!(store.slots[position].partition.fetch(0, 1, 4096)?.is_empty());
+    let mut retry = request(b"alpha", &indexes, true)?;
+    assert!(process(&catalog, &mut store, &mut retry, &common, Instant::now(), || Ok(()))?.is_some());
+    assert_eq!(store.log_bounds(topic_id, 0), Ok((0, 1)));
+    assert_eq!(store.log_bounds(topic_id, 1), Ok((0, 1)));
     drop(store);
     drop(catalog);
     fs::remove_dir_all(root)?;

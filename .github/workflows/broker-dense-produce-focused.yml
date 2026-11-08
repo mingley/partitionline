@@ -27,9 +27,9 @@ jobs:
       - name: Verify source and fixture identity
         run: |
           set -euo pipefail
-          test "$(git -C candidate rev-parse HEAD:partitionline-broker/src/produce.rs)" = d7e5ac675cea9d584fde3e025872501b0d37030a
-          test "$(git -C candidate rev-parse HEAD:partitionline-broker/src/produce/dense_partition_tests.rs)" = c7dbdd93d281e398207587419bc6c7a9761841ac
-          test "$(git -C candidate rev-parse HEAD:partitionline-broker/tests/produce_dense_partitions.rs)" = 6d7bb3810633759995252c6daeede84923dae743
+          test "$(git -C candidate rev-parse HEAD:partitionline-broker/src/produce.rs)" = 9e72f06e118c51bc34f50b17a7ac8574cbf3af77
+          test "$(git -C candidate rev-parse HEAD:partitionline-broker/src/produce/dense_partition_tests.rs)" = 229cf65e591e0f6677c5c417a473766f3310754f
+          test "$(git -C candidate rev-parse HEAD:partitionline-broker/tests/produce_dense_partitions.rs)" = 9ec200b1c79582695ec3c05a4c65956e5c7206f7
           test "$(git -C baseline rev-parse HEAD:partitionline-broker/src/produce.rs)" = 28ac0a2eb00c4994cc3ebc8d3fe4fa035e6bdc4a
           git -C candidate rev-parse HEAD HEAD:partitionline-broker/src/produce.rs HEAD:partitionline-broker/src/produce/dense_partition_tests.rs HEAD:partitionline-broker/tests/produce_dense_partitions.rs HEAD:partitionline-broker/Cargo.lock
           git -C baseline rev-parse HEAD HEAD:partitionline-broker/src/produce.rs HEAD:partitionline-broker/Cargo.lock
@@ -43,14 +43,14 @@ jobs:
           if test "${{ matrix.feature }}" = all; then flags=--all-features; else flags=; fi
           export CARGO_TARGET_DIR="$PWD/target-candidate"
           cargo test --locked --manifest-path candidate/partitionline-broker/Cargo.toml $flags --lib dense_partition_tests:: -- --test-threads=1
-          cargo test --locked --manifest-path candidate/partitionline-broker/Cargo.toml $flags --test produce_dense_partitions produce_dense_public_precedence_order_and_durable_readback -- --exact --test-threads=1
+          cargo test --locked --manifest-path candidate/partitionline-broker/Cargo.toml $flags --test produce_dense_partitions produce_dense_public_precedence_order_and_readback -- --exact --test-threads=1
           cargo test --locked --manifest-path candidate/partitionline-broker/Cargo.toml $flags --test produce independent_apache_produce_goldens -- --exact --test-threads=1
       - name: Run the identical public fixture on baseline
         run: |
           set -euo pipefail
           if test "${{ matrix.feature }}" = all; then flags=--all-features; else flags=; fi
           export CARGO_TARGET_DIR="$PWD/target-baseline"
-          cargo test --locked --manifest-path baseline/partitionline-broker/Cargo.toml $flags --test produce_dense_partitions produce_dense_public_precedence_order_and_durable_readback -- --exact --test-threads=1
+          cargo test --locked --manifest-path baseline/partitionline-broker/Cargo.toml $flags --test produce_dense_partitions produce_dense_public_precedence_order_and_readback -- --exact --test-threads=1
   strict:
     runs-on: ubuntu-24.04
     timeout-minutes: 35
