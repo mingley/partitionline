@@ -1,0 +1,184 @@
+name: Classic group stack fix qualification
+
+on:
+  push:
+    branches: [candidate/classic-group-stack-v2-20261108]
+
+permissions:
+  contents: read
+
+jobs:
+  qualify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    env:
+      CARGO_BUILD_JOBS: '2'
+      CARGO_INCREMENTAL: '0'
+      CARGO_PROFILE_DEV_DEBUG: '0'
+      CARGO_PROFILE_TEST_DEBUG: '0'
+      CARGO_TERM_COLOR: never
+      PL_COMPAT_RUN_VERIFIABLE: '1'
+    steps:
+      - name: Check out the unchanged baseline
+        uses: actions/checkout@v7
+        with:
+          ref: 8b5de2e2cfe5f3164a5f89546804ab36c1771ade
+          path: baseline
+          persist-credentials: false
+          sparse-checkout: |
+            .cargo
+            examples
+            scripts
+            src
+            tests
+      - name: Check out the candidate
+        uses: actions/checkout@v7
+        with:
+          path: candidate
+          fetch-depth: 2
+          persist-credentials: false
+          sparse-checkout: |
+            .cargo
+            examples
+            scripts
+            src
+            tests
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Check exact source scope and stack settings
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(uname -m)" = x86_64
+          test "$(git -C baseline rev-parse HEAD)" = 8b5de2e2cfe5f3164a5f89546804ab36c1771ade
+          test "$(git -C candidate rev-parse HEAD^)" = 8b5de2e2cfe5f3164a5f89546804ab36c1771ade
+          test -z "${RUST_MIN_STACK:-}"
+          test -z "${RUSTFLAGS:-}"
+          test -z "${CARGO_ENCODED_RUSTFLAGS:-}"
+          test -z "$(git -C baseline status --porcelain --untracked-files=normal)"
+          test -z "$(git -C candidate status --porcelain --untracked-files=normal)"
+          cmp baseline/tests/broker_compatibility.rs candidate/tests/broker_compatibility.rs
+          printf '%s  %s\n' '5e289d3af378a44c162e3142468cbf58afe03955f6204a67825b0776f424cad0' baseline/tests/broker_compatibility.rs | sha256sum -c -
+          printf '%s  %s\n' 'ce00d2e7b049298b6c8111b7123f39859c9f2f6f3d89cbc51dc6939962d868ab' baseline/src/group.rs | sha256sum -c -
+          printf '%s  %s\n' 'fc37f50d01f8a7023513c630f43fca3da4b2765b948cc0e8b2792f0e46386338' candidate/src/group.rs | sha256sum -c -
+          python3 -B - <<'PY'
+          from pathlib import Path
+          base = Path('baseline/src/group.rs').read_text()
+          actual = Path('candidate/src/group.rs').read_text()
+          start = base.index("pub(crate) fn connect_member_and_coordinator<'a>(")
+          end = base.index("\n/// Wait until the coordinator closes " + chr(96) + "conn" + chr(96) + ".", start)
+          section = base[start:end]
+          old = ") -> impl std::future::Future<Output = Result<MemberCoordinatorConnection>> + Send + 'a {\n    async move {"
+          new = ") -> impl std::future::Future<Output = Result<MemberCoordinatorConnection>> + Send + 'a {\n    Box::pin(async move {"
+          tail = "\n        started\n    }\n}\n"
+          assert section.count(old) == 1 and section.count(tail) == 1
+          expected = base[:start] + section.replace(old, new).replace(tail, "\n        started\n    })\n}\n") + base[end:]
+          attr = '#[expect(\n    clippy::manual_async_fn,\n    reason = "The explicit Send future avoids lifetime inference failures"\n)]\npub(crate) fn connect_member_and_coordinator'
+          assert expected.count(attr) == 1
+          expected = expected.replace(attr, 'pub(crate) fn connect_member_and_coordinator')
+          before = '        let recs = self.fetch_while_interval_commits(wait).await?;\n'
+          after = ('        let recs = if self.cfg.enable_auto_commit {\n'
+                   '            Box::pin(self.fetch_while_interval_commits(wait)).await?\n'
+                   '        } else {\n'
+                   '            self.fetch_for_poll(wait).await?\n'
+                   '        };\n')
+          assert expected.count(before) == 1
+          expected = expected.replace(before, after)
+          assert actual == expected, "candidate group source differs from the reviewed changes"
+          print('unchanged compatibility test; exact connection and poll changes verified')
+          PY
+          mkdir -p "$RUNNER_TEMP/classic-box/baseline" "$RUNNER_TEMP/classic-box/candidate"
+          {
+            uname -a
+            rustc -Vv
+            cargo -V
+            echo "shell stack limit KiB: $(ulimit -s)"
+            git -C candidate rev-parse HEAD
+            sha256sum baseline/tests/broker_compatibility.rs baseline/src/group.rs candidate/src/group.rs
+          } | tee "$RUNNER_TEMP/classic-box/identity.log"
+      - id: baseline
+        name: Unchanged baseline against Kafka 4.1.2
+        working-directory: baseline
+        shell: bash
+        run: |
+          set -euo pipefail
+          ulimit -c 0
+          export PL_COMPAT_REPORT_DIR="$RUNNER_TEMP/classic-box/baseline"
+          export CARGO_TARGET_DIR="$RUNNER_TEMP/classic-box/baseline-target"
+          set +e
+          timeout 900s bash scripts/ci-broker-compatibility.sh 4.1.2 >"$PL_COMPAT_REPORT_DIR/driver.log" 2>&1
+          status=$?
+          set -e
+          printf '%s\n' "$status" >"$PL_COMPAT_REPORT_DIR/driver-exit.txt"
+          cat "$PL_COMPAT_REPORT_DIR/driver.log"
+          test "$status" -eq 101
+          grep -F 'compatibility group phase: classic join' "$PL_COMPAT_REPORT_DIR/runtime.log"
+          grep -F 'stack overflow' "$PL_COMPAT_REPORT_DIR/runtime.log"
+          if grep -Fq 'compatibility group phase: classic poll' "$PL_COMPAT_REPORT_DIR/runtime.log"; then
+            echo 'baseline advanced past the expected witness' >&2
+            exit 1
+          fi
+          mapfile -t bins < <(find "$CARGO_TARGET_DIR/debug/deps" -maxdepth 1 -type f -name 'broker_compatibility-*' -executable | sort)
+          test "${#bins[@]}" -eq 1
+          sha256sum "${bins[0]}" | tee "$RUNNER_TEMP/classic-box/baseline-test-binary.sha256"
+      - id: compatibility
+        name: Unchanged full compatibility profile with candidate
+        if: steps.baseline.outcome == 'success'
+        working-directory: candidate
+        shell: bash
+        run: |
+          set -euo pipefail
+          ulimit -c 0
+          export PL_COMPAT_REPORT_DIR="$RUNNER_TEMP/classic-box/candidate"
+          export CARGO_TARGET_DIR="$RUNNER_TEMP/classic-box/candidate-target"
+          set +e
+          timeout 900s bash scripts/ci-broker-compatibility.sh 4.1.2 >"$PL_COMPAT_REPORT_DIR/driver.log" 2>&1
+          status=$?
+          set -e
+          printf '%s\n' "$status" >"$PL_COMPAT_REPORT_DIR/driver-exit.txt"
+          cat "$PL_COMPAT_REPORT_DIR/driver.log"
+          if test -f "$PL_COMPAT_REPORT_DIR/runtime.log"; then
+            tail -n 100 "$PL_COMPAT_REPORT_DIR/runtime.log"
+          fi
+          mapfile -t bins < <(find "$CARGO_TARGET_DIR/debug/deps" -maxdepth 1 -type f -name 'broker_compatibility-*' -executable | sort)
+          test "${#bins[@]}" -eq 1
+          sha256sum "${bins[0]}" | tee "$RUNNER_TEMP/classic-box/candidate-test-binary.sha256"
+          test "$(cut -d' ' -f1 "$RUNNER_TEMP/classic-box/baseline-test-binary.sha256")" != "$(cut -d' ' -f1 "$RUNNER_TEMP/classic-box/candidate-test-binary.sha256")"
+          test "$status" -eq 0
+          grep -F 'PL_COMPAT_COMPLETE' "$PL_COMPAT_REPORT_DIR/runtime.log"
+          test -f "$PL_COMPAT_REPORT_DIR/report-validation.log"
+      - name: Focused coordinator cleanup in both feature profiles
+        if: always() && steps.baseline.outcome == 'success'
+        working-directory: candidate
+        shell: bash
+        run: |
+          set -euo pipefail
+          export CARGO_TARGET_DIR="$RUNNER_TEMP/classic-box/candidate-target"
+          for mode in default all-features; do
+            flags=()
+            if test "$mode" = all-features; then flags+=(--all-features); fi
+            for case in failed_member_connect_finishes_the_coordinator_dial coordinator_discovery_timeout_closes_the_bootstrap_socket failed_lookup_finishes_the_speculative_coordinator_dial; do
+              log="$RUNNER_TEMP/classic-box/candidate/$mode-$case.log"
+              cargo +stable test --locked "${flags[@]}" --lib "group::rediscover_stop_tests::$case" -- --exact --nocapture 2>&1 | tee "$log"
+              grep -F 'test result: ok. 1 passed; 0 failed;' "$log"
+            done
+            for case in default_leave_does_not_offset_commit auto_commit_on_poll_interval_still_commits failed_zero_interval_commit_keeps_the_fetched_records interval_auto_commit_does_not_commit_batch_about_to_be_returned; do
+              log="$RUNNER_TEMP/classic-box/candidate/$mode-$case.log"
+              cargo +stable test --locked "${flags[@]}" --test consumer_close_commit "$case" -- --exact --nocapture 2>&1 | tee "$log"
+              grep -F 'test result: ok. 1 passed; 0 failed;' "$log"
+            done
+          done
+      - name: Format and strict all-target Clippy
+        if: always() && steps.baseline.outcome == 'success'
+        working-directory: candidate
+        run: |
+          export CARGO_TARGET_DIR="$RUNNER_TEMP/classic-box/candidate-target"
+          cargo +stable fmt --all -- --check
+          cargo +stable clippy --locked --all-targets --all-features -- -D warnings
+      - name: Retain logs
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: classic-join-box-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/classic-box
+          if-no-files-found: warn
+          retention-days: 30

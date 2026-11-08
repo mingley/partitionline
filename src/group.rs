@@ -2255,7 +2255,11 @@ impl ConsumerGroup {
         }
         let flush_deadline = Instant::now() + self.cfg.request_timeout;
         self.flush_async_commits(flush_deadline).await;
-        let recs = self.fetch_while_interval_commits(wait).await?;
+        let recs = if self.cfg.enable_auto_commit {
+            Box::pin(self.fetch_while_interval_commits(wait)).await?
+        } else {
+            self.fetch_for_poll(wait).await?
+        };
         if !recs.is_empty()
             && self.cfg.enable_auto_commit
             && self.cfg.auto_commit_interval.is_zero()
@@ -7200,10 +7204,6 @@ type MemberCoordinatorConnection = (Consumer, Result<(BrokerConn, Vec<ApiVersion
 ///
 /// The member dial is required first when both fail. A coordinator error is
 /// returned only after the member socket has connected.
-#[expect(
-    clippy::manual_async_fn,
-    reason = "The explicit Send future avoids lifetime inference failures"
-)]
 pub(crate) fn connect_member_and_coordinator<'a>(
     cfg: &'a ConsumerConfig,
     group_id: &'a str,
@@ -7211,7 +7211,7 @@ pub(crate) fn connect_member_and_coordinator<'a>(
     prefetch_all: bool,
     deadline: Instant,
 ) -> impl std::future::Future<Output = Result<MemberCoordinatorConnection>> + Send + 'a {
-    async move {
+    Box::pin(async move {
         let started = async {
     let member = Consumer::connect_within(cfg.clone(), deadline);
     let coordinator = async move {
@@ -7303,7 +7303,7 @@ pub(crate) fn connect_member_and_coordinator<'a>(
             tokio::task::yield_now().await;
         }
         started
-    }
+    })
 }
 
 /// Wait until the coordinator closes `conn`.
