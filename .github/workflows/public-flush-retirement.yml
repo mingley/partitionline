@@ -1,0 +1,104 @@
+name: Public producer flush retirement handoff
+
+on:
+  push:
+    branches: [qualification/public-flush-retirement-20261108]
+    paths:
+      - src/producer.rs
+      - tests/public_flush_retirement.rs
+      - .github/workflows/public-flush-retirement.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  witness:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    env:
+      CARGO_BUILD_JOBS: '2'
+      CARGO_INCREMENTAL: '0'
+      CARGO_PROFILE_DEV_DEBUG: '0'
+      CARGO_PROFILE_TEST_DEBUG: '0'
+      CARGO_TERM_COLOR: never
+      RUST_BACKTRACE: '0'
+      RUSTFLAGS: '--cfg flush_retirement_witness --check-cfg=cfg(flush_retirement_witness)'
+    steps:
+      - name: Prepare retained evidence
+        shell: bash
+        run: mkdir -p "$RUNNER_TEMP/public-flush-retirement"
+      - name: Checkout isolated witness
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 30
+          persist-credentials: false
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /Cargo.toml
+            /Cargo.lock
+            /rust-toolchain.toml
+            /README.md
+            /clippy.toml
+            /.cargo/
+            /src/
+            /examples/
+            /tests/common/
+            /tests/public_flush_retirement.rs
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Verify source and record provenance
+        shell: bash
+        run: |
+          set -euo pipefail
+          evidence="$RUNNER_TEMP/public-flush-retirement"
+          base=6298f6bfbed2ab98189d291ebebd2190a2ee75b6
+          {
+            echo "qualification_commit=$GITHUB_SHA"
+            echo "base_commit=$base"
+            git merge-base --is-ancestor "$base" HEAD
+            test "$(git rev-parse "$base:src/producer.rs")" = 1e7733c136e54b532cdc8bddabd1e0c828e50ed2
+            test "$(git rev-parse HEAD:src/producer.rs)" = 8e08f33e18d7aca953a09c2df988e170f6e17817
+            test "$(git rev-parse HEAD:Cargo.lock)" = d1cb698aaaf7554fe904ba02d671c4a8ab4975b3
+            test "$(git rev-parse HEAD:tests/common/mod.rs)" = 9a995292044c527ae2c2a17eca09b9f947bb12ed
+            test "$(git rev-parse HEAD:Cargo.toml)" = 585bbf9a31465d6bba3f66f593fddd1add516f36
+            test "$(git rev-parse HEAD:rust-toolchain.toml)" = 05e6ca1bf94c42a23333262558d22b866615466e
+            test -z "$(git status --porcelain)"
+            git rev-parse HEAD:tests/public_flush_retirement.rs
+            git diff "$base" HEAD -- src/producer.rs > "$evidence/producer-timing-gate.patch"
+            sha256sum src/producer.rs Cargo.toml Cargo.lock rust-toolchain.toml tests/common/mod.rs tests/public_flush_retirement.rs "$evidence/producer-timing-gate.patch"
+            rustc +stable -vV
+            cargo +stable -V
+            uname -a
+            df -h "$GITHUB_WORKSPACE"
+            echo "RUSTFLAGS=$RUSTFLAGS"
+          } 2>&1 | tee "$evidence/provenance.log"
+          cp tests/public_flush_retirement.rs "$evidence/public_flush_retirement.rs"
+      - name: Check witness formatting
+        shell: bash
+        run: |
+          set -euo pipefail
+          rustfmt +stable --edition 2021 --check tests/public_flush_retirement.rs 2>&1 | tee "$RUNNER_TEMP/public-flush-retirement/rustfmt.log"
+      - name: Run default and all-feature handoff histories
+        shell: bash
+        run: |
+          set -euo pipefail
+          evidence="$RUNNER_TEMP/public-flush-retirement"
+          for mode in default all-features; do
+            extra=()
+            if [ "$mode" = all-features ]; then
+              extra+=(--all-features)
+            fi
+            log="$evidence/$mode.log"
+            timeout 600 cargo +stable test --locked "${extra[@]}" --test public_flush_retirement -- --nocapture --test-threads=1 2>&1 | tee "$log"
+            test "$(grep -Fc 'PUBLIC_RETIREMENT_HISTORY admitted=1 broker_appended=1 response_dropped=1 retired=1 retries_before_handoff=0 flush=ok receipt_during_flush=pending terminal=ack callbacks=1 target_log_entries=1' "$log")" -eq 1
+            grep -F 'test result: ok. 1 passed; 0 failed;' "$log"
+          done
+      - name: Retain witness, patch, provenance and logs
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: public-flush-retirement-${{ github.run_id }}
+          path: ${{ runner.temp }}/public-flush-retirement
+          if-no-files-found: error
+          retention-days: 30
