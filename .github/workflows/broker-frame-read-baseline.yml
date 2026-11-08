@@ -1,0 +1,24 @@
+name: Broker ready frame baseline
+on:
+  push:
+    branches: [qualification/broker-frame-read-baseline-20261108]
+permissions:
+  contents: read
+jobs:
+  baseline:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      CARGO_BUILD_JOBS: 2
+      CARGO_INCREMENTAL: 0
+      CARGO_PROFILE_TEST_DEBUG: 0
+      CARGO_PROFILE_DEV_DEBUG: 0
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Observe a single poll on exact unmodified read functions
+        run: |
+          set -euo pipefail
+          rustc --version
+          cargo test --locked --manifest-path partitionline-broker/Cargo.toml --lib baseline_ready_body_reads_finish_before_returning_to_scheduler -- --nocapture
+          cargo test --locked --manifest-path partitionline-broker/Cargo.toml --lib --all-features baseline_ready_body_reads_finish_before_returning_to_scheduler -- --nocapture

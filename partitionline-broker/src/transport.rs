@@ -3682,3 +3682,83 @@ mod frame_read_deadline_tests {
         );
     }
 }
+
+
+#[cfg(test)]
+mod buffered_read_fairness_control {
+    use super::{frame_mut, new_frame, read_frame, Config, Exit, ReadAhead};
+    use std::future::Future;
+    use std::pin::Pin;
+    use std::task::{Context, Poll};
+    use std::time::Duration;
+    use tokio::io::{AsyncRead, ReadBuf};
+    use tokio::time::Instant;
+
+    struct ReadyReader {
+        bytes: Vec<u8>,
+        offset: usize,
+        limit: usize,
+        reads: usize,
+    }
+
+    impl AsyncRead for ReadyReader {
+        fn poll_read(
+            mut self: Pin<&mut Self>,
+            _cx: &mut Context<'_>,
+            out: &mut ReadBuf<'_>,
+        ) -> Poll<std::io::Result<()>> {
+            self.reads += 1;
+            let available = self.bytes.len().saturating_sub(self.offset);
+            let n = available.min(out.remaining()).min(self.limit);
+            let start = self.offset;
+            out.put_slice(&self.bytes[start..start + n]);
+            self.offset += n;
+            Poll::Ready(Ok(()))
+        }
+    }
+
+    async fn single_poll(buffered: bool, length: usize, chunk: usize) -> (bool, usize, usize) {
+        let config = Config::new(
+            1, 1, length.max(1), 1024,
+            Duration::from_secs(10), Duration::from_secs(10), Duration::from_secs(10),
+        ).unwrap();
+        let prefix = (length as i32).to_be_bytes();
+        let mut data = Vec::new();
+        let mut ahead = ReadAhead::new();
+        if buffered {
+            frame_mut(&mut ahead.bytes).extend_from_slice(&prefix);
+        } else {
+            data.extend_from_slice(&prefix);
+        }
+        data.extend(std::iter::repeat_n(0x5a, length));
+        let mut reader = ReadyReader { bytes: data, offset: 0, limit: chunk, reads: 0 };
+        let mut future = Box::pin(read_frame(
+            &mut reader, config, Instant::now() + Duration::from_secs(10), &mut ahead, new_frame()
+        ));
+        let result = std::future::poll_fn(|cx| Poll::Ready(future.as_mut().poll(cx))).await;
+        drop(future);
+        let completed = match result {
+            Poll::Ready(Ok(frame)) => {
+                assert_eq!(frame.len(), length);
+                assert!(frame.iter().all(|b| *b == 0x5a));
+                true
+            }
+            Poll::Ready(Err(error)) => panic!("unexpected read error: {error:?}"),
+            Poll::Pending => false,
+        };
+        (completed, reader.reads, reader.offset)
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn baseline_ready_body_reads_finish_before_returning_to_scheduler() {
+        let (buffered_ready, buffered_reads, buffered_bytes) = single_poll(true, 256 * 1024, 8192).await;
+        assert!(buffered_ready, "baseline expected whole ready buffered body in one poll");
+        assert_eq!(buffered_bytes, 256 * 1024);
+        assert_eq!(buffered_reads, 32);
+        let (direct_ready, direct_reads, direct_bytes) = single_poll(false, 4096, 1).await;
+        assert!(direct_ready, "baseline expected fragmented ready direct body in one poll");
+        assert_eq!(direct_bytes, 4100);
+        assert_eq!(direct_reads, 4100);
+        println!("frame-baseline buffered_bytes={buffered_bytes} buffered_reads={buffered_reads} direct_bytes={direct_bytes} direct_reads={direct_reads}");
+    }
+}
