@@ -1,8 +1,8 @@
-name: Matched send_all no-added-yield diagnostic
+name: Matched send_all no-added-yield long-topic boundary
 
 on:
   push:
-    branches: ["qualification/sendall-no-yield-paired-20261108"]
+    branches: ["qualification/sendall-no-yield-long-20261108"]
   workflow_dispatch:
 
 permissions:
@@ -72,36 +72,14 @@ jobs:
             grep -F "SENDALL_BATCHES records=$count " "$log"
             grep -F "test result: ok. 1 passed; 0 failed" "$log"
           }
-          for count in 1 16 31 32 33 256 511 512 513 1024 4096 8191 8192 8193; do
+          for count in 8191 8192; do
             for trial in 1 2 3; do
               if test "$trial" = 2; then
-                run_one candidate "$count" "$trial" 1 0 0
-                run_one baseline "$count" "$trial" 1 0 0
+                run_one candidate "$count" "$trial" 249 0 0
+                run_one baseline "$count" "$trial" 249 0 0
               else
-                run_one baseline "$count" "$trial" 1 0 0
-                run_one candidate "$count" "$trial" 1 0 0
-              fi
-            done
-          done
-          for trial in 1 2 3; do
-            if test "$trial" = 2; then
-              run_one candidate 4096 "$trial" 249 0 0
-              run_one baseline 4096 "$trial" 249 0 0
-            else
-              run_one baseline 4096 "$trial" 249 0 0
-              run_one candidate 4096 "$trial" 249 0 0
-            fi
-          done
-          run_one baseline 1024 1 1 1 0
-          run_one candidate 1024 1 1 1 0
-          for count in 512 4096 8191; do
-            for trial in 1 2 3; do
-              if test "$trial" = 2; then
-                run_one candidate "$count" "$trial" 1 0 5
-                run_one baseline "$count" "$trial" 1 0 5
-              else
-                run_one baseline "$count" "$trial" 1 0 5
-                run_one candidate "$count" "$trial" 1 0 5
+                run_one baseline "$count" "$trial" 249 0 0
+                run_one candidate "$count" "$trial" 249 0 0
               fi
             done
           done
@@ -109,6 +87,6 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: sendall-no-yield-paired-diagnostic
+          name: sendall-no-yield-long-boundary
           path: paired-logs
           retention-days: 30
