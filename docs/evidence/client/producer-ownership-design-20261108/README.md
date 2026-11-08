@@ -196,6 +196,29 @@ sequence journal. The supervisor would wait for the old task to stop before
 recovering its state, without holding locks across user callbacks. Neither
 design has been implemented or measured.
 
+The worker-root alternative has another source-derived lifetime risk. If a
+suspended worker task or its join handle strongly retains a root containing a
+receipt sender, the receiver's registered waker can retain a `Producer` clone.
+A possible chain is `Shared.nodes` → worker handle and task → worker root →
+receipt channel and waker → `Producer` → `Inner` → `Shared`. That retained
+`Inner` can prevent its normal drop-triggered shutdown. A worker completing or
+an explicit close may break particular histories; no public leak has been
+reproduced by this review. See the current [pending][cycle-pending],
+[worker task][cycle-task], [worker][cycle-worker] and [Inner drop][cycle-inner]
+source.
+
+A separate completion core does not by itself break this chain if a producer or
+suspended task can strongly reach the core and its wakers or callbacks can
+strongly reach the producer. Possible approaches include weak-only per-poll
+leases that retain no such root while suspended, or separating user-retaining
+receipt state with a proven acyclic ownership graph. For example, a
+receiver-held receipt cell and a weak sender reference might break the direct
+sender-to-waker edge, but that is only a proposal: cancellation, publication,
+wakeup, receiver loss, shutdown and batch recovery still need implementation
+and tests. User-provided interceptors may themselves retain producer clones;
+explicit close and the callback lifetime contract still matter. Neither
+alternative is qualified.
+
 No implementation can guarantee that a callback which blocks forever finishes
 before a strict close deadline. The service must retain its unfinished work
 without blocking the caller, and the API must define callback execution context
@@ -227,3 +250,8 @@ the standalone model or the private helper witnesses.
 [assignment]: https://github.com/mingley/partitionline/blob/1036a393eb85f23032b935bf86862b7e98e36e14/src/producer.rs#L10429
 [response]: https://github.com/mingley/partitionline/blob/1036a393eb85f23032b935bf86862b7e98e36e14/src/producer.rs#L8670
 [close-source]: https://github.com/mingley/partitionline/blob/1036a393eb85f23032b935bf86862b7e98e36e14/src/producer.rs#L4215
+
+[cycle-pending]: https://github.com/mingley/partitionline/blob/262d2544a4352d52538f19ef9ab0c8c5700774d3/src/producer.rs#L858
+[cycle-task]: https://github.com/mingley/partitionline/blob/262d2544a4352d52538f19ef9ab0c8c5700774d3/src/producer.rs#L898
+[cycle-worker]: https://github.com/mingley/partitionline/blob/262d2544a4352d52538f19ef9ab0c8c5700774d3/src/producer.rs#L7284
+[cycle-inner]: https://github.com/mingley/partitionline/blob/262d2544a4352d52538f19ef9ab0c8c5700774d3/src/producer.rs#L1268
