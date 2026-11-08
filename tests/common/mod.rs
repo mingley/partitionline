@@ -5455,6 +5455,16 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
             );
             continue;
         }
+        if std::env::var_os("PL_TRACE_SENDALL").is_some()
+            && matches!(header.api_key, API_VERSIONS | METADATA | PRODUCE)
+        {
+            eprintln!(
+                "REDIAL_TRACE node={} api={} at={:?}",
+                node_id,
+                header.api_key,
+                std::time::Instant::now()
+            );
+        }
         match header.api_key {
             API_VERSIONS => {
                 let delay = {
