@@ -275,7 +275,7 @@ async fn saved_id(path: &Path) -> Result<[u8; 16]> {
     }
     let text = fs::read(path).await?;
     let mut result = [0; 16];
-    for (byte, pair) in result.iter_mut().zip(text.chunks_exact(2)) {
+    for (byte, pair) in result.iter_mut().zip(text.as_chunks::<2>().0) {
         *byte = u8::from_str_radix(std::str::from_utf8(pair)?, 16)?;
     }
     Ok(result)
