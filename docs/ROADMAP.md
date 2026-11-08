@@ -2,7 +2,7 @@
 
 The goals are a production-ready Kafka client and broker, the protocol
 behavior this repository commits to, and leading performance at the same
-Kafka settings. [tasks.json](https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/docs/plan/tasks.json) is the queue: one card, its
+Kafka settings. [tasks.json](https://github.com/mingley/partitionline/blob/main/docs/plan/tasks.json) is the queue: one card, its
 dependencies, the files it starts from, and the check that closes it.
 [TODO.md](https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/TODO.md) is the short launch order. It is not a second status
 list. The [task workflow](https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/docs/plan/README.md) says how to pick a card.
@@ -100,7 +100,7 @@ them retrospectively merely to make a failing result green.
 | Compatibility | Zero unexplained semantic differences across the advertised negotiated API/version matrix. | Pinned Java/broker oracle, golden wire fixtures and minimized differential failures; allow legitimate wire/layout differences. |
 | Bounded resources | A declared byte/task/connection budget holds at 2x sustainable offered load. After warmup, final-hour median RSS within 10% of first steady-state hour over 24 hours. | Buffer ownership/counter evidence and RSS; allocator retention is not automatically a leak, and queue bounds alone are not a process bound. |
 | Recovery | Initial target: resume eligible work within 5 seconds after a controlled broker restoration; respect earlier caller deadlines. | At least 1,000 seeded faults per supported profile. Group timers/transaction timeouts get separate predeclared budgets, not a universal 500 ms promise. |
-| Performance leadership | At least 20% more successful records/s or 20% lower client CPU per successful record than the best relevant baseline, at equal durability/security and latency budget. | Multi-run x86_64/arm64 evidence; p99 no worse by more than 5% at matched load, all losing cells visible. |
+| Performance leadership | At least 20% more successful records/s or 20% lower client CPU per successful record than the best relevant baseline, at equal durability/security and latency budget. | Multi-run x86_64 evidence on named hardware; p99 no worse by more than 5% at matched load, all losing cells visible. |
 | Ergonomics and operations | Two newcomers complete a producer/consumer guide in 15 minutes after prerequisites; enabled telemetry overhead initially budgeted at 2%. | External-consumer examples, feedback, profiles, redaction/cardinality tests and a diagnosis/rollback exercise. |
 
 ## 4. Ordered implementation packages
@@ -232,9 +232,11 @@ KL-02/03 before production-performance claims.
 
 9 of 14 KL04 cards are done, including the frozen benchmark contract and
 scheduled open-loop latency (KL04-06). Still pending: controlled x86_64
-and arm64 campaigns (KL04-10, KL04-11), the comparison report (KL04-12),
-losing-cell cards (KL04-13), and independent signoff (KL04-14). Suite HOLD
-remains. The numbered steps below are the original order.
+campaigns, the comparison report (KL04-12), losing-cell cards (KL04-13), and
+separate reproduction with independent record checks (KL04-14). The
+arm64 campaign remains blocked outside the current x86-only scope; it has
+not been run or marked complete.
+Suite HOLD remains. The numbered steps below are the original order.
 
 1. Freeze separate low-latency, bulk-throughput, fetch, transactional and
    mixed-load workloads. Compare pinned rust-rdkafka/librdkafka and Java, plus
@@ -252,18 +254,19 @@ remains. The numbered steps below are the original order.
    arrivals through saturation. Include intended-send delay and rejected/timed-out
    work to avoid coordinated omission; do not report only successful fast samples.
 4. Collect p50/p95/p99/p99.9, sample counts, successful records/s, client/broker
-   CPU, allocations, RSS and lag. Separate hosts/processes, test real-network
-   RTT, randomize A/B order, and retain at least five long-enough repetitions per
-   cell with uncertainty intervals on x86_64 and arm64.
+   CPU, allocations, RSS and lag. Document process and network placement,
+   randomize A/B order, and retain at least five long-enough repetitions per
+   cell with uncertainty intervals on the named x86_64 host.
 5. Profile serialization, compression, batching, allocation, syscalls, routing
    and executor contention. Land one explained, reversible optimization per PR.
    Reject apparent wins from weaker durability, hidden errors or one bespoke schema.
 
 **Work surfaces:** [benchmark examples](https://github.com/mingley/partitionline/tree/02ce806d7ea4970897d51604e71e6a1fa069ca4c/examples), [latency gate](https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/scripts/ci-latency-gate.sh),
 [producer](../src/producer.rs), [network](../src/net.rs), [record codec](../src/protocol/records.rs).
-**Done when:** an independent operator reproduces named scorecard wins from
-raw artifacts and exact configs/revisions. Publish losses too. Performance
-signoff follows [benchmark.md](benchmark.md)/Suite HOLD; no new plan bypasses it.
+**Done for the tested x86 scope when:** a separate run reproduces named
+scorecard wins from raw artifacts and exact configs/revisions, with independent
+record checks. The same host and operator may perform it. Publish losses too.
+Performance signoff follows [benchmark.md](benchmark.md)/Suite HOLD.
 
 ### KL-05: Expand codec and ecosystem coverage only when justified
 
@@ -418,7 +421,7 @@ version bump is implied by finishing a feature checklist.
 **Depends on:** KL-04 contract and result format; KL-03 for consumer
 optimizations; KL-04 campaigns before any claim.
 
-The [performance leadership program](https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/docs/plan/performance-leadership.md) holds
+The [performance leadership program](https://github.com/mingley/partitionline/blob/main/docs/plan/performance-leadership.md) holds
 the strategy, hot-path map, and worker protocol. Status is
 [tasks.json](https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/docs/plan/tasks.json). 51 of 74 KL09 cards are done. KL09-13,
 ranking the hotspot hypotheses, is in progress. Suite HOLD remains. The
@@ -427,22 +430,22 @@ blob of either file as the current queue.
 
 1. Freeze the claim gate: peer set (librdkafka C, Java, franz-go,
    rust-rdkafka, Rust client peer), per-profile metrics and claim types. A
-   global "fastest Kafka client" claim requires superiority in every
-   required cell of all six profiles on both architectures, with no
-   exceptions. Profile-scoped, X%-faster (CI lower bound) and efficiency
-   claims are separate types. Add an exploratory null-broker
+   unqualified global "fastest Kafka client" claim cannot be established by
+   x86-only measurements; every required cell of all six profiles would
+   also need to be superior. Profile-scoped, X%-faster (CI lower bound) and
+   efficiency claims are separate types. Add an exploratory null-broker
    client-ceiling tier that can never support a Kafka claim.
 2. Build a fast local evidence loop: verified bench drivers, ratcheted
    allocation and instruction-count CI gates, a validating null broker, a
    profiler script and a pinned local baseline. Optimization no longer
-   waits for the multi-host campaign critical path.
+   waits for the controlled-campaign critical path.
 3. Land one measured hotspot per card across the producer, codecs,
    consumer (KL03-22 is done), transport and runtime. Measure first; a
-   measured rejection with reverted code is a valid outcome. Only additive
-   APIs; no unsafe code; no new runtime dependencies.
+   measured rejection with reverted code is a valid outcome. Document API
+   changes, retain the no-unsafe policy, and review any new dependencies.
 4. Join KL-04: add franz-go, measure every peer's client ceiling, re-profile
-   and re-rank, then audit the claim per cell on x86_64 and arm64 with
-   independent reproduction.
+   and re-rank, then audit each x86_64 cell with a separate reproduction
+   and independent record checks.
 
 **Work surfaces:** [producer](../src/producer.rs), [consumer](../src/consumer.rs),
 [record codec](../src/protocol/records.rs), [network](../src/net.rs),

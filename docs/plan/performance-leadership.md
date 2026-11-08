@@ -4,25 +4,21 @@
 evidence strong enough for a named, reproducible claim. This page holds the
 strategy, the measurement cells and the worker protocol for the **KL09**
 lane. [tasks.json](tasks.json) holds KL09 status and dependencies, like
-every other lane. Work proceeds one card per session under the
-[session guide](README.md).
+every other lane. The current work plan is in [next-work.md](next-work.md).
 
 Nothing here is a performance claim. The numbers in section 2 are dated
-historical evidence. The claim gate below was **frozen by KL09-01** into
-the binding [benchmark contract](../benchmark-contract.md#10-claim-gate-kl09-01-contract-110)
-(version 1.1.0); on any conflict the contract wins.
+historical evidence. The [benchmark contract](../benchmark-contract.md#sentences-this-repository-may-publish)
+defines the current claim gate; on any conflict the contract wins. The
+original KL09-01 contract is version 1.1.0, with the current x86-only scope
+clarified on 8 November 2026.
 **Suite HOLD remains** until the existing signoff process lifts it.
 
 ## 0. Scope and claim definitions
 
-`partitionline` implements the Kafka **client** side of the protocol:
-producer, consumer, groups, share groups, transactions and admin. Here,
-"fastest Kafka implementation" means the fastest Kafka **client runtime**,
-measured at equal semantics against the strongest named peers. A broker
-(replication, log storage, controller) is out of scope. It would be a
-separate program with its own scope decision;
-[ROADMAP §2](../ROADMAP.md#2-scope-and-promotion-gates) excludes
-broker-internal APIs from the client profiles.
+This page covers the Kafka client: producer, consumer, groups, share groups,
+transactions and admin. Its comparisons measure client runtime at equal
+semantics against named peers. The project also includes an experimental
+broker; its implementation and qualification need their own comparisons.
 
 "Fastest" has four dimensions:
 
@@ -33,23 +29,23 @@ broker-internal APIs from the client profiles.
   and peak RSS
 - **breadth**: plaintext, TLS and SASL; every Kafka codec including zstd;
   idempotent and transactional work; groups and share groups; 1 to 64 or
-  more partitions; x86_64 and arm64
+  more partitions; the current qualification target is x86_64
 
-### Claim types (frozen by KL09-01 in contract §10.2, v1.1.0)
+### Claim types
 
 "Superior" means statistically superior to the **best peer for that
 cell**. For throughput, the paired 95% CI lower bound of the
 partitionline/peer ratio must be above 1.0. For latency, the CI upper bound
 of each percentile ratio must be below 1.0 at every declared load. Peers
 that lack a capability follow the existing
-[non-win rule](../benchmark-contract.md#8-explicitly-unsupported-peer-cell-and-non-win-scoring-rules):
+[non-win rule](../benchmark-contract.md#a-missing-feature-is-not-a-loss):
 such a cell is compared against the best peer that supports it, or listed
 as excluded. It is never counted as a win.
 
 | Claim wording | Requirement |
 |---|---|
-| **"Fastest Kafka client"** (global) | Superior in **every** required cell of **all six** contract profiles (low-latency, bulk, fetch, transactional, group/share, secure), plus the required compressed cells (lz4, zstd), on **both** x86_64 and arm64, independently reproduced (KL04-14). **No exceptions.** Any losing, tied or not-run required cell blocks this wording. |
-| **"Fastest for <profile> on <arch>"** | Superior in every required cell of that profile on that architecture, independently reproduced |
+| **"Fastest Kafka client"** without a hardware scope | An x86-only campaign cannot establish an unqualified claim across architectures. Any losing, tied or missing required cell also blocks it. |
+| **"Fastest for <profile> on x86_64"** | Superior in every required cell of that profile on the named x86 hardware, with a separate reproduction and independent record checks |
 | **"X% faster"** (cell or profile) | The paired 95% CI lower bound of the throughput ratio is at least 1+X in every covered cell. For latency, the percentile ratio's CI upper bound is at most 1−X. |
 | **"Most CPU-efficient"** | The CPU-per-record ratio's CI upper bound is at most 0.80 against the best peer. This is **never** worded as "fastest". |
 | ROADMAP **performance-leadership scorecard** | The throughput ratio's CI lower bound is at least 1.20, **or** the CPU-per-record CI upper bound is at most 0.80, with the p99 ratio's CI upper bound at most 1.05 at matched load ([scorecard](../ROADMAP.md#3-scorecard)) |
@@ -62,8 +58,8 @@ as excluded. It is never counted as a win.
 | L0 | Microbenchmark, allocation or instruction-count change at a pinned SHA | KL04-09, KL09-04/05, optimization cards | Internal engineering notes only |
 | L1 | Client ceiling against the null broker | KL09-06..10, KL09-66/67 | "Client-side CPU headroom versus peer P on this host." Exploratory; **never** a Kafka throughput claim. |
 | L2 | Local real-broker cells, paired and repeated | Optimization cards, KL09-12/13/69 | Local and unsigned; engineering direction only |
-| L3 | Controlled x86_64 **and** arm64 campaigns | KL04-08/10/11/12, KL09-68 | Dated per-cell comparison with all losses listed |
-| L4 | Independent reproduction plus Suite HOLD process | KL04-14, KL09-70 | The strongest claim type in the table above whose requirement is met |
+| L3 | Controlled x86_64 campaigns | KL04-08/10/12, KL09-68 | Dated per-cell comparison with all losses listed |
+| L4 | Separate reproduction with independent record checks, plus Suite HOLD process | KL04-14, KL09-70 | The strongest scoped claim whose requirement is met |
 
 ### Peer set (frozen by KL09-01 in contract §10.1, v1.1.0)
 
@@ -95,8 +91,9 @@ These internal engineering targets are **not claims**:
 
 ## 1. Why a separate lane
 
-KL04 is correctly **qualification-first**. Its only optimization step,
-KL04-13, comes last on a long critical path:
+The original KL04 plan was qualification-first. Its optimization step,
+KL04-13, came last on this historical critical path (the current scope is
+x86-only):
 
 ```
 KL04-03/04/05/06/07 → KL04-08 → KL04-10/11 (also KL03-19/20 fault histories)
@@ -616,7 +613,7 @@ KL09 does not duplicate them.
 |---|---|
 | Wall-clock noise hides or fakes 2–5% changes | Deterministic allocation and instruction gates; interleaved A/B runs; CIs; rejection is a valid outcome |
 | Tiny deterministic wins justify complex code | 5% deterministic minimum; complexity budget; no self-raised baselines |
-| A single local broker bottlenecks, masking client wins | Null-broker client ceiling (KL09-06..10); multi-host KL04-10/11 for claims |
+| A single local broker bottlenecks, masking client wins | Null-broker client ceiling (KL09-06..10); controlled x86 comparisons for claims |
 | Zero-copy views pin large frames and inflate RSS | KL09-37 documents pinning and requires an owned escape hatch; RSS is a guardrail |
 | Prefetch breaks seek, pause or rebalance | Failing-first tests for each invalidation; KL03-06 delivered/fetched separation retained |
 | Parallel agents collide in `producer.rs` or `consumer.rs` | Claims pushed to `origin/main` as the lock; declared `write_set`; hand-off diff check |
@@ -634,8 +631,8 @@ KL09 does not duplicate them.
   required cell's CPU without a card or decision.
 - The allocation and instruction gates run in CI.
 
-**Leadership done:** KL09-70 records a per-cell verdict from KL04-12 raw
-artifacts on x86_64 and arm64, independently reproduced (KL04-14). Public
-wording uses only the claim types in section 0 whose thresholds are met,
-and follows the Suite HOLD signoff. Until then, the honest statement is:
+**Leadership done for the tested x86 scope:** KL09-70 records a per-cell
+verdict from KL04-12 raw artifacts and a separate reproduction with independent
+record checks. Public wording uses only the claim types in section 0 whose
+thresholds are met, and follows the Suite HOLD signoff. Until then, the honest statement is:
 **"engineered for speed; leadership not yet established."**

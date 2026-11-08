@@ -1,8 +1,8 @@
 # Next work
 
 Updated 8 November 2026. Use latest stable Rust and push reviewed changes
-directly to `main`. The [task registry](tasks.json) remains unchanged:
-249 done, 13 in progress and 84 pending.
+directly to `main`. The [task registry](tasks.json) has 249 done, 13 in
+progress, 83 pending and one blocked outside the current x86 qualification scope.
 
 ## Qualification state
 
