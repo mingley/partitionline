@@ -906,11 +906,8 @@ fn validate_batch(
     let mut previous = None;
     let mut completed = 0;
     // Single-record batches stay on the generic fallback after a plain miss.
-    if plain_enabled()
-        && count > 1
-        && first_record_has_headers(c.remaining(), last, base_time, read, limits)
-    {
-        let prefix = scan_header_prefix(
+    let prefix = if plain_enabled() && count > 1 {
+        outlined_header_prefix(
             c.remaining(),
             count,
             last,
@@ -918,7 +915,11 @@ fn validate_batch(
             read,
             limits,
             *total_headers,
-        );
+        )
+    } else {
+        None
+    };
+    if let Some(prefix) = prefix {
         if prefix.complete
             && prefix.index == c.remaining().len()
             && (count == 0 || prefix.observed_max == max_time)
@@ -1173,6 +1174,32 @@ struct HeaderPrefix {
     observed_max: i64,
     previous: Option<i32>,
     complete: bool,
+}
+
+// Keep the extra probe and header scanner off the successful plain path.
+#[cold]
+#[inline(never)]
+fn outlined_header_prefix(
+    bytes: &[u8],
+    count: usize,
+    last: i32,
+    base_time: i64,
+    read: bool,
+    limits: Limits,
+    total_headers: usize,
+) -> Option<HeaderPrefix> {
+    if !first_record_has_headers(bytes, last, base_time, read, limits) {
+        return None;
+    }
+    Some(scan_header_prefix(
+        bytes,
+        count,
+        last,
+        base_time,
+        read,
+        limits,
+        total_headers,
+    ))
 }
 
 /// Validate records through the first mismatch without deciding its error.
