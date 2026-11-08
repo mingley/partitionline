@@ -60,7 +60,10 @@ async fn fixture() -> (Arc<Shared>, tokio::net::TcpStream) {
         .await
         .unwrap();
     let (peer, _) = listener.accept().await.unwrap();
-    let shared = test_shared(ProducerConfig::default().transactional_id("txn-state"), meta);
+    let shared = test_shared(
+        ProducerConfig::default().transactional_id("txn-state"),
+        meta,
+    );
     (shared, peer)
 }
 
@@ -170,9 +173,9 @@ async fn run_race(race: Race) {
     let (done_tx, done_rx) = mpsc::channel();
     let second = thread::spawn(move || {
         match race {
-            Race::AbortThenFatal | Race::ClearThenFatal => second_shared.set_txn_fatal(
-                Error::broker(error::PRODUCER_FENCED, "fatal error"),
-            ),
+            Race::AbortThenFatal | Race::ClearThenFatal => {
+                second_shared.set_txn_fatal(Error::broker(error::PRODUCER_FENCED, "fatal error"))
+            }
             Race::AbortThenClear => second_shared.clear_txn_abortable(),
         }
         done_tx.send(()).unwrap();
@@ -193,7 +196,10 @@ async fn run_race(race: Race) {
     println!(
         "{marker} early={completed_early} fatal={fatal} abortable={abortable} cause={cause:?}"
     );
-    assert!(!completed_early, "{marker}: transition escaped the state lock");
+    assert!(
+        !completed_early,
+        "{marker}: transition escaped the state lock"
+    );
     match race {
         Race::AbortThenFatal | Race::ClearThenFatal => {
             assert!(fatal);

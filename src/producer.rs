@@ -2,7 +2,9 @@ use std::collections::{HashMap, HashSet, VecDeque};
 use std::fmt;
 use std::future::Future;
 use std::pin::Pin;
-use std::sync::atomic::{AtomicBool, AtomicI16, AtomicI64, AtomicU64, AtomicU8, AtomicUsize, Ordering};
+use std::sync::atomic::{
+    AtomicBool, AtomicI16, AtomicI64, AtomicU64, AtomicU8, AtomicUsize, Ordering,
+};
 use std::sync::Arc;
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
@@ -1521,7 +1523,8 @@ impl Shared {
         let mut error = self.txn_error.lock();
         if self.txn_error_state.load(Ordering::SeqCst) != TXN_ERROR_FATAL {
             *error = Some(err);
-            self.txn_error_state.store(TXN_ERROR_FATAL, Ordering::SeqCst);
+            self.txn_error_state
+                .store(TXN_ERROR_FATAL, Ordering::SeqCst);
         }
     }
 

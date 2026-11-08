@@ -62,8 +62,8 @@ jobs:
           test "$(git -C "$GITHUB_WORKSPACE/baseline" rev-parse HEAD)" = 8b5de2e2cfe5f3164a5f89546804ab36c1771ade
           sha256sum "$GITHUB_WORKSPACE/candidate/src/producer.rs" "$GITHUB_WORKSPACE/candidate/src/producer/txn_error_state_controls.rs" | tee "$RUNNER_TEMP/txn-state-evidence/candidate-pins.log"
           printf '%s  %s\n' \
-            3b6a1917df9ee2f9079abb59bd5dd4123056ae20ae19c3ec90f41bd445c088b0 "$GITHUB_WORKSPACE/candidate/src/producer.rs" \
-            8c36d462538755118f8ffc53558a87702cd0065803cad05d8eb63c4e8d95097d "$GITHUB_WORKSPACE/candidate/src/producer/txn_error_state_controls.rs" \
+            01d3661b6bd1ae3420f6c0df18befc8f5770d4ce744f5f72b091745879482761 "$GITHUB_WORKSPACE/candidate/src/producer.rs" \
+            ec9cb714caae9d4e17aaf3a6eee6e4e8e16180eb3155190f62c6489c7072ee51 "$GITHUB_WORKSPACE/candidate/src/producer/txn_error_state_controls.rs" \
             f4a842a85958e0fa90fe3fec458424770ccf389e8a56748999e031e6714b5ed1 "$GITHUB_WORKSPACE/baseline/src/producer.rs" | sha256sum --check -
       - name: Verify stable formatting
         shell: bash
