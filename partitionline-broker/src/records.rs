@@ -1004,6 +1004,7 @@ pub(crate) fn record_visits() -> usize {
 ///
 /// Returns None without deciding an error so the generic walk keeps the
 /// existing rejection positions.
+#[allow(clippy::too_many_arguments, reason = "independent validation inputs")]
 fn try_accept_plain(
     bytes: &[u8],
     count: usize,
