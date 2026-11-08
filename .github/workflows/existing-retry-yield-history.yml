@@ -1,0 +1,43 @@
+name: existing-retry-yield-history
+on:
+  push:
+    branches: [qual/existing-retry-yield-history-20261108]
+jobs:
+  mock-history:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        profile: [default, all]
+    env:
+      PL_PROFILE: ${{ matrix.profile }}
+      RUSTFLAGS: '--cfg sequence_retry_yield_witness --check-cfg=cfg(sequence_retry_yield_witness)'
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+      - name: Source and runner identity
+        run: |
+          git rev-parse HEAD
+          sha256sum src/producer.rs tests/sequence_retry_existing_yield_public.rs tests/common/mod.rs Cargo.lock
+          rustc -Vv
+          lscpu
+      - name: Released and held existing cooperative yield
+        shell: bash
+        run: |
+          set -euo pipefail
+          args=()
+          if [[ "$PL_PROFILE" == all ]]; then args=(--all-features); fi
+          cargo test --locked --test sequence_retry_existing_yield_public "${args[@]}" public_flush_at_existing_retry_yield -- --exact --nocapture 2>&1 | tee "$RUNNER_TEMP/history.log"
+          grep -F "YIELD_RELEASED original=1:8193 retry=1:8193 receipts=1,8193" "$RUNNER_TEMP/history.log"
+          grep -F "YIELD_HELD original=1:8193 retry=1:8192 receipt=error45 flush=error45" "$RUNNER_TEMP/history.log"
+          grep -F "YIELD_LAST retry=8193:1 receipt=error45 flush=error45" "$RUNNER_TEMP/history.log"
+      - name: Diagnostic source formatting
+        if: always()
+        shell: bash
+        run: |
+          if ! rustfmt --edition=2021 --check src/producer.rs tests/sequence_retry_existing_yield_public.rs; then
+            echo "Diagnostic only: strict formatting did not pass."
+          fi
