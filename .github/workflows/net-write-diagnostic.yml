@@ -1,0 +1,47 @@
+name: Net write timeout diagnostic
+
+on:
+  push:
+    branches:
+      - qualification/net-write-20261108
+
+permissions:
+  contents: read
+
+jobs:
+  compare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      CARGO_BUILD_JOBS: '2'
+      CARGO_PROFILE_DEV_DEBUG: '0'
+      CARGO_PROFILE_TEST_DEBUG: '0'
+      CARGO_INCREMENTAL: '0'
+      CARGO_TERM_COLOR: never
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          sparse-checkout: |
+            .cargo
+            .github
+            src
+            examples
+            tests
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          ref: 3f45fe6255e72abc6b0c4488bc13117779c50787
+          path: baseline
+          sparse-checkout: |
+            .cargo
+            src
+            examples
+            tests
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Compare original and larger peer reads
+        run: |
+          uname -a
+          rustc +stable -Vv
+          test "$(git -C baseline rev-parse HEAD)" = 3f45fe6255e72abc6b0c4488bc13117779c50787
+          bash .github/group-qualification/write-probe.sh
