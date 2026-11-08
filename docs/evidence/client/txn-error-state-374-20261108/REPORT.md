@@ -17,7 +17,9 @@ The run also applied test-only scheduling hooks to the baseline and required nin
 
 Earlier [run 42443810287](https://github.com/mingley/partitionline/actions/runs/42443810287) passed the state and coordinator controls in both profiles but failed overall: strict all-target Clippy rejected two identity operations in test-only ticket helpers. The candidate's helpers were corrected before run 42444340333. An earlier [run 42440453807](https://github.com/mingley/partitionline/actions/runs/42440453807) stopped at formatting before those controls ran.
 
-A broader selection of existing producer and transaction integration tests is running separately in [run 42444608489](https://github.com/mingley/partitionline/actions/runs/42444608489) at commit [`33e775b4`](https://github.com/mingley/partitionline/commit/33e775b49195d4a22c9e9abb5a3293bf14ebe615). Its result is not included in the completed run above.
+The broader integration selection in [run 42444608489](https://github.com/mingley/partitionline/actions/runs/42444608489), at commit [`33e775b4`](https://github.com/mingley/partitionline/commit/33e775b49195d4a22c9e9abb5a3293bf14ebe615), failed. The state and coordinator controls passed in both profiles. Thirteen default-profile integration cases passed, then `commit_reuses_a_produce_handshake_for_the_moved_coordinator` observed three ApiVersions requests where it expected two before coordinator movement. The remaining integration cases, all-feature integration selection, and that run's Clippy step did not run. [Logs](https://github.com/mingley/partitionline/actions/runs/42444608489/artifacts/13602773411) retain the failure.
+
+[Run 42445260031](https://github.com/mingley/partitionline/actions/runs/42445260031) is in progress on the same candidate source. It continues through all selected cases after failures, compares the handshake test repeatedly against the unmodified baseline in each profile, and retains a failing gate if any selected case fails.
 
 ## Limits
 
