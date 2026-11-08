@@ -1,0 +1,79 @@
+name: producer-timestamp-broad-strict
+on:
+  push:
+    branches: [qual/producer-timestamp-broad-strict-20261108]
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+      - run: |
+          git rev-parse HEAD
+          git hash-object src/producer.rs tests/common/mod.rs tests/producer_timestamp_contract_public.rs
+          cargo fmt --all -- --check
+  strict:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+      - run: |
+          git rev-parse HEAD
+          git hash-object src/producer.rs tests/common/mod.rs tests/producer_timestamp_contract_public.rs
+          cargo clippy --locked --all-targets --all-features -- -D warnings
+  producer:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        profile: [default, all]
+    env:
+      PL_PROFILE: ${{ matrix.profile }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Source and runner identity
+        run: |
+          git rev-parse HEAD
+          git hash-object src/producer.rs tests/common/mod.rs tests/producer_timestamp_contract_public.rs
+          sha256sum src/producer.rs tests/common/mod.rs tests/producer_timestamp_contract_public.rs Cargo.lock
+          rustc -Vv
+          lscpu
+      - name: Producer library tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          args=()
+          if [[ "$PL_PROFILE" == all ]]; then args=(--all-features); fi
+          cargo test --locked --lib "${args[@]}" producer::tests:: -- --test-threads=1
+      - name: Public timestamp contracts
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          args=()
+          if [[ "$PL_PROFILE" == all ]]; then args=(--all-features); fi
+          cargo test --locked --test producer_timestamp_contract_public "${args[@]}" -- --nocapture
+      - name: Producer cancellation suite
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          args=()
+          if [[ "$PL_PROFILE" == all ]]; then args=(--all-features); fi
+          cargo test --locked --test produce_cancel "${args[@]}"
+      - name: Producer mock suite
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          args=()
+          if [[ "$PL_PROFILE" == all ]]; then args=(--all-features); fi
+          cargo test --locked --test mock_produce "${args[@]}"
