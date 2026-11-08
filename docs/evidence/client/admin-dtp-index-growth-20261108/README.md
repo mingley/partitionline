@@ -101,7 +101,7 @@ The preliminary source and fixture are test-only blobs
 The runner reported AMD EPYC 9V74, stable Rust 1.99.1
 (`58cf8f9c3`), LLVM 23.1.1 and an unavailable `cpu.max`.
 The release test binary SHA-256 was
-`365db42665fd9496fb69d4544ead85445fed811b36b7c8f6ee50df9902704543`;
+`365db42665fd9496fb69d4544a8d16209c3df111586c0880570b6671cdbfe8dd`;
 the binary was not retained. The run artifact contains the raw output for 30
 days.
 
