@@ -109,6 +109,12 @@ An instrumented route-control run
 [42471551212](https://github.com/mingley/partitionline/actions/runs/42471551212)
 passed 8 of 9 tests in each profile. The 249-byte topic case failed during
 warmup because the fixture had not created the topic; no conclusion about the
-candidate follows from that failure. A corrected fixture and expiry control
-were started separately. These controls use test-only gates and counters; they
-do not establish atomicity of cached routes or all metadata/retirement races.
+candidate follows from that failure. The corrected run [42471911610](https://github.com/mingley/partitionline/actions/runs/42471911610)
+passed all 10 controls in both profiles. It includes a registered 249-byte
+topic, rejection of a 250-byte name, a gated metadata-age expiry, the 8,191
+and 8,192 selection boundaries, worker replacement, and synthetic queue and
+cancellation schedules. The test-only instrumented producer blob was
+`da6bde348a24e0d28879fc2ad5d2b8b3fa99af74` and its control blob
+`234eccde608c594cca82080f86940eae1a66c96b`. These are mock controls with
+test-only gates and counters; they do not establish atomicity of cached routes
+or all metadata/retirement races.
