@@ -210,4 +210,14 @@ starts at main `342e7b90ee63d6824be2652b65d71be483ea6d16`, changes only the
 four candidate Admin/Cargo blobs, and retains producer source blob
 `dcd012b3f86a8b9d4254f88d7f48946ce8f9e922`. The
 [combined Admin and producer gate](https://github.com/mingley/partitionline/actions/runs/42491179180)
-is still running.
+is not green. In the default profile the candidate's Admin target passed
+677 tests and failed two timing assertions: grouping named results took
+80.191042 ms and indexing coordinators took 83.626273 ms. The Admin
+response integration and producer timestamp public tests passed 1/1 each.
+The same-runner baseline ran later with the identical public cross-page
+fixture and passed 674 Admin tests and 1/1 in each integration target; it
+does not contain the candidate's five slot-specific tests. The arms used
+separate target directories. These observations do not establish the cause of
+the candidate timing failures. Formatting, strict all-target/all-feature
+Clippy, Rustdoc and doctests passed. The all-feature test job is still
+running.
