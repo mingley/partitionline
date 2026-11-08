@@ -1,8 +1,8 @@
-name: Matched send_all single-poll diagnostic
+name: Matched send_all no-added-yield diagnostic
 
 on:
   push:
-    branches: ["qualification/sendall-paired-20261108"]
+    branches: ["qualification/sendall-no-yield-paired-20261108"]
   workflow_dispatch:
 
 permissions:
@@ -23,7 +23,7 @@ jobs:
           path: baseline
       - uses: actions/checkout@v7
         with:
-          ref: 3fd30f13c07056dc0ac3d937b3f370d92880bd98
+          ref: a781fbf47e724d04d37426e2b1c6b13dc2692003
           path: candidate
       - uses: dtolnay/rust-toolchain@stable
       - name: Verify source and copy identical diagnostic
@@ -35,9 +35,9 @@ jobs:
           lscpu
           if test -r /sys/fs/cgroup/cpu.max; then cat /sys/fs/cgroup/cpu.max; else echo "cpu.max unavailable"; fi
           test "$(git -C baseline rev-parse HEAD)" = "47df27f9f3e04fc524849f3a9753c0b0469f8947"
-          test "$(git -C candidate rev-parse HEAD)" = "3fd30f13c07056dc0ac3d937b3f370d92880bd98"
+          test "$(git -C candidate rev-parse HEAD)" = "a781fbf47e724d04d37426e2b1c6b13dc2692003"
           test "$(git -C baseline rev-parse HEAD:src/producer.rs)" = "1e7733c136e54b532cdc8bddabd1e0c828e50ed2"
-          test "$(git -C candidate rev-parse HEAD:src/producer.rs)" = "d634fa4752e33d77e042404f199f31ee2bcb1c48"
+          test "$(git -C candidate rev-parse HEAD:src/producer.rs)" = "650e34cca0cfa0bee9825ffc7d7da86514e28a31"
           cp tests/sendall_poll_probe.rs baseline/tests/sendall_poll_probe.rs
           cp tests/sendall_poll_probe.rs candidate/tests/sendall_poll_probe.rs
           cmp baseline/tests/sendall_poll_probe.rs candidate/tests/sendall_poll_probe.rs
@@ -109,6 +109,6 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: sendall-paired-diagnostic
+          name: sendall-no-yield-paired-diagnostic
           path: paired-logs
           retention-days: 30
