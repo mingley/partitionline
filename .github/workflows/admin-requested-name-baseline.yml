@@ -1,0 +1,40 @@
+name: Admin requested topic response baseline
+on:
+  push:
+    branches: [work/admin-requested-name-baseline-20261108]
+permissions:
+  contents: read
+jobs:
+  controls:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        feature: [default, all]
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Pin source and toolchain
+        run: |
+          rustc -Vv
+          sha256sum src/admin.rs src/admin/pagination_tests.rs Cargo.lock
+          git hash-object src/admin.rs src/admin/pagination_tests.rs
+      - name: Capture baseline failures and positive controls
+        shell: bash
+        run: |
+          set +e
+          if [ "${{ matrix.feature }}" = all ]; then flags=--all-features; else flags=; fi
+          cargo test --locked $flags --lib dtp_requested_names_reject_ -- --nocapture > "$RUNNER_TEMP/reject.log" 2>&1
+          negative=$?
+          cargo test --locked $flags --lib dtp_requested_names_ -- --nocapture --skip dtp_requested_names_reject_ > "$RUNNER_TEMP/positive.log" 2>&1
+          positive=$?
+          set -e
+          cat "$RUNNER_TEMP/reject.log"
+          cat "$RUNNER_TEMP/positive.log"
+          echo "BASELINE_RESULT negative=$negative positive=$positive"
+          test "$negative" -eq 101
+          test "$positive" -eq 0
+          for testname in unsolicited_success unsolicited_error unsolicited_after_partial_result unrequested_empty_name; do
+            grep -F "test admin::pagination_tests::dtp_requested_names_reject_$testname ... FAILED" "$RUNNER_TEMP/reject.log"
+          done
