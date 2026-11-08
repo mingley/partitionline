@@ -36,6 +36,11 @@ const DESCRIPTOR_BYTES: usize = 56;
 const CHECKPOINT_BYTES: usize = 24;
 const EMPTY_TIME: i64 = i64::MIN;
 
+#[cfg(test)]
+thread_local! {
+    static SORT_CLEANUP_FOR_TEST: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
+}
+
 /// Positive rolling, persistent-resource and bounded scan limits.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Limits {
@@ -1248,7 +1253,15 @@ impl Log {
             committed_floor,
             poisoned: false,
             #[cfg(test)]
-            fault: None,
+            fault: match std::env::var("PLB_SEGMENT_OPEN_INDEX_CRASH")
+                .ok()
+                .as_deref()
+            {
+                Some("index-written") => Some((Phase::IndexWritten, true)),
+                Some("index-synced") => Some((Phase::IndexSynced, true)),
+                Some("index-renamed") => Some((Phase::IndexRenamed, true)),
+                _ => None,
+            },
         };
         result
             .active_checkpoints
@@ -1277,14 +1290,23 @@ impl Log {
             ..Recovery::default()
         };
         result.rebuild_active()?;
-        recovery.removed_staging_files = result.cleanup()?;
+        // A retired generation can be the only intact copy if the selected
+        // replacement is damaged. Certify every selected segment before any
+        // recovery cleanup is allowed to unlink retired or staging files.
         for position in 0..result.manifest.sealed.len() {
             let d = result.manifest.sealed[position];
             let segment = result.scan_kind(d.base, d.generation, d.kind)?;
             if segment.descriptor != d {
                 return Err(Error::CorruptData);
             }
-            let expected = bundle_bytes(&segment)?;
+            result.sealed.push(segment);
+        }
+        recovery.removed_staging_files = result.cleanup()?;
+        // Stale index temporaries must be removed before create_new and its
+        // disk reservation. The selected data was already verified above.
+        for position in 0..result.sealed.len() {
+            let d = result.sealed[position].descriptor;
+            let expected = bundle_bytes(&result.sealed[position])?;
             let path = result.directory.join(index_name(d.base, d.generation));
             // An unchecked cache length cannot consume the whole configured
             // envelope on top of retained tables and the expected bundle.
@@ -1295,10 +1317,9 @@ impl Log {
                 Err(e) => return Err(e),
             };
             if !valid {
-                result.write_index(&segment)?;
+                result.write_index_bytes(d, &expected)?;
                 recovery.rebuilt_indexes += 1;
             }
-            result.sealed.push(segment);
         }
         if !result.manifest.victims.is_empty() {
             let (removed, _) = result.finish_retention_cleanup()?;
@@ -1438,11 +1459,14 @@ impl Log {
     }
     fn write_index(&mut self, segment: &Segment) -> Result<(), Error> {
         let bytes = bundle_bytes(segment)?;
+        self.write_index_bytes(segment.descriptor, &bytes)
+    }
+    fn write_index_bytes(&mut self, descriptor: Descriptor, bytes: &[u8]) -> Result<(), Error> {
         self.reserve_disk(bytes.len() as u64)?;
-        let name = index_name(segment.descriptor.base, segment.descriptor.generation);
+        let name = index_name(descriptor.base, descriptor.generation);
         let tmp = self.directory.join(format!("{name}.tmp"));
         let mut file = OpenOptions::new().write(true).create_new(true).open(&tmp)?;
-        file.write_all(&bytes)?;
+        file.write_all(bytes)?;
         self.hit(Phase::IndexWritten)?;
         file.sync_all()?;
         self.hit(Phase::IndexSynced)?;
@@ -1596,15 +1620,23 @@ impl Log {
             }
             names.push(name);
         }
-        for name in names {
+        #[cfg(test)]
+        if SORT_CLEANUP_FOR_TEST.with(|sort| sort.replace(false)) {
+            names.sort();
+        }
+        // First classify every entry without deleting any. Keep recognized
+        // victims at the front of the existing Vec to avoid another allocation.
+        let mut candidates = 0usize;
+        for position in 0..names.len() {
+            let name = names[position].as_str();
             if name == MANIFEST {
                 continue;
             }
-            let mut selected =
-                name == data_name(self.manifest.active_base, self.manifest.active_generation);
+            let mut selected = name
+                == data_name(self.manifest.active_base, self.manifest.active_generation).as_str();
             for d in &self.manifest.sealed {
-                selected |= name == data_name(d.base, d.generation)
-                    || name == index_name(d.base, d.generation);
+                selected |= name == data_name(d.base, d.generation).as_str()
+                    || name == index_name(d.base, d.generation).as_str();
             }
             // Only an authoritative version-two manifest may authorize these
             // names for deletion; recovery validates survivors first.
@@ -1659,6 +1691,10 @@ impl Log {
             if !known {
                 return Err(Error::InvalidLayout);
             }
+            names.swap(position, candidates);
+            candidates += 1;
+        }
+        for name in names.into_iter().take(candidates) {
             fs::remove_file(self.directory.join(name))?;
             removed += 1;
         }
@@ -2796,6 +2832,349 @@ mod tests {
             records::Limits::default(),
             Limits::new(150, 16, 4, 2, 1024 * 1024, 65536, 4096)?,
         )
+    }
+
+    fn cleanup_snapshot(path: &Path) -> Result<Vec<(String, Vec<u8>)>, Box<dyn std::error::Error>> {
+        let mut files = Vec::new();
+        for entry in fs::read_dir(path)? {
+            let entry = entry?;
+            if !entry.file_type()?.is_file() {
+                return Err("unexpected non-file".into());
+            }
+            let name = entry
+                .file_name()
+                .into_string()
+                .map_err(|_| "invalid file name")?;
+            let bytes = fs::read(entry.path())?;
+            if bytes.len() > 8192 {
+                return Err("snapshot file exceeds fixture bound".into());
+            }
+            files.push((name, bytes));
+        }
+        files.sort_by(|a, b| a.0.cmp(&b.0));
+        Ok(files)
+    }
+
+    fn retain_replacement_snapshot(
+        stage: &str,
+        path: &Path,
+        receipt: &[u8],
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        let Some(root) = std::env::var_os("PLB_SEGMENT_REPLACEMENT_CAPTURE") else {
+            return Ok(());
+        };
+        let directory = PathBuf::from(root).join(stage);
+        fs::create_dir_all(&directory)?;
+        for (name, bytes) in cleanup_snapshot(path)? {
+            fs::write(directory.join(name), bytes)?;
+        }
+        fs::write(directory.join("ack-proof.txt"), receipt)?;
+        Ok(())
+    }
+
+    #[test]
+    fn corrupt_selected_replacement_preserves_old_generation_on_failed_open(
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        if let Some(path) = std::env::var_os("PLB_SEGMENT_REPLACEMENT_PATH") {
+            let path = PathBuf::from(path);
+            let (mut log, _) = open(&path)?;
+            assert_eq!(log.append(1, &payload(0))?.first_offset, 0);
+            assert_eq!(log.append(1, &payload(1))?.first_offset, 1);
+            let receipt_path = path.parent().ok_or("missing parent")?.join("ack-proof.txt");
+            let mut receipt = File::create(receipt_path)?;
+            receipt.write_all(b"two appends returned success before replacement\n")?;
+            receipt.sync_all()?;
+            drop(receipt);
+            File::open(path.parent().ok_or("missing parent")?)?.sync_all()?;
+            log.fault = Some((Phase::ManifestRenamed, true));
+            log.replace_sealed(0)?;
+            return Err("replacement crash hook was not reached".into());
+        }
+        let temp = Temp::new()?;
+        let path = temp.0.join("log");
+        let child = std::process::Command::new(std::env::current_exe()?)
+            .args(["--exact", "segments::tests::corrupt_selected_replacement_preserves_old_generation_on_failed_open", "--nocapture"])
+            .env("PLB_SEGMENT_REPLACEMENT_PATH", &path)
+            .output()?;
+        assert!(
+            child.status.success(),
+            "replacement child: stdout={} stderr={}",
+            String::from_utf8_lossy(&child.stdout),
+            String::from_utf8_lossy(&child.stderr)
+        );
+        let receipt = fs::read(temp.0.join("ack-proof.txt"))?;
+        assert_eq!(
+            receipt,
+            b"two appends returned success before replacement\n"
+        );
+        let manifest = parse_manifest(
+            &fs::read(path.join(MANIFEST))?,
+            Limits::new(150, 16, 4, 2, 1024 * 1024, 65536, 4096)?,
+            0,
+        )?;
+        assert_eq!(manifest.sealed.len(), 1);
+        let selected = manifest.sealed[0];
+        assert_eq!(selected.base, 0);
+        assert_ne!(selected.generation, 0);
+        let old_path = path.join(data_name(0, 0));
+        let replacement = path.join(data_name(selected.base, selected.generation));
+        let old_bytes = fs::read(&old_path)?;
+        assert_eq!(old_bytes, fs::read(&replacement)?);
+        let mut verified_old =
+            StoredCursor::open(&old_path, 0, journal::Limits::new(1024, 8192, 16, 4096)?, 0)?;
+        assert_eq!(
+            verified_old
+                .next(4096)?
+                .ok_or("old record missing")?
+                .1
+                .payload,
+            payload(0)
+        );
+        drop(verified_old);
+        retain_replacement_snapshot("interrupted", &path, &receipt)?;
+        let mut file = OpenOptions::new()
+            .read(true)
+            .write(true)
+            .open(&replacement)?;
+        file.seek(SeekFrom::Start(24 + 32))?;
+        let mut byte = [0u8; 1];
+        file.read_exact(&mut byte)?;
+        byte[0] ^= 1;
+        file.seek(SeekFrom::Start(24 + 32))?;
+        file.write_all(&byte)?;
+        file.sync_all()?;
+        drop(file);
+        retain_replacement_snapshot("corrupted-selected", &path, &receipt)?;
+        let error = match open(&path) {
+            Ok(_) => return Err("corrupted selected generation unexpectedly opened".into()),
+            Err(error) => error,
+        };
+        assert!(
+            old_path.try_exists()?,
+            "PL_RETIRED_GENERATION_DELETED_BEFORE_VALIDATION"
+        );
+        assert_eq!(fs::read(&old_path)?, old_bytes);
+        assert!(replacement.try_exists()?);
+        let mut old_after =
+            StoredCursor::open(&old_path, 0, journal::Limits::new(1024, 8192, 16, 4096)?, 0)?;
+        assert_eq!(
+            old_after.next(4096)?.ok_or("old record missing")?.1.payload,
+            payload(0)
+        );
+        drop(old_after);
+        retain_replacement_snapshot("failed-reopen", &path, &receipt)?;
+        println!(
+            "PL_REPLACEMENT_CORRUPTION old_verified=true replacement_initially_identical=true acknowledged=2 selected_generation={} reopen_error={error:?} old_after=true",
+            selected.generation
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn unknown_entry_after_staging_preserves_all_files_on_failed_open(
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        let temp = Temp::new()?;
+        let path = temp.0.join("log");
+        let (mut log, _) = open(&path)?;
+        assert_eq!(log.append(1, &payload(0))?.first_offset, 0);
+        drop(log);
+        fs::write(path.join(MANIFEST_TEMP), b"retained staging bytes")?;
+        fs::write(path.join("zzz-unknown"), b"user-owned bytes")?;
+        let before = cleanup_snapshot(&path)?;
+        retain_replacement_snapshot("unknown-before", &path, b"one append acknowledged\n")?;
+        SORT_CLEANUP_FOR_TEST.with(|sort| sort.set(true));
+        assert!(matches!(open(&path), Err(Error::InvalidLayout)));
+        assert_eq!(cleanup_snapshot(&path)?, before);
+        assert_eq!(
+            fs::read(path.join(MANIFEST_TEMP))?,
+            b"retained staging bytes"
+        );
+        assert_eq!(fs::read(path.join("zzz-unknown"))?, b"user-owned bytes");
+        assert_eq!(
+            before
+                .iter()
+                .find(|(name, _)| name == MANIFEST_TEMP)
+                .map(|(_, bytes)| bytes.as_slice()),
+            Some(&b"retained staging bytes"[..])
+        );
+        retain_replacement_snapshot("unknown-after", &path, b"one append acknowledged\n")?;
+        println!(
+            "PL_CLEANUP_UNKNOWN known_staging_preserved=true unknown_preserved=true acknowledged=1"
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn later_selected_scan_failure_preserves_old_generation_and_all_files(
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        for damage in ["corrupt", "missing"] {
+            let temp = Temp::new()?;
+            let path = temp.0.join("log");
+            let (mut log, _) = open(&path)?;
+            for n in 0..3 {
+                assert_eq!(log.append(1, &payload(n))?.first_offset, n);
+            }
+            assert_eq!(log.manifest.sealed.len(), 2);
+            let old = log.manifest.sealed[1];
+            assert_eq!(old.base, 1);
+            log.fault = Some((Phase::ManifestRenamed, false));
+            assert!(log.replace_sealed(1).is_err());
+            assert!(log.is_poisoned());
+            drop(log);
+
+            let manifest = parse_manifest(
+                &fs::read(path.join(MANIFEST))?,
+                Limits::new(150, 16, 4, 2, 1024 * 1024, 65536, 4096)?,
+                0,
+            )?;
+            assert_eq!(manifest.sealed.len(), 2);
+            assert_eq!(manifest.sealed[0].base, 0);
+            let selected = manifest.sealed[1];
+            assert_eq!(selected.base, 1);
+            assert_ne!(selected.generation, old.generation);
+            let old_path = path.join(data_name(old.base, old.generation));
+            let selected_path = path.join(data_name(selected.base, selected.generation));
+            let original = fs::read(&old_path)?;
+            assert_eq!(original, fs::read(&selected_path)?);
+            if damage == "corrupt" {
+                let mut file = OpenOptions::new()
+                    .read(true)
+                    .write(true)
+                    .open(&selected_path)?;
+                file.seek(SeekFrom::Start(24 + 32))?;
+                let mut byte = [0u8; 1];
+                file.read_exact(&mut byte)?;
+                byte[0] ^= 1;
+                file.seek(SeekFrom::Start(24 + 32))?;
+                file.write_all(&byte)?;
+                file.sync_all()?;
+            } else {
+                fs::remove_file(&selected_path)?;
+            }
+            let before = cleanup_snapshot(&path)?;
+            assert!(open(&path).is_err(), "{damage}");
+            assert!(
+                old_path.try_exists()?,
+                "PL_LATER_GENERATION_DELETED_BEFORE_VALIDATION: {damage}"
+            );
+            assert_eq!(fs::read(&old_path)?, original, "{damage}");
+            assert_eq!(cleanup_snapshot(&path)?, before, "{damage}");
+            println!("PL_LATER_SELECTED_SCAN damage={damage} old_generation_preserved=true");
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn index_rebuild_removes_stale_temp_before_disk_reservation(
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        fn open_with_budget(path: &Path) -> Result<(Log, Recovery), Error> {
+            Log::open(
+                path,
+                0,
+                journal::Limits::new(1024, 8192, 16, 4096)?,
+                records::Limits::default(),
+                Limits::new(150, 16, 4, 2, 4096, 65536, 4096)?,
+            )
+        }
+        let temp = Temp::new()?;
+        let path = temp.0.join("log");
+        let (mut log, _) = open_with_budget(&path)?;
+        log.append(1, &payload(0))?;
+        log.append(1, &payload(1))?;
+        assert_eq!(log.sealed.len(), 1);
+        let descriptor = log.sealed[0].descriptor;
+        let expected_index_bytes = bundle_bytes(&log.sealed[0])?.len() as u64;
+        drop(log);
+        let index = path.join(index_name(descriptor.base, descriptor.generation));
+        fs::remove_file(&index)?;
+        let occupied = fs::read_dir(&path)?.try_fold(0u64, |total, entry| {
+            Ok::<_, std::io::Error>(total + entry?.metadata()?.len())
+        })?;
+        let padding = 4096u64
+            .checked_sub(occupied)
+            .and_then(|n| n.checked_sub(1))
+            .ok_or("fixture exceeds budget")?;
+        assert!(padding >= expected_index_bytes);
+        let stale = path.join(format!(
+            "{}.tmp",
+            index_name(descriptor.base, descriptor.generation)
+        ));
+        fs::write(&stale, vec![0xa5; usize::try_from(padding)?])?;
+        assert!(occupied + padding <= 4096);
+        assert!(occupied + padding + expected_index_bytes > 4096);
+        let (mut recovered, recovery) = open_with_budget(&path)?;
+        assert_eq!(recovery.removed_staging_files, 1);
+        assert_eq!(recovery.rebuilt_indexes, 1);
+        assert!(!stale.try_exists()?);
+        let entries = recovered.fetch(0, 2, 4096)?;
+        assert_eq!(entries.len(), 2);
+        assert_eq!(entries[0].payload, payload(0));
+        assert_eq!(entries[1].payload, payload(1));
+        println!("PL_INDEX_REBUILD_LIMIT occupied={occupied} stale_bytes={padding} index_bytes={expected_index_bytes} cap=4096 recovered=2");
+        Ok(())
+    }
+
+    #[test]
+    fn process_exit_during_index_rebuild_recovers_all_acknowledged_inputs(
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        if let Some(path) = std::env::var_os("PLB_SEGMENT_OPEN_INDEX_PATH") {
+            let _ = open(Path::new(&path))?;
+            return Err("index rebuild crash point was not reached".into());
+        }
+        for phase in ["index-written", "index-synced", "index-renamed"] {
+            let temp = Temp::new()?;
+            let path = temp.0.join("log");
+            let (mut log, _) = open(&path)?;
+            for n in 0..3 {
+                assert_eq!(log.append(1, &payload(n))?.first_offset, n);
+            }
+            assert_eq!(log.sealed.len(), 2);
+            let descriptor = log.sealed[1].descriptor;
+            drop(log);
+            let index = path.join(index_name(descriptor.base, descriptor.generation));
+            fs::remove_file(&index)?;
+            let stale = path.join(format!(
+                "{}.tmp",
+                index_name(descriptor.base, descriptor.generation)
+            ));
+            fs::write(&stale, b"stale-index-before-rebuild")?;
+            let child = std::process::Command::new(std::env::current_exe()?)
+                .args(["--exact", "segments::tests::process_exit_during_index_rebuild_recovers_all_acknowledged_inputs", "--nocapture"])
+                .env("PLB_SEGMENT_OPEN_INDEX_PATH", &path)
+                .env("PLB_SEGMENT_OPEN_INDEX_CRASH", phase)
+                .output()?;
+            assert!(
+                child.status.success(),
+                "{phase}: stdout={} stderr={}",
+                String::from_utf8_lossy(&child.stdout),
+                String::from_utf8_lossy(&child.stderr)
+            );
+            retain_replacement_snapshot(
+                &format!("index-{phase}-interrupted"),
+                &path,
+                b"three appends acknowledged\n",
+            )?;
+            let (mut recovered, recovery) = open(&path)?;
+            assert_eq!(recovered.next_offset(), 3);
+            let entries = recovered.fetch(0, 3, 4096)?;
+            assert_eq!(entries.len(), 3);
+            for (n, entry) in entries.iter().enumerate() {
+                assert_eq!(entry.payload, payload(n as u64));
+            }
+            if phase == "index-renamed" {
+                assert_eq!(recovery.rebuilt_indexes, 0);
+            } else {
+                assert_eq!(recovery.rebuilt_indexes, 1);
+            }
+            assert!(!stale.try_exists()?);
+            retain_replacement_snapshot(
+                &format!("index-{phase}-recovered"),
+                &path,
+                b"three appends acknowledged\n",
+            )?;
+            println!("PL_INDEX_REBUILD_EXIT phase={phase} acknowledged=3 recovered=3");
+        }
+        Ok(())
     }
 
     #[test]

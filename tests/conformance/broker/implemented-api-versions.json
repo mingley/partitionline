@@ -5110,7 +5110,7 @@
   "retention_test_source": "partitionline-broker/tests/retention.rs",
   "retention_test_source_sha256": "dfe982791f08ce3c13040dc02f4a5386630c3f27f5298a10fac338450020aa3e",
   "segments_source": "partitionline-broker/src/segments.rs",
-  "segments_source_sha256": "dc437576653833f172aa8363e9ad21adbb3ee39df142e6036c05560b5cd61dc5",
+  "segments_source_sha256": "5828ce31e7434dd865a10d1a2e39b275b0bad0da710ff04e3c25a41b1cc3482e",
   "segments_test_source": "partitionline-broker/tests/segments.rs",
   "segments_test_source_sha256": "1b861e89e02e05a93e6956c0a56c87e122497b4b3f1992b78bac371d303fc11e",
   "partition_source": "partitionline-broker/src/partition.rs",
