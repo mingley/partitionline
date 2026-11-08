@@ -3239,29 +3239,34 @@ pub(crate) fn start_record_batch(
     buf: &mut BytesMut,
     header: &BatchHeader,
 ) -> (usize, usize, usize, usize) {
-    let batch_start = buf.len();
-    buf.put_i64(header.base_offset);
-    let batch_len_pos = buf.len();
-    buf.put_i32(0);
-    buf.put_i32(header.partition_leader_epoch);
-    buf.put_i8(MAGIC_V2);
-    let crc_pos = buf.len();
-    buf.put_u32(0);
-    let crc_start = buf.len();
-    buf.put_i16(header.attributes);
+    // The v2 header is fixed-width. Append it once so the destination buffer
+    // only needs to check its capacity for the whole header.
+    let mut wire = [0u8; 61];
+    let mut out = wire.as_mut_slice();
+    out.put_i64(header.base_offset);
+    out.put_i32(0);
+    out.put_i32(header.partition_leader_epoch);
+    out.put_i8(MAGIC_V2);
+    out.put_u32(0);
+    out.put_i16(header.attributes);
     let last_delta = if header.count <= 0 {
         0
     } else {
         header.count - 1
     };
-    buf.put_i32(last_delta);
-    buf.put_i64(header.base_timestamp);
-    buf.put_i64(header.max_timestamp);
-    buf.put_i64(header.producer_id);
-    buf.put_i16(header.producer_epoch);
-    buf.put_i32(header.base_sequence);
-    buf.put_i32(header.count);
-    (batch_start, batch_len_pos, crc_pos, crc_start)
+    out.put_i32(last_delta);
+    out.put_i64(header.base_timestamp);
+    out.put_i64(header.max_timestamp);
+    out.put_i64(header.producer_id);
+    out.put_i16(header.producer_epoch);
+    out.put_i32(header.base_sequence);
+    out.put_i32(header.count);
+    debug_assert!(out.is_empty());
+
+    let batch_start = buf.len();
+    buf.extend_from_slice(&wire);
+    // The successful append guarantees these positions fit in usize.
+    (batch_start, batch_start + 8, batch_start + 17, batch_start + 21)
 }
 
 pub(crate) fn finish_record_batch(
@@ -5084,6 +5089,99 @@ fn read_bytes_varint<B: Buf>(buf: &mut B) -> Result<Option<Bytes>> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    // The original direct writer is the reference for prefixes and positions.
+    fn reference_start_record_batch(
+        buf: &mut BytesMut,
+        header: &BatchHeader,
+    ) -> (usize, usize, usize, usize) {
+        let batch_start = buf.len();
+        buf.put_i64(header.base_offset);
+        let batch_len_pos = buf.len();
+        buf.put_i32(0);
+        buf.put_i32(header.partition_leader_epoch);
+        buf.put_i8(MAGIC_V2);
+        let crc_pos = buf.len();
+        buf.put_u32(0);
+        let crc_start = buf.len();
+        buf.put_i16(header.attributes);
+        let last_delta = if header.count <= 0 {
+            0
+        } else {
+            header.count - 1
+        };
+        buf.put_i32(last_delta);
+        buf.put_i64(header.base_timestamp);
+        buf.put_i64(header.max_timestamp);
+        buf.put_i64(header.producer_id);
+        buf.put_i16(header.producer_epoch);
+        buf.put_i32(header.base_sequence);
+        buf.put_i32(header.count);
+        (batch_start, batch_len_pos, crc_pos, crc_start)
+    }
+
+    #[test]
+    fn batch_start_matches_reference_with_signed_boundaries_and_prefixes() {
+        for count in [i32::MIN, -1, 0, 1, 2, i32::MAX] {
+            for base in [i64::MIN, -1, 0, 1, i64::MAX] {
+                let header = BatchHeader {
+                    base_offset: base,
+                    partition_leader_epoch: count,
+                    attributes: if base < 0 { i16::MIN } else { i16::MAX },
+                    base_timestamp: base,
+                    max_timestamp: !base,
+                    producer_id: base.rotate_left(5),
+                    producer_epoch: if count < 0 { i16::MIN } else { i16::MAX },
+                    base_sequence: !count,
+                    count,
+                };
+                for prefix_len in [0, 1, 7, 61] {
+                    let prefix = vec![0xa5; prefix_len];
+                    let mut expected = BytesMut::from(prefix.as_slice());
+                    let mut actual = BytesMut::from(prefix.as_slice());
+                    let expected_positions = reference_start_record_batch(&mut expected, &header);
+                    let actual_positions = start_record_batch(&mut actual, &header);
+                    assert_eq!(actual_positions, expected_positions);
+                    assert_eq!(actual, expected, "count={count}, base={base}, prefix={prefix_len}");
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn batch_start_has_expected_v2_header_bytes() {
+        let header = BatchHeader {
+            base_offset: 0x0102_0304_0506_0708,
+            partition_leader_epoch: 0x1122_3344,
+            attributes: 0x1020,
+            base_timestamp: 0x1112_1314_1516_1718,
+            max_timestamp: -2,
+            producer_id: -1,
+            producer_epoch: -2,
+            base_sequence: 0x1234_5678,
+            count: 2,
+        };
+        let expected: [u8; 61] = [
+            0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, // base offset
+            0x00, 0x00, 0x00, 0x00, // batch length placeholder
+            0x11, 0x22, 0x33, 0x44, // leader epoch
+            0x02, // magic
+            0x00, 0x00, 0x00, 0x00, // crc placeholder
+            0x10, 0x20, // attributes
+            0x00, 0x00, 0x00, 0x01, // last offset delta
+            0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, // base timestamp
+            0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xfe, // max timestamp
+            0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, // producer id
+            0xff, 0xfe, // producer epoch
+            0x12, 0x34, 0x56, 0x78, // base sequence
+            0x00, 0x00, 0x00, 0x02, // record count
+        ];
+        let mut actual = BytesMut::from(b"prefix".as_slice());
+        assert_eq!(start_record_batch(&mut actual, &header), (6, 14, 23, 27));
+        assert_eq!(actual.len(), 6 + expected.len());
+        assert_eq!(actual.get(..6), Some(b"prefix".as_slice()));
+        assert_eq!(actual.get(6..), Some(expected.as_slice()));
+    }
 
     fn put_be_i32(bytes: &mut [u8], at: i32, value: i32) {
         let at = usize::try_from(at).unwrap();
