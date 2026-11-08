@@ -24,7 +24,7 @@ explain the prior [912 Raft failures](../evidence/releases/main-ci-912-partial-2
 A later [partial main run](../evidence/releases/main-ci-536-partial-20261108/README.md)
 at `536d5e9` passed the broker default suite but its all-feature library stopped
 after one Raft runtime failure. Client library checks and four completed Kafka
-jobs failed; the Kafka 3.9.1 smoke was still running at the snapshot. Both
+jobs failed; the Kafka 3.9.1 smoke was later canceled without a result. Both
 capability profiles passed. The previous broker pass does not explain the new
 failure.
 
@@ -388,7 +388,10 @@ remain open.
    still masks a worker timeout with a generic protocol summary and is not a
    repair. A proposed [ownership design](../evidence/client/producer-ownership-design-20261108/README.md)
    records the unresolved lifecycle, transaction and sequence requirements;
-   the draft remains unapplied. The [retained-admission test](../evidence/client/retained-cancellation-test-20261108/README.md)
+   the draft remains unapplied. In an instrumented [retry/flush history](../evidence/client/producer-retry-flush-split-20261108/README.md),
+   holding an existing requeue yield let flush send an incomplete retry after
+   the mock had stored the full batch. Receipts and flush reported errors even
+   though the records were in the mock log. This is not a real-Kafka result. The [retained-admission test](../evidence/client/retained-cancellation-test-20261108/README.md)
    now isolates one partial `send_all` cancellation and detects missing or
    duplicate release in a gated mock; producer code is unchanged. The barrier
    draft's short mock benchmark recorded higher median admission and flush
@@ -515,8 +518,12 @@ remain open.
    passed in both profiles. The full Admin suites each failed two wall-time
    assertions; a matched run using the original fixture passed both candidate
    profiles and failed both baseline profiles. The cause remains unknown.
-   Non-null response names are not checked against the request; long cursor
-   cycles, conversion polls and synchronous cleanup still need work. A
+   Non-null response names are not checked against the request. An unapplied
+   [validation candidate](../evidence/client/admin-requested-topic-validation-20261108/README.md)
+   rejects unsolicited names and cursors, but a paired mock comparison showed
+   material slowdowns for 32 and 256 error rows; a lower-cost revision is under
+   investigation. Long cursor cycles, conversion polls and synchronous cleanup
+   still need work. A
    [row-poll baseline](../evidence/client/admin-dtp-row-poll-20261108/README.md)
    measured 93–98 ms for the longest public future poll after a mock peer wrote
    a 500,000-row response on one x86 host. Those polls include other work;

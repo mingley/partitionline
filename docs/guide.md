@@ -743,7 +743,10 @@ records again.
 After `send` has accepted a record into `buffer_memory`, dropping its future
 leaves delivery ambiguous. The worker may still write the record. `try_send`
 returns after admission and does not provide an individual delivery future.
-Keep the delivery result before treating the outcome as final.
+
+A delivery error can also leave the outcome uncertain: an earlier attempt may
+have been appended before its response was lost. If duplicates matter, use an
+application-level idempotency key or a reconciliation process before resending.
 `flush` can return before some retries finish or miss delivery timeouts. `close`
 stops workers; a successful `close` does not replace a delivery result.
 
@@ -752,10 +755,11 @@ stops workers; a successful `close` does not replace a delivery result.
 | Before enqueue | unpolled `send`; rejected `try_send` (`QueueFull`, `RecordTooLarge`); known admission failure | **Not accepted** |
 | Buffered (queued, not yet on the wire) | `metrics().bytes_buffered > 0`; drop `send` future | **Ambiguous.** The worker may still deliver. |
 | After send / before ack | in flight to the broker; drop `send` future | **Ambiguous** |
+| Delivery error after acceptance | `send` returns an error after an attempt may have reached the broker | **Uncertain.** An earlier attempt may already be appended. |
 | After broker ack | `Ok(RecordMetadata)` from `send`, with `acks=1` or `all` | **Acknowledged.** `acks=0` cannot prove an offset. |
 | After `close` / `close_timeout` returns | a new `send` or `try_send` on any clone | **Failed** with `Error::Closed` (`send` fails when polled) |
 | `close_timeout` with outstanding work | The flush reaches its deadline | Close reports `Error::Timeout`; a pending delivery can return `Timeout` or `Closed`. A record already transmitted stays ambiguous. |
-| A later send after an ambiguous result | The earlier per-record receipt is missing | Can duplicate the record, including when idempotence was on. |
+| A later send after an ambiguous result | The earlier per-record receipt is missing or its error leaves delivery uncertain | Can duplicate the record, including when idempotence was on. |
 
 Call `close` or `close_timeout` instead of dropping the last `Producer`.
 Close first attempts to flush and then stops admission, so another clone can
@@ -996,7 +1000,7 @@ Credential rules are in [security.md](security.md).
 | Symptom | Likely cause | What to do |
 |---|---|---|
 | `try_send` returns `QueueFull` | `buffer_memory` is held by records that are not yet acked | `flush`, or wait, then retry. See [Backpressure](#backpressure). |
-| `send` returns `Timeout` | Metadata or buffer wait exceeded `max_block` | Raise `max_block`, and check that the broker is reachable. |
+| `send` returns `Timeout` | Admission or delivery exceeded a deadline | Check broker reachability and timeouts. If the record was accepted, reconcile its outcome before resending. |
 | `Error::Closed` on send | The producer was closed | Create a new producer. See [cancellation](#produce-cancellation-and-shutdown). |
 | `Error::RecordTooLarge` | The record exceeds `max_request_size` | Shrink the record, or raise the limit. |
 | Fetch returns no records | A partition is paused, the offset is wrong, or the leader was fenced | Check `pause` and `seek`. Fencing recovers with OffsetForLeaderEpoch. |

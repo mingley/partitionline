@@ -23,6 +23,9 @@ had 18 successful jobs, eight failed, one running and one skipped.
 | Kafka 3.9.1 smoke | Still running when recorded. |
 | Live conformance | Skipped. |
 
+The Kafka 3.9.1 smoke was later canceled, so it has no result. The completed
+client run had 18 successful jobs, eight failed, one canceled and one skipped.
+
 The successful jobs included resource soak, format, strict all-target and
 all-feature Clippy, audit, deny, documentation, package, release rehearsal,
 auth and integrity smoke, the configured performance and latency gates, and
