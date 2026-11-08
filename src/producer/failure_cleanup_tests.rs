@@ -388,3 +388,18 @@ async fn panicking_result_waker_keeps_all_outcomes_on_cancel_and_unwind() {
         assert_eq!(shared.m_errors.load(Ordering::SeqCst), 3);
     }
 }
+
+#[tokio::test(flavor = "current_thread")]
+async fn closed_receiver_does_not_skip_other_outcomes_or_accounting() {
+    let calls = Arc::new(AtomicUsize::new(0));
+    let (shared, _listener, _peer) =
+        setup(ProducerConfig::default().interceptor(CountErrors(Arc::clone(&calls)))).await;
+    let (batch, mut receivers, budget, _) = records(&shared, 3, true);
+    drop(receivers.remove(1));
+    drop(fail_kept_pendings(&shared, batch, Error::Timeout));
+    assert_timeouts(receivers).await;
+    assert_eq!(calls.load(Ordering::SeqCst), 3);
+    assert_eq!(budget.used.load(Ordering::SeqCst), 0);
+    assert_eq!(shared.buffered_bytes.load(Ordering::SeqCst), 0);
+    assert_eq!(shared.m_errors.load(Ordering::SeqCst), 3);
+}
