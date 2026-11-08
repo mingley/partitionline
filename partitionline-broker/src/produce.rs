@@ -359,8 +359,11 @@ impl Store {
             sync_failures: Vec::new(),
         })
     }
-    pub(crate) fn prepare_response_buf(&mut self, buf: Vec<u8>) {
-        if buf.capacity() >= self.response_buf.capacity() {
+    pub(crate) fn prepare_response_buf(&mut self, buf: Vec<u8>, maximum: usize) {
+        if self.response_buf.capacity() > maximum {
+            self.response_buf = Vec::new();
+        }
+        if buf.capacity() <= maximum && buf.capacity() >= self.response_buf.capacity() {
             self.response_buf = buf;
         }
     }
@@ -370,13 +373,19 @@ impl Store {
     pub(crate) fn take_scan_buf(&mut self) -> Vec<u8> {
         std::mem::take(&mut self.scan_buf)
     }
-    pub(crate) fn keep_scan_buf(&mut self, buf: Vec<u8>) {
-        if buf.capacity() > self.scan_buf.capacity() {
+    pub(crate) fn keep_scan_buf(&mut self, buf: Vec<u8>, maximum: usize) {
+        if self.scan_buf.capacity() > maximum {
+            self.scan_buf = Vec::new();
+        }
+        if buf.capacity() <= maximum && buf.capacity() > self.scan_buf.capacity() {
             self.scan_buf = buf;
         }
     }
-    fn keep_response_buf(&mut self, buf: Vec<u8>) {
-        if buf.capacity() > self.response_buf.capacity() {
+    fn keep_response_buf(&mut self, buf: Vec<u8>, maximum: usize) {
+        if self.response_buf.capacity() > maximum {
+            self.response_buf = Vec::new();
+        }
+        if buf.capacity() <= maximum && buf.capacity() > self.response_buf.capacity() {
             self.response_buf = buf;
         }
     }
@@ -2117,7 +2126,7 @@ fn process_inner(
         input,
     );
     if written.as_ref().ok().is_none_or(|body| body.is_none()) {
-        store.keep_response_buf(std::mem::take(&mut writer.bytes));
+        store.keep_response_buf(std::mem::take(&mut writer.bytes), common.max_response_bytes);
     }
     Ok(ProcessOut::Reply(written?))
 }
@@ -2678,10 +2687,28 @@ mod tests {
         buf.try_reserve_exact(4096)
             .unwrap_or_else(|error| panic!("{error:?}"));
         let capacity = buf.capacity();
-        store.keep_scan_buf(buf);
+        store.keep_scan_buf(buf, capacity);
         let again = store.take_scan_buf();
         assert!(again.capacity() >= capacity);
-        store.keep_scan_buf(again);
+        store.keep_scan_buf(again, capacity);
+
+        // Both an already parked oversized buffer and a newly offered oversized
+        // buffer must be discarded; in-budget buffers remain reusable.
+        store.scan_buf = Vec::with_capacity(8192);
+        store.keep_scan_buf(Vec::with_capacity(8192), 64);
+        assert_eq!(store.take_scan_buf().capacity(), 0);
+        store.response_buf = Vec::with_capacity(8192);
+        store.prepare_response_buf(Vec::with_capacity(8192), 64);
+        assert_eq!(store.take_response_buf().capacity(), 0);
+        store.keep_response_buf(Vec::with_capacity(8192), 64);
+        assert_eq!(store.take_response_buf().capacity(), 0);
+        let small = Vec::with_capacity(8);
+        let actual = small.capacity();
+        if actual <= 64 {
+            store.prepare_response_buf(small, 64);
+            store.prepare_response_buf(Vec::with_capacity(8192), 64);
+            assert_eq!(store.take_response_buf().capacity(), actual);
+        }
     }
 
     #[test]

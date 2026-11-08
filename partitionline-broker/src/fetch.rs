@@ -83,14 +83,14 @@ impl Limits {
     /// Set the logical input/output admission budget, 1 byte..=1 GiB.
     ///
     /// Router startup requires admission count times (maximum request plus
-    /// maximum response bytes) to fit this ceiling. Waiting inputs and completed
-    /// unconsumed snapshots share those permits. Data commands retain a permit
-    /// while their request or reply is actor-owned, including after caller
-    /// cancellation. Limits use logical request and response lengths; `Vec`
-    /// capacity can be larger. `Handler::exchange_request` accepts a spare
-    /// `Vec` supplied by the caller without checking its size against this
-    /// budget. Cached actor buffers, parser metadata, allocator overhead,
-    /// transport/caller ownership and process RSS are outside this ceiling.
+    /// maximum response bytes) to fit this ceiling. Data commands retain a
+    /// permit while queued, processed, waiting or held in an unconsumed reply,
+    /// including after caller cancellation. Request and scratch capacities
+    /// are checked before enqueue. An oversized input and its replacement can
+    /// coexist across yields until normalization finishes or the future is
+    /// dropped. Builders can reserve more than the logical response length.
+    /// Actor caches, parser metadata, allocator overhead, transport/caller
+    /// ownership and process RSS are outside this logical ceiling.
     pub fn with_retained_bytes(mut self, bytes: usize) -> Result<Self, Error> {
         if !(1..=1024 * 1024 * 1024).contains(&bytes) {
             return Err(Error::InvalidLimits);
@@ -1120,7 +1120,7 @@ pub(crate) fn process(
         }
     }
     active()?;
-    store.keep_scan_buf(scan_buf);
+    store.keep_scan_buf(scan_buf, limits.scan_bytes);
     Ok(Snapshot {
         response: out.bytes,
         record_bytes,

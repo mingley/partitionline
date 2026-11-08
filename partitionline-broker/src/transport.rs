@@ -54,6 +54,17 @@ pub struct Peer {
 }
 
 impl Peer {
+    #[cfg(test)]
+    pub(crate) fn capacity_witness() -> Self {
+        Self {
+            address: SocketAddr::from(([127, 0, 0, 1], 9)),
+            #[cfg(feature = "sasl")]
+            identity: None,
+            #[cfg(feature = "tls")]
+            tls: None,
+        }
+    }
+
     /// Remote TCP address; not an authenticated principal.
     pub fn address(&self) -> SocketAddr {
         self.address

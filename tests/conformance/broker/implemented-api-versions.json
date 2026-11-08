@@ -25,7 +25,7 @@
     }
   ],
   "protocol_source": "partitionline-broker/src/protocol.rs",
-  "protocol_source_sha256": "c0c81bcaba200dc27e670146fc6bf37342aadc506547ef606b597d708df5207a",
+  "protocol_source_sha256": "c4ad923c1283bf3bcb7bd6c25e1be8a4a425c0131db0a811917df1a01b983f99",
   "test_source": "partitionline-broker/tests/protocol.rs",
   "test_source_sha256": "a7ecc9ea9f1eb46cf26e20f96f91e3ba738d78dde1a298cc5329615d28923f23",
   "fixture_root": "partitionline-broker/tests/fixtures/protocol",
@@ -176,7 +176,7 @@
     }
   ],
   "metadata_source": "partitionline-broker/src/metadata.rs",
-  "metadata_source_sha256": "4b58da7de8daf51d12c658c35a9252b91907e18475e49cb04fac3de751cb9a5b",
+  "metadata_source_sha256": "e9491aab041deec700db162db42bcf891470c7562c6e0247979e603c5b1cb564",
   "metadata_test_source": "partitionline-broker/tests/metadata.rs",
   "metadata_test_source_sha256": "a500a6cbc819d9fdef11a9bce27ef03153ddde39221a15b5442e3ae9b7aba17c",
   "metadata_fixture_root": "partitionline-broker/tests/fixtures/metadata",
@@ -2297,7 +2297,7 @@
   "controller_implementation_gate": "KL11-13",
   "produce_fixture_root": "partitionline-broker/tests/fixtures/produce",
   "produce_source": "partitionline-broker/src/produce.rs",
-  "produce_source_sha256": "ace0982025aac1d2f66846865fe4e9083b578a2dfccb6fba16af1f1d5183ff11",
+  "produce_source_sha256": "cd61db2623164f22e114aa8dcb74dabdcb64b62271a8bd346a62f415c258dc2d",
   "produce_test_source": "partitionline-broker/tests/produce.rs",
   "produce_test_source_sha256": "449eb0f4b2774ff7f3d4759a32f5362a39cb775f564f1cc44bb4314fd09da733",
   "produce_fixtures_sha256": {
@@ -3631,7 +3631,7 @@
   ],
   "read_write_implementation_gate": "KL11-07",
   "fetch_source": "partitionline-broker/src/fetch.rs",
-  "fetch_source_sha256": "0a35525b57e7cc6d83bb5ca82c544070126f8f2d1932b36e38525cf12a823e89",
+  "fetch_source_sha256": "9419715abfd8f9f45e7cfca1bb2867350b1ab7215af915c3a30105d0a42b28fd",
   "fetch_test_source": "partitionline-broker/tests/fetch.rs",
   "fetch_test_source_sha256": "0e5fd830937e85b8be40c6c4ab0a2797c118a3a44f47f681f04ff558dec53cd1",
   "fetch_fixture_root": "partitionline-broker/tests/fixtures/fetch",
