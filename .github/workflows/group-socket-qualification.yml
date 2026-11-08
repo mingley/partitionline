@@ -18,13 +18,13 @@ jobs:
       CARGO_PROFILE_TEST_DEBUG: '0'
       CARGO_INCREMENTAL: '0'
       CARGO_TERM_COLOR: never
-      CARGO_TARGET_DIR: ${{ github.workspace }}/target
     steps:
       - uses: actions/checkout@v7
         with:
           persist-credentials: false
           sparse-checkout: |
             .cargo
+            .github
             src
             examples
             tests
@@ -50,75 +50,18 @@ jobs:
           git rev-parse HEAD
           git -C baseline rev-parse HEAD
       - name: Exact candidate regressions on both feature sets
-        shell: bash
-        run: |
-          for feature in default all; do
-            for test_name in \
-            'net::tests::physical_retirement_timeout_keeps_a_closed_retryable_slot' \
-            'net::tests::cancelling_physical_retirement_keeps_a_closed_retryable_slot' \
-            'net::tests::repeated_physical_retirement_outside_runtime_needs_no_cleanup_task' \
-            'net::tests::canceled_queued_stream_waiter_finishes_retirement' \
-            'net::tests::queued_stream_guard_handoff_finishes_retirement' \
-            'group::coordinator_replacement_tests::canceled_versions_retires_both_sockets_and_can_retry' \
-            'group::coordinator_replacement_tests::canceled_sasl_restores_versions_and_retires_replacement' \
-            'group::coordinator_replacement_tests::expired_replacement_retires_old_socket_without_dialing' \
-            'group::coordinator_replacement_tests::stalled_replacement_obeys_deadline_and_retires_socket' \
-            'group::rediscover_stop_tests::replacing_an_idle_coordinator_lets_the_broker_leave' \
-            'group::rediscover_stop_tests::replacing_an_idle_offset_coordinator_lets_the_broker_leave' \
-            'group::rediscover_stop_tests::replacing_an_idle_legacy_offset_coordinator_lets_the_broker_leave' \
-            'group::offsets::reconnect_tests::idle_offset_replacement_authenticates_and_reencodes_for_the_new_version' \
-            'group::offsets::reconnect_tests::idle_offset_replacement_never_downgrades_uuid_requests' \
-            'group::offsets::reconnect_tests::failed_offset_request_retires_socket_and_reencodes_for_new_version' \
-            'group::offsets::reconnect_tests::typed_idle_offset_replacement_uses_the_new_authenticated_version' \
-            'group::offsets::reconnect_tests::offset_load_retry_rediscovers_after_second_coordinator_error' \
-            'group::offsets::reconnect_tests::v10_load_retry_never_downgrades_uuid_requests' \
-              ; do
-              log="$(mktemp)"
-              args=(+stable test --locked --lib "$test_name")
-              if [ "$feature" = all ]; then
-                args+=(--all-features)
-              fi
-              args+=(-- --exact --nocapture)
-              status=0
-              cargo "${args[@]}" >"$log" 2>&1 || status=$?
-              cat "$log"
-              test "$status" -eq 0
-              grep -Fq 'test result: ok. 1 passed; 0 failed;' "$log"
-              rm "$log"
-            done
-          done
+        run: bash .github/group-qualification/candidate.sh
       - name: Baseline old-peer failure witnesses
-        shell: bash
         working-directory: baseline
-        run: |
-          names=(
-            group::rediscover_stop_tests::replacing_an_idle_coordinator_lets_the_broker_leave
-            group::rediscover_stop_tests::replacing_an_idle_offset_coordinator_lets_the_broker_leave
-            group::rediscover_stop_tests::replacing_an_idle_legacy_offset_coordinator_lets_the_broker_leave
-          )
-          messages=(
-            'replacing an idle coordinator left the previous broker blocked in a read'
-            'replacing an idle offset coordinator left the previous broker blocked in a read'
-            'replacing an idle legacy offset coordinator left the previous broker blocked in a read'
-          )
-          for index in 0 1 2; do
-            log="$(mktemp)"
-            status=0
-            cargo +stable test --locked --lib "${names[$index]}" -- --exact --nocapture >"$log" 2>&1 || status=$?
-            cat "$log"
-            test "$status" -ne 0
-            grep -Fq 'test result: FAILED. 0 passed; 1 failed;' "$log"
-            grep -Fq "${messages[$index]}" "$log"
-            rm "$log"
-          done
+        run: bash ../.github/group-qualification/baseline.sh
       - name: Clippy
         run: cargo +stable clippy --locked --all-targets --all-features -- -D warnings
-      - name: Formatting
-        run: cargo +stable fmt --all -- --check
       - name: Release stream-lock overhead probe
         env:
           CARGO_PROFILE_RELEASE_LTO: 'false'
           CARGO_PROFILE_RELEASE_CODEGEN_UNITS: '16'
         run: cargo +stable test --release --locked --lib net::tests::stream_lock_overhead_probe -- --exact --ignored --nocapture
+      - name: Formatting
+        run: cargo +stable fmt --all -- --check
       - name: Broader network tests
         run: cargo +stable test --locked --lib net::tests:: -- --test-threads=1
