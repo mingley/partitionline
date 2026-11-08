@@ -11,7 +11,8 @@ pub(super) enum Point {
     FatalEntry,
     ClearEntry,
     ReaderBeforeCause,
-    TicketExhausted,
+    TicketBeforeClaim,
+    TicketAfterClaim,
 }
 
 struct Hook {
@@ -279,13 +280,23 @@ async fn fatal_publishes_before_waiting_for_cause_lock() {
     let fatal_tx = results_tx.clone();
     let fatal_reader = thread::spawn(move || {
         fatal_tx
-            .send(fatal_shared.fail_on_txn_fatal().err().map(|error| error.to_string()))
+            .send(
+                fatal_shared
+                    .fail_on_txn_fatal()
+                    .err()
+                    .map(|error| error.to_string()),
+            )
             .unwrap();
     });
     let any_shared = Arc::clone(&shared);
     let any_reader = thread::spawn(move || {
         results_tx
-            .send(any_shared.fail_on_txn_error().err().map(|error| error.to_string()))
+            .send(
+                any_shared
+                    .fail_on_txn_error()
+                    .err()
+                    .map(|error| error.to_string()),
+            )
             .unwrap();
     });
     let mut early = Vec::new();
@@ -304,7 +315,9 @@ async fn fatal_publishes_before_waiting_for_cause_lock() {
     assert_eq!(early.len(), 2, "PL_TXN_FATAL_READERS_BLOCKED");
     let expected_message = Some("protocol: transactional producer in fatal error state");
     assert!(
-        early.iter().all(|message| message.as_deref() == expected_message),
+        early
+            .iter()
+            .all(|message| message.as_deref() == expected_message),
         "PL_TXN_FATAL_READER_ALLOWED"
     );
     assert_eq!(
@@ -556,7 +569,7 @@ async fn real_fatal_wins_before_exhaustion_is_published() {
     shared.txn_error_test_force_ticket_exhaustion();
     let _serial = SERIAL.lock();
     let (paused, _attempted, release) =
-        install_control(&shared, Point::TicketExhausted, Point::FatalEntry);
+        install_control(&shared, Point::TicketBeforeClaim, Point::FatalEntry);
     let overflow_shared = Arc::clone(&shared);
     let overflow = thread::spawn(move || {
         overflow_shared.set_txn_abortable(Error::broker(
@@ -575,5 +588,39 @@ async fn real_fatal_wins_before_exhaustion_is_published() {
         cause,
         Some(error::PRODUCER_FENCED),
         "PL_TXN_REAL_FATAL_BEFORE_EXHAUSTION"
+    );
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn overflow_pending_fences_and_wins_over_later_fatal() {
+    let (shared, _peer) = fixture().await;
+    shared.txn_error_test_force_ticket_exhaustion();
+    let _serial = SERIAL.lock();
+    let (paused, _attempted, release) =
+        install_control(&shared, Point::TicketAfterClaim, Point::FatalEntry);
+    let overflow_shared = Arc::clone(&shared);
+    let overflow = thread::spawn(move || {
+        overflow_shared.set_txn_abortable(Error::broker(
+            error::TRANSACTION_ABORTABLE,
+            "overflowing abortable",
+        ));
+    });
+    paused.recv_timeout(Duration::from_secs(5)).unwrap();
+    let pending = shared.fail_on_txn_error().unwrap_err().to_string();
+    let pending_fatal = shared.fail_on_txn_fatal().unwrap_err().to_string();
+    shared.set_txn_fatal(Error::broker(error::PRODUCER_FENCED, "later fatal"));
+    release.send(()).unwrap();
+    overflow.join().unwrap();
+    *ACTIVE.lock() = None;
+    let cause = shared.fail_on_txn_fatal().unwrap_err().to_string();
+    println!("PL_TXN_OVERFLOW_PENDING pending={pending} final={cause}");
+    assert_eq!(
+        pending,
+        "protocol: transactional producer in fatal error state"
+    );
+    assert_eq!(pending_fatal, pending);
+    assert!(
+        cause.contains("transactional error ticket exhausted"),
+        "PL_TXN_OVERFLOW_PENDING"
     );
 }

@@ -1498,7 +1498,9 @@ impl Shared {
                 return Err(Error::protocol("transaction in error state"));
             }
             TXN_ERROR_FATAL_PENDING => {
-                return Err(Error::protocol("transactional producer in fatal error state"));
+                return Err(Error::protocol(
+                    "transactional producer in fatal error state",
+                ));
             }
             _ => {}
         }
@@ -1509,9 +1511,9 @@ impl Shared {
         match self.txn_error_state.load(Ordering::SeqCst) & TXN_ERROR_KIND_MASK {
             TXN_ERROR_NONE => Ok(()),
             TXN_ERROR_ABORT_PENDING => Err(Error::protocol("transaction in error state")),
-            TXN_ERROR_FATAL_PENDING => {
-                Err(Error::protocol("transactional producer in fatal error state"))
-            }
+            TXN_ERROR_FATAL_PENDING => Err(Error::protocol(
+                "transactional producer in fatal error state",
+            )),
             _ => match error.as_ref() {
                 Some(error) => Err(error.clone()),
                 None => Err(Error::protocol("transaction in error state")),
@@ -1522,9 +1524,9 @@ impl Shared {
     /// Abort is allowed while abort-required, but not when fatal.
     fn fail_on_txn_fatal(&self) -> Result<()> {
         match self.txn_error_state.load(Ordering::SeqCst) & TXN_ERROR_KIND_MASK {
-            TXN_ERROR_FATAL_PENDING => {
-                Err(Error::protocol("transactional producer in fatal error state"))
-            }
+            TXN_ERROR_FATAL_PENDING => Err(Error::protocol(
+                "transactional producer in fatal error state",
+            )),
             TXN_ERROR_FATAL_COMMITTED => match self.txn_error.lock().as_ref() {
                 Some(error) => Err(error.clone()),
                 None => Err(Error::protocol("transactional producer fenced")),
@@ -1551,17 +1553,21 @@ impl Shared {
                 Ordering::SeqCst,
             ) {
                 Ok(_) => {
-                    let mut error = self.txn_error.lock();
-                    *error = Some(err);
-                    self.txn_error_state.store(
-                        (pending & !TXN_ERROR_KIND_MASK) | TXN_ERROR_FATAL_COMMITTED,
-                        Ordering::SeqCst,
-                    );
+                    self.commit_txn_fatal(pending, err);
                     return;
                 }
                 Err(observed) => state = observed,
             }
         }
+    }
+
+    fn commit_txn_fatal(&self, pending: u64, err: Error) {
+        let mut error = self.txn_error.lock();
+        *error = Some(err);
+        self.txn_error_state.store(
+            (pending & !TXN_ERROR_KIND_MASK) | TXN_ERROR_FATAL_COMMITTED,
+            Ordering::SeqCst,
+        );
     }
 
     /// Publish an abortable claim before waiting for its cause lock. A new
@@ -1578,10 +1584,32 @@ impl Shared {
                 #[cfg(test)]
                 txn_error_state_controls::pause(
                     self,
-                    txn_error_state_controls::Point::TicketExhausted,
+                    txn_error_state_controls::Point::TicketBeforeClaim,
                 );
-                self.set_txn_fatal(Error::protocol("transactional error ticket exhausted"));
-                return;
+                let pending = (state & !TXN_ERROR_KIND_MASK) | TXN_ERROR_FATAL_PENDING;
+                match self.txn_error_state.compare_exchange(
+                    state,
+                    pending,
+                    Ordering::SeqCst,
+                    Ordering::SeqCst,
+                ) {
+                    Ok(_) => {
+                        #[cfg(test)]
+                        txn_error_state_controls::pause(
+                            self,
+                            txn_error_state_controls::Point::TicketAfterClaim,
+                        );
+                        self.commit_txn_fatal(
+                            pending,
+                            Error::protocol("transactional error ticket exhausted"),
+                        );
+                        return;
+                    }
+                    Err(observed) => {
+                        state = observed;
+                        continue;
+                    }
+                }
             };
             let pending = next | TXN_ERROR_ABORT_PENDING;
             match self.txn_error_state.compare_exchange_weak(
