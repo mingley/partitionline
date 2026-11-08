@@ -106,7 +106,6 @@ For TCP 256 KiB, draft elapsed time was 21.98% to 29.48% higher in every
 paired round. TLS p99 was variable across the small per-round samples. The
 cause of the TCP result is not established. The setup does not represent a
 complete broker, concurrent-client fairness or a reproducible cross-machine
-Kafka comparison. A separate rotated-order, byte-identical-placebo and
-additional-test-binary-layout control was queued as
-[42475240981](https://github.com/mingley/partitionline/actions/runs/42475240981);
-its result is not part of these measurements.
+Kafka comparison. A separate [rotated-order follow-up](layout-followup.md) repeated the plain
+regression, but the direction changed after adding an unused test module, and
+a byte-identical placebo also varied. The cause remains unresolved.

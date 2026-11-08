@@ -836,7 +836,10 @@ gate. A [larger-scan review](../evidence/client/send-all-general-scan-20261108/R
 documents changed lock timing, nudge ordering and quadratic chunk work; it is
 not implemented. A separate [buffered-frame experiment](../evidence/broker/frame-classification-20261108/README.md)
 improved synthetic one-byte reads but regressed 256 KiB TCP and TLS loopback
-throughput on one shared runner. It remains unapplied.
+throughput on one shared runner. A [follow-up](../evidence/broker/frame-classification-20261108/layout-followup.md)
+showed sensitivity to test-binary composition and noise without establishing
+the cause. It remains unapplied. Two [test-only controls](../evidence/broker/frame-read-regression-tests-20261108/README.md)
+now check buffered cancellation and invalid prefixes on the existing path.
 
 The producer's pending queue can rescan deadlines and shift a vector on each
 small batch, creating quadratic work when a long queue drains one record at a
