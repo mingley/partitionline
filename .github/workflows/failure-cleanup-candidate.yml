@@ -32,6 +32,8 @@ jobs:
           sparse-checkout: |
             .cargo
             src
+            tests
+            examples
       - uses: dtolnay/rust-toolchain@stable
       - name: Install exact candidate controls on baseline
         shell: bash
@@ -39,7 +41,7 @@ jobs:
           set -euo pipefail
           test "$RUNNER_ARCH" = X64
           test "$(git -C baseline rev-parse HEAD:src/producer.rs)" = ca894b515e0e65e8a451cf811346513240ab6238
-          test "$(git -C candidate rev-parse HEAD:src/producer/failure_cleanup_tests.rs)" = 8c8de10fba1430151cf4289c3644ef4d55dedddf
+          test "$(git -C candidate rev-parse HEAD:src/producer/failure_cleanup_tests.rs)" = 1a5254a9cba4b0a08c449840a598f987ca9f1bae
           mkdir -p baseline/src/producer
           cp candidate/src/producer/failure_cleanup_tests.rs baseline/src/producer/failure_cleanup_tests.rs
           python3 - <<'PYCODE'
@@ -98,7 +100,7 @@ jobs:
           set -euo pipefail
           test "$RUNNER_ARCH" = X64
           test "$(git rev-parse HEAD:src/producer.rs)" = 1058ed122731767fb73a1aa5ea46288f4efdd0a9
-          test "$(git rev-parse HEAD:src/producer/failure_cleanup_tests.rs)" = 8c8de10fba1430151cf4289c3644ef4d55dedddf
+          test "$(git rev-parse HEAD:src/producer/failure_cleanup_tests.rs)" = 1a5254a9cba4b0a08c449840a598f987ca9f1bae
           rustc +stable -vV
           cargo +stable -V
           sha256sum Cargo.lock src/producer.rs src/producer/failure_cleanup_tests.rs
@@ -108,7 +110,7 @@ jobs:
           set -euo pipefail
           export CARGO_TARGET_DIR="$RUNNER_TEMP/cleanup-candidate-target"
           timeout 600 cargo +stable test --locked --lib producer::failure_cleanup_tests:: -- --nocapture 2>&1 | tee "$RUNNER_TEMP/default.log"
-          grep -F 'test result: ok. 14 passed; 0 failed;' "$RUNNER_TEMP/default.log"
+          grep -F 'test result: ok. 17 passed; 0 failed;' "$RUNNER_TEMP/default.log"
       - name: All-feature controls
         if: always()
         shell: bash
@@ -116,7 +118,7 @@ jobs:
           set -euo pipefail
           export CARGO_TARGET_DIR="$RUNNER_TEMP/cleanup-candidate-target"
           timeout 600 cargo +stable test --locked --all-features --lib producer::failure_cleanup_tests:: -- --nocapture 2>&1 | tee "$RUNNER_TEMP/all.log"
-          grep -F 'test result: ok. 14 passed; 0 failed;' "$RUNNER_TEMP/all.log"
+          grep -F 'test result: ok. 17 passed; 0 failed;' "$RUNNER_TEMP/all.log"
       - name: Stable rustfmt
         if: always()
         shell: bash
