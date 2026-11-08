@@ -172,6 +172,7 @@ async fn rejected_record_releases_caller_backing_without_reserving() -> Result<(
 }
 
 #[tokio::test(flavor = "current_thread")]
+#[expect(clippy::unwrap_used, reason = "the controlled test fixture must fail on poisoned locks or impossible conversions")]
 async fn dropping_channel_waiter_releases_only_its_reservation() -> Result<(), Error>
 {
     const CHANNEL_CAPACITY: usize = 4096;
@@ -295,6 +296,7 @@ async fn dropping_channel_waiter_releases_only_its_reservation() -> Result<(), E
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+#[expect(clippy::unwrap_used, reason = "the controlled test fixture must fail on poisoned locks or impossible conversions")]
 async fn cancelled_channel_admission_releases_only_the_unenqueued_reservation() -> Result<(), Error>
 {
     const CHANNEL_CAPACITY: usize = 4096;
