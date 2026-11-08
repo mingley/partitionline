@@ -1,0 +1,140 @@
+name: paired Router Produce and Fetch benchmark
+on:
+  push:
+    branches: [qualification/router-paired-perf-20261108]
+permissions:
+  contents: read
+jobs:
+  paired:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    env:
+      CARGO_INCREMENTAL: "0"
+      CARGO_BUILD_JOBS: "2"
+      CARGO_TERM_COLOR: never
+      RUSTFLAGS: ""
+      BASELINE: 7f59ef470340db6027958f439df3716a8dde536c
+      CANDIDATE: 6d1b06c1d5ea58393243086406b764b3d619793c
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/checkout@v7
+        with:
+          ref: 7f59ef470340db6027958f439df3716a8dde536c
+          path: baseline
+          persist-credentials: false
+      - uses: actions/checkout@v7
+        with:
+          ref: 6d1b06c1d5ea58393243086406b764b3d619793c
+          path: candidate
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Verify pinned source and capture host and toolchain
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p evidence/runs evidence/bin evidence/traces
+          test "$(uname -m)" = x86_64
+          test "$(git -C baseline rev-parse HEAD)" = "$BASELINE"
+          test "$(git -C candidate rev-parse HEAD)" = "$CANDIDATE"
+          test -z "$(git -C baseline status --porcelain)"
+          test -z "$(git -C candidate status --porcelain)"
+          printf '%s  %s\n' 6933f51c2463feccfeb6264d5b0c18752c3711d8179d8f0d48a3f7c7e308664c candidate/partitionline-broker/src/metadata.rs | sha256sum -c -
+          printf '%s  %s\n' b5d3344c5002e1a923017d0b90c6471dd7fe994c78d981858b3d87b05c400e48 candidate/partitionline-broker/src/fetch.rs | sha256sum -c -
+          cmp baseline/partitionline-broker/Cargo.toml candidate/partitionline-broker/Cargo.toml
+          cmp baseline/partitionline-broker/Cargo.lock candidate/partitionline-broker/Cargo.lock
+          cmp baseline/partitionline-broker/tests/fixtures/fetch/4.3.1/log-batch-3.bin candidate/partitionline-broker/tests/fixtures/fetch/4.3.1/log-batch-3.bin
+          python3 - <<'PY'
+          from pathlib import Path
+          a = Path("baseline/partitionline-broker/src")
+          b = Path("candidate/partitionline-broker/src")
+          left = {p.relative_to(a) for p in a.rglob("*") if p.is_file()}
+          right = {p.relative_to(b) for p in b.rglob("*") if p.is_file()}
+          assert left == right
+          different = {str(p) for p in left if (a / p).read_bytes() != (b / p).read_bytes()}
+          assert different == {"metadata.rs", "fetch.rs"}, different
+          print("Differing broker production files:", sorted(different))
+          PY
+          {
+            date -u
+            uname -a
+            lscpu
+            df -T "$RUNNER_TEMP"
+            rustc +stable --version --verbose
+            cargo +stable --version --verbose
+            rustup show
+            git --version
+            printf 'BASELINE=%s\nCANDIDATE=%s\n' "$BASELINE" "$CANDIDATE"
+            printf 'RUSTFLAGS=%s\nCARGO_INCREMENTAL=%s\nCARGO_BUILD_JOBS=%s\n' "$RUSTFLAGS" "$CARGO_INCREMENTAL" "$CARGO_BUILD_JOBS"
+            python3 -c 'import os; print("allowed_cpus=" + ",".join(map(str, sorted(os.sched_getaffinity(0)))))'
+          } | tee evidence/host-toolchain.txt
+          sha256sum tools/router-paired-perf.rs .github/workflows/router-paired-perf.yml baseline/partitionline-broker/Cargo.toml baseline/partitionline-broker/Cargo.lock baseline/partitionline-broker/src/metadata.rs baseline/partitionline-broker/src/fetch.rs baseline/partitionline-broker/tests/fixtures/fetch/4.3.1/log-batch-3.bin candidate/partitionline-broker/src/metadata.rs candidate/partitionline-broker/src/fetch.rs | tee evidence/source-sha256.txt
+      - name: Build both pinned revisions with the identical harness and flags
+        shell: bash
+        run: |
+          set -euo pipefail
+          for side in baseline candidate; do
+            cp tools/router-paired-perf.rs "$side/partitionline-broker/examples/router_paired_perf.rs"
+            cmp tools/router-paired-perf.rs "$side/partitionline-broker/examples/router_paired_perf.rs"
+            CARGO_TARGET_DIR="$GITHUB_WORKSPACE/build-$side" cargo +stable build --locked --release --manifest-path "$side/partitionline-broker/Cargo.toml" --example router_paired_perf 2>&1 | tee "evidence/build-$side.log"
+            cp "build-$side/release/examples/router_paired_perf" "evidence/bin/$side"
+          done
+          sha256sum evidence/bin/baseline evidence/bin/candidate | tee evidence/binary-sha256.txt
+      - name: Measure eight alternating pairs on the same constrained CPUs
+        shell: bash
+        run: |
+          set -euo pipefail
+          cpus="$(python3 -c 'import os; print(",".join(map(str, sorted(os.sched_getaffinity(0))[:2])))')"
+          test -n "$cpus"
+          printf 'taskset_cpus=%s\n' "$cpus" | tee -a evidence/host-toolchain.txt
+          index=0
+          for pair in $(seq 1 8); do
+            if [ $((pair % 2)) -eq 1 ]; then order="baseline candidate"; else order="candidate baseline"; fi
+            for side in $order; do
+              index=$((index + 1))
+              id="$(printf '%02d-pair%02d-%s' "$index" "$pair" "$side")"
+              echo "START $id"
+              if ! BENCH_ROOT="$RUNNER_TEMP/router-perf-$id" taskset -c "$cpus" "evidence/bin/$side" > "evidence/runs/$id.csv" 2> "evidence/runs/$id.stderr"; then
+                cat "evidence/runs/$id.stderr"
+                tail -n 30 "evidence/runs/$id.csv"
+                exit 1
+              fi
+              grep '^validated,' "evidence/runs/$id.csv"
+              grep '^summary,' "evidence/runs/$id.csv"
+            done
+          done
+          sha256sum evidence/runs/* | tee evidence/run-sha256.txt
+      - name: Observe synchronization grouping in separate traced runs
+        shell: bash
+        run: |
+          set -euo pipefail
+          cpus="$(python3 -c 'import os; print(",".join(map(str, sorted(os.sched_getaffinity(0))[:2])))')"
+          if ! command -v strace >/dev/null; then
+            echo "strace unavailable; grouping unobserved" | tee evidence/traces/status.txt
+            exit 0
+          fi
+          strace --version | head -n 1 | tee evidence/traces/status.txt
+          for side in baseline candidate; do
+            set +e
+            BENCH_ROOT="$RUNNER_TEMP/router-perf-trace-$side" timeout 180 strace -f -yy -e trace=fsync,fdatasync -o "evidence/traces/$side.trace" taskset -c "$cpus" "evidence/bin/$side" > "evidence/traces/$side.csv" 2> "evidence/traces/$side.stderr"
+            status=$?
+            set -e
+            echo "$side trace_status=$status" | tee -a evidence/traces/status.txt
+            if [ "$status" -eq 0 ]; then
+              grep '^validated,' "evidence/traces/$side.csv" | tee -a evidence/traces/status.txt
+              count="$(grep -c 'fdatasync(.*partitions/.*journal' "evidence/traces/$side.trace" || true)"
+              echo "$side partition_journal_fdatasync_calls=$count (separate tracing run; includes startup/recovery)" | tee -a evidence/traces/status.txt
+            else
+              echo "$side grouping unobserved; see stderr" | tee -a evidence/traces/status.txt
+              tail -n 20 "evidence/traces/$side.stderr"
+            fi
+          done
+      - name: Retain raw samples, traces, source and binary hashes, host and build logs
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: router-paired-perf-evidence
+          path: evidence/
+          if-no-files-found: warn
+          retention-days: 30
