@@ -23,7 +23,7 @@ jobs:
         run: |
           set -euo pipefail
           test "$(git rev-parse HEAD:src/admin.rs)" = 8c2f94353e04c2925b1bfaf8478285190dd317d7
-          test "$(git rev-parse HEAD:src/admin/pagination_tests.rs)" = 2e08f39767cc49e42a4ca2e2cd9c9a9854279af5
+          test "$(git rev-parse HEAD:src/admin/pagination_tests.rs)" = a69d5cceff56a7d1c52f321b5766d695423871aa
           git rev-parse HEAD HEAD:src/admin.rs HEAD:src/admin/pagination_tests.rs HEAD:Cargo.toml HEAD:Cargo.lock
           rustc -Vv
           if test "${{ matrix.feature }}" = all; then flags=--all-features; else flags=; fi
@@ -44,7 +44,7 @@ jobs:
         run: |
           set -euo pipefail
           test "$(git rev-parse HEAD:src/admin.rs)" = 8c2f94353e04c2925b1bfaf8478285190dd317d7
-          test "$(git rev-parse HEAD:src/admin/pagination_tests.rs)" = 2e08f39767cc49e42a4ca2e2cd9c9a9854279af5
+          test "$(git rev-parse HEAD:src/admin/pagination_tests.rs)" = a69d5cceff56a7d1c52f321b5766d695423871aa
           cargo fmt --all -- --check
           cargo clippy --locked --all-targets --all-features -- -D warnings
   deny:

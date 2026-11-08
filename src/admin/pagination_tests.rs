@@ -2632,10 +2632,14 @@ async fn dtp_slot_index_resolves_forced_collisions_and_keeps_errors() {
 }
 
 #[tokio::test]
-async fn dtp_slot_index_survives_output_reallocation_under_forced_collisions() {
+async fn dtp_slot_index_survives_capacity_growth_under_forced_collisions() {
     let mut out = Vec::new();
     let mut index = DescribedTopicIndex::with_hasher(DtpConstantHashBuilder);
+    let mut output_grew_nonempty = false;
+    let mut index_grew_nonempty = false;
     for number in 0..128 {
+        let previous_output_capacity = out.capacity();
+        let previous_index_capacity = index.table.capacity();
         let name = format!("topic-{number:03}");
         place_described_topic(
             &mut out,
@@ -2644,7 +2648,13 @@ async fn dtp_slot_index_survives_output_reallocation_under_forced_collisions() {
         )
         .await
         .unwrap();
+        if number > 0 {
+            output_grew_nonempty |= out.capacity() > previous_output_capacity;
+            index_grew_nonempty |= index.table.capacity() > previous_index_capacity;
+        }
     }
+    assert!(output_grew_nonempty);
+    assert!(index_grew_nonempty);
     for number in (0..128).rev() {
         let name = format!("topic-{number:03}");
         place_described_topic(
@@ -2822,7 +2832,7 @@ async fn dtp_slot_public_cross_page_case(case: u8) {
                 unnamed.name = None;
                 second_page.topics.push(unnamed);
             }
-            _ => unreachable!(),
+            _ => panic!("unexpected cross-page test case {case}"),
         }
         send_page(&mut socket, &second, &second_page).await.unwrap();
         let raw = dtp_named_request(&mut socket, &["orders"], None).await;
@@ -2858,7 +2868,7 @@ async fn dtp_slot_public_cross_page_case(case: u8) {
             if message == "DescribeTopicPartitions returned an unrequested topic")),
         3 => assert!(matches!(&got, Err(Error::Unsupported(message))
             if message == "cannot aggregate DescribeTopicPartitions without a topic name")),
-        _ => unreachable!(),
+        _ => panic!("unexpected cross-page test case {case}"),
     }
     assert!(!admin.conn.is_closed());
     let raw = admin
