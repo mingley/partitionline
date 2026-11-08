@@ -84,9 +84,11 @@ impl Limits {
     ///
     /// Router startup requires admission count times (maximum request plus
     /// maximum response bytes) to fit this ceiling. Waiting inputs and completed
-    /// unconsumed snapshots share those permits. Actor scan buffers, parser
-    /// metadata, allocator overhead, transport/caller ownership and RSS are
-    /// separate from this byte envelope.
+    /// unconsumed snapshots share those permits. A canceled caller can release
+    /// its permit before the actor drops its request and work buffers. This
+    /// ceiling does not bound that overlap or total process memory. Actor scan
+    /// buffers, parser metadata, allocator overhead and transport/caller
+    /// ownership are also separate from this byte envelope.
     pub fn with_retained_bytes(mut self, bytes: usize) -> Result<Self, Error> {
         if !(1..=1024 * 1024 * 1024).contains(&bytes) {
             return Err(Error::InvalidLimits);
@@ -94,7 +96,7 @@ impl Limits {
         self.retained_bytes = bytes;
         Ok(self)
     }
-    /// Combined admitted read input/output byte ceiling, default1GiB.
+    /// Configured read input/output admission ceiling, default1GiB.
     pub fn max_retained_bytes(self) -> usize {
         self.retained_bytes
     }
