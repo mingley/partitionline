@@ -24,10 +24,11 @@ fn mix(mut value: u64) -> u64 {
 
 fn record(seed: u64, id: u64, bytes: usize) -> ([u8; 16], Vec<u8>) {
     let mut key = [0; 16];
-    for (slot, byte) in key
-        .iter_mut()
-        .zip(id.to_be_bytes().into_iter().chain(mix(seed ^ id).to_be_bytes()))
-    {
+    for (slot, byte) in key.iter_mut().zip(
+        id.to_be_bytes()
+            .into_iter()
+            .chain(mix(seed ^ id).to_be_bytes()),
+    ) {
         *slot = byte;
     }
     let mut payload = Vec::with_capacity(bytes);
@@ -117,7 +118,10 @@ async fn phase(
     if outstanding != 0 || max_outstanding != 1 {
         return Err("missing completion or occupancy evidence".into());
     }
-    writeln!(output, "phase_end,{phase},{count},{elapsed},{max_outstanding}")?;
+    writeln!(
+        output,
+        "phase_end,{phase},{count},{elapsed},{max_outstanding}"
+    )?;
     output.flush()?;
     Ok(())
 }
@@ -131,9 +135,15 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let count = positive("COUNT", 64, 1_000_000)?;
     let partitions = i32::try_from(positive("PARTITIONS", 6, 1_000)?)?;
     let payload_bytes = usize::try_from(positive("PAYLOAD_BYTES", 100, 100_000)?)?;
-    let file = OpenOptions::new().create_new(true).write(true).open(output_path)?;
+    let file = OpenOptions::new()
+        .create_new(true)
+        .write(true)
+        .open(output_path)?;
     let mut output = BufWriter::new(file);
-    writeln!(output, "config,{SEED},{warmup},{count},{partitions},{payload_bytes}")?;
+    writeln!(
+        output,
+        "config,{SEED},{warmup},{count},{partitions},{payload_bytes}"
+    )?;
     output.flush()?;
 
     let mut cfg = ProducerConfig::bootstrap([bootstrap]);
@@ -177,10 +187,28 @@ async fn main() -> Result<(), Box<dyn Error>> {
     )?;
     output.flush()?;
     let producer = Producer::new(cfg).await?;
-    phase(&producer, &topic, "warmup", warmup, partitions, payload_bytes, &mut output).await?;
+    phase(
+        &producer,
+        &topic,
+        "warmup",
+        warmup,
+        partitions,
+        payload_bytes,
+        &mut output,
+    )
+    .await?;
     // Every warmup send returned its individual broker acknowledgement before
     // the timed phase begins; flush is not used as a completion barrier.
-    phase(&producer, &topic, "measure", count, partitions, payload_bytes, &mut output).await?;
+    phase(
+        &producer,
+        &topic,
+        "measure",
+        count,
+        partitions,
+        payload_bytes,
+        &mut output,
+    )
+    .await?;
     tokio::time::timeout(Duration::from_secs(30), producer.close()).await??;
     writeln!(output, "complete")?;
     output.flush()?;
@@ -200,8 +228,10 @@ mod tests {
         );
         assert_eq!(
             payload,
-            [0x67, 0xf1, 0xd8, 0x67, 0x34, 0x33, 0xdf, 0x28,
-             0x52, 0x41, 0x67, 0xc4, 0x4d, 0xf7, 0x11, 0xf8]
+            [
+                0x67, 0xf1, 0xd8, 0x67, 0x34, 0x33, 0xdf, 0x28, 0x52, 0x41, 0x67, 0xc4, 0x4d, 0xf7,
+                0x11, 0xf8
+            ]
         );
     }
 }
