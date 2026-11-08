@@ -1,3 +1,4 @@
+//! Isolated record validation benchmark fixture.
 use partitionline_broker::records::{self, Limits};
 use std::hint::black_box;
 use std::time::Instant;
@@ -88,6 +89,24 @@ fn main() {
     let summary = records::validate_read(&data, limits).unwrap();
     assert_eq!(summary.record_count(), count);
     assert_eq!(summary.header_count(), expected_headers);
+    let batch = checked.batches().next().unwrap().unwrap();
+    let mut seen = 0usize;
+    let expected_value = vec![b'x'; payload];
+    for item in batch.records() {
+        let record = item.unwrap();
+        assert_eq!(record.offset, seen as i64);
+        assert_eq!(record.timestamp, 1_000 + seen as i64);
+        assert_eq!(record.key, Some(&b"key-1234"[..]));
+        assert_eq!(record.value, Some(&expected_value[..]));
+        seen += 1;
+    }
+    assert_eq!(seen, count);
+    let mut damaged = data.clone();
+    damaged[21] ^= 0x80;
+    assert!(matches!(
+        records::validate(&damaged, limits),
+        Err(records::Error::Invalid { kind: records::Invalid::Checksum, .. })
+    ));
     eprintln!("case={mode} bytes={} crc={:08x} records={count} headers={expected_headers} iterations={iters}", data.len(), crc32c::crc32c(&data));
     let work = || {
         let mut checksum = 0usize;
