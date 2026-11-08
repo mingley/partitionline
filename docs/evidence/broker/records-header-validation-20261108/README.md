@@ -2,9 +2,9 @@
 
 The ordinary record validator first tries a fast walk for batches without
 headers. A positive header count makes that walk decline and the generic
-validator starts from the beginning. Seven isolated candidates tried to
-reduce that repeated work. None is applied: each regressed at least one
-measured control. The benchmark checks memory-resident uncompressed batches;
+validator starts from the beginning. Nine isolated candidates tried to
+reduce that repeated work. None is applied. Earlier versions regressed at
+least one measured control; the latest needs broader qualification. The benchmark checks memory-resident uncompressed batches;
 it does not measure Kafka throughput or rank clients or servers.
 
 ## Paired measurements
@@ -259,5 +259,100 @@ Neither archive has been independently downloaded; binaries were not retained.
 [Run 42453286145](https://github.com/mingley/partitionline/actions/runs/42453286145)
 passed formatting, the focused tests in both profiles and strict Clippy.
 
-A subsequent isolated variant also inlines the lower-level decoder. Its
-paired benchmark and disassembly are in progress.
+A subsequent isolated variant also inlines the lower-level decoder; its paired
+and disassembly results are below.
+
+## Nested decoder inline follow-up
+
+The [nested-inline candidate](https://github.com/mingley/partitionline/commit/00ebf674cafd594746ac3e25cfb8f648acfdb9cd)
+also marks the lower-level canonical decoder `#[inline(always)]`.
+[Run 42453611803](https://github.com/mingley/partitionline/actions/runs/42453611803)
+measured candidate/baseline median ratios of 1.013 for 1,024 header-free
+records, 1.021 for a header only on the last record and 1.022 for late-invalid
+without headers. All eight paired ratios for each of those cases were above
+baseline. Early-invalid was 0.999. Header-heavy valid cases ranged from 0.618
+to 0.902. The candidate remains unapplied because the common and fallback
+regressions remain.
+
+The candidate source SHA-256 was
+`7bdc7b868ee762ec34a92412bc65fe833679bedd05b0c5d45e2a7ca9e82415d5`;
+fixture SHA-256 was
+`d268ab717b4447c560eba6b009ca58eb91e62d9cbcb776ecaf7ba258a3dbcc18`.
+Baseline and candidate binary SHA-256 values were
+`e4698019bfb9f7d9bd9da9dd975ae89b85c1d25f48ec27a07a2d7a738be7ebe7`
+and `6c943416e9a8e45baa50bb0e3847fcb008aa3754d46a9ac1ecf166f5b284fabc`.
+GitHub reported SHA-256
+`196f2cb3e0f3e0281c0b6796df9adcd7a7ab27bae3e7d8bed0c49b99b21d97f2`
+for the [measurement artifact](https://github.com/mingley/partitionline/actions/runs/42453611803/artifacts/13607161014).
+The archive has not been independently downloaded and the binaries were not
+retained. [Run 42453600001](https://github.com/mingley/partitionline/actions/runs/42453600001)
+passed formatting, the focused tests in both profiles and strict Clippy.
+
+The separate [disassembly run](https://github.com/mingley/partitionline/actions/runs/42453612237)
+rebuilt the same baseline and nested-inline binary hashes. Its eight paired
+no-header ratios ranged from 0.999 to 1.034, with a median of 1.017. Both
+`try_accept_plain` functions had no separate call to `read_canonical_i64`
+or `read_canonical_u64`; the disassembly contained 285 lines for baseline
+and 288 for candidate. The header scanner and first-record probe grew from
+297 and 185 disassembly lines in the earlier gated candidate to 403 and 285
+in the nested-inline candidate. These counts and the paired timing are
+observations, not a complete instruction-cost or cache analysis.
+
+The [code-generation artifact](https://github.com/mingley/partitionline/actions/runs/42453612237/artifacts/13607355168)
+has GitHub-reported SHA-256
+`814f685a86f8fd790702e0cb47f02af75611a5c91d0d18ab4f23718a5320b588`.
+It has not been independently downloaded, and the binaries were not retained.
+
+## Cold-outlined fallback
+
+The [cold-outlined candidate](https://github.com/mingley/partitionline/commit/fdfd97f5c82dc2efb294fc671d394a6ddb0603de)
+keeps single-record batches on the existing path and places the extra
+first-record probe and resumable header scan behind a `#[cold]`,
+`#[inline(never)]` helper. Marking this path cold is an optimization hint,
+not a claim that headers are rare in production.
+
+[Run 42453967798](https://github.com/mingley/partitionline/actions/runs/42453967798)
+used the same paired fixture. Candidate/baseline median ratios and the ranges
+of the eight paired medians were:
+
+| Case | Pooled median ratio | Paired range |
+| --- | ---: | ---: |
+| One record, no headers | 0.972 | 0.939–1.648 |
+| One record, one header | 0.965 | 0.954–0.981 |
+| Two records, one header each | 0.810 | 0.798–0.833 |
+| Eight records, one header each | 0.755 | 0.745–0.768 |
+| 32 records, one header each | 0.663 | 0.656–0.672 |
+| 1,024 records, no headers | 0.953 | 0.930–0.969 |
+| 1,024 records, one header each | 0.672 | 0.661–0.678 |
+| 1,024 records, four headers each | 0.698 | 0.687–0.708 |
+| 1,024 records, header only on last | 0.990 | 0.974–1.004 |
+| 256 records, one header and a 1,024-byte value each | 0.916 | 0.901–0.932 |
+| Invalid attributes on first record | 0.999 | 0.990–1.010 |
+| Invalid attributes on last record, no headers | 0.987 | 0.978–1.004 |
+| Invalid attributes on last record, earlier headers | 0.666 | 0.659–0.673 |
+
+The one-record no-header case included a large 1.648 pair outlier. A
+[separate run](https://github.com/mingley/partitionline/actions/runs/42453969163)
+rebuilt identical binary hashes and repeated only the 1,024-record no-header
+case; its paired ratios ranged from 0.997 to 1.016. These shared-host results
+are not proof of a general performance gain or a Kafka throughput comparison.
+
+The candidate `records.rs` SHA-256 was
+`f126d5a952cf8329a423ead7f3e295ed210ed8046d4115ed072e1f07c42eb71e`;
+fixture SHA-256 was
+`d268ab717b4447c560eba6b009ca58eb91e62d9cbcb776ecaf7ba258a3dbcc18`.
+Baseline and candidate binary SHA-256 values were
+`e4698019bfb9f7d9bd9da9dd975ae89b85c1d25f48ec27a07a2d7a738be7ebe7`
+and `89951c22e7a68e863196a4520a0a0841c249076d370e12c595ba36b3337d5258`.
+GitHub reported SHA-256
+`6e4e7d551c9e6819eef2a9a3fdc47d6f29547d94da16b53ad30db3b4644e39a0`
+for the [measurement artifact](https://github.com/mingley/partitionline/actions/runs/42453967798/artifacts/13606727029)
+and `b6e33e8ca87aa214ba7c8f620317889230153071cc00687a1c85955668c3314c`
+for the [code-generation artifact](https://github.com/mingley/partitionline/actions/runs/42453969163/artifacts/13606932812).
+Neither archive was independently downloaded, and binaries were not retained.
+
+[Run 42453957702](https://github.com/mingley/partitionline/actions/runs/42453957702)
+passed formatting, focused record tests in both profiles and strict all-target,
+all-feature Clippy. The candidate has not passed a full broker suite or a
+current-main qualification. Real broker traffic, longer fault campaigns, other
+processors and broader workloads remain unmeasured.

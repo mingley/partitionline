@@ -10,22 +10,34 @@ Production readiness and fastest-client/server claims remain unqualified.
 Client 0.1.0 is already published. The next client version must be at least
 0.2.0; broker and schema publication remain disabled.
 
-The latest complete recorded main [CI snapshot](../evidence/releases/main-ci-eaa-20261108/README.md)
-is `eaa8ac6ddfe767d6ae7d45b19eb945a6a1578c9b`. Client libraries reported
-2,225 passed and 19 failed on Linux default features, 2,219 passed and 25
-failed with all features, 2,229 passed and 15 failed on Windows, and 2,235
-passed and nine failed on macOS arm64. Kafka compatibility and both smoke jobs
-failed. Broker CI passed 754 default and 902 all-feature tests, with three
-descriptor diagnostics ignored in each suite and passed separately. Clippy,
-Rustdoc, inventory and fuzz supervision passed. These results do not close the
-release gates.
+The latest complete recorded main [CI snapshot](../evidence/releases/main-ci-de152e-20261108/README.md)
+is `de152e78ca6d85e6cd4ea5915058b2bb6141cf42`. Client libraries reported
+2,226 passed and 18 failed on Linux default features, 2,221 passed and 23
+failed with all features, 2,235 passed and nine failed on Windows, and 2,230
+passed and 14 failed on macOS arm64. Kafka compatibility and both smoke jobs
+failed. Broker CI passed 755 default and 903 all-feature tests, with three
+descriptor diagnostics ignored in each suite and passed separately on the
+same broker production source. Clippy, Rustdoc, inventory and fuzz supervision
+passed. These results do not close the release gates.
 
 Earlier [broker CI](../evidence/broker/main-ci-3fc-20261108/README.md)
 at `3fc8059` stopped at two all-feature Raft runtime failures. A
 [subsequent run](../evidence/broker/main-ci-c471-20261108/README.md) stopped
 at a quorum integration test after a delete returned error 56. The retained
-log does not show whether the delete committed or identify the cause. The
-later pass at `eaa8ac6` does not explain these failures.
+log does not show whether the delete committed or identify the cause. The later passes at `eaa8ac6` and `de152e7` do not explain these failures.
+
+A [separate quorum diagnostic](../evidence/broker/quorum-delete-diagnostic-20261108/README.md)
+captured one new Delete that completed and an earlier, distinct timed-out
+Create whose token appeared in committed journal entries in three
+post-shutdown copies. It did not reproduce or explain the original error 56.
+A [leader-removal control](../evidence/broker/quorum-proposal-boundary-20261108/README.md)
+shows one pre-append refusal; it does not establish that every NotLeader is
+safe to retry.
+
+An unmerged Raft test candidate's [all-feature suite](https://github.com/mingley/partitionline/actions/runs/42454616584)
+timed out waiting for a stable leader in a five-node short-election fixture.
+After 15 seconds its sampled nodes were in term 163. The stage and cause are
+not established; the candidate remains unqualified.
 
 The [coordinator repair](../evidence/client/group-coordinator-retirement-20261108/README.md)
 retires a known coordinator socket before replacement. Focused local controls
@@ -347,8 +359,10 @@ reduced ticket size but did not show a convincing timing gain and remains
 unapplied.
 
 [Record-header experiments](../evidence/broker/records-header-validation-20261108/README.md)
-improved some header-bearing batches but regressed other controls. They remain
-unapplied; the results do not establish Kafka throughput.
+improved some header-bearing batches but several variants regressed other
+controls. A later outlined candidate showed promising synthetic measurements;
+its expanded differential tests and full qualification are still in progress.
+The candidates remain unapplied and do not establish Kafka throughput.
 
 Run clean-commit client, broker and schema default/all-feature suites,
 all-target strict Clippy, formatting, rustdoc, package consumers and independent
