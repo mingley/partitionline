@@ -21,25 +21,28 @@ dependency graph is not Rust-only.
 ## Validation
 
 The latest complete recorded [CI snapshot][ci] is main commit
-`426041c9f5526dfb6a788344a0e03b3edfefffb0`. The current branch includes
+`464d33d5afe668d46274972cd3baa4e870159bf8`. The current branch includes
 later changes; see the linked runs for their exact source and scope.
 
-| Check | Result at `426041c` |
+| Check | Result at `464d33d` |
 | --- | --- |
-| Client library, Linux default | 2,259 passed and 13 failed; later targets did not run. |
-| Client library, Linux all features | 2,261 passed and 11 failed; later targets did not run. |
-| Client library, Windows default | 2,257 passed and 15 failed. |
-| Client library, macOS arm64 default | 2,264 passed and eight failed. |
-| Kafka 4.1.2, 4.2.1 and 4.3.1 compatibility | All three jobs failed with stack overflows. |
-| Kafka 3.9.1 and 4.1.0 smoke | Both reported JoinGroup error 16 and timeouts after retries. |
+| Client library, Linux default | 2,259 passed and 17 failed; later targets did not run. |
+| Client library, Linux all features | 2,262 passed and 14 failed; later targets did not run. |
+| Client library, Windows default | 2,256 passed and 20 failed. |
+| Client library, macOS arm64 default | 2,262 passed and 14 failed. |
+| Kafka 4.1.2, 4.2.1 and 4.3.1 compatibility | All three jobs failed. |
+| Kafka 3.9.1 and 4.1.0 smoke | Both jobs failed. |
 | Resource soak | Passed. |
-| Broker default targets | 781 passed, four ignored. |
-| Broker all-feature targets | 929 passed, four ignored. |
-| Broker strict checks, inventory and fuzz supervision | Passed. |
+| Broker default library | 489 passed, two failed and four ignored. |
+| Broker remaining behavioral and strict checks | Did not run after the failure. |
+| Broker inventory and fuzz supervision | Passed. |
 | Client capability profiles | Both passed selected checks; their archives were not independently inspected. |
 | Client format, all-target Clippy, audit, docs, package, auth and integrity smoke | Passed. Other client jobs failed or were skipped. |
 
-A later [partial main CI snapshot][ci-536] passed 781 broker default tests,
+The [previous complete snapshot][ci-426] passed both broker profiles and
+strict checks. It does not explain the later Raft failures.
+
+An earlier [partial main CI snapshot][ci-536] passed 781 broker default tests,
 with four ignored, but its all-feature library stopped after one Raft failure
 (534 passed, four ignored). Client libraries and four completed Kafka jobs
 failed; the Kafka 3.9.1 smoke was later canceled without a result. Both
@@ -112,6 +115,10 @@ latency bound.
   [retry/flush history][retry-flush-split] sent an incomplete retry after the
   mock stored the original batch; both observed receipts and flush returned
   errors. It held an existing yield and does not establish a Kafka outcome.
+  [Private batch controls][batch-controls] also show that packing can split an
+  injected complete retry and expiration acts on individual records. A
+  separate [timestamp history][timestamp-history] observed different implicit
+  request, retry and receipt times in a mock. These are not real-Kafka results.
   An [in-flight
   close control][callback] also showed a blocking interceptor delaying a
   150 ms close to 751 ms on a current-thread runtime, with the target appended
@@ -168,8 +175,10 @@ latency bound.
   [row checkpoint][admin-row-checkpoint] yields after every 8,192 completed
   conversions, including across page boundaries. A paired mock showed shorter
   8,192-row polls, while 500,000-row maxima remained about 62–66 ms in both
-  arms. Polls include other work; neither this nor the earlier [baseline][admin-row]
-  establishes a Kafka throughput or wall-time bound. [Admin response reservations][admin-reserve] cap
+  arms. A separate [poll-phase diagnostic][admin-phases] found long Pending
+  and Ready polls without identifying their causes. Polls include other work;
+  neither this nor the earlier [baseline][admin-row] establishes a Kafka
+  throughput or wall-time bound. [Admin response reservations][admin-reserve] cap
   initial capacity requests in seven response families, but results can grow.
   A separate [DescribeTopicPartitions reservation candidate][dtp-reserve]
   remains unapplied after valid-decode regressions. GSSAPI and
@@ -204,7 +213,7 @@ stopped. The [work plan][next] records the broader outstanding work and
 retained evidence. The [benchmark contract](benchmark-contract.md) and
 [release guide](RELEASE.md) describe the remaining qualification gates.
 
-[ci]: https://github.com/mingley/partitionline/blob/ed10995700da3252dbefb4696e1afd7dfe5a008d/docs/evidence/releases/main-ci-426-20261108/README.md
+[ci]: https://github.com/mingley/partitionline/blob/a8403decd42d794b1da89ac985e2f390f32e01a7/docs/evidence/releases/main-ci-464-20261108/README.md
 [ci-262]: https://github.com/mingley/partitionline/blob/cb55f7c603e2344775de8a395c6a584737f5bb95/docs/evidence/releases/main-ci-262-20261108/README.md
 [ci-02c]: https://github.com/mingley/partitionline/blob/0ce81683fe7107386e30f388cd2a4af31735d522/docs/evidence/releases/main-ci-02c-20261108/README.md
 [next]: https://github.com/mingley/partitionline/blob/ed10995700da3252dbefb4696e1afd7dfe5a008d/docs/plan/next-work.md
@@ -269,3 +278,8 @@ retained evidence. The [benchmark contract](benchmark-contract.md) and
 [admin-name]: https://github.com/mingley/partitionline/blob/7e758b28822b2a66d37733b2b0c1c6afa61d0acd/docs/evidence/client/admin-requested-topic-validation-20261108/README.md
 
 [admin-row-checkpoint]: https://github.com/mingley/partitionline/blob/7e758b28822b2a66d37733b2b0c1c6afa61d0acd/docs/evidence/client/admin-dtp-row-checkpoint-20261108/README.md
+
+[ci-426]: https://github.com/mingley/partitionline/blob/ed10995700da3252dbefb4696e1afd7dfe5a008d/docs/evidence/releases/main-ci-426-20261108/README.md
+[batch-controls]: https://github.com/mingley/partitionline/blob/a8403decd42d794b1da89ac985e2f390f32e01a7/docs/evidence/client/producer-batch-ownership-controls-20261108/README.md
+[timestamp-history]: https://github.com/mingley/partitionline/blob/a8403decd42d794b1da89ac985e2f390f32e01a7/docs/evidence/client/producer-retry-timestamp-20261108/README.md
+[admin-phases]: https://github.com/mingley/partitionline/blob/a8403decd42d794b1da89ac985e2f390f32e01a7/docs/evidence/client/admin-dtp-poll-phases-20261108/README.md
