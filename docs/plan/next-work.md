@@ -10,16 +10,30 @@ Production readiness and fastest-client/server claims remain unqualified.
 Client 0.1.0 is already published. The next client version must be at least
 0.2.0; broker and schema publication remain disabled.
 
-The latest recorded main [CI snapshot](../evidence/releases/main-ci-374dcf4-20261108/README.md)
-is `374dcf45db20ee728b00c0b0188e77ca1f47fa9c`. The Linux client library
-reported 2,190 passed and 17 failed by default, and 2,180 passed and 27 failed
-with all features. Windows reported 2,184 passed and 23 failed; macOS arm64
-reported 2,189 passed and 18 failed. All-target Clippy passed. Kafka 4.1.2,
-4.2.1 and 4.3.1 compatibility jobs failed; 3.9.1 and 4.1.0 smoke jobs failed
-after EOS timeouts. Broker CI passed 738 default and 886 all-feature tests,
-Clippy, docs, inventory and fuzz supervision. Earlier quorum and shutdown
-failures remain unexplained. These results do not cover later changes or close
-release gates.
+The latest complete recorded main [CI snapshot](../evidence/releases/main-ci-7f59-20261108/README.md)
+is `7f59ef470340db6027958f439df3716a8dde536c`. Client libraries reported
+2,195 passed and 25 failed on Linux default features, 2,194 passed and 26
+failed with all features, 2,197 passed and 23 failed on Windows, and 2,195
+passed and 25 failed on macOS arm64. Kafka compatibility and both smoke jobs
+failed. Broker CI passed 739 default and 887 all-feature tests, Clippy,
+Rustdoc, inventory and fuzz supervision. These results predate the coordinator
+repair and do not close the release gates.
+
+The [coordinator repair](../evidence/client/group-coordinator-retirement-20261108/README.md)
+retires a known coordinator socket before replacement. Focused local controls
+and all 67 candidate network tests passed, but its baseline comparison job
+failed. Live-broker failover and other authentication paths remain open.
+
+A [failure-cleanup candidate](../evidence/client/producer-failure-cleanup-20261108/DEFERRED.md)
+releases a canceled batch's resources, but can block a current-thread runtime
+past a timer deadline while running a user callback. It remains unapplied; the
+record describes bounded deferred cleanup requirements and a small local
+performance diagnostic.
+
+[Journal ownership controls](../qualification/journal-ownership-2026-11-08.md)
+reproduced false inode-identity collisions for files, cursors and directories
+on one x86 Linux host. They did not identify the cause of the earlier quorum
+failure. A repair and broader qualification remain open.
 
 Earlier records:
 
@@ -212,10 +226,10 @@ remain open.
    them. Large v10 encoding and duplicate response-classification decoding
    remain follow-ups.
 
-   The latest CI also exposes socket and dial lifecycle failures. The pending
-   repair retires idle sockets before attempting replacement and makes the
-   completed-dial tests wait for real ApiVersions and authentication. A separate
-   live compatibility test aborts with stack overflow. The [stack investigation](../evidence/client/live-compat-stack-2645-20261103/README.md)
+   The recorded CI also exposed socket and dial lifecycle failures. The applied
+   known-coordinator repair retires the old socket before replacement; other
+   dial paths remain open. A separate live compatibility test aborts with stack
+   overflow. The [stack investigation](../evidence/client/live-compat-stack-2645-20261103/README.md)
    records the available phase evidence and unrun diagnostic experiments;
    the overflowing frame and a fix are not established. A separate
    [classic-join diagnostic](../evidence/client/live-stack-native-86f2-20261103/REPORT.md)
