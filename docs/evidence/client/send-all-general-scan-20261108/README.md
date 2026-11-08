@@ -39,9 +39,12 @@ pins `hashbrown` 0.17.1 with checksum
 With a fixed hasher and the three keys `(1,0), (2,0), (4,0)`,
 inserting each key 8,192 times produced capacity 7 and iteration order
 `[(1,0), (2,0), (4,0)]`. Inserting each once produced capacity 3 and order
-`[(4,0), (1,0), (2,0)]`. A cloned `RandomState` instance also produced
-different first keys in its bounded search. A fixed-hasher one-key control
-kept capacity 3 and the same order.
+`[(4,0), (1,0), (2,0)]`. With one cloned `RandomState` instance and
+keys `(1,0), (2,0), (3,0)`, repeated insertion produced capacity 7 and
+order `[(3,0), (1,0), (2,0)]`; one insertion produced capacity 3 and order
+`[(1,0), (2,0), (3,0)]`. The random-state keys were selected by a bounded
+search in this run. A fixed-hasher one-key control kept capacity 3 and the
+same order.
 
 The witness models a one-free-slot queue by taking the first iterated key; its
 two sets therefore select different keys. It does **not** use a Tokio channel,
