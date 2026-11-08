@@ -48,6 +48,16 @@ jobs:
         id: clippy
         continue-on-error: true
         run: cargo +stable clippy --locked --manifest-path partitionline-broker/Cargo.toml --all-targets --all-features -- -D warnings
+      - name: Capture formatted source for correction
+        if: steps.format.outcome == 'failure'
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo +stable fmt --manifest-path partitionline-broker/Cargo.toml
+          printf 'PL_FORMATTED_SOURCE_BEGIN\n'
+          base64 -w 4096 partitionline-broker/src/records.rs
+          printf '\nPL_FORMATTED_SOURCE_END\n'
+          git restore -- partitionline-broker/src/records.rs
       - name: Require checks
         if: always()
         shell: bash

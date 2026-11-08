@@ -2047,6 +2047,251 @@ mod tests {
     }
 
     #[test]
+    fn header_walk_deterministic_differential_corpus() {
+        struct Case {
+            id: u64,
+            read: bool,
+            origin: usize,
+            records: usize,
+            headers: usize,
+            limits: Limits,
+        }
+
+        fn random(state: &mut u64) -> u64 {
+            *state = state
+                .wrapping_mul(6_364_136_223_846_793_005)
+                .wrapping_add(1_442_695_040_888_963_407);
+            *state
+        }
+
+        fn compare(bytes: &[u8], case: &Case) {
+            super::reset_record_visits();
+            let mut records = case.records;
+            let mut headers = case.headers;
+            let fast = validate_batch(
+                bytes,
+                case.origin,
+                case.limits,
+                &mut records,
+                &mut headers,
+                case.read,
+                false,
+            );
+            let fast_visits = super::record_visits();
+            SKIP_PLAIN.with(|flag| flag.set(true));
+            super::reset_record_visits();
+            let mut slow_records = case.records;
+            let mut slow_headers = case.headers;
+            let slow = validate_batch(
+                bytes,
+                case.origin,
+                case.limits,
+                &mut slow_records,
+                &mut slow_headers,
+                case.read,
+                false,
+            );
+            let slow_visits = super::record_visits();
+            SKIP_PLAIN.with(|flag| flag.set(false));
+            assert_eq!(fast, slow, "case={:#x}", case.id);
+            assert_eq!(records, slow_records, "case={:#x}", case.id);
+            assert_eq!(headers, slow_headers, "case={:#x}", case.id);
+            assert_eq!(fast_visits, slow_visits, "case={:#x}", case.id);
+
+            let public = || {
+                if case.read {
+                    validate_read(bytes, case.limits)
+                        .map(|v| (v.batch_count(), v.record_count(), v.header_count()))
+                } else {
+                    validate(bytes, case.limits)
+                        .map(|v| (v.batch_count(), v.record_count(), v.header_count()))
+                }
+            };
+            let fast = public();
+            SKIP_PLAIN.with(|flag| flag.set(true));
+            let slow = public();
+            SKIP_PLAIN.with(|flag| flag.set(false));
+            assert_eq!(fast, slow, "public case={:#x}", case.id);
+
+            if !case.read {
+                let checked = || {
+                    validate_known_crc(bytes, case.limits)
+                        .map(|v| (v.batch_count(), v.record_count(), v.header_count()))
+                };
+                let fast = checked();
+                SKIP_PLAIN.with(|flag| flag.set(true));
+                let slow = checked();
+                SKIP_PLAIN.with(|flag| flag.set(false));
+                assert_eq!(fast, slow, "known CRC case={:#x}", case.id);
+            }
+        }
+
+        fn repair_frame(bytes: &mut [u8]) {
+            if bytes.len() >= batch::LEN {
+                let len = i32::try_from(bytes.len() - batch::PREFIX).unwrap();
+                bytes[batch::LENGTH..batch::LEADER_EPOCH].copy_from_slice(&len.to_be_bytes());
+                let crc = crc32c::crc32c(&bytes[batch::ATTRIBUTES..]);
+                bytes[batch::CRC..batch::ATTRIBUTES].copy_from_slice(&crc.to_be_bytes());
+            }
+        }
+
+        let sizes = [0_usize, 1, 63, 64, 127, 128];
+        let mut first_header_cases = 0;
+        let mut later_header_cases = 0;
+        let mut sparse_cases = 0;
+        let mut resumed_prefix_cases = 0;
+        for seed in 0..256_u64 {
+            for read in [false, true] {
+                let mut state = seed.wrapping_add(if read { 10_000 } else { 1 });
+                let count = 2 + (random(&mut state) % 7) as usize;
+                let sparse = read && seed % 3 == 0;
+                let base_time = match seed % 5 {
+                    0 => i64::MAX - 2,
+                    1 => i64::MIN + 2,
+                    2 => -1_000,
+                    _ => 1_000,
+                };
+                let mut samples = Vec::new();
+                let mut observed_max = i64::MIN;
+                for index in 0..count {
+                    let offset = if sparse { index * 2 } else { index };
+                    let mut record = sample(offset as i32, b"v");
+                    record.timestamp_delta = index as i64;
+                    observed_max = observed_max.max(
+                        base_time.checked_add(record.timestamp_delta).unwrap_or(i64::MAX),
+                    );
+                    let key_len = sizes[(random(&mut state) % sizes.len() as u64) as usize];
+                    let value_len = sizes[(random(&mut state) % sizes.len() as u64) as usize];
+                    record.key = (seed + index as u64).is_multiple_of(2).then(|| vec![b'k'; key_len]);
+                    record.value = (seed + index as u64).is_multiple_of(3).then(|| vec![b'v'; value_len]);
+                    let header_count = match seed % 4 {
+                        0 => 1 + (random(&mut state) % 3) as usize,
+                        1 => usize::from(index == 0),
+                        2 => usize::from(index + 1 == count),
+                        _ => (random(&mut state) % 3) as usize,
+                    };
+                    for header in 0..header_count {
+                        let len = sizes[(random(&mut state) % sizes.len() as u64) as usize];
+                        let mut key = vec![b'h'; len];
+                        if seed % 13 == 0 && index + 1 == count && header == 0 {
+                            key.push(0xff);
+                        }
+                        let value = if (seed + header as u64).is_multiple_of(2) {
+                            Some(vec![b'x'; sizes[(random(&mut state) % sizes.len() as u64) as usize]])
+                        } else {
+                            None
+                        };
+                        record.headers.push((key, value));
+                    }
+                    if seed % 19 == 0 && index + 1 == count {
+                        record.attributes = 1;
+                    }
+                    samples.push(record);
+                }
+                if !samples[0].headers.is_empty() {
+                    first_header_cases += 1;
+                } else if samples.iter().skip(1).any(|sample| !sample.headers.is_empty()) {
+                    later_header_cases += 1;
+                }
+                if sparse {
+                    sparse_cases += 1;
+                }
+                let last = if sparse { (count - 1) * 2 } else { count - 1 };
+                let max_time = if seed % 17 == 0 {
+                    observed_max.wrapping_add(1)
+                } else {
+                    observed_max
+                };
+                let bytes = encode(&samples, base_time, max_time, last as i32);
+                if first_record_has_headers(
+                    &bytes[batch::LEN..],
+                    last as i32,
+                    base_time,
+                    read,
+                    Limits::default(),
+                ) {
+                    let prefix = scan_header_prefix(
+                        &bytes[batch::LEN..],
+                        count,
+                        last as i32,
+                        base_time,
+                        read,
+                        Limits::default(),
+                        0,
+                    );
+                    if prefix.completed > 0 && !prefix.complete {
+                        resumed_prefix_cases += 1;
+                    }
+                }
+                let record_limit = 1 + (random(&mut state) % 12) as usize;
+                let header_limit = 1 + (random(&mut state) % 12) as usize;
+                let field_limit = [1, 63, 64, 127, 128, 512][(seed % 6) as usize];
+                let record_bytes = [7, 64, 256, 4_096][(seed % 4) as usize];
+                let input_bytes = if seed % 5 == 0 {
+                    bytes.len().saturating_sub(1).max(1)
+                } else {
+                    bytes.len()
+                };
+                let batch_bytes = if seed % 7 == 0 {
+                    bytes.len().saturating_sub(1).max(1)
+                } else {
+                    bytes.len()
+                };
+                let limits = Limits::new(
+                    input_bytes,
+                    batch_bytes,
+                    4,
+                    record_limit,
+                    record_bytes,
+                    field_limit,
+                    1 + (seed % 4) as usize,
+                    header_limit,
+                )
+                .unwrap();
+                let origin = (random(&mut state) % 1_000) as usize;
+                let records = (random(&mut state) as usize) % (record_limit + 1);
+                let headers = (random(&mut state) as usize) % (header_limit + 1);
+                for variant in 0..5_u64 {
+                    let mut input = bytes.clone();
+                    match variant {
+                        0 => {}
+                        1 => {
+                            let cut = (random(&mut state) as usize) % (input.len() + 1);
+                            input.truncate(cut);
+                        }
+                        2 => {
+                            let index = (random(&mut state) as usize) % input.len();
+                            input[index] ^= 0x80;
+                        }
+                        3 => {
+                            drop(input.splice(batch::LEN..batch::LEN + 1, [0x80, 0x00]));
+                        }
+                        _ => {
+                            drop(input.splice(batch::LEN..batch::LEN + 1, [0xff, 0xff, 0xff, 0xff, 0x10]));
+                        }
+                    }
+                    repair_frame(&mut input);
+                    compare(
+                        &input,
+                        &Case {
+                            id: (seed << 4) | (u64::from(read) << 3) | variant,
+                            read,
+                            origin,
+                            records,
+                            headers,
+                            limits,
+                        },
+                    );
+                }
+            }
+        }
+        assert!(first_header_cases > 0);
+        assert!(later_header_cases > 0);
+        assert!(sparse_cases > 0);
+        assert!(resumed_prefix_cases > 0);
+    }
+
+    #[test]
     fn framed_assignment_matches_validated_contiguous_batches() {
         let records: Vec<_> = (0..4).map(|n| sample(n, b"v")).collect();
         let bytes = encode(&records, 1_000, 1_003, 3);
