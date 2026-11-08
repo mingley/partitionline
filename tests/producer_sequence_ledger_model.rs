@@ -138,7 +138,7 @@ impl Ledger {
         if head.phase != Phase::Writing {
             return Err(Failure::WrongState);
         }
-        self.entries.pop_front();
+        let _ = self.entries.pop_front();
         Ok(())
     }
 
@@ -154,7 +154,7 @@ impl Ledger {
         if tail.phase != Phase::Reserved {
             return Err(Failure::WrongState);
         }
-        self.entries.pop_back();
+        let _ = self.entries.pop_back();
         self.next_sequence = ticket.base;
         Ok(())
     }
