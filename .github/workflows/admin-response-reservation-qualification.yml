@@ -1,0 +1,25 @@
+name: Admin response reservation qualification
+on:
+  push:
+    branches: [qualification/admin-reservation-20261108]
+  workflow_dispatch:
+jobs:
+  focused:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v7
+      - name: Rust version
+        run: rustc --version
+      - name: Formatting
+        run: cargo fmt --all -- --check
+      - name: Default response controls
+        run: cargo test --locked --test admin_response_reservation
+      - name: All-feature response controls
+        run: cargo test --locked --all-features --test admin_response_reservation
+      - name: Admin unit tests
+        run: cargo test --locked --lib protocol::admin::tests
+      - name: Admin unit tests, all features
+        run: cargo test --locked --all-features --lib protocol::admin::tests
+      - name: Strict Clippy
+        run: cargo clippy --locked --all-targets --all-features -- -D warnings
