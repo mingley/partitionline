@@ -1,0 +1,44 @@
+name: producer-timestamp-exact-wire
+on:
+  push:
+    branches: [qual/producer-timestamp-exact-wire-20261108]
+jobs:
+  exact-wire:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Pin sources and prepare identical controls
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p target/ts-exact
+          git rev-parse HEAD
+          git hash-object src/producer.rs tests/fixtures/producer_timestamp_exact_wire.inc scripts/prepare_timestamp_exact_wire.py scripts/compare_timestamp_exact_wire.py
+          sha256sum src/producer.rs tests/fixtures/producer_timestamp_exact_wire.inc scripts/prepare_timestamp_exact_wire.py scripts/compare_timestamp_exact_wire.py Cargo.lock
+          rustc -Vv
+          python3 scripts/prepare_timestamp_exact_wire.py 7dfbe4735d1c4268a1b8a7185bb34f1121f0db13 target/ts-exact
+      - name: Build isolated baseline and candidate test targets
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp target/ts-exact/baseline.rs src/producer.rs
+          CARGO_TARGET_DIR=target/ts-exact-base cargo test --locked --release --all-features --lib --no-run --message-format=json > target/ts-exact/baseline-build.json
+          cp target/ts-exact/candidate.rs src/producer.rs
+          CARGO_TARGET_DIR=target/ts-exact-candidate cargo test --locked --release --all-features --lib --no-run --message-format=json > target/ts-exact/candidate-build.json
+      - name: Compare complete serialized bodies and decoded timestamps
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 scripts/compare_timestamp_exact_wire.py target/ts-exact/baseline-build.json target/ts-exact/candidate-build.json target/ts-exact 2>&1 | tee target/ts-exact/comparison.log
+      - name: Preserve exact controls and outcomes
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: producer-timestamp-exact-wire-${{ github.sha }}
+          path: target/ts-exact
+          if-no-files-found: warn
+          retention-days: 30
