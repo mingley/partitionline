@@ -368,6 +368,8 @@ pub struct Config {
     charge: usize,
     pool: usize,
     managed: usize,
+    #[cfg(test)]
+    panic_vote_slot: Option<(Key, Arc<Notify>)>,
 }
 impl Config {
     /// Validate exact genesis/routes and all positive byte/task/deadline ceilings.
@@ -525,6 +527,8 @@ impl Config {
             charge,
             pool,
             managed,
+            #[cfg(test)]
+            panic_vote_slot: None,
         })
     }
     /// Configured estimate for Node state and admitted command/transport buffers.
@@ -843,6 +847,8 @@ impl Job {
 struct VoteSlot {
     state: std::sync::Mutex<VoteSlotState>,
     ready: Notify,
+    #[cfg(test)]
+    panic_on_pending: Option<Arc<Notify>>,
 }
 
 #[derive(Default)]
@@ -881,6 +887,15 @@ impl VoteSlot {
                     .lock()
                     .unwrap_or_else(std::sync::PoisonError::into_inner);
                 if let Some(job) = state.pending.take() {
+                    #[cfg(test)]
+                    if let Some(notify) = &self.panic_on_pending {
+                        // Preserve the pending value while deliberately
+                        // panicking only in this isolated lifecycle control.
+                        state.pending = Some(job);
+                        drop(state);
+                        notify.notify_one();
+                        std::panic::resume_unwind(Box::new("test-only pending vote worker fault"));
+                    }
                     return Some(job);
                 }
                 if state.closed {
@@ -1758,7 +1773,18 @@ async fn supervise(
             .iter()
             .filter(|_| !control.stopped.load(Ordering::Acquire))
         {
-            let slot = Arc::new(VoteSlot::default());
+            let slot = VoteSlot::default();
+            #[cfg(test)]
+            let slot = {
+                let mut slot = slot;
+                if let Some((key, notify)) = &control.config.panic_vote_slot {
+                    if *key == peer.key() {
+                        slot.panic_on_pending = Some(notify.clone());
+                    }
+                }
+                slot
+            };
+            let slot = Arc::new(slot);
             routes.push((peer.key(), slot.clone()));
             let c = control.clone();
             let p = peer.clone();
@@ -5532,6 +5558,41 @@ mod ownership_tests {
         higher_peer.finish().await?;
         peer.finish().await?;
         source.finish().await
+    }
+
+
+    #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+    async fn worker_panic_with_pending_vote_stops_and_joins_supervisor_owners() -> TestResult {
+        let helper = LocalOwner::open(0, 2, 16).await?;
+        let mut config = (*helper.control.config).clone();
+        let notification = Arc::new(Notify::new());
+        config.panic_vote_slot = Some((config.peers[0].key(), notification.clone()));
+        let root = helper.root.join("panic-runtime");
+        std::fs::create_dir(&root)?;
+        let paths = Paths::new(
+            root.join("metadata.wal"), root.join("election.wal"), root.join("images")
+        )?;
+        let listener = TcpListener::bind("127.0.0.1:0").await?;
+        let mut runtime = Runtime::start(listener, config, paths)?;
+        let observed = tokio::time::timeout(Duration::from_secs(5), notification.notified()).await;
+        // Join even on a failed injection; do not strand the storage owner.
+        let shutdown = tokio::time::timeout(Duration::from_secs(5), runtime.shutdown()).await?;
+        observed.map_err(|_| "worker did not reach pending-vote panic")?;
+        match shutdown {
+            Err(Error::Join(error)) if error.is_panic() => {}
+            Err(error) => return Err(format!("unexpected supervisor error: {error:?}").into()),
+            Ok(_) => return Err("worker panic was not reported".into()),
+        }
+        assert!(runtime.control.stopped.load(Ordering::Acquire));
+        assert_eq!(runtime.control.tasks.load(Ordering::Acquire), 0);
+        assert_eq!(runtime.control.sockets.load(Ordering::Acquire), 0);
+        assert_eq!(runtime.control.bytes.available_permits(), runtime.control.config.pool);
+        assert_eq!(runtime.control.clients.available_permits(), runtime.control.config.limits.client_slots);
+        for gauge in &runtime.control.metrics.gauges {
+            assert_eq!(gauge.current.load(Ordering::Acquire), 0);
+        }
+        println!("worker-panic pending_present=true join_error_panic=true owner_joined_before_return=true tasks=0 sockets=0");
+        helper.finish().await
     }
 
     #[tokio::test(flavor = "multi_thread", worker_threads = 2)]

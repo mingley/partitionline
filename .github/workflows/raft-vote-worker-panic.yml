@@ -1,0 +1,43 @@
+name: Raft pending worker panic control
+on:
+  push:
+    branches: [qualification/raft-vote-worker-panic-20261108]
+permissions:
+  contents: read
+jobs:
+  panic:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      CARGO_BUILD_JOBS: 2
+      CARGO_INCREMENTAL: 0
+      CARGO_PROFILE_TEST_DEBUG: 0
+      CARGO_PROFILE_DEV_DEBUG: 0
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Supervisor lifecycle control
+        run: |
+          set -euo pipefail
+          rustc --version
+          for features in default all; do
+            args=()
+            if [[ "$features" == all ]]; then args=(--all-features); fi
+            cargo test --locked --manifest-path partitionline-broker/Cargo.toml --lib "${args[@]}" worker_panic_with_pending_vote_stops_and_joins_supervisor_owners -- --nocapture
+          done
+      - name: Fault-disabled negative control
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path("partitionline-broker/src/raft/runtime.rs")
+          s=p.read_text()
+          old="slot.panic_on_pending = Some(notify.clone());"
+          assert s.count(old)==1
+          p.write_text(s.replace(old, "let _ = notify;", 1))
+          PY
+          if cargo test --locked --manifest-path partitionline-broker/Cargo.toml --lib worker_panic_with_pending_vote_stops_and_joins_supervisor_owners -- --nocapture > /tmp/raft-no-fault.log 2>&1; then
+            cat /tmp/raft-no-fault.log; exit 1
+          fi
+          cat /tmp/raft-no-fault.log
+          grep -F "worker did not reach pending-vote panic" /tmp/raft-no-fault.log
