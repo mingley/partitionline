@@ -26,7 +26,8 @@ jobs:
           test "$(git rev-parse HEAD:partitionline-broker/src/produce.rs)" = 5338acb770c23094c4bd7418835e10ce8ec42904
           test "$(git rev-parse HEAD:partitionline-broker/src/transport.rs)" = ab9ec08cea10495f44a5abfd9e87a04a683ce8c8
           test "$(git rev-parse HEAD:partitionline-broker/src/metadata/bandwidth.rs)" = 8e4176496062b2f1295ed73a37011d6055ca83e6
-          test "$(git rev-parse HEAD:partitionline-broker/tests/produce_quota.rs)" = b7ee3e04ff8daf2cefc643431525407b6483c4cf
+          test "$(git rev-parse HEAD:partitionline-broker/tests/produce_quota.rs)" = 8abd92e5a47024f95d489ca2369b3eaff91f2855
+          test "$(git rev-parse HEAD:partitionline-broker/tests/sasl_sessions.rs)" = 3531bf56ee7214391d56854772239bedd9e93d04
           test "$(git rev-parse HEAD:partitionline-broker/Cargo.lock)" = 19652acd96b929402b1e4a9394a33d12a7e69449
           rustc -Vv
           sha256sum partitionline-broker/src/metadata.rs partitionline-broker/src/produce.rs partitionline-broker/src/transport.rs partitionline-broker/src/metadata/bandwidth.rs partitionline-broker/tests/produce_quota.rs partitionline-broker/Cargo.lock
@@ -40,6 +41,7 @@ jobs:
           cargo test --locked --manifest-path "$RUNNER_TEMP/isolated-broker/Cargo.toml" --lib metadata::bandwidth::tests
           cargo test --locked --manifest-path "$RUNNER_TEMP/isolated-broker/Cargo.toml" --lib quota_accounting_tests
           cargo test --locked --manifest-path "$RUNNER_TEMP/isolated-broker/Cargo.toml" --test produce_quota
+          cargo test --locked --manifest-path "$RUNNER_TEMP/isolated-broker/Cargo.toml" --test sasl_sessions --features sasl quota_sasl_authenticated_mute_and_expiry
       - name: All-feature boundary controls
         run: |
           set -euo pipefail
@@ -47,3 +49,4 @@ jobs:
           cargo test --locked --manifest-path "$RUNNER_TEMP/isolated-broker/Cargo.toml" --lib --all-features metadata::bandwidth::tests
           cargo test --locked --manifest-path "$RUNNER_TEMP/isolated-broker/Cargo.toml" --lib --all-features quota_accounting_tests
           cargo test --locked --manifest-path "$RUNNER_TEMP/isolated-broker/Cargo.toml" --test produce_quota --all-features
+          cargo test --locked --manifest-path "$RUNNER_TEMP/isolated-broker/Cargo.toml" --test sasl_sessions --all-features quota_sasl_authenticated_mute_and_expiry

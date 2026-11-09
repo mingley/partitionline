@@ -1804,3 +1804,129 @@ async fn ready_handler_after_expiry_does_not_emit_expired_reply() -> Result {
     );
     Ok(())
 }
+
+static QUOTA_SASL_API_VERSIONS: [partitionline_broker::protocol::ApiVersion; 11] = [
+    partitionline_broker::fetch::DATA_API_VERSIONS[0],
+    partitionline_broker::fetch::DATA_API_VERSIONS[1],
+    partitionline_broker::fetch::DATA_API_VERSIONS[2],
+    partitionline_broker::fetch::DATA_API_VERSIONS[3],
+    partitionline_broker::security::session::SASL_API_VERSIONS[0],
+    partitionline_broker::fetch::DATA_API_VERSIONS[4],
+    partitionline_broker::fetch::DATA_API_VERSIONS[5],
+    partitionline_broker::fetch::DATA_API_VERSIONS[6],
+    partitionline_broker::security::session::SASL_API_VERSIONS[2],
+    partitionline_broker::security::session::SASL_API_VERSIONS[3],
+    partitionline_broker::security::session::SASL_API_VERSIONS[4],
+];
+
+struct AuthenticatedQuota {
+    inner: Arc<partitionline_broker::metadata::QuotaRouter>,
+    verified_calls: Arc<AtomicUsize>,
+}
+
+impl Handler for AuthenticatedQuota {
+    type Error = partitionline_broker::metadata::QuotaRouterError;
+
+    async fn handle(
+        &self,
+        _request: Vec<u8>,
+    ) -> std::result::Result<Option<Vec<u8>>, Self::Error> {
+        Err(partitionline_broker::metadata::QuotaRouterError::ControlledExchangeRequired)
+    }
+
+    async fn exchange_with_control(
+        &self,
+        peer: &Peer,
+        request: Vec<u8>,
+        spare: Vec<u8>,
+    ) -> std::result::Result<partitionline_broker::transport::ExchangeControl, Self::Error> {
+        if !peer.identity().is_some_and(|identity| identity.name() == "user") {
+            return Err(partitionline_broker::metadata::QuotaRouterError::ControlledExchangeRequired);
+        }
+        self.verified_calls.fetch_add(1, Ordering::SeqCst);
+        Handler::exchange_with_control(self.inner.as_ref(), peer, request, spare).await
+    }
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn quota_sasl_authenticated_mute_and_expiry() -> Result {
+    use partitionline_broker::{
+        catalog::{Catalog, TopicId},
+        fetch,
+        metadata::{self, ProduceQuota, QuotaRouter},
+        produce,
+    };
+    let path = Path::new();
+    let credentials = store(&path).await?;
+    let root = std::env::temp_dir().join(format!(
+        "partitionline-quota-sasl-{}-{}",
+        std::process::id(),
+        NEXT.fetch_add(1, Ordering::Relaxed)
+    ));
+    std::fs::create_dir(&root)?;
+    let common = metadata::Config::new(0, "127.0.0.1".into(), 19095, "quota-sasl".into());
+    let (mut catalog, _) = Catalog::open(root.join("catalog"), common.catalog_limits)?;
+    let mut id = [0; 16];
+    id[15] = 2;
+    catalog.create("alpha", TopicId::new(id)?, 2)?;
+    drop(catalog);
+    let router = Arc::new(QuotaRouter::open_with_read_store(
+        root.join("catalog"),
+        common,
+        produce::Config::new(root.join("parts")),
+        fetch::Limits::default(),
+        ProduceQuota::new(1, 1, 1_500)?,
+    ).await?.0);
+    let verified_calls = Arc::new(AtomicUsize::new(0));
+
+    for (lifetime, expire_while_muted) in [
+        (Duration::from_secs(5), false),
+        (Duration::from_millis(600), true),
+    ] {
+        let profile = Profile::scram_plaintext(credentials.clone(), vec![], Limits::default())?
+            .with_advertised(&QUOTA_SASL_API_VERSIONS)?
+            .with_reauthentication(lifetime)?;
+        let handler = Arc::new(AuthenticatedQuota {
+            inner: Arc::clone(&router),
+            verified_calls: Arc::clone(&verified_calls),
+        });
+        let mut server = Transport::bind_sasl(
+            SocketAddr::from((Ipv4Addr::LOCALHOST, 0)),
+            config()?,
+            handler,
+            profile,
+        ).await?;
+        let mut socket = TcpStream::connect(server.local_addr()).await?;
+        let (error, _) = timeout(
+            Duration::from_secs(3),
+            scram_lifetime(&mut socket, Algorithm::Sha256, "user", "pencil", 2, false),
+        ).await??;
+        assert_eq!(error, 0);
+        send(&mut socket, include_bytes!("fixtures/produce/4.3.1/produce-v10-acks1.request.bin")).await?;
+        let response = receive(&mut socket).await?;
+        let field = response.len().checked_sub(5).ok_or("short Produce response")?;
+        assert_eq!(i32::from_be_bytes(response[field..field + 4].try_into()?), 1_500);
+        let mut metadata = header(3, 1, 901, false);
+        metadata.extend_from_slice(&(-1i32).to_be_bytes());
+        send(&mut socket, &metadata).await?;
+        if expire_while_muted {
+            assert!(closed(&mut socket).await?, "expired authority resumed the connection");
+        } else {
+            let mut byte = [0u8; 1];
+            match timeout(Duration::from_millis(100), socket.read(&mut byte)).await {
+                Err(_) => {},
+                Ok(Ok(0)) => return Err("authenticated connection closed during mute".into()),
+                Ok(Ok(_)) => return Err("authenticated response arrived during mute".into()),
+                Ok(Err(error)) => return Err(error.into()),
+            }
+            let response = receive(&mut socket).await?;
+            assert_eq!(&response[..4], &901i32.to_be_bytes());
+        }
+        server.shutdown().await?;
+    }
+    assert!(verified_calls.load(Ordering::SeqCst) >= 3);
+    router.shutdown().await?;
+    credentials.shutdown().await?;
+    std::fs::remove_dir_all(root)?;
+    Ok(())
+}
