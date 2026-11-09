@@ -105,8 +105,11 @@ runs and their limits.
 5. **Performance.** Establish correctness before comparing throughput or
    latency. The isolated [indexed Fetch experiment](../evidence/broker/fetch-indexed-vectored-20261109/README.md)
    and [producer sampling-harness repair](../evidence/perf/kafka-ack-sampling-20261109/README.md)
-   remain unapplied and need their recorded qualification gaps resolved.
-   Neither establishes a Kafka client or server ranking.
+   remain unapplied and need their recorded qualification gaps resolved. The
+   [report validator](../evidence/perf/benchmark-report-validation-20261109/README.md)
+   now rejects several inconsistent record and settings fields, but cannot
+   verify the raw artifacts or establish a comparison. None of these results
+   establishes a Kafka client or server ranking.
 
 ## Validation and release
 

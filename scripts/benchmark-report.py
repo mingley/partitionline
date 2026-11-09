@@ -56,9 +56,11 @@ def normalize_acks(acks: Any) -> Optional[int]:
     """Normalize acks to integer (-1, 0, 1)."""
     if acks is None:
         return None
-    if isinstance(acks, int):
-        return acks
-    s = str(acks).strip().lower()
+    if type(acks) is int:
+        return acks if acks in (-1, 0, 1) else None
+    if not isinstance(acks, str):
+        return None
+    s = acks.strip().lower()
     if s in ("all", "-1"):
         return -1
     if s in ("1", "+1"):
@@ -561,18 +563,28 @@ class BenchmarkValidator:
                     if "records_lag" not in c_lag or "partition_lags" not in c_lag:
                         errors.append("measurements.consumer_lag missing records_lag or partition_lags")
 
-        # 6. Mismatched Acks Verification
-        # Check scenario equal_semantics vs effective configuration
-        scenario_acks = normalize_acks(scenario.get("equal_semantics", {}).get("acks"))
-        config_acks = normalize_acks(
-            provenance.get("config", {}).get("effective_settings", {}).get("acks")
-        )
-        if scenario_acks is not None and config_acks is not None:
-            if scenario_acks != config_acks:
-                errors.append(
-                    f"Mismatched acks: scenario equal_semantics requires acks={scenario_acks}, "
-                    f"but client effective_settings configured acks={config_acks}."
-                )
+        # 6. Compare declared and effective producer semantics.
+        semantics = scenario.get("equal_semantics", {})
+        effective = provenance.get("config", {}).get("effective_settings", {})
+        scenario_acks = normalize_acks(semantics.get("acks"))
+        config_acks = normalize_acks(effective.get("acks"))
+        null_fetch = (data.get("schema_version") == "2.0.0"
+                      and provenance.get("broker", {}).get("mode") == "null"
+                      and scenario.get("profile") == "fetch")
+        if not null_fetch:
+            if scenario_acks is None:
+                errors.append("Invalid scenario acks: expected -1/all, 0 or 1")
+            if config_acks is None:
+                errors.append("Invalid effective acks: expected -1/all, 0 or 1")
+        if scenario_acks is not None and config_acks is not None and scenario_acks != config_acks:
+            errors.append(
+                f"Mismatched acks: scenario equal_semantics requires acks={scenario_acks}, "
+                f"but client effective_settings configured acks={config_acks}."
+            )
+        if semantics.get("idempotence") != effective.get("idempotence"):
+            errors.append("Mismatched idempotence between scenario and effective settings")
+        if effective.get("idempotence") is True and config_acks is not None and config_acks != -1:
+            errors.append("Idempotence requires acks=-1/all")
 
         # Required zstd cells compare a declared level and resolved backend.
         compression = scenario.get("equal_semantics", {}).get("compression", {})
@@ -619,10 +631,33 @@ class BenchmarkValidator:
                         errors.append(f"Missing integrity.high_watermark_audit field: '{hw_k}'")
                 offset_delta = hw_audit.get("total_offset_delta", 0)
                 acked_count = outcomes.get("acknowledged", 0) if isinstance(outcomes, dict) else 0
+                partitions = hw_audit.get("partitions")
+                if isinstance(partitions, list):
+                    observed_sum = 0
+                    complete = True
+                    for index, row in enumerate(partitions):
+                        if not isinstance(row, dict):
+                            complete = False
+                            continue
+                        start = row.get("start_offset")
+                        end = row.get("end_offset")
+                        delta = row.get("offset_delta")
+                        if not all(type(value) is int for value in (start, end, delta)):
+                            complete = False
+                            continue
+                        if end < start or end - start != delta:
+                            errors.append(f"Offset audit partition row {index} has inconsistent offsets")
+                        observed_sum += delta
+                    if complete and type(offset_delta) is int and observed_sum != offset_delta:
+                        errors.append(
+                            f"Offset audit partition deltas sum to {observed_sum}, "
+                            f"not total_offset_delta ({offset_delta})"
+                        )
 
-                # If produce scenario with acknowledged records, high-watermark delta MUST match acknowledged count!
+                # Transaction control records also advance offsets, so this equality
+                # applies only to the nontransactional produce profiles.
                 scen_profile = scenario.get("profile")
-                if scen_profile in ("bulk", "low-latency", "transactional", "secure") and acked_count > 0:
+                if scen_profile in ("bulk", "low-latency", "secure") and acked_count > 0:
                     if offset_delta != acked_count:
                         errors.append(
                             f"Mismatched acks: broker high-watermark offset delta ({offset_delta}) "
@@ -653,13 +688,23 @@ class BenchmarkValidator:
                 expected = record_ids.get("expected_count", 0)
                 verified = record_ids.get("verified_count", 0)
                 missing = record_ids.get("missing_ids_count", 0)
+                duplicates = record_ids.get("duplicate_ids_count", 0)
                 payload_ok = record_ids.get("payload_checksum_matches")
 
                 acked_count = outcomes.get("acknowledged", 0) if isinstance(outcomes, dict) else 0
                 consumed_count = outcomes.get("consumed", 0) if isinstance(outcomes, dict) else 0
                 target_count = acked_count if acked_count > 0 else consumed_count
 
+                if missing > 0:
+                    errors.append(
+                        f"Integrity check failed: missing {missing} record IDs. "
+                        "Throughput numbers cannot be accepted without 100% record ID verification."
+                    )
+                if duplicates > 0:
+                    errors.append(f"Integrity check failed: {duplicates} duplicate record IDs")
                 if target_count > 0:
+                    if integrity.get("verified") is not True:
+                        errors.append("Integrity check failed: record history is not verified")
                     if expected != target_count:
                         errors.append(
                             f"Record ID accounting error: expected_count ({expected}) != target record count ({target_count})"
@@ -667,11 +712,6 @@ class BenchmarkValidator:
                     if verified != expected:
                         errors.append(
                             f"Integrity check failed: verified record IDs ({verified}) != expected ({expected})"
-                        )
-                    if missing > 0:
-                        errors.append(
-                            f"Integrity check failed: missing {missing} record IDs. "
-                            "Throughput numbers cannot be accepted without 100% record ID verification."
                         )
                     if payload_ok is not True:
                         errors.append("Integrity check failed: payload_checksum_matches is false")
@@ -718,12 +758,16 @@ class BenchmarkValidator:
                     )
 
                 summary["has_retained_integrity_failure"] = has_integrity_failure_in_attempts
-                if has_integrity_failure_in_attempts:
-                    if require_clean:
-                        errors.append(
-                            "Integrity policy violation: repetition history contains a failed attempt "
-                            "with an integrity failure. A subsequent successful rerun does not erase an earlier integrity failure."
-                        )
+                if require_clean and has_integrity_failure_in_attempts:
+                    errors.append(
+                        "Integrity policy violation: repetition history contains a failed attempt "
+                        "with an integrity failure. A subsequent successful rerun does not erase an earlier integrity failure."
+                    )
+                elif require_clean and actual_failed:
+                    errors.append(
+                        "Benchmark policy violation: repetition history contains a failed attempt. "
+                        "A subsequent successful rerun does not erase an earlier failed attempt."
+                    )
 
         is_valid = len(errors) == 0
         return is_valid, errors, summary
@@ -844,7 +888,7 @@ def main() -> int:
     parser.add_argument(
         "--require-clean",
         action="store_true",
-        help="Fail closed if any prior attempt suffered an integrity failure (no rerun erasure)",
+        help="Fail closed if any prior attempt failed or recorded an integrity failure (no rerun erasure)",
     )
     parser.add_argument(
         "--json",
