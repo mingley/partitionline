@@ -24,15 +24,15 @@ the current TLS and OIDC behavior.
 ## Validation
 
 The latest complete recorded snapshot is main commit
-`a7b6edc1645e3a4789cf699a3b9e7656c55a3d10`; the [CI record][ci] links
+`731eb97a08445a18da0b043986ae192397ba176a`; the [CI record][ci] links
 the individual runs and results. The current branch contains later changes.
 
-| Check at `a7b6edc` | Result |
+| Check at `731eb97` | Result |
 | --- | --- |
-| Client library, Linux default | 2,309 passed, 19 failed; later targets did not run. |
-| Client library, Linux all features | 2,318 passed, ten failed; later targets did not run. |
-| Client library, Windows default | 2,314 passed, 14 failed. |
-| Client library, macOS arm64 default | 2,320 passed, eight failed. |
+| Client library, Linux default | 2,311 passed, 17 failed; later targets did not run. |
+| Client library, Linux all features | 2,311 passed, 17 failed; later targets did not run. |
+| Client library, Windows default | 2,312 passed, 16 failed; later runtime and package steps did not run. |
+| Client library, macOS arm64 default | 2,315 passed, 13 failed; later runtime and package steps did not run. |
 | Kafka compatibility | 4.1.2, 4.2.1 and 4.3.1 profiles failed; 3.9.1 and 4.1.0 smoke jobs failed. |
 | Resource-soak job | The driver and 11 short tests passed; no sustained campaign was completed. |
 | Broker targets | 814 default and 962 all-feature tests passed, with four ignored in each profile. |
@@ -126,7 +126,7 @@ The [work plan][next] and its linked evidence track the outstanding work.
 The [previous detailed status][history] preserves earlier qualification
 results and experiments.
 
-[ci]: https://github.com/mingley/partitionline/blob/2f5f6b2742e15aa6d22a89af4b3cd81bb34c0e09/docs/evidence/releases/main-ci-a7b6-20261109/README.md
+[ci]: https://github.com/mingley/partitionline/blob/bcc3c8afa7d60263ffdc133ae8d15ffbac35c42e/docs/evidence/releases/main-ci-731-20261109/README.md
 [history]: https://github.com/mingley/partitionline/blob/dfe179d7066e2c1afecb88df5ba76d2920308c46/docs/STATUS.md
 [next]: https://github.com/mingley/partitionline/blob/65830a2f7bf6afaadc9d287665e44592ef24d72f/docs/plan/next-work.md
 [tls]: https://github.com/mingley/partitionline/blob/e18186f0cb9c25393117fe41148ae5860f52a8a0/docs/evidence/security/tls-provider-assessment-20261108/README.md
