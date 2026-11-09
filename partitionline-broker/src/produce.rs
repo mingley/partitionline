@@ -274,7 +274,7 @@ pub(crate) struct Store {
     /// Staged grouped produces. Cleared between batches; the slots stay.
     queued_captured: Vec<Option<CapturedProduce>>,
     /// Replies for the grouped batch currently being finished.
-    queued_replies: Vec<Result<Option<Vec<u8>>, Error>>,
+    queued_replies: Vec<Result<Produced, Error>>,
     /// One sync representative per partition in the grouped batch.
     sync_reps: Vec<(usize, usize)>,
     /// Partition identity to the representative slot in `sync_reps`.
@@ -1565,11 +1565,33 @@ struct CapturedProduce {
     results: List<ResultTopic>,
     pending_sync: List<PendingSync>,
 }
+/// A response and the position of the writer-owned throttle field.
+#[derive(Debug)]
+pub(crate) struct Produced {
+    pub(crate) response: Option<Vec<u8>>,
+    pub(crate) throttle_at: Option<usize>,
+}
+
 enum ProcessOut {
-    Reply(Option<Vec<u8>>),
+    Reply(Produced),
     Captured(CapturedProduce),
 }
 
+pub(crate) fn process_with_offset(
+    catalog: &Catalog,
+    store: &mut Store,
+    input: &mut [u8],
+    common: &metadata::Config,
+    admitted: Instant,
+    active: impl Fn() -> Result<(), Error>,
+) -> Result<Produced, Error> {
+    match process_inner(catalog, store, input, common, admitted, active, false)? {
+        ProcessOut::Reply(body) => Ok(body),
+        ProcessOut::Captured(_) => Err(Error::Canceled),
+    }
+}
+
+#[cfg(test)]
 pub(crate) fn process(
     catalog: &Catalog,
     store: &mut Store,
@@ -1578,14 +1600,12 @@ pub(crate) fn process(
     admitted: Instant,
     active: impl Fn() -> Result<(), Error>,
 ) -> Result<Option<Vec<u8>>, Error> {
-    match process_inner(catalog, store, input, common, admitted, active, false)? {
-        ProcessOut::Reply(body) => Ok(body),
-        ProcessOut::Captured(_) => Err(Error::Canceled),
-    }
+    process_with_offset(catalog, store, input, common, admitted, active)
+        .map(|result| result.response)
 }
 
 /// Stage every already-queued produce, synchronize each partition once, then
-/// reply. A single job uses [`process`]. The first job is not delayed when
+/// reply. A single job uses [`process_with_offset`]. The first job is not delayed when
 /// nothing else is queued; callers decide that.
 pub(crate) fn process_queued(
     catalog: &Catalog,
@@ -1595,7 +1615,7 @@ pub(crate) fn process_queued(
     common: &metadata::Config,
     spares: &mut [Vec<u8>],
     mut active: impl FnMut(usize) -> Result<(), Error>,
-) -> Vec<Result<Option<Vec<u8>>, Error>> {
+) -> Vec<Result<Produced, Error>> {
     let mut captured = std::mem::take(&mut store.queued_captured);
     captured.clear();
     captured.resize_with(inputs.len(), || None);
@@ -1615,7 +1635,10 @@ pub(crate) fn process_queued(
         ) {
             Ok(ProcessOut::Captured(item)) => {
                 captured[index] = Some(item);
-                replies.push(Ok(None));
+                replies.push(Ok(Produced {
+                    response: None,
+                    throttle_at: None,
+                }));
             }
             Ok(ProcessOut::Reply(body)) => replies.push(Ok(body)),
             Err(error) => replies.push(Err(error)),
@@ -1638,10 +1661,7 @@ pub(crate) fn process_queued(
     replies
 }
 
-pub(crate) fn recycle_queued_replies(
-    store: &mut Store,
-    mut replies: Vec<Result<Option<Vec<u8>>, Error>>,
-) {
+pub(crate) fn recycle_queued_replies(store: &mut Store, mut replies: Vec<Result<Produced, Error>>) {
     replies.clear();
     if replies.capacity() >= store.queued_replies.capacity() {
         store.queued_replies = replies;
@@ -1737,7 +1757,7 @@ fn finish_captured(
     mut item: CapturedProduce,
     input: &[u8],
     spare: &mut Vec<u8>,
-) -> Result<Option<Vec<u8>>, Error> {
+) -> Result<Produced, Error> {
     for sync in item.pending_sync {
         let Some(part) = item
             .results
@@ -1771,7 +1791,11 @@ fn finish_captured(
         &item.results,
         input,
     );
-    if written.as_ref().ok().is_none_or(|body| body.is_none()) {
+    if written
+        .as_ref()
+        .ok()
+        .is_none_or(|body| body.response.is_none())
+    {
         *spare = std::mem::take(&mut writer.bytes);
     }
     written
@@ -2116,7 +2140,11 @@ fn process_inner(
         &results,
         input,
     );
-    if written.as_ref().ok().is_none_or(|body| body.is_none()) {
+    if written
+        .as_ref()
+        .ok()
+        .is_none_or(|body| body.response.is_none())
+    {
         store.keep_response_buf(std::mem::take(&mut writer.bytes));
     }
     Ok(ProcessOut::Reply(written?))
@@ -2130,13 +2158,16 @@ fn write_produce_response(
     acks: i16,
     results: &[ResultTopic],
     input: &[u8],
-) -> Result<Option<Vec<u8>>, Error> {
+) -> Result<Produced, Error> {
     let flex = version >= 9;
     if acks == 0 {
         if results.iter().any(|t| t.parts.iter().any(|p| p.error != 0)) {
             return Err(Error::AcksZeroError);
         }
-        return Ok(None);
+        return Ok(Produced {
+            response: None,
+            throttle_at: None,
+        });
     }
     writer.i32(correlation_id)?;
     if flex {
@@ -2176,11 +2207,15 @@ fn write_produce_response(
             writer.byte(0)?;
         }
     }
+    let throttle_at = writer.bytes.len();
     writer.i32(0)?;
     if flex {
         writer.byte(0)?;
     }
-    Ok(Some(std::mem::take(&mut writer.bytes)))
+    Ok(Produced {
+        response: Some(std::mem::take(&mut writer.bytes)),
+        throttle_at: Some(throttle_at),
+    })
 }
 
 /// Empty sync list sized for every partition that can still be staged.
@@ -2495,7 +2530,13 @@ mod tests {
             },
         );
         assert_eq!(calls, [2, 3]);
-        assert!(matches!(replies.first(), Some(Ok(Some(_)))));
+        assert!(matches!(
+            replies.first(),
+            Some(Ok(Produced {
+                response: Some(_),
+                ..
+            }))
+        ));
         assert!(matches!(replies.get(1), Some(Err(Error::Canceled))));
         assert_eq!(store.log_bounds(id, 0), Ok((0, 1)));
         assert_eq!(store.log_bounds(id, 1), Ok((0, 0)));
