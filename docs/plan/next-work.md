@@ -74,6 +74,11 @@ The [quota handoff design](../evidence/broker/quota-handoff-20261109/README.md)
 sets out actor-owned charging and a bounded transport mute. It is a proposal;
 Produce wire quotas are not implemented.
 
+The [producer ownership integration checkpoint](../evidence/client/producer-ownership-integration-checkpoint-20261109/README.md)
+maps admission, batching, retry, completion, flush and close to a proposed
+rooted owner. It is source review only; no integrated owner or new positive
+public control has been implemented.
+
 A [seeded stale-generation rollback control](../evidence/client/producer-stale-rollback-20261109/README.md)
 showed a prior-generation record rewinding a current-generation counter before
 a public mock send. The seeded state is not a natural identity-transition or
