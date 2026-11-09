@@ -11,12 +11,14 @@ an established fastest-in-the-world result. Client 0.1.0 is published; the
 next client release must be at least 0.2.0. The experimental broker and schema
 companion are unpublished.
 
-The latest complete [main CI record](../evidence/releases/main-ci-731-20261109/README.md)
-is for `731eb97a08445a18da0b043986ae192397ba176a`. Both Linux client
-library profiles had 2,311 passes and 17 failures; Windows had 2,312 passes and
-16 failures, and macOS had 2,315 passes and 13 failures. All three current
-Kafka compatibility jobs and both historical smoke jobs failed. The broker
-passed both feature profiles, with four ignored tests in each. Short resource
+The latest complete [main CI record](../evidence/releases/main-ci-f1be-20261109/README.md)
+is for `f1be3052aac5ec70a424ac951fe1189c27a31417`. Linux client libraries
+reported 2,309 passes and 19 failures with default features and 2,315 passes
+and 13 failures with all features. Windows reported 2,310 passes and 18
+failures; macOS reported 2,315 passes and 13 failures. All three current Kafka
+compatibility jobs and both historical smoke jobs failed. The broker default
+suite stopped after 581 passes, two failures and four ignored tests across the
+targets reached; its all-feature and strict checks did not run. Short resource
 tests passed; a sustained campaign has not.
 
 Separate [combined-head checks](../evidence/ci/combined-a7b6-20261109/README.md)
@@ -35,7 +37,11 @@ runs and their limits.
    Existing [public ownership controls](../evidence/client/producer-ownership-regression-controls-20261108/README.md)
    use controlled mock scheduling and remain open. Preserve accepted records,
    receipts, callbacks and resource accounting across cancellation and worker
-   replacement, then verify the resulting behavior against Kafka.
+   replacement, then verify the resulting behavior against Kafka. An isolated
+   [ownership attempt](../evidence/client/producer-bounded-ownership-attempt-20261109/README.md)
+   passed selected cancellation controls but failed a retry-during-close
+   control. A [sealed-retry experiment](../evidence/client/producer-sealed-retry-experiment-20261109/README.md)
+   still lacks partition and identity fences. Neither is applied.
 
    The [close change](../evidence/client/producer-close-errors-20261109/README.md)
    returns the initial flush error after shutdown. Focused controls passed, but
@@ -66,18 +72,25 @@ runs and their limits.
 
    Kafka Produce wire throttling remains unimplemented. The original
    [quota draft](../evidence/broker/produce-quota-draft-20261109/README.md)
-   was not compiled because its workflows started no jobs. Newer revisions are
-   under test and have not been merged. The
+   was not compiled because its workflows started no jobs. A newer
+   [quota candidate](../evidence/broker/produce-quota-candidate-20261109/README.md)
+   passed focused controls but failed its full all-feature suite; it remains
+   unmerged. The
    [quota handoff plan](../evidence/broker/quota-handoff-20261109/README.md)
    describes the accounting, transport and authentication boundaries they
    need to satisfy.
 
 4. **Schema companion.** The [Retry-After change](../evidence/schema/retry-after-20261109/README.md)
-   handles delay-seconds for HTTP 429 in mock controls; no live registry was
+   handles delay-seconds for HTTP 429. The [incremental HTTP reader](../evidence/schema/registry-http-streaming-20261109/README.md)
+   bounds decoded bodies and framing separately and avoids reparsing earlier
+   chunks. Schema profiles and mock controls passed; no live registry was
    tested. Qualify the supported codecs, lifecycle and registry behavior before
    publication. The [JSON index](../evidence/schema/json-duplicate-index-20261109/README.md)
    and [compact follow-up](../evidence/schema/json-compact-index-20261109/README.md)
-   remain unapplied after threshold slowdowns.
+   remain unapplied after threshold slowdowns. [Balanced-tree experiments](../evidence/schema/json-balanced-index-20261109/README.md)
+   also slowed ordinary Registry objects. An [incremental index](../evidence/schema/json-incremental-index-20261109/README.md)
+   slowed a 96-key fixture and lacks a worst-case collision bound. Neither is
+   applied.
 
 5. **Performance.** Establish correctness before comparing throughput or
    latency. The isolated [indexed Fetch experiment](../evidence/broker/fetch-indexed-vectored-20261109/README.md)

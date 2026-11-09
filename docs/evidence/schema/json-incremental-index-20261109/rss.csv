@@ -1,0 +1,7 @@
+implementation,trial,peak_kib,elapsed_seconds
+baseline,1,5428,0.55
+candidate,1,6076,0
+candidate,2,6076,0
+baseline,2,5524,0.54
+baseline,3,5416,0.54
+candidate,3,6076,0

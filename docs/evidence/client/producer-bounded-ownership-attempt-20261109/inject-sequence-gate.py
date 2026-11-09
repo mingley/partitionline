@@ -1,0 +1,20 @@
+#!/usr/bin/env python3
+"""Insert the recorded test-only owner witness into the v3 candidate source."""
+from pathlib import Path
+
+path = Path("src/producer.rs")
+source = path.read_text(encoding="utf-8")
+before_module = "    true\n}\n\nasync fn stamp_sequences(pendings: &mut [Pending], base: i32) {\n    let count = pendings.len();\n    let mut index = 0usize;"
+after_module = "    true\n}\n\n/// Test-only gate at an existing sequence-stamping yield.\n#[cfg(sequence_owner_witness)]\n#[doc(hidden)]\npub mod sequence_owner_witness {\n    use std::sync::atomic::{AtomicBool, AtomicI32, AtomicUsize, Ordering};\n    use tokio::sync::Notify;\n\n    static ARMED: AtomicBool = AtomicBool::new(false);\n    static BASE: AtomicI32 = AtomicI32::new(-1);\n    static COUNT: AtomicUsize = AtomicUsize::new(0);\n    static STAMPED: AtomicUsize = AtomicUsize::new(0);\n    static STAMPS_VALID: AtomicBool = AtomicBool::new(false);\n    static REACHED: Notify = Notify::const_new();\n    static RELEASE: Notify = Notify::const_new();\n\n    /// Arm the next sequence-stamping yield.\n    pub fn arm() {\n        ARMED.store(true, Ordering::SeqCst);\n    }\n\n    /// Wait until the real worker reaches the armed yield.\n    pub async fn reached() {\n        REACHED.notified().await;\n    }\n\n    /// Return the base, batch length, visited count and prefix/tail validation.\n    pub fn snapshot() -> (i32, usize, usize, bool) {\n        (\n            BASE.load(Ordering::SeqCst),\n            COUNT.load(Ordering::SeqCst),\n            STAMPED.load(Ordering::SeqCst),\n            STAMPS_VALID.load(Ordering::SeqCst),\n        )\n    }\n\n    /// Resume the worker.\n    pub fn release() {\n        RELEASE.notify_one();\n    }\n\n    pub(super) async fn pause_at_stamp_yield(\n        base: i32,\n        count: usize,\n        stamped: usize,\n        pendings: &[super::Pending],\n    ) {\n        if ARMED.swap(false, Ordering::SeqCst) {\n            let valid = pendings.iter().enumerate().all(|(index, pending)| {\n                if index < stamped {\n                    let expected = i32::try_from(index)\n                        .ok()\n                        .and_then(|offset| base.checked_add(offset));\n                    expected.is_some()\n                        && pending.seq == expected\n                        && pending.batch_base_seq == Some(base)\n                        && pending.batch_len == count\n                } else {\n                    pending.seq.is_none() && pending.batch_base_seq.is_none()\n                }\n            });\n            STAMPS_VALID.store(valid, Ordering::SeqCst);\n            BASE.store(base, Ordering::SeqCst);\n            COUNT.store(count, Ordering::SeqCst);\n            STAMPED.store(stamped, Ordering::SeqCst);\n            REACHED.notify_one();\n            RELEASE.notified().await;\n        }\n    }\n}\n\nasync fn stamp_sequences(pendings: &mut [Pending], base: i32) {\n    let count = pendings.len();\n    let mut index = 0usize;"
+if source.count(before_module) != 1:
+    raise SystemExit("sequence helper anchor did not match exactly once")
+source = source.replace(before_module, after_module, 1)
+start = source.index("async fn stamp_sequences(")
+end = source.index("async fn assign_sequences(", start)
+body = source[start:end]
+before_yield = "        walked = walked.saturating_add(1);\n        if walked == 8 * 1024 {\n            walked = 0;\n            tokio::task::yield_now().await;\n        }\n    }"
+after_yield = "        walked = walked.saturating_add(1);\n        if walked == 8 * 1024 {\n            walked = 0;\n            #[cfg(sequence_owner_witness)]\n            sequence_owner_witness::pause_at_stamp_yield(base, count, index, pendings).await;\n            tokio::task::yield_now().await;\n        }\n    }"
+if body.count(before_yield) != 1:
+    raise SystemExit("stamp yield anchor did not match exactly once")
+body = body.replace(before_yield, after_yield, 1)
+path.write_text(source[:start] + body + source[end:], encoding="utf-8")

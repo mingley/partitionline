@@ -1,0 +1,65 @@
+diff --git a/src/producer.rs b/src/producer.rs
+index 27df35a..7f661d3 100644
+--- a/src/producer.rs
++++ b/src/producer.rs
+@@ -47,6 +47,51 @@ use crate::protocol::txn::{
+     TxnErrorDisposition, TxnOffsetCommitMember, TxnOffsetCommitRequest,
+ };
+ 
++/// Qualification-only gate before the atomic retained-batch handoff.
++#[cfg(sealed_retry_witness)]
++#[doc(hidden)]
++pub mod sealed_retry_witness {
++    use std::sync::atomic::{AtomicBool, Ordering};
++    use tokio::sync::Notify;
++
++    static ARMED: AtomicBool = AtomicBool::new(false);
++    static HELD: AtomicBool = AtomicBool::new(false);
++    static REACHED: Notify = Notify::const_new();
++    static RELEASE: Notify = Notify::const_new();
++
++    /// Arm the next retained-batch handoff.
++    pub fn arm() {
++        HELD.store(true, Ordering::SeqCst);
++        ARMED.store(true, Ordering::SeqCst);
++    }
++
++    /// Wait until the retry actor reaches the handoff.
++    pub async fn reached() {
++        REACHED.notified().await;
++    }
++
++    /// Release the handoff.
++    pub fn release() {
++        HELD.store(false, Ordering::SeqCst);
++        RELEASE.notify_waiters();
++    }
++
++    pub(super) async fn pause() {
++        if ARMED.swap(false, Ordering::SeqCst) {
++            REACHED.notify_one();
++            loop {
++                let notified = RELEASE.notified();
++                tokio::pin!(notified);
++                let _registered = notified.as_mut().enable();
++                if !HELD.load(Ordering::SeqCst) {
++                    break;
++                }
++                notified.await;
++            }
++        }
++    }
++}
++
+ /// Pre-send failure injection point for testing buffer ownership and resource contracts.
+ #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+ pub enum PreSendFault {
+@@ -7113,6 +7158,8 @@ async fn retry_sealed_batch(shared: &Arc<Shared>, mut batch: Vec<Pending>) {
+                 .and_then(|slots| slots.get(slot).cloned().flatten());
+             if let Some(worker) = worker {
+                 if let Some(sender) = &worker.sealed_batch_tx {
++                    #[cfg(sealed_retry_witness)]
++                    sealed_retry_witness::pause().await;
+                     let rest = deadline.saturating_duration_since(Instant::now());
+                     match tokio::time::timeout(rest, sender.reserve()).await {
+                         Ok(Ok(permit)) => {
