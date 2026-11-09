@@ -1,0 +1,9 @@
+{"version": 3, "attempt": 1, "offset": 0, "throttle_ms": 0, "produce_rtt_ms": 14.341}
+{"version": 3, "attempt": 2, "offset": 1, "throttle_ms": 4695, "produce_rtt_ms": 2.654}
+{"version": 3, "observation": "metadata_after_throttle", "preceding_throttle_ms": 4695, "metadata_rtt_ms": 4697.742, "preceding_produce_rtt_ms": 2.654}
+{"version": 5, "attempt": 1, "offset": 2, "throttle_ms": 0, "produce_rtt_ms": 2.632}
+{"version": 5, "attempt": 2, "offset": 3, "throttle_ms": 4699, "produce_rtt_ms": 1.208}
+{"version": 5, "observation": "metadata_after_throttle", "preceding_throttle_ms": 4699, "metadata_rtt_ms": 4699.95, "preceding_produce_rtt_ms": 1.208}
+{"version": 6, "attempt": 1, "offset": 4, "throttle_ms": 0, "produce_rtt_ms": 2.194}
+{"version": 6, "attempt": 2, "offset": 5, "throttle_ms": 4699, "produce_rtt_ms": 1.24}
+{"version": 6, "observation": "metadata_after_throttle", "preceding_throttle_ms": 4699, "metadata_rtt_ms": 4700.117, "preceding_produce_rtt_ms": 1.24}

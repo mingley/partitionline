@@ -1,0 +1,22 @@
+name: Observe disconnect during quota pause
+on:
+  push:
+    branches: [qualification/produce-quota-live-20261109]
+    paths:
+      - '.github/workflows/produce-quota-disconnect-observation.yml'
+      - 'partitionline-broker/tests/quota_pause_disconnect.rs'
+permissions:
+  contents: read
+jobs:
+  observe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Observe with default features
+        working-directory: partitionline-broker
+        run: cargo test --locked --test quota_pause_disconnect
+      - name: Observe with all features
+        working-directory: partitionline-broker
+        run: cargo test --locked --all-features --test quota_pause_disconnect
