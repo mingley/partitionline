@@ -126,8 +126,10 @@ From a clone containing this evidence directory, reproduce in a separate
 worktree with the current stable toolchain:
 
 ```sh
-evidence_dir="$(pwd)/docs/evidence/client/producer-sealed-retry-experiment-20261109"
-repro_dir="$(mktemp -d)"
+repo_dir="$(pwd)"
+evidence_dir="$repo_dir/docs/evidence/client/producer-sealed-retry-experiment-20261109"
+repro_parent="$(mktemp -d)"
+repro_dir="$repro_parent/worktree"
 git worktree add --detach "$repro_dir" 731eb97a08445a18da0b043986ae192397ba176a
 cd "$repro_dir"
 git apply --check "$evidence_dir/owner-base.patch"
@@ -143,6 +145,9 @@ cp "$evidence_dir/fixtures/producer_owner_bounded_controls.rs" tests/
 git hash-object src/producer.rs src/producer/owned.rs tests/producer_sealed_retry_public.rs tests/common/mod.rs Cargo.lock
 RUSTFLAGS='--cfg sealed_retry_witness --check-cfg=cfg(sealed_retry_witness)' cargo test --locked --test producer_sealed_retry_public -- --nocapture --test-threads=1
 RUSTFLAGS='--cfg sealed_retry_witness --check-cfg=cfg(sealed_retry_witness)' cargo test --locked --all-features --test producer_sealed_retry_public -- --nocapture --test-threads=1
+cd "$repo_dir"
+git worktree remove --force "$repro_dir"
+rmdir "$repro_parent"
 ```
 
 After the owner patch, the two printed source blobs should be
@@ -152,7 +157,7 @@ the producer blob should be `27df35a47d6d44c1ab12f6d50828e610d8045d5d`.
 After the gate patch and fixture copies, the five printed blobs should match
 the corrected-run table above. The workflow file is retained for inspection;
 the commands above reproduce only its focused mock tests, not every strict
-check. Remove the temporary worktree when finished.
+check. The final commands remove the temporary worktree.
 
 A previous version of this note truncated the source-only producer blob by
 two characters. The full blob above is the one recreated by applying the

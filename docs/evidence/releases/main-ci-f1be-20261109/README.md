@@ -23,7 +23,7 @@ The format, Clippy, dependency policy and audit, allocation-budget, authenticati
 
 ## Broker and capabilities
 
-The [broker workflow](https://github.com/mingley/partitionline/actions/runs/42686615152) failed its default-feature behavioral step after 581 passes, two failures and four ignored tests across the targets reached. The all-feature behavioral suite, strict Clippy and Rustdoc in that job did not run. The separate pinned inventory and fuzz-supervision jobs passed. The cause of the behavioral failure is unknown; the earlier pass at `731eb97` does not explain it.
+The [broker workflow](https://github.com/mingley/partitionline/actions/runs/42686615152) failed its default-feature behavioral step after 579 passes, two failures and four ignored tests across the targets reached. The all-feature behavioral suite, strict Clippy and Rustdoc in that job did not run. The separate pinned inventory and fuzz-supervision jobs passed. The cause of the behavioral failure is unknown; the earlier pass at `731eb97` does not explain it.
 
 Both [client capability jobs](https://github.com/mingley/partitionline/actions/runs/42686615097) passed. Their uploaded archives were not independently inspected.
 

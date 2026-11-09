@@ -17,7 +17,7 @@ reported 2,309 passes and 19 failures with default features and 2,315 passes
 and 13 failures with all features. Windows reported 2,310 passes and 18
 failures; macOS reported 2,315 passes and 13 failures. All three current Kafka
 compatibility jobs and both historical smoke jobs failed. The broker default
-suite stopped after 581 passes, two failures and four ignored tests across the
+suite stopped after 579 passes, two failures and four ignored tests across the
 targets reached; its all-feature and strict checks did not run. Short resource
 tests passed; a sustained campaign has not.
 
