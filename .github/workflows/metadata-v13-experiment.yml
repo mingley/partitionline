@@ -1,0 +1,46 @@
+name: Metadata v13 Apache wire experiment
+on:
+  push:
+    branches:
+      - qualification/metadata-v13-wire-20261109
+jobs:
+  metadata:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Record tools and source
+        run: |
+          rustc --version
+          cargo --version
+          java --version
+          git rev-parse HEAD
+          sha256sum tests/conformance/java/ConformanceMetadataWire.java tests/conformance/run-metadata-wire.py tests/metadata_wire_conformance.rs
+      - name: Compare bounded body fixtures
+        run: timeout 600s python3 tests/conformance/run-metadata-wire.py --output target/metadata-v13
+      - name: Strict lint
+        if: always()
+        run: cargo clippy --locked --all-features --test metadata_wire_conformance -- -D warnings
+      - name: Formatting
+        if: always()
+        run: cargo fmt --all -- --check
+      - name: Show formatting correction
+        if: failure()
+        run: |
+          cargo fmt --all
+          git diff -- tests/metadata_wire_conformance.rs
+      - name: Retain fixtures and process receipts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: metadata-v13-${{ github.sha }}
+          path: target/metadata-v13
+          if-no-files-found: warn
+          retention-days: 30
