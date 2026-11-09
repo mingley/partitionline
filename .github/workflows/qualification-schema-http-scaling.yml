@@ -1,0 +1,49 @@
+name: Schema Registry HTTP fragmentation scaling
+on:
+  push:
+    branches: [qualification/schema-http-scaling-20261109]
+permissions:
+  contents: read
+jobs:
+  compare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Compile pinned sources independently
+        shell: bash
+        run: |
+          set -euo pipefail
+          rustc -Vv
+          cargo -V
+          uname -a
+          lscpu
+          for implementation in baseline candidate; do
+            case "$implementation" in
+              baseline) expected=ec22e65cb00008b445c513eb08cf9c0f6771042e ;;
+              candidate) expected=8c1155e77a7b9958ff73b2862a755bbf13bf9cf5 ;;
+            esac
+            cp ".qualification/http-$implementation.rs" partitionline-schema/src/registry.rs
+            test "$(git hash-object partitionline-schema/src/registry.rs)" = "$expected"
+            sha256sum partitionline-schema/src/registry.rs
+            CARGO_TARGET_DIR="$RUNNER_TEMP/http-target-$implementation" cargo test --manifest-path partitionline-schema/Cargo.toml --locked --release --lib --no-run
+            find "$RUNNER_TEMP/http-target-$implementation/release/deps" -maxdepth 1 -type f -name 'partitionline_schema-*' -executable -exec cp {} "$RUNNER_TEMP/http-$implementation" \;
+          done
+          sha256sum "$RUNNER_TEMP/http-baseline" "$RUNNER_TEMP/http-candidate"
+      - name: Alternate response samples
+        shell: bash
+        run: |
+          set -euo pipefail
+          cpu=$(python3 -c 'import os; print(min(os.sched_getaffinity(0)))')
+          echo "Pinned CPU $cpu"
+          for implementation in baseline candidate; do
+            taskset -c "$cpu" "$RUNNER_TEMP/http-$implementation" --ignored --exact registry::tests::registry_http_qualification_bench --nocapture
+          done
+          for pair in $(seq 1 12); do
+            if ((pair % 2)); then order="baseline candidate"; else order="candidate baseline"; fi
+            for implementation in $order; do
+              echo "PL_PAIR pair=$pair implementation=$implementation"
+              taskset -c "$cpu" "$RUNNER_TEMP/http-$implementation" --ignored --exact registry::tests::registry_http_qualification_bench --nocapture
+            done
+          done
