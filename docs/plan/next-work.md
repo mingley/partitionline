@@ -39,8 +39,14 @@ record this tradeoff, focused checks and broad timing failures.
 
 A [Schema Registry JSON indexing experiment](../evidence/schema/json-duplicate-index-20261109/README.md)
 reduced large-object parse time but slowed inputs just beyond each tested
-index threshold. The measured candidates remain unapplied; parsing is still
-synchronous and memory is not globally bounded.
+index threshold. A [compact-table follow-up](../evidence/schema/json-compact-index-20261109/README.md)
+still showed a threshold slowdown. The candidates remain unapplied; parsing
+is synchronous and memory is not globally bounded.
+
+The [combined-head checks](../evidence/ci/combined-a7b6-20261109/README.md)
+passed formatting, client strict checks, focused client and broker tests in
+both feature profiles, and packed documentation checks on `a7b6edc`. They
+do not replace the full client or Kafka compatibility gates.
 
 The broker transport now backpressures valid pipelined frames when its
 read-ahead is full. The [transport controls](../evidence/broker/transport-backpressure-20261109/README.md)
@@ -56,8 +62,32 @@ and [selected capability](https://github.com/mingley/partitionline/actions/runs/
 profiles passed. A separate [package documentation check](https://github.com/mingley/partitionline/actions/runs/42666130286)
 passed; it did not compile examples.
 
-The latest complete recorded main [CI snapshot](../evidence/releases/main-ci-133d-20261108/README.md)
-is `133d2413217cee4130bca2267e4e36b7225ff86f`. Client libraries reported
+At `ba8935605f14b95dfaff08d1523f1a7367c02f12`, a later [broker run](https://github.com/mingley/partitionline/actions/runs/42667809972)
+stopped in the default library after 492 passes, one failure and four ignored;
+the cause is unknown and later all-feature and strict checks did not run. Its
+[client run](https://github.com/mingley/partitionline/actions/runs/42667810248)
+passed ten jobs, failed three current Kafka compatibility jobs, canceled 14
+and skipped one. Both selected [capability profiles](https://github.com/mingley/partitionline/actions/runs/42667810223)
+passed; their archives were not independently inspected.
+
+The [quota handoff design](../evidence/broker/quota-handoff-20261109/README.md)
+sets out actor-owned charging and a bounded transport mute. It is a proposal;
+Produce wire quotas are not implemented.
+
+The latest complete recorded main [CI snapshot](../evidence/releases/main-ci-a7b6-20261109/README.md)
+is `a7b6edc1645e3a4789cf699a3b9e7656c55a3d10`. Client libraries reported
+2,309 passed and 19 failed on Linux default, 2,318 passed and ten failed
+with all features, 2,314 passed and 14 failed on Windows, and 2,320 passed
+and eight failed on macOS arm64. Three current Kafka compatibility jobs and
+both historical smoke jobs failed. The broker passed 814 default and 962
+all-feature tests, with four ignored in each profile, and passed strict
+checks, inventory and fuzz supervision. Eleven short resource-soak tests
+passed; the instruction gate had no baseline for this Rust version. Both
+selected capability profiles passed; their archives were not independently
+inspected.
+
+The previous complete [CI snapshot](../evidence/releases/main-ci-133d-20261108/README.md)
+was `133d2413217cee4130bca2267e4e36b7225ff86f`. Client libraries reported
 2,299 passed and 18 failed on Linux default, 2,302 passed and 15 failed with
 all features, and 2,296 passed and 21 failed on both Windows and macOS arm64.
 Three Kafka compatibility jobs and both smoke jobs failed. Resource soak
