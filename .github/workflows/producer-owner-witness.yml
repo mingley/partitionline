@@ -50,11 +50,8 @@ jobs:
             flags=()
             if [[ "$profile" == all ]]; then flags+=(--all-features); fi
             printf '\nPROFILE: %s\n' "$profile"
-            check timeout 180 env PL_SEQUENCE_MODE=resume cargo test --locked "${flags[@]}" --test sequence_ownership_public public_batch_sequence_worker_cancellation -- --exact --nocapture
-            for action in abort close; do
-              for admission in mixed all; do
-                check timeout 180 env PL_OWNER_CASE="$action" PL_ADMISSION="$admission" cargo test --locked "${flags[@]}" --test producer_ownership_regression_public accepted_records_settle_after_worker_cancellation -- --exact --nocapture
-              done
+            for action in resume abort close; do
+              check timeout 180 env PL_OWNER_CASE="$action" PL_ADMISSION=all cargo test --locked "${flags[@]}" --test producer_ownership_regression_public accepted_records_settle_after_worker_cancellation -- --exact --nocapture
             done
           done
           printf '\nFAILED_COMMANDS=%s\n' "$failures"

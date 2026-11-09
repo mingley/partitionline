@@ -45,7 +45,7 @@ impl Drop for ReleaseGate {
 async fn accepted_records_settle_after_worker_cancellation() {
     let case = std::env::var("PL_OWNER_CASE").unwrap_or_else(|_| "abort".to_string());
     let admission = std::env::var("PL_ADMISSION").unwrap_or_else(|_| "all".to_string());
-    assert!(matches!(case.as_str(), "abort" | "close"));
+    assert!(matches!(case.as_str(), "abort" | "close" | "resume"));
     assert!(matches!(admission.as_str(), "all" | "mixed"));
     let mock = common::Mock::start().await;
     mock.set_topic_partitions("t", 1);
@@ -58,7 +58,11 @@ async fn accepted_records_settle_after_worker_cancellation() {
             .batch_bytes(2 * 1024 * 1024)
             .max_request_size(2 * 1024 * 1024)
             .buffer_memory(0)
-            .linger(Duration::ZERO)
+            .linger(if admission == "all" {
+                Duration::from_secs(60)
+            } else {
+                Duration::ZERO
+            })
             .request_timeout(Duration::from_secs(20))
             .delivery_timeout(Duration::from_secs(120))
             .max_block(Duration::from_secs(20))
@@ -67,13 +71,26 @@ async fn accepted_records_settle_after_worker_cancellation() {
     )
     .await
     .expect("producer setup");
-    let warm = tokio::time::timeout(
-        LIMIT,
+    let mut warmup = Box::pin(
         producer.send(ProduceRecord::to("t").partition(0).value(&b"warm"[..])),
-    )
+    );
+    tokio::time::timeout(LIMIT, async {
+        loop {
+            let poll = poll_fn(|cx| Poll::Ready(warmup.as_mut().poll(cx))).await;
+            assert!(poll.is_pending(), "warmup must wait for its receipt");
+            if producer.metrics().records_queued == 1 {
+                break;
+            }
+            tokio::task::yield_now().await;
+        }
+    })
     .await
-    .expect("warmup deadline")
-    .expect("warmup result");
+    .expect("warmup admission deadline");
+    producer.flush_timeout(LIMIT).await.expect("warmup flush");
+    let warm = tokio::time::timeout(LIMIT, warmup)
+        .await
+        .expect("warmup deadline")
+        .expect("warmup result");
     assert_eq!(warm.offset, 0);
     assert_eq!(counts.acks.load(Ordering::SeqCst), 1);
     assert_eq!(mock.produce_sequences().len(), 1);
@@ -86,8 +103,19 @@ async fn accepted_records_settle_after_worker_cancellation() {
         let record = ProduceRecord::to("t").partition(0).value(value.to_vec());
         if admission == "all" || index == 0 {
             let mut delivery = Box::pin(producer.send(record));
-            let first_poll = poll_fn(|cx| Poll::Ready(delivery.as_mut().poll(cx))).await;
-            assert!(first_poll.is_pending(), "send must be admitted and await its receipt");
+            let expected = u64::try_from(index + 2).expect("count fits");
+            tokio::time::timeout(LIMIT, async {
+                loop {
+                    let poll = poll_fn(|cx| Poll::Ready(delivery.as_mut().poll(cx))).await;
+                    assert!(poll.is_pending(), "send must wait for its receipt");
+                    if producer.metrics().records_queued >= expected {
+                        break;
+                    }
+                    tokio::task::yield_now().await;
+                }
+            })
+            .await
+            .expect("send admission deadline");
             deliveries.push((index, delivery));
         } else {
             producer.try_send(record).expect("try_send before worker runs");
@@ -108,7 +136,7 @@ async fn accepted_records_settle_after_worker_cancellation() {
     let worker = workers.first().expect("one worker");
     if case == "abort" {
         worker.abort();
-    } else {
+    } else if case == "close" {
         let result = tokio::time::timeout(
             LIMIT,
             producer.clone().close_timeout(Duration::from_millis(150)),
@@ -116,14 +144,18 @@ async fn accepted_records_settle_after_worker_cancellation() {
         .await
         .expect("close deadline");
         println!("REGRESSION_CLOSE_RESULT {result:?}");
+    } else {
+        gate::release();
     }
-    tokio::time::timeout(LIMIT, async {
-        while !worker.is_finished() {
-            tokio::task::yield_now().await;
-        }
-    })
-    .await
-    .expect("old worker stop deadline");
+    if case != "resume" {
+        tokio::time::timeout(LIMIT, async {
+            while !worker.is_finished() {
+                tokio::task::yield_now().await;
+            }
+        })
+        .await
+        .expect("old worker stop deadline");
+    }
 
     let outcomes = tokio::time::timeout(Duration::from_secs(10), async {
         let mut results = Vec::with_capacity(deliveries.len());
@@ -159,6 +191,10 @@ async fn accepted_records_settle_after_worker_cancellation() {
         "OWNERSHIP_REGRESSION accepted records must each reach a terminal callback and release bytes"
     );
     assert!(acks >= receipt_ok && errors >= receipt_err);
+    if case == "resume" {
+        assert_eq!(receipt_ok, deliveries.len());
+        assert_eq!((acks, errors), (COUNT, 0));
+    }
     if admission == "all" {
         assert_eq!((acks, errors), (receipt_ok, receipt_err));
     }
