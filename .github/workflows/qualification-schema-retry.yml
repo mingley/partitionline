@@ -1,0 +1,59 @@
+name: Isolated Schema Registry retry qualification
+on:
+  push:
+    branches: [qualification/schema-retry-20261109]
+permissions:
+  contents: read
+jobs:
+  qualify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Format candidate and record exact source
+        shell: bash
+        run: |
+          set -euo pipefail
+          rustc -Vv
+          cargo -V
+          sha256sum partitionline-schema/src/registry.rs
+          cargo fmt --manifest-path partitionline-schema/Cargo.toml
+          cp partitionline-schema/src/registry.rs "$RUNNER_TEMP/candidate.rs"
+          sha256sum "$RUNNER_TEMP/candidate.rs"
+          base64 -w0 "$RUNNER_TEMP/candidate.rs" | fold -w 4096 | sed 's/^/PL_FORMATTED /'
+      - name: Baseline and independent mutant controls
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp .qualification/schema-retry-baseline.rs partitionline-schema/src/registry.rs
+          for frame in content_length chunked close_delimited; do
+            name="retry_after_public_${frame}_deadline"
+            if cargo test --manifest-path partitionline-schema/Cargo.toml --locked --lib "$name" -- --nocapture > "$RUNNER_TEMP/control.log" 2>&1; then
+              echo "Baseline unexpectedly passed $name"
+              exit 1
+            fi
+            grep -F 'expected Timeout before the capped Retry-After delay' "$RUNNER_TEMP/control.log"
+            grep -F '1 failed' "$RUNNER_TEMP/control.log"
+          done
+          cp .qualification/schema-retry-parser-only.rs partitionline-schema/src/registry.rs
+          cargo test --manifest-path partitionline-schema/Cargo.toml --locked --lib retry_after_public_content_length_deadline
+          if cargo test --manifest-path partitionline-schema/Cargo.toml --locked --lib retry_after_public_chunked_deadline -- --nocapture > "$RUNNER_TEMP/mutant.log" 2>&1; then
+            echo "Parser-only mutant unexpectedly passed chunked control"
+            exit 1
+          fi
+          grep -F 'expected Timeout before the capped Retry-After delay' "$RUNNER_TEMP/mutant.log"
+          grep -F '1 failed' "$RUNNER_TEMP/mutant.log"
+          cp "$RUNNER_TEMP/candidate.rs" partitionline-schema/src/registry.rs
+      - name: Candidate public and parser controls
+        run: cargo test --manifest-path partitionline-schema/Cargo.toml --locked --lib retry_after_
+      - name: Full schema feature profiles
+        run: |
+          cargo test --manifest-path partitionline-schema/Cargo.toml --locked
+          cargo test --manifest-path partitionline-schema/Cargo.toml --locked --all-features
+          cargo test --manifest-path partitionline-schema/Cargo.toml --locked --no-default-features
+      - name: Format, strict Clippy and documentation
+        run: |
+          cargo fmt --manifest-path partitionline-schema/Cargo.toml -- --check
+          cargo clippy --manifest-path partitionline-schema/Cargo.toml --locked --all-targets --all-features -- -D warnings
+          RUSTDOCFLAGS="-D warnings" cargo doc --manifest-path partitionline-schema/Cargo.toml --locked --all-features --no-deps
