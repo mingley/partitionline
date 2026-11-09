@@ -1,0 +1,41 @@
+name: Schema Registry incremental HTTP controls
+on:
+  push:
+    branches: [qualification/schema-chunked-candidate-20261109]
+permissions:
+  contents: read
+jobs:
+  controls:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Format and record scoped diff
+        shell: bash
+        run: |
+          set -euo pipefail
+          rustc -Vv
+          cargo fmt --manifest-path partitionline-schema/Cargo.toml
+          echo PL_FMT_DIFF_BEGIN
+          git diff -- partitionline-schema/src/registry.rs partitionline-schema/tests/registry_chunked.rs
+          echo PL_FMT_DIFF_END
+          git hash-object partitionline-schema/src/registry.rs partitionline-schema/tests/registry_chunked.rs
+      - name: Incremental, framing, fairness and public controls
+        run: |
+          cargo test --manifest-path partitionline-schema/Cargo.toml --locked --lib chunked_decoder_
+          cargo test --manifest-path partitionline-schema/Cargo.toml --locked --lib chunked_http_fragmented_headers_and_trailers_keep_retry_after
+          cargo test --manifest-path partitionline-schema/Cargo.toml --locked --lib response_header_ending_past_limit_is_rejected
+          cargo test --manifest-path partitionline-schema/Cargo.toml --locked --lib always_ready_fragmented_
+          cargo test --manifest-path partitionline-schema/Cargo.toml --locked --lib retry_after_public_chunked_deadline
+          cargo test --manifest-path partitionline-schema/Cargo.toml --locked --test registry_chunked
+      - name: Full schema profiles
+        run: |
+          cargo test --manifest-path partitionline-schema/Cargo.toml --locked
+          cargo test --manifest-path partitionline-schema/Cargo.toml --locked --all-features
+          cargo test --manifest-path partitionline-schema/Cargo.toml --locked --no-default-features
+      - name: Strict checks
+        run: |
+          cargo fmt --manifest-path partitionline-schema/Cargo.toml -- --check
+          cargo clippy --manifest-path partitionline-schema/Cargo.toml --locked --all-targets --all-features -- -D warnings
+          RUSTDOCFLAGS="-D warnings" cargo doc --manifest-path partitionline-schema/Cargo.toml --locked --all-features --no-deps
