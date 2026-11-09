@@ -71,7 +71,11 @@ and [work plan][next] retain those results and earlier evidence.
   and leave buffer accounting nonzero after a worker stops. The
   [public controls][owner-controls] and [unwired batch draft][owner-draft]
   do not establish a fix or a real-Kafka outcome. The [ownership checkpoint][owner-checkpoint]
-  maps the required admission, retry, completion and shutdown changes. A [seeded rollback control][sequence-witness]
+  maps the required admission, retry, completion and shutdown changes. In a
+  later [instrumented mock][owner-baseline], 8,193 records had no callbacks
+  and 65,544 bytes remained accounted for within a four-second observation
+  after abort or timed close; this does not establish a permanent leak. A
+  [seeded rollback control][sequence-witness]
   showed a stale generation changing a current counter before a mock send;
   it did not establish a natural identity transition. A [guard experiment][guard-exp]
   passed selected controls but failed strict checks and does not fence writes
@@ -151,3 +155,5 @@ results and experiments.
 [ci-partial]: https://github.com/mingley/partitionline/blob/191df95de76ac2b35a061ce205f47d94c0a6a9c5/docs/evidence/releases/main-ci-0bed-partial-20261109/README.md
 [guard-exp]: https://github.com/mingley/partitionline/blob/191df95de76ac2b35a061ce205f47d94c0a6a9c5/docs/evidence/client/producer-sequence-guard-20261109/README.md
 [owner-checkpoint]: https://github.com/mingley/partitionline/blob/65830a2f7bf6afaadc9d287665e44592ef24d72f/docs/evidence/client/producer-ownership-integration-checkpoint-20261109/README.md
+
+[owner-baseline]: https://github.com/mingley/partitionline/blob/3c29521973166b64b15fc498e7e47c4ec0eebeaa/docs/evidence/client/producer-ownership-baseline-731eb97/README.md
