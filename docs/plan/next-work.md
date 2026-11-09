@@ -40,8 +40,10 @@ runs and their limits.
    replacement, then verify the resulting behavior against Kafka. An isolated
    [ownership attempt](../evidence/client/producer-bounded-ownership-attempt-20261109/README.md)
    passed selected cancellation controls but failed a retry-during-close
-   control. A [sealed-retry experiment](../evidence/client/producer-sealed-retry-experiment-20261109/README.md)
-   still lacks partition and identity fences. Neither is applied.
+   control. An [admission-seal follow-up](../evidence/client/producer-admission-seal-v4-20261109/README.md)
+   passed that mock but still lacks a fatal write fence. A
+   [sealed-retry experiment](../evidence/client/producer-sealed-retry-experiment-20261109/README.md)
+   lacks partition and identity fences. None is applied.
 
    The [close change](../evidence/client/producer-close-errors-20261109/README.md)
    returns the initial flush error after shutdown. Focused controls passed, but
