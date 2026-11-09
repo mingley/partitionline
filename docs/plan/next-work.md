@@ -74,6 +74,23 @@ The [quota handoff design](../evidence/broker/quota-handoff-20261109/README.md)
 sets out actor-owned charging and a bounded transport mute. It is a proposal;
 Produce wire quotas are not implemented.
 
+A [seeded stale-generation rollback control](../evidence/client/producer-stale-rollback-20261109/README.md)
+showed a prior-generation record rewinding a current-generation counter before
+a public mock send. The seeded state is not a natural identity-transition or
+real-Kafka history. A narrow guard remains isolated; identity/write fencing,
+partial-stamping cancellation and sequence progress are still open.
+
+A [producer socket trace](../evidence/client/producer-cold-handshake-20261109/README.md)
+confirmed separate metadata and Produce sessions in a loopback mock. A
+controlled 50 ms worker negotiation delay added about 50 ms to first-send
+time; it is not a Kafka throughput measurement. A speculative handoff remains
+unimplemented and needs bounded ownership and endpoint-generation controls.
+
+An [isolated Produce quota draft](../evidence/broker/produce-quota-draft-20261109/README.md)
+remains uncompiled after three no-job workflow failures. Its handler-supplied
+resume deadline is unbounded, and actor accounting, wire, authentication and
+shutdown behavior remain unqualified. The draft is not applied.
+
 The latest complete recorded main [CI snapshot](../evidence/releases/main-ci-a7b6-20261109/README.md)
 is `a7b6edc1645e3a4789cf699a3b9e7656c55a3d10`. Client libraries reported
 2,309 passed and 19 failed on Linux default, 2,318 passed and ten failed

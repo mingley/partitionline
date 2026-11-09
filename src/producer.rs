@@ -1165,8 +1165,8 @@ struct Shared {
     metadata_version: AtomicI16,
     /// ApiVersions learned on the initial metadata socket.
     api_keys: Vec<ApiVersion>,
-    /// ApiVersions learned on each produce address. An idle replacement
-    /// reuses them.
+    /// API ranges observed on prior sessions, keyed by address. A replacement
+    /// physical socket negotiates its own ranges.
     produce_keys: parking_lot::Mutex<HashMap<String, Vec<ApiVersion>>>,
     /// Last metadata image. The next refresh refills it.
     metadata_image: parking_lot::Mutex<MetadataResponse>,
@@ -2139,8 +2139,8 @@ impl Producer {
 
     /// Handshake every bootstrap together and keep the first full success.
     ///
-    /// Handshakes that finish with the first one are returned as learned
-    /// versions. A later produce to one of those brokers skips ApiVersions.
+    /// Completed sibling handshakes contribute learned ranges; their sockets
+    /// are retired. A later Produce socket performs its own negotiation.
     async fn open_bootstrap(
         cfg: &ProducerConfig,
         deadline: Instant,
