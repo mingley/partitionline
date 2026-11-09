@@ -1,0 +1,66 @@
+name: Registry HTTP split read-budget comparison
+on:
+  push:
+    branches: [qualification/schema-http-budget-split-20261109]
+permissions:
+  contents: read
+jobs:
+  compare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Compile pinned sources independently
+        shell: bash
+        run: |
+          set -euo pipefail
+          rustc -Vv
+          cargo -V
+          uname -a
+          lscpu
+          for implementation in baseline uniform split; do
+            case "$implementation" in
+              baseline) expected=5eceb05506cc63a053181d7d34f17f97f33c57f8 ;;
+              uniform) expected=d84d79e8f62ce164ae4d2071ca2afe3ff82ce767 ;;
+              split) expected=2d4a2b0e8bd34f0fbed87c51bbb0864a4b758cc2 ;;
+            esac
+            cp ".qualification/http-$implementation.rs" partitionline-schema/src/registry.rs
+            test "$(git hash-object partitionline-schema/src/registry.rs)" = "$expected"
+            sha256sum partitionline-schema/src/registry.rs
+            CARGO_TARGET_DIR="$RUNNER_TEMP/http-target-$implementation" cargo test --manifest-path partitionline-schema/Cargo.toml --locked --release --lib --no-run
+            find "$RUNNER_TEMP/http-target-$implementation/release/deps" -maxdepth 1 -type f -name 'partitionline_schema-*' -executable -exec cp {} "$RUNNER_TEMP/http-$implementation" \;
+          done
+          sha256sum "$RUNNER_TEMP/http-baseline" "$RUNNER_TEMP/http-uniform" "$RUNNER_TEMP/http-split"
+      - name: Alternate response samples
+        shell: bash
+        run: |
+          set -euo pipefail
+          cpu=$(python3 -c 'import os; print(min(os.sched_getaffinity(0)))')
+          echo "Pinned CPU $cpu"
+          for implementation in baseline uniform split; do
+            taskset -c "$cpu" "$RUNNER_TEMP/http-$implementation" --ignored --exact registry::tests::registry_http_qualification_bench --nocapture
+          done
+          for pair in $(seq 1 12); do
+            case $((pair % 6)) in
+              0) order="baseline uniform split" ;;
+              1) order="baseline split uniform" ;;
+              2) order="uniform baseline split" ;;
+              3) order="uniform split baseline" ;;
+              4) order="split baseline uniform" ;;
+              5) order="split uniform baseline" ;;
+            esac
+            for implementation in $order; do
+              echo "PL_PAIR pair=$pair implementation=$implementation"
+              taskset -c "$cpu" "$RUNNER_TEMP/http-$implementation" --ignored --exact registry::tests::registry_http_qualification_bench --nocapture
+            done
+          done
+      - name: Measure always-ready first-poll work
+        shell: bash
+        run: |
+          set -euo pipefail
+          cpu=$(python3 -c 'import os; print(min(os.sched_getaffinity(0)))')
+          for implementation in uniform split; do
+            echo "PL_POLL_IMPLEMENTATION $implementation"
+            taskset -c "$cpu" "$RUNNER_TEMP/http-$implementation" --ignored --exact registry::tests::registry_http_poll_work_qualification --nocapture
+          done
