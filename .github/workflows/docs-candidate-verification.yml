@@ -1,0 +1,25 @@
+name: Docs candidate verification
+
+on:
+  push:
+    branches: [dev/docs-review-0bed-check]
+
+permissions:
+  contents: read
+
+jobs:
+  package-docs:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Check package navigation
+        run: |
+          set -euo pipefail
+          cargo package --locked --no-verify
+          unpack="$RUNNER_TEMP/partitionline-package-docs"
+          mkdir -p "$unpack"
+          tar -xzf target/package/partitionline-0.1.0.crate -C "$unpack"
+          python3 -B scripts/check-package-docs.py "$unpack/partitionline-0.1.0"
+          python3 -B scripts/check-doc-examples.py --links-only
