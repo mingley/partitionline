@@ -37,8 +37,12 @@ def main():
     samples = []
     races = 0
     error = None
-    while Path("/proc", str(args.pid)).exists():
+    while True:
         try:
+            try:
+                Path("/proc", str(args.pid)).stat()
+            except (FileNotFoundError, ProcessLookupError):
+                break
             samples.append((time.monotonic_ns() - start, sockets(args.pid, args.port)))
         except (FileNotFoundError, ProcessLookupError):
             races += 1

@@ -28,7 +28,7 @@ class SamplerTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as name:
             output = Path(name) / "sockets.json"
             with mock.patch.object(sys, "argv", ["sampler", "42", "19092", str(output)]), \
-                 mock.patch.object(sampler.Path, "exists", side_effect=[True, True]), \
+                 mock.patch.object(sampler.Path, "stat", side_effect=[None, None]), \
                  mock.patch.object(sampler, "sockets", side_effect=[2, PermissionError("synthetic denial")]) as read, \
                  mock.patch.object(sampler.time, "sleep"), \
                  contextlib.redirect_stderr(io.StringIO()):
@@ -46,11 +46,28 @@ class SamplerTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "incomplete"):
                 check_sample.load_complete_sample(name)
 
+    def test_permission_error_checking_pid_preserves_prior_sample(self):
+        with tempfile.TemporaryDirectory() as name:
+            output = Path(name) / "sockets.json"
+            with mock.patch.object(sys, "argv", ["sampler", "42", "19092", str(output)]), \
+                 mock.patch.object(sampler.Path, "stat", side_effect=[None, PermissionError("synthetic stat denial")]) as stat, \
+                 mock.patch.object(sampler, "sockets", return_value=1) as read, \
+                 mock.patch.object(sampler.time, "sleep"), \
+                 contextlib.redirect_stderr(io.StringIO()):
+                status = sampler.main()
+            data = json.loads(output.read_text())
+            self.assertEqual(status, 1)
+            self.assertEqual(stat.call_count, 2)
+            self.assertEqual(read.call_count, 1)
+            self.assertEqual(data["successful_samples"], 1)
+            self.assertIs(data["complete"], False)
+            self.assertEqual(data["error"]["type"], "PermissionError")
+
     def test_successful_samples_pass_and_summary_tamper_fails(self):
         with tempfile.TemporaryDirectory() as name:
             output = Path(name) / "sockets.json"
             with mock.patch.object(sys, "argv", ["sampler", "42", "19092", str(output)]), \
-                 mock.patch.object(sampler.Path, "exists", side_effect=[True, True, False]), \
+                 mock.patch.object(sampler.Path, "stat", side_effect=[None, None, FileNotFoundError()]), \
                  mock.patch.object(sampler, "sockets", side_effect=[0, 1]), \
                  mock.patch.object(sampler.time, "sleep"):
                 status = sampler.main()
@@ -58,6 +75,10 @@ class SamplerTests(unittest.TestCase):
             (Path(name) / "socket-sampler-exit.txt").write_text("0\n")
             data = check_sample.load_complete_sample(name)
             self.assertIs(data["complete"], True)
+            (Path(name) / "socket-sampler-exit.txt").write_text("1\n")
+            with self.assertRaisesRegex(ValueError, "incomplete"):
+                check_sample.load_complete_sample(name)
+            (Path(name) / "socket-sampler-exit.txt").write_text("0\n")
             data["counts"] = {"1": 2}
             output.write_text(json.dumps(data))
             with self.assertRaisesRegex(ValueError, "summary differs"):
@@ -162,6 +183,11 @@ class AggregateTests(unittest.TestCase):
             self.assertEqual(good.returncode, 0, good.stderr)
             self.assertIsNotNone(json.loads(good.stdout)["median_ratios_c_over_rust"])
             bad_dir = root / "pair-3-rust"
+            sample.update(samples=[[1, 0], [2, 2]], counts={"0": 1, "2": 1}, max_established=2)
+            (bad_dir / "sockets.json").write_text(json.dumps(sample))
+            mismatch = self.run_aggregate(root)
+            self.assertNotEqual(mismatch.returncode, 0, mismatch.stderr)
+            self.assertIsNone(json.loads(mismatch.stdout)["median_ratios_c_over_rust"])
             sample["complete"] = False
             sample["error"] = {"type": "PermissionError", "message": "synthetic"}
             (bad_dir / "sockets.json").write_text(json.dumps(sample))
