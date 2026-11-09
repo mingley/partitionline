@@ -1,0 +1,43 @@
+name: Registry HTTP cancellation observation
+on:
+  push:
+    branches: [qualification/schema-chunked-cancel-observe-20261109]
+permissions:
+  contents: read
+jobs:
+  observe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Observe server reads for matched sources
+        shell: bash
+        run: |
+          set -euo pipefail
+          rustc -Vv
+          for implementation in baseline candidate; do
+            case "$implementation" in
+              baseline) expected=6dc764d026718509575854ecb3955d00c44e77a0 ;;
+              candidate) expected=d763cf02be612d1da7cd4369e5e826835fda5412 ;;
+            esac
+            cp ".qualification/cancel-$implementation.rs" partitionline-schema/src/registry.rs
+            test "$(git hash-object partitionline-schema/src/registry.rs)" = "$expected"
+            for feature in default all; do
+              flags=()
+              if [[ "$feature" == all ]]; then flags=(--all-features); fi
+              failures=0
+              for trial in $(seq 1 15); do
+                echo "PL_TRIAL implementation=$implementation feature=$feature trial=$trial"
+                if cargo test --manifest-path partitionline-schema/Cargo.toml --locked "${flags[@]}" --test registry_chunked -- --skip many_tiny_chunks_count_decoded_bytes_not_framing --nocapture > "$RUNNER_TEMP/observe.log" 2>&1; then
+                  echo "PL_RESULT pass"
+                else
+                  failures=$((failures + 1))
+                  grep -F 'test result: FAILED' "$RUNNER_TEMP/observe.log"
+                  grep -E 'server observed|panicked at|FAILED' "$RUNNER_TEMP/observe.log"
+                fi
+                grep -E 'PL_SERVER_OBSERVATION|test result:' "$RUNNER_TEMP/observe.log"
+              done
+              echo "PL_TOTAL implementation=$implementation feature=$feature failures=$failures"
+            done
+          done
