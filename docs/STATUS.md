@@ -35,7 +35,7 @@ the individual runs and results. The current branch contains later changes.
 | Client library, macOS arm64 default | 2,315 passed, 13 failed; later runtime and package steps did not run. |
 | Kafka compatibility | 4.1.2, 4.2.1 and 4.3.1 profiles failed; 3.9.1 and 4.1.0 smoke jobs failed. |
 | Resource-soak job | The driver and 11 short tests passed; no sustained campaign was completed. |
-| Broker default targets | 581 passed, two failed and four ignored across the targets reached; later targets did not run. |
+| Broker default targets | 579 passed, two failed and four ignored across the targets reached; later targets did not run. |
 | Broker all-feature and strict checks | Not run after the default failure. Inventory and fuzz supervision passed separately. |
 | Client capability profiles | Both selected profiles passed; their archives were not independently inspected. |
 | Client format, Clippy, audit, docs, package, auth and integrity smoke | Passed. Other jobs failed or were skipped. |
@@ -150,9 +150,9 @@ The [work plan][next] and its linked evidence track the outstanding work.
 The [previous detailed status][history] preserves earlier qualification
 results and experiments.
 
-[ci]: https://github.com/mingley/partitionline/blob/8d4993badb960025c9301b7e6c4db2c9f5b58754/docs/evidence/releases/main-ci-f1be-20261109/README.md
+[ci]: https://github.com/mingley/partitionline/blob/47938c4811e44972e7f8e9b014e553125bcba50a/docs/evidence/releases/main-ci-f1be-20261109/README.md
 [history]: https://github.com/mingley/partitionline/blob/dfe179d7066e2c1afecb88df5ba76d2920308c46/docs/STATUS.md
-[next]: https://github.com/mingley/partitionline/blob/ad7d671c7cbfdc87dbf1c797b02c5ea9890f1808/docs/plan/next-work.md
+[next]: https://github.com/mingley/partitionline/blob/47938c4811e44972e7f8e9b014e553125bcba50a/docs/plan/next-work.md
 [tls]: https://github.com/mingley/partitionline/blob/e18186f0cb9c25393117fe41148ae5860f52a8a0/docs/evidence/security/tls-provider-assessment-20261108/README.md
 [owner-controls]: https://github.com/mingley/partitionline/blob/e18186f0cb9c25393117fe41148ae5860f52a8a0/docs/evidence/client/producer-ownership-regression-controls-20261108/README.md
 [owner-draft]: https://github.com/mingley/partitionline/blob/ed86c9c937dd3f5a7edb73858a6474b04073a827/docs/evidence/client/producer-owned-batch-rust-draft-20261108/README.md
