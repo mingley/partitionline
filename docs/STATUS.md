@@ -70,7 +70,8 @@ and [work plan][next] retain those results and earlier evidence.
   retry ordering and ownership problems. Accepted records can lose callbacks
   and leave buffer accounting nonzero after a worker stops. The
   [public controls][owner-controls] and [unwired batch draft][owner-draft]
-  do not establish a fix or a real-Kafka outcome. A [seeded rollback control][sequence-witness]
+  do not establish a fix or a real-Kafka outcome. The [ownership checkpoint][owner-checkpoint]
+  maps the required admission, retry, completion and shutdown changes. A [seeded rollback control][sequence-witness]
   showed a stale generation changing a current counter before a mock send;
   it did not establish a natural identity transition. A [guard experiment][guard-exp]
   passed selected controls but failed strict checks and does not fence writes
@@ -127,7 +128,7 @@ results and experiments.
 
 [ci]: https://github.com/mingley/partitionline/blob/2f5f6b2742e15aa6d22a89af4b3cd81bb34c0e09/docs/evidence/releases/main-ci-a7b6-20261109/README.md
 [history]: https://github.com/mingley/partitionline/blob/dfe179d7066e2c1afecb88df5ba76d2920308c46/docs/STATUS.md
-[next]: https://github.com/mingley/partitionline/blob/191df95de76ac2b35a061ce205f47d94c0a6a9c5/docs/plan/next-work.md
+[next]: https://github.com/mingley/partitionline/blob/65830a2f7bf6afaadc9d287665e44592ef24d72f/docs/plan/next-work.md
 [tls]: https://github.com/mingley/partitionline/blob/e18186f0cb9c25393117fe41148ae5860f52a8a0/docs/evidence/security/tls-provider-assessment-20261108/README.md
 [owner-controls]: https://github.com/mingley/partitionline/blob/e18186f0cb9c25393117fe41148ae5860f52a8a0/docs/evidence/client/producer-ownership-regression-controls-20261108/README.md
 [owner-draft]: https://github.com/mingley/partitionline/blob/ed86c9c937dd3f5a7edb73858a6474b04073a827/docs/evidence/client/producer-owned-batch-rust-draft-20261108/README.md
@@ -149,3 +150,4 @@ results and experiments.
 [cold-trace]: https://github.com/mingley/partitionline/blob/5c6188deff80c8d29295f5b02491877165e97c98/docs/evidence/client/producer-cold-handshake-20261109/README.md
 [ci-partial]: https://github.com/mingley/partitionline/blob/191df95de76ac2b35a061ce205f47d94c0a6a9c5/docs/evidence/releases/main-ci-0bed-partial-20261109/README.md
 [guard-exp]: https://github.com/mingley/partitionline/blob/191df95de76ac2b35a061ce205f47d94c0a6a9c5/docs/evidence/client/producer-sequence-guard-20261109/README.md
+[owner-checkpoint]: https://github.com/mingley/partitionline/blob/65830a2f7bf6afaadc9d287665e44592ef24d72f/docs/evidence/client/producer-ownership-integration-checkpoint-20261109/README.md
