@@ -2112,6 +2112,99 @@ mod tests {
         }
     }
 
+    #[tokio::test]
+    async fn interim_response_fragmentation_preserves_final_framing_and_headers() {
+        let cases: [&[u8]; 3] = [
+            b"HTTP/1.1 100 Continue\r\n\r\nHTTP/1.1 103 Early Hints\r\nRetry-After: 99\r\n\r\nHTTP/1.1 429 Too Many Requests\r\nRetry-After: 7\r\nContent-Length: 5\r\n\r\nabcde",
+            b"HTTP/1.1 103 Early Hints\r\n\r\nHTTP/1.1 429 Too Many Requests\r\nRetry-After: 7\r\nTransfer-Encoding: chunked\r\n\r\n5\r\nabcde\r\n0\r\n\r\n",
+            b"HTTP/1.1 103 Early Hints\r\n\r\nHTTP/1.1 429 Too Many Requests\r\nRetry-After: 7\r\nConnection: close\r\n\r\nabcde",
+        ];
+        for wire in cases {
+            for width in [1, 2, 3, 7, 17, 8192] {
+                let mut stream = FragmentedResponse {
+                    bytes: wire,
+                    position: 0,
+                    max_read: width,
+                };
+                let response = read_http_response(
+                    &mut stream,
+                    Instant::now() + Duration::from_secs(3),
+                    1024,
+                )
+                .await
+                .unwrap();
+                assert_eq!(response.status, 429, "width {width}");
+                assert_eq!(response.retry_after_secs, Some(7), "width {width}");
+                assert_eq!(response.body, b"abcde", "width {width}");
+            }
+        }
+    }
+
+    #[tokio::test]
+    async fn interim_response_headers_share_the_header_limit() {
+        for extra in [0, 1] {
+            let early = b"HTTP/1.1 103 Early Hints\r\nX-Long: ";
+            let between = b"\r\n\r\n";
+            let final_head = b"HTTP/1.1 200 OK\r\nContent-Length: 2\r\n\r\n";
+            let mut wire = early.to_vec();
+            wire.extend(std::iter::repeat_n(
+                b'a',
+                MAX_HEADER_BYTES + extra - early.len() - between.len() - final_head.len(),
+            ));
+            wire.extend_from_slice(between);
+            wire.extend_from_slice(final_head);
+            wire.extend_from_slice(b"{}");
+            let mut stream = wire.as_slice();
+            let result =
+                read_http_response(&mut stream, Instant::now() + Duration::from_secs(3), 1024)
+                    .await;
+            if extra == 0 {
+                assert_eq!(result.unwrap().body, b"{}");
+            } else {
+                assert!(matches!(
+                    result,
+                    Err(RegistryError::TooLarge {
+                        limit: MAX_HEADER_BYTES
+                    })
+                ));
+            }
+        }
+    }
+
+    #[tokio::test]
+    async fn bodyless_final_responses_do_not_wait_for_connection_close() {
+        for code in [101, 204, 304] {
+            let (mut writer, mut reader) = tokio::io::duplex(1024);
+            let wire = format!("HTTP/1.1 {code} Status\r\n\r\n");
+            writer.write_all(wire.as_bytes()).await.unwrap();
+            let response = timeout(
+                Duration::from_millis(250),
+                read_http_response(&mut reader, Instant::now() + Duration::from_secs(3), 1024),
+            )
+            .await
+            .expect("bodyless status waited for connection close")
+            .unwrap();
+            assert_eq!(response.status, code);
+            assert!(response.body.is_empty());
+            drop(writer);
+        }
+    }
+
+    #[test]
+    fn transfer_encoding_requires_a_single_supported_coding() {
+        for head in [
+            &b"HTTP/1.1 200 OK\r\nTransfer-Encoding: gzip, chunked\r\n\r\n"[..],
+            &b"HTTP/1.1 200 OK\r\nTransfer-Encoding: chunked, gzip\r\n\r\n"[..],
+            &b"HTTP/1.1 200 OK\r\nTransfer-Encoding: chunked, chunked\r\n\r\n"[..],
+            &b"HTTP/1.1 200 OK\r\nTransfer-Encoding: chunked\r\nTransfer-Encoding: gzip\r\n\r\n"[..],
+            &b"HTTP/1.1 200 OK\r\nTransfer-Encoding: chunked,\r\n\r\n"[..],
+        ] {
+            assert!(matches!(is_chunked(head), Err(RegistryError::Malformed { .. })));
+        }
+        assert!(is_chunked(b"HTTP/1.1 200 OK\r\nTransfer-Encoding: CHUNKED\r\n\r\n").unwrap());
+        assert!(!is_chunked(b"HTTP/1.1 200 OK\r\nContent-Length: 2\r\n\r\n").unwrap());
+    }
+
     #[test]
     fn chunked_decoder_handles_every_split_and_extensions() {
         let wire = b"3;name=value\r\nabc\r\n2\r\nde\r\n0\r\nX-Test: ok\r\n\r\n";

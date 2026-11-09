@@ -1,0 +1,24 @@
+name: schema-http-response-controls
+on:
+  push:
+    branches: [qualification/schema-http-response-20261109]
+jobs:
+  controls:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - name: Informational response controls
+        run: cargo test --locked --manifest-path partitionline-schema/Cargo.toml --lib interim_response -- --nocapture
+      - name: Bodyless response controls
+        if: always()
+        run: cargo test --locked --manifest-path partitionline-schema/Cargo.toml --lib bodyless_final_responses -- --nocapture
+      - name: Transfer coding controls
+        if: always()
+        run: cargo test --locked --manifest-path partitionline-schema/Cargo.toml --lib transfer_encoding_requires -- --nocapture
+      - name: Public response controls
+        if: always()
+        run: cargo test --locked --manifest-path partitionline-schema/Cargo.toml --test registry_http_protocol -- --nocapture
