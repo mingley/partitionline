@@ -22,12 +22,14 @@ jobs:
           uname -a
           lscpu
           sha256sum partitionline-broker/src/journal.rs partitionline-broker/Cargo.lock partitionline-broker/tests/fetch_vectored_bench.rs
+      - name: Prepare candidate outside the root workspace
+        run: cp -a partitionline-broker "$RUNNER_TEMP/candidate-broker"
       - name: Ordinary read correctness
         run: |
-          cargo test --manifest-path partitionline-broker/Cargo.toml --locked --lib indexed_fetch_
-          cargo test --manifest-path partitionline-broker/Cargo.toml --locked --test fetch independent_apache_read_goldens
-          cargo test --manifest-path partitionline-broker/Cargo.toml --locked --test fetch global_first_batch_exception_and_request_order_preserve_capped_reads
-          cargo test --manifest-path partitionline-broker/Cargo.toml --locked --test fetch transport_deadline_cancels_wait_and_releases_read_admission
+          cargo test --manifest-path "$RUNNER_TEMP/candidate-broker/Cargo.toml" --locked --lib indexed_fetch_
+          cargo test --manifest-path "$RUNNER_TEMP/candidate-broker/Cargo.toml" --locked --test fetch independent_apache_read_goldens
+          cargo test --manifest-path "$RUNNER_TEMP/candidate-broker/Cargo.toml" --locked --test fetch global_first_batch_exception_and_request_order_preserve_capped_reads
+          cargo test --manifest-path "$RUNNER_TEMP/candidate-broker/Cargo.toml" --locked --test fetch transport_deadline_cancels_wait_and_releases_read_admission
       - name: Preview candidate formatting
         run: |
           cp partitionline-broker/src/journal.rs "$RUNNER_TEMP/formatted-journal.rs"
@@ -46,7 +48,7 @@ jobs:
           cp partitionline-broker/tests/fetch_vectored_bench.rs "$RUNNER_TEMP/baseline-broker/tests/"
           sha256sum "$RUNNER_TEMP/baseline-broker/src/journal.rs" "$RUNNER_TEMP/baseline-broker/tests/fetch_vectored_bench.rs"
           CARGO_TARGET_DIR="$RUNNER_TEMP/base-target" cargo test --manifest-path "$RUNNER_TEMP/baseline-broker/Cargo.toml" --locked --release --test fetch_vectored_bench --no-run
-          CARGO_TARGET_DIR="$RUNNER_TEMP/candidate-target" cargo test --manifest-path partitionline-broker/Cargo.toml --locked --release --test fetch_vectored_bench --no-run
+          CARGO_TARGET_DIR="$RUNNER_TEMP/candidate-target" cargo test --manifest-path "$RUNNER_TEMP/candidate-broker/Cargo.toml" --locked --release --test fetch_vectored_bench --no-run
           find "$RUNNER_TEMP/base-target/release/deps" -maxdepth 1 -type f -name 'fetch_vectored_bench-*' -executable -exec cp {} "$RUNNER_TEMP/base-bench" \;
           find "$RUNNER_TEMP/candidate-target/release/deps" -maxdepth 1 -type f -name 'fetch_vectored_bench-*' -executable -exec cp {} "$RUNNER_TEMP/candidate-bench" \;
           sha256sum "$RUNNER_TEMP/base-bench" "$RUNNER_TEMP/candidate-bench"
@@ -80,9 +82,12 @@ jobs:
       - name: Check ordinary Fetch on Windows
         shell: pwsh
         run: |
+          $candidate = Join-Path $env:RUNNER_TEMP "candidate-broker"
+          Copy-Item -Recurse -Path partitionline-broker -Destination $candidate
+          $manifest = Join-Path $candidate "Cargo.toml"
           rustc -Vv
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          cargo test --manifest-path partitionline-broker/Cargo.toml --locked --lib indexed_fetch_
+          cargo test --manifest-path $manifest --locked --lib indexed_fetch_
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          cargo test --manifest-path partitionline-broker/Cargo.toml --locked --test fetch global_first_batch_exception_and_request_order_preserve_capped_reads
+          cargo test --manifest-path $manifest --locked --test fetch global_first_batch_exception_and_request_order_preserve_capped_reads
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
