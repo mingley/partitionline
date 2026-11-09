@@ -10,6 +10,8 @@ def load_complete_sample(directory):
     directory = Path(directory)
     status = int((directory / "socket-sampler-exit.txt").read_text(encoding="utf-8").strip())
     report = json.loads((directory / "sockets.json").read_text(encoding="utf-8"))
+    if not isinstance(report, dict):
+        raise ValueError("invalid socket sample report")
     if status != 0 or report.get("complete") is not True or report.get("error") is not None:
         raise ValueError("socket sampler failed or reported incomplete evidence")
     samples = report.get("samples")

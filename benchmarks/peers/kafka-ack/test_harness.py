@@ -183,6 +183,10 @@ class AggregateTests(unittest.TestCase):
             self.assertEqual(good.returncode, 0, good.stderr)
             self.assertIsNotNone(json.loads(good.stdout)["median_ratios_c_over_rust"])
             bad_dir = root / "pair-3-rust"
+            (bad_dir / "sockets.json").write_text("[]")
+            malformed = self.run_aggregate(root)
+            self.assertNotEqual(malformed.returncode, 0, malformed.stderr)
+            self.assertIsNone(json.loads(malformed.stdout)["median_ratios_c_over_rust"])
             sample.update(samples=[[1, 0], [2, 2]], counts={"0": 1, "2": 1}, max_established=2)
             (bad_dir / "sockets.json").write_text(json.dumps(sample))
             mismatch = self.run_aggregate(root)
