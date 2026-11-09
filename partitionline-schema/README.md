@@ -30,6 +30,22 @@ magic. Decode borrows the payload; encode returns a caller-owned vector. This
 checks the five-byte header contract. Protobuf indexes and codec validation
 have separate tests, and the companion remains unpublished.
 
+## HTTP response limits
+
+The configured body limit applies to decoded bytes for Content-Length,
+chunked and close-delimited responses. Headers, each chunk-size line and
+the trailer section are each limited to 64 KiB. Total chunk framing
+overhead is limited to five times the body limit plus 64 KiB.
+
+This allows many small chunks when their decoded body fits, subject to the
+framing limit. Earlier source counted the accumulated chunked wire bytes
+against the body limit plus 64 KiB. Size lines and trailers over 64 KiB,
+and response headers ending beyond 64 KiB, are now rejected.
+
+A continuously ready response reader yields to the executor after 1 MiB
+(64 KiB for chunked data) or 256 reads. This does not guarantee another task
+runs, and does not bound a single read or synchronous JSON parsing.
+
 ## Cache limits and freshness
 
 Clones of one client share a cache for that URL and those credentials. A
