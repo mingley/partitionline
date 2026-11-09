@@ -835,7 +835,10 @@ async fn transactional_fenced_produce_is_fatal_classic() {
         1,
         "fencing must not re-init or invent an identity"
     );
-    producer.close().await.unwrap();
+    assert_eq!(
+        producer.close().await.unwrap_err().broker_code(),
+        Some(error::PRODUCER_FENCED)
+    );
 }
 
 #[tokio::test]
@@ -890,7 +893,10 @@ async fn transactional_fenced_produce_is_fatal_v2() {
     );
     assert_eq!(producer.__test_producer_epoch(), 0);
     assert_eq!(mock.init_producer_id_nodes().len(), 1);
-    producer.close().await.unwrap();
+    assert_eq!(
+        producer.close().await.unwrap_err().broker_code(),
+        Some(error::PRODUCER_FENCED)
+    );
 }
 
 #[tokio::test]
@@ -959,7 +965,10 @@ async fn transactional_replacement_producer_fences_first() {
         2,
         "a1 and b1 appended; the fenced a2 rejected"
     );
-    a.close().await.unwrap();
+    assert_eq!(
+        a.close().await.unwrap_err().broker_code(),
+        Some(error::PRODUCER_FENCED)
+    );
     b.close().await.unwrap();
 }
 
@@ -1181,7 +1190,10 @@ async fn transactional_fatal_produce_errors_fence_producer() {
         assert_eq!(mock.end_txn_calls(), 0, "tid {tid}");
         assert_eq!(producer.__test_producer_epoch(), 0, "tid {tid}");
         assert_eq!(mock.init_producer_id_nodes().len(), 1, "tid {tid}");
-        producer.close().await.unwrap();
+        assert_eq!(
+            producer.close().await.unwrap_err().broker_code(),
+            Some(code)
+        );
     }
 }
 
