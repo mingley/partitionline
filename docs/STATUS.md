@@ -128,10 +128,10 @@ and [work plan][next] retain those results and earlier evidence.
   [producer comparison harness repair][sampler-exp] also remains isolated
   pending integrated testing. A [JSON object index experiment][json-index]
   improved large parses but introduced slowdowns at its tested thresholds. A
-  [compact follow-up][json-compact] retained the slowdown. [Balanced-tree
-  experiments][json-balanced] also slowed ordinary objects. An [incremental
-  index][json-incremental] slowed a 96-key fixture and lacks a worst-case
-  collision bound; none is applied.
+  [compact follow-up][json-compact] retained the slowdown. The
+  [balanced-tree experiments][json-balanced] also slowed ordinary objects.
+  The [incremental index][json-incremental] slowed a 96-key fixture and lacks
+  a worst-case collision bound; none is applied.
   A [producer socket trace][cold-trace] measured the cost of an artificial
   handshake delay in a mock; no socket-reuse optimization is applied. A
   [Produce request encoding experiment][produce-plan-exp] improved several
