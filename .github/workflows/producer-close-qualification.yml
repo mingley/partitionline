@@ -1,0 +1,116 @@
+name: Producer close error qualification
+
+on:
+  push:
+    branches: [qualification/producer-close-v4-20261109]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Close controls (${{ matrix.profile }}, stable, x86_64)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 50
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - profile: default
+            flags: ""
+          - profile: all-features
+            flags: "--all-features"
+    env:
+      FLAGS: ${{ matrix.flags }}
+      CARGO_BUILD_JOBS: "2"
+      CARGO_INCREMENTAL: "0"
+      CARGO_PROFILE_DEV_DEBUG: "0"
+      CARGO_PROFILE_TEST_DEBUG: "0"
+      CARGO_TERM_COLOR: never
+      RUST_BACKTRACE: "0"
+    steps:
+      - uses: actions/checkout@v7
+        timeout-minutes: 10
+        with:
+          fetch-depth: 3
+          persist-credentials: false
+          sparse-checkout: |
+            .cargo
+            src
+            tests
+            examples
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Verify the pinned baseline controls
+        id: baseline
+        shell: bash
+        run: |
+          set -euo pipefail
+          rustc --version
+          git checkout dfe179d7066e2c1afecb88df5ba76d2920308c46 -- src/producer.rs
+          cargo test --locked $FLAGS --test producer_close_errors flush_reports_recorded_failure_and_consumes_it -- --exact --nocapture
+          cargo test --locked $FLAGS --test producer_close_errors successful_close_methods_still_return_ok -- --exact --nocapture
+          for test in close_returns_recorded_failure_after_shutdown close_timeout_returns_recorded_failure_after_shutdown; do
+            log="$RUNNER_TEMP/$test.log"
+            if cargo test --locked $FLAGS --test producer_close_errors "$test" -- --exact --nocapture > "$log" 2>&1; then
+              cat "$log"
+              echo "baseline unexpectedly passed $test"
+              exit 1
+            fi
+            cat "$log"
+            grep -F 'did not report the recorded broker error: Ok(())' "$log"
+            grep -F 'test result: FAILED. 0 passed; 1 failed' "$log"
+          done
+          test=closed_worker_is_reported_and_double_close_is_safe
+          log="$RUNNER_TEMP/$test.log"
+          if cargo test --locked $FLAGS --test producer_close_errors "$test" -- --exact --nocapture > "$log" 2>&1; then
+            cat "$log"
+            echo "baseline unexpectedly passed $test"
+            exit 1
+          fi
+          cat "$log"
+          grep -F 'close did not report worker closure: Ok(())' "$log"
+          grep -F 'test result: FAILED. 0 passed; 1 failed' "$log"
+          set +e
+          printf '\nMatched baseline: mock_produce\n'
+          cargo test --locked $FLAGS --test mock_produce
+          baseline_mock=$?
+          printf '\nMatched baseline: producer library tests\n'
+          cargo test --locked $FLAGS --lib producer::tests
+          baseline_lib=$?
+          set -e
+          printf '\nBaseline exit statuses: mock_produce=%s producer_lib=%s\n' "$baseline_mock" "$baseline_lib"
+          git checkout HEAD -- src/producer.rs
+      - name: Test candidate producer behavior
+        shell: bash
+        run: |
+          set -uo pipefail
+          failures=0
+          check() {
+            printf '\nRunning: %s\n' "$*"
+            "$@" || failures=$((failures + 1))
+          }
+          check cargo test --locked $FLAGS --test producer_close_errors
+          check cargo test --locked $FLAGS --test produce_cancel
+          check cargo test --locked $FLAGS --test mock_produce
+          check cargo test --locked $FLAGS --test sticky_partitioner
+          check cargo test --locked $FLAGS --test buffer_ownership
+          check cargo test --locked $FLAGS --test producer_retained_backing
+          check cargo test --locked $FLAGS --test producer_timestamp_contract_public
+          check cargo test --locked $FLAGS --test producer_initialization
+          check cargo test --locked $FLAGS --test init_producer_id_v6
+          check cargo test --locked $FLAGS --test client_api txn_abort_
+          check cargo test --locked $FLAGS --test full_surface transactional_fenced_produce_
+          check cargo test --locked $FLAGS --test full_surface transactional_fatal_produce_errors_fence_producer -- --exact
+          check cargo test --locked $FLAGS --test full_surface transactional_replacement_producer_fences_first -- --exact
+          check cargo test --locked $FLAGS --test full_surface transactional_commit_after_unknown_pid_still_fails -- --exact
+          check cargo test --locked $FLAGS --test full_surface transactional_abort_required_
+          check cargo test --locked $FLAGS --lib producer::tests
+          printf '\nFailed commands: %s\n' "$failures"
+          test "$failures" -eq 0
+      - name: Check formatting
+        if: always() && steps.baseline.outcome == 'success' && matrix.profile == 'all-features'
+        run: cargo fmt --all -- --check
+      - name: Check targeted lint
+        if: always() && steps.baseline.outcome == 'success' && matrix.profile == 'all-features'
+        run: cargo clippy --locked --all-features --test producer_close_errors -- -D warnings
