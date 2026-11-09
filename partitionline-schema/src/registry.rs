@@ -82,8 +82,13 @@ mod cache;
 use cache::{Cache, Flight, Key, Role, Value};
 pub use cache::{RegistryCacheConfig, RegistryCacheStats};
 
+use std::collections::{
+    hash_map::{Entry, RandomState},
+    HashMap,
+};
 use std::fmt;
 use std::future::poll_fn;
+use std::hash::BuildHasher;
 use std::pin::Pin;
 use std::sync::Arc;
 use std::sync::Once;
@@ -1617,6 +1622,62 @@ impl JsonValue {
     }
 }
 
+// Keep the common small-object scan. Larger objects migrate at most two
+// previously accepted names per new field into a randomized hash index.
+// The indexed prefix and unindexed suffix together cover every prior name.
+const JSON_INDEX_START: usize = 64;
+const JSON_INDEX_MIGRATE: usize = 2;
+
+struct JsonKeyIndex<S> {
+    hasher: S,
+    slots: HashMap<u64, usize>,
+    collisions: HashMap<u64, Vec<usize>>,
+    indexed: usize,
+}
+
+impl<S: BuildHasher> JsonKeyIndex<S> {
+    fn new(hasher: S) -> Self {
+        Self {
+            hasher,
+            slots: HashMap::new(),
+            collisions: HashMap::new(),
+            indexed: 0,
+        }
+    }
+
+    fn advance(&mut self, entries: &[(String, JsonValue)]) {
+        let end = self.indexed.saturating_add(JSON_INDEX_MIGRATE).min(entries.len());
+        for position in self.indexed..end {
+            let hash = self.hasher.hash_one(entries[position].0.as_str());
+            match self.slots.entry(hash) {
+                Entry::Vacant(entry) => {
+                    entry.insert(position);
+                }
+                Entry::Occupied(_) => {
+                    self.collisions.entry(hash).or_default().push(position);
+                }
+            }
+        }
+        self.indexed = end;
+    }
+
+    fn contains(&self, entries: &[(String, JsonValue)], key: &str) -> bool {
+        let hash = self.hasher.hash_one(key);
+        if let Some(&position) = self.slots.get(&hash) {
+            if entries.get(position).is_some_and(|(known, _)| known == key)
+                || self.collisions.get(&hash).is_some_and(|positions| {
+                    positions.iter().any(|&position| {
+                        entries.get(position).is_some_and(|(known, _)| known == key)
+                    })
+                })
+            {
+                return true;
+            }
+        }
+        entries[self.indexed..].iter().any(|(known, _)| known == key)
+    }
+}
+
 /// Strict small JSON reader: duplicate keys, trailing data, bad escapes,
 /// and over-deep nesting are all errors.
 struct JsonParser<'a> {
@@ -1855,6 +1916,7 @@ impl<'a> JsonParser<'a> {
 
     fn parse_object(&mut self, depth: usize) -> Result<JsonValue, RegistryError> {
         let mut entries: Vec<(String, JsonValue)> = Vec::new();
+        let mut index: Option<JsonKeyIndex<RandomState>> = None;
         self.skip_ws();
         if self.peek() == Some(b'}') {
             self.pos = self.pos.saturating_add(1);
@@ -1872,7 +1934,14 @@ impl<'a> JsonParser<'a> {
             }
             self.pos = self.pos.saturating_add(1);
             let value = self.parse_value(depth.saturating_add(1))?;
-            if entries.iter().any(|(known, _)| known == &key) {
+            let duplicate = if entries.len() >= JSON_INDEX_START {
+                let index = index.get_or_insert_with(|| JsonKeyIndex::new(RandomState::new()));
+                index.advance(&entries);
+                index.contains(&entries, &key)
+            } else {
+                entries.iter().any(|(known, _)| known == &key)
+            };
+            if duplicate {
                 return Err(RegistryError::malformed("json duplicate key"));
             }
             entries.push((key, value));
@@ -2397,6 +2466,131 @@ mod tests {
         .await;
         assert!(matches!(result, Err(RegistryError::Timeout)));
         assert!(stream.position > 0 && stream.position < wire.len());
+    }
+
+
+    #[derive(Clone)]
+    struct MigrationSameHash;
+    struct MigrationSameHasher;
+
+    impl std::hash::BuildHasher for MigrationSameHash {
+        type Hasher = MigrationSameHasher;
+        fn build_hasher(&self) -> Self::Hasher { MigrationSameHasher }
+    }
+    impl std::hash::Hasher for MigrationSameHasher {
+        fn finish(&self) -> u64 { 0 }
+        fn write(&mut self, _bytes: &[u8]) {}
+    }
+
+    fn migration_index_check<S: BuildHasher + Clone>(hasher: S) {
+        for total in [64usize, 65, 96, 128, 129, 1024] {
+            let mut entries: Vec<(String, JsonValue)> = (0..JSON_INDEX_START)
+                .map(|number| (format!("field-{number:05}"), JsonValue::Null))
+                .collect();
+            let mut index = JsonKeyIndex::new(hasher.clone());
+            while entries.len() < total {
+                let before = index.indexed;
+                index.advance(&entries);
+                assert!(index.indexed <= before + JSON_INDEX_MIGRATE);
+                let next = format!("field-{:05}", entries.len());
+                assert!(!index.contains(&entries, &next));
+                entries.push((next, JsonValue::Null));
+            }
+            index.advance(&entries);
+            assert!(index.indexed <= entries.len());
+            let represented = index.slots.len() + index.collisions.values().map(Vec::len).sum::<usize>();
+            assert_eq!(represented, index.indexed);
+            for (known, _) in &entries {
+                assert!(index.contains(&entries, known), "total {total}, missing {known}");
+            }
+            assert!(!index.contains(&entries, "missing"));
+            if index.indexed > 0 {
+                assert!(index.contains(&entries, &entries[0].0), "indexed prefix");
+            }
+            if index.indexed < entries.len() {
+                assert!(index.contains(&entries, &entries[entries.len() - 1].0), "unindexed suffix");
+            }
+        }
+    }
+
+    #[test]
+    fn json_migration_index_checks_prefix_suffix_and_full_hash_collisions() {
+        migration_index_check(MigrationSameHash);
+        migration_index_check(RandomState::new());
+    }
+
+    fn migration_json_fields(total: usize) -> String {
+        use std::fmt::Write as _;
+        let mut body = String::from(r#"{"schema":"{}""#);
+        for number in 0..total.saturating_sub(1) {
+            write!(&mut body, r#","field-{number:05}":0"#).unwrap();
+        }
+        body.push('}');
+        body
+    }
+
+    #[test]
+    fn json_migration_preserves_order_duplicates_and_error_precedence() {
+        for total in [64usize, 65, 96, 128, 129, 4096] {
+            let body = migration_json_fields(total);
+            let JsonValue::Object(entries) = JsonParser::new(&body).parse().unwrap() else {
+                panic!("expected object");
+            };
+            assert_eq!(entries.len(), total);
+            assert_eq!(entries[0].0, "schema");
+            for (number, (name, _)) in entries.iter().skip(1).enumerate() {
+                assert_eq!(name, &format!("field-{number:05}"));
+            }
+            let prefix = body.strip_suffix('}').unwrap();
+            for key in ["field-00000".to_owned(), format!("field-{:05}", total - 2)] {
+                let duplicate = format!(r#"{prefix},"{key}":0,"later":[}}"#);
+                let error = JsonParser::new(&duplicate).parse().unwrap_err();
+                assert!(matches!(error, RegistryError::Malformed { what } if what == "json duplicate key"));
+                let malformed = format!(r#"{prefix},"{key}":[}}"#);
+                let error = JsonParser::new(&malformed).parse().unwrap_err();
+                assert!(matches!(error, RegistryError::Malformed { what } if what == "json unexpected value"));
+            }
+            let escaped = format!(r#"{prefix},"\u0066ield-00000":0}}"#);
+            let error = JsonParser::new(&escaped).parse().unwrap_err();
+            assert!(matches!(error, RegistryError::Malformed { what } if what == "json duplicate key"));
+        }
+        let nested = r#"{"a":1,"nested":{"a":1,"a":2}}"#;
+        let error = JsonParser::new(nested).parse().unwrap_err();
+        assert!(matches!(error, RegistryError::Malformed { what } if what == "json duplicate key"));
+    }
+
+    #[tokio::test]
+    async fn registry_json_migration_public_large_and_duplicate_controls() {
+        let body = migration_json_fields(4096);
+        let server = start_mock(vec![MockResponse::json(200, &body)], None).await;
+        let schema = fast_client(&server).get_schema_by_id(100).await.unwrap();
+        assert_eq!(schema.schema, "{}");
+        let duplicate = format!(r#"{},"field-00000":0}}"#, body.strip_suffix('}').unwrap());
+        let server = start_mock(vec![MockResponse::json(200, &duplicate)], None).await;
+        let error = fast_client(&server).get_schema_by_id(100).await.unwrap_err();
+        assert!(matches!(error, RegistryError::Malformed { what } if what == "json duplicate key"));
+    }
+
+    #[test]
+    fn json_migration_index_storage_is_reported() {
+        let mut entries: Vec<(String, JsonValue)> = (0..JSON_INDEX_START)
+            .map(|number| (format!("field-{number:05}"), JsonValue::Null))
+            .collect();
+        let mut index = JsonKeyIndex::new(RandomState::new());
+        while entries.len() < 16_384 {
+            index.advance(&entries);
+            entries.push((format!("field-{:05}", entries.len()), JsonValue::Null));
+        }
+        index.advance(&entries);
+        let collision_positions = index.collisions.values().map(Vec::len).sum::<usize>();
+        let collision_capacity = index.collisions.values().map(Vec::capacity).sum::<usize>();
+        assert_eq!(index.slots.len() + collision_positions, index.indexed);
+        println!(
+            "PL_MIGRATION_STORAGE keys={} indexed={} primary_len={} primary_capacity={} primary_tuple_bytes={} collision_buckets={} collision_map_capacity={} collision_positions={} collision_vector_capacity={}",
+            entries.len(), index.indexed, index.slots.len(), index.slots.capacity(),
+            std::mem::size_of::<(u64, usize)>(), index.collisions.len(),
+            index.collisions.capacity(), collision_positions, collision_capacity
+        );
     }
 
     /// Accepts every offered byte and spends time in proportion to that copy.
