@@ -1,0 +1,66 @@
+name: Registry JSON standard tree comparison
+on:
+  push:
+    branches: [qualification/schema-json-btree-20261109]
+permissions:
+  contents: read
+jobs:
+  compare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Standard tree correctness controls
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp .qualification/json-btree-controls.rs partitionline-schema/src/registry.rs
+          test "$(git hash-object partitionline-schema/src/registry.rs)" = 036df3350dc76a9b6ece8a07d3bf637c73b5c2ef
+          cargo test --manifest-path partitionline-schema/Cargo.toml --locked --no-default-features --features registry --lib json_btree_
+          cargo test --manifest-path partitionline-schema/Cargo.toml --locked --no-default-features --features registry --lib registry_json_btree_public_large_and_duplicate_controls
+      - name: Compile pinned sources independently
+        shell: bash
+        run: |
+          set -euo pipefail
+          rustc -Vv
+          cargo -V
+          uname -a
+          lscpu
+          git hash-object partitionline-schema/Cargo.toml partitionline-schema/Cargo.lock
+          for implementation in baseline avl btree; do
+            case "$implementation" in
+              baseline) expected=0824e39cc48e2943f1cc4d8f9d513b3880a43df9 ;;
+              avl) expected=7040f88cad2b823a7d5bcdcb2bb6db1463609f05 ;;
+              btree) expected=3a192e4290aa10d43515387dc76910026a2db3d3 ;;
+            esac
+            cp ".qualification/json-tree-$implementation.rs" partitionline-schema/src/registry.rs
+            test "$(git hash-object partitionline-schema/src/registry.rs)" = "$expected"
+            sha256sum partitionline-schema/src/registry.rs
+            CARGO_TARGET_DIR="$RUNNER_TEMP/json-tree-target-$implementation" cargo test --manifest-path partitionline-schema/Cargo.toml --locked --release --no-default-features --features registry --lib --no-run
+            find "$RUNNER_TEMP/json-tree-target-$implementation/release/deps" -maxdepth 1 -type f -name 'partitionline_schema-*' -executable -exec cp {} "$RUNNER_TEMP/json-tree-$implementation" \;
+          done
+          sha256sum "$RUNNER_TEMP/json-tree-baseline" "$RUNNER_TEMP/json-tree-avl" "$RUNNER_TEMP/json-tree-btree"
+      - name: Rotate parse samples
+        shell: bash
+        run: |
+          set -euo pipefail
+          cpu=$(python3 -c 'import os; print(min(os.sched_getaffinity(0)))')
+          echo "Pinned CPU $cpu"
+          for implementation in baseline avl btree; do
+            taskset -c "$cpu" "$RUNNER_TEMP/json-tree-$implementation" --ignored --exact registry::tests::json_tree_qualification_bench --nocapture
+          done
+          for pair in $(seq 1 12); do
+            case $((pair % 6)) in
+              0) order="baseline avl btree" ;;
+              1) order="baseline btree avl" ;;
+              2) order="avl baseline btree" ;;
+              3) order="avl btree baseline" ;;
+              4) order="btree baseline avl" ;;
+              5) order="btree avl baseline" ;;
+            esac
+            for implementation in $order; do
+              echo "PL_PAIR pair=$pair implementation=$implementation"
+              taskset -c "$cpu" "$RUNNER_TEMP/json-tree-$implementation" --ignored --exact registry::tests::json_tree_qualification_bench --nocapture
+            done
+          done
