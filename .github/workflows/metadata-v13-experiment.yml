@@ -50,6 +50,29 @@ jobs:
           sha256sum tests/conformance/java/ConformanceMetadataWire.java tests/conformance/java/generate_metadata_wire.py tests/metadata_wire_conformance.rs
       - name: Compare bounded body fixtures
         run: timeout 600s python3 tests/conformance/java/generate_metadata_wire.py --output target/metadata-v13
+      - name: Log bounded synthetic body corpus
+        run: |
+          python3 - <<'PY'
+          import hashlib
+          from pathlib import Path
+
+          root = Path("target/metadata-v13")
+          peers = ("4.1.2", "4.2.1", "4.3.1")
+          apache = (root / peers[0] / "apache.txt").read_bytes()
+          rust = (root / peers[0] / "default-rust.txt").read_bytes()
+          for peer in peers:
+              assert (root / peer / "apache.txt").read_bytes() == apache
+              for profile in ("default", "all-features"):
+                  assert (root / peer / (profile + "-rust.txt")).read_bytes() == rust
+          for label, body in (("APACHE", apache), ("RUST", rust)):
+              assert len(body) <= 32768 and body.endswith(b"\n")
+              assert len(body.splitlines()) == 5
+              assert all(len(line.split()) == 3 for line in body.splitlines())
+              print(label + "_SHA256 " + hashlib.sha256(body).hexdigest())
+              print("BEGIN_" + label + "_CORPUS")
+              print(body.decode("ascii"), end="")
+              print("END_" + label + "_CORPUS")
+          PY
       - name: Strict lint
         if: always()
         run: cargo clippy --locked --all-features --test metadata_wire_conformance -- -D warnings
