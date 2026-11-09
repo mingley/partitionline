@@ -1386,7 +1386,11 @@ impl Drop for Inner {
         }
 
         self.shared.clear_sticky();
-        self.shared.interceptors.close();
+        if let Some(owner) = &self.shared.owned_records {
+            owner.request_interceptor_close();
+        } else {
+            self.shared.interceptors.close();
+        }
     }
 }
 
@@ -2036,6 +2040,9 @@ impl Producer {
     /// records as well as record slots reserved during admission.
     ///
     /// This branch does not yet provide qualified retry or identity fencing.
+    /// Interceptor close is deferred until owned callbacks finish and is
+    /// coalesced across close calls. A close timeout may return before that
+    /// deferred close runs.
     pub async fn new_bounded(cfg: ProducerConfig, record_limit: usize) -> Result<Self> {
         if record_limit == 0 || record_limit > tokio::sync::Semaphore::MAX_PERMITS {
             return Err(Error::protocol("record_limit is outside the supported range"));
@@ -2656,7 +2663,7 @@ impl Producer {
 
     async fn ensure_ready(&self, rec: &mut ProduceRecord, deadline: Instant) -> Result<()> {
         loop {
-            if self.inner.shared.closed.load(Ordering::SeqCst) {
+            if self.inner.shared.admission_closed() {
                 return Err(Error::Closed);
             }
             if let Some(e) = peek_meta_err(&self.inner.shared) {
@@ -2697,7 +2704,7 @@ impl Producer {
 
     async fn wait_buffer(&self, bytes: u64, deadline: Instant) -> Result<()> {
         loop {
-            if self.inner.shared.closed.load(Ordering::SeqCst) {
+            if self.inner.shared.admission_closed() {
                 return Err(Error::Closed);
             }
             if self.inner.shared.try_reserve_buffer(bytes) {
@@ -4406,9 +4413,16 @@ impl Producer {
             .delivery_timeout
             .max(self.inner.shared.cfg.request_timeout);
         let deadline = Instant::now() + timeout;
-        let flush = self.flush_until(deadline).await;
+        let mut flush = self.flush_until(deadline).await;
         self.shutdown_workers(Some(deadline)).await;
-        self.inner.shared.interceptors.close();
+        if let Some(owner) = &self.inner.shared.owned_records {
+            owner.request_interceptor_close();
+            if owner.wait_interceptor_close(deadline).await.is_err() {
+                flush = Err(Error::Timeout);
+            }
+        } else {
+            self.inner.shared.interceptors.close();
+        }
         // The metadata socket drops with this handle. Yield so the broker
         // observes that close before the result returns.
         drop(self);
@@ -4430,9 +4444,16 @@ impl Producer {
             owner.seal();
         }
         let deadline = Instant::now() + timeout;
-        let flush = self.flush_until(deadline).await;
+        let mut flush = self.flush_until(deadline).await;
         self.shutdown_workers(Some(deadline)).await;
-        self.inner.shared.interceptors.close();
+        if let Some(owner) = &self.inner.shared.owned_records {
+            owner.request_interceptor_close();
+            if owner.wait_interceptor_close(deadline).await.is_err() {
+                flush = Err(Error::Timeout);
+            }
+        } else {
+            self.inner.shared.interceptors.close();
+        }
         // The metadata socket drops with this handle. Yield so the broker
         // observes that close before the result returns.
         drop(self);
