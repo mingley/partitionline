@@ -1,0 +1,84 @@
+name: Matched Admin broad-suite controls
+on:
+  push:
+    branches: [qualification/admin-cursor-control-20261109]
+permissions:
+  contents: read
+jobs:
+  matched:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 55
+    env:
+      CARGO_INCREMENTAL: '0'
+      CARGO_TERM_COLOR: never
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          path: candidate
+      - uses: actions/checkout@v7
+        with:
+          ref: dfe179d7066e2c1afecb88df5ba76d2920308c46
+          path: baseline
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Verify exact source pins
+        run: |
+          set -euo pipefail
+          test "$(git -C candidate rev-parse HEAD:src/admin.rs)" = e6c9899f3c645023782a9a33531665e3ef4b741c
+          test "$(git -C candidate rev-parse HEAD:src/admin/pagination_tests.rs)" = 6c47b3cb7cb2f1d99700263a099dfcb84f6a2724
+          test "$(git -C baseline rev-parse HEAD:src/admin.rs)" = 8c2f94353e04c2925b1bfaf8478285190dd317d7
+          test "$(git -C baseline rev-parse HEAD:src/admin/pagination_tests.rs)" = a69d5cceff56a7d1c52f321b5766d695423871aa
+          test "$(git -C candidate rev-parse HEAD:Cargo.lock)" = "$(git -C baseline rev-parse HEAD:Cargo.lock)"
+          rustc -Vv
+          lscpu | grep -E 'Model name|CPU\(s\)'
+      - name: Run both broad Admin suites on the same machine
+        shell: bash
+        run: |
+          set -uo pipefail
+          mkdir -p "$RUNNER_TEMP/admin-controls"
+          failure=0
+          for feature in default all; do
+            if test "$feature" = all; then
+              flags=(--all-features)
+              order=(baseline candidate)
+            else
+              flags=()
+              order=(candidate baseline)
+            fi
+            for arm in "${order[@]}"; do
+              echo "BEGIN feature=$feature arm=$arm"
+              if CARGO_TARGET_DIR="$RUNNER_TEMP/target-$feature" cargo test --locked "${flags[@]}" --manifest-path "$arm/Cargo.toml" --lib admin:: -- --test-threads=1 > "$RUNNER_TEMP/admin-controls/$feature-$arm.log" 2>&1; then
+                echo "ARM_RESULT feature=$feature arm=$arm status=pass"
+              else
+                status=$?
+                echo "ARM_RESULT feature=$feature arm=$arm status=fail exit=$status"
+                failure=1
+              fi
+              grep -E 'test result:|held the caller for|panicked at|^failures:|^    admin::' "$RUNNER_TEMP/admin-controls/$feature-$arm.log" || true
+              echo "END feature=$feature arm=$arm"
+            done
+          done
+          exit "$failure"
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: admin-broad-matched-controls
+          path: ${{ runner.temp }}/admin-controls/
+          if-no-files-found: warn
+          retention-days: 30
+  integration:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    strategy:
+      fail-fast: false
+      matrix:
+        feature: [default, all]
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Run Admin response reservation integration separately
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD:src/admin.rs)" = e6c9899f3c645023782a9a33531665e3ef4b741c
+          test "$(git rev-parse HEAD:src/admin/pagination_tests.rs)" = 6c47b3cb7cb2f1d99700263a099dfcb84f6a2724
+          if test "${{ matrix.feature }}" = all; then flags=--all-features; else flags=; fi
+          cargo test --locked $flags --test admin_response_reservation -- --test-threads=1
