@@ -157,10 +157,12 @@ experiment.
 
 ## Reproduce the recorded controls
 
-The source patch and fixtures are stored beside this note. The patch was
-reconstructed against the stated baseline and its hunks were checked to
-reproduce both recorded candidate source blobs exactly. It is an experiment;
-apply it only in a separate worktree.
+The source patch and fixtures are stored beside this note. The
+[patch check](https://github.com/mingley/partitionline/actions/runs/42689316658)
+ran `git apply --check`, applied it to the stated baseline and verified both
+candidate source blobs. It also copied the fixtures, ran the test-only gate
+injection and verified the instrumented source hash. It did not rerun Rust
+tests. This is an experiment; apply it only in a separate worktree.
 
 From a checkout containing this evidence directory, copy the directory into a
 detached baseline worktree before applying the patch:
