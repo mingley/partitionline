@@ -24,12 +24,17 @@ jobs:
           cargo test --manifest-path partitionline-broker/Cargo.toml --locked --test fetch independent_apache_read_goldens
           cargo test --manifest-path partitionline-broker/Cargo.toml --locked --test fetch global_first_batch_exception_and_request_order_preserve_capped_reads
           cargo test --manifest-path partitionline-broker/Cargo.toml --locked --test fetch transport_deadline_cancels_wait_and_releases_read_admission
+      - name: Check out baseline commit
+        uses: actions/checkout@v4
+        with:
+          ref: 133d2413217cee4130bca2267e4e36b7225ff86f
+          path: baseline
       - name: Compile paired workloads
         run: |
-          git worktree add --detach "$RUNNER_TEMP/baseline" 133d2413217cee4130bca2267e4e36b7225ff86f
-          cp partitionline-broker/tests/fetch_vectored_bench.rs "$RUNNER_TEMP/baseline/partitionline-broker/tests/"
-          sha256sum "$RUNNER_TEMP/baseline/partitionline-broker/src/journal.rs" "$RUNNER_TEMP/baseline/partitionline-broker/tests/fetch_vectored_bench.rs"
-          CARGO_TARGET_DIR="$RUNNER_TEMP/base-target" cargo test --manifest-path "$RUNNER_TEMP/baseline/partitionline-broker/Cargo.toml" --locked --release --test fetch_vectored_bench --no-run
+          git -C baseline rev-parse HEAD
+          cp partitionline-broker/tests/fetch_vectored_bench.rs baseline/partitionline-broker/tests/
+          sha256sum baseline/partitionline-broker/src/journal.rs baseline/partitionline-broker/tests/fetch_vectored_bench.rs
+          CARGO_TARGET_DIR="$RUNNER_TEMP/base-target" cargo test --manifest-path baseline/partitionline-broker/Cargo.toml --locked --release --test fetch_vectored_bench --no-run
           CARGO_TARGET_DIR="$RUNNER_TEMP/candidate-target" cargo test --manifest-path partitionline-broker/Cargo.toml --locked --release --test fetch_vectored_bench --no-run
           find "$RUNNER_TEMP/base-target/release/deps" -maxdepth 1 -type f -name 'fetch_vectored_bench-*' -executable -exec cp {} "$RUNNER_TEMP/base-bench" \;
           find "$RUNNER_TEMP/candidate-target/release/deps" -maxdepth 1 -type f -name 'fetch_vectored_bench-*' -executable -exec cp {} "$RUNNER_TEMP/candidate-bench" \;
@@ -51,4 +56,14 @@ jobs:
               taskset -c "$cpu_list" "$RUNNER_TEMP/$implementation-bench" --ignored --exact successful_fetch_bench --nocapture
             done
           done
-# This branch exists only for the paired qualification run.
+  windows-control:
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Check ordinary Fetch on Windows
+        run: |
+          rustc -Vv
+          cargo test --manifest-path partitionline-broker/Cargo.toml --locked --lib indexed_fetch_
+          cargo test --manifest-path partitionline-broker/Cargo.toml --locked --test fetch global_first_batch_exception_and_request_order_preserve_capped_reads

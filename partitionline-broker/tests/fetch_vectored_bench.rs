@@ -107,7 +107,7 @@ async fn successful_fetch_bench() -> Result<(), Box<dyn Error>> {
     let directory = std::path::PathBuf::from(std::env::var_os("PL_FETCH_BENCH_DIR").ok_or("PL_FETCH_BENCH_DIR")?);
     let seeding = std::env::var_os("PL_FETCH_BENCH_SEED").is_some();
     let n: usize = std::env::var("PL_FETCH_BENCH_ITERS").unwrap_or("80".into()).parse()?;
-    for value_size in [8usize, 4096] {
+    for value_size in [8usize, 4096, 16384] {
         let input = batch(value_size);
         let root = directory.join(value_size.to_string());
         if seeding { seed(&root, &input)?; }

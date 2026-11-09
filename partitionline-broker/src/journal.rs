@@ -1256,10 +1256,16 @@ fn read_indexed_entry(
     let payload_len = index.payload_len as usize;
     let mut header = [0; ENTRY_HEADER];
     let mut payload_read = 0;
-    if payload_len <= VECTORED_PAYLOAD_LIMIT {
-        let mark = dest.len();
-        let end = mark.checked_add(payload_len).ok_or(Error::AllocationFailed)?;
-        dest.try_reserve(payload_len).map_err(|_| Error::AllocationFailed)?;
+    let mark = dest.len();
+    // If a speculative reservation fails, read and validate the header before
+    // reporting the allocation error, just as the non-vectored path does.
+    let vectored_end = if payload_len <= VECTORED_PAYLOAD_LIMIT {
+        mark.checked_add(payload_len)
+            .filter(|_| dest.try_reserve(payload_len).is_ok())
+    } else {
+        None
+    };
+    if let Some(end) = vectored_end {
         dest.resize(end, 0);
         let count = loop {
             let mut slices = [
@@ -1294,9 +1300,8 @@ fn read_indexed_entry(
         return Err(corrupt(index.position, Corruption::EntryHeader));
     }
 
-    if payload_len <= VECTORED_PAYLOAD_LIMIT {
-        let from = dest.len() - payload_len + payload_read;
-        require_read(reader, &mut dest[from..])?;
+    if vectored_end.is_some() {
+        require_read(reader, &mut dest[mark + payload_read..])?;
     } else {
         read_exact_into(reader, dest, payload_len)?;
     }
@@ -2557,6 +2562,7 @@ mod tests {
         bytes: std::io::Cursor<Vec<u8>>,
         max_per_call: usize,
         interrupts: usize,
+        fail_at: Option<usize>,
     }
     impl Read for VectoredReader {
         fn read(&mut self, out: &mut [u8]) -> io::Result<usize> {
@@ -2564,7 +2570,12 @@ mod tests {
                 self.interrupts -= 1;
                 return Err(io::ErrorKind::Interrupted.into());
             }
-            let max = out.len().min(self.max_per_call);
+            let position = self.bytes.position() as usize;
+            let available = self.fail_at.unwrap_or(usize::MAX).saturating_sub(position);
+            if available == 0 {
+                return Err(io::Error::other("injected read failure"));
+            }
+            let max = out.len().min(self.max_per_call).min(available);
             self.bytes.read(&mut out[..max])
         }
         fn read_vectored(&mut self, out: &mut [IoSliceMut<'_>]) -> io::Result<usize> {
@@ -2572,15 +2583,21 @@ mod tests {
                 self.interrupts -= 1;
                 return Err(io::ErrorKind::Interrupted.into());
             }
+            let position = self.bytes.position() as usize;
+            let available = self.fail_at.unwrap_or(usize::MAX).saturating_sub(position);
+            if available == 0 {
+                return Err(io::Error::other("injected read failure"));
+            }
+            let cap = self.max_per_call.min(available);
             let mut total = 0;
             for slice in out {
-                let max = slice.len().min(self.max_per_call - total);
+                let max = slice.len().min(cap - total);
                 if max == 0 {
                     break;
                 }
                 let read = self.bytes.read(&mut slice[..max])?;
                 total += read;
-                if read < max || total == self.max_per_call {
+                if read < max || total == cap {
                     break;
                 }
             }
@@ -2607,6 +2624,7 @@ mod tests {
                     bytes: Cursor::new(contents.clone()),
                     max_per_call: chunk,
                     interrupts,
+                    fail_at: None,
                 };
                 let mut dest = b"earlier".to_vec();
                 read_indexed_entry(&mut reader, &index, Limits::default(), &mut dest)?;
@@ -2614,6 +2632,43 @@ mod tests {
             }
         }
         Ok(())
+    }
+
+    #[test]
+    fn indexed_fetch_checks_header_before_later_io_error() {
+        let payload = b"good payload";
+        let index = Index {
+            first_offset: 0,
+            next_offset: 1,
+            position: FILE_HEADER as u64,
+            payload_len: payload.len() as u32,
+            record_count: 1,
+            checksum: crc32c::crc32c(payload),
+        };
+        let mut valid = entry_header(index).to_vec();
+        valid.extend_from_slice(payload);
+        let mut invalid = valid.clone();
+        invalid[0] ^= 1;
+        let mut reader = VectoredReader {
+            bytes: Cursor::new(invalid),
+            max_per_call: usize::MAX,
+            interrupts: 0,
+            fail_at: Some(ENTRY_HEADER),
+        };
+        assert!(matches!(
+            read_indexed_entry(&mut reader, &index, Limits::default(), &mut Vec::new()),
+            Err(Error::Corrupt { kind: Corruption::EntryHeader, .. })
+        ));
+        let mut reader = VectoredReader {
+            bytes: Cursor::new(valid),
+            max_per_call: usize::MAX,
+            interrupts: 0,
+            fail_at: Some(ENTRY_HEADER + 2),
+        };
+        assert!(matches!(
+            read_indexed_entry(&mut reader, &index, Limits::default(), &mut Vec::new()),
+            Err(Error::Io(error)) if error.kind() == io::ErrorKind::Other
+        ));
     }
 
     #[test]
