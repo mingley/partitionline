@@ -79,9 +79,9 @@ Released controls observed 8,193 acknowledgement callbacks and no buffered
 bytes. On abort or timed close, the mixed case observed one error receipt,
 8,193 error callbacks and zero bytes; the all-send case observed 8,193 error
 receipts, 8,193 error callbacks and zero bytes. Timed close returned
-`Timeout`. The all-send fixture uses a long linger, flushes the warmup and
-waits for each public queued metric; the mixed fixture uses zero linger.
-Observation windows and injected scheduling limit the conclusion, and the
+`Timeout`. Both fixtures explicitly flush the warmup. The all-send case uses
+a long linger and waits for each public queued metric; the mixed case uses
+zero linger. Observation windows and injected scheduling limit the conclusion, and the
 experiment closes admission after an orphan. A later send returning `Closed`
 is not demonstrated sequence progress.
 
