@@ -1,0 +1,59 @@
+name: Schema Registry JSON index limits
+on:
+  push:
+    branches: [qualification/schema-json-limits-20261109]
+permissions:
+  contents: read
+jobs:
+  controls:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Format candidate and report patch
+        shell: bash
+        run: |
+          set -euo pipefail
+          rustc -Vv
+          cargo fmt --manifest-path partitionline-schema/Cargo.toml
+          echo PL_FMT_DIFF_BEGIN
+          git diff -- partitionline-schema/src/registry.rs
+          echo PL_FMT_DIFF_END
+          cp partitionline-schema/src/registry.rs "$RUNNER_TEMP/json-final.rs"
+          git hash-object "$RUNNER_TEMP/json-final.rs"
+      - name: Nested, collision, storage and body-limit controls
+        run: |
+          cargo test --manifest-path partitionline-schema/Cargo.toml --locked --lib json_object_index_ -- --nocapture
+          cargo test --manifest-path partitionline-schema/Cargo.toml --locked --lib registry_index_respects_configured_body_boundary
+          cargo test --manifest-path partitionline-schema/Cargo.toml --locked --lib registry_public_large_object_duplicate_control
+      - name: Full feature profiles and strict checks
+        run: |
+          cargo test --manifest-path partitionline-schema/Cargo.toml --locked
+          cargo test --manifest-path partitionline-schema/Cargo.toml --locked --all-features
+          cargo test --manifest-path partitionline-schema/Cargo.toml --locked --no-default-features
+          cargo clippy --manifest-path partitionline-schema/Cargo.toml --locked --all-targets --all-features -- -D warnings
+          RUSTDOCFLAGS="-D warnings" cargo doc --manifest-path partitionline-schema/Cargo.toml --locked --all-features --no-deps
+      - name: Build matched maximum-body tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp .qualification/json-max-baseline.rs partitionline-schema/src/registry.rs
+          test "$(git hash-object partitionline-schema/src/registry.rs)" = 3a52c1d9cdcfa2875da95eac42cf0a553f80dee5
+          CARGO_TARGET_DIR="$RUNNER_TEMP/max-target" cargo test --manifest-path partitionline-schema/Cargo.toml --locked --lib --no-run
+          find "$RUNNER_TEMP/max-target/debug/deps" -maxdepth 1 -type f -name 'partitionline_schema-*' -executable -exec cp {} "$RUNNER_TEMP/max-baseline" \;
+          cp .qualification/json-max-candidate.rs partitionline-schema/src/registry.rs
+          test "$(git hash-object partitionline-schema/src/registry.rs)" = fa1314a9c92694996c8f9b2d07101a5bde65cef0
+          CARGO_TARGET_DIR="$RUNNER_TEMP/max-target" cargo test --manifest-path partitionline-schema/Cargo.toml --locked --lib --no-run
+          find "$RUNNER_TEMP/max-target/debug/deps" -maxdepth 1 -type f -name 'partitionline_schema-*' -executable -exec cp {} "$RUNNER_TEMP/max-candidate" \;
+          sha256sum "$RUNNER_TEMP/max-baseline" "$RUNNER_TEMP/max-candidate"
+          cp "$RUNNER_TEMP/json-final.rs" partitionline-schema/src/registry.rs
+      - name: Exact and oversized 64 MiB HTTP bodies
+        shell: bash
+        run: |
+          set -euo pipefail
+          for implementation in baseline candidate; do
+            for size_case in accepted oversize; do
+              PL_JSON_MAX_CASE="$size_case" /usr/bin/time -f "PL_MAX_RSS implementation=$implementation case=$size_case kib=%M seconds=%e" "$RUNNER_TEMP/max-$implementation" --ignored --exact registry::tests::schema_registry_maximum_body_qualification --nocapture
+            done
+          done
