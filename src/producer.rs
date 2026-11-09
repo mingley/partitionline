@@ -47,6 +47,40 @@ use crate::protocol::txn::{
     TxnErrorDisposition, TxnOffsetCommitMember, TxnOffsetCommitRequest,
 };
 
+/// Qualification-only gate before the atomic retained-batch handoff.
+#[cfg(sealed_retry_witness)]
+#[doc(hidden)]
+pub mod sealed_retry_witness {
+    use std::sync::atomic::{AtomicBool, Ordering};
+    use tokio::sync::Notify;
+
+    static ARMED: AtomicBool = AtomicBool::new(false);
+    static REACHED: Notify = Notify::const_new();
+    static RELEASE: Notify = Notify::const_new();
+
+    /// Arm the next retained-batch handoff.
+    pub fn arm() {
+        ARMED.store(true, Ordering::SeqCst);
+    }
+
+    /// Wait until the retry actor reaches the handoff.
+    pub async fn reached() {
+        REACHED.notified().await;
+    }
+
+    /// Release the handoff.
+    pub fn release() {
+        RELEASE.notify_one();
+    }
+
+    pub(super) async fn pause() {
+        if ARMED.swap(false, Ordering::SeqCst) {
+            REACHED.notify_one();
+            RELEASE.notified().await;
+        }
+    }
+}
+
 /// Pre-send failure injection point for testing buffer ownership and resource contracts.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum PreSendFault {
@@ -7113,6 +7147,8 @@ async fn retry_sealed_batch(shared: &Arc<Shared>, mut batch: Vec<Pending>) {
                 .and_then(|slots| slots.get(slot).cloned().flatten());
             if let Some(worker) = worker {
                 if let Some(sender) = &worker.sealed_batch_tx {
+                    #[cfg(sealed_retry_witness)]
+                    sealed_retry_witness::pause().await;
                     let rest = deadline.saturating_duration_since(Instant::now());
                     match tokio::time::timeout(rest, sender.reserve()).await {
                         Ok(Ok(permit)) => {
