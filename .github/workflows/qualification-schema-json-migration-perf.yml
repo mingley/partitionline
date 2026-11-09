@@ -1,0 +1,61 @@
+name: Registry incremental JSON index comparison
+on:
+  push:
+    branches: [qualification/schema-json-migration-perf-20261109]
+permissions:
+  contents: read
+jobs:
+  compare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Compile pinned sources independently
+        shell: bash
+        run: |
+          set -euo pipefail
+          rustc -Vv
+          cargo -V
+          uname -a
+          lscpu
+          git hash-object partitionline-schema/Cargo.toml partitionline-schema/Cargo.lock
+          for implementation in baseline candidate; do
+            case "$implementation" in
+              baseline) expected=af40a41a7b4c76cc638ccbe3cb9d993de624e11a ;;
+              candidate) expected=6e9802551a860553ba84d0f203840a837305370e ;;
+            esac
+            cp ".qualification/json-migration-$implementation.rs" partitionline-schema/src/registry.rs
+            test "$(git hash-object partitionline-schema/src/registry.rs)" = "$expected"
+            sha256sum partitionline-schema/src/registry.rs
+            CARGO_TARGET_DIR="$RUNNER_TEMP/json-migration-target-$implementation" cargo test --manifest-path partitionline-schema/Cargo.toml --locked --release --no-default-features --features registry --lib --no-run
+            find "$RUNNER_TEMP/json-migration-target-$implementation/release/deps" -maxdepth 1 -type f -name 'partitionline_schema-*' -executable -exec cp {} "$RUNNER_TEMP/json-migration-$implementation" \;
+          done
+          sha256sum "$RUNNER_TEMP/json-migration-baseline" "$RUNNER_TEMP/json-migration-candidate"
+      - name: Alternating parse samples
+        shell: bash
+        run: |
+          set -euo pipefail
+          cpu=$(python3 -c 'import os; print(min(os.sched_getaffinity(0)))')
+          echo "Pinned CPU $cpu"
+          for implementation in baseline candidate; do
+            taskset -c "$cpu" "$RUNNER_TEMP/json-migration-$implementation" --ignored --exact registry::tests::json_tree_qualification_bench --nocapture
+          done
+          for pair in $(seq 1 12); do
+            if ((pair % 2)); then order="baseline candidate"; else order="candidate baseline"; fi
+            for implementation in $order; do
+              echo "PL_PAIR pair=$pair implementation=$implementation"
+              taskset -c "$cpu" "$RUNNER_TEMP/json-migration-$implementation" --ignored --exact registry::tests::json_tree_qualification_bench --nocapture
+            done
+          done
+      - name: Peak memory observations
+        shell: bash
+        run: |
+          set -euo pipefail
+          cpu=$(python3 -c 'import os; print(min(os.sched_getaffinity(0)))')
+          for trial in 1 2 3; do
+            if ((trial % 2)); then order="baseline candidate"; else order="candidate baseline"; fi
+            for implementation in $order; do
+              PL_JSON_MEMORY_KEYS=16384 /usr/bin/time -f "PL_JSON_RSS implementation=$implementation trial=$trial peak_kib=%M seconds=%e" taskset -c "$cpu" "$RUNNER_TEMP/json-migration-$implementation" --ignored --exact registry::tests::json_migration_memory_qualification --nocapture
+            done
+          done
