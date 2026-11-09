@@ -47,6 +47,102 @@ use crate::protocol::txn::{
     TxnErrorDisposition, TxnOffsetCommitMember, TxnOffsetCommitRequest,
 };
 
+/// Qualification-only control of an existing retry requeue yield.
+#[cfg(sequence_retry_yield_witness)]
+#[doc(hidden)]
+pub mod sequence_retry_yield_witness {
+    use std::sync::atomic::{AtomicU8, AtomicUsize, Ordering};
+    use std::sync::{Mutex, OnceLock};
+    use tokio::sync::Notify;
+
+    /// Base, batch length, sequence and partition of a transferred record.
+    pub type Snapshot = (Option<i32>, usize, Option<i32>, Option<i32>);
+    static PHASE: AtomicU8 = AtomicU8::new(0);
+    static TRANSFERS: AtomicUsize = AtomicUsize::new(0);
+    static SNAPSHOTS: Mutex<(Option<Snapshot>, Option<Snapshot>)> = Mutex::new((None, None));
+    static CHANGED: OnceLock<Notify> = OnceLock::new();
+
+    fn changed() -> &'static Notify {
+        CHANGED.get_or_init(Notify::new)
+    }
+
+    /// Arm the existing cooperative requeue yield.
+    pub fn arm() {
+        *SNAPSHOTS.lock().unwrap() = (None, None);
+        TRANSFERS.store(0, Ordering::SeqCst);
+        PHASE.store(1, Ordering::SeqCst);
+    }
+
+    /// Wait until the existing yield is held.
+    pub async fn reached() {
+        loop {
+            let notified = changed().notified();
+            tokio::pin!(notified);
+            let _ = notified.as_mut().enable();
+            if PHASE.load(Ordering::SeqCst) == 2 {
+                return;
+            }
+            notified.await;
+        }
+    }
+
+    /// Wait for successful retry-to-worker handoffs.
+    pub async fn transferred(count: usize) {
+        loop {
+            let notified = changed().notified();
+            tokio::pin!(notified);
+            let _ = notified.as_mut().enable();
+            if TRANSFERS.load(Ordering::SeqCst) >= count {
+                return;
+            }
+            notified.await;
+        }
+    }
+
+    /// Read the first and latest handoff's base, length, sequence and partition.
+    pub fn snapshots() -> (Option<Snapshot>, Option<Snapshot>) {
+        *SNAPSHOTS.lock().unwrap()
+    }
+
+    /// Release the held cooperative yield.
+    pub fn release() {
+        PHASE.store(3, Ordering::SeqCst);
+        changed().notify_waiters();
+    }
+
+    pub(crate) fn note_transfer(snapshot: Snapshot) {
+        {
+            let mut snapshots = SNAPSHOTS.lock().unwrap();
+            if snapshots.0.is_none() {
+                snapshots.0 = Some(snapshot);
+            }
+            snapshots.1 = Some(snapshot);
+        }
+        let _ = TRANSFERS.fetch_add(1, Ordering::SeqCst);
+        changed().notify_waiters();
+    }
+
+    pub(crate) async fn pause_at_existing_yield() {
+        if PHASE
+            .compare_exchange(1, 2, Ordering::SeqCst, Ordering::SeqCst)
+            .is_err()
+        {
+            tokio::task::yield_now().await;
+            return;
+        }
+        changed().notify_waiters();
+        loop {
+            let notified = changed().notified();
+            tokio::pin!(notified);
+            let _ = notified.as_mut().enable();
+            if PHASE.load(Ordering::SeqCst) != 2 {
+                return;
+            }
+            notified.await;
+        }
+    }
+}
+
 /// Pre-send failure injection point for testing buffer ownership and resource contracts.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum PreSendFault {
@@ -7150,11 +7246,16 @@ async fn retry_one(shared: &Arc<Shared>, p: Pending) {
             match tokio::time::timeout(rest, w.reserve()).await {
                 Ok(Ok(permit)) => {
                     if let Some(p) = guard.p.take() {
+                        #[cfg(sequence_retry_yield_witness)]
+                        let retry_snapshot =
+                            (p.batch_base_seq, p.batch_len, p.seq, p.rec.partition);
                         if let Err(p) = permit.send(p) {
                             guard.p = Some(p);
                             retire_closed_worker(shared, node, slot, &w.id);
                             continue;
                         }
+                        #[cfg(sequence_retry_yield_witness)]
+                        sequence_retry_yield_witness::note_transfer(retry_snapshot);
                     }
                     return;
                 }
@@ -9248,6 +9349,9 @@ impl Worker {
                 walked = walked.saturating_add(1);
                 if walked == 8 * 1024 {
                     walked = 0;
+                    #[cfg(sequence_retry_yield_witness)]
+                    sequence_retry_yield_witness::pause_at_existing_yield().await;
+                    #[cfg(not(sequence_retry_yield_witness))]
                     tokio::task::yield_now().await;
                 }
             }
@@ -10381,6 +10485,76 @@ async fn sequences_already_assigned(pendings: &[Pending]) -> bool {
     true
 }
 
+/// Test-only gate at an existing sequence-stamping yield.
+#[cfg(sequence_owner_witness)]
+#[doc(hidden)]
+pub mod sequence_owner_witness {
+    use std::sync::atomic::{AtomicBool, AtomicI32, AtomicUsize, Ordering};
+    use tokio::sync::Notify;
+
+    static ARMED: AtomicBool = AtomicBool::new(false);
+    static BASE: AtomicI32 = AtomicI32::new(-1);
+    static COUNT: AtomicUsize = AtomicUsize::new(0);
+    static STAMPED: AtomicUsize = AtomicUsize::new(0);
+    static STAMPS_VALID: AtomicBool = AtomicBool::new(false);
+    static REACHED: Notify = Notify::const_new();
+    static RELEASE: Notify = Notify::const_new();
+
+    /// Arm the next sequence-stamping yield.
+    pub fn arm() {
+        ARMED.store(true, Ordering::SeqCst);
+    }
+
+    /// Wait until the real worker reaches the armed yield.
+    pub async fn reached() {
+        REACHED.notified().await;
+    }
+
+    /// Return the base, batch length, visited count and prefix/tail validation.
+    pub fn snapshot() -> (i32, usize, usize, bool) {
+        (
+            BASE.load(Ordering::SeqCst),
+            COUNT.load(Ordering::SeqCst),
+            STAMPED.load(Ordering::SeqCst),
+            STAMPS_VALID.load(Ordering::SeqCst),
+        )
+    }
+
+    /// Resume the worker.
+    pub fn release() {
+        RELEASE.notify_one();
+    }
+
+    pub(super) async fn pause_at_stamp_yield(
+        base: i32,
+        count: usize,
+        stamped: usize,
+        pendings: &[super::Pending],
+    ) {
+        if ARMED.swap(false, Ordering::SeqCst) {
+            let valid = pendings.iter().enumerate().all(|(index, pending)| {
+                if index < stamped {
+                    let expected = i32::try_from(index)
+                        .ok()
+                        .and_then(|offset| base.checked_add(offset));
+                    expected.is_some()
+                        && pending.seq == expected
+                        && pending.batch_base_seq == Some(base)
+                        && pending.batch_len == count
+                } else {
+                    pending.seq.is_none() && pending.batch_base_seq.is_none()
+                }
+            });
+            STAMPS_VALID.store(valid, Ordering::SeqCst);
+            BASE.store(base, Ordering::SeqCst);
+            COUNT.store(count, Ordering::SeqCst);
+            STAMPED.store(stamped, Ordering::SeqCst);
+            REACHED.notify_one();
+            RELEASE.notified().await;
+        }
+    }
+}
+
 async fn stamp_sequences(pendings: &mut [Pending], base: i32) {
     let count = pendings.len();
     let mut index = 0usize;
@@ -10397,6 +10571,8 @@ async fn stamp_sequences(pendings: &mut [Pending], base: i32) {
         walked = walked.saturating_add(1);
         if walked == 8 * 1024 {
             walked = 0;
+            #[cfg(sequence_owner_witness)]
+            sequence_owner_witness::pause_at_stamp_yield(base, count, index, pendings).await;
             tokio::task::yield_now().await;
         }
     }

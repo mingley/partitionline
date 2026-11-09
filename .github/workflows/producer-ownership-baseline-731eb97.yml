@@ -1,0 +1,96 @@
+name: Producer ownership regression baseline 731eb97
+
+on:
+  push:
+    branches: [qualification/producer-ownership-baseline-731eb97]
+
+permissions:
+  contents: read
+
+jobs:
+  controls:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    env:
+      RUSTFLAGS: "--cfg sequence_owner_witness --check-cfg=cfg(sequence_owner_witness) --cfg sequence_retry_yield_witness --check-cfg=cfg(sequence_retry_yield_witness)"
+      CARGO_BUILD_JOBS: "2"
+      CARGO_INCREMENTAL: "0"
+      CARGO_PROFILE_TEST_DEBUG: "0"
+      CARGO_TERM_COLOR: never
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Source and runner identity
+        run: |
+          set -euo pipefail
+          git rev-parse HEAD
+          git hash-object src/producer.rs tests/common/mod.rs tests/sequence_ownership_public.rs tests/sequence_retry_existing_yield_public.rs tests/producer_ownership_regression_public.rs tests/producer_retry_regression_public.rs
+          sha256sum src/producer.rs tests/common/mod.rs tests/sequence_ownership_public.rs tests/sequence_retry_existing_yield_public.rs tests/producer_ownership_regression_public.rs tests/producer_retry_regression_public.rs Cargo.lock
+          rustc -Vv
+          lscpu
+      - name: Retained observations and expected negative controls
+        shell: bash
+        run: |
+          set -uo pipefail
+          mkdir -p target/producer-regression-logs
+          failures=0
+          positive() {
+            local name="$1"
+            shift
+            local logfile="target/producer-regression-logs/$name.log"
+            printf '\nBEGIN_POSITIVE %s\n' "$name"
+            timeout 180s "$@" 2>&1 | tee "$logfile"
+            local status=${PIPESTATUS[0]}
+            printf 'POSITIVE_STATUS %s %s\n' "$name" "$status"
+            if [[ "$status" -ne 0 ]]; then failures=$((failures + 1)); fi
+          }
+          negative() {
+            local name="$1" marker="$2" testname="$3"
+            shift 3
+            local logfile="target/producer-regression-logs/$name.log"
+            printf '\nBEGIN_EXPECTED_NEGATIVE %s\n' "$name"
+            timeout 180s "$@" 2>&1 | tee "$logfile"
+            local status=${PIPESTATUS[0]}
+            printf 'EXPECTED_NEGATIVE_STATUS %s %s\n' "$name" "$status"
+            if [[ "$status" -ne 101 ]] || ! grep -Fq "$marker" "$logfile" || ! grep -Fq "test $testname ... FAILED" "$logfile"; then
+              printf 'EXPECTED_NEGATIVE_MISMATCH %s\n' "$name"
+              failures=$((failures + 1))
+            fi
+          }
+          for profile in default all; do
+            flags=()
+            if [[ "$profile" == all ]]; then flags+=(--all-features); fi
+            printf '\nPROFILE %s\n' "$profile"
+            for mode in resume abort close; do
+              positive "$profile-observation-$mode" env PL_SEQUENCE_MODE="$mode" cargo test --locked "${flags[@]}" --test sequence_ownership_public public_batch_sequence_worker_cancellation -- --exact --nocapture
+            done
+            positive "$profile-observation-retry" cargo test --locked "${flags[@]}" --test sequence_retry_existing_yield_public public_flush_at_existing_retry_yield -- --exact --nocapture
+            for action in abort close; do
+              for admission in mixed all; do
+                name="$profile-ownership-$action-$admission"
+                negative "$name" 'accepted records must each reach a terminal callback and release bytes' accepted_records_settle_after_worker_cancellation env PL_OWNER_CASE="$action" PL_ADMISSION="$admission" cargo test --locked "${flags[@]}" --test producer_ownership_regression_public accepted_records_settle_after_worker_cancellation -- --exact --nocapture
+                if ! grep -Fq "OWNERSHIP_REGRESSION case=$action admission=$admission" "target/producer-regression-logs/$name.log"; then
+                  printf 'MISSING_OWNERSHIP_OBSERVATION %s\n' "$name"
+                  failures=$((failures + 1))
+                fi
+              done
+            done
+            name="$profile-retry-contract"
+            negative "$name" 'retry must retain the original identity, base and count' retained_retry_batch_is_not_split_by_flush cargo test --locked "${flags[@]}" --test producer_retry_regression_public retained_retry_batch_is_not_split_by_flush -- --exact --nocapture
+            if ! grep -Fq 'RETRY_RELEASED_CONTROL_OK' "target/producer-regression-logs/$name.log" || ! grep -Fq 'RETRY_REGRESSION original=' "target/producer-regression-logs/$name.log"; then
+              printf 'MISSING_RELEASED_OR_RETRY_OBSERVATION %s\n' "$name"
+              failures=$((failures + 1))
+            fi
+          done
+          printf '\nBASELINE_CONTROL_FAILURES=%s\n' "$failures"
+          test "$failures" -eq 0
+      - name: Preserve control logs
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: producer-ownership-baseline-731eb97-${{ github.sha }}
+          path: target/producer-regression-logs
+          if-no-files-found: warn
+          retention-days: 30
