@@ -69,7 +69,7 @@ both passed in each profile
 ([run 42702307127](https://github.com/mingley/partitionline/actions/runs/42702307127)).
 The [workflow](idle-eof-workflow.yml.txt) is retained. Applying the retained
 patch hunks to the draft's exact transport source reproduced the refinement
-source bytes in an independent text comparison.
+source bytes in a text comparison.
 
 An [expanded run](https://github.com/mingley/partitionline/actions/runs/42702610260) on
 [`c441a1f`](https://github.com/mingley/partitionline/commit/c441a1f9b01455ecef3d2b78232269dde86a4c9d)
