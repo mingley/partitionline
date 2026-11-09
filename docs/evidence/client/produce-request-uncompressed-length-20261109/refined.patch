@@ -1,0 +1,158 @@
+diff --git a/src/protocol/api.rs b/src/protocol/api.rs
+--- a/src/protocol/api.rs
++++ b/src/protocol/api.rs
+@@ -4708,7 +4708,7 @@ fn encode_produce_request_fields(
+         buf.reserve(needed - buf.len());
+     }
+     let mut staged = plan.staged.into_iter();
+-    let mut first_batch_len = plan.first_batch_len;
++    let mut first_uncompressed_len = plan.first_uncompressed_len;
+     if version >= 3 {
+         buf::put_string(buf, flexible, transactional_id)?;
+     }
+@@ -4726,10 +4726,12 @@ fn encode_produce_request_fields(
+         for part in &topic.partitions {
+             buf.put_i32(part.index);
+             let ready = staged.next().flatten();
+-            let batch_len = match (first_batch_len.take(), ready.as_ref()) {
+-                (Some(batch_len), _) => batch_len,
+-                (None, Some(ready)) => ready.len(),
+-                (None, None) => produce_uncompressed_batch_len(&part.records)?,
++            let batch_len = match ready.as_ref() {
++                Some(ready) => ready.len(),
++                None => match first_uncompressed_len.take() {
++                    Some(batch_len) => batch_len,
++                    None => produce_uncompressed_batch_len(&part.records)?,
++                },
+             };
+             let mark = buf.len();
+             let written = write_produce_batch(buf, flexible, &part.records, batch_len, ready);
+@@ -4754,8 +4756,8 @@ struct ProduceRequestPlan {
+     /// Parallel to every partition when any batch is compressed. `None` means
+     /// the batch is uncompressed and is encoded directly into the request.
+     staged: Vec<Option<BytesMut>>,
+-    /// Cached length of the first planned partition, without per-request allocation.
+-    first_batch_len: Option<usize>,
++    /// Cached length of the first uncompressed partition, without allocation.
++    first_uncompressed_len: Option<usize>,
+ }
+ 
+ fn produce_batch_header(batch: &RecordBatch) -> Result<records::BatchHeader> {
+@@ -4799,7 +4801,7 @@ fn produce_request_plan(
+             .any(|part| produce_batch_is_compressed(&part.records).unwrap_or(true))
+     });
+     let mut staged = Vec::new();
+-    let mut first_batch_len = None;
++    let mut first_uncompressed_len = None;
+     let mut total = if version >= 3 {
+         metadata_string_len(flexible, transactional_id)?
+     } else {
+@@ -4818,12 +4820,10 @@ fn produce_request_plan(
+             metadata_array_len(flexible, Some(topic.partitions.len()))?,
+         )?;
+         for part in &topic.partitions {
+-            let (next_total, batch_len) =
++            let (next_total, uncompressed_len) =
+                 plan_produce_partition(total, flexible, compressed, part, &mut staged)?;
+             total = next_total;
+-            if first_batch_len.is_none() {
+-                first_batch_len = Some(batch_len);
+-            }
++            first_uncompressed_len = first_uncompressed_len.or(uncompressed_len);
+         }
+         if flexible {
+             total = add_produce_len(total, buf::unsigned_varint_size(0))?;
+@@ -4835,7 +4835,7 @@ fn produce_request_plan(
+     Ok(ProduceRequestPlan {
+         len: total,
+         staged,
+-        first_batch_len,
++        first_uncompressed_len,
+     })
+ }
+ 
+@@ -5153,7 +5153,7 @@ fn plan_produce_partition(
+     compressed: bool,
+     part: &ProducePartitionData,
+     staged: &mut Vec<Option<BytesMut>>,
+-) -> Result<(usize, usize)> {
++) -> Result<(usize, Option<usize>)> {
+     total = add_produce_len(total, 4)?;
+     let (batch_len, encoded) = if produce_batch_is_compressed(&part.records)? {
+         let mut encoded = BytesMut::new();
+@@ -5163,6 +5163,7 @@ fn plan_produce_partition(
+     } else {
+         (produce_uncompressed_batch_len(&part.records)?, None)
+     };
++    let uncompressed_len = encoded.is_none().then_some(batch_len);
+     if compressed {
+         staged.push(encoded);
+     }
+@@ -5180,7 +5181,7 @@ fn plan_produce_partition(
+     if flexible {
+         total = add_produce_len(total, buf::unsigned_varint_size(0))?;
+     }
+-    Ok((total, batch_len))
++    Ok((total, uncompressed_len))
+ }
+ 
+ async fn produce_request_is_compressed(topics: &[ProduceTopicData]) -> bool {
+@@ -5208,7 +5209,7 @@ async fn produce_request_plan_cooperative(
+ ) -> Result<ProduceRequestPlan> {
+     let compressed = produce_request_is_compressed(topics).await;
+     let mut staged = Vec::new();
+-    let mut first_batch_len = None;
++    let mut first_uncompressed_len = None;
+     let mut total = if version >= 3 {
+         metadata_string_len(flexible, transactional_id)?
+     } else {
+@@ -5228,12 +5229,10 @@ async fn produce_request_plan_cooperative(
+             metadata_array_len(flexible, Some(topic.partitions.len()))?,
+         )?;
+         for part in &topic.partitions {
+-            let (next_total, batch_len) =
++            let (next_total, uncompressed_len) =
+                 plan_produce_partition(total, flexible, compressed, part, &mut staged)?;
+             total = next_total;
+-            if first_batch_len.is_none() {
+-                first_batch_len = Some(batch_len);
+-            }
++            first_uncompressed_len = first_uncompressed_len.or(uncompressed_len);
+             walked = walked.saturating_add(1);
+             if walked == PRODUCE_REQUEST_ENCODE_CHUNK {
+                 walked = 0;
+@@ -5250,7 +5249,7 @@ async fn produce_request_plan_cooperative(
+     Ok(ProduceRequestPlan {
+         len: total,
+         staged,
+-        first_batch_len,
++        first_uncompressed_len,
+     })
+ }
+ 
+@@ -5279,7 +5278,7 @@ pub async fn encode_produce_request_cooperative(
+         buf.reserve(needed - buf.len());
+     }
+     let mut staged = plan.staged.into_iter();
+-    let mut first_batch_len = plan.first_batch_len;
++    let mut first_uncompressed_len = plan.first_uncompressed_len;
+     if version >= 3 {
+         buf::put_string(buf, flexible, transactional_id)?;
+     }
+@@ -5295,10 +5294,12 @@ pub async fn encode_produce_request_cooperative(
+         for part in &topic.partitions {
+             buf.put_i32(part.index);
+             let ready = staged.next().flatten();
+-            let batch_len = match (first_batch_len.take(), ready.as_ref()) {
+-                (Some(batch_len), _) => batch_len,
+-                (None, Some(ready)) => ready.len(),
+-                (None, None) => produce_uncompressed_batch_len(&part.records)?,
++            let batch_len = match ready.as_ref() {
++                Some(ready) => ready.len(),
++                None => match first_uncompressed_len.take() {
++                    Some(batch_len) => batch_len,
++                    None => produce_uncompressed_batch_len(&part.records)?,
++                },
+             };
+             let mark = buf.len();
+             if let Err(error) = write_produce_batch(buf, flexible, &part.records, batch_len, ready)
