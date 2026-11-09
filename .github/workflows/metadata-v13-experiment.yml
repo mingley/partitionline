@@ -22,9 +22,9 @@ jobs:
           cargo --version
           java --version
           git rev-parse HEAD
-          sha256sum tests/conformance/java/ConformanceMetadataWire.java tests/conformance/run-metadata-wire.py tests/metadata_wire_conformance.rs
+          sha256sum tests/conformance/java/ConformanceMetadataWire.java tests/conformance/java/generate_metadata_wire.py tests/metadata_wire_conformance.rs
       - name: Compare bounded body fixtures
-        run: timeout 600s python3 tests/conformance/run-metadata-wire.py --output target/metadata-v13
+        run: timeout 600s python3 tests/conformance/java/generate_metadata_wire.py --output target/metadata-v13
       - name: Strict lint
         if: always()
         run: cargo clippy --locked --all-features --test metadata_wire_conformance -- -D warnings

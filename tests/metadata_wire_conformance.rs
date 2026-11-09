@@ -16,12 +16,12 @@ use std::error::Error;
 const CASES: [&str; 5] = ["all", "empty", "name", "id", "tagged"];
 
 fn decode_hex(hex: &str) -> Result<Vec<u8>, Box<dyn Error>> {
-    let mut pairs = hex.as_bytes().chunks_exact(2);
+    let (pairs, remainder) = hex.as_bytes().as_chunks::<2>();
     let bytes = pairs
-        .by_ref()
+        .iter()
         .map(|pair| Ok(u8::from_str_radix(std::str::from_utf8(pair)?, 16)?))
         .collect::<Result<Vec<_>, Box<dyn Error>>>()?;
-    if !pairs.remainder().is_empty() {
+    if !remainder.is_empty() {
         return Err("odd hex length".into());
     }
     Ok(bytes)
@@ -38,7 +38,12 @@ fn topic_id() -> [u8; 16] {
 fn expected_response() -> MetadataResponse {
     MetadataResponse {
         throttle_time_ms: 37,
-        brokers: vec![Broker::new(3, "broker.example", 9092, Some("rack-a".into()))],
+        brokers: vec![Broker::new(
+            3,
+            "broker.example",
+            9092,
+            Some("rack-a".into()),
+        )],
         cluster_id: Some("cluster-α".into()),
         controller_id: 3,
         topics: vec![TopicMetadata::with_topic_id(

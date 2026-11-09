@@ -10,7 +10,7 @@ import subprocess
 import time
 import urllib.request
 
-ROOT = Path(__file__).resolve().parents[2]
+ROOT = Path(__file__).resolve().parents[3]
 SOURCE = ROOT / "tests/conformance/java/ConformanceMetadataWire.java"
 RUST = ROOT / "tests/metadata_wire_conformance.rs"
 PINS = {
@@ -76,8 +76,10 @@ def run(command, out, env=None, timeout=30, expect_failure=False, marker=None):
         raise ValueError("process output exceeds budget")
     contents = out.read_text()
     if (child.returncode != 0) != expect_failure:
+        print(contents[-8192:], flush=True)
         raise RuntimeError("unexpected exit " + str(child.returncode) + " in " + str(out))
     if marker and marker not in contents:
+        print(contents[-8192:], flush=True)
         raise RuntimeError("missing output marker in " + str(out))
     return {"exit_code": child.returncode, "log": str(out), "group_empty": True}
 
@@ -131,6 +133,7 @@ def main():
                                      marker="generated_pairs=5")
             if fixture.stat().st_size > 32768:
                 raise ValueError("fixture budget exceeded")
+            print(json.dumps({"peer": release, "apache_fixture_sha256": digest(fixture)}), flush=True)
             for profile in ("default", "all-features"):
                 reverse = directory / (profile + "-rust.txt")
                 env = os.environ.copy()
@@ -145,6 +148,8 @@ def main():
                 result[profile + "-java"] = run(java + ["verify", str(reverse)],
                                                 directory / (profile + "-java.log"),
                                                 marker="independently_parsed_pairs=5")
+                print(json.dumps({"peer": release, "profile": profile, "rust_reverse_sha256": digest(reverse),
+                                  "rust_decoded_pairs": 5, "java_parsed_pairs": 5}), flush=True)
                 if release == "4.1.2" and profile == "default":
                     bad_fixture = directory / "corrupt-apache.txt"
                     corrupt_top_error(fixture, bad_fixture)
@@ -157,6 +162,8 @@ def main():
                     result["java-negative"] = run(java + ["verify", str(bad_reverse)],
                                                   directory / "java-negative.log", expect_failure=True,
                                                   marker="Rust response fields differ")
+                    print(json.dumps({"peer": release, "profile": profile,
+                                      "corruption_controls": "both rejected"}), flush=True)
             results.append(result)
         if inputs != {str(p.relative_to(ROOT)): digest(p) for p in (SOURCE, RUST, Path(__file__).resolve())}:
             raise ValueError("source changed during run")
