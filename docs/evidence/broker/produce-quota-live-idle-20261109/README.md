@@ -67,7 +67,18 @@ On refinement
 [`7a8fbab`](https://github.com/mingley/partitionline/commit/7a8fbab3457ba3ad4677e612b2ac36631843919d),
 both passed in each profile
 ([run 42702307127](https://github.com/mingley/partitionline/actions/runs/42702307127)).
-The [workflow](idle-eof-workflow.yml.txt) is retained. Additional quota,
-authentication, transport, formatting and lint checks were still running when
-this note was written. Neither the refinement nor the quota prototype is
-applied to main.
+The [workflow](idle-eof-workflow.yml.txt) is retained. Applying the retained
+patch hunks to the draft's exact transport source reproduced the refinement
+source bytes in an independent text comparison.
+
+An [expanded run](https://github.com/mingley/partitionline/actions/runs/42702610260) on
+[`c441a1f`](https://github.com/mingley/partitionline/commit/c441a1f9b01455ecef3d2b78232269dde86a4c9d)
+used the same refinement and control source with an expanded
+[workflow](idle-eof-expanded-workflow.yml.txt). It passed the two new controls
+in each feature profile, six existing quota controls in each profile, six
+all-feature controlled-transport tests (549 filtered out), one authenticated
+quota control (27 filtered out), and all-target, all-feature Clippy. Formatting
+failed on the new `quota_pause_reuse.rs` test file, so the overall workflow
+failed. No broad behavioral suite, doctest, live TLS test, live Kafka test of
+the prototype, or performance comparison ran for the refinement. Neither the
+refinement nor the quota prototype is applied to main.
