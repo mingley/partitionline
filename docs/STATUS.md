@@ -58,7 +58,11 @@ the later broker pass does not explain it.
 
 A focused [Schema Registry retry fix][schema-retry] now honors HTTP 429
 `Retry-After` delay-seconds across the supported response framings. Its mock
-controls and schema feature profiles passed; no live registry was tested.
+controls and schema feature profiles passed; no live registry was tested. The
+[incremental HTTP reader][schema-http] now bounds decoded bodies and framing
+separately, enforces the header limit, and avoids reparsing prior chunks. Its
+schema profiles and strict checks passed; live Registry and TLS interoperability
+remain untested. Synchronous JSON duplicate-key checks can still be quadratic.
 
 Earlier broker suites sometimes failed in integration or Raft tests. Later
 passes do not establish their causes. The [previous detailed status][history]
@@ -74,7 +78,10 @@ and [work plan][next] retain those results and earlier evidence.
   maps the required admission, retry, completion and shutdown changes. In a
   later [instrumented mock][owner-baseline], 8,193 records had no callbacks
   and 65,544 bytes remained accounted for within a four-second observation
-  after abort or timed close; this does not establish a permanent leak. A
+  after abort or timed close; this does not establish a permanent leak.
+  [Seeded retry controls][retry-membership] also show that equal numeric bases
+  can group records from different topics, partitions or identity generations;
+  they do not establish a natural Kafka history. A
   [seeded rollback control][sequence-witness]
   showed a stale generation changing a current counter before a mock send;
   it did not establish a natural identity transition. A [guard experiment][guard-exp]
@@ -97,8 +104,9 @@ and [work plan][next] retain those results and earlier evidence.
   authenticated network leadership, transaction marker propagation and a
   process-wide memory bound remain open. Kafka wire throttling is not
   implemented; the [quota design][quota] and [handoff plan][quota-handoff]
-  describe the remaining work. An isolated [quota draft][quota-draft] is
-  uncompiled and has an unbounded resume-deadline blocker. The
+  describe the remaining work. The initial [quota draft][quota-draft] was
+  uncompiled and had an unbounded resume deadline. Newer isolated revisions
+  passed focused controls, but a broader run failed; none is applied. The
   [transport fix][transport-fix] backpressures valid pipelines when read-ahead
   is full. A disconnect behind that buffer may be
   observed only after the active handler completes or reaches its deadline.
@@ -164,3 +172,5 @@ results and experiments.
 [owner-baseline]: https://github.com/mingley/partitionline/blob/3c29521973166b64b15fc498e7e47c4ec0eebeaa/docs/evidence/client/producer-ownership-baseline-731eb97/README.md
 [produce-plan-exp]: https://github.com/mingley/partitionline/blob/a15794155397da3842e16c5b7703e615b7be4676/docs/evidence/client/produce-request-first-length-20261109/README.md
 [produce-plan-refined]: https://github.com/mingley/partitionline/blob/af33269d4c35c84daa6a1395558ed03f73893cd6/docs/evidence/client/produce-request-uncompressed-length-20261109/README.md
+[schema-http]: https://github.com/mingley/partitionline/blob/172ce91a2c279446caa8de7ac0fd2d6c9e9304ac/docs/evidence/schema/registry-http-streaming-20261109/README.md
+[retry-membership]: https://github.com/mingley/partitionline/blob/2e039416e19d049aee12dbff1e442f26d0088dd2/docs/evidence/client/producer-retry-membership-20261109/README.md
