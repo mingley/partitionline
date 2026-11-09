@@ -51,6 +51,11 @@ Other errors are not cached. Expiry is lazy. Eviction drops the least
 recently used entries. A successful schema that does not fit is returned
 and not stored.
 
+HTTP 429 retries honor the first `Retry-After` field when it is a decimal
+number of seconds, capped by the configured maximum backoff and overall
+request deadline. HTTP dates, malformed values, and overflow fall back to
+exponential backoff. Earlier repository revisions ignored the header.
+
 Two misses for the same key share one request. A different key proceeds
 on its own. Dropping a follower leaves the owner running. Dropping the
 owner closes that request, and a follower may retry inside its original
