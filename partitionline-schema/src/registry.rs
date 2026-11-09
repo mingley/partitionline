@@ -77,8 +77,13 @@ mod cache;
 use cache::{Cache, Flight, Key, Role, Value};
 pub use cache::{RegistryCacheConfig, RegistryCacheStats};
 
+use std::collections::{
+    hash_map::{Entry, RandomState},
+    HashMap,
+};
 use std::fmt;
 use std::future::poll_fn;
+use std::hash::BuildHasher;
 use std::pin::Pin;
 use std::sync::Arc;
 use std::sync::Once;
@@ -1488,6 +1493,60 @@ impl JsonValue {
     }
 }
 
+// Keep small objects on the existing linear scan. For larger objects, index
+// cached, randomly keyed hashes to slots in the original ordered vector.
+// A full-hash collision is resolved by comparing every corresponding key.
+const SMALL_JSON_OBJECT_KEYS: usize = 16;
+
+enum JsonKeySlots {
+    One(usize),
+    Collision(Vec<usize>),
+}
+
+struct JsonKeyIndex<S> {
+    hasher: S,
+    slots: HashMap<u64, JsonKeySlots>,
+}
+
+impl<S: BuildHasher> JsonKeyIndex<S> {
+    fn new(hasher: S) -> Self {
+        Self {
+            hasher,
+            slots: HashMap::new(),
+        }
+    }
+
+    // The proposed position is the next slot in entries. It is retained only
+    // if the key is new, immediately before the caller pushes the entry.
+    fn insert(&mut self, entries: &[(String, JsonValue)], key: &str, position: usize) -> bool {
+        let hash = self.hasher.hash_one(key);
+        match self.slots.entry(hash) {
+            Entry::Vacant(entry) => {
+                entry.insert(JsonKeySlots::One(position));
+                false
+            }
+            Entry::Occupied(mut entry) => {
+                let slots = entry.get_mut();
+                let matches = |index: usize| entries.get(index).is_some_and(|(name, _)| name == key);
+                let duplicate = match &*slots {
+                    JsonKeySlots::One(index) => matches(*index),
+                    JsonKeySlots::Collision(indexes) => indexes.iter().copied().any(matches),
+                };
+                if duplicate {
+                    return true;
+                }
+                match slots {
+                    JsonKeySlots::One(index) => {
+                        *slots = JsonKeySlots::Collision(vec![*index, position]);
+                    }
+                    JsonKeySlots::Collision(indexes) => indexes.push(position),
+                }
+                false
+            }
+        }
+    }
+}
+
 /// Strict small JSON reader: duplicate keys, trailing data, bad escapes,
 /// and over-deep nesting are all errors.
 struct JsonParser<'a> {
@@ -1726,6 +1785,7 @@ impl<'a> JsonParser<'a> {
 
     fn parse_object(&mut self, depth: usize) -> Result<JsonValue, RegistryError> {
         let mut entries: Vec<(String, JsonValue)> = Vec::new();
+        let mut index: Option<JsonKeyIndex<RandomState>> = None;
         self.skip_ws();
         if self.peek() == Some(b'}') {
             self.pos = self.pos.saturating_add(1);
@@ -1743,7 +1803,20 @@ impl<'a> JsonParser<'a> {
             }
             self.pos = self.pos.saturating_add(1);
             let value = self.parse_value(depth.saturating_add(1))?;
-            if entries.iter().any(|(known, _)| known == &key) {
+            if index.is_none() && entries.len() == SMALL_JSON_OBJECT_KEYS {
+                let mut built = JsonKeyIndex::new(RandomState::new());
+                for (position, (known, _)) in entries.iter().enumerate() {
+                    let duplicate = built.insert(&entries, known, position);
+                    debug_assert!(!duplicate);
+                }
+                index = Some(built);
+            }
+            let duplicate = if let Some(index) = &mut index {
+                index.insert(&entries, &key, entries.len())
+            } else {
+                entries.iter().any(|(known, _)| known == &key)
+            };
+            if duplicate {
                 return Err(RegistryError::malformed("json duplicate key"));
             }
             entries.push((key, value));
@@ -2944,6 +3017,93 @@ mod tests {
         drop(call);
         tokio::time::sleep(Duration::from_millis(1100)).await;
         assert_eq!(server.hits().await, 1, "canceled lookup retried");
+    }
+
+
+    #[derive(Clone)]
+    struct SameHash;
+
+    struct SameHasher;
+
+    impl std::hash::BuildHasher for SameHash {
+        type Hasher = SameHasher;
+
+        fn build_hasher(&self) -> Self::Hasher {
+            SameHasher
+        }
+    }
+
+    impl std::hash::Hasher for SameHasher {
+        fn finish(&self) -> u64 {
+            0
+        }
+
+        fn write(&mut self, _bytes: &[u8]) {}
+    }
+
+    #[test]
+    fn json_object_index_checks_equal_and_colliding_names() {
+        let mut entries = Vec::new();
+        let mut index = JsonKeyIndex::new(SameHash);
+        for number in 0..64 {
+            let name = format!("field-{number}");
+            assert!(!index.insert(&entries, &name, entries.len()));
+            entries.push((name, JsonValue::Null));
+        }
+        assert_eq!(index.slots.len(), 1, "every name must share the forced hash");
+        for (position, (name, _)) in entries.iter().enumerate() {
+            assert!(index.insert(&entries, &name.to_string(), entries.len()), "position {position}");
+        }
+        assert!(!index.insert(&entries, "a-distinct-name", entries.len()));
+    }
+
+    fn json_with_fields(count: usize, duplicate: bool) -> String {
+        use std::fmt::Write as _;
+        let mut json = String::from(r#"{"schema":"{}""#);
+        for number in 0..count {
+            write!(&mut json, r#","field-{number}":{number}"#).unwrap();
+        }
+        if duplicate {
+            json.push_str(r#","field-0":0"#);
+        }
+        json.push('}');
+        json
+    }
+
+    #[test]
+    fn json_object_index_preserves_order_and_duplicate_error() {
+        for count in [0, 15, 16, 17, 64, 4096] {
+            let json = json_with_fields(count, false);
+            let JsonValue::Object(entries) = JsonParser::new(&json).parse().unwrap() else {
+                panic!("expected object");
+            };
+            assert_eq!(entries[0].0, "schema");
+            assert_eq!(entries.len(), count + 1);
+            for (number, (name, _)) in entries.iter().skip(1).enumerate() {
+                assert_eq!(name, &format!("field-{number}"));
+            }
+            if count > 0 {
+                let json = json_with_fields(count, true);
+                let error = JsonParser::new(&json).parse().unwrap_err();
+                assert!(matches!(error, RegistryError::Malformed { what } if what == "json duplicate key"));
+            }
+        }
+        let escaped = r#"{"field-0":1,"field-1":1,"field-2":1,"field-3":1,"field-4":1,"field-5":1,"field-6":1,"field-7":1,"field-8":1,"field-9":1,"field-10":1,"field-11":1,"field-12":1,"field-13":1,"field-14":1,"field-15":1,"\u0066ield-0":2}"#;
+        let error = JsonParser::new(escaped).parse().unwrap_err();
+        assert!(matches!(error, RegistryError::Malformed { what } if what == "json duplicate key"));
+    }
+
+    #[tokio::test]
+    async fn registry_public_large_object_duplicate_control() {
+        let valid = json_with_fields(4096, false);
+        let server = start_mock(vec![MockResponse::json(200, &valid)], None).await;
+        let got = fast_client(&server).get_schema_by_id(100).await.unwrap();
+        assert_eq!(got.schema, "{}");
+
+        let duplicate = json_with_fields(4096, true);
+        let server = start_mock(vec![MockResponse::json(200, &duplicate)], None).await;
+        let error = fast_client(&server).get_schema_by_id(100).await.unwrap_err();
+        assert!(matches!(error, RegistryError::Malformed { what } if what == "json duplicate key"));
     }
 
     #[tokio::test]
