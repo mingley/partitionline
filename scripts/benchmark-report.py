@@ -654,9 +654,10 @@ class BenchmarkValidator:
                             f"not total_offset_delta ({offset_delta})"
                         )
 
-                # If produce scenario with acknowledged records, high-watermark delta MUST match acknowledged count!
+                # Transaction control records also advance offsets, so this equality
+                # applies only to the nontransactional produce profiles.
                 scen_profile = scenario.get("profile")
-                if scen_profile in ("bulk", "low-latency", "transactional", "secure") and acked_count > 0:
+                if scen_profile in ("bulk", "low-latency", "secure") and acked_count > 0:
                     if offset_delta != acked_count:
                         errors.append(
                             f"Mismatched acks: broker high-watermark offset delta ({offset_delta}) "

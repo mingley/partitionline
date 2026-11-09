@@ -816,6 +816,17 @@ class BenchmarkIntegrityRegressionTests(unittest.TestCase):
                     data["integrity"]["record_ids"][field] = 1
                 self.assertFalse(self.validator.validate(data)[0])
 
+    def test_transaction_control_records_can_advance_offsets(self):
+        data = build_valid_fixture()
+        data["scenario"]["profile"] = "transactional"
+        audit = data["integrity"]["high_watermark_audit"]
+        audit["partitions"][0]["end_offset"] += 1
+        audit["partitions"][0]["offset_delta"] += 1
+        audit["total_offset_delta"] += 1
+        audit["matches_acknowledged"] = False
+        valid, errors, _ = self.validator.validate(data)
+        self.assertTrue(valid, errors)
+
     def test_reject_inconsistent_partition_offset_audit(self):
         for mutation in ("wrong_delta", "wrong_total", "empty", "backwards"):
             with self.subTest(mutation=mutation):
