@@ -39,6 +39,12 @@ impl Drop for ReleaseGate {
     }
 }
 
+#[expect(
+    clippy::expect_used,
+    clippy::unwrap_used,
+    clippy::indexing_slicing,
+    reason = "This public control fails immediately when its setup or observations differ."
+)]
 async fn history(flush_held: bool) {
     let mock = common::Mock::start().await;
     mock.set_topic_partitions("t", 1);

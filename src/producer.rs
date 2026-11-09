@@ -55,11 +55,13 @@ pub mod sealed_retry_witness {
     use tokio::sync::Notify;
 
     static ARMED: AtomicBool = AtomicBool::new(false);
+    static HELD: AtomicBool = AtomicBool::new(false);
     static REACHED: Notify = Notify::const_new();
     static RELEASE: Notify = Notify::const_new();
 
     /// Arm the next retained-batch handoff.
     pub fn arm() {
+        HELD.store(true, Ordering::SeqCst);
         ARMED.store(true, Ordering::SeqCst);
     }
 
@@ -70,13 +72,22 @@ pub mod sealed_retry_witness {
 
     /// Release the handoff.
     pub fn release() {
-        RELEASE.notify_one();
+        HELD.store(false, Ordering::SeqCst);
+        RELEASE.notify_waiters();
     }
 
     pub(super) async fn pause() {
         if ARMED.swap(false, Ordering::SeqCst) {
             REACHED.notify_one();
-            RELEASE.notified().await;
+            loop {
+                let notified = RELEASE.notified();
+                tokio::pin!(notified);
+                let _registered = notified.as_mut().enable();
+                if !HELD.load(Ordering::SeqCst) {
+                    break;
+                }
+                notified.await;
+            }
         }
     }
 }
@@ -7159,7 +7170,7 @@ async fn retry_sealed_batch(shared: &Arc<Shared>, mut batch: Vec<Pending>) {
                             }
                         }
                         Ok(Err(_)) => {
-                            let _retired = retire_closed_worker(shared, node, slot, &worker.id);
+                            retire_closed_worker(shared, node, slot, &worker.id);
                         }
                         Err(_) => return,
                     }
@@ -9641,7 +9652,7 @@ impl Worker {
         if self
             .shared
             .retries_out
-            .fetch_update(Ordering::SeqCst, Ordering::SeqCst, |current| current.checked_add(count))
+            .try_update(Ordering::SeqCst, Ordering::SeqCst, |current| current.checked_add(count))
             .is_err()
         {
             self.note_fail(Error::protocol("retry counter exhausted"));
