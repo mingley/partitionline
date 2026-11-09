@@ -3106,6 +3106,88 @@ mod tests {
         assert!(matches!(error, RegistryError::Malformed { what } if what == "json duplicate key"));
     }
 
+
+    #[test]
+    fn json_object_index_nested_scopes_and_error_precedence() {
+        let prefix = json_with_fields(20, false);
+        let prefix = prefix.strip_suffix('}').unwrap();
+        let nested = format!(r#"{prefix},"nested":{{"field-0":1,"field-1":2}}}}"#);
+        let JsonValue::Object(entries) = JsonParser::new(&nested).parse().unwrap() else {
+            panic!("expected object");
+        };
+        assert_eq!(entries.last().unwrap().0, "nested");
+        let nested_duplicate = format!(r#"{prefix},"nested":{{"field-0":1,"field-0":2}}}}"#);
+        let error = JsonParser::new(&nested_duplicate).parse().unwrap_err();
+        assert!(matches!(error, RegistryError::Malformed { what } if what == "json duplicate key"));
+
+        let malformed_duplicate = format!(r#"{prefix},"field-0":[}}"#);
+        let error = JsonParser::new(&malformed_duplicate).parse().unwrap_err();
+        assert!(matches!(error, RegistryError::Malformed { what } if what == "json unexpected value"));
+
+        let mut depth = "null".to_string();
+        for _ in 0..MAX_JSON_DEPTH {
+            depth = format!(r#"{{"a":{depth}}}"#);
+        }
+        assert!(JsonParser::new(&depth).parse().is_ok());
+        depth = format!(r#"{{"a":{depth}}}"#);
+        let error = JsonParser::new(&depth).parse().unwrap_err();
+        assert!(matches!(error, RegistryError::Malformed { what } if what == "json nesting too deep"));
+    }
+
+    #[test]
+    fn json_object_index_storage_tracks_observed_keys() {
+        let mut entries = Vec::new();
+        let mut index = JsonKeyIndex::new(RandomState::new());
+        for number in 0..16_384 {
+            let name = format!("field-{number}");
+            assert!(!index.insert(&entries, &name, entries.len()));
+            entries.push((name, JsonValue::Null));
+        }
+        let mut represented = 0;
+        let mut collision_buckets = 0;
+        for bucket in index.slots.values() {
+            match bucket {
+                JsonKeySlots::One(_) => represented += 1,
+                JsonKeySlots::Collision(positions) => {
+                    collision_buckets += 1;
+                    represented += positions.len();
+                }
+            }
+        }
+        assert_eq!(represented, entries.len());
+        assert!(index.slots.len() <= entries.len());
+        println!(
+            "PL_INDEX keys={} hash_buckets={} hash_capacity={} collision_buckets={} bucket_payload_bytes={}",
+            entries.len(), index.slots.len(), index.slots.capacity(), collision_buckets,
+            std::mem::size_of::<(u64, JsonKeySlots)>()
+        );
+    }
+
+    #[tokio::test]
+    async fn registry_index_respects_configured_body_boundary() {
+        const LIMIT: usize = 1024;
+        for oversize in [false, true] {
+            let mut body = json_with_fields(25, false);
+            assert!(body.len() < LIMIT);
+            body.extend(std::iter::repeat_n(' ', LIMIT - body.len()));
+            if oversize {
+                body.push(' ');
+            }
+            let server = start_mock(vec![MockResponse::json(200, &body)], None).await;
+            let client = RegistryClient::new(
+                RegistryClientConfig::new(server.base_url.clone())
+                    .max_body_bytes(LIMIT)
+                    .request_timeout(Duration::from_secs(3)),
+            ).unwrap();
+            let result = client.get_schema_by_id(100).await;
+            if oversize {
+                assert!(matches!(result, Err(RegistryError::TooLarge { limit: LIMIT })), "{result:?}");
+            } else {
+                assert_eq!(result.unwrap().schema, "{}");
+            }
+        }
+    }
+
     #[tokio::test]
     async fn rate_limit_exhaustion_reports_attempts() {
         let server = start_mock(vec![MockResponse::json(429, r#"{"error_code":429}"#)], None).await;
