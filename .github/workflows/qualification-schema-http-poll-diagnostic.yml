@@ -1,0 +1,15 @@
+name: Registry HTTP first poll diagnostic
+on:
+  push:
+    branches: [qualification/schema-http-poll-diagnostic-20261109]
+permissions:
+  contents: read
+jobs:
+  observe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Record first polls and biased select
+        run: cargo test --manifest-path partitionline-schema/Cargo.toml --locked --lib large_ready_first_poll_diagnostic -- --nocapture
