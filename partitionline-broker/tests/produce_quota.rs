@@ -73,7 +73,7 @@ async fn observe_socket(socket: &TcpStream, wait: Duration) -> Result<SocketObse
 
 #[tokio::test]
 async fn socket_probe_distinguishes_empty_data_and_eof() -> Result {
-    let listener = TcpListener::bind(([127, 0, 0, 1], 0)).await?;
+    let listener = TcpListener::bind("127.0.0.1:0").await?;
     let mut client = TcpStream::connect(listener.local_addr()?).await?;
     let (mut server, _) = listener.accept().await?;
     server.write_all(&[7]).await?;
