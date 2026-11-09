@@ -152,12 +152,11 @@ async fn dtp_pagination_rejects_an_immediate_repeat() {
 }
 
 #[tokio::test]
-async fn dtp_pagination_nonadjacent_cycle_times_out_without_partial_result() {
+async fn dtp_pagination_rejects_nonadjacent_repeat_and_reuses_socket() {
     let (mut admin, listener) = admin_and_listener().await;
-    let (fourth_tx, fourth_rx) = tokio::sync::oneshot::channel();
-    let (release_tx, release_rx) = tokio::sync::oneshot::channel();
     let peer = tokio::spawn(async move {
         let (mut socket, _) = listener.accept().await.unwrap();
+        socket.set_nodelay(true).unwrap();
         let first = dtp_request(&mut socket, None).await;
         send_page(&mut socket, &first, &page(0, Some(("orders", 1))))
             .await
@@ -170,24 +169,27 @@ async fn dtp_pagination_nonadjacent_cycle_times_out_without_partial_result() {
         send_page(&mut socket, &third, &page(2, Some(("orders", 1))))
             .await
             .unwrap();
-        let _fourth = dtp_request(&mut socket, Some(("orders", 1))).await;
-        fourth_tx.send(()).unwrap();
-        release_rx.await.unwrap();
+        let raw = dtp_request(&mut socket, None).await;
+        send_page(&mut socket, &raw, &page(42, None)).await.unwrap();
     });
-    let names = ["orders"];
-    let mut call = Box::pin(admin.describe_topics_with_partition_limit_timeout(
-        names.iter(),
-        false,
-        1,
-        Duration::from_secs(1),
-    ));
-    tokio::select! {
-        result = &mut call => panic!("finished before the fourth request: {result:?}"),
-        got = fourth_rx => got.unwrap(),
-    }
-    let result = call.await;
-    assert!(matches!(result, Err(Error::Timeout)), "got {result:?}");
-    release_tx.send(()).unwrap();
+    let got = admin
+        .describe_topics_with_partition_limit_timeout(
+            ["orders"].iter(),
+            false,
+            1,
+            Duration::from_secs(5),
+        )
+        .await;
+    assert!(
+        matches!(&got, Err(Error::Protocol(message)) if message == "repeated DescribeTopicPartitions cursor"),
+        "got {got:?}"
+    );
+    assert!(!admin.conn.is_closed());
+    let raw = admin
+        .describe_topic_partitions_timeout(&["orders"], 1, None, Duration::from_secs(5))
+        .await
+        .unwrap();
+    assert_eq!(raw.topics[0].partitions[0].partition_index, 42);
     peer.await.unwrap();
 }
 
@@ -2885,5 +2887,410 @@ async fn dtp_slot_public_cross_page_case(case: u8) {
 async fn dtp_slot_index_public_cross_page_cases() {
     for case in 0..4 {
         dtp_slot_public_cross_page_case(case).await;
+    }
+}
+
+#[test]
+fn dtp_cursor_history_detects_window_and_long_periods() {
+    for period in [1usize, 2, 16, 17, 31, 32, 33, 257] {
+        let mut history = DtpCursorHistory::new();
+        let mut seen = None;
+        for position in 0..(period * 6 + 64) {
+            let partition = i32::try_from(position % period).unwrap();
+            let cursor = TopicPartitionCursor::new("orders", partition);
+            if history.contains(&cursor) {
+                seen = Some(position);
+                break;
+            }
+            history.remember("orders", partition);
+        }
+        let seen = seen.expect("periodic cursor sequence was not detected");
+        assert!(seen >= period, "detected before the first repeat");
+        if period <= 16 {
+            assert_eq!(seen, period);
+        }
+    }
+
+    let mut unique = DtpCursorHistory::new();
+    for partition in 0..4096 {
+        let cursor = TopicPartitionCursor::new("orders", partition);
+        assert!(!unique.contains(&cursor), "unique cursor {partition}");
+        unique.remember("orders", partition);
+    }
+
+    let mut bounded = DtpCursorHistory::new();
+    for partition in 0..17 {
+        bounded.remember("orders", partition);
+    }
+    assert!(!bounded.contains(&TopicPartitionCursor::new("orders", 0)));
+    assert!(bounded.contains(&TopicPartitionCursor::new("orders", 1)));
+
+    let name = String::from("orders");
+    let equal_but_separate = String::from("orders");
+    let mut topics = DtpCursorHistory::new();
+    topics.remember(&name, 7);
+    assert!(topics.contains(&TopicPartitionCursor::new(equal_but_separate, 7)));
+    assert!(!topics.contains(&TopicPartitionCursor::new("payments", 7)));
+    assert!(!topics.contains(&TopicPartitionCursor::new("orders", 8)));
+}
+
+#[test]
+fn dtp_cursor_history_counter_saturates_without_wrapping() {
+    let mut history = DtpCursorHistory::new();
+    history.checkpoint = Some(("orders", 0));
+    history.power = usize::MAX;
+    history.distance = usize::MAX - 1;
+    history.remember("orders", 1);
+    assert_eq!(history.power, usize::MAX);
+    assert_eq!(history.distance, 0);
+    assert_eq!(history.checkpoint, Some(("orders", 1)));
+    assert!(history.contains(&TopicPartitionCursor::new("orders", 1)));
+}
+
+#[tokio::test]
+async fn dtp_cursor_canonical_name_comes_from_requested_inputs() {
+    let names: Vec<String> = (0..12).map(|i| format!("topic-{i}")).collect();
+    let mut lookup = RequestedDtpNames::new(&names);
+    for query in ["topic-0", "topic-1", "topic-9", "topic-1", "topic-11"] {
+        let owned = query.to_owned();
+        let got = lookup.canonical(&owned).await.expect("requested name");
+        assert_eq!(got, query);
+        assert!(names
+            .iter()
+            .any(|name| std::ptr::eq(name.as_ptr(), got.as_ptr())));
+    }
+    assert!(lookup.canonical("unrequested").await.is_none());
+    let dup = ["orders", "payments", "orders"];
+    let mut short = RequestedDtpNames::new(&dup);
+    assert_eq!(short.canonical("orders").await, Some("orders"));
+    assert_eq!(short.canonical("payments").await, Some("payments"));
+    assert_eq!(short.canonical("missing").await, None);
+}
+
+#[tokio::test]
+async fn dtp_pagination_long_period_is_detected_and_socket_reused() {
+    let (mut admin, listener) = admin_and_listener().await;
+    let peer = tokio::spawn(async move {
+        let (mut socket, _) = listener.accept().await.unwrap();
+        socket.set_nodelay(true).unwrap();
+        for turn in 0..128usize {
+            let (header, mut body) = request(&mut socket).await;
+            assert_eq!(
+                (header.api_key, header.api_version),
+                (DESCRIBE_TOPIC_PARTITIONS, 0)
+            );
+            let (names, limit, cursor) =
+                decode_describe_topic_partitions_request(&mut body).unwrap();
+            assert_eq!(names, ["orders"]);
+            assert_eq!(limit, 1);
+            assert!(body.is_empty());
+            if turn > 0 && cursor.is_none() {
+                send_page(&mut socket, &header, &page(42, None))
+                    .await
+                    .unwrap();
+                return turn;
+            }
+            let expected = if turn == 0 {
+                None
+            } else {
+                Some(("orders", i32::try_from((turn - 1) % 17).unwrap()))
+            };
+            assert_eq!(
+                cursor
+                    .as_ref()
+                    .map(|c| (c.topic_name.as_str(), c.partition_index)),
+                expected
+            );
+            let next = i32::try_from(turn % 17).unwrap();
+            send_page(
+                &mut socket,
+                &header,
+                &page(i32::try_from(turn).unwrap(), Some(("orders", next))),
+            )
+            .await
+            .unwrap();
+        }
+        panic!("periodic sequence was not detected within the bound");
+    });
+    let got = admin
+        .describe_topics_with_partition_limit_timeout(
+            ["orders"].iter(),
+            false,
+            1,
+            Duration::from_secs(10),
+        )
+        .await;
+    assert!(
+        matches!(&got, Err(Error::Protocol(message)) if message == "repeated DescribeTopicPartitions cursor"),
+        "got {got:?}"
+    );
+    assert!(!admin.conn.is_closed());
+    let raw = admin
+        .describe_topic_partitions_timeout(&["orders"], 1, None, Duration::from_secs(5))
+        .await
+        .unwrap();
+    assert_eq!(raw.topics[0].partitions[0].partition_index, 42);
+    let requests = peer.await.unwrap();
+    assert!(requests > 17 && requests < 128);
+}
+
+#[tokio::test]
+async fn dtp_pagination_nonperiodic_old_repeat_can_pass() {
+    let (mut admin, listener) = admin_and_listener().await;
+    let peer = tokio::spawn(async move {
+        let (mut socket, _) = listener.accept().await.unwrap();
+        socket.set_nodelay(true).unwrap();
+        for turn in 0..19_i32 {
+            let expected = if turn == 0 {
+                None
+            } else if turn <= 17 {
+                Some(("orders", turn - 1))
+            } else {
+                Some(("orders", 0))
+            };
+            let header = dtp_request(&mut socket, expected).await;
+            let next = if turn < 17 {
+                Some(("orders", turn))
+            } else if turn == 17 {
+                Some(("orders", 0))
+            } else {
+                None
+            };
+            send_page(&mut socket, &header, &page(turn, next))
+                .await
+                .unwrap();
+        }
+    });
+    let got = admin
+        .describe_topics_with_partition_limit_timeout(
+            ["orders"].iter(),
+            false,
+            1,
+            Duration::from_secs(10),
+        )
+        .await
+        .unwrap();
+    assert_eq!(got.len(), 1);
+    assert_eq!(
+        got[0]
+            .partitions()
+            .iter()
+            .map(|p| p.partition)
+            .collect::<Vec<_>>(),
+        (0..19).collect::<Vec<_>>()
+    );
+    peer.await.unwrap();
+}
+
+#[tokio::test]
+async fn dtp_pagination_unordered_topic_cursors_use_full_identity() {
+    let (mut admin, listener) = admin_and_listener().await;
+    let peer = tokio::spawn(async move {
+        let (mut socket, _) = listener.accept().await.unwrap();
+        socket.set_nodelay(true).unwrap();
+        let inputs = [
+            None,
+            Some(("payments", 4)),
+            Some(("orders", 4)),
+            Some(("refunds", 4)),
+        ];
+        let outputs = [
+            Some(("payments", 4)),
+            Some(("orders", 4)),
+            Some(("refunds", 4)),
+            None,
+        ];
+        for (turn, (input, output)) in inputs.into_iter().zip(outputs).enumerate() {
+            let header =
+                dtp_named_request(&mut socket, &["orders", "payments", "refunds"], input).await;
+            let (row_name, id) = match turn {
+                0 => ("payments", 8),
+                1 | 3 => ("orders", 7),
+                _ => ("refunds", 9),
+            };
+            let mut response = page(i32::try_from(turn).unwrap(), output);
+            response.topics[0].name = Some(row_name.into());
+            response.topics[0].topic_id = [id; 16];
+            send_page(&mut socket, &header, &response).await.unwrap();
+        }
+    });
+    let got = admin
+        .describe_topics_with_partition_limit_timeout(
+            ["orders", "payments", "refunds"].iter(),
+            false,
+            1,
+            Duration::from_secs(5),
+        )
+        .await
+        .unwrap();
+    assert_eq!(
+        got.iter().map(TopicDescription::name).collect::<Vec<_>>(),
+        ["payments", "orders", "refunds"]
+    );
+    assert_eq!(
+        got[1]
+            .partitions()
+            .iter()
+            .map(|p| p.partition)
+            .collect::<Vec<_>>(),
+        [1, 3]
+    );
+    peer.await.unwrap();
+}
+
+#[tokio::test]
+async fn dtp_nonadjacent_repeat_precedes_page_errors() {
+    for case in 0..4 {
+        let (mut admin, listener) = admin_and_listener().await;
+        let peer = tokio::spawn(async move {
+            let (mut socket, _) = listener.accept().await.unwrap();
+            socket.set_nodelay(true).unwrap();
+            let first = dtp_request(&mut socket, None).await;
+            send_page(&mut socket, &first, &page(0, Some(("orders", 1))))
+                .await
+                .unwrap();
+            let second = dtp_request(&mut socket, Some(("orders", 1))).await;
+            send_page(&mut socket, &second, &page(1, Some(("orders", 2))))
+                .await
+                .unwrap();
+            let third = dtp_request(&mut socket, Some(("orders", 2))).await;
+            let mut response = page(2, Some(("orders", 1)));
+            match case {
+                0 => response.topics[0].name = None,
+                1 => response.topics[0].name = Some("unrequested".into()),
+                2 => response.topics[0].topic_id = [8; 16],
+                _ => response.topics[0].error_code = crate::error::TOPIC_AUTHORIZATION_FAILED,
+            }
+            send_page(&mut socket, &third, &response).await.unwrap();
+        });
+        let got = admin
+            .describe_topics_with_partition_limit_timeout(
+                ["orders"].iter(),
+                false,
+                1,
+                Duration::from_secs(5),
+            )
+            .await;
+        assert!(
+            matches!(&got, Err(Error::Protocol(message)) if message == "repeated DescribeTopicPartitions cursor"),
+            "case {case}: {got:?}"
+        );
+        peer.await.unwrap();
+    }
+}
+
+async fn dtp_history_inflight_case(cancel: bool) {
+    let (mut admin, listener) = admin_and_listener().await;
+    let (ready_tx, ready_rx) = tokio::sync::oneshot::channel();
+    let (release_tx, release_rx) = tokio::sync::oneshot::channel();
+    let pages = if cancel { 17_i32 } else { 2_i32 };
+    let peer = tokio::spawn(async move {
+        let (mut socket, _) = listener.accept().await.unwrap();
+        socket.set_nodelay(true).unwrap();
+        for turn in 0..pages {
+            let expected = if turn == 0 {
+                None
+            } else {
+                Some(("orders", turn))
+            };
+            let header = dtp_request(&mut socket, expected).await;
+            send_page(
+                &mut socket,
+                &header,
+                &page(turn, Some(("orders", turn + 1))),
+            )
+            .await
+            .unwrap();
+        }
+        let header = dtp_request(&mut socket, Some(("orders", pages))).await;
+        ready_tx.send(()).unwrap();
+        release_rx.await.unwrap();
+        let _late = send_page(&mut socket, &header, &page(pages, Some(("orders", 1)))).await;
+    });
+    let timeout = if cancel {
+        Duration::from_secs(10)
+    } else {
+        Duration::from_secs(2)
+    };
+    let names = ["orders"];
+    let mut call = Box::pin(admin.describe_topics_with_partition_limit_timeout(
+        names.iter(),
+        false,
+        1,
+        timeout,
+    ));
+    tokio::select! {
+        result = &mut call => panic!("finished before the held request: {result:?}"),
+        ready = ready_rx => ready.unwrap(),
+    }
+    if !cancel {
+        let got = call.as_mut().await;
+        assert!(matches!(got, Err(Error::Timeout)), "got {got:?}");
+    }
+    drop(call);
+    assert!(
+        admin.conn.is_closed(),
+        "inflight request should retire the socket"
+    );
+    release_tx.send(()).unwrap();
+    peer.await.unwrap();
+}
+
+#[tokio::test]
+async fn dtp_history_cancellation_and_deadline_retire_inflight_socket() {
+    dtp_history_inflight_case(true).await;
+    dtp_history_inflight_case(false).await;
+}
+
+#[tokio::test]
+async fn dtp_raw_page_keeps_repeated_cursor_unchanged() {
+    let (mut admin, listener) = admin_and_listener().await;
+    let peer = tokio::spawn(async move {
+        let (mut socket, _) = listener.accept().await.unwrap();
+        let header = dtp_request(&mut socket, Some(("orders", 1))).await;
+        send_page(&mut socket, &header, &page(1, Some(("orders", 1))))
+            .await
+            .unwrap();
+    });
+    let cursor = TopicPartitionCursor::new("orders", 1);
+    let raw = admin
+        .describe_topic_partitions_timeout(&["orders"], 1, Some(&cursor), Duration::from_secs(5))
+        .await
+        .unwrap();
+    assert_eq!(raw.next_cursor, Some(cursor));
+    peer.await.unwrap();
+}
+
+#[tokio::test]
+async fn dtp_cursor_canonical_matches_existing_name_lookup() {
+    for length in [0usize, 1, 8, 9, 12] {
+        let names: Vec<String> = (0..length)
+            .map(|i| format!("topic-{}", if i < 2 { i } else { i - 1 }))
+            .collect();
+        let mut original = RequestedDtpNames::new(&names);
+        let mut canonical = RequestedDtpNames::new(&names);
+        let mut queries: Vec<String> = names.iter().take(2).cloned().collect();
+        queries.push("missing".to_owned());
+        queries.extend(names.iter().rev().cloned());
+        queries.extend(names.iter().cloned());
+        queries.push("missing-again".into());
+        for (step, query) in queries.into_iter().enumerate() {
+            let before = original.contains(&query).await;
+            let matched = canonical.canonical(&query).await;
+            assert_eq!(matched.is_some(), before, "length {length}, query {query}");
+            if let Some(name) = matched {
+                assert_eq!(name, query);
+                assert!(names
+                    .iter()
+                    .any(|item| std::ptr::eq(item.as_ptr(), name.as_ptr())));
+            }
+            assert_eq!(original.hint, canonical.hint);
+            if length >= 2 && step == 1 {
+                assert_eq!(original.hint, 1, "the next-name hint should advance");
+                assert!(original.index.is_none());
+                assert!(canonical.index.is_none());
+            }
+            assert_eq!(original.index.is_some(), canonical.index.is_some());
+        }
     }
 }
