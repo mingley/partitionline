@@ -81,7 +81,12 @@ and [work plan][next] retain those results and earlier evidence.
 - **Performance.** Matched x86 comparisons against other Kafka
   implementations with independent record verification remain incomplete.
   Scoped results, including the [Admin index comparison][admin-index], are
-  not a client or server ranking. The [benchmark contract](benchmark-contract.md)
+  not a client or server ranking. A [vectored Fetch experiment][fetch-exp]
+  showed lower median time in several in-process workloads. Its Windows
+  file-backed test failed before Fetch and strict checks remain incomplete;
+  it is not applied. A
+  [producer comparison harness repair][sampler-exp] also remains isolated
+  pending integrated testing. The [benchmark contract](benchmark-contract.md)
   sets out the measurement requirements.
 
 An automatic security review stopped specific segmented-log recovery and
@@ -98,10 +103,12 @@ results and experiments.
 [broker-run]: https://github.com/mingley/partitionline/actions/runs/42662585577
 [caps-run]: https://github.com/mingley/partitionline/actions/runs/42662585652
 [history]: https://github.com/mingley/partitionline/blob/dfe179d7066e2c1afecb88df5ba76d2920308c46/docs/STATUS.md
-[next]: https://github.com/mingley/partitionline/blob/ef20cb151dc7d310ab6f16d72b82ebc6c1071574/docs/plan/next-work.md
+[next]: https://github.com/mingley/partitionline/blob/b0ae69f703bc1cec5ae3d8ce860035f08a37cb93/docs/plan/next-work.md
 [tls]: https://github.com/mingley/partitionline/blob/e18186f0cb9c25393117fe41148ae5860f52a8a0/docs/evidence/security/tls-provider-assessment-20261108/README.md
 [owner-controls]: https://github.com/mingley/partitionline/blob/e18186f0cb9c25393117fe41148ae5860f52a8a0/docs/evidence/client/producer-ownership-regression-controls-20261108/README.md
 [owner-draft]: https://github.com/mingley/partitionline/blob/ed86c9c937dd3f5a7edb73858a6474b04073a827/docs/evidence/client/producer-owned-batch-rust-draft-20261108/README.md
 [quota]: https://github.com/mingley/partitionline/blob/ed86c9c937dd3f5a7edb73858a6474b04073a827/docs/evidence/broker/quota-produce-design-20261108/README.md
 [admin-index]: https://github.com/mingley/partitionline/blob/89a8e2e5ae2ab28942be66c8bd7e0390032b4450/docs/evidence/client/admin-dtp-slot-index-20261108/README.md
 [schema-retry]: https://github.com/mingley/partitionline/blob/ef20cb151dc7d310ab6f16d72b82ebc6c1071574/docs/evidence/schema/retry-after-20261109/README.md
+[fetch-exp]: https://github.com/mingley/partitionline/blob/b0ae69f703bc1cec5ae3d8ce860035f08a37cb93/docs/evidence/broker/fetch-indexed-vectored-20261109/README.md
+[sampler-exp]: https://github.com/mingley/partitionline/blob/b0ae69f703bc1cec5ae3d8ce860035f08a37cb93/docs/evidence/perf/kafka-ack-sampling-20261109/README.md
