@@ -24,26 +24,28 @@ the current TLS and OIDC behavior.
 ## Validation
 
 The latest complete recorded snapshot is main commit
-`669f5b1e58103530f2a75020444d3148a9735f7e`; the [CI record][ci] links
+`fd4fd96e3bda329eef213180e4c38a9047d8a361`; the [CI record][ci] links
 the individual runs and results. The current branch contains later changes.
 
-| Check at `669f5b1` | Result |
+| Check at `fd4fd96` | Result |
 | --- | --- |
-| Client library, Linux default | 2,312 passed, 16 failed; later targets did not run. |
-| Client library, Linux all features | 2,313 passed, 15 failed; later targets did not run. |
-| Client library, Windows default | 2,306 passed, 22 failed; later runtime and package steps did not run. |
-| Client library, macOS arm64 default | 2,317 passed, 11 failed; later runtime and package steps did not run. |
+| Client library, Linux default | 2,307 passed, 21 failed; later targets did not run. |
+| Client library, Linux all features | 2,307 passed, 21 failed; later targets did not run. |
+| Client library, Windows default | 2,307 passed, 21 failed; later runtime and package steps did not run. |
+| Client library, macOS arm64 default | 2,314 passed, 14 failed; later runtime and package steps did not run. |
 | Kafka compatibility | 4.1.2, 4.2.1 and 4.3.1 profiles failed; 3.9.1 and 4.1.0 smoke jobs failed. |
-| Resource-soak job | Setup failed on an OS-denied `/proc` access; zero tests ran and no campaign completed. |
-| Broker default targets | 580 passed, one failed and four ignored across the targets reached; later targets did not run. |
-| Broker all-feature and strict checks | Not run after the default failure. Inventory and fuzz supervision passed separately. |
+| Resource-soak CI job | Passed its finite job; no 24-hour campaign completed. |
+| Broker default and all-feature targets | 814 and 962 passed respectively, with four ignored in each profile. |
+| Broker strict checks, inventory and fuzz supervision | Passed. |
 | Client capability profiles | Both selected profiles passed; their archives were not independently inspected. |
 | Client format, Clippy, audit, docs, package, auth and integrity smoke | Passed. Other jobs failed or were skipped. |
 | Instruction-count gate | No baseline for this Rust version; no regression comparison. |
 
-The [preceding broker run][ci-71] passed both feature profiles; that pass does
-not explain the latest failure. An [earlier run][ci-previous] stopped after
-579 passes, two failures and four ignored across default targets.
+The [preceding complete snapshot][ci-669] stopped the broker default suite
+after 580 passes, one failure and four ignored, and its resource-soak setup
+failed on an OS-denied `/proc` access. The later passes do not explain those
+failures. An [earlier broker run][ci-previous] stopped after 579 passes, two
+failures and four ignored across default targets.
 
 The [combined-head checks][combined] passed formatting, strict client checks,
 focused Admin, producer and broker transport tests in both feature profiles,
@@ -167,9 +169,9 @@ The [work plan][next] and its linked evidence track the outstanding work.
 The [previous detailed status][history] preserves earlier qualification
 results and experiments.
 
-[ci]: https://github.com/mingley/partitionline/blob/7cfe6afd22d4099e602365e8a71428913eecf567/docs/evidence/releases/main-ci-669-20261109/README.md
+[ci]: https://github.com/mingley/partitionline/blob/88a6dc53222445aa611b4b782ed832aed433ed99/docs/evidence/releases/main-ci-fd4-20261109/README.md
 [history]: https://github.com/mingley/partitionline/blob/dfe179d7066e2c1afecb88df5ba76d2920308c46/docs/STATUS.md
-[next]: https://github.com/mingley/partitionline/blob/ad0e8944dcd5e5a704e1a1d5439aa3e0d84a43f4/docs/plan/next-work.md
+[next]: https://github.com/mingley/partitionline/blob/88a6dc53222445aa611b4b782ed832aed433ed99/docs/plan/next-work.md
 [tls]: https://github.com/mingley/partitionline/blob/e18186f0cb9c25393117fe41148ae5860f52a8a0/docs/evidence/security/tls-provider-assessment-20261108/README.md
 [owner-controls]: https://github.com/mingley/partitionline/blob/e18186f0cb9c25393117fe41148ae5860f52a8a0/docs/evidence/client/producer-ownership-regression-controls-20261108/README.md
 [owner-draft]: https://github.com/mingley/partitionline/blob/ed86c9c937dd3f5a7edb73858a6474b04073a827/docs/evidence/client/producer-owned-batch-rust-draft-20261108/README.md
@@ -215,3 +217,5 @@ results and experiments.
 [schema-responses]: https://github.com/mingley/partitionline/blob/b54eda17ca32a200345a983b76d063be76c7b048/docs/evidence/schema/http-response-semantics-20261109/README.md
 
 [quota-live]: https://github.com/mingley/partitionline/blob/ad0e8944dcd5e5a704e1a1d5439aa3e0d84a43f4/docs/evidence/broker/produce-quota-live-idle-20261109/README.md
+
+[ci-669]: https://github.com/mingley/partitionline/blob/7cfe6afd22d4099e602365e8a71428913eecf567/docs/evidence/releases/main-ci-669-20261109/README.md
