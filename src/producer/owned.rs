@@ -104,24 +104,29 @@ impl Owner {
 
     fn admit(&self, slot: &Slot) -> Result<()> {
         let mut state = self.state.lock();
-        if self.sealed.load(Ordering::SeqCst) || self.closed.load(Ordering::SeqCst) {
+        if self.closed.load(Ordering::SeqCst) {
             return Err(Error::Closed);
         }
-        if slot.stage.load(Ordering::SeqCst) == PREPARED {
-            let ticket = match state.next_ticket.checked_add(1) {
-                Some(ticket) => ticket,
-                None => {
-                    self.sealed.store(true, Ordering::SeqCst);
-                    self.closed.store(true, Ordering::SeqCst);
-                    self.permits.close();
-                    self.changed.notify_waiters();
-                    return Err(Error::protocol("producer admission counter exhausted"));
-                }
-            };
-            state.next_ticket = ticket;
-            slot.ticket.store(ticket, Ordering::SeqCst);
-            slot.stage.store(ADMITTED, Ordering::SeqCst);
+        match slot.stage.load(Ordering::SeqCst) {
+            // An orderly admission seal must not reject a retry for a slot
+            // already included in its cutoff. A fatal close still rejects it.
+            ADMITTED => return Ok(()),
+            PREPARED if !self.sealed.load(Ordering::SeqCst) => {}
+            _ => return Err(Error::Closed),
         }
+        let ticket = match state.next_ticket.checked_add(1) {
+            Some(ticket) => ticket,
+            None => {
+                self.sealed.store(true, Ordering::SeqCst);
+                self.closed.store(true, Ordering::SeqCst);
+                self.permits.close();
+                self.changed.notify_waiters();
+                return Err(Error::protocol("producer admission counter exhausted"));
+            }
+        };
+        state.next_ticket = ticket;
+        slot.ticket.store(ticket, Ordering::SeqCst);
+        slot.stage.store(ADMITTED, Ordering::SeqCst);
         Ok(())
     }
 
@@ -360,6 +365,37 @@ pub(super) async fn supervise(shared: Arc<Shared>, owner: Arc<Owner>) {
 mod tests {
     use super::*;
     use std::sync::atomic::{AtomicBool, Ordering};
+
+    #[test]
+    fn sealed_owner_accepts_only_previously_admitted_retries() {
+        let closed = Arc::new(AtomicBool::new(false));
+        let owner = Owner::new(2, Arc::clone(&closed));
+        let slot = |id| Slot {
+            id,
+            payload: parking_lot::Mutex::new(None),
+            stage: AtomicU8::new(PREPARED),
+            ticket: AtomicU64::new(0),
+            sticky_retired: AtomicBool::new(false),
+            _permit: Arc::clone(&owner.permits).try_acquire_owned().unwrap(),
+        };
+        let admitted = slot(1);
+        let prepared = slot(2);
+
+        owner.admit(&admitted).unwrap();
+        assert_eq!(admitted.ticket.load(Ordering::SeqCst), 1);
+        owner.seal();
+
+        owner.admit(&admitted).unwrap();
+        assert_eq!(admitted.ticket.load(Ordering::SeqCst), 1);
+        assert_eq!(owner.cutoff(), 1);
+        assert!(matches!(owner.admit(&prepared), Err(Error::Closed)));
+
+        closed.store(true, Ordering::SeqCst);
+        assert!(matches!(owner.admit(&admitted), Err(Error::Closed)));
+        closed.store(false, Ordering::SeqCst);
+        admitted.stage.store(COMPLETING, Ordering::SeqCst);
+        assert!(matches!(owner.admit(&admitted), Err(Error::Closed)));
+    }
 
     #[derive(Default)]
     struct DropGate {
