@@ -1,0 +1,145 @@
+name: Produce quota disabled paired check
+on:
+  push:
+    branches: [qualification/produce-quota-broad-20261109]
+permissions:
+  contents: read
+jobs:
+  compatibility-and-pair:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    env:
+      CARGO_BUILD_JOBS: "2"
+      CARGO_INCREMENTAL: "0"
+      CARGO_TARGET_DIR: ${{ runner.temp }}/quota-pair-target
+      CARGO_TERM_COLOR: never
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          path: candidate
+          sparse-checkout: |
+            partitionline-broker
+      - uses: actions/checkout@v7
+        with:
+          ref: a7b6edc1645e3a4789cf699a3b9e7656c55a3d10
+          path: baseline
+          sparse-checkout: |
+            partitionline-broker
+      - uses: dtolnay/rust-toolchain@stable
+      - id: pin
+        name: Verify baseline commit and candidate source tree
+        run: |
+          set -euo pipefail
+          test "$(git -C candidate rev-parse HEAD:partitionline-broker)" = 72bc455828e7bf4dc80b4fcb910f13193844deb6
+          test "$(git -C baseline rev-parse HEAD)" = a7b6edc1645e3a4789cf699a3b9e7656c55a3d10
+          rustc -Vv
+          lscpu | sed -n '1,20p'
+          cp -a candidate/partitionline-broker "$RUNNER_TEMP/quota-candidate"
+          cp -a baseline/partitionline-broker "$RUNNER_TEMP/quota-baseline"
+      - name: Downstream legacy Handler and ExchangeOutcome compatibility
+        if: always() && steps.pin.outcome == 'success'
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/quota-compat/src"
+          cat > "$RUNNER_TEMP/quota-compat/Cargo.toml" <<'TOML'
+          [package]
+          name = "quota-compat-check"
+          version = "0.0.0"
+          edition = "2021"
+          [workspace]
+          [dependencies]
+          partitionline-broker = { path = "broker" }
+          TOML
+          cat > "$RUNNER_TEMP/quota-compat/src/main.rs" <<'RS'
+          use std::convert::Infallible;
+          use partitionline_broker::transport::{ExchangeOutcome, Handler, Peer};
+          struct Legacy;
+          impl Handler for Legacy {
+              type Error = Infallible;
+              async fn handle(&self, request: Vec<u8>) -> Result<Option<Vec<u8>>, Self::Error> {
+                  Ok(Some(request))
+              }
+              async fn exchange_request(
+                  &self, _peer: &Peer, request: Vec<u8>, spare: Vec<u8>,
+              ) -> Result<ExchangeOutcome, Self::Error> {
+                  Ok(ExchangeOutcome { response: Some(request.clone()), request, spare })
+              }
+          }
+          struct DefaultMethod;
+          impl Handler for DefaultMethod {
+              type Error = Infallible;
+              async fn handle(&self, _: Vec<u8>) -> Result<Option<Vec<u8>>, Self::Error> {
+                  Ok(None)
+              }
+          }
+          fn main() {
+              let _ = (Legacy, DefaultMethod);
+              let _ = ExchangeOutcome { response: None, request: Vec::new(), spare: Vec::new() };
+          }
+          RS
+          for variant in baseline candidate; do
+            ln -s "$RUNNER_TEMP/quota-$variant" "$RUNNER_TEMP/quota-compat/broker"
+            cargo check --manifest-path "$RUNNER_TEMP/quota-compat/Cargo.toml"
+            rm "$RUNNER_TEMP/quota-compat/broker"
+          done
+      - name: Paired unthrottled Produce dispatch on one hosted x86 runner
+        if: always() && steps.pin.outcome == 'success'
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/quota-baseline/src/bin" "$RUNNER_TEMP/quota-candidate/src/bin"
+          cat > "$RUNNER_TEMP/quota-perf.rs" <<'RS'
+          use partitionline_broker::{fetch, metadata::{Config, Router}, produce};
+          use std::{error::Error, fs, hint::black_box, path::Path, time::Instant};
+          #[tokio::main(flavor = "multi_thread", worker_threads = 2)]
+          async fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
+              let variant = std::env::args().nth(1).ok_or("missing variant")?;
+              let root = std::env::temp_dir().join(format!("quota-pair-{}", std::process::id()));
+              fs::create_dir_all(&root)?;
+              let config = Config::new(0, "127.0.0.1".into(), 19095, "quota-bench".into());
+              let (router, _) = Router::open_with_read_store(
+                  root.join("catalog"), config, produce::Config::new(root.join("parts")),
+                  fetch::Limits::default(),
+              ).await?;
+              let request = fs::read(Path::new(env!("CARGO_MANIFEST_DIR"))
+                  .join("tests/fixtures/produce/4.3.1/produce-v3-acks1.request.bin"))?;
+              for _ in 0..2_000 {
+                  let response = router.dispatch(request.clone()).await?;
+                  if response.is_none() { return Err("missing warmup response".into()); }
+                  drop(black_box(response));
+              }
+              let started = Instant::now();
+              for _ in 0..20_000 {
+                  let response = router.dispatch(request.clone()).await?;
+                  if response.is_none() { return Err("missing response".into()); }
+                  drop(black_box(response));
+              }
+              let elapsed = started.elapsed().as_secs_f64();
+              router.shutdown().await?;
+              fs::remove_dir_all(root)?;
+              println!("{variant},20000,{elapsed:.9}");
+              Ok(())
+          }
+          RS
+          for variant in baseline candidate; do
+            cp "$RUNNER_TEMP/quota-perf.rs" "$RUNNER_TEMP/quota-$variant/src/bin/quota-disabled-paired.rs"
+            cargo build --locked --release --manifest-path "$RUNNER_TEMP/quota-$variant/Cargo.toml" --bin quota-disabled-paired
+            cp "$CARGO_TARGET_DIR/release/quota-disabled-paired" "$RUNNER_TEMP/quota-$variant-bin"
+          done
+          : > "$RUNNER_TEMP/quota-pairs.csv"
+          for n in 1 2 3 4 5 6; do
+            if (( n % 2 == 1 )); then
+              "$RUNNER_TEMP/quota-baseline-bin" baseline >> "$RUNNER_TEMP/quota-pairs.csv"
+              "$RUNNER_TEMP/quota-candidate-bin" candidate >> "$RUNNER_TEMP/quota-pairs.csv"
+            else
+              "$RUNNER_TEMP/quota-candidate-bin" candidate >> "$RUNNER_TEMP/quota-pairs.csv"
+              "$RUNNER_TEMP/quota-baseline-bin" baseline >> "$RUNNER_TEMP/quota-pairs.csv"
+            fi
+          done
+          cat "$RUNNER_TEMP/quota-pairs.csv"
+          python3 - "$RUNNER_TEMP/quota-pairs.csv" <<'PY'
+          import csv, statistics, sys
+          rows = list(csv.reader(open(sys.argv[1], encoding="utf-8")))
+          data = {key: [float(row[2]) for row in rows if row[0] == key] for key in ("baseline", "candidate")}
+          b, c = (statistics.median(data[key]) for key in ("baseline", "candidate"))
+          print(f"median baseline={b:.9f}s candidate={c:.9f}s elapsed_change={(c / b - 1) * 100:+.2f}%")
+          PY

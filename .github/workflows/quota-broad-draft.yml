@@ -1,0 +1,58 @@
+name: Produce quota broad draft qualification
+on:
+  push:
+    branches: [qualification/produce-quota-broad-20261109]
+permissions:
+  contents: read
+jobs:
+  broker:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 55
+    env:
+      CARGO_BUILD_JOBS: "2"
+      CARGO_INCREMENTAL: "0"
+      CARGO_PROFILE_DEV_DEBUG: "0"
+      CARGO_PROFILE_TEST_DEBUG: "0"
+      CARGO_TERM_COLOR: never
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          sparse-checkout: |
+            partitionline-broker
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy, rustfmt
+      - id: pin
+        name: Verify the entire broker source tree
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD:partitionline-broker)" = 72bc455828e7bf4dc80b4fcb910f13193844deb6
+          rustc -Vv
+          cp -a partitionline-broker "$RUNNER_TEMP/quota-candidate"
+      - name: Broker format
+        if: always() && steps.pin.outcome == 'success'
+        run: cargo fmt --manifest-path "$RUNNER_TEMP/quota-candidate/Cargo.toml" -- --check
+      - name: Locked default-feature behavioral tests
+        if: always() && steps.pin.outcome == 'success'
+        run: cargo test --locked --manifest-path "$RUNNER_TEMP/quota-candidate/Cargo.toml" --all-targets
+      - name: Locked all-feature behavioral tests
+        if: always() && steps.pin.outcome == 'success'
+        run: cargo test --locked --manifest-path "$RUNNER_TEMP/quota-candidate/Cargo.toml" --all-targets --all-features
+      - name: Strict all-feature broker Clippy
+        if: always() && steps.pin.outcome == 'success'
+        run: cargo clippy --locked --manifest-path "$RUNNER_TEMP/quota-candidate/Cargo.toml" --all-targets --all-features -- -D warnings
+      - name: Strict all-feature broker Rustdoc
+        if: always() && steps.pin.outcome == 'success'
+        env:
+          RUSTDOCFLAGS: -D warnings
+        run: cargo doc --locked --manifest-path "$RUNNER_TEMP/quota-candidate/Cargo.toml" --all-features --no-deps
+      - name: Strict default-feature broker doctests
+        if: always() && steps.pin.outcome == 'success'
+        env:
+          RUSTDOCFLAGS: -D warnings
+        run: cargo test --locked --manifest-path "$RUNNER_TEMP/quota-candidate/Cargo.toml" --doc
+      - name: Strict all-feature broker doctests
+        if: always() && steps.pin.outcome == 'success'
+        env:
+          RUSTDOCFLAGS: -D warnings
+        run: cargo test --locked --manifest-path "$RUNNER_TEMP/quota-candidate/Cargo.toml" --doc --all-features
