@@ -33,8 +33,9 @@ have separate tests, and the companion remains unpublished.
 ## HTTP response limits
 
 The client reads informational HTTP responses before the final response.
-It supports a single `chunked` transfer coding; other or repeated transfer
-codings are rejected.
+It treats HTTP 101 as an unsupported status, and does not wait for a body
+after 101, 204 or 304. It supports a single `chunked` transfer coding;
+other or repeated transfer codings are rejected.
 
 The configured body limit applies to decoded bytes for Content-Length,
 chunked and close-delimited responses. The combined informational and final

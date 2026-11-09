@@ -2144,13 +2144,10 @@ mod tests {
                     position: 0,
                     max_read: width,
                 };
-                let response = read_http_response(
-                    &mut stream,
-                    Instant::now() + Duration::from_secs(3),
-                    1024,
-                )
-                .await
-                .unwrap();
+                let response =
+                    read_http_response(&mut stream, Instant::now() + Duration::from_secs(3), 1024)
+                        .await
+                        .unwrap();
                 assert_eq!(response.status, 429, "width {width}");
                 assert_eq!(response.retry_after_secs, Some(7), "width {width}");
                 assert_eq!(response.body, b"abcde", "width {width}");
@@ -2201,8 +2198,12 @@ mod tests {
             .write_all(b"HTTP/1.1 100 Continue\r\n\r\n")
             .await
             .unwrap();
-        let result =
-            read_http_response(&mut reader, Instant::now() + Duration::from_millis(50), 1024).await;
+        let result = read_http_response(
+            &mut reader,
+            Instant::now() + Duration::from_millis(50),
+            1024,
+        )
+        .await;
         assert!(matches!(result, Err(RegistryError::Timeout)));
         drop(writer);
     }
@@ -2239,11 +2240,15 @@ mod tests {
             &b"HTTP/1.1 200 OK\r\nTransfer-Encoding: chunked, gzip\r\n\r\n"[..],
             &b"HTTP/1.1 200 OK\r\nTransfer-Encoding: chunked, chunked\r\n\r\n"[..],
             &b"HTTP/1.1 200 OK\r\nTransfer-Encoding: chunked\r\nTransfer-Encoding: gzip\r\n\r\n"[..],
-            &b"HTTP/1.1 200 OK\r\nTransfer-Encoding: chunked\r\nTransfer-Encoding: Chunked\r\n\r\n"[..],
+            &b"HTTP/1.1 200 OK\r\nTransfer-Encoding: chunked\r\nTransfer-Encoding: Chunked\r\n\r\n"
+                [..],
             &b"HTTP/1.1 200 OK\r\nTransfer-Encoding: gzip\r\nTransfer-Encoding: chunked\r\n\r\n"[..],
             &b"HTTP/1.1 200 OK\r\nTransfer-Encoding: chunked,\r\n\r\n"[..],
         ] {
-            assert!(matches!(is_chunked(head), Err(RegistryError::Malformed { .. })));
+            assert!(matches!(
+                is_chunked(head),
+                Err(RegistryError::Malformed { .. })
+            ));
         }
         assert!(is_chunked(b"HTTP/1.1 200 OK\r\ntRaNsFeR-EnCoDiNg: \tCHUNKED \t\r\n\r\n").unwrap());
         assert!(!is_chunked(b"HTTP/1.1 200 OK\r\nContent-Length: 2\r\n\r\n").unwrap());

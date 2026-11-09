@@ -69,7 +69,10 @@ async fn unsupported_transfer_coding_is_not_silently_accepted() {
     wire.extend_from_slice(body);
     wire.extend_from_slice(b"\r\n0\r\n\r\n");
     let result = client_for(wire).await.get_schema_by_id(7).await;
-    assert!(matches!(result, Err(RegistryError::Malformed { .. })), "{result:?}");
+    assert!(
+        matches!(result, Err(RegistryError::Malformed { .. })),
+        "{result:?}"
+    );
 }
 
 #[tokio::test]
