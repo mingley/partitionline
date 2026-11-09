@@ -1,0 +1,46 @@
+name: Format isolated Produce quota draft
+on:
+  push:
+    branches: [qualification/produce-quota-format-matrix-20261109]
+permissions:
+  contents: read
+jobs:
+  format:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+      - name: Verify broker source and format touched files
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD:partitionline-broker)" = 6cf645d3f4cfbff389bd4514c253e5bae200430f
+          rustfmt -V
+          for f in partitionline-broker/src/metadata.rs partitionline-broker/src/produce.rs partitionline-broker/src/transport.rs partitionline-broker/src/metadata/bandwidth.rs partitionline-broker/tests/produce_quota.rs partitionline-broker/tests/sasl_sessions.rs; do
+            rustfmt --edition 2021 --config skip_children=true "$f"
+          done
+          git diff --stat -- partitionline-broker/src/metadata.rs partitionline-broker/src/produce.rs partitionline-broker/src/transport.rs partitionline-broker/src/metadata/bandwidth.rs partitionline-broker/tests/produce_quota.rs
+      - name: Emit formatted touched files
+        run: |
+          python3 - <<'PY'
+          import base64
+          from pathlib import Path
+          paths = [
+              "partitionline-broker/src/metadata.rs",
+              "partitionline-broker/src/produce.rs",
+              "partitionline-broker/src/transport.rs",
+              "partitionline-broker/src/metadata/bandwidth.rs",
+              "partitionline-broker/tests/produce_quota.rs",
+              "partitionline-broker/tests/sasl_sessions.rs",
+          ]
+          for name in paths:
+              data = base64.b64encode(Path(name).read_bytes()).decode("ascii")
+              print("FMT_BEGIN " + name)
+              for i in range(0, len(data), 120):
+                  print("FMT_DATA " + data[i:i+120])
+              print("FMT_END " + name)
+          PY
+      - name: Check full broker formatting
+        run: cargo fmt --manifest-path partitionline-broker/Cargo.toml -- --check
