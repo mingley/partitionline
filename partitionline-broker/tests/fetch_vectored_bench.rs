@@ -116,6 +116,7 @@ async fn successful_fetch_bench() -> Result<(), Box<dyn Error>> {
             fetch::Limits::default(),
         ).await?.0;
         for count in [1usize, 16, 128] {
+            let n = n * match count { 1 => 10, 16 => 3, _ => 1 };
             let request = request(input.len() * count);
             let expected = expected(&input, count);
             assert_eq!(router.respond(request.clone()).await?, expected);

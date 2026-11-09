@@ -1246,6 +1246,8 @@ fn read_exact_into(reader: &mut impl Read, dest: &mut Vec<u8>, len: usize) -> Re
 /// Read the known-size header and a small payload together when the reader
 /// supports vectored I/O. The index supplies the allocation bound; the on-disk
 /// header and payload are still checked independently before publication.
+/// Small payloads are zero-filled before reading. A vectored I/O error can
+/// be reported before a corrupt header is identified.
 fn read_indexed_entry(
     reader: &mut impl Read,
     index: &Index,
@@ -2669,6 +2671,32 @@ mod tests {
             read_indexed_entry(&mut reader, &index, Limits::default(), &mut Vec::new()),
             Err(Error::Io(error)) if error.kind() == io::ErrorKind::Other
         ));
+    }
+
+    #[test]
+    fn indexed_fetch_file_rejects_corrupt_payload_and_rolls_back(
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        let root = ownership_test_dir("fetch-corrupt")?;
+        let path = root.join("log");
+        let (mut log, _) = Journal::open(&path, 0, Limits::default())?;
+        log.append(1, b"the payload")?;
+        let mut disk = OpenOptions::new().write(true).open(&path)?;
+        disk.seek(SeekFrom::Start((FILE_HEADER + ENTRY_HEADER) as u64))?;
+        disk.write_all(b"X")?;
+        drop(disk);
+        let mut dest = b"earlier".to_vec();
+        assert!(matches!(
+            log.inner.fetch_one_into(0, 1024, &mut dest),
+            Err(Error::Corrupt {
+                kind: Corruption::PayloadChecksum,
+                ..
+            })
+        ));
+        assert_eq!(dest, b"earlier");
+        assert!(log.is_poisoned());
+        drop(log);
+        std::fs::remove_dir_all(root)?;
+        Ok(())
     }
 
     #[test]
