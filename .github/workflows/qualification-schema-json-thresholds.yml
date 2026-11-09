@@ -1,0 +1,57 @@
+name: Compare Schema Registry JSON thresholds
+on:
+  push:
+    branches: [qualification/schema-json-thresholds-20261109]
+permissions:
+  contents: read
+jobs:
+  compare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Compile pinned sources independently
+        shell: bash
+        run: |
+          set -euo pipefail
+          rustc -Vv
+          cargo -V
+          uname -a
+          lscpu
+          for implementation in baseline index64 index128; do
+            case "$implementation" in
+              baseline) expected=23fe4965d21fd260f54bd6e94595a0ea994d870c ;;
+              index64) expected=1f8cf71a2434cd99dc890df2f29ae0ab1079529c ;;
+              index128) expected=0585b41beb9c9b8fb9d7df797eb849bb151f6d1b ;;
+            esac
+            cp ".qualification/threshold-$implementation.rs" partitionline-schema/src/registry.rs
+            test "$(git hash-object partitionline-schema/src/registry.rs)" = "$expected"
+            sha256sum partitionline-schema/src/registry.rs
+            CARGO_TARGET_DIR="$RUNNER_TEMP/threshold-target-$implementation" cargo test --manifest-path partitionline-schema/Cargo.toml --locked --release --lib --no-run
+            find "$RUNNER_TEMP/threshold-target-$implementation/release/deps" -maxdepth 1 -type f -name 'partitionline_schema-*' -executable -exec cp {} "$RUNNER_TEMP/threshold-$implementation" \;
+          done
+          sha256sum "$RUNNER_TEMP/threshold-baseline" "$RUNNER_TEMP/threshold-index64" "$RUNNER_TEMP/threshold-index128"
+      - name: Alternate threshold samples
+        shell: bash
+        run: |
+          set -euo pipefail
+          cpu=$(python3 -c 'import os; print(min(os.sched_getaffinity(0)))')
+          echo "Pinned CPU $cpu"
+          for implementation in baseline index64 index128; do
+            taskset -c "$cpu" "$RUNNER_TEMP/threshold-$implementation" --ignored --exact registry::tests::json_object_qualification_bench --nocapture
+          done
+          for pair in $(seq 1 12); do
+            case $((pair % 6)) in
+              0) order="baseline index64 index128" ;;
+              1) order="baseline index128 index64" ;;
+              2) order="index64 baseline index128" ;;
+              3) order="index64 index128 baseline" ;;
+              4) order="index128 baseline index64" ;;
+              5) order="index128 index64 baseline" ;;
+            esac
+            for implementation in $order; do
+              echo "PL_PAIR pair=$pair implementation=$implementation"
+              taskset -c "$cpu" "$RUNNER_TEMP/threshold-$implementation" --ignored --exact registry::tests::json_object_qualification_bench --nocapture
+            done
+          done
