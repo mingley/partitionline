@@ -11,16 +11,16 @@ an established fastest-in-the-world result. Client 0.1.0 is published; the
 next client release must be at least 0.2.0. The experimental broker and schema
 companion are unpublished.
 
-The latest complete [main CI record](../evidence/releases/main-ci-669-20261109/README.md)
-is for `669f5b1e58103530f2a75020444d3148a9735f7e`. Linux client libraries
-reported 2,312 passes and 16 failures with default features and 2,313 passes
-and 15 failures with all features. Windows reported 2,306 passes and 22
-failures; macOS reported 2,317 passes and 11 failures. All three current Kafka
-compatibility jobs and both historical smoke jobs failed. The broker default
-suite stopped after 580 passes, one failure and four ignored tests across the
-targets reached; its all-feature and strict checks did not run. The
-resource-soak driver failed before tests when the OS denied a `/proc` access;
-no sustained campaign has passed.
+The latest complete [main CI record](../evidence/releases/main-ci-fd4-20261109/README.md)
+is for `fd4fd96e3bda329eef213180e4c38a9047d8a361`. Linux client libraries
+reported 2,307 passes and 21 failures in both default and all-feature profiles.
+Windows reported 2,307 passes and 21 failures; macOS reported 2,314 passes and
+14 failures. All three current Kafka compatibility jobs and both historical
+smoke jobs failed. The broker passed 814 default and 962 all-feature tests,
+with four ignored in each profile, plus strict checks. The finite resource-soak
+CI job passed; no sustained campaign has passed. The earlier [669 snapshot](../evidence/releases/main-ci-669-20261109/README.md)
+had a broker failure and an OS-denied `/proc` access; the later passes do not
+explain them.
 
 Separate [combined-head checks](../evidence/ci/combined-a7b6-20261109/README.md)
 at `a7b6edc1645e3a4789cf699a3b9e7656c55a3d10` passed focused Admin, producer
