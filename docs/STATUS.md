@@ -123,8 +123,9 @@ and [work plan][next] retain those results and earlier evidence.
   describe the remaining work. The initial [quota draft][quota-draft] was
   uncompiled and had an unbounded resume deadline. A newer [quota candidate][quota-candidate]
   passed focused controls but failed its full all-feature suite; it is not
-  applied. The
-  [transport fix][transport-fix] backpressures valid pipelines when read-ahead
+  applied. A [live Kafka quota probe and idle-close control][quota-live]
+  add scoped evidence; the related EOF refinement remains unapplied after a
+  formatting failure. The [transport fix][transport-fix] backpressures valid pipelines when read-ahead
   is full. A disconnect behind that buffer may be
   observed only after the active handler completes or reaches its deadline.
   Both full broker feature profiles and strict checks passed on its candidate.
@@ -168,7 +169,7 @@ results and experiments.
 
 [ci]: https://github.com/mingley/partitionline/blob/7cfe6afd22d4099e602365e8a71428913eecf567/docs/evidence/releases/main-ci-669-20261109/README.md
 [history]: https://github.com/mingley/partitionline/blob/dfe179d7066e2c1afecb88df5ba76d2920308c46/docs/STATUS.md
-[next]: https://github.com/mingley/partitionline/blob/b54eda17ca32a200345a983b76d063be76c7b048/docs/plan/next-work.md
+[next]: https://github.com/mingley/partitionline/blob/ad0e8944dcd5e5a704e1a1d5439aa3e0d84a43f4/docs/plan/next-work.md
 [tls]: https://github.com/mingley/partitionline/blob/e18186f0cb9c25393117fe41148ae5860f52a8a0/docs/evidence/security/tls-provider-assessment-20261108/README.md
 [owner-controls]: https://github.com/mingley/partitionline/blob/e18186f0cb9c25393117fe41148ae5860f52a8a0/docs/evidence/client/producer-ownership-regression-controls-20261108/README.md
 [owner-draft]: https://github.com/mingley/partitionline/blob/ed86c9c937dd3f5a7edb73858a6474b04073a827/docs/evidence/client/producer-owned-batch-rust-draft-20261108/README.md
@@ -212,3 +213,5 @@ results and experiments.
 [bench-validator]: https://github.com/mingley/partitionline/blob/4664aa3fc47f719a726e049535bdf48b8453094b/docs/evidence/perf/benchmark-report-validation-20261109/README.md
 
 [schema-responses]: https://github.com/mingley/partitionline/blob/b54eda17ca32a200345a983b76d063be76c7b048/docs/evidence/schema/http-response-semantics-20261109/README.md
+
+[quota-live]: https://github.com/mingley/partitionline/blob/ad0e8944dcd5e5a704e1a1d5439aa3e0d84a43f4/docs/evidence/broker/produce-quota-live-idle-20261109/README.md
