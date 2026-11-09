@@ -1564,8 +1564,9 @@ async fn exchange<H: Handler, S: AsyncRead + AsyncWrite + Unpin>(
             };
             #[cfg(feature = "oidc")]
             let operation = authorized(lease, operation);
-            // A client that closes while the handler is still running must not
-            // keep that handler and its connection until the handler deadline.
+            // Observe disconnects while read-ahead has room. Once it is full,
+            // unread bytes can hide EOF until the handler completes; the
+            // original handler deadline and shutdown still bound the work.
             let outcome = tokio::select! {
                 biased;
                 closed = watch_disconnect(
