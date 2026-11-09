@@ -1,11 +1,11 @@
-name: Produce quota draft compile controls
+name: Produce quota bounded draft controls
 on:
   push:
     branches: [qualification/produce-bandwidth-draft-20261109]
 permissions:
   contents: read
 jobs:
-  compile:
+  controls:
     runs-on: ubuntu-24.04
     timeout-minutes: 40
     env:
@@ -22,16 +22,28 @@ jobs:
       - name: Verify pinned draft inputs
         run: |
           set -euo pipefail
-          test "$(git rev-parse HEAD:partitionline-broker/src/metadata.rs)" = cb2691a9cf1376f672ecddae57ecae17b88bbc8b
+          test "$(git rev-parse HEAD:partitionline-broker/src/metadata.rs)" = 937a81f02ca0290e3e359e7ce5f9604fcb39a203
           test "$(git rev-parse HEAD:partitionline-broker/src/produce.rs)" = eef46eba9f965ae3d0446d08b4772a1ed014e191
-          test "$(git rev-parse HEAD:partitionline-broker/src/transport.rs)" = a5dd6531473ba1b3b5bd8de233c3a78dce50a1c4
-          test "$(git rev-parse HEAD:partitionline-broker/src/metadata/bandwidth.rs)" = 4bdf75bf25745c56d2e0d637ea2fa6697cd7bb8d
+          test "$(git rev-parse HEAD:partitionline-broker/src/transport.rs)" = db3cfc6883b83d5f23ced809a7208bdc0f731794
+          test "$(git rev-parse HEAD:partitionline-broker/src/metadata/bandwidth.rs)" = e575c8f49d71a3784099b6f42d0f23d310e3e691
+          test "$(git rev-parse HEAD:partitionline-broker/tests/produce_quota.rs)" = 4bc2c71ee28fc3b2f9af2ae9f7686a82f37a18cf
           test "$(git rev-parse HEAD:partitionline-broker/Cargo.lock)" = 19652acd96b929402b1e4a9394a33d12a7e69449
           rustc -Vv
-          sha256sum partitionline-broker/src/metadata.rs partitionline-broker/src/produce.rs partitionline-broker/src/transport.rs partitionline-broker/src/metadata/bandwidth.rs partitionline-broker/Cargo.lock
-      - name: Compile isolated broker and meter controls
+          sha256sum partitionline-broker/src/metadata.rs partitionline-broker/src/produce.rs partitionline-broker/src/transport.rs partitionline-broker/src/metadata/bandwidth.rs partitionline-broker/tests/produce_quota.rs partitionline-broker/Cargo.lock
+          cp -a partitionline-broker "$RUNNER_TEMP/isolated-broker"
+      - name: Compile all-feature library
+        run: cargo check --locked --manifest-path "$RUNNER_TEMP/isolated-broker/Cargo.toml" --lib --all-features
+      - name: Default feature boundary controls
         run: |
           set -euo pipefail
-          cp -a partitionline-broker "$RUNNER_TEMP/isolated-broker"
-          cargo check --locked --manifest-path "$RUNNER_TEMP/isolated-broker/Cargo.toml" --lib --all-features
+          cargo test --locked --manifest-path "$RUNNER_TEMP/isolated-broker/Cargo.toml" --lib bounded_control_tests
           cargo test --locked --manifest-path "$RUNNER_TEMP/isolated-broker/Cargo.toml" --lib metadata::bandwidth::tests
+          cargo test --locked --manifest-path "$RUNNER_TEMP/isolated-broker/Cargo.toml" --lib quota_accounting_tests
+          cargo test --locked --manifest-path "$RUNNER_TEMP/isolated-broker/Cargo.toml" --test produce_quota
+      - name: All-feature boundary controls
+        run: |
+          set -euo pipefail
+          cargo test --locked --manifest-path "$RUNNER_TEMP/isolated-broker/Cargo.toml" --lib --all-features bounded_control_tests
+          cargo test --locked --manifest-path "$RUNNER_TEMP/isolated-broker/Cargo.toml" --lib --all-features metadata::bandwidth::tests
+          cargo test --locked --manifest-path "$RUNNER_TEMP/isolated-broker/Cargo.toml" --lib --all-features quota_accounting_tests
+          cargo test --locked --manifest-path "$RUNNER_TEMP/isolated-broker/Cargo.toml" --test produce_quota --all-features

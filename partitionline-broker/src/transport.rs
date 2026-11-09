@@ -321,10 +321,36 @@ pub struct ExchangeOutcome {
     pub spare: Vec<u8>,
 }
 
+/// Maximum delay a controlled handler can ask the transport to enforce.
+pub const MAX_CONTROL_PAUSE: Duration = Duration::from_secs(60);
+
+/// A requested transport pause exceeds the maximum permitted delay.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct ControlDeadlineError;
+
+impl std::fmt::Display for ControlDeadlineError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str("transport control deadline exceeds its bound")
+    }
+}
+impl std::error::Error for ControlDeadlineError {}
+
+fn validate_resume_at(
+    resume_at: std::time::Instant,
+    now: std::time::Instant,
+) -> Result<(), ControlDeadlineError> {
+    if resume_at.checked_duration_since(now).is_some_and(|delay| delay > MAX_CONTROL_PAUSE) {
+        Err(ControlDeadlineError)
+    } else {
+        Ok(())
+    }
+}
+
 /// A transport response plus an optional absolute read-resumption time.
 ///
 /// Direct dispatchers must enforce the returned deadline before accepting
-/// another request on the same connection.
+/// another request on the same connection, while honoring their own
+/// authentication and shutdown deadlines.
 pub struct ExchangeControl {
     outcome: ExchangeOutcome,
     resume_at: Option<std::time::Instant>,
@@ -336,9 +362,16 @@ impl ExchangeControl {
         Self { outcome, resume_at: None }
     }
 
-    /// Return a response and a caller-enforced absolute read-resumption time.
-    pub fn with_resume_at(outcome: ExchangeOutcome, resume_at: std::time::Instant) -> Self {
-        Self { outcome, resume_at: Some(resume_at) }
+    /// Return a response and an absolute read-resumption time.
+    ///
+    /// Deadlines more than MAX_CONTROL_PAUSE ahead of the current monotonic
+    /// time are rejected. A past deadline means the pause has already elapsed.
+    pub fn with_resume_at(
+        outcome: ExchangeOutcome,
+        resume_at: std::time::Instant,
+    ) -> Result<Self, ControlDeadlineError> {
+        validate_resume_at(resume_at, std::time::Instant::now())?;
+        Ok(Self { outcome, resume_at: Some(resume_at) })
     }
 
     /// Recover the response and the optional absolute read-resumption time.
@@ -1511,6 +1544,7 @@ async fn wait_for_resume(
     authority: Option<Instant>,
 ) -> Result<(), Exit> {
     let Some(resume_at) = resume_at else { return Ok(()) };
+    validate_resume_at(resume_at, std::time::Instant::now()).map_err(|_| Exit::HandlerError)?;
     let resume_at = Instant::from_std(resume_at);
     if let Some(deadline) = authority {
         if deadline <= resume_at {
@@ -1661,6 +1695,11 @@ async fn exchange<H: Handler, S: AsyncRead + AsyncWrite + Unpin>(
                 Err(exit) => return exit,
             };
             let (outcome, resume_at) = outcome.into_parts();
+            if resume_at.is_some_and(|deadline| {
+                validate_resume_at(deadline, std::time::Instant::now()).is_err()
+            }) {
+                return Exit::HandlerError;
+            }
             request_spare = park_request(outcome.request);
             if let Some(response) = outcome.response {
             if response.len() > config.max_response_bytes {
@@ -1732,6 +1771,107 @@ async fn exchange<H: Handler, S: AsyncRead + AsyncWrite + Unpin>(
     // Publish the established exit in this poll. Yielding after the socket
     // closes lets shutdown cancel this completed failure and erase its cause.
     exit
+}
+
+#[cfg(test)]
+#[allow(clippy::expect_used, clippy::panic)]
+mod bounded_control_tests {
+    use super::{
+        validate_resume_at, wait_for_resume, ControlDeadlineError, ExchangeControl,
+        ExchangeOutcome, Exit, Handler, Peer, Transport, MAX_CONTROL_PAUSE,
+    };
+    use std::{io, sync::Arc, time::Duration};
+    use tokio::{io::{AsyncReadExt, AsyncWriteExt}, net::TcpStream, sync::Notify};
+
+    fn empty() -> ExchangeOutcome {
+        ExchangeOutcome { response: None, request: Vec::new(), spare: Vec::new() }
+    }
+
+    #[test]
+    fn control_bound_checks_exact_boundary_and_rejects_later_values() {
+        let now = std::time::Instant::now();
+        let boundary = now.checked_add(MAX_CONTROL_PAUSE).expect("instant range");
+        let over = boundary.checked_add(Duration::from_nanos(1)).expect("instant range");
+        assert!(validate_resume_at(boundary, now).is_ok());
+        assert_eq!(validate_resume_at(over, now), Err(ControlDeadlineError));
+        let far = now.checked_add(Duration::from_secs(61)).expect("instant range");
+        assert!(ExchangeControl::with_resume_at(empty(), far).is_err());
+    }
+
+    #[tokio::test]
+    async fn a_deadline_that_becomes_stale_does_not_restart_the_pause() {
+        let until = std::time::Instant::now().checked_add(Duration::from_millis(100)).expect("instant range");
+        let control = ExchangeControl::with_resume_at(empty(), until).expect("bounded");
+        let (_, resume) = control.into_parts();
+        tokio::time::sleep(Duration::from_millis(150)).await;
+        assert!(matches!(
+            tokio::time::timeout(Duration::from_millis(40), wait_for_resume(resume, None)).await,
+            Ok(Ok(()))
+        ));
+    }
+
+    #[tokio::test]
+    async fn auth_expiry_wins_over_a_later_resume() {
+        let resume = std::time::Instant::now().checked_add(Duration::from_secs(3)).expect("instant range");
+        let auth = tokio::time::Instant::now() + Duration::from_millis(30);
+        assert!(matches!(
+            tokio::time::timeout(Duration::from_secs(1), wait_for_resume(Some(resume), Some(auth))).await,
+            Ok(Err(Exit::HandlerError))
+        ));
+    }
+
+    #[cfg(feature = "oidc")]
+    #[tokio::test]
+    async fn oidc_revocation_interrupts_a_pause() {
+        let (lease, authority) = crate::security::oidc::controlled_lease();
+        let resume = std::time::Instant::now().checked_add(Duration::from_secs(3)).expect("instant range");
+        let paused = super::authorized(Some(lease), wait_for_resume(Some(resume), None));
+        tokio::pin!(paused);
+        tokio::select! {
+            _ = &mut paused => panic!("pause finished before revocation"),
+            _ = tokio::task::yield_now() => {}
+        }
+        authority.revoke();
+        assert!(matches!(tokio::time::timeout(Duration::from_secs(1), paused).await, Ok(Err(Exit::HandlerError))));
+    }
+
+    struct PausedHandler(Arc<Notify>);
+    impl Handler for PausedHandler {
+        type Error = io::Error;
+        async fn handle(&self, _request: Vec<u8>) -> Result<Option<Vec<u8>>, io::Error> {
+            Err(io::Error::other("control required"))
+        }
+        async fn exchange_with_control(
+            &self, _peer: &Peer, request: Vec<u8>, spare: Vec<u8>,
+        ) -> Result<ExchangeControl, io::Error> {
+            let until = std::time::Instant::now().checked_add(Duration::from_secs(3))
+                .ok_or_else(|| io::Error::other("instant overflow"))?;
+            let response = ExchangeOutcome { response: Some(b"ok".to_vec()), request, spare };
+            let control = ExchangeControl::with_resume_at(response, until)
+                .map_err(io::Error::other)?;
+            self.0.notify_one();
+            Ok(control)
+        }
+    }
+
+    #[tokio::test]
+    async fn transport_writes_then_shutdown_interrupts_a_pause() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+        let started = Arc::new(Notify::new());
+        let mut server = Transport::bind(([127, 0, 0, 1], 0).into(), super::Config::default(), Arc::new(PausedHandler(started.clone()))).await?;
+        let mut socket = TcpStream::connect(server.local_addr()).await?;
+        socket.write_all(&1i32.to_be_bytes()).await?;
+        socket.write_all(b"x").await?;
+        tokio::time::timeout(Duration::from_secs(3), started.notified()).await?;
+        let size = tokio::time::timeout(Duration::from_secs(2), socket.read_i32()).await??;
+        assert_eq!(size, 2);
+        let mut body = [0; 2];
+        socket.read_exact(&mut body).await?;
+        assert_eq!(&body, b"ok");
+        let report = tokio::time::timeout(Duration::from_secs(2), server.shutdown()).await??;
+        assert_eq!(report.shutdown_connections, 1);
+        assert_eq!(report.joined_connections, 1);
+        Ok(())
+    }
 }
 
 #[cfg(test)]

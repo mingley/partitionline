@@ -69,6 +69,15 @@ impl QuotaMeter {
     }
 
     pub(super) fn charge(&mut self, bytes: usize, now: Instant) -> QuotaMark {
+        self.charge_with(bytes, now, |instant, duration| instant.checked_add(duration))
+    }
+
+    fn charge_with(
+        &mut self,
+        bytes: usize,
+        now: Instant,
+        deadline: impl FnOnce(Instant, Duration) -> Option<Instant>,
+    ) -> QuotaMark {
         if matches!(self.balance, Balance::Failed) {
             return QuotaMark::Failed;
         }
@@ -103,7 +112,7 @@ impl QuotaMeter {
         let denominator = u128::from(self.policy.rate) * 1_000_000;
         let rounded = debt / denominator + u128::from(debt % denominator != 0);
         let millis = rounded.min(u128::from(self.policy.maximum_millis)) as u32;
-        match self.last.checked_add(Duration::from_millis(u64::from(millis))) {
+        match deadline(self.last, Duration::from_millis(u64::from(millis))) {
             Some(until) => QuotaMark::Ready { until: Some(until), millis: millis as i32 },
             None => { self.fail(); QuotaMark::Failed }
         }
@@ -111,6 +120,7 @@ impl QuotaMeter {
 }
 
 #[cfg(test)]
+#[allow(clippy::expect_used, clippy::panic, clippy::unwrap_used)]
 mod tests {
     use super::*;
 
@@ -148,6 +158,10 @@ mod tests {
         let mut meter = QuotaMeter::new(ProduceQuota::new(1, 1, 1).unwrap(), now);
         meter.balance = Balance::Debt(u128::MAX);
         assert!(matches!(meter.charge(1, now), QuotaMark::Failed));
+        assert!(matches!(meter.charge(1, now + Duration::from_secs(1)), QuotaMark::Failed));
+
+        let mut meter = QuotaMeter::new(ProduceQuota::new(1, 1, 1).unwrap(), now);
+        assert!(matches!(meter.charge_with(2, now, |_, _| None), QuotaMark::Failed));
         assert!(matches!(meter.charge(1, now + Duration::from_secs(1)), QuotaMark::Failed));
     }
 }
