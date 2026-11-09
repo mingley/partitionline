@@ -1,0 +1,65 @@
+name: Check next-work navigation and package
+on:
+  push:
+    branches: [qualification/next-work-clarity-20261109]
+permissions:
+  contents: read
+jobs:
+  docs:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: 179d5c7ac670edfcc07e8290589b0edf02cbdb5d
+      - uses: dtolnay/rust-toolchain@stable
+      - id: pin
+        name: Verify exact source
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = 179d5c7ac670edfcc07e8290589b0edf02cbdb5d
+          test "$(git rev-parse HEAD:docs/plan/next-work.md)" = c8ac68504a0a03cd28aaaf419264d848b2094901
+          test "$(git hash-object docs/plan/next-work.md)" = c8ac68504a0a03cd28aaaf419264d848b2094901
+          rustc -Vv
+          cargo -V
+      - name: Check plan links and required handoff references
+        if: ${{ !cancelled() && steps.pin.outcome == 'success' }}
+        run: |
+          set -euo pipefail
+          python3 -B - <<'PY'
+          import importlib.util
+          from pathlib import Path
+          spec = importlib.util.spec_from_file_location("docs_check", Path("scripts/check-doc-examples.py"))
+          docs = importlib.util.module_from_spec(spec)
+          spec.loader.exec_module(docs)
+          path = Path("docs/plan/next-work.md")
+          source = path.read_text()
+          targets = {target for _, target in docs.link_targets(source)}
+          assert "../evidence/client/producer-ownership-integration-checkpoint-20261109/README.md" in targets
+          assert "../evidence/broker/produce-quota-draft-20261109/README.md" in targets
+          assert "https://github.com/mingley/partitionline/blob/7083355f7a8b4b4ac62499b65637760831f249f8/docs/plan/next-work.md" in targets
+          count = docs.check_links(Path.cwd(), [path])
+          print(f"plan-navigation: {count} local links passed")
+          PY
+      - name: Markdown checker controls
+        if: ${{ !cancelled() && steps.pin.outcome == 'success' }}
+        run: python3 -B -m unittest discover -s tests/docs -p 'test_*.py'
+      - name: Check links from the actual packed crate
+        if: ${{ !cancelled() && steps.pin.outcome == 'success' }}
+        run: |
+          set -euo pipefail
+          cargo package --locked --no-verify
+          archive=target/package/partitionline-0.1.0.crate
+          test -f "$archive"
+          mkdir -p "$RUNNER_TEMP/packed-plan"
+          tar -xzf "$archive" -C "$RUNNER_TEMP/packed-plan"
+          python3 -B scripts/check-package-docs.py "$RUNNER_TEMP/packed-plan/partitionline-0.1.0"
+          python3 - "$RUNNER_TEMP/packed-plan/partitionline-0.1.0" <<'PY'
+          import json,sys
+          from pathlib import Path
+          root=Path(sys.argv[1])
+          vcs=json.loads((root / ".cargo_vcs_info.json").read_text())
+          assert vcs["git"]["sha1"] == "179d5c7ac670edfcc07e8290589b0edf02cbdb5d", vcs
+          assert not (root / "docs/plan").exists()
+          print("packed-source:", vcs["git"]["sha1"], "plan_excluded=true")
+          PY
