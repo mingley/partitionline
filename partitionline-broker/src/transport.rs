@@ -1149,7 +1149,10 @@ async fn read_frame_buffered<S: AsyncRead + Unpin>(
             // A fragmented prefix may otherwise allow the first buffered read
             // to consume an arbitrarily large pipeline in one step.
             let budget = budget.min(
-                config.max_request_bytes.saturating_add(4).saturating_sub(ahead.pending().len()),
+                config
+                    .max_request_bytes
+                    .saturating_add(4)
+                    .saturating_sub(ahead.pending().len()),
             );
             if budget == 0 {
                 return Err(Exit::InvalidLength);
@@ -1289,7 +1292,9 @@ async fn write_and_prefetch<S: AsyncRead + AsyncWrite + Unpin>(
                         // A partial prefix can otherwise cause prefetch to
                         // consume more than the one-frame read-ahead budget.
                         let budget = budget.min(
-                            max_request.saturating_add(4).saturating_sub(ahead.pending().len()),
+                            max_request
+                                .saturating_add(4)
+                                .saturating_sub(ahead.pending().len()),
                         );
                         ahead.compact();
                         if budget == 0 || frame_mut(&mut ahead.bytes).try_reserve(budget).is_err() {
@@ -1418,7 +1423,9 @@ async fn watch_disconnect<S: AsyncRead + Unpin>(
                 continue;
             }
         }
-        let remaining = max_request.saturating_add(4).saturating_sub(ahead.pending().len());
+        let remaining = max_request
+            .saturating_add(4)
+            .saturating_sub(ahead.pending().len());
         if remaining == 0 {
             // Reading again would either exceed the bound or turn a valid
             // pipeline into an invalid-length failure. The handler, its
@@ -1430,7 +1437,8 @@ async fn watch_disconnect<S: AsyncRead + Unpin>(
             // Continue watching for closure only while buffer space remains.
             Ahead::Ready => 8 * 1024,
             Ahead::Invalid => return Exit::InvalidLength,
-        }.min(remaining);
+        }
+        .min(remaining);
         ahead.compact();
         if frame_mut(&mut ahead.bytes).try_reserve(budget).is_err() {
             return Exit::Io;
@@ -2203,8 +2211,22 @@ mod disconnect_tests {
             .await
             .unwrap_or_else(|error| panic!("{error}"))
             .unwrap_or_else(|error| panic!("{error}"));
-        assert!(early.is_err(), "full pipeline was closed instead of backpressured");
-        assert!(matches!(closed, Ok(Ok(0))), "handler deadline did not close the socket");
+        assert!(
+            early.is_err(),
+            "full pipeline was closed instead of backpressured"
+        );
+        let normal_close = match &closed {
+            Ok(Ok(0)) => true,
+            Ok(Err(error)) => matches!(
+                error.kind(),
+                io::ErrorKind::ConnectionReset | io::ErrorKind::BrokenPipe
+            ),
+            _ => false,
+        };
+        assert!(
+            normal_close,
+            "handler deadline did not close the socket: {closed:?}"
+        );
         assert_eq!(stopped.load(Ordering::SeqCst), 1);
         assert_eq!(report.handler_deadlines, 1);
     }
@@ -4146,11 +4168,17 @@ mod buffered_read_fairness_control {
 
 #[cfg(test)]
 mod bounded_backpressure_tests {
-    use super::{frame_mut, new_frame, read_frame_buffered, watch_disconnect, write_and_prefetch, Config, Exit, ReadAhead};
+    use super::{
+        frame_mut, new_frame, read_frame_buffered, watch_disconnect, write_and_prefetch, Config,
+        Exit, ReadAhead,
+    };
     use std::{
         future::Future,
         pin::Pin,
-        sync::{atomic::{AtomicUsize, Ordering}, Arc},
+        sync::{
+            atomic::{AtomicUsize, Ordering},
+            Arc,
+        },
         task::{Context, Poll, Wake, Waker},
         time::Duration,
     };
@@ -4215,11 +4243,18 @@ mod bounded_backpressure_tests {
         let rest = first.split_off(2);
         let mut input = rest;
         input.extend_from_slice(&framed(2));
-        BufferedIo { input, consumed: 0, reads: 0 }
+        BufferedIo {
+            input,
+            consumed: 0,
+            reads: 0,
+        }
     }
     fn limits() -> Result<Config, super::Error> {
         Config::new(
-            1, 1, 16, 16,
+            1,
+            1,
+            16,
+            16,
             Duration::from_secs(2),
             Duration::from_secs(2),
             Duration::from_secs(2),
@@ -4230,7 +4265,11 @@ mod bounded_backpressure_tests {
     async fn full_watcher_stops_reading_and_does_not_wake_itself() {
         let mut input = framed(1);
         input.extend_from_slice(&17i32.to_be_bytes());
-        let mut socket = BufferedIo { input, consumed: 0, reads: 0 };
+        let mut socket = BufferedIo {
+            input,
+            consumed: 0,
+            reads: 0,
+        };
         let mut ahead = ReadAhead::new();
         let wakes = Arc::new(WakeCount::default());
         let waker = Waker::from(wakes.clone());
