@@ -50,7 +50,8 @@ async fn fixture(name: &str, suffix: &str) -> Result<Vec<u8>> {
         Path::new(env!("CARGO_MANIFEST_DIR"))
             .join("tests/fixtures/produce/4.3.1")
             .join(format!("{name}.{suffix}.bin")),
-    ).await?)
+    )
+    .await?)
 }
 async fn open(root: &Path, millis: u32) -> Result<QuotaRouter> {
     Ok(QuotaRouter::open_with_read_store(
@@ -281,7 +282,11 @@ async fn acks_zero_mutes_a_pipelined_request_then_resumes() -> Result {
     for version in [3, 10, 13] {
         let root = scratch()?;
         let router = Arc::new(open(&root, 1_000).await?);
-        let Observations { handler, mut started, mut deadlines } = observing(&router, false);
+        let Observations {
+            handler,
+            mut started,
+            mut deadlines,
+        } = observing(&router, false);
         let mut transport = Transport::bind(
             ([127, 0, 0, 1], 0).into(),
             transport::Config::default(),
@@ -289,7 +294,11 @@ async fn acks_zero_mutes_a_pipelined_request_then_resumes() -> Result {
         )
         .await?;
         let mut socket = TcpStream::connect(transport.local_addr()).await?;
-        send(&mut socket, &fixture(&format!("produce-v{version}-acks0"), "request").await?).await?;
+        send(
+            &mut socket,
+            &fixture(&format!("produce-v{version}-acks0"), "request").await?,
+        )
+        .await?;
         started_request(&mut started, 0).await?;
         let deadline = produce_deadline(&mut deadlines).await?;
         send(&mut socket, &metadata_request()).await?;
@@ -314,7 +323,11 @@ async fn acks_zero_mutes_a_pipelined_request_then_resumes() -> Result {
 async fn throttle_response_is_prompt_and_pipelined_response_follows_resume() -> Result {
     let root = scratch()?;
     let router = Arc::new(open(&root, 1_500).await?);
-    let Observations { handler, mut started, mut deadlines } = observing(&router, false);
+    let Observations {
+        handler,
+        mut started,
+        mut deadlines,
+    } = observing(&router, false);
     let mut transport = Transport::bind(
         ([127, 0, 0, 1], 0).into(),
         transport::Config::default(),
@@ -351,7 +364,11 @@ async fn throttle_response_is_prompt_and_pipelined_response_follows_resume() -> 
 async fn shutdown_interrupts_a_muted_connection() -> Result {
     let root = scratch()?;
     let router = Arc::new(open(&root, 3_000).await?);
-    let Observations { handler, mut started, mut deadlines } = observing(&router, false);
+    let Observations {
+        handler,
+        mut started,
+        mut deadlines,
+    } = observing(&router, false);
     let mut transport = Transport::bind(
         ([127, 0, 0, 1], 0).into(),
         transport::Config::default(),
@@ -397,7 +414,11 @@ async fn shutdown_interrupts_a_muted_connection() -> Result {
 async fn delayed_reply_delivery_consumes_the_absolute_pause() -> Result {
     let root = scratch()?;
     let router = Arc::new(open(&root, 1_500).await?);
-    let Observations { handler, mut started, mut deadlines } = observing(&router, true);
+    let Observations {
+        handler,
+        mut started,
+        mut deadlines,
+    } = observing(&router, true);
     let mut transport = Transport::bind(
         ([127, 0, 0, 1], 0).into(),
         transport::Config::default(),

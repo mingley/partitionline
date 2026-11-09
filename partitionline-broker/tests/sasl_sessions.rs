@@ -1827,10 +1827,7 @@ struct AuthenticatedQuota {
 impl Handler for AuthenticatedQuota {
     type Error = partitionline_broker::metadata::QuotaRouterError;
 
-    async fn handle(
-        &self,
-        _request: Vec<u8>,
-    ) -> std::result::Result<Option<Vec<u8>>, Self::Error> {
+    async fn handle(&self, _request: Vec<u8>) -> std::result::Result<Option<Vec<u8>>, Self::Error> {
         Err(partitionline_broker::metadata::QuotaRouterError::ControlledExchangeRequired)
     }
 
@@ -1840,8 +1837,13 @@ impl Handler for AuthenticatedQuota {
         request: Vec<u8>,
         spare: Vec<u8>,
     ) -> std::result::Result<partitionline_broker::transport::ExchangeControl, Self::Error> {
-        if !peer.identity().is_some_and(|identity| identity.name() == "user") {
-            return Err(partitionline_broker::metadata::QuotaRouterError::ControlledExchangeRequired);
+        if !peer
+            .identity()
+            .is_some_and(|identity| identity.name() == "user")
+        {
+            return Err(
+                partitionline_broker::metadata::QuotaRouterError::ControlledExchangeRequired,
+            );
         }
         self.verified_calls.fetch_add(1, Ordering::SeqCst);
         Handler::exchange_with_control(self.inner.as_ref(), peer, request, spare).await
@@ -1870,13 +1872,17 @@ async fn quota_sasl_authenticated_mute_and_expiry() -> Result {
     id[15] = 2;
     catalog.create("alpha", TopicId::new(id)?, 2)?;
     drop(catalog);
-    let router = Arc::new(QuotaRouter::open_with_read_store(
-        root.join("catalog"),
-        common,
-        produce::Config::new(root.join("parts")),
-        fetch::Limits::default(),
-        ProduceQuota::new(1, 1, 1_500)?,
-    ).await?.0);
+    let router = Arc::new(
+        QuotaRouter::open_with_read_store(
+            root.join("catalog"),
+            common,
+            produce::Config::new(root.join("parts")),
+            fetch::Limits::default(),
+            ProduceQuota::new(1, 1, 1_500)?,
+        )
+        .await?
+        .0,
+    );
     let verified_calls = Arc::new(AtomicUsize::new(0));
 
     for (lifetime, expire_while_muted) in [
@@ -1895,26 +1901,41 @@ async fn quota_sasl_authenticated_mute_and_expiry() -> Result {
             config()?,
             handler,
             profile,
-        ).await?;
+        )
+        .await?;
         let mut socket = TcpStream::connect(server.local_addr()).await?;
         let (error, _) = timeout(
             Duration::from_secs(3),
             scram_lifetime(&mut socket, Algorithm::Sha256, "user", "pencil", 2, false),
-        ).await??;
+        )
+        .await??;
         assert_eq!(error, 0);
-        send(&mut socket, include_bytes!("fixtures/produce/4.3.1/produce-v10-acks1.request.bin")).await?;
+        send(
+            &mut socket,
+            include_bytes!("fixtures/produce/4.3.1/produce-v10-acks1.request.bin"),
+        )
+        .await?;
         let response = receive(&mut socket).await?;
-        let field = response.len().checked_sub(5).ok_or("short Produce response")?;
-        assert_eq!(i32::from_be_bytes(response[field..field + 4].try_into()?), 1_500);
+        let field = response
+            .len()
+            .checked_sub(5)
+            .ok_or("short Produce response")?;
+        assert_eq!(
+            i32::from_be_bytes(response[field..field + 4].try_into()?),
+            1_500
+        );
         let mut metadata = header(3, 1, 901, false);
         metadata.extend_from_slice(&(-1i32).to_be_bytes());
         send(&mut socket, &metadata).await?;
         if expire_while_muted {
-            assert!(closed(&mut socket).await?, "expired authority resumed the connection");
+            assert!(
+                closed(&mut socket).await?,
+                "expired authority resumed the connection"
+            );
         } else {
             let mut byte = [0u8; 1];
             match timeout(Duration::from_millis(100), socket.read(&mut byte)).await {
-                Err(_) => {},
+                Err(_) => {}
                 Ok(Ok(0)) => return Err("authenticated connection closed during mute".into()),
                 Ok(Ok(_)) => return Err("authenticated response arrived during mute".into()),
                 Ok(Err(error)) => return Err(error.into()),
