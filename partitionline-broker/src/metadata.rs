@@ -1039,6 +1039,10 @@ pub enum QuotaRouterError {
     /// This entry point cannot carry a transport mute deadline.
     ControlledExchangeRequired,
     /// Quota accounting or a response control field failed closed.
+    ///
+    /// Produce processing may already have committed an append. The delivery
+    /// outcome is ambiguous; retries can duplicate records unless the caller
+    /// has an applicable idempotence guarantee.
     AccountingFailed,
 }
 
@@ -1058,6 +1062,8 @@ impl From<Error> for QuotaRouterError {
 /// not Kafka's per-user or per-client quota. The bucket is reset on restart;
 /// actor-owned work retains its charge after a caller drops the reply. The
 /// bounded, capped token-bucket delay differs from Kafka's sampled quota.
+/// Accounting and response-control failures can occur after an append has
+/// committed; callers must treat the delivery outcome as ambiguous.
 ///
 /// Use this type through the provided transport, which honors its absolute mute
 /// deadline. A custom transport must use dispatch_controlled and enforce the
@@ -4924,6 +4930,41 @@ mod quota_accounting_tests {
             Some(QuotaMark::Ready { until: Some(_), millis }) => Ok(millis),
             _ => Err("missing quota decision".into()),
         }
+    }
+
+    #[test]
+    fn response_patch_failure_can_follow_a_committed_append(
+    ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+        let root = std::env::temp_dir().join(format!(
+            "partitionline-quota-patch-{}-{}",
+            std::process::id(), NEXT.fetch_add(1, Ordering::Relaxed)
+        ));
+        std::fs::create_dir(&root)?;
+        let config = Config::new(0, "127.0.0.1".into(), 19095, "quota-test".into());
+        let (mut catalog, _) = Catalog::open(root.join("catalog"), config.catalog_limits)?;
+        let mut raw = [0; 16];
+        raw[15] = 2;
+        let topic = TopicId::new(raw)?;
+        catalog.create("alpha", topic, 2)?;
+        let mut store = produce::Store::open(produce::Config::new(root.join("parts")), &catalog)?;
+        let mut request = include_bytes!("../tests/fixtures/produce/4.3.1/produce-v3-acks1.request.bin").to_vec();
+        let mut produced = produce::process_with_offset(
+            &catalog, &mut store, &mut request, &config, Instant::now(), || Ok(())
+        )?;
+        assert!(produced.response.is_some());
+        assert_eq!(store.log_bounds(topic, 0), Ok((0, 1)), "the append must already be visible");
+
+        // Inject a corrupted control-field offset after the append has completed.
+        produced.throttle_at = Some(usize::MAX);
+        let policy = ProduceQuota::new(1, 1, 1_000)?;
+        let mut meter = Some(QuotaMeter::new(policy, Instant::now()));
+        let mark = charge_produce(&mut meter, Some(request.len()), Some(&mut produced), Instant::now);
+        assert!(matches!(mark, Some(QuotaMark::Failed)));
+        assert_eq!(store.log_bounds(topic, 0), Ok((0, 1)), "accounting failure must not imply rollback");
+        drop(store);
+        drop(catalog);
+        std::fs::remove_dir_all(root)?;
+        Ok(())
     }
 
     #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
