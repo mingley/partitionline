@@ -1,0 +1,270 @@
+PL_TRIAL implementation=baseline feature=default trial=1
+thread 'canceling_a_partial_chunk_closes_the_socket' (4470) panicked at tests/registry_chunked.rs:137:5:
+server observed Err((ConnectionReset, Some(104), "Connection reset by peer (os error 104)"))
+PL_SERVER_OBSERVATION Err((ConnectionReset, Some(104), "Connection reset by peer (os error 104)"))
+PL_SERVER_OBSERVATION Ok([])
+PL_TRIAL implementation=baseline feature=default trial=2
+thread 'canceling_a_partial_chunk_closes_the_socket' (4485) panicked at tests/registry_chunked.rs:137:5:
+server observed Err((ConnectionReset, Some(104), "Connection reset by peer (os error 104)"))
+PL_SERVER_OBSERVATION Err((ConnectionReset, Some(104), "Connection reset by peer (os error 104)"))
+PL_SERVER_OBSERVATION Ok([])
+PL_TRIAL implementation=baseline feature=default trial=3
+PL_RESULT pass
+PL_SERVER_OBSERVATION Ok([])
+PL_SERVER_OBSERVATION Ok([])
+PL_TRIAL implementation=baseline feature=default trial=4
+PL_RESULT pass
+PL_SERVER_OBSERVATION Ok([])
+PL_SERVER_OBSERVATION Ok([])
+PL_TRIAL implementation=baseline feature=default trial=5
+PL_RESULT pass
+PL_SERVER_OBSERVATION Ok([])
+PL_SERVER_OBSERVATION Ok([])
+PL_TRIAL implementation=baseline feature=default trial=6
+thread 'canceling_a_partial_chunk_closes_the_socket' (4540) panicked at tests/registry_chunked.rs:137:5:
+server observed Err((ConnectionReset, Some(104), "Connection reset by peer (os error 104)"))
+PL_SERVER_OBSERVATION Err((ConnectionReset, Some(104), "Connection reset by peer (os error 104)"))
+PL_SERVER_OBSERVATION Ok([])
+PL_TRIAL implementation=baseline feature=default trial=7
+PL_RESULT pass
+PL_SERVER_OBSERVATION Ok([])
+PL_SERVER_OBSERVATION Ok([])
+PL_TRIAL implementation=baseline feature=default trial=8
+PL_RESULT pass
+PL_SERVER_OBSERVATION Ok([])
+PL_SERVER_OBSERVATION Ok([])
+PL_TRIAL implementation=baseline feature=default trial=9
+PL_RESULT pass
+PL_SERVER_OBSERVATION Ok([])
+PL_SERVER_OBSERVATION Ok([])
+PL_TRIAL implementation=baseline feature=default trial=10
+thread 'canceling_a_partial_chunk_closes_the_socket' (4594) panicked at tests/registry_chunked.rs:137:5:
+server observed Err((ConnectionReset, Some(104), "Connection reset by peer (os error 104)"))
+PL_SERVER_OBSERVATION Err((ConnectionReset, Some(104), "Connection reset by peer (os error 104)"))
+PL_SERVER_OBSERVATION Ok([])
+PL_TRIAL implementation=baseline feature=default trial=11
+PL_RESULT pass
+PL_SERVER_OBSERVATION Ok([])
+PL_SERVER_OBSERVATION Ok([])
+PL_TRIAL implementation=baseline feature=default trial=12
+thread 'canceling_a_partial_chunk_closes_the_socket' (4622) panicked at tests/registry_chunked.rs:137:5:
+server observed Err((ConnectionReset, Some(104), "Connection reset by peer (os error 104)"))
+PL_SERVER_OBSERVATION Err((ConnectionReset, Some(104), "Connection reset by peer (os error 104)"))
+PL_SERVER_OBSERVATION Ok([])
+PL_TRIAL implementation=baseline feature=default trial=13
+PL_RESULT pass
+PL_SERVER_OBSERVATION Ok([])
+PL_SERVER_OBSERVATION Ok([])
+PL_TRIAL implementation=baseline feature=default trial=14
+thread 'canceling_a_partial_chunk_closes_the_socket' (4651) panicked at tests/registry_chunked.rs:137:5:
+server observed Err((ConnectionReset, Some(104), "Connection reset by peer (os error 104)"))
+PL_SERVER_OBSERVATION Err((ConnectionReset, Some(104), "Connection reset by peer (os error 104)"))
+PL_SERVER_OBSERVATION Ok([])
+PL_TRIAL implementation=baseline feature=default trial=15
+thread 'canceling_a_partial_chunk_closes_the_socket' (4666) panicked at tests/registry_chunked.rs:137:5:
+server observed Err((ConnectionReset, Some(104), "Connection reset by peer (os error 104)"))
+PL_SERVER_OBSERVATION Err((ConnectionReset, Some(104), "Connection reset by peer (os error 104)"))
+PL_SERVER_OBSERVATION Ok([])
+PL_TOTAL implementation=baseline feature=default failures=7
+PL_TRIAL implementation=baseline feature=all trial=1
+PL_RESULT pass
+PL_SERVER_OBSERVATION Ok([])
+PL_SERVER_OBSERVATION Ok([])
+PL_TRIAL implementation=baseline feature=all trial=2
+PL_RESULT pass
+PL_SERVER_OBSERVATION Ok([])
+PL_SERVER_OBSERVATION Ok([])
+PL_TRIAL implementation=baseline feature=all trial=3
+thread 'canceling_a_partial_chunk_closes_the_socket' (4743) panicked at tests/registry_chunked.rs:137:5:
+server observed Err((ConnectionReset, Some(104), "Connection reset by peer (os error 104)"))
+PL_SERVER_OBSERVATION Err((ConnectionReset, Some(104), "Connection reset by peer (os error 104)"))
+PL_SERVER_OBSERVATION Ok([])
+PL_TRIAL implementation=baseline feature=all trial=4
+thread 'canceling_a_partial_chunk_closes_the_socket' (4758) panicked at tests/registry_chunked.rs:137:5:
+server observed Err((ConnectionReset, Some(104), "Connection reset by peer (os error 104)"))
+PL_SERVER_OBSERVATION Err((ConnectionReset, Some(104), "Connection reset by peer (os error 104)"))
+PL_SERVER_OBSERVATION Ok([])
+PL_TRIAL implementation=baseline feature=all trial=5
+PL_RESULT pass
+PL_SERVER_OBSERVATION Ok([])
+PL_SERVER_OBSERVATION Ok([])
+PL_TRIAL implementation=baseline feature=all trial=6
+PL_RESULT pass
+PL_SERVER_OBSERVATION Ok([])
+PL_SERVER_OBSERVATION Ok([])
+PL_TRIAL implementation=baseline feature=all trial=7
+thread 'canceling_a_partial_chunk_closes_the_socket' (4799) panicked at tests/registry_chunked.rs:137:5:
+server observed Err((ConnectionReset, Some(104), "Connection reset by peer (os error 104)"))
+PL_SERVER_OBSERVATION Err((ConnectionReset, Some(104), "Connection reset by peer (os error 104)"))
+PL_SERVER_OBSERVATION Ok([])
+PL_TRIAL implementation=baseline feature=all trial=8
+thread 'canceling_a_partial_chunk_closes_the_socket' (4816) panicked at tests/registry_chunked.rs:137:5:
+server observed Err((ConnectionReset, Some(104), "Connection reset by peer (os error 104)"))
+PL_SERVER_OBSERVATION Err((ConnectionReset, Some(104), "Connection reset by peer (os error 104)"))
+PL_SERVER_OBSERVATION Ok([])
+PL_TRIAL implementation=baseline feature=all trial=9
+PL_RESULT pass
+PL_SERVER_OBSERVATION Ok([])
+PL_SERVER_OBSERVATION Ok([])
+PL_TRIAL implementation=baseline feature=all trial=10
+PL_RESULT pass
+PL_SERVER_OBSERVATION Ok([])
+PL_SERVER_OBSERVATION Ok([])
+PL_TRIAL implementation=baseline feature=all trial=11
+thread 'canceling_a_partial_chunk_closes_the_socket' (4861) panicked at tests/registry_chunked.rs:137:5:
+server observed Err((ConnectionReset, Some(104), "Connection reset by peer (os error 104)"))
+PL_SERVER_OBSERVATION Err((ConnectionReset, Some(104), "Connection reset by peer (os error 104)"))
+PL_SERVER_OBSERVATION Ok([])
+PL_TRIAL implementation=baseline feature=all trial=12
+PL_RESULT pass
+PL_SERVER_OBSERVATION Ok([])
+PL_SERVER_OBSERVATION Ok([])
+PL_TRIAL implementation=baseline feature=all trial=13
+thread 'canceling_a_partial_chunk_closes_the_socket' (4889) panicked at tests/registry_chunked.rs:137:5:
+server observed Err((ConnectionReset, Some(104), "Connection reset by peer (os error 104)"))
+PL_SERVER_OBSERVATION Err((ConnectionReset, Some(104), "Connection reset by peer (os error 104)"))
+PL_SERVER_OBSERVATION Ok([])
+PL_TRIAL implementation=baseline feature=all trial=14
+thread 'canceling_a_partial_chunk_closes_the_socket' (4905) panicked at tests/registry_chunked.rs:137:5:
+server observed Err((ConnectionReset, Some(104), "Connection reset by peer (os error 104)"))
+PL_SERVER_OBSERVATION Err((ConnectionReset, Some(104), "Connection reset by peer (os error 104)"))
+PL_SERVER_OBSERVATION Ok([])
+PL_TRIAL implementation=baseline feature=all trial=15
+PL_RESULT pass
+PL_SERVER_OBSERVATION Ok([])
+PL_SERVER_OBSERVATION Ok([])
+PL_TOTAL implementation=baseline feature=all failures=7
+PL_TRIAL implementation=candidate feature=default trial=1
+thread 'canceling_a_partial_chunk_closes_the_socket' (4971) panicked at tests/registry_chunked.rs:137:5:
+server observed Err((ConnectionReset, Some(104), "Connection reset by peer (os error 104)"))
+PL_SERVER_OBSERVATION Err((ConnectionReset, Some(104), "Connection reset by peer (os error 104)"))
+PL_SERVER_OBSERVATION Ok([])
+PL_TRIAL implementation=candidate feature=default trial=2
+PL_RESULT pass
+PL_SERVER_OBSERVATION Ok([])
+PL_SERVER_OBSERVATION Ok([])
+PL_TRIAL implementation=candidate feature=default trial=3
+PL_RESULT pass
+PL_SERVER_OBSERVATION Ok([])
+PL_SERVER_OBSERVATION Ok([])
+PL_TRIAL implementation=candidate feature=default trial=4
+thread 'canceling_a_partial_chunk_closes_the_socket' (5012) panicked at tests/registry_chunked.rs:137:5:
+server observed Err((ConnectionReset, Some(104), "Connection reset by peer (os error 104)"))
+PL_SERVER_OBSERVATION Err((ConnectionReset, Some(104), "Connection reset by peer (os error 104)"))
+PL_SERVER_OBSERVATION Ok([])
+PL_TRIAL implementation=candidate feature=default trial=5
+thread 'canceling_a_partial_chunk_closes_the_socket' (5027) panicked at tests/registry_chunked.rs:137:5:
+server observed Err((ConnectionReset, Some(104), "Connection reset by peer (os error 104)"))
+PL_SERVER_OBSERVATION Err((ConnectionReset, Some(104), "Connection reset by peer (os error 104)"))
+PL_SERVER_OBSERVATION Ok([])
+PL_TRIAL implementation=candidate feature=default trial=6
+PL_RESULT pass
+PL_SERVER_OBSERVATION Ok([])
+PL_SERVER_OBSERVATION Ok([])
+PL_TRIAL implementation=candidate feature=default trial=7
+thread 'canceling_a_partial_chunk_closes_the_socket' (5055) panicked at tests/registry_chunked.rs:137:5:
+server observed Err((ConnectionReset, Some(104), "Connection reset by peer (os error 104)"))
+PL_SERVER_OBSERVATION Err((ConnectionReset, Some(104), "Connection reset by peer (os error 104)"))
+PL_SERVER_OBSERVATION Ok([])
+PL_TRIAL implementation=candidate feature=default trial=8
+PL_RESULT pass
+PL_SERVER_OBSERVATION Ok([])
+PL_SERVER_OBSERVATION Ok([])
+PL_TRIAL implementation=candidate feature=default trial=9
+PL_RESULT pass
+PL_SERVER_OBSERVATION Ok([])
+PL_SERVER_OBSERVATION Ok([])
+PL_TRIAL implementation=candidate feature=default trial=10
+PL_RESULT pass
+PL_SERVER_OBSERVATION Ok([])
+PL_SERVER_OBSERVATION Ok([])
+PL_TRIAL implementation=candidate feature=default trial=11
+thread 'canceling_a_partial_chunk_closes_the_socket' (5109) panicked at tests/registry_chunked.rs:137:5:
+server observed Err((ConnectionReset, Some(104), "Connection reset by peer (os error 104)"))
+PL_SERVER_OBSERVATION Err((ConnectionReset, Some(104), "Connection reset by peer (os error 104)"))
+PL_SERVER_OBSERVATION Ok([])
+PL_TRIAL implementation=candidate feature=default trial=12
+PL_RESULT pass
+PL_SERVER_OBSERVATION Ok([])
+PL_SERVER_OBSERVATION Ok([])
+PL_TRIAL implementation=candidate feature=default trial=13
+thread 'canceling_a_partial_chunk_closes_the_socket' (5137) panicked at tests/registry_chunked.rs:137:5:
+server observed Err((ConnectionReset, Some(104), "Connection reset by peer (os error 104)"))
+PL_SERVER_OBSERVATION Err((ConnectionReset, Some(104), "Connection reset by peer (os error 104)"))
+PL_SERVER_OBSERVATION Ok([])
+PL_TRIAL implementation=candidate feature=default trial=14
+thread 'canceling_a_partial_chunk_closes_the_socket' (5152) panicked at tests/registry_chunked.rs:137:5:
+server observed Err((ConnectionReset, Some(104), "Connection reset by peer (os error 104)"))
+PL_SERVER_OBSERVATION Err((ConnectionReset, Some(104), "Connection reset by peer (os error 104)"))
+PL_SERVER_OBSERVATION Ok([])
+PL_TRIAL implementation=candidate feature=default trial=15
+PL_RESULT pass
+PL_SERVER_OBSERVATION Ok([])
+PL_SERVER_OBSERVATION Ok([])
+PL_TOTAL implementation=candidate feature=default failures=7
+PL_TRIAL implementation=candidate feature=all trial=1
+thread 'canceling_a_partial_chunk_closes_the_socket' (5217) panicked at tests/registry_chunked.rs:137:5:
+server observed Err((ConnectionReset, Some(104), "Connection reset by peer (os error 104)"))
+PL_SERVER_OBSERVATION Err((ConnectionReset, Some(104), "Connection reset by peer (os error 104)"))
+PL_SERVER_OBSERVATION Ok([])
+PL_TRIAL implementation=candidate feature=all trial=2
+PL_RESULT pass
+PL_SERVER_OBSERVATION Ok([])
+PL_SERVER_OBSERVATION Ok([])
+PL_TRIAL implementation=candidate feature=all trial=3
+PL_RESULT pass
+PL_SERVER_OBSERVATION Ok([])
+PL_SERVER_OBSERVATION Ok([])
+PL_TRIAL implementation=candidate feature=all trial=4
+PL_RESULT pass
+PL_SERVER_OBSERVATION Ok([])
+PL_SERVER_OBSERVATION Ok([])
+PL_TRIAL implementation=candidate feature=all trial=5
+thread 'canceling_a_partial_chunk_closes_the_socket' (5271) panicked at tests/registry_chunked.rs:137:5:
+server observed Err((ConnectionReset, Some(104), "Connection reset by peer (os error 104)"))
+PL_SERVER_OBSERVATION Err((ConnectionReset, Some(104), "Connection reset by peer (os error 104)"))
+PL_SERVER_OBSERVATION Ok([])
+PL_TRIAL implementation=candidate feature=all trial=6
+PL_RESULT pass
+PL_SERVER_OBSERVATION Ok([])
+PL_SERVER_OBSERVATION Ok([])
+PL_TRIAL implementation=candidate feature=all trial=7
+PL_RESULT pass
+PL_SERVER_OBSERVATION Ok([])
+PL_SERVER_OBSERVATION Ok([])
+PL_TRIAL implementation=candidate feature=all trial=8
+PL_RESULT pass
+PL_SERVER_OBSERVATION Ok([])
+PL_SERVER_OBSERVATION Ok([])
+PL_TRIAL implementation=candidate feature=all trial=9
+thread 'canceling_a_partial_chunk_closes_the_socket' (5326) panicked at tests/registry_chunked.rs:137:5:
+server observed Err((ConnectionReset, Some(104), "Connection reset by peer (os error 104)"))
+PL_SERVER_OBSERVATION Err((ConnectionReset, Some(104), "Connection reset by peer (os error 104)"))
+PL_SERVER_OBSERVATION Ok([])
+PL_TRIAL implementation=candidate feature=all trial=10
+PL_RESULT pass
+PL_SERVER_OBSERVATION Ok([])
+PL_SERVER_OBSERVATION Ok([])
+PL_TRIAL implementation=candidate feature=all trial=11
+thread 'canceling_a_partial_chunk_closes_the_socket' (5354) panicked at tests/registry_chunked.rs:137:5:
+server observed Err((ConnectionReset, Some(104), "Connection reset by peer (os error 104)"))
+PL_SERVER_OBSERVATION Err((ConnectionReset, Some(104), "Connection reset by peer (os error 104)"))
+PL_SERVER_OBSERVATION Ok([])
+PL_TRIAL implementation=candidate feature=all trial=12
+PL_RESULT pass
+PL_SERVER_OBSERVATION Ok([])
+PL_SERVER_OBSERVATION Ok([])
+PL_TRIAL implementation=candidate feature=all trial=13
+PL_RESULT pass
+PL_SERVER_OBSERVATION Ok([])
+PL_SERVER_OBSERVATION Ok([])
+PL_TRIAL implementation=candidate feature=all trial=14
+PL_RESULT pass
+PL_SERVER_OBSERVATION Ok([])
+PL_SERVER_OBSERVATION Ok([])
+PL_TRIAL implementation=candidate feature=all trial=15
+thread 'canceling_a_partial_chunk_closes_the_socket' (5408) panicked at tests/registry_chunked.rs:137:5:
+server observed Err((ConnectionReset, Some(104), "Connection reset by peer (os error 104)"))
+PL_SERVER_OBSERVATION Err((ConnectionReset, Some(104), "Connection reset by peer (os error 104)"))
+PL_SERVER_OBSERVATION Ok([])
+PL_TOTAL implementation=candidate feature=all failures=5
