@@ -1,4 +1,4 @@
-name: Produce request planned length experiment
+name: Produce request uncompressed-length refinement
 
 on:
   push:
@@ -17,6 +17,7 @@ jobs:
       CARGO_TERM_COLOR: never
       PYTHONDONTWRITEBYTECODE: "1"
       BASE_SHA: 731eb97a08445a18da0b043986ae192397ba176a
+      FIRST_SHA: 8c37f28b13f0131f146c1f57398dd8d593c1af3d
     steps:
       - uses: actions/checkout@v7
         with:
@@ -37,14 +38,18 @@ jobs:
           set -euo pipefail
           test "$(uname -m)" = x86_64
           git merge-base --is-ancestor "$BASE_SHA" HEAD
+          git merge-base --is-ancestor "$FIRST_SHA" HEAD
+          git diff --exit-code "$BASE_SHA" "$FIRST_SHA" -- Cargo.toml Cargo.lock src ':!src/protocol/api.rs'
           git diff --exit-code "$BASE_SHA" HEAD -- Cargo.toml Cargo.lock src ':!src/protocol/api.rs'
           evidence="$RUNNER_TEMP/produce-plan-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
           mkdir "$evidence"
           echo "EVIDENCE=$evidence" >> "$GITHUB_ENV"
-          git rev-parse HEAD "$BASE_SHA" | tee "$evidence/commits.txt"
+          git rev-parse HEAD "$FIRST_SHA" "$BASE_SHA" | tee "$evidence/commits.txt"
           git diff "$BASE_SHA" HEAD -- src/protocol/api.rs | tee "$evidence/production.patch"
-          sha256sum Cargo.lock src/protocol/api.rs examples/bench_produce_plan.rs benchmarks/produce-plan/measure.py .github/workflows/produce-plan-inline.yml | tee "$evidence/source-sha256.txt"
+          git diff "$BASE_SHA" "$FIRST_SHA" -- src/protocol/api.rs > "$evidence/first.patch"
+          sha256sum Cargo.lock src/protocol/api.rs examples/bench_produce_plan.rs benchmarks/produce-plan/measure_three.py .github/workflows/produce-plan-inline.yml | tee "$evidence/source-sha256.txt"
           git show "$BASE_SHA:src/protocol/api.rs" | sha256sum | tee "$evidence/baseline-source-sha256.txt"
+          git show "$FIRST_SHA:src/protocol/api.rs" | sha256sum | tee "$evidence/first-source-sha256.txt"
           rustc +stable -Vv | tee "$evidence/rustc.txt"
           cargo +stable -V | tee "$evidence/cargo.txt"
           uname -a | tee "$evidence/uname.txt"
@@ -52,15 +57,19 @@ jobs:
           taskset -cp $$ | tee "$evidence/affinity.txt"
           read -r cpu < <(python3 -c 'import os; print(min(os.sched_getaffinity(0)))')
           echo "BENCH_CPU=$cpu" >> "$GITHUB_ENV"
-          mkdir "$RUNNER_TEMP/produce-base"
-          rsync -a --exclude='.git' --exclude='target' "$GITHUB_WORKSPACE/" "$RUNNER_TEMP/produce-base/"
+          mkdir "$RUNNER_TEMP/produce-base" "$RUNNER_TEMP/produce-first"
+          for arm in base first; do
+            rsync -a --exclude='.git' --exclude='target' "$GITHUB_WORKSPACE/" "$RUNNER_TEMP/produce-$arm/"
+          done
           git show "$BASE_SHA:src/protocol/api.rs" > "$RUNNER_TEMP/produce-base/src/protocol/api.rs"
+          git show "$FIRST_SHA:src/protocol/api.rs" > "$RUNNER_TEMP/produce-first/src/protocol/api.rs"
           cmp Cargo.lock "$RUNNER_TEMP/produce-base/Cargo.lock"
           cmp Cargo.toml "$RUNNER_TEMP/produce-base/Cargo.toml"
           cmp examples/bench_produce_plan.rs "$RUNNER_TEMP/produce-base/examples/bench_produce_plan.rs"
           test "$(git hash-object "$RUNNER_TEMP/produce-base/src/protocol/api.rs")" = "$(git rev-parse "$BASE_SHA:src/protocol/api.rs")"
+          test "$(git hash-object "$RUNNER_TEMP/produce-first/src/protocol/api.rs")" = "$(git rev-parse "$FIRST_SHA:src/protocol/api.rs")"
           test "$(git hash-object src/protocol/api.rs)" = "$(git rev-parse HEAD:src/protocol/api.rs)"
-          sha256sum "$RUNNER_TEMP/produce-base/src/protocol/api.rs" src/protocol/api.rs | tee "$evidence/source-tree-sha256.txt"
+          sha256sum "$RUNNER_TEMP/produce-base/src/protocol/api.rs" "$RUNNER_TEMP/produce-first/src/protocol/api.rs" src/protocol/api.rs | tee "$evidence/source-tree-sha256.txt"
       - name: Build independently
         shell: bash
         run: |
@@ -69,31 +78,36 @@ jobs:
           cargo +stable build --locked --release --example bench_produce_plan --manifest-path "$RUNNER_TEMP/produce-base/Cargo.toml" 2>&1 | tee "$EVIDENCE/build-baseline.log"
           cp "$CARGO_TARGET_DIR/release/examples/bench_produce_plan" "$RUNNER_TEMP/produce-baseline"
           grep -F "Compiling partitionline v0.1.0 ($RUNNER_TEMP/produce-base)" "$EVIDENCE/build-baseline.log"
-          export CARGO_TARGET_DIR="$RUNNER_TEMP/produce-target-candidate"
-          cargo +stable build --locked --release --example bench_produce_plan --manifest-path "$GITHUB_WORKSPACE/Cargo.toml" 2>&1 | tee "$EVIDENCE/build-candidate.log"
-          cp "$CARGO_TARGET_DIR/release/examples/bench_produce_plan" "$RUNNER_TEMP/produce-candidate"
-          grep -F "Compiling partitionline v0.1.0 ($GITHUB_WORKSPACE)" "$EVIDENCE/build-candidate.log"
-          sha256sum "$RUNNER_TEMP/produce-baseline" "$RUNNER_TEMP/produce-candidate" | tee "$EVIDENCE/binary-sha256.txt"
+          export CARGO_TARGET_DIR="$RUNNER_TEMP/produce-target-first"
+          cargo +stable build --locked --release --example bench_produce_plan --manifest-path "$RUNNER_TEMP/produce-first/Cargo.toml" 2>&1 | tee "$EVIDENCE/build-first.log"
+          cp "$CARGO_TARGET_DIR/release/examples/bench_produce_plan" "$RUNNER_TEMP/produce-first-bin"
+          grep -F "Compiling partitionline v0.1.0 ($RUNNER_TEMP/produce-first)" "$EVIDENCE/build-first.log"
+          export CARGO_TARGET_DIR="$RUNNER_TEMP/produce-target-refined"
+          cargo +stable build --locked --release --example bench_produce_plan --manifest-path "$GITHUB_WORKSPACE/Cargo.toml" 2>&1 | tee "$EVIDENCE/build-refined.log"
+          cp "$CARGO_TARGET_DIR/release/examples/bench_produce_plan" "$RUNNER_TEMP/produce-refined"
+          grep -F "Compiling partitionline v0.1.0 ($GITHUB_WORKSPACE)" "$EVIDENCE/build-refined.log"
+          sha256sum "$RUNNER_TEMP/produce-baseline" "$RUNNER_TEMP/produce-first-bin" "$RUNNER_TEMP/produce-refined" | tee "$EVIDENCE/binary-sha256.txt"
       - name: Compare wire output, errors and cancellation
         shell: bash
         run: |
           set -euo pipefail
-          for arm in baseline candidate; do
+          for arm in baseline first-bin refined; do
             taskset -c "$BENCH_CPU" "$RUNNER_TEMP/produce-$arm" corpus "$EVIDENCE/$arm-corpus.bin" 2>&1 | tee "$EVIDENCE/$arm-corpus.log"
           done
-          cmp "$EVIDENCE/baseline-corpus.bin" "$EVIDENCE/candidate-corpus.bin"
-          sha256sum "$EVIDENCE/baseline-corpus.bin" "$EVIDENCE/candidate-corpus.bin" | tee "$EVIDENCE/corpus-sha256.txt"
+          cmp "$EVIDENCE/baseline-corpus.bin" "$EVIDENCE/first-bin-corpus.bin"
+          cmp "$EVIDENCE/baseline-corpus.bin" "$EVIDENCE/refined-corpus.bin"
+          sha256sum "$EVIDENCE/baseline-corpus.bin" "$EVIDENCE/first-bin-corpus.bin" "$EVIDENCE/refined-corpus.bin" | tee "$EVIDENCE/corpus-sha256.txt"
       - name: Paired request measurements
         shell: bash
         run: |
           set -euo pipefail
-          python3 benchmarks/produce-plan/measure.py "$RUNNER_TEMP/produce-baseline" "$RUNNER_TEMP/produce-candidate" "$BENCH_CPU" "$EVIDENCE/measurements.json" 2>&1 | tee "$EVIDENCE/measure.log"
+          python3 benchmarks/produce-plan/measure_three.py "$RUNNER_TEMP/produce-baseline" "$RUNNER_TEMP/produce-first-bin" "$RUNNER_TEMP/produce-refined" "$BENCH_CPU" "$EVIDENCE/measurements.json" 2>&1 | tee "$EVIDENCE/measure.log"
       - name: Source formatting, focused correctness and strict checks
         shell: bash
         run: |
           set -uo pipefail
           status=0
-          for arm in baseline candidate; do
+          for arm in baseline refined; do
             if [ "$arm" = baseline ]; then tree="$RUNNER_TEMP/produce-base"; else tree="$GITHUB_WORKSPACE"; fi
             export CARGO_TARGET_DIR="$RUNNER_TEMP/produce-target-$arm"
             for profile in default all-features; do
@@ -125,6 +139,6 @@ jobs:
         if: always() && env.EVIDENCE != ''
         uses: actions/upload-artifact@v7
         with:
-          name: produce-plan-inline-${{ github.run_id }}-${{ github.run_attempt }}
+          name: produce-plan-refined-${{ github.run_id }}-${{ github.run_attempt }}
           path: ${{ env.EVIDENCE }}/
           retention-days: 30
