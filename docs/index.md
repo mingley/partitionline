@@ -14,7 +14,7 @@
 | TLS, SASL, and credential handling | [Security](security.md) and [token lifecycle](auth-refresh.md) |
 | Client internals | [Design](design.md) |
 | Broker development | [Broker README](https://github.com/mingley/partitionline/blob/dfe179d7066e2c1afecb88df5ba76d2920308c46/partitionline-broker/README.md) |
-| Schema Registry and serialization | [Companion README](https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/partitionline-schema/README.md) |
+| Schema Registry and serialization | [Companion README](https://github.com/mingley/partitionline/blob/ef20cb151dc7d310ab6f16d72b82ebc6c1071574/partitionline-schema/README.md) |
 | Versions this client speaks | [Wire versions](wire-versions.md) |
 | Run and compare benchmarks | [Benchmark instructions](benchmark.md) and [measurement rules](benchmark-contract.md) |
 | Release process | [Release guide](RELEASE.md) |

@@ -3,7 +3,7 @@
 An asynchronous Apache Kafka client with producer, consumer, group, transaction,
 and Admin APIs. This repository also contains an experimental
 [broker](https://github.com/mingley/partitionline/blob/dfe179d7066e2c1afecb88df5ba76d2920308c46/partitionline-broker/README.md) and a
-[Schema Registry companion](https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/partitionline-schema/README.md).
+[Schema Registry companion](https://github.com/mingley/partitionline/blob/ef20cb151dc7d310ab6f16d72b82ebc6c1071574/partitionline-schema/README.md).
 
 [![ci](https://github.com/mingley/partitionline/actions/workflows/ci.yml/badge.svg)](https://github.com/mingley/partitionline/actions/workflows/ci.yml)
 [![crates.io](https://img.shields.io/crates/v/partitionline.svg)](https://crates.io/crates/partitionline)
