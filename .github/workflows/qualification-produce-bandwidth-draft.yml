@@ -22,8 +22,8 @@ jobs:
       - name: Verify pinned draft inputs
         run: |
           set -euo pipefail
-          test "$(git rev-parse HEAD:partitionline-broker/src/metadata.rs)" = 937a81f02ca0290e3e359e7ce5f9604fcb39a203
-          test "$(git rev-parse HEAD:partitionline-broker/src/produce.rs)" = eef46eba9f965ae3d0446d08b4772a1ed014e191
+          test "$(git rev-parse HEAD:partitionline-broker/src/metadata.rs)" = e4fd2fb01a521ee5620b7da4eeafb0cc48c6de08
+          test "$(git rev-parse HEAD:partitionline-broker/src/produce.rs)" = 1e3c33b71e02c5e3abf749f2c390201c26037faf
           test "$(git rev-parse HEAD:partitionline-broker/src/transport.rs)" = db3cfc6883b83d5f23ced809a7208bdc0f731794
           test "$(git rev-parse HEAD:partitionline-broker/src/metadata/bandwidth.rs)" = e575c8f49d71a3784099b6f42d0f23d310e3e691
           test "$(git rev-parse HEAD:partitionline-broker/tests/produce_quota.rs)" = 4bc2c71ee28fc3b2f9af2ae9f7686a82f37a18cf

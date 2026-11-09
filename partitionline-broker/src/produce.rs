@@ -1572,19 +1572,12 @@ pub(crate) struct Produced {
     pub(crate) throttle_at: Option<usize>,
 }
 
-#[cfg(test)]
-impl Produced {
-    fn is_some(&self) -> bool {
-        self.response.is_some()
-    }
-}
-
 enum ProcessOut {
     Reply(Produced),
     Captured(CapturedProduce),
 }
 
-pub(crate) fn process(
+pub(crate) fn process_with_offset(
     catalog: &Catalog,
     store: &mut Store,
     input: &mut [u8],
@@ -1598,8 +1591,20 @@ pub(crate) fn process(
     }
 }
 
+#[cfg(test)]
+pub(crate) fn process(
+    catalog: &Catalog,
+    store: &mut Store,
+    input: &mut [u8],
+    common: &metadata::Config,
+    admitted: Instant,
+    active: impl Fn() -> Result<(), Error>,
+) -> Result<Option<Vec<u8>>, Error> {
+    process_with_offset(catalog, store, input, common, admitted, active).map(|result| result.response)
+}
+
 /// Stage every already-queued produce, synchronize each partition once, then
-/// reply. A single job uses [`process`]. The first job is not delayed when
+/// reply. A single job uses [`process_with_offset`]. The first job is not delayed when
 /// nothing else is queued; callers decide that.
 pub(crate) fn process_queued(
     catalog: &Catalog,

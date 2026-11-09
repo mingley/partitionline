@@ -1364,7 +1364,7 @@ fn actor(
                 } else if let Some(store) = store.as_mut() {
                     if produce_key && grouped.is_empty() {
                         store.prepare_response_buf(std::mem::take(&mut job.lease.spare));
-                        let mut produced = produce::process(
+                        let mut produced = produce::process_with_offset(
                             &catalog,
                             store,
                             &mut job.lease.request,
