@@ -49,6 +49,7 @@ jobs:
           check timeout 180 cargo test --locked --all-features --test producer_owner_bounded_controls -- --nocapture --test-threads=1
           check timeout 180 cargo test --locked --test buffer_ownership
           check timeout 180 cargo test --locked --all-features --test producer_close_errors
+          check timeout 180 cargo test --locked --all-features --test producer_owner_reentrancy_controls -- --nocapture --test-threads=1
           check cargo clippy --locked --all-features --test producer_owner_bounded_controls -- -D warnings
           check cargo fmt --all -- --check
           printf '\nFAILED_COMMANDS=%s\n' "$failures"

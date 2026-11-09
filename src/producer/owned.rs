@@ -15,7 +15,7 @@ const DONE: u8 = 4;
 
 struct Slot {
     id: u64,
-    payload: Arc<Mutex<PendingData>>,
+    payload: parking_lot::Mutex<Option<Arc<Mutex<PendingData>>>>,
     stage: AtomicU8,
     ticket: AtomicU64,
     sticky_retired: AtomicBool,
@@ -34,6 +34,7 @@ pub(super) struct Owner {
     pub(super) permits: Arc<Semaphore>,
     changed: Notify,
     closed: Arc<AtomicBool>,
+    sealed: AtomicBool,
 }
 
 impl Owner {
@@ -43,6 +44,7 @@ impl Owner {
             permits: Arc::new(Semaphore::new(limit)),
             changed: Notify::new(),
             closed,
+            sealed: AtomicBool::new(false),
         }
     }
 
@@ -63,9 +65,13 @@ impl Owner {
             .try_lock_owned()
             .map_err(|_| Error::protocol("new record slot is locked"))?;
         let mut state = self.state.lock();
+        if self.sealed.load(Ordering::SeqCst) || self.closed.load(Ordering::SeqCst) {
+            return Err(Error::Closed);
+        }
         let id = match state.next_slot.checked_add(1) {
             Some(id) => id,
             None => {
+                self.sealed.store(true, Ordering::SeqCst);
                 self.closed.store(true, Ordering::SeqCst);
                 self.permits.close();
                 self.changed.notify_waiters();
@@ -75,7 +81,7 @@ impl Owner {
         state.next_slot = id;
         let slot = Arc::new(Slot {
             id,
-            payload,
+            payload: parking_lot::Mutex::new(Some(payload)),
             stage: AtomicU8::new(PREPARED),
             ticket: AtomicU64::new(0),
             sticky_retired: AtomicBool::new(false),
@@ -94,13 +100,14 @@ impl Owner {
 
     fn admit(&self, slot: &Slot) -> Result<()> {
         let mut state = self.state.lock();
-        if self.closed.load(Ordering::SeqCst) {
+        if self.sealed.load(Ordering::SeqCst) || self.closed.load(Ordering::SeqCst) {
             return Err(Error::Closed);
         }
         if slot.stage.load(Ordering::SeqCst) == PREPARED {
             let ticket = match state.next_ticket.checked_add(1) {
                 Some(ticket) => ticket,
                 None => {
+                    self.sealed.store(true, Ordering::SeqCst);
                     self.closed.store(true, Ordering::SeqCst);
                     self.permits.close();
                     self.changed.notify_waiters();
@@ -116,9 +123,13 @@ impl Owner {
 
     pub(super) fn seal(&self) {
         let _state = self.state.lock();
-        self.closed.store(true, Ordering::SeqCst);
+        self.sealed.store(true, Ordering::SeqCst);
         self.permits.close();
         self.changed.notify_waiters();
+    }
+
+    pub(super) fn is_sealed(&self) -> bool {
+        self.sealed.load(Ordering::SeqCst)
     }
 
     pub(super) fn cutoff(&self) -> u64 {
@@ -167,7 +178,8 @@ impl Owner {
         {
             return None;
         }
-        let guard = match Arc::clone(&slot.payload).try_lock_owned() {
+        let payload = slot.payload.lock().as_ref().cloned()?;
+        let guard = match payload.try_lock_owned() {
             Ok(guard) => guard,
             Err(_) => {
                 slot.stage.store(ORPHANED, Ordering::SeqCst);
@@ -208,6 +220,7 @@ impl Drop for Release {
                 self.slot.stage.store(ORPHANED, Ordering::SeqCst);
                 // This is conservative: do not accept additional sends after
                 // a claimed record loses its worker. Write fencing remains open.
+                self.owner.closed.store(true, Ordering::SeqCst);
                 self.owner.seal();
             }
             _ => {}
@@ -215,6 +228,10 @@ impl Drop for Release {
     }
 }
 
+#[expect(
+    clippy::result_large_err,
+    reason = "Return a non-rooted pending record without allocating."
+)]
 fn take_rooted(
     pending: Pending,
 ) -> std::result::Result<(OwnedMutexGuard<PendingData>, Release), Pending> {
@@ -249,10 +266,13 @@ pub(super) fn complete(
                     Err(error) => shared.interceptors.on_error(error),
                 }
             }));
-            shared.release_buffer(bytes);
             if let Some(tx) = tx {
                 drop(tx.send(result));
             }
+            let payload = slot.payload.lock().take();
+            let _destroyed =
+                std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| drop(payload)));
+            shared.release_buffer(bytes);
             owner.remove(&slot);
         }
         Err(mut pending) => {
@@ -277,6 +297,9 @@ pub(super) fn complete_without_consumer(shared: &Shared, pending: Pending) {
         let bytes = rec_bytes(&guard.rec);
         drop(guard);
         drop(release);
+        let payload = slot.payload.lock().take();
+        let _destroyed =
+            std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| drop(payload)));
         shared.release_buffer(bytes);
         owner.remove(&slot);
     }
@@ -291,7 +314,7 @@ pub(super) async fn supervise(shared: Arc<Shared>, owner: Arc<Owner>) {
             fail_pendings(&shared, vec![pending], Error::Closed);
             continue;
         }
-        if owner.closed.load(Ordering::SeqCst) && owner.state.lock().slots.is_empty() {
+        if owner.sealed.load(Ordering::SeqCst) && owner.state.lock().slots.is_empty() {
             break;
         }
         notified.await;

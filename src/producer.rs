@@ -885,6 +885,10 @@ struct Pending {
     release: Option<owned::Release>,
 }
 
+#[expect(
+    clippy::large_enum_variant,
+    reason = "Keep legacy pending records inline without an allocation."
+)]
 enum PendingStorage {
     Inline(PendingData),
     Rooted(tokio::sync::OwnedMutexGuard<PendingData>),
@@ -1462,6 +1466,11 @@ impl Drop for BufferReservation<'_> {
 }
 
 impl Shared {
+    fn admission_closed(&self) -> bool {
+        self.closed.load(Ordering::SeqCst)
+            || self.owned_records.as_ref().is_some_and(|owner| owner.is_sealed())
+    }
+
     #[expect(
         clippy::result_large_err,
         reason = "Rejected sends return the owned record without allocating."
@@ -2973,7 +2982,7 @@ impl Producer {
     }
 
     fn ensure_send_open(&self) -> Result<()> {
-        if self.inner.shared.closed.load(Ordering::SeqCst) {
+        if self.inner.shared.admission_closed() {
             return Err(Error::Closed);
         }
         // A fenced producer fails sends immediately instead of emitting
@@ -3062,14 +3071,14 @@ impl Producer {
             bytes,
             active: true,
         };
-        if self.inner.shared.closed.load(Ordering::SeqCst) {
+        if self.inner.shared.admission_closed() {
             return Err(Error::Closed);
         }
         compact_record_backing(&mut rec);
         let now = Instant::now();
         let deadline = now + self.inner.shared.cfg.delivery_timeout;
         let topic = tracker.is_none().then(|| Arc::clone(&rec.topic));
-        let mut pending = Pending::inline(PendingData {
+        let pending = Pending::inline(PendingData {
             sticky_record: None,
             sticky: None,
             rec,
@@ -3098,7 +3107,7 @@ impl Producer {
                 }
                 Ok(Err(mpsc::error::SendError(returned))) => {
                     pending = returned;
-                    if self.inner.shared.closed.load(Ordering::SeqCst) {
+                    if self.inner.shared.admission_closed() {
                         return Err(Error::Closed);
                     }
                     retire_observed_worker(&self.inner.shared, &worker.id);
@@ -3159,7 +3168,7 @@ impl Producer {
         };
         let cluster = shared.cluster.lock();
         let mut policy = policy.lock();
-        if shared.closed.load(Ordering::SeqCst) {
+        if shared.admission_closed() {
             return Err(Error::Closed);
         }
         let Some(np) = cluster.partition_count(&pending.rec.topic) else {
@@ -3224,7 +3233,7 @@ impl Producer {
             Err(mpsc::error::TrySendError::Closed(mut pending)) => {
                 pending.sticky = None;
                 *pending_slot = Some(pending);
-                if shared.closed.load(Ordering::SeqCst) {
+                if shared.admission_closed() {
                     Err(Error::Closed)
                 } else {
                     retire_closed_worker(shared, node, slot, &worker.id);
@@ -3238,7 +3247,7 @@ impl Producer {
         let shared = &self.inner.shared;
         let records = shared.sticky_records.as_ref().ok_or(Error::Closed)?;
         loop {
-            if shared.closed.load(Ordering::SeqCst) {
+            if shared.admission_closed() {
                 return Err(Error::Closed);
             }
             let now = Instant::now();
@@ -3291,7 +3300,7 @@ impl Producer {
         let current = pending.take().ok_or(Error::Closed)?;
         pending = Some(self.root_pending(current, owned_permit)?);
         loop {
-            if shared.closed.load(Ordering::SeqCst) {
+            if shared.admission_closed() {
                 return Err(Error::Closed);
             }
             if let Some(err) = peek_meta_err(shared) {
@@ -3515,7 +3524,7 @@ impl Producer {
     /// Records are never queued without a partition, so each partition is
     /// pinned to one TCP connection on its current leader.
     pub fn try_send(&self, rec: ProduceRecord) -> Result<()> {
-        if self.inner.shared.closed.load(Ordering::SeqCst) {
+        if self.inner.shared.admission_closed() {
             return Err(Error::Closed);
         }
         // Same fencing rule as [`Self::send_all`]: fatal blocks, abortable
@@ -3609,7 +3618,7 @@ impl Producer {
             return Err(match e {
                 mpsc::error::TrySendError::Full(_) => Error::QueueFull,
                 mpsc::error::TrySendError::Closed(_) => {
-                    if self.inner.shared.closed.load(Ordering::SeqCst) {
+                    if self.inner.shared.admission_closed() {
                         Error::Closed
                     } else {
                         retire_observed_worker(&self.inner.shared, &w.id);

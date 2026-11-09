@@ -115,7 +115,10 @@ impl Gate {
         let _notified = self.changed.notify_all();
     }
 
-    #[expect(clippy::expect_used, reason = "A test gate must fail if the callback does not enter.")]
+    #[expect(
+        clippy::expect_used,
+        reason = "A test gate must fail if the callback does not enter."
+    )]
     async fn wait_entered(&self) {
         tokio::time::timeout(LIMIT, async {
             while !self.entered.load(Ordering::SeqCst) {
@@ -158,7 +161,10 @@ impl Drop for ReleaseOnDrop {
     }
 }
 
-#[expect(clippy::expect_used, reason = "The fixture must fail if producer setup fails.")]
+#[expect(
+    clippy::expect_used,
+    reason = "The fixture must fail if producer setup fails."
+)]
 async fn gated_producer() -> (common::Mock, Producer, Arc<Gate>, ReleaseOnDrop) {
     let mock = common::Mock::start().await;
     mock.set_topic_partitions("t", 1);
