@@ -782,6 +782,16 @@ class BenchmarkIntegrityRegressionTests(unittest.TestCase):
                 data["provenance"]["config"]["effective_settings"]["idempotence"] = effective
                 self.assertFalse(self.validator.validate(data)[0])
 
+    def test_idempotence_requires_all_acknowledgments(self):
+        for acks in (0, 1):
+            with self.subTest(acks=acks):
+                data = build_valid_fixture()
+                data["scenario"]["equal_semantics"]["acks"] = acks
+                data["provenance"]["config"]["effective_settings"]["acks"] = acks
+                if acks == 0:
+                    data["outcomes"].update(acknowledged=0, consumed=data["outcomes"]["accepted"])
+                self.assertFalse(self.validator.validate(data)[0])
+
     def test_valid_ack_aliases_and_matching_idempotence(self):
         for scenario_ack, effective_ack, idempotence in [
             ("all", -1, True), ("-1", "all", False), ("+1", 1, False)
