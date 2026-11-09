@@ -1,0 +1,36 @@
+name: Benchmark harness synthetic controls
+on:
+  push:
+    branches: [dev/benchmark-sampler-20261109]
+permissions:
+  contents: read
+jobs:
+  controls:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            /benchmarks/peers/kafka-ack
+          sparse-checkout-cone-mode: false
+      - name: Synthetic controls and shell syntax
+        run: |
+          python3 -m unittest discover -s benchmarks/peers/kafka-ack -p 'test_*.py' -v
+          bash -n benchmarks/peers/kafka-ack/run-one.sh
+  example-build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            /Cargo.toml
+            /Cargo.lock
+            /README.md
+            /src
+            /examples
+            /docs
+          sparse-checkout-cone-mode: false
+      - uses: dtolnay/rust-toolchain@stable
+      - run: cargo check --locked --example bench_kafka_paired
