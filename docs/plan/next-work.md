@@ -61,7 +61,10 @@ runs and their limits.
    transient repeat that would later progress with a non-retriable protocol
    error; raw pages remain available. Focused checks passed, while broad Admin
    timing assertions failed on both baseline and candidate. Long comparisons
-   and total result memory are not bounded by the history.
+   and total result memory are not bounded by the history. The
+   [Admin response diagnostic](../evidence/client/admin-response-growth-20261109/README.md)
+   observed long map-growth polls in a synthetic debug fixture; it did not
+   establish the cause of the earlier timing assertions.
 
 3. **Broker durability and limits.** Complete and qualify partition replication,
    native Kafka KRaft, transaction marker propagation and resource bounds; the
