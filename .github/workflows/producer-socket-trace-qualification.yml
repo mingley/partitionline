@@ -5,61 +5,36 @@ on:
 permissions:
   contents: read
 jobs:
-  behavior:
-    strategy:
-      fail-fast: false
-      matrix:
-        feature: [default, all]
-    runs-on: ubuntu-latest
-    timeout-minutes: 25
+  trace:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    env:
+      CARGO_BUILD_JOBS: "2"
+      CARGO_INCREMENTAL: "0"
+      CARGO_PROFILE_DEV_DEBUG: "0"
+      CARGO_PROFILE_TEST_DEBUG: "0"
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           sparse-checkout: |
-            /Cargo.toml
-            /Cargo.lock
-            /README.md
-            /src
-            /tests
-            /examples
-          sparse-checkout-cone-mode: false
+            src
+            tests
+            examples
       - uses: dtolnay/rust-toolchain@stable
       - name: Verify pinned production and fixtures
         run: |
+          set -euo pipefail
           test "$(git rev-parse HEAD:src/producer.rs)" = 61b084c065291f077aa6112fdba6dc15b33848bd
           test "$(git rev-parse HEAD:tests/common/mod.rs)" = 4afd104e0b5e10227167d0d38328fe03dda07a0a
           test "$(git rev-parse HEAD:Cargo.lock)" = 96e364d34121fe90183f87f4f49fd92b883bc447
           rustc -Vv
           sha256sum src/producer.rs tests/common/mod.rs tests/producer_socket_trace.rs Cargo.lock
       - name: Trace physical sockets and authenticated sessions
-        shell: bash
         run: |
           set -euo pipefail
-          flags=()
-          if [ "${{ matrix.feature }}" = all ]; then flags+=(--all-features); fi
-          cargo test --locked "${flags[@]}" --test producer_socket_trace cold_send_ -- --nocapture
-  timing:
-    runs-on: ubuntu-latest
-    timeout-minutes: 25
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          sparse-checkout: |
-            /Cargo.toml
-            /Cargo.lock
-            /README.md
-            /src
-            /tests
-            /examples
-          sparse-checkout-cone-mode: false
-      - uses: dtolnay/rust-toolchain@stable
-      - name: Build release diagnostic
-        run: |
-          test "$(git rev-parse HEAD:src/producer.rs)" = 61b084c065291f077aa6112fdba6dc15b33848bd
-          rustc -Vv
-          cargo test --locked --release --test producer_socket_trace --no-run
+          cargo test --locked --test producer_socket_trace cold_send_ -- --nocapture
+          cargo test --locked --all-features --test producer_socket_trace cold_send_ -- --nocapture
       - name: Alternate injected handshake delay
-        shell: bash
         run: |
           set -euo pipefail
           cpu=$(python3 -c 'import os; print(min(os.sched_getaffinity(0)))')

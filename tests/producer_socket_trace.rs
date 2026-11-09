@@ -15,6 +15,7 @@ fn requests(events: &[WireEvent], key: i16) -> Vec<&WireEvent> {
 async fn producer(mock: &Mock, sasl: bool) -> Producer {
     let mut cfg = ProducerConfig::bootstrap([mock.addr.clone()]);
     cfg.linger = Duration::ZERO;
+    cfg.connections = 1;
     cfg.connections_max_idle = Duration::from_secs(30);
     cfg.request_timeout = Duration::from_secs(4);
     cfg.delivery_timeout = Duration::from_secs(4);
@@ -84,6 +85,46 @@ async fn cold_send_waits_for_a_distinct_negotiated_socket() {
 #[tokio::test(flavor = "current_thread")]
 async fn cold_send_waits_for_a_distinct_authenticated_socket() {
     gated_first_send(true).await;
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn cold_send_obeys_new_socket_advertisement() {
+    let mock = Mock::start().await;
+    mock.set_topic_partitions("t", 1);
+    mock.enable_wire_trace(512);
+    let producer = producer(&mock, false).await;
+    let bootstrap = mock.wire_trace();
+    let initial = bootstrap.iter().find_map(|event| match &event.kind {
+        WireEventKind::ApiVersionsResponse { error_code: 0, ranges } =>
+            ranges.iter().find(|entry| entry.api_key == PRODUCE).map(|entry| entry.max_version),
+        _ => None,
+    }).expect("bootstrap Produce version");
+    assert!(initial > 3, "bootstrap must advertise a later Produce version");
+    // Model a peer changing advertised versions between the original session
+    // and a fresh session at the same address. This is not a real broker rollout.
+    mock.set_api_max(PRODUCE, 3);
+    let first = producer.send(ProduceRecord::to("t").value(&b"version"[..])).await.unwrap();
+    assert_eq!(first.offset, 0);
+    let after = mock.wire_trace();
+    let produces = requests(&after, PRODUCE);
+    assert_eq!(produces.len(), 1);
+    let worker = produces[0].socket;
+    let used = match &produces[0].kind {
+        WireEventKind::Request { api_version, .. } => *api_version,
+        _ => unreachable!(),
+    };
+    let advertised = after.iter().find_map(|event| {
+        if event.socket != worker { return None; }
+        match &event.kind {
+            WireEventKind::ApiVersionsResponse { error_code: 0, ranges } =>
+                ranges.iter().find(|entry| entry.api_key == PRODUCE).map(|entry| entry.max_version),
+            _ => None,
+        }
+    }).expect("worker Produce version");
+    assert_eq!(advertised, 3);
+    assert_eq!(used, 3);
+    println!("PL_SOCKET_VERSION bootstrap_max={} worker_max={} produce_version={}", initial, advertised, used);
+    producer.close().await.unwrap();
 }
 
 async fn sample(pair: usize, delay_ms: u64) {
