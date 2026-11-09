@@ -10,6 +10,11 @@ Production readiness and fastest-client/server claims remain unqualified.
 Client 0.1.0 is already published. The next client version must be at least
 0.2.0; broker and schema publication remain disabled.
 
+The Schema Registry client now honors `Retry-After` delay-seconds on HTTP
+429 responses across supported response framings. The [retry controls](../evidence/schema/retry-after-20261109/README.md)
+passed on a mock; no live Schema Registry was tested. A later timeout is an
+intentional change from the earlier immediate retry.
+
 The latest complete recorded main [CI snapshot](../evidence/releases/main-ci-133d-20261108/README.md)
 is `133d2413217cee4130bca2267e4e36b7225ff86f`. Client libraries reported
 2,299 passed and 18 failed on Linux default, 2,302 passed and 15 failed with
@@ -20,6 +25,16 @@ failed after a child exited with code 1; its cause is unknown. The broker passed
 strict checks, inventory and fuzz supervision. Both client capability profiles
 passed; their archives were not independently inspected. The instruction counter
 had no baseline for this Rust version.
+
+An [additional partial main run](https://github.com/mingley/partitionline/actions/runs/42662585679)
+at `dfe179d7066e2c1afecb88df5ba76d2920308c46` passed 18 client jobs,
+failed three Kafka compatibility jobs, canceled six and skipped one. The
+resource-soak driver and its 11 short tests passed, without explaining the
+`133d241` failure or completing a sustained campaign. Its instruction gate
+had no baseline. The [broker run](https://github.com/mingley/partitionline/actions/runs/42662585577)
+passed 806 default and 954 all-feature tests with four ignored each, plus strict
+checks, inventory and fuzz supervision. Both selected [capability profiles](https://github.com/mingley/partitionline/actions/runs/42662585652)
+passed; their archives were not independently inspected.
 
 The [preceding complete snapshot](../evidence/releases/main-ci-0c9-20261108/README.md)
 also failed client checks and stopped in a broker integration target after
