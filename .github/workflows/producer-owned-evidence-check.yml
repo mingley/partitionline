@@ -1,0 +1,38 @@
+name: Verify retained producer ownership patch
+
+on:
+  push:
+    branches: [qualification/producer-owned-evidence-check-20261109]
+
+permissions:
+  contents: read
+
+jobs:
+  patch:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          sparse-checkout: |
+            docs/evidence/client/producer-bounded-ownership-attempt-20261109
+            src
+            tests
+      - name: Apply patch and generate test-only witness
+        shell: bash
+        run: |
+          set -euo pipefail
+          git rev-parse HEAD
+          evidence=docs/evidence/client/producer-bounded-ownership-attempt-20261109
+          test "$(git hash-object src/producer.rs)" = 426dbdb5c5e27fdf655930a76682c5c18fb07e89
+          git apply --check "$evidence/producer-ownership.patch"
+          git apply "$evidence/producer-ownership.patch"
+          test "$(git hash-object src/producer.rs)" = f2a0384c0da06860f24d26c78745c9100757e513
+          test "$(git hash-object src/producer/owned.rs)" = ea0ca2f02a786455b36b64e15a539e2d9ad947be
+          for name in producer_owner_bounded_controls producer_owner_reentrancy_controls producer_owner_close_callback producer_owner_close_retry producer_ownership_regression_public; do
+            cp "$evidence/fixtures/$name.rs.txt" "tests/$name.rs"
+          done
+          python3 "$evidence/inject-sequence-gate.py"
+          test "$(git hash-object src/producer.rs)" = 9128b12cb3f0f2c8843254e38c9aefef61132f9e
+          git hash-object src/producer.rs src/producer/owned.rs tests/producer_ownership_regression_public.rs
