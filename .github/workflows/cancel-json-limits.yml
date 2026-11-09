@@ -1,0 +1,19 @@
+name: Cancel JSON limits run
+on:
+  push:
+    branches: [qualification/cancel-json-limits-20261109]
+permissions:
+  actions: write
+  contents: read
+jobs:
+  cancel:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.actions.cancelWorkflowRun({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              run_id: 42666977450
+            });
