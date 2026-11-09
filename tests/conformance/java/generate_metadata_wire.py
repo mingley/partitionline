@@ -1,12 +1,14 @@
 #!/usr/bin/env python3
 """Compare a finite Metadata v13 body cohort with pinned Apache SDKs."""
 import argparse
+import ctypes
 import hashlib
 import json
 import os
 from pathlib import Path
 import signal
 import subprocess
+import sys
 import time
 import urllib.request
 
@@ -35,53 +37,128 @@ def interrupt(signum, _frame):
     raise InterruptedError("signal " + str(signum))
 
 
-def stop_group(child):
+def group_exists(pgid):
     try:
-        os.killpg(child.pid, signal.SIGTERM)
+        os.killpg(pgid, 0)
+        return True
     except ProcessLookupError:
-        return
+        return False
+
+
+def reap_adopted(pgid):
+    while True:
+        try:
+            pid, _status = os.waitpid(-pgid, os.WNOHANG)
+        except ChildProcessError:
+            return
+        if pid == 0:
+            return
+
+
+def wait_for_group(child, seconds, receipt):
+    deadline = time.monotonic() + seconds
+    while True:
+        if child.poll() is not None:
+            reap_adopted(child.pid)
+            alive = group_exists(child.pid)
+            receipt["parent_exited_group_still_present"] |= alive
+            if not alive:
+                return True
+        if time.monotonic() >= deadline:
+            return False
+        time.sleep(0.02)
+
+
+def stop_group(child):
+    """Stop the owned process group and reap children adopted by the subreaper."""
+    old_handlers = {sig: signal.getsignal(sig) for sig in (signal.SIGINT, signal.SIGTERM)}
+    for sig in old_handlers:
+        signal.signal(sig, signal.SIG_IGN)
+    receipt = {"sigkill_used": False, "parent_exited_group_still_present": False}
     try:
-        child.wait(timeout=3)
-    except subprocess.TimeoutExpired:
-        os.killpg(child.pid, signal.SIGKILL)
-        child.wait(timeout=3)
+        try:
+            os.killpg(child.pid, signal.SIGTERM)
+        except ProcessLookupError:
+            pass
+        if not wait_for_group(child, 2, receipt):
+            receipt["sigkill_used"] = True
+            try:
+                os.killpg(child.pid, signal.SIGKILL)
+            except ProcessLookupError:
+                pass
+            if not wait_for_group(child, 3, receipt):
+                raise RuntimeError("process group remains after bounded SIGKILL; cleanup unproven")
+        receipt["group_empty"] = True
+        receipt["direct_child_waited"] = child.returncode is not None
+        return receipt
+    finally:
+        for sig, handler in old_handlers.items():
+            signal.signal(sig, handler)
 
 
-def run(command, out, env=None, timeout=30, expect_failure=False, marker=None):
+def run(command, out, env=None, timeout=30, expect_failure=False, marker=None,
+        expect_timeout=False):
     global CHILD
     remaining = min(timeout, END - time.monotonic())
     if remaining <= 0:
         raise TimeoutError("overall Metadata deadline")
+    cleanup = None
+    timed_out = False
     with out.open("x") as stream:
         CHILD = subprocess.Popen(
             command, cwd=ROOT, env=env, stdout=stream, stderr=subprocess.STDOUT,
             stdin=subprocess.DEVNULL, start_new_session=True,
         )
+        child = CHILD
         try:
-            CHILD.wait(timeout=remaining)
+            try:
+                child.wait(timeout=remaining)
+            except subprocess.TimeoutExpired:
+                timed_out = True
+                cleanup = stop_group(child)
+            except BaseException:
+                cleanup = stop_group(child)
+                raise
         finally:
-            if CHILD.poll() is None:
-                stop_group(CHILD)
-            child = CHILD
             CHILD = None
-        # Direct children must exit and the process group must be empty.
-        try:
-            os.killpg(child.pid, 0)
-        except ProcessLookupError:
-            pass
-        else:
-            stop_group(child)
-            raise RuntimeError("child process group still alive")
+        if group_exists(child.pid):
+            cleanup = stop_group(child)
+            raise RuntimeError("unexpected surviving process group: " + str(cleanup))
     if out.stat().st_size > 1_048_576:
         raise ValueError("process output exceeds budget")
     contents = out.read_text()
-    if (child.returncode != 0) != expect_failure:
+    if timed_out != expect_timeout:
+        print(contents[-8192:], flush=True)
+        raise RuntimeError("unexpected timeout state in " + str(out) + ": " + str(cleanup))
+    if not timed_out and (child.returncode != 0) != expect_failure:
         print(contents[-8192:], flush=True)
         raise RuntimeError("unexpected exit " + str(child.returncode) + " in " + str(out))
     if marker and marker not in contents:
         print(contents[-8192:], flush=True)
         raise RuntimeError("missing output marker in " + str(out))
-    return {"exit_code": child.returncode, "log": str(out), "group_empty": True}
+    return {"exit_code": child.returncode, "log": str(out), "group_empty": True,
+            "direct_child_waited": child.returncode is not None, "timeout_cleanup": cleanup}
+
+
+def verify_timeout_cleanup(output):
+    # The child exits on TERM; its same-group descendant ignores TERM and needs KILL.
+    descendant = ("import os,signal,time; "
+                  "signal.signal(signal.SIGTERM, signal.SIG_IGN); "
+                  "print(os.getpgrp(), flush=True); time.sleep(60)")
+    parent = ("import os,subprocess,sys,time; "
+              "p=subprocess.Popen([sys.executable,'-c',sys.argv[1]],"
+              "stdout=subprocess.PIPE,text=True); "
+              "group=int(p.stdout.readline()); "
+              "assert group == os.getpgrp(); "
+              "print('descendant-ready',flush=True); time.sleep(60)")
+    result = run([sys.executable, "-c", parent, descendant], output / "timeout-control.log",
+                 timeout=2, expect_timeout=True, marker="descendant-ready")
+    cleanup = result["timeout_cleanup"]
+    if not (cleanup["sigkill_used"] and cleanup["parent_exited_group_still_present"]
+            and cleanup["group_empty"] and cleanup["direct_child_waited"]):
+        raise RuntimeError("descendant cleanup control did not exercise escalation")
+    print(json.dumps({"timeout_descendant_control": cleanup}), flush=True)
+    return result
 
 
 def peer(cache, release):
@@ -122,6 +199,10 @@ def main():
     results = []
     inputs = {str(p.relative_to(ROOT)): digest(p) for p in (SOURCE, RUST, Path(__file__).resolve())}
     try:
+        libc = ctypes.CDLL(None, use_errno=True)
+        if libc.prctl(36, 1, 0, 0, 0) != 0:
+            raise OSError(ctypes.get_errno(), "could not enable child subreaper")
+        timeout_control = verify_timeout_cleanup(output)
         for release in PINS:
             directory = output / release
             directory.mkdir()
@@ -169,6 +250,7 @@ def main():
             raise ValueError("source changed during run")
         summary = {"status": "pass", "api": "Metadata", "version": 13, "results": results,
                    "cases": ["all", "empty", "name", "id", "tagged"], "inputs": inputs,
+                   "timeout_control": timeout_control,
                    "limit": "Finite body fixtures, not a live broker or complete Metadata conformance."}
         (output / "summary.json").write_text(json.dumps(summary, indent=2) + "\n")
         print(json.dumps({"status": "pass", "peers": len(results), "pairs_per_profile_per_peer": 5}))

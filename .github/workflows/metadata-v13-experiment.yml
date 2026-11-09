@@ -1,8 +1,33 @@
-name: Metadata v13 Apache wire experiment
+name: Metadata v13 Apache wire
 on:
+  workflow_dispatch:
   push:
     branches:
+      - main
       - qualification/metadata-v13-wire-20261109
+    paths:
+      - 'src/protocol/**'
+      - 'src/error.rs'
+      - 'Cargo.toml'
+      - 'Cargo.lock'
+      - 'clippy.toml'
+      - 'tests/conformance/java/ConformanceMetadataWire.java'
+      - 'tests/conformance/java/generate_metadata_wire.py'
+      - 'tests/metadata_wire_conformance.rs'
+      - '.github/workflows/metadata-v13-experiment.yml'
+  pull_request:
+    paths:
+      - 'src/protocol/**'
+      - 'src/error.rs'
+      - 'Cargo.toml'
+      - 'Cargo.lock'
+      - 'clippy.toml'
+      - 'tests/conformance/java/ConformanceMetadataWire.java'
+      - 'tests/conformance/java/generate_metadata_wire.py'
+      - 'tests/metadata_wire_conformance.rs'
+      - '.github/workflows/metadata-v13-experiment.yml'
+permissions:
+  contents: read
 jobs:
   metadata:
     runs-on: ubuntu-latest
@@ -31,11 +56,6 @@ jobs:
       - name: Formatting
         if: always()
         run: cargo fmt --all -- --check
-      - name: Show formatting correction
-        if: failure()
-        run: |
-          cargo fmt --all
-          git diff -- tests/metadata_wire_conformance.rs
       - name: Retain fixtures and process receipts
         if: always()
         uses: actions/upload-artifact@v4
