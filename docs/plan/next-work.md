@@ -1,6 +1,6 @@
 # Next work
 
-Updated 8 November 2026. Use latest stable Rust and push reviewed changes
+Updated 9 November 2026. Use latest stable Rust and push reviewed changes
 directly to `main`. The [task registry](tasks.json) has 249 done, 13 in
 progress, 83 pending and one blocked outside the current x86 qualification scope.
 
@@ -10,16 +10,20 @@ Production readiness and fastest-client/server claims remain unqualified.
 Client 0.1.0 is already published. The next client version must be at least
 0.2.0; broker and schema publication remain disabled.
 
-The latest complete recorded main [CI snapshot](../evidence/releases/main-ci-0c9-20261108/README.md)
-is `0c9ab1e712a043a2acc5fa56963cff2f3e5ccc91`. Client libraries reported
-2,307 passed and 10 failed on Linux default, 2,299 passed and 18 failed with
-all features, 2,303 passed and 14 failed on Windows, and 2,308 passed and nine
-failed on macOS arm64. Three Kafka compatibility jobs and both smoke jobs
-failed. Broker CI stopped in a default integration target at 729 passed, one
-failed and four ignored; later broker targets and strict checks did not run.
-API inventory, fuzz supervision and both selected client capability profiles
-passed; capability archives were not independently inspected. The instruction
-counter had no baseline for this Rust version.
+The latest complete recorded main [CI snapshot](../evidence/releases/main-ci-133d-20261108/README.md)
+is `133d2413217cee4130bca2267e4e36b7225ff86f`. Client libraries reported
+2,299 passed and 18 failed on Linux default, 2,302 passed and 15 failed with
+all features, and 2,296 passed and 21 failed on both Windows and macOS arm64.
+Three Kafka compatibility jobs and both smoke jobs failed. Resource soak
+failed after a child exited with code 1; its cause is unknown. The broker passed
+806 default and 954 all-feature tests, with four ignored per profile, plus
+strict checks, inventory and fuzz supervision. Both client capability profiles
+passed; their archives were not independently inspected. The instruction counter
+had no baseline for this Rust version.
+
+The [preceding complete snapshot](../evidence/releases/main-ci-0c9-20261108/README.md)
+also failed client checks and stopped in a broker integration target after
+729 passes, one failure and four ignored. The cause remains unknown.
 
 An [earlier complete snapshot](../evidence/releases/main-ci-d314-20261108/README.md)
 also failed client checks and stopped in the broker default library. The cause
