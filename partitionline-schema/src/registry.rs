@@ -1598,7 +1598,7 @@ enum JsonValue {
     Float(f64),
     Str(String),
     Array(Vec<JsonValue>),
-    Object(Vec<(String, JsonValue)>),
+    Object(Vec<JsonEntry>),
 }
 
 impl JsonValue {
@@ -1615,6 +1615,121 @@ impl JsonValue {
             Self::Object(entries) => format!("object with {} keys", entries.len()),
         }
     }
+}
+
+// An AVL tree of vector slots. Keys and values stay in input order and
+// the tree adds no separately allocated key copies or hash-collision path.
+const JSON_NO_NODE: u32 = u32::MAX;
+
+#[derive(Debug, Clone)]
+struct JsonEntry {
+    key: String,
+    value: JsonValue,
+    left: u32,
+    right: u32,
+    height: u8,
+}
+
+struct JsonObjectBuilder {
+    entries: Vec<JsonEntry>,
+    root: u32,
+}
+
+impl JsonObjectBuilder {
+    fn new() -> Self {
+        Self { entries: Vec::new(), root: JSON_NO_NODE }
+    }
+
+    fn insert(&mut self, key: String, value: JsonValue) -> Result<(), RegistryError> {
+        let index = u32::try_from(self.entries.len())
+            .ok()
+            .filter(|index| *index != JSON_NO_NODE)
+            .ok_or_else(|| RegistryError::malformed("json object has too many keys"))?;
+        self.entries.push(JsonEntry {
+            key,
+            value,
+            left: JSON_NO_NODE,
+            right: JSON_NO_NODE,
+            height: 1,
+        });
+        match json_tree_insert(&mut self.entries, self.root, index) {
+            Ok(root) => {
+                self.root = root;
+                Ok(())
+            }
+            Err(error) => {
+                let _discarded = self.entries.pop();
+                Err(error)
+            }
+        }
+    }
+}
+
+fn json_tree_height(entries: &[JsonEntry], node: u32) -> u8 {
+    if node == JSON_NO_NODE { 0 } else { entries[node as usize].height }
+}
+
+fn json_tree_update_height(entries: &mut [JsonEntry], node: u32) {
+    let left = entries[node as usize].left;
+    let right = entries[node as usize].right;
+    entries[node as usize].height = 1 + json_tree_height(entries, left).max(json_tree_height(entries, right));
+}
+
+fn json_tree_rotate_left(entries: &mut [JsonEntry], root: u32) -> u32 {
+    let pivot = entries[root as usize].right;
+    entries[root as usize].right = entries[pivot as usize].left;
+    entries[pivot as usize].left = root;
+    json_tree_update_height(entries, root);
+    json_tree_update_height(entries, pivot);
+    pivot
+}
+
+fn json_tree_rotate_right(entries: &mut [JsonEntry], root: u32) -> u32 {
+    let pivot = entries[root as usize].left;
+    entries[root as usize].left = entries[pivot as usize].right;
+    entries[pivot as usize].right = root;
+    json_tree_update_height(entries, root);
+    json_tree_update_height(entries, pivot);
+    pivot
+}
+
+fn json_tree_insert(entries: &mut [JsonEntry], root: u32, index: u32) -> Result<u32, RegistryError> {
+    if root == JSON_NO_NODE {
+        return Ok(index);
+    }
+    match entries[index as usize].key.cmp(&entries[root as usize].key) {
+        std::cmp::Ordering::Equal => return Err(RegistryError::malformed("json duplicate key")),
+        std::cmp::Ordering::Less => {
+            let child = entries[root as usize].left;
+            entries[root as usize].left = json_tree_insert(entries, child, index)?;
+        }
+        std::cmp::Ordering::Greater => {
+            let child = entries[root as usize].right;
+            entries[root as usize].right = json_tree_insert(entries, child, index)?;
+        }
+    }
+    json_tree_update_height(entries, root);
+    let left = entries[root as usize].left;
+    let right = entries[root as usize].right;
+    let left_height = json_tree_height(entries, left);
+    let right_height = json_tree_height(entries, right);
+    if left_height > right_height.saturating_add(1) {
+        let left_left = entries[left as usize].left;
+        let left_right = entries[left as usize].right;
+        if json_tree_height(entries, left_right) > json_tree_height(entries, left_left) {
+            entries[root as usize].left = json_tree_rotate_left(entries, left);
+        }
+        return Ok(json_tree_rotate_right(entries, root));
+    }
+    if right_height > left_height.saturating_add(1) {
+        let right_left = entries[right as usize].left;
+        let right_right = entries[right as usize].right;
+        if json_tree_height(entries, right_left) > json_tree_height(entries, right_right) {
+            entries[root as usize].right = json_tree_rotate_right(entries, right);
+        }
+        return Ok(json_tree_rotate_left(entries, root));
+    }
+    Ok(root)
 }
 
 /// Strict small JSON reader: duplicate keys, trailing data, bad escapes,
@@ -1854,11 +1969,11 @@ impl<'a> JsonParser<'a> {
     }
 
     fn parse_object(&mut self, depth: usize) -> Result<JsonValue, RegistryError> {
-        let mut entries: Vec<(String, JsonValue)> = Vec::new();
+        let mut object = JsonObjectBuilder::new();
         self.skip_ws();
         if self.peek() == Some(b'}') {
             self.pos = self.pos.saturating_add(1);
-            return Ok(JsonValue::Object(entries));
+            return Ok(JsonValue::Object(object.entries));
         }
         loop {
             self.skip_ws();
@@ -1872,10 +1987,7 @@ impl<'a> JsonParser<'a> {
             }
             self.pos = self.pos.saturating_add(1);
             let value = self.parse_value(depth.saturating_add(1))?;
-            if entries.iter().any(|(known, _)| known == &key) {
-                return Err(RegistryError::malformed("json duplicate key"));
-            }
-            entries.push((key, value));
+            object.insert(key, value)?;
             self.skip_ws();
             match self.peek() {
                 Some(b',') => {
@@ -1883,7 +1995,7 @@ impl<'a> JsonParser<'a> {
                 }
                 Some(b'}') => {
                     self.pos = self.pos.saturating_add(1);
-                    return Ok(JsonValue::Object(entries));
+                    return Ok(JsonValue::Object(object.entries));
                 }
                 _ => return Err(RegistryError::malformed("json bad object")),
             }
@@ -1894,7 +2006,7 @@ impl<'a> JsonParser<'a> {
 fn object_entries<'a>(
     what: &str,
     value: &'a JsonValue,
-) -> Result<&'a [(String, JsonValue)], RegistryError> {
+) -> Result<&'a [JsonEntry], RegistryError> {
     match value {
         JsonValue::Object(entries) => Ok(entries),
         _ => Err(RegistryError::malformed(
@@ -1909,21 +2021,21 @@ fn object_entries<'a>(
 
 fn required_field<'a>(
     what: &str,
-    entries: &'a [(String, JsonValue)],
+    entries: &'a [JsonEntry],
     key: &str,
 ) -> Result<&'a JsonValue, RegistryError> {
     entries
         .iter()
-        .find(|(known, _)| known == key)
-        .map(|(_, value)| value)
+        .find(|entry| entry.key == key)
+        .map(|entry| &entry.value)
         .ok_or_else(|| RegistryError::malformed(format!("{what}: missing '{key}'").as_str()))
 }
 
-fn optional_field<'a>(entries: &'a [(String, JsonValue)], key: &str) -> Option<&'a JsonValue> {
+fn optional_field<'a>(entries: &'a [JsonEntry], key: &str) -> Option<&'a JsonValue> {
     entries
         .iter()
-        .find(|(known, _)| known == key)
-        .map(|(_, value)| value)
+        .find(|entry| entry.key == key)
+        .map(|entry| &entry.value)
 }
 
 fn as_str(what: &str, key: &str, value: &JsonValue) -> Result<String, RegistryError> {
@@ -2397,6 +2509,142 @@ mod tests {
         .await;
         assert!(matches!(result, Err(RegistryError::Timeout)));
         assert!(stream.position > 0 && stream.position < wire.len());
+    }
+
+
+    fn assert_json_tree_invariants(object: &JsonObjectBuilder) {
+        fn visit<'a>(
+            entries: &'a [JsonEntry],
+            node: u32,
+            lower: Option<&'a str>,
+            upper: Option<&'a str>,
+            seen: &mut [bool],
+        ) -> u8 {
+            if node == JSON_NO_NODE {
+                return 0;
+            }
+            let index = node as usize;
+            assert!(index < entries.len() && !seen[index], "invalid or repeated node {node}");
+            seen[index] = true;
+            let entry = &entries[index];
+            if let Some(lower) = lower {
+                assert!(entry.key.as_str() > lower);
+            }
+            if let Some(upper) = upper {
+                assert!(entry.key.as_str() < upper);
+            }
+            let left = visit(entries, entry.left, lower, Some(&entry.key), seen);
+            let right = visit(entries, entry.right, Some(&entry.key), upper, seen);
+            assert!(left.abs_diff(right) <= 1, "unbalanced node {}", entry.key);
+            assert_eq!(entry.height, 1 + left.max(right));
+            entry.height
+        }
+        let mut seen = vec![false; object.entries.len()];
+        visit(&object.entries, object.root, None, None, &mut seen);
+        assert!(seen.into_iter().all(|visited| visited));
+    }
+
+    #[test]
+    fn json_tree_rotations_preserve_insertion_order_and_duplicate_state() {
+        for names in [
+            ["c", "b", "a"],
+            ["a", "b", "c"],
+            ["c", "a", "b"],
+            ["a", "c", "b"],
+        ] {
+            let mut object = JsonObjectBuilder::new();
+            for name in names {
+                object.insert(name.to_owned(), JsonValue::Null).unwrap();
+                assert_json_tree_invariants(&object);
+            }
+            assert_eq!(object.entries[object.root as usize].key, "b");
+            assert_eq!(object.entries.iter().map(|item| item.key.as_str()).collect::<Vec<_>>(), names);
+            let error = object.insert("b".into(), JsonValue::Bool(true)).unwrap_err();
+            assert!(matches!(error, RegistryError::Malformed { what } if what == "json duplicate key"));
+            assert_eq!(object.entries.len(), 3);
+            assert_json_tree_invariants(&object);
+        }
+    }
+
+    #[test]
+    fn json_tree_balances_sorted_reverse_and_shuffled_keys() {
+        for size in [0usize, 1, 2, 3, 16, 127, 1024, 8192] {
+            for pattern in 0..3 {
+                let mut order: Vec<usize> = (0..size).collect();
+                if pattern == 1 {
+                    order.reverse();
+                } else if pattern == 2 {
+                    let mut state = 0x7a13_2d5b_u64;
+                    for i in (1..order.len()).rev() {
+                        state ^= state << 13;
+                        state ^= state >> 7;
+                        state ^= state << 17;
+                        order.swap(i, (state as usize) % (i + 1));
+                    }
+                }
+                let mut object = JsonObjectBuilder::new();
+                for number in &order {
+                    object.insert(format!("field-{number:05}"), JsonValue::Null).unwrap();
+                }
+                assert_json_tree_invariants(&object);
+                assert_eq!(
+                    object.entries.iter().map(|entry| entry.key.clone()).collect::<Vec<_>>(),
+                    order.iter().map(|number| format!("field-{number:05}")).collect::<Vec<_>>()
+                );
+                if size > 0 {
+                    for number in [0, size / 2, size - 1] {
+                        let error = object.insert(format!("field-{number:05}"), JsonValue::Null).unwrap_err();
+                        assert!(matches!(error, RegistryError::Malformed { what } if what == "json duplicate key"));
+                        assert_eq!(object.entries.len(), size);
+                    }
+                    assert_json_tree_invariants(&object);
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn json_tree_preserves_duplicate_and_malformed_value_precedence() {
+        let cases = [
+            (r#"{"a":1,"a":2,"later":[}"#, "json duplicate key"),
+            (r#"{"a":1,"a":[}"#, "json unexpected value"),
+            (r#"{"a":1,"\u0061":2}"#, "json duplicate key"),
+            (r#"{"a":1,"nested":{"a":1,"a":2}}"#, "json duplicate key"),
+        ];
+        for (json, expected) in cases {
+            let error = JsonParser::new(json).parse().unwrap_err();
+            assert!(matches!(error, RegistryError::Malformed { ref what } if what == expected));
+        }
+        let parsed = JsonParser::new(r#"{"a":1,"nested":{"a":2}}"#).parse().unwrap();
+        assert!(matches!(parsed, JsonValue::Object(_)));
+    }
+
+    #[tokio::test]
+    async fn registry_json_tree_public_large_and_duplicate_controls() {
+        use std::fmt::Write as _;
+        let mut body = String::from(r#"{"schema":"{}""#);
+        for number in 0..4096 {
+            write!(&mut body, r#","field-{number:05}":0"#).unwrap();
+        }
+        body.push('}');
+        let server = start_mock(vec![MockResponse::json(200, &body)], None).await;
+        let schema = fast_client(&server).get_schema_by_id(100).await.unwrap();
+        assert_eq!(schema.schema, "{}");
+
+        body.pop();
+        body.push_str(r#","field-00000":0}"#);
+        let server = start_mock(vec![MockResponse::json(200, &body)], None).await;
+        let error = fast_client(&server).get_schema_by_id(100).await.unwrap_err();
+        assert!(matches!(error, RegistryError::Malformed { what } if what == "json duplicate key"));
+    }
+
+    #[test]
+    fn json_tree_entry_storage_is_reported() {
+        println!(
+            "PL_JSON_ENTRY_SIZE original={} tree={}",
+            std::mem::size_of::<(String, JsonValue)>(),
+            std::mem::size_of::<JsonEntry>()
+        );
     }
 
     /// Accepts every offered byte and spends time in proportion to that copy.
