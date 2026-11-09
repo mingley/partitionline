@@ -855,7 +855,7 @@ impl Drop for StickyRecordPermit {
     }
 }
 
-struct Pending {
+struct PendingData {
     sticky_record: Option<StickyRecordPermit>,
     sticky: Option<StickyTag>,
     rec: ProduceRecord,
@@ -877,6 +877,67 @@ struct Pending {
     skip_meta_refresh: bool,
     retry_after: Instant,
 }
+
+/// A movable claim on a pending record. In bounded mode the payload lives
+/// in an owner-held slot while this handle moves through worker futures.
+struct Pending {
+    data: PendingStorage,
+    release: Option<owned::Release>,
+}
+
+enum PendingStorage {
+    Inline(PendingData),
+    Rooted(tokio::sync::OwnedMutexGuard<PendingData>),
+}
+
+impl Pending {
+    fn inline(data: PendingData) -> Self {
+        Self {
+            data: PendingStorage::Inline(data),
+            release: None,
+        }
+    }
+
+    fn is_rooted(&self) -> bool {
+        self.release.is_some()
+    }
+
+    fn admit(&self) -> Result<()> {
+        match &self.release {
+            Some(release) => release.admit(),
+            None => Ok(()),
+        }
+    }
+
+    fn sticky_first_retirement(&self) -> bool {
+        self.release
+            .as_ref()
+            .is_none_or(|release| release.sticky_first_retirement())
+    }
+}
+
+impl std::ops::Deref for Pending {
+    type Target = PendingData;
+
+    fn deref(&self) -> &Self::Target {
+        match &self.data {
+            PendingStorage::Inline(data) => data,
+            PendingStorage::Rooted(data) => data,
+        }
+    }
+}
+
+impl std::ops::DerefMut for Pending {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        match &mut self.data {
+            PendingStorage::Inline(data) => data,
+            PendingStorage::Rooted(data) => data,
+        }
+    }
+}
+
+mod owned;
+
 
 enum Ctrl {
     Flush(oneshot::Sender<Result<()>>),
@@ -974,7 +1035,7 @@ impl WorkerPermit<'_> {
     )]
     fn send(self, pending: Pending) -> std::result::Result<(), Pending> {
         let _commit = self.admission.commit.lock();
-        if !self.admission.is_accepting() {
+        if !self.admission.is_accepting() || pending.admit().is_err() {
             return Err(pending);
         }
         self.permit.send(pending);
@@ -1064,7 +1125,21 @@ impl WorkerHandle {
         if !self.admission.is_accepting() {
             return Err(mpsc::error::TrySendError::Closed(pending));
         }
-        self.data.try_send(pending)
+        match self.data.try_reserve() {
+            Ok(permit) => {
+                if pending.admit().is_err() {
+                    return Err(mpsc::error::TrySendError::Closed(pending));
+                }
+                permit.send(pending);
+                Ok(())
+            }
+            Err(mpsc::error::TrySendError::Full(())) => {
+                Err(mpsc::error::TrySendError::Full(pending))
+            }
+            Err(mpsc::error::TrySendError::Closed(())) => {
+                Err(mpsc::error::TrySendError::Closed(pending))
+            }
+        }
     }
 }
 
@@ -1158,6 +1233,7 @@ const TXN_ERROR_TICKET_STEP: u64 = 8;
 
 struct Shared {
     cfg: ProducerConfig,
+    owned_records: Option<Arc<owned::Owner>>,
     cluster: parking_lot::Mutex<Cluster>,
     meta: Mutex<BrokerConn>,
     /// Transaction coordinator. `None` when `transactional.id` is unset.
@@ -1267,6 +1343,9 @@ struct Inner {
 
 impl Drop for Inner {
     fn drop(&mut self) {
+        if let Some(owner) = &self.shared.owned_records {
+            owner.seal();
+        }
         self.shared.closed.store(true, Ordering::SeqCst);
         self.shared.buffer_nudge.notify_waiters();
         self.shared.cache_nudge.notify_waiters();
@@ -1415,6 +1494,9 @@ impl Shared {
         let cluster = self.cluster.lock();
         let mut state = state.lock();
         for p in pending {
+            if !p.sticky_first_retirement() {
+                continue;
+            }
             if let Some(tag) = p.sticky {
                 if failed && p.seq.is_some() {
                     state.cancel(tag);
@@ -1919,6 +2001,7 @@ fn reject_oversized(cfg: &ProducerConfig, rec: &ProduceRecord) -> Result<u64> {
 fn pendings_bytes(pendings: &[Pending]) -> u64 {
     pendings
         .iter()
+        .filter(|pending| !pending.is_rooted())
         .map(|p| rec_bytes(&p.rec))
         .fold(0, u64::saturating_add)
 }
@@ -1937,11 +2020,26 @@ impl Producer {
     /// kept, so a peer that accepts TCP and then stalls cannot hold a
     /// reachable broker for the whole connect timeout.
     pub async fn new(cfg: ProducerConfig) -> Result<Self> {
+        Self::new_with_owner_limit(cfg, None).await
+    }
+
+    /// Experimental bounded producer mode. The maximum counts admitted
+    /// records as well as record slots reserved during admission.
+    ///
+    /// This branch does not yet provide qualified retry or identity fencing.
+    pub async fn new_bounded(cfg: ProducerConfig, record_limit: usize) -> Result<Self> {
+        if record_limit == 0 || record_limit > tokio::sync::Semaphore::MAX_PERMITS {
+            return Err(Error::protocol("record_limit is outside the supported range"));
+        }
+        Self::new_with_owner_limit(cfg, Some(record_limit)).await
+    }
+
+    async fn new_with_owner_limit(cfg: ProducerConfig, limit: Option<usize>) -> Result<Self> {
         let deadline = Instant::now()
             .checked_add(cfg.request_timeout)
             .ok_or(Error::Timeout)?;
         crate::net::Deadline::from_std(deadline)
-            .run(Self::new_until(cfg, deadline))
+            .run(Self::new_until(cfg, deadline, limit))
             .await
     }
 
@@ -2212,7 +2310,7 @@ impl Producer {
         Ok((conn, resp, learned))
     }
 
-    async fn new_until(cfg: ProducerConfig, deadline: Instant) -> Result<Self> {
+    async fn new_until(cfg: ProducerConfig, deadline: Instant, limit: Option<usize>) -> Result<Self> {
         if cfg.bootstrap.len() > 16 || cfg.client_id.len() > i16::MAX as usize {
             return Err(Error::protocol(
                 "bootstrap/client ID exceeds discovery limit",
@@ -2362,8 +2460,11 @@ impl Producer {
                 let _stored = seeded_keys.insert(addr, keys);
             }
         }
+        let closed = Arc::new(AtomicBool::new(false));
+        let owner = limit.map(|limit| Arc::new(owned::Owner::new(limit, Arc::clone(&closed))));
         let shared = Arc::new(Shared {
             cfg: cfg.clone(),
+            owned_records: owner.clone(),
             cluster: parking_lot::Mutex::new(Cluster::default()),
             meta: Mutex::new(meta),
             txn: Mutex::new(txn),
@@ -2429,12 +2530,16 @@ impl Producer {
             m_errors: AtomicU64::new(0),
             m_bytes: AtomicU64::new(0),
             buffered_bytes: AtomicU64::new(0),
-            closed: Arc::new(AtomicBool::new(false)),
+            closed: Arc::clone(&closed),
             ack_latency: crate::metrics::LatencyTracker::new(),
             interceptors: cfg.interceptors.clone(),
             topics: parking_lot::Mutex::new(HashMap::new()),
             pre_send_fault: parking_lot::Mutex::new(cfg.pre_send_fault),
         });
+        if let Some(owner) = owner {
+            let supervisor_shared = Arc::clone(&shared);
+            let _supervisor = tokio::spawn(owned::supervise(supervisor_shared, owner));
+        }
         let weak = Arc::downgrade(&shared);
         let meta_handle = tokio::spawn(async move {
             let mut meta_rx = meta_rx;
@@ -2885,6 +2990,48 @@ impl Producer {
         Ok(())
     }
 
+    async fn reserve_owned_slot(
+        &self,
+        deadline: Instant,
+    ) -> Result<Option<tokio::sync::OwnedSemaphorePermit>> {
+        let Some(owner) = &self.inner.shared.owned_records else {
+            return Ok(None);
+        };
+        let permit = tokio::time::timeout_at(
+            deadline.into(),
+            Arc::clone(&owner.permits).acquire_owned(),
+        )
+        .await
+        .map_err(|_| Error::Timeout)?
+        .map_err(|_| Error::Closed)?;
+        Ok(Some(permit))
+    }
+
+    fn try_reserve_owned_slot(&self) -> Result<Option<tokio::sync::OwnedSemaphorePermit>> {
+        let Some(owner) = &self.inner.shared.owned_records else {
+            return Ok(None);
+        };
+        let permit = Arc::clone(&owner.permits).try_acquire_owned().map_err(|error| {
+            match error {
+                tokio::sync::TryAcquireError::Closed => Error::Closed,
+                tokio::sync::TryAcquireError::NoPermits => Error::QueueFull,
+            }
+        })?;
+        Ok(Some(permit))
+    }
+
+    fn root_pending(
+        &self,
+        pending: Pending,
+        permit: Option<tokio::sync::OwnedSemaphorePermit>,
+    ) -> Result<Pending> {
+        match (&self.inner.shared.owned_records, permit) {
+            (Some(owner), Some(permit)) => owner.prepare(pending, permit),
+            (None, None) => Ok(pending),
+            _ => Err(Error::protocol("missing producer record slot")),
+        }
+    }
+
     async fn enqueue_one(
         &self,
         rec: ProduceRecord,
@@ -2898,6 +3045,7 @@ impl Producer {
                 .await?;
             return Ok(rx);
         }
+        let owned_permit = self.reserve_owned_slot(block_deadline).await?;
         let fast = self.fresh_fast_route(&rec);
         let (w, tracker) = if let Some((partition, handle, tracker)) = fast {
             rec.partition = Some(partition);
@@ -2921,7 +3069,7 @@ impl Producer {
         let now = Instant::now();
         let deadline = now + self.inner.shared.cfg.delivery_timeout;
         let topic = tracker.is_none().then(|| Arc::clone(&rec.topic));
-        let mut pending = Pending {
+        let mut pending = Pending::inline(PendingData {
             sticky_record: None,
             sticky: None,
             rec,
@@ -2935,7 +3083,8 @@ impl Producer {
             retry: 0,
             skip_meta_refresh: false,
             retry_after: now,
-        };
+        });
+        let mut pending = self.root_pending(pending, owned_permit)?;
         let mut worker = w;
         loop {
             let rest_block = block_deadline.saturating_duration_since(Instant::now());
@@ -2975,7 +3124,7 @@ impl Producer {
         tx: Option<oneshot::Sender<Result<RecordMetadata>>>,
         now: Instant,
     ) -> Pending {
-        Pending {
+        Pending::inline(PendingData {
             sticky_record: None,
             sticky: None,
             rec,
@@ -2989,7 +3138,7 @@ impl Producer {
             retry: 0,
             skip_meta_refresh: false,
             retry_after: now,
-        }
+        })
     }
 
     /// The one accounting linearization point. Both route and plan are pure until
@@ -3116,6 +3265,7 @@ impl Producer {
         let unkeyed = rec.partition.is_none() && rec.key.is_none();
         let topic = Arc::clone(&rec.topic);
         let mut pending = Some(self.new_pending(rec, tx, Instant::now()));
+        let owned_permit = self.reserve_owned_slot(deadline).await?;
         // Metadata waits consume the same absolute max_block budget as admission.
         if !shared
             .cluster
@@ -3138,6 +3288,8 @@ impl Producer {
             active: true,
         };
         compact_record_backing(&mut pending.as_mut().ok_or(Error::Closed)?.rec);
+        let current = pending.take().ok_or(Error::Closed)?;
+        pending = Some(self.root_pending(current, owned_permit)?);
         loop {
             if shared.closed.load(Ordering::SeqCst) {
                 return Err(Error::Closed);
@@ -3373,6 +3525,7 @@ impl Producer {
         }
         let mut rec = self.inner.shared.interceptors.on_send(rec);
         let bytes = reject_oversized(&self.inner.shared.cfg, &rec)?;
+        let owned_permit = self.try_reserve_owned_slot()?;
         if self.inner.shared.sticky.is_some() {
             let record_permit = self
                 .inner
@@ -3395,7 +3548,7 @@ impl Producer {
             let topic = Arc::clone(&rec.topic);
             let mut current = self.new_pending(rec, None, now);
             current.sticky_record = Some(record_permit);
-            let mut pending = Some(current);
+            let mut pending = Some(self.root_pending(current, owned_permit)?);
             match self.sticky_enqueue(&mut pending, unkeyed, None) {
                 Ok(()) => {
                     reservation.active = false;
@@ -3436,7 +3589,7 @@ impl Producer {
             active: true,
         };
         compact_record_backing(&mut rec);
-        if let Err(e) = w.try_send(Pending {
+        let pending = Pending::inline(PendingData {
             sticky_record: None,
             sticky: None,
             rec,
@@ -3450,7 +3603,9 @@ impl Producer {
             retry: 0,
             skip_meta_refresh: false,
             retry_after: now,
-        }) {
+        });
+        let pending = self.root_pending(pending, owned_permit)?;
+        if let Err(e) = w.try_send(pending) {
             return Err(match e {
                 mpsc::error::TrySendError::Full(_) => Error::QueueFull,
                 mpsc::error::TrySendError::Closed(_) => {
@@ -4188,6 +4343,16 @@ impl Producer {
     }
 
     async fn flush_until(&self, deadline: Instant) -> Result<()> {
+        let Some(owner) = &self.inner.shared.owned_records else {
+            return self.flush_workers_until(deadline).await;
+        };
+        let cutoff = owner.cutoff();
+        let workers = self.flush_workers_until(deadline).await;
+        owner.wait_through(cutoff, deadline).await?;
+        workers
+    }
+
+    async fn flush_workers_until(&self, deadline: Instant) -> Result<()> {
         loop {
             if Instant::now() >= deadline {
                 return Err(Error::Timeout);
@@ -4222,6 +4387,9 @@ impl Producer {
     /// Prefer an explicit `close` over dropping the last handle: drop alone does
     /// not wait for in-flight produce outcomes (see the guide cancellation table).
     pub async fn close(self) -> Result<()> {
+        if let Some(owner) = &self.inner.shared.owned_records {
+            owner.seal();
+        }
         let timeout = self
             .inner
             .shared
@@ -4249,6 +4417,9 @@ impl Producer {
     /// delivery of every record; see [`Self::flush`]. A synchronous interceptor
     /// callback can delay shutdown beyond the deadline.
     pub async fn close_timeout(self, timeout: Duration) -> Result<()> {
+        if let Some(owner) = &self.inner.shared.owned_records {
+            owner.seal();
+        }
         let deadline = Instant::now() + timeout;
         let flush = self.flush_until(deadline).await;
         self.shutdown_workers(Some(deadline)).await;
@@ -4298,6 +4469,9 @@ impl Producer {
     }
 
     async fn shutdown_workers(&self, deadline: Option<Instant>) {
+        if let Some(owner) = &self.inner.shared.owned_records {
+            owner.seal();
+        }
         // Refuse new enqueue before workers drain so clones observe Closed.
         self.inner.shared.closed.store(true, Ordering::SeqCst);
         self.inner.shared.buffer_nudge.notify_waiters();
@@ -6651,6 +6825,7 @@ fn test_shared(cfg: ProducerConfig, meta: BrokerConn) -> Arc<Shared> {
     let sticky_policy = cfg.partitioner.arc().unkeyed_batching_policy();
     Arc::new(Shared {
         cfg: cfg.clone(),
+        owned_records: None,
         cluster: parking_lot::Mutex::new(Cluster::default()),
         meta: Mutex::new(meta),
         txn: Mutex::new(None),
@@ -8884,10 +9059,9 @@ impl Worker {
                                         r.log_append_time_ms,
                                         now,
                                     );
-                                    self.shared.interceptors.on_ack(&md);
-                                    if let Some(tx) = p.tx {
-                                        drop(tx.send(Ok(md)));
-                                    }
+                                    owned::complete(&self.shared, p, Ok(md));
+                                } else {
+                                    owned::complete_without_consumer(&self.shared, p);
                                 }
                                 index = index.saturating_add(1);
                                 walked = walked.saturating_add(1);
@@ -11468,6 +11642,7 @@ async fn complete_acks0(
                 // KL09-16: build ack metadata only when a caller oneshot
                 // or an interceptor consumes it.
                 if p.tx.is_none() && shared.interceptors.is_empty() {
+                    owned::complete_without_consumer(shared, p);
                     continue;
                 }
                 let now = *stamped.get_or_insert_with(now_ms);
@@ -11480,10 +11655,7 @@ async fn complete_acks0(
                     RecordBatch::NO_TIMESTAMP,
                     now,
                 );
-                shared.interceptors.on_ack(&md);
-                if let Some(tx) = p.tx {
-                    drop(tx.send(Ok(md)));
-                }
+                owned::complete(shared, p, Ok(md));
             }
         }
         shared.note_ack_latency_on(
@@ -11541,10 +11713,7 @@ fn fail_one_pending(shared: &Shared, pending: Pending, err: &Error, one_topic: b
     if !one_topic {
         shared.note_errors(&pending.rec.topic, 1);
     }
-    shared.interceptors.on_error(err);
-    if let Some(tx) = pending.tx {
-        drop(tx.send(Err(clone_err(err))));
-    }
+    owned::complete(shared, pending, Err(clone_err(err)));
 }
 
 fn one_failure_topic(pendings: &[Pending]) -> bool {
@@ -11624,7 +11793,9 @@ async fn sum_pending_bytes(pendings: &[Pending]) -> u64 {
     let mut total = 0u64;
     let mut walked = 0usize;
     for pending in pendings {
-        total = total.saturating_add(rec_bytes(&pending.rec));
+        if !pending.is_rooted() {
+            total = total.saturating_add(rec_bytes(&pending.rec));
+        }
         walked = walked.saturating_add(1);
         if walked == 8 * 1024 {
             walked = 0;
@@ -13703,7 +13874,7 @@ mod tests {
             let now = Instant::now();
             let deadline = now + Duration::from_secs(2);
             let (result_tx, mut result_rx) = oneshot::channel();
-            let pending = Pending {
+            let pending = Pending::inline(PendingData {
                 sticky_record: None,
                 sticky: None,
                 rec: ProduceRecord::to("t").partition(0).value("value"),
@@ -13717,7 +13888,7 @@ mod tests {
                 retry: 2,
                 skip_meta_refresh: true,
                 retry_after: now,
-            };
+            });
             shared.buffered_bytes.store(5, Ordering::SeqCst);
             let task_shared = Arc::clone(&shared);
             let retry = tokio::spawn(async move { retry_one(&task_shared, pending).await });
@@ -15672,7 +15843,7 @@ mod tests {
         if let Some(partition) = partition {
             rec = rec.partition(partition);
         }
-        Pending {
+        Pending::inline(PendingData {
             sticky_record: None,
             sticky: None,
             rec,
@@ -15686,7 +15857,7 @@ mod tests {
             retry: 0,
             skip_meta_refresh: false,
             retry_after: now,
-        }
+        })
     }
 
     #[tokio::test(flavor = "current_thread")]
@@ -18157,6 +18328,7 @@ mod rediscover_stop_tests {
         let sticky_policy = cfg.partitioner.arc().unkeyed_batching_policy();
         let shared = Arc::new(Shared {
             cfg: cfg.clone(),
+            owned_records: None,
             cluster: parking_lot::Mutex::new(Cluster::default()),
             meta: Mutex::new(meta),
             txn: Mutex::new(None),
