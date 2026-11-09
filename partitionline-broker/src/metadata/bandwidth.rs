@@ -14,6 +14,9 @@ const MAX_THROTTLE_MILLIS: u32 = 60_000;
 /// resets its debt. The charge is the request header and body, excluding the
 /// four-byte frame prefix.
 ///
+/// Each connection's mute is capped while debt is shared. This does not enforce
+/// an instantaneous bandwidth limit or fairness among concurrent connections.
+///
 /// The actor samples time after processing the request (or its Produce batch)
 /// and sets an absolute resume deadline. Time spent delivering the reply and
 /// writing the response consumes that interval; the remaining pause after a
