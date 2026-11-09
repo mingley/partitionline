@@ -292,6 +292,23 @@ pub trait Handler: Send + Sync {
             })
         }
     }
+
+    /// Return a response and an optional absolute read-resumption deadline.
+    ///
+    /// Existing handlers default to no pause. A handler supplying a deadline
+    /// must also write any protocol-specific throttle field itself. The
+    /// transport writes the response promptly, performs no read-ahead during
+    /// the pause, and honors shutdown and authentication expiry.
+    fn exchange_with_control(
+        &self,
+        peer: &Peer,
+        request: Vec<u8>,
+        spare: Vec<u8>,
+    ) -> impl Future<Output = Result<ExchangeControl, Self::Error>> + Send {
+        async move {
+            self.exchange_request(peer, request, spare).await.map(ExchangeControl::new)
+        }
+    }
 }
 
 /// Response bytes plus storage the connection refills on the next request.
@@ -302,6 +319,32 @@ pub struct ExchangeOutcome {
     pub request: Vec<u8>,
     /// Response storage that was not used for `response`.
     pub spare: Vec<u8>,
+}
+
+/// A transport response plus an optional absolute read-resumption time.
+///
+/// Direct dispatchers must enforce the returned deadline before accepting
+/// another request on the same connection.
+pub struct ExchangeControl {
+    outcome: ExchangeOutcome,
+    resume_at: Option<std::time::Instant>,
+}
+
+impl ExchangeControl {
+    /// Return an ordinary response without a read pause.
+    pub fn new(outcome: ExchangeOutcome) -> Self {
+        Self { outcome, resume_at: None }
+    }
+
+    /// Return a response and a caller-enforced absolute read-resumption time.
+    pub fn with_resume_at(outcome: ExchangeOutcome, resume_at: std::time::Instant) -> Self {
+        Self { outcome, resume_at: Some(resume_at) }
+    }
+
+    /// Recover the response and the optional absolute read-resumption time.
+    pub fn into_parts(self) -> (ExchangeOutcome, Option<std::time::Instant>) {
+        (self.outcome, self.resume_at)
+    }
 }
 
 impl<F, Fut, E> Handler for F
@@ -1460,6 +1503,28 @@ async fn watch_disconnect<S: AsyncRead + Unpin>(
     }
 }
 
+// No reads or handler permits are held while paused. Authentication expiry
+// remains a separate absolute deadline; a revoked OIDC lease is handled by
+// the existing authorized wrapper around this future.
+async fn wait_for_resume(
+    resume_at: Option<std::time::Instant>,
+    authority: Option<Instant>,
+) -> Result<(), Exit> {
+    let Some(resume_at) = resume_at else { return Ok(()) };
+    let resume_at = Instant::from_std(resume_at);
+    if let Some(deadline) = authority {
+        if deadline <= resume_at {
+            tokio::time::sleep_until(deadline).await;
+            return Err(Exit::HandlerError);
+        }
+    }
+    tokio::time::sleep_until(resume_at).await;
+    if authority.is_some_and(|deadline| Instant::now() >= deadline) {
+        return Err(Exit::HandlerError);
+    }
+    Ok(())
+}
+
 async fn exchange<H: Handler, S: AsyncRead + AsyncWrite + Unpin>(
     mut socket: S,
     config: Config,
@@ -1545,11 +1610,11 @@ async fn exchange<H: Handler, S: AsyncRead + AsyncWrite + Unpin>(
                                 drop(permit);
                                 let mut request = dispatch_frame(request);
                                 wipe_credential(&mut request);
-                                return Ok(ExchangeOutcome {
+                                return Ok(ExchangeControl::new(ExchangeOutcome {
                                     response: Some(bytes),
                                     request,
                                     spare: response_buf,
-                                });
+                                }));
                             }
                             crate::security::session::Decision::Dispatch => {
                                 peer.identity = auth.identity();
@@ -1561,7 +1626,7 @@ async fn exchange<H: Handler, S: AsyncRead + AsyncWrite + Unpin>(
                         }
                     }
                     let outcome = handler
-                        .exchange_request(&peer, dispatch_frame(request), response_buf)
+                        .exchange_with_control(&peer, dispatch_frame(request), response_buf)
                         .await
                         .map_err(|_| Exit::HandlerError)?;
                     drop(permit);
@@ -1595,11 +1660,9 @@ async fn exchange<H: Handler, S: AsyncRead + AsyncWrite + Unpin>(
                 }
                 Err(exit) => return exit,
             };
+            let (outcome, resume_at) = outcome.into_parts();
             request_spare = park_request(outcome.request);
-            let Some(response) = outcome.response else {
-                response_spare = park_response(outcome.spare, Vec::new());
-                continue;
-            };
+            if let Some(response) = outcome.response {
             if response.len() > config.max_response_bytes {
                 return Exit::OversizedResponse;
             }
@@ -1623,7 +1686,7 @@ async fn exchange<H: Handler, S: AsyncRead + AsyncWrite + Unpin>(
             // fails during a write. The connection closes on error, allowing the
             // peer to detect the incomplete frame. Prefetch only when the
             // connection will stay open for another handler.
-            let prefetch = !close;
+            let prefetch = !close && resume_at.is_none();
             let write = write_and_prefetch(
                 &mut socket,
                 &response,
@@ -1645,8 +1708,21 @@ async fn exchange<H: Handler, S: AsyncRead + AsyncWrite + Unpin>(
                 }
                 peer.identity = auth.identity();
             }
+            } else {
+                response_spare = park_response(outcome.spare, Vec::new());
+            }
             if close {
                 return Exit::HandlerError;
+            }
+            #[cfg(feature = "sasl")]
+            let authority = auth.as_ref().and_then(|auth| auth.operation_deadline());
+            #[cfg(not(feature = "sasl"))]
+            let authority: Option<Instant> = None;
+            let pause = wait_for_resume(resume_at, authority);
+            #[cfg(feature = "oidc")]
+            let pause = authorized(auth.as_ref().and_then(|a| a.lease()), pause);
+            if let Err(exit) = pause.await {
+                return exit;
             }
         }
     }
