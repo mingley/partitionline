@@ -24,22 +24,25 @@ the current TLS and OIDC behavior.
 ## Validation
 
 The latest complete recorded snapshot is main commit
-`f1be3052aac5ec70a424ac951fe1189c27a31417`; the [CI record][ci] links
+`71c847f74bab5384ab614e1486b0dc4c7c893bef`; the [CI record][ci] links
 the individual runs and results. The current branch contains later changes.
 
-| Check at `f1be305` | Result |
+| Check at `71c847f` | Result |
 | --- | --- |
 | Client library, Linux default | 2,309 passed, 19 failed; later targets did not run. |
-| Client library, Linux all features | 2,315 passed, 13 failed; later targets did not run. |
-| Client library, Windows default | 2,310 passed, 18 failed; later runtime and package steps did not run. |
-| Client library, macOS arm64 default | 2,315 passed, 13 failed; later runtime and package steps did not run. |
+| Client library, Linux all features | 2,305 passed, 23 failed; later targets did not run. |
+| Client library, Windows default | 2,313 passed, 15 failed; later runtime and package steps did not run. |
+| Client library, macOS arm64 default | 2,320 passed, eight failed; later runtime and package steps did not run. |
 | Kafka compatibility | 4.1.2, 4.2.1 and 4.3.1 profiles failed; 3.9.1 and 4.1.0 smoke jobs failed. |
 | Resource-soak job | The driver and 11 short tests passed; no sustained campaign was completed. |
-| Broker default targets | 579 passed, two failed and four ignored across the targets reached; later targets did not run. |
-| Broker all-feature and strict checks | Not run after the default failure. Inventory and fuzz supervision passed separately. |
+| Broker targets | 814 default and 962 all-feature tests passed, with four ignored in each profile. |
+| Broker strict checks, inventory and fuzz supervision | Passed. |
 | Client capability profiles | Both selected profiles passed; their archives were not independently inspected. |
 | Client format, Clippy, audit, docs, package, auth and integrity smoke | Passed. Other jobs failed or were skipped. |
 | Instruction-count gate | No baseline for this Rust version; no regression comparison. |
+
+The [preceding broker run][ci-previous] stopped after 579 passes, two failures
+and four ignored across default targets. This later pass does not explain it.
 
 The [combined-head checks][combined] passed formatting, strict client checks,
 focused Admin, producer and broker transport tests in both feature profiles,
@@ -150,9 +153,9 @@ The [work plan][next] and its linked evidence track the outstanding work.
 The [previous detailed status][history] preserves earlier qualification
 results and experiments.
 
-[ci]: https://github.com/mingley/partitionline/blob/47938c4811e44972e7f8e9b014e553125bcba50a/docs/evidence/releases/main-ci-f1be-20261109/README.md
+[ci]: https://github.com/mingley/partitionline/blob/b78c9cfd89bd02a35ac04040ba9be43041cb0364/docs/evidence/releases/main-ci-71c-20261109/README.md
 [history]: https://github.com/mingley/partitionline/blob/dfe179d7066e2c1afecb88df5ba76d2920308c46/docs/STATUS.md
-[next]: https://github.com/mingley/partitionline/blob/47938c4811e44972e7f8e9b014e553125bcba50a/docs/plan/next-work.md
+[next]: https://github.com/mingley/partitionline/blob/b78c9cfd89bd02a35ac04040ba9be43041cb0364/docs/plan/next-work.md
 [tls]: https://github.com/mingley/partitionline/blob/e18186f0cb9c25393117fe41148ae5860f52a8a0/docs/evidence/security/tls-provider-assessment-20261108/README.md
 [owner-controls]: https://github.com/mingley/partitionline/blob/e18186f0cb9c25393117fe41148ae5860f52a8a0/docs/evidence/client/producer-ownership-regression-controls-20261108/README.md
 [owner-draft]: https://github.com/mingley/partitionline/blob/ed86c9c937dd3f5a7edb73858a6474b04073a827/docs/evidence/client/producer-owned-batch-rust-draft-20261108/README.md
@@ -186,3 +189,4 @@ results and experiments.
 [quota-candidate]: https://github.com/mingley/partitionline/blob/ad7d671c7cbfdc87dbf1c797b02c5ea9890f1808/docs/evidence/broker/produce-quota-candidate-20261109/README.md
 [json-balanced]: https://github.com/mingley/partitionline/blob/ad7d671c7cbfdc87dbf1c797b02c5ea9890f1808/docs/evidence/schema/json-balanced-index-20261109/README.md
 [json-incremental]: https://github.com/mingley/partitionline/blob/ad7d671c7cbfdc87dbf1c797b02c5ea9890f1808/docs/evidence/schema/json-incremental-index-20261109/README.md
+[ci-previous]: https://github.com/mingley/partitionline/blob/b78c9cfd89bd02a35ac04040ba9be43041cb0364/docs/evidence/releases/main-ci-f1be-20261109/README.md
