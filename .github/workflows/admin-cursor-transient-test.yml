@@ -1,0 +1,83 @@
+name: Qualify permanent transient Admin cursor test
+on:
+  push:
+    branches: [qualification/admin-cursor-transient-test-20261109]
+permissions:
+  contents: read
+jobs:
+  format:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+      - name: Format and export test suffix
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD:src/admin.rs)" = e6c9899f3c645023782a9a33531665e3ef4b741c
+          test "$(git rev-parse HEAD:src/admin/pagination_tests.rs)" = d497709daffaa1cae3e6cd328aa0848a41c91567
+          rustc -Vv
+          cargo fmt --all
+          test "$(git hash-object src/admin.rs)" = e6c9899f3c645023782a9a33531665e3ef4b741c
+          git hash-object src/admin/pagination_tests.rs
+          cargo fmt --all -- --check
+          python3 - <<'PY'
+          from pathlib import Path
+          s=Path("src/admin/pagination_tests.rs").read_text()
+          marker="// A repeated cursor can be transient when pages do not form a snapshot."
+          print("CURSOR_SUFFIX_BEGIN")
+          for line in s[s.index(marker):].splitlines():
+              print("CURSOR_SUFFIX_LINE " + line)
+          print("CURSOR_SUFFIX_END")
+          PY
+  behavior:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      matrix:
+        feature: [default, all]
+    env:
+      CARGO_INCREMENTAL: '0'
+      CARGO_TERM_COLOR: never
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+      - name: Test formatted candidate
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD:src/admin.rs)" = e6c9899f3c645023782a9a33531665e3ef4b741c
+          test "$(git rev-parse HEAD:src/admin/pagination_tests.rs)" = d497709daffaa1cae3e6cd328aa0848a41c91567
+          cargo fmt --all
+          git hash-object src/admin.rs src/admin/pagination_tests.rs
+          rustc -Vv
+          if test "${{ matrix.feature }}" = all; then flags=--all-features; else flags=; fi
+          cargo test --locked $flags --lib admin::pagination_tests:: -- --test-threads=1
+  strict:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    env:
+      CARGO_INCREMENTAL: '0'
+      CARGO_TERM_COLOR: never
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt,clippy
+      - name: Format exact candidate
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD:src/admin.rs)" = e6c9899f3c645023782a9a33531665e3ef4b741c
+          test "$(git rev-parse HEAD:src/admin/pagination_tests.rs)" = d497709daffaa1cae3e6cd328aa0848a41c91567
+          cargo fmt --all
+          git hash-object src/admin.rs src/admin/pagination_tests.rs
+      - run: cargo clippy --locked --all-targets --all-features -- -D warnings
+      - name: Strict Rustdoc
+        if: always()
+        env:
+          RUSTDOCFLAGS: '-D warnings'
+        run: cargo doc --locked --all-features --no-deps
