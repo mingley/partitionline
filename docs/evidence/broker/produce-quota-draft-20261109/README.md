@@ -30,7 +30,7 @@ metadata did not identify a cause. Neither run compiled or tested the code.
 used a single pinned Ubuntu 24.04 job scaffold, but also ended in failure with
 zero jobs. Its cause is not established, and it did not compile or test the
 code. No live Kafka, socket, grouped-accounting, authentication-expiry,
-shutdown, or comparative performance check has passed.
+shutdown, or comparative performance check has passed on the draft.
 
 ## Blockers
 

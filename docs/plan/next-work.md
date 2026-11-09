@@ -77,8 +77,10 @@ Produce wire quotas are not implemented.
 A [seeded stale-generation rollback control](../evidence/client/producer-stale-rollback-20261109/README.md)
 showed a prior-generation record rewinding a current-generation counter before
 a public mock send. The seeded state is not a natural identity-transition or
-real-Kafka history. A narrow guard remains isolated; identity/write fencing,
-partial-stamping cancellation and sequence progress are still open.
+real-Kafka history. A [narrow guard experiment](../evidence/client/producer-sequence-guard-20261109/README.md)
+passed selected controls but failed formatting and Clippy; it remains
+unapplied. Identity/write fencing, partial-stamping cancellation, rollover
+and sequence progress are still open.
 
 A [producer socket trace](../evidence/client/producer-cold-handshake-20261109/README.md)
 confirmed separate metadata and Produce sessions in a loopback mock. A
@@ -90,6 +92,16 @@ An [isolated Produce quota draft](../evidence/broker/produce-quota-draft-2026110
 remains uncompiled after three no-job workflow failures. Its handler-supplied
 resume deadline is unbounded, and actor accounting, wire, authentication and
 shutdown behavior remain unqualified. The draft is not applied.
+
+A later [broker workflow](../evidence/releases/main-ci-0bed-partial-20261109/README.md)
+on `0bed184` concluded failure. Its available job list showed successful
+broker behavioral and inventory jobs, but did not list the fuzz-supervision
+job; the cause is unknown. The behavioral job passed 814 default and 962
+all-feature tests, with four ignored in each profile. The capability workflow
+also concluded failure with only its successful default job listed; its
+all-feature job was absent. The client workflow listed 13 successes and nine
+failures, with six jobs from the preceding full run absent. A separate package
+documentation check passed on that source.
 
 The latest complete recorded main [CI snapshot](../evidence/releases/main-ci-a7b6-20261109/README.md)
 is `a7b6edc1645e3a4789cf699a3b9e7656c55a3d10`. Client libraries reported
