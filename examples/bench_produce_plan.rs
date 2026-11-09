@@ -56,7 +56,7 @@ fn topics(shape: Shape) -> Vec<ProduceTopicData> {
             records.push(Record {
                 offset: i as i64, timestamp: (i % 31) as i64,
                 key: match i % 3 { 0 => None, 1 => Some(Bytes::new()), _ => Some(data(i, 16)) },
-                value: if i % 7 == 0 { None } else { Some(data(i, shape.value)) }, headers,
+                value: if i != 0 && i % 7 == 0 { None } else { Some(data(i, shape.value)) }, headers,
             });
         }
         let mut batch = RecordBatch::from_records(records);
@@ -228,7 +228,7 @@ fn bench(shape: Shape, iterations: u64, runtime: &tokio::runtime::Runtime) -> Re
     for _ in 0..iterations {
         if shape.cold { dst = BytesMut::new(); } else { dst.clear(); }
         encode(shape, &mut dst, black_box(&topics), black_box(&identities), runtime)?;
-        black_box(&dst);
+        let _ = black_box(&dst);
     }
     Ok(begin.elapsed().as_nanos())
 }
