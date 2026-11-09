@@ -2211,7 +2211,13 @@ mod tests {
     async fn bodyless_final_responses_do_not_wait_for_connection_close() {
         for code in [101, 204, 304] {
             let (mut writer, mut reader) = tokio::io::duplex(1024);
-            let wire = format!("HTTP/1.1 {code} Status\r\n\r\n");
+            // A 304 Content-Length describes the selected representation,
+            // not a response body, and must not trigger the body-size limit.
+            let wire = if code == 304 {
+                format!("HTTP/1.1 {code} Status\r\nContent-Length: 99999\r\n\r\n")
+            } else {
+                format!("HTTP/1.1 {code} Status\r\n\r\n")
+            };
             writer.write_all(wire.as_bytes()).await.unwrap();
             let response = timeout(
                 Duration::from_millis(250),
@@ -2233,11 +2239,13 @@ mod tests {
             &b"HTTP/1.1 200 OK\r\nTransfer-Encoding: chunked, gzip\r\n\r\n"[..],
             &b"HTTP/1.1 200 OK\r\nTransfer-Encoding: chunked, chunked\r\n\r\n"[..],
             &b"HTTP/1.1 200 OK\r\nTransfer-Encoding: chunked\r\nTransfer-Encoding: gzip\r\n\r\n"[..],
+            &b"HTTP/1.1 200 OK\r\nTransfer-Encoding: chunked\r\nTransfer-Encoding: Chunked\r\n\r\n"[..],
+            &b"HTTP/1.1 200 OK\r\nTransfer-Encoding: gzip\r\nTransfer-Encoding: chunked\r\n\r\n"[..],
             &b"HTTP/1.1 200 OK\r\nTransfer-Encoding: chunked,\r\n\r\n"[..],
         ] {
             assert!(matches!(is_chunked(head), Err(RegistryError::Malformed { .. })));
         }
-        assert!(is_chunked(b"HTTP/1.1 200 OK\r\nTransfer-Encoding: CHUNKED\r\n\r\n").unwrap());
+        assert!(is_chunked(b"HTTP/1.1 200 OK\r\ntRaNsFeR-EnCoDiNg: \tCHUNKED \t\r\n\r\n").unwrap());
         assert!(!is_chunked(b"HTTP/1.1 200 OK\r\nContent-Length: 2\r\n\r\n").unwrap());
     }
 

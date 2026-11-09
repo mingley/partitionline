@@ -71,3 +71,13 @@ async fn unsupported_transfer_coding_is_not_silently_accepted() {
     let result = client_for(wire).await.get_schema_by_id(7).await;
     assert!(matches!(result, Err(RegistryError::Malformed { .. })), "{result:?}");
 }
+
+#[tokio::test]
+async fn switching_protocols_returns_unsupported_status() {
+    let wire = b"HTTP/1.1 101 Switching Protocols\r\nUpgrade: example\r\nConnection: Upgrade\r\n\r\nHTTP/1.1 200 OK\r\nContent-Length: 15\r\n\r\n{\"schema\":\"ok\"}".to_vec();
+    let result = client_for(wire).await.get_schema_by_id(7).await;
+    assert!(matches!(
+        result,
+        Err(RegistryError::UnexpectedStatus { status: 101 })
+    ));
+}
