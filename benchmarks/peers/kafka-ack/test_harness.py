@@ -46,6 +46,13 @@ class SamplerTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "incomplete"):
                 check_sample.load_complete_sample(name)
 
+    def test_inaccessible_descriptor_is_not_skipped(self):
+        with mock.patch.object(sampler.Path, "iterdir", return_value=[Path("/synthetic/fd/1")]), \
+             mock.patch.object(sampler.os, "readlink", side_effect=PermissionError("synthetic fd denial")) as read:
+            with self.assertRaises(PermissionError):
+                sampler.sockets(42, 19092)
+        self.assertEqual(read.call_count, 1)
+
     def test_permission_error_checking_pid_preserves_prior_sample(self):
         with tempfile.TemporaryDirectory() as name:
             output = Path(name) / "sockets.json"
