@@ -10,6 +10,11 @@ const MAX_THROTTLE_MILLIS: u32 = 60_000;
 /// router, not Kafka's per-user or per-client quota. Restarting the router
 /// resets its debt. The charge is the request header and body, excluding the
 /// four-byte frame prefix.
+///
+/// The actor samples time after processing the request (or its Produce batch)
+/// and sets an absolute resume deadline. Time spent delivering the reply and
+/// writing the response consumes that interval; the remaining pause after a
+/// response may be shorter than the advertised throttle or already elapsed.
 #[derive(Debug, Clone, Copy)]
 pub struct ProduceQuota {
     rate: u64,

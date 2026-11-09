@@ -125,6 +125,7 @@ struct Observe {
     inner: Arc<QuotaRouter>,
     started: mpsc::UnboundedSender<(i16, Instant)>,
     deadlines: mpsc::UnboundedSender<Option<Instant>>,
+    delay_delivery: bool,
 }
 
 impl Handler for Observe {
@@ -141,6 +142,13 @@ impl Handler for Observe {
         let (outcome, resume_at) = control.into_parts();
         if key == 0 {
             let _ = self.deadlines.send(resume_at);
+            if self.delay_delivery {
+                if let Some(until) = resume_at {
+                    tokio::time::sleep_until(
+                        tokio::time::Instant::from_std(until) + Duration::from_millis(50)
+                    ).await;
+                }
+            }
         }
         match resume_at {
             Some(until) => ExchangeControl::with_resume_at(outcome, until)
@@ -151,11 +159,11 @@ impl Handler for Observe {
 }
 
 fn observing(
-    router: &Arc<QuotaRouter>,
+    router: &Arc<QuotaRouter>, delay_delivery: bool,
 ) -> (Arc<Observe>, mpsc::UnboundedReceiver<(i16, Instant)>, mpsc::UnboundedReceiver<Option<Instant>>) {
     let (started, started_rx) = mpsc::unbounded_channel();
     let (deadlines, deadlines_rx) = mpsc::unbounded_channel();
-    (Arc::new(Observe { inner: Arc::clone(router), started, deadlines }), started_rx, deadlines_rx)
+    (Arc::new(Observe { inner: Arc::clone(router), started, deadlines, delay_delivery }), started_rx, deadlines_rx)
 }
 
 async fn started_request(
@@ -201,7 +209,7 @@ async fn receive_after_mute(socket: &mut TcpStream, deadline: Instant) -> Result
 async fn acks_zero_mutes_a_pipelined_request_then_resumes() -> Result {
     let root = scratch()?;
     let router = Arc::new(open(&root, 1_500).await?);
-    let (handler, mut started, mut deadlines) = observing(&router);
+    let (handler, mut started, mut deadlines) = observing(&router, false);
     let mut transport = Transport::bind(([127,0,0,1], 0).into(), transport::Config::default(), handler).await?;
     let mut socket = TcpStream::connect(transport.local_addr()).await?;
     send(&mut socket, &fixture("produce-v3-acks0", "request")?).await?;
@@ -221,7 +229,7 @@ async fn acks_zero_mutes_a_pipelined_request_then_resumes() -> Result {
 async fn throttle_response_is_prompt_and_pipelined_response_follows_resume() -> Result {
     let root = scratch()?;
     let router = Arc::new(open(&root, 1_500).await?);
-    let (handler, mut started, mut deadlines) = observing(&router);
+    let (handler, mut started, mut deadlines) = observing(&router, false);
     let mut transport = Transport::bind(([127,0,0,1], 0).into(), transport::Config::default(), handler).await?;
     let mut socket = TcpStream::connect(transport.local_addr()).await?;
     send(&mut socket, &fixture("produce-v6-acks1", "request")?).await?;
@@ -243,7 +251,7 @@ async fn throttle_response_is_prompt_and_pipelined_response_follows_resume() -> 
 async fn shutdown_interrupts_a_muted_connection() -> Result {
     let root = scratch()?;
     let router = Arc::new(open(&root, 3_000).await?);
-    let (handler, mut started, mut deadlines) = observing(&router);
+    let (handler, mut started, mut deadlines) = observing(&router, false);
     let mut transport = Transport::bind(([127,0,0,1], 0).into(), transport::Config::default(), handler).await?;
     let mut socket = TcpStream::connect(transport.local_addr()).await?;
     send(&mut socket, &fixture("produce-v6-acks1", "request")?).await?;
@@ -269,6 +277,30 @@ async fn shutdown_interrupts_a_muted_connection() -> Result {
         Ok(_) => return Err("unexpected response after shutdown".into()),
         Err(error) => return Err(error.into()),
     }
+    router.shutdown().await?;
+    fs::remove_dir_all(root)?;
+    Ok(())
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn delayed_reply_delivery_consumes_the_absolute_pause() -> Result {
+    let root = scratch()?;
+    let router = Arc::new(open(&root, 1_500).await?);
+    let (handler, mut started, mut deadlines) = observing(&router, true);
+    let mut transport = Transport::bind(([127,0,0,1], 0).into(), transport::Config::default(), handler).await?;
+    let mut socket = TcpStream::connect(transport.local_addr()).await?;
+    send(&mut socket, &fixture("produce-v6-acks1", "request")?).await?;
+    started_request(&mut started, 0).await?;
+    let deadline = produce_deadline(&mut deadlines).await?;
+    assert!(deadline.saturating_duration_since(Instant::now()) >= Duration::from_millis(500));
+    let response = tokio::time::timeout(Duration::from_secs(3), receive(&mut socket)).await??;
+    assert!(Instant::now() >= deadline, "the reply was not delayed through its deadline");
+    assert_eq!(i32::from_be_bytes(response[response.len()-4..].try_into()?), 1_500);
+    send(&mut socket, &metadata_request()).await?;
+    let response = tokio::time::timeout(Duration::from_millis(750), receive(&mut socket)).await??;
+    assert_eq!(&response[..4], &77i32.to_be_bytes());
+    assert!(started_request(&mut started, 3).await? >= deadline);
+    transport.shutdown().await?;
     router.shutdown().await?;
     fs::remove_dir_all(root)?;
     Ok(())

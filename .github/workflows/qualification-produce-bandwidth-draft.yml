@@ -24,9 +24,9 @@ jobs:
           set -euo pipefail
           test "$(git rev-parse HEAD:partitionline-broker/src/metadata.rs)" = e4fd2fb01a521ee5620b7da4eeafb0cc48c6de08
           test "$(git rev-parse HEAD:partitionline-broker/src/produce.rs)" = 1e3c33b71e02c5e3abf749f2c390201c26037faf
-          test "$(git rev-parse HEAD:partitionline-broker/src/transport.rs)" = db3cfc6883b83d5f23ced809a7208bdc0f731794
-          test "$(git rev-parse HEAD:partitionline-broker/src/metadata/bandwidth.rs)" = e575c8f49d71a3784099b6f42d0f23d310e3e691
-          test "$(git rev-parse HEAD:partitionline-broker/tests/produce_quota.rs)" = faf79f13aaf7a2852a9aa7316c1db44742d31d12
+          test "$(git rev-parse HEAD:partitionline-broker/src/transport.rs)" = 716224559aff2b10819ecd05d6d67bfd2a5483ca
+          test "$(git rev-parse HEAD:partitionline-broker/src/metadata/bandwidth.rs)" = 4bee5c86adbf4e82609428fcdcf09e7e43ee0885
+          test "$(git rev-parse HEAD:partitionline-broker/tests/produce_quota.rs)" = 0e4d8269eee157cf337d5e31934c874c0908212c
           test "$(git rev-parse HEAD:partitionline-broker/Cargo.lock)" = 19652acd96b929402b1e4a9394a33d12a7e69449
           rustc -Vv
           sha256sum partitionline-broker/src/metadata.rs partitionline-broker/src/produce.rs partitionline-broker/src/transport.rs partitionline-broker/src/metadata/bandwidth.rs partitionline-broker/tests/produce_quota.rs partitionline-broker/Cargo.lock

@@ -1872,6 +1872,79 @@ mod bounded_control_tests {
         assert_eq!(report.joined_connections, 1);
         Ok(())
     }
+    struct BlockedWriteHandler {
+        calls: std::sync::atomic::AtomicUsize,
+        deadlines: tokio::sync::mpsc::UnboundedSender<std::time::Instant>,
+    }
+
+    impl Handler for BlockedWriteHandler {
+        type Error = io::Error;
+        async fn handle(&self, _request: Vec<u8>) -> Result<Option<Vec<u8>>, io::Error> {
+            Err(io::Error::other("control required"))
+        }
+        async fn exchange_with_control(
+            &self, _peer: &Peer, request: Vec<u8>, spare: Vec<u8>,
+        ) -> Result<ExchangeControl, io::Error> {
+            let call = self.calls.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+            if call == 0 {
+                let until = std::time::Instant::now().checked_add(Duration::from_secs(2))
+                    .ok_or_else(|| io::Error::other("instant overflow"))?;
+                let _ = self.deadlines.send(until);
+                let outcome = ExchangeOutcome { response: Some(vec![42; 256]), request, spare };
+                ExchangeControl::with_resume_at(outcome, until).map_err(io::Error::other)
+            } else {
+                Ok(ExchangeControl::new(ExchangeOutcome {
+                    response: Some(b"ok".to_vec()), request, spare,
+                }))
+            }
+        }
+    }
+
+    #[tokio::test]
+    async fn a_blocked_response_write_consumes_the_absolute_pause(
+    ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+        let (mut client, server) = tokio::io::duplex(64);
+        let (deadlines, mut observed) = tokio::sync::mpsc::unbounded_channel();
+        let handler = Arc::new(BlockedWriteHandler {
+            calls: std::sync::atomic::AtomicUsize::new(0), deadlines,
+        });
+        let peer = Peer {
+            address: "127.0.0.1:9".parse()?,
+            #[cfg(feature = "sasl")]
+            identity: None,
+            #[cfg(feature = "tls")]
+            tls: None,
+        };
+        let worker = tokio::spawn(super::exchange(
+            server, super::Config::default(), handler,
+            Arc::new(tokio::sync::Semaphore::new(1)), peer,
+            #[cfg(feature = "sasl")]
+            None,
+        ));
+        client.write_all(&1i32.to_be_bytes()).await?;
+        client.write_all(b"a").await?;
+        let until = tokio::time::timeout(Duration::from_secs(3), observed.recv())
+            .await?.ok_or("handler did not return a deadline")?;
+        // The response cannot fit in the 64-byte duplex buffer. Leave it
+        // blocked in the write until after the absolute deadline.
+        tokio::time::sleep_until(tokio::time::Instant::from_std(until) + Duration::from_millis(50)).await;
+        let size = tokio::time::timeout(Duration::from_secs(1), client.read_i32()).await??;
+        assert_eq!(size, 256);
+        let mut response = vec![0u8; usize::try_from(size)?];
+        client.read_exact(&mut response).await?;
+        assert!(response.iter().all(|byte| *byte == 42));
+        client.write_all(&1i32.to_be_bytes()).await?;
+        client.write_all(b"b").await?;
+        let size = tokio::time::timeout(Duration::from_millis(750), client.read_i32()).await??;
+        assert_eq!(size, 2);
+        let mut second = [0u8; 2];
+        client.read_exact(&mut second).await?;
+        assert_eq!(&second, b"ok");
+        drop(client);
+        let _ = tokio::time::timeout(Duration::from_secs(1), worker).await??;
+        Ok(())
+    }
+
 }
 
 #[cfg(test)]
