@@ -16,7 +16,7 @@ jobs:
         run: |
           set -euo pipefail
           rustc -Vv
-          git rev-parse HEAD^
+          git rev-parse HEAD
           cargo fmt --manifest-path partitionline-schema/Cargo.toml
           echo PL_FMT_DIFF_BEGIN
           git diff -- partitionline-schema/src/registry.rs
