@@ -10564,6 +10564,76 @@ async fn sequences_already_assigned(pendings: &[Pending]) -> bool {
     true
 }
 
+/// Test-only gate at an existing sequence-stamping yield.
+#[cfg(sequence_owner_witness)]
+#[doc(hidden)]
+pub mod sequence_owner_witness {
+    use std::sync::atomic::{AtomicBool, AtomicI32, AtomicUsize, Ordering};
+    use tokio::sync::Notify;
+
+    static ARMED: AtomicBool = AtomicBool::new(false);
+    static BASE: AtomicI32 = AtomicI32::new(-1);
+    static COUNT: AtomicUsize = AtomicUsize::new(0);
+    static STAMPED: AtomicUsize = AtomicUsize::new(0);
+    static STAMPS_VALID: AtomicBool = AtomicBool::new(false);
+    static REACHED: Notify = Notify::const_new();
+    static RELEASE: Notify = Notify::const_new();
+
+    /// Arm the next sequence-stamping yield.
+    pub fn arm() {
+        ARMED.store(true, Ordering::SeqCst);
+    }
+
+    /// Wait until the real worker reaches the armed yield.
+    pub async fn reached() {
+        REACHED.notified().await;
+    }
+
+    /// Return the base, batch length, visited count and prefix/tail validation.
+    pub fn snapshot() -> (i32, usize, usize, bool) {
+        (
+            BASE.load(Ordering::SeqCst),
+            COUNT.load(Ordering::SeqCst),
+            STAMPED.load(Ordering::SeqCst),
+            STAMPS_VALID.load(Ordering::SeqCst),
+        )
+    }
+
+    /// Resume the worker.
+    pub fn release() {
+        RELEASE.notify_one();
+    }
+
+    pub(super) async fn pause_at_stamp_yield(
+        base: i32,
+        count: usize,
+        stamped: usize,
+        pendings: &[super::Pending],
+    ) {
+        if ARMED.swap(false, Ordering::SeqCst) {
+            let valid = pendings.iter().enumerate().all(|(index, pending)| {
+                if index < stamped {
+                    let expected = i32::try_from(index)
+                        .ok()
+                        .and_then(|offset| base.checked_add(offset));
+                    expected.is_some()
+                        && pending.seq == expected
+                        && pending.batch_base_seq == Some(base)
+                        && pending.batch_len == count
+                } else {
+                    pending.seq.is_none() && pending.batch_base_seq.is_none()
+                }
+            });
+            STAMPS_VALID.store(valid, Ordering::SeqCst);
+            BASE.store(base, Ordering::SeqCst);
+            COUNT.store(count, Ordering::SeqCst);
+            STAMPED.store(stamped, Ordering::SeqCst);
+            REACHED.notify_one();
+            RELEASE.notified().await;
+        }
+    }
+}
+
 async fn stamp_sequences(pendings: &mut [Pending], base: i32) {
     let count = pendings.len();
     let mut index = 0usize;
@@ -10580,6 +10650,8 @@ async fn stamp_sequences(pendings: &mut [Pending], base: i32) {
         walked = walked.saturating_add(1);
         if walked == 8 * 1024 {
             walked = 0;
+            #[cfg(sequence_owner_witness)]
+            sequence_owner_witness::pause_at_stamp_yield(base, count, index, pendings).await;
             tokio::task::yield_now().await;
         }
     }

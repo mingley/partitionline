@@ -1,0 +1,61 @@
+name: Bounded producer ownership witness
+
+on:
+  push:
+    branches: [qualification/producer-owner-witness-20261109]
+
+permissions:
+  contents: read
+
+jobs:
+  controls:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      RUSTFLAGS: "--cfg sequence_owner_witness --check-cfg=cfg(sequence_owner_witness)"
+      CARGO_BUILD_JOBS: "2"
+      CARGO_INCREMENTAL: "0"
+      CARGO_PROFILE_TEST_DEBUG: "0"
+      CARGO_TERM_COLOR: never
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          sparse-checkout: |
+            .cargo
+            src
+            tests
+            examples
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Identify instrumented source and exercise public controls
+        shell: bash
+        run: |
+          set -uo pipefail
+          rustc -Vv
+          git rev-parse HEAD
+          git hash-object src/producer.rs src/producer/owned.rs tests/producer_ownership_regression_public.rs tests/sequence_ownership_public.rs tests/common/mod.rs
+          sha256sum src/producer.rs src/producer/owned.rs tests/producer_ownership_regression_public.rs tests/sequence_ownership_public.rs tests/common/mod.rs Cargo.lock
+          failures=0
+          check() {
+            printf '\nCHECK: %s\n' "$*"
+            if "$@"; then
+              printf 'CHECK_RESULT=pass\n'
+            else
+              code=$?
+              printf 'CHECK_RESULT=fail:%s\n' "$code"
+              failures=$((failures + 1))
+            fi
+          }
+          for profile in default all; do
+            flags=()
+            if [[ "$profile" == all ]]; then flags+=(--all-features); fi
+            printf '\nPROFILE: %s\n' "$profile"
+            check timeout 180 env PL_SEQUENCE_MODE=resume cargo test --locked "${flags[@]}" --test sequence_ownership_public public_batch_sequence_worker_cancellation -- --exact --nocapture
+            for action in abort close; do
+              for admission in mixed all; do
+                check timeout 180 env PL_OWNER_CASE="$action" PL_ADMISSION="$admission" cargo test --locked "${flags[@]}" --test producer_ownership_regression_public accepted_records_settle_after_worker_cancellation -- --exact --nocapture
+              done
+            done
+          done
+          printf '\nFAILED_COMMANDS=%s\n' "$failures"
+          test "$failures" -eq 0
