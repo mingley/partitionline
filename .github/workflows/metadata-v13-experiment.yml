@@ -91,7 +91,11 @@ jobs:
           cargo test --locked --all-features --test metadata_wire_conformance metadata_v13_committed_corpus -- --exact
       - name: Offline corpus in the packed crate
         run: |
-          cargo package --locked --allow-dirty --no-verify
+          if test -n "$(git status --porcelain)"; then
+            git status --short
+            exit 1
+          fi
+          cargo package --locked --no-verify
           crate_stem=$(python3 -c 'import json,subprocess; m=json.loads(subprocess.check_output(["cargo","metadata","--no-deps","--format-version","1"])); p=next(p for p in m["packages"] if p["name"]=="partitionline"); print(p["name"]+"-"+p["version"])')
           package_dir="$RUNNER_TEMP/metadata-v13-package"
           mkdir -p "$package_dir"

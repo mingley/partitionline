@@ -55,9 +55,17 @@ already-exited parent with a TERM-resistant descendant, escalated to KILL and
 observed the process group gone. The readiness handshake had a separate
 bounded deadline.
 
-The follow-up adds an ordinary offline Rust test and verifies its execution
-from the packaged crate; those changed sources require a separate run. The
-runner checks its owned process groups without reading `/proc` and escalates
-from TERM to KILL on timeout. A process that escapes its group, permission
-errors, kernel failures or abrupt termination of the runner can prevent
-cleanup from being proved.
+The [sixth run](https://github.com/mingley/partitionline/actions/runs/42705755662)
+on `9c267881c7e02cd7699e684db8651b90d903d80c` passed the peer matrix, both
+timeout controls, formatting and strict test-target Clippy. The ordinary
+offline test passed once in each of the default and all-feature profiles in
+the checkout and in the extracted crate. This run packaged with
+`--no-verify --allow-dirty`. The workflow now requires a clean checkout and
+uses `cargo package --locked --no-verify`, then runs only those two targeted
+extracted-crate tests. The changed packaging command requires a separate run;
+neither result is a full package or release gate.
+
+The runner checks its owned process groups without reading `/proc` and
+escalates from TERM to KILL on timeout. A process that escapes its group,
+permission errors, kernel failures or abrupt termination of the runner can
+prevent cleanup from being proved.
