@@ -1,0 +1,50 @@
+name: Registry balanced JSON object comparison
+on:
+  push:
+    branches: [qualification/schema-json-tree-perf-20261109]
+permissions:
+  contents: read
+jobs:
+  compare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Compile pinned sources independently
+        shell: bash
+        run: |
+          set -euo pipefail
+          rustc -Vv
+          cargo -V
+          uname -a
+          lscpu
+          git hash-object partitionline-schema/Cargo.toml partitionline-schema/Cargo.lock
+          for implementation in baseline candidate; do
+            case "$implementation" in
+              baseline) expected=0824e39cc48e2943f1cc4d8f9d513b3880a43df9 ;;
+              candidate) expected=7040f88cad2b823a7d5bcdcb2bb6db1463609f05 ;;
+            esac
+            cp ".qualification/json-tree-$implementation.rs" partitionline-schema/src/registry.rs
+            test "$(git hash-object partitionline-schema/src/registry.rs)" = "$expected"
+            sha256sum partitionline-schema/src/registry.rs
+            CARGO_TARGET_DIR="$RUNNER_TEMP/json-tree-target-$implementation" cargo test --manifest-path partitionline-schema/Cargo.toml --locked --release --no-default-features --features registry --lib --no-run
+            find "$RUNNER_TEMP/json-tree-target-$implementation/release/deps" -maxdepth 1 -type f -name 'partitionline_schema-*' -executable -exec cp {} "$RUNNER_TEMP/json-tree-$implementation" \;
+          done
+          sha256sum "$RUNNER_TEMP/json-tree-baseline" "$RUNNER_TEMP/json-tree-candidate"
+      - name: Alternating parse samples
+        shell: bash
+        run: |
+          set -euo pipefail
+          cpu=$(python3 -c 'import os; print(min(os.sched_getaffinity(0)))')
+          echo "Pinned CPU $cpu"
+          for implementation in baseline candidate; do
+            taskset -c "$cpu" "$RUNNER_TEMP/json-tree-$implementation" --ignored --exact registry::tests::json_tree_qualification_bench --nocapture
+          done
+          for pair in $(seq 1 12); do
+            if ((pair % 2)); then order="baseline candidate"; else order="candidate baseline"; fi
+            for implementation in $order; do
+              echo "PL_PAIR pair=$pair implementation=$implementation"
+              taskset -c "$cpu" "$RUNNER_TEMP/json-tree-$implementation" --ignored --exact registry::tests::json_tree_qualification_bench --nocapture
+            done
+          done
