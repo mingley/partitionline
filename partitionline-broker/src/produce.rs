@@ -1566,6 +1566,7 @@ struct CapturedProduce {
     pending_sync: List<PendingSync>,
 }
 /// A response and the position of the writer-owned throttle field.
+#[derive(Debug)]
 pub(crate) struct Produced {
     pub(crate) response: Option<Vec<u8>>,
     pub(crate) throttle_at: Option<usize>,
