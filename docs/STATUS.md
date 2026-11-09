@@ -66,7 +66,10 @@ controls and schema feature profiles passed; no live registry was tested. The
 [incremental HTTP reader][schema-http] now bounds decoded bodies and framing
 separately, enforces the header limit, and avoids reparsing prior chunks. Its
 schema profiles and strict checks passed; live Registry and TLS interoperability
-remain untested. Synchronous JSON duplicate-key checks can still be quadratic.
+remain untested. A further [HTTP response fix][schema-responses] handles
+informational and bodyless responses and rejects unsupported transfer codings;
+its mock controls and all three schema profiles passed. Synchronous JSON
+duplicate-key checks can still be quadratic.
 
 Earlier broker suites sometimes failed in integration or Raft tests. Later
 passes do not establish their causes. The [previous detailed status][history]
@@ -165,7 +168,7 @@ results and experiments.
 
 [ci]: https://github.com/mingley/partitionline/blob/7cfe6afd22d4099e602365e8a71428913eecf567/docs/evidence/releases/main-ci-669-20261109/README.md
 [history]: https://github.com/mingley/partitionline/blob/dfe179d7066e2c1afecb88df5ba76d2920308c46/docs/STATUS.md
-[next]: https://github.com/mingley/partitionline/blob/4664aa3fc47f719a726e049535bdf48b8453094b/docs/plan/next-work.md
+[next]: https://github.com/mingley/partitionline/blob/b54eda17ca32a200345a983b76d063be76c7b048/docs/plan/next-work.md
 [tls]: https://github.com/mingley/partitionline/blob/e18186f0cb9c25393117fe41148ae5860f52a8a0/docs/evidence/security/tls-provider-assessment-20261108/README.md
 [owner-controls]: https://github.com/mingley/partitionline/blob/e18186f0cb9c25393117fe41148ae5860f52a8a0/docs/evidence/client/producer-ownership-regression-controls-20261108/README.md
 [owner-draft]: https://github.com/mingley/partitionline/blob/ed86c9c937dd3f5a7edb73858a6474b04073a827/docs/evidence/client/producer-owned-batch-rust-draft-20261108/README.md
@@ -207,3 +210,5 @@ results and experiments.
 [offer-model]: https://github.com/mingley/partitionline/blob/f7c5d78d49333a754699af1cbb10fcaba1bcce74/docs/evidence/client/producer-offer-fence-model-20261109/README.md
 
 [bench-validator]: https://github.com/mingley/partitionline/blob/4664aa3fc47f719a726e049535bdf48b8453094b/docs/evidence/perf/benchmark-report-validation-20261109/README.md
+
+[schema-responses]: https://github.com/mingley/partitionline/blob/b54eda17ca32a200345a983b76d063be76c7b048/docs/evidence/schema/http-response-semantics-20261109/README.md
