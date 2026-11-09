@@ -1,0 +1,36 @@
+name: Producer offer journal model
+on:
+  push:
+    branches:
+      - qualification/producer-offer-fence-20261109
+permissions:
+  contents: read
+jobs:
+  controls:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - name: Record toolchain and inputs
+        run: |
+          rustc -Vv
+          git rev-parse HEAD
+          git hash-object experiments/producer-offer-journal/Cargo.toml
+          git hash-object experiments/producer-offer-journal/src/lib.rs
+      - name: Run controls
+        run: cargo test --locked --manifest-path experiments/producer-offer-journal/Cargo.toml
+      - name: Check formatting
+        if: always()
+        run: |
+          cargo fmt --manifest-path experiments/producer-offer-journal/Cargo.toml
+          if ! git diff --quiet -- experiments/producer-offer-journal/src/lib.rs; then
+            printf 'FORMATTED_LIB='
+            base64 -w0 experiments/producer-offer-journal/src/lib.rs
+            printf '\n'
+            exit 1
+          fi
+      - name: Check clippy
+        if: always()
+        run: cargo clippy --locked --manifest-path experiments/producer-offer-journal/Cargo.toml --all-targets -- -D warnings
